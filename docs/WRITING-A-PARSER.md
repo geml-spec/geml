@@ -71,7 +71,7 @@ Each step maps to a spec section and what tests it. Do them incrementally.
 4. **Inline** (§5) — emphasis/strong/strike (rule of three), code, math, links, auto-refs, footnotes, images, breaks, escapes. **The hard part; lean on the fixtures.** → `inline.json`, `precedence.json`
 5. **Lists** (§2.1) — ordering, `start`, nesting, tight/loose, `[ ]`/`[x]`. → `lists.json`
 6. **References + checks** (§8) — collect ids, resolve refs, error on duplicates and dangling. → dogfood
-7. **Tables** (§6) — pipe grid and `format=csv`/`tsv` parse to one model; `compute=`, `summary=`. → dogfood
+7. **Tables and views** (§6, §6.1) — pipe grid and `format=csv`/`tsv` parse to one model, which holds facts; a `view` derives from one with `compute=`, `summary=`, `where=`, `order=`, `limit=`, `select=`, `by=`/`aggregate=`. → dogfood
 8. **Diagrams & charts** (§7) — diagram bodies are never interpreted; `geml-chart data=#id` charts a table by reference. → dogfood
 
 Step 0 plus 1–5 give a useful parser. 6 is what makes GEML *GEML*. 7–8 are the payoff.

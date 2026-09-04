@@ -1,0 +1,341 @@
+<title>GEML Blocks Illustrated · code and data</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #F4F6F9; --surface: #FFFFFF; --surface-2: #EBEFF4;
+    --ink: #1B2430; --ink-2: #47535F; --ink-3: #7B8794;
+    --line: #D5DCE4; --line-2: #C3CCD6;
+    --accent: #1F6F8B; --accent-soft: #DCEDF3;
+    --amber: #9A5F0A; --amber-soft: #FAEED3;
+    --red: #B0403B; --red-soft: #F8E2E0;
+    --green: #2E7A50; --green-soft: #DDF0E4;
+    --on-solid: #FFFFFF;
+    --shadow: 0 1px 2px rgba(27, 36, 48, .06), 0 6px 18px rgba(27, 36, 48, .05);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11161C; --surface: #191F27; --surface-2: #202832;
+      --ink: #E6EBF0; --ink-2: #B3BDC8; --ink-3: #7F8B98;
+      --line: #2C3642; --line-2: #3A4552;
+      --accent: #63B5D1; --accent-soft: #14323D;
+      --amber: #E2AC45; --amber-soft: #382B10;
+      --red: #E27F79; --red-soft: #3E1F1E;
+      --green: #6CC08E; --green-soft: #173124;
+      --on-solid: #0F141A;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11161C; --surface: #191F27; --surface-2: #202832;
+    --ink: #E6EBF0; --ink-2: #B3BDC8; --ink-3: #7F8B98;
+    --line: #2C3642; --line-2: #3A4552;
+    --accent: #63B5D1; --accent-soft: #14323D;
+    --amber: #E2AC45; --amber-soft: #382B10;
+    --red: #E27F79; --red-soft: #3E1F1E;
+    --green: #6CC08E; --green-soft: #173124;
+    --on-solid: #0F141A;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.65 "IBM Plex Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 48px 28px 96px; }
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+  p { margin: 0; }
+  a { color: var(--accent); }
+  code, pre, .mono { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; }
+  code { font-size: .92em; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; }
+  .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  header h1 { font-size: 34px; line-height: 1.2; font-weight: 600; margin-top: 10px; letter-spacing: -.01em; }
+  header .lede { max-width: 66ch; color: var(--ink-2); margin-top: 16px; font-size: 16px; }
+  .toc { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 22px; font-size: 14px; }
+  .toc a { text-decoration: none; border-bottom: 1px solid var(--line-2); padding-bottom: 1px; }
+  .toc a:hover, .toc a:focus-visible { border-color: var(--accent); }
+  section { margin-top: 72px; }
+  .sec-head { display: grid; grid-template-columns: 64px 1fr; gap: 16px; align-items: baseline; border-top: 1px solid var(--line-2); padding-top: 22px; }
+  .sec-num { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; padding-top: 6px; }
+  .sec-head h2 { font-size: 24px; font-weight: 600; letter-spacing: -.005em; }
+  .sec-head .sub { color: var(--ink-2); margin-top: 6px; max-width: 70ch; }
+  .sec-body { margin-left: 80px; margin-top: 28px; display: grid; gap: 40px; }
+  @media (max-width: 860px) { .sec-head { grid-template-columns: 1fr; gap: 6px; } .sec-body { margin-left: 0; } }
+  .st { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; letter-spacing: .04em; padding: 2px 8px; border-radius: 3px; font-weight: 600; white-space: nowrap; color: var(--on-solid); vertical-align: middle; }
+  .st-spec { background: var(--green); } .st-gap { background: var(--red); } .st-gep { background: var(--accent); } .st-obs { background: var(--ink-3); }
+  .board { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); }
+  table.b { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.b th, table.b td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.b tr:last-child td { border-bottom: 0; }
+  table.b th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.b td.n { color: var(--ink-3); font-variant-numeric: tabular-nums; width: 32px; }
+  table.b td.src { color: var(--ink-3); white-space: nowrap; font-size: 13px; }
+  table.b tr.grp td { background: var(--surface-2); font-weight: 600; font-size: 13px; letter-spacing: .04em; color: var(--ink-2); }
+  .tally { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-bottom: 14px; font-size: 14px; color: var(--ink-2); align-items: center; }
+  .tally b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+  figure { margin: 0; display: grid; gap: 18px; }
+  figure > figcaption { font-size: 17px; font-weight: 600; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+  figure > figcaption small { flex-basis: 100%; font-size: 14px; font-weight: 400; color: var(--ink-2); }
+  .panes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 980px) { .panes { grid-template-columns: 1fr; } .sec-body { margin-left: 0; } }
+  .pane-h { display: flex; justify-content: space-between; align-items: center; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; margin-bottom: 8px; }
+  pre.geml { margin: 0; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; font-size: 13px; line-height: 1.6; overflow-x: auto; color: var(--ink); }
+  pre.geml .f { color: var(--accent); font-weight: 500; } pre.geml .a { color: var(--ink-2); } pre.geml .c { color: var(--ink-3); font-style: italic; }
+  pre.geml .hl { background: var(--amber-soft); color: var(--amber); border-radius: 2px; padding: 0 2px; }
+  pre.geml .bad { background: var(--red-soft); color: var(--red); border-radius: 2px; padding: 0 2px; }
+  pre.geml .arrow { color: var(--red); font-family: "IBM Plex Sans", sans-serif; font-style: normal; }
+  .term { background: var(--ink); color: #E6EBF0; border-radius: 6px; padding: 12px 14px; font-size: 12.5px; line-height: 1.6; overflow-x: auto; margin: 0; }
+  :root[data-theme="dark"] .term { background: #0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .term { background: #0B0F14; } }
+  .term .ok { color: #7ED4A0; } .term .er { color: #F09A94; } .term .wn { color: #F0C060; } .term .dim { color: #8A96A3; } .term .cmd { color: #9CC7FF; }
+  .render { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px; box-shadow: var(--shadow); display: grid; gap: 14px; font-size: 14.5px; }
+  .tag { display: inline-flex; align-items: center; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; padding: 1px 6px; border-radius: 3px; background: var(--surface-2); color: var(--ink-3); font-weight: 500; font-family: "IBM Plex Mono", monospace; }
+  .r-code { position: relative; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; font-family: "IBM Plex Mono", monospace; font-size: 13px; line-height: 1.6; white-space: pre; overflow-x: auto; }
+  .r-code .tag { position: absolute; top: 8px; right: 10px; }
+  .r-figure { border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; display: grid; gap: 6px; }
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; font-weight: 500; white-space: nowrap; }
+  .b-err { background: var(--red-soft); color: var(--red); } .b-warn { background: var(--amber-soft); color: var(--amber); } .b-ok { background: var(--green-soft); color: var(--green); } .b-mute { background: var(--surface-2); color: var(--ink-3); }
+  .decision { display: grid; grid-template-columns: 84px 1fr; gap: 6px 16px; font-size: 14.5px; border-top: 1px dashed var(--line-2); padding-top: 14px; }
+  .decision dt { color: var(--ink-3); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; font-weight: 500; padding-top: 4px; }
+  .decision dd { margin: 0; color: var(--ink); } .decision dd.amber { color: var(--amber); }
+  table.t { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.t th, table.t td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.t tr:last-child td { border-bottom: 0; }
+  table.t th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.t td.mono { font-size: 13px; }
+  .tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+  footer { margin-top: 80px; border-top: 1px solid var(--line-2); padding-top: 18px; font-size: 13.5px; color: var(--ink-3); display: grid; gap: 6px; }
+  footer code { background: transparent; padding: 0; color: var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">GEML block types, illustrated · page 2 of 5 · spec 1.0 · measured on geml 1.9.2, local build · <a href="02-code-data_CN.html">中文</a></div>
+  <h1>GEML Blocks Illustrated · code and data</h1>
+  <p class="lede">This page covers <code>code</code> and <code>data</code>. They share a page because they are mirror images: <code>code</code> holds text the processor <strong>never interprets</strong>, <code>data</code> holds a value that <strong>must parse</strong>; the two share one <code>src=</code> route syntax, yet weigh "cannot resolve" in opposite ways. Each rule names its source; the right-hand side is measured output from <code>geml check</code>, <code>geml get</code> and <code>--to html</code>.</p>
+  <nav class="toc">
+    <a href="#board">Board</a>
+    <a href="#code">code</a>
+    <a href="#data">data</a>
+    <a href="#evidence">Evidence</a>
+  </nav>
+</header>
+
+<!-- ============ BOARD ============ -->
+<section id="board">
+  <div class="sec-head">
+    <div class="sec-num">Board</div>
+    <div>
+      <h2>9 rules, each with its source and status</h2>
+      <p class="sub"><span class="st st-spec">Specified</span> written into the specification. <span class="st st-gep">GEP draft</span> defined by a proposal, implemented on this branch, not yet in the spec. <span class="st st-gap">Impl. gap</span> none found on this page.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div>
+      <div class="tally">
+        <span><span class="st st-spec">Specified</span> <b>8</b></span>
+        <span><span class="st st-gep">GEP draft</span> <b>1</b></span>
+      </div>
+      <div class="board">
+        <table class="b">
+          <thead><tr><th></th><th>Rule</th><th>Source</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr class="grp"><td></td><td colspan="3">Shared by both</td></tr>
+            <tr><td class="n">1</td><td>One route syntax: <code>src=&lt;path&gt;[#L&lt;start&gt;[-&lt;end&gt;]]</code>, 1-based and inclusive; resolved relative to the document, or to <code>--root</code> when given; <code>http(s)</code> is fetched by the renderer, every other scheme is refused.</td><td class="src">§3.3 · §9.4</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">2</td><td>One attribute, two weights: an unresolvable <code>code</code> route is a <strong>warning</strong> (the block describes a region of code somewhere; the document stands without the sources), an unresolvable <code>data</code> route is an <strong>error</strong> (the value is what the document promised). A stale range is an error for both.</td><td class="src">§3.3 · §3.2</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">3</td><td>Neither may carry <code>src=</code> and a body together (<code>code-src-and-body</code>, <code>data-src-and-body</code> errors). A code route has no extension gate; a data route must be <code>.json</code>/<code>.jsonl</code>.</td><td class="src">§3.3 · §3.2 · A.5</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">code</td></tr>
+            <tr><td class="n">4</td><td>Raw body; <code>lang=</code> is only a label; the body is never run. Renders as <code>&lt;pre&gt;&lt;code class="language-xx"&gt;</code>.</td><td class="src">§3 · §9.1</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">5</td><td><code>src=&lt;path&gt;[#L&lt;s&gt;[-&lt;e&gt;]]</code> names the code shown. Src with a body: error; a drifted range: error; unresolvable: warning (the graph stays valid); a disallowed scheme: error.</td><td class="src">§3.3 · A.5</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">data</td></tr>
+            <tr><td class="n">6</td><td>The value tree (JSON's value domain). <code>json</code> by default, <code>jsonl</code> one value per line with blank lines ignored. A body that does not parse is a <code>data-parse</code> error naming the line.</td><td class="src">§3.2 · A.5</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">7</td><td><code>yaml</code>/<code>toml</code> are reserved names: with no engine the body is kept, a warning is emitted, and the processor <strong>never guesses</strong>. An unknown format degrades the same way. <code>csv</code> is not a data format.</td><td class="src">§3.2</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">8</td><td><code>src=</code> and a body are mutually exclusive (error); the file must be <code>.json</code>/<code>.jsonl</code>; <code>schema=</code> is reserved, a malformed shape is an error, and nothing validates against it.</td><td class="src">§3.2 · A.5</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">9</td><td><code>#cfg["tags"][1]</code>, <code>#log[1]["t"]</code> read one node of the value tree by coordinate.</td><td class="src">GEP-0011</td><td><span class="st st-gep">GEP draft</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CODE ============ -->
+<section id="code">
+  <div class="sec-head">
+    <div class="sec-num">code</div>
+    <div>
+      <h2><code>code</code>: the text itself, or a route to a region of source</h2>
+      <p class="sub">The body is text and is never run (§9.1). Instead of copying code, <code>src=</code> can point at a file and a line range, and drift is caught.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>An inline body and four fates of <code>src=</code> <span class="st st-spec">Specified</span><small>helper.js has three lines.</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · p3-code.geml</span></div>
+<pre class="geml"><span class="f">=== code</span> <span class="a">{#inline lang=ts caption="Inline body"}</span>
+export const x = 1;
+<span class="f">===</span>
+<span class="f">=== code</span> <span class="a">{#routed lang=js <span class="hl">src=helper.js#L1-2</span>}</span>
+<span class="f">===</span>
+<span class="f">=== code</span> <span class="a">{#both lang=js <span class="bad">src=helper.js</span>}</span>
+<span class="bad">body and src together</span>
+<span class="f">===</span>
+<span class="f">=== code</span> <span class="a">{#drift lang=js <span class="bad">src=helper.js#L40-50</span>}</span>
+<span class="f">===</span>
+<span class="f">=== code</span> <span class="a">{#missing lang=js <span class="hl">src=nowhere.js</span>}</span>
+<span class="f">===</span>
+<span class="f">=== code</span> <span class="a">{#scheme lang=js <span class="bad">src=ftp://x/y.js</span>}</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check · --to html</span></div>
+<pre class="term"><span class="er">error:</span> code: carries both `src=` and an inline body; exactly one
+  is permitted (line 11)
+<span class="er">error:</span> code source `helper.js#L40-50`: the file has 3 line(s), so
+  lines 40-50 no longer exist — the range is stale (line 14)
+<span class="wn">warning:</span> cannot resolve code source `nowhere.js` — not checked (line 16)
+<span class="er">error:</span> code source `ftp://x/y.js` names a disallowed URL scheme (line 18)
+3 error(s), 1 warning(s)</pre>
+          <div class="render" style="margin-top:12px">
+            <div class="r-code"><span class="tag">ts · #inline</span>export const x = 1;</div>
+            <div class="r-code"><span class="tag">js · #routed ← helper.js#L1-2</span>export const a = 1;
+export const b = 2;</div>
+            <div class="r-code" style="color:var(--ink-3)"><span class="tag">js · #drift</span>(empty: the range drifted, nothing is fetched)</div>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Route</dt><dd>§3.3: <code>&lt;path&gt;[#L&lt;start&gt;[-&lt;end&gt;]]</code>, 1-based, inclusive. Resolved relative to the document, and also relative to <code>--root</code> when one is named, never outside §9.4's confinement.</dd>
+        <dt>Weights</dt><dd>Unresolvable is only a <strong>warning</strong>: a code block describes "a region of code at a location"; a document whose sources are absent (a published code graph, another checkout) still stands, merely unchecked. A stale range is an <strong>error</strong>: catching it is the point of checking a route. Src with a body and a disallowed scheme are errors too.</dd>
+        <dt>Contrast</dt><dd><code>data</code>'s <code>src=</code> is an error when unresolvable (§3.2): its value is exactly what the document promised, and failing to load it breaks the promise. The two types weigh the same attribute oppositely, each for a reason.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ DATA ============ -->
+<section id="data">
+  <div class="sec-head">
+    <div class="sec-num">data</div>
+    <div>
+      <h2><code>data</code>: a verified value tree</h2>
+      <p class="sub">Added by GEP-0005. <code>code</code> carries text that must not be interpreted; <code>data</code> carries a value that must parse.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+
+    <figure>
+      <figcaption>json by default, jsonl line by line, one node by coordinate <span class="st st-spec">Specified</span> <span class="st st-gep">coordinates GEP-0011</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · from p5-data.geml</span></div>
+<pre class="geml"><span class="f">=== data</span> <span class="a">{#cfg}</span>                       <span class="c">%% format defaults to json</span>
+{"name": "geml", "tags": ["a", "b"], "n": 3}
+<span class="f">===</span>
+<span class="f">=== data</span> <span class="a">{#log <span class="hl">format=jsonl</span>}</span>
+{"t": 1, "ok": true}
+
+{"t": 2, "ok": false}                  <span class="c">%% blank lines ignored; a block appended at EOF is a new record</span>
+<span class="f">===</span>
+<span class="f">=== data</span> <span class="a">{#ext <span class="hl">src=rows.json</span>}</span>          <span class="c">%% the content lives in a file; the block is its addressable view</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml get · --to html</span></div>
+<pre class="term"><span class="cmd">$ geml get p5-data.geml '#cfg["tags"][1]'</span>
+b
+<span class="cmd">$ geml get p5-data.geml '#log[1]["t"]'</span>
+2</pre>
+          <div class="render" style="margin-top:12px">
+            <div class="r-figure"><span class="tag">figure #cfg › pre.data-src data-format="json"</span><div class="r-code">{"name": "geml", "tags": ["a", "b"], "n": 3}</div></div>
+            <div class="r-figure"><span class="tag">figure #ext · file contents loaded</span><div class="r-code">[
+  {"id": 1, "v": 10},
+  {"id": 2, "v": 20}
+]</div></div>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Model</dt><dd>§3.2: the body is raw at scan time (fences only delimit), then a format engine parses it into the block's <code>value</code>, exposed in the document model. json is the default because it is the value tree's own serialization, the one a zero-dependency processor can always verify.</dd>
+        <dt>jsonl</dt><dd>The record-stream form: a document is a flat sequence of blocks, so a complete data block appended at end of file is always a valid continuation. jsonl's blind-append ergonomics, with ids, verification and chart binding.</dd>
+        <dt>Coordinates</dt><dd>GEP-0011: unnamed inner units are addressed with bracket coordinates; <code>[</code> cannot occur in a legal id, so nothing is confused. <code>geml list</code> does not enumerate coordinates; the author constructs them. Implemented on this branch, not yet in the spec.</dd>
+      </dl>
+    </figure>
+
+    <figure>
+      <figcaption>Five ways to fail <span class="st st-spec">Specified</span><small>Three errors and three warnings; the boundary is exactly "can the value be verified".</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · from p5-data.geml</span></div>
+<pre class="geml"><span class="f">=== data</span> <span class="a">{#bad}</span>
+<span class="bad">{"name": "geml",</span>                       <span class="arrow">← not one complete JSON value</span>
+<span class="f">===</span>
+<span class="f">=== data</span> <span class="a">{#y <span class="hl">format=yaml</span>}</span>          <span class="c">%% reserved name</span>
+name: geml
+<span class="f">===</span>
+<span class="f">=== data</span> <span class="a">{#both <span class="bad">src=rows.json</span>}</span>
+<span class="bad">{"x": 1}</span>                               <span class="arrow">← src and body together</span>
+<span class="f">===</span>
+<span class="f">=== data</span> <span class="a">{#sch <span class="bad">schema=not-a-ref</span>}</span>
+{"x": 1}
+<span class="f">===</span>
+<span class="f">=== data</span> <span class="a">{#csvish <span class="hl">format=csv</span>}</span>
+a,b
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check</span></div>
+<pre class="term"><span class="er">error:</span> data: body is not valid JSON (Expected double-quoted
+  property name in JSON at position 16 (line 1 column 17)) (line 14)
+<span class="wn">warning:</span> data: no `yaml` engine in this processor; body kept raw,
+  not verified (line 16)
+<span class="wn">warning:</span> data: no `toml` engine in this processor; body kept raw,
+  not verified (line 20)
+<span class="er">error:</span> data: carries both `src=` and an inline body; exactly one is
+  permitted (the body wins here) (line 25)
+<span class="er">error:</span> data: `schema=not-a-ref` must name a block (`#id`) or a GEML
+  document (`doc.geml[#id]`) (line 28)
+<span class="wn">warning:</span> unknown data format `weird`; body kept raw (line 31)
+<span class="wn">warning:</span> unknown data format `csv`; body kept raw (line 34)
+3 error(s), 4 warning(s)</pre>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>error</dt><dd>A body that does not parse, src with a body, a malformed schema reference: all three are the document misspeaking. <code>data-parse</code> names the line.</dd>
+        <dt>warning</dt><dd><code>yaml</code>/<code>toml</code> are reserved names: without an engine the body is kept, not verified, <strong>never guessed</strong> — the same degradation as an unknown diagram format (§7). An unknown format likewise. <code>csv</code> is not a data format: it is not self-describing (delimiter, header and quoting are parameters) and only means something against a column model, so it is a <code>table</code> format (§6).</dd>
+        <dt>This build</dt><dd class="amber">A recent commit on this branch adds a yaml engine, yet this build still reports "no yaml engine"; it may not be wired in. Recorded as an observation, not a conclusion.</dd>
+      </dl>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============ EVIDENCE ============ -->
+<section id="evidence">
+  <div class="sec-head">
+    <div class="sec-num">Evidence</div>
+    <div>
+      <h2>Probe files and measured output</h2>
+      <p class="sub">All run with the repository's current build, <code>node geml-parser/dist/geml.js</code>, version 1.9.2. The probe files live in the session scratch directory; their full text appears on the left of each figure above.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tablewrap">
+      <table class="t">
+        <thead><tr><th>Probe</th><th>Covers</th><th>check result</th><th>Where on this page</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">p3-code.geml · helper.js</td><td>inline body, route, src with body, drifted range, unresolvable, disallowed scheme</td><td><span class="badge b-err">3 error</span> <span class="badge b-warn">1 warning</span></td><td>code</td></tr>
+          <tr><td class="mono">p5-data.geml · rows.json</td><td>json, jsonl, src, bad JSON, yaml, toml, src with body, schema, unknown format, csv, coordinates</td><td><span class="badge b-err">3 error</span> <span class="badge b-warn">4 warning</span></td><td>data</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>This page: <code>docs/illustrated/02-code-data.html</code> · 中文 <code>02-code-data_CN.html</code>. Five pages in the series: the simple four · code and data · table and view · diagram · embed.</div>
+</footer>
+</div>

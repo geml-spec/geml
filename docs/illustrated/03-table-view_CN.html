@@ -1,0 +1,502 @@
+<title>GEML 块图解 · table 与 view</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --bg: #F4F6F9; --surface: #FFFFFF; --surface-2: #EBEFF4;
+    --ink: #1B2430; --ink-2: #47535F; --ink-3: #7B8794;
+    --line: #D5DCE4; --line-2: #C3CCD6;
+    --accent: #1F6F8B; --accent-soft: #DCEDF3;
+    --amber: #9A5F0A; --amber-soft: #FAEED3;
+    --red: #B0403B; --red-soft: #F8E2E0;
+    --green: #2E7A50; --green-soft: #DDF0E4;
+    --on-solid: #FFFFFF;
+    --shadow: 0 1px 2px rgba(27, 36, 48, .06), 0 6px 18px rgba(27, 36, 48, .05);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11161C; --surface: #191F27; --surface-2: #202832;
+      --ink: #E6EBF0; --ink-2: #B3BDC8; --ink-3: #7F8B98;
+      --line: #2C3642; --line-2: #3A4552;
+      --accent: #63B5D1; --accent-soft: #14323D;
+      --amber: #E2AC45; --amber-soft: #382B10;
+      --red: #E27F79; --red-soft: #3E1F1E;
+      --green: #6CC08E; --green-soft: #173124;
+      --on-solid: #0F141A;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11161C; --surface: #191F27; --surface-2: #202832;
+    --ink: #E6EBF0; --ink-2: #B3BDC8; --ink-3: #7F8B98;
+    --line: #2C3642; --line-2: #3A4552;
+    --accent: #63B5D1; --accent-soft: #14323D;
+    --amber: #E2AC45; --amber-soft: #382B10;
+    --red: #E27F79; --red-soft: #3E1F1E;
+    --green: #6CC08E; --green-soft: #173124;
+    --on-solid: #0F141A;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.7 "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 48px 28px 96px; }
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+  p { margin: 0; }
+  a { color: var(--accent); }
+  code, pre, .mono { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; }
+  code { font-size: .92em; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; }
+  .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  header h1 { font-size: 34px; line-height: 1.2; font-weight: 600; margin-top: 10px; letter-spacing: -.01em; }
+  header .lede { max-width: 66ch; color: var(--ink-2); margin-top: 16px; font-size: 16px; }
+  .toc { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 22px; font-size: 14px; }
+  .toc a { text-decoration: none; border-bottom: 1px solid var(--line-2); padding-bottom: 1px; }
+  .toc a:hover, .toc a:focus-visible { border-color: var(--accent); }
+  section { margin-top: 72px; }
+  .sec-head { display: grid; grid-template-columns: 64px 1fr; gap: 16px; align-items: baseline; border-top: 1px solid var(--line-2); padding-top: 22px; }
+  .sec-num { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; padding-top: 6px; }
+  .sec-head h2 { font-size: 24px; font-weight: 600; letter-spacing: -.005em; }
+  .sec-head .sub { color: var(--ink-2); margin-top: 6px; max-width: 70ch; }
+  .sec-body { margin-left: 80px; margin-top: 28px; display: grid; gap: 40px; }
+  @media (max-width: 860px) { .sec-head { grid-template-columns: 1fr; gap: 6px; } .sec-body { margin-left: 0; } }
+  .st { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; letter-spacing: .04em; padding: 2px 8px; border-radius: 3px; font-weight: 600; white-space: nowrap; color: var(--on-solid); vertical-align: middle; }
+  .st-spec { background: var(--green); } .st-gap { background: var(--red); } .st-gep { background: var(--accent); } .st-obs { background: var(--ink-3); }
+  .board { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); }
+  table.b { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.b th, table.b td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.b tr:last-child td { border-bottom: 0; }
+  table.b th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.b td.n { color: var(--ink-3); font-variant-numeric: tabular-nums; width: 32px; }
+  table.b td.src { color: var(--ink-3); white-space: nowrap; font-size: 13px; }
+  table.b tr.grp td { background: var(--surface-2); font-weight: 600; font-size: 13px; letter-spacing: .04em; color: var(--ink-2); }
+  .tally { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-bottom: 14px; font-size: 14px; color: var(--ink-2); align-items: center; }
+  .tally b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+  figure { margin: 0; display: grid; gap: 18px; }
+  figure > figcaption { font-size: 17px; font-weight: 600; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+  figure > figcaption small { flex-basis: 100%; font-size: 14px; font-weight: 400; color: var(--ink-2); }
+  .panes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 980px) { .panes { grid-template-columns: 1fr; } .sec-body { margin-left: 0; } }
+  .pane-h { display: flex; justify-content: space-between; align-items: center; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; margin-bottom: 8px; }
+  pre.geml { margin: 0; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; font-size: 13px; line-height: 1.6; overflow-x: auto; color: var(--ink); }
+  pre.geml .f { color: var(--accent); font-weight: 500; } pre.geml .a { color: var(--ink-2); } pre.geml .c { color: var(--ink-3); font-style: italic; }
+  pre.geml .hl { background: var(--amber-soft); color: var(--amber); border-radius: 2px; padding: 0 2px; }
+  pre.geml .bad { background: var(--red-soft); color: var(--red); border-radius: 2px; padding: 0 2px; }
+  pre.geml .arrow { color: var(--red); font-family: "IBM Plex Sans", "Noto Sans SC", sans-serif; font-style: normal; }
+  .term { background: var(--ink); color: #E6EBF0; border-radius: 6px; padding: 12px 14px; font-size: 12.5px; line-height: 1.6; overflow-x: auto; margin: 0; }
+  :root[data-theme="dark"] .term { background: #0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .term { background: #0B0F14; } }
+  .term .ok { color: #7ED4A0; } .term .er { color: #F09A94; } .term .wn { color: #F0C060; } .term .dim { color: #8A96A3; } .term .cmd { color: #9CC7FF; }
+  .render { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px; box-shadow: var(--shadow); display: grid; gap: 14px; font-size: 14px; }
+  .tag { display: inline-flex; align-items: center; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; padding: 1px 6px; border-radius: 3px; background: var(--surface-2); color: var(--ink-3); font-weight: 500; font-family: "IBM Plex Mono", monospace; }
+  table.r { border-collapse: collapse; font-size: 13.5px; width: 100%; font-variant-numeric: tabular-nums; }
+  table.r th, table.r td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+  table.r th { font-weight: 600; color: var(--ink-2); background: var(--surface-2); }
+  table.r td.num, table.r th.num { text-align: right; }
+  table.r td.comp { background: var(--accent-soft); }
+  table.r tfoot td { font-weight: 600; border-top: 2px solid var(--line-2); border-bottom: 0; }
+  table.r td.none { color: var(--ink-3); }
+  .cap { font-size: 12.5px; color: var(--ink-3); }
+  .pipeline { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12.5px; }
+  .pipeline .step { background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; padding: 3px 8px; font-family: "IBM Plex Mono", monospace; }
+  .pipeline .step.hot { background: var(--amber-soft); border-color: var(--amber); color: var(--amber); }
+  .pipeline .sep { color: var(--ink-3); }
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; font-weight: 500; white-space: nowrap; }
+  .b-err { background: var(--red-soft); color: var(--red); } .b-warn { background: var(--amber-soft); color: var(--amber); } .b-ok { background: var(--green-soft); color: var(--green); } .b-mute { background: var(--surface-2); color: var(--ink-3); }
+  .decision { display: grid; grid-template-columns: 72px 1fr; gap: 6px 16px; font-size: 14.5px; border-top: 1px dashed var(--line-2); padding-top: 14px; }
+  .decision dt { color: var(--ink-3); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; font-weight: 500; padding-top: 4px; }
+  .decision dd { margin: 0; color: var(--ink); } .decision dd.amber { color: var(--amber); } .decision dd.red { color: var(--red); }
+  table.t { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.t th, table.t td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.t tr:last-child td { border-bottom: 0; }
+  table.t th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.t td.mono { font-size: 13px; }
+  .tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+  footer { margin-top: 80px; border-top: 1px solid var(--line-2); padding-top: 18px; font-size: 13.5px; color: var(--ink-3); display: grid; gap: 6px; }
+  footer code { background: transparent; padding: 0; color: var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">GEML 块类型图解 · 第 3 页 / 5 · 规范 1.0 · 实测 geml 1.9.2 本地构建</div>
+  <h1>GEML 块图解 · table 与 view</h1>
+  <p class="lede"><code>table</code> 是规范里规则最多的类型：两种体、一个模型、一门封闭的算术、一行汇总。GEP-0012 提出的 <code>view</code> 把「从另一张表选、算、聚合」搬出来，并打算把「借别的表的行」从 table 里拿走。这一页先把 table 今天的每条规则实测一遍，再把 view 的草案画出来，标清哪些是规范、哪些是草案、哪里两者冲突。</p>
+  <nav class="toc">
+    <a href="#board">看板</a>
+    <a href="#bodies">两种体</a>
+    <a href="#coords">坐标</a>
+    <a href="#src">src= 与借表</a>
+    <a href="#fail">十二种失败</a>
+    <a href="#view">view 草案</a>
+    <a href="#evidence">依据</a>
+  </nav>
+</header>
+
+<!-- ============ BOARD ============ -->
+<section id="board">
+  <div class="sec-head">
+    <div class="sec-num">看板</div>
+    <div>
+      <h2>18 条规则，各自的出处和状态</h2>
+      <p class="sub"><span class="st st-spec">规范已定</span> 规范正文写死的。<span class="st st-gep">GEP 草案</span> 提案定义，规范未收。<span class="st st-obs">实测</span> 规范不规定、参考实现今天这样做。<span class="st st-gap">草案缺口</span> 草案该说而没说的。实现偏差本页未发现。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div>
+      <div class="tally">
+        <span><span class="st st-spec">规范已定</span> <b>8</b></span>
+        <span><span class="st st-gep">GEP 草案</span> <b>8</b></span>
+        <span><span class="st st-obs">实测</span> <b>1</b></span>
+        <span><span class="st st-gap">草案缺口</span> <b>1</b></span>
+      </div>
+      <div class="board">
+        <table class="b">
+          <thead><tr><th></th><th>规则</th><th>出处</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr class="grp"><td></td><td colspan="3">table</td></tr>
+            <tr><td class="n">1</td><td>两种可互换的体、一个模型：可视管道表（默认），或 <code>format=csv</code>/<code>tsv</code> 数据体加 <code>header=</code>。模型是列模型，单元格值是字符串、数字或布尔，日期是 ISO-8601 文本。</td><td class="src">§6</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">2</td><td><code>delim=</code> 只对数据体有效，必须恰一个字符；tab 写 <code>format=tsv</code>。两字符是 <code>bad-table-delimiter</code> error 并回退自然分隔符；无 format 时是 <code>ignored-table-delimiter</code> warning。未知 format warning，按可视网格解析。</td><td class="src">§6 · A.3</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">3</td><td><code>src=</code> 三种目标：csv/tsv 文件（相对路径或 http(s)）、<code>#id</code> 本文档表、<code>doc.geml#id</code>。解析不到 error；目标不是表 error；src 与正文同在 error。只有 src 文本进 .gemlhistory 哈希，内容不进。</td><td class="src">§6 · A.3</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">4</td><td><code>compute=</code>：<code>Name = expr</code> 用 <code>;</code> 分隔，算术 <code>+ - * / ( )</code> 和一元负；按表头名（含空格用单引号）或字母列引用；可引用前面算出的列，无环。空或非数单元格按 0 并 <code>compute-non-numeric-cell</code> warning；除零得无值、显示 <code>-</code> 并 <code>compute-not-a-number</code> warning。计算列追加在数据列后，不写进正文。</td><td class="src">§6 · A.3</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">5</td><td><code>summary=</code>：一行汇总，<code>Cell = value</code>；值是字面量标签或聚合表达式，聚合只有 <code>sum avg min max count</code>，是唯一跨行的构造；列引用必须被聚合；未指定列空白；未知列 error。</td><td class="src">§6 · A.3</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">6</td><td><code>[printf]</code> 显示格式绑定在公式左侧名字上，只影响显示；判定是左侧最后一个含 <code>%</code> 的 <code>[…]</code>，所以列名本身可以带方括号。</td><td class="src">§6</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">7</td><td>明确排除：单元格与区间寻址、相对行引用、条件、跨表 <code>remote()</code>、lookup、任何嵌入程序。表是文档特性，不是电子表格引擎。</td><td class="src">§6</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">8</td><td>外部数据渲染时到达，所以 <code>compute</code> 和图表引用的列名在渲染时校验，不在构建时。</td><td class="src">§6 · §9.4</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">9</td><td>渲染：<code>figure.table-figure &gt; table.geml-table</code>，计算列 <code>td.computed</code>，数字单元格带 <code>data-sort</code>，汇总行在 <code>tfoot</code>，caption 在 <code>figcaption</code>。</td><td class="src">--to html</td><td><span class="st st-obs">实测</span></td></tr>
+            <tr><td class="n">10</td><td>坐标：<code>#fy[2]</code> 一行（1 起始，表头不算行）、<code>#fy[2]["Q1"]</code> 一格、<code>#fy["Q1"]</code> 一列、<code>#fy[summary]["FY"]</code> 汇总格。整数是行、引号是列、裸词是保留行名。<code>list</code> 不枚举坐标。</td><td class="src">GEP-0011</td><td><span class="st st-gep">GEP 草案</span></td></tr>
+            <tr><td class="n">11</td><td>借表：<code>table {src=#fy compute=…}</code> 今天合法，且能对借来的行再算（1.9.3 修复）。GEP-0012 要把 <code>src=</code> 指向块的 table 改成 <strong>error 并指向 view</strong>：块目标是别人的输出，借它的 table 就不再是「事实」。</td><td class="src">§6 ↔ GEP-0012</td><td><span class="st st-gep">GEP 草案</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">view（GEP-0012，草案；今天未注册，是 unknown-block-type warning）</td></tr>
+            <tr><td class="n">12</td><td><code>view</code> 无正文，必须 <code>src=</code>，目标同 §6 三种；正文与 src 同在 error。</td><td class="src">GEP-0012</td><td><span class="st st-gep">GEP 草案</span></td></tr>
+            <tr><td class="n">13</td><td>选择：<code>where=</code>（比较、<code>and/or/not</code>、数字或单引号字面量）、<code>order=</code>（<code>asc</code>/<code>desc</code>，稳定排序）、<code>limit=</code>、<code>select=</code>（只取名字，含 <code>=</code> 报错指向 compute）。</td><td class="src">GEP-0012</td><td><span class="st st-gep">GEP 草案</span></td></tr>
+            <tr><td class="n">14</td><td>派生与聚合：<code>compute=</code>/<code>summary=</code> 语法不变，搬到 view；<code>by=</code> 分组键，<code>aggregate="Name = fn(col)"</code>；<code>by=</code> 无 aggregate 即 distinct。</td><td class="src">GEP-0012</td><td><span class="st st-gep">GEP 草案</span></td></tr>
+            <tr><td class="n">15</td><td>求值顺序是 SQL 的逻辑顺序：src → compute 行级 → where → compute 聚合 → by/aggregate → order → limit → select → summary。compute 两遍所以 where 能用刚算的列；select 晚跑所以 order 能用未显示的列；summary 最后，是对显示行的报告。</td><td class="src">GEP-0012</td><td><span class="st st-gep">GEP 草案</span></td></tr>
+            <tr><td class="n">16</td><td>一种表达式语言：单引号在列位置是列名、在值位置是字面量。<code>where=</code> 里未知列 error；全无数值的列比数字 error；单个非数单元格不匹配、无诊断。没有正则、like、函数。</td><td class="src">GEP-0012</td><td><span class="st st-gep">GEP 草案</span></td></tr>
+            <tr><td class="n">17</td><td>view 看到源的元组和计算列，看不到源的 summary 行；同名 <code>compute=</code> 遮蔽源列合法但 <code>shadowed-source-column</code> warning。过滤分组是再来一个 view，不是 HAVING。</td><td class="src">GEP-0012</td><td><span class="st st-gep">GEP 草案</span></td></tr>
+            <tr><td class="n">18</td><td><strong>草案缺口：</strong>0012 正文没有一处提到图表。§7.1 的 <code>data=</code> 今天只接受 table 或记录数组 data 块；compute 搬走后，画计算列的图（如 <code>y=FY</code>）就没有合法数据源。需要补：<code>data=</code> 接受 view，贡献其输出关系为表模型；<code>rows=all|summary</code> 对 view 自己的 summary 行生效；诊断措辞与 conformance suite 各加一条。</td><td class="src">GEP-0012 ↔ §7.1</td><td><span class="st st-gap">草案缺口</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BODIES ============ -->
+<section id="bodies">
+  <div class="sec-head">
+    <div class="sec-num">两种体</div>
+    <div>
+      <h2>可视表与数据体，算出同一个模型</h2>
+      <p class="sub">左边一张管道表、一张带 compute 和 summary 的 csv 表；右边是 <code>--to html</code> 实际吐出的结构。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>管道表 · csv 体 · 计算列 · printf · 汇总行 <span class="st st-spec">规范已定</span><small>属性对象用 <code>\</code> 续行（§4）；反斜杠是必需的，少一个整块就成了段落。</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · t1-table.geml</span></div>
+<pre class="geml"><span class="f">=== table</span> <span class="a">{#budget caption="Annual cost"}</span>
+| Plan  | Months | Rate |
+|-------|-------:|-----:|
+| Basic |      1 |   30 |
+| Pro   |      2 |   30 |
+<span class="f">===</span>
+
+<span class="f">=== table</span> <span class="a">{#fy caption="FY revenue ($M)" format=csv header=1 <span class="hl">delim=;</span> \
+           compute="<span class="hl">FY [%.1f]</span> = Q1 + Q2; <span class="hl">Share [%.1f%%]</span> = FY * 100 / 500" \
+           summary="Segment = 'Total'; Q1 = sum(Q1); Q2 = sum(Q2); FY = sum(FY)"}</span>
+Segment ; Q1    ; Q2
+Cloud   ; 124.5 ; 131.2
+Hardware; 88.1  ; 84.6
+Services; 45.2  ; 47.8
+<span class="f">===</span>
+See [[#fy]] and [[#budget]].</pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>--to html</span><span class="badge b-ok">ok: no diagnostics</span></div>
+          <div class="render">
+            <span class="tag">figure.table-figure #budget › table.geml-table</span>
+            <table class="r"><thead><tr><th>Plan</th><th class="num">Months</th><th class="num">Rate</th></tr></thead>
+              <tbody><tr><td>Basic</td><td class="num">1</td><td class="num">30</td></tr><tr><td>Pro</td><td class="num">2</td><td class="num">30</td></tr></tbody></table>
+            <span class="cap">figcaption · Annual cost。右对齐来自分隔行的 <code>-----:</code>；数字格带 <code>data-sort</code>。</span>
+            <span class="tag">figure.table-figure #fy</span>
+            <table class="r"><thead><tr><th>Segment</th><th class="num">Q1</th><th class="num">Q2</th><th class="num">FY</th><th class="num">Share</th></tr></thead>
+              <tbody>
+                <tr><td>Cloud</td><td class="num">124.5</td><td class="num">131.2</td><td class="num comp">255.7</td><td class="num comp">51.1%</td></tr>
+                <tr><td>Hardware</td><td class="num">88.1</td><td class="num">84.6</td><td class="num comp">172.7</td><td class="num comp">34.5%</td></tr>
+                <tr><td>Services</td><td class="num">45.2</td><td class="num">47.8</td><td class="num comp">93.0</td><td class="num comp">18.6%</td></tr>
+              </tbody>
+              <tfoot><tr><td>Total</td><td class="num">257.8</td><td class="num">263.6</td><td class="num">521.4</td><td class="none">　</td></tr></tfoot></table>
+            <span class="cap">蓝底是 <code>td.computed</code>：不在正文里，模型算出来的。汇总行在 <code>tfoot</code>，未指定的 Share 列空白。<code>[[#fy]]</code> 的链接文字是 caption「FY revenue ($M)」。</span>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>printf</dt><dd><code>FY [%.1f]</code>：格式是左侧最后一个含 <code>%</code> 的方括号组，所以 93 显示成 93.0 而模型里 <code>data-sort="93"</code> 还是 93。<code>%%</code> 是字面百分号。没有日期格式，日期就是 ISO 文本。</dd>
+        <dt>算术</dt><dd>§6 的表达式只有 <code>+ - * / ( )</code> 和一元负，<code>*</code>/<code>/</code> 优先，左结合。公式可引用前面算出的列（Share 用了 FY），必须无环。这是 §9.1「无表达式语言」允许的那点封闭算术。</dd>
+        <dt>汇总</dt><dd>聚合是唯一跨行的构造，且只有五个。汇总表达式里的列引用必须被聚合包住，裸列名在汇总行没有值。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ COORDS ============ -->
+<section id="coords">
+  <div class="sec-head">
+    <div class="sec-num">坐标</div>
+    <div>
+      <h2>行、格、列、汇总格各有地址</h2>
+      <p class="sub">GEP-0011，本分支已实现，规范正文未收。三种记号不会混：整数是行，引号是列，裸词是保留行名。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>对上面 <code>#fy</code> 的六次读取 <span class="st st-gep">GEP 草案</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>geml get</span></div>
+<pre class="term"><span class="cmd">$ geml get t1-table.geml '#fy[2]'</span>          <span class="dim">第 2 个体行，表头不算</span>
+Hardware; 88.1; 84.6; 172.7; 34.5%
+<span class="cmd">$ geml get t1-table.geml '#fy[2]["Q1"]'</span>
+88.1
+<span class="cmd">$ geml get t1-table.geml '#fy["Q1"]'</span>       <span class="dim">一列，不含表头</span>
+124.5
+88.1
+45.2
+<span class="cmd">$ geml get t1-table.geml '#fy[summary]["FY"]'</span>
+521.4
+<span class="cmd">$ geml get t1-table.geml '#fy[summary]'</span>
+Total; 257.8; 263.6; 521.4;
+<span class="cmd">$ geml get t1-table.geml '#borrowed[1]["Half"]'</span>   <span class="dim">借表自己算的列</span>
+127.85</pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>规则</span></div>
+          <div class="render">
+            <table class="r">
+              <thead><tr><th>写法</th><th>指什么</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">#fy[2]</td><td>一个体行，1 起始。表头不是行，模型里 rows 本来就不含表头</td></tr>
+                <tr><td class="mono">#fy[2]["Q1"]</td><td>一格，列按表头名</td></tr>
+                <tr><td class="mono">#fy["Q1"]</td><td>一列，行序，不含表头</td></tr>
+                <tr><td class="mono">#fy[summary]["FY"]</td><td>汇总行里的一格；<code>[summary]</code> 是唯一保留行名，插行不会移动它</td></tr>
+                <tr><td class="mono">A.geml#fy[summary]["FY"]</td><td>跨文档同理；<code>![[…]]</code> 可以把这一个叶值投影进句子</td></tr>
+              </tbody>
+            </table>
+            <span class="cap">无表头的表用字母列 <code>A</code>、<code>B</code>：和 <code>compute=</code> 读的是同一个列命名空间。<code>geml list</code> 不枚举坐标，四百行的表会把清单淹掉；坐标由作者构造。</span>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>读写</dt><dd>读先落地。写只在源文件里有对应字节时允许：计算列、<code>src=</code> 喂进来的表拒写；<code>format=csv</code> 格内含分隔符时也拒写，因为改一个字节会波及邻格。</dd>
+        <dt>为什么不混</dt><dd><code>[</code> 不能出现在合法 id 里（§4 的 NAME 只有字母、数字、<code>-</code>、<code>_</code>），所以坐标永远不会被读成 id，已有文档含义不变。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ SRC ============ -->
+<section id="src">
+  <div class="sec-head">
+    <div class="sec-num">src=</div>
+    <div>
+      <h2>数据从别处来，以及「借表」的去向</h2>
+      <p class="sub">§6 允许三种目标。GEP-0012 打算收走其中一种。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>文件、本文档的表、借来再算 <span class="st st-spec">规范已定</span> <span class="st st-gep">0012 要改</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · t1-table.geml 节选</span></div>
+<pre class="geml"><span class="f">=== table</span> <span class="a">{#ext caption="From a file" format=csv <span class="hl">src=rows.csv</span>}</span>
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#borrowed caption="Borrowed rows" <span class="hl">src=#fy</span> compute="Half = FY / 2"}</span>
+<span class="f">===</span>
+
+<span class="c">%% rows.csv 在文档同目录：Segment,Q1,Q2 / Cloud,124.5,131.2 / Hardware,88.1,84.6</span>
+<span class="c">%% #borrowed 拿到 #fy 的行和它算出的 FY，再算自己的 Half</span></pre>
+          <div class="pane-h" style="margin-top:14px"><span>GEP-0012 的写法</span></div>
+<pre class="geml"><span class="f">=== view</span> <span class="a">{#borrowed src=#fy compute="Half = FY / 2"}</span>
+<span class="f">===</span>
+<span class="c">%% table 的 src= 只准指文件；指向 #块 的 table 是 error，消息指向 view</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>今天的行为</span><span class="badge b-ok">ok: no diagnostics</span></div>
+          <div class="render">
+            <span class="tag">#ext · 文件内容装入，列名渲染时才校验</span>
+            <table class="r"><thead><tr><th>Segment</th><th class="num">Q1</th><th class="num">Q2</th></tr></thead><tbody><tr><td>Cloud</td><td class="num">124.5</td><td class="num">131.2</td></tr><tr><td>Hardware</td><td class="num">88.1</td><td class="num">84.6</td></tr></tbody></table>
+            <span class="tag">#borrowed · 源的计算列 FY 可见，自己再加 Half</span>
+            <table class="r"><thead><tr><th>Segment</th><th class="num">Q1</th><th class="num">Q2</th><th class="num">FY</th><th class="num">Half</th></tr></thead><tbody><tr><td>Cloud</td><td class="num">124.5</td><td class="num">131.2</td><td class="num">255.7</td><td class="num comp">127.85</td></tr><tr><td>Hardware</td><td class="num">88.1</td><td class="num">84.6</td><td class="num">172.7</td><td class="num comp">86.35</td></tr><tr><td>Services</td><td class="num">45.2</td><td class="num">47.8</td><td class="num">93.0</td><td class="num comp">46.50</td></tr></tbody></table>
+            <span class="cap">源的 summary 行没有跟过来：借的是关系，不是报告。</span>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>三种目标</dt><dd>§6：数据文件（csv/tsv，相对路径或 http(s)）、<code>#id</code>、<code>doc.geml#id</code>。本地和跨文档目标构建时必须解析到并检查存在，解析不到 error，存在但不是表 error。src 与正文同在 error。</dd>
+        <dt>哈希</dt><dd>只有 <code>src</code> 这串文字进 .gemlhistory 的哈希，取回的内容不进。外部数据在渲染时到达，所以 compute 和图表引用的列名推迟到渲染时校验。</dd>
+        <dt>0012</dt><dd class="amber">草案要按「src 指向什么」切分：指文件的留在 table，指块的搬去 view，指块的 table 变 error。理由是块目标是别人的输出，借它的 table 会是一块内容由别人派生的「事实」。今天 1.9.3 刚修好借表自带 compute，这条如果接受就要反过来拒绝它。两者写在这里等 GEP 定夺。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ FAIL ============ -->
+<section id="fail">
+  <div class="sec-head">
+    <div class="sec-num">失败</div>
+    <div>
+      <h2>十二种不通过的情形，一次跑完</h2>
+      <p class="sub">八条 error 四条 warning，与 A.3 的诊断表逐条对上。边界在「文档说错了话」还是「数据不干净」。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>t2-table-fail.geml <span class="st st-spec">规范已定</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">=== table</span> <span class="a">{#a format=csv <span class="bad">src=rows.csv</span>}</span>
+<span class="bad">x,y</span>                                   <span class="arrow">← src 与正文同在</span>
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#b format=csv <span class="bad">delim=;;</span>}</span>       <span class="arrow">← 两个字符</span>
+a;b
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#c <span class="hl">delim=;</span>}</span>                  <span class="c">%% 没有 format，可视网格用不上 delim</span>
+| a | b |
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#d <span class="hl">format=weird</span>}</span>
+| a | b |
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#e format=csv compute="Z = <span class="bad">Q9</span> + 1"}</span>
+Q1,Q2
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#f format=csv compute="S = Q1 + Q2"}</span>
+Q1,Q2
+1,<span class="hl">n/a</span>                                <span class="c">%% 非数按 0，warning</span>
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#g format=csv compute="R = Q1 / Q2"
+           summary="Q1 = sum(Q1); <span class="bad">Nope</span> = 1; <span class="bad">Q2 = Q2</span>"}</span>
+Q1,Q2
+1,<span class="hl">0</span>                                  <span class="c">%% 除零</span>
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#h <span class="bad">src=#n</span>}</span>                   <span class="arrow">← #n 是 note</span>
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#i format=csv <span class="bad">src=missing.csv</span>}</span>
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#j format=csv compute="<span class="bad">bad formula</span>"}</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check</span><span class="badge b-err">8 error</span> <span class="badge b-warn">4 warning</span></div>
+<pre class="term"><span class="er">error:</span> table has both `src` and an inline body; provide one, not both (line 8)
+<span class="er">error:</span> `delim=";;"` must be exactly one character (for a tab use
+  `format=tsv`); split on `,` instead (line 11)
+<span class="wn">warning:</span> `delim` applies to a data body (`format=csv`/`tsv`); this body
+  was parsed as a visual grid, so it is ignored (line 15)
+<span class="wn">warning:</span> unknown table format `weird`; parsed as visual grid (line 20)
+<span class="er">error:</span> compute `Z`: unknown column `Q9` (line 25)
+<span class="wn">warning:</span> column `Q2` row 1 is not a number (`n/a`); counted as 0 (line 29)
+<span class="wn">warning:</span> compute `R` row 1: division by zero; the cell holds no value
+  and shows `-` (line 33)
+<span class="er">error:</span> summary targets unknown column `Nope` (line 33)
+<span class="er">error:</span> summary `Q2`: column `Q2` must be reduced by an aggregate
+  (e.g. sum(Q2)) (line 33)
+<span class="er">error:</span> bad compute formula `bad formula` (want `Name = expr`) (line 41)
+<span class="er">error:</span> cannot resolve table source `missing.csv` (line 39)
+<span class="er">error:</span> table source `#n` is not a table (line 37)</pre>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>error</dt><dd>src 与正文同在、分隔符不是一个字符、未知列、汇总未知列、汇总裸列、公式不成形、源解析不到、源不是表。都是文档自己写错。</dd>
+        <dt>warning</dt><dd>delim 用错地方、未知 format 退回可视网格、非数单元格按 0、除零。前两个文档仍能读，后两个是数据的事实而不是文档的缺陷。§6 特别写明除零「是 warning，文档仍合规，但绝不静默」。</dd>
+        <dt>回退</dt><dd>坏 delim 回退到自然分隔符 <code>,</code>，表照样读；坏 format 按管道表解析。降级永远保留内容。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ VIEW ============ -->
+<section id="view">
+  <div class="sec-head">
+    <div class="sec-num">view</div>
+    <div>
+      <h2><code>view</code> 草案：从另一个关系里选、算、聚合</h2>
+      <p class="sub">GEP-0012，2026-09-03 起草，状态 draft。今天写它只会得到 unknown-block-type warning。下面左边是草案语法，右边是草案<strong>打算</strong>渲染成的样子和今天的实际输出。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>两个 view：过滤排序取列，和分组聚合 <span class="st st-gep">GEP 草案</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · v1-view.geml</span></div>
+<pre class="geml"><span class="f">=== table</span> <span class="a">{#tickets format=csv}</span>
+Area,Status,Days
+Draft Mode,open,3
+Turbopack,open,12
+Draft Mode,closed,1
+<span class="f">===</span>
+<span class="f">=== view</span> <span class="a">{#open src=#tickets <span class="hl">where="Status = 'open'"</span> <span class="hl">order="Days desc"</span>
+          limit=10 <span class="hl">select="Area, Days"</span>}</span>
+<span class="f">===</span>
+<span class="f">=== view</span> <span class="a">{#by-area src=#tickets <span class="hl">by="Area"</span> <span class="hl">aggregate="Open = count(Status)"</span>}</span>
+<span class="f">===</span></pre>
+          <div class="pane-h" style="margin-top:14px"><span>今天的输出</span></div>
+<pre class="term"><span class="wn">warning:</span> unknown block type `view`; body kept as raw (line 11)
+<span class="wn">warning:</span> unknown block type `view`; body kept as raw (line 13)
+0 error(s), 2 warning(s)   <span class="dim">exit 0 —— 草案文档今天能过检查，只是什么都不算</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>草案打算渲染成</span><span class="badge b-mute">未实现</span></div>
+          <div class="render">
+            <span class="tag">#open · where → order → limit → select</span>
+            <table class="r"><thead><tr><th>Area</th><th class="num">Days</th></tr></thead><tbody><tr><td>Turbopack</td><td class="num">12</td></tr><tr><td>Draft Mode</td><td class="num">3</td></tr></tbody></table>
+            <span class="tag">#by-area · by → aggregate</span>
+            <table class="r"><thead><tr><th>Area</th><th class="num">Open</th></tr></thead><tbody><tr><td>Draft Mode</td><td class="num">2</td></tr><tr><td>Turbopack</td><td class="num">1</td></tr></tbody></table>
+            <span class="cap">求值顺序，草案的承重句：</span>
+            <div class="pipeline"><span class="step">src</span><span class="sep">→</span><span class="step hot">compute 行级</span><span class="sep">→</span><span class="step">where</span><span class="sep">→</span><span class="step hot">compute 聚合</span><span class="sep">→</span><span class="step">by / aggregate</span><span class="sep">→</span><span class="step">order</span><span class="sep">→</span><span class="step">limit</span><span class="sep">→</span><span class="step">select</span><span class="sep">→</span><span class="step">summary</span></div>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>为什么是块</dt><dd>草案的判据：一个 view 的输出是另一个关系，可以再被下一个 view 消费（过滤分组就是「再来一个 view」，不是 HAVING）。放在 table 的属性上做不到这一点，也会让 table 不再是「事实」。</dd>
+        <dt>两遍 compute</dt><dd>只读本行的公式在 where 之前算，所以 <code>where="FY &gt; 40"</code> 能用同块定义的 FY；读聚合的公式在 where 之后算，否则过滤依赖被过滤的结果就循环了。收益是 <code>sum(FY)</code> 在 compute 和 summary 里指同一批行。这是有意偏离 SQL 的地方。</dd>
+        <dt>表达式</dt><dd>不是第二种语言：在 §6 的算术上加比较、<code>and/or/not</code>、数字和单引号字面量。单引号在列位置是列名（<code>'Unit Price'</code>），在值位置是字面量（<code>'open'</code>），没有第三个位置，因为 §4 的属性值没有转义可以引入第二种引号。</dd>
+        <dt>看得见什么</dt><dd>源的元组加计算列；源的 summary 行不过来。要源的总数就寻址它：<code>A.geml#fy[summary]["FY"]</code>。同名 compute 遮蔽合法但 warning。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ EVIDENCE ============ -->
+<section id="evidence">
+  <div class="sec-head">
+    <div class="sec-num">依据</div>
+    <div>
+      <h2>探针文件与实测输出</h2>
+      <p class="sub">全部用仓库内当前构建 <code>node geml-parser/dist/geml.js</code> 跑出，版本 1.9.2。rows.csv 与探针同目录。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tablewrap">
+      <table class="t">
+        <thead><tr><th>探针</th><th>覆盖</th><th>check 结果</th><th>页面里对应</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">t1-table.geml · rows.csv</td><td>管道表、csv 体、delim、compute、printf、summary、src 文件、借表、caption 自动文字、六个坐标</td><td><span class="badge b-ok">0 诊断</span></td><td>两种体、坐标、src=</td></tr>
+          <tr><td class="mono">t2-table-fail.geml</td><td>src+正文、坏 delim、delim 无 format、未知 format、未知列、非数、除零、汇总未知列、汇总裸列、坏公式、源解析不到、源非表</td><td><span class="badge b-err">8 error</span> <span class="badge b-warn">4 warning</span></td><td>十二种失败</td></tr>
+          <tr><td class="mono">v1-view.geml</td><td>两个 view 块（草案语法）</td><td><span class="badge b-warn">2 warning</span> unknown-block-type</td><td>view 草案</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>本页：<code>docs/illustrated/03-table-view.html</code>。系列共五页：简单四型 · code 与 data · table 与 view · diagram · embed。</div>
+  <div>看板 11 记录了 §6 与 GEP-0012 在「table 借块」上的冲突，GEP 定夺后改状态。</div>
+</footer>
+</div>

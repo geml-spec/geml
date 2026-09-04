@@ -61,11 +61,16 @@ a `note` block (e.g. `=== note {#note}`), then cite it inline with `[^note]`.
 
 ## Tables
 ```
-=== table {#fy caption="Sales" format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4" summary="Seg = 'Total'; Q1 = sum(Q1); FY = sum(FY)"}
+=== table {#fy caption="Sales" format=csv header=1}
 Seg, Q1, Q2, Q3, Q4
 Cloud, 1, 2, 3, 4
 ===
+
+=== view {#fy-report src=#fy compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4" summary="Seg = 'Total'; Q1 = sum(Q1); FY = sum(FY)"}
+===
 ```
+- A `table` holds FACTS. `compute`/`summary` — and `where`/`order`/`limit`/
+  `select`/`by`/`aggregate` — belong to a `view` whose `src=` names the table.
 - The attribute object `{…}` is **one physical line** (don't wrap it).
 - `compute`: `Name = expr` over `+ - * / ( )`, columns by header name (quote names
   with spaces: `'Unit Price'`) or letter `A,B,…`; `;`-separate multiple formulas;

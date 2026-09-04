@@ -24,12 +24,15 @@ version = "1.0"
 **废弃警告**：`/api/v1/legacy` 接口将于下一季度停止维护，请及时迁移。
 ===
 
-### 1.3 核心数据表格 (Table block with compute) {#table_src}
+### 1.3 核心数据表格与派生视图 (Table of facts + a `view`) {#table_src}
 
-=== table {#perf_table caption="核心性能指标" format=csv header=1 compute="Total [%.0f] = Q1 + Q2; n = 1" summary="Metric = 'Total'; Total [%.0f] = sum(Total); n = sum(n)"}
+=== table {#perf_facts caption="核心性能指标" format=csv header=1}
 Metric,    Q1,  Q2
 Latency,   15,  12
 TPS,      500, 650
+===
+
+=== view {#perf_table src=#perf_facts caption="核心性能指标（含合计）" compute="Total [%.0f] = Q1 + Q2; n = 1" summary="Metric = 'Total'; Total [%.0f] = sum(Total); n = sum(n)"}
 ===
 
 ### 1.4 Mermaid 流程图 (Diagram block) {#diagram_src}

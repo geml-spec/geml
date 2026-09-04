@@ -83,9 +83,12 @@ Two bodies, one model: the visual (pipe) form, or the data form
 | Basic |      1 |   30 |
 ===
 
-=== table {#fy25 format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4" summary="Segment = 'Total'; FY [%.1f] = sum(FY)"}
+=== table {#fy25 format=csv header=1}
 Segment,  Q1, Q2, Q3, Q4
 Cloud,     8, 10, 12, 14
+===
+
+=== view {#fy25-report src=#fy25 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4" summary="Segment = 'Total'; FY [%.1f] = sum(FY)"}
 ===
 ====
 
@@ -94,6 +97,11 @@ Cloud,     8, 10, 12, 14
   single character is an error, a tab is `format=tsv` (attribute values have no
   escapes), and `delim` without a data `format` is ignored (warning). The data
   form splits and nothing more — it never strips outer `|` like the visual form.
+A `table` holds FACTS and derives nothing. Everything below belongs to a
+`view`, whose `src=` names a table, another view, or a `.csv`/`.tsv` file —
+a `table` carrying these attributes is an `unknown-attribute` warning, and a
+`table` whose `src=` names a BLOCK is an error pointing at `view`.
+
 - `compute="Name = expr; Name2 = expr2"` — per-row formulas over columns (by
   header name, or single letter `A`,`B`,…), operators `+ - * / ( )`.
   Reference an earlier computed column by name. Quote names with spaces:
@@ -102,6 +110,20 @@ Cloud,     8, 10, 12, 14
   foot row. A bare (non-aggregated) column ref in `summary` is an error.
 - A trailing `[printf]` on a name sets numeric display: `FY [%.1f]`,
   `P [%.1f%%]`.
+- `where="Status = 'open' and N > 3"` — keep rows. Comparisons take a number
+  or a single-quoted string; `not`/`and`/`or` and parentheses combine them. It
+  MAY name a per-row computed column; naming an aggregate-derived one is
+  circular and refused.
+- `order="N desc, Id"` (`asc` default, stable), `limit=10`, and
+  `select="Id, N"` — columns only, in the order given; an `=` there points at
+  `compute=`.
+- `by="Area"` groups; `aggregate="Open = count(Id)"` names the group's
+  columns. `by=` alone is the distinct set of those keys. To filter GROUPS,
+  consume the view from another one (SQL's `HAVING`).
+- Order of evaluation is SQL's: per-row `compute` → `where` → aggregate
+  `compute` → `by`/`aggregate` → `order` → `limit` → `select` → `summary`.
+  So `sum(FY)` means the same in `compute=` and `summary=` — over the rows
+  shown — and a `summary=` must target a column `select=` kept.
 
 # Charts {#charts}
 

@@ -1,0 +1,914 @@
+<title>GEML 块图解 · form</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --bg: #F4F6F9;
+    --surface: #FFFFFF;
+    --surface-2: #EBEFF4;
+    --ink: #1B2430;
+    --ink-2: #47535F;
+    --ink-3: #7B8794;
+    --line: #D5DCE4;
+    --line-2: #C3CCD6;
+    --accent: #1F6F8B;
+    --accent-soft: #DCEDF3;
+    --amber: #9A5F0A;
+    --amber-soft: #FAEED3;
+    --red: #B0403B;
+    --red-soft: #F8E2E0;
+    --green: #2E7A50;
+    --green-soft: #DDF0E4;
+    --ctl-bg: #F8FAFC;
+    --ctl-text: #6C7783;
+    --ctl-fill: #3E4A57;
+    --on-solid: #FFFFFF;
+    --shadow: 0 1px 2px rgba(27, 36, 48, .06), 0 6px 18px rgba(27, 36, 48, .05);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11161C;
+      --surface: #191F27;
+      --surface-2: #202832;
+      --ink: #E6EBF0;
+      --ink-2: #B3BDC8;
+      --ink-3: #7F8B98;
+      --line: #2C3642;
+      --line-2: #3A4552;
+      --accent: #63B5D1;
+      --accent-soft: #14323D;
+      --amber: #E2AC45;
+      --amber-soft: #382B10;
+      --red: #E27F79;
+      --red-soft: #3E1F1E;
+      --green: #6CC08E;
+      --green-soft: #173124;
+      --ctl-bg: #1C242D;
+      --ctl-text: #8D99A6;
+      --ctl-fill: #C9D2DC;
+      --on-solid: #0F141A;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11161C;
+    --surface: #191F27;
+    --surface-2: #202832;
+    --ink: #E6EBF0;
+    --ink-2: #B3BDC8;
+    --ink-3: #7F8B98;
+    --line: #2C3642;
+    --line-2: #3A4552;
+    --accent: #63B5D1;
+    --accent-soft: #14323D;
+    --amber: #E2AC45;
+    --amber-soft: #382B10;
+    --red: #E27F79;
+    --red-soft: #3E1F1E;
+    --green: #6CC08E;
+    --green-soft: #173124;
+    --ctl-bg: #1C242D;
+    --ctl-text: #8D99A6;
+    --ctl-fill: #C9D2DC;
+    --on-solid: #0F141A;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.7 "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 48px 28px 96px; }
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+  p { margin: 0; }
+  a { color: var(--accent); }
+  code, pre, .mono { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; }
+  code { font-size: .92em; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; }
+
+  .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  header h1 { font-size: 34px; line-height: 1.2; font-weight: 600; margin-top: 10px; letter-spacing: -.01em; }
+  header .lede { max-width: 66ch; color: var(--ink-2); margin-top: 16px; font-size: 16px; }
+  .toc { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 22px; font-size: 14px; }
+  .toc a { text-decoration: none; border-bottom: 1px solid var(--line-2); padding-bottom: 1px; }
+  .toc a:hover, .toc a:focus-visible { border-color: var(--accent); }
+
+  section { margin-top: 72px; }
+  .sec-head { display: grid; grid-template-columns: 64px 1fr; gap: 16px; align-items: baseline; border-top: 1px solid var(--line-2); padding-top: 22px; }
+  .sec-num { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; padding-top: 6px; }
+  .sec-head h2 { font-size: 24px; font-weight: 600; letter-spacing: -.005em; }
+  .sec-head .sub { color: var(--ink-2); margin-top: 6px; max-width: 70ch; }
+  .sec-body { margin-left: 80px; margin-top: 28px; display: grid; gap: 40px; }
+  @media (max-width: 860px) {
+    .sec-head { grid-template-columns: 1fr; gap: 6px; }
+    .sec-body { margin-left: 0; }
+  }
+
+  .st { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; letter-spacing: .04em; padding: 2px 8px; border-radius: 3px; font-weight: 600; white-space: nowrap; color: var(--on-solid); vertical-align: middle; }
+  .st-done { background: var(--green); }
+  .st-confirm { background: var(--accent); }
+  .st-open { background: var(--amber); }
+
+  .board { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); }
+  table.b { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.b th, table.b td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.b tr:last-child td { border-bottom: 0; }
+  table.b th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.b td.n { color: var(--ink-3); font-variant-numeric: tabular-nums; width: 32px; }
+  table.b td.item { font-weight: 500; white-space: nowrap; }
+  table.b td.who { color: var(--ink-3); white-space: nowrap; }
+  .tally { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-bottom: 14px; font-size: 14px; color: var(--ink-2); align-items: center; }
+  .tally b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  figure { margin: 0; display: grid; gap: 18px; }
+  figure > figcaption { font-size: 17px; font-weight: 600; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+  figure > figcaption small { flex-basis: 100%; font-size: 14px; font-weight: 400; color: var(--ink-2); }
+  .panes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  .panes.wide-left { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+  @media (max-width: 980px) { .panes, .panes.wide-left { grid-template-columns: 1fr; } .sec-body { margin-left: 0; } }
+  .pane-h { display: flex; justify-content: space-between; align-items: center; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; margin-bottom: 8px; }
+  pre.geml {
+    margin: 0; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px;
+    padding: 14px 16px; font-size: 13px; line-height: 1.6; overflow-x: auto; color: var(--ink);
+    tab-size: 2;
+  }
+  pre.geml .f { color: var(--accent); font-weight: 500; }
+  pre.geml .a { color: var(--ink-2); }
+  pre.geml .c { color: var(--ink-3); font-style: italic; }
+  pre.geml .hl { background: var(--amber-soft); color: var(--amber); border-radius: 2px; padding: 0 2px; }
+  pre.geml .bad { background: var(--red-soft); color: var(--red); border-radius: 2px; padding: 0 2px; }
+  pre.geml .arrow { color: var(--red); font-family: "IBM Plex Sans", "Noto Sans SC", sans-serif; font-style: normal; }
+
+  .preview { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px; box-shadow: var(--shadow); display: grid; gap: 16px; }
+  .fld { display: grid; gap: 6px; }
+  .fld > label, .fld > .lab { font-size: 13px; font-weight: 500; color: var(--ink-2); }
+  .req::after { content: "*"; color: var(--red); margin-left: 3px; }
+  .inp {
+    display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 6px 10px;
+    border: 1px solid var(--line-2); background: var(--ctl-bg); color: var(--ctl-fill);
+    border-radius: 4px; font-size: 14px; font-family: inherit; width: 100%;
+  }
+  .inp.ph { color: var(--ink-3); }
+  .inp .caret { margin-left: auto; color: var(--ink-3); font-size: 11px; }
+  .inp.wrapchips { flex-wrap: wrap; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; background: var(--surface-2); border: 1px solid var(--line-2); color: var(--ink-2); padding: 1px 8px; border-radius: 3px; font-size: 12.5px; line-height: 1.6; }
+  .chip .x { color: var(--ink-3); font-size: 11px; }
+  .hint { font-size: 12.5px; color: var(--ink-3); }
+  .desc { font-size: 13.5px; color: var(--ink-2); max-width: 60ch; }
+  .fh { font-size: 15px; font-weight: 600; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1.3fr auto; gap: 12px; align-items: end; }
+  @media (max-width: 600px) { .row3 { grid-template-columns: 1fr; } .row2 { grid-template-columns: 1fr; } }
+  .check { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; color: var(--ink-2); line-height: 1.5; }
+  .box { width: 16px; height: 16px; border: 1px solid var(--line-2); border-radius: 3px; background: var(--ctl-bg); flex: none; margin-top: 2px; }
+  .box.on { background: var(--ctl-fill); border-color: var(--ctl-fill); position: relative; }
+  .box.on::after { content: ""; position: absolute; left: 5px; top: 1px; width: 4px; height: 9px; border: solid var(--surface); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+  .radio { width: 16px; height: 16px; border: 1px solid var(--line-2); border-radius: 50%; background: var(--ctl-bg); flex: none; margin-top: 2px; }
+  .radio.on { border: 5px solid var(--ctl-fill); background: var(--surface); }
+  .optlist { border: 1px solid var(--line-2); border-radius: 4px; background: var(--surface); font-size: 14px; color: var(--ctl-fill); }
+  .optlist > div { padding: 8px 12px; display: flex; gap: 8px; align-items: center; }
+  .optlist > div:nth-child(odd) { background: var(--surface-2); }
+  .optlist a { pointer-events: none; }
+
+  .group { border: 1px solid var(--line-2); border-radius: 6px; padding: 14px; display: grid; gap: 12px; background: var(--bg); }
+  .group-h { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 500; color: var(--ink-2); }
+  .entry { background: var(--surface); border: 1px solid var(--line); border-radius: 5px; padding: 12px; }
+  .del { color: var(--ink-3); font-size: 15px; padding: 6px 4px; line-height: 1; }
+  .add { border: 1px dashed var(--accent); color: var(--accent); text-align: center; padding: 9px; border-radius: 4px; font-size: 13.5px; }
+
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; font-weight: 500; white-space: nowrap; }
+  .b-doc { background: var(--accent-soft); color: var(--accent); }
+  .b-style { background: var(--green-soft); color: var(--green); }
+  .b-handler { background: var(--amber-soft); color: var(--amber); }
+  .b-err { background: var(--red-soft); color: var(--red); }
+  .b-warn { background: var(--amber-soft); color: var(--amber); }
+  .b-mute { background: var(--surface-2); color: var(--ink-3); }
+
+  .decision { display: grid; grid-template-columns: 72px 1fr; gap: 6px 16px; font-size: 14.5px; border-top: 1px dashed var(--line-2); padding-top: 14px; }
+  .decision dt { color: var(--ink-3); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; font-weight: 500; padding-top: 4px; }
+  .decision dd { margin: 0; color: var(--ink); }
+  .decision dd.amber { color: var(--amber); }
+
+  .layers { display: grid; grid-template-columns: 1fr 36px 1fr 36px 1fr; gap: 0; align-items: stretch; }
+  @media (max-width: 860px) { .layers { grid-template-columns: 1fr; } .layers .arr { transform: rotate(90deg); height: 40px; } }
+  .layer { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px; display: grid; gap: 10px; align-content: start; }
+  .layer h3 { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+  .layer .does { font-size: 14px; color: var(--ink); }
+  .layer .not { font-size: 13.5px; color: var(--ink-3); border-top: 1px dashed var(--line); padding-top: 8px; }
+  .layer .not strong { color: var(--ink-2); font-weight: 500; }
+  .arr { display: flex; align-items: center; justify-content: center; color: var(--ink-3); }
+  .flow { margin-top: 20px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 14px 18px; font-size: 14px; display: flex; flex-wrap: wrap; gap: 8px 6px; align-items: center; }
+  .flow .step { display: inline-flex; align-items: center; gap: 8px; }
+  .flow .sep { color: var(--ink-3); }
+  .answer { margin-top: 20px; font-size: 16px; max-width: 70ch; }
+  .answer strong { font-weight: 600; }
+
+  table.t { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.t th, table.t td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.t tr:last-child td { border-bottom: 0; }
+  table.t th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.t td.mono { font-size: 13px; white-space: nowrap; }
+  table.t td.num { font-variant-numeric: tabular-nums; text-align: right; }
+  table.t th.num { text-align: right; }
+  .tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+
+  .wins { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 700px) { .wins { grid-template-columns: 1fr; } }
+  .win { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; font-size: 14px; display: grid; gap: 4px; }
+  .win b { font-weight: 600; }
+  .win .was { color: var(--ink-3); font-size: 13px; }
+
+  .gaps { display: grid; gap: 40px; }
+  .term { background: var(--ink); color: #E6EBF0; border-radius: 6px; padding: 12px 14px; font-size: 12.5px; line-height: 1.6; overflow-x: auto; margin: 0; }
+  :root[data-theme="dark"] .term { background: #0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .term { background: #0B0F14; } }
+  .term .ok { color: #7ED4A0; } .term .er { color: #F09A94; } .term .wn { color: #F0C060; } .term .dim { color: #8A96A3; }
+  .unknown { border: 1px dashed var(--line-2); background: var(--surface-2); color: var(--ink-3); padding: 10px 12px; border-radius: 4px; font-size: 13px; }
+
+  footer { margin-top: 80px; border-top: 1px solid var(--line-2); padding-top: 18px; font-size: 13.5px; color: var(--ink-3); display: grid; gap: 6px; }
+  footer code { background: transparent; padding: 0; color: var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">GEML 块类型图解 · form 提案（GEP-0008，草案）与 geml-form/v1 profile · 评审图解第 5 版</div>
+  <h1>GEP-0008 表单图解</h1>
+  <p class="lede">这一版按你提的 <code>form-*</code> 家族重画：<code>form-field</code>、<code>form-options</code>、<code>form-note</code>、<code>form-group</code>，四个二级类型都只能出现在 form 内。它一次解决了 table 双逻辑、说明无绑定、围栏过深三个问题。字段用属性指向 form-options 和 form-note，方向只有一个。名字定为 form-note，form-group 不嵌套，看板 15 项全部已定。控件仍是 0008 要求的禁用预览。</p>
+  <nav class="toc">
+    <a href="#board">决策看板</a>
+    <a href="#layers">分工</a>
+    <a href="#family">1 · form-* 家族</a>
+    <a href="#groups">2 · 分组和重复组</a>
+    <a href="#options">3 · 选项</a>
+    <a href="#types">4 · type 与约束</a>
+    <a href="#text">5 · label · description · form-note</a>
+    <a href="#gaps">小口子</a>
+    <a href="#evidence">依据</a>
+  </nav>
+</header>
+
+<!-- ============ BOARD ============ -->
+<section id="board">
+  <div class="sec-head">
+    <div class="sec-num">看板</div>
+    <div>
+      <h2>15 项决策，现在各在什么状态</h2>
+      <p class="sub"><span class="st st-done">已定</span> 你拍板的，或提案原文已经写死的。15 项全部收口。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div>
+      <div class="tally">
+        <span><span class="st st-done">已定</span> <b>15</b> · 全部收口，含 form-group 不嵌套</span>
+      </div>
+      <div class="board">
+        <table class="b">
+          <thead><tr><th></th><th>项</th><th>结论 / 建议</th><th>状态</th><th>来源</th></tr></thead>
+          <tbody>
+            <tr><td class="n">1</td><td class="item"><code>form-*</code> 家族</td><td>二级类型统一带 <code>form-</code> 前缀：<code>form-field</code> <code>form-group</code> <code>form-options</code> <code>form-note</code>，都只能出现在 form 内，<strong>id 全部在 form 作用域内</strong>，一条规则。form 因此自包含：<code>geml get '#vendor'</code> 拿到的就是完整表单。§8.5 补一句：扩展类型名不得以「已注册类型名 + 连字符」开头。</td><td><span class="st st-done">已定</span></td><td class="who">你决定</td></tr>
+            <tr><td class="n">2</td><td class="item">重复组</td><td><code>form-group</code> 天然可重复，就是 Ant Design 的 <code>Form.List</code>，<strong>不写 multiple</strong>；<code>required</code> 表示至少一条。开新作用域，地址 <code>#vendor#contacts#email</code>。非重复的复合分组不定义：视觉分组用标题。<strong>不嵌套：</strong>form-group 只放在 form 直接子层，里面只放 form-field。三个试验表单里嵌套重复组零实例；不嵌套则作用域固定两层、地址最多三段、围栏最多五杠，工具不用处理递归。</td><td><span class="st st-done">已定</span></td><td class="who">你决定</td></tr>
+            <tr><td class="n">3</td><td class="item">选项</td><td>载体是 <code>form-options</code>，表格体，<code>format</code> / <code>delim</code> / <code>src</code> 同 table，只放在 form 直接子层。契约不变：第一列是值，<code>label</code> 列显示，其余列给 handler。<code>options=</code> 只能指向同一 form 里的 form-options，指向 table 是 error。跨 form 复用靠 <code>src=</code> 指向同一个文件。</td><td><span class="st st-done">已定</span></td><td class="who">你决定</td></tr>
+            <tr><td class="n">4</td><td class="item">type 集合</td><td>text · textarea · number · date · boolean · select · file，共 7 个纯值形状。group 移出，成为 form-group。</td><td><span class="st st-done">已定</span></td><td class="who">你确认；随第 2 项少一个</td></tr>
+            <tr><td class="n">5</td><td class="item">未知 type 值</td><td>降级为 text，加 warning <code>unknown-field-type</code>。</td><td><span class="st st-done">已定</span></td><td class="who">你确认</td></tr>
+            <tr><td class="n">6</td><td class="item">约束属性</td><td><code>pattern</code> <code>min</code> <code>max</code> <code>step</code> <code>maxlength</code> <code>accept</code> 进 <code>geml-form/v1</code> profile，只声明不求值，handler 执行。</td><td><span class="st st-done">已定</span></td><td class="who">你决定</td></tr>
+            <tr><td class="n">7</td><td class="item">富文本</td><td><code>label=</code> <code>description=</code> <code>placeholder=</code> 三个属性同一条规则：<strong>明文，或以 <code>#</code> 开头指向同 form 内的 form-note</strong>。form-note 没有 <code>for=</code>，是和 form-options 一样的被动资源，可被多个字段共用。判别有先例：<code>src=</code> 的值以 # 开头就是引用。placeholder 指向 form-note 时渲染器压成纯文本。名字定为 <code>form-note</code>。</td><td><span class="st st-done">已定</span></td><td class="who">你决定</td></tr>
+            <tr><td class="n">8</td><td class="item"><code>description=</code></td><td>单行纯文本属性，控件下面那行灰字。长说明不再写成不绑定的散文，改由 form-note 承载。</td><td><span class="st st-done">已定</span></td><td class="who">你决定</td></tr>
+            <tr><td class="n">9</td><td class="item">form 体内标题</td><td>允许。普通文档标题，id 文档级，不是字段。</td><td><span class="st st-done">已定</span></td><td class="who">你决定</td></tr>
+            <tr><td class="n">10</td><td class="item"><code>placeholder=</code></td><td>进 form-field 属性。</td><td><span class="st st-done">已定</span></td><td class="who">你决定</td></tr>
+            <tr><td class="n">11</td><td class="item">textarea <code>format=</code></td><td>不要。</td><td><span class="st st-done">已定</span></td><td class="who">你决定</td></tr>
+            <tr><td class="n">12</td><td class="item"><code>value=</code> 遇 <code>multiple</code></td><td>唯一预选项。</td><td><span class="st st-done">已定</span></td><td class="who">你决定</td></tr>
+            <tr><td class="n">13</td><td class="item"><code>form-*</code> 出现在 form 外</td><td><strong>error</strong> <code>form-child-outside-form</code>，四个子类型一视同仁。form-field 正文非空是 warning <code>form-field-has-body</code>。</td><td><span class="st st-done">已定</span></td><td class="who">你决定，随家族推广</td></tr>
+            <tr><td class="n">14</td><td class="item">条件逻辑 / 跨字段校验</td><td>文档不承载，只在 handler。</td><td><span class="st st-done">已定</span></td><td class="who">提案原文</td></tr>
+            <tr><td class="n">15</td><td class="item">Steps / Tabs / 按钮 / 反馈</td><td>应用层，归 0009 profile 和 geml-style。</td><td><span class="st st-done">已定</span></td><td class="who">提案原文</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LAYERS ============ -->
+<section id="layers">
+  <div class="sec-head">
+    <div class="sec-num">分工</div>
+    <div>
+      <h2>谁描述、谁渲染、谁校验</h2>
+      <p class="sub">「校验放在哪」的答案。没有变。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div>
+      <div class="layers">
+        <div class="layer">
+          <h3><span class="badge b-doc">描述</span> 文档 <code>.geml</code></h3>
+          <p class="does"><code>form</code> 和它的 <code>form-*</code> 子块。写的是：有哪些字段、什么类型、必填否、选项是什么，以及格式和范围的<strong>声明</strong>，这些键来自 <code>geml-form/v1</code> profile。</p>
+          <p class="not"><strong>不做：</strong>不求值、不校验、不提交。§9.1，§8.3(5)。</p>
+        </div>
+        <div class="arr"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h16M14 6l6 6-6 6"/></svg></div>
+        <div class="layer">
+          <h3><span class="badge b-style">渲染</span> 样式 / profile</h3>
+          <p class="does">决定长什么样：单页还是 Steps、分组要不要折叠、下拉还是单选组、要不要把 <code>min</code>/<code>max</code> 显示成提示。</p>
+          <p class="not"><strong>不做：</strong>不判断对错。渲染出来的是禁用预览，它拿不到输入。</p>
+        </div>
+        <div class="arr"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h16M14 6l6 6-6 6"/></svg></div>
+        <div class="layer">
+          <h3><span class="badge b-handler">校验 · 提交</span> handler</h3>
+          <p class="does">宿主按名字注册（<code>handler=onboarding</code>）。唯一拿到用户输入的地方：执行声明的格式约束，再加文档不承载的业务规则。</p>
+          <p class="not"><strong>不做：</strong>不决定字段长什么样，不改文档。</p>
+        </div>
+      </div>
+      <p class="answer">「约束」是格式和范围这类<strong>可以声明</strong>的东西，写在文档里。<strong>「校验」是动作，只发生在 handler。</strong>样式里没有校验，只有长相。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 1 FAMILY ============ -->
+<section id="family">
+  <div class="sec-head">
+    <div class="sec-num">评审点 1</div>
+    <div>
+      <h2><code>form-*</code> 家族：一个 form，四种子块</h2>
+      <p class="sub">你的方案。下面是一个完整的 form，把四种子块和体内标题都用上；右边是它渲染出来的样子。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+
+    <figure>
+      <figcaption>一个完整的 form <span class="st st-done">已定</span><small>围栏只到三层：form 五杠、form-group 四杠、其余三杠。form-field 正文永远为空。所有 form-* 的 id 都在 form 作用域内。</small></figcaption>
+      <div class="panes wide-left">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+profile = "geml-form/v1"
+<span class="f">===</span>
+
+<span class="f">===== form</span> <span class="a">{#vendor handler=onboarding}</span>
+## 公司 {#company}
+
+<span class="f">=== form-field</span> <span class="a">{#legal-name label="公司名称" type=text required
+                description="按营业执照填写。"}</span>
+<span class="f">===</span>
+
+<span class="f">=== <span class="hl">form-options</span></span> <span class="a">{#entity-types format=csv delim=;}</span>
+value ; label
+llc   ; 有限责任公司
+jsc   ; 股份有限公司
+sole  ; 个体工商户
+<span class="f">===</span>
+<span class="f">=== form-field</span> <span class="a">{#entity-type label="企业类型" type=select required
+                <span class="hl">options=#entity-types</span>}</span>
+<span class="f">===</span>
+
+## 合规 {#compliance}
+
+<span class="f">=== <span class="hl">form-note</span></span> <span class="a">{#coc-note}</span>
+请先阅读[《供应商行为准则》](https://example.invalid/coc)。勾选即表示
+接受其中的**反商业贿赂**条款。
+<span class="f">===</span>
+<span class="f">=== form-field</span> <span class="a">{#agree label="我已阅读并同意《供应商行为准则》" type=boolean required
+                <span class="hl">description=#coc-note</span>}</span>
+<span class="f">===</span>
+
+## 联系人 {#contacts-heading}
+
+<span class="f">==== <span class="hl">form-group</span></span> <span class="a">{#contacts label="联系人" required description="至少一位。"}</span>
+<span class="f">=== form-field</span> <span class="a">{#name label="姓名" type=text required}</span>
+<span class="f">===</span>
+<span class="f">=== form-field</span> <span class="a">{#email label="邮箱" type=text pattern="^[^@]+@[^@]+$" required}</span>
+<span class="f">===</span>
+<span class="f">====</span>
+<span class="f">=====</span>
+
+<span class="c">%% 地址：#vendor#legal-name、#vendor#contacts#email、#vendor#entity-types、#vendor#coc-note</span>
+<span class="c">%% 所有 form-* 的 id 都在 form 作用域内且唯一；标题 #company 不是 form-*，是文档级</span>
+<span class="c">%% form-field 上以 # 开头的属性值都指向同 form 内的 form-* 块：options=、label=、description=、placeholder=</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>渲染</span><span class="badge b-mute">禁用预览</span></div>
+          <div class="preview">
+            <div class="fh">公司</div>
+            <div class="fld"><span class="lab req">公司名称</span><div class="inp ph">　</div><span class="hint">按营业执照填写。</span></div>
+            <div class="fld"><span class="lab req">企业类型</span><div class="inp">有限责任公司 <span class="caret">▼</span></div></div>
+            <div class="fh">合规</div>
+            <div class="fld">
+              <div class="check"><span class="box"></span><span class="req">我已阅读并同意《供应商行为准则》</span></div>
+              <p class="desc">请先阅读<a href="#family" style="pointer-events:none">《供应商行为准则》</a>。勾选即表示接受其中的<strong>反商业贿赂</strong>条款。</p>
+            </div>
+            <div class="fh">联系人</div>
+            <div class="group">
+              <div class="group-h"><span>联系人 <span class="hint">至少一位。</span></span></div>
+              <div class="entry"><div class="row3">
+                <div class="fld"><span class="lab req">姓名</span><div class="inp">王芳</div></div>
+                <div class="fld"><span class="lab req">邮箱</span><div class="inp">wang.fang@example.invalid</div></div>
+                <div class="del" aria-hidden="true">🗑</div>
+              </div></div>
+              <div class="entry"><div class="row3">
+                <div class="fld"><span class="lab req">姓名</span><div class="inp">李强</div></div>
+                <div class="fld"><span class="lab req">邮箱</span><div class="inp">li.qiang@example.invalid</div></div>
+                <div class="del" aria-hidden="true">🗑</div>
+              </div></div>
+              <div class="add">＋ 添加联系人</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tablewrap">
+        <table class="t">
+          <thead><tr><th>类型</th><th>放在哪</th><th>体</th><th>id</th><th>作用</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">form</td><td>文档任意处</td><td>流式：form-* 子块、标题、散文</td><td>文档级</td><td>容器，<code>handler=</code></td></tr>
+            <tr><td class="mono">form-field</td><td>form 或 form-group 内</td><td><strong>空</strong>，非空 warning</td><td>作用域内，<code>#vendor#email</code></td><td>一个字段，文字全在属性</td></tr>
+            <tr><td class="mono">form-group</td><td>form 直接子层，不嵌套</td><td>只放 form-field</td><td>作用域内，并开新作用域</td><td>可重复的一组字段；<code>required</code> 表示至少一条</td></tr>
+            <tr><td class="mono">form-options</td><td>form 直接子层</td><td>表格体，<code>format</code> <code>delim</code> <code>src</code> 同 table</td><td>作用域内，<code>#vendor#entity-types</code></td><td>选项列表，只被同 form 的 <code>options=</code> 消费，不单独渲染</td></tr>
+            <tr><td class="mono">form-note</td><td>form 直接子层</td><td>流式</td><td>作用域内，<code>#vendor#coc-note</code></td><td>被字段的 <code>label=</code> / <code>description=</code> / <code>placeholder=</code> 指向的富文本，可被多个字段共用</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="wins">
+        <div class="win"><b>table 不再两种逻辑</b><span>form-options 是自己的类型；<code>options=</code> 指向 table 是 error。文档里的 table 还是 table，chart 也不会绑到选项表上。</span><span class="was">之前：同一个 table 类型，在 form 外是数据表，在 field 内是选项表。</span></div>
+        <div class="win"><b>富文本说明绑定到字段</b><span>字段用 <code>description=#coc-note</code> 指向 form-note，受检引用，渲染器能挂 aria-describedby。方向和 <code>options=</code> 一致。</span><span class="was">之前：只能写成字段上方不绑定的散文，geml get 取不到，读屏器读不到。</span></div>
+        <div class="win"><b>围栏少一层</b><span>选项表不再嵌在字段里，最深 form › group › field 三层。</span><span class="was">之前：form › group › field › table 四层，form 要开到六杠。</span></div>
+        <div class="win"><b>类型名自解释，正文一条规则</b><span><code>geml list</code> 一眼看出哪些块属于表单；form-field 正文永远为空。</span><span class="was">之前：field / table / text 与核心同名类型混在一起。</span></div>
+      </div>
+      <dl class="decision">
+        <dt>§8.5</dt><dd>你读得对：它只要求扩展名带连字符，没禁止规范类型带连字符。要补的是反方向一句：<strong>扩展类型名不得以「已注册类型名 + 连字符」开头</strong>，因为规范现在拥有 <code>form-</code> 前缀，<code>form-acme</code> 这种名字要留给规范。现有 profile 的 <code>style-rule</code> 不受影响，style 不是注册类型。</dd>
+        <dt>自包含</dt><dd>id 全在作用域内之后，一个 form 块就是渲染器和 handler 需要的全部，<code>geml get '#vendor'</code> 一次拿齐。跨 form 复用选项表改为 <code>src=</code> 指向同一个文件。</dd>
+        <dt>一个方向</dt><dd>所有绑定都是字段指向辅助块：<code>options=#id</code> 指 form-options，<code>label=</code> <code>description=</code> <code>placeholder=</code> 以 # 开头时指 form-note。这些 # 引用在所在 form 内解析，是 GEML 里唯一的相对引用，只出现在 form-field 的属性上。判别规则有先例：<code>src=</code> 的值以 # 开头就是引用，否则是路径。</dd>
+        <dt>名字</dt><dd><code>form-note</code>，和核心 <code>note</code> 块平行，不会被当成 text。</dd>
+      </dl>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============ 2 GROUPS ============ -->
+<section id="groups">
+  <div class="sec-head">
+    <div class="sec-num">评审点 2</div>
+    <div>
+      <h2>多值字段和重复组</h2>
+      <p class="sub">两个长得像、其实不同的东西。<code>form-group</code> 取代了上一版的 <code>type=group</code>，并且天然可重复。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+
+    <figure>
+      <figcaption>一个字段，多个值 <span class="st st-done">已定</span><small>提案里的 <code>multiple</code> 落在标量字段上。Ant Design 是 <code>Select mode="tags"</code>。</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">=== form-field</span> <span class="a">{#tags label="标签" type=text <span class="hl">multiple</span>
+                description="可填多个，逐个回车。"}</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>渲染</span><span class="badge b-mute">禁用预览</span></div>
+          <div class="preview">
+            <div class="fld">
+              <span class="lab">标签</span>
+              <div class="inp wrapchips">
+                <span class="chip">长三角 <span class="x">✕</span></span>
+                <span class="chip">ISO 9001 <span class="x">✕</span></span>
+                <span class="chip">代工 <span class="x">✕</span></span>
+                <span class="hint">输入后回车</span>
+              </div>
+              <span class="hint">可填多个，逐个回车。</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </figure>
+
+    <figure>
+      <figcaption>一组字段，整体重复 N 次 <span class="st st-done">已定</span><small>Ant Design 叫 <code>Form.List</code>。分组是容器不是值形状，所以是 <code>form-group</code> 而不是 <code>type=group</code>；它天然可重复，不写 multiple。<code>type=</code> 回到 7 个纯值形状。</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">==== <span class="hl">form-group</span></span> <span class="a">{#contacts label="联系人" <span class="hl">required</span>
+                description="至少一位，可添加多位。"}</span>
+<span class="f">=== form-field</span> <span class="a">{#name label="姓名" type=text required}</span>
+<span class="f">===</span>
+<span class="f">=== form-field</span> <span class="a">{#email label="邮箱" type=text pattern="^[^@]+@[^@]+$" required}</span>
+<span class="f">===</span>
+<span class="f">=== form-field</span> <span class="a">{#role label="角色" type=select options=#roles}</span>
+<span class="f">===</span>
+<span class="f">====</span>
+
+<span class="f">=== form-options</span> <span class="a">{#roles format=csv delim=;}</span>
+value ; label
+biz   ; 商务
+tech  ; 技术
+fin   ; 财务
+<span class="f">===</span>
+
+<span class="c">%% 地址：#vendor#contacts#email、#vendor#roles</span>
+<span class="c">%% form-options 只放 form 直接子层，options=#roles 相对所在 form 解析，组内任何字段都能用</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>渲染</span><span class="badge b-mute">禁用预览</span></div>
+          <div class="preview">
+            <div class="group">
+              <div class="group-h"><span>联系人 <span class="hint">至少一位，可添加多位</span></span></div>
+              <div class="entry"><div class="row3" style="grid-template-columns:1fr 1.3fr .9fr auto;">
+                <div class="fld"><span class="lab req">姓名</span><div class="inp">王芳</div></div>
+                <div class="fld"><span class="lab req">邮箱</span><div class="inp">wang.fang@example.invalid</div></div>
+                <div class="fld"><span class="lab">角色</span><div class="inp">商务 <span class="caret">▼</span></div></div>
+                <div class="del" aria-hidden="true">🗑</div>
+              </div></div>
+              <div class="entry"><div class="row3" style="grid-template-columns:1fr 1.3fr .9fr auto;">
+                <div class="fld"><span class="lab req">姓名</span><div class="inp">李强</div></div>
+                <div class="fld"><span class="lab req">邮箱</span><div class="inp">li.qiang@example.invalid</div></div>
+                <div class="fld"><span class="lab">角色</span><div class="inp">技术 <span class="caret">▼</span></div></div>
+                <div class="del" aria-hidden="true">🗑</div>
+              </div></div>
+              <div class="add">＋ 添加联系人</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>规则</dt><dd><code>form-group</code> 就是重复组：零到多条，每条是它子字段值的一组；<code>required</code> 表示至少一条。只放在 form 直接子层，里面只放 form-field，开一个新作用域。<code>multiple</code> 只用在标量字段上表示多值，不是 form-group 的属性。非重复的复合分组不定义：纯视觉分组用体内标题。</dd>
+        <dt>不嵌套</dt><dd>form-group 不能再放 form-group，放了是 error。三个试验表单里零实例；不嵌套则 id 作用域固定为 form、group 两层，地址最多三段，围栏最多五杠，解析器和所有下游工具都不用处理递归作用域。Drawbacks 第 1 条「非扁平 id 空间」的代价因此有界。等第一个嵌套实例出现再开。</dd>
+        <dt>代价</dt><dd class="amber">解析器的 id 作用域从「一层」改成「递归」，实现后最难改。围栏因为选项表外移反而少了一层。</dd>
+      </dl>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============ 3 OPTIONS ============ -->
+<section id="options">
+  <div class="sec-head">
+    <div class="sec-num">评审点 3</div>
+    <div>
+      <h2>选项：<code>form-options</code></h2>
+      <p class="sub">契约不变，载体换成专门的类型。<code>type=select</code> 的值必须落在选项表的 value 列里。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>同一份文档，样式表可以渲染成下拉，也可以渲染成单选组 <span class="st st-done">已定</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">=== form-options</span> <span class="a">{#states format=csv delim=;}</span>
+value    ; label
+draft    ; 草稿
+accepted ; 已接受
+final    ; 定稿
+<span class="f">===</span>
+<span class="f">=== form-field</span> <span class="a">{#state label="状态" type=select required <span class="hl">options=#states</span>}</span>
+<span class="f">===</span>
+
+<span class="c">%% 提交的是 accepted 这个 value，不是「已接受」这个显示文本</span>
+<span class="c">%% options= 指向一个 table 而不是 form-options：error</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>渲染 · 两种皮肤</span><span class="badge b-mute">禁用预览</span></div>
+          <div class="preview">
+            <div class="row2">
+              <div class="fld">
+                <span class="lab req">状态</span>
+                <div class="inp">已接受 <span class="caret">▼</span></div>
+                <span class="hint">下拉框</span>
+              </div>
+              <div class="fld">
+                <span class="lab req">状态</span>
+                <div style="display:grid;gap:6px;padding-top:4px;">
+                  <div class="check"><span class="radio"></span>草稿</div>
+                  <div class="check"><span class="radio on"></span>已接受</div>
+                  <div class="check"><span class="radio"></span>定稿</div>
+                </div>
+                <span class="hint">单选组，由样式表选</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </figure>
+
+    <figure>
+      <figcaption>加 <code>multiple</code> 后是多选，选项文字可以带链接 <span class="st st-done">已定</span><small>form-options 的体和 table 一样按单元格行内解析，所以 label 列可以有链接。next.js 那 44 个带空格的选项也放得下。</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">=== form-options</span> <span class="a">{#categories-list format=csv delim=;}</span>
+value        ; label
+raw          ; [原材料](https://example.invalid/cat/raw)：金属、聚合物、纺织
+parts        ; [零部件](https://example.invalid/cat/parts)：机加工、注塑、PCB
+contract-mfg ; 代工制造
+logistics    ; 物流与仓储
+<span class="f">===</span>
+<span class="f">=== form-field</span> <span class="a">{#categories label="供应类别" type=select <span class="hl">multiple</span> required
+                options=#categories-list}</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>渲染</span><span class="badge b-mute">禁用预览</span></div>
+          <div class="preview">
+            <div class="fld">
+              <span class="lab req">供应类别</span>
+              <div class="inp wrapchips">
+                <span class="chip">原材料 <span class="x">✕</span></span>
+                <span class="chip">代工制造 <span class="x">✕</span></span>
+                <span class="caret">▼</span>
+              </div>
+              <div class="optlist">
+                <div><span class="box on"></span><a href="#options">原材料</a>：金属、聚合物、纺织</div>
+                <div><span class="box"></span><a href="#options">零部件</a>：机加工、注塑、PCB</div>
+                <div><span class="box on"></span>代工制造</div>
+                <div><span class="box"></span>物流与仓储</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>契约</dt><dd>第一列是提交的值，<code>label</code> 列是显示文本，其余列原样交给 handler。<code>src=</code> 可以从 CSV 文件引入长列表，两个 form 要同一份选项就指向同一个文件。form-options 只被同 form 的 <code>options=</code> 消费，不单独渲染；没人指向的给一条 warning。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ 4 TYPES ============ -->
+<section id="types">
+  <div class="sec-head">
+    <div class="sec-num">评审点 4</div>
+    <div>
+      <h2>type 与约束</h2>
+      <p class="sub">type 回到 7 个纯值形状。约束属性来自 profile，只声明不求值。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+
+    <figure>
+      <figcaption>7 个 type，每个对应什么值、什么控件、测到几次 <span class="st st-done">已定</span><small>实例数来自两个入库试验表单的 23 个字段加 next.js 表单的 9 个元素。GitHub 的表单 schema 只有 4 种字段类型。</small></figcaption>
+      <div class="tablewrap">
+        <table class="t">
+          <thead><tr><th>type</th><th>值的形状</th><th>渲染成</th><th class="num">实例</th><th>备注</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">text</td><td>任意字符串，单行</td><td>输入框</td><td class="num">11</td><td>path、url、email、tel 全部并入。格式差异用 <code>pattern=</code></td></tr>
+            <tr><td class="mono">textarea</td><td>字符串，多段</td><td>多行输入框</td><td class="num">7</td><td></td></tr>
+            <tr><td class="mono">number</td><td>数</td><td>数字输入</td><td class="num">1</td><td>范围用 <code>min</code> / <code>max</code> / <code>step</code></td></tr>
+            <tr><td class="mono">date</td><td>日期</td><td>日期选择</td><td class="num">1</td><td>time、datetime 有实例再加</td></tr>
+            <tr><td class="mono">boolean</td><td>真 / 假</td><td>勾选框或开关</td><td class="num">1</td><td></td></tr>
+            <tr><td class="mono">select</td><td>form-options 的 value 列中的一个；<code>multiple</code> 时多个</td><td>下拉 / 单选组 / 多选组</td><td class="num">4</td><td>含 next.js 的 44 选项下拉</td></tr>
+            <tr><td class="mono">file</td><td>文件</td><td>上传</td><td class="num">0</td><td>唯一凭值形状留下的</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </figure>
+
+    <figure>
+      <figcaption>三个字段，三种归属 <span class="st st-done">已定 · 进 profile</span><small>约束键来自 <code>geml-form/v1</code> profile，文档头部声明后才不报 unknown-attribute；处理器只存字符串，执行在 handler。</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+<span class="hl">profile = "geml-form/v1"</span>
+<span class="f">===</span>
+
+<span class="f">=== form-field</span> <span class="a">{#revenue label="年营收（百万元）" type=number
+                <span class="hl">min=0 max=99999 step=1</span> description="整数；未审计可留空。"}</span>
+<span class="f">===</span>
+<span class="f">=== form-field</span> <span class="a">{#phone label="手机" type=text <span class="hl">pattern="^1\d{10}$"</span> required
+                description="11 位手机号"}</span>
+<span class="f">===</span>
+<span class="f">=== form-field</span> <span class="a">{#contract-end label="合同结束" type=date required
+                description="须晚于开始日期。"}</span>
+<span class="f">===</span>
+<span class="c">%% 「晚于开始日期」是跨字段规则：文档只能写给人看，只有 handler 检查</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>渲染</span><span class="badge b-mute">禁用预览</span></div>
+          <div class="preview">
+            <div class="fld"><span class="lab">年营收（百万元）</span><div class="inp">12</div><span class="hint">整数；未审计可留空。 <span class="badge b-doc">声明在文档</span> <span class="badge b-handler">handler 执行</span></span></div>
+            <div class="fld"><span class="lab req">手机</span><div class="inp">138 0000 0000</div><span class="hint">11 位手机号 <span class="badge b-doc">声明在文档</span> <span class="badge b-handler">handler 执行</span></span></div>
+            <div class="row2">
+              <div class="fld"><span class="lab req">合同开始</span><div class="inp">2026-10-01 <span class="caret">▦</span></div></div>
+              <div class="fld"><span class="lab req">合同结束</span><div class="inp">2027-09-30 <span class="caret">▦</span></div></div>
+            </div>
+            <span class="hint">须晚于开始日期。 <span class="badge b-handler">只在 handler</span></span>
+          </div>
+        </div>
+      </div>
+      <div class="tablewrap">
+        <table class="t">
+          <thead><tr><th>约束</th><th>能否写进文档</th><th>谁执行</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">pattern · min · max · step · maxlength · accept</td><td>能，profile 属性声明。文档只存字符串，不求值。</td><td><span class="badge b-handler">handler</span> 样式可选择显示成提示</td></tr>
+            <tr><td class="mono">type=number · date · select · file</td><td>能。类型本身就是一条形状约束。</td><td><span class="badge b-handler">handler</span></td></tr>
+            <tr><td>结束晚于开始 · A 与 B 互斥 · 勾了 X 才必填 Y</td><td><strong>不能。</strong>§9.1 无表达式、无条件。写在 description 里给人看即可。</td><td><span class="badge b-handler">只在 handler</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </figure>
+
+    <figure>
+      <figcaption>未知 <code>type=</code> 值 <span class="st st-done">已定</span><small>降级为 text，加 warning <code>unknown-field-type</code>，值照样保留。</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">=== form-field</span> <span class="a">{#brand-color label="品牌色" <span class="bad">type=color</span>}</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>渲染</span><span class="badge b-mute">禁用预览</span></div>
+          <div class="preview">
+            <div class="fld"><span class="lab">品牌色</span><div class="inp">#1F6F8B</div><span class="hint"><span class="badge b-warn">warning · unknown-field-type</span> 按 text 渲染。</span></div>
+          </div>
+        </div>
+      </div>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============ 5 TEXT ============ -->
+<section id="text">
+  <div class="sec-head">
+    <div class="sec-num">评审点 5</div>
+    <div>
+      <h2>label · description · form-note：三种文字各归哪里</h2>
+      <p class="sub">短的在属性，长的在 form-note，form-field 正文永远为空。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+
+    <figure>
+      <figcaption>常规字段：两个属性，正文为空 <span class="st st-done">已定</span><small>「按营业执照填写。」是控件下面那行灰字。位置由样式表定。</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">=== form-field</span> <span class="a">{#legal-name label="公司名称" <span class="hl">description="按营业执照填写。"</span>
+                type=text required}</span>
+<span class="f">===</span>
+
+<span class="c">%% 正文非空：warning form-field-has-body，不渲染</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>渲染</span><span class="badge b-mute">禁用预览</span></div>
+          <div class="preview">
+            <div class="fld"><span class="lab req">公司名称</span><div class="inp ph">　</div><span class="hint">按营业执照填写。</span></div>
+          </div>
+        </div>
+      </div>
+    </figure>
+
+    <figure>
+      <figcaption>带链接、多段的说明：属性指向 <code>form-note</code> <span class="st st-done">已定</span><small>你定的方向。form-note 放在 form 内、field 外，没有 for=；字段的 <code>description=</code> 以 # 开头指向它，渲染器把它挂成 aria-describedby。next.js 那种 5 段 15 个链接的说明也放得下了。</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · form 体内</span></div>
+<pre class="geml"><span class="f">=== <span class="hl">form-note</span></span> <span class="a">{#coc-note}</span>
+请先阅读[《供应商行为准则》](https://example.invalid/coc)。
+
+勾选即表示接受其中的**反商业贿赂**与**数据保护**条款。
+<span class="f">===</span>
+<span class="f">=== form-field</span> <span class="a">{#agree label="我已阅读并同意《供应商行为准则》" type=boolean required
+                <span class="hl">description=#coc-note</span>}</span>
+<span class="f">===</span>
+
+<span class="c">%% #coc-note 在所在 form 内解析，即 #vendor#coc-note；同一个 form-note 可被多个字段指向</span>
+<span class="c">%% 指向的不是 form-note：error；没人指向的 form-note：warning</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>渲染</span><span class="badge b-mute">禁用预览</span></div>
+          <div class="preview">
+            <div class="fld">
+              <div class="check"><span class="box"></span><span class="req">我已阅读并同意《供应商行为准则》</span></div>
+              <p class="desc">请先阅读<a href="#text" style="pointer-events:none">《供应商行为准则》</a>。</p>
+              <p class="desc">勾选即表示接受其中的<strong>反商业贿赂</strong>与<strong>数据保护</strong>条款。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>规则</dt><dd><code>label=</code> <code>description=</code> <code>placeholder=</code> 三个属性同一条：值是明文，或以 <code>#</code> 开头指向同 form 内的 form-note。明文是一行纯文本；form-note 是流式内容，带链接、粗体、多段。label 指向 form-note 时按行内渲染；placeholder 指向 form-note 时渲染器压成纯文本，因为输入框的占位符放不下标记。</dd>
+        <dt>名字</dt><dd>定为 <code>form-note</code>。</dd>
+      </dl>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============ GAPS ============ -->
+<section id="gaps">
+  <div class="sec-head">
+    <div class="sec-num">小口子</div>
+    <div>
+      <h2>三个已定的边角</h2>
+    </div>
+  </div>
+  <div class="sec-body gaps">
+
+    <figure>
+      <figcaption><code>value=</code> 在多选字段上是唯一预选项 <span class="st st-done">已定</span><small>属性值没有数组。要预选多个，交给 handler 的默认值逻辑。</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">=== form-field</span> <span class="a">{#plan label="结算方式" type=select multiple <span class="hl">value=net30</span> options=#plans}</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>渲染</span><span class="badge b-mute">禁用预览</span></div>
+          <div class="preview">
+            <div class="fld"><span class="lab">结算方式</span><div class="inp wrapchips"><span class="chip">net30 <span class="x">✕</span></span><span class="caret">▼</span></div><span class="hint">只能预选一项。</span></div>
+          </div>
+        </div>
+      </div>
+    </figure>
+
+    <figure>
+      <figcaption>form 体内出现标题：允许 <span class="st st-done">已定</span><small>标题 id 进文档全局空间，字段 id 进 form 作用域。探针证实现在就是这样解析的。</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>geml list 的实际输出</span></div>
+<pre class="term"><span class="dim">#vendor            form            L7-30</span>
+<span class="wn">#contacts-heading  heading  h2     L8-29</span>   <span class="dim">← 文档级 id，不是 #vendor#contacts-heading</span>
+<span class="dim">#contact-name      …</span>                     <span class="dim">← 提案里应为 #vendor#contact-name</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>规则</span></div>
+          <p class="desc" style="max-width:none">form 体内的标题是普通文档标题：id 在文档全局空间，不受字段作用域影响，不是字段。它的节止于所在 form 或 form-group 结束，或下一个同级、更高级标题。纯视觉分组用它，不用 form-group。</p>
+        </div>
+      </div>
+    </figure>
+
+    <figure>
+      <figcaption>围栏写短了 <span class="st st-done">已定 · error</span><small>任何 <code>form-*</code> 落在 form 外都是 error <code>form-child-outside-form</code>，消息里提示围栏可能写短了。</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · 错误写法</span><span class="badge b-err">form 提前关闭</span></div>
+<pre class="geml"><span class="bad">=== form</span> <span class="a">{#vendor handler=onboarding}</span>
+公司信息
+<span class="bad">=== form-field</span> <span class="a">{#legal-name label="公司名称" type=text required}</span>   <span class="arrow">← 和 form 同长，把 form 关了</span>
+<span class="f">===</span>                                         <span class="arrow">← 这行开了一个新的匿名块</span></pre>
+          <div class="pane-h" style="margin-top:14px"><span>GEML · 正确写法</span></div>
+<pre class="geml"><span class="f">==== form</span> <span class="a">{#vendor handler=onboarding}</span>
+公司信息
+<span class="f">=== form-field</span> <span class="a">{#legal-name label="公司名称" type=text required}</span>
+<span class="f">===</span>
+<span class="f">====</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>错误写法的结果</span></div>
+          <div class="preview">
+            <div class="unknown"><span class="badge b-err">error · form-child-outside-form</span><br>form-field {#legal-name …} 出现在 form 外面。上一层 form 的围栏可能写短了。<br><code>geml check</code> 退出码非零，文档不通过。</div>
+          </div>
+          <div class="pane-h" style="margin-top:14px"><span>这一族的诊断一览</span></div>
+          <div class="tablewrap">
+            <table class="t">
+              <tbody>
+                <tr><td class="mono">form-child-outside-form</td><td><span class="badge b-err">error</span></td><td>form-* 落在 form 外</td></tr>
+                <tr><td class="mono">form-field-has-body</td><td><span class="badge b-warn">warning</span></td><td>form-field 正文非空，不渲染</td></tr>
+                <tr><td class="mono">unknown-field-type</td><td><span class="badge b-warn">warning</span></td><td>7 个之外的 type，按 text</td></tr>
+                <tr><td class="mono">options-not-form-options</td><td><span class="badge b-err">error</span></td><td><code>options=</code> 指向的不是同 form 内的 form-options</td></tr>
+                <tr><td class="mono">note-not-form-note</td><td><span class="badge b-err">error</span></td><td>label / description / placeholder 的 # 引用指向的不是同 form 内的 form-note</td></tr>
+                <tr><td class="mono">unused-form-block</td><td><span class="badge b-warn">warning</span></td><td>form-options 或 form-note 没有任何字段指向它</td></tr>
+                <tr><td class="mono">duplicate-id</td><td><span class="badge b-err">error</span></td><td>同一作用域内字段 id 重复</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============ EVIDENCE ============ -->
+<section id="evidence">
+  <div class="sec-head">
+    <div class="sec-num">依据</div>
+    <div>
+      <h2>三组探针</h2>
+      <p class="sub">geml 1.9.2，GEML spec 1.0。带连字符的类型名能被当成块类型解析，profile 里的 <code>style-rule</code> 就是现成的例子。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tablewrap">
+      <table class="t">
+        <thead><tr><th style="width:40px">#</th><th>输入</th><th>结果</th><th>说明了什么</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>按提案原文写的 form，末尾引用 <code>[[#vendor#legal-name]]</code></td><td class="mono"><span class="badge b-warn">warning</span> unknown block type <code>form</code><br><span class="badge b-err">error</span> unresolved reference</td><td>form 未注册只是 warning；字段引用是 error，<code>#a#b</code> 解析是实现的第一步。</td></tr>
+          <tr><td>2</td><td>同一文档，form / field 换成已注册的 note</td><td class="mono"><span class="badge b-doc">0 error</span> 29 个字段、4 张选项表全部可寻址</td><td>嵌套在现有围栏规则下成立，缺的只是类型名和作用域规则。</td></tr>
+          <tr><td>3</td><td>note 四层嵌套加体内标题加空体</td><td class="mono"><span class="badge b-doc">ok</span> no diagnostics</td><td>group 嵌套、体内标题、空体机制上都已能解析。这一族最深只用到三层。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>本页：<code>docs/illustrated/06-form_CN.html</code>，英文版 <code>06-form.html</code>。评审结论已写入 <code>spec/proposals/0008-form-block.md</code>（草案）和 <code>spec/profiles/geml-form/</code>；示例 <code>0008-form-block-example/complex-form.geml</code> 已按 form-* 家族改写。</div>
+  <div>页面里的控件是禁用预览的示意，按 0008 §8.3(5) 渲染器 MUST NOT submit。</div>
+</footer>
+</div>

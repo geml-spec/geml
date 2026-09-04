@@ -1,0 +1,329 @@
+<title>GEML 图解 · geml-style</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+  :root { --bg:#F4F6F9; --surface:#FFFFFF; --surface-2:#EBEFF4; --ink:#1B2430; --ink-2:#47535F; --ink-3:#7B8794; --line:#D5DCE4; --line-2:#C3CCD6; --accent:#1F6F8B; --accent-soft:#DCEDF3; --amber:#9A5F0A; --amber-soft:#FAEED3; --red:#B0403B; --red-soft:#F8E2E0; --green:#2E7A50; --green-soft:#DDF0E4; --on-solid:#FFFFFF; --shadow:0 1px 2px rgba(27,36,48,.06),0 6px 18px rgba(27,36,48,.05); color-scheme:light; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#11161C; --surface:#191F27; --surface-2:#202832; --ink:#E6EBF0; --ink-2:#B3BDC8; --ink-3:#7F8B98; --line:#2C3642; --line-2:#3A4552; --accent:#63B5D1; --accent-soft:#14323D; --amber:#E2AC45; --amber-soft:#382B10; --red:#E27F79; --red-soft:#3E1F1E; --green:#6CC08E; --green-soft:#173124; --on-solid:#0F141A; --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25); color-scheme:dark; } }
+  :root[data-theme="dark"] { --bg:#11161C; --surface:#191F27; --surface-2:#202832; --ink:#E6EBF0; --ink-2:#B3BDC8; --ink-3:#7F8B98; --line:#2C3642; --line-2:#3A4552; --accent:#63B5D1; --accent-soft:#14323D; --amber:#E2AC45; --amber-soft:#382B10; --red:#E27F79; --red-soft:#3E1F1E; --green:#6CC08E; --green-soft:#173124; --on-solid:#0F141A; --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25); color-scheme:dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.7 "IBM Plex Sans","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1120px; margin:0 auto; padding:48px 28px 96px; }
+  h1,h2,h3 { text-wrap:balance; margin:0; } p { margin:0; } a { color:var(--accent); }
+  code,pre,.mono { font-family:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace; }
+  code { font-size:.92em; background:var(--surface-2); padding:1px 5px; border-radius:3px; }
+  .eyebrow { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  header h1 { font-size:34px; line-height:1.2; font-weight:600; margin-top:10px; letter-spacing:-.01em; }
+  header .lede { max-width:66ch; color:var(--ink-2); margin-top:16px; font-size:16px; }
+  .toc { display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:22px; font-size:14px; }
+  .toc a { text-decoration:none; border-bottom:1px solid var(--line-2); padding-bottom:1px; }
+  section { margin-top:72px; }
+  .sec-head { display:grid; grid-template-columns:64px 1fr; gap:16px; align-items:baseline; border-top:1px solid var(--line-2); padding-top:22px; }
+  .sec-num { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:500; padding-top:6px; }
+  .sec-head h2 { font-size:24px; font-weight:600; } .sec-head .sub { color:var(--ink-2); margin-top:6px; max-width:70ch; }
+  .sec-body { margin-left:80px; margin-top:28px; display:grid; gap:40px; }
+  @media (max-width:860px) { .sec-head { grid-template-columns:1fr; gap:6px; } .sec-body { margin-left:0; } }
+  .st { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; letter-spacing:.04em; padding:2px 8px; border-radius:3px; font-weight:600; white-space:nowrap; color:var(--on-solid); vertical-align:middle; }
+  .st-spec { background:var(--green); } .st-gap { background:var(--red); } .st-gep { background:var(--accent); } .st-obs { background:var(--ink-3); }
+  .board { overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:6px; box-shadow:var(--shadow); }
+  table.b { border-collapse:collapse; width:100%; font-size:14px; }
+  table.b th, table.b td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.b tr:last-child td { border-bottom:0; }
+  table.b th { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  table.b td.n { color:var(--ink-3); font-variant-numeric:tabular-nums; width:32px; }
+  table.b td.src { color:var(--ink-3); white-space:nowrap; font-size:13px; }
+  .tally { display:flex; flex-wrap:wrap; gap:10px 22px; margin-bottom:14px; font-size:14px; color:var(--ink-2); align-items:center; } .tally b { font-weight:600; color:var(--ink); }
+  figure { margin:0; display:grid; gap:18px; }
+  figure > figcaption { font-size:17px; font-weight:600; display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; }
+  figure > figcaption small { flex-basis:100%; font-size:14px; font-weight:400; color:var(--ink-2); }
+  .panes { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; align-items:start; }
+  @media (max-width:980px) { .panes { grid-template-columns:1fr; } .sec-body { margin-left:0; } }
+  .pane-h { display:flex; justify-content:space-between; align-items:center; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; margin-bottom:8px; }
+  pre.geml { margin:0; background:var(--surface-2); border:1px solid var(--line); border-radius:6px; padding:14px 16px; font-size:13px; line-height:1.6; overflow-x:auto; color:var(--ink); }
+  pre.geml .f { color:var(--accent); font-weight:500; } pre.geml .a { color:var(--ink-2); } pre.geml .c { color:var(--ink-3); font-style:italic; }
+  pre.geml .hl { background:var(--amber-soft); color:var(--amber); border-radius:2px; padding:0 2px; }
+  pre.geml .bad { background:var(--red-soft); color:var(--red); border-radius:2px; padding:0 2px; }
+  .term { background:var(--ink); color:#E6EBF0; border-radius:6px; padding:12px 14px; font-size:12.5px; line-height:1.6; overflow-x:auto; margin:0; }
+  :root[data-theme="dark"] .term { background:#0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .term { background:#0B0F14; } }
+  .term .ok { color:#7ED4A0; } .term .er { color:#F09A94; } .term .wn { color:#F0C060; } .term .dim { color:#8A96A3; } .term .cmd { color:#9CC7FF; }
+  .flow { display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:13px; }
+  .flow .box { background:var(--surface); border:1px solid var(--line-2); border-radius:6px; padding:8px 12px; }
+  .flow .box.hot { border-color:var(--accent); background:var(--accent-soft); }
+  .flow .sep { color:var(--ink-3); }
+  .badge { display:inline-flex; align-items:center; gap:5px; font-size:11px; letter-spacing:.04em; text-transform:uppercase; padding:2px 7px; border-radius:3px; font-weight:500; white-space:nowrap; }
+  .b-err { background:var(--red-soft); color:var(--red); } .b-warn { background:var(--amber-soft); color:var(--amber); } .b-ok { background:var(--green-soft); color:var(--green); } .b-mute { background:var(--surface-2); color:var(--ink-3); }
+  .decision { display:grid; grid-template-columns:72px 1fr; gap:6px 16px; font-size:14.5px; border-top:1px dashed var(--line-2); padding-top:14px; }
+  .decision dt { color:var(--ink-3); font-size:12px; letter-spacing:.06em; text-transform:uppercase; font-weight:500; padding-top:4px; }
+  .decision dd { margin:0; } .decision dd.amber { color:var(--amber); }
+  table.t { border-collapse:collapse; width:100%; font-size:14px; }
+  table.t th, table.t td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.t tr:last-child td { border-bottom:0; }
+  table.t th { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  table.t td.mono { font-size:13px; }
+  .tablewrap { overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:6px; }
+  footer { margin-top:80px; border-top:1px solid var(--line-2); padding-top:18px; font-size:13.5px; color:var(--ink-3); display:grid; gap:6px; }
+  footer code { background:transparent; padding:0; color:var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">GEML 图解 · profile · geml-style/v1（2026-08-30 落地，EXPERIMENTAL） · 实测 geml 1.9.2 本地构建 · <a href="10-profile-style.html">English</a></div>
+  <h1>GEML 图解 · geml-style</h1>
+  <p class="lede">样式表是一份普通的 <code>.geml</code>：声明 <code>profile = "geml-style/v1"</code>，装三种全空体的块，用 CSS 味的选择器<strong>选进</strong>内容文档而不改它，把块绑到宿主注册的组件名上。没有脚本，歧义是构建错误，不靠源顺序。它的一致性面是 <code>geml style check --json</code> 吐出的视图模型。这一页用一份干净的样式表和一份故意写坏的样式表，把 12 条诊断逐条跑出来。</p>
+  <nav class="toc">
+    <a href="#board">看板</a>
+    <a href="#good">一份干净的样式表</a>
+    <a href="#bad">一份写坏的</a>
+    <a href="#knobs">codemap 的旋钮</a>
+    <a href="#evidence">依据</a>
+  </nav>
+</header>
+
+<!-- ============ BOARD ============ -->
+<section id="board">
+  <div class="sec-head">
+    <div class="sec-num">看板</div>
+    <div>
+      <h2>14 条规则，各自的出处和状态</h2>
+      <p class="sub"><span class="st st-spec">规范已定</span> profile 文档写死的。<span class="st st-obs">实测</span> 文档不规定、工具今天这样做。实现偏差本页未发现。注意 §0.1：只有 codemap 显示旋钮用到的子集承诺稳定。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div>
+      <div class="tally"><span><span class="st st-spec">规范已定</span> <b>13</b></span><span><span class="st st-obs">实测</span> <b>1</b></span></div>
+      <div class="board">
+        <table class="b">
+          <thead><tr><th></th><th>规则</th><th>出处</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td class="n">1</td><td>样式表是普通 .geml，三种块<strong>全空体</strong>：信息都在属性对象里，因为未注册类型的正文是 raw、核心不解析，属性对象却对所有类型都解析。规则<strong>选进</strong>文档而不是模板包住文档，因为内容常是机器生成不可改的。无脚本：component / handler 只是名字，宿主给实现。</td><td class="src">§0 · §2</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">2</td><td><code>profile</code> 是空格分隔列表，多个 profile 取词汇并集；校验只问「名字允许吗」，不问含义。没声明时每条 style-rule 一个 unknown-block-type warning（实测 5 条），这正是训练人忽略 warning 的东西。</td><td class="src">§1</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">3</td><td><code>style-rule</code>：<code>match=</code> 必填；<code>component=</code> <code>handler=</code> <code>show=</code> <code>filter=</code> <code>screen=</code>（空格分隔）是 profile 自己消费的全部键；<strong>其余键原样透传</strong>给组件，所以 rule 上没有未知属性检查。</td><td class="src">§2.1</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">4</td><td><code>style-state</code>：<code>match=</code>（生产者选择器）和 <code>on=</code> 必填，<code>on</code> 是<strong>封闭词汇</strong>，目前只有 <code>select</code>；<code>type=</code> block-ref | scalar 不校验；<code>value-from=</code> 带方向；<code>init-value=</code>。未知键 warning。多个生产者写一个 state 是随时间赋值，不是冲突。</td><td class="src">§2.2</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">5</td><td><code>style-screen</code>：<code>slots=</code> 必填，<strong>逗号分隔</strong>、有序，每个是选择器或 <code>$state</code>；<code>layout=</code> 不校验（宿主的事）；<strong>没有 <code>route=</code></strong>，路由归宿主框架；未知键 warning。</td><td class="src">§2.3</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">6</td><td>选择器 = §4 自己的词汇：type、<code>.class</code>、<code>#id</code>、<code>[key]</code>、<code>[key=value]</code>，加唯一的后代组合子（空格）和逗号分支。拒绝的 CSS <strong>被点名而不是静默不匹配</strong>：<code>&gt; + ~</code>、伪类、<code>*</code>、子串匹配 → <code>selector-unsupported</code> error。扫描分区：伪类只在括号外找，子串运算符只在括号内找，因为属性值里合法地有 <code>:</code>。</td><td class="src">§3</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">7</td><td>冲突按<strong>属性</strong>合并；两条规则给同一块设同一属性时，条件集<strong>严格超集</strong>者胜，否则 <code>ambiguous-rule</code> error。没有 specificity 算术、没有 <code>!important</code>、<strong>没有源顺序回退</strong>：靠顺序的样式表会被 <code>geml set</code> / <code>add --before</code> 悄悄改掉。只对语料里真实共现的块判。</td><td class="src">§4</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">8</td><td>绑定管线 interaction → state → view，单向三段，<strong>state 从不读 state</strong>，没有图所以没有环，目录里没有 binding-cycle。三个消费算子：<code>show="$s"</code>、<code>filter="k=$s"</code>、<code>title="$s.caption"</code>；由运行时执行而不是组件；检查时只验每个 <code>$name</code> 有 state 声明。</td><td class="src">§5</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">9</td><td>分隔符只有一条规则：<strong>名字列表用空格，选择器列表用逗号</strong>，因为空格是后代组合子。</td><td class="src">§6</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">10</td><td>封闭词汇（运行时自己解释，如 <code>on=</code>）未知成员 → error；开放注册表（宿主注册，如 <code>component=</code> <code>handler=</code>）未知成员 → warning + inert；且 <code>unknown-component</code> / <code>unknown-handler</code> 只在调用者用 <code>--components=</code> / <code>--handlers=</code> 声明注册表时才检查。</td><td class="src">§7</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">11</td><td>诊断目录 12 条，属于 profile 自己不进 Appendix A：7 个 error（selector-unsupported、ambiguous-rule、unknown-state、unknown-screen、unknown-value-source、unknown-interaction、style-missing-attribute）、5 个 warning（unmatched-rule、unmatched-producer、unknown-component、unknown-handler、style-unknown-attribute）。</td><td class="src">§8</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">12</td><td><code>geml style check &lt;sheet&gt; &lt;corpus…&gt; [--json] [--components=] [--handlers=]</code>；exit 0 干净或只有 warning，1 有 error，2 用法错。<code>--json</code> 是视图模型，一致性面：<code>states</code>、<code>screens</code>、<code>bindings</code>、<code>diagnostics</code>；binding 带 <code>doc</code>（id 只在文档内唯一）；bindings 按 screen；slots 已解析成块列表，不给原始选择器。</td><td class="src">§9 · §10</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">13</td><td>稳定范围：承诺稳定的只有 profile 声明、<code>style-rule</code>、<code>match=</code>、属性透传——codemap 的显示旋钮用到的这些「逃出去了」。<code>style-state</code>、<code>style-screen</code>、show / filter / handler / screen、on / value-from / init-value / type / layout 都是「已规定、已检查、未使用」，随第一个真实用例移动。v1 有意没有：脚本、URL、路由、设计令牌之外的主题、正文。</td><td class="src">§0.1 · §12</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">14</td><td>实测：干净样式表 0 诊断；声明 <code>--components=edge-list</code> 后 method-card 报 unknown-component warning；写坏的样式表 7 error 3 warning，与目录逐条对上。</td><td class="src">geml style check</td><td><span class="st st-obs">实测</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GOOD ============ -->
+<section id="good">
+  <div class="sec-head">
+    <div class="sec-num">干净</div>
+    <div>
+      <h2>一份干净的样式表，和它的视图模型</h2>
+      <p class="sub">内容文档是仓库测试夹具里的小 codemap：两个方法、一张 #calls 表。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>state · rule ×3 · screen → <code>--json</code> <span class="st st-spec">规范已定</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>good.style.geml</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+<span class="hl">profile = "geml-style/v1"</span>
+<span class="f">===</span>
+<span class="f">=== style-state</span> <span class="a">{#sel type=block-ref match="table#calls" <span class="hl">on=select</span> value-from=to}</span>
+<span class="f">===</span>
+<span class="f">=== style-rule</span> <span class="a">{#edges match="table#calls" component=edge-list <span class="hl">selectable</span>}</span>
+<span class="f">===</span>                                  <span class="c">%% selectable 不是 profile 的键：原样透传给组件</span>
+<span class="f">=== style-rule</span> <span class="a">{#methods match="code[anchor]" component=method-card}</span>
+<span class="f">===</span>
+<span class="f">=== style-rule</span> <span class="a">{#leaves match="code.leaf[anchor]" collapsed badge="leaf"}</span>
+<span class="f">===</span>                                  <span class="c">%% 条件集是 #methods 的严格超集：叶子上两条都生效，不冲突</span>
+<span class="f">=== style-screen</span> <span class="a">{#overview layout=split <span class="hl">slots="table#calls, $sel"</span>}</span>
+<span class="f">===</span>                                  <span class="c">%% 逗号分隔；$sel 槽渲染 state 指向的块</span></pre>
+          <div class="pane-h" style="margin-top:14px"><span>content.geml · 夹具</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+profile = "geml-codemap/v1"
+module = "geml-parser/core"
+<span class="f">===</span>
+<span class="f">=== code</span> <span class="a">{#renderHtml anchor="ts:render-html.ts#renderHtml(Document,RenderOptions)"}</span>
+<span class="f">===</span>
+<span class="f">=== code</span> <span class="a">{#esc <span class="hl">.leaf</span> anchor="ts:render.ts#esc(string)"}</span>
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#calls format=csv}</span>
+from,to,kind,confidence
+renderHtml,esc,call,high
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml style check good.style.geml content.geml --json</span><span class="badge b-ok">0 error 0 warning</span></div>
+<pre class="term">{
+ "states": [ { "id": "sel", "type": "block-ref", "on": "select", "valueFrom": "to" } ],
+ "screens": [ {
+   "id": "overview", "layout": "split",
+   "slots": [
+     { "kind": "blocks", "selector": "table#calls",
+       "blocks": [ { "doc": "content.geml", "block": "#calls" } ] },   <span class="dim">← 已解析</span>
+     { "kind": "state", "state": "sel" }
+   ] } ],
+ "bindings": [
+   { "doc": "content.geml", "block": "#renderHtml", "rules": ["methods"],
+     "params": { "component": "method-card" } },
+   { "doc": "content.geml", "block": "#esc", "rules": ["methods", "leaves"],
+     "params": { "component": "method-card", "collapsed": true, "badge": "leaf" } },
+   { "doc": "content.geml", "block": "#calls", "rules": ["edges"],
+     "params": { "selectable": true, "component": "edge-list" } }
+ ],
+ "diagnostics": []
+}
+
+<span class="cmd">$ geml style check good.style.geml content.geml --components=edge-list</span>
+<span class="wn">warning:</span> unknown-component: component `method-card` is not registered — renders inert (#methods)</pre>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>合并</dt><dd>§4：<code>#esc</code> 被 <code>#methods</code>（<code>code[anchor]</code>）和 <code>#leaves</code>（<code>code.leaf[anchor]</code>）同时选中，但两条设的属性不同、且后者条件是前者的严格超集，所以 params 是两者之和。同属性、条件不可比才是 ambiguous-rule。</dd>
+        <dt>视图模型</dt><dd>§10：这份 JSON 是第二个实现必须一致的东西。binding 带 <code>doc</code>，因为 §4 只保证 id 在文档内唯一，一份样式表管一个目录时两份文档都可以有 <code>#budget</code>。slots 已经解析成块列表，宿主不必在运行时重做选择器匹配。</dd>
+        <dt>注册表</dt><dd>§7：不给 <code>--components=</code> 时 unknown-component 根本不检查，因为永远不会响的诊断比没有更糟；给了 edge-list 之后 method-card 就报出来，inert 回退。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ BAD ============ -->
+<section id="bad">
+  <div class="sec-head">
+    <div class="sec-num">写坏</div>
+    <div>
+      <h2>一份故意写坏的样式表，十条诊断</h2>
+      <p class="sub">七个 error 三个 warning，对着 §8 的目录逐条数。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>bad.style.geml 对同一份 content.geml <span class="st st-spec">规范已定</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">=== style-rule</span> <span class="a">{#a match="code[anchor]" <span class="bad">component=card-a</span>}</span>
+<span class="f">===</span>
+<span class="f">=== style-rule</span> <span class="a">{#b match="code.leaf" <span class="bad">component=card-b</span>}</span>
+<span class="f">===</span>                                  <span class="c">%% 同设 component，条件集不可比：#esc 上撞车</span>
+<span class="f">=== style-rule</span> <span class="a">{#c match="<span class="bad">table &gt; code</span>" component=x}</span>
+<span class="f">===</span>                                  <span class="c">%% 子组合子：块模型只有包含没有相邻</span>
+<span class="f">=== style-rule</span> <span class="a">{#d match="table#nowhere" component=y show="<span class="bad">$ghost</span>"}</span>
+<span class="f">===</span>                                  <span class="c">%% 没人声明的 state；选择器也匹配不到任何块</span>
+<span class="f">=== style-state</span> <span class="a">{#s match="table#calls" <span class="bad">on=hover</span> <span class="bad">value-from=nope</span>}</span>
+<span class="f">===</span>                                  <span class="c">%% on 封闭词汇只有 select；nope 不是 #calls 的列</span>
+<span class="f">=== style-screen</span> <span class="a">{#scr slots="table#calls" <span class="bad">route="/x"</span>}</span>
+<span class="f">===</span>                                  <span class="c">%% 没有 route=：路由归宿主</span>
+<span class="f">=== style-rule</span> <span class="a">{#e match="code" <span class="bad">screen="missing-screen"</span>}</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml style check</span><span class="badge b-err">7 error</span> <span class="badge b-warn">3 warning</span></div>
+<pre class="term"><span class="er">error:</span> selector-unsupported: `&gt;` is not supported (supported: type, .class,
+  #id, [attr], [attr=val], descendant) (#c)
+<span class="er">error:</span> unknown-interaction: `on=hover` is not an interaction this profile
+  defines (known: select) (#s)
+<span class="wn">warning:</span> style-unknown-attribute: unknown attribute `route` for `style-screen` (#scr)
+<span class="er">error:</span> unknown-screen: rule `#e`: `screen=missing-screen` names no
+  `style-screen` block (#e)
+<span class="er">error:</span> ambiguous-rule: `#a` and `#b` both set `component` on
+  `content.geml#esc` — neither is more specific; write a rule matching
+  the union of both selectors (#b)
+<span class="er">error:</span> ambiguous-rule: … in screen `#scr` … (#b)
+<span class="wn">warning:</span> unmatched-rule: rule `#d` matched no block in the corpus (#d)
+<span class="wn">warning:</span> unmatched-rule: rule `#e` matched no block in the corpus (#e)
+<span class="er">error:</span> unknown-state: `$ghost` is not declared by any `style-state` block (#d)
+<span class="er">error:</span> unknown-value-source: state `#s`: `value-from=nope` is not a column
+  of `content.geml#calls` (has: from, to, kind, confidence) (#s)
+7 error(s), 3 warning(s)   <span class="dim">exit 1</span></pre>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>error</dt><dd>结构性的错：不支持的 CSS 被点名；封闭词汇外的交互；引用不存在的 screen、state、列；同一属性两条不可比的规则。ambiguous-rule 报了两次，一次全局一次在 <code>#scr</code> 屏幕里，因为 bindings 按 screen 各算一份。</dd>
+        <dt>warning</dt><dd>漂移和多余：规则没匹配到任何块（样式表内部一致、但和语料脱节，是样式层的 bad-source-range）；screen 上的未知键。</dd>
+        <dt>为什么点名</dt><dd>§3：CSS 相似度是坡道不是陷阱。<code>&gt;</code> 若被静默忽略，作者会以为它生效了。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ KNOBS ============ -->
+<section id="knobs">
+  <div class="sec-head">
+    <div class="sec-num">旋钮</div>
+    <div>
+      <h2>第一份真实样式表：codemap 播种的 style.geml</h2>
+      <p class="sub">§11 的例子。它只用了稳定子集：一条 style-rule、match=、透传。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>每个旋钮都是组件参数，不是 profile 词汇 <span class="st st-spec">规范已定</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>&lt;codemap&gt;/_index/style.geml</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+profile = "geml-style/v1"
+title = "codemap graph style"
+<span class="f">===</span>
+
+<span class="f">=== style-rule</span> <span class="a">{#graph match="<span class="hl">diagram[format=geml-code-graph]</span>" \
+                <span class="hl">fold=1 depth=6 hide-accessors=true</span> \
+                palette="#e3f2fd #e8f5e9 …"}</span>
+<span class="f">===</span>                                  <span class="c">%% palette 是名字列表：空格分隔（§6）</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>它体现的规则</span></div>
+          <div class="flow">
+            <div class="box hot">profile 声明</div><span class="sep">+</span>
+            <div class="box hot">一条 style-rule</div><span class="sep">+</span>
+            <div class="box hot">match= 选中 code-graph 图</div><span class="sep">+</span>
+            <div class="box hot">fold / depth / hide-accessors / palette 透传</div>
+          </div>
+          <span class="badge b-mute" style="margin-top:12px">§0.1：这四样是 v1 唯一承诺稳定的子集，因为它们已经随每次 codemap build 种进了用户仓库</span>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>为什么这样</dt><dd>§11：以前显示的那一半写死在渲染器里，「想调一下长相」就得改一个服务所有人的渲染器。现在数字从样式表来，渲染器没换，默认值逐个等于原行为，缺文件就回退到内置默认。</dd>
+        <dt>与 foldings.geml</dt><dd>一对：<code>foldings.geml</code> 调构建期的模块命名，<code>style.geml</code> 调显示。首次构建播种，之后永不重写。见第 9 页。</dd>
+        <dt>其余</dt><dd class="amber">§12：<code>filter=</code> 从未对真实噪声跑过，<code>handler=</code> 没有真实宿主，<code>on=</code> 封闭词汇只有一个成员因为只接了一种交互。它们「已规定、已检查、未经实战」，所以 <code>geml style check</code> 在 --help 里标 EXPERIMENTAL：今天正确，明年拼写不保证。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ EVIDENCE ============ -->
+<section id="evidence">
+  <div class="sec-head">
+    <div class="sec-num">依据</div>
+    <div>
+      <h2>探针</h2>
+      <p class="sub">在短路径临时目录里跑，内容文档取自 <code>geml-parser/test/fixtures/style/codemap-content.geml</code>。用仓库内当前构建，1.9.2。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tablewrap">
+      <table class="t">
+        <thead><tr><th>探针</th><th>结果</th><th>对应</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">good.style.geml + content.geml</td><td><span class="badge b-ok">0 诊断</span>，--json 视图模型如上</td><td>干净、看板 12</td></tr>
+          <tr><td class="mono">同上 --components=edge-list</td><td><span class="badge b-warn">1 warning</span> unknown-component method-card</td><td>看板 10</td></tr>
+          <tr><td class="mono">bad.style.geml + content.geml</td><td><span class="badge b-err">7 error</span> <span class="badge b-warn">3 warning</span></td><td>写坏、看板 11</td></tr>
+          <tr><td class="mono">删掉 profile 声明后 geml check</td><td><span class="badge b-warn">5 warning</span> unknown-block-type</td><td>看板 2</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>本页：<code>docs/illustrated/10-profile-style_CN.html</code>，英文版 <code>10-profile-style.html</code>。profile 文档：<code>spec/profiles/geml-style/geml-style-profile.md</code>。</div>
+</footer>
+</div>

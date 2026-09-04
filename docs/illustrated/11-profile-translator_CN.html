@@ -1,0 +1,366 @@
+<title>GEML 图解 · geml-translator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+  :root { --bg:#F4F6F9; --surface:#FFFFFF; --surface-2:#EBEFF4; --ink:#1B2430; --ink-2:#47535F; --ink-3:#7B8794; --line:#D5DCE4; --line-2:#C3CCD6; --accent:#1F6F8B; --accent-soft:#DCEDF3; --amber:#9A5F0A; --amber-soft:#FAEED3; --red:#B0403B; --red-soft:#F8E2E0; --green:#2E7A50; --green-soft:#DDF0E4; --on-solid:#FFFFFF; --shadow:0 1px 2px rgba(27,36,48,.06),0 6px 18px rgba(27,36,48,.05); color-scheme:light; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#11161C; --surface:#191F27; --surface-2:#202832; --ink:#E6EBF0; --ink-2:#B3BDC8; --ink-3:#7F8B98; --line:#2C3642; --line-2:#3A4552; --accent:#63B5D1; --accent-soft:#14323D; --amber:#E2AC45; --amber-soft:#382B10; --red:#E27F79; --red-soft:#3E1F1E; --green:#6CC08E; --green-soft:#173124; --on-solid:#0F141A; --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25); color-scheme:dark; } }
+  :root[data-theme="dark"] { --bg:#11161C; --surface:#191F27; --surface-2:#202832; --ink:#E6EBF0; --ink-2:#B3BDC8; --ink-3:#7F8B98; --line:#2C3642; --line-2:#3A4552; --accent:#63B5D1; --accent-soft:#14323D; --amber:#E2AC45; --amber-soft:#382B10; --red:#E27F79; --red-soft:#3E1F1E; --green:#6CC08E; --green-soft:#173124; --on-solid:#0F141A; --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25); color-scheme:dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.7 "IBM Plex Sans","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1120px; margin:0 auto; padding:48px 28px 96px; }
+  h1,h2,h3 { text-wrap:balance; margin:0; } p { margin:0; } a { color:var(--accent); }
+  code,pre,.mono { font-family:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace; }
+  code { font-size:.92em; background:var(--surface-2); padding:1px 5px; border-radius:3px; }
+  .eyebrow { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  header h1 { font-size:34px; line-height:1.2; font-weight:600; margin-top:10px; letter-spacing:-.01em; }
+  header .lede { max-width:66ch; color:var(--ink-2); margin-top:16px; font-size:16px; }
+  .toc { display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:22px; font-size:14px; }
+  .toc a { text-decoration:none; border-bottom:1px solid var(--line-2); padding-bottom:1px; }
+  section { margin-top:72px; }
+  .sec-head { display:grid; grid-template-columns:64px 1fr; gap:16px; align-items:baseline; border-top:1px solid var(--line-2); padding-top:22px; }
+  .sec-num { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:500; padding-top:6px; }
+  .sec-head h2 { font-size:24px; font-weight:600; } .sec-head .sub { color:var(--ink-2); margin-top:6px; max-width:70ch; }
+  .sec-body { margin-left:80px; margin-top:28px; display:grid; gap:40px; }
+  @media (max-width:860px) { .sec-head { grid-template-columns:1fr; gap:6px; } .sec-body { margin-left:0; } }
+  .st { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; letter-spacing:.04em; padding:2px 8px; border-radius:3px; font-weight:600; white-space:nowrap; color:var(--on-solid); vertical-align:middle; }
+  .st-spec { background:var(--green); } .st-gap { background:var(--red); } .st-gep { background:var(--accent); } .st-obs { background:var(--ink-3); }
+  .board { overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:6px; box-shadow:var(--shadow); }
+  table.b { border-collapse:collapse; width:100%; font-size:14px; }
+  table.b th, table.b td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.b tr:last-child td { border-bottom:0; }
+  table.b th { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  table.b td.n { color:var(--ink-3); font-variant-numeric:tabular-nums; width:32px; }
+  table.b td.src { color:var(--ink-3); white-space:nowrap; font-size:13px; }
+  .tally { display:flex; flex-wrap:wrap; gap:10px 22px; margin-bottom:14px; font-size:14px; color:var(--ink-2); align-items:center; } .tally b { font-weight:600; color:var(--ink); }
+  figure { margin:0; display:grid; gap:18px; }
+  figure > figcaption { font-size:17px; font-weight:600; display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; }
+  figure > figcaption small { flex-basis:100%; font-size:14px; font-weight:400; color:var(--ink-2); }
+  .panes { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; align-items:start; }
+  @media (max-width:980px) { .panes { grid-template-columns:1fr; } .sec-body { margin-left:0; } }
+  .pane-h { display:flex; justify-content:space-between; align-items:center; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; margin-bottom:8px; }
+  pre.geml { margin:0; background:var(--surface-2); border:1px solid var(--line); border-radius:6px; padding:14px 16px; font-size:13px; line-height:1.6; overflow-x:auto; color:var(--ink); }
+  pre.geml .f { color:var(--accent); font-weight:500; } pre.geml .a { color:var(--ink-2); } pre.geml .c { color:var(--ink-3); font-style:italic; }
+  pre.geml .hl { background:var(--amber-soft); color:var(--amber); border-radius:2px; padding:0 2px; }
+  pre.geml .bad { background:var(--red-soft); color:var(--red); border-radius:2px; padding:0 2px; }
+  .term { background:var(--ink); color:#E6EBF0; border-radius:6px; padding:12px 14px; font-size:12.5px; line-height:1.6; overflow-x:auto; margin:0; }
+  :root[data-theme="dark"] .term { background:#0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .term { background:#0B0F14; } }
+  .term .ok { color:#7ED4A0; } .term .er { color:#F09A94; } .term .wn { color:#F0C060; } .term .dim { color:#8A96A3; } .term .cmd { color:#9CC7FF; }
+  .tiles { display:grid; grid-template-columns:repeat(8, 1fr); gap:4px; }
+  .tile { height:22px; border-radius:3px; background:var(--accent-soft); border:1px solid var(--accent); }
+  .tile.gap { background:var(--red-soft); border-color:var(--red); }
+  .tile.meta { background:var(--surface-2); border-color:var(--line-2); }
+  .cap { font-size:12.5px; color:var(--ink-3); }
+  .render { background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:18px 20px; box-shadow:var(--shadow); display:grid; gap:12px; font-size:14px; }
+  .ph { display:inline-block; background:var(--amber-soft); color:var(--amber); border:1px dashed var(--amber); border-radius:3px; padding:0 5px; font-family:"IBM Plex Mono",monospace; font-size:12px; }
+  .badge { display:inline-flex; align-items:center; gap:5px; font-size:11px; letter-spacing:.04em; text-transform:uppercase; padding:2px 7px; border-radius:3px; font-weight:500; white-space:nowrap; }
+  .b-err { background:var(--red-soft); color:var(--red); } .b-warn { background:var(--amber-soft); color:var(--amber); } .b-ok { background:var(--green-soft); color:var(--green); } .b-mute { background:var(--surface-2); color:var(--ink-3); }
+  .decision { display:grid; grid-template-columns:72px 1fr; gap:6px 16px; font-size:14.5px; border-top:1px dashed var(--line-2); padding-top:14px; }
+  .decision dt { color:var(--ink-3); font-size:12px; letter-spacing:.06em; text-transform:uppercase; font-weight:500; padding-top:4px; }
+  .decision dd { margin:0; } .decision dd.amber { color:var(--amber); }
+  table.t { border-collapse:collapse; width:100%; font-size:14px; }
+  table.t th, table.t td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.t tr:last-child td { border-bottom:0; }
+  table.t th { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  table.t td.mono { font-size:13px; }
+  .tablewrap { overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:6px; }
+  footer { margin-top:80px; border-top:1px solid var(--line-2); padding-top:18px; font-size:13.5px; color:var(--ink-3); display:grid; gap:6px; }
+  footer code { background:transparent; padding:0; color:var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">GEML 图解 · profile · geml-translator/v1（GEP-0010，草案；已注册） · 实测 geml 1.9.2 本地构建 · <a href="11-profile-translator.html">English</a></div>
+  <h1>GEML 图解 · geml-translator</h1>
+  <p class="lede">一份译文是源文档沿<strong>语言轴</strong>的投影，和 <code>.md</code> 沿格式轴的投影是同一个形状：译文文件里只有 <code>embed</code>，每个用 <code>translate-to=</code> 说要哪种语言，处理器把源的散文投影过去，其余字节一个不动。id、顺序、非散文内容只有一个家，所以漂移不是被检测出来，而是不可能发生。这一页把 GEP-0010 的规则、profile 放行的那一个键、翻译器必须保留的东西、以及参考实现今天能做到哪一步，全部列出来。</p>
+  <nav class="toc">
+    <a href="#board">看板</a>
+    <a href="#doc">译文长什么样</a>
+    <a href="#tile">铺满源</a>
+    <a href="#honour">翻译器必须保留什么</a>
+    <a href="#glossary">词表</a>
+    <a href="#evidence">依据</a>
+  </nav>
+</header>
+
+<!-- ============ BOARD ============ -->
+<section id="board">
+  <div class="sec-head">
+    <div class="sec-num">看板</div>
+    <div>
+      <h2>10 条规则，各自的出处和状态</h2>
+      <p class="sub"><span class="st st-gep">GEP 草案</span> GEP-0010 定义，profile 已在注册表里，规范未收。<span class="st st-obs">实测</span> 工具今天这样做。<span class="st st-gap">文档缺口</span> 该有而没有的文档。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div>
+      <div class="tally"><span><span class="st st-gep">GEP 草案</span> <b>7</b></span><span><span class="st st-obs">实测</span> <b>2</b></span><span><span class="st st-gap">文档缺口</span> <b>1</b></span></div>
+      <div class="board">
+        <table class="b">
+          <thead><tr><th></th><th>规则</th><th>出处</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td class="n">1</td><td>译文是沿语言轴的投影，复用 GEP-0006 沿格式轴的形状。译文文件<strong>只含 embed</strong>，别的什么都没有；块 id、顺序、非散文字节只有一个家，漂移不可能。</td><td class="src">GEP-0010 Summary</td><td><span class="st st-gep">GEP 草案</span></td></tr>
+            <tr><td class="n">2</td><td>profile <code>geml-translator/v1</code> 只放行一个属性键：<code>embed</code> 上的 <code>translate-to</code>。§8.6.1 允许 profile 放行属性键，所以不需要改规范。</td><td class="src">profiles.ts · §8.6</td><td><span class="st st-gep">GEP 草案</span></td></tr>
+            <tr><td class="n">3</td><td><code>translate-to</code> 一个键两个位置：meta 上是文档默认，embed 上覆盖；<code>none</code> 保留一块不译（「不写」是继承，不是「不译」，所以要有自己的拼法）。不叫 <code>lang</code>：<code>code {lang=}</code> 说正文<em>已经是</em>什么，这里说要<em>做</em>什么。</td><td class="src">GEP-0010</td><td><span class="st st-gep">GEP 草案</span></td></tr>
+            <tr><td class="n">4</td><td><code>translator=</code> 保留、不发货：只有一个引擎时选引擎的键会「解析、无事发生、看着像支持」。处理器怎么拿到翻译器是实现定义，拿不到也合规。</td><td class="src">GEP-0010</td><td><span class="st st-gep">GEP 草案</span></td></tr>
+            <tr><td class="n">5</td><td>前提：embed 必须<strong>铺满源</strong>，从 meta 结束到文件尾。实测过：GEML-spec.geml 的 16 个 <code>##</code> 节零缝隙铺满 L5–L1389，52 行的译文投影出 1349 行 Markdown，与源 1345 行逐字节相同。第一个标题前的段落不属于任何可寻址单元，会<strong>静默丢失</strong>；<code>geml list</code> 的行范围可机械证明覆盖，缝隙是待定义的诊断。</td><td class="src">GEP-0010</td><td><span class="st st-gep">GEP 草案</span></td></tr>
+            <tr><td class="n">6</td><td>翻译器必须保留：verbatim 行内原子（code span、行内数学）；每个引用及其目标（标签可译，目标不可）；每个 id、class、属性键，和命名事物的属性值；块结构。<strong>不许部分输出</strong>：失败、超时、不可用就用源语言。</td><td class="src">GEP-0010</td><td><span class="st st-gep">GEP 草案</span></td></tr>
+            <tr><td class="n">7</td><td>整块一次翻译，不是逐文本节点：实测 MANIFESTO.geml 133 次调用里 57 个字符串短于 25 字符，35% 的散文块被拆碎送出。用占位符替换不可动的 span，三条性质：目标语言里惰性、允许移动、恢复必须<strong>校验</strong>（每个占位符回来恰一次），否则整块回退源语言。</td><td class="src">GEP-0010</td><td><span class="st st-gep">GEP 草案</span></td></tr>
+            <tr><td class="n">8</td><td>词表：meta <code>glossary = "#id"</code> 指向一张 <code>hidden</code> 表，由投影层应用而不是问引擎；表在译文里不在源里，因为定下的译法是译文的属性。三条现有规则完成全部工作：hidden 标志、meta 不装表所以用引用、表是普通块。</td><td class="src">GEP-0010</td><td><span class="st st-gep">GEP 草案</span></td></tr>
+            <tr><td class="n">9</td><td>参考实现：CLI 的 <code>--to md/html</code> 没有翻译器，输出源文并加 note「translate-to 未应用」；真正翻译在 viewer 里由浏览器内置 Translator 完成（<code>translate-browser.js</code>）；解析器侧 <code>translate.ts</code> 提供 resolveTarget / translateInlines / translateBlocks / glossaryFrom。声明 profile 的文档 0 诊断，未声明 → unknown-attribute warning。</td><td class="src">geml-parser/src · viewer</td><td><span class="st st-obs">实测</span></td></tr>
+            <tr><td class="n">10</td><td><strong>文档缺口：</strong><code>spec/profiles/</code> 下没有 geml-translator 目录，profiles README 索引表也没列它，只有 <code>profiles.ts</code> 里的注册和 GEP-0010 正文。README 说「索引表和注册表是同一张表说了两遍」，此处已不成立。</td><td class="src">spec/profiles</td><td><span class="st st-gap">文档缺口</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DOC ============ -->
+<section id="doc">
+  <div class="sec-head">
+    <div class="sec-num">译文</div>
+    <div>
+      <h2>一份译文只有 embed</h2>
+      <p class="sub">左边是完整的译文文件；右边是 check 结果和没有 profile 时的对照。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>meta 默认 · embed 覆盖 · none 保留 <span class="st st-gep">GEP 草案</span> <span class="st st-obs">check 实测</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>tr.geml</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+title = "translated"
+<span class="hl">profile = "geml-translator/v1"</span>
+<span class="hl">translate-to = "zh"</span>                      <span class="c">%% 文档默认</span>
+<span class="f">===</span>
+
+<span class="f">=== embed</span> <span class="a">{src=a.geml#budget}</span>               <span class="c">%% 继承 zh</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{src=a.geml#tbl <span class="hl">translate-to=none</span>}</span>  <span class="c">%% 表不译</span>
+<span class="f">===</span>
+
+<span class="c">%% 没有别的东西：id、顺序、表格、代码都住在 a.geml 里</span></pre>
+          <div class="pane-h" style="margin-top:14px"><span>GEP 里的原型</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+title    = "发布"
+profile  = "geml-translator/v1"
+lang     = "zh-cn"
+source   = "PUBLISHING.geml"
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{src=PUBLISHING.geml#topology translate-to=zh-cn}</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{src=PUBLISHING.geml#prereq translate-to=zh-cn}</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check --root .</span></div>
+<pre class="term"><span class="dim">tr.geml</span>
+<span class="ok">ok: no diagnostics</span>
+
+<span class="dim">tr-noprofile.geml（同样的 embed，没有 profile 行）</span>
+<span class="wn">warning:</span> unknown attribute `translate-to` for block type `embed` (line 4)
+
+<span class="dim">geml tr.geml --to md（CLI 导出）</span>
+<span class="dim">note: `translate-to=zh` was not applied: this export has no translator,
+      so the source text stands</span></pre>
+          <div class="render" style="margin-top:12px">
+            <table class="t">
+              <thead><tr><th>位置</th><th><code>translate-to</code> 的意思</th></tr></thead>
+              <tbody>
+                <tr><td>meta</td><td>文档默认：没写的 embed 继承它</td></tr>
+                <tr><td>embed</td><td>覆盖默认</td></tr>
+                <tr><td>embed，值 <code>none</code></td><td>这一块不译。「不写」是继承，所以「不译」需要自己的拼法</td></tr>
+                <tr><td><code>translator=</code></td><td>保留。一个引擎时不该写；<code>auto</code> 同理，在只有一个成员的集合里选</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>为什么不叫 lang</dt><dd><code>code {lang=}</code> 命名编程语言，是关于正文<em>是什么</em>的陈述；这里命名自然语言，是关于要对正文<em>做什么</em>的指令。两个值空间、两种词性，在一个「名字只有一个意思」的格式里不能共用一个键。<code>translate-to</code> 是动词，读不成另外两个。</dd>
+        <dt>放行</dt><dd>§8.6：profile 只放行名字。声明了且处理器认识，键不再报 warning；处理器怎么拿到翻译器（浏览器内置、OS 服务、MCP 工具、shell 出去的 CLI）是实现定义的，一个也拿不到仍然合规。</dd>
+        <dt>CLI 今天</dt><dd class="amber">参考实现的 CLI 导出没有翻译器，所以 <code>--to md</code> 输出源文并留一条 note 说明没有应用；真正的翻译在 viewer 里由浏览器 Translator 做。文档不会假装被翻译了。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ TILE ============ -->
+<section id="tile">
+  <div class="sec-head">
+    <div class="sec-num">前提</div>
+    <div>
+      <h2>embed 必须铺满源</h2>
+      <p class="sub">这不是「embed 能用」，而是「被嵌的 id 必须从 meta 结束覆盖到文件尾」。可以机械检查。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>GEP 实测：16 节铺满 1385 行；一段落在标题前就静默丢失 <span class="st st-gep">GEP 草案</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML-spec.geml · 16 个 ## 节零缝隙</span></div>
+          <div class="tiles">
+            <div class="tile meta" title="L1-4 标题与语言切换"></div>
+            <div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div>
+            <div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div>
+          </div>
+          <span class="cap">灰格：L1–4，源的 H1 和「English | 中文」切换行，正好是译文自己要写的两样东西。蓝格：16 个 ## 节，L5–L1389，零缝隙。52 行译文投影出 1349 行 Markdown，与源从第一节起 1345 行逐字节相同，嵌套嵌入也一样。</span>
+          <div class="pane-h" style="margin-top:14px"><span>反例：第一个标题前有一段</span></div>
+          <div class="tiles">
+            <div class="tile meta"></div><div class="tile gap" title="谁的都不是"></div>
+            <div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div>
+          </div>
+          <span class="cap">红格：meta 之后、第一个标题之前的段落，<code>geml list</code> 报 meta 在 L1–3、标题从 L7 起，中间的行不属于任何单元。两个标题都嵌了，译文 <code>ok: no diagnostics</code>，投影里就是没有那一段。没人警告，因为没人被要求。</span>
+        </div>
+        <div>
+          <div class="pane-h"><span>规则</span></div>
+          <div class="render">
+            <table class="t">
+              <thead><tr><th>要求</th><th>为什么</th></tr></thead>
+              <tbody>
+                <tr><td>被嵌的 id 从 meta 结束铺到文件尾</td><td>embed 只投影可寻址单元；不可寻址的散文投不过去、也翻不了</td></tr>
+                <tr><td>可用 <code>geml list</code> 的行范围证明覆盖</td><td>缝隙是一条等待定义的诊断，不是设计缺陷</td></tr>
+                <tr><td>源里没人能寻址的散文，包进 <code>text</code> 块</td><td>§3 已经给了它一个家；这条提案只是让不用的代价可见</td></tr>
+                <tr><td>命名标题的 embed 取整节</td><td>裸段落、嵌套块一起来，不只标题行（见第 5 页）</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>压力在哪</dt><dd>GEP：这对源文档施加了温和的压力，而压力正该在那里——没人能寻址的散文，也没人能嵌入、翻译或块编辑它。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ HONOUR ============ -->
+<section id="honour">
+  <div class="sec-head">
+    <div class="sec-num">保留</div>
+    <div>
+      <h2>翻译器必须原样保留什么，以及怎么送整块</h2>
+      <p class="sub">规范说不了怎么翻译，只能说什么必须活下来。§4 的插值早有先例：code span 和行内数学里不替换。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>四类不动的东西，一条不许半截的规则，一个占位符协议 <span class="st st-gep">GEP 草案</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>一句源文送进翻译器之前</span></div>
+          <div class="render">
+            <p>Run <code>geml check</code> before you [publish](#pub); see <strong>§8</strong> and $x^2$.</p>
+            <span class="cap">整块一次送出，不可动的 span 换成占位符：</span>
+            <p>Run <span class="ph">⟦1⟧</span> before you <span class="ph">⟦2⟧</span>; see <strong>§8</strong> and <span class="ph">⟦3⟧</span>.</p>
+            <span class="cap">翻译器可以移动占位符（目标语言把它放它该在的地方），回来后每个占位符必须恰好出现一次，再还原成 code span、链接、数学。少一个、多一个、坏一个，整块回退源语言。</span>
+          </div>
+        </div>
+        <div>
+          <div class="pane-h"><span>必须保留</span></div>
+          <div class="tablewrap">
+            <table class="t">
+              <thead><tr><th>什么</th><th>规则</th></tr></thead>
+              <tbody>
+                <tr><td>verbatim 行内原子</td><td>code span、行内数学：绕着译，不穿过去</td></tr>
+                <tr><td>引用及其目标</td><td><code>[[#id]]</code>、<code>[t](#id)</code>、<code>[^fn]</code>、链接 href：标签可译，目标不可，否则 §8.2(5) 把译文变成构建错误</td></tr>
+                <tr><td>id、class、属性键</td><td>以及命名事物而非陈述的属性值：<code>format=</code>、<code>src=</code>、<code>translate-to=</code></td></tr>
+                <tr><td>块结构</td><td>同样的块、同样的顺序、同样的 id</td></tr>
+                <tr><td colspan="2"><strong>不许部分输出</strong>：失败、超时、不可用 → 该块用源语言。半句译文比不译更糟。</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>为什么整块</dt><dd>参考实现曾按行内 text 节点逐个送：MANIFESTO.geml 133 次调用 9798 字符，57 个字符串短于 25 字符，<code>" / "</code> 送了四次，34 个散文块里 12 个（35%）被拆成碎片，最多七片。拼回去的结果一眼可见：全角括号一片开、半角一片关。拆分保证了原子不动，代价是从不送出一个完整句子。</dd>
+        <dt>占位符三性质</dt><dd>在任何目标语言里惰性；允许被移动；恢复必须校验。校验失败就走「不许部分输出」那条：句子里有一个洞，正是那条已经禁止的东西。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ GLOSSARY ============ -->
+<section id="glossary">
+  <div class="sec-head">
+    <div class="sec-num">词表</div>
+    <div>
+      <h2>词表钉住引擎每次都会重新决定的术语</h2>
+      <p class="sub">结构不会漂，词汇会。翻译器按块调用、不记前事，一个术语出现八次就被决定八次。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>meta 引用一张 hidden 表，投影层应用 <span class="st st-gep">GEP 草案</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · 译文文件</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+profile      = "geml-translator/v1"
+translate-to = "zh-cn"
+source       = "MANIFESTO.geml"
+<span class="hl">glossary     = "#not-translated-terms"</span>    <span class="c">%% meta 装不了表，所以是引用</span>
+<span class="f">===</span>
+
+<span class="f">=== table</span> <span class="a">{#not-translated-terms <span class="hl">hidden</span>}</span>
+| term | zh-cn |
+|---|---|
+| Doc-as-a-Base | 文档即真相之源 |
+| Single Source of Truth | 单一事实来源 |
+<span class="f">===</span>
+
+<span class="f">=== embed</span> <span class="a">{src=MANIFESTO.geml}</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>三条现有规则</span></div>
+          <div class="tablewrap">
+            <table class="t">
+              <tbody>
+                <tr><td class="mono">hidden</td><td>§4 给「进模型不显示的结构化内容」定义的标志；渲染器必须省略它。实测：这份文档 check 干净，Markdown 投影里没有那张表</td></tr>
+                <tr><td class="mono">glossary = "#id"</td><td>§4：meta 不支持数组、日期、嵌套表，所以 meta 键是引用，表是普通块——数据源在这个语言里本来就是这个形状</td></tr>
+                <tr><td>在译文里</td><td>定下的译法是<strong>译文</strong>的属性，源不知道也不该在意读者的语言争论过哪个词。译文仍是一个文件</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ EVIDENCE ============ -->
+<section id="evidence">
+  <div class="sec-head">
+    <div class="sec-num">依据</div>
+    <div>
+      <h2>探针与出处</h2>
+      <p class="sub">check 用仓库内当前构建，1.9.2；铺满和拆分的数字来自 GEP-0010 正文自己的实测。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tablewrap">
+      <table class="t">
+        <thead><tr><th>探针 / 来源</th><th>结果</th><th>对应</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">tr.geml（有 profile）</td><td><span class="badge b-ok">0 诊断</span></td><td>译文、看板 2、9</td></tr>
+          <tr><td class="mono">tr-noprofile.geml</td><td><span class="badge b-warn">1 warning</span> unknown attribute translate-to</td><td>看板 2</td></tr>
+          <tr><td class="mono">geml cli.ts:830–848</td><td>导出无翻译器时输出源文并加 note</td><td>看板 9</td></tr>
+          <tr><td class="mono">GEP-0010 · The prerequisite</td><td>16 节铺满 L5–L1389，1345 行逐字节相同；标题前段落静默丢失</td><td>铺满源</td></tr>
+          <tr><td class="mono">GEP-0010 · Translate a block</td><td>133 次调用、57 个短串、35% 块被拆</td><td>保留</td></tr>
+          <tr><td class="mono">ls spec/profiles</td><td>无 geml-translator 目录；profiles README 无索引行</td><td>看板 10</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>本页：<code>docs/illustrated/11-profile-translator_CN.html</code>，英文版 <code>11-profile-translator.html</code>。出处：<code>spec/proposals/0010-language-projections.md</code>；embed 本身见第 5 页。</div>
+</footer>
+</div>

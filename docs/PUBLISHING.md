@@ -69,11 +69,13 @@ path reads the tree, not your working copy.
 
 - **Lands at** npmjs.com/package/@geml/geml, and the Model Context Protocol
   registry.
-- **Version lives in six files.** `geml-parser/package.json`, `server.json`
-  (twice), `package-lock.json` (twice), and the `claude-plugin` and
-  `codex-plugin` manifests. The mcp suite guards the last two — its assertion
-  reads *"installed plugins would never see this release"*, which is how the
-  fifth and sixth were ever found.
+- **Version lives in EIGHT fields.** `geml-parser/package.json`, `server.json`
+  (twice), `package-lock.json` (twice), and FOUR vendor manifests: `claude-plugin`,
+  `codex-plugin`, the root `gemini-extension.json`, and
+  `grok-plugin/.grok-plugin/plugin.json`. The mcp suite guards all four — its
+  assertion reads *"installed plugins would never see this release"*, which is
+  how the fifth and sixth were ever found; the seventh and eighth arrived with
+  the agent-market manifests and this line trailed them until 1.10.0.
 - **How.** Actions -> *Publish to npm* -> Run workflow. Then Actions ->
   *Publish MCP Server*. Both are `workflow_dispatch`: publishing is a
   deliberate act, never a side effect of a push.
@@ -220,13 +222,27 @@ the listings do not.
 ## `@geml/logseq-sync` — the watcher
 
 - **Lands at** npmjs.com/package/@geml/logseq-sync. This is the half that does the
-  work: it watches the vault and runs the sync. Currently 2.0.9.
-- **Version** in `integrations/logseq/package.json` and `package-lock.json`.
+  work: it watches the vault and runs the sync. Currently 2.2.0.
+- **Version** in `integrations/logseq/package.json` and `package-lock.json`
+  (three fields there: the root, `packages[""]`, and the `plugin` workspace —
+  the watcher and the plugin move together).
 - **How.** `npm publish` from `integrations/logseq`.
-- **Watch for.** It depends on the parser by RANGE (`^1.x`), so a parser release
-  reaches it without any release of its own — which is why this is the one
-  artifact that does NOT move with every parser version.
-- **Confirm.** `npm view @geml/logseq-sync version`.
+- **Watch for.** It depends on the parser by RANGE (`^1.x`), but the LOCKFILE
+  pins one version with an integrity hash — and `npm ci`, which is what CI and
+  every clean install use, installs what the lock says. So a parser release does
+  NOT reach it on its own: measured on 1.10.0, the lock still resolved 1.9.1.
+  Refreshing that pin is a release of its own, and it can only happen after the
+  parser is on npm, because an unpublished version does not resolve:
+
+  `
+  npm publish @geml/geml            # first
+  cd integrations/logseq && npm install @geml/geml@<version>
+  git commit integrations/logseq/package-lock.json
+  npm publish                       # then the watcher
+  `
+
+- **Confirm.** `npm view @geml/logseq-sync version` · and read the lock's
+  `node_modules/@geml/geml` entry to see which parser it actually ships.
 
 ## The Logseq plugin — a mirror release AND a one-time marketplace PR
 

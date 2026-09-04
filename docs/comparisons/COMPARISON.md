@@ -172,11 +172,13 @@ Pandoc      (no native form — a filter, e.g. pandoc-include)
 ### Table with computed columns (GEML-specific)
 
 ```
-GEML        === table {#fy25 format=csv header=1
-              compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4"
-              summary="Segment = 'Total'; FY = sum(FY)"}
+GEML        === table {#fy25 format=csv header=1}
             Segment, Q1, Q2, Q3, Q4
             Cloud,   1,  2,  3,  4
+            ===
+            === view {#fy25-report src=#fy25
+              compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4"
+              summary="Segment = 'Total'; FY = sum(FY)"}
             ===                       → per-row FY column + a Total summary row,
                                         FY shown to 1 decimal
 Org-mode    | Segment | Q1 | Q2 | Q3 | Q4 | FY |

@@ -211,18 +211,22 @@ Write a table visually:
 ===
 ```
 
-…or as data, with **computed columns** and a **summary row**:
+…or as data. A table holds the facts; a **`view`** over it derives the
+**computed columns** and the **summary row**:
 
 ```
-=== table {#fy25 format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4; n = 1" summary="Segment = 'Total'; FY [%.1f] = sum(FY); n = sum(n)"}
+=== table {#fy25 format=csv header=1}
 Segment,  Q1, Q2, Q3, Q4
 Cloud,     8, 10, 12, 14
 Platform,  5,  6,  7,  9
 Services,  3,  4,  4,  5
 ===
+
+=== view {#fy25-report src=#fy25 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4; n = 1" summary="Segment = 'Total'; FY [%.1f] = sum(FY); n = sum(n)"}
+===
 ```
 
-*Both forms describe the same model. The `FY` column and `Total` row are computed at build time:*
+*Both table forms describe the same model. The `FY` column and `Total` row are computed at build time, by the view:*
 
 | Segment   | Q1 | Q2 | Q3 | Q4 |   FY | n |
 |-----------|---:|---:|---:|---:|-----:|--:|

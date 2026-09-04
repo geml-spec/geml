@@ -1,0 +1,445 @@
+<title>GEML Blocks Illustrated · diagram</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #F4F6F9; --surface: #FFFFFF; --surface-2: #EBEFF4;
+    --ink: #1B2430; --ink-2: #47535F; --ink-3: #7B8794;
+    --line: #D5DCE4; --line-2: #C3CCD6;
+    --accent: #1F6F8B; --accent-soft: #DCEDF3;
+    --amber: #9A5F0A; --amber-soft: #FAEED3;
+    --red: #B0403B; --red-soft: #F8E2E0;
+    --green: #2E7A50; --green-soft: #DDF0E4;
+    --on-solid: #FFFFFF;
+    --shadow: 0 1px 2px rgba(27, 36, 48, .06), 0 6px 18px rgba(27, 36, 48, .05);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11161C; --surface: #191F27; --surface-2: #202832;
+      --ink: #E6EBF0; --ink-2: #B3BDC8; --ink-3: #7F8B98;
+      --line: #2C3642; --line-2: #3A4552;
+      --accent: #63B5D1; --accent-soft: #14323D;
+      --amber: #E2AC45; --amber-soft: #382B10;
+      --red: #E27F79; --red-soft: #3E1F1E;
+      --green: #6CC08E; --green-soft: #173124;
+      --on-solid: #0F141A;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11161C; --surface: #191F27; --surface-2: #202832;
+    --ink: #E6EBF0; --ink-2: #B3BDC8; --ink-3: #7F8B98;
+    --line: #2C3642; --line-2: #3A4552;
+    --accent: #63B5D1; --accent-soft: #14323D;
+    --amber: #E2AC45; --amber-soft: #382B10;
+    --red: #E27F79; --red-soft: #3E1F1E;
+    --green: #6CC08E; --green-soft: #173124;
+    --on-solid: #0F141A;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.65 "IBM Plex Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 48px 28px 96px; }
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+  p { margin: 0; }
+  a { color: var(--accent); }
+  code, pre, .mono { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; }
+  code { font-size: .92em; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; }
+  .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  header h1 { font-size: 34px; line-height: 1.2; font-weight: 600; margin-top: 10px; letter-spacing: -.01em; }
+  header .lede { max-width: 66ch; color: var(--ink-2); margin-top: 16px; font-size: 16px; }
+  .toc { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 22px; font-size: 14px; }
+  .toc a { text-decoration: none; border-bottom: 1px solid var(--line-2); padding-bottom: 1px; }
+  .toc a:hover, .toc a:focus-visible { border-color: var(--accent); }
+  section { margin-top: 72px; }
+  .sec-head { display: grid; grid-template-columns: 64px 1fr; gap: 16px; align-items: baseline; border-top: 1px solid var(--line-2); padding-top: 22px; }
+  .sec-num { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; padding-top: 6px; }
+  .sec-head h2 { font-size: 24px; font-weight: 600; letter-spacing: -.005em; }
+  .sec-head .sub { color: var(--ink-2); margin-top: 6px; max-width: 70ch; }
+  .sec-body { margin-left: 80px; margin-top: 28px; display: grid; gap: 40px; }
+  @media (max-width: 860px) { .sec-head { grid-template-columns: 1fr; gap: 6px; } .sec-body { margin-left: 0; } }
+  .st { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; letter-spacing: .04em; padding: 2px 8px; border-radius: 3px; font-weight: 600; white-space: nowrap; color: var(--on-solid); vertical-align: middle; }
+  .st-spec { background: var(--green); } .st-gap { background: var(--red); } .st-gep { background: var(--accent); } .st-obs { background: var(--ink-3); }
+  .board { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); }
+  table.b { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.b th, table.b td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.b tr:last-child td { border-bottom: 0; }
+  table.b th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.b td.n { color: var(--ink-3); font-variant-numeric: tabular-nums; width: 32px; }
+  table.b td.src { color: var(--ink-3); white-space: nowrap; font-size: 13px; }
+  table.b tr.grp td { background: var(--surface-2); font-weight: 600; font-size: 13px; letter-spacing: .04em; color: var(--ink-2); }
+  .tally { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-bottom: 14px; font-size: 14px; color: var(--ink-2); align-items: center; }
+  .tally b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+  figure { margin: 0; display: grid; gap: 18px; }
+  figure > figcaption { font-size: 17px; font-weight: 600; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+  figure > figcaption small { flex-basis: 100%; font-size: 14px; font-weight: 400; color: var(--ink-2); }
+  .panes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 980px) { .panes { grid-template-columns: 1fr; } .sec-body { margin-left: 0; } }
+  .pane-h { display: flex; justify-content: space-between; align-items: center; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; margin-bottom: 8px; }
+  pre.geml { margin: 0; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; font-size: 13px; line-height: 1.6; overflow-x: auto; color: var(--ink); }
+  pre.geml .f { color: var(--accent); font-weight: 500; } pre.geml .a { color: var(--ink-2); } pre.geml .c { color: var(--ink-3); font-style: italic; }
+  pre.geml .hl { background: var(--amber-soft); color: var(--amber); border-radius: 2px; padding: 0 2px; }
+  pre.geml .bad { background: var(--red-soft); color: var(--red); border-radius: 2px; padding: 0 2px; }
+  pre.geml .arrow { color: var(--red); font-family: "IBM Plex Sans", sans-serif; font-style: normal; }
+  .term { background: var(--ink); color: #E6EBF0; border-radius: 6px; padding: 12px 14px; font-size: 12.5px; line-height: 1.6; overflow-x: auto; margin: 0; }
+  :root[data-theme="dark"] .term { background: #0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .term { background: #0B0F14; } }
+  .term .ok { color: #7ED4A0; } .term .er { color: #F09A94; } .term .wn { color: #F0C060; } .term .dim { color: #8A96A3; } .term .cmd { color: #9CC7FF; }
+  .render { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px; box-shadow: var(--shadow); display: grid; gap: 14px; font-size: 14px; }
+  .tag { display: inline-flex; align-items: center; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; padding: 1px 6px; border-radius: 3px; background: var(--surface-2); color: var(--ink-3); font-weight: 500; font-family: "IBM Plex Mono", monospace; }
+  .r-code { position: relative; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; font-family: "IBM Plex Mono", monospace; font-size: 13px; line-height: 1.6; white-space: pre; overflow-x: auto; }
+  .r-code .tag { position: absolute; top: 8px; right: 10px; }
+  .r-mermaid { border: 1px solid var(--line); border-radius: 6px; padding: 14px; display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; font-size: 13px; }
+  .node { border: 1px solid var(--ink-2); border-radius: 4px; padding: 4px 10px; background: var(--surface); }
+  .node.dia { transform: skewX(-12deg); }
+  .edge { color: var(--ink-3); font-family: "IBM Plex Mono", monospace; font-size: 12px; }
+  .chart { display: grid; grid-template-columns: 40px 1fr; gap: 6px; align-items: end; height: 150px; border-left: 1px solid var(--line-2); border-bottom: 1px solid var(--line-2); padding: 6px 8px 0 0; position: relative; }
+  .chart .ticks { display: grid; grid-template-rows: repeat(3, 1fr); height: 100%; font-size: 11px; color: var(--ink-3); text-align: right; font-family: "IBM Plex Mono", monospace; }
+  .chart .bars { display: flex; gap: 40px; align-items: end; height: 100%; padding: 0 30px; }
+  .bar { width: 90px; background: #2563eb; border-radius: 2px 2px 0 0; display: flex; align-items: flex-start; justify-content: center; color: #fff; font-size: 12px; padding-top: 4px; font-family: "IBM Plex Mono", monospace; }
+  .xlabels { display: flex; gap: 40px; padding: 4px 0 0 76px; font-size: 12px; color: var(--ink-2); }
+  .xlabels span { width: 90px; text-align: center; }
+  .cap { font-size: 12.5px; color: var(--ink-3); }
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; font-weight: 500; white-space: nowrap; }
+  .b-err { background: var(--red-soft); color: var(--red); } .b-warn { background: var(--amber-soft); color: var(--amber); } .b-ok { background: var(--green-soft); color: var(--green); } .b-mute { background: var(--surface-2); color: var(--ink-3); }
+  .decision { display: grid; grid-template-columns: 84px 1fr; gap: 6px 16px; font-size: 14.5px; border-top: 1px dashed var(--line-2); padding-top: 14px; }
+  .decision dt { color: var(--ink-3); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; font-weight: 500; padding-top: 4px; }
+  .decision dd { margin: 0; color: var(--ink); } .decision dd.amber { color: var(--amber); }
+  table.t { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.t th, table.t td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.t tr:last-child td { border-bottom: 0; }
+  table.t th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.t td.mono { font-size: 13px; }
+  .tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+  footer { margin-top: 80px; border-top: 1px solid var(--line-2); padding-top: 18px; font-size: 13.5px; color: var(--ink-3); display: grid; gap: 6px; }
+  footer code { background: transparent; padding: 0; color: var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">GEML block types, illustrated · page 4 of 5 · spec 1.0 · measured on geml 1.9.2, local build · <a href="04-diagram_CN.html">中文</a></div>
+  <h1>GEML Blocks Illustrated · diagram</h1>
+  <p class="lede"><code>diagram</code> is used two ways. One hosts an external DSL: the body goes verbatim to the renderer <code>format=</code> selects, and the processor's only duty is not to interpret it. The other is the built-in <code>geml-chart</code>: the chart is described entirely in attributes and bound to a table or a record array, so the processor can check it piece by piece and a mistyped column name is a build error. A third, <code>geml-code-graph</code>, is interpreted too but takes the opposite stance: the embed carries one attribute and nothing else. All three are measured here; the chart's fifteen checks match A.4 row for row.</p>
+  <nav class="toc">
+    <a href="#board">Board</a>
+    <a href="#dsl">External DSLs</a>
+    <a href="#chart">geml-chart</a>
+    <a href="#checks">Fifteen checks</a>
+    <a href="#codegraph">geml-code-graph</a>
+    <a href="#evidence">Evidence</a>
+  </nav>
+</header>
+
+<!-- ============ BOARD ============ -->
+<section id="board">
+  <div class="sec-head">
+    <div class="sec-num">Board</div>
+    <div>
+      <h2>15 rules, each with its source and status</h2>
+      <p class="sub"><span class="st st-spec">Specified</span> written into the specification or an accepted GEP. <span class="st st-obs">Observed</span> not specified; what the reference implementation does today. <span class="st st-gap">Draft gap</span> something a draft should say and does not. No implementation gap was found on this page.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div>
+      <div class="tally">
+        <span><span class="st st-spec">Specified</span> <b>11</b></span>
+        <span><span class="st st-obs">Observed</span> <b>3</b></span>
+        <span><span class="st st-gap">Draft gap</span> <b>1</b></span>
+      </div>
+      <div class="board">
+        <table class="b">
+          <thead><tr><th></th><th>Rule</th><th>Source</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr class="grp"><td></td><td colspan="3">External DSLs</td></tr>
+            <tr><td class="n">1</td><td>Raw body; <code>format=</code> selects a pluggable renderer (mermaid, graphviz, d2, plantuml …). A processor must expose the renderer registry and <strong>must not interpret the body</strong>. An unknown format is a warning; the body is kept.</td><td class="src">§7 · A.4</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">2</td><td><code>#id</code> makes the diagram referenceable: <code>[[#flow]]</code>, with the caption as link text.</td><td class="src">§7 · §5.2</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">3</td><td>No <code>{{key}}</code> interpolation in a raw body; a <code>%%</code> line is body text.</td><td class="src">§4</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">4</td><td>The reference implementation's registry knows mermaid, graphviz, d2, plantuml, geml-chart and geml-code-graph. Only mermaid has a bundled engine: it emits <code>pre.mermaid</code> and loads the mermaid module on the page; the other three DSLs emit <code>pre.diagram-src data-format=</code> verbatim with no warning; <code>vega-lite</code> and any unknown name warn.</td><td class="src">--to html</td><td><span class="st st-obs">Observed</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">Data binding and geml-chart</td></tr>
+            <tr><td class="n">5</td><td><code>data=</code> takes the three targets a table's <code>src=</code> takes: a csv/tsv or json/jsonl file, <code>#id</code>, <code>doc.geml#id</code>. A table contributes its model (computed columns included); a data block must be a <strong>record array</strong>, and every column the chart references must be a scalar in every record; a violation is an error.</td><td class="src">§7.1 · A.4</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">6</td><td><code>geml-chart</code> lives entirely in attributes: <code>type</code> is one of five, <code>bar line area pie scatter</code>; channels <code>x</code> (category), <code>y</code> (value; a comma list is several series), <code>series</code>, <code>size</code>; <code>x</code> and <code>y</code> required; <code>rows=data|all|summary</code>. The body should be empty; a non-empty one warns.</td><td class="src">§7.1</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">7</td><td>Build-time checks: no data, target not a table, not a record array, no type, unknown type, missing channel, unknown column, unknown rows, non-numeric y, <code>rows=summary</code> with no summary row → error; an unused channel, <code>rows=all</code> with no summary row → warning.</td><td class="src">A.4</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">8</td><td>External data is fetched at render time and column checks are deferred to the renderer; http(s) needs renderer opt-in, because fetching a URL discloses the reader's address and time.</td><td class="src">§7.1 · §9.4</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">9</td><td>For more (annotations, reference lines, heatmaps) use a hosted DSL: <code>format=vega-lite data=#fy</code>; the body is raw and <strong>not column-checked</strong>.</td><td class="src">§7.1</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">10</td><td>Rendering: geml-chart emits an inline <code>svg.geml-chart role="img"</code> with rect / path / text; no external script.</td><td class="src">--to html</td><td><span class="st st-obs">Observed</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">geml-code-graph (GEP-0003, accepted; codemap profile §6)</td></tr>
+            <tr><td class="n">11</td><td><code>geml-code-graph</code> is an <strong>interpreted</strong> diagram format: a layered method-flow view over a codemap document tree. The embed takes <strong>exactly one attribute</strong>, <code>src=</code>, naming the codemap's <code>index.geml</code> or one container document; the body is empty, and a non-empty one warns.</td><td class="src">GEP-0003 · codemap §6</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">12</td><td>Roots and depth are <strong>never</strong> authored at the embed: they come from the meta of the document <code>src</code> points at (<code>entry</code>, <code>graph-depth</code>). View configuration travels with the data, so the embed cannot drift; a different root means pointing at a different container document, and method-level drill-down is a click, not an attribute.</td><td class="src">GEP-0003</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">13</td><td>A missing <code>src=</code> and an unresolvable <code>src</code> are both <strong>warnings</strong>: nothing to draw, but the document is not wrong.</td><td class="src">A.4</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">14</td><td>Rendering: <code>figure.code-graph &gt; div.cg-mount data-start data-graph</code>, the graph data inlined as JSON and laid out by a page script at draw time; a failed resolution puts a <code>p.render-error</code> in the same figure.</td><td class="src">--to html</td><td><span class="st st-obs">Observed</span></td></tr>
+            <tr><td class="n">15</td><td><strong>Related draft gap:</strong> once GEP-0012 moves compute/summary to view, <code>geml-chart</code>'s <code>data=</code> must accept a view, or a chart over a computed column has no source. GEP-0012 does not say so. See page 3, board 18.</td><td class="src">GEP-0012 ↔ §7.1</td><td><span class="st st-gap">Draft gap</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DSL ============ -->
+<section id="dsl">
+  <div class="sec-head">
+    <div class="sec-num">DSL</div>
+    <div>
+      <h2>Four external DSLs and one unknown name</h2>
+      <p class="sub">The processor treats them identically: keep the body verbatim. The only difference is whether the renderer has an engine.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>mermaid · graphviz · d2 · plantuml · foo <span class="st st-spec">Specified</span> <span class="st st-obs">rendering observed</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · d1-diagram.geml</span></div>
+<pre class="geml"><span class="f">=== diagram</span> <span class="a">{#flow <span class="hl">format=mermaid</span> caption="Review flow"}</span>
+graph LR
+  A[Draft] --> B{Review}
+  B -->|ok| C[Publish]
+<span class="f">===</span>
+<span class="f">=== diagram</span> <span class="a">{#gv format=graphviz}</span>
+digraph { a -> b }
+<span class="f">===</span>
+<span class="f">=== diagram</span> <span class="a">{#d2 format=d2}</span>
+a -> b
+<span class="f">===</span>
+<span class="f">=== diagram</span> <span class="a">{#pu format=plantuml}</span>
+@startuml
+a -> b
+@enduml
+<span class="f">===</span>
+<span class="f">=== diagram</span> <span class="a">{#odd <span class="bad">format=foo</span>}</span>
+anything at all, {{title}} is not interpolated in raw
+<span class="f">===</span>
+See [[#flow]].</pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check · --to html</span></div>
+<pre class="term"><span class="wn">warning:</span> no registered renderer for diagram format `foo`; body kept raw (line 21)
+0 error(s), 1 warning(s)</pre>
+          <div class="render" style="margin-top:12px">
+            <span class="tag">figure #flow › pre.mermaid · rendered once the page loads the mermaid module</span>
+            <div class="r-mermaid"><span class="node">Draft</span><span class="edge">→</span><span class="node dia">Review</span><span class="edge">→ ok →</span><span class="node">Publish</span></div>
+            <span class="tag">figure #gv › pre.diagram-src data-format="graphviz" · registered, no bundled engine, source shown</span>
+            <div class="r-code">digraph { a -&gt; b }</div>
+            <span class="tag">figure #odd › unknown format, body kept</span>
+            <div class="r-code">anything at all, {{title}} is not interpolated in raw</div>
+            <p>See <a href="#dsl" style="pointer-events:none">Review flow</a>.</p>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Rule</dt><dd>§7: <code>format</code> selects the renderer, the raw body is handed over verbatim, and the processor must expose the registry and never interpret the body. An unknown format is only a warning because nothing was lost — nobody drew it, that is all.</dd>
+        <dt>Two kinds of "not drawn"</dt><dd class="amber">In the measurement, graphviz, d2 and plantuml are in the registry, so they do not warn, but the reference implementation bundles no engine for them and emits the source with a <code>data-format</code>; a host can attach its own engine. <code>vega-lite</code>, though §7.1 uses it as an example, is not in the registry and warns. That is the normal state of an open registry, not a gap.</dd>
+        <dt>raw</dt><dd><code>{{title}}</code> is not interpolated in a raw body (§4) and reaches the output as written; so does <code>%%</code>.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ CHART ============ -->
+<section id="chart">
+  <div class="sec-head">
+    <div class="sec-num">chart</div>
+    <div>
+      <h2><code>geml-chart</code>: the chart lives in attributes, so it can be checked</h2>
+      <p class="sub">Four working examples: bound to a table with a computed column, to a record array, to a csv file drawing two series, and with the summary row as an extra point.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>Four data sources, one way of describing <span class="st st-spec">Specified</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · from d2-chart.geml</span></div>
+<pre class="geml"><span class="f">=== table</span> <span class="a">{#fy format=csv compute="FY = Q1 + Q2" summary="Segment = 'Total'; FY = sum(FY)"}</span>
+Segment,Q1,Q2
+Cloud,124.5,131.2
+Hardware,88.1,84.6
+<span class="f">===</span>
+<span class="f">=== data</span> <span class="a">{#recs}</span>
+[{"seg": "Cloud", "fy": 255.7}, {"seg": "Hardware", "fy": 172.7}]
+<span class="f">===</span>
+
+<span class="f">=== diagram</span> <span class="a">{#ok format=geml-chart <span class="hl">data=#fy</span> type=bar x=Segment <span class="hl">y=FY</span> caption="FY revenue"}</span>
+<span class="f">===</span>                                    <span class="c">%% y is a computed column: the table model includes them</span>
+<span class="f">=== diagram</span> <span class="a">{#ok2 format=geml-chart <span class="hl">data=#recs</span> type=pie x=seg y=fy}</span>
+<span class="f">===</span>                                    <span class="c">%% record array: keys project to columns</span>
+<span class="f">=== diagram</span> <span class="a">{#ok3 format=geml-chart <span class="hl">data=rows.csv</span> type=line x=Segment <span class="hl">y="Q1, Q2"</span>}</span>
+<span class="f">===</span>                                    <span class="c">%% a file; a comma list = two series</span>
+<span class="f">=== diagram</span> <span class="a">{#sumrow format=geml-chart data=#fy type=bar x=Segment y=FY <span class="hl">rows=all</span>}</span>
+<span class="f">===</span>                                    <span class="c">%% the summary row as one extra point</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>--to html · #ok</span><span class="badge b-ok">no diagnostics</span></div>
+          <div class="render">
+            <span class="tag">svg.geml-chart role="img" · viewBox 0 0 760 380 · rect + text.c-tick</span>
+            <div class="chart">
+              <div class="ticks"><span>300</span><span>150</span><span>0</span></div>
+              <div class="bars"><div class="bar" style="height:85%">255.7</div><div class="bar" style="height:58%">172.7</div></div>
+            </div>
+            <div class="xlabels"><span>Cloud</span><span>Hardware</span></div>
+            <span class="cap">Inline SVG, no external script. #ok2 is a pie, #ok3 two lines, #sumrow has an extra Total bar. All four bodies are empty.</span>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Why checkable</dt><dd>§7.1: <code>format</code> still only selects the renderer, but the whole description is in attributes the processor can read, so column names, the data id and rows are validated against the table at build time. The body stays empty; anything written there is an <code>ignored-diagram-body</code> warning.</dd>
+        <dt>Sources</dt><dd>The three targets have a table's <code>src=</code> shape. A table contributes its model with computed columns, which is why <code>y=FY</code> is legal. A data block must be a non-empty sequence of maps, and every referenced column must be a scalar in every record; unreferenced columns may hold anything. A file is an anonymous table or record source.</dd>
+        <dt>type</dt><dd>The five values only change how the channels are drawn; they never add attributes. For other shapes switch to a hosted DSL, such as <code>format=vega-lite data=#fy</code>, raw body, columns unchecked.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ CHECKS ============ -->
+<section id="checks">
+  <div class="sec-head">
+    <div class="sec-num">Checks</div>
+    <div>
+      <h2>Fifteen checks, in one run</h2>
+      <p class="sub">Eleven errors and four warnings, matching A.4 row for row.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>d2-chart.geml · d3-chart.geml <span class="st st-spec">Specified</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">=== diagram</span> <span class="a">{#e1 format=geml-chart <span class="bad">type=bar x=Segment y=FY</span>}</span>          <span class="arrow">← no data</span>
+<span class="f">=== diagram</span> <span class="a">{#e2 format=geml-chart <span class="bad">data=#n</span> …}</span>                    <span class="arrow">← #n is a note</span>
+<span class="f">=== diagram</span> <span class="a">{#e3 format=geml-chart <span class="bad">data=#badrecs</span> x=seg y=fy}</span>     <span class="arrow">← record 2 lacks fy</span>
+<span class="f">=== diagram</span> <span class="a">{#e4 format=geml-chart data=#fy <span class="bad">x=Segment y=FY</span>}</span>       <span class="arrow">← no type</span>
+<span class="f">=== diagram</span> <span class="a">{#e5 … <span class="bad">type=donut</span> …}</span>
+<span class="f">=== diagram</span> <span class="a">{#e6 … type=bar <span class="bad">x=Segment</span>}</span>                          <span class="arrow">← no y</span>
+<span class="f">=== diagram</span> <span class="a">{#e7 … <span class="bad">y=Nope</span>}</span>
+<span class="f">=== diagram</span> <span class="a">{#w1 … type=bar x=Segment y=FY <span class="hl">size=Q1</span>}</span>             <span class="c">%% bar does not draw size</span>
+<span class="f">=== diagram</span> <span class="a">{#e8 … <span class="bad">rows=everything</span>}</span>
+<span class="f">=== diagram</span> <span class="a">{#w2 … type=bar x=Segment y=FY}</span>
+<span class="hl">this body is ignored</span>
+<span class="f">===</span>
+<span class="f">=== diagram</span> <span class="a">{#e9 … <span class="bad">y=Segment</span>}</span>                                <span class="arrow">← y column is not numeric</span>
+
+<span class="c">%% d3: #plain has no summary=</span>
+<span class="f">=== diagram</span> <span class="a">{#s1 … data=#plain <span class="bad">rows=summary</span>}</span>
+<span class="f">=== diagram</span> <span class="a">{#s2 … data=#plain <span class="hl">rows=all</span>}</span>
+<span class="f">=== diagram</span> <span class="a">{#cg <span class="hl">format=geml-code-graph</span>}</span>                         <span class="c">%% no src</span>
+<span class="f">=== diagram</span> <span class="a">{#vl <span class="hl">format=vega-lite</span> data=#plain}</span>
+{"mark": "bar", "encoding": {"y": {"field": "Nope"}}}    <span class="c">%% columns not checked</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check</span><span class="badge b-err">11 error</span> <span class="badge b-warn">4 warning</span></div>
+<pre class="term"><span class="wn">warning:</span> geml-chart body is ignored; the chart spec lives in attributes (line 45)
+<span class="er">error:</span> geml-chart: missing `data=#id` (line 27)
+<span class="er">error:</span> geml-chart: data target `#n` is not a table (line 29)
+<span class="er">error:</span> geml-chart: column `fy` is missing or non-scalar in record 2 (line 31)
+<span class="er">error:</span> chart: missing `type` (line 33)
+<span class="er">error:</span> chart: unknown type `donut` (supported: bar, line, area, pie,
+  scatter; use format=vega-lite for others) (line 35)
+<span class="er">error:</span> chart: missing required channel `y` (line 37)
+<span class="er">error:</span> chart: column `Nope` not found in table (line 39)
+<span class="wn">warning:</span> chart: `size` is ignored for type `bar` (line 41)
+<span class="er">error:</span> chart: unknown rows scope `everything` (data|all|summary) (line 43)
+<span class="er">error:</span> chart: non-numeric value in a y column (line 48)
+
+<span class="dim">d3-chart.geml</span>
+<span class="wn">warning:</span> geml-code-graph: missing `src=` (nothing to render) (line 12)
+<span class="wn">warning:</span> no registered renderer for diagram format `vega-lite`; body kept raw (line 14)
+<span class="er">error:</span> chart: rows=summary but the table has no summary row (line 8)
+<span class="wn">warning:</span> chart: rows=all but the table has no summary row; using data rows (line 10)</pre>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>error</dt><dd>The chart description itself does not hold together: no data, data not a table, a record missing a column, no type, a type outside the five, a missing required channel, a column that does not exist, rows outside the three, a non-numeric y, a summary row requested where none exists. All decidable at build time, hence errors.</dd>
+        <dt>warning</dt><dd>Drawable but with something extra or missing: a channel the type does not use, rows=all with no summary row (data rows are drawn), a body that was written (ignored). A code-graph without src warns too: nothing to draw, document not wrong.</dd>
+        <dt>vega-lite</dt><dd>The <code>Nope</code> column in the body was not checked, as §7.1 says of hosted DSLs; the warning is that the registry has no renderer for it, not a column error.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ CODE GRAPH ============ -->
+<section id="codegraph">
+  <div class="sec-head">
+    <div class="sec-num">code-graph</div>
+    <div>
+      <h2><code>geml-code-graph</code>: a codemap drawn as a method-flow graph</h2>
+      <p class="sub">GEP-0003, accepted. Interpreted like geml-chart, but at the other extreme: the embed carries <code>src=</code> and nothing else.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>Pointing at the real codemap in the playground <span class="st st-spec">Specified</span> <span class="st st-obs">rendering observed</span><small>The probe ran inside <code>playground/codemap/</code> and was deleted afterwards; that directory holds the index.geml and one document per container that <code>geml codemap build</code> generated.</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · _probe-cg.geml</span></div>
+<pre class="geml"><span class="f">=== diagram</span> <span class="a">{#g <span class="hl">format=geml-code-graph src=index.geml</span> caption="Repo graph"}</span>
+<span class="f">===</span>
+<span class="f">=== diagram</span> <span class="a">{#g2 format=geml-code-graph src=<span class="bad">geml-parser--chart.ts.geml#chart</span>}</span>
+<span class="f">===</span>                                    <span class="c">%% with a fragment: not a target it accepts</span>
+<span class="f">=== diagram</span> <span class="a">{#g3 format=geml-code-graph src=<span class="bad">nowhere.geml</span>}</span>
+<span class="f">===</span>
+<span class="f">=== diagram</span> <span class="a">{#g4 format=geml-code-graph src=index.geml}</span>
+<span class="hl">body here is ignored</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check --root playground/codemap · --to html</span></div>
+<pre class="term"><span class="wn">warning:</span> geml-code-graph: cannot resolve document
+  `geml-parser--chart.ts.geml#chart` (line 7)
+<span class="wn">warning:</span> geml-code-graph: cannot resolve document `nowhere.geml` (line 9)
+<span class="wn">warning:</span> geml-code-graph body is ignored; the embed is configured by
+  `src=` alone (line 11)
+0 error(s), 3 warning(s)   <span class="dim">exit 0</span>
+
+<span class="dim">&lt;figure class="code-graph" id="g"&gt;&lt;div class="cg-mount" data-start="…" data-graph="{…}"&gt;</span>
+<span class="dim">&lt;figure class="code-graph" id="g2"&gt;&lt;p class="render-error"&gt;…</span>
+<span class="dim">&lt;figure class="code-graph" id="g3"&gt;&lt;p class="render-error"&gt;…</span></pre>
+          <div class="render" style="margin-top:12px">
+            <span class="tag">figure.code-graph #g › div.cg-mount · graph data inlined as JSON, laid out at draw time</span>
+            <div class="r-mermaid" style="justify-content:flex-start"><span class="node">index.geml · entry</span><span class="edge">→</span><span class="node">container</span><span class="edge">→</span><span class="node">method</span><span class="edge">⋯ click to drill down</span></div>
+            <span class="cap">Roots and depth come from index.geml's meta; the embed did not write them, and cannot.</span>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>src only</dt><dd>GEP-0003: view configuration travels with the data. The root is the codemap document's <code>entry</code>, the depth its <code>graph-depth</code>; the embed cannot write either, so it cannot drift from the data. A different root means a different container document; method-level detail is a click on a node — interaction, not an attribute.</dd>
+        <dt>vs chart</dt><dd>Two interpreted formats, two philosophies: geml-chart puts the whole description in attributes so the processor can check every column name; geml-code-graph puts the whole description on the data side so the embed is left with one pointer. Both keep the body empty.</dd>
+        <dt>Weights</dt><dd>A missing or unresolvable src is a warning, like a code block's route: nothing to draw, but what the document describes exists somewhere and the document itself is not wrong.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ EVIDENCE ============ -->
+<section id="evidence">
+  <div class="sec-head">
+    <div class="sec-num">Evidence</div>
+    <div>
+      <h2>Probe files and measured output</h2>
+      <p class="sub">All run with the repository's current build, <code>node geml-parser/dist/geml.js</code>, version 1.9.2.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tablewrap">
+      <table class="t">
+        <thead><tr><th>Probe</th><th>Covers</th><th>check result</th><th>Where on this page</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">d1-diagram.geml</td><td>mermaid, graphviz, d2, plantuml, unknown foo, raw not interpolated, caption as link text</td><td><span class="badge b-warn">1 warning</span></td><td>External DSLs</td></tr>
+          <tr><td class="mono">d2-chart.geml · rows.csv</td><td>four working charts; no data, not a table, not a record array, no type, unknown type, missing channel, unknown column, unused channel, unknown rows, non-empty body, non-numeric y</td><td><span class="badge b-err">9 error</span> <span class="badge b-warn">2 warning</span></td><td>geml-chart, Checks</td></tr>
+          <tr><td class="mono">d3-chart.geml</td><td>rows=summary with no summary row, rows=all with none, code-graph without src, vega-lite body unchecked</td><td><span class="badge b-err">1 error</span> <span class="badge b-warn">3 warning</span></td><td>Checks</td></tr>
+          <tr><td class="mono">playground/codemap/_probe-cg.geml</td><td>the real codemap's index, a target with a fragment, a missing document, a non-empty body</td><td><span class="badge b-warn">3 warning</span></td><td>geml-code-graph</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>This page: <code>docs/illustrated/04-diagram.html</code> · 中文 <code>04-diagram_CN.html</code>. Five pages in the series: the simple four · code and data · table and view · diagram · embed.</div>
+</footer>
+</div>

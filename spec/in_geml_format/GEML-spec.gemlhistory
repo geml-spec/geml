@@ -4,12 +4,12 @@
 profile           = "geml-history/v1"
 history-of        = "GEML-spec.geml"
 geml-version      = "1.0"
-current           = "20260904T033117Z-436fefbc"
+current           = "20260904T124549Z-41b1c63d"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== history-keyframe {id="20260904T033117Z-436fefbc" hash="sha256:436fefbcd87d3332fd7ad76bb8a60699e5b52a9b478c5d20e7bff06b8f215756"}
+===== history-keyframe {id="20260904T124549Z-41b1c63d" hash="sha256:41b1c63d1ba3332240f29c92e01fb441cc19e2790c04775525acbe5213a46340"}
 # GEML — General Expressive Markup Language
 
 *English | [中文](../GEML-spec_CN.md)*
@@ -837,7 +837,11 @@ emphasis containing a link, exactly as in CommonMark
 
 ## 6. Tables
 
-Block type `table` accepts two interchangeable bodies, parsed to one model.
+Block type `table` accepts two interchangeable bodies, parsed to one model. A
+table holds **facts**: it derives nothing and borrows nothing. Selecting,
+deriving and aggregating a relation belong to the `view` block (§6.1), which
+takes a table's output — or another view's — and publishes a relation of its
+own.
 
 **(a) Visual form**
 
@@ -850,20 +854,28 @@ Block type `table` accepts two interchangeable bodies, parsed to one model.
 ===
 ====
 
-**(b) Data form** — with computed columns and a summary row:
+**(b) Data form** — delimited text, one row per line:
 
 ==== code {#code-4}
-=== table {#fy25 caption="FY2025 revenue by segment ($M)" format=csv header=1 \
-           compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4; \
-                    YoY [%.1f%%] = (FY - PriorFY) * 100 / PriorFY" \
-           summary="Segment = 'Total'; \
-                    Q1 = sum(Q1); Q2 = sum(Q2); Q3 = sum(Q3); Q4 = sum(Q4); \
-                    PriorFY = sum(PriorFY); FY = sum(FY); \
-                    YoY [%.1f%%] = (sum(FY) - sum(PriorFY)) * 100 / sum(PriorFY)"}
+=== table {#fy25 caption="FY2025 revenue by segment ($M)" format=csv header=1}
 Segment,   Q1,    Q2,    Q3,    Q4,    PriorFY
 Cloud,     124.5, 131.2, 142.8, 158.3, 470.0
 Hardware,  88.1,  84.6,  90.3,  95.7,  372.0
 Services,  45.2,  47.8,  49.1,  52.6,  168.0
+===
+====
+
+The derived columns and the total those numbers ask for are a `view`'s, over
+this table:
+
+==== code {#code-4-view}
+=== view {#fy25-report src=#fy25 \
+          compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4; \
+                   YoY [%.1f%%] = (FY - PriorFY) * 100 / PriorFY" \
+          summary="Segment = 'Total'; \
+                   Q1 = sum(Q1); Q2 = sum(Q2); Q3 = sum(Q3); Q4 = sum(Q4); \
+                   PriorFY = sum(PriorFY); FY = sum(FY); \
+                   YoY [%.1f%%] = (sum(FY) - sum(PriorFY)) * 100 / sum(PriorFY)"}
 ===
 ====
 
@@ -896,15 +908,23 @@ fences and all — is a paragraph.* The example resolves to:
   data comes from. For a `table` block that is the `src=` attribute (a `diagram`
   spells the same idea `data=`; see Appendix B.3), and it takes one of three
   targets: a data file with `format=csv`/`tsv` (a path relative to the document,
-  or an `http(s)` URL); `#id`, naming a table block in this document; or
-  `doc.geml#id`, naming one in another document. A local-path or cross-document target MUST be resolved and
-  existence-checked at build time — an unresolvable one is an error, and a target
-  that exists but is not a table is an error. Only the `src` text — never
+  or an `http(s)` URL). A `src=` that names a **block** — `#id`, or
+  `doc.geml#id` — is an **error** naming `view` (§6.1): a block's output is
+  something another block derived, and a table holding facts someone else
+  derived would be neither. A local-path target MUST be resolved and
+  existence-checked at build time — an unresolvable one is an error. Only the `src` text — never
   the resolved contents — enters the `.gemlhistory` hash. A table MUST NOT carry
   both `src` and an inline body (an error). Because the data arrives at render
   time, the column names used by `compute` and by a referencing `geml-chart` are
   validated then, not at build time. Inlining stays the default; `src` is an
   explicit choice.
+
+The four rules that follow — computed columns, results a cell cannot hold, the
+summary row, and the display format — define the **grammar** `compute=` and
+`summary=` take. Those two attributes are a `view`'s (§6.1), not a table's; the
+grammar is defined here because it is the same grammar wherever a relation is
+derived, and a `table` that carries either attribute is an `unknown-attribute`
+warning like any other misplaced key (§8.2).
 
 - **Computed columns** — `compute` lists one or more `Name = expr` formulas
   separated by `;`. Each `expr` is evaluated once per data row over `+ - * / ( )`
@@ -949,6 +969,77 @@ fences and all — is a paragraph.* The example resolves to:
   relative-row references (`@-1`), conditionals, cross-table `remote()`
   references, lookup/VLOOKUP, and any embedded program (no Lisp, no JS).
 
+### 6.1 The `view` block {#61-the-view-block}
+
+A `view` publishes a relation **derived** from another one. It takes **no body**
+— a body alongside `src=` is an error — and a **required `src=`** naming a data
+file (`rows.csv`), a block in this document (`#tickets`), or a block in another
+(`other.geml#tickets`). A `src=` that resolves to a block which is neither a
+`table` nor a `view` is an error: it publishes no relation to derive from.
+
+- **Selection.** `where="<expr>"` keeps rows; `order="<key>[ asc|desc][, …]"`
+  sorts, `asc` being the default; `limit=<n>` takes the first *n* after
+  ordering; `select="<column>[, …]"` narrows AND reorders the columns, taking
+  names only — an `=` inside it is an error naming `compute=`.
+- **Derivation.** `compute=` and `summary=` take the grammar §6 defines.
+- **Aggregation.** `by="<column>[, …]"` groups; `aggregate="<name> =
+  <fn>(<column>)[; …]"` names the group's columns in `summary=`'s grammar and
+  with its aggregates. `by=` with no `aggregate=` is the **distinct** set of
+  those keys, and groups appear in first-seen order. `aggregate=` with no `by=`
+  is an error: one aggregate row over every row is `summary=`. On a grouping
+  view `compute=` is per **input** row, so an aggregate formula there is an
+  error naming `aggregate=`.
+- **The `where=` expression** compares a column against a number or a
+  single-quoted string with `= != < <= > >=`, combined with `not`, `and`, `or`
+  (in that precedence) and parentheses. A column name may be single-quoted when
+  it carries spaces. A cell that is not a number never matches a numeric
+  comparison, which is data rather than a diagnostic — but a numeric comparison
+  against a column holding **no** numeric value at all is an error, because the
+  filter could only ever match nothing.
+
+**Evaluation order** is SQL's logical processing order:
+
+> `src` loads → `compute`'s per-row formulas → `where` filters →
+> `compute`'s aggregate formulas → `by`/`aggregate` folds → `order` sorts →
+> `limit` truncates → `select` narrows → `summary` aggregates.
+
+`compute=` therefore runs in **two passes**, and `where=` MAY name a column a
+per-row formula produces. It MUST NOT name one an **aggregate** formula
+produces: that value depends on which rows the filter keeps, so the filter would
+decide its own input, and the error names the formula rather than the reference.
+The reward is that `sum(FY)` means one thing — over the rows shown — in both
+`compute=` and `summary=`. `select=` running after `order=` and `limit=` is what
+lets those name a column the view does not show, without a second scope rule;
+`summary=` running last makes the report row a total of what the reader sees,
+and it MUST target a column that survived `select=`.
+
+**Ordering is deterministic across processors.** Each key's kind is decided once
+over the whole column: numeric when every cell of it holds a number, text
+otherwise. Text compares by **UTF-16 code unit** — never by a locale collation,
+which would make a row order depend on the machine. The sort is **stable**: ties
+keep source order, which is what makes `limit=` reproducible.
+
+**What a view sees.** A `src=` naming a block takes that block's **tuples
+together with the columns it computes** — derivation is encapsulated, so a
+consumer depends on column names rather than on how they were produced. The
+source's `summary=` row does **not** cross: `compute=` extends each tuple and
+leaves a relation, while an aggregate row is a different relation stacked
+underneath. A `compute=` that defines a column the source already publishes is
+legal and earns a `shadowed-source-column` warning; the source's column is then
+unreachable in this block.
+
+**Chaining terminates.** A view MAY be another view's `src=`, which is how
+filtering groups (SQL's `HAVING`), a re-sort or a second projection are spelled.
+A `src=` chain that returns to where it started is an error naming every view in
+the cycle, and the depth of a legal chain is bounded exactly as a nested
+`embed`'s is (§9.3).
+
+**No rows matched is not an error.** A view whose filter keeps nothing renders
+its header and an empty body; the unknown-column error is what catches the typo
+that would otherwise empty it silently. A view has no bytes of its own, so a
+coordinate (§5.2) **reads** its cells and can never write one — the write is
+refused, naming the source relation.
+
 
 ## 7. Graphics
 
@@ -992,7 +1083,7 @@ selects the renderer; the chart is described entirely in **attributes**, so the
 processor validates it (the body stays empty — a non-empty body is a warning):
 
 ==== code {#code-6}
-=== diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=FY caption="FY revenue"}
+=== diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=Q1 caption="Q1 revenue"}
 ===
 ====
 
@@ -1444,6 +1535,7 @@ GEML has three syntactic positions:
 | `=== code` | typed | raw | §3 |
 | `=== math` | typed | raw | §3 |
 | `=== table` | typed | raw: pipe grid or `format=` data | §6 |
+| `=== view` | typed | no body; `src=` names the relation it derives from | §6.1 |
 | `=== data` | typed | raw: `format=` value tree (`json` default, `jsonl`; `yaml`/`toml` reserved) | §3.2 |
 | `=== diagram` | typed | raw: external DSL | §7 |
 | `=== embed` | typed | raw (body unused); `src=` names the content | §3, §6 |
@@ -1475,7 +1567,7 @@ single-line construct recognized during block parsing.
 
 ### B.3 Attribute position
 
-Seven attribute keys carry references; all of them are validated (Appendix A):
+Eight attribute keys carry references; all of them are validated (Appendix A):
 
 === table {#table-12}
 | Key | Host block | Target | Defined in |
@@ -1529,6 +1621,154 @@ for a block or a section, the three granularities are a scalar, a phrase, and
 a block.
 
 =====
+
+=== history-revision {id="20260904T124549Z-41b1c63d" parent="20260904T124504Z-7ec9164c" summary="auto: Edit" hash="sha256:41b1c63d1ba3332240f29c92e01fb441cc19e2790c04775525acbe5213a46340" newline="crlf"}
+delete @3f948c6c
+delete @5985056d
+delete @557ac9a8
+delete @63b107bf
+delete @b9592da9
+delete @29c046cd
+delete @b9dec734
+delete @ad6e64da
+delete @cf9ca147
+delete @81d9f469
+replace @9b7b0d61 <- blob:b237
+===
+
+=== history-blob {#b237 lang=geml}
+  The split is defined on the left side of a formula, and only there: a format is
+  the LAST `[…]` group of the left side, it MUST end the left side (trailing
+  whitespace aside), it MUST NOT contain `]`, and it MUST contain a `%`. Everything
+  before it, trimmed, is the column name. The `%` test is what lets a column name
+  be bracketed: in `[Data] = A + B` nothing matches, so the column is named
+  `[Data]`; in `[Data] [%.1f] = A + B` the format is `%.1f` and the column is
+  still `[Data]`.
+- **Excluded by design**, to keep tables a document feature rather than a
+  spreadsheet engine: single-cell and range addressing (`@3$4`, `@2$1..@4$3`),
+  relative-row references (`@-1`), conditionals, cross-table `remote()`
+  references, lookup/VLOOKUP, and any embedded program (no Lisp, no JS).
+
+
+===
+
+=== history-revision {id="20260904T124504Z-7ec9164c" parent="20260904T124452Z-f000474d" summary="auto: Edit" hash="sha256:7ec9164c76bd763918ec25eccfe992876142d89bf26376f733d663e123f763f8" newline="crlf"}
+delete @b119e7b3
+===
+
+=== history-revision {id="20260904T124452Z-f000474d" parent="20260904T124429Z-a49e8f7d" summary="auto: Edit" hash="sha256:f000474d8fb190d17b5e5fb3290f2474f51dbd2497c67ae95a313efdeae1e67e" newline="crlf"}
+delete @eb32ff90
+delete @9bf9b765
+replace #code-6 <- blob:b234
+insert <- blob:b235 after #table-5
+insert <- blob:b236 after @191c6b14
+===
+
+===== history-blob {#b234 lang=geml}
+==== code {#code-6}
+=== diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=FY caption="FY revenue"}
+===
+====
+
+=====
+
+=== history-blob {#b235 lang=geml}
+- **Delimiter** — a data body splits on its format's natural delimiter: `,` for
+  `format=csv`, a tab for `format=tsv`. `delim=` overrides it with any single
+  character, so a European `;`-separated CSV or a `|`-delimited export is
+  readable as it stands. The value MUST be exactly one character; anything else is
+  a `bad-table-delimiter` error, and the natural delimiter is used so the rest of
+  the table still reads. Attribute values carry no escape syntax (§4), so a tab
+  delimiter is spelled `format=tsv`, never `delim="\t"`. A data body splits on the
+  delimiter and on nothing else: with `delim="|"` the outer pipes of `| a | b |`
+  are cells of their own — stripping them is the visual form's rule (a), not this
+  one. `delim` refines the data form, it does not select it: on a table with no
+  data `format` it is ignored, with an `ignored-table-delimiter` warning.
+- **Data from elsewhere** — instead of an inline body, a table MAY name where its
+  data comes from. For a `table` block that is the `src=` attribute (a `diagram`
+  spells the same idea `data=`; see Appendix B.3), and it takes one of three
+  targets: a data file with `format=csv`/`tsv` (a path relative to the document,
+  or an `http(s)` URL); `#id`, naming a table block in this document; or
+  `doc.geml#id`, naming one in another document. A local-path or cross-document target MUST be resolved and
+  existence-checked at build time — an unresolvable one is an error, and a target
+  that exists but is not a table is an error. Only the `src` text — never
+  the resolved contents — enters the `.gemlhistory` hash. A table MUST NOT carry
+  both `src` and an inline body (an error). Because the data arrives at render
+  time, the column names used by `compute` and by a referencing `geml-chart` are
+  validated then, not at build time. Inlining stays the default; `src` is an
+  explicit choice.
+
+===
+
+=== history-blob {#b236 lang=geml}
+Seven attribute keys carry references; all of them are validated (Appendix A):
+
+===
+
+=== history-revision {id="20260904T124429Z-a49e8f7d" parent="20260904T124420Z-5cf4f51d" summary="auto: Edit" hash="sha256:a49e8f7d2d3f6c9c6a0f53a361d0742734b7f846bc687ad1a6eff657b6ccff9a" newline="crlf"}
+replace #table-10 <- blob:b233
+===
+
+==== history-blob {#b233 lang=geml}
+=== table {#table-10}
+| Construct | Shape | Body | Defined in |
+|-----------|-------|------|------------|
+| Paragraph | unfenced | inline | §2, §3.1 |
+| Heading `#`…`######` | unfenced | inline | §1(6), §3.1, §4 |
+| List — `-`/`*`, `1.`; task marker `[ ]`/`[x]` | unfenced | inline items | §2.2 |
+| `=== code` | typed | raw | §3 |
+| `=== math` | typed | raw | §3 |
+| `=== table` | typed | raw: pipe grid or `format=` data | §6 |
+| `=== data` | typed | raw: `format=` value tree (`json` default, `jsonl`; `yaml`/`toml` reserved) | §3.2 |
+| `=== diagram` | typed | raw: external DSL | §7 |
+| `=== embed` | typed | raw (body unused); `src=` names the content | §3, §6 |
+| `=== note` | typed | flow | §3 |
+| `=== text` | typed | flow | §3 |
+| `=== meta` | typed | key–value | §3, §4 |
+===
+
+====
+
+=== history-revision {id="20260904T124420Z-5cf4f51d" parent="20260904T124355Z-3fd52672" summary="auto: Edit" hash="sha256:5cf4f51da8aac65767f0508ed2ca66097c7fc460e90a13efcf0a4aa97212372c" newline="crlf"}
+delete @d73caa04
+insert <- blob:b232 after @b7727683
+===
+
+=== history-blob {#b232 lang=geml}
+Block type `table` accepts two interchangeable bodies, parsed to one model.
+
+===
+
+=== history-revision {id="20260904T124355Z-3fd52672" parent="20260904T033117Z-436fefbc" summary="auto: Edit" hash="sha256:3fd526728dcb5c6db5381db9419e14aafaa6be9893c9e1d386805c08175214e8" newline="crlf"}
+delete @a2e336f1
+delete @43a6940b
+delete #code-4-view
+replace #code-4 <- blob:b230
+insert <- blob:b231 after #code-3
+===
+
+===== history-blob {#b230 lang=geml}
+==== code {#code-4}
+=== table {#fy25 caption="FY2025 revenue by segment ($M)" format=csv header=1 \
+           compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4; \
+                    YoY [%.1f%%] = (FY - PriorFY) * 100 / PriorFY" \
+           summary="Segment = 'Total'; \
+                    Q1 = sum(Q1); Q2 = sum(Q2); Q3 = sum(Q3); Q4 = sum(Q4); \
+                    PriorFY = sum(PriorFY); FY = sum(FY); \
+                    YoY [%.1f%%] = (sum(FY) - sum(PriorFY)) * 100 / sum(PriorFY)"}
+Segment,   Q1,    Q2,    Q3,    Q4,    PriorFY
+Cloud,     124.5, 131.2, 142.8, 158.3, 470.0
+Hardware,  88.1,  84.6,  90.3,  95.7,  372.0
+Services,  45.2,  47.8,  49.1,  52.6,  168.0
+===
+====
+
+=====
+
+=== history-blob {#b231 lang=geml}
+**(b) Data form** — with computed columns and a summary row:
+
+===
 
 === history-revision {id="20260904T033117Z-436fefbc" parent="20260904T030614Z-7ab50a11" summary="src= admits .yaml/.yml" hash="sha256:436fefbcd87d3332fd7ad76bb8a60699e5b52a9b478c5d20e7bff06b8f215756" newline="lf"}
 delete @eaf0c6c7

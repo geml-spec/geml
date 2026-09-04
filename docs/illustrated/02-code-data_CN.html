@@ -1,0 +1,366 @@
+<title>GEML 块图解 · code 与 data</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Serif:ital@1&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --bg: #F4F6F9; --surface: #FFFFFF; --surface-2: #EBEFF4;
+    --ink: #1B2430; --ink-2: #47535F; --ink-3: #7B8794;
+    --line: #D5DCE4; --line-2: #C3CCD6;
+    --accent: #1F6F8B; --accent-soft: #DCEDF3;
+    --amber: #9A5F0A; --amber-soft: #FAEED3;
+    --red: #B0403B; --red-soft: #F8E2E0;
+    --green: #2E7A50; --green-soft: #DDF0E4;
+    --on-solid: #FFFFFF;
+    --shadow: 0 1px 2px rgba(27, 36, 48, .06), 0 6px 18px rgba(27, 36, 48, .05);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11161C; --surface: #191F27; --surface-2: #202832;
+      --ink: #E6EBF0; --ink-2: #B3BDC8; --ink-3: #7F8B98;
+      --line: #2C3642; --line-2: #3A4552;
+      --accent: #63B5D1; --accent-soft: #14323D;
+      --amber: #E2AC45; --amber-soft: #382B10;
+      --red: #E27F79; --red-soft: #3E1F1E;
+      --green: #6CC08E; --green-soft: #173124;
+      --on-solid: #0F141A;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11161C; --surface: #191F27; --surface-2: #202832;
+    --ink: #E6EBF0; --ink-2: #B3BDC8; --ink-3: #7F8B98;
+    --line: #2C3642; --line-2: #3A4552;
+    --accent: #63B5D1; --accent-soft: #14323D;
+    --amber: #E2AC45; --amber-soft: #382B10;
+    --red: #E27F79; --red-soft: #3E1F1E;
+    --green: #6CC08E; --green-soft: #173124;
+    --on-solid: #0F141A;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.7 "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 48px 28px 96px; }
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+  p { margin: 0; }
+  a { color: var(--accent); }
+  code, pre, .mono { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; }
+  code { font-size: .92em; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; }
+  .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  header h1 { font-size: 34px; line-height: 1.2; font-weight: 600; margin-top: 10px; letter-spacing: -.01em; }
+  header .lede { max-width: 66ch; color: var(--ink-2); margin-top: 16px; font-size: 16px; }
+  .toc { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 22px; font-size: 14px; }
+  .toc a { text-decoration: none; border-bottom: 1px solid var(--line-2); padding-bottom: 1px; }
+  .toc a:hover, .toc a:focus-visible { border-color: var(--accent); }
+  section { margin-top: 72px; }
+  .sec-head { display: grid; grid-template-columns: 64px 1fr; gap: 16px; align-items: baseline; border-top: 1px solid var(--line-2); padding-top: 22px; }
+  .sec-num { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; padding-top: 6px; }
+  .sec-head h2 { font-size: 24px; font-weight: 600; letter-spacing: -.005em; }
+  .sec-head .sub { color: var(--ink-2); margin-top: 6px; max-width: 70ch; }
+  .sec-body { margin-left: 80px; margin-top: 28px; display: grid; gap: 40px; }
+  @media (max-width: 860px) { .sec-head { grid-template-columns: 1fr; gap: 6px; } .sec-body { margin-left: 0; } }
+
+  .st { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; letter-spacing: .04em; padding: 2px 8px; border-radius: 3px; font-weight: 600; white-space: nowrap; color: var(--on-solid); vertical-align: middle; }
+  .st-spec { background: var(--green); }
+  .st-gap { background: var(--red); }
+  .st-gep { background: var(--accent); }
+  .st-obs { background: var(--ink-3); }
+
+  .board { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); }
+  table.b { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.b th, table.b td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.b tr:last-child td { border-bottom: 0; }
+  table.b th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.b td.n { color: var(--ink-3); font-variant-numeric: tabular-nums; width: 32px; }
+  table.b td.src { color: var(--ink-3); white-space: nowrap; font-size: 13px; }
+  table.b tr.grp td { background: var(--surface-2); font-weight: 600; font-size: 13px; letter-spacing: .04em; color: var(--ink-2); }
+  .tally { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-bottom: 14px; font-size: 14px; color: var(--ink-2); align-items: center; }
+  .tally b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  figure { margin: 0; display: grid; gap: 18px; }
+  figure > figcaption { font-size: 17px; font-weight: 600; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+  figure > figcaption small { flex-basis: 100%; font-size: 14px; font-weight: 400; color: var(--ink-2); }
+  .panes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 980px) { .panes { grid-template-columns: 1fr; } .sec-body { margin-left: 0; } }
+  .pane-h { display: flex; justify-content: space-between; align-items: center; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; margin-bottom: 8px; }
+  pre.geml { margin: 0; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; font-size: 13px; line-height: 1.6; overflow-x: auto; color: var(--ink); }
+  pre.geml .f { color: var(--accent); font-weight: 500; }
+  pre.geml .a { color: var(--ink-2); }
+  pre.geml .c { color: var(--ink-3); font-style: italic; }
+  pre.geml .hl { background: var(--amber-soft); color: var(--amber); border-radius: 2px; padding: 0 2px; }
+  pre.geml .bad { background: var(--red-soft); color: var(--red); border-radius: 2px; padding: 0 2px; }
+  pre.geml .arrow { color: var(--red); font-family: "IBM Plex Sans", "Noto Sans SC", sans-serif; font-style: normal; }
+  .term { background: var(--ink); color: #E6EBF0; border-radius: 6px; padding: 12px 14px; font-size: 12.5px; line-height: 1.6; overflow-x: auto; margin: 0; }
+  :root[data-theme="dark"] .term { background: #0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .term { background: #0B0F14; } }
+  .term .ok { color: #7ED4A0; } .term .er { color: #F09A94; } .term .wn { color: #F0C060; } .term .dim { color: #8A96A3; } .term .cmd { color: #9CC7FF; }
+
+  /* rendered-output mocks */
+  .render { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px; box-shadow: var(--shadow); display: grid; gap: 14px; font-size: 14.5px; }
+  .render p { max-width: 62ch; }
+  .tag { display: inline-flex; align-items: center; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; padding: 1px 6px; border-radius: 3px; background: var(--surface-2); color: var(--ink-3); font-weight: 500; font-family: "IBM Plex Mono", monospace; }
+  .r-code { position: relative; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; font-family: "IBM Plex Mono", monospace; font-size: 13px; line-height: 1.6; white-space: pre; overflow-x: auto; }
+  .r-code .tag { position: absolute; top: 8px; right: 10px; }
+  .r-math { text-align: center; font-family: "IBM Plex Serif", Georgia, serif; font-style: italic; font-size: 20px; padding: 14px 0; border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line); }
+  .r-callout { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 0 6px 6px 0; display: grid; gap: 8px; }
+  .r-callout.warning { border-left-color: var(--amber); background: var(--amber-soft); }
+  .r-text { border: 1px dashed var(--line-2); border-radius: 6px; padding: 10px 14px; display: grid; gap: 8px; }
+  .r-hidden { border: 1px dashed var(--line-2); border-radius: 6px; padding: 10px 14px; color: var(--ink-3); font-size: 13px; }
+  .r-figure { border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; display: grid; gap: 6px; }
+  .r-titlebar { background: var(--ink); color: #E6EBF0; border-radius: 6px 6px 0 0; padding: 8px 14px; font-size: 13px; display: flex; gap: 10px; align-items: center; }
+  :root[data-theme="dark"] .r-titlebar { background: #0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .r-titlebar { background: #0B0F14; } }
+  .r-titlebar .dot { width: 9px; height: 9px; border-radius: 50%; background: #8A96A3; }
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; font-weight: 500; white-space: nowrap; }
+  .b-err { background: var(--red-soft); color: var(--red); }
+  .b-warn { background: var(--amber-soft); color: var(--amber); }
+  .b-ok { background: var(--green-soft); color: var(--green); }
+  .b-mute { background: var(--surface-2); color: var(--ink-3); }
+
+  .decision { display: grid; grid-template-columns: 72px 1fr; gap: 6px 16px; font-size: 14.5px; border-top: 1px dashed var(--line-2); padding-top: 14px; }
+  .decision dt { color: var(--ink-3); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; font-weight: 500; padding-top: 4px; }
+  .decision dd { margin: 0; color: var(--ink); }
+  .decision dd.amber { color: var(--amber); }
+  .decision dd.red { color: var(--red); }
+
+  table.t { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.t th, table.t td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.t tr:last-child td { border-bottom: 0; }
+  table.t th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.t td.mono { font-size: 13px; }
+  .tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+  footer { margin-top: 80px; border-top: 1px solid var(--line-2); padding-top: 18px; font-size: 13.5px; color: var(--ink-3); display: grid; gap: 6px; }
+  footer code { background: transparent; padding: 0; color: var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">GEML 块类型图解 · 第 2 页 / 5 · 规范 1.0 · 实测 geml 1.9.2 本地构建</div>
+  <h1>GEML 块图解 · code 与 data</h1>
+  <p class="lede">这一页是 <code>code</code> 和 <code>data</code>。两者放一起，因为它们是一对镜像：<code>code</code> 装处理器<strong>永不解释</strong>的文本，<code>data</code> 装<strong>必须解析通过</strong>的值；两者共用一套 <code>src=</code> 路由语法，却对「解析不到」给出相反的轻重。每条规则标出处，右边是 <code>geml check</code>、<code>geml get</code> 和 <code>--to html</code> 的实测输出。</p>
+  <nav class="toc">
+    <a href="#board">看板</a>
+    <a href="#code">code</a>
+    <a href="#data">data</a>
+    <a href="#evidence">依据</a>
+  </nav>
+</header>
+
+<!-- ============ BOARD ============ -->
+<section id="board">
+  <div class="sec-head">
+    <div class="sec-num">看板</div>
+    <div>
+      <h2>9 条规则，各自的出处和状态</h2>
+      <p class="sub"><span class="st st-spec">规范已定</span> 规范正文写死的。<span class="st st-gep">GEP 草案</span> 提案定义、本分支已实现但规范未收。<span class="st st-gap">实现偏差</span> 规范这样说，1.9.2 不这样做。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div>
+      <div class="tally">
+        <span><span class="st st-spec">规范已定</span> <b>8</b></span>
+        <span><span class="st st-gep">GEP 草案</span> <b>1</b></span>
+        <span><span class="st st-gap">实现偏差</span> <b>0</b></span>
+      </div>
+      <div class="board">
+        <table class="b">
+          <thead><tr><th></th><th>规则</th><th>出处</th><th>状态</th></tr></thead>
+          <tbody><tr class="grp"><td></td><td colspan="3">两者共用</td></tr><tr><td class="n">1</td><td>一套路由语法：<code>src=&lt;path&gt;[#L&lt;start&gt;[-&lt;end&gt;]]</code>，1 起始、闭区间；相对文档解析，给了 <code>--root</code> 也可相对根；<code>http(s)</code> 由渲染器取，其它 scheme 拒绝。</td><td class="src">§3.3 · §9.4</td><td><span class="st st-spec">规范已定</span></td></tr>
+<tr><td class="n">2</td><td>同一个属性两种轻重：<code>code</code> 的 src 解析不到是 <strong>warning</strong>（块描述的是某处的一段代码，源码不在手边文档仍成立）；<code>data</code> 的 src 解析不到是 <strong>error</strong>（值就是文档承诺的内容）。范围漂移两者都是 error。</td><td class="src">§3.3 · §3.2</td><td><span class="st st-spec">规范已定</span></td></tr>
+<tr><td class="n">3</td><td><code>code</code> 与 <code>data</code> 都不许 src 与正文同在（<code>code-src-and-body</code>、<code>data-src-and-body</code> error）。code 的路由不看后缀，data 的必须是 <code>.json</code>/<code>.jsonl</code>。</td><td class="src">§3.3 · §3.2 · A.5</td><td><span class="st st-spec">规范已定</span></td></tr><tr class="grp"><td></td><td colspan="3">code</td></tr>
+            <tr><td class="n">4</td><td>raw 体，<code>lang=</code> 只是标签；正文永不执行。渲染为 <code>&lt;pre&gt;&lt;code class="language-xx"&gt;</code>。</td><td class="src">§3 · §9.1</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">5</td><td><code>src=&lt;path&gt;[#L&lt;s&gt;[-&lt;e&gt;]]</code> 引用源码。src 与正文同在 error；范围漂移 error；解析不到 warning（图仍有效）；非法 scheme error。</td><td class="src">§3.3 · A.5</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">data</td></tr>
+            <tr><td class="n">6</td><td>值树（JSON 值域）。<code>json</code> 默认，<code>jsonl</code> 每行一值、空行忽略。解析失败是 <code>data-parse</code> error，指出行号。</td><td class="src">§3.2 · A.5</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">7</td><td><code>yaml</code>/<code>toml</code> 是保留名：无引擎时正文保留、给 warning、<strong>不猜</strong>。未知 format 同样降级。<code>csv</code> 不是 data 格式。</td><td class="src">§3.2</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">8</td><td><code>src=</code> 与正文互斥 error；文件须 <code>.json</code>/<code>.jsonl</code>；<code>schema=</code> 保留，形状不对 error，不做校验。</td><td class="src">§3.2 · A.5</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">9</td><td><code>#cfg["tags"][1]</code>、<code>#log[1]["t"]</code> 按坐标读值树里的一个节点。</td><td class="src">GEP-0011</td><td><span class="st st-gep">GEP 草案</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CODE ============ -->
+<section id="code">
+  <div class="sec-head">
+    <div class="sec-num">code</div>
+    <div>
+      <h2><code>code</code>：原文，或者一段源码的路由</h2>
+      <p class="sub">正文是文本，永不执行（§9.1）。可以不抄代码，用 <code>src=</code> 指向文件和行号，drift 会被抓住。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>内联正文与四种 <code>src=</code> 结局 <span class="st st-spec">规范已定</span><small>helper.js 只有 3 行。</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · p3-code.geml</span></div>
+<pre class="geml"><span class="f">=== code</span> <span class="a">{#inline lang=ts caption="Inline body"}</span>
+export const x = 1;
+<span class="f">===</span>
+<span class="f">=== code</span> <span class="a">{#routed lang=js <span class="hl">src=helper.js#L1-2</span>}</span>
+<span class="f">===</span>
+<span class="f">=== code</span> <span class="a">{#both lang=js <span class="bad">src=helper.js</span>}</span>
+<span class="bad">body and src together</span>
+<span class="f">===</span>
+<span class="f">=== code</span> <span class="a">{#drift lang=js <span class="bad">src=helper.js#L40-50</span>}</span>
+<span class="f">===</span>
+<span class="f">=== code</span> <span class="a">{#missing lang=js <span class="hl">src=nowhere.js</span>}</span>
+<span class="f">===</span>
+<span class="f">=== code</span> <span class="a">{#scheme lang=js <span class="bad">src=ftp://x/y.js</span>}</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check · --to html</span></div>
+<pre class="term"><span class="er">error:</span> code: carries both `src=` and an inline body; exactly one
+  is permitted (line 11)
+<span class="er">error:</span> code source `helper.js#L40-50`: the file has 3 line(s), so
+  lines 40-50 no longer exist — the range is stale (line 14)
+<span class="wn">warning:</span> cannot resolve code source `nowhere.js` — not checked (line 16)
+<span class="er">error:</span> code source `ftp://x/y.js` names a disallowed URL scheme (line 18)
+3 error(s), 1 warning(s)</pre>
+          <div class="render" style="margin-top:12px">
+            <div class="r-code"><span class="tag">ts · #inline</span>export const x = 1;</div>
+            <div class="r-code"><span class="tag">js · #routed ← helper.js#L1-2</span>export const a = 1;
+export const b = 2;</div>
+            <div class="r-code" style="color:var(--ink-3)"><span class="tag">js · #drift</span>（空：范围漂移，内容不取）</div>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>路由</dt><dd>§3.3：<code>&lt;path&gt;[#L&lt;start&gt;[-&lt;end&gt;]]</code>，1 起始、闭区间。相对文档解析，给了 <code>--root</code> 也可相对根解析，都不出 §9.4 的围栏。</dd>
+        <dt>轻重</dt><dd>解析不到只是 <strong>warning</strong>：代码块描述的是「某处的一段代码」，源码不在手边（发布出去的代码图、另一个 checkout）文档仍然成立，只是没检查。范围漂移是 <strong>error</strong>：检查路由就是为了抓这个。src 与正文同在、非法 scheme 都是 error。</dd>
+        <dt>对比</dt><dd><code>data</code> 的 <code>src=</code> 解析不到是 error（§3.2）：它的值就是文档承诺的内容，取不到就是承诺落空。两个类型对同一个属性的轻重相反，各有理由。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ DATA ============ -->
+<section id="data">
+  <div class="sec-head">
+    <div class="sec-num">data</div>
+    <div>
+      <h2><code>data</code>：被验证的值树</h2>
+      <p class="sub">GEP-0005 加进来的。<code>code</code> 装的是不许解释的文本，<code>data</code> 装的是必须解析通过的值。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+
+    <figure>
+      <figcaption>json 默认、jsonl 逐行，坐标读一个节点 <span class="st st-spec">规范已定</span> <span class="st st-gep">坐标 GEP-0011</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · p5-data.geml 节选</span></div>
+<pre class="geml"><span class="f">=== data</span> <span class="a">{#cfg}</span>                       <span class="c">%% format 缺省 = json</span>
+{"name": "geml", "tags": ["a", "b"], "n": 3}
+<span class="f">===</span>
+<span class="f">=== data</span> <span class="a">{#log <span class="hl">format=jsonl</span>}</span>
+{"t": 1, "ok": true}
+
+{"t": 2, "ok": false}                  <span class="c">%% 空行忽略；末尾追加一块就是一条新记录</span>
+<span class="f">===</span>
+<span class="f">=== data</span> <span class="a">{#ext <span class="hl">src=rows.json</span>}</span>          <span class="c">%% 内容在文件里，块是它的可寻址视图</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml get · --to html</span></div>
+<pre class="term"><span class="cmd">$ geml get p5-data.geml '#cfg["tags"][1]'</span>
+b
+<span class="cmd">$ geml get p5-data.geml '#log[1]["t"]'</span>
+2</pre>
+          <div class="render" style="margin-top:12px">
+            <div class="r-figure"><span class="tag">figure #cfg › pre.data-src data-format="json"</span><div class="r-code">{"name": "geml", "tags": ["a", "b"], "n": 3}</div></div>
+            <div class="r-figure"><span class="tag">figure #ext · 文件内容已装入</span><div class="r-code">[
+  {"id": 1, "v": 10},
+  {"id": 2, "v": 20}
+]</div></div>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>模型</dt><dd>§3.2：正文扫描时是 raw（围栏只管分界），随后格式引擎把它解析成块的 <code>value</code>，暴露在文档模型里。默认 json，因为它是值树自己的序列化，零依赖处理器一定能验。</dd>
+        <dt>jsonl</dt><dd>记录流：文档是块的平面序列，所以文件尾追加一个完整 data 块永远是合法续写。这是 jsonl 的盲追加体验加上 id、验证和图表绑定。</dd>
+        <dt>坐标</dt><dd>GEP-0011：无名内部单元用方括号坐标寻址，<code>[</code> 不能出现在合法 id 里所以不会混淆。<code>geml list</code> 不枚举坐标，由作者构造。本分支已实现，规范正文未收。</dd>
+      </dl>
+    </figure>
+
+    <figure>
+      <figcaption>五种不通过的情形 <span class="st st-spec">规范已定</span><small>三个 error 三个 warning，边界正好是「值能不能被验证」。</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · p5-data.geml 节选</span></div>
+<pre class="geml"><span class="f">=== data</span> <span class="a">{#bad}</span>
+<span class="bad">{"name": "geml",</span>                       <span class="arrow">← 不是一个完整 JSON 值</span>
+<span class="f">===</span>
+<span class="f">=== data</span> <span class="a">{#y <span class="hl">format=yaml</span>}</span>          <span class="c">%% 保留名</span>
+name: geml
+<span class="f">===</span>
+<span class="f">=== data</span> <span class="a">{#both <span class="bad">src=rows.json</span>}</span>
+<span class="bad">{"x": 1}</span>                               <span class="arrow">← src 与正文同在</span>
+<span class="f">===</span>
+<span class="f">=== data</span> <span class="a">{#sch <span class="bad">schema=not-a-ref</span>}</span>
+{"x": 1}
+<span class="f">===</span>
+<span class="f">=== data</span> <span class="a">{#csvish <span class="hl">format=csv</span>}</span>
+a,b
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check</span></div>
+<pre class="term"><span class="er">error:</span> data: body is not valid JSON (Expected double-quoted
+  property name in JSON at position 16 (line 1 column 17)) (line 14)
+<span class="wn">warning:</span> data: no `yaml` engine in this processor; body kept raw,
+  not verified (line 16)
+<span class="wn">warning:</span> data: no `toml` engine in this processor; body kept raw,
+  not verified (line 20)
+<span class="er">error:</span> data: carries both `src=` and an inline body; exactly one is
+  permitted (the body wins here) (line 25)
+<span class="er">error:</span> data: `schema=not-a-ref` must name a block (`#id`) or a GEML
+  document (`doc.geml[#id]`) (line 28)
+<span class="wn">warning:</span> unknown data format `weird`; body kept raw (line 31)
+<span class="wn">warning:</span> unknown data format `csv`; body kept raw (line 34)
+3 error(s), 4 warning(s)</pre>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>error</dt><dd>解析失败、src 与正文同在、schema 形状不对：这三样都是文档自己说错了话。<code>data-parse</code> 指出行号。</dd>
+        <dt>warning</dt><dd><code>yaml</code>/<code>toml</code> 是保留名，无引擎时保留正文、不验证、<strong>不猜</strong>，与未知 diagram format 同一套降级（§7）。未知 format 同理。<code>csv</code> 不是 data 格式：它不自描述（分隔符、表头、引号都是参数），只对列模型有意义，所以是 <code>table</code> 的格式（§6）。</dd>
+        <dt>本构建</dt><dd class="amber">本分支最近提交里有 yaml 引擎，但这次构建仍报「no yaml engine」，可能未接线。这里只记录观察，不下结论。</dd>
+      </dl>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============ EVIDENCE ============ -->
+<section id="evidence">
+  <div class="sec-head">
+    <div class="sec-num">依据</div>
+    <div>
+      <h2>探针文件与实测输出</h2>
+      <p class="sub">全部用仓库内当前构建 <code>node geml-parser/dist/geml.js</code> 跑出，版本 1.9.2。探针文件在会话临时目录，内容已完整贴在上面各图左侧。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tablewrap">
+      <table class="t">
+        <thead><tr><th>探针</th><th>覆盖</th><th>check 结果</th><th>页面里对应</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">p3-code.geml · helper.js</td><td>内联、路由、src+正文、范围漂移、解析不到、非法 scheme</td><td><span class="badge b-err">3 error</span> <span class="badge b-warn">1 warning</span></td><td>code</td></tr>
+          <tr><td class="mono">p5-data.geml · rows.json</td><td>json、jsonl、src、坏 JSON、yaml、toml、src+正文、schema、未知 format、csv、坐标</td><td><span class="badge b-err">3 error</span> <span class="badge b-warn">4 warning</span></td><td>data</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>本页：<code>docs/illustrated/02-code-data.html</code>。系列共五页：简单四型 · code 与 data · table 与 view · diagram 与 embed。</div>
+</footer>
+</div>

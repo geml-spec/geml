@@ -156,7 +156,7 @@ geml get <skill-base>/references/authoring.geml '#tables'
 | section | covers |
 |---|---|
 | `#typed-block` | block anatomy, attribute object, examples of every registered type |
-| `#tables` | pipe/CSV bodies, `compute=`, `summary=`, printf display, `span=` merges |
+| `#tables` | pipe/CSV bodies of FACTS, `delim=`, printf display — and the `view` that derives over one: `compute=`, `summary=`, `where=`, `order=`, `limit=`, `select=`, `by=`/`aggregate=` |
 | `#charts` | `geml-chart` diagrams bound to a table via `data=#id` |
 | `#data` | the `data` block — value tree, `json`/`jsonl` formats, blind append, chart binding |
 | `#inline` | inline markup, links/refs/footnotes, task lists, media embeds |

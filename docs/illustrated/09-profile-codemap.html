@@ -1,0 +1,323 @@
+<title>GEML Illustrated · geml-codemap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root { --bg:#F4F6F9; --surface:#FFFFFF; --surface-2:#EBEFF4; --ink:#1B2430; --ink-2:#47535F; --ink-3:#7B8794; --line:#D5DCE4; --line-2:#C3CCD6; --accent:#1F6F8B; --accent-soft:#DCEDF3; --amber:#9A5F0A; --amber-soft:#FAEED3; --red:#B0403B; --red-soft:#F8E2E0; --green:#2E7A50; --green-soft:#DDF0E4; --on-solid:#FFFFFF; --shadow:0 1px 2px rgba(27,36,48,.06),0 6px 18px rgba(27,36,48,.05); color-scheme:light; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#11161C; --surface:#191F27; --surface-2:#202832; --ink:#E6EBF0; --ink-2:#B3BDC8; --ink-3:#7F8B98; --line:#2C3642; --line-2:#3A4552; --accent:#63B5D1; --accent-soft:#14323D; --amber:#E2AC45; --amber-soft:#382B10; --red:#E27F79; --red-soft:#3E1F1E; --green:#6CC08E; --green-soft:#173124; --on-solid:#0F141A; --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25); color-scheme:dark; } }
+  :root[data-theme="dark"] { --bg:#11161C; --surface:#191F27; --surface-2:#202832; --ink:#E6EBF0; --ink-2:#B3BDC8; --ink-3:#7F8B98; --line:#2C3642; --line-2:#3A4552; --accent:#63B5D1; --accent-soft:#14323D; --amber:#E2AC45; --amber-soft:#382B10; --red:#E27F79; --red-soft:#3E1F1E; --green:#6CC08E; --green-soft:#173124; --on-solid:#0F141A; --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25); color-scheme:dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.65 "IBM Plex Sans",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1120px; margin:0 auto; padding:48px 28px 96px; }
+  h1,h2,h3 { text-wrap:balance; margin:0; } p { margin:0; } a { color:var(--accent); }
+  code,pre,.mono { font-family:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace; }
+  code { font-size:.92em; background:var(--surface-2); padding:1px 5px; border-radius:3px; }
+  .eyebrow { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  header h1 { font-size:34px; line-height:1.2; font-weight:600; margin-top:10px; letter-spacing:-.01em; }
+  header .lede { max-width:66ch; color:var(--ink-2); margin-top:16px; font-size:16px; }
+  .toc { display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:22px; font-size:14px; }
+  .toc a { text-decoration:none; border-bottom:1px solid var(--line-2); padding-bottom:1px; }
+  section { margin-top:72px; }
+  .sec-head { display:grid; grid-template-columns:64px 1fr; gap:16px; align-items:baseline; border-top:1px solid var(--line-2); padding-top:22px; }
+  .sec-num { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:500; padding-top:6px; }
+  .sec-head h2 { font-size:24px; font-weight:600; } .sec-head .sub { color:var(--ink-2); margin-top:6px; max-width:70ch; }
+  .sec-body { margin-left:80px; margin-top:28px; display:grid; gap:40px; }
+  @media (max-width:860px) { .sec-head { grid-template-columns:1fr; gap:6px; } .sec-body { margin-left:0; } }
+  .st { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; letter-spacing:.04em; padding:2px 8px; border-radius:3px; font-weight:600; white-space:nowrap; color:var(--on-solid); vertical-align:middle; }
+  .st-spec { background:var(--green); } .st-gap { background:var(--red); } .st-gep { background:var(--accent); } .st-obs { background:var(--ink-3); }
+  .board { overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:6px; box-shadow:var(--shadow); }
+  table.b { border-collapse:collapse; width:100%; font-size:14px; }
+  table.b th, table.b td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.b tr:last-child td { border-bottom:0; }
+  table.b th { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  table.b td.n { color:var(--ink-3); font-variant-numeric:tabular-nums; width:32px; }
+  table.b td.src { color:var(--ink-3); white-space:nowrap; font-size:13px; }
+  .tally { display:flex; flex-wrap:wrap; gap:10px 22px; margin-bottom:14px; font-size:14px; color:var(--ink-2); align-items:center; } .tally b { font-weight:600; color:var(--ink); }
+  figure { margin:0; display:grid; gap:18px; }
+  figure > figcaption { font-size:17px; font-weight:600; display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; }
+  .panes { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; align-items:start; }
+  @media (max-width:980px) { .panes { grid-template-columns:1fr; } .sec-body { margin-left:0; } }
+  .pane-h { display:flex; justify-content:space-between; align-items:center; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; margin-bottom:8px; }
+  pre.geml { margin:0; background:var(--surface-2); border:1px solid var(--line); border-radius:6px; padding:14px 16px; font-size:13px; line-height:1.6; overflow-x:auto; color:var(--ink); }
+  pre.geml .f { color:var(--accent); font-weight:500; } pre.geml .a { color:var(--ink-2); } pre.geml .c { color:var(--ink-3); font-style:italic; }
+  pre.geml .hl { background:var(--amber-soft); color:var(--amber); border-radius:2px; padding:0 2px; }
+  .term { background:var(--ink); color:#E6EBF0; border-radius:6px; padding:12px 14px; font-size:12.5px; line-height:1.6; overflow-x:auto; margin:0; }
+  :root[data-theme="dark"] .term { background:#0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .term { background:#0B0F14; } }
+  .term .ok { color:#7ED4A0; } .term .er { color:#F09A94; } .term .wn { color:#F0C060; } .term .dim { color:#8A96A3; } .term .cmd { color:#9CC7FF; }
+  .tree { background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:14px 16px; font-family:"IBM Plex Mono",monospace; font-size:13px; line-height:1.7; white-space:pre; overflow-x:auto; }
+  .tree .k { color:var(--accent); } .tree .m { color:var(--ink-3); font-family:"IBM Plex Sans",sans-serif; }
+  .badge { display:inline-flex; align-items:center; gap:5px; font-size:11px; letter-spacing:.04em; text-transform:uppercase; padding:2px 7px; border-radius:3px; font-weight:500; white-space:nowrap; }
+  .b-err { background:var(--red-soft); color:var(--red); } .b-warn { background:var(--amber-soft); color:var(--amber); } .b-ok { background:var(--green-soft); color:var(--green); } .b-mute { background:var(--surface-2); color:var(--ink-3); }
+  .decision { display:grid; grid-template-columns:96px 1fr; gap:6px 16px; font-size:14.5px; border-top:1px dashed var(--line-2); padding-top:14px; }
+  .decision dt { color:var(--ink-3); font-size:12px; letter-spacing:.06em; text-transform:uppercase; font-weight:500; padding-top:4px; }
+  .decision dd { margin:0; } .decision dd.amber { color:var(--amber); }
+  table.t { border-collapse:collapse; width:100%; font-size:14px; }
+  table.t th, table.t td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.t tr:last-child td { border-bottom:0; }
+  table.t th { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  table.t td.mono { font-size:13px; }
+  .tablewrap { overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:6px; }
+  footer { margin-top:80px; border-top:1px solid var(--line-2); padding-top:18px; font-size:13.5px; color:var(--ink-3); display:grid; gap:6px; }
+  footer code { background:transparent; padding:0; color:var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">GEML Illustrated · profile · geml-codemap/v1 (final, 2026-07-03) · probed against geml 1.9.2, local build · <a href="09-profile-codemap_CN.html">中文</a></div>
+  <h1>GEML Illustrated · geml-codemap</h1>
+  <p class="lede">A codemap writes a codebase's call graph as a set of GEML documents: one per container, methods as empty-bodied <code>code</code> blocks, edges as CSV tables, entry points in the meta. It is an application-layer profile: the core specification is untouched, and declaring <code>profile = "geml-codemap/v1"</code> admits three attribute keys on <code>code</code>. This page uses the generated documents in <code>playground/codemap/</code> to line up the directory layout, the meta keys, the method block, the edge tables, the split of validation duties and the agent's consumption path against the profile document.</p>
+  <nav class="toc">
+    <a href="#board">Board</a>
+    <a href="#layout">Layout</a>
+    <a href="#doc">One container document</a>
+    <a href="#consume">Consuming it</a>
+    <a href="#evidence">Evidence</a>
+  </nav>
+</header>
+
+<!-- ============ BOARD ============ -->
+<section id="board">
+  <div class="sec-head">
+    <div class="sec-num">Board</div>
+    <div>
+      <h2>13 rules, each with its source and status</h2>
+      <p class="sub"><span class="st st-spec">Settled</span> fixed by the profile document. <span class="st st-obs">Observed</span> not prescribed, this is what the tool does today. No implementation gap found on this page.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div>
+      <div class="tally"><span><span class="st st-spec">Settled</span> <b>12</b></span><span><span class="st st-obs">Observed</span> <b>1</b></span></div>
+      <div class="board">
+        <table class="b">
+          <thead><tr><th></th><th>Rule</th><th>Source</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td class="n">1</td><td>An application-layer profile, not part of the standard. The declaration admits three keys on <code>code</code>: <code>anchor</code>, <code>name</code>, <code>entry-via</code> (<code>profiles.ts</code>). <strong>Required</strong>: an old map without it gets one warning per code block; a rebuild fixes it.</td><td class="src">§2 · §8.6</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">2</td><td>Layout: under <code>.geml-code-graph/</code>, <code>index.geml</code> (repo metadata + module summary table), one <code>&lt;container&gt;.geml</code> per container, <code>_index/name-lookup.json</code>, <code>_index/cross-stack.json</code>, <code>_build/</code> (intermediates; agents never read it). <code>foldings.geml</code> tunes build-time naming, <code>style.geml</code> tunes display: seeded on first build, never overwritten.</td><td class="src">§1</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">3</td><td>Container document name = display path sanitized (<code>/</code>→<code>--</code>, anything outside <code>[A-Za-z0-9_.-]</code>→<code>-</code>), <code>-2</code> on collision. Build skips <code>.gitignore</code>d files by default and <code>--exclude</code> drops more; edges to excluded symbols vanish with them.</td><td class="src">§1</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">4</td><td><strong>Exactly one</strong> meta per document: <code>profile</code> (all), <code>module</code> (containers: display path, build root and common prefix stripped), <code>src</code> (real relative path), <code>entry</code> (methods called from outside the container, space-separated, <strong>checked by verify</strong>), <code>resolution-default</code> cpg / heuristic, <code>repo</code> <code>commit</code> <code>container</code> on the index, optional <code>graph-depth</code>.</td><td class="src">§2</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">5</td><td>Method block: <code>code {#id src=path#Lstart-end anchor="…"}</code>, <strong>empty body</strong>. <code>src=</code> is an ordinary attribute the agent follows to open the source; <code>anchor=</code> is the engine-level stable identity; <code>name=</code> is written only when sanitizing changed the id.</td><td class="src">§3</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">6</td><td>id = the method's short name sanitized; on a same-document collision every member gets <code>-&lt;first 6 of sha256(anchor)&gt;</code>, widening to 8, 10… if still colliding. A rename = a new id = dangling references = verify error, which is a feature.</td><td class="src">§3</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">7</td><td>Symbol-level classes: <code>.leaf</code> (zero outgoing edges including unresolved, and called), <code>.accessor</code> (bean-style get/set/is leaf, hidden by renderers by default), <code>.test</code>, <code>.flow-entry</code>. <code>entry</code> is never on a block, only in the meta.</td><td class="src">§3</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">8</td><td>Edge tables (empty ones are not emitted): <code>#calls</code>(from,to,kind,confidence), <code>#called-by</code>(from,to,kind,site), <code>#unresolved</code>(from,to; hidden), <code>#api-calls</code> / <code>#api-served-by</code> (cross-stack http edges), <code>#ref-by</code> reserved. References are <code>#id</code> or <code>doc.geml#id</code>; plain-text cells carry no commas or newlines and swap brackets for parentheses, because cells parse as inline content.</td><td class="src">§4</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">9</td><td>Cross-stack links: frontend and backend are matched by <code>METHOD</code> + normalized path into <code>http</code> edges; heuristic, so they live in their own tables and never mix into the verified <code>#calls</code>; the endpoint is an <strong>edge label</strong>, not a node; detectors are pluggable per language; <code>_index/cross-stack.json</code> records the audit.</td><td class="src">§4.1</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">10</td><td>Division of labour: <code>geml check</code> handles structure, id uniqueness, native references; CSV cells and meta values are <strong>opaque to the standard, on purpose</strong>. <code>codemap verify</code> resolves every from/to in #calls / #called-by and the meta entry; a dangling one = exit 1. Cross-stack tables are lenient: the <code>#id</code> end must resolve, the <code>file:line</code> end may lie outside the map.</td><td class="src">§5</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">11</td><td>Rendering: the generated documents are pure data and <strong>contain no diagram block</strong>; a renderer that recognizes a codemap document gives a layered method-flow view (roots = meta entry, depth = graph-depth); to embed the graph elsewhere write <code>diagram {format=geml-code-graph src=…}</code>, with src as its only attribute.</td><td class="src">§6 · GEP-0003</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">12</td><td>Versioning and trust: <code>build --history</code> commits each changed document into its own .gemlhistory; <code>revert doc '#method' --rev -1</code> rolls back one method. <code>resolution-default</code> says where the edges came from; the confidence column and candidate rows are where the resolver refused to guess for you; <code>#unresolved</code> is a blind spot, not "no calls".</td><td class="src">§7 · §8</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">13</td><td>CLI: <code>geml codemap build | verify | render | serve | refresh | find</code>, dir defaults to <code>./.geml-code-graph</code>, <code>codegraph</code> / <code>code-graph</code> are aliases. All 35 playground documents pass verify; <code>find</code> needs <code>_index/name-lookup.json</code>, which the playground does not ship.</td><td class="src">geml codemap --help</td><td><span class="st st-obs">Observed</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LAYOUT ============ -->
+<section id="layout">
+  <div class="sec-head">
+    <div class="sec-num">Layout</div>
+    <div>
+      <h2>What a codemap directory holds</h2>
+      <p class="sub">Left, the layout from profile §1; right, the real head of the playground's index.geml.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>Directory and entry document <span class="st st-spec">Settled</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>.geml-code-graph/</span></div>
+<div class="tree"><span class="k">index.geml</span>                   <span class="m">entry: repo metadata + module summary table</span>
+<span class="k">&lt;container&gt;.geml</span>             <span class="m">one per container (module | dir | file granularity)</span>
+_index/
+  <span class="k">name-lookup.json</span>           <span class="m">name → {anchor, doc, id}: the agent's first hop</span>
+  <span class="k">cross-stack.json</span>           <span class="m">cross-stack audit: endpoints, verb mismatches, unreached routes</span>
+  <span class="k">foldings.geml</span>              <span class="m">tunes build-time module naming — you edit it, build never overwrites</span>
+  <span class="k">style.geml</span>                 <span class="m">tunes display (a geml-style/v1 sheet) — same rule</span>
+_build/                      <span class="m">raw indexer output, symbols/edges.jsonl; regenerable, gitignore-able</span></div>
+          <div class="pane-h" style="margin-top:14px"><span>geml codemap</span></div>
+<pre class="term"><span class="cmd">$ geml codemap verify playground/codemap</span>
+verify: 35/35 documents pass geml check; profile references: all resolve
+<span class="cmd">$ geml codemap find playground/codemap renderChart</span>
+no name-lookup at …\_index\name-lookup.json — build the codemap first</pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>playground/codemap/index.geml · real file, head</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+<span class="hl">profile = "geml-codemap/v1"</span>
+repo = geml
+commit = fa40d89
+container = file
+entry = geml-viewer--content.js.geml#main
+resolution-default = cpg
+<span class="f">===</span>
+
+# Code map — geml
+
+<span class="f">=== table</span> <span class="a">{#modules format=csv}</span>
+module,                        doc,                                 methods, entries, tests
+geml-parser/geml.ts,           geml-parser--geml.ts.geml,           72,      23,      0
+geml-parser/cli.ts,            geml-parser--cli.ts.geml,            63,      0,       0
+geml-parser/render.ts,         geml-parser--render.ts.geml,         50,      6,       0
+…                              <span class="c">%% 27 rows, one container document each</span>
+<span class="f">===</span></pre>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Naming</dt><dd>§1: a container document's name is the sanitized display path, <code>geml-parser/chart.ts</code> → <code>geml-parser--chart.ts.geml</code>. The display path algorithm is §2 <code>module</code>: strip the build's source root (<code>src/main/java</code>, a bare <code>src</code>), then the longest common segment prefix within the module; test code folds into a top-level <code>test/</code>.</dd>
+        <dt>Two tuning surfaces</dt><dd><code>foldings.geml</code> and <code>style.geml</code> are files you edit, not build products: seeded on the first build, never rewritten after. style.geml is a geml-style/v1 sheet; missing or unreadable, the renderer falls back to its built-in defaults, exactly the behaviour before the sheet existed.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ DOC ============ -->
+<section id="doc">
+  <div class="sec-head">
+    <div class="sec-num">Document</div>
+    <div>
+      <h2>One container document: meta, method blocks, edge tables</h2>
+      <p class="sub"><code>geml-parser--chart.ts.geml</code>, generated by the builder and not edited. Two methods, one outgoing table, one incoming table.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>Methods are empty code blocks, edges are CSV tables <span class="st st-spec">Settled</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · real file</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+profile = "geml-codemap/v1"
+module = geml-parser/chart.ts             <span class="c">%% display path</span>
+src = geml-parser/src/chart.ts            <span class="c">%% real path, used to locate the source</span>
+<span class="hl">entry = #buildChart</span>                        <span class="c">%% called from outside the container; verify checks it</span>
+resolution-default = cpg
+<span class="f">===</span>
+
+# geml-parser/chart.ts
+
+<span class="f">=== code</span> <span class="a">{#str <span class="hl">.leaf</span> src=geml-parser/src/chart.ts#L51-53
+          anchor="scip-typescript npm @geml/geml 1.9.1 src/`chart.ts`/str()."}</span>
+<span class="f">===</span>                                        <span class="c">%% empty body: the source is one hop away via src=</span>
+
+<span class="f">=== code</span> <span class="a">{#buildChart src=geml-parser/src/chart.ts#L55-140
+          anchor="scip-typescript npm @geml/geml 1.9.1 src/`chart.ts`/buildChart()."}</span>
+<span class="f">===</span>
+
+<span class="f">=== table</span> <span class="a">{#calls format=csv}</span>
+from,        to,   kind, confidence
+#buildChart, #str, call,                  <span class="c">%% empty confidence = high</span>
+…
+<span class="f">===</span>
+
+<span class="f">=== table</span> <span class="a">{#called-by format=csv}</span>
+from,                                    to,          kind, site
+#buildChart,                             #str,        call, geml-parser/src/chart.ts:61
+<span class="hl">geml-parser--geml.ts.geml#resolveCharts</span>, #buildChart, call, geml-parser/src/geml.ts:1797
+<span class="f">===</span>                                        <span class="c">%% cross-document reference: a method in another container document</span>
+
+<span class="f">=== table</span> <span class="a">{#unresolved format=csv hidden}</span>   <span class="c">%% the blind-spot table, hidden</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>What each part is</span></div>
+          <div class="tablewrap">
+            <table class="t">
+              <thead><tr><th>Part</th><th>Rule</th><th>Source</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">meta</td><td>exactly one; <code>entry</code> is the only fact written in the meta rather than on a block</td><td>§2 · §3</td></tr>
+                <tr><td class="mono">code {#id …}</td><td>empty body; id is the sanitized short name; <code>src=</code> is an ordinary routing attribute; <code>anchor=</code> is the engine identity, an admitted key</td><td>§3</td></tr>
+                <tr><td class="mono">.leaf</td><td>zero outgoing edges and called; renderers dim it. <code>.accessor</code> hidden by default, <code>.test</code> filterable</td><td>§3</td></tr>
+                <tr><td class="mono">#calls</td><td>outgoing edges; kind is call or candidate (a virtual-dispatch candidate, right after its primary call row); empty confidence = high</td><td>§4</td></tr>
+                <tr><td class="mono">#called-by</td><td>incoming edges, aggregated by the generator across the whole graph; site is plain-text <code>file:line</code></td><td>§4</td></tr>
+                <tr><td class="mono">#unresolved</td><td>blind spots, hidden; <code>to</code> is plain text, verbatim, unchecked</td><td>§4</td></tr>
+                <tr><td class="mono">doc.geml#id</td><td>cross-document reference as in §5.2; verify resolves it cell by cell</td><td>§4 · §5</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Division of labour</dt><dd>§5: <code>geml check</code> looks only at structure, ids and native references; <code>#buildChart</code> inside a CSV cell is text to the standard, and the standard grows no codemap-shaped hole. <code>codemap verify</code> is what resolves every from/to and the meta entry, exit 1 on a dangling one. Red means the map is stale or partially updated: rebuild before trusting navigation.</dd>
+        <dt>Plain-text cells</dt><dd>§4: site and the unresolved <code>to</code> carry no commas or newlines (the generator substitutes spaces) and swap brackets for parentheses, because table cells parse as inline content and <code>f[i](&amp;x)</code> would read as a link.</dd>
+        <dt>anchor</dt><dd>Here the anchor is a scip symbol string (backticks, dots); a double-quoted attribute value holds it as is, since attribute values are not parsed as inline content.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ CONSUME ============ -->
+<section id="consume">
+  <div class="sec-head">
+    <div class="sec-num">Consuming</div>
+    <div>
+      <h2>How an agent uses it, and how much to trust</h2>
+      <p class="sub">The §8 cheat-sheet, plus cross-stack links and the trust semantics.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>Four commands for one navigation <span class="st st-spec">Settled</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>shell · §8</span></div>
+<pre class="term"><span class="cmd">$ node -e "console.log(JSON.stringify(require('./.geml-code-graph/_index/name-lookup.json')['buildChart']))"</span>
+{"anchor":"…","doc":"geml-parser--chart.ts.geml","id":"buildChart"}   <span class="dim">name → document + id</span>
+<span class="cmd">$ geml get .geml-code-graph/geml-parser--chart.ts.geml '#buildChart'</span>   <span class="dim">the method block; src= is one hop to source</span>
+<span class="cmd">$ geml get .geml-code-graph/geml-parser--chart.ts.geml '#calls'</span>        <span class="dim">outgoing; follow doc.geml#id downwards</span>
+<span class="cmd">$ geml get .geml-code-graph/geml-parser--chart.ts.geml '#called-by'</span>    <span class="dim">who calls me, with site</span>
+<span class="cmd">$ head -8 .geml-code-graph/geml-parser--chart.ts.geml</span>                 <span class="dim">meta: the entry surface at a glance</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>Trust semantics · §8</span></div>
+          <div class="tablewrap">
+            <table class="t">
+              <thead><tr><th>You see</th><th>It means</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">resolution-default = cpg</td><td>edges come from compiler-grade precise resolution; <code>heuristic</code> is syntax-level</td></tr>
+                <tr><td class="mono">confidence empty</td><td>high. A value marks where the resolver would not guess for you</td></tr>
+                <tr><td class="mono">kind = candidate</td><td>virtual dispatch / multiple implementations, right after the primary call row, inheriting its confidence</td></tr>
+                <tr><td class="mono">rows in #unresolved</td><td>a blind spot, not "no calls"</td></tr>
+                <tr><td class="mono">empty #called-by under heuristic</td><td>does not mean nobody calls it</td></tr>
+                <tr><td class="mono">#api-calls · #api-served-by</td><td>cross-stack http edges, matched, never mixed into #calls; <code>method-mismatch</code> flags verb disagreement</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Cross-stack</dt><dd>§4.1: frontend and backend are two disjoint call trees that "call" each other through HTTP strings across the network; the profile joins them into <code>http</code> edges by <code>METHOD</code> + normalized path. Heuristic, so separate tables with a match confidence per row; the endpoint is a label on the edge rather than a node; framework knowledge lives only in per-language detectors. <code>_index/cross-stack.json</code> lists endpoints, verb mismatches (a contract-drift signal), routes nobody calls, and frontend calls that match no route.</dd>
+        <dt>Versioning</dt><dd>§7: <code>build --history</code> puts each changed document into its own .gemlhistory, <code>geml history get</code> shows how the graph evolved, <code>geml revert doc '#method' --rev -1</code> rolls back one method. See page 8.</dd>
+        <dt>Rendering</dt><dd>§6: a codemap document carries no diagram block itself, it is pure data; to embed the graph in any document write <code>diagram {format=geml-code-graph src=index.geml}</code>, src only. See page 4.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ EVIDENCE ============ -->
+<section id="evidence">
+  <div class="sec-head">
+    <div class="sec-num">Evidence</div>
+    <div>
+      <h2>Probes</h2>
+      <p class="sub">Run against the current in-repo build, 1.9.2. Example files come from <code>playground/codemap/</code>, generated by <code>geml codemap build</code>.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tablewrap">
+      <table class="t">
+        <thead><tr><th>Command / file</th><th>Result</th><th>Maps to</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">geml codemap verify playground/codemap</td><td><span class="badge b-ok">35/35 pass</span> profile references: all resolve</td><td>board 10, 13</td></tr>
+          <tr><td class="mono">geml codemap find playground/codemap renderChart</td><td>no name-lookup: the playground does not ship _index/name-lookup.json</td><td>board 13</td></tr>
+          <tr><td class="mono">index.geml · geml-parser--chart.ts.geml</td><td>meta keys, empty-bodied code, #calls / #called-by / #unresolved match the profile</td><td>layout, document</td></tr>
+          <tr><td class="mono">profiles.ts registration</td><td><code>geml-codemap/v1</code> admits anchor / name / entry-via on code</td><td>board 1</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>This page: <code>docs/illustrated/09-profile-codemap.html</code>; Chinese version <code>09-profile-codemap_CN.html</code>. Profile document: <code>spec/profiles/geml-codemap/geml-codemap-profile.md</code>; the graph's rendering format is on page 4, versioning on page 8.</div>
+</footer>
+</div>

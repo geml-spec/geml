@@ -20,7 +20,23 @@ and is released under `viewer-v*` tags.
 
 Nothing yet.
 
-## [1.9.3] — 2026-09-03
+## [1.10.0] — 2026-09-04
+
+- **A `view` block owns every operation that derives a relation (GEP-0012).**
+  `table` holds facts and derives nothing: `compute=`, `summary=` and a `src=`
+  that names a block move to `view`, which adds `where=`, `order=`, `limit=`,
+  `select=`, `by=` and `aggregate=`. The evaluation order is SQL's logical one,
+  with `compute=` running in two passes so `where=` may name a per-row derived
+  column while an aggregate-derived one is refused as circular; `summary=` runs
+  last, over the rows actually shown. A source's report row does not cross into
+  a consuming view, a chain of views is bounded like a nested `embed` (§9.3),
+  and a cycle is an error naming every view in it. Text ordering compares
+  UTF-16 code units, so a row order never depends on the processor's locale. A
+  coordinate READS a view's cells (GEP-0011) and can never write one.
+
+  A `table` carrying `compute=`/`summary=`, or a `src=` naming a block, is not
+  kept compatible: GEML is not adopted widely enough yet to owe an old spelling
+  a bridge.
 
 - **`format=yaml` is read, for a subset that means the same thing in every
   processor that reads it.** The name was reserved with no engine here, so a

@@ -1,0 +1,502 @@
+<title>GEML Blocks Illustrated · table and view</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #F4F6F9; --surface: #FFFFFF; --surface-2: #EBEFF4;
+    --ink: #1B2430; --ink-2: #47535F; --ink-3: #7B8794;
+    --line: #D5DCE4; --line-2: #C3CCD6;
+    --accent: #1F6F8B; --accent-soft: #DCEDF3;
+    --amber: #9A5F0A; --amber-soft: #FAEED3;
+    --red: #B0403B; --red-soft: #F8E2E0;
+    --green: #2E7A50; --green-soft: #DDF0E4;
+    --on-solid: #FFFFFF;
+    --shadow: 0 1px 2px rgba(27, 36, 48, .06), 0 6px 18px rgba(27, 36, 48, .05);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11161C; --surface: #191F27; --surface-2: #202832;
+      --ink: #E6EBF0; --ink-2: #B3BDC8; --ink-3: #7F8B98;
+      --line: #2C3642; --line-2: #3A4552;
+      --accent: #63B5D1; --accent-soft: #14323D;
+      --amber: #E2AC45; --amber-soft: #382B10;
+      --red: #E27F79; --red-soft: #3E1F1E;
+      --green: #6CC08E; --green-soft: #173124;
+      --on-solid: #0F141A;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11161C; --surface: #191F27; --surface-2: #202832;
+    --ink: #E6EBF0; --ink-2: #B3BDC8; --ink-3: #7F8B98;
+    --line: #2C3642; --line-2: #3A4552;
+    --accent: #63B5D1; --accent-soft: #14323D;
+    --amber: #E2AC45; --amber-soft: #382B10;
+    --red: #E27F79; --red-soft: #3E1F1E;
+    --green: #6CC08E; --green-soft: #173124;
+    --on-solid: #0F141A;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.65 "IBM Plex Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 48px 28px 96px; }
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+  p { margin: 0; }
+  a { color: var(--accent); }
+  code, pre, .mono { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; }
+  code { font-size: .92em; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; }
+  .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  header h1 { font-size: 34px; line-height: 1.2; font-weight: 600; margin-top: 10px; letter-spacing: -.01em; }
+  header .lede { max-width: 66ch; color: var(--ink-2); margin-top: 16px; font-size: 16px; }
+  .toc { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 22px; font-size: 14px; }
+  .toc a { text-decoration: none; border-bottom: 1px solid var(--line-2); padding-bottom: 1px; }
+  .toc a:hover, .toc a:focus-visible { border-color: var(--accent); }
+  section { margin-top: 72px; }
+  .sec-head { display: grid; grid-template-columns: 64px 1fr; gap: 16px; align-items: baseline; border-top: 1px solid var(--line-2); padding-top: 22px; }
+  .sec-num { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; padding-top: 6px; }
+  .sec-head h2 { font-size: 24px; font-weight: 600; letter-spacing: -.005em; }
+  .sec-head .sub { color: var(--ink-2); margin-top: 6px; max-width: 70ch; }
+  .sec-body { margin-left: 80px; margin-top: 28px; display: grid; gap: 40px; }
+  @media (max-width: 860px) { .sec-head { grid-template-columns: 1fr; gap: 6px; } .sec-body { margin-left: 0; } }
+  .st { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; letter-spacing: .04em; padding: 2px 8px; border-radius: 3px; font-weight: 600; white-space: nowrap; color: var(--on-solid); vertical-align: middle; }
+  .st-spec { background: var(--green); } .st-gap { background: var(--red); } .st-gep { background: var(--accent); } .st-obs { background: var(--ink-3); }
+  .board { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); }
+  table.b { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.b th, table.b td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.b tr:last-child td { border-bottom: 0; }
+  table.b th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.b td.n { color: var(--ink-3); font-variant-numeric: tabular-nums; width: 32px; }
+  table.b td.src { color: var(--ink-3); white-space: nowrap; font-size: 13px; }
+  table.b tr.grp td { background: var(--surface-2); font-weight: 600; font-size: 13px; letter-spacing: .04em; color: var(--ink-2); }
+  .tally { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-bottom: 14px; font-size: 14px; color: var(--ink-2); align-items: center; }
+  .tally b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+  figure { margin: 0; display: grid; gap: 18px; }
+  figure > figcaption { font-size: 17px; font-weight: 600; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+  figure > figcaption small { flex-basis: 100%; font-size: 14px; font-weight: 400; color: var(--ink-2); }
+  .panes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 980px) { .panes { grid-template-columns: 1fr; } .sec-body { margin-left: 0; } }
+  .pane-h { display: flex; justify-content: space-between; align-items: center; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; margin-bottom: 8px; }
+  pre.geml { margin: 0; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; font-size: 13px; line-height: 1.6; overflow-x: auto; color: var(--ink); }
+  pre.geml .f { color: var(--accent); font-weight: 500; } pre.geml .a { color: var(--ink-2); } pre.geml .c { color: var(--ink-3); font-style: italic; }
+  pre.geml .hl { background: var(--amber-soft); color: var(--amber); border-radius: 2px; padding: 0 2px; }
+  pre.geml .bad { background: var(--red-soft); color: var(--red); border-radius: 2px; padding: 0 2px; }
+  pre.geml .arrow { color: var(--red); font-family: "IBM Plex Sans", sans-serif; font-style: normal; }
+  .term { background: var(--ink); color: #E6EBF0; border-radius: 6px; padding: 12px 14px; font-size: 12.5px; line-height: 1.6; overflow-x: auto; margin: 0; }
+  :root[data-theme="dark"] .term { background: #0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .term { background: #0B0F14; } }
+  .term .ok { color: #7ED4A0; } .term .er { color: #F09A94; } .term .wn { color: #F0C060; } .term .dim { color: #8A96A3; } .term .cmd { color: #9CC7FF; }
+  .render { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px; box-shadow: var(--shadow); display: grid; gap: 14px; font-size: 14px; }
+  .tag { display: inline-flex; align-items: center; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; padding: 1px 6px; border-radius: 3px; background: var(--surface-2); color: var(--ink-3); font-weight: 500; font-family: "IBM Plex Mono", monospace; }
+  table.r { border-collapse: collapse; font-size: 13.5px; width: 100%; font-variant-numeric: tabular-nums; }
+  table.r th, table.r td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+  table.r th { font-weight: 600; color: var(--ink-2); background: var(--surface-2); }
+  table.r td.num, table.r th.num { text-align: right; }
+  table.r td.comp { background: var(--accent-soft); }
+  table.r tfoot td { font-weight: 600; border-top: 2px solid var(--line-2); border-bottom: 0; }
+  table.r td.none { color: var(--ink-3); }
+  .cap { font-size: 12.5px; color: var(--ink-3); }
+  .pipeline { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12.5px; }
+  .pipeline .step { background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; padding: 3px 8px; font-family: "IBM Plex Mono", monospace; }
+  .pipeline .step.hot { background: var(--amber-soft); border-color: var(--amber); color: var(--amber); }
+  .pipeline .sep { color: var(--ink-3); }
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; font-weight: 500; white-space: nowrap; }
+  .b-err { background: var(--red-soft); color: var(--red); } .b-warn { background: var(--amber-soft); color: var(--amber); } .b-ok { background: var(--green-soft); color: var(--green); } .b-mute { background: var(--surface-2); color: var(--ink-3); }
+  .decision { display: grid; grid-template-columns: 84px 1fr; gap: 6px 16px; font-size: 14.5px; border-top: 1px dashed var(--line-2); padding-top: 14px; }
+  .decision dt { color: var(--ink-3); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; font-weight: 500; padding-top: 4px; }
+  .decision dd { margin: 0; color: var(--ink); } .decision dd.amber { color: var(--amber); } .decision dd.red { color: var(--red); }
+  table.t { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.t th, table.t td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.t tr:last-child td { border-bottom: 0; }
+  table.t th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.t td.mono { font-size: 13px; }
+  .tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+  footer { margin-top: 80px; border-top: 1px solid var(--line-2); padding-top: 18px; font-size: 13.5px; color: var(--ink-3); display: grid; gap: 6px; }
+  footer code { background: transparent; padding: 0; color: var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">GEML block types, illustrated · page 3 of 5 · spec 1.0 · measured on geml 1.9.2, local build · <a href="03-table-view_CN.html">中文</a></div>
+  <h1>GEML Blocks Illustrated · table and view</h1>
+  <p class="lede"><code>table</code> is the type with the most rules in the specification: two bodies, one model, a closed arithmetic, one summary row. GEP-0012's proposed <code>view</code> moves "select, derive and aggregate from another table" out of it, and intends to take "borrowing another table's rows" away from <code>table</code>. This page first measures every rule <code>table</code> has today, then draws the <code>view</code> draft, marking what is specified, what is draft, and where the two collide.</p>
+  <nav class="toc">
+    <a href="#board">Board</a>
+    <a href="#bodies">Two bodies</a>
+    <a href="#coords">Coordinates</a>
+    <a href="#src">src= and borrowing</a>
+    <a href="#fail">Twelve failures</a>
+    <a href="#view">The view draft</a>
+    <a href="#evidence">Evidence</a>
+  </nav>
+</header>
+
+<!-- ============ BOARD ============ -->
+<section id="board">
+  <div class="sec-head">
+    <div class="sec-num">Board</div>
+    <div>
+      <h2>18 rules, each with its source and status</h2>
+      <p class="sub"><span class="st st-spec">Specified</span> written into the specification. <span class="st st-gep">GEP draft</span> defined by a proposal, not yet in the spec. <span class="st st-obs">Observed</span> not specified; what the reference implementation does today. <span class="st st-gap">Draft gap</span> something a draft should say and does not. No implementation gap was found on this page.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div>
+      <div class="tally">
+        <span><span class="st st-spec">Specified</span> <b>8</b></span>
+        <span><span class="st st-gep">GEP draft</span> <b>8</b></span>
+        <span><span class="st st-obs">Observed</span> <b>1</b></span>
+        <span><span class="st st-gap">Draft gap</span> <b>1</b></span>
+      </div>
+      <div class="board">
+        <table class="b">
+          <thead><tr><th></th><th>Rule</th><th>Source</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr class="grp"><td></td><td colspan="3">table</td></tr>
+            <tr><td class="n">1</td><td>Two interchangeable bodies, one model: a visual pipe grid (the default), or a <code>format=csv</code>/<code>tsv</code> data body with <code>header=</code>. The model is a column model; a cell is a string, number or boolean; dates are ISO-8601 text.</td><td class="src">§6</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">2</td><td><code>delim=</code> applies only to a data body and must be exactly one character; a tab is spelled <code>format=tsv</code>. Two characters is a <code>bad-table-delimiter</code> error that falls back to the natural delimiter; with no format it is an <code>ignored-table-delimiter</code> warning. An unknown format is a warning, parsed as a visual grid.</td><td class="src">§6 · A.3</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">3</td><td><code>src=</code> takes three targets: a csv/tsv file (relative path or http(s)), <code>#id</code> of a table in this document, <code>doc.geml#id</code>. Unresolvable: error; not a table: error; src with a body: error. Only the <code>src</code> text enters the .gemlhistory hash, never the contents.</td><td class="src">§6 · A.3</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">4</td><td><code>compute=</code>: <code>Name = expr</code> entries separated by <code>;</code>, arithmetic <code>+ - * / ( )</code> and unary minus; columns by header name (single-quoted when it has a space) or letter; an earlier computed column may be referenced, acyclically. An empty or non-numeric cell counts as 0 with a <code>compute-non-numeric-cell</code> warning; division by zero yields no value, displays <code>-</code>, and warns <code>compute-not-a-number</code>. Computed columns are appended after the data columns and never written into the body.</td><td class="src">§6 · A.3</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">5</td><td><code>summary=</code>: one foot row of <code>Cell = value</code> entries; a value is a literal label or an aggregate expression; the aggregates <code>sum avg min max count</code> are the only construct that crosses rows; every column reference must be reduced by an aggregate; unspecified columns are blank; an unknown column is an error.</td><td class="src">§6 · A.3</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">6</td><td>A <code>[printf]</code> display format binds to the name on the left of a formula and affects display only; it is the last <code>[…]</code> group of the left side that contains a <code>%</code>, so a column name may itself be bracketed.</td><td class="src">§6</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">7</td><td>Excluded by design: cell and range addressing, relative-row references, conditionals, cross-table <code>remote()</code>, lookup, any embedded program. A table is a document feature, not a spreadsheet engine.</td><td class="src">§6</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">8</td><td>External data arrives at render time, so the column names used by <code>compute</code> and by a chart are validated then, not at build time.</td><td class="src">§6 · §9.4</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">9</td><td>Rendering: <code>figure.table-figure &gt; table.geml-table</code>; computed cells are <code>td.computed</code>, numeric cells carry <code>data-sort</code>, the summary row sits in <code>tfoot</code>, the caption in <code>figcaption</code>.</td><td class="src">--to html</td><td><span class="st st-obs">Observed</span></td></tr>
+            <tr><td class="n">10</td><td>Coordinates: <code>#fy[2]</code> a row (1-based; the header is not a row), <code>#fy[2]["Q1"]</code> a cell, <code>#fy["Q1"]</code> a column, <code>#fy[summary]["FY"]</code> the summary cell. An integer is a row, a quoted string a column, a bare word a reserved row name. <code>list</code> does not enumerate coordinates.</td><td class="src">GEP-0011</td><td><span class="st st-gep">GEP draft</span></td></tr>
+            <tr><td class="n">11</td><td>Borrowing: <code>table {src=#fy compute=…}</code> is legal today, and computes over the borrowed rows (fixed in 1.9.3). GEP-0012 would make a <code>table</code> whose <code>src=</code> names a block an <strong>error pointing at view</strong>: a block target is someone else's output, and a table that borrows it is no longer "facts".</td><td class="src">§6 ↔ GEP-0012</td><td><span class="st st-gep">GEP draft</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">view (GEP-0012, draft; unregistered today, so an unknown-block-type warning)</td></tr>
+            <tr><td class="n">12</td><td><code>view</code> has no body and a required <code>src=</code>, with §6's three targets; a body alongside <code>src=</code> is an error.</td><td class="src">GEP-0012</td><td><span class="st st-gep">GEP draft</span></td></tr>
+            <tr><td class="n">13</td><td>Selection: <code>where=</code> (comparisons, <code>and/or/not</code>, numbers or single-quoted literals), <code>order=</code> (<code>asc</code>/<code>desc</code>, stable), <code>limit=</code>, <code>select=</code> (names only; an <code>=</code> inside it is an error pointing at compute).</td><td class="src">GEP-0012</td><td><span class="st st-gep">GEP draft</span></td></tr>
+            <tr><td class="n">14</td><td>Derivation and aggregation: <code>compute=</code>/<code>summary=</code> keep their grammar and move to view; <code>by=</code> names grouping keys, <code>aggregate="Name = fn(col)"</code> the group columns; <code>by=</code> without aggregate is the distinct set.</td><td class="src">GEP-0012</td><td><span class="st st-gep">GEP draft</span></td></tr>
+            <tr><td class="n">15</td><td>Evaluation order is SQL's logical order: src → per-row compute → where → aggregate compute → by/aggregate → order → limit → select → summary. Compute runs in two passes so where may use a column defined in the same block; select runs late so order may sort on an unshown column; summary runs last, as a report over the rows shown.</td><td class="src">GEP-0012</td><td><span class="st st-gep">GEP draft</span></td></tr>
+            <tr><td class="n">16</td><td>One expression language: a single-quoted run is a column name in column position and a literal in value position. An unknown column in <code>where=</code> is an error; a text-only column compared against a number is an error; a single non-numeric cell simply does not match, with no diagnostic. No regexes, no like, no functions.</td><td class="src">GEP-0012</td><td><span class="st st-gep">GEP draft</span></td></tr>
+            <tr><td class="n">17</td><td>A view sees the source's tuples plus its computed columns, never its summary row; a <code>compute=</code> shadowing a source column is legal with a <code>shadowed-source-column</code> warning. Filtering groups is the next view, not a HAVING.</td><td class="src">GEP-0012</td><td><span class="st st-gep">GEP draft</span></td></tr>
+            <tr><td class="n">18</td><td><strong>Draft gap:</strong> GEP-0012 never mentions charts. §7.1's <code>data=</code> accepts only a table or a record-array data block today; once compute moves out of table, a chart over a computed column (<code>y=FY</code>) has no legal source. Needed: <code>data=</code> admits a view, contributing its output relation as the table model; <code>rows=all|summary</code> acts on the view's own summary row; one diagnostic wording and one conformance case each.</td><td class="src">GEP-0012 ↔ §7.1</td><td><span class="st st-gap">Draft gap</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BODIES ============ -->
+<section id="bodies">
+  <div class="sec-head">
+    <div class="sec-num">Bodies</div>
+    <div>
+      <h2>A visual grid and a data body, parsed to one model</h2>
+      <p class="sub">On the left, a pipe table and a csv table with compute and summary; on the right, the structure <code>--to html</code> actually emits.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>Pipe grid · csv body · computed columns · printf · summary row <span class="st st-spec">Specified</span><small>The attribute object is split with <code>\</code> line continuation (§4); the backslashes are load-bearing — drop one and the whole block becomes a paragraph.</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · t1-table.geml</span></div>
+<pre class="geml"><span class="f">=== table</span> <span class="a">{#budget caption="Annual cost"}</span>
+| Plan  | Months | Rate |
+|-------|-------:|-----:|
+| Basic |      1 |   30 |
+| Pro   |      2 |   30 |
+<span class="f">===</span>
+
+<span class="f">=== table</span> <span class="a">{#fy caption="FY revenue ($M)" format=csv header=1 <span class="hl">delim=;</span> \
+           compute="<span class="hl">FY [%.1f]</span> = Q1 + Q2; <span class="hl">Share [%.1f%%]</span> = FY * 100 / 500" \
+           summary="Segment = 'Total'; Q1 = sum(Q1); Q2 = sum(Q2); FY = sum(FY)"}</span>
+Segment ; Q1    ; Q2
+Cloud   ; 124.5 ; 131.2
+Hardware; 88.1  ; 84.6
+Services; 45.2  ; 47.8
+<span class="f">===</span>
+See [[#fy]] and [[#budget]].</pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>--to html</span><span class="badge b-ok">ok: no diagnostics</span></div>
+          <div class="render">
+            <span class="tag">figure.table-figure #budget › table.geml-table</span>
+            <table class="r"><thead><tr><th>Plan</th><th class="num">Months</th><th class="num">Rate</th></tr></thead>
+              <tbody><tr><td>Basic</td><td class="num">1</td><td class="num">30</td></tr><tr><td>Pro</td><td class="num">2</td><td class="num">30</td></tr></tbody></table>
+            <span class="cap">figcaption · Annual cost. Right alignment comes from <code>-----:</code> in the separator row; numeric cells carry <code>data-sort</code>.</span>
+            <span class="tag">figure.table-figure #fy</span>
+            <table class="r"><thead><tr><th>Segment</th><th class="num">Q1</th><th class="num">Q2</th><th class="num">FY</th><th class="num">Share</th></tr></thead>
+              <tbody>
+                <tr><td>Cloud</td><td class="num">124.5</td><td class="num">131.2</td><td class="num comp">255.7</td><td class="num comp">51.1%</td></tr>
+                <tr><td>Hardware</td><td class="num">88.1</td><td class="num">84.6</td><td class="num comp">172.7</td><td class="num comp">34.5%</td></tr>
+                <tr><td>Services</td><td class="num">45.2</td><td class="num">47.8</td><td class="num comp">93.0</td><td class="num comp">18.6%</td></tr>
+              </tbody>
+              <tfoot><tr><td>Total</td><td class="num">257.8</td><td class="num">263.6</td><td class="num">521.4</td><td class="none">&nbsp;</td></tr></tfoot></table>
+            <span class="cap">Blue cells are <code>td.computed</code>: not in the body, produced by the model. The summary row sits in <code>tfoot</code>; the unspecified Share column is blank. <code>[[#fy]]</code> reads "FY revenue ($M)", the caption.</span>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>printf</dt><dd><code>FY [%.1f]</code>: the format is the last bracket group on the left that contains a <code>%</code>, so 93 displays as 93.0 while the model keeps <code>data-sort="93"</code>. <code>%%</code> is a literal percent sign. There is no date format; a date is ISO text.</dd>
+        <dt>Arithmetic</dt><dd>§6's expressions have only <code>+ - * / ( )</code> and unary minus, <code>*</code>/<code>/</code> binding tighter, left-associative. A formula may use an earlier computed column (Share uses FY) and must be acyclic. This is the one bit of closed arithmetic §9.1's "no expression language" allows.</dd>
+        <dt>Summary</dt><dd>Aggregates are the only construct that crosses rows, and there are five. A column reference in a summary expression must be wrapped in an aggregate; a bare column name has no value in the summary row.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ COORDS ============ -->
+<section id="coords">
+  <div class="sec-head">
+    <div class="sec-num">Coordinates</div>
+    <div>
+      <h2>Rows, cells, columns and the summary cell each have an address</h2>
+      <p class="sub">GEP-0011, implemented on this branch, not yet in the spec. Three token species that cannot be confused: an integer is a row, a quoted string a column, a bare word a reserved row name.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>Six reads against <code>#fy</code> above <span class="st st-gep">GEP draft</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>geml get</span></div>
+<pre class="term"><span class="cmd">$ geml get t1-table.geml '#fy[2]'</span>          <span class="dim">second body row; the header is not a row</span>
+Hardware; 88.1; 84.6; 172.7; 34.5%
+<span class="cmd">$ geml get t1-table.geml '#fy[2]["Q1"]'</span>
+88.1
+<span class="cmd">$ geml get t1-table.geml '#fy["Q1"]'</span>       <span class="dim">one column, header excluded</span>
+124.5
+88.1
+45.2
+<span class="cmd">$ geml get t1-table.geml '#fy[summary]["FY"]'</span>
+521.4
+<span class="cmd">$ geml get t1-table.geml '#fy[summary]'</span>
+Total; 257.8; 263.6; 521.4;
+<span class="cmd">$ geml get t1-table.geml '#borrowed[1]["Half"]'</span>   <span class="dim">a column the borrowing table computed itself</span>
+127.85</pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>Rules</span></div>
+          <div class="render">
+            <table class="r">
+              <thead><tr><th>Written</th><th>Names</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">#fy[2]</td><td>one body row, 1-based. The header is not a row: the model's rows already exclude it</td></tr>
+                <tr><td class="mono">#fy[2]["Q1"]</td><td>one cell, the column by its header</td></tr>
+                <tr><td class="mono">#fy["Q1"]</td><td>one column, in row order, header excluded</td></tr>
+                <tr><td class="mono">#fy[summary]["FY"]</td><td>a cell in the summary row; <code>[summary]</code> is the only reserved row name and inserting a row does not move it</td></tr>
+                <tr><td class="mono">A.geml#fy[summary]["FY"]</td><td>the same across documents; <code>![[…]]</code> may project that one leaf value into a sentence</td></tr>
+              </tbody>
+            </table>
+            <span class="cap">A header-less table uses letter columns <code>A</code>, <code>B</code>: the same column namespace <code>compute=</code> reads. <code>geml list</code> does not enumerate coordinates — a four-hundred-row table would drown it — so the author constructs them.</span>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Read, write</dt><dd>Reading lands first. Writing is allowed only where a byte in the source corresponds to the unit: computed columns and <code>src=</code>-fed tables refuse; so does a <code>format=csv</code> cell that contains the delimiter, since changing one byte would corrupt its neighbours.</dd>
+        <dt>Why no confusion</dt><dd><code>[</code> cannot occur in a legal id (§4's NAME is letters, digits, <code>-</code>, <code>_</code>), so a coordinate is never read as an id and no existing document changes meaning.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ SRC ============ -->
+<section id="src">
+  <div class="sec-head">
+    <div class="sec-num">src=</div>
+    <div>
+      <h2>Data from elsewhere, and where "borrowing" is headed</h2>
+      <p class="sub">§6 allows three targets. GEP-0012 intends to take one of them away.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>A file, a table in this document, borrowed rows computed over <span class="st st-spec">Specified</span> <span class="st st-gep">0012 would change this</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · from t1-table.geml</span></div>
+<pre class="geml"><span class="f">=== table</span> <span class="a">{#ext caption="From a file" format=csv <span class="hl">src=rows.csv</span>}</span>
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#borrowed caption="Borrowed rows" <span class="hl">src=#fy</span> compute="Half = FY / 2"}</span>
+<span class="f">===</span>
+
+<span class="c">%% rows.csv beside the document: Segment,Q1,Q2 / Cloud,124.5,131.2 / Hardware,88.1,84.6</span>
+<span class="c">%% #borrowed gets #fy's rows and its computed FY, then computes its own Half</span></pre>
+          <div class="pane-h" style="margin-top:14px"><span>GEP-0012's spelling</span></div>
+<pre class="geml"><span class="f">=== view</span> <span class="a">{#borrowed src=#fy compute="Half = FY / 2"}</span>
+<span class="f">===</span>
+<span class="c">%% a table's src= may name only a file; a table naming a #block is an error pointing at view</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>Behaviour today</span><span class="badge b-ok">ok: no diagnostics</span></div>
+          <div class="render">
+            <span class="tag">#ext · file contents loaded; column names checked at render time</span>
+            <table class="r"><thead><tr><th>Segment</th><th class="num">Q1</th><th class="num">Q2</th></tr></thead><tbody><tr><td>Cloud</td><td class="num">124.5</td><td class="num">131.2</td></tr><tr><td>Hardware</td><td class="num">88.1</td><td class="num">84.6</td></tr></tbody></table>
+            <span class="tag">#borrowed · the source's computed FY is visible; Half is added on top</span>
+            <table class="r"><thead><tr><th>Segment</th><th class="num">Q1</th><th class="num">Q2</th><th class="num">FY</th><th class="num">Half</th></tr></thead><tbody><tr><td>Cloud</td><td class="num">124.5</td><td class="num">131.2</td><td class="num">255.7</td><td class="num comp">127.85</td></tr><tr><td>Hardware</td><td class="num">88.1</td><td class="num">84.6</td><td class="num">172.7</td><td class="num comp">86.35</td></tr><tr><td>Services</td><td class="num">45.2</td><td class="num">47.8</td><td class="num">93.0</td><td class="num comp">46.50</td></tr></tbody></table>
+            <span class="cap">The source's summary row did not come along: a relation is borrowed, not a report.</span>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Three targets</dt><dd>§6: a data file (csv/tsv, relative path or http(s)), <code>#id</code>, <code>doc.geml#id</code>. Local and cross-document targets must resolve and exist at build time; unresolvable is an error, existing-but-not-a-table is an error. Src with a body is an error.</dd>
+        <dt>Hash</dt><dd>Only the <code>src</code> text enters the .gemlhistory hash, never the fetched contents. External data arrives at render time, so compute's and a chart's column names are validated then.</dd>
+        <dt>0012</dt><dd class="amber">The draft splits by what <code>src</code> points at: a file stays with table, a block moves to view, and a table naming a block becomes an error. The reasoning: a block target is someone else's output, and a table borrowing it would be a block of "facts" whose content someone else derived. 1.9.3 has just fixed borrowing-with-compute; accepting this would reverse that. Both are recorded here pending the GEP's decision.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ FAIL ============ -->
+<section id="fail">
+  <div class="sec-head">
+    <div class="sec-num">Failures</div>
+    <div>
+      <h2>Twelve ways to fail, in one run</h2>
+      <p class="sub">Eight errors and four warnings, matching A.3's catalogue row for row. The line runs between "the document misspoke" and "the data is dirty".</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>t2-table-fail.geml <span class="st st-spec">Specified</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">=== table</span> <span class="a">{#a format=csv <span class="bad">src=rows.csv</span>}</span>
+<span class="bad">x,y</span>                                   <span class="arrow">← src and a body together</span>
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#b format=csv <span class="bad">delim=;;</span>}</span>       <span class="arrow">← two characters</span>
+a;b
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#c <span class="hl">delim=;</span>}</span>                  <span class="c">%% no format: a visual grid has no use for delim</span>
+| a | b |
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#d <span class="hl">format=weird</span>}</span>
+| a | b |
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#e format=csv compute="Z = <span class="bad">Q9</span> + 1"}</span>
+Q1,Q2
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#f format=csv compute="S = Q1 + Q2"}</span>
+Q1,Q2
+1,<span class="hl">n/a</span>                                <span class="c">%% non-numeric counts as 0, with a warning</span>
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#g format=csv compute="R = Q1 / Q2"
+           summary="Q1 = sum(Q1); <span class="bad">Nope</span> = 1; <span class="bad">Q2 = Q2</span>"}</span>
+Q1,Q2
+1,<span class="hl">0</span>                                  <span class="c">%% division by zero</span>
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#h <span class="bad">src=#n</span>}</span>                   <span class="arrow">← #n is a note</span>
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#i format=csv <span class="bad">src=missing.csv</span>}</span>
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#j format=csv compute="<span class="bad">bad formula</span>"}</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check</span><span class="badge b-err">8 error</span> <span class="badge b-warn">4 warning</span></div>
+<pre class="term"><span class="er">error:</span> table has both `src` and an inline body; provide one, not both (line 8)
+<span class="er">error:</span> `delim=";;"` must be exactly one character (for a tab use
+  `format=tsv`); split on `,` instead (line 11)
+<span class="wn">warning:</span> `delim` applies to a data body (`format=csv`/`tsv`); this body
+  was parsed as a visual grid, so it is ignored (line 15)
+<span class="wn">warning:</span> unknown table format `weird`; parsed as visual grid (line 20)
+<span class="er">error:</span> compute `Z`: unknown column `Q9` (line 25)
+<span class="wn">warning:</span> column `Q2` row 1 is not a number (`n/a`); counted as 0 (line 29)
+<span class="wn">warning:</span> compute `R` row 1: division by zero; the cell holds no value
+  and shows `-` (line 33)
+<span class="er">error:</span> summary targets unknown column `Nope` (line 33)
+<span class="er">error:</span> summary `Q2`: column `Q2` must be reduced by an aggregate
+  (e.g. sum(Q2)) (line 33)
+<span class="er">error:</span> bad compute formula `bad formula` (want `Name = expr`) (line 41)
+<span class="er">error:</span> cannot resolve table source `missing.csv` (line 39)
+<span class="er">error:</span> table source `#n` is not a table (line 37)</pre>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>error</dt><dd>Src with a body, a delimiter that is not one character, an unknown column, an unknown summary column, a bare summary column, a malformed formula, an unresolvable source, a source that is not a table. All are the document itself misspeaking.</dd>
+        <dt>warning</dt><dd>delim in the wrong place, an unknown format falling back to a visual grid, a non-numeric cell counted as 0, division by zero. The first two still read; the last two are facts about the data rather than defects in the document. §6 says of division by zero that it "is a warning and the document stays conforming — but it is never silent".</dd>
+        <dt>Fallback</dt><dd>A bad delim falls back to the natural <code>,</code> and the table still reads; a bad format parses as a pipe grid. Degradation always keeps the content.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ VIEW ============ -->
+<section id="view">
+  <div class="sec-head">
+    <div class="sec-num">view</div>
+    <div>
+      <h2>The <code>view</code> draft: select, derive and aggregate from another relation</h2>
+      <p class="sub">GEP-0012, drafted 2026-09-03, status draft. Writing one today yields only an unknown-block-type warning. Left: the draft syntax. Right: what the draft <strong>intends</strong> to render, and today's actual output.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>Two views: filter, sort, project; and group, aggregate <span class="st st-gep">GEP draft</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · v1-view.geml</span></div>
+<pre class="geml"><span class="f">=== table</span> <span class="a">{#tickets format=csv}</span>
+Area,Status,Days
+Draft Mode,open,3
+Turbopack,open,12
+Draft Mode,closed,1
+<span class="f">===</span>
+<span class="f">=== view</span> <span class="a">{#open src=#tickets <span class="hl">where="Status = 'open'"</span> <span class="hl">order="Days desc"</span>
+          limit=10 <span class="hl">select="Area, Days"</span>}</span>
+<span class="f">===</span>
+<span class="f">=== view</span> <span class="a">{#by-area src=#tickets <span class="hl">by="Area"</span> <span class="hl">aggregate="Open = count(Status)"</span>}</span>
+<span class="f">===</span></pre>
+          <div class="pane-h" style="margin-top:14px"><span>Output today</span></div>
+<pre class="term"><span class="wn">warning:</span> unknown block type `view`; body kept as raw (line 11)
+<span class="wn">warning:</span> unknown block type `view`; body kept as raw (line 13)
+0 error(s), 2 warning(s)   <span class="dim">exit 0 — a draft document passes check today; it just computes nothing</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>What the draft intends to render</span><span class="badge b-mute">not implemented</span></div>
+          <div class="render">
+            <span class="tag">#open · where → order → limit → select</span>
+            <table class="r"><thead><tr><th>Area</th><th class="num">Days</th></tr></thead><tbody><tr><td>Turbopack</td><td class="num">12</td></tr><tr><td>Draft Mode</td><td class="num">3</td></tr></tbody></table>
+            <span class="tag">#by-area · by → aggregate</span>
+            <table class="r"><thead><tr><th>Area</th><th class="num">Open</th></tr></thead><tbody><tr><td>Draft Mode</td><td class="num">2</td></tr><tr><td>Turbopack</td><td class="num">1</td></tr></tbody></table>
+            <span class="cap">The evaluation order, the draft's load-bearing sentence:</span>
+            <div class="pipeline"><span class="step">src</span><span class="sep">→</span><span class="step hot">compute (per row)</span><span class="sep">→</span><span class="step">where</span><span class="sep">→</span><span class="step hot">compute (aggregates)</span><span class="sep">→</span><span class="step">by / aggregate</span><span class="sep">→</span><span class="step">order</span><span class="sep">→</span><span class="step">limit</span><span class="sep">→</span><span class="step">select</span><span class="sep">→</span><span class="step">summary</span></div>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Why a block</dt><dd>The draft's test: a view's output is another relation that the next view can consume (filtering groups is "another view", not HAVING). Attributes on table could not do that, and would stop a table being "facts".</dd>
+        <dt>Two passes</dt><dd>A formula that reads only its own row runs before where, so <code>where="FY &gt; 40"</code> may use an FY defined in the same block; a formula reading an aggregate runs after, or the filter would depend on what it filters. The reward: <code>sum(FY)</code> means the same rows in compute and in summary. A deliberate departure from SQL.</dd>
+        <dt>Expression</dt><dd>Not a second language: §6's arithmetic plus comparisons, <code>and/or/not</code>, numbers and single-quoted literals. A single-quoted run is a column in column position (<code>'Unit Price'</code>) and a literal in value position (<code>'open'</code>); there is no third position, because §4 gives attribute values no escape to introduce a second kind of quote.</dd>
+        <dt>What it sees</dt><dd>The source's tuples plus computed columns; the source's summary row does not cross. To reach a source's total, address it: <code>A.geml#fy[summary]["FY"]</code>. Shadowing a source column is legal with a warning.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ EVIDENCE ============ -->
+<section id="evidence">
+  <div class="sec-head">
+    <div class="sec-num">Evidence</div>
+    <div>
+      <h2>Probe files and measured output</h2>
+      <p class="sub">All run with the repository's current build, <code>node geml-parser/dist/geml.js</code>, version 1.9.2. rows.csv sits beside the probes.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tablewrap">
+      <table class="t">
+        <thead><tr><th>Probe</th><th>Covers</th><th>check result</th><th>Where on this page</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">t1-table.geml · rows.csv</td><td>pipe grid, csv body, delim, compute, printf, summary, src file, borrowing, caption as link text, six coordinates</td><td><span class="badge b-ok">0 diagnostics</span></td><td>Bodies, Coordinates, src=</td></tr>
+          <tr><td class="mono">t2-table-fail.geml</td><td>src with body, bad delim, delim without format, unknown format, unknown column, non-numeric, division by zero, unknown summary column, bare summary column, malformed formula, unresolvable source, source not a table</td><td><span class="badge b-err">8 error</span> <span class="badge b-warn">4 warning</span></td><td>Twelve failures</td></tr>
+          <tr><td class="mono">v1-view.geml</td><td>two view blocks in the draft syntax</td><td><span class="badge b-warn">2 warning</span> unknown-block-type</td><td>The view draft</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>This page: <code>docs/illustrated/03-table-view.html</code> · 中文 <code>03-table-view_CN.html</code>. Five pages in the series: the simple four · code and data · table and view · diagram · embed.</div>
+  <div>Board 11 records the collision between §6 and GEP-0012 over a table borrowing a block; board 18 the chart gap in GEP-0012. Both change status when the GEP decides.</div>
+</footer>
+</div>

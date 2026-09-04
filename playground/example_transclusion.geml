@@ -16,11 +16,14 @@ version = "1.0"
 
 以下 `table` 声明了各业务线的营收数据，包含构建期动态计算的 `FY` 列与 `Total` 汇总行：
 
-=== table {#q3_revenue caption="2025 业务线营收明细" format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4" summary="Segment = 'Total'; FY [%.1f] = sum(FY)"}
+=== table {#q3_facts caption="2025 业务线营收明细" format=csv header=1}
 Segment,   Q1,    Q2,    Q3,    Q4
 Cloud,     120.5, 135.0, 142.8, 160.2
 Hardware,   85.0,  88.2,  90.1,  94.5
 Services,   42.0,  45.5,  48.0,  51.0
+===
+
+=== view {#q3_revenue src=#q3_facts caption="2025 业务线营收（含 FY 与合计）" compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4" summary="Segment = 'Total'; FY [%.1f] = sum(FY)"}
 ===
 
 ## 2. 绑定数据的图表视图 {#chart_section}

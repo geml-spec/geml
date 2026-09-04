@@ -114,7 +114,7 @@ No CommonMark equivalent — this is the reason the format exists.
 | **Footnotes** | `[^f]` + `=== note {#f}` | Core, not an extension |
 | **Document metadata** | `=== meta` with `key = value` | Replaces frontmatter |
 | **Interpolation** | `{{key}}` | Substituted from `meta`; unknown key is an **error**; skipped inside code spans and math; `\{{key}}` escapes |
-| **Computed tables** | `compute="FY = Q1+Q2+Q3+Q4"`, `summary="…sum(FY)…"` | Columns and a summary row computed at build time; formulas are acyclic by construction (§6) |
+| **Derived relations** | a `view` over a table: `compute="FY = Q1+Q2+Q3+Q4"`, `summary="…sum(FY)…"`, `where`/`order`/`limit`/`select`/`by` | Columns and a summary row computed at build time; formulas are acyclic by construction (§6) |
 | **External table data** | `src=data.csv`, `src=#fy25`, `src=other.geml#fy25` | Three targets, one attribute; a local or cross-document one is existence-checked at build time, and `src` plus an inline body is an error — one source, always (§6) |
 | **Custom delimiter** | `delim=";"` | Overrides the format's natural delimiter, so a European `;`-CSV or a `\|`-delimited export reads as it stands; a value longer than one character is an error (§6) |
 | **Verified data blocks** | `=== data {#limits format=json}` … `===` | JSON's value domain — scalars, sequences, maps — as data the build *parses*; a malformed body is an error naming the offending line. `format=jsonl` is the record-stream form: a complete `data` block appended at end-of-file is a valid continuation of any document (§3.2) |

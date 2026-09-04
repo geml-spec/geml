@@ -1,0 +1,461 @@
+<title>GEML 块图解 · embed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --bg: #F4F6F9; --surface: #FFFFFF; --surface-2: #EBEFF4;
+    --ink: #1B2430; --ink-2: #47535F; --ink-3: #7B8794;
+    --line: #D5DCE4; --line-2: #C3CCD6;
+    --accent: #1F6F8B; --accent-soft: #DCEDF3;
+    --amber: #9A5F0A; --amber-soft: #FAEED3;
+    --red: #B0403B; --red-soft: #F8E2E0;
+    --green: #2E7A50; --green-soft: #DDF0E4;
+    --on-solid: #FFFFFF;
+    --shadow: 0 1px 2px rgba(27, 36, 48, .06), 0 6px 18px rgba(27, 36, 48, .05);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11161C; --surface: #191F27; --surface-2: #202832;
+      --ink: #E6EBF0; --ink-2: #B3BDC8; --ink-3: #7F8B98;
+      --line: #2C3642; --line-2: #3A4552;
+      --accent: #63B5D1; --accent-soft: #14323D;
+      --amber: #E2AC45; --amber-soft: #382B10;
+      --red: #E27F79; --red-soft: #3E1F1E;
+      --green: #6CC08E; --green-soft: #173124;
+      --on-solid: #0F141A;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11161C; --surface: #191F27; --surface-2: #202832;
+    --ink: #E6EBF0; --ink-2: #B3BDC8; --ink-3: #7F8B98;
+    --line: #2C3642; --line-2: #3A4552;
+    --accent: #63B5D1; --accent-soft: #14323D;
+    --amber: #E2AC45; --amber-soft: #382B10;
+    --red: #E27F79; --red-soft: #3E1F1E;
+    --green: #6CC08E; --green-soft: #173124;
+    --on-solid: #0F141A;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.7 "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 48px 28px 96px; }
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+  p { margin: 0; }
+  a { color: var(--accent); }
+  code, pre, .mono { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; }
+  code { font-size: .92em; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; }
+  .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  header h1 { font-size: 34px; line-height: 1.2; font-weight: 600; margin-top: 10px; letter-spacing: -.01em; }
+  header .lede { max-width: 66ch; color: var(--ink-2); margin-top: 16px; font-size: 16px; }
+  .toc { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 22px; font-size: 14px; }
+  .toc a { text-decoration: none; border-bottom: 1px solid var(--line-2); padding-bottom: 1px; }
+  .toc a:hover, .toc a:focus-visible { border-color: var(--accent); }
+  section { margin-top: 72px; }
+  .sec-head { display: grid; grid-template-columns: 64px 1fr; gap: 16px; align-items: baseline; border-top: 1px solid var(--line-2); padding-top: 22px; }
+  .sec-num { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; padding-top: 6px; }
+  .sec-head h2 { font-size: 24px; font-weight: 600; letter-spacing: -.005em; }
+  .sec-head .sub { color: var(--ink-2); margin-top: 6px; max-width: 70ch; }
+  .sec-body { margin-left: 80px; margin-top: 28px; display: grid; gap: 40px; }
+  @media (max-width: 860px) { .sec-head { grid-template-columns: 1fr; gap: 6px; } .sec-body { margin-left: 0; } }
+  .st { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; letter-spacing: .04em; padding: 2px 8px; border-radius: 3px; font-weight: 600; white-space: nowrap; color: var(--on-solid); vertical-align: middle; }
+  .st-spec { background: var(--green); } .st-gap { background: var(--red); } .st-gep { background: var(--accent); } .st-obs { background: var(--ink-3); }
+  .board { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); }
+  table.b { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.b th, table.b td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.b tr:last-child td { border-bottom: 0; }
+  table.b th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.b td.n { color: var(--ink-3); font-variant-numeric: tabular-nums; width: 32px; }
+  table.b td.src { color: var(--ink-3); white-space: nowrap; font-size: 13px; }
+  table.b tr.grp td { background: var(--surface-2); font-weight: 600; font-size: 13px; letter-spacing: .04em; color: var(--ink-2); }
+  .tally { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-bottom: 14px; font-size: 14px; color: var(--ink-2); align-items: center; }
+  .tally b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+  figure { margin: 0; display: grid; gap: 18px; }
+  figure > figcaption { font-size: 17px; font-weight: 600; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+  figure > figcaption small { flex-basis: 100%; font-size: 14px; font-weight: 400; color: var(--ink-2); }
+  .panes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 980px) { .panes { grid-template-columns: 1fr; } .sec-body { margin-left: 0; } }
+  .pane-h { display: flex; justify-content: space-between; align-items: center; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; margin-bottom: 8px; }
+  pre.geml { margin: 0; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; font-size: 13px; line-height: 1.6; overflow-x: auto; color: var(--ink); }
+  pre.geml .f { color: var(--accent); font-weight: 500; } pre.geml .a { color: var(--ink-2); } pre.geml .c { color: var(--ink-3); font-style: italic; }
+  pre.geml .hl { background: var(--amber-soft); color: var(--amber); border-radius: 2px; padding: 0 2px; }
+  pre.geml .bad { background: var(--red-soft); color: var(--red); border-radius: 2px; padding: 0 2px; }
+  pre.geml .arrow { color: var(--red); font-family: "IBM Plex Sans", "Noto Sans SC", sans-serif; font-style: normal; }
+  .term { background: var(--ink); color: #E6EBF0; border-radius: 6px; padding: 12px 14px; font-size: 12.5px; line-height: 1.6; overflow-x: auto; margin: 0; }
+  :root[data-theme="dark"] .term { background: #0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .term { background: #0B0F14; } }
+  .term .ok { color: #7ED4A0; } .term .er { color: #F09A94; } .term .wn { color: #F0C060; } .term .dim { color: #8A96A3; } .term .cmd { color: #9CC7FF; }
+  .render { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px; box-shadow: var(--shadow); display: grid; gap: 14px; font-size: 14px; }
+  .render p { max-width: 62ch; }
+  .tag { display: inline-flex; align-items: center; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; padding: 1px 6px; border-radius: 3px; background: var(--surface-2); color: var(--ink-3); font-weight: 500; font-family: "IBM Plex Mono", monospace; }
+  .r-sec { border: 1px dashed var(--accent); border-radius: 6px; padding: 10px 14px; display: grid; gap: 6px; background: var(--accent-soft); }
+  .r-sec h4 { margin: 0; font-size: 15px; } .r-sec h5 { margin: 0; font-size: 13.5px; color: var(--ink-2); }
+  .r-code { background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; font-family: "IBM Plex Mono", monospace; font-size: 12.5px; white-space: pre; overflow-x: auto; }
+  table.r { border-collapse: collapse; font-size: 13px; }
+  table.r th, table.r td { padding: 4px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+  table.r th { background: var(--surface-2); }
+  .inl { background: var(--accent-soft); border-bottom: 1px dotted var(--accent); }
+  .cap { font-size: 12.5px; color: var(--ink-3); }
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; font-weight: 500; white-space: nowrap; }
+  .b-err { background: var(--red-soft); color: var(--red); } .b-warn { background: var(--amber-soft); color: var(--amber); } .b-ok { background: var(--green-soft); color: var(--green); } .b-mute { background: var(--surface-2); color: var(--ink-3); }
+  .decision { display: grid; grid-template-columns: 72px 1fr; gap: 6px 16px; font-size: 14.5px; border-top: 1px dashed var(--line-2); padding-top: 14px; }
+  .decision dt { color: var(--ink-3); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; font-weight: 500; padding-top: 4px; }
+  .decision dd { margin: 0; color: var(--ink); } .decision dd.amber { color: var(--amber); }
+  table.t { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.t th, table.t td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.t tr:last-child td { border-bottom: 0; }
+  table.t th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.t td.mono { font-size: 13px; }
+  .tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+  footer { margin-top: 80px; border-top: 1px solid var(--line-2); padding-top: 18px; font-size: 13.5px; color: var(--ink-3); display: grid; gap: 6px; }
+  footer code { background: transparent; padding: 0; color: var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">GEML 块类型图解 · 第 5 页 / 5 · 规范 1.0 · 实测 geml 1.9.2 本地构建</div>
+  <h1>GEML 块图解 · embed</h1>
+  <p class="lede"><code>embed</code> 站在别处内容的位置上：<code>src=</code> 命名另一份文档（或本文档）里的一节、一块、一段散文，渲染时那份内容出现在这里。它没有自己的正文，有的是一套关于「取什么、怎么取、什么不能取」的规则：<code>part=</code> 切标题的哪部分，被嵌文档必须作为独立文档解析，目标必须是 <code>.geml</code>，scheme 受限，循环报错。行内还有一个小兄弟 <code>![[#id]]</code>。这一页把这些全部实测一遍，并画出 GEP-0010 用 embed 做翻译投影、GEP-0011 让叶值坐标做投影目标的两个草案。</p>
+  <nav class="toc">
+    <a href="#board">看板</a>
+    <a href="#part">整节与 part=</a>
+    <a href="#base">独立解析</a>
+    <a href="#fail">六种失败与循环</a>
+    <a href="#inline">行内投影与坐标</a>
+    <a href="#translate">翻译投影</a>
+    <a href="#evidence">依据</a>
+  </nav>
+</header>
+
+<!-- ============ BOARD ============ -->
+<section id="board">
+  <div class="sec-head">
+    <div class="sec-num">看板</div>
+    <div>
+      <h2>11 条规则，各自的出处和状态</h2>
+      <p class="sub"><span class="st st-spec">规范已定</span> 规范正文写死的。<span class="st st-gep">GEP 草案</span> 提案定义，规范未收。<span class="st st-obs">实测</span> 规范不规定、参考实现今天这样做。<span class="st st-gap">实现偏差</span> 本页未发现。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div>
+      <div class="tally">
+        <span><span class="st st-spec">规范已定</span> <b>8</b></span>
+        <span><span class="st st-gep">GEP 草案</span> <b>2</b></span>
+        <span><span class="st st-obs">实测</span> <b>1</b></span>
+      </div>
+      <div class="board">
+        <table class="b">
+          <thead><tr><th></th><th>规则</th><th>出处</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td class="n">1</td><td><code>src=</code> 命名内容：一份文档，可带片段。缺 src 是 <code>embed-missing-src</code> error；正文被忽略并 <code>ignored-embed-body</code> warning。<code>src=</code> 和任何引用一样受检：片段不存在是 <code>unresolved-reference</code> error。</td><td class="src">§3 · §5 · A.2</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">2</td><td>片段命名标题 → 整节：标题本身及其后直到下一个同级或更高级标题前的所有块。命名块 → 那一块。命名散文地址（<code>#budget-before-detail</code>）→ 那段散文。无片段 → 整份文档。</td><td class="src">§3 · §4</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">3</td><td><code>part=</code> 只对标题目标有意义：<code>head</code> 标题行本身，<code>body</code> 标题下全部，<code>intro</code> 到第一个子标题前，<code>whole</code> 默认。head 与 body 划分 whole。与 <code>geml get --head/--body/--intro</code> 是同一套词。目标不是标题时全体照用；未知值 <code>bad-embed-part</code> warning，全体照用，因为悄悄选空是 §8.2 要防的失败。</td><td class="src">§3 · A.3</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">4</td><td>被嵌文档<strong>作为独立文档解析</strong>后再选目标，不是拼接文本。它的 meta、引用、相对路径的基、外部数据都相对它自己解析；链条每一层都是下一层的基。</td><td class="src">§3</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">5</td><td>目标必须是 <code>.geml</code>：别的文件是 <code>embed-target-not-geml</code> error，字节永不按 GEML 解析。scheme 只许 http、https、mailto、tel，其它在<strong>建模时</strong>拒绝并清空属性（<code>unsafe-embed-scheme</code> error），检查时忽略 U+0000–U+0020。跨文档解析限于 <code>--root</code>，解析符号链接后再判，fail closed。</td><td class="src">§3 · §9.4 · §9.5 · A.2</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">6</td><td>嵌套链回到正在展开的文档是 <code>transclusion-cycle</code> error，报出链条，不跟进。</td><td class="src">§9.3 · A.2</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">7</td><td>行内投影 <code>![[#id]]</code> / <code>![[doc.geml#id]]</code>：目标必须是单段 text，把它的行内内容插进句子；<code>![alt](doc.geml)</code> 用媒体语法嵌文档是 <code>media-target-is-document</code> error。<code>!</code> 是投影前缀，没有 <code>!</code> 的 <code>[…]</code> 是导航。</td><td class="src">§5.1 · §5.2 · B.4</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">8</td><td>渲染：块级展开成 <code>section.transclusion id data-src</code>，内容原样；行内投影是 <code>span.transclusion-inline data-src</code>。</td><td class="src">--to html</td><td><span class="st st-obs">实测</span></td></tr>
+            <tr><td class="n">9</td><td>坐标：embed 在本文档模型里是空体 raw 块，内部没有可寻址单元，<code>#embedB[1]["col"]</code> 不解析，读写都不行；反向允许一种：<strong>叶值</strong>坐标可作投影目标，<code>![[a.geml#vars["version"]]]</code> 得到 1.4；位置切片（一行、一列）不可作目标。</td><td class="src">GEP-0011</td><td><span class="st st-gep">GEP 草案</span></td></tr>
+            <tr><td class="n">10</td><td>翻译投影：<code>translate-to=</code> 由 <code>geml-translator/v1</code> profile 放行，在 meta 上是文档默认，在 embed 上覆盖，<code>none</code> 保留一块不译；<code>translator=</code> 保留给第二个引擎出现之后。一份译文只含 embed，id、顺序、非散文字节只有一个家。无 profile 时是 unknown-attribute warning。</td><td class="src">GEP-0010</td><td><span class="st st-gep">GEP 草案</span></td></tr>
+            <tr><td class="n">11</td><td>外部数据和媒体 <code>src</code> 由渲染器在渲染时取，渲染器把它们当不可信输入，可限定同源、要求 opt-in。</td><td class="src">§9.4</td><td><span class="st st-spec">规范已定</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PART ============ -->
+<section id="part">
+  <div class="sec-head">
+    <div class="sec-num">part=</div>
+    <div>
+      <h2>嵌一节，或者一节的一部分</h2>
+      <p class="sub">同一个标题目标，五种取法。左边 a.geml 是源，b.geml 是嵌的一方。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>whole · head · intro · body · 未知 part <span class="st st-spec">规范已定</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · a.geml（源）</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+title = "Source A"
+version = "1.4"
+<span class="f">===</span>
+# Budget {#budget}
+Lead-in paragraph of the budget section.
+## Detail {#detail}
+Detail paragraph.
+<span class="f">=== table</span> <span class="a">{#tbl format=csv}</span>
+Item,Cost
+Hosting,120
+<span class="f">===</span>
+<span class="f">=== text</span> <span class="a">{#para}</span>
+One paragraph of prose to project inline.
+<span class="f">===</span>
+<span class="f">=== data</span> <span class="a">{#vars}</span>
+{"version": "1.4", "owner": "docs"}
+<span class="f">===</span></pre>
+          <div class="pane-h" style="margin-top:14px"><span>GEML · b.geml（嵌）</span></div>
+<pre class="geml"><span class="f">=== embed</span> <span class="a">{#whole src=a.geml#budget}</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{#head src=a.geml#budget <span class="hl">part=head</span>}</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{#intro src=a.geml#budget <span class="hl">part=intro</span>}</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{#body src=a.geml#budget <span class="hl">part=body</span>}</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{#odd src=a.geml#budget <span class="bad">part=sideways</span>}</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>--to html --root .</span></div>
+<pre class="term"><span class="wn">warning:</span> embed: `part=sideways` is not `whole`, `head`, `body` or
+  `intro`; the whole target stands (line 13)</pre>
+          <div class="render" style="margin-top:12px">
+            <div class="r-sec"><span class="tag">section.transclusion #whole data-src="a.geml#budget"</span><h4>Budget</h4><p>Lead-in paragraph of the budget section.</p><h5>Detail</h5><p>Detail paragraph.</p><span class="cap">＋ 表 #tbl、text #para、data #vars，整节到文档尾</span></div>
+            <div class="r-sec"><span class="tag">#head · part=head</span><h4>Budget</h4></div>
+            <div class="r-sec"><span class="tag">#intro · part=intro</span><p>Lead-in paragraph of the budget section.</p></div>
+            <div class="r-sec"><span class="tag">#body · part=body</span><p>Lead-in paragraph of the budget section.</p><h5>Detail</h5><p>Detail paragraph.</p><span class="cap">＋ 其后所有块，没有标题行</span></div>
+            <div class="r-sec"><span class="tag">#odd · part=sideways → 与 whole 相同</span><h4>Budget</h4><span class="cap">…</span></div>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>一节</dt><dd>§3：片段命名标题就选整节，从标题到下一个同级或更高级标题之前。<code>#budget</code> 是 H1，后面没有别的 H1，所以整节到文档尾，连 <code>#tbl</code>、<code>#para</code>、<code>#vars</code> 都在里面。</dd>
+        <dt>part=</dt><dd>用 embed 拼出来的文档不该手写自己的标题，手写就是它要消灭的漂移，所以要能只取 body 或只取 head。三个词和 <code>geml get --head/--body/--intro</code> 完全一样，一个地址和一个命令行选择器不各发明一套词。</dd>
+        <dt>未知值</dt><dd>不是 <code>unknown-attribute</code>，因为键是定义了的，只是值不对；全体照用而不是选空，因为悄悄选空是 §8.2 要防的失败。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ BASE ============ -->
+<section id="base">
+  <div class="sec-head">
+    <div class="sec-num">基</div>
+    <div>
+      <h2>被嵌文档是独立文档，散文和整篇都能嵌</h2>
+      <p class="sub">相对路径、meta、外部数据都相对源文档解析。嵌的一方只决定内容出现在哪。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>散文地址、整份文档、本文档内的块 <span class="st st-spec">规范已定</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · b2.geml 与 b.geml 节选</span></div>
+<pre class="geml"><span class="f">=== embed</span> <span class="a">{#lead src=<span class="hl">a.geml#budget-before-detail</span>}</span>   <span class="c">%% §4 派生的散文地址</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{#all src=<span class="hl">a.geml</span>}</span>                        <span class="c">%% 无片段：整份文档</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{#local src=<span class="hl">#b-local</span>}</span>                     <span class="c">%% 本文档的块</span>
+<span class="f">===</span>
+<span class="f">=== text</span> <span class="a">{#b-local}</span>
+Local text embedded above.
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check · --to html</span><span class="badge b-ok">ok: no diagnostics</span></div>
+<pre class="term"><span class="dim">&lt;section class="transclusion" id="lead" data-src="a.geml#budget-before-detail"&gt;</span>
+  &lt;p&gt;Lead-in paragraph of the budget section.
+<span class="dim">&lt;section class="transclusion" id="all" data-src="a.geml"&gt;</span>
+  &lt;h1&gt;Budget … &lt;h2&gt;Detail … 表、text、data 全部</pre>
+          <div class="render" style="margin-top:12px">
+            <table class="r">
+              <thead><tr><th>a.geml 里的什么</th><th>相对谁解析</th></tr></thead>
+              <tbody>
+                <tr><td><code>=== table {src=rows.csv}</code></td><td>a.geml 的目录，不是 b.geml 的</td></tr>
+                <tr><td><code>{{version}}</code></td><td>a.geml 的 meta，得 1.4</td></tr>
+                <tr><td><code>[[#detail]]</code></td><td>a.geml 的 id 空间</td></tr>
+                <tr><td>链条 a → b → c</td><td>每一层是下一层的基</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>规则</dt><dd>§3：<code>src=</code> 命名的文档必须<strong>作为独立文档解析</strong>，再从结果里选目标，绝不是把一段文本拼进来。所以 a.geml 里的 <code>rows.csv</code> 相对 a.geml 的目录解析，和单独打开 a.geml 时一样。嵌的一方只决定结果出现在哪。</dd>
+        <dt>散文</dt><dd><code>#budget-before-detail</code> 是 §4 给两块之间散文派生的地址：容器 <code>#budget</code>、下一块 <code>#detail</code>、前面没有块。它能被嵌，说明用 embed 拼一份文档时散文不会丢。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ FAIL ============ -->
+<section id="fail">
+  <div class="sec-head">
+    <div class="sec-num">失败</div>
+    <div>
+      <h2>六种失败，加一个循环</h2>
+      <p class="sub">五个 error 两个 warning，与 A.2 逐条对上。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>b.geml 后半 · c1.geml ↔ c2.geml <span class="st st-spec">规范已定</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">=== embed</span> <span class="a">{#nosrc}</span>                              <span class="arrow">← 没有 src</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{#withbody src=a.geml#tbl}</span>
+<span class="hl">this body is ignored</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{#md <span class="bad">src=notes.md</span>}</span>                  <span class="arrow">← 不是 .geml</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{#js <span class="bad">src=javascript:alert(1)</span>}</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{#gone src=<span class="bad">a.geml#nope</span>}</span>              <span class="arrow">← 片段不存在</span>
+<span class="f">===</span>
+Inline: … and media <span class="bad">![pic](a.geml)</span>.               <span class="arrow">← 用媒体语法嵌文档</span>
+
+<span class="c">%% c1.geml 嵌 c2.geml#c2，c2.geml 嵌 c1.geml#c1</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check --root .</span><span class="badge b-err">5 error</span> <span class="badge b-warn">2 warning</span></div>
+<pre class="term"><span class="er">error:</span> embed: missing `src=` (line 22)
+<span class="wn">warning:</span> embed body is ignored; the target lives in `src=` (line 24)
+<span class="er">error:</span> embed: `notes.md` is not a GEML document; `src=` names a `.geml`
+  file (optionally with a #fragment) (line 27)
+<span class="er">error:</span> embed: `src=javascript:alert(1)` names a disallowed URL scheme (line 29)
+<span class="er">error:</span> unresolved reference `a.geml#nope` (line 31)
+<span class="er">error:</span> `![](a.geml)` projects a GEML document, which is not media: for
+  block content use `=== embed {src=a.geml}`, for a phrase use
+  `![[a.geml]]` (line 33)
+
+<span class="dim">c1.geml</span>
+<span class="er">error:</span> transclusion cycle: c1.geml → c2.geml → c1.geml → c2.geml (line 5)</pre>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>error</dt><dd>缺 src 命名不了任何内容；非 .geml 的字节绝不按 GEML 解析；非法 scheme 在建模时就清掉，任何下游都拿不到它；片段不存在和普通引用一样是错；媒体语法嵌文档是位置错了；循环报出整条链并停止。</dd>
+        <dt>warning</dt><dd>正文写了东西只是被忽略，内容住在 src 里；未知 part 见上一节。</dd>
+        <dt>围栏</dt><dd>§9.4：解析限于 <code>--root</code>，符号链接先解析再判是否越界，建立不了围栏就什么都不解析（<code>unresolvable-document</code>）。探针都带 <code>--root .</code>。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ INLINE ============ -->
+<section id="inline">
+  <div class="sec-head">
+    <div class="sec-num">行内</div>
+    <div>
+      <h2>行内投影、叶值坐标、坐标穿不过 embed</h2>
+      <p class="sub"><code>![[…]]</code> 把一段话或一个值放进句子里。GEP-0011 划了两条线：什么能当目标，坐标能不能穿过 embed。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>单段 text、叶值、穿透 <span class="st st-spec">规范已定</span> <span class="st st-gep">坐标 GEP-0011</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · b.geml 末尾</span></div>
+<pre class="geml">Inline: <span class="hl">![[a.geml#para]]</span> and a leaf value <span class="hl">![[a.geml#vars["version"]]]</span>.
+Row through embed: [[#tbl]] but not #tbl[1]["Item"].</pre>
+          <div class="pane-h" style="margin-top:14px"><span>geml get</span></div>
+<pre class="term"><span class="cmd">$ geml get b.geml '#tbl[1]["Item"]'</span>            <span class="dim">#tbl 是 b 里的 embed</span>
+<span class="er">error:</span> `#tbl[1]["Item"]`: `embed` carries no addressable units inside
+  it — a coordinate needs a table or a `data` block
+<span class="cmd">$ geml get --root . a.geml '#tbl[1]["Item"]'</span>   <span class="dim">到源文档上读</span>
+Hosting</pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>--to html --root .</span></div>
+          <div class="render">
+            <p>Inline: <span class="inl">One paragraph of prose to project inline.</span> and a leaf value <span class="inl">1.4</span>.</p>
+            <span class="cap">第一个是 <code>span.transclusion-inline data-src="a.geml#para"</code>；第二个是 data 块 #vars 里 <code>["version"]</code> 这一个叶值。</span>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>能当目标</dt><dd>§5.2：行内投影的目标必须是恰好一段的 text 块；GEP-0011 再加一种：命名<strong>叶值</strong>的坐标，一个值、自成一体、周围行怎么动都不影响它。位置切片（<code>#tickets[2]</code> 一行、一列）不行：「哪一行」几乎总是谓词而不是下标，那是消费方的过滤器该做的事。</dd>
+        <dt>穿不过</dt><dd>embed 在本文档模型里是空体 raw 块，目标渲染时才解析，所以 <code>#tbl[1]["Item"]</code> 在 b.geml 里不解析。写穿过去会从这份文档改另一份，破坏 §6 的单一来源；读穿过去会让一个值依赖两个会动的东西。</dd>
+        <dt>草案细节</dt><dd class="amber">GEP-0011 说这条 error 应「报出能用的地址」<code>a.geml#tbl[1]["Item"]</code>；实测消息解释了原因但没给出那个地址。草案未接受，记为细节待补。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ TRANSLATE ============ -->
+<section id="translate">
+  <div class="sec-head">
+    <div class="sec-num">翻译</div>
+    <div>
+      <h2>一份译文只含 embed</h2>
+      <p class="sub">GEP-0010：翻译是沿语言轴的投影，和沿格式轴的 <code>.md</code> 投影同一个形状。profile 已注册，规范未收。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption><code>translate-to=</code>：meta 上是默认，embed 上覆盖，none 保留 <span class="st st-gep">GEP 草案</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · tr.geml</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+title = "translated"
+<span class="hl">profile = "geml-translator/v1"</span>
+<span class="hl">translate-to = "zh"</span>                      <span class="c">%% 文档默认</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{src=a.geml#budget}</span>               <span class="c">%% 继承 zh</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{src=a.geml#tbl <span class="hl">translate-to=none</span>}</span>  <span class="c">%% 这一块不译</span>
+<span class="f">===</span></pre>
+          <div class="pane-h" style="margin-top:14px"><span>GEML · tr-noprofile.geml</span></div>
+<pre class="geml"><span class="f">=== embed</span> <span class="a">{src=a.geml#budget <span class="bad">translate-to=zh</span>}</span>   <span class="c">%% 没有 profile 声明</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check --root .</span></div>
+<pre class="term"><span class="dim">tr.geml</span>
+<span class="ok">ok: no diagnostics</span>
+
+<span class="dim">tr-noprofile.geml</span>
+<span class="wn">warning:</span> unknown attribute `translate-to` for block type `embed` (line 4)</pre>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>形状</dt><dd>译文文档里只有 embed，别的什么都没有。id、顺序、每一个非散文字节只有一个家，所以漂移不是被检测出来，而是不可能发生。这与 GEP-0006 让 <code>A.geml</code> 投影到 <code>A.md</code> 的关系相同，只是换到语言轴。</dd>
+        <dt>一个键</dt><dd><code>translate-to</code> 在 meta 上是默认、在 embed 上覆盖、<code>none</code> 保留一块。不叫 <code>lang</code>，因为 <code>code {lang=}</code> 说的是正文<em>已经是</em>什么语言，这里说的是要<em>做</em>什么，两个值空间两种词性不能共用一个键。<code>translator=</code> 保留：只有一个引擎时选引擎的键会「解析、无事发生、看着像支持」。</dd>
+        <dt>放行</dt><dd>§8.6：profile 只放行属性键的<strong>名字</strong>，文档模型不变。声明了 profile 且处理器认识它，键就不再报 unknown-attribute；处理器怎么拿到翻译器是实现定义的，拿不到也合规。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ EVIDENCE ============ -->
+<section id="evidence">
+  <div class="sec-head">
+    <div class="sec-num">依据</div>
+    <div>
+      <h2>探针文件与实测输出</h2>
+      <p class="sub">全部用仓库内当前构建 <code>node geml-parser/dist/geml.js</code> 跑出，版本 1.9.2，带 <code>--root .</code>。探针在会话临时目录的 emb/ 下。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tablewrap">
+      <table class="t">
+        <thead><tr><th>探针</th><th>覆盖</th><th>check 结果</th><th>页面里对应</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">a.geml · b.geml · notes.md</td><td>整节、head、intro、body、未知 part、块目标、本文档目标、缺 src、正文、非 geml、非法 scheme、片段不存在、媒体嵌文档、行内投影、叶值投影</td><td><span class="badge b-err">5 error</span> <span class="badge b-warn">2 warning</span></td><td>part=、失败、行内</td></tr>
+          <tr><td class="mono">b2.geml</td><td>散文地址目标、整份文档目标</td><td><span class="badge b-ok">0 诊断</span></td><td>独立解析</td></tr>
+          <tr><td class="mono">c1.geml · c2.geml</td><td>两文档互嵌</td><td><span class="badge b-err">1 error</span> transclusion-cycle</td><td>失败</td></tr>
+          <tr><td class="mono">tr.geml · tr-noprofile.geml</td><td>translate-to 有无 profile</td><td><span class="badge b-ok">0 诊断</span> / <span class="badge b-warn">1 warning</span></td><td>翻译</td></tr>
+          <tr><td class="mono">get b.geml '#tbl[1]["Item"]'</td><td>坐标穿 embed</td><td><span class="badge b-err">error</span>，源文档上可读</td><td>行内</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>本页：<code>docs/illustrated/05-embed_CN.html</code>，英文版 <code>05-embed.html</code>。系列共五页：简单四型 · code 与 data · table 与 view · diagram · embed。</div>
+</footer>
+</div>

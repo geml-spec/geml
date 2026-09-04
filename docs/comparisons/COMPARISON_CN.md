@@ -162,11 +162,13 @@ Pandoc      （无原生形式 —— 靠过滤器，如 pandoc-include）
 ### 带计算列的表格（GEML 独有）
 
 ```
-GEML        === table {#fy25 format=csv header=1
-              compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4"
-              summary="Segment = 'Total'; FY = sum(FY)"}
+GEML        === table {#fy25 format=csv header=1}
             Segment, Q1, Q2, Q3, Q4
             Cloud,   1,  2,  3,  4
+            ===
+            === view {#fy25-report src=#fy25
+              compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4"
+              summary="Segment = 'Total'; FY = sum(FY)"}
             ===                       → 逐行 FY 列 + 一行 Total 汇总行，
                                         FY 保留 1 位小数
 Org-mode    | Segment | Q1 | Q2 | Q3 | Q4 | FY |

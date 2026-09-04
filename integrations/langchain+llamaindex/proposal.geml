@@ -35,13 +35,16 @@ The numbers below drive the budget request. They are refreshed from the
 capacity model each week; the chart is bound to the table by id, so it
 cannot disagree with it.
 
-=== table {#fy26-cost caption="FY26 warehouse cost by quarter (USD thousands)" compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4"}
+=== table {#fy26-cost caption="FY26 warehouse cost by quarter (USD thousands)"}
 | Component  |  Q1 |  Q2 |  Q3 |  Q4 |
 |------------|----:|----:|----:|----:|
 | Compute    | 210 | 245 | 260 | 275 |
 | Storage    |  84 |  92 | 101 | 110 |
 | Egress     |  31 |  33 |  36 |  38 |
 | Support    |  45 |  45 |  45 |  45 |
+===
+
+=== view {#fy26-total src=#fy26-cost caption="FY26 cost with the full-year total" compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4"}
 ===
 
 === diagram {#cost-chart format=geml-chart data=#fy26-cost type=bar x=Component y="Q1,Q4" caption="Q1 vs Q4 by component"}

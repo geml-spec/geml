@@ -1,0 +1,445 @@
+<title>GEML 块图解 · diagram</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --bg: #F4F6F9; --surface: #FFFFFF; --surface-2: #EBEFF4;
+    --ink: #1B2430; --ink-2: #47535F; --ink-3: #7B8794;
+    --line: #D5DCE4; --line-2: #C3CCD6;
+    --accent: #1F6F8B; --accent-soft: #DCEDF3;
+    --amber: #9A5F0A; --amber-soft: #FAEED3;
+    --red: #B0403B; --red-soft: #F8E2E0;
+    --green: #2E7A50; --green-soft: #DDF0E4;
+    --on-solid: #FFFFFF;
+    --shadow: 0 1px 2px rgba(27, 36, 48, .06), 0 6px 18px rgba(27, 36, 48, .05);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11161C; --surface: #191F27; --surface-2: #202832;
+      --ink: #E6EBF0; --ink-2: #B3BDC8; --ink-3: #7F8B98;
+      --line: #2C3642; --line-2: #3A4552;
+      --accent: #63B5D1; --accent-soft: #14323D;
+      --amber: #E2AC45; --amber-soft: #382B10;
+      --red: #E27F79; --red-soft: #3E1F1E;
+      --green: #6CC08E; --green-soft: #173124;
+      --on-solid: #0F141A;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11161C; --surface: #191F27; --surface-2: #202832;
+    --ink: #E6EBF0; --ink-2: #B3BDC8; --ink-3: #7F8B98;
+    --line: #2C3642; --line-2: #3A4552;
+    --accent: #63B5D1; --accent-soft: #14323D;
+    --amber: #E2AC45; --amber-soft: #382B10;
+    --red: #E27F79; --red-soft: #3E1F1E;
+    --green: #6CC08E; --green-soft: #173124;
+    --on-solid: #0F141A;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.7 "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 48px 28px 96px; }
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+  p { margin: 0; }
+  a { color: var(--accent); }
+  code, pre, .mono { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; }
+  code { font-size: .92em; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; }
+  .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  header h1 { font-size: 34px; line-height: 1.2; font-weight: 600; margin-top: 10px; letter-spacing: -.01em; }
+  header .lede { max-width: 66ch; color: var(--ink-2); margin-top: 16px; font-size: 16px; }
+  .toc { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 22px; font-size: 14px; }
+  .toc a { text-decoration: none; border-bottom: 1px solid var(--line-2); padding-bottom: 1px; }
+  .toc a:hover, .toc a:focus-visible { border-color: var(--accent); }
+  section { margin-top: 72px; }
+  .sec-head { display: grid; grid-template-columns: 64px 1fr; gap: 16px; align-items: baseline; border-top: 1px solid var(--line-2); padding-top: 22px; }
+  .sec-num { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; padding-top: 6px; }
+  .sec-head h2 { font-size: 24px; font-weight: 600; letter-spacing: -.005em; }
+  .sec-head .sub { color: var(--ink-2); margin-top: 6px; max-width: 70ch; }
+  .sec-body { margin-left: 80px; margin-top: 28px; display: grid; gap: 40px; }
+  @media (max-width: 860px) { .sec-head { grid-template-columns: 1fr; gap: 6px; } .sec-body { margin-left: 0; } }
+  .st { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; letter-spacing: .04em; padding: 2px 8px; border-radius: 3px; font-weight: 600; white-space: nowrap; color: var(--on-solid); vertical-align: middle; }
+  .st-spec { background: var(--green); } .st-gap { background: var(--red); } .st-gep { background: var(--accent); } .st-obs { background: var(--ink-3); }
+  .board { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); }
+  table.b { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.b th, table.b td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.b tr:last-child td { border-bottom: 0; }
+  table.b th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.b td.n { color: var(--ink-3); font-variant-numeric: tabular-nums; width: 32px; }
+  table.b td.src { color: var(--ink-3); white-space: nowrap; font-size: 13px; }
+  table.b tr.grp td { background: var(--surface-2); font-weight: 600; font-size: 13px; letter-spacing: .04em; color: var(--ink-2); }
+  .tally { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-bottom: 14px; font-size: 14px; color: var(--ink-2); align-items: center; }
+  .tally b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+  figure { margin: 0; display: grid; gap: 18px; }
+  figure > figcaption { font-size: 17px; font-weight: 600; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+  figure > figcaption small { flex-basis: 100%; font-size: 14px; font-weight: 400; color: var(--ink-2); }
+  .panes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 980px) { .panes { grid-template-columns: 1fr; } .sec-body { margin-left: 0; } }
+  .pane-h { display: flex; justify-content: space-between; align-items: center; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; margin-bottom: 8px; }
+  pre.geml { margin: 0; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; font-size: 13px; line-height: 1.6; overflow-x: auto; color: var(--ink); }
+  pre.geml .f { color: var(--accent); font-weight: 500; } pre.geml .a { color: var(--ink-2); } pre.geml .c { color: var(--ink-3); font-style: italic; }
+  pre.geml .hl { background: var(--amber-soft); color: var(--amber); border-radius: 2px; padding: 0 2px; }
+  pre.geml .bad { background: var(--red-soft); color: var(--red); border-radius: 2px; padding: 0 2px; }
+  pre.geml .arrow { color: var(--red); font-family: "IBM Plex Sans", "Noto Sans SC", sans-serif; font-style: normal; }
+  .term { background: var(--ink); color: #E6EBF0; border-radius: 6px; padding: 12px 14px; font-size: 12.5px; line-height: 1.6; overflow-x: auto; margin: 0; }
+  :root[data-theme="dark"] .term { background: #0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .term { background: #0B0F14; } }
+  .term .ok { color: #7ED4A0; } .term .er { color: #F09A94; } .term .wn { color: #F0C060; } .term .dim { color: #8A96A3; } .term .cmd { color: #9CC7FF; }
+  .render { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px; box-shadow: var(--shadow); display: grid; gap: 14px; font-size: 14px; }
+  .tag { display: inline-flex; align-items: center; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; padding: 1px 6px; border-radius: 3px; background: var(--surface-2); color: var(--ink-3); font-weight: 500; font-family: "IBM Plex Mono", monospace; }
+  .r-code { position: relative; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; font-family: "IBM Plex Mono", monospace; font-size: 13px; line-height: 1.6; white-space: pre; overflow-x: auto; }
+  .r-code .tag { position: absolute; top: 8px; right: 10px; }
+  .r-mermaid { border: 1px solid var(--line); border-radius: 6px; padding: 14px; display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; font-size: 13px; }
+  .node { border: 1px solid var(--ink-2); border-radius: 4px; padding: 4px 10px; background: var(--surface); }
+  .node.dia { border-radius: 4px; transform: skewX(-12deg); }
+  .edge { color: var(--ink-3); font-family: "IBM Plex Mono", monospace; font-size: 12px; }
+  .chart { display: grid; grid-template-columns: 40px 1fr; gap: 6px; align-items: end; height: 150px; border-left: 1px solid var(--line-2); border-bottom: 1px solid var(--line-2); padding: 6px 8px 0 0; position: relative; }
+  .chart .ticks { display: grid; grid-template-rows: repeat(3, 1fr); height: 100%; font-size: 11px; color: var(--ink-3); text-align: right; font-family: "IBM Plex Mono", monospace; }
+  .chart .bars { display: flex; gap: 40px; align-items: end; height: 100%; padding: 0 30px; }
+  .bar { width: 90px; background: #2563eb; border-radius: 2px 2px 0 0; display: flex; align-items: flex-start; justify-content: center; color: #fff; font-size: 12px; padding-top: 4px; font-family: "IBM Plex Mono", monospace; }
+  .xlabels { display: flex; gap: 40px; padding: 4px 0 0 76px; font-size: 12px; color: var(--ink-2); }
+  .xlabels span { width: 90px; text-align: center; }
+  .cap { font-size: 12.5px; color: var(--ink-3); }
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; font-weight: 500; white-space: nowrap; }
+  .b-err { background: var(--red-soft); color: var(--red); } .b-warn { background: var(--amber-soft); color: var(--amber); } .b-ok { background: var(--green-soft); color: var(--green); } .b-mute { background: var(--surface-2); color: var(--ink-3); }
+  .decision { display: grid; grid-template-columns: 72px 1fr; gap: 6px 16px; font-size: 14.5px; border-top: 1px dashed var(--line-2); padding-top: 14px; }
+  .decision dt { color: var(--ink-3); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; font-weight: 500; padding-top: 4px; }
+  .decision dd { margin: 0; color: var(--ink); } .decision dd.amber { color: var(--amber); }
+  table.t { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.t th, table.t td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.t tr:last-child td { border-bottom: 0; }
+  table.t th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.t td.mono { font-size: 13px; }
+  .tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+  footer { margin-top: 80px; border-top: 1px solid var(--line-2); padding-top: 18px; font-size: 13.5px; color: var(--ink-3); display: grid; gap: 6px; }
+  footer code { background: transparent; padding: 0; color: var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">GEML 块类型图解 · 第 4 页 / 5 · 规范 1.0 · 实测 geml 1.9.2 本地构建</div>
+  <h1>GEML 块图解 · diagram</h1>
+  <p class="lede"><code>diagram</code> 有两种用法。一种是装外部 DSL：正文原样交给 <code>format=</code> 选的渲染器，处理器只负责不解释它。另一种是内置的 <code>geml-chart</code>：图完全由属性描述、绑到一张表或一个记录数组上，所以处理器能逐条校验，一个打错的列名就是构建错误。这一页把两种都实测一遍，十几条校验逐条对上 A.4。</p>
+  <nav class="toc">
+    <a href="#board">看板</a>
+    <a href="#dsl">外部 DSL</a>
+    <a href="#chart">geml-chart</a>
+    <a href="#checks">十五条校验</a>
+    <a href="#codegraph">geml-code-graph</a>
+    <a href="#evidence">依据</a>
+  </nav>
+</header>
+
+<!-- ============ BOARD ============ -->
+<section id="board">
+  <div class="sec-head">
+    <div class="sec-num">看板</div>
+    <div>
+      <h2>15 条规则，各自的出处和状态</h2>
+      <p class="sub"><span class="st st-spec">规范已定</span> 规范或已接受的 GEP 写死的。<span class="st st-obs">实测</span> 规范不规定、参考实现今天这样做。<span class="st st-gap">草案缺口</span> 草案该说而没说的。实现偏差本页未发现。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div>
+      <div class="tally">
+        <span><span class="st st-spec">规范已定</span> <b>11</b></span>
+        <span><span class="st st-obs">实测</span> <b>3</b></span>
+        <span><span class="st st-gap">草案缺口</span> <b>1</b></span>
+      </div>
+      <div class="board">
+        <table class="b">
+          <thead><tr><th></th><th>规则</th><th>出处</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr class="grp"><td></td><td colspan="3">外部 DSL</td></tr>
+            <tr><td class="n">1</td><td>raw 体，<code>format=</code> 选一个可插拔渲染器（mermaid、graphviz、d2、plantuml…）。处理器必须暴露渲染器注册表，<strong>不得解释正文</strong>。未知 format 是 warning，正文保留。</td><td class="src">§7 · A.4</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">2</td><td><code>#id</code> 让图可引用：<code>[[#flow]]</code>，链接文字取 caption。</td><td class="src">§7 · §5.2</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">3</td><td>raw 体不做 <code>{{key}}</code> 插值，<code>%%</code> 行是正文。</td><td class="src">§4</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">4</td><td>参考实现的注册表认识 mermaid、graphviz、d2、plantuml、geml-chart、geml-code-graph。只有 mermaid 有内置引擎：输出 <code>pre.mermaid</code> 并在页面引入 mermaid 模块脚本；其余三个 DSL 输出 <code>pre.diagram-src data-format=</code> 原文，不 warning；<code>vega-lite</code> 和任何未知名字 warning。</td><td class="src">--to html</td><td><span class="st st-obs">实测</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">数据绑定与 geml-chart</td></tr>
+            <tr><td class="n">5</td><td><code>data=</code> 三种目标同 table 的 <code>src=</code>：csv/tsv 或 json/jsonl 文件、<code>#id</code>、<code>doc.geml#id</code>。目标是 table 时贡献其模型（含计算列）；是 data 块时必须是<strong>记录数组</strong>，图引用的列在每条记录里必须是标量；违规 error。</td><td class="src">§7.1 · A.4</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">6</td><td><code>geml-chart</code> 全在属性里：<code>type</code> 五选一 <code>bar line area pie scatter</code>；通道 <code>x</code>（类目）、<code>y</code>（值，逗号列表即多系列）、<code>series</code>、<code>size</code>；<code>x</code>、<code>y</code> 必填；<code>rows=data|all|summary</code>。正文应为空，非空 warning。</td><td class="src">§7.1</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">7</td><td>构建时校验：缺 data、目标非表、非记录数组、缺 type、未知 type、缺通道、未知列、未知 rows、y 列非数、<code>rows=summary</code> 无汇总行 → error；未用通道、<code>rows=all</code> 无汇总行 → warning。</td><td class="src">A.4</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">8</td><td>外部数据渲染时取，列校验推迟到渲染器；http(s) 需渲染器 opt-in，因为取 URL 会泄露读者地址和时间。</td><td class="src">§7.1 · §9.4</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">9</td><td>要更多（标注、参考线、热力图）用宿主 DSL：<code>format=vega-lite data=#fy</code>，正文 raw、<strong>不做列校验</strong>。</td><td class="src">§7.1</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">10</td><td>渲染：geml-chart 输出内联 <code>svg.geml-chart role="img"</code>，rect / path / text；不依赖外部脚本。</td><td class="src">--to html</td><td><span class="st st-obs">实测</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">geml-code-graph（GEP-0003 已接受，codemap profile §6）</td></tr>
+            <tr><td class="n">11</td><td><code>geml-code-graph</code> 是一种<strong>被解释</strong>的 diagram 格式：把一份 codemap 文档树画成分层的方法流图。嵌入点<strong>只有一个属性</strong> <code>src=</code>，指向 codemap 的 <code>index.geml</code> 或某个容器文档；正文为空，非空 warning。</td><td class="src">GEP-0003 · codemap §6</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">12</td><td>根和深度<strong>从不</strong>在嵌入点写：来自 <code>src</code> 所指文档的 meta（<code>entry</code>、<code>graph-depth</code>）。视图配置随数据走，嵌入点不可能漂移；换根就是指向另一个容器文档，方法级下钻是点击交互，不是属性。</td><td class="src">GEP-0003</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">13</td><td>缺 <code>src=</code>、<code>src</code> 解析不到都是 <strong>warning</strong>：画不出东西，文档没错。</td><td class="src">A.4</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">14</td><td>渲染：<code>figure.code-graph &gt; div.cg-mount data-start data-graph</code>，图数据内联成 JSON，布局在绘制时由页面脚本完成；解析失败时同一 figure 里是 <code>p.render-error</code>。</td><td class="src">--to html</td><td><span class="st st-obs">实测</span></td></tr>
+            <tr><td class="n">15</td><td><strong>相关草案缺口：</strong>GEP-0012 把 compute/summary 搬到 view 后，<code>geml-chart</code> 的 <code>data=</code> 需要能指向 view，否则画计算列的图没有数据源。0012 正文未提。详见第 3 页看板 18。</td><td class="src">GEP-0012 ↔ §7.1</td><td><span class="st st-gap">草案缺口</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DSL ============ -->
+<section id="dsl">
+  <div class="sec-head">
+    <div class="sec-num">DSL</div>
+    <div>
+      <h2>四种外部 DSL 和一个未知名字</h2>
+      <p class="sub">处理器对它们做的事完全一样：原样保留。差别只在渲染器有没有引擎。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>mermaid · graphviz · d2 · plantuml · foo <span class="st st-spec">规范已定</span> <span class="st st-obs">渲染实测</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · d1-diagram.geml</span></div>
+<pre class="geml"><span class="f">=== diagram</span> <span class="a">{#flow <span class="hl">format=mermaid</span> caption="Review flow"}</span>
+graph LR
+  A[Draft] --> B{Review}
+  B -->|ok| C[Publish]
+<span class="f">===</span>
+<span class="f">=== diagram</span> <span class="a">{#gv format=graphviz}</span>
+digraph { a -> b }
+<span class="f">===</span>
+<span class="f">=== diagram</span> <span class="a">{#d2 format=d2}</span>
+a -> b
+<span class="f">===</span>
+<span class="f">=== diagram</span> <span class="a">{#pu format=plantuml}</span>
+@startuml
+a -> b
+@enduml
+<span class="f">===</span>
+<span class="f">=== diagram</span> <span class="a">{#odd <span class="bad">format=foo</span>}</span>
+anything at all, {{title}} is not interpolated in raw
+<span class="f">===</span>
+See [[#flow]].</pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check · --to html</span></div>
+<pre class="term"><span class="wn">warning:</span> no registered renderer for diagram format `foo`; body kept raw (line 21)
+0 error(s), 1 warning(s)</pre>
+          <div class="render" style="margin-top:12px">
+            <span class="tag">figure #flow › pre.mermaid · 页面引入 mermaid 模块脚本后渲染成</span>
+            <div class="r-mermaid"><span class="node">Draft</span><span class="edge">→</span><span class="node dia">Review</span><span class="edge">→ ok →</span><span class="node">Publish</span></div>
+            <span class="tag">figure #gv › pre.diagram-src data-format="graphviz" · 已注册，无内置引擎，原文显示</span>
+            <div class="r-code">digraph { a -&gt; b }</div>
+            <span class="tag">figure #odd › 未知 format，原文保留</span>
+            <div class="r-code">anything at all, {{title}} is not interpolated in raw</div>
+            <p>See <a href="#dsl" style="pointer-events:none">Review flow</a>.</p>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>规则</dt><dd>§7：<code>format</code> 选渲染器，正文 raw 原样交过去，处理器必须暴露注册表、不得解释正文。未知 format 只是 warning，因为正文没有丢，只是没有人画它。</dd>
+        <dt>两种「不画」</dt><dd class="amber">实测里 graphviz、d2、plantuml 在注册表里，所以不 warning，但参考实现没有内置引擎，输出的是带 <code>data-format</code> 的原文；宿主可以自己接引擎。<code>vega-lite</code> 虽然 §7.1 拿它举例，注册表里却没有，会 warning。这是「注册表开放」的正常状态，不是偏差。</dd>
+        <dt>raw</dt><dd><code>{{title}}</code> 在 raw 体里不插值（§4），原样进了输出；<code>%%</code> 也一样。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ CHART ============ -->
+<section id="chart">
+  <div class="sec-head">
+    <div class="sec-num">chart</div>
+    <div>
+      <h2><code>geml-chart</code>：图全在属性里，所以能校验</h2>
+      <p class="sub">四个成功的例子：绑一张带计算列的表、绑一个记录数组、绑一个 csv 文件画两条线、把汇总行当额外一点。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>四种数据源，一种描述方式 <span class="st st-spec">规范已定</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · d2-chart.geml 节选</span></div>
+<pre class="geml"><span class="f">=== table</span> <span class="a">{#fy format=csv compute="FY = Q1 + Q2" summary="Segment = 'Total'; FY = sum(FY)"}</span>
+Segment,Q1,Q2
+Cloud,124.5,131.2
+Hardware,88.1,84.6
+<span class="f">===</span>
+<span class="f">=== data</span> <span class="a">{#recs}</span>
+[{"seg": "Cloud", "fy": 255.7}, {"seg": "Hardware", "fy": 172.7}]
+<span class="f">===</span>
+
+<span class="f">=== diagram</span> <span class="a">{#ok format=geml-chart <span class="hl">data=#fy</span> type=bar x=Segment <span class="hl">y=FY</span> caption="FY revenue"}</span>
+<span class="f">===</span>                                    <span class="c">%% y 是计算列：表模型含计算列</span>
+<span class="f">=== diagram</span> <span class="a">{#ok2 format=geml-chart <span class="hl">data=#recs</span> type=pie x=seg y=fy}</span>
+<span class="f">===</span>                                    <span class="c">%% 记录数组：键投影成列</span>
+<span class="f">=== diagram</span> <span class="a">{#ok3 format=geml-chart <span class="hl">data=rows.csv</span> type=line x=Segment <span class="hl">y="Q1, Q2"</span>}</span>
+<span class="f">===</span>                                    <span class="c">%% 文件；逗号列表 = 两个系列</span>
+<span class="f">=== diagram</span> <span class="a">{#sumrow format=geml-chart data=#fy type=bar x=Segment y=FY <span class="hl">rows=all</span>}</span>
+<span class="f">===</span>                                    <span class="c">%% 汇总行作为额外一点</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>--to html · #ok</span><span class="badge b-ok">无诊断</span></div>
+          <div class="render">
+            <span class="tag">svg.geml-chart role="img" · viewBox 0 0 760 380 · rect + text.c-tick</span>
+            <div class="chart">
+              <div class="ticks"><span>300</span><span>150</span><span>0</span></div>
+              <div class="bars"><div class="bar" style="height:85%">255.7</div><div class="bar" style="height:58%">172.7</div></div>
+            </div>
+            <div class="xlabels"><span>Cloud</span><span>Hardware</span></div>
+            <span class="cap">内联 SVG，不加载外部脚本。#ok2 是饼图，#ok3 两条线，#sumrow 多一根 Total 柱。四个块的正文都为空。</span>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>为什么能校验</dt><dd>§7.1：<code>format</code> 仍只选渲染器，但图的全部描述在属性里，处理器读得懂，所以列名、data 的 id、rows 都能在构建时对着表校验。正文留空；写了东西是 <code>ignored-diagram-body</code> warning。</dd>
+        <dt>数据源</dt><dd>三种目标与 table 的 <code>src=</code> 同形。table 贡献模型含计算列，所以 <code>y=FY</code> 合法。data 块必须是非空的 map 序列，被引用的列每条记录都得是标量；没引用的列随便。文件是匿名表或匿名记录源。</dd>
+        <dt>type</dt><dd>五个值只改通道怎么画，从不增加新属性。要更多形状就换宿主 DSL，比如 <code>format=vega-lite data=#fy</code>，正文 raw、不校验列。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ CHECKS ============ -->
+<section id="checks">
+  <div class="sec-head">
+    <div class="sec-num">校验</div>
+    <div>
+      <h2>十五条校验，一次跑完</h2>
+      <p class="sub">十一个 error、四个 warning，与 A.4 逐条对上。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>d2-chart.geml · d3-chart.geml <span class="st st-spec">规范已定</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">=== diagram</span> <span class="a">{#e1 format=geml-chart <span class="bad">type=bar x=Segment y=FY</span>}</span>          <span class="arrow">← 没有 data</span>
+<span class="f">=== diagram</span> <span class="a">{#e2 format=geml-chart <span class="bad">data=#n</span> …}</span>                    <span class="arrow">← #n 是 note</span>
+<span class="f">=== diagram</span> <span class="a">{#e3 format=geml-chart <span class="bad">data=#badrecs</span> x=seg y=fy}</span>     <span class="arrow">← 第 2 条记录缺 fy</span>
+<span class="f">=== diagram</span> <span class="a">{#e4 format=geml-chart data=#fy <span class="bad">x=Segment y=FY</span>}</span>       <span class="arrow">← 没有 type</span>
+<span class="f">=== diagram</span> <span class="a">{#e5 … <span class="bad">type=donut</span> …}</span>
+<span class="f">=== diagram</span> <span class="a">{#e6 … type=bar <span class="bad">x=Segment</span>}</span>                          <span class="arrow">← 缺 y</span>
+<span class="f">=== diagram</span> <span class="a">{#e7 … <span class="bad">y=Nope</span>}</span>
+<span class="f">=== diagram</span> <span class="a">{#w1 … type=bar x=Segment y=FY <span class="hl">size=Q1</span>}</span>             <span class="c">%% bar 不画 size</span>
+<span class="f">=== diagram</span> <span class="a">{#e8 … <span class="bad">rows=everything</span>}</span>
+<span class="f">=== diagram</span> <span class="a">{#w2 … type=bar x=Segment y=FY}</span>
+<span class="hl">this body is ignored</span>
+<span class="f">===</span>
+<span class="f">=== diagram</span> <span class="a">{#e9 … <span class="bad">y=Segment</span>}</span>                                <span class="arrow">← y 列不是数</span>
+
+<span class="c">%% d3：#plain 没有 summary=</span>
+<span class="f">=== diagram</span> <span class="a">{#s1 … data=#plain <span class="bad">rows=summary</span>}</span>
+<span class="f">=== diagram</span> <span class="a">{#s2 … data=#plain <span class="hl">rows=all</span>}</span>
+<span class="f">=== diagram</span> <span class="a">{#cg <span class="hl">format=geml-code-graph</span>}</span>                         <span class="c">%% 没有 src</span>
+<span class="f">=== diagram</span> <span class="a">{#vl <span class="hl">format=vega-lite</span> data=#plain}</span>
+{"mark": "bar", "encoding": {"y": {"field": "Nope"}}}    <span class="c">%% 不校验列</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check</span><span class="badge b-err">11 error</span> <span class="badge b-warn">4 warning</span></div>
+<pre class="term"><span class="wn">warning:</span> geml-chart body is ignored; the chart spec lives in attributes (line 45)
+<span class="er">error:</span> geml-chart: missing `data=#id` (line 27)
+<span class="er">error:</span> geml-chart: data target `#n` is not a table (line 29)
+<span class="er">error:</span> geml-chart: column `fy` is missing or non-scalar in record 2 (line 31)
+<span class="er">error:</span> chart: missing `type` (line 33)
+<span class="er">error:</span> chart: unknown type `donut` (supported: bar, line, area, pie,
+  scatter; use format=vega-lite for others) (line 35)
+<span class="er">error:</span> chart: missing required channel `y` (line 37)
+<span class="er">error:</span> chart: column `Nope` not found in table (line 39)
+<span class="wn">warning:</span> chart: `size` is ignored for type `bar` (line 41)
+<span class="er">error:</span> chart: unknown rows scope `everything` (data|all|summary) (line 43)
+<span class="er">error:</span> chart: non-numeric value in a y column (line 48)
+
+<span class="dim">d3-chart.geml</span>
+<span class="wn">warning:</span> geml-code-graph: missing `src=` (nothing to render) (line 12)
+<span class="wn">warning:</span> no registered renderer for diagram format `vega-lite`; body kept raw (line 14)
+<span class="er">error:</span> chart: rows=summary but the table has no summary row (line 8)
+<span class="wn">warning:</span> chart: rows=all but the table has no summary row; using data rows (line 10)</pre>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>error</dt><dd>图描述本身说不通：没数据、数据不是表、记录缺列、没 type、type 不在五个里、缺必填通道、列不存在、rows 不在三个里、y 列不是数、要汇总行却没有。这些在构建时就能判定，所以是 error。</dd>
+        <dt>warning</dt><dd>能画但有多余或有缺：type 用不上的通道、rows=all 却没汇总行（就画数据行）、正文写了东西（忽略）。code-graph 缺 src 也是 warning，画不出东西但文档没错。</dd>
+        <dt>vega-lite</dt><dd>正文里的 <code>Nope</code> 列没有被检查，符合 §7.1「宿主 DSL 的正文 raw 且不做列校验」；那条 warning 是注册表里没有它的渲染器，不是列错。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ CODE GRAPH ============ -->
+<section id="codegraph">
+  <div class="sec-head">
+    <div class="sec-num">code-graph</div>
+    <div>
+      <h2><code>geml-code-graph</code>：把一份 codemap 画成方法流图</h2>
+      <p class="sub">GEP-0003 已接受。它和 geml-chart 一样是被解释的格式，但走到了另一个极端：嵌入点只有 <code>src=</code>，别的什么都不能写。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>指向 playground 里的真实 codemap <span class="st st-spec">规范已定</span> <span class="st st-obs">渲染实测</span><small>探针放在 <code>playground/codemap/</code> 里跑，跑完删除；那里有 <code>geml codemap build</code> 生成的 index.geml 和每个容器一份的文档。</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · _probe-cg.geml</span></div>
+<pre class="geml"><span class="f">=== diagram</span> <span class="a">{#g <span class="hl">format=geml-code-graph src=index.geml</span> caption="Repo graph"}</span>
+<span class="f">===</span>
+<span class="f">=== diagram</span> <span class="a">{#g2 format=geml-code-graph src=<span class="bad">geml-parser--chart.ts.geml#chart</span>}</span>
+<span class="f">===</span>                                    <span class="c">%% 带片段：不是它认的目标</span>
+<span class="f">=== diagram</span> <span class="a">{#g3 format=geml-code-graph src=<span class="bad">nowhere.geml</span>}</span>
+<span class="f">===</span>
+<span class="f">=== diagram</span> <span class="a">{#g4 format=geml-code-graph src=index.geml}</span>
+<span class="hl">body here is ignored</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check --root playground/codemap · --to html</span></div>
+<pre class="term"><span class="wn">warning:</span> geml-code-graph: cannot resolve document
+  `geml-parser--chart.ts.geml#chart` (line 7)
+<span class="wn">warning:</span> geml-code-graph: cannot resolve document `nowhere.geml` (line 9)
+<span class="wn">warning:</span> geml-code-graph body is ignored; the embed is configured by
+  `src=` alone (line 11)
+0 error(s), 3 warning(s)   <span class="dim">exit 0</span>
+
+<span class="dim">&lt;figure class="code-graph" id="g"&gt;&lt;div class="cg-mount" data-start="…" data-graph="{…}"&gt;</span>
+<span class="dim">&lt;figure class="code-graph" id="g2"&gt;&lt;p class="render-error"&gt;…</span>
+<span class="dim">&lt;figure class="code-graph" id="g3"&gt;&lt;p class="render-error"&gt;…</span></pre>
+          <div class="render" style="margin-top:12px">
+            <span class="tag">figure.code-graph #g › div.cg-mount · 图数据内联 JSON，布局绘制时算</span>
+            <div class="r-mermaid" style="justify-content:flex-start"><span class="node">index.geml · entry</span><span class="edge">→</span><span class="node">container</span><span class="edge">→</span><span class="node">method</span><span class="edge">⋯ 点击下钻</span></div>
+            <span class="cap">根和深度来自 index.geml 的 meta，嵌入点没写、也不能写。</span>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>只有 src</dt><dd>GEP-0003：视图配置随数据走。根是 codemap 文档 meta 的 <code>entry</code>，深度是 <code>graph-depth</code>，嵌入点写不了这些，所以嵌入点不可能和数据漂移。想换根就指向另一个容器文档；想看方法级细节就点节点，那是交互不是属性。</dd>
+        <dt>与 chart 对比</dt><dd>两个被解释的格式，两种哲学：geml-chart 把描述全放在属性里，让处理器能校验每个列名；geml-code-graph 把描述全放在数据那边，让嵌入点只剩一个指针。共同点是正文都为空。</dd>
+        <dt>轻重</dt><dd>缺 src、解析不到都是 warning，和 code 块的路由一样：画不出东西，但文档描述的对象存在于某处，文档本身没错。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ EVIDENCE ============ -->
+<section id="evidence">
+  <div class="sec-head">
+    <div class="sec-num">依据</div>
+    <div>
+      <h2>探针文件与实测输出</h2>
+      <p class="sub">全部用仓库内当前构建 <code>node geml-parser/dist/geml.js</code> 跑出，版本 1.9.2。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tablewrap">
+      <table class="t">
+        <thead><tr><th>探针</th><th>覆盖</th><th>check 结果</th><th>页面里对应</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">d1-diagram.geml</td><td>mermaid、graphviz、d2、plantuml、未知 foo、raw 不插值、caption 自动文字</td><td><span class="badge b-warn">1 warning</span></td><td>外部 DSL</td></tr>
+          <tr><td class="mono">d2-chart.geml · rows.csv</td><td>四个成功例；缺 data、非表、非记录数组、缺 type、未知 type、缺通道、未知列、未用通道、未知 rows、正文非空、y 非数</td><td><span class="badge b-err">9 error</span> <span class="badge b-warn">2 warning</span></td><td>geml-chart、校验</td></tr>
+          <tr><td class="mono">d3-chart.geml</td><td>rows=summary 无汇总行、rows=all 无汇总行、code-graph 缺 src、vega-lite 正文不校验</td><td><span class="badge b-err">1 error</span> <span class="badge b-warn">3 warning</span></td><td>校验</td></tr>
+          <tr><td class="mono">playground/codemap/_probe-cg.geml</td><td>指向真实 codemap 的 index、带片段的目标、不存在的文档、非空正文</td><td><span class="badge b-warn">3 warning</span></td><td>geml-code-graph</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>本页：<code>docs/illustrated/04-diagram_CN.html</code>，英文版 <code>04-diagram.html</code>。系列共五页：简单四型 · code 与 data · table 与 view · diagram · embed。</div>
+</footer>
+</div>

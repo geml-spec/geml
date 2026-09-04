@@ -1,0 +1,325 @@
+<title>GEML Illustrated · geml-history</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root { --bg:#F4F6F9; --surface:#FFFFFF; --surface-2:#EBEFF4; --ink:#1B2430; --ink-2:#47535F; --ink-3:#7B8794; --line:#D5DCE4; --line-2:#C3CCD6; --accent:#1F6F8B; --accent-soft:#DCEDF3; --amber:#9A5F0A; --amber-soft:#FAEED3; --red:#B0403B; --red-soft:#F8E2E0; --green:#2E7A50; --green-soft:#DDF0E4; --on-solid:#FFFFFF; --shadow:0 1px 2px rgba(27,36,48,.06),0 6px 18px rgba(27,36,48,.05); color-scheme:light; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#11161C; --surface:#191F27; --surface-2:#202832; --ink:#E6EBF0; --ink-2:#B3BDC8; --ink-3:#7F8B98; --line:#2C3642; --line-2:#3A4552; --accent:#63B5D1; --accent-soft:#14323D; --amber:#E2AC45; --amber-soft:#382B10; --red:#E27F79; --red-soft:#3E1F1E; --green:#6CC08E; --green-soft:#173124; --on-solid:#0F141A; --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25); color-scheme:dark; } }
+  :root[data-theme="dark"] { --bg:#11161C; --surface:#191F27; --surface-2:#202832; --ink:#E6EBF0; --ink-2:#B3BDC8; --ink-3:#7F8B98; --line:#2C3642; --line-2:#3A4552; --accent:#63B5D1; --accent-soft:#14323D; --amber:#E2AC45; --amber-soft:#382B10; --red:#E27F79; --red-soft:#3E1F1E; --green:#6CC08E; --green-soft:#173124; --on-solid:#0F141A; --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25); color-scheme:dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.65 "IBM Plex Sans",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1120px; margin:0 auto; padding:48px 28px 96px; }
+  h1,h2,h3 { text-wrap:balance; margin:0; } p { margin:0; } a { color:var(--accent); }
+  code,pre,.mono { font-family:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace; }
+  code { font-size:.92em; background:var(--surface-2); padding:1px 5px; border-radius:3px; }
+  .eyebrow { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  header h1 { font-size:34px; line-height:1.2; font-weight:600; margin-top:10px; letter-spacing:-.01em; }
+  header .lede { max-width:66ch; color:var(--ink-2); margin-top:16px; font-size:16px; }
+  .toc { display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:22px; font-size:14px; }
+  .toc a { text-decoration:none; border-bottom:1px solid var(--line-2); padding-bottom:1px; }
+  section { margin-top:72px; }
+  .sec-head { display:grid; grid-template-columns:64px 1fr; gap:16px; align-items:baseline; border-top:1px solid var(--line-2); padding-top:22px; }
+  .sec-num { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:500; padding-top:6px; }
+  .sec-head h2 { font-size:24px; font-weight:600; } .sec-head .sub { color:var(--ink-2); margin-top:6px; max-width:70ch; }
+  .sec-body { margin-left:80px; margin-top:28px; display:grid; gap:40px; }
+  @media (max-width:860px) { .sec-head { grid-template-columns:1fr; gap:6px; } .sec-body { margin-left:0; } }
+  .st { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; letter-spacing:.04em; padding:2px 8px; border-radius:3px; font-weight:600; white-space:nowrap; color:var(--on-solid); vertical-align:middle; }
+  .st-spec { background:var(--green); } .st-gap { background:var(--red); } .st-gep { background:var(--accent); } .st-obs { background:var(--ink-3); }
+  .board { overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:6px; box-shadow:var(--shadow); }
+  table.b { border-collapse:collapse; width:100%; font-size:14px; }
+  table.b th, table.b td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.b tr:last-child td { border-bottom:0; }
+  table.b th { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  table.b td.n { color:var(--ink-3); font-variant-numeric:tabular-nums; width:32px; }
+  table.b td.src { color:var(--ink-3); white-space:nowrap; font-size:13px; }
+  .tally { display:flex; flex-wrap:wrap; gap:10px 22px; margin-bottom:14px; font-size:14px; color:var(--ink-2); align-items:center; } .tally b { font-weight:600; color:var(--ink); }
+  figure { margin:0; display:grid; gap:18px; }
+  figure > figcaption { font-size:17px; font-weight:600; display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; }
+  .panes { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; align-items:start; }
+  @media (max-width:980px) { .panes { grid-template-columns:1fr; } .sec-body { margin-left:0; } }
+  .pane-h { display:flex; justify-content:space-between; align-items:center; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; margin-bottom:8px; }
+  pre.geml { margin:0; background:var(--surface-2); border:1px solid var(--line); border-radius:6px; padding:14px 16px; font-size:13px; line-height:1.6; overflow-x:auto; color:var(--ink); }
+  pre.geml .f { color:var(--accent); font-weight:500; } pre.geml .a { color:var(--ink-2); } pre.geml .c { color:var(--ink-3); font-style:italic; }
+  pre.geml .hl { background:var(--amber-soft); color:var(--amber); border-radius:2px; padding:0 2px; }
+  .term { background:var(--ink); color:#E6EBF0; border-radius:6px; padding:12px 14px; font-size:12.5px; line-height:1.6; overflow-x:auto; margin:0; }
+  :root[data-theme="dark"] .term { background:#0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .term { background:#0B0F14; } }
+  .term .ok { color:#7ED4A0; } .term .er { color:#F09A94; } .term .wn { color:#F0C060; } .term .dim { color:#8A96A3; } .term .cmd { color:#9CC7FF; }
+  .flow { display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:13px; }
+  .flow .box { background:var(--surface); border:1px solid var(--line-2); border-radius:6px; padding:8px 12px; display:grid; gap:2px; min-width:150px; }
+  .flow .box b { font-size:13px; } .flow .box span { color:var(--ink-3); font-size:12px; font-family:"IBM Plex Mono",monospace; }
+  .flow .box.hot { border-color:var(--accent); background:var(--accent-soft); }
+  .flow .sep { color:var(--ink-3); }
+  .badge { display:inline-flex; align-items:center; gap:5px; font-size:11px; letter-spacing:.04em; text-transform:uppercase; padding:2px 7px; border-radius:3px; font-weight:500; white-space:nowrap; }
+  .b-err { background:var(--red-soft); color:var(--red); } .b-warn { background:var(--amber-soft); color:var(--amber); } .b-ok { background:var(--green-soft); color:var(--green); } .b-mute { background:var(--surface-2); color:var(--ink-3); }
+  .decision { display:grid; grid-template-columns:110px 1fr; gap:6px 16px; font-size:14.5px; border-top:1px dashed var(--line-2); padding-top:14px; }
+  .decision dt { color:var(--ink-3); font-size:12px; letter-spacing:.06em; text-transform:uppercase; font-weight:500; padding-top:4px; }
+  .decision dd { margin:0; } .decision dd.amber { color:var(--amber); }
+  table.t { border-collapse:collapse; width:100%; font-size:14px; }
+  table.t th, table.t td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.t tr:last-child td { border-bottom:0; }
+  table.t th { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  table.t td.mono { font-size:13px; }
+  .tablewrap { overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:6px; }
+  footer { margin-top:80px; border-top:1px solid var(--line-2); padding-top:18px; font-size:13.5px; color:var(--ink-3); display:grid; gap:6px; }
+  footer code { background:transparent; padding:0; color:var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">GEML Illustrated · profile · geml-history/v1 (Stable) · probed against geml 1.9.2, local build · <a href="08-profile-history_CN.html">中文</a></div>
+  <h1>GEML Illustrated · geml-history</h1>
+  <p class="lede">The <code>.geml</code> file holds only the <strong>current version</strong>; a same-named <code>.gemlhistory</code> sidecar holds the <strong>history</strong>: reverse patches walking back from the current version, plus full snapshots. The sidecar is itself a GEML document, admitting three block types through <code>profile = "geml-history/v1"</code>; it carries a mirror of the committed current version, so reconstructing any old version depends on neither the live file, nor git, nor the network. This page puts each rule of the profile next to the four <code>geml history</code> verbs, run for real.</p>
+  <nav class="toc">
+    <a href="#board">Board</a>
+    <a href="#roles">Two files</a>
+    <a href="#sidecar">What a sidecar looks like</a>
+    <a href="#verbs">Four verbs</a>
+    <a href="#evidence">Evidence</a>
+  </nav>
+</header>
+
+<!-- ============ BOARD ============ -->
+<section id="board">
+  <div class="sec-head">
+    <div class="sec-num">Board</div>
+    <div>
+      <h2>14 rules, each with its source and status</h2>
+      <p class="sub"><span class="st st-spec">Settled</span> fixed by the profile document (it calls itself Stable). <span class="st st-obs">Observed</span> not prescribed, this is what the tool does today. No implementation gap found on this page.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div>
+      <div class="tally"><span><span class="st st-spec">Settled</span> <b>12</b></span><span><span class="st st-obs">Observed</span> <b>2</b></span></div>
+      <div class="board">
+        <table class="b">
+          <thead><tr><th></th><th>Rule</th><th>Source</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td class="n">1</td><td>An application-layer profile; the core is untouched, and a processor that does not know it is fully conforming. Presence is signalled by the sidecar file, vocabulary by the sidecar's own meta; <strong>never inferred from the <code>.gemlhistory</code> extension or the <code>history-of</code> key</strong> (§8.6 rule 2).</td><td class="src">§1 · §1.1</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">2</td><td>The declaration admits three types: <code>history-revision</code> (keys id parent author summary hash newline), <code>history-keyframe</code> (id hash), <code>history-blob</code> (lang). Admission is names only: bodies stay raw, the same model as without the declaration.</td><td class="src">§1.1</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">3</td><td><code>doc.geml</code> is the <strong>single source of truth</strong> for the current version, the hot path; <code>doc.gemlhistory</code> is the self-contained cold path, always carrying a keyframe mirror of the committed current version, maintained by tools and not hand-edited; the two reconcile by hash.</td><td class="src">§2</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">4</td><td>Lose the sidecar and the current document is intact; lose the live file and any version is still rebuildable from the sidecar. Neither direction depends on the other.</td><td class="src">§2</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">5</td><td>Header meta keys: <code>history-of</code>, <code>geml-version</code>, <code>current</code>, <code>keyframe-interval</code>. Keyframe and blob bodies embed whole GEML verbatim, so their fences must be longer than the longest fence in the payload.</td><td class="src">§3 · §3.1</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">6</td><td>Block identity: an <code>#id</code> when present; otherwise a key derived from content hash plus structural position, algorithm implementation-defined, bookkeeping only in the sidecar and <strong>never written back into the live file</strong>. No block is forced to carry an id.</td><td class="src">§4</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">7</td><td>Reverse patches have four operations: <code>delete</code>, <code>replace … &lt;- blob:</code>, <code>insert &lt;- blob: &lt;anchor&gt;</code>, <code>move</code>; applied in written order; a <code>blob:</code> reference must resolve to a history-blob in the same file, else error.</td><td class="src">§5</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">8</td><td>Reconstruction: take the nearest keyframe at or newer than the target, apply reverse patches along the parent chain down to the target, and the result's hash must equal the recorded hash. Independent of the live file.</td><td class="src">§6</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">9</td><td>Rollback is linear and destructive: every version after the target is truncated and <code>current</code> becomes the target; with uncommitted changes in the live file it <strong>must refuse</strong> unless the caller consents explicitly (interactive confirmation or <code>--force</code>).</td><td class="src">§7</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">10</td><td>hash is SHA-256 over the whole <code>.geml</code>'s UTF-8 bytes, prefixed <code>sha256:</code>, newline style included (<code>newline=lf|crlf</code>). A revision id is <code>&lt;UTC timestamp&gt;-&lt;first 8 of hash&gt;</code>, sorting by time; any unambiguous prefix works as a selector.</td><td class="src">§8</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">11</td><td>Two severities: a broken chain, a dangling blob, or a reconstruction hash mismatch is <strong>corruption → error</strong>; the live file's hash differing from <code>current</code> is merely <strong>uncommitted → warning</strong>, and must not block read-only operations.</td><td class="src">§8 · §9</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">12</td><td>Every tool-generated sidecar must write <code>profile = "geml-history/v1"</code> in its meta; agents may read the sidecar but <strong>should not hand-write</strong> patches, blobs, ids or hashes; use the tool's save / get / restore / verify.</td><td class="src">§9 · §10</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">13</td><td>CLI: <code>save</code> appends a revision (no-op when identical to the tip); <code>get</code> without arguments lists all, with a rev prints that version in full; <code>restore &lt;rev&gt; [--force]</code>; <code>verify</code> reconstructs and rehashes the whole chain. rev spellings: <code>0</code> tip, <code>-N</code> back N, or an unambiguous id prefix.</td><td class="src">geml history --help</td><td><span class="st st-obs">Observed</span></td></tr>
+            <tr><td class="n">14</td><td><code>geml revert &lt;file&gt; #id [--rev sel]</code> is a core verb that uses the sidecar to return <strong>one block</strong> to a past version: splice back, resurrect, or delete. The project's PostToolUse hook auto-saves .geml files under spec/.</td><td class="src">geml --help</td><td><span class="st st-obs">Observed</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ROLES ============ -->
+<section id="roles">
+  <div class="sec-head">
+    <div class="sec-num">Two files</div>
+    <div>
+      <h2>Hot path and cold path</h2>
+      <p class="sub">Editors, renderers and agents touch only the <code>.geml</code>; history loads only when asked for.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>What one save does <span class="st st-spec">Settled</span></figcaption>
+      <div class="flow">
+        <div class="box hot"><b>doc.geml</b><span>current version · single truth</span></div>
+        <span class="sep">→ save →</span>
+        <div class="box"><b>keyframe</b><span>mirror of committed current, refreshed</span></div>
+        <div class="box"><b>history-revision</b><span>id · parent · hash · reverse patch</span></div>
+        <div class="box"><b>history-blob</b><span>old content of the replaced block</span></div>
+        <span class="sep">→</span>
+        <div class="box hot"><b>doc.gemlhistory</b><span>self-contained · tool-maintained</span></div>
+      </div>
+      <dl class="decision">
+        <dt>Why reverse</dt><dd>The newest version is the one most often read, so the mirror holds the newest version and patches walk backwards: reconstructing the previous version from the tip takes one patch, not a replay from the start. A keyframe recurs every <code>keyframe-interval</code> revisions, bounding both the number of reverse steps to any target and the blast radius of one bad patch to a single segment.</dd>
+        <dt>Why self-contained</dt><dd>§2: with uncommitted changes in the live file, or no live file at all, any version in the sidecar still reconstructs; conversely a lost sidecar leaves the current document untouched. Neither file owes the other anything.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ SIDECAR ============ -->
+<section id="sidecar">
+  <div class="sec-head">
+    <div class="sec-num">Sidecar</div>
+    <div>
+      <h2>A real .gemlhistory</h2>
+      <p class="sub">The file after two saves, unedited. It passes <code>geml check</code> itself.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>Header, mirror keyframe, one reverse patch, one blob, the root revision <span class="st st-spec">Settled</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>doc.gemlhistory · tool-generated</span></div>
+<pre class="geml"># History of doc.geml
+
+<span class="f">=== meta</span>
+<span class="hl">profile           = "geml-history/v1"</span>
+history-of        = "doc.geml"
+geml-version      = "1.0"
+current           = "20260904T080743Z-40a503a6"
+keyframe-interval = 10
+<span class="f">===</span>
+
+# Committed-current mirror (always present):
+<span class="f">==== history-keyframe</span> <span class="a">{id="20260904T080743Z-40a503a6" hash="sha256:40a5…b4f4"}</span>
+=== meta
+title = "history probe"
+===
+# Plan {#plan}
+=== text {#intro}
+Second version of the intro.
+===
+=== table {#t format=csv}
+a,b
+1,2
+===
+<span class="f">====</span>                                  <span class="c">%% four dashes around three: the payload contains ===</span>
+
+<span class="f">=== history-revision</span> <span class="a">{id="20260904T080743Z-40a503a6" parent="20260904T080742Z-5a3b3ac6"
+                     summary="edit intro" hash="sha256:40a5…" newline="lf"}</span>
+<span class="hl">replace #intro &lt;- blob:b1</span>                <span class="c">%% current → previous: swap #intro back to its old content</span>
+<span class="f">===</span>
+
+<span class="f">==== history-blob</span> <span class="a">{#b1 lang=geml}</span>
+=== text {#intro}
+First version of the intro.
+===
+<span class="f">====</span>
+
+<span class="f">=== history-revision</span> <span class="a">{id="20260904T080742Z-5a3b3ac6" summary="first" hash="sha256:5a3b…" newline="lf"}</span>
+<span class="f">===</span>                                    <span class="c">%% the root: no parent, no patch</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml list · geml check</span></div>
+<pre class="term"><span class="cmd">$ geml list doc.gemlhistory</span>
+#history-of-docgeml                       heading           h1    L1-10
+=== meta                                  meta              anon  L3-9
+#committed-current-mirror-always-present  heading           h1    L11-39
+=== history-keyframe                      history-keyframe  anon  L12-25
+=== history-revision@4214327e             history-revision  anon  L27-29
+#b1                                       history-blob            L31-35
+=== history-revision@e36c84ca             history-revision  anon  L37-38
+
+<span class="cmd">$ geml check doc.gemlhistory</span>
+<span class="ok">ok: no diagnostics</span>     <span class="dim">← profile declared: the three types raise no unknown-block-type</span></pre>
+          <div class="tablewrap" style="margin-top:12px">
+            <table class="t">
+              <thead><tr><th>Block</th><th>Body</th><th>Holds</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">meta</td><td>key-value</td><td>history-of, geml-version, current, keyframe-interval</td></tr>
+                <tr><td class="mono">history-keyframe</td><td>raw</td><td>the complete .geml of one version; the current one is always present</td></tr>
+                <tr><td class="mono">history-revision</td><td>raw</td><td>attributes are metadata, the body is the operations that turn this version into its parent</td></tr>
+                <tr><td class="mono">history-blob</td><td>raw</td><td>one block's text at some version, referenced by <code>blob:&lt;id&gt;</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>ids</dt><dd>§8: <code>20260904T080743Z-40a503a6</code> is a UTC timestamp plus the first 8 characters of the content hash, sorting by time naturally; verification uses the full hash, not those 8. The second save came 5 seconds after the first, and the timestamps differ by one second.</dd>
+        <dt>Fences</dt><dd>§3: keyframes and blobs embed GEML verbatim and the payload contains <code>===</code>, so they open with <code>====</code>. That is exactly the core's §3 fence discipline; the sidecar invents nothing.</dd>
+        <dt>Admission</dt><dd>§1.1: the three type names carry the <code>history-</code> prefix because §8.5 wants extension names hyphenated; bare revision / keyframe / blob would sit on names the specification reserves.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ VERBS ============ -->
+<section id="verbs">
+  <div class="sec-head">
+    <div class="sec-num">Verbs</div>
+    <div>
+      <h2>save · get · verify · restore, plus the core's revert</h2>
+      <p class="sub">All run for real in a temp directory; with uncommitted changes verify only warns and never blocks, which is §8's two-severities rule.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>One full round <span class="st st-spec">Settled</span> <span class="st st-obs">CLI observed</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>shell</span></div>
+<pre class="term"><span class="cmd">$ geml history save doc.geml -m "first"</span>
+saved 20260904T080742Z-5a3b3ac6
+
+<span class="cmd">$ printf 'Second version of the intro.\n' | geml set doc.geml '#intro' --in - --body</span>
+wrote doc.geml
+
+<span class="cmd">$ geml history verify doc.geml</span>          <span class="dim">live file changed, not saved</span>
+<span class="wn">warning:</span> uncommitted changes: hash(doc.geml) differs from current
+verify: OK (1 revisions reconstructed &amp; hashed)     <span class="dim">exit 0 — a read-only operation is not blocked</span>
+
+<span class="cmd">$ geml history save doc.geml -m "edit intro"</span>
+saved 20260904T080743Z-40a503a6
+
+<span class="cmd">$ geml history get doc.geml</span>             <span class="dim">the first column is the selector</span>
+0       20260904T080743Z-40a503a6  -  edit intro
+-1      20260904T080742Z-5a3b3ac6  -  first
+
+<span class="cmd">$ geml history verify doc.geml</span>
+verify: OK (2 revisions reconstructed &amp; hashed)</pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>Rules side by side</span></div>
+          <div class="tablewrap">
+            <table class="t">
+              <thead><tr><th>Verb</th><th>Does</th><th>Source</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">save [-m]</td><td>refreshes the mirror keyframe, writes the reverse patch and blobs, records the new hash and id; no-op when identical to the tip</td><td>§10</td></tr>
+                <tr><td class="mono">get [&lt;rev&gt;]</td><td>no argument: all versions, newest first; with a rev: that version's full text (reconstructed, hash checked)</td><td>§6</td></tr>
+                <tr><td class="mono">verify</td><td>reconstructs every version along the chain and rehashes; broken chain, dangling blob, hash mismatch → error; live file merely uncommitted → warning</td><td>§8 · §9</td></tr>
+                <tr><td class="mono">restore &lt;rev&gt; [--force]</td><td>overwrites the live file and truncates history; refuses with uncommitted changes unless <code>--force</code> discards them</td><td>§7</td></tr>
+                <tr><td class="mono">revert #id [--rev]</td><td>core verb: returns one block to some version, everything else untouched</td><td>geml --help</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <span class="badge b-mute" style="margin-top:10px">rev spellings: 0 = tip · -N = N back · an unambiguous id prefix</span>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Two severities</dt><dd>§8: uncommitted changes are a normal editing state, not corruption, so they warn and may not block get / verify / reconstruction. A broken chain, a dangling blob reference or a reconstruction hash mismatch are the errors. The verify above passing while the change was unsaved is that rule.</dd>
+        <dt>Rollback</dt><dd>§7: restore is a destructive linear truncation; versions after the target are gone for good; ids are never reused, so a new commit after a rollback cannot be confused with the discarded tip. With uncommitted changes it must refuse unless <code>--force</code>.</dd>
+        <dt>Agents</dt><dd>§10: agents may read the sidecar freely (plain text, per block, a summary per version) but should not hand-write patches, blobs, ids or hashes. In this repo, saves for .geml under spec/ are done by a PostToolUse hook, config documents excepted.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ EVIDENCE ============ -->
+<section id="evidence">
+  <div class="sec-head">
+    <div class="sec-num">Evidence</div>
+    <div>
+      <h2>Probes</h2>
+      <p class="sub">Run in the short-path temp directory <code>%TEMP%\geml-hist-probe</code>, because the session scratchpad's path exceeds the Win32 working-directory limit and node would not start there. Current in-repo build, 1.9.2.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tablewrap">
+      <table class="t">
+        <thead><tr><th>Step</th><th>Result</th><th>Maps to</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">save → set → verify → save → get → verify</td><td><span class="badge b-ok">all exit 0</span>, one warning while uncommitted</td><td>verbs, board 11, 13</td></tr>
+          <tr><td class="mono">geml check doc.gemlhistory</td><td><span class="badge b-ok">0 diagnostics</span></td><td>sidecar, board 2, 12</td></tr>
+          <tr><td class="mono">geml list doc.gemlhistory</td><td>meta, keyframe, two revisions, one blob</td><td>sidecar</td></tr>
+          <tr><td class="mono">revert #intro --rev -2 (only 2 revisions)</td><td><span class="badge b-err">error</span> offset out of range, live file untouched</td><td>out of range leaves the file alone</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>This page: <code>docs/illustrated/08-profile-history.html</code>; Chinese version <code>08-profile-history_CN.html</code>. Profile document: <code>spec/profiles/geml-history/geml-history-profile.md</code>.</div>
+</footer>
+</div>

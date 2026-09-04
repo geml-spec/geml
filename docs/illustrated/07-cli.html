@@ -1,0 +1,369 @@
+<title>GEML Illustrated · CLI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root { --bg:#F4F6F9; --surface:#FFFFFF; --surface-2:#EBEFF4; --ink:#1B2430; --ink-2:#47535F; --ink-3:#7B8794; --line:#D5DCE4; --line-2:#C3CCD6; --accent:#1F6F8B; --accent-soft:#DCEDF3; --amber:#9A5F0A; --amber-soft:#FAEED3; --red:#B0403B; --red-soft:#F8E2E0; --green:#2E7A50; --green-soft:#DDF0E4; --on-solid:#FFFFFF; --shadow:0 1px 2px rgba(27,36,48,.06),0 6px 18px rgba(27,36,48,.05); color-scheme:light; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#11161C; --surface:#191F27; --surface-2:#202832; --ink:#E6EBF0; --ink-2:#B3BDC8; --ink-3:#7F8B98; --line:#2C3642; --line-2:#3A4552; --accent:#63B5D1; --accent-soft:#14323D; --amber:#E2AC45; --amber-soft:#382B10; --red:#E27F79; --red-soft:#3E1F1E; --green:#6CC08E; --green-soft:#173124; --on-solid:#0F141A; --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25); color-scheme:dark; } }
+  :root[data-theme="dark"] { --bg:#11161C; --surface:#191F27; --surface-2:#202832; --ink:#E6EBF0; --ink-2:#B3BDC8; --ink-3:#7F8B98; --line:#2C3642; --line-2:#3A4552; --accent:#63B5D1; --accent-soft:#14323D; --amber:#E2AC45; --amber-soft:#382B10; --red:#E27F79; --red-soft:#3E1F1E; --green:#6CC08E; --green-soft:#173124; --on-solid:#0F141A; --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25); color-scheme:dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.65 "IBM Plex Sans",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1120px; margin:0 auto; padding:48px 28px 96px; }
+  h1,h2,h3 { text-wrap:balance; margin:0; } p { margin:0; } a { color:var(--accent); }
+  code,pre,.mono { font-family:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace; }
+  code { font-size:.92em; background:var(--surface-2); padding:1px 5px; border-radius:3px; }
+  .eyebrow { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  header h1 { font-size:34px; line-height:1.2; font-weight:600; margin-top:10px; letter-spacing:-.01em; }
+  header .lede { max-width:66ch; color:var(--ink-2); margin-top:16px; font-size:16px; }
+  .toc { display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:22px; font-size:14px; }
+  .toc a { text-decoration:none; border-bottom:1px solid var(--line-2); padding-bottom:1px; }
+  section { margin-top:72px; }
+  .sec-head { display:grid; grid-template-columns:64px 1fr; gap:16px; align-items:baseline; border-top:1px solid var(--line-2); padding-top:22px; }
+  .sec-num { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:500; padding-top:6px; }
+  .sec-head h2 { font-size:24px; font-weight:600; } .sec-head .sub { color:var(--ink-2); margin-top:6px; max-width:70ch; }
+  .sec-body { margin-left:80px; margin-top:28px; display:grid; gap:40px; }
+  @media (max-width:860px) { .sec-head { grid-template-columns:1fr; gap:6px; } .sec-body { margin-left:0; } }
+  .st { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; letter-spacing:.04em; padding:2px 8px; border-radius:3px; font-weight:600; white-space:nowrap; color:var(--on-solid); vertical-align:middle; }
+  .st-spec { background:var(--green); } .st-gap { background:var(--red); } .st-gep { background:var(--accent); } .st-obs { background:var(--ink-3); }
+  .board { overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:6px; box-shadow:var(--shadow); }
+  table.b { border-collapse:collapse; width:100%; font-size:14px; }
+  table.b th, table.b td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.b tr:last-child td { border-bottom:0; }
+  table.b th { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  table.b td.n { color:var(--ink-3); font-variant-numeric:tabular-nums; width:32px; }
+  table.b td.src { color:var(--ink-3); white-space:nowrap; font-size:13px; }
+  table.b tr.grp td { background:var(--surface-2); font-weight:600; font-size:13px; letter-spacing:.04em; color:var(--ink-2); }
+  .tally { display:flex; flex-wrap:wrap; gap:10px 22px; margin-bottom:14px; font-size:14px; color:var(--ink-2); align-items:center; } .tally b { font-weight:600; color:var(--ink); }
+  figure { margin:0; display:grid; gap:18px; }
+  figure > figcaption { font-size:17px; font-weight:600; display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; }
+  .panes { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; align-items:start; }
+  @media (max-width:980px) { .panes { grid-template-columns:1fr; } .sec-body { margin-left:0; } }
+  .pane-h { display:flex; justify-content:space-between; align-items:center; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; margin-bottom:8px; }
+  pre.geml { margin:0; background:var(--surface-2); border:1px solid var(--line); border-radius:6px; padding:14px 16px; font-size:13px; line-height:1.6; overflow-x:auto; color:var(--ink); }
+  pre.geml .f { color:var(--accent); font-weight:500; } pre.geml .a { color:var(--ink-2); } pre.geml .c { color:var(--ink-3); font-style:italic; }
+  pre.geml .hl { background:var(--amber-soft); color:var(--amber); border-radius:2px; padding:0 2px; }
+  .term { background:var(--ink); color:#E6EBF0; border-radius:6px; padding:12px 14px; font-size:12.5px; line-height:1.6; overflow-x:auto; margin:0; }
+  :root[data-theme="dark"] .term { background:#0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .term { background:#0B0F14; } }
+  .term .ok { color:#7ED4A0; } .term .er { color:#F09A94; } .term .wn { color:#F0C060; } .term .dim { color:#8A96A3; } .term .cmd { color:#9CC7FF; }
+  .badge { display:inline-flex; align-items:center; gap:5px; font-size:11px; letter-spacing:.04em; text-transform:uppercase; padding:2px 7px; border-radius:3px; font-weight:500; white-space:nowrap; }
+  .b-err { background:var(--red-soft); color:var(--red); } .b-warn { background:var(--amber-soft); color:var(--amber); } .b-ok { background:var(--green-soft); color:var(--green); } .b-mute { background:var(--surface-2); color:var(--ink-3); }
+  .decision { display:grid; grid-template-columns:110px 1fr; gap:6px 16px; font-size:14.5px; border-top:1px dashed var(--line-2); padding-top:14px; }
+  .decision dt { color:var(--ink-3); font-size:12px; letter-spacing:.06em; text-transform:uppercase; font-weight:500; padding-top:4px; }
+  .decision dd { margin:0; } .decision dd.amber { color:var(--amber); }
+  table.t { border-collapse:collapse; width:100%; font-size:14px; }
+  table.t th, table.t td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.t tr:last-child td { border-bottom:0; }
+  table.t th { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  table.t td.mono { font-size:13px; white-space:nowrap; }
+  .tablewrap { overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:6px; }
+  footer { margin-top:80px; border-top:1px solid var(--line-2); padding-top:18px; font-size:13.5px; color:var(--ink-3); display:grid; gap:6px; }
+  footer code { background:transparent; padding:0; color:var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">GEML Illustrated · the geml CLI · probed against geml 1.9.2, local build · <a href="07-cli_CN.html">中文</a></div>
+  <h1>GEML Illustrated · CLI</h1>
+  <p class="lede">The <code>geml</code> command does three kinds of thing: <strong>convert</strong> a document (between json, html, md and geml), <strong>read and write by block</strong> (list, find, get, set, add, delete, rename, revert), and <strong>validate</strong> (check, plus each profile's own style check, history verify, codemap verify). Core verbs never carry a profile name. Writes have a guard: a result that does not parse is refused. This page runs every verb, the address forms it accepts and the exit codes against one small document.</p>
+  <nav class="toc">
+    <a href="#board">Board</a>
+    <a href="#loop">list → get → set</a>
+    <a href="#mutate">add · delete · rename</a>
+    <a href="#convert">Conversion</a>
+    <a href="#addr">Address forms</a>
+    <a href="#evidence">Evidence</a>
+  </nav>
+</header>
+
+<!-- ============ BOARD ============ -->
+<section id="board">
+  <div class="sec-head">
+    <div class="sec-num">Board</div>
+    <div>
+      <h2>16 rules, each with its source and status</h2>
+      <p class="sub"><span class="st st-spec">Settled</span> fixed by <code>geml --help</code> or the spec. <span class="st st-obs">Observed</span> behaviour as run. <span class="st st-gep">GEP draft</span> address forms that come from drafts.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div>
+      <div class="tally"><span><span class="st st-spec">Settled</span> <b>12</b></span><span><span class="st st-obs">Observed</span> <b>3</b></span><span><span class="st st-gep">GEP draft</span> <b>1</b></span></div>
+      <div class="board">
+        <table class="b">
+          <thead><tr><th></th><th>Rule</th><th>Source</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr class="grp"><td></td><td colspan="3">General</td></tr>
+            <tr><td class="n">1</td><td>The file position may be <code>-</code> to read stdin. Write verbs (set / add / delete / rename) <strong>rewrite the file in place</strong>, or print to stdout for <code>-</code>; <code>-o f</code> redirects, <code>-o -</code> is stdout too. Exit 0 success, 1 a document or operation error.</td><td class="src">--help</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">2</td><td><code>--root d</code> widens cross-document resolution to directory d, and <strong>read and write verbs alike take it</strong>. A write is refused when the result fails to parse, so a document that needs the repo root to resolve <code>../x.md</code> is simply uneditable without --root; otherwise the guard would read its own blind spot as breakage.</td><td class="src">--help</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">3</td><td>Call <code>list</code> first: the addresses it prints are what every other verb accepts. <code>get</code> without a #id also lists all ids.</td><td class="src">--help</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">Reading</td></tr>
+            <tr><td class="n">4</td><td><code>list &lt;file&gt; [--json]</code>: one line per addressable block: address, kind, line range; anonymous blocks show as <code>=== type</code> or <code>type@hash</code> with a content hash; prose between blocks appears under derived addresses.</td><td class="src">--help · §4</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">5</td><td><code>find &lt;pattern&gt; [file|dir …]</code>: searches block content and answers <code>file&lt;TAB&gt;address</code>, an address rather than a line number, so it pastes straight into get / set. A named file is searched whatever its extension (.md included); a directory walks *.geml only. No match → exit 1.</td><td class="src">--help</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">6</td><td><code>get &lt;file&gt; [#id] [--json] [--head|--intro|--body]</code>: a heading id = the whole section; <code>--head</code> the heading line only, <code>--body</code> everything under it, <code>--intro</code> up to the first sub-heading; <code>--json</code> gives the model node. The selector may also be a <strong>position</strong>, <code>L27</code> / <code>L27-58</code>: the smallest block containing those lines, which turns a grep hit or a stack-trace line into an address.</td><td class="src">--help</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">Writing</td></tr>
+            <tr><td class="n">7</td><td><code>set &lt;file&gt; #id [--head|--intro|--body] [--in f[#src]|-]</code>: replaces one block. <code>--in F</code> takes F's block #id, <code>F#src</code> takes #src, otherwise stdin verbatim; default the whole block, <code>--head</code> only the heading line, <code>--body</code> only the body.</td><td class="src">--help</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">8</td><td><strong>The guard</strong>: the result of a write is re-parsed and, if it fails, <strong>not written</strong>, exit 1, original untouched. Observed: feeding an unterminated code block to set yields "replacement would break the document … not written".</td><td class="src">--help · observed</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">9</td><td><code>add (--append | --before #id | --after #id) --in f|-</code>: inserts a fragment, one or more blocks and prose; the content keeps its own ids, collisions are refused.</td><td class="src">--help</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">10</td><td><code>delete #id [#id2…]</code>: missing ids are skipped; a reference left dangling is only a <strong>warning</strong>, not a refusal, with a hint that check will call it an error. Observed: deleting <code>#cmd</code> gives one warning, writes, and check then exits 1.</td><td class="src">--help · observed</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">11</td><td><code>rename #old #new</code>: changes the id and every reference, matching at id boundaries (it will not turn <code>#cmd</code> inside <code>#cmdline</code>). Observed: the block and <code>[[#c]]</code> become cmd together.</td><td class="src">--help · observed</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">12</td><td><code>replace &lt;old&gt; &lt;new&gt; [--within sel]</code>: an EXPERIMENTAL literal replacement, checked and reported. <code>revert &lt;file&gt; #id [--rev sel]</code>: returns one block to a past version from the .gemlhistory (splice back, resurrect or delete); sel is 0 | -N | id prefix | changed, default -1.</td><td class="src">--help</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">Conversion and validation</td></tr>
+            <tr><td class="n">13</td><td><code>geml &lt;file&gt; [--to json|html|md|geml] [--from geml|md|json]</code>: the default output is the document-model JSON; <code>--to md</code> is lossy (heading ids and attributes drop, with a note); <code>--to html</code> is self-contained, <code>--fragment</code> gives body markup only; <code>--to geml</code> is a canonical reflow; <code>--from md</code> reads Markdown as GEML, inferred from the extension when possible.</td><td class="src">--help · observed</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">14</td><td><code>check [--root d] [--json]</code>: validation only, diagnostics plus an exit code; <code>--json</code> gives the diagnostics array. This is where every right-hand output in this illustrated series comes from.</td><td class="src">--help</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">15</td><td>Profiles bring their own verbs: <code>style check</code> (exit 0/1/2), <code>history save|get|restore|verify</code>, <code>codemap build|verify|render|serve|refresh|find</code>; also <code>mcp --root</code> (11 tools, every write validated before touching disk) and <code>skill install</code>. Core verbs never carry a profile name.</td><td class="src">--help · profiles README</td><td><span class="st st-obs">Observed</span></td></tr>
+            <tr><td class="n">16</td><td>Address forms: <code>#id</code>, <code>'## Heading'</code> (whole section), <code>L27-58</code> (position), <code>#fy[2]["Q1"]</code> / <code>#meta["key"]</code> (GEP-0011 coordinates, implemented on this branch), <code>#form#field</code> (GEP-0008 draft, not implemented).</td><td class="src">--help · GEP-0011 · GEP-0008</td><td><span class="st st-gep">GEP draft</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LOOP ============ -->
+<section id="loop">
+  <div class="sec-head">
+    <div class="sec-num">Read/write</div>
+    <div>
+      <h2>list → find → get → set, and one refused write</h2>
+      <p class="sub">A seven-line document. Left, the document; right, the real output of each step.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>Addresses come from list and paste into get and set <span class="st st-spec">Settled</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>cli.geml</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+title = "cli probe"
+<span class="f">===</span>
+# Intro {#intro}
+Hello world paragraph.
+<span class="f">=== code</span> <span class="a">{#c lang=sh}</span>
+echo hi
+<span class="f">===</span>
+## Next {#next}
+See [[#c]].</pre>
+          <div class="pane-h" style="margin-top:14px"><span>set · refused by the guard</span></div>
+<pre class="term"><span class="cmd">$ printf '=== code {#c lang=sh}\nunterminated\n' | geml set cli.geml '#c' --in -</span>
+<span class="er">error:</span> replacement would break the document: unterminated `code` block
+  (no matching === or `=== #c`) (line 6); not written
+<span class="dim">exit 1 · cli.geml untouched</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>shell</span></div>
+<pre class="term"><span class="cmd">$ geml list cli.geml</span>
+=== meta         meta     anon  L1-3
+#intro           heading  h1    L4-11  Intro
+<span class="dim">#intro-before-c  prose          L5-5</span>      <span class="dim">← derived address: inside #intro, before #c</span>
+#c               code           L6-8
+#next            heading  h2    L9-11  Next
+
+<span class="cmd">$ geml find "echo" cli.geml</span>
+cli.geml	#c                          <span class="dim">exit 0</span>
+<span class="cmd">$ geml find "nothing-here" cli.geml</span>  <span class="dim">exit 1</span>
+
+<span class="cmd">$ geml get cli.geml 'L6'</span>                <span class="dim">position → smallest containing block</span>
+=== code {#c lang=sh}
+echo hi
+===
+<span class="cmd">$ geml get cli.geml '#intro' --head</span>
+# Intro {#intro}
+<span class="cmd">$ geml get cli.geml '#intro' --body</span>     <span class="dim">everything under the heading, sub-section #next included</span>
+Hello world paragraph.
+=== code {#c lang=sh}
+echo hi
+===
+## Next {#next}
+See [[#c]].</pre>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Addresses, not lines</dt><dd>find answers with an address because an address is still valid after the next edit and a line number is not. In the other direction, <code>get 'L6'</code> turns a line number into an address: the smallest block containing it.</dd>
+        <dt>Whole section</dt><dd>A heading id means the whole section: <code>#intro</code> is the H1 and its section runs to the end of the file, so <code>--body</code> includes <code>## Next</code>. To change only the heading line, use <code>--head</code>.</dd>
+        <dt>The guard</dt><dd>set re-parses the result first and refuses to write if it broke. This is the root of block-level editing safety, and why --root matters for write verbs too: an unresolvable cross-document reference would make the guard misjudge.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ MUTATE ============ -->
+<section id="mutate">
+  <div class="sec-head">
+    <div class="sec-num">Mutate</div>
+    <div>
+      <h2>rename rewrites references, add keeps ids, delete only warns about dangling</h2>
+      <p class="sub">Three writes followed by one check.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>rename → add → delete → check <span class="st st-spec">Settled</span> <span class="st st-obs">Observed</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>shell</span></div>
+<pre class="term"><span class="cmd">$ geml rename cli.geml '#c' '#cmd'</span>
+wrote cli.geml
+<span class="cmd">$ grep -n cmd cli.geml</span>
+6:=== code {#cmd lang=sh}
+10:See [[#cmd]].                          <span class="dim">← the reference changed with it</span>
+
+<span class="cmd">$ printf '=== note {#n}\nadded\n===\n' | geml add cli.geml --after '#cmd' --in -</span>
+wrote cli.geml
+<span class="cmd">$ geml list cli.geml | tail -4</span>
+#intro-before-cmd  prose          L5-5
+#cmd               code           L6-8
+#n                 note           L10-12
+#next              heading  h2    L14-16  Next
+
+<span class="cmd">$ geml delete cli.geml '#cmd'</span>
+<span class="wn">warning:</span> unresolved reference `#cmd` (line 12) — left dangling by delete;
+  run 'geml check' to see it as an error
+wrote cli.geml                            <span class="dim">exit 0: the delete goes through</span>
+<span class="cmd">$ geml check cli.geml</span>
+<span class="er">error:</span> unresolved reference `#cmd` (line 12)
+1 error(s), 0 warning(s)                  <span class="dim">exit 1</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>Rules</span></div>
+          <div class="tablewrap">
+            <table class="t">
+              <thead><tr><th>Verb</th><th>Stance on references</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">rename</td><td>changes the id and every reference, id-boundary safe</td></tr>
+                <tr><td class="mono">add</td><td>the fragment keeps its own ids; a collision with an existing id is refused</td></tr>
+                <tr><td class="mono">delete</td><td>a dangling reference is a warning, not a refusal: deleting is the author's explicit intent, check makes it an error afterwards</td></tr>
+                <tr><td class="mono">set</td><td>a result that does not parse is not written</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <span class="badge b-mute" style="margin-top:10px">derived addresses follow: #intro-before-c became #intro-before-cmd</span>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Why delete does not refuse</dt><dd>Removing a block is the author's explicit action; the dangling reference is a consequence the tool states but does not decide for the author. The real red line is check: exit 1.</dd>
+        <dt>Derived addresses</dt><dd>A prose run's derived address is bounded by its neighbours at both ends, so renaming a neighbour changes the address. That is what §4 wants: the change is loud and never silently points at a shortened run of prose.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ CONVERT ============ -->
+<section id="convert">
+  <div class="sec-head">
+    <div class="sec-num">Convert</div>
+    <div>
+      <h2>--to and --from</h2>
+      <p class="sub">The default output is the document-model JSON; Markdown is the lossy side.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>Four outputs, three inputs <span class="st st-spec">Settled</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>shell</span></div>
+<pre class="term"><span class="cmd">$ geml cli.geml --to md</span>
+<span class="dim">note: heading id/attributes dropped (Markdown has no attribute syntax)</span>
+<span class="er">error:</span> unresolved reference `#cmd` (line 12)   <span class="dim">diagnostics still reported, output still given</span>
+---
+title: cli probe
+---
+
+# Intro
+
+Hello world paragraph.
+
+&gt; added
+
+## Next
+
+<span class="cmd">$ printf '# T\n\nsome md\n' | geml - --from md --to geml</span>
+# T
+
+some md</pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>Formats at a glance</span></div>
+          <div class="tablewrap">
+            <table class="t">
+              <thead><tr><th>Flag</th><th>You get</th><th>Notes</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">--to json</td><td>the document model</td><td>default; the shape of the §8.4 conformance surface</td></tr>
+                <tr><td class="mono">--to html</td><td>self-contained HTML</td><td><code>--fragment</code> gives body markup only, assets via pageAssets; the right-hand labels in this series come from it</td></tr>
+                <tr><td class="mono">--to md</td><td>Markdown</td><td>lossy: heading ids and attributes drop, note blocks become blockquotes, data becomes code blocks; a note says so</td></tr>
+                <tr><td class="mono">--to geml</td><td>canonical reflow</td><td>data's json reflowed to two-space indent</td></tr>
+                <tr><td class="mono">--from md</td><td>reads Markdown as GEML</td><td>inferred when the extension is .md; <code>geml notes.md</code> just works</td></tr>
+                <tr><td class="mono">--from json</td><td>reads a --to json result back</td><td>round trip</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>The md read layer</dt><dd>list / find / get read Markdown directly (<code>--from md</code> inferred); nothing is converted, nothing written. That is the "read long Markdown by block" usage in the geml skill.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ ADDR ============ -->
+<section id="addr">
+  <div class="sec-head">
+    <div class="sec-num">Addresses</div>
+    <div>
+      <h2>The ways to name one block</h2>
+      <p class="sub">All verbs share the same selectors.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>Selector forms <span class="st st-spec">Settled</span> <span class="st st-gep">coordinates and field paths from drafts</span></figcaption>
+      <div class="tablewrap">
+        <table class="t">
+          <thead><tr><th>Spelling</th><th>Names</th><th>Source · status</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">#id</td><td>a block with a declared id; a heading id is the whole section</td><td>§4 · settled</td></tr>
+            <tr><td class="mono">'## Heading'</td><td>by heading text, the whole section likewise</td><td>--help · settled</td></tr>
+            <tr><td class="mono">L27 · L27-58</td><td>the smallest block containing those lines</td><td>--help · settled</td></tr>
+            <tr><td class="mono">#a-between-b · #c-before-n · #c-after-p</td><td>derived addresses for prose between two blocks; list prints them</td><td>§4 · settled</td></tr>
+            <tr><td class="mono">=== type · type@hash</td><td>how an anonymous block appears in list; <code>type@hash</code> pastes back into get</td><td>observed</td></tr>
+            <tr><td class="mono">#fy[2]["Q1"] · #fy[summary] · #meta["title"] · #cfg["tags"][1]</td><td>a table row/cell/column, a summary cell, a meta value, a data value-tree node</td><td>GEP-0011 · draft, implemented on this branch (pages 2, 3)</td></tr>
+            <tr><td class="mono">#vendor#contacts#email</td><td>a field inside a form</td><td>GEP-0008 · draft, not implemented (page 6)</td></tr>
+            <tr><td class="mono">other.geml#id · other.geml#fy[2]</td><td>cross-document, any of the forms above</td><td>§5.2 · GEP-0011</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ EVIDENCE ============ -->
+<section id="evidence">
+  <div class="sec-head">
+    <div class="sec-num">Evidence</div>
+    <div>
+      <h2>Probes</h2>
+      <p class="sub">cli.geml was run in the session scratchpad against the current in-repo build, 1.9.2.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tablewrap">
+      <table class="t">
+        <thead><tr><th>Command</th><th>Result</th><th>Maps to</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">list · find (hit / miss) · get L6 · get --head / --body</td><td>as above; find miss exits 1</td><td>read/write, board 4–6</td></tr>
+          <tr><td class="mono">set with an unterminated block</td><td><span class="badge b-err">exit 1</span> not written, file untouched</td><td>board 8</td></tr>
+          <tr><td class="mono">rename · add --after · delete · check</td><td>reference rewritten; fragment inserted; dangling warning then check <span class="badge b-err">exit 1</span></td><td>mutate, board 9–11</td></tr>
+          <tr><td class="mono">--to md · - --from md --to geml</td><td>lossy note; stdin Markdown read as GEML</td><td>conversion</td></tr>
+          <tr><td class="mono">geml --help · geml history · geml codemap</td><td>verbs and usage text</td><td>board 1–3, 12–15</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>This page: <code>docs/illustrated/07-cli.html</code>; Chinese version <code>07-cli_CN.html</code>. Sources: <code>geml --help</code>, <code>geml-parser/src/cli.ts</code>.</div>
+</footer>
+</div>

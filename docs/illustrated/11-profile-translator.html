@@ -1,0 +1,364 @@
+<title>GEML Illustrated · geml-translator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root { --bg:#F4F6F9; --surface:#FFFFFF; --surface-2:#EBEFF4; --ink:#1B2430; --ink-2:#47535F; --ink-3:#7B8794; --line:#D5DCE4; --line-2:#C3CCD6; --accent:#1F6F8B; --accent-soft:#DCEDF3; --amber:#9A5F0A; --amber-soft:#FAEED3; --red:#B0403B; --red-soft:#F8E2E0; --green:#2E7A50; --green-soft:#DDF0E4; --on-solid:#FFFFFF; --shadow:0 1px 2px rgba(27,36,48,.06),0 6px 18px rgba(27,36,48,.05); color-scheme:light; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#11161C; --surface:#191F27; --surface-2:#202832; --ink:#E6EBF0; --ink-2:#B3BDC8; --ink-3:#7F8B98; --line:#2C3642; --line-2:#3A4552; --accent:#63B5D1; --accent-soft:#14323D; --amber:#E2AC45; --amber-soft:#382B10; --red:#E27F79; --red-soft:#3E1F1E; --green:#6CC08E; --green-soft:#173124; --on-solid:#0F141A; --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25); color-scheme:dark; } }
+  :root[data-theme="dark"] { --bg:#11161C; --surface:#191F27; --surface-2:#202832; --ink:#E6EBF0; --ink-2:#B3BDC8; --ink-3:#7F8B98; --line:#2C3642; --line-2:#3A4552; --accent:#63B5D1; --accent-soft:#14323D; --amber:#E2AC45; --amber-soft:#382B10; --red:#E27F79; --red-soft:#3E1F1E; --green:#6CC08E; --green-soft:#173124; --on-solid:#0F141A; --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25); color-scheme:dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.65 "IBM Plex Sans",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1120px; margin:0 auto; padding:48px 28px 96px; }
+  h1,h2,h3 { text-wrap:balance; margin:0; } p { margin:0; } a { color:var(--accent); }
+  code,pre,.mono { font-family:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace; }
+  code { font-size:.92em; background:var(--surface-2); padding:1px 5px; border-radius:3px; }
+  .eyebrow { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  header h1 { font-size:34px; line-height:1.2; font-weight:600; margin-top:10px; letter-spacing:-.01em; }
+  header .lede { max-width:66ch; color:var(--ink-2); margin-top:16px; font-size:16px; }
+  .toc { display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:22px; font-size:14px; }
+  .toc a { text-decoration:none; border-bottom:1px solid var(--line-2); padding-bottom:1px; }
+  section { margin-top:72px; }
+  .sec-head { display:grid; grid-template-columns:64px 1fr; gap:16px; align-items:baseline; border-top:1px solid var(--line-2); padding-top:22px; }
+  .sec-num { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:500; padding-top:6px; }
+  .sec-head h2 { font-size:24px; font-weight:600; } .sec-head .sub { color:var(--ink-2); margin-top:6px; max-width:70ch; }
+  .sec-body { margin-left:80px; margin-top:28px; display:grid; gap:40px; }
+  @media (max-width:860px) { .sec-head { grid-template-columns:1fr; gap:6px; } .sec-body { margin-left:0; } }
+  .st { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; letter-spacing:.04em; padding:2px 8px; border-radius:3px; font-weight:600; white-space:nowrap; color:var(--on-solid); vertical-align:middle; }
+  .st-spec { background:var(--green); } .st-gap { background:var(--red); } .st-gep { background:var(--accent); } .st-obs { background:var(--ink-3); }
+  .board { overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:6px; box-shadow:var(--shadow); }
+  table.b { border-collapse:collapse; width:100%; font-size:14px; }
+  table.b th, table.b td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.b tr:last-child td { border-bottom:0; }
+  table.b th { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  table.b td.n { color:var(--ink-3); font-variant-numeric:tabular-nums; width:32px; }
+  table.b td.src { color:var(--ink-3); white-space:nowrap; font-size:13px; }
+  .tally { display:flex; flex-wrap:wrap; gap:10px 22px; margin-bottom:14px; font-size:14px; color:var(--ink-2); align-items:center; } .tally b { font-weight:600; color:var(--ink); }
+  figure { margin:0; display:grid; gap:18px; }
+  figure > figcaption { font-size:17px; font-weight:600; display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; }
+  .panes { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; align-items:start; }
+  @media (max-width:980px) { .panes { grid-template-columns:1fr; } .sec-body { margin-left:0; } }
+  .pane-h { display:flex; justify-content:space-between; align-items:center; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; margin-bottom:8px; }
+  pre.geml { margin:0; background:var(--surface-2); border:1px solid var(--line); border-radius:6px; padding:14px 16px; font-size:13px; line-height:1.6; overflow-x:auto; color:var(--ink); }
+  pre.geml .f { color:var(--accent); font-weight:500; } pre.geml .a { color:var(--ink-2); } pre.geml .c { color:var(--ink-3); font-style:italic; }
+  pre.geml .hl { background:var(--amber-soft); color:var(--amber); border-radius:2px; padding:0 2px; }
+  .term { background:var(--ink); color:#E6EBF0; border-radius:6px; padding:12px 14px; font-size:12.5px; line-height:1.6; overflow-x:auto; margin:0; }
+  :root[data-theme="dark"] .term { background:#0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .term { background:#0B0F14; } }
+  .term .ok { color:#7ED4A0; } .term .er { color:#F09A94; } .term .wn { color:#F0C060; } .term .dim { color:#8A96A3; } .term .cmd { color:#9CC7FF; }
+  .tiles { display:grid; grid-template-columns:repeat(8, 1fr); gap:4px; }
+  .tile { height:22px; border-radius:3px; background:var(--accent-soft); border:1px solid var(--accent); }
+  .tile.gap { background:var(--red-soft); border-color:var(--red); }
+  .tile.meta { background:var(--surface-2); border-color:var(--line-2); }
+  .cap { font-size:12.5px; color:var(--ink-3); }
+  .render { background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:18px 20px; box-shadow:var(--shadow); display:grid; gap:12px; font-size:14px; }
+  .ph { display:inline-block; background:var(--amber-soft); color:var(--amber); border:1px dashed var(--amber); border-radius:3px; padding:0 5px; font-family:"IBM Plex Mono",monospace; font-size:12px; }
+  .badge { display:inline-flex; align-items:center; gap:5px; font-size:11px; letter-spacing:.04em; text-transform:uppercase; padding:2px 7px; border-radius:3px; font-weight:500; white-space:nowrap; }
+  .b-err { background:var(--red-soft); color:var(--red); } .b-warn { background:var(--amber-soft); color:var(--amber); } .b-ok { background:var(--green-soft); color:var(--green); } .b-mute { background:var(--surface-2); color:var(--ink-3); }
+  .decision { display:grid; grid-template-columns:110px 1fr; gap:6px 16px; font-size:14.5px; border-top:1px dashed var(--line-2); padding-top:14px; }
+  .decision dt { color:var(--ink-3); font-size:12px; letter-spacing:.06em; text-transform:uppercase; font-weight:500; padding-top:4px; }
+  .decision dd { margin:0; } .decision dd.amber { color:var(--amber); }
+  table.t { border-collapse:collapse; width:100%; font-size:14px; }
+  table.t th, table.t td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.t tr:last-child td { border-bottom:0; }
+  table.t th { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  table.t td.mono { font-size:13px; }
+  .tablewrap { overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:6px; }
+  footer { margin-top:80px; border-top:1px solid var(--line-2); padding-top:18px; font-size:13.5px; color:var(--ink-3); display:grid; gap:6px; }
+  footer code { background:transparent; padding:0; color:var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">GEML Illustrated · profile · geml-translator/v1 (GEP-0010, draft; registered) · probed against geml 1.9.2, local build · <a href="11-profile-translator_CN.html">中文</a></div>
+  <h1>GEML Illustrated · geml-translator</h1>
+  <p class="lede">A translation is the source document projected along the <strong>language axis</strong>, the same shape as a <code>.md</code> projected along the format axis: the translated file holds only <code>embed</code> blocks, each saying with <code>translate-to=</code> which language it wants, the processor projects the source's prose across, and every other byte stays as it was. Ids, order and non-prose content have one home, so drift is not detected but impossible. This page lays out GEP-0010's rules, the one key the profile admits, what a translator must preserve, and how far the reference implementation goes today.</p>
+  <nav class="toc">
+    <a href="#board">Board</a>
+    <a href="#doc">What a translation looks like</a>
+    <a href="#tile">Tiling the source</a>
+    <a href="#honour">What the translator must keep</a>
+    <a href="#glossary">Glossary</a>
+    <a href="#evidence">Evidence</a>
+  </nav>
+</header>
+
+<!-- ============ BOARD ============ -->
+<section id="board">
+  <div class="sec-head">
+    <div class="sec-num">Board</div>
+    <div>
+      <h2>10 rules, each with its source and status</h2>
+      <p class="sub"><span class="st st-gep">GEP draft</span> defined by GEP-0010; the profile is registered, the spec has not adopted it. <span class="st st-obs">Observed</span> what the tool does today. <span class="st st-gap">Doc gap</span> documentation that should exist and does not.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div>
+      <div class="tally"><span><span class="st st-gep">GEP draft</span> <b>7</b></span><span><span class="st st-obs">Observed</span> <b>2</b></span><span><span class="st st-gap">Doc gap</span> <b>1</b></span></div>
+      <div class="board">
+        <table class="b">
+          <thead><tr><th></th><th>Rule</th><th>Source</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td class="n">1</td><td>A translation is a projection along the language axis, reusing GEP-0006's shape along the format axis. The translated file <strong>holds only embeds</strong>, nothing else; block ids, order and non-prose bytes have one home, so drift is impossible.</td><td class="src">GEP-0010 Summary</td><td><span class="st st-gep">GEP draft</span></td></tr>
+            <tr><td class="n">2</td><td>The profile <code>geml-translator/v1</code> admits one attribute key: <code>translate-to</code> on <code>embed</code>. §8.6.1 lets a profile admit attribute keys, so no spec change is needed.</td><td class="src">profiles.ts · §8.6</td><td><span class="st st-gep">GEP draft</span></td></tr>
+            <tr><td class="n">3</td><td><code>translate-to</code> is one key in two places: on the meta it is the document default, on an embed it overrides; <code>none</code> keeps a block untranslated ("absent" means inherit, not "do not", so untranslated needs its own spelling). Not called <code>lang</code>: <code>code {lang=}</code> says what the body <em>already is</em>; this says what to <em>do</em>.</td><td class="src">GEP-0010</td><td><span class="st st-gep">GEP draft</span></td></tr>
+            <tr><td class="n">4</td><td><code>translator=</code> is reserved, not shipped: with one engine, a key selecting engines would "parse, do nothing, look supported". How a processor obtains a translator is implementation-defined, and having none is conforming.</td><td class="src">GEP-0010</td><td><span class="st st-gep">GEP draft</span></td></tr>
+            <tr><td class="n">5</td><td>Prerequisite: the embeds must <strong>tile the source</strong>, from the end of the meta to the end of the file. Measured: GEML-spec.geml's 16 <code>##</code> sections tile L5–L1389 with no gap; a 52-line translation projects 1349 lines of Markdown, byte-identical to the source's 1345. A paragraph before the first heading belongs to no addressable unit and is <strong>silently lost</strong>; <code>geml list</code>'s line ranges prove coverage mechanically, and a gap is a diagnostic waiting to be defined.</td><td class="src">GEP-0010</td><td><span class="st st-gep">GEP draft</span></td></tr>
+            <tr><td class="n">6</td><td>A translator must preserve: verbatim inline atoms (code spans, inline math); every reference and its target (labels may translate, targets may not); every id, class, attribute key, and attribute values that name things; block structure. <strong>No partial output</strong>: failure, timeout or unavailability leaves the block in the source language.</td><td class="src">GEP-0010</td><td><span class="st st-gep">GEP draft</span></td></tr>
+            <tr><td class="n">7</td><td>Translate a block in one call, not text node by text node: measured, 133 calls on MANIFESTO.geml had 57 strings under 25 characters, and 35% of prose blocks went out in fragments. Replace the immovable spans with placeholders under three properties: inert in the target language, allowed to move, and recovery must <strong>verify</strong> (each placeholder back exactly once), else the whole block falls back to the source language.</td><td class="src">GEP-0010</td><td><span class="st st-gep">GEP draft</span></td></tr>
+            <tr><td class="n">8</td><td>Glossary: the meta's <code>glossary = "#id"</code> points at a <code>hidden</code> table, applied by the projection layer rather than asked of the engine; the table lives in the translation, not the source, because settled renderings are a property of the translation. Three existing rules do all the work: the hidden flag, a reference because the meta cannot hold a table, and the table as an ordinary block.</td><td class="src">GEP-0010</td><td><span class="st st-gep">GEP draft</span></td></tr>
+            <tr><td class="n">9</td><td>Reference implementation: the CLI's <code>--to md/html</code> has no translator, emits the source text and adds a note that translate-to was not applied; real translation happens in the viewer through the browser's built-in Translator (<code>translate-browser.js</code>); parser-side <code>translate.ts</code> exports resolveTarget / translateInlines / translateBlocks / glossaryFrom. A document declaring the profile checks with 0 diagnostics; undeclared → unknown-attribute warning.</td><td class="src">geml-parser/src · viewer</td><td><span class="st st-obs">Observed</span></td></tr>
+            <tr><td class="n">10</td><td><strong>Doc gap:</strong> there is no geml-translator directory under <code>spec/profiles/</code> and the profiles README index does not list it; only the <code>profiles.ts</code> registration and the GEP-0010 text exist. The README's "the index table and the registry are the same table said twice" no longer holds here.</td><td class="src">spec/profiles</td><td><span class="st st-gap">Doc gap</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DOC ============ -->
+<section id="doc">
+  <div class="sec-head">
+    <div class="sec-num">Translation</div>
+    <div>
+      <h2>A translation is embeds only</h2>
+      <p class="sub">Left, the complete translated file; right, the check result and the no-profile comparison.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>meta default · embed override · none keeps <span class="st st-gep">GEP draft</span> <span class="st st-obs">check observed</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>tr.geml</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+title = "translated"
+<span class="hl">profile = "geml-translator/v1"</span>
+<span class="hl">translate-to = "zh"</span>                      <span class="c">%% document default</span>
+<span class="f">===</span>
+
+<span class="f">=== embed</span> <span class="a">{src=a.geml#budget}</span>               <span class="c">%% inherits zh</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{src=a.geml#tbl <span class="hl">translate-to=none</span>}</span>  <span class="c">%% the table stays</span>
+<span class="f">===</span>
+
+<span class="c">%% nothing else: ids, order, tables, code all live in a.geml</span></pre>
+          <div class="pane-h" style="margin-top:14px"><span>The GEP's prototype</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+title    = "发布"
+profile  = "geml-translator/v1"
+lang     = "zh-cn"
+source   = "PUBLISHING.geml"
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{src=PUBLISHING.geml#topology translate-to=zh-cn}</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{src=PUBLISHING.geml#prereq translate-to=zh-cn}</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check --root .</span></div>
+<pre class="term"><span class="dim">tr.geml</span>
+<span class="ok">ok: no diagnostics</span>
+
+<span class="dim">tr-noprofile.geml (same embeds, no profile line)</span>
+<span class="wn">warning:</span> unknown attribute `translate-to` for block type `embed` (line 4)
+
+<span class="dim">geml tr.geml --to md (CLI export)</span>
+<span class="dim">note: `translate-to=zh` was not applied: this export has no translator,
+      so the source text stands</span></pre>
+          <div class="render" style="margin-top:12px">
+            <table class="t">
+              <thead><tr><th>Where</th><th>What <code>translate-to</code> means</th></tr></thead>
+              <tbody>
+                <tr><td>meta</td><td>document default: embeds without it inherit</td></tr>
+                <tr><td>embed</td><td>overrides the default</td></tr>
+                <tr><td>embed, value <code>none</code></td><td>this block is not translated. "Absent" means inherit, so "untranslated" needs its own spelling</td></tr>
+                <tr><td><code>translator=</code></td><td>reserved. With one engine it should not be written; <code>auto</code> likewise, choosing from a one-member set</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Why not lang</dt><dd><code>code {lang=}</code> names a programming language, a statement about what the body <em>is</em>; this names a natural language, an instruction about what to <em>do</em> to the body. Two value spaces, two parts of speech, and in a format where a name means one thing they cannot share a key. <code>translate-to</code> is a verb and cannot be read as either of the other two.</dd>
+        <dt>Admission</dt><dd>§8.6: a profile admits names only. Once declared and recognised, the key stops warning; how the processor obtains a translator (browser built-in, an OS service, an MCP tool, a shelled-out CLI) is implementation-defined, and obtaining none is still conforming.</dd>
+        <dt>CLI today</dt><dd class="amber">The reference CLI export has no translator, so <code>--to md</code> emits the source text and leaves a note saying it was not applied; real translation happens in the viewer through the browser Translator. The document does not pretend to be translated.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ TILE ============ -->
+<section id="tile">
+  <div class="sec-head">
+    <div class="sec-num">Prerequisite</div>
+    <div>
+      <h2>The embeds must tile the source</h2>
+      <p class="sub">Not "embed works", but "the embedded ids must cover from the end of the meta to the end of the file". Mechanically checkable.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>Measured in the GEP: 16 sections tile 1385 lines; one paragraph before a heading is silently lost <span class="st st-gep">GEP draft</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML-spec.geml · 16 ## sections, no gap</span></div>
+          <div class="tiles">
+            <div class="tile meta" title="L1-4 title and language switcher"></div>
+            <div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div>
+            <div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div>
+          </div>
+          <span class="cap">Grey: L1–4, the source's H1 and the "English | 中文" switcher line, exactly the two things a translation writes itself. Blue: the 16 ## sections, L5–L1389, no gap. A 52-line translation projects 1349 lines of Markdown, byte-identical to the source's 1345 from the first section on, nested embeds included.</span>
+          <div class="pane-h" style="margin-top:14px"><span>Counter-example: a paragraph before the first heading</span></div>
+          <div class="tiles">
+            <div class="tile meta"></div><div class="tile gap" title="belongs to nobody"></div>
+            <div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div>
+          </div>
+          <span class="cap">Red: a paragraph after the meta and before the first heading. <code>geml list</code> reports the meta at L1–3 and the heading from L7; the lines between belong to no unit. Both headings embedded, the translation reads <code>ok: no diagnostics</code>, and the projection simply lacks that paragraph. Nobody warns, because nobody was asked.</span>
+        </div>
+        <div>
+          <div class="pane-h"><span>Rules</span></div>
+          <div class="render">
+            <table class="t">
+              <thead><tr><th>Requirement</th><th>Why</th></tr></thead>
+              <tbody>
+                <tr><td>Embedded ids tile from the end of the meta to the end of the file</td><td>embed projects only addressable units; unaddressable prose cannot cross and cannot be translated</td></tr>
+                <tr><td>Coverage is provable from <code>geml list</code>'s line ranges</td><td>a gap is a diagnostic waiting to be defined, not a design flaw</td></tr>
+                <tr><td>Prose nobody can address goes in a <code>text</code> block</td><td>§3 already gave it a home; this proposal only makes the cost of not using it visible</td></tr>
+                <tr><td>An embed naming a heading takes the whole section</td><td>bare paragraphs and nested blocks come along, not just the heading line (see page 5)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Where the pressure is</dt><dd>The GEP: this puts gentle pressure on source documents, and that is where pressure belongs: prose nobody can address is prose nobody can embed, translate, or block-edit either.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ HONOUR ============ -->
+<section id="honour">
+  <div class="sec-head">
+    <div class="sec-num">Preserve</div>
+    <div>
+      <h2>What a translator must keep verbatim, and how to send a whole block</h2>
+      <p class="sub">The spec cannot say how to translate, only what must survive. §4's interpolation set the precedent: no substitution inside code spans and inline math.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>Four kinds of immovable content, one no-half-output rule, one placeholder protocol <span class="st st-gep">GEP draft</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>One source sentence before it reaches the translator</span></div>
+          <div class="render">
+            <p>Run <code>geml check</code> before you [publish](#pub); see <strong>§8</strong> and $x^2$.</p>
+            <span class="cap">The whole block goes out in one call, immovable spans replaced by placeholders:</span>
+            <p>Run <span class="ph">⟦1⟧</span> before you <span class="ph">⟦2⟧</span>; see <strong>§8</strong> and <span class="ph">⟦3⟧</span>.</p>
+            <span class="cap">The translator may move the placeholders (the target language puts them where they belong); on return each must appear exactly once before being restored to the code span, the link and the math. One missing, one extra, one damaged, and the whole block falls back to the source language.</span>
+          </div>
+        </div>
+        <div>
+          <div class="pane-h"><span>Must be preserved</span></div>
+          <div class="tablewrap">
+            <table class="t">
+              <thead><tr><th>What</th><th>Rule</th></tr></thead>
+              <tbody>
+                <tr><td>verbatim inline atoms</td><td>code spans, inline math: translate around them, never through</td></tr>
+                <tr><td>references and their targets</td><td><code>[[#id]]</code>, <code>[t](#id)</code>, <code>[^fn]</code>, link hrefs: labels may translate, targets may not, or §8.2(5) turns the translation into a build error</td></tr>
+                <tr><td>ids, classes, attribute keys</td><td>and attribute values that name things rather than say them: <code>format=</code>, <code>src=</code>, <code>translate-to=</code></td></tr>
+                <tr><td>block structure</td><td>same blocks, same order, same ids</td></tr>
+                <tr><td colspan="2"><strong>No partial output</strong>: failure, timeout, unavailability → the block in the source language. Half a translated sentence is worse than none.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Why whole blocks</dt><dd>The reference implementation once sent inline text nodes one by one: 133 calls and 9798 characters for MANIFESTO.geml, 57 strings under 25 characters, <code>" / "</code> sent four times, 12 of 34 prose blocks (35%) split into fragments, up to seven. The reassembled result showed it at once: a full-width bracket opening one fragment, a half-width one closing the next. Splitting guaranteed the atoms stayed put at the cost of never sending a complete sentence.</dd>
+        <dt>Three placeholder properties</dt><dd>Inert in any target language; allowed to move; recovery must verify. A failed verification takes the no-partial-output path: a hole in a sentence is exactly what that rule already forbids.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ GLOSSARY ============ -->
+<section id="glossary">
+  <div class="sec-head">
+    <div class="sec-num">Glossary</div>
+    <div>
+      <h2>A glossary pins the terms an engine would decide afresh each time</h2>
+      <p class="sub">Structure does not drift; vocabulary does. A translator is called per block and remembers nothing, so a term appearing eight times is decided eight times.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>The meta references a hidden table, the projection layer applies it <span class="st st-gep">GEP draft</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · the translated file</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+profile      = "geml-translator/v1"
+translate-to = "zh-cn"
+source       = "MANIFESTO.geml"
+<span class="hl">glossary     = "#not-translated-terms"</span>    <span class="c">%% the meta cannot hold a table, so a reference</span>
+<span class="f">===</span>
+
+<span class="f">=== table</span> <span class="a">{#not-translated-terms <span class="hl">hidden</span>}</span>
+| term | zh-cn |
+|---|---|
+| Doc-as-a-Base | 文档即真相之源 |
+| Single Source of Truth | 单一事实来源 |
+<span class="f">===</span>
+
+<span class="f">=== embed</span> <span class="a">{src=MANIFESTO.geml}</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>Three existing rules</span></div>
+          <div class="tablewrap">
+            <table class="t">
+              <tbody>
+                <tr><td class="mono">hidden</td><td>§4's flag for "structured content that enters the model and is not displayed"; renderers must omit it. Observed: this document checks clean and the Markdown projection has no such table</td></tr>
+                <tr><td class="mono">glossary = "#id"</td><td>§4: the meta supports no arrays, dates or nested tables, so the meta key is a reference and the table an ordinary block, the shape a data source already has in this language</td></tr>
+                <tr><td>in the translation</td><td>settled renderings are a property of the <strong>translation</strong>; the source neither knows nor should care which word its readers' language argued over. The translation is still one file</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ EVIDENCE ============ -->
+<section id="evidence">
+  <div class="sec-head">
+    <div class="sec-num">Evidence</div>
+    <div>
+      <h2>Probes and sources</h2>
+      <p class="sub">check uses the current in-repo build, 1.9.2; the tiling and splitting numbers come from GEP-0010's own measurements.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tablewrap">
+      <table class="t">
+        <thead><tr><th>Probe / source</th><th>Result</th><th>Maps to</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">tr.geml (with profile)</td><td><span class="badge b-ok">0 diagnostics</span></td><td>translation, board 2, 9</td></tr>
+          <tr><td class="mono">tr-noprofile.geml</td><td><span class="badge b-warn">1 warning</span> unknown attribute translate-to</td><td>board 2</td></tr>
+          <tr><td class="mono">geml cli.ts:830–848</td><td>export without a translator emits the source text plus a note</td><td>board 9</td></tr>
+          <tr><td class="mono">GEP-0010 · The prerequisite</td><td>16 sections tile L5–L1389, 1345 lines byte-identical; a paragraph before the heading is silently lost</td><td>tiling</td></tr>
+          <tr><td class="mono">GEP-0010 · Translate a block</td><td>133 calls, 57 short strings, 35% of blocks split</td><td>preserve</td></tr>
+          <tr><td class="mono">ls spec/profiles</td><td>no geml-translator directory; no index row in the profiles README</td><td>board 10</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>This page: <code>docs/illustrated/11-profile-translator.html</code>; Chinese version <code>11-profile-translator_CN.html</code>. Source: <code>spec/proposals/0010-language-projections.md</code>; embed itself is on page 5.</div>
+</footer>
+</div>

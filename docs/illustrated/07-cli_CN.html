@@ -1,0 +1,370 @@
+<title>GEML 图解 · CLI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+  :root { --bg:#F4F6F9; --surface:#FFFFFF; --surface-2:#EBEFF4; --ink:#1B2430; --ink-2:#47535F; --ink-3:#7B8794; --line:#D5DCE4; --line-2:#C3CCD6; --accent:#1F6F8B; --accent-soft:#DCEDF3; --amber:#9A5F0A; --amber-soft:#FAEED3; --red:#B0403B; --red-soft:#F8E2E0; --green:#2E7A50; --green-soft:#DDF0E4; --on-solid:#FFFFFF; --shadow:0 1px 2px rgba(27,36,48,.06),0 6px 18px rgba(27,36,48,.05); color-scheme:light; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#11161C; --surface:#191F27; --surface-2:#202832; --ink:#E6EBF0; --ink-2:#B3BDC8; --ink-3:#7F8B98; --line:#2C3642; --line-2:#3A4552; --accent:#63B5D1; --accent-soft:#14323D; --amber:#E2AC45; --amber-soft:#382B10; --red:#E27F79; --red-soft:#3E1F1E; --green:#6CC08E; --green-soft:#173124; --on-solid:#0F141A; --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25); color-scheme:dark; } }
+  :root[data-theme="dark"] { --bg:#11161C; --surface:#191F27; --surface-2:#202832; --ink:#E6EBF0; --ink-2:#B3BDC8; --ink-3:#7F8B98; --line:#2C3642; --line-2:#3A4552; --accent:#63B5D1; --accent-soft:#14323D; --amber:#E2AC45; --amber-soft:#382B10; --red:#E27F79; --red-soft:#3E1F1E; --green:#6CC08E; --green-soft:#173124; --on-solid:#0F141A; --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25); color-scheme:dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.7 "IBM Plex Sans","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1120px; margin:0 auto; padding:48px 28px 96px; }
+  h1,h2,h3 { text-wrap:balance; margin:0; } p { margin:0; } a { color:var(--accent); }
+  code,pre,.mono { font-family:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace; }
+  code { font-size:.92em; background:var(--surface-2); padding:1px 5px; border-radius:3px; }
+  .eyebrow { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  header h1 { font-size:34px; line-height:1.2; font-weight:600; margin-top:10px; letter-spacing:-.01em; }
+  header .lede { max-width:66ch; color:var(--ink-2); margin-top:16px; font-size:16px; }
+  .toc { display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:22px; font-size:14px; }
+  .toc a { text-decoration:none; border-bottom:1px solid var(--line-2); padding-bottom:1px; }
+  section { margin-top:72px; }
+  .sec-head { display:grid; grid-template-columns:64px 1fr; gap:16px; align-items:baseline; border-top:1px solid var(--line-2); padding-top:22px; }
+  .sec-num { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:500; padding-top:6px; }
+  .sec-head h2 { font-size:24px; font-weight:600; } .sec-head .sub { color:var(--ink-2); margin-top:6px; max-width:70ch; }
+  .sec-body { margin-left:80px; margin-top:28px; display:grid; gap:40px; }
+  @media (max-width:860px) { .sec-head { grid-template-columns:1fr; gap:6px; } .sec-body { margin-left:0; } }
+  .st { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; letter-spacing:.04em; padding:2px 8px; border-radius:3px; font-weight:600; white-space:nowrap; color:var(--on-solid); vertical-align:middle; }
+  .st-spec { background:var(--green); } .st-gap { background:var(--red); } .st-gep { background:var(--accent); } .st-obs { background:var(--ink-3); }
+  .board { overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:6px; box-shadow:var(--shadow); }
+  table.b { border-collapse:collapse; width:100%; font-size:14px; }
+  table.b th, table.b td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.b tr:last-child td { border-bottom:0; }
+  table.b th { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  table.b td.n { color:var(--ink-3); font-variant-numeric:tabular-nums; width:32px; }
+  table.b td.src { color:var(--ink-3); white-space:nowrap; font-size:13px; }
+  table.b tr.grp td { background:var(--surface-2); font-weight:600; font-size:13px; letter-spacing:.04em; color:var(--ink-2); }
+  .tally { display:flex; flex-wrap:wrap; gap:10px 22px; margin-bottom:14px; font-size:14px; color:var(--ink-2); align-items:center; } .tally b { font-weight:600; color:var(--ink); }
+  figure { margin:0; display:grid; gap:18px; }
+  figure > figcaption { font-size:17px; font-weight:600; display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; }
+  figure > figcaption small { flex-basis:100%; font-size:14px; font-weight:400; color:var(--ink-2); }
+  .panes { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; align-items:start; }
+  @media (max-width:980px) { .panes { grid-template-columns:1fr; } .sec-body { margin-left:0; } }
+  .pane-h { display:flex; justify-content:space-between; align-items:center; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; margin-bottom:8px; }
+  pre.geml { margin:0; background:var(--surface-2); border:1px solid var(--line); border-radius:6px; padding:14px 16px; font-size:13px; line-height:1.6; overflow-x:auto; color:var(--ink); }
+  pre.geml .f { color:var(--accent); font-weight:500; } pre.geml .a { color:var(--ink-2); } pre.geml .c { color:var(--ink-3); font-style:italic; }
+  pre.geml .hl { background:var(--amber-soft); color:var(--amber); border-radius:2px; padding:0 2px; }
+  .term { background:var(--ink); color:#E6EBF0; border-radius:6px; padding:12px 14px; font-size:12.5px; line-height:1.6; overflow-x:auto; margin:0; }
+  :root[data-theme="dark"] .term { background:#0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .term { background:#0B0F14; } }
+  .term .ok { color:#7ED4A0; } .term .er { color:#F09A94; } .term .wn { color:#F0C060; } .term .dim { color:#8A96A3; } .term .cmd { color:#9CC7FF; }
+  .badge { display:inline-flex; align-items:center; gap:5px; font-size:11px; letter-spacing:.04em; text-transform:uppercase; padding:2px 7px; border-radius:3px; font-weight:500; white-space:nowrap; }
+  .b-err { background:var(--red-soft); color:var(--red); } .b-warn { background:var(--amber-soft); color:var(--amber); } .b-ok { background:var(--green-soft); color:var(--green); } .b-mute { background:var(--surface-2); color:var(--ink-3); }
+  .decision { display:grid; grid-template-columns:72px 1fr; gap:6px 16px; font-size:14.5px; border-top:1px dashed var(--line-2); padding-top:14px; }
+  .decision dt { color:var(--ink-3); font-size:12px; letter-spacing:.06em; text-transform:uppercase; font-weight:500; padding-top:4px; }
+  .decision dd { margin:0; } .decision dd.amber { color:var(--amber); }
+  table.t { border-collapse:collapse; width:100%; font-size:14px; }
+  table.t th, table.t td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.t tr:last-child td { border-bottom:0; }
+  table.t th { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  table.t td.mono { font-size:13px; white-space:nowrap; }
+  .tablewrap { overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:6px; }
+  footer { margin-top:80px; border-top:1px solid var(--line-2); padding-top:18px; font-size:13.5px; color:var(--ink-3); display:grid; gap:6px; }
+  footer code { background:transparent; padding:0; color:var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">GEML 图解 · geml CLI · 实测 geml 1.9.2 本地构建 · <a href="07-cli.html">English</a></div>
+  <h1>GEML 图解 · CLI</h1>
+  <p class="lede"><code>geml</code> 命令行做三类事：<strong>转换</strong>一份文档（json、html、md、geml 之间），<strong>按块读写</strong>（list、find、get、set、add、delete、rename、revert），<strong>校验</strong>（check，以及 profile 各自的 style check、history verify、codemap verify）。核心动词从不带 profile 名。写操作有一道守卫：结果解析不过就拒绝写入。这一页把每个动词、它接受的地址形式、退出码，用一份小文档实跑一遍。</p>
+  <nav class="toc">
+    <a href="#board">看板</a>
+    <a href="#loop">list → get → set</a>
+    <a href="#mutate">add · delete · rename</a>
+    <a href="#convert">转换</a>
+    <a href="#addr">地址形式</a>
+    <a href="#evidence">依据</a>
+  </nav>
+</header>
+
+<!-- ============ BOARD ============ -->
+<section id="board">
+  <div class="sec-head">
+    <div class="sec-num">看板</div>
+    <div>
+      <h2>16 条规则，各自的出处和状态</h2>
+      <p class="sub"><span class="st st-spec">已定</span> <code>geml --help</code> 或规范写死的。<span class="st st-obs">实测</span> 跑出来的行为。<span class="st st-gep">GEP 草案</span> 地址形式来自草案。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div>
+      <div class="tally"><span><span class="st st-spec">已定</span> <b>12</b></span><span><span class="st st-obs">实测</span> <b>3</b></span><span><span class="st st-gep">GEP 草案</span> <b>1</b></span></div>
+      <div class="board">
+        <table class="b">
+          <thead><tr><th></th><th>规则</th><th>出处</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr class="grp"><td></td><td colspan="3">通用</td></tr>
+            <tr><td class="n">1</td><td>文件位置可以写 <code>-</code> 读 stdin。写动词（set / add / delete / rename）对文件<strong>原地整写</strong>，对 <code>-</code> 输出到 stdout；<code>-o f</code> 重定向，<code>-o -</code> 也是 stdout。退出码 0 成功、1 文档或操作错误。</td><td class="src">--help</td><td><span class="st st-spec">已定</span></td></tr>
+            <tr><td class="n">2</td><td><code>--root d</code> 把跨文档解析放宽到目录 d，<strong>读写动词都吃它</strong>。写入在结果解析不过时被拒绝，所以一份靠仓库根才能解析 <code>../x.md</code> 的文档不带 --root 就根本不可编辑，否则守卫会把自己的盲区读成损坏。</td><td class="src">--help</td><td><span class="st st-spec">已定</span></td></tr>
+            <tr><td class="n">3</td><td>先调 <code>list</code>：它打印的地址就是其余动词接受的东西。<code>get</code> 无 #id 时也列出全部 id。</td><td class="src">--help</td><td><span class="st st-spec">已定</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">读</td></tr>
+            <tr><td class="n">4</td><td><code>list &lt;file&gt; [--json]</code>：每个可寻址块一行：地址、kind、行范围；匿名块显示为 <code>=== type</code> 或带内容哈希的 <code>type@hash</code>；块间散文以派生地址出现。</td><td class="src">--help · §4</td><td><span class="st st-spec">已定</span></td></tr>
+            <tr><td class="n">5</td><td><code>find &lt;pattern&gt; [file|dir …]</code>：搜块内容，回答 <code>file&lt;TAB&gt;address</code>，是地址不是行号，所以能直接粘进 get / set。命名文件不限扩展名（.md 也搜），目录只走 *.geml。无命中 exit 1。</td><td class="src">--help</td><td><span class="st st-spec">已定</span></td></tr>
+            <tr><td class="n">6</td><td><code>get &lt;file&gt; [#id] [--json] [--head|--intro|--body]</code>：标题 id = 整节；<code>--head</code> 只标题行，<code>--body</code> 标题下全部，<code>--intro</code> 到第一个子标题前；<code>--json</code> 给模型节点。选择器也可以是<strong>位置</strong> <code>L27</code> / <code>L27-58</code>：包含这些行的最小块，grep 命中或堆栈行号由此变成地址。</td><td class="src">--help</td><td><span class="st st-spec">已定</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">写</td></tr>
+            <tr><td class="n">7</td><td><code>set &lt;file&gt; #id [--head|--intro|--body] [--in f[#src]|-]</code>：替换一块。<code>--in F</code> 取 F 的块 #id，<code>F#src</code> 取 #src，否则 stdin 原样；缺省整块，<code>--head</code> 只换标题行，<code>--body</code> 只换正文。</td><td class="src">--help</td><td><span class="st st-spec">已定</span></td></tr>
+            <tr><td class="n">8</td><td><strong>守卫</strong>：写入结果重新解析，不通过就<strong>不写</strong>，exit 1，原文不动。实测：把一个未关闭的 code 块塞进 set，得到「replacement would break the document … not written」。</td><td class="src">--help · 实测</td><td><span class="st st-spec">已定</span></td></tr>
+            <tr><td class="n">9</td><td><code>add (--append | --before #id | --after #id) --in f|-</code>：插入片段，一个或多个块和散文；内容保留自己的 id，冲突拒绝。</td><td class="src">--help</td><td><span class="st st-spec">已定</span></td></tr>
+            <tr><td class="n">10</td><td><code>delete #id [#id2…]</code>：缺的 id 跳过；留下悬空引用只是 <strong>warning</strong>，不拒绝，提示跑 check 时它是 error。实测：删掉 <code>#cmd</code> 后 warning 一条、写入成功、随后 check exit 1。</td><td class="src">--help · 实测</td><td><span class="st st-spec">已定</span></td></tr>
+            <tr><td class="n">11</td><td><code>rename #old #new</code>：改 id 和每一处引用，按 id 边界匹配（不会把 <code>#cmd</code> 改进 <code>#cmdline</code>）。实测：块和 <code>[[#c]]</code> 一起变成 cmd。</td><td class="src">--help · 实测</td><td><span class="st st-spec">已定</span></td></tr>
+            <tr><td class="n">12</td><td><code>replace &lt;old&gt; &lt;new&gt; [--within sel]</code>：EXPERIMENTAL 的字面替换，受检并报告。<code>revert &lt;file&gt; #id [--rev sel]</code>：从 .gemlhistory 把一个块回到过去某版（拼回、复活或删除），sel 是 0 | -N | id 前缀 | changed，缺省 -1。</td><td class="src">--help</td><td><span class="st st-spec">已定</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">转换与校验</td></tr>
+            <tr><td class="n">13</td><td><code>geml &lt;file&gt; [--to json|html|md|geml] [--from geml|md|json]</code>：默认输出文档模型 JSON；<code>--to md</code> 有损（标题 id 和属性丢掉，会加 note）；<code>--to html</code> 自包含，<code>--fragment</code> 只给正文标记；<code>--to geml</code> 规范重排；<code>--from md</code> 把 Markdown 读成 GEML，扩展名能推断则不用写。</td><td class="src">--help · 实测</td><td><span class="st st-spec">已定</span></td></tr>
+            <tr><td class="n">14</td><td><code>check [--root d] [--json]</code>：只校验，诊断加退出码；<code>--json</code> 给诊断数组。这是本图解系列每一页右侧输出的来源。</td><td class="src">--help</td><td><span class="st st-spec">已定</span></td></tr>
+            <tr><td class="n">15</td><td>profile 自带动词：<code>style check</code>（exit 0/1/2）、<code>history save|get|restore|verify</code>、<code>codemap build|verify|render|serve|refresh|find</code>；另有 <code>mcp --root</code>（11 个工具，每个写操作落盘前校验）、<code>skill install</code>。核心动词永不带 profile 名。</td><td class="src">--help · profiles README</td><td><span class="st st-obs">实测</span></td></tr>
+            <tr><td class="n">16</td><td>地址形式：<code>#id</code>、<code>'## Heading'</code>（整节）、<code>L27-58</code>（位置）、<code>#fy[2]["Q1"]</code> / <code>#meta["key"]</code>（GEP-0011 坐标，本分支已实现）、<code>#form#field</code>（GEP-0008 草案，未实现）。</td><td class="src">--help · GEP-0011 · GEP-0008</td><td><span class="st st-gep">GEP 草案</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LOOP ============ -->
+<section id="loop">
+  <div class="sec-head">
+    <div class="sec-num">读写</div>
+    <div>
+      <h2>list → find → get → set，以及被拒的一次写入</h2>
+      <p class="sub">一份七行的小文档。左边是它，右边是每一步的真实输出。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>地址从 list 来，粘进 get 和 set <span class="st st-spec">已定</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>cli.geml</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+title = "cli probe"
+<span class="f">===</span>
+# Intro {#intro}
+Hello world paragraph.
+<span class="f">=== code</span> <span class="a">{#c lang=sh}</span>
+echo hi
+<span class="f">===</span>
+## Next {#next}
+See [[#c]].</pre>
+          <div class="pane-h" style="margin-top:14px"><span>set · 被守卫拒绝</span></div>
+<pre class="term"><span class="cmd">$ printf '=== code {#c lang=sh}\nunterminated\n' | geml set cli.geml '#c' --in -</span>
+<span class="er">error:</span> replacement would break the document: unterminated `code` block
+  (no matching === or `=== #c`) (line 6); not written
+<span class="dim">exit 1 · cli.geml 一字未动</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>shell</span></div>
+<pre class="term"><span class="cmd">$ geml list cli.geml</span>
+=== meta         meta     anon  L1-3
+#intro           heading  h1    L4-11  Intro
+<span class="dim">#intro-before-c  prose          L5-5</span>      <span class="dim">← 派生地址：#intro 之内、#c 之前</span>
+#c               code           L6-8
+#next            heading  h2    L9-11  Next
+
+<span class="cmd">$ geml find "echo" cli.geml</span>
+cli.geml	#c                          <span class="dim">exit 0</span>
+<span class="cmd">$ geml find "nothing-here" cli.geml</span>  <span class="dim">exit 1</span>
+
+<span class="cmd">$ geml get cli.geml 'L6'</span>                <span class="dim">位置 → 最小包含块</span>
+=== code {#c lang=sh}
+echo hi
+===
+<span class="cmd">$ geml get cli.geml '#intro' --head</span>
+# Intro {#intro}
+<span class="cmd">$ geml get cli.geml '#intro' --body</span>     <span class="dim">标题下全部，含子节 #next</span>
+Hello world paragraph.
+=== code {#c lang=sh}
+echo hi
+===
+## Next {#next}
+See [[#c]].</pre>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>地址不是行号</dt><dd>find 回答的是地址，因为地址在下一次编辑之后仍然有效，行号不会。反过来，<code>get 'L6'</code> 把一个行号变成地址：包含它的最小块。</dd>
+        <dt>整节</dt><dd>标题 id 指整节：<code>#intro</code> 是 H1，它的节到文件尾，所以 <code>--body</code> 连 <code>## Next</code> 一起给出。要只改标题行用 <code>--head</code>。</dd>
+        <dt>守卫</dt><dd>set 先把结果重新解析，坏了就不写。这是块级编辑安全的根，也是 --root 为什么对写动词也重要：解析不到的跨文档引用会让守卫误判。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ MUTATE ============ -->
+<section id="mutate">
+  <div class="sec-head">
+    <div class="sec-num">改</div>
+    <div>
+      <h2>rename 连引用一起改，add 保留 id，delete 只警告悬空</h2>
+      <p class="sub">三次写入接着一次 check。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>rename → add → delete → check <span class="st st-spec">已定</span> <span class="st st-obs">实测</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>shell</span></div>
+<pre class="term"><span class="cmd">$ geml rename cli.geml '#c' '#cmd'</span>
+wrote cli.geml
+<span class="cmd">$ grep -n cmd cli.geml</span>
+6:=== code {#cmd lang=sh}
+10:See [[#cmd]].                          <span class="dim">← 引用一起改了</span>
+
+<span class="cmd">$ printf '=== note {#n}\nadded\n===\n' | geml add cli.geml --after '#cmd' --in -</span>
+wrote cli.geml
+<span class="cmd">$ geml list cli.geml | tail -4</span>
+#intro-before-cmd  prose          L5-5
+#cmd               code           L6-8
+#n                 note           L10-12
+#next              heading  h2    L14-16  Next
+
+<span class="cmd">$ geml delete cli.geml '#cmd'</span>
+<span class="wn">warning:</span> unresolved reference `#cmd` (line 12) — left dangling by delete;
+  run 'geml check' to see it as an error
+wrote cli.geml                            <span class="dim">exit 0：删除照做</span>
+<span class="cmd">$ geml check cli.geml</span>
+<span class="er">error:</span> unresolved reference `#cmd` (line 12)
+1 error(s), 0 warning(s)                  <span class="dim">exit 1</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>规则</span></div>
+          <div class="tablewrap">
+            <table class="t">
+              <thead><tr><th>动词</th><th>对引用的态度</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">rename</td><td>改 id 和每一处引用，id 边界安全</td></tr>
+                <tr><td class="mono">add</td><td>片段保留自己的 id；与文档已有 id 冲突则拒绝</td></tr>
+                <tr><td class="mono">delete</td><td>留下悬空引用是 warning 不是拒绝：删除是作者的明确意图，check 再把它当 error</td></tr>
+                <tr><td class="mono">set</td><td>结果解析不过就不写</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <span class="badge b-mute" style="margin-top:10px">派生地址跟着改：#intro-before-c 变成 #intro-before-cmd</span>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>为什么 delete 不拒绝</dt><dd>删块是作者的明确动作；悬空引用是后果，工具说出来但不替作者决定。真正的红线在 check：exit 1。</dd>
+        <dt>派生地址</dt><dd>散文的派生地址两端都是它的邻居，邻居改名地址就变，这正是 §4 想要的：变动是响的，不会悄悄指向一段短了的散文。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ CONVERT ============ -->
+<section id="convert">
+  <div class="sec-head">
+    <div class="sec-num">转换</div>
+    <div>
+      <h2>--to 与 --from</h2>
+      <p class="sub">默认输出是文档模型 JSON；Markdown 是有损的一边。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>四种输出，三种输入 <span class="st st-spec">已定</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>shell</span></div>
+<pre class="term"><span class="cmd">$ geml cli.geml --to md</span>
+<span class="dim">note: heading id/attributes dropped (Markdown has no attribute syntax)</span>
+<span class="er">error:</span> unresolved reference `#cmd` (line 12)   <span class="dim">诊断照报，输出照给</span>
+---
+title: cli probe
+---
+
+# Intro
+
+Hello world paragraph.
+
+&gt; added
+
+## Next
+
+<span class="cmd">$ printf '# T\n\nsome md\n' | geml - --from md --to geml</span>
+# T
+
+some md</pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>格式一览</span></div>
+          <div class="tablewrap">
+            <table class="t">
+              <thead><tr><th>标志</th><th>得到</th><th>备注</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">--to json</td><td>文档模型</td><td>默认；§8.4 一致性面的形状</td></tr>
+                <tr><td class="mono">--to html</td><td>自包含 HTML</td><td><code>--fragment</code> 只给正文标记，资产走 pageAssets；本系列右侧标签由此而来</td></tr>
+                <tr><td class="mono">--to md</td><td>Markdown</td><td>有损：标题 id、属性丢，note 块变引用块，data 变代码块；会加 note 说明</td></tr>
+                <tr><td class="mono">--to geml</td><td>规范重排</td><td>data 的 json 重排为两空格缩进</td></tr>
+                <tr><td class="mono">--from md</td><td>把 Markdown 读成 GEML</td><td>扩展名是 .md 时自动推断；<code>geml notes.md</code> 直接可用</td></tr>
+                <tr><td class="mono">--from json</td><td>把 --to json 的结果读回</td><td>往返</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>md 读层</dt><dd>list / find / get 直接读 Markdown（<code>--from md</code> 自动推断），什么都不转换、不写；这就是 geml 技能里「按块读长 Markdown」的用法。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ ADDR ============ -->
+<section id="addr">
+  <div class="sec-head">
+    <div class="sec-num">地址</div>
+    <div>
+      <h2>一个块有几种叫法</h2>
+      <p class="sub">所有动词共用同一套选择器。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>选择器形式 <span class="st st-spec">已定</span> <span class="st st-gep">坐标与字段路径来自草案</span></figcaption>
+      <div class="tablewrap">
+        <table class="t">
+          <thead><tr><th>写法</th><th>指什么</th><th>出处 · 状态</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">#id</td><td>声明了 id 的块；标题 id 是整节</td><td>§4 · 已定</td></tr>
+            <tr><td class="mono">'## Heading'</td><td>按标题文字，同样是整节</td><td>--help · 已定</td></tr>
+            <tr><td class="mono">L27 · L27-58</td><td>包含这些行的最小块</td><td>--help · 已定</td></tr>
+            <tr><td class="mono">#a-between-b · #c-before-n · #c-after-p</td><td>两块之间散文的派生地址，list 会打印</td><td>§4 · 已定</td></tr>
+            <tr><td class="mono">=== type · type@hash</td><td>匿名块在 list 里的显示；<code>type@hash</code> 可粘回 get</td><td>实测</td></tr>
+            <tr><td class="mono">#fy[2]["Q1"] · #fy[summary] · #meta["title"] · #cfg["tags"][1]</td><td>表格行/格/列、汇总格、meta 值、data 值树节点</td><td>GEP-0011 · 草案，本分支已实现（第 2、3 页）</td></tr>
+            <tr><td class="mono">#vendor#contacts#email</td><td>form 内的字段</td><td>GEP-0008 · 草案，未实现（第 6 页）</td></tr>
+            <tr><td class="mono">other.geml#id · other.geml#fy[2]</td><td>跨文档，同上任意形式</td><td>§5.2 · GEP-0011</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ EVIDENCE ============ -->
+<section id="evidence">
+  <div class="sec-head">
+    <div class="sec-num">依据</div>
+    <div>
+      <h2>探针</h2>
+      <p class="sub">cli.geml 在会话 scratchpad 里跑，用仓库内当前构建，1.9.2。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tablewrap">
+      <table class="t">
+        <thead><tr><th>命令</th><th>结果</th><th>对应</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">list · find（命中 / 未命中）· get L6 · get --head / --body</td><td>如上；find 未命中 exit 1</td><td>读写、看板 4–6</td></tr>
+          <tr><td class="mono">set 塞入未关闭块</td><td><span class="badge b-err">exit 1</span> not written，文件不动</td><td>看板 8</td></tr>
+          <tr><td class="mono">rename · add --after · delete · check</td><td>引用同改；片段插入；悬空 warning 后 check <span class="badge b-err">exit 1</span></td><td>改、看板 9–11</td></tr>
+          <tr><td class="mono">--to md · - --from md --to geml</td><td>有损 note；stdin Markdown 读成 GEML</td><td>转换</td></tr>
+          <tr><td class="mono">geml --help · geml history · geml codemap</td><td>动词与用法文本</td><td>看板 1–3、12–15</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>本页：<code>docs/illustrated/07-cli_CN.html</code>，英文版 <code>07-cli.html</code>。出处：<code>geml --help</code>，<code>geml-parser/src/cli.ts</code>。</div>
+</footer>
+</div>

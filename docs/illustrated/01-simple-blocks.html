@@ -1,0 +1,569 @@
+<title>GEML Blocks Illustrated · The Simple Four</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Serif:ital@1&display=swap">
+<style>
+  :root {
+    --bg: #F4F6F9; --surface: #FFFFFF; --surface-2: #EBEFF4;
+    --ink: #1B2430; --ink-2: #47535F; --ink-3: #7B8794;
+    --line: #D5DCE4; --line-2: #C3CCD6;
+    --accent: #1F6F8B; --accent-soft: #DCEDF3;
+    --amber: #9A5F0A; --amber-soft: #FAEED3;
+    --red: #B0403B; --red-soft: #F8E2E0;
+    --green: #2E7A50; --green-soft: #DDF0E4;
+    --on-solid: #FFFFFF;
+    --shadow: 0 1px 2px rgba(27, 36, 48, .06), 0 6px 18px rgba(27, 36, 48, .05);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11161C; --surface: #191F27; --surface-2: #202832;
+      --ink: #E6EBF0; --ink-2: #B3BDC8; --ink-3: #7F8B98;
+      --line: #2C3642; --line-2: #3A4552;
+      --accent: #63B5D1; --accent-soft: #14323D;
+      --amber: #E2AC45; --amber-soft: #382B10;
+      --red: #E27F79; --red-soft: #3E1F1E;
+      --green: #6CC08E; --green-soft: #173124;
+      --on-solid: #0F141A;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11161C; --surface: #191F27; --surface-2: #202832;
+    --ink: #E6EBF0; --ink-2: #B3BDC8; --ink-3: #7F8B98;
+    --line: #2C3642; --line-2: #3A4552;
+    --accent: #63B5D1; --accent-soft: #14323D;
+    --amber: #E2AC45; --amber-soft: #382B10;
+    --red: #E27F79; --red-soft: #3E1F1E;
+    --green: #6CC08E; --green-soft: #173124;
+    --on-solid: #0F141A;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.65 "IBM Plex Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 48px 28px 96px; }
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+  p { margin: 0; }
+  a { color: var(--accent); }
+  code, pre, .mono { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; }
+  code { font-size: .92em; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; }
+  .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  header h1 { font-size: 34px; line-height: 1.2; font-weight: 600; margin-top: 10px; letter-spacing: -.01em; }
+  header .lede { max-width: 66ch; color: var(--ink-2); margin-top: 16px; font-size: 16px; }
+  .toc { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 22px; font-size: 14px; }
+  .toc a { text-decoration: none; border-bottom: 1px solid var(--line-2); padding-bottom: 1px; }
+  .toc a:hover, .toc a:focus-visible { border-color: var(--accent); }
+  section { margin-top: 72px; }
+  .sec-head { display: grid; grid-template-columns: 64px 1fr; gap: 16px; align-items: baseline; border-top: 1px solid var(--line-2); padding-top: 22px; }
+  .sec-num { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; padding-top: 6px; }
+  .sec-head h2 { font-size: 24px; font-weight: 600; letter-spacing: -.005em; }
+  .sec-head .sub { color: var(--ink-2); margin-top: 6px; max-width: 70ch; }
+  .sec-body { margin-left: 80px; margin-top: 28px; display: grid; gap: 40px; }
+  @media (max-width: 860px) { .sec-head { grid-template-columns: 1fr; gap: 6px; } .sec-body { margin-left: 0; } }
+  .st { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; letter-spacing: .04em; padding: 2px 8px; border-radius: 3px; font-weight: 600; white-space: nowrap; color: var(--on-solid); vertical-align: middle; }
+  .st-spec { background: var(--green); } .st-gap { background: var(--red); } .st-gep { background: var(--accent); } .st-obs { background: var(--ink-3); }
+  .board { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); }
+  table.b { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.b th, table.b td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.b tr:last-child td { border-bottom: 0; }
+  table.b th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.b td.n { color: var(--ink-3); font-variant-numeric: tabular-nums; width: 32px; }
+  table.b td.src { color: var(--ink-3); white-space: nowrap; font-size: 13px; }
+  table.b tr.grp td { background: var(--surface-2); font-weight: 600; font-size: 13px; letter-spacing: .04em; color: var(--ink-2); }
+  .tally { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-bottom: 14px; font-size: 14px; color: var(--ink-2); align-items: center; }
+  .tally b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+  figure { margin: 0; display: grid; gap: 18px; }
+  figure > figcaption { font-size: 17px; font-weight: 600; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+  figure > figcaption small { flex-basis: 100%; font-size: 14px; font-weight: 400; color: var(--ink-2); }
+  .panes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 980px) { .panes { grid-template-columns: 1fr; } .sec-body { margin-left: 0; } }
+  .pane-h { display: flex; justify-content: space-between; align-items: center; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; margin-bottom: 8px; }
+  pre.geml { margin: 0; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; font-size: 13px; line-height: 1.6; overflow-x: auto; color: var(--ink); }
+  pre.geml .f { color: var(--accent); font-weight: 500; } pre.geml .a { color: var(--ink-2); } pre.geml .c { color: var(--ink-3); font-style: italic; }
+  pre.geml .hl { background: var(--amber-soft); color: var(--amber); border-radius: 2px; padding: 0 2px; }
+  pre.geml .bad { background: var(--red-soft); color: var(--red); border-radius: 2px; padding: 0 2px; }
+  pre.geml .arrow { color: var(--red); font-family: "IBM Plex Sans", sans-serif; font-style: normal; }
+  .term { background: var(--ink); color: #E6EBF0; border-radius: 6px; padding: 12px 14px; font-size: 12.5px; line-height: 1.6; overflow-x: auto; margin: 0; }
+  :root[data-theme="dark"] .term { background: #0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .term { background: #0B0F14; } }
+  .term .ok { color: #7ED4A0; } .term .er { color: #F09A94; } .term .wn { color: #F0C060; } .term .dim { color: #8A96A3; } .term .cmd { color: #9CC7FF; }
+  .render { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px; box-shadow: var(--shadow); display: grid; gap: 14px; font-size: 14.5px; }
+  .render p { max-width: 62ch; }
+  .tag { display: inline-flex; align-items: center; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; padding: 1px 6px; border-radius: 3px; background: var(--surface-2); color: var(--ink-3); font-weight: 500; font-family: "IBM Plex Mono", monospace; }
+  .r-code { position: relative; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; font-family: "IBM Plex Mono", monospace; font-size: 13px; line-height: 1.6; white-space: pre; overflow-x: auto; }
+  .r-code .tag { position: absolute; top: 8px; right: 10px; }
+  .r-math { text-align: center; font-family: "IBM Plex Serif", Georgia, serif; font-style: italic; font-size: 20px; padding: 14px 0; border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line); }
+  .r-callout { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 0 6px 6px 0; display: grid; gap: 8px; }
+  .r-callout.warning { border-left-color: var(--amber); background: var(--amber-soft); }
+  .r-text { border: 1px dashed var(--line-2); border-radius: 6px; padding: 10px 14px; display: grid; gap: 8px; }
+  .r-hidden { border: 1px dashed var(--line-2); border-radius: 6px; padding: 10px 14px; color: var(--ink-3); font-size: 13px; }
+  .r-figure { border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; display: grid; gap: 6px; }
+  .r-titlebar { background: var(--ink); color: #E6EBF0; border-radius: 6px 6px 0 0; padding: 8px 14px; font-size: 13px; display: flex; gap: 10px; align-items: center; }
+  :root[data-theme="dark"] .r-titlebar { background: #0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .r-titlebar { background: #0B0F14; } }
+  .r-titlebar .dot { width: 9px; height: 9px; border-radius: 50%; background: #8A96A3; }
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; font-weight: 500; white-space: nowrap; }
+  .b-err { background: var(--red-soft); color: var(--red); } .b-warn { background: var(--amber-soft); color: var(--amber); } .b-ok { background: var(--green-soft); color: var(--green); } .b-mute { background: var(--surface-2); color: var(--ink-3); }
+  .decision { display: grid; grid-template-columns: 84px 1fr; gap: 6px 16px; font-size: 14.5px; border-top: 1px dashed var(--line-2); padding-top: 14px; }
+  .decision dt { color: var(--ink-3); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; font-weight: 500; padding-top: 4px; }
+  .decision dd { margin: 0; color: var(--ink); } .decision dd.amber { color: var(--amber); } .decision dd.red { color: var(--red); }
+  table.t { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.t th, table.t td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.t tr:last-child td { border-bottom: 0; }
+  table.t th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.t td.mono { font-size: 13px; }
+  .tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+  footer { margin-top: 80px; border-top: 1px solid var(--line-2); padding-top: 18px; font-size: 13.5px; color: var(--ink-3); display: grid; gap: 6px; }
+  footer code { background: transparent; padding: 0; color: var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">GEML block types, illustrated · page 1 of 5 · spec 1.0 · measured on geml 1.9.2, local build · <a href="01-simple-blocks_CN.html">中文</a></div>
+  <h1>GEML Blocks Illustrated · The Simple Four</h1>
+  <p class="lede">This page covers <code>meta</code>, <code>math</code>, <code>note</code> and <code>text</code> — the four smallest types — plus the fence, id and attribute rules every type shares. Each rule names its source: a section of the specification, or a GEP. The right-hand side is not an imagined rendering but what the processor actually does: the diagnostics <code>geml check</code> prints, the addresses <code>geml list</code> gives, the tags <code>--to html</code> emits. Two places where the implementation disagrees with the specification are flagged on the board.</p>
+  <nav class="toc">
+    <a href="#board">Board</a>
+    <a href="#common">Shared rules</a>
+    <a href="#meta">meta</a>
+    <a href="#math">math</a>
+    <a href="#note">note</a>
+    <a href="#text">text</a>
+    <a href="#evidence">Evidence</a>
+  </nav>
+</header>
+
+<!-- ============ BOARD ============ -->
+<section id="board">
+  <div class="sec-head">
+    <div class="sec-num">Board</div>
+    <div>
+      <h2>19 rules, each with its source and status</h2>
+      <p class="sub"><span class="st st-spec">Specified</span> written into the specification. <span class="st st-gep">GEP draft</span> defined by a proposal, implemented on this branch, not yet in the spec. <span class="st st-gap">Impl. gap</span> the spec says one thing, 1.9.2 does another.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div>
+      <div class="tally">
+        <span><span class="st st-spec">Specified</span> <b>16</b></span>
+        <span><span class="st st-gep">GEP draft</span> <b>1</b></span>
+        <span><span class="st st-gap">Impl. gap</span> <b>2</b></span>
+      </div>
+      <div class="board">
+        <table class="b">
+          <thead><tr><th></th><th>Rule</th><th>Source</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr class="grp"><td></td><td colspan="3">Shared by every type</td></tr>
+            <tr><td class="n">1</td><td>A fence is a run of three or more <code>=</code>. A block is closed by whichever closer comes <strong>first</strong>: a bare run of exactly the opening length, or, when the block has an id, the labeled fence <code>=== #id</code>.</td><td class="src">§3</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">2</td><td>Nesting is safe only through fence length. A labeled fence spares you counting <code>=</code> but does <strong>not</strong> protect against a same-length bare run inside the body closing the block early; when that happens, <code>stray-labeled-fence</code> is a warning.</td><td class="src">§3 · A.1</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">3</td><td>Attributes without braces turn the whole line into a paragraph, with a <code>fence-like-line</code> warning; a block still open at end of file is an <code>unterminated-block</code> error.</td><td class="src">§3.1 · A.1</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">4</td><td>An unregistered type is a warning; its body is kept raw and rendered as a <code>&lt;figure&gt;&lt;pre&gt;</code> labelled with the type name.</td><td class="src">§3 · §8.2(6)</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">5</td><td>An unknown attribute key on a known type is an <code>unknown-attribute</code> warning; the key is preserved.</td><td class="src">§4</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">6</td><td><code>caption</code> and <code>hidden</code> are valid on every type. <code>[[#id]]</code> takes its link text from the target's caption or heading, falling back to the id. A hidden block is in the model and reference-checked, but not rendered.</td><td class="src">§4 · §5.2</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">7</td><td><code>%%</code> is a comment only in block position (top level, or inside a flow body); inside a raw body it is body text, kept verbatim.</td><td class="src">§4</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">8</td><td>Prose between two blocks has a derived address: <code>P-between-N</code>, <code>C-before-N</code>, <code>C-after-P</code>. Addresses are matched, never parsed back.</td><td class="src">§4</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">meta</td></tr>
+            <tr><td class="n">9</td><td>Key–value body, one pair per line. Value types: quoted string, <code>true</code>/<code>false</code>, number, any other bare word is a string. No arrays, dates or nesting.</td><td class="src">§3 · §4</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">10</td><td>Several meta blocks merge; for a repeated key the <strong>first definition wins</strong> and later ones are <code>duplicate-meta-key</code> warnings. <code>#meta</code> names the merged result and is the one reserved id.</td><td class="src">§4</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">11</td><td>With two or more meta blocks, another block declaring <code>{#meta}</code> should be a <code>reserved-id</code> error. <strong>1.9.2 reports nothing and passes.</strong></td><td class="src">§4 · A.2</td><td><span class="st st-gap">Impl. gap</span></td></tr>
+            <tr><td class="n">12</td><td><code>{{key}}</code> is a single-pass interpolation; an unknown key is an error; no interpolation inside code spans, inline math or attribute values; <code>\{{key}}</code> gives the literal text.</td><td class="src">§4 · §5.3</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">13</td><td><code>profile</code> is a reserved key declaring application-layer vocabularies; the <code>title</code> belongs in meta, not in an H1 (a style note).</td><td class="src">§4 · §8.6</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">14</td><td><code>#meta["version"]</code> reads one merged value by coordinate.</td><td class="src">GEP-0011</td><td><span class="st st-gep">GEP draft</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">math</td></tr>
+            <tr><td class="n">15</td><td>A raw-bodied display formula, rendered as <code>\[…\]</code>; inline math is <code>$…$</code>. The body goes to a math renderer; the processor never interprets it.</td><td class="src">§3 · §5.1</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">note</td></tr>
+            <tr><td class="n">16</td><td>Flow body: nested blocks and inline markup allowed. Renders as <code>&lt;aside class="callout note …"&gt;</code>, with <code>.class</code> tokens joining the class list. It is a callout with chrome, not a neutral container.</td><td class="src">§3 · §4</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">17</td><td>A footnote <code>[^id]</code> may point at any block with an id; a note is the usual target.</td><td class="src">§5.2</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">text</td></tr>
+            <tr><td class="n">18</td><td>A neutral flow container whose only job is to give a run of prose an id and attributes. Renders as <code>&lt;div class="text"&gt;</code> with no chrome; wrap only prose you actually need to address.</td><td class="src">§3 · GEP-0004</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">19</td><td><code>![[#id]]</code> may project only a <strong>single-paragraph</strong> text block; anything else is an <code>inline-transclusion-not-inline</code> error. <strong>1.9.2 additionally reports a spurious transclusion-cycle.</strong></td><td class="src">§5.2 · A.2</td><td><span class="st st-gap">Impl. gap</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ COMMON ============ -->
+<section id="common">
+  <div class="sec-head">
+    <div class="sec-num">Shared</div>
+    <div>
+      <h2>Rules every type shares</h2>
+      <p class="sub">How fences open and close, how unknown things degrade, which attributes anyone may use. With these settled, each type's own section is short.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+
+    <figure>
+      <figcaption>Fences: bare run or labeled close, whichever comes first <span class="st st-spec">Specified</span><small>A labeled fence <code>=== #id</code> spares you counting <code>=</code>, but a bare run of the opening length inside the body still closes the block early. The processor says so.</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · p1-fences.geml</span></div>
+<pre class="geml"><span class="f">==== note</span> <span class="a">{#outer}</span>
+Outer holds an inner block.
+<span class="f">=== code</span> <span class="a">{lang=sh}</span>
+echo hi
+<span class="f">===</span>
+<span class="f">====</span>                    <span class="c">%% longer outside, shorter inside: safe</span>
+
+<span class="f">=== note</span> <span class="a">{#labeled}</span>
+A long block closed by a labeled fence.
+<span class="f">=== #labeled</span>            <span class="c">%% labeled close: no counting</span>
+
+<span class="f">=== note</span> <span class="a">{#early}</span>
+This body contains a bare run of the opening length:
+<span class="bad">===</span>                     <span class="arrow">← same-length bare run: the block closes here</span>
+which closed the block above at that line.
+<span class="bad">=== #early</span>              <span class="arrow">← closes a block that is already closed</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check · geml list</span></div>
+<pre class="term"><span class="wn">warning:</span> labeled fence for `#early` at line 22, but block `#early`
+  was already closed by a bare fence at line 20 — body may be
+  silently truncated (line 22)
+0 error(s), 1 warning(s)
+
+<span class="cmd">$ geml list p1-fences.geml</span>
+#outer               note           L7-12
+=== code             code     anon  L9-11
+#labeled             note           L14-16
+<span class="wn">#early               note           L18-20</span>   <span class="dim">← ends at L20</span>
+<span class="wn">#fences-after-early  prose          L21-22</span>   <span class="dim">← the two lines that fell out became prose</span></pre>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Rule</dt><dd>§3: a block is closed by whichever closer appears <strong>first</strong>; an id does not disable the same-length bare close. The recommendation is an outer fence longer than any fence-like line in the body (<code>====</code> around <code>===</code>); labeled closes are recommended for long blocks, against miscounting, not against truncation.</dd>
+        <dt>Address</dt><dd>The two lines that fell out get the §4-derived address <code>#fences-after-early</code>: inside container <code>#fences</code>, after <code>#early</code>, with no following block. That is what "prose has an address" means.</dd>
+      </dl>
+    </figure>
+
+    <figure>
+      <figcaption>Missing braces, and a block never closed <span class="st st-spec">Specified</span><small>The two most common slips: one a warning, one an error.</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · p1b-fencelike.geml</span></div>
+<pre class="geml"><span class="bad">=== embed src=#f</span>          <span class="arrow">← attributes without {}: the whole line is a paragraph</span>
+This line follows a fence-like line that had no braces.
+
+<span class="f">=== note</span> <span class="a">{#open}</span>
+This block is never closed.  <span class="c">%% end of file</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check</span></div>
+<pre class="term"><span class="wn">warning:</span> line looks like an open fence for `embed` but is not one —
+  attributes must be braced (`=== embed {…}`); the line reads as
+  plain paragraph text (line 5)
+<span class="er">error:</span> unterminated `note` block (no matching === or `=== #open`) (line 8)
+1 error(s), 1 warning(s)   <span class="dim">exit 1</span></pre>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Why</dt><dd>A.1: <code>fence-like-line</code> is a warning because the line did parse, as a paragraph — the document still stands, only any reference on that line goes unchecked. <code>unterminated-block</code> is an error because the body swallowed everything to end of file and the author's intent is gone.</dd>
+      </dl>
+    </figure>
+
+    <figure>
+      <figcaption>Unknown type, unknown attribute, hidden, <code>%%</code> <span class="st st-spec">Specified</span><small>Four kinds of "the processor does not know this or should not show it", each with its own degradation.</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · from p4-blocks.geml</span></div>
+<pre class="geml"><span class="c">%% a top-level comment: kept in the file, never rendered</span>
+
+<span class="f">=== note</span> <span class="a">{#hiddennote <span class="hl">hidden</span>}</span>
+Not rendered, but referenced: still checked.
+<span class="f">===</span>
+<span class="f">=== note</span> <span class="a">{#badattr <span class="hl">foo=bar</span>}</span>
+Unknown attribute on a known type.
+<span class="f">===</span>
+<span class="f">=== <span class="hl">fancy</span></span> <span class="a">{#unknown}</span>
+An unknown type keeps its body raw: **not parsed**.
+<span class="f">===</span>
+See [[#hiddennote]].
+
+<span class="f">=== code</span> <span class="a">{lang=ts}</span>
+export const x = 1;
+<span class="hl">%% this percent line is body text inside a raw block</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>the matching --to html output</span></div>
+          <div class="render">
+            <div class="r-hidden">#hiddennote: <strong>no output</strong>. The block is in the model, <code>[[#hiddennote]]</code> resolves, and nothing appears on the page.</div>
+            <div class="r-callout"><span class="tag">aside.callout.note</span><p>Unknown attribute on a known type.</p><span class="badge b-warn">warning · unknown attribute `foo` for block type `note`</span></div>
+            <div class="r-figure"><span class="tag">figure › pre.diagram-src data-type="fancy"</span><div class="r-code">An unknown type keeps its body raw: **not parsed**.</div><span class="badge b-warn">warning · unknown block type `fancy`; body kept as raw</span></div>
+            <p>See <a href="#common" style="pointer-events:none">hiddennote</a>.</p>
+            <div class="r-code"><span class="tag">ts</span>export const x = 1;
+%% this percent line is body text inside a raw block</div>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Degradation</dt><dd>§8.2(6): an unrecognized type keeps its body verbatim and never loses content; the asterisks in <code>**not parsed**</code> are literal. An unknown attribute is likewise kept, with a warning.</dd>
+        <dt>hidden vs %%</dt><dd>§4's division of labour: <code>hidden</code> is for structured content that belongs in the model but should not show (a chart's data source, a reusable fragment); <code>%%</code> is for throwaway notes that never enter the model. Inside a raw body <code>%%</code> is body text — the line above went into the <code>&lt;code&gt;</code> as written.</dd>
+      </dl>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============ META ============ -->
+<section id="meta">
+  <div class="sec-head">
+    <div class="sec-num">meta</div>
+    <div>
+      <h2><code>meta</code>: a key–value body that merges into one namespace</h2>
+      <p class="sub">It does not render. It supplies three things: the document title, the values <code>{{key}}</code> interpolates, and the <code>profile</code> declaration.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+
+    <figure>
+      <figcaption>Two meta blocks merge, first definition wins; <code>{{key}}</code> is single-pass <span class="st st-spec">Specified</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · p2-meta.geml</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+title = "Meta probe"
+version = 3
+draft = true
+<span class="f">===</span>
+<span class="f">=== meta</span>
+<span class="bad">title = "Second title"</span>       <span class="arrow">← same key: the later one is ignored</span>
+owner = "docs"
+<span class="f">===</span>
+
+# Interpolation {#interp}
+
+Version {{version}}, owner {{owner}}, escaped \{{version}}, code `{{version}}`.
+
+Unknown <span class="bad">{{nope}}</span> key.
+
+<span class="f">=== note</span> <span class="a">{#cap caption="{{title}}"}</span>
+Attribute values are not interpolated.
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check · geml get</span></div>
+<pre class="term"><span class="wn">warning:</span> meta key `title` already defined at line 1; later
+  definition at line 6 is ignored (line 6)
+<span class="er">error:</span> unknown metadata reference `{{nope}}` (line 15)
+
+<span class="cmd">$ geml get p2-meta.geml '#meta'</span>      <span class="dim">← the merged namespace</span>
+title = "Meta probe"
+version = 3
+draft = true
+owner = "docs"
+
+<span class="cmd">$ geml get p2-meta.geml '#meta["version"]'</span>   <span class="dim">GEP-0011</span>
+3</pre>
+          <div class="render" style="margin-top:12px">
+            <div class="r-titlebar"><span class="dot"></span>Meta probe<span class="tag" style="margin-left:auto;background:transparent;color:#8A96A3">title → page title</span></div>
+            <p>Version 3, owner docs, escaped {{version}}, code <code>{{version}}</code>.</p>
+            <div class="r-callout"><span class="tag">caption="{{title}}"</span><p>Attribute values are not interpolated.</p></div>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Value types</dt><dd>§4: a quoted string, <code>true</code>/<code>false</code>, a bare word matching number syntax is a number, any other bare word is a string. <code>version = 3</code> is a number, <code>draft = true</code> a boolean. No arrays, dates or nested tables.</dd>
+        <dt>Interpolation</dt><dd>Single pass: a substituted value is never rescanned, so <code>a = "{{b}}"</code> with <code>b = "{{a}}"</code> cannot loop. Three places it does not happen: inside code spans and inline math, inside attribute values, inside raw bodies. <code>\{{version}}</code> yields the six literal characters.</dd>
+        <dt>Advice</dt><dd>Put the title in <code>title =</code> rather than an H1, so that every heading denotes a genuine section (§4 style note).</dd>
+      </dl>
+    </figure>
+
+    <figure>
+      <figcaption><code>#meta</code> is the one reserved id: with two meta blocks no other block may claim it <span class="st st-gap">Impl. gap</span><small>The spec says error; 1.9.2 says ok.</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · p2b-reserved.geml</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+title = "a"
+<span class="f">===</span>
+<span class="f">=== meta</span>
+owner = "b"
+<span class="f">===</span>
+<span class="f">=== note</span> <span class="a">{<span class="bad">#meta</span>}</span>          <span class="arrow">← §4: with two or more meta blocks this is a reserved-id error</span>
+Declared #meta with two meta blocks.
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check · geml list</span></div>
+<pre class="term"><span class="ok">ok: no diagnostics</span>          <span class="dim">← the spec requires an error; none is reported</span>
+
+<span class="cmd">$ geml list p2b-reserved.geml</span>
+=== meta@61f06c79  meta  anon  L1-3
+=== meta@0e8db6c1  meta  anon  L4-6
+#meta              note        L7-9   <span class="dim">← one address: a reader sees a note, the processor sees the merge</span>
+
+<span class="cmd">$ geml check p2c-single.geml</span>     <span class="dim">a single meta carrying {#meta}: legal</span>
+<span class="ok">ok: no diagnostics</span></pre>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Spec</dt><dd>§4 and A.2: <code>#meta</code> names the <strong>merged result</strong>, not any one block. With a single meta the block and the merge are the same thing, so it may carry <code>{#meta}</code>; with two or more, one address has two readings, which is an error.</dd>
+        <dt>Gap</dt><dd class="red">1.9.2 reports nothing for the second case. GEP-0011 makes <code>#meta</code> a coordinate root (<code>#meta["title"]</code>), which makes this reservation matter more. To fix.</dd>
+      </dl>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============ MATH ============ -->
+<section id="math">
+  <div class="sec-head">
+    <div class="sec-num">math</div>
+    <div>
+      <h2><code>math</code>: a display formula</h2>
+      <p class="sub">The simplest type. Raw body, handed to a math renderer; the processor's only duty is to leave it alone.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>Display and inline <span class="st st-spec">Specified</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · from p4-blocks.geml</span></div>
+<pre class="geml"><span class="f">=== math</span> <span class="a">{#euler caption="Euler"}</span>
+e^{i\pi} + 1 = 0
+<span class="f">===</span>
+Inline math $a^2+b^2=c^2$ stays inline; block math is the typed block.
+Reference: [[#euler]].</pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>--to html</span></div>
+          <div class="render">
+            <div class="r-math">e<sup>iπ</sup> + 1 = 0</div>
+            <p>Inline math <span style="font-family:'IBM Plex Serif',serif;font-style:italic">a²+b²=c²</span> stays inline; block math is the typed block. Reference: <a href="#math" style="pointer-events:none">Euler</a>.</p>
+            <pre class="term" style="margin-top:4px">&lt;div class="math-block" id="euler"&gt;\[e^{i\pi} + 1 = 0\]&lt;/div&gt;</pre>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Rule</dt><dd>§3 registers it as raw; §5.1's inline form is <code>$…$</code>, equally verbatim. <code>{{key}}</code> is not interpolated inside inline math (§5.3 phase 1). <code>[[#euler]]</code> takes its text from the caption, "Euler".</dd>
+        <dt>Absent</dt><dd>No <code>format=</code>: math has no competing DSLs the way diagrams do; the body is TeX-style text and the renderer picks its engine.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ NOTE ============ -->
+<section id="note">
+  <div class="sec-head">
+    <div class="sec-num">note</div>
+    <div>
+      <h2><code>note</code>: a callout with chrome</h2>
+      <p class="sub">Flow body, may nest blocks. The whole difference from <code>text</code> is the chrome.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>A callout with a nested code block; <code>.warning</code> joins the class list <span class="st st-spec">Specified</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · from p4-blocks.geml</span></div>
+<pre class="geml"><span class="f">==== note</span> <span class="a">{#warn <span class="hl">.warning</span> caption="Careful"}</span>
+A callout with **inline** markup and a nested block:
+<span class="f">=== code</span> <span class="a">{lang=sh}</span>
+geml check doc.geml
+<span class="f">===</span>
+<span class="f">==== #warn</span>
+Reference: [[#warn]].</pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>--to html</span></div>
+          <div class="render">
+            <div class="r-callout warning"><span class="tag">aside.callout.note.warning #warn</span><p>A callout with <strong>inline</strong> markup and a nested block:</p><div class="r-code"><span class="tag">sh</span>geml check doc.geml</div></div>
+            <p>Reference: <a href="#note" style="pointer-events:none">Careful</a>.</p>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Rule</dt><dd>§3 registers it as flow: the body is parsed for inlines and blocks, so <code>**inline**</code> is real strong and the nested <code>code</code> is a real block. §4's <code>.class</code> is a semantic class with no styling implied; the renderer puts it on <code>class</code>.</dd>
+        <dt>vs text</dt><dd>For addressable prose <strong>without</strong> callout chrome, use <code>text</code>. For a footnote, <code>[^id]</code> pointing at a note is the usual shape (§5.2).</dd>
+        <dt>Fences</dt><dd>The body contains <code>===</code>, so the outer fence must be longer: <code>====</code>. The labeled close <code>==== #warn</code> is used at the same time; the two do not conflict.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ TEXT ============ -->
+<section id="text">
+  <div class="sec-head">
+    <div class="sec-num">text</div>
+    <div>
+      <h2><code>text</code>: an id for a run of prose, nothing more</h2>
+      <p class="sub">Added by GEP-0004. A neutral container with no chrome; it exists for <code>geml get/set #intro</code>, <code>[[#intro]]</code> and versioned rollback.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>Addressable prose, and <code>![[#id]]</code> projecting only a single paragraph <span class="st st-gap">Impl. gap</span><small>The rule itself is fine; 1.9.2 adds a spurious cycle error in the multi-paragraph case.</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · from p4-blocks.geml</span></div>
+<pre class="geml"><span class="f">=== text</span> <span class="a">{#intro}</span>
+One paragraph of addressable prose.
+<span class="f">===</span>
+<span class="f">=== text</span> <span class="a">{#two}</span>
+First paragraph.
+
+Second paragraph.
+<span class="f">===</span>
+Projection of one paragraph: <span class="hl">![[#intro]]</span>. Projection of two: <span class="bad">![[#two]]</span>.
+Reference: [[#intro]].</pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check · --to html</span></div>
+<pre class="term"><span class="er">error:</span> `![[#two]]` projects inline content, but the target is not a
+  single-paragraph `text` block; for block content use
+  `=== embed {src=#two}` (line 28)
+<span class="er">error:</span> transclusion cycle: `![[#two]]` projects the content it is
+  part of (line 28)          <span class="dim">← the projection sits after #two, not inside it; this one is wrong</span></pre>
+          <div class="render" style="margin-top:12px">
+            <div class="r-text"><span class="tag">div.text #intro</span><p>One paragraph of addressable prose.</p></div>
+            <div class="r-text"><span class="tag">div.text #two</span><p>First paragraph.</p><p>Second paragraph.</p></div>
+            <p>Projection of one paragraph: One paragraph of addressable prose. Reference: <a href="#text" style="pointer-events:none">intro</a>.</p>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Rule</dt><dd>§5.2: <code>![[#id]]</code> is an inline projection that inserts the target's inlines into the sentence, so the target must be a text block of <strong>exactly one paragraph</strong>. Several paragraphs, a heading or any other type is an <code>inline-transclusion-not-inline</code> error; for a whole block use <code>=== embed {src=#two}</code>.</dd>
+        <dt>No caption</dt><dd><code>[[#intro]]</code> falls back to the id itself, "intro", because a text block has neither caption nor heading. Give it <code>caption=</code> for a nicer link text.</dd>
+        <dt>Gap</dt><dd class="red">Right after the multi-paragraph error comes a <code>transclusion-cycle</code> claiming the projection is "part of" the content it projects, but the projection sits in prose after <code>#two</code> has closed. An over-report; it does not change the exit code, but it points the author the wrong way. To fix.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ EVIDENCE ============ -->
+<section id="evidence">
+  <div class="sec-head">
+    <div class="sec-num">Evidence</div>
+    <div>
+      <h2>Probe files and measured output</h2>
+      <p class="sub">All run with the repository's current build, <code>node geml-parser/dist/geml.js</code>, version 1.9.2. The probe files live in the session scratch directory; their full text appears on the left of each figure above.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tablewrap">
+      <table class="t">
+        <thead><tr><th>Probe</th><th>Covers</th><th>check result</th><th>Where on this page</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">p1-fences.geml</td><td>nested fences, labeled close, same-length bare run closing early</td><td><span class="badge b-warn">1 warning</span> stray-labeled-fence</td><td>Shared · fig. 1</td></tr>
+          <tr><td class="mono">p1b-fencelike.geml</td><td>unbraced attributes, unterminated block</td><td><span class="badge b-err">1 error</span> <span class="badge b-warn">1 warning</span></td><td>Shared · fig. 2</td></tr>
+          <tr><td class="mono">p2-meta.geml</td><td>meta merge, interpolation, escape, no interpolation in attributes, unknown key</td><td><span class="badge b-err">1 error</span> <span class="badge b-warn">1 warning</span></td><td>meta · fig. 1</td></tr>
+          <tr><td class="mono">p2b-reserved.geml · p2c-single.geml</td><td><code>{#meta}</code> under two meta blocks; a single meta carrying <code>{#meta}</code></td><td><span class="badge b-ok">0 diagnostics</span> the former should be an error</td><td>meta · fig. 2, board 11</td></tr>
+          <tr><td class="mono">p4-blocks.geml</td><td>math, note with nested block, text projection, hidden, unknown attribute, unknown type, <code>%%</code>, caption as link text</td><td><span class="badge b-err">2 error</span> <span class="badge b-warn">2 warning</span> one error over-reported</td><td>Shared · fig. 3, math, note, text, board 19</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>This page: <code>docs/illustrated/01-simple-blocks.html</code> · 中文 <code>01-simple-blocks_CN.html</code>. Five pages in the series: the simple four · code and data · table and view · diagram · embed.</div>
+  <div>Two implementation gaps (board 11, 19) await a parser fix; when fixed, flip the status on those rows.</div>
+</footer>
+</div>

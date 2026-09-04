@@ -1,0 +1,585 @@
+<title>GEML 块图解 · 简单四型</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Serif:ital@1&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --bg: #F4F6F9; --surface: #FFFFFF; --surface-2: #EBEFF4;
+    --ink: #1B2430; --ink-2: #47535F; --ink-3: #7B8794;
+    --line: #D5DCE4; --line-2: #C3CCD6;
+    --accent: #1F6F8B; --accent-soft: #DCEDF3;
+    --amber: #9A5F0A; --amber-soft: #FAEED3;
+    --red: #B0403B; --red-soft: #F8E2E0;
+    --green: #2E7A50; --green-soft: #DDF0E4;
+    --on-solid: #FFFFFF;
+    --shadow: 0 1px 2px rgba(27, 36, 48, .06), 0 6px 18px rgba(27, 36, 48, .05);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11161C; --surface: #191F27; --surface-2: #202832;
+      --ink: #E6EBF0; --ink-2: #B3BDC8; --ink-3: #7F8B98;
+      --line: #2C3642; --line-2: #3A4552;
+      --accent: #63B5D1; --accent-soft: #14323D;
+      --amber: #E2AC45; --amber-soft: #382B10;
+      --red: #E27F79; --red-soft: #3E1F1E;
+      --green: #6CC08E; --green-soft: #173124;
+      --on-solid: #0F141A;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11161C; --surface: #191F27; --surface-2: #202832;
+    --ink: #E6EBF0; --ink-2: #B3BDC8; --ink-3: #7F8B98;
+    --line: #2C3642; --line-2: #3A4552;
+    --accent: #63B5D1; --accent-soft: #14323D;
+    --amber: #E2AC45; --amber-soft: #382B10;
+    --red: #E27F79; --red-soft: #3E1F1E;
+    --green: #6CC08E; --green-soft: #173124;
+    --on-solid: #0F141A;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.7 "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 48px 28px 96px; }
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+  p { margin: 0; }
+  a { color: var(--accent); }
+  code, pre, .mono { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; }
+  code { font-size: .92em; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; }
+  .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  header h1 { font-size: 34px; line-height: 1.2; font-weight: 600; margin-top: 10px; letter-spacing: -.01em; }
+  header .lede { max-width: 66ch; color: var(--ink-2); margin-top: 16px; font-size: 16px; }
+  .toc { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 22px; font-size: 14px; }
+  .toc a { text-decoration: none; border-bottom: 1px solid var(--line-2); padding-bottom: 1px; }
+  .toc a:hover, .toc a:focus-visible { border-color: var(--accent); }
+  section { margin-top: 72px; }
+  .sec-head { display: grid; grid-template-columns: 64px 1fr; gap: 16px; align-items: baseline; border-top: 1px solid var(--line-2); padding-top: 22px; }
+  .sec-num { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; padding-top: 6px; }
+  .sec-head h2 { font-size: 24px; font-weight: 600; letter-spacing: -.005em; }
+  .sec-head .sub { color: var(--ink-2); margin-top: 6px; max-width: 70ch; }
+  .sec-body { margin-left: 80px; margin-top: 28px; display: grid; gap: 40px; }
+  @media (max-width: 860px) { .sec-head { grid-template-columns: 1fr; gap: 6px; } .sec-body { margin-left: 0; } }
+
+  .st { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; letter-spacing: .04em; padding: 2px 8px; border-radius: 3px; font-weight: 600; white-space: nowrap; color: var(--on-solid); vertical-align: middle; }
+  .st-spec { background: var(--green); }
+  .st-gap { background: var(--red); }
+  .st-gep { background: var(--accent); }
+  .st-obs { background: var(--ink-3); }
+
+  .board { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); }
+  table.b { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.b th, table.b td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.b tr:last-child td { border-bottom: 0; }
+  table.b th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.b td.n { color: var(--ink-3); font-variant-numeric: tabular-nums; width: 32px; }
+  table.b td.src { color: var(--ink-3); white-space: nowrap; font-size: 13px; }
+  table.b tr.grp td { background: var(--surface-2); font-weight: 600; font-size: 13px; letter-spacing: .04em; color: var(--ink-2); }
+  .tally { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-bottom: 14px; font-size: 14px; color: var(--ink-2); align-items: center; }
+  .tally b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  figure { margin: 0; display: grid; gap: 18px; }
+  figure > figcaption { font-size: 17px; font-weight: 600; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+  figure > figcaption small { flex-basis: 100%; font-size: 14px; font-weight: 400; color: var(--ink-2); }
+  .panes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 980px) { .panes { grid-template-columns: 1fr; } .sec-body { margin-left: 0; } }
+  .pane-h { display: flex; justify-content: space-between; align-items: center; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; margin-bottom: 8px; }
+  pre.geml { margin: 0; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; font-size: 13px; line-height: 1.6; overflow-x: auto; color: var(--ink); }
+  pre.geml .f { color: var(--accent); font-weight: 500; }
+  pre.geml .a { color: var(--ink-2); }
+  pre.geml .c { color: var(--ink-3); font-style: italic; }
+  pre.geml .hl { background: var(--amber-soft); color: var(--amber); border-radius: 2px; padding: 0 2px; }
+  pre.geml .bad { background: var(--red-soft); color: var(--red); border-radius: 2px; padding: 0 2px; }
+  pre.geml .arrow { color: var(--red); font-family: "IBM Plex Sans", "Noto Sans SC", sans-serif; font-style: normal; }
+  .term { background: var(--ink); color: #E6EBF0; border-radius: 6px; padding: 12px 14px; font-size: 12.5px; line-height: 1.6; overflow-x: auto; margin: 0; }
+  :root[data-theme="dark"] .term { background: #0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .term { background: #0B0F14; } }
+  .term .ok { color: #7ED4A0; } .term .er { color: #F09A94; } .term .wn { color: #F0C060; } .term .dim { color: #8A96A3; } .term .cmd { color: #9CC7FF; }
+
+  /* rendered-output mocks */
+  .render { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px; box-shadow: var(--shadow); display: grid; gap: 14px; font-size: 14.5px; }
+  .render p { max-width: 62ch; }
+  .tag { display: inline-flex; align-items: center; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; padding: 1px 6px; border-radius: 3px; background: var(--surface-2); color: var(--ink-3); font-weight: 500; font-family: "IBM Plex Mono", monospace; }
+  .r-code { position: relative; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; font-family: "IBM Plex Mono", monospace; font-size: 13px; line-height: 1.6; white-space: pre; overflow-x: auto; }
+  .r-code .tag { position: absolute; top: 8px; right: 10px; }
+  .r-math { text-align: center; font-family: "IBM Plex Serif", Georgia, serif; font-style: italic; font-size: 20px; padding: 14px 0; border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line); }
+  .r-callout { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 0 6px 6px 0; display: grid; gap: 8px; }
+  .r-callout.warning { border-left-color: var(--amber); background: var(--amber-soft); }
+  .r-text { border: 1px dashed var(--line-2); border-radius: 6px; padding: 10px 14px; display: grid; gap: 8px; }
+  .r-hidden { border: 1px dashed var(--line-2); border-radius: 6px; padding: 10px 14px; color: var(--ink-3); font-size: 13px; }
+  .r-figure { border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; display: grid; gap: 6px; }
+  .r-titlebar { background: var(--ink); color: #E6EBF0; border-radius: 6px 6px 0 0; padding: 8px 14px; font-size: 13px; display: flex; gap: 10px; align-items: center; }
+  :root[data-theme="dark"] .r-titlebar { background: #0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .r-titlebar { background: #0B0F14; } }
+  .r-titlebar .dot { width: 9px; height: 9px; border-radius: 50%; background: #8A96A3; }
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; font-weight: 500; white-space: nowrap; }
+  .b-err { background: var(--red-soft); color: var(--red); }
+  .b-warn { background: var(--amber-soft); color: var(--amber); }
+  .b-ok { background: var(--green-soft); color: var(--green); }
+  .b-mute { background: var(--surface-2); color: var(--ink-3); }
+
+  .decision { display: grid; grid-template-columns: 72px 1fr; gap: 6px 16px; font-size: 14.5px; border-top: 1px dashed var(--line-2); padding-top: 14px; }
+  .decision dt { color: var(--ink-3); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; font-weight: 500; padding-top: 4px; }
+  .decision dd { margin: 0; color: var(--ink); }
+  .decision dd.amber { color: var(--amber); }
+  .decision dd.red { color: var(--red); }
+
+  table.t { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.t th, table.t td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.t tr:last-child td { border-bottom: 0; }
+  table.t th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.t td.mono { font-size: 13px; }
+  .tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+  footer { margin-top: 80px; border-top: 1px solid var(--line-2); padding-top: 18px; font-size: 13.5px; color: var(--ink-3); display: grid; gap: 6px; }
+  footer code { background: transparent; padding: 0; color: var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">GEML 块类型图解 · 第 1 页 / 5 · 规范 1.0 · 实测 geml 1.9.2 本地构建</div>
+  <h1>GEML 块图解 · 简单四型</h1>
+  <p class="lede">这一页是 <code>meta</code>、<code>math</code>、<code>note</code>、<code>text</code> 四个体量最小的类型，外加所有类型共用的围栏、id、属性规则。每条规则标出处：规范的章节号，或某个 GEP。右边不是想象的效果，是处理器实际怎么对待它：<code>geml check</code> 的诊断、<code>geml list</code> 给的地址、<code>--to html</code> 吐出的标签。发现的两处实现与规范不一致也标在看板里。</p>
+  <nav class="toc">
+    <a href="#board">看板</a>
+    <a href="#common">共同规则</a>
+    <a href="#meta">meta</a>
+    <a href="#math">math</a>
+    <a href="#note">note</a>
+    <a href="#text">text</a>
+    <a href="#evidence">依据</a>
+  </nav>
+</header>
+
+<!-- ============ BOARD ============ -->
+<section id="board">
+  <div class="sec-head">
+    <div class="sec-num">看板</div>
+    <div>
+      <h2>19 条规则，各自的出处和状态</h2>
+      <p class="sub"><span class="st st-spec">规范已定</span> 规范正文写死的。<span class="st st-gep">GEP 草案</span> 提案定义、本分支已实现但规范未收。<span class="st st-gap">实现偏差</span> 规范这样说，1.9.2 不这样做。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div>
+      <div class="tally">
+        <span><span class="st st-spec">规范已定</span> <b>16</b></span>
+        <span><span class="st st-gep">GEP 草案</span> <b>1</b></span>
+        <span><span class="st st-gap">实现偏差</span> <b>2</b></span>
+      </div>
+      <div class="board">
+        <table class="b">
+          <thead><tr><th></th><th>规则</th><th>出处</th><th>状态</th></tr></thead>
+          <tbody><tr class="grp"><td></td><td colspan="3">所有类型共用</td></tr>
+            <tr><td class="n">1</td><td>围栏是 ≥3 个 <code>=</code>。块由<strong>先出现</strong>的关闭者关闭：等长的裸围栏，或（有 id 时）标签围栏 <code>=== #id</code>。</td><td class="src">§3</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">2</td><td>嵌套只靠围栏长度。标签围栏免去数 <code>=</code>，但<strong>不防</strong>体内等长裸围栏提前关块；发生时给 <code>stray-labeled-fence</code> warning。</td><td class="src">§3 · A.1</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">3</td><td>没写大括号的属性让整行退化为段落，给 <code>fence-like-line</code> warning；块没关到文件尾是 <code>unterminated-block</code> error。</td><td class="src">§3.1 · A.1</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">4</td><td>未注册类型是 warning，正文按 raw 保留；渲染成带类型标签的 <code>&lt;figure&gt;&lt;pre&gt;</code>。</td><td class="src">§3 · §8.2(6)</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">5</td><td>已知类型上的未知属性键是 <code>unknown-attribute</code> warning，保留不丢。</td><td class="src">§4</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">6</td><td><code>caption</code> 和 <code>hidden</code> 对所有类型有效。<code>[[#id]]</code> 的链接文字取目标的 caption 或标题，没有就用 id。hidden 块进模型、受检、不渲染。</td><td class="src">§4 · §5.2</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">7</td><td><code>%%</code> 只在块位置（顶层或 flow 体内）是注释；raw 体内是正文原样保留。</td><td class="src">§4</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">8</td><td>两块之间的散文有派生地址：<code>P-between-N</code>、<code>C-before-N</code>、<code>C-after-P</code>；只匹配不反解。</td><td class="src">§4</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">meta</td></tr>
+            <tr><td class="n">9</td><td>key–value 体，一行一对。值类型：引号字符串、<code>true</code>/<code>false</code>、数字、其余裸词是字符串。没有数组、日期、嵌套。</td><td class="src">§3 · §4</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">10</td><td>多个 meta 合并；同键<strong>先定义者胜</strong>，后来的是 <code>duplicate-meta-key</code> warning。<code>#meta</code> 命名合并结果，是唯一保留 id。</td><td class="src">§4</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">11</td><td>文档有两个以上 meta 时，别的块声明 <code>{#meta}</code> 应是 <code>reserved-id</code> error。<strong>1.9.2 不报，零诊断通过。</strong></td><td class="src">§4 · A.2</td><td><span class="st st-gap">实现偏差</span></td></tr>
+            <tr><td class="n">12</td><td><code>{{key}}</code> 单遍插值，未知键 error；code span 和行内数学里不插；属性值里不插；<code>\{{key}}</code> 得字面。</td><td class="src">§4 · §5.3</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">13</td><td><code>profile</code> 是保留键，声明应用层词汇；<code>title</code> 放 meta 不放 H1（风格建议）。</td><td class="src">§4 · §8.6</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">14</td><td><code>#meta["version"]</code> 按坐标读一个合并后的值。</td><td class="src">GEP-0011</td><td><span class="st st-gep">GEP 草案</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">math</td></tr>
+            <tr><td class="n">15</td><td>raw 体的块级公式，渲染为 <code>\[…\]</code>；行内用 <code>$…$</code>。正文交给数学渲染器，处理器不解释。</td><td class="src">§3 · §5.1</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">note</td></tr>
+            <tr><td class="n">16</td><td>flow 体，可嵌块、带行内标记。渲染为 <code>&lt;aside class="callout note …"&gt;</code>，<code>.class</code> 进 class 名。它是有 chrome 的提示框，不是中性容器。</td><td class="src">§3 · §4</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">17</td><td><code>[^id]</code> 脚注可以指向任何带 id 的块，通常是 note。</td><td class="src">§5.2</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">text</td></tr>
+            <tr><td class="n">18</td><td>flow 体的中性容器，只为给一段散文加 id 和属性。渲染为 <code>&lt;div class="text"&gt;</code>，无 chrome；只包真需要寻址的散文。</td><td class="src">§3 · GEP-0004</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">19</td><td><code>![[#id]]</code> 只能投影<strong>单段</strong> text；多段或非 text 是 <code>inline-transclusion-not-inline</code> error。<strong>1.9.2 同时多报一条不成立的 transclusion-cycle。</strong></td><td class="src">§5.2 · A.2</td><td><span class="st st-gap">实现偏差</span></td></tr>
+            </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ COMMON ============ -->
+<section id="common">
+  <div class="sec-head">
+    <div class="sec-num">共同</div>
+    <div>
+      <h2>所有类型共用的规则</h2>
+      <p class="sub">围栏怎么开合、未知的东西怎么降级、哪些属性谁都能用。先看这些，六个类型各自的部分就短了。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+
+    <figure>
+      <figcaption>围栏：等长裸围栏和标签围栏，谁先到谁关 <span class="st st-spec">规范已定</span><small>标签围栏 <code>=== #id</code> 免去数 <code>=</code>，但体内一个等长裸围栏照样把块提前关掉。处理器会指出来。</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · p1-fences.geml</span></div>
+<pre class="geml"><span class="f">==== note</span> <span class="a">{#outer}</span>
+Outer holds an inner block.
+<span class="f">=== code</span> <span class="a">{lang=sh}</span>
+echo hi
+<span class="f">===</span>
+<span class="f">====</span>                    <span class="c">%% 外长内短，嵌套安全</span>
+
+<span class="f">=== note</span> <span class="a">{#labeled}</span>
+A long block closed by a labeled fence.
+<span class="f">=== #labeled</span>            <span class="c">%% 标签围栏：不用数长度</span>
+
+<span class="f">=== note</span> <span class="a">{#early}</span>
+This body contains a bare run of the opening length:
+<span class="bad">===</span>                     <span class="arrow">← 等长裸围栏，块在这里就关了</span>
+which closed the block above at that line.
+<span class="bad">=== #early</span>              <span class="arrow">← 关的是已经关掉的块</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check · geml list</span></div>
+<pre class="term"><span class="wn">warning:</span> labeled fence for `#early` at line 22, but block `#early`
+  was already closed by a bare fence at line 20 — body may be
+  silently truncated (line 22)
+0 error(s), 1 warning(s)
+
+<span class="cmd">$ geml list p1-fences.geml</span>
+#outer               note           L7-12
+=== code             code     anon  L9-11
+#labeled             note           L14-16
+<span class="wn">#early               note           L18-20</span>   <span class="dim">← 只到 L20</span>
+<span class="wn">#fences-after-early  prose          L21-22</span>   <span class="dim">← 掉出来的两行成了散文</span></pre>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>规则</dt><dd>§3：块由<strong>先出现</strong>的关闭者关闭，id 不禁用等长裸关。推荐外围栏比体内任何围栏状行都长（<code>====</code> 包 <code>===</code>）；标签围栏推荐给长块用，防数错，不防截断。</dd>
+        <dt>地址</dt><dd>掉出块的两行按 §4 得到派生地址 <code>#fences-after-early</code>：容器 <code>#fences</code> 里、<code>#early</code> 之后、没有下一个块。这就是「散文也有地址」。</dd>
+      </dl>
+    </figure>
+
+    <figure>
+      <figcaption>没写大括号、没关块 <span class="st st-spec">规范已定</span><small>两种最常见的手误，一种是 warning，一种是 error。</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · p1b-fencelike.geml</span></div>
+<pre class="geml"><span class="bad">=== embed src=#f</span>          <span class="arrow">← 属性没加 {}，整行是段落</span>
+This line follows a fence-like line that had no braces.
+
+<span class="f">=== note</span> <span class="a">{#open}</span>
+This block is never closed.  <span class="c">%% 文件到此为止</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check</span></div>
+<pre class="term"><span class="wn">warning:</span> line looks like an open fence for `embed` but is not one —
+  attributes must be braced (`=== embed {…}`); the line reads as
+  plain paragraph text (line 5)
+<span class="er">error:</span> unterminated `note` block (no matching === or `=== #open`) (line 8)
+1 error(s), 1 warning(s)   <span class="dim">exit 1</span></pre>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>为什么</dt><dd>A.1：<code>fence-like-line</code> 是 warning，因为那一行确实按段落解析了，文档仍然成立，只是里面的引用不会被检查。<code>unterminated-block</code> 是 error，因为正文一直吃到文件尾，作者的意图已经丢了。</dd>
+      </dl>
+    </figure>
+
+    <figure>
+      <figcaption>未知类型、未知属性、hidden、<code>%%</code> <span class="st st-spec">规范已定</span><small>四种「处理器不认识或不该显示」的东西，各有各的降级方式。</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · p4-blocks.geml 节选</span></div>
+<pre class="geml"><span class="c">%% a top-level comment: kept in the file, never rendered</span>
+
+<span class="f">=== note</span> <span class="a">{#hiddennote <span class="hl">hidden</span>}</span>
+Not rendered, but referenced: still checked.
+<span class="f">===</span>
+<span class="f">=== note</span> <span class="a">{#badattr <span class="hl">foo=bar</span>}</span>
+Unknown attribute on a known type.
+<span class="f">===</span>
+<span class="f">=== <span class="hl">fancy</span></span> <span class="a">{#unknown}</span>
+An unknown type keeps its body raw: **not parsed**.
+<span class="f">===</span>
+See [[#hiddennote]].
+
+<span class="f">=== code</span> <span class="a">{lang=ts}</span>
+export const x = 1;
+<span class="hl">%% this percent line is body text inside a raw block</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>--to html 的对应输出</span></div>
+          <div class="render">
+            <div class="r-hidden">#hiddennote：<strong>没有输出</strong>。块在模型里，<code>[[#hiddennote]]</code> 解析成功，页面上什么都没有。</div>
+            <div class="r-callout"><span class="tag">aside.callout.note</span><p>Unknown attribute on a known type.</p><span class="badge b-warn">warning · unknown attribute `foo` for block type `note`</span></div>
+            <div class="r-figure"><span class="tag">figure › pre.diagram-src data-type="fancy"</span><div class="r-code">An unknown type keeps its body raw: **not parsed**.</div><span class="badge b-warn">warning · unknown block type `fancy`; body kept as raw</span></div>
+            <p>See <a href="#common" style="pointer-events:none">hiddennote</a>.</p>
+            <div class="r-code"><span class="tag">ts</span>export const x = 1;
+%% this percent line is body text inside a raw block</div>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>降级</dt><dd>§8.2(6)：不认识的类型正文原样保留，永不丢内容；<code>**not parsed**</code> 里的星号就是字面。未知属性同理，保留并 warning。</dd>
+        <dt>hidden vs %%</dt><dd>§4 的分工：<code>hidden</code> 给要进文档模型但不显示的结构化内容（喂图表的数据源、可复用片段）；<code>%%</code> 给不进模型的随手注释。raw 体内的 <code>%%</code> 是正文，上面 ts 代码块里那一行原样进了 <code>&lt;code&gt;</code>。</dd>
+      </dl>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============ META ============ -->
+<section id="meta">
+  <div class="sec-head">
+    <div class="sec-num">meta</div>
+    <div>
+      <h2><code>meta</code>：键值体，合并成一个命名空间</h2>
+      <p class="sub">它不渲染。它提供三样东西：文档标题、<code>{{key}}</code> 插值的值、<code>profile</code> 声明。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+
+    <figure>
+      <figcaption>两个 meta 合并，先定义者胜；<code>{{key}}</code> 单遍插值 <span class="st st-spec">规范已定</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · p2-meta.geml</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+title = "Meta probe"
+version = 3
+draft = true
+<span class="f">===</span>
+<span class="f">=== meta</span>
+<span class="bad">title = "Second title"</span>       <span class="arrow">← 同键，后到者被忽略</span>
+owner = "docs"
+<span class="f">===</span>
+
+# Interpolation {#interp}
+
+Version {{version}}, owner {{owner}}, escaped \{{version}}, code `{{version}}`.
+
+Unknown <span class="bad">{{nope}}</span> key.
+
+<span class="f">=== note</span> <span class="a">{#cap caption="{{title}}"}</span>
+Attribute values are not interpolated.
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check · geml get</span></div>
+<pre class="term"><span class="wn">warning:</span> meta key `title` already defined at line 1; later
+  definition at line 6 is ignored (line 6)
+<span class="er">error:</span> unknown metadata reference `{{nope}}` (line 15)
+
+<span class="cmd">$ geml get p2-meta.geml '#meta'</span>      <span class="dim">← 合并后的命名空间</span>
+title = "Meta probe"
+version = 3
+draft = true
+owner = "docs"
+
+<span class="cmd">$ geml get p2-meta.geml '#meta["version"]'</span>   <span class="dim">GEP-0011</span>
+3</pre>
+          <div class="render" style="margin-top:12px">
+            <div class="r-titlebar"><span class="dot"></span>Meta probe<span class="tag" style="margin-left:auto;background:transparent;color:#8A96A3">title → 页面标题</span></div>
+            <p>Version 3, owner docs, escaped {{version}}, code <code>{{version}}</code>.</p>
+            <div class="r-callout"><span class="tag">caption="{{title}}"</span><p>Attribute values are not interpolated.</p></div>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>值类型</dt><dd>§4：引号字符串、<code>true</code>/<code>false</code>、匹配数字语法的裸词是数字，其余裸词是字符串。<code>version = 3</code> 是数字，<code>draft = true</code> 是布尔。没有数组、日期、嵌套表。</dd>
+        <dt>插值</dt><dd>单遍：替换进来的值不再扫描，所以 <code>a = "{{b}}"</code> 与 <code>b = "{{a}}"</code> 不会循环。三个不插的地方：code span 和行内数学内、属性值内、raw 体内。<code>\{{version}}</code> 得到字面的六个字符。</dd>
+        <dt>建议</dt><dd>标题放 <code>title =</code> 而不是 H1，这样每个标题都是文档真正的一节（§4 风格说明）。</dd>
+      </dl>
+    </figure>
+
+    <figure>
+      <figcaption><code>#meta</code> 是唯一保留 id：两个 meta 时不许别的块叫它 <span class="st st-gap">实现偏差</span><small>规范说 error，1.9.2 说 ok。</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · p2b-reserved.geml</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+title = "a"
+<span class="f">===</span>
+<span class="f">=== meta</span>
+owner = "b"
+<span class="f">===</span>
+<span class="f">=== note</span> <span class="a">{<span class="bad">#meta</span>}</span>          <span class="arrow">← §4：两个以上 meta 时应为 reserved-id error</span>
+Declared #meta with two meta blocks.
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check · geml list</span></div>
+<pre class="term"><span class="ok">ok: no diagnostics</span>          <span class="dim">← 规范要求 error，这里没报</span>
+
+<span class="cmd">$ geml list p2b-reserved.geml</span>
+=== meta@61f06c79  meta  anon  L1-3
+=== meta@0e8db6c1  meta  anon  L4-6
+#meta              note        L7-9   <span class="dim">← 同一个地址，一个读者读到 note，处理器读到合并</span>
+
+<span class="cmd">$ geml check p2c-single.geml</span>     <span class="dim">单个 meta 自带 {#meta}：合法</span>
+<span class="ok">ok: no diagnostics</span></pre>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>规范</dt><dd>§4 与 A.2：<code>#meta</code> 命名的是<strong>合并结果</strong>，不是某一个块。只有一个 meta 时块和合并是同一件事，允许它带 <code>{#meta}</code>；两个以上时同一地址两种读法，是 error。</dd>
+        <dt>偏差</dt><dd class="red">1.9.2 对第二种情形零诊断。GEP-0011 把 <code>#meta</code> 作为坐标根（<code>#meta["title"]</code>），这条保留规则会更重要。待修。</dd>
+      </dl>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============ MATH ============ -->
+<section id="math">
+  <div class="sec-head">
+    <div class="sec-num">math</div>
+    <div>
+      <h2><code>math</code>：块级公式</h2>
+      <p class="sub">最简单的类型。raw 体，交给数学渲染器；处理器只负责不碰它。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>块级与行内 <span class="st st-spec">规范已定</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · p4-blocks.geml 节选</span></div>
+<pre class="geml"><span class="f">=== math</span> <span class="a">{#euler caption="Euler"}</span>
+e^{i\pi} + 1 = 0
+<span class="f">===</span>
+Inline math $a^2+b^2=c^2$ stays inline; block math is the typed block.
+Reference: [[#euler]].</pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>--to html</span></div>
+          <div class="render">
+            <div class="r-math">e<sup>iπ</sup> + 1 = 0</div>
+            <p>Inline math <span style="font-family:'IBM Plex Serif',serif;font-style:italic">a²+b²=c²</span> stays inline; block math is the typed block. Reference: <a href="#math" style="pointer-events:none">Euler</a>.</p>
+            <pre class="term" style="margin-top:4px">&lt;div class="math-block" id="euler"&gt;\[e^{i\pi} + 1 = 0\]&lt;/div&gt;</pre>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>规则</dt><dd>§3 注册为 raw；§5.1 行内是 <code>$…$</code>，同样 verbatim。<code>{{key}}</code> 在行内数学里不插值（§5.3 阶段 1）。<code>[[#euler]]</code> 的文字取 caption「Euler」。</dd>
+        <dt>没有的</dt><dd>没有 <code>format=</code>：数学没有 diagram 那样的多种 DSL 之争，正文就是 TeX 风格文本，渲染器自选实现。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ NOTE ============ -->
+<section id="note">
+  <div class="sec-head">
+    <div class="sec-num">note</div>
+    <div>
+      <h2><code>note</code>：带 chrome 的提示框</h2>
+      <p class="sub">flow 体，可以嵌块。它和 <code>text</code> 的区别就是有没有 chrome。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>callout，嵌一个代码块，<code>.warning</code> 进 class <span class="st st-spec">规范已定</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · p4-blocks.geml 节选</span></div>
+<pre class="geml"><span class="f">==== note</span> <span class="a">{#warn <span class="hl">.warning</span> caption="Careful"}</span>
+A callout with **inline** markup and a nested block:
+<span class="f">=== code</span> <span class="a">{lang=sh}</span>
+geml check doc.geml
+<span class="f">===</span>
+<span class="f">==== #warn</span>
+Reference: [[#warn]].</pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>--to html</span></div>
+          <div class="render">
+            <div class="r-callout warning"><span class="tag">aside.callout.note.warning #warn</span><p>A callout with <strong>inline</strong> markup and a nested block:</p><div class="r-code"><span class="tag">sh</span>geml check doc.geml</div></div>
+            <p>Reference: <a href="#note" style="pointer-events:none">Careful</a>.</p>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>规则</dt><dd>§3 注册为 flow：正文按行内和块解析，所以 <code>**inline**</code> 是真粗体，嵌的 <code>code</code> 是真块。§4 的 <code>.class</code> 只是语义类，规范不规定样式；渲染器把它接到 <code>class</code> 上。</dd>
+        <dt>与 text</dt><dd>要一段散文可寻址但<strong>不要</strong>提示框的外观，用 <code>text</code>。要脚注，<code>[^id]</code> 指向一个 note 是常见写法（§5.2）。</dd>
+        <dt>围栏</dt><dd>体内有 <code>===</code>，外围栏必须更长：<code>====</code>。这里同时用了标签关闭 <code>==== #warn</code>，两者不冲突。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ TEXT ============ -->
+<section id="text">
+  <div class="sec-head">
+    <div class="sec-num">text</div>
+    <div>
+      <h2><code>text</code>：只为给散文一个 id</h2>
+      <p class="sub">GEP-0004 加进来的。中性容器，无 chrome；它存在的理由是 <code>geml get/set #intro</code>、<code>[[#intro]]</code> 和版本回滚。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>可寻址散文，以及 <code>![[#id]]</code> 只投影单段 <span class="st st-gap">实现偏差</span><small>规则本身没问题；1.9.2 在多段的情形上多报了一条不成立的 cycle。</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · p4-blocks.geml 节选</span></div>
+<pre class="geml"><span class="f">=== text</span> <span class="a">{#intro}</span>
+One paragraph of addressable prose.
+<span class="f">===</span>
+<span class="f">=== text</span> <span class="a">{#two}</span>
+First paragraph.
+
+Second paragraph.
+<span class="f">===</span>
+Projection of one paragraph: <span class="hl">![[#intro]]</span>. Projection of two: <span class="bad">![[#two]]</span>.
+Reference: [[#intro]].</pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check · --to html</span></div>
+<pre class="term"><span class="er">error:</span> `![[#two]]` projects inline content, but the target is not a
+  single-paragraph `text` block; for block content use
+  `=== embed {src=#two}` (line 28)
+<span class="er">error:</span> transclusion cycle: `![[#two]]` projects the content it is
+  part of (line 28)          <span class="dim">← 投影点在 #two 之后，不在其中；此条不成立</span></pre>
+          <div class="render" style="margin-top:12px">
+            <div class="r-text"><span class="tag">div.text #intro</span><p>One paragraph of addressable prose.</p></div>
+            <div class="r-text"><span class="tag">div.text #two</span><p>First paragraph.</p><p>Second paragraph.</p></div>
+            <p>Projection of one paragraph: One paragraph of addressable prose. Reference: <a href="#text" style="pointer-events:none">intro</a>.</p>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>规则</dt><dd>§5.2：<code>![[#id]]</code> 是行内投影，把目标的行内内容插到句子里，所以目标必须是<strong>恰好一段</strong>的 text 块。多段、标题、别的类型都是 <code>inline-transclusion-not-inline</code> error；要整块投影用 <code>=== embed {src=#two}</code>。</dd>
+        <dt>无 caption</dt><dd><code>[[#intro]]</code> 的文字回落成 id 本身「intro」，因为 text 块没有 caption 也没有标题。想要好看的链接文字，给它 <code>caption=</code>。</dd>
+        <dt>偏差</dt><dd class="red">多段那条 error 之后紧跟一条 <code>transclusion-cycle</code>，说投影点「在它投影的内容之内」，但投影点在 <code>#two</code> 关闭之后的散文里。是多报，不影响退出码，但会把作者往错的方向引。待修。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ EVIDENCE ============ -->
+<section id="evidence">
+  <div class="sec-head">
+    <div class="sec-num">依据</div>
+    <div>
+      <h2>探针文件与实测输出</h2>
+      <p class="sub">全部用仓库内当前构建 <code>node geml-parser/dist/geml.js</code> 跑出，版本 1.9.2。探针文件在会话临时目录，内容已完整贴在上面各图左侧。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tablewrap">
+      <table class="t">
+        <thead><tr><th>探针</th><th>覆盖</th><th>check 结果</th><th>页面里对应</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">p1-fences.geml</td><td>嵌套围栏、标签围栏、等长裸围栏提前关</td><td><span class="badge b-warn">1 warning</span> stray-labeled-fence</td><td>共同 · 图 1</td></tr>
+          <tr><td class="mono">p1b-fencelike.geml</td><td>无括号属性、未关块</td><td><span class="badge b-err">1 error</span> <span class="badge b-warn">1 warning</span></td><td>共同 · 图 2</td></tr>
+          <tr><td class="mono">p2-meta.geml</td><td>meta 合并、插值、转义、属性不插值、未知键</td><td><span class="badge b-err">1 error</span> <span class="badge b-warn">1 warning</span></td><td>meta · 图 1</td></tr>
+          <tr><td class="mono">p2b-reserved.geml · p2c-single.geml</td><td>两个 meta 下的 <code>{#meta}</code>；单个 meta 带 <code>{#meta}</code></td><td><span class="badge b-ok">0 诊断</span> 前者应为 error</td><td>meta · 图 2，看板 11</td></tr>
+          <tr><td class="mono">p4-blocks.geml</td><td>math、note 嵌块、text 投影、hidden、未知属性、未知类型、<code>%%</code>、caption 自动文字</td><td><span class="badge b-err">2 error</span> <span class="badge b-warn">2 warning</span> 其中一条 error 多报</td><td>共同 · 图 3，math，note，text，看板 19</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>本页：<code>docs/illustrated/01-simple-blocks.html</code>。系列共五页：简单四型 · code 与 data · table 与 view · diagram · embed。</div>
+  <div>两处实现偏差（看板 11、19）待在解析器里修，修完本页对应行改状态。</div>
+</footer>
+</div>

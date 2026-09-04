@@ -71,7 +71,7 @@ N 级标题        hN( children… )
 4. **内联**（§5）——强调/加粗/删除线（三的规则）、代码、公式、链接、自动引用、脚注、图片、换行、转义。**这是最难的一块，靠 fixtures 撑。** → `inline.json`、`precedence.json`
 5. **列表**（§2.1）——序号、`start`、嵌套、紧凑/松散、`[ ]`/`[x]`。→ `lists.json`
 6. **引用与校验**（§8）——收集 id、解析引用、对重复和悬空报错。→ dogfood
-7. **表格**（§6）——竖线网格与 `format=csv`/`tsv` 解析成同一个模型；`compute=`、`summary=`。→ dogfood
+7. **表格与视图**（§6、§6.1）——竖线网格与 `format=csv`/`tsv` 解析成同一个模型，它装的是事实；`view` 在其上派生，用 `compute=`、`summary=`、`where=`、`order=`、`limit=`、`select=`、`by=`/`aggregate=`。→ dogfood
 8. **图形与图表**（§7）——图形正文永不被解释；`geml-chart data=#id` 按引用为一张表作图。→ dogfood
 
 第 0 步加 1–5 就得到一个可用的解析器。第 6 步是让 GEML 之所以为 *GEML* 的那一步。7–8 是回报。

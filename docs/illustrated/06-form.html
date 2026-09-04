@@ -1,0 +1,799 @@
+<title>GEML Blocks Illustrated · form</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #F4F6F9; --surface: #FFFFFF; --surface-2: #EBEFF4;
+    --ink: #1B2430; --ink-2: #47535F; --ink-3: #7B8794;
+    --line: #D5DCE4; --line-2: #C3CCD6;
+    --accent: #1F6F8B; --accent-soft: #DCEDF3;
+    --amber: #9A5F0A; --amber-soft: #FAEED3;
+    --red: #B0403B; --red-soft: #F8E2E0;
+    --green: #2E7A50; --green-soft: #DDF0E4;
+    --ctl-bg: #F8FAFC; --ctl-fill: #3E4A57;
+    --on-solid: #FFFFFF;
+    --shadow: 0 1px 2px rgba(27, 36, 48, .06), 0 6px 18px rgba(27, 36, 48, .05);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11161C; --surface: #191F27; --surface-2: #202832;
+      --ink: #E6EBF0; --ink-2: #B3BDC8; --ink-3: #7F8B98;
+      --line: #2C3642; --line-2: #3A4552;
+      --accent: #63B5D1; --accent-soft: #14323D;
+      --amber: #E2AC45; --amber-soft: #382B10;
+      --red: #E27F79; --red-soft: #3E1F1E;
+      --green: #6CC08E; --green-soft: #173124;
+      --ctl-bg: #1C242D; --ctl-fill: #C9D2DC;
+      --on-solid: #0F141A;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11161C; --surface: #191F27; --surface-2: #202832;
+    --ink: #E6EBF0; --ink-2: #B3BDC8; --ink-3: #7F8B98;
+    --line: #2C3642; --line-2: #3A4552;
+    --accent: #63B5D1; --accent-soft: #14323D;
+    --amber: #E2AC45; --amber-soft: #382B10;
+    --red: #E27F79; --red-soft: #3E1F1E;
+    --green: #6CC08E; --green-soft: #173124;
+    --ctl-bg: #1C242D; --ctl-fill: #C9D2DC;
+    --on-solid: #0F141A;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.65 "IBM Plex Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 48px 28px 96px; }
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+  p { margin: 0; }
+  a { color: var(--accent); }
+  code, pre, .mono { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; }
+  code { font-size: .92em; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; }
+  .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  header h1 { font-size: 34px; line-height: 1.2; font-weight: 600; margin-top: 10px; letter-spacing: -.01em; }
+  header .lede { max-width: 66ch; color: var(--ink-2); margin-top: 16px; font-size: 16px; }
+  .toc { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 22px; font-size: 14px; }
+  .toc a { text-decoration: none; border-bottom: 1px solid var(--line-2); padding-bottom: 1px; }
+  .toc a:hover, .toc a:focus-visible { border-color: var(--accent); }
+  section { margin-top: 72px; }
+  .sec-head { display: grid; grid-template-columns: 64px 1fr; gap: 16px; align-items: baseline; border-top: 1px solid var(--line-2); padding-top: 22px; }
+  .sec-num { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; padding-top: 6px; }
+  .sec-head h2 { font-size: 24px; font-weight: 600; letter-spacing: -.005em; }
+  .sec-head .sub { color: var(--ink-2); margin-top: 6px; max-width: 70ch; }
+  .sec-body { margin-left: 80px; margin-top: 28px; display: grid; gap: 40px; }
+  @media (max-width: 860px) { .sec-head { grid-template-columns: 1fr; gap: 6px; } .sec-body { margin-left: 0; } }
+  .st { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; letter-spacing: .04em; padding: 2px 8px; border-radius: 3px; font-weight: 600; white-space: nowrap; color: var(--on-solid); vertical-align: middle; }
+  .st-done { background: var(--green); } .st-gep { background: var(--accent); } .st-obs { background: var(--ink-3); }
+  .board { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); }
+  table.b { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.b th, table.b td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.b tr:last-child td { border-bottom: 0; }
+  table.b th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.b td.n { color: var(--ink-3); font-variant-numeric: tabular-nums; width: 32px; }
+  table.b td.item { font-weight: 500; white-space: nowrap; }
+  table.b td.who { color: var(--ink-3); white-space: nowrap; font-size: 13px; }
+  .tally { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-bottom: 14px; font-size: 14px; color: var(--ink-2); align-items: center; }
+  .tally b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+  figure { margin: 0; display: grid; gap: 18px; }
+  figure > figcaption { font-size: 17px; font-weight: 600; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+  figure > figcaption small { flex-basis: 100%; font-size: 14px; font-weight: 400; color: var(--ink-2); }
+  .panes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  .panes.wide-left { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+  @media (max-width: 980px) { .panes, .panes.wide-left { grid-template-columns: 1fr; } .sec-body { margin-left: 0; } }
+  .pane-h { display: flex; justify-content: space-between; align-items: center; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; margin-bottom: 8px; }
+  pre.geml { margin: 0; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; font-size: 13px; line-height: 1.6; overflow-x: auto; color: var(--ink); }
+  pre.geml .f { color: var(--accent); font-weight: 500; } pre.geml .a { color: var(--ink-2); } pre.geml .c { color: var(--ink-3); font-style: italic; }
+  pre.geml .hl { background: var(--amber-soft); color: var(--amber); border-radius: 2px; padding: 0 2px; }
+  pre.geml .bad { background: var(--red-soft); color: var(--red); border-radius: 2px; padding: 0 2px; }
+  pre.geml .arrow { color: var(--red); font-family: "IBM Plex Sans", sans-serif; font-style: normal; }
+  .term { background: var(--ink); color: #E6EBF0; border-radius: 6px; padding: 12px 14px; font-size: 12.5px; line-height: 1.6; overflow-x: auto; margin: 0; }
+  :root[data-theme="dark"] .term { background: #0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .term { background: #0B0F14; } }
+  .term .er { color: #F09A94; } .term .wn { color: #F0C060; } .term .dim { color: #8A96A3; } .term .ok { color: #7ED4A0; }
+  .preview { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px; box-shadow: var(--shadow); display: grid; gap: 16px; }
+  .fld { display: grid; gap: 6px; }
+  .fld > .lab { font-size: 13px; font-weight: 500; color: var(--ink-2); }
+  .req::after { content: "*"; color: var(--red); margin-left: 3px; }
+  .inp { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 6px 10px; border: 1px solid var(--line-2); background: var(--ctl-bg); color: var(--ctl-fill); border-radius: 4px; font-size: 14px; width: 100%; }
+  .inp.ph { color: var(--ink-3); }
+  .inp .caret { margin-left: auto; color: var(--ink-3); font-size: 11px; }
+  .inp.wrapchips { flex-wrap: wrap; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; background: var(--surface-2); border: 1px solid var(--line-2); color: var(--ink-2); padding: 1px 8px; border-radius: 3px; font-size: 12.5px; line-height: 1.6; }
+  .chip .x { color: var(--ink-3); font-size: 11px; }
+  .hint { font-size: 12.5px; color: var(--ink-3); }
+  .desc { font-size: 13.5px; color: var(--ink-2); max-width: 60ch; }
+  .fh { font-size: 15px; font-weight: 600; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1.3fr auto; gap: 12px; align-items: end; }
+  @media (max-width: 600px) { .row3 { grid-template-columns: 1fr; } .row2 { grid-template-columns: 1fr; } }
+  .check { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; color: var(--ink-2); line-height: 1.5; }
+  .box { width: 16px; height: 16px; border: 1px solid var(--line-2); border-radius: 3px; background: var(--ctl-bg); flex: none; margin-top: 2px; }
+  .box.on { background: var(--ctl-fill); border-color: var(--ctl-fill); position: relative; }
+  .box.on::after { content: ""; position: absolute; left: 5px; top: 1px; width: 4px; height: 9px; border: solid var(--surface); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+  .radio { width: 16px; height: 16px; border: 1px solid var(--line-2); border-radius: 50%; background: var(--ctl-bg); flex: none; margin-top: 2px; }
+  .radio.on { border: 5px solid var(--ctl-fill); background: var(--surface); }
+  .optlist { border: 1px solid var(--line-2); border-radius: 4px; background: var(--surface); font-size: 14px; color: var(--ctl-fill); }
+  .optlist > div { padding: 8px 12px; display: flex; gap: 8px; align-items: center; }
+  .optlist > div:nth-child(odd) { background: var(--surface-2); }
+  .optlist a { pointer-events: none; }
+  .group { border: 1px solid var(--line-2); border-radius: 6px; padding: 14px; display: grid; gap: 12px; background: var(--bg); }
+  .group-h { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 500; color: var(--ink-2); }
+  .entry { background: var(--surface); border: 1px solid var(--line); border-radius: 5px; padding: 12px; }
+  .del { color: var(--ink-3); font-size: 15px; padding: 6px 4px; line-height: 1; }
+  .add { border: 1px dashed var(--accent); color: var(--accent); text-align: center; padding: 9px; border-radius: 4px; font-size: 13.5px; }
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; font-weight: 500; white-space: nowrap; }
+  .b-doc { background: var(--accent-soft); color: var(--accent); } .b-style { background: var(--green-soft); color: var(--green); } .b-handler { background: var(--amber-soft); color: var(--amber); }
+  .b-err { background: var(--red-soft); color: var(--red); } .b-warn { background: var(--amber-soft); color: var(--amber); } .b-mute { background: var(--surface-2); color: var(--ink-3); }
+  .decision { display: grid; grid-template-columns: 84px 1fr; gap: 6px 16px; font-size: 14.5px; border-top: 1px dashed var(--line-2); padding-top: 14px; }
+  .decision dt { color: var(--ink-3); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; font-weight: 500; padding-top: 4px; }
+  .decision dd { margin: 0; color: var(--ink); } .decision dd.amber { color: var(--amber); }
+  .layers { display: grid; grid-template-columns: 1fr 36px 1fr 36px 1fr; gap: 0; align-items: stretch; }
+  @media (max-width: 860px) { .layers { grid-template-columns: 1fr; } .layers .arr { transform: rotate(90deg); height: 40px; } }
+  .layer { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px; display: grid; gap: 10px; align-content: start; }
+  .layer h3 { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+  .layer .does { font-size: 14px; }
+  .layer .not { font-size: 13.5px; color: var(--ink-3); border-top: 1px dashed var(--line); padding-top: 8px; }
+  .layer .not strong { color: var(--ink-2); font-weight: 500; }
+  .arr { display: flex; align-items: center; justify-content: center; color: var(--ink-3); }
+  .answer { margin-top: 20px; font-size: 16px; max-width: 70ch; }
+  table.t { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.t th, table.t td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.t tr:last-child td { border-bottom: 0; }
+  table.t th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.t td.mono { font-size: 13px; white-space: nowrap; }
+  table.t td.num { font-variant-numeric: tabular-nums; text-align: right; } table.t th.num { text-align: right; }
+  .tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+  .wins { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 700px) { .wins { grid-template-columns: 1fr; } }
+  .win { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; font-size: 14px; display: grid; gap: 4px; }
+  .win b { font-weight: 600; } .win .was { color: var(--ink-3); font-size: 13px; }
+  .unknown { border: 1px dashed var(--line-2); background: var(--surface-2); color: var(--ink-3); padding: 10px 12px; border-radius: 4px; font-size: 13px; }
+  footer { margin-top: 80px; border-top: 1px solid var(--line-2); padding-top: 18px; font-size: 13.5px; color: var(--ink-3); display: grid; gap: 6px; }
+  footer code { background: transparent; padding: 0; color: var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">GEML block types, illustrated · the form proposal (GEP-0008, draft) and the geml-form/v1 profile · review page, 5th revision · <a href="06-form_CN.html">中文</a></div>
+  <h1>GEML Blocks Illustrated · form</h1>
+  <p class="lede">This page is the record of a design review, not a description of shipped behaviour: GEP-0008 is a draft, and none of the <code>form-*</code> types is registered yet. Fifteen decisions were taken over five revisions, each recorded on the board with who took it; below, every decision is drawn as it will look — GEML on the left, the control a host would render on the right. By the GEP's own conformance clause a renderer may only show a <strong>disabled preview</strong>, so every control here is greyed out and inert.</p>
+  <nav class="toc">
+    <a href="#board">Decision board</a>
+    <a href="#layers">Who describes, renders, validates</a>
+    <a href="#family">1 · the form-* family</a>
+    <a href="#groups">2 · repeating groups</a>
+    <a href="#options">3 · options</a>
+    <a href="#types">4 · type and constraints</a>
+    <a href="#text">5 · label · description · form-note</a>
+    <a href="#gaps">Edge cases</a>
+    <a href="#evidence">Evidence</a>
+  </nav>
+</header>
+
+<!-- ============ BOARD ============ -->
+<section id="board">
+  <div class="sec-head">
+    <div class="sec-num">Board</div>
+    <div>
+      <h2>15 decisions, all settled</h2>
+      <p class="sub"><span class="st st-done">Settled</span> decided by the maintainer, or fixed in the proposal's text. Nothing remains open.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div>
+      <div class="tally"><span><span class="st st-done">Settled</span> <b>15</b> · including "form-group does not nest"</span></div>
+      <div class="board">
+        <table class="b">
+          <thead><tr><th></th><th>Item</th><th>Decision</th><th>Status</th><th>By</th></tr></thead>
+          <tbody>
+            <tr><td class="n">1</td><td class="item">the <code>form-*</code> family</td><td>Child types carry the <code>form-</code> prefix: <code>form-field</code> <code>form-group</code> <code>form-options</code> <code>form-note</code>, all meaningful only inside a form, <strong>all ids in the form's scope</strong> — one rule. A form is therefore self-contained: <code>geml get '#vendor'</code> returns the whole form. §8.5 gains one sentence: an extension type name may not begin with a registered type name plus a hyphen.</td><td><span class="st st-done">Settled</span></td><td class="who">maintainer</td></tr>
+            <tr><td class="n">2</td><td class="item">repeating groups</td><td><code>form-group</code> repeats by nature — Ant Design's <code>Form.List</code> — with <strong>no <code>multiple</code></strong>; <code>required</code> means at least one entry. It opens a scope; the address is <code>#vendor#contacts#email</code>. A non-repeating composite is not defined: visual grouping uses headings. <strong>Groups do not nest:</strong> a form-group sits directly in the form and holds only form-fields. Zero nested groups in the three trial forms; not nesting fixes the scope at two levels, the address at three segments, the fence at five <code>=</code>, and no tool walks a recursive scope.</td><td><span class="st st-done">Settled</span></td><td class="who">maintainer</td></tr>
+            <tr><td class="n">3</td><td class="item">options</td><td>Carried by <code>form-options</code>: a table body, <code>format</code> / <code>delim</code> / <code>src</code> as on table, placed directly in the form. Contract unchanged: first column is the value, a <code>label</code> column is the text, further columns go to the handler. <code>options=</code> may name only a form-options in the same form; naming a table is an error. Reuse across forms is one <code>src=</code> file.</td><td><span class="st st-done">Settled</span></td><td class="who">maintainer</td></tr>
+            <tr><td class="n">4</td><td class="item">the <code>type=</code> set</td><td>text · textarea · number · date · boolean · select · file — seven pure value shapes. group left the list and became form-group.</td><td><span class="st st-done">Settled</span></td><td class="who">maintainer</td></tr>
+            <tr><td class="n">5</td><td class="item">unknown type value</td><td>Degrades to text with a warning, <code>unknown-field-type</code>.</td><td><span class="st st-done">Settled</span></td><td class="who">maintainer</td></tr>
+            <tr><td class="n">6</td><td class="item">constraint attributes</td><td><code>pattern</code> <code>min</code> <code>max</code> <code>step</code> <code>maxlength</code> <code>accept</code> go into the <code>geml-form/v1</code> profile; declared, never evaluated; the handler enforces them.</td><td><span class="st st-done">Settled</span></td><td class="who">maintainer</td></tr>
+            <tr><td class="n">7</td><td class="item">rich text</td><td><code>label=</code> <code>description=</code> <code>placeholder=</code> share one rule: <strong>plain text, or, beginning with <code>#</code>, a reference to a form-note in the same form</strong>. form-note carries no <code>for=</code>; like form-options it is a passive resource several fields may share. The test has precedent: a <code>src=</code> value beginning with # is a reference. A placeholder pointing at a form-note is flattened to text by the renderer. Named <code>form-note</code>.</td><td><span class="st st-done">Settled</span></td><td class="who">maintainer</td></tr>
+            <tr><td class="n">8</td><td class="item"><code>description=</code></td><td>A one-line plain attribute, the grey line under the control. Longer guidance goes in a form-note, not in unbound prose.</td><td><span class="st st-done">Settled</span></td><td class="who">maintainer</td></tr>
+            <tr><td class="n">9</td><td class="item">headings inside a form</td><td>Allowed. Ordinary document headings, document-level ids, not fields.</td><td><span class="st st-done">Settled</span></td><td class="who">maintainer</td></tr>
+            <tr><td class="n">10</td><td class="item"><code>placeholder=</code></td><td>A form-field attribute.</td><td><span class="st st-done">Settled</span></td><td class="who">maintainer</td></tr>
+            <tr><td class="n">11</td><td class="item">textarea <code>format=</code></td><td>Not wanted.</td><td><span class="st st-done">Settled</span></td><td class="who">maintainer</td></tr>
+            <tr><td class="n">12</td><td class="item"><code>value=</code> on <code>multiple</code></td><td>Names the single preselected option.</td><td><span class="st st-done">Settled</span></td><td class="who">maintainer</td></tr>
+            <tr><td class="n">13</td><td class="item"><code>form-*</code> outside a form</td><td><strong>error</strong> <code>form-child-outside-form</code>, for all four child types; a non-empty form-field body is a warning <code>form-field-has-body</code>.</td><td><span class="st st-done">Settled</span></td><td class="who">maintainer</td></tr>
+            <tr><td class="n">14</td><td class="item">conditional logic / cross-field checks</td><td>Not carried by the document; handler only.</td><td><span class="st st-done">Settled</span></td><td class="who">proposal text</td></tr>
+            <tr><td class="n">15</td><td class="item">Steps / tabs / buttons / feedback</td><td>Application layer: GEP-0009 profiles and geml-style.</td><td><span class="st st-done">Settled</span></td><td class="who">proposal text</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LAYERS ============ -->
+<section id="layers">
+  <div class="sec-head">
+    <div class="sec-num">Layers</div>
+    <div>
+      <h2>Who describes, who renders, who validates</h2>
+      <p class="sub">The answer to "where does validation live". It did not change through the revisions.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div>
+      <div class="layers">
+        <div class="layer">
+          <h3><span class="badge b-doc">describes</span> the document <code>.geml</code></h3>
+          <p class="does">The <code>form</code> and its <code>form-*</code> children. What it says: which fields, of what type, required or not, which options, and <strong>declarations</strong> of format and range — keys admitted by the <code>geml-form/v1</code> profile.</p>
+          <p class="not"><strong>Does not:</strong> evaluate, validate or submit. §9.1, §8.3(5).</p>
+        </div>
+        <div class="arr"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h16M14 6l6 6-6 6"/></svg></div>
+        <div class="layer">
+          <h3><span class="badge b-style">renders</span> stylesheet / profile</h3>
+          <p class="does">Decides the look: one page or Steps, whether groups collapse, dropdown or radio group, whether <code>min</code>/<code>max</code> show as hints.</p>
+          <p class="not"><strong>Does not:</strong> judge right or wrong. It renders a disabled preview and never sees input.</p>
+        </div>
+        <div class="arr"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h16M14 6l6 6-6 6"/></svg></div>
+        <div class="layer">
+          <h3><span class="badge b-handler">validates · submits</span> the handler</h3>
+          <p class="does">Registered by the host under a name (<code>handler=onboarding</code>). The only party that ever holds a user's input: enforces the declared constraints, plus every business rule the document cannot carry.</p>
+          <p class="not"><strong>Does not:</strong> decide how a field looks, or change the document.</p>
+        </div>
+      </div>
+      <p class="answer">A "constraint" is something <strong>declarable</strong> — a format or a range — written in the document. <strong>"Validation" is an act, and it happens only in the handler.</strong> A stylesheet holds no validation, only appearance.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 1 FAMILY ============ -->
+<section id="family">
+  <div class="sec-head">
+    <div class="sec-num">Point 1</div>
+    <div>
+      <h2>The <code>form-*</code> family: one form, four kinds of child</h2>
+      <p class="sub">The maintainer's design. A complete form using all four child types and a heading inside the body; on the right, how it renders.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>A complete form <span class="st st-done">Settled</span><small>Fences go three deep at most: form at five <code>=</code>, form-group at four, everything else at three. A form-field body is always empty. Every form-* id lives in the form's scope.</small></figcaption>
+      <div class="panes wide-left">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+profile = "geml-form/v1"
+<span class="f">===</span>
+
+<span class="f">===== form</span> <span class="a">{#vendor handler=onboarding}</span>
+## Company {#company}
+
+<span class="f">=== form-field</span> <span class="a">{#legal-name label="Legal name" type=text required
+                description="Exactly as on the business licence."}</span>
+<span class="f">===</span>
+
+<span class="f">=== <span class="hl">form-options</span></span> <span class="a">{#entity-types format=csv delim=;}</span>
+value ; label
+llc   ; Limited liability company
+jsc   ; Joint-stock company
+sole  ; Sole proprietorship
+<span class="f">===</span>
+<span class="f">=== form-field</span> <span class="a">{#entity-type label="Entity type" type=select required
+                <span class="hl">options=#entity-types</span>}</span>
+<span class="f">===</span>
+
+## Compliance {#compliance}
+
+<span class="f">=== <span class="hl">form-note</span></span> <span class="a">{#coc-note}</span>
+Read the [code of conduct](https://example.invalid/coc) first. Ticking the
+box accepts its **anti-bribery** clauses.
+<span class="f">===</span>
+<span class="f">=== form-field</span> <span class="a">{#agree label="I have read and accept the code of conduct" type=boolean required
+                <span class="hl">description=#coc-note</span>}</span>
+<span class="f">===</span>
+
+## Contacts {#contacts-heading}
+
+<span class="f">==== <span class="hl">form-group</span></span> <span class="a">{#contacts label="Contacts" required description="At least one."}</span>
+<span class="f">=== form-field</span> <span class="a">{#name label="Name" type=text required}</span>
+<span class="f">===</span>
+<span class="f">=== form-field</span> <span class="a">{#email label="Email" type=text pattern="^[^@]+@[^@]+$" required}</span>
+<span class="f">===</span>
+<span class="f">====</span>
+<span class="f">=====</span>
+
+<span class="c">%% addresses: #vendor#legal-name, #vendor#contacts#email, #vendor#entity-types, #vendor#coc-note</span>
+<span class="c">%% every form-* id is unique within the form's scope; the heading #company is not form-*, so document-level</span>
+<span class="c">%% a form-field attribute value beginning with # names a form-* block of the enclosing form: options=, label=, description=, placeholder=</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>Rendered</span><span class="badge b-mute">disabled preview</span></div>
+          <div class="preview">
+            <div class="fh">Company</div>
+            <div class="fld"><span class="lab req">Legal name</span><div class="inp ph">&nbsp;</div><span class="hint">Exactly as on the business licence.</span></div>
+            <div class="fld"><span class="lab req">Entity type</span><div class="inp">Limited liability company <span class="caret">▼</span></div></div>
+            <div class="fh">Compliance</div>
+            <div class="fld">
+              <div class="check"><span class="box"></span><span class="req">I have read and accept the code of conduct</span></div>
+              <p class="desc">Read the <a href="#family" style="pointer-events:none">code of conduct</a> first. Ticking the box accepts its <strong>anti-bribery</strong> clauses.</p>
+            </div>
+            <div class="fh">Contacts</div>
+            <div class="group">
+              <div class="group-h"><span>Contacts <span class="hint">At least one.</span></span></div>
+              <div class="entry"><div class="row3">
+                <div class="fld"><span class="lab req">Name</span><div class="inp">Wang Fang</div></div>
+                <div class="fld"><span class="lab req">Email</span><div class="inp">wang.fang@example.invalid</div></div>
+                <div class="del" aria-hidden="true">🗑</div>
+              </div></div>
+              <div class="entry"><div class="row3">
+                <div class="fld"><span class="lab req">Name</span><div class="inp">Li Qiang</div></div>
+                <div class="fld"><span class="lab req">Email</span><div class="inp">li.qiang@example.invalid</div></div>
+                <div class="del" aria-hidden="true">🗑</div>
+              </div></div>
+              <div class="add">＋ Add a contact</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tablewrap">
+        <table class="t">
+          <thead><tr><th>Type</th><th>Where</th><th>Body</th><th>id</th><th>Role</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">form</td><td>anywhere in a document</td><td>flow: form-* children, headings, prose</td><td>document-level</td><td>the container; <code>handler=</code></td></tr>
+            <tr><td class="mono">form-field</td><td>in a form or a form-group</td><td><strong>empty</strong>; non-empty warns</td><td>in scope, <code>#vendor#email</code></td><td>one field; all its text in attributes</td></tr>
+            <tr><td class="mono">form-group</td><td>directly in the form; does not nest</td><td>form-fields only</td><td>in scope, and opens a scope</td><td>a repeating set of fields; <code>required</code> = at least one</td></tr>
+            <tr><td class="mono">form-options</td><td>directly in the form</td><td>a table body: <code>format</code> <code>delim</code> <code>src</code> as on table</td><td>in scope, <code>#vendor#entity-types</code></td><td>an option list, consumed only by <code>options=</code> in the same form; never rendered alone</td></tr>
+            <tr><td class="mono">form-note</td><td>directly in the form</td><td>flow</td><td>in scope, <code>#vendor#coc-note</code></td><td>rich text pointed at by a field's <code>label=</code> / <code>description=</code> / <code>placeholder=</code>; shareable</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="wins">
+        <div class="win"><b>A table is no longer two things</b><span>form-options is its own type; <code>options=</code> pointing at a table is an error. A table in the document stays a table, and a chart cannot bind to an option list.</span><span class="was">Before: one table type meant a data table outside a form and an option list inside a field.</span></div>
+        <div class="win"><b>Rich text is bound to its field</b><span>The field points at a form-note with <code>description=#coc-note</code>, a checked reference; the renderer can hang it as aria-describedby. The same direction as <code>options=</code>.</span><span class="was">Before: only unbound prose above the field, invisible to geml get and to screen readers.</span></div>
+        <div class="win"><b>One fence level fewer</b><span>Option lists are no longer nested inside fields; the deepest is form › group › field.</span><span class="was">Before: form › group › field › table, four deep, the form opening at six <code>=</code>.</span></div>
+        <div class="win"><b>Self-describing types, one body rule</b><span><code>geml list</code> shows at a glance which blocks belong to a form; a form-field body is always empty.</span><span class="was">Before: field / table / text blurred into the core types of the same name.</span></div>
+      </div>
+      <dl class="decision">
+        <dt>§8.5</dt><dd>The maintainer read it right: it only asks extensions to hyphenate; it does not forbid the specification a hyphen. What needs adding is the converse: <strong>an extension type name may not begin with a registered type name plus <code>-</code></strong>, since <code>form-</code> is now the specification's. Existing profile names such as <code>style-rule</code> are unaffected — style is not a registered type.</dd>
+        <dt>Self-contained</dt><dd>With every id in scope, one form block is everything a renderer or a handler needs; <code>geml get '#vendor'</code> fetches it whole. The price: a form-field's <code>#</code> attributes resolve relative to the enclosing form, and reusing an option list across forms means one shared <code>src=</code> file.</dd>
+        <dt>One direction</dt><dd>Every binding is a field pointing at a helper block: <code>options=#id</code> at a form-options, and <code>label=</code> <code>description=</code> <code>placeholder=</code>, when they begin with #, at a form-note. These are GEML's only relative references, confined to form-field's attributes. The test has precedent: a <code>src=</code> value beginning with # is a reference, anything else a path.</dd>
+        <dt>Name</dt><dd><code>form-note</code>, parallel to the core <code>note</code> block, so it cannot be mistaken for text.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ 2 GROUPS ============ -->
+<section id="groups">
+  <div class="sec-head">
+    <div class="sec-num">Point 2</div>
+    <div>
+      <h2>Multi-valued fields and repeating groups</h2>
+      <p class="sub">Two things that look alike and are not. <code>form-group</code> replaced an earlier <code>type=group</code>, and it repeats by nature.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+
+    <figure>
+      <figcaption>One field, several values <span class="st st-done">Settled</span><small>The proposal's <code>multiple</code> on a scalar field. Ant Design: <code>Select mode="tags"</code>.</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">=== form-field</span> <span class="a">{#tags label="Tags" type=text <span class="hl">multiple</span>
+                description="Several allowed; press Enter after each."}</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>Rendered</span><span class="badge b-mute">disabled preview</span></div>
+          <div class="preview">
+            <div class="fld">
+              <span class="lab">Tags</span>
+              <div class="inp wrapchips"><span class="chip">Yangtze Delta <span class="x">✕</span></span><span class="chip">ISO 9001 <span class="x">✕</span></span><span class="chip">contract <span class="x">✕</span></span><span class="hint">type, then Enter</span></div>
+              <span class="hint">Several allowed; press Enter after each.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </figure>
+
+    <figure>
+      <figcaption>A set of fields, repeated N times <span class="st st-done">Settled</span><small>Ant Design's <code>Form.List</code>. A group is a shape of structure, not of value, hence <code>form-group</code> rather than <code>type=group</code>; it repeats by nature, so no multiple. <code>type=</code> is back to seven pure value shapes.</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">==== <span class="hl">form-group</span></span> <span class="a">{#contacts label="Contacts" <span class="hl">required</span>
+                description="At least one; add as many as needed."}</span>
+<span class="f">=== form-field</span> <span class="a">{#name label="Name" type=text required}</span>
+<span class="f">===</span>
+<span class="f">=== form-field</span> <span class="a">{#email label="Email" type=text pattern="^[^@]+@[^@]+$" required}</span>
+<span class="f">===</span>
+<span class="f">=== form-field</span> <span class="a">{#role label="Role" type=select options=#roles}</span>
+<span class="f">===</span>
+<span class="f">====</span>
+
+<span class="f">=== form-options</span> <span class="a">{#roles format=csv delim=;}</span>
+value ; label
+biz   ; Business
+tech  ; Technical
+fin   ; Finance
+<span class="f">===</span>
+
+<span class="c">%% addresses: #vendor#contacts#email, #vendor#roles</span>
+<span class="c">%% form-options sit directly in the form; options=#roles resolves in the enclosing form, so any group's field may use it</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>Rendered</span><span class="badge b-mute">disabled preview</span></div>
+          <div class="preview">
+            <div class="group">
+              <div class="group-h"><span>Contacts <span class="hint">At least one; add as many as needed</span></span></div>
+              <div class="entry"><div class="row3" style="grid-template-columns:1fr 1.3fr .9fr auto;">
+                <div class="fld"><span class="lab req">Name</span><div class="inp">Wang Fang</div></div>
+                <div class="fld"><span class="lab req">Email</span><div class="inp">wang.fang@example.invalid</div></div>
+                <div class="fld"><span class="lab">Role</span><div class="inp">Business <span class="caret">▼</span></div></div>
+                <div class="del" aria-hidden="true">🗑</div>
+              </div></div>
+              <div class="entry"><div class="row3" style="grid-template-columns:1fr 1.3fr .9fr auto;">
+                <div class="fld"><span class="lab req">Name</span><div class="inp">Li Qiang</div></div>
+                <div class="fld"><span class="lab req">Email</span><div class="inp">li.qiang@example.invalid</div></div>
+                <div class="fld"><span class="lab">Role</span><div class="inp">Technical <span class="caret">▼</span></div></div>
+                <div class="del" aria-hidden="true">🗑</div>
+              </div></div>
+              <div class="add">＋ Add a contact</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Rule</dt><dd><code>form-group</code> is the repeating group: zero or more entries, each the set of its children's values; <code>required</code> means at least one. It sits directly in the form, holds only form-fields, and opens one scope. <code>multiple</code> is for scalar fields only. A non-repeating composite is not defined: visual grouping is a heading's job.</dd>
+        <dt>No nesting</dt><dd>A form-group may not contain a form-group; doing so is an error. Zero instances in the three trial forms; not nesting fixes the id scope at two levels (form, group), the address at three segments, the fence at five <code>=</code>, and spares the parser and every downstream tool a recursive scope. The cost recorded under the proposal's Drawbacks 1 — a non-flat id space — is thereby bounded. It waits for a first instance.</dd>
+      </dl>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============ 3 OPTIONS ============ -->
+<section id="options">
+  <div class="sec-head">
+    <div class="sec-num">Point 3</div>
+    <div>
+      <h2>Options: <code>form-options</code></h2>
+      <p class="sub">The contract is unchanged; the carrier became a type of its own. A <code>type=select</code> value must fall in the option list's value column.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>One document, rendered as a dropdown or as a radio group by the stylesheet <span class="st st-done">Settled</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">=== form-options</span> <span class="a">{#states format=csv delim=;}</span>
+value    ; label
+draft    ; Draft
+accepted ; Accepted
+final    ; Final
+<span class="f">===</span>
+<span class="f">=== form-field</span> <span class="a">{#state label="State" type=select required <span class="hl">options=#states</span>}</span>
+<span class="f">===</span>
+
+<span class="c">%% what is submitted is the value `accepted`, not the label "Accepted"</span>
+<span class="c">%% options= pointing at a table rather than a form-options: error</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>Rendered · two skins</span><span class="badge b-mute">disabled preview</span></div>
+          <div class="preview">
+            <div class="row2">
+              <div class="fld"><span class="lab req">State</span><div class="inp">Accepted <span class="caret">▼</span></div><span class="hint">dropdown</span></div>
+              <div class="fld"><span class="lab req">State</span>
+                <div style="display:grid;gap:6px;padding-top:4px;"><div class="check"><span class="radio"></span>Draft</div><div class="check"><span class="radio on"></span>Accepted</div><div class="check"><span class="radio"></span>Final</div></div>
+                <span class="hint">radio group, the stylesheet's choice</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </figure>
+
+    <figure>
+      <figcaption>With <code>multiple</code> it is a multi-select, and option labels may carry links <span class="st st-done">Settled</span><small>A form-options body parses its cells inline like a table, so a label column may hold a link. The 44 space-carrying options of the next.js form fit too.</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">=== form-options</span> <span class="a">{#categories-list format=csv delim=;}</span>
+value        ; label
+raw          ; [Raw materials](https://example.invalid/cat/raw) — metals, polymers, textiles
+parts        ; [Components](https://example.invalid/cat/parts) — machined, moulded, PCB
+contract-mfg ; Contract manufacturing
+logistics    ; Logistics and warehousing
+<span class="f">===</span>
+<span class="f">=== form-field</span> <span class="a">{#categories label="Supply categories" type=select <span class="hl">multiple</span> required
+                options=#categories-list}</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>Rendered</span><span class="badge b-mute">disabled preview</span></div>
+          <div class="preview">
+            <div class="fld">
+              <span class="lab req">Supply categories</span>
+              <div class="inp wrapchips"><span class="chip">Raw materials <span class="x">✕</span></span><span class="chip">Contract manufacturing <span class="x">✕</span></span><span class="caret">▼</span></div>
+              <div class="optlist">
+                <div><span class="box on"></span><a href="#options">Raw materials</a> — metals, polymers, textiles</div>
+                <div><span class="box"></span><a href="#options">Components</a> — machined, moulded, PCB</div>
+                <div><span class="box on"></span>Contract manufacturing</div>
+                <div><span class="box"></span>Logistics and warehousing</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Contract</dt><dd>The first column is the value submitted, a <code>label</code> column the text shown, further columns pass to the handler unread. <code>src=</code> brings a long list in from a CSV file; two forms wanting the same list point at the same file. A form-options is consumed only by <code>options=</code> in its own form and never rendered alone; one nothing points at earns a warning.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ 4 TYPES ============ -->
+<section id="types">
+  <div class="sec-head">
+    <div class="sec-num">Point 4</div>
+    <div>
+      <h2>type and constraints</h2>
+      <p class="sub">type is back to seven pure value shapes. Constraint keys come from the profile: declared, never evaluated.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+
+    <figure>
+      <figcaption>Seven types: value shape, control, measured count <span class="st st-done">Settled</span><small>Counts come from the 23 fields of the two checked-in trial forms plus the 9 elements of the next.js form. GitHub's form schema has only four field types.</small></figcaption>
+      <div class="tablewrap">
+        <table class="t">
+          <thead><tr><th>type</th><th>value shape</th><th>renders as</th><th class="num">count</th><th>note</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">text</td><td>any string, one line</td><td>input</td><td class="num">11</td><td>path, url, email and tel all fold in; format differences via <code>pattern=</code></td></tr>
+            <tr><td class="mono">textarea</td><td>string, several paragraphs</td><td>multi-line input</td><td class="num">7</td><td></td></tr>
+            <tr><td class="mono">number</td><td>a number</td><td>numeric input</td><td class="num">1</td><td>range via <code>min</code> / <code>max</code> / <code>step</code></td></tr>
+            <tr><td class="mono">date</td><td>a date</td><td>date picker</td><td class="num">1</td><td>time and datetime wait for an instance</td></tr>
+            <tr><td class="mono">boolean</td><td>true / false</td><td>checkbox or switch</td><td class="num">1</td><td></td></tr>
+            <tr><td class="mono">select</td><td>one value of a form-options' value column; several with <code>multiple</code></td><td>dropdown / radio group / checkbox group</td><td class="num">4</td><td>includes the 44-option next.js dropdown</td></tr>
+            <tr><td class="mono">file</td><td>a file</td><td>upload</td><td class="num">0</td><td>the only one kept on value shape rather than measurement</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </figure>
+
+    <figure>
+      <figcaption>Three fields, three homes <span class="st st-done">Settled · in the profile</span><small>Constraint keys come from the <code>geml-form/v1</code> profile; without the declaration they are unknown-attribute warnings. The processor stores the string; the handler enforces it.</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+<span class="hl">profile = "geml-form/v1"</span>
+<span class="f">===</span>
+
+<span class="f">=== form-field</span> <span class="a">{#revenue label="Annual revenue (CNY, millions)" type=number
+                <span class="hl">min=0 max=99999 step=1</span> description="Whole millions; blank if unaudited."}</span>
+<span class="f">===</span>
+<span class="f">=== form-field</span> <span class="a">{#phone label="Mobile" type=text <span class="hl">pattern="^1\d{10}$"</span> required
+                description="11 digits"}</span>
+<span class="f">===</span>
+<span class="f">=== form-field</span> <span class="a">{#contract-end label="Contract end" type=date required
+                description="Must be after the start date."}</span>
+<span class="f">===</span>
+<span class="c">%% "after the start date" is a cross-field rule: the document can only say it to a reader; only the handler checks it</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>Rendered</span><span class="badge b-mute">disabled preview</span></div>
+          <div class="preview">
+            <div class="fld"><span class="lab">Annual revenue (CNY, millions)</span><div class="inp">12</div><span class="hint">Whole millions; blank if unaudited. <span class="badge b-doc">declared in the document</span> <span class="badge b-handler">handler enforces</span></span></div>
+            <div class="fld"><span class="lab req">Mobile</span><div class="inp">138 0000 0000</div><span class="hint">11 digits <span class="badge b-doc">declared in the document</span> <span class="badge b-handler">handler enforces</span></span></div>
+            <div class="row2">
+              <div class="fld"><span class="lab req">Contract start</span><div class="inp">2026-10-01 <span class="caret">▦</span></div></div>
+              <div class="fld"><span class="lab req">Contract end</span><div class="inp">2027-09-30 <span class="caret">▦</span></div></div>
+            </div>
+            <span class="hint">Must be after the start date. <span class="badge b-handler">handler only</span></span>
+          </div>
+        </div>
+      </div>
+      <div class="tablewrap">
+        <table class="t">
+          <thead><tr><th>Constraint</th><th>Can the document carry it?</th><th>Who enforces</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">pattern · min · max · step · maxlength · accept</td><td>Yes, as profile attributes. The document stores strings and never evaluates them.</td><td><span class="badge b-handler">handler</span>; a stylesheet may show them as hints</td></tr>
+            <tr><td class="mono">type=number · date · select · file</td><td>Yes. The type itself is a shape constraint.</td><td><span class="badge b-handler">handler</span></td></tr>
+            <tr><td>end after start · A excludes B · Y required only when X is ticked</td><td><strong>No.</strong> §9.1: no expressions, no conditionals. Write it in the description for the reader.</td><td><span class="badge b-handler">handler only</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </figure>
+
+    <figure>
+      <figcaption>An unknown <code>type=</code> value <span class="st st-done">Settled</span><small>Degrades to text with a warning, <code>unknown-field-type</code>; the value is kept.</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">=== form-field</span> <span class="a">{#brand-color label="Brand colour" <span class="bad">type=color</span>}</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>Rendered</span><span class="badge b-mute">disabled preview</span></div>
+          <div class="preview"><div class="fld"><span class="lab">Brand colour</span><div class="inp">#1F6F8B</div><span class="hint"><span class="badge b-warn">warning · unknown-field-type</span> rendered as text.</span></div></div>
+        </div>
+      </div>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============ 5 TEXT ============ -->
+<section id="text">
+  <div class="sec-head">
+    <div class="sec-num">Point 5</div>
+    <div>
+      <h2>label · description · form-note: where each kind of text goes</h2>
+      <p class="sub">Short text in attributes, long text in a form-note, the form-field body always empty.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+
+    <figure>
+      <figcaption>An ordinary field: two attributes, an empty body <span class="st st-done">Settled</span><small>"Exactly as on the business licence." is the grey line under the control. Its position is the stylesheet's.</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">=== form-field</span> <span class="a">{#legal-name label="Legal name" <span class="hl">description="Exactly as on the business licence."</span>
+                type=text required}</span>
+<span class="f">===</span>
+
+<span class="c">%% a non-empty body: warning form-field-has-body, not rendered</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>Rendered</span><span class="badge b-mute">disabled preview</span></div>
+          <div class="preview"><div class="fld"><span class="lab req">Legal name</span><div class="inp ph">&nbsp;</div><span class="hint">Exactly as on the business licence.</span></div></div>
+        </div>
+      </div>
+    </figure>
+
+    <figure>
+      <figcaption>Guidance with links or several paragraphs: an attribute pointing at a <code>form-note</code> <span class="st st-done">Settled</span><small>The form-note sits in the form, outside the field, with no <code>for=</code>; the field's <code>description=</code> beginning with # points at it, and the renderer hangs it as aria-describedby. The next.js form's five-paragraph, fifteen-link descriptions fit.</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · inside the form</span></div>
+<pre class="geml"><span class="f">=== <span class="hl">form-note</span></span> <span class="a">{#coc-note}</span>
+Read the [code of conduct](https://example.invalid/coc) first.
+
+Ticking the box accepts its **anti-bribery** and **data protection** clauses.
+<span class="f">===</span>
+<span class="f">=== form-field</span> <span class="a">{#agree label="I have read and accept the code of conduct" type=boolean required
+                <span class="hl">description=#coc-note</span>}</span>
+<span class="f">===</span>
+
+<span class="c">%% #coc-note resolves in the enclosing form, i.e. #vendor#coc-note; several fields may point at one form-note</span>
+<span class="c">%% pointing at something other than a form-note: error; a form-note nothing points at: warning</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>Rendered</span><span class="badge b-mute">disabled preview</span></div>
+          <div class="preview">
+            <div class="fld">
+              <div class="check"><span class="box"></span><span class="req">I have read and accept the code of conduct</span></div>
+              <p class="desc">Read the <a href="#text" style="pointer-events:none">code of conduct</a> first.</p>
+              <p class="desc">Ticking the box accepts its <strong>anti-bribery</strong> and <strong>data protection</strong> clauses.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Rule</dt><dd><code>label=</code> <code>description=</code> <code>placeholder=</code> share one rule: the value is plain text, or, beginning with <code>#</code>, points at a form-note in the same form. Plain is one line of text; a form-note is flow content with links, bold, several paragraphs. A label pointing at a form-note renders inline; a placeholder pointing at one is flattened to text, since an input's placeholder cannot hold markup.</dd>
+        <dt>Name</dt><dd>Settled as <code>form-note</code>.</dd>
+      </dl>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============ GAPS ============ -->
+<section id="gaps">
+  <div class="sec-head">
+    <div class="sec-num">Edge cases</div>
+    <div>
+      <h2>Three settled corners</h2>
+    </div>
+  </div>
+  <div class="sec-body">
+
+    <figure>
+      <figcaption><code>value=</code> on a multi-select names the single preselected option <span class="st st-done">Settled</span><small>Attribute values have no arrays. Preselecting several is the handler's default-value logic.</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">=== form-field</span> <span class="a">{#plan label="Settlement plan" type=select multiple <span class="hl">value=net30</span> options=#plans}</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>Rendered</span><span class="badge b-mute">disabled preview</span></div>
+          <div class="preview"><div class="fld"><span class="lab">Settlement plan</span><div class="inp wrapchips"><span class="chip">net30 <span class="x">✕</span></span><span class="caret">▼</span></div><span class="hint">Only one preselected.</span></div></div>
+        </div>
+      </div>
+    </figure>
+
+    <figure>
+      <figcaption>A heading inside a form: allowed <span class="st st-done">Settled</span><small>The heading's id enters the document space; field ids enter the form's scope. A probe confirmed the parser already reads it this way.</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>actual geml list output</span></div>
+<pre class="term"><span class="dim">#vendor            form            L7-30</span>
+<span class="wn">#contacts-heading  heading  h2     L8-29</span>   <span class="dim">← document-level id, not #vendor#contacts-heading</span>
+<span class="dim">#contact-name      …</span>                     <span class="dim">← per the proposal, #vendor#contact-name</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>Rule</span></div>
+          <p class="desc" style="max-width:none">A heading inside a form is an ordinary document heading: its id is document-level, untouched by field scoping, and it is not a field. Its section ends at the enclosing form or form-group fence, or at the next heading of the same or higher level. Visual grouping uses it; form-group is not for that.</p>
+        </div>
+      </div>
+    </figure>
+
+    <figure>
+      <figcaption>A fence one <code>=</code> too short <span class="st st-done">Settled · error</span><small>Any <code>form-*</code> block outside a form is an error, <code>form-child-outside-form</code>, whose message points at the likely short fence.</small></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · wrong</span><span class="badge b-err">the form closes early</span></div>
+<pre class="geml"><span class="bad">=== form</span> <span class="a">{#vendor handler=onboarding}</span>
+Company
+<span class="bad">=== form-field</span> <span class="a">{#legal-name label="Legal name" type=text required}</span>   <span class="arrow">← same length as the form: closes it</span>
+<span class="f">===</span>                                         <span class="arrow">← opens a new anonymous block</span></pre>
+          <div class="pane-h" style="margin-top:14px"><span>GEML · right</span></div>
+<pre class="geml"><span class="f">==== form</span> <span class="a">{#vendor handler=onboarding}</span>
+Company
+<span class="f">=== form-field</span> <span class="a">{#legal-name label="Legal name" type=text required}</span>
+<span class="f">===</span>
+<span class="f">====</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>result of the wrong version</span></div>
+          <div class="preview"><div class="unknown"><span class="badge b-err">error · form-child-outside-form</span><br>form-field {#legal-name …} sits outside a form. The enclosing form's fence may be too short.<br><code>geml check</code> exits non-zero; the document does not pass.</div></div>
+          <div class="pane-h" style="margin-top:14px"><span>the family's diagnostics</span></div>
+          <div class="tablewrap">
+            <table class="t"><tbody>
+              <tr><td class="mono">form-child-outside-form</td><td><span class="badge b-err">error</span></td><td>a form-* block outside a form</td></tr>
+              <tr><td class="mono">form-field-has-body</td><td><span class="badge b-warn">warning</span></td><td>a non-empty form-field body, not rendered</td></tr>
+              <tr><td class="mono">unknown-field-type</td><td><span class="badge b-warn">warning</span></td><td>a type outside the seven; rendered as text</td></tr>
+              <tr><td class="mono">options-not-form-options</td><td><span class="badge b-err">error</span></td><td><code>options=</code> names something other than a form-options in this form</td></tr>
+              <tr><td class="mono">note-not-form-note</td><td><span class="badge b-err">error</span></td><td>a # in label / description / placeholder names something other than a form-note in this form</td></tr>
+              <tr><td class="mono">unused-form-block</td><td><span class="badge b-warn">warning</span></td><td>a form-options or form-note no field points at</td></tr>
+              <tr><td class="mono">duplicate-id</td><td><span class="badge b-err">error</span></td><td>two ids the same within one scope</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+      </div>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============ EVIDENCE ============ -->
+<section id="evidence">
+  <div class="sec-head">
+    <div class="sec-num">Evidence</div>
+    <div>
+      <h2>Three probes</h2>
+      <p class="sub">geml 1.9.2, GEML spec 1.0. Hyphenated type names already parse as block types — the profile's <code>style-rule</code> is an existing case.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tablewrap">
+      <table class="t">
+        <thead><tr><th style="width:40px">#</th><th>Input</th><th>Result</th><th>What it showed</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>A form written as the first draft spelled it, ending with <code>[[#vendor#legal-name]]</code></td><td class="mono"><span class="badge b-warn">warning</span> unknown block type <code>form</code><br><span class="badge b-err">error</span> unresolved reference</td><td>An unregistered form is only a warning; a field reference is an error, so <code>#a#b</code> resolution is the first thing to implement.</td></tr>
+          <tr><td>2</td><td>The same document with form / field replaced by the registered <code>note</code></td><td class="mono"><span class="badge b-doc">0 errors</span> 29 fields and 4 option tables all addressable</td><td>Nesting holds under the existing fence rules; what is missing is the type names and the scoping rule.</td></tr>
+          <tr><td>3</td><td>note nested four deep, with a heading in the body and an empty body</td><td class="mono"><span class="badge b-doc">ok</span> no diagnostics</td><td>Group nesting, headings in a body and empty bodies all parse already; the family uses at most three levels.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>This page: <code>docs/illustrated/06-form.html</code> · 中文 <code>06-form_CN.html</code>. The review's conclusions are written into <code>spec/proposals/0008-form-block.md</code> (draft) and <code>spec/profiles/geml-form/</code>; the example <code>0008-form-block-example/complex-form.geml</code> is rewritten in the form-* family.</div>
+  <div>The controls shown are disabled previews; under GEP-0008 §8.3(5) a renderer MUST NOT submit.</div>
+</footer>
+</div>

@@ -824,7 +824,11 @@ emphasis containing a link, exactly as in CommonMark
 
 ## 6. Tables
 
-Block type `table` accepts two interchangeable bodies, parsed to one model.
+Block type `table` accepts two interchangeable bodies, parsed to one model. A
+table holds **facts**: it derives nothing and borrows nothing. Selecting,
+deriving and aggregating a relation belong to the `view` block (§6.1), which
+takes a table's output — or another view's — and publishes a relation of its
+own.
 
 **(a) Visual form**
 
@@ -837,20 +841,28 @@ Block type `table` accepts two interchangeable bodies, parsed to one model.
 ===
 ```
 
-**(b) Data form** — with computed columns and a summary row:
+**(b) Data form** — delimited text, one row per line:
 
 ```
-=== table {#fy25 caption="FY2025 revenue by segment ($M)" format=csv header=1 \
-           compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4; \
-                    YoY [%.1f%%] = (FY - PriorFY) * 100 / PriorFY" \
-           summary="Segment = 'Total'; \
-                    Q1 = sum(Q1); Q2 = sum(Q2); Q3 = sum(Q3); Q4 = sum(Q4); \
-                    PriorFY = sum(PriorFY); FY = sum(FY); \
-                    YoY [%.1f%%] = (sum(FY) - sum(PriorFY)) * 100 / sum(PriorFY)"}
+=== table {#fy25 caption="FY2025 revenue by segment ($M)" format=csv header=1}
 Segment,   Q1,    Q2,    Q3,    Q4,    PriorFY
 Cloud,     124.5, 131.2, 142.8, 158.3, 470.0
 Hardware,  88.1,  84.6,  90.3,  95.7,  372.0
 Services,  45.2,  47.8,  49.1,  52.6,  168.0
+===
+```
+
+The derived columns and the total those numbers ask for are a `view`'s, over
+this table:
+
+```
+=== view {#fy25-report src=#fy25 \
+          compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4; \
+                   YoY [%.1f%%] = (FY - PriorFY) * 100 / PriorFY" \
+          summary="Segment = 'Total'; \
+                   Q1 = sum(Q1); Q2 = sum(Q2); Q3 = sum(Q3); Q4 = sum(Q4); \
+                   PriorFY = sum(PriorFY); FY = sum(FY); \
+                   YoY [%.1f%%] = (sum(FY) - sum(PriorFY)) * 100 / sum(PriorFY)"}
 ===
 ```
 
@@ -881,15 +893,23 @@ fences and all — is a paragraph.* The example resolves to:
   data comes from. For a `table` block that is the `src=` attribute (a `diagram`
   spells the same idea `data=`; see Appendix B.3), and it takes one of three
   targets: a data file with `format=csv`/`tsv` (a path relative to the document,
-  or an `http(s)` URL); `#id`, naming a table block in this document; or
-  `doc.geml#id`, naming one in another document. A local-path or cross-document target MUST be resolved and
-  existence-checked at build time — an unresolvable one is an error, and a target
-  that exists but is not a table is an error. Only the `src` text — never
+  or an `http(s)` URL). A `src=` that names a **block** — `#id`, or
+  `doc.geml#id` — is an **error** naming `view` (§6.1): a block's output is
+  something another block derived, and a table holding facts someone else
+  derived would be neither. A local-path target MUST be resolved and
+  existence-checked at build time — an unresolvable one is an error. Only the `src` text — never
   the resolved contents — enters the `.gemlhistory` hash. A table MUST NOT carry
   both `src` and an inline body (an error). Because the data arrives at render
   time, the column names used by `compute` and by a referencing `geml-chart` are
   validated then, not at build time. Inlining stays the default; `src` is an
   explicit choice.
+
+The four rules that follow — computed columns, results a cell cannot hold, the
+summary row, and the display format — define the **grammar** `compute=` and
+`summary=` take. Those two attributes are a `view`'s (§6.1), not a table's; the
+grammar is defined here because it is the same grammar wherever a relation is
+derived, and a `table` that carries either attribute is an `unknown-attribute`
+warning like any other misplaced key (§8.2).
 
 - **Computed columns** — `compute` lists one or more `Name = expr` formulas
   separated by `;`. Each `expr` is evaluated once per data row over `+ - * / ( )`
@@ -933,6 +953,77 @@ fences and all — is a paragraph.* The example resolves to:
   spreadsheet engine: single-cell and range addressing (`@3$4`, `@2$1..@4$3`),
   relative-row references (`@-1`), conditionals, cross-table `remote()`
   references, lookup/VLOOKUP, and any embedded program (no Lisp, no JS).
+
+### 6.1 The `view` block
+
+A `view` publishes a relation **derived** from another one. It takes **no body**
+— a body alongside `src=` is an error — and a **required `src=`** naming a data
+file (`rows.csv`), a block in this document (`#tickets`), or a block in another
+(`other.geml#tickets`). A `src=` that resolves to a block which is neither a
+`table` nor a `view` is an error: it publishes no relation to derive from.
+
+- **Selection.** `where="<expr>"` keeps rows; `order="<key>[ asc|desc][, …]"`
+  sorts, `asc` being the default; `limit=<n>` takes the first *n* after
+  ordering; `select="<column>[, …]"` narrows AND reorders the columns, taking
+  names only — an `=` inside it is an error naming `compute=`.
+- **Derivation.** `compute=` and `summary=` take the grammar §6 defines.
+- **Aggregation.** `by="<column>[, …]"` groups; `aggregate="<name> =
+  <fn>(<column>)[; …]"` names the group's columns in `summary=`'s grammar and
+  with its aggregates. `by=` with no `aggregate=` is the **distinct** set of
+  those keys, and groups appear in first-seen order. `aggregate=` with no `by=`
+  is an error: one aggregate row over every row is `summary=`. On a grouping
+  view `compute=` is per **input** row, so an aggregate formula there is an
+  error naming `aggregate=`.
+- **The `where=` expression** compares a column against a number or a
+  single-quoted string with `= != < <= > >=`, combined with `not`, `and`, `or`
+  (in that precedence) and parentheses. A column name may be single-quoted when
+  it carries spaces. A cell that is not a number never matches a numeric
+  comparison, which is data rather than a diagnostic — but a numeric comparison
+  against a column holding **no** numeric value at all is an error, because the
+  filter could only ever match nothing.
+
+**Evaluation order** is SQL's logical processing order:
+
+> `src` loads → `compute`'s per-row formulas → `where` filters →
+> `compute`'s aggregate formulas → `by`/`aggregate` folds → `order` sorts →
+> `limit` truncates → `select` narrows → `summary` aggregates.
+
+`compute=` therefore runs in **two passes**, and `where=` MAY name a column a
+per-row formula produces. It MUST NOT name one an **aggregate** formula
+produces: that value depends on which rows the filter keeps, so the filter would
+decide its own input, and the error names the formula rather than the reference.
+The reward is that `sum(FY)` means one thing — over the rows shown — in both
+`compute=` and `summary=`. `select=` running after `order=` and `limit=` is what
+lets those name a column the view does not show, without a second scope rule;
+`summary=` running last makes the report row a total of what the reader sees,
+and it MUST target a column that survived `select=`.
+
+**Ordering is deterministic across processors.** Each key's kind is decided once
+over the whole column: numeric when every cell of it holds a number, text
+otherwise. Text compares by **UTF-16 code unit** — never by a locale collation,
+which would make a row order depend on the machine. The sort is **stable**: ties
+keep source order, which is what makes `limit=` reproducible.
+
+**What a view sees.** A `src=` naming a block takes that block's **tuples
+together with the columns it computes** — derivation is encapsulated, so a
+consumer depends on column names rather than on how they were produced. The
+source's `summary=` row does **not** cross: `compute=` extends each tuple and
+leaves a relation, while an aggregate row is a different relation stacked
+underneath. A `compute=` that defines a column the source already publishes is
+legal and earns a `shadowed-source-column` warning; the source's column is then
+unreachable in this block.
+
+**Chaining terminates.** A view MAY be another view's `src=`, which is how
+filtering groups (SQL's `HAVING`), a re-sort or a second projection are spelled.
+A `src=` chain that returns to where it started is an error naming every view in
+the cycle, and the depth of a legal chain is bounded exactly as a nested
+`embed`'s is (§9.3).
+
+**No rows matched is not an error.** A view whose filter keeps nothing renders
+its header and an empty body; the unknown-column error is what catches the typo
+that would otherwise empty it silently. A view has no bytes of its own, so a
+coordinate (§5.2) **reads** its cells and can never write one — the write is
+refused, naming the source relation.
 
 ---
 
@@ -978,9 +1069,13 @@ selects the renderer; the chart is described entirely in **attributes**, so the
 processor validates it (the body stays empty — a non-empty body is a warning):
 
 ```
-=== diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=FY caption="FY revenue"}
+=== diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=Q1 caption="Q1 revenue"}
 ===
 ```
+
+`data=` may name a `view` as readily as a `table`, and for a **derived** column
+it must: charting §6.1's `FY` is `data=#fy25-report y=FY`, since that is the
+block which publishes the column.
 
 - `type` — `bar | line | area | pie | scatter`. It only changes how the channels
   are drawn; it never adds new attributes.
@@ -1354,6 +1449,31 @@ original file.
 | `unlexable-summary-expression` | error | A `summary` expression contains a token the §6 expression grammar does not define. |
 | `summary-error` | error | A `summary` expression failed to evaluate — including a column reference not reduced by an aggregate, which has no value in the summary row (§6). |
 
+**Views (`=== view`).** A view derives a relation from another one; a `table`
+holds facts and derives nothing.
+
+| Code | Severity | Condition |
+|---|---|---|
+| `view-missing-src` | error | A `view` carries no `src=`. A view is declared by its source and its attributes alone, so there is nothing for it to derive from. |
+| `view-src-and-body` | error | A `view` carries a body. Its content is its source's, and a body alongside `src=` is the same error a table's is (§6). |
+| `table-source-is-block` | error | A `table`'s `src=` names a block rather than a data file. A block target is another block's output, and a table holding facts someone else derived is what `view` is for. |
+| `view-source-not-a-relation` | error | A view's `src=` names a block that is neither a `table` nor a `view`, so it publishes no relation to derive from. |
+| `view-source-cycle` | error | A chain of `src=` references returns to where it started. Every view in the cycle is named, because none of them can be resolved first (§9.3). |
+| `view-source-too-deep` | error | A chain of views is deeper than §9.3's bound, which is the one a nested `embed` has. Each view past the bound is named and none of them publishes rows. |
+| `view-where-error` | error | A `where=` expression is not a comparison the grammar defines — an unclosed quote, a missing right-hand value, a column where an operator belongs, or a name no column carries. |
+| `view-numeric-column-required` | error | A `where=` compares a column against a number and no row of that column holds one. The filter could only ever match nothing, which is a typo rather than a state. |
+| `view-unknown-column` | error | A `by=`, `order=`, `select=` or `aggregate=` names a column the relation does not carry. |
+| `view-order-error` | error | An `order=` key is not `<column>[ asc|desc]`. |
+| `view-limit-error` | error | A `limit=` is not a non-negative integer. |
+| `view-select-expression` | error | A `select=` entry contains `=`. It names columns and nothing more; deriving a column is `compute=`'s job. |
+| `summary-projected-away` | error | A `summary=` targets a column `select=` dropped. Projection runs before the report row, so there is no cell left to render it in. |
+| `circular-view-filter` | error | A `where=` names a column an aggregate formula derives. That value depends on which rows the filter keeps, so the filter would decide its own input. The diagnostic names the formula, not the reference. |
+| `shadowed-source-column` | warning | A `compute=` defines a column its source already publishes. Legal — the left of the `=` names this block's output and the right reads the source's — but the column then renders a different number than the source publishes under that name, and the source's is unreachable in this block. |
+| `grouping-compute-aggregate` | error | A `compute=` on a view that carries `by=` uses an aggregate. On a grouping view `compute=` is per input row; the group's columns are `aggregate=`'s. |
+| `bad-aggregate-entry` | error | An `aggregate=` entry is not of the form `Name = fn(Column)`, or its expression carries a token the §6 grammar does not define. |
+| `aggregate-error` | error | An `aggregate=` expression failed to evaluate. |
+| `aggregate-without-by` | error | A view carries `aggregate=` and no `by=`. Aggregate columns describe groups; one aggregate row over every row is `summary=`. |
+
 
 ### A.4 Diagrams and charts (§7)
 
@@ -1423,6 +1543,7 @@ GEML has three syntactic positions:
 | `=== code` | typed | raw | §3 |
 | `=== math` | typed | raw | §3 |
 | `=== table` | typed | raw: pipe grid or `format=` data | §6 |
+| `=== view` | typed | no body; `src=` names the relation it derives from | §6.1 |
 | `=== data` | typed | raw: `format=` value tree (`json` default, `jsonl`; `yaml`/`toml` reserved) | §3.2 |
 | `=== diagram` | typed | raw: external DSL | §7 |
 | `=== embed` | typed | raw (body unused); `src=` names the content | §3, §6 |
@@ -1451,11 +1572,12 @@ single-line construct recognized during block parsing.
 
 ### B.3 Attribute position
 
-Seven attribute keys carry references; all of them are validated (Appendix A):
+Eight attribute keys carry references; all of them are validated (Appendix A):
 
 | Key | Host block | Target | Defined in |
 |-----|------------|--------|------------|
-| `src=` | `table` | where the data comes from, in three forms: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL), `#id` naming a table block in this document, or `doc.geml#id` naming one in another. | §6 |
+| `src=` | `table` | where the data comes from: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL). A block target is an error naming `view`. | §6 |
+| `src=` | `view` | the relation it derives from, in three forms: a data file (`csv`/`tsv`), `#id` naming a `table` or `view` in this document, or `doc.geml#id` naming one in another. | §6.1 |
 | `data=` | `diagram` (`geml-chart`) | where the data comes from, in the same three forms a table's `src=` takes: a data file (`csv`/`tsv` standing for the anonymous table it describes; a local `.json`/`.jsonl` for the anonymous record source), `#id` in this document, or `doc.geml#id` in another — naming a `table`, or a record-array `data` block (§3.2). | §6, §7.1 |
 | `schema=` | `data` | a block (`#id`) or a GEML document (`doc.geml[#id]`) holding a schema; reference-checked only | §3.2 |
 | `src=` | `data` | the block's external content: a `.json`/`.jsonl`/`.yaml` file, taking the same route syntax as a code source (a line range MAY narrow it, which is how a window of a jsonl log is addressed); document-relative or `http(s)` (render-time) | §3.2 |

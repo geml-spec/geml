@@ -85,4 +85,4 @@ is spelled `form`, while the same idea at the application layer is spelled
 | [0009](0009-application-layer-profiles.md) | The profile mechanism is how GEML is extended | draft |
 | [0010](0010-language-projections.md) | Projections along the language axis — a translated document is a view, not a copy | draft |
 | [0011](0011-inner-unit-coordinates.md) | Coordinates for units inside a block — a table's rows and cells, a value tree in `data` or merged `meta` | draft |
-| [0012](0012-declared-row-filtering.md) | Declared row selection — `where=`, `order=` and `limit=` on the table that consumes the data | draft |
+| [0012](0012-view-block.md) | Register a `view` typed block — selection, derivation and aggregation of another relation | draft |

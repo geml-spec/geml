@@ -1,0 +1,328 @@
+<title>GEML Illustrated · geml-style</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root { --bg:#F4F6F9; --surface:#FFFFFF; --surface-2:#EBEFF4; --ink:#1B2430; --ink-2:#47535F; --ink-3:#7B8794; --line:#D5DCE4; --line-2:#C3CCD6; --accent:#1F6F8B; --accent-soft:#DCEDF3; --amber:#9A5F0A; --amber-soft:#FAEED3; --red:#B0403B; --red-soft:#F8E2E0; --green:#2E7A50; --green-soft:#DDF0E4; --on-solid:#FFFFFF; --shadow:0 1px 2px rgba(27,36,48,.06),0 6px 18px rgba(27,36,48,.05); color-scheme:light; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#11161C; --surface:#191F27; --surface-2:#202832; --ink:#E6EBF0; --ink-2:#B3BDC8; --ink-3:#7F8B98; --line:#2C3642; --line-2:#3A4552; --accent:#63B5D1; --accent-soft:#14323D; --amber:#E2AC45; --amber-soft:#382B10; --red:#E27F79; --red-soft:#3E1F1E; --green:#6CC08E; --green-soft:#173124; --on-solid:#0F141A; --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25); color-scheme:dark; } }
+  :root[data-theme="dark"] { --bg:#11161C; --surface:#191F27; --surface-2:#202832; --ink:#E6EBF0; --ink-2:#B3BDC8; --ink-3:#7F8B98; --line:#2C3642; --line-2:#3A4552; --accent:#63B5D1; --accent-soft:#14323D; --amber:#E2AC45; --amber-soft:#382B10; --red:#E27F79; --red-soft:#3E1F1E; --green:#6CC08E; --green-soft:#173124; --on-solid:#0F141A; --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25); color-scheme:dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.65 "IBM Plex Sans",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1120px; margin:0 auto; padding:48px 28px 96px; }
+  h1,h2,h3 { text-wrap:balance; margin:0; } p { margin:0; } a { color:var(--accent); }
+  code,pre,.mono { font-family:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace; }
+  code { font-size:.92em; background:var(--surface-2); padding:1px 5px; border-radius:3px; }
+  .eyebrow { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  header h1 { font-size:34px; line-height:1.2; font-weight:600; margin-top:10px; letter-spacing:-.01em; }
+  header .lede { max-width:66ch; color:var(--ink-2); margin-top:16px; font-size:16px; }
+  .toc { display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:22px; font-size:14px; }
+  .toc a { text-decoration:none; border-bottom:1px solid var(--line-2); padding-bottom:1px; }
+  section { margin-top:72px; }
+  .sec-head { display:grid; grid-template-columns:64px 1fr; gap:16px; align-items:baseline; border-top:1px solid var(--line-2); padding-top:22px; }
+  .sec-num { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:500; padding-top:6px; }
+  .sec-head h2 { font-size:24px; font-weight:600; } .sec-head .sub { color:var(--ink-2); margin-top:6px; max-width:70ch; }
+  .sec-body { margin-left:80px; margin-top:28px; display:grid; gap:40px; }
+  @media (max-width:860px) { .sec-head { grid-template-columns:1fr; gap:6px; } .sec-body { margin-left:0; } }
+  .st { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; letter-spacing:.04em; padding:2px 8px; border-radius:3px; font-weight:600; white-space:nowrap; color:var(--on-solid); vertical-align:middle; }
+  .st-spec { background:var(--green); } .st-gap { background:var(--red); } .st-gep { background:var(--accent); } .st-obs { background:var(--ink-3); }
+  .board { overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:6px; box-shadow:var(--shadow); }
+  table.b { border-collapse:collapse; width:100%; font-size:14px; }
+  table.b th, table.b td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.b tr:last-child td { border-bottom:0; }
+  table.b th { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  table.b td.n { color:var(--ink-3); font-variant-numeric:tabular-nums; width:32px; }
+  table.b td.src { color:var(--ink-3); white-space:nowrap; font-size:13px; }
+  .tally { display:flex; flex-wrap:wrap; gap:10px 22px; margin-bottom:14px; font-size:14px; color:var(--ink-2); align-items:center; } .tally b { font-weight:600; color:var(--ink); }
+  figure { margin:0; display:grid; gap:18px; }
+  figure > figcaption { font-size:17px; font-weight:600; display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; }
+  .panes { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; align-items:start; }
+  @media (max-width:980px) { .panes { grid-template-columns:1fr; } .sec-body { margin-left:0; } }
+  .pane-h { display:flex; justify-content:space-between; align-items:center; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; margin-bottom:8px; }
+  pre.geml { margin:0; background:var(--surface-2); border:1px solid var(--line); border-radius:6px; padding:14px 16px; font-size:13px; line-height:1.6; overflow-x:auto; color:var(--ink); }
+  pre.geml .f { color:var(--accent); font-weight:500; } pre.geml .a { color:var(--ink-2); } pre.geml .c { color:var(--ink-3); font-style:italic; }
+  pre.geml .hl { background:var(--amber-soft); color:var(--amber); border-radius:2px; padding:0 2px; }
+  pre.geml .bad { background:var(--red-soft); color:var(--red); border-radius:2px; padding:0 2px; }
+  .term { background:var(--ink); color:#E6EBF0; border-radius:6px; padding:12px 14px; font-size:12.5px; line-height:1.6; overflow-x:auto; margin:0; }
+  :root[data-theme="dark"] .term { background:#0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .term { background:#0B0F14; } }
+  .term .ok { color:#7ED4A0; } .term .er { color:#F09A94; } .term .wn { color:#F0C060; } .term .dim { color:#8A96A3; } .term .cmd { color:#9CC7FF; }
+  .flow { display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:13px; }
+  .flow .box { background:var(--surface); border:1px solid var(--line-2); border-radius:6px; padding:8px 12px; }
+  .flow .box.hot { border-color:var(--accent); background:var(--accent-soft); }
+  .flow .sep { color:var(--ink-3); }
+  .badge { display:inline-flex; align-items:center; gap:5px; font-size:11px; letter-spacing:.04em; text-transform:uppercase; padding:2px 7px; border-radius:3px; font-weight:500; white-space:nowrap; }
+  .b-err { background:var(--red-soft); color:var(--red); } .b-warn { background:var(--amber-soft); color:var(--amber); } .b-ok { background:var(--green-soft); color:var(--green); } .b-mute { background:var(--surface-2); color:var(--ink-3); }
+  .decision { display:grid; grid-template-columns:96px 1fr; gap:6px 16px; font-size:14.5px; border-top:1px dashed var(--line-2); padding-top:14px; }
+  .decision dt { color:var(--ink-3); font-size:12px; letter-spacing:.06em; text-transform:uppercase; font-weight:500; padding-top:4px; }
+  .decision dd { margin:0; } .decision dd.amber { color:var(--amber); }
+  table.t { border-collapse:collapse; width:100%; font-size:14px; }
+  table.t th, table.t td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.t tr:last-child td { border-bottom:0; }
+  table.t th { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  table.t td.mono { font-size:13px; }
+  .tablewrap { overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:6px; }
+  footer { margin-top:80px; border-top:1px solid var(--line-2); padding-top:18px; font-size:13.5px; color:var(--ink-3); display:grid; gap:6px; }
+  footer code { background:transparent; padding:0; color:var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">GEML Illustrated · profile · geml-style/v1 (landed 2026-08-30, EXPERIMENTAL) · probed against geml 1.9.2, local build · <a href="10-profile-style_CN.html">中文</a></div>
+  <h1>GEML Illustrated · geml-style</h1>
+  <p class="lede">A stylesheet is an ordinary <code>.geml</code>: it declares <code>profile = "geml-style/v1"</code>, holds three kinds of empty-bodied blocks, <strong>selects into</strong> a content document with CSS-flavoured selectors without touching it, and binds blocks to component names the host registers. No scripts, ambiguity is a build error, nothing depends on source order. Its conformance surface is the view model that <code>geml style check --json</code> emits. This page runs one clean sheet and one deliberately broken sheet and walks through the 12 diagnostics.</p>
+  <nav class="toc">
+    <a href="#board">Board</a>
+    <a href="#good">A clean sheet</a>
+    <a href="#bad">A broken one</a>
+    <a href="#knobs">The codemap knobs</a>
+    <a href="#evidence">Evidence</a>
+  </nav>
+</header>
+
+<!-- ============ BOARD ============ -->
+<section id="board">
+  <div class="sec-head">
+    <div class="sec-num">Board</div>
+    <div>
+      <h2>14 rules, each with its source and status</h2>
+      <p class="sub"><span class="st st-spec">Settled</span> fixed by the profile document. <span class="st st-obs">Observed</span> not prescribed, this is what the tool does today. No implementation gap found on this page. Mind §0.1: only the subset the codemap display knobs use is promised stable.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div>
+      <div class="tally"><span><span class="st st-spec">Settled</span> <b>13</b></span><span><span class="st st-obs">Observed</span> <b>1</b></span></div>
+      <div class="board">
+        <table class="b">
+          <thead><tr><th></th><th>Rule</th><th>Source</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td class="n">1</td><td>A stylesheet is an ordinary .geml; all three block kinds are <strong>empty-bodied</strong>: everything sits in the attribute object, because an unregistered type's body is raw and the core does not parse it, while the attribute object is parsed for every type. Rules <strong>select into</strong> the document instead of a template wrapping it, because content is often machine-generated and not editable. No scripts: component / handler are names only; the host supplies implementations.</td><td class="src">§0 · §2</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">2</td><td><code>profile</code> is a space-separated list; several profiles take the union of their vocabularies; validation asks only "is the name allowed", never what it means. Without the declaration every style-rule earns one unknown-block-type warning (5 in the probe), exactly the kind of thing that trains people to ignore warnings.</td><td class="src">§1</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">3</td><td><code>style-rule</code>: <code>match=</code> required; <code>component=</code> <code>handler=</code> <code>show=</code> <code>filter=</code> <code>screen=</code> (space-separated) are all the keys the profile consumes itself; <strong>every other key passes through verbatim</strong> to the component, so a rule has no unknown-attribute check.</td><td class="src">§2.1</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">4</td><td><code>style-state</code>: <code>match=</code> (the producer selector) and <code>on=</code> required, <code>on</code> is a <strong>closed vocabulary</strong>, currently just <code>select</code>; <code>type=</code> block-ref | scalar unchecked; <code>value-from=</code> carries a direction; <code>init-value=</code>. Unknown keys warn. Several producers writing one state is assignment over time, not a conflict.</td><td class="src">§2.2</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">5</td><td><code>style-screen</code>: <code>slots=</code> required, <strong>comma-separated</strong>, ordered, each a selector or <code>$state</code>; <code>layout=</code> unchecked (the host's business); <strong>no <code>route=</code></strong>, routing belongs to the host framework; unknown keys warn.</td><td class="src">§2.3</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">6</td><td>A selector is §4's own vocabulary: type, <code>.class</code>, <code>#id</code>, <code>[key]</code>, <code>[key=value]</code>, plus the one descendant combinator (space) and comma branches. Rejected CSS is <strong>named rather than silently unmatched</strong>: <code>&gt; + ~</code>, pseudo-classes, <code>*</code>, substring matching → <code>selector-unsupported</code> error. The scan is partitioned: pseudo-classes are looked for only outside brackets, substring operators only inside, because attribute values legitimately contain <code>:</code>.</td><td class="src">§3</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">7</td><td>Conflicts merge <strong>per attribute</strong>; when two rules set the same attribute on the same block, the one whose condition set is a <strong>strict superset</strong> wins, otherwise <code>ambiguous-rule</code> error. No specificity arithmetic, no <code>!important</code>, <strong>no source-order fallback</strong>: a sheet relying on order would be silently changed by <code>geml set</code> / <code>add --before</code>. Judged only on blocks that actually co-occur in the corpus.</td><td class="src">§4</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">8</td><td>The binding pipeline interaction → state → view is one-way in three stages, <strong>a state never reads a state</strong>, so there is no graph and no cycle, and no binding-cycle in the catalogue. Three consumer operators: <code>show="$s"</code>, <code>filter="k=$s"</code>, <code>title="$s.caption"</code>; executed by the runtime, not the component; at check time only "every <code>$name</code> has a state declaration" is verified.</td><td class="src">§5</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">9</td><td>One separator rule: <strong>name lists use spaces, selector lists use commas</strong>, because a space is the descendant combinator.</td><td class="src">§6</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">10</td><td>Closed vocabularies (interpreted by the runtime itself, like <code>on=</code>): unknown member → error. Open registries (registered by the host, like <code>component=</code> <code>handler=</code>): unknown member → warning + inert; and <code>unknown-component</code> / <code>unknown-handler</code> are checked only when the caller declares a registry with <code>--components=</code> / <code>--handlers=</code>.</td><td class="src">§7</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">11</td><td>A catalogue of 12 diagnostics, the profile's own, not in Appendix A: 7 errors (selector-unsupported, ambiguous-rule, unknown-state, unknown-screen, unknown-value-source, unknown-interaction, style-missing-attribute), 5 warnings (unmatched-rule, unmatched-producer, unknown-component, unknown-handler, style-unknown-attribute).</td><td class="src">§8</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">12</td><td><code>geml style check &lt;sheet&gt; &lt;corpus…&gt; [--json] [--components=] [--handlers=]</code>; exit 0 clean or warnings only, 1 with errors, 2 usage. <code>--json</code> is the view model, the conformance surface: <code>states</code>, <code>screens</code>, <code>bindings</code>, <code>diagnostics</code>; a binding carries <code>doc</code> (ids are unique only within a document); bindings are per screen; slots come resolved into block lists, not raw selectors.</td><td class="src">§9 · §10</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">13</td><td>Stability: only the profile declaration, <code>style-rule</code>, <code>match=</code> and attribute pass-through are promised stable, because the codemap display knobs already use them and they have "escaped". <code>style-state</code>, <code>style-screen</code>, show / filter / handler / screen, on / value-from / init-value / type / layout are "specified, checked, unused" and move with the first real use case. v1 deliberately has no scripts, URLs, routing, theming beyond design tokens, or bodies.</td><td class="src">§0.1 · §12</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">14</td><td>Observed: the clean sheet yields 0 diagnostics; declaring <code>--components=edge-list</code> makes method-card an unknown-component warning; the broken sheet yields 7 errors and 3 warnings, each matching the catalogue.</td><td class="src">geml style check</td><td><span class="st st-obs">Observed</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GOOD ============ -->
+<section id="good">
+  <div class="sec-head">
+    <div class="sec-num">Clean</div>
+    <div>
+      <h2>A clean sheet and its view model</h2>
+      <p class="sub">The content document is the small codemap from the repo's test fixtures: two methods and a #calls table.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>state · rule ×3 · screen → <code>--json</code> <span class="st st-spec">Settled</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>good.style.geml</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+<span class="hl">profile = "geml-style/v1"</span>
+<span class="f">===</span>
+<span class="f">=== style-state</span> <span class="a">{#sel type=block-ref match="table#calls" <span class="hl">on=select</span> value-from=to}</span>
+<span class="f">===</span>
+<span class="f">=== style-rule</span> <span class="a">{#edges match="table#calls" component=edge-list <span class="hl">selectable</span>}</span>
+<span class="f">===</span>                                  <span class="c">%% selectable is not a profile key: passed through to the component</span>
+<span class="f">=== style-rule</span> <span class="a">{#methods match="code[anchor]" component=method-card}</span>
+<span class="f">===</span>
+<span class="f">=== style-rule</span> <span class="a">{#leaves match="code.leaf[anchor]" collapsed badge="leaf"}</span>
+<span class="f">===</span>                                  <span class="c">%% a strict superset of #methods' conditions: both apply on a leaf, no conflict</span>
+<span class="f">=== style-screen</span> <span class="a">{#overview layout=split <span class="hl">slots="table#calls, $sel"</span>}</span>
+<span class="f">===</span>                                  <span class="c">%% comma-separated; the $sel slot renders the block the state points at</span></pre>
+          <div class="pane-h" style="margin-top:14px"><span>content.geml · fixture</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+profile = "geml-codemap/v1"
+module = "geml-parser/core"
+<span class="f">===</span>
+<span class="f">=== code</span> <span class="a">{#renderHtml anchor="ts:render-html.ts#renderHtml(Document,RenderOptions)"}</span>
+<span class="f">===</span>
+<span class="f">=== code</span> <span class="a">{#esc <span class="hl">.leaf</span> anchor="ts:render.ts#esc(string)"}</span>
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#calls format=csv}</span>
+from,to,kind,confidence
+renderHtml,esc,call,high
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml style check good.style.geml content.geml --json</span><span class="badge b-ok">0 errors 0 warnings</span></div>
+<pre class="term">{
+ "states": [ { "id": "sel", "type": "block-ref", "on": "select", "valueFrom": "to" } ],
+ "screens": [ {
+   "id": "overview", "layout": "split",
+   "slots": [
+     { "kind": "blocks", "selector": "table#calls",
+       "blocks": [ { "doc": "content.geml", "block": "#calls" } ] },   <span class="dim">← resolved</span>
+     { "kind": "state", "state": "sel" }
+   ] } ],
+ "bindings": [
+   { "doc": "content.geml", "block": "#renderHtml", "rules": ["methods"],
+     "params": { "component": "method-card" } },
+   { "doc": "content.geml", "block": "#esc", "rules": ["methods", "leaves"],
+     "params": { "component": "method-card", "collapsed": true, "badge": "leaf" } },
+   { "doc": "content.geml", "block": "#calls", "rules": ["edges"],
+     "params": { "selectable": true, "component": "edge-list" } }
+ ],
+ "diagnostics": []
+}
+
+<span class="cmd">$ geml style check good.style.geml content.geml --components=edge-list</span>
+<span class="wn">warning:</span> unknown-component: component `method-card` is not registered — renders inert (#methods)</pre>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Merging</dt><dd>§4: <code>#esc</code> is selected by both <code>#methods</code> (<code>code[anchor]</code>) and <code>#leaves</code> (<code>code.leaf[anchor]</code>), but they set different attributes, and the latter's conditions are a strict superset of the former's, so params are the sum of both. Only the same attribute under incomparable conditions is ambiguous-rule.</dd>
+        <dt>View model</dt><dd>§10: this JSON is what a second implementation must agree with. A binding carries <code>doc</code> because §4 only guarantees id uniqueness within a document, and a sheet governing a directory can see <code>#budget</code> in two documents. Slots come resolved to block lists so the host need not redo selector matching at runtime.</dd>
+        <dt>Registries</dt><dd>§7: without <code>--components=</code> unknown-component is not checked at all, because a diagnostic that never fires is worse than none; once edge-list is given, method-card is reported and falls back to inert.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ BAD ============ -->
+<section id="bad">
+  <div class="sec-head">
+    <div class="sec-num">Broken</div>
+    <div>
+      <h2>A deliberately broken sheet, ten diagnostics</h2>
+      <p class="sub">Seven errors and three warnings, counted against the §8 catalogue.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>bad.style.geml against the same content.geml <span class="st st-spec">Settled</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">=== style-rule</span> <span class="a">{#a match="code[anchor]" <span class="bad">component=card-a</span>}</span>
+<span class="f">===</span>
+<span class="f">=== style-rule</span> <span class="a">{#b match="code.leaf" <span class="bad">component=card-b</span>}</span>
+<span class="f">===</span>                                  <span class="c">%% both set component, conditions incomparable: they collide on #esc</span>
+<span class="f">=== style-rule</span> <span class="a">{#c match="<span class="bad">table &gt; code</span>" component=x}</span>
+<span class="f">===</span>                                  <span class="c">%% child combinator: the block model has containment, not adjacency</span>
+<span class="f">=== style-rule</span> <span class="a">{#d match="table#nowhere" component=y show="<span class="bad">$ghost</span>"}</span>
+<span class="f">===</span>                                  <span class="c">%% a state nobody declared; the selector also matches nothing</span>
+<span class="f">=== style-state</span> <span class="a">{#s match="table#calls" <span class="bad">on=hover</span> <span class="bad">value-from=nope</span>}</span>
+<span class="f">===</span>                                  <span class="c">%% the closed on vocabulary has only select; nope is not a column of #calls</span>
+<span class="f">=== style-screen</span> <span class="a">{#scr slots="table#calls" <span class="bad">route="/x"</span>}</span>
+<span class="f">===</span>                                  <span class="c">%% no route=: routing belongs to the host</span>
+<span class="f">=== style-rule</span> <span class="a">{#e match="code" <span class="bad">screen="missing-screen"</span>}</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml style check</span><span class="badge b-err">7 errors</span> <span class="badge b-warn">3 warnings</span></div>
+<pre class="term"><span class="er">error:</span> selector-unsupported: `&gt;` is not supported (supported: type, .class,
+  #id, [attr], [attr=val], descendant) (#c)
+<span class="er">error:</span> unknown-interaction: `on=hover` is not an interaction this profile
+  defines (known: select) (#s)
+<span class="wn">warning:</span> style-unknown-attribute: unknown attribute `route` for `style-screen` (#scr)
+<span class="er">error:</span> unknown-screen: rule `#e`: `screen=missing-screen` names no
+  `style-screen` block (#e)
+<span class="er">error:</span> ambiguous-rule: `#a` and `#b` both set `component` on
+  `content.geml#esc` — neither is more specific; write a rule matching
+  the union of both selectors (#b)
+<span class="er">error:</span> ambiguous-rule: … in screen `#scr` … (#b)
+<span class="wn">warning:</span> unmatched-rule: rule `#d` matched no block in the corpus (#d)
+<span class="wn">warning:</span> unmatched-rule: rule `#e` matched no block in the corpus (#e)
+<span class="er">error:</span> unknown-state: `$ghost` is not declared by any `style-state` block (#d)
+<span class="er">error:</span> unknown-value-source: state `#s`: `value-from=nope` is not a column
+  of `content.geml#calls` (has: from, to, kind, confidence) (#s)
+7 error(s), 3 warning(s)   <span class="dim">exit 1</span></pre>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Errors</dt><dd>Structural mistakes: unsupported CSS named; an interaction outside the closed vocabulary; references to a screen, state or column that does not exist; two incomparable rules on one attribute. ambiguous-rule is reported twice, once globally and once inside screen <code>#scr</code>, because bindings are computed per screen.</dd>
+        <dt>Warnings</dt><dd>Drift and surplus: a rule that matched no block (the sheet is internally consistent but detached from the corpus, the style layer's bad-source-range); an unknown key on a screen.</dd>
+        <dt>Why name it</dt><dd>§3: CSS resemblance is a ramp, not a trap. If <code>&gt;</code> were silently ignored the author would believe it worked.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ KNOBS ============ -->
+<section id="knobs">
+  <div class="sec-head">
+    <div class="sec-num">Knobs</div>
+    <div>
+      <h2>The first real sheet: the style.geml a codemap seeds</h2>
+      <p class="sub">The §11 example. It uses only the stable subset: one style-rule, match=, pass-through.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>Every knob is a component parameter, not profile vocabulary <span class="st st-spec">Settled</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>&lt;codemap&gt;/_index/style.geml</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+profile = "geml-style/v1"
+title = "codemap graph style"
+<span class="f">===</span>
+
+<span class="f">=== style-rule</span> <span class="a">{#graph match="<span class="hl">diagram[format=geml-code-graph]</span>" \
+                <span class="hl">fold=1 depth=6 hide-accessors=true</span> \
+                palette="#e3f2fd #e8f5e9 …"}</span>
+<span class="f">===</span>                                  <span class="c">%% palette is a name list: space-separated (§6)</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>The rules it embodies</span></div>
+          <div class="flow">
+            <div class="box hot">profile declaration</div><span class="sep">+</span>
+            <div class="box hot">one style-rule</div><span class="sep">+</span>
+            <div class="box hot">match= selecting the code-graph diagram</div><span class="sep">+</span>
+            <div class="box hot">fold / depth / hide-accessors / palette passed through</div>
+          </div>
+          <span class="badge b-mute" style="margin-top:12px">§0.1: these four are the only subset v1 promises stable, because every codemap build has already seeded them into user repos</span>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Why</dt><dd>§11: the display half used to be hard-coded in the renderer, so "tweak how it looks" meant changing a renderer that serves everyone. Now the numbers come from the sheet, the renderer is unchanged, each default equals the old behaviour, and a missing file falls back to the built-in defaults.</dd>
+        <dt>With foldings.geml</dt><dd>A pair: <code>foldings.geml</code> tunes build-time module naming, <code>style.geml</code> tunes display. Seeded on first build, never rewritten. See page 9.</dd>
+        <dt>The rest</dt><dd class="amber">§12: <code>filter=</code> has never run against real noise, <code>handler=</code> has no real host, <code>on=</code> is a closed vocabulary with one member because one interaction is wired. They are "specified, checked, untested in anger", which is why <code>geml style check</code> is marked EXPERIMENTAL in --help: correct today, spelling not guaranteed next year.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ EVIDENCE ============ -->
+<section id="evidence">
+  <div class="sec-head">
+    <div class="sec-num">Evidence</div>
+    <div>
+      <h2>Probes</h2>
+      <p class="sub">Run in a short-path temp directory; the content document is <code>geml-parser/test/fixtures/style/codemap-content.geml</code>. Current in-repo build, 1.9.2.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tablewrap">
+      <table class="t">
+        <thead><tr><th>Probe</th><th>Result</th><th>Maps to</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">good.style.geml + content.geml</td><td><span class="badge b-ok">0 diagnostics</span>, --json view model as above</td><td>clean, board 12</td></tr>
+          <tr><td class="mono">same with --components=edge-list</td><td><span class="badge b-warn">1 warning</span> unknown-component method-card</td><td>board 10</td></tr>
+          <tr><td class="mono">bad.style.geml + content.geml</td><td><span class="badge b-err">7 errors</span> <span class="badge b-warn">3 warnings</span></td><td>broken, board 11</td></tr>
+          <tr><td class="mono">geml check with the profile line removed</td><td><span class="badge b-warn">5 warnings</span> unknown-block-type</td><td>board 2</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>This page: <code>docs/illustrated/10-profile-style.html</code>; Chinese version <code>10-profile-style_CN.html</code>. Profile document: <code>spec/profiles/geml-style/geml-style-profile.md</code>.</div>
+</footer>
+</div>

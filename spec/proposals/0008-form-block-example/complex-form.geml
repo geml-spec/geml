@@ -1,0 +1,163 @@
+=== meta
+title = "Vendor onboarding — a complex form in GEP-0008's form-* family"
+profile = "geml-form/v1"
+===
+
+%% 反向压力测试，第 2 版：把一个典型的复杂后台表单（Ant Design / Element Plus 那一类：
+%% 级联、多选、日期区间、文件上传、动态增删、分组、联动、跨字段校验）翻译成 GEP-0008
+%% 的 form-* 家族，看哪些能落、哪些落不了。落不了的地方仍用 "%% GAP:" 标出。
+%% 第 1 版标出的四处缺口这一版已关掉：重复分组（form-group）、富文本说明（form-note）、
+%% min/max 等约束（geml-form/v1 profile）、围栏过深（选项表外移，最深三层）。
+%%
+%% geml 1.9.2 里 form-* 尚未注册：`geml check` 给一条 unknown-block-type warning（exit 0），
+%% 子块还不可寻址；引用 [[#vendor#legal-name]] 今天会报 unresolved-reference error，
+%% 所以引用只出现在 %% 注释里。
+
+# Vendor onboarding {#vendor-onboarding}
+
+===== form {#vendor handler=vendor-onboarding}
+## Company {#company}
+
+=== form-field {#legal-name label="Legal name" type=text required
+               description="Exactly as it appears on the business licence."}
+===
+
+=== form-options {#entity-types format=csv delim=;}
+value  ; label
+llc    ; Limited liability company
+jsc    ; Joint-stock company
+sole   ; Sole proprietorship
+branch ; Foreign branch office
+===
+=== form-field {#entity-type label="Entity type" type=select required options=#entity-types}
+===
+
+%% GAP: 级联选择（Cascader / TreeSelect）。form-options 是矩形的，没有父子层级；
+%% 这里把两级拍平成一列 "Region / City"。
+=== form-options {#regions format=csv delim=;}
+value ; label
+sh    ; East China / Shanghai
+hz    ; East China / Hangzhou
+bj    ; North China / Beijing
+sz    ; South China / Shenzhen
+===
+=== form-field {#region label="Registered region" type=select required options=#regions
+               description="Province and city where the company is registered."}
+===
+
+=== form-field {#founded label="Founded" type=date}
+===
+
+=== form-field {#headcount label="Employees" type=number min=1 step=1
+               description="Full-time headcount at the end of last quarter."}
+===
+
+=== form-field {#annual-revenue label="Annual revenue (CNY, millions)" type=number min=0 step=1
+               description="Whole millions; leave blank if not yet audited."}
+===
+
+%% 没有 url / email / tel 类型：都是字符串，格式用 pattern 声明，handler 校验。
+=== form-field {#website label="Website" type=text pattern="^https?://"}
+===
+
+=== form-field {#profile label="Company profile" type=textarea required maxlength=2000
+               description="What you make or do, in a few paragraphs."}
+===
+
+## Categories and compliance {#compliance}
+
+=== form-note {#categories-note}
+Select every category you can supply. Option labels may carry links because
+`form-options` cells parse inline — a plain string list could not do this.
+See the [category guide](https://example.invalid/categories) when unsure.
+===
+=== form-options {#category-list format=csv delim=;}
+value        ; label
+raw          ; [Raw materials](https://example.invalid/cat/raw) — metals, polymers, textiles
+parts        ; [Components](https://example.invalid/cat/parts) — machined, moulded, PCB
+contract-mfg ; Contract manufacturing
+logistics    ; Logistics and warehousing
+software     ; Software and IT services
+===
+=== form-field {#categories label="Supply categories" type=select multiple required
+               options=#category-list description=#categories-note}
+===
+
+=== form-field {#business-licence label="Business licence" type=file required accept=".pdf,.jpg,.png"
+               description="One PDF or image of the current licence."}
+===
+
+=== form-field {#certificates label="Quality certificates" type=file multiple accept=".pdf"
+               description="ISO 9001, ISO 14001, industry-specific certificates."}
+===
+
+=== form-field {#iso-certified label="ISO 9001 certified" type=boolean}
+===
+
+%% GAP: 联动显隐 / 条件必填（showIf、requiredIf）。0008 在 Deliberately not defined
+%% 里明确不定义条件逻辑；"仅当上一项勾选时必填" 只能交给 handler。
+=== form-field {#iso-expiry label="ISO 9001 expiry date" type=date
+               description="Required when the certificate above is ticked — the handler enforces this."}
+===
+
+## Contacts {#contacts-heading}
+
+=== form-note {#contacts-note}
+At least one contact. The **primary** contact receives contract notices;
+add a second for **finance** if invoices go elsewhere.
+===
+==== form-group {#contacts label="Contacts" required description=#contacts-note}
+=== form-field {#name label="Name" type=text required}
+===
+=== form-field {#phone label="Mobile" type=text required pattern="^[+0-9 ]+$"
+               placeholder="+86 138 0000 0000"}
+===
+=== form-field {#email label="Email" type=text required pattern="^[^@]+@[^@]+$"}
+===
+=== form-field {#role label="Role" type=select options=#roles}
+===
+====
+=== form-options {#roles format=csv delim=;}
+value   ; label
+primary ; Primary
+finance ; Finance
+tech    ; Technical
+===
+
+## Commercial terms {#terms}
+
+=== form-options {#plans format=csv delim=;}
+value   ; label
+prepaid ; Prepaid
+net30   ; Net 30
+net60   ; Net 60
+===
+=== form-field {#plan label="Settlement plan" type=select value=net30 options=#plans
+               description="Prefilled with our default; change it if your contract says otherwise."}
+===
+
+%% GAP: 日期区间（RangePicker）拆成两个 date 字段；"结束晚于开始" 是跨字段校验，0008 不定义。
+=== form-field {#contract-start label="Contract start" type=date required}
+===
+=== form-field {#contract-end label="Contract end" type=date required
+               description="Must be after the start date — checked by the handler."}
+===
+
+=== form-field {#tags label="Tags" type=text multiple placeholder="Free-form tags, several allowed"}
+===
+
+## Agreement {#agreement}
+
+=== form-note {#coc-note}
+Read the [code of conduct](https://example.invalid/coc) first. Ticking the box
+accepts its **anti-bribery** and **data protection** clauses.
+===
+=== form-field {#accept-terms label="I accept the supplier code of conduct" type=boolean required
+               description=#coc-note}
+===
+=====
+
+%% 仍然不在 0008 范围内、也不该在的：提交 / 重置 / 暂存草稿按钮、Steps 分步、
+%% Tabs / Collapse、Modal / Drawer 子表单、Tooltip、Message 反馈、Anchor 导航。
+%% 它们属于渲染器和应用层（GEP-0009 profiles、geml-style）。
+%% 引用的预期写法：[[#vendor#legal-name]]、[[#vendor#contacts#email]]、other.geml#vendor#categories。

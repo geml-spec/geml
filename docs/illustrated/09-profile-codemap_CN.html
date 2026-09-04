@@ -1,0 +1,324 @@
+<title>GEML 图解 · geml-codemap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+  :root { --bg:#F4F6F9; --surface:#FFFFFF; --surface-2:#EBEFF4; --ink:#1B2430; --ink-2:#47535F; --ink-3:#7B8794; --line:#D5DCE4; --line-2:#C3CCD6; --accent:#1F6F8B; --accent-soft:#DCEDF3; --amber:#9A5F0A; --amber-soft:#FAEED3; --red:#B0403B; --red-soft:#F8E2E0; --green:#2E7A50; --green-soft:#DDF0E4; --on-solid:#FFFFFF; --shadow:0 1px 2px rgba(27,36,48,.06),0 6px 18px rgba(27,36,48,.05); color-scheme:light; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#11161C; --surface:#191F27; --surface-2:#202832; --ink:#E6EBF0; --ink-2:#B3BDC8; --ink-3:#7F8B98; --line:#2C3642; --line-2:#3A4552; --accent:#63B5D1; --accent-soft:#14323D; --amber:#E2AC45; --amber-soft:#382B10; --red:#E27F79; --red-soft:#3E1F1E; --green:#6CC08E; --green-soft:#173124; --on-solid:#0F141A; --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25); color-scheme:dark; } }
+  :root[data-theme="dark"] { --bg:#11161C; --surface:#191F27; --surface-2:#202832; --ink:#E6EBF0; --ink-2:#B3BDC8; --ink-3:#7F8B98; --line:#2C3642; --line-2:#3A4552; --accent:#63B5D1; --accent-soft:#14323D; --amber:#E2AC45; --amber-soft:#382B10; --red:#E27F79; --red-soft:#3E1F1E; --green:#6CC08E; --green-soft:#173124; --on-solid:#0F141A; --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25); color-scheme:dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.7 "IBM Plex Sans","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1120px; margin:0 auto; padding:48px 28px 96px; }
+  h1,h2,h3 { text-wrap:balance; margin:0; } p { margin:0; } a { color:var(--accent); }
+  code,pre,.mono { font-family:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace; }
+  code { font-size:.92em; background:var(--surface-2); padding:1px 5px; border-radius:3px; }
+  .eyebrow { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  header h1 { font-size:34px; line-height:1.2; font-weight:600; margin-top:10px; letter-spacing:-.01em; }
+  header .lede { max-width:66ch; color:var(--ink-2); margin-top:16px; font-size:16px; }
+  .toc { display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:22px; font-size:14px; }
+  .toc a { text-decoration:none; border-bottom:1px solid var(--line-2); padding-bottom:1px; }
+  section { margin-top:72px; }
+  .sec-head { display:grid; grid-template-columns:64px 1fr; gap:16px; align-items:baseline; border-top:1px solid var(--line-2); padding-top:22px; }
+  .sec-num { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:500; padding-top:6px; }
+  .sec-head h2 { font-size:24px; font-weight:600; } .sec-head .sub { color:var(--ink-2); margin-top:6px; max-width:70ch; }
+  .sec-body { margin-left:80px; margin-top:28px; display:grid; gap:40px; }
+  @media (max-width:860px) { .sec-head { grid-template-columns:1fr; gap:6px; } .sec-body { margin-left:0; } }
+  .st { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; letter-spacing:.04em; padding:2px 8px; border-radius:3px; font-weight:600; white-space:nowrap; color:var(--on-solid); vertical-align:middle; }
+  .st-spec { background:var(--green); } .st-gap { background:var(--red); } .st-gep { background:var(--accent); } .st-obs { background:var(--ink-3); }
+  .board { overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:6px; box-shadow:var(--shadow); }
+  table.b { border-collapse:collapse; width:100%; font-size:14px; }
+  table.b th, table.b td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.b tr:last-child td { border-bottom:0; }
+  table.b th { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  table.b td.n { color:var(--ink-3); font-variant-numeric:tabular-nums; width:32px; }
+  table.b td.src { color:var(--ink-3); white-space:nowrap; font-size:13px; }
+  .tally { display:flex; flex-wrap:wrap; gap:10px 22px; margin-bottom:14px; font-size:14px; color:var(--ink-2); align-items:center; } .tally b { font-weight:600; color:var(--ink); }
+  figure { margin:0; display:grid; gap:18px; }
+  figure > figcaption { font-size:17px; font-weight:600; display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; }
+  figure > figcaption small { flex-basis:100%; font-size:14px; font-weight:400; color:var(--ink-2); }
+  .panes { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; align-items:start; }
+  @media (max-width:980px) { .panes { grid-template-columns:1fr; } .sec-body { margin-left:0; } }
+  .pane-h { display:flex; justify-content:space-between; align-items:center; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; margin-bottom:8px; }
+  pre.geml { margin:0; background:var(--surface-2); border:1px solid var(--line); border-radius:6px; padding:14px 16px; font-size:13px; line-height:1.6; overflow-x:auto; color:var(--ink); }
+  pre.geml .f { color:var(--accent); font-weight:500; } pre.geml .a { color:var(--ink-2); } pre.geml .c { color:var(--ink-3); font-style:italic; }
+  pre.geml .hl { background:var(--amber-soft); color:var(--amber); border-radius:2px; padding:0 2px; }
+  .term { background:var(--ink); color:#E6EBF0; border-radius:6px; padding:12px 14px; font-size:12.5px; line-height:1.6; overflow-x:auto; margin:0; }
+  :root[data-theme="dark"] .term { background:#0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .term { background:#0B0F14; } }
+  .term .ok { color:#7ED4A0; } .term .er { color:#F09A94; } .term .wn { color:#F0C060; } .term .dim { color:#8A96A3; } .term .cmd { color:#9CC7FF; }
+  .tree { background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:14px 16px; font-family:"IBM Plex Mono",monospace; font-size:13px; line-height:1.7; white-space:pre; overflow-x:auto; }
+  .tree .k { color:var(--accent); } .tree .m { color:var(--ink-3); font-family:"IBM Plex Sans","Noto Sans SC",sans-serif; }
+  .badge { display:inline-flex; align-items:center; gap:5px; font-size:11px; letter-spacing:.04em; text-transform:uppercase; padding:2px 7px; border-radius:3px; font-weight:500; white-space:nowrap; }
+  .b-err { background:var(--red-soft); color:var(--red); } .b-warn { background:var(--amber-soft); color:var(--amber); } .b-ok { background:var(--green-soft); color:var(--green); } .b-mute { background:var(--surface-2); color:var(--ink-3); }
+  .decision { display:grid; grid-template-columns:72px 1fr; gap:6px 16px; font-size:14.5px; border-top:1px dashed var(--line-2); padding-top:14px; }
+  .decision dt { color:var(--ink-3); font-size:12px; letter-spacing:.06em; text-transform:uppercase; font-weight:500; padding-top:4px; }
+  .decision dd { margin:0; } .decision dd.amber { color:var(--amber); }
+  table.t { border-collapse:collapse; width:100%; font-size:14px; }
+  table.t th, table.t td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.t tr:last-child td { border-bottom:0; }
+  table.t th { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  table.t td.mono { font-size:13px; }
+  .tablewrap { overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:6px; }
+  footer { margin-top:80px; border-top:1px solid var(--line-2); padding-top:18px; font-size:13.5px; color:var(--ink-3); display:grid; gap:6px; }
+  footer code { background:transparent; padding:0; color:var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">GEML 图解 · profile · geml-codemap/v1（2026-07-03 定稿） · 实测 geml 1.9.2 本地构建 · <a href="09-profile-codemap.html">English</a></div>
+  <h1>GEML 图解 · geml-codemap</h1>
+  <p class="lede">codemap 把一个代码库的调用图写成一组 GEML 文档：每个容器一份，方法是空体 <code>code</code> 块，边是 CSV 表，入口写在 meta 里。它是应用层 profile：核心规范一字未动，只靠声明 <code>profile = "geml-codemap/v1"</code> 放行 <code>code</code> 上的三个属性键。这一页用 <code>playground/codemap/</code> 里真实生成的文档做例子，把文件布局、meta 键、方法块、边表、校验分工和 agent 的消费方式逐条对到 profile 文档上。</p>
+  <nav class="toc">
+    <a href="#board">看板</a>
+    <a href="#layout">文件布局</a>
+    <a href="#doc">一份容器文档</a>
+    <a href="#consume">怎么消费</a>
+    <a href="#evidence">依据</a>
+  </nav>
+</header>
+
+<!-- ============ BOARD ============ -->
+<section id="board">
+  <div class="sec-head">
+    <div class="sec-num">看板</div>
+    <div>
+      <h2>13 条规则，各自的出处和状态</h2>
+      <p class="sub"><span class="st st-spec">规范已定</span> profile 文档写死的。<span class="st st-obs">实测</span> 文档不规定、工具今天这样做。实现偏差本页未发现。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div>
+      <div class="tally"><span><span class="st st-spec">规范已定</span> <b>12</b></span><span><span class="st st-obs">实测</span> <b>1</b></span></div>
+      <div class="board">
+        <table class="b">
+          <thead><tr><th></th><th>规则</th><th>出处</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td class="n">1</td><td>应用层 profile，不是标准的一部分。声明放行 <code>code</code> 块上的 <code>anchor</code>、<code>name</code>、<code>entry-via</code> 三个键（<code>profiles.ts</code>）。<strong>必需</strong>：没有声明的老图每个 code 块都 warning，重建即修。</td><td class="src">§2 · §8.6</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">2</td><td>布局：<code>.geml-code-graph/</code> 下 <code>index.geml</code>（仓库元数据 + 模块汇总表）、每容器一份 <code>&lt;container&gt;.geml</code>、<code>_index/name-lookup.json</code>、<code>_index/cross-stack.json</code>、<code>_build/</code>（中间产物，agent 不读）。<code>foldings.geml</code> 调构建期命名，<code>style.geml</code> 调显示：首次构建播种，之后不覆盖。</td><td class="src">§1</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">3</td><td>容器文档名 = 显示路径 sanitize（<code>/</code>→<code>--</code>，其它非 <code>[A-Za-z0-9_.-]</code>→<code>-</code>），冲突加 <code>-2</code>。build 默认跳过 <code>.gitignore</code> 的文件，<code>--exclude</code> 再排除，被排除符号的边一起消失。</td><td class="src">§1</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">4</td><td>每文档<strong>恰一个</strong> meta：<code>profile</code>（全部）、<code>module</code>（容器：显示路径，剥掉构建根和公共前缀）、<code>src</code>（真实相对路径）、<code>entry</code>（被容器外调用的方法，空格分隔，<strong>verify 检查</strong>）、<code>resolution-default</code> cpg / heuristic、index 上 <code>repo</code> <code>commit</code> <code>container</code>、可选 <code>graph-depth</code>。</td><td class="src">§2</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">5</td><td>方法块：<code>code {#id src=path#Lstart-end anchor="…"}</code>，<strong>空体</strong>。<code>src=</code> 是普通属性，agent 顺着它打开源码；<code>anchor=</code> 是引擎级稳定身份；<code>name=</code> 只在 id 被 sanitize 改动时写。</td><td class="src">§3</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">6</td><td>id = 方法短名 sanitize；同文档同名冲突时每个成员追加 <code>-&lt;sha256(anchor) 前 6 位&gt;</code>，仍冲突再升到 8、10…。改名 = 新 id = 引用悬空 = verify error，这是特性不是缺陷。</td><td class="src">§3</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">7</td><td>符号级类：<code>.leaf</code>（零出边含未解析、且被调用）、<code>.accessor</code>（bean 式 get/set/is 叶子，渲染器默认隐藏）、<code>.test</code>、<code>.flow-entry</code>。<code>entry</code> 从不在块上，只在 meta。</td><td class="src">§3</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">8</td><td>边表（空表不发出）：<code>#calls</code>(from,to,kind,confidence)、<code>#called-by</code>(from,to,kind,site)、<code>#unresolved</code>(from,to，hidden)、<code>#api-calls</code> / <code>#api-served-by</code>（跨栈 http 边）、<code>#ref-by</code> 保留。引用写法 <code>#id</code> 或 <code>doc.geml#id</code>；纯文本格不含逗号和换行，方括号换成圆括号，因为格按行内解析。</td><td class="src">§4</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">9</td><td>跨栈链接：前后端按 <code>METHOD</code> + 归一化路径匹配成 <code>http</code> 边；启发式，所以放独立表、永不混进已验证的 <code>#calls</code>；endpoint 是<strong>边标签</strong>不是节点；探测器按语言可插拔；<code>_index/cross-stack.json</code> 记审计。</td><td class="src">§4.1</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">10</td><td>分工：<code>geml check</code> 管结构、id 唯一、原生引用；CSV 格和 meta 值对标准<strong>不透明，有意如此</strong>。<code>codemap verify</code> 逐格解析 #calls / #called-by 的 from/to 和 meta entry，悬空 = exit 1；跨栈表宽松：<code>#id</code> 必须解析，<code>file:line</code> 端允许在图外。</td><td class="src">§5</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">11</td><td>渲染：生成的文档是纯数据，<strong>不含 diagram 块</strong>；认出 codemap 文档的渲染器给分层方法流视图（根 = meta entry，深度 = graph-depth）；嵌进别的文档用 <code>diagram {format=geml-code-graph src=…}</code>，只有 src 一个属性。</td><td class="src">§6 · GEP-0003</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">12</td><td>版本与信任：<code>build --history</code> 把变更文档提交进各自 .gemlhistory；<code>revert doc '#method' --rev -1</code> 回滚单个方法。<code>resolution-default</code> 说边从哪来，confidence 列和 candidate 行是解析器拒绝替你猜的地方，<code>#unresolved</code> 是盲区不是「没有」。</td><td class="src">§7 · §8</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">13</td><td>CLI：<code>geml codemap build | verify | render | serve | refresh | find</code>，dir 缺省 <code>./.geml-code-graph</code>，<code>codegraph</code> / <code>code-graph</code> 是别名。playground 里 35 份文档 verify 全过；<code>find</code> 需要 <code>_index/name-lookup.json</code>，playground 没带。</td><td class="src">geml codemap --help</td><td><span class="st st-obs">实测</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LAYOUT ============ -->
+<section id="layout">
+  <div class="sec-head">
+    <div class="sec-num">布局</div>
+    <div>
+      <h2>一个 codemap 目录里有什么</h2>
+      <p class="sub">左边是 profile §1 的布局，右边是 playground 里真实 index.geml 的开头。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>目录与入口文档 <span class="st st-spec">规范已定</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>.geml-code-graph/</span></div>
+<div class="tree"><span class="k">index.geml</span>                   <span class="m">入口：仓库元数据 + 模块汇总表</span>
+<span class="k">&lt;container&gt;.geml</span>             <span class="m">每容器一份（module | dir | file 粒度）</span>
+_index/
+  <span class="k">name-lookup.json</span>           <span class="m">name → {anchor, doc, id}，agent 第一跳</span>
+  <span class="k">cross-stack.json</span>           <span class="m">跨栈审计：endpoint、动词分歧、无人调用的路由</span>
+  <span class="k">foldings.geml</span>              <span class="m">调构建期模块命名 —— 你编辑，构建不覆盖</span>
+  <span class="k">style.geml</span>                 <span class="m">调显示（geml-style/v1 样式表）—— 同上</span>
+_build/                      <span class="m">索引器原始输出、symbols/edges.jsonl；可再生、可 gitignore</span></div>
+          <div class="pane-h" style="margin-top:14px"><span>geml codemap</span></div>
+<pre class="term"><span class="cmd">$ geml codemap verify playground/codemap</span>
+verify: 35/35 documents pass geml check; profile references: all resolve
+<span class="cmd">$ geml codemap find playground/codemap renderChart</span>
+no name-lookup at …\_index\name-lookup.json — build the codemap first</pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>playground/codemap/index.geml · 真实文件开头</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+<span class="hl">profile = "geml-codemap/v1"</span>
+repo = geml
+commit = fa40d89
+container = file
+entry = geml-viewer--content.js.geml#main
+resolution-default = cpg
+<span class="f">===</span>
+
+# Code map — geml
+
+<span class="f">=== table</span> <span class="a">{#modules format=csv}</span>
+module,                        doc,                                 methods, entries, tests
+geml-parser/geml.ts,           geml-parser--geml.ts.geml,           72,      23,      0
+geml-parser/cli.ts,            geml-parser--cli.ts.geml,            63,      0,       0
+geml-parser/render.ts,         geml-parser--render.ts.geml,         50,      6,       0
+…                              <span class="c">%% 27 行，每行一个容器文档</span>
+<span class="f">===</span></pre>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>命名</dt><dd>§1：容器文档名是显示路径 sanitize 后的结果，<code>geml-parser/chart.ts</code> → <code>geml-parser--chart.ts.geml</code>。显示路径的算法在 §2 <code>module</code>：剥掉构建源码根（<code>src/main/java</code>、裸 <code>src</code>），再剥模块内最长公共段前缀；测试代码折进顶层 <code>test/</code>。</dd>
+        <dt>两个调优面</dt><dd><code>foldings.geml</code> 和 <code>style.geml</code> 是你编辑的文件，不是构建产物：首次构建播种，之后永不重写。style.geml 是 geml-style/v1 样式表，缺了或读不了就回到渲染器内置默认，和有它之前的行为一样。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ DOC ============ -->
+<section id="doc">
+  <div class="sec-head">
+    <div class="sec-num">文档</div>
+    <div>
+      <h2>一份容器文档：meta、方法块、边表</h2>
+      <p class="sub"><code>geml-parser--chart.ts.geml</code>，构建器生成、未改一字。两个方法，一张出边表，一张入边表。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>方法是空体 code 块，边是 CSV 表 <span class="st st-spec">规范已定</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · 真实文件</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+profile = "geml-codemap/v1"
+module = geml-parser/chart.ts             <span class="c">%% 显示路径</span>
+src = geml-parser/src/chart.ts            <span class="c">%% 真实路径，用来定位源码</span>
+<span class="hl">entry = #buildChart</span>                        <span class="c">%% 被容器外调用的方法；verify 检查</span>
+resolution-default = cpg
+<span class="f">===</span>
+
+# geml-parser/chart.ts
+
+<span class="f">=== code</span> <span class="a">{#str <span class="hl">.leaf</span> src=geml-parser/src/chart.ts#L51-53
+          anchor="scip-typescript npm @geml/geml 1.9.1 src/`chart.ts`/str()."}</span>
+<span class="f">===</span>                                        <span class="c">%% 空体：源码在 src= 那一跳</span>
+
+<span class="f">=== code</span> <span class="a">{#buildChart src=geml-parser/src/chart.ts#L55-140
+          anchor="scip-typescript npm @geml/geml 1.9.1 src/`chart.ts`/buildChart()."}</span>
+<span class="f">===</span>
+
+<span class="f">=== table</span> <span class="a">{#calls format=csv}</span>
+from,        to,   kind, confidence
+#buildChart, #str, call,                  <span class="c">%% 空 confidence = high</span>
+…
+<span class="f">===</span>
+
+<span class="f">=== table</span> <span class="a">{#called-by format=csv}</span>
+from,                                    to,          kind, site
+#buildChart,                             #str,        call, geml-parser/src/chart.ts:61
+<span class="hl">geml-parser--geml.ts.geml#resolveCharts</span>, #buildChart, call, geml-parser/src/geml.ts:1797
+<span class="f">===</span>                                        <span class="c">%% 跨文档引用：另一份容器文档里的方法</span>
+
+<span class="f">=== table</span> <span class="a">{#unresolved format=csv hidden}</span>   <span class="c">%% 盲区表，hidden</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>每一部分是什么</span></div>
+          <div class="tablewrap">
+            <table class="t">
+              <thead><tr><th>部件</th><th>规则</th><th>出处</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">meta</td><td>恰一个；<code>entry</code> 是唯一写在 meta 而不在块上的事实</td><td>§2 · §3</td></tr>
+                <tr><td class="mono">code {#id …}</td><td>空体；id 是短名 sanitize；<code>src=</code> 普通路由属性；<code>anchor=</code> 引擎身份，被放行的键</td><td>§3</td></tr>
+                <tr><td class="mono">.leaf</td><td>零出边且被调用；渲染器调暗。<code>.accessor</code> 默认隐藏，<code>.test</code> 可过滤</td><td>§3</td></tr>
+                <tr><td class="mono">#calls</td><td>出边；kind 为 call 或 candidate（虚分派候选，紧跟主 call 行）；空 confidence = high</td><td>§4</td></tr>
+                <tr><td class="mono">#called-by</td><td>入边，由生成器跨全图汇总；site 是 <code>file:line</code> 纯文本</td><td>§4</td></tr>
+                <tr><td class="mono">#unresolved</td><td>盲区，hidden；<code>to</code> 原样纯文本、不检查</td><td>§4</td></tr>
+                <tr><td class="mono">doc.geml#id</td><td>跨文档引用同 §5.2；verify 逐格解析</td><td>§4 · §5</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>分工</dt><dd>§5：<code>geml check</code> 只看结构、id、原生引用；CSV 格里的 <code>#buildChart</code> 对标准来说是文本，标准不长 codemap 形状的洞。<code>codemap verify</code> 才逐格解析 from/to 和 meta entry，悬空就 exit 1，红了说明图陈旧或部分更新，先重建再信导航。</dd>
+        <dt>纯文本格</dt><dd>§4：site 和 unresolved 的 to 不含逗号和换行（生成器换成空格），方括号换圆括号，因为表格单元格按行内解析，<code>f[i](&amp;x)</code> 会被读成链接。</dd>
+        <dt>anchor</dt><dd>这里的 anchor 是 scip 的符号串（含反引号、点号），装在双引号里正好，属性值不解析行内。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ CONSUME ============ -->
+<section id="consume">
+  <div class="sec-head">
+    <div class="sec-num">消费</div>
+    <div>
+      <h2>agent 怎么用它，以及该信多少</h2>
+      <p class="sub">§8 的 cheat-sheet，加上跨栈链接和信任语义。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>四条命令走完一次导航 <span class="st st-spec">规范已定</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>shell · §8</span></div>
+<pre class="term"><span class="cmd">$ node -e "console.log(JSON.stringify(require('./.geml-code-graph/_index/name-lookup.json')['buildChart']))"</span>
+{"anchor":"…","doc":"geml-parser--chart.ts.geml","id":"buildChart"}   <span class="dim">名字 → 文档 + id</span>
+<span class="cmd">$ geml get .geml-code-graph/geml-parser--chart.ts.geml '#buildChart'</span>   <span class="dim">方法块；src= 一跳到源码</span>
+<span class="cmd">$ geml get .geml-code-graph/geml-parser--chart.ts.geml '#calls'</span>        <span class="dim">出边；顺着 doc.geml#id 往下走</span>
+<span class="cmd">$ geml get .geml-code-graph/geml-parser--chart.ts.geml '#called-by'</span>    <span class="dim">谁调我，带 site</span>
+<span class="cmd">$ head -8 .geml-code-graph/geml-parser--chart.ts.geml</span>                 <span class="dim">meta：入口面一眼看完</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>信任语义 · §8</span></div>
+          <div class="tablewrap">
+            <table class="t">
+              <thead><tr><th>看到</th><th>意思</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">resolution-default = cpg</td><td>边来自编译器级精确解析；<code>heuristic</code> 是语法级</td></tr>
+                <tr><td class="mono">confidence 空</td><td>high。有值时是解析器不替你猜的地方</td></tr>
+                <tr><td class="mono">kind = candidate</td><td>虚分派 / 多实现候选，紧跟主 call 行，继承其 confidence</td></tr>
+                <tr><td class="mono">#unresolved 有行</td><td>盲区，不是「没有调用」</td></tr>
+                <tr><td class="mono">heuristic 下 #called-by 为空</td><td>不等于没人调</td></tr>
+                <tr><td class="mono">#api-calls · #api-served-by</td><td>跨栈 http 边，匹配出来的，不与 #calls 混；<code>method-mismatch</code> 标记动词分歧</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>跨栈</dt><dd>§4.1：前后端两棵不相交的调用树，靠 HTTP 字符串隔着网络「调用」；profile 按 <code>METHOD</code> + 归一化路径把它们接成 <code>http</code> 边。启发式所以单独成表，每行带匹配置信度；endpoint 是边上的标签而不是节点；框架知识只在按语言的探测器里。<code>_index/cross-stack.json</code> 列 endpoint、动词分歧（合同漂移信号）、无人调用的路由、匹配不到路由的前端调用。</dd>
+        <dt>版本</dt><dd>§7：<code>build --history</code> 让每份变更文档进自己的 .gemlhistory，<code>geml history get</code> 看图怎么演化，<code>geml revert doc '#method' --rev -1</code> 只回滚一个方法。见第 8 页。</dd>
+        <dt>渲染</dt><dd>§6：codemap 文档自己不含 diagram 块，是纯数据；把图嵌到任何文档用 <code>diagram {format=geml-code-graph src=index.geml}</code>，只有 src。见第 4 页。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ EVIDENCE ============ -->
+<section id="evidence">
+  <div class="sec-head">
+    <div class="sec-num">依据</div>
+    <div>
+      <h2>实测</h2>
+      <p class="sub">用仓库内当前构建，1.9.2。示例文件来自 <code>playground/codemap/</code>，由 <code>geml codemap build</code> 生成。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tablewrap">
+      <table class="t">
+        <thead><tr><th>命令 / 文件</th><th>结果</th><th>对应</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">geml codemap verify playground/codemap</td><td><span class="badge b-ok">35/35 pass</span> profile references: all resolve</td><td>看板 10、13</td></tr>
+          <tr><td class="mono">geml codemap find playground/codemap renderChart</td><td>no name-lookup：playground 未带 _index/name-lookup.json</td><td>看板 13</td></tr>
+          <tr><td class="mono">index.geml · geml-parser--chart.ts.geml</td><td>meta 键、空体 code、#calls / #called-by / #unresolved 与 profile 一致</td><td>布局、文档</td></tr>
+          <tr><td class="mono">geml check profiles.ts 注册</td><td><code>geml-codemap/v1</code> 放行 code 上 anchor / name / entry-via</td><td>看板 1</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>本页：<code>docs/illustrated/09-profile-codemap_CN.html</code>，英文版 <code>09-profile-codemap.html</code>。profile 文档：<code>spec/profiles/geml-codemap/geml-codemap-profile.md</code>；图的渲染格式见第 4 页，版本见第 8 页。</div>
+</footer>
+</div>

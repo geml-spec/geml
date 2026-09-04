@@ -116,20 +116,23 @@ title = "Budget plan"
     <div class="example-grid" style="margin-top:44px">
       <div class="example-code">
 {% highlight text %}
-=== table {#fy25 format=csv header=1
-  compute="FY [%.1f] = Q1+Q2+Q3+Q4; n = 1"
-  summary="Segment = 'Total';
-           FY [%.1f] = sum(FY); n = sum(n)"}
+=== table {#fy25 format=csv header=1}
 Segment,  Q1, Q2, Q3, Q4
 Cloud,     8, 10, 12, 14
 Platform,  5,  6,  7,  9
 ===
+
+=== view {#fy25-report src=#fy25
+  compute="FY [%.1f] = Q1+Q2+Q3+Q4; n = 1"
+  summary="Segment = 'Total';
+           FY [%.1f] = sum(FY); n = sum(n)"}
+===
 {% endhighlight %}
       </div>
       <div class="example-copy">
-        <h3>Tables compute</h3>
-        <p>Write a table visually with pipes, or as CSV data with <strong>computed columns</strong> and a <strong>summary row</strong> — both describe the same model. <code>compute</code> runs arithmetic per row; <code>summary</code> adds a foot row from <code>sum / avg / min / max / count</code>.</p>
-        <p>A chart can then bind straight to that table — <code>data=#fy25</code> — so there is a single source of truth and the column references are checked at build time.</p>
+        <h3>A view derives</h3>
+        <p>Write a table visually with pipes or as CSV data — both describe the same model, and both hold <strong>facts</strong>. A <code>view</code> over one derives: <code>compute</code> runs arithmetic per row, <code>summary</code> adds a foot row from <code>sum / avg / min / max / count</code>, and <code>where / order / limit / select / by</code> filter, sort and aggregate.</p>
+        <p>A chart binds straight to either — <code>data=#fy25-report</code> — so there is a single source of truth and the column references are checked at build time.</p>
       </div>
     </div>
 

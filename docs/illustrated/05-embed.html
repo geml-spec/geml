@@ -1,0 +1,459 @@
+<title>GEML Blocks Illustrated · embed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #F4F6F9; --surface: #FFFFFF; --surface-2: #EBEFF4;
+    --ink: #1B2430; --ink-2: #47535F; --ink-3: #7B8794;
+    --line: #D5DCE4; --line-2: #C3CCD6;
+    --accent: #1F6F8B; --accent-soft: #DCEDF3;
+    --amber: #9A5F0A; --amber-soft: #FAEED3;
+    --red: #B0403B; --red-soft: #F8E2E0;
+    --green: #2E7A50; --green-soft: #DDF0E4;
+    --on-solid: #FFFFFF;
+    --shadow: 0 1px 2px rgba(27, 36, 48, .06), 0 6px 18px rgba(27, 36, 48, .05);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11161C; --surface: #191F27; --surface-2: #202832;
+      --ink: #E6EBF0; --ink-2: #B3BDC8; --ink-3: #7F8B98;
+      --line: #2C3642; --line-2: #3A4552;
+      --accent: #63B5D1; --accent-soft: #14323D;
+      --amber: #E2AC45; --amber-soft: #382B10;
+      --red: #E27F79; --red-soft: #3E1F1E;
+      --green: #6CC08E; --green-soft: #173124;
+      --on-solid: #0F141A;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11161C; --surface: #191F27; --surface-2: #202832;
+    --ink: #E6EBF0; --ink-2: #B3BDC8; --ink-3: #7F8B98;
+    --line: #2C3642; --line-2: #3A4552;
+    --accent: #63B5D1; --accent-soft: #14323D;
+    --amber: #E2AC45; --amber-soft: #382B10;
+    --red: #E27F79; --red-soft: #3E1F1E;
+    --green: #6CC08E; --green-soft: #173124;
+    --on-solid: #0F141A;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.65 "IBM Plex Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 48px 28px 96px; }
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+  p { margin: 0; }
+  a { color: var(--accent); }
+  code, pre, .mono { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; }
+  code { font-size: .92em; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; }
+  .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  header h1 { font-size: 34px; line-height: 1.2; font-weight: 600; margin-top: 10px; letter-spacing: -.01em; }
+  header .lede { max-width: 66ch; color: var(--ink-2); margin-top: 16px; font-size: 16px; }
+  .toc { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 22px; font-size: 14px; }
+  .toc a { text-decoration: none; border-bottom: 1px solid var(--line-2); padding-bottom: 1px; }
+  .toc a:hover, .toc a:focus-visible { border-color: var(--accent); }
+  section { margin-top: 72px; }
+  .sec-head { display: grid; grid-template-columns: 64px 1fr; gap: 16px; align-items: baseline; border-top: 1px solid var(--line-2); padding-top: 22px; }
+  .sec-num { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; padding-top: 6px; }
+  .sec-head h2 { font-size: 24px; font-weight: 600; letter-spacing: -.005em; }
+  .sec-head .sub { color: var(--ink-2); margin-top: 6px; max-width: 70ch; }
+  .sec-body { margin-left: 80px; margin-top: 28px; display: grid; gap: 40px; }
+  @media (max-width: 860px) { .sec-head { grid-template-columns: 1fr; gap: 6px; } .sec-body { margin-left: 0; } }
+  .st { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; letter-spacing: .04em; padding: 2px 8px; border-radius: 3px; font-weight: 600; white-space: nowrap; color: var(--on-solid); vertical-align: middle; }
+  .st-spec { background: var(--green); } .st-gap { background: var(--red); } .st-gep { background: var(--accent); } .st-obs { background: var(--ink-3); }
+  .board { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); }
+  table.b { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.b th, table.b td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.b tr:last-child td { border-bottom: 0; }
+  table.b th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.b td.n { color: var(--ink-3); font-variant-numeric: tabular-nums; width: 32px; }
+  table.b td.src { color: var(--ink-3); white-space: nowrap; font-size: 13px; }
+  .tally { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-bottom: 14px; font-size: 14px; color: var(--ink-2); align-items: center; }
+  .tally b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+  figure { margin: 0; display: grid; gap: 18px; }
+  figure > figcaption { font-size: 17px; font-weight: 600; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+  figure > figcaption small { flex-basis: 100%; font-size: 14px; font-weight: 400; color: var(--ink-2); }
+  .panes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 980px) { .panes { grid-template-columns: 1fr; } .sec-body { margin-left: 0; } }
+  .pane-h { display: flex; justify-content: space-between; align-items: center; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; margin-bottom: 8px; }
+  pre.geml { margin: 0; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; font-size: 13px; line-height: 1.6; overflow-x: auto; color: var(--ink); }
+  pre.geml .f { color: var(--accent); font-weight: 500; } pre.geml .a { color: var(--ink-2); } pre.geml .c { color: var(--ink-3); font-style: italic; }
+  pre.geml .hl { background: var(--amber-soft); color: var(--amber); border-radius: 2px; padding: 0 2px; }
+  pre.geml .bad { background: var(--red-soft); color: var(--red); border-radius: 2px; padding: 0 2px; }
+  pre.geml .arrow { color: var(--red); font-family: "IBM Plex Sans", sans-serif; font-style: normal; }
+  .term { background: var(--ink); color: #E6EBF0; border-radius: 6px; padding: 12px 14px; font-size: 12.5px; line-height: 1.6; overflow-x: auto; margin: 0; }
+  :root[data-theme="dark"] .term { background: #0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .term { background: #0B0F14; } }
+  .term .ok { color: #7ED4A0; } .term .er { color: #F09A94; } .term .wn { color: #F0C060; } .term .dim { color: #8A96A3; } .term .cmd { color: #9CC7FF; }
+  .render { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px; box-shadow: var(--shadow); display: grid; gap: 14px; font-size: 14px; }
+  .render p { max-width: 62ch; }
+  .tag { display: inline-flex; align-items: center; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; padding: 1px 6px; border-radius: 3px; background: var(--surface-2); color: var(--ink-3); font-weight: 500; font-family: "IBM Plex Mono", monospace; }
+  .r-sec { border: 1px dashed var(--accent); border-radius: 6px; padding: 10px 14px; display: grid; gap: 6px; background: var(--accent-soft); }
+  .r-sec h4 { margin: 0; font-size: 15px; } .r-sec h5 { margin: 0; font-size: 13.5px; color: var(--ink-2); }
+  table.r { border-collapse: collapse; font-size: 13px; }
+  table.r th, table.r td { padding: 4px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+  table.r th { background: var(--surface-2); }
+  .inl { background: var(--accent-soft); border-bottom: 1px dotted var(--accent); }
+  .cap { font-size: 12.5px; color: var(--ink-3); }
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; font-weight: 500; white-space: nowrap; }
+  .b-err { background: var(--red-soft); color: var(--red); } .b-warn { background: var(--amber-soft); color: var(--amber); } .b-ok { background: var(--green-soft); color: var(--green); } .b-mute { background: var(--surface-2); color: var(--ink-3); }
+  .decision { display: grid; grid-template-columns: 84px 1fr; gap: 6px 16px; font-size: 14.5px; border-top: 1px dashed var(--line-2); padding-top: 14px; }
+  .decision dt { color: var(--ink-3); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; font-weight: 500; padding-top: 4px; }
+  .decision dd { margin: 0; color: var(--ink); } .decision dd.amber { color: var(--amber); }
+  table.t { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.t th, table.t td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.t tr:last-child td { border-bottom: 0; }
+  table.t th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.t td.mono { font-size: 13px; }
+  .tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+  footer { margin-top: 80px; border-top: 1px solid var(--line-2); padding-top: 18px; font-size: 13.5px; color: var(--ink-3); display: grid; gap: 6px; }
+  footer code { background: transparent; padding: 0; color: var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">GEML block types, illustrated · page 5 of 5 · spec 1.0 · measured on geml 1.9.2, local build · <a href="05-embed_CN.html">中文</a></div>
+  <h1>GEML Blocks Illustrated · embed</h1>
+  <p class="lede">An <code>embed</code> stands where other content belongs: <code>src=</code> names a section, a block or a run of prose in another document (or this one), and at render time that content appears here. It has no body of its own; what it has is a set of rules about what to take, how, and what must never be taken: <code>part=</code> selects which part of a heading, the embedded document is parsed as a document in its own right, the target must be <code>.geml</code>, schemes are restricted, cycles are errors. Inline it has a small sibling, <code>![[#id]]</code>. All of this is measured here, together with two drafts: GEP-0010's use of embed for translation, and GEP-0011's leaf-value coordinates as projection targets.</p>
+  <nav class="toc">
+    <a href="#board">Board</a>
+    <a href="#part">A section, and part=</a>
+    <a href="#base">Parsed on its own</a>
+    <a href="#fail">Six failures and a cycle</a>
+    <a href="#inline">Inline projection and coordinates</a>
+    <a href="#translate">Translation</a>
+    <a href="#evidence">Evidence</a>
+  </nav>
+</header>
+
+<!-- ============ BOARD ============ -->
+<section id="board">
+  <div class="sec-head">
+    <div class="sec-num">Board</div>
+    <div>
+      <h2>11 rules, each with its source and status</h2>
+      <p class="sub"><span class="st st-spec">Specified</span> written into the specification. <span class="st st-gep">GEP draft</span> defined by a proposal, not yet in the spec. <span class="st st-obs">Observed</span> not specified; what the reference implementation does today. No implementation gap was found on this page.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div>
+      <div class="tally">
+        <span><span class="st st-spec">Specified</span> <b>8</b></span>
+        <span><span class="st st-gep">GEP draft</span> <b>2</b></span>
+        <span><span class="st st-obs">Observed</span> <b>1</b></span>
+      </div>
+      <div class="board">
+        <table class="b">
+          <thead><tr><th></th><th>Rule</th><th>Source</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td class="n">1</td><td><code>src=</code> names the content: a document, optionally with a fragment. No src is an <code>embed-missing-src</code> error; a body is ignored with an <code>ignored-embed-body</code> warning. <code>src=</code> is reference-checked like any reference: a fragment that does not exist is an <code>unresolved-reference</code> error.</td><td class="src">§3 · §5 · A.2</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">2</td><td>A fragment naming a heading selects the whole section: the heading and every block up to the next heading of the same or higher level. Naming a block selects that block. Naming a prose address (<code>#budget-before-detail</code>) selects that run of prose. No fragment selects the whole document.</td><td class="src">§3 · §4</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">3</td><td><code>part=</code> applies to heading targets: <code>head</code> the heading line alone, <code>body</code> everything under it, <code>intro</code> up to the first subheading, <code>whole</code> the default. head and body partition whole. The same words as <code>geml get --head/--body/--intro</code>. On a non-heading target the whole target stands; an unknown value is a <code>bad-embed-part</code> warning and the whole target stands, because quietly selecting nothing is the failure §8.2 exists to prevent.</td><td class="src">§3 · A.3</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">4</td><td>The embedded document is <strong>parsed as a document in its own right</strong> and the target selected from the result — never spliced as text. Its meta, references, relative-path base and external data resolve against itself; in a chain, each document is the base for the next.</td><td class="src">§3</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">5</td><td>The target must be <code>.geml</code>: anything else is an <code>embed-target-not-geml</code> error and its bytes are never parsed as GEML. Only http, https, mailto and tel schemes are allowed; any other is refused <strong>when building the model</strong> and the attribute blanked (<code>unsafe-embed-scheme</code> error), ignoring U+0000–U+0020 in the scheme check. Cross-document resolution is confined to <code>--root</code>, symlinks resolved first, failing closed.</td><td class="src">§3 · §9.4 · §9.5 · A.2</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">6</td><td>A chain returning to a document already being expanded is a <code>transclusion-cycle</code> error; the chain is reported and never followed.</td><td class="src">§9.3 · A.2</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">7</td><td>Inline projection <code>![[#id]]</code> / <code>![[doc.geml#id]]</code>: the target must be a single-paragraph text block, whose inlines are inserted into the sentence; <code>![alt](doc.geml)</code>, embedding a document with media syntax, is a <code>media-target-is-document</code> error. <code>!</code> is the projection prefix; a bare <code>[…]</code> navigates.</td><td class="src">§5.1 · §5.2 · B.4</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">8</td><td>Rendering: a block embed expands into <code>section.transclusion id data-src</code> with the content verbatim; an inline projection is <code>span.transclusion-inline data-src</code>.</td><td class="src">--to html</td><td><span class="st st-obs">Observed</span></td></tr>
+            <tr><td class="n">9</td><td>Coordinates: in this document's model an embed is a raw block with an empty body and no addressable units inside, so <code>#embedB[1]["col"]</code> does not resolve, for reading or writing. The converse is allowed for one shape: a <strong>leaf-value</strong> coordinate may be a projection target, <code>![[a.geml#vars["version"]]]</code> yields 1.4; a positional slice (a row, a column) may not.</td><td class="src">GEP-0011</td><td><span class="st st-gep">GEP draft</span></td></tr>
+            <tr><td class="n">10</td><td>Translation projection: <code>translate-to=</code> is admitted by the <code>geml-translator/v1</code> profile; on meta it is the document default, on an embed it overrides, <code>none</code> holds one block back; <code>translator=</code> is reserved until there is a second engine. A translated document contains nothing but embeds, so ids, order and every non-prose byte have one home. Without the profile it is an unknown-attribute warning.</td><td class="src">GEP-0010</td><td><span class="st st-gep">GEP draft</span></td></tr>
+            <tr><td class="n">11</td><td>External data and media <code>src</code> are fetched by the renderer at render time; the renderer treats them as untrusted, may confine them to the same origin and may require opt-in.</td><td class="src">§9.4</td><td><span class="st st-spec">Specified</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PART ============ -->
+<section id="part">
+  <div class="sec-head">
+    <div class="sec-num">part=</div>
+    <div>
+      <h2>Embedding a section, or part of one</h2>
+      <p class="sub">One heading target, five ways to take it. a.geml on the left is the source; b.geml embeds it.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>whole · head · intro · body · unknown part <span class="st st-spec">Specified</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · a.geml (source)</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+title = "Source A"
+version = "1.4"
+<span class="f">===</span>
+# Budget {#budget}
+Lead-in paragraph of the budget section.
+## Detail {#detail}
+Detail paragraph.
+<span class="f">=== table</span> <span class="a">{#tbl format=csv}</span>
+Item,Cost
+Hosting,120
+<span class="f">===</span>
+<span class="f">=== text</span> <span class="a">{#para}</span>
+One paragraph of prose to project inline.
+<span class="f">===</span>
+<span class="f">=== data</span> <span class="a">{#vars}</span>
+{"version": "1.4", "owner": "docs"}
+<span class="f">===</span></pre>
+          <div class="pane-h" style="margin-top:14px"><span>GEML · b.geml (embedding)</span></div>
+<pre class="geml"><span class="f">=== embed</span> <span class="a">{#whole src=a.geml#budget}</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{#head src=a.geml#budget <span class="hl">part=head</span>}</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{#intro src=a.geml#budget <span class="hl">part=intro</span>}</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{#body src=a.geml#budget <span class="hl">part=body</span>}</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{#odd src=a.geml#budget <span class="bad">part=sideways</span>}</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>--to html --root .</span></div>
+<pre class="term"><span class="wn">warning:</span> embed: `part=sideways` is not `whole`, `head`, `body` or
+  `intro`; the whole target stands (line 13)</pre>
+          <div class="render" style="margin-top:12px">
+            <div class="r-sec"><span class="tag">section.transclusion #whole data-src="a.geml#budget"</span><h4>Budget</h4><p>Lead-in paragraph of the budget section.</p><h5>Detail</h5><p>Detail paragraph.</p><span class="cap">+ table #tbl, text #para, data #vars — the section runs to end of document</span></div>
+            <div class="r-sec"><span class="tag">#head · part=head</span><h4>Budget</h4></div>
+            <div class="r-sec"><span class="tag">#intro · part=intro</span><p>Lead-in paragraph of the budget section.</p></div>
+            <div class="r-sec"><span class="tag">#body · part=body</span><p>Lead-in paragraph of the budget section.</p><h5>Detail</h5><p>Detail paragraph.</p><span class="cap">+ everything after, without the heading line</span></div>
+            <div class="r-sec"><span class="tag">#odd · part=sideways → same as whole</span><h4>Budget</h4><span class="cap">…</span></div>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>A section</dt><dd>§3: a fragment naming a heading selects the whole section, from the heading up to the next heading of the same or higher level. <code>#budget</code> is an H1 with no other H1 after it, so the section runs to the end and includes <code>#tbl</code>, <code>#para</code> and <code>#vars</code>.</dd>
+        <dt>part=</dt><dd>A document assembled out of embeds should not hand-write its own headings — that is the drift it exists to remove — so it must be able to take just the body or just the head. The three words are exactly those of <code>geml get --head/--body/--intro</code>; a document address and a command-line selector do not each invent a vocabulary.</dd>
+        <dt>Unknown value</dt><dd>Not <code>unknown-attribute</code>, since the key is defined and only the value is not; the whole target stands rather than nothing, because quietly selecting nothing is the failure §8.2 guards against.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ BASE ============ -->
+<section id="base">
+  <div class="sec-head">
+    <div class="sec-num">Base</div>
+    <div>
+      <h2>The embedded document stands alone; prose and whole documents embed too</h2>
+      <p class="sub">Relative paths, meta and external data resolve against the source document. The embedding side decides only where the result appears.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>A prose address, a whole document, a block in this document <span class="st st-spec">Specified</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · b2.geml and from b.geml</span></div>
+<pre class="geml"><span class="f">=== embed</span> <span class="a">{#lead src=<span class="hl">a.geml#budget-before-detail</span>}</span>   <span class="c">%% the prose address §4 derives</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{#all src=<span class="hl">a.geml</span>}</span>                        <span class="c">%% no fragment: the whole document</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{#local src=<span class="hl">#b-local</span>}</span>                     <span class="c">%% a block in this document</span>
+<span class="f">===</span>
+<span class="f">=== text</span> <span class="a">{#b-local}</span>
+Local text embedded above.
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check · --to html</span><span class="badge b-ok">ok: no diagnostics</span></div>
+<pre class="term"><span class="dim">&lt;section class="transclusion" id="lead" data-src="a.geml#budget-before-detail"&gt;</span>
+  &lt;p&gt;Lead-in paragraph of the budget section.
+<span class="dim">&lt;section class="transclusion" id="all" data-src="a.geml"&gt;</span>
+  &lt;h1&gt;Budget … &lt;h2&gt;Detail … table, text, data, all of it</pre>
+          <div class="render" style="margin-top:12px">
+            <table class="r">
+              <thead><tr><th>Inside a.geml</th><th>Resolves against</th></tr></thead>
+              <tbody>
+                <tr><td><code>=== table {src=rows.csv}</code></td><td>a.geml's directory, not b.geml's</td></tr>
+                <tr><td><code>{{version}}</code></td><td>a.geml's meta: 1.4</td></tr>
+                <tr><td><code>[[#detail]]</code></td><td>a.geml's id space</td></tr>
+                <tr><td>a chain a → b → c</td><td>each document is the base for the next</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Rule</dt><dd>§3: the document <code>src=</code> names must be <strong>parsed as a document in its own right</strong>, the target then selected from the result — never a run of text spliced in. So <code>rows.csv</code> inside a.geml resolves against a.geml's directory, exactly as when a.geml is opened on its own. The embedding side decides only where the result appears.</dd>
+        <dt>Prose</dt><dd><code>#budget-before-detail</code> is the address §4 derives for prose between two blocks: container <code>#budget</code>, next block <code>#detail</code>, nothing before. That it can be embedded is what keeps prose from being lost when a document is assembled out of embeds.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ FAIL ============ -->
+<section id="fail">
+  <div class="sec-head">
+    <div class="sec-num">Failures</div>
+    <div>
+      <h2>Six failures, plus a cycle</h2>
+      <p class="sub">Five errors and two warnings, matching A.2 row for row.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>The second half of b.geml · c1.geml ↔ c2.geml <span class="st st-spec">Specified</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML</span></div>
+<pre class="geml"><span class="f">=== embed</span> <span class="a">{#nosrc}</span>                              <span class="arrow">← no src</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{#withbody src=a.geml#tbl}</span>
+<span class="hl">this body is ignored</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{#md <span class="bad">src=notes.md</span>}</span>                  <span class="arrow">← not .geml</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{#js <span class="bad">src=javascript:alert(1)</span>}</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{#gone src=<span class="bad">a.geml#nope</span>}</span>              <span class="arrow">← fragment does not exist</span>
+<span class="f">===</span>
+Inline: … and media <span class="bad">![pic](a.geml)</span>.               <span class="arrow">← a document embedded with media syntax</span>
+
+<span class="c">%% c1.geml embeds c2.geml#c2; c2.geml embeds c1.geml#c1</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check --root .</span><span class="badge b-err">5 error</span> <span class="badge b-warn">2 warning</span></div>
+<pre class="term"><span class="er">error:</span> embed: missing `src=` (line 22)
+<span class="wn">warning:</span> embed body is ignored; the target lives in `src=` (line 24)
+<span class="er">error:</span> embed: `notes.md` is not a GEML document; `src=` names a `.geml`
+  file (optionally with a #fragment) (line 27)
+<span class="er">error:</span> embed: `src=javascript:alert(1)` names a disallowed URL scheme (line 29)
+<span class="er">error:</span> unresolved reference `a.geml#nope` (line 31)
+<span class="er">error:</span> `![](a.geml)` projects a GEML document, which is not media: for
+  block content use `=== embed {src=a.geml}`, for a phrase use
+  `![[a.geml]]` (line 33)
+
+<span class="dim">c1.geml</span>
+<span class="er">error:</span> transclusion cycle: c1.geml → c2.geml → c1.geml → c2.geml (line 5)</pre>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>error</dt><dd>No src names no content; the bytes of a non-.geml file are never parsed as GEML; a disallowed scheme is blanked while building the model, so no consumer ever sees it; a missing fragment is an error like any reference; media syntax on a document is the wrong position; a cycle reports the whole chain and stops.</dd>
+        <dt>warning</dt><dd>A body that was written is merely ignored — the content lives in src; an unknown part, see the previous section.</dd>
+        <dt>Confinement</dt><dd>§9.4: resolution is confined to <code>--root</code>, symlinks are resolved before the boundary is judged, and with no root nothing resolves (<code>unresolvable-document</code>). Every probe runs with <code>--root .</code>.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ INLINE ============ -->
+<section id="inline">
+  <div class="sec-head">
+    <div class="sec-num">Inline</div>
+    <div>
+      <h2>Inline projection, leaf-value coordinates, and coordinates that do not pass through an embed</h2>
+      <p class="sub"><code>![[…]]</code> puts a phrase or one value into a sentence. GEP-0011 draws two lines: what may be a target, and whether a coordinate can reach through an embed.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>A single-paragraph text, a leaf value, and reaching through <span class="st st-spec">Specified</span> <span class="st st-gep">coordinates GEP-0011</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · end of b.geml</span></div>
+<pre class="geml">Inline: <span class="hl">![[a.geml#para]]</span> and a leaf value <span class="hl">![[a.geml#vars["version"]]]</span>.
+Row through embed: [[#tbl]] but not #tbl[1]["Item"].</pre>
+          <div class="pane-h" style="margin-top:14px"><span>geml get</span></div>
+<pre class="term"><span class="cmd">$ geml get b.geml '#tbl[1]["Item"]'</span>            <span class="dim">#tbl is an embed in b</span>
+<span class="er">error:</span> `#tbl[1]["Item"]`: `embed` carries no addressable units inside
+  it — a coordinate needs a table or a `data` block
+<span class="cmd">$ geml get --root . a.geml '#tbl[1]["Item"]'</span>   <span class="dim">read it on the source</span>
+Hosting</pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>--to html --root .</span></div>
+          <div class="render">
+            <p>Inline: <span class="inl">One paragraph of prose to project inline.</span> and a leaf value <span class="inl">1.4</span>.</p>
+            <span class="cap">The first is <code>span.transclusion-inline data-src="a.geml#para"</code>; the second is the one leaf <code>["version"]</code> of data block #vars.</span>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Targets</dt><dd>§5.2: an inline projection's target must be a text block of exactly one paragraph; GEP-0011 adds one more shape, a coordinate naming a <strong>leaf value</strong> — one value, complete on its own, unmoved by the rows around it. A positional slice (<code>#tickets[2]</code>, a row or a column) is not allowed: "which row" is almost always a predicate rather than an index, which is the consuming block's filter to declare.</dd>
+        <dt>Not through</dt><dd>In this document's model an embed is a raw block with an empty body whose target resolves at render time, so <code>#tbl[1]["Item"]</code> does not resolve in b.geml. Writing through it would edit another document from this one, breaking §6's one-source rule; reading through it would make one value depend on two moving parts.</dd>
+        <dt>Draft detail</dt><dd class="amber">GEP-0011 says this error should "name the address that does work", <code>a.geml#tbl[1]["Item"]</code>; the measured message explains why but does not give that address. The draft is not accepted yet; recorded as a detail to fill.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ TRANSLATE ============ -->
+<section id="translate">
+  <div class="sec-head">
+    <div class="sec-num">Translation</div>
+    <div>
+      <h2>A translated document contains nothing but embeds</h2>
+      <p class="sub">GEP-0010: a translation is a projection along the language axis, the same shape as the <code>.md</code> projection along the format axis. The profile is registered; the spec has not taken it in.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption><code>translate-to=</code>: a default on meta, an override on an embed, none to hold back <span class="st st-gep">GEP draft</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>GEML · tr.geml</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+title = "translated"
+<span class="hl">profile = "geml-translator/v1"</span>
+<span class="hl">translate-to = "zh"</span>                      <span class="c">%% the document default</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{src=a.geml#budget}</span>               <span class="c">%% inherits zh</span>
+<span class="f">===</span>
+<span class="f">=== embed</span> <span class="a">{src=a.geml#tbl <span class="hl">translate-to=none</span>}</span>  <span class="c">%% this one is not translated</span>
+<span class="f">===</span></pre>
+          <div class="pane-h" style="margin-top:14px"><span>GEML · tr-noprofile.geml</span></div>
+<pre class="geml"><span class="f">=== embed</span> <span class="a">{src=a.geml#budget <span class="bad">translate-to=zh</span>}</span>   <span class="c">%% no profile declared</span>
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml check --root .</span></div>
+<pre class="term"><span class="dim">tr.geml</span>
+<span class="ok">ok: no diagnostics</span>
+
+<span class="dim">tr-noprofile.geml</span>
+<span class="wn">warning:</span> unknown attribute `translate-to` for block type `embed` (line 4)</pre>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Shape</dt><dd>A translated document holds embeds and nothing else. Ids, order and every non-prose byte have exactly one home, so drift is not detected — it is impossible. This is the same relationship GEP-0006 gives <code>A.geml</code> projecting to <code>A.md</code>, moved to the language axis.</dd>
+        <dt>One key</dt><dd><code>translate-to</code> is the default on meta, an override on an embed, and <code>none</code> holds one block back. Not <code>lang</code>, because <code>code {lang=}</code> says what a body <em>already is</em>, while this says what to <em>do</em> — two value spaces and two word classes cannot share a key. <code>translator=</code> is reserved: with one engine, a key choosing an engine would "parse, do nothing, and read as supported".</dd>
+        <dt>Admission</dt><dd>§8.6: a profile admits attribute key <strong>names</strong> only; the document model does not change. With the profile declared and recognized, the key stops warning; how a processor obtains a translator is implementation-defined, and one that cannot is still conformant.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ EVIDENCE ============ -->
+<section id="evidence">
+  <div class="sec-head">
+    <div class="sec-num">Evidence</div>
+    <div>
+      <h2>Probe files and measured output</h2>
+      <p class="sub">All run with the repository's current build, <code>node geml-parser/dist/geml.js</code>, version 1.9.2, with <code>--root .</code>. The probes live under emb/ in the session scratch directory.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tablewrap">
+      <table class="t">
+        <thead><tr><th>Probe</th><th>Covers</th><th>check result</th><th>Where on this page</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">a.geml · b.geml · notes.md</td><td>whole section, head, intro, body, unknown part, block target, same-document target, no src, body, non-geml, disallowed scheme, missing fragment, media on a document, inline projection, leaf-value projection</td><td><span class="badge b-err">5 error</span> <span class="badge b-warn">2 warning</span></td><td>part=, Failures, Inline</td></tr>
+          <tr><td class="mono">b2.geml</td><td>a prose-address target, a whole-document target</td><td><span class="badge b-ok">0 diagnostics</span></td><td>Base</td></tr>
+          <tr><td class="mono">c1.geml · c2.geml</td><td>two documents embedding each other</td><td><span class="badge b-err">1 error</span> transclusion-cycle</td><td>Failures</td></tr>
+          <tr><td class="mono">tr.geml · tr-noprofile.geml</td><td>translate-to with and without the profile</td><td><span class="badge b-ok">0 diagnostics</span> / <span class="badge b-warn">1 warning</span></td><td>Translation</td></tr>
+          <tr><td class="mono">get b.geml '#tbl[1]["Item"]'</td><td>a coordinate through an embed</td><td><span class="badge b-err">error</span>, readable on the source</td><td>Inline</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>This page: <code>docs/illustrated/05-embed.html</code> · 中文 <code>05-embed_CN.html</code>. Five pages in the series: the simple four · code and data · table and view · diagram · embed.</div>
+</footer>
+</div>

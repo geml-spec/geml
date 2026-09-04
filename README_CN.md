@@ -208,18 +208,21 @@ title = "Budget plan"
 ===
 ```
 
-……或写成数据，带**计算列**与**汇总行**：
+……或写成数据。表格装事实，它之上的一个 **`view`** 派生出**计算列**与**汇总行**：
 
 ```
-=== table {#fy25 format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4; n = 1" summary="Segment = 'Total'; FY [%.1f] = sum(FY); n = sum(n)"}
+=== table {#fy25 format=csv header=1}
 Segment,  Q1, Q2, Q3, Q4
 Cloud,     8, 10, 12, 14
 Platform,  5,  6,  7,  9
 Services,  3,  4,  4,  5
 ===
+
+=== view {#fy25-report src=#fy25 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4; n = 1" summary="Segment = 'Total'; FY [%.1f] = sum(FY); n = sum(n)"}
+===
 ```
 
-*两种形态描述同一个模型。`FY` 列与 `Total` 行在构建期算出：*
+*两种表格形态描述同一个模型。`FY` 列与 `Total` 行由那个 view 在构建期算出：*
 
 | Segment   | Q1 | Q2 | Q3 | Q4 |   FY | n |
 |-----------|---:|---:|---:|---:|-----:|--:|

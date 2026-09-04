@@ -1,0 +1,327 @@
+<title>GEML 图解 · geml-history</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+  :root { --bg:#F4F6F9; --surface:#FFFFFF; --surface-2:#EBEFF4; --ink:#1B2430; --ink-2:#47535F; --ink-3:#7B8794; --line:#D5DCE4; --line-2:#C3CCD6; --accent:#1F6F8B; --accent-soft:#DCEDF3; --amber:#9A5F0A; --amber-soft:#FAEED3; --red:#B0403B; --red-soft:#F8E2E0; --green:#2E7A50; --green-soft:#DDF0E4; --on-solid:#FFFFFF; --shadow:0 1px 2px rgba(27,36,48,.06),0 6px 18px rgba(27,36,48,.05); color-scheme:light; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#11161C; --surface:#191F27; --surface-2:#202832; --ink:#E6EBF0; --ink-2:#B3BDC8; --ink-3:#7F8B98; --line:#2C3642; --line-2:#3A4552; --accent:#63B5D1; --accent-soft:#14323D; --amber:#E2AC45; --amber-soft:#382B10; --red:#E27F79; --red-soft:#3E1F1E; --green:#6CC08E; --green-soft:#173124; --on-solid:#0F141A; --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25); color-scheme:dark; } }
+  :root[data-theme="dark"] { --bg:#11161C; --surface:#191F27; --surface-2:#202832; --ink:#E6EBF0; --ink-2:#B3BDC8; --ink-3:#7F8B98; --line:#2C3642; --line-2:#3A4552; --accent:#63B5D1; --accent-soft:#14323D; --amber:#E2AC45; --amber-soft:#382B10; --red:#E27F79; --red-soft:#3E1F1E; --green:#6CC08E; --green-soft:#173124; --on-solid:#0F141A; --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25); color-scheme:dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.7 "IBM Plex Sans","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1120px; margin:0 auto; padding:48px 28px 96px; }
+  h1,h2,h3 { text-wrap:balance; margin:0; } p { margin:0; } a { color:var(--accent); }
+  code,pre,.mono { font-family:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace; }
+  code { font-size:.92em; background:var(--surface-2); padding:1px 5px; border-radius:3px; }
+  .eyebrow { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  header h1 { font-size:34px; line-height:1.2; font-weight:600; margin-top:10px; letter-spacing:-.01em; }
+  header .lede { max-width:66ch; color:var(--ink-2); margin-top:16px; font-size:16px; }
+  .toc { display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:22px; font-size:14px; }
+  .toc a { text-decoration:none; border-bottom:1px solid var(--line-2); padding-bottom:1px; }
+  section { margin-top:72px; }
+  .sec-head { display:grid; grid-template-columns:64px 1fr; gap:16px; align-items:baseline; border-top:1px solid var(--line-2); padding-top:22px; }
+  .sec-num { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:500; padding-top:6px; }
+  .sec-head h2 { font-size:24px; font-weight:600; } .sec-head .sub { color:var(--ink-2); margin-top:6px; max-width:70ch; }
+  .sec-body { margin-left:80px; margin-top:28px; display:grid; gap:40px; }
+  @media (max-width:860px) { .sec-head { grid-template-columns:1fr; gap:6px; } .sec-body { margin-left:0; } }
+  .st { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; letter-spacing:.04em; padding:2px 8px; border-radius:3px; font-weight:600; white-space:nowrap; color:var(--on-solid); vertical-align:middle; }
+  .st-spec { background:var(--green); } .st-gap { background:var(--red); } .st-gep { background:var(--accent); } .st-obs { background:var(--ink-3); }
+  .board { overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:6px; box-shadow:var(--shadow); }
+  table.b { border-collapse:collapse; width:100%; font-size:14px; }
+  table.b th, table.b td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.b tr:last-child td { border-bottom:0; }
+  table.b th { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  table.b td.n { color:var(--ink-3); font-variant-numeric:tabular-nums; width:32px; }
+  table.b td.src { color:var(--ink-3); white-space:nowrap; font-size:13px; }
+  .tally { display:flex; flex-wrap:wrap; gap:10px 22px; margin-bottom:14px; font-size:14px; color:var(--ink-2); align-items:center; } .tally b { font-weight:600; color:var(--ink); }
+  figure { margin:0; display:grid; gap:18px; }
+  figure > figcaption { font-size:17px; font-weight:600; display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; }
+  figure > figcaption small { flex-basis:100%; font-size:14px; font-weight:400; color:var(--ink-2); }
+  .panes { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; align-items:start; }
+  @media (max-width:980px) { .panes { grid-template-columns:1fr; } .sec-body { margin-left:0; } }
+  .pane-h { display:flex; justify-content:space-between; align-items:center; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; margin-bottom:8px; }
+  pre.geml { margin:0; background:var(--surface-2); border:1px solid var(--line); border-radius:6px; padding:14px 16px; font-size:13px; line-height:1.6; overflow-x:auto; color:var(--ink); }
+  pre.geml .f { color:var(--accent); font-weight:500; } pre.geml .a { color:var(--ink-2); } pre.geml .c { color:var(--ink-3); font-style:italic; }
+  pre.geml .hl { background:var(--amber-soft); color:var(--amber); border-radius:2px; padding:0 2px; }
+  pre.geml .bad { background:var(--red-soft); color:var(--red); border-radius:2px; padding:0 2px; }
+  .term { background:var(--ink); color:#E6EBF0; border-radius:6px; padding:12px 14px; font-size:12.5px; line-height:1.6; overflow-x:auto; margin:0; }
+  :root[data-theme="dark"] .term { background:#0B0F14; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .term { background:#0B0F14; } }
+  .term .ok { color:#7ED4A0; } .term .er { color:#F09A94; } .term .wn { color:#F0C060; } .term .dim { color:#8A96A3; } .term .cmd { color:#9CC7FF; }
+  .flow { display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:13px; }
+  .flow .box { background:var(--surface); border:1px solid var(--line-2); border-radius:6px; padding:8px 12px; display:grid; gap:2px; min-width:150px; }
+  .flow .box b { font-size:13px; } .flow .box span { color:var(--ink-3); font-size:12px; font-family:"IBM Plex Mono",monospace; }
+  .flow .box.hot { border-color:var(--accent); background:var(--accent-soft); }
+  .flow .sep { color:var(--ink-3); }
+  .badge { display:inline-flex; align-items:center; gap:5px; font-size:11px; letter-spacing:.04em; text-transform:uppercase; padding:2px 7px; border-radius:3px; font-weight:500; white-space:nowrap; }
+  .b-err { background:var(--red-soft); color:var(--red); } .b-warn { background:var(--amber-soft); color:var(--amber); } .b-ok { background:var(--green-soft); color:var(--green); } .b-mute { background:var(--surface-2); color:var(--ink-3); }
+  .decision { display:grid; grid-template-columns:72px 1fr; gap:6px 16px; font-size:14.5px; border-top:1px dashed var(--line-2); padding-top:14px; }
+  .decision dt { color:var(--ink-3); font-size:12px; letter-spacing:.06em; text-transform:uppercase; font-weight:500; padding-top:4px; }
+  .decision dd { margin:0; } .decision dd.amber { color:var(--amber); }
+  table.t { border-collapse:collapse; width:100%; font-size:14px; }
+  table.t th, table.t td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.t tr:last-child td { border-bottom:0; }
+  table.t th { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+  table.t td.mono { font-size:13px; }
+  .tablewrap { overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:6px; }
+  footer { margin-top:80px; border-top:1px solid var(--line-2); padding-top:18px; font-size:13.5px; color:var(--ink-3); display:grid; gap:6px; }
+  footer code { background:transparent; padding:0; color:var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">GEML 图解 · profile · geml-history/v1（Stable） · 实测 geml 1.9.2 本地构建 · <a href="08-profile-history.html">English</a></div>
+  <h1>GEML 图解 · geml-history</h1>
+  <p class="lede"><code>.geml</code> 文件只放<strong>当前版本</strong>；同名的 <code>.gemlhistory</code> 边车放<strong>历史</strong>：从当前版本往回的反向补丁，加上完整快照。边车自己就是一份 GEML 文档，靠 <code>profile = "geml-history/v1"</code> 放行三个块类型；它自带一份「已提交当前版」的镜像，所以重建任何旧版本都不依赖活文件、不依赖 git、不依赖网络。这一页把 profile 的每条规则和 <code>geml history</code> 四个动词的实测放在一起。</p>
+  <nav class="toc">
+    <a href="#board">看板</a>
+    <a href="#roles">两个文件</a>
+    <a href="#sidecar">边车长什么样</a>
+    <a href="#verbs">四个动词</a>
+    <a href="#evidence">依据</a>
+  </nav>
+</header>
+
+<!-- ============ BOARD ============ -->
+<section id="board">
+  <div class="sec-head">
+    <div class="sec-num">看板</div>
+    <div>
+      <h2>14 条规则，各自的出处和状态</h2>
+      <p class="sub"><span class="st st-spec">规范已定</span> profile 文档写死的（它自称 Stable）。<span class="st st-obs">实测</span> 文档不规定、工具今天这样做。实现偏差本页未发现。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div>
+      <div class="tally"><span><span class="st st-spec">规范已定</span> <b>12</b></span><span><span class="st st-obs">实测</span> <b>2</b></span></div>
+      <div class="board">
+        <table class="b">
+          <thead><tr><th></th><th>规则</th><th>出处</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td class="n">1</td><td>应用层 profile，核心一字未改；不认识它的处理器完全合规。存在由边车文件表明，词汇由边车自己的 meta 声明；<strong>不许从 <code>.gemlhistory</code> 扩展名或 <code>history-of</code> 键推断</strong>（§8.6 规则 2）。</td><td class="src">§1 · §1.1</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">2</td><td>声明放行三个类型：<code>history-revision</code>（键 id parent author summary hash newline）、<code>history-keyframe</code>（id hash）、<code>history-blob</code>（lang）。放行只给名字，body 仍是 raw，与未声明时同一模型。</td><td class="src">§1.1</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">3</td><td><code>doc.geml</code> 是当前版本的<strong>唯一真相</strong>，热路径；<code>doc.gemlhistory</code> 是自包含的冷路径，永远带一份已提交当前版的 keyframe 镜像，工具维护、不手改，两者靠哈希对账。</td><td class="src">§2</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">4</td><td>边车丢了，当前文档完好；活文件丢了，任何版本仍可从边车重建。两个方向都不互相依赖。</td><td class="src">§2</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">5</td><td>头部 meta 键：<code>history-of</code>、<code>geml-version</code>、<code>current</code>、<code>keyframe-interval</code>。keyframe 和 blob 的正文原样嵌整段 GEML，所以围栏必须比载荷里最长的围栏更长。</td><td class="src">§3 · §3.1</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">6</td><td>块身份：有 <code>#id</code> 用 id；没有就用内容哈希加结构位置派生的键，算法实现定义，簿记只在边车里、<strong>绝不写回活文件</strong>。不强制任何块带 id。</td><td class="src">§4</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">7</td><td>反向补丁四种操作：<code>delete</code>、<code>replace … &lt;- blob:</code>、<code>insert &lt;- blob: &lt;anchor&gt;</code>、<code>move</code>；按写的顺序应用；<code>blob:</code> 引用必须解析到同文件里的 history-blob，否则 error。</td><td class="src">§5</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">8</td><td>重建：取目标版本或更新的最近 keyframe，沿 parent 链反向打补丁到目标，结果哈希必须等于记录的 hash。不依赖活文件。</td><td class="src">§6</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">9</td><td>回滚线性、破坏性：截掉目标之后的所有版本，<code>current</code> 改为目标；活文件有未提交改动时<strong>必须拒绝</strong>，除非调用者明确同意（交互确认或 <code>--force</code>）。</td><td class="src">§7</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">10</td><td>hash 是整份 <code>.geml</code> UTF-8 字节的 SHA-256，前缀 <code>sha256:</code>，含换行风格（<code>newline=lf|crlf</code>）。版本 id 是 <code>&lt;UTC 时间戳&gt;-&lt;hash 前 8 位&gt;</code>，按时间排序；任何不含糊的前缀可作选择器。</td><td class="src">§8</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">11</td><td>两种轻重：链断、blob 悬空、重建哈希不匹配是<strong>损坏 → error</strong>；活文件哈希与 <code>current</code> 不同只是<strong>未提交 → warning</strong>，不得阻止只读操作。</td><td class="src">§8 · §9</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">12</td><td>工具生成的每个边车必须在 meta 写 <code>profile = "geml-history/v1"</code>；agent 可以读边车，<strong>不该手写</strong>补丁、blob、id、hash，用工具的 save / get / restore / verify。</td><td class="src">§9 · §10</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">13</td><td>CLI：<code>save</code> 追加一版（与 tip 相同则 no-op）；<code>get</code> 无参列出全部、带 rev 打印那一版全文；<code>restore &lt;rev&gt; [--force]</code>；<code>verify</code> 重建并重哈希整条链。rev 写法：<code>0</code> tip、<code>-N</code> 往回 N、或不含糊的 id 前缀。</td><td class="src">geml history --help</td><td><span class="st st-obs">实测</span></td></tr>
+            <tr><td class="n">14</td><td><code>geml revert &lt;file&gt; #id [--rev sel]</code> 是核心动词，用边车把<strong>一个块</strong>回到过去某版：拼回、复活或删除。项目的 PostToolUse hook 对 spec/ 下的 .geml 自动 save。</td><td class="src">geml --help</td><td><span class="st st-obs">实测</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ROLES ============ -->
+<section id="roles">
+  <div class="sec-head">
+    <div class="sec-num">两个文件</div>
+    <div>
+      <h2>热路径与冷路径</h2>
+      <p class="sub">编辑器、渲染器、agent 只碰 <code>.geml</code>；历史只在需要时加载。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>一次 save 做的事 <span class="st st-spec">规范已定</span></figcaption>
+      <div class="flow">
+        <div class="box hot"><b>doc.geml</b><span>当前版本 · 唯一真相</span></div>
+        <span class="sep">→ save →</span>
+        <div class="box"><b>keyframe</b><span>已提交当前版的镜像，刷新</span></div>
+        <div class="box"><b>history-revision</b><span>id · parent · hash · 反向补丁</span></div>
+        <div class="box"><b>history-blob</b><span>被替换块的旧内容</span></div>
+        <span class="sep">→</span>
+        <div class="box hot"><b>doc.gemlhistory</b><span>自包含 · 工具维护</span></div>
+      </div>
+      <dl class="decision">
+        <dt>为什么反向</dt><dd>最新版是最常读的，所以镜像放最新版，补丁往回走：从 tip 重建上一版只要打一个补丁，不必从头重放。keyframe 每隔 <code>keyframe-interval</code> 个版本再放一个，把任何目标的反向步数和一条坏补丁的影响范围都限制在一段之内。</dd>
+        <dt>为什么自包含</dt><dd>§2：活文件有未提交改动、甚至不在了，边车里任何版本照样能重建；反过来边车丢了当前文档一点不受影响。两个文件谁都不欠谁。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ SIDECAR ============ -->
+<section id="sidecar">
+  <div class="sec-head">
+    <div class="sec-num">边车</div>
+    <div>
+      <h2>一份真实的 .gemlhistory</h2>
+      <p class="sub">两次 save 之后的文件，一字不改。它本身通过 <code>geml check</code>。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>头部、镜像 keyframe、一条反向补丁、一个 blob、根版本 <span class="st st-spec">规范已定</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>doc.gemlhistory · 工具生成</span></div>
+<pre class="geml"># History of doc.geml
+
+<span class="f">=== meta</span>
+<span class="hl">profile           = "geml-history/v1"</span>
+history-of        = "doc.geml"
+geml-version      = "1.0"
+current           = "20260904T080743Z-40a503a6"
+keyframe-interval = 10
+<span class="f">===</span>
+
+# Committed-current mirror (always present):
+<span class="f">==== history-keyframe</span> <span class="a">{id="20260904T080743Z-40a503a6" hash="sha256:40a5…b4f4"}</span>
+=== meta
+title = "history probe"
+===
+# Plan {#plan}
+=== text {#intro}
+Second version of the intro.
+===
+=== table {#t format=csv}
+a,b
+1,2
+===
+<span class="f">====</span>                                  <span class="c">%% 四杠包三杠：载荷里有 ===</span>
+
+<span class="f">=== history-revision</span> <span class="a">{id="20260904T080743Z-40a503a6" parent="20260904T080742Z-5a3b3ac6"
+                     summary="edit intro" hash="sha256:40a5…" newline="lf"}</span>
+<span class="hl">replace #intro &lt;- blob:b1</span>                <span class="c">%% 从当前版回到上一版：把 #intro 换回旧内容</span>
+<span class="f">===</span>
+
+<span class="f">==== history-blob</span> <span class="a">{#b1 lang=geml}</span>
+=== text {#intro}
+First version of the intro.
+===
+<span class="f">====</span>
+
+<span class="f">=== history-revision</span> <span class="a">{id="20260904T080742Z-5a3b3ac6" summary="first" hash="sha256:5a3b…" newline="lf"}</span>
+<span class="f">===</span>                                    <span class="c">%% 根版本：没有 parent，没有补丁</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml list · geml check</span></div>
+<pre class="term"><span class="cmd">$ geml list doc.gemlhistory</span>
+#history-of-docgeml                       heading           h1    L1-10
+=== meta                                  meta              anon  L3-9
+#committed-current-mirror-always-present  heading           h1    L11-39
+=== history-keyframe                      history-keyframe  anon  L12-25
+=== history-revision@4214327e             history-revision  anon  L27-29
+#b1                                       history-blob            L31-35
+=== history-revision@e36c84ca             history-revision  anon  L37-38
+
+<span class="cmd">$ geml check doc.gemlhistory</span>
+<span class="ok">ok: no diagnostics</span>     <span class="dim">← profile 声明了，三个类型不报 unknown-block-type</span></pre>
+          <div class="tablewrap" style="margin-top:12px">
+            <table class="t">
+              <thead><tr><th>块</th><th>体</th><th>装什么</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">meta</td><td>键值</td><td>history-of、geml-version、current、keyframe-interval</td></tr>
+                <tr><td class="mono">history-keyframe</td><td>raw</td><td>某一版的完整 .geml，当前版的那份永远在</td></tr>
+                <tr><td class="mono">history-revision</td><td>raw</td><td>属性是元数据，正文是把这一版变成 parent 的操作</td></tr>
+                <tr><td class="mono">history-blob</td><td>raw</td><td>一个块在某版的原文，被 <code>blob:&lt;id&gt;</code> 引用</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>id</dt><dd>§8：<code>20260904T080743Z-40a503a6</code> 是 UTC 时间戳加内容哈希前 8 位，天然按时间排序；校验用的是完整 hash，不是这 8 位。第一次 save 后 5 秒的第二次 save，时间戳差 1 秒。</dd>
+        <dt>围栏</dt><dd>§3：keyframe 和 blob 原样嵌 GEML，载荷里有 <code>===</code>，所以它们开 <code>====</code>。这正是核心 §3 的围栏纪律，边车没有发明新东西。</dd>
+        <dt>放行</dt><dd>§1.1：三个类型名带 <code>history-</code> 前缀，因为 §8.5 要求扩展名带连字符；裸的 revision / keyframe / blob 会占用规范保留的名字。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ VERBS ============ -->
+<section id="verbs">
+  <div class="sec-head">
+    <div class="sec-num">动词</div>
+    <div>
+      <h2>save · get · verify · restore，加核心的 revert</h2>
+      <p class="sub">全部在临时目录里实跑；未提交改动时 verify 只 warning 不阻止，是 §8 那条「两种轻重」。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption>一轮完整操作 <span class="st st-spec">规范已定</span> <span class="st st-obs">CLI 实测</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>shell</span></div>
+<pre class="term"><span class="cmd">$ geml history save doc.geml -m "first"</span>
+saved 20260904T080742Z-5a3b3ac6
+
+<span class="cmd">$ printf 'Second version of the intro.\n' | geml set doc.geml '#intro' --in - --body</span>
+wrote doc.geml
+
+<span class="cmd">$ geml history verify doc.geml</span>          <span class="dim">活文件已改、未 save</span>
+<span class="wn">warning:</span> uncommitted changes: hash(doc.geml) differs from current
+verify: OK (1 revisions reconstructed &amp; hashed)     <span class="dim">exit 0 —— 只读操作不被阻止</span>
+
+<span class="cmd">$ geml history save doc.geml -m "edit intro"</span>
+saved 20260904T080743Z-40a503a6
+
+<span class="cmd">$ geml history get doc.geml</span>             <span class="dim">第一列就是选择器</span>
+0       20260904T080743Z-40a503a6  -  edit intro
+-1      20260904T080742Z-5a3b3ac6  -  first
+
+<span class="cmd">$ geml history verify doc.geml</span>
+verify: OK (2 revisions reconstructed &amp; hashed)</pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>规则对照</span></div>
+          <div class="tablewrap">
+            <table class="t">
+              <thead><tr><th>动词</th><th>做什么</th><th>出处</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">save [-m]</td><td>刷新镜像 keyframe，写反向补丁和 blob，记新 hash 与 id；与 tip 相同则 no-op</td><td>§10</td></tr>
+                <tr><td class="mono">get [&lt;rev&gt;]</td><td>无参：全部版本，最新在上；带 rev：那一版的完整文本（重建后核对 hash）</td><td>§6</td></tr>
+                <tr><td class="mono">verify</td><td>沿链重建每一版并重哈希；断链、blob 悬空、哈希不符 → error；仅活文件未提交 → warning</td><td>§8 · §9</td></tr>
+                <tr><td class="mono">restore &lt;rev&gt; [--force]</td><td>覆盖活文件并截断历史；有未提交改动时拒绝，<code>--force</code> 才丢弃</td><td>§7</td></tr>
+                <tr><td class="mono">revert #id [--rev]</td><td>核心动词：只把一个块回到某版，其余不动</td><td>geml --help</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <span class="badge b-mute" style="margin-top:10px">rev 写法：0 = tip · -N = 往回 N 版 · 不含糊的 id 前缀</span>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>两种轻重</dt><dd>§8：未提交改动是正常的编辑状态，不是损坏，所以是 warning，且不能阻止 get / verify / 重建。链断、blob 引用悬空、重建哈希不符才是 error。上面 verify 在改动未保存时照样 OK，就是这条。</dd>
+        <dt>回滚</dt><dd>§7：restore 是破坏性的线性截断，目标之后的版本永久丢弃；id 永不复用，所以回滚后新提交不会和被丢弃的 tip 混淆。有未提交改动必须拒绝，除非 <code>--force</code>。</dd>
+        <dt>agent</dt><dd>§10：agent 随便读边车（纯文本、按块、每版带 summary），但不要手写补丁、blob、id、hash。本仓库对 spec/ 下 .geml 的 save 由 PostToolUse hook 自动完成，配置文档除外。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ EVIDENCE ============ -->
+<section id="evidence">
+  <div class="sec-head">
+    <div class="sec-num">依据</div>
+    <div>
+      <h2>探针</h2>
+      <p class="sub">在短路径临时目录 <code>%TEMP%\geml-hist-probe</code> 里跑，因为会话 scratchpad 的路径长度超过 Win32 工作目录上限，node 起不来。用仓库内当前构建，1.9.2。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tablewrap">
+      <table class="t">
+        <thead><tr><th>步骤</th><th>结果</th><th>对应</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">save → set → verify → save → get → verify</td><td><span class="badge b-ok">全部 exit 0</span>，未提交时一条 warning</td><td>动词、看板 11、13</td></tr>
+          <tr><td class="mono">geml check doc.gemlhistory</td><td><span class="badge b-ok">0 诊断</span></td><td>边车、看板 2、12</td></tr>
+          <tr><td class="mono">geml list doc.gemlhistory</td><td>meta、keyframe、两条 revision、一个 blob</td><td>边车</td></tr>
+          <tr><td class="mono">revert #intro --rev -2（只有 2 版）</td><td><span class="badge b-err">error</span> offset out of range，活文件不动</td><td>越界不改文件</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>本页：<code>docs/illustrated/08-profile-history_CN.html</code>，英文版 <code>08-profile-history.html</code>。profile 文档：<code>spec/profiles/geml-history/geml-history-profile.md</code>。</div>
+</footer>
+</div>

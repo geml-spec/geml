@@ -9,6 +9,7 @@
 | [`build-options.geml`](build-options.geml) | `table` | `geml codemap build` 的真实 flag：枚举、路径、布尔、可重复项、互斥组 |
 | [`gep-submit.geml`](gep-submit.geml) | `data` | GEP 提交：分组、条件分组（`showIf`）、日期、URL、长文章节 |
 | [`forms.style.geml`](forms.style.geml) | — | 把两者绑到 `component=form handler=submit` 的样式表 |
+| [`complex-form.geml`](complex-form.geml) | 提案的 `form-*` 家族 | 反向压力测试：把一个典型复杂后台表单翻译成 0008 词汇，用 `%% GAP:` 标出落不了的地方。第 1 版标出的重复分组、富文本说明、min/max、围栏过深四处，提案修订后已关掉；剩级联、联动、跨字段校验三处。不是证据，是对照 |
 
 第三个表单——vercel/next.js 的 "Report an issue"（44 选项，其中 23 个含空格；
 15 个 markdown 链接跨 5 段）——**没有收录**：耐用的是测量，模板是别家的内容。
@@ -19,6 +20,7 @@
 ```bash
 geml check spec/proposals/0008-form-block-example/build-options.geml
 geml style check spec/proposals/0008-form-block-example/forms.style.geml spec/proposals/0008-form-block-example/*.geml
+geml check spec/proposals/0008-form-block-example/complex-form.geml   # form-* 未注册：一条 unknown-block-type warning，exit 0
 ```
 
 `forms.style.geml` 声明 `profile = "geml-style/v1"`，所以 `geml style check`
