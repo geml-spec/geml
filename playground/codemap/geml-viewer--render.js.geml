@@ -8,79 +8,79 @@ resolution-default = cpg
 
 # geml-viewer/render.js
 
-=== code {#renderDocument src=integrations/geml-viewer/src/render.js#L14-37 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/renderDocument()."}
+=== code {#renderDocument src=integrations/geml-viewer/src/render.js#L14-37 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/renderDocument()."}
 ===
 
-=== code {#selectSection src=integrations/geml-viewer/src/render.js#L43-56 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/selectSection()."}
+=== code {#selectSection src=integrations/geml-viewer/src/render.js#L43-56 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/selectSection()."}
 ===
 
-=== code {#containsId .leaf src=integrations/geml-viewer/src/render.js#L58-61 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/containsId()."}
+=== code {#containsId .leaf src=integrations/geml-viewer/src/render.js#L58-61 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/containsId()."}
 ===
 
-=== code {#focusBanner src=integrations/geml-viewer/src/render.js#L66-71 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/focusBanner()."}
+=== code {#focusBanner src=integrations/geml-viewer/src/render.js#L66-71 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/focusBanner()."}
 ===
 
-=== code {#viewerDiagnostics src=integrations/geml-viewer/src/render.js#L79-83 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/viewerDiagnostics()."}
+=== code {#viewerDiagnostics src=integrations/geml-viewer/src/render.js#L79-83 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/viewerDiagnostics()."}
 ===
 
-=== code {#collectLabels src=integrations/geml-viewer/src/render.js#L88-98 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/collectLabels()."}
+=== code {#collectLabels src=integrations/geml-viewer/src/render.js#L88-98 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/collectLabels()."}
 ===
 
-=== code {#el src=integrations/geml-viewer/src/render.js#L100-110 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/el()."}
+=== code {#el src=integrations/geml-viewer/src/render.js#L100-110 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/el()."}
 ===
 
-=== code {#renderInlines src=integrations/geml-viewer/src/render.js#L119-123 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/renderInlines()."}
+=== code {#renderInlines src=integrations/geml-viewer/src/render.js#L119-123 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/renderInlines()."}
 ===
 
-=== code {#renderInline src=integrations/geml-viewer/src/render.js#L125-168 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/renderInline()."}
+=== code {#renderInline src=integrations/geml-viewer/src/render.js#L125-176 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/renderInline()."}
 ===
 
-=== code {#schemeOf src=integrations/geml-viewer/src/render.js#L176-183 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/schemeOf()."}
+=== code {#schemeOf src=integrations/geml-viewer/src/render.js#L184-191 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/schemeOf()."}
 ===
 
-=== code {#isSafeHref src=integrations/geml-viewer/src/render.js#L184-194 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/isSafeHref()."}
+=== code {#isSafeHref src=integrations/geml-viewer/src/render.js#L192-202 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/isSafeHref()."}
 ===
 
-=== code {#isSafeMediaSrc src=integrations/geml-viewer/src/render.js#L199-206 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/isSafeMediaSrc()."}
+=== code {#isSafeMediaSrc src=integrations/geml-viewer/src/render.js#L207-214 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/isSafeMediaSrc()."}
 ===
 
-=== code {#isRemoteSrc src=integrations/geml-viewer/src/render.js#L209-218 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/isRemoteSrc()."}
+=== code {#isRemoteSrc src=integrations/geml-viewer/src/render.js#L217-226 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/isRemoteSrc()."}
 ===
 
-=== code {#mergeRel src=integrations/geml-viewer/src/render.js#L220-224 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/mergeRel()."}
+=== code {#mergeRel src=integrations/geml-viewer/src/render.js#L228-232 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/mergeRel()."}
 ===
 
-=== code {#linkAttrs src=integrations/geml-viewer/src/render.js#L226-243 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/linkAttrs()."}
+=== code {#linkAttrs src=integrations/geml-viewer/src/render.js#L234-251 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/linkAttrs()."}
 ===
 
-=== code {#renderMedia src=integrations/geml-viewer/src/render.js#L245-267 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/renderMedia()."}
+=== code {#renderMedia src=integrations/geml-viewer/src/render.js#L253-275 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/renderMedia()."}
 ===
 
-=== code {#inferKind src=integrations/geml-viewer/src/render.js#L268-272 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/inferKind()."}
+=== code {#inferKind src=integrations/geml-viewer/src/render.js#L276-280 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/inferKind()."}
 ===
 
-=== code {#renderBlock src=integrations/geml-viewer/src/render.js#L279-311 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/renderBlock()."}
+=== code {#renderBlock src=integrations/geml-viewer/src/render.js#L287-326 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/renderBlock()."}
 ===
 
-=== code {#renderTyped src=integrations/geml-viewer/src/render.js#L313-449 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/renderTyped()."}
+=== code {#renderTyped src=integrations/geml-viewer/src/render.js#L330-479 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/renderTyped()."}
 ===
 
-=== code {#rawBlock src=integrations/geml-viewer/src/render.js#L451-456 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/rawBlock()."}
+=== code {#rawBlock src=integrations/geml-viewer/src/render.js#L481-486 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/rawBlock()."}
 ===
 
-=== code {#renderTable src=integrations/geml-viewer/src/render.js#L462-490 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/renderTable()."}
+=== code {#renderTable src=integrations/geml-viewer/src/render.js#L492-526 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/renderTable()."}
 ===
 
-=== code {#renderRow src=integrations/geml-viewer/src/render.js#L492-510 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/renderRow()."}
+=== code {#renderRow src=integrations/geml-viewer/src/render.js#L528-546 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/renderRow()."}
 ===
 
-=== code {#applySpan .leaf src=integrations/geml-viewer/src/render.js#L512-518 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/applySpan()."}
+=== code {#applySpan .leaf src=integrations/geml-viewer/src/render.js#L548-554 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/applySpan()."}
 ===
 
-=== code {#renderDiagnostics src=integrations/geml-viewer/src/render.js#L524-532 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/renderDiagnostics()."}
+=== code {#renderDiagnostics src=integrations/geml-viewer/src/render.js#L560-568 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/renderDiagnostics()."}
 ===
 
-=== code {#diagBox src=integrations/geml-viewer/src/render.js#L534-541 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/diagBox()."}
+=== code {#diagBox src=integrations/geml-viewer/src/render.js#L570-577 anchor="scip-typescript npm geml-viewer 1.3.0 src/`render.js`/diagBox()."}
 ===
 
 === table {#calls format=csv}
@@ -193,14 +193,14 @@ from,               to,                                     kind, confidence
 
 === table {#called-by format=csv}
 from,                                            to,                 kind, site
-geml-viewer--content.js.geml#main,               #renderDocument,    call, integrations/geml-viewer/src/content.js:93
+geml-viewer--content.js.geml#main,               #renderDocument,    call, integrations/geml-viewer/src/content.js:94
 #renderDocument,                                 #selectSection,     call, integrations/geml-viewer/src/render.js:22
 #selectSection,                                  #containsId,        call, integrations/geml-viewer/src/render.js:54
 #renderDocument,                                 #focusBanner,       call, integrations/geml-viewer/src/render.js:25
-geml-viewer--content.js.geml#main,               #viewerDiagnostics, call, integrations/geml-viewer/src/content.js:80
+geml-viewer--content.js.geml#main,               #viewerDiagnostics, call, integrations/geml-viewer/src/content.js:81
 #renderDocument,                                 #collectLabels,     call, integrations/geml-viewer/src/render.js:19
-geml-viewer--transclude.js.geml#expandOne,       #collectLabels,     call, integrations/geml-viewer/src/transclude.js:132
-geml-viewer--transclude.js.geml#expandOneInline, #collectLabels,     call, integrations/geml-viewer/src/transclude.js:247
+geml-viewer--transclude.js.geml#expandOne,       #collectLabels,     call, integrations/geml-viewer/src/transclude.js:195
+geml-viewer--transclude.js.geml#expandOneInline, #collectLabels,     call, integrations/geml-viewer/src/transclude.js:356
 #focusBanner,                                    #el,                call, integrations/geml-viewer/src/render.js:67
 #focusBanner,                                    #el,                call, integrations/geml-viewer/src/render.js:69
 #renderInline,                                   #el,                call, integrations/geml-viewer/src/render.js:128
@@ -209,99 +209,99 @@ geml-viewer--transclude.js.geml#expandOneInline, #collectLabels,     call, integ
 #renderInline,                                   #el,                call, integrations/geml-viewer/src/render.js:131
 #renderInline,                                   #el,                call, integrations/geml-viewer/src/render.js:135
 #renderInline,                                   #el,                call, integrations/geml-viewer/src/render.js:139
-#renderInline,                                   #el,                call, integrations/geml-viewer/src/render.js:147
-#renderInline,                                   #el,                call, integrations/geml-viewer/src/render.js:161
-#renderInline,                                   #el,                call, integrations/geml-viewer/src/render.js:164
-#renderInline,                                   #el,                call, integrations/geml-viewer/src/render.js:164
-#renderMedia,                                    #el,                call, integrations/geml-viewer/src/render.js:249
-#renderMedia,                                    #el,                call, integrations/geml-viewer/src/render.js:255
-#renderMedia,                                    #el,                call, integrations/geml-viewer/src/render.js:264
-#renderMedia,                                    #el,                call, integrations/geml-viewer/src/render.js:265
-#renderMedia,                                    #el,                call, integrations/geml-viewer/src/render.js:266
-#renderBlock,                                    #el,                call, integrations/geml-viewer/src/render.js:282
-#renderBlock,                                    #el,                call, integrations/geml-viewer/src/render.js:286
-#renderBlock,                                    #el,                call, integrations/geml-viewer/src/render.js:293
+#renderInline,                                   #el,                call, integrations/geml-viewer/src/render.js:152
+#renderInline,                                   #el,                call, integrations/geml-viewer/src/render.js:169
+#renderInline,                                   #el,                call, integrations/geml-viewer/src/render.js:172
+#renderInline,                                   #el,                call, integrations/geml-viewer/src/render.js:172
+#renderMedia,                                    #el,                call, integrations/geml-viewer/src/render.js:257
+#renderMedia,                                    #el,                call, integrations/geml-viewer/src/render.js:263
+#renderMedia,                                    #el,                call, integrations/geml-viewer/src/render.js:272
+#renderMedia,                                    #el,                call, integrations/geml-viewer/src/render.js:273
+#renderMedia,                                    #el,                call, integrations/geml-viewer/src/render.js:274
+#renderBlock,                                    #el,                call, integrations/geml-viewer/src/render.js:297
 #renderBlock,                                    #el,                call, integrations/geml-viewer/src/render.js:301
-#renderBlock,                                    #el,                call, integrations/geml-viewer/src/render.js:304
-#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:331
-#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:332
-#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:336
-#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:341
-#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:346
-#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:347
-#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:353
-#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:360
-#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:362
-#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:365
-#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:369
-#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:372
-#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:412
-#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:413
-#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:415
-#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:429
-#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:430
-#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:433
-#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:433
-#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:439
-#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:439
-#rawBlock,                                       #el,                call, integrations/geml-viewer/src/render.js:452
-#rawBlock,                                       #el,                call, integrations/geml-viewer/src/render.js:453
-#rawBlock,                                       #el,                call, integrations/geml-viewer/src/render.js:454
-#rawBlock,                                       #el,                call, integrations/geml-viewer/src/render.js:454
-#renderTable,                                    #el,                call, integrations/geml-viewer/src/render.js:466
-#renderTable,                                    #el,                call, integrations/geml-viewer/src/render.js:467
-#renderTable,                                    #el,                call, integrations/geml-viewer/src/render.js:468
-#renderTable,                                    #el,                call, integrations/geml-viewer/src/render.js:472
-#renderTable,                                    #el,                call, integrations/geml-viewer/src/render.js:473
-#renderTable,                                    #el,                call, integrations/geml-viewer/src/render.js:476
-#renderTable,                                    #el,                call, integrations/geml-viewer/src/render.js:477
-#renderTable,                                    #el,                call, integrations/geml-viewer/src/render.js:478
-#renderTable,                                    #el,                call, integrations/geml-viewer/src/render.js:483
-#renderRow,                                      #el,                call, integrations/geml-viewer/src/render.js:493
-#renderRow,                                      #el,                call, integrations/geml-viewer/src/render.js:497
-#diagBox,                                        #el,                call, integrations/geml-viewer/src/render.js:535
-#diagBox,                                        #el,                call, integrations/geml-viewer/src/render.js:536
-#diagBox,                                        #el,                call, integrations/geml-viewer/src/render.js:537
-#diagBox,                                        #el,                call, integrations/geml-viewer/src/render.js:538
+#renderBlock,                                    #el,                call, integrations/geml-viewer/src/render.js:308
+#renderBlock,                                    #el,                call, integrations/geml-viewer/src/render.js:316
+#renderBlock,                                    #el,                call, integrations/geml-viewer/src/render.js:319
+#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:357
+#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:358
+#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:366
+#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:371
+#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:376
+#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:377
+#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:383
+#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:390
+#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:392
+#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:395
+#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:399
+#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:402
+#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:442
+#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:443
+#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:445
+#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:459
+#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:460
+#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:463
+#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:463
+#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:469
+#renderTyped,                                    #el,                call, integrations/geml-viewer/src/render.js:469
+#rawBlock,                                       #el,                call, integrations/geml-viewer/src/render.js:482
+#rawBlock,                                       #el,                call, integrations/geml-viewer/src/render.js:483
+#rawBlock,                                       #el,                call, integrations/geml-viewer/src/render.js:484
+#rawBlock,                                       #el,                call, integrations/geml-viewer/src/render.js:484
+#renderTable,                                    #el,                call, integrations/geml-viewer/src/render.js:502
+#renderTable,                                    #el,                call, integrations/geml-viewer/src/render.js:503
+#renderTable,                                    #el,                call, integrations/geml-viewer/src/render.js:504
+#renderTable,                                    #el,                call, integrations/geml-viewer/src/render.js:508
+#renderTable,                                    #el,                call, integrations/geml-viewer/src/render.js:509
+#renderTable,                                    #el,                call, integrations/geml-viewer/src/render.js:512
+#renderTable,                                    #el,                call, integrations/geml-viewer/src/render.js:513
+#renderTable,                                    #el,                call, integrations/geml-viewer/src/render.js:514
+#renderTable,                                    #el,                call, integrations/geml-viewer/src/render.js:519
+#renderRow,                                      #el,                call, integrations/geml-viewer/src/render.js:529
+#renderRow,                                      #el,                call, integrations/geml-viewer/src/render.js:533
+#diagBox,                                        #el,                call, integrations/geml-viewer/src/render.js:571
+#diagBox,                                        #el,                call, integrations/geml-viewer/src/render.js:572
+#diagBox,                                        #el,                call, integrations/geml-viewer/src/render.js:573
+#diagBox,                                        #el,                call, integrations/geml-viewer/src/render.js:574
 #renderInline,                                   #renderInlines,     call, integrations/geml-viewer/src/render.js:128
 #renderInline,                                   #renderInlines,     call, integrations/geml-viewer/src/render.js:129
 #renderInline,                                   #renderInlines,     call, integrations/geml-viewer/src/render.js:130
 #renderInline,                                   #renderInlines,     call, integrations/geml-viewer/src/render.js:139
-#renderBlock,                                    #renderInlines,     call, integrations/geml-viewer/src/render.js:282
-#renderBlock,                                    #renderInlines,     call, integrations/geml-viewer/src/render.js:286
-#renderBlock,                                    #renderInlines,     call, integrations/geml-viewer/src/render.js:295
-#renderRow,                                      #renderInlines,     call, integrations/geml-viewer/src/render.js:499
-geml-viewer--transclude.js.geml#expandOneInline, #renderInlines,     call, integrations/geml-viewer/src/transclude.js:247
+#renderBlock,                                    #renderInlines,     call, integrations/geml-viewer/src/render.js:297
+#renderBlock,                                    #renderInlines,     call, integrations/geml-viewer/src/render.js:301
+#renderBlock,                                    #renderInlines,     call, integrations/geml-viewer/src/render.js:310
+#renderRow,                                      #renderInlines,     call, integrations/geml-viewer/src/render.js:535
+geml-viewer--transclude.js.geml#expandOneInline, #renderInlines,     call, integrations/geml-viewer/src/transclude.js:356
 #renderInlines,                                  #renderInline,      call, integrations/geml-viewer/src/render.js:121
-#isSafeHref,                                     #schemeOf,          call, integrations/geml-viewer/src/render.js:192
-#isSafeMediaSrc,                                 #schemeOf,          call, integrations/geml-viewer/src/render.js:204
-#isRemoteSrc,                                    #schemeOf,          call, integrations/geml-viewer/src/render.js:216
-#renderInline,                                   #isSafeHref,        call, integrations/geml-viewer/src/render.js:146
-#renderInline,                                   #isSafeHref,        call, integrations/geml-viewer/src/render.js:160
-#linkAttrs,                                      #isSafeHref,        call, integrations/geml-viewer/src/render.js:232
-#renderTyped,                                    #isSafeHref,        call, integrations/geml-viewer/src/render.js:325
-#renderMedia,                                    #isSafeMediaSrc,    call, integrations/geml-viewer/src/render.js:249
-#renderMedia,                                    #isRemoteSrc,       call, integrations/geml-viewer/src/render.js:254
-#linkAttrs,                                      #mergeRel,          call, integrations/geml-viewer/src/render.js:238
+#isSafeHref,                                     #schemeOf,          call, integrations/geml-viewer/src/render.js:200
+#isSafeMediaSrc,                                 #schemeOf,          call, integrations/geml-viewer/src/render.js:212
+#isRemoteSrc,                                    #schemeOf,          call, integrations/geml-viewer/src/render.js:224
+#renderInline,                                   #isSafeHref,        call, integrations/geml-viewer/src/render.js:151
+#renderInline,                                   #isSafeHref,        call, integrations/geml-viewer/src/render.js:168
+#linkAttrs,                                      #isSafeHref,        call, integrations/geml-viewer/src/render.js:240
+#renderTyped,                                    #isSafeHref,        call, integrations/geml-viewer/src/render.js:342
+#renderMedia,                                    #isSafeMediaSrc,    call, integrations/geml-viewer/src/render.js:257
+#renderMedia,                                    #isRemoteSrc,       call, integrations/geml-viewer/src/render.js:262
+#linkAttrs,                                      #mergeRel,          call, integrations/geml-viewer/src/render.js:246
 #renderInline,                                   #linkAttrs,         call, integrations/geml-viewer/src/render.js:139
 #renderInline,                                   #renderMedia,       call, integrations/geml-viewer/src/render.js:137
-#renderMedia,                                    #inferKind,         call, integrations/geml-viewer/src/render.js:247
+#renderMedia,                                    #inferKind,         call, integrations/geml-viewer/src/render.js:255
 #renderDocument,                                 #renderBlock,       call, integrations/geml-viewer/src/render.js:32
-#renderTyped,                                    #renderBlock,       call, integrations/geml-viewer/src/render.js:337
-#renderTyped,                                    #renderBlock,       call, integrations/geml-viewer/src/render.js:342
-geml-viewer--transclude.js.geml#expandOne,       #renderBlock,       call, integrations/geml-viewer/src/transclude.js:136
-#renderBlock,                                    #renderTyped,       call, integrations/geml-viewer/src/render.js:307
-#renderTyped,                                    #rawBlock,          call, integrations/geml-viewer/src/render.js:354
-#renderTyped,                                    #rawBlock,          call, integrations/geml-viewer/src/render.js:396
-#renderTyped,                                    #rawBlock,          call, integrations/geml-viewer/src/render.js:445
-#renderTyped,                                    #rawBlock,          call, integrations/geml-viewer/src/render.js:448
-#renderTyped,                                    #renderTable,       call, integrations/geml-viewer/src/render.js:334
-#renderTable,                                    #renderRow,         call, integrations/geml-viewer/src/render.js:486
-#renderTable,                                    #renderRow,         call, integrations/geml-viewer/src/render.js:487
-#renderRow,                                      #applySpan,         call, integrations/geml-viewer/src/render.js:505
+#renderTyped,                                    #renderBlock,       call, integrations/geml-viewer/src/render.js:367
+#renderTyped,                                    #renderBlock,       call, integrations/geml-viewer/src/render.js:372
+geml-viewer--transclude.js.geml#expandOne,       #renderBlock,       call, integrations/geml-viewer/src/transclude.js:199
+#renderBlock,                                    #renderTyped,       call, integrations/geml-viewer/src/render.js:322
+#renderTyped,                                    #rawBlock,          call, integrations/geml-viewer/src/render.js:384
+#renderTyped,                                    #rawBlock,          call, integrations/geml-viewer/src/render.js:426
+#renderTyped,                                    #rawBlock,          call, integrations/geml-viewer/src/render.js:475
+#renderTyped,                                    #rawBlock,          call, integrations/geml-viewer/src/render.js:478
+#renderTyped,                                    #renderTable,       call, integrations/geml-viewer/src/render.js:364
+#renderTable,                                    #renderRow,         call, integrations/geml-viewer/src/render.js:522
+#renderTable,                                    #renderRow,         call, integrations/geml-viewer/src/render.js:523
+#renderRow,                                      #applySpan,         call, integrations/geml-viewer/src/render.js:541
 #renderDocument,                                 #renderDiagnostics, call, integrations/geml-viewer/src/render.js:16
-#renderDiagnostics,                              #diagBox,           call, integrations/geml-viewer/src/render.js:529
-#renderDiagnostics,                              #diagBox,           call, integrations/geml-viewer/src/render.js:530
+#renderDiagnostics,                              #diagBox,           call, integrations/geml-viewer/src/render.js:565
+#renderDiagnostics,                              #diagBox,           call, integrations/geml-viewer/src/render.js:566
 ===
 
 === table {#unresolved format=csv hidden}

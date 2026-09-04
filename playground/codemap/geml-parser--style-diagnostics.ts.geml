@@ -8,7 +8,7 @@ resolution-default = cpg
 
 # geml-parser/style-diagnostics.ts
 
-=== code {#styleDiag .leaf src=geml-parser/src/style-diagnostics.ts#L51-55 anchor="scip-typescript npm @geml/geml 1.9.1 src/`style-diagnostics.ts`/styleDiag()."}
+=== code {#styleDiag .leaf src=geml-parser/src/style-diagnostics.ts#L51-55 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-diagnostics.ts`/styleDiag()."}
 ===
 
 === table {#called-by format=csv}

@@ -8,22 +8,22 @@ resolution-default = cpg
 
 # geml-parser/style-resolve.ts
 
-=== code {#typedBlocks src=geml-parser/src/style-resolve.ts#L72-78 anchor="scip-typescript npm @geml/geml 1.9.1 src/`style-resolve.ts`/typedBlocks()."}
+=== code {#typedBlocks src=geml-parser/src/style-resolve.ts#L72-78 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-resolve.ts`/typedBlocks()."}
 ===
 
-=== code {#str .leaf src=geml-parser/src/style-resolve.ts#L80-82 anchor="scip-typescript npm @geml/geml 1.9.1 src/`style-resolve.ts`/str()."}
+=== code {#str .leaf src=geml-parser/src/style-resolve.ts#L80-82 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-resolve.ts`/str()."}
 ===
 
-=== code {#loadStylesheet src=geml-parser/src/style-resolve.ts#L85-149 anchor="scip-typescript npm @geml/geml 1.9.1 src/`style-resolve.ts`/loadStylesheet()."}
+=== code {#loadStylesheet src=geml-parser/src/style-resolve.ts#L85-149 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-resolve.ts`/loadStylesheet()."}
 ===
 
-=== code {#ruleProps .leaf src=geml-parser/src/style-resolve.ts#L209-216 anchor="scip-typescript npm @geml/geml 1.9.1 src/`style-resolve.ts`/ruleProps()."}
+=== code {#ruleProps .leaf src=geml-parser/src/style-resolve.ts#L209-216 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-resolve.ts`/ruleProps()."}
 ===
 
-=== code {#resolveBindings src=geml-parser/src/style-resolve.ts#L225-277 anchor="scip-typescript npm @geml/geml 1.9.1 src/`style-resolve.ts`/resolveBindings()."}
+=== code {#resolveBindings src=geml-parser/src/style-resolve.ts#L225-277 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-resolve.ts`/resolveBindings()."}
 ===
 
-=== code {#resolveStyle src=geml-parser/src/style-resolve.ts#L288-416 anchor="scip-typescript npm @geml/geml 1.9.1 src/`style-resolve.ts`/resolveStyle()."}
+=== code {#resolveStyle src=geml-parser/src/style-resolve.ts#L288-416 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-resolve.ts`/resolveStyle()."}
 ===
 
 === table {#calls format=csv}
@@ -98,12 +98,12 @@ from,                              to,               kind, site
 #loadStylesheet,                   #str,             call, geml-parser/src/style-resolve.ts:129
 #loadStylesheet,                   #str,             call, geml-parser/src/style-resolve.ts:132
 #loadStylesheet,                   #str,             call, geml-parser/src/style-resolve.ts:144
-geml-parser--cli.ts.geml#runStyle, #loadStylesheet,  call, geml-parser/src/cli.ts:2420
+geml-parser--cli.ts.geml#runStyle, #loadStylesheet,  call, geml-parser/src/cli.ts:2604
 #resolveBindings,                  #ruleProps,       call, geml-parser/src/style-resolve.ts:255
 #resolveStyle,                     #ruleProps,       call, geml-parser/src/style-resolve.ts:359
 #resolveStyle,                     #resolveBindings, call, geml-parser/src/style-resolve.ts:310
 #resolveStyle,                     #resolveBindings, call, geml-parser/src/style-resolve.ts:312
-geml-parser--cli.ts.geml#runStyle, #resolveStyle,    call, geml-parser/src/cli.ts:2422
+geml-parser--cli.ts.geml#runStyle, #resolveStyle,    call, geml-parser/src/cli.ts:2606
 ===
 
 === table {#unresolved format=csv hidden}

@@ -8,46 +8,69 @@ resolution-default = cpg
 
 # geml-viewer/transclude.js
 
-=== code {#expandTransclusions src=integrations/geml-viewer/src/transclude.js#L35-62 anchor="scip-typescript npm geml-viewer 1.2.5 src/`transclude.js`/expandTransclusions()."}
+=== code {#expandTransclusions src=integrations/geml-viewer/src/transclude.js#L47-91 anchor="scip-typescript npm geml-viewer 1.3.0 src/`transclude.js`/expandTransclusions()."}
 ===
 
-=== code {#expandOne src=integrations/geml-viewer/src/transclude.js#L70-196 anchor="scip-typescript npm geml-viewer 1.2.5 src/`transclude.js`/expandOne()."}
+=== code {#runBounded src=integrations/geml-viewer/src/transclude.js#L103-111 anchor="scip-typescript npm geml-viewer 1.3.0 src/`transclude.js`/runBounded()."}
 ===
 
-=== code {#expandOneInline src=integrations/geml-viewer/src/transclude.js#L204-274 anchor="scip-typescript npm geml-viewer 1.2.5 src/`transclude.js`/expandOneInline()."}
+=== code {#unreserve .leaf src=integrations/geml-viewer/src/transclude.js#L120-123 anchor="scip-typescript npm geml-viewer 1.3.0 src/`transclude.js`/unreserve()."}
 ===
 
-=== code {#refusalNote .leaf src=integrations/geml-viewer/src/transclude.js#L287-292 anchor="scip-typescript npm geml-viewer 1.2.5 src/`transclude.js`/refusalNote()."}
+=== code {#expandOne src=integrations/geml-viewer/src/transclude.js#L125-305 anchor="scip-typescript npm geml-viewer 1.3.0 src/`transclude.js`/expandOne()."}
 ===
 
-=== code {#offerTranslation src=integrations/geml-viewer/src/transclude.js#L294-318 anchor="scip-typescript npm geml-viewer 1.2.5 src/`transclude.js`/offerTranslation()."}
+=== code {#expandOneInline src=integrations/geml-viewer/src/transclude.js#L313-383 anchor="scip-typescript npm geml-viewer 1.3.0 src/`transclude.js`/expandOneInline()."}
 ===
 
-=== code {#refuseInline .leaf src=integrations/geml-viewer/src/transclude.js#L320-323 anchor="scip-typescript npm geml-viewer 1.2.5 src/`transclude.js`/refuseInline()."}
+=== code {#refusalNote .leaf src=integrations/geml-viewer/src/transclude.js#L396-417 anchor="scip-typescript npm geml-viewer 1.3.0 src/`transclude.js`/refusalNote()."}
 ===
 
-=== code {#note .leaf src=integrations/geml-viewer/src/transclude.js#L326-336 anchor="scip-typescript npm geml-viewer 1.2.5 src/`transclude.js`/note()."}
+=== code {#word src=integrations/geml-viewer/src/transclude.js#L435-435 anchor="scip-typescript npm geml-viewer 1.3.0 src/`transclude.js`/word."}
 ===
 
-=== code {#loadChildren src=integrations/geml-viewer/src/transclude.js#L349-373 anchor="scip-typescript npm geml-viewer 1.2.5 src/`transclude.js`/loadChildren()."}
+=== code {#pendingBar src=integrations/geml-viewer/src/transclude.js#L451-457 anchor="scip-typescript npm geml-viewer 1.3.0 src/`transclude.js`/pendingBar()."}
 ===
 
-=== code {#isRelativeUrl src=integrations/geml-viewer/src/transclude.js#L377-380 anchor="scip-typescript npm geml-viewer 1.2.5 src/`transclude.js`/isRelativeUrl()."}
+=== code {#sourceToggle src=integrations/geml-viewer/src/transclude.js#L459-486 anchor="scip-typescript npm geml-viewer 1.3.0 src/`transclude.js`/sourceToggle()."}
 ===
 
-=== code {#rebase .leaf src=integrations/geml-viewer/src/transclude.js#L381-383 anchor="scip-typescript npm geml-viewer 1.2.5 src/`transclude.js`/rebase()."}
+=== code {#retryTranslation src=integrations/geml-viewer/src/transclude.js#L488-510 anchor="scip-typescript npm geml-viewer 1.3.0 src/`transclude.js`/retryTranslation()."}
 ===
 
-=== code {#selectProject src=integrations/geml-viewer/src/transclude.js#L392-399 anchor="scip-typescript npm geml-viewer 1.2.5 src/`transclude.js`/selectProject()."}
+=== code {#offerTranslation src=integrations/geml-viewer/src/transclude.js#L512-536 anchor="scip-typescript npm geml-viewer 1.3.0 src/`transclude.js`/offerTranslation()."}
 ===
 
-=== code {#findProjectTarget .leaf src=integrations/geml-viewer/src/transclude.js#L401-410 anchor="scip-typescript npm geml-viewer 1.2.5 src/`transclude.js`/findProjectTarget()."}
+=== code {#refuseInline .leaf src=integrations/geml-viewer/src/transclude.js#L538-541 anchor="scip-typescript npm geml-viewer 1.3.0 src/`transclude.js`/refuseInline()."}
+===
+
+=== code {#note .leaf src=integrations/geml-viewer/src/transclude.js#L544-554 anchor="scip-typescript npm geml-viewer 1.3.0 src/`transclude.js`/note()."}
+===
+
+=== code {#loadChildren src=integrations/geml-viewer/src/transclude.js#L567-579 anchor="scip-typescript npm geml-viewer 1.3.0 src/`transclude.js`/loadChildren()."}
+===
+
+=== code {#fetchChildren src=integrations/geml-viewer/src/transclude.js#L581-603 anchor="scip-typescript npm geml-viewer 1.3.0 src/`transclude.js`/fetchChildren()."}
+===
+
+=== code {#isRelativeUrl src=integrations/geml-viewer/src/transclude.js#L607-610 anchor="scip-typescript npm geml-viewer 1.3.0 src/`transclude.js`/isRelativeUrl()."}
+===
+
+=== code {#rebase .leaf src=integrations/geml-viewer/src/transclude.js#L611-613 anchor="scip-typescript npm geml-viewer 1.3.0 src/`transclude.js`/rebase()."}
+===
+
+=== code {#selectProject src=integrations/geml-viewer/src/transclude.js#L622-629 anchor="scip-typescript npm geml-viewer 1.3.0 src/`transclude.js`/selectProject()."}
+===
+
+=== code {#findProjectTarget .leaf src=integrations/geml-viewer/src/transclude.js#L631-640 anchor="scip-typescript npm geml-viewer 1.3.0 src/`transclude.js`/findProjectTarget()."}
 ===
 
 === table {#calls format=csv}
 from,                 to,                                                    kind, confidence
 #expandTransclusions, #expandOne,                                            call,
 #expandTransclusions, #expandOneInline,                                      call,
+#expandTransclusions, #runBounded,                                           call,
+#expandTransclusions, geml-viewer--translate-browser.js.geml#translateSlice, call,
 #expandOne,           #isRelativeUrl,                                        call,
 #expandOne,           #isRelativeUrl,                                        call,
 #expandOne,           #loadChildren,                                         call,
@@ -59,9 +82,15 @@ from,                 to,                                                    kin
 #expandOne,           #note,                                                 call,
 #expandOne,           #note,                                                 call,
 #expandOne,           #offerTranslation,                                     call,
+#expandOne,           #pendingBar,                                           call,
 #expandOne,           #rebase,                                               call,
 #expandOne,           #rebase,                                               call,
 #expandOne,           #refusalNote,                                          call,
+#expandOne,           #retryTranslation,                                     call,
+#expandOne,           #sourceToggle,                                         call,
+#expandOne,           #unreserve,                                            call,
+#expandOne,           #unreserve,                                            call,
+#expandOne,           #unreserve,                                            call,
 #expandOne,           geml-viewer--render.js.geml#collectLabels,             call,
 #expandOne,           geml-viewer--render.js.geml#renderBlock,               call,
 #expandOne,           geml-viewer--translate-browser.js.geml#translateSlice, call,
@@ -83,56 +112,79 @@ from,                 to,                                                    kin
 #expandOneInline,     #selectProject,                                        call,
 #expandOneInline,     geml-viewer--render.js.geml#collectLabels,             call,
 #expandOneInline,     geml-viewer--render.js.geml#renderInlines,             call,
+#pendingBar,          #word,                                                 call,
+#sourceToggle,        #word,                                                 call,
+#sourceToggle,        #word,                                                 call,
+#retryTranslation,    geml-viewer--translate-browser.js.geml#translateSlice, call,
 #offerTranslation,    geml-viewer--translate-browser.js.geml#translateSlice, call,
-#loadChildren,        geml-viewer--inline-src.js.geml#hasSrcTable,           call,
-#loadChildren,        geml-viewer--inline-src.js.geml#inlineSrcTables,       call,
-#loadChildren,        geml-viewer--inline-src.js.geml#looksTabular,          call,
+#loadChildren,        #fetchChildren,                                        call,
+#fetchChildren,       geml-viewer--inline-src.js.geml#hasSrcTable,           call,
+#fetchChildren,       geml-viewer--inline-src.js.geml#inlineSrcTables,       call,
+#fetchChildren,       geml-viewer--inline-src.js.geml#looksTabular,          call,
 #selectProject,       #findProjectTarget,                                    call,
 ===
 
 === table {#called-by format=csv}
 from,                              to,                   kind, site
-geml-viewer--content.js.geml#main, #expandTransclusions, call, integrations/geml-viewer/src/content.js:101
-#expandTransclusions,              #expandOne,           call, integrations/geml-viewer/src/transclude.js:53
-#expandTransclusions,              #expandOneInline,     call, integrations/geml-viewer/src/transclude.js:60
-#expandOne,                        #refusalNote,         call, integrations/geml-viewer/src/transclude.js:163
-#expandOne,                        #offerTranslation,    call, integrations/geml-viewer/src/transclude.js:162
-#expandOneInline,                  #refuseInline,        call, integrations/geml-viewer/src/transclude.js:212
-#expandOneInline,                  #refuseInline,        call, integrations/geml-viewer/src/transclude.js:217
-#expandOneInline,                  #refuseInline,        call, integrations/geml-viewer/src/transclude.js:221
-#expandOneInline,                  #refuseInline,        call, integrations/geml-viewer/src/transclude.js:222
-#expandOneInline,                  #refuseInline,        call, integrations/geml-viewer/src/transclude.js:223
-#expandOneInline,                  #refuseInline,        call, integrations/geml-viewer/src/transclude.js:224
-#expandOneInline,                  #refuseInline,        call, integrations/geml-viewer/src/transclude.js:225
-#expandOneInline,                  #refuseInline,        call, integrations/geml-viewer/src/transclude.js:230
-#expandOneInline,                  #refuseInline,        call, integrations/geml-viewer/src/transclude.js:237
-#expandOneInline,                  #refuseInline,        call, integrations/geml-viewer/src/transclude.js:239
-#expandOne,                        #note,                call, integrations/geml-viewer/src/transclude.js:84
-#expandOne,                        #note,                call, integrations/geml-viewer/src/transclude.js:95
-#expandOne,                        #note,                call, integrations/geml-viewer/src/transclude.js:98
-#expandOne,                        #note,                call, integrations/geml-viewer/src/transclude.js:101
-#expandOne,                        #note,                call, integrations/geml-viewer/src/transclude.js:104
-#expandOne,                        #note,                call, integrations/geml-viewer/src/transclude.js:110
-#expandOne,                        #note,                call, integrations/geml-viewer/src/transclude.js:122
-#expandOne,                        #loadChildren,        call, integrations/geml-viewer/src/transclude.js:109
-#expandOneInline,                  #loadChildren,        call, integrations/geml-viewer/src/transclude.js:229
-#expandOne,                        #isRelativeUrl,       call, integrations/geml-viewer/src/transclude.js:184
-#expandOne,                        #isRelativeUrl,       call, integrations/geml-viewer/src/transclude.js:188
-#expandOneInline,                  #isRelativeUrl,       call, integrations/geml-viewer/src/transclude.js:262
-#expandOneInline,                  #isRelativeUrl,       call, integrations/geml-viewer/src/transclude.js:266
-#expandOne,                        #rebase,              call, integrations/geml-viewer/src/transclude.js:184
-#expandOne,                        #rebase,              call, integrations/geml-viewer/src/transclude.js:188
-#expandOneInline,                  #rebase,              call, integrations/geml-viewer/src/transclude.js:262
-#expandOneInline,                  #rebase,              call, integrations/geml-viewer/src/transclude.js:266
-#expandOneInline,                  #selectProject,       call, integrations/geml-viewer/src/transclude.js:234
-#selectProject,                    #findProjectTarget,   call, integrations/geml-viewer/src/transclude.js:393
+geml-viewer--content.js.geml#main, #expandTransclusions, call, integrations/geml-viewer/src/content.js:102
+#expandTransclusions,              #runBounded,          call, integrations/geml-viewer/src/transclude.js:76
+#expandOne,                        #unreserve,           call, integrations/geml-viewer/src/transclude.js:167
+#expandOne,                        #unreserve,           call, integrations/geml-viewer/src/transclude.js:173
+#expandOne,                        #unreserve,           call, integrations/geml-viewer/src/transclude.js:185
+#expandTransclusions,              #expandOne,           call, integrations/geml-viewer/src/transclude.js:79
+#expandTransclusions,              #expandOneInline,     call, integrations/geml-viewer/src/transclude.js:86
+#expandOne,                        #refusalNote,         call, integrations/geml-viewer/src/transclude.js:304
+#pendingBar,                       #word,                call, integrations/geml-viewer/src/transclude.js:454
+#sourceToggle,                     #word,                call, integrations/geml-viewer/src/transclude.js:465
+#sourceToggle,                     #word,                call, integrations/geml-viewer/src/transclude.js:465
+#expandOne,                        #pendingBar,          call, integrations/geml-viewer/src/transclude.js:281
+#expandOne,                        #sourceToggle,        call, integrations/geml-viewer/src/transclude.js:295
+#expandOne,                        #retryTranslation,    call, integrations/geml-viewer/src/transclude.js:303
+#expandOne,                        #offerTranslation,    call, integrations/geml-viewer/src/transclude.js:302
+#expandOneInline,                  #refuseInline,        call, integrations/geml-viewer/src/transclude.js:321
+#expandOneInline,                  #refuseInline,        call, integrations/geml-viewer/src/transclude.js:326
+#expandOneInline,                  #refuseInline,        call, integrations/geml-viewer/src/transclude.js:330
+#expandOneInline,                  #refuseInline,        call, integrations/geml-viewer/src/transclude.js:331
+#expandOneInline,                  #refuseInline,        call, integrations/geml-viewer/src/transclude.js:332
+#expandOneInline,                  #refuseInline,        call, integrations/geml-viewer/src/transclude.js:333
+#expandOneInline,                  #refuseInline,        call, integrations/geml-viewer/src/transclude.js:334
+#expandOneInline,                  #refuseInline,        call, integrations/geml-viewer/src/transclude.js:339
+#expandOneInline,                  #refuseInline,        call, integrations/geml-viewer/src/transclude.js:346
+#expandOneInline,                  #refuseInline,        call, integrations/geml-viewer/src/transclude.js:348
+#expandOne,                        #note,                call, integrations/geml-viewer/src/transclude.js:139
+#expandOne,                        #note,                call, integrations/geml-viewer/src/transclude.js:150
+#expandOne,                        #note,                call, integrations/geml-viewer/src/transclude.js:160
+#expandOne,                        #note,                call, integrations/geml-viewer/src/transclude.js:163
+#expandOne,                        #note,                call, integrations/geml-viewer/src/transclude.js:167
+#expandOne,                        #note,                call, integrations/geml-viewer/src/transclude.js:173
+#expandOne,                        #note,                call, integrations/geml-viewer/src/transclude.js:185
+#expandOne,                        #loadChildren,        call, integrations/geml-viewer/src/transclude.js:172
+#expandOneInline,                  #loadChildren,        call, integrations/geml-viewer/src/transclude.js:338
+#loadChildren,                     #fetchChildren,       call, integrations/geml-viewer/src/transclude.js:576
+#expandOne,                        #isRelativeUrl,       call, integrations/geml-viewer/src/transclude.js:230
+#expandOne,                        #isRelativeUrl,       call, integrations/geml-viewer/src/transclude.js:234
+#expandOneInline,                  #isRelativeUrl,       call, integrations/geml-viewer/src/transclude.js:371
+#expandOneInline,                  #isRelativeUrl,       call, integrations/geml-viewer/src/transclude.js:375
+#expandOne,                        #rebase,              call, integrations/geml-viewer/src/transclude.js:230
+#expandOne,                        #rebase,              call, integrations/geml-viewer/src/transclude.js:234
+#expandOneInline,                  #rebase,              call, integrations/geml-viewer/src/transclude.js:371
+#expandOneInline,                  #rebase,              call, integrations/geml-viewer/src/transclude.js:375
+#expandOneInline,                  #selectProject,       call, integrations/geml-viewer/src/transclude.js:343
+#selectProject,                    #findProjectTarget,   call, integrations/geml-viewer/src/transclude.js:623
 ===
 
 === table {#unresolved format=csv hidden}
 from,                 to
 #expandTransclusions, String.replace
+#expandTransclusions, glossaryFrom
+#runBounded,          ArrayConstructor.from
+#runBounded,          Math.min
+#runBounded,          PromiseConstructor.all
 #expandOne,           Array.join
 #expandOne,           Array.push
+#expandOne,           Console.error
+#expandOne,           Promise.catch
+#expandOne,           PromiseConstructor.resolve
 #expandOne,           RegExp.test
 #expandOne,           String.replace
 #expandOne,           resolveTarget
@@ -140,6 +192,7 @@ from,                 to
 #expandOneInline,     Array.join
 #expandOneInline,     RegExp.test
 #expandOneInline,     String.replace
+#word,                String.split
 #offerTranslation,    Math.round
 #isRelativeUrl,       RegExp.test
 #isRelativeUrl,       String.startsWith

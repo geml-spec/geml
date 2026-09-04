@@ -1,0 +1,91 @@
+=== meta
+profile = "geml-codemap/v1"
+module = geml-parser/yaml.ts
+src = geml-parser/src/yaml.ts
+entry = #parseYaml
+resolution-default = cpg
+===
+
+# geml-parser/yaml.ts
+
+=== code {#stripComment src=geml-parser/src/yaml.ts#L51-64 anchor="scip-typescript npm @geml/geml 1.10.0 src/`yaml.ts`/stripComment()."}
+===
+
+=== code {#plainScalar src=geml-parser/src/yaml.ts#L67-74 anchor="scip-typescript npm @geml/geml 1.10.0 src/`yaml.ts`/plainScalar()."}
+===
+
+=== code {#quotedScalar src=geml-parser/src/yaml.ts#L77-87 anchor="scip-typescript npm @geml/geml 1.10.0 src/`yaml.ts`/quotedScalar()."}
+===
+
+=== code {#keyEnd src=geml-parser/src/yaml.ts#L90-103 anchor="scip-typescript npm @geml/geml 1.10.0 src/`yaml.ts`/keyEnd()."}
+===
+
+=== code {#Refusal-new .leaf name="Refusal.new" src=geml-parser/src/yaml.ts#L106-106 anchor="scip-typescript npm @geml/geml 1.10.0 src/`yaml.ts`/Refusal#`<constructor>`()."}
+===
+
+=== code {#parseYaml src=geml-parser/src/yaml.ts#L109-256 anchor="scip-typescript npm @geml/geml 1.10.0 src/`yaml.ts`/parseYaml()."}
+===
+
+=== table {#calls format=csv}
+from,       to,            kind, confidence
+#parseYaml, #keyEnd,       call,
+#parseYaml, #keyEnd,       call,
+#parseYaml, #plainScalar,  call,
+#parseYaml, #quotedScalar, call,
+#parseYaml, #quotedScalar, call,
+#parseYaml, #Refusal-new,  call,
+#parseYaml, #Refusal-new,  call,
+#parseYaml, #Refusal-new,  call,
+#parseYaml, #Refusal-new,  call,
+#parseYaml, #Refusal-new,  call,
+#parseYaml, #Refusal-new,  call,
+#parseYaml, #Refusal-new,  call,
+#parseYaml, #Refusal-new,  call,
+#parseYaml, #Refusal-new,  call,
+#parseYaml, #stripComment, call,
+===
+
+=== table {#called-by format=csv}
+from,                                    to,            kind, site
+#parseYaml,                              #stripComment, call, geml-parser/src/yaml.ts:114
+#parseYaml,                              #plainScalar,  call, geml-parser/src/yaml.ts:172
+#parseYaml,                              #quotedScalar, call, geml-parser/src/yaml.ts:171
+#parseYaml,                              #quotedScalar, call, geml-parser/src/yaml.ts:227
+#parseYaml,                              #keyEnd,       call, geml-parser/src/yaml.ts:204
+#parseYaml,                              #keyEnd,       call, geml-parser/src/yaml.ts:223
+#parseYaml,                              #Refusal-new,  call, geml-parser/src/yaml.ts:137
+#parseYaml,                              #Refusal-new,  call, geml-parser/src/yaml.ts:138
+#parseYaml,                              #Refusal-new,  call, geml-parser/src/yaml.ts:139
+#parseYaml,                              #Refusal-new,  call, geml-parser/src/yaml.ts:141
+#parseYaml,                              #Refusal-new,  call, geml-parser/src/yaml.ts:144
+#parseYaml,                              #Refusal-new,  call, geml-parser/src/yaml.ts:189
+#parseYaml,                              #Refusal-new,  call, geml-parser/src/yaml.ts:221
+#parseYaml,                              #Refusal-new,  call, geml-parser/src/yaml.ts:224
+#parseYaml,                              #Refusal-new,  call, geml-parser/src/yaml.ts:226
+geml-parser--geml.ts.geml#parseDataBody, #parseYaml,    call, geml-parser/src/geml.ts:99
+===
+
+=== table {#unresolved format=csv hidden}
+from,          to
+#stripComment, RegExp.test
+#stripComment, String.slice
+#plainScalar,  RegExp.test
+#plainScalar,  String.trim
+#quotedScalar, Array.join
+#quotedScalar, JSON.parse
+#quotedScalar, String.slice
+#quotedScalar, String.split
+#quotedScalar, String.trim
+#keyEnd,       RegExp.test
+#parseYaml,    Array.join
+#parseYaml,    Array.push
+#parseYaml,    Array.splice
+#parseYaml,    Math.max
+#parseYaml,    RegExp.exec
+#parseYaml,    RegExp.test
+#parseYaml,    String.repeat
+#parseYaml,    String.replace
+#parseYaml,    String.slice
+#parseYaml,    String.startsWith
+#parseYaml,    String.trim
+===

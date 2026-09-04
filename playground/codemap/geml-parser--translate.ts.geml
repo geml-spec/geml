@@ -8,60 +8,114 @@ resolution-default = cpg
 
 # geml-parser/translate.ts
 
-=== code {#resolveTarget src=geml-parser/src/translate.ts#L48-57 anchor="scip-typescript npm @geml/geml 1.9.1 src/`translate.ts`/resolveTarget()."}
+=== code {#resolveTarget src=geml-parser/src/translate.ts#L48-57 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/resolveTarget()."}
 ===
 
-=== code {#translateInlines src=geml-parser/src/translate.ts#L60-80 anchor="scip-typescript npm @geml/geml 1.9.1 src/`translate.ts`/translateInlines()."}
+=== code {#ph .leaf src=geml-parser/src/translate.ts#L76-76 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/ph."}
 ===
 
-=== code {#flatten .leaf src=geml-parser/src/translate.ts#L87-106 anchor="scip-typescript npm @geml/geml 1.9.1 src/`translate.ts`/flatten()."}
+=== code {#phEnd .leaf src=geml-parser/src/translate.ts#L77-77 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/phEnd."}
 ===
 
-=== code {#translateItems src=geml-parser/src/translate.ts#L108-114 anchor="scip-typescript npm @geml/geml 1.9.1 src/`translate.ts`/translateItems()."}
+=== code {#maskTerms src=geml-parser/src/translate.ts#L89-102 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/maskTerms()."}
 ===
 
-=== code {#translateAttrs .leaf src=geml-parser/src/translate.ts#L118-121 anchor="scip-typescript npm @geml/geml 1.9.1 src/`translate.ts`/translateAttrs()."}
+=== code {#mask src=geml-parser/src/translate.ts#L113-140 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/mask()."}
 ===
 
-=== code {#translateTable src=geml-parser/src/translate.ts#L127-139 anchor="scip-typescript npm @geml/geml 1.9.1 src/`translate.ts`/translateTable()."}
+=== code {#rebuild src=geml-parser/src/translate.ts#L149-178 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/rebuild()."}
 ===
 
-=== code {#translateBlocks src=geml-parser/src/translate.ts#L146-175 anchor="scip-typescript npm @geml/geml 1.9.1 src/`translate.ts`/translateBlocks()."}
+=== code {#translateInlines src=geml-parser/src/translate.ts#L180-197 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/translateInlines()."}
+===
+
+=== code {#flatten .leaf src=geml-parser/src/translate.ts#L204-223 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/flatten()."}
+===
+
+=== code {#translateItems src=geml-parser/src/translate.ts#L225-231 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/translateItems()."}
+===
+
+=== code {#translateAttrs .leaf src=geml-parser/src/translate.ts#L235-238 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/translateAttrs()."}
+===
+
+=== code {#translateTable src=geml-parser/src/translate.ts#L244-256 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/translateTable()."}
+===
+
+=== code {#translateBlocks src=geml-parser/src/translate.ts#L263-303 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/translateBlocks()."}
+===
+
+=== code {#glossaryFrom src=geml-parser/src/translate.ts#L317-332 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/glossaryFrom()."}
 ===
 
 === table {#calls format=csv}
-from,             to,                kind, confidence
-#translateItems,  #flatten,          call,
-#translateItems,  #translateBlocks,  call,
-#translateItems,  #translateInlines, call,
-#translateTable,  #translateInlines, call,
-#translateBlocks, #flatten,          call,
-#translateBlocks, #translateAttrs,   call,
-#translateBlocks, #translateInlines, call,
-#translateBlocks, #translateItems,   call,
-#translateBlocks, #translateTable,   call,
+from,              to,                kind, confidence
+#maskTerms,        #ph,               call,
+#mask,             #maskTerms,        call,
+#mask,             #ph,               call,
+#mask,             #ph,               call,
+#mask,             #phEnd,            call,
+#translateInlines, #mask,             call,
+#translateInlines, #rebuild,          call,
+#translateItems,   #flatten,          call,
+#translateItems,   #translateBlocks,  call,
+#translateItems,   #translateInlines, call,
+#translateTable,   #flatten,          call,
+#translateTable,   #translateInlines, call,
+#translateBlocks,  #flatten,          call,
+#translateBlocks,  #translateAttrs,   call,
+#translateBlocks,  #translateInlines, call,
+#translateBlocks,  #translateItems,   call,
+#translateBlocks,  #translateTable,   call,
 ===
 
 === table {#called-by format=csv}
 from,                                             to,                kind, site
-geml-parser--cli.ts.geml#runTransform,            #resolveTarget,    call, geml-parser/src/cli.ts:845
-#translateItems,                                  #translateInlines, call, geml-parser/src/translate.ts:111
-#translateTable,                                  #translateInlines, call, geml-parser/src/translate.ts:131
-#translateBlocks,                                 #translateInlines, call, geml-parser/src/translate.ts:151
-#translateItems,                                  #flatten,          call, geml-parser/src/translate.ts:111
-#translateBlocks,                                 #flatten,          call, geml-parser/src/translate.ts:152
-#translateBlocks,                                 #translateItems,   call, geml-parser/src/translate.ts:155
-#translateBlocks,                                 #translateAttrs,   call, geml-parser/src/translate.ts:162
-#translateBlocks,                                 #translateTable,   call, geml-parser/src/translate.ts:169
-geml-parser--render.ts.geml#RenderCtx-transclude, #translateBlocks,  call, geml-parser/src/render.ts:350
-#translateItems,                                  #translateBlocks,  call, geml-parser/src/translate.ts:112
+geml-parser--cli.ts.geml#runTransform,            #resolveTarget,    call, geml-parser/src/cli.ts:846
+geml-parser--render.ts.geml#RenderCtx-transclude, #resolveTarget,    call, geml-parser/src/render.ts:375
+#maskTerms,                                       #ph,               call, geml-parser/src/translate.ts:96
+#mask,                                            #ph,               call, geml-parser/src/translate.ts:126
+#mask,                                            #ph,               call, geml-parser/src/translate.ts:134
+#mask,                                            #phEnd,            call, geml-parser/src/translate.ts:126
+#mask,                                            #maskTerms,        call, geml-parser/src/translate.ts:118
+#translateInlines,                                #mask,             call, geml-parser/src/translate.ts:187
+#translateInlines,                                #rebuild,          call, geml-parser/src/translate.ts:192
+#translateItems,                                  #translateInlines, call, geml-parser/src/translate.ts:228
+#translateTable,                                  #translateInlines, call, geml-parser/src/translate.ts:248
+#translateBlocks,                                 #translateInlines, call, geml-parser/src/translate.ts:273
+#translateItems,                                  #flatten,          call, geml-parser/src/translate.ts:228
+#translateTable,                                  #flatten,          call, geml-parser/src/translate.ts:248
+#translateBlocks,                                 #flatten,          call, geml-parser/src/translate.ts:274
+#translateBlocks,                                 #translateItems,   call, geml-parser/src/translate.ts:277
+#translateBlocks,                                 #translateAttrs,   call, geml-parser/src/translate.ts:284
+#translateBlocks,                                 #translateTable,   call, geml-parser/src/translate.ts:297
+geml-parser--render.ts.geml#RenderCtx-transclude, #translateBlocks,  call, geml-parser/src/render.ts:377
+#translateItems,                                  #translateBlocks,  call, geml-parser/src/translate.ts:229
 ===
 
 === table {#unresolved format=csv hidden}
 from,              to
 #resolveTarget,    String.trim
+#maskTerms,        Array.push
+#maskTerms,        Array.sort
+#maskTerms,        ReadonlyMap.get
+#maskTerms,        ReadonlyMap.keys
+#maskTerms,        String.indexOf
+#maskTerms,        String.slice
+#mask,             Array.push
+#rebuild,          Array.fill
+#rebuild,          Array.pop
+#rebuild,          Array.push
+#rebuild,          RegExp.exec
+#rebuild,          String.slice
 #translateInlines, Array.map
+#translateInlines, String.replace
+#translateInlines, String.trim
 #translateItems,   Array.map
 #translateTable,   Array.map
 #translateBlocks,  Array.map
+#glossaryFrom,     Array.find
+#glossaryFrom,     Map.set
+#glossaryFrom,     String.slice
+#glossaryFrom,     String.startsWith
+#glossaryFrom,     String.trim
 ===

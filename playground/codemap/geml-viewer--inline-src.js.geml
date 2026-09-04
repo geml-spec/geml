@@ -8,57 +8,73 @@ resolution-default = cpg
 
 # geml-viewer/inline-src.js
 
-=== code {#findSrc src=integrations/geml-viewer/src/inline-src.js#L20-29 anchor="scip-typescript npm geml-viewer 1.2.5 src/`inline-src.js`/findSrc()."}
+=== code {#factsId src=integrations/geml-viewer/src/inline-src.js#L21-24 anchor="scip-typescript npm geml-viewer 1.3.0 src/`inline-src.js`/factsId()."}
 ===
 
-=== code {#findFormat src=integrations/geml-viewer/src/inline-src.js#L32-39 anchor="scip-typescript npm geml-viewer 1.2.5 src/`inline-src.js`/findFormat()."}
+=== code {#namesABlock .leaf src=integrations/geml-viewer/src/inline-src.js#L34-34 anchor="scip-typescript npm geml-viewer 1.3.0 src/`inline-src.js`/namesABlock."}
 ===
 
-=== code {#hasSrcTable src=integrations/geml-viewer/src/inline-src.js#L41-49 anchor="scip-typescript npm geml-viewer 1.2.5 src/`inline-src.js`/hasSrcTable()."}
+=== code {#findSrc src=integrations/geml-viewer/src/inline-src.js#L43-52 anchor="scip-typescript npm geml-viewer 1.3.0 src/`inline-src.js`/findSrc()."}
 ===
 
-=== code {#looksTabular src=integrations/geml-viewer/src/inline-src.js#L55-63 anchor="scip-typescript npm geml-viewer 1.2.5 src/`inline-src.js`/looksTabular()."}
+=== code {#findFormat src=integrations/geml-viewer/src/inline-src.js#L55-62 anchor="scip-typescript npm geml-viewer 1.3.0 src/`inline-src.js`/findFormat()."}
 ===
 
-=== code {#parsesAsData src=integrations/geml-viewer/src/inline-src.js#L67-76 anchor="scip-typescript npm geml-viewer 1.2.5 src/`inline-src.js`/parsesAsData()."}
+=== code {#hasSrcTable src=integrations/geml-viewer/src/inline-src.js#L64-73 anchor="scip-typescript npm geml-viewer 1.3.0 src/`inline-src.js`/hasSrcTable()."}
 ===
 
-=== code {#inlineSrcTables src=integrations/geml-viewer/src/inline-src.js#L81-129 anchor="scip-typescript npm geml-viewer 1.2.5 src/`inline-src.js`/inlineSrcTables()."}
+=== code {#looksTabular src=integrations/geml-viewer/src/inline-src.js#L79-87 anchor="scip-typescript npm geml-viewer 1.3.0 src/`inline-src.js`/looksTabular()."}
+===
+
+=== code {#parsesAsData src=integrations/geml-viewer/src/inline-src.js#L91-100 anchor="scip-typescript npm geml-viewer 1.3.0 src/`inline-src.js`/parsesAsData()."}
+===
+
+=== code {#inlineSrcTables src=integrations/geml-viewer/src/inline-src.js#L105-181 anchor="scip-typescript npm geml-viewer 1.3.0 src/`inline-src.js`/inlineSrcTables()."}
 ===
 
 === table {#calls format=csv}
 from,             to,            kind, confidence
 #hasSrcTable,     #findSrc,      call,
+#hasSrcTable,     #namesABlock,  call,
+#inlineSrcTables, #factsId,      call,
 #inlineSrcTables, #findFormat,   call,
 #inlineSrcTables, #findSrc,      call,
+#inlineSrcTables, #namesABlock,  call,
 #inlineSrcTables, #parsesAsData, call,
 ===
 
 === table {#called-by format=csv}
-from,                                         to,               kind, site
-#hasSrcTable,                                 #findSrc,         call, integrations/geml-viewer/src/inline-src.js:47
-#inlineSrcTables,                             #findSrc,         call, integrations/geml-viewer/src/inline-src.js:86
-#inlineSrcTables,                             #findFormat,      call, integrations/geml-viewer/src/inline-src.js:102
-geml-viewer--content.js.geml#main,            #hasSrcTable,     call, integrations/geml-viewer/src/content.js:40
-geml-viewer--transclude.js.geml#loadChildren, #hasSrcTable,     call, integrations/geml-viewer/src/transclude.js:355
-geml-viewer--content.js.geml#main,            #looksTabular,    call, integrations/geml-viewer/src/content.js:59
-geml-viewer--transclude.js.geml#loadChildren, #looksTabular,    call, integrations/geml-viewer/src/transclude.js:362
-#inlineSrcTables,                             #parsesAsData,    call, integrations/geml-viewer/src/inline-src.js:105
-geml-viewer--content.js.geml#main,            #inlineSrcTables, call, integrations/geml-viewer/src/content.js:42
-geml-viewer--transclude.js.geml#loadChildren, #inlineSrcTables, call, integrations/geml-viewer/src/transclude.js:356
+from,                                          to,               kind, site
+#inlineSrcTables,                              #factsId,         call, integrations/geml-viewer/src/inline-src.js:152
+#hasSrcTable,                                  #namesABlock,     call, integrations/geml-viewer/src/inline-src.js:71
+#inlineSrcTables,                              #namesABlock,     call, integrations/geml-viewer/src/inline-src.js:111
+#hasSrcTable,                                  #findSrc,         call, integrations/geml-viewer/src/inline-src.js:70
+#inlineSrcTables,                              #findSrc,         call, integrations/geml-viewer/src/inline-src.js:110
+#inlineSrcTables,                              #findFormat,      call, integrations/geml-viewer/src/inline-src.js:126
+geml-viewer--content.js.geml#main,             #hasSrcTable,     call, integrations/geml-viewer/src/content.js:41
+geml-viewer--transclude.js.geml#fetchChildren, #hasSrcTable,     call, integrations/geml-viewer/src/transclude.js:586
+geml-viewer--content.js.geml#main,             #looksTabular,    call, integrations/geml-viewer/src/content.js:60
+geml-viewer--transclude.js.geml#fetchChildren, #looksTabular,    call, integrations/geml-viewer/src/transclude.js:593
+#inlineSrcTables,                              #parsesAsData,    call, integrations/geml-viewer/src/inline-src.js:131
+geml-viewer--content.js.geml#main,             #inlineSrcTables, call, integrations/geml-viewer/src/content.js:43
+geml-viewer--transclude.js.geml#fetchChildren, #inlineSrcTables, call, integrations/geml-viewer/src/transclude.js:587
 ===
 
 === table {#unresolved format=csv hidden}
 from,             to
+#factsId,         RegExp.exec
 #findSrc,         RegExp.exec
 #findFormat,      RegExp.exec
 #hasSrcTable,     RegExp.exec
 #looksTabular,    JSON.parse
 #parsesAsData,    JSON.parse
 #inlineSrcTables, Array.join
+#inlineSrcTables, Array.map
 #inlineSrcTables, Array.push
 #inlineSrcTables, RegExp.exec
 #inlineSrcTables, RegExp.test
+#inlineSrcTables, String.matchAll
 #inlineSrcTables, String.replace
 #inlineSrcTables, String.slice
+#inlineSrcTables, String.trim
 ===

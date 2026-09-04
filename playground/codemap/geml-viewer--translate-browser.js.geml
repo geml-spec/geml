@@ -8,16 +8,16 @@ resolution-default = cpg
 
 # geml-viewer/translate-browser.js
 
-=== code {#whyNoTranslator src=integrations/geml-viewer/src/translate-browser.js#L27-39 anchor="scip-typescript npm geml-viewer 1.2.5 src/`translate-browser.js`/whyNoTranslator()."}
+=== code {#whyNoTranslator src=integrations/geml-viewer/src/translate-browser.js#L27-39 anchor="scip-typescript npm geml-viewer 1.3.0 src/`translate-browser.js`/whyNoTranslator()."}
 ===
 
-=== code {#translatorFor src=integrations/geml-viewer/src/translate-browser.js#L41-72 anchor="scip-typescript npm geml-viewer 1.2.5 src/`translate-browser.js`/translatorFor()."}
+=== code {#translatorFor src=integrations/geml-viewer/src/translate-browser.js#L41-72 anchor="scip-typescript npm geml-viewer 1.3.0 src/`translate-browser.js`/translatorFor()."}
 ===
 
-=== code {#detectLanguage .leaf src=integrations/geml-viewer/src/translate-browser.js#L77-88 anchor="scip-typescript npm geml-viewer 1.2.5 src/`translate-browser.js`/detectLanguage()."}
+=== code {#detectLanguage .leaf src=integrations/geml-viewer/src/translate-browser.js#L77-88 anchor="scip-typescript npm geml-viewer 1.3.0 src/`translate-browser.js`/detectLanguage()."}
 ===
 
-=== code {#translateSlice src=integrations/geml-viewer/src/translate-browser.js#L95-123 anchor="scip-typescript npm geml-viewer 1.2.5 src/`translate-browser.js`/translateSlice()."}
+=== code {#translateSlice src=integrations/geml-viewer/src/translate-browser.js#L95-123 anchor="scip-typescript npm geml-viewer 1.3.0 src/`translate-browser.js`/translateSlice()."}
 ===
 
 === table {#calls format=csv}
@@ -28,12 +28,14 @@ from,            to,               kind, confidence
 ===
 
 === table {#called-by format=csv}
-from,                                             to,               kind, site
-#translatorFor,                                   #whyNoTranslator, call, integrations/geml-viewer/src/translate-browser.js:43
-#translateSlice,                                  #translatorFor,   call, integrations/geml-viewer/src/translate-browser.js:105
-#translateSlice,                                  #detectLanguage,  call, integrations/geml-viewer/src/translate-browser.js:102
-geml-viewer--transclude.js.geml#expandOne,        #translateSlice,  call, integrations/geml-viewer/src/transclude.js:150
-geml-viewer--transclude.js.geml#offerTranslation, #translateSlice,  call, integrations/geml-viewer/src/transclude.js:304
+from,                                                to,               kind, site
+#translatorFor,                                      #whyNoTranslator, call, integrations/geml-viewer/src/translate-browser.js:43
+#translateSlice,                                     #translatorFor,   call, integrations/geml-viewer/src/translate-browser.js:105
+#translateSlice,                                     #detectLanguage,  call, integrations/geml-viewer/src/translate-browser.js:102
+geml-viewer--transclude.js.geml#expandTransclusions, #translateSlice,  call, integrations/geml-viewer/src/transclude.js:75
+geml-viewer--transclude.js.geml#expandOne,           #translateSlice,  call, integrations/geml-viewer/src/transclude.js:286
+geml-viewer--transclude.js.geml#retryTranslation,    #translateSlice,  call, integrations/geml-viewer/src/transclude.js:501
+geml-viewer--transclude.js.geml#offerTranslation,    #translateSlice,  call, integrations/geml-viewer/src/transclude.js:522
 ===
 
 === table {#unresolved format=csv hidden}

@@ -8,49 +8,49 @@ resolution-default = cpg
 
 # geml-parser/serialize.ts
 
-=== code {#looksTyped src=geml-parser/src/serialize.ts#L26-33 anchor="scip-typescript npm @geml/geml 1.9.1 src/`serialize.ts`/looksTyped()."}
+=== code {#looksTyped src=geml-parser/src/serialize.ts#L26-33 anchor="scip-typescript npm @geml/geml 1.10.0 src/`serialize.ts`/looksTyped()."}
 ===
 
-=== code {#serAttrValue .leaf src=geml-parser/src/serialize.ts#L36-41 anchor="scip-typescript npm @geml/geml 1.9.1 src/`serialize.ts`/serAttrValue()."}
+=== code {#serAttrValue .leaf src=geml-parser/src/serialize.ts#L36-41 anchor="scip-typescript npm @geml/geml 1.10.0 src/`serialize.ts`/serAttrValue()."}
 ===
 
-=== code {#serAttrs src=geml-parser/src/serialize.ts#L50-58 anchor="scip-typescript npm @geml/geml 1.9.1 src/`serialize.ts`/serAttrs()."}
+=== code {#serAttrs src=geml-parser/src/serialize.ts#L50-58 anchor="scip-typescript npm @geml/geml 1.10.0 src/`serialize.ts`/serAttrs()."}
 ===
 
-=== code {#serDataValue src=geml-parser/src/serialize.ts#L62-66 anchor="scip-typescript npm @geml/geml 1.9.1 src/`serialize.ts`/serDataValue()."}
+=== code {#serDataValue src=geml-parser/src/serialize.ts#L62-66 anchor="scip-typescript npm @geml/geml 1.10.0 src/`serialize.ts`/serDataValue()."}
 ===
 
-=== code {#escText src=geml-parser/src/serialize.ts#L75-77 anchor="scip-typescript npm @geml/geml 1.9.1 src/`serialize.ts`/escText()."}
+=== code {#escText src=geml-parser/src/serialize.ts#L75-77 anchor="scip-typescript npm @geml/geml 1.10.0 src/`serialize.ts`/escText()."}
 ===
 
-=== code {#escMetaRef src=geml-parser/src/serialize.ts#L91-97 anchor="scip-typescript npm @geml/geml 1.9.1 src/`serialize.ts`/escMetaRef()."}
+=== code {#escMetaRef src=geml-parser/src/serialize.ts#L91-97 anchor="scip-typescript npm @geml/geml 1.10.0 src/`serialize.ts`/escMetaRef()."}
 ===
 
-=== code {#longestRun .leaf src=geml-parser/src/serialize.ts#L99-107 anchor="scip-typescript npm @geml/geml 1.9.1 src/`serialize.ts`/longestRun()."}
+=== code {#longestRun .leaf src=geml-parser/src/serialize.ts#L99-107 anchor="scip-typescript npm @geml/geml 1.10.0 src/`serialize.ts`/longestRun()."}
 ===
 
-=== code {#linkDest .leaf src=geml-parser/src/serialize.ts#L109-114 anchor="scip-typescript npm @geml/geml 1.9.1 src/`serialize.ts`/linkDest()."}
+=== code {#linkDest .leaf src=geml-parser/src/serialize.ts#L109-114 anchor="scip-typescript npm @geml/geml 1.10.0 src/`serialize.ts`/linkDest()."}
 ===
 
-=== code {#serInline src=geml-parser/src/serialize.ts#L121-136 anchor="scip-typescript npm @geml/geml 1.9.1 src/`serialize.ts`/serInline()."}
+=== code {#serInline src=geml-parser/src/serialize.ts#L121-136 anchor="scip-typescript npm @geml/geml 1.10.0 src/`serialize.ts`/serInline()."}
 ===
 
-=== code {#serSeq src=geml-parser/src/serialize.ts#L138-140 anchor="scip-typescript npm @geml/geml 1.9.1 src/`serialize.ts`/serSeq()."}
+=== code {#serSeq src=geml-parser/src/serialize.ts#L138-140 anchor="scip-typescript npm @geml/geml 1.10.0 src/`serialize.ts`/serSeq()."}
 ===
 
-=== code {#serInlines src=geml-parser/src/serialize.ts#L146-156 anchor="scip-typescript npm @geml/geml 1.9.1 src/`serialize.ts`/serInlines()."}
+=== code {#serInlines src=geml-parser/src/serialize.ts#L146-156 anchor="scip-typescript npm @geml/geml 1.10.0 src/`serialize.ts`/serInlines()."}
 ===
 
-=== code {#serList src=geml-parser/src/serialize.ts#L162-180 anchor="scip-typescript npm @geml/geml 1.9.1 src/`serialize.ts`/serList()."}
+=== code {#serList src=geml-parser/src/serialize.ts#L162-180 anchor="scip-typescript npm @geml/geml 1.10.0 src/`serialize.ts`/serList()."}
 ===
 
-=== code {#serTypedBlock src=geml-parser/src/serialize.ts#L182-214 anchor="scip-typescript npm @geml/geml 1.9.1 src/`serialize.ts`/serTypedBlock()."}
+=== code {#serTypedBlock src=geml-parser/src/serialize.ts#L182-222 anchor="scip-typescript npm @geml/geml 1.10.0 src/`serialize.ts`/serTypedBlock()."}
 ===
 
-=== code {#serBlock src=geml-parser/src/serialize.ts#L216-230 anchor="scip-typescript npm @geml/geml 1.9.1 src/`serialize.ts`/serBlock()."}
+=== code {#serBlock src=geml-parser/src/serialize.ts#L224-238 anchor="scip-typescript npm @geml/geml 1.10.0 src/`serialize.ts`/serBlock()."}
 ===
 
-=== code {#serialize src=geml-parser/src/serialize.ts#L236-239 anchor="scip-typescript npm @geml/geml 1.9.1 src/`serialize.ts`/serialize()."}
+=== code {#serialize src=geml-parser/src/serialize.ts#L244-247 anchor="scip-typescript npm @geml/geml 1.10.0 src/`serialize.ts`/serialize()."}
 ===
 
 === table {#calls format=csv}
@@ -92,8 +92,8 @@ from,                                  to,             kind, site
 #serAttrs,                             #serAttrValue,  call, geml-parser/src/serialize.ts:55
 #serInline,                            #serAttrs,      call, geml-parser/src/serialize.ts:130
 #serInline,                            #serAttrs,      call, geml-parser/src/serialize.ts:131
-#serTypedBlock,                        #serAttrs,      call, geml-parser/src/serialize.ts:211
-#serBlock,                             #serAttrs,      call, geml-parser/src/serialize.ts:222
+#serTypedBlock,                        #serAttrs,      call, geml-parser/src/serialize.ts:219
+#serBlock,                             #serAttrs,      call, geml-parser/src/serialize.ts:230
 #serTypedBlock,                        #serDataValue,  call, geml-parser/src/serialize.ts:187
 #serInline,                            #escText,       call, geml-parser/src/serialize.ts:123
 #serInline,                            #escMetaRef,    call, geml-parser/src/serialize.ts:123
@@ -108,14 +108,14 @@ from,                                  to,             kind, site
 #serInlines,                           #serSeq,        call, geml-parser/src/serialize.ts:149
 #serInlines,                           #serSeq,        call, geml-parser/src/serialize.ts:155
 #serList,                              #serInlines,    call, geml-parser/src/serialize.ts:170
-#serBlock,                             #serInlines,    call, geml-parser/src/serialize.ts:223
-#serBlock,                             #serInlines,    call, geml-parser/src/serialize.ts:225
-#serBlock,                             #serList,       call, geml-parser/src/serialize.ts:227
-#serBlock,                             #serTypedBlock, call, geml-parser/src/serialize.ts:228
+#serBlock,                             #serInlines,    call, geml-parser/src/serialize.ts:231
+#serBlock,                             #serInlines,    call, geml-parser/src/serialize.ts:233
+#serBlock,                             #serList,       call, geml-parser/src/serialize.ts:235
+#serBlock,                             #serTypedBlock, call, geml-parser/src/serialize.ts:236
 #serList,                              #serBlock,      call, geml-parser/src/serialize.ts:175
 #serTypedBlock,                        #serBlock,      call, geml-parser/src/serialize.ts:185
-#serialize,                            #serBlock,      call, geml-parser/src/serialize.ts:238
-geml-parser--cli.ts.geml#runTransform, #serialize,     call, geml-parser/src/cli.ts:808
+#serialize,                            #serBlock,      call, geml-parser/src/serialize.ts:246
+geml-parser--cli.ts.geml#runTransform, #serialize,     call, geml-parser/src/cli.ts:809
 ===
 
 === table {#unresolved format=csv hidden}
@@ -138,6 +138,7 @@ from,           to
 #serList,       Array.push
 #serList,       String.repeat
 #serList,       String.split
+#serTypedBlock, Array.includes
 #serTypedBlock, Array.join
 #serTypedBlock, Array.map
 #serTypedBlock, ArrayConstructor.isArray

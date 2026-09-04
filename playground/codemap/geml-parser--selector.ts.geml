@@ -2,64 +2,71 @@
 profile = "geml-codemap/v1"
 module = geml-parser/selector.ts
 src = geml-parser/src/selector.ts
-entry = #parseSelector #addressUnits #shortestAddress #matchContent #discoveryHint #matchLine #matchType
+entry = #parseCoordPath #parseSelector #addressUnits #shortestAddress #matchContent #discoveryHint #matchLine #matchType
 resolution-default = cpg
 ===
 
 # geml-parser/selector.ts
 
-=== code {#sha8 src=geml-parser/src/selector.ts#L66-68 anchor="scip-typescript npm @geml/geml 1.9.1 src/`selector.ts`/sha8()."}
+=== code {#sha8 src=geml-parser/src/selector.ts#L82-84 anchor="scip-typescript npm @geml/geml 1.10.0 src/`selector.ts`/sha8()."}
 ===
 
-=== code {#parseSelector src=geml-parser/src/selector.ts#L85-126 anchor="scip-typescript npm @geml/geml 1.9.1 src/`selector.ts`/parseSelector()."}
+=== code {#parseCoordPath src=geml-parser/src/selector.ts#L104-116 anchor="scip-typescript npm @geml/geml 1.10.0 src/`selector.ts`/parseCoordPath()."}
 ===
 
-=== code {#firstKey src=geml-parser/src/selector.ts#L131-135 anchor="scip-typescript npm @geml/geml 1.9.1 src/`selector.ts`/firstKey()."}
+=== code {#parseSelector src=geml-parser/src/selector.ts#L123-173 anchor="scip-typescript npm @geml/geml 1.10.0 src/`selector.ts`/parseSelector()."}
 ===
 
-=== code {#addressUnits src=geml-parser/src/selector.ts#L144-153 anchor="scip-typescript npm @geml/geml 1.9.1 src/`selector.ts`/addressUnits()."}
+=== code {#firstKey src=geml-parser/src/selector.ts#L178-182 anchor="scip-typescript npm @geml/geml 1.10.0 src/`selector.ts`/firstKey()."}
 ===
 
-=== code {#shortestAddress src=geml-parser/src/selector.ts#L159-166 anchor="scip-typescript npm @geml/geml 1.9.1 src/`selector.ts`/shortestAddress()."}
+=== code {#addressUnits src=geml-parser/src/selector.ts#L191-200 anchor="scip-typescript npm @geml/geml 1.10.0 src/`selector.ts`/addressUnits()."}
 ===
 
-=== code {#matchContent src=geml-parser/src/selector.ts#L178-185 anchor="scip-typescript npm @geml/geml 1.9.1 src/`selector.ts`/matchContent()."}
+=== code {#shortestAddress src=geml-parser/src/selector.ts#L206-213 anchor="scip-typescript npm @geml/geml 1.10.0 src/`selector.ts`/shortestAddress()."}
 ===
 
-=== code {#discoveryHint .leaf src=geml-parser/src/selector.ts#L190-192 anchor="scip-typescript npm @geml/geml 1.9.1 src/`selector.ts`/discoveryHint()."}
+=== code {#matchContent src=geml-parser/src/selector.ts#L225-232 anchor="scip-typescript npm @geml/geml 1.10.0 src/`selector.ts`/matchContent()."}
 ===
 
-=== code {#matchLine .leaf src=geml-parser/src/selector.ts#L202-211 anchor="scip-typescript npm @geml/geml 1.9.1 src/`selector.ts`/matchLine()."}
+=== code {#discoveryHint .leaf src=geml-parser/src/selector.ts#L237-239 anchor="scip-typescript npm @geml/geml 1.10.0 src/`selector.ts`/discoveryHint()."}
 ===
 
-=== code {#matchType src=geml-parser/src/selector.ts#L216-218 anchor="scip-typescript npm @geml/geml 1.9.1 src/`selector.ts`/matchType()."}
+=== code {#matchLine .leaf src=geml-parser/src/selector.ts#L249-258 anchor="scip-typescript npm @geml/geml 1.10.0 src/`selector.ts`/matchLine()."}
+===
+
+=== code {#matchType src=geml-parser/src/selector.ts#L263-265 anchor="scip-typescript npm @geml/geml 1.10.0 src/`selector.ts`/matchType()."}
 ===
 
 === table {#calls format=csv}
-from,           to,        kind, confidence
-#parseSelector, #firstKey, call,
-#addressUnits,  #sha8,     call,
+from,           to,              kind, confidence
+#parseSelector, #firstKey,       call,
+#parseSelector, #parseCoordPath, call,
+#addressUnits,  #sha8,           call,
 ===
 
 === table {#called-by format=csv}
-from,                                      to,               kind, site
-#addressUnits,                             #sha8,            call, geml-parser/src/selector.ts:148
-geml-parser--cli.ts.geml#selectUnits,      #parseSelector,   call, geml-parser/src/cli.ts:1122
-geml-parser--cli.ts.geml#runGet,           #parseSelector,   call, geml-parser/src/cli.ts:1353
-geml-parser--cli.ts.geml#resolveSetTarget, #parseSelector,   call, geml-parser/src/cli.ts:1645
-#parseSelector,                            #firstKey,        call, geml-parser/src/selector.ts:102
-geml-parser--geml.ts.geml#addressedUnits,  #addressUnits,    call, geml-parser/src/geml.ts:2277
-geml-parser--cli.ts.geml#listIds,          #shortestAddress, call, geml-parser/src/cli.ts:1036
-geml-parser--cli.ts.geml#runFind,          #shortestAddress, call, geml-parser/src/cli.ts:1297
-geml-parser--cli.ts.geml#runReplace,       #shortestAddress, call, geml-parser/src/cli.ts:1517
-geml-parser--cli.ts.geml#resolveSetTarget, #shortestAddress, call, geml-parser/src/cli.ts:1656
-geml-parser--cli.ts.geml#reportNewAddress, #shortestAddress, call, geml-parser/src/cli.ts:1671
-geml-parser--cli.ts.geml#selectUnits,      #matchContent,    call, geml-parser/src/cli.ts:1135
-geml-parser--cli.ts.geml#selectUnits,      #discoveryHint,   call, geml-parser/src/cli.ts:1156
-geml-parser--cli.ts.geml#selectUnits,      #discoveryHint,   call, geml-parser/src/cli.ts:1163
-geml-parser--cli.ts.geml#selectUnits,      #matchLine,       call, geml-parser/src/cli.ts:1150
-geml-parser--cli.ts.geml#runFind,          #matchLine,       call, geml-parser/src/cli.ts:1294
-geml-parser--cli.ts.geml#selectUnits,      #matchType,       call, geml-parser/src/cli.ts:1162
+from,                                       to,               kind, site
+#addressUnits,                              #sha8,            call, geml-parser/src/selector.ts:195
+geml-parser--geml.ts.geml#validateCoordRef, #parseCoordPath,  call, geml-parser/src/geml.ts:1631
+#parseSelector,                             #parseCoordPath,  call, geml-parser/src/selector.ts:167
+geml-parser--cli.ts.geml#selectUnits,       #parseSelector,   call, geml-parser/src/cli.ts:1123
+geml-parser--cli.ts.geml#runGet,            #parseSelector,   call, geml-parser/src/cli.ts:1381
+geml-parser--cli.ts.geml#runSet,            #parseSelector,   call, geml-parser/src/cli.ts:1666
+geml-parser--cli.ts.geml#resolveSetTarget,  #parseSelector,   call, geml-parser/src/cli.ts:1725
+#parseSelector,                             #firstKey,        call, geml-parser/src/selector.ts:140
+geml-parser--geml.ts.geml#addressedUnits,   #addressUnits,    call, geml-parser/src/geml.ts:2537
+geml-parser--cli.ts.geml#listIds,           #shortestAddress, call, geml-parser/src/cli.ts:1037
+geml-parser--cli.ts.geml#runFind,           #shortestAddress, call, geml-parser/src/cli.ts:1325
+geml-parser--cli.ts.geml#runReplace,        #shortestAddress, call, geml-parser/src/cli.ts:1581
+geml-parser--cli.ts.geml#resolveSetTarget,  #shortestAddress, call, geml-parser/src/cli.ts:1736
+geml-parser--cli.ts.geml#reportNewAddress,  #shortestAddress, call, geml-parser/src/cli.ts:1751
+geml-parser--cli.ts.geml#selectUnits,       #matchContent,    call, geml-parser/src/cli.ts:1144
+geml-parser--cli.ts.geml#selectUnits,       #discoveryHint,   call, geml-parser/src/cli.ts:1165
+geml-parser--cli.ts.geml#selectUnits,       #discoveryHint,   call, geml-parser/src/cli.ts:1172
+geml-parser--cli.ts.geml#selectUnits,       #matchLine,       call, geml-parser/src/cli.ts:1159
+geml-parser--cli.ts.geml#runFind,           #matchLine,       call, geml-parser/src/cli.ts:1322
+geml-parser--cli.ts.geml#selectUnits,       #matchType,       call, geml-parser/src/cli.ts:1171
 ===
 
 === table {#unresolved format=csv hidden}
@@ -69,10 +76,17 @@ from,             to
 #sha8,            Hash.update
 #sha8,            String.slice
 #sha8,            createHash
+#parseCoordPath,  Array.push
+#parseCoordPath,  RegExp.exec
+#parseCoordPath,  String.slice
+#parseCoordPath,  String.trimStart
 #parseSelector,   RegExp.exec
+#parseSelector,   String.indexOf
 #parseSelector,   String.match
+#parseSelector,   String.slice
 #parseSelector,   String.toLowerCase
 #parseSelector,   String.trim
+#parseSelector,   String.trimEnd
 #firstKey,        RegExp.exec
 #firstKey,        String.replace
 #firstKey,        String.split
