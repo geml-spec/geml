@@ -5,6 +5,15 @@ The plugin (`logseq-plugin-sync-vault-with-geml`) and the watcher
 Logseq major this speaks to — 2.x means Logseq 2.x DB graphs, and nothing
 older.
 
+## v2.2.0
+
+**The parser underneath understands `view`.** No plugin or watcher code changed
+in this release; what moved is the floor — `@geml/geml` ^1.10.0, and the
+lockfile pin with it. A vault page whose GEML carries a `=== view` block — a
+table selected, derived or aggregated from another one — is now read as that
+table instead of degrading to raw text. The pin is the part that matters: `npm
+ci` installs what the lock says, and the lock said 1.9.1 until now.
+
 ## v2.1.0
 
 **The vault root is now a graph Logseq opens.** Markdown pages sit at the top
