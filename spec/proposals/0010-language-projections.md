@@ -664,6 +664,8 @@ So: the CLI half is a parser revision, the one sentence in §0.6 (and its echo i
 default; the same key on an `embed` overrides it, and `none` there holds one embed
 back. That is the whole vocabulary.
 
+Writing it on `=== meta` means **every embed inherits it**.
+
 The hold-back belongs on `translate-to` and not on a companion key, and the
 default is what makes that clear. "Write nothing" means *inherit*, not *do not
 translate*, so "do not translate this one" needs a spelling of its own — and it is
