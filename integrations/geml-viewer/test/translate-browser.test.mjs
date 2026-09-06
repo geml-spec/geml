@@ -147,6 +147,72 @@ test("translatorFor surfaces a create() failure instead of throwing", async () =
   clear();
 });
 
+// The failure that is worse than a refusal. Chrome's built-in AI can return a
+// promise that never settles where the model service is not provisioned; because
+// expansion is sequential, one such call used to strand every embed behind it at
+// "translating…" forever — including blocks with nothing to translate. Each test
+// below hangs a DIFFERENT call, because a deadline on only the first one just
+// moves the hang one step down.
+const never = () => new Promise(() => {});
+
+test("an availability() that never settles is a refusal, not a hang", async () => {
+  globalThis.Translator = { availability: never, create: async () => { throw new Error("unreachable"); } };
+  const r = await translatorFor("en", "xx", undefined, false, 30);
+  assert.equal(r.ok, false);
+  assert.match(r.why, /did not answer within 30 ms/);
+  clear();
+});
+
+test("a create() that never settles is a refusal too", async () => {
+  globalThis.Translator = { availability: async () => "available", create: never };
+  const r = await translatorFor("en", "xx", undefined, false, 30);
+  assert.equal(r.ok, false);
+  assert.match(r.why, /could not start en → xx/);
+  assert.match(r.why, /did not answer within 30 ms/);
+  clear();
+});
+
+test("a detector that never settles costs a guess, not the queue", async () => {
+  const asked = installTranslator({});
+  globalThis.LanguageDetector = { availability: never };
+  const r = await translateSlice(parse(DOC).children, "xx", { timeoutMs: 30 });
+  assert.equal(r.ok, true, "detection falls back to en and the translation proceeds");
+  assert.ok(asked.includes("Title"));
+  clear();
+});
+
+test("a translate() that never settles is retryable, not a hang", async () => {
+  globalThis.Translator = {
+    availability: async () => "available",
+    create: async () => ({ translate: never, destroy() {} }),
+  };
+  const r = await translateSlice(parse(DOC).children, "xx", { sourceLanguage: "en", timeoutMs: 30 });
+  assert.equal(r.ok, false);
+  assert.equal(r.retryable, true);
+  assert.match(r.why, /did not answer within 30 ms/);
+  clear();
+});
+
+// A download the reader agreed to is NOT raced: it is tens of megabytes and its
+// progress is already on screen. Racing it would turn a working download into a
+// refusal at the eight-second mark.
+test("a downloading create() is not raced", async () => {
+  let started = false;
+  globalThis.Translator = {
+    availability: async () => "downloadable",
+    create: async ({ monitor }) => {
+      started = true;
+      monitor?.({ addEventListener: (_e, cb) => cb({ loaded: 1 }) });
+      await new Promise((r) => setTimeout(r, 60));   // longer than the deadline below
+      return { translate: async (t) => t, destroy() {} };
+    },
+  };
+  const r = await translatorFor("en", "xx", undefined, true, 30);
+  assert.equal(started, true);
+  assert.equal(r.ok, true, "the download outlives the deadline that guards a local handoff");
+  clear();
+});
+
 const run = async () => {
   for (const [name, fn] of tests) { await fn(); passed++; console.log("ok", name); }
   console.log(`\n${passed} translate-browser tests passed.`);

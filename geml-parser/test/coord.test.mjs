@@ -443,6 +443,91 @@ test("a coordinate a reference cannot reach is a build error naming the reason",
   }
 });
 
+// A borrowed document is loaded by a SCAN, and a scan leaves every `src=` block
+// empty. So a `view` — whose whole content comes from `src=` — carried zero
+// columns across a document boundary, and the numbers most worth referencing
+// were the ones a reference could not reach. The same file checked clean on its
+// own, which is the part that made it hard to see.
+const DERIVED = [
+  "=== meta",
+  'title = "Derived"',
+  'version = "9.9.9"',
+  "===",
+  "",
+  "=== table {#facts format=csv header=1}",
+  "Segment, Q1, Q2",
+  "Cloud, 8, 10",
+  "Edge, 2, 3",
+  "===",
+  "",
+  '=== view {#fy src=#facts compute="H1 [%.0f] = Q1 + Q2" summary="Segment = \'Total\'; H1 [%.0f] = sum(H1)"}',
+  "===",
+  "",
+].join("\n");
+
+test("a coordinate reaches a view in ANOTHER document, and its reported row", () => {
+  write("derived.geml", DERIVED);
+  const f = write("usesview.geml", [
+    "=== meta", 'title = "Host"', "===", "",
+    "# H {#h}", "",
+    'Cloud H1 is [[derived.geml#fy[1]["H1"]]] and the total is [[derived.geml#fy[summary]["H1"]]].',
+    "",
+  ].join("\n"));
+  const r = cli(["check", "--root", dir, f]);
+  assert.equal(r.code, 0, r.err + r.out);
+  const md = cli([f, "--to", "md", "--root", dir]).out;
+  assert.match(md, /Cloud H1 is \[18\]/, "8 + 10, computed in the borrowed document");
+  assert.match(md, /total is \[23\]/, "and its summary row, not a row of its own");
+});
+
+// GEP 0011 spells `A.geml#meta["version"]` beside `#meta["version"]`, but the
+// reserved id was resolved only in the same-document branch: across a boundary
+// the loader looked for a BLOCK whose id is `meta` and found none.
+test("`#meta` is addressable across documents, as the GEP writes it", () => {
+  write("derived.geml", DERIVED);
+  const f = write("usesmeta.geml", [
+    "=== meta", 'title = "Host"', "===", "",
+    "# H {#h}", "",
+    'That document is version [[derived.geml#meta["version"]]].',
+    "",
+  ].join("\n"));
+  assert.equal(cli(["check", "--root", dir, f]).code, 0);
+  assert.match(cli([f, "--to", "md", "--root", dir]).out, /version 9\.9\.9/,
+    "a merged view has no anchor, so it renders as text — the same as at home");
+
+  const bad = write("badmeta.geml", [
+    "=== meta", 'title = "Host"', "===", "", "# H {#h}", "",
+    'Missing: [[derived.geml#meta["nope"]]].', "",
+  ].join("\n"));
+  const r = cli(["check", "--root", dir, bad]);
+  assert.equal(r.code, 1);
+  assert.match(r.err + r.out, /no key `nope`/, "and a missing key still fails the build");
+});
+
+test("cross-document `#meta` on a document that has none, and on one that declares the id", () => {
+  // No meta block at all: the merged view is empty, so there is nothing to
+  // address and the reference is unresolved rather than silently blank.
+  write("nometa.geml", "# T {#t}\n\nJust prose.\n");
+  const a = write("hostnometa.geml", [
+    "=== meta", 'title = "Host"', "===", "", "# H {#h}", "",
+    'Version: [[nometa.geml#meta["version"]]].', "",
+  ].join("\n"));
+  const ra = cli(["check", "--root", dir, a]);
+  assert.equal(ra.code, 1);
+  assert.match(ra.err + ra.out, /unresolved reference `nometa\.geml#meta`/);
+
+  // A document may still DECLARE `{#meta}` on its single meta block: §4 says the
+  // two readings agree there, and the declared block is what the id names.
+  write("ownmeta.geml", ['=== meta {#meta}', 'version = "7.0.0"', "===", "", "# T {#t}", "", "Prose.", ""].join("\n"));
+  const b = write("hostownmeta.geml", [
+    "=== meta", 'title = "Host"', "===", "", "# H {#h}", "",
+    'Version: [[ownmeta.geml#meta["version"]]].', "",
+  ].join("\n"));
+  assert.equal(cli(["check", "--root", dir, b]).code, 0);
+  assert.match(cli([b, "--to", "md", "--root", dir]).out, /Version: \[7\.0\.0\]/,
+    "a declared block IS an anchor, so the value links to it");
+});
+
 test("a coordinate reference says its value and links to the block holding it", () => {
   write("vars.geml", VARS);
   const f = write("ref2.geml", RDOC);

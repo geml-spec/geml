@@ -16,6 +16,15 @@ export { gemlToMd } from "../../../geml-parser/dist/geml.js";
 // to hand-copy this ("mirror geml-parser/src/render.ts", said the comment) and
 // went on refusing prose addresses after the renderer learned them.
 export { selectEmbed } from "../../../geml-parser/dist/geml.js";
+
+// GEP 0011 coordinates. The parser answers one at PARSE time, but only when it
+// was given a `resolveDoc`; a browser fetches asynchronously and cannot supply
+// one, so a cross-document coordinate reaches the page unresolved and the
+// transclusion pass has to answer it. Taken from the modules that define them —
+// `geml.js` uses both but re-exports neither, and widening its surface is the
+// change the viewer's esbuild stubs have to mirror.
+export { parseCoordPath } from "../../../geml-parser/dist/selector.js";
+export { projectCoord, metaView } from "../../../geml-parser/dist/coord.js";
 // geml-code-graph (GEP-0003): the slice builder, the draw-time runtime AND
 // the async wave builder are implemented ONCE in the reference renderer;
 // browser consumers reuse them.

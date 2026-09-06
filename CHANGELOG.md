@@ -20,6 +20,22 @@ and is released under `viewer-v*` tags.
 
 Nothing yet.
 
+## [1.10.1] — 2026-09-06
+
+- **A coordinate crosses a document into a `view`, and into `#meta`.** A borrowed
+  document is loaded by a scan, and a scan leaves every `src=` block empty — so a
+  `view`, whose whole content comes from `src=`, carried zero columns across the
+  boundary and `other.geml#fy[1]["FY"]` failed on the very numbers most worth
+  referencing, while the same file checked clean on its own. The loader now runs
+  the table, view and data resolve passes on what it scanned, still with no
+  `resolveDoc`, so a same-document `src=#id` fills in and two documents that
+  reference each other cannot resolve in circles (§9.3). Separately,
+  `A.geml#meta["version"]` — which GEP 0011 writes beside `#meta["version"]` —
+  was resolved only in the same-document branch: across a boundary the loader
+  looked for a block whose id is `meta` and found none. The reserved merged view
+  is built there too now, and a document that declares `{#meta}` on its own block
+  still means that block.
+
 ## [1.10.0] — 2026-09-04
 
 - **A `view` block owns every operation that derives a relation (GEP-0012).**

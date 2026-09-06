@@ -33,6 +33,22 @@ Borrowed note body.
 
 const DOCS = new Map([
   ["https://host.test/docs/other.geml", OTHER],
+  // GEP 0011 — a coordinate target: a table of facts and the view that derives
+  // from it, so a cross-document coordinate has both a plain cell and a computed
+  // one to reach.
+  ["https://host.test/docs/nums.geml", `=== meta
+title = "Nums"
+version = "3.1.4"
+===
+
+=== table {#facts format=csv header=1}
+Segment, Q1, Q2
+Cloud, 8, 10
+===
+
+=== view {#fy src=#facts compute="H1 [%.0f] = Q1 + Q2"}
+===
+`],
   // Inline projection targets: a `text` block holding ONE paragraph is the only
   // projectable shape (geml-parser projectableInlines); a note and a two-
   // paragraph text are the two ways to be "not inline".
@@ -743,6 +759,61 @@ test("a retryable refusal offers a button, and the click translates that section
   assert.equal(calls, 2, "the click asked again");
   assert.equal(root.querySelector(".geml-translate-offer"), null,
     "and a success repaints the section, taking the bar with it");
+});
+
+// A model is per BROWSER, not per block. Two embeds wanting the same absent
+// model each render an offer, because each asked separately and a download needs
+// a user activation. Clicking ONE used to translate one section and leave its
+// sibling in the source language until the reader reloaded the page.
+test("one accepted download translates every section waiting on that model", async () => {
+  let downloaded = false;
+  globalThis.Translator = {
+    availability: async () => (downloaded ? "available" : "downloadable"),
+    create: async ({ monitor }) => {
+      monitor?.({ addEventListener: (_e, cb) => cb({ loaded: 1 }) });
+      downloaded = true;
+      return { translate: async (t) => t.toUpperCase(), destroy() {} };
+    },
+  };
+  delete globalThis.LanguageDetector;
+  const two = `=== meta\nprofile = "geml-translator/v1"\ntranslate-to = "zh"\n===\n\n=== embed {src=other.geml#sec}\n===\n\n=== embed {src=other.geml#sec}\n===\n`;
+  // No injected translateSlice: the gesture path is the BROWSER translator's,
+  // because only it can answer needsGesture.
+  const root = await view(two);
+  const bars = root.querySelectorAll(".geml-translate-offer button");
+  assert.equal(bars.length, 2, "each embed asked separately, so each got its own offer");
+
+  // `.geml-translate-offer` is also the class sourceToggle falls back to, so
+  // count the OFFER buttons by what they say rather than by the bar around them.
+  const offers = () => [...root.querySelectorAll(".geml-translate-offer button")]
+    .filter((b) => /^Translate to /.test(b.textContent));
+  bars[0].dispatchEvent(new root.ownerDocument.defaultView.Event("click"));
+  for (let i = 0; i < 100 && offers().length; i++) await new Promise((r) => setTimeout(r, 5));
+
+  assert.equal(offers().length, 0, "the second section did not wait for a reload");
+  assert.equal((root.textContent.match(/SUB PARAGRAPH/g) || []).length, 2,
+    "and both are actually translated, not merely un-barred");
+  delete globalThis.Translator;
+});
+
+// The parser answers a coordinate while parsing — but only when it was handed a
+// `resolveDoc`, and a browser fetches asynchronously and cannot hand it one. So a
+// cross-document coordinate reached the page unresolved and the reader saw the
+// raw address where `--to md` shows the value.
+test("an inline projection may be a coordinate, and it renders the value", async () => {
+  const root = await view(`Cloud Q1 is ![[nums.geml#facts[1]["Q1"]]], H1 is ![[nums.geml#fy[1]["H1"]]], v ![[nums.geml#meta["version"]]].\n`);
+  assert.match(root.textContent, /Cloud Q1 is 8/, "a plain cell");
+  assert.match(root.textContent, /H1 is 18/, "a cell a VIEW computes, in the borrowed document");
+  assert.match(root.textContent, /v 3\.1\.4/, "and the borrowed document's merged meta");
+  assert.equal(root.querySelectorAll(".geml-transclusion-inline-unexpanded").length, 0);
+});
+
+test("a coordinate that misses says what it could not reach", async () => {
+  const root = await view(`Nope ![[nums.geml#facts[9]["Q1"]]] and ![[nums.geml#nosuch[1]["Q1"]]].\n`);
+  const bad = [...root.querySelectorAll(".geml-transclusion-unresolved")];
+  assert.equal(bad.length, 2, "both refuse, and the link stands where it was painted");
+  assert.match(bad[0].getAttribute("title"), /body row/);
+  assert.match(bad[1].getAttribute("title"), /no `#nosuch`/);
 });
 
 test("a refusal nothing can clear gets a note, not a button", async () => {

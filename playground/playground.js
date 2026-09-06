@@ -189119,14 +189119,24 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   function blockFromDocument(source, id39) {
     const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: /* @__PURE__ */ new Map(), vocab: EMPTY_VOCABULARY };
     const blocks2 = scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
+    const inner2 = {};
+    resolveTableSources(ctx, inner2);
+    resolveViewSources(ctx, inner2);
+    resolveDataSources(ctx, inner2);
+    if (nameKey(id39) === nameKey("meta") && !ctx.ids.has(nameKey("meta"))) {
+      const view = metaView(blocks2);
+      if (view.blocks.length === 0)
+        return null;
+      return { kind: "block", type: "meta", mode: "data", classes: [], attrs: {}, data: view.value };
+    }
     const find5 = (bs) => {
       for (const b3 of bs) {
         if ((b3.kind === "block" || b3.kind === "heading") && b3.id !== void 0 && nameKey(b3.id) === nameKey(id39))
           return b3;
         if (b3.kind === "block" && b3.children) {
-          const inner2 = find5(b3.children);
-          if (inner2)
-            return inner2;
+          const inner3 = find5(b3.children);
+          if (inner3)
+            return inner3;
         }
       }
       return void 0;
@@ -190629,6 +190639,17 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
 
   // src/translate-browser.js
   init_define_process_argv();
+  var AI_TIMEOUT_MS = 8e3;
+  function withTimeout(promise4, ms3, what) {
+    if (!(ms3 > 0)) return promise4;
+    let timer3;
+    return Promise.race([
+      promise4,
+      new Promise((_3, reject3) => {
+        timer3 = setTimeout(() => reject3(new Error(`${what} did not answer within ${ms3} ms`)), ms3);
+      })
+    ]).finally(() => clearTimeout(timer3));
+  }
   function whyNoTranslator(ua = typeof navigator === "undefined" ? "" : navigator.userAgent || "") {
     const edge = /\bEdg\/(\d+)/.exec(ua);
     const chrome = /\bChrome\/(\d+)/.exec(ua);
@@ -190641,13 +190662,17 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
     return "this browser has no built-in Translator";
   }
-  async function translatorFor(sourceLanguage, targetLanguage, onProgress, allowDownload = false) {
+  async function translatorFor(sourceLanguage, targetLanguage, onProgress, allowDownload = false, timeoutMs = AI_TIMEOUT_MS) {
     if (typeof Translator === "undefined") {
       return { ok: false, why: whyNoTranslator() };
     }
     let state4;
     try {
-      state4 = await Translator.availability({ sourceLanguage, targetLanguage });
+      state4 = await withTimeout(
+        Translator.availability({ sourceLanguage, targetLanguage }),
+        timeoutMs,
+        "Translator.availability"
+      );
     } catch (e3) {
       return { ok: false, why: `Translator.availability failed: ${e3?.message ?? e3}` };
     }
@@ -190658,22 +190683,27 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       return { ok: false, needsGesture: true, state: state4, why: `the ${sourceLanguage} \u2192 ${targetLanguage} model is not on this machine yet` };
     }
     try {
-      const t4 = await Translator.create({
-        sourceLanguage,
-        targetLanguage,
-        monitor: (m3) => m3.addEventListener("downloadprogress", (e3) => onProgress?.(e3.loaded))
-      });
+      const downloading = state4 === "downloadable" || state4 === "downloading";
+      const t4 = await withTimeout(
+        Translator.create({
+          sourceLanguage,
+          targetLanguage,
+          monitor: (m3) => m3.addEventListener("downloadprogress", (e3) => onProgress?.(e3.loaded))
+        }),
+        downloading ? 0 : timeoutMs,
+        "Translator.create"
+      );
       return { ok: true, translator: t4, downloaded: state4 === "downloadable" };
     } catch (e3) {
       return { ok: false, why: `could not start ${sourceLanguage} \u2192 ${targetLanguage}: ${e3?.message ?? e3}` };
     }
   }
-  async function detectLanguage(sample, fallback = "en") {
+  async function detectLanguage(sample, fallback = "en", timeoutMs = AI_TIMEOUT_MS) {
     if (typeof LanguageDetector === "undefined" || sample.trim() === "") return fallback;
     try {
-      if (await LanguageDetector.availability() === "unavailable") return fallback;
-      const d3 = await LanguageDetector.create();
-      const [best] = await d3.detect(sample.slice(0, 400));
+      if (await withTimeout(LanguageDetector.availability(), timeoutMs, "LanguageDetector.availability") === "unavailable") return fallback;
+      const d3 = await withTimeout(LanguageDetector.create(), timeoutMs, "LanguageDetector.create");
+      const [best] = await withTimeout(d3.detect(sample.slice(0, 400)), timeoutMs, "LanguageDetector.detect");
       d3.destroy?.();
       return best?.detectedLanguage ?? fallback;
     } catch {
@@ -190687,14 +190717,15 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       return text4;
     }, opts);
     if (wanted.size === 0) return { ok: true, blocks: blocks2 };
-    const source = opts.sourceLanguage ?? await detectLanguage([...wanted].join("\n"));
+    const timeoutMs = opts.timeoutMs ?? AI_TIMEOUT_MS;
+    const source = opts.sourceLanguage ?? await detectLanguage([...wanted].join("\n"), "en", timeoutMs);
     if (source === targetLanguage) return { ok: true, blocks: blocks2, same: true };
-    const got = await translatorFor(source, targetLanguage, opts.onProgress, opts.allowDownload === true);
+    const got = await translatorFor(source, targetLanguage, opts.onProgress, opts.allowDownload === true, timeoutMs);
     if (!got.ok) return got;
     const map6 = /* @__PURE__ */ new Map();
     try {
       for (const text4 of wanted) {
-        map6.set(text4, await got.translator.translate(text4));
+        map6.set(text4, await withTimeout(got.translator.translate(text4), timeoutMs, "Translator.translate"));
       }
     } catch (e3) {
       return { ok: false, why: `translation failed: ${e3?.message ?? e3}`, retryable: true };
@@ -190734,6 +190765,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       glossary: glossaryFrom(opts.children || [], metaBlock?.data),
       translateSlice: opts.translateSlice ?? null
     };
+    pendingOffers.clear();
     const baseUrl = String(opts.docUrl).replace(/#.*$/, "");
     const lanes2 = (state4.translateSlice ?? translateSlice).concurrency ?? 1;
     await runBounded(
@@ -190900,6 +190932,30 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       if (loaded === null) return refuseInline(el2, "unresolved", `cannot resolve document \`${docPath}\`, or it is too large`);
       children2 = loaded;
     }
+    const coordAt = anchor2.indexOf("[");
+    const coordPath = coordAt > 0 ? parseCoordPath(anchor2.slice(coordAt)) : null;
+    if (coordPath !== null) {
+      const base = anchor2.slice(0, coordAt);
+      let block2 = findProjectTarget(children2, base);
+      if (block2 === void 0 && base === "meta") {
+        const view = metaView(children2);
+        if (view.blocks.length > 0) block2 = { kind: "block", type: "meta", mode: "data", classes: [], attrs: {}, data: view.value };
+      }
+      if (block2 === void 0) {
+        const what = docPath === "" ? `no \`#${base}\` in this document` : `no \`#${base}\` in \`${docPath}\``;
+        return refuseInline(el2, "unresolved", what);
+      }
+      const hit = projectCoord(block2, coordPath);
+      if (!hit.ok) return refuseInline(el2, "unresolved", `\`#${anchor2}\`: ${hit.why}`);
+      const cell = dom.createElement("span");
+      cell.className = "geml-transclusion-inline geml-transclusion-inline-expanded";
+      cell.setAttribute("data-src", written);
+      cell.textContent = hit.text;
+      el2.replaceWith(cell);
+      state4.count++;
+      state4.bytes += hit.text.length;
+      return;
+    }
     const picked = selectProject(children2, anchor2);
     if (picked === null) {
       const what = docPath === "" ? `no \`#${anchor2}\` in this document` : `no \`#${anchor2}\` in \`${docPath}\``;
@@ -191009,6 +191065,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     });
     el2.prepend(bar);
   }
+  var pendingOffers = /* @__PURE__ */ new Map();
   function offerTranslation(el2, dom, lang, picked, paint) {
     const bar = dom.createElement("div");
     bar.className = "geml-translate-offer";
@@ -191016,6 +191073,29 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     btn.type = "button";
     btn.textContent = `Translate to ${lang} (downloads a model)`;
     bar.appendChild(btn);
+    const watchers = pendingOffers.get(lang) ?? /* @__PURE__ */ new Set();
+    pendingOffers.set(lang, watchers);
+    const unwatch = () => watchers.delete(retry);
+    const settle = (r2) => {
+      if (!r2.ok) return false;
+      paint(r2.blocks);
+      el2.removeAttribute("data-translation-note");
+      delete el2.dataset.gemlTranslateOffer;
+      sourceToggle(el2, dom, lang, picked, r2.blocks, paint);
+      return true;
+    };
+    async function retry() {
+      unwatch();
+      btn.disabled = true;
+      btn.textContent = `Translating to ${lang}\u2026`;
+      const r2 = await translateSlice(picked, lang, {});
+      if (!settle(r2)) {
+        btn.disabled = false;
+        btn.textContent = `Translate to ${lang}`;
+        el2.setAttribute("data-translation-note", r2.why);
+      }
+    }
+    watchers.add(retry);
     btn.addEventListener("click", async () => {
       btn.disabled = true;
       btn.textContent = `Downloading the ${lang} model\u2026`;
@@ -191025,10 +191105,11 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           btn.textContent = `Downloading the ${lang} model\u2026 ${Math.round(loaded * 100)}%`;
         }
       });
-      if (r2.ok) {
-        paint(r2.blocks);
-        el2.removeAttribute("data-translation-note");
-        delete el2.dataset.gemlTranslateOffer;
+      unwatch();
+      if (settle(r2)) {
+        const others = [...pendingOffers.get(lang) ?? []];
+        pendingOffers.set(lang, /* @__PURE__ */ new Set());
+        for (const again of others) await again();
       } else {
         btn.textContent = `Could not translate: ${r2.why}`;
         el2.setAttribute("data-translation-note", r2.why);

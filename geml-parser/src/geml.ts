@@ -1607,6 +1607,29 @@ function collectMeta(lines: string[], diags?: Ctx["diags"]): Map<string, string>
 function blockFromDocument(source: string, id: string): Block | null {
   const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map(), vocab: EMPTY_VOCABULARY };
   const blocks = scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
+  // A scan leaves every `src=` block empty: the rows and value trees a coordinate
+  // projects against are filled by the resolve passes, not by the scanner. Without
+  // them a `view` in the borrowed document carries zero columns and every
+  // coordinate on it fails — the SAME document that checks clean when it is parsed
+  // on its own. These run with no `resolveDoc` on purpose: a same-document
+  // `src=#id` is what a coordinate needs, and refusing to descend again is what
+  // keeps two documents that reference each other from resolving in circles
+  // (§9.3). Their diagnostics die with this throwaway context — the borrowed
+  // document reports its own when it is checked.
+  const inner: ParseOptions = {};
+  resolveTableSources(ctx, inner);
+  resolveViewSources(ctx, inner);
+  resolveDataSources(ctx, inner);
+  // `#meta` is the reserved id for the merged namespace (§4), not a block that
+  // carries it — and GEP 0011 makes it addressable across documents in the same
+  // breath as within one (`A.geml#meta["version"]`). Resolving it only in the
+  // same-document branch left the cross-document spelling the GEP documents
+  // failing as an unresolved reference.
+  if (nameKey(id) === nameKey("meta") && !ctx.ids.has(nameKey("meta"))) {
+    const view = metaView(blocks);
+    if (view.blocks.length === 0) return null;
+    return { kind: "block", type: "meta", mode: "data", classes: [], attrs: {}, data: view.value as Record<string, Value> };
+  }
   const find = (bs: Block[]): Block | undefined => {
     for (const b of bs) {
       if ((b.kind === "block" || b.kind === "heading") && b.id !== undefined && nameKey(b.id) === nameKey(id)) return b;

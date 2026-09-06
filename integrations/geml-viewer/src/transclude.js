@@ -21,7 +21,7 @@
 
 import { renderBlock, renderInlines, collectLabels } from "./render.js";
 import { hasSrcTable, inlineSrcTables, looksTabular } from "./inline-src.js";
-import { resolveTarget, selectEmbed, glossaryFrom } from "./parse-entry.js";
+import { resolveTarget, selectEmbed, glossaryFrom, parseCoordPath, projectCoord, metaView } from "./parse-entry.js";
 import { translateSlice } from "./translate-browser.js";
 
 export const EMBED_DEPTH_CAP = 8;
@@ -65,6 +65,11 @@ export async function expandTransclusions(container, opts) {
     glossary: glossaryFrom(opts.children || [], metaBlock?.data),
     translateSlice: opts.translateSlice ?? null,
   };
+  // Offers belong to the page as it is NOW. An editor re-renders on every
+  // keystroke, so the previous pass's offer buttons hang off nodes that are no
+  // longer on screen; carrying them forward would repaint dead trees and grow
+  // the map without bound. A new expansion supersedes the previous one.
+  pendingOffers.clear();
   // location.href may carry a #fragment; the base a relative src resolves
   // against (and the same-document cycle key) must not.
   const baseUrl = String(opts.docUrl).replace(/#.*$/, "");
@@ -340,6 +345,40 @@ async function expandOneInline(el, curUrl, curChildren, stack, state) {
     children = loaded;
   }
 
+  // GEP 0011: the anchor may be a COORDINATE — `![[a.geml#fy[1]["Q1"]]]`. The
+  // parser answers one while parsing, but only with a `resolveDoc`; a browser
+  // fetches asynchronously and has none, so a cross-document coordinate arrives
+  // here unresolved. It names a cell, never a `text` block, so selectProject
+  // could only refuse it — and the page would show the raw address where the CLI
+  // shows the value. Project it and put the VALUE in, which is what `--to md`
+  // puts in for the same source.
+  const coordAt = anchor.indexOf("[");
+  const coordPath = coordAt > 0 ? parseCoordPath(anchor.slice(coordAt)) : null;
+  if (coordPath !== null) {
+    const base = anchor.slice(0, coordAt);
+    let block = findProjectTarget(children, base);
+    // `#meta` is the reserved id for the merged namespace (§4), not a block that
+    // carries it; a document may still declare one, and then that block wins.
+    if (block === undefined && base === "meta") {
+      const view = metaView(children);
+      if (view.blocks.length > 0) block = { kind: "block", type: "meta", mode: "data", classes: [], attrs: {}, data: view.value };
+    }
+    if (block === undefined) {
+      const what = docPath === "" ? `no \`#${base}\` in this document` : `no \`#${base}\` in \`${docPath}\``;
+      return refuseInline(el, "unresolved", what);
+    }
+    const hit = projectCoord(block, coordPath);
+    if (!hit.ok) return refuseInline(el, "unresolved", `\`#${anchor}\`: ${hit.why}`);
+    const cell = dom.createElement("span");
+    cell.className = "geml-transclusion-inline geml-transclusion-inline-expanded";
+    cell.setAttribute("data-src", written);
+    cell.textContent = hit.text;
+    el.replaceWith(cell);
+    state.count++;
+    state.bytes += hit.text.length;
+    return;
+  }
+
   const picked = selectProject(children, anchor);
   if (picked === null) {
     const what = docPath === "" ? `no \`#${anchor}\` in this document` : `no \`#${anchor}\` in \`${docPath}\``;
@@ -509,6 +548,14 @@ function retryTranslation(el, dom, lang, why, picked, paint, state) {
   el.prepend(bar);
 }
 
+// Every embed that wanted an absent model rendered its OWN offer, because a
+// download needs a user activation and each block asked separately. But a model
+// is per BROWSER, not per block: the moment one reader accepts one download,
+// every other offer for that language is waiting on nothing at all. Without this
+// registry they sit under a stale "downloads a model" button until a reload —
+// the page translated one section and left its siblings in the source language.
+const pendingOffers = new Map();   // target language -> Set of retry functions
+
 function offerTranslation(el, dom, lang, picked, paint) {
   const bar = dom.createElement("div");
   bar.className = "geml-translate-offer";
@@ -516,6 +563,38 @@ function offerTranslation(el, dom, lang, picked, paint) {
   btn.type = "button";
   btn.textContent = `Translate to ${lang} (downloads a model)`;
   bar.appendChild(btn);
+
+  const watchers = pendingOffers.get(lang) ?? new Set();
+  pendingOffers.set(lang, watchers);
+  const unwatch = () => watchers.delete(retry);
+
+  const settle = (r) => {
+    if (!r.ok) return false;
+    paint(r.blocks);                       // replaceChildren, so the bar goes with it
+    el.removeAttribute("data-translation-note");
+    delete el.dataset.gemlTranslateOffer;
+    // A translation still owes the reader a way to check it (GEP 0010's first
+    // drawback), and one arrived through a click is no different.
+    sourceToggle(el, dom, lang, picked, r.blocks, paint);
+    return true;
+  };
+
+  // Asked again once the model has arrived through another offer on this page.
+  // No `allowDownload`: there is nothing left to download, and if that turns out
+  // to be wrong the offer simply stands and the reader can click it.
+  async function retry() {
+    unwatch();
+    btn.disabled = true;
+    btn.textContent = `Translating to ${lang}…`;
+    const r = await translateSlice(picked, lang, {});
+    if (!settle(r)) {
+      btn.disabled = false;
+      btn.textContent = `Translate to ${lang}`;
+      el.setAttribute("data-translation-note", r.why);
+    }
+  }
+  watchers.add(retry);
+
   btn.addEventListener("click", async () => {
     btn.disabled = true;
     btn.textContent = `Downloading the ${lang} model…`;
@@ -523,10 +602,14 @@ function offerTranslation(el, dom, lang, picked, paint) {
       allowDownload: true,
       onProgress: (loaded) => { btn.textContent = `Downloading the ${lang} model… ${Math.round(loaded * 100)}%`; },
     });
-    if (r.ok) {
-      paint(r.blocks);
-      el.removeAttribute("data-translation-note");
-      delete el.dataset.gemlTranslateOffer;
+    unwatch();
+    if (settle(r)) {
+      // Hand the rest of the page the model this click just paid for. Sequential
+      // because the on-device model serialises anyway — the same reason
+      // translateSlice.concurrency is 1.
+      const others = [...(pendingOffers.get(lang) ?? [])];
+      pendingOffers.set(lang, new Set());
+      for (const again of others) await again();
     } else {
       btn.textContent = `Could not translate: ${r.why}`;
       el.setAttribute("data-translation-note", r.why);

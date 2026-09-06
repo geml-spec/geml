@@ -69,7 +69,7 @@ path reads the tree, not your working copy.
 
 - **Lands at** npmjs.com/package/@geml/geml, and the Model Context Protocol
   registry.
-- **Version lives in EIGHT fields.** `geml-parser/package.json`, `server.json`
+- **Version lives in NINE fields.** `geml-parser/package.json`, `server.json`
   (twice), `package-lock.json` (twice), and FOUR vendor manifests: `claude-plugin`,
   `codex-plugin`, the root `gemini-extension.json`, and
   `grok-plugin/.grok-plugin/plugin.json`. The mcp suite guards all four — its

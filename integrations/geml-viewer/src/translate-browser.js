@@ -24,6 +24,28 @@ import { translateBlocks } from "./parse-entry.js";
 // The minimum Chrome version is deliberately NOT quoted: it moves, and a wrong
 // number in a message a reader trusts is worse than no number. What IS quoted is
 // the browser and version found, plus the page that shows on-device model state.
+// Chrome's built-in AI calls are promises that USUALLY settle. Where the model
+// service is not provisioned — a fresh profile, an automation build, an
+// enterprise policy that turns it off — `availability()` can simply never settle.
+// That is worse than a refusal: expansion is sequential (translateSlice.concurrency
+// is 1 because the on-device model serialises), so ONE unsettled call strands
+// every embed queued behind it at "translating…" forever, including blocks with
+// nothing to translate. A renderer must not hang on an optional enhancement, so
+// every call into the API is raced against a deadline and a timeout is reported
+// like any other refusal: the source stands and the reason is named.
+export const AI_TIMEOUT_MS = 8000;
+
+function withTimeout(promise, ms, what) {
+  if (!(ms > 0)) return promise;
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${what} did not answer within ${ms} ms`)), ms);
+    }),
+  ]).finally(() => clearTimeout(timer));
+}
+
 export function whyNoTranslator(ua = typeof navigator === "undefined" ? "" : navigator.userAgent || "") {
   const edge = /\bEdg\/(\d+)/.exec(ua);
   const chrome = /\bChrome\/(\d+)/.exec(ua);
@@ -38,13 +60,17 @@ export function whyNoTranslator(ua = typeof navigator === "undefined" ? "" : nav
   return "this browser has no built-in Translator";
 }
 
-export async function translatorFor(sourceLanguage, targetLanguage, onProgress, allowDownload = false) {
+export async function translatorFor(sourceLanguage, targetLanguage, onProgress, allowDownload = false, timeoutMs = AI_TIMEOUT_MS) {
   if (typeof Translator === "undefined") {
     return { ok: false, why: whyNoTranslator() };
   }
   let state;
   try {
-    state = await Translator.availability({ sourceLanguage, targetLanguage });
+    state = await withTimeout(
+      Translator.availability({ sourceLanguage, targetLanguage }),
+      timeoutMs,
+      "Translator.availability",
+    );
   } catch (e) {
     return { ok: false, why: `Translator.availability failed: ${e?.message ?? e}` };
   }
@@ -60,11 +86,19 @@ export async function translatorFor(sourceLanguage, targetLanguage, onProgress, 
     return { ok: false, needsGesture: true, state, why: `the ${sourceLanguage} → ${targetLanguage} model is not on this machine yet` };
   }
   try {
-    const t = await Translator.create({
-      sourceLanguage,
-      targetLanguage,
-      monitor: (m) => m.addEventListener("downloadprogress", (e) => onProgress?.(e.loaded)),
-    });
+    // A create that is DOWNLOADING is deliberately not raced: the model is tens
+    // of megabytes, the reader agreed to it with a click, and `onProgress` is
+    // already reporting. Everything else is a local handoff and should be quick.
+    const downloading = state === "downloadable" || state === "downloading";
+    const t = await withTimeout(
+      Translator.create({
+        sourceLanguage,
+        targetLanguage,
+        monitor: (m) => m.addEventListener("downloadprogress", (e) => onProgress?.(e.loaded)),
+      }),
+      downloading ? 0 : timeoutMs,
+      "Translator.create",
+    );
     return { ok: true, translator: t, downloaded: state === "downloadable" };
   } catch (e) {
     return { ok: false, why: `could not start ${sourceLanguage} → ${targetLanguage}: ${e?.message ?? e}` };
@@ -74,12 +108,16 @@ export async function translatorFor(sourceLanguage, targetLanguage, onProgress, 
 // Guess the source language from the text itself when the document does not say.
 // A projection names its TARGET (`lang=`); the source is whatever the borrowed
 // document is written in, and the borrowed document is often someone else's.
-export async function detectLanguage(sample, fallback = "en") {
+export async function detectLanguage(sample, fallback = "en", timeoutMs = AI_TIMEOUT_MS) {
   if (typeof LanguageDetector === "undefined" || sample.trim() === "") return fallback;
   try {
-    if (await LanguageDetector.availability() === "unavailable") return fallback;
-    const d = await LanguageDetector.create();
-    const [best] = await d.detect(sample.slice(0, 400));
+    // Detection is a convenience — the caller can always name `sourceLanguage`.
+    // So a detector that does not answer must cost the reader a guess, not the
+    // whole expansion queue; every await here is on the same deadline and any
+    // failure, timeout included, falls through to `fallback`.
+    if (await withTimeout(LanguageDetector.availability(), timeoutMs, "LanguageDetector.availability") === "unavailable") return fallback;
+    const d = await withTimeout(LanguageDetector.create(), timeoutMs, "LanguageDetector.create");
+    const [best] = await withTimeout(d.detect(sample.slice(0, 400)), timeoutMs, "LanguageDetector.detect");
     d.destroy?.();
     return best?.detectedLanguage ?? fallback;
   } catch {
@@ -99,10 +137,11 @@ export async function translateSlice(blocks, targetLanguage, opts = {}) {
   translateBlocks(blocks, targetLanguage, (text) => { if (text.trim() !== "") wanted.add(text); return text; }, opts);
   if (wanted.size === 0) return { ok: true, blocks };
 
-  const source = opts.sourceLanguage ?? await detectLanguage([...wanted].join("\n"));
+  const timeoutMs = opts.timeoutMs ?? AI_TIMEOUT_MS;
+  const source = opts.sourceLanguage ?? await detectLanguage([...wanted].join("\n"), "en", timeoutMs);
   if (source === targetLanguage) return { ok: true, blocks, same: true };
 
-  const got = await translatorFor(source, targetLanguage, opts.onProgress, opts.allowDownload === true);
+  const got = await translatorFor(source, targetLanguage, opts.onProgress, opts.allowDownload === true, timeoutMs);
   if (!got.ok) return got;
 
   const map = new Map();
@@ -110,7 +149,7 @@ export async function translateSlice(blocks, targetLanguage, opts = {}) {
     for (const text of wanted) {
       // Sequential on purpose: the on-device model serialises anyway, and a burst
       // of parallel calls on a freshly downloaded model is where it throws.
-      map.set(text, await got.translator.translate(text));
+      map.set(text, await withTimeout(got.translator.translate(text), timeoutMs, "Translator.translate"));
     }
   } catch (e) {
     return { ok: false, why: `translation failed: ${e?.message ?? e}`, retryable: true };
