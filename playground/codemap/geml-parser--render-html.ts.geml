@@ -8,10 +8,10 @@ resolution-default = cpg
 
 # geml-parser/render-html.ts
 
-=== code {#page src=geml-parser/src/render-html.ts#L25-88 anchor="scip-typescript npm @geml/geml 1.10.0 src/`render-html.ts`/page()."}
+=== code {#page src=geml-parser/src/render-html.ts#L25-88 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render-html.ts`/page()."}
 ===
 
-=== code {#renderHtml src=geml-parser/src/render-html.ts#L90-111 anchor="scip-typescript npm @geml/geml 1.10.0 src/`render-html.ts`/renderHtml()."}
+=== code {#renderHtml src=geml-parser/src/render-html.ts#L90-111 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render-html.ts`/renderHtml()."}
 ===
 
 === table {#calls format=csv}

@@ -8,55 +8,55 @@ resolution-default = cpg
 
 # geml-parser/style-selector.ts
 
-=== code {#scanUnsupported src=geml-parser/src/style-selector.ts#L39-72 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-selector.ts`/scanUnsupported()."}
+=== code {#scanUnsupported src=geml-parser/src/style-selector.ts#L39-72 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-selector.ts`/scanUnsupported()."}
 ===
 
-=== code {#unsupported .leaf src=geml-parser/src/style-selector.ts#L74-76 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-selector.ts`/unsupported()."}
+=== code {#unsupported .leaf src=geml-parser/src/style-selector.ts#L74-76 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-selector.ts`/unsupported()."}
 ===
 
-=== code {#splitSteps src=geml-parser/src/style-selector.ts#L79-92 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-selector.ts`/splitSteps()."}
+=== code {#splitSteps src=geml-parser/src/style-selector.ts#L79-92 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-selector.ts`/splitSteps()."}
 ===
 
-=== code {#splitBranches src=geml-parser/src/style-selector.ts#L95-108 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-selector.ts`/splitBranches()."}
+=== code {#splitBranches src=geml-parser/src/style-selector.ts#L95-108 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-selector.ts`/splitBranches()."}
 ===
 
-=== code {#unquote src=geml-parser/src/style-selector.ts#L110-113 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-selector.ts`/unquote()."}
+=== code {#unquote src=geml-parser/src/style-selector.ts#L110-113 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-selector.ts`/unquote()."}
 ===
 
-=== code {#parseSimple src=geml-parser/src/style-selector.ts#L115-154 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-selector.ts`/parseSimple()."}
+=== code {#parseSimple src=geml-parser/src/style-selector.ts#L115-154 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-selector.ts`/parseSimple()."}
 ===
 
-=== code {#parseOne src=geml-parser/src/style-selector.ts#L156-165 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-selector.ts`/parseOne()."}
+=== code {#parseOne src=geml-parser/src/style-selector.ts#L156-165 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-selector.ts`/parseOne()."}
 ===
 
-=== code {#parseSelector src=geml-parser/src/style-selector.ts#L171-184 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-selector.ts`/parseSelector()."}
+=== code {#parseSelector src=geml-parser/src/style-selector.ts#L171-184 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-selector.ts`/parseSelector()."}
 ===
 
-=== code {#selectorDiag src=geml-parser/src/style-selector.ts#L187-189 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-selector.ts`/selectorDiag()."}
+=== code {#selectorDiag src=geml-parser/src/style-selector.ts#L187-189 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-selector.ts`/selectorDiag()."}
 ===
 
-=== code {#candidates src=geml-parser/src/style-selector.ts#L215-220 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-selector.ts`/candidates()."}
+=== code {#candidates src=geml-parser/src/style-selector.ts#L215-220 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-selector.ts`/candidates()."}
 ===
 
-=== code {#walk src=geml-parser/src/style-selector.ts#L222-241 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-selector.ts`/walk()."}
+=== code {#walk src=geml-parser/src/style-selector.ts#L222-241 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-selector.ts`/walk()."}
 ===
 
-=== code {#matchSimple src=geml-parser/src/style-selector.ts#L243-253 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-selector.ts`/matchSimple()."}
+=== code {#matchSimple src=geml-parser/src/style-selector.ts#L243-253 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-selector.ts`/matchSimple()."}
 ===
 
-=== code {#matches src=geml-parser/src/style-selector.ts#L259-274 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-selector.ts`/matches()."}
+=== code {#matches src=geml-parser/src/style-selector.ts#L259-274 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-selector.ts`/matches()."}
 ===
 
-=== code {#address .leaf src=geml-parser/src/style-selector.ts#L277-279 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-selector.ts`/address()."}
+=== code {#address .leaf src=geml-parser/src/style-selector.ts#L277-279 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-selector.ts`/address()."}
 ===
 
-=== code {#simpleConditions src=geml-parser/src/style-selector.ts#L281-286 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-selector.ts`/simpleConditions()."}
+=== code {#simpleConditions src=geml-parser/src/style-selector.ts#L281-286 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-selector.ts`/simpleConditions()."}
 ===
 
-=== code {#selectorConditions src=geml-parser/src/style-selector.ts#L293-298 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-selector.ts`/selectorConditions()."}
+=== code {#selectorConditions src=geml-parser/src/style-selector.ts#L293-298 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-selector.ts`/selectorConditions()."}
 ===
 
-=== code {#moreSpecific src=geml-parser/src/style-selector.ts#L301-305 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-selector.ts`/moreSpecific()."}
+=== code {#moreSpecific src=geml-parser/src/style-selector.ts#L301-305 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-selector.ts`/moreSpecific()."}
 ===
 
 === table {#calls format=csv}

@@ -8,22 +8,22 @@ resolution-default = cpg
 
 # geml-parser/style-resolve.ts
 
-=== code {#typedBlocks src=geml-parser/src/style-resolve.ts#L72-78 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-resolve.ts`/typedBlocks()."}
+=== code {#typedBlocks src=geml-parser/src/style-resolve.ts#L72-78 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-resolve.ts`/typedBlocks()."}
 ===
 
-=== code {#str .leaf src=geml-parser/src/style-resolve.ts#L80-82 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-resolve.ts`/str()."}
+=== code {#str .leaf src=geml-parser/src/style-resolve.ts#L80-82 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-resolve.ts`/str()."}
 ===
 
-=== code {#loadStylesheet src=geml-parser/src/style-resolve.ts#L85-149 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-resolve.ts`/loadStylesheet()."}
+=== code {#loadStylesheet src=geml-parser/src/style-resolve.ts#L85-149 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-resolve.ts`/loadStylesheet()."}
 ===
 
-=== code {#ruleProps .leaf src=geml-parser/src/style-resolve.ts#L209-216 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-resolve.ts`/ruleProps()."}
+=== code {#ruleProps .leaf src=geml-parser/src/style-resolve.ts#L209-216 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-resolve.ts`/ruleProps()."}
 ===
 
-=== code {#resolveBindings src=geml-parser/src/style-resolve.ts#L225-277 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-resolve.ts`/resolveBindings()."}
+=== code {#resolveBindings src=geml-parser/src/style-resolve.ts#L225-277 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-resolve.ts`/resolveBindings()."}
 ===
 
-=== code {#resolveStyle src=geml-parser/src/style-resolve.ts#L288-416 anchor="scip-typescript npm @geml/geml 1.10.0 src/`style-resolve.ts`/resolveStyle()."}
+=== code {#resolveStyle src=geml-parser/src/style-resolve.ts#L288-416 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-resolve.ts`/resolveStyle()."}
 ===
 
 === table {#calls format=csv}

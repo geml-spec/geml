@@ -1,0 +1,70 @@
+=== meta
+title = "A unit inside a block has an address"
+chapter = "3 / 7"
+version = "3"
+owner = "the GEML team"
+===
+
+# {{title}} {#c-top}
+
+An id names a block. A **coordinate** names something inside one — a cell, a
+column, a reported row, a node in a value tree. It reads; it can never write.
+
+=== table {#c-fy-facts caption="FY facts" format=csv header=1}
+Segment, Q1, Q2, Q3, Q4
+Cloud,    8, 10, 12, 14
+Platform, 5,  6,  7,  9
+Services, 3,  4,  4,  5
+===
+
+=== view {#c-fy src=#c-fy-facts caption="FY with the full-year total" compute="FY [%.0f] = Q1 + Q2 + Q3 + Q4" summary="Segment = 'Total'; FY [%.0f] = sum(FY)"}
+===
+
+## Reading one cell into a sentence {#c-cells}
+
+Cloud booked [[#c-fy[1]["Q1"]]] in Q1 and [[#c-fy[1]["FY"]]] across the year.
+Platform's Q4 was [[#c-fy[2]["Q4"]]]. The company total is
+[[#c-fy[summary]["FY"]]] — read out of the **reported row**, not retyped.
+
+None of those numbers is written in this paragraph. Change a fact in
+[[#c-fy-facts]] and every sentence above moves with it, including the total,
+because the total is itself derived.
+
+=== note {.tip #c-forms}
+`#id[2]` is a body row · `#id[2]["Q1"]` one cell · `#id["Q1"]` a whole column ·
+`#id[summary]["FY"]` the reported row · `other.geml#id[2]["Q1"]` the same in
+another document. `[` cannot appear in a conforming id, so there is no ambiguity
+about where the id ends and the coordinate begins.
+===
+
+## Walking a value tree {#c-tree}
+
+=== data {#c-intake format=json}
+{
+  "sections": [
+    { "name": "contact",
+      "fields": [ { "name": "email", "required": true },
+                  { "name": "phone", "required": false } ] },
+    { "name": "billing",
+      "fields": [ { "name": "vat", "required": false } ] }
+  ]
+}
+===
+
+The second field of the first section is called
+[[#c-intake["sections"][0]["fields"][1]["name"]]], and the first section is
+[[#c-intake["sections"][0]["name"]]]. A key is a quoted string; an index is a
+bare integer.
+
+## The document's own metadata {#c-meta}
+
+`#meta` is a reserved id naming the merged meta namespace. This document is
+version [[#meta["version"]]], kept by [[#meta["owner"]]] — read from the block
+at the top of the file rather than repeated here.
+
+=== note {#c-write .warning}
+`geml get` and `geml set` both take a coordinate, so an agent can read one cell
+without loading the table and write `#meta["version"]` without rewriting the
+meta block. Writing goes to the **first** definition — the one that actually
+wins when meta blocks merge.
+===

@@ -199,8 +199,8 @@ geml-viewer--content.js.geml#main,               #renderDocument,    call, integ
 #renderDocument,                                 #focusBanner,       call, integrations/geml-viewer/src/render.js:25
 geml-viewer--content.js.geml#main,               #viewerDiagnostics, call, integrations/geml-viewer/src/content.js:81
 #renderDocument,                                 #collectLabels,     call, integrations/geml-viewer/src/render.js:19
-geml-viewer--transclude.js.geml#expandOne,       #collectLabels,     call, integrations/geml-viewer/src/transclude.js:195
-geml-viewer--transclude.js.geml#expandOneInline, #collectLabels,     call, integrations/geml-viewer/src/transclude.js:356
+geml-viewer--transclude.js.geml#expandOne,       #collectLabels,     call, integrations/geml-viewer/src/transclude.js:200
+geml-viewer--transclude.js.geml#expandOneInline, #collectLabels,     call, integrations/geml-viewer/src/transclude.js:395
 #focusBanner,                                    #el,                call, integrations/geml-viewer/src/render.js:67
 #focusBanner,                                    #el,                call, integrations/geml-viewer/src/render.js:69
 #renderInline,                                   #el,                call, integrations/geml-viewer/src/render.js:128
@@ -271,7 +271,7 @@ geml-viewer--transclude.js.geml#expandOneInline, #collectLabels,     call, integ
 #renderBlock,                                    #renderInlines,     call, integrations/geml-viewer/src/render.js:301
 #renderBlock,                                    #renderInlines,     call, integrations/geml-viewer/src/render.js:310
 #renderRow,                                      #renderInlines,     call, integrations/geml-viewer/src/render.js:535
-geml-viewer--transclude.js.geml#expandOneInline, #renderInlines,     call, integrations/geml-viewer/src/transclude.js:356
+geml-viewer--transclude.js.geml#expandOneInline, #renderInlines,     call, integrations/geml-viewer/src/transclude.js:395
 #renderInlines,                                  #renderInline,      call, integrations/geml-viewer/src/render.js:121
 #isSafeHref,                                     #schemeOf,          call, integrations/geml-viewer/src/render.js:200
 #isSafeMediaSrc,                                 #schemeOf,          call, integrations/geml-viewer/src/render.js:212
@@ -289,7 +289,7 @@ geml-viewer--transclude.js.geml#expandOneInline, #renderInlines,     call, integ
 #renderDocument,                                 #renderBlock,       call, integrations/geml-viewer/src/render.js:32
 #renderTyped,                                    #renderBlock,       call, integrations/geml-viewer/src/render.js:367
 #renderTyped,                                    #renderBlock,       call, integrations/geml-viewer/src/render.js:372
-geml-viewer--transclude.js.geml#expandOne,       #renderBlock,       call, integrations/geml-viewer/src/transclude.js:199
+geml-viewer--transclude.js.geml#expandOne,       #renderBlock,       call, integrations/geml-viewer/src/transclude.js:204
 #renderBlock,                                    #renderTyped,       call, integrations/geml-viewer/src/render.js:322
 #renderTyped,                                    #rawBlock,          call, integrations/geml-viewer/src/render.js:384
 #renderTyped,                                    #rawBlock,          call, integrations/geml-viewer/src/render.js:426

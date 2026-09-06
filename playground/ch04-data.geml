@@ -1,0 +1,70 @@
+=== meta
+title = "One block, three engines"
+chapter = "4 / 7"
+===
+
+# {{title}} {#d-top}
+
+A `data` block holds structured values. The `format=` names which syntax the
+body is in, and the processor parses it, checks it, and makes it addressable —
+it is not an opaque string that happens to look like config.
+
+## json {#d-json}
+
+=== data {#d-limits format=json}
+{
+  "maxDepth": 8,
+  "timeoutMs": 2000,
+  "allowRemote": false
+}
+===
+
+Depth is capped at [[#d-limits["maxDepth"]]], with a
+[[#d-limits["timeoutMs"]]] ms timeout.
+
+## jsonl — one record per line {#d-jsonl}
+
+=== data {#d-latency format=jsonl caption="p95 latency samples"}
+{"region": "us", "p95": 41}
+{"region": "eu", "p95": 58}
+{"region": "ap", "p95": 96}
+===
+
+=== diagram {#d-latency-chart format=geml-chart data=#d-latency type=bar x=region y=p95 caption="p95 by region — charted from the jsonl above, by reference"}
+===
+
+The chart copies nothing. It names [[#d-latency]], and the column names are
+checked when the document is parsed — rename `p95` in the data and the chart
+fails the build instead of drawing an empty axis.
+
+## yaml — new in 1.10.0, and deliberately a subset {#d-yaml}
+
+=== data {#d-service format=yaml}
+service: geml
+retries: 3
+enabled: true
+endpoints:
+  - name: primary
+    port: 443
+  - name: fallback
+    port: 8443
+===
+
+The primary endpoint listens on [[#d-service["endpoints"][0]["port"]]] and the
+fallback on [[#d-service["endpoints"][1]["port"]]].
+
+=== note {.warning #d-subset}
+Full YAML is not supported, on purpose. The places YAML is large are the places
+implementations disagree — `yes` is a boolean in 1.1 and a string in 1.2, plus
+anchors, tags, merge keys, multi-document streams. The engine reads block
+collections nested by indentation, plain and quoted and block scalars, comments,
+one document, `[]`/`{}`, with YAML 1.2 **core-schema** scalars — and **refuses
+the rest by name** rather than guessing. A subset that means the same thing in
+every processor beats a superset that means something different in each.
+===
+
+=== note {.tip #d-canon}
+Canonical serialization is defined for `json` and `jsonl` only. Every other
+format is byte-preserved, so `--to geml` will never rewrite your YAML into JSON
+behind your back.
+===

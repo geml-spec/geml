@@ -5,11 +5,33 @@ on the right, and watch the validity pill flip to red the moment a reference
 breaks. It's the project's pitch in one link — the thing to put above the fold in
 the README and at the top of a Show HN.
 
-`index.html` + `playground.js` + `sample.geml` + `fonts/` are fully
-self-contained (no CDN, no network). Everything renders for real: computed
-tables, `geml-chart` (inline SVG), **math via bundled KaTeX**, and **diagrams via
+`index.html` + `playground.js` + the chapter files + `fonts/` are fully
+self-contained (no CDN, no network). Everything renders for real: derived views,
+`geml-chart` (inline SVG), **math via bundled KaTeX**, and **diagrams via
 bundled Mermaid**. Bundling both makes `playground.js` a few MB — the price of a
 self-contained, offline showcase.
+
+## The seven chapters
+
+The tour is seven real `.geml` files sitting in this folder. The chapter bar
+loads one into the editor; `#ch=<slug>` in the URL selects one directly.
+
+| slug | file | what it shows |
+|---|---|---|
+| `basics` | `ch01-basics.geml` | meta interpolation, flow prose, `note`, lists, footnotes, `[[#id]]` |
+| `relation` | `ch02-relation.geml` | `table` holds facts · `view` derives: `where` `order` `limit` `select` `by` `aggregate` `compute` `summary`, and a view reading a view |
+| `coordinates` | `ch03-coordinates.geml` | `#id[2]["Q1"]`, `#id["Q1"]`, `#id[summary][…]`, a `data` value tree, `#meta["key"]` |
+| `data` | `ch04-data.geml` | `format=json` / `jsonl` / `yaml`, and a chart bound to the jsonl by reference |
+| `visual` | `ch05-visual.geml` | charts by reference, KaTeX, Mermaid, and the repository's own codemap |
+| `reuse` | `ch06-reuse.geml` | `![[#id]]` inline projection, block embeds, a cross-file chain, `part=head` |
+| `projection` | `ch07-projection.geml` | GEP-0010 language projection of `ch07-source.geml`, four axes side by side |
+
+`sample.geml` is the **eighth** entry and writes none of that content: it is an
+index that transcludes the seven, so the same files serve the chapter editor and
+the single-page tour that the READMEs link to as a raw file. Changing a chapter
+changes the tour — there is no second copy to update.
+
+Every one of them is `geml check`-clean; CI would catch it if one were not.
 
 ## Build
 
@@ -25,7 +47,7 @@ with zero build step — re-run the command after changing the parser or rendere
 
 ## The code-graph demo data (`codemap/`)
 
-The `geml-code-graph` section of `sample.geml` dogfoods: `codemap/` is this
+The `geml-code-graph` section of `ch05-visual.geml` dogfoods: `codemap/` is this
 repository's **own** codemap — one GEML document per source file of
 `geml-parser` and `geml-viewer` plus a module index (two SCIP indexes merged
 into one map) — and the `.html` next to each document is the CLI-rendered

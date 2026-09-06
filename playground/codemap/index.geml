@@ -1,13 +1,13 @@
 === meta
 profile = "geml-codemap/v1"
-repo = geml-spec
-commit = dc5074a
+repo = geml
+commit = 33f4086
 container = file
 entry = geml-viewer--content.js.geml#main
 resolution-default = cpg
 ===
 
-# Code map — geml-spec
+# Code map — geml
 
 === table {#modules format=csv}
 module,                           doc,                                    methods, entries, tests
@@ -35,8 +35,8 @@ geml-parser/from-md.ts,           geml-parser--from-md.ts.geml,           7,    
 geml-viewer/upgrade.js,           geml-viewer--upgrade.js.geml,           7,       3,       0
 geml-parser/style-resolve.ts,     geml-parser--style-resolve.ts.geml,     6,       2,       0
 geml-parser/yaml.ts,              geml-parser--yaml.ts.geml,              6,       1,       0
+geml-viewer/translate-browser.js, geml-viewer--translate-browser.js.geml, 5,       1,       0
 geml-parser/attrs.ts,             geml-parser--attrs.ts.geml,             4,       3,       0
-geml-viewer/translate-browser.js, geml-viewer--translate-browser.js.geml, 4,       1,       0
 geml-parser/chart.ts,             geml-parser--chart.ts.geml,             2,       1,       0
 geml-parser/render-html.ts,       geml-parser--render-html.ts.geml,       2,       1,       0
 geml-viewer/snapshot.js,          geml-viewer--snapshot.js.geml,          2,       1,       0
@@ -64,10 +64,11 @@ geml-parser/cli.ts,            geml-parser/attrs.ts,             6
 geml-parser/cli.ts,            geml-parser/coord.ts,             6
 geml-parser/cli.ts,            geml-parser/block-edit.ts,        5
 geml-parser/geml.ts,           geml-parser/table.ts,             5
+geml-viewer/transclude.js,     geml-viewer/translate-browser.js, 5
 geml-parser/geml.ts,           geml-parser/profiles.ts,          4
 geml-parser/render.ts,         geml-parser/geml.ts,              4
 geml-viewer/transclude.js,     geml-viewer/render.js,            4
-geml-viewer/transclude.js,     geml-viewer/translate-browser.js, 4
+geml-parser/geml.ts,           geml-parser/coord.ts,             3
 geml-viewer/content.js,        geml-viewer/inline-src.js,        3
 geml-viewer/content.js,        geml-viewer/upgrade.js,           3
 geml-viewer/transclude.js,     geml-viewer/inline-src.js,        3
@@ -75,7 +76,6 @@ geml-parser/block-edit.ts,     geml-parser/attrs.ts,             2
 geml-parser/cli.ts,            geml-parser/from-md.ts,           2
 geml-parser/cli.ts,            geml-parser/style-resolve.ts,     2
 geml-parser/cli.ts,            geml-parser/to-md.ts,             2
-geml-parser/geml.ts,           geml-parser/coord.ts,             2
 geml-parser/geml.ts,           geml-parser/selector.ts,          2
 geml-parser/inline.ts,         geml-parser/attrs.ts,             2
 geml-parser/mcp.ts,            geml-parser/geml.ts,              2

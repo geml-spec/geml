@@ -1,0 +1,64 @@
+=== meta
+title = "Reuse without copying"
+chapter = "6 / 7"
+===
+
+# {{title}} {#u-top}
+
+Copying is how documents drift. GEML lets one document *point* at content in
+another and render it in place — nothing is written here, and editing the source
+moves every consumer.
+
+## A phrase, projected inline {#u-inline}
+
+`![[#id]]` pulls a single-paragraph `text` block into a sentence. System status
+right now: ![[all_types_demo.geml#status_phrase]] — that clause lives in
+`all_types_demo.geml`, not here.
+
+Only a `text` block holding **one paragraph** may be projected that way — the
+parser enforces it, because a phrase has nowhere to put a heading or a table.
+
+A **coordinate** may be projected too, and it crosses documents like anything
+else. Chapter 3's company total is ![[ch03-coordinates.geml#c-fy[summary]["FY"]]],
+read out of the reported row of a `view` in another file — a number this sentence
+does not contain and cannot get wrong.
+
+## A whole block, embedded {#u-block}
+
+=== embed {#u-arch src=all_types_demo.geml#arch_flow}
+===
+
+That is a Mermaid diagram kept in another file — design assets stay separate
+from the report that uses them.
+
+## A chain, resolved across files {#u-chain}
+
+=== embed {#u-chart src=example_transclusion.geml#q3_chart}
+===
+
+That embed pulls a chart, and the chart itself binds to a table in *its* own
+file. Two hops, both checked when the document is parsed. A cycle would be an
+error naming every document in it, and depth is bounded — a chain cannot recurse
+the renderer to death.
+
+## A section from this very document {#u-self}
+
+=== embed {#u-mirror src=#u-inline}
+===
+
+`src=#id` on a heading pulls the whole section. The block above mirrors
+[[#u-inline]] — including the projections inside it, which resolve again.
+
+## Only the heading {#u-part}
+
+=== embed {src=ch02-relation.geml#r-group part=head}
+===
+
+`part=head` takes the head line and leaves the body — useful for building an
+index out of other documents' headings without dragging their content along.
+
+=== note {.tip #u-why}
+None of this is preprocessing. The references live in the model, so `geml check`
+fails the build when one breaks, and an agent editing the source knows exactly
+which documents it just changed.
+===

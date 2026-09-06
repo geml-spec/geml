@@ -1,0 +1,60 @@
+=== meta
+title = "One document is one tree"
+chapter = "1 / 7"
+spec = "1.0"
+===
+
+# {{title}} {#b-top}
+
+Every line below is part of a tree an agent can address. Prose is a *flow*
+paragraph, so it carries inline markup — **strong**, ~~struck~~, `inline code`,
+math $a^2 + b^2$, a [link](https://geml-spec.github.io/geml/) — and it can point
+at any block by id: see [[#b-facts]] and the note at [[#b-checked]].[^b-why]
+
+Values from `meta` interpolate: this is chapter {{chapter}}, against GEML
+{{spec}}. Change `title` above and the heading follows.
+
+=== note {.tip #b-note}
+A `note` is a callout, not a paragraph with a class glued on — it is a typed
+block, so an agent can find every callout in a corpus with one query. Intent
+goes on a class: `{.tip}`, `{.warning}`, `{.aside}`.
+===
+
+## Lists nest, tasks check {#b-lists}
+
+- [x] Ship the 1.0 spec
+- [x] Publish the reference parser and CLI
+- [ ] Recruit a second implementation
+  - [ ] Python
+  - [ ] Rust
+
+Ordered lists keep their order:
+
+1. Tag the release
+2. Publish to npm
+3. Announce
+
+## A block has an id, and an id is a contract {#b-facts}
+
+=== table {#b-revenue caption="Revenue by segment" format=csv header=1}
+Segment, Q1, Q2
+Cloud,    8, 10
+Platform, 5,  6
+===
+
+That table is *facts only*. Nothing is derived here — deriving is what the next
+chapter is about.
+
+=== note {#b-checked .warning}
+Every reference is checked when the document is parsed: `[[#id]]`, a link to
+`#id`, a footnote, a chart's `data=#id`. Press **Break a reference** above and
+watch the pill flip red — nothing renders a dangling pointer quietly.
+===
+
+%% A %% line is a comment. It stays in the model and never reaches the page.
+
+=== note {#b-why}
+Markdown has no ids, so an agent must re-read the whole file to change one
+paragraph. GEML gives every block an address, and `geml set <file> '#id'`
+rewrites exactly that block — the footnote you just followed is itself a block.
+===

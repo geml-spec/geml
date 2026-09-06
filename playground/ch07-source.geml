@@ -1,0 +1,28 @@
+=== meta
+title = "Cutting a release"
+lang = "en"
+===
+
+# Cutting a release {#s-top}
+
+Start from a clean tree. A release built from uncommitted work cannot be
+reproduced, and the version it claims will be a lie.
+
+=== code {#s-cmd lang=sh}
+git status --porcelain   # must print nothing
+npm publish --access public
+===
+
+Confirm the registry actually has it before announcing anything.
+
+## Where each artifact lands {#s-where}
+
+=== table {#s-artifacts caption="One release, four destinations" format=csv header=1}
+Artifact, Registry, Confirm with
+The parser, npm, a version query
+The editor extension, Open VSX, the public API
+The browser extension, the Chrome Web Store, a manual upload
+===
+
+If any row cannot be confirmed, stop and fix it. A half-published release is
+worse than a late one.

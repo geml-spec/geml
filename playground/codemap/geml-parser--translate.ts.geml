@@ -8,43 +8,43 @@ resolution-default = cpg
 
 # geml-parser/translate.ts
 
-=== code {#resolveTarget src=geml-parser/src/translate.ts#L48-57 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/resolveTarget()."}
+=== code {#resolveTarget src=geml-parser/src/translate.ts#L48-57 anchor="scip-typescript npm @geml/geml 1.10.1 src/`translate.ts`/resolveTarget()."}
 ===
 
-=== code {#ph .leaf src=geml-parser/src/translate.ts#L76-76 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/ph."}
+=== code {#ph .leaf src=geml-parser/src/translate.ts#L76-76 anchor="scip-typescript npm @geml/geml 1.10.1 src/`translate.ts`/ph."}
 ===
 
-=== code {#phEnd .leaf src=geml-parser/src/translate.ts#L77-77 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/phEnd."}
+=== code {#phEnd .leaf src=geml-parser/src/translate.ts#L77-77 anchor="scip-typescript npm @geml/geml 1.10.1 src/`translate.ts`/phEnd."}
 ===
 
-=== code {#maskTerms src=geml-parser/src/translate.ts#L89-102 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/maskTerms()."}
+=== code {#maskTerms src=geml-parser/src/translate.ts#L89-102 anchor="scip-typescript npm @geml/geml 1.10.1 src/`translate.ts`/maskTerms()."}
 ===
 
-=== code {#mask src=geml-parser/src/translate.ts#L113-140 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/mask()."}
+=== code {#mask src=geml-parser/src/translate.ts#L113-140 anchor="scip-typescript npm @geml/geml 1.10.1 src/`translate.ts`/mask()."}
 ===
 
-=== code {#rebuild src=geml-parser/src/translate.ts#L149-178 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/rebuild()."}
+=== code {#rebuild src=geml-parser/src/translate.ts#L149-178 anchor="scip-typescript npm @geml/geml 1.10.1 src/`translate.ts`/rebuild()."}
 ===
 
-=== code {#translateInlines src=geml-parser/src/translate.ts#L180-197 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/translateInlines()."}
+=== code {#translateInlines src=geml-parser/src/translate.ts#L180-197 anchor="scip-typescript npm @geml/geml 1.10.1 src/`translate.ts`/translateInlines()."}
 ===
 
-=== code {#flatten .leaf src=geml-parser/src/translate.ts#L204-223 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/flatten()."}
+=== code {#flatten .leaf src=geml-parser/src/translate.ts#L204-223 anchor="scip-typescript npm @geml/geml 1.10.1 src/`translate.ts`/flatten()."}
 ===
 
-=== code {#translateItems src=geml-parser/src/translate.ts#L225-231 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/translateItems()."}
+=== code {#translateItems src=geml-parser/src/translate.ts#L225-231 anchor="scip-typescript npm @geml/geml 1.10.1 src/`translate.ts`/translateItems()."}
 ===
 
-=== code {#translateAttrs .leaf src=geml-parser/src/translate.ts#L235-238 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/translateAttrs()."}
+=== code {#translateAttrs .leaf src=geml-parser/src/translate.ts#L235-238 anchor="scip-typescript npm @geml/geml 1.10.1 src/`translate.ts`/translateAttrs()."}
 ===
 
-=== code {#translateTable src=geml-parser/src/translate.ts#L244-256 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/translateTable()."}
+=== code {#translateTable src=geml-parser/src/translate.ts#L244-256 anchor="scip-typescript npm @geml/geml 1.10.1 src/`translate.ts`/translateTable()."}
 ===
 
-=== code {#translateBlocks src=geml-parser/src/translate.ts#L263-303 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/translateBlocks()."}
+=== code {#translateBlocks src=geml-parser/src/translate.ts#L263-303 anchor="scip-typescript npm @geml/geml 1.10.1 src/`translate.ts`/translateBlocks()."}
 ===
 
-=== code {#glossaryFrom src=geml-parser/src/translate.ts#L317-332 anchor="scip-typescript npm @geml/geml 1.10.0 src/`translate.ts`/glossaryFrom()."}
+=== code {#glossaryFrom src=geml-parser/src/translate.ts#L317-332 anchor="scip-typescript npm @geml/geml 1.10.1 src/`translate.ts`/glossaryFrom()."}
 ===
 
 === table {#calls format=csv}

@@ -41,6 +41,13 @@
   .palette-label { font-size: 12px; color: var(--muted); margin-right: 4px; }
   .palette button { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 12px; padding: 4px 10px; }
+  /* The chapter bar. Seven real .geml files sit next to this page; a click loads
+     one into the editor. The tour is the eighth entry and is the index that
+     transcludes the other seven, so one set of files serves both readings. */
+  .chapters { display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    padding: 8px 24px; border-bottom: 1px solid var(--line); }
+  .chapters button { font-size: 12px; padding: 4px 11px; }
+  .chapters button.on { border-color: var(--fg); background: var(--fg); color: #fff; }
   /* What the agent would read for the block the cursor is in — the pitch, as a
      number that moves while you type, instead of a benchmark to go and read. */
   .cost { font-size: 12px; color: var(--muted); white-space: nowrap; }
@@ -69,8 +76,8 @@
   <header>
     <h1><span class="g">GEML</span> playground</h1>
     <p>A plain-text format where <strong>every block carries an <code>#id</code></strong>, so an agent reads or
-       replaces one block instead of the whole file. Edit on the left — or hit <em>Break a reference</em>
-       and watch the build go red.
+       replaces one block instead of the whole file. Seven chapters below, each a real <code>.geml</code> file
+       in this folder — edit any of them on the left, or hit <em>Break a reference</em> and watch the build go red.
        <a href="https://github.com/geml-spec/geml" target="_blank" rel="noopener">GitHub · README →</a></p>
   </header>
   <div class="toolbar">
@@ -82,6 +89,9 @@
     <button id="break">Break a reference</button>
     <button id="reset">Reset example</button>
   </div>
+  <!-- Seven chapters, each a real file in this folder. The bar is built in JS
+       from one list, so a chapter cannot exist in the markup and nowhere else. -->
+  <div class="chapters"><span class="palette-label">chapter</span></div>
   <!-- One block shape for every kind of content: each button below inserts the
        SAME `=== type {…}` skeleton with a different type. That is the language,
        demonstrated by pressing it rather than by reading about it. -->
@@ -91,6 +101,7 @@
     <button data-block="text">text</button>
     <button data-block="code">code</button>
     <button data-block="table">table</button>
+    <button data-block="view">view</button>
     <button data-block="data">data</button>
     <button data-block="math">math</button>
     <button data-block="diagram">diagram</button>
@@ -246,6 +257,10 @@
         // why it cannot drift from them. Inserted with its own table so the
         // binding is live on the first press.
         chart:   function (n) { return "=== table {#src" + n + " format=csv header=1}\nSegment, FY\nCloud,   44\nEdge,    18\n===\n\n=== diagram {#ch" + n + " format=geml-chart data=#src" + n + " type=bar x=Segment y=FY}\n===\n"; },
+        // A view DERIVES a relation from a table. Inserted with its own facts
+        // table so the filter, the order and the total are live on the first
+        // press — the 1.10.0 split (facts in `table`, derivation in `view`).
+        view:    function (n) { return "=== table {#f" + n + " format=csv header=1}\nSegment, Q1, Q2\nCloud,    8, 10\nPlatform, 5,  6\nEdge,     2,  3\n===\n\n=== view {#v" + n + " src=#f" + n + " caption=\"Half-year, biggest first\" compute=\"H1 [%.0f] = Q1 + Q2\" where=\"H1 > 5\" order=\"H1 desc\" summary=\"Segment = 'Total'; H1 [%.0f] = sum(H1)\"}\n===\n"; },
         embed:   function (n) { return "=== embed {src=#t" + n + "}\n===\n"; },
       };
 
@@ -319,11 +334,69 @@
         setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
       });
 
-      // Load the sample document (a real .geml file), then wire up to it.
-      fetch("./sample.geml")
-        .then(function (r) { return r.ok ? r.text() : Promise.reject(new Error(String(r.status))); })
-        .then(function (text) { load(text); })
-        .catch(function () { load(FALLBACK); });
+      // --- Chapters. Each entry is a real, `geml check`-clean file in this
+      // folder; the tour is the index that transcludes the other seven. One
+      // list drives the buttons, the hash and Reset, so they cannot disagree.
+      var CHAPTERS = [
+        { slug: "tour",        file: "sample.geml",           label: "Full tour" },
+        { slug: "basics",      file: "ch01-basics.geml",      label: "1 \u00b7 One tree" },
+        { slug: "relation",    file: "ch02-relation.geml",    label: "2 \u00b7 view" },
+        { slug: "coordinates", file: "ch03-coordinates.geml", label: "3 \u00b7 Coordinates" },
+        { slug: "data",        file: "ch04-data.geml",        label: "4 \u00b7 json/jsonl/yaml" },
+        { slug: "visual",      file: "ch05-visual.geml",      label: "5 \u00b7 Charts & code graph" },
+        { slug: "reuse",       file: "ch06-reuse.geml",       label: "6 \u00b7 Reuse" },
+        { slug: "projection",  file: "ch07-projection.geml",  label: "7 \u00b7 Projection" },
+      ];
+
+      var chapterBar = document.querySelector(".chapters");
+      var current = null;
+
+      function slugFromHash() {
+        var m = /(?:^|[#&])ch=([a-z]+)/.exec(location.hash || "");
+        var want = m && m[1];
+        for (var i = 0; i < CHAPTERS.length; i++) if (CHAPTERS[i].slug === want) return want;
+        return "tour";
+      }
+
+      function markActive(slug) {
+        var bs = chapterBar.querySelectorAll("button[data-ch]");
+        for (var i = 0; i < bs.length; i++) {
+          bs[i].classList.toggle("on", bs[i].getAttribute("data-ch") === slug);
+        }
+      }
+
+      // A chapter's own text becomes SAMPLE, so Reset restores the chapter you
+      // are reading rather than jumping back to the tour.
+      function openChapter(slug, pushHash) {
+        var ch = null;
+        for (var i = 0; i < CHAPTERS.length; i++) if (CHAPTERS[i].slug === slug) ch = CHAPTERS[i];
+        if (!ch) return;
+        current = slug;
+        markActive(slug);
+        if (pushHash && slugFromHash() !== slug) location.hash = "ch=" + slug;
+        fetch("./" + ch.file, { cache: "no-cache" })
+          .then(function (r) { return r.ok ? r.text() : Promise.reject(new Error(String(r.status))); })
+          .then(function (text) { load(text); })
+          .catch(function () { load(FALLBACK); });
+      }
+
+      CHAPTERS.forEach(function (ch) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.textContent = ch.label;
+        b.setAttribute("data-ch", ch.slug);
+        chapterBar.appendChild(b);
+      });
+      chapterBar.addEventListener("click", function (e) {
+        var b = e.target.closest("button[data-ch]");
+        if (b) openChapter(b.getAttribute("data-ch"), true);
+      });
+      window.addEventListener("hashchange", function () {
+        var slug = slugFromHash();
+        if (slug !== current) openChapter(slug, false);
+      });
+
+      openChapter(slugFromHash(), false);
     })();
   </script>
 </body>

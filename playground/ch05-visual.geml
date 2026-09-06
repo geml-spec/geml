@@ -1,0 +1,66 @@
+=== meta
+title = "Charts, formulas, and a call graph that reads itself"
+chapter = "5 / 7"
+===
+
+# {{title}} {#v-top}
+
+## A chart binds to data; it never holds any {#v-chart}
+
+=== table {#v-facts caption="Revenue by segment" format=csv header=1}
+Segment, Q1, Q2, Q3, Q4
+Cloud,    8, 10, 12, 14
+Platform, 5,  6,  7,  9
+Services, 3,  4,  4,  5
+===
+
+=== view {#v-fy src=#v-facts caption="With the full-year column" compute="FY [%.0f] = Q1 + Q2 + Q3 + Q4"}
+===
+
+=== diagram {#v-bar format=geml-chart data=#v-fy type=bar x=Segment y=FY caption="FY by segment"}
+===
+
+=== diagram {#v-line format=geml-chart data=#v-facts type=line x=Segment y=Q4 caption="Q4 by segment"}
+===
+
+One source of truth, two pictures. The `y=FY` axis names a column a **view**
+computes — the chart reads the derived relation, not the raw facts.
+
+## Math {#v-math}
+
+=== math {#v-pythagoras caption="Pythagoras"}
+c^2 = a^2 + b^2
+===
+
+Inline works too: the discriminant is $b^2 - 4ac$.
+
+## A diagram hosts a foreign DSL, untouched {#v-mermaid}
+
+=== diagram {#v-flow format=mermaid caption="Review flow"}
+graph LR
+  A[Draft] --> B{Review} --> C[Publish]
+===
+
+GEML never interprets a `mermaid` body. It stores it verbatim and hands it to a
+renderer — which is why adding a diagram language costs the format nothing.
+
+## Except this one, which GEML does interpret {#v-codegraph}
+
+`geml-code-graph` is not a foreign DSL. It points at a **codemap** — a call
+graph stored as ordinary, checked GEML documents. The map below is this
+repository's own source: the reference parser and the viewer that is drawing
+this page. The two clusters touch only at the package boundary, because the
+viewer calls the parser's published API and not its internals.
+
+**Click a module to open its rendered page.**
+
+=== diagram {#v-modmap format=geml-code-graph src=codemap/index.geml caption="geml-parser + geml-viewer — module overview (their own codemap)"}
+===
+
+And one container at method level, rooted at `renderHtml`. **Click a node for
+its callee chain; the ⊕ on an entry node expands the caller chain up to the app
+entry**, and the breadcrumb walks back without leaving the page. Dashed red is a
+recursion back-edge, dotted is a dispatch candidate, dimmed is a leaf helper:
+
+=== diagram {#v-callmap format=geml-code-graph src=codemap/geml-parser--render.ts.geml caption="geml-parser/src/render.ts — layered method flow (interactive)"}
+===

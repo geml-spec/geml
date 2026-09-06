@@ -1,0 +1,88 @@
+=== meta
+title = "One source, many languages"
+chapter = "7 / 7"
+profile = "geml-translator/v1"
+translate-to = "zh-cn"
+glossary = "#p-terms"
+===
+
+# {{title}} {#p-top}
+
+`ch07-source.geml` next to this file is written in English, once. Everything
+below is a **projection** of it: each block is pulled by reference and rendered
+in the language its embed asks for. No translated text is stored anywhere — not
+in that file, and not in this one.
+
+=== note {.tip #p-narration}
+This paragraph is narration and stays English on purpose: a projection
+translates the blocks it **borrows**, not the document doing the borrowing. What
+follows the next heading is borrowed, and it moves.
+===
+
+=== table {#p-terms hidden}
+| term | zh-cn |
+|---|---|
+| GEML | GEML |
+| npm | npm |
+| Open VSX | Open VSX |
+| registry | 登记处 |
+| release | 发布 |
+===
+
+## The same paragraph, four ways {#p-four}
+
+The document's `translate-to = "zh-cn"` is the default, so a bare embed lands in
+Chinese:
+
+=== embed {src=ch07-source.geml#s-top-before-s-cmd}
+===
+
+An embed may override the axis. Japanese:
+
+=== embed {src=ch07-source.geml#s-top-before-s-cmd translate-to=ja}
+===
+
+French:
+
+=== embed {src=ch07-source.geml#s-top-before-s-cmd translate-to=fr}
+===
+
+And `translate-to=none` holds one back, which is how a quotation stays a
+quotation:
+
+=== embed {src=ch07-source.geml#s-top-before-s-cmd translate-to=none}
+===
+
+Four renderings, one paragraph, zero copies. Edit `ch07-source.geml` and all
+four move together.
+
+## What is never translated {#p-never}
+
+The parser decides *what may be translated*: heading and paragraph text, list
+items, table cells, a `caption=`. It never touches an id, a link target, or the
+body of a `code`, `math` or `data` block — so a command survives the crossing
+whatever the axis says:
+
+=== embed {src=ch07-source.geml#s-cmd}
+===
+
+Table cells, by contrast, are prose an author wrote, so they do move — while the
+terms pinned in [[#p-terms]] stay put:
+
+=== embed {src=ch07-source.geml#s-artifacts}
+===
+
+## Who does the translating is not the format's business {#p-who}
+
+The document declares the axis; it never names an engine. A CLI can hand the
+renderer an LLM. This page hands it **Chrome's built-in on-device Translator**,
+so the text is translated without leaving the machine. The VS Code extension
+hands it the editor's language model. Same document, three backends, no change.
+
+=== note {.warning #p-degrade}
+Not in Chrome? The projection falls back to the source text and says which
+browser it found and why there is no translator — a projection never fails
+silently, and it never ships your document somewhere to get translated. The
+first Chinese block above may also ask for a one-time model download; Chrome
+only permits that under a click.
+===

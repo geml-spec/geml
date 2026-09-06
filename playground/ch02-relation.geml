@@ -1,0 +1,63 @@
+=== meta
+title = "Facts and derivation are different jobs"
+chapter = "2 / 7"
+===
+
+# {{title}} {#r-top}
+
+Until 1.10.0 a `table` could both hold rows and compute over them. It cannot
+any more. A **`table` states facts**; a **`view` derives a relation from them**.
+Every operation that produces rows the author did not type lives in `view`.
+
+=== table {#r-tickets caption="Support tickets — facts, nothing derived" format=csv header=1}
+Id, Area, Status, Age
+T-1, parser, open, 12
+T-2, viewer, closed, 3
+T-3, parser, open, 31
+T-4, cli, open, 5
+T-5, viewer, open, 19
+T-6, parser, closed, 2
+===
+
+## Filter, order, cut, project {#r-open}
+
+Four clauses, and they mean what SQL means by them:
+
+=== view {#r-oldest src=#r-tickets caption="The three oldest open tickets" where="Status = 'open'" order="Age desc" limit=3 select="Id, Area, Age"}
+===
+
+`where=` before `order=` before `limit=` before `select=` — the *logical* order,
+not the order you happened to type. `select=` names columns and never defines
+them; a column with an `=` in it belongs in `compute=`.
+
+## Group and aggregate {#r-group}
+
+=== view {#r-per-area src=#r-tickets caption="Backlog by area" by="Area" aggregate="Tickets = count(Id); Days = sum(Age); Oldest = max(Age)"}
+===
+
+## Derive per row, then report {#r-derive}
+
+=== view {#r-weeks src=#r-tickets caption="Open tickets in weeks, with a total" where="Status = 'open'" compute="Weeks [%.1f] = Age / 7; n = 1" order="Weeks desc" summary="Id = 'Open total'; Age = sum(Age); Weeks [%.1f] = sum(Weeks); n = sum(n)"}
+===
+
+The `n = 1` / `sum(n)` pair is how you count rows: a computed column that is `1`
+on every row, summed in the report. The summary runs **last**, over the rows the
+filter actually kept — so it totals what you see, never what you filtered out.
+
+=== note {.tip #r-order}
+`compute=` runs in two passes, which is why `where="Weeks > 2"` is legal above:
+a per-row derived column exists before the filter. An aggregate-derived one
+(`compute="Share = FY / sum(FY)"`) cannot be filtered on — the aggregate would
+depend on what the filter kept, and GEML calls that circular instead of picking
+an answer.
+===
+
+## A view may read a view {#r-chain}
+
+=== view {#r-busy src=#r-per-area caption="Areas carrying more than one ticket" where="Tickets > 1" order="Days desc"}
+===
+
+That reads [[#r-per-area]], which reads [[#r-tickets]]. A chain is bounded the
+same way a nested `embed` is, and a cycle is an error that names every view in
+it. A source's report row does **not** cross into the view that consumes it —
+otherwise a total would quietly become a row for the next total to count again.
