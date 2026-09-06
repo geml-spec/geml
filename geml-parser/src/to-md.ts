@@ -48,7 +48,7 @@ function inline(n: Inline, ctx: MdCtx): string {
       if (n.value !== undefined && n.base === undefined) return n.value; // no block to link to
       const anchor = n.base ?? n.anchor;
       const target = n.doc !== undefined ? `${n.doc}#${anchor}` : `#${anchor}`;
-      return `[${n.value ?? target.replace(/^#/, "#")}](${target})`;
+      return `[${n.value ?? target}](${target})`;
     }
     // An inline projection is the inline sibling of `=== embed`, and gets the
     // same treatment: resolve it and let the CONTENT stand here, as `--to html`

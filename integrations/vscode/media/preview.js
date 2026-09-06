@@ -14,7 +14,10 @@
   var docs = {};           // neighbours the extension read for us; the page cannot
   var skipped = [];        // the ones it would not read, and why
   var nextReq = 1;         // translation requests, answered by the extension
-  var waiting = {};        // request id -> resolve
+  // Object.create(null), not {}: `waiting[msg.id]` is a lookup by a name that
+  // arrives in a message, and on a plain object `constructor` or `toString`
+  // would resolve to something inherited and then be CALLED below.
+  var waiting = Object.create(null);   // request id -> resolve
   var docUri = null;       // kept in saved state so a restored panel knows its document
   var lastModel = null;    // the parsed model behind what is on screen, for a snapshot
 
@@ -42,7 +45,9 @@
     }
     if (msg.type === "translations") {
       var pendingReq = waiting[msg.id];
-      if (pendingReq) { delete waiting[msg.id]; pendingReq(msg.result); }
+      // Validated before dispatch, not merely truthy: the prototype is gone
+      // above, and this is what makes the call safe whatever the id was.
+      if (typeof pendingReq === "function") { delete waiting[msg.id]; pendingReq(msg.result); }
     }
   });
 

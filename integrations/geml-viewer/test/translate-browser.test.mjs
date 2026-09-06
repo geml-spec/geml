@@ -46,7 +46,9 @@ test("prose is sent to the model; a code body and a link target never are", asyn
   assert.ok(asked.includes("Title"), "heading text");
   assert.ok(asked.some((s) => s.includes("Run ")), "paragraph text");
   assert.ok(!asked.includes("npm publish"), "a code body is the value, not a sentence about one");
-  assert.ok(!asked.some((s) => s.includes("example.com")), "a link href names a target");
+  // Any URL, not one host: a link TARGET is never a sentence, so nothing
+  // carrying a scheme should ever reach the model.
+  assert.ok(!asked.some((s) => s.includes("://")), "a link href names a target, and targets are not translated");
 
   const out = JSON.stringify(r.blocks);
   assert.match(out, /TITLE/);
