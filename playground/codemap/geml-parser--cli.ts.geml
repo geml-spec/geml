@@ -178,31 +178,31 @@ resolution-default = cpg
 === code {#errorsAdded src=geml-parser/src/cli.ts#L2242-2262 anchor="scip-typescript npm @geml/geml 1.10.1 src/`cli.ts`/errorsAdded()."}
 ===
 
-=== code {#spliceSpan src=geml-parser/src/cli.ts#L2264-2341 anchor="scip-typescript npm @geml/geml 1.10.1 src/`cli.ts`/spliceSpan()."}
+=== code {#spliceSpan src=geml-parser/src/cli.ts#L2264-2356 anchor="scip-typescript npm @geml/geml 1.10.1 src/`cli.ts`/spliceSpan()."}
 ===
 
-=== code {#runRevert src=geml-parser/src/cli.ts#L2350-2511 anchor="scip-typescript npm @geml/geml 1.10.1 src/`cli.ts`/runRevert()."}
+=== code {#runRevert src=geml-parser/src/cli.ts#L2365-2526 anchor="scip-typescript npm @geml/geml 1.10.1 src/`cli.ts`/runRevert()."}
 ===
 
-=== code {#resurrectPosition src=geml-parser/src/cli.ts#L2519-2549 anchor="scip-typescript npm @geml/geml 1.10.1 src/`cli.ts`/resurrectPosition()."}
+=== code {#resurrectPosition src=geml-parser/src/cli.ts#L2534-2564 anchor="scip-typescript npm @geml/geml 1.10.1 src/`cli.ts`/resurrectPosition()."}
 ===
 
-=== code {#runCodemap src=geml-parser/src/cli.ts#L2555-2577 anchor="scip-typescript npm @geml/geml 1.10.1 src/`cli.ts`/runCodemap()."}
+=== code {#runCodemap src=geml-parser/src/cli.ts#L2570-2592 anchor="scip-typescript npm @geml/geml 1.10.1 src/`cli.ts`/runCodemap()."}
 ===
 
-=== code {#runStyle src=geml-parser/src/cli.ts#L2583-2621 anchor="scip-typescript npm @geml/geml 1.10.1 src/`cli.ts`/runStyle()."}
+=== code {#runStyle src=geml-parser/src/cli.ts#L2598-2636 anchor="scip-typescript npm @geml/geml 1.10.1 src/`cli.ts`/runStyle()."}
 ===
 
-=== code {#runMcp src=geml-parser/src/cli.ts#L2628-2632 anchor="scip-typescript npm @geml/geml 1.10.1 src/`cli.ts`/runMcp()."}
+=== code {#runMcp src=geml-parser/src/cli.ts#L2643-2647 anchor="scip-typescript npm @geml/geml 1.10.1 src/`cli.ts`/runMcp()."}
 ===
 
-=== code {#skillTextFor src=geml-parser/src/cli.ts#L2663-2668 anchor="scip-typescript npm @geml/geml 1.10.1 src/`cli.ts`/skillTextFor()."}
+=== code {#skillTextFor src=geml-parser/src/cli.ts#L2678-2683 anchor="scip-typescript npm @geml/geml 1.10.1 src/`cli.ts`/skillTextFor()."}
 ===
 
-=== code {#installOtherTools src=geml-parser/src/cli.ts#L2670-2709 anchor="scip-typescript npm @geml/geml 1.10.1 src/`cli.ts`/installOtherTools()."}
+=== code {#installOtherTools src=geml-parser/src/cli.ts#L2685-2724 anchor="scip-typescript npm @geml/geml 1.10.1 src/`cli.ts`/installOtherTools()."}
 ===
 
-=== code {#runSkill src=geml-parser/src/cli.ts#L2711-2826 anchor="scip-typescript npm @geml/geml 1.10.1 src/`cli.ts`/runSkill()."}
+=== code {#runSkill src=geml-parser/src/cli.ts#L2726-2841 anchor="scip-typescript npm @geml/geml 1.10.1 src/`cli.ts`/runSkill()."}
 ===
 
 === table {#calls format=csv}
@@ -609,11 +609,16 @@ from,                to,                                                kind, co
 #spliceSpan,         #errorsAdded,                                      call,
 #spliceSpan,         #fail,                                             call,
 #spliceSpan,         #fail,                                             call,
+#spliceSpan,         #fail,                                             call,
 #spliceSpan,         #refuseBroken,                                     call,
+#spliceSpan,         geml-parser--geml.ts.geml#addressedUnits,          call,
+#spliceSpan,         geml-parser--geml.ts.geml#nameKey,                 call,
+#spliceSpan,         geml-parser--geml.ts.geml#nameKey,                 call,
 #spliceSpan,         geml-parser--geml.ts.geml#narrowToHead,            call,
 #spliceSpan,         geml-parser--geml.ts.geml#newlineOf,               call,
 #spliceSpan,         geml-parser--geml.ts.geml#parse,                   call,
 #spliceSpan,         geml-parser--geml.ts.geml#parse,                   call,
+#spliceSpan,         geml-parser--geml.ts.geml#splitLines,              call,
 #spliceSpan,         geml-parser--geml.ts.geml#splitLines,              call,
 #spliceSpan,         geml-parser--geml.ts.geml#toNewline,               call,
 #runRevert,          #docOpts,                                          call,
@@ -802,33 +807,34 @@ from,                to,                    kind, site
 #spliceBlock,        #fail,                 call, geml-parser/src/cli.ts:2197
 #spliceSpan,         #fail,                 call, geml-parser/src/cli.ts:2305
 #spliceSpan,         #fail,                 call, geml-parser/src/cli.ts:2338
-#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2361
-#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2366
-#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2370
-#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2371
-#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2404
-#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2409
-#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2425
-#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2452
-#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2465
-#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2490
-#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2509
-#resurrectPosition,  #fail,                 call, geml-parser/src/cli.ts:2529
-#resurrectPosition,  #fail,                 call, geml-parser/src/cli.ts:2535
-#runCodemap,         #fail,                 call, geml-parser/src/cli.ts:2570
-#runCodemap,         #fail,                 call, geml-parser/src/cli.ts:2573
-#runStyle,           #fail,                 call, geml-parser/src/cli.ts:2585
-#runStyle,           #fail,                 call, geml-parser/src/cli.ts:2589
-#runStyle,           #fail,                 call, geml-parser/src/cli.ts:2590
-#runSkill,           #fail,                 call, geml-parser/src/cli.ts:2713
-#runSkill,           #fail,                 call, geml-parser/src/cli.ts:2724
-#runSkill,           #fail,                 call, geml-parser/src/cli.ts:2732
-#runSkill,           #fail,                 call, geml-parser/src/cli.ts:2737
+#spliceSpan,         #fail,                 call, geml-parser/src/cli.ts:2352
+#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2376
+#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2381
+#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2385
+#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2386
+#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2419
+#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2424
+#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2440
+#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2467
+#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2480
+#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2505
+#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2524
+#resurrectPosition,  #fail,                 call, geml-parser/src/cli.ts:2544
+#resurrectPosition,  #fail,                 call, geml-parser/src/cli.ts:2550
+#runCodemap,         #fail,                 call, geml-parser/src/cli.ts:2585
+#runCodemap,         #fail,                 call, geml-parser/src/cli.ts:2588
+#runStyle,           #fail,                 call, geml-parser/src/cli.ts:2600
+#runStyle,           #fail,                 call, geml-parser/src/cli.ts:2604
+#runStyle,           #fail,                 call, geml-parser/src/cli.ts:2605
+#runSkill,           #fail,                 call, geml-parser/src/cli.ts:2728
+#runSkill,           #fail,                 call, geml-parser/src/cli.ts:2739
+#runSkill,           #fail,                 call, geml-parser/src/cli.ts:2747
+#runSkill,           #fail,                 call, geml-parser/src/cli.ts:2752
 #runReplace,         #refuseBroken,         call, geml-parser/src/cli.ts:1596
 #insertFragment,     #refuseBroken,         call, geml-parser/src/cli.ts:2000
 #runRename,          #refuseBroken,         call, geml-parser/src/cli.ts:2082
 #spliceSpan,         #refuseBroken,         call, geml-parser/src/cli.ts:2319
-#runRevert,          #refuseBroken,         call, geml-parser/src/cli.ts:2505
+#runRevert,          #refuseBroken,         call, geml-parser/src/cli.ts:2520
 #runCheck,           #readInput,            call, geml-parser/src/cli.ts:558
 #runTransform,       #readInput,            call, geml-parser/src/cli.ts:778
 #runList,            #readInput,            call, geml-parser/src/cli.ts:1256
@@ -845,7 +851,7 @@ from,                to,                    kind, site
 #runAdd,             #readInput,            call, geml-parser/src/cli.ts:1954
 #runDelete,          #readInput,            call, geml-parser/src/cli.ts:2025
 #runRename,          #readInput,            call, geml-parser/src/cli.ts:2059
-#runRevert,          #readInput,            call, geml-parser/src/cli.ts:2375
+#runRevert,          #readInput,            call, geml-parser/src/cli.ts:2390
 #existsFor,          #resolverFor,          call, geml-parser/src/cli.ts:491
 #docOpts,            #resolverFor,          call, geml-parser/src/cli.ts:541
 #runTransform,       #resolverFor,          call, geml-parser/src/cli.ts:816
@@ -857,7 +863,7 @@ from,                to,                    kind, site
 #runAdd,             #useRoot,              call, geml-parser/src/cli.ts:1942
 #runDelete,          #useRoot,              call, geml-parser/src/cli.ts:2019
 #runRename,          #useRoot,              call, geml-parser/src/cli.ts:2053
-#runRevert,          #useRoot,              call, geml-parser/src/cli.ts:2369
+#runRevert,          #useRoot,              call, geml-parser/src/cli.ts:2384
 #runCheck,           #docOpts,              call, geml-parser/src/cli.ts:558
 #runTransform,       #docOpts,              call, geml-parser/src/cli.ts:798
 #runTransform,       #docOpts,              call, geml-parser/src/cli.ts:800
@@ -877,10 +883,10 @@ from,                to,                    kind, site
 #rewriteId,          #docOpts,              call, geml-parser/src/cli.ts:2107
 #spliceSpan,         #docOpts,              call, geml-parser/src/cli.ts:2268
 #spliceSpan,         #docOpts,              call, geml-parser/src/cli.ts:2303
-#runRevert,          #docOpts,              call, geml-parser/src/cli.ts:2499
-#runRevert,          #docOpts,              call, geml-parser/src/cli.ts:2501
+#runRevert,          #docOpts,              call, geml-parser/src/cli.ts:2514
+#runRevert,          #docOpts,              call, geml-parser/src/cli.ts:2516
 #runHistory,         #historyError,         call, geml-parser/src/cli.ts:705
-#runRevert,          #historyError,         call, geml-parser/src/cli.ts:2409
+#runRevert,          #historyError,         call, geml-parser/src/cli.ts:2424
 #runHistory,         #historyPositionals,   call, geml-parser/src/cli.ts:603
 #runTransform,       #loadModelJson,        call, geml-parser/src/cli.ts:794
 #runTransform,       #writeOut,             call, geml-parser/src/cli.ts:784
@@ -914,7 +920,7 @@ from,                to,                    kind, site
 #runAdd,             #positionals,          call, geml-parser/src/cli.ts:1941
 #runDelete,          #positionals,          call, geml-parser/src/cli.ts:2018
 #runRename,          #positionals,          call, geml-parser/src/cli.ts:2052
-#runRevert,          #positionals,          call, geml-parser/src/cli.ts:2368
+#runRevert,          #positionals,          call, geml-parser/src/cli.ts:2383
 #selectUnits,        #resolveSelector,      call, geml-parser/src/cli.ts:1183
 #runList,            #listIds,              call, geml-parser/src/cli.ts:1256
 #runGet,             #listIds,              call, geml-parser/src/cli.ts:1389
@@ -946,7 +952,7 @@ from,                to,                    kind, site
 #runSet,             #runSetMeta,           call, geml-parser/src/cli.ts:1669
 #runSet,             #runSetCoord,          call, geml-parser/src/cli.ts:1672
 #runAdd,             #insertFragment,       call, geml-parser/src/cli.ts:1969
-#runRevert,          #insertFragment,       call, geml-parser/src/cli.ts:2476
+#runRevert,          #insertFragment,       call, geml-parser/src/cli.ts:2491
 #runRename,          #rewriteId,            call, geml-parser/src/cli.ts:2079
 #runSet,             #extractBlock,         call, geml-parser/src/cli.ts:1695
 #runSetIntro,        #extractBlock,         call, geml-parser/src/cli.ts:1770
@@ -978,16 +984,16 @@ from,                to,                    kind, site
 #runDelete,          #flag,                 call, geml-parser/src/cli.ts:2017
 #runRename,          #flag,                 call, geml-parser/src/cli.ts:2051
 #runRename,          #flag,                 call, geml-parser/src/cli.ts:2051
-#runRevert,          #flag,                 call, geml-parser/src/cli.ts:2353
-#runRevert,          #flag,                 call, geml-parser/src/cli.ts:2353
-#runRevert,          #flag,                 call, geml-parser/src/cli.ts:2354
-#runRevert,          #flag,                 call, geml-parser/src/cli.ts:2362
-#runRevert,          #flag,                 call, geml-parser/src/cli.ts:2363
-#runRevert,          #flag,                 call, geml-parser/src/cli.ts:2373
+#runRevert,          #flag,                 call, geml-parser/src/cli.ts:2368
+#runRevert,          #flag,                 call, geml-parser/src/cli.ts:2368
+#runRevert,          #flag,                 call, geml-parser/src/cli.ts:2369
+#runRevert,          #flag,                 call, geml-parser/src/cli.ts:2377
+#runRevert,          #flag,                 call, geml-parser/src/cli.ts:2378
+#runRevert,          #flag,                 call, geml-parser/src/cli.ts:2388
 #rewriteId,          #bodyRange,            call, geml-parser/src/cli.ts:2113
 #extractBlock,       #bodyRange,            call, geml-parser/src/cli.ts:2144
 #runSet,             #contentShape,         call, geml-parser/src/cli.ts:1689
-#runRevert,          #spliceBlock,          call, geml-parser/src/cli.ts:2446
+#runRevert,          #spliceBlock,          call, geml-parser/src/cli.ts:2461
 #runReplace,         #countBlockUnits,      call, geml-parser/src/cli.ts:1600
 #runReplace,         #countBlockUnits,      call, geml-parser/src/cli.ts:1600
 #spliceSpan,         #countBlockUnits,      call, geml-parser/src/cli.ts:2307
@@ -1001,9 +1007,9 @@ from,                to,                    kind, site
 #runSetMeta,         #spliceSpan,           call, geml-parser/src/cli.ts:1876
 #runSetCoord,        #spliceSpan,           call, geml-parser/src/cli.ts:1924
 #spliceBlock,        #spliceSpan,           call, geml-parser/src/cli.ts:2198
-#runRevert,          #resurrectPosition,    call, geml-parser/src/cli.ts:2468
-#installOtherTools,  #skillTextFor,         call, geml-parser/src/cli.ts:2671
-#runSkill,           #installOtherTools,    call, geml-parser/src/cli.ts:2769
+#runRevert,          #resurrectPosition,    call, geml-parser/src/cli.ts:2483
+#installOtherTools,  #skillTextFor,         call, geml-parser/src/cli.ts:2686
+#runSkill,           #installOtherTools,    call, geml-parser/src/cli.ts:2784
 ===
 
 === table {#unresolved format=csv hidden}
@@ -1284,6 +1290,7 @@ from,                to
 #errorsAdded,        ReadonlyArray.filter
 #errorsAdded,        Set.has
 #spliceSpan,         Array.filter
+#spliceSpan,         Array.find
 #spliceSpan,         Array.join
 #spliceSpan,         Array.map
 #spliceSpan,         Array.slice

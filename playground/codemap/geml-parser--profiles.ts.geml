@@ -13,10 +13,10 @@ resolution-default = cpg
 
 === table {#called-by format=csv}
 from,                                     to,             kind, site
-geml-parser--geml.ts.geml#parse,          #vocabularyFor, call, geml-parser/src/geml.ts:2088
-geml-parser--geml.ts.geml#blockSpans,     #vocabularyFor, call, geml-parser/src/geml.ts:2302
-geml-parser--geml.ts.geml#unitSpans,      #vocabularyFor, call, geml-parser/src/geml.ts:2325
-geml-parser--geml.ts.geml#addressedUnits, #vocabularyFor, call, geml-parser/src/geml.ts:2539
+geml-parser--geml.ts.geml#parse,          #vocabularyFor, call, geml-parser/src/geml.ts:2151
+geml-parser--geml.ts.geml#blockSpans,     #vocabularyFor, call, geml-parser/src/geml.ts:2365
+geml-parser--geml.ts.geml#unitSpans,      #vocabularyFor, call, geml-parser/src/geml.ts:2388
+geml-parser--geml.ts.geml#addressedUnits, #vocabularyFor, call, geml-parser/src/geml.ts:2602
 ===
 
 === table {#unresolved format=csv hidden}

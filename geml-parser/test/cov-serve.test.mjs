@@ -28,6 +28,13 @@ async function atest(name, fn) { await fn(); passed++; console.log("ok", name); 
 
 const PKG = dirname(dirname(fileURLToPath(import.meta.url))); // geml-parser/
 const tmp = () => mkdtempSync(join(tmpdir(), "geml-cov-serve-"));
+// The pid/token pair a running server leaves: the pid file in the codemap dir
+// and its twin in the OS temp dir. --stop signals only when the two agree.
+const tokenFileFor = (pid) => join(tmpdir(), `geml-codemap-serve-${pid}.token`);
+const plantServerToken = (pidPath, pid, token = "t0k3n") => {
+  writeFileSync(pidPath, ` ${pid} \n ${token} \n`); // whitespace: each line is trimmed
+  writeFileSync(tokenFileFor(pid), token);
+};
 const SCRATCH = tmp(); // for helper scripts (fake --background children)
 
 // The request log and every status line go through console.error — tee it
@@ -331,7 +338,7 @@ await atest("serve --stop: kills a live recorded pid and removes the file", asyn
   const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });
   const dir = tmp();
   const pidPath = join(dir, "serve.pid");
-  writeFileSync(pidPath, ` ${child.pid} \n`); // whitespace: the .trim() is real
+  plantServerToken(pidPath, child.pid);
   const exited = new Promise((r) => child.on("exit", (c, s) => r(s ?? c)));
   const m = errMark();
   assert.equal(serve.stopServer({ pidPath }), 0);
@@ -344,7 +351,7 @@ await atest("serve --stop: kills a live recorded pid and removes the file", asyn
 test("serve --stop: a stale pid is reported and the file still removed; a stuck file is tolerated", () => {
   const dir = tmp();
   const pidPath = join(dir, "serve.pid");
-  writeFileSync(pidPath, "999999999"); // no such process
+  plantServerToken(pidPath, 999999999); // no such process, but a token that agrees
   const m = errMark();
   assert.equal(serve.stopServer({ pidPath }), 0);
   assert.match(errSince(m), /pid 999999999 not running \(stale pid file removed\)/);
@@ -352,7 +359,7 @@ test("serve --stop: a stale pid is reported and the file still removed; a stuck 
   // read-only pid file: --stop still exits 0 whether or not the unlink is
   // allowed to succeed (Node 24 on Windows removes read-only files, so the
   // unlink catch itself stays a best-effort arm).
-  writeFileSync(pidPath, "999999999");
+  plantServerToken(pidPath, 999999999);
   chmodSync(pidPath, 0o444);
   try {
     assert.equal(serve.stopServer({ pidPath }), 0, "unlink trouble never breaks --stop");
@@ -368,9 +375,9 @@ const appFor = (root, extra = {}) =>
   serve.createApp({ dir: root, root, port: extra.port, cacheMb: 256, srcRoot: serve.resolveSrcRoot(root), ...extra });
 
 // A raw request line the fetch() client refuses to produce (malformed %-escape).
-const rawGet = (port, target) => new Promise((res, rej) => {
+const rawGet = (port, target, host = "127.0.0.1") => new Promise((res, rej) => {
   const sock = connect(port, "127.0.0.1", () => {
-    sock.write(`GET ${target} HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n`);
+    sock.write(`GET ${target} HTTP/1.1\r\nHost: ${host}\r\nConnection: close\r\n\r\n`);
   });
   let buf = "";
   sock.on("data", (d) => { buf += d; });
@@ -868,7 +875,9 @@ await atest("serve startServing: records the pid, prints the URL, warms unless t
   try {
     await waitFor(() => /geml codemap serve: /.test(errSince(m)), 5000, "banner");
     assert.match(errSince(m), new RegExp(`-> http://localhost:${port}/  \\(pages render live from \\.geml`));
-    assert.equal(readFileSync(join(root, "_index", "serve.pid"), "utf8"), String(process.pid), "pid recorded for --stop");
+    // The pid file now carries two lines — the pid and the token whose twin
+    // --stop checks in the OS temp dir — so it is the FIRST line that is the pid.
+    assert.equal(readFileSync(join(root, "_index", "serve.pid"), "utf8").split(/\r?\n/)[0].trim(), String(process.pid), "pid recorded for --stop");
     await waitFor(() => /prewarm: /.test(errSince(m)), 5000, "warm ran (noWarm=false)");
     assert.equal((await fetch(`http://127.0.0.1:${port}/index.html`)).status, 200);
   } finally { await closeApp(app); }
@@ -1178,6 +1187,102 @@ test("geml_codemap_node: the source read is confined, like every other path", ()
 // of them is reached through a symlink that points out of the tree — the case a
 // lexical prefix check passes and only a realpath check catches.
 // ---------------------------------------------------------------------------
+// R5 (SEC-001): the recipe's `root` is repository content. It used to CHOOSE the
+// directory the source route confines itself to, so a cloned map naming `~` or
+// `/` was "confined" to the tree the attacker picked. The bound is the project
+// (the enclosing git repository; the codemap's parent when there is none), and a
+// recipe root may narrow into it, never widen past it.
+test("serve srcRoot: a recipe root pointing OUT of the project falls back to the project bound", () => {
+  const base = tmp();
+  mkdirSync(join(base, "outside", "lib"), { recursive: true });
+  writeFileSync(join(base, "outside", "lib", "secret.ts"), "OUTSIDE-SRCROOT-CANARY\n");
+  const root = join(base, "repo", ".geml-code-graph");
+  mkdirSync(join(root, "_index"), { recursive: true });
+  writeFileSync(join(root, "_index", "refresh.json"), JSON.stringify({ version: 1, root: join(base, "outside"), steps: [] }));
+  const m = errMark();
+  const srcRoot = serve.resolveSrcRoot(root);
+  assert.equal(srcRoot, serve.projectBound(root), "an escaping recipe root is replaced by the project bound");
+  assert.equal(srcRoot, resolve(join(base, "repo")), "…which, with no .git above, is the codemap's parent");
+  assert.match(errSince(m), /lies outside the project/, "and the substitution is said out loud");
+  // A `..` root that stays inside still works — the legitimate layout this repo uses.
+  writeFileSync(join(root, "_index", "refresh.json"), JSON.stringify({ version: 1, root: "..", steps: [] }));
+  assert.equal(serve.resolveSrcRoot(root), resolve(join(base, "repo")));
+});
+
+await atest("serve: an escaping recipe root cannot widen the source route (end to end)", async () => {
+  const base = tmp();
+  mkdirSync(join(base, "outside", "lib"), { recursive: true });
+  writeFileSync(join(base, "outside", "lib", "secret.ts"), "OUTSIDE-SRCROOT-CANARY\n");
+  mkdirSync(join(base, "repo", "src"), { recursive: true });
+  writeFileSync(join(base, "repo", "src", "app.ts"), "INSIDE-OK\n");
+  const root = join(base, "repo", ".geml-code-graph");
+  mkdirSync(join(root, "_index"), { recursive: true });
+  writeFileSync(join(root, "index.geml"), INDEX_GEML);
+  writeFileSync(join(root, "_index", "refresh.json"), JSON.stringify({ version: 1, root: join(base, "outside"), steps: [] }));
+  const port = claimPort();
+  // The product's own resolveSrcRoot, not a hand-filled srcRoot: that is the path under test.
+  const app = serve.createApp({ dir: root, root, port, cacheMb: 8, srcRoot: serve.resolveSrcRoot(root) });
+  await listen(app, port);
+  try {
+    assert.ok(!/OUTSIDE-SRCROOT-CANARY/.test(await rawGet(port, "/lib/secret.ts")), "the recipe root widened the source route out of the project");
+    assert.match(await rawGet(port, "/src/app.ts"), /INSIDE-OK/, "and the project's own source is still served — the refusal is not a broken route");
+  } finally { await closeApp(app); }
+});
+
+// R5 (SEC-002): DNS rebinding. A page on attacker.example re-pointed at 127.0.0.1
+// is same-origin with this server in the browser's eyes; the one thing it cannot
+// choose is the Host header. Anything but this machine is refused.
+await atest("serve: a foreign Host header is refused; localhost, 127.0.0.1 and [::1] are not", async () => {
+  const base = tmp();
+  mkdirSync(join(base, "proj", "src"), { recursive: true });
+  writeFileSync(join(base, "proj", "src", "app.ts"), "HOST-OK\n");
+  const root = join(base, "proj", ".geml-code-graph");
+  mkdirSync(join(root, "_index"), { recursive: true });
+  writeFileSync(join(root, "index.geml"), INDEX_GEML);
+  const port = claimPort();
+  const app = serve.createApp({ dir: root, root, port, cacheMb: 8, srcRoot: resolve(join(base, "proj")) });
+  await listen(app, port);
+  try {
+    const status = (resp) => resp.split("\r\n")[0];
+    for (const bad of ["attacker.example", `attacker.example:${port}`, "127.0.0.1.attacker.example", ""]) {
+      const r = await rawGet(port, "/src/app.ts", bad);
+      assert.match(status(r), /403/, `Host "${bad}" must be refused`);
+      assert.ok(!/HOST-OK/.test(r), `Host "${bad}" must not be served`);
+    }
+    for (const good of ["localhost", `localhost:${port}`, `127.0.0.1:${port}`, `[::1]:${port}`, "LOCALHOST"]) {
+      assert.match(await rawGet(port, "/src/app.ts", good), /HOST-OK/, `Host "${good}" is this machine`);
+    }
+  } finally { await closeApp(app); }
+});
+
+// R5 (SEC-003): the pid file is repository content too. A cloned map can ship
+// one naming any process of the victim's; --stop must signal only a pid whose
+// token twin exists on THIS machine, outside the repository.
+await atest("serve --stop: a planted pid file without a matching machine token signals nothing", async () => {
+  const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });
+  const dir = tmp();
+  const pidPath = join(dir, "serve.pid");
+  let exited = false;
+  child.on("exit", () => { exited = true; });
+  try {
+    // (a) no token line at all — the shape an older or a hostile pid file has
+    writeFileSync(pidPath, `${child.pid}\n`);
+    let m = errMark();
+    assert.equal(serve.stopServer({ pidPath }), 0);
+    assert.match(errSince(m), /no matching token .* not signalled/);
+    assert.ok(!existsSync(pidPath), "the planted file is removed");
+    // (b) a token line whose twin is absent from this machine's tmpdir
+    writeFileSync(pidPath, `${child.pid}\nforged-token\n`);
+    m = errMark();
+    assert.equal(serve.stopServer({ pidPath }), 0);
+    assert.match(errSince(m), /no matching token/);
+    await new Promise((r) => setTimeout(r, 150));
+    assert.equal(exited, false, "the named process was NOT signalled");
+  } finally {
+    child.kill();
+  }
+});
+
 await atest("serve: confinement holds across ..-encodings, and a symlink out of the source tree", async () => {
   const base = tmp();
   writeFileSync(join(base, "outside.ts"), "OUTSIDE-TS-CANARY\n");

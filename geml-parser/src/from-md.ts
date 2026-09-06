@@ -280,6 +280,15 @@ export function mdToGeml(source: string): ConvertResult {
     }
 
     // Everything else (ATX headings, lists, paragraphs, blanks) is valid GEML.
+    // Two of those spellings mean nothing in Markdown and something in GEML: a
+    // line opening with `===` is a fence, a line opening with `%%` is hidden.
+    // They pass through — a Markdown file may already carry GEML blocks, and
+    // that is the promise this converter keeps — but silently is how a prose
+    // line became a live `=== meta` that swallowed the rest of the document.
+    // Said in the notes, where a caller deciding whether to trust the result
+    // can see that structure was made out of text.
+    if (/^\s*={3,}(?:[ \t]|$)/.test(text)) notes.push(`line ${i + 1} opens a GEML fence and was kept as one (escape it as \\=== to keep it prose): ${text.trim().slice(0, 40)}`);
+    else if (/^\s*%%/.test(text)) notes.push(`line ${i + 1} is a GEML hidden line and was kept as one (escape it as \\%% to keep it prose): ${text.trim().slice(0, 40)}`);
     out.push(text);
     i++;
   }

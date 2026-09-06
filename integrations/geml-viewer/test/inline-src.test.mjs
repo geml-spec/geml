@@ -2,7 +2,7 @@
 // so no browser is needed. Verifies that inlined data flows through a normal
 // parse — data, compute, and chart resolution all work on it.
 import { parse } from "../../../geml-parser/dist/geml.js";
-import { hasSrcTable, inlineSrcTables, looksTabular } from "../src/inline-src.js";
+import { hasSrcTable, inlineSrcTables, looksTabular, fenceFor } from "../src/inline-src.js";
 import { strict as assert } from "node:assert";
 
 let passed = 0;
@@ -189,6 +189,34 @@ await test("a file source still inlines when a block source sits beside it", asy
   const out = await inlineSrcTables(raw, (u) => u, async () => "A, B\n1, 2\n");
   assert.match(out, /=== table \{#a src=#other\}/, "the block source is untouched");
   assert.match(out, /1, 2/, "the file source is inlined");
+});
+
+
+// R5 (SEC-001): fetched `src=` content is DATA, and it used to be inlined between
+// the HOST's fences. A body line of `===` therefore closed the table right there,
+// and everything after it parsed as top-level blocks of the trusted document — a
+// `=== embed` the host never wrote, pulling in a same-origin file the reader
+// never asked for. The body chooses the fence now: one longer than any `=` run
+// it contains, so every such line stays inside the block, as a cell.
+await test("a fetched src= body cannot break its fence and inject blocks", async () => {
+  const evil = "Segment,Q1\nCloud,8\n===\n\n=== embed {src=internal-notes.geml}\n===\n\nMore rows after the break,9\n";
+  const out = await inlineSrcTables("=== table {#sales format=csv header=1 src=data.csv}\n===\n", (s) => s, async () => evil);
+  const doc = parse(out);
+  assert.deepEqual(doc.children.map((b) => `${b.kind}:${b.type ?? ""}`), ["block:table"], "one block — the table — and nothing escaped it");
+  assert.equal(doc.children[0].table.rows.length, 5, "the would-be fence and the would-be embed are rows, i.e. data");
+  assert.equal(out.match(/^=+ table/m)[0].length > "=== table".length, true, "the fence grew past the body's longest `=` run");
+});
+
+await test("a body full of longer `=` runs still cannot close the chosen fence — and a view's facts table gets the same fence", async () => {
+  const evil = "A,B\n1,2\n=====\n=== note {#x}\ny\n===\n";
+  for (const raw of ["=== table {#t format=csv header=1 src=d.csv}\n===\n", "=== view {#v src=d.csv compute=\"C = A + B\"}\n===\n"]) {
+    const out = await inlineSrcTables(raw, (s) => s, async () => evil);
+    const kinds = parse(out).children.map((b) => `${b.kind}:${b.type}`);
+    assert.ok(!kinds.includes("block:note"), `${raw.slice(0, 9)}: the fetched note never became a block (${kinds})`);
+    assert.equal(kinds.filter((k) => k === "block:table").length, 1, "exactly one table");
+  }
+  assert.equal(fenceFor("===", "a\n=====\nb"), "======", "one longer than the longest run");
+  assert.equal(fenceFor("===", "a\n= b\n=="), "===", "a run shorter than the base changes nothing");
 });
 
 console.log(`\n${passed} test(s) passed.`);

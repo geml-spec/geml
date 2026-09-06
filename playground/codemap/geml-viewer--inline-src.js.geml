@@ -29,7 +29,10 @@ resolution-default = cpg
 === code {#parsesAsData src=integrations/geml-viewer/src/inline-src.js#L91-100 anchor="scip-typescript npm geml-viewer 1.3.0 src/`inline-src.js`/parsesAsData()."}
 ===
 
-=== code {#inlineSrcTables src=integrations/geml-viewer/src/inline-src.js#L105-181 anchor="scip-typescript npm geml-viewer 1.3.0 src/`inline-src.js`/inlineSrcTables()."}
+=== code {#fenceFor src=integrations/geml-viewer/src/inline-src.js#L109-116 anchor="scip-typescript npm geml-viewer 1.3.0 src/`inline-src.js`/fenceFor()."}
+===
+
+=== code {#inlineSrcTables src=integrations/geml-viewer/src/inline-src.js#L121-198 anchor="scip-typescript npm geml-viewer 1.3.0 src/`inline-src.js`/inlineSrcTables()."}
 ===
 
 === table {#calls format=csv}
@@ -37,6 +40,7 @@ from,             to,            kind, confidence
 #hasSrcTable,     #findSrc,      call,
 #hasSrcTable,     #namesABlock,  call,
 #inlineSrcTables, #factsId,      call,
+#inlineSrcTables, #fenceFor,     call,
 #inlineSrcTables, #findFormat,   call,
 #inlineSrcTables, #findSrc,      call,
 #inlineSrcTables, #namesABlock,  call,
@@ -45,17 +49,18 @@ from,             to,            kind, confidence
 
 === table {#called-by format=csv}
 from,                                          to,               kind, site
-#inlineSrcTables,                              #factsId,         call, integrations/geml-viewer/src/inline-src.js:152
+#inlineSrcTables,                              #factsId,         call, integrations/geml-viewer/src/inline-src.js:169
 #hasSrcTable,                                  #namesABlock,     call, integrations/geml-viewer/src/inline-src.js:71
-#inlineSrcTables,                              #namesABlock,     call, integrations/geml-viewer/src/inline-src.js:111
+#inlineSrcTables,                              #namesABlock,     call, integrations/geml-viewer/src/inline-src.js:127
 #hasSrcTable,                                  #findSrc,         call, integrations/geml-viewer/src/inline-src.js:70
-#inlineSrcTables,                              #findSrc,         call, integrations/geml-viewer/src/inline-src.js:110
-#inlineSrcTables,                              #findFormat,      call, integrations/geml-viewer/src/inline-src.js:126
+#inlineSrcTables,                              #findSrc,         call, integrations/geml-viewer/src/inline-src.js:126
+#inlineSrcTables,                              #findFormat,      call, integrations/geml-viewer/src/inline-src.js:142
 geml-viewer--content.js.geml#main,             #hasSrcTable,     call, integrations/geml-viewer/src/content.js:41
 geml-viewer--transclude.js.geml#fetchChildren, #hasSrcTable,     call, integrations/geml-viewer/src/transclude.js:669
 geml-viewer--content.js.geml#main,             #looksTabular,    call, integrations/geml-viewer/src/content.js:60
 geml-viewer--transclude.js.geml#fetchChildren, #looksTabular,    call, integrations/geml-viewer/src/transclude.js:676
-#inlineSrcTables,                              #parsesAsData,    call, integrations/geml-viewer/src/inline-src.js:131
+#inlineSrcTables,                              #parsesAsData,    call, integrations/geml-viewer/src/inline-src.js:147
+#inlineSrcTables,                              #fenceFor,        call, integrations/geml-viewer/src/inline-src.js:163
 geml-viewer--content.js.geml#main,             #inlineSrcTables, call, integrations/geml-viewer/src/content.js:43
 geml-viewer--transclude.js.geml#fetchChildren, #inlineSrcTables, call, integrations/geml-viewer/src/transclude.js:670
 ===
@@ -68,6 +73,8 @@ from,             to
 #hasSrcTable,     RegExp.exec
 #looksTabular,    JSON.parse
 #parsesAsData,    JSON.parse
+#fenceFor,        RegExp.test
+#fenceFor,        String.repeat
 #inlineSrcTables, Array.join
 #inlineSrcTables, Array.map
 #inlineSrcTables, Array.push

@@ -64,7 +64,16 @@ export async function upgradeMermaid(root, mermaid, opts = {}) {
 // call for all of an engine's placeholders — and swaps the results in. A
 // failure keeps the source text visible, like mermaid's failure path; the
 // error note carries the engine-keyed class (.geml-<engine>-error).
-export async function upgradeSandboxDiagrams(root, engine, renderAll) {
+// `sanitize(svg) -> string` is REQUIRED. The SVG comes back from a WASM engine
+// over two message hops, and `/<script/i` was the only thing between it and
+// innerHTML — while `<a xlink:href="javascript:…">`, `on*=` attributes,
+// `<foreignObject>` with HTML inside and `<image href=https://…>` all pass that
+// test. Mermaid's path runs DOMPurify (securityLevel "strict"); this one had no
+// sanitizer at all. It is PARKED today, so nothing reaches here — the rule is
+// written now so that un-parking it cannot forget: with no sanitizer, nothing
+// is inserted and every diagram keeps its source text, which is the failure
+// mode this function already has for a broken engine.
+export async function upgradeSandboxDiagrams(root, engine, renderAll, sanitize) {
   const nodes = [...root.querySelectorAll(`.geml-${engine}`)];
   if (!nodes.length) return;
   let results;
@@ -76,17 +85,27 @@ export async function upgradeSandboxDiagrams(root, engine, renderAll) {
   }
   nodes.forEach((node, i) => {
     const r = (results && results[i]) || { error: "no result" };
-    // The SVG comes from the engine over a couple of message hops; a basic
-    // guard against anything script-bearing before it is inserted.
-    const bad = r.svg !== undefined && /<script/i.test(r.svg);
-    if (r.svg !== undefined && !bad) {
+    let clean = null;
+    let bad = false;
+    if (r.svg !== undefined) {
+      if (typeof sanitize !== "function") bad = true;            // no sanitizer: refuse, and say so below
+      else {
+        try { clean = sanitize(String(r.svg)); } catch { bad = true; }
+        // A sanitizer that returns nothing, or that let a script through, is a
+        // sanitizer that did not work; refusing is the only answer left.
+        if (typeof clean !== "string" || clean.trim() === "" || /<script/i.test(clean)) bad = true;
+      }
+    }
+    if (clean !== null && !bad) {
       const wrap = node.ownerDocument.createElement("div");
-      wrap.innerHTML = r.svg;
+      wrap.innerHTML = clean;
       node.replaceChildren(wrap);
       return;
     }
     // Keep the source text visible as a fallback, but surface why it failed.
-    const err = bad ? "unsafe svg rejected" : String(r.error ?? "unknown error");
+    const err = bad
+      ? (typeof sanitize !== "function" ? "svg not inserted: no sanitizer was provided" : "unsafe svg rejected")
+      : String(r.error ?? "unknown error");
     console.error(`[geml] ${engine} render failed:`, err);
     const note = node.ownerDocument.createElement("p");
     note.className = `geml-${engine}-error`;
@@ -95,12 +114,12 @@ export async function upgradeSandboxDiagrams(root, engine, renderAll) {
   });
 }
 
-export function upgradeD2(root, renderAll) {
-  return upgradeSandboxDiagrams(root, "d2", renderAll);
+export function upgradeD2(root, renderAll, sanitize) {
+  return upgradeSandboxDiagrams(root, "d2", renderAll, sanitize);
 }
 
-export function upgradeGraphviz(root, renderAll) {
-  return upgradeSandboxDiagrams(root, "graphviz", renderAll);
+export function upgradeGraphviz(root, renderAll, sanitize) {
+  return upgradeSandboxDiagrams(root, "graphviz", renderAll, sanitize);
 }
 
 // Mermaid v11 is picky about whitespace between tokens — notably multiple spaces

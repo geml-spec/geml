@@ -14,19 +14,19 @@ resolution-default = cpg
 === code {#upgradeMermaid src=integrations/geml-viewer/src/upgrade.js#L27-57 anchor="scip-typescript npm geml-viewer 1.3.0 src/`upgrade.js`/upgradeMermaid()."}
 ===
 
-=== code {#upgradeSandboxDiagrams src=integrations/geml-viewer/src/upgrade.js#L67-96 anchor="scip-typescript npm geml-viewer 1.3.0 src/`upgrade.js`/upgradeSandboxDiagrams()."}
+=== code {#upgradeSandboxDiagrams src=integrations/geml-viewer/src/upgrade.js#L76-115 anchor="scip-typescript npm geml-viewer 1.3.0 src/`upgrade.js`/upgradeSandboxDiagrams()."}
 ===
 
-=== code {#upgradeD2 src=integrations/geml-viewer/src/upgrade.js#L98-100 anchor="scip-typescript npm geml-viewer 1.3.0 src/`upgrade.js`/upgradeD2()."}
+=== code {#upgradeD2 src=integrations/geml-viewer/src/upgrade.js#L117-119 anchor="scip-typescript npm geml-viewer 1.3.0 src/`upgrade.js`/upgradeD2()."}
 ===
 
-=== code {#upgradeGraphviz src=integrations/geml-viewer/src/upgrade.js#L102-104 anchor="scip-typescript npm geml-viewer 1.3.0 src/`upgrade.js`/upgradeGraphviz()."}
+=== code {#upgradeGraphviz src=integrations/geml-viewer/src/upgrade.js#L121-123 anchor="scip-typescript npm geml-viewer 1.3.0 src/`upgrade.js`/upgradeGraphviz()."}
 ===
 
-=== code {#normalizeMermaid .leaf src=integrations/geml-viewer/src/upgrade.js#L110-116 anchor="scip-typescript npm geml-viewer 1.3.0 src/`upgrade.js`/normalizeMermaid()."}
+=== code {#normalizeMermaid .leaf src=integrations/geml-viewer/src/upgrade.js#L129-135 anchor="scip-typescript npm geml-viewer 1.3.0 src/`upgrade.js`/normalizeMermaid()."}
 ===
 
-=== code {#upgradeCodeGraph src=integrations/geml-viewer/src/upgrade.js#L126-171 anchor="scip-typescript npm geml-viewer 1.3.0 src/`upgrade.js`/upgradeCodeGraph()."}
+=== code {#upgradeCodeGraph src=integrations/geml-viewer/src/upgrade.js#L145-190 anchor="scip-typescript npm geml-viewer 1.3.0 src/`upgrade.js`/upgradeCodeGraph()."}
 ===
 
 === table {#calls format=csv}
@@ -40,8 +40,8 @@ from,             to,                      kind, confidence
 from,                              to,                      kind, site
 geml-viewer--content.js.geml#main, #upgradeMath,            call, integrations/geml-viewer/src/content.js:136
 geml-viewer--content.js.geml#main, #upgradeMermaid,         call, integrations/geml-viewer/src/content.js:142
-#upgradeD2,                        #upgradeSandboxDiagrams, call, integrations/geml-viewer/src/upgrade.js:99
-#upgradeGraphviz,                  #upgradeSandboxDiagrams, call, integrations/geml-viewer/src/upgrade.js:103
+#upgradeD2,                        #upgradeSandboxDiagrams, call, integrations/geml-viewer/src/upgrade.js:118
+#upgradeGraphviz,                  #upgradeSandboxDiagrams, call, integrations/geml-viewer/src/upgrade.js:122
 #upgradeMermaid,                   #normalizeMermaid,       call, integrations/geml-viewer/src/upgrade.js:42
 geml-viewer--content.js.geml#main, #upgradeCodeGraph,       call, integrations/geml-viewer/src/content.js:162
 ===
@@ -53,6 +53,7 @@ from,                    to
 #upgradeSandboxDiagrams, Array.map
 #upgradeSandboxDiagrams, Console.error
 #upgradeSandboxDiagrams, RegExp.test
+#upgradeSandboxDiagrams, String.trim
 #upgradeCodeGraph,       ArrayConstructor.from
 #upgradeCodeGraph,       JSON.stringify
 ===

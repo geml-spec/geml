@@ -176,6 +176,18 @@ export interface ParseOptions {
   // to the document it started from (A → B → C → A) walks straight past the
   // cycle: the root is not on the stack under any name it could match.
   self?: string;
+  // Private to the cross-document view resolver, threaded through the nested
+  // parse a remote `src=other.geml#v` requires. A remote view is resolved by
+  // PARSING its document, and that parse resolves the remote views of its own —
+  // so `A.geml: view src=B.geml#v` beside `B.geml: view src=A.geml#v` recursed
+  // until the stack ran out. The same-document `src=#v` cycle was a diagnostic;
+  // the cross-document one was a crash, from a two-line file, in every verb that
+  // parses. The stack names every document being resolved above this one, in the
+  // root-relative coordinates `self` uses; the cache keeps one parsed Document
+  // per path, so F views over N documents cost N parses and not F^N. Neither is
+  // part of the public contract.
+  _viewStack?: string[];
+  _docCache?: Map<string, Document>;
 }
 
 // Parse context threaded through the scanner: diagnostics, the id registry
@@ -1430,14 +1442,46 @@ function relationBlock(blocks: Block[], id: string): Extract<Block, { kind: "blo
   return null;
 }
 
-function remoteRelation(source: string, id: string, opts: ParseOptions): TableModel | "not-a-relation" | null {
+type RemoteUnresolved = { unresolved: string; code?: DiagnosticCode };
+function remoteRelation(source: string, id: string, opts: ParseOptions, path: string, canonical: string): TableModel | "not-a-relation" | RemoteUnresolved | null {
   // Parse rather than merely scan: a remote view may itself consume a table or
   // another view, and the relation it publishes is the post-view relation.
-  const document = parse(source, opts);
+  // Parsed ONCE per document: a fan-out of F views over an N-document chain
+  // re-parsed the same files F^N times (twelve files of seven lines took 8 s).
+  const cache = (opts._docCache ??= new Map());
+  let document = cache.get(canonical);
+  if (document === undefined) {
+    // The remote document's own `src=` paths mean ITS directory, not the host's:
+    // a borrowed `src=data.csv` read the host's data.csv, so a same-named file
+    // beside the host silently replaced the data the borrowed author pointed at.
+    // Rebased one hop here; the wrapper composes as the chain descends, and the
+    // caller's `resolveDoc` still applies its own confinement to what comes out.
+    const dir = relDirPath(path);
+    const rebase = (d: string): string => relJoinPath(dir, d);
+    const nested: ParseOptions = {
+      ...opts,
+      self: canonical,
+      resolveDoc: (d) => opts.resolveDoc!(rebase(d)),
+      _viewStack: [...(opts._viewStack ?? [opts.self ?? ""]), canonical],
+      _docCache: cache,
+    };
+    if (opts.docExists) nested.docExists = (d) => opts.docExists!(rebase(d));
+    document = parse(source, nested);
+    cache.set(canonical, document);
+  }
   const block = relationBlock(document.children, id);
   if (block === null) {
     const exists = findBlockSite(document.children, id) !== undefined;
     return exists ? "not-a-relation" : null;
+  }
+  // A view the remote document could NOT resolve does not carry `undefined`; it
+  // carries the scan's empty model. Handed back as a relation, that made the
+  // consumer a silently empty table — and the reason (a cycle caught one hop
+  // down, a source that document lacked, the depth bound) sat in the remote
+  // document's diagnostics, which this parse discards. Carry the reason up.
+  if (block.type === "view" && (block.table === undefined || block.table.columns.length === 0)) {
+    const why = document.diagnostics.find((d: Diagnostic) => d.severity === "error" && /^(view-source-|unresolved-cross-document-reference$|unresolvable-document$|unresolved-reference$)/.test(d.code));
+    return { unresolved: why?.message ?? `\`#${id}\` did not resolve in that document`, ...(why ? { code: why.code } : {}) };
   }
   return block.table ?? null;
 }
@@ -1469,10 +1513,29 @@ function resolveViewSources(ctx: Ctx, opts: ParseOptions): void {
         ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `view source \`${target}\` not checked (no document resolver)`, line });
         return null;
       }
+      // Refused BEFORE the remote document is parsed, because parsing is where
+      // the recursion lives. The stack is in root-relative coordinates, the same
+      // ones `self` uses, so `A → B → A` is caught on the way back into A, and a
+      // chain of distinct documents stops at the bound an embed's does.
+      const stack = opts._viewStack ?? [opts.self ?? ""];
+      const canonical = relJoinPath(relDirPath(opts.self ?? ""), path);
+      if (stack.includes(canonical)) {
+        error(line, "view-source-cycle", `view source \`${target}\` returns to a document already being resolved: ${[...stack, canonical].map((d) => (d === "" ? "(this document)" : d)).join(" → ")}`);
+        return null;
+      }
+      if (stack.length > EMBED_DEPTH_LIMIT) {
+        error(line, "view-source-too-deep", `view source \`${target}\` is ${stack.length} documents deep; the bound is ${EMBED_DEPTH_LIMIT} (§9.3)`);
+        return null;
+      }
       const text = opts.resolveDoc(path);
       if (text === null) { error(line, "unresolvable-document", `cannot resolve document \`${path}\``); return null; }
-      const remote = remoteRelation(text, id, opts);
+      const remote = remoteRelation(text, id, opts, path, canonical);
       if (remote === null) { error(line, "unresolved-cross-document-reference", `unresolved reference \`${target}\``); return null; }
+      if (typeof remote === "object" && "unresolved" in remote) {
+        const code: DiagnosticCode = remote.code === "view-source-cycle" || remote.code === "view-source-too-deep" ? remote.code : "unresolved-cross-document-reference";
+        error(line, code, `view source \`${target}\` did not resolve in \`${path}\`: ${remote.unresolved}`);
+        return null;
+      }
       if (remote === "not-a-relation") { error(line, "view-source-not-a-relation", `view source \`${target}\` is not a table or view`); return null; }
       return remote;
     }

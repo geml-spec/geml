@@ -12,6 +12,10 @@ const vizPromise = instance();
 vizPromise.catch(() => {}); // handled per-message below; avoid an unhandled rejection
 
 window.addEventListener("message", async (ev) => {
+  // Only the page that embeds this sandbox may drive it, and the answer goes
+  // back to that page alone — `postMessage(…, "*")` handed the result to any
+  // window holding a reference to this one.
+  if (ev.source !== window.parent) return;
   const { id, sources } = ev.data || {};
   if (id === undefined || !Array.isArray(sources)) return;
   let viz = null;
@@ -35,5 +39,5 @@ window.addEventListener("message", async (ev) => {
       results.push({ error: String((e && e.message) || e) });
     }
   }
-  ev.source.postMessage({ id, results }, "*");
+  ev.source.postMessage({ id, results }, ev.origin && ev.origin !== "null" ? ev.origin : "*");
 });

@@ -1,0 +1,20 @@
+# Paths where a change reaches every collaborator's tooling, not only this
+# repository's code — so a pull request that touches them gets the owner's
+# review before it can merge (enforced once branch protection requires review
+# from code owners; this file alone is a request, not a lock).
+#
+#   .github/workflows/        CI credentials, OIDC grants, what publishes and deploys
+#   .claude/                  the hooks Claude Code runs on every tool call, and the
+#                             instructions it injects into every session (see
+#                             .claude/hooks/inject-instructions.mjs)
+#   playground/codemap/_index/refresh.json
+#                             the recipe the PostToolUse hook EXECUTES; its trust
+#                             gate stores fingerprints outside the repo, so an edit
+#                             here is a request for every clone to re-trust it
+#   integrations/geml-check-action/action.yml
+#                             the composite action other repositories run
+
+/.github/workflows/                          @xiongjy2104
+/.claude/                                    @xiongjy2104
+/playground/codemap/_index/refresh.json      @xiongjy2104
+/integrations/geml-check-action/action.yml   @xiongjy2104

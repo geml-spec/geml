@@ -183980,10 +183980,23 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
     return odd;
   }
+  function unescapeQuoted(inner2) {
+    let out = "";
+    for (let i3 = 0; i3 < inner2.length; i3++) {
+      const c3 = inner2[i3];
+      if (c3 === "\\" && i3 + 1 < inner2.length && (inner2[i3 + 1] === '"' || inner2[i3 + 1] === "\\")) {
+        out += inner2[i3 + 1];
+        i3++;
+        continue;
+      }
+      out += c3;
+    }
+    return out;
+  }
   function coerce(raw) {
     const t4 = raw.trim();
     if (t4.length >= 2 && t4.startsWith('"') && t4.endsWith('"')) {
-      return t4.slice(1, -1);
+      return unescapeQuoted(t4.slice(1, -1));
     }
     if (t4 === "true")
       return true;
@@ -183999,8 +184012,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     const out = [];
     let cur = "";
     let inQuote = false;
-    for (const ch of s2) {
-      if (ch === '"') {
+    for (let i3 = 0; i3 < s2.length; i3++) {
+      const ch = s2[i3];
+      if (inQuote && ch === "\\" && i3 + 1 < s2.length && (s2[i3 + 1] === '"' || s2[i3 + 1] === "\\")) {
+        cur += ch + s2[i3 + 1];
+        i3++;
+      } else if (ch === '"') {
         inQuote = !inQuote;
         cur += ch;
       } else if (!inQuote && /\s/.test(ch)) {
@@ -184612,11 +184629,23 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     return out;
   }
   function splitName(lhs) {
-    const m3 = /^(.*?)\s*\[([^\]]*%[^\]]*)\]\s*$/.exec(lhs.trim());
-    let name = (m3 ? m3[1] : lhs).trim();
+    const t4 = lhs.trim();
+    let name = t4;
+    let fmt3;
+    if (t4.endsWith("]")) {
+      const open2 = t4.lastIndexOf("[");
+      if (open2 >= 0) {
+        const inner2 = t4.slice(open2 + 1, -1);
+        if (inner2.includes("%") && !inner2.includes("]")) {
+          fmt3 = inner2;
+          name = t4.slice(0, open2).trimEnd();
+        }
+      }
+    }
+    name = name.trim();
     if (name.startsWith('"') && name.endsWith('"'))
       name = name.slice(1, -1);
-    return m3 ? { name, fmt: m3[2] } : { name };
+    return fmt3 !== void 0 ? { name, fmt: fmt3 } : { name };
   }
   var nanMsg = (where, v3) => `${where}: ${Number.isNaN(v3) ? "result is not a number (0/0)" : "division by zero"}; the cell holds no value and shows \`-\``;
   function defaultNum(v3) {
@@ -185177,18 +185206,31 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   function orderView(model, source, diagnostics) {
     const keys3 = [];
     for (const part of source.split(",").map((s2) => s2.trim()).filter(Boolean)) {
-      const match3 = /^(?:'([^']+)'|(.+?))(?:\s+(asc|desc))?$/i.exec(part);
-      if (!match3) {
+      const p3 = part.trim();
+      let dirWord;
+      let head2 = p3;
+      for (const w4 of ["desc", "asc"]) {
+        if (p3.toLowerCase().endsWith(w4)) {
+          const cut = p3.length - w4.length;
+          if (cut > 0 && /\s/.test(p3[cut - 1])) {
+            dirWord = w4;
+            head2 = p3.slice(0, cut).trimEnd();
+          }
+          break;
+        }
+      }
+      const quotedWhole = head2.length >= 3 && head2.startsWith("'") && head2.endsWith("'") && !head2.slice(1, -1).includes("'");
+      const name = (quotedWhole ? head2.slice(1, -1) : head2).trim();
+      if (name === "") {
         diagnostics.push({ severity: "error", code: "view-order-error", message: `order: bad key \`${part}\`` });
         continue;
       }
-      const name = (match3[1] ?? match3[2] ?? "").trim();
       const ci = model.columns.indexOf(name);
       if (ci < 0) {
         diagnostics.push({ severity: "error", code: "view-unknown-column", message: `order: unknown column \`${name}\`` });
         continue;
       }
-      keys3.push({ ci, desc: (match3[3] ?? "asc").toLowerCase() === "desc" });
+      keys3.push({ ci, desc: dirWord === "desc" });
     }
     const numericKey = keys3.map((key) => model.rows.length > 0 && model.rows.every((row) => typeof row[key.ci]?.value === "number"));
     const indexed = model.rows.map((row, i3) => ({ row, i: i3 }));
@@ -185497,6 +185539,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
     return -1;
   }
+  var MAX_DEPTH = 200;
   var Refusal = class extends Error {
     line;
     constructor(message, line2) {
@@ -185557,30 +185600,39 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       if (blockScalar) {
         const fold = blockScalar[1] === ">";
         const chomp = blockScalar[2];
-        const parts = [];
-        let base = -1;
+        let first3 = -1;
+        let last4 = -1;
         while (p3 < lines.length && lines[p3].indent > parentIndent) {
-          const l4 = lines[p3];
-          if (base < 0)
-            base = l4.indent;
-          parts.push(" ".repeat(Math.max(0, l4.indent - base)) + l4.text);
+          if (first3 < 0)
+            first3 = lines[p3].n;
+          last4 = lines[p3].n;
           p3++;
         }
+        if (first3 < 0)
+          return chomp === "-" ? "" : "\n";
+        const rawLines = body.slice(first3, last4 + 1).map((r2) => r2.replace(/\r$/, ""));
+        const base = Math.min(...rawLines.filter((r2) => r2.trim() !== "").map((r2) => r2.length - r2.replace(/^[ \t]+/, "").length));
+        const parts = rawLines.map((r2) => r2.trim() === "" ? "" : r2.slice(base));
         let s2 = fold ? parts.join(" ") : parts.join("\n");
         if (chomp !== "-")
           s2 += "\n";
         return s2;
       }
       const q3 = quotedScalar(t4);
-      return q3 === null ? plainScalar(t4) : q3;
+      const v3 = q3 === null ? plainScalar(t4) : q3;
+      if (typeof v3 === "number" && !Number.isFinite(v3))
+        throw new Refusal(`\`${t4}\` has no finite value \u2014 the value domain here has no infinity`, at2);
+      return v3;
     }
-    function parseBlock(indent) {
+    function parseBlock(indent, depth) {
       const first3 = peek2();
+      if (depth > MAX_DEPTH)
+        throw new Refusal(`nesting deeper than ${MAX_DEPTH} levels is outside this subset`, first3.n);
       if (first3.text === "-" || first3.text.startsWith("- "))
-        return parseSeq(indent);
-      return parseMap(indent);
+        return parseSeq(indent, depth);
+      return parseMap(indent, depth);
     }
-    function parseSeq(indent) {
+    function parseSeq(indent, depth) {
       const out = [];
       while (p3 < lines.length) {
         const l4 = peek2();
@@ -185595,7 +185647,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         p3++;
         if (rest === "") {
           if (p3 < lines.length && lines[p3].indent > indent)
-            out.push(parseBlock(lines[p3].indent));
+            out.push(parseBlock(lines[p3].indent, depth + 1));
           else
             out.push(null);
           continue;
@@ -185604,15 +185656,21 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           const afterDash = l4.text.slice(1);
           const inner2 = indent + 1 + (afterDash.length - afterDash.replace(/^ +/, "").length);
           lines.splice(p3, 0, { n: at2, indent: inner2, text: rest });
-          out.push(parseBlock(inner2));
+          out.push(parseBlock(inner2, depth + 1));
           continue;
         }
         out.push(inlineValue(rest, at2, indent));
       }
       return out;
     }
-    function parseMap(indent) {
+    function parseMap(indent, depth) {
       const out = {};
+      const setKey = (k3, v3) => {
+        if (k3 === "__proto__")
+          Object.defineProperty(out, k3, { value: v3, enumerable: true, writable: true, configurable: true });
+        else
+          out[k3] = v3;
+      };
       while (p3 < lines.length) {
         const l4 = peek2();
         if (l4.indent < indent)
@@ -185627,6 +185685,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         const rawKey = l4.text.slice(0, cut).trim();
         if (rawKey.startsWith("<<"))
           throw new Refusal("a merge key (`<<`) is outside this subset \u2014 write the keys out", l4.n);
+        refuseExtras(rawKey, l4.n);
         const qk = quotedScalar(rawKey);
         const key = qk === null ? rawKey : qk;
         const rest = l4.text.slice(cut + 1).trim();
@@ -185634,19 +185693,19 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         p3++;
         if (rest === "") {
           if (p3 < lines.length && lines[p3].indent > indent)
-            out[key] = parseBlock(lines[p3].indent);
+            setKey(key, parseBlock(lines[p3].indent, depth + 1));
           else if (p3 < lines.length && lines[p3].indent === indent && (lines[p3].text === "-" || lines[p3].text.startsWith("- "))) {
-            out[key] = parseSeq(indent);
+            setKey(key, parseSeq(indent, depth + 1));
           } else
-            out[key] = null;
+            setKey(key, null);
           continue;
         }
-        out[key] = inlineValue(rest, at2, indent);
+        setKey(key, inlineValue(rest, at2, indent));
       }
       return out;
     }
     try {
-      const value2 = parseBlock(lines[0].indent);
+      const value2 = parseBlock(lines[0].indent, 0);
       if (p3 < lines.length) {
         return { error: `\`${lines[p3].text.slice(0, 40)}\` is not part of the document above it`, line: lines[p3].n };
       }
@@ -188959,12 +189018,32 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
     return null;
   }
-  function remoteRelation(source, id39, opts) {
-    const document2 = parse(source, opts);
+  function remoteRelation(source, id39, opts, path4, canonical) {
+    const cache3 = opts._docCache ??= /* @__PURE__ */ new Map();
+    let document2 = cache3.get(canonical);
+    if (document2 === void 0) {
+      const dir2 = relDirPath(path4);
+      const rebase2 = (d3) => relJoinPath(dir2, d3);
+      const nested = {
+        ...opts,
+        self: canonical,
+        resolveDoc: (d3) => opts.resolveDoc(rebase2(d3)),
+        _viewStack: [...opts._viewStack ?? [opts.self ?? ""], canonical],
+        _docCache: cache3
+      };
+      if (opts.docExists)
+        nested.docExists = (d3) => opts.docExists(rebase2(d3));
+      document2 = parse(source, nested);
+      cache3.set(canonical, document2);
+    }
     const block2 = relationBlock(document2.children, id39);
     if (block2 === null) {
       const exists = findBlockSite(document2.children, id39) !== void 0;
       return exists ? "not-a-relation" : null;
+    }
+    if (block2.type === "view" && (block2.table === void 0 || block2.table.columns.length === 0)) {
+      const why = document2.diagnostics.find((d3) => d3.severity === "error" && /^(view-source-|unresolved-cross-document-reference$|unresolvable-document$|unresolved-reference$)/.test(d3.code));
+      return { unresolved: why?.message ?? `\`#${id39}\` did not resolve in that document`, ...why ? { code: why.code } : {} };
     }
     return block2.table ?? null;
   }
@@ -188995,14 +189074,29 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `view source \`${target}\` not checked (no document resolver)`, line: line2 });
           return null;
         }
+        const stack = opts._viewStack ?? [opts.self ?? ""];
+        const canonical = relJoinPath(relDirPath(opts.self ?? ""), path4);
+        if (stack.includes(canonical)) {
+          error3(line2, "view-source-cycle", `view source \`${target}\` returns to a document already being resolved: ${[...stack, canonical].map((d3) => d3 === "" ? "(this document)" : d3).join(" \u2192 ")}`);
+          return null;
+        }
+        if (stack.length > EMBED_DEPTH_LIMIT) {
+          error3(line2, "view-source-too-deep", `view source \`${target}\` is ${stack.length} documents deep; the bound is ${EMBED_DEPTH_LIMIT} (\xA79.3)`);
+          return null;
+        }
         const text5 = opts.resolveDoc(path4);
         if (text5 === null) {
           error3(line2, "unresolvable-document", `cannot resolve document \`${path4}\``);
           return null;
         }
-        const remote = remoteRelation(text5, id39, opts);
+        const remote = remoteRelation(text5, id39, opts, path4, canonical);
         if (remote === null) {
           error3(line2, "unresolved-cross-document-reference", `unresolved reference \`${target}\``);
+          return null;
+        }
+        if (typeof remote === "object" && "unresolved" in remote) {
+          const code = remote.code === "view-source-cycle" || remote.code === "view-source-too-deep" ? remote.code : "unresolved-cross-document-reference";
+          error3(line2, code, `view source \`${target}\` did not resolve in \`${path4}\`: ${remote.unresolved}`);
           return null;
         }
         if (remote === "not-a-relation") {
@@ -190573,6 +190667,14 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
     return false;
   }
+  function fenceFor(base, body) {
+    let n2 = base.length;
+    for (const l4 of body.split("\n")) {
+      const t4 = l4.replace(/\s+$/, "");
+      if (/^=+$/.test(t4) && t4.length >= n2) n2 = t4.length + 1;
+    }
+    return "=".repeat(n2);
+  }
   async function inlineSrcTables(raw, resolveUrl, fetchText) {
     const lines = raw.replace(/\r\n?/g, "\n").split("\n");
     const out = [];
@@ -190607,15 +190709,16 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           attrs = /\}\s*$/.test(attrs) ? attrs.replace(/\}\s*$/, (t4) => ` format=${fmt3}` + t4).replace(/\{\s+format=/, "{format=") : `${attrs} {format=${fmt3}}`;
         }
         const body = text4.replace(/\r\n?/g, "\n").replace(/\n+$/, "");
+        const f2 = fenceFor(fence, body);
         if (type3 === "view") {
           const id39 = factsId(m3[3]);
           const bodyAttrs = [...attrs.matchAll(/\s(?:format|delim|header)=(?:"[^"]*"|[^\s}]+)/g)].map((x6) => x6[0].trim());
           const declaredFormat = /\bformat=/.test(bodyAttrs.join(" "));
           const fromExt = /\.tsv$/i.test(src.value) ? "tsv" : "csv";
           const tableAttrs = [`#${id39}`, ...declaredFormat ? [] : [`format=${fromExt}`, "header=1"], ...bodyAttrs].join(" ");
-          out.push(`${fence} table {${tableAttrs}}`);
+          out.push(`${f2} table {${tableAttrs}}`);
           out.push(body);
-          out.push(fence);
+          out.push(f2);
           out.push("");
           const viewAttrs = attrs.replace(/\s(?:format|delim|header)=(?:"[^"]*"|[^\s}]+)/g, "").trim();
           out.push(/\}$/.test(viewAttrs) ? `${fence} view ${viewAttrs.replace(/\s*\}$/, ` src=#${id39}}`)}` : `${fence} view {src=#${id39}}`);
@@ -190623,9 +190726,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           i3 = j3;
           continue;
         }
-        out.push(fence + " " + type3 + attrs);
+        out.push(f2 + " " + type3 + attrs);
         out.push(body);
-        out.push(fence);
+        out.push(f2);
       } else {
         for (let k3 = i3; k3 <= j3 && k3 < lines.length; k3++) out.push(lines[k3]);
       }

@@ -97,10 +97,50 @@ function locate(lines: string[]): Located[] {
   return out;
 }
 
-function attr(attrLine: string, key: string): string | undefined {
-  const m = new RegExp(`${key}=("([^"]*)"|[^\\s}]+)`).exec(attrLine);
-  return m ? (m[2] !== undefined ? m[2] : m[1]) : undefined;
+// The attribute object of a sidecar block, read as a SEQUENCE of `key=value`
+// pairs rather than searched by regex. Searched, `hash=(…)` matched wherever it
+// first appeared — so a summary of `x" hash="sha256:0…` planted a second `hash=`
+// the search found before the real one, and the sidecar's own `verify` failed on
+// a chain nobody had tampered with. Values follow §4: a quoted value escapes
+// only `"` and `\`, a bare value ends at whitespace or `}`. Read in order, a
+// `hash=` inside a summary's quotes is part of the summary and of nothing else.
+function attrs(attrLine: string): Map<string, string> {
+  const out = new Map<string, string>();
+  const s = attrLine;
+  const brace = s.indexOf("{");
+  let i = brace < 0 ? 0 : brace + 1;
+  while (i < s.length) {
+    while (i < s.length && /\s/.test(s[i]!)) i++;
+    if (i >= s.length || s[i] === "}") break;
+    let k = "";
+    while (i < s.length && /[^\s={}"]/.test(s[i]!)) k += s[i++];
+    if (k === "") { i++; continue; }          // a stray character: step over it
+    if (s[i] !== "=") continue;               // a bare flag carries no value
+    i++;
+    if (s[i] === '"') {
+      i++;
+      let v = "";
+      while (i < s.length && s[i] !== '"') {
+        if (s[i] === "\\" && i + 1 < s.length && (s[i + 1] === '"' || s[i + 1] === "\\")) { v += s[i + 1]; i += 2; continue; }
+        v += s[i++];
+      }
+      i++;                                    // the closing quote
+      out.set(k, v);
+    } else {
+      let v = "";
+      while (i < s.length && !/[\s}]/.test(s[i]!)) v += s[i++];
+      out.set(k, v);
+    }
+  }
+  return out;
 }
+function attr(attrLine: string, key: string): string | undefined {
+  return attrs(attrLine).get(key);
+}
+
+// The inverse: a value written so that `attrs` reads it back whole. §4 escapes
+// exactly `"` and `\`; a newline has no escape and is refused upstream (save).
+const quoteAttr = (v: string): string => `"${v.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 
 function fenceFor(contentLf: string): string {
   let longest = 0;
@@ -511,8 +551,8 @@ function renderHistory(h: History, baseName: string): string {
     const at = [
       `id="${r.id}"`,
       r.parent ? `parent="${r.parent}"` : "",
-      r.author ? `author="${r.author}"` : "",
-      r.summary ? `summary="${r.summary}"` : "",
+      r.author ? `author=${quoteAttr(r.author)}` : "",
+      r.summary ? `summary=${quoteAttr(r.summary)}` : "",
       `hash="${r.hash}"`,
       r.newline ? `newline="${r.newline}"` : "",
     ].filter(Boolean).join(" ");
@@ -541,6 +581,13 @@ function renderHistory(h: History, baseName: string): string {
 export interface SaveOpts { gemlPath: string; historyPath: string; summary: string; author?: string; at?: Date; }
 
 export function save(o: SaveOpts): { id: string; hash: string } {
+  // A summary is one attribute on one line. §4 has no escape for a newline, so a
+  // summary carrying one ended the revision's attribute line where it stood and
+  // the rest was read as new lines of the sidecar — a whole forged
+  // `=== history-revision {…}` block, if that is what followed. Refused by name.
+  for (const [k, v] of [["summary", o.summary], ["author", o.author]] as const) {
+    if (v !== undefined && /[\r\n]/.test(v)) throw new Error(`${k} must be a single line: a newline would end the revision's attribute line and start new lines of the sidecar`);
+  }
   const { lf: working, nl } = loadBytes(o.gemlPath);
   const hash = fullHash(working, nl);
   const stamp = stampUTC(o.at ?? new Date());

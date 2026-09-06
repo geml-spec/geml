@@ -37,7 +37,11 @@ function serAttrValue(v: Value): string {
   if (v === true) return "";            // caller emits the bare key (a flag)
   if (v === false) return "false";
   if (typeof v === "number") return String(v);
-  return `"${v}"`;                       // always quote strings: parses back 1:1
+  // Always quoted, and escaped per §4 — `"` and `\` are the two characters a
+  // quoted value cannot hold bare. Unescaped, a value with a quote in it wrote a
+  // token that read back as several: 532 of 3000 random values did not survive
+  // one `--to geml`.
+  return `"${v.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
 interface AttrSource {
@@ -221,6 +225,20 @@ function serTypedBlock(b: TypedBlock): string {
   return [open, ...body, fence].join("\n");
 }
 
+// A paragraph line that the scanner would read as STRUCTURE — a fence, a
+// heading, a list item, a `%%` line — is prose only because its author escaped
+// it: `\=== meta {…}` parses to a paragraph whose text is `=== meta {…}`, the
+// backslash consumed (§5.3). Emitted verbatim, that text was a live block on the
+// next parse: one `--to geml` promoted an escaped `=== meta {profile=…}` to a real
+// meta block, `\# H {#pwn}` to an addressable heading, `\%% x` to a hidden line.
+// The escape goes back on any emitted line that would start a block. Only the
+// FIRST character of a line can start one, and §5.3 makes `\` before any ASCII
+// punctuation a literal, so this never changes a line that did not need it.
+const STARTS_BLOCK = /^(?:={3,}(?:[ \t]|$)|#{1,6}[ \t]|%%|[ \t]*(?:[-*]|\d+\.)[ \t]+)/;
+function escBlockStarts(text: string): string {
+  return text.split("\n").map((l) => (STARTS_BLOCK.test(l) ? "\\" + l : l)).join("\n");
+}
+
 function serBlock(b: Block): string {
   switch (b.kind) {
     case "heading": {
@@ -230,7 +248,7 @@ function serBlock(b: Block): string {
       const attrs = serAttrs({ id: b.id, classes: b.classes, attrs: b.attrs });
       return "#".repeat(b.level) + " " + serInlines(b.inlines) + (attrs ? " " + attrs : "");
     }
-    case "paragraph": return serInlines(b.inlines);
+    case "paragraph": return escBlockStarts(serInlines(b.inlines));
     case "hidden": return "%%" + (b.text ? " " + b.text : "");
     case "list": return serList(b, "");
     case "block": return serTypedBlock(b);

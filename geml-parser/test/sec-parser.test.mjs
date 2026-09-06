@@ -5,7 +5,7 @@
 // in-process against the compiled API — EXCEPT M2 (resolver confinement), whose
 // guard lives in the CLI-only `resolverFor()` (not exported), so that one drives
 // a single short-lived `geml check` (as test/cli.test.mjs does; no ports).
-import { parse, renderHtml } from "../dist/geml.js";
+import { parse, renderHtml, serialize, mdToGeml } from "../dist/geml.js";
 import { save, verify } from "../dist/history.js";
 import { strict as assert } from "node:assert";
 import { spawnSync } from "node:child_process";
@@ -1304,6 +1304,190 @@ test("R4-8: DEL, homoglyph and full-width-colon scheme evasions never reach a li
   // outright rather than emitted as a relative path.
   assert.match(html, /<a href="#">l6<\/a>/, "the control-separated scheme is refused (inert link)");
   assert.match(html, /<img class="media" src="" alt="m6">/, "…and its media src is blanked");
+});
+
+
+// ---------------------------------------------------------------------------
+// R5-1 — the write guard must hold for a NESTED block (security audit, batch 1)
+//
+// R3-F2 refused a `--body` whose fence closed the target early and injected a
+// sibling `=== meta` — by comparing the TOP-LEVEL block count before and after.
+// A block nested in a note is not a top-level child, so the same injection
+// inside the note left that count untouched and the write went through. The
+// invariant that holds at every depth: the target block, re-parsed, must span
+// exactly the region that was spliced in.
+// ---------------------------------------------------------------------------
+const cliRun = (args, input) => spawnSync(process.execPath, ["dist/geml.js", ...args], { input, encoding: "utf8", timeout: 60_000 });
+
+test("R5-1: set --body on a block nested in a note cannot inject a sibling `=== meta`", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-sec-r5-1-"));
+  try {
+    const f = join(dir, "doc.geml");
+    const original = "==== note {#n}\n=== code {#c lang=py}\nprint(0)\n===\n====\n";
+    writeFileSync(f, original);
+    const r = cliRun(["set", f, "#c", "--body", "--in", "-"], 'print(1)\n===\n=== meta\nbrand="INJECTED"\n===\n');
+    assert.equal(r.status, 1, "the injecting write is refused");
+    assert.match(r.stderr, /does not stay one block|changes the block count/, "and says why");
+    assert.equal(readFileSync(f, "utf8"), original, "the document is left byte-identical");
+    // The guard is a guard, not a lock: an honest nested body still writes.
+    const ok = cliRun(["set", f, "#c", "--body", "--in", "-"], "print(2)\nprint(3)\n");
+    assert.equal(ok.status, 0, ok.stderr);
+    assert.match(readFileSync(f, "utf8"), /print\(2\)\nprint\(3\)\n===\n====\n$/, "the nested block took the new body and nothing else moved");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("R5-1: a whole-row coordinate write cannot be a fence or a hidden line, in a nested table or a top-level one", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-sec-r5-1b-"));
+  try {
+    for (const [name, src] of [
+      ["nested.geml", "==== note {#n}\n=== table {#t format=csv}\nA, B\n1, 2\n3, 4\n===\n====\n"],
+      ["top.geml", "=== table {#t format=csv}\nA, B\n1, 2\n3, 4\n===\n"],
+    ]) {
+      const f = join(dir, name);
+      writeFileSync(f, src);
+      for (const value of ["===\n", "=====\n", "=== note {#x}\n", "%% hidden\n"]) {
+        const r = cliRun(["set", f, "#t[1]", "--in", "-"], value);
+        assert.equal(r.status, 1, `${name}: ${JSON.stringify(value)} must be refused`);
+        assert.match(r.stderr, /cannot begin with a fence|does not stay one block|changes the block count/);
+        assert.equal(readFileSync(f, "utf8"), src, `${name}: untouched after ${JSON.stringify(value)}`);
+      }
+      const ok = cliRun(["set", f, "#t[1]", "--in", "-"], "9, 9\n");
+      assert.equal(ok.status, 0, ok.stderr);
+      assert.match(readFileSync(f, "utf8"), /\n9, 9\n3, 4\n/, `${name}: an ordinary row still writes`);
+    }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+
+// ---------------------------------------------------------------------------
+// R5 batch 2 — history attributes, and two quadratic regexes
+// ---------------------------------------------------------------------------
+
+// The sidecar's attribute reader SEARCHED `hash=(…)` with a regex, so a summary
+// of `x" hash="sha256:0…` planted a second `hash=` the search found first and
+// the chain's own verify failed. Written escaped per §4 and read as a sequence
+// of pairs now, a quote inside a summary is a quote inside a summary.
+test("R5-4: a summary carrying quotes and a `hash=` round-trips whole and the sidecar still verifies", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-sec-r5-4-"));
+  try {
+    const f = join(dir, "doc.geml"), h = join(dir, "doc.gemlhistory");
+    writeFileSync(f, "=== note {#a}\none\n===\n");
+    const summary = 'x" hash="sha256:0000" \\ tail';
+    save({ gemlPath: f, historyPath: h, summary });
+    const side = readFileSync(h, "utf8");
+    assert.equal((side.match(/ hash="/g) ?? []).length, 2, "one hash per keyframe and revision — the planted one is inside the summary's quotes");
+    const v = spawnSync(process.execPath, ["dist/geml.js", "history", "verify", f], { encoding: "utf8", timeout: 60_000 });
+    assert.equal(v.status, 0, v.stderr + v.stdout);
+    const got = spawnSync(process.execPath, ["dist/geml.js", "history", "get", f], { encoding: "utf8", timeout: 60_000 });
+    assert.ok((got.stdout + got.stderr).includes(summary), "the summary reads back exactly as written");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// §4 has no escape for a newline, so a summary carrying one ended the attribute
+// line where it stood and the rest became new lines of the sidecar — a forged
+// `=== history-revision` block, if that is what followed.
+test("R5-4: a summary or author with a newline is refused before anything is written", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-sec-r5-4b-"));
+  try {
+    const f = join(dir, "doc.geml"), h = join(dir, "doc.gemlhistory");
+    writeFileSync(f, "=== note {#a}\none\n===\n");
+    const forged = 'x\n===\n=== history-revision {id="19990101T000000Z-deadbeef" summary="INJECTED" hash="sha256:00"}\n===';
+    assert.throws(() => save({ gemlPath: f, historyPath: h, summary: forged }), /summary must be a single line/);
+    assert.throws(() => save({ gemlPath: f, historyPath: h, summary: "ok", author: "a\r\nb" }), /author must be a single line/);
+    assert.equal(existsSync(h), false, "nothing was written");
+    const r = spawnSync(process.execPath, ["dist/geml.js", "history", "save", f, "-m", forged], { encoding: "utf8", timeout: 60_000 });
+    assert.notEqual(r.status, 0, "the CLI refuses too");
+    assert.match(r.stderr, /single line/);
+    assert.equal(existsSync(h), false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// `splitName` and `orderView` matched with lazy patterns that backtracked
+// quadratically over the attribute — and an attribute is author input of any
+// length: 128 KB held the parser for 23 s and 8 s. Scanned now.
+test("R5-3: a 128 KB compute= name suffix and a 128 KB order= key parse in linear time, and mean what they meant", () => {
+  const facts = "=== table {#f format=csv}\nA, B\n1, 2\n3, 4\n===\n";
+  for (const [label, attr] of [["compute", `compute="X [${"%".repeat(128000)} = 1"`], ["order", `order="A${" ".repeat(128000)}x"`]]) {
+    const t = Date.now();
+    parse(facts + `=== view {#v src=#f ${attr}}\n===\n`);
+    assert.ok(Date.now() - t < 1500, `${label}: ${Date.now() - t} ms`);
+  }
+  const doc = parse(facts + "=== view {#v src=#f compute=\"H [%.1f] = A + B\" order=\"'H' desc\"}\n===\n");
+  assert.equal(doc.diagnostics.filter((d) => d.severity === "error").length, 0);
+  assert.deepEqual(doc.children[1].table.rows.map((r) => r[2].text), ["7.0", "3.0"], "computed, formatted, and ordered desc by a quoted key");
+  const asc = parse(facts + "=== view {#v src=#f order=\"B asc\"}\n===\n");
+  assert.deepEqual(asc.children[1].table.rows.map((r) => r[1].text), ["2", "4"]);
+  const bad = parse(facts + "=== view {#v src=#f order=\"Nope desc\"}\n===\n");
+  assert.ok(bad.diagnostics.some((d) => d.code === "view-unknown-column"), "a key naming no column is still refused");
+});
+
+
+// ---------------------------------------------------------------------------
+// R5 batch 3 — hardening: the serializer's round trip, md→geml's silence, an
+// author class wearing the renderer's chrome
+// ---------------------------------------------------------------------------
+
+// `\=== meta {…}` parses to a paragraph whose text is `=== meta {…}`, the
+// backslash consumed (§5.3). Emitted verbatim, that text was a live block on the
+// next parse: one `--to geml` promoted escaped prose to a meta block, a heading, a
+// list, a hidden line. The escape goes back on any emitted line that would start
+// a block.
+test("R5-2: escaped block syntax in a paragraph survives serialize() as a paragraph", () => {
+  const shape = (d) => d.children.map((b) => (b.kind === "block" ? `block:${b.type}` : b.kind)).join(",");
+  for (const src of [
+    "\\=== meta {profile=\"geml-history/v1\"}\nbrand = \"INJECTED\"\n\\===\n",
+    "\\# Injected heading {#pwn}\n",
+    "\\- item one\n\\- item two\n",
+    "\\1. not a list\n",
+    "\\%% hidden note\n",
+  ]) {
+    const d1 = parse(src);
+    assert.equal(shape(d1), "paragraph", `precondition: ${JSON.stringify(src)} is prose`);
+    const d2 = parse(serialize(d1));
+    assert.equal(shape(d2), "paragraph", `still prose after serialize: ${JSON.stringify(src)}`);
+    assert.deepEqual(d2.ids, d1.ids, "no id was invented");
+  }
+  assert.equal(serialize(parse("plain text here\n")).trim(), "plain text here", "a line that starts no block is left alone");
+});
+
+// A quoted attribute value could not hold a quote: the tokenizer ended the span
+// at any `"`, and the serializer wrote one bare. §4's two escapes now work on
+// both sides, so a value goes out as it came in.
+test("R5-2: attribute values holding quotes and backslashes round-trip through serialize()", () => {
+  for (const v of ['say "hi"', "back\\slash", 'both " and \\ here', "\\", '"', "a} b {c", "%d [x]"]) {
+    const src = `=== note {#n k=${JSON.stringify(v)}}\nbody\n===\n`;
+    const d1 = parse(src);
+    assert.equal(d1.children[0].attrs.k, v, `parses to the value: ${JSON.stringify(v)}`);
+    const d2 = parse(serialize(d1));
+    assert.equal(d2.children[0].attrs.k, v, `survives serialize: ${JSON.stringify(v)}`);
+    assert.deepEqual(d2.children[0].classes, [], "and grows no classes out of its own characters");
+  }
+  assert.equal(parse('=== note {p="C:\\path"}\nx\n===\n').children[0].attrs.p, "C:\\path", "a bare backslash before another character is kept, as it always was");
+});
+
+// Markdown has no `===`/`%%` syntax and GEML does; the converter passes both
+// through because a Markdown file may already carry GEML blocks. It used to do
+// so silently — a prose line became a live `=== meta` that swallowed the rest of
+// the document. The notes say so now.
+test("R5-5: md→geml reports a prose line that becomes a fence or a hidden line", () => {
+  const { geml, notes } = mdToGeml("# T\n\nprose\n\n=== meta\nbrand = \"X\"\n===\n\n%% hidden\n");
+  assert.ok(notes.some((n) => /opens a GEML fence/.test(n) && /line 5/.test(n)), notes.join(" | "));
+  assert.ok(notes.some((n) => /hidden line/.test(n) && /line 9/.test(n)), notes.join(" | "));
+  assert.ok(/=== meta/.test(geml), "…and the promise to pass valid GEML through is kept");
+  assert.deepEqual(mdToGeml("# T\n\nplain prose\n").notes, [], "ordinary Markdown raises no note");
+});
+
+// The charset filter on author classes stripped characters and nothing else, so
+// `{.render-error}` on a note wore the build-error styling. Content classes
+// stay; a token naming the renderer's own chrome is dropped.
+test("R5-6: an author class cannot name the renderer's own chrome", () => {
+  const html = renderHtml(parse("=== note {#n .render-error .geml-diag-error .transclusion-error .callout .tip}\nhi\n===\n"));
+  const cls = /<aside class="([^"]*)"/.exec(html)[1].split(" ");
+  assert.deepEqual(cls, ["callout", "note", "tip"], "the renderer's words once, the author's content class kept");
+  // The element's own class attribute — the page's CSS legitimately mentions
+  // `.render-error`, so the whole document is the wrong thing to search.
+  const text = renderHtml(parse("=== text {#t .render-error .mine}\nhi\n===\n"));
+  assert.equal(/<div class="(text[^"]*)"/.exec(text)[1], "text mine");
 });
 
 console.log(`\n${passed} test(s) passed.`);

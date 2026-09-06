@@ -27,6 +27,8 @@
 import { createServer } from "node:http";
 import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync, openSync, unlinkSync, readdirSync, watch, realpathSync } from "node:fs";
 import { join, resolve, sep, basename, dirname, relative } from "node:path";
+import { randomBytes } from "node:crypto";
+import { tmpdir } from "node:os";
 import { spawn } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parse, renderHtml } from "../dist/geml.js";
@@ -60,18 +62,77 @@ export function parseServeArgs(args) {
 // project-root-relative, so it always misses inside the codemap dir. The
 // recorded build recipe knows the root (_index/refresh.json "root", relative
 // to the codemap dir); without one, assume the codemap sits at <root>/<dir>.
+// The project a codemap describes ends at the enclosing git repository; a map
+// describing source outside its own repository is not a layout this tool
+// supports. Walk up from the codemap dir to the nearest `.git`; with none, the
+// codemap's parent — which is what a recipe-less map already meant.
+export function projectBound(root) {
+  let dir = resolve(root);
+  for (;;) {
+    if (existsSync(join(dir, ".git"))) return dir;
+    const up = dirname(dir);
+    if (up === dir) return resolve(root, "..");
+    dir = up;
+  }
+}
+
+// realpath of a path that may not exist yet: resolve the nearest existing
+// ancestor and re-append the rest. A lexical fallback on the whole path would
+// compare `/var/folders/…/x` against a realpath'd `/private/var/folders/…` and
+// call every macOS temp dir an escape.
+function realDeep(p) {
+  const abs = resolve(p);
+  const tail = [];
+  let cur = abs;
+  for (;;) {
+    try { return join(realpathSync(cur), ...[...tail].reverse()); } catch { /* walk up */ }
+    const up = dirname(cur);
+    if (up === cur) return abs;
+    tail.push(basename(cur));
+    cur = up;
+  }
+}
+const within = (child, parent) => child === parent || child.startsWith(parent + sep);
+
 export function resolveSrcRoot(root) {
   let srcRoot = resolve(root, "..");
   try { srcRoot = resolve(root, JSON.parse(readFileSync(join(root, "_index", "refresh.json"), "utf8")).root ?? ".."); } catch { /* no recipe: parent */ }
+  // The recipe is REPOSITORY CONTENT. Left alone, its `root` chose the very
+  // directory the source route confines itself to — so a cloned map naming `~`
+  // or `/` was "confined" to exactly the tree an attacker picked. The MCP side
+  // of the same read already refuses this (confineSourceTo); the route gets the
+  // same rule: a recipe root may narrow into the project, never widen past it.
+  const bound = projectBound(root);
+  if (!within(realDeep(srcRoot), realDeep(bound))) {
+    console.error(`codemap serve: recipe root ${srcRoot} lies outside the project (${bound}); serving source from the project root instead`);
+    srcRoot = bound;
+  }
   return srcRoot;
 }
+
+// --stop signals whatever pid `_index/serve.pid` names — and that file is
+// REPOSITORY CONTENT too: a cloned map can ship one naming any process of the
+// victim's. So a running server also leaves a token OUTSIDE the repository, in
+// the OS temp dir, and --stop signals only a pid whose two tokens agree. A pid
+// file a repository shipped cannot plant the matching file in someone else's
+// tmpdir.
+const tokenPath = (pid) => join(tmpdir(), `geml-codemap-serve-${pid}.token`);
 
 // --stop: end a background server via its recorded pid. Returns the exit code.
 export function stopServer({ pidPath }) {
   if (!existsSync(pidPath)) { console.error("codemap serve: no pid file — nothing to stop"); return 0; }
-  const pid = Number(readFileSync(pidPath, "utf8").trim());
+  const [pidText = "", token = ""] = readFileSync(pidPath, "utf8").trim().split(/\r?\n/).map((l) => l.trim());
+  const pid = Number(pidText);
+  let ours = false;
+  try { ours = token !== "" && Number.isInteger(pid) && readFileSync(tokenPath(pid), "utf8").trim() === token; } catch { /* no token file: not ours */ }
+  if (!ours) {
+    try { unlinkSync(pidPath); } catch { /* already gone */ }
+    console.error(`codemap serve: pid file names ${pidText || "nothing"} but no matching token is on this machine — not this tool's server, not signalled (pid file removed)`);
+    return 0;
+  }
   let running = true;
   try { process.kill(pid); } catch { running = false; }
+  try { unlinkSync(tokenPath(pid)); } catch { /* best effort */ }
   // Remove the pid file BEFORE reporting — the old order announced "stale pid
   // file removed" and only then attempted the unlink, so the message could
   // outrun (or misstate) the actual removal.
@@ -231,6 +292,16 @@ export function createApp({ dir, root, port, cacheMb, srcRoot }) {
     if (urlPath.endsWith("/")) urlPath += "index.html";
 
     const done = (status) => console.error(`${req.method} ${urlPath} ${status}`);
+    // DNS rebinding: a page on attacker.example whose name is re-pointed at
+    // 127.0.0.1 is, to the browser, same-origin with this server, and its
+    // scripts read every response — the graph, the source route. The one thing
+    // that page cannot choose is the Host header its requests carry. So a Host
+    // that is not this machine is answered with nothing at all.
+    const host = String(req.headers.host ?? "").trim().toLowerCase().replace(/^\[([^\]]*)\](?::\d+)?$/, "$1").replace(/^([^:]+):\d+$/, "$1");
+    if (host !== "localhost" && host !== "127.0.0.1" && host !== "::1") {
+      done(403);
+      return send(403, "forbidden: this server answers only to localhost");
+    }
     // Graph payloads as a sidecar: pages carry data-graph-src instead of a
     // multi-MB inline attribute; the runtime fetches this route after first
     // paint. Computed on demand from the SAME parse cache — never stale.
@@ -542,7 +613,12 @@ export function startServing(cfg) {
   app.server.listen(port, "127.0.0.1", () => {
     // Record the pid so `--stop` can find us (best effort — a read-only
     // codemap dir just means no pid file).
-    try { mkdirSync(cfg.runDir, { recursive: true }); writeFileSync(cfg.pidPath, String(process.pid)); } catch { /* read-only */ }
+    // The pid, and beside it the token whose twin lands in the OS temp dir —
+    // the pair --stop checks before it signals anything (see tokenPath).
+    const token = randomBytes(16).toString("hex");
+    try { mkdirSync(cfg.runDir, { recursive: true }); writeFileSync(cfg.pidPath, `${process.pid}\n${token}\n`); } catch { /* read-only */ }
+    try { writeFileSync(tokenPath(process.pid), token); } catch { /* no tmpdir: --stop will refuse, and say so */ }
+    process.on("exit", () => { try { unlinkSync(tokenPath(process.pid)); } catch { /* already gone */ } });
     console.error(`geml codemap serve: ${root}`);
     console.error(`  -> http://localhost:${port}/  (pages render live from .geml — rebuilds show on refresh)`);
     if (process.stdout.isTTY && !cfg.noOpen) openBrowser(`http://localhost:${port}/`);

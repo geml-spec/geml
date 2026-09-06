@@ -230,4 +230,84 @@ test("`--to md` carries a view's rows, as `--to html` does", () => {
   assert.match(md, /\| b \| ops \|/);
 });
 
+
+// ---------------------------------------------------------------------------
+// R5 — the cross-document view resolver (security audit, batch 1)
+// ---------------------------------------------------------------------------
+
+// A remote view is resolved by PARSING its document, and that parse resolves its
+// own remote views. Two files pointing at each other therefore recursed until
+// the stack ran out: `geml check` — the CI gate, and what MCP runs around every
+// write — died with a RangeError, from two lines. The same-document `src=#v`
+// cycle had been a diagnostic all along.
+test("a cross-document view cycle (A→B→A, and A→A) is view-source-cycle, and parse() does not throw", () => {
+  const docs = new Map([
+    ["A.geml", "=== view {#v src=B.geml#v}\n===\n"],
+    ["B.geml", "=== view {#v src=A.geml#v}\n===\n"],
+    ["S.geml", "=== view {#v src=S.geml#v}\n===\n"],
+  ]);
+  const resolveDoc = (d) => docs.get(d) ?? null;
+  for (const self of ["A.geml", "S.geml"]) {
+    let doc;
+    assert.doesNotThrow(() => { doc = parse(docs.get(self), { resolveDoc, self }); }, `${self}: parse must not throw`);
+    const cycle = doc.diagnostics.find((d) => d.severity === "error" && d.code === "view-source-cycle");
+    assert.ok(cycle, `${self}: the cycle is named, not swallowed`);
+    assert.match(cycle.message, /already being resolved/, "and it says which documents form it");
+  }
+});
+
+// The same recursion with no cycle: F views over an N-document chain re-parsed
+// the same files F^N times (twelve files of seven lines took eight seconds).
+// Parsed once per document now, and bounded at the depth an embed's chain is.
+test("a cross-document view chain is parsed once per document, and bounded at the embed depth", () => {
+  const chain = (n) => {
+    const docs = new Map();
+    for (let i = 0; i < n; i++) {
+      const next = i + 1 < n ? `D${i + 1}.geml` : null;
+      docs.set(`D${i}.geml`, [0, 1, 2].map((k) => (next
+        ? `=== view {#v${k} src=${next}#v0}\n===`
+        : `=== table {#v${k} format=csv}\nA\n1\n===`)).join("\n") + "\n");
+    }
+    return docs;
+  };
+  // Twelve deep, fan-out three: past the bound, and fast BECAUSE it is bounded and cached.
+  let docs = chain(12);
+  let t = Date.now();
+  let doc = parse(docs.get("D0.geml"), { resolveDoc: (d) => docs.get(d) ?? null, self: "D0.geml" });
+  assert.ok(Date.now() - t < 1500, `12-deep fan-out took ${Date.now() - t} ms`);
+  assert.ok(doc.diagnostics.some((d) => d.severity === "error" && d.code === "view-source-too-deep"), "the bound is reported by name");
+  // Six deep: inside the bound, clean, and still fast.
+  docs = chain(6);
+  t = Date.now();
+  doc = parse(docs.get("D0.geml"), { resolveDoc: (d) => docs.get(d) ?? null, self: "D0.geml" });
+  assert.ok(Date.now() - t < 1500, `6-deep fan-out took ${Date.now() - t} ms`);
+  assert.equal(doc.diagnostics.filter((d) => d.severity === "error").length, 0, "a chain inside the bound resolves clean");
+  assert.deepEqual(doc.children[0].table.rows.map((r) => r[0].text), ["1"], "and carries the rows through");
+});
+
+// A borrowed document's own `src=` used to resolve against the HOST's directory,
+// so a same-named file beside the host silently replaced the data the borrowed
+// author pointed at.
+test("a borrowed document's own src= resolves against THAT document's directory", () => {
+  const files = new Map([
+    ["sub/other.geml", "=== table {#t src=data.csv format=csv}\n===\n"],
+    ["sub/data.csv", "A\nsubval\n"],
+    ["data.csv", "A\nROOTVAL\n"],
+  ]);
+  const doc = parse("=== view {#v src=sub/other.geml#t}\n===\n", { resolveDoc: (d) => files.get(d) ?? null, self: "host.geml" });
+  assert.equal(doc.diagnostics.filter((d) => d.severity === "error").length, 0);
+  assert.deepEqual(doc.children[0].table.rows.map((r) => r[0].text), ["subval"]);
+});
+
+// A view the remote document could not resolve carries the scan's EMPTY model,
+// not undefined. Returned as a relation, it made the consumer a silently empty
+// table while the reason sat in the remote document's discarded diagnostics.
+test("a remote view that did not resolve in its own document is an error at the consumer, never an empty table", () => {
+  const docs = new Map([["B.geml", "=== view {#v src=missing.geml#x}\n===\n"]]);
+  const doc = parse("=== view {#v src=B.geml#v}\n===\n", { resolveDoc: (d) => docs.get(d) ?? null, self: "host.geml" });
+  const err = doc.diagnostics.find((d) => d.severity === "error" && /did not resolve in `B\.geml`/.test(d.message));
+  assert.ok(err, "the consumer says the source did not resolve, and where");
+  assert.ok(!(doc.children[0].table && doc.children[0].table.columns.length > 0), "and publishes no relation of its own");
+});
+
 console.log(`\n${passed} GEP-0012 view tests passed.`);

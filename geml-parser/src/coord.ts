@@ -215,6 +215,14 @@ function writeTable(block: Block & { kind: "block" }, model: TableModel, path: C
 
   const out = [...body];
   if (path.length === 1) {
+    // A row is data. A line the scanner reads as STRUCTURE — a close fence, an
+    // opening fence, a `%%` hidden line — is not a row: written into the body it
+    // closes the table early and everything below it is re-read as new blocks.
+    // The splice guard now catches that too, but the refusal belongs here, where
+    // the address that asked for it can be named.
+    if (/^[ \t]*={3,}(?:[ \t]|$)/.test(value) || /^[ \t]*%%/.test(value)) {
+      return { ok: false, why: `a row cannot begin with a fence (\`===\`) or a hidden-line marker (\`%%\`) — the body would be re-read as block structure` };
+    }
     out[lineIdx] = value;
     return { ok: true, body: out };
   }

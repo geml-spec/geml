@@ -29,61 +29,61 @@ resolution-default = cpg
 === code {#lexExpr src=geml-parser/src/table.ts#L144-170 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/lexExpr()."}
 ===
 
-=== code {#splitName src=geml-parser/src/table.ts#L180-185 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/splitName()."}
+=== code {#splitName src=geml-parser/src/table.ts#L180-199 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/splitName()."}
 ===
 
-=== code {#nanMsg src=geml-parser/src/table.ts#L191-192 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/nanMsg."}
+=== code {#nanMsg src=geml-parser/src/table.ts#L205-206 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/nanMsg."}
 ===
 
-=== code {#defaultNum src=geml-parser/src/table.ts#L197-200 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/defaultNum()."}
+=== code {#defaultNum src=geml-parser/src/table.ts#L211-214 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/defaultNum()."}
 ===
 
-=== code {#applyFormat src=geml-parser/src/table.ts#L204-217 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/applyFormat()."}
+=== code {#applyFormat src=geml-parser/src/table.ts#L218-231 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/applyFormat()."}
 ===
 
-=== code {#evalExpr src=geml-parser/src/table.ts#L220-272 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/evalExpr()."}
+=== code {#evalExpr src=geml-parser/src/table.ts#L234-286 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/evalExpr()."}
 ===
 
-=== code {#parseTable src=geml-parser/src/table.ts#L278-340 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/parseTable()."}
+=== code {#parseTable src=geml-parser/src/table.ts#L292-354 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/parseTable()."}
 ===
 
-=== code {#applyDerivations src=geml-parser/src/table.ts#L347-521 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/applyDerivations()."}
+=== code {#applyDerivations src=geml-parser/src/table.ts#L361-535 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/applyDerivations()."}
 ===
 
-=== code {#declarations src=geml-parser/src/table.ts#L532-539 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/declarations."}
+=== code {#declarations src=geml-parser/src/table.ts#L546-553 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/declarations."}
 ===
 
-=== code {#formulaName src=geml-parser/src/table.ts#L541-544 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/formulaName."}
+=== code {#formulaName src=geml-parser/src/table.ts#L555-558 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/formulaName."}
 ===
 
-=== code {#hasAggregate src=geml-parser/src/table.ts#L548-548 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/hasAggregate."}
+=== code {#hasAggregate src=geml-parser/src/table.ts#L562-562 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/hasAggregate."}
 ===
 
-=== code {#computedAttrs src=geml-parser/src/table.ts#L550-554 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/computedAttrs()."}
+=== code {#computedAttrs src=geml-parser/src/table.ts#L564-568 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/computedAttrs()."}
 ===
 
-=== code {#lexFilter src=geml-parser/src/table.ts#L558-581 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/lexFilter()."}
+=== code {#lexFilter src=geml-parser/src/table.ts#L572-595 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/lexFilter()."}
 ===
 
-=== code {#filterPredicate src=geml-parser/src/table.ts#L585-653 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/filterPredicate()."}
+=== code {#filterPredicate src=geml-parser/src/table.ts#L599-667 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/filterPredicate()."}
 ===
 
-=== code {#aggregateValue src=geml-parser/src/table.ts#L655-666 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/aggregateValue()."}
+=== code {#aggregateValue src=geml-parser/src/table.ts#L669-680 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/aggregateValue()."}
 ===
 
-=== code {#groupView src=geml-parser/src/table.ts#L668-724 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/groupView()."}
+=== code {#groupView src=geml-parser/src/table.ts#L682-738 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/groupView()."}
 ===
 
-=== code {#orderView src=geml-parser/src/table.ts#L726-765 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/orderView()."}
+=== code {#orderView src=geml-parser/src/table.ts#L740-794 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/orderView()."}
 ===
 
-=== code {#selectView src=geml-parser/src/table.ts#L767-780 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/selectView()."}
+=== code {#selectView src=geml-parser/src/table.ts#L796-809 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/selectView()."}
 ===
 
-=== code {#deriveView src=geml-parser/src/table.ts#L783-872 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/deriveView()."}
+=== code {#deriveView src=geml-parser/src/table.ts#L812-901 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/deriveView()."}
 ===
 
-=== code {#ensureCell src=geml-parser/src/table.ts#L874-877 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/ensureCell()."}
+=== code {#ensureCell src=geml-parser/src/table.ts#L903-906 anchor="scip-typescript npm @geml/geml 1.10.1 src/`table.ts`/ensureCell()."}
 ===
 
 === table {#calls format=csv}
@@ -144,57 +144,57 @@ from,              to,                                      kind, confidence
 from,                                          to,                kind, site
 #parseVisual,                                  #alignOf,          call, geml-parser/src/table.ts:87
 #parseVisual,                                  #splitPipes,       call, geml-parser/src/table.ts:80
-#parseTable,                                   #parseVisual,      call, geml-parser/src/table.ts:316
-#parseTable,                                   #parseDelimited,   call, geml-parser/src/table.ts:309
-#parseTable,                                   #resolveDelim,     call, geml-parser/src/table.ts:309
+#parseTable,                                   #parseVisual,      call, geml-parser/src/table.ts:330
+#parseTable,                                   #parseDelimited,   call, geml-parser/src/table.ts:323
+#parseTable,                                   #resolveDelim,     call, geml-parser/src/table.ts:323
 #parseVisual,                                  #letters,          call, geml-parser/src/table.ts:89
 #parseVisual,                                  #letters,          call, geml-parser/src/table.ts:94
 #parseDelimited,                               #letters,          call, geml-parser/src/table.ts:105
-#applyDerivations,                             #lexExpr,          call, geml-parser/src/table.ts:445
-#applyDerivations,                             #lexExpr,          call, geml-parser/src/table.ts:504
-#groupView,                                    #lexExpr,          call, geml-parser/src/table.ts:679
-#applyDerivations,                             #splitName,        call, geml-parser/src/table.ts:442
-#applyDerivations,                             #splitName,        call, geml-parser/src/table.ts:491
-#formulaName,                                  #splitName,        call, geml-parser/src/table.ts:543
-#groupView,                                    #splitName,        call, geml-parser/src/table.ts:678
-#applyDerivations,                             #nanMsg,           call, geml-parser/src/table.ts:463
-#applyDerivations,                             #nanMsg,           call, geml-parser/src/table.ts:510
-#applyDerivations,                             #defaultNum,       call, geml-parser/src/table.ts:459
-#applyDerivations,                             #defaultNum,       call, geml-parser/src/table.ts:507
-#groupView,                                    #defaultNum,       call, geml-parser/src/table.ts:711
-#applyDerivations,                             #applyFormat,      call, geml-parser/src/table.ts:459
-#applyDerivations,                             #applyFormat,      call, geml-parser/src/table.ts:507
-#groupView,                                    #applyFormat,      call, geml-parser/src/table.ts:711
-#applyDerivations,                             #evalExpr,         call, geml-parser/src/table.ts:457
-#applyDerivations,                             #evalExpr,         call, geml-parser/src/table.ts:506
-#groupView,                                    #evalExpr,         call, geml-parser/src/table.ts:710
-geml-parser--geml.ts.geml#scanBlocks,          #parseTable,       call, geml-parser/src/geml.ts:872
-geml-parser--geml.ts.geml#chartSourceTable,    #parseTable,       call, geml-parser/src/geml.ts:1119
-geml-parser--geml.ts.geml#resolveTableSources, #parseTable,       call, geml-parser/src/geml.ts:1392
-geml-parser--geml.ts.geml#resolveViewSources,  #parseTable,       call, geml-parser/src/geml.ts:1492
-#deriveView,                                   #applyDerivations, call, geml-parser/src/table.ts:804
-#deriveView,                                   #applyDerivations, call, geml-parser/src/table.ts:834
-#deriveView,                                   #applyDerivations, call, geml-parser/src/table.ts:870
-#deriveView,                                   #declarations,     call, geml-parser/src/table.ts:791
-#deriveView,                                   #declarations,     call, geml-parser/src/table.ts:835
-#deriveView,                                   #declarations,     call, geml-parser/src/table.ts:855
-#deriveView,                                   #formulaName,      call, geml-parser/src/table.ts:798
-#deriveView,                                   #formulaName,      call, geml-parser/src/table.ts:802
-#deriveView,                                   #formulaName,      call, geml-parser/src/table.ts:808
-#deriveView,                                   #formulaName,      call, geml-parser/src/table.ts:860
-#deriveView,                                   #hasAggregate,     call, geml-parser/src/table.ts:792
-#deriveView,                                   #hasAggregate,     call, geml-parser/src/table.ts:793
-#deriveView,                                   #computedAttrs,    call, geml-parser/src/table.ts:804
-#deriveView,                                   #computedAttrs,    call, geml-parser/src/table.ts:834
-#filterPredicate,                              #lexFilter,        call, geml-parser/src/table.ts:587
-#deriveView,                                   #lexFilter,        call, geml-parser/src/table.ts:816
-#deriveView,                                   #filterPredicate,  call, geml-parser/src/table.ts:829
-#groupView,                                    #aggregateValue,   call, geml-parser/src/table.ts:710
-#deriveView,                                   #groupView,        call, geml-parser/src/table.ts:836
-#deriveView,                                   #orderView,        call, geml-parser/src/table.ts:840
-#deriveView,                                   #selectView,       call, geml-parser/src/table.ts:853
-geml-parser--geml.ts.geml#resolveViewSources,  #deriveView,       call, geml-parser/src/geml.ts:1529
-#applyDerivations,                             #ensureCell,       call, geml-parser/src/table.ts:458
+#applyDerivations,                             #lexExpr,          call, geml-parser/src/table.ts:459
+#applyDerivations,                             #lexExpr,          call, geml-parser/src/table.ts:518
+#groupView,                                    #lexExpr,          call, geml-parser/src/table.ts:693
+#applyDerivations,                             #splitName,        call, geml-parser/src/table.ts:456
+#applyDerivations,                             #splitName,        call, geml-parser/src/table.ts:505
+#formulaName,                                  #splitName,        call, geml-parser/src/table.ts:557
+#groupView,                                    #splitName,        call, geml-parser/src/table.ts:692
+#applyDerivations,                             #nanMsg,           call, geml-parser/src/table.ts:477
+#applyDerivations,                             #nanMsg,           call, geml-parser/src/table.ts:524
+#applyDerivations,                             #defaultNum,       call, geml-parser/src/table.ts:473
+#applyDerivations,                             #defaultNum,       call, geml-parser/src/table.ts:521
+#groupView,                                    #defaultNum,       call, geml-parser/src/table.ts:725
+#applyDerivations,                             #applyFormat,      call, geml-parser/src/table.ts:473
+#applyDerivations,                             #applyFormat,      call, geml-parser/src/table.ts:521
+#groupView,                                    #applyFormat,      call, geml-parser/src/table.ts:725
+#applyDerivations,                             #evalExpr,         call, geml-parser/src/table.ts:471
+#applyDerivations,                             #evalExpr,         call, geml-parser/src/table.ts:520
+#groupView,                                    #evalExpr,         call, geml-parser/src/table.ts:724
+geml-parser--geml.ts.geml#scanBlocks,          #parseTable,       call, geml-parser/src/geml.ts:884
+geml-parser--geml.ts.geml#chartSourceTable,    #parseTable,       call, geml-parser/src/geml.ts:1131
+geml-parser--geml.ts.geml#resolveTableSources, #parseTable,       call, geml-parser/src/geml.ts:1404
+geml-parser--geml.ts.geml#resolveViewSources,  #parseTable,       call, geml-parser/src/geml.ts:1555
+#deriveView,                                   #applyDerivations, call, geml-parser/src/table.ts:833
+#deriveView,                                   #applyDerivations, call, geml-parser/src/table.ts:863
+#deriveView,                                   #applyDerivations, call, geml-parser/src/table.ts:899
+#deriveView,                                   #declarations,     call, geml-parser/src/table.ts:820
+#deriveView,                                   #declarations,     call, geml-parser/src/table.ts:864
+#deriveView,                                   #declarations,     call, geml-parser/src/table.ts:884
+#deriveView,                                   #formulaName,      call, geml-parser/src/table.ts:827
+#deriveView,                                   #formulaName,      call, geml-parser/src/table.ts:831
+#deriveView,                                   #formulaName,      call, geml-parser/src/table.ts:837
+#deriveView,                                   #formulaName,      call, geml-parser/src/table.ts:889
+#deriveView,                                   #hasAggregate,     call, geml-parser/src/table.ts:821
+#deriveView,                                   #hasAggregate,     call, geml-parser/src/table.ts:822
+#deriveView,                                   #computedAttrs,    call, geml-parser/src/table.ts:833
+#deriveView,                                   #computedAttrs,    call, geml-parser/src/table.ts:863
+#filterPredicate,                              #lexFilter,        call, geml-parser/src/table.ts:601
+#deriveView,                                   #lexFilter,        call, geml-parser/src/table.ts:845
+#deriveView,                                   #filterPredicate,  call, geml-parser/src/table.ts:858
+#groupView,                                    #aggregateValue,   call, geml-parser/src/table.ts:724
+#deriveView,                                   #groupView,        call, geml-parser/src/table.ts:865
+#deriveView,                                   #orderView,        call, geml-parser/src/table.ts:869
+#deriveView,                                   #selectView,       call, geml-parser/src/table.ts:882
+geml-parser--geml.ts.geml#resolveViewSources,  #deriveView,       call, geml-parser/src/geml.ts:1592
+#applyDerivations,                             #ensureCell,       call, geml-parser/src/table.ts:472
 ===
 
 === table {#unresolved format=csv hidden}
@@ -231,11 +231,13 @@ from,              to
 #lexExpr,          RegExp.test
 #lexExpr,          String.includes
 #lexExpr,          String.slice
-#splitName,        RegExp.exec
 #splitName,        String.endsWith
+#splitName,        String.includes
+#splitName,        String.lastIndexOf
 #splitName,        String.slice
 #splitName,        String.startsWith
 #splitName,        String.trim
+#splitName,        String.trimEnd
 #nanMsg,           NumberConstructor.isNaN
 #defaultNum,       Number.toPrecision
 #defaultNum,       isFinite
@@ -325,10 +327,15 @@ from,              to
 #orderView,        Array.map
 #orderView,        Array.push
 #orderView,        Array.sort
-#orderView,        RegExp.exec
+#orderView,        RegExp.test
+#orderView,        String.endsWith
+#orderView,        String.includes
+#orderView,        String.slice
 #orderView,        String.split
+#orderView,        String.startsWith
 #orderView,        String.toLowerCase
 #orderView,        String.trim
+#orderView,        String.trimEnd
 #selectView,       Array.filter
 #selectView,       Array.indexOf
 #selectView,       Array.map

@@ -26,7 +26,7 @@ resolution-default = cpg
 === code {#githubSlug src=geml-parser/src/from-md.ts#L130-137 anchor="scip-typescript npm @geml/geml 1.10.1 src/`from-md.ts`/githubSlug()."}
 ===
 
-=== code {#mdToGeml src=geml-parser/src/from-md.ts#L145-290 anchor="scip-typescript npm @geml/geml 1.10.1 src/`from-md.ts`/mdToGeml()."}
+=== code {#mdToGeml src=geml-parser/src/from-md.ts#L145-299 anchor="scip-typescript npm @geml/geml 1.10.1 src/`from-md.ts`/mdToGeml()."}
 ===
 
 === table {#calls format=csv}

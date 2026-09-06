@@ -48,14 +48,14 @@ from,           to,              kind, confidence
 === table {#called-by format=csv}
 from,                                       to,               kind, site
 #addressUnits,                              #sha8,            call, geml-parser/src/selector.ts:195
-geml-parser--geml.ts.geml#validateCoordRef, #parseCoordPath,  call, geml-parser/src/geml.ts:1654
+geml-parser--geml.ts.geml#validateCoordRef, #parseCoordPath,  call, geml-parser/src/geml.ts:1717
 #parseSelector,                             #parseCoordPath,  call, geml-parser/src/selector.ts:167
 geml-parser--cli.ts.geml#selectUnits,       #parseSelector,   call, geml-parser/src/cli.ts:1123
 geml-parser--cli.ts.geml#runGet,            #parseSelector,   call, geml-parser/src/cli.ts:1381
 geml-parser--cli.ts.geml#runSet,            #parseSelector,   call, geml-parser/src/cli.ts:1666
 geml-parser--cli.ts.geml#resolveSetTarget,  #parseSelector,   call, geml-parser/src/cli.ts:1725
 #parseSelector,                             #firstKey,        call, geml-parser/src/selector.ts:140
-geml-parser--geml.ts.geml#addressedUnits,   #addressUnits,    call, geml-parser/src/geml.ts:2560
+geml-parser--geml.ts.geml#addressedUnits,   #addressUnits,    call, geml-parser/src/geml.ts:2623
 geml-parser--cli.ts.geml#listIds,           #shortestAddress, call, geml-parser/src/cli.ts:1037
 geml-parser--cli.ts.geml#runFind,           #shortestAddress, call, geml-parser/src/cli.ts:1325
 geml-parser--cli.ts.geml#runReplace,        #shortestAddress, call, geml-parser/src/cli.ts:1581

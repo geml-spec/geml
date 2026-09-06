@@ -99,6 +99,15 @@ function classAttr(tokens: string[]): string {
   return escAttr(safe.join(" "));
 }
 
+// The class names this renderer uses for its OWN chrome — the red diagnostic
+// box, the transclusion frames, the diagram-source fallback — and the block-type
+// words it puts first. An author's `{.render-error}` on a note used to be applied
+// verbatim (the charset filter above only strips characters), so a plain note
+// could wear the build-error styling and read as a system message. Content
+// classes stay content classes; a token that names the chrome is dropped.
+const RENDERER_CLASS = /^(render-error|diagram-src|callout|text|geml-.*|transclusion(-.*)?)$/;
+const authorClasses = (cs: readonly string[]): string[] => cs.filter((c) => !RENDERER_CLASS.test(c));
+
 // Maximum block-nesting depth the renderer will descend before bailing out with
 // a diagnostic instead of overflowing the call stack (block()↔list()↔typed() are
 // mutually recursive). 256 is far past any legitimate document yet well under the
@@ -600,7 +609,7 @@ export class RenderCtx {
         this.usedMath = true;
         return `<div class="math-block"${idAttr}>\\[${esc(raw)}\\]</div>`;
       case "note": {
-        const classes = classAttr(["callout", b.type, ...b.classes]);
+        const classes = classAttr(["callout", b.type, ...authorClasses(b.classes)]);
         const inner = (b.children ?? []).map((c) => this.block(c)).filter((s) => s).join("\n");
         return `<aside class="${classes}"${idAttr}>\n${inner}\n</aside>`;
       }
@@ -608,7 +617,7 @@ export class RenderCtx {
         // Addressable prose (§3): flow children in a NEUTRAL container — the
         // block exists for its id/attrs, not for callout chrome (that's note).
         const inner = (b.children ?? []).map((c) => this.block(c)).filter((s) => s).join("\n");
-        const classes = classAttr(["text", ...b.classes]);
+        const classes = classAttr(["text", ...authorClasses(b.classes)]);
         return `<div class="${classes}"${idAttr}>\n${inner}\n</div>`;
       }
       case "data": {

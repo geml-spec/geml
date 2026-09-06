@@ -26,7 +26,7 @@ await test("upgradeD2: one batched call; svg results replace the source", async 
     seen = sources;
     return sources.map((s, i) => ({ svg: `<svg data-i="${i}"><g></g></svg>` }));
   };
-  await upgradeD2(document, renderAll);
+  await upgradeD2(document, renderAll, (svg) => svg);
   assert.equal(calls, 1, "all placeholders rendered in ONE batched call");
   assert.deepEqual(seen, ["x -> y", "a -> b"], "sources are the placeholders' text");
   const nodes = document.querySelectorAll(".geml-d2");
@@ -37,7 +37,7 @@ await test("upgradeD2: one batched call; svg results replace the source", async 
 
 await test("upgradeD2: error result keeps the source and shows the error", async () => {
   const document = docWith('<div class="geml-d2">x -&gt; y</div>');
-  await upgradeD2(document, async (sources) => sources.map(() => ({ error: "boom" })));
+  await upgradeD2(document, async (sources) => sources.map(() => ({ error: "boom" })), (svg) => svg);
   const node = document.querySelector(".geml-d2");
   assert.match(node.textContent, /x -> y/, "source text kept");
   const err = node.querySelector(".geml-d2-error");
@@ -48,7 +48,7 @@ await test("upgradeD2: error result keeps the source and shows the error", async
 
 await test("upgradeD2: an svg carrying <script is rejected, source kept", async () => {
   const document = docWith('<div class="geml-d2">x -&gt; y</div>');
-  await upgradeD2(document, async () => [{ svg: "<svg><script>alert(1)</script></svg>" }]);
+  await upgradeD2(document, async () => [{ svg: "<svg><script>alert(1)</script></svg>" }], (svg) => svg);
   const node = document.querySelector(".geml-d2");
   assert.match(node.textContent, /x -> y/, "source text kept");
   assert.equal(node.querySelector("script"), null, "script never inserted");
@@ -58,7 +58,7 @@ await test("upgradeD2: an svg carrying <script is rejected, source kept", async 
 
 await test("upgradeD2: renderAll throwing leaves every source untouched", async () => {
   const document = docWith('<div class="geml-d2">x -&gt; y</div>');
-  await upgradeD2(document, async () => { throw new Error("transport down"); });
+  await upgradeD2(document, async () => { throw new Error("transport down"); }, (svg) => svg);
   const node = document.querySelector(".geml-d2");
   assert.match(node.textContent, /x -> y/, "source text kept");
   assert.equal(node.querySelector("svg"), null);
@@ -77,6 +77,31 @@ await test("engine smoke: real @terrastruct/d2 renders `x -> y` to SVG", async (
     // the process alive; the class has no shutdown API, so terminate directly.
     await d2.worker?.terminate?.();
   }
+});
+
+
+// R5: the SVG comes back from a WASM engine over two message hops, and
+// `/<script/i` was the only thing between it and innerHTML — `<a
+// xlink:href="javascript:…">`, `on*=` attributes and `<foreignObject>` all pass
+// that test. A sanitizer is REQUIRED now: with none, nothing is inserted and
+// the source stays, which is the failure mode a broken engine already has.
+await test("upgradeD2: with no sanitizer nothing is inserted, and the note says why", async () => {
+  const document = docWith('<div class="geml-d2">x -&gt; y</div>');
+  await upgradeD2(document, async () => [{ svg: '<svg><a xlink:href="javascript:alert(1)">x</a></svg>' }]);
+  const node = document.querySelector(".geml-d2");
+  assert.match(node.textContent, /x -> y/, "source text kept");
+  assert.equal(node.querySelector("svg"), null, "no svg inserted without a sanitizer");
+  assert.ok(/no sanitizer/.test(node.querySelector(".geml-d2-error")?.textContent ?? ""));
+});
+
+await test("upgradeD2: the sanitizer's OUTPUT is what gets inserted, and an empty or scripted output is refused", async () => {
+  const document = docWith('<div class="geml-d2">x -&gt; y</div><div class="geml-d2">a -&gt; b</div>');
+  const strip = (svg) => svg.replace(/<a\b[^>]*>|<\/a>/g, "");
+  await upgradeD2(document, async (sources) => sources.map((_, i) => ({ svg: i === 0 ? '<svg><a xlink:href="javascript:alert(1)">t</a><g></g></svg>' : "<svg></svg>" })), (svg) => (svg === "<svg></svg>" ? "" : strip(svg)));
+  const nodes = document.querySelectorAll(".geml-d2");
+  assert.ok(nodes[0].querySelector("svg g"), "the sanitized svg is inserted");
+  assert.equal(nodes[0].querySelector("a"), null, "…without the part the sanitizer removed");
+  assert.equal(nodes[1].querySelector("svg"), null, "a sanitizer returning nothing means nothing is inserted");
 });
 
 console.log(`\n${passed} test(s) passed.`);

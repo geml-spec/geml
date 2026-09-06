@@ -32,91 +32,97 @@ resolution-default = cpg
 === code {#locate src=geml-parser/src/history.ts#L76-98 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/locate()."}
 ===
 
-=== code {#attr src=geml-parser/src/history.ts#L100-103 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/attr()."}
+=== code {#attrs src=geml-parser/src/history.ts#L107-136 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/attrs()."}
 ===
 
-=== code {#fenceFor src=geml-parser/src/history.ts#L105-112 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/fenceFor()."}
+=== code {#attr src=geml-parser/src/history.ts#L137-139 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/attr()."}
 ===
 
-=== code {#sha8 src=geml-parser/src/history.ts#L125-127 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/sha8()."}
+=== code {#quoteAttr src=geml-parser/src/history.ts#L143-143 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/quoteAttr."}
 ===
 
-=== code {#tile src=geml-parser/src/history.ts#L135-167 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/tile()."}
+=== code {#fenceFor src=geml-parser/src/history.ts#L145-152 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/fenceFor()."}
 ===
 
-=== code {#keyedUnits src=geml-parser/src/history.ts#L171-183 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/keyedUnits()."}
+=== code {#sha8 src=geml-parser/src/history.ts#L165-167 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/sha8()."}
 ===
 
-=== code {#locateUnit src=geml-parser/src/history.ts#L185-189 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/locateUnit()."}
+=== code {#tile src=geml-parser/src/history.ts#L175-207 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/tile()."}
 ===
 
-=== code {#parseAnchor src=geml-parser/src/history.ts#L194-199 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/parseAnchor()."}
+=== code {#keyedUnits src=geml-parser/src/history.ts#L211-223 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/keyedUnits()."}
 ===
 
-=== code {#anchorStr .leaf src=geml-parser/src/history.ts#L201-203 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/anchorStr()."}
+=== code {#locateUnit src=geml-parser/src/history.ts#L225-229 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/locateUnit()."}
 ===
 
-=== code {#parseOps src=geml-parser/src/history.ts#L205-224 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/parseOps()."}
+=== code {#parseAnchor src=geml-parser/src/history.ts#L234-239 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/parseAnchor()."}
 ===
 
-=== code {#insertAt src=geml-parser/src/history.ts#L228-233 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/insertAt()."}
+=== code {#anchorStr .leaf src=geml-parser/src/history.ts#L241-243 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/anchorStr()."}
 ===
 
-=== code {#applyReverse src=geml-parser/src/history.ts#L236-296 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/applyReverse()."}
+=== code {#parseOps src=geml-parser/src/history.ts#L245-264 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/parseOps()."}
 ===
 
-=== code {#lcsMatch src=geml-parser/src/history.ts#L318-342 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/lcsMatch()."}
+=== code {#insertAt src=geml-parser/src/history.ts#L268-273 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/insertAt()."}
 ===
 
-=== code {#diffReverse src=geml-parser/src/history.ts#L344-380 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/diffReverse()."}
+=== code {#applyReverse src=geml-parser/src/history.ts#L276-336 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/applyReverse()."}
 ===
 
-=== code {#opLine src=geml-parser/src/history.ts#L382-387 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/opLine()."}
+=== code {#lcsMatch src=geml-parser/src/history.ts#L358-382 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/lcsMatch()."}
 ===
 
-=== code {#nlNamed .leaf src=geml-parser/src/history.ts#L402-402 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/nlNamed."}
+=== code {#diffReverse src=geml-parser/src/history.ts#L384-420 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/diffReverse()."}
 ===
 
-=== code {#nlOf .leaf src=geml-parser/src/history.ts#L403-404 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/nlOf."}
+=== code {#opLine src=geml-parser/src/history.ts#L422-427 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/opLine()."}
 ===
 
-=== code {#hashMatchesRecorded src=geml-parser/src/history.ts#L405-410 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/hashMatchesRecorded()."}
+=== code {#nlNamed .leaf src=geml-parser/src/history.ts#L442-442 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/nlNamed."}
 ===
 
-=== code {#parseHistory src=geml-parser/src/history.ts#L420-451 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/parseHistory()."}
+=== code {#nlOf .leaf src=geml-parser/src/history.ts#L443-444 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/nlOf."}
 ===
 
-=== code {#chainFrom src=geml-parser/src/history.ts#L453-466 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/chainFrom()."}
+=== code {#hashMatchesRecorded src=geml-parser/src/history.ts#L445-450 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/hashMatchesRecorded()."}
 ===
 
-=== code {#reconstruct src=geml-parser/src/history.ts#L469-480 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/reconstruct()."}
+=== code {#parseHistory src=geml-parser/src/history.ts#L460-491 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/parseHistory()."}
 ===
 
-=== code {#renderHistory src=geml-parser/src/history.ts#L486-530 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/renderHistory()."}
+=== code {#chainFrom src=geml-parser/src/history.ts#L493-506 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/chainFrom()."}
 ===
 
-=== code {#save src=geml-parser/src/history.ts#L543-589 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/save()."}
+=== code {#reconstruct src=geml-parser/src/history.ts#L509-520 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/reconstruct()."}
 ===
 
-=== code {#verify src=geml-parser/src/history.ts#L593-642 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/verify()."}
+=== code {#renderHistory src=geml-parser/src/history.ts#L526-570 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/renderHistory()."}
 ===
 
-=== code {#restore src=geml-parser/src/history.ts#L646-673 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/restore()."}
+=== code {#save src=geml-parser/src/history.ts#L583-636 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/save()."}
 ===
 
-=== code {#isCurrent src=geml-parser/src/history.ts#L689-695 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/isCurrent()."}
+=== code {#verify src=geml-parser/src/history.ts#L640-689 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/verify()."}
 ===
 
-=== code {#listRevisions src=geml-parser/src/history.ts#L698-704 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/listRevisions()."}
+=== code {#restore src=geml-parser/src/history.ts#L693-720 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/restore()."}
 ===
 
-=== code {#resolveRevision src=geml-parser/src/history.ts#L719-731 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/resolveRevision()."}
+=== code {#isCurrent src=geml-parser/src/history.ts#L736-742 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/isCurrent()."}
 ===
 
-=== code {#resolveContent src=geml-parser/src/history.ts#L733-737 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/resolveContent()."}
+=== code {#listRevisions src=geml-parser/src/history.ts#L745-751 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/listRevisions()."}
 ===
 
-=== code {#firstChangedContent src=geml-parser/src/history.ts#L743-755 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/firstChangedContent()."}
+=== code {#resolveRevision src=geml-parser/src/history.ts#L766-778 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/resolveRevision()."}
+===
+
+=== code {#resolveContent src=geml-parser/src/history.ts#L780-784 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/resolveContent()."}
+===
+
+=== code {#firstChangedContent src=geml-parser/src/history.ts#L790-802 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/firstChangedContent()."}
 ===
 
 === table {#calls format=csv}
@@ -124,6 +130,7 @@ from,                 to,                   kind, confidence
 #writeBytes,          #bytesOf,             call,
 #fullHash,            #bytesOf,             call,
 #makeId,              #shortOf,             call,
+#attr,                #attrs,               call,
 #keyedUnits,          #sha8,                call,
 #keyedUnits,          #tile,                call,
 #locateUnit,          #keyedUnits,          call,
@@ -159,6 +166,8 @@ from,                 to,                   kind, confidence
 #renderHistory,       #fenceFor,            call,
 #renderHistory,       #fenceFor,            call,
 #renderHistory,       #opLine,              call,
+#renderHistory,       #quoteAttr,           call,
+#renderHistory,       #quoteAttr,           call,
 #save,                #applyReverse,        call,
 #save,                #bytesOf,             call,
 #save,                #bytesOf,             call,
@@ -208,87 +217,90 @@ from,                 to,                   kind, confidence
 
 === table {#called-by format=csv}
 from,                                to,                   kind, site
-#parseHistory,                       #loadBytes,           call, geml-parser/src/history.ts:421
-#save,                               #loadBytes,           call, geml-parser/src/history.ts:544
-#verify,                             #loadBytes,           call, geml-parser/src/history.ts:636
-#restore,                            #loadBytes,           call, geml-parser/src/history.ts:652
-#restore,                            #loadBytes,           call, geml-parser/src/history.ts:668
-#isCurrent,                          #loadBytes,           call, geml-parser/src/history.ts:693
+#parseHistory,                       #loadBytes,           call, geml-parser/src/history.ts:461
+#save,                               #loadBytes,           call, geml-parser/src/history.ts:591
+#verify,                             #loadBytes,           call, geml-parser/src/history.ts:683
+#restore,                            #loadBytes,           call, geml-parser/src/history.ts:699
+#restore,                            #loadBytes,           call, geml-parser/src/history.ts:715
+#isCurrent,                          #loadBytes,           call, geml-parser/src/history.ts:740
 #writeBytes,                         #bytesOf,             call, geml-parser/src/history.ts:31
 #fullHash,                           #bytesOf,             call, geml-parser/src/history.ts:35
-#save,                               #bytesOf,             call, geml-parser/src/history.ts:560
-#save,                               #bytesOf,             call, geml-parser/src/history.ts:560
-#save,                               #writeBytes,          call, geml-parser/src/history.ts:587
-#restore,                            #writeBytes,          call, geml-parser/src/history.ts:669
-#restore,                            #writeBytes,          call, geml-parser/src/history.ts:670
-#hashMatchesRecorded,                #fullHash,            call, geml-parser/src/history.ts:407
-#hashMatchesRecorded,                #fullHash,            call, geml-parser/src/history.ts:408
-#hashMatchesRecorded,                #fullHash,            call, geml-parser/src/history.ts:409
-#save,                               #fullHash,            call, geml-parser/src/history.ts:545
-#verify,                             #fullHash,            call, geml-parser/src/history.ts:626
-#verify,                             #fullHash,            call, geml-parser/src/history.ts:637
-#restore,                            #fullHash,            call, geml-parser/src/history.ts:653
-#isCurrent,                          #fullHash,            call, geml-parser/src/history.ts:694
+#save,                               #bytesOf,             call, geml-parser/src/history.ts:607
+#save,                               #bytesOf,             call, geml-parser/src/history.ts:607
+#save,                               #writeBytes,          call, geml-parser/src/history.ts:634
+#restore,                            #writeBytes,          call, geml-parser/src/history.ts:716
+#restore,                            #writeBytes,          call, geml-parser/src/history.ts:717
+#hashMatchesRecorded,                #fullHash,            call, geml-parser/src/history.ts:447
+#hashMatchesRecorded,                #fullHash,            call, geml-parser/src/history.ts:448
+#hashMatchesRecorded,                #fullHash,            call, geml-parser/src/history.ts:449
+#save,                               #fullHash,            call, geml-parser/src/history.ts:592
+#verify,                             #fullHash,            call, geml-parser/src/history.ts:673
+#verify,                             #fullHash,            call, geml-parser/src/history.ts:684
+#restore,                            #fullHash,            call, geml-parser/src/history.ts:700
+#isCurrent,                          #fullHash,            call, geml-parser/src/history.ts:741
 #makeId,                             #shortOf,             call, geml-parser/src/history.ts:52
-#save,                               #makeId,              call, geml-parser/src/history.ts:547
-#save,                               #stampUTC,            call, geml-parser/src/history.ts:546
-#parseHistory,                       #locate,              call, geml-parser/src/history.ts:423
-#parseHistory,                       #attr,                call, geml-parser/src/history.ts:434
-#parseHistory,                       #attr,                call, geml-parser/src/history.ts:436
-#parseHistory,                       #attr,                call, geml-parser/src/history.ts:439
-#parseHistory,                       #attr,                call, geml-parser/src/history.ts:440
-#parseHistory,                       #attr,                call, geml-parser/src/history.ts:441
-#parseHistory,                       #attr,                call, geml-parser/src/history.ts:442
-#parseHistory,                       #attr,                call, geml-parser/src/history.ts:443
-#renderHistory,                      #fenceFor,            call, geml-parser/src/history.ts:504
-#renderHistory,                      #fenceFor,            call, geml-parser/src/history.ts:524
-#keyedUnits,                         #sha8,                call, geml-parser/src/history.ts:178
-#keyedUnits,                         #tile,                call, geml-parser/src/history.ts:173
-#locateUnit,                         #keyedUnits,          call, geml-parser/src/history.ts:186
-#applyReverse,                       #keyedUnits,          call, geml-parser/src/history.ts:251
-#diffReverse,                        #keyedUnits,          call, geml-parser/src/history.ts:347
-#diffReverse,                        #keyedUnits,          call, geml-parser/src/history.ts:348
-#insertAt,                           #locateUnit,          call, geml-parser/src/history.ts:231
-#applyReverse,                       #locateUnit,          call, geml-parser/src/history.ts:289
-#parseOps,                           #parseAnchor,         call, geml-parser/src/history.ts:216
-#parseOps,                           #parseAnchor,         call, geml-parser/src/history.ts:218
-#opLine,                             #anchorStr,           call, geml-parser/src/history.ts:385
-#opLine,                             #anchorStr,           call, geml-parser/src/history.ts:386
-#parseHistory,                       #parseOps,            call, geml-parser/src/history.ts:444
-#applyReverse,                       #insertAt,            call, geml-parser/src/history.ts:287
-#applyReverse,                       #insertAt,            call, geml-parser/src/history.ts:292
-#reconstruct,                        #applyReverse,        call, geml-parser/src/history.ts:478
-#save,                               #applyReverse,        call, geml-parser/src/history.ts:559
-#verify,                             #applyReverse,        call, geml-parser/src/history.ts:621
-#diffReverse,                        #lcsMatch,            call, geml-parser/src/history.ts:351
-#save,                               #diffReverse,         call, geml-parser/src/history.ts:555
-#renderHistory,                      #opLine,              call, geml-parser/src/history.ts:519
-#save,                               #nlNamed,             call, geml-parser/src/history.ts:575
-#save,                               #nlNamed,             call, geml-parser/src/history.ts:583
-#hashMatchesRecorded,                #nlOf,                call, geml-parser/src/history.ts:406
-#verify,                             #nlOf,                call, geml-parser/src/history.ts:626
-#verify,                             #hashMatchesRecorded, call, geml-parser/src/history.ts:625
-#save,                               #parseHistory,        call, geml-parser/src/history.ts:552
-#verify,                             #parseHistory,        call, geml-parser/src/history.ts:596
-#restore,                            #parseHistory,        call, geml-parser/src/history.ts:647
-#isCurrent,                          #parseHistory,        call, geml-parser/src/history.ts:690
-#listRevisions,                      #parseHistory,        call, geml-parser/src/history.ts:699
-#resolveContent,                     #parseHistory,        call, geml-parser/src/history.ts:734
-#firstChangedContent,                #parseHistory,        call, geml-parser/src/history.ts:748
-#reconstruct,                        #chainFrom,           call, geml-parser/src/history.ts:470
-#renderHistory,                      #chainFrom,           call, geml-parser/src/history.ts:487
-#verify,                             #chainFrom,           call, geml-parser/src/history.ts:599
-#restore,                            #chainFrom,           call, geml-parser/src/history.ts:660
-#listRevisions,                      #chainFrom,           call, geml-parser/src/history.ts:700
-#resolveRevision,                    #chainFrom,           call, geml-parser/src/history.ts:722
-#firstChangedContent,                #chainFrom,           call, geml-parser/src/history.ts:749
-#save,                               #reconstruct,         call, geml-parser/src/history.ts:554
-#verify,                             #reconstruct,         call, geml-parser/src/history.ts:623
-#restore,                            #reconstruct,         call, geml-parser/src/history.ts:649
-#resolveContent,                     #reconstruct,         call, geml-parser/src/history.ts:736
-#firstChangedContent,                #reconstruct,         call, geml-parser/src/history.ts:750
-#save,                               #renderHistory,       call, geml-parser/src/history.ts:587
-#restore,                            #renderHistory,       call, geml-parser/src/history.ts:670
+#save,                               #makeId,              call, geml-parser/src/history.ts:594
+#save,                               #stampUTC,            call, geml-parser/src/history.ts:593
+#parseHistory,                       #locate,              call, geml-parser/src/history.ts:463
+#attr,                               #attrs,               call, geml-parser/src/history.ts:138
+#parseHistory,                       #attr,                call, geml-parser/src/history.ts:474
+#parseHistory,                       #attr,                call, geml-parser/src/history.ts:476
+#parseHistory,                       #attr,                call, geml-parser/src/history.ts:479
+#parseHistory,                       #attr,                call, geml-parser/src/history.ts:480
+#parseHistory,                       #attr,                call, geml-parser/src/history.ts:481
+#parseHistory,                       #attr,                call, geml-parser/src/history.ts:482
+#parseHistory,                       #attr,                call, geml-parser/src/history.ts:483
+#renderHistory,                      #quoteAttr,           call, geml-parser/src/history.ts:554
+#renderHistory,                      #quoteAttr,           call, geml-parser/src/history.ts:555
+#renderHistory,                      #fenceFor,            call, geml-parser/src/history.ts:544
+#renderHistory,                      #fenceFor,            call, geml-parser/src/history.ts:564
+#keyedUnits,                         #sha8,                call, geml-parser/src/history.ts:218
+#keyedUnits,                         #tile,                call, geml-parser/src/history.ts:213
+#locateUnit,                         #keyedUnits,          call, geml-parser/src/history.ts:226
+#applyReverse,                       #keyedUnits,          call, geml-parser/src/history.ts:291
+#diffReverse,                        #keyedUnits,          call, geml-parser/src/history.ts:387
+#diffReverse,                        #keyedUnits,          call, geml-parser/src/history.ts:388
+#insertAt,                           #locateUnit,          call, geml-parser/src/history.ts:271
+#applyReverse,                       #locateUnit,          call, geml-parser/src/history.ts:329
+#parseOps,                           #parseAnchor,         call, geml-parser/src/history.ts:256
+#parseOps,                           #parseAnchor,         call, geml-parser/src/history.ts:258
+#opLine,                             #anchorStr,           call, geml-parser/src/history.ts:425
+#opLine,                             #anchorStr,           call, geml-parser/src/history.ts:426
+#parseHistory,                       #parseOps,            call, geml-parser/src/history.ts:484
+#applyReverse,                       #insertAt,            call, geml-parser/src/history.ts:327
+#applyReverse,                       #insertAt,            call, geml-parser/src/history.ts:332
+#reconstruct,                        #applyReverse,        call, geml-parser/src/history.ts:518
+#save,                               #applyReverse,        call, geml-parser/src/history.ts:606
+#verify,                             #applyReverse,        call, geml-parser/src/history.ts:668
+#diffReverse,                        #lcsMatch,            call, geml-parser/src/history.ts:391
+#save,                               #diffReverse,         call, geml-parser/src/history.ts:602
+#renderHistory,                      #opLine,              call, geml-parser/src/history.ts:559
+#save,                               #nlNamed,             call, geml-parser/src/history.ts:622
+#save,                               #nlNamed,             call, geml-parser/src/history.ts:630
+#hashMatchesRecorded,                #nlOf,                call, geml-parser/src/history.ts:446
+#verify,                             #nlOf,                call, geml-parser/src/history.ts:673
+#verify,                             #hashMatchesRecorded, call, geml-parser/src/history.ts:672
+#save,                               #parseHistory,        call, geml-parser/src/history.ts:599
+#verify,                             #parseHistory,        call, geml-parser/src/history.ts:643
+#restore,                            #parseHistory,        call, geml-parser/src/history.ts:694
+#isCurrent,                          #parseHistory,        call, geml-parser/src/history.ts:737
+#listRevisions,                      #parseHistory,        call, geml-parser/src/history.ts:746
+#resolveContent,                     #parseHistory,        call, geml-parser/src/history.ts:781
+#firstChangedContent,                #parseHistory,        call, geml-parser/src/history.ts:795
+#reconstruct,                        #chainFrom,           call, geml-parser/src/history.ts:510
+#renderHistory,                      #chainFrom,           call, geml-parser/src/history.ts:527
+#verify,                             #chainFrom,           call, geml-parser/src/history.ts:646
+#restore,                            #chainFrom,           call, geml-parser/src/history.ts:707
+#listRevisions,                      #chainFrom,           call, geml-parser/src/history.ts:747
+#resolveRevision,                    #chainFrom,           call, geml-parser/src/history.ts:769
+#firstChangedContent,                #chainFrom,           call, geml-parser/src/history.ts:796
+#save,                               #reconstruct,         call, geml-parser/src/history.ts:601
+#verify,                             #reconstruct,         call, geml-parser/src/history.ts:670
+#restore,                            #reconstruct,         call, geml-parser/src/history.ts:696
+#resolveContent,                     #reconstruct,         call, geml-parser/src/history.ts:783
+#firstChangedContent,                #reconstruct,         call, geml-parser/src/history.ts:797
+#save,                               #renderHistory,       call, geml-parser/src/history.ts:634
+#restore,                            #renderHistory,       call, geml-parser/src/history.ts:717
 geml-parser--cli.ts.geml#runHistory, #save,                call, geml-parser/src/cli.ts:629
 geml-parser--mcp.ts.geml#snapshot,   #save,                call, geml-parser/src/mcp.ts:293
 geml-parser--cli.ts.geml#runHistory, #verify,              call, geml-parser/src/cli.ts:696
@@ -297,12 +309,12 @@ geml-parser--cli.ts.geml#runHistory, #isCurrent,           call, geml-parser/src
 geml-parser--mcp.ts.geml#snapshot,   #isCurrent,           call, geml-parser/src/mcp.ts:292
 geml-parser--cli.ts.geml#runHistory, #listRevisions,       call, geml-parser/src/cli.ts:626
 geml-parser--cli.ts.geml#runHistory, #listRevisions,       call, geml-parser/src/cli.ts:649
-#restore,                            #resolveRevision,     call, geml-parser/src/history.ts:648
-#resolveContent,                     #resolveRevision,     call, geml-parser/src/history.ts:735
+#restore,                            #resolveRevision,     call, geml-parser/src/history.ts:695
+#resolveContent,                     #resolveRevision,     call, geml-parser/src/history.ts:782
 geml-parser--cli.ts.geml#runHistory, #resolveContent,      call, geml-parser/src/cli.ts:662
 geml-parser--cli.ts.geml#runRename,  #resolveContent,      call, geml-parser/src/cli.ts:2072
-geml-parser--cli.ts.geml#runRevert,  #resolveContent,      call, geml-parser/src/cli.ts:2407
-geml-parser--cli.ts.geml#runRevert,  #firstChangedContent, call, geml-parser/src/cli.ts:2403
+geml-parser--cli.ts.geml#runRevert,  #resolveContent,      call, geml-parser/src/cli.ts:2422
+geml-parser--cli.ts.geml#runRevert,  #firstChangedContent, call, geml-parser/src/cli.ts:2418
 ===
 
 === table {#unresolved format=csv hidden}
@@ -331,7 +343,11 @@ from,             to
 #locate,          RegExp.exec
 #locate,          RegExp.test
 #locate,          String.trimEnd
-#attr,            RegExp.exec
+#attrs,           Map.set
+#attrs,           RegExp.test
+#attrs,           String.indexOf
+#attr,            Map.get
+#quoteAttr,       String.replace
 #fenceFor,        Math.max
 #fenceFor,        RegExp.exec
 #fenceFor,        String.repeat
@@ -403,6 +419,7 @@ from,             to
 #save,            Map.set
 #save,            Math.max
 #save,            RegExp.exec
+#save,            RegExp.test
 #save,            String.replace
 #save,            existsSync
 #verify,          Array.push

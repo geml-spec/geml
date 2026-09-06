@@ -128,7 +128,7 @@ await test("upgradeSandboxDiagrams: inserts a returned svg but REJECTS a script-
   await upgradeSandboxDiagrams(d, "d2", async (sources) => {
     assert.deepEqual(sources, ["a -> b", "evil"], "all sources batched into one call");
     return [{ svg: "<svg><g>fine</g></svg>" }, { svg: "<svg><script>alert(1)</script></svg>" }];
-  });
+  }, (svg) => svg); // R5: a sanitizer is required; identity here — the <script check is the assertion
   const nodes = [...d.querySelectorAll(".geml-d2")];
   assert.ok(nodes[0].querySelector("svg"), "the clean svg was inserted");
   assert.ok(!nodes[1].querySelector("script"), "no <script> reached the DOM");

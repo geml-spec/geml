@@ -178,10 +178,24 @@ function lexExpr(s: string): Tok[] {
 // test, a column whose own name is bracketed — `[Data] = …` — parses as an
 // empty name plus the format `Data`, and the formula silently targets nothing.
 function splitName(lhs: string): { name: string; fmt?: string } {
-  const m = /^(.*?)\s*\[([^\]]*%[^\]]*)\]\s*$/.exec(lhs.trim());
-  let name = (m ? m[1]! : lhs).trim();
+  // Scanned, not matched: the lazy `^(.*?)\s*\[…\]\s*$` this replaces
+  // backtracked quadratically, and an attribute value is author input of any
+  // length — 128 KB of `%` in a `compute=` name held the parser for 23 seconds.
+  // The shape is "the last `[…]` group, at the end, containing a `%`": found by
+  // the last `[`, checked once.
+  const t = lhs.trim();
+  let name = t;
+  let fmt: string | undefined;
+  if (t.endsWith("]")) {
+    const open = t.lastIndexOf("[");
+    if (open >= 0) {
+      const inner = t.slice(open + 1, -1);
+      if (inner.includes("%") && !inner.includes("]")) { fmt = inner; name = t.slice(0, open).trimEnd(); }
+    }
+  }
+  name = name.trim();
   if (name.startsWith('"') && name.endsWith('"')) name = name.slice(1, -1);
-  return m ? { name, fmt: m[2] } : { name };
+  return fmt !== undefined ? { name, fmt } : { name };
 }
 
 // A result IEEE-754 produces but a table cannot hold (§6): `x / 0` is ±∞, `0 / 0`
@@ -726,12 +740,27 @@ function groupView(model: TableModel, by: string[], aggregate: string[], diagnos
 function orderView(model: TableModel, source: string, diagnostics: TableDiag[]): void {
   const keys: { ci: number; desc: boolean }[] = [];
   for (const part of source.split(",").map((s) => s.trim()).filter(Boolean)) {
-    const match = /^(?:'([^']+)'|(.+?))(?:\s+(asc|desc))?$/i.exec(part);
-    if (!match) { diagnostics.push({ severity: "error", code: "view-order-error", message: `order: bad key \`${part}\`` }); continue; }
-    const name = (match[1] ?? match[2] ?? "").trim();
+    // Scanned, not matched: `(.+?)(?:\s+(asc|desc))?$` backtracked quadratically
+    // over the key, and 128 KB of spaces in an `order=` held the parser for
+    // eight seconds. The direction is a suffix, read first and without a regex
+    // (an unanchored `\s+…$` search is quadratic in its own right); the key is
+    // whatever remains, unquoted when it was quoted whole.
+    const p = part.trim();
+    let dirWord: "asc" | "desc" | undefined;
+    let head = p;
+    for (const w of ["desc", "asc"] as const) {
+      if (p.toLowerCase().endsWith(w)) {
+        const cut = p.length - w.length;
+        if (cut > 0 && /\s/.test(p[cut - 1]!)) { dirWord = w; head = p.slice(0, cut).trimEnd(); }
+        break;
+      }
+    }
+    const quotedWhole = head.length >= 3 && head.startsWith("'") && head.endsWith("'") && !head.slice(1, -1).includes("'");
+    const name = (quotedWhole ? head.slice(1, -1) : head).trim();
+    if (name === "") { diagnostics.push({ severity: "error", code: "view-order-error", message: `order: bad key \`${part}\`` }); continue; }
     const ci = model.columns.indexOf(name);
     if (ci < 0) { diagnostics.push({ severity: "error", code: "view-unknown-column", message: `order: unknown column \`${name}\`` }); continue; }
-    keys.push({ ci, desc: (match[3] ?? "asc").toLowerCase() === "desc" });
+    keys.push({ ci, desc: dirWord === "desc" });
   }
   // Each key's KIND is decided once, over the whole column, for two reasons.
   //

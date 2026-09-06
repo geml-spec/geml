@@ -140,4 +140,66 @@ test("the yaml value tree is addressable, like any other data block", () => {
   assert.deepEqual(doc.children[0].value, { limits: { rows: 100 }, names: ["a", "b"] });
 });
 
+
+// R5 — nesting is bounded by a refusal, never by the JavaScript stack. Six
+// thousand `- ` in a twelve-kilobyte body threw a RangeError through parse(),
+// where the parser's own lists and blocks already answer with a diagnostic.
+test("R5: a 6000-deep `- - - …` sequence is a diagnostic, and neither parse() nor parseYaml() throws", () => {
+  const deep = "- ".repeat(6000) + "1";
+  let r;
+  assert.doesNotThrow(() => { r = parseYaml([deep]); }, "parseYaml reports, never throws");
+  assert.ok("error" in r, "the body is refused");
+  assert.match(r.error, /nesting deeper than 200/, "and the refusal names the bound");
+  let doc;
+  assert.doesNotThrow(() => { doc = parse(`=== data {#d format=yaml}\n${deep}\n===\n`); });
+  assert.ok(doc.diagnostics.some((d) => d.severity === "error" && /nesting deeper than 200/.test(d.message)), "surfaced on the data block");
+  // Indentation nests the same way, and is bounded the same way.
+  const nested = Array.from({ length: 300 }, (_, i) => `${" ".repeat(i)}k${i}:`).join("\n") + "\n" + " ".repeat(300) + "v";
+  assert.doesNotThrow(() => { r = parseYaml(nested.split("\n")); });
+  assert.ok("error" in r && /nesting deeper than 200/.test(r.error), "a 300-deep mapping is refused too");
+});
+
+test("R5: the bound leaves room — a 100-deep sequence still parses to its value", () => {
+  const r = parseYaml(["- ".repeat(100) + "leaf"]);
+  assert.ok("value" in r, r.error);
+  let v = r.value, depth = 0;
+  while (Array.isArray(v)) { assert.equal(v.length, 1); v = v[0]; depth++; }
+  assert.equal(depth, 100);
+  assert.equal(v, "leaf");
+});
+
+
+// R5 batch 3 — four edges of the subset that had answered differently from the
+// sentence describing it.
+test("R5: `1e999` is refused like `.inf` — the value domain has no infinity by any spelling", () => {
+  const r = parseYaml(["k: 1e999"]);
+  assert.ok("error" in r, "refused");
+  assert.match(r.error, /no finite value/);
+  assert.deepEqual(parseYaml(["k: 1e300"]).value, { k: 1e300 }, "a large finite number is still a number");
+});
+
+test("R5: a `__proto__` key is an own key of the value tree, never its prototype", () => {
+  const r = parseYaml(["__proto__:", "  polluted: 1", "k: 2"]);
+  assert.ok("value" in r, r.error);
+  assert.equal(Object.getPrototypeOf(r.value), Object.prototype, "the tree's prototype is untouched");
+  assert.equal(r.value.polluted, undefined, "nothing is inherited from the author's mapping");
+  assert.ok(Object.prototype.hasOwnProperty.call(r.value, "__proto__"), "the key exists as data");
+  assert.equal(JSON.stringify(r.value), '{"__proto__":{"polluted":1},"k":2}', "and serializes as data");
+  assert.equal(({}).polluted, undefined, "no global pollution either");
+});
+
+test("R5: anchors, aliases and tags are refused in KEY position too, not read as literal keys", () => {
+  for (const [line, re] of [["&a k: 1", /anchor/], ["*a: 1", /alias/], ["!!str k: 1", /tag/]]) {
+    const r = parseYaml([line]);
+    assert.ok("error" in r, `${line} must be refused`);
+    assert.match(r.error, re);
+  }
+});
+
+test("R5: a block scalar is TEXT — its `#` is not a comment and its blank lines are kept", () => {
+  assert.deepEqual(parseYaml(["k: |", "  hello # not a comment", "", "  world"]).value, { k: "hello # not a comment\n\nworld\n" });
+  assert.deepEqual(parseYaml(["k: >-", "  a # b", "  c"]).value, { k: "a # b c" });
+  assert.deepEqual(parseYaml(["k: v # a real comment"]).value, { k: "v" }, "a plain scalar's comment is still a comment");
+});
+
 console.log(`\n${passed} test(s) passed.`);

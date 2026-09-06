@@ -9,7 +9,7 @@
 import * as vscode from "vscode";
 import * as path from "node:path";
 import { randomBytes } from "node:crypto";
-import { embedDocPaths } from "./embeds";
+import { embedDocPaths, confineToFolder } from "./embeds";
 import { buildPrompt, parseTranslations, cacheKey } from "./translate-host";
 
 const VIEW_TYPE = "geml.preview";
@@ -426,6 +426,11 @@ export class PreviewManager {
       if (open) {
         text = open.getText();
       } else {
+        // The third lock, and the only one that is not lexical: a symlink spelled
+        // inside the folder resolves wherever it points, and readFile follows it.
+        const where = confineToFolder(dir, target);
+        if (where.verdict === "outside") { skipped.push(`${rel} (outside the document's folder — a link leaves it)`); continue; }
+        if (where.verdict === "missing") { skipped.push(`${rel} (not found)`); continue; }
         try {
           const bytes = await vscode.workspace.fs.readFile(vscode.Uri.file(target));
           if (bytes.byteLength > PreviewManager.PER_FILE_BYTES) { skipped.push(`${rel} (too large for the preview)`); continue; }

@@ -36,10 +36,23 @@ export function oddNames(a: Attrs): { kind: "id" | "class" | "flag" | "key"; nam
 
 // §4 value typing: quoted -> string, true/false -> boolean, integer/float
 // syntax -> number, any other bare word -> string. No arrays/dates/tables.
+// §4: inside a quoted value, `\"` is a quote and `\\` is a backslash — the only
+// two escapes the grammar has. Any other `\x` is not an escape-seq (the grammar
+// admits no bare backslash there), and is kept as written rather than dropped.
+export function unescapeQuoted(inner: string): string {
+  let out = "";
+  for (let i = 0; i < inner.length; i++) {
+    const c = inner[i]!;
+    if (c === "\\" && i + 1 < inner.length && (inner[i + 1] === '"' || inner[i + 1] === "\\")) { out += inner[i + 1]; i++; continue; }
+    out += c;
+  }
+  return out;
+}
+
 export function coerce(raw: string): Value {
   const t = raw.trim();
   if (t.length >= 2 && t.startsWith('"') && t.endsWith('"')) {
-    return t.slice(1, -1); // quoted -> always string
+    return unescapeQuoted(t.slice(1, -1)); // quoted -> always string
   }
   if (t === "true") return true;
   if (t === "false") return false;
@@ -48,13 +61,20 @@ export function coerce(raw: string): Value {
   return t; // bare word -> string
 }
 
-// Split on whitespace while keeping double-quoted spans intact.
+// Split on whitespace while keeping double-quoted spans intact. An escaped
+// quote (§4 `\"`) does not end the span — it used to, and `caption="a \"b\""`
+// then split into three tokens; the serializer, having no way to write a quote,
+// emitted one unescaped and the round trip changed the block's attributes.
 export function tokenize(s: string): string[] {
   const out: string[] = [];
   let cur = "";
   let inQuote = false;
-  for (const ch of s) {
-    if (ch === '"') {
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i]!;
+    if (inQuote && ch === "\\" && i + 1 < s.length && (s[i + 1] === '"' || s[i + 1] === "\\")) {
+      cur += ch + s[i + 1]!;
+      i++;
+    } else if (ch === '"') {
       inQuote = !inQuote;
       cur += ch;
     } else if (!inQuote && /\s/.test(ch)) {

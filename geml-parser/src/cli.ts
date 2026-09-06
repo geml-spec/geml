@@ -2337,6 +2337,21 @@ function spliceSpan(
   if (guardCount && reparsed.children.length !== beforeDoc.children.length) {
     fail(`replacement changes the block count (a fence in the body closed ${id !== undefined ? `#${id}` : "the target"} early and injected sibling block(s)?); not written`, 1);
   }
+  // The count above sees only TOP-LEVEL children. A block nested in a note is
+  // not one of them, so a body fence that closed it early and planted an
+  // id-less `=== meta` beside it — inside the note — left that count untouched
+  // and the write went through (R5-1). The invariant that actually holds for
+  // every guarded splice, top-level or nested: the target block, re-parsed, must
+  // span EXACTLY the region that was spliced in. A body that closed it early
+  // ends it short of that; whatever follows is the injection.
+  if (guardCount) {
+    const expectedEnd = span.start + splitLines(inject).length;
+    const target = addressedUnits(updated).find((a) =>
+      a.unit.kind === "block" && a.unit.span.start === span.start && (id === undefined || a.unit.id === undefined || nameKey(a.unit.id) === nameKey(id)));
+    if (!target || target.unit.span.end !== expectedEnd) {
+      fail(`replacement does not stay one block (a fence in the body closed ${id !== undefined ? `#${id}` : "the target"} early and injected sibling block(s)?); not written`, 1);
+    }
+  }
   return updated;
 }
 

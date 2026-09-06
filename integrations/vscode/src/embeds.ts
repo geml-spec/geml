@@ -11,6 +11,29 @@
 // package has no runtime dependency on the parser — the preview's copy of it is
 // inside the webview bundle, unreachable from the extension host.
 
+import * as fs from "node:fs";
+import * as path from "node:path";
+
+/**
+ * Where a resolved embed target REALLY is, against where its folder really is.
+ *
+ * `isLocalDocPath` and the folder-prefix check in the preview are lexical: they
+ * decide from the spelling. A symlink committed to a repository is spelled inside
+ * the folder and resolves wherever it points, and `readFile` follows it — so a
+ * `notes.geml -> /etc/passwd` beside the document walked through both checks and
+ * put the file's contents in the preview. The realpaths are compared instead.
+ * "missing" is not "outside": a target that does not exist yet is still the
+ * document's own, and the caller reports it as not found, as before.
+ */
+export type Confinement = { verdict: "inside"; real: string } | { verdict: "outside" } | { verdict: "missing" };
+export function confineToFolder(dir: string, target: string, realpath: (p: string) => string = fs.realpathSync): Confinement {
+  let realDir: string;
+  try { realDir = realpath(dir); } catch { return { verdict: "outside" }; }
+  let real: string;
+  try { real = realpath(target); } catch { return { verdict: "missing" }; }
+  return real === realDir || real.startsWith(realDir + path.sep) ? { verdict: "inside", real } : { verdict: "outside" };
+}
+
 /** A fence-open line with a braced attribute object, captured whole. */
 const FENCE_WITH_ATTRS = /^={3,}[ \t]+[A-Za-z][A-Za-z0-9_-]*[ \t]*\{(.*)\}[ \t]*$/;
 

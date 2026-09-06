@@ -50,28 +50,28 @@ resolution-default = cpg
 === code {#replaceField src=geml-parser/src/coord.ts#L182-188 anchor="scip-typescript npm @geml/geml 1.10.1 src/`coord.ts`/replaceField()."}
 ===
 
-=== code {#writeTable src=geml-parser/src/coord.ts#L190-257 anchor="scip-typescript npm @geml/geml 1.10.1 src/`coord.ts`/writeTable()."}
+=== code {#writeTable src=geml-parser/src/coord.ts#L190-265 anchor="scip-typescript npm @geml/geml 1.10.1 src/`coord.ts`/writeTable()."}
 ===
 
-=== code {#writeValue src=geml-parser/src/coord.ts#L265-303 anchor="scip-typescript npm @geml/geml 1.10.1 src/`coord.ts`/writeValue()."}
+=== code {#writeValue src=geml-parser/src/coord.ts#L273-311 anchor="scip-typescript npm @geml/geml 1.10.1 src/`coord.ts`/writeValue()."}
 ===
 
-=== code {#metaView src=geml-parser/src/coord.ts#L325-346 anchor="scip-typescript npm @geml/geml 1.10.1 src/`coord.ts`/metaView()."}
+=== code {#metaView src=geml-parser/src/coord.ts#L333-354 anchor="scip-typescript npm @geml/geml 1.10.1 src/`coord.ts`/metaView()."}
 ===
 
-=== code {#metaText src=geml-parser/src/coord.ts#L349-351 anchor="scip-typescript npm @geml/geml 1.10.1 src/`coord.ts`/metaText()."}
+=== code {#metaText src=geml-parser/src/coord.ts#L357-359 anchor="scip-typescript npm @geml/geml 1.10.1 src/`coord.ts`/metaText()."}
 ===
 
-=== code {#metaLiteral src=geml-parser/src/coord.ts#L356-359 anchor="scip-typescript npm @geml/geml 1.10.1 src/`coord.ts`/metaLiteral()."}
+=== code {#metaLiteral src=geml-parser/src/coord.ts#L364-367 anchor="scip-typescript npm @geml/geml 1.10.1 src/`coord.ts`/metaLiteral()."}
 ===
 
-=== code {#planMetaWrite src=geml-parser/src/coord.ts#L368-386 anchor="scip-typescript npm @geml/geml 1.10.1 src/`coord.ts`/planMetaWrite()."}
+=== code {#planMetaWrite src=geml-parser/src/coord.ts#L376-394 anchor="scip-typescript npm @geml/geml 1.10.1 src/`coord.ts`/planMetaWrite()."}
 ===
 
-=== code {#planCoordWrite src=geml-parser/src/coord.ts#L395-411 anchor="scip-typescript npm @geml/geml 1.10.1 src/`coord.ts`/planCoordWrite()."}
+=== code {#planCoordWrite src=geml-parser/src/coord.ts#L403-419 anchor="scip-typescript npm @geml/geml 1.10.1 src/`coord.ts`/planCoordWrite()."}
 ===
 
-=== code {#projectCoord src=geml-parser/src/coord.ts#L419-441 anchor="scip-typescript npm @geml/geml 1.10.1 src/`coord.ts`/projectCoord()."}
+=== code {#projectCoord src=geml-parser/src/coord.ts#L427-449 anchor="scip-typescript npm @geml/geml 1.10.1 src/`coord.ts`/projectCoord()."}
 ===
 
 === table {#calls format=csv}
@@ -166,11 +166,11 @@ from,                                        to,              kind, site
 #projectValue,                               #miss,           call, geml-parser/src/coord.ts:144
 #projectValue,                               #miss,           call, geml-parser/src/coord.ts:149
 #projectValue,                               #miss,           call, geml-parser/src/coord.ts:150
-#projectCoord,                               #miss,           call, geml-parser/src/coord.ts:420
-#projectCoord,                               #miss,           call, geml-parser/src/coord.ts:422
-#projectCoord,                               #miss,           call, geml-parser/src/coord.ts:434
-#projectCoord,                               #miss,           call, geml-parser/src/coord.ts:439
-#projectCoord,                               #miss,           call, geml-parser/src/coord.ts:440
+#projectCoord,                               #miss,           call, geml-parser/src/coord.ts:428
+#projectCoord,                               #miss,           call, geml-parser/src/coord.ts:430
+#projectCoord,                               #miss,           call, geml-parser/src/coord.ts:442
+#projectCoord,                               #miss,           call, geml-parser/src/coord.ts:447
+#projectCoord,                               #miss,           call, geml-parser/src/coord.ts:448
 #pathText,                                   #stepText,       call, geml-parser/src/coord.ts:32
 #projectTable,                               #stepText,       call, geml-parser/src/coord.ts:97
 #projectTable,                               #stepText,       call, geml-parser/src/coord.ts:99
@@ -180,57 +180,57 @@ from,                                        to,              kind, site
 #writeTable,                                 #stepText,       call, geml-parser/src/coord.ts:196
 #writeTable,                                 #stepText,       call, geml-parser/src/coord.ts:206
 #writeTable,                                 #stepText,       call, geml-parser/src/coord.ts:210
-#writeTable,                                 #stepText,       call, geml-parser/src/coord.ts:223
-#writeValue,                                 #stepText,       call, geml-parser/src/coord.ts:279
+#writeTable,                                 #stepText,       call, geml-parser/src/coord.ts:231
+#writeValue,                                 #stepText,       call, geml-parser/src/coord.ts:287
 #projectTable,                               #pathText,       call, geml-parser/src/coord.ts:110
 #projectTable,                               #pathText,       call, geml-parser/src/coord.ts:121
 #projectValue,                               #pathText,       call, geml-parser/src/coord.ts:138
 #projectValue,                               #pathText,       call, geml-parser/src/coord.ts:143
-#writeTable,                                 #pathText,       call, geml-parser/src/coord.ts:224
-#writeValue,                                 #pathText,       call, geml-parser/src/coord.ts:281
-#writeValue,                                 #pathText,       call, geml-parser/src/coord.ts:286
-#writeValue,                                 #pathText,       call, geml-parser/src/coord.ts:287
+#writeTable,                                 #pathText,       call, geml-parser/src/coord.ts:232
+#writeValue,                                 #pathText,       call, geml-parser/src/coord.ts:289
+#writeValue,                                 #pathText,       call, geml-parser/src/coord.ts:294
+#writeValue,                                 #pathText,       call, geml-parser/src/coord.ts:295
 #projectTable,                               #columnIndex,    call, geml-parser/src/coord.ts:111
 #projectTable,                               #columnIndex,    call, geml-parser/src/coord.ts:122
-#writeTable,                                 #columnIndex,    call, geml-parser/src/coord.ts:225
+#writeTable,                                 #columnIndex,    call, geml-parser/src/coord.ts:233
 #rowText,                                    #attrStr,        call, geml-parser/src/coord.ts:61
 #noValueTree,                                #attrStr,        call, geml-parser/src/coord.ts:76
 #delimOf,                                    #attrStr,        call, geml-parser/src/coord.ts:84
-#writeTable,                                 #attrStr,        call, geml-parser/src/coord.ts:232
-#writeValue,                                 #attrStr,        call, geml-parser/src/coord.ts:291
+#writeTable,                                 #attrStr,        call, geml-parser/src/coord.ts:240
+#writeValue,                                 #attrStr,        call, geml-parser/src/coord.ts:299
 #projectTable,                               #cellJson,       call, geml-parser/src/coord.ts:114
 #projectTable,                               #cellJson,       call, geml-parser/src/coord.ts:117
 #projectTable,                               #cellJson,       call, geml-parser/src/coord.ts:126
 #projectTable,                               #rowText,        call, geml-parser/src/coord.ts:117
-#planCoordWrite,                             #noValueTree,    call, geml-parser/src/coord.ts:409
-#projectCoord,                               #noValueTree,    call, geml-parser/src/coord.ts:439
+#planCoordWrite,                             #noValueTree,    call, geml-parser/src/coord.ts:417
+#projectCoord,                               #noValueTree,    call, geml-parser/src/coord.ts:447
 #rowText,                                    #delimOf,        call, geml-parser/src/coord.ts:65
-#writeTable,                                 #delimOf,        call, geml-parser/src/coord.ts:234
-#projectCoord,                               #projectTable,   call, geml-parser/src/coord.ts:436
-#writeValue,                                 #projectValue,   call, geml-parser/src/coord.ts:274
-#projectCoord,                               #projectValue,   call, geml-parser/src/coord.ts:437
-#projectCoord,                               #projectValue,   call, geml-parser/src/coord.ts:438
+#writeTable,                                 #delimOf,        call, geml-parser/src/coord.ts:242
+#projectCoord,                               #projectTable,   call, geml-parser/src/coord.ts:444
+#writeValue,                                 #projectValue,   call, geml-parser/src/coord.ts:282
+#projectCoord,                               #projectValue,   call, geml-parser/src/coord.ts:445
+#projectCoord,                               #projectValue,   call, geml-parser/src/coord.ts:446
 #projectValue,                               #describe,       call, geml-parser/src/coord.ts:141
 #projectValue,                               #describe,       call, geml-parser/src/coord.ts:149
-#writeValue,                                 #describe,       call, geml-parser/src/coord.ts:281
-#writeValue,                                 #describe,       call, geml-parser/src/coord.ts:286
+#writeValue,                                 #describe,       call, geml-parser/src/coord.ts:289
+#writeValue,                                 #describe,       call, geml-parser/src/coord.ts:294
 #writeTable,                                 #oneLine,        call, geml-parser/src/coord.ts:214
-#planMetaWrite,                              #oneLine,        call, geml-parser/src/coord.ts:369
-#writeTable,                                 #replaceField,   call, geml-parser/src/coord.ts:242
-#planCoordWrite,                             #writeTable,     call, geml-parser/src/coord.ts:399
-#planCoordWrite,                             #writeValue,     call, geml-parser/src/coord.ts:400
+#planMetaWrite,                              #oneLine,        call, geml-parser/src/coord.ts:377
+#writeTable,                                 #replaceField,   call, geml-parser/src/coord.ts:250
+#planCoordWrite,                             #writeTable,     call, geml-parser/src/coord.ts:407
+#planCoordWrite,                             #writeValue,     call, geml-parser/src/coord.ts:408
 geml-parser--cli.ts.geml#reservedMeta,       #metaView,       call, geml-parser/src/cli.ts:1202
-geml-parser--geml.ts.geml#blockFromDocument, #metaView,       call, geml-parser/src/geml.ts:1629
-geml-parser--geml.ts.geml#validateCoordRef,  #metaView,       call, geml-parser/src/geml.ts:1675
+geml-parser--geml.ts.geml#blockFromDocument, #metaView,       call, geml-parser/src/geml.ts:1692
+geml-parser--geml.ts.geml#validateCoordRef,  #metaView,       call, geml-parser/src/geml.ts:1738
 geml-parser--cli.ts.geml#runGet,             #metaText,       call, geml-parser/src/cli.ts:1400
-#metaText,                                   #metaLiteral,    call, geml-parser/src/coord.ts:350
-#planMetaWrite,                              #metaLiteral,    call, geml-parser/src/coord.ts:372
+#metaText,                                   #metaLiteral,    call, geml-parser/src/coord.ts:358
+#planMetaWrite,                              #metaLiteral,    call, geml-parser/src/coord.ts:380
 geml-parser--cli.ts.geml#runSetMeta,         #planMetaWrite,  call, geml-parser/src/cli.ts:1864
-#planCoordWrite,                             #planMetaWrite,  call, geml-parser/src/coord.ts:406
+#planCoordWrite,                             #planMetaWrite,  call, geml-parser/src/coord.ts:414
 geml-parser--cli.ts.geml#runSetCoord,        #planCoordWrite, call, geml-parser/src/cli.ts:1912
 geml-parser--cli.ts.geml#runGet,             #projectCoord,   call, geml-parser/src/cli.ts:1404
 geml-parser--cli.ts.geml#runGet,             #projectCoord,   call, geml-parser/src/cli.ts:1430
-geml-parser--geml.ts.geml#validateCoordRef,  #projectCoord,   call, geml-parser/src/geml.ts:1685
+geml-parser--geml.ts.geml#validateCoordRef,  #projectCoord,   call, geml-parser/src/geml.ts:1748
 ===
 
 === table {#unresolved format=csv hidden}
@@ -258,6 +258,7 @@ from,           to
 #replaceField,  String.split
 #writeTable,    Array.join
 #writeTable,    Array.map
+#writeTable,    RegExp.test
 #writeTable,    String.includes
 #writeTable,    String.split
 #writeValue,    Array.map

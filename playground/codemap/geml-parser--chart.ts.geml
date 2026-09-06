@@ -34,7 +34,7 @@ from,                                    to,          kind, site
 #buildChart,                             #str,        call, geml-parser/src/chart.ts:89
 #buildChart,                             #str,        call, geml-parser/src/chart.ts:90
 #buildChart,                             #str,        call, geml-parser/src/chart.ts:133
-geml-parser--geml.ts.geml#resolveCharts, #buildChart, call, geml-parser/src/geml.ts:2078
+geml-parser--geml.ts.geml#resolveCharts, #buildChart, call, geml-parser/src/geml.ts:2141
 ===
 
 === table {#unresolved format=csv hidden}

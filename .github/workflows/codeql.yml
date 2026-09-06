@@ -39,14 +39,14 @@ jobs:
         # Python is here for integrations/langchain+llamaindex/*.py.
         language: [actions, javascript-typescript, python]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@6f5948dfacef28e207b48d0905cf90c03365536d # v3.37.9
         with:
           languages: ${{ matrix.language }}
           config-file: ./.github/codeql/codeql-config.yml
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@6f5948dfacef28e207b48d0905cf90c03365536d # v3.37.9
         with:
           # Must match the category default setup used (`/language:<lang>`), or
           # GitHub treats this as a second, unrelated analysis and the existing

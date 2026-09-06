@@ -18,7 +18,76 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
-Nothing yet.
+- **Security audit, round 5 — batch 1: two crashes and a guard that held only at
+  the top.** A cross-document `view` cycle — `A.geml: view src=B.geml#v` beside
+  `B.geml: view src=A.geml#v`, or a file naming itself — recursed until the stack
+  ran out, and `geml check` (the CI gate, and what MCP runs around every write)
+  died with a `RangeError` from a two-line file; the same-document `src=#v` cycle
+  had been a diagnostic all along. It is `view-source-cycle` now, naming the
+  chain, and a chain of distinct documents stops at the depth bound an embed's
+  does. The remote document is parsed once per path rather than once per view
+  (twelve files of seven lines took eight seconds). A borrowed document's own
+  `src=` resolves against ITS directory, not the host's, so a same-named file
+  beside the host no longer replaces the data the borrowed author pointed at.
+  And a remote view that failed to resolve in its own document reached the
+  consumer as an empty relation with the reason thrown away; it is an error at
+  the consumer now, carrying that reason. The `yaml` engine bounds nesting at
+  200 levels with a refusal — six thousand `- ` in twelve kilobytes threw a
+  `RangeError` straight through `parse()`. The `--body` and coordinate write
+  guard compared TOP-LEVEL block counts, so a fence in the body of a block
+  nested in a note closed it early and planted a sibling `=== meta` inside the
+  note while the count never moved; the re-parsed target must now span exactly
+  the spliced region, at any depth, and a whole-row coordinate write refuses a
+  value that is a fence or a `%%` line. `geml codemap serve`: the recipe's
+  `root` — repository content — chose the very directory the source route
+  confined itself to, so a cloned map could serve `~`; it is bounded by the
+  enclosing repository now, the rule the MCP side already applied. The server
+  answers only a `Host` naming this machine (DNS rebinding), and `--stop`
+  signals only a pid whose token twin exists in this machine's temp dir, the
+  pid file being repository content too.
+- **Security audit, round 5 — batch 2: integrity.** A `history save -m` summary
+  was written into the sidecar's attribute line unescaped, and the reader
+  SEARCHED that line for `hash=` — so a summary of `x" hash="sha256:0…` planted
+  a second `hash=` the search found first, and `verify` failed on a chain nobody
+  had touched; a summary with a newline ended the line and the rest was read as
+  new lines of the sidecar, a forged `history-revision` block included. Values
+  are written escaped per §4 now, the attribute object is read as a sequence of
+  pairs, and a newline in a summary or author is refused by name before anything
+  is written. `splitName` (the `[printf]` suffix of a computed column) and
+  `orderView` (an `order=` key's `asc`/`desc`) matched with lazy patterns that
+  backtracked quadratically over the attribute — 128 KB held the parser for 23
+  and 8 seconds; both are linear scans. In the browser extension, a fetched
+  `src=` body was inlined between the HOST's fences, so a data line of `===`
+  closed the table there and everything after it parsed as top-level blocks of
+  the trusted document — including a `=== embed` the host never wrote, pulling a
+  same-origin file the reader never asked for; the body now chooses a fence
+  longer than any `=` run it contains. In the VS Code extension, the check that
+  an `embed` target lies inside the document's folder was lexical, and a
+  symlink committed to a repository is spelled inside the folder while resolving
+  wherever it points — `notes.geml -> /etc/passwd` walked through and landed in
+  the preview; the realpaths decide now.
+- **Security audit, round 5 — batch 3: hardening.** §4's two escapes, `\"`
+  and `\\`, are now honoured by the attribute parser and emitted by the
+  serializer: a quoted value could not hold a quote (the tokenizer ended the
+  span at any `"`), so 532 of 3000 random values did not survive one `--to
+  geml`; none fail now. The serializer also puts the `\` back on a paragraph
+  line that would otherwise start a block — `\=== meta {…}` parsed to prose
+  and was emitted as a live meta block, `\# H {#pwn}` as an addressable heading,
+  `\%% x` as a hidden line. `geml … --from md` keeps passing `===` and `%%`
+  lines through (a Markdown file may already carry GEML blocks) but says so in
+  its notes instead of silently making structure out of prose. The `yaml`
+  engine: `1e999` is refused like `.inf` rather than becoming Infinity; a
+  `__proto__` key is an own key of the value tree, not its prototype; anchors,
+  aliases and tags are refused in key position too; a block scalar keeps its
+  `#` and its blank lines, being text. `--to html` no longer applies an author
+  class that names the renderer's own chrome (`.render-error` on a note wore the
+  build-error styling). Outside the parser: every third-party GitHub Action is
+  pinned to a commit SHA; a `CODEOWNERS` asks review for the workflows, the
+  Claude Code hooks and the codemap recipe; the SessionStart hook presents the
+  repository's instructions as notes, not as authorization; the browser
+  extension drops the `offscreen` permission its parked engines would have
+  needed, and that parked path now inserts an engine's SVG only through a
+  caller-supplied sanitizer, its sandboxes answering only their parent.
 
 ## [1.10.1] — 2026-09-06
 

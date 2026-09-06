@@ -99,6 +99,22 @@ function parsesAsData(text, fmt) {
   return false; // engine-less formats stay external — the parser would not verify them anyway
 }
 
+// A fence longer than any run of `=` the fetched body contains. Fetched `src=`
+// content is DATA — but it was inlined between the host's own fences, so a body
+// line of `===` closed the table right there and everything after it parsed as
+// top-level blocks of the TRUSTED document: a `=== embed` the host never wrote,
+// pulling in a same-origin file the reader never asked for. GEML's long fences
+// contain short ones (§3), so a fence one longer than the body's longest run
+// keeps every `=` line inside the block, as a cell.
+export function fenceFor(base, body) {
+  let n = base.length;
+  for (const l of body.split("\n")) {
+    const t = l.replace(/\s+$/, "");
+    if (/^=+$/.test(t) && t.length >= n) n = t.length + 1;
+  }
+  return "=".repeat(n);
+}
+
 // resolveUrl(src) -> absolute URL string. fetchText(url) -> Promise<string|null>
 // (null = could not load; the block is then left external for the renderer to
 // show a placeholder).
@@ -144,6 +160,7 @@ export async function inlineSrcTables(raw, resolveUrl, fetchText) {
           : `${attrs} {format=${fmt}}`;
       }
       const body = text.replace(/\r\n?/g, "\n").replace(/\n+$/, "");
+      const f = fenceFor(fence, body); // see fenceFor: the body chooses the fence, not the host
       if (type === "view") {
         // Facts first, then the view that derives from them. `header=1` and the
         // delimiter come from the same extension rule the parser applies, and
@@ -154,9 +171,9 @@ export async function inlineSrcTables(raw, resolveUrl, fetchText) {
         const declaredFormat = /\bformat=/.test(bodyAttrs.join(" "));
         const fromExt = /\.tsv$/i.test(src.value) ? "tsv" : "csv";
         const tableAttrs = [`#${id}`, ...(declaredFormat ? [] : [`format=${fromExt}`, "header=1"]), ...bodyAttrs].join(" ");
-        out.push(`${fence} table {${tableAttrs}}`);
+        out.push(`${f} table {${tableAttrs}}`);
         out.push(body);
-        out.push(fence);
+        out.push(f);
         out.push("");
         // `src=` goes back where the author's was: inside the object, at the
         // end, so the id it declared stays first and the line still reads like
@@ -169,9 +186,9 @@ export async function inlineSrcTables(raw, resolveUrl, fetchText) {
         i = j;
         continue;
       }
-      out.push(fence + " " + type + attrs);
+      out.push(f + " " + type + attrs);
       out.push(body);
-      out.push(fence);
+      out.push(f);
     } else {
       for (let k = i; k <= j && k < lines.length; k++) out.push(lines[k]); // keep original
     }

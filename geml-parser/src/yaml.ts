@@ -102,6 +102,15 @@ function keyEnd(s: string): number {
   return -1;
 }
 
+// Nesting is bounded. `- - - …` and indentation nest without limit in the
+// grammar, and each level here is a JavaScript frame: six thousand of them, in a
+// twelve-kilobyte body, ran the stack out and threw a RangeError straight
+// through parse() — a crash, where every other malformed body earns a diagnostic
+// and where the parser's own lists (5000 deep) and blocks (1000 deep) already
+// answer with one. Generous for anything a person writes as config; far below
+// where V8 gives up.
+const MAX_DEPTH = 200;
+
 class Refusal extends Error {
   constructor(message: string, readonly line: number) { super(message); }
 }
@@ -156,32 +165,48 @@ export function parseYaml(body: string[]): YamlResult {
     if (blockScalar) {
       const fold = blockScalar[1] === ">";
       const chomp = blockScalar[2]!; // `[-+]?` always participates, empty or not
-      const parts: string[] = [];
-      let base = -1;
+      // A block scalar is TEXT, and `lines` is not the text: every line in it had
+      // its `# comment` stripped and its blank lines dropped before parsing
+      // began, which is right for structure and wrong for a literal — `|` with
+      // `hello # not a comment` lost the tail, and a blank line inside a literal
+      // vanished. The extent is still decided from `lines` (indent deeper than
+      // the parent), but the content is read back from the RAW body over that
+      // range, blank lines included.
+      let first = -1;
+      let last = -1;
       while (p < lines.length && lines[p]!.indent > parentIndent) {
-        const l = lines[p]!;
-        if (base < 0) base = l.indent;
-        parts.push(" ".repeat(Math.max(0, l.indent - base)) + l.text);
+        if (first < 0) first = lines[p]!.n;
+        last = lines[p]!.n;
         p++;
       }
+      if (first < 0) return chomp === "-" ? "" : "\n";
+      const rawLines = body.slice(first, last + 1).map((r) => r.replace(/\r$/, ""));
+      const base = Math.min(...rawLines.filter((r) => r.trim() !== "").map((r) => r.length - r.replace(/^[ \t]+/, "").length));
+      const parts = rawLines.map((r) => (r.trim() === "" ? "" : r.slice(base)));
       let s = fold ? parts.join(" ") : parts.join("\n");
       if (chomp !== "-") s += "\n";
       return s;
     }
     const q = quotedScalar(t);
-    return q === null ? plainScalar(t) : q;
+    const v = q === null ? plainScalar(t) : q;
+    // `.inf` is refused by name above; `1e999` reached the same value through
+    // Number() and came out as Infinity, which JSON then wrote as null. The
+    // value domain here is JSON's (§3.2), and JSON has no infinity by any spelling.
+    if (typeof v === "number" && !Number.isFinite(v)) throw new Refusal(`\`${t}\` has no finite value — the value domain here has no infinity`, at);
+    return v;
   }
 
   // The block at `indent`: a mapping, or a sequence, decided by its first line.
-  function parseBlock(indent: number): DataValue {
+  function parseBlock(indent: number, depth: number): DataValue {
     // Every caller has already checked there is a line here: the top level
     // returns early on an empty body, and the two nested calls guard on `p`.
     const first = peek()!;
-    if (first.text === "-" || first.text.startsWith("- ")) return parseSeq(indent);
-    return parseMap(indent);
+    if (depth > MAX_DEPTH) throw new Refusal(`nesting deeper than ${MAX_DEPTH} levels is outside this subset`, first.n);
+    if (first.text === "-" || first.text.startsWith("- ")) return parseSeq(indent, depth);
+    return parseMap(indent, depth);
   }
 
-  function parseSeq(indent: number): DataValue {
+  function parseSeq(indent: number, depth: number): DataValue {
     const out: DataValue[] = [];
     while (p < lines.length) {
       const l = peek()!;
@@ -193,7 +218,7 @@ export function parseYaml(body: string[]): YamlResult {
       p++;
       if (rest === "") {
         // The item's content follows, deeper.
-        if (p < lines.length && lines[p]!.indent > indent) out.push(parseBlock(lines[p]!.indent));
+        if (p < lines.length && lines[p]!.indent > indent) out.push(parseBlock(lines[p]!.indent, depth + 1));
         else out.push(null);
         continue;
       }
@@ -205,7 +230,7 @@ export function parseYaml(body: string[]): YamlResult {
         const afterDash = l.text.slice(1);
         const inner = indent + 1 + (afterDash.length - afterDash.replace(/^ +/, "").length);
         lines.splice(p, 0, { n: at, indent: inner, text: rest });
-        out.push(parseBlock(inner));
+        out.push(parseBlock(inner, depth + 1));
         continue;
       }
       out.push(inlineValue(rest, at, indent));
@@ -213,8 +238,16 @@ export function parseYaml(body: string[]): YamlResult {
     return out;
   }
 
-  function parseMap(indent: number): DataValue {
+  function parseMap(indent: number, depth: number): DataValue {
     const out: { [k: string]: DataValue } = {};
+    // `out[key] = v` with key `__proto__` does not set a key: it REPLACES the
+    // object's prototype, so a `__proto__:` mapping made every later lookup
+    // inherit from the author's value tree and JSON.stringify dropped the key.
+    // Defined as an own property instead, it is data like any other key.
+    const setKey = (k: string, v: DataValue): void => {
+      if (k === "__proto__") Object.defineProperty(out, k, { value: v, enumerable: true, writable: true, configurable: true });
+      else out[k] = v;
+    };
     while (p < lines.length) {
       const l = peek()!;
       if (l.indent < indent) break;
@@ -224,27 +257,31 @@ export function parseYaml(body: string[]): YamlResult {
       if (cut < 0) throw new Refusal(`\`${l.text.slice(0, 40)}\` is neither a mapping entry (\`key: value\`) nor a sequence item (\`- value\`)`, l.n);
       const rawKey = l.text.slice(0, cut).trim();
       if (rawKey.startsWith("<<")) throw new Refusal("a merge key (`<<`) is outside this subset — write the keys out", l.n);
+      // "Refused by name" applied to values only: `&a k: 1`, `*a: 1` and `!!str k: 1`
+      // were read as the literal keys `&a k`, `*a`, `!!str k`. A key is a scalar
+      // too, and the same spellings are outside the subset there.
+      refuseExtras(rawKey, l.n);
       const qk = quotedScalar(rawKey);
       const key = qk === null ? rawKey : qk;
       const rest = l.text.slice(cut + 1).trim();
       const at = l.n;
       p++;
       if (rest === "") {
-        if (p < lines.length && lines[p]!.indent > indent) out[key] = parseBlock(lines[p]!.indent);
+        if (p < lines.length && lines[p]!.indent > indent) setKey(key, parseBlock(lines[p]!.indent, depth + 1));
         else if (p < lines.length && lines[p]!.indent === indent && (lines[p]!.text === "-" || lines[p]!.text.startsWith("- "))) {
           // A sequence may sit at the SAME indent as its key, which is the
           // shape most YAML in the wild is written in.
-          out[key] = parseSeq(indent);
-        } else out[key] = null;
+          setKey(key, parseSeq(indent, depth + 1));
+        } else setKey(key, null);
         continue;
       }
-      out[key] = inlineValue(rest, at, indent);
+      setKey(key, inlineValue(rest, at, indent));
     }
     return out;
   }
 
   try {
-    const value = parseBlock(lines[0]!.indent);
+    const value = parseBlock(lines[0]!.indent, 0);
     if (p < lines.length) {
       return { error: `\`${lines[p]!.text.slice(0, 40)}\` is not part of the document above it`, line: lines[p]!.n };
     }
