@@ -1022,6 +1022,34 @@ function resolveSelector(source: string, file: string, raw: string): string {
 // (the registration order parse() records), covering the same set `get #id`
 // resolves against: typed blocks and headings. A `[^id]` reference names one
 // of those (§5.2); the `[^id]: text` definition line was withdrawn.
+// Terminal columns a string occupies, which is not its length: an East Asian
+// wide or fullwidth code point takes two cells and a combining mark none, so
+// `padEnd` — counting UTF-16 code units — pushed every column after a CJK id
+// or heading out of true (`#实现前必须在提案里定下的三件事` is 15 characters
+// and 30 cells). Ranges are the wide/fullwidth blocks of UAX #11 plus the
+// emoji planes; anything outside them is one cell, which is right for Latin,
+// Cyrillic, Greek and the punctuation that appears in an id.
+function columns(s: string): number {
+  let w = 0;
+  for (const ch of s) {
+    const c = ch.codePointAt(0) ?? 0;
+    if ((c >= 0x0300 && c <= 0x036f) || (c >= 0x200b && c <= 0x200f)) continue;
+    const wide = (c >= 0x1100 && c <= 0x115f) || (c >= 0x2e80 && c <= 0x303e)
+      || (c >= 0x3041 && c <= 0x33ff) || (c >= 0x3400 && c <= 0x4dbf)
+      || (c >= 0x4e00 && c <= 0x9fff) || (c >= 0xa000 && c <= 0xa4cf)
+      || (c >= 0xac00 && c <= 0xd7a3) || (c >= 0xf900 && c <= 0xfaff)
+      || (c >= 0xfe10 && c <= 0xfe19) || (c >= 0xfe30 && c <= 0xfe6f)
+      || (c >= 0xff00 && c <= 0xff60) || (c >= 0xffe0 && c <= 0xffe6)
+      || (c >= 0x1f300 && c <= 0x1f64f) || (c >= 0x1f900 && c <= 0x1f9ff)
+      || (c >= 0x20000 && c <= 0x3fffd);
+    w += wide ? 2 : 1;
+  }
+  return w;
+}
+function pad(s: string, width: number): string {
+  return s + " ".repeat(Math.max(0, width - columns(s)));
+}
+
 function listIds(source: string, file: string, json: boolean): void {
   const where = file === "-" ? "stdin" : file;
   const all = addressedUnits(source);
@@ -1030,7 +1058,16 @@ function listIds(source: string, file: string, json: boolean): void {
   interface Row {
     address: string; kind: string; anon?: boolean; id?: string;
     level?: number; text?: string; lines: [number, number]; footnote?: boolean;
+    unknownType?: boolean;
   }
+  // Which rows carry a type neither §3 registers nor a declared profile admits.
+  // Taken from the parse's OWN `unknown-block-type` diagnostics rather than a
+  // second copy of the registry, so the listing can never disagree with what
+  // `geml check` says about the same document — and a `.gemlhistory` whose
+  // profile admits `history-revision` is correctly left unflagged.
+  const unregistered = new Set(
+    doc.diagnostics.filter((d) => d.code === "unknown-block-type").map((d) => d.line),
+  );
   const rows: Row[] = all.map((a) => {
     const u = a.unit;
     const row: Row = {
@@ -1042,6 +1079,7 @@ function listIds(source: string, file: string, json: boolean): void {
     // only because its type happens to be unique (`=== meta`) — that it has no
     // id yet is precisely the fact you might want to act on (§5.2).
     if (u.id === undefined) row.anon = true; else row.id = u.id;
+    if (unregistered.has(u.span.start + 1)) row.unknownType = true;
     if (u.kind === "heading") { row.level = u.level; row.text = u.text; }
     // `.footnote` is authored, not synthesized (the `[^id]: text` definition
     // line was withdrawn) — but it still marks a block meant as a footnote.
@@ -1059,8 +1097,8 @@ function listIds(source: string, file: string, json: boolean): void {
   if (json) { console.log(JSON.stringify(rows, null, 2)); return; }
   if (rows.length === 0) { console.error(`no addressable blocks in ${where}`); return; }
 
-  const addrW = Math.max(...rows.map((r) => r.address.length));
-  const kindW = Math.max(...rows.map((r) => r.kind.length));
+  const addrW = Math.max(...rows.map((r) => columns(r.address)));
+  const kindW = Math.max(...rows.map((r) => columns(r.kind)));
   // The line range belongs on EVERY row, headings included. It used to be the
   // alternative to a heading's text, so the one kind of block whose range you
   // most want — a whole section — was the one kind that did not print it, and
@@ -1070,9 +1108,14 @@ function listIds(source: string, file: string, json: boolean): void {
   for (const r of rows) {
     const mark = r.kind === "heading" ? `h${r.level}` : r.anon ? "anon" : "";
     const span = `L${r.lines[0]}-${r.lines[1]}`;
-    const tail = r.kind === "heading" ? `${span.padEnd(lineW)}  ${r.text ?? ""}` : span;
-    const line = `${r.address.padEnd(addrW)}  ${r.kind.padEnd(kindW)}  ${mark.padEnd(4)}  ${tail}`
-      + (r.footnote ? "  footnote" : "");
+    const tail = r.kind === "heading" ? `${pad(span, lineW)}  ${r.text ?? ""}` : span;
+    // A block whose type nothing admits is worth saying so on its own row: the
+    // address and the line range look ordinary, and the one fact that changes
+    // how the body was read — verbatim, because no registry claimed the type —
+    // is otherwise only in `check`'s output.
+    const note = [r.footnote ? "footnote" : "", r.unknownType ? "unknown type" : ""].filter(Boolean).join("  ");
+    const line = `${pad(r.address, addrW)}  ${pad(r.kind, kindW)}  ${pad(mark, 4)}  ${tail}`
+      + (note ? `  ${note}` : "");
     console.log(line.trimEnd());
   }
 }
@@ -1181,12 +1224,25 @@ function selectUnits(source: string, file: string, rawSel: string, where: string
   // because a unit inside a block names no span of the file and so cannot be
   // sliced out of one the way every other form is.
   const id = resolveSelector(source, file, sel.form === "coord" ? sel.base : sel.raw);
-  const unit = all.find((a) => a.unit.id !== undefined && nameKey(a.unit.id) === nameKey(id))?.unit;
+  const hits = all.filter((a) => a.unit.id !== undefined && nameKey(a.unit.id) === nameKey(id));
+  const unit = hits[0]?.unit;
   // Bare `no block with id \`x\`` — the phrasing every caller of a missing id
   // has always seen, and which `set`'s own tests pin. `where` is appended only
   // when it is NOT the file the caller already named (a revision), so the
   // common case reads the same as before this selector grammar existed.
   if (!unit) fail(`no block with id \`${id}\`${where.startsWith("revision ") ? ` in ${where}` : ""}`, 1);
+  // A duplicate id is a build error, so this address names more than one block
+  // and the first is a guess at which was meant. A WRITE through it is refused
+  // (`duplicate-id` is UNFORGIVEN below); a READ used to take the first in
+  // silence, which is the worse failure of the two — the caller gets a
+  // different block and no signal at all. Said here so no verb can forget, and
+  // as a warning rather than a refusal: `geml check` is where an ambiguous
+  // document earns its non-zero exit, and holding a reader hostage over a
+  // defect elsewhere in the file is the thing `forgives()` exists to stop.
+  if (hits.length > 1) {
+    const at = hits.map((h) => h.unit.span.start + 1).join(", ");
+    console.error(`warning: \`#${id}\` names ${hits.length} blocks (lines ${at}) — answering the first; a duplicate id is a build error, so this address stays ambiguous until it is repaired`);
+  }
   return { units: [unit], all, sel };
 }
 
@@ -1593,7 +1649,7 @@ function runReplace(args: string[]): void {
 
   const errs = errorsAdded(before, after, file);
   if (errs.length) {
-    refuseBroken(`the replacement would break the document: ${errs[0]!.message} (line ${errs[0]!.line}); nothing written`, errs);
+    refuseBroken(refusalProse(before, errs, "the replacement would break the document"), errs);
   }
 
   // Blocks the replacement removed follow `set`'s rule: carried out, and named.
@@ -2239,6 +2295,34 @@ const UNFORGIVEN = new Set(["duplicate-id"]);
 // a courtesy.
 const forgives = (file: string): boolean => file !== "-" && !file.endsWith(".geml");
 
+// Whether EVERY diagnostic that refused this write was already in the document
+// before it. When it was, the edit broke nothing, and "would break the
+// document" sends the author hunting for a defect in what they just wrote —
+// the wording this comment block has flagged since `errorsAdded` was written.
+// The refusal itself is right and unchanged: inside a `.geml` nothing is
+// forgiven, and `duplicate-id` is forgiven nowhere. Only the sentence changes.
+// The MCP surface already draws this distinction for the model (mcp.ts computes
+// it from the diagnostics, not from this prose, so it is unaffected).
+const errorKey = (d: Diagnostic): string => `${d.code ?? ""}:${d.message}`;
+function predated(before: { diagnostics: readonly Diagnostic[] }, errs: readonly Diagnostic[]): boolean {
+  const had = new Set(before.diagnostics.filter((d) => d.severity === "error").map(errorKey));
+  return errs.length > 0 && errs.every((d) => had.has(errorKey(d)));
+}
+
+// The refusal sentence for a guarded write: what refused it, and whose fault it
+// is. `verb` names the edit for the case where the edit really did break it.
+function refusalProse(
+  before: { diagnostics: readonly Diagnostic[] },
+  errs: Diagnostic[],
+  verb: string,
+): string {
+  const first = errs[0]!;
+  const what = `${first.message} (line ${first.line})`;
+  return predated(before, errs)
+    ? `refused by an error the document ALREADY had, which this edit did not cause: ${what}; not written — repair it first (\`geml check\` lists them), until then no write to this document can be validated`
+    : `${verb}: ${what}; not written`;
+}
+
 function errorsAdded(
   before: { diagnostics: readonly Diagnostic[] },
   after: { diagnostics: readonly Diagnostic[] },
@@ -2315,8 +2399,7 @@ function spliceSpan(
     droppedIds.some((x) => d.message.includes(`\`#${x}\``) || d.message.includes(`#${x}\``));
   const errs = errorsAdded(beforeDoc, reparsed, file, collateral);
   if (errs.length) {
-    const first = errs[0]!;
-    refuseBroken(`replacement would break the document: ${first.message} (line ${first.line}); not written`, errs);
+    refuseBroken(refusalProse(beforeDoc, errs, "replacement would break the document"), errs);
   }
   if (droppedIds.length || droppedAnon) {
     const named = droppedIds.map((x) => `\`#${x}\``).join(", ");

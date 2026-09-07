@@ -208,6 +208,12 @@ export function shortestAddress(a: Addressed, all: Addressed[]): string {
   if (u.id !== undefined) return `#${u.id}`;
   if (u.type === undefined) return `@${a.hex}${a.nth ? `~${a.nth}` : ""}`;
   const sameType = all.filter((x) => x.unit.type === u.type).length;
+  // `#meta` is the reserved id for the merged metadata view, and with exactly
+  // one `meta` block the view and the block are the same thing — so the
+  // shortest address for that block is the id, not its type. With several the
+  // id addresses the MERGE and no single block, and with another unit already
+  // declaring `meta` it would be that unit's, so both fall through to the type.
+  if (u.type === "meta" && sameType === 1 && !all.some((x) => x.unit.id === "meta")) return "#meta";
   if (sameType === 1) return `=== ${u.type}`;
   return `=== ${u.type}@${a.hex}${a.nth ? `~${a.nth}` : ""}`;
 }
