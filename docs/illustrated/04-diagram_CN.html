@@ -121,7 +121,7 @@
 
 <div class="wrap">
 <header>
-  <div class="eyebrow">GEML 块类型图解 · 第 4 页 / 5 · 规范 1.0 · 实测 geml 1.10.1 本地构建</div>
+  <div class="eyebrow">GEML 块类型图解 · 第 4 页 / 5 · 规范 1.0</div>
   <h1>GEML 块图解 · diagram</h1>
   <p class="lede"><code>diagram</code> 有两种用法。一种是装外部 DSL：正文原样交给 <code>format=</code> 选的渲染器，处理器只负责不解释它。另一种是内置的 <code>geml-chart</code>：图完全由属性描述、绑到一张表或一个记录数组上，所以处理器能逐条校验，一个打错的列名就是构建错误。这一页把两种都实测一遍，十几条校验逐条对上 A.4。</p>
   <nav class="toc">
@@ -171,7 +171,7 @@
             <tr><td class="n">12</td><td>根和深度<strong>从不</strong>在嵌入点写：来自 <code>src</code> 所指文档的 meta（<code>entry</code>、<code>graph-depth</code>）。视图配置随数据走，嵌入点不可能漂移；换根就是指向另一个容器文档，方法级下钻是点击交互，不是属性。</td><td class="src">GEP-0003</td><td><span class="st st-spec">规范已定</span></td></tr>
             <tr><td class="n">13</td><td>缺 <code>src=</code>、<code>src</code> 解析不到都是 <strong>warning</strong>：画不出东西，文档没错。</td><td class="src">A.4</td><td><span class="st st-spec">规范已定</span></td></tr>
             <tr><td class="n">14</td><td>渲染：<code>figure.code-graph &gt; div.cg-mount data-start data-graph</code>，图数据内联成 JSON，布局在绘制时由页面脚本完成；解析失败时同一 figure 里是 <code>p.render-error</code>。</td><td class="src">--to html</td><td><span class="st st-obs">实测</span></td></tr>
-            <tr><td class="n">15</td><td><strong>相关草案缺口：</strong>GEP-0012 把 compute/summary 搬到 view 后，<code>geml-chart</code> 的 <code>data=</code> 需要能指向 view，否则画计算列的图没有数据源。0012 正文未提。详见第 3 页看板 18。</td><td class="src">GEP-0012 ↔ §7.1</td><td><span class="st st-gap">草案缺口</span></td></tr>
+            <tr><td class="n">15</td><td><code>data=</code> <strong>可以指 <code>view</code>，就像指 <code>table</code> 一样；而画派生列时必须指 view</strong>：<code>compute=</code>/<code>summary=</code> 是 view 的属性，它们产出的列只存在于 view 上。画 §6.1 的 <code>FY</code> 就是 <code>data=#fy25-report y=FY</code>；把同一张图指向基表会得到 <code>chart: column `FY` not found in table</code>。（GEP-0012 正文未提图表时，这条曾记为草案缺口；§7 已在规范正文里定下。）</td><td class="src">§7.1 · §6.1</td><td><span class="st st-spec">规范已定</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -423,7 +423,7 @@ Hardware,88.1,84.6
     <div class="sec-num">依据</div>
     <div>
       <h2>探针文件与实测输出</h2>
-      <p class="sub">全部用仓库内当前构建 <code>node geml-parser/dist/geml.js</code> 跑出，版本 1.10.1。</p>
+      <p class="sub">全部用仓库内当前构建 <code>node geml-parser/dist/geml.js</code> 跑出。</p>
     </div>
   </div>
   <div class="sec-body">

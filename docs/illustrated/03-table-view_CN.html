@@ -120,7 +120,7 @@
 
 <div class="wrap">
 <header>
-  <div class="eyebrow">GEML 块类型图解 · 第 3 页 / 5 · 规范 1.0 · 实测 geml 1.9.2 本地构建</div>
+  <div class="eyebrow">GEML 块类型图解 · 第 3 页 / 5 · 规范 1.0</div>
   <h1>GEML 块图解 · table 与 view</h1>
   <p class="lede"><code>table</code> 是规范里规则最多的类型：两种体、一个模型、一门封闭的算术、一行汇总。GEP-0012 提出的 <code>view</code> 把「从另一张表选、算、聚合」搬出来，并打算把「借别的表的行」从 table 里拿走。这一页先把 table 今天的每条规则实测一遍，再把 view 的草案画出来，标清哪些是规范、哪些是草案、哪里两者冲突。</p>
   <nav class="toc">
@@ -146,10 +146,9 @@
   <div class="sec-body">
     <div>
       <div class="tally">
-        <span><span class="st st-spec">规范已定</span> <b>8</b></span>
-        <span><span class="st st-gep">GEP 草案</span> <b>8</b></span>
+        <span><span class="st st-spec">规范已定</span> <b>16</b></span>
+        <span><span class="st st-gep">GEP 草案</span> <b>1</b></span>
         <span><span class="st st-obs">实测</span> <b>1</b></span>
-        <span><span class="st st-gap">草案缺口</span> <b>1</b></span>
       </div>
       <div class="board">
         <table class="b">
@@ -158,23 +157,23 @@
             <tr class="grp"><td></td><td colspan="3">table</td></tr>
             <tr><td class="n">1</td><td>两种可互换的体、一个模型：可视管道表（默认），或 <code>format=csv</code>/<code>tsv</code> 数据体加 <code>header=</code>。模型是列模型，单元格值是字符串、数字或布尔，日期是 ISO-8601 文本。</td><td class="src">§6</td><td><span class="st st-spec">规范已定</span></td></tr>
             <tr><td class="n">2</td><td><code>delim=</code> 只对数据体有效，必须恰一个字符；tab 写 <code>format=tsv</code>。两字符是 <code>bad-table-delimiter</code> error 并回退自然分隔符；无 format 时是 <code>ignored-table-delimiter</code> warning。未知 format warning，按可视网格解析。</td><td class="src">§6 · A.3</td><td><span class="st st-spec">规范已定</span></td></tr>
-            <tr><td class="n">3</td><td><code>src=</code> 三种目标：csv/tsv 文件（相对路径或 http(s)）、<code>#id</code> 本文档表、<code>doc.geml#id</code>。解析不到 error；目标不是表 error；src 与正文同在 error。只有 src 文本进 .gemlhistory 哈希，内容不进。</td><td class="src">§6 · A.3</td><td><span class="st st-spec">规范已定</span></td></tr>
-            <tr><td class="n">4</td><td><code>compute=</code>：<code>Name = expr</code> 用 <code>;</code> 分隔，算术 <code>+ - * / ( )</code> 和一元负；按表头名（含空格用单引号）或字母列引用；可引用前面算出的列，无环。空或非数单元格按 0 并 <code>compute-non-numeric-cell</code> warning；除零得无值、显示 <code>-</code> 并 <code>compute-not-a-number</code> warning。计算列追加在数据列后，不写进正文。</td><td class="src">§6 · A.3</td><td><span class="st st-spec">规范已定</span></td></tr>
-            <tr><td class="n">5</td><td><code>summary=</code>：一行汇总，<code>Cell = value</code>；值是字面量标签或聚合表达式，聚合只有 <code>sum avg min max count</code>，是唯一跨行的构造；列引用必须被聚合；未指定列空白；未知列 error。</td><td class="src">§6 · A.3</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">3</td><td><strong>table 的</strong> <code>src=</code> 只有一种目标：csv/tsv 数据文件（相对路径或 <code>http(s)</code>）。解析不到 error；src 与正文同在 error；<code>src=</code> 指向<strong>块</strong>（<code>#id</code> 或 <code>doc.geml#id</code>）是 error 并指名 <code>view</code>（§6.1）——块的输出是别的块派生出来的东西。下面那组三种目标属于 <code>view</code>。只有 src 文本进 .gemlhistory 哈希，内容不进。</td><td class="src">§6 · A.3</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">4</td><td><code>compute=</code>（是 <strong>view 的</strong>属性，§6.1——写在 <code>table</code> 上只是 <code>unknown-attribute</code> warning，什么也不算）：<code>Name = expr</code> 用 <code>;</code> 分隔，算术 <code>+ - * / ( )</code> 和一元负；按表头名（含空格用单引号）或字母列引用；可引用前面算出的列，无环。空或非数单元格按 0 并 <code>compute-non-numeric-cell</code> warning；除零得无值、显示 <code>-</code> 并 <code>compute-not-a-number</code> warning。计算列追加在数据列后，不写进正文。</td><td class="src">§6 · A.3</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">5</td><td><code>summary=</code>（是 <strong>view 的</strong>属性，§6.1——写在 <code>table</code> 上同样只是 warning）：一行汇总，<code>Cell = value</code>；值是字面量标签或聚合表达式，聚合只有 <code>sum avg min max count</code>，是唯一跨行的构造；列引用必须被聚合；未指定列空白；未知列 error。</td><td class="src">§6 · A.3</td><td><span class="st st-spec">规范已定</span></td></tr>
             <tr><td class="n">6</td><td><code>[printf]</code> 显示格式绑定在公式左侧名字上，只影响显示；判定是左侧最后一个含 <code>%</code> 的 <code>[…]</code>，所以列名本身可以带方括号。</td><td class="src">§6</td><td><span class="st st-spec">规范已定</span></td></tr>
             <tr><td class="n">7</td><td>明确排除：单元格与区间寻址、相对行引用、条件、跨表 <code>remote()</code>、lookup、任何嵌入程序。表是文档特性，不是电子表格引擎。</td><td class="src">§6</td><td><span class="st st-spec">规范已定</span></td></tr>
             <tr><td class="n">8</td><td>外部数据渲染时到达，所以 <code>compute</code> 和图表引用的列名在渲染时校验，不在构建时。</td><td class="src">§6 · §9.4</td><td><span class="st st-spec">规范已定</span></td></tr>
             <tr><td class="n">9</td><td>渲染：<code>figure.table-figure &gt; table.geml-table</code>，计算列 <code>td.computed</code>，数字单元格带 <code>data-sort</code>，汇总行在 <code>tfoot</code>，caption 在 <code>figcaption</code>。</td><td class="src">--to html</td><td><span class="st st-obs">实测</span></td></tr>
             <tr><td class="n">10</td><td>坐标：<code>#fy[2]</code> 一行（1 起始，表头不算行）、<code>#fy[2]["Q1"]</code> 一格、<code>#fy["Q1"]</code> 一列、<code>#fy[summary]["FY"]</code> 汇总格。整数是行、引号是列、裸词是保留行名。<code>list</code> 不枚举坐标。</td><td class="src">GEP-0011</td><td><span class="st st-gep">GEP 草案</span></td></tr>
-            <tr><td class="n">11</td><td>借表：<code>table {src=#fy compute=…}</code> 今天合法，且能对借来的行再算（1.9.3 修复）。GEP-0012 要把 <code>src=</code> 指向块的 table 改成 <strong>error 并指向 view</strong>：块目标是别人的输出，借它的 table 就不再是「事实」。</td><td class="src">§6 ↔ GEP-0012</td><td><span class="st st-gep">GEP 草案</span></td></tr>
-            <tr class="grp"><td></td><td colspan="3">view（GEP-0012，草案；今天未注册，是 unknown-block-type warning）</td></tr>
-            <tr><td class="n">12</td><td><code>view</code> 无正文，必须 <code>src=</code>，目标同 §6 三种；正文与 src 同在 error。</td><td class="src">GEP-0012</td><td><span class="st st-gep">GEP 草案</span></td></tr>
-            <tr><td class="n">13</td><td>选择：<code>where=</code>（比较、<code>and/or/not</code>、数字或单引号字面量）、<code>order=</code>（<code>asc</code>/<code>desc</code>，稳定排序）、<code>limit=</code>、<code>select=</code>（只取名字，含 <code>=</code> 报错指向 compute）。</td><td class="src">GEP-0012</td><td><span class="st st-gep">GEP 草案</span></td></tr>
-            <tr><td class="n">14</td><td>派生与聚合：<code>compute=</code>/<code>summary=</code> 语法不变，搬到 view；<code>by=</code> 分组键，<code>aggregate="Name = fn(col)"</code>；<code>by=</code> 无 aggregate 即 distinct。</td><td class="src">GEP-0012</td><td><span class="st st-gep">GEP 草案</span></td></tr>
-            <tr><td class="n">15</td><td>求值顺序是 SQL 的逻辑顺序：src → compute 行级 → where → compute 聚合 → by/aggregate → order → limit → select → summary。compute 两遍所以 where 能用刚算的列；select 晚跑所以 order 能用未显示的列；summary 最后，是对显示行的报告。</td><td class="src">GEP-0012</td><td><span class="st st-gep">GEP 草案</span></td></tr>
-            <tr><td class="n">16</td><td>一种表达式语言：单引号在列位置是列名、在值位置是字面量。<code>where=</code> 里未知列 error；全无数值的列比数字 error；单个非数单元格不匹配、无诊断。没有正则、like、函数。</td><td class="src">GEP-0012</td><td><span class="st st-gep">GEP 草案</span></td></tr>
-            <tr><td class="n">17</td><td>view 看到源的元组和计算列，看不到源的 summary 行；同名 <code>compute=</code> 遮蔽源列合法但 <code>shadowed-source-column</code> warning。过滤分组是再来一个 view，不是 HAVING。</td><td class="src">GEP-0012</td><td><span class="st st-gep">GEP 草案</span></td></tr>
-            <tr><td class="n">18</td><td><strong>草案缺口：</strong>0012 正文没有一处提到图表。§7.1 的 <code>data=</code> 今天只接受 table 或记录数组 data 块；compute 搬走后，画计算列的图（如 <code>y=FY</code>）就没有合法数据源。需要补：<code>data=</code> 接受 view，贡献其输出关系为表模型；<code>rows=all|summary</code> 对 view 自己的 summary 行生效；诊断措辞与 conformance suite 各加一条。</td><td class="src">GEP-0012 ↔ §7.1</td><td><span class="st st-gap">草案缺口</span></td></tr>
+            <tr><td class="n">11</td><td>借表：<code>src=</code> 指向块的 <code>table</code> <strong>就是 error，并指名 <code>view</code></strong>——<code>table source `#fy` names another block's output; use `view`</code>。块目标是别人的输出，借它的 table 就不再是「事实」。落地之前曾有过短命的 <code>table {src=#fy compute=…}</code> 写法；现在写它会同时得到那条 error 和 <code>compute</code> 的 <code>unknown-attribute</code> warning。</td><td class="src">§6 · §6.1</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">view（§6.1——已注册，所以不会有 unknown-block-type warning；GEP-0012 自己的 front matter 仍写 <code>state: draft</code>，但规范已经收录）</td></tr>
+            <tr><td class="n">12</td><td><code>view</code> 无正文，必须 <code>src=</code>，目标同 §6 三种；正文与 src 同在 error。</td><td class="src">§6.1</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">13</td><td>选择：<code>where=</code>（比较、<code>and/or/not</code>、数字或单引号字面量）、<code>order=</code>（<code>asc</code>/<code>desc</code>，稳定排序）、<code>limit=</code>、<code>select=</code>（只取名字，含 <code>=</code> 报错指向 compute）。</td><td class="src">§6.1</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">14</td><td>派生与聚合：<code>compute=</code>/<code>summary=</code> 语法不变，搬到 view；<code>by=</code> 分组键，<code>aggregate="Name = fn(col)"</code>；<code>by=</code> 无 aggregate 即 distinct。</td><td class="src">§6.1</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">15</td><td>求值顺序是 SQL 的逻辑顺序：src → compute 行级 → where → compute 聚合 → by/aggregate → order → limit → select → summary。compute 两遍所以 where 能用刚算的列；select 晚跑所以 order 能用未显示的列；summary 最后，是对显示行的报告。</td><td class="src">§6.1</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">16</td><td>一种表达式语言：单引号在列位置是列名、在值位置是字面量。<code>where=</code> 里未知列 error；全无数值的列比数字 error；单个非数单元格不匹配、无诊断。没有正则、like、函数。</td><td class="src">§6.1</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">17</td><td>view 看到源的元组和计算列，看不到源的 summary 行；同名 <code>compute=</code> 遮蔽源列合法但 <code>shadowed-source-column</code> warning。过滤分组是再来一个 view，不是 HAVING。</td><td class="src">§6.1</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">18</td><td>图表可以读 view：§7 已写明 <code>data=</code>「may name a <code>view</code> as readily as a <code>table</code>, and for a <strong>derived</strong> column it must」——画 <code>FY</code> 就是 <code>data=#fy-report y=FY</code>，指向基表则得到 <code>chart: column `FY` not found in table</code>。<code>rows=all|summary</code> 对 view 自己的 summary 行生效；view 上没有 <code>summary=</code> 时，<code>rows=summary</code> 是 error、<code>rows=all</code> 给 warning 并用数据行。（GEP-0012 正文未提图表时，这条曾记为草案缺口。）</td><td class="src">§7.1 · §6.1</td><td><span class="st st-spec">规范已定</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -188,7 +187,7 @@
     <div class="sec-num">两种体</div>
     <div>
       <h2>可视表与数据体，算出同一个模型</h2>
-      <p class="sub">左边一张管道表、一张带 compute 和 summary 的 csv 表；右边是 <code>--to html</code> 实际吐出的结构。</p>
+      <p class="sub">左边一张管道表、一张 csv 表，以及在它之上做 compute 与 summary 的 <code>view</code>；右边是 <code>--to html</code> 实际吐出的结构。</p>
     </div>
   </div>
   <div class="sec-body">
@@ -204,14 +203,16 @@
 | Pro   |      2 |   30 |
 <span class="f">===</span>
 
-<span class="f">=== table</span> <span class="a">{#fy caption="FY revenue ($M)" format=csv header=1 <span class="hl">delim=;</span> \
-           compute="<span class="hl">FY [%.1f]</span> = Q1 + Q2; <span class="hl">Share [%.1f%%]</span> = FY * 100 / 500" \
-           summary="Segment = 'Total'; Q1 = sum(Q1); Q2 = sum(Q2); FY = sum(FY)"}</span>
+<span class="f">=== table</span> <span class="a">{#fy caption="FY revenue ($M)" format=csv header=1 <span class="hl">delim=;</span>}</span>
 Segment ; Q1    ; Q2
 Cloud   ; 124.5 ; 131.2
 Hardware; 88.1  ; 84.6
 Services; 45.2  ; 47.8
 <span class="f">===</span>
+<span class="f">=== view</span> <span class="a">{#fy-report src=#fy \
+          compute="<span class="hl">FY [%.1f]</span> = Q1 + Q2; <span class="hl">Share [%.1f%%]</span> = FY * 100 / 500" \
+          summary="Segment = 'Total'; Q1 = sum(Q1); Q2 = sum(Q2); FY = sum(FY)"}</span>
+<span class="f">===</span>                                    <span class="c">%% 表装事实；view 负责派生与汇总</span>
 See [[#fy]] and [[#budget]].</pre>
         </div>
         <div>
@@ -221,7 +222,7 @@ See [[#fy]] and [[#budget]].</pre>
             <table class="r"><thead><tr><th>Plan</th><th class="num">Months</th><th class="num">Rate</th></tr></thead>
               <tbody><tr><td>Basic</td><td class="num">1</td><td class="num">30</td></tr><tr><td>Pro</td><td class="num">2</td><td class="num">30</td></tr></tbody></table>
             <span class="cap">figcaption · Annual cost。右对齐来自分隔行的 <code>-----:</code>；数字格带 <code>data-sort</code>。</span>
-            <span class="tag">figure.table-figure #fy</span>
+            <span class="tag">figure.table-figure #fy-report › 这是 view 的输出，不是表的</span>
             <table class="r"><thead><tr><th>Segment</th><th class="num">Q1</th><th class="num">Q2</th><th class="num">FY</th><th class="num">Share</th></tr></thead>
               <tbody>
                 <tr><td>Cloud</td><td class="num">124.5</td><td class="num">131.2</td><td class="num comp">255.7</td><td class="num comp">51.1%</td></tr>
@@ -303,7 +304,7 @@ Total; 257.8; 263.6; 521.4;
     <div class="sec-num">src=</div>
     <div>
       <h2>数据从别处来，以及「借表」的去向</h2>
-      <p class="sub">§6 允许三种目标。GEP-0012 打算收走其中一种。</p>
+      <p class="sub">table 的 <code>src=</code> 收文件。借另一个块的关系是 <code>view</code> 的活——§6 把这个目标从 <code>table</code> 手里收走了，并指名了替代者。</p>
     </div>
   </div>
   <div class="sec-body">
@@ -314,15 +315,16 @@ Total; 257.8; 263.6; 521.4;
           <div class="pane-h"><span>GEML · t1-table.geml 节选</span></div>
 <pre class="geml"><span class="f">=== table</span> <span class="a">{#ext caption="From a file" format=csv <span class="hl">src=rows.csv</span>}</span>
 <span class="f">===</span>
-<span class="f">=== table</span> <span class="a">{#borrowed caption="Borrowed rows" <span class="hl">src=#fy</span> compute="Half = FY / 2"}</span>
+<span class="f">=== view</span> <span class="a">{#borrowed caption="Borrowed rows" <span class="hl">src=#fy-report</span> compute="Half = FY / 2"}</span>
 <span class="f">===</span>
 
 <span class="c">%% rows.csv 在文档同目录：Segment,Q1,Q2 / Cloud,124.5,131.2 / Hardware,88.1,84.6</span>
-<span class="c">%% #borrowed 拿到 #fy 的行和它算出的 FY，再算自己的 Half</span></pre>
-          <div class="pane-h" style="margin-top:14px"><span>GEP-0012 的写法</span></div>
-<pre class="geml"><span class="f">=== view</span> <span class="a">{#borrowed src=#fy compute="Half = FY / 2"}</span>
+<span class="c">%% #borrowed 拿到 #fy-report 的元组和它算出的 FY，再算自己的 Half</span></pre>
+          <div class="pane-h" style="margin-top:14px"><span>同一件事写成 table</span><span class="badge b-err">1 error</span></div>
+<pre class="geml"><span class="f">=== table</span> <span class="a">{#borrowed <span class="bad">src=#fy-report</span> compute="Half = FY / 2"}</span>
 <span class="f">===</span>
-<span class="c">%% table 的 src= 只准指文件；指向 #块 的 table 是 error，消息指向 view</span></pre>
+<span class="c">%% error: table source `#fy-report` names another block's output; use `view`</span>
+<span class="c">%% 另有：warning: unknown attribute `compute` for block type `table`</span></pre>
         </div>
         <div>
           <div class="pane-h"><span>今天的行为</span><span class="badge b-ok">ok: no diagnostics</span></div>
@@ -336,9 +338,9 @@ Total; 257.8; 263.6; 521.4;
         </div>
       </div>
       <dl class="decision">
-        <dt>三种目标</dt><dd>§6：数据文件（csv/tsv，相对路径或 http(s)）、<code>#id</code>、<code>doc.geml#id</code>。本地和跨文档目标构建时必须解析到并检查存在，解析不到 error，存在但不是表 error。src 与正文同在 error。</dd>
+        <dt>谁收哪种目标</dt><dd>§6：<code>table</code> 的 <code>src=</code> 只收数据文件（csv/tsv，相对路径或 http(s)）；<code>#id</code> 与 <code>doc.geml#id</code> 这两种块目标归 <code>view</code>（§6.1），<code>table</code> 指它们是 error 并指名 view。解析不到 error，src 与正文同在 error。</dd>
         <dt>哈希</dt><dd>只有 <code>src</code> 这串文字进 .gemlhistory 的哈希，取回的内容不进。外部数据在渲染时到达，所以 compute 和图表引用的列名推迟到渲染时校验。</dd>
-        <dt>0012</dt><dd class="amber">草案要按「src 指向什么」切分：指文件的留在 table，指块的搬去 view，指块的 table 变 error。理由是块目标是别人的输出，借它的 table 会是一块内容由别人派生的「事实」。今天 1.9.3 刚修好借表自带 compute，这条如果接受就要反过来拒绝它。两者写在这里等 GEP 定夺。</dd>
+        <dt>谁来借</dt><dd>§6 按「src 指向什么」切分：指文件的留在 <code>table</code>，指块的归 <code>view</code>，指块的 <code>table</code> 是 error 并指名 <code>view</code>。理由写在规范里：块的输出是别的块派生出来的，而一块「事实」不该由别人派生。落地之前曾短暂存在过 <code>table</code> 自带 <code>compute</code> 的借表写法，现已没有——本页此前记的就是那个写法。</dd>
       </dl>
     </figure>
   </div>
@@ -371,23 +373,27 @@ a;b
 <span class="f">=== table</span> <span class="a">{#d <span class="hl">format=weird</span>}</span>
 | a | b |
 <span class="f">===</span>
-<span class="f">=== table</span> <span class="a">{#e format=csv compute="Z = <span class="bad">Q9</span> + 1"}</span>
-Q1,Q2
+<span class="c">%% compute=/summary= 是 view 的属性（§6.1），所以下面每个公式用例都是 view</span>
+<span class="f">=== view</span> <span class="a">{#e src=#src compute="Z = <span class="bad">Q9</span> + 1"}</span>
 <span class="f">===</span>
-<span class="f">=== table</span> <span class="a">{#f format=csv compute="S = Q1 + Q2"}</span>
+<span class="f">=== table</span> <span class="a">{#fsrc format=csv}</span>
 Q1,Q2
 1,<span class="hl">n/a</span>                                <span class="c">%% 非数按 0，warning</span>
 <span class="f">===</span>
-<span class="f">=== table</span> <span class="a">{#g format=csv compute="R = Q1 / Q2"
-           summary="Q1 = sum(Q1); <span class="bad">Nope</span> = 1; <span class="bad">Q2 = Q2</span>"}</span>
+<span class="f">=== view</span> <span class="a">{#f src=#fsrc compute="S = Q1 + Q2"}</span>
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#gsrc format=csv}</span>
 Q1,Q2
 1,<span class="hl">0</span>                                  <span class="c">%% 除零</span>
 <span class="f">===</span>
-<span class="f">=== table</span> <span class="a">{#h <span class="bad">src=#n</span>}</span>                   <span class="arrow">← #n 是 note</span>
+<span class="f">=== view</span> <span class="a">{#g src=#gsrc compute="R = Q1 / Q2"
+          summary="Q1 = sum(Q1); <span class="bad">Nope</span> = 1; <span class="bad">Q2 = Q2</span>"}</span>
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#h <span class="bad">src=#n</span>}</span>                   <span class="arrow">← table 的 src= 不能指块</span>
 <span class="f">===</span>
 <span class="f">=== table</span> <span class="a">{#i format=csv <span class="bad">src=missing.csv</span>}</span>
 <span class="f">===</span>
-<span class="f">=== table</span> <span class="a">{#j format=csv compute="<span class="bad">bad formula</span>"}</span>
+<span class="f">=== view</span> <span class="a">{#j src=#src compute="<span class="bad">bad formula</span>"}</span>
 <span class="f">===</span></pre>
         </div>
         <div>
@@ -407,11 +413,12 @@ Q1,Q2
   (e.g. sum(Q2)) (line 33)
 <span class="er">error:</span> bad compute formula `bad formula` (want `Name = expr`) (line 41)
 <span class="er">error:</span> cannot resolve table source `missing.csv` (line 39)
-<span class="er">error:</span> table source `#n` is not a table (line 37)</pre>
+<span class="er">error:</span> table source `#n` names another block's output; use `view`
+  (line 37)</pre>
         </div>
       </div>
       <dl class="decision">
-        <dt>error</dt><dd>src 与正文同在、分隔符不是一个字符、未知列、汇总未知列、汇总裸列、公式不成形、源解析不到、源不是表。都是文档自己写错。</dd>
+        <dt>error</dt><dd>src 与正文同在、分隔符不是一个字符、未知列、汇总未知列、汇总裸列、公式不成形、源解析不到，以及 <code>table</code> 的 <code>src=</code> 指了块——最后这条现在由「指名 <code>view</code>」来回答，而不是「不是表」，所以指 note 和指真表都会触发。都是文档自己写错。</dd>
         <dt>warning</dt><dd>delim 用错地方、未知 format 退回可视网格、非数单元格按 0、除零。前两个文档仍能读，后两个是数据的事实而不是文档的缺陷。§6 特别写明除零「是 warning，文档仍合规，但绝不静默」。</dd>
         <dt>回退</dt><dd>坏 delim 回退到自然分隔符 <code>,</code>，表照样读；坏 format 按管道表解析。降级永远保留内容。</dd>
       </dl>
@@ -425,7 +432,7 @@ Q1,Q2
     <div class="sec-num">view</div>
     <div>
       <h2><code>view</code> 草案：从另一个关系里选、算、聚合</h2>
-      <p class="sub">GEP-0012，2026-09-03 起草，状态 draft。今天写它只会得到 unknown-block-type warning。下面左边是草案语法，右边是草案<strong>打算</strong>渲染成的样子和今天的实际输出。</p>
+      <p class="sub">已由 §6.1 规定、并在解析器里注册，所以 <code>view</code> 会被当作它自己解析，不会得到 unknown-block-type warning。（GEP-0012 自己的 front matter 仍写 <code>state: draft</code>；规范还是收了它。）下面左边是草案语法，右边是草案<strong>打算</strong>渲染成的样子和今天的实际输出。</p>
     </div>
   </div>
   <div class="sec-body">
@@ -478,7 +485,7 @@ Draft Mode,closed,1
     <div class="sec-num">依据</div>
     <div>
       <h2>探针文件与实测输出</h2>
-      <p class="sub">全部用仓库内当前构建 <code>node geml-parser/dist/geml.js</code> 跑出，版本 1.9.2。rows.csv 与探针同目录。</p>
+      <p class="sub">全部用仓库内当前构建 <code>node geml-parser/dist/geml.js</code> 跑出。rows.csv 与探针同目录。</p>
     </div>
   </div>
   <div class="sec-body">

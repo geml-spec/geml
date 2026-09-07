@@ -14,13 +14,19 @@
 页面是自包含 HTML，中英两版（`X.html` 英文，`X_CN.html` 中文），直接用浏览器打开；
 也发布为 claude.ai artifact 方便在手机上看。
 
+**实测基线记在这里，不记在页面上。** 页面展示的每一段输出都由仓库自己的构建
+（`node geml-parser/dist/geml.js`）跑出；页面不再各自标解析器版本——某一页在更新的
+解析器上重测过、邻页没有，就会留下一组互相矛盾的出处，而标在没重跑过的页面上的版本
+号是个断言、不是记录。**页面的时效性统一由下方「状态」列说明**：某页的断言自某次解析器
+变更以来没有重测，就在那一列写明。
+
 ## 块类型
 
 | # | 覆盖 | English | 中文 | 状态 |
 |---|---|---|---|---|
-| 1 | 共同围栏与属性规则 · `meta` · `math` · `note` · `text` | [01-simple-blocks.html](01-simple-blocks.html) | [中文](01-simple-blocks_CN.html) | 已写，实测 geml 1.9.2 本地构建 |
+| 1 | 共同围栏与属性规则 · `meta` · `math` · `note` · `text` | [01-simple-blocks.html](01-simple-blocks.html) | [中文](01-simple-blocks_CN.html) | 已写 |
 | 2 | `code` · `data`，一套 `src=` 路由 | [02-code-data.html](02-code-data.html) | [中文](02-code-data_CN.html) | 已写 |
-| 3 | `table`，以及 GEP-0012 的 `view` | [03-table-view.html](03-table-view.html) | [中文](03-table-view_CN.html) | 已写 |
+| 3 | `table` 与 `view`（§6.1） | [03-table-view.html](03-table-view.html) | [中文](03-table-view_CN.html) | 已写 |
 | 4 | `diagram`：外部 DSL、`geml-chart`、`geml-code-graph` | [04-diagram.html](04-diagram.html) | [中文](04-diagram_CN.html) | 已写 |
 | 5 | `embed`：块级与行内投影、翻译 | [05-embed.html](05-embed.html) | [中文](05-embed_CN.html) | 已写 |
 
@@ -37,7 +43,7 @@
 
 ## 已发现的实现偏差
 
-| 页 · 看板 | 规范 | geml 1.9.2 实际 |
+| 页 · 看板 | 规范 | 解析器实际 |
 |---|---|---|
 | 1 · 11 | 两个以上 `meta` 时别的块声明 `{#meta}` 是 `reserved-id` error（§4，A.2） | 零诊断通过 |
 | 1 · 19 | `![[#id]]` 指向多段 `text` 是 `inline-transclusion-not-inline` error（§5.2） | 报了该 error，另多报一条不成立的 `transclusion-cycle` |
@@ -46,7 +52,7 @@
 
 | 页 · 看板 | 草案 | 缺口 |
 |---|---|---|
-| 3 · 18，4 · 15 | GEP-0012（`view`） | 一处未提图表；compute 搬到 view 后，`geml-chart` 的 `data=` 需接受 view，否则画计算列的图没有数据源 |
+| ~~3 · 18，4 · 15~~ **已闭合** | GEP-0012（`view`） | *原文：*未提图表，compute 搬到 view 后画计算列的图会没有数据源。§7 已在规范正文里定下——「`data=` may name a `view` as readily as a `table`, and for a **derived** column it must」——并以 `data=#fy25-report y=FY` 作为示例 |
 | 5 · 行内 | GEP-0011（坐标） | 说穿过 embed 的坐标应「报出能用的地址」，实测消息解释了原因但没给地址 |
 | 3 · 18（追加） | GEP-0012（`view`） | `src=` 只接 csv/tsv 文件、table、另一个 view；record-array 的 `data` 块、`.json`/`.jsonl` 文件（§7.1 里对 chart 已经算关系）和指向值树的 GEP-0011 坐标（`#cfg["items"]`）都没提。需要一条归一化规则（键按首次出现顺序变列、缺键与 `null` 为空格、非标量 → `data-not-records`），让 chart 或第二个 view 分不出源是什么 |
 

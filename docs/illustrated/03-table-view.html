@@ -120,7 +120,7 @@
 
 <div class="wrap">
 <header>
-  <div class="eyebrow">GEML block types, illustrated · page 3 of 5 · spec 1.0 · measured on geml 1.9.2, local build · <a href="03-table-view_CN.html">中文</a></div>
+  <div class="eyebrow">GEML block types, illustrated · page 3 of 5 · spec 1.0 · <a href="03-table-view_CN.html">中文</a></div>
   <h1>GEML Blocks Illustrated · table and view</h1>
   <p class="lede"><code>table</code> is the type with the most rules in the specification: two bodies, one model, a closed arithmetic, one summary row. GEP-0012's proposed <code>view</code> moves "select, derive and aggregate from another table" out of it, and intends to take "borrowing another table's rows" away from <code>table</code>. This page first measures every rule <code>table</code> has today, then draws the <code>view</code> draft, marking what is specified, what is draft, and where the two collide.</p>
   <nav class="toc">
@@ -146,10 +146,9 @@
   <div class="sec-body">
     <div>
       <div class="tally">
-        <span><span class="st st-spec">Specified</span> <b>8</b></span>
-        <span><span class="st st-gep">GEP draft</span> <b>8</b></span>
+        <span><span class="st st-spec">Specified</span> <b>16</b></span>
+        <span><span class="st st-gep">GEP draft</span> <b>1</b></span>
         <span><span class="st st-obs">Observed</span> <b>1</b></span>
-        <span><span class="st st-gap">Draft gap</span> <b>1</b></span>
       </div>
       <div class="board">
         <table class="b">
@@ -158,23 +157,23 @@
             <tr class="grp"><td></td><td colspan="3">table</td></tr>
             <tr><td class="n">1</td><td>Two interchangeable bodies, one model: a visual pipe grid (the default), or a <code>format=csv</code>/<code>tsv</code> data body with <code>header=</code>. The model is a column model; a cell is a string, number or boolean; dates are ISO-8601 text.</td><td class="src">§6</td><td><span class="st st-spec">Specified</span></td></tr>
             <tr><td class="n">2</td><td><code>delim=</code> applies only to a data body and must be exactly one character; a tab is spelled <code>format=tsv</code>. Two characters is a <code>bad-table-delimiter</code> error that falls back to the natural delimiter; with no format it is an <code>ignored-table-delimiter</code> warning. An unknown format is a warning, parsed as a visual grid.</td><td class="src">§6 · A.3</td><td><span class="st st-spec">Specified</span></td></tr>
-            <tr><td class="n">3</td><td><code>src=</code> takes three targets: a csv/tsv file (relative path or http(s)), <code>#id</code> of a table in this document, <code>doc.geml#id</code>. Unresolvable: error; not a table: error; src with a body: error. Only the <code>src</code> text enters the .gemlhistory hash, never the contents.</td><td class="src">§6 · A.3</td><td><span class="st st-spec">Specified</span></td></tr>
-            <tr><td class="n">4</td><td><code>compute=</code>: <code>Name = expr</code> entries separated by <code>;</code>, arithmetic <code>+ - * / ( )</code> and unary minus; columns by header name (single-quoted when it has a space) or letter; an earlier computed column may be referenced, acyclically. An empty or non-numeric cell counts as 0 with a <code>compute-non-numeric-cell</code> warning; division by zero yields no value, displays <code>-</code>, and warns <code>compute-not-a-number</code>. Computed columns are appended after the data columns and never written into the body.</td><td class="src">§6 · A.3</td><td><span class="st st-spec">Specified</span></td></tr>
-            <tr><td class="n">5</td><td><code>summary=</code>: one foot row of <code>Cell = value</code> entries; a value is a literal label or an aggregate expression; the aggregates <code>sum avg min max count</code> are the only construct that crosses rows; every column reference must be reduced by an aggregate; unspecified columns are blank; an unknown column is an error.</td><td class="src">§6 · A.3</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">3</td><td>A <strong>table's</strong> <code>src=</code> takes one target: a csv/tsv data file (relative path or <code>http(s)</code>). Unresolvable: error; src with a body: error; a <code>src=</code> naming a <strong>block</strong> — <code>#id</code> or <code>doc.geml#id</code> — is an error that names <code>view</code> (§6.1), because a block's output is something another block derived. The three-target form below belongs to <code>view</code>. Only the <code>src</code> text enters the .gemlhistory hash, never the contents.</td><td class="src">§6 · A.3</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">4</td><td><code>compute=</code> (a <strong>view's</strong> attribute, §6.1 — on a <code>table</code> it is an <code>unknown-attribute</code> warning and computes nothing): <code>Name = expr</code> entries separated by <code>;</code>, arithmetic <code>+ - * / ( )</code> and unary minus; columns by header name (single-quoted when it has a space) or letter; an earlier computed column may be referenced, acyclically. An empty or non-numeric cell counts as 0 with a <code>compute-non-numeric-cell</code> warning; division by zero yields no value, displays <code>-</code>, and warns <code>compute-not-a-number</code>. Computed columns are appended after the data columns and never written into the body.</td><td class="src">§6 · A.3</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">5</td><td><code>summary=</code> (a <strong>view's</strong> attribute, §6.1 — same warning on a <code>table</code>): one foot row of <code>Cell = value</code> entries; a value is a literal label or an aggregate expression; the aggregates <code>sum avg min max count</code> are the only construct that crosses rows; every column reference must be reduced by an aggregate; unspecified columns are blank; an unknown column is an error.</td><td class="src">§6 · A.3</td><td><span class="st st-spec">Specified</span></td></tr>
             <tr><td class="n">6</td><td>A <code>[printf]</code> display format binds to the name on the left of a formula and affects display only; it is the last <code>[…]</code> group of the left side that contains a <code>%</code>, so a column name may itself be bracketed.</td><td class="src">§6</td><td><span class="st st-spec">Specified</span></td></tr>
             <tr><td class="n">7</td><td>Excluded by design: cell and range addressing, relative-row references, conditionals, cross-table <code>remote()</code>, lookup, any embedded program. A table is a document feature, not a spreadsheet engine.</td><td class="src">§6</td><td><span class="st st-spec">Specified</span></td></tr>
             <tr><td class="n">8</td><td>External data arrives at render time, so the column names used by <code>compute</code> and by a chart are validated then, not at build time.</td><td class="src">§6 · §9.4</td><td><span class="st st-spec">Specified</span></td></tr>
             <tr><td class="n">9</td><td>Rendering: <code>figure.table-figure &gt; table.geml-table</code>; computed cells are <code>td.computed</code>, numeric cells carry <code>data-sort</code>, the summary row sits in <code>tfoot</code>, the caption in <code>figcaption</code>.</td><td class="src">--to html</td><td><span class="st st-obs">Observed</span></td></tr>
             <tr><td class="n">10</td><td>Coordinates: <code>#fy[2]</code> a row (1-based; the header is not a row), <code>#fy[2]["Q1"]</code> a cell, <code>#fy["Q1"]</code> a column, <code>#fy[summary]["FY"]</code> the summary cell. An integer is a row, a quoted string a column, a bare word a reserved row name. <code>list</code> does not enumerate coordinates.</td><td class="src">GEP-0011</td><td><span class="st st-gep">GEP draft</span></td></tr>
-            <tr><td class="n">11</td><td>Borrowing: <code>table {src=#fy compute=…}</code> is legal today, and computes over the borrowed rows (fixed in 1.9.3). GEP-0012 would make a <code>table</code> whose <code>src=</code> names a block an <strong>error pointing at view</strong>: a block target is someone else's output, and a table that borrows it is no longer "facts".</td><td class="src">§6 ↔ GEP-0012</td><td><span class="st st-gep">GEP draft</span></td></tr>
-            <tr class="grp"><td></td><td colspan="3">view (GEP-0012, draft; unregistered today, so an unknown-block-type warning)</td></tr>
-            <tr><td class="n">12</td><td><code>view</code> has no body and a required <code>src=</code>, with §6's three targets; a body alongside <code>src=</code> is an error.</td><td class="src">GEP-0012</td><td><span class="st st-gep">GEP draft</span></td></tr>
-            <tr><td class="n">13</td><td>Selection: <code>where=</code> (comparisons, <code>and/or/not</code>, numbers or single-quoted literals), <code>order=</code> (<code>asc</code>/<code>desc</code>, stable), <code>limit=</code>, <code>select=</code> (names only; an <code>=</code> inside it is an error pointing at compute).</td><td class="src">GEP-0012</td><td><span class="st st-gep">GEP draft</span></td></tr>
-            <tr><td class="n">14</td><td>Derivation and aggregation: <code>compute=</code>/<code>summary=</code> keep their grammar and move to view; <code>by=</code> names grouping keys, <code>aggregate="Name = fn(col)"</code> the group columns; <code>by=</code> without aggregate is the distinct set.</td><td class="src">GEP-0012</td><td><span class="st st-gep">GEP draft</span></td></tr>
-            <tr><td class="n">15</td><td>Evaluation order is SQL's logical order: src → per-row compute → where → aggregate compute → by/aggregate → order → limit → select → summary. Compute runs in two passes so where may use a column defined in the same block; select runs late so order may sort on an unshown column; summary runs last, as a report over the rows shown.</td><td class="src">GEP-0012</td><td><span class="st st-gep">GEP draft</span></td></tr>
-            <tr><td class="n">16</td><td>One expression language: a single-quoted run is a column name in column position and a literal in value position. An unknown column in <code>where=</code> is an error; a text-only column compared against a number is an error; a single non-numeric cell simply does not match, with no diagnostic. No regexes, no like, no functions.</td><td class="src">GEP-0012</td><td><span class="st st-gep">GEP draft</span></td></tr>
-            <tr><td class="n">17</td><td>A view sees the source's tuples plus its computed columns, never its summary row; a <code>compute=</code> shadowing a source column is legal with a <code>shadowed-source-column</code> warning. Filtering groups is the next view, not a HAVING.</td><td class="src">GEP-0012</td><td><span class="st st-gep">GEP draft</span></td></tr>
-            <tr><td class="n">18</td><td><strong>Draft gap:</strong> GEP-0012 never mentions charts. §7.1's <code>data=</code> accepts only a table or a record-array data block today; once compute moves out of table, a chart over a computed column (<code>y=FY</code>) has no legal source. Needed: <code>data=</code> admits a view, contributing its output relation as the table model; <code>rows=all|summary</code> acts on the view's own summary row; one diagnostic wording and one conformance case each.</td><td class="src">GEP-0012 ↔ §7.1</td><td><span class="st st-gap">Draft gap</span></td></tr>
+            <tr><td class="n">11</td><td>Borrowing: a <code>table</code> whose <code>src=</code> names a block <strong>is an error that names <code>view</code></strong> — <code>table source `#fy` names another block's output; use `view`</code>. A block target is someone else's output, and a table that borrows it is no longer "facts". A short-lived <code>table {src=#fy compute=…}</code> form was legal before this landed; writing it now earns that error plus an <code>unknown-attribute</code> warning for <code>compute</code>.</td><td class="src">§6 · §6.1</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr class="grp"><td></td><td colspan="3">view (§6.1 — registered, so no unknown-block-type warning; GEP-0012's own front matter still reads <code>state: draft</code>, but the specification has absorbed it)</td></tr>
+            <tr><td class="n">12</td><td><code>view</code> has no body and a required <code>src=</code>, with §6's three targets; a body alongside <code>src=</code> is an error.</td><td class="src">§6.1</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">13</td><td>Selection: <code>where=</code> (comparisons, <code>and/or/not</code>, numbers or single-quoted literals), <code>order=</code> (<code>asc</code>/<code>desc</code>, stable), <code>limit=</code>, <code>select=</code> (names only; an <code>=</code> inside it is an error pointing at compute).</td><td class="src">§6.1</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">14</td><td>Derivation and aggregation: <code>compute=</code>/<code>summary=</code> keep their grammar and move to view; <code>by=</code> names grouping keys, <code>aggregate="Name = fn(col)"</code> the group columns; <code>by=</code> without aggregate is the distinct set.</td><td class="src">§6.1</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">15</td><td>Evaluation order is SQL's logical order: src → per-row compute → where → aggregate compute → by/aggregate → order → limit → select → summary. Compute runs in two passes so where may use a column defined in the same block; select runs late so order may sort on an unshown column; summary runs last, as a report over the rows shown.</td><td class="src">§6.1</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">16</td><td>One expression language: a single-quoted run is a column name in column position and a literal in value position. An unknown column in <code>where=</code> is an error; a text-only column compared against a number is an error; a single non-numeric cell simply does not match, with no diagnostic. No regexes, no like, no functions.</td><td class="src">§6.1</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">17</td><td>A view sees the source's tuples plus its computed columns, never its summary row; a <code>compute=</code> shadowing a source column is legal with a <code>shadowed-source-column</code> warning. Filtering groups is the next view, not a HAVING.</td><td class="src">§6.1</td><td><span class="st st-spec">Specified</span></td></tr>
+            <tr><td class="n">18</td><td>A chart reads a view: §7 says <code>data=</code> "may name a <code>view</code> as readily as a <code>table</code>, and for a <strong>derived</strong> column it must" — charting <code>FY</code> is <code>data=#fy-report y=FY</code>, and aiming it at the base table is <code>chart: column `FY` not found in table</code>. <code>rows=all|summary</code> acts on the view's own summary row; with no <code>summary=</code> on the view, <code>rows=summary</code> is an error and <code>rows=all</code> warns and uses the data rows. (Carried here as a draft gap while GEP-0012 said nothing about charts.)</td><td class="src">§7.1 · §6.1</td><td><span class="st st-spec">Specified</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -188,7 +187,7 @@
     <div class="sec-num">Bodies</div>
     <div>
       <h2>A visual grid and a data body, parsed to one model</h2>
-      <p class="sub">On the left, a pipe table and a csv table with compute and summary; on the right, the structure <code>--to html</code> actually emits.</p>
+      <p class="sub">On the left, a pipe table, a csv table, and the <code>view</code> that computes and summarises over it; on the right, the structure <code>--to html</code> actually emits.</p>
     </div>
   </div>
   <div class="sec-body">
@@ -204,14 +203,16 @@
 | Pro   |      2 |   30 |
 <span class="f">===</span>
 
-<span class="f">=== table</span> <span class="a">{#fy caption="FY revenue ($M)" format=csv header=1 <span class="hl">delim=;</span> \
-           compute="<span class="hl">FY [%.1f]</span> = Q1 + Q2; <span class="hl">Share [%.1f%%]</span> = FY * 100 / 500" \
-           summary="Segment = 'Total'; Q1 = sum(Q1); Q2 = sum(Q2); FY = sum(FY)"}</span>
+<span class="f">=== table</span> <span class="a">{#fy caption="FY revenue ($M)" format=csv header=1 <span class="hl">delim=;</span>}</span>
 Segment ; Q1    ; Q2
 Cloud   ; 124.5 ; 131.2
 Hardware; 88.1  ; 84.6
 Services; 45.2  ; 47.8
 <span class="f">===</span>
+<span class="f">=== view</span> <span class="a">{#fy-report src=#fy \
+          compute="<span class="hl">FY [%.1f]</span> = Q1 + Q2; <span class="hl">Share [%.1f%%]</span> = FY * 100 / 500" \
+          summary="Segment = 'Total'; Q1 = sum(Q1); Q2 = sum(Q2); FY = sum(FY)"}</span>
+<span class="f">===</span>                                    <span class="c">%% the table holds facts; the view derives and summarises</span>
 See [[#fy]] and [[#budget]].</pre>
         </div>
         <div>
@@ -221,7 +222,7 @@ See [[#fy]] and [[#budget]].</pre>
             <table class="r"><thead><tr><th>Plan</th><th class="num">Months</th><th class="num">Rate</th></tr></thead>
               <tbody><tr><td>Basic</td><td class="num">1</td><td class="num">30</td></tr><tr><td>Pro</td><td class="num">2</td><td class="num">30</td></tr></tbody></table>
             <span class="cap">figcaption · Annual cost. Right alignment comes from <code>-----:</code> in the separator row; numeric cells carry <code>data-sort</code>.</span>
-            <span class="tag">figure.table-figure #fy</span>
+            <span class="tag">figure.table-figure #fy-report › the view's output, not the table's</span>
             <table class="r"><thead><tr><th>Segment</th><th class="num">Q1</th><th class="num">Q2</th><th class="num">FY</th><th class="num">Share</th></tr></thead>
               <tbody>
                 <tr><td>Cloud</td><td class="num">124.5</td><td class="num">131.2</td><td class="num comp">255.7</td><td class="num comp">51.1%</td></tr>
@@ -302,27 +303,28 @@ Total; 257.8; 263.6; 521.4;
   <div class="sec-head">
     <div class="sec-num">src=</div>
     <div>
-      <h2>Data from elsewhere, and where "borrowing" is headed</h2>
-      <p class="sub">§6 allows three targets. GEP-0012 intends to take one of them away.</p>
+      <h2>Data from elsewhere, and who is allowed to borrow it</h2>
+      <p class="sub">A table's <code>src=</code> takes a file. Borrowing another block's relation is a <code>view</code>'s job — §6 took that target away from <code>table</code> and named the replacement.</p>
     </div>
   </div>
   <div class="sec-body">
     <figure>
-      <figcaption>A file, a table in this document, borrowed rows computed over <span class="st st-spec">Specified</span> <span class="st st-gep">0012 would change this</span></figcaption>
+      <figcaption>A file into a table, a relation borrowed by a view <span class="st st-spec">Specified</span></figcaption>
       <div class="panes">
         <div>
           <div class="pane-h"><span>GEML · from t1-table.geml</span></div>
 <pre class="geml"><span class="f">=== table</span> <span class="a">{#ext caption="From a file" format=csv <span class="hl">src=rows.csv</span>}</span>
 <span class="f">===</span>
-<span class="f">=== table</span> <span class="a">{#borrowed caption="Borrowed rows" <span class="hl">src=#fy</span> compute="Half = FY / 2"}</span>
+<span class="f">=== view</span> <span class="a">{#borrowed caption="Borrowed rows" <span class="hl">src=#fy-report</span> compute="Half = FY / 2"}</span>
 <span class="f">===</span>
 
 <span class="c">%% rows.csv beside the document: Segment,Q1,Q2 / Cloud,124.5,131.2 / Hardware,88.1,84.6</span>
-<span class="c">%% #borrowed gets #fy's rows and its computed FY, then computes its own Half</span></pre>
-          <div class="pane-h" style="margin-top:14px"><span>GEP-0012's spelling</span></div>
-<pre class="geml"><span class="f">=== view</span> <span class="a">{#borrowed src=#fy compute="Half = FY / 2"}</span>
+<span class="c">%% #borrowed gets #fy-report's tuples and its computed FY, then computes its own Half</span></pre>
+          <div class="pane-h" style="margin-top:14px"><span>the same thing spelled as a table</span><span class="badge b-err">1 error</span></div>
+<pre class="geml"><span class="f">=== table</span> <span class="a">{#borrowed <span class="bad">src=#fy-report</span> compute="Half = FY / 2"}</span>
 <span class="f">===</span>
-<span class="c">%% a table's src= may name only a file; a table naming a #block is an error pointing at view</span></pre>
+<span class="c">%% error: table source `#fy-report` names another block's output; use `view`</span>
+<span class="c">%% plus: warning: unknown attribute `compute` for block type `table`</span></pre>
         </div>
         <div>
           <div class="pane-h"><span>Behaviour today</span><span class="badge b-ok">ok: no diagnostics</span></div>
@@ -338,7 +340,7 @@ Total; 257.8; 263.6; 521.4;
       <dl class="decision">
         <dt>Three targets</dt><dd>§6: a data file (csv/tsv, relative path or http(s)), <code>#id</code>, <code>doc.geml#id</code>. Local and cross-document targets must resolve and exist at build time; unresolvable is an error, existing-but-not-a-table is an error. Src with a body is an error.</dd>
         <dt>Hash</dt><dd>Only the <code>src</code> text enters the .gemlhistory hash, never the fetched contents. External data arrives at render time, so compute's and a chart's column names are validated then.</dd>
-        <dt>0012</dt><dd class="amber">The draft splits by what <code>src</code> points at: a file stays with table, a block moves to view, and a table naming a block becomes an error. The reasoning: a block target is someone else's output, and a table borrowing it would be a block of "facts" whose content someone else derived. 1.9.3 has just fixed borrowing-with-compute; accepting this would reverse that. Both are recorded here pending the GEP's decision.</dd>
+        <dt>Who borrows</dt><dd>§6 splits by what <code>src</code> points at: a file stays with <code>table</code>, a block belongs to <code>view</code>, and a table naming a block is an error that names <code>view</code>. The reasoning is in the spec: a block's output is something another block derived, and a table holding facts someone else derived is not holding facts. A short-lived <code>table</code>-with-<code>compute</code> borrowing form existed before this landed; it is gone, and this page used to document it.</dd>
       </dl>
     </figure>
   </div>
@@ -371,23 +373,27 @@ a;b
 <span class="f">=== table</span> <span class="a">{#d <span class="hl">format=weird</span>}</span>
 | a | b |
 <span class="f">===</span>
-<span class="f">=== table</span> <span class="a">{#e format=csv compute="Z = <span class="bad">Q9</span> + 1"}</span>
-Q1,Q2
+<span class="c">%% compute=/summary= are a view's (§6.1), so every formula case below is a view</span>
+<span class="f">=== view</span> <span class="a">{#e src=#src compute="Z = <span class="bad">Q9</span> + 1"}</span>
 <span class="f">===</span>
-<span class="f">=== table</span> <span class="a">{#f format=csv compute="S = Q1 + Q2"}</span>
+<span class="f">=== table</span> <span class="a">{#fsrc format=csv}</span>
 Q1,Q2
 1,<span class="hl">n/a</span>                                <span class="c">%% non-numeric counts as 0, with a warning</span>
 <span class="f">===</span>
-<span class="f">=== table</span> <span class="a">{#g format=csv compute="R = Q1 / Q2"
-           summary="Q1 = sum(Q1); <span class="bad">Nope</span> = 1; <span class="bad">Q2 = Q2</span>"}</span>
+<span class="f">=== view</span> <span class="a">{#f src=#fsrc compute="S = Q1 + Q2"}</span>
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#gsrc format=csv}</span>
 Q1,Q2
 1,<span class="hl">0</span>                                  <span class="c">%% division by zero</span>
 <span class="f">===</span>
-<span class="f">=== table</span> <span class="a">{#h <span class="bad">src=#n</span>}</span>                   <span class="arrow">← #n is a note</span>
+<span class="f">=== view</span> <span class="a">{#g src=#gsrc compute="R = Q1 / Q2"
+          summary="Q1 = sum(Q1); <span class="bad">Nope</span> = 1; <span class="bad">Q2 = Q2</span>"}</span>
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#h <span class="bad">src=#n</span>}</span>                   <span class="arrow">← a table's src= may not name a block</span>
 <span class="f">===</span>
 <span class="f">=== table</span> <span class="a">{#i format=csv <span class="bad">src=missing.csv</span>}</span>
 <span class="f">===</span>
-<span class="f">=== table</span> <span class="a">{#j format=csv compute="<span class="bad">bad formula</span>"}</span>
+<span class="f">=== view</span> <span class="a">{#j src=#src compute="<span class="bad">bad formula</span>"}</span>
 <span class="f">===</span></pre>
         </div>
         <div>
@@ -407,11 +413,12 @@ Q1,Q2
   (e.g. sum(Q2)) (line 33)
 <span class="er">error:</span> bad compute formula `bad formula` (want `Name = expr`) (line 41)
 <span class="er">error:</span> cannot resolve table source `missing.csv` (line 39)
-<span class="er">error:</span> table source `#n` is not a table (line 37)</pre>
+<span class="er">error:</span> table source `#n` names another block's output; use `view`
+  (line 37)</pre>
         </div>
       </div>
       <dl class="decision">
-        <dt>error</dt><dd>Src with a body, a delimiter that is not one character, an unknown column, an unknown summary column, a bare summary column, a malformed formula, an unresolvable source, a source that is not a table. All are the document itself misspeaking.</dd>
+        <dt>error</dt><dd>Src with a body, a delimiter that is not one character, an unknown column, an unknown summary column, a bare summary column, a malformed formula, an unresolvable source, and a table whose <code>src=</code> names a block at all — that one is now answered by naming <code>view</code> rather than by "not a table", so it fires for a note and for a real table alike. All are the document itself misspeaking.</dd>
         <dt>warning</dt><dd>delim in the wrong place, an unknown format falling back to a visual grid, a non-numeric cell counted as 0, division by zero. The first two still read; the last two are facts about the data rather than defects in the document. §6 says of division by zero that it "is a warning and the document stays conforming — but it is never silent".</dd>
         <dt>Fallback</dt><dd>A bad delim falls back to the natural <code>,</code> and the table still reads; a bad format parses as a pipe grid. Degradation always keeps the content.</dd>
       </dl>
@@ -425,12 +432,12 @@ Q1,Q2
     <div class="sec-num">view</div>
     <div>
       <h2>The <code>view</code> draft: select, derive and aggregate from another relation</h2>
-      <p class="sub">GEP-0012, drafted 2026-09-03, status draft. Writing one today yields only an unknown-block-type warning. Left: the draft syntax. Right: what the draft <strong>intends</strong> to render, and today's actual output.</p>
+      <p class="sub">Specified in §6.1 and registered in the parser, so a <code>view</code> parses as itself rather than earning an unknown-block-type warning. (GEP-0012's own front matter still reads <code>state: draft</code>; the specification absorbed it anyway.) Left: the syntax. Right: what it renders.</p>
     </div>
   </div>
   <div class="sec-body">
     <figure>
-      <figcaption>Two views: filter, sort, project; and group, aggregate <span class="st st-gep">GEP draft</span></figcaption>
+      <figcaption>Two views: filter, sort, project; and group, aggregate <span class="st st-spec">Specified</span></figcaption>
       <div class="panes">
         <div>
           <div class="pane-h"><span>GEML · v1-view.geml</span></div>
@@ -478,7 +485,7 @@ Draft Mode,closed,1
     <div class="sec-num">Evidence</div>
     <div>
       <h2>Probe files and measured output</h2>
-      <p class="sub">All run with the repository's current build, <code>node geml-parser/dist/geml.js</code>, version 1.9.2. rows.csv sits beside the probes.</p>
+      <p class="sub">All run with the repository's current build, <code>node geml-parser/dist/geml.js</code>. rows.csv sits beside the probes.</p>
     </div>
   </div>
   <div class="sec-body">

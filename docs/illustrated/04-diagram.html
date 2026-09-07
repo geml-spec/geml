@@ -121,7 +121,7 @@
 
 <div class="wrap">
 <header>
-  <div class="eyebrow">GEML block types, illustrated · page 4 of 5 · spec 1.0 · measured on geml 1.10.1, local build · <a href="04-diagram_CN.html">中文</a></div>
+  <div class="eyebrow">GEML block types, illustrated · page 4 of 5 · spec 1.0 · <a href="04-diagram_CN.html">中文</a></div>
   <h1>GEML Blocks Illustrated · diagram</h1>
   <p class="lede"><code>diagram</code> is used two ways. One hosts an external DSL: the body goes verbatim to the renderer <code>format=</code> selects, and the processor's only duty is not to interpret it. The other is the built-in <code>geml-chart</code>: the chart is described entirely in attributes and bound to a table or a record array, so the processor can check it piece by piece and a mistyped column name is a build error. A third, <code>geml-code-graph</code>, is interpreted too but takes the opposite stance: the embed carries one attribute and nothing else. All three are measured here; the chart's fifteen checks match A.4 row for row.</p>
   <nav class="toc">
@@ -171,7 +171,7 @@
             <tr><td class="n">12</td><td>Roots and depth are <strong>never</strong> authored at the embed: they come from the meta of the document <code>src</code> points at (<code>entry</code>, <code>graph-depth</code>). View configuration travels with the data, so the embed cannot drift; a different root means pointing at a different container document, and method-level drill-down is a click, not an attribute.</td><td class="src">GEP-0003</td><td><span class="st st-spec">Specified</span></td></tr>
             <tr><td class="n">13</td><td>A missing <code>src=</code> and an unresolvable <code>src</code> are both <strong>warnings</strong>: nothing to draw, but the document is not wrong.</td><td class="src">A.4</td><td><span class="st st-spec">Specified</span></td></tr>
             <tr><td class="n">14</td><td>Rendering: <code>figure.code-graph &gt; div.cg-mount data-start data-graph</code>, the graph data inlined as JSON and laid out by a page script at draw time; a failed resolution puts a <code>p.render-error</code> in the same figure.</td><td class="src">--to html</td><td><span class="st st-obs">Observed</span></td></tr>
-            <tr><td class="n">15</td><td><strong>Related draft gap:</strong> once GEP-0012 moves compute/summary to view, <code>geml-chart</code>'s <code>data=</code> must accept a view, or a chart over a computed column has no source. GEP-0012 does not say so. See page 3, board 18.</td><td class="src">GEP-0012 ↔ §7.1</td><td><span class="st st-gap">Draft gap</span></td></tr>
+            <tr><td class="n">15</td><td><code>data=</code> <strong>may name a <code>view</code> as readily as a <code>table</code>, and for a derived column it must</strong>: <code>compute=</code>/<code>summary=</code> are a view's, so the column they produce exists only there. Charting §6.1's <code>FY</code> is <code>data=#fy25-report y=FY</code>; aiming the same chart at the base table is <code>chart: column `FY` not found in table</code>. (This was carried here as a draft gap while GEP-0012 said nothing about charts; §7 now settles it in the normative text.)</td><td class="src">§7.1 · §6.1</td><td><span class="st st-spec">Specified</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -423,7 +423,7 @@ Hardware,88.1,84.6
     <div class="sec-num">Evidence</div>
     <div>
       <h2>Probe files and measured output</h2>
-      <p class="sub">All run with the repository's current build, <code>node geml-parser/dist/geml.js</code>, version 1.10.1.</p>
+      <p class="sub">All run with the repository's current build, <code>node geml-parser/dist/geml.js</code>.</p>
     </div>
   </div>
   <div class="sec-body">
