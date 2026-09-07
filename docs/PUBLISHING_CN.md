@@ -42,13 +42,20 @@ flowchart TD
 
 | 东西 | 用于 | 一次性设置 |
 | --- | --- | --- |
-| "仓库 secret `NPM_TOKEN`" | "发布 @geml/geml 与 @geml/dsh-plugin" | "npmjs.com -> Access Tokens -> Generate -> **Automation**；需要 @geml scope 的发布权限。仓库里不存别的东西。" |
-| "GitHub OIDC" | "MCP registry" | "无 —— workflow 里的 `id-token: write` 就是全部，不需要任何 secret" |
-| "`contents: write`" | "把 viewer 的 zip 挂到 release 上" | "无 —— 默认的 GITHUB\_TOKEN" |
-| "Chrome 应用商店开发者账号" | "让 viewer 真正到达用户" | "workflow 只把 zip 挂到 GitHub release；上架商店是手工的" |
-| "VS Code Marketplace 发布者账号 + PAT" | "`vsce publish`" | "手工，在本仓库之外" |
-| "Open VSX token" | "Cursor / Windsurf / VSCodium / Antigravity —— 它们**不读** VS Code Marketplace，而这是本扩展**唯一**的列表页" | "\*\*已完成。\*\*Eclipse Foundation 账号、已签 Publisher Agreement、namespace `geml` 已创建。token 不存在本仓里：`ovsx publish` 由人手工带 `-p` 运行。" |
-| "logseq 镜像仓库的推送权限" | "Logseq marketplace 插件" | "geml-spec/logseq-plugin-sync-vault-with-geml" |
+| 仓库 secret `NPM_TOKEN` | 从 CI 发布 @geml/geml 与 @geml/dsh-plugin | npmjs.com -> Access Tokens -> Generate -> **Automation**；需要 @geml scope 的发布权限。仓库里不存别的东西。 |
+| GitHub OIDC | MCP registry | 无 —— workflow 里的 `id-token: write` 就是全部，不需要任何 secret |
+| `contents: write` | 把 viewer 的 zip 挂到它的 release 上 | 无 —— 默认的 GITHUB\_TOKEN |
+| Chrome 应用商店开发者账号 | 让 viewer 真正到达用户 | 已完成（`opmhfphgoidpnipphfgkhhjhmnmaenie`）。workflow 只把 zip 挂到 GitHub release；上架商店仍是手工的。 |
+| 仓库 secret `VSCE_PAT` | 从 CI 把扩展发到 VS Code Marketplace | 已完成 —— 发布者 `geml` 已存在且有列表页。dev.azure.com -> User settings -> Personal access tokens -> New：**Organization = All accessible organizations**（只授一个组织的 token 会 401），scope 选 **Marketplace -> Manage**。存之前先用 `npx @vscode/vsce login geml` 验一下。 |
+| 仓库 secret `OVSX_PAT` | 从 CI 把同一个 .vsix 发到 Open VSX | 已完成 —— Eclipse Foundation 账号、已签 Publisher Agreement、namespace `geml`。open-vsx.org -> Profile -> Access Tokens。用 `npx ovsx verify-pat geml` 验（它从环境变量读 `OVSX_PAT`）。 |
+| 不需要什么 | 把 `geml-check-action` 上架 GitHub Marketplace | 在 GitHub 界面里起一个 release 并勾上 Marketplace 复选框；`action.yml` 已带所需的 `branding`。**尚未上架。** |
+| Obsidian 社区插件提交 | 让 `integrations/obsidian` 不靠手工拷贝就能到达 Obsidian 用户 | **尚未提交** —— 商店要求插件有自己的仓库和 release，所以这一个得先抽出去才能申请。 |
+| logseq 镜像仓库的推送权限 | Logseq marketplace 插件 | geml-spec/logseq-plugin-sync-vault-with-geml |
+| 不需要什么 | Gemini CLI 扩展画廊 | 已于 2026-09-03 完成 —— GitHub topic `gemini-cli-extension` 加仓库根目录的 `gemini-extension.json`。不需要账号也不需要申请：画廊爬虫自己找到并校验仓库。 |
+| 一个 GitHub pull request | 把 Grok 插件列进 xai-org/plugin-marketplace | **未提交** —— fork，把 `integrations/grok-plugin` vendor 进 `external_plugins/geml`，加上已起草的条目，跑他们的 `scripts/validate-catalog.py`。不需要 xAI 账号。 |
+| 一个 forum.moonshot.ai 账号 | Kimi Code 市场上架 | **未申请** —— `kimi.plugin.json` 已到位，但目录是 Moonshot 自己的，上架要在他们论坛上提请求。 |
+| WorkBuddy certified-developer 资格 | 把技能上传到 SkillHub / ClawHub | **未申请** —— 上传路径卡在这上面。 |
+| 一个托管的 MCP 端点 | ChatGPT 目录的 'With MCP' 路子 | 不存在，也不打算做。那条路还要域名验证；纯技能提交两样都不需要。 |
 
 以及在这一切之前：**先把版本号落到 `main` 上**。每一条发布路径读的都是那棵树，不是
 你的工作副本。
@@ -147,6 +154,39 @@ flowchart TD
   等于顺带就发了。
 - **发后确认。** `npm view @geml/dsh-plugin version`。
 
+## Agent 市场 —— 每个厂商一份清单
+
+同样的两个技能、同样的 stdio MCP server，列进别人的目录里。这里没有任何东西需要构建
+或发布：每个厂商只读一个文件，要做的活是**提交上架请求**。文件今天都在本仓库里；大部分
+上架**没有**。
+
+| 厂商 | 它读什么 | 上架怎么获批 | 状态 |
+| --- | --- | --- | --- |
+| Claude Code · Codex | `integrations/claude-plugin` 与 `integrations/codex-plugin`，经两份根市场清单 | 不需要 —— 本仓库**就是**那个市场 | 已生效；见上面的插件小节 |
+| DSH | npm 上的 `integrations/dsh-plugin`；GUI 市场按 GitHub topic `dsh-plugin`、`agent-skills`、`claude-skills` 索引 | awesome-dsh-plugin 的 PR（已接受，#1310），加上那几个 topic | 已生效；见上面的 dsh 小节 |
+| Gemini CLI | `gemini-extension.json` —— 爬虫要求它在仓库或 release 压缩包的**绝对根目录**，绝不能在子目录 | 完全不用申请：加上 `gemini-cli-extension` topic，画廊爬虫自己会找到并校验仓库 | 清单与 topic 已于 2026-09-03 到位；**尚未确认**出现在画廊里 |
+| Grok (xAI) | `integrations/grok-plugin` —— `.mcp.json`、`.grok-plugin/plugin.json`、`skills/` | 向 xai-org/plugin-marketplace 提 PR，把该目录 vendor 进 `external_plugins/` 并在他们的 `.grok-plugin/marketplace.json` 加一条；他们的校验器在 CI 里跑，再由 code owner 审 | 文件已备好、条目已起草；**PR 未提交** —— 见 `integrations/grok-plugin/SUBMISSION.md` |
+| Kimi Code | 仓库根的 `kimi.plugin.json` | 在 forum.moonshot.ai 上提上架请求；官方目录与精选目录都是 Moonshot 自己的 | 清单已到位；**上架未申请** |
+| ChatGPT · OpenAI 目录 | `skills/` 树，打成 zip 上传 | 在 platform.openai.com/plugins 走门户提交，写法已记在 `integrations/codex-plugin/SUBMISSION.md` | **未提交**。只有「纯技能」这一条路走得通：'With MCP' 要一个**托管**端点加域名验证，而我们的是本地 stdio server |
+| Qwen Code | 自己什么都不读 | 无事可做 —— 它直接装 Claude Code Marketplace 与 Gemini 画廊的扩展 | 今天即可触达，无需工作 |
+| GLM（智谱） | 自己什么都不读 | 没找到第三方提交路径；它消费 MCP server，并跑兼容 Claude Code 的 harness | 今天即可通过 MCP server 触达 |
+| WorkBuddy SkillHub · ClawHub | 一棵 `SKILL.md` 树 | 上传前先要拿到 certified-developer 资格 | **未申请** |
+| MCP 聚合站（Glama · mcp.so · Smithery · PulseMCP） | `server.json`、npm 包、本仓库 | 基本自动：它们爬 GitHub 和官方注册表，所以要做的是**认领**条目而不是创建 | 未认领 |
+
+- **注意。** 这里有两份清单携带了构建过程**没人读**的版本号 —— `server.json` 的静默
+  滞后已经让我们付过一次代价。mcp 测试套件现在把 `gemini-extension.json` 和
+  `grok-plugin/.grok-plugin/plugin.json` 钉到解析器版本上，并把三份厂商启动命令钉到
+  Claude 插件那份上，这样没有哪份厂商清单能悄悄启动另一个 server。
+- **注意。** `integrations/grok-plugin/skills/` 是打包技能文本的**第五份**逐字节拷贝。
+  `skill-install.test.mjs` 现在守着它 —— 以及原先落在守卫之外的 dsh 那份。
+- **有意做薄。** 两份根清单都不带技能文本。Gemini 没有技能这个概念：一个扩展带 MCP
+  server，外加可选的 `GEMINI.md` 上下文文件 —— 那会是同一段散文的第六份拷贝。Kimi
+  确实读 `skills/`，但它把那些路径相对一个本单仓没有的插件根去解析，而一条静默解析
+  到空的路径，在市场条目里比一份只声明 server 的清单更糟。Grok 那份带技能，是因为
+  它的路子是 vendor 整个目录 —— 那边唯一一个现存的第三方插件就是这么搭的。
+- **确认。** 凡是自动索引的，确认的标准是**条目出现**，不是文件存在：去画廊或市场里
+  搜 `geml`，并把看到的记下来。仓库里有一份清单，什么都不能证明。
+
 ## `@geml/logseq-sync` —— watcher
 
 - **落到** npmjs.com/package/@geml/logseq-sync。这是真正干活的那一半：它监视 vault
@@ -184,6 +224,49 @@ flowchart TD
   里资产名为 `logseq-plugin-sync-vault-with-geml-v<x.y.z>.zip` · 镜像仓库的
   `plugin/package.json` 已是新版本 · 上架状态看
   `gh pr view 893 -R logseq/marketplace`。
+
+## `geml-check-action` —— GitHub Action
+
+- **落到** [GitHub Marketplace](https://github.com/marketplace?type=actions)，
+  而今天落到**哪儿都没有**：**它没有上架**。用户已经可以按路径引用它
+  （`geml-spec/geml/integrations/geml-check-action@main`），这也是这个缺口一直没被
+  注意到的原因 —— 上架是可发现性，不是能力。
+- **版本。** 它自己没有。没有 `package.json`；它就是 `action.yml` 加一份 README，
+  跑的是已发布的 CLI。
+- **怎么发。** 上架是勾一个复选框，不是跑一条命令：在 GitHub 界面里起草一个 release，
+  勾上 **Publish this Action to the GitHub Marketplace**。`action.yml` 已经带着
+  Marketplace 要求的 `branding`（图标 `check-circle`，颜色 purple），而上架要求
+  action 的文件在**仓库根目录** —— 这一个不在。所以要上架，就得要么做一个子树镜像
+  （Logseq 插件已经用的那个形状），要么接受路径引用是唯一入口。
+- **注意。** Marketplace 会拒绝 `action.yml` 不在被打 tag 仓库根目录的 action，
+  而它已发布的 tag 与这里其他 release 一样不可变。
+- **发后确认。** 上架之前没什么可确认的。
+
+## `obsidian` —— 未提交
+
+- **落到** 将来的 Obsidian 社区插件商店；**今天落到哪儿都没有**，这是决定而不是疏漏。
+  它的 README 说了，理由在 manifest 里：商店收录的插件来自**它们自己的**仓库、有自己
+  的 release，而这一个住在单仓里。
+- **版本**在 `manifest.json`（0.1.0）与 `package.json`。
+- **怎么发。** 还不适用。提交是向 `obsidianmd/obsidian-releases` 提 PR，前提是插件有
+  自己的仓库、自己的 release，以及一个从 viewer 里**抽出来**而不是拷过来的渲染核心。
+- **注意。** 它有意只是**查看器**、不是编辑器，而且绝不能接管 `.md` 的处理 —— 这条约束
+  才让它可以安心装在一个 vault 旁边，也是提交时会被拿来评判的那一条。
+- **确认。** 手工：把 `main.js` 与 `manifest.json` 拷进 `.obsidian/plugins/geml/`
+  然后启用它。
+
+## 有意不发布的部分
+
+`integrations/` 下有三个目录**故意**没有渠道。列在这里，是为了让下一个读者不要把它们
+的缺席读成遗漏。
+
+- **`langchain+llamaindex`** —— 一份参考集成，有 `pyproject.toml` 而没有 PyPI
+  release，这是故意的：它存在的意义是被阅读和抄走，它的 README 也这么写。发布它就要
+  让本仓库为一个 Python 包的兼容性矩阵负责。
+- **`tree-sitter`** —— 一份设计简报，不是语法。等有人把它写出来，它的渠道是 npm 加上
+  Neovim、Helix、Zed 三家共用的那套自注册。
+- **`windows-icon`** —— 一个 `install.ps1`，人在自己机器上跑。没有商店，也没有什么
+  可版本化的。
 
 # 顺序
 
