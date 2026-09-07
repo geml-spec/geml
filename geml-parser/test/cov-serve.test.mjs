@@ -46,10 +46,16 @@ console.error = (...a) => { errBuf += a.map(String).join(" ") + "\n"; };
 const errMark = () => errBuf.length;
 const errSince = (m) => errBuf.slice(m);
 
-const waitFor = async (pred, ms, what) => {
+// `poke` re-does whatever is supposed to produce the event, about once a
+// second. Waiting longer is not the fix for a filesystem event: a watcher that
+// was not armed yet when the write landed never sees it, and macOS delivers
+// through FSEvents, which coalesces besides — so one write is not a guarantee,
+// and a bigger budget only waits longer for an event that will never come.
+const waitFor = async (pred, ms, what, poke) => {
   const t0 = Date.now();
-  while (!pred()) {
+  for (let ticks = 0; !pred(); ticks++) {
     if (Date.now() - t0 > ms) throw new Error(`timeout waiting for ${what}\nstderr tail:\n${errBuf.slice(-2000)}`);
+    if (poke && ticks > 0 && ticks % 20 === 0) poke();
     await new Promise((r) => setTimeout(r, 50));
   }
 };
@@ -860,9 +866,16 @@ await atest("serve watchTree: walks the tree, prunes skip/dot dirs, reports file
   h.hit(parent, "grown");
   assert.ok(h.watched.has(join(parent, "grown")), "a NEW directory joins the watch set");
   assert.equal(events.length, 3, "…without reporting an edit");
-  // and a real fs event flows end-to-end through a per-dir watcher
-  writeFileSync(join(parent, "sub", "inner", "y.ts"), "export {};\n");
-  await waitFor(() => events.some((e) => typeof e === "string" && e.endsWith("y.ts")), 5000, "a real inner-dir event");
+  // and a real fs event flows end-to-end through a per-dir watcher. The write
+  // repeats while we wait (see `waitFor`): what is under test is that an event
+  // reaches the handler, not that the first write is the one that delivers it.
+  const inner = join(parent, "sub", "inner", "y.ts");
+  const touch = () => writeFileSync(inner, `export {};\n// ${Date.now()}\n`);
+  touch();
+  await waitFor(
+    () => events.some((e) => typeof e === "string" && e.endsWith("y.ts")),
+    15000, "a real inner-dir event", touch,
+  );
 });
 
 // ---- startServing + main ----------------------------------------------------
