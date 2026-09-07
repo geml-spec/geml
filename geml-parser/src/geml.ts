@@ -1340,19 +1340,26 @@ function tableFromDocument(source: string, id: string): TableModel | { records: 
 // id would mean "this block" while `#meta` means "all of them, merged", and an
 // address that means two things is the one thing §2 cannot have.
 function checkReservedMetaId(children: Block[], ctx: Ctx): void {
-  const metas: Array<Block & { kind: "block" }> = [];
+  // §4 says "a BLOCK may declare `{#meta}`", not "a meta block": the collision
+  // is between the id and the merged view, so it happens whatever type carries
+  // the id — a `note`, a heading, or a `meta` block naming itself. Only meta
+  // blocks used to be looked at, so `=== note {#meta}` beside two `meta`
+  // blocks passed with no diagnostic at all.
+  let metas = 0;
+  const claimed: Array<Extract<Block, { kind: "block" | "heading" }>> = [];
   const walk = (blocks: Block[]): void => {
     for (const b of blocks) {
-      if (b.kind === "block") {
-        if (b.type === "meta") metas.push(b);
-        if (b.children) walk(b.children);
+      if (b.kind === "block" || b.kind === "heading") {
+        if (b.kind === "block" && b.type === "meta") metas++;
+        if (b.id !== undefined && nameKey(b.id) === nameKey("meta")) claimed.push(b);
       }
+      if (b.kind === "block" && b.children) walk(b.children);
     }
   };
   walk(children);
-  if (metas.length < 2) return;
-  for (const b of metas) {
-    if (b.id !== undefined && nameKey(b.id) === nameKey("meta")) {
+  if (metas < 2) return;
+  for (const b of claimed) {
+    if (b.id !== undefined) {
       ctx.diags.push({
         severity: "error",
         code: "reserved-id",

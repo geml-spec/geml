@@ -170,8 +170,8 @@ from,                                          to,                kind, site
 #groupView,                                    #evalExpr,         call, geml-parser/src/table.ts:724
 geml-parser--geml.ts.geml#scanBlocks,          #parseTable,       call, geml-parser/src/geml.ts:884
 geml-parser--geml.ts.geml#chartSourceTable,    #parseTable,       call, geml-parser/src/geml.ts:1131
-geml-parser--geml.ts.geml#resolveTableSources, #parseTable,       call, geml-parser/src/geml.ts:1404
-geml-parser--geml.ts.geml#resolveViewSources,  #parseTable,       call, geml-parser/src/geml.ts:1555
+geml-parser--geml.ts.geml#resolveTableSources, #parseTable,       call, geml-parser/src/geml.ts:1411
+geml-parser--geml.ts.geml#resolveViewSources,  #parseTable,       call, geml-parser/src/geml.ts:1562
 #deriveView,                                   #applyDerivations, call, geml-parser/src/table.ts:833
 #deriveView,                                   #applyDerivations, call, geml-parser/src/table.ts:863
 #deriveView,                                   #applyDerivations, call, geml-parser/src/table.ts:899
@@ -193,7 +193,7 @@ geml-parser--geml.ts.geml#resolveViewSources,  #parseTable,       call, geml-par
 #deriveView,                                   #groupView,        call, geml-parser/src/table.ts:865
 #deriveView,                                   #orderView,        call, geml-parser/src/table.ts:869
 #deriveView,                                   #selectView,       call, geml-parser/src/table.ts:882
-geml-parser--geml.ts.geml#resolveViewSources,  #deriveView,       call, geml-parser/src/geml.ts:1592
+geml-parser--geml.ts.geml#resolveViewSources,  #deriveView,       call, geml-parser/src/geml.ts:1599
 #applyDerivations,                             #ensureCell,       call, geml-parser/src/table.ts:472
 ===
 

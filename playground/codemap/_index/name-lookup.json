@@ -1,9 +1,9 @@
 {
-  "(root)typeLiteral1346:querySelectorAll": [
+  "(root)typeLiteral1343:querySelectorAll": [
     {
-      "anchor": "scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/codeGraphRuntime().(root)typeLiteral1346:querySelectorAll().",
+      "anchor": "scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/codeGraphRuntime().(root)typeLiteral1343:querySelectorAll().",
       "doc": "geml-parser--render.ts.geml",
-      "id": "root-typeLiteral1346-querySelect"
+      "id": "root-typeLiteral1343-querySelect"
     }
   ],
   "Refusal.new": [
@@ -53,6 +53,13 @@
       "anchor": "scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/RenderCtx#budgetExhausted().",
       "doc": "geml-parser--render.ts.geml",
       "id": "RenderCtx-budgetExhausted"
+    }
+  ],
+  "RenderCtx.clsAttr": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/RenderCtx#clsAttr().",
+      "doc": "geml-parser--render.ts.geml",
+      "id": "RenderCtx-clsAttr"
     }
   ],
   "RenderCtx.codeGraphFigure": [
@@ -553,6 +560,13 @@
       "anchor": "scip-typescript npm @geml/geml 1.10.1 src/`geml.ts`/closeFenceLine().",
       "doc": "geml-parser--geml.ts.geml",
       "id": "closeFenceLine"
+    }
+  ],
+  "clsAttr": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/RenderCtx#clsAttr().",
+      "doc": "geml-parser--render.ts.geml",
+      "id": "RenderCtx-clsAttr"
     }
   ],
   "codeGraphFigure": [

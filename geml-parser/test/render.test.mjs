@@ -101,4 +101,59 @@ test("inline: emphasis, code, link, autoref resolve", () => {
   assert.ok(html.includes('href="#b">Budget</a>'), "autoref label from heading");
 });
 
+// -- author classes reach the markup, for EVERY typed block --------------------
+
+const frag = (src) => renderHtml(parse(src), { fragment: true });
+
+test("every typed block carries its author classes on its outermost element", () => {
+  // §4 puts `{.class}` on any block, and the renderer honoured it on two types
+  // out of the registry. Without a class hook a stylesheet can only address a
+  // block by `#id` — one CSS rule per block, and no reuse at all.
+  const html = frag([
+    "=== text {#t .pane}\nprose\n===",
+    "=== note {#n .warn}\nheads up\n===",
+    "=== code {#c .pane lang=sh}\nls\n===",
+    "=== table {#tb .decision}\n| a |\n|---|\n| 1 |\n===",
+    "=== math {#m .big}\nx^2\n===",
+    "=== diagram {#d .wide format=mermaid}\ngraph TD\nA-->B\n===",
+    '=== data {#j .cfg format=json}\n{"a":1}\n===',
+  ].join("\n\n"));
+  for (const [needle, why] of [
+    ['<div class="text pane" id="t"', "text"],
+    ['<aside class="callout note warn" id="n"', "note"],
+    ['<pre id="c" class="pane"', "code"],
+    ['<figure class="table-figure decision" id="tb"', "table"],
+    ['<div class="math-block big" id="m"', "math"],
+    ['<figure id="d" class="wide"', "diagram"],
+    ['<figure id="j" class="cfg"', "data"],
+  ]) {
+    assert.ok(html.includes(needle), `${why}: expected ${needle}\n${html}`);
+  }
+});
+
+test("a block that declares no class renders exactly as it did — no empty attribute", () => {
+  const html = frag("=== code {#c lang=sh}\nls\n===\n\n=== math {#m}\nx\n===\n");
+  assert.ok(html.includes('<pre id="c">'), html);
+  assert.ok(html.includes('<div class="math-block" id="m">'), html);
+  assert.ok(!html.includes('class=""'), "no empty class attribute anywhere");
+});
+
+test("an author cannot wear the renderer's own chrome, on any type", () => {
+  // The filter existed for `note`/`text`; opening the other types exposed the
+  // rest of the renderer's class names, so they are reserved too — otherwise a
+  // plain table could dress itself as the build-error box.
+  const html = frag([
+    "=== code {#a .table-figure}\nx\n===",
+    "=== code {#b .render-error}\nx\n===",
+    "=== code {#c2 .mermaid}\nx\n===",
+    "=== table {#d2 .geml-table}\n| a |\n|---|\n| 1 |\n===",
+    "=== math {#e .math-block}\nx\n===",
+  ].join("\n\n"));
+  assert.ok(html.includes('<pre id="a">'), "table-figure dropped");
+  assert.ok(html.includes('<pre id="b">'), "render-error dropped");
+  assert.ok(html.includes('<pre id="c2">'), "mermaid dropped");
+  assert.ok(html.includes('<figure class="table-figure" id="d2"'), "geml-table dropped");
+  assert.ok(html.includes('<div class="math-block" id="e"'), "math-block not doubled");
+});
+
 console.log(`\n${passed} test(s) passed.`);

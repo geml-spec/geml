@@ -393,6 +393,23 @@ test("`{#meta}` is an error only where it could disagree with the view", () => {
   assert.equal(cli(["check", one]).code, 0, "one meta block: the id and the view mean the same thing");
 });
 
+test("the reserved id is reserved against EVERY block type, not just `meta`", () => {
+  // §4 reserves the id, and the collision is between that id and the merged
+  // view — so whatever type carries it collides. Only `meta` blocks were being
+  // looked at, which let a `note` (or a heading) take the id in silence.
+  for (const [name, body] of [
+    ["m7.geml", '=== meta\na = "1"\n===\n\n=== meta\nb = "2"\n===\n\n=== note {#meta}\nmine\n===\n'],
+    ["m8.geml", '=== meta\na = "1"\n===\n\n=== meta\nb = "2"\n===\n\n# H {#meta}\n\ny\n'],
+  ]) {
+    const r = cli(["check", write(name, body)]);
+    assert.equal(r.code, 1, `${name} should be refused: ${r.out}${r.err}`);
+    assert.match(r.err + r.out, /`#meta` is reserved/);
+  }
+  // And still legal with a single `meta` block, where the two agree.
+  const ok = write("m9.geml", '=== meta\na = "1"\n===\n\n=== note {#meta}\nmine\n===\n');
+  assert.equal(cli(["check", ok]).code, 0, "one meta block: no disagreement to report");
+});
+
 test("a meta coordinate takes one quoted key and nothing deeper", () => {
   const f = write("m7.geml", MDOC);
   const r = cli(["set", f, '#meta["a"]["b"]', "-o", f], "X");

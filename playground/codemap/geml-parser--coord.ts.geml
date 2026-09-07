@@ -220,8 +220,8 @@ from,                                        to,              kind, site
 #planCoordWrite,                             #writeTable,     call, geml-parser/src/coord.ts:407
 #planCoordWrite,                             #writeValue,     call, geml-parser/src/coord.ts:408
 geml-parser--cli.ts.geml#reservedMeta,       #metaView,       call, geml-parser/src/cli.ts:1258
-geml-parser--geml.ts.geml#blockFromDocument, #metaView,       call, geml-parser/src/geml.ts:1692
-geml-parser--geml.ts.geml#validateCoordRef,  #metaView,       call, geml-parser/src/geml.ts:1738
+geml-parser--geml.ts.geml#blockFromDocument, #metaView,       call, geml-parser/src/geml.ts:1699
+geml-parser--geml.ts.geml#validateCoordRef,  #metaView,       call, geml-parser/src/geml.ts:1745
 geml-parser--cli.ts.geml#runGet,             #metaText,       call, geml-parser/src/cli.ts:1456
 #metaText,                                   #metaLiteral,    call, geml-parser/src/coord.ts:358
 #planMetaWrite,                              #metaLiteral,    call, geml-parser/src/coord.ts:380
@@ -230,7 +230,7 @@ geml-parser--cli.ts.geml#runSetMeta,         #planMetaWrite,  call, geml-parser/
 geml-parser--cli.ts.geml#runSetCoord,        #planCoordWrite, call, geml-parser/src/cli.ts:1968
 geml-parser--cli.ts.geml#runGet,             #projectCoord,   call, geml-parser/src/cli.ts:1460
 geml-parser--cli.ts.geml#runGet,             #projectCoord,   call, geml-parser/src/cli.ts:1486
-geml-parser--geml.ts.geml#validateCoordRef,  #projectCoord,   call, geml-parser/src/geml.ts:1748
+geml-parser--geml.ts.geml#validateCoordRef,  #projectCoord,   call, geml-parser/src/geml.ts:1755
 ===
 
 === table {#unresolved format=csv hidden}

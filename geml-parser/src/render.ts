@@ -105,7 +105,8 @@ function classAttr(tokens: string[]): string {
 // verbatim (the charset filter above only strips characters), so a plain note
 // could wear the build-error styling and read as a system message. Content
 // classes stay content classes; a token that names the chrome is dropped.
-const RENDERER_CLASS = /^(render-error|diagram-src|callout|text|geml-.*|transclusion(-.*)?)$/;
+const RENDERER_CLASS =
+  /^(render-error|diagram-src|callout|text|geml-.*|transclusion(-.*)?|math|math-block|mermaid|chart|code-graph|computed|media|fn|task|task-list|table-.*|data-(src|more)|c-(axis|grid|legend|tick|title)|cg-(mount|note))$/;
 const authorClasses = (cs: readonly string[]): string[] => cs.filter((c) => !RENDERER_CLASS.test(c));
 
 // Maximum block-nesting depth the renderer will descend before bailing out with
@@ -472,6 +473,19 @@ export class RenderCtx {
   // the same is invalid HTML, and an in-page link to one of them would land on
   // whichever the browser picked. The host keeps its own ids; a borrowed copy has
   // none, and references into it resolve against its source document instead.
+  // Author classes ride on a block's OUTERMOST element, beside its id — for
+  // every typed block, not just the two that happened to carry them. `{.pane}`
+  // on a `code` block is the hook a stylesheet wants; dropping it left `#id`
+  // as the only handle, which is one CSS rule per block and no reuse at all.
+  // Chrome names stay reserved (RENDERER_CLASS), so an author class still
+  // cannot dress a block up as the renderer's own furniture. Emitted AFTER the
+  // chrome tokens and only when non-empty, so a document that declares no
+  // classes renders byte-for-byte as before.
+  private clsAttr(classes: readonly string[], ...chrome: string[]): string {
+    const tokens = [...chrome, ...authorClasses(classes)];
+    return tokens.length === 0 ? "" : ` class="${classAttr(tokens)}"`;
+  }
+
   private idAttr(id: string | undefined): string {
     return id === undefined || this.embedDocs.length > 0 ? "" : ` id="${escAttr(id)}"`;
   }
@@ -602,23 +616,22 @@ export class RenderCtx {
       case "code": {
         const lang = typeof b.attrs["lang"] === "string" ? (b.attrs["lang"] as string) : "";
         const cls = lang ? ` class="language-${escAttr(lang)}"` : "";
-        return `<pre${idAttr}><code${cls}>${esc(raw)}</code></pre>`;
+        return `<pre${idAttr}${this.clsAttr(b.classes)}><code${cls}>${esc(raw)}</code></pre>`;
       }
       case "embed": return this.transclude(b, idAttr);
       case "math":
         this.usedMath = true;
-        return `<div class="math-block"${idAttr}>\\[${esc(raw)}\\]</div>`;
+        return `<div${this.clsAttr(b.classes, "math-block")}${idAttr}>\\[${esc(raw)}\\]</div>`;
       case "note": {
-        const classes = classAttr(["callout", b.type, ...authorClasses(b.classes)]);
         const inner = (b.children ?? []).map((c) => this.block(c)).filter((s) => s).join("\n");
-        return `<aside class="${classes}"${idAttr}>\n${inner}\n</aside>`;
+        return `<aside${this.clsAttr(b.classes, "callout", b.type)}${idAttr}>\n${inner}\n</aside>`;
       }
       case "text": {
         // Addressable prose (§3): flow children in a NEUTRAL container — the
         // block exists for its id/attrs, not for callout chrome (that's note).
         const inner = (b.children ?? []).map((c) => this.block(c)).filter((s) => s).join("\n");
-        const classes = classAttr(["text", ...authorClasses(b.classes)]);
-        return `<div class="${classes}"${idAttr}>\n${inner}\n</div>`;
+        // (`text` is a chrome token, so an author's own `.text` is dropped.)
+        return `<div${this.clsAttr(b.classes, "text")}${idAttr}>\n${inner}\n</div>`;
       }
       case "data": {
         // GEP-0005: the page shows a PREVIEW under the same row discipline
@@ -640,7 +653,7 @@ export class RenderCtx {
           } else if (src !== undefined) {
             // §9.4: a render-time source (http, or no resolver at build).
             const cap0 = caption ? `<figcaption>${esc(caption)}</figcaption>` : "";
-            return `<figure${idAttr}><p class="table-note">external data <code>${esc(src)}</code> — loaded at render time</p>${cap0}</figure>`;
+            return `<figure${idAttr}${this.clsAttr(b.classes)}><p class="table-note">external data <code>${esc(src)}</code> — loaded at render time</p>${cap0}</figure>`;
           }
         }
         // Overflow FOLDS; it is never dropped. `--to html` is a CONVERSION, and
@@ -658,21 +671,21 @@ export class RenderCtx {
         const rest = tail ? lines.slice(0, lines.length - shown.length) : lines.slice(shown.length);
         const cap = caption ? `<figcaption>${esc(caption)}</figcaption>` : "";
         const pre = (ls: string[]) => `<pre class="data-src" data-format="${escAttr(fmt)}">${esc(ls.join("\n"))}</pre>`;
-        if (rest.length === 0) return `<figure${idAttr}>${pre(shown)}${cap}</figure>`;
+        if (rest.length === 0) return `<figure${idAttr}${this.clsAttr(b.classes)}>${pre(shown)}${cap}</figure>`;
         // jsonl reads as an append-log, so its open end is the NEWEST lines and
         // the fold holds the earlier ones, above; json reads from the top.
         const more = `<details class="data-more"><summary>${rest.length} ${tail ? "earlier" : "more"} line${rest.length === 1 ? "" : "s"} of ${lines.length}</summary>${pre(rest)}</details>`;
-        return `<figure${idAttr}>${tail ? more + pre(shown) : pre(shown) + more}${cap}</figure>`;
+        return `<figure${idAttr}${this.clsAttr(b.classes)}>${tail ? more + pre(shown) : pre(shown) + more}${cap}</figure>`;
       }
       case "table":
-        return b.table ? this.table(b.table, b.id, caption) : `<p class="render-error">table failed to parse</p>`;
+        return b.table ? this.table(b.table, b.id, caption, b.classes) : `<p class="render-error">table failed to parse</p>`;
       case "view":
-        return b.table ? this.table(b.table, b.id, caption) : `<p class="render-error">view failed to resolve</p>`;
+        return b.table ? this.table(b.table, b.id, caption, b.classes) : `<p class="render-error">view failed to resolve</p>`;
       case "diagram":
         return this.diagram(b, raw, caption);
       default: {
         // Unknown type: preserved as raw (spec §3). Show it, labelled.
-        return `<figure${idAttr}><pre class="diagram-src" data-type="${escAttr(b.type)}">${esc(raw)}</pre>` +
+        return `<figure${idAttr}${this.clsAttr(b.classes)}><pre class="diagram-src" data-type="${escAttr(b.type)}">${esc(raw)}</pre>` +
           `<figcaption>unknown block type <code>${esc(b.type)}</code>; shown as raw</figcaption></figure>`;
       }
     }
@@ -685,18 +698,18 @@ export class RenderCtx {
 
     if (fmt === "geml-chart") {
       if (b.chart) return `<figure class="chart"${idAttr}>${chartSvg(b.chart, caption)}${cap}</figure>`;
-      return `<figure${idAttr}><p class="render-error">chart could not be built (see diagnostics)</p>${cap}</figure>`;
+      return `<figure${idAttr}${this.clsAttr(b.classes)}><p class="render-error">chart could not be built (see diagnostics)</p>${cap}</figure>`;
     }
     if (fmt === "geml-code-graph") {
       const src = typeof b.attrs["src"] === "string" ? (b.attrs["src"] as string) : "";
-      return this.codeGraphFigure(src, idAttr, cap);
+      return this.codeGraphFigure(src, idAttr, cap, b.classes);
     }
     if (fmt === "mermaid") {
       this.usedMermaid = true;
-      return `<figure${idAttr}><pre class="mermaid">${esc(raw)}</pre>${cap}</figure>`;
+      return `<figure${idAttr}${this.clsAttr(b.classes)}><pre class="mermaid">${esc(raw)}</pre>${cap}</figure>`;
     }
     // graphviz / d2 / plantuml / vega-lite / unknown: no bundled engine yet.
-    return `<figure${idAttr}><pre class="diagram-src" data-format="${escAttr(fmt)}">${esc(raw)}</pre>` +
+    return `<figure${idAttr}${this.clsAttr(b.classes)}><pre class="diagram-src" data-format="${escAttr(fmt)}">${esc(raw)}</pre>` +
       `<figcaption>${caption ? esc(caption) + " — " : ""}<code>${esc(fmt || "diagram")}</code> (no bundled renderer in this build)</figcaption></figure>`;
   }
 
@@ -704,31 +717,31 @@ export class RenderCtx {
   // codemap document `src` points at (roots/depth from ITS meta), embed the
   // data, and let the in-page runtime lay it out at draw time — that is what
   // makes click-to-re-root possible.
-  codeGraphFigure(src: string, idAttr: string, cap: string): string {
+  codeGraphFigure(src: string, idAttr: string, cap: string, classes: readonly string[] = []): string {
     if (!src) {
-      return `<figure class="code-graph"${idAttr}><p class="render-error">geml-code-graph: missing <code>src=</code></p>${cap}</figure>`;
+      return `<figure${this.clsAttr(classes, "code-graph")}${idAttr}><p class="render-error">geml-code-graph: missing <code>src=</code></p>${cap}</figure>`;
     }
     if (this.opts.graphSidecar) {
       // Sidecar mode (served pages): don't build the slice here at all — the
       // page ships without the payload and the runtime fetches it from the
       // sidecar route after first paint. Errors surface in the mount then.
       this.usedCodeGraph = true;
-      return `<figure class="code-graph"${idAttr}><div class="cg-mount" data-start="${escAttr(src)}"` +
+      return `<figure${this.clsAttr(classes, "code-graph")}${idAttr}><div class="cg-mount" data-start="${escAttr(src)}"` +
         ` data-graph-src="${escAttr(this.opts.graphSidecar + encodeURIComponent(src))}"></div>${cap}</figure>`;
     }
     const r = buildCodeGraph(src, this.opts);
     if (r.error !== undefined) {
-      return `<figure class="code-graph"${idAttr}><p class="render-error">geml-code-graph: ${esc(r.error)}</p>${cap}</figure>`;
+      return `<figure${this.clsAttr(classes, "code-graph")}${idAttr}><p class="render-error">geml-code-graph: ${esc(r.error)}</p>${cap}</figure>`;
     }
     this.usedCodeGraph = true;
     const note = r.truncated ? `<p class="cg-note">graph data capped at ${CG_MAX_NODES} nodes for this embed — the codemap documents themselves are complete</p>` : "";
     // data-start carries the slice's own document path so a live module
     // script (opts.liveGraph) can hook the mount without re-parsing the
     // multi-MB payload attribute.
-    return `<figure class="code-graph"${idAttr}><div class="cg-mount" data-start="${escAttr(r.data!.start)}" data-graph="${escAttr(JSON.stringify(r.data))}"></div>${note}${cap}</figure>`;
+    return `<figure${this.clsAttr(classes, "code-graph")}${idAttr}><div class="cg-mount" data-start="${escAttr(r.data!.start)}" data-graph="${escAttr(JSON.stringify(r.data))}"></div>${note}${cap}</figure>`;
   }
 
-  private table(t: TableModel, id?: string, caption?: string): string {
+  private table(t: TableModel, id?: string, caption?: string, classes: readonly string[] = []): string {
     const idAttr = id ? ` id="${escAttr(id)}"` : "";
     const alignStyle = (a?: Align) => (a ? ` style="text-align:${a}"` : "");
 
@@ -771,10 +784,10 @@ export class RenderCtx {
     const tools = `<div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div>`;
     if (allRows.length > foldAbove) {
       const summary = `${esc(id ? "#" + id : "table")} · ${allRows.length} rows`;
-      return `<figure class="table-figure"${idAttr}><details><summary>${summary}</summary>${tools}` +
+      return `<figure${this.clsAttr(classes, "table-figure")}${idAttr}><details><summary>${summary}</summary>${tools}` +
         `<div class="table-scroll"><table class="geml-table">${thead}<tbody>\n${bodyRows}\n</tbody>${tfoot}</table></div></details>${cap}</figure>`;
     }
-    return `<figure class="table-figure"${idAttr}>${tools}` +
+    return `<figure${this.clsAttr(classes, "table-figure")}${idAttr}>${tools}` +
       `<div class="table-scroll"><table class="geml-table">${thead}<tbody>\n${bodyRows}\n</tbody>${tfoot}</table></div>${cap}</figure>`;
   }
 }

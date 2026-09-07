@@ -188928,22 +188928,25 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     return anyBlock === void 0 ? null : "not-a-table";
   }
   function checkReservedMetaId(children2, ctx) {
-    const metas = [];
+    let metas = 0;
+    const claimed = [];
     const walk = (blocks2) => {
       for (const b3 of blocks2) {
-        if (b3.kind === "block") {
-          if (b3.type === "meta")
-            metas.push(b3);
-          if (b3.children)
-            walk(b3.children);
+        if (b3.kind === "block" || b3.kind === "heading") {
+          if (b3.kind === "block" && b3.type === "meta")
+            metas++;
+          if (b3.id !== void 0 && nameKey(b3.id) === nameKey("meta"))
+            claimed.push(b3);
         }
+        if (b3.kind === "block" && b3.children)
+          walk(b3.children);
       }
     };
     walk(children2);
-    if (metas.length < 2)
+    if (metas < 2)
       return;
-    for (const b3 of metas) {
-      if (b3.id !== void 0 && nameKey(b3.id) === nameKey("meta")) {
+    for (const b3 of claimed) {
+      if (b3.id !== void 0) {
         ctx.diags.push({
           severity: "error",
           code: "reserved-id",
