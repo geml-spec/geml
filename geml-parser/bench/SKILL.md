@@ -87,13 +87,15 @@ graph LR
   A --> B
 ===
 ```
-Chart drawn from a table (empty body — the spec is in the attributes):
+Chart drawn from a table or a view (empty body — the spec is in the attributes):
 ```
-=== diagram {format=geml-chart data=#fy type=bar x=Seg y=FY}
+=== diagram {format=geml-chart data=#fy-report type=bar x=Seg y=FY}
 ===
 ```
 `type` ∈ `bar|line|area|pie|scatter`; `x`/`y` are column names; `data=#id` must
-point at a table; a typo'd column or dangling id is a build **error**.
+point at a table, a `view`, or a record-array `data` block — a computed column
+like `FY` exists only on the `view`, so bind there; a typo'd column or dangling
+id is a build **error**.
 
 ## Math
 ```

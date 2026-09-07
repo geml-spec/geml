@@ -305,10 +305,10 @@ its relative paths resolve against, and its external data (`src=`) all resolve
 against **itself**, not against the document holding the `embed`:
 
 ```
-a.geml                              b.geml
-─────────────────────────────       ──────────────────────────────
-=== embed {src=b.geml#tbl}          === table {#tbl src=rows.csv}
-===                                 ===
+  a.geml                              b.geml
+  ─────────────────────────────       ──────────────────────────────
+  === embed {src=b.geml#tbl}          === table {#tbl src=rows.csv}
+  ===                                 ===
 ```
 
 `rows.csv` resolves against `b.geml`'s directory — the same way it resolves when

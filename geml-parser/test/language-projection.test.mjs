@@ -52,7 +52,7 @@ Anything red, stop.
 test("§GEP-0010: the four run shapes are exactly the proposal's worked example", () => {
   const listed = addressedUnits(PUB).map((a) => [shortestAddress(a, addressedUnits(PUB)), a.unit.kind]);
   assert.deepEqual(listed, [
-    ["=== meta", "block"],
+    ["#meta", "block"],
     ["#pub", "heading"],
     ["#pub-before-cmd", "prose"],          // P absent -> #C-before-N
     ["#cmd", "block"],

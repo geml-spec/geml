@@ -1457,3 +1457,41 @@ test("forgiving a pre-existing defect is scoped to Markdown; a .geml document st
   assert.match(readFileSync(md, "utf8"), /edited anyway/);
   rmSync(d, { recursive: true, force: true });
 });
+
+test("reading through a duplicated id names the collision instead of silently answering the first", () => {
+  // A duplicate id is a build error, so the address means two blocks. `get`
+  // answered the first one with exit 0 and said nothing — the one failure mode
+  // worse than refusing, because the caller gets the wrong section and no
+  // signal at all. The recurring-section shape (a CHANGELOG's `### Added`
+  // under every release) reaches this by accident, from derived ids alone.
+  const d = mkdtempSync(join(tmpdir(), "geml-dupread-"));
+  const f = join(d, "dup-read.geml");
+  writeFileSync(f, "## A {#dup}\n\nfirst body\n\n## B {#dup}\n\nsecond body\n");
+  const r = run(["get", f, "#dup"]);
+  assert.equal(r.code, 0, "the read still answers — a reader is not held hostage");
+  assert.match(r.out, /first body/, "with the first of the two, as before");
+  assert.doesNotMatch(r.out, /second body/, "stdout stays one block, so pipelines are unchanged");
+  assert.match(r.err, /`#dup`/, "but stderr names the ambiguous address");
+  assert.match(r.err, /\b1\b[\s\S]*\b5\b/, "and both lines that declare it");
+  rmSync(d, { recursive: true, force: true });
+});
+
+test("a write refused only by errors that predate it says the edit caused none of them", () => {
+  // The guard is right to refuse — inside a .geml "every reference resolves" is
+  // the author's own contract (and `duplicate-id` is refused everywhere). But
+  // "replacement would break the document" blames content that broke nothing,
+  // sending the author to look for a defect in what they just wrote. The MCP
+  // surface already tells the model the errors predate its edit; the terminal
+  // deserves the same sentence.
+  const d = mkdtempSync(join(tmpdir(), "geml-stalewrite-"));
+  const f = join(d, "stale-write.geml");
+  writeFileSync(f, "=== note {#x}\nbroken: [[#missing]]\n===\n\n=== note {#y}\nfixable\n===\n");
+  const before = readFileSync(f, "utf8");
+  const r = run(["set", f, "#y", "--body", "--in", "-", "-o", f], "edited anyway\n");
+  assert.equal(r.code, 1, "still refused");
+  assert.match(r.err, /unresolved reference/, "still names the diagnostic that refused it");
+  assert.match(r.err, /already/i, "and says the document already carried it");
+  assert.doesNotMatch(r.err, /would break the document/, "so it stops blaming the replacement");
+  assert.equal(readFileSync(f, "utf8"), before, "nothing written");
+  rmSync(d, { recursive: true, force: true });
+});

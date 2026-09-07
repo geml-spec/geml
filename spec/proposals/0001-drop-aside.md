@@ -38,9 +38,9 @@ Removing `aside` before the format has adopters is the low-cost moment to do it.
 Before / after:
 
 ```
-=== aside {.x}          →      === note {.aside}
-tangential prose               tangential prose
-===                            ===
+  === aside {.x}          →      === note {.aside}
+  tangential prose               tangential prose
+  ===                            ===
 ```
 
 ## Conformance impact

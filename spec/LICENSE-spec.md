@@ -12,9 +12,15 @@ that an independent implementation is welcome and unencumbered.
 
 ## Documents covered
 
-- `GEML-spec.md`, `GEML-spec_CN.md`
-- `in_geml_format/GEML-spec.geml`, `in_geml_format/GEML-spec_CN.geml` (the
-  specification, written in GEML — and their `.gemlhistory` sidecars)
+- `GEML-spec.md`, `GEML-spec_CN.md` — the normative text, English and Chinese
+- `in_geml_format/GEML-spec.geml` (the specification, written in GEML — and its
+  `.gemlhistory` sidecar)
+- `in_geml_format/GEML-spec_CN.geml`. Note what this file now is: since the
+  language-projection work it is no longer a second full document but a
+  `geml-translator/v1` **projection** of the English `.geml` — a translated
+  glossary plus `embed` blocks that resolve against it. It stays on this list
+  because the glossary is specification text in Chinese; the embed machinery
+  around it carries no normative content of its own.
 
 The list is **one** specification and the GEML rendering of it. Everything else
 — the profiles under `spec/profiles/`, the GEPs under `spec/proposals/`, all of

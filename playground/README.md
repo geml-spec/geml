@@ -61,7 +61,7 @@ cd .. && rm -rf playground/codemap && node geml-parser/dist/geml.js codemap buil
   --adapter scip --raw /tmp/geml-parser.scip --adapter scip --raw /tmp/geml-viewer.scip \
   --root . --out playground/codemap --build /tmp/cg-build --container file
 node geml-parser/dist/geml.js codemap verify playground/codemap
-for f in playground/codemap/*.geml; do node geml-parser/dist/geml.js render "$f" -o "${f%.geml}.html"; done
+node geml-parser/dist/geml.js codemap render playground/codemap   # every doc -> sibling .html
 ```
 
 ## Host it (free)

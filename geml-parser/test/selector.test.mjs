@@ -65,10 +65,11 @@ test("the listing names every unit once, by its shortest unique address", () => 
   const r = run(["get", f]);
   assert.equal(r.code, 0, r.err);
   const addrs = r.out.trim().split("\n").map((l) => l.trim().split(/\s{2,}/)[0]);
-  // §6.2: one line per unit. An id-bearing block prints its id; the unique-type
-  // `meta` prints the bare fence; the two rival notes print content addresses.
+  // §6.2: one line per unit. An id-bearing block prints its id; a lone `meta`
+  // prints the reserved `#meta`, which addresses the merged view and with one
+  // block IS that block; the two rival notes print content addresses.
   assert.deepEqual(addrs.filter((a) => !a.startsWith("@") && !a.includes("@")),
-    ["#top", "=== meta", "#warn", "#sect"]);
+    ["#top", "#meta", "#warn", "#sect"]);
   const content = addrs.filter((a) => a.includes("@"));
   assert.equal(content.length, 2, "both anonymous notes get a content address");
   assert.ok(content.every((a) => /^=== note@[0-9a-f]{8}$/.test(a)), content.join(" "));
@@ -77,11 +78,67 @@ test("the listing names every unit once, by its shortest unique address", () => 
 test("every id-less block is flagged anon, including a unique-type one", () => {
   const f = write("l2.geml", ANON);
   const rows = JSON.parse(run(["get", f, "--json"]).out);
-  // §6.3: `=== meta` works only because its type happens to be unique, and that
-  // it still has no id is precisely what you might want to act on (§5.2).
-  assert.equal(rows.find((x) => x.address === "=== meta").anon, true);
+  // §6.3: the lone `meta` is addressed by the RESERVED id `#meta`, and that the
+  // block itself still declares none is precisely what you might want to act
+  // on (§5.2) — so the address works while `anon` stays true.
+  assert.equal(rows.find((x) => x.address === "#meta").anon, true);
   assert.equal(rows.find((x) => x.address === "#warn").anon, undefined);
   assert.equal(rows.find((x) => x.address === "#warn").id, "warn");
+});
+
+test("`#meta` is the lone meta block's address, and it round-trips through get", () => {
+  const f = write("l-meta1.geml", '=== meta\ntitle = "solo"\n===\n\n=== note {#n}\nx\n===\n');
+  assert.match(run(["list", f]).out, /^#meta {2,}meta {2,}anon {2,}L1-3$/m);
+  // The listing's contract is that its first column is what the other verbs
+  // take, so the new address has to answer as well as the old one did.
+  assert.equal(run(["get", f, "#meta"]).out.trim(), 'title = "solo"');
+  assert.equal(run(["get", f, "=== meta"]).code, 0, "the type form keeps working");
+});
+
+test("several meta blocks keep the type form: `#meta` is the merge, not a block", () => {
+  // `#meta` addresses the MERGED view (§4), so with two blocks it names neither
+  // — printing it twice would put one address on two rows.
+  const f = write("l-meta2.geml", '=== meta\na = "1"\n===\n\n=== meta\nb = "2"\n===\n');
+  const addrs = run(["list", f]).out.trim().split("\n").map((l) => l.split(/\s{2,}/)[0]);
+  assert.ok(addrs.every((a) => /^=== meta@[0-9a-f]{8}$/.test(a)), addrs.join(" "));
+  assert.equal(run(["get", f, "#meta"]).out.trim().split("\n").length, 2, "and #meta still answers the merge");
+});
+
+test("a block already declaring `meta` keeps the id; the meta block falls back", () => {
+  const f = write("l-meta3.geml", '=== meta\na = "1"\n===\n\n=== note {#meta}\nmine\n===\n');
+  const addrs = run(["list", f]).out.trim().split("\n").map((l) => l.split(/\s{2,}/)[0]);
+  assert.deepEqual(addrs, ["=== meta", "#meta"], "one #meta in the listing, and it is the note's");
+});
+
+test("the listing pads by terminal COLUMNS, so a CJK id does not skew it", () => {
+  // A wide code point occupies two cells; `padEnd` counts code units, which
+  // pushed every column after a Chinese id or heading out of true.
+  const f = write("l-wide.geml", "# 实现前必须定下的三件事 {#实现前必须定下的三件事}\n\n"
+    + "text\n\n=== note {#short}\nx\n===\n");
+  const lines = run(["list", f]).out.trim().split("\n");
+  const cols = lines.map((l) => {
+    const i = l.indexOf("  ");                        // end of the address column
+    let w = 0;
+    for (const ch of l.slice(0, i)) w += /[⺀-鿿가-힣＀-｠]/.test(ch) ? 2 : 1;
+    return w + (l.slice(i).length - l.slice(i).trimStart().length);
+  });
+  assert.equal(new Set(cols).size, 1, `second field starts at one column: ${cols.join(",")}`);
+});
+
+test("a type nothing admits is SAID so on its row, and a profile's type is not", () => {
+  // The flag comes from the parse's own `unknown-block-type` diagnostic, so the
+  // listing cannot disagree with `check` about the same document.
+  const f = write("l-unk.geml", '=== meta\nprofile = "geml-history/v1"\n===\n\n'
+    + "=== field {#f1}\nraw\n===\n\n"
+    + '=== history-revision {id="x" hash="sha256:0" newline="lf"}\n===\n\n'
+    + "=== note {#n}\nok\n===\n");
+  const out = run(["list", f]).out;
+  assert.match(out, /#f1 .*field .*unknown type/, out);
+  assert.doesNotMatch(out, /history-revision.*unknown type/, "the profile admits it");
+  assert.doesNotMatch(out, /#n .*unknown type/, out);
+  const rows = JSON.parse(run(["list", f, "--json"]).out);
+  assert.equal(rows.find((r) => r.address === "#f1").unknownType, true);
+  assert.equal(rows.find((r) => r.address === "#n").unknownType, undefined);
 });
 
 test("a prose-only document lists nothing and still exits 0", () => {

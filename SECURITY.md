@@ -43,5 +43,8 @@ diagram bodies are
 passed to external renderers verbatim. Reports about untrusted-document
 handling (path traversal via cross-document references, resource loading in
 rendered HTML, ReDoS in the parser, recipe/CLI injection) are very much in
-scope — this project has shipped dedicated hardening releases (1.2.1, 1.2.2)
-for exactly that class of issue.
+scope — this project has shipped dedicated hardening releases for exactly that
+class of issue, starting with 1.2.1 and 1.2.2 and continuing through further
+audit rounds since. [`CHANGELOG.md`](CHANGELOG.md) records each one under
+*Security*; a round sitting under `[Unreleased]` there has landed on `main` but
+is not on npm yet, so check both before concluding a fix has reached you.

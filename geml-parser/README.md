@@ -274,7 +274,8 @@ function that returns another file's source by path (or `null`).
 
 ## Documentation
 
-Full normative spec, history-sidecar spec, and format comparison live in the
+The full normative spec, the `geml-history/v1` profile that defines the sidecar,
+and the format comparison live in the
 [repository](https://github.com/geml-spec/geml). The spec is itself
 written in GEML (`GEML-spec.geml`) and parsed clean on every test run.
 

@@ -49,10 +49,11 @@ check what is open before you start: the README's
 **[claim a piece](README.md#integrations)** table lists the gaps that are open
 right now with what each one takes, and the table under it lists every shipped
 integration with its current state. Nobody has started a tree-sitter grammar
-(`integrations/tree-sitter/` is notes only), Logseq, Notion, Pandoc, or an LSP
-either — those are open too. Open an issue to claim one so we can link it.
-(Logseq is in progress: a GEML round trip against a live DB graph is proven on
-`feat/logseq-geml`.)
+(`integrations/tree-sitter/` is notes only), Notion, Pandoc, or an LSP either —
+those are open too. Open an issue to claim one so we can link it.
+(Logseq is no longer on that list: [`integrations/logseq/`](integrations/logseq/)
+syncs a live Logseq 2.0 DB graph to a GEML vault both ways, and the watcher ships
+as `@geml/logseq-sync`. What is still open there is the marketplace listing.)
 
 ## Reporting bugs
 

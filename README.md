@@ -271,11 +271,12 @@ graph LR
 A diagram can also **chart a table** — single source of truth, with the column references checked at build time and no data copied:
 
 ```
-=== diagram {format=geml-chart data=#fy25 type=bar x=Segment y=FY}
+=== diagram {format=geml-chart data=#fy25-report type=bar x=Segment y=FY}
 ===
 ```
 
-*Drawn from the `#fy25` table above:*
+*Drawn from the `#fy25-report` view above — `FY` is a computed column, so the
+chart binds to the view that derives it, not to the base table:*
 
 ```mermaid
 xychart-beta
@@ -356,6 +357,7 @@ Then, in the order that suits you:
 2. **Run it locally.** `npm i -g @geml/geml` (Node 22+), then `geml check` a document, or point it at your own repo with `geml codemap build`.
 3. **Set up Claude Code — one command.** `npx -y @geml/geml skill install` puts the authoring skill, the CLI and the MCP server in place, user-global, for every project. It edits no settings and installs no hooks. [Details](#with-an-llm).
 4. **Read the grammar.** The **[full spec](spec/GEML-spec.md)** (EN / [中文](spec/GEML-spec_CN.md)) is normative and short enough to read in a sitting.
+5. **Or see it worked through, rule by rule.** **[GEML, illustrated](docs/illustrated/README.md)** (EN / [中文](docs/illustrated/README_CN.md)) — eleven self-contained pages, one per block type, per profile, and for the CLI: GEML on the left, what the processor *actually* does on the right (`geml check` diagnostics, `geml list` addresses, `--to html` markup), each rule tagged with its source and status.
 
 <a id="with-an-llm"></a>
 ## Using GEML with an LLM
@@ -510,12 +512,17 @@ one client entry instead of two. Every tool and option:
 
 GEML is a small, young spec — but a **stable** one: **`1.0`** is released and usable for real documents (this repo's own spec is one), with a strict conformance suite, a reference implementation that passes it **(versioned independently of the spec)**, and an open proposal process.
 
-Both specs are bilingual:
+There is **one** specification, and it is bilingual. The `.gemlhistory` sidecar
+is defined by the `geml-history/v1` **profile** — an application layer on top of
+the spec rather than part of it, which is also why it is MIT and the spec is
+CC-BY ([`LICENSE-spec.md`](spec/LICENSE-spec.md) says why):
 
 | Document | English | 中文 |
 |----------|---------|------|
-| Core spec | [`GEML-spec.md`](spec/GEML-spec.md) | [`GEML-spec_CN.md`](spec/GEML-spec_CN.md) |
-| History extension | [`GEML-history-spec.md`](spec/profiles/geml-history/geml-history-profile.md) | [`GEML-history-spec_CN.md`](spec/profiles/geml-history/geml-history-profile_CN.md) |
+| The specification | [`GEML-spec.md`](spec/GEML-spec.md) | [`GEML-spec_CN.md`](spec/GEML-spec_CN.md) |
+| `geml-history/v1` profile | [`geml-history-profile.md`](spec/profiles/geml-history/geml-history-profile.md) | [`geml-history-profile_CN.md`](spec/profiles/geml-history/geml-history-profile_CN.md) |
+
+Every profile this project publishes: [`spec/profiles/`](spec/profiles/README.md).
 
 ### Versions and compatibility
 
@@ -558,11 +565,12 @@ Both specs are bilingual:
 <a id="roadmap"></a>
 ## Roadmap
 
-- [x] The GEML `1.0` spec (core + history extension), in English and Chinese, with a conformance suite
+- [x] The GEML `1.0` specification, in English and Chinese, with a conformance suite — plus the `geml-history/v1` profile that defines the `.gemlhistory` sidecar
 - [x] Reference implementation `@geml/geml`: parser, CLI, block-level `.gemlhistory` tracking
 - [x] Official MCP server (`geml mcp`) for Claude Code, Cursor, Codex and other MCP hosts
 - [x] codemap — a whole codebase's call graph, written as GEML
-- [x] Ecosystem integrations: VS Code highlighting and reference checking, tree-sitter, Obsidian, the browser viewer, a GitHub Action, LangChain / LlamaIndex, the Claude Code plugin, the Codex plugin, the DeepSeek Harness plugin
+- [x] Ecosystem integrations: VS Code highlighting and reference checking, tree-sitter, Obsidian, Logseq (two-way sync against a live DB graph), the browser viewer, a GitHub Action, LangChain / LlamaIndex, and the agent-harness plugins — Claude Code, Codex, Grok, DeepSeek Harness, plus root manifests for Gemini CLI and Kimi Code
+- [ ] The Logseq plugin listed in the Logseq marketplace ([PR #893](https://github.com/logseq/marketplace/pull/893)) and the Grok plugin listed in `xai-org/plugin-marketplace`
 - [ ] The VS Code extension on the Marketplace
 - [ ] Parsers in other languages (Rust / Python) — the spec and the conformance suite are public, so community implementations are welcome; we are glad to help line them up
 
@@ -610,6 +618,8 @@ Or **put it to use**:
 | **Let an agent edit by block** — an MCP server; the agent changes one block instead of rewriting the file, and every write is validated before it reaches disk | [`docs/mcp-guide.md`](docs/mcp-guide.md) | Available |
 | **Use it from DeepSeek Harness** — the geml MCP server plus the authoring and code-graph skills, one installable bundle | [`@geml/dsh-plugin`](https://www.npmjs.com/package/@geml/dsh-plugin) · [dshmarket](https://dshmarket.com/p/geml-spec/geml--integrations-dsh-plugin/) · [source](integrations/dsh-plugin/) | Available |
 | **Use it from Codex** — the same payload again: both skills, the MCP server, and a `SessionStart` hook, installable from `/plugins` | [`integrations/codex-plugin/`](integrations/codex-plugin/) | Available from this repo; not in the public plugin directory yet |
+| **Use it from Grok** — the same payload once more: both skills and the MCP server | [`integrations/grok-plugin/`](integrations/grok-plugin/) | Available from this repo; the `xai-org/plugin-marketplace` PR is not opened yet |
+| **Sync a Logseq graph to plain text** — a Logseq 2.0 DB graph as continuously synced GEML files, addressable and git-friendly, with `restore` as the way back | [`@geml/logseq-sync`](https://www.npmjs.com/package/@geml/logseq-sync) · [source](integrations/logseq/) | Watcher on npm; the plugin installs from a release zip — the marketplace listing ([PR #893](https://github.com/logseq/marketplace/pull/893)) is not merged yet |
 | **Turn a codebase into a document** — the whole call graph as a tree of GEML documents, browsable | `geml codemap build` ([design](docs/design/specs/geml-codemap/DESIGN-geml-code-graph.md)) | Available |
 | **Write it in your editor** — syntax highlighting + build-time reference checking | [`integrations/vscode/`](integrations/vscode/) | Built — install from source; not on the Marketplace yet |
 | **Render it in Obsidian** — the reference parser + the viewer's renderer, the same code path as the web | [`integrations/obsidian/`](integrations/obsidian/) | Built, not in the community store |
@@ -624,16 +634,19 @@ disagree with the design as sharply as you like, not with the person.
 ## Repository layout
 
 ```
-spec/                  Core spec + .gemlhistory extension as .md (EN / 中文), the
-                       CC-BY spec license, and proposals/ (GEPs)
-spec/in_geml_format/   The dogfood: those same specs written in GEML, with their
-                       .gemlhistory sidecars
+spec/                  The specification as .md (EN / 中文) and the CC-BY spec
+                       license, with profiles/ (application layers — geml-history,
+                       geml-codemap, geml-style, geml-form) and proposals/ (GEPs),
+                       both MIT
+spec/in_geml_format/   The dogfood: the specification written in GEML, with its
+                       .gemlhistory sidecar
 geml-parser/           Reference parser, renderer, CLI + codemap toolkit (TypeScript, Node 22)
 integrations/          Everywhere GEML plugs in: geml-viewer (browser extension),
-                       geml-check-action (CI), vscode, obsidian, tree-sitter
-                       (brief), langchain+llamaindex (RAG loaders), windows-icon
+                       geml-check-action (CI), vscode, obsidian, logseq (two-way
+                       vault sync + the watcher), tree-sitter (brief),
+                       langchain+llamaindex (RAG loaders), windows-icon
                        (Explorer file icons), and the agent-harness plugins —
-                       claude-plugin, codex-plugin, dsh-plugin
+                       claude-plugin, codex-plugin, grok-plugin, dsh-plugin
 .agents/, .claude-plugin/   Plugin marketplace manifests, so the plugins show up
                        from a checkout (Codex `/plugins`, Claude Code `/plugin`)
 playground/            In-browser playground (+ a live geml-code-graph of this repo)

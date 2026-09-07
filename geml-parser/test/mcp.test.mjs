@@ -117,12 +117,12 @@ test("geml_list returns every addressable block, id-less ones included", () => {
   ws();
   const rows = call("geml_list", { file: "d.geml" }).json;
   // Selector design §6: the listing covers EVERY block, so the fixture's
-  // anonymous `=== meta` now appears too — flagged `anon`, addressed by its
-  // type. The id-bearing blocks still report an `id`, which is what every
-  // other tool on this server takes.
-  assert.deepEqual(rows.map((b) => b.address), ["=== meta", "#doc", "#alpha", "#beta", "#gamma"]);
+  // id-less `meta` appears too — flagged `anon`, and addressed by the reserved
+  // `#meta`, which with a single meta block names that block. The id-bearing
+  // blocks still report an `id`, which is what every other tool here takes.
+  assert.deepEqual(rows.map((b) => b.address), ["#meta", "#doc", "#alpha", "#beta", "#gamma"]);
   assert.deepEqual(rows.filter((b) => b.id).map((b) => b.id), ["doc", "alpha", "beta", "gamma"]);
-  assert.deepEqual(rows.filter((b) => b.anon).map((b) => b.address), ["=== meta"]);
+  assert.deepEqual(rows.filter((b) => b.anon).map((b) => b.address), ["#meta"]);
 });
 
 test("geml_get and geml_set reach a block with NO id, via the listed address", () => {

@@ -267,11 +267,12 @@ graph LR
 图形还能**为一张表作图**，单一真相，列引用在构建期受校验，数据零拷贝：
 
 ```
-=== diagram {format=geml-chart data=#fy25 type=bar x=Segment y=FY}
+=== diagram {format=geml-chart data=#fy25-report type=bar x=Segment y=FY}
 ===
 ```
 
-*取自上面的 `#fy25` 表：*
+*取自上面的 `#fy25-report` view —— `FY` 是计算列，所以图表绑的是派生它的那个
+view，而不是基表：*
 
 ```mermaid
 xychart-beta
@@ -349,6 +350,7 @@ geml-code-graph 本身就是一个 diagram 格式，一行就能把它嵌进任�
 2. **在本地跑起来。** `npm i -g @geml/geml`（Node 22+），然后 `geml check` 一份文档，或对着你自己的仓库跑 `geml codemap build`。
 3. **配好 Claude Code——一条命令。** `npx -y @geml/geml skill install` 把写作技能、CLI、MCP server 一次装到用户全局，所有项目通用；不改任何设置、不装 hook。[详情](#with-an-llm)。
 4. **读语法。** **[完整规范](spec/GEML-spec_CN.md)**（中 / [English](spec/GEML-spec.md)）是规范性文本，短到可以一口气读完。
+5. **或者看逐条图解。** **[GEML 图解](docs/illustrated/README_CN.md)**（中 / [English](docs/illustrated/README.md)）——11 页自包含页面，每个块类型、每个 profile、以及 CLI 各一页：左边是 GEML，右边是处理器**实际**做了什么（`geml check` 诊断、`geml list` 地址、`--to html` 标记），每条规则都标了出处与状态。
 
 <a id="with-an-llm"></a>
 ## 配合大模型与 agent 使用 GEML
@@ -484,12 +486,16 @@ npx -y @geml/geml skill install
 
 GEML 是一份小而年轻的规范，但已经**稳定**：已发布 **`1.0`**，可用来写真实文档（本仓库的规范本身就是一例）；有一套严格的一致性测试集、一个解析器的参考实现**（独立于规范的版本）**，以及一个开放的提案流程。
 
-完整的核心规范（§0–§9，另有附录 A/B）外加历史扩展规范，两份规范都是中英双语：
+规范**只有一份**（§0–§9，另有附录 A/B），中英双语。`.gemlhistory` 伴生文件由
+`geml-history/v1` **profile** 定义——它是规范之上的应用层，不属于规范本身，这也是
+它为 MIT 而规范为 CC-BY 的原因（理由见 [`LICENSE-spec.md`](spec/LICENSE-spec.md)）：
 
 | 文档 | English | 中文 |
 |------|---------|------|
-| 核心规范 | [`GEML-spec.md`](spec/GEML-spec.md) | [`GEML-spec_CN.md`](spec/GEML-spec_CN.md) |
-| 历史扩展 | [`GEML-history-spec.md`](spec/profiles/geml-history/geml-history-profile.md) | [`GEML-history-spec_CN.md`](spec/profiles/geml-history/geml-history-profile_CN.md) |
+| 规范 | [`GEML-spec.md`](spec/GEML-spec.md) | [`GEML-spec_CN.md`](spec/GEML-spec_CN.md) |
+| `geml-history/v1` profile | [`geml-history-profile.md`](spec/profiles/geml-history/geml-history-profile.md) | [`geml-history-profile_CN.md`](spec/profiles/geml-history/geml-history-profile_CN.md) |
+
+本项目发布的全部 profile：[`spec/profiles/`](spec/profiles/README.md)。
 
 ### 版本与兼容性
 
@@ -532,11 +538,12 @@ GEML 是一份小而年轻的规范，但已经**稳定**：已发布 **`1.0`**�
 <a id="roadmap"></a>
 ## 路线图
 
-- [x] GEML `1.0` 规范（核心 + 历史扩展），中英双语，配一致性测试集
+- [x] GEML `1.0` 规范，中英双语，配一致性测试集——外加定义 `.gemlhistory` 的 `geml-history/v1` profile
 - [x] 参考实现 `@geml/geml`：解析器、CLI、块级 `.gemlhistory` 追踪
 - [x] 官方 MCP server（`geml mcp`），接入 Claude Code / Cursor / Codex 等支持 MCP 的环境
 - [x] codemap：把整个代码库的调用图写成 GEML
-- [x] 生态集成：VS Code 语法高亮与引用检查、tree-sitter、Obsidian、浏览器 viewer、GitHub Action、LangChain / LlamaIndex、Claude Code 插件、Codex 插件、DeepSeek Harness 插件
+- [x] 生态集成：VS Code 语法高亮与引用检查、tree-sitter、Obsidian、Logseq（对活的 DB graph 双向同步）、浏览器 viewer、GitHub Action、LangChain / LlamaIndex，以及 agent 宿主插件——Claude Code、Codex、Grok、DeepSeek Harness，外加 Gemini CLI 与 Kimi Code 两份根清单
+- [ ] Logseq 插件上架 Logseq 市场（[PR #893](https://github.com/logseq/marketplace/pull/893)）、Grok 插件上架 `xai-org/plugin-marketplace`
 - [ ] VS Code 插件上架 Marketplace
 - [ ] 其他语言的 parser（Rust / Python）——规范与一致性测试集都是公开的，欢迎社区来做，我们乐意帮着对齐
 
@@ -585,6 +592,8 @@ GEML 已是 `1.0`，但「稳定」是指**已有规则不会在你脚下变动*
 | **让 agent 按块改文档** —— 自带 MCP 服务器，agent 走的是和你一样的动词：读一块、改一块、校验、回退 | [`docs/mcp-guide_CN.md`](docs/mcp-guide_CN.md) | 可用 |
 | **在 DeepSeek Harness 里用** —— geml MCP server + 写作、代码图谱两个技能，一个 bundle 装齐 | [`@geml/dsh-plugin`](https://www.npmjs.com/package/@geml/dsh-plugin) · [dshmarket](https://dshmarket.com/p/geml-spec/geml--integrations-dsh-plugin/) · [源码](integrations/dsh-plugin/) | 可用 |
 | **在 Codex 里用** —— 同一套载荷再打一次包：两个技能、MCP server，加一个 `SessionStart` hook，从 `/plugins` 安装 | [`integrations/codex-plugin/`](integrations/codex-plugin/) | 本仓库内可用；尚未上公共插件目录 |
+| **在 Grok 里用** —— 同一套载荷再来一次：两个技能加 MCP server | [`integrations/grok-plugin/`](integrations/grok-plugin/) | 本仓库内可用；`xai-org/plugin-marketplace` 的 PR 尚未提交 |
+| **把 Logseq graph 同步成纯文本** —— Logseq 2.0 的 DB graph 持续同步成 GEML 文件，可寻址、对 git 友好，`restore` 是回去的路 | [`@geml/logseq-sync`](https://www.npmjs.com/package/@geml/logseq-sync) · [源码](integrations/logseq/) | watcher 已在 npm；插件目前装 release zip —— 市场上架（[PR #893](https://github.com/logseq/marketplace/pull/893)）尚未合并 |
 | **喂给 RAG / agent 框架** —— 按块切分的加载器（每块一个 chunk，带 `block_id`）+ agent 编辑工具 | [`integrations/langchain+llamaindex/`](integrations/langchain+llamaindex/) | 参考实现 |
 | **在编辑器里写 GEML** —— 语法高亮 + 构建期引用校验 | [`integrations/vscode/`](integrations/vscode/) | 已构建，可从源码安装；未上架商店 |
 | **在 Obsidian 里用上 GEML** —— 用参考解析器 + viewer 的渲染器，与网页同一条代码路径 | [`integrations/obsidian/`](integrations/obsidian/) | 已构建，未上架社区商店 |
@@ -595,15 +604,18 @@ GEML 已是 `1.0`，但「稳定」是指**已有规则不会在你脚下变动*
 ## 仓库结构
 
 ```
-spec/                  核心规范 + .gemlhistory 扩展的 .md 版（英 / 中）、
-                       CC-BY 规范许可证、proposals/（GEP）
-spec/in_geml_format/   dogfood：同两份规范的 GEML 版，连带 .gemlhistory 伴生文件
+spec/                  规范的 .md 版（英 / 中）与 CC-BY 规范许可证，另有
+                       profiles/（应用层——geml-history、geml-codemap、
+                       geml-style、geml-form）与 proposals/（GEP），两者均为 MIT
+spec/in_geml_format/   dogfood：用 GEML 写成的规范本身，连带 .gemlhistory 伴生文件
 geml-parser/           参考实现、渲染器、CLI + codemap 工具集（TypeScript, Node 22）
 integrations/          GEML 接入的所有地方：geml-viewer（浏览器扩展）、
-                       geml-check-action（CI）、vscode、obsidian、tree-sitter
-                       （简报）、langchain+llamaindex（RAG 加载器）、
-                       windows-icon（资源管理器文件图标），以及三个 agent
-                       宿主插件——claude-plugin、codex-plugin、dsh-plugin
+                       geml-check-action（CI）、vscode、obsidian、logseq（双向
+                       vault 同步 + watcher）、tree-sitter（简报）、
+                       langchain+llamaindex（RAG 加载器）、
+                       windows-icon（资源管理器文件图标），以及四个 agent
+                       宿主插件——claude-plugin、codex-plugin、grok-plugin、
+                       dsh-plugin
 .agents/、.claude-plugin/   插件市场清单，让插件从仓库检出即可出现
                        （Codex 的 /plugins、Claude Code 的 /plugin）
 playground/            浏览器内 playground（含本仓库的实时 geml-code-graph）

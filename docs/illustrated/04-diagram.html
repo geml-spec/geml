@@ -121,7 +121,7 @@
 
 <div class="wrap">
 <header>
-  <div class="eyebrow">GEML block types, illustrated · page 4 of 5 · spec 1.0 · measured on geml 1.9.2, local build · <a href="04-diagram_CN.html">中文</a></div>
+  <div class="eyebrow">GEML block types, illustrated · page 4 of 5 · spec 1.0 · measured on geml 1.10.1, local build · <a href="04-diagram_CN.html">中文</a></div>
   <h1>GEML Blocks Illustrated · diagram</h1>
   <p class="lede"><code>diagram</code> is used two ways. One hosts an external DSL: the body goes verbatim to the renderer <code>format=</code> selects, and the processor's only duty is not to interpret it. The other is the built-in <code>geml-chart</code>: the chart is described entirely in attributes and bound to a table or a record array, so the processor can check it piece by piece and a mistyped column name is a build error. A third, <code>geml-code-graph</code>, is interpreted too but takes the opposite stance: the embed carries one attribute and nothing else. All three are measured here; the chart's fifteen checks match A.4 row for row.</p>
   <nav class="toc">
@@ -245,7 +245,7 @@ See [[#flow]].</pre>
     <div class="sec-num">chart</div>
     <div>
       <h2><code>geml-chart</code>: the chart lives in attributes, so it can be checked</h2>
-      <p class="sub">Four working examples: bound to a table with a computed column, to a record array, to a csv file drawing two series, and with the summary row as an extra point.</p>
+      <p class="sub">Four working examples: bound to a <code>view</code> that derives a computed column, to a record array, to a csv file drawing two series, and with the summary row as an extra point.</p>
     </div>
   </div>
   <div class="sec-body">
@@ -254,22 +254,24 @@ See [[#flow]].</pre>
       <div class="panes">
         <div>
           <div class="pane-h"><span>GEML · from d2-chart.geml</span></div>
-<pre class="geml"><span class="f">=== table</span> <span class="a">{#fy format=csv compute="FY = Q1 + Q2" summary="Segment = 'Total'; FY = sum(FY)"}</span>
+<pre class="geml"><span class="f">=== table</span> <span class="a">{#fy format=csv}</span>
 Segment,Q1,Q2
 Cloud,124.5,131.2
 Hardware,88.1,84.6
 <span class="f">===</span>
+<span class="f">=== view</span> <span class="a">{#fy-report src=#fy compute="FY = Q1 + Q2" summary="Segment = 'Total'; FY = sum(FY)"}</span>
+<span class="f">===</span>                                    <span class="c">%% the table holds facts; the view derives FY and the Total row</span>
 <span class="f">=== data</span> <span class="a">{#recs}</span>
 [{"seg": "Cloud", "fy": 255.7}, {"seg": "Hardware", "fy": 172.7}]
 <span class="f">===</span>
 
-<span class="f">=== diagram</span> <span class="a">{#ok format=geml-chart <span class="hl">data=#fy</span> type=bar x=Segment <span class="hl">y=FY</span> caption="FY revenue"}</span>
-<span class="f">===</span>                                    <span class="c">%% y is a computed column: the table model includes them</span>
+<span class="f">=== diagram</span> <span class="a">{#ok format=geml-chart <span class="hl">data=#fy-report</span> type=bar x=Segment <span class="hl">y=FY</span> caption="FY revenue"}</span>
+<span class="f">===</span>                                    <span class="c">%% FY exists only on the view, so bind there — not to #fy</span>
 <span class="f">=== diagram</span> <span class="a">{#ok2 format=geml-chart <span class="hl">data=#recs</span> type=pie x=seg y=fy}</span>
 <span class="f">===</span>                                    <span class="c">%% record array: keys project to columns</span>
 <span class="f">=== diagram</span> <span class="a">{#ok3 format=geml-chart <span class="hl">data=rows.csv</span> type=line x=Segment <span class="hl">y="Q1, Q2"</span>}</span>
 <span class="f">===</span>                                    <span class="c">%% a file; a comma list = two series</span>
-<span class="f">=== diagram</span> <span class="a">{#sumrow format=geml-chart data=#fy type=bar x=Segment y=FY <span class="hl">rows=all</span>}</span>
+<span class="f">=== diagram</span> <span class="a">{#sumrow format=geml-chart data=#fy-report type=bar x=Segment y=FY <span class="hl">rows=all</span>}</span>
 <span class="f">===</span>                                    <span class="c">%% the summary row as one extra point</span></pre>
         </div>
         <div>
@@ -287,7 +289,7 @@ Hardware,88.1,84.6
       </div>
       <dl class="decision">
         <dt>Why checkable</dt><dd>§7.1: <code>format</code> still only selects the renderer, but the whole description is in attributes the processor can read, so column names, the data id and rows are validated against the table at build time. The body stays empty; anything written there is an <code>ignored-diagram-body</code> warning.</dd>
-        <dt>Sources</dt><dd>The three targets have a table's <code>src=</code> shape. A table contributes its model with computed columns, which is why <code>y=FY</code> is legal. A data block must be a non-empty sequence of maps, and every referenced column must be a scalar in every record; unreferenced columns may hold anything. A file is an anonymous table or record source.</dd>
+        <dt>Sources</dt><dd>The three targets have a table's <code>src=</code> shape. A <code>table</code> contributes its own columns; a <code>view</code> over it contributes the derived ones as well, which is why <code>y=FY</code> has to name <code>#fy-report</code> and not <code>#fy</code> — pointing the chart at the base table is a build error (<code>chart: column `FY` not found in table</code>). A data block must be a non-empty sequence of maps, and every referenced column must be a scalar in every record; unreferenced columns may hold anything. A file is an anonymous table or record source.</dd>
         <dt>type</dt><dd>The five values only change how the channels are drawn; they never add attributes. For other shapes switch to a hosted DSL, such as <code>format=vega-lite data=#fy</code>, raw body, columns unchecked.</dd>
       </dl>
     </figure>
@@ -312,7 +314,7 @@ Hardware,88.1,84.6
 <pre class="geml"><span class="f">=== diagram</span> <span class="a">{#e1 format=geml-chart <span class="bad">type=bar x=Segment y=FY</span>}</span>          <span class="arrow">← no data</span>
 <span class="f">=== diagram</span> <span class="a">{#e2 format=geml-chart <span class="bad">data=#n</span> …}</span>                    <span class="arrow">← #n is a note</span>
 <span class="f">=== diagram</span> <span class="a">{#e3 format=geml-chart <span class="bad">data=#badrecs</span> x=seg y=fy}</span>     <span class="arrow">← record 2 lacks fy</span>
-<span class="f">=== diagram</span> <span class="a">{#e4 format=geml-chart data=#fy <span class="bad">x=Segment y=FY</span>}</span>       <span class="arrow">← no type</span>
+<span class="f">=== diagram</span> <span class="a">{#e4 format=geml-chart data=#fy-report <span class="bad">x=Segment y=FY</span>}</span>  <span class="arrow">← no type</span>
 <span class="f">=== diagram</span> <span class="a">{#e5 … <span class="bad">type=donut</span> …}</span>
 <span class="f">=== diagram</span> <span class="a">{#e6 … type=bar <span class="bad">x=Segment</span>}</span>                          <span class="arrow">← no y</span>
 <span class="f">=== diagram</span> <span class="a">{#e7 … <span class="bad">y=Nope</span>}</span>
@@ -323,7 +325,7 @@ Hardware,88.1,84.6
 <span class="f">===</span>
 <span class="f">=== diagram</span> <span class="a">{#e9 … <span class="bad">y=Segment</span>}</span>                                <span class="arrow">← y column is not numeric</span>
 
-<span class="c">%% d3: #plain has no summary=</span>
+<span class="c">%% d3: #plain is a view with compute= but no summary=</span>
 <span class="f">=== diagram</span> <span class="a">{#s1 … data=#plain <span class="bad">rows=summary</span>}</span>
 <span class="f">=== diagram</span> <span class="a">{#s2 … data=#plain <span class="hl">rows=all</span>}</span>
 <span class="f">=== diagram</span> <span class="a">{#cg <span class="hl">format=geml-code-graph</span>}</span>                         <span class="c">%% no src</span>
@@ -421,7 +423,7 @@ Hardware,88.1,84.6
     <div class="sec-num">Evidence</div>
     <div>
       <h2>Probe files and measured output</h2>
-      <p class="sub">All run with the repository's current build, <code>node geml-parser/dist/geml.js</code>, version 1.9.2.</p>
+      <p class="sub">All run with the repository's current build, <code>node geml-parser/dist/geml.js</code>, version 1.10.1.</p>
     </div>
   </div>
   <div class="sec-body">

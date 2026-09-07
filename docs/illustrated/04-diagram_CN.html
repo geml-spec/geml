@@ -121,7 +121,7 @@
 
 <div class="wrap">
 <header>
-  <div class="eyebrow">GEML 块类型图解 · 第 4 页 / 5 · 规范 1.0 · 实测 geml 1.9.2 本地构建</div>
+  <div class="eyebrow">GEML 块类型图解 · 第 4 页 / 5 · 规范 1.0 · 实测 geml 1.10.1 本地构建</div>
   <h1>GEML 块图解 · diagram</h1>
   <p class="lede"><code>diagram</code> 有两种用法。一种是装外部 DSL：正文原样交给 <code>format=</code> 选的渲染器，处理器只负责不解释它。另一种是内置的 <code>geml-chart</code>：图完全由属性描述、绑到一张表或一个记录数组上，所以处理器能逐条校验，一个打错的列名就是构建错误。这一页把两种都实测一遍，十几条校验逐条对上 A.4。</p>
   <nav class="toc">
@@ -245,7 +245,7 @@ See [[#flow]].</pre>
     <div class="sec-num">chart</div>
     <div>
       <h2><code>geml-chart</code>：图全在属性里，所以能校验</h2>
-      <p class="sub">四个成功的例子：绑一张带计算列的表、绑一个记录数组、绑一个 csv 文件画两条线、把汇总行当额外一点。</p>
+      <p class="sub">四个成功的例子：绑一个派生出计算列的 <code>view</code>、绑一个记录数组、绑一个 csv 文件画两条线、把汇总行当额外一点。</p>
     </div>
   </div>
   <div class="sec-body">
@@ -254,22 +254,24 @@ See [[#flow]].</pre>
       <div class="panes">
         <div>
           <div class="pane-h"><span>GEML · d2-chart.geml 节选</span></div>
-<pre class="geml"><span class="f">=== table</span> <span class="a">{#fy format=csv compute="FY = Q1 + Q2" summary="Segment = 'Total'; FY = sum(FY)"}</span>
+<pre class="geml"><span class="f">=== table</span> <span class="a">{#fy format=csv}</span>
 Segment,Q1,Q2
 Cloud,124.5,131.2
 Hardware,88.1,84.6
 <span class="f">===</span>
+<span class="f">=== view</span> <span class="a">{#fy-report src=#fy compute="FY = Q1 + Q2" summary="Segment = 'Total'; FY = sum(FY)"}</span>
+<span class="f">===</span>                                    <span class="c">%% 表装事实；view 派生出 FY 与 Total 行</span>
 <span class="f">=== data</span> <span class="a">{#recs}</span>
 [{"seg": "Cloud", "fy": 255.7}, {"seg": "Hardware", "fy": 172.7}]
 <span class="f">===</span>
 
-<span class="f">=== diagram</span> <span class="a">{#ok format=geml-chart <span class="hl">data=#fy</span> type=bar x=Segment <span class="hl">y=FY</span> caption="FY revenue"}</span>
-<span class="f">===</span>                                    <span class="c">%% y 是计算列：表模型含计算列</span>
+<span class="f">=== diagram</span> <span class="a">{#ok format=geml-chart <span class="hl">data=#fy-report</span> type=bar x=Segment <span class="hl">y=FY</span> caption="FY revenue"}</span>
+<span class="f">===</span>                                    <span class="c">%% FY 只存在于 view 上，所以绑 view，不是绑 #fy</span>
 <span class="f">=== diagram</span> <span class="a">{#ok2 format=geml-chart <span class="hl">data=#recs</span> type=pie x=seg y=fy}</span>
 <span class="f">===</span>                                    <span class="c">%% 记录数组：键投影成列</span>
 <span class="f">=== diagram</span> <span class="a">{#ok3 format=geml-chart <span class="hl">data=rows.csv</span> type=line x=Segment <span class="hl">y="Q1, Q2"</span>}</span>
 <span class="f">===</span>                                    <span class="c">%% 文件；逗号列表 = 两个系列</span>
-<span class="f">=== diagram</span> <span class="a">{#sumrow format=geml-chart data=#fy type=bar x=Segment y=FY <span class="hl">rows=all</span>}</span>
+<span class="f">=== diagram</span> <span class="a">{#sumrow format=geml-chart data=#fy-report type=bar x=Segment y=FY <span class="hl">rows=all</span>}</span>
 <span class="f">===</span>                                    <span class="c">%% 汇总行作为额外一点</span></pre>
         </div>
         <div>
@@ -287,7 +289,7 @@ Hardware,88.1,84.6
       </div>
       <dl class="decision">
         <dt>为什么能校验</dt><dd>§7.1：<code>format</code> 仍只选渲染器，但图的全部描述在属性里，处理器读得懂，所以列名、data 的 id、rows 都能在构建时对着表校验。正文留空；写了东西是 <code>ignored-diagram-body</code> warning。</dd>
-        <dt>数据源</dt><dd>三种目标与 table 的 <code>src=</code> 同形。table 贡献模型含计算列，所以 <code>y=FY</code> 合法。data 块必须是非空的 map 序列，被引用的列每条记录都得是标量；没引用的列随便。文件是匿名表或匿名记录源。</dd>
+        <dt>数据源</dt><dd>三种目标与 table 的 <code>src=</code> 同形。<code>table</code> 只贡献自己的列，它上面的 <code>view</code> 才把派生列一并贡献出来——所以 <code>y=FY</code> 必须指 <code>#fy-report</code> 而不是 <code>#fy</code>；把图绑到基表上是构建错误（<code>chart: column `FY` not found in table</code>）。data 块必须是非空的 map 序列，被引用的列每条记录都得是标量；没引用的列随便。文件是匿名表或匿名记录源。</dd>
         <dt>type</dt><dd>五个值只改通道怎么画，从不增加新属性。要更多形状就换宿主 DSL，比如 <code>format=vega-lite data=#fy</code>，正文 raw、不校验列。</dd>
       </dl>
     </figure>
@@ -312,7 +314,7 @@ Hardware,88.1,84.6
 <pre class="geml"><span class="f">=== diagram</span> <span class="a">{#e1 format=geml-chart <span class="bad">type=bar x=Segment y=FY</span>}</span>          <span class="arrow">← 没有 data</span>
 <span class="f">=== diagram</span> <span class="a">{#e2 format=geml-chart <span class="bad">data=#n</span> …}</span>                    <span class="arrow">← #n 是 note</span>
 <span class="f">=== diagram</span> <span class="a">{#e3 format=geml-chart <span class="bad">data=#badrecs</span> x=seg y=fy}</span>     <span class="arrow">← 第 2 条记录缺 fy</span>
-<span class="f">=== diagram</span> <span class="a">{#e4 format=geml-chart data=#fy <span class="bad">x=Segment y=FY</span>}</span>       <span class="arrow">← 没有 type</span>
+<span class="f">=== diagram</span> <span class="a">{#e4 format=geml-chart data=#fy-report <span class="bad">x=Segment y=FY</span>}</span>  <span class="arrow">← 没有 type</span>
 <span class="f">=== diagram</span> <span class="a">{#e5 … <span class="bad">type=donut</span> …}</span>
 <span class="f">=== diagram</span> <span class="a">{#e6 … type=bar <span class="bad">x=Segment</span>}</span>                          <span class="arrow">← 缺 y</span>
 <span class="f">=== diagram</span> <span class="a">{#e7 … <span class="bad">y=Nope</span>}</span>
@@ -323,7 +325,7 @@ Hardware,88.1,84.6
 <span class="f">===</span>
 <span class="f">=== diagram</span> <span class="a">{#e9 … <span class="bad">y=Segment</span>}</span>                                <span class="arrow">← y 列不是数</span>
 
-<span class="c">%% d3：#plain 没有 summary=</span>
+<span class="c">%% d3：#plain 是个有 compute= 但没有 summary= 的 view</span>
 <span class="f">=== diagram</span> <span class="a">{#s1 … data=#plain <span class="bad">rows=summary</span>}</span>
 <span class="f">=== diagram</span> <span class="a">{#s2 … data=#plain <span class="hl">rows=all</span>}</span>
 <span class="f">=== diagram</span> <span class="a">{#cg <span class="hl">format=geml-code-graph</span>}</span>                         <span class="c">%% 没有 src</span>
@@ -421,7 +423,7 @@ Hardware,88.1,84.6
     <div class="sec-num">依据</div>
     <div>
       <h2>探针文件与实测输出</h2>
-      <p class="sub">全部用仓库内当前构建 <code>node geml-parser/dist/geml.js</code> 跑出，版本 1.9.2。</p>
+      <p class="sub">全部用仓库内当前构建 <code>node geml-parser/dist/geml.js</code> 跑出，版本 1.10.1。</p>
     </div>
   </div>
   <div class="sec-body">

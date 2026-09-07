@@ -40,7 +40,7 @@ The reference implementation's registry is
 and that file are the same list stated twice, and a test pins the naming
 convention (`^geml-[a-z-]+/vN$`).
 
-A profile may carry its own CLI verbs, as all three do. That is the shape of
+A profile may carry its own CLI verbs, as the three settled ones do. That is the shape of
 this layer: a vocabulary, a document that defines what the names mean, and
 whatever tooling reads and writes it. Core verbs — `check`, `list`, `get`,
 `set`, `add`, `delete`, `rename`, `find`, `--to` — never carry a profile name.
