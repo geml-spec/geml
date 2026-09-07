@@ -6,7 +6,7 @@
 import { vocabularyFor, PROFILES } from "../dist/profiles.js";
 import { parse } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 
 let passed = 0;
 function test(name, fn) { fn(); passed++; console.log("ok", name); }
@@ -185,6 +185,42 @@ test("table / data 的 format 不可被放行 —— 它们决定正文怎么解
   assert.equal(g("=== diagram {#d format=mermaid}\ngraph TD\n===\n").table, undefined);
   assert.ok(g("=== table {#t format=csv header=1}\na,b\n1,2\n===\n").table, "table 的 format 产出 node.table");
   assert.ok(g('=== data {#j format=jsonl}\n{"a":1}\n===\n').value, "data 的 format 产出 node.value");
+});
+
+test("索引表与注册表是同一张表 —— README 这句话现在被钉住了", () => {
+  // spec/profiles/README.md 自称「this table and that file are the same list
+  // stated twice」，却没有任何东西检查它：geml-translator/v1 注册了但从未进过
+  // 索引表，而 geml-history 那行把类型名写成了 profile 特意避开的裸名
+  // （`revision` 而不是 `history-revision`）。声明一个不变量而不检查它，
+  // 就是让它慢慢变成假话。
+  const readme = readFileSync(new URL("../../spec/profiles/README.md", import.meta.url), "utf8");
+  const rows = new Map();
+  // `\r?\n`, not `\n`: this repo checks out CRLF on Windows, and `$` after
+  // `(.*)` would then never match — `.` does not cross a CR. The test would
+  // have passed on CI and failed only on a Windows working tree.
+  for (const line of readme.split(/\r?\n/)) {
+    const m = /^\|\s*`(geml-[a-z-]+\/v\d+)`\s*\|(.*)$/.exec(line);
+    if (m) rows.set(m[1], m[2]);
+  }
+  assert.deepEqual([...rows.keys()].sort(), Object.keys(PROFILES).sort(),
+    "每个注册的 profile 恰好一行，反之亦然");
+
+  for (const [name, def] of Object.entries(PROFILES)) {
+    const row = rows.get(name);
+    // 放行的类型名是这一层的公开词汇，索引表写错等于教人写出会被拒的文档。
+    for (const t of def.types ?? []) {
+      assert.ok(row.includes(`\`${t}\``), `${name} 的行没有提到它放行的类型 \`${t}\``);
+    }
+    // 属性键挂在哪个类型上，同样是读者要照着写的。
+    for (const holder of Object.keys(def.attrs ?? {})) {
+      assert.ok(row.includes(`\`${holder}\``), `${name} 的行没有提到属性键挂在 \`${holder}\` 上`);
+    }
+    // 行里链接的文档必须真的存在。
+    for (const [, rel] of row.matchAll(/\]\(([^)]+\.md)\)/g)) {
+      assert.ok(existsSync(new URL(`../../spec/profiles/${rel}`, import.meta.url)),
+        `${name}: 索引表链接的 ${rel} 不存在`);
+    }
+  }
 });
 
 console.log(`\n${passed} passed`);
