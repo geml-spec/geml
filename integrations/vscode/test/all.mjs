@@ -20,7 +20,7 @@ if (!existsSync(resolve(here, "../out/refs.js"))) {
 const suites = ["refs.test.cjs", "cli.test.cjs", "embeds.test.cjs", "translate-host.test.cjs"];
 
 for (const suite of suites) {
-  console.log(`\n--- ${suite} ---`);
+  console.log("\n--- " + suite + " ---");
   const r = spawnSync(process.execPath, [resolve(here, suite)], { stdio: "inherit" });
   if (r.status !== 0) {
     console.error(`\n${suite} failed.`);

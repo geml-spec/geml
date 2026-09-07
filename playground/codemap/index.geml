@@ -1,13 +1,13 @@
 === meta
 profile = "geml-codemap/v1"
-repo = geml-spec
-commit = d2130f6
+repo = geml
+commit = f5ed923
 container = file
 entry = geml-viewer--content.js.geml#main
 resolution-default = cpg
 ===
 
-# Code map — geml-spec
+# Code map — geml
 
 === table {#modules format=csv}
 module,                           doc,                                    methods, entries, tests

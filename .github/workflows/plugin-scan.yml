@@ -1,0 +1,39 @@
+name: AI plugin scan
+
+# awesome-ai-plugins lists this repo and sweeps it daily with the HOL AI Plugin
+# Scanner (hashgraph-online/hol-guard): manifests for the Claude, Codex and
+# Gemini plugins, MCP command safety, skill instructions, secrets, shell
+# patterns, workflow hygiene. Their sweep is advisory to them but public about
+# us, and it fires a day after the commit that caused it. Running the same
+# scanner here, at the same thresholds, puts the failure on the commit instead.
+#
+# The gate mirrors the catalog's: score below 80, or any high-severity finding,
+# fails. Two of its heuristics are regex, not analysis — a template literal
+# within 30 characters of `exec`/`spawnSync` reads as shell injection, and
+# `token: "<8+ chars>"` reads as a hardcoded secret — so a red run may need a
+# rephrase rather than a fix (f5ed923 was fourteen of those). The full report
+# lands in the job summary; no PR comment, so the job needs nothing but read.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: HOL AI Plugin Scanner
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Scan the plugin surfaces
+        uses: hashgraph-online/ai-plugin-scanner-action@85767f79b397711216711c0253c6d63178246d17 # v1.2.628
+        with:
+          plugin_dir: .
+          mode: scan
+          min_score: 80
+          fail_on_severity: high
+          pr_comment: "off"

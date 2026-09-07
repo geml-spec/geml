@@ -136,7 +136,7 @@ export function idRangeOnLine(doc: vscode.TextDocument, line: number, id: string
   const text = doc.lineAt(line).text;
   // Search for `#id` followed by a character that cannot continue an id, so
   // `#budget` is not found inside `#budget-2`.
-  const re = new RegExp(`#${escapeRe(id)}(?![\\p{L}\\p{N}_\\-.:])`, "u");
+  const re = new RegExp("#" + escapeRe(id) + "(?![\\p{L}\\p{N}_\\-.:])", "u");
   const m = re.exec(text);
   if (!m) return undefined;
   const start = m.index + 1; // past the '#'

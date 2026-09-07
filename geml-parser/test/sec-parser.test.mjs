@@ -337,7 +337,7 @@ test("R2-8: a symlink/junction escaping the base subtree is refused; an in-subtr
     }
 
     const main = join(base, "main.geml");
-    writeFileSync(main, `# Main {#top}\n\nesc [a](${escapeRef}#s)\n\nin  [b](sibling.geml#x)\n`);
+    writeFileSync(main, "# Main {#top}\n\nesc [a](" + escapeRef + "#s)\n\nin  [b](sibling.geml#x)\n");
 
     const r = spawnSync(process.execPath, ["dist/geml.js", "check", main], { encoding: "utf8", timeout: 60000 });
     const out = (r.stdout || "") + (r.stderr || "");
@@ -479,7 +479,7 @@ test("--root: in-root ../ refs resolve and are really read; escapes past the roo
       "spec [b](../spec/other.geml#x)\n\n" +
       "miss [c](../spec/other.geml#nope)\n\n" +
       "esc  [d](../../secret.md)\n\n" +
-      `abs  [e](${posixAbs})\n`);
+      "abs  [e](" + posixAbs + ")\n");
 
     const r = spawnSync(process.execPath, ["dist/geml.js", "check", main, "--root", repo], { encoding: "utf8", timeout: 60000 });
     const out = (r.stdout || "") + (r.stderr || "");
@@ -547,7 +547,7 @@ test("--root: a symlink inside the root pointing past it is refused (R2-8 holds 
     }
 
     const main = join(repo, "docs", "main.geml");
-    writeFileSync(main, `# Main {#top}\n\nesc [a](${escapeRef}#s)\n\nin  [b](../sibling.geml#x)\n`);
+    writeFileSync(main, "# Main {#top}\n\nesc [a](" + escapeRef + "#s)\n\nin  [b](../sibling.geml#x)\n");
 
     const r = spawnSync(process.execPath, ["dist/geml.js", "check", main, "--root", repo], { encoding: "utf8", timeout: 60000 });
     const out = (r.stdout || "") + (r.stderr || "");
@@ -1567,7 +1567,7 @@ test("content routes still refuse a directory — they need bytes", () => {
     ];
     for (const [name, block, expected] of cases) {
       const f = join(root, `${name}.geml`);
-      writeFileSync(f, `# Main {#top}\n\n${block}`);
+      writeFileSync(f, "# Main {#top}\n\n" + block);
       const r = spawnSync(process.execPath, ["dist/geml.js", "check", f], { encoding: "utf8", timeout: 60000 });
       const out = (r.stdout || "") + (r.stderr || "");
       assert.match(out, expected, `${name} src= must not accept a directory`);
