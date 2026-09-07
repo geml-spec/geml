@@ -312,9 +312,9 @@ geml-parser--cli.ts.geml#runHistory, #listRevisions,       call, geml-parser/src
 #restore,                            #resolveRevision,     call, geml-parser/src/history.ts:695
 #resolveContent,                     #resolveRevision,     call, geml-parser/src/history.ts:782
 geml-parser--cli.ts.geml#runHistory, #resolveContent,      call, geml-parser/src/cli.ts:662
-geml-parser--cli.ts.geml#runRename,  #resolveContent,      call, geml-parser/src/cli.ts:2072
-geml-parser--cli.ts.geml#runRevert,  #resolveContent,      call, geml-parser/src/cli.ts:2422
-geml-parser--cli.ts.geml#runRevert,  #firstChangedContent, call, geml-parser/src/cli.ts:2418
+geml-parser--cli.ts.geml#runRename,  #resolveContent,      call, geml-parser/src/cli.ts:2128
+geml-parser--cli.ts.geml#runRevert,  #resolveContent,      call, geml-parser/src/cli.ts:2505
+geml-parser--cli.ts.geml#runRevert,  #firstChangedContent, call, geml-parser/src/cli.ts:2501
 ===
 
 === table {#unresolved format=csv hidden}
