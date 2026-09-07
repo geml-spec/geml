@@ -7,7 +7,7 @@
   "mcpServers": {
     "geml": {
       "command": "npx",
-      "args": ["-y", "@geml/geml", "mcp", "--root", "."]
+      "args": ["-y", "@geml/geml", "mcp", "--root", "./"]
     }
   }
 }
