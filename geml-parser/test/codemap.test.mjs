@@ -1683,7 +1683,7 @@ test("sfc-virtualize smoke: real Volar projection end-to-end (needs npx; skips o
   const vout = join(fx, "virtual");
   const script = join(PKG, "codemap", "sfc-virtualize.mjs");
   const r = spawnSync(
-    `npx -y -p @vue/language-core -p typescript@5 node "${script}"`,
+    "npx -y -p @vue/language-core -p typescript@5 node \"" + script + "\"",
     { shell: true, encoding: "utf8", timeout: 240_000, env: { ...process.env, GEML_SRC: fx, GEML_OUT: vout } },
   );
   const outText = (r.stdout || "") + (r.stderr || "");

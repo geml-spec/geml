@@ -151,7 +151,7 @@ export function cargoWorkspace(toml) {
   const next = /^[ \t]*\[[^\]]+\][ \t]*\r?$/m.exec(body); // next table header ends the section
   if (next) body = body.slice(0, next.index);
   const list = (key) => {
-    const a = new RegExp(`^[ \\t]*${key}\\s*=\\s*\\[([^\\]]*)\\]`, "m").exec(body);
+    const a = new RegExp("^[ \\t]*" + key + "\\s*=\\s*\\[([^\\]]*)\\]", "m").exec(body);
     return a ? [...a[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]) : [];
   };
   return { members: list("members"), exclude: list("exclude") };

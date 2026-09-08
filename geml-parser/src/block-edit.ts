@@ -63,7 +63,7 @@ function rewriteHead(head: string, newId: string): string {
   const rebuild = (m: RegExpExecArray): string => {
     const lead = m[1]!, ws = m[2] ?? "", braces = m[3], trail = m[4] ?? "";
     if (braces) return lead + ws + rewriteBraces(braces, newId) + trail;
-    return `${lead} {#${newId}}${ws}${trail}`;
+    return lead + " {#" + newId + "}" + ws + trail;
   };
   const f = FENCE_HEAD.exec(head);
   if (f) return rebuild(f);

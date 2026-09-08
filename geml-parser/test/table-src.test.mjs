@@ -323,7 +323,7 @@ test("a cross-document target that is not a table names that, not `unresolved`",
   const check = (src) => {
     // GEP-0012: a block target is a view's; the three failures it can name are
     // unchanged.
-    writeFileSync(host, `=== view {#t src=${src}}\n===\n`);
+    writeFileSync(host, "=== view {#t src=" + src + "}\n===\n");
     const r = spawnSync(process.execPath, [cli, "check", host], { encoding: "utf8", timeout: 60_000 });
     return (r.stdout ?? "") + (r.stderr ?? "");
   };
@@ -338,7 +338,7 @@ test("a chart whose data target is the wrong kind says so in the chart's words",
   const host = join(dir, "host.geml");
   const cli = resolve(dirname(fileURLToPath(import.meta.url)), "..", "dist", "geml.js");
   const check = (data) => {
-    writeFileSync(host, `=== diagram {#c format=geml-chart data=${data} type=bar x=A y=B}\n===\n`);
+    writeFileSync(host, "=== diagram {#c format=geml-chart data=" + data + " type=bar x=A y=B}\n===\n");
     const r = spawnSync(process.execPath, [cli, "check", host], { encoding: "utf8", timeout: 60_000 });
     return (r.stdout ?? "") + (r.stderr ?? "");
   };

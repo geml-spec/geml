@@ -337,15 +337,17 @@ async function run() {
     );
   });
 
+  const fromEnv = "tok-from-env";
+
   await test("CLI: the token can come from LOGSEQ_API_SERVER_TOKEN instead of argv", () => {
-    const argv = exportArgvFor(["test-graph"], { LOGSEQ_API_SERVER_TOKEN: "tok-from-env" });
-    assert.equal(argv[argv.indexOf("-a") + 1], "tok-from-env");
+    const argv = exportArgvFor(["test-graph"], { LOGSEQ_API_SERVER_TOKEN: fromEnv });
+    assert.equal(argv[argv.indexOf("-a") + 1], fromEnv);
     assert.ok(!argv.includes("-g"));
   });
 
   await test("CLI: an explicit --api-server-token beats LOGSEQ_API_SERVER_TOKEN", () => {
     const argv = exportArgvFor(["test-graph", "--api-server-token", "tok-flag"], {
-      LOGSEQ_API_SERVER_TOKEN: "tok-from-env",
+      LOGSEQ_API_SERVER_TOKEN: fromEnv,
     });
     assert.equal(argv[argv.indexOf("-a") + 1], "tok-flag");
   });

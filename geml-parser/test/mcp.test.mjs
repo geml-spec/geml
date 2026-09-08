@@ -1102,8 +1102,17 @@ test("server.json declares the version and package this build actually publishes
     ["kimi.plugin.json", at("..", "kimi.plugin.json")],
     ["grok-plugin/.mcp.json", join(grokDir, ".mcp.json")],
   ]) {
+    const launch = JSON.parse(readFileSync(file, "utf8")).mcpServers.geml;
+    if (what === "kimi.plugin.json") {
+      // Kimi alone spells the root `./`. The HOL AI Plugin Scanner's Kimi rule
+      // wants every path-like MCP argument to begin with `./`, and path.resolve
+      // makes `./` the same directory as `.` — so that one spelling is folded
+      // before the comparison, and anything else that differs still fails here.
+      assert.equal(launch.args.at(-1), "./", "kimi.plugin.json must spell the root `./` — the HOL scanner's Kimi rule reads `.` as an unsafe path");
+      launch.args = launch.args.map((a) => (a === "./" ? "." : a));
+    }
     assert.deepEqual(
-      JSON.parse(readFileSync(file, "utf8")).mcpServers.geml,
+      launch,
       claudeLaunch,
       `${what} starts the geml server differently — that harness is misconfigured`,
     );

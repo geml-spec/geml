@@ -1262,7 +1262,7 @@ const npxProbe = spawnSync("npx --version", { shell: true, encoding: "utf8", tim
 const hasNpx = !npxProbe.error && npxProbe.status === 0;
 const SFC_PKGS = "-p @vue/language-core -p svelte2tsx -p svelte -p typescript@5";
 const runSfcNpx = (src, out) => spawnSync(
-  `npx -y ${SFC_PKGS} node "${SFC}"`,
+  "npx -y " + SFC_PKGS + " node \"" + SFC + "\"",
   { shell: true, encoding: "utf8", timeout: 300_000, maxBuffer: 16 * 1024 * 1024,
     env: { ...process.env, GEML_SRC: src, GEML_OUT: out } },
 );
