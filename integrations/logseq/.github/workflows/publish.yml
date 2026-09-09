@@ -48,9 +48,13 @@ jobs:
           set -eu
           version="$(node -p "require('./plugin/package.json').version")"
           name="logseq-plugin-sync-vault-with-geml-v${version}.zip"
-          rm -rf .package && mkdir -p .package/docs
+          rm -rf .package && mkdir -p .package
           cp -R plugin/dist .package/dist
-          cp docs/how-it-works.svg .package/docs/
+          # The whole docs/ directory, not one named file: README.md ships in
+          # this zip and the marketplace renders it, so every image it points
+          # at has to travel with it. v2.2.0 shipped the svg alone and showed
+          # two broken screenshots. The check below holds this to the README.
+          cp -R docs .package/docs
           cp plugin/icon.png plugin/package.json LICENSE README.md .package/
           (cd .package && zip -qr "../${name}" . -x '.*')
           echo "name=${name}" >> "$GITHUB_OUTPUT"
@@ -70,6 +74,18 @@ jobs:
           '
           unzip -l "$ZIP_NAME" | grep -q 'dist/index.js'
           unzip -l "$ZIP_NAME" | grep -q 'icon.png'
+          unzip -l "$ZIP_NAME" > zip-list.txt
+          node -e '
+            const fs = require("fs");
+            const readme = fs.readFileSync("README.md", "utf8");
+            const list = fs.readFileSync("zip-list.txt", "utf8");
+            const refs = [...readme.matchAll(/!\[[^\]]*\]\((?!https?:)([^)]+)\)/g)].map((m) => m[1]);
+            const missing = refs.filter((r) => !list.includes(r));
+            if (missing.length) {
+              throw new Error("the README in this zip points at assets the zip does not carry: " + missing.join(", "));
+            }
+            console.log("README assets ok:", refs.join(" ") || "(none)");
+          '
 
       - name: Keep the artifact even when no tag is being released
         uses: actions/upload-artifact@v4
