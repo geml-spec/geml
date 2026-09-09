@@ -306,8 +306,10 @@ snapshot as you go, rather than re-emitting the whole file:
 
 === code {#editing-loop lang=sh}
 geml get    file.geml '#intro'         # read just this block (a heading id = its whole section)
-geml set    file.geml '#intro' --in -  # replace just this span (stdin or --in FILE);
-                                       #   the splice is re-parsed and REJECTED if it breaks the doc
+geml set    file.geml '#intro' --body --in -  # replace just this span (stdin or --in FILE);
+                                              #   raw text needs --body; a bare --in takes a WHOLE
+                                              #   block, fences and all. Either way the splice is
+                                              #   re-parsed and REJECTED if it breaks the doc
 geml history save   file.geml -m "…"   # snapshot into the .gemlhistory sidecar — do this each step
 geml history get    file.geml          # revisions, newest first; first column IS the --rev selector
 geml revert file.geml '#intro'         # roll ONE block back to the previous revision (= --rev -1)

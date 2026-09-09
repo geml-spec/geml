@@ -1,7 +1,7 @@
 === meta
 title = "geml-spec — project instructions for Claude"
 source = ".claude/skills/geml/instructions.geml — injected each session by .claude/hooks/inject-instructions.mjs (SessionStart)"
-howto = "edit one section: geml set <file> '#id' --in - ; no .gemlhistory here — git is this file's history"
+howto = "edit one section: geml set <file> '#id' --body --in - ; raw text needs --body, a bare --in takes a whole block; no .gemlhistory here — git is this file's history"
 ===
 
 # Repo map {#repo-map}

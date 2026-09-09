@@ -261,8 +261,8 @@ const SUBHELP = {
        geml history verify  <file.geml>                    rebuild and re-hash every revision in the chain
        (<rev>: 0 = the tip | -N = N revisions back | an unambiguous revision id — the strings 'get' prints.
         All four take --history <path> to point at a sidecar other than <file>.gemlhistory.)`,
-  codemap: `usage: geml codemap build  [--root <repo>]   # auto-detect languages, run the indexer(s), and merge into one codemap (--root defaults to the current directory)
-       geml codemap build  (--db <graph.db> | --adapter joern|scip --raw <in>)+ [--root <repo>] [--out .geml-code-graph] [--container module|dir|file] [--lang <JAVASRC|NEWC|…>] [--joern <path>] [--history [-m msg]]
+  codemap: `usage: geml codemap build  [--root <repo>] [--exclude <glob>]… [--no-gitignore]   # auto-detect languages, run the indexer(s), and merge into one codemap (--root defaults to the current directory)
+       geml codemap build  (--db <graph.db> | --adapter joern|scip --raw <in> [--remap <virtual-dir>])+ [--root <repo>] [--repo-name <name>] [--out .geml-code-graph] [--build <out>/_build] [--container module|dir|file] [--lang <JAVASRC|NEWC|…>] [--joern <path>] [--exclude <glob>]… [--no-gitignore] [--history [-m msg]]
        geml codemap verify [dir]                 geml check + profile reference checks
        geml codemap render [dir]                 every doc -> sibling .html (open index.html from disk)
        geml codemap serve  [dir] [--port 8140] [--watch] [--background|--stop]   live viewer: pages render from .geml on request; --watch re-runs the recipe when sources change

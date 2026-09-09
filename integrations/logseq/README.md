@@ -107,7 +107,7 @@ and without it every write also saves a `.gemlhistory` sidecar.
 
 ```sh
 geml find "that phrase" …/.logseq-sync-vault-with-geml        # → pages/foo.geml  #<uuid>
-printf 'new text' | geml set …/pages/foo.geml '#<uuid>' --in - -o <same-file>
+printf 'new text' | geml set …/pages/foo.geml '#<uuid>' --body --in -
 ```
 
 **One property** is an address too. They ride in a `data` block named after the
@@ -126,7 +126,7 @@ ship the sync plugin
 
 ```sh
 printf 'done' | geml set …/pages/foo.geml \
-  '#meta-<uuid>[":build/properties"][":user.property/status"]' --in - -o <same-file>
+  '#meta-<uuid>[":build/properties"][":user.property/status"]' --in -
 ```
 
 A page's own properties are `#page-meta`, the graph's definitions `#properties`
