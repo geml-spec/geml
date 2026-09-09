@@ -670,6 +670,18 @@ test("the write guards say what they REFUSED to write, and leave the file alone"
   rmSync(d, { recursive: true, force: true });
 });
 
+
+test("--to md: borrowed content sits under the host's title — shifted, without a frontmatter of its own", () => {
+  const d = mkdtempSync(pjoin(tmpdir(), "geml-embedshift-"));
+  wf(pjoin(d, "lib.geml"), '=== meta\ntitle = "Lib"\n===\n\n# Shared {#shared}\n\nfrom the other file.\n\n## Shared-a\n');
+  const host = pjoin(d, "host.geml");
+  wf(host, '=== meta\ntitle = "Host"\n===\n\n# Intro\n\n=== embed {src=lib.geml#shared}\n===\n');
+  const r = run([host, "--to", "md"]);
+  assert.equal(r.code, 0, r.err);
+  assert.equal(r.out, "---\ntitle: Host\n---\n\n# Host\n\n## Intro\n\n## Shared\n\nfrom the other file.\n\n### Shared-a\n");
+  rmSync(d, { recursive: true, force: true });
+});
+
 console.log(`\n${passed} test(s) passed.`);
 // Exit explicitly: every assertion above has run, and on Linux this file's
 // server/fetch traffic can leave a live handle that keeps the process — and

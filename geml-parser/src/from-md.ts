@@ -69,6 +69,17 @@ function metaLine(line: string): string | null {
   return bareSafe ? `${m[1]}=${v}` : `${m[1]}="${v}"`;
 }
 
+// The plain text of a YAML scalar as `--to md` writes one: bare, or a JSON
+// string when quoting was needed (frontmatter() in to-md.ts).
+function yamlScalar(v: string): string {
+  v = v.trim();
+  if (v.length >= 2 && v.startsWith('"') && v.endsWith('"')) {
+    try { return String(JSON.parse(v)); } catch { return v.slice(1, -1); }
+  }
+  if (v.length >= 2 && v.startsWith("'") && v.endsWith("'")) return v.slice(1, -1);
+  return v;
+}
+
 // Rewrite Markdown autolinks `<https://…>` / `<mailto:…>` into GEML links
 // `[url](url)` (GEML has no autolink syntax). Inline code spans are left intact.
 function autolinks(s: string): string {
@@ -150,6 +161,7 @@ export function mdToGeml(source: string): ConvertResult {
   let i = 0;
 
   // YAML frontmatter (must be the very first line).
+  let fmTitle: string | undefined;
   if (lines[0] === "---") {
     let j = 1;
     const meta: string[] = [];
@@ -157,14 +169,37 @@ export function mdToGeml(source: string): ConvertResult {
       const ml = metaLine(lines[j]!);
       if (ml) meta.push(ml);
       else if (lines[j]!.trim() !== "") notes.push(`frontmatter line not converted: ${lines[j]}`);
+      const t = /^title\s*:\s*(.*)$/.exec(lines[j]!);
+      if (t && fmTitle === undefined) fmTitle = yamlScalar(t[1]!).trim();
       j++;
     }
     if (j < lines.length) { // closing marker found -> it was frontmatter
       emitBlock(out, "meta", "", meta, ids);
       out.push("");
       i = j + 1;
-    }
+    } else fmTitle = undefined;
   }
+
+  // `--to md` writes the meta title as the `h1` and moves the body's headings
+  // down one level (doc-title.ts). The return trip recognises exactly that
+  // shape — frontmatter `title`, then a level-1 heading reading the same words
+  // — drops the echo and moves the headings back up, so the title lives in
+  // `=== meta` again and every heading is a section, as the spec's §4 style
+  // note has it. Any other opening is left alone: a heading that merely
+  // resembles the title is content.
+  let promote = false;
+  if (fmTitle !== undefined && fmTitle !== "") {
+    let k = i;
+    while (k < lines.length && lines[k]!.trim() === "") k++;
+    const h1 = /^#\s+(.*?)\s*$/.exec(lines[k] ?? "");
+    const words = h1?.[1]!.replace(/\\([\\`*_[\]])/g, "$1").trim();
+    if (h1 && words === fmTitle) { promote = true; i = k + 1; }
+  }
+  const level = (n: number): number => {
+    if (!promote) return n;
+    if (n === 1) notes.push("heading could not move above level 1 once the title was lifted into meta; kept at level 1");
+    return Math.max(1, n - 1);
+  };
 
   while (i < lines.length) {
     const line = lines[i]!;
@@ -207,8 +242,8 @@ export function mdToGeml(source: string): ConvertResult {
     // before the thematic-break drop so dash underlines aren't lost.
     if (line.trim() !== "" && !THEMATIC.test(line) && i + 1 < lines.length) {
       const nxt = lines[i + 1]!;
-      if (SETEXT_UL.test(nxt)) { out.push(`# ${escMetaRefs(line.trim())}`); i += 2; continue; }
-      if (SETEXT_DASH.test(nxt)) { out.push(`## ${escMetaRefs(line.trim())}`); i += 2; continue; }
+      if (SETEXT_UL.test(nxt)) { out.push(`${"#".repeat(level(1))} ${escMetaRefs(line.trim())}`); i += 2; continue; }
+      if (SETEXT_DASH.test(nxt)) { out.push(`${"#".repeat(level(2))} ${escMetaRefs(line.trim())}`); i += 2; continue; }
     }
 
     // Thematic break (---, ***, ___) -> dropped (not a GEML construct). Any
@@ -267,12 +302,13 @@ export function mdToGeml(source: string): ConvertResult {
     const atx = /^(#{1,6})\s+(.*?)\s*$/.exec(line);
     if (atx && atx[2]!.includes("`") && !/\{[^}]*\}\s*$/.test(atx[2]!)) {
       const id = githubSlug(atx[2]!);
-      if (id) { out.push(`${atx[1]} ${escMetaRefs(atx[2]!)} {#${id}}`); i++; continue; }
+      if (id) { out.push(`${"#".repeat(level(atx[1]!.length))} ${escMetaRefs(atx[2]!)} {#${id}}`); i++; continue; }
     }
 
     // Inline pass: rewrite autolinks to GEML links, escape literal `{{name}}`
     // (both outside code spans).
-    const text = escMetaRefs(autolinks(line));
+    const text0 = escMetaRefs(autolinks(line));
+    const text = atx && promote ? "#".repeat(level(atx[1]!.length)) + text0.slice(atx[1]!.length) : text0;
 
     // Raw HTML note — ignore `<…>` that sits inside an inline code span.
     if (/<[a-zA-Z/]/.test(text.replace(/`[^`]*`/g, ""))) {

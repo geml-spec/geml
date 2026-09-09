@@ -17,6 +17,7 @@ import { type Inline, isSafeUrl } from "./inline.js";
 import { type Align, type TableCell, type TableModel } from "./table.js";
 import { type ChartModel } from "./chart.js";
 import { type Value } from "./attrs.js";
+import { docTitle, headingShift } from "./doc-title.js";
 import { graphStyleFromLayers, resolveStyleLayers, type GraphStyle } from "./graph-style.js";
 import { translateBlocks, resolveTarget, type Translator } from "./translate.js";
 
@@ -228,10 +229,26 @@ export class RenderCtx {
   // the thing it is projecting. (The viewer's `state.docMeta` is the same rule.)
   private readonly docMeta: Record<string, Value>;
 
+  // The document's title as a heading of its own, and the levels every body
+  // heading moves down to sit under it (doc-title.ts). Undefined / 0 when the
+  // meta has no title, or the author's first heading already echoes it.
+  private readonly titleText: string | undefined;
+  private readonly shift: number;
+
   constructor(private doc: Document, readonly opts: RenderOptions = {}) {
     this.indexLabels(doc.children);
     const meta = doc.children.find((b) => b.kind === "block" && b.type === "meta" && b.data);
     this.docMeta = (meta?.kind === "block" ? meta.data : undefined) ?? {};
+    const t = docTitle(doc);
+    this.shift = headingShift(t);
+    this.titleText = this.shift ? t.title : undefined;
+  }
+
+  // The heading the page opens with, `<h1 class="geml-title">`, or nothing when
+  // the body already carries its title. Plain text: a meta value has no inline
+  // markup, and it is shown exactly as `<title>` shows it.
+  titleHeading(): string {
+    return this.titleText === undefined ? "" : `<h1 class="geml-title">${esc(this.titleText)}</h1>`;
   }
 
   // Codemap documents (meta declares module= / container=) are machine data:
@@ -578,7 +595,7 @@ export class RenderCtx {
       case "heading": {
         if (b.hidden) return "";
         const id = this.idAttr(b.id);
-        const lvl = Math.min(6, Math.max(1, b.level));
+        const lvl = Math.min(6, Math.max(1, b.level + this.shift));
         return `<h${lvl}${id}>${this.inlines(b.inlines)}</h${lvl}>`;
       }
       case "paragraph": {
@@ -1381,6 +1398,7 @@ body { margin:0; color:var(--fg); background:#fafbfc; font:16px/1.6 -apple-syste
 main { max-width: 860px; margin: 0 auto; padding: 48px 24px 96px; background:var(--bg); }
 h1,h2,h3,h4,h5,h6 { line-height:1.25; margin:1.6em 0 .6em; scroll-margin-top:16px; }
 h1 { font-size:2em; border-bottom:1px solid var(--bd); padding-bottom:.3em; }
+h1.geml-title { margin-top:0; }
 h2 { font-size:1.5em; border-bottom:1px solid var(--bd); padding-bottom:.3em; }
 h3 { font-size:1.25em; } h4 { font-size:1em; }
 p { margin:.7em 0; }

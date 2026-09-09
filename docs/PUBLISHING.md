@@ -3,7 +3,9 @@ title: "Publishing — what ships, where it lands, and how to know it did"
 audience: whoever is cutting a release, including an agent
 ---
 
-# Publishing
+# Publishing — what ships, where it lands, and how to know it did
+
+## Publishing
 
 *English | [中文](PUBLISHING_CN.md)*
 
@@ -17,7 +19,7 @@ sat five versions behind while being the page a Show HN pointed at. A committed
 code graph was regenerated only after `geml check` had been red on it for weeks.
 Both were found by accident, not by a gate.
 
-# What carries a copy of what
+## What carries a copy of what
 
 ```mermaid
 flowchart TD
@@ -41,7 +43,7 @@ flowchart TD
 Only the dashed edges look after themselves. Every solid edge is a copy someone
 has to remember.
 
-# Before any release
+## Before any release
 
 | What | Needed for | One-time setup |
 | --- | --- | --- |
@@ -63,9 +65,9 @@ has to remember.
 And before any of it: **land the version bump on `main` first**. Every publish
 path reads the tree, not your working copy.
 
-# Artifact by artifact
+## Artifact by artifact
 
-## `@geml/geml` — parser, CLI, MCP server
+### `@geml/geml` — parser, CLI, MCP server
 
 - **Lands at** npmjs.com/package/@geml/geml, and the Model Context Protocol
   registry.
@@ -89,7 +91,7 @@ path reads the tree, not your working copy.
   page (the workflow publishes with `--provenance`) ·
   `npx -y @geml/geml@<version> --version --json` prints both parser and spec.
 
-## `geml-viewer` — the Chrome extension
+### `geml-viewer` — the Chrome extension
 
 - **Lands at** a GitHub release asset first, the Chrome Web Store second.
 - **Version** in `manifest.json`, `package.json` and `package-lock.json`
@@ -106,7 +108,7 @@ path reads the tree, not your working copy.
 - **Confirm.** The release carries `geml-viewer-<x.y.z>.zip` · load the unpacked
   zip and open a raw `.geml` · then the store listing's version, separately.
 
-## `vscode` — the editor extension
+### `vscode` — the editor extension
 
 - **Lands at TWO marketplaces, from one file.**
   [Open VSX](https://open-vsx.org/extension/geml/geml) (namespace `geml`) is what
@@ -148,7 +150,7 @@ path reads the tree, not your working copy.
   submission with a delay, so its API can answer with the previous version for a
   few minutes after a successful publish.
 
-## Claude and Codex plugins
+### Claude and Codex plugins
 
 - **Lands at** nowhere. **This repository is the marketplace** —
   `.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json` point
@@ -162,7 +164,7 @@ path reads the tree, not your working copy.
 - **Confirm.** Fetch the raw manifest and read its version · install the plugin
   in a fresh session and check a skill resolves.
 
-## `@geml/dsh-plugin`
+### `@geml/dsh-plugin`
 
 - **Lands at** npmjs.com/package/@geml/dsh-plugin, and — separately — at the
   **awesome-dsh-plugin** list (`data/plugins`, entry accepted in PR #1310), which
@@ -178,7 +180,7 @@ path reads the tree, not your working copy.
   even though the other two got theirs for free by riding the parser's version.
 - **Confirm.** `npm view @geml/dsh-plugin version`.
 
-## Agent markets — one manifest per vendor
+### Agent markets — one manifest per vendor
 
 The same two skills and the same stdio MCP server, listed in someone else's
 catalog. Nothing here is built or published: each vendor reads exactly one file,
@@ -219,7 +221,7 @@ the listings do not.
   not the file existing: search the gallery or market for `geml` and record what
   you saw. A manifest in the repo proves nothing about a catalog.
 
-## `@geml/logseq-sync` — the watcher
+### `@geml/logseq-sync` — the watcher
 
 - **Lands at** npmjs.com/package/@geml/logseq-sync. This is the half that does the
   work: it watches the vault and runs the sync. Currently 2.3.0.
@@ -244,7 +246,7 @@ the listings do not.
 - **Confirm.** `npm view @geml/logseq-sync version` · and read the lock's
   `node_modules/@geml/geml` entry to see which parser it actually ships.
 
-## The Logseq plugin — a mirror release AND a one-time marketplace PR
+### The Logseq plugin — a mirror release AND a one-time marketplace PR
 
 Two separate gates, and the second one is **not passed yet**.
 
@@ -277,7 +279,7 @@ Two separate gates, and the second one is **not passed yet**.
   `plugin/package.json` reads the new version ·
   `gh pr view 893 -R logseq/marketplace` for the listing.
 
-## `geml-check-action` — the GitHub Action
+### `geml-check-action` — the GitHub Action
 
 - **Lands at** the [GitHub Marketplace](https://github.com/marketplace?type=actions),
   and today at nothing: **it is not listed**. Users can already reference it by
@@ -297,7 +299,7 @@ Two separate gates, and the second one is **not passed yet**.
   every other release here.
 - **Confirm.** Nothing to confirm until it is listed.
 
-## `obsidian` — not submitted
+### `obsidian` — not submitted
 
 - **Lands at** the Obsidian community-plugin store eventually; **at nothing
   today**, by decision rather than by oversight. Its README says so, and the
@@ -313,7 +315,7 @@ Two separate gates, and the second one is **not passed yet**.
 - **Confirm.** Manual: copy `main.js` and `manifest.json` into
   `.obsidian/plugins/geml/` and enable it.
 
-## What is deliberately not published
+### What is deliberately not published
 
 Three directories under `integrations/` have no channel on purpose. They are
 listed here so the next reader does not read their absence as an omission.
@@ -327,7 +329,7 @@ listed here so the next reader does not read their absence as an omission.
 - **`windows-icon`** — an `install.ps1` a person runs on their own machine. No
   store, and nothing to version.
 
-# Order
+## Order
 
 1. **Bump** the parser in all six files, write the `CHANGELOG.md` entry, build.
 2. **Regenerate what carries a copy**, before publishing anything:
@@ -361,7 +363,7 @@ listed here so the next reader does not read their absence as an omission.
 > `gh release create --latest`. The `-1` suffixes already in the tag list
 > (`viewer-v1.2.2-1`, `v2.0.7-1`) are what that looks like when it happens.
 
-# Traps, each of which has already cost something
+## Traps, each of which has already cost something
 
 | Trap | What it looks like | What catches it |
 | --- | --- | --- |

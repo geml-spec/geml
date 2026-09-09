@@ -1177,4 +1177,33 @@ test("pageAssets exports the shell's css/js for fragment consumers", () => {
   assert.equal(typeof pageAssets.codeGraphJs, "string");
 });
 
+
+// --- the document title (doc-title.ts) ---------------------------------------
+
+test('meta title opens the page as <h1 class="geml-title">; sections move to h2', () => {
+  const h = renderHtml(parse('=== meta\ntitle = "Demo <T>"\n===\n\n# One {#one}\n\n## One-a\n\n# Two\n'));
+  assert.match(h, /<title>Demo &lt;T&gt;<\/title>/, "the tab title is unchanged");
+  assert.match(h, /<main>\n<h1 class="geml-title">Demo &lt;T&gt;<\/h1>\n<h2 id="one">One<\/h2>/);
+  assert.match(h, /<h3[^>]*>One-a<\/h3>/);
+  assert.match(h, /<h2[^>]*>Two<\/h2>/);
+  assert.equal((h.match(/<h1\b/g) || []).length, 1, "one h1 on the page");
+});
+
+test("an echoing first heading is the title: no second h1, no shift", () => {
+  const h = renderHtml(parse('=== meta\ntitle = "Demo"\n===\n\n# {{title}} {#top}\n\n## Ch\n'));
+  assert.doesNotMatch(h, /class="geml-title"/, "the page CSS names the class; the body must not");
+  assert.match(h, /<h1 id="top">Demo<\/h1>\n<h2[^>]*>Ch<\/h2>/);
+});
+
+test("no meta title: nothing is added and levels are untouched", () => {
+  const h = renderHtml(parse("# Own\n\n## S\n"));
+  assert.doesNotMatch(h, /class="geml-title"/, "the page CSS names the class; the body must not");
+  assert.match(h, /<h1[^>]*>Own<\/h1>\n<h2[^>]*>S<\/h2>/);
+});
+
+test("a fragment carries the title heading too — it is body content", () => {
+  const h = renderHtml(parse('=== meta\ntitle = "Demo"\n===\n\n# One\n'), { fragment: true });
+  assert.equal(h, '<h1 class="geml-title">Demo</h1>\n<h2 id="one">One</h2>\n');
+});
+
 console.log(`\n${passed} test(s) passed.`);

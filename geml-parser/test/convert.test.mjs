@@ -1,6 +1,6 @@
 // Markdown -> GEML conversion checks. Run with `npm test`.
 import { spawnSync } from "node:child_process";
-import { mdToGeml, parse } from "../dist/geml.js";
+import { gemlToMd, mdToGeml, parse } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
 
 let passed = 0;
@@ -167,6 +167,51 @@ test("converted Markdown round-trips through the parser cleanly", () => {
   const md = "---\ntitle: T\n---\n\n## H {#h}\n\nText [link](#h) and `code`.\n\n```js\n1\n```\n\n| X | Y |\n|---|---|\n| 1 | 2 |\n";
   const doc = parse(conv(md));
   assert.equal(doc.diagnostics.filter((d) => d.severity === "error").length, 0, JSON.stringify(doc.diagnostics));
+});
+
+
+// --- the return trip of the title (doc-title.ts) ------------------------------
+// `--to md` writes the meta title as the h1 and shifts the sections down. The
+// converter recognises exactly that shape and undoes it, so the title lives in
+// `=== meta` again and every heading is a section (the spec's §4 style note).
+
+test("frontmatter title + echoing h1 -> title in meta, headings back up one level", () => {
+  const g = conv('---\ntitle: "Publishing — what ships"\naudience: agents\n---\n\n# Publishing — what ships\n\n## One\n\ntext\n\n### One-a\n\n## Two\n');
+  assert.match(g, /=== meta\ntitle="Publishing — what ships"\naudience=agents\n===\n/);
+  assert.doesNotMatch(g, /^# Publishing/m, "the echo is gone");
+  assert.match(g, /\n# One\n\ntext\n\n## One-a\n\n# Two\n/);
+});
+
+test("geml -> md -> geml keeps the title in meta and the sections at level 1", () => {
+  const src = '=== meta\ntitle = "Demo"\n===\n\n# One\n\n## One-a\n\n# Two\n';
+  const back = conv(gemlToMd(parse(src)).md);
+  const heads = (d) => d.children.filter((x) => x.kind === "heading").map((h) => [h.level, h.text]);
+  assert.deepEqual(heads(parse(back)), heads(parse(src)));
+  assert.equal(parse(back).children.find((x) => x.kind === "block" && x.type === "meta").data.title, "Demo");
+});
+
+test("an h1 that is not the title's echo is content and stays where it is", () => {
+  assert.match(conv("---\ntitle: My Doc\n---\n\n# Something Else\n\n## S\n"), /\n# Something Else\n\n## S\n/);
+  assert.match(conv("---\ntitle: T\n---\n\nprose first\n\n# T\n\n## S\n"), /\n# T\n\n## S\n/, "only the FIRST body block can be the echo");
+});
+
+test("promotion stops at level 1 and says so; setext and code-span headings move too", () => {
+  const r = mdToGeml("---\ntitle: T\n---\n\n# T\n\n# Also Top\n\nUnder\n---\n\n## The `x` heading\n");
+  assert.match(r.geml, /\n# Also Top\n/, "kept at level 1");
+  assert.ok(r.notes.some((n) => /could not move above level 1/.test(n)), r.notes.join("; "));
+  assert.match(r.geml, /\n# Under\n/, "setext h2 promoted");
+  assert.match(r.geml, /\n# The `x` heading \{#the-x-heading\}\n/, "code-span heading promoted with its pinned id");
+});
+
+test("the echo is matched on the title's plain text: quoting styles, escapes", () => {
+  assert.doesNotMatch(conv('---\ntitle: "a*b"\n---\n\n# a\\*b\n\n## S\n'), /^# a/m, "`--to md` escaped the star");
+  assert.match(conv("---\ntitle: 'Q'\n---\n\n# Q\n\n## S\n"), /\n# S\n/, "single quotes");
+  assert.match(conv('---\ntitle: "bad \\q"\n---\n\n# bad \\q\n\n## S\n'), /\n# S\n/, "a string JSON refuses still compares by its text");
+});
+
+test("no echo without a closed frontmatter, and a frontmatter alone is fine", () => {
+  assert.match(conv("---\ntitle: T\nnever closed\n\n# T\n\n## S\n"), /\n# T\n\n## S\n/);
+  assert.match(conv("---\ntitle: T\n---\n"), /title=T/);
 });
 
 console.log(`\n${passed} test(s) passed.`);

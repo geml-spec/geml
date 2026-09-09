@@ -44,7 +44,8 @@ export { mdToGeml, type ConvertResult } from "./from-md.js";
 export { renderHtml, pageAssets } from "./render-html.js";
 export { type RenderOptions } from "./render.js";
 export { serialize } from "./serialize.js";
-export { gemlToMd } from "./to-md.js";
+export { gemlToMd, type MdOptions, type EmbedHost, type EmbedResolver } from "./to-md.js";
+export { docTitle, headingShift, type DocTitle } from "./doc-title.js";
 export { translateBlocks, translateInlines, resolveTarget, glossaryFrom, HELD_BACK, type Translator, type TranslateOptions } from "./translate.js";
 
 // A block id is any non-whitespace run (§4), so it may contain regex

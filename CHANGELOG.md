@@ -89,6 +89,27 @@ and is released under `viewer-v*` tags.
   needed, and that parked path now inserts an engine's SVG only through a
   caller-supplied sanitizer, its sandboxes answering only their parent.
 
+- **The title is a heading in both projections.** The spec keeps a document's
+  title in `=== meta` (`title = "…"`, the §4 style note) so that every heading
+  is a section; Markdown and HTML readers expect the title as the first `h1`
+  and sections from `h2`. `--to md` wrote the title into YAML frontmatter only
+  (a table on GitHub; a stray rule plus a setext heading in renderers that do
+  not know frontmatter) and left the sections at `#`, so the first section's
+  name read as the title. Now `--to md` writes `# <title>` under the
+  frontmatter and moves every body heading down one level; `--to html` opens
+  the page with `<h1 class="geml-title">` and does the same (`<title>` is
+  unchanged). An author whose first heading already reads the title —
+  `# {{title}}` — has written the title heading: nothing is added and nothing
+  moves, so a page never says its name twice. No heading is counted: one
+  level-1 heading or six, the meta decides. Borrowed content (`embed`) takes
+  the host's shift and brings no frontmatter or title of its own. The return
+  trip (`geml notes.md`) recognises exactly the shape `--to md` writes —
+  frontmatter `title`, then a level-1 heading of the same words — drops the
+  echo and moves the headings back up, so `geml → md → geml` keeps the title
+  in meta and the sections at level 1. A heading pushed past level 6, or one
+  that cannot rise above level 1, is clamped and reported in the notes.
+  `docs/PUBLISHING.md` is regenerated in the new shape.
+
 ## [1.10.2] — 2026-09-09
 
 - **`data {format=edn}`, so nested data can be ADDRESSED rather than only

@@ -103,6 +103,10 @@ export function renderHtml(doc: Document, opts: RenderOptions = {}): string {
       : `layered method flow — roots: in-degree-zero methods (no <code>entry</code> declared)`;
     body = ctx.codeGraphFigure(opts.source, "", `<figcaption>${cap}</figcaption>`) + "\n" + body;
   }
+  // The title opens the page, ahead of any codemap figure (doc-title.ts). It is
+  // body content, so a fragment carries it too.
+  const titleHeading = ctx.titleHeading();
+  if (titleHeading) body = titleHeading + "\n" + body;
   // Fragment mode: the body markup alone, for embedding into an existing
   // layout. No shell, no CDN tags, no inline CSS/JS — see RenderOptions.
   if (opts.fragment) return body + "\n";

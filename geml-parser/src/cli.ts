@@ -34,7 +34,7 @@ import { addressUnits, discoveryHint, matchContent, matchLine, matchType, parseS
 import { type MetaView, metaText, metaView, planCoordWrite, planMetaWrite, projectCoord } from "./coord.js";
 import { mdToGeml } from "./from-md.js";
 import { serialize } from "./serialize.js";
-import { gemlToMd } from "./to-md.js";
+import { gemlToMd, type EmbedHost } from "./to-md.js";
 // ---------------------------------------------------------------------------
 // `get --view` (design: docs/design/specs/2026-08-05-geml-get-view-design.md)
 // ---------------------------------------------------------------------------
@@ -227,10 +227,12 @@ Usage:
                                               set/add/delete/rename/revert; every write is validated before it
                                               reaches disk. A code graph under --root adds four read-only
                                               geml_codemap_* tools to the same server)
-  geml skill  install [--dest <dir>] [--no-global] [--no-mcp]   set up GEML for Claude Code, user-global
+  geml skill  install [--dest <dir>] [--no-global] [--no-mcp]   set up GEML for your agent tools, user-global
                                              (authoring skill -> ~/.claude/skills/geml, CLI -> npm i -g,
                                               MCP server registered at user scope; touches no settings.json,
-                                              installs no hooks; idempotent — re-run to update)
+                                              installs no hooks; idempotent — re-run to update.
+                                              Gemini, Qwen and AGENTS.md are picked up BY DETECTION —
+                                              see 'geml skill --help')
   geml --help | --version [--json]
 
 Use '-' as the file to read from stdin.
@@ -836,7 +838,7 @@ function runTransform(argv: string[]): void {
       // source and says so rather than shipping a stand-in that would make an
       // export look translated when nothing translated it.
       const expand = (at: string, atText: string, depth: number) =>
-        (target: string, embedAttrs?: Record<string, Value>): string | undefined => {
+        (target: string, embedAttrs?: Record<string, Value>, host?: EmbedHost): string | undefined => {
         if (depth >= EMBED_DEPTH_LIMIT) return undefined;
         // GEP 0010 — `part=` narrows a heading's section, and the span layer has
         // drawn exactly these three lines since `geml get --head` existed. So the
@@ -851,7 +853,9 @@ function runTransform(argv: string[]): void {
           const out: string[] = [];
           for (const u of units) {
             const sub = parse(sliceUnit(text, u.span, part), { ...docOpts(docPath, mdRoot) });
-            const r = gemlToMd(sub, { resolveEmbed: expand(docPath, text, depth + 1) });
+            // Borrowed content: no frontmatter or title of its own, headings one
+            // level under the host's (MdOptions.embedded in to-md.ts).
+            const r = gemlToMd(sub, { resolveEmbed: expand(docPath, text, depth + 1), embedded: true, headingShift: host?.headingShift ?? 0 });
             inner.push(...r.notes);
             if (r.md.trim() !== "") out.push(r.md.trim());
           }

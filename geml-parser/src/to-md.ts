@@ -12,6 +12,7 @@ import type { Block, Document, ListItem } from "./geml.js";
 import type { Inline } from "./inline.js";
 import type { TableModel, TableCell, Align } from "./table.js";
 import type { Value } from "./attrs.js";
+import { docTitle, headingShift } from "./doc-title.js";
 
 // ---------------------------------------------------------------------------
 // Inline
@@ -244,7 +245,7 @@ function typedToMd(b: Extract<Block, { kind: "block" }>, ctx: MdCtx): string {
     // the projection over the top of those edits and lose them without a word.
     // A snapshot does not carry the machine that produced it.
     const target = typeof b.attrs["src"] === "string" ? (b.attrs["src"] as string).trim() : "";
-    const inlined = target === "" ? undefined : ctx.resolveEmbed?.(target, b.attrs);
+    const inlined = target === "" ? undefined : ctx.resolveEmbed?.(target, b.attrs, { headingShift: ctx.shift });
     if (inlined !== undefined && inlined.trim() !== "") {
       ctx.notes.add("block transclusion expanded in place; the `embed` itself has no Markdown equivalent and is gone");
       return inlined.trimEnd();
@@ -264,7 +265,9 @@ function block(b: Block, ctx: MdCtx): string {
     case "heading": {
       if (b.hidden) { ctx.notes.add("hidden heading dropped"); return ""; }
       if (b.id) ctx.notes.add("heading id/attributes dropped (Markdown has no attribute syntax)");
-      return "#".repeat(b.level) + " " + seq(b.inlines, ctx);
+      const level = b.level + ctx.shift;
+      if (level > 6) ctx.notes.add("heading deeper than level 6 after the title shift was clamped to level 6");
+      return "#".repeat(Math.min(6, level)) + " " + seq(b.inlines, ctx);
     }
     case "paragraph": return seq(b.inlines, ctx);
     case "hidden": return ""; // `%%` line: never rendered
@@ -299,22 +302,44 @@ function frontmatter(metas: Record<string, Value>[]): string {
 // which needs a path and a root — so the caller that owns those supplies a
 // function and this module stays free of the filesystem. Returns the target's
 // Markdown, or undefined when it cannot be reached.
+// What a resolver learns about the host it expands into: how far the host has
+// shifted its headings (doc-title.ts), so a borrowed section sits one level
+// under the host's own sections rather than beside the host's title.
+export interface EmbedHost {
+  headingShift: number;
+}
+// GEP 0010 — the embed's own attributes travel with the target, so a resolver
+// can honour `lang=`/`translator=` without re-parsing the block.
+export type EmbedResolver = (src: string, attrs?: Record<string, Value>, host?: EmbedHost) => string | undefined;
+
 interface MdCtx {
   notes: Set<string>;
-  // GEP 0010 — the embed's own attributes travel with the target, so a resolver
-  // can honour `lang=`/`translator=` without re-parsing the block.
-  resolveEmbed?: (src: string, attrs?: Record<string, Value>) => string | undefined;
+  // Levels added to every heading: 1 when the document's `title` is written as
+  // the `h1`, 0 otherwise (doc-title.ts). Borrowed content inherits the host's.
+  shift: number;
+  resolveEmbed?: EmbedResolver;
 }
 
 export interface MdOptions {
-  // GEP 0010 — the embed's own attributes travel with the target, so a resolver
-  // can honour `lang=`/`translator=` without re-parsing the block.
-  resolveEmbed?: (src: string, attrs?: Record<string, Value>) => string | undefined;
+  resolveEmbed?: EmbedResolver;
+  // Set by a resolver expanding a borrowed document INTO a host: it writes no
+  // frontmatter and no title heading of its own — the host's meta governs the
+  // page, and a borrowed document's title is metadata, not a heading of the host
+  // (render.ts reads meta the same way) — and its headings start `headingShift`
+  // levels down, where the host's sections sit.
+  embedded?: boolean;
+  headingShift?: number;
 }
 
 export function gemlToMd(doc: Document, opts: MdOptions = {}): { md: string; notes: string[] } {
   const notes = new Set<string>();
-  const ctx: MdCtx = opts.resolveEmbed ? { notes, resolveEmbed: opts.resolveEmbed } : { notes };
+  // The title settles the heading levels before any heading is written: with
+  // `title` in meta and no heading echoing it, the title becomes the `h1` and
+  // the body's headings move down one level (doc-title.ts). Borrowed content
+  // takes its host's shift instead of working one out from its own meta.
+  const t = opts.embedded ? undefined : docTitle(doc);
+  const shift = opts.headingShift ?? (t ? headingShift(t) : 0);
+  const ctx: MdCtx = { notes, shift, ...(opts.resolveEmbed ? { resolveEmbed: opts.resolveEmbed } : {}) };
   const metas: Record<string, Value>[] = [];
   const parts: string[] = [];
 
@@ -328,8 +353,11 @@ export function gemlToMd(doc: Document, opts: MdOptions = {}): { md: string; not
     if (md !== "") parts.push(md);
   }
 
-  const fm = frontmatter(metas);
-  const body = parts.join("\n\n");
+  // A borrowed document's meta is the host's business: its frontmatter would
+  // land mid-page, and its title is metadata, not a heading of the host.
+  const fm = opts.embedded ? "" : frontmatter(metas);
+  const titleLine = t?.title !== undefined && !t.echo ? `# ${escText(t.title)}` : "";
+  const body = [titleLine, ...parts].filter((s) => s !== "").join("\n\n");
   const md = (fm ? fm + "\n\n" : "") + body + "\n";
   return { md, notes: [...notes] };
 }
