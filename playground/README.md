@@ -42,8 +42,10 @@ cd ../geml-parser && npm install && npm run build   # parser must be built first
 cd ../integrations/geml-viewer && npm install && npm run build:playground
 ```
 
-That regenerates `playground/playground.js`. It is committed so the folder hosts
-with zero build step — re-run the command after changing the parser or renderer.
+That writes `playground/playground.js` and copies KaTeX's fonts beside it.
+Neither is committed — CI builds them and Deploy Pages serves what it built, so
+nothing here can fall behind the parser it bundles. The price is this page: a
+fresh checkout has no bundle until you run the command above.
 
 ## The code-graph demo data (`codemap/`)
 

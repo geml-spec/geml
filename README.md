@@ -660,9 +660,10 @@ site/                  The geml-spec.github.io/geml Pages site: a project homepa
                        (index.md) plus a Jekyll blog (blog/, posts in _posts/) —
                        the long-form "why a new format" article (EN / 中文) lives
                        there as its first post. `cd site && bundle exec jekyll
-                       serve` builds it locally; .github/workflows/pages.yml
-                       builds and deploys it (grafting in playground/ as static
-                       output) on push to main.
+                       serve` builds it locally; the pages jobs in
+                       .github/workflows/ci.yml build and deploy it on push to
+                       main, grafting in playground/ as static output — with
+                       playground.js built there rather than committed.
 ```
 
 <a id="license"></a>

@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Deploy Pages used to be its own workflow and could be run by hand; the two
+  # site jobs below live here now, so the button has to live here too.
+  workflow_dispatch:
 
 # Read-only by default: CI only checks out and tests. Anything that needs to
 # write (a release, a comment) grants itself the token at the job level.
@@ -98,24 +101,18 @@ jobs:
         working-directory: integrations/geml-viewer
         run: npm ci && npm run coverage:check
 
-      # playground/playground.js is a COMMITTED artifact: the parser's dist plus
-      # this viewer's renderer, bundled. Nothing used to check that the file in
-      # git is what the current sources produce, so it went stale silently — it
-      # sat five versions behind (still the 1.7.8 parser, missing 1.8.1's
-      # hang fixes) while being the page a Show HN pointed at, and was noticed
-      # by accident. Rebuild it here and let git judge: a diff means someone
-      # changed the parser or the renderer and did not re-bundle.
+      # playground/playground.js used to be a COMMITTED artifact, and this job
+      # rebuilt it and let `git diff` judge — because it had once gone stale
+      # silently, sitting five versions behind (still the 1.7.8 parser, missing
+      # 1.8.1's hang fixes) while being the page a Show HN pointed at.
       #
-      # This job already installed both halves, which is why the check lives
-      # here rather than in a job of its own.
-      - name: The committed playground bundle is current
-        run: |
-          npm --prefix integrations/geml-viewer run build:playground
-          if ! git diff --exit-code -- playground/playground.js; then
-            echo "::error file=playground/playground.js::stale bundle — run 'npm --prefix integrations/geml-viewer run build:playground' and commit the result"
-            exit 1
-          fi
-
+      # The bundle is no longer committed: Deploy Pages builds it. That retires
+      # the diff check rather than satisfying it — `git diff` says nothing about
+      # an untracked file, so keeping it would have left a step that always
+      # passes. What replaces it is that a stale bundle can no longer exist:
+      # the only copy is the one built at deploy time. The build itself is still
+      # exercised here, because the step below bundles the same renderer.
+      #
       # The VS Code preview's bundle is NOT committed (~8 MB of KaTeX and
       # Mermaid; vscode:prepublish rebuilds it), so there is no staleness to
       # check — but nothing else would notice if a renderer change broke the
@@ -125,9 +122,101 @@ jobs:
       - name: The VS Code preview bundle still builds
         run: npm --prefix integrations/geml-viewer run build:vscode
 
+      # The playground bundle is BUILT HERE and nowhere else. Not because the
+      # site's job wants it here, but because this is the only job that has both
+      # halves installed — and a fresh runner shares nothing, so building it in
+      # the pages job below would mean a second `npm ci` of both packages for a
+      # file this job can produce for free. It travels as an artifact instead.
+      - name: Build the playground bundle and its fonts
+        run: npm --prefix integrations/geml-viewer run build:playground
+
+      - name: Hand the playground bundle to the pages job
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playground-bundle
+          path: |
+            playground/playground.js
+            playground/fonts/
+          retention-days: 1
+          if-no-files-found: error
+
       - name: VS Code extension — compile + tests
         working-directory: integrations/vscode
         run: npm ci && npm test
+
+  # ---- the site ------------------------------------------------------------
+  # Deploying used to be its own workflow. It lives here so that the playground
+  # bundle is built exactly once: the viewer job above already installs the
+  # parser and the viewer, and artifacts move between jobs of one workflow
+  # without the `workflow_run` chaining a separate workflow would need.
+  #
+  # Consequences worth knowing. The old `paths:` filter is gone, so a push to
+  # main deploys the site even when only the parser changed — which is the point,
+  # since the bundle now tracks the parser.
+  #
+  # `needs: viewer` is the structural minimum: that job produces the artifact.
+  # It means a red parser or logseq job does NOT hold the deploy back. Widening
+  # it to every test job would make a green suite a precondition for publishing
+  # — a policy choice, not a requirement of this layout, so it is not made here.
+  pages:
+    name: pages — build the site
+    needs: viewer
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Take the playground bundle built by the viewer job
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: playground-bundle
+          path: playground
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+          working-directory: site
+
+      - name: Build site (Jekyll)
+        env:
+          JEKYLL_ENV: production
+        run: bundle exec jekyll build --source . --destination _site
+        working-directory: site
+
+      - name: Graft in the playground (static, non-Jekyll)
+        run: cp -r playground site/_site/playground
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
+        with:
+          path: site/_site
+
+  deploy-pages:
+    name: pages — deploy
+    needs: pages
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # The workflow is read-only by default; this is the one job that publishes,
+    # so it grants itself exactly what deploy-pages needs and nothing more.
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    # One deploy at a time, and never cancel one in flight — a half-published
+    # site is worse than a late one.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
 
   logseq:
     name: logseq integration — tests

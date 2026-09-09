@@ -12,7 +12,8 @@ logo: /assets/logo/geml-mark.svg
 
 lang: en
 
-# Built by .github/workflows/pages.yml (actions/jekyll-build-pages), so this
+# Built by the pages job in .github/workflows/ci.yml (a plain jekyll build),
+# so this
 # isn't limited to the github-pages gem's safe-mode plugin allowlist — kept
 # to it anyway to stay swappable back to a branch-deploy build.
 plugins:

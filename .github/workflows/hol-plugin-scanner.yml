@@ -13,6 +13,16 @@ name: AI plugin scan
 # `token: "<8+ chars>"` reads as a hardcoded secret — so a red run may need a
 # rephrase rather than a fix (f5ed923 was fourteen of those). The full report
 # lands in the job summary; no PR comment, so the job needs nothing but read.
+#
+# `mode: verify` rather than the default `scan`, for the same reason the job
+# exists: scan and lint apply policy profiles, config files and baseline
+# suppressions, and verify does not. Nothing is suppressed here today, so the
+# two agree — but the catalog will not honour a baseline of ours, and the job's
+# whole purpose is to see what the catalog sees. Add a baseline later and
+# verify keeps reporting straight through it, which is the behaviour we want.
+#
+# `online` stays at its default of false: a scan that reaches a network service
+# on every push trades a real dependency for findings we have not needed yet.
 
 on:
   push:
@@ -33,7 +43,8 @@ jobs:
         uses: hashgraph-online/ai-plugin-scanner-action@85767f79b397711216711c0253c6d63178246d17 # v1.2.628
         with:
           plugin_dir: .
-          mode: scan
+          mode: verify
+          format: text
           min_score: 80
           fail_on_severity: high
           pr_comment: "off"

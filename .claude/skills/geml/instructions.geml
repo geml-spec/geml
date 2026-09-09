@@ -41,8 +41,9 @@ Run an expensive suite ONCE and take output + exit code from that same run.
   `integrations/grok-plugin/.grok-plugin/plugin.json` (the mcp suite guards all
   four). `PARSER_VERSION` is read at runtime — never hand-bump it. Add the
   release to `CHANGELOG.md` in the same commit. Three artifacts BUNDLE a copy
-  of the parser and go stale silently — the committed
-  `playground/playground.js`, `playground/codemap/`, and the two extensions.
+  of the parser: the committed `playground/codemap/`, the two extensions, and
+  `playground/playground.js` — that last one is built in CI and no longer
+  committed, so it is the one that cannot go stale.
   `docs/PUBLISHING{,_CN}.{geml,md}` has the dependency graph, every artifact's
   version files / where it lands / how it publishes / prerequisites /
   post-release checks, the order, and the traps; read it before cutting any

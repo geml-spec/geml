@@ -629,8 +629,9 @@ site/                  geml-spec.github.io/geml 的 Pages 站点：项目主页�
                        + 一个 Jekyll 博客（blog/，文章在 _posts/）——长文《为什么
                        需要一种新格式》（英 / 中）就作为博客的第一篇文章。本地用
                        `cd site && bundle exec jekyll serve` 构建预览；
-                       .github/workflows/pages.yml 在 push 到 main 时构建并部署
-                       （构建时把 playground/ 拼接进静态产物）。
+                       .github/workflows/ci.yml 里的 pages 两个 job 在 push 到
+                       main 时构建并部署（把 playground/ 拼接进静态产物）——
+                       playground.js 在那里构建，不再提交进仓库。
 ```
 
 <a id="license"></a>

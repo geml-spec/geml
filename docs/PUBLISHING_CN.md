@@ -24,7 +24,7 @@ flowchart TD
   DIST --> NPM["@geml/geml on npm"]
   DIST --> MCP["MCP registry 条目<br/>以 server.json 为键"]
   DIST --> VIEWER["geml-viewer<br/>Chrome 扩展"]
-  DIST --> BUNDLE["playground/playground.js<br/>已提交产物"]
+  DIST --> BUNDLE["playground/playground.js<br/>部署时构建"]
   DIST --> MAP["playground/codemap/<br/>已提交产物"]
   VIEWER --> VSCODE["vscode 扩展<br/>prepublish 时构建 webview"]
   VIEWER --> BUNDLE
@@ -32,7 +32,7 @@ flowchart TD
   NPM -.-> LOGSEQ["@geml/logseq-sync<br/>按范围依赖 ^1.x"]
   NPM -.-> PLUGINS["claude / codex 插件<br/>经 npx 运行 MCP server"]
 
-  BUNDLE --> G1{"CI 会重建它<br/>有 diff 就红"}
+  BUNDLE --> G1{"每次 CI 都重新构建<br/>所以不可能过期"}
   MAP --> G2{"没有门<br/>只有属性解析不了时<br/>check 才会发现"}
 ```
 
@@ -301,7 +301,7 @@ flowchart TD
 | 陷阱 | 表现成什么样 | 什么能拦住 |
 | --- | --- | --- |
 | "解析器的版本有六个家" | "npm 上已是 1.9.0，而已安装的插件仍自报 1.8.8" | "mcp 测试逐个比对插件清单与 package.json" |
-| "playground/playground.js 是已提交产物" | "浏览器页面用旧文法解析，而别处都是新的" | "CI 重建它，有 git diff 就红" |
+| "playground/playground.js 由 Deploy Pages 构建，不再提交" | "线上就是那次运行产出的东西——npm 安装或打包一挂，首页跟着发不出去" | "部署会明确失败；而且 `paths:` 现在包含 geml-parser/** 和 integrations/geml-viewer/**，改 parser 会真的触发重新部署，不会把页面留在旧 bundle 上" |
 | "playground/codemap/ 是已提交产物，而且是函数级的" | "被插入的函数之后，每个 `#L<a>-<b>` 区间都指向错的行；而新函数根本没有节点" | "没有 —— `codemap verify` 在过期的图上照样通过：它只检查文档能解析、引用能解析，从不检查区间是否还对得上源码" |
 | "viewer 的 tag 必须等于 manifest.json" | "一个 viewer-v1.2.4 的 release 挂着 geml-viewer-1.2.3.zip" | "release-viewer.yml 会拒绝这种不一致" |
 | "Logseq 是镜像发布，不是就地打 tag" | "先打 tag 会用陈旧的 checkout 构建，zip 带上旧版本号" | "没有 —— 先镜像、核对镜像的 plugin/package.json、再打 tag" |

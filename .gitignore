@@ -7,6 +7,17 @@
 # 运行时状态与可再生产物都住 _build/ —— 一条规则就够；
 # _index/ 只放手写的（style.geml、foldings.geml）和生成的索引，两者都进 git。
 playground/codemap/_build/
+
+# The playground bundle and KaTeX's fonts (regenerable)
+# Built by `npm --prefix integrations/geml-viewer run build:playground`, and by
+# Deploy Pages right before it grafts playground/ into the site. They were
+# committed once so Pages could serve the folder verbatim; the cost was an
+# artifact that could silently fall behind the parser it bundles, and it did.
+# Not committing them means the only copy is the one built from current source
+# — at the price of a checkout you cannot open until you have run that build.
+playground/playground.js
+playground/fonts/
+
 integrations/langchain+llamaindex/__pycache__
 
 # Python build metadata, written by `pip install -e .` (regenerable)
