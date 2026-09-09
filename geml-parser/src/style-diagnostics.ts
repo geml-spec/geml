@@ -19,7 +19,8 @@ export type StyleDiagnosticCode =
   | "unknown-component"
   | "unknown-handler"
   | "style-missing-attribute"
-  | "style-unknown-attribute";
+  | "style-unknown-attribute"
+  | "style-embed-not-expanded";
 
 export type StyleSeverity = "error" | "warning";
 
@@ -38,6 +39,12 @@ export const STYLE_SEVERITY: Record<StyleDiagnosticCode, StyleSeverity> = {
   "unknown-component": "warning",
   "unknown-handler": "warning",
   "style-unknown-attribute": "warning",
+  // `embed` 是这个语言的 include，所以把默认层拉进一份样式表是它自然的写法 ——
+  // 而装载器不展开它，被拉进来的规则一条都不生效。这是 warning 而不是 error，
+  // 因为它和 `style-unknown-attribute` 同一性质：我们忽略了作者写下的东西，
+  // 该说出来。沉默才是这里最坏的结果 —— 一份看起来组合好了的样式表，实际只有
+  // 本文件里的那几条规则，页面少一大块而没有人吭声。
+  "style-embed-not-expanded": "warning",
 };
 
 export interface StyleDiagnostic {

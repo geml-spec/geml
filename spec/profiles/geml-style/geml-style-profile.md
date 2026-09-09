@@ -32,13 +32,16 @@ display knobs actually use.
 | `profile = "geml-style/v1"` | `style-state`, `style-screen` |
 | `style-rule` | `show=` `filter=` `handler=` `screen=` |
 | `match=` | `on=` `value-from=` `init-value=` `type=` `layout=` |
-| attribute pass-through (§2.1) | every diagnostic not raised by the held subset |
+| attribute pass-through (§2.1) | the `#sitemap` column (the table exists, but no real map uses it yet) |
+| the style entry: its path + `default-style` (§1.1) | every diagnostic not raised by the held subset |
 
 The held column is held because it **escaped**: every codemap build seeds
-`_index/style.geml` into a user's repository, and those files are real. The
-right column is **specified, checked, and unexercised** — zero real stylesheets
-use any of it. It will move with the first genuine use case rather than be
-preserved for its own sake.
+`_index/style.geml` **and its entry `_index/index.geml`** into a user's
+repository. Those files are real, and they are on the rendering path — the
+renderer finds a stylesheet only through that entry. The right column is
+**specified, checked, and unexercised** — zero real stylesheets use any of it. It
+will move with the first genuine use case rather than be preserved for its own
+sake.
 
 That split is deliberate, not an apology. The escaped surface was kept tiny *so
 that* the rest stays free: one block type, one attribute, and a pass-through
@@ -51,9 +54,9 @@ is a map keyed by that name (`geml-parser/src/profiles.ts`).
 ## 1. Declaring the profile
 
 ```
-=== meta
-profile = "geml-style/v1"
-===
+  === meta
+  profile = "geml-style/v1"
+  ===
 ```
 
 `profile` is a **space-separated list**, so one document can declare several
@@ -66,6 +69,68 @@ Without the declaration each `style-rule` raises an `unknown-block-type`
 warning — 50 rules, 50 warnings — which is what trains people to ignore
 warnings. With it, `geml check` passes a stylesheet clean.
 
+## 1.1 The style entry — how a root says how it renders
+
+A single stylesheet can be handed to a tool directly (`geml style check <sheet>
+<document>`). But for a **directory** to say "here is how my documents render",
+there has to be an agreed location:
+
+```
+<root>/_index/index.geml
+```
+
+Any GEML root has exactly this one path, and hosts probe only it. The name is how
+you find it; `meta.profile` is how you **recognise** it — anything else sitting at
+that path is treated as "no style entry" rather than parsed as one.
+
+The entry uses two keys to say which stylesheets load:
+
+| key | what it is |
+|---|---|
+| `default-style` (a meta key) | this root's **default stylesheet**. Loads whether or not anything else matches |
+| `#sitemap` (a table) | columns `document` / `template` — document name → an **additional** stylesheet |
+
+```
+  === meta
+  profile = "geml-style/v1"
+  default-style = "style.geml"
+  ===
+
+  === table {#sitemap}
+  | document | template |
+  |---|---|
+  | index.geml | home.geml |
+  ===
+```
+
+`#sitemap` is an **exact match**: no globs, no cascade, and a document not listed
+simply gets the default layer only. That is the same stance §4 takes against
+specificity arithmetic — a lookup should be readable at a glance. Keys are
+root-relative document names.
+
+Both keys are **one implicit `embed`** each: declaring them is the same as writing
+the corresponding `=== embed {src=…}` at the top of the entry. They are therefore
+not a new loading mechanism — cycle detection, the nesting cap, and the
+diagnostics all come from `embed` unchanged, so a `default-style` pointing at its
+own entry reports a cycle like anything else.
+
+So "which sheet is this root's default" has exactly one answer, shared by three
+callers: a host hands the entry to the loader as-is, `geml style check <entry>
+<document>` works directly, and a template writing `embed {src=index.geml}` means
+"give me this root's default, whatever it is called" — renaming the default
+stylesheet leaves such templates untouched.
+
+`embed` itself is GEML's include, not this profile's vocabulary; stylesheets use it
+to compose (one shared default layer plus local exceptions). The loader expands it
+through the **same** `selectEmbed` the renderer uses: a second matcher would
+eventually diverge from build-time semantics. Expansion happens at **load time**,
+so afterwards every rule lives in one table.
+
+An explicit `embed` does **not** open a new layer (§4.1): the rules it pulls in sit
+in the same layer as the file referencing it. Layers come only from the style
+entry, so "how many layers does this document have" is answered by reading one
+fixed path, regardless of how deeply `embed` nests.
+
 ## 2. The three block types
 
 **Every block has an empty body.** All information lives in the attribute
@@ -77,8 +142,8 @@ continuation when an attribute object gets long.
 ### 2.1 `style-rule` — which blocks, drawn how
 
 ```
-=== style-rule {#edges match="table#calls" component=edge-list selectable}
-===
+  === style-rule {#edges match="table#calls" component=edge-list selectable}
+  ===
 ```
 
 | attribute | required | meaning |
@@ -99,8 +164,8 @@ complete list of keys the profile itself consumes.
 ### 2.2 `style-state` — one cell of view state, and what feeds it
 
 ```
-=== style-state {#sel type=block-ref match="table#calls" on=select value-from=to}
-===
+  === style-state {#sel type=block-ref match="table#calls" on=select value-from=to}
+  ===
 ```
 
 | attribute | required | meaning |
@@ -130,8 +195,8 @@ over time, not a static conflict, so it is not `ambiguous-rule`.
 ### 2.3 `style-screen` — what goes on one screen
 
 ```
-=== style-screen {#overview layout=split slots="table#calls, $sel"}
-===
+  === style-screen {#overview layout=split slots="table#calls, $sel"}
+  ===
 ```
 
 | attribute | required | meaning |
@@ -200,6 +265,42 @@ The diagnostic distinguishes two cases, because the remedies differ — for
 *identical* selectors, "write the union of both" is impossible advice (the union
 of a set with itself is itself), so that case says to delete one or add a
 distinguishing condition instead.
+
+### 4.1 Layers — the one place origin decides
+
+The style entry of §1.1 orders stylesheets into **layers**. A layer number is
+declared, never computed from a selector:
+
+| layer | source |
+|---|---|
+| 0 | `default-style` |
+| 1 | the `#sitemap` match |
+| 2 | rules written in the entry itself |
+
+**Across layers the higher layer wins; within a layer nothing above changes.** So
+`match="#hero"` beats the default layer's `match="note"` because it sits in a
+higher layer — not because an id selector is "worth more". This is CSS `@layer`,
+not specificity: the layer number comes from the entry's two keys and the selector
+contributes nothing to it.
+
+Without this rule the section above is not enough. A default layer keyed on
+**types** plus an override layer keyed on **specific blocks** is this profile's
+most common shape, and those two selector kinds have condition sets that do not
+contain one another — every one of them would hit `ambiguous-rule`. Measured: the
+five homepage documents all errored before layers existed.
+
+**The reason for excluding source order still holds**, and this is worth stating:
+a layer is not line order in a file. Within a layer there is no order; `#sitemap`
+is an exact match, so reordering its rows changes nothing; the number of layers is
+fixed by the entry's two keys. Block-level agent edits (`geml set`, `geml add
+--before`) therefore still cannot silently re-render a document — which is what
+excluding source order was protecting.
+
+The cost is honest: §4's opening claim that arbitration is independent of which
+file a rule came from now holds **within a layer** only. What it buys is that
+"default layer plus exceptions" works at all; without it, every override rule
+would have to repeat the default layer's condition (`match="note#hero"`) just to
+avoid an error.
 
 ## 5. The binding pipeline
 
@@ -284,12 +385,20 @@ fallback**, which is what preserves §8.5.
 | `unknown-component` | warning | not in the declared registry → renders inert |
 | `unknown-handler` | warning | not in the declared registry → renders inert |
 | `style-unknown-attribute` | warning | an unknown key on `style-state` / `style-screen` |
+| `style-embed-not-expanded` | warning | an `embed` — including §1.1's two implicit ones — contributed no rules |
 
 `unknown-value-source` is checkable because §6 gives tables a real schema. When
 the producer is not a table the check is **skipped**, not guessed at.
 
 `unmatched-rule` is the style layer's `bad-source-range`: the stylesheet is
 internally consistent but has drifted from the corpus it styles.
+
+`style-embed-not-expanded` is a warning rather than an error for the same reason
+`style-unknown-attribute` is: **we ignored something the author wrote, and should
+say so.** The message carries the cause — unreadable, anchor absent, cycle, or the
+caller supplied no document resolver. Silence is the worst outcome here: a
+stylesheet that looks composed while only its own handful of rules apply, a page
+missing a large piece of itself, and nobody saying anything.
 
 ## 9. Checking
 
@@ -340,15 +449,15 @@ The first real stylesheet is the one codemap seeds at
 `<codemap>/_index/style.geml`:
 
 ```
-=== meta
-profile = "geml-style/v1"
-title = "codemap graph style"
-===
+  === meta
+  profile = "geml-style/v1"
+  title = "codemap graph style"
+  ===
 
-=== style-rule {#graph match="diagram[format=geml-code-graph]" \
-                fold=1 depth=6 hide-accessors=true \
-                palette="#e3f2fd #e8f5e9 …"}
-===
+  === style-rule {#graph match="diagram[format=geml-code-graph]" \
+                  fold=1 depth=6 hide-accessors=true \
+                  palette="#e3f2fd #e8f5e9 …"}
+  ===
 ```
 
 Every knob there is a **component parameter** (§2.1's pass-through), not profile
@@ -365,6 +474,21 @@ The renderer is **not** replaced. Only where its numbers come from changed, so
 its defaults must equal today's behaviour knob for knob, and the existing codemap
 tests pass unchanged. A missing or unreadable stylesheet falls back to the
 built-in defaults — exactly the behaviour that predates the file.
+
+The renderer reaches this file **only through the style entry of §1.1**; it never
+reads `_index/style.geml` directly. So a build seeds **two** files: the stylesheet,
+and the `_index/index.geml` that points at it. Seeding only the first leaves that
+stylesheet with no entry to reach it. A missing entry falls back to the built-in
+defaults just the same, and the fix is to rebuild — there is deliberately no "if
+no entry, read style.geml anyway" fallback, because that would keep a second
+discovery path, and two semantics, forever.
+
+Layering here is **key by key**: the sheet a `#sitemap` row assigns overrides only
+the knobs it actually writes, and the rest fall back to the `default-style` layer.
+Each layer is therefore read for the keys that document really wrote — a layer that
+spells out a default value would otherwise be indistinguishable from one that never
+mentioned the knob, and a lower layer's default would overwrite a higher layer's
+explicit value.
 
 ## 12. Versioning and scope
 

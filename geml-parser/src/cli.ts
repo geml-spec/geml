@@ -2699,7 +2699,19 @@ function runStyle(args: string[]): void {
   const comps = listFlag("components"); if (comps !== undefined) opts.components = comps;
   const hands = listFlag("handlers"); if (hands !== undefined) opts.handlers = hands;
 
-  const sheet = loadStylesheet(parse(readFileSync(sheetPath, "utf8")));
+  // 样式表可以用 `embed` 组合（共享的默认层 + 本地例外），所以装载器要拿到和
+  // `--to html` 一样的两个钩子。读取像别处一样在样式表自己的目录上 fail-closed。
+  //
+  // `forDoc`：样式入口的 `#sitemap` 是「文档 → 额外样式表」，所以只有在知道**为哪
+  // 一份文档**装载时才可能命中。语料恰好一份时它就是那一份；给了多份就只剩
+  // `default-style` 那一层 —— 一份规则表服务整个语料，无法逐文档不同，所以这里
+  // 说出来而不是悄悄取第一份。
+  const styleOpts: Parameters<typeof loadStylesheet>[1] = {
+    loadDoc: resolverFor(sheetPath, undefined),
+    parseDoc: (s) => parse(s, { ...docOpts(sheetPath, undefined) }),
+  };
+  if (corpusPaths.length === 1) styleOpts.forDoc = basename(corpusPaths[0]!);
+  const sheet = loadStylesheet(parse(readFileSync(sheetPath, "utf8")), styleOpts);
   const corpus = corpusPaths.map((f) => ({ path: f, doc: parse(readFileSync(f, "utf8")) }));
   const vm = resolveStyle(sheet, corpus, opts);
 

@@ -26,10 +26,12 @@ script**：组件和处理器**只报名字**，实现由宿主提供，与 `dia
 | `profile = "geml-style/v1"` | `style-state`、`style-screen` |
 | `style-rule` | `show=` `filter=` `handler=` `screen=` |
 | `match=` | `on=` `value-from=` `init-value=` `type=` `layout=` |
-| 属性透传（§2.1） | 守住的子集不会触发的每一条诊断 |
+| 属性透传（§2.1） | `#sitemap` 那一列（表存在，但真实的 map 里还没人用） |
+| 样式入口：路径 + `default-style`（§1.1） | 守住的子集不会触发的每一条诊断 |
 
-左列守得住，是因为它**已经逃逸**：每次 codemap build 都会往用户仓库里播种一份
-`_index/style.geml`，那些文件是真实存在的。右列是**已定义、已检查、无人使用**——
+左列守得住，是因为它**已经逃逸**：每次 codemap build 都会往用户仓库里播种
+`_index/style.geml` **和它的入口 `_index/index.geml`**，那些文件是真实存在的，而且在
+渲染路径上——渲染器只经那个入口找样式表。右列是**已定义、已检查、无人使用**——
 没有任何一份真实样式表用到它。它会**跟着第一个真实用例变形**，而不是为了自己被保留。
 
 这个切分是刻意的，不是道歉。逃逸面被刻意做得极小，**正是为了**让其余部分保持自由：
@@ -41,9 +43,9 @@ script**：组件和处理器**只报名字**，实现由宿主提供，与 `dia
 ## 1. 声明 profile
 
 ```
-=== meta
-profile = "geml-style/v1"
-===
+  === meta
+  profile = "geml-style/v1"
+  ===
 ```
 
 `profile` 是**空格分隔的列表**，一份文档可同时声明多个
@@ -54,6 +56,56 @@ profile = "geml-style/v1"
 不声明的话，每条 `style-rule` 都会产生一条 `unknown-block-type` warning——50 条规则
 50 条 warning，正是训练人忽略 warning 的做法。声明之后 `geml check` 干净通过。
 
+## 1.1 样式入口——一个根怎么说明自己怎么渲染
+
+一份样式表可以直接交给工具（`geml style check <样式表> <文档>`）。但一个**目录**要说明
+"我这一堆文档该怎么渲染"，就需要一个约定的位置：
+
+```
+<root>/_index/index.geml
+```
+
+任何 GEML 根都只有这一个路径，宿主只探它。名字用来找，`meta.profile` 用来**认**——那个
+路径上放了别的东西时按"没有样式入口"处理，不硬当入口解析。
+
+入口用两个键说明加载哪几份样式表：
+
+| 键 | 是什么 |
+|---|---|
+| `default-style`（meta 键） | 本根的**默认样式表**。命中与否都加载 |
+| `#sitemap`（一张表） | `document` / `template` 两列，文档名 → **额外**的样式表 |
+
+```
+  === meta
+  profile = "geml-style/v1"
+  default-style = "style.geml"
+  ===
+
+  === table {#sitemap}
+  | document | template |
+  |---|---|
+  | index.geml | home.geml |
+  ===
+```
+
+`#sitemap` 是**精确匹配**：没有 glob，没有级联，没列进来的文档就只有默认层。这和 §4
+拒绝特异性算术是同一个态度——查表要能一眼看出结果。键是根相对的文档名。
+
+两个键都是**一次隐式 `embed`**：声明它们等于在入口开头写了对应的 `=== embed {src=…}`。
+所以它们不是新的装载机制，环检测、深度上限和诊断全部沿用 `embed` 那一套——一份
+`default-style` 指向自己的入口会照常报环。
+
+因此"本根的默认是哪一份"只有一处答案，三方共用：宿主把入口原样交给装载器，
+`geml style check <入口> <文档>` 直接可用，而模板里写 `embed {src=index.geml}` 就是
+"给我本根的默认，不管它叫什么"——默认样式表改名时模板不用跟着改。
+
+`embed` 本身是 GEML 的 include，不是本 profile 的词汇；样式表用它组合（一份共享的默认层
+加本地例外）。装载器展开它时和渲染器用**同一个** `selectEmbed`：另写一份匹配器迟早和
+构建期语义分叉。展开在**装载期**完成，所以展开之后所有规则都在同一张表里。
+
+显式 `embed` **不**开新层（§4.1）：拉进来的规则和引用它的文件同层。层只由样式入口产生，
+所以"这份文档有几层"查一个固定路径就能答出来，不取决于 `embed` 嵌了多深。
+
 ## 2. 三个块类型
 
 **每个块的 body 一律为空**，信息全写在属性对象里。因为 §3 规定*未注册*类型的 body
@@ -63,8 +115,8 @@ profile = "geml-style/v1"
 ### 2.1 `style-rule` —— 哪些块，怎么画
 
 ```
-=== style-rule {#edges match="table#calls" component=edge-list selectable}
-===
+  === style-rule {#edges match="table#calls" component=edge-list selectable}
+  ===
 ```
 
 | 属性 | 必需 | 含义 |
@@ -84,8 +136,8 @@ profile 自己消费的键的全集。
 ### 2.2 `style-state` —— 一格视图状态，和喂它的东西
 
 ```
-=== style-state {#sel type=block-ref match="table#calls" on=select value-from=to}
-===
+  === style-state {#sel type=block-ref match="table#calls" on=select value-from=to}
+  ===
 ```
 
 | 属性 | 必需 | 含义 |
@@ -112,8 +164,8 @@ profile 自己消费的键的全集。
 ### 2.3 `style-screen` —— 一屏放什么
 
 ```
-=== style-screen {#overview layout=split slots="table#calls, $sel"}
-===
+  === style-screen {#overview layout=split slots="table#calls, $sel"}
+  ===
 ```
 
 | 属性 | 必需 | 含义 |
@@ -171,6 +223,32 @@ table.kpi, table.summary                             逗号＝分支（等价于
 诊断把两种情形分开说，因为补救办法不同——对**相同**的选择器建议"写并集"是不可能
 执行的（相同集合的并集就是它自己），那一支改成建议删掉一条、或加一个能区分二者的
 条件。
+
+### 4.1 层——唯一按来源裁决的地方
+
+§1.1 的样式入口把样式表排成**层**。层号是声明出来的，不是从选择器算出来的：
+
+| 层 | 来源 |
+|---|---|
+| 0 | `default-style` |
+| 1 | `#sitemap` 命中的那份 |
+| 2 | 入口自己写的规则 |
+
+**跨层冲突按层号裁决，上层胜；层内一切照上面不变。** 也就是说 `match="#hero"` 能压过
+默认层的 `match="note"`，是因为它在更上面那一层——不是因为 id 选择器"更值钱"。这是
+CSS `@layer` 的模型，不是 specificity：层号来自入口的两个键，选择器一个字都不参与。
+
+没有这一条，上面那套就不够用。默认层给**类型**定规则、覆盖层给**具体块**定规则，是这个
+profile 最常见的写法，而这两种选择器的条件集互不包含——每一处都会撞 `ambiguous-rule`。
+实测过：首页那五份文档在没有层的时候全部报错。
+
+**排除源序的那个理由依然成立**，这一点要说清楚：层不是文件里的行序。同一层内没有顺序；
+`#sitemap` 是精确匹配，所以改行序不改结果；层数由入口那两个键固定。agent 的按块编辑
+（`geml set`、`geml add --before`）因此仍然不会静默改变渲染——那正是排除源序要守的东西。
+
+代价是诚实的：§4 开头"裁决与规则来自哪个文件无关"从此只对**层内**成立。换来的是
+"默认层 + 例外"这个写法能用；不换，它就得靠每条覆盖规则重复默认层的条件（写成
+`match="note#hero"`）才不报错。
 
 ## 5. 绑定管道
 
@@ -247,12 +325,18 @@ warning。开放那侧必须降级而不能拒收，否则 §8.5 的前向兼容
 | `unknown-component` | warning | 不在声明的注册表里 → 惰性渲染 |
 | `unknown-handler` | warning | 不在声明的注册表里 → 惰性渲染 |
 | `style-unknown-attribute` | warning | `style-state` / `style-screen` 上的未知键 |
+| `style-embed-not-expanded` | warning | 一条 `embed`（含 §1.1 的两个隐式 embed）一条规则也没贡献 |
 
 `unknown-value-source` 之所以能真查，是因为 §6 给了表真正的 schema。产生者不是表时
 这项检查**跳过**，不猜。
 
 `unmatched-rule` 是样式层的 `bad-source-range`：样式表内部自洽，但已经和它所样式化
 的语料漂移了。
+
+`style-embed-not-expanded` 是 warning，不是 error，因为它和 `style-unknown-attribute`
+同一性质：**我们忽略了作者写下的东西，该说出来。** 消息里带原因——读不到、锚点不存在、
+成环、或者调用方没给文档解析钩子。沉默才是这里最坏的结果：一份看起来组合好了的样式表，
+实际只有本文件那几条规则生效，页面少一大块而没有人吭声。
 
 ## 9. 校验
 
@@ -297,15 +381,15 @@ geml style check <stylesheet.geml> <corpus…> [--json] [--components=a,b] [--ha
 第一份真实的样式表，是 codemap 在 `<codemap>/_index/style.geml` 播种的那份：
 
 ```
-=== meta
-profile = "geml-style/v1"
-title = "codemap graph style"
-===
+  === meta
+  profile = "geml-style/v1"
+  title = "codemap graph style"
+  ===
 
-=== style-rule {#graph match="diagram[format=geml-code-graph]" \
-                fold=1 depth=6 hide-accessors=true \
-                palette="#e3f2fd #e8f5e9 …"}
-===
+  === style-rule {#graph match="diagram[format=geml-code-graph]" \
+                  fold=1 depth=6 hide-accessors=true \
+                  palette="#e3f2fd #e8f5e9 …"}
+  ===
 ```
 
 里面每个旋钮都是**组件参数**（§2.1 的透传），不是 profile 词汇——`fold`、`depth`、
@@ -320,6 +404,15 @@ title = "codemap graph style"
 渲染器**没有被替换**，改的只是那些数字从哪儿来。因此它的默认值必须逐个等于今天的
 行为，既有的 codemap 测试才会原样通过。样式表缺失或读不了时退回内置默认值——也就是
 这个文件出现之前的行为。
+
+渲染器**只经 §1.1 的样式入口**找这份文件，不直接去读 `_index/style.geml`。所以 build
+播种的是**两份**：样式表，和指向它的 `_index/index.geml`。只播前者，那份样式表就没有
+入口可达。入口缺失时同样退回内置默认值，补法是重新 build——没有"找不到入口就直读
+style.geml"的回落，因为那等于永久留着第二条发现路径、两套语义。
+
+这里的叠加粒度是**键对键**：`#sitemap` 指派的那份只覆盖它自己写了的旋钮，没写的落回
+`default-style` 那一层。所以每层都只能读出"这份文档真的写了"的键——一层把默认值写死，
+就分不清"它要 fold=1"还是"它没提 fold"，上层的显式值会被下层的默认值盖掉。
 
 ## 12. 版本与范围
 

@@ -5,6 +5,7 @@
 // 所以本 profile 的全部信息都写在属性对象里，由这里读取（设计 §3.2）。
 
 import type { Block, Document, Value } from "./geml.js";
+import { selectEmbed } from "./geml.js";
 import { styleDiag, type StyleDiagnostic } from "./style-diagnostics.js";
 import {
   parseSelector, selectorDiag, candidates, matches, address,
@@ -40,6 +41,16 @@ export interface StyleRule {
    */
   screens: string[];
   params: Record<string, Value>;
+  /**
+   * 这条规则来自第几层。层由**样式入口**产生，顺序固定：`default-style` 是 0，
+   * `#sitemap` 命中的那份是 1，入口自己写的规则在最上面。层内 §4 一字不改
+   * （不看来源、不算 specificity、只认严格超集）；**跨层**才按层号决胜。
+   *
+   * 这是 CSS `@layer` 的模型，不是 specificity：层号是显式声明的顺序，不是从
+   * 选择器算出来的分数。所以「id 选择器天生赢类型选择器」这条在这里依然不成立 ——
+   * `match="#hero"` 之所以赢 `match="note"`，是因为它在更上面那一层。
+   */
+  layer: number;
 }
 
 export interface StyleState {
@@ -81,14 +92,155 @@ function str(v: Value | undefined): string | undefined {
   return v === undefined ? undefined : String(v);
 }
 
-/** 样式表文档 → 结构化的规则/状态/屏幕，外加装载期诊断。 */
-export function loadStylesheet(doc: Document): Stylesheet {
-  const sheet: Stylesheet = { rules: [], states: [], screens: [], diagnostics: [] };
-  const blocks: Extract<Block, { kind: "block" }>[] = [];
-  typedBlocks(doc.children, blocks);
+/**
+ * 样式表可以用 `embed` 组合：一份共享的默认层 + 本地的例外。`embed` 就是这个语言的
+ * include，所以不需要新词汇——需要的只是装载器拿到和渲染器一样的两个钩子。展开在
+ * **装载期**完成，于是展开之后所有规则都在同一份表里，§4 的仲裁一个字都不用改：
+ * `table` 与 `table.actions` 本来就是严格超集关系，谁胜出与它们来自哪个文件无关。
+ *
+ * 目标块用 `selectEmbed` 选，和渲染器、`--to md`、`get --view` 是同一个函数——§10 的
+ * 教训是「另写一份匹配器迟早和构建期语义分叉」，这里不再犯。
+ */
+export interface StyleLoadOptions {
+  /** 按相对路径读一份文档；返回 null 表示读不到。与 RenderOptions.loadDoc 同形。 */
+  loadDoc?: (relPath: string) => string | null;
+  parseDoc?: (source: string) => Document;
+  /**
+   * 正在为**哪一份**内容文档装载（文件名，不含目录）。给了它，样式入口的 `#sitemap`
+   * 表才有意义：那张表是「文档 → 额外样式表」，不指明文档就无从命中。
+   * 不给就只有 `default-style` 那一层 —— 一份普通样式表压根没有这两个键，所以
+   * 这个选项对非清单的输入是彻底的 no-op。
+   */
+  forDoc?: string;
+}
 
+const EMBED_DEPTH_CAP = 8;
+
+/**
+ * 样式入口的两个键都是**隐式 embed**，层次和 CSS 一样：
+ *
+ *   [0] meta 的 `default-style` —— 基础层，**命中与否都加载**
+ *   [1] `#sitemap` 表里 `<forDoc>` 精确命中的那份 —— 额外叠上去
+ *
+ * 也就是说一份清单声明了这两样，就等于它开头写了那两条 `=== embed`。于是"这个 site
+ * 该加载哪几层"只有一处答案，几个调用者共用它：
+ *
+ *   宿主      把清单交给装载器就行 —— 它自己不做解析
+ *   CLI       `geml style check _index/index.geml <文档>` 直接可用，不必先人肉查表
+ *   模板作者  `embed {src=index.geml}` = "给我这个 site 的默认，不管它叫什么"
+ *
+ * **"它优先"是层号在起作用，不是 specificity。** 这是 CSS `@layer` 的模型：层的顺序
+ * 是显式声明出来的（默认层在下、指派的那份在上、入口自己写的在最上），跨层冲突按
+ * 层号决胜。§4 在**层内**一字不改 —— 不看来源、不算 specificity、只认严格超集，
+ * 所以同一层里条件不可比的两条规则照常报 `ambiguous-rule`。
+ *
+ * 这一条是对 §4 的**扩展**，得记着：原本"仲裁与规则来自哪个文件无关"现在只对层内
+ * 成立。没有它，默认层的 `match="note"` 和覆盖层的 `match="#hero"` 就是不可比的两条，
+ * 首页那五份文档会全部报错 —— 实测过。
+ *
+ * 按名字 `embed {src=style.geml#base}` 依然可以——那是"我要那一份的那一节"，写死名字
+ * 是作者的选择。显式 `embed` **不**开新层：它拉进来的规则和引用它的文件同层，靠 §4
+ * 的严格超集决胜（`home-embed.geml` 一直是这么工作的）。
+ *
+ * 每层独立展开、各自一份 seen，所以环、深度上限和诊断全部免费复用；一份
+ * `default-style` 指向自己的清单会照常报 cycle。
+ */
+function entryLayers(doc: Document, forDoc?: string): { path: string; id: string }[] {
+  const meta = doc.children.find((b) => b.kind === "block" && b.type === "meta");
+  const data = meta && meta.kind === "block" ? meta.data : undefined;
+  const out: { path: string; id: string }[] = [];
+  const dflt = str(data?.["default-style"]);
+  // 默认层**命中与否都加载** —— 和 CSS 一样，它是基础，不是「没命中时的替补」。
+  if (dflt) out.push({ path: dflt, id: "default-style" });
+  if (forDoc === undefined) return out;
+  const sitemap = doc.children.find((b) => b.kind === "block" && b.id === "sitemap");
+  const rows = sitemap && sitemap.kind === "block" ? sitemap.table?.rows ?? [] : [];
+  for (const r of rows) {
+    if ((r[0]?.text ?? "").trim() !== forDoc) continue;
+    const hit = (r[1]?.text ?? "").trim();
+    // 指派成默认层自己不是错，但同一份不该当两层读 —— 那会让它自己跟自己比层号。
+    if (hit !== "" && hit !== dflt) out.push({ path: hit, id: "sitemap-style" });
+    break;
+  }
+  return out;
+}
+
+/** 合成一个 embed 块，和解析器产出的同形（`mode: "raw"`、空 raw/classes），
+ *  这样下游只有一条代码路径 —— 合成的块和写出来的块无从区分。 */
+function implicitEmbed(src: string, id: string): Block {
+  return { kind: "block", type: "embed", mode: "raw", id, raw: [], classes: [], attrs: { src } };
+}
+
+/** 一份文档 + 它 meta 里 `default-style` 指的那份（作为开头的一次隐式 embed）。 */
+function withDefaultStyle(doc: Document): Block[] {
+  const layers = entryLayers(doc);
+  if (layers.length === 0) return doc.children;
+  return [...layers.map((l) => implicitEmbed(l.path, l.id)), ...doc.children];
+}
+
+/** 就地展开样式表里的 embed，返回展开后的顶层块序列。 */
+function expandEmbeds(
+  children: Block[], sheet: Stylesheet, opts: StyleLoadOptions, seen: Set<string>, depth: number,
+): Block[] {
+  const out: Block[] = [];
+  for (const b of children) {
+    if (!(b.kind === "block" && b.type === "embed")) { out.push(b); continue; }
+    const id = b.id ?? "(anon)";
+    const written = str(b.attrs["src"]) ?? "";
+    const hash = written.indexOf("#");
+    const docPath = hash < 0 ? written : written.slice(0, hash);
+    const anchor = hash < 0 ? undefined : written.slice(hash + 1);
+    const say = (why: string): void => void sheet.diagnostics.push(
+      styleDiag("style-embed-not-expanded",
+        `\`embed\`${written ? ` of \`${written}\`` : ""} contributed no rules: ${why}`, id));
+
+    if (written === "") { say("no `src=`"); continue; }
+    if (depth >= EMBED_DEPTH_CAP) { say(`nesting deeper than ${EMBED_DEPTH_CAP}`); continue; }
+    let target: Block[];
+    if (docPath === "") {
+      target = children; // 同文档内的 `#id`
+    } else {
+      if (!opts.loadDoc || !opts.parseDoc) { say("this caller supplied no document resolver"); continue; }
+      if (seen.has(docPath)) { say(`\`${docPath}\` is already being expanded (cycle)`); continue; }
+      const src = opts.loadDoc(docPath);
+      if (src === null) { say(`cannot resolve \`${docPath}\``); continue; }
+      // 被 embed 的可能就是一份**清单**（`embed {src=index.geml}` = "给我本站默认，
+      // 不管它叫什么"）。所以这里也要跟 `default-style` —— 但**只跟它**，不跟
+      // `#sitemap`：那张表是「为哪份文档」的，只有顶层的样式入口才有那个身份。
+      // 跟来的规则和引用它的文件**同层**（显式 embed 不开新层），层内照 §4 决胜。
+      target = withDefaultStyle(opts.parseDoc(src));
+      seen = new Set([...seen, docPath]);
+    }
+    const picked = selectEmbed(target, anchor);
+    if (picked === null) { say(anchor === undefined ? "the target is empty" : `\`#${anchor}\` is not in it`); continue; }
+    out.push(...expandEmbeds(picked, sheet, opts, seen, depth + 1));
+  }
+  return out;
+}
+
+/** 样式表文档 → 结构化的规则/状态/屏幕，外加装载期诊断。 */
+export function loadStylesheet(doc: Document, opts: StyleLoadOptions = {}): Stylesheet {
+  const sheet: Stylesheet = { rules: [], states: [], screens: [], diagnostics: [] };
+  // 层要**分开展开**，一层一次 expandEmbeds、各自一份 seen。合在一次里做会有两个后果，
+  // 都实测过：默认层被后一层的 `embed` 再次引用时误报 cycle（同一次展开共享 seen），
+  // 而且所有规则挤进同一层，`match="note"` 和 `match="#hero"` 就成了 §4 眼里不可比的
+  // 两条 —— 首页那五份文档因此全报 ambiguous-rule。
+  let layer = 0;
+  for (const src of entryLayers(doc, opts.forDoc)) {
+    collect(expandEmbeds([implicitEmbed(src.path, src.id)], sheet, opts, new Set(), 0), sheet, layer++);
+  }
+  // 被装载的这份文档自己写的规则是**最高层**：它最具体（它就是为这份产物/这个文档写的）。
+  collect(expandEmbeds(doc.children, sheet, opts, new Set(), 0), sheet, layer);
+  return sheet;
+}
+
+/** 把一层展开后的块序列读成规则/状态/屏幕，全部打上层号。 */
+function collect(nodes: Block[], sheet: Stylesheet, layer: number): void {
+  const blocks: Extract<Block, { kind: "block" }>[] = [];
+  typedBlocks(nodes, blocks);
   for (const b of blocks) {
     const id = b.id ?? "(anon)";
+    if (b.type === "embed") continue; // 已在 expandEmbeds 里处理（展开或报诊断）
     if (b.type === "style-rule") {
       const match = str(b.attrs["match"]);
       if (match === undefined) {
@@ -101,7 +253,7 @@ export function loadStylesheet(doc: Document): Stylesheet {
       for (const [k, v] of Object.entries(b.attrs)) if (!RULE_RESERVED.has(k)) params[k] = v;
       const screensRaw = str(b.attrs["screen"]) ?? "";
       const rule: StyleRule = {
-        id, branches: r.branches, params,
+        id, branches: r.branches, params, layer,
         screens: screensRaw.split(/\s+/).filter((x) => x.length > 0),
       };
       const component = str(b.attrs["component"]); if (component !== undefined) rule.component = component;
@@ -145,7 +297,6 @@ export function loadStylesheet(doc: Document): Stylesheet {
       sheet.screens.push(scr);
     }
   }
-  return sheet;
 }
 
 /** 语料里的一份文档，连同它的路径 —— 地址必须按文档限定，见 CorpusDoc 上的注释。 */
@@ -255,6 +406,14 @@ function resolveBindings(
       for (const [k, v] of Object.entries(ruleProps(hit.rule))) {
         const prev = owner.get(k);
         if (prev === undefined) { params[k] = v; owner.set(k, hit); continue; }
+        // **跨层先决胜**，再谈特异性。层是显式声明的顺序（CSS `@layer` 的模型），
+        // 所以「上层赢」不需要任何 specificity 算术 —— 它甚至不看两个条件集。
+        // 顺序很重要：先比特异性会让默认层里一条更具体的规则赢过上层的粗规则，
+        // 那正是 `@layer` 存在的理由 —— 层的意思就是"这一层整体压过下面那层"。
+        if (hit.rule.layer !== prev.rule.layer) {
+          if (hit.rule.layer > prev.rule.layer) { params[k] = v; owner.set(k, hit); }
+          continue;
+        }
         if (moreSpecific(hit.conds, prev.conds)) { params[k] = v; owner.set(k, hit); continue; }
         if (moreSpecific(prev.conds, hit.conds)) continue;
         // 情况 2（条件集相同）与情况 3（不可比）的**补救办法不同**，所以建议必须分开：

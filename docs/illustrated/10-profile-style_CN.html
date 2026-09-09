@@ -70,11 +70,12 @@
 <header>
   <div class="eyebrow">GEML 图解 · profile · geml-style/v1（2026-08-30 落地，EXPERIMENTAL） · <a href="10-profile-style.html">English</a></div>
   <h1>GEML 图解 · geml-style</h1>
-  <p class="lede">样式表是一份普通的 <code>.geml</code>：声明 <code>profile = "geml-style/v1"</code>，装三种全空体的块，用 CSS 味的选择器<strong>选进</strong>内容文档而不改它，把块绑到宿主注册的组件名上。没有脚本，歧义是构建错误，不靠源顺序。它的一致性面是 <code>geml style check --json</code> 吐出的视图模型。这一页用一份干净的样式表和一份故意写坏的样式表，把 12 条诊断逐条跑出来。</p>
+  <p class="lede">样式表是一份普通的 <code>.geml</code>：声明 <code>profile = "geml-style/v1"</code>，装三种全空体的块，用 CSS 味的选择器<strong>选进</strong>内容文档而不改它，把块绑到宿主注册的组件名上。没有脚本，歧义是构建错误，不靠源顺序。它的一致性面是 <code>geml style check --json</code> 吐出的视图模型。这一页用一份干净的样式表和一份故意写坏的样式表，把 13 条诊断逐条跑出来。</p>
   <nav class="toc">
     <a href="#board">看板</a>
     <a href="#good">一份干净的样式表</a>
     <a href="#bad">一份写坏的</a>
+    <a href="#entry">样式入口与层</a>
     <a href="#knobs">codemap 的旋钮</a>
     <a href="#evidence">依据</a>
   </nav>
@@ -85,13 +86,13 @@
   <div class="sec-head">
     <div class="sec-num">看板</div>
     <div>
-      <h2>14 条规则，各自的出处和状态</h2>
+      <h2>17 条规则，各自的出处和状态</h2>
       <p class="sub"><span class="st st-spec">规范已定</span> profile 文档写死的。<span class="st st-obs">实测</span> 文档不规定、工具今天这样做。实现偏差本页未发现。注意 §0.1：只有 codemap 显示旋钮用到的子集承诺稳定。</p>
     </div>
   </div>
   <div class="sec-body">
     <div>
-      <div class="tally"><span><span class="st st-spec">规范已定</span> <b>13</b></span><span><span class="st st-obs">实测</span> <b>1</b></span></div>
+      <div class="tally"><span><span class="st st-spec">规范已定</span> <b>15</b></span><span><span class="st st-obs">实测</span> <b>2</b></span></div>
       <div class="board">
         <table class="b">
           <thead><tr><th></th><th>规则</th><th>出处</th><th>状态</th></tr></thead>
@@ -102,14 +103,17 @@
             <tr><td class="n">4</td><td><code>style-state</code>：<code>match=</code>（生产者选择器）和 <code>on=</code> 必填，<code>on</code> 是<strong>封闭词汇</strong>，目前只有 <code>select</code>；<code>type=</code> block-ref | scalar 不校验；<code>value-from=</code> 带方向；<code>init-value=</code>。未知键 warning。多个生产者写一个 state 是随时间赋值，不是冲突。</td><td class="src">§2.2</td><td><span class="st st-spec">规范已定</span></td></tr>
             <tr><td class="n">5</td><td><code>style-screen</code>：<code>slots=</code> 必填，<strong>逗号分隔</strong>、有序，每个是选择器或 <code>$state</code>；<code>layout=</code> 不校验（宿主的事）；<strong>没有 <code>route=</code></strong>，路由归宿主框架；未知键 warning。</td><td class="src">§2.3</td><td><span class="st st-spec">规范已定</span></td></tr>
             <tr><td class="n">6</td><td>选择器 = §4 自己的词汇：type、<code>.class</code>、<code>#id</code>、<code>[key]</code>、<code>[key=value]</code>，加唯一的后代组合子（空格）和逗号分支。拒绝的 CSS <strong>被点名而不是静默不匹配</strong>：<code>&gt; + ~</code>、伪类、<code>*</code>、子串匹配 → <code>selector-unsupported</code> error。扫描分区：伪类只在括号外找，子串运算符只在括号内找，因为属性值里合法地有 <code>:</code>。</td><td class="src">§3</td><td><span class="st st-spec">规范已定</span></td></tr>
-            <tr><td class="n">7</td><td>冲突按<strong>属性</strong>合并；两条规则给同一块设同一属性时，条件集<strong>严格超集</strong>者胜，否则 <code>ambiguous-rule</code> error。没有 specificity 算术、没有 <code>!important</code>、<strong>没有源顺序回退</strong>：靠顺序的样式表会被 <code>geml set</code> / <code>add --before</code> 悄悄改掉。只对语料里真实共现的块判。</td><td class="src">§4</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">7</td><td>冲突按<strong>属性</strong>合并；两条规则给同一块设同一属性时，条件集<strong>严格超集</strong>者胜，否则 <code>ambiguous-rule</code> error。没有 specificity 算术、没有 <code>!important</code>、<strong>没有源顺序回退</strong>：靠顺序的样式表会被 <code>geml set</code> / <code>add --before</code> 悄悄改掉。只对语料里真实共现的块判。<strong>唯一的例外见规则 16</strong>：跨<strong>层</strong>按层号裁决，而层不是源顺序。</td><td class="src">§4 · §4.1</td><td><span class="st st-spec">规范已定</span></td></tr>
             <tr><td class="n">8</td><td>绑定管线 interaction → state → view，单向三段，<strong>state 从不读 state</strong>，没有图所以没有环，目录里没有 binding-cycle。三个消费算子：<code>show="$s"</code>、<code>filter="k=$s"</code>、<code>title="$s.caption"</code>；由运行时执行而不是组件；检查时只验每个 <code>$name</code> 有 state 声明。</td><td class="src">§5</td><td><span class="st st-spec">规范已定</span></td></tr>
             <tr><td class="n">9</td><td>分隔符只有一条规则：<strong>名字列表用空格，选择器列表用逗号</strong>，因为空格是后代组合子。</td><td class="src">§6</td><td><span class="st st-spec">规范已定</span></td></tr>
             <tr><td class="n">10</td><td>封闭词汇（运行时自己解释，如 <code>on=</code>）未知成员 → error；开放注册表（宿主注册，如 <code>component=</code> <code>handler=</code>）未知成员 → warning + inert；且 <code>unknown-component</code> / <code>unknown-handler</code> 只在调用者用 <code>--components=</code> / <code>--handlers=</code> 声明注册表时才检查。</td><td class="src">§7</td><td><span class="st st-spec">规范已定</span></td></tr>
-            <tr><td class="n">11</td><td>诊断目录 12 条，属于 profile 自己不进 Appendix A：7 个 error（selector-unsupported、ambiguous-rule、unknown-state、unknown-screen、unknown-value-source、unknown-interaction、style-missing-attribute）、5 个 warning（unmatched-rule、unmatched-producer、unknown-component、unknown-handler、style-unknown-attribute）。</td><td class="src">§8</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">11</td><td>诊断目录 13 条，属于 profile 自己不进 Appendix A：7 个 error（selector-unsupported、ambiguous-rule、unknown-state、unknown-screen、unknown-value-source、unknown-interaction、style-missing-attribute）、6 个 warning（unmatched-rule、unmatched-producer、unknown-component、unknown-handler、style-unknown-attribute、style-embed-not-expanded）。</td><td class="src">§8</td><td><span class="st st-spec">规范已定</span></td></tr>
             <tr><td class="n">12</td><td><code>geml style check &lt;sheet&gt; &lt;corpus…&gt; [--json] [--components=] [--handlers=]</code>；exit 0 干净或只有 warning，1 有 error，2 用法错。<code>--json</code> 是视图模型，一致性面：<code>states</code>、<code>screens</code>、<code>bindings</code>、<code>diagnostics</code>；binding 带 <code>doc</code>（id 只在文档内唯一）；bindings 按 screen；slots 已解析成块列表，不给原始选择器。</td><td class="src">§9 · §10</td><td><span class="st st-spec">规范已定</span></td></tr>
-            <tr><td class="n">13</td><td>稳定范围：承诺稳定的只有 profile 声明、<code>style-rule</code>、<code>match=</code>、属性透传——codemap 的显示旋钮用到的这些「逃出去了」。<code>style-state</code>、<code>style-screen</code>、show / filter / handler / screen、on / value-from / init-value / type / layout 都是「已规定、已检查、未使用」，随第一个真实用例移动。v1 有意没有：脚本、URL、路由、设计令牌之外的主题、正文。</td><td class="src">§0.1 · §12</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">13</td><td>稳定范围：承诺稳定的只有 profile 声明、<code>style-rule</code>、<code>match=</code>、属性透传，加上<strong>样式入口的路径与 <code>default-style</code></strong>——codemap 的显示旋钮用到的这些「逃出去了」：每次 build 往用户仓库播种 <code>_index/style.geml</code> <strong>和指向它的 <code>_index/index.geml</code></strong>，而渲染器只经那个入口找样式表。<code>#sitemap</code> 那一列表存在但真实 map 里还没人用，所以仍可动。<code>style-state</code>、<code>style-screen</code>、show / filter / handler / screen、on / value-from / init-value / type / layout 都是「已规定、已检查、未使用」，随第一个真实用例移动。v1 有意没有：脚本、URL、路由、设计令牌之外的主题、正文。</td><td class="src">§0.1 · §12</td><td><span class="st st-spec">规范已定</span></td></tr>
             <tr><td class="n">14</td><td>实测：干净样式表 0 诊断；声明 <code>--components=edge-list</code> 后 method-card 报 unknown-component warning；写坏的样式表 7 error 3 warning，与目录逐条对上。</td><td class="src">geml style check</td><td><span class="st st-obs">实测</span></td></tr>
+            <tr><td class="n">15</td><td>样式入口：任何根只有 <code>&lt;root&gt;/_index/index.geml</code> 一个固定路径，宿主只探它；<strong>名字用来找，<code>meta.profile</code> 用来认</strong>，路径上放了别的东西就当「没有入口」。两个键说明加载哪几份：<code>default-style</code>（meta 键）和 <code>#sitemap</code>（表，<code>document</code>/<code>template</code> 两列，<strong>精确匹配、无 glob、无级联</strong>）。两者都是<strong>一次隐式 <code>embed</code></strong>，所以环检测、深度上限、诊断全部沿用 embed 那一套；<code>embed {src=index.geml}</code> 因此等于「给我本根的默认，不管它叫什么」。</td><td class="src">§1.1</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">16</td><td>层：入口把样式表排成 <code>default-style</code>（0）→ <code>#sitemap</code> 命中的那份（1）→ 入口自己的规则（2）。<strong>跨层按层号裁决、上层胜；层内规则 7 一字不改。</strong>层号是<strong>声明</strong>出来的顺序，不是从选择器算的分数——CSS <code>@layer</code> 的模型，不是 specificity。显式 <code>embed</code> <strong>不</strong>开新层。排除源序的理由依然成立：同层内无序，<code>#sitemap</code> 精确匹配所以改行序不改结果，层数由那两个键固定。代价明写：「裁决与规则来自哪个文件无关」从此只对层内成立。</td><td class="src">§4.1</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">17</td><td>实测：经入口的两层 0 诊断，<code>#hero</code> 被两条规则同时命中而 <code>component</code> 取上层的值、<code>#facts</code> 仍由默认层管；同两条规则挤进一层立刻 <code>ambiguous-rule</code> error；<code>default-style</code> 指不到时 <code>style-embed-not-expanded</code> warning、exit 0、本文件规则照常装载。</td><td class="src">geml style check</td><td><span class="st st-obs">实测</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -255,6 +259,140 @@ renderHtml,esc,call,high
 </section>
 
 <!-- ============ KNOBS ============ -->
+<!-- ============ ENTRY / LAYERS ============ -->
+<section id="entry">
+  <div class="sec-head">
+    <div class="sec-num">入口</div>
+    <div>
+      <h2>一个目录怎么说明自己怎么渲染：样式入口与层</h2>
+      <p class="sub">单份样式表可以直接交给工具。一整个目录要说明「我这堆文档怎么渲染」，就需要一个约定位置：<code>&lt;root&gt;/_index/index.geml</code>。它用两个键排出<strong>层</strong>——§4.1，profile 里唯一按来源裁决的地方。</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption><code>default-style</code> 命中与否都加载；<code>#sitemap</code> 命中的那份叠在上面 <span class="st st-spec">规范已定</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>_index/index.geml · 样式入口</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+<span class="hl">profile = "geml-style/v1"</span>
+<span class="hl">default-style = "base.geml"</span>
+<span class="f">===</span>                                  <span class="c">%% 层 0：命中与否都加载</span>
+<span class="f">=== table</span> <span class="a">{#sitemap}</span>
+| document  | template  |
+|---|---|
+| page.geml | hero.geml |
+<span class="f">===</span>                                  <span class="c">%% 层 1：精确匹配，没 glob 没级联</span></pre>
+          <div class="pane-h" style="margin-top:14px"><span>_index/base.geml · 层 0</span></div>
+<pre class="geml"><span class="f">=== style-rule</span> <span class="a">{#d-notes match="note" component=section}</span>
+<span class="f">===</span>
+<span class="f">=== style-rule</span> <span class="a">{#d-tables match="table" component=card-grid}</span>
+<span class="f">===</span>                                  <span class="c">%% 按类型定的默认层</span></pre>
+          <div class="pane-h" style="margin-top:14px"><span>_index/hero.geml · 层 1</span></div>
+<pre class="geml"><span class="f">=== style-rule</span> <span class="a">{#hero match="<span class="hl">#hero</span>" component=hero}</span>
+<span class="f">===</span>                                  <span class="c">%% 按具体块定的覆盖层</span></pre>
+          <div class="pane-h" style="margin-top:14px"><span>page.geml · 内容</span></div>
+<pre class="geml"><span class="f">=== note</span> <span class="a">{#hero}</span>
+GEML is an Agent-Native base document format.
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#facts}</span>
+| k | v |
+|---|---|
+| spec | v1 |
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml style check _index/index.geml page.geml --json</span><span class="badge b-ok">0 error 0 warning</span></div>
+<pre class="term">{
+ "bindings": [
+  {
+   "doc": "page.geml",
+   "block": "#hero",
+   "rules": [
+    <span class="dim">"d-notes",</span>
+    <span class="ok">"hero"</span>
+   ],
+   "params": {
+    "component": <span class="ok">"hero"</span>
+   }
+  },
+  {
+   "doc": "page.geml",
+   "block": "#facts",
+   "rules": [
+    "d-tables"
+   ],
+   "params": {
+    "component": "card-grid"
+   }
+  }
+ ],
+ "diagnostics": []
+}</pre>
+          <p class="sub" style="margin-top:10px">入口<strong>就是</strong>那份模板 —— 两个键都是一次隐式 <code>embed</code>，所以这条命令不必先人肉查表再传另一个文件。宿主也因此一行解析逻辑都不用写。</p>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>叠加，不是替换</dt><dd><code>#facts</code> 只被层 0 管到，照样渲染成 <code>card-grid</code>。「命中就换一份」的实现会让它一条绑定都没有。</dd>
+        <dt>两条规则都在 <code>rules</code> 里</dt><dd><code>#hero</code> 被 <code>d-notes</code>（层 0，<code>match="note"</code>）和 <code>hero</code>（层 1，<code>match="#hero"</code>）同时命中，<strong>两个 id 都记在绑定里</strong>；决定 <code>component</code> 值的是层号。绑定保留全部命中规则，是为了让人看得出这个属性为什么是这个值。</dd>
+        <dt>层号不是 specificity</dt><dd><code>#hero</code> 赢不是因为 id 选择器「更值钱」——CSS 的那套算术 §4 明确拒绝过。它赢是因为 <code>#sitemap</code> 把它放进了更上面那一层。这是 CSS <code>@layer</code> 的模型：层号来自入口那两个键，选择器一个字都不参与。</dd>
+        <dt>源序依然不参与</dt><dd>层不是文件里的行序：同层内无序，<code>#sitemap</code> 精确匹配所以改行序不改结果，层数由那两个键固定。agent 的按块编辑（<code>geml set</code>、<code>geml add --before</code>）因此仍然不会静默改变渲染——那正是 §4 排除源序要守的东西。</dd>
+      </dl>
+    </figure>
+
+    <figure>
+      <figcaption>把同两条规则挤进<strong>一层</strong>：立刻撞 <code>ambiguous-rule</code> <span class="st st-obs">实测</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>flat.geml · 同一份文件，同一层</span></div>
+<pre class="geml"><span class="f">=== style-rule</span> <span class="a">{#d-notes match="note" <span class="bad">component=section</span>}</span>
+<span class="f">===</span>
+<span class="f">=== style-rule</span> <span class="a">{#hero match="#hero" <span class="bad">component=hero</span>}</span>
+<span class="f">===</span>                                  <span class="c">%% {type=note} 与 {id=hero} 互不包含</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml style check flat.geml page.geml</span><span class="badge b-err">1 error</span></div>
+<pre class="term"><span class="er">error:</span> ambiguous-rule: `#d-notes` and `#hero` both set `component` on
+  `page.geml#hero` — neither is more specific; write a rule matching the
+  union of both selectors (#hero)
+1 error(s), 0 warning(s)   <span class="dim">exit 1</span></pre>
+          <p class="sub" style="margin-top:10px">这就是层存在的理由，不是它的边角情形：「默认层按类型 + 覆盖层按具体块」是这个 profile 最常见的写法，而这两种选择器的条件集<strong>永远</strong>互不包含。没有层的时候，playground 那五份首页文档全部报错。</p>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>层内 §4 一字不改</dt><dd>上面这条错误在有层之后<strong>依然是错误</strong>——层只解决跨层。补救办法也照旧：把覆盖规则写成严格超集（<code>match="note#hero"</code>），或者把它挪到更上面那一层。</dd>
+        <dt>代价说清楚</dt><dd>§4 开头「裁决与规则来自哪个文件无关」从此只对<strong>层内</strong>成立。这是 §4.1 明写的取舍，不是实现漏洞。</dd>
+      </dl>
+    </figure>
+
+    <figure>
+      <figcaption>第 13 条诊断：<code>default-style</code> 指不到，说出来而不是静默少一层 <span class="st st-spec">规范已定</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>_index/broken.geml</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+profile = "geml-style/v1"
+<span class="bad">default-style = "gone.geml"</span>
+<span class="f">===</span>
+<span class="f">=== style-rule</span> <span class="a">{#only match="table" component=card-grid}</span>
+<span class="f">===</span>                                  <span class="c">%% 本文件的规则照常装载</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml style check _index/broken.geml page.geml</span><span class="badge b-warn">1 warning</span></div>
+<pre class="term"><span class="wn">warning:</span> style-embed-not-expanded: `embed` of `gone.geml` contributed no
+  rules: cannot resolve `gone.geml` (#default-style)
+0 error(s), 1 warning(s)   <span class="dim">exit 0</span></pre>
+          <p class="sub" style="margin-top:10px">诊断的 id 是 <code>#default-style</code> —— 那是<strong>合成</strong>的 embed 块的 id。隐式 embed 和写出来的 embed 在下游无从区分，所以报错路径也是同一条。</p>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>为什么是 warning</dt><dd>和 <code>style-unknown-attribute</code> 同一性质：<strong>我们忽略了作者写下的东西，该说出来。</strong>消息带原因——读不到、锚点不存在、成环、或者调用方没给文档解析钩子。</dd>
+        <dt>为什么不能沉默</dt><dd>一份看起来组合好了的样式表，实际只有本文件那几条规则生效，页面少一大块而没有人吭声。这是这条诊断存在之前真实发生过的：同一份文档该出 26 个绑定，只出了 3 个，零诊断。</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
 <section id="knobs">
   <div class="sec-head">
     <div class="sec-num">旋钮</div>
@@ -305,7 +443,7 @@ title = "codemap graph style"
     <div class="sec-num">依据</div>
     <div>
       <h2>探针</h2>
-      <p class="sub">在短路径临时目录里跑，内容文档取自 <code>geml-parser/test/fixtures/style/codemap-content.geml</code>。用仓库内当前构建，1.9.2。</p>
+      <p class="sub">在短路径临时目录里跑，内容文档取自 <code>geml-parser/test/fixtures/style/codemap-content.geml</code>。用仓库内当前构建，1.10.1。</p>
     </div>
   </div>
   <div class="sec-body">
@@ -316,6 +454,9 @@ title = "codemap graph style"
           <tr><td class="mono">good.style.geml + content.geml</td><td><span class="badge b-ok">0 诊断</span>，--json 视图模型如上</td><td>干净、看板 12</td></tr>
           <tr><td class="mono">同上 --components=edge-list</td><td><span class="badge b-warn">1 warning</span> unknown-component method-card</td><td>看板 10</td></tr>
           <tr><td class="mono">bad.style.geml + content.geml</td><td><span class="badge b-err">7 error</span> <span class="badge b-warn">3 warning</span></td><td>写坏、看板 11</td></tr>
+          <tr><td class="mono">_index/index.geml（两层）+ page.geml</td><td><span class="badge b-ok">0 诊断</span>，#hero→hero、#facts→card-grid</td><td>入口</td></tr>
+          <tr><td class="mono">flat.geml（同两条规则挤一层）+ page.geml</td><td><span class="badge b-err">1 error</span> ambiguous-rule</td><td>入口</td></tr>
+          <tr><td class="mono">_index/broken.geml（default-style 指不到）</td><td><span class="badge b-warn">1 warning</span> style-embed-not-expanded</td><td>入口</td></tr>
           <tr><td class="mono">删掉 profile 声明后 geml check</td><td><span class="badge b-warn">5 warning</span> unknown-block-type</td><td>看板 2</td></tr>
         </tbody>
       </table>

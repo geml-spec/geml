@@ -69,11 +69,12 @@
 <header>
   <div class="eyebrow">GEML Illustrated · profile · geml-style/v1 (landed 2026-08-30, EXPERIMENTAL) · <a href="10-profile-style_CN.html">中文</a></div>
   <h1>GEML Illustrated · geml-style</h1>
-  <p class="lede">A stylesheet is an ordinary <code>.geml</code>: it declares <code>profile = "geml-style/v1"</code>, holds three kinds of empty-bodied blocks, <strong>selects into</strong> a content document with CSS-flavoured selectors without touching it, and binds blocks to component names the host registers. No scripts, ambiguity is a build error, nothing depends on source order. Its conformance surface is the view model that <code>geml style check --json</code> emits. This page runs one clean sheet and one deliberately broken sheet and walks through the 12 diagnostics.</p>
+  <p class="lede">A stylesheet is an ordinary <code>.geml</code>: it declares <code>profile = "geml-style/v1"</code>, holds three kinds of empty-bodied blocks, <strong>selects into</strong> a content document with CSS-flavoured selectors without touching it, and binds blocks to component names the host registers. No scripts, ambiguity is a build error, nothing depends on source order. Its conformance surface is the view model that <code>geml style check --json</code> emits. This page runs one clean sheet and one deliberately broken sheet and walks through the 13 diagnostics.</p>
   <nav class="toc">
     <a href="#board">Board</a>
     <a href="#good">A clean sheet</a>
     <a href="#bad">A broken one</a>
+    <a href="#entry">The style entry &amp; layers</a>
     <a href="#knobs">The codemap knobs</a>
     <a href="#evidence">Evidence</a>
   </nav>
@@ -84,13 +85,13 @@
   <div class="sec-head">
     <div class="sec-num">Board</div>
     <div>
-      <h2>14 rules, each with its source and status</h2>
+      <h2>17 rules, each with its source and status</h2>
       <p class="sub"><span class="st st-spec">Settled</span> fixed by the profile document. <span class="st st-obs">Observed</span> not prescribed, this is what the tool does today. No implementation gap found on this page. Mind §0.1: only the subset the codemap display knobs use is promised stable.</p>
     </div>
   </div>
   <div class="sec-body">
     <div>
-      <div class="tally"><span><span class="st st-spec">Settled</span> <b>13</b></span><span><span class="st st-obs">Observed</span> <b>1</b></span></div>
+      <div class="tally"><span><span class="st st-spec">Settled</span> <b>15</b></span><span><span class="st st-obs">Observed</span> <b>2</b></span></div>
       <div class="board">
         <table class="b">
           <thead><tr><th></th><th>Rule</th><th>Source</th><th>Status</th></tr></thead>
@@ -101,14 +102,17 @@
             <tr><td class="n">4</td><td><code>style-state</code>: <code>match=</code> (the producer selector) and <code>on=</code> required, <code>on</code> is a <strong>closed vocabulary</strong>, currently just <code>select</code>; <code>type=</code> block-ref | scalar unchecked; <code>value-from=</code> carries a direction; <code>init-value=</code>. Unknown keys warn. Several producers writing one state is assignment over time, not a conflict.</td><td class="src">§2.2</td><td><span class="st st-spec">Settled</span></td></tr>
             <tr><td class="n">5</td><td><code>style-screen</code>: <code>slots=</code> required, <strong>comma-separated</strong>, ordered, each a selector or <code>$state</code>; <code>layout=</code> unchecked (the host's business); <strong>no <code>route=</code></strong>, routing belongs to the host framework; unknown keys warn.</td><td class="src">§2.3</td><td><span class="st st-spec">Settled</span></td></tr>
             <tr><td class="n">6</td><td>A selector is §4's own vocabulary: type, <code>.class</code>, <code>#id</code>, <code>[key]</code>, <code>[key=value]</code>, plus the one descendant combinator (space) and comma branches. Rejected CSS is <strong>named rather than silently unmatched</strong>: <code>&gt; + ~</code>, pseudo-classes, <code>*</code>, substring matching → <code>selector-unsupported</code> error. The scan is partitioned: pseudo-classes are looked for only outside brackets, substring operators only inside, because attribute values legitimately contain <code>:</code>.</td><td class="src">§3</td><td><span class="st st-spec">Settled</span></td></tr>
-            <tr><td class="n">7</td><td>Conflicts merge <strong>per attribute</strong>; when two rules set the same attribute on the same block, the one whose condition set is a <strong>strict superset</strong> wins, otherwise <code>ambiguous-rule</code> error. No specificity arithmetic, no <code>!important</code>, <strong>no source-order fallback</strong>: a sheet relying on order would be silently changed by <code>geml set</code> / <code>add --before</code>. Judged only on blocks that actually co-occur in the corpus.</td><td class="src">§4</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">7</td><td>Conflicts merge <strong>per attribute</strong>; when two rules set the same attribute on the same block, the one whose condition set is a <strong>strict superset</strong> wins, otherwise <code>ambiguous-rule</code> error. No specificity arithmetic, no <code>!important</code>, <strong>no source-order fallback</strong>: a sheet relying on order would be silently changed by <code>geml set</code> / <code>add --before</code>. Judged only on blocks that actually co-occur in the corpus. <strong>The one exception is rule 16</strong>: across <strong>layers</strong> the layer number decides, and a layer is not source order.</td><td class="src">§4 · §4.1</td><td><span class="st st-spec">Settled</span></td></tr>
             <tr><td class="n">8</td><td>The binding pipeline interaction → state → view is one-way in three stages, <strong>a state never reads a state</strong>, so there is no graph and no cycle, and no binding-cycle in the catalogue. Three consumer operators: <code>show="$s"</code>, <code>filter="k=$s"</code>, <code>title="$s.caption"</code>; executed by the runtime, not the component; at check time only "every <code>$name</code> has a state declaration" is verified.</td><td class="src">§5</td><td><span class="st st-spec">Settled</span></td></tr>
             <tr><td class="n">9</td><td>One separator rule: <strong>name lists use spaces, selector lists use commas</strong>, because a space is the descendant combinator.</td><td class="src">§6</td><td><span class="st st-spec">Settled</span></td></tr>
             <tr><td class="n">10</td><td>Closed vocabularies (interpreted by the runtime itself, like <code>on=</code>): unknown member → error. Open registries (registered by the host, like <code>component=</code> <code>handler=</code>): unknown member → warning + inert; and <code>unknown-component</code> / <code>unknown-handler</code> are checked only when the caller declares a registry with <code>--components=</code> / <code>--handlers=</code>.</td><td class="src">§7</td><td><span class="st st-spec">Settled</span></td></tr>
-            <tr><td class="n">11</td><td>A catalogue of 12 diagnostics, the profile's own, not in Appendix A: 7 errors (selector-unsupported, ambiguous-rule, unknown-state, unknown-screen, unknown-value-source, unknown-interaction, style-missing-attribute), 5 warnings (unmatched-rule, unmatched-producer, unknown-component, unknown-handler, style-unknown-attribute).</td><td class="src">§8</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">11</td><td>A catalogue of 13 diagnostics, the profile's own, not in Appendix A: 7 errors (selector-unsupported, ambiguous-rule, unknown-state, unknown-screen, unknown-value-source, unknown-interaction, style-missing-attribute), 6 warnings (unmatched-rule, unmatched-producer, unknown-component, unknown-handler, style-unknown-attribute, style-embed-not-expanded).</td><td class="src">§8</td><td><span class="st st-spec">Settled</span></td></tr>
             <tr><td class="n">12</td><td><code>geml style check &lt;sheet&gt; &lt;corpus…&gt; [--json] [--components=] [--handlers=]</code>; exit 0 clean or warnings only, 1 with errors, 2 usage. <code>--json</code> is the view model, the conformance surface: <code>states</code>, <code>screens</code>, <code>bindings</code>, <code>diagnostics</code>; a binding carries <code>doc</code> (ids are unique only within a document); bindings are per screen; slots come resolved into block lists, not raw selectors.</td><td class="src">§9 · §10</td><td><span class="st st-spec">Settled</span></td></tr>
-            <tr><td class="n">13</td><td>Stability: only the profile declaration, <code>style-rule</code>, <code>match=</code> and attribute pass-through are promised stable, because the codemap display knobs already use them and they have "escaped". <code>style-state</code>, <code>style-screen</code>, show / filter / handler / screen, on / value-from / init-value / type / layout are "specified, checked, unused" and move with the first real use case. v1 deliberately has no scripts, URLs, routing, theming beyond design tokens, or bodies.</td><td class="src">§0.1 · §12</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">13</td><td>Stability: only the profile declaration, <code>style-rule</code>, <code>match=</code>, attribute pass-through, plus <strong>the style entry's path and <code>default-style</code></strong> are promised stable, because the codemap display knobs already use them and they have "escaped": every build seeds <code>_index/style.geml</code> <strong>and the <code>_index/index.geml</code> that points at it</strong> into a user's repository, and the renderer finds a stylesheet only through that entry. The <code>#sitemap</code> column exists but no real map uses it yet, so it can still move. <code>style-state</code>, <code>style-screen</code>, show / filter / handler / screen, on / value-from / init-value / type / layout are "specified, checked, unused" and move with the first real use case. v1 deliberately has no scripts, URLs, routing, theming beyond design tokens, or bodies.</td><td class="src">§0.1 · §12</td><td><span class="st st-spec">Settled</span></td></tr>
             <tr><td class="n">14</td><td>Observed: the clean sheet yields 0 diagnostics; declaring <code>--components=edge-list</code> makes method-card an unknown-component warning; the broken sheet yields 7 errors and 3 warnings, each matching the catalogue.</td><td class="src">geml style check</td><td><span class="st st-obs">Observed</span></td></tr>
+            <tr><td class="n">15</td><td>The style entry: any root has exactly one fixed path, <code>&lt;root&gt;/_index/index.geml</code>, and hosts probe only it; <strong>the name finds it, <code>meta.profile</code> recognises it</strong> — anything else at that path is "no entry". Two keys say which sheets load: <code>default-style</code> (a meta key) and <code>#sitemap</code> (a table, columns <code>document</code>/<code>template</code>, <strong>exact match, no glob, no cascade</strong>). Both are <strong>one implicit <code>embed</code></strong> each, so cycle detection, the nesting cap and the diagnostics all come from embed unchanged; <code>embed {src=index.geml}</code> therefore means "give me this root's default, whatever it is called".</td><td class="src">§1.1</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">16</td><td>Layers: the entry orders sheets as <code>default-style</code> (0) → the <code>#sitemap</code> match (1) → the entry's own rules (2). <strong>Across layers the higher layer wins; within a layer rule 7 is unchanged.</strong> A layer number is a <strong>declared</strong> order, not a score computed from selectors — the CSS <code>@layer</code> model, not specificity. An explicit <code>embed</code> does <strong>not</strong> open a new layer. Excluding source order still holds: no order within a layer, <code>#sitemap</code> is an exact match so row order changes nothing, and the layer count is fixed by those two keys. The cost is written down: "arbitration is independent of which file a rule came from" now holds within a layer only.</td><td class="src">§4.1</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">17</td><td>Observed: two layers through the entry give 0 diagnostics, with <code>#hero</code> matched by both rules while <code>component</code> takes the higher layer's value and <code>#facts</code> still governed by the default layer; the same two rules squeezed into one layer raise <code>ambiguous-rule</code> immediately; a <code>default-style</code> resolving to nothing gives a <code>style-embed-not-expanded</code> warning, exit 0, with the file's own rules loaded as usual.</td><td class="src">geml style check</td><td><span class="st st-obs">Observed</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -254,6 +258,140 @@ renderHtml,esc,call,high
 </section>
 
 <!-- ============ KNOBS ============ -->
+<!-- ============ ENTRY / LAYERS ============ -->
+<section id="entry">
+  <div class="sec-head">
+    <div class="sec-num">entry</div>
+    <div>
+      <h2>How a directory says how it renders: the style entry, and layers</h2>
+      <p class="sub">A single stylesheet can be handed to a tool directly. For a whole directory to say "here is how my documents render" there has to be an agreed location: <code>&lt;root&gt;/_index/index.geml</code>. Two keys on it order stylesheets into <strong>layers</strong> — §4.1, the one place in this profile where origin decides.</p>
+    </div>
+  </div>
+  <div class="sec-body">
+    <figure>
+      <figcaption><code>default-style</code> loads either way; the <code>#sitemap</code> match layers on top <span class="st st-spec">Settled</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>_index/index.geml · the style entry</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+<span class="hl">profile = "geml-style/v1"</span>
+<span class="hl">default-style = "base.geml"</span>
+<span class="f">===</span>                                  <span class="c">%% layer 0: loads whether or not anything matches</span>
+<span class="f">=== table</span> <span class="a">{#sitemap}</span>
+| document  | template  |
+|---|---|
+| page.geml | hero.geml |
+<span class="f">===</span>                                  <span class="c">%% layer 1: exact match, no glob, no cascade</span></pre>
+          <div class="pane-h" style="margin-top:14px"><span>_index/base.geml · layer 0</span></div>
+<pre class="geml"><span class="f">=== style-rule</span> <span class="a">{#d-notes match="note" component=section}</span>
+<span class="f">===</span>
+<span class="f">=== style-rule</span> <span class="a">{#d-tables match="table" component=card-grid}</span>
+<span class="f">===</span>                                  <span class="c">%% the default layer, keyed on types</span></pre>
+          <div class="pane-h" style="margin-top:14px"><span>_index/hero.geml · layer 1</span></div>
+<pre class="geml"><span class="f">=== style-rule</span> <span class="a">{#hero match="<span class="hl">#hero</span>" component=hero}</span>
+<span class="f">===</span>                                  <span class="c">%% the override layer, keyed on one block</span></pre>
+          <div class="pane-h" style="margin-top:14px"><span>page.geml · content</span></div>
+<pre class="geml"><span class="f">=== note</span> <span class="a">{#hero}</span>
+GEML is an Agent-Native base document format.
+<span class="f">===</span>
+<span class="f">=== table</span> <span class="a">{#facts}</span>
+| k | v |
+|---|---|
+| spec | v1 |
+<span class="f">===</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml style check _index/index.geml page.geml --json</span><span class="badge b-ok">0 error 0 warning</span></div>
+<pre class="term">{
+ "bindings": [
+  {
+   "doc": "page.geml",
+   "block": "#hero",
+   "rules": [
+    <span class="dim">"d-notes",</span>
+    <span class="ok">"hero"</span>
+   ],
+   "params": {
+    "component": <span class="ok">"hero"</span>
+   }
+  },
+  {
+   "doc": "page.geml",
+   "block": "#facts",
+   "rules": [
+    "d-tables"
+   ],
+   "params": {
+    "component": "card-grid"
+   }
+  }
+ ],
+ "diagnostics": []
+}</pre>
+          <p class="sub" style="margin-top:10px">The entry <strong>is</strong> the template — both keys are one implicit <code>embed</code> each, so this command needs no manual table lookup first. A host therefore writes no resolution logic at all.</p>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Layered, not replaced</dt><dd><code>#facts</code> is covered only by layer 0 and still renders as <code>card-grid</code>. An implementation that swapped sheets on a match would leave it with no binding at all.</dd>
+        <dt>Both rules stay in <code>rules</code></dt><dd><code>#hero</code> is matched by <code>d-notes</code> (layer 0, <code>match="note"</code>) and by <code>hero</code> (layer 1, <code>match="#hero"</code>), and <strong>both ids are recorded on the binding</strong>; the layer decides the <code>component</code> value. Keeping every matching rule is what lets a reader see why an attribute has the value it has.</dd>
+        <dt>A layer number is not specificity</dt><dd><code>#hero</code> does not win because an id selector is "worth more" — §4 rejects that arithmetic explicitly. It wins because <code>#sitemap</code> put it in a higher layer. This is the CSS <code>@layer</code> model: the number comes from the entry's two keys and the selector contributes nothing to it.</dd>
+        <dt>Source order still stays out</dt><dd>A layer is not line order in a file: within a layer there is no order, <code>#sitemap</code> is an exact match so reordering rows changes nothing, and the number of layers is fixed by those two keys. Block-level agent edits (<code>geml set</code>, <code>geml add --before</code>) therefore still cannot silently re-render a document — which is what §4 excluded source order to protect.</dd>
+      </dl>
+    </figure>
+
+    <figure>
+      <figcaption>Put the same two rules in <strong>one</strong> layer: straight into <code>ambiguous-rule</code> <span class="st st-obs">Observed</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>flat.geml · one file, one layer</span></div>
+<pre class="geml"><span class="f">=== style-rule</span> <span class="a">{#d-notes match="note" <span class="bad">component=section</span>}</span>
+<span class="f">===</span>
+<span class="f">=== style-rule</span> <span class="a">{#hero match="#hero" <span class="bad">component=hero</span>}</span>
+<span class="f">===</span>                                  <span class="c">%% {type=note} and {id=hero} contain neither</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml style check flat.geml page.geml</span><span class="badge b-err">1 error</span></div>
+<pre class="term"><span class="er">error:</span> ambiguous-rule: `#d-notes` and `#hero` both set `component` on
+  `page.geml#hero` — neither is more specific; write a rule matching the
+  union of both selectors (#hero)
+1 error(s), 0 warning(s)   <span class="dim">exit 1</span></pre>
+          <p class="sub" style="margin-top:10px">This is why layers exist, not a corner case: "default layer by type plus an override layer by block" is this profile's most common shape, and those two selector kinds have condition sets that <strong>never</strong> contain one another. Without layers, all five playground homepage documents errored.</p>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Within a layer §4 is unchanged</dt><dd>The error above is <strong>still an error</strong> once layers exist — layers only settle cross-layer conflicts. The remedy is unchanged too: write the override as a strict superset (<code>match="note#hero"</code>), or move it to a higher layer.</dd>
+        <dt>The cost, stated</dt><dd>§4's opening claim that arbitration is independent of which file a rule came from now holds <strong>within a layer</strong> only. That is a trade-off §4.1 writes down, not an implementation leak.</dd>
+      </dl>
+    </figure>
+
+    <figure>
+      <figcaption>The 13th diagnostic: a <code>default-style</code> that resolves to nothing says so, instead of silently dropping a layer <span class="st st-spec">Settled</span></figcaption>
+      <div class="panes">
+        <div>
+          <div class="pane-h"><span>_index/broken.geml</span></div>
+<pre class="geml"><span class="f">=== meta</span>
+profile = "geml-style/v1"
+<span class="bad">default-style = "gone.geml"</span>
+<span class="f">===</span>
+<span class="f">=== style-rule</span> <span class="a">{#only match="table" component=card-grid}</span>
+<span class="f">===</span>                                  <span class="c">%% this file's own rules load as usual</span></pre>
+        </div>
+        <div>
+          <div class="pane-h"><span>geml style check _index/broken.geml page.geml</span><span class="badge b-warn">1 warning</span></div>
+<pre class="term"><span class="wn">warning:</span> style-embed-not-expanded: `embed` of `gone.geml` contributed no
+  rules: cannot resolve `gone.geml` (#default-style)
+0 error(s), 1 warning(s)   <span class="dim">exit 0</span></pre>
+          <p class="sub" style="margin-top:10px">The diagnostic's id is <code>#default-style</code> — the id of the <strong>synthesised</strong> embed block. An implicit embed and a written one are indistinguishable downstream, so the reporting path is the same one.</p>
+        </div>
+      </div>
+      <dl class="decision">
+        <dt>Why a warning</dt><dd>Same nature as <code>style-unknown-attribute</code>: <strong>we ignored something the author wrote, and should say so.</strong> The message carries the cause — unreadable, anchor absent, cycle, or the caller supplied no document resolver.</dd>
+        <dt>Why silence is not an option</dt><dd>A stylesheet that looks composed while only its own handful of rules apply, a page missing a large piece of itself, and nobody saying anything. That happened before this diagnostic existed: a document that should have produced 26 bindings produced 3, with zero diagnostics.</dd>
+      </dl>
+    </figure>
+  </div>
+</section>
+
 <section id="knobs">
   <div class="sec-head">
     <div class="sec-num">Knobs</div>
@@ -304,7 +442,7 @@ title = "codemap graph style"
     <div class="sec-num">Evidence</div>
     <div>
       <h2>Probes</h2>
-      <p class="sub">Run in a short-path temp directory; the content document is <code>geml-parser/test/fixtures/style/codemap-content.geml</code>. Current in-repo build, 1.9.2.</p>
+      <p class="sub">Run in a short-path temp directory; the content document is <code>geml-parser/test/fixtures/style/codemap-content.geml</code>. Current in-repo build, 1.10.1.</p>
     </div>
   </div>
   <div class="sec-body">
@@ -315,6 +453,9 @@ title = "codemap graph style"
           <tr><td class="mono">good.style.geml + content.geml</td><td><span class="badge b-ok">0 diagnostics</span>, --json view model as above</td><td>clean, board 12</td></tr>
           <tr><td class="mono">same with --components=edge-list</td><td><span class="badge b-warn">1 warning</span> unknown-component method-card</td><td>board 10</td></tr>
           <tr><td class="mono">bad.style.geml + content.geml</td><td><span class="badge b-err">7 errors</span> <span class="badge b-warn">3 warnings</span></td><td>broken, board 11</td></tr>
+          <tr><td class="mono">_index/index.geml (two layers) + page.geml</td><td><span class="badge b-ok">0 diagnostics</span>, #hero→hero, #facts→card-grid</td><td>entry</td></tr>
+          <tr><td class="mono">flat.geml (same two rules, one layer) + page.geml</td><td><span class="badge b-err">1 error</span> ambiguous-rule</td><td>entry</td></tr>
+          <tr><td class="mono">_index/broken.geml (default-style resolves to nothing)</td><td><span class="badge b-warn">1 warning</span> style-embed-not-expanded</td><td>entry</td></tr>
           <tr><td class="mono">geml check with the profile line removed</td><td><span class="badge b-warn">5 warnings</span> unknown-block-type</td><td>board 2</td></tr>
         </tbody>
       </table>

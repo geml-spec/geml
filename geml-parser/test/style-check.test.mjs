@@ -418,4 +418,211 @@ test("CLI：不声明注册表就不检查 —— 从不触发的诊断比没有
   assert.equal(checked.code, 0, "两条都是 warning，不该让构建失败");
 });
 
+// -- embed：样式表的组合机制（`embed` 就是这个语言的 include）-------------------
+
+const BASE = '=== meta\nprofile = "geml-style/v1"\n===\n\n'
+  + '## 默认 {#base}\n\n'
+  + '=== style-rule {#d-table match="table" component=card-grid}\n===\n\n'
+  + '=== style-rule {#d-code match="code" component=sample}\n===\n';
+
+test("embed 展开：默认层的规则真的生效，例外照 §4 覆盖它", () => {
+  // 展开发生在**装载期**，于是展开后所有规则都在同一份表里 —— §4 的仲裁一个字不用改：
+  // `table` 与 `table.actions` 本来就是严格超集关系，谁胜出与它来自哪个文件无关。
+  w("base.geml", BASE);
+  const sh = w("s.geml", '=== meta\nprofile = "geml-style/v1"\n===\n\n'
+    + "=== embed {src=base.geml#base}\n===\n\n"
+    + '=== style-rule {#a match="table.actions" component=button-row}\n===\n');
+  const content = w("c.geml",
+    "=== table {#plain}\n| a |\n|---|\n| 1 |\n===\n\n"
+    + "=== table {#acts .actions}\n| a |\n|---|\n| 1 |\n===\n\n"
+    + "=== code {#c lang=sh}\nls\n===\n");
+  const r = cli("style", "check", sh, content, "--json");
+  assert.equal(r.code, 0, r.err);
+  const vm = JSON.parse(r.out);
+  assert.deepEqual(vm.diagnostics, [], "展开成功就不该有诊断");
+  const byBlock = Object.fromEntries(vm.bindings.map((b) => [b.block, b.params.component]));
+  assert.equal(byBlock["#plain"], "card-grid", "默认层的 table 规则生效了");
+  assert.equal(byBlock["#c"], "sample", "默认层的 code 规则生效了");
+  assert.equal(byBlock["#acts"], "button-row", "例外覆盖默认 —— 严格超集胜出");
+});
+
+test("embed 没有解析器时说出来，而不是静默丢掉它背后的规则", () => {
+  // 库调用者不给钩子时，被拉进来的规则一条都不生效。静默是这里最坏的结果：
+  // 一份看起来组合好了的样式表，页面却少一大块。
+  const s = sheet("=== embed {src=base.geml#base}\n===\n\n"
+    + '=== style-rule {#a match="table.actions" component=button-row}\n===\n');
+  assert.deepEqual(codes(s.diagnostics), ["style-embed-not-expanded"]);
+  assert.match(s.diagnostics[0].message, /base\.geml#base/, "消息要点名是哪一个 embed");
+  assert.match(s.diagnostics[0].message, /no document resolver/, "要说清原因");
+  assert.equal(s.rules.length, 1, "本文件里的规则照常装载");
+});
+
+test("embed 解析不到、锚点不存在、成环 —— 各自说清楚，且都不拒收样式表", () => {
+  w("base.geml", BASE);
+  const content = w("c2.geml", "=== table {#t}\n| a |\n|---|\n| 1 |\n===\n");
+  const cases = [
+    ["missing.geml#base", /cannot resolve/],
+    ["base.geml#nope", /`#nope` is not in it/],
+  ];
+  for (const [src, re] of cases) {
+    const sh = w(`s-${src.replace(/\W/g, "")}.geml`,
+      '=== meta\nprofile = "geml-style/v1"\n===\n\n' + `=== embed {src=${src}}\n===\n`);
+    const r = cli("style", "check", sh, content);
+    assert.equal(r.code, 0, `${src}: warning 不该让构建失败`);
+    assert.match(r.out + r.err, /style-embed-not-expanded/, src);
+    assert.match(r.out + r.err, re, src);
+  }
+  // 自己 embed 自己：环被拦住，不炸栈。
+  const loop = w("loop.geml", '=== meta\nprofile = "geml-style/v1"\n===\n\n'
+    + "## 顶 {#top}\n\n=== embed {src=loop.geml#top}\n===\n");
+  const r = cli("style", "check", loop, content);
+  assert.equal(r.code, 0, "环也是 warning");
+  assert.match(r.out + r.err, /cycle|deeper than/, r.out + r.err);
+});
+
+// -- default-style：清单 meta 里的一次隐式 embed --------------------------------
+
+test("default-style：把清单直接当模板，规则从它指的那份样式表来", () => {
+  // 一个根的样式入口只有 `_index/index.geml` 一个固定路径。清单本身不带规则，
+  // 它用 `default-style` 说「本站默认是哪一份」—— 装载器把那句话当作一次 embed，
+  // 于是 `style check <清单> <文档>` 直接可用，宿主不必先人肉查表再传另一个文件。
+  w("dbase.geml", BASE);
+  const mf = w("dman.geml", '=== meta\nprofile = "geml-style/v1"\n'
+    + 'default-style = "dbase.geml"\n===\n\n本站的样式入口。\n');
+  const content = w("dc.geml", "=== table {#t}\n| a |\n|---|\n| 1 |\n===\n\n"
+    + "=== code {#c lang=sh}\nls\n===\n");
+  const r = cli("style", "check", mf, content, "--json");
+  assert.equal(r.code, 0, r.err);
+  const vm = JSON.parse(r.out);
+  assert.deepEqual(vm.diagnostics, [], "跟到默认样式表就不该有诊断");
+  const byBlock = Object.fromEntries(vm.bindings.map((b) => [b.block, b.params.component]));
+  assert.equal(byBlock["#t"], "card-grid");
+  assert.equal(byBlock["#c"], "sample", "默认样式表的全部规则都到位，不只第一条");
+});
+
+test("default-style：模板可以 embed 清单 —— 「给我本站默认，不管它叫什么」", () => {
+  // 按名字 `embed {src=dbase.geml#base}` 一直可以；这条测的是那一层间接：
+  // 模板只说「本站的默认」，默认样式表改名时模板不用跟着改。
+  w("dbase.geml", BASE);
+  w("dman.geml", '=== meta\nprofile = "geml-style/v1"\n'
+    + 'default-style = "dbase.geml"\n===\n');
+  const sh = w("dind.geml", '=== meta\nprofile = "geml-style/v1"\n===\n\n'
+    + "=== embed {src=dman.geml}\n===\n\n"
+    + '=== style-rule {#a match="table.actions" component=button-row}\n===\n');
+  // 语料要覆盖默认层的每一条规则（table 和 code），否则被间接拉进来的那条 code
+  // 规则会以 unmatched-rule 现身 —— 那是语料的缺口，不是这层间接的缺陷。
+  const content = w("dc2.geml", "=== table {#plain}\n| a |\n|---|\n| 1 |\n===\n\n"
+    + "=== table {#acts .actions}\n| a |\n|---|\n| 1 |\n===\n\n"
+    + "=== code {#c lang=sh}\nls\n===\n");
+  const r = cli("style", "check", sh, content, "--json");
+  assert.equal(r.code, 0, r.err);
+  const vm = JSON.parse(r.out);
+  assert.deepEqual(vm.diagnostics, [], "两跳（清单 → 默认样式表）都该走通");
+  const byBlock = Object.fromEntries(vm.bindings.map((b) => [b.block, b.params.component]));
+  assert.equal(byBlock["#plain"], "card-grid", "间接拿到了默认层");
+  assert.equal(byBlock["#acts"], "button-row", "本地例外照 §4 覆盖它");
+});
+
+test("default-style：给了锚点就只要那一节，不再追默认", () => {
+  // `embed {src=清单#某节}` 是「我要那一份的那一节」。此时再把 default-style 也拉进来
+  // 就违背了作者的明示；锚点不存在照常是那条 not-expanded 诊断，而不是悄悄换成默认。
+  w("dbase.geml", BASE);
+  // 这份清单既有 default-style，又自己带一节规则 —— 于是「追不追默认」这个分支
+  // 在同一个文件上就能观测到差别，不需要两份夹具。
+  w("dman2.geml", '=== meta\nprofile = "geml-style/v1"\n'
+    + 'default-style = "dbase.geml"\n===\n\n'
+    + '## 只有这一节 {#only}\n\n=== style-rule {#o match="note" component=section}\n===\n');
+  const content = w("dc3.geml", "=== table {#t}\n| a |\n|---|\n| 1 |\n===\n\n"
+    + "=== note {#n}\nhi\n===\n");
+  const sh = w("dind2.geml", '=== meta\nprofile = "geml-style/v1"\n===\n\n'
+    + "=== embed {src=dman2.geml#only}\n===\n");
+  const r = cli("style", "check", sh, content, "--json");
+  assert.equal(r.code, 0, r.err);
+  const vm = JSON.parse(r.out);
+  assert.deepEqual(vm.diagnostics, []);
+  assert.deepEqual(vm.bindings.map((b) => b.block).sort(), ["#n"],
+    "只有 #only 那一节的规则生效；default-style 指的默认层没被一起拉进来");
+});
+
+test("分层：default-style 命中与否都加载 —— #sitemap 那份是叠加，不是替换", () => {
+  // 默认层给 code 定了规则，指派的那份只管 table。两条都该生效：CSS 里 @layer 的
+  // 下层不会因为上层存在而失效。「替换」式实现会让 #c 一条绑定都没有。
+  w("lbase.geml", BASE); // table→card-grid, code→sample
+  w("lspecial.geml", '=== meta\nprofile = "geml-style/v1"\n===\n\n'
+    + '=== style-rule {#s match="table" component=button-row}\n===\n');
+  const mf = w("lman.geml", '=== meta\nprofile = "geml-style/v1"\n'
+    + 'default-style = "lbase.geml"\n===\n\n'
+    + "=== table {#sitemap}\n| document | template |\n|---|---|\n| lc.geml | lspecial.geml |\n===\n");
+  const content = w("lc.geml", "=== table {#t}\n| a |\n|---|\n| 1 |\n===\n\n"
+    + "=== code {#c lang=sh}\nls\n===\n");
+  const r = cli("style", "check", mf, content, "--json");
+  assert.equal(r.code, 0, r.err);
+  const vm = JSON.parse(r.out);
+  assert.deepEqual(vm.diagnostics, [], "跨层冲突由层号决胜，不该报 ambiguous-rule");
+  const byBlock = Object.fromEntries(vm.bindings.map((b) => [b.block, b.params.component]));
+  assert.equal(byBlock["#t"], "button-row", "两层都管 table —— 上层（#sitemap 那份）优先");
+  assert.equal(byBlock["#c"], "sample", "只有默认层管 code —— 它照样生效，没被替换掉");
+});
+
+test("分层：层号先于特异性 —— 下层更具体的规则也压不过上层", () => {
+  // 这是层与 specificity 的分野，也是 §4 被扩展的那一处。下层写了 `table.actions`
+  // （条件集更大），上层只写了 `table`。CSS 的 @layer 在这里让**上层**赢 —— 层的
+  // 意思就是"这一层整体压过下面那层"，而不是"再算一次分数"。
+  w("pbase.geml", '=== meta\nprofile = "geml-style/v1"\n===\n\n'
+    + '=== style-rule {#deep match="table.actions" component=card-grid}\n===\n');
+  w("pover.geml", '=== meta\nprofile = "geml-style/v1"\n===\n\n'
+    + '=== style-rule {#flat match="table" component=button-row}\n===\n');
+  const mf = w("pman.geml", '=== meta\nprofile = "geml-style/v1"\n'
+    + 'default-style = "pbase.geml"\n===\n\n'
+    + "=== table {#sitemap}\n| document | template |\n|---|---|\n| pc.geml | pover.geml |\n===\n");
+  const content = w("pc.geml", "=== table {#acts .actions}\n| a |\n|---|\n| 1 |\n===\n");
+  const r = cli("style", "check", mf, content, "--json");
+  assert.equal(r.code, 0, r.err);
+  const vm = JSON.parse(r.out);
+  assert.deepEqual(vm.diagnostics, []);
+  assert.equal(vm.bindings[0].params.component, "button-row",
+    "上层的粗规则赢过下层的细规则 —— 层号不是 specificity");
+});
+
+test("分层：ambiguous-rule 仍然在**层内**成立 —— §4 没被架空", () => {
+  // 层只解决跨层。同一层里条件不可比的两条规则照旧是错误，补救办法也照旧是
+  // 「写并集」。这一条钉住扩展的边界：别让层号悄悄把 §4 整个吃掉。
+  const content = w("ac.geml", "=== note {#hero}\nhi\n===\n");
+  const sh = w("ash.geml", '=== meta\nprofile = "geml-style/v1"\n===\n\n'
+    + '=== style-rule {#byType match="note" component=section}\n===\n\n'
+    + '=== style-rule {#byId match="#hero" component=hero}\n===\n');
+  const r = cli("style", "check", sh, content);
+  assert.equal(r.code, 1, "层内不可比 —— 这是 error，构建该失败");
+  assert.match(r.err, /ambiguous-rule/);
+  assert.match(r.err, /union of both selectors/, "层内的补救办法仍是写并集");
+});
+
+test("分层：同一份被指派成 default-style 自己时，不当两层读", () => {
+  // 否则它会跟自己比层号，上层那份"赢"了下层的同一份 —— 结果对，但白读一遍，
+  // 而且 `#sitemap` 表看起来像是在改变什么。
+  w("sbase.geml", BASE);
+  const mf = w("sman.geml", '=== meta\nprofile = "geml-style/v1"\n'
+    + 'default-style = "sbase.geml"\n===\n\n'
+    + "=== table {#sitemap}\n| document | template |\n|---|---|\n| sc.geml | sbase.geml |\n===\n");
+  const content = w("sc.geml", "=== table {#t}\n| a |\n|---|\n| 1 |\n===\n\n"
+    + "=== code {#c lang=sh}\nls\n===\n");
+  const r = cli("style", "check", mf, content, "--json");
+  assert.equal(r.code, 0, r.err);
+  const vm = JSON.parse(r.out);
+  assert.deepEqual(vm.diagnostics, []);
+  assert.deepEqual(vm.bindings.map((b) => b.rules.length), [1, 1],
+    "每个块只被一条规则命中 —— 同一份没有被读成两层");
+});
+
+test("default-style 指向自己 → 照常报 cycle，不炸栈", () => {
+  // 隐式 embed 走的是 embed 的同一条路径，所以环检测、深度上限、诊断全部复用。
+  const content = w("dc4.geml", "=== table {#t}\n| a |\n|---|\n| 1 |\n===\n");
+  const self = w("dself.geml", '=== meta\nprofile = "geml-style/v1"\n'
+    + 'default-style = "dself.geml"\n===\n');
+  const r = cli("style", "check", self, content);
+  assert.equal(r.code, 0, "环是 warning，不拒收样式表");
+  assert.match(r.out + r.err, /style-embed-not-expanded/);
+  assert.match(r.out + r.err, /cycle|deeper than/, r.out + r.err);
+});
+
 console.log(`\n${passed} passed`);
