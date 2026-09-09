@@ -1,24 +1,24 @@
-=== code {.page-meta lang=edn}
+=== data {#page-meta .page-meta format=edn}
 {:block/title "spike refs"}
 ===
 
 # spike refs
 
-=== text {#aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee level=1}
+=== text {#aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee .level-1}
 hola, Logseq feels good with GEML!
 ===
-=== code {.block-meta lang=edn}
-{:block/uuid #uuid "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee" :build/keep-uuid? true}
+=== data {#meta-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee .block-meta format=edn}
+{:build/keep-uuid? true}
 ===
-=== text {level=1}
-internal block ref to [[aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee]]
+=== text {.level-1}
+internal block ref to [[#aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee]]
 ===
-=== text {level=1}
-internal block ref to [[aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee]]
+=== text {.level-1}
+internal block ref to [[#aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee]]
 ===
-=== text {level=1}
-internal block ref to [[aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee]]
+=== text {.level-1}
+internal block ref to [[#aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee]]
 ===
-=== text {level=1}
-internal block ref to [[aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee]]
+=== text {.level-1}
+internal block ref to [[#aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee]]
 ===

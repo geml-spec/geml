@@ -11,11 +11,23 @@
 //   1. LOSSLESS. The round-trip test is EDN → GEML → EDN structural equality
 //      (EDN map/set semantics: entry order does not count). Anything this
 //      version does not give a GEML shape of its own rides along VERBATIM as
-//      EDN inside `code {lang=edn}` blocks — carried, not dropped.
+//      EDN inside `data {format=edn}` blocks — carried, not dropped.
 //   2. ADDRESSABLE where it pays. A block's title becomes the body of a
 //      `=== text` block; a block that has a uuid keeps it as `{#uuid}`, so
 //      `geml get/set` address exactly the blocks Logseq itself considers
 //      addressable (uuids are only exported for referenced blocks).
+//
+//      Those carrier blocks are `data`, not `code`, and that is the difference
+//      between carrying and addressing: a `code` body is raw, so a block's
+//      properties had no address at all — only the blob's content hash, which
+//      changes the moment you edit one. As `data {format=edn}` the map is a
+//      value tree, `#meta-<uuid>` names it, and one property is a coordinate
+//      away: `geml set '#meta-<uuid>[":build/properties"][":a/b"]'`.
+//
+//      A vault written before this carries `code {lang=edn}`; the import reads
+//      both, because it reads the body TEXT rather than the parser's value
+//      tree — which also keeps this module's EDN reading its own, independent
+//      of the (deliberately unspecified) one `geml`'s `edn` engine uses.
 //
 // Structure choice: the outline tree is a FLAT sequence of blocks in
 // depth-first order, each carrying `.level-N` — a complete encoding of the tree
@@ -39,7 +51,32 @@ const mapGet = (m, name) => {
 };
 const mapWithout = (m, names) => ({ map: mapEntries(m).filter(([k]) => !names.some((n) => isKw(k, n))) });
 const mapSize = (m) => mapEntries(m).length;
-const edn = (v) => toEDNString(v);
+/**
+ * EDN, laid out to be read. `toEDNString` emits one line, and a block with
+ * seven properties came out as a 330-character wall — technically fine, and the
+ * reason a reader of these files reported that round-tripping "doesn't count"
+ * if you never actually open them.
+ *
+ * Only the WHITESPACE BETWEEN entries is ours: every key and every leaf value
+ * still goes through `toEDNString`, so nothing here can mis-quote a string or
+ * lose a tagged literal. EDN treats inter-entry whitespace as insignificant, so
+ * this changes how the file reads and not what it means.
+ *
+ * Maps break one entry per line and nest; vectors and sets stay inline, because
+ * in this data they are short (a `#{"infra" "logseq"}` reads worse split up).
+ */
+const isMap = (v) => v !== null && typeof v === "object" && Array.isArray(v.map);
+const edn = (v, indent = "") => {
+  if (!isMap(v)) return toEDNString(v);
+  const entries = mapEntries(v);
+  if (entries.length === 0) return "{}";
+  const pad = indent + " ";
+  const lines = entries.map(([k, val]) => {
+    const key = toEDNString(k);
+    return pad + key + " " + edn(val, pad + " ".repeat(key.length + 1));
+  });
+  return "{" + lines.join("\n").slice(pad.length) + "}";
+};
 
 // edn-data renders `#uuid "..."` as a tagged value; accept both spellings.
 const uuidOf = (v) => {
@@ -70,11 +107,15 @@ function gemlBlock(type, attrs, body) {
 
 // Returns Map<relativePath, gemlText>. Page order is preserved by a numeric
 // filename prefix: :pages-and-blocks is a vector, and order is content.
+// The `#id` of an addressed block IS its Logseq uuid (see the export), so the
+// import reads it back from there rather than from a repeated copy.
+const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
 // A Logseq block reference, as the DB export writes it: `[[<uuid>]]` inside a
 // block's title. A PAGE reference looks identical apart from its target
 // (`[[Some Page]]`), so the uuid shape is the whole discriminator — matching
 // anything looser would rewrite people's page links.
-const REF_BARE = /\[\[([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\]\]/g;
+const REF_BARE =/\[\[([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\]\]/g;
 // The GEML form, on the way back: `[[#uuid]]` or `[[path/to/doc.geml#uuid]]`.
 const REF_GEML = /\[\[([^\[\]]*?)#([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\]\]/g;
 
@@ -153,9 +194,9 @@ export function ednToGemlFiles(ednText) {
 
   // Ontology and any top-level keys this version does not model: verbatim.
   let onto = '=== meta\ntitle = "Logseq graph ontology"\n===\n\n';
-  if (properties !== undefined) onto += gemlBlock("code", "#properties lang=edn", edn(properties));
-  if (classes !== undefined) onto += gemlBlock("code", "#classes lang=edn", edn(classes));
-  if (mapSize(rest) > 0) onto += gemlBlock("code", "#graph-extra lang=edn", edn(rest));
+  if (properties !== undefined) onto += gemlBlock("data", "#properties format=edn", edn(properties));
+  if (classes !== undefined) onto += gemlBlock("data", "#classes format=edn", edn(classes));
+  if (mapSize(rest) > 0) onto += gemlBlock("data", "#graph-extra format=edn", edn(rest));
   files.set("ontology.geml", onto);
 
   const order = [];
@@ -195,22 +236,46 @@ export function ednToGemlFiles(ednText) {
 
     // The page's identity, verbatim — reconstruction reads THIS; the heading
     // below is presentation, not data.
-    let out = gemlBlock("code", ".page-meta lang=edn", edn(page));
-    if (mapSize(entryRest) > 0) out += gemlBlock("code", ".page-extra lang=edn", edn(entryRest));
+    let out = gemlBlock("data", "#page-meta .page-meta format=edn", edn(page));
+    if (mapSize(entryRest) > 0) out += gemlBlock("data", "#page-extra .page-extra format=edn", edn(entryRest));
     if (typeof title === "string") out += `\n# ${title}\n\n`;
 
     const walk = (bs, level) => {
       for (const b of bs) {
         const btitle = mapGet(b, "block/title");
         const children = mapGet(b, "build/children") ?? [];
-        const meta = mapWithout(b, ["block/title", "build/children"]);
-        // The uuid stays inside the meta EDN too — losslessness never depends
-        // on the id attribute; `{#uuid}` is the ADDRESS.
         const u = uuidOf(mapGet(b, "block/uuid"));
+        // The uuid is NOT repeated inside the meta EDN. It used to be, so that
+        // losslessness never depended on the id attribute — but that made every
+        // addressed block say its uuid twice, once as `{#uuid}` and once in a
+        // blob directly beneath it, and a reader of these files is entitled to
+        // ask which one is real. `{#uuid}` is the address, and the import below
+        // reconstructs `:block/uuid` from it.
+        //
+        // Dropping it only where `u` exists matters: a block without a uuid gets
+        // no `#id`, so there would be nothing to reconstruct from.
+        const meta = mapWithout(b, u ? ["block/title", "build/children", "block/uuid"]
+          : ["block/title", "build/children"]);
         if (u) uuidPath.set(u.toLowerCase(), path);
         const id = u ? `#${u} ` : "";
         out += gemlBlock("text", `${id}.level-${level}`, typeof btitle === "string" ? btitle : edn(btitle ?? null));
-        if (mapSize(meta) > 0) out += gemlBlock("code", ".block-meta lang=edn", edn(meta));
+        // `data {format=edn}`, not `code {lang=edn}`. A `code` body is RAW: no
+        // value tree, so no coordinate reaches inside it, so this block's
+        // properties had no address at all — only the blob's content hash,
+        // which changes the moment you edit one. As a `data` block the whole
+        // map is one addressable value, and `#meta-<uuid>` names it, so
+        // `geml set '#meta-<uuid>[":build/properties"][":user.property/status"]'`
+        // writes ONE property and leaves the rest of the file alone.
+        //
+        // The id is derived from the block's own uuid rather than being a
+        // counter: it has to survive a re-export that reorders nothing but the
+        // file, and it has to be findable from the block you are looking at.
+        // A block with no uuid gets no id here either — same rule as its text
+        // block, and the same reason (Logseq only exports uuids for blocks it
+        // considers addressable).
+        if (mapSize(meta) > 0) {
+          out += gemlBlock("data", `${u ? `#meta-${u} ` : ""}.block-meta format=edn`, edn(meta));
+        }
         walk(children, level + 1);
       }
     };
@@ -292,11 +357,23 @@ export function gemlFilesToEdn(filesIn, lib) {
     let last = null;
     for (const b of blocksOf(files.get(p))) {
       const { type, classes, attrs } = b.node;
-      if (type === "code" && classes.includes("page-meta")) { page = parseEDNString(b.body()); continue; }
-      if (type === "code" && classes.includes("page-extra")) { entryRest = parseEDNString(b.body()); continue; }
-      if (type === "code" && classes.includes("block-meta")) {
+      // The meta blocks are `data {format=edn}` now; a vault written before
+      // that carries `code {lang=edn}`, and both read the same way here —
+      // the body is EDN text either way, and this reads the TEXT rather than
+      // the parser value tree, so the reading stays the plugin’s own.
+      const isMeta = (cls) => (type === "data" || type === "code") && classes.includes(cls);
+      if (isMeta("page-meta")) { page = parseEDNString(b.body()); continue; }
+      if (isMeta("page-extra")) { entryRest = parseEDNString(b.body()); continue; }
+      if (isMeta("block-meta")) {
         // Meta re-attaches to the block it followed. Splicing the entries into
         // the node keeps one map, as the export wrote it.
+        //
+        // Nothing filters `:block/uuid` out of the blob here, and that is a
+        // choice: the export gives the uuid exactly one home, `{#id}`, so a
+        // blob carrying one too would be a bug in the export — and splicing it
+        // in produces an EDN map with a duplicate key, which Logseq's own
+        // `validate` refuses. Silently dropping the second copy would hide
+        // that. The invariant is ours to hold, not to paper over.
         if (last) last.map.push(...mapEntries(parseEDNString(b.body())));
         continue;
       }
@@ -304,6 +381,15 @@ export function gemlFilesToEdn(filesIn, lib) {
 
       const level = levelOf(classes, attrs);
       const node = { map: [[kw("block/title"), b.body()]] };
+      // `{#uuid}` is where the uuid lives now, so read it back from there. The
+      // id has to LOOK like a uuid: a hand-written GEML block may carry any id,
+      // and inventing `:block/uuid "intro"` would hand Logseq a malformed graph.
+      // Ordering matches what the export wrote (title, then uuid), which keeps
+      // the emitted EDN diff-friendly as well as structurally equal.
+      // The id is `node.id`, not an entry in `attrs` — the parser lifts `#id`
+      // out of the attribute object, which is why `grab()` above matches on it.
+      const uuid = b.node.id ?? "";
+      if (UUID_RE.test(uuid)) node.map.push([kw("block/uuid"), { tag: "uuid", val: uuid }]);
       while (stack[stack.length - 1].level >= level) close(stack.pop());
       stack[stack.length - 1].children.push(node);
       stack.push({ level, node, children: [] });

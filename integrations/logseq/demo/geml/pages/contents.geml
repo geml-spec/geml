@@ -1,7 +1,8 @@
-=== code {.page-meta lang=edn}
-{:build/properties {:logseq.property/built-in? true} :block/title "Contents"}
+=== data {#page-meta .page-meta format=edn}
+{:build/properties {:logseq.property/built-in? true}
+ :block/title "Contents"}
 ===
-=== code {.page-extra lang=edn}
+=== data {#page-extra .page-extra format=edn}
 {:blocks []}
 ===
 

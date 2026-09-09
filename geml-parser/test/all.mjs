@@ -49,6 +49,9 @@ const suites = [
   "cov-adapters", "cov-serve", "cov-mcp",
   // GEP 0011 coordinates: the addresses that reach inside a block
   "coord",
+  // the `edn` engine for `data` blocks: §3.2 reserves the name, this reading
+  // is the processor’s own — so these tests are where it is pinned down
+  "edn",
   // the one block-selector syntax `get`/`set` share: content addresses, the
   // HEAD/BODY round-trip invariant, cardinality, and the no-silent-discard rule
   "selector",

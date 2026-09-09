@@ -29,6 +29,7 @@ import { type TableCell, type TableDiag, type TableModel, deriveView, parseTable
 import { type ChartModel, USES, buildChart } from "./chart.js";
 import { mdToGeml } from "./from-md.js";
 import { parseYaml } from "./yaml.js";
+import { parseEdn } from "./edn.js";
 import { serialize } from "./serialize.js";
 import {
   type Addressed, type Selector, type Unit,
@@ -99,6 +100,12 @@ function parseDataBody(fmt: string, body: string[], openLineNo: number): { value
     const r = parseYaml(body);
     if ("value" in r) return { value: r.value, diags };
     diags.push({ severity: "error", code: "data-parse", message: `data: body is not YAML this processor reads (${r.error})`, line: openLineNo + 1 + r.line });
+  } else if (fmt === "edn") {
+    // §3.2 reserves the name; this processor ships an engine for it (edn.ts),
+    // whose reading is deliberately NOT specified — see that file's header.
+    const r = parseEdn(body);
+    if ("value" in r) return { value: r.value, diags };
+    diags.push({ severity: "error", code: "data-parse", message: `data: body is not EDN this processor reads (${r.error})`, line: openLineNo + 1 + r.line });
   } else if (fmt === "toml") {
     diags.push({ severity: "warning", code: "data-format-no-engine", message: `data: no \`${fmt}\` engine in this processor; body kept raw, not verified`, line: openLineNo });
   } else {

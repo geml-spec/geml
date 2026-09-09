@@ -448,11 +448,20 @@ offending line.
   arrangement: the records stay a plain `.jsonl` file every existing tool
   can append to and tail, and the GEML document is its verified,
   addressable, chartable view.
-- `yaml` and `toml` are RESERVED format names (the value-tree readings of
-  those syntaxes). A processor without an engine for them MUST keep the body
+- `yaml`, `toml` and `edn` are RESERVED format names (the value-tree readings
+  of those syntaxes). A processor without an engine for them MUST keep the body
   raw and emit a **warning**, and MUST NOT guess — the same degradation as an
   unknown `diagram` format (§7). An unknown `format=` value degrades
   identically.
+- Reserving a name is not the same as pinning its reading. `yaml` gets a
+  mandated subset below because YAML is implemented everywhere and the ways it
+  is large are the ways implementations disagree. `edn` gets no reading here on
+  purpose: its value domain is larger than this one, so a reading has to decide
+  how each extra kind lands — and there is one consumer to calibrate that
+  against today. A reading pinned by a single use case is one the second use
+  case has to live with, so this leaves it open. The cost is stated rather than
+  hidden: until it is specified, two processors with an `edn` engine may read
+  the same body differently.
 - A processor MAY ship an engine for a reserved name. Because full YAML is a
   far larger language than this value domain, a `yaml` engine MUST read at
   least the following subset, and MUST read it this way — so that a body
@@ -1504,7 +1513,7 @@ holds facts and derives nothing.
 |------|----------|-----------|
 | `data-parse` | error | The body does not parse under the declared `format=` — not one JSON value (`json`), or a non-blank line that is not one JSON value (`jsonl`). The diagnostic names the offending line. |
 | `unknown-data-format` | warning | The `format=` value is not in the data format registry. The body is kept raw and not verified. |
-| `data-format-no-engine` | warning | The `format=` names a RESERVED format (`yaml`, `toml`) this processor ships no engine for. The body is kept raw and not verified — never guessed at. |
+| `data-format-no-engine` | warning | The `format=` names a RESERVED format (`yaml`, `toml`, `edn`) this processor ships no engine for. The body is kept raw and not verified — never guessed at. |
 | `bad-data-schema` | error | `schema=` is not a block reference (`#id`) or a GEML document reference (`doc.geml[#id]`). |
 | `data-src-and-body` | error | A `data` block carries both `src=` and an inline body; exactly one is permitted (§3.2). The body wins. |
 | `bad-data-source` | error | A data source does not name a data file its target admits (`src=`: `.json`/`.jsonl`/`.yaml`/`.yml`; a chart's `data=` file form: `.json`/`.jsonl`) — or a remote json/jsonl chart source was named without a `data` block to defer on. |
@@ -1544,7 +1553,7 @@ GEML has three syntactic positions:
 | `=== math` | typed | raw | §3 |
 | `=== table` | typed | raw: pipe grid or `format=` data | §6 |
 | `=== view` | typed | no body; `src=` names the relation it derives from | §6.1 |
-| `=== data` | typed | raw: `format=` value tree (`json` default, `jsonl`; `yaml`/`toml` reserved) | §3.2 |
+| `=== data` | typed | raw: `format=` value tree (`json` default, `jsonl`; `yaml`/`toml`/`edn` reserved) | §3.2 |
 | `=== diagram` | typed | raw: external DSL | §7 |
 | `=== embed` | typed | raw (body unused); `src=` names the content | §3, §6 |
 | `=== note` | typed | flow | §3 |

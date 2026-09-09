@@ -264,4 +264,42 @@ test("OG markdown: a document with nothing OG can hold yields no file", () => {
   assert.equal(gemlToOgMarkdown(files.get("graph.geml"), lib), "");
 });
 
+// --- the uuid has ONE home ---------------------------------------------------
+
+test("export: an addressed block does not repeat its uuid in .block-meta", () => {
+  // `{#uuid}` is the address AND the declared home of :block/uuid. It used to
+  // appear in both places, which left a reader with no way to tell which copy
+  // the tool believed — and the tool believed the blob, so hand-editing `#id`
+  // was silently ignored. That is the opposite of the claim this integration
+  // makes for GEML, so the id wins and the blob no longer carries a copy.
+  const page = ednToGemlFiles(FIXTURE).get("pages/page1.geml");
+  const metas = [...page.matchAll(/=== data \{[^}]*\.block-meta format=edn\}\n([\s\S]*?)\n===/g)].map((m) => m[1]);
+  assert.ok(metas.length > 0, "the fixture has at least one block carrying meta");
+  for (const m of metas) assert.ok(!/:block\/uuid/.test(m), `meta still repeats the uuid: ${m}`);
+  // The carrier is a `data` block, which is what makes the properties inside it
+  // addressable at all — a `code` body is raw and has no value tree.
+  assert.ok(!/=== code \{[^}]*block-meta/.test(page), "no `code` carrier is left behind");
+  // And where the block has a uuid, the carrier is NAMED after it, so one
+  // property is `#meta-<uuid>[":build/properties"][…]` away.
+  assert.match(page, /=== data \{#meta-[0-9a-f-]{36} \.block-meta format=edn\}/);
+});
+
+test("import: the uuid comes back from {#id}, and only a uuid-shaped id counts", () => {
+  // The other half of the same invariant. A hand-written block may carry any
+  // id, and inventing `:block/uuid "intro"` from one would hand Logseq a
+  // malformed graph — so only an id that LOOKS like a uuid becomes one.
+  const u = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
+  const vault = new Map([
+    ["graph.geml", '=== meta\ntitle = "i"\n===\n\n=== data {#page-order}\n["pages/p.geml"]\n===\n'],
+    ["pages/p.geml",
+      '=== code {.page-meta lang=edn}\n{:block/title "p"}\n===\n\n# p\n\n' +
+      `=== text {#${u} .level-1}\naddressed\n===\n` +
+      "=== text {#intro .level-1}\nhand-written id\n===\n"],
+  ]);
+  const out = gemlFilesToEdn(vault, lib);
+  assert.equal((out.match(/:block\/uuid/g) ?? []).length, 1, `expected exactly one uuid in: ${out}`);
+  assert.match(out, new RegExp(`:block/uuid #uuid "${u}"`), "the uuid-shaped id became the uuid");
+  assert.ok(!/:block\/uuid #uuid "intro"/.test(out), "a non-uuid id did not become one");
+});
+
 console.log(`${passed} test(s) passed.`);

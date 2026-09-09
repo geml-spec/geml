@@ -89,6 +89,38 @@ and is released under `viewer-v*` tags.
   needed, and that parked path now inserts an engine's SVG only through a
   caller-supplied sanitizer, its sandboxes answering only their parent.
 
+## [1.10.2] — 2026-09-09
+
+- **`data {format=edn}`, so nested data can be ADDRESSED rather than only
+  carried.** The Logseq integration put a block's properties in a
+  `code {lang=edn}` block, and a `code` body is raw — no value tree, so no
+  coordinate reaches into it. The properties therefore had no address at all:
+  only the blob's content hash, which changes the moment you edit it, so "set
+  this block's status to done" could not be written as an addressed operation.
+  `edn` joins `yaml` and `toml` as a RESERVED format name (§3.2) and this
+  processor ships an engine for it, so `geml get '#meta[":build/properties"]
+  [":user.property/status"]'` reads one property and `geml set` writes one.
+
+  The reading is deliberately NOT in the spec. `yaml` gets a mandated subset
+  because YAML is implemented everywhere; `edn` has one consumer to calibrate
+  against, and a reading pinned by a single use case is one the second use case
+  has to live with. The spec reserves the name and says so, cost included: until
+  it is specified, two processors with an `edn` engine may read a body
+  differently. This processor's reading is in `src/edn.ts` — keywords keep their
+  colon (`:x` is not the string `"x"`), sets and tagged literals wear a `$`
+  wrapper, and the kinds outside the subset (lists, symbols, characters,
+  bignums, ratios, other tags) are refused BY NAME rather than guessed at, the
+  same stance the `yaml` engine takes. Zero dependencies, hand-written, like the
+  rest of the parser.
+
+- **A coordinate write no longer rewrites an EDN body as JSON.** `planCoordWrite`
+  ended in `JSON.stringify` under a comment saying no format could reach it —
+  true when only `json` and `jsonl` produced a value tree, and false the moment
+  another engine did. Writing one EDN property would have silently changed the
+  block's format. `edn` bodies re-emit as EDN. `yaml` still lands in that
+  fall-through and still re-emits as JSON: the same bug wearing another format's
+  name, now named in the code rather than implied to be impossible.
+
 ## [1.10.1] — 2026-09-06
 
 - **A coordinate crosses a document into a `view`, and into `#meta`.** A borrowed

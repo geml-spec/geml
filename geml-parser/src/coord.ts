@@ -10,6 +10,7 @@
 //
 // The three token species (§0011: integer, "quoted string", bare word) are the
 // selector's business; this module only interprets them against a block.
+import { serializeEdn } from "./edn.js";
 import { type Block, type DataValue, type Value } from "./geml.js";
 import { type CoordStep } from "./selector.js";
 import { type TableCell, type TableModel } from "./table.js";
@@ -304,9 +305,18 @@ function writeValue(block: Block & { kind: "block" }, path: CoordStep[], value: 
     // document could reach.
     return { ok: true, body: (root as DataValue[]).map((r) => JSON.stringify(r)) };
   }
+  if (fmt === "edn") {
+    // Written back AS EDN. Without this arm the fall-through below would have
+    // rewritten an EDN body as JSON — a coordinate write silently changing the
+    // block's format, which is the sort of thing `set` exists not to do.
+    return { ok: true, body: serializeEdn(root) };
+  }
   // Any other `format=` leaves the body raw with no value tree at all, so this
   // function was never entered for one: `planCoordWrite` reaches it only when
-  // `block.value` is set, and only the json and jsonl engines set it.
+  // `block.value` is set, and only the engines above set it. `yaml` is the one
+  // to watch: it HAS an engine, so a coordinate write into a yaml body lands
+  // here and re-emits it as JSON. That predates this arm and is not made worse
+  // by it, but it is the same bug wearing a different format's name.
   return { ok: true, body: JSON.stringify(root, null, 2).split("\n") };
 }
 

@@ -1,5 +1,10 @@
 node_modules/
 out/
 
+# c8 output. This package ships no coverage script — the parser's c8 was
+# borrowed to measure it once, and that one run left 63 temp files staged.
+coverage/
+.nyc_output/
+
 # A path that failed to expand: never let one be committed again.
 ~/
