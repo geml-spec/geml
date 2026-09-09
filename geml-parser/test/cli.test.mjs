@@ -357,7 +357,7 @@ test("codemap refresh: replays the recorded recipe; hook mode filters and never 
   assert.equal(r.code, 0, r.err);
   assert.match(r.err, /done/);
   assert.equal(rf(pjoin(proj, "marker.txt"), "utf8"), "ran", "step ran with the project root as cwd");
-  assert.match(rf(pjoin(ix, "refresh.log"), "utf8"), /\$ .*marker/, "log records the step");
+  assert.match(rf(pjoin(cm, "_build", "refresh.log"), "utf8"), /\$ .*marker/, "log records the step");
 
   // a step that floods stdout must NOT be killed — output streams to the log
   // file (spawnSync's in-memory capture has a 1MB maxBuffer; Joern's INFO
@@ -439,7 +439,7 @@ await testAsync("codemap serve --background: outlives the launcher; --stop ends 
   try {
     const res = await fetch(`http://127.0.0.1:${port}/`, { method: "HEAD" });
     assert.equal(res.status, 200, "server answers after its launcher exited");
-    assert.ok(existsSync(pjoin(CODEMAP_DIR, "_index", "serve.pid")), "pid recorded for --stop");
+    assert.ok(existsSync(pjoin(CODEMAP_DIR, "_build", "serve.pid")), "pid recorded for --stop (runtime state lives in _build/)");
     // second --background reuses, never stacks
     const again = run(["codemap", "serve", CODEMAP_DIR, "--port", String(port), "--background"]);
     assert.equal(again.code, 0);

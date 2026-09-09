@@ -8,7 +8,7 @@ resolution-default = cpg
 
 # geml-parser/history.ts
 
-=== code {#loadBytes src=geml-parser/src/history.ts#L20-24 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/loadBytes()."}
+=== code {#loadBytes .leaf src=geml-parser/src/history.ts#L20-24 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/loadBytes()."}
 ===
 
 === code {#bytesOf src=geml-parser/src/history.ts#L26-28 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/bytesOf()."}
@@ -44,7 +44,7 @@ resolution-default = cpg
 === code {#fenceFor src=geml-parser/src/history.ts#L145-152 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/fenceFor()."}
 ===
 
-=== code {#sha8 src=geml-parser/src/history.ts#L165-167 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/sha8()."}
+=== code {#sha8 .leaf src=geml-parser/src/history.ts#L165-167 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/sha8()."}
 ===
 
 === code {#tile src=geml-parser/src/history.ts#L175-207 anchor="scip-typescript npm @geml/geml 1.10.1 src/`history.ts`/tile()."}
@@ -319,16 +319,7 @@ geml-parser--cli.ts.geml#runRevert,  #firstChangedContent, call, geml-parser/src
 
 === table {#unresolved format=csv hidden}
 from,             to
-#loadBytes,       Buffer.includes
-#loadBytes,       Buffer.toString
-#loadBytes,       String.replace
-#loadBytes,       readFileSync
-#bytesOf,         BufferConstructor.from
 #bytesOf,         String.replace
-#writeBytes,      writeFileSync
-#fullHash,        Hash.digest
-#fullHash,        Hash.update
-#fullHash,        createHash
 #shortOf,         String.replace
 #shortOf,         String.slice
 #stampUTC,        Date.getUTCDate
@@ -352,11 +343,6 @@ from,             to
 #fenceFor,        RegExp.exec
 #fenceFor,        String.repeat
 #fenceFor,        String.split
-#sha8,            BufferConstructor.from
-#sha8,            Hash.digest
-#sha8,            Hash.update
-#sha8,            String.slice
-#sha8,            createHash
 #tile,            Array.push
 #tile,            RegExp.exec
 #tile,            RegExp.test
@@ -412,7 +398,6 @@ from,             to
 #renderHistory,   Map.get
 #renderHistory,   Map.has
 #save,            Array.map
-#save,            Buffer.compare
 #save,            Map.delete
 #save,            Map.get
 #save,            Map.keys
@@ -421,11 +406,9 @@ from,             to
 #save,            RegExp.exec
 #save,            RegExp.test
 #save,            String.replace
-#save,            existsSync
 #verify,          Array.push
 #verify,          Map.get
 #verify,          Map.has
-#verify,          existsSync
 #restore,         Map.clear
 #restore,         Map.delete
 #restore,         Map.get
@@ -433,7 +416,6 @@ from,             to
 #restore,         Set.add
 #restore,         Set.has
 #restore,         String.replace
-#restore,         existsSync
 #isCurrent,       Map.get
 #listRevisions,   Array.map
 #resolveRevision, Array.filter

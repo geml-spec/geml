@@ -691,7 +691,7 @@ test("serve openBrowser: per-platform argv, and a missing opener is not an error
 // --background contexts share this ctx builder (mirrors what main() assembles).
 const bgCtx = (root, port, extra = {}) => ({
   dir: root, root, port, cacheMb: 256, noWarm: false, watchMode: false,
-  runDir: join(root, "_index"), logPath: join(root, "_index", "serve.log"), ...extra,
+  runDir: join(root, "_build"), logPath: join(root, "_build", "serve.log"), ...extra,
 });
 
 await atest("serve --background: a port that already answers is reported as up, nothing is spawned", async () => {
@@ -731,7 +731,7 @@ await atest("serve --background: spawns the child, waits for the port, reports p
   assert.match(said, /running in background \(pid \d+\) — survives this session/);
   assert.match(said, new RegExp(`-> http://localhost:${port}/`));
   assert.match(said, /--stop   \(log: /);
-  assert.ok(existsSync(join(root, "_index", "serve.log")), "child stdio goes to the log file");
+  assert.ok(existsSync(join(root, "_build", "serve.log")), "child stdio goes to the log file");
   // the fake child self-terminates in a few seconds; nothing here kills it
 });
 
@@ -751,13 +751,16 @@ const watchCtx = (parent) => {
   writeFileSync(join(root, "index.geml"), INDEX_GEML);
   mkdirSync(join(parent, "src"), { recursive: true });
   writeFileSync(join(parent, "src", "a.ts"), "export const a = 1;\n");
-  return { root, runDir: join(root, "_index"), srcRoot: parent, logPath: join(root, "_index", "serve.log") };
+  // 两个目录，两种寿命：refresh.json 是**配置**（手写、跟着仓库走，留在 _index/），
+  // 日志和 pid 是**运行时状态**（可再生、不进提交，住 _build/）。
+  return { root, cfgDir: join(root, "_index"), runDir: join(root, "_build"),
+    srcRoot: parent, logPath: join(root, "_build", "serve.log") };
 };
 // Recipe steps run through the platform shell with cwd = srcRoot; root-relative
 // forward-slash paths only (see codemap.test.mjs's recipe notes).
 const recipe = (ctx, steps) => {
   const cfg = { version: 1, root: "..", steps };
-  writeFileSync(join(ctx.runDir, "refresh.json"), JSON.stringify(cfg));
+  writeFileSync(join(ctx.cfgDir, "refresh.json"), JSON.stringify(cfg));
   // Trust the fixture so the C2 gate (audit) lets the watcher run it; no
   // cov-serve test asserts refusal, so unconditional trust here is correct.
   trustRecipe(recipeFingerprint(cfg), ctx.root);
@@ -797,8 +800,10 @@ test("serve --watch: the event filter skips vendored/dot/non-source paths, sched
 await atest("serve --watch: a real source edit re-runs the recipe; success and failure both reported", async () => {
   const parent = tmp();
   const ctx = watchCtx(parent);
-  const marker = join(ctx.runDir, "watch-ran.txt").replace(/\\/g, "/");
-  recipe(ctx, [{ argv: ["node", "-e", "require('fs').appendFileSync('map/_index/watch-ran.txt','w')"] }]);
+  // 标记文件放 map 根：它既不是配置也不是运行时状态，只是「配方跑过了」的证据 ——
+  // 挂进 _index/ 或 _build/ 都会让它跟着那两个目录的含义漂。
+  const marker = join(ctx.root, "watch-ran.txt").replace(/\\/g, "/");
+  recipe(ctx, [{ argv: ["node", "-e", "require('fs').appendFileSync('map/watch-ran.txt','w')"] }]);
   const m = errMark();
   const h = serve.startWatch(ctx); // native recursive watcher arm (win32)
   assert.ok(h, "watching");
@@ -884,13 +889,13 @@ await atest("serve startServing: records the pid, prints the URL, warms unless t
   const root = mkMap();
   const port = claimPort();
   const m = errMark();
-  const app = serve.startServing({ dir: root, root, port, cacheMb: 256, srcRoot: serve.resolveSrcRoot(root), runDir: join(root, "_index"), pidPath: join(root, "_index", "serve.pid"), logPath: join(root, "_index", "serve.log"), noWarm: false, noOpen: true, watchMode: false });
+  const app = serve.startServing({ dir: root, root, port, cacheMb: 256, srcRoot: serve.resolveSrcRoot(root), runDir: join(root, "_build"), pidPath: join(root, "_build", "serve.pid"), logPath: join(root, "_build", "serve.log"), noWarm: false, noOpen: true, watchMode: false });
   try {
     await waitFor(() => /geml codemap serve: /.test(errSince(m)), 5000, "banner");
     assert.match(errSince(m), new RegExp(`-> http://localhost:${port}/  \\(pages render live from \\.geml`));
     // The pid file now carries two lines — the pid and the token whose twin
     // --stop checks in the OS temp dir — so it is the FIRST line that is the pid.
-    assert.equal(readFileSync(join(root, "_index", "serve.pid"), "utf8").split(/\r?\n/)[0].trim(), String(process.pid), "pid recorded for --stop");
+    assert.equal(readFileSync(join(root, "_build", "serve.pid"), "utf8").split(/\r?\n/)[0].trim(), String(process.pid), "pid recorded for --stop");
     await waitFor(() => /prewarm: /.test(errSince(m)), 5000, "warm ran (noWarm=false)");
     assert.equal((await fetch(`http://127.0.0.1:${port}/index.html`)).status, 200);
   } finally { await closeApp(app); }
@@ -898,7 +903,7 @@ await atest("serve startServing: records the pid, prints the URL, warms unless t
 
 await atest("serve startServing: a pid file that cannot be written is not fatal; --no-open holds in a TTY", async () => {
   const root = mkMap({ lookup: false });
-  writeFileSync(join(root, "_index"), "a FILE squatting on the runDir name");
+  writeFileSync(join(root, "_build"), "a FILE squatting on the runDir name");
   const port = claimPort();
   const m = errMark();
   // Pretend stdout is a terminal: --no-open must still keep the browser shut
@@ -907,12 +912,12 @@ await atest("serve startServing: a pid file that cannot be written is not fatal;
   process.stdout.isTTY = true;
   let app;
   try {
-    app = serve.startServing({ dir: root, root, port, cacheMb: 256, srcRoot: serve.resolveSrcRoot(root), runDir: join(root, "_index"), pidPath: join(root, "_index", "serve.pid"), logPath: join(root, "_index", "serve.log"), noWarm: true, noOpen: true, watchMode: false });
+    app = serve.startServing({ dir: root, root, port, cacheMb: 256, srcRoot: serve.resolveSrcRoot(root), runDir: join(root, "_build"), pidPath: join(root, "_build", "serve.pid"), logPath: join(root, "_build", "serve.log"), noWarm: true, noOpen: true, watchMode: false });
     await waitFor(() => /geml codemap serve: /.test(errSince(m)), 5000, "banner despite the failed pid write");
   } finally { process.stdout.isTTY = hadTTY; }
   try {
     assert.equal((await fetch(`http://127.0.0.1:${port}/index.html`)).status, 200, "still serving");
-    assert.ok(!existsSync(join(root, "_index", "serve.pid")), "no pid file could be recorded");
+    assert.ok(!existsSync(join(root, "_build", "serve.pid")), "no pid file could be recorded");
   } finally { await closeApp(app); }
 });
 

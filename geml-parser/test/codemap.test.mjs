@@ -526,12 +526,14 @@ test("refresh.mjs: recipe runs, short-circuits on an unchanged commit, and --for
   assert.match(subject, /^chore\(codemap\): refresh for /, "follow-up commit message names the trigger");
   const inCommit = g("show", "--name-only", "--pretty=format:", "HEAD").stdout.trim().split(/\r?\n/).filter(Boolean);
   assert.ok(inCommit.length > 0 && inCommit.every((f) => f.startsWith("map/")), "commit touches ONLY the codemap dir");
-  assert.ok(!inCommit.some((f) => /_index\/refresh\.log$/.test(f)), "runtime log excluded from the commit");
-  assert.equal(g("status", "--porcelain").stdout.trim(), "M map/_index/refresh.log",
-    "only the run log stays uncommitted (runtime noise, excluded on purpose)");
+  assert.ok(!inCommit.some((f) => /_build\//.test(f)), "runtime state is in _build/ and never reaches the commit");
+  // 运行时状态住 _build/：它整个是未跟踪的，所以「无 churn」现在的含义更强 ——
+  // 没有任何**被跟踪**的文件被改动，而不是「只剩日志那一个」。
+  assert.equal(g("status", "--porcelain", "--untracked-files=no").stdout.trim(), "",
+    "nothing tracked is left dirty — the run log is in _build/, outside the tree that gets committed");
   assert.match(runRefresh("--commit"), /no source files changed/, "the follow-up commit itself is skipped");
   assert.equal(g("log", "-1", "--pretty=%s").stdout.trim(), subject, "no further commit — the chain stops");
-  assert.equal(g("status", "--porcelain").stdout.trim(), "M map/_index/refresh.log", "skip adds no churn beyond the log");
+  assert.equal(g("status", "--porcelain", "--untracked-files=no").stdout.trim(), "", "skip adds no churn at all");
   assert.equal(readFileSync(cfgFile, "utf8"), cfgBytes, "refresh.json is a pure recipe — the tool never rewrites it");
   rmSync(dir, { recursive: true, force: true });
 });

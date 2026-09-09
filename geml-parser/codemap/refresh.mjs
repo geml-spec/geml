@@ -18,7 +18,7 @@
 // when git HEAD hasn't moved past the commit the codemap was built from —
 // read from index.geml's own meta (`commit = <sha>`, stamped by build), so
 // refresh.json stays a pure, human-reviewable recipe that no tool rewrites.
-// Output goes to _index/refresh.log.
+// Output goes to _build/refresh.log.
 //
 // --hook mode is a PostToolUse adapter: it reads the hook payload from stdin,
 // exits 0 immediately unless the tool ran a `git commit`, and otherwise
@@ -32,7 +32,7 @@
 // skipped when HEAD moved mid-refresh or a merge is in progress. Loop-safe by
 // construction — the follow-up commit changes no indexed source file, so the
 // refresh it triggers takes the no-source-change skip and stops.
-import { readFileSync, existsSync, appendFileSync, openSync, closeSync, utimesSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, appendFileSync, openSync, closeSync, utimesSync, mkdirSync } from "node:fs";
 import { join, resolve, relative } from "node:path";
 import { spawnSync, spawn } from "node:child_process";
 import { isSourcePath } from "./detect.mjs";
@@ -56,7 +56,18 @@ if (args.includes("--help")) {
 const dir = args.find((a) => !a.startsWith("--")) || ".geml-code-graph";
 const cmDir = resolve(dir);
 const cfgPath = join(cmDir, "_index", "refresh.json");
-const logPath = join(cmDir, "_index", "refresh.log");
+// 运行时日志住 _build/（可再生、整个忽略），不和 _index/ 里手写与生成的产物混住。
+// 那个目录在一份搬运过来的 map 里可能还不存在，所以写之前先建。
+const logPath = join(cmDir, "_build", "refresh.log");
+try {
+  const buildDir = join(cmDir, "_build");
+  mkdirSync(buildDir, { recursive: true });
+  // 目录自己忽略自己。`--commit` 走的是 `git add -- <map>`，不能指望使用者的仓库
+  // 里恰好写了一条忽略规则 —— 那条规则归他们管，这个不变量归工具管。`*` 连这份
+  // .gitignore 一起盖住，所以 _build/ 整个对 git 不可见。
+  const marker = join(buildDir, ".gitignore");
+  if (!existsSync(marker)) writeFileSync(marker, "*\n");
+} catch { /* read-only */ }
 
 if (!existsSync(cfgPath)) {
   if (hookMode) process.exit(0); // no recipe = this project has not opted in
@@ -292,14 +303,15 @@ if (autoCommit && head) {
     console.error(`codemap refresh: not auto-committing (${merging ? "merge in progress" : "HEAD moved during the refresh"}) — refreshed files left in the working tree`);
   } else {
     const rel = relative(root, cmDir).replace(/\\/g, "/") || ".";
-    // Exclude-pathspec prefix: empty when the codemap IS the repo root. A `./`
-    // prefix (what `${rel}/…` yields at rel=".") is rejected by some git
-    // versions inside `:(exclude)…`, silently un-excluding the logs or failing
-    // the commit — so build `_index/…` bare at root, `<rel>/_index/…` in a subdir.
+    // Runtime state (refresh/serve logs, serve.pid) lives in `_build/`, which is
+    // ignored wholesale — so nothing here has to be excluded by pathspec. This
+    // used to be three `:(exclude)` entries plus a note about git versions
+    // rejecting a `./` prefix inside them; splitting the directories by LIFETIME
+    // (authored / generated / runtime) removed the workaround along with the bug
+    // it worked around.
+    const spec = ["--", rel];
+    // Still needed below to name `index.geml` inside the codemap dir.
     const relPrefix = rel === "." ? "" : `${rel}/`;
-    // Runtime noise in _index (refresh/serve logs, serve.pid) never belongs in
-    // the commit — and this very run appends to refresh.log after committing.
-    const spec = ["--", rel, `:(exclude)${relPrefix}_index/refresh.log`, `:(exclude)${relPrefix}_index/serve.log`, `:(exclude)${relPrefix}_index/serve.pid`];
 
     // A rebuild that changed NOTHING still rewrites one line: `commit = <sha>` in
     // index.geml's meta, the baseline the staleness check above reads. Committing

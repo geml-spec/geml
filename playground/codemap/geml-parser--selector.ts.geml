@@ -8,7 +8,7 @@ resolution-default = cpg
 
 # geml-parser/selector.ts
 
-=== code {#sha8 src=geml-parser/src/selector.ts#L82-84 anchor="scip-typescript npm @geml/geml 1.10.1 src/`selector.ts`/sha8()."}
+=== code {#sha8 .leaf src=geml-parser/src/selector.ts#L82-84 anchor="scip-typescript npm @geml/geml 1.10.1 src/`selector.ts`/sha8()."}
 ===
 
 === code {#parseCoordPath src=geml-parser/src/selector.ts#L104-116 anchor="scip-typescript npm @geml/geml 1.10.1 src/`selector.ts`/parseCoordPath()."}
@@ -71,11 +71,6 @@ geml-parser--cli.ts.geml#selectUnits,       #matchType,       call, geml-parser/
 
 === table {#unresolved format=csv hidden}
 from,             to
-#sha8,            BufferConstructor.from
-#sha8,            Hash.digest
-#sha8,            Hash.update
-#sha8,            String.slice
-#sha8,            createHash
 #parseCoordPath,  Array.push
 #parseCoordPath,  RegExp.exec
 #parseCoordPath,  String.slice

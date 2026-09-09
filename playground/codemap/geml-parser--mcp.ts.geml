@@ -22,7 +22,7 @@ resolution-default = cpg
 === code {#resolveGraphDir src=geml-parser/src/mcp.ts#L116-122 anchor="scip-typescript npm @geml/geml 1.10.1 src/`mcp.ts`/resolveGraphDir()."}
 ===
 
-=== code {#rootReal src=geml-parser/src/mcp.ts#L148-150 anchor="scip-typescript npm @geml/geml 1.10.1 src/`mcp.ts`/rootReal()."}
+=== code {#rootReal .leaf src=geml-parser/src/mcp.ts#L148-150 anchor="scip-typescript npm @geml/geml 1.10.1 src/`mcp.ts`/rootReal()."}
 ===
 
 === code {#runCli src=geml-parser/src/mcp.ts#L152-173 anchor="scip-typescript npm @geml/geml 1.10.1 src/`mcp.ts`/runCli()."}
@@ -43,7 +43,7 @@ resolution-default = cpg
 === code {#snapshot src=geml-parser/src/mcp.ts#L289-299 anchor="scip-typescript npm @geml/geml 1.10.1 src/`mcp.ts`/snapshot()."}
 ===
 
-=== code {#docResolver src=geml-parser/src/mcp.ts#L308-319 anchor="scip-typescript npm @geml/geml 1.10.1 src/`mcp.ts`/docResolver()."}
+=== code {#docResolver .leaf src=geml-parser/src/mcp.ts#L308-319 anchor="scip-typescript npm @geml/geml 1.10.1 src/`mcp.ts`/docResolver()."}
 ===
 
 === code {#hashId src=geml-parser/src/mcp.ts#L321-321 anchor="scip-typescript npm @geml/geml 1.10.1 src/`mcp.ts`/hashId."}
@@ -67,7 +67,7 @@ resolution-default = cpg
 === code {#parseArgs src=geml-parser/src/mcp.ts#L832-859 anchor="scip-typescript npm @geml/geml 1.10.1 src/`mcp.ts`/parseArgs()."}
 ===
 
-=== code {#resolveGraphOpt src=geml-parser/src/mcp.ts#L866-876 anchor="scip-typescript npm @geml/geml 1.10.1 src/`mcp.ts`/resolveGraphOpt()."}
+=== code {#resolveGraphOpt .leaf src=geml-parser/src/mcp.ts#L866-876 anchor="scip-typescript npm @geml/geml 1.10.1 src/`mcp.ts`/resolveGraphOpt()."}
 ===
 
 === table {#calls format=csv}
@@ -119,61 +119,33 @@ from,             to,               kind, site
 ===
 
 === table {#unresolved format=csv hidden}
-from,             to
-#resolveInRoot,   PlatformPath.resolve
-#resolveInRoot,   StatsBase.isFile
-#resolveInRoot,   String.startsWith
-#resolveInRoot,   realpathSync
-#narrowToRoot,    PlatformPath.resolve
-#narrowToRoot,    String.startsWith
-#narrowToRoot,    realpathSync
-#resolveRoot,     realpathSync
-#rootReal,        realpathSync
-#runCli,          Array.includes
-#runCli,          Set.has
-#runCli,          String.trim
-#runCli,          spawnSync
-#parseRefusal,    Array.reverse
-#parseRefusal,    ArrayConstructor.isArray
-#parseRefusal,    JSON.parse
-#parseRefusal,    String.split
-#parseRefusal,    String.startsWith
-#parseRefusal,    String.trim
-#asText,          JSON.stringify
-#applyWrite,      Array.every
-#applyWrite,      Array.filter
-#applyWrite,      Array.map
-#applyWrite,      Set.has
-#applyWrite,      String.trim
-#applyWrite,      readFileSync
-#applyWrite,      realpathSync
-#applyWrite,      writeFileSync
-#snapshot,        String.replace
-#snapshot,        existsSync
-#docResolver,     PlatformPath.dirname
-#docResolver,     PlatformPath.resolve
-#docResolver,     String.startsWith
-#docResolver,     readFileSync
-#docResolver,     realpathSync
-#hashId,          String.startsWith
-#selectorArg,     RegExp.test
-#selectorArg,     String.trim
-#loadGraphTools,  Array.map
-#handleLine,      Array.find
-#handleLine,      Array.map
-#handleLine,      JSON.parse
-#handleLine,      JSON.stringify
-#handleLine,      Socket.write
-#handleLine,      String.trim
-#parseArgs,       PlatformPath.resolve
-#parseArgs,       StatsBase.isDirectory
-#parseArgs,       String.slice
-#parseArgs,       String.startsWith
-#parseArgs,       existsSync
-#parseArgs,       realpathSync
-#resolveGraphOpt, PlatformPath.resolve
-#resolveGraphOpt, StatsBase.isDirectory
-#resolveGraphOpt, String.startsWith
-#resolveGraphOpt, existsSync
-#resolveGraphOpt, realpathSync
+from,            to
+#resolveInRoot,  String.startsWith
+#narrowToRoot,   String.startsWith
+#runCli,         Array.includes
+#runCli,         Set.has
+#parseRefusal,   Array.reverse
+#parseRefusal,   ArrayConstructor.isArray
+#parseRefusal,   JSON.parse
+#parseRefusal,   String.split
+#parseRefusal,   String.startsWith
+#parseRefusal,   String.trim
+#asText,         JSON.stringify
+#applyWrite,     Array.every
+#applyWrite,     Array.filter
+#applyWrite,     Array.map
+#applyWrite,     Set.has
+#applyWrite,     String.trim
+#snapshot,       String.replace
+#hashId,         String.startsWith
+#selectorArg,    RegExp.test
+#selectorArg,    String.trim
+#loadGraphTools, Array.map
+#handleLine,     Array.find
+#handleLine,     Array.map
+#handleLine,     JSON.parse
+#handleLine,     JSON.stringify
+#handleLine,     String.trim
+#parseArgs,      String.slice
+#parseArgs,      String.startsWith
 ===

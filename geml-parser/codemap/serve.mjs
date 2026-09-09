@@ -15,7 +15,7 @@
 //
 // --background detaches the server from the launching process (an agent
 // session ending must not take the viewer down): stdio goes to
-// _index/serve.log, the pid lands in _index/serve.pid, and the parent waits
+// _build/serve.log, the pid lands in _build/serve.pid, and the parent waits
 // until the port actually answers before reporting the URL.
 //
 // Local viewer by design: binds 127.0.0.1. HEAD is answered without a body —
@@ -110,7 +110,7 @@ export function resolveSrcRoot(root) {
   return srcRoot;
 }
 
-// --stop signals whatever pid `_index/serve.pid` names — and that file is
+// --stop signals whatever pid `_build/serve.pid` names — and that file is
 // REPOSITORY CONTENT too: a cloned map can ship one naming any process of the
 // victim's. So a running server also leaves a token OUTSIDE the repository, in
 // the OS temp dir, and --stop signals only a pid whose two tokens agree. A pid
@@ -512,8 +512,10 @@ export const openBrowser = (url, spawnImpl = spawn) => {
 // Single-flight — a change arriving mid-refresh queues exactly one more run.
 // Pages render live from .geml, so when a run lands an F5 shows it.
 const WATCH_QUIET = Number(process.env.GEML_WATCH_QUIET_MS) || 30_000;
-export function startWatch({ root, runDir, srcRoot, logPath }) {
-  if (!existsSync(join(runDir, "refresh.json"))) {
+export function startWatch({ root, runDir, srcRoot, logPath, cfgDir = join(root, "_index") }) {
+  // 配方是**生成的配置**（进 git，住 _index/），运行时状态是可丢的（住 _build/）。
+  // runDir 原先两者兼任，按寿命拆开目录之后这两个概念必须也拆开。
+  if (!existsSync(join(cfgDir, "refresh.json"))) {
     console.error("watch: no _index/refresh.json recipe recorded — --watch disabled (build once first)");
     return;
   }
@@ -635,7 +637,9 @@ export async function main(argv = process.argv.slice(2)) {
     process.exit(2);
   }
   const root = resolve(cfg.dir);
-  const runDir = join(root, "_index");
+  // 运行时状态住 _build/：那个目录整个是「可再生、可删」，而 _index/ 是
+  // 手写与生成的产物。按**寿命**分目录，不按话题。
+  const runDir = join(root, "_build");
   const ctx = {
     ...cfg, root, runDir,
     pidPath: join(runDir, "serve.pid"),

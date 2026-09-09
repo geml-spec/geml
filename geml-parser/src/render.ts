@@ -17,7 +17,7 @@ import { type Inline, isSafeUrl } from "./inline.js";
 import { type Align, type TableCell, type TableModel } from "./table.js";
 import { type ChartModel } from "./chart.js";
 import { type Value } from "./attrs.js";
-import { graphStyleFromDoc, defaultGraphStyle, type GraphStyle } from "./graph-style.js";
+import { graphStyleFromLayers, resolveStyleLayers, type GraphStyle } from "./graph-style.js";
 import { translateBlocks, resolveTarget, type Translator } from "./translate.js";
 
 const PALETTE = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#db2777", "#0891b2", "#ea580c"];
@@ -870,14 +870,26 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
     return {};
   };
   const start = cgJoin("", startRel);
-  // 显示期旋钮（计划 D）：`_index/style.geml`，与 `_index/foldings.geml` 并列。
+  // 显示期旋钮（计划 D）。**只经 `_index/index.geml` 这一个入口**：清单的 `#sitemap`
+  // 指派或 `default-style` 说了加载哪几层，`resolveStyleLayers` 是那条规则的唯一实现，
+  // 宿主和这里共用它 —— 渲染器不再自己直读 `_index/style.geml`，否则同一份 map 会有
+  // 两条发现路径、两套语义。清单不在就是默认旋钮（也就是渲染器一直以来的行为）；
+  // 补法是重新 build，种子会把清单写回来。
+  //
   // 只读，不播种 —— 播种是 `codemap build` 的事，而且这里走的是 loadDoc 钩子，
   // 因此和其他兄弟文档一样受 CLI 设定的限制约束，不直接碰文件系统。
-  // 文件不在就是默认值，也就是渲染器一直以来的行为。
   // 走 loadParsed 的缓存，和其他兄弟文档一视同仁 —— 否则"定向重建完全走缓存"
   // 这条既有不变量就被一次额外 fetch 破坏了。
-  const styleDoc = loadParsed(cgJoin(cgDir(start), "_index/style.geml"));
-  const graphStyle = styleDoc === null ? defaultGraphStyle() : graphStyleFromDoc(styleDoc);
+  //
+  // 层层叠加，和 CSS 一个模型：`default-style` **命中与否都加载**，`#sitemap` 命中时
+  // 那份额外叠在上面、它优先，它没写的键落回默认层。每层只读它自己写了的旋钮 ——
+  // 一层写死默认值就会盖掉下层的显式值。
+  //
+  // 每层读的是**一跳**：那份文件里的第一条 style-rule 就是旋钮。渲染器从来不展开
+  // embed（它要的是几个数字，不是一份求解过的样式表），这一点没变。
+  const inIndex = (name: string): Document | null => loadParsed(cgJoin(cgDir(start), `_index/${name}`));
+  const styleLayers = resolveStyleLayers(inIndex, start.slice(start.lastIndexOf("/") + 1));
+  const graphStyle = graphStyleFromLayers(styleLayers.map(inIndex));
   const doc0 = loadParsed(start);
   if (!doc0) return { error: `cannot load \`${startRel}\`` };
   const meta0 = metaOf(doc0);

@@ -245,7 +245,7 @@ resolution-default = cpg
 === code {#isCliInvocation src=geml-parser/src/geml.ts#L2802-2822 anchor="scip-typescript npm @geml/geml 1.10.1 src/`geml.ts`/isCliInvocation()."}
 ===
 
-=== code {#realOf src=geml-parser/src/geml.ts#L2826-2832 anchor="scip-typescript npm @geml/geml 1.10.1 src/`geml.ts`/realOf()."}
+=== code {#realOf .leaf src=geml-parser/src/geml.ts#L2826-2832 anchor="scip-typescript npm @geml/geml 1.10.1 src/`geml.ts`/realOf()."}
 ===
 
 === table {#calls format=csv}
@@ -589,8 +589,8 @@ geml-parser--cli.ts.geml#spliceSpan,                 #nameKey,                  
 #addressedUnits,                                     #nameKey,                    call, geml-parser/src/geml.ts:2624
 #findBlockSite,                                      #nameKey,                    call, geml-parser/src/geml.ts:2729
 #findBlockSite,                                      #nameKey,                    call, geml-parser/src/geml.ts:2732
-geml-parser--render.ts.geml#buildCodeGraph,          #nameKey,                    call, geml-parser/src/render.ts:893
-geml-parser--render.ts.geml#buildCodeGraph,          #nameKey,                    call, geml-parser/src/render.ts:893
+geml-parser--render.ts.geml#buildCodeGraph,          #nameKey,                    call, geml-parser/src/render.ts:905
+geml-parser--render.ts.geml#buildCodeGraph,          #nameKey,                    call, geml-parser/src/render.ts:905
 geml-parser--style-selector.ts.geml#matchSimple,     #nameKey,                    call, geml-parser/src/style-selector.ts:246
 geml-parser--style-selector.ts.geml#matchSimple,     #nameKey,                    call, geml-parser/src/style-selector.ts:246
 #makeListItem,                                       #interpolate,                call, geml-parser/src/geml.ts:587
@@ -683,8 +683,9 @@ geml-parser--cli.ts.geml#spliceSpan,                 #parse,                    
 geml-parser--cli.ts.geml#spliceSpan,                 #parse,                      call, geml-parser/src/cli.ts:2387
 geml-parser--cli.ts.geml#runRevert,                  #parse,                      call, geml-parser/src/cli.ts:2597
 geml-parser--cli.ts.geml#runRevert,                  #parse,                      call, geml-parser/src/cli.ts:2599
-geml-parser--cli.ts.geml#runStyle,                   #parse,                      call, geml-parser/src/cli.ts:2702
-geml-parser--cli.ts.geml#runStyle,                   #parse,                      call, geml-parser/src/cli.ts:2703
+geml-parser--cli.ts.geml#runStyle,                   #parse,                      call, geml-parser/src/cli.ts:2711
+geml-parser--cli.ts.geml#runStyle,                   #parse,                      call, geml-parser/src/cli.ts:2714
+geml-parser--cli.ts.geml#runStyle,                   #parse,                      call, geml-parser/src/cli.ts:2715
 #validateProjections,                                #parse,                      call, geml-parser/src/geml.ts:1265
 #remoteRelation,                                     #parse,                      call, geml-parser/src/geml.ts:1476
 geml-parser--graph-style.ts.geml#parseGraphStyle,    #parse,                      call, geml-parser/src/graph-style.ts:68
@@ -728,6 +729,7 @@ geml-parser--cli.ts.geml#resurrectPosition,          #blockSpans,               
 #detectSelfEmbedCycles,                              #blockSpans,                 call, geml-parser/src/geml.ts:1196
 #detectSelfProjectionCycles,                         #blockSpans,                 call, geml-parser/src/geml.ts:1218
 geml-parser--render.ts.geml#RenderCtx-transclude,    #selectEmbed,                call, geml-parser/src/render.ts:366
+geml-parser--style-resolve.ts.geml#expandEmbeds,     #selectEmbed,                call, geml-parser/src/style-resolve.ts:214
 #selectEmbed,                                        #narrowEmbed,                call, geml-parser/src/geml.ts:2416
 #selectEmbed,                                        #findEmbedTarget,            call, geml-parser/src/geml.ts:2415
 #findEmbedTarget,                                    #findDeclaredTarget,         call, geml-parser/src/geml.ts:2443
@@ -1055,7 +1057,4 @@ from,                        to
 #sliceUnit,                  Array.join
 #sliceUnit,                  Array.slice
 #historyPathFor,             String.replace
-#isCliInvocation,            fileURLToPath
-#realOf,                     PlatformPath.resolve
-#realOf,                     realpathSync
 ===

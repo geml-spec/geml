@@ -4,8 +4,8 @@
 .geml-code-graph/
 
 # codemap runtime artifacts (regenerable)
-playground/codemap/_index/*.log
-playground/codemap/_index/serve.pid
+# 运行时状态与可再生产物都住 _build/ —— 一条规则就够；
+# _index/ 只放手写的（style.geml、foldings.geml）和生成的索引，两者都进 git。
 playground/codemap/_build/
 integrations/langchain+llamaindex/__pycache__
 

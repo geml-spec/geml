@@ -373,7 +373,7 @@ const refreshFixture = (cfg) => {
   // refuses any other format) lets the recipe run; a test that wants the raw
   // cfg can still pass its own `version`.
   writeFileSync(join(idx, "refresh.json"), JSON.stringify({ version: 1, ...cfg }));
-  return { dir, cm, idx, log: join(idx, "refresh.log") };
+  return { dir, cm, idx, log: join(cm, "_build", "refresh.log") };
 };
 const gitIn = (dir) => (...a) => spawnSync("git", ["-C", dir, ...a], { encoding: "utf8" });
 const gitCommitArgs = ["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q"];
@@ -591,8 +591,8 @@ test("refresh: a rebuild that only moved the stamp is not committed", () => {
   // so on success the file reads `aaaaaaa` again.)
   assert.match(r.err, /only the build stamp moved/, r.all);
   assert.equal(g("log", "--oneline").stdout.trim().split("\n").length, 1, "no second commit");
-  // Scoped to index.geml: refresh.log is runtime noise the commit spec already
-  // excludes, and it is untracked after any run.
+  // Scoped to index.geml: refresh.log is runtime state living in _build/, which
+  // ignores itself (refresh.mjs seeds `_build/.gitignore`), so git never sees it.
   assert.equal(g("status", "--porcelain", "--", "map/index.geml").stdout.trim(), "",
     "the stamp is put back, so no lone modified file is left behind");
   rmSync(f.dir, { recursive: true, force: true });
@@ -740,6 +740,58 @@ test("build: invalid --container is rejected after extraction (exit 2)", () => {
   assert.equal(r.status, 2);
   assert.match(r.err, /--container must be module\|dir\|file \(got 'bogus'\)/);
   rmSync(dir, { recursive: true, force: true });
+});
+
+// ---- 这个 map 描述的项目叫什么（三级：--repo-name > origin > 目录名）--------
+// 为什么这三条要各有一个测试：`repo` 不只是显示用 —— 单模块仓库里它是隐式根模块的
+// 显示名，会进每一条根级容器的显示路径。所以它一旦取自「克隆时随手取的目录名」，
+// 换个目录名重建就是一次整图伪 diff。实测过：一个叫 geml-spec 的克隆把本仓库的
+// `repo = geml` 翻成了 `repo = geml-spec`，而且是 hook 自动提交的。
+const gitIn2 = (dir) => (...a) => spawnSync("git", ["-C", dir, ...a], { encoding: "utf8" });
+
+test("build: the repo name comes from origin, not from the checkout directory name", () => {
+  const dir = tmp();
+  const raw = join(dir, "raw");
+  joernRaw(raw);
+  const g = gitIn2(dir);
+  g("init", "-q");
+  // 目录叫 geml-covscripts-XXXX，remote 说它叫 canonical-name —— 后者才是项目名。
+  g("remote", "add", "origin", "https://example.invalid/some-org/canonical-name.git");
+  const out = join(dir, "map");
+  const r = run("build.mjs", ["--adapter", "joern", "--raw", raw, "--root", dir, "--out", out, "--build", join(dir, "b")]);
+  assert.equal(r.status, 0, r.all);
+  const meta = readFileSync(join(out, "index.geml"), "utf8");
+  assert.match(meta, /^repo = canonical-name$/m, "origin 的仓库名胜过目录名");
+  assert.ok(!/geml-covscripts/.test(meta), "临时目录名一个字都没漏进产物");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("build: --repo-name beats origin; no origin falls back to the directory name", () => {
+  // 显式在最前，因为 remote 也会答错（fork 之后 remote 名和项目名不一致），而配方
+  // 的步骤本来就是 argv —— 写死一个名字不需要给受版本闸管着的 refresh.json 加新键。
+  const dir = tmp();
+  const raw = join(dir, "raw");
+  joernRaw(raw);
+  const g = gitIn2(dir);
+  g("init", "-q");
+  g("remote", "add", "origin", "https://example.invalid/some-org/from-remote.git");
+  const out1 = join(dir, "m1");
+  const r1 = run("build.mjs", ["--adapter", "joern", "--raw", raw, "--root", dir,
+    "--out", out1, "--build", join(dir, "b1"), "--repo-name", "chosen-by-hand"]);
+  assert.equal(r1.status, 0, r1.all);
+  assert.match(readFileSync(join(out1, "index.geml"), "utf8"), /^repo = chosen-by-hand$/m);
+
+  // 没有 git 的目录：`git config --get` 非零退出 → 回落到目录名，也就是今天的行为。
+  const bare = tmp();
+  const raw2 = join(bare, "raw");
+  joernRaw(raw2);
+  const out2 = join(bare, "map");
+  const r2 = run("build.mjs", ["--adapter", "joern", "--raw", raw2, "--root", bare, "--out", out2, "--build", join(bare, "b")]);
+  assert.equal(r2.status, 0, r2.all);
+  assert.match(readFileSync(join(out2, "index.geml"), "utf8"),
+    new RegExp(`^repo = ${bare.split(/[\\\\/]/).pop()}$`, "m"), "无 remote 时回落到目录名");
+  rmSync(dir, { recursive: true, force: true });
+  rmSync(bare, { recursive: true, force: true });
 });
 
 test("build: a bare --db keeps the historical crg default and builds from a real graph.db", () => {

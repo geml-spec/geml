@@ -128,260 +128,260 @@ resolution-default = cpg
 === code {#cgJoin src=geml-parser/src/render.ts#L848-856 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/cgJoin()."}
 ===
 
-=== code {#buildCodeGraph src=geml-parser/src/render.ts#L858-1214 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/buildCodeGraph()."}
+=== code {#buildCodeGraph src=geml-parser/src/render.ts#L858-1226 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/buildCodeGraph()."}
 ===
 
-=== code {#chartSvg src=geml-parser/src/render.ts#L1216-1220 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/chartSvg()."}
+=== code {#chartSvg src=geml-parser/src/render.ts#L1228-1232 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/chartSvg()."}
 ===
 
-=== code {#svgFrame src=geml-parser/src/render.ts#L1222-1225 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/svgFrame()."}
+=== code {#svgFrame src=geml-parser/src/render.ts#L1234-1237 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/svgFrame()."}
 ===
 
-=== code {#legend src=geml-parser/src/render.ts#L1227-1233 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/legend()."}
+=== code {#legend src=geml-parser/src/render.ts#L1239-1245 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/legend()."}
 ===
 
-=== code {#cartesianSvg src=geml-parser/src/render.ts#L1235-1300 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/cartesianSvg()."}
+=== code {#cartesianSvg src=geml-parser/src/render.ts#L1247-1312 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/cartesianSvg()."}
 ===
 
-=== code {#pieSvg src=geml-parser/src/render.ts#L1302-1320 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/pieSvg()."}
+=== code {#pieSvg src=geml-parser/src/render.ts#L1314-1332 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/pieSvg()."}
 ===
 
-=== code {#scatterSvg src=geml-parser/src/render.ts#L1322-1351 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/scatterSvg()."}
+=== code {#scatterSvg src=geml-parser/src/render.ts#L1334-1363 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/scatterSvg()."}
 ===
 
-=== code {#fmtNum src=geml-parser/src/render.ts#L1353-1356 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/fmtNum()."}
+=== code {#fmtNum src=geml-parser/src/render.ts#L1365-1368 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/fmtNum()."}
 ===
 
-=== code {#trunc src=geml-parser/src/render.ts#L1357-1359 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/trunc()."}
+=== code {#trunc src=geml-parser/src/render.ts#L1369-1371 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/trunc()."}
 ===
 
-=== code {#codeGraphRuntime src=geml-parser/src/render.ts#L1536-2740 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/codeGraphRuntime()."}
+=== code {#codeGraphRuntime src=geml-parser/src/render.ts#L1548-2752 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/codeGraphRuntime()."}
 ===
 
-=== code {#root-typeLiteral1343-querySelect .leaf name="(root)typeLiteral1343:querySelectorAll" src=geml-parser/src/render.ts#L1536-1536 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/codeGraphRuntime().(root)typeLiteral1343:querySelectorAll()."}
+=== code {#root-typeLiteral1348-querySelect .leaf name="(root)typeLiteral1348:querySelectorAll" src=geml-parser/src/render.ts#L1548-1548 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/codeGraphRuntime().(root)typeLiteral1348:querySelectorAll()."}
 ===
 
-=== code {#codeGraphWaves src=geml-parser/src/render.ts#L2752-2790 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/codeGraphWaves()."}
+=== code {#codeGraphWaves src=geml-parser/src/render.ts#L2764-2802 anchor="scip-typescript npm @geml/geml 1.10.1 src/`render.ts`/codeGraphWaves()."}
 ===
 
 === table {#calls format=csv}
-from,                            to,                                                 kind, confidence
-#escAttr,                        #esc,                                               call,
-#classAttr,                      #escAttr,                                           call,
-#RenderCtx-new,                  #RenderCtx-indexLabels,                             call,
-#RenderCtx-indexLabels,          #indexLabelsInto,                                   call,
-#RenderCtx-inlines,              #RenderCtx-inline,                                  call,
-#RenderCtx-inline,               #esc,                                               call,
-#RenderCtx-inline,               #esc,                                               call,
-#RenderCtx-inline,               #esc,                                               call,
-#RenderCtx-inline,               #esc,                                               call,
-#RenderCtx-inline,               #esc,                                               call,
-#RenderCtx-inline,               #esc,                                               call,
-#RenderCtx-inline,               #esc,                                               call,
-#RenderCtx-inline,               #escAttr,                                           call,
-#RenderCtx-inline,               #escAttr,                                           call,
-#RenderCtx-inline,               #relDir,                                            call,
-#RenderCtx-inline,               #relJoin,                                           call,
-#RenderCtx-inline,               #RenderCtx-currentLabels,                           call,
-#RenderCtx-inline,               #RenderCtx-fragmentHref,                            call,
-#RenderCtx-inline,               #RenderCtx-fragmentHref,                            call,
-#RenderCtx-inline,               #RenderCtx-get-currentDocRel,                       call,
-#RenderCtx-inline,               #RenderCtx-inlines,                                 call,
-#RenderCtx-inline,               #RenderCtx-inlines,                                 call,
-#RenderCtx-inline,               #RenderCtx-inlines,                                 call,
-#RenderCtx-inline,               #RenderCtx-link,                                    call,
-#RenderCtx-inline,               #RenderCtx-media,                                   call,
-#RenderCtx-inline,               #RenderCtx-projectInline,                           call,
-#RenderCtx-inline,               #RenderCtx-remoteLabel,                             call,
-#RenderCtx-transclude,           #esc,                                               call,
-#RenderCtx-transclude,           #escAttr,                                           call,
-#RenderCtx-transclude,           #relDir,                                            call,
-#RenderCtx-transclude,           #relJoin,                                           call,
-#RenderCtx-transclude,           #RenderCtx-budgetExhausted,                         call,
-#RenderCtx-transclude,           #RenderCtx-get-currentDocChildren,                  call,
-#RenderCtx-transclude,           #RenderCtx-get-currentDocRel,                       call,
-#RenderCtx-transclude,           #RenderCtx-get-currentDocRel,                       call,
-#RenderCtx-transclude,           #RenderCtx-loadChildren,                            call,
-#RenderCtx-transclude,           #RenderCtx-transclusionFallback,                    call,
-#RenderCtx-transclude,           #RenderCtx-transclusionFallback,                    call,
-#RenderCtx-transclude,           #RenderCtx-transclusionFallback,                    call,
-#RenderCtx-transclude,           #RenderCtx-transclusionFallback,                    call,
-#RenderCtx-transclude,           #RenderCtx-transclusionFallback,                    call,
-#RenderCtx-transclude,           #RenderCtx-transclusionFallback,                    call,
-#RenderCtx-transclude,           #RenderCtx-transclusionFallback,                    call,
-#RenderCtx-transclude,           #RenderCtx-transclusionWrap,                        call,
-#RenderCtx-transclude,           geml-parser--geml.ts.geml#selectEmbed,              call,
-#RenderCtx-transclude,           geml-parser--translate.ts.geml#resolveTarget,       call,
-#RenderCtx-transclude,           geml-parser--translate.ts.geml#translateBlocks,     call,
-#RenderCtx-projectInline,        #escAttr,                                           call,
-#RenderCtx-projectInline,        #relDir,                                            call,
-#RenderCtx-projectInline,        #relJoin,                                           call,
-#RenderCtx-projectInline,        #RenderCtx-budgetExhausted,                         call,
-#RenderCtx-projectInline,        #RenderCtx-get-currentDocChildren,                  call,
-#RenderCtx-projectInline,        #RenderCtx-get-currentDocRel,                       call,
-#RenderCtx-projectInline,        #RenderCtx-get-currentDocRel,                       call,
-#RenderCtx-projectInline,        #RenderCtx-inlines,                                 call,
-#RenderCtx-projectInline,        #RenderCtx-loadChildren,                            call,
-#RenderCtx-projectInline,        #RenderCtx-projectFallback,                         call,
-#RenderCtx-projectInline,        #RenderCtx-projectFallback,                         call,
-#RenderCtx-projectInline,        #RenderCtx-projectFallback,                         call,
-#RenderCtx-projectInline,        #RenderCtx-projectFallback,                         call,
-#RenderCtx-projectInline,        #RenderCtx-projectFallback,                         call,
-#RenderCtx-projectInline,        #RenderCtx-projectFallback,                         call,
-#RenderCtx-projectInline,        geml-parser--geml.ts.geml#projectableInlines,       call,
-#RenderCtx-projectFallback,      #classAttrToken,                                    call,
-#RenderCtx-projectFallback,      #esc,                                               call,
-#RenderCtx-projectFallback,      #escAttr,                                           call,
-#RenderCtx-projectFallback,      #escAttr,                                           call,
-#RenderCtx-projectFallback,      #escAttr,                                           call,
-#RenderCtx-projectFallback,      #relDir,                                            call,
-#RenderCtx-projectFallback,      #relJoin,                                           call,
-#RenderCtx-projectFallback,      #RenderCtx-get-currentDocRel,                       call,
-#RenderCtx-projectFallback,      geml-parser--inline.ts.geml#isSafeUrl,              call,
-#RenderCtx-currentLabels,        #indexLabelsInto,                                   call,
-#RenderCtx-clsAttr,              #authorClasses,                                     call,
-#RenderCtx-clsAttr,              #classAttr,                                         call,
-#RenderCtx-idAttr,               #escAttr,                                           call,
-#RenderCtx-remoteLabel,          #indexLabelsInto,                                   call,
-#RenderCtx-remoteLabel,          #relDir,                                            call,
-#RenderCtx-remoteLabel,          #relJoin,                                           call,
-#RenderCtx-remoteLabel,          #RenderCtx-get-currentDocRel,                       call,
-#RenderCtx-fragmentHref,         #RenderCtx-get-currentDocRel,                       call,
-#RenderCtx-transclusionWrap,     #escAttr,                                           call,
-#RenderCtx-transclusionWrap,     #RenderCtx-block,                                   call,
-#RenderCtx-transclusionFallback, #classAttrToken,                                    call,
-#RenderCtx-transclusionFallback, #esc,                                               call,
-#RenderCtx-transclusionFallback, #esc,                                               call,
-#RenderCtx-transclusionFallback, #escAttr,                                           call,
-#RenderCtx-transclusionFallback, #escAttr,                                           call,
-#RenderCtx-transclusionFallback, #escAttr,                                           call,
-#RenderCtx-transclusionFallback, #relDir,                                            call,
-#RenderCtx-transclusionFallback, #relJoin,                                           call,
-#RenderCtx-transclusionFallback, #RenderCtx-get-currentDocRel,                       call,
-#RenderCtx-transclusionFallback, geml-parser--inline.ts.geml#isSafeUrl,              call,
-#RenderCtx-media,                #escAttr,                                           call,
-#RenderCtx-media,                #escAttr,                                           call,
-#RenderCtx-media,                #relDir,                                            call,
-#RenderCtx-media,                #relJoin,                                           call,
-#RenderCtx-media,                #RenderCtx-get-currentDocRel,                       call,
-#RenderCtx-link,                 #escAttr,                                           call,
-#RenderCtx-link,                 #escAttr,                                           call,
-#RenderCtx-link,                 #escAttr,                                           call,
-#RenderCtx-link,                 #relDir,                                            call,
-#RenderCtx-link,                 #relJoin,                                           call,
-#RenderCtx-link,                 #RenderCtx-fragmentHref,                            call,
-#RenderCtx-link,                 #RenderCtx-get-currentDocRel,                       call,
-#RenderCtx-link,                 #RenderCtx-inlines,                                 call,
-#RenderCtx-block,                #RenderCtx-blockInner,                              call,
-#RenderCtx-blockInner,           #RenderCtx-idAttr,                                  call,
-#RenderCtx-blockInner,           #RenderCtx-inlines,                                 call,
-#RenderCtx-blockInner,           #RenderCtx-inlines,                                 call,
-#RenderCtx-blockInner,           #RenderCtx-list,                                    call,
-#RenderCtx-blockInner,           #RenderCtx-typed,                                   call,
-#RenderCtx-list,                 #RenderCtx-block,                                   call,
-#RenderCtx-list,                 #RenderCtx-inlines,                                 call,
-#RenderCtx-typed,                #esc,                                               call,
-#RenderCtx-typed,                #esc,                                               call,
-#RenderCtx-typed,                #esc,                                               call,
-#RenderCtx-typed,                #esc,                                               call,
-#RenderCtx-typed,                #esc,                                               call,
-#RenderCtx-typed,                #esc,                                               call,
-#RenderCtx-typed,                #esc,                                               call,
-#RenderCtx-typed,                #esc,                                               call,
-#RenderCtx-typed,                #escAttr,                                           call,
-#RenderCtx-typed,                #escAttr,                                           call,
-#RenderCtx-typed,                #escAttr,                                           call,
-#RenderCtx-typed,                #RenderCtx-block,                                   call,
-#RenderCtx-typed,                #RenderCtx-block,                                   call,
-#RenderCtx-typed,                #RenderCtx-clsAttr,                                 call,
-#RenderCtx-typed,                #RenderCtx-clsAttr,                                 call,
-#RenderCtx-typed,                #RenderCtx-clsAttr,                                 call,
-#RenderCtx-typed,                #RenderCtx-clsAttr,                                 call,
-#RenderCtx-typed,                #RenderCtx-clsAttr,                                 call,
-#RenderCtx-typed,                #RenderCtx-clsAttr,                                 call,
-#RenderCtx-typed,                #RenderCtx-clsAttr,                                 call,
-#RenderCtx-typed,                #RenderCtx-clsAttr,                                 call,
-#RenderCtx-typed,                #RenderCtx-diagram,                                 call,
-#RenderCtx-typed,                #RenderCtx-idAttr,                                  call,
-#RenderCtx-typed,                #RenderCtx-table,                                   call,
-#RenderCtx-typed,                #RenderCtx-table,                                   call,
-#RenderCtx-typed,                #RenderCtx-transclude,                              call,
-#RenderCtx-diagram,              #chartSvg,                                          call,
-#RenderCtx-diagram,              #esc,                                               call,
-#RenderCtx-diagram,              #esc,                                               call,
-#RenderCtx-diagram,              #esc,                                               call,
-#RenderCtx-diagram,              #esc,                                               call,
-#RenderCtx-diagram,              #esc,                                               call,
-#RenderCtx-diagram,              #escAttr,                                           call,
-#RenderCtx-diagram,              #RenderCtx-clsAttr,                                 call,
-#RenderCtx-diagram,              #RenderCtx-clsAttr,                                 call,
-#RenderCtx-diagram,              #RenderCtx-clsAttr,                                 call,
-#RenderCtx-diagram,              #RenderCtx-codeGraphFigure,                         call,
-#RenderCtx-diagram,              #RenderCtx-idAttr,                                  call,
-#RenderCtx-codeGraphFigure,      #buildCodeGraph,                                    call,
-#RenderCtx-codeGraphFigure,      #esc,                                               call,
-#RenderCtx-codeGraphFigure,      #escAttr,                                           call,
-#RenderCtx-codeGraphFigure,      #escAttr,                                           call,
-#RenderCtx-codeGraphFigure,      #escAttr,                                           call,
-#RenderCtx-codeGraphFigure,      #escAttr,                                           call,
-#RenderCtx-codeGraphFigure,      #RenderCtx-clsAttr,                                 call,
-#RenderCtx-codeGraphFigure,      #RenderCtx-clsAttr,                                 call,
-#RenderCtx-codeGraphFigure,      #RenderCtx-clsAttr,                                 call,
-#RenderCtx-codeGraphFigure,      #RenderCtx-clsAttr,                                 call,
-#RenderCtx-table,                #esc,                                               call,
-#RenderCtx-table,                #esc,                                               call,
-#RenderCtx-table,                #esc,                                               call,
-#RenderCtx-table,                #escAttr,                                           call,
-#RenderCtx-table,                #RenderCtx-clsAttr,                                 call,
-#RenderCtx-table,                #RenderCtx-clsAttr,                                 call,
-#RenderCtx-table,                #RenderCtx-get-isCodemapDoc,                        call,
-#RenderCtx-table,                #RenderCtx-inlines,                                 call,
-#RenderCtx-table,                #RenderCtx-inlines,                                 call,
-#buildCodeGraph,                 #cgDir,                                             call,
-#buildCodeGraph,                 #cgDir,                                             call,
-#buildCodeGraph,                 #cgDir,                                             call,
-#buildCodeGraph,                 #cgDir,                                             call,
-#buildCodeGraph,                 #cgJoin,                                            call,
-#buildCodeGraph,                 #cgJoin,                                            call,
-#buildCodeGraph,                 #cgJoin,                                            call,
-#buildCodeGraph,                 #cgJoin,                                            call,
-#buildCodeGraph,                 #cgJoin,                                            call,
-#buildCodeGraph,                 geml-parser--geml.ts.geml#nameKey,                  call,
-#buildCodeGraph,                 geml-parser--geml.ts.geml#nameKey,                  call,
-#buildCodeGraph,                 geml-parser--graph-style.ts.geml#defaultGraphStyle, call,
-#buildCodeGraph,                 geml-parser--graph-style.ts.geml#graphStyleFromDoc, call,
-#chartSvg,                       #cartesianSvg,                                      call,
-#chartSvg,                       #pieSvg,                                            call,
-#chartSvg,                       #scatterSvg,                                        call,
-#svgFrame,                       #esc,                                               call,
-#svgFrame,                       #escAttr,                                           call,
-#legend,                         #esc,                                               call,
-#cartesianSvg,                   #esc,                                               call,
-#cartesianSvg,                   #esc,                                               call,
-#cartesianSvg,                   #esc,                                               call,
-#cartesianSvg,                   #esc,                                               call,
-#cartesianSvg,                   #esc,                                               call,
-#cartesianSvg,                   #fmtNum,                                            call,
-#cartesianSvg,                   #fmtNum,                                            call,
-#cartesianSvg,                   #fmtNum,                                            call,
-#cartesianSvg,                   #legend,                                            call,
-#cartesianSvg,                   #niceMax,                                           call,
-#cartesianSvg,                   #niceMax,                                           call,
-#cartesianSvg,                   #svgFrame,                                          call,
-#cartesianSvg,                   #trunc,                                             call,
-#pieSvg,                         #esc,                                               call,
-#pieSvg,                         #fmtNum,                                            call,
-#pieSvg,                         #legend,                                            call,
-#pieSvg,                         #svgFrame,                                          call,
-#scatterSvg,                     #esc,                                               call,
-#scatterSvg,                     #fmtNum,                                            call,
-#scatterSvg,                     #fmtNum,                                            call,
-#scatterSvg,                     #fmtNum,                                            call,
-#scatterSvg,                     #niceMax,                                           call,
-#scatterSvg,                     #niceMax,                                           call,
-#scatterSvg,                     #svgFrame,                                          call,
-#codeGraphRuntime,               #root-typeLiteral1343-querySelect,                  call,
-#codeGraphWaves,                 #buildCodeGraph,                                    call,
+from,                            to,                                                    kind, confidence
+#escAttr,                        #esc,                                                  call,
+#classAttr,                      #escAttr,                                              call,
+#RenderCtx-new,                  #RenderCtx-indexLabels,                                call,
+#RenderCtx-indexLabels,          #indexLabelsInto,                                      call,
+#RenderCtx-inlines,              #RenderCtx-inline,                                     call,
+#RenderCtx-inline,               #esc,                                                  call,
+#RenderCtx-inline,               #esc,                                                  call,
+#RenderCtx-inline,               #esc,                                                  call,
+#RenderCtx-inline,               #esc,                                                  call,
+#RenderCtx-inline,               #esc,                                                  call,
+#RenderCtx-inline,               #esc,                                                  call,
+#RenderCtx-inline,               #esc,                                                  call,
+#RenderCtx-inline,               #escAttr,                                              call,
+#RenderCtx-inline,               #escAttr,                                              call,
+#RenderCtx-inline,               #relDir,                                               call,
+#RenderCtx-inline,               #relJoin,                                              call,
+#RenderCtx-inline,               #RenderCtx-currentLabels,                              call,
+#RenderCtx-inline,               #RenderCtx-fragmentHref,                               call,
+#RenderCtx-inline,               #RenderCtx-fragmentHref,                               call,
+#RenderCtx-inline,               #RenderCtx-get-currentDocRel,                          call,
+#RenderCtx-inline,               #RenderCtx-inlines,                                    call,
+#RenderCtx-inline,               #RenderCtx-inlines,                                    call,
+#RenderCtx-inline,               #RenderCtx-inlines,                                    call,
+#RenderCtx-inline,               #RenderCtx-link,                                       call,
+#RenderCtx-inline,               #RenderCtx-media,                                      call,
+#RenderCtx-inline,               #RenderCtx-projectInline,                              call,
+#RenderCtx-inline,               #RenderCtx-remoteLabel,                                call,
+#RenderCtx-transclude,           #esc,                                                  call,
+#RenderCtx-transclude,           #escAttr,                                              call,
+#RenderCtx-transclude,           #relDir,                                               call,
+#RenderCtx-transclude,           #relJoin,                                              call,
+#RenderCtx-transclude,           #RenderCtx-budgetExhausted,                            call,
+#RenderCtx-transclude,           #RenderCtx-get-currentDocChildren,                     call,
+#RenderCtx-transclude,           #RenderCtx-get-currentDocRel,                          call,
+#RenderCtx-transclude,           #RenderCtx-get-currentDocRel,                          call,
+#RenderCtx-transclude,           #RenderCtx-loadChildren,                               call,
+#RenderCtx-transclude,           #RenderCtx-transclusionFallback,                       call,
+#RenderCtx-transclude,           #RenderCtx-transclusionFallback,                       call,
+#RenderCtx-transclude,           #RenderCtx-transclusionFallback,                       call,
+#RenderCtx-transclude,           #RenderCtx-transclusionFallback,                       call,
+#RenderCtx-transclude,           #RenderCtx-transclusionFallback,                       call,
+#RenderCtx-transclude,           #RenderCtx-transclusionFallback,                       call,
+#RenderCtx-transclude,           #RenderCtx-transclusionFallback,                       call,
+#RenderCtx-transclude,           #RenderCtx-transclusionWrap,                           call,
+#RenderCtx-transclude,           geml-parser--geml.ts.geml#selectEmbed,                 call,
+#RenderCtx-transclude,           geml-parser--translate.ts.geml#resolveTarget,          call,
+#RenderCtx-transclude,           geml-parser--translate.ts.geml#translateBlocks,        call,
+#RenderCtx-projectInline,        #escAttr,                                              call,
+#RenderCtx-projectInline,        #relDir,                                               call,
+#RenderCtx-projectInline,        #relJoin,                                              call,
+#RenderCtx-projectInline,        #RenderCtx-budgetExhausted,                            call,
+#RenderCtx-projectInline,        #RenderCtx-get-currentDocChildren,                     call,
+#RenderCtx-projectInline,        #RenderCtx-get-currentDocRel,                          call,
+#RenderCtx-projectInline,        #RenderCtx-get-currentDocRel,                          call,
+#RenderCtx-projectInline,        #RenderCtx-inlines,                                    call,
+#RenderCtx-projectInline,        #RenderCtx-loadChildren,                               call,
+#RenderCtx-projectInline,        #RenderCtx-projectFallback,                            call,
+#RenderCtx-projectInline,        #RenderCtx-projectFallback,                            call,
+#RenderCtx-projectInline,        #RenderCtx-projectFallback,                            call,
+#RenderCtx-projectInline,        #RenderCtx-projectFallback,                            call,
+#RenderCtx-projectInline,        #RenderCtx-projectFallback,                            call,
+#RenderCtx-projectInline,        #RenderCtx-projectFallback,                            call,
+#RenderCtx-projectInline,        geml-parser--geml.ts.geml#projectableInlines,          call,
+#RenderCtx-projectFallback,      #classAttrToken,                                       call,
+#RenderCtx-projectFallback,      #esc,                                                  call,
+#RenderCtx-projectFallback,      #escAttr,                                              call,
+#RenderCtx-projectFallback,      #escAttr,                                              call,
+#RenderCtx-projectFallback,      #escAttr,                                              call,
+#RenderCtx-projectFallback,      #relDir,                                               call,
+#RenderCtx-projectFallback,      #relJoin,                                              call,
+#RenderCtx-projectFallback,      #RenderCtx-get-currentDocRel,                          call,
+#RenderCtx-projectFallback,      geml-parser--inline.ts.geml#isSafeUrl,                 call,
+#RenderCtx-currentLabels,        #indexLabelsInto,                                      call,
+#RenderCtx-clsAttr,              #authorClasses,                                        call,
+#RenderCtx-clsAttr,              #classAttr,                                            call,
+#RenderCtx-idAttr,               #escAttr,                                              call,
+#RenderCtx-remoteLabel,          #indexLabelsInto,                                      call,
+#RenderCtx-remoteLabel,          #relDir,                                               call,
+#RenderCtx-remoteLabel,          #relJoin,                                              call,
+#RenderCtx-remoteLabel,          #RenderCtx-get-currentDocRel,                          call,
+#RenderCtx-fragmentHref,         #RenderCtx-get-currentDocRel,                          call,
+#RenderCtx-transclusionWrap,     #escAttr,                                              call,
+#RenderCtx-transclusionWrap,     #RenderCtx-block,                                      call,
+#RenderCtx-transclusionFallback, #classAttrToken,                                       call,
+#RenderCtx-transclusionFallback, #esc,                                                  call,
+#RenderCtx-transclusionFallback, #esc,                                                  call,
+#RenderCtx-transclusionFallback, #escAttr,                                              call,
+#RenderCtx-transclusionFallback, #escAttr,                                              call,
+#RenderCtx-transclusionFallback, #escAttr,                                              call,
+#RenderCtx-transclusionFallback, #relDir,                                               call,
+#RenderCtx-transclusionFallback, #relJoin,                                              call,
+#RenderCtx-transclusionFallback, #RenderCtx-get-currentDocRel,                          call,
+#RenderCtx-transclusionFallback, geml-parser--inline.ts.geml#isSafeUrl,                 call,
+#RenderCtx-media,                #escAttr,                                              call,
+#RenderCtx-media,                #escAttr,                                              call,
+#RenderCtx-media,                #relDir,                                               call,
+#RenderCtx-media,                #relJoin,                                              call,
+#RenderCtx-media,                #RenderCtx-get-currentDocRel,                          call,
+#RenderCtx-link,                 #escAttr,                                              call,
+#RenderCtx-link,                 #escAttr,                                              call,
+#RenderCtx-link,                 #escAttr,                                              call,
+#RenderCtx-link,                 #relDir,                                               call,
+#RenderCtx-link,                 #relJoin,                                              call,
+#RenderCtx-link,                 #RenderCtx-fragmentHref,                               call,
+#RenderCtx-link,                 #RenderCtx-get-currentDocRel,                          call,
+#RenderCtx-link,                 #RenderCtx-inlines,                                    call,
+#RenderCtx-block,                #RenderCtx-blockInner,                                 call,
+#RenderCtx-blockInner,           #RenderCtx-idAttr,                                     call,
+#RenderCtx-blockInner,           #RenderCtx-inlines,                                    call,
+#RenderCtx-blockInner,           #RenderCtx-inlines,                                    call,
+#RenderCtx-blockInner,           #RenderCtx-list,                                       call,
+#RenderCtx-blockInner,           #RenderCtx-typed,                                      call,
+#RenderCtx-list,                 #RenderCtx-block,                                      call,
+#RenderCtx-list,                 #RenderCtx-inlines,                                    call,
+#RenderCtx-typed,                #esc,                                                  call,
+#RenderCtx-typed,                #esc,                                                  call,
+#RenderCtx-typed,                #esc,                                                  call,
+#RenderCtx-typed,                #esc,                                                  call,
+#RenderCtx-typed,                #esc,                                                  call,
+#RenderCtx-typed,                #esc,                                                  call,
+#RenderCtx-typed,                #esc,                                                  call,
+#RenderCtx-typed,                #esc,                                                  call,
+#RenderCtx-typed,                #escAttr,                                              call,
+#RenderCtx-typed,                #escAttr,                                              call,
+#RenderCtx-typed,                #escAttr,                                              call,
+#RenderCtx-typed,                #RenderCtx-block,                                      call,
+#RenderCtx-typed,                #RenderCtx-block,                                      call,
+#RenderCtx-typed,                #RenderCtx-clsAttr,                                    call,
+#RenderCtx-typed,                #RenderCtx-clsAttr,                                    call,
+#RenderCtx-typed,                #RenderCtx-clsAttr,                                    call,
+#RenderCtx-typed,                #RenderCtx-clsAttr,                                    call,
+#RenderCtx-typed,                #RenderCtx-clsAttr,                                    call,
+#RenderCtx-typed,                #RenderCtx-clsAttr,                                    call,
+#RenderCtx-typed,                #RenderCtx-clsAttr,                                    call,
+#RenderCtx-typed,                #RenderCtx-clsAttr,                                    call,
+#RenderCtx-typed,                #RenderCtx-diagram,                                    call,
+#RenderCtx-typed,                #RenderCtx-idAttr,                                     call,
+#RenderCtx-typed,                #RenderCtx-table,                                      call,
+#RenderCtx-typed,                #RenderCtx-table,                                      call,
+#RenderCtx-typed,                #RenderCtx-transclude,                                 call,
+#RenderCtx-diagram,              #chartSvg,                                             call,
+#RenderCtx-diagram,              #esc,                                                  call,
+#RenderCtx-diagram,              #esc,                                                  call,
+#RenderCtx-diagram,              #esc,                                                  call,
+#RenderCtx-diagram,              #esc,                                                  call,
+#RenderCtx-diagram,              #esc,                                                  call,
+#RenderCtx-diagram,              #escAttr,                                              call,
+#RenderCtx-diagram,              #RenderCtx-clsAttr,                                    call,
+#RenderCtx-diagram,              #RenderCtx-clsAttr,                                    call,
+#RenderCtx-diagram,              #RenderCtx-clsAttr,                                    call,
+#RenderCtx-diagram,              #RenderCtx-codeGraphFigure,                            call,
+#RenderCtx-diagram,              #RenderCtx-idAttr,                                     call,
+#RenderCtx-codeGraphFigure,      #buildCodeGraph,                                       call,
+#RenderCtx-codeGraphFigure,      #esc,                                                  call,
+#RenderCtx-codeGraphFigure,      #escAttr,                                              call,
+#RenderCtx-codeGraphFigure,      #escAttr,                                              call,
+#RenderCtx-codeGraphFigure,      #escAttr,                                              call,
+#RenderCtx-codeGraphFigure,      #escAttr,                                              call,
+#RenderCtx-codeGraphFigure,      #RenderCtx-clsAttr,                                    call,
+#RenderCtx-codeGraphFigure,      #RenderCtx-clsAttr,                                    call,
+#RenderCtx-codeGraphFigure,      #RenderCtx-clsAttr,                                    call,
+#RenderCtx-codeGraphFigure,      #RenderCtx-clsAttr,                                    call,
+#RenderCtx-table,                #esc,                                                  call,
+#RenderCtx-table,                #esc,                                                  call,
+#RenderCtx-table,                #esc,                                                  call,
+#RenderCtx-table,                #escAttr,                                              call,
+#RenderCtx-table,                #RenderCtx-clsAttr,                                    call,
+#RenderCtx-table,                #RenderCtx-clsAttr,                                    call,
+#RenderCtx-table,                #RenderCtx-get-isCodemapDoc,                           call,
+#RenderCtx-table,                #RenderCtx-inlines,                                    call,
+#RenderCtx-table,                #RenderCtx-inlines,                                    call,
+#buildCodeGraph,                 #cgDir,                                                call,
+#buildCodeGraph,                 #cgDir,                                                call,
+#buildCodeGraph,                 #cgDir,                                                call,
+#buildCodeGraph,                 #cgDir,                                                call,
+#buildCodeGraph,                 #cgJoin,                                               call,
+#buildCodeGraph,                 #cgJoin,                                               call,
+#buildCodeGraph,                 #cgJoin,                                               call,
+#buildCodeGraph,                 #cgJoin,                                               call,
+#buildCodeGraph,                 #cgJoin,                                               call,
+#buildCodeGraph,                 geml-parser--geml.ts.geml#nameKey,                     call,
+#buildCodeGraph,                 geml-parser--geml.ts.geml#nameKey,                     call,
+#buildCodeGraph,                 geml-parser--graph-style.ts.geml#graphStyleFromLayers, call,
+#buildCodeGraph,                 geml-parser--graph-style.ts.geml#resolveStyleLayers,   call,
+#chartSvg,                       #cartesianSvg,                                         call,
+#chartSvg,                       #pieSvg,                                               call,
+#chartSvg,                       #scatterSvg,                                           call,
+#svgFrame,                       #esc,                                                  call,
+#svgFrame,                       #escAttr,                                              call,
+#legend,                         #esc,                                                  call,
+#cartesianSvg,                   #esc,                                                  call,
+#cartesianSvg,                   #esc,                                                  call,
+#cartesianSvg,                   #esc,                                                  call,
+#cartesianSvg,                   #esc,                                                  call,
+#cartesianSvg,                   #esc,                                                  call,
+#cartesianSvg,                   #fmtNum,                                               call,
+#cartesianSvg,                   #fmtNum,                                               call,
+#cartesianSvg,                   #fmtNum,                                               call,
+#cartesianSvg,                   #legend,                                               call,
+#cartesianSvg,                   #niceMax,                                              call,
+#cartesianSvg,                   #niceMax,                                              call,
+#cartesianSvg,                   #svgFrame,                                             call,
+#cartesianSvg,                   #trunc,                                                call,
+#pieSvg,                         #esc,                                                  call,
+#pieSvg,                         #fmtNum,                                               call,
+#pieSvg,                         #legend,                                               call,
+#pieSvg,                         #svgFrame,                                             call,
+#scatterSvg,                     #esc,                                                  call,
+#scatterSvg,                     #fmtNum,                                               call,
+#scatterSvg,                     #fmtNum,                                               call,
+#scatterSvg,                     #fmtNum,                                               call,
+#scatterSvg,                     #niceMax,                                              call,
+#scatterSvg,                     #niceMax,                                              call,
+#scatterSvg,                     #svgFrame,                                             call,
+#codeGraphRuntime,               #root-typeLiteral1348-querySelect,                     call,
+#codeGraphWaves,                 #buildCodeGraph,                                       call,
 ===
 
 === table {#called-by format=csv}
@@ -417,15 +417,15 @@ geml-parser--render-html.ts.geml#page,       #esc,                              
 #RenderCtx-table,                            #esc,                              call, geml-parser/src/render.ts:764
 #RenderCtx-table,                            #esc,                              call, geml-parser/src/render.ts:783
 #RenderCtx-table,                            #esc,                              call, geml-parser/src/render.ts:786
-#svgFrame,                                   #esc,                              call, geml-parser/src/render.ts:1223
-#legend,                                     #esc,                              call, geml-parser/src/render.ts:1231
-#cartesianSvg,                               #esc,                              call, geml-parser/src/render.ts:1265
+#svgFrame,                                   #esc,                              call, geml-parser/src/render.ts:1235
+#legend,                                     #esc,                              call, geml-parser/src/render.ts:1243
 #cartesianSvg,                               #esc,                              call, geml-parser/src/render.ts:1277
-#cartesianSvg,                               #esc,                              call, geml-parser/src/render.ts:1277
-#cartesianSvg,                               #esc,                              call, geml-parser/src/render.ts:1292
-#cartesianSvg,                               #esc,                              call, geml-parser/src/render.ts:1292
-#pieSvg,                                     #esc,                              call, geml-parser/src/render.ts:1315
-#scatterSvg,                                 #esc,                              call, geml-parser/src/render.ts:1347
+#cartesianSvg,                               #esc,                              call, geml-parser/src/render.ts:1289
+#cartesianSvg,                               #esc,                              call, geml-parser/src/render.ts:1289
+#cartesianSvg,                               #esc,                              call, geml-parser/src/render.ts:1304
+#cartesianSvg,                               #esc,                              call, geml-parser/src/render.ts:1304
+#pieSvg,                                     #esc,                              call, geml-parser/src/render.ts:1327
+#scatterSvg,                                 #esc,                              call, geml-parser/src/render.ts:1359
 geml-parser--render-html.ts.geml#page,       #escAttr,                          call, geml-parser/src/render-html.ts:45
 #classAttr,                                  #escAttr,                          call, geml-parser/src/render.ts:99
 #RenderCtx-inline,                           #escAttr,                          call, geml-parser/src/render.ts:300
@@ -454,7 +454,7 @@ geml-parser--render-html.ts.geml#page,       #escAttr,                          
 #RenderCtx-codeGraphFigure,                  #escAttr,                          call, geml-parser/src/render.ts:741
 #RenderCtx-codeGraphFigure,                  #escAttr,                          call, geml-parser/src/render.ts:741
 #RenderCtx-table,                            #escAttr,                          call, geml-parser/src/render.ts:745
-#svgFrame,                                   #escAttr,                          call, geml-parser/src/render.ts:1224
+#svgFrame,                                   #escAttr,                          call, geml-parser/src/render.ts:1236
 #RenderCtx-clsAttr,                          #classAttr,                        call, geml-parser/src/render.ts:486
 #RenderCtx-clsAttr,                          #authorClasses,                    call, geml-parser/src/render.ts:485
 #RenderCtx-projectFallback,                  #classAttrToken,                   call, geml-parser/src/render.ts:445
@@ -566,39 +566,39 @@ geml-parser--render-html.ts.geml#renderHtml, #RenderCtx-codeGraphFigure,        
 #RenderCtx-diagram,                          #RenderCtx-codeGraphFigure,        call, geml-parser/src/render.ts:705
 #RenderCtx-typed,                            #RenderCtx-table,                  call, geml-parser/src/render.ts:681
 #RenderCtx-typed,                            #RenderCtx-table,                  call, geml-parser/src/render.ts:683
-#cartesianSvg,                               #niceMax,                          call, geml-parser/src/render.ts:1245
-#cartesianSvg,                               #niceMax,                          call, geml-parser/src/render.ts:1246
-#scatterSvg,                                 #niceMax,                          call, geml-parser/src/render.ts:1331
-#scatterSvg,                                 #niceMax,                          call, geml-parser/src/render.ts:1332
-#buildCodeGraph,                             #cgDir,                            call, geml-parser/src/render.ts:879
-#buildCodeGraph,                             #cgDir,                            call, geml-parser/src/render.ts:921
-#buildCodeGraph,                             #cgDir,                            call, geml-parser/src/render.ts:928
-#buildCodeGraph,                             #cgDir,                            call, geml-parser/src/render.ts:989
+#cartesianSvg,                               #niceMax,                          call, geml-parser/src/render.ts:1257
+#cartesianSvg,                               #niceMax,                          call, geml-parser/src/render.ts:1258
+#scatterSvg,                                 #niceMax,                          call, geml-parser/src/render.ts:1343
+#scatterSvg,                                 #niceMax,                          call, geml-parser/src/render.ts:1344
+#buildCodeGraph,                             #cgDir,                            call, geml-parser/src/render.ts:890
+#buildCodeGraph,                             #cgDir,                            call, geml-parser/src/render.ts:933
+#buildCodeGraph,                             #cgDir,                            call, geml-parser/src/render.ts:940
+#buildCodeGraph,                             #cgDir,                            call, geml-parser/src/render.ts:1001
 #buildCodeGraph,                             #cgJoin,                           call, geml-parser/src/render.ts:872
-#buildCodeGraph,                             #cgJoin,                           call, geml-parser/src/render.ts:879
-#buildCodeGraph,                             #cgJoin,                           call, geml-parser/src/render.ts:921
-#buildCodeGraph,                             #cgJoin,                           call, geml-parser/src/render.ts:928
-#buildCodeGraph,                             #cgJoin,                           call, geml-parser/src/render.ts:989
+#buildCodeGraph,                             #cgJoin,                           call, geml-parser/src/render.ts:890
+#buildCodeGraph,                             #cgJoin,                           call, geml-parser/src/render.ts:933
+#buildCodeGraph,                             #cgJoin,                           call, geml-parser/src/render.ts:940
+#buildCodeGraph,                             #cgJoin,                           call, geml-parser/src/render.ts:1001
 #RenderCtx-codeGraphFigure,                  #buildCodeGraph,                   call, geml-parser/src/render.ts:732
-#codeGraphWaves,                             #buildCodeGraph,                   call, geml-parser/src/render.ts:2767
+#codeGraphWaves,                             #buildCodeGraph,                   call, geml-parser/src/render.ts:2779
 #RenderCtx-diagram,                          #chartSvg,                         call, geml-parser/src/render.ts:700
-#cartesianSvg,                               #svgFrame,                         call, geml-parser/src/render.ts:1299
-#pieSvg,                                     #svgFrame,                         call, geml-parser/src/render.ts:1319
-#scatterSvg,                                 #svgFrame,                         call, geml-parser/src/render.ts:1350
-#cartesianSvg,                               #legend,                           call, geml-parser/src/render.ts:1298
-#pieSvg,                                     #legend,                           call, geml-parser/src/render.ts:1318
-#chartSvg,                                   #cartesianSvg,                     call, geml-parser/src/render.ts:1219
-#chartSvg,                                   #pieSvg,                           call, geml-parser/src/render.ts:1217
-#chartSvg,                                   #scatterSvg,                       call, geml-parser/src/render.ts:1218
-#cartesianSvg,                               #fmtNum,                           call, geml-parser/src/render.ts:1260
-#cartesianSvg,                               #fmtNum,                           call, geml-parser/src/render.ts:1277
-#cartesianSvg,                               #fmtNum,                           call, geml-parser/src/render.ts:1292
-#pieSvg,                                     #fmtNum,                           call, geml-parser/src/render.ts:1315
-#scatterSvg,                                 #fmtNum,                           call, geml-parser/src/render.ts:1343
-#scatterSvg,                                 #fmtNum,                           call, geml-parser/src/render.ts:1347
-#scatterSvg,                                 #fmtNum,                           call, geml-parser/src/render.ts:1347
-#cartesianSvg,                               #trunc,                            call, geml-parser/src/render.ts:1265
-#codeGraphRuntime,                           #root-typeLiteral1343-querySelect, call, geml-parser/src/render.ts:2719
+#cartesianSvg,                               #svgFrame,                         call, geml-parser/src/render.ts:1311
+#pieSvg,                                     #svgFrame,                         call, geml-parser/src/render.ts:1331
+#scatterSvg,                                 #svgFrame,                         call, geml-parser/src/render.ts:1362
+#cartesianSvg,                               #legend,                           call, geml-parser/src/render.ts:1310
+#pieSvg,                                     #legend,                           call, geml-parser/src/render.ts:1330
+#chartSvg,                                   #cartesianSvg,                     call, geml-parser/src/render.ts:1231
+#chartSvg,                                   #pieSvg,                           call, geml-parser/src/render.ts:1229
+#chartSvg,                                   #scatterSvg,                       call, geml-parser/src/render.ts:1230
+#cartesianSvg,                               #fmtNum,                           call, geml-parser/src/render.ts:1272
+#cartesianSvg,                               #fmtNum,                           call, geml-parser/src/render.ts:1289
+#cartesianSvg,                               #fmtNum,                           call, geml-parser/src/render.ts:1304
+#pieSvg,                                     #fmtNum,                           call, geml-parser/src/render.ts:1327
+#scatterSvg,                                 #fmtNum,                           call, geml-parser/src/render.ts:1355
+#scatterSvg,                                 #fmtNum,                           call, geml-parser/src/render.ts:1359
+#scatterSvg,                                 #fmtNum,                           call, geml-parser/src/render.ts:1359
+#cartesianSvg,                               #trunc,                            call, geml-parser/src/render.ts:1277
+#codeGraphRuntime,                           #root-typeLiteral1348-querySelect, call, geml-parser/src/render.ts:2731
 ===
 
 === table {#unresolved format=csv hidden}

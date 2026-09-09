@@ -133,6 +133,14 @@ test("inline + lists: link, image, video, footnote, ordered + task lists", () =>
 
 // A two-document codemap fixture served from memory.
 const CODEMAP = {
+  // 一份真实的 map 有两份 `_index/` 文档：入口清单，和它 `default-style` 指的那份
+  // 样式表。渲染器只经入口找样式表，所以两跳都得在夹具里，缓存不变量才被真正测到。
+  // 旋钮写的就是默认值，于是这份夹具不改变任何 payload 断言。
+  "_index/index.geml":
+    '=== meta\nprofile = "geml-style/v1"\ndefault-style = "style.geml"\n===\n',
+  "_index/style.geml":
+    '=== meta\nprofile = "geml-style/v1"\n===\n\n'
+    + '=== style-rule {#graph match="diagram[format=geml-code-graph]" fold=1 depth=6}\n===\n',
   "auth.geml":
     "=== meta\nmodule = auth\nentry = #login\nresolution-default = cpg\n===\n\n" +
     '=== code {#login src=src/login.ts#L1-9 anchor="a1"}\n===\n' +
@@ -874,9 +882,13 @@ await atest("codeGraphWaves: fetches each missing document once; later builds re
   const r1 = await w.build("auth.geml");
   assert.equal(r1.error, undefined, "cross-document build succeeds");
   assert.ok(r1.data.nodes["db.geml#getUser"], "slice crossed into the fetched sibling");
-  // `_index/style.geml` is the display-style surface (plan D); it rides the same
-  // cache as every sibling, which is why the directed re-build below still fetches nothing.
-  assert.deepEqual(fetches.sort(), ["_index/style.geml", "auth.geml", "db.geml"], "each document fetched exactly once");
+  // The display-style surface (plan D) is TWO documents: `_index/index.geml`, the
+  // one fixed style entry, and whatever its `default-style` names. Both ride the
+  // same cache as every sibling — which is why the directed re-build below still
+  // fetches nothing.
+  assert.deepEqual(fetches.sort(),
+    ["_index/index.geml", "_index/style.geml", "auth.geml", "db.geml"],
+    "each document fetched exactly once");
   fetches = [];
   const r2 = await w.build("db.geml", { dir: "up", node: "db.geml#getUser" });
   assert.equal(fetches.length, 0, "a directed re-build is served entirely from the cache");

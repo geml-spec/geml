@@ -8,7 +8,7 @@ import { parse } from "../dist/geml.js";
 import { renderHtml, pageAssets } from "../dist/render-html.js";
 import { loadOrSeedGraphStyle } from "../dist/graph-style.js";
 import { strict as assert } from "node:assert";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -90,6 +90,39 @@ test("装载：播种出来的文件 geml check 干净（能被 geml style check
   assert.deepEqual(d.diagnostics.filter((x) => x.severity === "error"), []);
 });
 
+test("播种连带写出入口清单：只播样式表的话，那份样式表没有入口可达", () => {
+  // 一个根的样式入口只有 `_index/index.geml` 这一个固定路径 —— 宿主只探它。
+  // 所以「播种样式表」和「播种入口」是一件事的两半，缺一半等于没播。
+  const dir = mkdtempSync(join(tmpdir(), "geml-gs-"));
+  loadOrSeedGraphStyle(dir);
+  const mfPath = join(dir, "_index", "index.geml");
+  assert.equal(existsSync(mfPath), true, "入口清单和样式表一起落地");
+  const mf = parse(readFileSync(mfPath, "utf8"));
+  assert.deepEqual(mf.diagnostics.filter((x) => x.severity === "error"), [], "清单本身要 check 干净");
+  const meta = mf.children.find((b) => b.kind === "block" && b.type === "meta");
+  assert.equal(meta.data.profile, "geml-style/v1", "meta 自证 —— 宿主靠它认，不靠文件名");
+  assert.equal(meta.data["default-style"], "style.geml", "default-style 指向刚播下的那份");
+});
+
+test("播种：两个文件各自独立 —— 删掉一个，下次只补那一个", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-gs-"));
+  loadOrSeedGraphStyle(dir);
+  const mfPath = join(dir, "_index", "index.geml");
+  const stylePath = join(dir, "_index", "style.geml");
+  // 手工改过入口清单（比如加了 #sitemap 表），样式表存在时不能被重写回默认。
+  const mine = '=== meta\nprofile = "geml-style/v1"\ndefault-style = "style.geml"\n===\n\n我改过。\n';
+  writeFileSync(mfPath, mine);
+  const again = loadOrSeedGraphStyle(dir);
+  assert.equal(again.seeded, false, "样式表已在，不算新播");
+  assert.equal(readFileSync(mfPath, "utf8"), mine, "入口清单不得重写 —— 和 style.geml 一样 edit freely");
+  // 反过来：只删入口，样式表留着 —— 下一次 build 把入口补回来，样式表不动。
+  const styleBytes = readFileSync(stylePath, "utf8");
+  rmSync(mfPath);
+  loadOrSeedGraphStyle(dir);
+  assert.equal(existsSync(mfPath), true, "缺的那一半补回来了");
+  assert.equal(readFileSync(stylePath, "utf8"), styleBytes, "在的那一半没被碰");
+});
+
 // ---- 配置随 payload 送进页面
 function codemapDir(style) {
   const dir = mkdtempSync(join(tmpdir(), "geml-gs-"));
@@ -101,7 +134,13 @@ function codemapDir(style) {
   writeFileSync(join(dir, "a.geml"),
     '=== meta\nprofile = "codemap/v1"\nmodule = a\nresolution-default = cpg\n===\n\n# a\n\n' +
     '=== code {#f anchor="x:a#f()"}\n===\n');
-  if (style !== null) writeFileSync(join(dir, "_index", "style.geml"), style);
+  // 真实的 map 是 build 产出的，所以夹具也要带上**入口清单** —— 渲染器只经
+  // `_index/index.geml` 找样式表，一份只有 style.geml 的目录按定义就是「没指派」。
+  if (style !== null) {
+    writeFileSync(join(dir, "_index", "style.geml"), style);
+    writeFileSync(join(dir, "_index", "index.geml"),
+      '=== meta\nprofile = "geml-style/v1"\ndefault-style = "style.geml"\n===\n');
+  }
   return dir;
 }
 
@@ -142,6 +181,67 @@ test("渲染：data-graph 里带上 style 配置", () => {
 test("渲染：没有 style.geml 时是默认值 —— 旧 codemap 行为不变", () => {
   const data = graphData(codemapDir(null));
   assert.deepEqual(data.style, defaultGraphStyle());
+});
+
+test("渲染：有 style.geml 但没有入口清单 → 默认旋钮，不偷偷直读那份样式表", () => {
+  // 发现路径只有一条：`_index/index.geml`。一份从旧版本升上来的 map 只有 style.geml，
+  // 于是它的旋钮**暂时失效**，直到重新 build 把入口播回来。这是明写的取舍 ——
+  // 保留「找不到入口就直读 style.geml」的回落，等于永久留着第二套语义。
+  const dir = codemapDir(null);
+  writeFileSync(join(dir, "_index", "style.geml"),
+    '=== meta\nprofile = "geml-style/v1"\n===\n\n'
+    + '=== style-rule {#graph match="diagram[format=geml-code-graph]" fold=3 depth=2}\n===\n');
+  assert.deepEqual(graphData(dir).style, defaultGraphStyle(), "没有入口就没有指派");
+  // 重新 build（这里就是播种那一步）把入口补回来，同一份 style.geml 立刻生效。
+  loadOrSeedGraphStyle(dir);
+  const after = graphData(dir).style;
+  assert.equal(after.fold, 3, "补上入口后，原来那份 style.geml 的旋钮生效");
+  assert.equal(after.depth, 2);
+});
+
+test("渲染：default-style 命中与否都加载，#sitemap 那份叠在上面并优先", () => {
+  // 和 CSS 同一个模型。默认层写了 fold 和 hide-accessors，指派的那份只写 depth 和
+  // fold —— 于是结果里 depth/fold 来自指派那份（它优先），hide-accessors 落回默认层。
+  // 「替换」式实现在这一条上会露馅：hideAccessors 会变回 true。
+  const dir = codemapDir('=== meta\nprofile = "geml-style/v1"\n===\n\n'
+    + '=== style-rule {#graph match="diagram[format=geml-code-graph]" \\\n'
+    + '                fold=3 hide-accessors=false}\n===\n');
+  writeFileSync(join(dir, "_index", "special.geml"),
+    '=== meta\nprofile = "geml-style/v1"\n===\n\n'
+    + '=== style-rule {#graph match="diagram[format=geml-code-graph]" fold=5 depth=4}\n===\n');
+  writeFileSync(join(dir, "_index", "index.geml"),
+    '=== meta\nprofile = "geml-style/v1"\ndefault-style = "style.geml"\n===\n\n'
+    + "=== table {#sitemap}\n| document | template |\n|---|---|\n| index.geml | special.geml |\n===\n");
+  const s = graphData(dir).style;
+  assert.equal(s.fold, 5, "两层都写了 fold —— 指派的那份优先");
+  assert.equal(s.depth, 4, "只有指派那份写了 depth");
+  assert.equal(s.hideAccessors, false, "只有默认层写了 hide-accessors —— 它必须活下来");
+});
+
+test("叠加：一层写了默认值，也不能被上层的『没写』盖掉", () => {
+  // 要点：读出来的只有「这份文档真的写了」的键。若某层把 fold 写成 1
+  // （恰好等于默认值），它仍然是一次**显式**赋值；反过来，上层没提 fold 就不该
+  // 把 fold 重置回 1。这两个方向都在这里钉住。
+  const dir = codemapDir('=== meta\nprofile = "geml-style/v1"\n===\n\n'
+    + '=== style-rule {#graph match="diagram[format=geml-code-graph]" fold=4 depth=9}\n===\n');
+  writeFileSync(join(dir, "_index", "special.geml"),
+    '=== meta\nprofile = "geml-style/v1"\n===\n\n'
+    + '=== style-rule {#graph match="diagram[format=geml-code-graph]" fold=1}\n===\n');
+  writeFileSync(join(dir, "_index", "index.geml"),
+    '=== meta\nprofile = "geml-style/v1"\ndefault-style = "style.geml"\n===\n\n'
+    + "=== table {#sitemap}\n| document | template |\n|---|---|\n| index.geml | special.geml |\n===\n");
+  const s = graphData(dir).style;
+  assert.equal(s.fold, 1, "上层显式写的 1 生效 —— 它不是『没写』");
+  assert.equal(s.depth, 9, "上层没提 depth，默认层的 9 活下来（没被重置成 6）");
+});
+
+test("渲染：入口清单 meta 不自证 → 当作没有入口，不硬当清单读", () => {
+  // 名字用来找，meta 用来认。这个路径上放了别的东西时降级到默认旋钮。
+  const dir = codemapDir('=== meta\nprofile = "geml-style/v1"\n===\n\n'
+    + '=== style-rule {#graph match="diagram[format=geml-code-graph]" fold=3}\n===\n');
+  writeFileSync(join(dir, "_index", "index.geml"),
+    '=== meta\ntitle = "我不是样式清单"\ndefault-style = "style.geml"\n===\n');
+  assert.deepEqual(graphData(dir).style, defaultGraphStyle());
 });
 
 test("运行时读配置而不是字面量：三个旋钮都走 cgStyle/cgFold/cgPalette", () => {

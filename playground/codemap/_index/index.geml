@@ -1,0 +1,22 @@
+=== meta
+profile = "geml-style/v1"
+title = "codemap style entry"
+default-style = "style.geml"
+===
+
+This map's **style entry point** — one fixed path, `_index/index.geml`, for any
+GEML root. `default-style` names the stylesheet every document in this root uses.
+
+There is no `#sitemap` table here, and that is the point: every document gets the
+same stylesheet, so listing them one by one would be 37 rows saying the same
+thing. Add the table only when some document needs a DIFFERENT stylesheet:
+
+  === table {#sitemap}
+  | document | template |
+  |---|---|
+  | index.geml | overview.geml |
+  ===
+
+Resolution is two steps and no more: an exact `#sitemap` row wins, otherwise
+`default-style`. No glob, no cascade, no source order — the same arbitration
+rule the `geml-style/v1` profile applies to selectors, applied to documents.

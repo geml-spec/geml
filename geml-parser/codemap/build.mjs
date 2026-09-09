@@ -55,9 +55,40 @@ const flag = (name, dflt) => {
   return i >= 0 ? args[i + 1] : dflt;
 };
 
+/**
+ * 这个 map 描述的项目叫什么。三级，显式在前：
+ *
+ *   --repo-name <名字>        配方里写死（refresh.json 的步骤就是 argv，不必加新键）
+ *   origin 的 URL basename    跨克隆确定 —— 同一个 remote 出同一个名字
+ *   根目录的 basename         今天的行为，兜底
+ *
+ * 为什么不能只用最后一级：那是**克隆时取的目录名**。`git clone <url>` 默认拿仓库名
+ * 建目录，所以它大多数时候恰好正确，也因此一直没暴露；但一个叫 geml-spec 的克隆会把
+ * `repo = geml` 翻成 `repo = geml-spec`，每次 refresh 来回一次伪 diff。而且这个值不
+ * 只是显示用：单模块仓库里它是**隐式根模块的显示名**（normalize.mjs），会进每一条
+ * 根级容器的显示路径 —— 那时候换个目录名重建，整张图的路径都变。
+ *
+ * remote 有失败面（刚 git init 没有 remote、fork 后名字和项目不一致），所以它不是
+ * 唯一来源而是中间一级：答不上来就回落，答错了就用 --repo-name 盖掉。
+ */
+function deriveRepoName(rootAbs, explicit) {
+  if (explicit !== null && String(explicit).trim() !== "") return String(explicit).trim();
+  // `git config --get` 而不是 `remote get-url`：老 git 没有后者，而这里读不到就回落，
+  // 所以宁可用最古老的那个拼写。argv 形式、shell:false —— 路径不进命令行。
+  const r = spawnSync("git", ["-C", rootAbs, "config", "--get", "remote.origin.url"], { encoding: "utf8" });
+  if (r.status === 0) {
+    // https://host/org/repo.git · git@host:org/repo.git · /local/path/repo — 都取最后一段。
+    const url = String(r.stdout ?? "").trim().replace(/\/+$/, "");
+    const tail = url.split(/[/:]/).pop() ?? "";
+    const name = tail.replace(/\.git$/, "").trim();
+    if (name !== "") return name;
+  }
+  return basename(rootAbs);
+}
+
 const USAGE = [
   "usage: geml codemap build [--root <repo-root>]   # auto-detect languages, index, and merge (--root defaults to the current directory)",
-  "   or: geml codemap build (--db <graph.db> | --adapter joern|scip --raw <dir|index.scip> [--remap <virtual-dir>])+  [--root <repo-root>] [--out .geml-code-graph] [--build .geml-code-graph/_build] [--container module|dir|file] [--lang <LANG>] [--joern <path>] [--exclude <glob>]... [--no-gitignore] [--history [-m msg]]",
+  "   or: geml codemap build (--db <graph.db> | --adapter joern|scip --raw <dir|index.scip> [--remap <virtual-dir>])+  [--root <repo-root>] [--repo-name <name>] [--out .geml-code-graph] [--build .geml-code-graph/_build] [--container module|dir|file] [--lang <LANG>] [--joern <path>] [--exclude <glob>]... [--no-gitignore] [--history [-m msg]]",
 ].join("\n");
 if (args.includes("--help") || args.includes("-h")) { console.log(USAGE); process.exit(0); }
 
@@ -491,12 +522,15 @@ const { config: foldings, seeded: foldingsSeeded } = loadOrSeedFoldings({
 if (foldingsSeeded) console.error("seeded _index/foldings.geml — edit to tune module folding");
 
 // 显示期的调节面（计划 D），与 foldings 并列：那份管构建期折叠，这份管你看到什么。
-const { seeded: graphStyleSeeded } = loadOrSeedGraphStyle(outDir);
+// 样式表和它的入口清单各自独立播种，所以各自独立报告 —— 一份从旧版本升上来的 map
+// 只缺入口，那次 build 只补入口，说"seeded style.geml"就是假话。
+const { seeded: graphStyleSeeded, seededEntry } = loadOrSeedGraphStyle(outDir);
 if (graphStyleSeeded) console.error("seeded _index/style.geml — edit to tune the graph's display");
+if (seededEntry) console.error("seeded _index/index.geml — the style entry (default-style + optional #sitemap)");
 
 const stats = emit({
   symbols, edges, outDir, buildDir,
-  repoName: basename(resolve(root)),
+  repoName: deriveRepoName(resolve(root), flag("--repo-name", null)),
   container: containerGranularity,
   commit,
   root: resolve(root),
