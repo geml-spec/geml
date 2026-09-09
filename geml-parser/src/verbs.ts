@@ -37,7 +37,7 @@ import { addressUnits, discoveryHint, matchContent, matchLine, matchType, parseS
 import { type MetaView, metaText, metaView, planCoordWrite, planMetaWrite, projectCoord } from "./coord.js";
 import { mdToGeml } from "./from-md.js";
 import { serialize } from "./serialize.js";
-import { gemlToMd } from "./to-md.js";
+import { gemlToMd, type EmbedHost } from "./to-md.js";
 import { renderHtml } from "./render-html.js";
 import { codeGraphDiagram } from "./codemap-render.js";
 import { normalizeBlockId } from "./block-edit.js";
@@ -853,7 +853,7 @@ export function transform(src: string, file: string, o: TransformOptions, ctx: V
       // source and says so rather than shipping a stand-in that would make an
       // export look translated when nothing translated it.
       const expand = (at: string, atText: string, depth: number) =>
-        (target: string, embedAttrs?: Record<string, Value>): string | undefined => {
+        (target: string, embedAttrs?: Record<string, Value>, host?: EmbedHost): string | undefined => {
         if (depth >= EMBED_DEPTH_LIMIT) return undefined;
         // GEP 0010 — `part=` narrows a heading's section, and the span layer has
         // drawn exactly these three lines since `geml get --head` existed. So the
@@ -870,7 +870,9 @@ export function transform(src: string, file: string, o: TransformOptions, ctx: V
             // 切片带不走文档的 `=== meta`，所以把宿主已经算好的词汇表交给子解析 ——
             // 否则 profile 的类型在这里全都变回未知类型，散文块会渲染成一个空围栏。
             const sub = parse(sliceUnit(text, u.span, part, walkOf(docPath)), { ...ctx.docOpts(docPath, mdRoot), vocab: vocabularyOf(text) });
-            const r = gemlToMd(sub, { resolveEmbed: expand(docPath, text, depth + 1) });
+            // Borrowed content: no frontmatter or title of its own, headings one
+            // level under the host's (MdOptions.embedded in to-md.ts).
+            const r = gemlToMd(sub, { resolveEmbed: expand(docPath, text, depth + 1), embedded: true, headingShift: host?.headingShift ?? 0 });
             inner.push(...r.notes);
             if (r.md.trim() !== "") out.push(r.md.trim());
           }

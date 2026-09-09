@@ -139,10 +139,12 @@ Usage:
                                               set/add/delete/rename/revert; every write is validated before it
                                               reaches disk. A code graph under --root adds four read-only
                                               geml_codemap_* tools to the same server)
-  geml skill  install [--dest <dir>] [--no-global] [--no-mcp]   set up GEML for Claude Code, user-global
+  geml skill  install [--dest <dir>] [--no-global] [--no-mcp]   set up GEML for your agent tools, user-global
                                              (authoring skill -> ~/.claude/skills/geml, CLI -> npm i -g,
                                               MCP server registered at user scope; touches no settings.json,
-                                              installs no hooks; idempotent — re-run to update)
+                                              installs no hooks; idempotent — re-run to update.
+                                              Gemini, Qwen and AGENTS.md are picked up BY DETECTION —
+                                              see 'geml skill --help')
   geml --help | --version [--json]
 
 Use '-' as the file to read from stdin.
