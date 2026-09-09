@@ -190,7 +190,7 @@ flowchart TD
 ## `@geml/logseq-sync` —— watcher
 
 - **落到** npmjs.com/package/@geml/logseq-sync。这是真正干活的那一半：它监视 vault
-  并执行同步。当前 2.0.9。
+  并执行同步。当前 2.3.0。
 - **版本**在 `integrations/logseq/package.json` 与 `package-lock.json`。
 - **怎么发。** 在 `integrations/logseq` 跑 `npm publish`。
 - **注意。** 它按**范围**依赖解析器（`^1.x`），所以解析器发版不用它自己发版就能到达
@@ -207,7 +207,7 @@ flowchart TD
   `Sync Vault with GEML — mirror of geml-spec/geml integrations/logseq @ <sha>`，
   推送，**然后**才在那边打 `v<x.y.z>`。镜像仓库自己的 `publish.yml` 会构建插件并挂上
   marketplace zip。版本住在 `plugin/package.json`，其 `logseq.id` 为
-  `logseq-plugin-sync-vault-with-geml`。最新 release：v2.0.9。
+  `logseq-plugin-sync-vault-with-geml`。最新 release：v2.3.0。
 - **第二道：上架。** 要进 Logseq marketplace，必须向 `logseq/marketplace` 提一个把
   插件清单加进去的 PR。**我们的是 PR #893「Add plugin: Sync Vault with GEML」，
   自 2026-08-26 起仍处于 OPEN。** 在它合并之前，插件在 Logseq 里**根本搜不到**，
@@ -309,5 +309,5 @@ flowchart TD
 | "\_index/refresh.json 可能不再符合当前格式" | "`geml codemap refresh` 拒绝一个不受信任或过期的配方 —— 版本闸是安全修复：v1 的步骤是结构化 argv，不经过 shell 直接 spawn" | "手写它；refresh.mjs 称它为没有工具会重写的配方。自动模式的 build 确实会重录一份，但它会索引测试夹具，并把运行它那台机器的绝对路径写进去" |
 | "`codemap refresh` 按 commit 判断新旧" | "源码已改但未提交时它会以 *no source files changed since <sha>* 直接跳过 —— 而那正是开发者最需要它的时刻" | "没有 —— 改动尚未提交时一律加 `--force`" |
 | "Open VSX 是唯一的列表页，而它装着解析器" | "Cursor 与 Antigravity 用户拿到的包里，解析器已落后好几个版本 —— 只因为扩展的版本号没动" | "没有 —— 只要他们该拿到的解析器变了就重新打包发布，不要只在扩展自己改动时才发" |
-| "镜像 release 不等于上架" | "插件的 release 已经到 v2.0.9，在 Logseq 里却依然搜不到" | "没有 —— `logseq/marketplace` 的 PR #893 必须合并一次" |
+| "镜像 release 不等于上架" | "插件的 release 已经到 v2.3.0，在 Logseq 里却依然搜不到" | "没有 —— `logseq/marketplace` 的 PR #893 必须合并一次" |
 | "两个插件没有发布门" | "一个坏掉的 skill 在合并的那一刻就上线了" | "没有 —— 对那两个来说 main 就是 release" |

@@ -226,7 +226,7 @@ the listings do not.
 ## `@geml/logseq-sync` — the watcher {#a-logseq-sync}
 
 - **Lands at** npmjs.com/package/@geml/logseq-sync. This is the half that does the
-  work: it watches the vault and runs the sync. Currently 2.2.0.
+  work: it watches the vault and runs the sync. Currently 2.3.0.
 - **Version** in `integrations/logseq/package.json` and `package-lock.json`
   (three fields there: the root, `packages[""]`, and the `plugin` workspace —
   the watcher and the plugin move together).
@@ -258,7 +258,7 @@ Two separate gates, and the second one is **not passed yet**.
   push, and only THEN tag `v<x.y.z>` there. The mirror's own `publish.yml` builds
   the plugin and attaches the marketplace zip. Version lives in
   `plugin/package.json`, whose `logseq.id` is
-  `logseq-plugin-sync-vault-with-geml`. Latest release: v2.0.9.
+  `logseq-plugin-sync-vault-with-geml`. Latest release: v2.3.0.
 - **Gate 2 — the listing.** Being in the Logseq marketplace requires a PR against
   `logseq/marketplace` adding the plugin's manifest. **Ours is PR #893, "Add
   plugin: Sync Vault with GEML", OPEN since 2026-08-26.** Until it merges the
@@ -379,6 +379,6 @@ deleting permanently burns its tag. Cut a NEW tag and
 | _index/refresh.json can fall out of format | `geml codemap refresh` refuses an untrusted or out-of-date recipe — the version gate is a security fix: v1 steps are structured argv spawned without a shell | hand-write it; refresh.mjs calls it a recipe no tool rewrites. An AUTO-mode build re-records one but indexes a test fixture and bakes in an absolute path to the machine that ran it |
 | `codemap refresh` judges staleness by commit | it skips with *no source files changed since <sha>* while the source sits modified in the working tree — exactly when a developer needs it | nothing — pass `--force` whenever the change is not yet committed |
 | Open VSX is the only listing, and it carries the parser | Cursor and Antigravity users sit on a package whose bundled parser is several releases old, because the extension version did not move | nothing — re-package and publish whenever the parser they should have changes, not only when the extension does |
-| A mirror release is not a marketplace listing | the plugin has releases up to v2.0.9 and is still undiscoverable in Logseq | nothing — `logseq/marketplace` PR #893 has to merge once |
+| A mirror release is not a marketplace listing | the plugin has releases up to v2.3.0 and is still undiscoverable in Logseq | nothing — `logseq/marketplace` PR #893 has to merge once |
 | The plugins have no publish gate | a broken skill is live the moment it merges | nothing — main IS the release for those two |
 ===
