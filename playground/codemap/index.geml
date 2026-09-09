@@ -1,7 +1,7 @@
 === meta
 profile = "geml-codemap/v1"
 repo = geml
-commit = 1d5ad22
+commit = 50e0e4f
 container = file
 entry = geml-viewer--content.js.geml#main
 resolution-default = cpg
@@ -20,6 +20,7 @@ geml-viewer/render.js,            geml-viewer--render.js.geml,            25,   
 geml-parser/coord.ts,             geml-parser--coord.ts.geml,             22,      5,       0
 geml-parser/inline.ts,            geml-parser--inline.ts.geml,            21,      3,       0
 geml-parser/mcp.ts,               geml-parser--mcp.ts.geml,               21,      0,       0
+geml-parser/edn.ts,               geml-parser--edn.ts.geml,               20,      2,       0
 geml-viewer/transclude.js,        geml-viewer--transclude.js.geml,        19,      1,       0
 geml-parser/style-selector.ts,    geml-parser--style-selector.ts.geml,    17,      7,       0
 geml-parser/serialize.ts,         geml-parser--serialize.ts.geml,         16,      1,       0
@@ -90,7 +91,9 @@ geml-parser/cli.ts,            geml-parser/inline.ts,            1
 geml-parser/cli.ts,            geml-parser/render-html.ts,       1
 geml-parser/cli.ts,            geml-parser/serialize.ts,         1
 geml-parser/cli.ts,            geml-parser/translate.ts,         1
+geml-parser/coord.ts,          geml-parser/edn.ts,               1
 geml-parser/geml.ts,           geml-parser/chart.ts,             1
+geml-parser/geml.ts,           geml-parser/edn.ts,               1
 geml-parser/geml.ts,           geml-parser/yaml.ts,              1
 geml-parser/graph-style.ts,    geml-parser/geml.ts,              1
 geml-parser/style-resolve.ts,  geml-parser/geml.ts,              1

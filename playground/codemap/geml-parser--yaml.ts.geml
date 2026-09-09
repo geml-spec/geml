@@ -8,22 +8,22 @@ resolution-default = cpg
 
 # geml-parser/yaml.ts
 
-=== code {#stripComment src=geml-parser/src/yaml.ts#L51-64 anchor="scip-typescript npm @geml/geml 1.10.1 src/`yaml.ts`/stripComment()."}
+=== code {#stripComment src=geml-parser/src/yaml.ts#L51-64 anchor="scip-typescript npm @geml/geml 1.10.2 src/`yaml.ts`/stripComment()."}
 ===
 
-=== code {#plainScalar src=geml-parser/src/yaml.ts#L67-74 anchor="scip-typescript npm @geml/geml 1.10.1 src/`yaml.ts`/plainScalar()."}
+=== code {#plainScalar src=geml-parser/src/yaml.ts#L67-74 anchor="scip-typescript npm @geml/geml 1.10.2 src/`yaml.ts`/plainScalar()."}
 ===
 
-=== code {#quotedScalar src=geml-parser/src/yaml.ts#L77-87 anchor="scip-typescript npm @geml/geml 1.10.1 src/`yaml.ts`/quotedScalar()."}
+=== code {#quotedScalar src=geml-parser/src/yaml.ts#L77-87 anchor="scip-typescript npm @geml/geml 1.10.2 src/`yaml.ts`/quotedScalar()."}
 ===
 
-=== code {#keyEnd src=geml-parser/src/yaml.ts#L90-103 anchor="scip-typescript npm @geml/geml 1.10.1 src/`yaml.ts`/keyEnd()."}
+=== code {#keyEnd src=geml-parser/src/yaml.ts#L90-103 anchor="scip-typescript npm @geml/geml 1.10.2 src/`yaml.ts`/keyEnd()."}
 ===
 
-=== code {#Refusal-new .leaf name="Refusal.new" src=geml-parser/src/yaml.ts#L115-115 anchor="scip-typescript npm @geml/geml 1.10.1 src/`yaml.ts`/Refusal#`<constructor>`()."}
+=== code {#Refusal-new .leaf name="Refusal.new" src=geml-parser/src/yaml.ts#L115-115 anchor="scip-typescript npm @geml/geml 1.10.2 src/`yaml.ts`/Refusal#`<constructor>`()."}
 ===
 
-=== code {#parseYaml src=geml-parser/src/yaml.ts#L118-293 anchor="scip-typescript npm @geml/geml 1.10.1 src/`yaml.ts`/parseYaml()."}
+=== code {#parseYaml src=geml-parser/src/yaml.ts#L118-293 anchor="scip-typescript npm @geml/geml 1.10.2 src/`yaml.ts`/parseYaml()."}
 ===
 
 === table {#calls format=csv}
@@ -66,7 +66,7 @@ from,                                    to,            kind, site
 #parseYaml,                              #Refusal-new,  call, geml-parser/src/yaml.ts:254
 #parseYaml,                              #Refusal-new,  call, geml-parser/src/yaml.ts:257
 #parseYaml,                              #Refusal-new,  call, geml-parser/src/yaml.ts:259
-geml-parser--geml.ts.geml#parseDataBody, #parseYaml,    call, geml-parser/src/geml.ts:99
+geml-parser--geml.ts.geml#parseDataBody, #parseYaml,    call, geml-parser/src/geml.ts:100
 ===
 
 === table {#unresolved format=csv hidden}

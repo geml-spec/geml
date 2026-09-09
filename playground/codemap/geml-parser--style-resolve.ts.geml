@@ -8,37 +8,37 @@ resolution-default = cpg
 
 # geml-parser/style-resolve.ts
 
-=== code {#typedBlocks src=geml-parser/src/style-resolve.ts#L83-89 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-resolve.ts`/typedBlocks()."}
+=== code {#typedBlocks src=geml-parser/src/style-resolve.ts#L83-89 anchor="scip-typescript npm @geml/geml 1.10.2 src/`style-resolve.ts`/typedBlocks()."}
 ===
 
-=== code {#str .leaf src=geml-parser/src/style-resolve.ts#L91-93 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-resolve.ts`/str()."}
+=== code {#str .leaf src=geml-parser/src/style-resolve.ts#L91-93 anchor="scip-typescript npm @geml/geml 1.10.2 src/`style-resolve.ts`/str()."}
 ===
 
-=== code {#entryLayers src=geml-parser/src/style-resolve.ts#L148-166 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-resolve.ts`/entryLayers()."}
+=== code {#entryLayers src=geml-parser/src/style-resolve.ts#L148-166 anchor="scip-typescript npm @geml/geml 1.10.2 src/`style-resolve.ts`/entryLayers()."}
 ===
 
-=== code {#implicitEmbed .leaf src=geml-parser/src/style-resolve.ts#L170-172 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-resolve.ts`/implicitEmbed()."}
+=== code {#implicitEmbed .leaf src=geml-parser/src/style-resolve.ts#L170-172 anchor="scip-typescript npm @geml/geml 1.10.2 src/`style-resolve.ts`/implicitEmbed()."}
 ===
 
-=== code {#withDefaultStyle src=geml-parser/src/style-resolve.ts#L175-179 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-resolve.ts`/withDefaultStyle()."}
+=== code {#withDefaultStyle src=geml-parser/src/style-resolve.ts#L175-179 anchor="scip-typescript npm @geml/geml 1.10.2 src/`style-resolve.ts`/withDefaultStyle()."}
 ===
 
-=== code {#expandEmbeds src=geml-parser/src/style-resolve.ts#L182-219 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-resolve.ts`/expandEmbeds()."}
+=== code {#expandEmbeds src=geml-parser/src/style-resolve.ts#L182-219 anchor="scip-typescript npm @geml/geml 1.10.2 src/`style-resolve.ts`/expandEmbeds()."}
 ===
 
-=== code {#loadStylesheet src=geml-parser/src/style-resolve.ts#L222-235 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-resolve.ts`/loadStylesheet()."}
+=== code {#loadStylesheet src=geml-parser/src/style-resolve.ts#L222-235 anchor="scip-typescript npm @geml/geml 1.10.2 src/`style-resolve.ts`/loadStylesheet()."}
 ===
 
-=== code {#collect src=geml-parser/src/style-resolve.ts#L238-300 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-resolve.ts`/collect()."}
+=== code {#collect src=geml-parser/src/style-resolve.ts#L238-300 anchor="scip-typescript npm @geml/geml 1.10.2 src/`style-resolve.ts`/collect()."}
 ===
 
-=== code {#ruleProps .leaf src=geml-parser/src/style-resolve.ts#L360-367 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-resolve.ts`/ruleProps()."}
+=== code {#ruleProps .leaf src=geml-parser/src/style-resolve.ts#L360-367 anchor="scip-typescript npm @geml/geml 1.10.2 src/`style-resolve.ts`/ruleProps()."}
 ===
 
-=== code {#resolveBindings src=geml-parser/src/style-resolve.ts#L376-436 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-resolve.ts`/resolveBindings()."}
+=== code {#resolveBindings src=geml-parser/src/style-resolve.ts#L376-436 anchor="scip-typescript npm @geml/geml 1.10.2 src/`style-resolve.ts`/resolveBindings()."}
 ===
 
-=== code {#resolveStyle src=geml-parser/src/style-resolve.ts#L447-575 anchor="scip-typescript npm @geml/geml 1.10.1 src/`style-resolve.ts`/resolveStyle()."}
+=== code {#resolveStyle src=geml-parser/src/style-resolve.ts#L447-575 anchor="scip-typescript npm @geml/geml 1.10.2 src/`style-resolve.ts`/resolveStyle()."}
 ===
 
 === table {#calls format=csv}

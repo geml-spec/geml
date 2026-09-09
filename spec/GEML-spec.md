@@ -453,15 +453,6 @@ offending line.
   raw and emit a **warning**, and MUST NOT guess — the same degradation as an
   unknown `diagram` format (§7). An unknown `format=` value degrades
   identically.
-- Reserving a name is not the same as pinning its reading. `yaml` gets a
-  mandated subset below because YAML is implemented everywhere and the ways it
-  is large are the ways implementations disagree. `edn` gets no reading here on
-  purpose: its value domain is larger than this one, so a reading has to decide
-  how each extra kind lands — and there is one consumer to calibrate that
-  against today. A reading pinned by a single use case is one the second use
-  case has to live with, so this leaves it open. The cost is stated rather than
-  hidden: until it is specified, two processors with an `edn` engine may read
-  the same body differently.
 - A processor MAY ship an engine for a reserved name. Because full YAML is a
   far larger language than this value domain, a `yaml` engine MUST read at
   least the following subset, and MUST read it this way — so that a body
