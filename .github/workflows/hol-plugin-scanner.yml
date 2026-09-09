@@ -14,12 +14,20 @@ name: AI plugin scan
 # rephrase rather than a fix (f5ed923 was fourteen of those). The full report
 # lands in the job summary; no PR comment, so the job needs nothing but read.
 #
-# `mode: verify` rather than the default `scan`, for the same reason the job
-# exists: scan and lint apply policy profiles, config files and baseline
-# suppressions, and verify does not. Nothing is suppressed here today, so the
-# two agree — but the catalog will not honour a baseline of ours, and the job's
-# whole purpose is to see what the catalog sees. Add a baseline later and
-# verify keeps reporting straight through it, which is the behaviour we want.
+# The inputs match what the catalog's SCANNER_GUIDE.md prescribes for CI —
+# `plugin_dir: "."`, `min_score: 80`, `fail_on_severity: high`, no `mode` — and
+# the action is pinned to the version that guide pins, so a finding here is the
+# finding the catalog would raise rather than an artefact of version drift.
+#
+# `mode: scan` is therefore the default, and NOT `verify`, even though the guide
+# names `plugin-scanner verify . --format text` — as its LOCAL check. Tried it:
+# verify is not "scan with suppressions off", it is a per-check pass/fail gate
+# where a single non-pass fails the run — `min_score` and `fail_on_severity`
+# stop participating entirely. What it failed on was one ⚠️, "@geml/dsh-plugin ·
+# Cordis apply(ctx) export - Runtime entry point is missing a detectable
+# apply(ctx) export", against a plugin that ships cordis.patch.yml and skills/
+# and has no JS entry at all by design. That is the regex-not-analysis class
+# above, so scan's thresholds are the honest gate here and verify is not.
 #
 # `online` stays at its default of false: a scan that reaches a network service
 # on every push trades a real dependency for findings we have not needed yet.
@@ -40,10 +48,10 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Scan the plugin surfaces
-        uses: hashgraph-online/ai-plugin-scanner-action@85767f79b397711216711c0253c6d63178246d17 # v1.2.628
+        uses: hashgraph-online/ai-plugin-scanner-action@caba2e96aa8ad2feb6cf6fca52442b52e22e779f # v1.2.635
         with:
           plugin_dir: .
-          mode: verify
+          mode: scan
           format: text
           min_score: 80
           fail_on_severity: high
