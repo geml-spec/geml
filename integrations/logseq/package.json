@@ -48,7 +48,7 @@
     "build:plugin": "node plugin/build.mjs"
   },
   "dependencies": {
-    "@geml/geml": "^1.10.0",
+    "@geml/geml": "^1.10.2",
     "edn-data": "^1.2.2"
   },
   "overrides": {

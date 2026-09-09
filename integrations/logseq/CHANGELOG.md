@@ -22,6 +22,14 @@ older.
   leaf still goes through the EDN serializer, so nothing can be mis-quoted and
   no tagged literal is lost.
 
+- **Reaching one property needs a newer parser underneath.** The floor is
+  `@geml/geml` ^1.10.2, and the lockfile pin with it. 1.10.0 reads a `data
+  {format=edn}` body as raw text — one `unknown data format` warning, no value
+  tree — so a coordinate like
+  `#meta-<uuid>[":build/properties"][":user.property/status"]` had nothing to
+  reach into. 1.10.2 parses those bodies, and writes them back as EDN rather
+  than flattening them to JSON.
+
 - `demo/geml/` regenerated. It had been stale since the `level=N` → `.level-N`
   migration, which never reached it.
 
