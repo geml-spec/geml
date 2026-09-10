@@ -1,0 +1,21 @@
+# Never ship local artifacts or secrets with the plugin.
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+
+# Local state and editor scratch
+.DS_Store
+*.log
+.cache/
+.tmp/
+tmp/
+
+# Secrets and environment
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.keystore
+secrets/

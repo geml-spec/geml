@@ -9,7 +9,8 @@
     {
       "name": "geml",
       "source": "./integrations/claude-plugin",
-      "description": "Author, validate, and blockwise-edit GEML documents, and navigate a project's call graph as GEML codemaps: two skills plus the geml MCP server (runs via npx @geml/geml, no separate install)."
+      "description": "Author, validate, and blockwise-edit GEML documents, and navigate a project's call graph as GEML codemaps: two skills plus the geml MCP server (runs via npx @geml/geml, no separate install).",
+      "strict": true
     }
   ]
 }

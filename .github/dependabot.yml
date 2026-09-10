@@ -1,0 +1,32 @@
+# Dependency updates. Monthly and grouped, so the automation surfaces stay
+# current without turning the PR list into noise. Test fixtures and built
+# `dist/` copies are deliberately absent: they pin versions on purpose.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directories:
+      - "/geml-parser"
+      - "/integrations/geml-viewer"
+      - "/integrations/vscode"
+      - "/integrations/obsidian"
+      - "/integrations/logseq"
+      - "/integrations/dsh-plugin"
+    schedule:
+      interval: monthly
+    groups:
+      dev-dependencies:
+        dependency-type: development
+        patterns: ["*"]
+
+  - package-ecosystem: pip
+    directory: "/integrations/langchain+llamaindex"
+    schedule:
+      interval: monthly
