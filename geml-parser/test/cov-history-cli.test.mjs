@@ -633,7 +633,7 @@ test("history get tier 2: the top-level failure and flag rules apply unchanged",
   const cases = [
     [[cliId1, "=== table"], 1, /no `table` block in revision/, "0 matches is a lookup failure"],
     [[cliId1, "#nope"], 1, /no block with id/, "an absent id, likewise"],
-    [[cliId1, "=== note {lang=py}"], 2, /only `#id` is supported as a filter key/, "attr key"],
+    [[cliId1, "=== note {lang=py}"], 2, /only `#id` and `@<hex>` are supported as filter keys/, "attr key"],
     [[cliId1, "#n", "--head", "--body"], 2, /mutually exclusive/, "both parts at once"],
     [[cliId1, "#n", "--json", "--head"], 2, /--json cannot be combined/, "json + part"],
     [[cliId1, "#n", "extra"], 2, /ONE revision selector and ONE block selector/, "a third positional"],

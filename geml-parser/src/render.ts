@@ -316,7 +316,7 @@ export class RenderCtx {
   // with the reason visible — never silently blank, never a broken image.
   private transclude(b: Extract<Block, { kind: "block" }>, idAttr: string): string {
     const written = typeof b.attrs["src"] === "string" ? (b.attrs["src"] as string).trim() : "";
-    if (written === "") return this.transclusionFallback("", idAttr, "invalid", "embed: missing `src=`");
+    if (written === "") return this.transclusionFallback("", idAttr, "invalid", "embed: missing `src=`", b.classes);
 
     const hash = written.indexOf("#");
     const docPath = hash < 0 ? written : written.slice(0, hash);
@@ -336,28 +336,28 @@ export class RenderCtx {
       return `<div class="transclusion transclusion-error"${idAttr} data-src="${escAttr(written)}">transclusion cycle: ${esc([...this.embedStack, key].join(" → "))}</div>`;
     }
     if (this.embedStack.length >= EMBED_DEPTH_CAP) {
-      return this.transclusionFallback(written, idAttr, "too-deep", `transclusion depth cap (${EMBED_DEPTH_CAP}) reached`);
+      return this.transclusionFallback(written, idAttr, "too-deep", `transclusion depth cap (${EMBED_DEPTH_CAP}) reached`, b.classes);
     }
     const spent = this.budgetExhausted();
-    if (spent !== null) return this.transclusionFallback(written, idAttr, "too-large", spent);
+    if (spent !== null) return this.transclusionFallback(written, idAttr, "too-large", spent, b.classes);
 
     let children: Block[];
     if (docPath !== "" && !/\.geml$/i.test(docPath)) {
       // Same constraint the parser reports: an embed stands for a GEML document.
       // Parsing whatever else the target happens to contain injected its bytes
       // into the page as prose.
-      return this.transclusionFallback(written, idAttr, "invalid", `\`${docPath}\` is not a GEML document`);
+      return this.transclusionFallback(written, idAttr, "invalid", `\`${docPath}\` is not a GEML document`, b.classes);
     }
     if (docPath === "") {
       children = this.currentDocChildren;
     } else {
-      if (!loadDoc || !parseDoc) return this.transclusionFallback(written, idAttr, "unexpanded", "no document resolver");
+      if (!loadDoc || !parseDoc) return this.transclusionFallback(written, idAttr, "unexpanded", "no document resolver", b.classes);
       // Parsed on its own, so S4 holds for free: `{{key}}` inside borrowed content
       // interpolates against the SOURCE document's meta, never the host's. Read
       // through the cache: the same target is otherwise re-read and re-parsed once
       // per expansion.
       const loaded = this.loadChildren(rel);
-      if (loaded === null) return this.transclusionFallback(written, idAttr, "unresolved", `cannot resolve document \`${docPath}\`, or it is too large`);
+      if (loaded === null) return this.transclusionFallback(written, idAttr, "unresolved", `cannot resolve document \`${docPath}\`, or it is too large`, b.classes);
       children = loaded;
     }
 
@@ -366,7 +366,7 @@ export class RenderCtx {
     const picked = selectEmbed(children, anchor, part);
     if (picked === null) {
       const what = docPath === "" ? `no \`${written}\` in this document` : `no \`#${anchor}\` in \`${docPath}\``;
-      return this.transclusionFallback(written, idAttr, "unresolved", what);
+      return this.transclusionFallback(written, idAttr, "unresolved", what, b.classes);
     }
 
     // GEP 0010: the language axis, applied to the blocks this embed borrowed.
@@ -389,7 +389,7 @@ export class RenderCtx {
     this.embedStack.push(key);
     this.embedDocs.push({ rel, children });
     try {
-      return this.transclusionWrap(written, idAttr, shown);
+      return this.transclusionWrap(written, idAttr, shown, b.classes);
     } finally {
       this.embedDocs.pop();
       this.embedStack.pop();
@@ -517,14 +517,14 @@ export class RenderCtx {
     return rel === "" ? `#${anchor}` : `${rel.replace(/\.geml$/, ".html")}#${anchor}`;
   }
 
-  private transclusionWrap(written: string, idAttr: string, picked: Block[]): string {
+  private transclusionWrap(written: string, idAttr: string, picked: Block[], classes: readonly string[] = []): string {
     this.embedCount++;
     const inner = picked.map((x) => this.block(x)).filter((s) => s !== "").join("\n");
     this.embedBytes += inner.length;
-    return `<section class="transclusion"${idAttr} data-src="${escAttr(written)}">${inner}</section>`;
+    return `<section${this.clsAttr(classes, "transclusion")}${idAttr} data-src="${escAttr(written)}">${inner}</section>`;
   }
 
-  private transclusionFallback(written: string, idAttr: string, why: string, note: string): string {
+  private transclusionFallback(written: string, idAttr: string, why: string, note: string, classes: readonly string[] = []): string {
     const hash = written.indexOf("#");
     const docPath = hash < 0 ? written : written.slice(0, hash);
     const frag = hash < 0 ? "" : written.slice(hash);
@@ -535,7 +535,7 @@ export class RenderCtx {
     // live `javascript:` link — the shape of the one Critical finding in review.
     const safe = isSafeUrl(href) ? href : "#";
     const link = written === "" ? "" : `<a href="${escAttr(safe)}">${esc(written)}</a> `;
-    return `<div class="transclusion transclusion-${classAttrToken(why)}"${idAttr} data-src="${escAttr(written)}" title="${escAttr(note)}">`
+    return `<div${this.clsAttr(classes, "transclusion", `transclusion-${classAttrToken(why)}`)}${idAttr} data-src="${escAttr(written)}" title="${escAttr(note)}">`
       + `${link}<span class="transclusion-note">${esc(note)}</span></div>`;
   }
 

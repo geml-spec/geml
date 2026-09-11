@@ -874,4 +874,69 @@ test("every wrong turn a WRITE can take refuses BEFORE touching the body", () =>
   assert.deepEqual(ok.body, ["{", '  "a": 2', "}"]);
 });
 
+// ---------------------------------------------------------------- 键的展开形
+// 设计 §2 的卖点是「同一条省略规则用两次」：`#id` 是 `{#id}` 的省略、`@<hex>` 是
+// `{@<hex>}` 的省略。被省略掉的那个形式必须存在，否则那句话是在省略一个不存在的东西。
+
+const idOf = (braces) => {
+  const m = /\{\s*#([A-Za-z_][A-Za-z0-9_-]*)/.exec(braces);
+  return m ? m[1] : undefined;
+};
+
+test("键的展开形：`{#id}` 和 `#id` 解析成同一个选择符，带不带类型都一样", () => {
+  const short = parseSelector("#fy", idOf);
+  assert.deepEqual(short, { form: "id", raw: "#fy" });
+  assert.deepEqual(parseSelector("{#fy}", idOf), short);
+  assert.deepEqual(parseSelector("{ #fy }", idOf), short, "花括号里的空白由调用方的 parseAttrs 吃掉");
+  assert.deepEqual(parseSelector("=== table {#fy}", idOf), short, "类型 + id key，冗余但合法");
+});
+
+test("键的展开形：`{@<hex>}` 也是键；类型写在前面时类型检查照旧带上", () => {
+  assert.deepEqual(parseSelector("@ab12cd34", idOf), { form: "content", hex: "ab12cd34", nth: 0 });
+  assert.deepEqual(parseSelector("{@ab12cd34}", idOf), { form: "content", hex: "ab12cd34", nth: 0 });
+  assert.deepEqual(parseSelector("{@AB12CD34~2}", idOf), { form: "content", hex: "ab12cd34", nth: 2 },
+    "hex 归一成小写，~n 照收");
+  assert.deepEqual(parseSelector("=== note {@ab12cd34}", idOf),
+    { form: "content", type: "note", hex: "ab12cd34", nth: 0 });
+});
+
+test("键的展开形：第三种键仍是「声明未实现」，裸花括号那支不谎报类型", () => {
+  assert.deepEqual(parseSelector("=== note {k=v}", idOf), { form: "attr", type: "note", key: "k" });
+  assert.deepEqual(parseSelector("{k=v}", idOf), { form: "attr", key: "k" },
+    "没有类型可报，就不要在消息里编一个");
+});
+
+test("键的展开形：坐标的基址也能写全 —— `{#fy}[2]` 归一成 `#fy`", () => {
+  const long = parseSelector('{#fy}[2]["Q1"]', idOf);
+  assert.deepEqual(long, parseSelector('#fy[2]["Q1"]', idOf));
+  assert.equal(long.base, "#fy", "下游只看得到短形，不必知道有两种写法");
+});
+
+test("CLI：八种写法在一份真文档上给出同一个块", () => {
+  const f = write("keys.geml", "=== note\n匿名\n===\n\n=== note {#named}\n有名\n===\n");
+  const hex = /@([0-9a-f]{8})/.exec(run(["list", f]).out)[1];
+  for (const sel of ["#named", "{#named}", "{ #named }", "=== note {#named}"]) {
+    const r = run(["get", f, sel]);
+    assert.equal(r.code, 0, `${sel}: ${r.err}`);
+    assert.match(r.out, /有名/, sel);
+  }
+  for (const sel of [`@${hex}`, `{@${hex}}`, `=== note {@${hex}}`]) {
+    const r = run(["get", f, sel]);
+    assert.equal(r.code, 0, `${sel}: ${r.err}`);
+    assert.match(r.out, /匿名/, sel);
+  }
+  // 类型是检查，不是装饰 —— 展开形里也一样
+  const wrong = run(["get", f, `=== text {@${hex}}`]);
+  assert.equal(wrong.code, 1);
+  assert.match(wrong.err, /addresses a `note` block, not `text`/);
+});
+
+test("CLI：坐标够不到的块，报错要把 meta 也说上 —— `#meta[\"k\"]` 是能用的", () => {
+  const f = write("metak.geml", '=== meta\ntitle = "T"\n===\n\n=== text {#x}\nhi\n===\n');
+  assert.match(run(["get", f, '#meta["title"]']).out, /^T/m, "GEP 0011 的表里 meta 就在");
+  const miss = run(["get", f, '#x["k"]']);
+  assert.equal(miss.code, 1);
+  assert.match(miss.err, /a table, a `data` block, or `meta`/);
+});
+
 console.log(`\n${passed} test(s) passed.`);

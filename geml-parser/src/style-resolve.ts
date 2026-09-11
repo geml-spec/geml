@@ -533,6 +533,7 @@ function collect(nodes: Block[], sheet: Stylesheet, layer: number): void {
       }
       const r = parseSelector(match);
       if (!r.ok) { sheet.diagnostics.push(selectorDiag(r, id)); continue; }
+      for (const note of r.notes ?? []) sheet.diagnostics.push(styleDiag("reserved-name", note, id));
       const partRule = isPartSelector(r.branches[0]!);
       const component = str(b.attrs["component"]);
       const params: Record<string, Value> = {};
@@ -584,6 +585,7 @@ function collect(nodes: Block[], sheet: Stylesheet, layer: number): void {
       if (match === undefined || on === undefined) continue;
       const r = parseSelector(match);
       if (!r.ok) { sheet.diagnostics.push(selectorDiag(r, id)); continue; }
+      for (const note of r.notes ?? []) sheet.diagnostics.push(styleDiag("reserved-name", note, id));
       const st: StyleState = { id, type: str(b.attrs["type"]) ?? "block-ref", match: r.branches, on };
       const vf = str(b.attrs["value-from"]); if (vf !== undefined) st.valueFrom = vf;
       const iv = str(b.attrs["init-value"]); if (iv !== undefined) st.initValue = iv;

@@ -206,9 +206,19 @@ test("部件步：text#nav link 解析成两步，最后一步 type=link（设�
   assert.equal(isPartSelector(parseSelector("text#nav").selector), false);
 });
 
-test("部件步：只能是最后一步、前面要有块步、不带 #id/.class/[attr]；分支不能混", () => {
+test("部件步：第一步上的部件名读作块类型（只提醒，不拒绝）", () => {
+  // 部件要求前面有块步,所以第一步上这个名字只可能是块类型 —— 没有歧义,不该拒。
+  // 以前这里是硬错误,于是一个类型叫 `link` 的块用类型名根本选不到。
+  const r = parseSelector("link");
+  assert.equal(r.ok, true);
+  assert.equal(isPartSelector(r.selector), false, "一步的选择器永远不是部件");
+  assert.match(r.notes[0], /is read as a block type here/);
+  assert.match(r.notes[0], /needs a block step before it/, "另一种读法也说出来");
+  assert.equal(parseSelector("text#nav link").notes, undefined, "第二步上没有歧义,别吵");
+});
+
+test("部件步：只能是最后一步、不带 #id/.class/[attr]；分支不能混", () => {
   for (const [src, re] of [
-    ["link", /write the block before it/],
     ["text#nav link image", /must be the last step/],
     ["text#nav link[title]", /takes no #id, .class or \[attr\]/],
     ["text#nav link, table#t", /mix inline parts with blocks/],

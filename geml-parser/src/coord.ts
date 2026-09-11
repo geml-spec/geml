@@ -425,7 +425,7 @@ export function planCoordWrite(block: Block, path: CoordStep[], value: string, b
     return { ok: false, why: `a meta key is written as \`["<key>"]\` — one quoted key, and nothing deeper` };
   }
   if (block.type === "data") return { ok: false, why: noValueTree(block) };
-  return { ok: false, why: `\`${block.type}\` carries no addressable units inside it — a coordinate needs a table or a \`data\` block` };
+  return { ok: false, why: `\`${block.type}\` carries no addressable units inside it — a coordinate needs a table, a \`data\` block, or \`meta\` (GEP 0011)` };
 }
 
 /**
@@ -455,5 +455,5 @@ export function projectCoord(block: Block, path: CoordStep[]): CoordResult {
   if (block.value !== undefined) return projectValue(block.value, path);
   if (block.data !== undefined) return projectValue(block.data as DataValue, path);
   if (block.type === "data") return miss(noValueTree(block));
-  return miss(`\`${block.type}\` carries no addressable units inside it — a coordinate needs a table or a \`data\` block`);
+  return miss(`\`${block.type}\` carries no addressable units inside it — a coordinate needs a table, a \`data\` block, or \`meta\` (GEP 0011)`);
 }

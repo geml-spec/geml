@@ -687,7 +687,13 @@ exactly when the slice is itself a value.
   fully reference-checked, but **not rendered** — e.g. a source table that only
   feeds a chart. A `%%` line is a hidden, raw, never-rendered author note. The division of labor is: use `hidden` for structured content that participates in the document model (data sources, reusable fragments) but should remain invisible; use `%%` for throwaway comments that do not participate in the document model. Note that `%%` is only recognized as a comment at block positions (top-level or inside the body of a `flow` block). Inside a `raw` block body, `%%` lines are preserved exactly as-is and are not treated as comments.
 - Attribute order is insignificant; the recommended order is `#id`, then
-  `.class`, then `key=val`.
+  `.class`, then `key=val`. A NAME therefore MUST NOT be written twice in one
+  attribute object: a repeat is precisely what would make order significant.
+  A class, a `key=val` and a bare flag all write the same NAME — a flag IS
+  `key=true` — so `{.link link=http://x link}` writes `link` three times and is
+  a `duplicate-name` **error** (Appendix A). `#id` is the primary key and does
+  not take part: `{#a .a}` is one id and one class, the same way `id` and
+  `class` are separate attributes in HTML.
 - **Line continuation:** A typed block fence (`===`) or heading (`#`) line ending
   with a backslash `\` continues its attribute object onto the next line. The
   backslash and newline are treated as a single space, allowing long attribute
@@ -1407,6 +1413,7 @@ original file.
 
 | Code | Severity | Condition |
 |------|----------|-----------|
+| `duplicate-name` | error | A NAME is written more than once in one attribute object (§4). A class, a `key=val` and a bare flag all write the same NAME, so `{.link link=http://x link}` writes `link` three times. It is an error rather than a warning because §4 promises attribute order is insignificant and a repeat makes that false — silently: the parse succeeds, and which value survives depends on which part was written last. `#id` does not take part. |
 | `name-not-a-name` | warning | An `id`, class or attribute key in an attribute object is not a NAME (§4). A warning, not an error, because such a document still parses — and parses as something else: the attribute object is whitespace-separated, so `{#a & b}` yields the id `a` plus boolean flags named `&` and `b`, and the id the author meant to address does not exist. |
 | `heading-attrs-trailing-text` | warning | A heading's attribute object is followed by further text on the line, as in `## Title {#sec}aaa`. §4 requires the object to be trailing, so it is not parsed as attributes at all: an explicit `{#id}` is silently lost, the heading keeps its derived id, and its section — which runs to the next heading of the same level — can no longer be addressed by the id the author wrote. An object quoted in a code span or inline math is not reported: GEML prose documents this very syntax. |
 | `heading-attrs-unclosed` | warning | A heading's attribute object is never closed by `}` (`## Title {#sec`), so §4 does not parse it as attributes at all: an explicit `{#id}` is silently lost and the heading keeps its derived id. |

@@ -23,7 +23,7 @@ import { renderHtml } from "./render-html.js";
 import { normalizeBlockId } from "./block-edit.js";
 import { type Diagnostic, normalizeSource } from "./diagnostics.js";
 import type { DiagnosticCode } from "./diagnostics.js";
-import { type Attrs, type Value, coerce, oddNames, parseAttrs } from "./attrs.js";
+import { type Attrs, type Value, coerce, duplicateNames, oddNames, parseAttrs } from "./attrs.js";
 import { type Inline, type RefSink, META_REF_SRC, parseInline , isSafeUrl, schemeOf } from "./inline.js";
 import { type TableCell, type TableDiag, type TableModel, deriveView, parseTable } from "./table.js";
 import { type ChartModel, USES, buildChart } from "./chart.js";
@@ -294,6 +294,25 @@ export const FENCE_OPEN = /^(={3,})[ \t]*([A-Za-z][A-Za-z0-9_-]*)[ \t]*(?:(\{.*\
 // error: it has always parsed, documents in the wild rely on the leniency, and
 // what the author needs is to be told — `{#a & b}` gives the id `a` and two
 // flags called `&` and `b`, which is a legal parse of something nobody wrote.
+// A name written twice in one attribute object (§4). An ERROR, not a warning,
+// unlike `name-not-a-name` above: this one makes §4's "attribute order is
+// insignificant" false, and it does it silently — the same failure shape the
+// style layer's shorthand-versus-side conflict has. There is nothing to be
+// lenient about, either: nobody writes a name twice on purpose when the second
+// one quietly wins.
+function reportDuplicateNames(a: Attrs, line: number, diags: Diagnostic[]): void {
+  for (const name of duplicateNames(a)) {
+    diags.push({
+      severity: "error",
+      code: "duplicate-name",
+      message: `\`${name}\` is written more than once in one attribute object — `
+        + "a class, a `key=value` and a bare flag all write the same name (§4), and §4 says attribute order is insignificant, "
+        + "which a repeat makes false; write it once",
+      line,
+    });
+  }
+}
+
 function reportOddNames(a: Attrs, line: number, diags: Diagnostic[]): void {
   for (const { kind, name } of oddNames(a)) {
     diags.push({
@@ -698,6 +717,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       const attrs = open[3] ? parseAttrs(open[3]) : { classes: [], attrs: {} };
       const openLineNo = base + i + 1;
       reportOddNames(attrs, openLineNo, diags);
+      reportDuplicateNames(attrs, openLineNo, diags);
 
       // Collect the body. A block closes on the FIRST line that is a bare fence
       // of exactly the opening length, OR — when it has an id — a labeled fence
@@ -968,6 +988,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       const rawText = h[2]!;
       const a = parseAttrs(h[3] ?? "");
       reportOddNames(a, lineNo, diags);
+      reportDuplicateNames(a, lineNo, diags);
       const text = interpolate(rawText, lineNo, ctx);
       const id = a.id ?? slug(rawText);
       registerId(ctx, id, lineNo);

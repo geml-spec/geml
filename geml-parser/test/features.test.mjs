@@ -496,4 +496,35 @@ test("footnote reference `[^id]` resolves to any block with that id (§5.2)", ()
   assert.ok(fn && fn.type === "note");
 });
 
+test("a name written twice in one attribute object is an error — §4 says order is insignificant (§4)", () => {
+  const dup = (src) => parse(src).diagnostics.filter((x) => x.code === "duplicate-name").map((d) => d.message);
+
+  // 测出来的起点：同样的部件，只换先后，块就不一样了 —— 而 §4 说顺序无关。
+  //   {#a .link link=http://x link}  ->  attrs {link: true}
+  //   {#a link .link link=http://x}  ->  attrs {link: "http://x"}
+  assert.equal(dup('=== note {#a .link link=http://x link}\nx\n===').length, 1);
+  assert.match(dup('=== note {#a .link link=http://x link}\nx\n===')[0], /`link` is written more than once/);
+
+  // 四种写法都算同一个名字：旗标就是 `=true`，类是同一个名字空间的另一半。
+  for (const src of [
+    '=== note {#a caption="A" caption="B"}\nx\n===',   // 键 vs 键
+    '=== note {#a .x .x}\nx\n===',                      // 类 vs 类
+    '=== note {#a hidden hidden=false}\nx\n===',        // 旗标 vs 赋值
+    '=== note {#a .link link=http://x}\nx\n===',        // 类 vs 键
+  ]) assert.equal(dup(src).length, 1, src.split("\n")[0]);
+
+  // `#id` 不参与：它是主键，和其余键不是一个东西 —— HTML 里 `id` 和 `class` 也是两个属性。
+  assert.deepEqual(dup('=== note {#a .a}\nx\n==='), [], "id 与同名的类不冲突");
+  assert.deepEqual(dup('=== note {#a a=1}\nx\n==='), [], "id 与同名的键不冲突");
+  assert.equal(dup('=== note {#a .a a=1}\nx\n===').length, 1, "但那个类和那个键彼此重复，与 id 无关");
+  assert.deepEqual(dup('=== note {#a .x .y k=1 j=2}\nx\n==='), [], "四个不同的名字，正常");
+
+  // 标题上的属性对象走同一条路
+  assert.equal(dup("## Title {#h .x .x}").length, 1, "heading attrs too");
+
+  // 严重性：error，不是 warning —— 它让 §4 自己的不变式变假，而且是静默的
+  const d = parse('=== note {#a .x .x}\nx\n===').diagnostics.find((x) => x.code === "duplicate-name");
+  assert.equal(d.severity, "error");
+});
+
 console.log(`\n${passed} test(s) passed.`);

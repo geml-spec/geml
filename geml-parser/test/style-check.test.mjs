@@ -1153,6 +1153,12 @@ test("标题和散文是可放置节点：`geml list` 一直能寻址它们，�
   assert.deepEqual(vmOf("heading").screens[0].slots[0].blocks.map((b) => b.block), ["#h1"]);
   assert.deepEqual(vmOf("prose").screens[0].slots[0].blocks.map((b) => b.block), ["[1]"], "段落没有 id，地址是文档序");
   assert.deepEqual(vmOf("heading[level=1]").screens[0].slots[0].blocks.map((b) => b.block), ["#h1"], "level 可选");
+  // `level` 是结构事实（`###` 数出来的），作者写一个同名属性盖不掉它。
+  const lied = parse("### L {#lied level=9}\n");
+  const lvOf = (s) => resolveStyle(sheet(`=== style-screen {#p slots="${s}"}\n===\n`), [{ path: "d.geml", doc: lied }])
+    .screens[0].slots[0].blocks.map((b) => b.block);
+  assert.deepEqual(lvOf("heading[level=3]"), ["#lied"], "真实层级仍是 3");
+  assert.deepEqual(lvOf("heading[level=9]"), [], "作者写的 level=9 盖不掉结构层级");
   // 块**内部**的段落不是文档的一节，不该被 prose 选中
   const inner = resolveStyle(sheet('=== style-screen {#p slots="prose"}\n===\n'),
     [{ path: "d.geml", doc: parse("=== text {#t}\npara one\n\npara two\n===\n") }]);
@@ -1385,6 +1391,37 @@ test("简写与单边：写进同一条规则、或两条都是单边 —— 都
     '=== style-rule {#one match="text" border-radius="6px"}\n===\n\n' +
     '=== style-rule {#two match="text#a" border-left="0"}\n===\n'),
     [], "border-radius 不在这一族里");
+});
+
+test("保留字：第一步上的部件名读作块类型 —— 尽量命中，另一种读法用 warning 说出来", () => {
+  // `link` 既是部件名又可能是块类型名。部件要求前面有块步，所以在第一步上它**只可能**是
+  // 类型 —— 以前这是硬错误，于是一个类型叫 `link` 的块用类型名根本选不到。
+  const doc = parse("=== link {#L}\n我是 link 类型的块\n===\n\n=== text {#n}\n- [a](https://a)\n===\n");
+  const run = (m) => {
+    const vm = resolveStyle(sheet('=== style-rule {#r match="' + m + '" color="#000"}\n===\n'),
+      [{ path: "d.geml", doc }]);
+    return {
+      codes: codes(vm.diagnostics),
+      hits: vm.bindings.map((b) => b.block + (b.part ? "→" + b.part : "")),
+    };
+  };
+
+  const typed = run("link");
+  assert.deepEqual(typed.hits, ["#L"], "照块类型命中");
+  assert.deepEqual(typed.codes, ["reserved-name"]);
+  assert.equal(STYLE_SEVERITY["reserved-name"], "warning", "不拒绝，只是说一声");
+
+  // 第二步上它还是部件，一个字没改
+  assert.deepEqual(run("text#n link").hits, ["#n→link"]);
+  assert.deepEqual(run("text#n link").codes, [], "这里没有歧义，别吵");
+
+  // 另外两条部件规矩不变
+  const notLast = resolveStyle(sheet('=== style-rule {#r match="text link em" color="#000"}\n===\n'),
+    [{ path: "d.geml", doc }]);
+  assert.ok(notLast.diagnostics.some((d) => d.code === "selector-unsupported"));
+  const filtered = resolveStyle(sheet('=== style-rule {#r match="text#n link.x" color="#000"}\n===\n'),
+    [{ path: "d.geml", doc }]);
+  assert.ok(filtered.diagnostics.some((d) => d.code === "selector-unsupported"));
 });
 
 console.log(`\n${passed} passed`);

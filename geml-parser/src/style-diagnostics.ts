@@ -19,6 +19,7 @@ export type StyleDiagnosticCode =
   | "unknown-value-source"
   | "unknown-interaction"
   | "unknown-token"
+  | "reserved-name"
   | "unknown-component"
   | "unknown-handler"
   | "style-missing-attribute"
@@ -45,6 +46,9 @@ export const STYLE_SEVERITY: Record<StyleDiagnosticCode, StyleSeverity> = {
   // `{{key}}` 指到本样式表 meta 里没有的键。和核心 §4 的 unknown-metadata-reference
   // 同一判断：单一事实来源的引用悬空了就该响，静默代换成空串会让整页悄悄掉色。
   "unknown-token": "error",
+  // 一个名字同时是部件名和块类型名。不拒绝、照块类型匹配，只把另一种读法说出来 ——
+  // 硬错误会让一个类型叫 `link` 的块用类型名根本选不到，而选择器该尽量命中。
+  "reserved-name": "warning",
   "style-missing-attribute": "error",
   "unmatched-rule": "warning",
   "unmatched-producer": "warning",

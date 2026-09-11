@@ -29,6 +29,7 @@ export type DiagnosticCode =
   | "heading-attrs-trailing-text"
   | "heading-attrs-unclosed"
   | "duplicate-id"
+  | "duplicate-name"
   | "unresolved-reference"
   | "unresolved-footnote"
   | "unresolved-cross-document-reference"
@@ -139,6 +140,7 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   "heading-attrs-trailing-text": "warning",
   "heading-attrs-unclosed": "warning",
   "duplicate-id": "error",
+  "duplicate-name": "error",
   "unresolved-reference": "error",
   "unresolved-footnote": "error",
   "unresolved-cross-document-reference": "error",

@@ -54,9 +54,10 @@ export type Selector =
   // nothing else. `#L27` is still an id, so a block actually named `L27` stays
   // reachable.
   | { form: "line"; from: number; to: number }
-  // `=== type {k=v}` with a key other than `#id` — DECLARED by §2, not
-  // implemented this round; the caller reports it as a usage error (§7).
-  | { form: "attr"; type: string; key: string }
+  // `{k=v}` with a key other than `#id` / `@<hex>` — DECLARED by §2, not
+  // implemented; the caller reports it as a usage error (§7). `type` is absent
+  // on the bare brace form, which carries no type check.
+  | { form: "attr"; type?: string; key: string }
   // `#fy[2]["Q1"]` / `#intake["rows"][0]` / `#meta["version"]` — a unit INSIDE
   // a block (GEP 0011). `base` is whatever an id form would have been, and
   // `path` is what narrows it; the caller resolves the base and then projects,
@@ -132,13 +133,9 @@ export function parseSelector(raw: string | undefined, attrsIdOf: (braces: strin
     const type = fence[1]!;
     const at = fence[2];
     const braces = fence[3];
-    if (braces !== undefined) {
-      // `=== type {#id}` is the id key written out in full — redundant but
-      // legal (§2). Any OTHER key is the declared-not-implemented form.
-      const id = attrsIdOf(braces);
-      if (id !== undefined) return { form: "id", raw: `#${id}` };
-      return { form: "attr", type, key: firstKey(braces) };
-    }
+    // `=== type {#id}` / `=== type {@<hex>}` are the two keys written out in
+    // full — redundant but legal (§2). Any OTHER key is declared-not-implemented.
+    if (braces !== undefined) return keyForm(braces, type, attrsIdOf);
     if (at !== undefined) {
       const m = BARE_AT.exec(at)!;
       return { form: "content", type, hex: m[1]!.toLowerCase(), nth: m[2] ? Number(m[2]) : 0 };
@@ -165,12 +162,58 @@ export function parseSelector(raw: string | undefined, attrsIdOf: (braces: strin
   const bracket = s.indexOf("[");
   if (bracket > 0) {
     const path = parseCoordPath(s.slice(bracket));
-    if (path) return { form: "coord", base: s.slice(0, bracket).trimEnd(), path };
+    if (path) {
+      // The base is "whatever an id form would have been", and `{#fy}` IS one —
+      // so normalize it here and every consumer downstream keeps seeing `#fy`.
+      const head = s.slice(0, bracket).trimEnd();
+      if (BRACED.test(head)) {
+        const k = keyForm(head, undefined, attrsIdOf);
+        if (k.form === "id") return { form: "coord", base: k.raw, path };
+      }
+      return { form: "coord", base: head, path };
+    }
   }
+
+  // `{#id}` / `{@<hex>}` with no type in front — the other half of §2's
+  // abbreviation rule. Checked after the coordinate so `{#fy}[2]` is one.
+  if (BRACED.test(s)) return keyForm(s, undefined, attrsIdOf);
 
   // Anything else is an id or a pasted heading line; the caller resolves it.
   return { form: "id", raw: s };
 }
+
+// `{@<hex>}` / `{@<hex>~n}` — the content key written out in full. Read here
+// rather than by `attrsIdOf`, because `@` is not an attribute-object key: the
+// braces are §2's KEY container, and an attribute object is only one thing that
+// container can hold.
+const AT_KEY = /^@([0-9a-fA-F]+)(?:~(\d+))?$/;
+function atKeyOf(braces: string): { hex: string; nth: number } | undefined {
+  const m = AT_KEY.exec(braces.replace(/^\{/, "").replace(/\}$/, "").trim());
+  return m ? { hex: m[1]!.toLowerCase(), nth: m[2] ? Number(m[2]) : 0 } : undefined;
+}
+
+// A braced key, with or without a type in front. §2's rule is that `#id` is
+// `{#id}` written short and `@<hex>` is `{@<hex>}` written short — so the long
+// form has to parse, or the abbreviation is an abbreviation of nothing. Both
+// spellings land on the same Selector here, which is what keeps every consumer
+// downstream from having to know there are two.
+function keyForm(
+  braces: string, type: string | undefined, attrsIdOf: (b: string) => string | undefined,
+): Selector {
+  const id = attrsIdOf(braces);
+  if (id !== undefined) return { form: "id", raw: `#${id}` };
+  const at = atKeyOf(braces);
+  if (at !== undefined) {
+    return type === undefined
+      ? { form: "content", hex: at.hex, nth: at.nth }
+      : { form: "content", type, hex: at.hex, nth: at.nth };
+  }
+  return type === undefined ? { form: "attr", key: firstKey(braces) } : { form: "attr", type, key: firstKey(braces) };
+}
+
+// Is this whole selector one braced key? Anchored on both ends so a brace
+// inside a quoted value cannot make a partial string look like one.
+const BRACED = /^\{[\s\S]*\}$/;
 
 // The first key inside `{…}`, for the §7 error message. Best-effort: it only
 // has to name what the caller typed, and a class (`.warn`) is reported as

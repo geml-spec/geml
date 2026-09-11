@@ -22,10 +22,12 @@ export interface Selector {
   /** 后代链，最后一个是目标 */
   steps: SimpleSelector[];
   source: string;
+  /** 解析出来但不致命的提醒（保留字的另一种读法）。由装载器变成 warning。 */
+  notes?: string[];
 }
 
 export type SelectorResult =
-  | { ok: true; selector: Selector; branches: Selector[] }
+  | { ok: true; selector: Selector; branches: Selector[]; notes?: string[] }
   | { ok: false; code: "selector-unsupported"; message: string };
 
 const SUPPORTED = "supported: type, .class, #id, [attr], [attr=val], `*`, descendant, an inline part (link image code-span strong emphasis) as the last step";
@@ -41,7 +43,14 @@ export const PARTS: ReadonlyMap<string, string> = new Map([
 ]);
 
 /** 这条选择器指的是部件（最后一步是部件名）还是块。 */
+// 一步的选择器**永远不是**部件：部件要求前面有块步，所以在第一步的位置上这个名字
+// 只可能是块类型。这条判断散在三处（这里、matches、parseOne），共用一个定义。
+function partAt(sel: Selector, i: number): boolean {
+  return i > 0 && i === sel.steps.length - 1 && PARTS.has(sel.steps[i]!.type ?? "");
+}
+
 export function isPartSelector(sel: Selector): boolean {
+  if (sel.steps.length < 2) return false;
   const last = sel.steps[sel.steps.length - 1];
   return last !== undefined && last.type !== undefined && PARTS.has(last.type);
 }
@@ -185,14 +194,21 @@ function parseOne(src: string): Selector | { error: string } {
   if (steps.length === 0) return { error: "empty selector" };
   // 部件步的三条规矩：只能在最后、前面要有块步、自己不带过滤。不在最后就成了"链接里面的块"，
   // 模型里没有这种东西；没有块步就是"语料里所有链接"，那是选择器选内容的边界之外。
+  const notes: string[] = [];
   for (let i = 0; i < steps.length; i++) {
     const s = steps[i]!;
     if (s.type === undefined || !PARTS.has(s.type)) continue;
-    if (i === 0) return { error: `\`${s.type}\` names an inline part; write the block before it (\`text#nav ${s.type}\`)` };
+    // 第一步上这个名字**只可能**是块类型 —— 部件要求前面有块步，所以这里没有歧义可言。
+    // 以前这是个硬错误,于是一个类型叫 `link` 的块用类型名根本选不到,只剩 `#id` 和 `*`。
+    // 现在照块类型匹配,同时把另一种读法说出来:作者想要的若是行内部件,就差一个块步。
+    if (i === 0) {
+      notes.push(`\`${s.type}\` is read as a block type here; the inline part of that name needs a block step before it (\`text#nav ${s.type}\`)`);
+      continue;
+    }
     if (i !== steps.length - 1) return { error: `\`${s.type}\` names an inline part and must be the last step in \`${src}\`` };
     if (s.id !== undefined || s.classes.length > 0 || s.attrs.length > 0) return { error: `an inline part takes no #id, .class or [attr] in \`${src}\`` };
   }
-  return { steps, source: src };
+  return notes.length > 0 ? { steps, source: src, notes } : { steps, source: src };
 }
 
 /**
@@ -216,7 +232,10 @@ export function parseSelector(src: string): SelectorResult {
     return { ok: false, code: "selector-unsupported", message: `branches of \`${trimmed}\` mix inline parts with blocks; write two rules (${SUPPORTED})` };
   }
   if (branches.length === 0) return unsupported(trimmed);
-  return { ok: true, selector: branches[0]!, branches };
+  const notes = branches.flatMap((b) => b.notes ?? []);
+  return notes.length > 0
+    ? { ok: true, selector: branches[0]!, branches, notes: [...new Set(notes)] }
+    : { ok: true, selector: branches[0]!, branches };
 }
 
 /** 解析失败时把它变成一条本 profile 的诊断。 */
@@ -296,7 +315,10 @@ function walk(nodes: Block[], inherited: AncestorRef[], out: Candidate[], counte
       const outer = chain();
       headings.push({ ref, level: n.level });
       // 自身当候选时才带 type=heading，外加一个 `level` 属性：`heading[level=1]` 就能选一级标题。
-      const self: AncestorRef = { type: "heading", classes: n.classes, attrs: { level: n.level, ...n.attrs } };
+      // `level` 铺在作者属性**后面**：层级是这一行的结构事实（`###` 数出来的），不是作者能
+      // 改写的值。反过来铺的话 `### T {#t level=9}` 会让一个三级标题对外自称九级，于是
+      // `heading[level=3]` 选不到它 —— 结构被一个同名属性悄悄盖掉。
+      const self: AncestorRef = { type: "heading", classes: n.classes, attrs: { ...n.attrs, level: n.level } };
       if (n.id !== undefined) self.id = n.id;
       out.push({ block: n, self, ancestors: outer, index: counter.n++ });
       continue;
@@ -336,7 +358,7 @@ function matchSimple(s: SimpleSelector, n: AncestorRef): boolean {
 export function matches(sel: Selector, c: Candidate): boolean {
   const target = sel.steps[sel.steps.length - 1]!;
   // 块选择器（含 `*`）与部件候选互不相干：否则 `slots="*"` 会把每个块摆两遍。
-  const wantsPart = target.type !== undefined && PARTS.has(target.type);
+  const wantsPart = partAt(sel, sel.steps.length - 1);
   if (wantsPart !== (c.part !== undefined)) return false;
   if (!matchSimple(target, c.self)) return false;
   let ai = c.ancestors.length - 1;
