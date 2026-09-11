@@ -154,4 +154,30 @@ test("a coordinate write re-emits EDN — it does not rewrite the block as JSON"
   assert.ok(!out.includes('"$uuid"'), "no JSON transcription leaked into the body");
 });
 
+test("`\\r` is a string escape too, alongside the ones already pinned", () => {
+  assert.equal(val('"a\\rb"'), "a\rb");
+  assert.equal(val('"mixed\\r\\n\\ttabs"'), "mixed\r\n\ttabs");
+});
+
+test("a float literal that overflows to Infinity is refused by name, not rounded", () => {
+  // It matches the float shape, so it gets as far as `Number(t)` — and a JSON
+  // number cannot hold the result, which is the same reason the ratio and the
+  // arbitrary-precision literals are refused rather than approximated.
+  assert.match(refuse("1e999").error, /the number `1e999` is not finite/);
+  assert.match(refuse("-1e999").error, /the number `-1e999` is not finite/);
+});
+
+test("a map key this reading cannot encode is named by WHAT it is", () => {
+  // The message runs through `describe`, and each shape it can name is a shape
+  // an author can actually type into a Logseq property map.
+  assert.match(refuse("{1 2}").error, /a map key that is the number `1`/);
+  assert.match(refuse("{true 1}").error, /a map key that is the boolean `true`/);
+  assert.match(refuse("{nil 1}").error, /a map key that is nil/);
+  assert.match(refuse("{[1 2] 3}").error, /a map key that is a vector/);
+  assert.match(refuse("{#{1} 2}").error, /a map key that is a set or a tagged literal/);
+  for (const src of ["{1 2}", "{true 1}", "{nil 1}", "{[1 2] 3}", "{#{1} 2}"]) {
+    assert.match(refuse(src).error, /this reading has keyword and string keys/, src);
+  }
+});
+
 console.log(`\n${passed} passed`);

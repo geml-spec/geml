@@ -4,6 +4,7 @@
 // everything else byte-for-byte. Pins the five id forms the set content model
 // depends on. Unit-tests the compiled function directly (no CLI spawn).
 import { normalizeBlockId } from "../dist/block-edit.js";
+import { closeFenceLine } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
 
 let passed = 0;
@@ -100,6 +101,40 @@ test("a plain close with trailing spaces still ends the block: the NEXT block's 
     "=== #old",
     "",
   ].join("\n"));
+});
+
+// --- closeFenceLine: the ONE place `--body` decides where a block ends -------
+// Its own comment says why it is extracted: `get X --body | set X --body` has to
+// leave the file byte-identical, and two copies of this judgement is how that
+// breaks. Nothing tested it.
+
+test("closeFenceLine: a plain close, a labeled close, and trailing spaces on either", () => {
+  const plain = ["=== note {#a}", "body", "===", ""];
+  assert.equal(closeFenceLine(plain, { start: 0, end: 3 }), "===");
+
+  // A labeled close names the block's id — it closes just as much as a bare one.
+  const labeled = ["=== note {#a}", "body", "=== #a", ""];
+  assert.equal(closeFenceLine(labeled, { start: 0, end: 3 }), "=== #a");
+
+  // Trailing whitespace does not stop either from being the close.
+  assert.equal(closeFenceLine(["=== note {#a}", "b", "===  "], { start: 0, end: 3 }), "===  ");
+  assert.equal(closeFenceLine(["=== note {#a}", "b", "=== #a  "], { start: 0, end: 3 }), "=== #a  ");
+});
+
+test("closeFenceLine: no fence, a foreign label, and a fence left open at EOF are all null", () => {
+  // A heading section has no fence at all.
+  assert.equal(closeFenceLine(["# H {#h}", "prose"], { start: 0, end: 2 }), null);
+
+  // A label naming some OTHER id is not this block's close.
+  assert.equal(closeFenceLine(["=== note {#a}", "b", "=== #other"], { start: 0, end: 3 }), null);
+
+  // Unclosed at EOF: the span runs past the last line, and the answer is "none"
+  // rather than the last line that happens to be there.
+  assert.equal(closeFenceLine(["=== note {#a}", "body"], { start: 0, end: 5 }), null);
+  assert.equal(closeFenceLine([], { start: 0, end: 0 }), null);
+
+  // A close shorter than its opening fence does not close it.
+  assert.equal(closeFenceLine(["==== note {#a}", "b", "==="], { start: 0, end: 3 }), null);
 });
 
 console.log(`\n${passed} test(s) passed.`);

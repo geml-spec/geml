@@ -939,4 +939,58 @@ test("CLI：坐标够不到的块，报错要把 meta 也说上 —— `#meta[\"
   assert.match(miss.err, /a table, a `data` block, or `meta`/);
 });
 
+// --- what a coordinate REFERENCE does when it cannot be checked --------------
+// These run in-process because each one turns on what the parser was handed,
+// not on what is on disk: whether there is a document resolver at all, what it
+// answers, and whether the base is a block, `#meta`, or nothing.
+
+const TBL = [
+  "=== table {#fy format=csv header=1}",
+  "Segment, Q1",
+  "Cloud, 8",
+  "===",
+].join("\n");
+const diagsOf = (src, opts) => parse(src, opts).diagnostics ?? [];
+const refDoc = (anchor) => `# H {#h}\n\nsee [[${anchor}]]\n`;
+
+test("a cross-document coordinate with no resolver is a warning, not a verdict", () => {
+  // Nothing can be said about a document that cannot be read, and saying
+  // "unresolved" would be a claim the parser has no basis for.
+  const ds = diagsOf(refDoc('other.geml#fy[1]["Q1"]'));
+  const hit = ds.find((d) => d.code === "unchecked-cross-document-reference");
+  assert.ok(hit, JSON.stringify(ds.map((d) => d.code)));
+  assert.equal(hit.severity, "warning");
+  assert.match(hit.message, /not checked \(no document resolver\)/);
+});
+
+test("with a resolver, a cross-document coordinate fails by the right name", () => {
+  const gone = diagsOf(refDoc('other.geml#fy[1]["Q1"]'), { resolveDoc: () => null });
+  assert.ok(gone.some((d) => d.code === "unresolvable-document"), JSON.stringify(gone.map((d) => d.code)));
+
+  // The document reads, but nothing in it carries that id.
+  const noId = diagsOf(refDoc('other.geml#fy[1]["Q1"]'), { resolveDoc: () => "=== note {#elsewhere}\nx\n===\n" });
+  const hit = noId.find((d) => d.code === "unresolved-cross-document-reference");
+  assert.ok(hit, JSON.stringify(noId.map((d) => d.code)));
+  assert.match(hit.message, /unresolved reference `other\.geml#fy`/);
+});
+
+test("a cross-document coordinate reaches a block NESTED in the other document", () => {
+  // The id search there walks into a block's children; a table that lives
+  // inside a `note` is as addressable as one at the top level.
+  const nested = `=== note {#outer}\n${TBL}\n===\n`;
+  const ds = diagsOf(refDoc('other.geml#fy[1]["Q1"]'), { resolveDoc: () => nested });
+  assert.deepEqual(ds.map((d) => d.code), [], JSON.stringify(ds));
+});
+
+test("`#meta[...]` in a document that has no meta block says exactly that", () => {
+  const ds = diagsOf(refDoc('#meta["title"]'));
+  const hit = ds.find((d) => d.code === "unresolved-reference");
+  assert.ok(hit, JSON.stringify(ds.map((d) => d.code)));
+  assert.match(hit.message, /`#meta` — this document has no `meta` block/);
+
+  // With one, the same reference resolves.
+  const ok = diagsOf(`=== meta\ntitle = "T"\n===\n\n` + refDoc('#meta["title"]'));
+  assert.deepEqual(ok.map((d) => d.code), [], JSON.stringify(ok));
+});
+
 console.log(`\n${passed} test(s) passed.`);

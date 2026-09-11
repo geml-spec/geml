@@ -1424,4 +1424,81 @@ test("保留字：第一步上的部件名读作块类型 —— 尽量命中，
   assert.ok(filtered.diagnostics.some((d) => d.code === "selector-unsupported"));
 });
 
+// --- 取值闸、记号、容器规则、状态：本来没人走过的几条 ---------------------------
+
+test("取值闸：grow= / visible= 只认 yes 和 no，别的报 style-invalid-value 并丢掉", () => {
+  const s = sheet('=== style-rule {#r match="table" grow=maybe visible=sometimes}\n===\n');
+  assert.deepEqual(codes(s.diagnostics), ["style-invalid-value", "style-invalid-value"]);
+  const msg = s.diagnostics.map((d) => d.message).join("\n");
+  assert.match(msg, /`grow=maybe` is not `yes` or `no`/);
+  assert.match(msg, /`visible=sometimes` is not `yes` or `no`/);
+  assert.deepEqual(s.rules[0].box, {}, "取值不过的词一个都不进 box");
+});
+
+test("记号：夹在一段文字中间的 {{key}} 悬空时同样报，同一串里认得的照常换", () => {
+  // 整值记号那条另有测试，走的是"带类型代换"的分支；这条走的是"字符串里替换一段"的
+  // 分支，它保留原文而不是静默换成空串 —— 半截的边框比没有边框好查。
+  const s = loadStylesheet(parse(
+    '=== meta\nprofile = "geml-style/v1"\nline = "#d1d9e0"\n===\n\n' +
+    '=== style-rule {#r match="text" border="1px solid {{nope}}" padding="{{line}} 2px"}\n===\n'));
+  assert.deepEqual(codes(s.diagnostics), ["unknown-token"]);
+  assert.match(s.diagnostics[0].message, /`\{\{nope\}\}` in `border=`/);
+  assert.equal(s.rules[0].box.border, "1px solid {{nope}}", "原文留着");
+  assert.equal(s.rules[0].box.padding, "#d1d9e0 2px", "同一串里认得的那个照常换");
+});
+
+test("style-state 的 match= 也过同一道保留字提醒", () => {
+  // 规则那边早有测试，状态这边共用同一个 parseSelector，提醒也该照发 —— 否则同一句
+  // 写法在两种块上得到两种待遇。
+  const s = sheet('=== style-state {#sel type=block-ref match="link" on=select}\n===\n');
+  assert.deepEqual(codes(s.diagnostics), ["reserved-name"]);
+  assert.match(s.diagnostics[0].message, /`link` is read as a block type here/);
+  assert.deepEqual(s.states.map((x) => x.id), ["sel"], "提醒归提醒，状态照常装上");
+});
+
+test("边框：简写与某一边撞车时，谁先写谁排在消息前面", () => {
+  // 消息按源序命名两条规则。先写边、后写简写这一半以前没人走过，于是"先写的排前面"
+  // 这句话只有一半被验证过。
+  const vm = resolveStyle(sheet(
+    '=== style-rule {#side match="table" border-top="1px solid red"}\n===\n\n' +
+    '=== style-rule {#short match="table" border="2px solid blue"}\n===\n'),
+    [{ path: "d.geml", doc: parse("=== table {#t format=csv}\na\n1\n===\n") }]);
+  assert.deepEqual(codes(vm.diagnostics), ["ambiguous-rule"]);
+  const m = vm.diagnostics[0].message;
+  assert.ok(m.indexOf("#side") < m.indexOf("#short"), `先写的该排前面: ${m}`);
+  assert.match(m, /`border-top`/);
+  assert.match(m, /`border`/);
+});
+
+test("规则可以直接指向容器：裸 `#screen-id` 把内含词挂到那个屏幕上", () => {
+  const doc = parse("=== table {#t format=csv}\na\n1\n===\n");
+  const vm = resolveStyle(sheet(
+    '=== style-screen {#page slots="table"}\n===\n\n' +
+    '=== style-state {#tree type=block-ref match="#page" on=select}\n===\n\n' +
+    '=== style-rule {#c match="#page" gap="8px"}\n===\n\n' +
+    '=== style-rule {#cv match="#page" when="$tree=closed" gap="4px"}\n===\n'),
+    [{ path: "d.geml", doc }]);
+  assert.deepEqual(codes(vm.diagnostics), [], "指向容器的规则不算 unmatched");
+  assert.equal(vm.screens[0].box.gap, "8px", "无 when 的直接并进容器的 box");
+  assert.equal(vm.screens[0].variants.length, 1, "带 when 的成为容器的一个变体");
+  assert.deepEqual(vm.screens[0].variants[0].box, { gap: "4px" });
+});
+
+test("状态挂在容器上时没有产出者不是错；挂在语料上却谁也没命中才报", () => {
+  const doc = parse("=== table {#t format=csv}\na\n1\n===\n");
+  // 下拉菜单这类交互的触发者是屏幕本身，语料里本来就没有对应的块。
+  const onContainer = resolveStyle(sheet(
+    '=== style-screen {#page slots="table"}\n===\n\n' +
+    '=== style-state {#menu type=block-ref match="#page" on=select}\n===\n'),
+    [{ path: "d.geml", doc }]);
+  assert.deepEqual(codes(onContainer.diagnostics), [], "容器自己当触发者，不该报");
+
+  const onNothing = resolveStyle(sheet(
+    '=== style-screen {#page slots="table"}\n===\n\n' +
+    '=== style-state {#s type=block-ref match="no-such-type" on=select}\n===\n'),
+    [{ path: "d.geml", doc }]);
+  assert.ok(onNothing.diagnostics.some((d) => d.code === "unmatched-producer"),
+    JSON.stringify(codes(onNothing.diagnostics)));
+});
+
 console.log(`\n${passed} passed`);

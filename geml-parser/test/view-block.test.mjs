@@ -408,4 +408,69 @@ test("aggregate：带格式的聚合按格式打印；算不出有限值的打�
 });
 
 
+// --- a view whose src= is a DATA FILE rather than a relation -----------------
+// `src=#id` is the relation case the suite above pins. A view may also read a
+// `.csv`/`.tsv`, and then it lands in the same resolution the table has — every
+// answer below is one the author sees at build time, not at render time.
+
+const viewOn = (src, opts) => parse(`=== view {#v src=${src}}\n===\n`, opts).diagnostics ?? [];
+const codesOf = (ds) => ds.map((d) => d.code);
+
+test("a view reading http(s) is left to the renderer, exactly as a table is", () => {
+  // `sourceOf` answers `null` — settled, nothing to build — and not `undefined`,
+  // which the resolution loop reads as "not ready yet". It used to answer
+  // `undefined`, so the entry never left `unresolved` and the closing sweep
+  // reported the view as a cycle it had never been part of.
+  const view = parse("=== view {#v src=https://example.com/fy.csv}\n===\n");
+  const table = parse("=== table {#t src=https://example.com/fy.csv}\n===\n");
+  assert.deepEqual(codesOf(view.diagnostics ?? []), []);
+  assert.equal(view.children[0].table.src, table.children[0].table.src,
+    "the view carries the same renderer-time source a table does");
+  assert.deepEqual(view.children[0].table.rows, [], "no rows at build time — the renderer fetches them");
+});
+
+test("the remote-source answer does not soften a real cycle", () => {
+  const two = parse("=== view {#a src=#b}\n===\n\n=== view {#b src=#a}\n===\n");
+  assert.ok(codesOf(two.diagnostics ?? []).includes("view-source-cycle"), JSON.stringify(two.diagnostics));
+  const self = parse("=== view {#a src=#a}\n===\n");
+  assert.ok(codesOf(self.diagnostics ?? []).includes("view-source-cycle"), JSON.stringify(self.diagnostics));
+  // A chain that is not a cycle still resolves.
+  const chain = parse("=== table {#facts format=csv header=1}\nS,Q\nc,8\n===\n\n"
+    + "=== view {#a src=#facts}\n===\n\n=== view {#b src=#a}\n===\n");
+  assert.deepEqual(codesOf(chain.diagnostics ?? []), []);
+});
+
+test("a view src that is neither a relation nor a .csv/.tsv is refused by name", () => {
+  for (const src of ["notes.txt", "fy.json", "ftp://host/fy.csv"]) {
+    const ds = viewOn(src);
+    const hit = ds.find((d) => d.code === "unresolvable-table-source");
+    assert.ok(hit, `${src}: ${JSON.stringify(codesOf(ds))}`);
+    assert.match(hit.message, /is not a `\.csv`\/`\.tsv` data file or a relation target/, src);
+  }
+});
+
+test("a local data file: unchecked without a resolver, named when the resolver cannot read it", () => {
+  const unchecked = viewOn("fy.csv");
+  const warn = unchecked.find((d) => d.code === "unchecked-cross-document-reference");
+  assert.ok(warn, JSON.stringify(codesOf(unchecked)));
+  assert.equal(warn.severity, "warning");
+  assert.match(warn.message, /view source `fy\.csv` not checked \(no document resolver\)/);
+
+  const gone = viewOn("fy.csv", { resolveDoc: () => null });
+  const err = gone.find((d) => d.code === "unresolvable-table-source");
+  assert.ok(err, JSON.stringify(codesOf(gone)));
+  assert.match(err.message, /cannot resolve view source `fy\.csv`/);
+});
+
+test("a local data file that reads: the delimiter comes from the extension", () => {
+  const csv = parse('=== view {#v src=fy.csv}\n===\n', { resolveDoc: () => "Segment,Q1\nCloud,8\n" });
+  assert.deepEqual(codesOf(csv.diagnostics ?? []), []);
+  assert.deepEqual(csv.children[0].table.columns, ["Segment", "Q1"]);
+
+  const tsv = parse('=== view {#v src=fy.tsv}\n===\n', { resolveDoc: () => "Segment\tQ1\nCloud\t8\n" });
+  assert.deepEqual(codesOf(tsv.diagnostics ?? []), []);
+  assert.deepEqual(tsv.children[0].table.columns, ["Segment", "Q1"],
+    "a .tsv is read tab-delimited, not as one wide column");
+});
+
 console.log(`\n${passed} GEP-0012 view tests passed.`);

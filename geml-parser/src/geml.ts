@@ -1582,7 +1582,12 @@ function resolveViewSources(ctx: Ctx, opts: ParseOptions): void {
       return remote;
     }
     const scheme = schemeOf(target);
-    if (scheme === "http" || scheme === "https") return undefined; // renderer-time source, as for a table
+    // A remote source is fetched where it is drawn, exactly as a table's is, so
+    // there is nothing to build here. It says so with `null` — SETTLED, nothing
+    // to do — and not with `undefined`, which the loop below reads as `not ready
+    // yet`: an entry that never becomes ready never leaves `unresolved`, and the
+    // closing sweep then reports the view as a cycle it was never part of.
+    if (scheme === "http" || scheme === "https") return null;
     if (scheme !== null || !/\.(csv|tsv)$/i.test(target)) {
       error(line, "unresolvable-table-source", `view source \`${target}\` is not a \`.csv\`/\`.tsv\` data file or a relation target`);
       return null;
