@@ -76,4 +76,30 @@ test("CRLF head: the terminator is preserved, only the id changes", () => {
   assert.equal(normalizeBlockId("=== note {#x}\r\nB\r\n===\r\n", "t"), "=== note {#t}\r\nB\r\n===\r\n");
 });
 
+test("a plain close with trailing spaces still ends the block: the NEXT block's label is left alone", () => {
+  // `geml set` can be handed content holding more than one block, so the close
+  // scan has to stop exactly where geml.ts's own fence scan stops — and that one
+  // ignores trailing spaces. Without the trim the walk runs past this block's
+  // close and renames the label on a close belonging to the block after it,
+  // which still declares the old id and would stop parsing.
+  const src = [
+    "=== note {#old}",
+    "body",
+    "===  ",
+    "=== other {#old}",
+    "more",
+    "=== #old",
+    "",
+  ].join("\n");
+  assert.equal(normalizeBlockId(src, "new"), [
+    "=== note {#new}",
+    "body",
+    "===  ",
+    "=== other {#old}",
+    "more",
+    "=== #old",
+    "",
+  ].join("\n"));
+});
+
 console.log(`\n${passed} test(s) passed.`);
