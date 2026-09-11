@@ -167,13 +167,19 @@ source = "数值抄自 1.mhtml：侧栏 260px、正文列 1012px、亮色 #fffff
 ===
 === style-rule {#side-back-link match="text#side-back link" color="#59636e" padding="4px 6px" border-radius=6px}
 ===
+=== style-rule {#side-back-icon match="text#side-back image" width=14px}
+===
+=== style-rule {#branch-icon match="text#branch-icon image" width=14px}
+===
+=== style-rule {#side-tools-icon match="text#side-tools image" width=14px}
+===
 === style-rule {#side-tools match="text#side-tools" axis=row gap=4px color="#59636e"}
 ===
 === style-rule {#find-icon match="text#find-icon image" width=14px}
 ===
 === style-rule {#find-key match="text#find-key code-span" border="1px solid #d1d9e0" border-radius=4px padding="0 5px" color="#59636e" font-size=12px background="transparent"}
 ===
-=== style-rule {#tree match="text#file-tree" component=tree sticky=0 scroll=own padding=8px line-height=28px}
+=== style-rule {#tree match="text#file-tree" component=tree indent=16px sticky=0 scroll=own padding=8px line-height=28px}
 ===
 === style-rule {#tree-link match="text#file-tree link" color="#1f2328"}
 ===
@@ -199,6 +205,8 @@ source = "数值抄自 1.mhtml：侧栏 260px、正文列 1012px、亮色 #fffff
 === style-rule {#commit-left match="text#commit-left" font-size=14px}
 ===
 === style-rule {#commit-left-link match="text#commit-left link" color="#1f2328"}
+===
+=== style-rule {#commit-left-icon match="text#commit-left image" width=20px}
 ===
 === style-rule {#commit-left-hover match="text#commit-left link" when="@hover" color="#0969da"}
 ===

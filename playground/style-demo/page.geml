@@ -30,7 +30,7 @@ A 1:1 replica of a GitHub page, to see how geml-style renders
 ===
 
 === text {#search-icon}
-![Open quick search dialog, type / to search](icons/search.svg){width=14}
+![Open quick search dialog, type / to search](icons/search.svg)
 ===
 
 === form-field {#site-search type=text placeholder="Type / to search"}
@@ -111,11 +111,11 @@ More ![](icons/triangle-down.svg)
 ===
 
 === text {#side-back}
-[![](icons/chevron-left.svg){width=14}](https://github.com/geml-spec/geml/blob/main/docs/PUBLISHING.md){title="View file on default branch"}
+[![](icons/chevron-left.svg)](https://github.com/geml-spec/geml/blob/main/docs/PUBLISHING.md){title="View file on default branch"}
 ===
 
 === text {#branch-icon}
-![title-projection branch](icons/git-branch.svg){width=14}
+![title-projection branch](icons/git-branch.svg)
 ===
 
 === form-options {#branches format=csv}
@@ -128,12 +128,12 @@ main,main
 ===
 
 === text {#side-tools}
-- [![](icons/plus.svg){width=14}](https://github.com/geml-spec/geml/new/title-projection/docs){title="Add file"}
-- ![Search this repository](icons/search.svg){width=14}
+- [![](icons/plus.svg)](https://github.com/geml-spec/geml/new/title-projection/docs){title="Add file"}
+- ![Search this repository](icons/search.svg)
 ===
 
 === text {#find-icon}
-![Go to file](icons/search.svg){width=14}
+![Go to file](icons/search.svg)
 ===
 
 === form-field {#file-find type=text placeholder="Go to file"}
@@ -190,7 +190,7 @@ main,main
 ===
 
 === text {#commit-left}
-[![](icons/avatar.svg){width=20}](https://github.com/geml-spec/geml/commits?author=xiongjy2104){title="commits by xiongjy2104"} [xiongjy2104](https://github.com/xiongjy2104) [feat(projection): the meta title is the h1 in --to md and --to html; …](https://github.com/geml-spec/geml/commit/b8475ea7f9b7c89887c457c066a3ace01f82fd64) ![Open commit details](icons/ellipsis.svg)
+[![](icons/avatar.svg)](https://github.com/geml-spec/geml/commits?author=xiongjy2104){title="commits by xiongjy2104"} [xiongjy2104](https://github.com/xiongjy2104) [feat(projection): the meta title is the h1 in --to md and --to html; …](https://github.com/geml-spec/geml/commit/b8475ea7f9b7c89887c457c066a3ace01f82fd64) ![Open commit details](icons/ellipsis.svg)
 ===
 
 === text {#commit-right}
@@ -218,7 +218,7 @@ Blame,Blame
 - ![Copy raw file](icons/copy.svg)
 - [![](icons/download.svg)](https://github.com/geml-spec/geml/raw/refs/heads/title-projection/docs/PUBLISHING.md){title="Download raw file"}
 - [![](icons/pencil.svg)](https://github.com/geml-spec/geml/edit/title-projection/docs/PUBLISHING.md){title="Edit this file"}
-- ![More edit options](icons/triangle-down.svg){width=12}
+- ![More edit options](icons/triangle-down.svg)
 - ![Outline](icons/list-unordered.svg)
 ===
 

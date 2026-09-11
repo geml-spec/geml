@@ -180,7 +180,7 @@ in its `params`, so it cannot give `width` a private meaning.
 | `hide-below` | a number: viewport px below which it is hidden | blocks and containers |
 | `font-size` `line-height` `font-family` `color` `background` `border` `border-radius` | open | blocks and containers |
 | `text-align` | `left` \| `center` \| `right` \| `justify` | blocks and containers |
-| `gap` | open (a CSS length): space between slots, or between a block's items when it has `axis` | containers and blocks with `axis` |
+| `gap` | open (a CSS length): space between slots; on a block with `axis`, the space between its items **and** inside one, between an icon and its label | containers and blocks with `axis` |
 | `axis` | `row` \| `column` (default `column`) | `style-screen` / `style-frame`; and a block — its items (a list's entries, a form's fields) run along that axis, and a list laid out in a row draws no markers |
 | `layer` | `page` \| `overlay` \| `screen` (default `page`) | blocks and containers: in the flow; floated under the nearest container, taking no space (a dropdown); or covering the viewport with its content centred (a splash, a modal, a toast) |
 | `visible` | `yes` \| `no` (default `yes`) | blocks and containers: shown *right now*. `hide-below` is the viewport half of "not shown"; this is the state half |

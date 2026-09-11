@@ -152,7 +152,7 @@ script**：组件和处理器**只报名字**，实现由宿主提供，与 `dia
 | `hide-below` | 数字：视口窄于此 px 则隐藏 | 块与容器 |
 | `font-size` `line-height` `font-family` `color` `background` `border` `border-radius` | 开放 | 块与容器 |
 | `text-align` | `left` \| `center` \| `right` \| `justify` | 块与容器 |
-| `gap` | 开放（CSS 长度）：槽位之间的间距；块带 `axis` 时是条目之间的间距 | 容器，以及带 `axis` 的块 |
+| `gap` | 开放（CSS 长度）：槽位之间的间距；块带 `axis` 时既是条目之间的间距，**也是**一条条目里面图标与文字之间的间距 | 容器，以及带 `axis` 的块 |
 | `axis` | `row` \| `column`（默认 `column`） | `style-screen` / `style-frame`；以及块——它的条目（列表的项、表单的字段）沿这条轴排，横排的列表不画项目符号 |
 | `layer` | `page` \| `overlay` \| `screen`（默认 `page`） | 块与容器：跟着文档流；贴着最近的容器浮出来、不占位置（下拉菜单）；或盖住整个视口、内容居中（开场提示、模态框、吐司） |
 | `visible` | `yes` \| `no`（默认 `yes`） | 块与容器：**现在**显不显示。`hide-below` 是「不显示」按视口的那一半，这是按状态的那一半 |

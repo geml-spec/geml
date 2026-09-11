@@ -5,7 +5,7 @@
 // 第一个页面用例长出来的 bar / tab-bar / field / editor / icon / markdown-body 都删了 —— 它们做的事
 // GEML 本来就有办法说（列表 + 行内链接与图片、form-field select、view=source）。
 
-import { stateClass } from "./layout.js";
+import { stateClass, safeCssValue } from "./layout.js";
 
 /**
  * 状态存储。toggle 翻到哪个值 profile 没说：取 init-value 和所有 variant 的 when= 里
@@ -71,9 +71,14 @@ export function tree(block, params, ctx) {
   const inner = ctx.renderBlock(block, dom, ctx.labels, ctx.byId);
   if (!inner) return null;
   inner.classList.add("geml-tree");
+  // 每一层缩进多少是**这一棵树的样子**，不是「树」这件事本身，所以它是组件参数
+  // （设计 §12.3 把 `indent` 点名为组件词）。不给就用一个能看出层级的默认值 ——
+  // 一棵不缩进的树不是树。值过和内含词同一道闸：样式表是不可信输入。
+  const indent = safeCssValue(params.indent ?? "1.2em") ?? "1.2em";
   for (const li of [...inner.querySelectorAll("li")]) {
     const sub = [...li.children].find((c) => c.tagName === "UL" || c.tagName === "OL");
     if (!sub) continue;
+    sub.style.paddingLeft = indent;
     const details = dom.createElement("details");
     details.setAttribute("open", "");
     const summary = dom.createElement("summary");

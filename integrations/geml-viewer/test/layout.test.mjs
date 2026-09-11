@@ -912,4 +912,32 @@ profile = "geml-style/v1"
   assert.equal(/url\(/.test(css), false, "CSP：注入的 CSS 不加载任何资源");
 });
 
+test("gap 同时管条目之间和条目里面 —— 图标和文字的距离不再写死在宿主", () => {
+  const { vm } = vmOf('=== meta\nprofile = "geml-style/v1"\n===\n'
+    + '=== style-screen {#p slots="text#nav, text#plain"}\n===\n'
+    + '=== style-rule {#n match="text#nav" axis=row gap=8px}\n===\n'
+    + '=== style-rule {#q match="text#plain" axis=row}\n===\n',
+    '=== text {#nav}\n- ![](a.svg) [a](https://a)\n===\n=== text {#plain}\n- b\n===\n');
+  const css = cssForPage(vm);
+  assert.match(css, /\.geml-b-nav \.geml-items \{[^}]*gap: 8px \}/);
+  assert.match(css, /\.geml-b-nav \.geml-items > li \{ gap: 8px \}/);
+  assert.doesNotMatch(css, /\.geml-b-plain \.geml-items > li/, "没写 gap 就不生成条目内的规则");
+});
+
+test("tree 的 indent 是组件参数：样式表给就用它，不给用默认值，危险值退回默认", () => {
+  const doc = '=== text {#t}\n- [docs](https://d)\n  - [a.md](https://d/a)\n===\n';
+  const sheet = (extra) => '=== meta\nprofile = "geml-style/v1"\n===\n'
+    + '=== style-screen {#p slots="text#t"}\n===\n'
+    + `=== style-rule {#r match="text#t" component=tree${extra}}\n===\n`;
+  const indentOf = (extra) => {
+    const { vm, model } = vmOf(sheet(extra), doc);
+    const { document } = dom();
+    const out = renderPage(vm, model, document, { renderBlock, labels: [], components: COMPONENTS, state: null });
+    return out.root.querySelector('[data-block="#t"] details > ul').style.paddingLeft;
+  };
+  assert.equal(indentOf(" indent=24px"), "24px");
+  assert.equal(indentOf(""), "1.2em", "不给就用默认 —— 一棵不缩进的树不是树");
+  assert.equal(indentOf(' indent="0} body{display:none"'), "1.2em", "样式表是不可信输入，过不了闸就退回默认");
+});
+
 console.log(`\n${passed} layout tests passed.`);

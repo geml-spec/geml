@@ -138,6 +138,9 @@ export function cssForPage(vm, dropped = []) {
       if (box.axis === undefined) return;
       const gap = box.gap === undefined ? null : safeCssValue(box.gap);
       rules.push(`${cond}${target} .geml-items { display: flex; flex-direction: ${box.axis === "row" ? "row" : "column"}; list-style: none; margin: 0; padding: 0${gap ? `; gap: ${gap}` : ""} }`);
+      // 同一个 `gap` 也落到条目**里面** —— 图标和它的文字之间。宿主原来在这儿写死 6px，
+      // 那是这一页的样子，样式表还够不着（它只生成 `.geml-items` 的规则，到不了 li）。
+      if (gap) rules.push(`${cond}${target} .geml-items > li { gap: ${gap} }`);
     };
     const skipFor = (box) => new Set(box.axis === undefined ? [] : ["gap"]);
     const base = declarations(b.box, dropped, b.block, skipFor(b.box));
