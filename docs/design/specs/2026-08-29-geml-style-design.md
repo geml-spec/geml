@@ -1,7 +1,10 @@
 # geml-style —— 一个不改动 GEML 规范的应用层样式 profile
 
 - 日期：2026-08-29
-- 状态：设计稿（brainstorm 产出，尚未立 GEP）
+- 状态：设计稿（brainstorm 产出，尚未立 GEP）；**2026-09-09 增补 §12** —— 第一个文档布局用例
+  （用 viewer 渲染出 GitHub 的 blob 页）把 profile §0.1 里"specified, checked, and unexercised"
+  的那一栏全部拉进了真实使用，并改动了 §3.2 / §4.3 / §5.1 / §5.4 / §5.6 / §7 各一处；
+  **2026-09-10 增补 §13** —— 第二个用例（外壳归位）把 §12.3 圈死的清单再动一次
 - 目标：让 `.geml` 文档能被渲染成组件化、可交互的 webapp 界面，而 **GEML 1.0 规范一个字不动**
 - **词汇表在别处**：本文是*为什么*。落地后的完整词汇、属性表、诊断目录与视图模型见
   [`spec/profiles/geml-style/geml-style-profile_CN.md`](../../../spec/profiles/geml-style/geml-style-profile_CN.md)
@@ -12,8 +15,9 @@
 ## 1. 摘要
 
 `geml-style` 是一个**应用层 profile**——和 `codemap` 同级，"the way schema.org relates to HTML"。
-它定义三个带连字符的块类型（`style-rule` / `style-state` / `style-screen`），
-把文档里的 block 映射到宿主应用提供的 UI 组件上，并声明一套**闭合的、无环的**跨块联动。
+它定义四个带连字符的块类型（`style-rule` / `style-state` / `style-screen` / `style-frame`，
+最后一个是 §12 增补的），把文档里的 block 映射到宿主应用提供的 UI 组件上，
+并声明一套**闭合的、无环的**跨块联动。
 
 三条贯穿全文的原则：
 
@@ -70,6 +74,9 @@ profile = "geml-style/v1"
 ===
 ```
 
+（`layout=` 自 §12.4 起写作 `component=`，`split` 也可直接用内含词 `axis=row` 表达；
+例子保留设计当时的写法。）
+
 ### 2.3 宿主应用 —— TSX
 
 ```tsx
@@ -121,7 +128,8 @@ profile = "geml-style/v1"
 |---|---|
 | `style-rule` | 选择器 → 组件映射、参数、能力绑定 |
 | `style-state` | 一格视图状态 + 它的产生者 |
-| `style-screen` | 屏幕组合（槽位、布局） |
+| `style-screen` | 一页：根，槽位按 `axis=` 排布 |
+| `style-frame` | 页内的一块区域：只能被槽位引用，可以再装区域（§12.4） |
 
 **body 一律为空，全部信息写在属性对象里。** 因为 §3 规定未注册类型的 body
 "preserved as raw"——核心 parser 不解析它，放进去的结构就检查不了。
@@ -208,6 +216,9 @@ of the document)"；加上 flow block 的 body 嵌套，一条组合子全覆盖
 
 > A 比 B 更特定 ⟺ A 的条件集是 B 的**真超集**
 
+一条规则的**条件集** = 选择器的各项合取条件 + `screen=`（§5.5）+ `when=`（§12.5）。
+后两者都是作为普通条件进入这个集合的，所以下面三种情况对它们同样成立，不另设裁决。
+
 三种情况：
 
 | | 情况 | 处理 |
@@ -259,6 +270,9 @@ interaction  ──→  state  ──→  view params
 ```
 
 **状态永远不读状态。** 于是没有图，也就没有环——**结构化无环，且与源序无关**。
+
+（这句话说的是**状态**。§12.4 引入的 `style-frame` 嵌套是另一张图 —— 区域装区域 ——
+它**有**环的可能，由 `frame-cycle` 检查；两张图互不相干，状态管道这一条依然成立。）
 
 这一点必须结构化而非位置化：§6 的计算列靠**声明顺序**保证无环
 （"a formula sees only data columns and *earlier* computed columns"，
@@ -323,6 +337,10 @@ interaction  ──→  state  ──→  view params
 规则里**除保留键以外**的所有键（`match` / `component` / `handler` / `show` / `filter` 之外）
 原样作为组件参数透传，因此组件参数不受 `style-unknown-attribute` 约束。
 
+**2026-09-09 起保留键多了一组**：§12.3 的内含词（`width` `sticky` `font-size` …）。
+它们由 profile 消费、落进视图模型的 `box` 字段，**不再透传** —— 组件收到的 `params`
+里永远看不到它们，所以组件也不可能把 `width` 另解释成别的意思。
+
 ### 5.5 `screen=` —— 同一个块在不同屏幕里的不同展示
 
 一条规则可以用 `screen=` 限定它只在某些屏幕里生效（空格分隔，惯例同 `profile` ——
@@ -349,6 +367,11 @@ interaction  ──→  state  ──→  view params
 和 `unknown-state` 同级。
 
 ### 5.6 `style-screen`
+
+> **2026-09-09 变更（§12.4）**：`layout=` 改名 `component=`，与块上的同名键同构；
+> 新增内含词 `axis=row|column`；槽位里**裸 `#x` 指本样式表的 `style-frame`**，
+> 语料块须带类型（`text#x`）；新增 `style-frame` 块类型承载页内区域。
+> 下文保留设计当时的写法，作为"为什么是槽位列表"的理由。
 
 ```
 === style-screen {#overview layout=split slots="table#calls, $sel"}
@@ -440,12 +463,19 @@ codegen 优先的产物会被手改，再生成时静默摧毁手改——同一
 | `unknown-interaction` | error | `on=` 不是本 profile 定义的交互（封闭词汇） |
 | `unknown-component` | warning | 宿主未注册 → 惰性回退 |
 | `unknown-handler` | warning | 宿主未注册 → 惰性回退 |
-| `style-unknown-attribute` | warning | `style-state` / `style-screen` 上的未知键 |
+| `style-unknown-attribute` | warning | `style-state` / `style-screen` / `style-frame` 上的未知键 |
+| `unknown-frame` | error | 槽位里裸 `#x` 没有对应的 `style-frame`（§12.4） |
+| `screen-nested` | error | 槽位里裸 `#x` 指到了一个 `style-screen` —— 页不能装进页 |
+| `frame-cycle` | error | 区域装区域形成环，消息带整条链 `#a → #b → #a` |
+| `frame-too-deep` | error | 某条放置路径上 frame 嵌套深过 16 层——和 embed 的上限同一个理由（§12.4） |
+| `unused-frame` | warning | 声明了却没有任何槽位引用的 `style-frame` |
+| `style-invalid-value` | error | 内含词的封闭值域被违反（`axis` / `scroll` / `sticky` / `hide-below`），或 `when=` 形式不对（§12.4） |
 
 `style-rule` 上**没有**未知键检查：保留键之外的键原样透传为组件参数（§5.4），
 那是组件自己的词汇，profile 无权裁决。
 
-**没有 `binding-cycle`。** 构造上不可能，不需要这个码。
+**没有 `binding-cycle`。** 构造上不可能，不需要这个码。`frame-cycle` 抓的是另一张图
+（§5.1 的括注）—— 区域的包含关系，不是状态的依赖关系。
 
 ---
 
@@ -570,3 +600,698 @@ return { data: { …, nodes: {}, edges: [], mode: "modules", mods, medges, entry
 `filter` 算子（mustapi 的边全是 `kind=call`、confidence 全空，没有可过滤的噪音）、
 多产生者状态、`handler=`（无真实宿主）、`select` 之外的交互。
 它们在检查器里都有测试，但没有任何真实样式表用到过。
+
+**2026-09-09 更新**：`style-screen`、槽位、`select` 之外的交互（`toggle`）自 §12 起有了
+第一个真实用例 —— GitHub blob 页的布局。`filter`、多产生者、`handler=` 仍未被验过。
+
+---
+
+## 12. 设计变更（2026-09-09）：从显示旋钮到一整页
+
+### 12.1 触发
+
+要求是：用 geml-viewer 浏览器插件直接渲染一份 `.geml`，出来的页面 1:1 是 GitHub 的
+blob 视图（`docs/PUBLISHING.md` 那一页，以 mhtml 存档为准）。**关系照 HTML + CSS**：
+页面的全部内容 —— 顶栏、repo tabs、文件树、面包屑、commit 条、toolbar、正文、footer ——
+都是作者写在 `.geml` 里的块；样式表只说它们**摆在哪、多大、什么样**。没有路由，没有数据源。
+
+从 mhtml 量出的骨架（视口 1440）：
+
+```
+GlobalNav                       全宽 · h=100 · 随页滚走
+PageLayout ─ row
+├─ 文件树栏   x=0   w=321      position:sticky top:0 · 自己滚
+└─ 内容      x=321  w=1104
+   ├─ 面包屑 + commit 条        y 100→225
+   └─ 卡片   x=337  w=1072     （内缩 16）
+      ├─ toolbar                sticky top:0 · z=4
+      └─ markdown-body  w=1008  （内缩 32；≤768 时 48）
+```
+
+栏宽是定值不流式；≤768 时文件树 `display:none`（1011 还在）。文字：正文 16/24、h1 32/40、
+h2 24/30、表格 16/24、代码 13.6/20.4；色 `#1f2328`；边框 `#d0d7de`，标题下沿 `#d7dde3`。
+
+### 12.2 用既有词汇试写，暴露出的四处
+
+先按 §5.6 原样写了一份样式表 —— 六个区域六个槽位。`geml style check` **0 error 0 warning**，
+`--json` 出来的视图模型**完整**：槽位全部解析到真实块，区域参数逐字透传
+（`sticky:true`、`width:"321px"`、`component:"outline-pane"`）。从样式表到解析器这条链是通的。
+问题在链的两端：
+
+1. **嵌套表达不了。** `slots=` 是一层扁平的块选择器。让一个槽位指向另一个 screen，
+   它被当成块选择器去匹配语料 —— `unmatched-rule`、`blocks: []`，两个 screen 在视图模型里
+   是毫无关系的兄弟。而页面是三层嵌套。
+2. **断点表达不了。** `screen=` 是 screen id 列表，不是 media query；"低于某宽收起文件树"
+   在 v1 里没有任何写法。
+3. **外观没有词汇。** 被真实使用的旋钮只有四个（`fold` `depth` `hide-accessors` `palette`），
+   全是 codemap 那个组件自己的遥控器按键。要写出 321px、sticky、1012px，要么给 viewer
+   做一个把像素全烤死的 `github-shell` 组件 —— 那不是 style，是挑主题名 —— 要么 profile
+   自己收一组词。
+4. **没有宿主。** `style-resolve.ts` 产出 `screens[]`，全仓库 **0 个**消费者；viewer 不读
+   样式表（grep `style-resolve|loadStylesheet|geml-style` = 0，自带手写 `geml.css`），
+   整个 CSS 只有一个容器 `.geml-body`。
+
+顺带看清了两条术语裂缝：块的展现叫 `component=`、screen 的展现叫 `layout=`，同一件事两个词；
+`handler=` 在 rule 上、`on=` 在 state 上，§5 的三段管道里没有"副作用"的位置。
+
+### 12.3 决策一：内含词与组件词并存，判据是"换个块还是不是这个意思"
+
+> 一个属性，放在段落、表格、图上意思都一样 → **内含**（profile 定义，所有渲染器同解）；
+> 只对某一种控件才说得通 → **组件自定**（透传，各组件说明书）。
+
+这就是 CSS 属性与 Web Components 属性的分法，也是 §2.1 早就在做的二分 —— 只是 profile
+那一栏从 6 个控制词扩成"控制词 + 一小组盒子/文字属性"。按那一页圈死，多一个不加：
+
+| 内含词 | 页面上的位置 | 实测值 |
+|---|---|---|
+| `width` | 文件树栏 | `321px` |
+| `padding` | 卡片 / 正文 | `16px` / `32px`（≤768：`48px`） |
+| `sticky` | 文件树栏、toolbar | `0` |
+| `scroll` | 文件树栏 | `own`：高度钉在视口，内容自己滚 |
+| `hide-below` | 文件树栏 | `1012`（阈值落在 769–1011 之间） |
+| `max-width` | 正文 | 1440 以内未触发（正文填满父级减 padding）；留给更宽的屏，否则正文流式撑满 |
+| `axis` | **screen / frame 上**，槽位横排还是竖排 | 最外层 `row`，其余 `column`（默认） |
+| `font-size` `line-height` | 正文/h1/h2/表格/代码 | 见 §12.1 |
+| `color` `background` `border` | 正文 / 页面 / 单元格与标题下沿 | 见 §12.1 |
+
+不叫 `flow` —— 那是块类型；不叫 `direction` —— CSS 里它已经是 `ltr|rtl`，借 CSS 的词却换意思
+正是 §4.4 说的陷阱。`font-family` 不收：两边都是系统字体栈，CSP 下也引不了字体。
+
+配套规则：**内含词是保留的**。profile 消费掉、落进视图模型的 `box` 字段，不再透传；
+组件的 `params` 里永远看不到它们，所以 tree 组件不可能把 `width` 另解释成缩进。
+这是结构保证，不是约定。§4.3 的仲裁对属性是通用的，新词自动获得"两条规则打架 → 报错"。
+
+### 12.4 决策二：screen 是页，frame 是页内区域
+
+| | 之前 | 现在 |
+|---|---|---|
+| 根 | 要靠"没被引用"推导 | **`style-screen` 就是根**，一页一个 |
+| 区域 | 没有 | **`style-frame`**，只能被槽位引用，可以再装区域 |
+
+```
+=== style-screen {#page axis=column slots="text#global-header, text#repo-tabs, #body"}
+===
+=== style-frame  {#body axis=row    slots="table#file-tree, #main"}
+===
+=== style-frame  {#main axis=column slots="text#breadcrumb, text#commit-bar, #card"}
+===
+=== style-frame  {#card axis=column slots="text#toolbar, text#content"}
+===
+```
+
+- **槽位里的引用**：裸 `#x` = 本样式表里的 frame；带任何限定的（`text#x`、`table.kpi`、
+  `#x[attr]`）= 语料块选择器。这是**语法**上的区分，不靠查表，所以不需要 `ambiguous-slot`，
+  写错的 `#bdoy` 也是 error 而非 warning。跟 GEML 自己的约定一致：`#id` 单独出现指本文档，
+  别的文档要带路径；`screen=` 引用 style-screen 也已经是裸 id。`match=` 不受影响，
+  永远是语料选择器。
+- **frame 不是 `<iframe>`**：不是独立文档、不隔离，就是同一页上的一块区域。
+- **几个根算对，是宿主的事**：codemap 的 master/detail 天然多根；viewer 渲染"这一页"，
+  要求恰好一个 `style-screen`，0 个退回今天的单栏渲染，≥2 报错。profile 不裁定。
+- **`screen=` 的作用域**：screen 就是整页，`screen=page` 自然罩住页里所有 frame。
+  frame 级的"同一块在不同区域不同画法"这一页用不到，不加 `frame=`。
+- **`layout=` → `component=`**：screen/frame 的宿主命名排布与块上的 `component=` 完全同构，
+  改成同一个词；`axis=` 是内含词，`component=` 可选。`layout=` 今天 0 个消费者，改名零成本。
+- **诊断**（已并入 §7）：`unknown-frame`、`screen-nested`、`frame-cycle`（消息带整条链）、
+  `frame-too-deep`（上限 16）、`unused-frame`。**深度上限是安全边界**：样式表是不可信输入
+  （§9），一万个 frame 的链没有环却要渲染一万层。第一版写的是"不设上限，没有环就不可能无限深"，
+  把"有限"和"栈放得下"混为一谈了，而且遍历是递归的 —— 一万层就打爆栈，四十层菱形（每层两个
+  槽位指向同一个子 frame）是 2⁴⁰ 步。现在环检测是迭代 + 已访问集、深度是一遍拓扑 DP，都 O(N)。
+  **frame 复用放行**：一个 frame 放两处就渲染两遍，等于同样的块点名两次，本来就允许 ——
+  嵌套因此是以 screen 为根的 DAG，深度取最长的放置路径；
+  `style-invalid-value`（error）—— 内含词里值域封闭的几个（`axis=row|column`、
+  `scroll=own|page`、`sticky` 与 `hide-below` 须为数字）取了域外值，以及 `when=` 不符合
+  `$state=value` 形式。开放值域的（`width=321px`、`color=#1f2328`）不校验，原样交给宿主。
+
+### 12.5 决策三：状态只管样子，触发归宿主
+
+边界照 CSS 的 `details[open]`：样式表声明状态和每个状态下的外观，谁去点是 viewer 的事。
+
+```
+=== style-state {#tree type=scalar match="table#file-tree" on=toggle init-value=open}
+===
+=== style-rule  {#tree-open   match="table#file-tree" component=tree width=321px sticky=0 scroll=own}
+===
+=== style-rule  {#tree-closed match="table#file-tree" when="$tree=closed" width=0}
+===
+```
+
+- `on=` 的闭集从 `select` 一个变两个，加 `toggle`。tab 的 active 用既有的 `select` 就够。
+- `when=` 是 rule 上的新保留键，形式 `$state=value`，逗号并列表示全部满足。**只做相等**，
+  不做 `!=`、不做 or —— §5.3 "没有条件、没有算术"的克制不破。`$x` 未声明 → `unknown-state`。
+- **与 §4.3 的关系是零改动**：`when=` 作为普通条件进入条件集。`#tree-closed` 的条件集是
+  `#tree-open` 的真超集，折叠时它赢，依据是既有偏序，不是新加一条"带状态的优先"。
+  两条都带 `when=` 且互不包含、又争同一属性 → 照旧 `ambiguous-rule`，正是该报的。
+- 视图模型里 binding 因此多一层 `variants`（下节）。叠加顺序**构建期按 §4.3 排好**，
+  运行时只挑 `when` 全匹配的叠上去，不做仲裁 —— 与 §5.3 "算子由运行时执行、判定在构建期"
+  同一态度。
+- **互斥的 `when` 集合不算冲突。** 两条都带 `when=` 的规则若对**同一个状态**给了**不同的值**
+  （`$tab=Preview` 与 `$tab=Code`），它们不可能同时生效，争同一属性也不是 `ambiguous-rule`
+  —— tab 条的每个 tab 一条规则正是这种写法。只有**可以同时成立**的两个 `when` 集合
+  （`$tree=closed` 与 `$tab=Code`）、条件集又互不包含、又争同一属性，才报错。
+- **variants 的叠加顺序**：按 `when` 条件数升序，同数按样式表内出现序。运行时按此序把
+  条件全部满足的 variant 依次叠在基础参数上；真超集的一定排在后面，所以"更具体的赢"
+  不需要运行时再比较。
+- **跨层**：基础参数与 variant 若来自不同层，层号高的保留、低的那个属性直接丢弃 ——
+  §4.1 的"上层整体压过下层"对有条件的规则同样成立。
+
+### 12.6 视图模型（§10）的最终形状
+
+```
+states    [{ id, type, on: select|toggle, valueFrom?, initValue? }]
+screens   [{ id, axis, component?, slots, bindings }]        ← 根
+frames    [{ id, axis, component?, slots }]                  ← 顶层平铺，按 id 引用
+bindings  [{ doc, block, rules, box, params, variants: [{ when, box, params }] }]
+diagnostics
+
+slot  =  { kind:"blocks", selector, blocks[] } | { kind:"state", state } | { kind:"frame", frame }
+```
+
+`box` 装内含词，`params` 装组件词，二者结构上分开（§12.3）。
+`component` / `handler` / `show` / `filter` 留在 `params` 里，与 v1 落地时的视图模型一致 ——
+既有消费者（`graph-style.ts`）和测试都在那里读它，搬动没有收益。`when` 是
+`{ state: value }` 的映射。
+
+### 12.7 宿主侧：viewer 要接的三件与退路
+
+1. **找到样式表** —— 沿用 render.ts 那条唯一路径：相对被看文档找 `_index/index.geml`，
+   读 `default-style` / `#sitemap`。**先核一件事**：viewer 能否取同目录文件；`transclude.js`
+   存在说明 embed 能取，大概走 bg.js 的宿主权限，未验。
+2. **消费视图模型** —— screen → frames → slots → blocks 建 DOM；`axis` 变 flex 方向；
+   `box` 变内联 CSS（纯 CSS，`default-src 'none'` 下没问题）；块槽位查 bindings，
+   有 `component` 走注册表，没有走今天的默认渲染。
+3. **注册表 + 状态接线** —— 这一页要三个 component：`tree`、`tab-bar`、`markdown-body`。
+   `toggle`/`select` 接到点击；状态变了 → 挑 `when` 全匹配的 variants 叠上。
+
+实现时定下的四条，profile 没写、宿主必须有答案：
+
+- **入口在哪**：与被看文档**同目录**的 `_index/index.geml`；用 `meta.profile` 含 `geml-style/v1`
+  来**认**，路径上放了别的东西按"没有入口"处理（profile §1.1 的话）。入口里的路径相对于
+  `_index/`。viewer 的 fetch 是异步的而 `loadStylesheet` 的 `loadDoc` 是同步的，所以先按
+  `default-style` / `#sitemap` 命中 / 每条 `embed {src=}` 传递地把文件预取进一张 Map，再同步喂。
+- **`toggle` 翻到哪个值**：profile 只说"两个之间翻"没说是哪两个。取 `init-value` 和该状态在
+  所有 `when=` 里被点名的**那一个**别的值；点名了零个或多于一个，toggle 惰性并在 console 说明。
+- **没被槽位放置的块不渲染**：screen 就是整页。数量报到 console。
+- **screen 数**：0 → 今天的单栏；1 → 画页；≥2 → 横幅说明 + 单栏。视图模型带 error 级诊断 → 同样
+  横幅 + 单栏，横幅列出诊断。"拒绝"永远是可读的退回，不是白页。
+
+**退路**：没样式表、或没有 `style-screen` → 今天的 `.geml-body` 单栏。零回归。
+
+### 12.8 落点
+
+| | 改什么 |
+|---|---|
+| `style-resolve.ts` | `style-frame`；槽位裸 `#x` 查 frame；四个诊断；`axis` / `component`；内含词分流到 `box`；`on=toggle`；`when=` 进条件集、出 `variants` |
+| profile（EN + CN） | §0.1（有真实用例了）、§2.1、§2.2、§2.3、§4、§5（"no graph" 那句）、§8、§10 |
+| viewer | §12.7 三件 |
+
+一句话总结这次变更：**词汇表能表达一层、表达不了嵌套和外观；宿主一个都没接。**
+补的是嵌套、外观、状态三组词和一个宿主，`select into` 的立场、无 script、歧义即错误，一条没动。
+
+---
+
+## 13. 设计变更（2026-09-10）：外壳归位 —— 谁进规范，谁留文件
+
+第二个页面用例。§12 让样式表能排出一页，代价在 §12.8 落点之外的地方显出来：viewer 里长出了 7 个只认那一页的
+组件、99 行带着 GitHub 调色板的宿主 CSS、样式表里 10 个没人校验的私有参数键。这一节把每一样东西按 §12.3 的
+判据分回三层：**规范**只收对任何块都成立的词，**插件**只留对这些词的解释，**GEML 文件**装下所有 GitHub 的东西。
+
+两处分岔由作者拍板：外壳数据用**列表**承载（§13.3），hover **进规范**（§13.4e）。
+图解：[外壳归位](https://claude.ai/code/artifact/57f49eba-6dbd-4d53-9792-4abd3e356302)。
+### 13.1 摘要
+
+复刻做到了 1:1，代价是三堆东西落在了错的地方：
+
+| 在哪 | 是什么 | 实测 |
+|---|---|---|
+| `integrations/geml-viewer/src/components.js` | 只认这一页的组件：`bar` `tree` `tab-bar` `field` `editor` `icon` `markdown-body` | 459 行，7 个 |
+| `integrations/geml-viewer/src/geml.css` 257–355 行 | 页面段：带 GitHub 调色板的宿主 CSS，含一条按**块 id** 写的 `.geml-b-toolbar` | 99 行，22 处色值，10 个不同的色 |
+| `_index/github.style.geml` | rule 上无人校验的私有参数键：`icon icon-dir icon-open icon-closed icon-size shortcut state source-when preview-max-width title` | 10 个 |
+
+方法是反着看：现有实现里每一段 CSS/JS 都问一句「GEML 本来有没有说这件事的办法」。多数有；少数要补词，
+补词按设计 §12.3 的判据过：**放在段落、表格、图上意思都一样的才进规范**。
+
+结果分三层：
+
+- **规范**（geml-style profile；GEML-spec §5 一处）：六件事。选择器多一类行内步；`axis` 允许挂在块上；`view`、`editable`
+  两个内含词；`when=` 多 `@hover` `@focus` 两个内建名；rule 上的参数袋收口。核心那边渲染器放行链接与图片的
+  `{title=}`。
+- **插件**（geml-viewer）：只解释规范里的词。状态存储与三种喂法；视图模型到 CSS 的编译多行内选择器与伪状态；两个不认
+  页面的通用组件 `tree` `segments`；`view=source` 的源码框。任何一行不许出现色值、尺寸、GitHub 的类名。
+- **GEML 文件**（`page.geml` `github.style.geml` `icons/*.svg`）：所有 GitHub 的东西。
+
+估算：components.js 459 → 约 90 行、7 → 2 个组件；geml.css 页面段 99 → 约 15 行、色值 22 → 0；样式表私有键 10 → 0。
+这些数字说量级，不是承诺。实施步骤见[同期的计划](../plans/2026-08-29-geml-style-checker.md)，Task 8 起。
+
+---
+
+### 13.2 判据
+
+沿用两条已经写在设计文档里的原话，不新造：
+
+> §12.3：一个属性，放在段落、表格、图上意思都一样 → **内含**（profile 定义，所有渲染器同解）；只对某一种控件才说得通
+> → **组件自定**（透传，各组件说明书）。
+
+> §12.5：样式表声明状态和每个状态下的外观，谁去点是 viewer 的事。
+
+§12.3 还说过「清单按第一个真实用例圈死，多一个不加」。本文就是第二个真实用例：第一个用例把清单圈成 23 个词，
+第二个用例证明其中三样（`layer` `visible` `grow`）确实通用，同时暴露出 7 个组件与 10 个私有键是把「这一页的东西」
+写进了宿主。清单因此再动一次，仍按同一条判据。
+
+---
+
+### 13.3 数据形态：外壳用列表承载（决策 A）
+
+#### 13.3.1 为什么不是表
+
+复刻第一版把外壳做成六列表 `label,href,icon,title,badge,dot`，理由是「data 可寻址」。它带来两个后果：
+
+1. 列名合同写在 JS 里。`bar` 组件认这六个名字，`tree` 认 `name,kind,depth,href`，谁也校验不了，拼错静默。
+2. CSV 单元格没有行内标记（GEML-spec §6「数据体只按分隔符切」），于是「图标 + 文字」永远要拆成两列，「＋ 和 ▾ 合成一个按钮」
+   写不出来，只能写成两行。
+
+要保住表，就得把这六个列名写进 profile，成为「链接行表」的规范词汇 —— 一个为导航条量身定做的 schema 进了规范。
+
+#### 13.3.2 列表本来就是导航条
+
+GEML 第一天就有的东西够用：`text` 块的流式体里放一个列表，一条就是一条行内。
+
+```
+=== text {#top-nav}
+- [![](icons/plus.svg) ![](icons/triangle-down.svg)](https://github.com/new){title="Create new..."}
+- [![](icons/issue-opened.svg)](https://github.com/issues){title="All issues"}
+- [![](icons/git-pull-request.svg)](https://github.com/pulls){title="All pull requests"}
+- [![](icons/repo.svg)](https://github.com/repos){title="All repositories"}
+- [![](icons/inbox.svg)](https://github.com/notifications){title="Notifications"} ![unread](icons/dot.svg)
+- [![](icons/avatar.svg)](https://github.com/xiongjy2104){title="Open user navigation menu"}
+===
+```
+
+- 图标是 `![](icons/x.svg)`（GEML-spec §5.1 媒体嵌入），文件已经是文件，不再有名字到路径的映射表。
+- 提示语是链接属性对象里的 `{title=…}`（GEML-spec §5.2 已允许属性对象，今天只有 `rel` `target` 两个键被渲染器放行）。
+  只有图标的链接，`title` 同时是它的无障碍名，HTML 的名字计算本来就这样。
+- 计数是行内代码 `` `1` ``，未读点是一张 8px 蓝圆的 SVG。两样都还是数据，只是用行内元素写。
+- ＋ 和 ▾ 是同一个链接里的两张图，和原页一个按钮对得上。
+
+#### 13.3.3 全部外壳块
+
+| 块 | 类型 | 原来 | 现在 |
+|---|---|---|---|
+| `#brand` | text · 列表 | 六列表 | ☰、GitHub 标、`geml-spec` / `geml`、▾ 各一条 |
+| `#site-search` | form-field type=text | 同 | 同；两侧的图标与键帽见 §13.3.4 |
+| `#top-ai` | text · 列表 | 六列表 | Copilot 一条 |
+| `#ai-caret` | text · 一张图 | frame + `component=bar icon=` | 块，作 `#aimenu` 状态的触发者 |
+| `#ai-menu` | text · 列表 | 六列表 | 三条链接 |
+| `#top-nav` | text · 列表 | 六列表 | 见 §13.3.2 |
+| `#repo-nav` | text · 列表 | 六列表 | 十二条，Issues 后 `` `1` `` |
+| `#side-toggle` | text · 一张图 | frame + `component=bar icon=` | 块，作 `#sidebar` 状态的触发者 |
+| `#side-head` | text · 列表 | 六列表 | Files 一条 |
+| `#side-back` | text · 一张图 | 六列表 | 一条链接 |
+| `#branch` `#branches` | form-field type=select · form-options | 同 | 同 |
+| `#side-tools` | text · 列表 | 六列表 | ＋、搜索两条 |
+| `#file-find` | form-field type=text | 同 | 同 |
+| `#file-tree` | text · 嵌套列表 | 四列表 `name,kind,depth,href` | 缩进就是层级，见 §13.3.5 |
+| `#breadcrumb` | text · 一段 | 六列表 | `[geml](…) / [docs](…) / PUBLISHING.md ![](icons/copy.svg){title="Copy path"}` |
+| `#commit-left` `#commit-right` | text · 一段 | 六列表 | 头像、作者、提交信息、⋯ 各是行内 |
+| `#views` `#view` | form-options · form-field type=select | `text#toolbar` 一段文字按 `·` 切 | 见 §13.3.6 |
+| `#file-meta` | text | 同 | 同 |
+| `#file-actions` | text · 列表 | 六列表 | 八条 |
+| `#doc` | embed | 同 | 同 |
+
+#### 13.3.4 输入框两侧的装饰
+
+`field` 组件做的事是把一张图和一个键帽拼到控件两边。页面上就是三样东西，那就放三个块，用 frame 并排：
+
+```
+=== text {#search-icon}
+![Open quick search dialog, type / to search](icons/search.svg)
+===
+=== text {#search-key}
+`/`
+===
+```
+
+```
+=== style-frame {#search axis=row gap=6px grow=yes max-width=320px border="1px solid #d1d9e0" border-radius=6px padding="4px 8px" slots="text#search-icon, form-field#site-search, text#search-key"}
+===
+=== style-rule {#kbd match="text#search-key code" border="1px solid #d1d9e0" border-radius=4px padding="0 5px" color="#59636e"}
+===
+```
+
+`#file-find`（Go to file，键帽 T）与 `#branch`（分支下拉，前置 ⑂ 图标）同法。代价是每个字段多两个小块。
+
+#### 13.3.5 文件树：缩进就是层级
+
+`depth` 列是把 GEML 已经会的事（GEML-spec §2.2 嵌套列表）重新编码了一遍；`kind` 列在「有没有子列表」里。
+
+```
+=== text {#file-tree}
+- ![](icons/file-directory-fill.svg) [.agents](…/tree/title-projection/.agents)
+- ![](icons/file-directory-fill.svg) [docs](…/tree/title-projection/docs)
+  - ![](icons/file-directory-fill.svg) [assets](…/docs/assets)
+  - ![](icons/file.svg) [MANIFESTO.geml](…/docs/MANIFESTO.geml)
+- ![](icons/file.svg) [README.md](…/blob/title-projection/README.md)
+===
+```
+
+目录 = 带子列表的条目；有子项 = 展开着，无子项 = 收起着。GitHub 本来也只下发展开目录的子项，所以这不是近似，
+是同一件事。折叠用原生 `details/summary`，零 JS；展开箭头是系统 `::marker` 三角（见 §13.9）。
+
+#### 13.3.6 Tab：一选多本来就是表单字段
+
+`text#toolbar` 里的「Preview · Code · Blame」是一个列表冒充一段话，再由 `tab-bar` 组件按 `·` 切开。GEP-0008 有现成的词：
+
+```
+=== form-options {#views format=csv}
+value,label
+Preview,Preview
+Code,Code
+Blame,Blame
+===
+=== form-field {#view type=select options=#views value=Preview}
+===
+```
+
+```
+=== style-state {#tab type=scalar match="form-field#view" on=select}
+===
+```
+
+字段的值就是状态；`init-value` 不写时取字段的 `value=`。这是 profile §2.2 里 `on=select`（"the value is what was picked"）
+落到表单字段上的自然读法，只需在 profile §2.2 加一句说明，不是新词。
+
+#### 13.3.7 寻址上的代价，以及它其实出在哪
+
+实物验证：表这边 `geml get page.geml '#top-nav[6]["href"]'` 直接回 `https://github.com/notifications`，`geml set`
+同样能只改这一格；列表这边 `#top-nav[2]` 报错「`text` carries no addressable units inside it — a coordinate needs a table
+or a `data` block」。所以列表的代价不是「href 不再是单元格」，而是**条目整个指不到**，只能拿整个块。
+
+这个缺口出在 GEP-0011 的坐标系统，不在数据形态：列表项本来就是有序的单元，让 `#top-nav[5]` 指到第五条是坐标系统顺理成章
+的一步扩展，对所有文档的所有列表都成立。记为 GEP-0011 的待办（§13.12）；等它落地，列表的可寻址性就回来了，
+而 profile 里不用多六个列名。
+
+---
+
+### 13.4 进规范的六件事
+
+每件都按 §12.3 过一遍。字母编号只是引用用的。
+
+#### 13.4a 选择器多一类步：行内节点
+
+**语法**（profile §3）。步的种类多一种「部件步」，取值封闭：`link` `image` `code-span` `strong` `emphasis`。
+名字取 GEML-spec §5.1 自己的叫法，不用行内节点在模型里的 type：`code` 已经是**块类型**，`text#nav code` 今天就有意思
+（嵌在那个块里的代码块），借来当行内会撞；`em` 同理写全。部件步只能是选择器的
+**最后一步**，且前面至少有一个块步：
+
+```
+text#repo-nav link          ✓  这个块里的每个链接
+text#repo-nav image         ✓  这个块里的每张图
+text#file-tree link         ✓
+link                        ✗  selector-unsupported：部件步前面要有块步
+text#nav link image         ✗  selector-unsupported：部件步只能是最后一步
+text#nav link[title]        ✗  selector-unsupported：部件步不带属性过滤与类
+```
+
+**为什么通用**。行内节点在任何块里都是这几种；给「这个块里的链接」上色和给块上色是同一件事。仍然不收伪类、组合子、
+通配、子串匹配，profile §3 的拒绝清单一字不改。
+
+**候选枚举**。检查器为每个块候选走一遍它的行内（段落、列表项、标题），记录出现过的部件种类。一条 `text#nav link`
+在语料里没有任何 `text#nav` 含链接 → 照旧 `unmatched-rule`。
+
+**视图模型**（profile §10）。binding 多一个可选字段 `part`：
+
+```
+bindings [{ doc, block, part?, rules, box, params, variants }]
+```
+
+有 `part` 的 binding 和没有的是**不同的目标**：`text#nav` 与 `text#nav link` 争 `color` 不是冲突；两条 `text#nav link`
+争 `color` 照旧 `ambiguous-rule`。profile §4 的仲裁不改。
+
+**宿主这一侧有个坑**（实施时撞上的，两份文档原本都没写）：部件 binding 和块 binding **共用同一个地址**，`part` 才是
+区分它们的字段。宿主把 bindings 建成「地址 → binding」的放置表时必须跳过 `part` 不为空的那些，否则部件 binding 会盖掉
+块自己的 `component=` 与 `axis`。表现是页面照常渲染、零诊断，但树不折叠、列表不横排 —— 一个不报错的静默失败。
+
+**部件上的内含词**。只有对一段行内说得通的词才收：`color` `background` `padding` `margin` `border`（四边）
+`border-radius` `font-size` `line-height` `font-family` `width` `max-width` `visible`。其余（`sticky` `scroll`
+`hide-below` `layer` `grow` `gap` `text-align` `axis` `view` `editable`）写在部件规则上 → `style-unknown-attribute`
+warning，消息说明「不是行内部件的词」。
+
+**宿主**。`link → a`，`image → img`，`code → code`，`strong → strong`，`em → em`；选择器 `.geml-b-<id> a { … }`。
+
+#### 13.4b `axis` 允许挂在块上
+
+今天 `axis` 已是内含词，只是限定在 screen/frame 上（"它挂在 screen/frame 上，不挂在块上"）。第二个用例要说的是
+「这个列表横着排」。
+
+**语义**。块上的 `axis=row|column`：这个块的**条目**沿哪条轴排。列表横排时不画项目符号。默认 column，即今天的样子。
+
+**为什么通用**。列表、表单、表格的行都有「条目」；段落没有条目，写了不报错也没有效果（和 `gap` 在段落上一样）。
+
+**宿主**。对列表：`display:flex; flex-direction:<axis>; list-style:none; margin:0; padding:0`，配 `gap`。对表单：
+字段并排。对其他块：无效果。生成进页面 CSS，不放静态 CSS。
+
+#### 13.4c `view=rendered|source`
+
+**语义**。显示这个块的渲染结果，还是它的源文本。默认 `rendered`。源文本 = 该块在文档里的原文行段；对 `embed`，
+是它借来的那份文档的原文（语料里有）。值域封闭，域外 → `style-invalid-value`。
+
+**为什么通用**。任何块都有源文本；「看源码」对段落、表、嵌入、代码块意思一样。
+
+**用法**。配既有的 `when=`，Code 与 Blame 各一条，正是 §12.5「tab 条的每个 tab 一条规则」：
+
+```
+=== style-rule {#md       match="embed#doc" view=rendered max-width=1012px font-size=16px line-height=24px}
+===
+=== style-rule {#md-code  match="embed#doc" when="$tab=Code"  view=source editable=yes}
+===
+=== style-rule {#md-blame match="embed#doc" when="$tab=Blame" view=source}
+===
+```
+
+它替掉 `editor` 组件的三个私有键：`state=` 由 `when=` 承担，`source-when="Code · Blame"` 变成两条规则，
+`preview-max-width` 就是已有的 `max-width`。
+
+#### 13.4d `editable=yes|no`
+
+**语义**。源文本可不可以改。默认 `no`。只在 `view=source` 时被消费；`view` 解析为 rendered 时它是惰性的，
+不报诊断（和 `gap` 在段落上同一态度）。值域封闭。
+
+**为什么通用**。同 c。它说的是「能不能改」，不说「改了存到哪」—— 保存归宿主，§12.5 的边界。viewer 这一版**没有写回路径**：
+textarea 是本地草稿，刷新即失。这一点写进 profile，免得有人以为它是编辑器。
+
+#### 13.4e `when=` 多两个内建名：`@hover` `@focus`
+
+**语法**。`when=` 的项从「只有 `$state=value`」变成「`$state=value` 或 `@hover` 或 `@focus`」，逗号并列表示全部满足。
+`@` 前缀保证不与任何 `style-state` 撞名。`@` 后面不是这两个名字 → `style-invalid-value`，消息列出两个合法名。
+
+**为什么通用，以及为什么放在 `when=` 而不是选择器**。hover 是「状态 → 样子」的一种，只是状态由指针给、不由
+`style-state` 声明。放进 `when=` 正是 §12.5 的边界：样式表声明每个状态下的外观，谁去点是宿主的事。profile §3 拒绝
+`:hover` 选择器的那一行**不改**：选择器选内容，`when=` 说状态。
+
+**仲裁**。`@hover` 是普通条件项，进条件集参与 profile §4 的偏序。`when="@hover"` 与 `when="$sidebar=closed, @hover"` 是真超集关系；
+`when="@hover"` 与 `when="@focus"` 可以同时成立、互不包含，争同一属性 → `ambiguous-rule`，正是该报的。
+
+**宿主**。目标选择器后缀 `:hover` / `:focus-visible`，块与部件同法：`.geml-b-nav a:hover { … }`。
+
+```
+=== style-rule {#navhover match="text#repo-nav link" when="@hover" background="#eaeef2"}
+===
+```
+
+#### 13.4f rule 上的参数袋收口
+
+**现状**。profile §2.1：rule 上「其余键原样透传为组件参数」，没有未知属性检查。容器早已是「没有 `component=` 就报
+`style-unknown-attribute`」。两种块两套规矩，于是本页十个私有键零校验、拼错不报。
+
+**改动**。判在**合并后的绑定**上，不在单条规则上：§4.3 按属性合并，一条规则给 `component=`、另一条更具体的
+规则给参数是合法写法（`#base match="table" component=data-table` + `#kpis match="table.kpi" badge=kpi`），装载期
+还不知道合并结果。合并之后没有 `component=` / `handler=` 接的参数 → 一条 `style-unknown-attribute` warning，
+点出那些键和写它们的规则。`component=` 仍是开放注册表（profile §7）的逃生口，一字不动。
+（第一稿写的是「无 `component=` 的 rule 装载期就报」，落地时被 style-check 的既有用例拦下——那条用例正是上面那种写法。）
+
+**影响面**。codemap 播种的样式表（`graph-style.ts` 的 `serializeGraphStyle`）原来**不带** `component=`，四个旋钮
+（`fold` `depth` `hide-accessors` `palette`）会被判成没人接。本次给种子加 `component=code-graph`，viewer 注册同名的
+透传组件；已经播种在用户仓库里的旧文件会得到一条 warning，旋钮照常读取、渲染不受影响，build 不改写它，用户加一个词即可。
+本页十个私有键在 §13.3 落地后全部消失，所以对本页零影响。
+
+#### 核心（GEML-spec §5）：渲染器放行 `{title=}`
+
+GEML-spec §5.2 已允许链接带属性对象，例子是 `{rel=nofollow target=_blank}`。图片同样有属性对象（`{width=…}` 上一轮刚落地）。
+改动只在渲染器：链接与图片的 `title` 落到 HTML 的 `title` 属性，`setAttribute` 写、不拼字符串。不是语法改动。
+
+#### 13.4g `layer=screen` 与 `fade-out`（2026-09-11 追加）
+
+页面的开场提示要「盖住整个视口、一秒淡掉」。两件事现有词汇都说不出来，各补一个：
+
+- **`layer` 多一个成员 `screen`**：盖住视口、内容居中、不占版面位置。`page` 跟流走，`overlay` 贴最近的容器，
+  `screen` 贴视口 —— 三者的区别是**贴谁**，与内容无关，所以对任何块都是同一个意思。开场提示、模态框、吐司是同一件事。
+- **`fade-out=<秒>`**（0–60，默认 0）：画出来之后自己淡掉，淡完 `visibility: hidden`，既看不见也挡不住点击。
+  「出现一下就走」放在一段话、一张表、一张图上意思都一样。上限是安全边界：样式表是不可信输入，
+  一个荒唐的值不该变成一条永远跑不完的动画。
+
+时间轴上**只有这一个词**。没有 `fade-in`、没有 `delay`、没有关键帧 —— §12.3 的「按第一个真实用例圈死」照旧。
+关键帧与「减少动态效果」的让步放在宿主的静态表里（都不带页面常量、不加载任何资源）；秒数由样式表给。
+
+顺带补上一处文档缺口：`layer` / `visible` / `grow` 是第一个页面用例带进来的，实现里有、profile §2.1 的内含词表里
+一直没有。这次一并写进去。
+
+#### 不进的
+
+- `collapsible`：§12.3 明文归组件词，只对列表说得通 → 留在插件里作 `component=tree`。
+- `segments`（把 select 画成分段按钮）：只对一选多说得通 → 插件，`component=segments`。
+- `@selected`：本页选中段的白底用系统色 `Canvas` 绕开（§13.9），先不加。
+- 任何图标名到路径的映射：图标就是文件，写在数据里。
+
+---
+
+### 13.5 插件（geml-viewer）
+
+#### 13.5.1 删
+
+`components.js` 里的 `bar` `tree`（旧）`tab-bar` `markdown-body` `icon` `field` `editor`，以及 `stateControl` 画「☰」
+的那一支。`$state` 槽回到 profile §2.4 的定义：渲染那个块引用状态当前指向的块；对 scalar 状态渲染空占位。
+geml.css 257–355 行里所有带色值、尺寸、块 id 的规则。
+
+#### 13.5.2 留，并且不认页面
+
+| 模块 | 内容 | 约多少行 |
+|---|---|---|
+| 状态存储 | `createState`：初值、`when=` 点名的值、toggle 目标；与今天一致 | 50 |
+| 三种喂法 | 块点击（`on=toggle` 的生产者是块 → 包装元素 `role=button` 可点，与容器触发同一段代码）；字段取值（`on=select` 的生产者是 form-field → 控件 change 事件写状态，初值取 `value=`）；容器点击（保留） | 40 |
+| 浮层收回 | 只对驱动 `layer=overlay` 变体的状态「点别处关掉」；与今天一致，块触发也走它 | 20 |
+| 视图模型 → CSS | `cssForPage`：binding 有 `part` 时选择器接 `a/img/code/strong/em`；`when` 含 `@hover`/`@focus` 时接 `:hover`/`:focus-visible`；块上的 `axis` 生成 flex 声明 | 今天 100 + 30 |
+| `tree` | 嵌套列表：带子列表的 `li` 包成 `<details open><summary>…</summary><ul>…</ul></details>`；没有列名、没有缩进算术 | 15 |
+| `segments` | `form-field type=select` 画成一组 `button[aria-pressed]`；点哪个，字段值与状态就是哪个 | 25 |
+| `view=source` | 取块源文本（embed 取语料里那份文档的 `text`），`editable=yes` 画 `textarea`，否则 `pre` | 15 |
+| `title` 放行 | `linkAttrs` 与 `renderMedia` 加一个键 | 2 |
+
+#### 13.5.3 geml.css 页面段的目标形态
+
+约 15 行，零色值；尺寸常量只剩源码框的最小高度，其余尺寸都从样式表生成：
+
+```
+.geml-page { margin: 0; }
+.geml-frame { display: flex; min-width: 0; min-height: 0; position: relative; }
+.geml-frame[data-axis="column"] { flex-direction: column; }
+.geml-frame[data-axis="row"] { flex-direction: row; align-items: stretch; }
+.geml-frame[data-axis="row"] > .geml-placed { flex: 0 0 auto; }
+.geml-placed { min-width: 0; box-sizing: border-box; }
+.geml-placed[role="button"], .geml-frame[role="button"] { cursor: pointer; }
+.geml-page button { color: inherit; font: inherit; }
+.geml-segments { display: inline-flex; }
+.geml-segments button { border: 0; background: none; cursor: pointer; }
+.geml-segments button[aria-pressed="true"] { background: Canvas; font-weight: 500; }
+.geml-source { width: 100%; box-sizing: border-box; min-height: 60vh; }
+```
+
+`Canvas` 是系统色，不是页面的色（§13.9）。
+
+---
+
+### 13.6 视图模型（profile §10）的改动
+
+```
+bindings  [{ doc, block, part?, rules, box, params, variants: [{ when, box, params }] }]
+when      { "$state": value, … } ∪ { "@hover": true, "@focus": true }
+```
+
+- `part` 只在部件规则命中时出现，取值封闭（§4a）。
+- `when` 的键多两个 `@` 开头的内建名，值恒为 `true`；条件数按项数计，`@hover` 算一项。
+- `box` 多 `axis`（块上）、`view`、`editable`。
+- 其余字段不动。`--json` 是一致性面，三项都是**新增字段**，旧消费者不读它们就不受影响。
+
+---
+
+### 13.7 诊断（profile §8）的改动
+
+| 诊断 | 级别 | 新增 / 变化 |
+|---|---|---|
+| `selector-unsupported` | error | 新情形：部件步不在最后、部件步前无块步、部件步带过滤或类 |
+| `style-invalid-value` | error | 新情形：`view` `editable` `fade-out` 域外值；`layer=screen` 之外的第四个值；`@` 后不是 `hover`/`focus` |
+| `style-unknown-attribute` | warning | 新情形：合并后的绑定没有 `component=` / `handler=` 接的参数（点出键与规则）；部件规则上不适用于行内的内含词 |
+| `unmatched-rule` | warning | 部件规则在语料里没有命中任何行内时照旧触发 |
+| `ambiguous-rule` | error | 不改；`@hover` 与 `@focus` 争同一属性照旧 |
+
+没有新诊断码。
+
+---
+
+### 13.8 安全
+
+- 部件名与 `@` 内建名都是闭集，编译成固定的 CSS 文本（`a` `img` `:hover` …），不经过任何字符串拼接进入选择器。
+- 部件规则上的值仍走 `safeCssValue`：`;` `{` `}` `url(` `/*` 一律不收，不因为目标从块变成行内而放松。
+- `title` 用 `setAttribute` 写，内容当文本。
+- `editable=yes` 的 textarea 没有写回路径；viewer 不向任何地方发送编辑内容。
+- `axis` 生成的声明是固定词（`display:flex` 等），无用户值参与。
+- 放置上限 `PLACEMENT_CAP` 不变；部件不算放置，它们是已放置块的子节点。
+
+---
+
+### 13.9 1:1 上刻意退让的四处
+
+| 哪儿 | 现在 | 之后 | 要收回来的话 |
+|---|---|---|---|
+| 文件树的展开箭头 | chevron-down / chevron-right 两张图随开合切换 | 系统 `::marker` 三角 | 把 chevron 写进数据（不会旋转），或规范加 `marker-open=`/`marker-closed=`，但 CSP 下 `::marker` 引不了图，等于只在 localhost 上像 |
+| Issues 后的计数 | `badge` 列 + 专门的 `.geml-badge` | 行内代码 `` `1` `` 由样式画成药丸 | 语义上是「代码」不是「计数」。要区分，行内元素得多一种，那是核心语法的事，本文不碰 |
+| 选中的 Tab 段 | 宿主 CSS 写死白底 `#ffffff` + `#d1d9e0` 边 | 宿主一条不含色值的规则：`background: Canvas` | 加 `@selected`，与 `@hover` 同一机制 |
+| Blame | 显示源码 | 显示源码 | 不收。Blame 需要 git 历史，不是一份文档能有的东西 |
+
+---
+
+### 13.10 测试要点
+
+**解析器**（`geml-parser`，闸 95%）
+
+- 选择器：部件步解析；`link` 单独 / 不在最后 / 带 `[title]` 三种拒绝各自的消息。
+- 候选枚举：段落、列表项（含嵌套）、标题里的行内都被走到；`text#nav link` 在无链接的块上 `unmatched-rule`。
+- binding 带 `part`；`text#nav` 与 `text#nav link` 争 `color` 不报；两条 `text#nav link` 争 `color` 报 `ambiguous-rule`。
+- 部件规则上写 `sticky` → warning；写 `color` → 进 `box`。
+- 块上 `axis=row` 进 `box`；`axis=diagonal` → `style-invalid-value`。
+- `view` `editable` 域内/域外；`editable=yes` 无 `view=source` 不报。
+- `when="@hover"` 解析；`when="$a=1, @hover"` 条件数 2 且是 `when="@hover"` 的真超集；`@hover` vs `@focus` 争同一属性
+  → `ambiguous-rule`；`@hoover` → `style-invalid-value` 消息含两个合法名。
+- 无 `component=` 的 rule 写 `icon=` → warning；带 `component=x` 写 `icon=` → 不报且进 `params`；codemap fixtures 零新增诊断。
+- 安全：`when="@hover} body{display:none"` 被 `style-invalid-value` 拒；部件规则上 `color="red} .x{"` 被 `safeCssValue` 丢弃。
+
+**viewer**（linkedom + `css-stub-hooks.mjs`，闸 85/85/90/75）
+
+- `cssForPage`：`part=link` 出 `.geml-b-nav a`；`@hover` 出 `:hover`；块 `axis=row` 出 flex 声明与 `list-style:none`。
+- `title` 落到 `a`/`img`。
+- 块触发：点 `text#ai-caret` 翻 `$aimenu`；浮层开着点别处关掉；点非浮层触发者不误收。
+- `segments`：三个按钮、`aria-pressed` 跟状态、点击写字段值与状态。
+- `tree`：有子列表的项包 `details[open]`，无子列表的不包。
+- `view=source`：embed 的源码来自语料 `text`；`editable=yes` 是 `textarea`，否则 `pre`。
+- 端到端：新的 `page.geml` + `github.style.geml` 渲染零诊断，除 `form-options` 外的块全部落位，行内链接与提示语数量
+  与上一版一致（上一版实测 84 个链接、28 条提示语）。
+- geml.css 页面段 `grep -c '#[0-9a-f]\{3,6\}'` 为 0。
+
+---
+
+### 13.11 落地顺序
+
+每一步之后复刻页都应当仍是 1:1，能在浏览器里看。
+
+1. **解析器 a、b、f**：选择器部件步、块上的 `axis`、rule 参数收口 + 测试。样式表从这一步起能表达导航条。
+2. **viewer 第一批**：行内选择器与 `axis` 的 CSS 生成；块触发；`title` 放行；`tree`（新）与 `segments`；
+   重写 `page.geml` 与 `github.style.geml` 为列表形态；删 `bar` `icon` `field` `markdown-body` `tab-bar`。看一次页面。
+3. **解析器 c、d + viewer `view=source`**：删 `editor`。看一次页面。
+4. **解析器 e + viewer `:hover`**：删 geml.css 里最后的调色板。`grep` 色值为 0。看一次页面。
+5. **文档**：profile `_CN` 与英文 §2.1 §2.2 §3 §8 §10 §12（profile 自己的章节号）；`docs/illustrated/10-profile-style` 两语增补「第二个用例」；
+   设计文档 §12 加一条指向本节的注（已并入，见本节开头）。
+6. **GEP-0011 待办**登记（§13.12）。
+
+第 1、3、4 步各是一次 minor 级别的 profile 词汇变化；发版时机由作者定。
+
+---
+
+### 13.12 待办与不做
+
+**GEP-0011 待办**：列表项作为内单元。`#top-nav[5]` 指到第五条，嵌套用 `[2][1]`，`geml get` / `set` 同表格行。
+本文不设计它，只记下动机：决策 A 把外壳数据放进列表，坐标系统跟上后可寻址性回到与表格同等。
+
+**不做**：
+
+- 不做富文本编辑；`editable` 是源码框，没有写回。
+- 不做 `@selected`、`marker-open=`、行内「计数」元素；四处退让见 §13.9。
+- 不改 profile §3 对 `:hover` 选择器、组合子、通配的拒绝。
+- 不给 rule 加 `frame=`（§12.4 已议：这一页用不到）。
+- 不动 codemap 样式表的任何一行。

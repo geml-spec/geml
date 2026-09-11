@@ -1,0 +1,226 @@
+=== meta
+title = "Publishing — what ships, where it lands, and how to know it did"
+profile = "geml-form/v1"
+source = "1:1 复刻实验（第二版）：外壳是列表与行内链接，样式表只用内含词"
+===
+
+%% ——— 页面外壳。每个块有 id，可以单独 `geml get`；条目是 GEML 行内：图片、链接、代码。
+%% 提示语是链接/图片的 {title=}；计数是行内代码；未读点是一张 8px 的 SVG。
+
+=== text {#splash}
+A 1:1 replica of a GitHub page, to see how geml-style renders
+===
+
+=== text {#brand}
+- ![Open menu](icons/three-bars.svg)
+- [![](icons/mark-github.svg)](https://github.com/){title="GitHub"}
+- [geml-spec](https://github.com/geml-spec)
+- /
+- [geml](https://github.com/geml-spec/geml)
+===
+
+=== text {#brand-caret}
+![Switch repository](icons/triangle-down.svg)
+===
+
+=== text {#repo-menu}
+- [geml-spec/geml](https://github.com/geml-spec/geml)
+- [geml-spec/geml-viewer](https://github.com/geml-spec/geml-viewer)
+- [Browse all repositories](https://github.com/repos)
+===
+
+=== text {#search-icon}
+![Open quick search dialog, type / to search](icons/search.svg){width=14}
+===
+
+=== form-field {#site-search type=text placeholder="Type / to search"}
+===
+
+=== text {#search-key}
+`/`
+===
+
+=== text {#top-ai}
+- [![](icons/copilot.svg)](https://github.com/copilot){title="Chat with Copilot"}
+===
+
+=== text {#ai-caret}
+![Open Copilot…](icons/triangle-down.svg)
+===
+
+=== text {#ai-menu}
+- [Ask Copilot](https://github.com/copilot)
+- [Copilot Chat](https://github.com/copilot)
+- Copilot Workspace
+===
+
+=== text {#new}
+[![](icons/plus.svg)](https://github.com/new){title="Create new..."}
+===
+
+=== text {#new-caret}
+![Create new…](icons/triangle-down.svg)
+===
+
+=== text {#new-menu}
+- [New repository](https://github.com/new)
+- [Import repository](https://github.com/new/import)
+- [New gist](https://gist.github.com)
+- [New organization](https://github.com/account/organizations/new)
+===
+
+=== text {#top-nav}
+- [![](icons/issue-opened.svg)](https://github.com/issues){title="All issues"}
+- [![](icons/git-pull-request.svg)](https://github.com/pulls){title="All pull requests"}
+- [![](icons/repo.svg)](https://github.com/repos){title="All repositories"}
+- [![](icons/inbox.svg) ![unread](icons/dot.svg)](https://github.com/notifications){title="Notifications"}
+- [![](icons/avatar.svg)](https://github.com/xiongjy2104){title="Open user navigation menu"}
+===
+
+=== text {#repo-nav}
+- [![](icons/code.svg) Code](https://github.com/geml-spec/geml)
+- [![](icons/issue-opened.svg) Issues `1`](https://github.com/geml-spec/geml/issues)
+- [![](icons/git-pull-request.svg) Pull requests](https://github.com/geml-spec/geml/pulls)
+- [![](icons/agent.svg) Agents](https://github.com/geml-spec/geml/agents?author=xiongjy2104)
+- [![](icons/comment-discussion.svg) Discussions](https://github.com/geml-spec/geml/discussions)
+- [![](icons/play.svg) Actions](https://github.com/geml-spec/geml/actions)
+- [![](icons/table.svg) Projects](https://github.com/geml-spec/geml/projects)
+- [![](icons/book.svg) Wiki](https://github.com/geml-spec/geml/wiki)
+- [![](icons/shield.svg) Security](https://github.com/geml-spec/geml/security)
+- [![](icons/graph.svg) Insights](https://github.com/geml-spec/geml/pulse)
+- [![](icons/gear.svg) Settings](https://github.com/geml-spec/geml/settings)
+===
+
+=== text {#repo-more}
+More ![](icons/triangle-down.svg)
+===
+
+=== text {#more-menu}
+- [Packages](https://github.com/orgs/geml-spec/packages)
+- [Releases](https://github.com/geml-spec/geml/releases)
+- [Deployments](https://github.com/geml-spec/geml/deployments)
+- [Attestations](https://github.com/geml-spec/geml/attestations)
+===
+
+=== text {#side-toggle}
+![Collapse file tree](icons/sidebar-expand.svg)
+===
+
+=== text {#side-head}
+- [![](icons/file-directory-fill.svg) Files](https://github.com/geml-spec/geml/tree/title-projection)
+===
+
+=== text {#side-back}
+[![](icons/chevron-left.svg){width=14}](https://github.com/geml-spec/geml/blob/main/docs/PUBLISHING.md){title="View file on default branch"}
+===
+
+=== text {#branch-icon}
+![title-projection branch](icons/git-branch.svg){width=14}
+===
+
+=== form-options {#branches format=csv}
+value,label
+title-projection,title-projection
+main,main
+===
+
+=== form-field {#branch type=select options=#branches value=title-projection}
+===
+
+=== text {#side-tools}
+- [![](icons/plus.svg){width=14}](https://github.com/geml-spec/geml/new/title-projection/docs){title="Add file"}
+- ![Search this repository](icons/search.svg){width=14}
+===
+
+=== text {#find-icon}
+![Go to file](icons/search.svg){width=14}
+===
+
+=== form-field {#file-find type=text placeholder="Go to file"}
+===
+
+=== text {#find-key}
+`T`
+===
+
+=== text {#file-tree}
+- [![](icons/file-directory-fill.svg) .agents](https://github.com/geml-spec/geml/tree/title-projection/.agents)
+- [![](icons/file-directory-fill.svg) .claude-plugin](https://github.com/geml-spec/geml/tree/title-projection/.claude-plugin)
+- [![](icons/file-directory-fill.svg) .claude](https://github.com/geml-spec/geml/tree/title-projection/.claude)
+- [![](icons/file-directory-fill.svg) .github](https://github.com/geml-spec/geml/tree/title-projection/.github)
+- [![](icons/file-directory-open-fill.svg) docs](https://github.com/geml-spec/geml/tree/title-projection/docs)
+  - [![](icons/file-directory-fill.svg) assets](https://github.com/geml-spec/geml/tree/title-projection/docs/assets)
+  - [![](icons/file-directory-fill.svg) benchmarks](https://github.com/geml-spec/geml/tree/title-projection/docs/benchmarks)
+  - [![](icons/file-directory-fill.svg) comparisons](https://github.com/geml-spec/geml/tree/title-projection/docs/comparisons)
+  - [![](icons/file-directory-fill.svg) design](https://github.com/geml-spec/geml/tree/title-projection/docs/design)
+  - [![](icons/file-directory-fill.svg) illustrated](https://github.com/geml-spec/geml/tree/title-projection/docs/illustrated)
+  - [![](icons/file.svg) MANIFESTO.geml](https://github.com/geml-spec/geml/blob/title-projection/docs/MANIFESTO.geml)
+  - [![](icons/file.svg) MANIFESTO.md](https://github.com/geml-spec/geml/blob/title-projection/docs/MANIFESTO.md)
+  - [![](icons/file.svg) MANIFESTO_CN.geml](https://github.com/geml-spec/geml/blob/title-projection/docs/MANIFESTO_CN.geml)
+  - [![](icons/file.svg) MANIFESTO_CN.md](https://github.com/geml-spec/geml/blob/title-projection/docs/MANIFESTO_CN.md)
+  - [![](icons/file.svg) PUBLISHING.geml](https://github.com/geml-spec/geml/blob/title-projection/docs/PUBLISHING.geml)
+  - [![](icons/file.svg) PUBLISHING.md](https://github.com/geml-spec/geml/blob/title-projection/docs/PUBLISHING.md)
+  - [![](icons/file.svg) PUBLISHING_CN.geml](https://github.com/geml-spec/geml/blob/title-projection/docs/PUBLISHING_CN.geml)
+  - [![](icons/file.svg) PUBLISHING_CN.md](https://github.com/geml-spec/geml/blob/title-projection/docs/PUBLISHING_CN.md)
+  - [![](icons/file.svg) WRITING-A-PARSER.md](https://github.com/geml-spec/geml/blob/title-projection/docs/WRITING-A-PARSER.md)
+  - [![](icons/file.svg) WRITING-A-PARSER_CN.md](https://github.com/geml-spec/geml/blob/title-projection/docs/WRITING-A-PARSER_CN.md)
+  - [![](icons/file.svg) mcp-guide.md](https://github.com/geml-spec/geml/blob/title-projection/docs/mcp-guide.md)
+  - [![](icons/file.svg) mcp-guide_CN.md](https://github.com/geml-spec/geml/blob/title-projection/docs/mcp-guide_CN.md)
+- [![](icons/file-directory-fill.svg) geml-parser](https://github.com/geml-spec/geml/tree/title-projection/geml-parser)
+- [![](icons/file-directory-fill.svg) integrations](https://github.com/geml-spec/geml/tree/title-projection/integrations)
+- [![](icons/file-directory-fill.svg) playground](https://github.com/geml-spec/geml/tree/title-projection/playground)
+- [![](icons/file-directory-fill.svg) site](https://github.com/geml-spec/geml/tree/title-projection/site)
+- [![](icons/file-directory-fill.svg) spec](https://github.com/geml-spec/geml/tree/title-projection/spec)
+- [![](icons/file.svg) .gitattributes](https://github.com/geml-spec/geml/blob/title-projection/.gitattributes)
+- [![](icons/file.svg) .gitignore](https://github.com/geml-spec/geml/blob/title-projection/.gitignore)
+- [![](icons/file.svg) CHANGELOG.md](https://github.com/geml-spec/geml/blob/title-projection/CHANGELOG.md)
+- [![](icons/file.svg) CODE_OF_CONDUCT.md](https://github.com/geml-spec/geml/blob/title-projection/CODE_OF_CONDUCT.md)
+- [![](icons/file.svg) CONTRIBUTING.md](https://github.com/geml-spec/geml/blob/title-projection/CONTRIBUTING.md)
+- [![](icons/file.svg) GOVERNANCE.md](https://github.com/geml-spec/geml/blob/title-projection/GOVERNANCE.md)
+- [![](icons/file.svg) LICENSE](https://github.com/geml-spec/geml/blob/title-projection/LICENSE)
+- [![](icons/file.svg) README.md](https://github.com/geml-spec/geml/blob/title-projection/README.md)
+- [![](icons/file.svg) README_CN.md](https://github.com/geml-spec/geml/blob/title-projection/README_CN.md)
+- [![](icons/file.svg) SECURITY.md](https://github.com/geml-spec/geml/blob/title-projection/SECURITY.md)
+- [![](icons/file.svg) gemini-extension.json](https://github.com/geml-spec/geml/blob/title-projection/gemini-extension.json)
+- [![](icons/file.svg) kimi.plugin.json](https://github.com/geml-spec/geml/blob/title-projection/kimi.plugin.json)
+===
+
+=== text {#breadcrumb}
+[geml](https://github.com/geml-spec/geml/tree/title-projection) / [docs](https://github.com/geml-spec/geml/tree/title-projection/docs) / **PUBLISHING.md** ![Copy path](icons/copy.svg)
+===
+
+=== text {#commit-left}
+[![](icons/avatar.svg){width=20}](https://github.com/geml-spec/geml/commits?author=xiongjy2104){title="commits by xiongjy2104"} [xiongjy2104](https://github.com/xiongjy2104) [feat(projection): the meta title is the h1 in --to md and --to html; …](https://github.com/geml-spec/geml/commit/b8475ea7f9b7c89887c457c066a3ace01f82fd64) ![Open commit details](icons/ellipsis.svg)
+===
+
+=== text {#commit-right}
+[b8475ea · 1 hour ago](https://github.com/geml-spec/geml/commit/b8475ea7f9b7c89887c457c066a3ace01f82fd64){title="Commit b8475ea"} [![](icons/history.svg) History](https://github.com/geml-spec/geml/commits/title-projection/docs/PUBLISHING.md){title="History"}
+===
+
+=== form-options {#views format=csv}
+value,label
+Preview,Preview
+Code,Code
+Blame,Blame
+===
+
+=== form-field {#view type=select options=#views value=Preview}
+===
+
+=== text {#file-meta}
+380 lines (332 loc) · 26.8 KB
+===
+
+=== text {#file-actions}
+- [![](icons/space.svg)](https://github.com/geml-spec/geml/spaces){title="Add to space"}
+- [![](icons/copilot.svg)](https://github.com/copilot){title="Ask Copilot about this file"}
+- [Raw](https://github.com/geml-spec/geml/raw/refs/heads/title-projection/docs/PUBLISHING.md)
+- ![Copy raw file](icons/copy.svg)
+- [![](icons/download.svg)](https://github.com/geml-spec/geml/raw/refs/heads/title-projection/docs/PUBLISHING.md){title="Download raw file"}
+- [![](icons/pencil.svg)](https://github.com/geml-spec/geml/edit/title-projection/docs/PUBLISHING.md){title="Edit this file"}
+- ![More edit options](icons/triangle-down.svg){width=12}
+- ![Outline](icons/list-unordered.svg)
+===
+
+=== embed {#doc src="../../docs/PUBLISHING.geml"}
+===

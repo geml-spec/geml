@@ -1,7 +1,7 @@
 // geml-style profile 的选择器引擎（设计 §4）与诊断目录（设计 §7）。
 // 直接 import dist 模块 —— 这些模块刻意不从 geml.js 再导出，见计划的"文件结构"。
 import { STYLE_SEVERITY } from "../dist/style-diagnostics.js";
-import { parseSelector, candidates, matches, address, selectorConditions, moreSpecific } from "../dist/style-selector.js";
+import { parseSelector, candidates, matches, address, selectorConditions, moreSpecific, isPartSelector } from "../dist/style-selector.js";
 import { parse } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
 
@@ -52,11 +52,13 @@ test("解析：带引号的属性值里的空白不切分步骤", () => {
 });
 
 test("不支持的 CSS 构造必须点名，不得静默失配（设计 §4.4）", () => {
-  for (const bad of [":nth-child(2)", "div > p", "a + b", "a ~ b", "*", 'a[href^="x"]']) {
+  // `*` 作为**整步**后来放行了（一个槽位要按文档顺序摆下整篇文档时，散文段落带不了
+  // class，没有全选就写不出来）；半吊子的 `*.kpi` / `table.a*` 仍然拒绝。
+  for (const bad of [":nth-child(2)", "div > p", "a + b", "a ~ b", "*.kpi", "table.a*", 'a[href^="x"]']) {
     const r = parseSelector(bad);
     assert.equal(r.ok, false, `应当拒绝：${bad}`);
     assert.equal(r.code, "selector-unsupported");
-    assert.match(r.message, /supported: type, \.class, #id, \[attr\], \[attr=val\], descendant/);
+    assert.match(r.message, /supported: type, \.class, #id, \[attr\], \[attr=val\]/);
   }
 });
 
@@ -184,6 +186,59 @@ test("匹配：没有 id 的块用文档序下标当地址", () => {
   const anon = parse('=== meta\ntitle = "a"\n===\n\n=== note\nhi\n===\n');
   const cs = candidates(anon);
   assert.equal(address(cs[cs.length - 1]).startsWith("["), true);
+});
+
+
+test("`*` 是整步才认的全选：任意节点一步匹配", () => {
+  const r = parseSelector("*");
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(r.selector.steps.length, 1);
+  assert.equal(r.selector.steps[0].type, undefined);
+  assert.deepEqual(r.selector.steps[0].classes, []);
+  assert.equal(parseSelector("table *").ok, true, "后代位置也认");
+});
+test("部件步：text#nav link 解析成两步，最后一步 type=link（设计 2026-09-10 §4a）", () => {
+  const r = parseSelector("text#nav link");
+  assert.equal(r.ok, true);
+  assert.equal(r.selector.steps.length, 2);
+  assert.equal(r.selector.steps[1].type, "link");
+  assert.equal(isPartSelector(r.selector), true);
+  assert.equal(isPartSelector(parseSelector("text#nav").selector), false);
+});
+
+test("部件步：只能是最后一步、前面要有块步、不带 #id/.class/[attr]；分支不能混", () => {
+  for (const [src, re] of [
+    ["link", /write the block before it/],
+    ["text#nav link image", /must be the last step/],
+    ["text#nav link[title]", /takes no #id, .class or \[attr\]/],
+    ["text#nav link, table#t", /mix inline parts with blocks/],
+  ]) {
+    const r = parseSelector(src);
+    assert.equal(r.ok, false, src);
+    assert.equal(r.code, "selector-unsupported");
+    assert.match(r.message, re, src);
+  }
+});
+
+test("部件候选：块里出现过的行内类型各一个候选，地址沿用块的，`*` 与块选择器都选不中它", () => {
+  const doc = parse('=== text {#nav}\n- ![](a.svg) [Code](https://x) `1`\n- **b** *c*\n===\n\n=== text {#plain}\nno inlines here\n===\n');
+  const cs = candidates(doc);
+  const nav = cs.filter((c) => address(c) === "#nav");
+  assert.deepEqual(nav.map((c) => c.part ?? "(block)").sort(), ["(block)", "code-span", "emphasis", "image", "link", "strong"]);
+  assert.deepEqual(cs.filter((c) => address(c) === "#plain").map((c) => c.part ?? "(block)"), ["(block)"]);
+  const link = nav.find((c) => c.part === "link");
+  assert.equal(link.self.type, "link");
+  assert.equal(link.ancestors.at(-1).id, "nav", "块自身进了部件的祖先链");
+  assert.equal(matches(parseSelector("text#nav link").selector, link), true);
+  assert.equal(matches(parseSelector("text#nav").selector, link), false, "块选择器不选部件");
+  assert.equal(matches(parseSelector("*").selector, link), false, "`*` 不选部件，否则槽位会把块摆两遍");
+  assert.equal(matches(parseSelector("text#nav link").selector, nav.find((c) => c.part === undefined)), false);
+});
+
+test("部件候选：嵌套列表里的链接也算这个块的（后代语义，和生成的 CSS 一致）", () => {
+  const doc = parse('=== text {#tree}\n- docs\n  - [a](https://a)\n===\n');
+  const cs = candidates(doc).filter((c) => address(c) === "#tree").map((c) => c.part ?? "(block)").sort();
+  assert.deepEqual(cs, ["(block)", "link"]);
 });
 
 console.log(`\n${passed} passed`);

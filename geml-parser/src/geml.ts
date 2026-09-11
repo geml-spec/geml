@@ -729,9 +729,9 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
 
       let mode = REGISTRY.get(type);
       if (mode === undefined && ctx.vocab.types.has(type)) {
-        // 一个 profile 放行的类型：不再算 unknown。v1 只放行名字，
-        // body 仍按 §3 当 raw —— 放宽它影响解析结果，不只是诊断。
-        mode = "raw";
+        // 一个 profile 放行的类型。体模式也来自 profile —— 它影响解析结果、不只是诊断，
+        // 所以必须是**显式声明**的（`bodies: { form: "flow" }`）；没声明的照旧 raw。
+        mode = ctx.vocab.bodies.get(type) ?? "raw";
       } else if (mode === undefined) {
         diags.push({ severity: "warning", code: "unknown-block-type", message: `unknown block type \`${type}\`; body kept as raw`, line: openLineNo });
         mode = "raw";
@@ -741,6 +741,8 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
         // the extras below are per type.
         let validRe: RegExp;
         if (type === "table") validRe = /^(src|format|delim|header|format-data|span\d*)$/;
+        // form-options 的体是一张 value/label 表（GEP-0008 §6），所以它收表体那几个键。
+        else if (type === "form-options") validRe = /^(format|delim|header)$/;
         else if (type === "view") validRe = /^(src|where|order|limit|select|compute\d*|summary\d*|by|aggregate\d*)$/;
         else if (type === "data") validRe = /^(format|schema|src)$/;
         else if (type === "embed") validRe = /^(src|part)$/;
@@ -885,6 +887,11 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
           // range a build error instead of a panel that silently shows a path.
           const srcAttr = typeof attrs.attrs["src"] === "string" ? (attrs.attrs["src"] as string).trim() : undefined;
           if (srcAttr !== undefined && srcAttr !== "") (ctx.codeSources ??= []).push({ block, line: openLineNo, target: srcAttr });
+        } else if (type === "form-options") {
+          // 同一个 parseTable —— 另写一份迟早和 table 的语义分叉，§10 的教训。
+          const { model, diagnostics } = parseTable(body, attrs.attrs, openLineNo, ctx);
+          block.table = model;
+          for (const d of diagnostics) diags.push({ ...d, line: openLineNo });
         } else if (type === "table") {
           const srcAttr = typeof attrs.attrs["src"] === "string" ? (attrs.attrs["src"] as string).trim() : undefined;
           // §6: parse the raw body (visual or csv/tsv) into one table model.
@@ -2322,7 +2329,7 @@ function collectSpans(
       // Only a flow body is scanned for nested blocks (raw/data bodies are
       // opaque), so an id inside a `code` body is *not* addressable — exactly
       // the parser's contract.
-      if ((REGISTRY.get(type) ?? "raw") === "flow" && depth < MAX_NESTING) {
+      if ((REGISTRY.get(type) ?? ctx.vocab.bodies.get(type) ?? "raw") === "flow" && depth < MAX_NESTING) {
         collectSpans(lines.slice(i + consumed, closed ? end - 1 : end), base + i + consumed, out, ctx, depth + 1, units);
       }
       i = end;

@@ -86,13 +86,13 @@
   <div class="sec-head">
     <div class="sec-num">看板</div>
     <div>
-      <h2>17 条规则，各自的出处和状态</h2>
+      <h2>19 条规则，各自的出处和状态</h2>
       <p class="sub"><span class="st st-spec">规范已定</span> profile 文档写死的。<span class="st st-obs">实测</span> 文档不规定、工具今天这样做。实现偏差本页未发现。注意 §0.1：只有 codemap 显示旋钮用到的子集承诺稳定。</p>
     </div>
   </div>
   <div class="sec-body">
     <div>
-      <div class="tally"><span><span class="st st-spec">规范已定</span> <b>15</b></span><span><span class="st st-obs">实测</span> <b>2</b></span></div>
+      <div class="tally"><span><span class="st st-spec">规范已定</span> <b>16</b></span><span><span class="st st-obs">实测</span> <b>3</b></span></div>
       <div class="board">
         <table class="b">
           <thead><tr><th></th><th>规则</th><th>出处</th><th>状态</th></tr></thead>
@@ -114,6 +114,8 @@
             <tr><td class="n">15</td><td>样式入口：任何根只有 <code>&lt;root&gt;/_index/index.geml</code> 一个固定路径，宿主只探它；<strong>名字用来找，<code>meta.profile</code> 用来认</strong>，路径上放了别的东西就当「没有入口」。两个键说明加载哪几份：<code>default-style</code>（meta 键）和 <code>#sitemap</code>（表，<code>document</code>/<code>template</code> 两列，<strong>精确匹配、无 glob、无级联</strong>）。两者都是<strong>一次隐式 <code>embed</code></strong>，所以环检测、深度上限、诊断全部沿用 embed 那一套；<code>embed {src=index.geml}</code> 因此等于「给我本根的默认，不管它叫什么」。</td><td class="src">§1.1</td><td><span class="st st-spec">规范已定</span></td></tr>
             <tr><td class="n">16</td><td>层：入口把样式表排成 <code>default-style</code>（0）→ <code>#sitemap</code> 命中的那份（1）→ 入口自己的规则（2）。<strong>跨层按层号裁决、上层胜；层内规则 7 一字不改。</strong>层号是<strong>声明</strong>出来的顺序，不是从选择器算的分数——CSS <code>@layer</code> 的模型，不是 specificity。显式 <code>embed</code> <strong>不</strong>开新层。排除源序的理由依然成立：同层内无序，<code>#sitemap</code> 精确匹配所以改行序不改结果，层数由那两个键固定。代价明写：「裁决与规则来自哪个文件无关」从此只对层内成立。</td><td class="src">§4.1</td><td><span class="st st-spec">规范已定</span></td></tr>
             <tr><td class="n">17</td><td>实测：经入口的两层 0 诊断，<code>#hero</code> 被两条规则同时命中而 <code>component</code> 取上层的值、<code>#facts</code> 仍由默认层管；同两条规则挤进一层立刻 <code>ambiguous-rule</code> error；<code>default-style</code> 指不到时 <code>style-embed-not-expanded</code> warning、exit 0、本文件规则照常装载。</td><td class="src">geml style check</td><td><span class="st st-obs">实测</span></td></tr>
+            <tr><td class="n">18</td><td>第二个用例（2026-09-10，外壳归位）：选择器可以以<strong>行内部件</strong>收尾（<code>link</code> <code>image</code> <code>code-span</code> <code>strong</code> <code>emphasis</code>，只能是最后一步、前面要有块步）；内含词多 <code>axis</code>（块上）、<code>view</code>、<code>editable</code>；<code>when=</code> 认 <code>@hover</code> <code>@focus</code>；合并后没有 <code>component=</code> 接的参数报 <code>style-unknown-attribute</code>。判据仍是 §12.3「换个块还是不是这个意思」。</td><td class="src">设计 2026-09-10 §4</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">19</td><td>实测：GitHub blob 复刻页的外壳全部改成 <code>text</code> 块里的列表 + 行内链接后，<code>geml style check</code> 0 error 0 warning；viewer 组件 7 → 2（tree、segments），宿主 CSS 页面段色值 22 → 0，样式表私有键 10 → 0，页面 CSS 的 59 处色值全部来自样式表。</td><td class="src">geml style check · render</td><td><span class="st st-obs">实测</span></td></tr>
           </tbody>
         </table>
       </div>

@@ -1,10 +1,13 @@
 // geml-style 的选择器引擎（设计 §4）。
 //
 // 语法刻意只用 §4 已有的词汇：<type>?(.class)*(#id)?([key]|[key=val])*，
-// 加上唯一一个组合子 —— 后代（空白）。`>` `+` `~` `:nth-child` `*` 和模糊匹配
-// 一律拒绝并点名（§4.4）：CSS 相似性要当坡道，不能当陷阱。
+// 加上唯一一个组合子 —— 后代（空白），以及作为**整步**的 `*`（任意节点）。
+// `>` `+` `~` `:nth-child` 和模糊匹配一律拒绝并点名（§4.4）：CSS 相似性要当坡道，
+// 不能当陷阱。`*` 是后来加的，因为一个槽位要按文档顺序摆下整篇文档时，块之间的散文
+// 段落带不了 class，没有全选就写不出来；它只在"整步"位置合法，`.a*` 照旧被拒。
+// 部件步（link image code-span strong emphasis）只在最后一步合法，见 PARTS。
 
-import type { Block, Document, Value } from "./geml.js";
+import type { Block, Document, Inline, Value } from "./geml.js";
 import { nameKey } from "./geml.js";
 import { styleDiag, type StyleDiagnostic } from "./style-diagnostics.js";
 
@@ -25,14 +28,30 @@ export type SelectorResult =
   | { ok: true; selector: Selector; branches: Selector[] }
   | { ok: false; code: "selector-unsupported"; message: string };
 
-const SUPPORTED = "supported: type, .class, #id, [attr], [attr=val], descendant";
+const SUPPORTED = "supported: type, .class, #id, [attr], [attr=val], `*`, descendant, an inline part (link image code-span strong emphasis) as the last step";
+
+/**
+ * 行内部件（设计 2026-09-10 §4a）：选择器的最后一步可以指到块**里面**的一类行内节点，
+ * 于是"这个块里的链接"能上色，而调色板不必写进宿主。名字取 GEML-spec §5.1 的叫法
+ * （code span、emphasis）—— `code` 是块类型，`text#nav code` 今天已经有意思（嵌在里面的
+ * 代码块），不能借来当行内用。值是行内节点在模型里的 type。
+ */
+export const PARTS: ReadonlyMap<string, string> = new Map([
+  ["link", "link"], ["image", "image"], ["code-span", "code"], ["strong", "strong"], ["emphasis", "emph"],
+]);
+
+/** 这条选择器指的是部件（最后一步是部件名）还是块。 */
+export function isPartSelector(sel: Selector): boolean {
+  const last = sel.steps[sel.steps.length - 1];
+  return last !== undefined && last.type !== undefined && PARTS.has(last.type);
+}
 
 // 明确拒绝的构造，分两区扫描 —— 这不是洁癖，是正确性：
 // 属性值里完全可能合法地出现 `:`（codemap 的 anchor 就是
 // `ts:render.ts#esc(string)`），一遍过的正则会把它误判成伪类。
 // 所以伪类/组合子/通配符只在**括号外**找，模糊匹配算子只在**括号内**找，
 // 而引号内的内容两边都不参与。
-const UNSUPPORTED_OUTSIDE = /::?[A-Za-z-]+(\([^)]*\))?|[>+~]|(^|[\s,])\*/;
+const UNSUPPORTED_OUTSIDE = /::?[A-Za-z-]+(\([^)]*\))?|[>+~]|(?<!^|[\s,])\*|\*(?!$|[\s,])/;
 const UNSUPPORTED_ATTR_OP = /[\^$*|]=/;
 
 /** 找出第一个不被支持的构造，没有就返回 null。 */
@@ -114,6 +133,9 @@ function unquote(s: string): string {
 
 function parseSimple(src: string): SimpleSelector | { error: string } {
   const sel: SimpleSelector = { classes: [], attrs: [] };
+  // `*` = 不加任何限制的一步：匹配任意节点（类型块、标题、散文）。整步才算，
+  // 所以 `*.kpi` 这种半吊子写法到不了这里 —— scanUnsupported 已经拒了。
+  if (src === "*") return sel;
   let i = 0;
   const typeM = /^[A-Za-z][A-Za-z0-9_-]*/.exec(src);
   if (typeM) { sel.type = typeM[0]; i = typeM[0].length; }
@@ -161,6 +183,15 @@ function parseOne(src: string): Selector | { error: string } {
     steps.push(s);
   }
   if (steps.length === 0) return { error: "empty selector" };
+  // 部件步的三条规矩：只能在最后、前面要有块步、自己不带过滤。不在最后就成了"链接里面的块"，
+  // 模型里没有这种东西；没有块步就是"语料里所有链接"，那是选择器选内容的边界之外。
+  for (let i = 0; i < steps.length; i++) {
+    const s = steps[i]!;
+    if (s.type === undefined || !PARTS.has(s.type)) continue;
+    if (i === 0) return { error: `\`${s.type}\` names an inline part; write the block before it (\`text#nav ${s.type}\`)` };
+    if (i !== steps.length - 1) return { error: `\`${s.type}\` names an inline part and must be the last step in \`${src}\`` };
+    if (s.id !== undefined || s.classes.length > 0 || s.attrs.length > 0) return { error: `an inline part takes no #id, .class or [attr] in \`${src}\`` };
+  }
   return { steps, source: src };
 }
 
@@ -178,6 +209,11 @@ export function parseSelector(src: string): SelectorResult {
     const r = parseOne(b);
     if ("error" in r) return { ok: false, code: "selector-unsupported", message: `${r.error} (${SUPPORTED})` };
     branches.push(r);
+  }
+  // 一条 match= 的分支要么全指块、要么全指部件：混着写会让同一条规则的内含词一半合法一半不合法。
+  const partness = branches.map(isPartSelector);
+  if (partness.some(Boolean) && !partness.every(Boolean)) {
+    return { ok: false, code: "selector-unsupported", message: `branches of \`${trimmed}\` mix inline parts with blocks; write two rules (${SUPPORTED})` };
   }
   if (branches.length === 0) return unsupported(trimmed);
   return { ok: true, selector: branches[0]!, branches };
@@ -198,11 +234,20 @@ export interface AncestorRef {
 }
 
 export interface Candidate {
-  block: Extract<Block, { kind: "block" }>;
+  /** 可放置的节点：类型块、标题、或块之间的散文段落。 */
+  block: Block;
+  /**
+   * 归一化后的匹配面。type 是：类型块的 `type`、标题的 `heading`、散文的 `prose`。
+   * 标题和散文在 `geml list` 里一直可寻址（`#h1-before-t`），样式层没道理看不见它们；
+   * 归一化在这里做一次，matches / address 都读它，不再各自去摸节点的形状。
+   */
+  self: AncestorRef;
   /** 由外向内 */
   ancestors: AncestorRef[];
-  /** 文档序下标，给没有 id 的块当稳定地址 */
+  /** 文档序下标，给没有 id 的节点当稳定地址 */
   index: number;
+  /** 部件候选：这个块的某一类行内（`link` `image` `code-span` `strong` `emphasis`）。没有 = 块本身。 */
+  part?: string;
 }
 
 /**
@@ -213,30 +258,62 @@ export interface Candidate {
  * "up to, but not including, the next heading of the same or higher level"。
  */
 export function candidates(doc: Document): Candidate[] {
-  const out: Candidate[] = [];
+  const blocks: Candidate[] = [];
   const counter = { n: 0 };
-  walk(doc.children, [], out, counter);
+  walk(doc.children, [], blocks, counter);
+  // 部件候选紧跟它的块：块里出现过的每一类行内一个。地址、index 都沿用块的 —— 它不是新节点，
+  // 是块的一个面；binding 用 `part` 区分。
+  const out: Candidate[] = [];
+  for (const c of blocks) {
+    out.push(c);
+    for (const [part, inlineType] of PARTS) {
+      if (!hasInline(c.block, inlineType)) continue;
+      out.push({ block: c.block, self: { type: part, classes: [], attrs: {} }, ancestors: [...c.ancestors, c.self], index: c.index, part });
+    }
+  }
   return out;
 }
 
-function walk(nodes: Block[], inherited: AncestorRef[], out: Candidate[], counter: { n: number }): void {
+/** 块（含嵌套列表、嵌在里面的块）的行内里有没有这一类节点 —— 后代语义，和生成的 CSS 一致。 */
+function hasInline(b: Block, type: string): boolean {
+  const inl = (nodes: Inline[] | undefined): boolean =>
+    (nodes ?? []).some((n) => n.type === type || inl((n as { children?: Inline[] }).children));
+  if (b.kind === "heading" || b.kind === "paragraph") return inl(b.inlines);
+  if (b.kind === "list") return b.items.some((it) => inl(it.inlines) || (it.children ?? []).some((ch) => hasInline(ch, type)));
+  if (b.kind === "block") return (b.children ?? []).some((ch) => hasInline(ch, type));
+  return false;
+}
+
+function walk(nodes: Block[], inherited: AncestorRef[], out: Candidate[], counter: { n: number }, insideBlock = false): void {
   const headings: { ref: AncestorRef; level: number }[] = [];
   for (const n of nodes) {
+    const chain = () => [...inherited, ...headings.map((h) => h.ref)];
     if (n.kind === "heading") {
       while (headings.length > 0 && headings[headings.length - 1]!.level >= n.level) headings.pop();
+      // 祖先用的 ref 不带 type —— `#api table` 里的 `#api` 步骤要能匹配上它。
       const ref: AncestorRef = { classes: n.classes, attrs: n.attrs };
       if (n.id !== undefined) ref.id = n.id;
+      const outer = chain();
       headings.push({ ref, level: n.level });
+      // 自身当候选时才带 type=heading，外加一个 `level` 属性：`heading[level=1]` 就能选一级标题。
+      const self: AncestorRef = { type: "heading", classes: n.classes, attrs: { level: n.level, ...n.attrs } };
+      if (n.id !== undefined) self.id = n.id;
+      out.push({ block: n, self, ancestors: outer, index: counter.n++ });
+      continue;
+    }
+    // 块**之间**的散文是文档的一节，可放置；块**内部**的段落是那个块的内容，不是。
+    if (n.kind === "paragraph" && !insideBlock) {
+      // 段落节点本身不带 id/class/attrs —— 它的地址是文档序（`[12]`），和 `geml list`
+      // 给散文派生地址是同一件事的两种写法。
+      const self: AncestorRef = { type: "prose", classes: [], attrs: {} };
+      out.push({ block: n, self, ancestors: chain(), index: counter.n++ });
       continue;
     }
     if (n.kind !== "block") continue;
-    const chain = [...inherited, ...headings.map((h) => h.ref)];
-    out.push({ block: n, ancestors: chain, index: counter.n++ });
-    if (n.children && n.children.length > 0) {
-      const self: AncestorRef = { type: n.type, classes: n.classes, attrs: n.attrs };
-      if (n.id !== undefined) self.id = n.id;
-      walk(n.children, [...chain, self], out, counter);
-    }
+    const self: AncestorRef = { type: n.type, classes: n.classes, attrs: n.attrs };
+    if (n.id !== undefined) self.id = n.id;
+    out.push({ block: n, self, ancestors: chain(), index: counter.n++ });
+    if (n.children && n.children.length > 0) walk(n.children, [...chain(), self], out, counter, true);
   }
 }
 
@@ -257,10 +334,11 @@ function matchSimple(s: SimpleSelector, n: AncestorRef): boolean {
  * 按序找到 —— 后代是**子序列**关系，不是父子关系。
  */
 export function matches(sel: Selector, c: Candidate): boolean {
-  const self: AncestorRef = { type: c.block.type, classes: c.block.classes, attrs: c.block.attrs };
-  if (c.block.id !== undefined) self.id = c.block.id;
   const target = sel.steps[sel.steps.length - 1]!;
-  if (!matchSimple(target, self)) return false;
+  // 块选择器（含 `*`）与部件候选互不相干：否则 `slots="*"` 会把每个块摆两遍。
+  const wantsPart = target.type !== undefined && PARTS.has(target.type);
+  if (wantsPart !== (c.part !== undefined)) return false;
+  if (!matchSimple(target, c.self)) return false;
   let ai = c.ancestors.length - 1;
   for (let si = sel.steps.length - 2; si >= 0; si--) {
     const step = sel.steps[si]!;
@@ -273,9 +351,10 @@ export function matches(sel: Selector, c: Candidate): boolean {
   return true;
 }
 
-/** 候选的稳定地址：有 id 用 `#id`，否则用文档序下标。 */
+/** 候选的稳定地址：有 id 用 `#id`，否则用文档序下标。部件的地址就是它所属块的地址（binding 用 part 区分）。 */
 export function address(c: Candidate): string {
-  return c.block.id !== undefined ? `#${c.block.id}` : `[${c.index}]`;
+  const owner = c.part !== undefined ? c.ancestors[c.ancestors.length - 1]! : c.self;
+  return owner.id !== undefined ? `#${owner.id}` : `[${c.index}]`;
 }
 
 function simpleConditions(s: SimpleSelector, prefix: string, into: Set<string>): void {

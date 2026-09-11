@@ -11,7 +11,7 @@
 //   - define import.meta.url → "" so the CLI's codemap-dispatch path (dead in a
 //     page) doesn't trip the "import.meta unavailable in iife" warning
 import * as esbuild from "esbuild";
-import { cpSync, existsSync, mkdirSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -37,11 +37,34 @@ const stubRenderHtml = {
   },
 };
 
-// We bundle geml-parser's compiled output; it must be built first.
+// We bundle geml-parser's compiled output; it must be built first — and it must be
+// CURRENT. Existence alone was the check until a branch switch produced a bundle whose
+// viewer half was new and whose parser half was the previous branch's: the page laid
+// itself out and then reported `on=toggle` as an unknown interaction, because that word
+// only exists in the newer parser. A stale dist is not a missing dist, and it fails in a
+// way that reads like a bug in the feature you just wrote.
 if (!existsSync(parserDist)) {
   console.error(
     "geml-parser is not built. Run this once, then retry:\n" +
       "  cd ../../geml-parser && npm install && npm run build",
+  );
+  process.exit(1);
+}
+const newestMtime = (dir) => {
+  let newest = 0;
+  for (const e of readdirSync(dir, { withFileTypes: true, recursive: true })) {
+    if (e.isDirectory()) continue;
+    const m = statSync(resolve(e.parentPath ?? e.path, e.name)).mtimeMs;
+    if (m > newest) newest = m;
+  }
+  return newest;
+};
+const srcAt = newestMtime(resolve(parserDir, "src"));
+const distAt = newestMtime(resolve(parserDir, "dist"));
+if (srcAt > distAt) {
+  console.error(
+    "geml-parser/dist is older than geml-parser/src — the bundle would carry a stale parser.\n" +
+      "  cd ../../geml-parser && npm run build",
   );
   process.exit(1);
 }

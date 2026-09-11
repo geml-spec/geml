@@ -14,5 +14,5 @@ profile = "geml-style/v1"
 === style-rule {#leaves match="code.leaf[anchor]" collapsed badge="leaf"}
 ===
 
-=== style-screen {#overview layout=split slots="table#calls, $sel"}
+=== style-screen {#overview axis=row slots="table#calls, $sel"}
 ===

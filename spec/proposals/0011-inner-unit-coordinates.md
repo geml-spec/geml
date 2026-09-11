@@ -305,3 +305,12 @@ GEML is not adopted widely enough yet to owe an old spelling a bridge.
 - **If a second container-mode type ever lands**, GEP 0008's `#a#b` becomes a
   rule with two consumers, and lifting it out of 0008 into a shared section
   becomes worth doing. Not before.
+- **List items as inner units** (deferred, motivated 2026-09-10). A `text` block
+  holding a list has no inner units today — `#nav[5]` is refused with "a coordinate
+  needs a table or a `data` block". geml-style's second page moved a document
+  viewer's chrome from tables into lists so that a menu entry could be one inline
+  link with its icon, and lost per-entry addressing in the trade. The natural
+  extension is `#nav[5]` for the fifth item of the list in block `nav` and `[2][1]`
+  for a nested item, with `get` / `set` behaving as they do for a table row. Not
+  designed here; the motive is recorded so the extension is weighed against the
+  same rules as rows and cells.

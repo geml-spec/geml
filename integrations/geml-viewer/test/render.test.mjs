@@ -224,6 +224,47 @@ test("focus: an unknown id falls back to the full document (never blank, no bann
   assert.ok(!root.querySelector(".geml-focus-banner"), "no banner when nothing focused");
 });
 
+
+test("media dimensions: an integer width/height reaches the element; every other shape is dropped", () => {
+  const img = render("![a](i.png){width=120 height=80}\n").querySelector("img");
+  assert.equal(img.getAttribute("width"), "120");
+  assert.equal(img.getAttribute("height"), "80");
+  assert.equal(img.getAttribute("style"), "max-width:100%", "a width wider than the column still shrinks");
+
+  const vid = render("![v](c.mp4){width=640 height=360}\n").querySelector("video");
+  assert.equal(vid.getAttribute("width"), "640");
+  assert.equal(vid.getAttribute("height"), "360");
+
+  // <audio> has no width/height in HTML, so neither is emitted.
+  const aud = render("![s](s.mp3){width=300}\n").querySelector("audio");
+  assert.equal(aud.hasAttribute("width"), false);
+
+  // Anything that is not a non-negative integer is dropped, not reinterpreted:
+  // the attribute takes a bare number, so a unit, a percentage or a quote-bearing
+  // value would have to be re-encoded to mean anything — and re-encoding an
+  // author string into markup is the hole.
+  for (const attrs of ['{width=50%}', '{width=120px}', '{width=-5}', '{width=12.5}',
+                       '{width="100\\" onload=\\"alert(1)"}']) {
+    const bad = render(`![a](i.png)${attrs}\n`).querySelector("img");
+    assert.equal(bad.hasAttribute("width"), false, attrs);
+    assert.doesNotMatch(bad.outerHTML, /onload|50%|120px|12\.5|-5/, attrs);
+  }
+
+  // No attributes at all: the element is exactly what it was before.
+  assert.equal(render("![a](i.png)\n").querySelector("img").outerHTML,
+    '<img style="max-width:100%" alt="a" src="i.png">');
+});
+test("§5.2 属性对象里的 title 落到 a/img 的 title；alt 照旧；不是字串或数字就不落", () => {
+  const root = render('=== text {#t}\n[Issues](https://x/issues){title="All issues"} ![unread](dot.svg){title="New"} [x](https://y){title=3} [y](https://z){title}\n===\n');
+  const as = [...root.querySelectorAll("a")];
+  assert.equal(as[0].getAttribute("title"), "All issues");
+  assert.equal(as[1].getAttribute("title"), "3", "数字也是文本");
+  assert.equal(as[2].getAttribute("title"), null, "裸 {title} 是 true，不是提示语");
+  const img = root.querySelector("img");
+  assert.equal(img.getAttribute("alt"), "unread");
+  assert.equal(img.getAttribute("title"), "New");
+});
+
 console.log(`\n${passed} test(s) passed.`);
 
 

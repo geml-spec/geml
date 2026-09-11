@@ -1,0 +1,34 @@
+=== meta
+title = "Publishing — what ships, where it lands, and how to know it did"
+===
+
+=== text {#global-header}
+Search or jump to… · Pull requests · Issues · Codespaces · Marketplace
+===
+
+=== text {#repo-tabs}
+Code · Issues · Pull requests · Actions · Projects · Wiki · Security · Insights
+===
+
+=== table {#file-tree format=csv}
+name
+agents
+docs
+geml-parser
+===
+
+=== text {#breadcrumb}
+geml / docs / PUBLISHING.md
+===
+
+=== text {#commit-bar}
+xiongjy2104 · feat(projection): the meta title is the h1 · 2 days ago · History
+===
+
+=== text {#toolbar}
+Preview · Code · Blame
+===
+
+=== text {#content}
+Eight things ship from this repository on six version tracks.
+===

@@ -29,3 +29,11 @@ export { projectCoord, metaView } from "../../../geml-parser/dist/coord.js";
 // the async wave builder are implemented ONCE in the reference renderer;
 // browser consumers reuse them.
 export { buildCodeGraph, codeGraphRuntime, codeGraphWaves } from "../../../geml-parser/dist/render.js";
+// geml-style（计划 E/F）：样式表的装载与求解。从定义它的模块取 —— `geml.js` 不再导出
+// 它，而拓宽 `geml.js` 的表面正是 viewer 的 esbuild stub 必须跟着改的那件事。
+// 页面布局（计划 F）：可放置节点的枚举与地址由**解析器**定义 —— 标题、散文、类型块
+// 各自算什么地址，宿主再实现一遍必然分叉（selectEmbed 那次的教训就写在上面）。
+export { candidates, address } from "../../../geml-parser/dist/style-selector.js";
+// `view=source` 要块的原文：块在文档里的行段由解析器算（`geml list` 用的同一份），宿主不另切。
+export { blockSpans } from "../../../geml-parser/dist/geml.js";
+export { loadStylesheet, resolveStyle } from "../../../geml-parser/dist/style-resolve.js";

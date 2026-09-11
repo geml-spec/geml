@@ -223,4 +223,26 @@ test("索引表与注册表是同一张表 —— README 这句话现在被钉�
   }
 });
 
+
+test("geml-form/v1：声明了 profile 的文档，form-* 家族是注册类型；form-options 的体是一张表", () => {
+  const doc = parse('=== meta\nprofile = "geml-form/v1"\n===\n\n'
+    + '==== form {#f handler=onboarding}\n'
+    + '=== form-options {#plans format=csv delim=;}\nvalue ; label\nbasic ; Basic\npro ; Pro\n===\n'
+    + '=== form-field {#plan label="Plan" type=select options=#plans}\n===\n'
+    + '=== form-field {#phone label="Mobile" type=text required pattern="^[+0-9 ]+$"}\n===\n'
+    + '=== form-note {#n}\nWe never share it.\n===\n'
+    + '====\n');
+  assert.deepEqual(doc.diagnostics.filter((d) => d.severity !== "info"), [], JSON.stringify(doc.diagnostics));
+  const form = doc.children.find((b) => b.type === "form");
+  assert.ok(form, "form 是块，不是未知类型");
+  const opts = form.children.find((b) => b.type === "form-options");
+  assert.deepEqual(opts.table.columns, ["value", "label"], "体解析成了表，和 table 走同一个 parseTable");
+  assert.deepEqual(opts.table.rows.map((r) => r[0].text.trim()), ["basic", "pro"]);
+  // 六个约束键是**声明**（profile §3）：存下来，不校验
+  const phone = form.children.find((b) => b.id === "phone");
+  assert.equal(phone.attrs.pattern, "^[+0-9 ]+$");
+  // 没声明 profile 的文档照旧不认
+  const bare = parse("=== form-field {#x type=text}\n===\n");
+  assert.ok(bare.diagnostics.some((d) => d.code === "unknown-block-type"), "不声明就不认，profile 是门票");
+});
 console.log(`\n${passed} passed`);

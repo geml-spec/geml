@@ -121,4 +121,24 @@ test("an ordered wrapped item aligns its continuation under the content column",
   assert.match(out, /3\. third, wrapped\n   over here/, "three-space continuation for a `3. ` marker");
 });
 
+// ---------------------------------------------------------------- 覆盖率补位
+
+test("a src= table the parser could not read emits its header, caption and a note", () => {
+  const { md: out, notes } = md('=== table {#c src="missing.csv" caption="Sales"}\n===\n');
+  assert.ok(notes.some((n) => /could not be read; emitted header only/.test(n)), notes.join("\n"));
+  assert.ok(out.includes("*Sales*"), out);
+});
+
+test("a short row is padded to the header's width", () => {
+  const { md: out } = md("=== table {#t format=csv header=1}\na,b\n1\n===\n");
+  assert.match(out, /\| 1 \|\s*\|/, out);
+});
+
+test("an embed with no src= produces nothing but says why", () => {
+  const { md: out, notes } = md("=== embed {#e}\n===\n");
+  assert.equal(out.trim(), "");
+  assert.ok(notes.some((n) => /could not be resolved/.test(n)), notes.join("\n"));
+});
+
+
 console.log(`\n${passed} test(s) passed.`);

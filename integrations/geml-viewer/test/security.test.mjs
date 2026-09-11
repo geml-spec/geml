@@ -6,6 +6,11 @@
 //   L1  remote media does not auto-load (click-to-load link instead)
 //   L2  every target=_blank link carries rel="noopener noreferrer"
 //   L3  only paths ending in .geml/.gemlhistory are rendered
+//   F1–F9  page layout (plan F): the stylesheet is a second untrusted input —
+//       CSS-value shape gate, class-name sanitizing, prototype-safe component
+//       registry and state names, frame fan-out cap, same-origin / no-credential /
+//       no-HTML / no-redirect style fetches, file:// directory gate, size cap,
+//       text-only banner
 //
 // H1/L1/L2 live in the pure renderer, so they run exactly like render.test.mjs
 // (parse → renderDocument → assert DOM). M1/L3 live inside content.js main();
@@ -174,7 +179,10 @@ function makeResp(text, url, { ok = true, ct = "text/csv" } = {}) {
 }
 
 // Install fresh globals for one main() run and return {document, calls}.
-function install({ href, pathname, protocol, docRaw, bodyHtml, routes = {}, contentType = "text/plain" }) {
+// `routes` values are the response text, or `{ text, url, ct }` to answer with a redirected
+// URL / another content-type. `files` answers the background worker's geml-read-file for
+// file:// documents; every URL it is asked for lands in `asked`.
+function install({ href, pathname, protocol, docRaw, bodyHtml, routes = {}, files = {}, contentType = "text/plain" }) {
   const { document } = parseHTML(`<!doctype html><html><head></head><body>${bodyHtml || ""}</body></html>`);
   // content.js's activation guard requires contentType === "text/plain" (or a
   // file:// doc); linkedom doesn't set one, so pin it here. Raw .geml hosts and
@@ -183,18 +191,31 @@ function install({ href, pathname, protocol, docRaw, bodyHtml, routes = {}, cont
   try { Object.defineProperty(document, "contentType", { value: contentType, configurable: true }); } catch { /* already fixed value */ }
   globalThis.document = document;
   globalThis.location = { href, pathname, protocol };
+  const asked = [];
   globalThis.chrome = {
-    runtime: { getURL: (p) => "chrome-extension://test/" + p, sendMessage: async () => ({ ok: false }) },
+    runtime: {
+      getURL: (p) => "chrome-extension://test/" + p,
+      sendMessage: async (msg) => {
+        if (msg && msg.type === "geml-read-file") {
+          asked.push(String(msg.url));
+          return Object.prototype.hasOwnProperty.call(files, String(msg.url)) ? { ok: true, text: files[String(msg.url)] } : { ok: false };
+        }
+        return { ok: false };
+      },
+    },
   };
   const calls = [];
   globalThis.fetch = async (url, opts) => {
     calls.push({ url: String(url), opts });
     // The document's own body (http(s) readSource() path).
     if (protocol !== "file:" && String(url) === href) return makeResp(docRaw, href, { ct: "text/plain" });
-    if (Object.prototype.hasOwnProperty.call(routes, String(url))) return makeResp(routes[String(url)], String(url));
+    if (Object.prototype.hasOwnProperty.call(routes, String(url))) {
+      const r = routes[String(url)];
+      return typeof r === "string" ? makeResp(r, String(url)) : makeResp(r.text, r.url ?? String(url), { ct: r.ct ?? "text/plain" });
+    }
     return makeResp("", String(url), { ok: false });
   };
-  return { document, calls };
+  return { document, calls, asked };
 }
 
 // Import (a fresh copy of) content.js so its top-level main() runs against the
@@ -458,4 +479,185 @@ await test("R2-3 (file://): code-graph fetchDoc reads same-directory siblings; a
 });
 
 console.warn = _warn;
+// ==========================================================================
+// F — 页面布局（计划 F）：样式表是第二份不可信输入
+//   F1  内含词的开放值进 CSS 前按形状放行，跳不出自己的规则
+//   F2  状态值 / 块 id 进 class 名前被清洗
+//   F3  component= 只在注册表**自有**属性里查，原型链上的名字画成默认
+//   F4  状态名可以是 __proto__ / constructor，不污染原型、页照画
+//   F5  frame 复用 × 嵌套是乘法：放置数超上限整页不画，退回默认，线性时间
+//   F6  样式文件同源、无凭据、拒 HTML、拒越源重定向；跨域与 //host 的 embed 从不 fetch
+//   F7  file:// 下入口里 ../../ 越出目录的路径连 bg 都不问
+//   F8  超过 4 MB 的样式表当读不到
+//   F9  诊断横幅里的样式表文本是 textContent，不是标记
+// ==========================================================================
+
+import { readFileSync } from "node:fs";
+import { loadStylesheet, resolveStyle } from "../src/parse-entry.js";
+import { renderBlock } from "../src/render.js";
+import { renderPage, safeCssValue, classFor, PLACEMENT_CAP } from "../src/layout.js";
+import { createState, COMPONENTS } from "../src/components.js";
+import { loadPageStyle, STYLE_DOC_BYTES_CAP } from "../src/style-entry.js";
+
+const FIX = new URL("../../../geml-parser/test/fixtures/style-page/", import.meta.url);
+const F_PAGE = readFileSync(new URL("first-page.geml", FIX), "utf8");
+const F_STYLE = readFileSync(new URL("first-page.style.geml", FIX), "utf8");
+const F_ENTRY = '=== meta\nprofile = "geml-style/v1"\ndefault-style = "github.style.geml"\n===\n';
+const fdom = () => parseHTML("<!doctype html><html><head></head><body></body></html>");
+const fvm = (sheetText, docText) => {
+  const model = parse(docText);
+  const vm = resolveStyle(loadStylesheet(parse(sheetText)), [{ path: "page.geml", doc: model }]);
+  return { vm, model };
+};
+const F_DOC = '=== text {#hdr}\nheader\n===\n=== table {#tree format=csv}\nname\na\n===\n=== text {#main}\nbody\n===\n';
+
+await test("F1 CSS: open-domain box values are admitted by shape; braces, ;, quotes, url( and comments never reach the stylesheet", () => {
+  for (const bad of ['0} body{display:none} .x{', "red; background: url(x)", '</style><script>1</script>', "1px solid #fff !important", 'attr(x "', "a /* b */", "@import x", ""]) {
+    assert.equal(safeCssValue(bad), null, JSON.stringify(bad));
+  }
+  for (const ok of ["321px", "0", 0, "#1f2328", "1px solid #d0d7de", "rgb(36, 41, 47)", "0 8px", "calc(100% - 16px)", "bold"]) {
+    assert.notEqual(safeCssValue(ok), null, String(ok));
+  }
+  const { vm, model } = fvm(
+    '=== meta\nprofile = "geml-style/v1"\n===\n=== style-screen {#s slots="text#hdr"}\n===\n' +
+    '=== style-rule {#evil match="text#hdr" width="0} body{display:none} .x{" color="red; background: url(x)" padding=8px}\n===\n' +
+    '=== style-rule {#evil2 match="text#hdr" when="$t=x" border="1px solid #000; } * { visibility: hidden"}\n===\n' +
+    '=== style-state {#t type=scalar match="text#hdr" on=toggle init-value=y}\n===\n', F_DOC);
+  const out = renderPage(vm, model, fdom().document, { renderBlock, labels: [], components: {}, state: null });
+  assert.equal(out.unsafe.length, 3, out.unsafe.join("\n"));
+  assert.match(out.css, /\.geml-b-hdr \{ padding: 8px \}/);
+  assert.equal(/url\(|visibility|\bbody\s*\{/.test(out.css), false, out.css);
+  for (const rule of out.css.split("\n")) if (rule && !rule.startsWith("@media")) assert.equal((rule.match(/[{}]/g) || []).length, 2, rule);
+});
+
+await test("F2 class names: state values and block ids are reduced to [A-Za-z0-9_-] before they reach a selector", () => {
+  assert.equal(classFor('#a"b}c'), "geml-b-a_b_c");
+  const { vm } = fvm('=== meta\nprofile = "geml-style/v1"\n===\n=== style-screen {#s slots="text#hdr"}\n===\n=== style-state {#tab type=scalar match="text#hdr" on=select init-value=a}\n===\n', F_DOC);
+  const { document } = fdom();
+  const state = createState(vm, document);
+  state.set("tab", 'x" } body { color: red } .y{');
+  const cls = [...document.body.classList].find((c) => c.startsWith("geml-s-tab-"));
+  assert.match(cls, /^geml-s-tab-[A-Za-z0-9_-]+$/, cls);
+});
+
+await test("F3 registry: component=constructor / __proto__ / toString render as the default, never call Object's methods", () => {
+  for (const name of ["constructor", "__proto__", "toString", "hasOwnProperty"]) {
+    const { vm, model } = fvm(`=== meta\nprofile = "geml-style/v1"\n===\n=== style-screen {#s slots="text#hdr"}\n===\n=== style-rule {#r match="text#hdr" component=${name}}\n===\n`, F_DOC);
+    const out = renderPage(vm, model, fdom().document, { renderBlock, labels: [], components: COMPONENTS, state: null });
+    assert.ok(out.root, `${name}: ${out.error}`);
+    assert.match(out.root.querector?.("[data-block]")?.textContent ?? out.root.textContent, /header/, name);
+  }
+});
+
+await test("F4 state names: __proto__ and constructor as state ids neither pollute Object.prototype nor break the page", () => {
+  const before = Object.keys(Object.prototype).length;
+  const { vm, model } = fvm(
+    '=== meta\nprofile = "geml-style/v1"\n===\n=== style-screen {#s slots="table#tree"}\n===\n' +
+    '=== style-state {#__proto__ type=scalar match="table#tree" on=toggle init-value=open}\n===\n' +
+    '=== style-state {#constructor type=scalar match="table#tree" on=select init-value=a}\n===\n' +
+    '=== style-rule {#r match="table#tree" when="$__proto__=closed, $constructor=b" width=0}\n===\n', F_DOC);
+  const { document } = fdom();
+  const state = createState(vm, document);
+  state.set("__proto__", "closed");
+  state.set("constructor", "b");
+  const out = renderPage(vm, model, document, { renderBlock, labels: [], components: COMPONENTS, state });
+  assert.ok(out.root, out.error);
+  assert.match(out.css, /body\.geml-s-__proto__-closedbody\.geml-s-constructor-b \.geml-b-tree/);
+  assert.equal(Object.keys(Object.prototype).length, before, "no enumerable key landed on Object.prototype");
+  assert.equal(({}).polluted, undefined);
+});
+
+await test("F5 fan-out: a 12-level diamond of frames (4096 leaf placements) is refused past the cap, quickly, and falls back", () => {
+  const K = 12;
+  let sheet = '=== meta\nprofile = "geml-style/v1"\n===\n=== style-screen {#s slots="#f0, #f0"}\n===\n';
+  for (let i = 0; i < K; i++) sheet += `=== style-frame {#f${i} slots="${i + 1 < K ? `#f${i + 1}, #f${i + 1}` : "text#hdr"}"}\n===\n`;
+  const { vm, model } = fvm(sheet, F_DOC);
+  assert.deepEqual(vm.diagnostics.filter((d) => d.severity === "error"), [], "the checker is linear and finds nothing wrong — the blow-up is a render-time property");
+  const t0 = Date.now();
+  const out = renderPage(vm, model, fdom().document, { renderBlock, labels: [], components: {}, state: null });
+  assert.ok(Date.now() - t0 < 3000, `took ${Date.now() - t0}ms`);
+  assert.match(out.error, new RegExp(`more than ${PLACEMENT_CAP}`));
+  // and a page that stays under the cap still renders
+  const small = fvm('=== meta\nprofile = "geml-style/v1"\n===\n=== style-screen {#s slots="#a, #a"}\n===\n=== style-frame {#a slots="text#hdr, text#hdr"}\n===\n', F_DOC);
+  const ok = renderPage(small.vm, small.model, fdom().document, { renderBlock, labels: [], components: {}, state: null });
+  assert.equal(ok.root.querySelectorAll("[data-block]").length, 4);
+});
+
+await test("F6 (https) style files: same-origin only, credentials:'omit', HTML answers refused, off-origin redirects refused, cross-origin embeds never fetched", async () => {
+  const href = "https://site.test/docs/page.geml";
+  const evilSheet = '=== meta\nprofile = "geml-style/v1"\n===\n=== embed {#x src="https://evil.example/x.geml"}\n===\n=== embed {#y src="//evil.example/y.geml"}\n===\n' + F_STYLE;
+  const ctx = await runMain({
+    href, pathname: "/docs/page.geml", protocol: "https:", docRaw: F_PAGE,
+    routes: { "https://site.test/docs/_index/index.geml": F_ENTRY, "https://site.test/docs/_index/github.style.geml": evilSheet },
+  });
+  assert.ok(ctx.document.querySelector(".geml-page"), "the page rendered (refused embeds are warnings)");
+  const styleCalls = ctx.calls.filter((c) => c.url !== href);
+  assert.ok(styleCalls.length >= 2 && styleCalls.every((c) => c.opts && c.opts.credentials === "omit"), "every style fetch is credentials:'omit'");
+  assert.equal(ctx.calls.some((c) => c.url.includes("evil.example")), false, "cross-origin and //host embeds were never fetched");
+
+  // The entry served as HTML (a pretty 404 with status 200): not a stylesheet.
+  const html = await runMain({
+    href, pathname: "/docs/page.geml", protocol: "https:", docRaw: F_PAGE,
+    routes: { "https://site.test/docs/_index/index.geml": { text: "<!doctype html><p>not found</p>", ct: "text/html" } },
+  });
+  assert.equal(html.document.querySelector(".geml-page"), null);
+  assert.ok(html.document.querySelector(".geml-doc"), "plain rendering");
+
+  // The entry redirected off-origin: refused even though the request URL was same-origin.
+  const redirected = await runMain({
+    href, pathname: "/docs/page.geml", protocol: "https:", docRaw: F_PAGE,
+    routes: { "https://site.test/docs/_index/index.geml": { text: F_ENTRY, url: "https://evil.example/index.geml" } },
+  });
+  assert.equal(redirected.document.querySelector(".geml-page"), null);
+  assert.equal(redirected.calls.some((c) => c.url.includes("github.style.geml")), false, "nothing the redirected entry named was fetched");
+});
+
+await test("F7 (file://) the entry's ../../ escape resolves outside the document directory and is never asked of the background worker", async () => {
+  const href = "file:///C:/docs/site/page.geml";
+  const ctx = await runMain({
+    href, pathname: "/C:/docs/site/page.geml", protocol: "file:", docRaw: F_PAGE,
+    bodyHtml: `<pre>${F_PAGE.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</pre>`,
+    files: {
+      "file:///C:/docs/site/_index/index.geml": '=== meta\nprofile = "geml-style/v1"\ndefault-style = "../../secret.geml"\n===\n=== style-screen {#page slots="text#content"}\n===\n',
+      "file:///C:/docs/secret.geml": '=== meta\nprofile = "geml-style/v1"\n===\n=== style-rule {#r match="text" color=red}\n===\n',
+    },
+  });
+  assert.ok(ctx.asked.includes("file:///C:/docs/site/_index/index.geml"), "the same-directory entry went through the worker");
+  assert.equal(ctx.asked.includes("file:///C:/docs/secret.geml"), false, "the escape was refused before any message was sent");
+  assert.ok(ctx.document.querySelector(".geml-page"), "the entry itself is fine; the refused default-style is a warning");
+});
+
+await test("F8 size: a stylesheet over the byte cap is treated as unreadable, with a warning, not parsed", async () => {
+  const site = "https://host.test/site/";
+  const huge = '=== meta\nprofile = "geml-style/v1"\n===\n' + "%% ".padEnd(STYLE_DOC_BYTES_CAP + 10, "x") + "\n";
+  const files = new Map([
+    [site + "_index/index.geml", '=== meta\nprofile = "geml-style/v1"\ndefault-style = "huge.geml"\n===\n'],
+    [site + "_index/huge.geml", huge],
+  ]);
+  const warn = console.warn; const warns = []; console.warn = (...a) => warns.push(a.join(" "));
+  let page;
+  try {
+    page = await loadPageStyle({ docUrl: site + "page.geml", fetchText: async (u) => files.get(u) ?? null, model: parse(F_DOC), parse, loadStylesheet, resolveStyle });
+  } finally { console.warn = warn; }
+  assert.ok(warns.some((w) => /larger than/.test(w)), warns.join(" | "));
+  assert.ok(page.vm.diagnostics.some((d) => d.code === "style-embed-not-expanded" && /huge\.geml/.test(d.message)));
+});
+
+await test("F9 banner: stylesheet text that reaches the diagnostics banner is text, never markup", async () => {
+  const href = "https://site.test/docs/page.geml";
+  const ctx = await runMain({
+    href, pathname: "/docs/page.geml", protocol: "https:", docRaw: F_PAGE,
+    routes: {
+      "https://site.test/docs/_index/index.geml": F_ENTRY,
+      "https://site.test/docs/_index/github.style.geml":
+        '=== meta\nprofile = "geml-style/v1"\n===\n=== style-screen {#page slots="text#content"}\n===\n=== style-rule {#r match="text#content" scroll="<img src=x onerror=alert(1)>"}\n===\n',
+    },
+  });
+  const banner = ctx.document.querySelector(".geml-diag-error");
+  assert.ok(banner, "style-invalid-value is an error, so the banner shows");
+  assert.match(banner.textContent, /onerror/);
+  assert.equal(ctx.document.querySelector("img"), null, "the payload is text in the banner, not an element");
+});
+
+
 console.log(`\n${passed} test(s) passed.`);

@@ -120,7 +120,9 @@ export function serializeGraphStyle(cfg: GraphStyle): string {
     "Display-time knobs for `geml-code-graph`. Seeded on first build; edit\n" +
     "freely — build never rewrites this, exactly like `foldings.geml` beside it.\n" +
     "That one tunes BUILD-time folding; this one tunes what you see.\n\n" +
-    '=== style-rule {#graph match="diagram[format=geml-code-graph]" \\\n' +
+    // `component=code-graph`：旋钮是给这个组件的参数（profile §2.1）。没有它，一条不带组件的 rule
+    // 上的旋钮会被当成笔误报 style-unknown-attribute（设计 2026-09-10 §4f）。
+    '=== style-rule {#graph match="diagram[format=geml-code-graph]" component=code-graph \\\n' +
     `                fold=${cfg.fold} depth=${cfg.depth} ` +
     `hide-accessors=${cfg.hideAccessors} \\\n` +
     `                palette="${cfg.palette.join(" ")}"}\n===\n`;

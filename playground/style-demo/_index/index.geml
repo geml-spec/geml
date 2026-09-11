@@ -1,0 +1,4 @@
+=== meta
+profile = "geml-style/v1"
+default-style = "github.style.geml"
+===

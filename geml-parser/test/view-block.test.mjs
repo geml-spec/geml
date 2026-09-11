@@ -310,4 +310,102 @@ test("a remote view that did not resolve in its own document is an error at the 
   assert.ok(!(doc.children[0].table && doc.children[0].table.columns.length > 0), "and publishes no relation of its own");
 });
 
+// ---------------------------------------------------------------- 覆盖率补位：每条诊断、每个比较算子各走一次
+
+const view = (attrs) => parse(`${source}\n=== view {#v src=#tickets ${attrs}}\n===`);
+const has = (document, code) => document.diagnostics.some((d) => d.code === code);
+const msg = (document, code) => document.diagnostics.find((d) => d.code === code)?.message ?? "";
+
+test("where：词法与语法错误各自点名", () => {
+  const cases = [
+    ["Status = 'open", /unclosed single-quoted string/],
+    ["Status ! 'x'", /unexpected token `!`/],
+    ["= 'open'", /a comparison starts with a column name/],
+    ["Status = open", /number or single-quoted string/],
+    ["(Status = 'open'", /missing \)/],
+    ["Status 'open'", /followed by a comparison/],
+    ["Status =", /no right-hand value/],
+    ["Status = 'open' extra", /unexpected token `extra`/],
+    ["Nope = 'x'", /unknown column `Nope`/],
+  ];
+  for (const [where, re] of cases) {
+    const d = view(`where="${where}"`);
+    assert.match(msg(d, "view-where-error"), re, where);
+  }
+});
+
+test("where：数字比较与文本比较的六个算子都能求值，结果与直接过滤一致", () => {
+  const base = byId(parse(source), "tickets").table;
+  const ages = base.rows.map((r) => r[2].value);
+  const statuses = base.rows.map((r) => r[1].text);
+  const num = {
+    "Age = 8": (v) => v === 8, "Age != 8": (v) => v !== 8, "Age < 5": (v) => v < 5,
+    "Age <= 2": (v) => v <= 2, "Age > 5": (v) => v > 5, "Age >= 8": (v) => v >= 8,
+  };
+  for (const [w, f] of Object.entries(num)) {
+    const d = view(`where="${w}"`);
+    assert.deepEqual(errors(d), [], w);
+    assert.equal(byId(d, "v").table.rows.length, ages.filter((v) => typeof v === "number" && f(v)).length, w);
+  }
+  const txt = {
+    "Status = 'open'": (s) => s === "open", "Status != 'open'": (s) => s !== "open", "Status < 'open'": (s) => s < "open",
+    "Status <= 'open'": (s) => s <= "open", "Status > 'closed'": (s) => s > "closed", "Status >= 'open'": (s) => s >= "open",
+  };
+  for (const [w, f] of Object.entries(txt)) {
+    const d = view(`where="${w}"`);
+    assert.deepEqual(errors(d), [], w);
+    assert.equal(byId(d, "v").table.rows.length, statuses.filter(f).length, w);
+  }
+});
+
+test("compute / aggregate：写坏了的声明各自点名", () => {
+  assert.ok(has(view('by="Nope" aggregate="N = count(Id)"'), "view-unknown-column"));
+  assert.ok(has(view('by="Area" aggregate="nonsense"'), "bad-aggregate-entry"));  assert.ok(has(view('by="Area" aggregate="S = sum(Age) +"'), "aggregate-error"));
+});
+
+test("aggregate：count 数非空格、sum 对无数字的列得 0、avg 求均值", () => {
+  const g = ["=== table {#g format=csv header=1}", "Area,Age,Note", "infra,8,x", "infra,2,", "ops,5,y", "==="].join("\n");
+  const d = parse(`${g}\n=== view {#v src=#g by="Area" aggregate="N = count(Note)" aggregate2="S = sum(Note)" aggregate3="A = avg(Age)"}\n===`);
+  assert.deepEqual(errors(d), [], JSON.stringify(d.diagnostics));
+  const rows = byId(d, "v").table.rows.map((r) => r.map((c) => c.text));
+  assert.deepEqual(rows, [["infra", "1", "0", "5"], ["ops", "1", "0", "5"]]);
+});
+
+test("order / select / limit / summary：其余诊断，以及文本键排序的三种比较结果", () => {
+  assert.ok(has(view(`order="' ' desc"`), "view-order-error"));
+  assert.ok(has(view('order="Nope"'), "view-unknown-column"));
+  const tie = view('order="Status, Id desc"');
+  assert.deepEqual(errors(tie), []);
+  const ordered = byId(tie, "v").table.rows.map((r) => r[1].text);
+  assert.deepEqual(ordered, [...ordered].sort());
+  assert.ok(has(view('select="Id, X = Age + 1"'), "view-select-expression"));
+  assert.ok(has(view('select="Id, Nope"'), "view-unknown-column"));
+  assert.ok(has(view("limit=abc"), "view-limit-error"));
+  assert.ok(has(view("limit=-1"), "view-limit-error"));
+  assert.ok(has(view('select="Id" summary="Age = sum(Age)"'), "summary-projected-away"));
+  assert.ok(has(view('compute="Age = Age + 1"'), "shadowed-source-column"));
+  assert.ok(has(view('by="Area" compute="T = sum(Age)"'), "grouping-compute-aggregate"));
+  // 聚合列存在时 where 词法化失败：先探聚合名的那一步吞掉异常，留给 filterPredicate 正式报
+  assert.ok(has(view(`compute="T = sum(Age)" where="Status = 'open"`), "view-where-error"));
+});
+
+test("table：外部 src 的表带 caption；空的坐标尾巴不是路径", () => {
+  const d = parse('=== table {#c src="missing.csv" caption="Sales"}\n===\n');
+  assert.equal(byId(d, "c").table.caption, "Sales");
+  assert.equal(parseCoordPath(""), null);
+});
+
+
+test("aggregate：带格式的聚合按格式打印；算不出有限值的打成 `-` 且不带 value", () => {
+  const d = view('by="Area" aggregate="A[%.1f] = avg(Age)" aggregate2="R[%.1f] = sum(Age) / 0"');
+  assert.deepEqual(errors(d), [], JSON.stringify(d.diagnostics));
+  const rows = byId(d, "v").table.rows;
+  for (const r of rows) {
+    assert.match(r[1].text, /^\d+\.\d$/, r[1].text);
+    assert.equal(r[2].text, "-");
+    assert.equal(r[2].value, undefined);
+  }
+});
+
+
 console.log(`\n${passed} GEP-0012 view tests passed.`);

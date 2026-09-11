@@ -541,9 +541,20 @@ export class RenderCtx {
 
   private media(n: Extract<Inline, { type: "image" }>): string {
     const src = escAttr(relJoin(relDir(this.currentDocRel), n.src));
-    if (n.as === "video") return `<video class="media" src="${src}" controls></video>`;
+    // `{width=… height=…}` (§5.1): only a non-negative integer becomes an
+    // attribute. The value is interpolated into markup here, so the gate is the
+    // one that matters — a bare number cannot carry a quote out of the attribute,
+    // and `50%` / `120px` / `100" onload="…` are dropped rather than escaped and
+    // kept. `.media { max-width:100% }` still clamps an oversized width.
+    const dim = (["width", "height"] as const)
+      .map((k) => {
+        const v = (n.attrs ?? {})[k];
+        return typeof v === "number" && Number.isInteger(v) && v >= 0 ? ` ${k}="${v}"` : "";
+      })
+      .join("");
+    if (n.as === "video") return `<video class="media" src="${src}"${dim} controls></video>`;
     if (n.as === "audio") return `<audio class="media" src="${src}" controls></audio>`;
-    return `<img class="media" src="${src}" alt="${escAttr(n.alt)}">`;
+    return `<img class="media" src="${src}" alt="${escAttr(n.alt)}"${dim}>`;
   }
 
   private link(n: Extract<Inline, { type: "link" }>): string {

@@ -85,13 +85,13 @@
   <div class="sec-head">
     <div class="sec-num">Board</div>
     <div>
-      <h2>17 rules, each with its source and status</h2>
+      <h2>19 rules, each with its source and status</h2>
       <p class="sub"><span class="st st-spec">Settled</span> fixed by the profile document. <span class="st st-obs">Observed</span> not prescribed, this is what the tool does today. No implementation gap found on this page. Mind §0.1: only the subset the codemap display knobs use is promised stable.</p>
     </div>
   </div>
   <div class="sec-body">
     <div>
-      <div class="tally"><span><span class="st st-spec">Settled</span> <b>15</b></span><span><span class="st st-obs">Observed</span> <b>2</b></span></div>
+      <div class="tally"><span><span class="st st-spec">Settled</span> <b>16</b></span><span><span class="st st-obs">Observed</span> <b>3</b></span></div>
       <div class="board">
         <table class="b">
           <thead><tr><th></th><th>Rule</th><th>Source</th><th>Status</th></tr></thead>
@@ -113,6 +113,8 @@
             <tr><td class="n">15</td><td>The style entry: any root has exactly one fixed path, <code>&lt;root&gt;/_index/index.geml</code>, and hosts probe only it; <strong>the name finds it, <code>meta.profile</code> recognises it</strong> — anything else at that path is "no entry". Two keys say which sheets load: <code>default-style</code> (a meta key) and <code>#sitemap</code> (a table, columns <code>document</code>/<code>template</code>, <strong>exact match, no glob, no cascade</strong>). Both are <strong>one implicit <code>embed</code></strong> each, so cycle detection, the nesting cap and the diagnostics all come from embed unchanged; <code>embed {src=index.geml}</code> therefore means "give me this root's default, whatever it is called".</td><td class="src">§1.1</td><td><span class="st st-spec">Settled</span></td></tr>
             <tr><td class="n">16</td><td>Layers: the entry orders sheets as <code>default-style</code> (0) → the <code>#sitemap</code> match (1) → the entry's own rules (2). <strong>Across layers the higher layer wins; within a layer rule 7 is unchanged.</strong> A layer number is a <strong>declared</strong> order, not a score computed from selectors — the CSS <code>@layer</code> model, not specificity. An explicit <code>embed</code> does <strong>not</strong> open a new layer. Excluding source order still holds: no order within a layer, <code>#sitemap</code> is an exact match so row order changes nothing, and the layer count is fixed by those two keys. The cost is written down: "arbitration is independent of which file a rule came from" now holds within a layer only.</td><td class="src">§4.1</td><td><span class="st st-spec">Settled</span></td></tr>
             <tr><td class="n">17</td><td>Observed: two layers through the entry give 0 diagnostics, with <code>#hero</code> matched by both rules while <code>component</code> takes the higher layer's value and <code>#facts</code> still governed by the default layer; the same two rules squeezed into one layer raise <code>ambiguous-rule</code> immediately; a <code>default-style</code> resolving to nothing gives a <code>style-embed-not-expanded</code> warning, exit 0, with the file's own rules loaded as usual.</td><td class="src">geml style check</td><td><span class="st st-obs">Observed</span></td></tr>
+            <tr><td class="n">18</td><td>The second real page (2026-09-10, "chrome goes home"): a selector may end in an <strong>inline part</strong> (<code>link</code> <code>image</code> <code>code-span</code> <code>strong</code> <code>emphasis</code> — last step only, after a block step); built-in words gain <code>axis</code> on blocks, <code>view</code> and <code>editable</code>; <code>when=</code> takes <code>@hover</code> <code>@focus</code>; a parameter the merged binding has no <code>component=</code> to receive is <code>style-unknown-attribute</code>. The test is still §12.3's: <em>does it mean the same thing on any block?</em></td><td class="src">design 2026-09-10 §4</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">19</td><td>Observed: with the GitHub blob replica's chrome rewritten as lists of inline links inside <code>text</code> blocks, <code>geml style check</code> reports 0 errors 0 warnings; viewer components 7 → 2 (tree, segments), hex colours in the host CSS's page section 22 → 0, private stylesheet keys 10 → 0, and all 59 colours in the page's CSS come from the stylesheet.</td><td class="src">geml style check · render</td><td><span class="st st-obs">Observed</span></td></tr>
           </tbody>
         </table>
       </div>
