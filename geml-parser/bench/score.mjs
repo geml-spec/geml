@@ -24,7 +24,7 @@ function categorize(msg) {
   if (/unknown metadata reference/.test(msg)) return "unknown {{meta}} key";
   if (/unresolved reference|unresolved footnote/.test(msg)) return "unresolved ref/footnote";
   if (/duplicate id/.test(msg)) return "duplicate id";
-  if (/compute|summary|aggregate|cannot lex|formula/.test(msg)) return "table formula (compute/summary)";
+  if (/compute|summary|aggregate|formula/.test(msg)) return "table formula (compute/summary)";
   if (/span/.test(msg)) return "table span";
   if (/geml-chart|chart:/.test(msg)) return "chart binding";
   if (/cannot resolve document/.test(msg)) return "cross-doc ref";

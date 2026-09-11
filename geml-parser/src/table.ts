@@ -456,7 +456,7 @@ export function applyDerivations(
     const { name, fmt } = splitName(f.slice(0, eq));
     const expr = f.slice(eq + 1).trim();
     let toks: Tok[];
-    try { toks = lexExpr(expr); } catch { diagnostics.push({ severity: "error", code: "unlexable-compute-formula", message: `cannot lex formula \`${f}\`` }); continue; }
+    toks = lexExpr(expr);
 
     // Target is a header name (never a letter reference): match by name only.
     let ci = columns.indexOf(name);
@@ -505,7 +505,6 @@ export function applyDerivations(
       const { name, fmt } = splitName(s.slice(0, eq));
       const rhs = s.slice(eq + 1).trim();
       const ci = colIndex(name);
-      if (ci < 0) { diagnostics.push({ severity: "error", code: "summary-unknown-column", message: `summary targets unknown column \`${name}\`` }); continue; }
 
       // String label: `Cell = 'Total'`.
       if (rhs.startsWith("'") && rhs.endsWith("'") && rhs.length >= 2) {
@@ -515,7 +514,7 @@ export function applyDerivations(
       }
       // Otherwise an aggregate expression.
       let toks: Tok[];
-      try { toks = lexExpr(rhs); } catch { diagnostics.push({ severity: "error", code: "unlexable-summary-expression", message: `cannot lex summary \`${s}\`` }); continue; }
+      toks = lexExpr(rhs);
       try {
         const v = evalExpr(toks, 0, noRow, aggResolve);
         const text = fmt ? applyFormat(fmt, v) : defaultNum(v);
@@ -618,7 +617,9 @@ function filterPredicate(model: TableModel, source: string, diagnostics: TableDi
       if (typeof v !== "number") return false; // dirty cells simply do not match
       return op === "=" ? v === n : op === "!=" ? v !== n : op === "<" ? v < n : op === "<=" ? v <= n : op === ">" ? v > n : v >= n;
     }
-    if (right.t !== "quote") throw new Error("the right of a comparison is a number or single-quoted string");
+    // `right` is a quote here: parsePrimary refused anything else at parse time. This
+    // check used to live HERE, inside the comparator — which runs in rows.filter, outside
+    // the try — so `where="Status = open"` threw out of parse() instead of diagnosing.
     const v = left?.text ?? "";
     return op === "=" ? v === right.v : op === "!=" ? v !== right.v : op === "<" ? v < right.v : op === "<=" ? v <= right.v : op === ">" ? v > right.v : v >= right.v;
   };
@@ -634,6 +635,7 @@ function filterPredicate(model: TableModel, source: string, diagnostics: TableDi
     if (op.t !== "cmp") throw new Error("a column must be followed by a comparison");
     const rhs = next();
     if (rhs === undefined) throw new Error("comparison has no right-hand value");
+    if (rhs.t !== "num" && rhs.t !== "quote") throw new Error("the right of a comparison is a number or single-quoted string");
     if (rhs.t === "num") numericalColumns.add(ci);
     return (row) => compare(row[ci], op.v, rhs);
   };
@@ -690,8 +692,7 @@ function groupView(model: TableModel, by: string[], aggregate: string[], diagnos
     const eq = declaration.indexOf("=");
     if (eq <= 0) { diagnostics.push({ severity: "error", code: "bad-aggregate-entry", message: `bad aggregate \`${declaration}\` (want \`Name = sum(Column)\`)` }); continue; }
     const target = splitName(declaration.slice(0, eq));
-    try { specs.push({ ...target, toks: lexExpr(declaration.slice(eq + 1).trim()) }); }
-    catch { diagnostics.push({ severity: "error", code: "bad-aggregate-entry", message: `cannot lex aggregate \`${declaration}\`` }); }
+    specs.push({ ...target, toks: lexExpr(declaration.slice(eq + 1).trim()) });
   }
   // An aggregate over a column that is not there is ONE mistake, so it is one
   // error, reported before the fold. Left to `aggregateValue`'s null it became

@@ -392,8 +392,8 @@ test("every discarded-flag combination is a usage error (exit 2)", () => {
     [["get", f, "#warn", "--head", "--body"], /mutually exclusive/, "both parts at once"],
     [["get", f, "#warn", "--json", "--head"], /--json cannot be combined/, "json + part"],
     [["get", f, "#warn", "--json", "--body"], /--json cannot be combined/, "json + part"],
-    [["get", f, "=== note {lang=py}"], /only `#id` is supported as a filter key/, "attr key"],
-    [["set", f, "=== note {lang=py}"], /only `#id` is supported as a filter key/, "attr key on set"],
+    [["get", f, "=== note {lang=py}"], /only `#id` and `@<hex>` are supported as filter keys/, "attr key"],
+    [["set", f, "=== note {lang=py}"], /only `#id` and `@<hex>` are supported as filter keys/, "attr key on set"],
   ];
   for (const [args, re, why] of cases) {
     const r = run(args, "x\n");

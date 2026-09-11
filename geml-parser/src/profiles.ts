@@ -26,6 +26,8 @@ export interface ProfileDef {
   types?: string[];
   /** 逐块类型额外放行的属性键 */
   attrs?: Record<string, string[]>;
+  /** 这些类型的体怎么解析（默认 raw）。`flow` = 体里还能有块。 */
+  bodies?: Record<string, "raw" | "flow" | "data">;
   /**
    * 额外放行的 `diagram` format 名（§8.6.1）。只有 diagram 的 format 可以这样
    * 放行：它选的是渲染器，正文无论如何都是 raw，所以放行**不改变文档模型**。
@@ -73,7 +75,7 @@ export const PROFILES: Record<string, ProfileDef> = {
   },
   // spec/profiles/geml-style/geml-style-profile.md
   "geml-style/v1": {
-    types: ["style-rule", "style-state", "style-screen"],
+    types: ["style-rule", "style-state", "style-screen", "style-frame"],
   },
   // spec/profiles/geml-form/geml-form-profile.md — GEP 0008 (draft).
   // The form-* family itself is the specification's (a body mode and an id scope
@@ -82,6 +84,11 @@ export const PROFILES: Record<string, ProfileDef> = {
   // form-field is a registered type these keys have nothing to attach to, and
   // admitting them is inert.
   "geml-form/v1": {
+    // 类型进来了：在 GEP-0008 落到 §3 的核心注册表之前，声明了这个 profile 的文档就能用
+    // form-* 家族 —— 和 geml-style 用同一条路。不声明的文档照旧 unknown-block-type。
+    types: ["form", "form-field", "form-group", "form-options", "form-note"],
+    // form 和 form-group 是容器：`==== form` 里套 form-field（GEP-0008 §6）。
+    bodies: { form: "flow", "form-group": "flow" },
     attrs: { "form-field": ["pattern", "min", "max", "step", "maxlength", "accept"] },
   },
   // spec/profiles/geml-history/geml-history-profile.md
@@ -107,6 +114,11 @@ export const PROFILES: Record<string, ProfileDef> = {
 export interface Vocabulary {
   types: Set<string>;
   attrs: Map<string, Set<string>>;
+  /**
+   * 这个 profile 的类型各自的体怎么解析（`flow` = 里面还能有块）。默认 `raw`。
+   * 名字只影响诊断，体模式影响**解析结果** —— 所以它必须写出来，不能靠猜。
+   */
+  bodies: Map<string, "raw" | "flow" | "data">;
   /** 放行的 `diagram` format 名（§8.6.1） */
   formats: Set<string>;
 }
@@ -121,17 +133,19 @@ export function vocabularyFor(meta: Map<string, string>): Vocabulary {
   const types = new Set<string>();
   const attrs = new Map<string, Set<string>>();
   const formats = new Set<string>();
+  const bodies = new Map<string, "raw" | "flow" | "data">();
   for (const [name, def] of Object.entries(PROFILES)) {
     if (!declared.has(name)) continue;
     for (const t of def.types ?? []) types.add(t);
     for (const f of def.formats ?? []) formats.add(f);
+    for (const [t, m] of Object.entries(def.bodies ?? {})) bodies.set(t, m);
     for (const [type, keys] of Object.entries(def.attrs ?? {})) {
       let set = attrs.get(type);
       if (set === undefined) { set = new Set<string>(); attrs.set(type, set); }
       for (const k of keys) set.add(k);
     }
   }
-  return { types, attrs, formats };
+  return { types, attrs, formats, bodies };
 }
 
 /**
@@ -139,4 +153,4 @@ export function vocabularyFor(meta: Map<string, string>): Vocabulary {
  * tableFromDocument：它们丢弃诊断，只要结构）。具名常量而不是就地 new，
  * 是为了让"这里确实什么都不放行"读起来像决定，而不像遗漏。
  */
-export const EMPTY_VOCABULARY: Vocabulary = { types: new Set(), attrs: new Map(), formats: new Set() };
+export const EMPTY_VOCABULARY: Vocabulary = { types: new Set(), attrs: new Map(), formats: new Set(), bodies: new Map() };

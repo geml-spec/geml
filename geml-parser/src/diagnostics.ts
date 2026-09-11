@@ -29,6 +29,7 @@ export type DiagnosticCode =
   | "heading-attrs-trailing-text"
   | "heading-attrs-unclosed"
   | "duplicate-id"
+  | "duplicate-name"
   | "unresolved-reference"
   | "unresolved-footnote"
   | "unresolved-cross-document-reference"
@@ -54,13 +55,11 @@ export type DiagnosticCode =
   | "bad-embed-part"
   | "ignored-table-delimiter"
   | "bad-compute-formula"
-  | "unlexable-compute-formula"
   | "compute-error"
   | "compute-non-numeric-cell"
   | "compute-not-a-number"
   | "bad-summary-entry"
   | "summary-unknown-column"
-  | "unlexable-summary-expression"
   | "summary-error"
   // --- Views (GEP-0012) ---
   | "view-missing-src"
@@ -141,6 +140,7 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   "heading-attrs-trailing-text": "warning",
   "heading-attrs-unclosed": "warning",
   "duplicate-id": "error",
+  "duplicate-name": "error",
   "unresolved-reference": "error",
   "unresolved-footnote": "error",
   "unresolved-cross-document-reference": "error",
@@ -165,13 +165,11 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   "bad-embed-part": "warning",
   "ignored-table-delimiter": "warning",
   "bad-compute-formula": "error",
-  "unlexable-compute-formula": "error",
   "compute-error": "error",
   "compute-non-numeric-cell": "warning",
   "compute-not-a-number": "warning",
   "bad-summary-entry": "error",
   "summary-unknown-column": "error",
-  "unlexable-summary-expression": "error",
   "summary-error": "error",
   "view-missing-src": "error",
   "view-src-and-body": "error",

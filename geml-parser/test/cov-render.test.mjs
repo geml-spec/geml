@@ -1619,4 +1619,21 @@ await atest("runtime security: the same-origin gate refuses a data-src that clim
   }
 });
 
+
+test("media dimensions: only a non-negative integer becomes a width/height attribute", () => {
+  const html = renderHtml(parse('# H {#h}\n\npic ![a](i.png){width=120 height=80}, '
+    + 'clip ![v](c.mp4){width=640}, snd ![s](s.mp3){width=300}\n'), {});
+  assert.match(html, /<img class="media" src="i\.png" alt="a" width="120" height="80">/);
+  assert.match(html, /<video class="media" src="c\.mp4" width="640" controls><\/video>/);
+  assert.match(html, /<audio class="media" src="s\.mp3" controls><\/audio>/, "<audio> has no width in HTML");
+
+  // The value is interpolated into markup here, so the gate is what keeps a
+  // crafted attribute from escaping its quotes: a non-integer is dropped rather
+  // than escaped and kept.
+  const bad = renderHtml(parse('# H {#h}\n\n![a](i.png){width=50% height="100\\" onload=\\"alert(1)"} '
+    + '![b](i.png){width=-5} ![c](i.png){width=12.5}\n'), {});
+  const tags = bad.match(/<img[^>]*>/g) || [];
+  assert.equal(tags.length, 3, tags.join(" "));
+  for (const t of tags) assert.doesNotMatch(t, /width|height|onload/, t);
+});
 console.log(`\n${passed} test(s) passed.`);

@@ -687,7 +687,13 @@ exactly when the slice is itself a value.
   fully reference-checked, but **not rendered** — e.g. a source table that only
   feeds a chart. A `%%` line is a hidden, raw, never-rendered author note. The division of labor is: use `hidden` for structured content that participates in the document model (data sources, reusable fragments) but should remain invisible; use `%%` for throwaway comments that do not participate in the document model. Note that `%%` is only recognized as a comment at block positions (top-level or inside the body of a `flow` block). Inside a `raw` block body, `%%` lines are preserved exactly as-is and are not treated as comments.
 - Attribute order is insignificant; the recommended order is `#id`, then
-  `.class`, then `key=val`.
+  `.class`, then `key=val`. A NAME therefore MUST NOT be written twice in one
+  attribute object: a repeat is precisely what would make order significant.
+  A class, a `key=val` and a bare flag all write the same NAME — a flag IS
+  `key=true` — so `{.link link=http://x link}` writes `link` three times and is
+  a `duplicate-name` **error** (Appendix A). `#id` is the primary key and does
+  not take part: `{#a .a}` is one id and one class, the same way `id` and
+  `class` are separate attributes in HTML.
 - **Line continuation:** A typed block fence (`===`) or heading (`#`) line ending
   with a backslash `\` continues its attribute object onto the next line. The
   backslash and newline are treated as a single space, allowing long attribute
@@ -1407,6 +1413,7 @@ original file.
 
 | Code | Severity | Condition |
 |------|----------|-----------|
+| `duplicate-name` | error | A NAME is written more than once in one attribute object (§4). A class, a `key=val` and a bare flag all write the same NAME, so `{.link link=http://x link}` writes `link` three times. It is an error rather than a warning because §4 promises attribute order is insignificant and a repeat makes that false — silently: the parse succeeds, and which value survives depends on which part was written last. `#id` does not take part. |
 | `name-not-a-name` | warning | An `id`, class or attribute key in an attribute object is not a NAME (§4). A warning, not an error, because such a document still parses — and parses as something else: the attribute object is whitespace-separated, so `{#a & b}` yields the id `a` plus boolean flags named `&` and `b`, and the id the author meant to address does not exist. |
 | `heading-attrs-trailing-text` | warning | A heading's attribute object is followed by further text on the line, as in `## Title {#sec}aaa`. §4 requires the object to be trailing, so it is not parsed as attributes at all: an explicit `{#id}` is silently lost, the heading keeps its derived id, and its section — which runs to the next heading of the same level — can no longer be addressed by the id the author wrote. An object quoted in a code span or inline math is not reported: GEML prose documents this very syntax. |
 | `heading-attrs-unclosed` | warning | A heading's attribute object is never closed by `}` (`## Title {#sec`), so §4 does not parse it as attributes at all: an explicit `{#id}` is silently lost and the heading keeps its derived id. |
@@ -1440,13 +1447,11 @@ original file.
 | `bad-embed-part` | warning | An `embed` carries a `part=` that is not `whole`, `head`, `body` or `intro` (§3). The whole target stands: a projection that quietly selects nothing is the failure §8.2 exists to prevent. Not `unknown-attribute` — the key is defined, the value is not one it takes. |
 | `ignored-table-delimiter` | warning | A table carries `delim=` but no data `format=`, so no delimited body exists for it to apply to; the body is parsed as a visual pipe grid. |
 | `bad-compute-formula` | error | A `compute` entry is not of the form `Name = expr`. |
-| `unlexable-compute-formula` | error | A `compute` expression contains a character or token the §6 expression grammar does not define. |
 | `compute-error` | error | A `compute` expression failed to evaluate — most often because it names a column that does not exist, or one computed later (§9.3). |
 | `compute-non-numeric-cell` | warning | A `compute` formula read a cell that is empty or not a number; it counted as `0` (§6). The result is still produced — the warning names the cell it rests on. |
 | `compute-not-a-number` | warning | A `compute` or `summary` expression produced a value a cell cannot hold — ±∞ from a division by zero, or NaN from `0 / 0` (§6). The cell holds no value and displays `-`. |
 | `bad-summary-entry` | error | A `summary` entry is not of the form `Cell = value`. |
 | `summary-unknown-column` | error | A `summary` entry's left-hand side names no column of the table. |
-| `unlexable-summary-expression` | error | A `summary` expression contains a token the §6 expression grammar does not define. |
 | `summary-error` | error | A `summary` expression failed to evaluate — including a column reference not reduced by an aggregate, which has no value in the summary row (§6). |
 
 **Views (`=== view`).** A view derives a relation from another one; a `table`

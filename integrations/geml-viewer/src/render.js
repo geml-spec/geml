@@ -12,6 +12,8 @@ import { renderChart } from "./chart.js";
 // is intact; only the viewport is narrowed. An unknown `#id` falls back to the
 // full document (never a blank page).
 export function renderDocument(model, dom, focus) {
+  // `options=#id` 要按地址找到那张选项表 —— 建一次索引，往下传。
+  const byId = collectById(model.children, new Map());
   const root = dom.createElement("div");
   const diag = renderDiagnostics(model.diagnostics || [], dom);
   if (diag) root.appendChild(diag);
@@ -29,7 +31,7 @@ export function renderDocument(model, dom, focus) {
   const docEl = dom.createElement("div");
   docEl.className = "geml-doc";
   for (const b of children) {
-    const node = renderBlock(b, dom, labels);
+    const node = renderBlock(b, dom, labels, byId);
     if (node) docEl.appendChild(node);
   }
   root.appendChild(docEl);
@@ -85,6 +87,14 @@ export function viewerDiagnostics(diags) {
 // id → human label (heading text / block caption), for [[#id]] auto-references.
 // Exported: transclude.js indexes a fetched document the same way, so borrowed
 // content keeps the link text its own document gives it.
+function collectById(nodes, out) {
+  for (const n of nodes ?? []) {
+    if (n.id !== undefined) out.set(n.id, n);
+    if (n.children) collectById(n.children, out);
+  }
+  return out;
+}
+
 export function collectLabels(children) {
   const labels = new Map();
   for (const b of children || []) {
@@ -247,7 +257,23 @@ function linkAttrs(n) {
   } else if (at.rel) {
     a.rel = at.rel;
   }
+  // §5.2 的属性对象。title 是提示语，也是只有图标的链接的无障碍名（HTML 的名字计算本来就这样）。
+  if (typeof at.title === "string" || typeof at.title === "number") a.title = String(at.title);
   return a;
+}
+
+// `![alt](src){width=… height=…}` (§5.1). Only a non-negative INTEGER is honoured, and it
+// goes on the HTML width/height ATTRIBUTE, never into CSS: that attribute takes a bare
+// number, so `50%`, `120px` and a quote-bearing `100" onload="…` have nowhere to escape to
+// and are dropped rather than reinterpreted. `max-width:100%` still wins, so a width wider
+// than the column shrinks to fit instead of overflowing it.
+function dimensions(attrs) {
+  const out = {};
+  for (const k of ["width", "height"]) {
+    const v = attrs ? attrs[k] : undefined;
+    if (Number.isInteger(v) && v >= 0) out[k] = v;
+  }
+  return out;
 }
 
 function renderMedia(n, dom) {
@@ -269,9 +295,13 @@ function renderMedia(n, dom) {
       text: `▶ Load ${kind}: ${n.alt || src}`,
     }, []);
   }
+  const dim = dimensions(n.attrs);
+  // <audio> has no width/height in HTML — a player is as wide as its controls.
   if (kind === "audio") return el(dom, "audio", { controls: "", src });
-  if (kind === "video") return el(dom, "video", { controls: "", src, style: "max-width:100%" });
-  return el(dom, "img", { src, alt: n.alt || "", style: "max-width:100%" });
+  if (kind === "video") return el(dom, "video", { controls: "", src, style: "max-width:100%", ...dim });
+  // `{title=…}` 是提示语（§5.2 的属性对象同样挂在图片上）；alt 照旧是替代文本。
+  const t = n.attrs && (typeof n.attrs.title === "string" || typeof n.attrs.title === "number") ? { title: String(n.attrs.title) } : {};
+  return el(dom, "img", { src, alt: n.alt || "", style: "max-width:100%", ...dim, ...t });
 }
 function inferKind(src) {
   if (/\.(mp4|webm|mov|m4v|ogv|mkv)(?:[?#]|$)/i.test(src)) return "video";
@@ -284,7 +314,59 @@ function inferKind(src) {
 // ---------------------------------------------------------------------------
 
 // Exported: transclude.js renders borrowed blocks through the exact same path.
-export function renderBlock(b, dom, labels) {
+/**
+ * geml-form/v1（GEP-0008）。七种 `type=`：text textarea number date boolean select file。
+ * 六个约束键（pattern/min/max/step/maxlength/accept）是**声明**，profile §3 说得很清楚：
+ * 文档声明，处理器执行。这里原样放到属性上，不代替谁做校验。
+ */
+const FIELD_TYPES = new Set(["text", "textarea", "number", "date", "boolean", "select", "file"]);
+const CONSTRAINTS = ["pattern", "min", "max", "step", "maxlength", "accept"];
+
+function formField(b, dom, byId) {
+  const a = b.attrs || {};
+  const type = FIELD_TYPES.has(String(a.type)) ? String(a.type) : "text";
+  const row = el(dom, "div", { class: "geml-form-field", id: b.id, "data-type": type });
+  if (a.label !== undefined) {
+    const lab = el(dom, "label", { class: "geml-form-label" }, [dom.createTextNode(String(a.label))]);
+    if (a.required !== undefined) lab.appendChild(el(dom, "span", { class: "geml-form-required", text: "*" }));
+    row.appendChild(lab);
+  }
+  const common = {};
+  if (a.placeholder !== undefined) common.placeholder = String(a.placeholder);
+  if (a.required !== undefined) common.required = "";
+  for (const k of CONSTRAINTS) if (a[k] !== undefined) common[k] = String(a[k]);
+
+  // `value=` 是预填值（GEP-0008：genuinely *the value*）。下拉框没有它就会停在第一项，
+  // 而真实页面上分支选择器是选中当前分支的。
+  const value = a.value === undefined ? undefined : String(a.value);
+  let control;
+  if (type === "textarea") control = el(dom, "textarea", common, value === undefined ? [] : [dom.createTextNode(value)]);
+  else if (type === "select") {
+    control = el(dom, "select", a.multiple !== undefined ? { ...common, multiple: "" } : common);
+    // `options=#id` 只能指向一个 form-options（profile §2）：value / label 两列。
+    const ref = typeof a.options === "string" ? a.options.replace(/^#/, "") : "";
+    const opts = ref && byId ? byId.get(ref) : null;
+    const cols = opts?.table?.columns ?? [];
+    const vi = cols.indexOf("value"), li = cols.indexOf("label");
+    for (const r of opts?.table?.rows ?? []) {
+      const value = (r[vi >= 0 ? vi : 0]?.text ?? "").trim();
+      const label = (r[li >= 0 ? li : (cols.length > 1 ? 1 : 0)]?.text ?? "").trim();
+      const opt = el(dom, "option", { value }, [dom.createTextNode(label || value)]);
+      if (value !== undefined && value === String(a.value ?? "")) opt.setAttribute("selected", "");
+      control.appendChild(opt);
+    }
+  } else {
+    const kind = type === "boolean" ? "checkbox" : type === "number" ? "number" : type === "date" ? "date" : type === "file" ? "file" : "text";
+    const pre = value === undefined ? {} : type === "boolean" ? (value === "true" ? { checked: "" } : {}) : { value };
+    control = el(dom, "input", { ...common, type: kind, ...pre });
+  }
+  control.className = "geml-form-control";
+  row.appendChild(control);
+  if (a.description !== undefined) row.appendChild(el(dom, "p", { class: "geml-form-desc", text: String(a.description) }));
+  return row;
+}
+
+export function renderBlock(b, dom, labels, byId) {
   // §4's `hidden` flag and a `%%` line are IN the model and never in the output
   // (spec: a renderer "omits blocks marked `hidden` from its output while
   // keeping them in the model"). The parser's own two renderers carry this rule
@@ -309,7 +391,7 @@ export function renderBlock(b, dom, labels) {
         }
         kids.push(renderInlines(it.inlines, dom, labels));
         for (const child of it.children || []) {
-          const c = renderBlock(child, dom, labels);
+          const c = renderBlock(child, dom, labels, byId);
           if (c) kids.push(c);
         }
         const cls = it.checked === undefined ? null : it.checked ? "geml-task geml-task-done" : "geml-task";
@@ -319,7 +401,7 @@ export function renderBlock(b, dom, labels) {
       return el(dom, b.ordered ? "ol" : "ul", props, items);
     }
     case "block":
-      return renderTyped(b, dom, labels);
+      return renderTyped(b, dom, labels, byId);
     default:
       return null;
   }
@@ -327,7 +409,7 @@ export function renderBlock(b, dom, labels) {
 
 const TRANSLATING = { zh: " 翻译中…", ja: " 翻訳中…", en: " — translating…" };
 
-function renderTyped(b, dom, labels) {
+function renderTyped(b, dom, labels, byId) {
   const type = b.type;
   if (type === "meta") return null; // document metadata, not shown
   if (type === "embed") {
@@ -364,12 +446,12 @@ function renderTyped(b, dom, labels) {
   if ((type === "table" || type === "view") && b.table) return renderTable(b.table, dom, labels, b.id);
   if (type === "note") {
     const q = el(dom, "blockquote", { class: "geml-note", id: b.id });
-    for (const c of b.children || []) { const n = renderBlock(c, dom, labels); if (n) q.appendChild(n); }
+    for (const c of b.children || []) { const n = renderBlock(c, dom, labels, byId); if (n) q.appendChild(n); }
     return q;
   }
   if (type === "text") {
     const wrap = el(dom, "div", { class: "text", id: b.id });
-    for (const c of b.children || []) { const n = renderBlock(c, dom, labels); if (n) wrap.appendChild(n); }
+    for (const c of b.children || []) { const n = renderBlock(c, dom, labels, byId); if (n) wrap.appendChild(n); }
     return wrap;
   }
   if (type === "math") {
@@ -470,6 +552,25 @@ function renderTyped(b, dom, labels) {
     if (rest.length && fmt !== "jsonl") wrap.appendChild(fold());
     return wrap;
   }
+  if (type === "form") {
+    const f = el(dom, "form", { class: "geml-form", id: b.id });
+    // handler= 是声明给处理器看的，浏览器里不提交任何东西。
+    f.addEventListener?.("submit", (e) => e.preventDefault());
+    for (const c of b.children ?? []) { const k = renderBlock(c, dom, labels, byId); if (k) f.appendChild(k); }
+    return f;
+  }
+  if (type === "form-group") {
+    const g = el(dom, "fieldset", { class: "geml-form-group", id: b.id });
+    if (b.attrs?.label !== undefined) g.appendChild(el(dom, "legend", { text: String(b.attrs.label) }));
+    for (const c of b.children ?? []) { const k = renderBlock(c, dom, labels, byId); if (k) g.appendChild(k); }
+    return g;
+  }
+  if (type === "form-field") return formField(b, dom, byId);
+  if (type === "form-note") {
+    return el(dom, "p", { class: "geml-form-note", id: b.id, text: (b.raw || []).join(" ").trim() });
+  }
+  // form-options 是选项**数据**，由它服务的 select 画出来；自己不占版面。
+  if (type === "form-options") return null;
   if (type === "code") {
     const lang = b.attrs && typeof b.attrs.lang === "string" ? b.attrs.lang : "";
     return rawBlock(b, dom, lang ? `code ${lang}` : "code");

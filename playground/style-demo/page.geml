@@ -1,0 +1,13 @@
+=== meta
+title = "Publishing — what ships, where it lands, and how to know it did"
+===
+
+%% 这一页 = 一个模板 + 一份文档。模板在 template.geml 里，换看哪份文档只改下面那行 `src=`。
+%% 模板里的块也可以直接写在这份文件里（拆开之前它就是那样）—— 两种写法都合法，没有第三套
+%% 机制：`embed` 把一份文档拉进语料，样式表的 `slots=` 本来就够得到语料里任何一份文档的块。
+
+=== embed {#template src="template.geml"}
+===
+
+=== embed {#doc src="../../docs/PUBLISHING.geml"}
+===

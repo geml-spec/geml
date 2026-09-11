@@ -1,0 +1,35 @@
+=== meta
+profile = "geml-style/v1"
+title = "GitHub blob page, as a geml-style stylesheet"
+===
+
+=== style-screen {#page axis=column slots="text#global-header, text#repo-tabs, #body"}
+===
+=== style-frame  {#body axis=row    slots="$tree, table#file-tree, #main"}
+===
+=== style-frame  {#main axis=column slots="text#breadcrumb, text#commit-bar, #card"}
+===
+=== style-frame  {#card axis=column slots="text#toolbar, text#content"}
+===
+
+=== style-state {#tree type=scalar match="table#file-tree" on=toggle init-value=open}
+===
+=== style-state {#tab  type=scalar match="text#toolbar" on=select init-value=Preview}
+===
+
+=== style-rule {#hdr    match="text#global-header" component=global-header background="#24292f" color="#fff"}
+===
+=== style-rule {#tabs   match="text#repo-tabs" component=tab-bar}
+===
+=== style-rule {#tree-open   match="table#file-tree" component=tree width=321px sticky=0 scroll=own hide-below=1012}
+===
+=== style-rule {#tree-closed match="table#file-tree" when="$tree=closed" width=0}
+===
+=== style-rule {#crumb  match="text#breadcrumb" font-size=14px}
+===
+=== style-rule {#commit match="text#commit-bar" font-size=12px color="#59636e"}
+===
+=== style-rule {#tb     match="text#toolbar" component=tab-bar sticky=0}
+===
+=== style-rule {#md     match="text#content" component=markdown-body padding=32px max-width=1012px font-size=16px line-height=24px color="#1f2328"}
+===

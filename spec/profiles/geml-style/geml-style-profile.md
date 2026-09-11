@@ -22,6 +22,13 @@ components and handlers are *named*, and the host supplies the implementations,
 the same registry pattern `diagram {format=…}` already uses. Ambiguity is a
 **build error**, not a silent fallback.
 
+**See one.** [`playground/style-demo/`](../../../playground/style-demo) is a
+whole page built this way — a 1:1 replica of a GitHub blob page, where
+`page.geml` holds every string and `github.style.geml` holds every colour,
+length and state. It needs `geml-viewer` installed and a local server;
+[the playground's README](../../../playground/README.md#the-page-layout-demo-style-demo)
+says why and gives the two commands.
+
 ## 0.1 Stability scope — read this before building on it
 
 **Exactly one subset of v1 carries a stability commitment**: what codemap's
@@ -29,19 +36,21 @@ display knobs actually use.
 
 | held | free to move |
 |---|---|
-| `profile = "geml-style/v1"` | `style-state`, `style-screen` |
-| `style-rule` | `show=` `filter=` `handler=` `screen=` |
-| `match=` | `on=` `value-from=` `init-value=` `type=` `layout=` |
-| attribute pass-through (§2.1) | the `#sitemap` column (the table exists, but no real map uses it yet) |
-| the style entry: its path + `default-style` (§1.1) | every diagnostic not raised by the held subset |
+| `profile = "geml-style/v1"` | `style-state` with `filter=` / `show=` consumers |
+| `style-rule` · `match=` · `when=` | `handler=` (no real host yet) |
+| `style-screen` · `style-frame` · `slots=` · `axis=` · `component=` on containers | `value-from=` / `init-value=` beyond the two real states |
+| the built-in words of §2.1 | the `#sitemap` column (the table exists, but no real map uses it yet) |
+| attribute pass-through (§2.1) | every diagnostic not raised by the held subset |
+| the style entry: its path + `default-style` (§1.1) | |
+| `on=select` · `on=toggle` | |
 
-The held column is held because it **escaped**: every codemap build seeds
-`_index/style.geml` **and its entry `_index/index.geml`** into a user's
-repository. Those files are real, and they are on the rendering path — the
-renderer finds a stylesheet only through that entry. The right column is
-**specified, checked, and unexercised** — zero real stylesheets use any of it. It
-will move with the first genuine use case rather than be preserved for its own
-sake.
+The held column is held because it **escaped** — twice. Every codemap build seeds
+`_index/style.geml` **and its entry `_index/index.geml`** into a user's repository,
+and those files are on the rendering path — the renderer finds a stylesheet only
+through that entry; and since 2026-09-09 the document-layout use case (a page
+rendered by the viewer) exercises screens, frames, the built-in words and `when=`.
+The right column is **specified, checked, and unexercised** — it will move with its
+first genuine use case rather than be preserved for its own sake.
 
 That split is deliberate, not an apology. The escaped surface was kept tiny *so
 that* the rest stays free: one block type, one attribute, and a pass-through
@@ -131,7 +140,49 @@ in the same layer as the file referencing it. Layers come only from the style
 entry, so "how many layers does this document have" is answered by reading one
 fixed path, regardless of how deeply `embed` nests.
 
-## 2. The three block types
+## 1.2 Tokens — one place for the values
+
+Every key of the stylesheet's own `=== meta` is a **token**. In any attribute of a
+`style-rule` / `style-state` / `style-screen` / `style-frame`, `{{key}}` is replaced
+by that key's value when the stylesheet is loaded.
+
+```
+=== meta
+profile = "geml-style/v1"
+line = "#d1d9e0"
+col  = 1012
+===
+=== style-rule {#file-box match="table#files" border="1px solid {{line}}"}
+===
+=== style-rule {#side match="#sidebar" hide-below="{{col}}" max-width="{{col}}px"}
+===
+```
+
+Why it exists, measured: in the replica stylesheet that ships as this profile's page
+demo, `#d1d9e0` appeared 21 times, `#59636e` 14, `#1f2328` 12. Changing one border
+colour meant editing 21 blocks. CSS custom properties have answered this for a decade;
+without an answer a stylesheet stops being maintainable at page scale.
+
+The spelling is core GEML's own `{{key}}` (standard §4). The core substitutes it in
+**flow text** only — attributes are this profile extending the same reference to the
+one place its documents keep their content. Same syntax, same failure mode, nothing
+new to learn.
+
+Four boundaries, each deliberate:
+
+| rule | why |
+|---|---|
+| one pass, no recursion | a `{{…}}` inside a token's own value stays literal, so no cycle can form and there is no resolution order to argue about |
+| per file | rules pulled in by `embed` expand against **their own** file's `meta`, never the host's — the rule the core already applies to borrowed content |
+| a dangling `{{key}}` is an **error** (`unknown-token`) | silently substituting an empty string drains the colour out of a page and says nothing |
+| a value that is *exactly* one token keeps the token's **type** | `hide-below="{{col}}"` with `col = 1012` yields the number 1012, so the numeric built-in words can be fed from tokens at all; anywhere else the value is spliced in as text |
+
+Tokens are values, not rules: they carry no conditions, take no part in §4, and a token
+is not a fallback for anything. `profile` is a key like any other, so `{{profile}}`
+expands to `geml-style/v1` — harmless, and not a special case worth carving out.
+
+
+## 2. The four block types
 
 **Every block has an empty body.** All information lives in the attribute
 object, because §3 keeps the body of an *unregistered* type "preserved as raw" —
@@ -154,12 +205,74 @@ continuation when an attribute object gets long.
 | `show=` | no | render the block a `$state` currently points at |
 | `filter=` | no | narrow a collection by a `$state` (`filter="confidence=$conf"`) |
 | `screen=` | no | **space-separated** screen ids; absent = every screen |
-| *any other key* | no | passed through **verbatim** as a component parameter |
+| `when=` | no | `$state=value` terms and the built-in `@hover` / `@focus`, comma-separated, all must hold; equality only (§4) |
+| *any other key* | no | passed through **verbatim** as a component parameter — except the built-in words below. A parameter that the *merged* binding (§4) has no `component=` or `handler=` to receive is `style-unknown-attribute` (warning) |
 
-The pass-through is the reason a rule has no `style-unknown-attribute` check:
-`selectable`, `badge="leaf"`, `collapsed` are the component's own vocabulary,
-and the profile has no business ruling on it. The reserved names above are the
-complete list of keys the profile itself consumes.
+**Built-in words.** A small closed set of attributes is the profile's own, not the
+component's: they mean the same thing on a paragraph, a table or a diagram, so every
+host renders them the same way (the CSS-property side of the CSS/Web-Components split).
+They are consumed here and land in the view model's `box`; a component never sees them
+in its `params`, so it cannot give `width` a private meaning.
+
+| word | domain | on |
+|---|---|---|
+| `width` `max-width` `padding` `margin` | open (a CSS length) | blocks and containers |
+| `sticky` | a number: offset from the top in px | blocks and containers |
+| `scroll` | `own` \| `page` | blocks and containers |
+| `hide-below` | a number: viewport px below which it is hidden | blocks and containers |
+| `font-size` `line-height` `font-family` `color` `background` `border` `border-radius` | open | blocks and containers |
+| `text-align` | `left` \| `center` \| `right` \| `justify` | blocks and containers |
+| `gap` | open (a CSS length): space between slots; on a block with `axis`, the space between its items **and** inside one, between an icon and its label | containers and blocks with `axis` |
+| `axis` | `row` \| `column` (default `column`) | `style-screen` / `style-frame`; and a block — its items (a list's entries, a form's fields) run along that axis, and a list laid out in a row draws no markers |
+| `layer` | `page` \| `overlay` \| `screen` (default `page`) | blocks and containers: in the flow; floated under the nearest container, taking no space (a dropdown); or covering the viewport with its content centred (a splash, a modal, a toast) |
+| `visible` | `yes` \| `no` (default `yes`) | blocks and containers: shown *right now*. `hide-below` is the viewport half of "not shown"; this is the state half |
+| `grow` | `yes` \| `no` (default `no`) | blocks and containers: whether this cell takes the space left over along its row or column |
+| `fade-out` | a number of seconds, 0–60 (default 0, no fade) | blocks and containers: painted, then it fades away and stops taking clicks. The one thing on the time axis; a host that honours "reduce motion" jumps to the end |
+| `underline` | `yes` \| `no` | blocks and inline parts: whether this run of text is underlined. A host does **not** strip a link's default underline on a laid-out page — removing it is a look, and the stylesheet says so |
+| `view` | `rendered` \| `source` (default `rendered`) | blocks: show the block, or its source text |
+| `editable` | `yes` \| `no` (default `no`) | blocks under `view=source`: the source may be edited in place; inert otherwise. It says nothing about where an edit goes — a host with no write path shows a scratch textarea |
+
+A container takes the same words with the same meaning: a block's box says what
+**that block** looks like, a container's says what **that region** looks like. Some
+things only a container can say — the page's own background (a `style-screen` *is*
+the page, so its `background` is the page's), the space between slots, a region's
+padding. Hanging them on some block that happens to sit there is how a layout ends
+up depending on which block came first.
+
+A container may also name a `component=`, and then keys that are neither reserved
+nor built-in words pass through to it as parameters — exactly as they do on a rule.
+This is where page chrome lives: a top bar, a breadcrumb, an icon are not the
+document, and putting them in the document as blocks to give a stylesheet something
+to point at is how a page ends up with content that is not content. A container with
+no `component=` has nothing to receive parameters, so an unrecognized key there is
+still `style-unknown-attribute` — that one is a typo.
+
+Closed domains are checked (`style-invalid-value`); open ones are handed to the host
+verbatim — and the host must treat them as the untrusted text they are. A host that
+emits CSS may splice in only values shaped like a length, a colour or a keyword; a
+`width` of `0} body{display:none}` is a rule breakout, not a width, and is dropped
+with a warning. The list was pinned to the first real page and grows one measured need at a
+time; the second page (a document viewer's chrome, 2026-09-10) grew it by `axis` on
+blocks, `view` and `editable`. The test for a candidate: *does it mean the same thing on
+any block?* — `fold`, `collapsible`, `indent` do not, and stay component parameters.
+
+**Parameters need a receiver.** `selectable`, `badge="leaf"`, `collapsed` are the
+component's own vocabulary, and the profile has no business ruling on it — so a rule
+carries no `style-unknown-attribute` check of its own. But §4 merges rules by attribute,
+and after the merge a block either has a `component=` (or `handler=`) or it does not. A
+binding whose merged parameters have nothing to receive them gets one
+`style-unknown-attribute` (warning) naming the keys and the rules that set them: those keys
+will never be read, which is what a typo looks like. The check is on the binding, not the
+rule, because one rule may name the component and a more specific one add its parameters.
+The reserved names above plus the built-in words are the complete list of keys the profile
+itself consumes.
+
+**Inline parts.** A rule whose selector ends in a part step (§3) dresses one kind of inline
+inside the matched blocks — `text#nav link` is every link in `#nav`. Only words that mean
+something on a run of text are taken there: `color` `background` `padding` `margin`
+`border` (and its sides) `border-radius` `font-size` `line-height` `font-family` `width`
+`max-width` `visible` `underline`. Any other built-in word on a part rule is `style-unknown-attribute`
+(warning) and is dropped — `sticky` on a link is not a thing.
 
 ### 2.2 `style-state` — one cell of view state, and what feeds it
 
@@ -171,10 +284,15 @@ complete list of keys the profile itself consumes.
 | attribute | required | meaning |
 |---|---|---|
 | `match=` | **yes** | selector for the **producer** blocks that write this state |
-| `on=` | **yes** | which interaction writes it. **Closed vocabulary**: `select` |
+| `on=` | **yes** | which interaction writes it. **Closed vocabulary**: `select` (the value is what was picked), `toggle` (the value flips between two) |
 | `type=` | no | `block-ref` (default) or `scalar` |
 | `value-from=` | no | which part of the producer to take (a column name, for a table) |
 | `init-value=` | no | the value before any interaction has happened |
+
+A `form-field` (geml-form/v1) can be a producer: under `on=select` the state is the
+control's own value — pick an option, the state is that option. With no `init-value=`
+the state starts at the field's `value=`. A one-of-N choice is a form field already;
+the profile adds no word for tabs.
 
 `match=` is the same word as on `style-rule` because it is the same thing — a
 selector — and it earns §4's checking for free. `value-from=` carries its
@@ -192,39 +310,114 @@ and the specific kind with `type=` follows §7.1's `diagram {type=bar}`.
 **Multiple producers are allowed.** Two blocks writing one state is assignment
 over time, not a static conflict, so it is not `ambiguous-rule`.
 
-### 2.3 `style-screen` — what goes on one screen
+### 2.3 `style-screen` — a page
 
 ```
-  === style-screen {#overview layout=split slots="table#calls, $sel"}
+  === style-screen {#page axis=column slots="text#global-header, text#repo-tabs, #body"}
   ===
 ```
 
 | attribute | required | meaning |
 |---|---|---|
-| `slots=` | **yes** | **comma-separated**, ordered. Each slot is a selector or a `$state` |
-| `layout=` | no | a name the host interprets (`single` / `split` / `grid` by convention) |
+| `slots=` | **yes** | **comma-separated**, ordered. Each slot is a corpus selector, a `$state`, or a bare `#id` naming a `style-frame` of this stylesheet |
+| `axis=` | no | `row` or `column` (default): how the slots are laid along the container |
+| `component=` | no | a host-named arrangement (`grid`, …); optional, unvalidated — layout is the host's business |
 
 A `$state` slot renders the block that state currently points at — that is how
 the detail half of a master/detail view is written.
 
-`layout=` values are **not** validated: layout is the host's business, and a
-closed list here would be the profile legislating over a registry it does not
-own. Unknown *keys*, however, are a `style-unknown-attribute` warning.
+A screen is a **root**: a whole page. How many roots a stylesheet may have is the
+host's rule, not the profile's — codemap's master/detail is several; a viewer rendering
+"this page" wants exactly one, falls back to its plain rendering on none, and refuses
+two.
+
+**Slot grammar.** A bare `#x` is a frame reference; anything with a type, class or
+attribute (`text#x`, `table.kpi`, `#x[attr]`) is a corpus selector. The split is
+syntactic, so it needs no lookup and no disambiguation error, and a mistyped `#bdoy`
+is an error (`unknown-frame`), not a warning. This follows GEML's own convention: a
+bare `#id` addresses this document; another document takes a path.
 
 **There is no `route=`.** Routing belongs to the host framework; a stylesheet
-declaring it again is two routers fighting. The app writes
-`<GemlScreen id="overview" doc={doc}/>`.
+declaring it again is two routers fighting.
+
+### 2.4 `style-frame` — a region inside a page
+
+```
+  === style-frame {#body axis=row slots="table#file-tree, #main"}
+  ===
+```
+
+Same attributes as `style-screen`. A frame can only appear where a slot names it, and
+its own slots may name further frames — a page is a tree of frames. Unlike an
+`<iframe>` it is not a separate document and isolates nothing; it is a box.
+
+| check | code | severity |
+|---|---|---|
+| a bare `#x` in `slots=` names no frame | `unknown-frame` | error |
+| a bare `#x` names a `style-screen` — a page cannot be placed inside another | `screen-nested` | error |
+| frames nest in a cycle (`#a → #b → #a`; the message carries the chain) | `frame-cycle` | error |
+| frames nest deeper than 16 along some placement path | `frame-too-deep` | error |
+| a frame no slot references | `unused-frame` | warning |
+
+A frame **may** be placed by more than one slot: each placement renders it again,
+which is the same blocks appearing twice — exactly what naming those blocks in two
+slots would do, so there is nothing to forbid. The nesting is therefore a DAG rooted
+at the screens, not strictly a tree, and depth is the longest placement path.
+
+The depth cap is a security boundary as much as a shape rule. A stylesheet is
+untrusted input like any document (§9): a chain of ten thousand frames — no cycle
+anywhere — would otherwise have to be rendered ten thousand boxes deep. The cap is
+16: the GitHub blob page is four levels, and `embed` has had the same kind of cap (8)
+for the same reason. The checker visits each frame once and computes depth in one
+topological pass, so a hostile sheet — a diamond chain forty levels deep included —
+costs it linear time.
+
+Linear for the checker is not linear for the host. A frame may be placed in more
+than one slot, so nesting and reuse multiply: two slots per level naming the same
+child frame, sixteen levels deep, is 65 536 leaf placements — a shape the checker
+visits once and passes. A host therefore caps the number of blocks and frames it
+places on one page (the browser viewer: 2 000) and renders without the stylesheet
+past it, the way it does past the `embed` total.
 
 ## 3. Selector grammar
 
 ```
-<type>? (.class)* (#id)? ([key] | [key=value])*      one simple selector
+<type>? (#id)? (.class)* ([key] | [key=value])*      one simple selector — order does not matter
+*                                                    any node (whole step only)
 #api table.kpi                                       descendant (the only combinator)
 table.kpi, table.summary                             comma = branches (sugar for two rules)
+text#nav link                                        inline part: last step only, after a block step
 ```
 
-The vocabulary is exactly §4's own — type, `.class`, `#id`, attribute presence,
-attribute equality — plus one combinator. Sections are the containment relation:
+A selector may end in an **inline part** — `link`, `image`, `code-span`, `strong`,
+`emphasis` — naming one kind of inline inside the matched blocks (`text#nav link` is
+every link in `#nav`, nested lists included). The names are §5.1's own: `code` is a
+block type already, so the span is `code-span`. A part step must be the last step, must
+follow a block step, takes no `#id` / `.class` / `[attr]`, and a `match=` may not mix
+part branches with block branches — each is `selector-unsupported`. `*` and block
+selectors never match parts, and a slot never places one: a part goes wherever its block
+goes.
+
+`*` matches any node. It is only legal as a **whole step** — `*.kpi` and `table.a*`
+are still refused — and it exists because a slot that has to lay out a whole document
+in document order cannot name what it wants any other way: a paragraph between two
+blocks carries no class to select on.
+
+The nodes a selector can match are typed blocks, **headings** (`heading`, with the
+level as an attribute: `heading[level=1]`), and the **prose** between blocks
+(`prose`). Headings and prose are addressable in the core (`geml list` names them),
+so a layer that lays out documents has no business being unable to place them. A
+paragraph *inside* a block is that block's content, not a section of the document,
+and is not a candidate.
+
+The vocabulary is exactly §4's own — type, `#id`, `.class`, attribute presence,
+attribute equality — plus one combinator. The parts of a simple selector are
+**unordered**, as the standard says attributes are (`#id`, then `.class`, then
+`key=val` is the recommended writing order, not a rule): `text#a.x`, `text.x#a`
+and `text[k=v].x#a` are the same selector. `.class` and `[key]` are two
+namespaces that never meet — a class is not an attribute of the same name, so
+`.x` matches `{#a .x}` and `[x]` matches the flag `{#a x}`, and neither matches
+the other. Sections are the containment relation:
 headings are not containers in the block model, so the relation is rebuilt from
 an open heading stack.
 
@@ -233,7 +426,7 @@ Unsupported CSS is **named, not silently unmatched**:
 | refused | why it is refused rather than ignored |
 |---|---|
 | `>` `+` `~` | child/sibling combinators — the block model has containment, not order-adjacency |
-| `:hover` `:nth-child(…)` | state/position pseudo-classes |
+| `:hover` `:nth-child(…)` | state/position pseudo-classes — a selector picks content; the pointer's state is `when="@hover"` (§2.1) |
 | `*` | universal selector |
 | `^=` `$=` `*=` `\|=` | substring matching — §9.2 keeps document text out of pattern languages |
 
@@ -250,8 +443,16 @@ one-pass regex misreads those as pseudo-classes.
 Merging is **per attribute**. When two rules set the *same* attribute on the
 *same* block, the winner is decided by one relation: **strict superset of
 conditions**. A selector's conditions are its type, classes, id, and attribute
-tests; `screen=` adds `screen:<id>`. If one rule's condition set strictly
-contains the other's, it wins. Otherwise → `ambiguous-rule`, an **error**.
+tests; `screen=` adds `screen:<id>`; each `when=` term adds `when:<state>=<value>`.
+If one rule's condition set strictly contains the other's, it wins. Otherwise →
+`ambiguous-rule`, an **error**.
+
+With `when=` in the condition set the arbitration applies unchanged: a conditional
+rule with the same selector is a strict superset of the unconditional one and wins —
+at runtime, when its state holds. Two conditional rules whose `when=` sets are
+**exclusive** (the same state, different values) can never both apply and are not a
+conflict; two that can both hold, are incomparable, and set one attribute are
+`ambiguous-rule`, exactly as before.
 
 There is no specificity arithmetic, no `!important`, and **no source-order
 fallback**. Source order is excluded deliberately: a stylesheet that resolved by
@@ -260,6 +461,19 @@ order would be silently re-rendered by the very block-level agent edits
 
 Conflicts are judged **against the corpus**: two incomparable rules are only an
 error if they actually co-occur on some real block.
+
+**Shorthands and their sides.** Merging is per attribute *name*, and `border` and
+`border-left` are two names — so they never meet in the arbitration above, both
+survive, and which one takes effect is decided by whichever declaration the host
+emits last. A layer has no order, so that would make the rendered result depend on
+where the two rules happen to sit in the file: precisely what excluding source order
+was protecting, and precisely what `geml add --before` would silently change. So two
+**different** rules in the same layer may not set `border` and one of `border-top` /
+`border-right` / `border-bottom` / `border-left` on the same block — that is
+`ambiguous-rule`. Writing both words in **one** rule is fine: there the order is one
+the author wrote, and `geml set` replaces whole blocks. Across layers is fine too —
+a layer is a declared order. Sides never conflict with one another, and
+`border-radius` is not part of the family.
 
 The diagnostic distinguishes two cases, because the remedies differ — for
 *identical* selectors, "write the union of both" is impossible advice (the union
@@ -311,6 +525,10 @@ interaction  →  state  →  view
 One direction, three stages, and **state never reads state**. That is not a
 cycle check that happens to pass — there is no graph, so there is no cycle to
 form. The catalogue therefore has **no `binding-cycle` code**.
+
+That sentence is about **state**. Frames (§2.4) are a second graph — regions holding
+regions — and that one can cycle, so it has `frame-cycle`. The two graphs do not touch:
+state never reads state, and a frame holds no state.
 
 It also makes the pipeline **order-independent**, which §6's computed columns
 are not: `style-state` blocks are top level and an agent may reorder them.
@@ -373,19 +591,26 @@ fallback**, which is what preserves §8.5.
 
 | code | severity | catches |
 |---|---|---|
-| `selector-unsupported` | error | an unsupported CSS construct, named |
+| `selector-unsupported` | error | an unsupported CSS construct, named; also an inline part step that is not last, has no block step before it, carries a filter, or is mixed with block branches — and a slot that names a part |
 | `ambiguous-rule` | error | identical or incomparable rules setting one attribute |
 | `unknown-state` | error | a rule or slot references a `$foo` nobody declares |
 | `unknown-screen` | error | `screen=` names no `style-screen` block |
 | `unknown-value-source` | error | `value-from=` is not a column of the target table |
 | `unknown-interaction` | error | `on=` is not in the closed interaction vocabulary |
+| `unknown-token` | error | `{{key}}` in an attribute names no key of that stylesheet's `meta` (§1.2) |
 | `style-missing-attribute` | error | a required attribute is absent |
 | `unmatched-rule` | warning | a rule (or screen slot) matched no block in the corpus |
 | `unmatched-producer` | warning | a state's `match=` matched no block |
 | `unknown-component` | warning | not in the declared registry → renders inert |
 | `unknown-handler` | warning | not in the declared registry → renders inert |
-| `style-unknown-attribute` | warning | an unknown key on `style-state` / `style-screen` |
+| `style-unknown-attribute` | warning | an unknown key on `style-state` / `style-screen` / `style-frame`; a parameter the merged binding has no `component=` / `handler=` to receive (§2.1); a block-only built-in word on a part rule |
 | `style-embed-not-expanded` | warning | an `embed` — including §1.1's two implicit ones — contributed no rules |
+| `unknown-frame` | error | a bare `#x` in `slots=` names no `style-frame` |
+| `screen-nested` | error | a bare `#x` in `slots=` names a `style-screen` |
+| `frame-cycle` | error | frames nest in a cycle; the message carries the chain |
+| `frame-too-deep` | error | frames nest deeper than 16 along some placement path |
+| `unused-frame` | warning | a `style-frame` no slot references |
+| `style-invalid-value` | error | a closed-domain built-in word (`axis` / `scroll` / `sticky` / `hide-below` / `layer` / `visible` / `grow` / `view` / `editable` / `fade-out` / `underline`) took a value outside its domain, or a `when=` term is neither `$state=value` nor `@hover` / `@focus` |
 
 `unknown-value-source` is checkable because §6 gives tables a real schema. When
 the producer is not a table the check is **skipped**, not guessed at.
@@ -416,15 +641,37 @@ what a host consumes. It has four fields:
 
 | field | shape |
 |---|---|
-| `states` | `{id, type, on, valueFrom?, initValue?}[]` |
-| `screens` | `{id, layout?, slots, bindings}[]` |
+| `states` | `{id, type, on, valueFrom?, initValue?}[]` — `on` is `select` or `toggle` |
+| `screens` | `{id, axis, component?, slots, bindings}[]` — the roots |
+| `frames` | `{id, axis, component?, slots}[]` — flat, referenced by id; no bindings of their own |
 | `bindings` | the screen-unqualified table |
 | `diagnostics` | `{severity, code, message, rule?}[]` |
 
-A **binding** is `{doc, block, rules, params}`. `doc` is **not redundant**: §4
+A **binding** is `{doc, block, part?, rules, params, box, variants}`. `part` is present on
+a binding a part rule made (§3) and names the inline kind — `link` `image` `code-span`
+`strong` `emphasis`; such a binding shares its block's address and is a separate target
+for §4's arbitration. In `variants[].when`, the built-in `@hover` / `@focus` appear as
+keys with the value `"true"`. `params` are the
+component's words (including `component` / `handler` / `show` / `filter`); `box` the
+built-in words of §2.1, kept apart so a host applies them uniformly and a component
+never sees them. `variants` is `{when, box, params}[]` — the parts that apply only
+while every `when` entry (`{state: value}`) holds — ordered by number of conditions
+ascending, then stylesheet order, so a runtime overlays the matching ones in sequence
+and never re-arbitrates. `doc` is **not redundant**: §4
 guarantees id uniqueness only *within a document*, and one stylesheet over a
 whole directory is the normal case, so two documents may each hold a `#budget`.
 Without `doc` a consumer cannot join a binding back to the right block.
+
+**Inheritance is host-defined, and this profile does not describe it.** A `box` is
+flat: each binding carries exactly the words §4 arbitrated onto it, and nothing in the
+view model says a child inherits its parent's `color`. What happens is whatever the
+host's medium does — a host that emits CSS gets CSS's inheritance for free (`color`
+inherits, `border` does not); a host that paints to a canvas or lays out a PDF gets
+whatever it implements. **Two conforming hosts may therefore render one stylesheet
+differently**, and the surface above cannot catch it. This is stated rather than fixed:
+pinning inheritance down would mean re-deciding CSS's inherited / non-inherited split
+for all 28 words, and no consumer has needed it yet. A stylesheet that must render the
+same everywhere should set the word on the block it means.
 
 **Bindings are per screen.** `screen=` gives one block different presentations on
 different screens, so a single global table cannot exist; the top-level
@@ -436,6 +683,7 @@ screen's. A consumer must look up bindings *with* a screen context.
 ```json
 {"kind": "blocks", "selector": "table#calls", "blocks": [{"doc": "…", "block": "#calls"}]}
 {"kind": "state",  "state": "sel"}
+{"kind": "frame",  "frame": "body"}
 ```
 
 A consumer handed raw selectors would have to redo the build-time solve at
@@ -495,17 +743,37 @@ explicit value.
 `geml-style/v1`. A new vocabulary member is a new version; the profile name is
 the compatibility unit, and unknown members degrade per §7.
 
+**2026-09-10 — the second real page** (a document viewer's chrome, laid out from
+lists and form fields): inline part steps in selectors (§3); `axis` on blocks, `view`
+and `editable` (§2.1); `@hover` / `@focus` in `when=` (§2.1); parameters must have a
+receiver on the merged binding (§2.1). Nothing was removed.
+
+**2026-09-11 — the same page's menus and opening note**: `layer` gains `screen`, and
+`fade-out` joins the built-in words (§2.1). `layer` / `visible` / `grow` themselves
+landed with the first page and had been missing from §2.1's table; they are listed
+now.
+
+**2026-09-11 — measured against CSS, three answers.** Laid the profile beside CSS
+dimension by dimension; three of the differences turned out to be gaps rather than
+positions. **Tokens** (§1.2): every key of the stylesheet's own `meta`, written
+`{{key}}` in any attribute — the replica stylesheet repeated one colour literal 21
+times, and a dangling reference is the new `unknown-token` (§8). **Shorthands**
+(§4): a shorthand and one of its sides, set by two different rules in one layer,
+is now `ambiguous-rule` — they never met in the per-attribute arbitration, so the
+rendered result had been depending on which rule sat first in the file. And
+**inheritance** (§10) is now stated as host-defined. The first two are additions;
+the third names a gap rather than closing it.
+
 **v1 deliberately does not have**: script of any kind, URLs (dev/staging/prod
 differ — a written-in address binds the stylesheet to an environment), routing,
-theming beyond design tokens (reuse the `data` block, GEP-0005), or any body
+theming beyond §1.2's tokens, or any body
 content in its three block types.
 
 **Named but not yet exercised by a real stylesheet**: everything in §0.1's right
 column. `filter=` in particular has never run against real noise (mustapi's edges
-are all `kind=call` with empty confidence — nothing to filter), `handler=` has no
-real host, and the closed `on=` vocabulary has exactly one member because exactly
-one interaction is actually wired. They are specified and checked, not
-battle-tested, and §0.1 says what that buys you.
+are all `kind=call` with empty confidence — nothing to filter), and `handler=` has no
+real host. They are specified and checked, not battle-tested, and §0.1 says what
+that buys you.
 
 `geml style check` is marked EXPERIMENTAL in `geml --help` for this reason. It
 works, it is tested, and its vocabulary is not yet settled — a command you can

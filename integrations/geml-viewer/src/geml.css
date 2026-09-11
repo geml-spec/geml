@@ -253,3 +253,54 @@
   background: transparent; color: inherit; cursor: pointer; opacity: .4;
 }
 .geml-source-toggle:hover { opacity: .85; }
+
+/* geml-form/v1（GEP-0008）的控件。只画，不校验 —— 约束是声明，处理器才执行。 */
+.geml-form { display: flex; flex-direction: column; gap: 12px; }
+.geml-form-group { border: 1px solid currentColor; border-radius: 6px; padding: 12px; }
+.geml-form-field { display: flex; flex-direction: column; gap: 4px; }
+.geml-form-field[data-type="boolean"] { flex-direction: row; align-items: center; gap: 8px; }
+.geml-form-label { font-size: .9em; opacity: .85; }
+.geml-form-required { color: #f85149; margin-left: 2px; }
+.geml-form-control { font: inherit; color: inherit; background: transparent;
+  border: 1px solid currentColor; border-radius: 6px; padding: 5px 8px; max-width: 100%; }
+.geml-form-control:hover, .geml-form-control:focus { outline: none; border-color: currentColor; opacity: 1; }
+select.geml-form-control { cursor: pointer; }
+.geml-form-desc { margin: 0; font-size: .85em; opacity: .7; }
+
+/* ---- 页面布局（geml-style）。只有容器的 flex 与几条不带任何色值、尺寸的通用规则：
+   颜色、间距、字号全部来自样式表（cssForPage 生成）。注入页面的 CSS 不得加载任何资源。 */
+.geml-page { margin: 0; }
+.geml-frame { display: flex; min-width: 0; min-height: 0; position: relative; }
+.geml-frame[data-axis="column"] { flex-direction: column; }
+.geml-frame[data-axis="row"] { flex-direction: row; align-items: stretch; }
+.geml-frame[data-axis="row"] > .geml-placed { flex: 0 0 auto; }
+.geml-placed { min-width: 0; box-sizing: border-box; }
+.geml-placed[role="button"], .geml-frame[role="button"] { cursor: pointer; }
+.geml-page button { color: inherit; font: inherit; }
+/* 链接**不剥**：HTML 的默认是蓝色带下划线，去掉是外观决定，由样式表用 `color` 和
+   `underline=no` 说。宿主剥掉的那一版连嵌进来的文章里的链接都一起剥了 —— 正文里的链接
+   和正文的字一模一样，看不出是链接，而没有人要求过这个。 */
+.geml-page img { vertical-align: middle; }
+.geml-page .text > p { margin: 0; }
+/* 条目本身：沿轴排的一条就是一行。`gap` 由样式表给（cssForPage 同时落到容器和条目上），
+   这里只有「条目是什么形状」，没有任何长度。 */
+.geml-items > li { display: inline-flex; align-items: center; white-space: nowrap; }
+/* 树只有一个标记：`summary` 的展开三角。`li` 自己的项目符号要去掉 —— 一行两个标记
+   （• 和 ▾）是两套机制撞在一起，不是版面选择。缩进用 em，跟着样式表设的字号走，
+   宿主里因此没有页面常量；真需要按页定缩进时它是 tree 的组件参数（§12.3 点名的 `indent`），
+   不是内含词，等第一个真实需求再加。
+   list-style 是继承属性，所以 summary 要把三角要回来，否则连它一起没了。 */
+.geml-tree, .geml-tree ul { list-style: none; margin: 0; padding-left: 0; }
+.geml-tree summary { cursor: pointer; list-style: revert; }
+.geml-segments { display: inline-flex; }
+.geml-segments button { border: 0; background: none; cursor: pointer; }
+.geml-segments button[aria-pressed="true"] { background: Canvas; font-weight: 500; }
+.geml-source { width: 100%; box-sizing: border-box; min-height: 60vh; font-family: ui-monospace, monospace; }
+/* `fade-out=<秒>` 用的动画。淡完之后 visibility: hidden，于是它既看不见也挡不住点击。
+   时长由样式表给，这里只有形状。读者要求减少动态效果时直接跳到终点 —— 提示一闪而过，不是内容。 */
+@keyframes geml-fade { to { opacity: 0; visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) {
+  .geml-page .geml-frame, .geml-page .geml-placed { animation-duration: 1ms !important; }
+}
+.geml-page .geml-form-field { display: contents; }
+.geml-page .geml-form-control { border: 0; padding: 0; outline: none; width: 100%; }

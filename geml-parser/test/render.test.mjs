@@ -131,6 +131,22 @@ test("every typed block carries its author classes on its outermost element", ()
   }
 });
 
+test("`embed` carries its author classes too — it was the one type the rule skipped", () => {
+  // 「Author classes ride on a block's OUTERMOST element … for every typed block」
+  // 是上面那条规则的原话，但 transclusionWrap 把 class="transclusion" 写死了，而且
+  // 根本没收到那个块。于是别的类型都保留类，只有 embed 静默丢掉。
+  const src = "=== embed {#e .big src=\"nowhere.geml\"}\n===\n";
+  const html = frag(src);
+  assert.match(html, /class="transclusion transclusion-[a-z-]+ big"/, html);
+
+  // 回落路径也带上：类要不要出现，不能取决于这次 embed 有没有解开。
+  assert.ok(html.includes(' id="e"'), html);
+
+  // 不写类的照旧逐字节不变
+  assert.match(frag('=== embed {#e src="nowhere.geml"}\n===\n'), /class="transclusion transclusion-[a-z-]+"/,
+    "no class declared -> no extra token");
+});
+
 test("a block that declares no class renders exactly as it did — no empty attribute", () => {
   const html = frag("=== code {#c lang=sh}\nls\n===\n\n=== math {#m}\nx\n===\n");
   assert.ok(html.includes('<pre id="c">'), html);

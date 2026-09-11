@@ -23,7 +23,7 @@ import { renderHtml } from "./render-html.js";
 import { normalizeBlockId } from "./block-edit.js";
 import { type Diagnostic, normalizeSource } from "./diagnostics.js";
 import type { DiagnosticCode } from "./diagnostics.js";
-import { type Attrs, type Value, coerce, oddNames, parseAttrs } from "./attrs.js";
+import { type Attrs, type Value, coerce, duplicateNames, oddNames, parseAttrs } from "./attrs.js";
 import { type Inline, type RefSink, META_REF_SRC, parseInline , isSafeUrl, schemeOf } from "./inline.js";
 import { type TableCell, type TableDiag, type TableModel, deriveView, parseTable } from "./table.js";
 import { type ChartModel, USES, buildChart } from "./chart.js";
@@ -294,6 +294,25 @@ export const FENCE_OPEN = /^(={3,})[ \t]*([A-Za-z][A-Za-z0-9_-]*)[ \t]*(?:(\{.*\
 // error: it has always parsed, documents in the wild rely on the leniency, and
 // what the author needs is to be told — `{#a & b}` gives the id `a` and two
 // flags called `&` and `b`, which is a legal parse of something nobody wrote.
+// A name written twice in one attribute object (§4). An ERROR, not a warning,
+// unlike `name-not-a-name` above: this one makes §4's "attribute order is
+// insignificant" false, and it does it silently — the same failure shape the
+// style layer's shorthand-versus-side conflict has. There is nothing to be
+// lenient about, either: nobody writes a name twice on purpose when the second
+// one quietly wins.
+function reportDuplicateNames(a: Attrs, line: number, diags: Diagnostic[]): void {
+  for (const name of duplicateNames(a)) {
+    diags.push({
+      severity: "error",
+      code: "duplicate-name",
+      message: `\`${name}\` is written more than once in one attribute object — `
+        + "a class, a `key=value` and a bare flag all write the same name (§4), and §4 says attribute order is insignificant, "
+        + "which a repeat makes false; write it once",
+      line,
+    });
+  }
+}
+
 function reportOddNames(a: Attrs, line: number, diags: Diagnostic[]): void {
   for (const { kind, name } of oddNames(a)) {
     diags.push({
@@ -698,6 +717,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       const attrs = open[3] ? parseAttrs(open[3]) : { classes: [], attrs: {} };
       const openLineNo = base + i + 1;
       reportOddNames(attrs, openLineNo, diags);
+      reportDuplicateNames(attrs, openLineNo, diags);
 
       // Collect the body. A block closes on the FIRST line that is a bare fence
       // of exactly the opening length, OR — when it has an id — a labeled fence
@@ -729,9 +749,9 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
 
       let mode = REGISTRY.get(type);
       if (mode === undefined && ctx.vocab.types.has(type)) {
-        // 一个 profile 放行的类型：不再算 unknown。v1 只放行名字，
-        // body 仍按 §3 当 raw —— 放宽它影响解析结果，不只是诊断。
-        mode = "raw";
+        // 一个 profile 放行的类型。体模式也来自 profile —— 它影响解析结果、不只是诊断，
+        // 所以必须是**显式声明**的（`bodies: { form: "flow" }`）；没声明的照旧 raw。
+        mode = ctx.vocab.bodies.get(type) ?? "raw";
       } else if (mode === undefined) {
         diags.push({ severity: "warning", code: "unknown-block-type", message: `unknown block type \`${type}\`; body kept as raw`, line: openLineNo });
         mode = "raw";
@@ -741,6 +761,8 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
         // the extras below are per type.
         let validRe: RegExp;
         if (type === "table") validRe = /^(src|format|delim|header|format-data|span\d*)$/;
+        // form-options 的体是一张 value/label 表（GEP-0008 §6），所以它收表体那几个键。
+        else if (type === "form-options") validRe = /^(format|delim|header)$/;
         else if (type === "view") validRe = /^(src|where|order|limit|select|compute\d*|summary\d*|by|aggregate\d*)$/;
         else if (type === "data") validRe = /^(format|schema|src)$/;
         else if (type === "embed") validRe = /^(src|part)$/;
@@ -885,6 +907,11 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
           // range a build error instead of a panel that silently shows a path.
           const srcAttr = typeof attrs.attrs["src"] === "string" ? (attrs.attrs["src"] as string).trim() : undefined;
           if (srcAttr !== undefined && srcAttr !== "") (ctx.codeSources ??= []).push({ block, line: openLineNo, target: srcAttr });
+        } else if (type === "form-options") {
+          // 同一个 parseTable —— 另写一份迟早和 table 的语义分叉，§10 的教训。
+          const { model, diagnostics } = parseTable(body, attrs.attrs, openLineNo, ctx);
+          block.table = model;
+          for (const d of diagnostics) diags.push({ ...d, line: openLineNo });
         } else if (type === "table") {
           const srcAttr = typeof attrs.attrs["src"] === "string" ? (attrs.attrs["src"] as string).trim() : undefined;
           // §6: parse the raw body (visual or csv/tsv) into one table model.
@@ -961,6 +988,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       const rawText = h[2]!;
       const a = parseAttrs(h[3] ?? "");
       reportOddNames(a, lineNo, diags);
+      reportDuplicateNames(a, lineNo, diags);
       const text = interpolate(rawText, lineNo, ctx);
       const id = a.id ?? slug(rawText);
       registerId(ctx, id, lineNo);
@@ -2322,7 +2350,7 @@ function collectSpans(
       // Only a flow body is scanned for nested blocks (raw/data bodies are
       // opaque), so an id inside a `code` body is *not* addressable — exactly
       // the parser's contract.
-      if ((REGISTRY.get(type) ?? "raw") === "flow" && depth < MAX_NESTING) {
+      if ((REGISTRY.get(type) ?? ctx.vocab.bodies.get(type) ?? "raw") === "flow" && depth < MAX_NESTING) {
         collectSpans(lines.slice(i + consumed, closed ? end - 1 : end), base + i + consumed, out, ctx, depth + 1, units);
       }
       i = end;

@@ -47,6 +47,68 @@ Neither is committed — CI builds them and Deploy Pages serves what it built, s
 nothing here can fall behind the parser it bundles. The price is this page: a
 fresh checkout has no bundle until you run the command above.
 
+## The page-layout demo (`style-demo/`)
+
+The seven chapters show what a GEML *document* is. `style-demo/` shows what the
+**layout layer** (`geml-style/v1`) can do with one: it is a 1:1 replica of a
+GitHub blob page — top bar, repository nav, file tree, breadcrumb, commit row,
+Preview/Code/Blame, four dropdown menus — reading a real document from this
+repository, `docs/PUBLISHING.geml`.
+
+**Open `style-demo/page.geml`** — the document itself, served over HTTP, with
+[`geml-viewer`](../integrations/geml-viewer) installed. The opening note tells
+you what you are looking at, then fades.
+
+There is no `index.html` here on purpose. What is being demonstrated is that a
+`.geml` file *is* the page; wrapping it in a host page would demonstrate the
+host instead. Without the viewer a browser shows the source, which is the right
+default: the file is text, and nothing has claimed otherwise.
+
+| file | what it holds |
+|---|---|
+| `style-demo/page.geml` | 13 lines: **an assembly sheet** — one `embed` for the template, one for the document being read |
+| `style-demo/template.geml` | **the page template**, and only content: top bar, repository nav, file tree, breadcrumb, commit row and toolbars, written as lists of inline links, plus the search and branch fields |
+| `style-demo/_index/index.geml` | the style entry (profile §1.1) — names the stylesheet beside it |
+| `style-demo/_index/github.style.geml` | **only layout**: frames, slots, built-in words, three states. Not one word of GitHub's text |
+| `style-demo/icons/*.svg` | 40 octicons, referenced from the content by path |
+
+The split is the point. Every string you can read on the page comes from
+`template.geml` or the document it reads; every colour and length comes from
+`github.style.geml`; the viewer knows about neither.
+
+`page.geml` is that short because `template.geml` is a **template**, and saying
+so took no new mechanism: an `embed` brings a document into the corpus, and the
+stylesheet's `slots=` can already reach a block in any document there. So the
+27 frames pick the template's blocks out of it one by one, and pointing the page
+at a different document is one `src=`:
+
+```geml
+=== embed {#template src="template.geml"}
+===
+=== embed {#doc src="../../docs/PUBLISHING.geml"}
+===
+```
+
+Writing those blocks straight into `page.geml` still works — that is what this
+demo did until it was split — so "write the page directly" and "use a template"
+are the same mechanism seen from two ends, not two features.
+
+Both files check clean:
+
+```sh
+node ../geml-parser/dist/geml.js check style-demo/page.geml --root ..
+cd style-demo && node ../../geml-parser/dist/geml.js style check \
+  _index/github.style.geml page.geml ../../docs/PUBLISHING.geml \
+  --components=tree,segments,code-graph
+```
+
+`--root ..` is needed because the page's `embed` points *up* at
+`docs/PUBLISHING.geml` rather than keeping a copy — a copy would drift, and the
+document is the one being demonstrated. That same upward reference is why this
+page wants a server at the **repository root**: over `file://` the viewer
+confines a document's fetches to its own directory, so the embed degrades to a
+link and the article does not appear.
+
 ## The code-graph demo data (`codemap/`)
 
 The `geml-code-graph` section of `ch05-visual.geml` dogfoods: `codemap/` is this
@@ -82,3 +144,10 @@ For a shorter root URL (`https://geml-spec.github.io/geml/`), copy
 `/docs` instead.
 
 Locally: `python -m http.server` in this folder, open `localhost:8000`.
+
+For the page-layout demo, serve the **repository root** instead —
+`python -m http.server` one level up, then open
+`localhost:8000/playground/style-demo/page.geml` with the viewer installed. That
+document reads `docs/PUBLISHING.geml`, which sits outside this folder. On GitHub
+Pages it already works: Pages serves the repository root, so
+`…/geml/playground/style-demo/page.geml` resolves.
