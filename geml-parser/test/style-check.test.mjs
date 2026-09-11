@@ -1289,10 +1289,102 @@ test("layer=screen 与 fade-out：闭域多一个成员、时间轴多一个词�
   }
 });
 
+test("underline：闭域 yes/no，块和部件都收；域外值报 style-invalid-value", () => {
+  const ok = sheet('=== style-rule {#r match="text#nav link" underline=no}\n===\n');
+  assert.deepEqual(ok.rules[0].box, { underline: "no" });
+  assert.deepEqual(codes(ok.diagnostics), [], "部件上说得通 —— 一段文字带不带下划线");
+  const onBlock = sheet('=== style-rule {#r match="text#nav" underline=yes}\n===\n');
+  assert.deepEqual(onBlock.rules[0].box, { underline: "yes" });
+  const bad = sheet('=== style-rule {#r match="text#nav link" underline=dotted}\n===\n');
+  assert.deepEqual(codes(bad.diagnostics), ["style-invalid-value"]);
+  assert.match(bad.diagnostics[0].message, /is not `yes` or `no`/);
+  assert.deepEqual(bad.rules[0].box, {});
+});
+
 test("槽位不摆部件：slots 里写部件选择器是 selector-unsupported", () => {
   const vm = resolveStyle(sheet('=== style-screen {#p slots="text#nav link"}\n===\n'),
     [{ path: "p.geml", doc: parse('=== text {#nav}\n- [a](https://a)\n===\n') }]);
   assert.ok(vm.diagnostics.some((d) => d.code === "selector-unsupported" && /slot places blocks/.test(d.message)), JSON.stringify(vm.diagnostics));
+});
+
+test("记号：属性里的 {{key}} 按本文件 meta 代换（设计 §13.13）", () => {
+  const s = loadStylesheet(parse(
+    '=== meta\nprofile = "geml-style/v1"\nline = "#d1d9e0"\npad = "8px"\n===\n\n' +
+    '=== style-rule {#r match="text" border="1px solid {{line}}" padding="{{pad}}"}\n===\n'));
+  assert.deepEqual(codes(s.diagnostics), []);
+  assert.deepEqual(s.rules[0].box, { border: "1px solid #d1d9e0", padding: "8px" });
+});
+
+test("记号：整个值就是一个记号时带上类型，数值域的内含词才喂得进去", () => {
+  const s = loadStylesheet(parse(
+    '=== meta\nprofile = "geml-style/v1"\ncol = 1012\n===\n\n' +
+    '=== style-rule {#r match="text" hide-below="{{col}}" max-width="{{col}}px"}\n===\n'));
+  assert.deepEqual(codes(s.diagnostics), [], "1012 是数字，hide-below 收得下");
+  assert.deepEqual(s.rules[0].box, { "hide-below": 1012, "max-width": "1012px" });
+});
+
+test("记号：悬空的 {{key}} 是 error，原文留着不静默换空串", () => {
+  const s = loadStylesheet(parse(
+    '=== meta\nprofile = "geml-style/v1"\nline = "#d1d9e0"\n===\n\n' +
+    '=== style-rule {#r match="text" color="{{nope}}" border="1px solid {{line}}"}\n===\n'));
+  assert.deepEqual(codes(s.diagnostics), ["unknown-token"]);
+  assert.equal(STYLE_SEVERITY["unknown-token"], "error");
+  assert.match(s.diagnostics[0].message, /`\{\{nope\}\}` in `color=`/);
+  assert.equal(s.rules[0].box.color, "{{nope}}");
+  assert.equal(s.rules[0].box.border, "1px solid #d1d9e0", "同一条规则里认识的那个照常代换");
+});
+
+test("记号：match= 里也代换 —— 属性值一视同仁，没有开洞", () => {
+  const s = loadStylesheet(parse(
+    '=== meta\nprofile = "geml-style/v1"\nwhich = "text#nav"\n===\n\n' +
+    '=== style-rule {#r match="{{which}}" color="#000000"}\n===\n'));
+  assert.deepEqual(codes(s.diagnostics), []);
+  assert.equal(s.rules[0].branches[0].source, "text#nav");
+});
+
+test("记号：embed 进来的规则用它自己那份文件的 meta，不用宿主的", () => {
+  const other = '=== meta\nprofile = "geml-style/v1"\nline = "#00ff00"\n===\n\n' +
+                '=== style-rule {#theirs match="note" color="{{line}}"}\n===\n';
+  const s = loadStylesheet(
+    parse('=== meta\nprofile = "geml-style/v1"\nline = "#ff0000"\n===\n\n' +
+          '=== embed {#e src="other.geml"}\n===\n\n' +
+          '=== style-rule {#mine match="table" color="{{line}}"}\n===\n'),
+    { loadDoc: (path) => (path === "other.geml" ? other : null), parseDoc: (src) => parse(src) });
+  assert.deepEqual(codes(s.diagnostics), []);
+  const by = Object.fromEntries(s.rules.map((r) => [r.id, r.box.color]));
+  assert.deepEqual(by, { theirs: "#00ff00", mine: "#ff0000" });
+});
+
+test("简写与单边：同层两条规则一个写 border、一个写某边 → ambiguous-rule", () => {
+  const doc = parse("=== text {#a}\nhi\n===\n");
+  const first =
+    '=== style-rule {#one match="text" border="1px solid red"}\n===\n\n' +
+    '=== style-rule {#two match="text#a" border-left="0"}\n===\n';
+  // 同样两条规则，只换文件里的先后 —— 两次都必须报，否则渲染就取决于源码顺序
+  const flipped =
+    '=== style-rule {#two match="text#a" border-left="0"}\n===\n\n' +
+    '=== style-rule {#one match="text" border="1px solid red"}\n===\n';
+  for (const [name, body] of [["原序", first], ["互换", flipped]]) {
+    const d = resolveStyle(sheet(body), [{ path: "p.geml", doc }])
+      .diagnostics.filter((x) => x.code === "ambiguous-rule");
+    assert.equal(d.length, 1, name);
+    assert.match(d[0].message, /a shorthand and one of its sides in the same layer/, name);
+  }
+});
+
+test("简写与单边：写进同一条规则、或两条都是单边 —— 都放行", () => {
+  const doc = parse("=== text {#a}\nhi\n===\n");
+  const run = (body) => codes(resolveStyle(sheet(body), [{ path: "p.geml", doc }]).diagnostics);
+  assert.deepEqual(run('=== style-rule {#r match="text#a" border="1px solid red" border-left="0"}\n===\n'),
+    [], "一条规则里的先后是作者自己写的，geml set 换的是整块");
+  assert.deepEqual(run(
+    '=== style-rule {#one match="text" border-top="1px solid red"}\n===\n\n' +
+    '=== style-rule {#two match="text#a" border-left="0"}\n===\n'),
+    [], "两个单边互不覆盖，没有先后可言");
+  assert.deepEqual(run(
+    '=== style-rule {#one match="text" border-radius="6px"}\n===\n\n' +
+    '=== style-rule {#two match="text#a" border-left="0"}\n===\n'),
+    [], "border-radius 不在这一族里");
 });
 
 console.log(`\n${passed} passed`);

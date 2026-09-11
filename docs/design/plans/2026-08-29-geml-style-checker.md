@@ -6343,3 +6343,138 @@ Expected: 0。
 - [ ] **Step 4: 汇报**
 
 列出：每个 Task 的 commit；复刻页的实测（诊断、链接数、提示语数、宿主 CSS 色值数）；四处刻意的不像；GEP-0011 待办落在哪。**不 push**（用户自己决定；推送前用户会改 commit 消息）。
+
+---
+
+# 第三轮：与 CSS 横向对照挖出来的三处（2026-09-11）
+
+出处：设计文档 §13.13。三条都已实现，测试在 `geml-parser/test/style-check.test.mjs`。
+
+## Task 17：记号（`meta` 的键 + 属性里的 `{{key}}`）
+
+**Files:**
+- Modify: `geml-parser/src/style-diagnostics.ts`（新码 `unknown-token`，error）
+- Modify: `geml-parser/src/style-resolve.ts`（`tokensOf` / `WHOLE_TOKEN` / `expandTokens` / `sheetBlocks`，装载路径两处入口）
+- Modify: `spec/profiles/geml-style/geml-style-profile{,_CN}.md`（新 §1.2；§8 加一行）
+- Modify: `playground/style-demo/_index/github.style.geml`（8 色 + 2 常量收进 meta）
+- Test: `geml-parser/test/style-check.test.mjs`
+
+- [x] **Step 1: 代换在装载期，落在 `boxValueOk` 之前**
+
+值域校验要看代换**后**的值，否则 `hide-below="{{col}}"` 永远过不了数值检查。
+
+- [x] **Step 2: 整值记号带类型**
+
+```js
+const WHOLE_TOKEN = /^\{\{\s*([A-Za-z_][A-Za-z0-9_-]*)\s*\}\}$/;
+```
+整个属性值恰好是一个记号时，把 `meta` 里的**原值**（数字仍是数字）放进去；
+其余位置 `String(v)` 拼进文本。
+
+- [x] **Step 3: 按文件**
+
+`expandEmbeds` 的跨文档分支改走 `sheetBlocks(opts.parseDoc(src), sheet)` ——
+跟来的规则用**它自己那份** `meta`，和核心对借来内容的规定一致。
+
+- [x] **Step 4: 悬空即 error**
+
+`unknown-token`，消息带上是哪个属性；原文留在值里，不静默换空串。
+
+- [x] **Step 5: 演示样式表改写并验等价**
+
+```bash
+node geml-parser/dist/geml.js style check playground/style-demo/_index/index.geml playground/style-demo/page.geml
+```
+Expected: `0 error(s), 0 warning(s)`，且改写前后**视图模型逐字节相同**（已实测）。
+
+## Task 18：简写与单边的源序漏洞
+
+**Files:**
+- Modify: `geml-parser/src/style-resolve.ts`（`BORDER_SIDES` + 组内裁决后的 1b 段）
+- Modify: `spec/profiles/geml-style/geml-style-profile{,_CN}.md`（§4 加一段）
+- Test: `geml-parser/test/style-check.test.mjs`
+
+- [x] **Step 1: 先复现**
+
+同样两条规则（`#one` 写 `border`、`#two` 写 `border-left`），只换文件里的先后，
+渲染结果不同而诊断为零。
+
+- [x] **Step 2: 同层 + 同 when 组 + 不同规则 → `ambiguous-rule`**
+
+放行三处：同一条规则里写两个词；跨层；几个单边之间。`border-radius` 不在族里。
+
+- [x] **Step 3: 演示样式表不受影响**
+
+`border=` ×16、`border-bottom=` ×3、`border-left=` ×2，没有一处跨规则共现（已实测）。
+
+## Task 19：继承写明「未定义，由宿主决定」
+
+**Files:**
+- Modify: `spec/profiles/geml-style/geml-style-profile{,_CN}.md`（§10 加一段）
+
+- [x] **Step 1: 只写明，不补齐**
+
+说清代价（两个都合规的宿主可能渲染成两样，一致性面抓不到）和用法（要一致就把词
+写在它真正想要的块上）。不为 28 个词重裁一遍 CSS 的继承表。
+
+## Task 20：全量验证一次
+
+- [ ] **Step 1: 解析器全量 + 覆盖率闸（一次）**
+
+```bash
+cd geml-parser && npm run coverage:check 2>&1 | tail -30; echo EXIT=$?
+```
+Expected: 全部 ok，闸 95 通过。
+
+- [ ] **Step 2: viewer 全量 + 覆盖率闸（一次）**
+
+```bash
+cd integrations/geml-viewer && npm run coverage:check 2>&1 | tail -30; echo EXIT=$?
+```
+Expected: 全部 ok，闸 85/85/90/75 通过。
+
+## Task 21：页面与模板分开（设计 §13.14）
+
+**Files:**
+- Create: `playground/style-demo/template.geml`（模板，223 行）
+- Modify: `playground/style-demo/page.geml`（装配单，13 行）
+- Modify: `integrations/geml-viewer/src/layout.js`（`inCorpus`，unplaced 不再算带文档进来的 embed）
+- Modify: `playground/README.md`（文件表 + 为什么零新机制）
+- Test: `integrations/geml-viewer/test/layout.test.mjs`
+
+- [x] **Step 1: 先证明零新机制**
+
+槽位解析出的是 `{doc, block}`，`byAddr` 是整个语料的表，`borrowedDocs` 把每个
+`embed src=` 都拉进语料 —— 所以 `slots="text#brand"` 本来就够得到另一份文档里的块。
+
+- [x] **Step 2: 拆，并逐字符比对渲染结果**
+
+```
+诊断 0/0；unplaced 2 → 2；DOM 逐字符相同 56310 字符；icons/ 引用 83 → 83
+CSS 规则集合相同（127 条），只有顺序随语料顺序变
+```
+
+- [x] **Step 3: 模板放 demo 根目录**
+
+借来文档的相对 URL 按**它自己的 URL** 重定基（`transclude.js` 的 `rebase`），
+放 `_index/` 会让 41 个 `icons/…` 全部失效。
+
+- [x] **Step 4: `embed` 把文档带进语料就不算漏摆**
+
+```js
+const inCorpus = (node) => node.type === "embed" && corpus.some((c) => c.path === pathOf(node));
+```
+
+- [x] **Step 5: 测试**
+
+`装配单：页面只写两个 embed，模板从语料里逐块摆；带文档进来的 embed 不算漏摆`
+
+## Task 22：全量验证一次（第三轮收口）
+
+- [ ] **Step 1: 解析器 + viewer 两个闸各跑一次**
+
+```bash
+cd geml-parser && npm run coverage:check 2>&1 | tail -30; echo EXIT=$?
+cd integrations/geml-viewer && npm run coverage:check 2>&1 | tail -30; echo EXIT=$?
+```
+Expected: 两个都 EXIT=0。

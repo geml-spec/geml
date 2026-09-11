@@ -277,7 +277,9 @@ select.geml-form-control { cursor: pointer; }
 .geml-placed { min-width: 0; box-sizing: border-box; }
 .geml-placed[role="button"], .geml-frame[role="button"] { cursor: pointer; }
 .geml-page button { color: inherit; font: inherit; }
-.geml-page a { color: inherit; text-decoration: none; }
+/* 链接**不剥**：HTML 的默认是蓝色带下划线，去掉是外观决定，由样式表用 `color` 和
+   `underline=no` 说。宿主剥掉的那一版连嵌进来的文章里的链接都一起剥了 —— 正文里的链接
+   和正文的字一模一样，看不出是链接，而没有人要求过这个。 */
 .geml-page img { vertical-align: middle; }
 .geml-page .text > p { margin: 0; }
 /* 条目本身：沿轴排的一条就是一行。`gap` 由样式表给（cssForPage 同时落到容器和条目上），

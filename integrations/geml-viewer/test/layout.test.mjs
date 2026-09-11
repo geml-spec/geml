@@ -912,6 +912,39 @@ profile = "geml-style/v1"
   assert.equal(/url\(/.test(css), false, "CSP：注入的 CSS 不加载任何资源");
 });
 
+test("借来的文档也戴 class：样式表管得到自己嵌进来的那篇，规则真的落得上", () => {
+  const sheet = '=== meta\nprofile = "geml-style/v1"\n===\n'
+    + '=== style-screen {#p slots="embed#doc"}\n===\n'
+    + '=== style-rule {#l match="* link" color="#0969da" underline=no}\n===\n';
+  const host = '=== embed {#doc src="other.geml"}\n===\n';
+  const other = '=== text {#o}\nsee [there](https://x)\n===\n';
+  const model = parse(host);
+  const corpus = [{ path: "page.geml", doc: model, text: host }, { path: "other.geml", doc: parse(other), text: other }];
+  const vm = resolveStyle(loadStylesheet(parse(sheet)), corpus);
+  const { document } = dom();
+  const out = renderPage(vm, model, document, { renderBlock, labels: [], components: COMPONENTS, state: null, corpus });
+  assert.ok(out.root, out.error);
+  const wrapped = out.root.querySelector('.geml-borrowed > .geml-placed[data-block="#o"]');
+  assert.ok(wrapped, "借来的块有自己的 geml-placed 外壳");
+  assert.equal(wrapped.getAttribute("data-doc"), "other.geml", "带着它来自哪份文档");
+  assert.match(wrapped.className, /geml-b-o\b/);
+  assert.match(cssForPage(vm), /\.geml-b-o a \{[^}]*color: #0969da[^}]*text-decoration: none/);
+  assert.equal(out.unplaced, 0, "借来的块不算漏摆");
+});
+
+test("underline 出 text-decoration；宿主不再替整页剥链接样式", () => {
+  const { vm } = vmOf('=== meta\nprofile = "geml-style/v1"\n===\n'
+    + '=== style-screen {#p slots="text#nav"}\n===\n'
+    + '=== style-rule {#a match="text#nav link" underline=no}\n===\n'
+    + '=== style-rule {#b match="text#nav" underline=yes}\n===\n',
+    '=== text {#nav}\n- [a](https://a)\n===\n');
+  const css = cssForPage(vm);
+  assert.match(css, /\.geml-b-nav a \{ text-decoration: none \}/);
+  assert.match(css, /\.geml-b-nav \{ text-decoration: underline \}/);
+  const host = readFileSync(new URL("../src/geml.css", import.meta.url), "utf8");
+  assert.doesNotMatch(host, /\.geml-page a \{[^}]*text-decoration/, "宿主不替所有页面剥链接的下划线");
+});
+
 test("gap 同时管条目之间和条目里面 —— 图标和文字的距离不再写死在宿主", () => {
   const { vm } = vmOf('=== meta\nprofile = "geml-style/v1"\n===\n'
     + '=== style-screen {#p slots="text#nav, text#plain"}\n===\n'
@@ -938,6 +971,44 @@ test("tree 的 indent 是组件参数：样式表给就用它，不给用默认�
   assert.equal(indentOf(" indent=24px"), "24px");
   assert.equal(indentOf(""), "1.2em", "不给就用默认 —— 一棵不缩进的树不是树");
   assert.equal(indentOf(' indent="0} body{display:none"'), "1.2em", "样式表是不可信输入，过不了闸就退回默认");
+});
+
+test("装配单：页面只写两个 embed，模板从语料里逐块摆；带文档进来的 embed 不算漏摆", () => {
+  // 一份文档可以只说「这页 = 这个模板 + 这份正文」，模板自己是一份文档。
+  // 样式表一个字都不用改：slots 本来就够得到语料里任何一份文档的块。
+  const sheet = `=== meta
+profile = "geml-style/v1"
+===
+=== style-screen {#page axis=column slots="#bar, #body"}
+===
+=== style-frame {#bar axis=row slots="text#brand, text#nav"}
+===
+=== style-frame {#body slots="embed#doc"}
+===
+`;
+  const host = '=== embed {#tpl src="template.geml"}\n===\n\n=== embed {#doc src="article.geml"}\n===\n';
+  const template = '=== text {#brand}\nGEML\n===\n\n=== text {#nav}\n- [a](https://a)\n===\n';
+  const article = '=== text {#body-text}\nhello\n===\n';
+  const model = parse(host);
+  const { document } = dom();
+  const corpus = [
+    { path: "page.geml", doc: model, text: host },
+    { path: "template.geml", doc: parse(template), text: template },
+    { path: "article.geml", doc: parse(article), text: article },
+  ];
+  const vm = resolveStyle(loadStylesheet(parse(sheet)), corpus);
+  assert.deepEqual(vm.diagnostics.map((d) => d.code), []);
+  const out = renderPage(vm, model, document, { renderBlock, labels: [], components: {}, state: null, corpus });
+
+  // 模板的两个块被**逐个**摆进 #bar，不是当成一片画在 embed 原地
+  const bar = out.root.querySelector('section.geml-frame[data-id="bar"]');
+  assert.deepEqual([...bar.children].map((c) => c.getAttribute("data-block")), ["#brand", "#nav"]);
+  assert.equal(bar.querySelector('[data-block="#brand"]').getAttribute("data-doc"), "template.geml");
+  // 正文那个 embed 被槽位摆了，照旧画成一片
+  const body = out.root.querySelector('section.geml-frame[data-id="body"]');
+  assert.ok(body.querySelector(".geml-borrowed"), "embed#doc 仍然整份画出去");
+  // `#tpl` 没有任何槽位摆它 —— 它的活儿是把 template.geml 带进语料，不是漏摆
+  assert.equal(out.unplaced, 0);
 });
 
 console.log(`\n${passed} layout tests passed.`);

@@ -66,14 +66,32 @@ default: the file is text, and nothing has claimed otherwise.
 
 | file | what it holds |
 |---|---|
-| `style-demo/page.geml` | **only content**: the chrome as lists of inline links, the search and branch fields, and one `embed` pointing at `docs/PUBLISHING.geml` |
+| `style-demo/page.geml` | 13 lines: **an assembly sheet** — one `embed` for the template, one for the document being read |
+| `style-demo/template.geml` | **the page template**, and only content: top bar, repository nav, file tree, breadcrumb, commit row and toolbars, written as lists of inline links, plus the search and branch fields |
 | `style-demo/_index/index.geml` | the style entry (profile §1.1) — names the stylesheet beside it |
 | `style-demo/_index/github.style.geml` | **only layout**: frames, slots, built-in words, three states. Not one word of GitHub's text |
 | `style-demo/icons/*.svg` | 40 octicons, referenced from the content by path |
 
 The split is the point. Every string you can read on the page comes from
-`page.geml`; every colour and length comes from `github.style.geml`; the viewer
-knows about neither.
+`template.geml` or the document it reads; every colour and length comes from
+`github.style.geml`; the viewer knows about neither.
+
+`page.geml` is that short because `template.geml` is a **template**, and saying
+so took no new mechanism: an `embed` brings a document into the corpus, and the
+stylesheet's `slots=` can already reach a block in any document there. So the
+27 frames pick the template's blocks out of it one by one, and pointing the page
+at a different document is one `src=`:
+
+```geml
+=== embed {#template src="template.geml"}
+===
+=== embed {#doc src="../../docs/PUBLISHING.geml"}
+===
+```
+
+Writing those blocks straight into `page.geml` still works — that is what this
+demo did until it was split — so "write the page directly" and "use a template"
+are the same mechanism seen from two ends, not two features.
 
 Both files check clean:
 

@@ -140,6 +140,48 @@ in the same layer as the file referencing it. Layers come only from the style
 entry, so "how many layers does this document have" is answered by reading one
 fixed path, regardless of how deeply `embed` nests.
 
+## 1.2 Tokens — one place for the values
+
+Every key of the stylesheet's own `=== meta` is a **token**. In any attribute of a
+`style-rule` / `style-state` / `style-screen` / `style-frame`, `{{key}}` is replaced
+by that key's value when the stylesheet is loaded.
+
+```
+=== meta
+profile = "geml-style/v1"
+line = "#d1d9e0"
+col  = 1012
+===
+=== style-rule {#file-box match="table#files" border="1px solid {{line}}"}
+===
+=== style-rule {#side match="#sidebar" hide-below="{{col}}" max-width="{{col}}px"}
+===
+```
+
+Why it exists, measured: in the replica stylesheet that ships as this profile's page
+demo, `#d1d9e0` appeared 21 times, `#59636e` 14, `#1f2328` 12. Changing one border
+colour meant editing 21 blocks. CSS custom properties have answered this for a decade;
+without an answer a stylesheet stops being maintainable at page scale.
+
+The spelling is core GEML's own `{{key}}` (standard §4). The core substitutes it in
+**flow text** only — attributes are this profile extending the same reference to the
+one place its documents keep their content. Same syntax, same failure mode, nothing
+new to learn.
+
+Four boundaries, each deliberate:
+
+| rule | why |
+|---|---|
+| one pass, no recursion | a `{{…}}` inside a token's own value stays literal, so no cycle can form and there is no resolution order to argue about |
+| per file | rules pulled in by `embed` expand against **their own** file's `meta`, never the host's — the rule the core already applies to borrowed content |
+| a dangling `{{key}}` is an **error** (`unknown-token`) | silently substituting an empty string drains the colour out of a page and says nothing |
+| a value that is *exactly* one token keeps the token's **type** | `hide-below="{{col}}"` with `col = 1012` yields the number 1012, so the numeric built-in words can be fed from tokens at all; anywhere else the value is spliced in as text |
+
+Tokens are values, not rules: they carry no conditions, take no part in §4, and a token
+is not a fallback for anything. `profile` is a key like any other, so `{{profile}}`
+expands to `geml-style/v1` — harmless, and not a special case worth carving out.
+
+
 ## 2. The four block types
 
 **Every block has an empty body.** All information lives in the attribute
@@ -186,6 +228,7 @@ in its `params`, so it cannot give `width` a private meaning.
 | `visible` | `yes` \| `no` (default `yes`) | blocks and containers: shown *right now*. `hide-below` is the viewport half of "not shown"; this is the state half |
 | `grow` | `yes` \| `no` (default `no`) | blocks and containers: whether this cell takes the space left over along its row or column |
 | `fade-out` | a number of seconds, 0–60 (default 0, no fade) | blocks and containers: painted, then it fades away and stops taking clicks. The one thing on the time axis; a host that honours "reduce motion" jumps to the end |
+| `underline` | `yes` \| `no` | blocks and inline parts: whether this run of text is underlined. A host does **not** strip a link's default underline on a laid-out page — removing it is a look, and the stylesheet says so |
 | `view` | `rendered` \| `source` (default `rendered`) | blocks: show the block, or its source text |
 | `editable` | `yes` \| `no` (default `no`) | blocks under `view=source`: the source may be edited in place; inert otherwise. It says nothing about where an edit goes — a host with no write path shows a scratch textarea |
 
@@ -228,7 +271,7 @@ itself consumes.
 inside the matched blocks — `text#nav link` is every link in `#nav`. Only words that mean
 something on a run of text are taken there: `color` `background` `padding` `margin`
 `border` (and its sides) `border-radius` `font-size` `line-height` `font-family` `width`
-`max-width` `visible`. Any other built-in word on a part rule is `style-unknown-attribute`
+`max-width` `visible` `underline`. Any other built-in word on a part rule is `style-unknown-attribute`
 (warning) and is dropped — `sticky` on a link is not a thing.
 
 ### 2.2 `style-state` — one cell of view state, and what feeds it
@@ -339,7 +382,7 @@ past it, the way it does past the `embed` total.
 ## 3. Selector grammar
 
 ```
-<type>? (.class)* (#id)? ([key] | [key=value])*      one simple selector
+<type>? (#id)? (.class)* ([key] | [key=value])*      one simple selector — order does not matter
 *                                                    any node (whole step only)
 #api table.kpi                                       descendant (the only combinator)
 table.kpi, table.summary                             comma = branches (sugar for two rules)
@@ -367,8 +410,14 @@ so a layer that lays out documents has no business being unable to place them. A
 paragraph *inside* a block is that block's content, not a section of the document,
 and is not a candidate.
 
-The vocabulary is exactly §4's own — type, `.class`, `#id`, attribute presence,
-attribute equality — plus one combinator. Sections are the containment relation:
+The vocabulary is exactly §4's own — type, `#id`, `.class`, attribute presence,
+attribute equality — plus one combinator. The parts of a simple selector are
+**unordered**, as the standard says attributes are (`#id`, then `.class`, then
+`key=val` is the recommended writing order, not a rule): `text#a.x`, `text.x#a`
+and `text[k=v].x#a` are the same selector. `.class` and `[key]` are two
+namespaces that never meet — a class is not an attribute of the same name, so
+`.x` matches `{#a .x}` and `[x]` matches the flag `{#a x}`, and neither matches
+the other. Sections are the containment relation:
 headings are not containers in the block model, so the relation is rebuilt from
 an open heading stack.
 
@@ -412,6 +461,19 @@ order would be silently re-rendered by the very block-level agent edits
 
 Conflicts are judged **against the corpus**: two incomparable rules are only an
 error if they actually co-occur on some real block.
+
+**Shorthands and their sides.** Merging is per attribute *name*, and `border` and
+`border-left` are two names — so they never meet in the arbitration above, both
+survive, and which one takes effect is decided by whichever declaration the host
+emits last. A layer has no order, so that would make the rendered result depend on
+where the two rules happen to sit in the file: precisely what excluding source order
+was protecting, and precisely what `geml add --before` would silently change. So two
+**different** rules in the same layer may not set `border` and one of `border-top` /
+`border-right` / `border-bottom` / `border-left` on the same block — that is
+`ambiguous-rule`. Writing both words in **one** rule is fine: there the order is one
+the author wrote, and `geml set` replaces whole blocks. Across layers is fine too —
+a layer is a declared order. Sides never conflict with one another, and
+`border-radius` is not part of the family.
 
 The diagnostic distinguishes two cases, because the remedies differ — for
 *identical* selectors, "write the union of both" is impossible advice (the union
@@ -535,6 +597,7 @@ fallback**, which is what preserves §8.5.
 | `unknown-screen` | error | `screen=` names no `style-screen` block |
 | `unknown-value-source` | error | `value-from=` is not a column of the target table |
 | `unknown-interaction` | error | `on=` is not in the closed interaction vocabulary |
+| `unknown-token` | error | `{{key}}` in an attribute names no key of that stylesheet's `meta` (§1.2) |
 | `style-missing-attribute` | error | a required attribute is absent |
 | `unmatched-rule` | warning | a rule (or screen slot) matched no block in the corpus |
 | `unmatched-producer` | warning | a state's `match=` matched no block |
@@ -547,7 +610,7 @@ fallback**, which is what preserves §8.5.
 | `frame-cycle` | error | frames nest in a cycle; the message carries the chain |
 | `frame-too-deep` | error | frames nest deeper than 16 along some placement path |
 | `unused-frame` | warning | a `style-frame` no slot references |
-| `style-invalid-value` | error | a closed-domain built-in word (`axis` / `scroll` / `sticky` / `hide-below` / `layer` / `visible` / `grow` / `view` / `editable` / `fade-out`) took a value outside its domain, or a `when=` term is neither `$state=value` nor `@hover` / `@focus` |
+| `style-invalid-value` | error | a closed-domain built-in word (`axis` / `scroll` / `sticky` / `hide-below` / `layer` / `visible` / `grow` / `view` / `editable` / `fade-out` / `underline`) took a value outside its domain, or a `when=` term is neither `$state=value` nor `@hover` / `@focus` |
 
 `unknown-value-source` is checkable because §6 gives tables a real schema. When
 the producer is not a table the check is **skipped**, not guessed at.
@@ -598,6 +661,17 @@ and never re-arbitrates. `doc` is **not redundant**: §4
 guarantees id uniqueness only *within a document*, and one stylesheet over a
 whole directory is the normal case, so two documents may each hold a `#budget`.
 Without `doc` a consumer cannot join a binding back to the right block.
+
+**Inheritance is host-defined, and this profile does not describe it.** A `box` is
+flat: each binding carries exactly the words §4 arbitrated onto it, and nothing in the
+view model says a child inherits its parent's `color`. What happens is whatever the
+host's medium does — a host that emits CSS gets CSS's inheritance for free (`color`
+inherits, `border` does not); a host that paints to a canvas or lays out a PDF gets
+whatever it implements. **Two conforming hosts may therefore render one stylesheet
+differently**, and the surface above cannot catch it. This is stated rather than fixed:
+pinning inheritance down would mean re-deciding CSS's inherited / non-inherited split
+for all 28 words, and no consumer has needed it yet. A stylesheet that must render the
+same everywhere should set the word on the block it means.
 
 **Bindings are per screen.** `screen=` gives one block different presentations on
 different screens, so a single global table cannot exist; the top-level
@@ -679,9 +753,20 @@ receiver on the merged binding (§2.1). Nothing was removed.
 landed with the first page and had been missing from §2.1's table; they are listed
 now.
 
+**2026-09-11 — measured against CSS, three answers.** Laid the profile beside CSS
+dimension by dimension; three of the differences turned out to be gaps rather than
+positions. **Tokens** (§1.2): every key of the stylesheet's own `meta`, written
+`{{key}}` in any attribute — the replica stylesheet repeated one colour literal 21
+times, and a dangling reference is the new `unknown-token` (§8). **Shorthands**
+(§4): a shorthand and one of its sides, set by two different rules in one layer,
+is now `ambiguous-rule` — they never met in the per-attribute arbitration, so the
+rendered result had been depending on which rule sat first in the file. And
+**inheritance** (§10) is now stated as host-defined. The first two are additions;
+the third names a gap rather than closing it.
+
 **v1 deliberately does not have**: script of any kind, URLs (dev/staging/prod
 differ — a written-in address binds the stylesheet to an environment), routing,
-theming beyond design tokens (reuse the `data` block, GEP-0005), or any body
+theming beyond §1.2's tokens, or any body
 content in its three block types.
 
 **Named but not yet exercised by a real stylesheet**: everything in §0.1's right

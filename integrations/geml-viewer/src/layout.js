@@ -89,6 +89,8 @@ function declarations(box, dropped, where, skip = new Set()) {
     else if (k === "layer" && v === "screen") out.push("position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center");
     // 画出来之后自己淡掉。keyframes 与「减少动态效果」的让步在静态表里（都不带页面常量）。
     else if (k === "fade-out") out.push(`animation: geml-fade ${Number(v)}s ease-in forwards`);
+    // 带不带下划线。宿主不再替所有页面剥，浏览器的默认立着，要去掉由样式表说。
+    else if (k === "underline") out.push(v === "yes" ? "text-decoration: underline" : "text-decoration: none");
     // 按状态显示/隐藏。`hide-below` 是按视口的那一半，这是按状态的那一半。
     else if (k === "visible") out.push(v === "no" ? "display: none" : "display: revert");
     // 吃不吃剩余空间。默认（不写）就是 CSS 自己的 flex: 0 1 auto —— 按内容大小。
@@ -301,6 +303,13 @@ export function renderPage(vm, model, dom, opts) {
   // 单文档时视图模型里的路径（`page.geml`）和语料里的路径（调用方给什么算什么）不一定
   // 同名 —— 一份文档没有歧义，所以限定名找不到就回落到裸地址。多份文档时限定名是唯一钥匙。
   const lookup = (m, doc, block) => m.get(at(doc, block)) ?? (corpus.length === 1 ? m.get(block) : undefined);
+  /** 这个 `embed` 借的文档在语料里吗 —— 借到了就不是悬空的引用。 */
+  const inCorpus = (node) => {
+    if (node.type !== "embed") return false;
+    const src = typeof node.attrs?.src === "string" ? node.attrs.src.trim() : "";
+    const path = src.includes("#") ? src.slice(0, src.indexOf("#")) : src;
+    return path !== "" && corpus.some((c) => c.path === path);
+  };
   /** `embed {src="other.geml"}` → 语料里那份文档的全部块，画成一片。 */
   const borrowedFor = (node) => {
     const src = typeof node.attrs?.src === "string" ? node.attrs.src.trim() : "";
@@ -311,11 +320,26 @@ export function renderPage(vm, model, dom, opts) {
     frag.className = "geml-borrowed";
     frag.setAttribute("data-doc", path);
     // 借来的块是**跟着这个 embed 一起画出去的**，不是漏摆 —— 记上，别进 unplaced。
-    for (const c of candidates(entry.doc)) placed.add(at(path, address(c)));
+    // 顺带按文档序记下每个块的地址：借来的块也要戴上自己的 class，否则样式表能为它们
+    // 求出绑定、生成 CSS，却没有元素可落 —— 一页的正文就是它嵌进来的这份文档，样式表
+    // 管不到它说不过去。
+    const addrOf = new Map();
+    for (const c of candidates(entry.doc)) {
+      placed.add(at(path, address(c)));
+      if (c.part === undefined) addrOf.set(c.block, address(c));
+    }
     for (const child of entry.doc.children ?? []) {
       if (over()) throw new RangeError("placement cap");
       const el = renderBlock(child, dom, labels, ctx.byId);
-      if (el) frag.appendChild(el);
+      if (!el) continue;
+      const addr = addrOf.get(child);
+      if (addr === undefined) { frag.appendChild(el); continue; }
+      const wrap = dom.createElement("div");
+      wrap.className = `geml-placed ${classFor(addr)}`;
+      wrap.setAttribute("data-block", addr);
+      wrap.setAttribute("data-doc", path);
+      wrap.appendChild(el);
+      frag.appendChild(wrap);
     }
     return frag;
   };
@@ -441,7 +465,12 @@ export function renderPage(vm, model, dom, opts) {
     const b = byAddr.get(a);
     if (placed.has(a)) return false;
     // meta 不是给人看的；标题和散文现在也是可放置节点，漏了同样算漏。
-    return b.kind !== "block" || b.type !== "meta";
+    if (b.kind !== "block") return true;
+    if (b.type === "meta") return false;
+    // 一份文档可以只写「这页 = 这个模板 + 这份文档」，两个 `embed` 把它们拉进语料，
+    // 剩下的由样式表的 slots 逐块摆。那种 `embed` 不是漏摆的块 —— 它的活儿是把文档
+    // 带进来，而它带进来的块要么被摆了、要么自己会出现在这张单子上。
+    return !inCorpus(b);
   }).length;
   const unsafe = [];
   const css = cssForPage(vm, unsafe);

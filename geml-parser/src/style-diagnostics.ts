@@ -18,6 +18,7 @@ export type StyleDiagnosticCode =
   | "unmatched-producer"
   | "unknown-value-source"
   | "unknown-interaction"
+  | "unknown-token"
   | "unknown-component"
   | "unknown-handler"
   | "style-missing-attribute"
@@ -41,6 +42,9 @@ export const STYLE_SEVERITY: Record<StyleDiagnosticCode, StyleSeverity> = {
   // 封闭词汇的非法成员是**错误**，不是 warning —— 和核心 GEML 的
   // `chart-unknown-type` 同级。开放注册表（component/handler）的未知名字才降级。
   "unknown-interaction": "error",
+  // `{{key}}` 指到本样式表 meta 里没有的键。和核心 §4 的 unknown-metadata-reference
+  // 同一判断：单一事实来源的引用悬空了就该响，静默代换成空串会让整页悄悄掉色。
+  "unknown-token": "error",
   "style-missing-attribute": "error",
   "unmatched-rule": "warning",
   "unmatched-producer": "warning",

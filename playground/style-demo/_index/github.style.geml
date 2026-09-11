@@ -1,19 +1,29 @@
 === meta
 profile = "geml-style/v1"
 title = "GitHub blob page"
-source = "数值抄自 1.mhtml：侧栏 260px、正文列 1012px、亮色 #ffffff/#f6f8fa/#1f2328/#59636e/#d1d9e0，链接 #0969da。样式表只用内含词，0 个私有键"
+source = "亮色与两个页面常量都在下面的记号里 —— 属性里写 {{line}}，装载期换成值；改一次主题只动这一个块。样式表只用内含词，0 个私有键"
+canvas = "#ffffff"
+canvas-soft = "#f6f8fa"
+canvas-inset = "#eff2f5"
+fg = "#1f2328"
+muted = "#59636e"
+accent = "#0969da"
+line = "#d1d9e0"
+line-soft = "#eaeef2"
+side = "260px"
+col = 1012
 ===
 
 %% ---------------------------------------------------------------- 骨架
-=== style-screen {#page axis=column background="#ffffff" color="#1f2328" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Noto Sans, Helvetica, Arial, sans-serif" font-size=14px slots="#splash, #topbar, #repo-nav-row, #body"}
+=== style-screen {#page axis=column background="{{canvas}}" color="{{fg}}" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Noto Sans, Helvetica, Arial, sans-serif" font-size=14px slots="#splash, #topbar, #repo-nav-row, #body"}
 ===
 %% 开场提示：盖住整个视口、内容居中，1.2 秒淡掉。`layer=screen` 让它不占版面位置，
 %% 所以它排在第一个槽位也不会把页面顶下去；淡完 visibility:hidden，既看不见也挡不住点击。
 === style-frame {#splash layer=screen fade-out=1.2 slots="text#splash"}
 ===
-=== style-rule {#splash-card match="text#splash" background="#1f2328" color="#ffffff" font-size=28px line-height=40px padding="24px 40px" border-radius=12px max-width=880px text-align=center}
+=== style-rule {#splash-card match="text#splash" background="{{fg}}" color="{{canvas}}" font-size=28px line-height=40px padding="24px 40px" border-radius=12px max-width=880px text-align=center}
 ===
-=== style-frame {#topbar axis=row gap=16px padding="8px 16px" background="#f6f8fa" border-bottom="1px solid #d1d9e0" slots="#brand-group, #search, #ai, #new-group, text#top-nav"}
+=== style-frame {#topbar axis=row gap=16px padding="8px 16px" background="{{canvas-soft}}" border-bottom="1px solid {{line}}" slots="#brand-group, #search, #ai, #new-group, text#top-nav"}
 ===
 %% 每个下拉都是同一副骨架：一个 frame 把「触发的块」和「浮层 frame」装在一起，浮层贴着这个
 %% frame 浮出来（容器都是 position:relative）。触发者是文档里的那一个块 —— 点它，翻它的状态。
@@ -25,19 +35,19 @@ source = "数值抄自 1.mhtml：侧栏 260px、正文列 1012px、亮色 #fffff
 ===
 === style-frame {#repo-menu-panel axis=column visible=no slots="text#repo-menu"}
 ===
-=== style-frame {#new-group axis=row border-left="1px solid #d1d9e0" padding="0 0 0 16px" slots="text#new, #new-caret-group"}
+=== style-frame {#new-group axis=row border-left="1px solid {{line}}" padding="0 0 0 16px" slots="text#new, #new-caret-group"}
 ===
 === style-frame {#new-caret-group axis=row slots="text#new-caret, #new-menu-panel"}
 ===
 === style-frame {#new-menu-panel axis=column visible=no slots="text#new-menu"}
 ===
-=== style-frame {#repo-nav-row axis=row gap=8px padding="4px 16px" border-bottom="1px solid #d1d9e0" slots="text#repo-nav, #repo-more-group"}
+=== style-frame {#repo-nav-row axis=row gap=8px padding="4px 16px" border-bottom="1px solid {{line}}" slots="text#repo-nav, #repo-more-group"}
 ===
 === style-frame {#repo-more-group axis=row slots="text#repo-more, #more-menu-panel"}
 ===
 === style-frame {#more-menu-panel axis=column visible=no slots="text#more-menu"}
 ===
-=== style-frame {#search axis=row gap=6px grow=yes max-width=320px margin="0 0 0 auto" padding="4px 8px" border="1px solid #d1d9e0" border-radius=6px background="#ffffff" slots="text#search-icon, form-field#site-search, text#search-key"}
+=== style-frame {#search axis=row gap=6px grow=yes max-width=320px margin="0 0 0 auto" padding="4px 8px" border="1px solid {{line}}" border-radius=6px background="{{canvas}}" slots="text#search-icon, form-field#site-search, text#search-key"}
 ===
 === style-frame {#ai axis=row slots="text#top-ai, #ai-caret-group"}
 ===
@@ -47,7 +57,7 @@ source = "数值抄自 1.mhtml：侧栏 260px、正文列 1012px、亮色 #fffff
 ===
 === style-frame {#body axis=row gap=16px padding=16px slots="#side, #main"}
 ===
-=== style-frame {#side axis=column gap=8px width=260px hide-below=1012 slots="#side-bar, #side-body"}
+=== style-frame {#side axis=column gap=8px width="{{side}}" hide-below="{{col}}" slots="#side-bar, #side-body"}
 ===
 === style-frame {#side-bar axis=row gap=8px slots="text#side-toggle, text#side-head"}
 ===
@@ -55,17 +65,17 @@ source = "数值抄自 1.mhtml：侧栏 260px、正文列 1012px、亮色 #fffff
 ===
 === style-frame {#branch-row axis=row gap=4px slots="text#side-back, #branch, text#side-tools"}
 ===
-=== style-frame {#branch axis=row gap=4px grow=yes padding="3px 8px" border="1px solid #d1d9e0" border-radius=6px font-size=12px slots="text#branch-icon, form-field#branch"}
+=== style-frame {#branch axis=row gap=4px grow=yes padding="3px 8px" border="1px solid {{line}}" border-radius=6px font-size=12px slots="text#branch-icon, form-field#branch"}
 ===
-=== style-frame {#find axis=row gap=6px padding="4px 8px" border="1px solid #d1d9e0" border-radius=6px font-size=12px slots="text#find-icon, form-field#file-find, text#find-key"}
+=== style-frame {#find axis=row gap=6px padding="4px 8px" border="1px solid {{line}}" border-radius=6px font-size=12px slots="text#find-icon, form-field#file-find, text#find-key"}
 ===
 === style-frame {#main axis=column gap=8px grow=yes slots="text#breadcrumb, #commitrow, #card"}
 ===
-=== style-frame {#commitrow axis=row gap=16px padding="8px 16px" background="#f6f8fa" border="1px solid #d1d9e0" border-radius=6px slots="text#commit-left, text#commit-right"}
+=== style-frame {#commitrow axis=row gap=16px padding="8px 16px" background="{{canvas-soft}}" border="1px solid {{line}}" border-radius=6px slots="text#commit-left, text#commit-right"}
 ===
-=== style-frame {#card axis=column grow=yes border="1px solid #d1d9e0" border-radius=6px slots="#cardbar, #doc-body"}
+=== style-frame {#card axis=column grow=yes border="1px solid {{line}}" border-radius=6px slots="#cardbar, #doc-body"}
 ===
-=== style-frame {#cardbar axis=row gap=16px padding="8px 16px" background="#f6f8fa" border-bottom="1px solid #d1d9e0" slots="form-field#view, text#file-meta, text#file-actions"}
+=== style-frame {#cardbar axis=row gap=16px padding="8px 16px" background="{{canvas-soft}}" border-bottom="1px solid {{line}}" slots="form-field#view, text#file-meta, text#file-actions"}
 ===
 === style-frame {#doc-body axis=column grow=yes padding="0 32px 32px" slots="embed#doc"}
 ===
@@ -85,63 +95,69 @@ source = "数值抄自 1.mhtml：侧栏 260px、正文列 1012px、亮色 #fffff
 === style-state {#tab type=scalar match="form-field#view" on=select}
 ===
 
+%% 这一页的链接长什么样：GitHub 蓝、不带下划线。宿主不再替所有页面剥链接样式，所以这句话
+%% 由样式表说 —— 而且要说一次就够：`*` 是任意节点，`* link` 是语料里的每一个链接，
+%% 连 embed 进来那篇文章里的也算。外壳各块自己的颜色规则是它的真超集，各自覆盖。
+=== style-rule {#links match="* link" color="{{accent}}" underline=no}
+===
+
 %% ---------------------------------------------------------------- 顶栏
 === style-rule {#brand match="text#brand" axis=row gap=8px}
 ===
-=== style-rule {#brand-link match="text#brand link" color="#1f2328" padding="4px 6px" border-radius=6px}
+=== style-rule {#brand-link match="text#brand link" color="{{fg}}" padding="4px 6px" border-radius=6px}
 ===
-=== style-rule {#brand-hover match="text#brand link" when="@hover" background="#eaeef2"}
+=== style-rule {#brand-hover match="text#brand link" when="@hover" background="{{line-soft}}"}
 ===
 === style-rule {#brand-icon match="text#brand image" width=16px}
 ===
 === style-rule {#search-icon match="text#search-icon image" width=14px}
 ===
-=== style-rule {#search-key match="text#search-key code-span" border="1px solid #d1d9e0" border-radius=4px padding="0 5px" color="#59636e" font-size=12px background="transparent"}
+=== style-rule {#search-key match="text#search-key code-span" border="1px solid {{line}}" border-radius=4px padding="0 5px" color="{{muted}}" font-size=12px background="transparent"}
 ===
 === style-rule {#top-ai match="text#top-ai" axis=row}
 ===
 %% 按钮和它右边的箭头是一组，要严丝合缝地对齐 —— 所以两边的边框都挂在**图标**上：
 %% 同样是 16px 的替换元素、同样的内边距，盒子必然一样高。挂在块上会跟着整行拉伸，
 %% 挂在链接上会被字体行高撑高，两者都比对面高出一截。
-=== style-rule {#btn-left match="text#top-ai image, text#new image" padding="6px 8px" border="1px solid #d1d9e0" border-radius="6px 0 0 6px" background="#ffffff"}
+=== style-rule {#btn-left match="text#top-ai image, text#new image" padding="6px 8px" border="1px solid {{line}}" border-radius="6px 0 0 6px" background="{{canvas}}"}
 ===
-=== style-rule {#btn-right match="text#ai-caret image, text#new-caret image" padding="6px 8px" border="1px solid #d1d9e0" border-left="0" border-radius="0 6px 6px 0" background="#ffffff"}
+=== style-rule {#btn-right match="text#ai-caret image, text#new-caret image" padding="6px 8px" border="1px solid {{line}}" border-left="0" border-radius="0 6px 6px 0" background="{{canvas}}"}
 ===
 %% 四个菜单长一个样：条目的排布、条目的样子、悬停各一条规则，逗号列出四个分支就够了，
 %% 不必抄四遍 —— 分支是 §3 的语法糖，等价于写四条同体规则，特异性各算各的。
 === style-rule {#menu-items match="text#ai-menu, text#repo-menu, text#new-menu, text#more-menu" axis=column gap=2px}
 ===
-=== style-rule {#menu-link match="text#ai-menu link, text#repo-menu link, text#new-menu link, text#more-menu link" color="#1f2328" padding="6px 8px" border-radius=6px}
+=== style-rule {#menu-link match="text#ai-menu link, text#repo-menu link, text#new-menu link, text#more-menu link" color="{{fg}}" padding="6px 8px" border-radius=6px}
 ===
-=== style-rule {#menu-hover match="text#ai-menu link, text#repo-menu link, text#new-menu link, text#more-menu link" when="@hover" background="#eaeef2"}
+=== style-rule {#menu-hover match="text#ai-menu link, text#repo-menu link, text#new-menu link, text#more-menu link" when="@hover" background="{{line-soft}}"}
 ===
 %% 浮层的外框各跟各的状态，所以这四条并不成一条。
-=== style-rule {#ai-menu-open match="#ai-menu-panel" when="$aimenu=open" visible=yes layer=overlay padding=4px background="#ffffff" border="1px solid #d1d9e0" border-radius=6px width=220px}
+=== style-rule {#ai-menu-open match="#ai-menu-panel" when="$aimenu=open" visible=yes layer=overlay padding=4px background="{{canvas}}" border="1px solid {{line}}" border-radius=6px width=220px}
 ===
-=== style-rule {#repo-menu-open match="#repo-menu-panel" when="$repomenu=open" visible=yes layer=overlay padding=4px background="#ffffff" border="1px solid #d1d9e0" border-radius=6px width=240px}
+=== style-rule {#repo-menu-open match="#repo-menu-panel" when="$repomenu=open" visible=yes layer=overlay padding=4px background="{{canvas}}" border="1px solid {{line}}" border-radius=6px width=240px}
 ===
-=== style-rule {#new-menu-open match="#new-menu-panel" when="$newmenu=open" visible=yes layer=overlay padding=4px background="#ffffff" border="1px solid #d1d9e0" border-radius=6px width=240px}
+=== style-rule {#new-menu-open match="#new-menu-panel" when="$newmenu=open" visible=yes layer=overlay padding=4px background="{{canvas}}" border="1px solid {{line}}" border-radius=6px width=240px}
 ===
-=== style-rule {#more-menu-open match="#more-menu-panel" when="$moremenu=open" visible=yes layer=overlay padding=4px background="#ffffff" border="1px solid #d1d9e0" border-radius=6px width=200px}
+=== style-rule {#more-menu-open match="#more-menu-panel" when="$moremenu=open" visible=yes layer=overlay padding=4px background="{{canvas}}" border="1px solid {{line}}" border-radius=6px width=200px}
 ===
 %% 品牌那个 ▾ 和 More 是独立的小按钮：块自己带内边距和圆角，悬停变底色。
 === style-rule {#brand-caret match="text#brand-caret" padding="4px 6px" border-radius=6px}
 ===
-=== style-rule {#brand-caret-hover match="text#brand-caret" when="@hover" background="#eaeef2"}
+=== style-rule {#brand-caret-hover match="text#brand-caret" when="@hover" background="{{line-soft}}"}
 ===
 === style-rule {#brand-caret-icon match="text#brand-caret image" width=16px}
 ===
-=== style-rule {#repo-more match="text#repo-more" padding="6px 8px" border-radius=6px color="#59636e"}
+=== style-rule {#repo-more match="text#repo-more" padding="6px 8px" border-radius=6px color="{{muted}}"}
 ===
-=== style-rule {#repo-more-hover match="text#repo-more" when="@hover" background="#eaeef2" color="#1f2328"}
+=== style-rule {#repo-more-hover match="text#repo-more" when="@hover" background="{{line-soft}}" color="{{fg}}"}
 ===
 === style-rule {#repo-more-icon match="text#repo-more image" width=16px}
 ===
 === style-rule {#top-nav match="text#top-nav" axis=row gap=8px}
 ===
-=== style-rule {#top-nav-link match="text#top-nav link" color="#59636e" padding="4px 6px" border="1px solid #d1d9e0" border-radius=6px}
+=== style-rule {#top-nav-link match="text#top-nav link" color="{{muted}}" padding="4px 6px" border="1px solid {{line}}" border-radius=6px}
 ===
-=== style-rule {#top-nav-hover match="text#top-nav link" when="@hover" background="#eaeef2"}
+=== style-rule {#top-nav-hover match="text#top-nav link" when="@hover" background="{{line-soft}}"}
 ===
 === style-rule {#top-nav-icon match="text#top-nav image" width=16px}
 ===
@@ -149,23 +165,23 @@ source = "数值抄自 1.mhtml：侧栏 260px、正文列 1012px、亮色 #fffff
 %% ---------------------------------------------------------------- 仓库导航
 === style-rule {#repo-nav match="text#repo-nav" axis=row gap=8px}
 ===
-=== style-rule {#repo-nav-link match="text#repo-nav link" color="#59636e" padding="6px 8px" border-radius=6px}
+=== style-rule {#repo-nav-link match="text#repo-nav link" color="{{muted}}" padding="6px 8px" border-radius=6px}
 ===
-=== style-rule {#repo-nav-hover match="text#repo-nav link" when="@hover" background="#eaeef2" color="#1f2328"}
+=== style-rule {#repo-nav-hover match="text#repo-nav link" when="@hover" background="{{line-soft}}" color="{{fg}}"}
 ===
 === style-rule {#repo-nav-icon match="text#repo-nav image" width=16px}
 ===
-=== style-rule {#repo-nav-badge match="text#repo-nav code-span" background="#eff2f5" color="#59636e" border-radius=999px padding="0 6px" font-size=12px}
+=== style-rule {#repo-nav-badge match="text#repo-nav code-span" background="{{canvas-inset}}" color="{{muted}}" border-radius=999px padding="0 6px" font-size=12px}
 ===
 
 %% ---------------------------------------------------------------- 侧栏
-=== style-rule {#side-toggle match="text#side-toggle" padding="4px 6px" border="1px solid #d1d9e0" border-radius=6px}
+=== style-rule {#side-toggle match="text#side-toggle" padding="4px 6px" border="1px solid {{line}}" border-radius=6px}
 ===
 === style-rule {#side-head match="text#side-head" axis=row gap=6px}
 ===
-=== style-rule {#side-head-link match="text#side-head link" color="#1f2328"}
+=== style-rule {#side-head-link match="text#side-head link" color="{{fg}}"}
 ===
-=== style-rule {#side-back-link match="text#side-back link" color="#59636e" padding="4px 6px" border-radius=6px}
+=== style-rule {#side-back-link match="text#side-back link" color="{{muted}}" padding="4px 6px" border-radius=6px}
 ===
 === style-rule {#side-back-icon match="text#side-back image" width=14px}
 ===
@@ -173,17 +189,17 @@ source = "数值抄自 1.mhtml：侧栏 260px、正文列 1012px、亮色 #fffff
 ===
 === style-rule {#side-tools-icon match="text#side-tools image" width=14px}
 ===
-=== style-rule {#side-tools match="text#side-tools" axis=row gap=4px color="#59636e"}
+=== style-rule {#side-tools match="text#side-tools" axis=row gap=4px color="{{muted}}"}
 ===
 === style-rule {#find-icon match="text#find-icon image" width=14px}
 ===
-=== style-rule {#find-key match="text#find-key code-span" border="1px solid #d1d9e0" border-radius=4px padding="0 5px" color="#59636e" font-size=12px background="transparent"}
+=== style-rule {#find-key match="text#find-key code-span" border="1px solid {{line}}" border-radius=4px padding="0 5px" color="{{muted}}" font-size=12px background="transparent"}
 ===
 === style-rule {#tree match="text#file-tree" component=tree indent=16px sticky=0 scroll=own padding=8px line-height=28px}
 ===
-=== style-rule {#tree-link match="text#file-tree link" color="#1f2328"}
+=== style-rule {#tree-link match="text#file-tree link" color="{{fg}}"}
 ===
-=== style-rule {#tree-hover match="text#file-tree link" when="@hover" color="#0969da"}
+=== style-rule {#tree-hover match="text#file-tree link" when="@hover" color="{{accent}}"}
 ===
 === style-rule {#tree-icon match="text#file-tree image" width=16px}
 ===
@@ -198,41 +214,41 @@ source = "数值抄自 1.mhtml：侧栏 260px、正文列 1012px、亮色 #fffff
 %% ---------------------------------------------------------------- 正文列
 === style-rule {#crumb match="text#breadcrumb" font-size=16px}
 ===
-=== style-rule {#crumb-link match="text#breadcrumb link" color="#0969da"}
+=== style-rule {#crumb-link match="text#breadcrumb link" color="{{accent}}"}
 ===
-=== style-rule {#crumb-hover match="text#breadcrumb link" when="@hover" background="#eaeef2"}
+=== style-rule {#crumb-hover match="text#breadcrumb link" when="@hover" background="{{line-soft}}"}
 ===
 === style-rule {#commit-left match="text#commit-left" font-size=14px}
 ===
-=== style-rule {#commit-left-link match="text#commit-left link" color="#1f2328"}
+=== style-rule {#commit-left-link match="text#commit-left link" color="{{fg}}"}
 ===
 === style-rule {#commit-left-icon match="text#commit-left image" width=20px}
 ===
-=== style-rule {#commit-left-hover match="text#commit-left link" when="@hover" color="#0969da"}
+=== style-rule {#commit-left-hover match="text#commit-left link" when="@hover" color="{{accent}}"}
 ===
-=== style-rule {#commit-right match="text#commit-right" font-size=12px color="#59636e" margin="0 0 0 auto"}
+=== style-rule {#commit-right match="text#commit-right" font-size=12px color="{{muted}}" margin="0 0 0 auto"}
 ===
-=== style-rule {#commit-right-link match="text#commit-right link" color="#59636e"}
+=== style-rule {#commit-right-link match="text#commit-right link" color="{{muted}}"}
 ===
-=== style-rule {#commit-right-hover match="text#commit-right link" when="@hover" color="#0969da"}
+=== style-rule {#commit-right-hover match="text#commit-right link" when="@hover" color="{{accent}}"}
 ===
-=== style-rule {#view match="form-field#view" component=segments border="1px solid #d1d9e0" border-radius=6px background="#f6f8fa" padding=2px font-size=14px}
+=== style-rule {#view match="form-field#view" component=segments border="1px solid {{line}}" border-radius=6px background="{{canvas-soft}}" padding=2px font-size=14px}
 ===
-=== style-rule {#meta match="text#file-meta" font-size=12px color="#59636e"}
+=== style-rule {#meta match="text#file-meta" font-size=12px color="{{muted}}"}
 ===
-=== style-rule {#file-actions match="text#file-actions" axis=row gap=4px color="#59636e" margin="0 0 0 auto"}
+=== style-rule {#file-actions match="text#file-actions" axis=row gap=4px color="{{muted}}" margin="0 0 0 auto"}
 ===
-=== style-rule {#file-actions-link match="text#file-actions link" color="#59636e" padding="4px 6px" border-radius=6px}
+=== style-rule {#file-actions-link match="text#file-actions link" color="{{muted}}" padding="4px 6px" border-radius=6px}
 ===
-=== style-rule {#file-actions-hover match="text#file-actions link" when="@hover" background="#eaeef2" color="#1f2328"}
+=== style-rule {#file-actions-hover match="text#file-actions link" when="@hover" background="{{line-soft}}" color="{{fg}}"}
 ===
 === style-rule {#file-actions-icon match="text#file-actions image" width=16px}
 ===
-=== style-rule {#doc match="embed#doc" view=rendered font-size=16px line-height=24px color="#1f2328"}
+=== style-rule {#doc match="embed#doc" view=rendered font-size=16px line-height=24px color="{{fg}}"}
 ===
 %% 阅读宽度是**预览**的事；源码要填满内容区。第一版那个 preview-max-width 私有参数想说的就是这句话，
 %% 现在用一条带条件的规则说出来，词汇里一个字都不用加。
-=== style-rule {#doc-preview match="embed#doc" when="$tab=Preview" max-width=1012px}
+=== style-rule {#doc-preview match="embed#doc" when="$tab=Preview" max-width="{{col}}px"}
 ===
 === style-rule {#doc-code match="embed#doc" when="$tab=Code" view=source editable=yes}
 ===

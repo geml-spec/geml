@@ -38,7 +38,23 @@ export const BOX_WORDS: ReadonlySet<string> = new Set([
   "axis", "view", "editable",
   // 同一个用例的开场提示：画出来之后自己淡掉。
   "fade-out",
+  // 这段文字带不带下划线。HTML 的默认是带，去掉是**外观决定**，该由样式表说 ——
+  // 宿主替所有页面剥掉的那一版，连嵌进来的文章里的链接都一起剥了，正文的链接看不出是链接。
+  "underline",
 ]);
+/**
+ * `border` 是**简写**，四个单边是它的一部分 —— 两者的结果取决于哪条声明落在后面，
+ * 而 §4 是**按属性名**仲裁的，两个不同的名字从不相遇。于是同一层里的两条规则，
+ * 一条写 `border`、一条写 `border-left`，只要在文件里换个先后，渲染结果就不同，
+ * 而且零诊断 —— 正是排除源码顺序要防的那件事（`geml add --before` 能悄悄改掉它）。
+ *
+ * 所以简写与单边在同一层、同一 when 组、来自**不同规则**时，直接报 `ambiguous-rule`。
+ * 写进同一条规则里是可以的：那里的先后是作者自己写下的，`geml set` 换的是整块。
+ * 跨层也放行：层是声明出来的顺序（规则按层收集，低层先进 box），本来就有序。
+ * `border-radius` 不在这一族里 —— 它跟边框的宽/样式/色互不覆盖。
+ */
+const BORDER_SIDES = ["border-top", "border-right", "border-bottom", "border-left"] as const;
+
 /** 封闭值域的内含词。其余（`width=321px`、`color=#1f2328`）不校验，原样交给宿主。 */
 const SCROLLS = new Set(["own", "page"]);
 const NUMERIC_BOX = new Set(["sticky", "hide-below"]);
@@ -55,6 +71,12 @@ const LAYERS = new Set(["page", "overlay", "screen"]);
  * 上限 60 秒：样式表是不可信输入，一个荒唐的值不该变成一条永远跑不完的动画。
  */
 const FADE_MAX = 60;
+/**
+ * `underline`：带不带下划线。**不叫 `text-decoration`** —— 那是 CSS 的简写，管线型、线样式、
+ * 线颜色、粗细四样，借了名字只兑现一丝，正是 §12.4 说的那种陷阱；也**不叫 `text-link`** ——
+ * 内含词命名的是属性，作用在谁身上是选择器的事（`text#nav link`）。
+ */
+const UNDERLINES = new Set(["yes", "no"]);
 /**
  * `visible`：这一片现在显不显示。`hide-below` 是按视口宽度的那一半，这是按**状态**的
  * 那一半 —— 下拉菜单、tab 切换、整片折叠，都得先能把「现在不显示」这句话说出来。
@@ -77,7 +99,7 @@ const EDITABLES = new Set(["yes", "no"]);
  */
 const PART_BOX: ReadonlySet<string> = new Set([
   "color", "background", "padding", "margin", "border", "border-top", "border-right", "border-bottom", "border-left",
-  "border-radius", "font-size", "line-height", "font-family", "width", "max-width", "visible",
+  "border-radius", "font-size", "line-height", "font-family", "width", "max-width", "visible", "underline",
 ]);
 
 /** 校验一个内含词的值；域外值报 style-invalid-value，并告诉调用方别收它。 */
@@ -108,6 +130,10 @@ function boxValueOk(k: string, v: Value, id: string, sheet: Stylesheet): boolean
   }
   if (k === "layer" && !(typeof v === "string" && LAYERS.has(v))) {
     sheet.diagnostics.push(styleDiag("style-invalid-value", `\`layer=${String(v)}\` is not \`page\`, \`overlay\` or \`screen\``, id));
+    return false;
+  }
+  if (k === "underline" && !(typeof v === "string" && UNDERLINES.has(v))) {
+    sheet.diagnostics.push(styleDiag("style-invalid-value", `\`underline=${String(v)}\` is not \`yes\` or \`no\``, id));
     return false;
   }
   if (k === "fade-out" && !(typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= FADE_MAX)) {
@@ -344,6 +370,77 @@ function entryLayers(doc: Document, forDoc?: string): { path: string; id: string
   return out;
 }
 
+/**
+ * 样式表里的**记号**（设计 §13.13）：`meta` 的每个键都是一个记号，块属性里的
+ * `{{key}}` 在装载期换成它的值。没有新块类型、没有新语法 —— 复用核心 §4 的
+ * `{{key}}` 写法，只是核心只在流文本里代换，属性里不动，所以这一层自己做。
+ *
+ * 为什么需要它：一份 104 块的样式表里 `#d1d9e0` 抄了 21 遍、`#59636e` 14 遍，
+ * 改一次边框色要动 21 个块。CSS 用自定义属性解决这个已经十年了。
+ *
+ * 三条边界，都是有意的：
+ *  - **一遍代换，不递归**。记号的值里的 `{{…}}` 原样留着，没有环可成。
+ *  - **按文件**。embed 进来的规则用**它自己那份文件**的 meta —— 和核心对
+ *    借来内容的规定一致（借来的 `{{key}}` 认源文档的 meta，不认宿主的）。
+ *  - **悬空即错误**（`unknown-token`）。静默换成空串会让整页悄悄掉色。
+ */
+const TOKEN_REF = /\{\{\s*([A-Za-z_][A-Za-z0-9_-]*)\s*\}\}/g;
+
+function tokensOf(doc: Document): Map<string, Value> {
+  const meta = doc.children.find((b) => b.kind === "block" && b.type === "meta");
+  const data = meta && meta.kind === "block" ? meta.data : undefined;
+  return new Map<string, Value>(Object.entries(data ?? {}));
+}
+
+/** 属性值恰好是**一个**记号引用（没有别的字符）—— 那一个的类型要原样带过来。 */
+const WHOLE_TOKEN = /^\{\{\s*([A-Za-z_][A-Za-z0-9_-]*)\s*\}\}$/;
+
+/** 一份文档的顶层块序列 → 属性里的 `{{key}}` 都已按这份文档的 meta 代换过的副本。 */
+function expandTokens(
+  children: Block[], tokens: Map<string, Value>, sheet: Stylesheet,
+): Block[] {
+  // 没有 meta 块的文档（被 embed 进来的规则片段）里没有记号可用 —— 连扫都不必扫。
+  // 只写了 `profile` 的样式表**要**扫：那里的 `{{nope}}` 依然是悬空引用，该响。
+  if (tokens.size === 0) return children;
+  const walk = (nodes: Block[]): Block[] => nodes.map((n) => {
+    if (n.kind !== "block") return n;
+    let attrs = n.attrs;
+    for (const [k, v] of Object.entries(n.attrs)) {
+      if (typeof v !== "string" || !v.includes("{{")) continue;
+      const miss = (key: string): void => void sheet.diagnostics.push(styleDiag("unknown-token",
+        `\`{{${key}}}\` in \`${k}=\` is not a key of this stylesheet's \`meta\``, n.id ?? "(anon)"));
+      // 整个值就是一个记号时带上**类型**：`hide-below="{{col}}"` 配 meta 的 `col = 1012`
+      // 要得到数字 1012，不是字符串 "1012" —— 否则数值域的内含词永远喂不进记号。
+      const whole = WHOLE_TOKEN.exec(v);
+      if (whole) {
+        const hit = tokens.get(whole[1]!);
+        if (hit === undefined) { miss(whole[1]!); continue; }
+        if (attrs === n.attrs) attrs = { ...n.attrs };
+        attrs[k] = hit;
+        continue;
+      }
+      const swapped = v.replace(TOKEN_REF, (text, key: string) => {
+        const hit = tokens.get(key);
+        if (hit !== undefined) return String(hit);
+        miss(key);
+        return text;
+      });
+      if (swapped !== v) { if (attrs === n.attrs) attrs = { ...n.attrs }; attrs[k] = swapped; }
+    }
+    const kids = n.children ? walk(n.children) : undefined;
+    if (attrs === n.attrs && kids === n.children) return n;
+    const out = { ...n, attrs };
+    if (kids !== undefined) out.children = kids;
+    return out;
+  });
+  return walk(children);
+}
+
+/** 一份样式表文档 → 记号已代换、`default-style` 已前置的块序列。 */
+function sheetBlocks(doc: Document, sheet: Stylesheet): Block[] {
+  return expandTokens(withDefaultStyle(doc), tokensOf(doc), sheet);
+}
+
 /** 合成一个 embed 块，和解析器产出的同形（`mode: "raw"`、空 raw/classes），
  *  这样下游只有一条代码路径 —— 合成的块和写出来的块无从区分。 */
 function implicitEmbed(src: string, id: string): Block {
@@ -392,7 +489,8 @@ function expandEmbeds(
       // 不管它叫什么"）。所以这里也要跟 `default-style` —— 但**只跟它**，不跟
       // `#sitemap`：那张表是「为哪份文档」的，只有顶层的样式入口才有那个身份。
       // 跟来的规则和引用它的文件**同层**（显式 embed 不开新层），层内照 §4 决胜。
-      target = withDefaultStyle(opts.parseDoc(src));
+      // 记号按**文件**算：跟来的规则用它自己那份 meta，不用宿主的（设计 §13.13）。
+      target = sheetBlocks(opts.parseDoc(src), sheet);
       seen = new Set([...seen, docPath]);
     }
     const picked = selectEmbed(target, anchor);
@@ -416,7 +514,7 @@ export function loadStylesheet(doc: Document, opts: StyleLoadOptions = {}): Styl
     collect(expandEmbeds([implicitEmbed(src.path, src.id)], sheet, opts, new Set(), 0), sheet, layer++);
   }
   // 被装载的这份文档自己写的规则是**最高层**：它最具体（它就是为这份产物/这个文档写的）。
-  collect(expandEmbeds(doc.children, sheet, opts, new Set(), 0), sheet, layer);
+  collect(expandEmbeds(expandTokens(doc.children, tokensOf(doc), sheet), sheet, opts, new Set(), 0), sheet, layer);
   return sheet;
 }
 
@@ -750,6 +848,26 @@ function resolveBindings(
         // 对相同的选择器建议"写并集"是不可能执行的 —— 两个相同集合的并集就是它自己。
         const identical = prev.conds.size === hit.conds.size && [...prev.conds].every((x) => hit.conds.has(x));
         ambiguous(prev, hit, k, identical);
+      }
+    }
+
+    // 1b) 简写与单边：见 BORDER_SIDES 上方。按属性名的仲裁看不见这一对，得单独查。
+    for (const g of groups.values()) {
+      const short = g.owner.get("border");
+      if (short === undefined) continue;
+      for (const side of BORDER_SIDES) {
+        const one = g.owner.get(side);
+        if (one === undefined || one.rule.id === short.rule.id) continue;
+        if (one.rule.layer !== short.rule.layer) continue;
+        const [a, b] = short.order <= one.order ? [short, one] : [one, short];
+        diagnostics.push(styleDiag(
+          "ambiguous-rule",
+          `\`#${a.rule.id}\` sets \`${a === short ? "border" : side}\` and \`#${b.rule.id}\` sets ` +
+          `\`${b === short ? "border" : side}\` on \`${where(entry)}\` — a shorthand and one of its sides ` +
+          `in the same layer, where the result depends on which declaration lands last, and a layer has no order; ` +
+          `write both words in one rule, or put them in different layers`,
+          b.rule.id,
+        ));
       }
     }
 
