@@ -120,13 +120,14 @@ from,             to,               kind, site
 
 === table {#unresolved format=csv hidden}
 from,             to
-#resolveInRoot,   PlatformPath.resolve
 #resolveInRoot,   StatsBase.isFile
 #resolveInRoot,   String.startsWith
 #resolveInRoot,   realpathSync
-#narrowToRoot,    PlatformPath.resolve
+#resolveInRoot,   resolve
+#resolveInRoot,   statSync
 #narrowToRoot,    String.startsWith
 #narrowToRoot,    realpathSync
+#narrowToRoot,    resolve
 #resolveRoot,     realpathSync
 #rootReal,        realpathSync
 #runCli,          Array.includes
@@ -150,11 +151,11 @@ from,             to
 #applyWrite,      writeFileSync
 #snapshot,        String.replace
 #snapshot,        existsSync
-#docResolver,     PlatformPath.dirname
-#docResolver,     PlatformPath.resolve
 #docResolver,     String.startsWith
+#docResolver,     dirname
 #docResolver,     readFileSync
 #docResolver,     realpathSync
+#docResolver,     resolve
 #hashId,          String.startsWith
 #selectorArg,     RegExp.test
 #selectorArg,     String.trim
@@ -165,15 +166,17 @@ from,             to
 #handleLine,      JSON.stringify
 #handleLine,      Socket.write
 #handleLine,      String.trim
-#parseArgs,       PlatformPath.resolve
 #parseArgs,       StatsBase.isDirectory
 #parseArgs,       String.slice
 #parseArgs,       String.startsWith
 #parseArgs,       existsSync
 #parseArgs,       realpathSync
-#resolveGraphOpt, PlatformPath.resolve
+#parseArgs,       resolve
+#parseArgs,       statSync
 #resolveGraphOpt, StatsBase.isDirectory
 #resolveGraphOpt, String.startsWith
 #resolveGraphOpt, existsSync
 #resolveGraphOpt, realpathSync
+#resolveGraphOpt, resolve
+#resolveGraphOpt, statSync
 ===

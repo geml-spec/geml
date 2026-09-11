@@ -1059,6 +1059,6 @@ from,                        to
 #sliceUnit,                  Array.slice
 #historyPathFor,             String.replace
 #isCliInvocation,            fileURLToPath
-#realOf,                     PlatformPath.resolve
 #realOf,                     realpathSync
+#realOf,                     resolve
 ===
