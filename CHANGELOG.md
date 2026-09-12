@@ -18,6 +18,74 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+## [1.10.3] — 2026-09-12
+
+- **`geml-style` places blocks, not just decorates them.** The profile could
+  say how a block looked; it could not say where a block went, so every page
+  that used it still needed a hand-written host around it. `style-screen` and
+  `style-frame` are containers with `slots=` and `axis=`, a rule may aim at one
+  by its bare `#id`, and `when=` binds a variant to a declared state. The
+  vocabulary a container understands is a closed list of built-in words rather
+  than open CSS, because a profile that accepts anything cannot tell an author
+  they made a typo. A sheet's own `meta` is now a token table — `{{accent}}` in
+  any attribute value takes the value from it, keeping its type, so a numeric
+  word can be fed one — and a dangling token is an `unknown-token` error rather
+  than a silent empty string. The demo page is a template plus one `embed`,
+  which is the arrangement the layer is for: change the document, keep the page.
+
+- **A name written twice in one attribute object is an error.** §4 promises
+  attribute order is insignificant, and measured, it was not:
+
+      {#a .link link=http://x link}  ->  classes ["link"], attrs {link: true}
+      {#a link .link link=http://x}  ->  classes ["link"], attrs {link: "http://x"}
+
+  Same parts, different order, different document, no diagnostic. A class, a
+  `key=value` and a bare flag all write the same NAME — a flag already IS
+  `key=true` in the model — so a repeat is `duplicate-name`, an error rather
+  than a warning because the second one quietly wins. `#id` does not take part:
+  it is the primary key, the way `id` and `class` are separate in HTML.
+
+- **The braced spelling of a selector key parses everywhere the short one does.**
+  `#id` is `{#id}` written short and `@<hex>` is `{@<hex>}` written short, and
+  of the four expanded spellings exactly one used to parse. All four do now, and
+  each lands on the same selector as its short form, so nothing downstream learns
+  there are two. A coordinate's base takes the long form too. Two smaller gaps
+  beside it: `geml get --help` never mentioned coordinates at all, though GEP
+  0011 had been implemented for months; and a coordinate landing on a block with
+  no inner units claimed only tables and `data` blocks have them, while
+  `#meta["title"]` has always worked.
+
+- **An `embed` keeps the classes its author wrote.** The rule beside `clsAttr`
+  is that author classes ride on a block's outermost element for every typed
+  block, and `embed` was the one type that skipped it — `{.big}` vanished with
+  nothing said. It rides now, on the fallback markup too: whether a class
+  survives should not depend on whether that embed happened to resolve.
+
+- **A `view` reading `http(s)` is left to the renderer, as a table's source is.**
+  It said so by answering `undefined`, which the resolution loop reads as "not
+  ready yet" — so the view never left the pending set and the closing sweep
+  reported it as a cycle it had never been part of. A table with the same source
+  reported nothing. They read alike now, and real cycles are untouched.
+
+- **An EDN map key written as the string `"__proto__"` is a key.** On a plain
+  object that assignment replaces the prototype instead of adding a property, so
+  the entry never became an own key — and a coordinate write asking for a
+  different key dropped it from the body with exit 0 and no diagnostic:
+
+      {"__proto__" {:polluted "yes"} :real "kept"}
+      geml set '#d[":real"]'   ->   {:real "changed"}
+
+  It also left the value tree wearing an author-supplied prototype. Maps are
+  built without one now, which makes every name an ordinary key and removes the
+  primitive rather than the single name that reached it.
+
+- **A coordinate write into a `yaml` body is refused instead of rewritten as
+  JSON.** `yaml` has a reader, so such a write reached the JSON fall-through and
+  changed the block's format — then the document's own validation refused the
+  result and blamed the body the tool had just produced. `serialize` already
+  refuses exactly this, and says why: a yaml body's authored bytes are its
+  canonical form. The refusal now happens up front and names what to do instead.
+
 - **Security audit, round 5 — batch 1: two crashes and a guard that held only at
   the top.** A cross-document `view` cycle — `A.geml: view src=B.geml#v` beside
   `B.geml: view src=A.geml#v`, or a file naming itself — recursed until the stack
