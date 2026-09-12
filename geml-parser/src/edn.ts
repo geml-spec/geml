@@ -109,7 +109,14 @@ class Reader {
   map(): DataValue {
     const open = this.i;
     this.i++; // {
-    const out: { [k: string]: DataValue } = {};
+    // NO PROTOTYPE. On a plain `{}` the assignment below is not a key for the
+    // name `__proto__` — it REPLACES the object's prototype, so the entry never
+    // becomes an own key: `Object.keys` loses it, the body written back loses it,
+    // and what the author wrote is gone with nothing said. A null-prototype map
+    // makes every name an ordinary key, `__proto__` included. Every reader here
+    // already goes through `Object.prototype.hasOwnProperty.call`, which a
+    // prototype-less object answers exactly as well.
+    const out: { [k: string]: DataValue } = Object.create(null) as { [k: string]: DataValue };
     for (;;) {
       this.skip();
       if (this.i >= this.text.length) this.refuse("a map that is never closed with `}`", open);

@@ -993,4 +993,23 @@ test("`#meta[...]` in a document that has no meta block says exactly that", () =
   assert.deepEqual(ok.map((d) => d.code), [], JSON.stringify(ok));
 });
 
+test("a coordinate write is refused for a body this processor reads but cannot WRITE", () => {
+  // `yaml` has a reader, so the write used to reach the serializer below and be
+  // re-emitted as JSON: a write asking for ONE key silently changed the block's
+  // format. `serialize` already refuses that, saying a yaml body's authored
+  // bytes are its canonical form — this is the second copy of that judgement
+  // agreeing with the first.
+  const y = block("=== data {#d format=yaml}\nalpha: one\nreal: kept\n===");
+  const r = planCoordWrite(y, parseCoordPath('["real"]'), "changed", ["alpha: one", "real: kept"]);
+  assert.equal(r.ok, false);
+  assert.match(r.why, /reads `yaml` but does not write it/);
+  assert.match(r.why, /edit the block's body instead/);
+
+  // The formats that DO have a writer are untouched.
+  const j = block('=== data {#d format=json}\n{"real": "kept"}\n===');
+  assert.equal(planCoordWrite(j, parseCoordPath('["real"]'), '"changed"', ['{"real": "kept"}']).ok, true);
+  const e = block('=== data {#d format=edn}\n{:real "kept"}\n===');
+  assert.equal(planCoordWrite(e, parseCoordPath('[":real"]'), '"changed"', ['{:real "kept"}']).ok, true);
+});
+
 console.log(`\n${passed} test(s) passed.`);

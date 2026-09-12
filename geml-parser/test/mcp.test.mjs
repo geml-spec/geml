@@ -1236,4 +1236,61 @@ test("the forwarded root is CANONICAL, so a root reached through a symlink still
 
 });
 
+// ---------------------------------------------------------------------------
+// Invariant 4 — a hostile-looking VALUE stays a value
+//
+// Everything a caller sends arrives as a JSON string and leaves as either a path
+// through `resolveInRoot` or an element of an argv array. Neither may be read as
+// something else: a path must not be sanitized into a neighbouring real file,
+// and a value must not become a flag.
+// ---------------------------------------------------------------------------
+
+test("a path carrying a control byte never resolves to the real file it PRINTS as", () => {
+  ws();
+  // The refusal message renders each of these as `d.geml` — the control byte is
+  // invisible by the time a human reads it. The lookup must not agree: a
+  // resolver that stripped the byte, or truncated at a NUL the way a C-string
+  // API would, opens the real file while reporting a name that never existed.
+  for (const p of ["d\u0001.geml", "d.geml\u0000", "d.geml\u0000.txt", "\u0000d.geml", "d.geml\n", " d.geml"]) {
+    assert.throws(() => resolveInRoot(p), /no such file under the server root/, JSON.stringify(p));
+  }
+  assert.ok(resolveInRoot("d.geml"), "and the real name still resolves");
+});
+
+test("a UNC or double-slash path is refused like any other path outside", () => {
+  ws();
+  for (const p of ["\\\\srv\\share\\x.geml", "//srv/share/x.geml", "\\\\?\\C:\\Windows\\win.ini"]) {
+    assert.throws(() => resolveInRoot(p), /no such file under the server root|escapes the server root/, JSON.stringify(p));
+  }
+});
+
+test("a flag-shaped argument value reaches the CLI as a VALUE, and writes nothing", () => {
+  const dir = ws();
+  // Every caller string that lands in argv is either `#`-prefixed (ids, anchors)
+  // or the value of a flag the server wrote itself (`--rev`). None may be read
+  // as a flag. `--root` is the one that would cost something: `runCli` injects
+  // the confinement root only when the argv does not already mention it, so an
+  // argument that became a flag would take the root off this call.
+  assert.equal(call("geml_set", { file: "d.geml", id: "alpha", body: "=== note {#alpha}\nsecond\n===\n" }).isError, false);
+  const after = readFileSync(join(dir, "d.geml"), "utf8");
+
+  for (const rev of ["--root", "-o", "--json", "../.."]) {
+    const r = call("geml_revert", { file: "d.geml", id: "alpha", rev });
+    assert.equal(r.isError, true, rev);
+    assert.match(r.text, /matched 0 revisions/, `${rev}: read as a revision selector, not a flag`);
+    assert.equal(readFileSync(join(dir, "d.geml"), "utf8"), after, `${rev}: nothing was written`);
+  }
+  for (const id of ["--root", "-o", "--json"]) {
+    const r = call("geml_get", { file: "d.geml", id });
+    assert.equal(r.isError, true, id);
+    assert.match(r.text, /no block with id/, id);
+  }
+  for (const anchor of ["--root", "-o"]) {
+    const r = call("geml_add", { file: "d.geml", content: "=== note {#z}\nz\n===\n", position: "before", anchor });
+    assert.equal(r.isError, true, anchor);
+    assert.match(r.text, /no block with id/, anchor);
+  }
+  assert.equal(readFileSync(join(dir, "d.geml"), "utf8"), after, "no hostile value wrote a byte");
+});
+
 console.log(`${passed} test(s) passed.`);

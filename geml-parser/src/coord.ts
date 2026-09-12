@@ -312,11 +312,16 @@ function writeValue(block: Block & { kind: "block" }, path: CoordStep[], value: 
     return { ok: true, body: serializeEdn(root) };
   }
   // Any other `format=` leaves the body raw with no value tree at all, so this
-  // function was never entered for one: `planCoordWrite` reaches it only when
-  // `block.value` is set, and only the engines above set it. `yaml` is the one
-  // to watch: it HAS an engine, so a coordinate write into a yaml body lands
-  // here and re-emits it as JSON. That predates this arm and is not made worse
-  // by it, but it is the same bug wearing a different format's name.
+  // function is never entered for one: `planCoordWrite` reaches it only when
+  // `block.value` is set, and only the engines above set it. `yaml` was the
+  // exception — it HAS a reader, so a coordinate write landed here and the line
+  // below re-emitted it as JSON, changing the block's format on a write that
+  // asked for one key. `serialize` already refuses exactly that, for exactly
+  // this reason: a yaml body's authored bytes ARE its canonical form. Two copies
+  // of one judgement, and this was the copy that had it wrong.
+  if (fmt !== "json") {
+    return { ok: false, why: `this processor reads \`${fmt}\` but does not write it, so a coordinate write here would rewrite the body as JSON — edit the block's body instead` };
+  }
   return { ok: true, body: JSON.stringify(root, null, 2).split("\n") };
 }
 

@@ -26,6 +26,13 @@ const refuse = (src) => {
   return r;
 };
 
+// A map this reading builds carries NO prototype, so that `__proto__` is an
+// ordinary key rather than an assignment that replaces the object's lineage and
+// loses the entry. `deepEqual` is strict about prototypes, so an expected map is
+// written with the same one — saying the invariant out loud instead of comparing
+// around it.
+const map = (o) => Object.assign(Object.create(null), o);
+
 // --- the reading -------------------------------------------------------------
 
 test("scalars land in the value domain unchanged", () => {
@@ -36,7 +43,7 @@ test("a keyword keeps its colon — it is not the string of that name", () => {
   // The whole reason: `:x` and `"x"` are different EDN values, so erasing the
   // colon would make two different maps encode to one object.
   assert.deepEqual(val("{:status \"doing\" \"status\" \"a string key\"}"),
-    { ":status": "doing", "status": "a string key" });
+    map({ ":status": "doing", "status": "a string key" }));
   assert.deepEqual(val("[:x :ns/x :a.b/c-d?]"), [":x", ":ns/x", ":a.b/c-d?"]);
 });
 
@@ -46,13 +53,13 @@ test("vectors, sets and maps; sets and tagged literals wear a $ wrapper", () => 
   assert.deepEqual(val('#uuid "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"'),
     { $uuid: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee" });
   assert.deepEqual(val('#inst "2026-10-01T00:00:00.000Z"'), { $inst: "2026-10-01T00:00:00.000Z" });
-  assert.deepEqual(val("{}"), {});
+  assert.deepEqual(val("{}"), map({}));
   assert.deepEqual(val("#{}"), { $set: [] });
 });
 
 test("commas are whitespace, `;` is a comment, `#_` discards the next datum", () => {
   assert.deepEqual(val("[1, 2,\n 3]"), [1, 2, 3]);
-  assert.deepEqual(val("{:a 1 ; trailing\n :b 2}"), { ":a": 1, ":b": 2 });
+  assert.deepEqual(val("{:a 1 ; trailing\n :b 2}"), map({ ":a": 1, ":b": 2 }));
   assert.deepEqual(val("[1 #_2 3]"), [1, 3]);
   assert.deepEqual(val("[1 #_{:a 1} 3]"), [1, 3], "a discarded datum can be a collection");
 });
@@ -85,7 +92,7 @@ test("the two string-key shapes that would collide are refused", () => {
   assert.match(refuse('{"$set" 1}').error, /a leading `\$` is reserved/);
   // …and the keyword itself is of course fine, which is the asymmetry: the
   // colon belongs to the keyword, so only the string has to give way.
-  assert.deepEqual(val("{:x 1}"), { ":x": 1 });
+  assert.deepEqual(val("{:x 1}"), map({ ":x": 1 }));
 });
 
 test("structural trouble names itself, with the line it happened on", () => {
@@ -178,6 +185,27 @@ test("a map key this reading cannot encode is named by WHAT it is", () => {
   for (const src of ["{1 2}", "{true 1}", "{nil 1}", "{[1 2] 3}", "{#{1} 2}"]) {
     assert.match(refuse(src).error, /this reading has keyword and string keys/, src);
   }
+});
+
+test("a string key `__proto__` is an ordinary key, not the prototype it looks like", () => {
+  // On a plain `{}` the assignment for this name REPLACES the prototype instead
+  // of adding a key: the entry never becomes an own key, so `Object.keys` loses
+  // it and the body written back loses it — the author's property gone with
+  // nothing said — while `for..in` and a dotted read still see it through the
+  // chain it just installed.
+  const v = val('{"__proto__" {:polluted "yes"} :real "kept"}');
+  assert.deepEqual(Object.keys(v), ["__proto__", ":real"], "both keys are OWN keys");
+  assert.equal(Object.getPrototypeOf(v), null, "the map carries no prototype to poison");
+  assert.equal(v[":polluted"], undefined, "and nothing reads through one that is not there");
+
+  // The round trip is where the loss used to show: write the map back and the
+  // key has to still be in the bytes.
+  const back = serializeEdn(v).join("\n");
+  assert.match(back, /"__proto__"/, back);
+  assert.deepEqual(Object.keys(val(back)), ["__proto__", ":real"], "and it survives a second read");
+
+  // The keyword spelling was never affected — its stored name carries the colon.
+  assert.deepEqual(Object.keys(val('{:__proto__ 1}')), [":__proto__"]);
 });
 
 console.log(`\n${passed} passed`);
