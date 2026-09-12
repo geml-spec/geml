@@ -106,10 +106,16 @@ test("a symlink spelled inside the folder but pointing out of it is refused; a r
     fs.symlinkSync(path.join(dir, "a.geml"), path.join(dir, "alias.geml"));
     assert.equal(confineToFolder(dir, path.join(dir, "alias.geml")).verdict, "inside");
   }
-  // The realpath is injectable, so the verdict can be pinned without a filesystem too.
-  const fake = (p) => (p.endsWith("evil.geml") ? "/elsewhere/secret" : p);
-  assert.equal(confineToFolder("/docs", "/docs/evil.geml", fake).verdict, "outside");
-  assert.equal(confineToFolder("/docs", "/docs/ok.geml", fake).verdict, "inside");
+  // The realpath is injectable, so the verdict can be pinned without a filesystem
+  // too. These paths go through `path` instead of being written POSIX-style:
+  // `confineToFolder` compares with `path.sep`, so a literal "/docs/ok.geml" is
+  // inside its folder on Linux and outside it on Windows — the assertion would be
+  // measuring the separator rather than the confinement.
+  const docs = path.resolve(path.sep + "docs");
+  const elsewhere = path.resolve(path.sep + "elsewhere", "secret");
+  const fake = (p) => (p.endsWith("evil.geml") ? elsewhere : p);
+  assert.equal(confineToFolder(docs, path.join(docs, "evil.geml"), fake).verdict, "outside");
+  assert.equal(confineToFolder(docs, path.join(docs, "ok.geml"), fake).verdict, "inside");
 });
 
 console.log(`\n${passed} test(s) passed.`);
