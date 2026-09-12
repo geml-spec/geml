@@ -29,43 +29,43 @@ resolution-default = cpg
 === code {#Reader-value name="Reader.value" src=geml-parser/src/edn.ts#L96-107 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/Reader#value()."}
 ===
 
-=== code {#Reader-map name="Reader.map" src=geml-parser/src/edn.ts#L109-133 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/Reader#map()."}
+=== code {#Reader-map name="Reader.map" src=geml-parser/src/edn.ts#L109-140 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/Reader#map()."}
 ===
 
-=== code {#Reader-mapKey name="Reader.mapKey" src=geml-parser/src/edn.ts#L140-152 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/Reader#mapKey()."}
+=== code {#Reader-mapKey name="Reader.mapKey" src=geml-parser/src/edn.ts#L147-159 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/Reader#mapKey()."}
 ===
 
-=== code {#Reader-vector name="Reader.vector" src=geml-parser/src/edn.ts#L154-164 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/Reader#vector()."}
+=== code {#Reader-vector name="Reader.vector" src=geml-parser/src/edn.ts#L161-171 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/Reader#vector()."}
 ===
 
-=== code {#Reader-string name="Reader.string" src=geml-parser/src/edn.ts#L166-193 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/Reader#string()."}
+=== code {#Reader-string name="Reader.string" src=geml-parser/src/edn.ts#L173-200 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/Reader#string()."}
 ===
 
-=== code {#Reader-dispatch name="Reader.dispatch" src=geml-parser/src/edn.ts#L196-223 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/Reader#dispatch()."}
+=== code {#Reader-dispatch name="Reader.dispatch" src=geml-parser/src/edn.ts#L203-230 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/Reader#dispatch()."}
 ===
 
-=== code {#Reader-atom name="Reader.atom" src=geml-parser/src/edn.ts#L226-253 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/Reader#atom()."}
+=== code {#Reader-atom name="Reader.atom" src=geml-parser/src/edn.ts#L233-260 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/Reader#atom()."}
 ===
 
-=== code {#Refusal-new .leaf name="Refusal.new" src=geml-parser/src/edn.ts#L257-257 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/Refusal#`<constructor>`()."}
+=== code {#Refusal-new .leaf name="Refusal.new" src=geml-parser/src/edn.ts#L264-264 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/Refusal#`<constructor>`()."}
 ===
 
-=== code {#describe src=geml-parser/src/edn.ts#L260-265 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/describe()."}
+=== code {#describe src=geml-parser/src/edn.ts#L267-272 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/describe()."}
 ===
 
-=== code {#parseEdn src=geml-parser/src/edn.ts#L272-285 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/parseEdn()."}
+=== code {#parseEdn src=geml-parser/src/edn.ts#L279-292 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/parseEdn()."}
 ===
 
-=== code {#isWrap src=geml-parser/src/edn.ts#L289-291 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/isWrap."}
+=== code {#isWrap src=geml-parser/src/edn.ts#L296-298 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/isWrap."}
 ===
 
-=== code {#scalar src=geml-parser/src/edn.ts#L293-307 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/scalar()."}
+=== code {#scalar src=geml-parser/src/edn.ts#L300-314 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/scalar()."}
 ===
 
-=== code {#serializeEdn src=geml-parser/src/edn.ts#L315-317 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/serializeEdn()."}
+=== code {#serializeEdn src=geml-parser/src/edn.ts#L322-324 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/serializeEdn()."}
 ===
 
-=== code {#render src=geml-parser/src/edn.ts#L319-339 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/render()."}
+=== code {#render src=geml-parser/src/edn.ts#L326-346 anchor="scip-typescript npm @geml/geml 1.10.2 src/`edn.ts`/render()."}
 ===
 
 === table {#calls format=csv}
@@ -130,62 +130,62 @@ from,             to,               kind, confidence
 === table {#called-by format=csv}
 from,                                    to,               kind, site
 #Reader-skip,                            #isSpace,         call, geml-parser/src/edn.ts:76
-#Reader-dispatch,                        #isNameChar,      call, geml-parser/src/edn.ts:211
-#Reader-atom,                            #isNameChar,      call, geml-parser/src/edn.ts:229
-#parseEdn,                               #Reader-new,      call, geml-parser/src/edn.ts:273
+#Reader-dispatch,                        #isNameChar,      call, geml-parser/src/edn.ts:218
+#Reader-atom,                            #isNameChar,      call, geml-parser/src/edn.ts:236
+#parseEdn,                               #Reader-new,      call, geml-parser/src/edn.ts:280
 #Reader-refuse,                          #Reader-line,     call, geml-parser/src/edn.ts:93
-#parseEdn,                               #Reader-line,     call, geml-parser/src/edn.ts:278
+#parseEdn,                               #Reader-line,     call, geml-parser/src/edn.ts:285
 #Reader-value,                           #Reader-skip,     call, geml-parser/src/edn.ts:97
-#Reader-map,                             #Reader-skip,     call, geml-parser/src/edn.ts:114
-#Reader-map,                             #Reader-skip,     call, geml-parser/src/edn.ts:124
-#Reader-vector,                          #Reader-skip,     call, geml-parser/src/edn.ts:159
-#Reader-dispatch,                        #Reader-skip,     call, geml-parser/src/edn.ts:204
-#Reader-dispatch,                        #Reader-skip,     call, geml-parser/src/edn.ts:219
-#parseEdn,                               #Reader-skip,     call, geml-parser/src/edn.ts:276
+#Reader-map,                             #Reader-skip,     call, geml-parser/src/edn.ts:121
+#Reader-map,                             #Reader-skip,     call, geml-parser/src/edn.ts:131
+#Reader-vector,                          #Reader-skip,     call, geml-parser/src/edn.ts:166
+#Reader-dispatch,                        #Reader-skip,     call, geml-parser/src/edn.ts:211
+#Reader-dispatch,                        #Reader-skip,     call, geml-parser/src/edn.ts:226
+#parseEdn,                               #Reader-skip,     call, geml-parser/src/edn.ts:283
 #Reader-value,                           #Reader-refuse,   call, geml-parser/src/edn.ts:98
 #Reader-value,                           #Reader-refuse,   call, geml-parser/src/edn.ts:102
 #Reader-value,                           #Reader-refuse,   call, geml-parser/src/edn.ts:104
-#Reader-map,                             #Reader-refuse,   call, geml-parser/src/edn.ts:115
-#Reader-map,                             #Reader-refuse,   call, geml-parser/src/edn.ts:126
-#Reader-map,                             #Reader-refuse,   call, geml-parser/src/edn.ts:129
-#Reader-mapKey,                          #Reader-refuse,   call, geml-parser/src/edn.ts:142
-#Reader-mapKey,                          #Reader-refuse,   call, geml-parser/src/edn.ts:146
+#Reader-map,                             #Reader-refuse,   call, geml-parser/src/edn.ts:122
+#Reader-map,                             #Reader-refuse,   call, geml-parser/src/edn.ts:133
+#Reader-map,                             #Reader-refuse,   call, geml-parser/src/edn.ts:136
 #Reader-mapKey,                          #Reader-refuse,   call, geml-parser/src/edn.ts:149
-#Reader-vector,                          #Reader-refuse,   call, geml-parser/src/edn.ts:160
-#Reader-string,                          #Reader-refuse,   call, geml-parser/src/edn.ts:182
-#Reader-string,                          #Reader-refuse,   call, geml-parser/src/edn.ts:187
-#Reader-string,                          #Reader-refuse,   call, geml-parser/src/edn.ts:192
-#Reader-dispatch,                        #Reader-refuse,   call, geml-parser/src/edn.ts:205
-#Reader-dispatch,                        #Reader-refuse,   call, geml-parser/src/edn.ts:215
-#Reader-dispatch,                        #Reader-refuse,   call, geml-parser/src/edn.ts:220
-#Reader-atom,                            #Reader-refuse,   call, geml-parser/src/edn.ts:232
-#Reader-atom,                            #Reader-refuse,   call, geml-parser/src/edn.ts:237
+#Reader-mapKey,                          #Reader-refuse,   call, geml-parser/src/edn.ts:153
+#Reader-mapKey,                          #Reader-refuse,   call, geml-parser/src/edn.ts:156
+#Reader-vector,                          #Reader-refuse,   call, geml-parser/src/edn.ts:167
+#Reader-string,                          #Reader-refuse,   call, geml-parser/src/edn.ts:189
+#Reader-string,                          #Reader-refuse,   call, geml-parser/src/edn.ts:194
+#Reader-string,                          #Reader-refuse,   call, geml-parser/src/edn.ts:199
+#Reader-dispatch,                        #Reader-refuse,   call, geml-parser/src/edn.ts:212
+#Reader-dispatch,                        #Reader-refuse,   call, geml-parser/src/edn.ts:222
+#Reader-dispatch,                        #Reader-refuse,   call, geml-parser/src/edn.ts:227
+#Reader-atom,                            #Reader-refuse,   call, geml-parser/src/edn.ts:239
 #Reader-atom,                            #Reader-refuse,   call, geml-parser/src/edn.ts:244
-#Reader-atom,                            #Reader-refuse,   call, geml-parser/src/edn.ts:246
-#Reader-atom,                            #Reader-refuse,   call, geml-parser/src/edn.ts:250
-#Reader-atom,                            #Reader-refuse,   call, geml-parser/src/edn.ts:252
+#Reader-atom,                            #Reader-refuse,   call, geml-parser/src/edn.ts:251
+#Reader-atom,                            #Reader-refuse,   call, geml-parser/src/edn.ts:253
+#Reader-atom,                            #Reader-refuse,   call, geml-parser/src/edn.ts:257
+#Reader-atom,                            #Reader-refuse,   call, geml-parser/src/edn.ts:259
 #Reader-skip,                            #Reader-value,    call, geml-parser/src/edn.ts:84
-#Reader-map,                             #Reader-value,    call, geml-parser/src/edn.ts:122
-#Reader-map,                             #Reader-value,    call, geml-parser/src/edn.ts:131
-#Reader-vector,                          #Reader-value,    call, geml-parser/src/edn.ts:162
-#Reader-dispatch,                        #Reader-value,    call, geml-parser/src/edn.ts:207
-#parseEdn,                               #Reader-value,    call, geml-parser/src/edn.ts:275
+#Reader-map,                             #Reader-value,    call, geml-parser/src/edn.ts:129
+#Reader-map,                             #Reader-value,    call, geml-parser/src/edn.ts:138
+#Reader-vector,                          #Reader-value,    call, geml-parser/src/edn.ts:169
+#Reader-dispatch,                        #Reader-value,    call, geml-parser/src/edn.ts:214
+#parseEdn,                               #Reader-value,    call, geml-parser/src/edn.ts:282
 #Reader-value,                           #Reader-map,      call, geml-parser/src/edn.ts:100
-#Reader-map,                             #Reader-mapKey,   call, geml-parser/src/edn.ts:123
+#Reader-map,                             #Reader-mapKey,   call, geml-parser/src/edn.ts:130
 #Reader-value,                           #Reader-vector,   call, geml-parser/src/edn.ts:101
 #Reader-value,                           #Reader-string,   call, geml-parser/src/edn.ts:103
-#Reader-dispatch,                        #Reader-string,   call, geml-parser/src/edn.ts:221
+#Reader-dispatch,                        #Reader-string,   call, geml-parser/src/edn.ts:228
 #Reader-value,                           #Reader-dispatch, call, geml-parser/src/edn.ts:105
 #Reader-value,                           #Reader-atom,     call, geml-parser/src/edn.ts:106
 #Reader-refuse,                          #Refusal-new,     call, geml-parser/src/edn.ts:93
-#Reader-mapKey,                          #describe,        call, geml-parser/src/edn.ts:142
+#Reader-mapKey,                          #describe,        call, geml-parser/src/edn.ts:149
 geml-parser--geml.ts.geml#parseDataBody, #parseEdn,        call, geml-parser/src/geml.ts:106
-#render,                                 #isWrap,          call, geml-parser/src/edn.ts:320
-#render,                                 #isWrap,          call, geml-parser/src/edn.ts:321
-#render,                                 #isWrap,          call, geml-parser/src/edn.ts:322
-#render,                                 #scalar,          call, geml-parser/src/edn.ts:338
+#render,                                 #isWrap,          call, geml-parser/src/edn.ts:327
+#render,                                 #isWrap,          call, geml-parser/src/edn.ts:328
+#render,                                 #isWrap,          call, geml-parser/src/edn.ts:329
+#render,                                 #scalar,          call, geml-parser/src/edn.ts:345
 geml-parser--coord.ts.geml#writeValue,   #serializeEdn,    call, geml-parser/src/coord.ts:312
-#serializeEdn,                           #render,          call, geml-parser/src/edn.ts:316
+#serializeEdn,                           #render,          call, geml-parser/src/edn.ts:323
 ===
 
 === table {#unresolved format=csv hidden}
@@ -193,6 +193,7 @@ from,             to
 #isNameChar,      RegExp.test
 #Reader-map,      CallableFunction.call
 #Reader-map,      Object.hasOwnProperty
+#Reader-map,      ObjectConstructor.create
 #Reader-mapKey,   String.startsWith
 #Reader-vector,   Array.push
 #Reader-string,   RegExp.test

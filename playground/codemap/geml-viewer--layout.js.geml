@@ -1,0 +1,152 @@
+=== meta
+profile = "geml-codemap/v1"
+module = geml-viewer/layout.js
+src = integrations/geml-viewer/src/layout.js
+entry = #safeCssValue #stateClass #renderPage
+resolution-default = cpg
+===
+
+# geml-viewer/layout.js
+
+=== code {#whenSelector src=integrations/geml-viewer/src/layout.js#L25-33 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/whenSelector()."}
+===
+
+=== code {#faceOf .leaf src=integrations/geml-viewer/src/layout.js#L36-39 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/faceOf()."}
+===
+
+=== code {#facesOf src=integrations/geml-viewer/src/layout.js#L42-46 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/facesOf()."}
+===
+
+=== code {#safeCssValue src=integrations/geml-viewer/src/layout.js#L53-57 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/safeCssValue()."}
+===
+
+=== code {#classFor src=integrations/geml-viewer/src/layout.js#L59-61 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/classFor()."}
+===
+
+=== code {#frameClassFor src=integrations/geml-viewer/src/layout.js#L64-66 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/frameClassFor()."}
+===
+
+=== code {#stateClass src=integrations/geml-viewer/src/layout.js#L68-70 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/stateClass()."}
+===
+
+=== code {#declarations src=integrations/geml-viewer/src/layout.js#L73-100 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/declarations()."}
+===
+
+=== code {#cssForPage src=integrations/geml-viewer/src/layout.js#L103-177 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/cssForPage()."}
+===
+
+=== code {#nodesByAddress src=integrations/geml-viewer/src/layout.js#L183-195 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/nodesByAddress()."}
+===
+
+=== code {#at .leaf src=integrations/geml-viewer/src/layout.js#L198-198 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/at."}
+===
+
+=== code {#renderPage src=integrations/geml-viewer/src/layout.js#L213-478 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/renderPage()."}
+===
+
+=== table {#calls format=csv}
+from,          to,              kind, confidence
+#whenSelector, #stateClass,     call,
+#facesOf,      #faceOf,         call,
+#facesOf,      #faceOf,         call,
+#declarations, #safeCssValue,   call,
+#cssForPage,   #classFor,       call,
+#cssForPage,   #declarations,   call,
+#cssForPage,   #declarations,   call,
+#cssForPage,   #declarations,   call,
+#cssForPage,   #declarations,   call,
+#cssForPage,   #faceOf,         call,
+#cssForPage,   #faceOf,         call,
+#cssForPage,   #facesOf,        call,
+#cssForPage,   #frameClassFor,  call,
+#cssForPage,   #safeCssValue,   call,
+#cssForPage,   #safeCssValue,   call,
+#cssForPage,   #whenSelector,   call,
+#cssForPage,   #whenSelector,   call,
+#renderPage,   #at,             call,
+#renderPage,   #at,             call,
+#renderPage,   #at,             call,
+#renderPage,   #at,             call,
+#renderPage,   #classFor,       call,
+#renderPage,   #classFor,       call,
+#renderPage,   #cssForPage,     call,
+#renderPage,   #facesOf,        call,
+#renderPage,   #frameClassFor,  call,
+#renderPage,   #nodesByAddress, call,
+===
+
+=== table {#called-by format=csv}
+from,                                        to,              kind, site
+#cssForPage,                                 #whenSelector,   call, integrations/geml-viewer/src/layout.js:118
+#cssForPage,                                 #whenSelector,   call, integrations/geml-viewer/src/layout.js:162
+#facesOf,                                    #faceOf,         call, integrations/geml-viewer/src/layout.js:43
+#facesOf,                                    #faceOf,         call, integrations/geml-viewer/src/layout.js:44
+#cssForPage,                                 #faceOf,         call, integrations/geml-viewer/src/layout.js:158
+#cssForPage,                                 #faceOf,         call, integrations/geml-viewer/src/layout.js:172
+#cssForPage,                                 #facesOf,        call, integrations/geml-viewer/src/layout.js:155
+#renderPage,                                 #facesOf,        call, integrations/geml-viewer/src/layout.js:377
+geml-viewer--components.js.geml#tree,        #safeCssValue,   call, integrations/geml-viewer/src/components.js:77
+#declarations,                               #safeCssValue,   call, integrations/geml-viewer/src/layout.js:78
+#cssForPage,                                 #safeCssValue,   call, integrations/geml-viewer/src/layout.js:130
+#cssForPage,                                 #safeCssValue,   call, integrations/geml-viewer/src/layout.js:141
+#cssForPage,                                 #classFor,       call, integrations/geml-viewer/src/layout.js:135
+#renderPage,                                 #classFor,       call, integrations/geml-viewer/src/layout.js:338
+#renderPage,                                 #classFor,       call, integrations/geml-viewer/src/layout.js:367
+#cssForPage,                                 #frameClassFor,  call, integrations/geml-viewer/src/layout.js:133
+#renderPage,                                 #frameClassFor,  call, integrations/geml-viewer/src/layout.js:413
+geml-viewer--components.js.geml#createState, #stateClass,     call, integrations/geml-viewer/src/components.js:31
+geml-viewer--components.js.geml#createState, #stateClass,     call, integrations/geml-viewer/src/components.js:32
+#whenSelector,                               #stateClass,     call, integrations/geml-viewer/src/layout.js:30
+#cssForPage,                                 #declarations,   call, integrations/geml-viewer/src/layout.js:110
+#cssForPage,                                 #declarations,   call, integrations/geml-viewer/src/layout.js:120
+#cssForPage,                                 #declarations,   call, integrations/geml-viewer/src/layout.js:148
+#cssForPage,                                 #declarations,   call, integrations/geml-viewer/src/layout.js:164
+#renderPage,                                 #cssForPage,     call, integrations/geml-viewer/src/layout.js:476
+#renderPage,                                 #nodesByAddress, call, integrations/geml-viewer/src/layout.js:224
+#renderPage,                                 #at,             call, integrations/geml-viewer/src/layout.js:230
+#renderPage,                                 #at,             call, integrations/geml-viewer/src/layout.js:305
+#renderPage,                                 #at,             call, integrations/geml-viewer/src/layout.js:328
+#renderPage,                                 #at,             call, integrations/geml-viewer/src/layout.js:348
+geml-viewer--content.js.geml#main,           #renderPage,     call, integrations/geml-viewer/src/content.js:120
+===
+
+=== table {#unresolved format=csv hidden}
+from,            to
+#whenSelector,   ObjectConstructor.entries
+#facesOf,        Set.add
+#safeCssValue,   RegExp.test
+#classFor,       String.replace
+#frameClassFor,  String.replace
+#stateClass,     String.replace
+#declarations,   Array.join
+#declarations,   Array.push
+#declarations,   JSON.stringify
+#declarations,   ObjectConstructor.entries
+#declarations,   Set.has
+#cssForPage,     Array.join
+#cssForPage,     Array.push
+#cssForPage,     JSON.stringify
+#cssForPage,     Set.has
+#nodesByAddress, Map.set
+#nodesByAddress, address
+#nodesByAddress, candidates
+#renderPage,     Array.filter
+#renderPage,     Array.join
+#renderPage,     Array.slice
+#renderPage,     Array.some
+#renderPage,     ArrayConstructor.isArray
+#renderPage,     Map.get
+#renderPage,     Map.has
+#renderPage,     Map.keys
+#renderPage,     Map.set
+#renderPage,     Math.max
+#renderPage,     ObjectConstructor.keys
+#renderPage,     Set.add
+#renderPage,     Set.has
+#renderPage,     String.lastIndexOf
+#renderPage,     String.slice
+#renderPage,     String.split
+#renderPage,     address
+#renderPage,     blockSpans
+#renderPage,     candidates
+===

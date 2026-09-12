@@ -8,10 +8,10 @@ resolution-default = cpg
 
 # geml-viewer/snapshot.js
 
-=== code {#topLevel src=integrations/geml-viewer/src/snapshot.js#L15-18 anchor="scip-typescript npm geml-viewer 1.3.0 src/`snapshot.js`/topLevel()."}
+=== code {#topLevel src=integrations/geml-viewer/src/snapshot.js#L15-18 anchor="scip-typescript npm geml-viewer 1.3.1 src/`snapshot.js`/topLevel()."}
 ===
 
-=== code {#snapshot src=integrations/geml-viewer/src/snapshot.js#L26-46 anchor="scip-typescript npm geml-viewer 1.3.0 src/`snapshot.js`/snapshot()."}
+=== code {#snapshot src=integrations/geml-viewer/src/snapshot.js#L26-46 anchor="scip-typescript npm geml-viewer 1.3.1 src/`snapshot.js`/snapshot()."}
 ===
 
 === table {#calls format=csv}
@@ -22,7 +22,7 @@ from,      to,        kind, confidence
 === table {#called-by format=csv}
 from,                                         to,        kind, site
 #snapshot,                                    #topLevel, call, integrations/geml-viewer/src/snapshot.js:27
-geml-viewer--content.js.geml#addExportButton, #snapshot, call, integrations/geml-viewer/src/content.js:342
+geml-viewer--content.js.geml#addExportButton, #snapshot, call, integrations/geml-viewer/src/content.js:409
 ===
 
 === table {#unresolved format=csv hidden}

@@ -1,0 +1,69 @@
+=== meta
+profile = "geml-codemap/v1"
+module = geml-viewer/style-entry.js
+src = integrations/geml-viewer/src/style-entry.js
+entry = #borrowedDocs #loadPageStyle
+resolution-default = cpg
+===
+
+# geml-viewer/style-entry.js
+
+=== code {#entryUrlFor .leaf src=integrations/geml-viewer/src/style-entry.js#L14-16 anchor="scip-typescript npm geml-viewer 1.3.1 src/`style-entry.js`/entryUrlFor()."}
+===
+
+=== code {#isStyleEntry src=integrations/geml-viewer/src/style-entry.js#L19-23 anchor="scip-typescript npm geml-viewer 1.3.1 src/`style-entry.js`/isStyleEntry()."}
+===
+
+=== code {#referencedDocs src=integrations/geml-viewer/src/style-entry.js#L26-51 anchor="scip-typescript npm geml-viewer 1.3.1 src/`style-entry.js`/referencedDocs()."}
+===
+
+=== code {#producersOf src=integrations/geml-viewer/src/style-entry.js#L58-70 anchor="scip-typescript npm geml-viewer 1.3.1 src/`style-entry.js`/producersOf()."}
+===
+
+=== code {#borrowedDocs src=integrations/geml-viewer/src/style-entry.js#L84-107 anchor="scip-typescript npm geml-viewer 1.3.1 src/`style-entry.js`/borrowedDocs()."}
+===
+
+=== code {#loadPageStyle src=integrations/geml-viewer/src/style-entry.js#L113-159 anchor="scip-typescript npm geml-viewer 1.3.1 src/`style-entry.js`/loadPageStyle()."}
+===
+
+=== table {#calls format=csv}
+from,           to,              kind, confidence
+#loadPageStyle, #entryUrlFor,    call,
+#loadPageStyle, #isStyleEntry,   call,
+#loadPageStyle, #producersOf,    call,
+#loadPageStyle, #referencedDocs, call,
+#loadPageStyle, #referencedDocs, call,
+===
+
+=== table {#called-by format=csv}
+from,                              to,              kind, site
+#loadPageStyle,                    #entryUrlFor,    call, integrations/geml-viewer/src/style-entry.js:114
+#loadPageStyle,                    #isStyleEntry,   call, integrations/geml-viewer/src/style-entry.js:119
+#loadPageStyle,                    #referencedDocs, call, integrations/geml-viewer/src/style-entry.js:124
+#loadPageStyle,                    #referencedDocs, call, integrations/geml-viewer/src/style-entry.js:144
+#loadPageStyle,                    #producersOf,    call, integrations/geml-viewer/src/style-entry.js:158
+geml-viewer--content.js.geml#main, #borrowedDocs,   call, integrations/geml-viewer/src/content.js:97
+geml-viewer--content.js.geml#main, #loadPageStyle,  call, integrations/geml-viewer/src/content.js:91
+===
+
+=== table {#unresolved format=csv hidden}
+from,            to
+#isStyleEntry,   Array.includes
+#isStyleEntry,   String.split
+#referencedDocs, Array.push
+#producersOf,    Console.warn
+#producersOf,    Map.set
+#producersOf,    Set.add
+#borrowedDocs,   Array.push
+#borrowedDocs,   Set.add
+#loadPageStyle,  Array.map
+#loadPageStyle,  Array.pop
+#loadPageStyle,  Array.push
+#loadPageStyle,  Array.shift
+#loadPageStyle,  Console.warn
+#loadPageStyle,  Map.get
+#loadPageStyle,  Map.has
+#loadPageStyle,  Map.set
+#loadPageStyle,  String.split
+#loadPageStyle,  decodeURIComponent
+===
