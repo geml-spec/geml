@@ -1,4 +1,4 @@
-[![MCP Toplist](https://mcptoplist.com/badge/io.github.geml-spec%2Fgeml.svg)](https://mcptoplist.com/server/io.github.geml-spec%2Fgeml) 
+[![MCP Toplist](https://mcptoplist.com/badge/io.github.geml-spec%2Fgeml.svg)](https://mcptoplist.com/server/io.github.geml-spec%2Fgeml) [![Mentioned in Awesome](https://awesome.re/mentioned-badge.svg)](https://github.com/hashgraph-online/awesome-ai-plugins#development--workflow) 
 
 
 <p align="center">
@@ -29,6 +29,15 @@ geml replace README.md 'old text' 'new text'    # swap a string, told which bloc
 Only that section enters the agent’s context — a couple of KB, not the whole ~40 KB file.
 
 Need finer than a section — one block, one chart, one table? Let `.geml` stand in the middle ground: edit at that grain, and the `--to md` you ship never drifts from it.
+
+**A block has a name; the things inside it have a coordinate.** A table's cell, a
+`data` block's leaf, a key in `meta` — each has a coordinate the structure already
+gives it, and `get` and `set` land on exactly that value.
+
+```sh
+geml get doc.geml '#fy[2]["Q1"]'                     # one cell
+geml set doc.geml '#intake["fields"][1]["name"]'     # one leaf in the JSON
+```
 
 For people, it is plain text that reads clean; for agents, it is an addressable, verifiable, traceable, revertible **["Doc-as-a-Base"](docs/MANIFESTO.md)**.
 
