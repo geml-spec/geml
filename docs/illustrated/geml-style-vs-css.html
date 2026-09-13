@@ -1,0 +1,645 @@
+<title>geml-style against CSS · Dimension by dimension</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap">
+<style>
+:root {
+  --ink:        #14181d;
+  --ink-soft:   #5b6570;
+  --paper:      #f6f7f8;
+  --panel:      #ffffff;
+  --rule:       #dbe0e5;
+  --rule-soft:  #e8ebee;
+  --css:        #2c5fd8;
+  --css-wash:   #eef2fc;
+  --geml:       #0b7361;
+  --geml-wash:  #e9f4f1;
+  --warn:       #a8490f;
+  --warn-wash:  #fbf0e7;
+  --code-bg:    #f1f3f5;
+
+  --sans: "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+  --cond: "IBM Plex Sans Condensed", "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink:        #e4e8ec;
+    --ink-soft:   #97a1ac;
+    --paper:      #101317;
+    --panel:      #171b20;
+    --rule:       #2b3239;
+    --rule-soft:  #232930;
+    --css:        #7ea3f0;
+    --css-wash:   #171e2c;
+    --geml:       #4fbfa8;
+    --geml-wash:  #12211f;
+    --warn:       #e09055;
+    --warn-wash:  #241a12;
+    --code-bg:    #1c2127;
+  }
+}
+:root[data-theme="dark"] {
+  --ink:        #e4e8ec;
+  --ink-soft:   #97a1ac;
+  --paper:      #101317;
+  --panel:      #171b20;
+  --rule:       #2b3239;
+  --rule-soft:  #232930;
+  --css:        #7ea3f0;
+  --css-wash:   #171e2c;
+  --geml:       #4fbfa8;
+  --geml-wash:  #12211f;
+  --warn:       #e09055;
+  --warn-wash:  #241a12;
+  --code-bg:    #1c2127;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 15px;
+  line-height: 1.7;
+  margin: 0;
+  padding: 0 20px 100px;
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+
+header.mast {
+  border-bottom: 2px solid var(--ink);
+  padding: 56px 0 22px;
+  margin-bottom: 40px;
+}
+.eyebrow {
+  font-family: var(--cond);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 0 14px;
+}
+h1 {
+  font-family: var(--cond);
+  font-weight: 700;
+  font-size: clamp(34px, 6vw, 56px);
+  line-height: 1.04;
+  letter-spacing: -.01em;
+  margin: 0 0 18px;
+  text-wrap: balance;
+}
+h1 .vs { color: var(--ink-soft); font-weight: 600; padding: 0 .18em; }
+.thesis { max-width: 62ch; font-size: 17px; line-height: 1.75; margin: 0; }
+.thesis strong { font-weight: 600; }
+
+.readings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  margin: 0 0 56px;
+}
+.reading { background: var(--panel); padding: 14px 16px; }
+.reading dt {
+  font-family: var(--cond);
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 0 6px;
+}
+.reading dd { margin: 0; font-family: var(--mono); font-size: 19px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.reading dd small { display: block; font-family: var(--sans); font-size: 12px; font-weight: 300; color: var(--ink-soft); margin-top: 3px; line-height: 1.4; }
+
+h2 {
+  font-family: var(--cond);
+  font-weight: 700;
+  font-size: 25px;
+  letter-spacing: -.005em;
+  margin: 72px 0 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--ink);
+}
+h2:first-of-type { margin-top: 0; }
+.sec-note { color: var(--ink-soft); font-size: 14px; margin: 0 0 30px; max-width: 66ch; }
+
+.dim { border-top: 1px solid var(--rule); padding: 26px 0 4px; }
+.dim:first-of-type { border-top: 0; }
+.dim-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 14px; margin-bottom: 16px; }
+.dim-n { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.dim-head h3 { font-family: var(--cond); font-weight: 600; font-size: 20px; margin: 0; flex: 1 1 auto; }
+.chip {
+  font-family: var(--cond);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: .09em;
+  padding: 3px 9px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.chip.same { color: var(--ink-soft); }
+.chip.diff { color: var(--geml); background: var(--geml-wash); }
+.chip.odd  { color: var(--warn);  background: var(--warn-wash); }
+
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+@media (max-width: 720px) { .pair { grid-template-columns: 1fr; } }
+.side { background: var(--panel); display: flex; flex-direction: column; min-width: 0; }
+.side-label {
+  font-family: var(--cond);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.side.a .side-label { color: var(--css);  background: var(--css-wash); }
+.side.b .side-label { color: var(--geml); background: var(--geml-wash); }
+.side pre {
+  margin: 0;
+  padding: 12px;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.62;
+  background: var(--panel);
+  flex: 1 1 auto;
+}
+.side pre .c { color: var(--ink-soft); }
+.side.a pre .k { color: var(--css); }
+.side.b pre .k { color: var(--geml); }
+.side pre .x { color: var(--warn); }
+
+.take { margin: 14px 0 0; max-width: 72ch; }
+.take b { font-weight: 600; }
+code { font-family: var(--mono); font-size: .89em; background: var(--code-bg); padding: 1px 4px; }
+
+.verdict { border-left: 3px solid var(--ink); padding: 2px 0 2px 18px; margin: 0 0 26px; }
+.verdict.bad { border-left-color: var(--warn); }
+.verdict.good { border-left-color: var(--geml); }
+.verdict h4 { font-family: var(--cond); font-weight: 600; font-size: 17px; margin: 0 0 6px; }
+.verdict p { margin: 0 0 8px; max-width: 70ch; }
+.verdict p:last-child { margin-bottom: 0; }
+
+table.map { border-collapse: collapse; width: 100%; font-size: 13.5px; margin: 0 0 10px; }
+table.map th, table.map td { border: 1px solid var(--rule); padding: 7px 10px; text-align: left; vertical-align: top; }
+table.map th { font-family: var(--cond); font-weight: 600; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft); background: var(--rule-soft); }
+table.map td:first-child { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; }
+.tscroll { overflow-x: auto; }
+
+.since {
+  border: 1px solid var(--geml);
+  background: var(--geml-wash);
+  color: var(--ink);
+  padding: 14px 18px;
+  margin: 0 0 40px;
+  max-width: 72ch;
+}
+.since h4 { font-family: var(--cond); font-weight: 600; font-size: 15px; margin: 0 0 6px; color: var(--geml); }
+.since p { margin: 0 0 6px; font-size: 14px; }
+.since p:last-child { margin: 0; }
+
+footer {
+  margin-top: 80px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+footer code { background: transparent; padding: 0; }
+footer div { margin-top: 8px; }
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">geml-style/v1 · dimension by dimension · 2026-09-13</p>
+  <h1>geml-style<span class="vs">against</span>CSS</h1>
+  <p class="thesis">
+    Ten dimensions, CSS on the left and geml-style on the right, every example taken
+    from the stylesheet under <code>playground/style-demo</code> that actually runs.
+    The finding first: <strong>on eight of them it is a restricted subset of CSS, and
+    someone who reads CSS will not trip</strong>; the other two are things CSS does not
+    have at all — the stylesheet decides where content goes, and an ambiguity is an
+    error. <strong>Those two are bound to break your expectations, and they should.</strong>
+    This comparison itself turned up three differences that were gaps rather than
+    positions (tokens, shorthands, inheritance); all three are now written into the profile.
+  </p>
+</header>
+
+<h2>Readings</h2>
+<p class="sec-note">All measured on the current branch, not estimated. Stylesheet = <code>playground/style-demo/_index/github.style.geml</code>, a 1:1 reconstruction of a GitHub blob page — a real use, not a demo.</p>
+
+<dl class="readings">
+  <div class="reading"><dt>Style blocks</dt><dd>104<small>1 screen · 27 frame · 6 state · 70 rule</small></dd></div>
+  <div class="reading"><dt>Box words</dt><dd>28<small>a closed list; CSS has hundreds of properties</small></dd></div>
+  <div class="reading"><dt>Diagnostics</dt><dd>20<small>13 error · 7 warning</small></dd></div>
+  <div class="reading"><dt>Selector steps</dt><dd>40 / 47<small>one step / two steps — there is no third</small></dd></div>
+  <div class="reading"><dt>Tokens</dt><dd>13<small>13 keys in <code>meta</code> feed 75 <code>{{…}}</code>; 8 bare colour values left</small></dd></div>
+  <div class="reading"><dt>Combinators</dt><dd>1<small>descendant (a space), and nothing else</small></dd></div>
+</dl>
+
+<h2>The ten dimensions</h2>
+<p class="sec-note">What the tags mean: <b>near enough</b> = a different spelling, your CSS intuition carries over; <b>deliberately different</b> = another system on purpose, and the reason holds; <b>counterintuitive</b> = someone who writes CSS stops here for a second.</p>
+
+<section class="dim">
+  <div class="dim-head"><span class="dim-n">01</span><h3>What a stylesheet is</h3><span class="chip diff">deliberately different</span></div>
+  <div class="pair">
+    <div class="side a"><div class="side-label">CSS</div>
+<pre><span class="c">/* another language, another file,
+   another grammar and parser */</span>
+.sidebar {
+  width: 296px;
+}</pre></div>
+    <div class="side b"><div class="side-label">geml-style</div>
+<pre><span class="c"># the "stylesheet" IS a GEML document;
+# every rule is an addressable block</span>
+=== <span class="k">style-rule</span> {#w-side
+     match="text#sidebar"
+     width="296px"}
+===</pre></div>
+  </div>
+  <p class="take">CSS is its own language; geml-style has no grammar of its own — it is a profile of GEML.
+  The gain is concrete: <code>geml get sheet.geml '#w-side'</code> fetches one rule, <code>geml set</code>
+  replaces that one rule, <code>.gemlhistory</code> rolls back that one rule — this is built for an agent
+  to edit, not for a person to hand-write. The cost is concrete too: <b>it is wordier</b>. One rule is
+  one block, so 104 rules are 104 blocks.</p>
+</section>
+
+<section class="dim">
+  <div class="dim-head"><span class="dim-n">02</span><h3>Selectors</h3><span class="chip odd">counterintuitive</span></div>
+  <div class="pair">
+    <div class="side a"><div class="side-label">CSS</div>
+<pre>#api table.kpi        <span class="c">/* descendant */</span>
+#api &gt; table          <span class="c">/* child */</span>
+h2 + p                <span class="c">/* adjacent */</span>
+li:nth-child(2n)      <span class="c">/* position */</span>
+a:hover               <span class="c">/* state */</span>
+[href^="https"]       <span class="c">/* prefix */</span>
+*                     <span class="c">/* universal */</span></pre></div>
+    <div class="side b"><div class="side-label">geml-style</div>
+<pre>#api table.kpi        <span class="k">✓ the one combinator</span>
+text#nav link         <span class="k">✓ inline part (last step)</span>
+*                     <span class="k">✓ but a whole step only</span>
+[key] [key=value]     <span class="k">✓ presence / equality</span>
+
+<span class="x">&gt; + ~</span>                 <span class="c">selector-unsupported</span>
+<span class="x">:hover :nth-child()</span>   <span class="c">selector-unsupported</span>
+<span class="x">^= $= *= |=</span>           <span class="c">selector-unsupported</span></pre></div>
+  </div>
+  <p class="take">The vocabulary is well under half of CSS's: type + <code>.class</code> + <code>#id</code> +
+  attribute presence/equality, plus one descendant combinator. What it adds is the <b>inline-part step</b> —
+  <code>link</code> <code>image</code> <code>code-span</code> <code>strong</code> <code>emphasis</code> —
+  which are elements in CSS, while in GEML an inline run inside a block has no address of its own, so five
+  names were given to them. <b>The difference that matters is not what is missing but that what is missing
+  raises an error.</b> Writing <code>#api &gt; table</code> does not fail to match; it is
+  <code>selector-unsupported</code>, and check fails. "Looking like CSS is a ramp, not a trap" — the
+  profile's own words.</p>
+</section>
+
+<section class="dim">
+  <div class="dim-head"><span class="dim-n">03</span><h3>The cascade</h3><span class="chip odd">counterintuitive</span></div>
+  <div class="pair">
+    <div class="side a"><div class="side-label">CSS</div>
+<pre><span class="c">/* four tiers, always a winner */</span>
+!important
+&gt; specificity arithmetic (1,0,0) vs (0,2,0)
+&gt; @layer order
+&gt; <span class="k">source order (the last resort)</span>
+
+<span class="c">/* two rules tie? the later one wins.
+   Silently, with no notice. */</span></pre></div>
+    <div class="side b"><div class="side-label">geml-style</div>
+<pre><span class="c"># one relation: strict superset of conditions</span>
+{type, .class, #id, [attr],
+ screen:x, when:s=v}
+
+A ⊃ B  →  A wins
+else   →  <span class="x">ambiguous-rule (error)</span>
+
+<span class="c"># a shorthand and a side share one key:</span>
+border <span class="k">vs</span> border-left
+  <span class="c">same layer, different rules →</span> <span class="x">ambiguous-rule</span>
+
+<span class="c"># no specificity arithmetic
+# no !important
+# no source order
+# layers come only from style-entry (0/1/2)</span></pre></div>
+  </div>
+  <p class="take">This is the widest divergence. CSS guarantees there is always a winner, and pays for it
+  with a winner that may not be the one you meant; geml-style guarantees it will not guess, and pays for it
+  with <b>two defensible rules failing check until you separate them yourself</b>.
+  Ruling out source order has a stated reason: a stylesheet whose outcome depends on order is one that
+  block-level agent edits like <code>geml add --before</code> can silently re-render — and supporting that
+  kind of edit is the whole reason this format exists.
+  <b>Layers</b> remain (default / sitemap / the entry itself, 0-1-2), but a layer number is declared and the
+  selector plays no part in it — that is CSS's <code>@layer</code>, not specificity.</p>
+  <p class="take"><b>"No source order" is meant literally, down to the shorthands.</b> Arbitration runs per
+  property name, and <code>border</code> and <code>border-left</code> are two names, so they would never
+  meet: both rules survive, whichever sits later in the file wins, no diagnostic. That is precisely the case
+  <code>geml add --before</code> would re-render in silence. A shorthand and its four sides are now one
+  arbitration key: in the same layer, the same <code>when</code> group, from different rules, that is
+  <code>ambiguous-rule</code>. The choice was "do not guess", not "quietly sort the box before emitting CSS"
+  — the latter is a precedence rule smuggled in.</p>
+</section>
+
+<section class="dim">
+  <div class="dim-head"><span class="dim-n">04</span><h3>Properties</h3><span class="chip diff">deliberately different</span></div>
+  <div class="pair">
+    <div class="side a"><div class="side-label">CSS</div>
+<pre><span class="c">/* hundreds of properties, open-ended */</span>
+display  position  z-index
+transform  transition  opacity
+box-shadow  filter  clip-path
+grid-template-areas  aspect-ratio
+<span class="c">/* an unrecognised property → dropped silently */</span>
+colr: red;   <span class="c">/* nothing happens */</span></pre></div>
+    <div class="side b"><div class="side-label">geml-style</div>
+<pre><span class="c"># 28 box words, closed</span>
+width max-width padding margin
+font-size line-height font-family
+text-align color background
+border border-top/right/bottom/left
+border-radius gap
+sticky scroll hide-below
+layer visible grow axis
+view editable fade-out underline
+
+colr="red"   <span class="c">→ passed to the component;</span>
+             <span class="x">no component → style-unknown-attribute</span></pre></div>
+  </div>
+  <p class="take">The 28 were sifted by one test: does it still mean the same thing on a different block?
+  <code>width</code> means the same on a paragraph, a table and an image, so it is a box word;
+  <code>fold</code> only makes sense for a tree control, so it is a component parameter.
+  <b>What is absent deserves saying out loud</b>: no <code>display</code>, no <code>position</code>, no
+  <code>z-index</code>, no <code>transform</code>, no <code>transition</code>, no <code>opacity</code>,
+  no <code>box-shadow</code>. <code>layer=overlay|screen</code> is the slice of position that survived
+  encapsulation, and <code>visible=no</code> is the slice of display. This is not "not built yet" — it is
+  "block layout needs this much" — but the moment you want a shadow, a transition, any decorative effect,
+  today you go back to the host's CSS.</p>
+</section>
+
+<section class="dim">
+  <div class="dim-head"><span class="dim-n">05</span><h3>Values</h3><span class="chip odd">counterintuitive</span></div>
+  <div class="pair">
+    <div class="side a"><div class="side-label">CSS</div>
+<pre>:root { --border: #d1d9e0; }
+.a { border-color: var(--border); }
+.b { border-color: var(--border); }
+
+width: calc(100% - 2rem);
+color: color-mix(in srgb, ...);</pre></div>
+    <div class="side b"><div class="side-label">geml-style</div>
+<pre><span class="c"># tokens: the sheet's own meta is the table</span>
+=== <span class="k">meta</span>
+line = "#d1d9e0"
+===
+border="1px solid <span class="k">{{line}}</span>"
+<span class="c">#  a theme change touches this one block</span>
+<span class="x"># a dangling token → unknown-token (error)</span>
+
+<span class="c"># a value is still an opaque safe string:</span>
+<span class="c"># [A-Za-z0-9 #%.,()+-/_]</span>
+<span class="c"># calc() rgb() pass (parens are on the list)</span>
+<span class="x"># url( and /* are refused by name</span></pre></div>
+  </div>
+  <p class="take">The open-valued words (<code>width</code> <code>color</code> <code>border</code>) reach the
+  CSS text as written, and a stylesheet is untrusted input — a single
+  <code>width="0} body{display:none} .x{"</code> would rewrite the page — so there is a character allowlist,
+  and what it refuses is reported rather than dropped.
+  <b>Variables are answered by tokens</b>: every key in the sheet's own <code>meta</code> can be written
+  <code>{{key}}</code> inside any attribute, expanded at load, <b>keeping its type</b> (so a numeric word can
+  be fed one), and expanded before <code>safeCssValue</code> — which is why "a value is an opaque string"
+  survives intact. Measured: 13 keys feeding 75 references, with bare colour values down to 8.
+  The cost is that this is not the equivalent of a CSS custom property — there is no scope and no cascading
+  override. It is <b>textual substitution at load time</b>, one table per sheet.</p>
+</section>
+
+<section class="dim">
+  <div class="dim-head"><span class="dim-n">06</span><h3>Placement — the dimension CSS does not have</h3><span class="chip odd">counterintuitive</span></div>
+  <div class="pair">
+    <div class="side a"><div class="side-label">CSS</div>
+<pre><span class="c">/* CSS never decides where content appears.
+   DOM order = whatever the HTML said.
+   order / grid-area can rearrange,
+   but cannot move a block into
+   a different container. */</span></pre></div>
+    <div class="side b"><div class="side-label">geml-style</div>
+<pre>=== <span class="k">style-frame</span> {#header
+     axis="row"
+     slots="text#logo,
+            text#nav link,
+            #search-box"}
+===
+<span class="c"># the slots decide which blocks enter this
+# region and in what order. Not one line in
+# the content document says it belongs here.</span></pre></div>
+  </div>
+  <p class="take">This dimension does not exist in CSS, so "does it match expectations" does not apply — it is
+  closer to XSLT or a template engine than to a stylesheet. The measured effect: <code>page.geml</code>
+  holds <b>content only</b>, not one word of chrome text, and 27 frames assemble it into that GitHub page.
+  <b>This is the most valuable thing in the design, and the one most easily misread by someone coming from
+  CSS</b> — the word "stylesheet" is already inaccurate here. It is a layout sheet.</p>
+</section>
+
+<section class="dim">
+  <div class="dim-head"><span class="dim-n">07</span><h3>State</h3><span class="chip same">near enough</span></div>
+  <div class="pair">
+    <div class="side a"><div class="side-label">CSS</div>
+<pre>a:hover { color: blue }
+input:checked ~ .panel { display: block }
+<span class="c">/* anything richer → :has(), the checkbox
+   hack, or hand it to JS */</span></pre></div>
+    <div class="side b"><div class="side-label">geml-style</div>
+<pre>=== <span class="k">style-state</span> {#tab match="..."
+     on="click" init-value="preview"}
+===
+=== <span class="k">style-rule</span> {match="#pane"
+     when="<span class="k">$tab=code</span>" visible="yes"}
+===
+=== <span class="k">style-rule</span> {match="text#nav link"
+     when="<span class="k">@hover</span>" underline="yes"}
+===</pre></div>
+  </div>
+  <p class="take"><code>@hover</code> / <code>@focus</code> are built in and translate straight to
+  <code>:hover</code> / <code>:focus-visible</code>; your CSS intuition transfers unchanged. What is genuinely
+  added is <b>named state</b>: <code>$tab=code</code> is an explicit cell with an initial value and a declared
+  interaction feeding it, not something reconstructed out of DOM structure. The data flow is pinned to
+  <code>interaction → state → view</code> and state never reads state, so there are no cycles — and
+  correspondingly no <code>binding-cycle</code> in the diagnostics catalogue. What CSS does with the checkbox
+  hack is a first-class citizen here.</p>
+</section>
+
+<section class="dim">
+  <div class="dim-head"><span class="dim-n">08</span><h3>At-rules</h3><span class="chip diff">deliberately different</span></div>
+  <div class="pair">
+    <div class="side a"><div class="side-label">CSS</div>
+<pre>@media (max-width: 767px) { ... }
+@supports (display: grid) { ... }
+@layer base, theme;
+@keyframes fade { ... }
+@font-face { ... }
+@container (min-width: 40em) { ... }</pre></div>
+    <div class="side b"><div class="side-label">geml-style</div>
+<pre>hide-below="768"   <span class="c"># the only responsiveness</span>
+fade-out="1.2"     <span class="c"># the only animation</span>
+<span class="c"># layers → from style-entry, not an at-rule</span>
+
+<span class="c"># no equivalent of @supports, @container,
+# @font-face or @keyframes.
+# The prefers-reduced-motion concession is
+# hard-coded in the host's static sheet.</span></pre></div>
+  </div>
+  <p class="take">Responsiveness is down to one breakpoint in one direction (below N px, hide), and animation
+  to one kind (drawn, then fading itself out). Both came from "fence it to the first real use, add nothing
+  more". <b>The honest reading: this is not a design position, it is not having got there yet.</b> The first
+  time someone wants two columns to become one on a narrow screen — rather than one of them disappearing —
+  <code>hide-below</code> is not enough.</p>
+</section>
+
+<section class="dim">
+  <div class="dim-head"><span class="dim-n">09</span><h3>Inheritance</h3><span class="chip odd">counterintuitive</span></div>
+  <div class="pair">
+    <div class="side a"><div class="side-label">CSS</div>
+<pre><span class="c">/* every property declares whether it inherits.
+   color does, border does not.
+   inherit / initial / unset / revert
+   are available at all times. */</span>
+.child { color: inherit }</pre></div>
+    <div class="side b"><div class="side-label">geml-style</div>
+<pre><span class="c"># §10: "inheritance is the host's to decide;
+#       this profile does not describe it."
+# The box is flat; inheritance belongs to
+# the host's medium, not to the profile.</span>
+<span class="k">a host that emits CSS</span>
+color="{{fg}}"    <span class="c">→ children follow</span>
+border="1px ..."  <span class="c">→ they do not</span>
+
+<span class="k">a host drawing to canvas / setting a PDF</span>
+<span class="c">→ its own call; allowed to differ</span></pre></div>
+  </div>
+  <p class="take">The view model (<code>{states, screens, frames, bindings, diagnostics}</code>) has a flat
+  box; inheritance is not in it. Swap in a host that does not emit CSS — drawing to a canvas, setting a PDF —
+  and the same stylesheet may render differently. <b>What matters is that this is now <u>written down</u>
+  rather than overlooked</b>: §10 says plainly that inheritance is the host's to decide and the profile does
+  not describe it. That is stating the gap, not closing it: pinning inheritance down would mean re-deciding
+  "inherits / does not" for all 28 words, and no consumer needs that today.
+  <b>So it stays counterintuitive, but the reason moved from "not thought through" to "thought through, and
+  deliberately not governed"</b> — for a specification, that difference is the whole thing.</p>
+</section>
+
+<section class="dim">
+  <div class="dim-head"><span class="dim-n">10</span><h3>Error philosophy</h3><span class="chip diff">deliberately different</span></div>
+  <div class="pair">
+    <div class="side a"><div class="side-label">CSS</div>
+<pre><span class="c">/* forgiveness is a design goal:
+   an unrecognised declaration, selector or
+   at-rule is dropped and parsing continues.
+   The page always renders.
+   The price: a typo never tells you. */</span></pre></div>
+    <div class="side b"><div class="side-label">geml-style</div>
+<pre><span class="c"># 20 named diagnostics (13 error / 7 warning)</span>
+selector-unsupported   <span class="x">error</span>
+ambiguous-rule         <span class="x">error</span>
+unknown-state/screen/frame  <span class="x">error</span>
+frame-cycle / frame-too-deep <span class="x">error</span>
+screen-nested          <span class="x">error</span>
+unknown-token          <span class="x">error</span>
+style-invalid-value    <span class="x">error</span>
+
+unmatched-rule         <span class="c">warning</span>
+unused-frame           <span class="c">warning</span>
+unknown-component      <span class="c">warning</span>
+style-unknown-attribute <span class="c">warning</span>
+style-embed-not-expanded <span class="c">warning</span></pre></div>
+  </div>
+  <p class="take">The severity line is drawn clearly: <b>structural faults are errors (ambiguity, dangling
+  references, cycles); unknown names are warnings with a lazy fallback</b>. The second half protects forward
+  compatibility — a name you do not recognise must degrade, not reject the whole document.
+  <code>geml check</code> runs the entire set, whereas the nearest thing on the CSS side (stylelint) is a
+  third-party tool and not part of any specification. geml-style wins this dimension outright.</p>
+</section>
+
+<h2>Three places it breaks your expectations, and should</h2>
+
+<div class="verdict good">
+  <h4>① An ambiguity is an error, not "the later one wins"</h4>
+  <p>The first <code>ambiguous-rule</code> reads like the tool being pedantic. But this format's reader is an
+  agent: <code>geml set</code> and <code>geml add --before</code> reorder blocks all day, and any arbitration
+  resting on source order silently re-renders under that kind of edit. <b>Refusing to guess is correct.</b>
+  The one thing still owed is diagnostic prose good enough to show you how to pull the two rules apart.</p>
+</div>
+
+<div class="verdict good">
+  <h4>② The stylesheet decides where content goes</h4>
+  <p><code>slots=</code> has no counterpart in CSS, and this step walks out past the definition of "style".
+  The measured gain is hard: zero chrome text in <code>page.geml</code>, and all 27 regions of a GitHub page
+  assembled by the sheet. <b>The cost is a misleading name</b> — worth saying at the top of the profile that
+  this is not CSS's equivalent but a layout sheet that also carries style, so nobody arrives holding CSS
+  expectations.</p>
+</div>
+
+<div class="verdict good">
+  <h4>③ The property table is a closed 28 words</h4>
+  <p>CSS's open property set is why it became a universal language, and also why it cannot be checked
+  statically. Twenty-eight words plus the test "does it still mean the same on a different block" is a
+  position that holds together. <b>The slope to guard is this</b>: two more words per new page — this round
+  added <code>view</code>, <code>editable</code>, <code>fade-out</code> and <code>underline</code> — and by
+  word eighty the benefit of "closed" is gone while the cost remains.</p>
+</div>
+
+<h2>Two still open — both "not there yet", not "got it wrong"</h2>
+<p class="sec-note">The three gaps this comparison turned up — tokens, shorthands, inheritance — are all
+written into the profile now. What is left is not misjudgement; it is use that has not pushed hard enough yet.</p>
+
+<div class="verdict bad">
+  <h4>① Responsiveness runs in one direction only</h4>
+  <p><code>hide-below="768"</code> is the whole of it: narrower than N px, hide. No <code>@container</code>,
+  no breakpoint ranges, no "two columns become one" — only "one of the two columns disappears".</p>
+  <p>It is the product of "fence it to the first real use, add nothing more", and the position itself holds.
+  <b>But it will not survive the next use</b>: any layout that must reflow rather than hide on a narrow
+  screen asks immediately for something beyond <code>hide-below</code>. What is owed then is not one word but
+  a breakpoint model — and a breakpoint model and placement (the <code>slots</code> of §06) are two faces of
+  one thing, which cannot be designed apart.</p>
+</div>
+
+<div class="verdict bad">
+  <h4>② Part of the vocabulary is specified and checked but never exercised</h4>
+  <p>The profile's own §0.1 lists them in its right-hand column: <code>filter=</code> has never run against
+  real noise (every edge in the codemap corpus is <code>kind=call</code> with empty confidence — nothing to
+  filter), and <code>handler=</code> has no real host.</p>
+  <p><b>This counts as a problem not because those words might be buggy, but because the entire force of the
+  "closed vocabulary" position comes from every word having been forced out by a real use.</b> A word no use
+  forced out is indistinguishable from a CSS property that was defined and left waiting for someone to need
+  it — which is exactly where the slope in ③ above begins. To its credit, the profile breaks this column out
+  on its own and states what it buys.</p>
+</div>
+
+<h2>In one sentence</h2>
+<p class="thesis" style="margin-bottom:0">
+  geml-style is not "another CSS"; it is <strong>a layout sheet for an agent to edit, which also carries
+  style</strong>. On selectors, properties and at-rules it is a restricted subset of CSS and a CSS reader
+  will not get lost; on the cascade and on placement it is a different system, and both departures have
+  reasons that hold. The three gaps this comparison forced out — <strong>tokens</strong>,
+  <strong>shorthand arbitration</strong>, and <strong>inheritance written down as the host's to decide</strong>
+  — are in the profile now. What is left that is "not like CSS" is not a problem; it is the part no use has
+  pushed on yet.
+</p>
+
+<footer>
+  Readings taken from <code>playground/style-demo/_index/github.style.geml</code>
+  (104 style blocks: 1 screen · 27 frame · 6 state · 70 rule),
+  <code>geml-parser/src/style-resolve.ts</code> (<code>BOX_WORDS</code> 28), and
+  <code>spec/profiles/geml-style/geml-style-profile.md</code> §1.2 §4 §8 §10.
+  The 20 diagnostics are counted off the §8 catalogue; tokens and shorthand arbitration were measured on the
+  current branch, not inferred.
+  <div>This page: <code>docs/illustrated/geml-style-vs-css.html</code>; Chinese version
+  <code>geml-style-vs-css_CN.html</code>.
+  Profile document: <code>spec/profiles/geml-style/geml-style-profile.md</code>.</div>
+</footer>
+
+</div>
