@@ -8,7 +8,7 @@ resolution-default = cpg
 
 # geml-parser/profiles.ts
 
-=== code {#vocabularyFor src=geml-parser/src/profiles.ts#L131-149 anchor="scip-typescript npm @geml/geml 1.10.2 src/`profiles.ts`/vocabularyFor()."}
+=== code {#vocabularyFor src=geml-parser/src/profiles.ts#L131-149 anchor="scip-typescript npm @geml/geml 1.10.3 src/`profiles.ts`/vocabularyFor()."}
 ===
 
 === table {#called-by format=csv}

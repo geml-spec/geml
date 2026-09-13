@@ -7,217 +7,217 @@ resolution-default = cpg
 
 # geml-parser/cli.ts
 
-=== code {#ViewError-new .leaf name="ViewError.new" src=geml-parser/src/cli.ts#L58-58 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/ViewError#`<constructor>`()."}
+=== code {#ViewError-new .leaf name="ViewError.new" src=geml-parser/src/cli.ts#L58-58 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/ViewError#`<constructor>`()."}
 ===
 
-=== code {#readConfined src=geml-parser/src/cli.ts#L66-78 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/readConfined()."}
+=== code {#readConfined src=geml-parser/src/cli.ts#L66-78 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/readConfined()."}
 ===
 
-=== code {#oneHop src=geml-parser/src/cli.ts#L82-114 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/oneHop()."}
+=== code {#oneHop src=geml-parser/src/cli.ts#L82-114 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/oneHop()."}
 ===
 
-=== code {#shownPath src=geml-parser/src/cli.ts#L120-123 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/shownPath()."}
+=== code {#shownPath src=geml-parser/src/cli.ts#L120-123 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/shownPath()."}
 ===
 
-=== code {#viewResolve src=geml-parser/src/cli.ts#L125-152 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/viewResolve()."}
+=== code {#viewResolve src=geml-parser/src/cli.ts#L125-152 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/viewResolve()."}
 ===
 
-=== code {#embedSrcOf src=geml-parser/src/cli.ts#L156-161 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/embedSrcOf()."}
+=== code {#embedSrcOf src=geml-parser/src/cli.ts#L156-161 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/embedSrcOf()."}
 ===
 
-=== code {#rejectUnknownFlags src=geml-parser/src/cli.ts#L366-392 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/rejectUnknownFlags()."}
+=== code {#rejectUnknownFlags src=geml-parser/src/cli.ts#L366-392 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/rejectUnknownFlags()."}
 ===
 
-=== code {#fail src=geml-parser/src/cli.ts#L394-398 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/fail()."}
+=== code {#fail src=geml-parser/src/cli.ts#L394-398 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/fail()."}
 ===
 
-=== code {#refuseBroken src=geml-parser/src/cli.ts#L406-412 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/refuseBroken()."}
+=== code {#refuseBroken src=geml-parser/src/cli.ts#L406-412 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/refuseBroken()."}
 ===
 
-=== code {#readInput src=geml-parser/src/cli.ts#L415-421 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/readInput()."}
+=== code {#readInput src=geml-parser/src/cli.ts#L415-421 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/readInput()."}
 ===
 
-=== code {#resolverFor src=geml-parser/src/cli.ts#L444-483 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/resolverFor()."}
+=== code {#resolverFor src=geml-parser/src/cli.ts#L444-483 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/resolverFor()."}
 ===
 
-=== code {#existsFor src=geml-parser/src/cli.ts#L490-515 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/existsFor()."}
+=== code {#existsFor src=geml-parser/src/cli.ts#L490-515 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/existsFor()."}
 ===
 
-=== code {#useRoot src=geml-parser/src/cli.ts#L533-538 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/useRoot()."}
+=== code {#useRoot src=geml-parser/src/cli.ts#L533-538 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/useRoot()."}
 ===
 
-=== code {#docOpts src=geml-parser/src/cli.ts#L540-542 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/docOpts()."}
+=== code {#docOpts src=geml-parser/src/cli.ts#L540-542 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/docOpts()."}
 ===
 
-=== code {#runCheck src=geml-parser/src/cli.ts#L546-568 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/runCheck()."}
+=== code {#runCheck src=geml-parser/src/cli.ts#L546-568 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/runCheck()."}
 ===
 
-=== code {#historyError src=geml-parser/src/cli.ts#L573-581 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/historyError()."}
+=== code {#historyError src=geml-parser/src/cli.ts#L573-581 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/historyError()."}
 ===
 
-=== code {#historyPositionals src=geml-parser/src/cli.ts#L591-600 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/historyPositionals()."}
+=== code {#historyPositionals src=geml-parser/src/cli.ts#L591-600 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/historyPositionals()."}
 ===
 
-=== code {#runHistory src=geml-parser/src/cli.ts#L602-707 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/runHistory()."}
+=== code {#runHistory src=geml-parser/src/cli.ts#L602-707 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/runHistory()."}
 ===
 
-=== code {#runTransform src=geml-parser/src/cli.ts#L722-892 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/runTransform()."}
+=== code {#runTransform src=geml-parser/src/cli.ts#L722-892 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/runTransform()."}
 ===
 
-=== code {#loadModelJson src=geml-parser/src/cli.ts#L899-913 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/loadModelJson()."}
+=== code {#loadModelJson src=geml-parser/src/cli.ts#L899-913 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/loadModelJson()."}
 ===
 
-=== code {#writeOut src=geml-parser/src/cli.ts#L916-919 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/writeOut()."}
+=== code {#writeOut src=geml-parser/src/cli.ts#L916-919 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/writeOut()."}
 ===
 
-=== code {#resolveOutTarget src=geml-parser/src/cli.ts#L929-938 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/resolveOutTarget()."}
+=== code {#resolveOutTarget src=geml-parser/src/cli.ts#L929-938 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/resolveOutTarget()."}
 ===
 
-=== code {#typeLiteral481-write .leaf name="typeLiteral481:write" src=geml-parser/src/cli.ts#L929-929 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/resolveOutTarget().typeLiteral481:write()."}
+=== code {#typeLiteral481-write .leaf name="typeLiteral481:write" src=geml-parser/src/cli.ts#L929-929 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/resolveOutTarget().typeLiteral481:write()."}
 ===
 
-=== code {#positionals src=geml-parser/src/cli.ts#L944-954 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/positionals()."}
+=== code {#positionals src=geml-parser/src/cli.ts#L944-954 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/positionals()."}
 ===
 
-=== code {#resolveSelector src=geml-parser/src/cli.ts#L977-1016 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/resolveSelector()."}
+=== code {#resolveSelector src=geml-parser/src/cli.ts#L977-1016 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/resolveSelector()."}
 ===
 
-=== code {#columns src=geml-parser/src/cli.ts#L1032-1048 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/columns()."}
+=== code {#columns src=geml-parser/src/cli.ts#L1032-1048 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/columns()."}
 ===
 
-=== code {#pad src=geml-parser/src/cli.ts#L1049-1051 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/pad()."}
+=== code {#pad src=geml-parser/src/cli.ts#L1049-1051 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/pad()."}
 ===
 
-=== code {#listIds src=geml-parser/src/cli.ts#L1053-1121 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/listIds()."}
+=== code {#listIds src=geml-parser/src/cli.ts#L1053-1121 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/listIds()."}
 ===
 
-=== code {#blocksOfType src=geml-parser/src/cli.ts#L1140-1152 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/blocksOfType()."}
+=== code {#blocksOfType src=geml-parser/src/cli.ts#L1140-1152 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/blocksOfType()."}
 ===
 
-=== code {#typeIndex src=geml-parser/src/cli.ts#L1155-1157 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/typeIndex()."}
+=== code {#typeIndex src=geml-parser/src/cli.ts#L1155-1157 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/typeIndex()."}
 ===
 
-=== code {#selectUnits src=geml-parser/src/cli.ts#L1165-1251 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/selectUnits()."}
+=== code {#selectUnits src=geml-parser/src/cli.ts#L1165-1251 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/selectUnits()."}
 ===
 
-=== code {#reservedMeta src=geml-parser/src/cli.ts#L1258-1265 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/reservedMeta()."}
+=== code {#reservedMeta src=geml-parser/src/cli.ts#L1258-1265 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/reservedMeta()."}
 ===
 
-=== code {#unitNode src=geml-parser/src/cli.ts#L1270-1283 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/unitNode()."}
+=== code {#unitNode src=geml-parser/src/cli.ts#L1270-1283 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/unitNode()."}
 ===
 
-=== code {#reportMatches src=geml-parser/src/cli.ts#L1287-1290 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/reportMatches()."}
+=== code {#reportMatches src=geml-parser/src/cli.ts#L1287-1290 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/reportMatches()."}
 ===
 
-=== code {#runList src=geml-parser/src/cli.ts#L1307-1317 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/runList()."}
+=== code {#runList src=geml-parser/src/cli.ts#L1307-1317 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/runList()."}
 ===
 
-=== code {#gemlFilesUnder src=geml-parser/src/cli.ts#L1330-1338 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/gemlFilesUnder()."}
+=== code {#gemlFilesUnder src=geml-parser/src/cli.ts#L1330-1338 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/gemlFilesUnder()."}
 ===
 
-=== code {#runFind src=geml-parser/src/cli.ts#L1347-1419 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/runFind()."}
+=== code {#runFind src=geml-parser/src/cli.ts#L1347-1419 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/runFind()."}
 ===
 
-=== code {#runGet src=geml-parser/src/cli.ts#L1421-1556 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/runGet()."}
+=== code {#runGet src=geml-parser/src/cli.ts#L1421-1556 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/runGet()."}
 ===
 
-=== code {#runReplace src=geml-parser/src/cli.ts#L1572-1670 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/runReplace()."}
+=== code {#runReplace src=geml-parser/src/cli.ts#L1572-1670 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/runReplace()."}
 ===
 
-=== code {#runSet src=geml-parser/src/cli.ts#L1690-1773 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/runSet()."}
+=== code {#runSet src=geml-parser/src/cli.ts#L1690-1773 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/runSet()."}
 ===
 
-=== code {#resolveSetTarget src=geml-parser/src/cli.ts#L1783-1803 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/resolveSetTarget()."}
+=== code {#resolveSetTarget src=geml-parser/src/cli.ts#L1783-1803 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/resolveSetTarget()."}
 ===
 
-=== code {#reportNewAddress src=geml-parser/src/cli.ts#L1808-1812 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/reportNewAddress()."}
+=== code {#reportNewAddress src=geml-parser/src/cli.ts#L1808-1812 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/reportNewAddress()."}
 ===
 
-=== code {#runSetIntro src=geml-parser/src/cli.ts#L1825-1849 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/runSetIntro()."}
+=== code {#runSetIntro src=geml-parser/src/cli.ts#L1825-1849 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/runSetIntro()."}
 ===
 
-=== code {#runSetBody src=geml-parser/src/cli.ts#L1851-1882 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/runSetBody()."}
+=== code {#runSetBody src=geml-parser/src/cli.ts#L1851-1882 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/runSetBody()."}
 ===
 
-=== code {#runSetMeta src=geml-parser/src/cli.ts#L1892-1938 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/runSetMeta()."}
+=== code {#runSetMeta src=geml-parser/src/cli.ts#L1892-1938 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/runSetMeta()."}
 ===
 
-=== code {#runSetCoord src=geml-parser/src/cli.ts#L1944-1986 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/runSetCoord()."}
+=== code {#runSetCoord src=geml-parser/src/cli.ts#L1944-1986 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/runSetCoord()."}
 ===
 
-=== code {#runAdd src=geml-parser/src/cli.ts#L1993-2031 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/runAdd()."}
+=== code {#runAdd src=geml-parser/src/cli.ts#L1993-2031 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/runAdd()."}
 ===
 
-=== code {#insertFragment src=geml-parser/src/cli.ts#L2038-2066 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/insertFragment()."}
+=== code {#insertFragment src=geml-parser/src/cli.ts#L2038-2066 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/insertFragment()."}
 ===
 
-=== code {#runDelete src=geml-parser/src/cli.ts#L2076-2105 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/runDelete()."}
+=== code {#runDelete src=geml-parser/src/cli.ts#L2076-2105 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/runDelete()."}
 ===
 
-=== code {#runRename src=geml-parser/src/cli.ts#L2110-2156 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/runRename()."}
+=== code {#runRename src=geml-parser/src/cli.ts#L2110-2156 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/runRename()."}
 ===
 
-=== code {#rewriteId src=geml-parser/src/cli.ts#L2166-2185 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/rewriteId()."}
+=== code {#rewriteId src=geml-parser/src/cli.ts#L2166-2185 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/rewriteId()."}
 ===
 
-=== code {#extractBlock src=geml-parser/src/cli.ts#L2193-2206 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/extractBlock()."}
+=== code {#extractBlock src=geml-parser/src/cli.ts#L2193-2206 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/extractBlock()."}
 ===
 
-=== code {#flag src=geml-parser/src/cli.ts#L2210-2213 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/flag()."}
+=== code {#flag src=geml-parser/src/cli.ts#L2210-2213 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/flag()."}
 ===
 
-=== code {#bodyRange src=geml-parser/src/cli.ts#L2219-2230 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/bodyRange()."}
+=== code {#bodyRange src=geml-parser/src/cli.ts#L2219-2230 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/bodyRange()."}
 ===
 
-=== code {#contentShape src=geml-parser/src/cli.ts#L2236-2247 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/contentShape()."}
+=== code {#contentShape src=geml-parser/src/cli.ts#L2236-2247 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/contentShape()."}
 ===
 
-=== code {#spliceBlock src=geml-parser/src/cli.ts#L2255-2259 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/spliceBlock()."}
+=== code {#spliceBlock src=geml-parser/src/cli.ts#L2255-2259 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/spliceBlock()."}
 ===
 
-=== code {#countBlockUnits src=geml-parser/src/cli.ts#L2268-2272 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/countBlockUnits()."}
+=== code {#countBlockUnits src=geml-parser/src/cli.ts#L2268-2272 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/countBlockUnits()."}
 ===
 
-=== code {#forgives src=geml-parser/src/cli.ts#L2300-2300 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/forgives."}
+=== code {#forgives src=geml-parser/src/cli.ts#L2300-2300 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/forgives."}
 ===
 
-=== code {#errorKey .leaf src=geml-parser/src/cli.ts#L2310-2310 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/errorKey."}
+=== code {#errorKey .leaf src=geml-parser/src/cli.ts#L2310-2310 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/errorKey."}
 ===
 
-=== code {#predated src=geml-parser/src/cli.ts#L2311-2314 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/predated()."}
+=== code {#predated src=geml-parser/src/cli.ts#L2311-2314 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/predated()."}
 ===
 
-=== code {#refusalProse src=geml-parser/src/cli.ts#L2318-2328 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/refusalProse()."}
+=== code {#refusalProse src=geml-parser/src/cli.ts#L2318-2328 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/refusalProse()."}
 ===
 
-=== code {#errorsAdded src=geml-parser/src/cli.ts#L2330-2350 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/errorsAdded()."}
+=== code {#errorsAdded src=geml-parser/src/cli.ts#L2330-2350 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/errorsAdded()."}
 ===
 
-=== code {#spliceSpan src=geml-parser/src/cli.ts#L2352-2443 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/spliceSpan()."}
+=== code {#spliceSpan src=geml-parser/src/cli.ts#L2352-2443 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/spliceSpan()."}
 ===
 
-=== code {#runRevert src=geml-parser/src/cli.ts#L2452-2613 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/runRevert()."}
+=== code {#runRevert src=geml-parser/src/cli.ts#L2452-2610 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/runRevert()."}
 ===
 
-=== code {#resurrectPosition src=geml-parser/src/cli.ts#L2621-2651 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/resurrectPosition()."}
+=== code {#resurrectPosition src=geml-parser/src/cli.ts#L2618-2648 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/resurrectPosition()."}
 ===
 
-=== code {#runCodemap src=geml-parser/src/cli.ts#L2657-2679 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/runCodemap()."}
+=== code {#runCodemap src=geml-parser/src/cli.ts#L2654-2676 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/runCodemap()."}
 ===
 
-=== code {#runStyle src=geml-parser/src/cli.ts#L2685-2735 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/runStyle()."}
+=== code {#runStyle src=geml-parser/src/cli.ts#L2682-2732 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/runStyle()."}
 ===
 
-=== code {#runMcp src=geml-parser/src/cli.ts#L2742-2746 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/runMcp()."}
+=== code {#runMcp src=geml-parser/src/cli.ts#L2739-2743 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/runMcp()."}
 ===
 
-=== code {#skillTextFor src=geml-parser/src/cli.ts#L2777-2782 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/skillTextFor()."}
+=== code {#skillTextFor src=geml-parser/src/cli.ts#L2774-2779 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/skillTextFor()."}
 ===
 
-=== code {#installOtherTools src=geml-parser/src/cli.ts#L2784-2823 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/installOtherTools()."}
+=== code {#installOtherTools src=geml-parser/src/cli.ts#L2781-2820 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/installOtherTools()."}
 ===
 
-=== code {#runSkill src=geml-parser/src/cli.ts#L2825-2940 anchor="scip-typescript npm @geml/geml 1.10.2 src/`cli.ts`/runSkill()."}
+=== code {#runSkill src=geml-parser/src/cli.ts#L2822-2937 anchor="scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/runSkill()."}
 ===
 
 === table {#calls format=csv}
@@ -660,7 +660,6 @@ from,                to,                                                kind, co
 #runRevert,          #fail,                                             call,
 #runRevert,          #fail,                                             call,
 #runRevert,          #fail,                                             call,
-#runRevert,          #fail,                                             call,
 #runRevert,          #flag,                                             call,
 #runRevert,          #flag,                                             call,
 #runRevert,          #flag,                                             call,
@@ -839,33 +838,32 @@ from,                to,                    kind, site
 #spliceSpan,         #fail,                 call, geml-parser/src/cli.ts:2393
 #spliceSpan,         #fail,                 call, geml-parser/src/cli.ts:2425
 #spliceSpan,         #fail,                 call, geml-parser/src/cli.ts:2439
-#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2463
-#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2468
-#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2472
-#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2473
-#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2506
-#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2511
-#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2527
-#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2554
-#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2567
-#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2592
-#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2611
-#resurrectPosition,  #fail,                 call, geml-parser/src/cli.ts:2631
-#resurrectPosition,  #fail,                 call, geml-parser/src/cli.ts:2637
+#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2465
+#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2469
+#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2470
+#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2503
+#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2508
+#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2524
+#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2551
+#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2564
+#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2589
+#runRevert,          #fail,                 call, geml-parser/src/cli.ts:2608
+#resurrectPosition,  #fail,                 call, geml-parser/src/cli.ts:2628
+#resurrectPosition,  #fail,                 call, geml-parser/src/cli.ts:2634
+#runCodemap,         #fail,                 call, geml-parser/src/cli.ts:2669
 #runCodemap,         #fail,                 call, geml-parser/src/cli.ts:2672
-#runCodemap,         #fail,                 call, geml-parser/src/cli.ts:2675
-#runStyle,           #fail,                 call, geml-parser/src/cli.ts:2687
-#runStyle,           #fail,                 call, geml-parser/src/cli.ts:2691
-#runStyle,           #fail,                 call, geml-parser/src/cli.ts:2692
-#runSkill,           #fail,                 call, geml-parser/src/cli.ts:2827
-#runSkill,           #fail,                 call, geml-parser/src/cli.ts:2838
-#runSkill,           #fail,                 call, geml-parser/src/cli.ts:2846
-#runSkill,           #fail,                 call, geml-parser/src/cli.ts:2851
+#runStyle,           #fail,                 call, geml-parser/src/cli.ts:2684
+#runStyle,           #fail,                 call, geml-parser/src/cli.ts:2688
+#runStyle,           #fail,                 call, geml-parser/src/cli.ts:2689
+#runSkill,           #fail,                 call, geml-parser/src/cli.ts:2824
+#runSkill,           #fail,                 call, geml-parser/src/cli.ts:2835
+#runSkill,           #fail,                 call, geml-parser/src/cli.ts:2843
+#runSkill,           #fail,                 call, geml-parser/src/cli.ts:2848
 #runReplace,         #refuseBroken,         call, geml-parser/src/cli.ts:1656
 #insertFragment,     #refuseBroken,         call, geml-parser/src/cli.ts:2060
 #runRename,          #refuseBroken,         call, geml-parser/src/cli.ts:2142
 #spliceSpan,         #refuseBroken,         call, geml-parser/src/cli.ts:2406
-#runRevert,          #refuseBroken,         call, geml-parser/src/cli.ts:2607
+#runRevert,          #refuseBroken,         call, geml-parser/src/cli.ts:2604
 #runCheck,           #readInput,            call, geml-parser/src/cli.ts:558
 #runTransform,       #readInput,            call, geml-parser/src/cli.ts:778
 #runList,            #readInput,            call, geml-parser/src/cli.ts:1316
@@ -882,11 +880,11 @@ from,                to,                    kind, site
 #runAdd,             #readInput,            call, geml-parser/src/cli.ts:2014
 #runDelete,          #readInput,            call, geml-parser/src/cli.ts:2085
 #runRename,          #readInput,            call, geml-parser/src/cli.ts:2119
-#runRevert,          #readInput,            call, geml-parser/src/cli.ts:2477
+#runRevert,          #readInput,            call, geml-parser/src/cli.ts:2474
 #existsFor,          #resolverFor,          call, geml-parser/src/cli.ts:491
 #docOpts,            #resolverFor,          call, geml-parser/src/cli.ts:541
 #runTransform,       #resolverFor,          call, geml-parser/src/cli.ts:816
-#runStyle,           #resolverFor,          call, geml-parser/src/cli.ts:2714
+#runStyle,           #resolverFor,          call, geml-parser/src/cli.ts:2711
 #docOpts,            #existsFor,            call, geml-parser/src/cli.ts:541
 #runList,            #useRoot,              call, geml-parser/src/cli.ts:1309
 #runGet,             #useRoot,              call, geml-parser/src/cli.ts:1428
@@ -895,7 +893,7 @@ from,                to,                    kind, site
 #runAdd,             #useRoot,              call, geml-parser/src/cli.ts:2002
 #runDelete,          #useRoot,              call, geml-parser/src/cli.ts:2079
 #runRename,          #useRoot,              call, geml-parser/src/cli.ts:2113
-#runRevert,          #useRoot,              call, geml-parser/src/cli.ts:2471
+#runRevert,          #useRoot,              call, geml-parser/src/cli.ts:2468
 #runCheck,           #docOpts,              call, geml-parser/src/cli.ts:558
 #runTransform,       #docOpts,              call, geml-parser/src/cli.ts:798
 #runTransform,       #docOpts,              call, geml-parser/src/cli.ts:800
@@ -915,11 +913,11 @@ from,                to,                    kind, site
 #rewriteId,          #docOpts,              call, geml-parser/src/cli.ts:2167
 #spliceSpan,         #docOpts,              call, geml-parser/src/cli.ts:2356
 #spliceSpan,         #docOpts,              call, geml-parser/src/cli.ts:2391
-#runRevert,          #docOpts,              call, geml-parser/src/cli.ts:2601
-#runRevert,          #docOpts,              call, geml-parser/src/cli.ts:2603
-#runStyle,           #docOpts,              call, geml-parser/src/cli.ts:2715
+#runRevert,          #docOpts,              call, geml-parser/src/cli.ts:2598
+#runRevert,          #docOpts,              call, geml-parser/src/cli.ts:2600
+#runStyle,           #docOpts,              call, geml-parser/src/cli.ts:2712
 #runHistory,         #historyError,         call, geml-parser/src/cli.ts:705
-#runRevert,          #historyError,         call, geml-parser/src/cli.ts:2511
+#runRevert,          #historyError,         call, geml-parser/src/cli.ts:2508
 #runHistory,         #historyPositionals,   call, geml-parser/src/cli.ts:603
 #runTransform,       #loadModelJson,        call, geml-parser/src/cli.ts:794
 #runTransform,       #writeOut,             call, geml-parser/src/cli.ts:784
@@ -953,7 +951,7 @@ from,                to,                    kind, site
 #runAdd,             #positionals,          call, geml-parser/src/cli.ts:2001
 #runDelete,          #positionals,          call, geml-parser/src/cli.ts:2078
 #runRename,          #positionals,          call, geml-parser/src/cli.ts:2112
-#runRevert,          #positionals,          call, geml-parser/src/cli.ts:2470
+#runRevert,          #positionals,          call, geml-parser/src/cli.ts:2467
 #selectUnits,        #resolveSelector,      call, geml-parser/src/cli.ts:1230
 #pad,                #columns,              call, geml-parser/src/cli.ts:1050
 #listIds,            #columns,              call, geml-parser/src/cli.ts:1100
@@ -992,7 +990,7 @@ from,                to,                    kind, site
 #runSet,             #runSetMeta,           call, geml-parser/src/cli.ts:1729
 #runSet,             #runSetCoord,          call, geml-parser/src/cli.ts:1732
 #runAdd,             #insertFragment,       call, geml-parser/src/cli.ts:2029
-#runRevert,          #insertFragment,       call, geml-parser/src/cli.ts:2578
+#runRevert,          #insertFragment,       call, geml-parser/src/cli.ts:2575
 #runRename,          #rewriteId,            call, geml-parser/src/cli.ts:2139
 #runSet,             #extractBlock,         call, geml-parser/src/cli.ts:1755
 #runSetIntro,        #extractBlock,         call, geml-parser/src/cli.ts:1830
@@ -1027,13 +1025,13 @@ from,                to,                    kind, site
 #runRevert,          #flag,                 call, geml-parser/src/cli.ts:2455
 #runRevert,          #flag,                 call, geml-parser/src/cli.ts:2455
 #runRevert,          #flag,                 call, geml-parser/src/cli.ts:2456
-#runRevert,          #flag,                 call, geml-parser/src/cli.ts:2464
-#runRevert,          #flag,                 call, geml-parser/src/cli.ts:2465
-#runRevert,          #flag,                 call, geml-parser/src/cli.ts:2475
+#runRevert,          #flag,                 call, geml-parser/src/cli.ts:2461
+#runRevert,          #flag,                 call, geml-parser/src/cli.ts:2462
+#runRevert,          #flag,                 call, geml-parser/src/cli.ts:2472
 #rewriteId,          #bodyRange,            call, geml-parser/src/cli.ts:2173
 #extractBlock,       #bodyRange,            call, geml-parser/src/cli.ts:2204
 #runSet,             #contentShape,         call, geml-parser/src/cli.ts:1749
-#runRevert,          #spliceBlock,          call, geml-parser/src/cli.ts:2548
+#runRevert,          #spliceBlock,          call, geml-parser/src/cli.ts:2545
 #runReplace,         #countBlockUnits,      call, geml-parser/src/cli.ts:1660
 #runReplace,         #countBlockUnits,      call, geml-parser/src/cli.ts:1660
 #spliceSpan,         #countBlockUnits,      call, geml-parser/src/cli.ts:2395
@@ -1052,24 +1050,24 @@ from,                to,                    kind, site
 #runSetMeta,         #spliceSpan,           call, geml-parser/src/cli.ts:1936
 #runSetCoord,        #spliceSpan,           call, geml-parser/src/cli.ts:1984
 #spliceBlock,        #spliceSpan,           call, geml-parser/src/cli.ts:2258
-#runRevert,          #resurrectPosition,    call, geml-parser/src/cli.ts:2570
-#installOtherTools,  #skillTextFor,         call, geml-parser/src/cli.ts:2785
-#runSkill,           #installOtherTools,    call, geml-parser/src/cli.ts:2883
+#runRevert,          #resurrectPosition,    call, geml-parser/src/cli.ts:2567
+#installOtherTools,  #skillTextFor,         call, geml-parser/src/cli.ts:2782
+#runSkill,           #installOtherTools,    call, geml-parser/src/cli.ts:2880
 ===
 
 === table {#unresolved format=csv hidden}
 from,                to
+#readConfined,       PlatformPath.resolve
 #readConfined,       RegExp.test
 #readConfined,       String.startsWith
 #readConfined,       readFileSync
-#readConfined,       resolve
 #oneHop,             Array.filter
 #oneHop,             Array.map
 #oneHop,             Array.some
 #oneHop,             String.indexOf
 #oneHop,             String.slice
+#shownPath,          PlatformPath.relative
 #shownPath,          String.replace
-#shownPath,          relative
 #viewResolve,        Array.flatMap
 #viewResolve,        Array.join
 #viewResolve,        Array.map
@@ -1090,21 +1088,21 @@ from,                to
 #refuseBroken,       JSON.stringify
 #refuseBroken,       Process.exit
 #readInput,          readFileSync
+#resolverFor,        PlatformPath.dirname
+#resolverFor,        PlatformPath.isAbsolute
+#resolverFor,        PlatformPath.relative
+#resolverFor,        PlatformPath.resolve
 #resolverFor,        String.startsWith
-#resolverFor,        dirname
 #resolverFor,        existsSync
-#resolverFor,        isAbsolute
 #resolverFor,        readFileSync
 #resolverFor,        realpathSync
-#resolverFor,        relative
-#resolverFor,        resolve
+#existsFor,          PlatformPath.dirname
+#existsFor,          PlatformPath.isAbsolute
+#existsFor,          PlatformPath.relative
+#existsFor,          PlatformPath.resolve
 #existsFor,          String.startsWith
-#existsFor,          dirname
 #existsFor,          existsSync
-#existsFor,          isAbsolute
 #existsFor,          realpathSync
-#existsFor,          relative
-#existsFor,          resolve
 #useRoot,            Array.includes
 #runCheck,           Array.filter
 #runCheck,           Array.find
@@ -1113,13 +1111,12 @@ from,                to
 #runCheck,           Console.error
 #runCheck,           Console.log
 #runCheck,           JSON.stringify
+#runCheck,           PlatformPath.basename
 #runCheck,           Process.exit
 #runCheck,           StatsBase.isDirectory
 #runCheck,           String.startsWith
-#runCheck,           basename
-#runCheck,           statSync
+#historyError,       PlatformPath.basename
 #historyError,       String.endsWith
-#historyError,       basename
 #historyPositionals, Array.push
 #historyPositionals, RegExp.test
 #historyPositionals, String.startsWith
@@ -1148,12 +1145,12 @@ from,                to
 #runTransform,       Array.splice
 #runTransform,       Console.error
 #runTransform,       JSON.stringify
+#runTransform,       PlatformPath.basename
 #runTransform,       Process.exit
 #runTransform,       RegExp.test
 #runTransform,       String.replace
 #runTransform,       String.startsWith
 #runTransform,       String.trim
-#runTransform,       basename
 #loadModelJson,      ArrayConstructor.isArray
 #loadModelJson,      JSON.parse
 #writeOut,           Console.error
@@ -1171,12 +1168,12 @@ from,                to
 #resolveSelector,    Array.join
 #resolveSelector,    Array.map
 #resolveSelector,    Map.has
+#resolveSelector,    PlatformPath.basename
 #resolveSelector,    RegExp.exec
 #resolveSelector,    RegExp.test
 #resolveSelector,    String.replace
 #resolveSelector,    String.toLocaleLowerCase
 #resolveSelector,    String.trim
-#resolveSelector,    basename
 #columns,            String.codePointAt
 #pad,                Math.max
 #pad,                String.repeat
@@ -1188,9 +1185,9 @@ from,                to
 #listIds,            Console.log
 #listIds,            JSON.stringify
 #listIds,            Math.max
+#listIds,            PlatformPath.basename
 #listIds,            Set.has
 #listIds,            String.trimEnd
-#listIds,            basename
 #blocksOfType,       Array.push
 #typeIndex,          Array.filter
 #typeIndex,          Array.findIndex
@@ -1200,22 +1197,21 @@ from,                to
 #selectUnits,        Console.error
 #selectUnits,        String.startsWith
 #selectUnits,        String.trim
+#reservedMeta,       PlatformPath.basename
 #reservedMeta,       String.replace
-#reservedMeta,       basename
 #unitNode,           Array.slice
-#unitNode,           basename
+#unitNode,           PlatformPath.basename
 #reportMatches,      Array.join
 #reportMatches,      Array.map
 #reportMatches,      Console.error
 #runList,            Array.includes
 #gemlFilesUnder,     Array.push
 #gemlFilesUnder,     Array.sort
+#gemlFilesUnder,     PlatformPath.join
 #gemlFilesUnder,     StatsBase.isDirectory
 #gemlFilesUnder,     String.endsWith
 #gemlFilesUnder,     String.startsWith
-#gemlFilesUnder,     join
 #gemlFilesUnder,     readdirSync
-#gemlFilesUnder,     statSync
 #runFind,            Array.find
 #runFind,            Array.includes
 #runFind,            Array.push
@@ -1253,11 +1249,11 @@ from,                to
 #runReplace,         Array.sort
 #runReplace,         Console.error
 #runReplace,         Math.max
+#runReplace,         PlatformPath.basename
 #runReplace,         Set.add
 #runReplace,         Set.has
 #runReplace,         String.indexOf
 #runReplace,         String.slice
-#runReplace,         basename
 #runSet,             Array.filter
 #runSet,             Array.includes
 #runSet,             Array.join
@@ -1298,36 +1294,36 @@ from,                to
 #insertFragment,     Array.find
 #insertFragment,     Array.join
 #insertFragment,     Array.slice
+#insertFragment,     PlatformPath.basename
 #insertFragment,     RegExp.test
 #insertFragment,     Set.has
 #insertFragment,     String.endsWith
 #insertFragment,     String.trim
-#insertFragment,     basename
 #runDelete,          Array.filter
 #runDelete,          Array.join
 #runDelete,          Array.map
 #runDelete,          Array.slice
 #runDelete,          Console.error
 #runDelete,          Map.get
+#runDelete,          PlatformPath.basename
 #runDelete,          Set.add
 #runDelete,          Set.has
 #runDelete,          String.replace
-#runDelete,          basename
 #runRename,          Array.filter
 #runRename,          Array.join
 #runRename,          Array.some
 #runRename,          Array.sort
 #runRename,          Console.error
 #runRename,          Map.has
+#runRename,          PlatformPath.basename
 #runRename,          String.replace
-#runRename,          basename
 #runRename,          existsSync
 #rewriteId,          Array.join
 #rewriteId,          Map.get
+#rewriteId,          PlatformPath.basename
 #rewriteId,          Set.add
 #rewriteId,          Set.has
 #rewriteId,          String.replace
-#rewriteId,          basename
 #extractBlock,       Array.join
 #extractBlock,       Array.slice
 #extractBlock,       Map.get
@@ -1356,10 +1352,10 @@ from,                to
 #spliceSpan,         Array.some
 #spliceSpan,         Console.error
 #spliceSpan,         Math.max
+#spliceSpan,         PlatformPath.basename
 #spliceSpan,         Set.has
 #spliceSpan,         String.endsWith
 #spliceSpan,         String.includes
-#spliceSpan,         basename
 #runRevert,          Array.filter
 #runRevert,          Array.find
 #runRevert,          Array.includes
@@ -1367,21 +1363,21 @@ from,                to
 #runRevert,          Array.slice
 #runRevert,          Console.error
 #runRevert,          Map.get
+#runRevert,          PlatformPath.basename
 #runRevert,          Set.has
 #runRevert,          Socket.write
 #runRevert,          String.endsWith
 #runRevert,          String.replace
-#runRevert,          basename
 #runRevert,          writeFileSync
 #resurrectPosition,  Array.indexOf
 #resurrectPosition,  Map.get
 #resurrectPosition,  Map.keys
 #resurrectPosition,  String.replace
 #runCodemap,         Array.slice
+#runCodemap,         PlatformPath.dirname
+#runCodemap,         PlatformPath.join
 #runCodemap,         Process.exit
-#runCodemap,         dirname
 #runCodemap,         fileURLToPath
-#runCodemap,         join
 #runCodemap,         spawnSync
 #runStyle,           Array.filter
 #runStyle,           Array.find
@@ -1391,21 +1387,21 @@ from,                to
 #runStyle,           Console.error
 #runStyle,           Console.log
 #runStyle,           JSON.stringify
+#runStyle,           PlatformPath.basename
 #runStyle,           Process.exit
 #runStyle,           String.slice
 #runStyle,           String.split
 #runStyle,           String.startsWith
 #runStyle,           String.trim
-#runStyle,           basename
 #runStyle,           readFileSync
+#runMcp,             PlatformPath.dirname
+#runMcp,             PlatformPath.join
 #runMcp,             Process.exit
-#runMcp,             dirname
 #runMcp,             fileURLToPath
-#runMcp,             join
 #runMcp,             spawnSync
+#skillTextFor,       PlatformPath.join
 #skillTextFor,       String.replace
 #skillTextFor,       String.trimEnd
-#skillTextFor,       join
 #skillTextFor,       readFileSync
 #installOtherTools,  Console.error
 #installOtherTools,  Console.log
@@ -1426,18 +1422,18 @@ from,                to
 #runSkill,           Console.error
 #runSkill,           Console.log
 #runSkill,           Dirent.isDirectory
+#runSkill,           PlatformPath.dirname
+#runSkill,           PlatformPath.join
+#runSkill,           PlatformPath.relative
 #runSkill,           Process.exit
 #runSkill,           RegExp.exec
 #runSkill,           String.endsWith
 #runSkill,           String.trim
 #runSkill,           copyFileSync
-#runSkill,           dirname
 #runSkill,           existsSync
 #runSkill,           fileURLToPath
 #runSkill,           homedir
-#runSkill,           join
 #runSkill,           mkdirSync
 #runSkill,           readdirSync
-#runSkill,           relative
 #runSkill,           spawnSync
 ===

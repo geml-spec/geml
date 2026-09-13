@@ -1,7 +1,7 @@
 === meta
 profile = "geml-codemap/v1"
 repo = geml
-commit = 7016b7c
+commit = 903192c
 container = file
 entry = geml-viewer--content.js.geml#main
 resolution-default = cpg
@@ -56,7 +56,7 @@ geml-viewer/render-html-stub.js,  geml-viewer--render-html-stub.js.geml,  1,    
 === table {#module-edges format=csv}
 from,                          to,                               calls
 geml-parser/cli.ts,            geml-parser/geml.ts,              120
-geml-parser/style-resolve.ts,  geml-parser/style-diagnostics.ts, 45
+geml-parser/style-resolve.ts,  geml-parser/style-diagnostics.ts, 46
 geml-parser/style-resolve.ts,  geml-parser/style-selector.ts,    22
 geml-parser/cli.ts,            geml-parser/selector.ts,          15
 geml-parser/geml.ts,           geml-parser/diagnostics.ts,       13
