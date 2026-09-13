@@ -665,15 +665,14 @@ test("装载：axis 默认 column；域外值是 style-invalid-value 错误", ()
   assert.equal(bad.frames[0].axis, "column");
 });
 
-test("装载：screen/frame 上的 component= 是宿主命名的排布；layout= 已改名，报 warning 并指路", () => {
+test("装载：screen/frame 上的 component= 是宿主命名的排布；改掉的旧键就是未知键", () => {
   const s = sheet(
     '=== style-screen {#a component=grid slots="table"}\n===\n\n' +
     '=== style-screen {#b layout=split slots="table"}\n===\n'
   );
   assert.equal(s.screens[0].component, "grid");
   assert.deepEqual(codes(s.diagnostics), ["style-unknown-attribute"]);
-  assert.match(s.diagnostics[0].message, /layout=.*component=/);
-  assert.equal(s.screens[1].component, undefined);
+  assert.equal(s.screens[1].component, undefined, "旧键不喂 component=，也不再有专门的指路文案");
 });
 
 test("装载：style-frame 缺 slots= 是错误，消息点名 style-frame", () => {
@@ -1186,9 +1185,9 @@ test("容器可以是组件并带参数：页面外壳属于样式表，不该�
   assert.deepEqual(vm.screens[0].params, { items: "Code · Issues", icon: "M0 0h4", "icon-size": 20 });
   assert.deepEqual(vm.screens[0].box, { padding: "8px" }, "内含词照旧进 box，不混进 params");
   assert.deepEqual(vm.diagnostics.filter((d) => d.severity === "error"), []);
-  // `layout=` 仍然指路，不静默
+  // 改掉的旧键没有特殊待遇：和任何未知键一样报 style-unknown-attribute
   assert.ok(resolve('=== style-screen {#p layout=split slots="table"}\n===\n')
-    .diagnostics.some((d) => d.code === "style-unknown-attribute" && /component=/.test(d.message)));
+    .diagnostics.some((d) => d.code === "style-unknown-attribute"));
   // 未注册的组件名在给了注册表时报出来（宿主不传就不检查）
   const vm2 = resolveStyle(sheet('=== style-frame {#f component=nope slots="table"}\n===\n'
     + '=== style-screen {#p slots="#f"}\n===\n'), corpus1, { components: ["bar"] });
@@ -1276,14 +1275,83 @@ test("when=@hover：内建伪状态进条件集；与 $state 并列；@focus 与
   assert.deepEqual(codes(inj.diagnostics), ["style-invalid-value"]);
 });
 
-test("layer=screen 与 fade-out：闭域多一个成员、时间轴多一个词，域外值各报 style-invalid-value", () => {
-  const ok = sheet('=== style-frame {#splash layer=screen fade-out=1 slots="text#x"}\n===\n');
-  assert.deepEqual(ok.frames[0].box, { layer: "screen", "fade-out": 1 });
+test("align：跨轴对齐是闭域，且与 text-align 的值域互不相干", () => {
+  for (const v of ["start", "center", "end", "stretch"]) {
+    const ok = sheet(`=== style-frame {#f axis=row item-align=${v} slots="text#x"}\n===\n`);
+    assert.deepEqual(codes(ok.diagnostics), [], v);
+    assert.equal(ok.frames[0].box["item-align"], v, v);
+  }
+  // text-align 的 `justify` / `left` 不是 align 的成员；反过来 `stretch` 也不是 text-align 的。
+  for (const [attr, re] of [
+    ["item-align=justify", /is not `start`, `center`, `end` or `stretch`/],
+    ["item-align=left", /is not `start`, `center`, `end` or `stretch`/],
+    ["text-align=stretch", /is not left\/center\/right\/justify/],
+  ]) {
+    const bad = sheet(`=== style-rule {#r match="text#x" ${attr}}\n===\n`);
+    assert.deepEqual(codes(bad.diagnostics), ["style-invalid-value"], attr);
+    assert.match(bad.diagnostics[0].message, re, attr);
+  }
+  // 两个词可以同时出现，各管各的
+  const both = sheet('=== style-rule {#r match="text#x" item-align=center text-align=justify}\n===\n');
+  assert.deepEqual(codes(both.diagnostics), []);
+  assert.deepEqual(both.rules[0].box, { "item-align": "center", "text-align": "justify" });
+});
+
+test("justify：沿轴分布是闭域，`justify` 作为词与作为 text-align 的值互不相干", () => {
+  for (const v of ["start", "center", "end", "between"]) {
+    const ok = sheet(`=== style-frame {#f axis=row item-justify=${v} slots="text#x"}\n===\n`);
+    assert.deepEqual(codes(ok.diagnostics), [], v);
+    assert.equal(ok.frames[0].box["item-justify"], v, v);
+  }
+  // `justify=justify` 不是成员 —— 那是 text-align 的值，不是分布方式
+  for (const [attr, re] of [
+    ["item-justify=justify", /is not `start`, `center`, `end` or `between`/],
+    ["item-justify=stretch", /is not `start`, `center`, `end` or `between`/],
+    ["item-justify=space-between", /is not `start`, `center`, `end` or `between`/],
+  ]) {
+    const bad = sheet(`=== style-rule {#r match="text#x" ${attr}}\n===\n`);
+    assert.deepEqual(codes(bad.diagnostics), ["style-invalid-value"], attr);
+    assert.match(bad.diagnostics[0].message, re, attr);
+  }
+  // 一条轴的两面同时出现，各进各的键
+  const axis = sheet('=== style-frame {#f axis=row item-align=center item-justify=between text-align=justify slots="text#x"}\n===\n');
+  assert.deepEqual(codes(axis.diagnostics), []);
+  // `axis` 在容器上是保留键，落在 frame 自己身上，不进 box —— 两处各归各位
+  assert.equal(axis.frames[0].axis, "row");
+  assert.deepEqual(axis.frames[0].box,
+    { "item-align": "center", "item-justify": "between", "text-align": "justify" });
+});
+
+test("补轴的六个词：高度轴三个、min-width、font-weight 各自进 box，fade-in 与 fade-out 共用值域", () => {
+  // 宽度轴一直有三个词、高度轴一个都没有；字号/行距/字族齐了独缺字重；
+  // 淡出有词、淡入没有。三处都是不对称，补的是轴，不是某个用例。
+  const ok = sheet('=== style-rule {#r match="text#x" height=64px min-height=48px max-height=80px min-width=200px font-weight=600 fade-in=0.8}\n===\n');
+  assert.deepEqual(codes(ok.diagnostics), []);
+  assert.deepEqual(ok.rules[0].box, {
+    height: "64px", "min-height": "48px", "max-height": "80px",
+    "min-width": "200px", "font-weight": 600, "fade-in": 0.8,
+  });
+  // fade-in 走的是 fade-out 那条规则，不是另一条：域外值同样被拦，消息点名自己。
+  for (const [attr, re] of [
+    ["fade-in=99", /`fade-in=99` must be a number of seconds between 0 and 60/],
+    ["fade-in=-1", /between 0 and 60/],
+    ["fade-in=soon", /between 0 and 60/],
+  ]) {
+    const bad = sheet(`=== style-rule {#r match="text#x" ${attr}}\n===\n`);
+    assert.deepEqual(codes(bad.diagnostics), ["style-invalid-value"], attr);
+    assert.match(bad.diagnostics[0].message, re, attr);
+    assert.deepEqual(bad.rules[0].box, {}, attr);
+  }
+});
+
+test("anchor=viewport 与 fade-out：闭域多一个成员、时间轴多一个词，域外值各报 style-invalid-value", () => {
+  const ok = sheet('=== style-frame {#splash anchor=viewport fade-out=1 slots="text#x"}\n===\n');
+  assert.deepEqual(ok.frames[0].box, { anchor: "viewport", "fade-out": 1 });
   assert.deepEqual(codes(ok.diagnostics), []);
   const zero = sheet('=== style-rule {#r match="text#x" fade-out=0}\n===\n');
   assert.deepEqual(zero.rules[0].box, { "fade-out": 0 }, "0 是合法的：不淡");
   for (const [attr, re] of [
-    ["layer=window", /is not `page`, `overlay` or `screen`/],
+    ["anchor=window", /is not `flow`, `parent` or `viewport`/],
     ["fade-out=soon", /must be a number of seconds between 0 and 60/],
     ["fade-out=-1", /between 0 and 60/],
     ["fade-out=600", /between 0 and 60/],

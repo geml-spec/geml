@@ -765,7 +765,7 @@ profile = "geml-style/v1"
 ===
 === style-rule {#hide match="#menu" visible=no}
 ===
-=== style-rule {#show match="#menu" when="$m=open" visible=yes layer=overlay}
+=== style-rule {#show match="#menu" when="$m=open" visible=yes anchor=parent}
 ===
 `;
   const doc = '=== text {#caret}\n![Open](caret.svg)\n===\n=== text {#items}\n- [a](https://a)\n===\n=== text {#other}\nelsewhere\n===\n';
@@ -893,13 +893,81 @@ profile = "geml-style/v1"
   assert.match(pre.textContent, /let x = 1;/);
 });
 
-test("cssForPage：layer=screen 盖住视口并居中；fade-out 出一条动画，秒数来自样式表", () => {
+test("cssForPage：补轴的词都真的发出 CSS —— 解析器认得不等于宿主发得出", () => {
+  // BOX_WORDS（解析器）和 BOX_PASS（本文件）是两张分处两个包的手维护表。
+  // 一个词进了前者没进后者，解析器测试照样全绿，而它在页面上什么都不做。
+  const { vm } = vmOf(`=== meta
+profile = "geml-style/v1"
+===
+=== style-screen {#p axis=row item-align=center item-justify=between slots="#bar, text#nav"}
+===
+=== style-frame {#bar axis=column item-align=start item-justify=end slots="text#nav"}
+===
+=== style-rule {#n match="text#nav" height=64px min-height=48px max-height=80px min-width=200px font-weight=600 fade-in=0.8}
+===
+`, '=== text {#nav}\n- [a](https://a)\n===\n');
+  const css = cssForPage(vm);
+  // 五个长度/字重词原样透传
+  for (const d of ["height: 64px", "min-height: 48px", "max-height: 80px", "min-width: 200px", "font-weight: 600"]) {
+    assert.match(css, new RegExp(`\\.geml-b-nav \\{[^}]*${d.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`), d);
+  }
+  // 写了高度就是「就这么高」——主轴是哪条取决于容器的 axis，两个方向都要钉
+  assert.match(css, /\.geml-b-nav \{[^}]*flex: 0 0 auto/, "height 也钉住尺寸，不只是 width");
+  // fade-in 走自己的 keyframes，不是 fade-out 那条
+  assert.match(css, /\.geml-b-nav \{[^}]*animation: geml-fade-in 0\.8s ease-out both/);
+  // 对齐两个词翻成 flex 的两个属性；start/end 显式写成 flex-*
+  assert.match(css, /\.geml-page \{[^}]*align-items: center/);
+  assert.match(css, /\.geml-page \{[^}]*justify-content: space-between/);
+  assert.match(css, /\.geml-f-bar \{[^}]*align-items: flex-start/);
+  assert.match(css, /\.geml-f-bar \{[^}]*justify-content: flex-end/);
+  // 内含词的名字本身不该漏进 CSS
+  assert.doesNotMatch(css, /item-align:|item-justify:|fade-in:/, "这三个都不是 CSS 属性名");
+});
+
+test("静态表的轴默认必须分层 —— 否则它按特异性压死 item-align 与 grow", () => {
+  // cssForPage 发出的是单类 `.geml-f-x` / `.geml-b-x`（0,1,0），而轴默认是
+  // `.geml-frame[data-axis="row"]`（0,2,0）。不分层的话前者永远输，而且是静默的：
+  // 实测过 `item-align=start` 仍算出 stretch、块上的 `grow=yes` 仍算出 flex-grow 0。
+  // 未分层的规则一律赢过分层的，与特异性无关，所以宿主默认必须待在 @layer 里。
+  // 这里断言的是结构不变量而不是计算值 —— linkedom 没有 getComputedStyle。
+  const css = readFileSync(new URL("../src/geml.css", import.meta.url), "utf8");
+  const layered = css.match(/@layer\s*\{[\s\S]*?\n\}/);
+  assert.ok(layered, "geml.css 里应有一个匿名 @layer 承载轴默认");
+  for (const rule of ['[data-axis="column"]', '[data-axis="row"]', '.geml-placed { flex: 0 0 auto']) {
+    assert.ok(layered[0].includes(rule), `${rule} 必须在 @layer 内`);
+  }
+  // 这半条声明什么都不改（flex 容器不写它时行为就是 stretch），只会压住 item-align
+  assert.doesNotMatch(css, /\[data-axis="row"\][^}]*align-items/,
+    "轴默认不该声明 align-items —— 那是 item-align 的地盘");
+});
+
+test("无单位的数值不补 px —— font-weight=600 是 600，line-height=1.5 是倍数", () => {
+  // 数字默认按长度补 px。这两个补了单位浏览器会丢掉整条声明，而且不报错：
+  // 页面只是「字没变粗」，没有任何东西指向原因。
+  const { vm } = vmOf(`=== meta
+profile = "geml-style/v1"
+===
+=== style-screen {#p slots="text#nav"}
+===
+=== style-rule {#n match="text#nav" font-weight=600 line-height=1.5 font-size=14 padding=8}
+===
+`, '=== text {#nav}\n- [a](https://a)\n===\n');
+  const css = cssForPage(vm);
+  assert.match(css, /font-weight: 600(;|\s|\})/, "font-weight 不带单位");
+  assert.match(css, /line-height: 1\.5(;|\s|\})/, "line-height 不带单位");
+  assert.doesNotMatch(css, /font-weight: 600px|line-height: 1\.5px/);
+  // 长度词照旧补 px —— 这条闸只对无单位的两个开
+  assert.match(css, /font-size: 14px/);
+  assert.match(css, /padding: 8px/);
+});
+
+test("cssForPage：anchor=viewport 盖住视口并居中；fade-out 出一条动画，秒数来自样式表", () => {
   const { vm } = vmOf(`=== meta
 profile = "geml-style/v1"
 ===
 === style-screen {#p slots="#splash, text#nav"}
 ===
-=== style-frame {#splash layer=screen fade-out=1 slots="text#nav"}
+=== style-frame {#splash anchor=viewport fade-out=1 slots="text#nav"}
 ===
 === style-rule {#n match="text#nav" fade-out=2.5}
 ===

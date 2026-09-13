@@ -236,7 +236,7 @@ footer div { margin-top: 8px; }
 
 <dl class="readings">
   <div class="reading"><dt>Style blocks</dt><dd>104<small>1 screen · 27 frame · 6 state · 70 rule</small></dd></div>
-  <div class="reading"><dt>Box words</dt><dd>28<small>a closed list; CSS has hundreds of properties</small></dd></div>
+  <div class="reading"><dt>Box words</dt><dd>36<small>a closed list; CSS has hundreds of properties</small></dd></div>
   <div class="reading"><dt>Diagnostics</dt><dd>20<small>13 error · 7 warning</small></dd></div>
   <div class="reading"><dt>Selector steps</dt><dd>40 / 47<small>one step / two steps — there is no third</small></dd></div>
   <div class="reading"><dt>Tokens</dt><dd>13<small>13 keys in <code>meta</code> feed 75 <code>{{…}}</code>; 8 bare colour values left</small></dd></div>
@@ -359,25 +359,29 @@ grid-template-areas  aspect-ratio
 <span class="c">/* an unrecognised property → dropped silently */</span>
 colr: red;   <span class="c">/* nothing happens */</span></pre></div>
     <div class="side b"><div class="side-label">geml-style</div>
-<pre><span class="c"># 28 box words, closed</span>
-width max-width padding margin
+<pre><span class="c"># 36 box words, closed</span>
+width max-width min-width
+height max-height min-height
+padding margin gap
 font-size line-height font-family
-text-align color background
+font-weight text-align
+color background underline
 border border-top/right/bottom/left
-border-radius gap
+border-radius
+axis item-align item-justify
+anchor visible grow
 sticky scroll hide-below
-layer visible grow axis
-view editable fade-out underline
+view editable fade-out fade-in
 
 colr="red"   <span class="c">→ passed to the component;</span>
              <span class="x">no component → style-unknown-attribute</span></pre></div>
   </div>
-  <p class="take">The 28 were sifted by one test: does it still mean the same thing on a different block?
+  <p class="take">The 36 were sifted by one test: does it still mean the same thing on a different block?
   <code>width</code> means the same on a paragraph, a table and an image, so it is a box word;
   <code>fold</code> only makes sense for a tree control, so it is a component parameter.
   <b>What is absent deserves saying out loud</b>: no <code>display</code>, no <code>position</code>, no
   <code>z-index</code>, no <code>transform</code>, no <code>transition</code>, no <code>opacity</code>,
-  no <code>box-shadow</code>. <code>layer=overlay|screen</code> is the slice of position that survived
+  no <code>box-shadow</code>. <code>anchor=parent|viewport</code> is the slice of position that survived
   encapsulation, and <code>visible=no</code> is the slice of display. This is not "not built yet" — it is
   "block layout needs this much" — but the moment you want a shadow, a transition, any decorative effect,
   today you go back to the host's CSS.</p>
@@ -527,7 +531,7 @@ border="1px ..."  <span class="c">→ they do not</span>
   and the same stylesheet may render differently. <b>What matters is that this is now <u>written down</u>
   rather than overlooked</b>: §10 says plainly that inheritance is the host's to decide and the profile does
   not describe it. That is stating the gap, not closing it: pinning inheritance down would mean re-deciding
-  "inherits / does not" for all 28 words, and no consumer needs that today.
+  "inherits / does not" for all 36 words, and no consumer needs that today.
   <b>So it stays counterintuitive, but the reason moved from "not thought through" to "thought through, and
   deliberately not governed"</b> — for a specification, that difference is the whole thing.</p>
 </section>
@@ -584,12 +588,21 @@ style-embed-not-expanded <span class="c">warning</span></pre></div>
 </div>
 
 <div class="verdict good">
-  <h4>③ The property table is a closed 28 words</h4>
+  <h4>③ The property table is a closed 36 words</h4>
   <p>CSS's open property set is why it became a universal language, and also why it cannot be checked
-  statically. Twenty-eight words plus the test "does it still mean the same on a different block" is a
-  position that holds together. <b>The slope to guard is this</b>: two more words per new page — this round
-  added <code>view</code>, <code>editable</code>, <code>fade-out</code> and <code>underline</code> — and by
-  word eighty the benefit of "closed" is gone while the cost remains.</p>
+  statically. Thirty-six words plus the test "does it still mean the same on a different block" is a
+  position that holds together. <b>The slope to guard is this</b>: two more words per new page, and by word eighty
+  the benefit of "closed" is gone while the cost remains. <code>view</code>, <code>editable</code>,
+  <code>fade-out</code> and <code>underline</code> arrived that way — each for one page's one need.</p>
+  <p class="take"><b>The eight that came later are a different case, and settling why sharpened the
+  test.</b> <code>height</code>, <code>min-height</code>, <code>max-height</code>,
+  <code>min-width</code>, <code>font-weight</code>, <code>fade-in</code>, <code>item-align</code> and
+  <code>item-justify</code> each complete an <b>axis</b>: the width axis carried three words and the
+  height axis none; type could say size, leading and family but not weight; a thing could fade out and
+  not in; and <code>axis</code> opened an axis that <code>gap</code> spaced along but nothing aligned on.
+  <b>An axis laid on one side only is an asymmetry, not restraint.</b> So the gate is not "wait for a
+  second use" — that would block every piece of foresight; the gate is <b>whether a word completes an
+  axis or serves one situation</b>.</p>
 </div>
 
 <h2>Two still open — both "not there yet", not "got it wrong"</h2>
@@ -633,7 +646,7 @@ written into the profile now. What is left is not misjudgement; it is use that h
 <footer>
   Readings taken from <code>playground/style-demo/_index/github.style.geml</code>
   (104 style blocks: 1 screen · 27 frame · 6 state · 70 rule),
-  <code>geml-parser/src/style-resolve.ts</code> (<code>BOX_WORDS</code> 28), and
+  <code>geml-parser/src/style-resolve.ts</code> (<code>BOX_WORDS</code> 36), and
   <code>spec/profiles/geml-style/geml-style-profile.md</code> §1.2 §4 §8 §10.
   The 20 diagnostics are counted off the §8 catalogue; tokens and shorthand arbitration were measured on the
   current branch, not inferred.

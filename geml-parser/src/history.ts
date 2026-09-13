@@ -786,7 +786,7 @@ export function resolveContent(historyPath: string, selector: string): { id: str
 /** Walk the chain newest→oldest; return the first revision whose block (as
  *  extracted by `pick`) differs from `currentBlock` — i.e. the block's previous
  *  *distinct* version, skipping revisions that never touched it. Used by
- *  `revert --changed`. `undefined` if no earlier revision changed the block. */
+ *  `revert --rev changed`. `undefined` if no earlier revision changed the block. */
 export function firstChangedContent(
   historyPath: string,
   currentBlock: string,

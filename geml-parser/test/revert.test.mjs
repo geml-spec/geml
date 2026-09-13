@@ -100,11 +100,11 @@ test("--rev changed exits 1 when no earlier revision changed the block", () => {
   assert.match(r.err, /no earlier revision changes `keep`/);
 });
 
-test("the old `--changed` flag is refused with a pointer to `--rev changed`", () => {
+test("`--changed` has no special handling — it is an unknown flag like any other", () => {
   reset();
   const r = run(["revert", geml, "#occ", "--changed"]);
   assert.equal(r.code, 2);
-  assert.match(r.err, /--changed is now `--rev changed`/);
+  assert.match(r.err, /unknown flag '--changed'/);
 });
 
 test("--dry-run prints the block and writes nothing", () => {

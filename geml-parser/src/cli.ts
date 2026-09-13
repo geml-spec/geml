@@ -342,7 +342,7 @@ const VERB_FLAGS: Record<string, { bool: readonly string[]; valued: readonly str
   delete: { bool: [], valued: ["-o", "--out", "--root"] },
   rename: { bool: [], valued: ["-o", "--out", "--root"] },
   revert: {
-    bool: ["--dry-run", "--head", "--append", "--changed"],
+    bool: ["--dry-run", "--head", "--append"],
     valued: ["--rev", "--before", "--after", "-o", "--out", "--history", "--root"],
   },
   check: { bool: ["--json"], valued: ["--root"] },
@@ -2458,9 +2458,6 @@ function runRevert(args: string[]): void {
   // never touched this block, landing on its previous *distinct* version. It is
   // just a `--rev` value, so it cannot conflict with a positional `-N`.
   const changed = to === "changed";
-  // The former standalone `--changed` flag is now this value; refuse the old
-  // spelling loudly rather than silently ignoring it (and reverting to -1).
-  if (args.includes("--changed")) fail("--changed is now `--rev changed`", 2);
   const before = flag(args, "--before");
   const after = flag(args, "--after");
   const append = args.includes("--append");

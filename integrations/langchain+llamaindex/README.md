@@ -104,7 +104,7 @@ Measured, with the write sequence `summary=GOOD, summary=BAD, oq=H1, risks=H2`:
 > `latest` and `current` were once aliases for the tip; they were **removed**, and
 > passing either now fails with `revision selector "latest" matched 0 revisions` —
 > use `0`. And `--changed` became **`--rev changed`**, folded into the `--rev`
-> value; the old flag now exits with `--changed is now \`--rev changed\``.
+> value; the old flag is simply unknown now.
 > Current surface: `0` | `-N` | id-prefix | `changed`, default `-1`.
 
 What it guarantees, and what it does not:

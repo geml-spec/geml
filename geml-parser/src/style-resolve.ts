@@ -30,14 +30,24 @@ const AXES = new Set(["row", "column"]);
  * `axis` 不在这里：它挂在 screen/frame 上，不挂在块上。
  */
 export const BOX_WORDS: ReadonlySet<string> = new Set([
-  "width", "max-width", "padding", "margin", "sticky", "scroll", "hide-below",
-  "font-size", "line-height", "font-family", "text-align", "color", "background",
+  "width", "max-width", "min-width", "padding", "margin", "sticky", "scroll", "hide-below",
+  // 高度轴。宽度轴一直有三个词，高度轴一个都没有——那是不对称，不是克制：
+  // `axis=row` 的容器要一条固定高的页头，此前没法说。
+  "height", "max-height", "min-height",
+  "font-size", "line-height", "font-family", "font-weight", "text-align", "color", "background",
   "border", "border-top", "border-right", "border-bottom", "border-left", "border-radius", "gap",
-  "layer", "visible", "grow",
+  "anchor", "visible", "grow",
+  // `axis` 开出一条轴、`gap` 给了沿轴的间距，怎么对齐却没词——和「宽度轴有三个词、
+  // 高度轴一个没有」是同一种不对称。`item-align` 是跨轴、`item-justify` 是沿轴，一条轴的两面；
+  // `item-` 前缀点明主语是槽位，把它和管块内文字的 `text-align` 分开。`item-align` 的默认 `stretch` 与宿主此前的行为一致，零破坏。
+  //
+  // 命名跟 flexbox 走而不是 vertical/horizontal：`axis` 可切换，方位名会跟着翻——
+  // 默认 `axis=column` 时跨轴是**水平**的，叫 `vertical-align` 在默认情形下就是反的。
+  "item-align", "item-justify",
   // 第二个页面用例（设计 2026-09-10）：`axis` 也能挂块上（列表横排）；`view`/`editable` 是"看源码"。
   "axis", "view", "editable",
-  // 同一个用例的开场提示：画出来之后自己淡掉。
-  "fade-out",
+  // 同一个用例的开场提示：画出来之后自己淡掉；`fade-in` 是同一条轴的另一个方向。
+  "fade-out", "fade-in",
   // 这段文字带不带下划线。HTML 的默认是带，去掉是**外观决定**，该由样式表说 ——
   // 宿主替所有页面剥掉的那一版，连嵌进来的文章里的链接都一起剥了，正文的链接看不出是链接。
   "underline",
@@ -60,17 +70,23 @@ const SCROLLS = new Set(["own", "page"]);
 const NUMERIC_BOX = new Set(["sticky", "hide-below"]);
 const ALIGNS = new Set(["left", "center", "right", "justify"]);
 /**
- * `layer`：`page` 跟着文档流走；`overlay` 贴着最近的容器浮出来、不占位置（下拉菜单、弹出面板）；
- * `screen` 盖住整个视口、内容居中（开场提示、模态框、吐司）。三者的区别是**贴谁**，
- * 和内容是什么无关，所以它对任何块都是同一个意思。
+ * `anchor`：这一块**贴谁**。`flow` 跟着文档流走、占位置；`parent` 贴最近的容器浮出来、
+ * 不占位置（下拉菜单、弹出面板）；`viewport` 贴视口、盖满并把内容居中（开场提示、
+ * 模态框、吐司）。三者的区别只有「贴谁」一条，和内容是什么无关，所以它对任何块
+ * 都是同一个意思。
+ *
+ * 键名不叫 `layer`：那个词在这份 profile 里已经是层叠层号（`layer: number`，§4），
+ * 在 CSS 里则是 `@layer`——两处都和「贴谁」无关。值也不叫 `page`/`screen`：
+ * 它们说的是范围而不是锚点，而且 `screen` 和块类型 `style-screen` 撞车。
  */
-const LAYERS = new Set(["page", "overlay", "screen"]);
+const ANCHORS = new Set(["flow", "parent", "viewport"]);
 /**
  * `fade-out`：这一片画出来之后自己淡掉，值是秒数，0 表示不淡。时间轴上目前只有这一件事 ——
  * 「出现一下就走」对一段话、一张表、一张图意思都一样，所以它是内含词而不是组件参数。
  * 上限 60 秒：样式表是不可信输入，一个荒唐的值不该变成一条永远跑不完的动画。
  */
 const FADE_MAX = 60;
+const FADES = new Set(["fade-out", "fade-in"]);
 /**
  * `underline`：带不带下划线。**不叫 `text-decoration`** —— 那是 CSS 的简写，管线型、线样式、
  * 线颜色、粗细四样，借了名字只兑现一丝，正是 §12.4 说的那种陷阱；也**不叫 `text-link`** ——
@@ -88,6 +104,14 @@ const VISIBLES = new Set(["yes", "no"]);
  * 侧栏还会随正文内容变宽。谁吃剩余空间是版面的意思，得由样式表说出来。
  */
 const GROWS = new Set(["yes", "no"]);
+/** 跨轴对齐。词叫 `item-align`：主语是槽位，不是块里的文字——`text-align` 才是后者。 */
+const ITEM_ALIGNS = new Set(["start", "center", "end", "stretch"]);
+/**
+ * 沿轴分布。词叫 `item-justify` 而不是 `justify`：后者是 `text-align` 的一个值，
+ * 和这里的「沿轴怎么分布」是两回事。CSS 自己也有这对同名不同义
+ * （`text-align: justify` vs `justify-content`），所以这是继承来的歧义，不是新造的。
+ */
+const ITEM_JUSTIFY = new Set(["start", "center", "end", "between"]);
 /** `view`：显示这一块的渲染结果还是源文本。任何块都有源文本，所以它是内含词。 */
 const VIEWS = new Set(["rendered", "source"]);
 /** `editable`：源文本可不可以改。只在 view=source 时被消费；否则惰性、不报。宿主没有写回路径。 */
@@ -128,16 +152,24 @@ function boxValueOk(k: string, v: Value, id: string, sheet: Stylesheet): boolean
     sheet.diagnostics.push(styleDiag("style-invalid-value", `\`visible=${String(v)}\` is not \`yes\` or \`no\``, id));
     return false;
   }
-  if (k === "layer" && !(typeof v === "string" && LAYERS.has(v))) {
-    sheet.diagnostics.push(styleDiag("style-invalid-value", `\`layer=${String(v)}\` is not \`page\`, \`overlay\` or \`screen\``, id));
+  if (k === "anchor" && !(typeof v === "string" && ANCHORS.has(v))) {
+    sheet.diagnostics.push(styleDiag("style-invalid-value", `\`anchor=${String(v)}\` is not \`flow\`, \`parent\` or \`viewport\``, id));
     return false;
   }
   if (k === "underline" && !(typeof v === "string" && UNDERLINES.has(v))) {
     sheet.diagnostics.push(styleDiag("style-invalid-value", `\`underline=${String(v)}\` is not \`yes\` or \`no\``, id));
     return false;
   }
-  if (k === "fade-out" && !(typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= FADE_MAX)) {
-    sheet.diagnostics.push(styleDiag("style-invalid-value", `\`fade-out=${String(v)}\` must be a number of seconds between 0 and ${FADE_MAX}`, id));
+  if (FADES.has(k) && !(typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= FADE_MAX)) {
+    sheet.diagnostics.push(styleDiag("style-invalid-value", `\`${k}=${String(v)}\` must be a number of seconds between 0 and ${FADE_MAX}`, id));
+    return false;
+  }
+  if (k === "item-justify" && !(typeof v === "string" && ITEM_JUSTIFY.has(v))) {
+    sheet.diagnostics.push(styleDiag("style-invalid-value", `\`item-justify=${String(v)}\` is not \`start\`, \`center\`, \`end\` or \`between\``, id));
+    return false;
+  }
+  if (k === "item-align" && !(typeof v === "string" && ITEM_ALIGNS.has(v))) {
+    sheet.diagnostics.push(styleDiag("style-invalid-value", `\`item-align=${String(v)}\` is not \`start\`, \`center\`, \`end\` or \`stretch\``, id));
     return false;
   }
   if (k === "text-align" && !(typeof v === "string" && ALIGNS.has(v))) {
@@ -619,13 +651,6 @@ function readContainer(
     if (BOX_WORDS.has(k)) {
       const v = b.attrs[k]!;
       if (boxValueOk(k, v, id, sheet)) box[k] = v;
-      continue;
-    }
-    // `layout=` 是 v1 落地时的名字，0 个消费者时改成了和块上同一个词。指路，不静默。
-    // `layout=` 是 v1 落地时的名字，0 个消费者时改成了和块上同一个词。指路，不静默。
-    if (k === "layout") {
-      sheet.diagnostics.push(styleDiag("style-unknown-attribute",
-        `\`layout=\` is now \`component=\` (a host-named arrangement); \`split\` is \`axis=row\``, id));
       continue;
     }
     // 有 component= 才透传 —— 参数是给组件的。没有组件却写了别的键，那必然是笔误，

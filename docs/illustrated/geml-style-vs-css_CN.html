@@ -233,7 +233,7 @@ footer div { margin-top: 8px; }
 
 <dl class="readings">
   <div class="reading"><dt>样式表块数</dt><dd>104<small>1 screen · 27 frame · 6 state · 70 rule</small></dd></div>
-  <div class="reading"><dt>内含词</dt><dd>28<small>封闭清单，CSS 属性数百个</small></dd></div>
+  <div class="reading"><dt>内含词</dt><dd>36<small>封闭清单，CSS 属性数百个</small></dd></div>
   <div class="reading"><dt>诊断码</dt><dd>20<small>13 个 error · 7 个 warning</small></dd></div>
   <div class="reading"><dt>选择器步数</dt><dd>40 / 47<small>一步 / 两步，没有第三步</small></dd></div>
   <div class="reading"><dt>记号</dt><dd>13<small><code>meta</code> 里 13 个键喂 75 处 <code>{{…}}</code>；裸色值只剩 8 处</small></dd></div>
@@ -350,24 +350,28 @@ grid-template-areas  aspect-ratio
 <span class="c">/* 认不出的属性 → 静默丢弃 */</span>
 colr: red;   <span class="c">/* 什么都不发生 */</span></pre></div>
     <div class="side b"><div class="side-label">geml-style</div>
-<pre><span class="c"># 28 个内含词，封闭</span>
-width max-width padding margin
+<pre><span class="c"># 36 个内含词，封闭</span>
+width max-width min-width
+height max-height min-height
+padding margin gap
 font-size line-height font-family
-text-align color background
+font-weight text-align
+color background underline
 border border-top/right/bottom/left
-border-radius gap
+border-radius
+axis item-align item-justify
+anchor visible grow
 sticky scroll hide-below
-layer visible grow axis
-view editable fade-out underline
+view editable fade-out fade-in
 
 colr="red"   <span class="c">→ 透传给组件；</span>
              <span class="x">没有组件 → style-unknown-attribute</span></pre></div>
   </div>
-  <p class="take">28 个词是「换个块还是不是这个意思」筛出来的：<code>width</code> 放段落、表格、图上意思一样，
+  <p class="take">36 个词是「换个块还是不是这个意思」筛出来的：<code>width</code> 放段落、表格、图上意思一样，
   所以是内含词；<code>fold</code> 只对树控件说得通，所以是组件参数。
   <b>缺席的东西值得单独说</b>：没有 <code>display</code>、没有 <code>position</code>、没有 <code>z-index</code>、
   没有 <code>transform</code>、没有 <code>transition</code>、没有 <code>opacity</code>、没有 <code>box-shadow</code>。
-  <code>layer=overlay|screen</code> 是 position 那一小块被封装后的样子，<code>visible=no</code> 是 display 那一小块。
+  <code>anchor=parent|viewport</code> 是 position 那一小块被封装后的样子，<code>visible=no</code> 是 display 那一小块。
   这不是「还没做」，是「块布局需要的就这些」—— 但一旦要做阴影、过渡、任何装饰性效果，
   今天只能回宿主 CSS。</p>
 </section>
@@ -511,7 +515,7 @@ border="1px ..."  <span class="c">→ 不跟</span>
   继承不在其中。换一个不发 CSS 的宿主（画到 canvas、排到 PDF），同一份样式表可以渲染出不同结果。
   <b>关键在于这一条现在是被<u>写明</u>的，不是被漏掉的</b> —— §10 明说"继承由宿主决定，
   本 profile 不描述它"。这是把缺口写出来，不是补上它：
-  钉死继承等于为 28 个词重新裁一遍 CSS 的"继承/不继承"，而目前没有消费者需要。
+  钉死继承等于为 36 个词重新裁一遍 CSS 的"继承/不继承"，而目前没有消费者需要。
   <b>所以它仍然反直觉，但反直觉的理由从"没想清楚"变成了"想清楚了并且选择不管"</b> ——
   对一份规范来说，这两者的差别就是全部。</p>
 </section>
@@ -565,12 +569,19 @@ style-embed-not-expanded <span class="c">warning</span></pre></div>
 </div>
 
 <div class="verdict good">
-  <h4>③ 属性表是封闭的 28 个词</h4>
+  <h4>③ 属性表是封闭的 36 个词</h4>
   <p>CSS 的开放属性集是它成为通用语言的原因，也是它没法被静态检查的原因。
-  28 个词加「换个块还是不是这个意思」这条判据，是个能自圆其说的立场。
-  <b>但要防住一种滑坡</b>：每来一个页面就加两个词（这一轮就加了 <code>view</code>
-  <code>editable</code> <code>fade-out</code> <code>underline</code> 四个），
-  加到 80 个的时候，「封闭」的好处就没了，坏处还在。</p>
+  36 个词加「换个块还是不是这个意思」这条判据，是个能自圆其说的立场。
+  <b>但要防住一种滑坡</b>：每来一个页面就加两个词，加到 80 个的时候，「封闭」的好处就没了，
+  坏处还在。<code>view</code> <code>editable</code> <code>fade-out</code> <code>underline</code>
+  就是这么来的 —— 各自为某一个页面的某一个需求而生。</p>
+  <p class="take"><b>后来加的八个是另一回事，判据也因此明确了。</b>
+  <code>height</code> <code>min-height</code> <code>max-height</code> <code>min-width</code>
+  <code>font-weight</code> <code>fade-in</code> <code>item-align</code> <code>item-justify</code>
+  补的都是<b>轴</b>：宽度轴有三个词而高度轴一个没有、字号行距字族齐了独缺字重、
+  淡出有而淡入无、<code>axis</code> 开了轴 <code>gap</code> 给了间距却没有对齐。
+  <b>一条轴只铺了一半是不对称，不是克制。</b>所以闸门不是「等第二个用例」——那会拦住一切
+  前瞻性的补全；闸门是<b>这个词补的是轴，还是补的是某一个情境</b>。</p>
 </div>
 
 <h2>还开着的两处 —— 都是「还没走到」，不是「想错了」</h2>
@@ -611,7 +622,7 @@ style-embed-not-expanded <span class="c">warning</span></pre></div>
 <footer>
   读数取自 <code>playground/style-demo/_index/github.style.geml</code>
   （104 个样式块：1 screen · 27 frame · 6 state · 70 rule）、
-  <code>geml-parser/src/style-resolve.ts</code>（<code>BOX_WORDS</code> 28）、
+  <code>geml-parser/src/style-resolve.ts</code>（<code>BOX_WORDS</code> 36）、
   <code>spec/profiles/geml-style/geml-style-profile_CN.md</code> §1.2 §4 §8 §10。
   诊断 20 条按 §8 的目录点算；记号与简写裁决的现状按当前分支实测，不是推断。
   <div>This page: <code>docs/illustrated/geml-style-vs-css_CN.html</code>; English version <code>geml-style-vs-css.html</code>。

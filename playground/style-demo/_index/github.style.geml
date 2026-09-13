@@ -17,9 +17,9 @@ col = 1012
 %% ---------------------------------------------------------------- 骨架
 === style-screen {#page axis=column background="{{canvas}}" color="{{fg}}" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Noto Sans, Helvetica, Arial, sans-serif" font-size=14px slots="#splash, #topbar, #repo-nav-row, #body"}
 ===
-%% 开场提示：盖住整个视口、内容居中，1.2 秒淡掉。`layer=screen` 让它不占版面位置，
+%% 开场提示：盖住整个视口、内容居中，1.2 秒淡掉。`anchor=viewport` 让它不占版面位置，
 %% 所以它排在第一个槽位也不会把页面顶下去；淡完 visibility:hidden，既看不见也挡不住点击。
-=== style-frame {#splash layer=screen fade-out=1.2 slots="text#splash"}
+=== style-frame {#splash anchor=viewport fade-out=1.2 slots="text#splash"}
 ===
 === style-rule {#splash-card match="text#splash" background="{{fg}}" color="{{canvas}}" font-size=28px line-height=40px padding="24px 40px" border-radius=12px max-width=880px text-align=center}
 ===
@@ -132,13 +132,13 @@ col = 1012
 === style-rule {#menu-hover match="text#ai-menu link, text#repo-menu link, text#new-menu link, text#more-menu link" when="@hover" background="{{line-soft}}"}
 ===
 %% 浮层的外框各跟各的状态，所以这四条并不成一条。
-=== style-rule {#ai-menu-open match="#ai-menu-panel" when="$aimenu=open" visible=yes layer=overlay padding=4px background="{{canvas}}" border="1px solid {{line}}" border-radius=6px width=220px}
+=== style-rule {#ai-menu-open match="#ai-menu-panel" when="$aimenu=open" visible=yes anchor=parent padding=4px background="{{canvas}}" border="1px solid {{line}}" border-radius=6px width=220px}
 ===
-=== style-rule {#repo-menu-open match="#repo-menu-panel" when="$repomenu=open" visible=yes layer=overlay padding=4px background="{{canvas}}" border="1px solid {{line}}" border-radius=6px width=240px}
+=== style-rule {#repo-menu-open match="#repo-menu-panel" when="$repomenu=open" visible=yes anchor=parent padding=4px background="{{canvas}}" border="1px solid {{line}}" border-radius=6px width=240px}
 ===
-=== style-rule {#new-menu-open match="#new-menu-panel" when="$newmenu=open" visible=yes layer=overlay padding=4px background="{{canvas}}" border="1px solid {{line}}" border-radius=6px width=240px}
+=== style-rule {#new-menu-open match="#new-menu-panel" when="$newmenu=open" visible=yes anchor=parent padding=4px background="{{canvas}}" border="1px solid {{line}}" border-radius=6px width=240px}
 ===
-=== style-rule {#more-menu-open match="#more-menu-panel" when="$moremenu=open" visible=yes layer=overlay padding=4px background="{{canvas}}" border="1px solid {{line}}" border-radius=6px width=200px}
+=== style-rule {#more-menu-open match="#more-menu-panel" when="$moremenu=open" visible=yes anchor=parent padding=4px background="{{canvas}}" border="1px solid {{line}}" border-radius=6px width=200px}
 ===
 %% 品牌那个 ▾ 和 More 是独立的小按钮：块自己带内边距和圆角，悬停变底色。
 === style-rule {#brand-caret match="text#brand-caret" padding="4px 6px" border-radius=6px}

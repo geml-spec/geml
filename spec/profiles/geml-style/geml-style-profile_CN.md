@@ -184,18 +184,21 @@ col  = 1012
 
 | 词 | 值域 | 挂在 |
 |---|---|---|
-| `width` `max-width` `padding` `margin` | 开放（CSS 长度） | 块与容器 |
+| `width` `max-width` `min-width` `padding` `margin` | 开放（CSS 长度） | 块与容器 |
+| `height` `max-height` `min-height` | 开放（CSS 长度） | 块与容器。宽度轴一直有三个词、高度轴一个都没有——那是不对称，不是克制：`axis=row` 的容器要一条固定高的页头，此前没法说 |
 | `sticky` | 数字：距顶 px | 块与容器 |
 | `scroll` | `own` \| `page` | 块与容器 |
 | `hide-below` | 数字：视口窄于此 px 则隐藏 | 块与容器 |
-| `font-size` `line-height` `font-family` `color` `background` `border` `border-radius` | 开放 | 块与容器 |
+| `font-size` `line-height` `font-family` `font-weight` `color` `background` `border` `border-radius` | 开放 | 块与容器 |
 | `text-align` | `left` \| `center` \| `right` \| `justify` | 块与容器 |
 | `gap` | 开放（CSS 长度）：槽位之间的间距；块带 `axis` 时既是条目之间的间距，**也是**一条条目里面图标与文字之间的间距 | 容器，以及带 `axis` 的块 |
+| `item-align` | `start` \| `center` \| `end` \| `stretch`（默认 `stretch`） | 容器，以及带 `axis` 的块：槽位在**跨轴**方向怎么对齐。`axis` 开出一条轴、`gap` 给了沿轴的间距，跨轴此前没词 |
+| `item-justify` | `start` \| `center` \| `end` \| `between`（默认 `start`） | 容器，以及带 `axis` 的块：槽位**沿轴**怎么分布。和 `item-align` 是同一条轴的两面 |
 | `axis` | `row` \| `column`（默认 `column`） | `style-screen` / `style-frame`；以及块——它的条目（列表的项、表单的字段）沿这条轴排，横排的列表不画项目符号 |
-| `layer` | `page` \| `overlay` \| `screen`（默认 `page`） | 块与容器：跟着文档流；贴着最近的容器浮出来、不占位置（下拉菜单）；或盖住整个视口、内容居中（开场提示、模态框、吐司） |
+| `anchor` | `flow` \| `parent` \| `viewport`（默认 `flow`） | 块与容器：这一块**贴谁**。`flow` 跟着文档流、占位置；`parent` 贴最近的容器浮出来、不占位置（下拉菜单）；`viewport` 贴视口、盖满并把内容居中（开场提示、模态框、吐司） |
 | `visible` | `yes` \| `no`（默认 `yes`） | 块与容器：**现在**显不显示。`hide-below` 是「不显示」按视口的那一半，这是按状态的那一半 |
 | `grow` | `yes` \| `no`（默认 `no`） | 块与容器：这一格吃不吃行/列里剩下的空间 |
-| `fade-out` | 秒数，0–60（默认 0，不淡） | 块与容器：画出来之后自己淡掉，淡完也不再接点击。时间轴上只有这一件事；宿主遇到「减少动态效果」时直接跳到终点 |
+| `fade-out` `fade-in` | 秒数，0–60（默认 0，不淡） | 块与容器：`fade-out` 画出来之后自己淡掉，淡完也不再接点击；`fade-in` 是同一条轴的另一个方向。时间轴上只有这一件事；宿主遇到「减少动态效果」时直接跳到终点 |
 | `underline` | `yes` \| `no` | 块与行内部件：这段文字带不带下划线。整页布局下宿主**不剥**链接的默认下划线——去掉它是外观，由样式表说 |
 | `view` | `rendered` \| `source`（默认 `rendered`） | 块：显示渲染结果，还是它的源文本 |
 | `editable` | `yes` \| `no`（默认 `no`） | `view=source` 下的块：源文本可以就地改；否则惰性。它不说改了存到哪——没有写回路径的宿主给的是一个草稿框 |
@@ -511,7 +514,7 @@ warning。开放那侧必须降级而不能拒收，否则 §8.5 的前向兼容
 | `frame-cycle` | error | frame 嵌套成环；消息带整条链 |
 | `frame-too-deep` | error | 某条放置路径上 frame 嵌套深过 16 层 |
 | `unused-frame` | warning | 没有任何槽位引用的 `style-frame` |
-| `style-invalid-value` | error | 封闭值域的内含词（`axis` / `scroll` / `sticky` / `hide-below` / `layer` / `visible` / `grow` / `view` / `editable` / `fade-out` / `underline`）取了域外值，或 `when=` 的项既不是 `$state=value` 也不是 `@hover` / `@focus` |
+| `style-invalid-value` | error | 封闭值域的内含词（`axis` / `anchor` / `scroll` / `sticky` / `hide-below` / `layer` / `visible` / `grow` / `view` / `editable` / `fade-out` / `underline`）取了域外值，或 `when=` 的项既不是 `$state=value` 也不是 `@hover` / `@focus` |
 
 `unknown-value-source` 之所以能真查，是因为 §6 给了表真正的 schema。产生者不是表时
 这项检查**跳过**，不猜。
@@ -637,6 +640,15 @@ style.geml"的回落，因为那等于永久留着第二条发现路径、两套
 现在是 `ambiguous-rule`——它们在按属性名的裁决里从不相遇，于是渲染结果一直取决于哪条
 规则在文件里靠前。**继承**（§10）：写明为由宿主决定。前两条是增补，第三条是把缺口
 写出来，不是补上它。
+
+**2026-09-13——内含词按轴补齐，`layer` 改名 `anchor`。** 对着 CSS 逐维过了一遍 28 个
+内含词的通常性、必要性与覆盖面：名字站得住（17 个与 CSS 属性名逐字相同），缺的全是
+「一条轴只铺了一半」——高度轴一个词没有、字体缺字重、淡出没有淡入、`axis` 开了轴却没有
+对齐。补 `height` / `min-height` / `max-height` / `min-width` / `font-weight` / `fade-in` /
+`item-align` / `item-justify` 八个（§2.1）。`item-` 前缀点明主语是槽位，把它与管块内文字的
+`text-align` 分开。同时 `layer=page|overlay|screen` 改为 `anchor=flow|parent|viewport`：
+原键名在本 profile 里已是层叠层号、在 CSS 里是 `@layer`，原值说的是范围而不是锚点，
+且 `screen` 与块类型 `style-screen` 撞车。
 
 **v1 刻意没有的东西**：任何形式的 script；URL（dev/staging/prod 地址不同，写死会让
 样式表绑定环境）；路由；§1.2 的记号之外的主题化；

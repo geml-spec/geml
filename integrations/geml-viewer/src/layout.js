@@ -10,7 +10,8 @@
 import { candidates, address, blockSpans } from "./parse-entry.js";
 
 const BOX_PASS = new Set([
-  "width", "max-width", "padding", "margin", "font-size", "line-height", "font-family",
+  "width", "max-width", "min-width", "height", "max-height", "min-height",
+  "padding", "margin", "font-size", "line-height", "font-family", "font-weight",
   "text-align", "color", "background", "border", "border-top", "border-right", "border-bottom", "border-left",
   "border-radius", "gap",
 ]);
@@ -50,6 +51,9 @@ export function facesOf(b) {
 // rgb()/calc() 用得着的字符；`;` `{` `}` `<` `>` `\` 引号 `!` `@` 一律不收，`url(` 和 `/*` 单独点名。
 // 不收的丢弃并报回去（renderPage 的 `unsafe`），不静默。
 const SAFE_VALUE = /^[A-Za-z0-9 #%.,()+\-/_]*$/;
+// 数字默认按长度补 `px`，但这两个的数值是**无单位**的：`font-weight=600` 是 600，
+// 不是 600px；`line-height=1.5` 是倍数，不是 1.5px。补了单位浏览器直接丢掉整条声明。
+const UNITLESS = new Set(["font-weight", "line-height"]);
 export function safeCssValue(v) {
   const s = typeof v === "number" ? `${v}px` : String(v);
   if (s === "" || !SAFE_VALUE.test(s) || /url\s*\(|\/\*/i.test(s)) return null;
@@ -75,20 +79,32 @@ function declarations(box, dropped, where, skip = new Set()) {
   for (const [k, v] of Object.entries(box)) {
     if (skip.has(k)) continue;
     if (BOX_PASS.has(k)) {
-      const s = safeCssValue(v);
+      // 无单位的词先转成字符串，绕开 safeCssValue 的补 px；安全过滤照常走。
+      const s = safeCssValue(UNITLESS.has(k) && typeof v === "number" ? String(v) : v);
       if (s === null) { dropped.push(`${where}: ${k}=${JSON.stringify(String(v))} is not a value this host puts in CSS`); continue; }
       out.push(`${k}: ${s}`);
-      // 写了宽度就是「就这么宽」，不是「至少这么宽」。行容器是 flex，默认会拉伸/压缩 ——
-      // 切一次 tab 侧栏就变宽，正是这个。
-      if (k === "width" && s !== "auto") out.push("flex: 0 0 auto");
-    } else if (k === "sticky") out.push(`position: sticky; top: ${Number(v)}px`);
+      // 写了尺寸就是「就这么大」，不是「至少这么大」。容器是 flex，默认会拉伸/压缩 ——
+      // 切一次 tab 侧栏就变宽，正是这个。主轴是哪条取决于容器的 axis，所以两个方向
+      // 都要钉：`width` 管 axis=row 的那一半，`height` 管 axis=column 的那一半。
+      // 两个都写时只发一次 —— 同一条声明重复没有意义。
+      if ((k === "width" || k === "height") && s !== "auto" && !out.includes("flex: 0 0 auto")) {
+        out.push("flex: 0 0 auto");
+      }
+    // 跨轴对齐。容器是 flex，所以这就是 align-items；start/end 显式写成 flex-start/flex-end，
+    // 不依赖引擎对裸 start/end 在 flex 里的支持。stretch 是默认，写出来也无害。
+    } else if (k === "item-align") out.push(`align-items: ${{ start: "flex-start", end: "flex-end" }[v] ?? String(v)}`);
+    // 沿轴分布。`between` → space-between；start/end 同样显式写成 flex-* 形式。
+    else if (k === "item-justify") out.push(`justify-content: ${{ start: "flex-start", end: "flex-end", between: "space-between" }[v] ?? String(v)}`);
+    else if (k === "sticky") out.push(`position: sticky; top: ${Number(v)}px`);
     else if (k === "scroll" && v === "own") out.push("overflow: auto; max-height: 100vh");
-    // 浮层：盖在页面上、不占位置。锚在最近的容器上（.geml-frame 都是 position: relative）。
-    else if (k === "layer" && v === "overlay") out.push("position: absolute; top: 100%; left: 0; z-index: 20");
+    // 贴最近的容器：浮出来、不占位置（.geml-frame 都是 position: relative，锚点靠它）。
+    else if (k === "anchor" && v === "parent") out.push("position: absolute; top: 100%; left: 0; z-index: 20");
     // 盖住整个视口、内容居中 —— 开场提示、模态框、吐司都是这一件事。
-    else if (k === "layer" && v === "screen") out.push("position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center");
+    else if (k === "anchor" && v === "viewport") out.push("position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center");
     // 画出来之后自己淡掉。keyframes 与「减少动态效果」的让步在静态表里（都不带页面常量）。
     else if (k === "fade-out") out.push(`animation: geml-fade ${Number(v)}s ease-in forwards`);
+    // 反方向：画出来时自己淡入。和 fade-out 共用「减少动态效果」的让步。
+    else if (k === "fade-in") out.push(`animation: geml-fade-in ${Number(v)}s ease-out both`);
     // 带不带下划线。宿主不再替所有页面剥，浏览器的默认立着，要去掉由样式表说。
     else if (k === "underline") out.push(v === "yes" ? "text-decoration: underline" : "text-decoration: none");
     // 按状态显示/隐藏。`hide-below` 是按视口的那一半，这是按状态的那一半。
@@ -283,7 +299,7 @@ export function renderPage(vm, model, dom, opts) {
       if (next !== null) state.set(trigger.id, next);
     };
     const drivesOverlay = [...(vm.screens ?? []), ...(vm.frames ?? [])]
-      .some((c) => (c.variants ?? []).some((v) => v.box?.layer === "overlay" && trigger.id in v.when));
+      .some((c) => (c.variants ?? []).some((v) => v.box?.anchor === "parent" && trigger.id in v.when));
     el.addEventListener("click", (e) => {
       e.stopPropagation();
       flip();
@@ -421,7 +437,7 @@ export function renderPage(vm, model, dom, opts) {
     }
     // 哪个状态把这一片浮出来的 —— 「点别处关掉」要靠它认人
     for (const v of c.variants ?? []) {
-      if (v.box?.layer === "overlay") for (const st of Object.keys(v.when)) sec.setAttribute("data-opened-by", st);
+      if (v.box?.anchor === "parent") for (const st of Object.keys(v.when)) sec.setAttribute("data-opened-by", st);
     }
     // 容器也可以是组件：样式表点名、宿主实现，参数从容器上来。块组件签名是 (block, params, ctx)，
     // 这里没有块，传 null。容器也能当状态的触发者（`style-state {match="#menu-btn"}`），和块同一段接线。

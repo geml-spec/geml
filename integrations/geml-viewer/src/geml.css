@@ -271,9 +271,18 @@ select.geml-form-control { cursor: pointer; }
    颜色、间距、字号全部来自样式表（cssForPage 生成）。注入页面的 CSS 不得加载任何资源。 */
 .geml-page { margin: 0; }
 .geml-frame { display: flex; min-width: 0; min-height: 0; position: relative; }
-.geml-frame[data-axis="column"] { flex-direction: column; }
-.geml-frame[data-axis="row"] { flex-direction: row; align-items: stretch; }
-.geml-frame[data-axis="row"] > .geml-placed { flex: 0 0 auto; }
+/* 轴的默认放进一个匿名 @layer：未分层的规则一律赢过分层的，与特异性无关。
+   cssForPage 发出的是 `.geml-f-x` / `.geml-b-x` 单类（0,1,0），而这里是类+属性
+   （0,2,0）—— 不分层的话，`item-align` 在横排容器上、`grow` 在横排里的块上都会
+   被这两条静默压死（实测：align-items 仍是 stretch、flex-grow 仍是 0）。
+   宿主的默认必须让位给样式表说的话，这是一整类问题，不是某个词的问题。
+   `align-items: stretch` 同时被删掉：flex 容器不写它时计算值就是 `normal`，
+   行为完全相同，它唯一的作用是压住 `item-align`。 */
+@layer {
+  .geml-frame[data-axis="column"] { flex-direction: column; }
+  .geml-frame[data-axis="row"] { flex-direction: row; }
+  .geml-frame[data-axis="row"] > .geml-placed { flex: 0 0 auto; }
+}
 .geml-placed { min-width: 0; box-sizing: border-box; }
 .geml-placed[role="button"], .geml-frame[role="button"] { cursor: pointer; }
 .geml-page button { color: inherit; font: inherit; }
@@ -299,6 +308,7 @@ select.geml-form-control { cursor: pointer; }
 /* `fade-out=<秒>` 用的动画。淡完之后 visibility: hidden，于是它既看不见也挡不住点击。
    时长由样式表给，这里只有形状。读者要求减少动态效果时直接跳到终点 —— 提示一闪而过，不是内容。 */
 @keyframes geml-fade { to { opacity: 0; visibility: hidden; } }
+@keyframes geml-fade-in { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
   .geml-page .geml-frame, .geml-page .geml-placed { animation-duration: 1ms !important; }
 }

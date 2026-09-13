@@ -216,18 +216,21 @@ in its `params`, so it cannot give `width` a private meaning.
 
 | word | domain | on |
 |---|---|---|
-| `width` `max-width` `padding` `margin` | open (a CSS length) | blocks and containers |
+| `width` `max-width` `min-width` `padding` `margin` | open (a CSS length) | blocks and containers |
+| `height` `max-height` `min-height` | open (a CSS length) | blocks and containers. The width axis carried three words and the height axis none; that was an asymmetry, not restraint — an `axis=row` container with a fixed-height header had no way to say so |
 | `sticky` | a number: offset from the top in px | blocks and containers |
 | `scroll` | `own` \| `page` | blocks and containers |
 | `hide-below` | a number: viewport px below which it is hidden | blocks and containers |
-| `font-size` `line-height` `font-family` `color` `background` `border` `border-radius` | open | blocks and containers |
+| `font-size` `line-height` `font-family` `font-weight` `color` `background` `border` `border-radius` | open | blocks and containers |
 | `text-align` | `left` \| `center` \| `right` \| `justify` | blocks and containers |
 | `gap` | open (a CSS length): space between slots; on a block with `axis`, the space between its items **and** inside one, between an icon and its label | containers and blocks with `axis` |
+| `item-align` | `start` \| `center` \| `end` \| `stretch` (default `stretch`) | containers, and blocks carrying `axis`: how the slots line up **across** the axis. `axis` opens an axis and `gap` spaces along it; across it there was no word |
+| `item-justify` | `start` \| `center` \| `end` \| `between` (default `start`) | containers, and blocks carrying `axis`: how the slots distribute **along** the axis. The other face of the same axis as `item-align` |
 | `axis` | `row` \| `column` (default `column`) | `style-screen` / `style-frame`; and a block — its items (a list's entries, a form's fields) run along that axis, and a list laid out in a row draws no markers |
-| `layer` | `page` \| `overlay` \| `screen` (default `page`) | blocks and containers: in the flow; floated under the nearest container, taking no space (a dropdown); or covering the viewport with its content centred (a splash, a modal, a toast) |
+| `anchor` | `flow` \| `parent` \| `viewport` (default `flow`) | blocks and containers: **what the box is anchored to**. `flow` follows the document flow and takes space; `parent` hangs off the nearest container and takes none (a dropdown); `viewport` covers the viewport and centres its content (a splash, a modal, a toast) |
 | `visible` | `yes` \| `no` (default `yes`) | blocks and containers: shown *right now*. `hide-below` is the viewport half of "not shown"; this is the state half |
 | `grow` | `yes` \| `no` (default `no`) | blocks and containers: whether this cell takes the space left over along its row or column |
-| `fade-out` | a number of seconds, 0–60 (default 0, no fade) | blocks and containers: painted, then it fades away and stops taking clicks. The one thing on the time axis; a host that honours "reduce motion" jumps to the end |
+| `fade-out` `fade-in` | a number of seconds, 0–60 (default 0, no fade) | blocks and containers: `fade-out` is painted, then fades away and stops taking clicks; `fade-in` is the same axis in the other direction. The one thing on the time axis; a host that honours "reduce motion" jumps to the end |
 | `underline` | `yes` \| `no` | blocks and inline parts: whether this run of text is underlined. A host does **not** strip a link's default underline on a laid-out page — removing it is a look, and the stylesheet says so |
 | `view` | `rendered` \| `source` (default `rendered`) | blocks: show the block, or its source text |
 | `editable` | `yes` \| `no` (default `no`) | blocks under `view=source`: the source may be edited in place; inert otherwise. It says nothing about where an edit goes — a host with no write path shows a scratch textarea |
