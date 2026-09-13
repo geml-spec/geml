@@ -1,0 +1,621 @@
+<title>geml-style 对照 CSS · 逐维分析</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans+SC:wght@300;400;600&display=swap">
+<style>
+:root {
+  --ink:        #14181d;
+  --ink-soft:   #5b6570;
+  --paper:      #f6f7f8;
+  --panel:      #ffffff;
+  --rule:       #dbe0e5;
+  --rule-soft:  #e8ebee;
+  --css:        #2c5fd8;
+  --css-wash:   #eef2fc;
+  --geml:       #0b7361;
+  --geml-wash:  #e9f4f1;
+  --warn:       #a8490f;
+  --warn-wash:  #fbf0e7;
+  --code-bg:    #f1f3f5;
+
+  --sans: "IBM Plex Sans SC", "IBM Plex Sans", -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  --cond: "IBM Plex Sans Condensed", "IBM Plex Sans SC", -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink:        #e4e8ec;
+    --ink-soft:   #97a1ac;
+    --paper:      #101317;
+    --panel:      #171b20;
+    --rule:       #2b3239;
+    --rule-soft:  #232930;
+    --css:        #7ea3f0;
+    --css-wash:   #171e2c;
+    --geml:       #4fbfa8;
+    --geml-wash:  #12211f;
+    --warn:       #e09055;
+    --warn-wash:  #241a12;
+    --code-bg:    #1c2127;
+  }
+}
+:root[data-theme="dark"] {
+  --ink:        #e4e8ec;
+  --ink-soft:   #97a1ac;
+  --paper:      #101317;
+  --panel:      #171b20;
+  --rule:       #2b3239;
+  --rule-soft:  #232930;
+  --css:        #7ea3f0;
+  --css-wash:   #171e2c;
+  --geml:       #4fbfa8;
+  --geml-wash:  #12211f;
+  --warn:       #e09055;
+  --warn-wash:  #241a12;
+  --code-bg:    #1c2127;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 15px;
+  line-height: 1.7;
+  margin: 0;
+  padding: 0 20px 100px;
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+
+header.mast {
+  border-bottom: 2px solid var(--ink);
+  padding: 56px 0 22px;
+  margin-bottom: 40px;
+}
+.eyebrow {
+  font-family: var(--cond);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 0 14px;
+}
+h1 {
+  font-family: var(--cond);
+  font-weight: 700;
+  font-size: clamp(34px, 6vw, 56px);
+  line-height: 1.04;
+  letter-spacing: -.01em;
+  margin: 0 0 18px;
+  text-wrap: balance;
+}
+h1 .vs { color: var(--ink-soft); font-weight: 600; padding: 0 .18em; }
+.thesis { max-width: 62ch; font-size: 17px; line-height: 1.75; margin: 0; }
+.thesis strong { font-weight: 600; }
+
+.readings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  margin: 0 0 56px;
+}
+.reading { background: var(--panel); padding: 14px 16px; }
+.reading dt {
+  font-family: var(--cond);
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 0 6px;
+}
+.reading dd { margin: 0; font-family: var(--mono); font-size: 19px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.reading dd small { display: block; font-family: var(--sans); font-size: 12px; font-weight: 300; color: var(--ink-soft); margin-top: 3px; line-height: 1.4; }
+
+h2 {
+  font-family: var(--cond);
+  font-weight: 700;
+  font-size: 25px;
+  letter-spacing: -.005em;
+  margin: 72px 0 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--ink);
+}
+h2:first-of-type { margin-top: 0; }
+.sec-note { color: var(--ink-soft); font-size: 14px; margin: 0 0 30px; max-width: 66ch; }
+
+.dim { border-top: 1px solid var(--rule); padding: 26px 0 4px; }
+.dim:first-of-type { border-top: 0; }
+.dim-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 14px; margin-bottom: 16px; }
+.dim-n { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.dim-head h3 { font-family: var(--cond); font-weight: 600; font-size: 20px; margin: 0; flex: 1 1 auto; }
+.chip {
+  font-family: var(--cond);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: .09em;
+  padding: 3px 9px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.chip.same { color: var(--ink-soft); }
+.chip.diff { color: var(--geml); background: var(--geml-wash); }
+.chip.odd  { color: var(--warn);  background: var(--warn-wash); }
+
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+@media (max-width: 720px) { .pair { grid-template-columns: 1fr; } }
+.side { background: var(--panel); display: flex; flex-direction: column; min-width: 0; }
+.side-label {
+  font-family: var(--cond);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.side.a .side-label { color: var(--css);  background: var(--css-wash); }
+.side.b .side-label { color: var(--geml); background: var(--geml-wash); }
+.side pre {
+  margin: 0;
+  padding: 12px;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.62;
+  background: var(--panel);
+  flex: 1 1 auto;
+}
+.side pre .c { color: var(--ink-soft); }
+.side.a pre .k { color: var(--css); }
+.side.b pre .k { color: var(--geml); }
+.side pre .x { color: var(--warn); }
+
+.take { margin: 14px 0 0; max-width: 72ch; }
+.take b { font-weight: 600; }
+code { font-family: var(--mono); font-size: .89em; background: var(--code-bg); padding: 1px 4px; }
+
+.verdict { border-left: 3px solid var(--ink); padding: 2px 0 2px 18px; margin: 0 0 26px; }
+.verdict.bad { border-left-color: var(--warn); }
+.verdict.good { border-left-color: var(--geml); }
+.verdict h4 { font-family: var(--cond); font-weight: 600; font-size: 17px; margin: 0 0 6px; }
+.verdict p { margin: 0 0 8px; max-width: 70ch; }
+.verdict p:last-child { margin-bottom: 0; }
+
+table.map { border-collapse: collapse; width: 100%; font-size: 13.5px; margin: 0 0 10px; }
+table.map th, table.map td { border: 1px solid var(--rule); padding: 7px 10px; text-align: left; vertical-align: top; }
+table.map th { font-family: var(--cond); font-weight: 600; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft); background: var(--rule-soft); }
+table.map td:first-child { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; }
+.tscroll { overflow-x: auto; }
+
+.since {
+  border: 1px solid var(--geml);
+  background: var(--geml-wash);
+  color: var(--ink);
+  padding: 14px 18px;
+  margin: 0 0 40px;
+  max-width: 72ch;
+}
+.since h4 { font-family: var(--cond); font-weight: 600; font-size: 15px; margin: 0 0 6px; color: var(--geml); }
+.since p { margin: 0 0 6px; font-size: 14px; }
+.since p:last-child { margin: 0; }
+
+footer {
+  margin-top: 80px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+footer code { background: transparent; padding: 0; }
+footer div { margin-top: 8px; }
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">geml-style/v1 · 逐维对照 · 2026-09-13</p>
+  <h1>geml-style<span class="vs">对照</span>CSS</h1>
+  <p class="thesis">
+    十个维度，左边 CSS、右边 geml-style，例子都从 <code>playground/style-demo</code>
+    那份真跑起来的样式表里取。结论先说：<strong>八个维度上它是 CSS 的一个受限子集，
+    读 CSS 的人不会被绊住</strong>；剩下两个是 CSS 根本没有的东西（样式表决定内容摆在哪、
+    歧义直接报错），<strong>这两处一定会违反常识，而且该违反</strong>。
+    这次对照本身查出三处是缺口而不是立场（记号、简写、继承），三处都已写进 profile。
+  </p>
+</header>
+
+<h2>读数</h2>
+<p class="sec-note">全部是当前分支上的实测，不是估计。样式表 = <code>playground/style-demo/_index/github.style.geml</code>，一份 1:1 复刻 GitHub blob 页的真实用例。</p>
+
+<dl class="readings">
+  <div class="reading"><dt>样式表块数</dt><dd>104<small>1 screen · 27 frame · 6 state · 70 rule</small></dd></div>
+  <div class="reading"><dt>内含词</dt><dd>28<small>封闭清单，CSS 属性数百个</small></dd></div>
+  <div class="reading"><dt>诊断码</dt><dd>20<small>13 个 error · 7 个 warning</small></dd></div>
+  <div class="reading"><dt>选择器步数</dt><dd>40 / 47<small>一步 / 两步，没有第三步</small></dd></div>
+  <div class="reading"><dt>记号</dt><dd>13<small><code>meta</code> 里 13 个键喂 75 处 <code>{{…}}</code>；裸色值只剩 8 处</small></dd></div>
+  <div class="reading"><dt>组合器</dt><dd>1<small>只有后代（空格）</small></dd></div>
+</dl>
+
+<h2>十个维度</h2>
+<p class="sec-note">标签的含义：<b>近似</b> = 换个写法而已，CSS 的直觉直接适用；<b>有意不同</b> = 故意做成另一套，理由成立；<b>反直觉</b> = 写 CSS 的人到这里会先愣一下。</p>
+
+<section class="dim">
+  <div class="dim-head"><span class="dim-n">01</span><h3>样式表是什么</h3><span class="chip diff">有意不同</span></div>
+  <div class="pair">
+    <div class="side a"><div class="side-label">CSS</div>
+<pre><span class="c">/* 另一门语言，另一个文件，
+   另一套语法和解析器 */</span>
+.sidebar {
+  width: 296px;
+}</pre></div>
+    <div class="side b"><div class="side-label">geml-style</div>
+<pre><span class="c">#「样式表」就是一份 GEML 文档，
+# 每条规则是一个可寻址的块</span>
+=== <span class="k">style-rule</span> {#w-side
+     match="text#sidebar"
+     width="296px"}
+===</pre></div>
+  </div>
+  <p class="take">CSS 是一门独立语言；geml-style 没有自己的语法，它是 GEML 的一个 profile。
+  好处很具体：<code>geml get sheet.geml '#w-side'</code> 能单取一条规则，<code>geml set</code> 能只改这一条，
+  <code>.gemlhistory</code> 能回滚这一条 —— 这是给 agent 编辑用的，不是给人手写用的。
+  代价也很具体：<b>写起来更啰嗦</b>，一条规则一个块，104 条规则就是 104 个块。</p>
+</section>
+
+<section class="dim">
+  <div class="dim-head"><span class="dim-n">02</span><h3>选择器</h3><span class="chip odd">反直觉</span></div>
+  <div class="pair">
+    <div class="side a"><div class="side-label">CSS</div>
+<pre>#api table.kpi        <span class="c">/* 后代 */</span>
+#api &gt; table          <span class="c">/* 子 */</span>
+h2 + p                <span class="c">/* 相邻 */</span>
+li:nth-child(2n)      <span class="c">/* 位置 */</span>
+a:hover               <span class="c">/* 状态 */</span>
+[href^="https"]       <span class="c">/* 前缀 */</span>
+*                     <span class="c">/* 通配 */</span></pre></div>
+    <div class="side b"><div class="side-label">geml-style</div>
+<pre>#api table.kpi        <span class="k">✓ 唯一的组合器</span>
+text#nav link         <span class="k">✓ 行内部件（末步）</span>
+*                     <span class="k">✓ 但只能整步</span>
+[key] [key=value]     <span class="k">✓ 存在 / 相等</span>
+
+<span class="x">&gt; + ~</span>                 <span class="c">selector-unsupported</span>
+<span class="x">:hover :nth-child()</span>   <span class="c">selector-unsupported</span>
+<span class="x">^= $= *= |=</span>           <span class="c">selector-unsupported</span></pre></div>
+  </div>
+  <p class="take">词汇量是 CSS 的一小半：类型 + <code>.class</code> + <code>#id</code> + 属性存在/相等，
+  加一个后代组合器。多出来的是<b>行内部件步</b> —— <code>link</code> <code>image</code> <code>code-span</code>
+  <code>strong</code> <code>emphasis</code> —— CSS 里这些是元素，GEML 里块内行内没有独立地址，
+  所以给了五个名字。<b>关键差别不在少了什么，在于少了的东西会报错。</b>
+  写 <code>#api &gt; table</code> 不是不匹配，是 <code>selector-unsupported</code>，check 直接失败。
+  「像 CSS 是个坡道，不是陷阱」——规范原话。</p>
+</section>
+
+<section class="dim">
+  <div class="dim-head"><span class="dim-n">03</span><h3>层叠</h3><span class="chip odd">反直觉</span></div>
+  <div class="pair">
+    <div class="side a"><div class="side-label">CSS</div>
+<pre><span class="c">/* 四级仲裁，永远有赢家 */</span>
+!important
+&gt; 特异性算术 (1,0,0) vs (0,2,0)
+&gt; @layer 次序
+&gt; <span class="k">源码顺序（最后的兜底）</span>
+
+<span class="c">/* 两条同分？后写的赢。
+   静默，无提示。 */</span></pre></div>
+    <div class="side b"><div class="side-label">geml-style</div>
+<pre><span class="c"># 一条关系：条件集严格超集</span>
+{type, .class, #id, [attr],
+ screen:x, when:s=v}
+
+A ⊃ B  →  A 赢
+否则   →  <span class="x">ambiguous-rule（error）</span>
+
+<span class="c"># 简写与单边同属一个裁决键：</span>
+border <span class="k">vs</span> border-left
+  <span class="c">同层、不同规则 →</span> <span class="x">ambiguous-rule</span>
+
+<span class="c"># 没有特异性算术
+# 没有 !important
+# 没有源码顺序
+# 层只来自 style-entry（0/1/2）</span></pre></div>
+  </div>
+  <p class="take">这是最大的一处分歧。CSS 保证「一定有一个赢家」，代价是赢家可能不是你以为的那个；
+  geml-style 保证「不确定就不猜」，代价是<b>两条都合理的规则会让 check 失败，你必须自己拆开</b>。
+  排掉源码顺序是有具体理由的，写在规范里：靠顺序定胜负的样式表，会被 <code>geml add --before</code>
+  这种块级 agent 编辑悄悄改掉渲染结果 —— 而这个格式存在的全部意义就是支持那种编辑。
+  <b>层</b>还在（默认层 / sitemap / 入口自己，0-1-2），但层号是声明的，选择器一点都不参与 —— 这是 CSS 的
+  <code>@layer</code>，不是特异性。</p>
+  <p class="take"><b>「没有源码顺序」是当真的，连简写都堵上了。</b>裁决按属性名做，
+  而 <code>border</code> 和 <code>border-left</code> 是两个名字，本来永远不会相遇 ——
+  于是两条规则都活着，谁在文件里靠后谁赢，零诊断。这正是 <code>geml add --before</code>
+  会悄悄改掉渲染结果的场景。现在简写与四个单边被当作同一个裁决键：
+  同层、同 <code>when</code> 组、来自不同规则时直接报 <code>ambiguous-rule</code>。
+  选的是"不确定就不猜"，不是"发 CSS 前替你排个序"—— 后者等于偷偷引入一条优先级规则。</p>
+</section>
+
+<section class="dim">
+  <div class="dim-head"><span class="dim-n">04</span><h3>属性</h3><span class="chip diff">有意不同</span></div>
+  <div class="pair">
+    <div class="side a"><div class="side-label">CSS</div>
+<pre><span class="c">/* 数百个属性，开放增长 */</span>
+display  position  z-index
+transform  transition  opacity
+box-shadow  filter  clip-path
+grid-template-areas  aspect-ratio
+<span class="c">/* 认不出的属性 → 静默丢弃 */</span>
+colr: red;   <span class="c">/* 什么都不发生 */</span></pre></div>
+    <div class="side b"><div class="side-label">geml-style</div>
+<pre><span class="c"># 28 个内含词，封闭</span>
+width max-width padding margin
+font-size line-height font-family
+text-align color background
+border border-top/right/bottom/left
+border-radius gap
+sticky scroll hide-below
+layer visible grow axis
+view editable fade-out underline
+
+colr="red"   <span class="c">→ 透传给组件；</span>
+             <span class="x">没有组件 → style-unknown-attribute</span></pre></div>
+  </div>
+  <p class="take">28 个词是「换个块还是不是这个意思」筛出来的：<code>width</code> 放段落、表格、图上意思一样，
+  所以是内含词；<code>fold</code> 只对树控件说得通，所以是组件参数。
+  <b>缺席的东西值得单独说</b>：没有 <code>display</code>、没有 <code>position</code>、没有 <code>z-index</code>、
+  没有 <code>transform</code>、没有 <code>transition</code>、没有 <code>opacity</code>、没有 <code>box-shadow</code>。
+  <code>layer=overlay|screen</code> 是 position 那一小块被封装后的样子，<code>visible=no</code> 是 display 那一小块。
+  这不是「还没做」，是「块布局需要的就这些」—— 但一旦要做阴影、过渡、任何装饰性效果，
+  今天只能回宿主 CSS。</p>
+</section>
+
+<section class="dim">
+  <div class="dim-head"><span class="dim-n">05</span><h3>取值</h3><span class="chip odd">反直觉</span></div>
+  <div class="pair">
+    <div class="side a"><div class="side-label">CSS</div>
+<pre>:root { --border: #d1d9e0; }
+.a { border-color: var(--border); }
+.b { border-color: var(--border); }
+
+width: calc(100% - 2rem);
+color: color-mix(in srgb, ...);</pre></div>
+    <div class="side b"><div class="side-label">geml-style</div>
+<pre><span class="c"># 记号：样式表自己的 meta 就是表</span>
+=== <span class="k">meta</span>
+line = "#d1d9e0"
+===
+border="1px solid <span class="k">{{line}}</span>"
+<span class="c">#  改主题只动 meta 这一个块</span>
+<span class="x"># 悬空记号 → unknown-token（error）</span>
+
+<span class="c"># 值仍是不透明安全串，白名单字符：</span>
+<span class="c"># [A-Za-z0-9 #%.,()+-/_]</span>
+<span class="c"># calc() rgb() 能过（括号在白名单）</span>
+<span class="x"># url( 和 /* 单独点名拒掉</span></pre></div>
+  </div>
+  <p class="take">开放值域的词（<code>width</code> <code>color</code> <code>border</code>）原样进 CSS 文本，
+  而样式表是不可信输入 —— 一个 <code>width="0} body{display:none} .x{"</code> 就能改写整页，
+  所以有字符白名单，拒掉的会报回去而不是静默。
+  <b>变量这一块由「记号」补齐</b>：样式表自己 <code>meta</code> 的每个键都能在任何属性里写成
+  <code>{{key}}</code>，装载期展开，<b>保留类型</b>（数值词能被喂一个数），
+  展开发生在 <code>safeCssValue</code> 之前，所以"值是不透明串"这条没被破坏。
+  实测 13 个键喂 75 处引用，裸色值从散落各处收敛到只剩 8 处。
+  代价是它不是 CSS 自定义属性的等价物 —— 没有作用域、没有级联覆盖，
+  它是<b>装载期的文本替换</b>，一份样式表一张表。</p>
+</section>
+
+<section class="dim">
+  <div class="dim-head"><span class="dim-n">06</span><h3>摆放（CSS 没有的那一维）</h3><span class="chip odd">反直觉</span></div>
+  <div class="pair">
+    <div class="side a"><div class="side-label">CSS</div>
+<pre><span class="c">/* CSS 从不决定内容出现在哪。
+   DOM 的顺序 = HTML 说了算。
+   order / grid-area 能重排，
+   但不能凭空把一个块搬进
+   另一个容器。 */</span></pre></div>
+    <div class="side b"><div class="side-label">geml-style</div>
+<pre>=== <span class="k">style-frame</span> {#header
+     axis="row"
+     slots="text#logo,
+            text#nav link,
+            #search-box"}
+===
+<span class="c"># 槽位决定哪些块进这个区域、
+# 按什么顺序。内容文档里没有
+# 任何一行说自己属于 header。</span></pre></div>
+  </div>
+  <p class="take">这一维 CSS 里根本不存在，所以谈不上「符不符合常识」—— 它更像 XSLT 或模板引擎，
+  不像样式表。实测的效果是：<code>page.geml</code> 里<b>只有内容</b>，一个字的 chrome 文本都没有，
+  27 个 frame 把它们组装成 GitHub 的那张页面。
+  <b>这是整个设计里最值钱的一条，也是最容易被 CSS 出身的人误解的一条</b> ——
+  「样式表」这个名字在这里已经不准确了，它是一份版面单。</p>
+</section>
+
+<section class="dim">
+  <div class="dim-head"><span class="dim-n">07</span><h3>状态</h3><span class="chip same">近似</span></div>
+  <div class="pair">
+    <div class="side a"><div class="side-label">CSS</div>
+<pre>a:hover { color: blue }
+input:checked ~ .panel { display: block }
+<span class="c">/* 更复杂的状态 → :has()、
+   checkbox hack，或者交给 JS */</span></pre></div>
+    <div class="side b"><div class="side-label">geml-style</div>
+<pre>=== <span class="k">style-state</span> {#tab match="..."
+     on="click" init-value="preview"}
+===
+=== <span class="k">style-rule</span> {match="#pane"
+     when="<span class="k">$tab=code</span>" visible="yes"}
+===
+=== <span class="k">style-rule</span> {match="text#nav link"
+     when="<span class="k">@hover</span>" underline="yes"}
+===</pre></div>
+  </div>
+  <p class="take"><code>@hover</code> / <code>@focus</code> 是内建的，直接翻成 <code>:hover</code> /
+  <code>:focus-visible</code>，CSS 的直觉照搬即可。真正多出来的是<b>具名状态</b>：
+  <code>$tab=code</code> 是一个显式的状态格，有初值、有喂它的交互源，不是从 DOM 结构里凑出来的。
+  数据流被限死成 <code>交互 → 状态 → 视图</code>，状态永不读状态，所以没有环，
+  诊断目录里也就没有 <code>binding-cycle</code>。CSS 用 checkbox hack 做的事，这里是一等公民。</p>
+</section>
+
+<section class="dim">
+  <div class="dim-head"><span class="dim-n">08</span><h3>at-规则</h3><span class="chip diff">有意不同</span></div>
+  <div class="pair">
+    <div class="side a"><div class="side-label">CSS</div>
+<pre>@media (max-width: 767px) { ... }
+@supports (display: grid) { ... }
+@layer base, theme;
+@keyframes fade { ... }
+@font-face { ... }
+@container (min-width: 40em) { ... }</pre></div>
+    <div class="side b"><div class="side-label">geml-style</div>
+<pre>hide-below="768"   <span class="c"># 唯一的响应式</span>
+fade-out="1.2"     <span class="c"># 唯一的动画</span>
+<span class="c"># 层 → 来自 style-entry，不是 at-规则</span>
+
+<span class="c"># 没有 @supports、@container、
+# @font-face、@keyframes 的对等物。
+# prefers-reduced-motion 的让步
+# 写死在宿主静态表里。</span></pre></div>
+  </div>
+  <p class="take">响应式只剩一个断点方向（低于 N px 就隐藏），动画只剩一种（画出来自己淡掉）。
+  两个都是「按第一个真实用例圈死，多一个不加」的产物。
+  <b>诚实的说法：这不是一个设计立场，这是还没走到。</b>
+  一旦有人要做两栏在窄屏变一栏（而不是消失），<code>hide-below</code> 就不够了。</p>
+</section>
+
+<section class="dim">
+  <div class="dim-head"><span class="dim-n">09</span><h3>继承</h3><span class="chip odd">反直觉</span></div>
+  <div class="pair">
+    <div class="side a"><div class="side-label">CSS</div>
+<pre><span class="c">/* 每个属性显式声明是否继承。
+   color 继承，border 不继承。
+   inherit / initial / unset / revert
+   四个关键字随时可用。 */</span>
+.child { color: inherit }</pre></div>
+    <div class="side b"><div class="side-label">geml-style</div>
+<pre><span class="c"># §10：「继承由宿主决定，
+#       本 profile 不描述它。」
+# box 是平的；继承是宿主那套
+# 媒介的行为，不是 profile 的。</span>
+<span class="k">发 CSS 的宿主</span>
+color="{{fg}}"    <span class="c">→ 子节点跟着变</span>
+border="1px ..."  <span class="c">→ 不跟</span>
+
+<span class="k">画到 canvas / 排到 PDF 的宿主</span>
+<span class="c">→ 由它自己说了算，允许不同</span></pre></div>
+  </div>
+  <p class="take">视图模型（<code>{states, screens, frames, bindings, diagnostics}</code>）里 box 是平的，
+  继承不在其中。换一个不发 CSS 的宿主（画到 canvas、排到 PDF），同一份样式表可以渲染出不同结果。
+  <b>关键在于这一条现在是被<u>写明</u>的，不是被漏掉的</b> —— §10 明说"继承由宿主决定，
+  本 profile 不描述它"。这是把缺口写出来，不是补上它：
+  钉死继承等于为 28 个词重新裁一遍 CSS 的"继承/不继承"，而目前没有消费者需要。
+  <b>所以它仍然反直觉，但反直觉的理由从"没想清楚"变成了"想清楚了并且选择不管"</b> ——
+  对一份规范来说，这两者的差别就是全部。</p>
+</section>
+
+<section class="dim">
+  <div class="dim-head"><span class="dim-n">10</span><h3>出错哲学</h3><span class="chip diff">有意不同</span></div>
+  <div class="pair">
+    <div class="side a"><div class="side-label">CSS</div>
+<pre><span class="c">/* 容错是设计目标：
+   认不出的声明、选择器、at-规则
+   一律丢弃，继续解析。
+   页面永远渲染得出来。
+   代价：错字永远不告诉你。 */</span></pre></div>
+    <div class="side b"><div class="side-label">geml-style</div>
+<pre><span class="c"># 20 个具名诊断码（13 error / 7 warning）</span>
+selector-unsupported   <span class="x">error</span>
+ambiguous-rule         <span class="x">error</span>
+unknown-state/screen/frame  <span class="x">error</span>
+frame-cycle / frame-too-deep <span class="x">error</span>
+screen-nested          <span class="x">error</span>
+unknown-token          <span class="x">error</span>
+style-invalid-value    <span class="x">error</span>
+
+unmatched-rule         <span class="c">warning</span>
+unused-frame           <span class="c">warning</span>
+unknown-component      <span class="c">warning</span>
+style-unknown-attribute <span class="c">warning</span>
+style-embed-not-expanded <span class="c">warning</span></pre></div>
+  </div>
+  <p class="take">严重性的分界线是明确的：<b>结构性错误是 error（歧义、悬空引用、成环），
+  未知名字是 warning + 惰性回退</b>。后者是为了保住前向兼容 —— 不认识的名字必须降级，
+  不能拒收整份文档。<code>geml check</code> 能把这整套跑出来，CSS 侧的对等物（stylelint）
+  是第三方工具且不是规范的一部分。这一维 geml-style 赢得干净。</p>
+</section>
+
+<h2>三处会违反常识，而且该违反</h2>
+
+<div class="verdict good">
+  <h4>① 歧义是错误，不是「后写的赢」</h4>
+  <p>写 CSS 的人第一次看到 <code>ambiguous-rule</code> 会觉得是工具在找茬。但这个格式的目标读者是
+  agent：<code>geml set</code>、<code>geml add --before</code> 天天在重排块，而任何靠源码顺序的仲裁
+  在那种编辑下都会静默改渲染结果。<b>不猜是正确的。</b>唯一要补的是诊断文案要好到让人知道怎么拆。</p>
+</div>
+
+<div class="verdict good">
+  <h4>② 样式表决定内容摆在哪</h4>
+  <p><code>slots=</code> 在 CSS 里没有对应物，这一步跨出了「样式」的定义。但实测收益是硬的：
+  <code>page.geml</code> 里零 chrome 文本，整张 GitHub 页面的 27 个区域全由样式表组装。
+  <b>代价是名字骗人</b> —— 建议在 profile 开头就说清「这不是 CSS 的对等物，是版面单 + 样式表」，
+  别让人带着 CSS 的预期进来。</p>
+</div>
+
+<div class="verdict good">
+  <h4>③ 属性表是封闭的 28 个词</h4>
+  <p>CSS 的开放属性集是它成为通用语言的原因，也是它没法被静态检查的原因。
+  28 个词加「换个块还是不是这个意思」这条判据，是个能自圆其说的立场。
+  <b>但要防住一种滑坡</b>：每来一个页面就加两个词（这一轮就加了 <code>view</code>
+  <code>editable</code> <code>fade-out</code> <code>underline</code> 四个），
+  加到 80 个的时候，「封闭」的好处就没了，坏处还在。</p>
+</div>
+
+<h2>还开着的两处 —— 都是「还没走到」，不是「想错了」</h2>
+<p class="sec-note">上一轮对照查出的三处缺口（记号、简写、继承）都已写进 profile。
+剩下的不是判断失误，是用例还没逼到。</p>
+
+<div class="verdict bad">
+  <h4>① 响应式只有一个方向</h4>
+  <p><code>hide-below="768"</code> 是全部：窄于 N px 就隐藏。没有 <code>@container</code>，
+  没有断点区间，没有「两栏变一栏」——只有「两栏变一栏半」的那个栏消失。</p>
+  <p>这是「按第一个真实用例圈死，多一个不加」的产物，立场本身站得住。
+  <b>但它撑不过下一个用例</b>：任何一个要在窄屏重排而不是隐藏的版面，都会立刻要求
+  <code>hide-below</code> 之外的东西。到那时候要补的不是一个词，是一套断点模型 ——
+  而断点模型和「摆放」（§06 的 <code>slots</code>）是同一件事的两面，不能各做各的。</p>
+</div>
+
+<div class="verdict bad">
+  <h4>② 一部分词被规定和被检查，但没被实战验过</h4>
+  <p>profile §0.1 的右列自己列着这批：<code>filter=</code> 从没对着真实噪音跑过
+  （codemap 那份语料的边全是 <code>kind=call</code>、confidence 全空，没有可过滤的东西），
+  <code>handler=</code> 没有真实宿主。</p>
+  <p><b>这条之所以算问题，不是因为它们可能有 bug，而是因为「封闭词表」这个立场的全部力量
+  来自每个词都被一个真实用例逼出来。</b>一个没被用例逼出来的词，和 CSS 那种
+  「先定义、等人来用」的属性没有区别 —— 而 §03 提醒的那种滑坡，正是从这里开始的。
+  好在 profile 自己把这一栏单独列了出来，写清了「这买到的是什么」。</p>
+</div>
+
+<h2>一句话</h2>
+<p class="thesis" style="margin-bottom:0">
+  geml-style 不是「另一种 CSS」，是<strong>一份给 agent 编辑的版面单，顺带管样式</strong>。
+  它在选择器、属性、at-规则上是 CSS 的受限子集，读 CSS 的人不会迷路；
+  在层叠和摆放上是另一套东西，而这两处的偏离都有站得住的理由。
+  上一轮对照逼出的三处缺口 —— <strong>记号</strong>、<strong>简写裁决</strong>、
+  <strong>继承写明为由宿主决定</strong> —— 都已经进了 profile。
+  剩下的「不像 CSS」，不是问题，是还没被用例逼到的地方。
+</p>
+
+<footer>
+  读数取自 <code>playground/style-demo/_index/github.style.geml</code>
+  （104 个样式块：1 screen · 27 frame · 6 state · 70 rule）、
+  <code>geml-parser/src/style-resolve.ts</code>（<code>BOX_WORDS</code> 28）、
+  <code>spec/profiles/geml-style/geml-style-profile_CN.md</code> §1.2 §4 §8 §10。
+  诊断 20 条按 §8 的目录点算；记号与简写裁决的现状按当前分支实测，不是推断。
+  <div>This page: <code>docs/illustrated/geml-style-vs-css_CN.html</code>; 暂无英文版。
+  Profile document: <code>spec/profiles/geml-style/geml-style-profile_CN.md</code>.</div>
+</footer>
+
+</div>
