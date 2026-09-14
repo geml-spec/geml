@@ -1,47 +1,67 @@
 [
- {
-  "name": "a glued open fence is the same block as its spaced twin",
-  "geml": "===note {#a}\nbody\n===\n",
-  "want": "block:note"
- },
- {
-  "name": "the spaced spelling of the same block",
-  "geml": "=== note {#a}\nbody\n===\n",
-  "want": "block:note"
- },
- {
-  "name": "glued, with no space before the attribute object either",
-  "geml": "===note{#a}\nbody\n===\n",
-  "want": "block:note"
- },
- {
-  "name": "a glued open fence carrying no attributes",
-  "geml": "===text\nbody\n===\n",
-  "want": "block:text"
- },
- {
-  "name": "a glued labeled close closes its block",
-  "geml": "=== note {#n1}\nbody\n===#n1\n",
-  "want": "block:note"
- },
- {
-  "name": "the spaced spelling of that labeled close",
-  "geml": "=== note {#n1}\nbody\n=== #n1\n",
-  "want": "block:note"
- },
- {
-  "name": "a type name must start with an ASCII letter, so this line is prose",
-  "geml": "===9foo {#a}\nbody\n===\n",
-  "want": "\"===9foo {#a}\\nbody\\n===\""
- },
- {
-  "name": "a non-ASCII type name is not a type name",
-  "geml": "=== 中文块 {#a}\nbody\n===\n",
-  "want": "\"=== 中文块 {#a}\\nbody\\n===\""
- },
- {
-  "name": "an unregistered but well-formed type is still a block",
-  "geml": "=== acme-chart {#a}\nbody\n===\n",
-  "want": "block:acme-chart"
- }
+  {
+    "name": "a glued open fence is the same block as its spaced twin",
+    "geml": "===note {#a}\nbody\n===\n",
+    "want": "block:note"
+  },
+  {
+    "name": "the spaced spelling of the same block",
+    "geml": "=== note {#a}\nbody\n===\n",
+    "want": "block:note"
+  },
+  {
+    "name": "glued, with no space before the attribute object either",
+    "geml": "===note{#a}\nbody\n===\n",
+    "want": "block:note"
+  },
+  {
+    "name": "a glued open fence carrying no attributes",
+    "geml": "===text\nbody\n===\n",
+    "want": "block:text"
+  },
+  {
+    "name": "a glued labeled close closes its block",
+    "geml": "=== note {#n1}\nbody\n===#n1\n",
+    "want": "block:note"
+  },
+  {
+    "name": "the spaced spelling of that labeled close",
+    "geml": "=== note {#n1}\nbody\n=== #n1\n",
+    "want": "block:note"
+  },
+  {
+    "name": "a type name must start with an ASCII letter, so this line is prose",
+    "geml": "===9foo {#a}\nbody\n===\n",
+    "want": "\"===9foo {#a}\\nbody\\n===\""
+  },
+  {
+    "name": "a non-ASCII type name is not a type name",
+    "geml": "=== 中文块 {#a}\nbody\n===\n",
+    "want": "\"=== 中文块 {#a}\\nbody\\n===\""
+  },
+  {
+    "name": "an unregistered but well-formed type is still a block",
+    "geml": "=== acme-chart {#a}\nbody\n===\n",
+    "want": "block:acme-chart"
+  },
+  {
+    "name": "a matched ``` pair shields a fence line — the example stays flow text, never a block",
+    "geml": "```\n=== note {#a}\nbody\n===\n```\n",
+    "want": "code(\"\\n=== note {#a}\\nbody\\n===\\n\")"
+  },
+  {
+    "name": "an unmatched ``` shields nothing: one stray line may not swallow the blocks after it",
+    "geml": "```\n\n=== note {#a}\nbody\n===\n",
+    "want": "\"```\" block:note"
+  },
+  {
+    "name": "the shield is per body: a pair inside a flow body does not reach the block after it",
+    "geml": "==== note {#outer}\n```\n=== note {#inner}\nx\n===\n```\n====\n\n=== note {#after}\ny\n===\n",
+    "want": "block:note block:note"
+  },
+  {
+    "name": "a raw body is opaque, so its ``` lines pair with nothing outside it",
+    "geml": "==== code {#ex}\n```\n====\n\n=== note {#a}\nhi\n===\n",
+    "want": "block:code block:note"
+  }
 ]

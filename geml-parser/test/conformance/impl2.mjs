@@ -410,15 +410,32 @@ function readList(lines, i, indent, meta) {
   return { block: list, next: i };
 }
 
+// §3.1: a MATCHED pair of ``` lines shields what lies between them — nothing in
+// there is a construct, the region stays flow text. Unmatched shields nothing,
+// and the pairing is per body (this function is called once per body).
+const TICKS = /^[ ]{0,3}`{3,}/;
+function shield(lines) {
+  const out = new Set();
+  let open = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (!TICKS.test(lines[i])) continue;
+    if (open < 0) { open = i; continue; }
+    for (let j = open + 1; j < i; j++) out.add(j);
+    open = -1;
+  }
+  return out;
+}
+
 function blocks(lines, meta) {
   const out = [];
+  const hid = shield(lines);
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
     if (line.trim() === "") { i++; continue; }
-    const h = HEADING.exec(line);
+    const h = hid.has(i) ? null : HEADING.exec(line);
     if (h) { const t = interp(h[2], meta); out.push({ kind: "heading", level: h[1].length, text: t, inlines: inline(t) }); i++; continue; }
-    const f = FENCE.exec(line);
+    const f = hid.has(i) ? null : FENCE.exec(line);
     if (f) {
       const len = f[1].length;
       let j = i + 1;
@@ -467,10 +484,11 @@ function blocks(lines, meta) {
       i++;
       continue;
     }
-    if (marker(line)) { const r = readList(lines, i, marker(line).indent, meta); out.push(r.block); i = r.next; continue; }
+    if (!hid.has(i) && marker(line)) { const r = readList(lines, i, marker(line).indent, meta); out.push(r.block); i = r.next; continue; }
     const para = [];
-    while (i < lines.length && lines[i].trim() !== "" && !HEADING.test(lines[i]) && !FENCE.test(lines[i]) && !marker(lines[i])
-           && !lines[i].trimStart().startsWith("%%")) {
+    while (i < lines.length && lines[i].trim() !== "" && (hid.has(i) ||
+           (!HEADING.test(lines[i]) && !FENCE.test(lines[i]) && !marker(lines[i])
+            && !lines[i].trimStart().startsWith("%%")))) {
       para.push(lines[i]); i++;
     }
     const text = interp(para.join("\n"), meta);

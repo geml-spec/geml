@@ -315,15 +315,13 @@ Two separate gates, and the second one is **not passed yet**.
 
 ## What is deliberately not published
 
-Three directories under `integrations/` have no channel on purpose. They are
+Two directories under `integrations/` have no channel on purpose. They are
 listed here so the next reader does not read their absence as an omission.
 
 - **`langchain+llamaindex`** — a reference integration with a `pyproject.toml`
   and no PyPI release, on purpose: it exists to be read and copied, and its
   README says so. Publishing it would make the repo answerable for a Python
   package's compatibility matrix.
-- **`tree-sitter`** — a design brief, not a grammar. Its channel, when someone
-  writes it, is npm plus the self-registration Neovim, Helix and Zed all use.
 - **`windows-icon`** — an `install.ps1` a person runs on their own machine. No
   store, and nothing to version.
 

@@ -1104,9 +1104,35 @@ function readFencedBlock(
   return { block, next: closed ? end + 1 : end };
 }
 
+/**
+ * Markdown 的 ``` 不是 GEML 的构造 —— 没有它，一个写在 ``` 里的示例块会**静默地**
+ * 活过来：拿到 id、进 `geml list`、被 `set` 改写。作者以为在展示语法，实际上在定义东西。
+ * 所以扫描器跳过成对反引号之间的行；区内什么都不变，仍旧是散文（§5.1 的行内代码），
+ * 不是第二种代码块 —— GEML 只有一个 `=== code`。
+ *
+ * **要成对**。照 CommonMark「未闭合就管到文末」，文档里一个落单的 ``` 会吞掉它后面的
+ * 每一个块，`geml list` 突然空掉 —— 比它要修的毛病还坏。未配对因此什么都不遮。
+ *
+ * 按传进来的这一片 `lines` 算，所以每层 flow 体各算各的；原始体（`code`、`data`）由
+ * readFencedBlock 整段吃掉，根本不到这里，两边不会互相干扰。
+ */
+const TICK_FENCE = /^[ ]{0,3}`{3,}/;
+function backtickShield(lines: string[]): Set<number> {
+  const out = new Set<number>();
+  let open = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (!TICK_FENCE.test(lines[i]!)) continue;
+    if (open < 0) { open = i; continue; }
+    for (let j = open + 1; j < i; j++) out.add(j);
+    open = -1;
+  }
+  return out;
+}
+
 function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[] {
   const blocks: Block[] = [];
   const diags = ctx.diags;
+  const shielded = backtickShield(lines);
   let i = 0;
 
   while (i < lines.length) {
@@ -1118,12 +1144,13 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
 
     // A `%%` line is hidden: kept in the model (tools can find it), never
     // rendered, and not inline-parsed (so a scratch note can't break the build).
-    const hid = /^[ \t]*%%[ \t]?(.*)$/.exec(line);
+    const hid = shielded.has(i) ? null : /^[ \t]*%%[ \t]?(.*)$/.exec(line);
     if (hid) { blocks.push({ kind: "hidden", text: hid[1]! }); i += consumed; continue; }
 
 
 
-    const open = FENCE_OPEN.exec(line);
+    // 成对反引号之间：不当栅栏，落到散文去（见 backtickShield）。
+    const open = shielded.has(i) ? null : FENCE_OPEN.exec(line);
     if (open) {
       const { block, next } = readFencedBlock(lines, i, consumed, open, base, ctx, depth);
       blocks.push(block);
@@ -1131,7 +1158,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       continue;
     }
 
-    const h = matchHeading(line);
+    const h = shielded.has(i) ? null : matchHeading(line);
     if (h) {
       const lineNo = base + i + 1;
       const level = h[1]!.length;
@@ -1179,7 +1206,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       continue;
     }
 
-    if (LIST_ITEM.test(line)) {
+    if (!shielded.has(i) && LIST_ITEM.test(line)) {
       const { block, next } = parseList(lines, i, base, ctx);
       blocks.push(block);
       i = next;
@@ -1192,10 +1219,14 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
     while (
       i < lines.length &&
       lines[i]!.trim() !== "" &&
-      !/^[ \t]*%%/.test(lines[i]!) &&
-      !FENCE_OPEN.test(lines[i]!) &&
-      matchHeading(lines[i]!) === null &&
-      !LIST_ITEM.test(lines[i]!)
+      // 遮蔽区内一律当正文吃下去。漏掉这一条，被遮的栅栏行没有任何构造消费它，
+      // i 不前进 —— 死循环。
+      (shielded.has(i) || (
+        !/^[ \t]*%%/.test(lines[i]!) &&
+        !FENCE_OPEN.test(lines[i]!) &&
+        matchHeading(lines[i]!) === null &&
+        !LIST_ITEM.test(lines[i]!)
+      ))
     ) {
       para.push(lines[i]!);
       i++;
@@ -2479,6 +2510,9 @@ function collectSpans(
   const add = (id: string, start: number, end: number): void => {
     if (!out.has(id)) out.set(id, { start, end });
   };
+  // 同一道遮蔽。这一趟的契约就是"exactly as scanBlocks does"——漏掉它，模型里没有的块
+  // 在 list/get/set 里还寻得到址，比不改更糟。
+  const shielded = backtickShield(lines);
   let i = 0;
   while (i < lines.length) {
     // Fold FIRST, exactly as `parse` does: a fence whose attribute object is
@@ -2486,7 +2520,7 @@ function collectSpans(
     const { line, consumed } = foldFence(lines, i);
     if (line.trim() === "") { i++; continue; }
 
-    const fndef = /^\[\^([^\]]+)\]:[ \t]?(.*)$/.exec(line);
+    const fndef = shielded.has(i) ? null : /^\[\^([^\]]+)\]:[ \t]?(.*)$/.exec(line);
     if (fndef) {
       add(fndef[1]!.trim(), base + i, base + i + 1);
       units?.push({ span: { start: base + i, end: base + i + 1 }, kind: "footnote", id: fndef[1]!.trim() });
@@ -2495,7 +2529,7 @@ function collectSpans(
 
     if (/^[ \t]*%%/.test(line)) { i++; continue; } // hidden line: no id
 
-    const open = FENCE_OPEN.exec(line);
+    const open = shielded.has(i) ? null : FENCE_OPEN.exec(line);
     if (open) {
       const type = open[2]!;
       const id = open[3] ? parseAttrs(open[3]).id : undefined;
@@ -2512,7 +2546,7 @@ function collectSpans(
       continue;
     }
 
-    const h = matchHeading(line);
+    const h = shielded.has(i) ? null : matchHeading(line);
     if (h) {
       // Section span (heading through its prose and nested blocks). The walk
       // still advances one line at a time so every nested id inside the

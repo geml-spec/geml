@@ -580,7 +580,7 @@ Every profile this project publishes: [`spec/profiles/`](spec/profiles/README.md
 - [x] Official MCP server (`geml mcp`) for Claude Code, Cursor, Codex and other MCP hosts
 - [x] codemap — a whole codebase's call graph, written as GEML
 - [x] The VS Code extension published on the Visual Studio Marketplace (publisher `geml`)
-- [x] Ecosystem integrations: VS Code highlighting and reference checking, tree-sitter, Obsidian, Logseq (two-way sync against a live DB graph), the browser viewer, a GitHub Action, LangChain / LlamaIndex, and the agent-harness plugins — Claude Code, Codex, Grok, DeepSeek Harness, plus root manifests for Gemini CLI and Kimi Code
+- [x] Ecosystem integrations: VS Code highlighting and reference checking, Obsidian, Logseq (two-way sync against a live DB graph), the browser viewer, a GitHub Action, LangChain / LlamaIndex, and the agent-harness plugins — Claude Code, Codex, Grok, DeepSeek Harness, plus root manifests for Gemini CLI and Kimi Code
 - [ ] The Logseq plugin listed in the Logseq marketplace ([PR #893](https://github.com/logseq/marketplace/pull/893)) and the Grok plugin listed in `xai-org/plugin-marketplace`
 - [ ] Parsers in other languages (Rust / Python) — the spec and the conformance suite are public, so community implementations are welcome; we are glad to help line them up
 
@@ -654,10 +654,10 @@ spec/in_geml_format/   The dogfood: the specification written in GEML, with its
 geml-parser/           Reference parser, renderer, CLI + codemap toolkit (TypeScript, Node 22)
 integrations/          Everywhere GEML plugs in: geml-viewer (browser extension),
                        geml-check-action (CI), vscode, obsidian, logseq (two-way
-                       vault sync + the watcher), tree-sitter (brief),
-                       langchain+llamaindex (RAG loaders), windows-icon
-                       (Explorer file icons), and the agent-harness plugins —
-                       claude-plugin, codex-plugin, grok-plugin, dsh-plugin
+                       vault sync + the watcher), langchain+llamaindex (RAG
+                       loaders), windows-icon (Explorer file icons), and the
+                       agent-harness plugins — claude-plugin, codex-plugin,
+                       grok-plugin, dsh-plugin
 .agents/, .claude-plugin/   Plugin marketplace manifests, so the plugins show up
                        from a checkout (Codex `/plugins`, Claude Code `/plugin`)
 playground/            In-browser playground (+ a live geml-code-graph of this repo)

@@ -257,14 +257,12 @@ flowchart TD
 
 ## 有意不发布的部分
 
-`integrations/` 下有三个目录**故意**没有渠道。列在这里，是为了让下一个读者不要把它们
+`integrations/` 下有两个目录**故意**没有渠道。列在这里，是为了让下一个读者不要把它们
 的缺席读成遗漏。
 
 - **`langchain+llamaindex`** —— 一份参考集成，有 `pyproject.toml` 而没有 PyPI
   release，这是故意的：它存在的意义是被阅读和抄走，它的 README 也这么写。发布它就要
   让本仓库为一个 Python 包的兼容性矩阵负责。
-- **`tree-sitter`** —— 一份设计简报，不是语法。等有人把它写出来，它的渠道是 npm 加上
-  Neovim、Helix、Zed 三家共用的那套自注册。
 - **`windows-icon`** —— 一个 `install.ps1`，人在自己机器上跑。没有商店，也没有什么
   可版本化的。
 

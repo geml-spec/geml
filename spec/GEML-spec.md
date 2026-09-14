@@ -340,7 +340,8 @@ typed-block    = fence , [ SP ] , type , [ SP , attrs ] , NL , body , close-fenc
                  (* the SP after the fence is OPTIONAL: `===note {#a}` and
                     `=== note {#a}` are the same block, as are `===#a` and
                     `=== #a` as labeled closes. A fence-like line is kept
-                    literal by the `\` block escape of §5.1, never by the
+                    literal by the `\` block escape of §5.1, or by sitting between a
+                    matched pair of ``` lines (below); never by the
                     absence of that space. *)
 fence          = "===" , { "=" } ;            (* open: N equals signs, N >= 3 *)
 close-fence    = fence ;                      (* exactly equal to the opening length *)
@@ -412,6 +413,21 @@ derives from its own text (§4) may begin with a digit or `-`, and non-Latin
 scripts are ordinary NAME characters. A TYPE-NAME is the exception, and §8.5's
 open registry is extended by DECLARING a vocabulary (§8.6), never by the shape
 of a name.
+
+A line of three or more backticks opens nothing — GEML has one code block,
+`=== code` — but a **matched pair** of such lines **shields** what lies between
+them from the scan above: no fence, heading, list or `%%` line inside is a
+construct there, and the region stays what it already was, flow text. The shield
+is what keeps an example from becoming a definition — a block written inside a
+Markdown fence to SHOW the syntax would otherwise take an id, enter the
+document’s address space and be rewritten by an editing tool, and nothing would
+say so. Two rules keep it honest. The pair must **close**: an unmatched run
+shields nothing, because "unclosed runs to the end of the document" would let
+one stray line swallow every block after it. And the shield is **per body** — a
+run opened inside one flow body does not reach out of it — so a backtick far
+away cannot silently re-parse a document. To show GEML *and* have it render as
+code, use `=== code` with a fence one longer than the example’s own (§3); to
+keep a single line literal, use §5.1’s `\`.
 
 ### 3.2 The `data` block
 
@@ -1600,6 +1616,7 @@ GEML has three syntactic positions:
 | `=== meta` | typed | key–value | §3, §4 |
 
 | `%%` comment line | line | raw, never rendered | §4 |
+| `` ``` `` run, matched pair | line pair | shield: everything between stays flow text | §3.1 |
 
 *Shape* is one of: **unfenced** (§2), **typed** (fenced, §3), and **line** — a
 single-line construct recognized during block parsing.

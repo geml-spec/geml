@@ -552,7 +552,7 @@ GEML 是一份小而年轻的规范，但已经**稳定**：已发布 **`1.0`**�
 - [x] 官方 MCP server（`geml mcp`），接入 Claude Code / Cursor / Codex 等支持 MCP 的环境
 - [x] codemap：把整个代码库的调用图写成 GEML
 - [x] VS Code 插件已上架 Visual Studio Marketplace（publisher `geml`）
-- [x] 生态集成：VS Code 语法高亮与引用检查、tree-sitter、Obsidian、Logseq（对活的 DB graph 双向同步）、浏览器 viewer、GitHub Action、LangChain / LlamaIndex，以及 agent 宿主插件——Claude Code、Codex、Grok、DeepSeek Harness，外加 Gemini CLI 与 Kimi Code 两份根清单
+- [x] 生态集成：VS Code 语法高亮与引用检查、Obsidian、Logseq（对活的 DB graph 双向同步）、浏览器 viewer、GitHub Action、LangChain / LlamaIndex，以及 agent 宿主插件——Claude Code、Codex、Grok、DeepSeek Harness，外加 Gemini CLI 与 Kimi Code 两份根清单
 - [ ] Logseq 插件上架 Logseq 市场（[PR #893](https://github.com/logseq/marketplace/pull/893)）、Grok 插件上架 `xai-org/plugin-marketplace`
 - [ ] 其他语言的 parser（Rust / Python）——规范与一致性测试集都是公开的，欢迎社区来做，我们乐意帮着对齐
 
@@ -621,8 +621,7 @@ spec/in_geml_format/   dogfood：用 GEML 写成的规范本身，连带 .gemlhi
 geml-parser/           参考实现、渲染器、CLI + codemap 工具集（TypeScript, Node 22）
 integrations/          GEML 接入的所有地方：geml-viewer（浏览器扩展）、
                        geml-check-action（CI）、vscode、obsidian、logseq（双向
-                       vault 同步 + watcher）、tree-sitter（简报）、
-                       langchain+llamaindex（RAG 加载器）、
+                       vault 同步 + watcher）、langchain+llamaindex（RAG 加载器）、
                        windows-icon（资源管理器文件图标），以及四个 agent
                        宿主插件——claude-plugin、codex-plugin、grok-plugin、
                        dsh-plugin
