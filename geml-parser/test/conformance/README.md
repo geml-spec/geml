@@ -17,7 +17,7 @@ GEML implementation **conforms** when it reproduces every `want`.
 | `lists.json` | ordered/unordered, `start`, indentation nesting, tight vs. loose, task markers |
 | `interp.json` | `{{key}}` metadata interpolation: substitution in paragraphs/headings/list items, the verbatim-atom skips (code span, inline math), the `\{{key}}` escape, unknown keys kept literal |
 | `transclusion.json` | the `embed` block and its target (a document, a fragment, a local id), and inline projection `![[…]]` in and out of a sentence |
-| `safety.json` | the URL-scheme rule of [GEML-spec §9](../../../spec/GEML-spec.md#9-security-considerations): which destinations are neutralized in the MODEL, and — just as important — which must survive |
+| `safety.json` | the URL-scheme rule of [GEML-spec §9](../../../spec/GEML-spec.md#9-security-and-resource-limits): which destinations are neutralized in the MODEL, and — just as important — which must survive |
 
 Run via `npm test`. Two runners consume these cases: [`../conformance.test.mjs`](../conformance.test.mjs)
 checks the reference parser, and [`../second-impl.test.mjs`](../second-impl.test.mjs)

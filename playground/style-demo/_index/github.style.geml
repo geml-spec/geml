@@ -195,7 +195,7 @@ col = 1012
 ===
 === style-rule {#find-key match="text#find-key code-span" border="1px solid {{line}}" border-radius=4px padding="0 5px" color="{{muted}}" font-size=12px background="transparent"}
 ===
-=== style-rule {#tree match="text#file-tree" component=tree indent=16px sticky=0 scroll=own padding=8px line-height=28px}
+=== style-rule {#tree match="text#file-tree" component=tree indent=16px sticky=top scroll=own padding=8px line-height=28px}
 ===
 === style-rule {#tree-link match="text#file-tree link" color="{{fg}}"}
 ===

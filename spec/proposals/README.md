@@ -22,8 +22,8 @@ So the question is:
 
 - **No** — the body is opaque to GEML and something else interprets it. A
   profile is enough, and a GEP would be overreach. `style-rule`, `style-screen`,
-  `style-state` (geml-style) and `revision`, `keyframe`, `blob` (geml-history)
-  are all of this kind.
+  `style-state` (geml-style) and `history-revision`, `history-keyframe`,
+  `history-blob` (geml-history) are all of this kind.
 - **Yes** — the body carries flow content, child ids, or references that §8.2(5)
   requires to resolve. **Only the specification can do this**, because only §3's
   registry assigns a body mode and §8.6 forbids a profile from changing it.
@@ -82,7 +82,7 @@ is spelled `form`, while the same idea at the application layer is spelled
 | [0006](0006-declared-projections.md) | Declared projections — a document names the files derived from it | draft |
 | [0007](0007-emphasis-across-atoms.md) | Emphasis may span an inline atom | final |
 | [0008](0008-form-block.md) | Register a `form` typed block — addressable fields, an inert destination | draft |
-| [0009](0009-application-layer-profiles.md) | The profile mechanism is how GEML is extended | draft |
+| [0009](0009-application-layer-profiles.md) | The profile mechanism is how GEML is extended | final |
 | [0010](0010-language-projections.md) | Projections along the language axis — a translated document is a view, not a copy | draft |
-| [0011](0011-inner-unit-coordinates.md) | Coordinates for units inside a block — a table's rows and cells, a value tree in `data` or merged `meta` | draft |
-| [0012](0012-view-block.md) | Register a `view` typed block — selection, derivation and aggregation of another relation | draft |
+| [0011](0011-inner-unit-coordinates.md) | Coordinates for units inside a block — a table's rows and cells, a value tree in `data` or merged `meta` | final |
+| [0012](0012-view-block.md) | Register a `view` typed block — selection, derivation and aggregation of another relation | final |

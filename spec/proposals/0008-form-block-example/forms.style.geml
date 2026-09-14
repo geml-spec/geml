@@ -13,5 +13,5 @@ title = "forms — the two trial stylesheets for GEP-0008"
 === style-rule {#nested match="data.form" component=form handler=submit}
 ===
 
-=== style-screen {#page layout=single slots="table.form,data.form"}
+=== style-screen {#page axis=column slots="table.form,data.form"}
 ===

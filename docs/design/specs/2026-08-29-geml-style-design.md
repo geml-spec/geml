@@ -469,7 +469,7 @@ codegen 优先的产物会被手改，再生成时静默摧毁手改——同一
 | `frame-cycle` | error | 区域装区域形成环，消息带整条链 `#a → #b → #a` |
 | `frame-too-deep` | error | 某条放置路径上 frame 嵌套深过 16 层——和 embed 的上限同一个理由（§12.4） |
 | `unused-frame` | warning | 声明了却没有任何槽位引用的 `style-frame` |
-| `style-invalid-value` | error | 内含词的封闭值域被违反（`axis` / `scroll` / `sticky` / `hide-below`），或 `when=` 形式不对（§12.4） |
+| `style-invalid-value` | error | 内含词的封闭值域被违反（`axis` / `scroll` / `sticky` / `hide-below`），或 `when=` 形式不对（§12.4）。清单以 profile §8 为准：其后 `anchor` / `place` / `wrap` 等陆续进来，`sticky` 也从数字改成了四条边 |
 
 `style-rule` 上**没有**未知键检查：保留键之外的键原样透传为组件参数（§5.4），
 那是组件自己的词汇，profile 无权裁决。
@@ -720,7 +720,8 @@ h2 24/30、表格 16/24、代码 13.6/20.4；色 `#1f2328`；边框 `#d0d7de`，
   嵌套因此是以 screen 为根的 DAG，深度取最长的放置路径；
   `style-invalid-value`（error）—— 内含词里值域封闭的几个（`axis=row|column`、
   `scroll=own|page`、`sticky` 与 `hide-below` 须为数字）取了域外值，以及 `when=` 不符合
-  `$state=value` 形式。开放值域的（`width=321px`、`color=#1f2328`）不校验，原样交给宿主。
+  `$state=value` 形式。（`sticky` 自此改为 `top|right|bottom|left` 四条边——设计当时全部三处用例
+  写的都是 `sticky=0`，偏移量那个自由度从没有人用过，而贴底说不出来；当前值域见 profile §2.1。）开放值域的（`width=321px`、`color=#1f2328`）不校验，原样交给宿主。
 
 ### 12.5 决策三：状态只管样子，触发归宿主
 
@@ -833,7 +834,7 @@ slot  =  { kind:"blocks", selector, blocks[] } | { kind:"state", state } | { kin
 结果分三层：
 
 - **规范**（geml-style profile；GEML-spec §5 一处）：六件事。选择器多一类行内步；`axis` 允许挂在块上；`view`、`editable`
-  两个内含词；`when=` 多 `@hover` `@focus` 两个内建名；rule 上的参数袋收口。核心那边渲染器放行链接与图片的
+  两个内含词；`when=` 多 `@hover` `@focus` 两个内建名（后来增至五个，多 `@invalid` `@disabled` `@checked`——控件自己的状态，判断权在 handler）；rule 上的参数袋收口。核心那边渲染器放行链接与图片的
   `{title=}`。
 - **插件**（geml-viewer）：只解释规范里的词。状态存储与三种喂法；视图模型到 CSS 的编译多行内选择器与伪状态；两个不认
   页面的通用组件 `tree` `segments`；`view=source` 的源码框。任何一行不许出现色值、尺寸、GitHub 的类名。

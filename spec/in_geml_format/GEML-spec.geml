@@ -448,8 +448,8 @@ offending line.
   arrangement: the records stay a plain `.jsonl` file every existing tool
   can append to and tail, and the GEML document is its verified,
   addressable, chartable view.
-- `yaml` and `toml` are RESERVED format names (the value-tree readings of
-  those syntaxes). A processor without an engine for them MUST keep the body
+- `yaml`, `toml` and `edn` are RESERVED format names (the value-tree readings
+  of those syntaxes). A processor without an engine for them MUST keep the body
   raw and emit a **warning**, and MUST NOT guess — the same degradation as an
   unknown `diagram` format (§7). An unknown `format=` value degrades
   identically.
@@ -686,7 +686,13 @@ exactly when the slice is itself a value.
   fully reference-checked, but **not rendered** — e.g. a source table that only
   feeds a chart. A `%%` line is a hidden, raw, never-rendered author note. The division of labor is: use `hidden` for structured content that participates in the document model (data sources, reusable fragments) but should remain invisible; use `%%` for throwaway comments that do not participate in the document model. Note that `%%` is only recognized as a comment at block positions (top-level or inside the body of a `flow` block). Inside a `raw` block body, `%%` lines are preserved exactly as-is and are not treated as comments.
 - Attribute order is insignificant; the recommended order is `#id`, then
-  `.class`, then `key=val`.
+  `.class`, then `key=val`. A NAME therefore MUST NOT be written twice in one
+  attribute object: a repeat is precisely what would make order significant.
+  A class, a `key=val` and a bare flag all write the same NAME — a flag IS
+  `key=true` — so `{.link link=http://x link}` writes `link` three times and is
+  a `duplicate-name` **error** (Appendix A). `#id` is the primary key and does
+  not take part: `{#a .a}` is one id and one class, the same way `id` and
+  `class` are separate attributes in HTML.
 - **Line continuation:** A typed block fence (`===`) or heading (`#`) line ending
   with a backslash `\` continues its attribute object onto the next line. The
   backslash and newline are treated as a single space, allowing long attribute
@@ -762,6 +768,50 @@ Internal and cross-document references are validated at build time.
   use `=== embed {src=#id}` instead.
 - *Note (non-normative):* backlinks and graph views are a derived inverted index
   over resolved references; GEML adds no syntax for them.
+
+**A reference may carry a coordinate.** A block address MAY be followed by one or
+more bracket steps naming a unit INSIDE that block — a table's rows and cells, a
+node of a `data` block's value tree (§3.2), or a key of the merged `#meta` (§4):
+
+| Form | Meaning |
+|------|---------|
+| `#fy[2]` | the second BODY row of block `fy`; a header is not a row |
+| `#fy[2]["Q1"]` | one cell, the column named by its header |
+| `#fy["Q1"]` | one column, header excluded, in row order |
+| `#fy[summary]` | the `summary=` foot row (§6), and `#fy[summary]["FY"]` one of its cells |
+| `#intake["fields"][1]["name"]` | a node of a `data` block's value tree |
+| `#meta["version"]` | a value from this document's merged meta |
+
+- Three token species occur inside the brackets and no two can be confused: a
+  bare **integer** is a row or sequence index, a **quoted string** is a column
+  name or a map key, and a bare **word** is a reserved row name, of which
+  `summary` is the only one this specification defines. Rows are **1-based** and
+  a value tree's sequences are **0-based**: the first is a line a reader counts,
+  the second is JSON.
+- A table written with no header row carries letter column names (`A`, `B`, …),
+  which are the same names `compute=` and `summary=` read (§6) — one column
+  namespace, not two.
+- `[` MUST NOT occur in a NAME (§4), so a coordinate can never be read as part of
+  an id, and a document written before coordinates existed cannot change meaning.
+  A coordinate composes with cross-document addressing unchanged
+  (`other.geml#fy[2]["Q1"]`).
+- A coordinate that does not resolve — an index past the last row, a column no
+  header names, a key the value tree does not carry, or a coordinate on a block
+  that has no inner units — is an `unresolved-reference` **error**, like any
+  other unresolved reference. Only `table`, `view`, `data` and `meta` carry inner
+  units; an `embed` carries none of its own, because its body is empty and its
+  `src=` resolves at render time (§3), so a coordinate on an embed is that same
+  error and the diagnostic SHOULD name the address that does resolve — the
+  coordinate on the embed's source.
+- A coordinate MAY be the target of an inline projection `![[…]]` or an `embed`'s
+  `src=` when, and only when, it names a **leaf value** — one value, complete on
+  its own. A positional slice, a whole row or a whole column, MUST NOT be a
+  projection target: which row is wanted is a predicate rather than an index, and
+  selecting rows is the consuming block's business (§6.1), not an address's.
+- *Note (non-normative):* a coordinate is stable only while the units above it
+  are. Inserting a row moves every index below it, which is why an id is
+  preferable wherever a unit can carry one, why `summary` is a word rather than
+  an index, and why `geml find` reports the containing block.
 
 ### 5.3 Recognition order and emphasis
 
@@ -1074,6 +1124,10 @@ processor validates it (the body stays empty — a non-empty body is a warning):
 === diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=Q1 caption="Q1 revenue"}
 ===
 ====
+
+`data=` may name a `view` as readily as a `table`, and for a **derived** column
+it must: charting §6.1's `FY` is `data=#fy25-report y=FY`, since that is the
+block which publishes the column.
 
 - `type` — `bar | line | area | pie | scatter`. It only changes how the channels
   are drawn; it never adds new attributes.
@@ -1406,11 +1460,12 @@ original file.
 === table {#table-7}
 | Code | Severity | Condition |
 |------|----------|-----------|
+| `duplicate-name` | error | A NAME is written more than once in one attribute object (§4). A class, a `key=val` and a bare flag all write the same NAME, so `{.link link=http://x link}` writes `link` three times. It is an error rather than a warning because §4 promises attribute order is insignificant and a repeat makes that false — silently: the parse succeeds, and which value survives depends on which part was written last. `#id` does not take part. |
 | `name-not-a-name` | warning | An `id`, class or attribute key in an attribute object is not a NAME (§4). A warning, not an error, because such a document still parses — and parses as something else: the attribute object is whitespace-separated, so `{#a & b}` yields the id `a` plus boolean flags named `&` and `b`, and the id the author meant to address does not exist. |
 | `heading-attrs-trailing-text` | warning | A heading's attribute object is followed by further text on the line, as in `## Title {#sec}aaa`. §4 requires the object to be trailing, so it is not parsed as attributes at all: an explicit `{#id}` is silently lost, the heading keeps its derived id, and its section — which runs to the next heading of the same level — can no longer be addressed by the id the author wrote. An object quoted in a code span or inline math is not reported: GEML prose documents this very syntax. |
 | `heading-attrs-unclosed` | warning | A heading's attribute object is never closed by `}` (`## Title {#sec`), so §4 does not parse it as attributes at all: an explicit `{#id}` is silently lost and the heading keeps its derived id. |
 | `reserved-id` | error | A block declares `{#meta}` in a document that carries more than one `meta` block. `#meta` names the MERGED meta namespace (§4), and with several blocks the declared id would mean one of them while `#meta` means all of them merged — one address, two readings. With a single `meta` block the two agree and the id is legal. |
-| `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4). |
+| `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4), and sameness is NFD-insensitive (§4) — two ids that differ only in Unicode normalization form are one id and collide. |
 | `unresolved-reference` | error | An internal reference `[…](#id)` or `[[#id]]`, or a chart `data=#id`, names an id no block declares. |
 | `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block declares. |
 | `unresolved-cross-document-reference` | error | A reference `other.geml#id` resolved to a document that declares no such id. |
@@ -1423,8 +1478,6 @@ original file.
 | `media-target-is-document` | error | A media embed `![](…)` points at a GEML document. Block content cannot be expanded in inline position; the `embed` block is the form for it. |
 | `inline-transclusion-not-inline` | error | An inline projection `![[…]]` names a target that is not inline content — not a single-paragraph `text` block. Block content cannot be expanded inside a sentence; the `embed` block is the form for it. |
 | `unsafe-embed-scheme` | error | An `embed` block names a URL scheme outside the allowlist of §9.5. The attribute is blanked in the model as well as reported, so no consumer can emit it. |
-===
-
 | `unresolvable-table-source` | error | A table's `src=` names a data file that cannot be resolved. |
 | `table-source-not-a-table` | error | A table's `src=` names a block that exists but is not a table. |
 | `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
@@ -1438,6 +1491,7 @@ original file.
 | `table-src-and-body` | error | A table carries both `src=` and an inline body. Exactly one is permitted (§6). |
 | `unknown-table-format` | warning | The `format=` value is not a recognized data format; the body is parsed as a visual pipe grid instead. |
 | `bad-table-delimiter` | error | A `delim=` value is not exactly one character (§6). The format's natural delimiter is used instead, so the table still reads. |
+| `bad-embed-part` | warning | An `embed` carries a `part=` that is not `whole`, `head`, `body` or `intro` (§3). The whole target stands: a projection that quietly selects nothing is the failure §8.2 exists to prevent. Not `unknown-attribute` — the key is defined, the value is not one it takes. |
 | `ignored-table-delimiter` | warning | A table carries `delim=` but no data `format=`, so no delimited body exists for it to apply to; the body is parsed as a visual pipe grid. |
 | `bad-compute-formula` | error | A `compute` entry is not of the form `Name = expr`. |
 | `compute-error` | error | A `compute` expression failed to evaluate — most often because it names a column that does not exist, or one computed later (§9.3). |
@@ -1446,6 +1500,33 @@ original file.
 | `bad-summary-entry` | error | A `summary` entry is not of the form `Cell = value`. |
 | `summary-unknown-column` | error | A `summary` entry's left-hand side names no column of the table. |
 | `summary-error` | error | A `summary` expression failed to evaluate — including a column reference not reduced by an aggregate, which has no value in the summary row (§6). |
+===
+
+**Views (`=== view`).** A view derives a relation from another one; a `table`
+holds facts and derives nothing.
+
+=== table {#table-view-diagnostics}
+| Code | Severity | Condition |
+|---|---|---|
+| `view-missing-src` | error | A `view` carries no `src=`. A view is declared by its source and its attributes alone, so there is nothing for it to derive from. |
+| `view-src-and-body` | error | A `view` carries a body. Its content is its source's, and a body alongside `src=` is the same error a table's is (§6). |
+| `table-source-is-block` | error | A `table`'s `src=` names a block rather than a data file. A block target is another block's output, and a table holding facts someone else derived is what `view` is for. |
+| `view-source-not-a-relation` | error | A view's `src=` names a block that is neither a `table` nor a `view`, so it publishes no relation to derive from. |
+| `view-source-cycle` | error | A chain of `src=` references returns to where it started. Every view in the cycle is named, because none of them can be resolved first (§9.3). |
+| `view-source-too-deep` | error | A chain of views is deeper than §9.3's bound, which is the one a nested `embed` has. Each view past the bound is named and none of them publishes rows. |
+| `view-where-error` | error | A `where=` expression is not a comparison the grammar defines — an unclosed quote, a missing right-hand value, a column where an operator belongs, or a name no column carries. |
+| `view-numeric-column-required` | error | A `where=` compares a column against a number and no row of that column holds one. The filter could only ever match nothing, which is a typo rather than a state. |
+| `view-unknown-column` | error | A `by=`, `order=`, `select=` or `aggregate=` names a column the relation does not carry. |
+| `view-order-error` | error | An `order=` key is not `<column>[ asc\|desc]`. |
+| `view-limit-error` | error | A `limit=` is not a non-negative integer. |
+| `view-select-expression` | error | A `select=` entry contains `=`. It names columns and nothing more; deriving a column is `compute=`'s job. |
+| `summary-projected-away` | error | A `summary=` targets a column `select=` dropped. Projection runs before the report row, so there is no cell left to render it in. |
+| `circular-view-filter` | error | A `where=` names a column an aggregate formula derives. That value depends on which rows the filter keeps, so the filter would decide its own input. The diagnostic names the formula, not the reference. |
+| `shadowed-source-column` | warning | A `compute=` defines a column its source already publishes. Legal — the left of the `=` names this block's output and the right reads the source's — but the column then renders a different number than the source publishes under that name, and the source's is unreachable in this block. |
+| `grouping-compute-aggregate` | error | A `compute=` on a view that carries `by=` uses an aggregate. On a grouping view `compute=` is per input row; the group's columns are `aggregate=`'s. |
+| `bad-aggregate-entry` | error | An `aggregate=` entry is not of the form `Name = fn(Column)`, or its expression carries a token the §6 grammar does not define. |
+| `aggregate-error` | error | An `aggregate=` expression failed to evaluate. |
+| `aggregate-without-by` | error | A view carries `aggregate=` and no `by=`. Aggregate columns describe groups; one aggregate row over every row is `summary=`. |
 ===
 
 
@@ -1481,7 +1562,7 @@ original file.
 |------|----------|-----------|
 | `data-parse` | error | The body does not parse under the declared `format=` — not one JSON value (`json`), or a non-blank line that is not one JSON value (`jsonl`). The diagnostic names the offending line. |
 | `unknown-data-format` | warning | The `format=` value is not in the data format registry. The body is kept raw and not verified. |
-| `data-format-no-engine` | warning | The `format=` names a RESERVED format (`yaml`, `toml`) this processor ships no engine for. The body is kept raw and not verified — never guessed at. |
+| `data-format-no-engine` | warning | The `format=` names a RESERVED format (`yaml`, `toml`, `edn`) this processor ships no engine for. The body is kept raw and not verified — never guessed at. |
 | `bad-data-schema` | error | `schema=` is not a block reference (`#id`) or a GEML document reference (`doc.geml[#id]`). |
 | `data-src-and-body` | error | A `data` block carries both `src=` and an inline body; exactly one is permitted (§3.2). The body wins. |
 | `bad-data-source` | error | A data source does not name a data file its target admits (`src=`: `.json`/`.jsonl`/`.yaml`/`.yml`; a chart's `data=` file form: `.json`/`.jsonl`) — or a remote json/jsonl chart source was named without a `data` block to defer on. |
@@ -1522,7 +1603,7 @@ GEML has three syntactic positions:
 | `=== math` | typed | raw | §3 |
 | `=== table` | typed | raw: pipe grid or `format=` data | §6 |
 | `=== view` | typed | no body; `src=` names the relation it derives from | §6.1 |
-| `=== data` | typed | raw: `format=` value tree (`json` default, `jsonl`; `yaml`/`toml` reserved) | §3.2 |
+| `=== data` | typed | raw: `format=` value tree (`json` default, `jsonl`; `yaml`/`toml`/`edn` reserved) | §3.2 |
 | `=== diagram` | typed | raw: external DSL | §7 |
 | `=== embed` | typed | raw (body unused); `src=` names the content | §3, §6 |
 | `=== note` | typed | flow | §3 |
@@ -1558,7 +1639,8 @@ Eight attribute keys carry references; all of them are validated (Appendix A):
 === table {#table-12}
 | Key | Host block | Target | Defined in |
 |-----|------------|--------|------------|
-| `src=` | `table` | where the data comes from, in three forms: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL), `#id` naming a table block in this document, or `doc.geml#id` naming one in another. | §6 |
+| `src=` | `table` | where the data comes from: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL). A block target is an error naming `view`. | §6 |
+| `src=` | `view` | the relation it derives from, in three forms: a data file (`csv`/`tsv`), `#id` naming a `table` or `view` in this document, or `doc.geml#id` naming one in another. | §6.1 |
 | `data=` | `diagram` (`geml-chart`) | where the data comes from, in the same three forms a table's `src=` takes: a data file (`csv`/`tsv` standing for the anonymous table it describes; a local `.json`/`.jsonl` for the anonymous record source), `#id` in this document, or `doc.geml#id` in another — naming a `table`, or a record-array `data` block (§3.2). | §6, §7.1 |
 | `schema=` | `data` | a block (`#id`) or a GEML document (`doc.geml[#id]`) holding a schema; reference-checked only | §3.2 |
 | `src=` | `data` | the block's external content: a `.json`/`.jsonl`/`.yaml` file, taking the same route syntax as a code source (a line range MAY narrow it, which is how a window of a jsonl log is addressed); document-relative or `http(s)` (render-time) | §3.2 |

@@ -767,6 +767,50 @@ Internal and cross-document references are validated at build time.
 - *Note (non-normative):* backlinks and graph views are a derived inverted index
   over resolved references; GEML adds no syntax for them.
 
+**A reference may carry a coordinate.** A block address MAY be followed by one or
+more bracket steps naming a unit INSIDE that block — a table's rows and cells, a
+node of a `data` block's value tree (§3.2), or a key of the merged `#meta` (§4):
+
+| Form | Meaning |
+|------|---------|
+| `#fy[2]` | the second BODY row of block `fy`; a header is not a row |
+| `#fy[2]["Q1"]` | one cell, the column named by its header |
+| `#fy["Q1"]` | one column, header excluded, in row order |
+| `#fy[summary]` | the `summary=` foot row (§6), and `#fy[summary]["FY"]` one of its cells |
+| `#intake["fields"][1]["name"]` | a node of a `data` block's value tree |
+| `#meta["version"]` | a value from this document's merged meta |
+
+- Three token species occur inside the brackets and no two can be confused: a
+  bare **integer** is a row or sequence index, a **quoted string** is a column
+  name or a map key, and a bare **word** is a reserved row name, of which
+  `summary` is the only one this specification defines. Rows are **1-based** and
+  a value tree's sequences are **0-based**: the first is a line a reader counts,
+  the second is JSON.
+- A table written with no header row carries letter column names (`A`, `B`, …),
+  which are the same names `compute=` and `summary=` read (§6) — one column
+  namespace, not two.
+- `[` MUST NOT occur in a NAME (§4), so a coordinate can never be read as part of
+  an id, and a document written before coordinates existed cannot change meaning.
+  A coordinate composes with cross-document addressing unchanged
+  (`other.geml#fy[2]["Q1"]`).
+- A coordinate that does not resolve — an index past the last row, a column no
+  header names, a key the value tree does not carry, or a coordinate on a block
+  that has no inner units — is an `unresolved-reference` **error**, like any
+  other unresolved reference. Only `table`, `view`, `data` and `meta` carry inner
+  units; an `embed` carries none of its own, because its body is empty and its
+  `src=` resolves at render time (§3), so a coordinate on an embed is that same
+  error and the diagnostic SHOULD name the address that does resolve — the
+  coordinate on the embed's source.
+- A coordinate MAY be the target of an inline projection `![[…]]` or an `embed`'s
+  `src=` when, and only when, it names a **leaf value** — one value, complete on
+  its own. A positional slice, a whole row or a whole column, MUST NOT be a
+  projection target: which row is wanted is a predicate rather than an index, and
+  selecting rows is the consuming block's business (§6.1), not an address's.
+- *Note (non-normative):* a coordinate is stable only while the units above it
+  are. Inserting a row moves every index below it, which is why an id is
+  preferable wherever a unit can carry one, why `summary` is a word rather than
+  an index, and why `geml find` reports the containing block.
+
 ### 5.3 Recognition order and emphasis
 
 Inline parsing of an unfenced block runs in two phases and assigns exactly one
@@ -1431,7 +1475,6 @@ original file.
 | `media-target-is-document` | error | A media embed `![](…)` points at a GEML document. Block content cannot be expanded in inline position; the `embed` block is the form for it. |
 | `inline-transclusion-not-inline` | error | An inline projection `![[…]]` names a target that is not inline content — not a single-paragraph `text` block. Block content cannot be expanded inside a sentence; the `embed` block is the form for it. |
 | `unsafe-embed-scheme` | error | An `embed` block names a URL scheme outside the allowlist of §9.5. The attribute is blanked in the model as well as reported, so no consumer can emit it. |
-
 | `unresolvable-table-source` | error | A table's `src=` names a data file that cannot be resolved. |
 | `table-source-not-a-table` | error | A table's `src=` names a block that exists but is not a table. |
 | `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
@@ -1468,7 +1511,7 @@ holds facts and derives nothing.
 | `view-where-error` | error | A `where=` expression is not a comparison the grammar defines — an unclosed quote, a missing right-hand value, a column where an operator belongs, or a name no column carries. |
 | `view-numeric-column-required` | error | A `where=` compares a column against a number and no row of that column holds one. The filter could only ever match nothing, which is a typo rather than a state. |
 | `view-unknown-column` | error | A `by=`, `order=`, `select=` or `aggregate=` names a column the relation does not carry. |
-| `view-order-error` | error | An `order=` key is not `<column>[ asc|desc]`. |
+| `view-order-error` | error | An `order=` key is not `<column>[ asc\|desc]`. |
 | `view-limit-error` | error | A `limit=` is not a non-negative integer. |
 | `view-select-expression` | error | A `select=` entry contains `=`. It names columns and nothing more; deriving a column is `compute=`'s job. |
 | `summary-projected-away` | error | A `summary=` targets a column `select=` dropped. Projection runs before the report row, so there is no cell left to render it in. |

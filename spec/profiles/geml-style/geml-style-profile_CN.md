@@ -2,7 +2,9 @@
 
 *[English](geml-style-profile.md) | 中文*
 
-- 状态：v1，2026-08-30 落地。设计论证见
+- 状态：v1，2026-08-30 落地，但仍属 **EXPERIMENTAL**，`geml style check` 自己也这么写。
+  现在稳定的只有 codemap 显示旋钮用到的那一子集——`style-rule`、`match=`，
+  以及属性透传；其余词汇会随本仓库之外的第一个真实用例而变。设计论证见
   [`docs/design/specs/2026-08-29-geml-style-design.md`](../../../docs/design/specs/2026-08-29-geml-style-design.md)。
 - 性质：**应用层 profile，不是 GEML 标准的一部分**。GEML 标准保持不动；本文档定义
   样式表把块映射到宿主 UI 组件所用的类型与属性——如同 schema.org 之于 HTML，和
@@ -39,8 +41,8 @@ script**：组件和处理器**只报名字**，实现由宿主提供，与 `dia
 
 左列守得住，是因为它**已经逃逸**——两次。每次 codemap build 都会往用户仓库里播种
 `_index/style.geml` **和它的入口 `_index/index.geml`**，那些文件是真实存在的，而且在
-渲染路径上——渲染器只经那个入口找样式表；而自 2026-09-09 起，文档布局用例（viewer
-渲染的一整页）用上了 screen、frame、内含词和 `when=`。右列是**已定义、已检查、无人使用**
+渲染路径上——渲染器只经那个入口找样式表；而文档布局用例（viewer 渲染的一整页）
+用上了 screen、frame、内含词和 `when=`。右列是**已定义、已检查、无人使用**
 ——它会**跟着第一个真实用例变形**，而不是为了自己被保留。
 
 这个切分是刻意的，不是道歉。逃逸面被刻意做得极小，**正是为了**让其余部分保持自由：
@@ -174,7 +176,7 @@ col  = 1012
 | `show=` | 否 | 呈现 `$state` 当前指向的块 |
 | `filter=` | 否 | 用 `$state` 收窄集合（`filter="confidence=$conf"`） |
 | `screen=` | 否 | **空格分隔**的屏幕 id；不写＝所有屏幕 |
-| `when=` | 否 | `$state=value` 项，以及内建的 `@hover` / `@focus`，逗号并列、全部满足；只做相等（§4） |
+| `when=` | 否 | `$state=value` 项，以及内建的 `@hover` / `@focus` / `@invalid` / `@disabled` / `@checked`，逗号并列、全部满足；只做相等（§4） |
 | *其余任意键* | 否 | **原样透传**为组件参数——内含词除外，见下。**合并后**的绑定（§4）没有 `component=` / `handler=` 接的参数报 `style-unknown-attribute`（warning） |
 
 **内含词。** 一小组封闭的属性是 profile 自己的、不是组件的：它们放在段落、表格、图上意思
@@ -186,16 +188,18 @@ col  = 1012
 |---|---|---|
 | `width` `max-width` `min-width` `padding` `margin` | 开放（CSS 长度） | 块与容器 |
 | `height` `max-height` `min-height` | 开放（CSS 长度） | 块与容器。宽度轴一直有三个词、高度轴一个都没有——那是不对称，不是克制：`axis=row` 的容器要一条固定高的页头，此前没法说 |
-| `sticky` | 数字：距顶 px | 块与容器 |
+| `sticky` | `top` \| `right` \| `bottom` \| `left` | 块与容器：滚动时贴住哪条边。一块同时只贴一条边——不像 `border` 四条边会一起写——所以边是值，不是四个键名 |
 | `scroll` | `own` \| `page` | 块与容器 |
 | `hide-below` | 数字：视口窄于此 px 则隐藏 | 块与容器 |
-| `font-size` `line-height` `font-family` `font-weight` `color` `background` `border` `border-radius` | 开放 | 块与容器 |
+| `font-size` `line-height` `font-family` `font-weight` `color` `background` `border` `border-top` `border-right` `border-bottom` `border-left` `border-radius` | 开放 | 块与容器 |
 | `text-align` | `left` \| `center` \| `right` \| `justify` | 块与容器 |
 | `gap` | 开放（CSS 长度）：槽位之间的间距；块带 `axis` 时既是条目之间的间距，**也是**一条条目里面图标与文字之间的间距 | 容器，以及带 `axis` 的块 |
 | `item-align` | `start` \| `center` \| `end` \| `stretch`（默认 `stretch`） | 容器，以及带 `axis` 的块：槽位在**跨轴**方向怎么对齐。`axis` 开出一条轴、`gap` 给了沿轴的间距，跨轴此前没词 |
 | `item-justify` | `start` \| `center` \| `end` \| `between`（默认 `start`） | 容器，以及带 `axis` 的块：槽位**沿轴**怎么分布。和 `item-align` 是同一条轴的两面 |
+| `wrap` | `yes` \| `no`（默认 `no`） | 容器，以及带 `axis` 的块：放不下的条目要不要另起一行。配合条目上的 `width`，表单一行排两个字段就是这么来的 |
 | `axis` | `row` \| `column`（默认 `column`） | `style-screen` / `style-frame`；以及块——它的条目（列表的项、表单的字段）沿这条轴排，横排的列表不画项目符号 |
-| `anchor` | `flow` \| `parent` \| `viewport`（默认 `flow`） | 块与容器：这一块**贴谁**。`flow` 跟着文档流、占位置；`parent` 贴最近的容器浮出来、不占位置（下拉菜单）；`viewport` 贴视口、盖满并把内容居中（开场提示、模态框、吐司） |
+| `anchor` | `flow` \| `parent` \| `viewport`（默认 `flow`） | 块与容器：这一块**贴谁**。`flow` 跟着文档流、占位置；`parent` 贴最近的容器浮出来、不占位置（下拉菜单）；`viewport` 贴视口、盖满并把内容居中（开场提示、模态框、吐司）——`place` 可以把它挪离中央 |
+| `place` | `center`（默认） \| `top` \| `bottom` \| `left` \| `right` \| `top-left` \| `top-right` \| `bottom-left` \| `bottom-right` | `anchor=parent` / `anchor=viewport` 下的块与容器：这一块贴在**哪**。`anchor` 说贴谁，`place` 说贴哪——同一条轴的两面，如同 `item-justify` 之于 `item-align`。抽屉是 `viewport` + `left`，吐司是 `viewport` + `top-right`。写在 `anchor=flow` 上是 `style-unknown-attribute` |
 | `visible` | `yes` \| `no`（默认 `yes`） | 块与容器：**现在**显不显示。`hide-below` 是「不显示」按视口的那一半，这是按状态的那一半 |
 | `grow` | `yes` \| `no`（默认 `no`） | 块与容器：这一格吃不吃行/列里剩下的空间 |
 | `fade-out` `fade-in` | 秒数，0–60（默认 0，不淡） | 块与容器：`fade-out` 画出来之后自己淡掉，淡完也不再接点击；`fade-in` 是同一条轴的另一个方向。时间轴上只有这一件事；宿主遇到「减少动态效果」时直接跳到终点 |
@@ -216,10 +220,15 @@ col  = 1012
 
 封闭值域会被检查（`style-invalid-value`）；开放的原样交给宿主——宿主必须把它们当作不可信文本。
 生成 CSS 的宿主只能接长度、颜色、关键字形状的值；`width` 写成 `0} body{display:none}` 是跳出规则，
-不是宽度，丢弃并警告。清单按第一个真实页面圈死，
-一次只按实测需要加一个；第二个页面（一个文档阅读器的外壳，2026-09-10）加了块上的 `axis`、
-`view`、`editable`。判据：*换个块还是不是这个意思？*——`fold`、`collapsible`、`indent`
+不是宽度，丢弃并警告。清单按真实页面圈死——每个词都由要它的那个页面带进来，
+一次只按实测需要加一个。判据：*换个块还是不是这个意思？*——`fold`、`collapsible`、`indent`
 不是，所以仍是组件参数。
+
+**控件状态。** 除了 `$state=value`，`when=` 还认五个由宿主提供、样式表不声明的条件：
+`@hover`、`@focus`、`@invalid`、`@disabled`、`@checked`。后三个是控件自己的状态，而本
+profile **不定义**一个控件什么时候处在其中——合不合法是 handler 的判断，文档只声明约束
+而不求值（§7 开放的那一侧）。样式表只说每种状态**长什么样**。没有它们，三层分工会在接缝
+处漏掉一块：文档声明得了约束、handler 判得了，却没有谁说得出「判不过的那个字段长什么样」。
 
 **参数要有接收方。** `selectable`、`badge="leaf"`、`collapsed` 属于组件自己的词汇，profile
 无权裁决——所以规则自己没有 `style-unknown-attribute` 检查。但 §4 按属性合并，合并之后一个块
@@ -514,7 +523,7 @@ warning。开放那侧必须降级而不能拒收，否则 §8.5 的前向兼容
 | `frame-cycle` | error | frame 嵌套成环；消息带整条链 |
 | `frame-too-deep` | error | 某条放置路径上 frame 嵌套深过 16 层 |
 | `unused-frame` | warning | 没有任何槽位引用的 `style-frame` |
-| `style-invalid-value` | error | 封闭值域的内含词（`axis` / `anchor` / `scroll` / `sticky` / `hide-below` / `layer` / `visible` / `grow` / `view` / `editable` / `fade-out` / `underline`）取了域外值，或 `when=` 的项既不是 `$state=value` 也不是 `@hover` / `@focus` |
+| `style-invalid-value` | error | 封闭值域的内含词（`axis` / `anchor` / `place` / `scroll` / `sticky` / `hide-below` / `visible` / `grow` / `wrap` / `view` / `editable` / `fade-out` / `underline`）取了域外值，或 `when=` 的项既不是 `$state=value`，也不是 `@hover` / `@focus` / `@invalid` / `@disabled` / `@checked` 之一 |
 
 `unknown-value-source` 之所以能真查，是因为 §6 给了表真正的 schema。产生者不是表时
 这项检查**跳过**，不猜。
@@ -549,7 +558,7 @@ geml style check <stylesheet.geml> <corpus…> [--json] [--components=a,b] [--ha
 
 一条**绑定**是 `{doc, block, part?, rules, params, box, variants}`。`part` 只在部件规则（§3）
 造出的绑定上出现，写的是行内种类——`link` `image` `code-span` `strong` `emphasis`；这种绑定
-和它的块同地址，但在 §4 的裁决里是另一个目标。`variants[].when` 里内建的 `@hover` / `@focus`
+和它的块同地址，但在 §4 的裁决里是另一个目标。`variants[].when` 里内建的 `@hover` / `@focus` / `@invalid` / `@disabled` / `@checked`
 作为键出现，值恒为 `"true"`。`params` 是组件的词（含
 `component` / `handler` / `show` / `filter`）；`box` 是 §2.1 的内含词，单独放着，宿主统一
 处理、组件永远看不到。`variants` 是 `{when, box, params}[]`——只在每一项 `when`
@@ -624,31 +633,6 @@ style.geml"的回落，因为那等于永久留着第二条发现路径、两套
 
 `geml-style/v1`。新增一个词汇成员就是新版本；profile 名是兼容单位，未知成员按 §7
 降级。
-
-**2026-09-10——第二个真实页面**（一个文档阅读器的外壳，由列表和表单字段排出来）：
-选择器的行内部件步（§3）；块上的 `axis`、`view`、`editable`（§2.1）；`when=` 里的
-`@hover` / `@focus`（§2.1）；参数在合并后的绑定上要有接收方（§2.1）。没有删掉任何东西。
-
-**2026-09-11——同一个页面的菜单与开场提示**：`layer` 的值域多一个 `screen`，`fade-out`
-进内含词（§2.1）。`layer` / `visible` / `grow` 本身是第一个页面带进来的，但一直没写进 §2.1
-的表，这次补上。
-
-**2026-09-11——与 CSS 横向对照，三个回答。** 把 profile 和 CSS 逐维摆在一起比了一遍，
-其中三处差别是缺口而不是立场。**记号**（§1.2）：样式表自己 `meta` 的每个键，在任何属性里
-写成 `{{key}}`——复刻样式表里一个颜色字面量抄了 21 遍；悬空引用是新码 `unknown-token`
-（§8）。**简写**（§4）：同一层里两条不同规则，一条写 `border`、另一条写某一个单边，
-现在是 `ambiguous-rule`——它们在按属性名的裁决里从不相遇，于是渲染结果一直取决于哪条
-规则在文件里靠前。**继承**（§10）：写明为由宿主决定。前两条是增补，第三条是把缺口
-写出来，不是补上它。
-
-**2026-09-13——内含词按轴补齐，`layer` 改名 `anchor`。** 对着 CSS 逐维过了一遍 28 个
-内含词的通常性、必要性与覆盖面：名字站得住（17 个与 CSS 属性名逐字相同），缺的全是
-「一条轴只铺了一半」——高度轴一个词没有、字体缺字重、淡出没有淡入、`axis` 开了轴却没有
-对齐。补 `height` / `min-height` / `max-height` / `min-width` / `font-weight` / `fade-in` /
-`item-align` / `item-justify` 八个（§2.1）。`item-` 前缀点明主语是槽位，把它与管块内文字的
-`text-align` 分开。同时 `layer=page|overlay|screen` 改为 `anchor=flow|parent|viewport`：
-原键名在本 profile 里已是层叠层号、在 CSS 里是 `@layer`，原值说的是范围而不是锚点，
-且 `screen` 与块类型 `style-screen` 撞车。
 
 **v1 刻意没有的东西**：任何形式的 script；URL（dev/staging/prod 地址不同，写死会让
 样式表绑定环境）；路由；§1.2 的记号之外的主题化；

@@ -2,7 +2,10 @@
 
 *English | [中文](geml-style-profile_CN.md)*
 
-- Status: v1, landed 2026-08-30. Design rationale:
+- Status: v1, landed 2026-08-30 — but **EXPERIMENTAL**, and `geml style check`
+  says so. Stable today: the subset codemap's display knobs use — `style-rule`,
+  `match=`, and attribute pass-through. Everything else in this vocabulary moves
+  with the first real use case outside this repository. Design rationale:
   [`docs/design/specs/2026-08-29-geml-style-design.md`](../../../docs/design/specs/2026-08-29-geml-style-design.md).
 - Nature: **an application-layer profile, not part of the GEML standard.** The
   GEML standard stays untouched; this document defines the block types and
@@ -47,8 +50,8 @@ display knobs actually use.
 The held column is held because it **escaped** — twice. Every codemap build seeds
 `_index/style.geml` **and its entry `_index/index.geml`** into a user's repository,
 and those files are on the rendering path — the renderer finds a stylesheet only
-through that entry; and since 2026-09-09 the document-layout use case (a page
-rendered by the viewer) exercises screens, frames, the built-in words and `when=`.
+through that entry; and the document-layout use case (a page rendered by the
+viewer) exercises screens, frames, the built-in words and `when=`.
 The right column is **specified, checked, and unexercised** — it will move with its
 first genuine use case rather than be preserved for its own sake.
 
@@ -205,7 +208,7 @@ continuation when an attribute object gets long.
 | `show=` | no | render the block a `$state` currently points at |
 | `filter=` | no | narrow a collection by a `$state` (`filter="confidence=$conf"`) |
 | `screen=` | no | **space-separated** screen ids; absent = every screen |
-| `when=` | no | `$state=value` terms and the built-in `@hover` / `@focus`, comma-separated, all must hold; equality only (§4) |
+| `when=` | no | `$state=value` terms and the built-in `@hover` / `@focus` / `@invalid` / `@disabled` / `@checked`, comma-separated, all must hold; equality only (§4) |
 | *any other key* | no | passed through **verbatim** as a component parameter — except the built-in words below. A parameter that the *merged* binding (§4) has no `component=` or `handler=` to receive is `style-unknown-attribute` (warning) |
 
 **Built-in words.** A small closed set of attributes is the profile's own, not the
@@ -218,16 +221,18 @@ in its `params`, so it cannot give `width` a private meaning.
 |---|---|---|
 | `width` `max-width` `min-width` `padding` `margin` | open (a CSS length) | blocks and containers |
 | `height` `max-height` `min-height` | open (a CSS length) | blocks and containers. The width axis carried three words and the height axis none; that was an asymmetry, not restraint — an `axis=row` container with a fixed-height header had no way to say so |
-| `sticky` | a number: offset from the top in px | blocks and containers |
+| `sticky` | `top` \| `right` \| `bottom` \| `left` | blocks and containers: which edge it sticks to while its scroll container moves. A box sticks to one edge at a time — unlike `border`, whose four sides are written together — so the side is the value, not four key names |
 | `scroll` | `own` \| `page` | blocks and containers |
 | `hide-below` | a number: viewport px below which it is hidden | blocks and containers |
-| `font-size` `line-height` `font-family` `font-weight` `color` `background` `border` `border-radius` | open | blocks and containers |
+| `font-size` `line-height` `font-family` `font-weight` `color` `background` `border` `border-top` `border-right` `border-bottom` `border-left` `border-radius` | open | blocks and containers |
 | `text-align` | `left` \| `center` \| `right` \| `justify` | blocks and containers |
 | `gap` | open (a CSS length): space between slots; on a block with `axis`, the space between its items **and** inside one, between an icon and its label | containers and blocks with `axis` |
 | `item-align` | `start` \| `center` \| `end` \| `stretch` (default `stretch`) | containers, and blocks carrying `axis`: how the slots line up **across** the axis. `axis` opens an axis and `gap` spaces along it; across it there was no word |
 | `item-justify` | `start` \| `center` \| `end` \| `between` (default `start`) | containers, and blocks carrying `axis`: how the slots distribute **along** the axis. The other face of the same axis as `item-align` |
+| `wrap` | `yes` \| `no` (default `no`) | containers, and blocks carrying `axis`: whether items that do not fit start a new line. With `width` on the items, this is how a form lays its fields two to a row |
 | `axis` | `row` \| `column` (default `column`) | `style-screen` / `style-frame`; and a block — its items (a list's entries, a form's fields) run along that axis, and a list laid out in a row draws no markers |
-| `anchor` | `flow` \| `parent` \| `viewport` (default `flow`) | blocks and containers: **what the box is anchored to**. `flow` follows the document flow and takes space; `parent` hangs off the nearest container and takes none (a dropdown); `viewport` covers the viewport and centres its content (a splash, a modal, a toast) |
+| `anchor` | `flow` \| `parent` \| `viewport` (default `flow`) | blocks and containers: **what the box is anchored to**. `flow` follows the document flow and takes space; `parent` hangs off the nearest container and takes none (a dropdown); `viewport` covers the viewport and centres its content (a splash, a modal, a toast) — `place` moves it off centre |
+| `place` | `center` (default) \| `top` \| `bottom` \| `left` \| `right` \| `top-left` \| `top-right` \| `bottom-left` \| `bottom-right` | blocks and containers under `anchor=parent` / `anchor=viewport`: **where** the box sits against what it is anchored to. `anchor` says what it hangs off, `place` says where — the other face of the same axis, as `item-justify` is to `item-align`. A drawer is `viewport` + `left`; a toast is `viewport` + `top-right`. On `anchor=flow` it is `style-unknown-attribute` |
 | `visible` | `yes` \| `no` (default `yes`) | blocks and containers: shown *right now*. `hide-below` is the viewport half of "not shown"; this is the state half |
 | `grow` | `yes` \| `no` (default `no`) | blocks and containers: whether this cell takes the space left over along its row or column |
 | `fade-out` `fade-in` | a number of seconds, 0–60 (default 0, no fade) | blocks and containers: `fade-out` is painted, then fades away and stops taking clicks; `fade-in` is the same axis in the other direction. The one thing on the time axis; a host that honours "reduce motion" jumps to the end |
@@ -254,10 +259,18 @@ Closed domains are checked (`style-invalid-value`); open ones are handed to the 
 verbatim — and the host must treat them as the untrusted text they are. A host that
 emits CSS may splice in only values shaped like a length, a colour or a keyword; a
 `width` of `0} body{display:none}` is a rule breakout, not a width, and is dropped
-with a warning. The list was pinned to the first real page and grows one measured need at a
-time; the second page (a document viewer's chrome, 2026-09-10) grew it by `axis` on
-blocks, `view` and `editable`. The test for a candidate: *does it mean the same thing on
+with a warning. The list is pinned to the real pages that asked for each word, and
+grows one measured need at a time. The test for a candidate: *does it mean the same thing on
 any block?* — `fold`, `collapsible`, `indent` do not, and stay component parameters.
+
+**Control states.** Besides `$state=value`, `when=` knows five conditions the host
+supplies and no stylesheet declares: `@hover`, `@focus`, `@invalid`, `@disabled`,
+`@checked`. The last three are the control's own state, and the profile does **not**
+define when a control is in one — validity is the handler's verdict, and the document
+declares its constraints without evaluating them (§7's open side). A stylesheet says
+only what each state *looks like*. Without them the three-layer split leaks at its
+seam: the document can declare a constraint and the handler can judge it, but nothing
+could say what a field that failed judgement looks like.
 
 **Parameters need a receiver.** `selectable`, `badge="leaf"`, `collapsed` are the
 component's own vocabulary, and the profile has no business ruling on it — so a rule
@@ -613,7 +626,7 @@ fallback**, which is what preserves §8.5.
 | `frame-cycle` | error | frames nest in a cycle; the message carries the chain |
 | `frame-too-deep` | error | frames nest deeper than 16 along some placement path |
 | `unused-frame` | warning | a `style-frame` no slot references |
-| `style-invalid-value` | error | a closed-domain built-in word (`axis` / `scroll` / `sticky` / `hide-below` / `layer` / `visible` / `grow` / `view` / `editable` / `fade-out` / `underline`) took a value outside its domain, or a `when=` term is neither `$state=value` nor `@hover` / `@focus` |
+| `style-invalid-value` | error | a closed-domain built-in word (`axis` / `anchor` / `place` / `scroll` / `sticky` / `hide-below` / `visible` / `grow` / `wrap` / `view` / `editable` / `fade-out` / `underline`) took a value outside its domain, or a `when=` term is neither `$state=value` nor one of `@hover` / `@focus` / `@invalid` / `@disabled` / `@checked` |
 
 `unknown-value-source` is checkable because §6 gives tables a real schema. When
 the producer is not a table the check is **skipped**, not guessed at.
@@ -653,7 +666,7 @@ what a host consumes. It has four fields:
 A **binding** is `{doc, block, part?, rules, params, box, variants}`. `part` is present on
 a binding a part rule made (§3) and names the inline kind — `link` `image` `code-span`
 `strong` `emphasis`; such a binding shares its block's address and is a separate target
-for §4's arbitration. In `variants[].when`, the built-in `@hover` / `@focus` appear as
+for §4's arbitration. In `variants[].when`, the built-in `@hover` / `@focus` / `@invalid` / `@disabled` / `@checked` appear as
 keys with the value `"true"`. `params` are the
 component's words (including `component` / `handler` / `show` / `filter`); `box` the
 built-in words of §2.1, kept apart so a host applies them uniformly and a component
@@ -745,27 +758,6 @@ explicit value.
 
 `geml-style/v1`. A new vocabulary member is a new version; the profile name is
 the compatibility unit, and unknown members degrade per §7.
-
-**2026-09-10 — the second real page** (a document viewer's chrome, laid out from
-lists and form fields): inline part steps in selectors (§3); `axis` on blocks, `view`
-and `editable` (§2.1); `@hover` / `@focus` in `when=` (§2.1); parameters must have a
-receiver on the merged binding (§2.1). Nothing was removed.
-
-**2026-09-11 — the same page's menus and opening note**: `layer` gains `screen`, and
-`fade-out` joins the built-in words (§2.1). `layer` / `visible` / `grow` themselves
-landed with the first page and had been missing from §2.1's table; they are listed
-now.
-
-**2026-09-11 — measured against CSS, three answers.** Laid the profile beside CSS
-dimension by dimension; three of the differences turned out to be gaps rather than
-positions. **Tokens** (§1.2): every key of the stylesheet's own `meta`, written
-`{{key}}` in any attribute — the replica stylesheet repeated one colour literal 21
-times, and a dangling reference is the new `unknown-token` (§8). **Shorthands**
-(§4): a shorthand and one of its sides, set by two different rules in one layer,
-is now `ambiguous-rule` — they never met in the per-attribute arbitration, so the
-rendered result had been depending on which rule sat first in the file. And
-**inheritance** (§10) is now stated as host-defined. The first two are additions;
-the third names a gap rather than closing it.
 
 **v1 deliberately does not have**: script of any kind, URLs (dev/staging/prod
 differ — a written-in address binds the stylesheet to an environment), routing,

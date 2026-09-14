@@ -20,10 +20,10 @@ glossary     = "#not-translated-terms"
 | GEML | GEML |
 ===
 
-%% 一节一个 embed，不是整篇一个。整篇是 1483 行、一次模型调用，编辑器答不完就
-%% 超时，而超时是整份文档退回英文。按 `geml list` 的 h2 切开之后，最大的一块是
-%% 一节，每块自己成败。这 17 个 id 平铺 L3–L1483 零间隙（H1 标题行由上面的
-%% meta title 自己写），少一个就是静默丢一节内容。
+%% 一节一个 embed，不是整篇一个。整篇一千六百余行、一次模型调用，编辑器答不完
+%% 就超时，而超时是整份文档退回英文。按 `geml list` 的 h2 切开之后，最大的一块
+%% 是一节，每块自己成败。这 17 个 id 从 H1 之后一路平铺到文末、零间隙（H1 标题
+%% 行由上面的 meta title 自己写），少一个就是静默丢一节内容。
 
 === embed {src=GEML-spec.geml#geml-general-expressive-markup-language-before-specification-stable}
 ===

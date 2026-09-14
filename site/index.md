@@ -263,7 +263,7 @@ geml codemap serve     # opens your browser on the graph
     <ul class="capability-list">
       <li><strong>Self-hosting</strong> — the specification itself is written in GEML and parsed clean on every test run.</li>
       <li><strong>A conformance suite</strong> a second parser — written from the spec alone, importing nothing from the reference implementation — must reproduce case for case. Two implementations agreeing is what keeps subtle rules from drifting; both are still by the same author, and one by someone else is what this project most wants.</li>
-      <li><strong>1,300+ checks</strong> in <code>npm test</code>, coverage CI-gated at ≥95% lines / statements / functions / branches.</li>
+      <li><strong>1,700+ checks</strong> in <code>npm test</code>, coverage CI-gated at ≥95% lines / statements / functions / branches.</li>
       <li><strong>"Stable" means</strong> the rules already in 1.0 won't shift under you; a breaking change bumps the spec version and ships with updated conformance cases.</li>
     </ul>
     <p class="table-note"><strong>Two honest caveats.</strong> No mainstream surface renders <code>.geml</code> natively yet — the browser viewer, the CI Action, and one-way projections are how it travels today. And models are less fluent in it than in Markdown, because nothing was pre-trained on GEML at scale; the uniform block syntax and <code>--json</code> diagnostics let an agent check and repair its own output, but the starting fluency really is lower.</p>

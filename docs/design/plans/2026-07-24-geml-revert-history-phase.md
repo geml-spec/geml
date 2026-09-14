@@ -464,7 +464,7 @@ a block that did not exist then. So each forward edit has an inverse:
 | `rename #old #new` | `rename #new #old` (self-inverse) |
 
 `revert` reads the `.gemlhistory` sidecar, so `set`/`delete`/`add` undo needs a
-prior `geml history commit`; `rename` is its own inverse and needs no history.
+prior `geml history save`; `rename` is its own inverse and needs no history.
 ```
 
 Also update the parser README `revert` line in the CLI code block to:

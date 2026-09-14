@@ -46,6 +46,7 @@
 | 页 · 看板 | 规范 | 解析器实际 |
 |---|---|---|
 | 1 · 11 | 两个以上 `meta` 时别的块声明 `{#meta}` 是 `reserved-id` error（§4，A.2） | 零诊断通过 |
+| 5 · inline | 位置切片——一整行或一整列——必须不作为投影目标，只有命名叶子值的坐标才可以（§5.2） | `![[#fy[1]]]` 和 `=== embed {src=#fy[1]}` 都被接受，一条诊断也没有 |
 | 1 · 19 | `![[#id]]` 指向多段 `text` 是 `inline-transclusion-not-inline` error（§5.2） | 报了该 error，另多报一条不成立的 `transclusion-cycle` |
 
 ## 已发现的草案缺口
@@ -60,6 +61,6 @@
 
 | 页 · 看板 | 该有 | 实际 |
 |---|---|---|
-| 11 · 10 | `spec/profiles/geml-translator/` 的 profile 文档和 `spec/profiles/README.md` 的索引行，因为 profile 已在 `profiles.ts` 注册 | 只有注册和 GEP-0010 正文；README 说的「索引表和注册表是同一张表说两遍」已不成立 |
+| ~~11 · 10~~ **已关闭** | `spec/profiles/geml-translator/` 的 profile 文档和 `spec/profiles/README.md` 的索引行 | *当时：*只有注册和 GEP-0010 正文。现在两者都在了——[`geml-translator-profile.md`](../../spec/profiles/geml-translator/geml-translator-profile.md)（含中文版）与索引行——「索引表和注册表是同一张表说两遍」重新成立 |
 
 修掉一条就把对应页的状态改回去。

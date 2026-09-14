@@ -55,6 +55,7 @@ there.
 |---|---|---|
 | 1 · 11 | with two or more `meta` blocks, another block declaring `{#meta}` is a `reserved-id` error (§4, A.2) | passes with no diagnostic |
 | 1 · 19 | `![[#id]]` on a multi-paragraph `text` is an `inline-transclusion-not-inline` error (§5.2) | reports that error, plus a spurious `transclusion-cycle` |
+| 5 · inline | a positional slice — a whole row or column — MUST NOT be a projection target; only a leaf-value coordinate may be one (§5.2) | accepts both `![[#fy[1]]]` and `=== embed {src=#fy[1]}` with no diagnostic |
 
 ## Draft gaps found so far
 
@@ -68,6 +69,6 @@ there.
 
 | Page · board | Should exist | Actually |
 |---|---|---|
-| 11 · 10 | a `spec/profiles/geml-translator/` profile document and an index row in `spec/profiles/README.md`, since the profile is registered in `profiles.ts` | only the registration and the GEP-0010 text; the README's "index and registry are the same table said twice" no longer holds |
+| ~~11 · 10~~ **closed** | a `spec/profiles/geml-translator/` profile document and an index row in `spec/profiles/README.md` | *Was:* only the registration and the GEP-0010 text. Both now exist — [`geml-translator-profile.md`](../../spec/profiles/geml-translator/geml-translator-profile.md) (中文 too) and the index row — so "index and registry are the same table said twice" holds again |
 
 Fix one, and flip the status on the corresponding row.

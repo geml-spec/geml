@@ -26,7 +26,7 @@ geml set     README_CN.md '#核心特性-key-features' --body # 写回一节
 geml replace README_CN.md '旧文本' '新文本'              # 替换字面串，并告知落在哪一块
 ```
 
-进入 agent 上下文的只有那一节——一两 KB，而不是整个 ~40 KB 的文件。
+进入 agent 上下文的只有那一节——一两 KB，而不是整个 ~45 KB 的文件。
 
 要比“一节”更细——单个块、单张图、单张表——就让 `.geml` 站在中间层：在那个粒度上编辑，你`--to md` 交付出来的永远不会与它漂移。
 
@@ -510,7 +510,7 @@ GEML 是一份小而年轻的规范，但已经**稳定**：已发布 **`1.0`**�
 
 - **自举**——[`GEML-spec.geml`](spec/in_geml_format/GEML-spec.geml) 是用 GEML 写成的规范本身，每次测试都要求被干净解析。
 - **[一致性测试集](geml-parser/test/conformance/)** 支持不同实现的兼容性。
-- **解析器的参考实现。** 当前单元测试 **1,300+** 项，一致性语料、往返序列化，以及端到端 CLI 运行，覆盖率由 CI 卡在行/语句/函数/分支均 ≥**95%**。
+- **解析器的参考实现。** 当前单元测试 **1,700+** 项，一致性语料、往返序列化，以及端到端 CLI 运行，覆盖率由 CI 卡在行/语句/函数/分支均 ≥**95%**。
 - **前向兼容写在语法里。** 处理器遇到不认识的构造必须优雅降级（规范 §8.2），所以新增一种块类型或图格式**不算**破坏性变更。类型注册表是开放的：未注册的类型名建议包含连字符（如 `acme-invoice`），把不含连字符的名字留给规范的未来版本（§8.5）。
 - **如何声明合规。** 一个实现逐用例复刻出一致性测试集的结果后，即可声明自己「符合 GEML 1.0」（§8.5）。不需要许可，也不需要本仓库背书。
 - **对外标识。** 扩展名 `.geml`（版本伴生文件 `.gemlhistory`），媒体类型 `text/geml`，在必须使用已注册类型的场合用 `text/vnd.geml`——`text/geml` 目前尚未在 IANA 注册。
@@ -551,9 +551,9 @@ GEML 是一份小而年轻的规范，但已经**稳定**：已发布 **`1.0`**�
 - [x] 参考实现 `@geml/geml`：解析器、CLI、块级 `.gemlhistory` 追踪
 - [x] 官方 MCP server（`geml mcp`），接入 Claude Code / Cursor / Codex 等支持 MCP 的环境
 - [x] codemap：把整个代码库的调用图写成 GEML
+- [x] VS Code 插件已上架 Visual Studio Marketplace（publisher `geml`）
 - [x] 生态集成：VS Code 语法高亮与引用检查、tree-sitter、Obsidian、Logseq（对活的 DB graph 双向同步）、浏览器 viewer、GitHub Action、LangChain / LlamaIndex，以及 agent 宿主插件——Claude Code、Codex、Grok、DeepSeek Harness，外加 Gemini CLI 与 Kimi Code 两份根清单
 - [ ] Logseq 插件上架 Logseq 市场（[PR #893](https://github.com/logseq/marketplace/pull/893)）、Grok 插件上架 `xai-org/plugin-marketplace`
-- [ ] VS Code 插件上架 Marketplace
 - [ ] 其他语言的 parser（Rust / Python）——规范与一致性测试集都是公开的，欢迎社区来做，我们乐意帮着对齐
 
 ---
@@ -567,9 +567,10 @@ GEML 已是 `1.0`，但「稳定」是指**已有规则不会在你脚下变动*
 
 **一起来讨论**：
 
-- [文档格式该不该保留计算列和汇总行？](https://github.com/geml-spec/geml/discussions/19)
-- [如果要支持样式，应该怎么设计？](https://github.com/geml-spec/geml/discussions/17)
-- [geml 历史文件是不是伪需求？](https://github.com/geml-spec/geml/discussions/18)
+- [文档格式该不该做表格算术？](https://github.com/geml-spec/geml/discussions/19)
+- [GEML 到底该不该有样式层？](https://github.com/geml-spec/geml/discussions/17)
+- [`.gemlhistory` 边车什么时候才真的值得拥有？](https://github.com/geml-spec/geml/discussions/18)
+- [`geml get` 不给 selector 时在列块。这个行为该不该归 `geml list`？](https://github.com/geml-spec/geml/discussions/20)
 - [`--view` 是参数还是动词？](https://github.com/geml-spec/geml/discussions/21)
 
 <a id="integrations"></a>
@@ -604,7 +605,7 @@ GEML 已是 `1.0`，但「稳定」是指**已有规则不会在你脚下变动*
 | **在 Grok 里用** —— 同一套载荷再来一次：两个技能加 MCP server | [`integrations/grok-plugin/`](integrations/grok-plugin/) | 本仓库内可用；`xai-org/plugin-marketplace` 的 PR 尚未提交 |
 | **把 Logseq graph 同步成纯文本** —— Logseq 2.0 的 DB graph 持续同步成 GEML 文件，可寻址、对 git 友好，`restore` 是回去的路 | [`@geml/logseq-sync`](https://www.npmjs.com/package/@geml/logseq-sync) · [源码](integrations/logseq/) | watcher 已在 npm；插件目前装 release zip —— 市场上架（[PR #893](https://github.com/logseq/marketplace/pull/893)）尚未合并 |
 | **喂给 RAG / agent 框架** —— 按块切分的加载器（每块一个 chunk，带 `block_id`）+ agent 编辑工具 | [`integrations/langchain+llamaindex/`](integrations/langchain+llamaindex/) | 参考实现 |
-| **在编辑器里写 GEML** —— 语法高亮 + 构建期引用校验 | [`integrations/vscode/`](integrations/vscode/) | 已构建，可从源码安装；未上架商店 |
+| **在编辑器里写 GEML** —— 语法高亮 + 构建期引用校验 | [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=geml.geml) · [源码](integrations/vscode/) | 可用 |
 | **在 Obsidian 里用上 GEML** —— 用参考解析器 + viewer 的渲染器，与网页同一条代码路径 | [`integrations/obsidian/`](integrations/obsidian/) | 已构建，未上架社区商店 |
 
 上手前的三份文件：决策方式见 [`GOVERNANCE.md`](GOVERNANCE.md)，参与方式见 [`CONTRIBUTING.md`](CONTRIBUTING.md)，

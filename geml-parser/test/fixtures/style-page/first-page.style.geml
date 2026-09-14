@@ -21,7 +21,7 @@ title = "GitHub blob page, as a geml-style stylesheet"
 ===
 === style-rule {#tabs   match="text#repo-tabs" component=tab-bar}
 ===
-=== style-rule {#tree-open   match="table#file-tree" component=tree width=321px sticky=0 scroll=own hide-below=1012}
+=== style-rule {#tree-open   match="table#file-tree" component=tree width=321px sticky=top scroll=own hide-below=1012}
 ===
 === style-rule {#tree-closed match="table#file-tree" when="$tree=closed" width=0}
 ===
@@ -29,7 +29,7 @@ title = "GitHub blob page, as a geml-style stylesheet"
 ===
 === style-rule {#commit match="text#commit-bar" font-size=12px color="#59636e"}
 ===
-=== style-rule {#tb     match="text#toolbar" component=tab-bar sticky=0}
+=== style-rule {#tb     match="text#toolbar" component=tab-bar sticky=top}
 ===
 === style-rule {#md     match="text#content" component=markdown-body padding=32px max-width=1012px font-size=16px line-height=24px color="#1f2328"}
 ===

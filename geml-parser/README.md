@@ -24,8 +24,9 @@ print("hi")
 - **Addressable** — every block can be named: an `#id`, or a content address for
   the ones nobody named; `geml get` / `geml set '<selector>'`
   read or patch one section without re-emitting the whole file (on this repo's
-  own spec, ~**120× less context** than shipping the whole document — the block
-  is ~590 chars whatever the document grows to).
+  own spec, **~165×** less context than shipping the whole document — the block
+  is ~590 chars whatever the document grows to, so that ratio is just the
+  document's size divided by the block's, and it grows as the document does).
 - **Verifiable** — references are checked at build time (a dangling `#id` is an
   error, not a silent dead link), and the parser emits a document-model JSON
   with a `diagnostics` array, so agents and CI get a structured pass/fail signal.

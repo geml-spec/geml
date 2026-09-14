@@ -1,7 +1,7 @@
 ---
 gep: 0009
 title: The profile mechanism is how GEML is extended
-state: draft
+state: final
 author: GEML (maintainer)
 created: 2026-08-31
 issue: (pending)

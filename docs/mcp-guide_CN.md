@@ -81,7 +81,7 @@ claude mcp add geml -- geml mcp --root /abs/path/to/repo
 
 ## 工具清单
 
-每个工具都以它包装的那条命令命名——`geml set` 就是 `geml_set`，`geml codemap search` 就是 `geml_codemap_search`——所以 CLI 和工具是同一套词汇，学一次就够。
+每个文档工具都以它包装的那条命令命名——`geml set` 就是 `geml_set`，`geml list` 就是 `geml_list`——所以 CLI 和工具是同一套词汇，学一次就够。四个 `geml_codemap_*` 是例外：`geml_codemap_search` 没有同名的 CLI 动词（CLI 走的是 `geml codemap find`），另外三个则压根没有 CLI 对应物——这四个请照下表读，别从 CLI 动词推。
 
 | 工具 | 做什么 |
 |------|--------------|

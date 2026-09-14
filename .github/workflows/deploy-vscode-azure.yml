@@ -4,8 +4,8 @@
 # What this deploys: `integrations/vscode`, the VS Code extension. Its package is
 # also named `geml`, which is where the Azure app name — and this file's original
 # name, main_geml.yml — came from. This is NOT how the extension reaches an
-# editor: that is Open VSX (and, once there is a publisher account, the VS Code
-# Marketplace), described in docs/PUBLISHING.md.
+# editor: that is the VS Code Marketplace (publisher `geml`, live since
+# 2026-09-01) and Open VSX, described in docs/PUBLISHING.md.
 
 name: Deploy the VS Code extension to Azure Web App - geml
 

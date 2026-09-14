@@ -6216,9 +6216,9 @@ source = "数值抄自 1.mhtml：侧栏 260px、正文列 1012px、亮色 #fffff
 - [ ] **Step 4: 渲染、检查、看一次**
 
 ```bash
-node "C:/agentProjects/geml-spec/geml-parser/dist/cli.js" check C:/tmp/blob/page.geml
-node "C:/agentProjects/geml-spec/geml-parser/dist/cli.js" style check C:/tmp/blob/_index/github.style.geml C:/tmp/blob/page.geml C:/tmp/blob/PUBLISHING.geml --components=tree,segments,code-graph
-cd "C:/Users/george/AppData/Local/Temp/claude/C--agentProjects-geml-spec/1e2b6639-90ef-4e82-8e52-fee0f59ce3fb/scratchpad" && node render-real.mjs C:/tmp/blob/rendered.html
+node geml-parser/dist/cli.js check <blob>/page.geml
+node geml-parser/dist/cli.js style check <blob>/_index/github.style.geml <blob>/page.geml <blob>/PUBLISHING.geml --components=tree,segments,code-graph
+node render-real.mjs <blob>/rendered.html          # from the scratch dir holding render-real.mjs
 ```
 Expected：`check` 无诊断；`style check` 零 error（`form-options` 未被槽位放置不是诊断）；render 输出 `横幅: (无)`、`放置的块` 含 `#brand … #doc`；`rendered.html` 里 `grep -c 'title='` ≥ 28、`grep -c '<a '` ≥ 80。宿主 CSS：`grep -c '#[0-9a-fA-F]\{3,6\}' src/geml.css` 在 257 行之后为 0。浏览器（`http://localhost:8181/rendered.html`）截一张图核对五行外壳与侧栏树。若 `render-real.mjs` 的 `page.corpus[0].text` 未被设置（脚本绕过 content.js 的那一行），在脚本里等价补上。
 

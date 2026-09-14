@@ -98,9 +98,12 @@ inherits.
 
 ## The tools
 
-Every tool is named after the command it wraps — `geml set` is `geml_set`,
-`geml codemap search` is `geml_codemap_search` — so the CLI and the tools are one
-vocabulary, learned once.
+Every document tool is named after the command it wraps — `geml set` is
+`geml_set`, `geml list` is `geml_list` — so the CLI and the tools are one
+vocabulary, learned once. The four `geml_codemap_*` tools are the exception:
+`geml_codemap_search` has no CLI verb of that name (the CLI reaches it as
+`geml codemap find`), and the other three have no CLI counterpart at all — so
+read those four from the table below rather than from a CLI verb.
 
 | Tool | What it does |
 |------|--------------|

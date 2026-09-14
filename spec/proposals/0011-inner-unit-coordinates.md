@@ -1,7 +1,7 @@
 ---
 gep: 0011
 title: Coordinates for units inside a block — a table's rows and cells, a value tree in `data` or merged `meta`
-state: draft
+state: final
 author: GEML (maintainer)
 created: 2026-09-03
 issue: (pending)

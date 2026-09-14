@@ -16,4 +16,4 @@ Journal pages map to `journals/YYYY_MM_DD.geml` (fixture-tested); they are
 absent here because `@logseq/cli` 0.4.3's `export-edn` does not include
 journal pages in its export.
 
-Reproduce with your own graph: `bin/live-roundtrip.mjs` runs the whole loop.
+Reproduce with your own graph: `../watcher/bin/live-roundtrip.mjs` runs the whole loop.

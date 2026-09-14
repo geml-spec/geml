@@ -1,12 +1,13 @@
 // geml-style 样式表的装载、求解与视图模型（设计 §4/§5/§7）。
 import { parse } from "../dist/geml.js";
-import { loadStylesheet, resolveStyle } from "../dist/style-resolve.js";
+import { loadStylesheet, resolveStyle, BOX_WORDS } from "../dist/style-resolve.js";
 import { STYLE_SEVERITY } from "../dist/style-diagnostics.js";
 import { strict as assert } from "node:assert";
 import { spawnSync } from "node:child_process";
 import { writeFileSync, readFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const dir = mkdtempSync(join(tmpdir(), "geml-style-"));
 const p = (n) => join(dir, n);
@@ -682,14 +683,14 @@ test("装载：style-frame 缺 slots= 是错误，消息点名 style-frame", () 
 });
 
 test("装载：内含词落 box，组件词落 params，二者结构上分开（设计 §12.3）", () => {
-  const s = sheet('=== style-rule {#r match="table" component=tree width=321px sticky=0 scroll=own hide-below=1012 collapsible indent=2}\n===\n');
-  assert.deepEqual(s.rules[0].box, { width: "321px", sticky: 0, scroll: "own", "hide-below": 1012 });
+  const s = sheet('=== style-rule {#r match="table" component=tree width=321px sticky=top scroll=own hide-below=1012 collapsible indent=2}\n===\n');
+  assert.deepEqual(s.rules[0].box, { width: "321px", sticky: "top", scroll: "own", "hide-below": 1012 });
   assert.deepEqual(s.rules[0].params, { collapsible: true, indent: 2 });
   assert.deepEqual(codes(s.diagnostics), []);
 });
 
 test("装载：封闭值域的内含词取了域外值是 style-invalid-value；开放值域的不校验", () => {
-  const bad = sheet('=== style-rule {#r match="table" scroll=sideways sticky=top hide-below=wide}\n===\n');
+  const bad = sheet('=== style-rule {#r match="table" scroll=sideways sticky=middle hide-below=wide}\n===\n');
   assert.deepEqual(codes(bad.diagnostics), ["style-invalid-value", "style-invalid-value", "style-invalid-value"]);
   const ok = sheet('=== style-rule {#r match="table" width=anything color="not a colour" border="3 dashed"}\n===\n');
   assert.deepEqual(codes(ok.diagnostics), []);
@@ -800,12 +801,12 @@ const bT = (vm, addr) => vm.bindings.find((b) => b.block === addr);
 test("when：有条件的规则不进基础参数，进 variants；条件集是无条件那条的真超集，不报错（设计 §12.5）", () => {
   const vm = resolveT(
     '=== style-state {#tree type=scalar match="table#tree" on=toggle init-value=open}\n===\n\n' +
-    '=== style-rule {#open   match="table#tree" component=tree width=321px sticky=0}\n===\n\n' +
+    '=== style-rule {#open   match="table#tree" component=tree width=321px sticky=top}\n===\n\n' +
     '=== style-rule {#closed match="table#tree" when="$tree=closed" width=0}\n===\n'
   );
   assert.deepEqual(codes(vm.diagnostics), []);
   const b = bT(vm, "#tree");
-  assert.deepEqual(b.box, { width: "321px", sticky: 0 });
+  assert.deepEqual(b.box, { width: "321px", sticky: "top" });
   assert.equal(b.params.component, "tree");
   assert.deepEqual(b.variants, [{ when: W({ tree: "closed" }), box: { width: 0 }, params: {} }]);
 });
@@ -884,7 +885,7 @@ test("验收：GitHub blob 页的样式表 —— 0 error 0 warning，视图模�
   assert.deepEqual(vm.frames[0].slots[2], { kind: "frame", frame: "main" });
 
   const tree = vm.bindings.find((b) => b.block === "#file-tree");
-  assert.deepEqual(tree.box, { width: "321px", sticky: 0, scroll: "own", "hide-below": 1012 });
+  assert.deepEqual(tree.box, { width: "321px", sticky: "top", scroll: "own", "hide-below": 1012 });
   assert.equal(tree.params.component, "tree");
   assert.deepEqual(tree.variants, [{ when: { tree: "closed" }, box: { width: 0 }, params: {} }]);
 
@@ -1223,7 +1224,7 @@ test("收口：合并后没有 component= 接的参数报 warning；组件可以
 });
 
 test("部件规则：只收对一段行内说得通的内含词，其余报 style-unknown-attribute 并丢弃", () => {
-  const s = sheet('=== style-rule {#r match="text#nav link" color="#0969da" padding="4px 6px" sticky=0 grow=yes}\n===\n');
+  const s = sheet('=== style-rule {#r match="text#nav link" color="#0969da" padding="4px 6px" sticky=top grow=yes}\n===\n');
   assert.deepEqual(codes(s.diagnostics), ["style-unknown-attribute", "style-unknown-attribute"]);
   assert.match(s.diagnostics[0].message, /not a word for an inline part/);
   assert.deepEqual(s.rules[0].box, { color: "#0969da", padding: "4px 6px" });
@@ -1567,6 +1568,120 @@ test("状态挂在容器上时没有产出者不是错；挂在语料上却谁�
     [{ path: "d.geml", doc }]);
   assert.ok(onNothing.diagnostics.some((d) => d.code === "unmatched-producer"),
     JSON.stringify(codes(onNothing.diagnostics)));
+});
+
+test("sticky：值域是四条边，不是距顶的数字——一块同时只贴一条边", () => {
+  for (const v of ["top", "right", "bottom", "left"]) {
+    const ok = sheet(`=== style-rule {#r match="table" sticky=${v}}\n===\n`);
+    assert.deepEqual(codes(ok.diagnostics), [], v);
+    assert.equal(ok.rules[0].box.sticky, v, v);
+  }
+  for (const bad of ["0", "64", "middle"]) {
+    const d = sheet(`=== style-rule {#r match="table" sticky=${bad}}\n===\n`);
+    assert.deepEqual(codes(d.diagnostics), ["style-invalid-value"], bad);
+  }
+});
+
+test("place：贴在哪，九宫格闭域；块和容器都收", () => {
+  const nine = ["center", "top", "bottom", "left", "right",
+                "top-left", "top-right", "bottom-left", "bottom-right"];
+  for (const v of nine) {
+    const ok = sheet(`=== style-rule {#r match="table" anchor=viewport place=${v}}\n===\n`);
+    assert.deepEqual(codes(ok.diagnostics), [], v);
+    assert.equal(ok.rules[0].box.place, v, v);
+  }
+  const bad = sheet('=== style-rule {#r match="table" anchor=viewport place=middle}\n===\n');
+  assert.deepEqual(codes(bad.diagnostics), ["style-invalid-value"]);
+  const f = sheet('=== style-frame {#f anchor=parent place=top-right slots="table"}\n===\n');
+  assert.equal(f.frames[0].box.place, "top-right");
+});
+
+test("wrap：放不下的条目另起一行，yes|no 闭域", () => {
+  const ok = sheet('=== style-rule {#r match="table" axis=row wrap=yes}\n===\n');
+  assert.deepEqual(codes(ok.diagnostics), []);
+  assert.equal(ok.rules[0].box.wrap, "yes");
+  const bad = sheet('=== style-rule {#r match="table" axis=row wrap=maybe}\n===\n');
+  assert.deepEqual(codes(bad.diagnostics), ["style-invalid-value"]);
+});
+
+test("when=：五个内建条件——控件自己的状态由宿主提供，样式表只说长什么样", () => {
+  const corpus = [{ path: "p.geml", doc: parse('=== text {#nav}\n- [a](https://a)\n===\n') }];
+  for (const c of ["@invalid", "@disabled", "@checked"]) {
+    const vm = resolveStyle(sheet(
+      '=== style-rule {#base match="text#nav" color=black}\n===\n' +
+      `=== style-rule {#v match="text#nav" when="${c}" color=red}\n===\n`
+    ), corpus);
+    assert.deepEqual(codes(vm.diagnostics), [], c);
+    const b = vm.bindings.find((x) => x.block === "#nav");
+    assert.deepEqual(b.variants.map((v) => v.when), [W({ [c]: "true" })], c);
+  }
+  const mixed = resolveStyle(sheet(
+    '=== style-state {#side type=scalar match="text#nav" on=toggle init-value=open}\n===\n' +
+    '=== style-rule {#a match="text#nav" when="@invalid" color=red}\n===\n' +
+    '=== style-rule {#b match="text#nav" when="$side=closed, @invalid" color=blue}\n===\n'
+  ), corpus);
+  assert.deepEqual(codes(mixed.diagnostics), []);
+  assert.deepEqual(mixed.bindings.find((x) => x.block === "#nav").variants.map((v) => v.when),
+    [W({ "@invalid": "true" }), W({ side: "closed", "@invalid": "true" })]);
+  const typo = sheet('=== style-rule {#h match="text#nav" when="@enabled" color=blue}\n===\n');
+  assert.deepEqual(codes(typo.diagnostics), ["style-invalid-value"]);
+  for (const c of ["@hover", "@focus", "@invalid", "@disabled", "@checked"]) {
+    assert.ok(typo.diagnostics[0].message.includes(c), c + " 不在提示里：" + typo.diagnostics[0].message);
+  }
+});
+
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const profileDoc = (n) => readFileSync(join(repoRoot, "spec", "profiles", "geml-style", n), "utf8");
+const PROFILE_DOCS = ["geml-style-profile.md", "geml-style-profile_CN.md"];
+
+/**
+ * 文档表格第一格里的记号。只看第一格，是因为「在文档里出现过」太松：一个词从 §2.1 的
+ * 词表里掉了，仍然会在 §8 的闭域清单里露一面，于是什么都测不出来（实测过）。
+ * 带 `=` 的第一格是 §2.1 上面那张属性表（`match=`），不是词表。
+ */
+const firstCellTokens = (doc) => {
+  const out = new Set();
+  for (const line of doc.split(/\r?\n/)) {
+    const m = /^\|\s*([^|]+?)\s*\|/.exec(line);
+    if (m === null || /^[\s:-]+$/.test(m[1]) || m[1].includes("=")) continue;
+    for (const t of m[1].matchAll(/`([^`]+)`/g)) out.add(t[1]);
+  }
+  return out;
+};
+
+// 文档和实现是同一份词表的两处拷贝，而拷贝会漂：对照页上那个「36 个词」在四个文件里各抄了
+// 一份，加两个词之后没有一处会报错。这条测试就是那个报错。
+test("内含词：profile 文档两种语言的词表都把 BOX_WORDS 列全了", () => {
+  for (const f of PROFILE_DOCS) {
+    const listed = firstCellTokens(profileDoc(f));
+    const missing = [...BOX_WORDS].filter((w) => !listed.has(w));
+    assert.deepEqual(missing, [], f + " 的词表里没有这些内含词");
+  }
+});
+
+test("when=：五个内建条件在 profile 文档两种语言里都写着", () => {
+  for (const f of PROFILE_DOCS) {
+    const doc = profileDoc(f);
+    for (const c of ["@hover", "@focus", "@invalid", "@disabled", "@checked"]) {
+      assert.ok(doc.includes("`" + c + "`"), f + " 没写 " + c);
+    }
+  }
+});
+
+test("部件规则：place 和 wrap 是块的事，写在行内部件上报 style-unknown-attribute 并丢掉", () => {
+  const corpus = [{ path: "p.geml", doc: parse('=== text {#nav}\n- [a](https://a)\n===\n') }];
+  const vm = resolveStyle(sheet('=== style-rule {#r match="text#nav link" place=top wrap=yes color=red}\n===\n'), corpus);
+  assert.deepEqual(codes(vm.diagnostics), ["style-unknown-attribute", "style-unknown-attribute"]);
+  const link = vm.bindings.find((b) => b.part === "link");
+  assert.deepEqual(link.box, { color: "red" }, "两个块专用词都不该落进部件的 box");
+});
+
+test("when=：形式不对的项，提示也要把五个内建条件念全", () => {
+  const bad = sheet('=== style-rule {#r match="table" when="side == closed" color=red}\n===\n');
+  assert.deepEqual(codes(bad.diagnostics), ["style-invalid-value"]);
+  for (const c of ["@hover", "@focus", "@invalid", "@disabled", "@checked"]) {
+    assert.ok(bad.diagnostics[0].message.includes(c), c + " 不在提示里：" + bad.diagnostics[0].message);
+  }
 });
 
 console.log(`\n${passed} passed`);

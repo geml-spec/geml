@@ -26,7 +26,7 @@ geml set     README.md '#key-features' --body   # write one section back
 geml replace README.md 'old text' 'new text'    # swap a string, told which block held it
 ```
 
-Only that section enters the agent’s context — a couple of KB, not the whole ~40 KB file.
+Only that section enters the agent’s context — a couple of KB, not the whole ~48 KB file.
 
 Need finer than a section — one block, one chart, one table? Let `.geml` stand in the middle ground: edit at that grain, and the `--to md` you ship never drifts from it.
 
@@ -538,7 +538,7 @@ Every profile this project publishes: [`spec/profiles/`](spec/profiles/README.md
 
 - **Self-hosting** — [`GEML-spec.geml`](spec/in_geml_format/GEML-spec.geml) is the specification written in GEML, required to parse clean on every test run.
 - **A [conformance suite](geml-parser/test/conformance/)** is what holds separate implementations compatible.
-- **A reference implementation of the parser.** **1,300+** unit tests today, plus the conformance corpus, round-trip serialization and end-to-end CLI runs, with coverage CI-gated at ≥**95%** lines / statements / functions / branches.
+- **A reference implementation of the parser.** **1,700+** unit tests today, plus the conformance corpus, round-trip serialization and end-to-end CLI runs, with coverage CI-gated at ≥**95%** lines / statements / functions / branches.
 - **Forward compatibility is in the grammar.** A processor must degrade gracefully on constructs it does not recognize (spec §8.2), which is why adding a block type or a diagram format is **not** a breaking change. The type registry is open: an unregistered type name should contain a hyphen (`acme-invoice`), leaving hyphen-free names to future versions of the spec (§8.5).
 - **Claiming conformance.** An implementation may call itself *conformant to GEML 1.0* once it reproduces the conformance suite case for case (§8.5). No permission needed, and no sign-off from this repo.
 - **On the wire.** Extension `.geml` (version sidecar `.gemlhistory`), media type `text/geml`, or `text/vnd.geml` where a registered type is required — `text/geml` is not registered with IANA yet.
@@ -579,9 +579,9 @@ Every profile this project publishes: [`spec/profiles/`](spec/profiles/README.md
 - [x] Reference implementation `@geml/geml`: parser, CLI, block-level `.gemlhistory` tracking
 - [x] Official MCP server (`geml mcp`) for Claude Code, Cursor, Codex and other MCP hosts
 - [x] codemap — a whole codebase's call graph, written as GEML
+- [x] The VS Code extension published on the Visual Studio Marketplace (publisher `geml`)
 - [x] Ecosystem integrations: VS Code highlighting and reference checking, tree-sitter, Obsidian, Logseq (two-way sync against a live DB graph), the browser viewer, a GitHub Action, LangChain / LlamaIndex, and the agent-harness plugins — Claude Code, Codex, Grok, DeepSeek Harness, plus root manifests for Gemini CLI and Kimi Code
 - [ ] The Logseq plugin listed in the Logseq marketplace ([PR #893](https://github.com/logseq/marketplace/pull/893)) and the Grok plugin listed in `xai-org/plugin-marketplace`
-- [ ] The VS Code extension on the Marketplace
 - [ ] Parsers in other languages (Rust / Python) — the spec and the conformance suite are public, so community implementations are welcome; we are glad to help line them up
 
 ---
@@ -596,9 +596,10 @@ If you want a hand in it:
 
 **Come argue about these**:
 
-- [Should the format keep computed columns and summary rows?](https://github.com/geml-spec/geml/discussions/19)
-- [If styling is supported, how should it be designed?](https://github.com/geml-spec/geml/discussions/17)
-- [Is the GEML history file a made-up need?](https://github.com/geml-spec/geml/discussions/18)
+- [Should a document format do table arithmetic?](https://github.com/geml-spec/geml/discussions/19)
+- [Should GEML have a style layer at all?](https://github.com/geml-spec/geml/discussions/17)
+- [When is a `.gemlhistory` sidecar actually worth having?](https://github.com/geml-spec/geml/discussions/18)
+- [`geml get` with no selector lists blocks. Should that be `geml list`?](https://github.com/geml-spec/geml/discussions/20)
 - [`--view` reads through an embed. Flag, or its own verb?](https://github.com/geml-spec/geml/discussions/21)
 
 <a id="integrations"></a>
@@ -631,7 +632,7 @@ Or **put it to use**:
 | **Use it from Grok** — the same payload once more: both skills and the MCP server | [`integrations/grok-plugin/`](integrations/grok-plugin/) | Available from this repo; the `xai-org/plugin-marketplace` PR is not opened yet |
 | **Sync a Logseq graph to plain text** — a Logseq 2.0 DB graph as continuously synced GEML files, addressable and git-friendly, with `restore` as the way back | [`@geml/logseq-sync`](https://www.npmjs.com/package/@geml/logseq-sync) · [source](integrations/logseq/) | Watcher on npm; the plugin installs from a release zip — the marketplace listing ([PR #893](https://github.com/logseq/marketplace/pull/893)) is not merged yet |
 | **Turn a codebase into a document** — the whole call graph as a tree of GEML documents, browsable | `geml codemap build` ([design](docs/design/specs/geml-codemap/DESIGN-geml-code-graph.md)) | Available |
-| **Write it in your editor** — syntax highlighting + build-time reference checking | [`integrations/vscode/`](integrations/vscode/) | Built — install from source; not on the Marketplace yet |
+| **Write it in your editor** — syntax highlighting + build-time reference checking | [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=geml.geml) · [source](integrations/vscode/) | Available |
 | **Render it in Obsidian** — the reference parser + the viewer's renderer, the same code path as the web | [`integrations/obsidian/`](integrations/obsidian/) | Built, not in the community store |
 | **Feed a RAG / agent framework** — block-level loaders (one chunk per block, carrying `block_id`) + agent editing tools | [`integrations/langchain+llamaindex/`](integrations/langchain+llamaindex/) | Reference implementation |
 | **Try it without installing anything** — edit on the left, live render on the right | [Playground](https://geml-spec.github.io/geml/playground/) | Available |

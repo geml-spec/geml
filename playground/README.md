@@ -70,7 +70,7 @@ default: the file is text, and nothing has claimed otherwise.
 | `style-demo/template.geml` | **the page template**, and only content: top bar, repository nav, file tree, breadcrumb, commit row and toolbars, written as lists of inline links, plus the search and branch fields |
 | `style-demo/_index/index.geml` | the style entry (profile §1.1) — names the stylesheet beside it |
 | `style-demo/_index/github.style.geml` | **only layout**: frames, slots, built-in words, three states. Not one word of GitHub's text |
-| `style-demo/icons/*.svg` | 40 octicons, referenced from the content by path |
+| `style-demo/icons/*.svg` | 41 octicons, referenced from the content by path |
 
 The split is the point. Every string you can read on the page comes from
 `template.geml` or the document it reads; every colour and length comes from
@@ -93,7 +93,9 @@ Writing those blocks straight into `page.geml` still works — that is what this
 demo did until it was split — so "write the page directly" and "use a template"
 are the same mechanism seen from two ends, not two features.
 
-Both files check clean:
+`check` is clean. `style check` reports **0 errors and 98 `unmatched-rule`
+warnings** — one per slot this stylesheet declares that the template does not
+fill. Warnings rather than errors because an unfilled slot renders as nothing:
 
 ```sh
 node ../geml-parser/dist/geml.js check style-demo/page.geml --root ..
@@ -130,18 +132,16 @@ node geml-parser/dist/geml.js codemap render playground/codemap   # every doc ->
 
 ## Host it (free)
 
-Any static host works. GitHub Pages, from this folder:
+**This repository deploys from Actions, not from a branch.** The pages jobs in
+`.github/workflows/ci.yml` build `playground.js` and graft this folder into the
+site; the published URL is `https://geml-spec.github.io/geml/playground/`. That
+is the whole reason the bundle is not committed — nothing here can fall behind
+the parser it bundles.
 
-1. Push the repo (the `playground/` folder is committed, build artifact included).
-2. Repo **Settings → Pages → Deploy from a branch →** branch `main`, folder
-   `/ (root)` (GitHub Pages branch deploys only offer `/` or `/docs`, not an
-   arbitrary subfolder).
-3. Your URL is then `https://geml-spec.github.io/geml/playground/` — drop it
-   into the READMEs and your launch posts.
-
-For a shorter root URL (`https://geml-spec.github.io/geml/`), copy
-`index.html` + `playground.js` into a top-level `/docs` folder and point Pages at
-`/docs` instead.
+A **branch** deploy (*Settings → Pages → Deploy from a branch*) will therefore
+NOT work as-is: it serves what is committed, and `playground.js` is not. Same
+for any other static host — build first (see *Build* above), then upload
+`index.html` + `playground.js` + `fonts/` + the chapter files.
 
 Locally: `python -m http.server` in this folder, open `localhost:8000`.
 

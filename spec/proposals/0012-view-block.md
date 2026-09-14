@@ -1,7 +1,7 @@
 ---
 gep: 0012
 title: Register a `view` typed block — selection, derivation and aggregation of another relation
-state: draft
+state: final
 author: GEML (maintainer)
 created: 2026-09-03
 issue: (pending)

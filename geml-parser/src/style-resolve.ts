@@ -51,6 +51,10 @@ export const BOX_WORDS: ReadonlySet<string> = new Set([
   // 这段文字带不带下划线。HTML 的默认是带，去掉是**外观决定**，该由样式表说 ——
   // 宿主替所有页面剥掉的那一版，连嵌进来的文章里的链接都一起剥了，正文的链接看不出是链接。
   "underline",
+  // `anchor` 说贴谁，`place` 说贴哪——同一条轴的两面，如同 `item-justify` 之于 `item-align`。
+  // 此前 `anchor=viewport` 一个值同时扛着开场提示、模态框和吐司，而这三者只有居中说得出来。
+  // `wrap`：`axis` 开出一条轴、`gap` 给了沿轴的间距，放不下时怎么办却没词。
+  "place", "wrap",
 ]);
 /**
  * `border` 是**简写**，四个单边是它的一部分 —— 两者的结果取决于哪条声明落在后面，
@@ -67,7 +71,17 @@ const BORDER_SIDES = ["border-top", "border-right", "border-bottom", "border-lef
 
 /** 封闭值域的内含词。其余（`width=321px`、`color=#1f2328`）不校验，原样交给宿主。 */
 const SCROLLS = new Set(["own", "page"]);
-const NUMERIC_BOX = new Set(["sticky", "hide-below"]);
+const NUMERIC_BOX = new Set(["hide-below"]);
+/**
+ * `sticky`：滚动时贴住哪条边。此前是「距顶 px」的数字，于是贴底说不出来，
+ * 而全库三处用例写的都是 `sticky=0` —— 偏移量这个自由度从没有人用过。
+ * 边进值域而不是键名（不像 `border` 的四条单边）：一块同时只贴一条边。
+ */
+const STICKIES = new Set(["top", "right", "bottom", "left"]);
+/** `place`：贴在哪。九宫格，默认 center；只有 `anchor` 说了贴谁之后才谈得上。 */
+const PLACES = new Set(["center", "top", "bottom", "left", "right",
+  "top-left", "top-right", "bottom-left", "bottom-right"]);
+const WRAPS = new Set(["yes", "no"]);
 const ALIGNS = new Set(["left", "center", "right", "justify"]);
 /**
  * `anchor`：这一块**贴谁**。`flow` 跟着文档流走、占位置；`parent` 贴最近的容器浮出来、
@@ -118,7 +132,7 @@ const VIEWS = new Set(["rendered", "source"]);
 const EDITABLES = new Set(["yes", "no"]);
 /**
  * 行内部件上说得通的内含词：颜色、内外边距、边框、字号、（图的）宽度、显不显示。
- * sticky/scroll/hide-below/layer/grow/gap/text-align/axis/view/editable 是块或容器的事，
+ * sticky/scroll/hide-below/anchor/place/wrap/grow/gap/text-align/axis/view/editable 是块或容器的事，
  * 写在部件规则上报 style-unknown-attribute。
  */
 const PART_BOX: ReadonlySet<string> = new Set([
@@ -176,6 +190,18 @@ function boxValueOk(k: string, v: Value, id: string, sheet: Stylesheet): boolean
     sheet.diagnostics.push(styleDiag("style-invalid-value", `\`text-align=${String(v)}\` is not left/center/right/justify`, id));
     return false;
   }
+  if (k === "sticky" && !(typeof v === "string" && STICKIES.has(v))) {
+    sheet.diagnostics.push(styleDiag("style-invalid-value", `\`sticky=${String(v)}\` is not \`top\`, \`right\`, \`bottom\` or \`left\``, id));
+    return false;
+  }
+  if (k === "place" && !(typeof v === "string" && PLACES.has(v))) {
+    sheet.diagnostics.push(styleDiag("style-invalid-value", `\`place=${String(v)}\` is not one of ${[...PLACES].join(", ")}`, id));
+    return false;
+  }
+  if (k === "wrap" && !(typeof v === "string" && WRAPS.has(v))) {
+    sheet.diagnostics.push(styleDiag("style-invalid-value", `\`wrap=${String(v)}\` is not \`yes\` or \`no\``, id));
+    return false;
+  }
   if (NUMERIC_BOX.has(k) && typeof v !== "number") {
     sheet.diagnostics.push(styleDiag("style-invalid-value", `\`${k}=${String(v)}\` must be a number (pixels)`, id));
     return false;
@@ -203,7 +229,10 @@ const WHEN_TERM = /^\$([A-Za-z0-9_-]+)=([^=!<>|&]+)$/;
  * 不与任何状态撞名。放在 when= 而不是选择器里：选择器选内容，when= 说状态（§12.5 的边界）。
  * 进条件集时是一个普通项（state 为 `@hover`、value 恒为 "true"），仲裁不另设规则。
  */
-const PSEUDO = new Set(["hover", "focus"]);
+const PSEUDO = ["hover", "focus", "invalid", "disabled", "checked"] as const;
+const PSEUDO_SET = new Set<string>(PSEUDO);
+/** 提示里把五个都念出来：`@enabled` 这样的错别字，光说"不认识"帮不上忙。 */
+const PSEUDO_LIST = PSEUDO.map((n) => `\`@${n}\``).join(", ");
 
 /** 解析 `when=`；形式不对报 style-invalid-value 并返回 null。 */
 function parseWhen(raw: string, id: string, sheet: Stylesheet): WhenCond[] | null {
@@ -211,9 +240,9 @@ function parseWhen(raw: string, id: string, sheet: Stylesheet): WhenCond[] | nul
   for (const term of raw.split(",").map((x) => x.trim()).filter((x) => x.length > 0)) {
     if (term.startsWith("@")) {
       const name = term.slice(1);
-      if (!PSEUDO.has(name)) {
+      if (!PSEUDO_SET.has(name)) {
         sheet.diagnostics.push(styleDiag("style-invalid-value",
-          `\`${term}\` is not a built-in condition; \`when=\` knows \`@hover\` and \`@focus\``, id));
+          `\`${term}\` is not a built-in condition; \`when=\` knows ${PSEUDO_LIST}`, id));
         return null;
       }
       out.push({ state: `@${name}`, value: "true" });
@@ -222,7 +251,7 @@ function parseWhen(raw: string, id: string, sheet: Stylesheet): WhenCond[] | nul
     const m = WHEN_TERM.exec(term);
     if (m === null || /\s(or|and)\s/i.test(term)) {
       sheet.diagnostics.push(styleDiag("style-invalid-value",
-        `\`when=\` takes \`$state=value\` or \`@hover\`/\`@focus\` terms separated by commas (equality only); got \`${term}\``, id));
+        `\`when=\` takes \`$state=value\` or one of ${PSEUDO_LIST} as terms separated by commas (equality only); got \`${term}\``, id));
       return null;
     }
     out.push({ state: m[1]!, value: m[2]!.trim() });
