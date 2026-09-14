@@ -36,6 +36,7 @@ import {
   addressUnits, discoveryHint, matchContent, matchType, parseSelector, shortestAddress,
 } from "./selector.js";
 import { gemlToMd } from "./to-md.js";
+import { gemlToTypst, type TypstOptions } from "./to-typst.js";
 
 export { type Value } from "./attrs.js";
 export { type Inline } from "./inline.js";
@@ -45,6 +46,7 @@ export { renderHtml, pageAssets } from "./render-html.js";
 export { type RenderOptions } from "./render.js";
 export { serialize } from "./serialize.js";
 export { gemlToMd } from "./to-md.js";
+export { gemlToTypst, type TypstOptions } from "./to-typst.js";
 export { translateBlocks, translateInlines, resolveTarget, glossaryFrom, HELD_BACK, type Translator, type TranslateOptions } from "./translate.js";
 
 // A block id is any non-whitespace run (§4), so it may contain regex

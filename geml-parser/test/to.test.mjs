@@ -125,14 +125,14 @@ test("-o writes the transform output to a file and notes the path on stderr", ()
 });
 
 test("a broken doc exits 1 for every GEML-input target", () => {
-  for (const to of ["json", "geml", "html", "md"]) {
+  for (const to of ["json", "geml", "html", "md", "typst", "pdf"]) {
     const r = run(["-", "--to", to], BAD);
     assert.equal(r.code, 1, `--to ${to} on a broken doc must exit 1 (got ${r.code}: ${r.err})`);
   }
 });
 
 test("an unknown --to value is a usage error (exit 2)", () => {
-  const r = run(["-", "--to", "pdf"], GOOD);
+  const r = run(["-", "--to", "docx"], GOOD);
   assert.equal(r.code, 2);
   assert.match(r.err, /--to/);
 });

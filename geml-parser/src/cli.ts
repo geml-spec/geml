@@ -35,6 +35,8 @@ import { type MetaView, metaText, metaView, planCoordWrite, planMetaWrite, proje
 import { mdToGeml } from "./from-md.js";
 import { serialize } from "./serialize.js";
 import { gemlToMd } from "./to-md.js";
+import { gemlToTypst } from "./to-typst.js";
+import { compileTypstToPdf } from "./render-pdf.js";
 // ---------------------------------------------------------------------------
 // `get --view` (design: docs/design/specs/2026-08-05-geml-get-view-design.md)
 // ---------------------------------------------------------------------------
@@ -166,13 +168,15 @@ Usage:
                                              (--root widens cross-doc resolution to dir d, as on check — an
                                               === embed whose target sits above the file's own directory
                                               needs it, or it renders unresolved)
-                                             --to  <output>: json | html | md | geml
-                                               --to md    -> Markdown (lossy)
-                                               --to html  -> self-contained HTML
-                                               --to html --fragment -> body-only markup, no page shell
-                                                            (embed in your own layout; assets via pageAssets)
-                                               --to geml  -> canonical re-format
-                                               --to json  -> document-model JSON (default)
+                                              --to  <output>: json | html | md | geml | typst | pdf
+                                                --to md    -> Markdown (lossy)
+                                                --to html  -> self-contained HTML
+                                                --to html --fragment -> body-only markup, no page shell
+                                                             (embed in your own layout; assets via pageAssets)
+                                                --to geml  -> canonical re-format
+                                                --to json  -> document-model JSON (default)
+                                                --to typst -> Typst source document
+                                                --to pdf   -> publication-grade PDF via in-process Typst engine
                                              --from <input>: geml | md | json   (overrides extension; html is output-only)
                                                geml notes.md                -> GEML   (md inferred from extension)
                                                geml model.json --to geml    -> GEML   (round-trips a prior --to json)
@@ -717,7 +721,7 @@ function runHistory(args: string[]): void {
 // geml). `-o` only names the output path — the format's single source is `--to`.
 // Diagnostics go to stderr and any error exits 1 — the render/export/fmt
 // contract, now uniform across all four targets.
-type OutFmt = "json" | "html" | "md" | "geml";
+type OutFmt = "json" | "html" | "md" | "geml" | "typst" | "pdf";
 
 function runTransform(argv: string[]): void {
   const out = flag(argv, "-o") ?? flag(argv, "--out");
@@ -745,7 +749,7 @@ function runTransform(argv: string[]): void {
   // silent fall-through to the default — flag() would return undefined and we
   // must not quietly ignore it.
   if (argv.includes("--from") && fromRaw === undefined) fail("--from needs a format (geml | md | json)", 2);
-  if (argv.includes("--to") && toRaw === undefined) fail("--to needs a format (json | html | md | geml)", 2);
+  if (argv.includes("--to") && toRaw === undefined) fail("--to needs a format (json | html | md | geml | typst | pdf)", 2);
 
   // Input format: an explicit --from wins (for any input, file or stdin), else
   // the file extension, else GEML (covers .geml, unknown extensions, and stdin).
@@ -766,8 +770,8 @@ function runTransform(argv: string[]): void {
   // Output format: an explicit --to wins, else md input -> geml, geml -> json.
   let outFmt: OutFmt;
   if (toRaw !== undefined) {
-    if (toRaw !== "json" && toRaw !== "html" && toRaw !== "md" && toRaw !== "geml") {
-      fail(`--to: unknown output format '${toRaw}' (want json | html | md | geml)`, 2);
+    if (toRaw !== "json" && toRaw !== "html" && toRaw !== "md" && toRaw !== "geml" && toRaw !== "typst" && toRaw !== "pdf") {
+      fail(`--to: unknown output format '${toRaw}' (want json | html | md | geml | typst | pdf)`, 2);
     }
     outFmt = toRaw;
   } else {
@@ -883,6 +887,97 @@ function runTransform(argv: string[]): void {
       output = r.md;
       break;
     }
+    case "typst": {
+      const inner: string[] = [];
+      const typRoot = root ?? (relDirPath(file.replace(/\\/g, "/")) || ".");
+      const expand = (at: string, atText: string, depth: number) =>
+        (target: string, embedAttrs?: Record<string, Value>): string | undefined => {
+        if (depth >= EMBED_DEPTH_LIMIT) return undefined;
+        const asked = typeof embedAttrs?.["part"] === "string" ? String(embedAttrs["part"]).trim() : "whole";
+        const part: UnitPart = asked === "head" || asked === "body" || asked === "intro" ? asked : "whole";
+        const render = (docPath: string, text: string, units: Unit[]): string | undefined => {
+          const out: string[] = [];
+          for (const u of units) {
+            const sub = parse(sliceUnit(text, u.span, part), { ...docOpts(docPath, typRoot) });
+            const r = gemlToTypst(sub, { resolveEmbed: expand(docPath, text, depth + 1) });
+            inner.push(...r.notes);
+            if (r.typst.trim() !== "") out.push(r.typst.trim());
+          }
+          return out.length === 0 ? undefined : out.join("\n\n");
+        };
+        try {
+          if (target.startsWith("#")) {
+            const { units } = selectUnits(atText, at, target, at);
+            return render(at, atText, units);
+          }
+          const hop = oneHop(at, target, typRoot);
+          const ends = hop.units.flatMap((u) => viewResolve(hop.text, hop.doc, u, typRoot));
+          const out: string[] = [];
+          for (const res of ends) {
+            const one = render(res.doc, res.text, [res.unit]);
+            if (one !== undefined) out.push(one);
+          }
+          return out.length === 0 ? undefined : out.join("\n\n");
+        } catch {
+          return undefined;
+        }
+      };
+      const r = gemlToTypst(doc, { resolveEmbed: expand(file, src, 0) });
+      notes = notes.concat(r.notes, inner);
+      output = r.typst;
+      break;
+    }
+    case "pdf": {
+      const inner: string[] = [];
+      const typRoot = root ?? (relDirPath(file.replace(/\\/g, "/")) || ".");
+      const expand = (at: string, atText: string, depth: number) =>
+        (target: string, embedAttrs?: Record<string, Value>): string | undefined => {
+        if (depth >= EMBED_DEPTH_LIMIT) return undefined;
+        const asked = typeof embedAttrs?.["part"] === "string" ? String(embedAttrs["part"]).trim() : "whole";
+        const part: UnitPart = asked === "head" || asked === "body" || asked === "intro" ? asked : "whole";
+        const render = (docPath: string, text: string, units: Unit[]): string | undefined => {
+          const out: string[] = [];
+          for (const u of units) {
+            const sub = parse(sliceUnit(text, u.span, part), { ...docOpts(docPath, typRoot) });
+            const r = gemlToTypst(sub, { resolveEmbed: expand(docPath, text, depth + 1) });
+            inner.push(...r.notes);
+            if (r.typst.trim() !== "") out.push(r.typst.trim());
+          }
+          return out.length === 0 ? undefined : out.join("\n\n");
+        };
+        try {
+          if (target.startsWith("#")) {
+            const { units } = selectUnits(atText, at, target, at);
+            return render(at, atText, units);
+          }
+          const hop = oneHop(at, target, typRoot);
+          const ends = hop.units.flatMap((u) => viewResolve(hop.text, hop.doc, u, typRoot));
+          const out: string[] = [];
+          for (const res of ends) {
+            const one = render(res.doc, res.text, [res.unit]);
+            if (one !== undefined) out.push(one);
+          }
+          return out.length === 0 ? undefined : out.join("\n\n");
+        } catch {
+          return undefined;
+        }
+      };
+      const r = gemlToTypst(doc, { resolveEmbed: expand(file, src, 0) });
+      notes = notes.concat(r.notes, inner);
+      const pdfWorkspace = root ?? (file === "-" ? process.cwd() : dirname(resolvePath(file)));
+      try {
+        const pdfBuf = compileTypstToPdf(r.typst, { workspace: pdfWorkspace });
+        const targetOut = out ?? (file === "-" ? undefined : file.replace(/\.[^.]+$/, "") + ".pdf");
+        writeOut(pdfBuf, targetOut);
+        for (const n of notes) console.error(`note: ${n}`);
+        for (const d of doc.diagnostics) console.error(`${d.severity}: ${d.message} (line ${d.line})`);
+        if (doc.diagnostics.some((d) => d.severity === "error")) process.exit(1);
+        return;
+      } catch (e) {
+        fail((e as Error).message, 1);
+      }
+      break;
+    }
   }
 
   writeOut(output, out);
@@ -913,8 +1008,9 @@ function loadModelJson(src: string, file: string): Document {
 }
 
 // Write to `-o out` (with a `wrote` note on stderr) or to stdout.
-function writeOut(text: string, out: string | undefined): void {
+function writeOut(text: string | Buffer, out: string | undefined): void {
   if (out) { writeFileSync(out, text); console.error(`wrote ${out}`); }
+  else if (typeof text === "string") process.stdout.write(text);
   else process.stdout.write(text);
 }
 

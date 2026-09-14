@@ -195,9 +195,9 @@ test("an unknown format is refused, and the message lists the ones that exist", 
   const from = tRun(["-", "--from", "rtf"], "# H {#h}\n");
   assert.equal(from.code, 2);
   assert.match(from.err, /unknown input format 'rtf'.*geml \| md \| json/s);
-  const to = tRun(["-", "--to", "pdf"], "# H {#h}\n");
+  const to = tRun(["-", "--to", "docx"], "# H {#h}\n");
   assert.equal(to.code, 2);
-  assert.match(to.err, /pdf/);
+  assert.match(to.err, /docx/);
 });
 
 test("a leading flag is an unknown COMMAND, not a transform with no file", () => {
