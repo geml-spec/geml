@@ -691,6 +691,419 @@ function parseList(lines: string[], i: number, base: number, ctx: Ctx): { block:
   return { block: root, next: i };
 }
 
+/**
+ * A fenced block's body, and the index of the line that ended it.
+ *
+ * A block closes on the FIRST line that is a bare fence of exactly the opening
+ * length, OR — when it has an id — a labeled fence `=== #id` (a `=` run of any
+ * length >= 3 followed by the block's id). The labeled close cannot be gotten
+ * wrong by miscounting `=`, but it does NOT shadow the bare close: a same-length
+ * bare fence in the body still ends the block first, so nesting needs a longer
+ * outer fence (§3).
+ */
+function scanFenceBody(
+  lines: string[], start: number, base: number, openLen: number,
+  id: string | undefined, type: string, openLineNo: number, ctx: Ctx,
+): { body: string[]; end: number; closed: boolean } {
+  const labeled = id !== undefined ? new RegExp(`^={3,}[ \\t]*#${reLit(id)}[ \\t]*$`) : null;
+  const body: string[] = [];
+  let j = start;
+  let closed = false;
+  let closedByBare = false;
+  for (; j < lines.length; j++) {
+    if (isCloseFence(lines[j]!, openLen)) { closed = true; closedByBare = true; break; }
+    if (labeled && labeled.test(lines[j]!)) { closed = true; break; }
+    body.push(lines[j]!);
+  }
+  // Remember a bare close of an id-bearing block (first definition wins,
+  // mirroring ctx.ids): if a `=== #id` line for it turns up later as plain
+  // text, the stray-labeled-fence warning can name the line that really
+  // closed the block.
+  if (closedByBare && id !== undefined && !ctx.bareClosed?.has(nameKey(id))) {
+    (ctx.bareClosed ??= new Map()).set(nameKey(id), base + j + 1);
+  }
+  if (!closed) {
+    const how = id !== undefined ? `${"=".repeat(openLen)} or \`=== #${id}\`` : "=".repeat(openLen);
+    ctx.diags.push({ severity: "error", code: "unterminated-block", message: `unterminated \`${type}\` block (no matching ${how})`, line: openLineNo });
+  }
+  return { body, end: j, closed };
+}
+
+/**
+ * The body mode for a type, and — for the core's own types ONLY — a spelling
+ * check on its attribute keys.
+ *
+ * Which of the three branches runs decides whether that check happens at all: a
+ * profile-admitted type carries whatever keys its profile licenses, and an
+ * unknown type has already been warned about. Neither gets a second opinion.
+ */
+function bodyModeFor(type: string, attrs: Attrs, openLineNo: number, ctx: Ctx): BodyMode {
+  const diags = ctx.diags;
+  let mode = REGISTRY.get(type);
+  if (mode === undefined && ctx.vocab.types.has(type)) {
+    // 一个 profile 放行的类型。体模式也来自 profile —— 它影响解析结果、不只是诊断，
+    // 所以必须是**显式声明**的（`bodies: { form: "flow" }`）；没声明的照旧 raw。
+    return ctx.vocab.bodies.get(type) ?? "raw";
+  }
+  if (mode === undefined) {
+    diags.push({ severity: "warning", code: "unknown-block-type", message: `unknown block type \`${type}\`; body kept as raw`, line: openLineNo });
+    return "raw";
+  }
+  // `hidden` (§4) and `caption` (§4, and the label an auto-reference takes
+  // per §5.2) are not type-specific: every typed block may carry them. Only
+  // the extras below are per type.
+  let validRe: RegExp;
+  if (type === "table") validRe = /^(src|format|delim|header|format-data|span\d*)$/;
+  // form-options 的体是一张 value/label 表（GEP-0008 §6），所以它收表体那几个键。
+  else if (type === "form-options") validRe = /^(format|delim|header)$/;
+  else if (type === "view") validRe = /^(src|where|order|limit|select|compute\d*|summary\d*|by|aggregate\d*)$/;
+  else if (type === "data") validRe = /^(format|schema|src)$/;
+  else if (type === "embed") validRe = /^(src|part)$/;
+  else if (type === "diagram") validRe = /^(src|data|format|format-data|delim|header|type|rows|x|y|size|series)$/;
+  else if (type === "code") validRe = /^(lang|src)$/;
+  else validRe = /^$/;
+
+  const universal = /^(hidden|caption)$/;
+  // 本文档声明的 profile 额外放行的键（§3.3）。在此之前 codemap 的
+  // `anchor`/`name`/`entry-via` 硬编码在上面的 `code` 分支里，于是它们在
+  // 每份文档的每个 code 块上都静默通过 —— 现在只对声明了 codemap/v1 的
+  // 文档放行，其余文档拿回拼写检查。
+  const licensed = ctx.vocab.attrs.get(type);
+
+  for (const key of Object.keys(attrs.attrs)) {
+    if (universal.test(key) || validRe.test(key)) continue;
+    if (licensed?.has(key) === true) continue;
+    diags.push({ severity: "warning", code: "unknown-attribute", message: `unknown attribute \`${key}\` for block type \`${type}\``, line: openLineNo });
+  }
+  return mode;
+}
+
+/**
+ * `embed`'s `src=`, registered as an ordinary reference so the existing §8
+ * resolver validates the document and the id. Without that, an embed would be
+ * the one reference shape whose rot is silent.
+ */
+function recordEmbedSrc(
+  block: Extract<Block, { kind: "block" }>, attrs: Attrs, body: string[],
+  openLineNo: number, ctx: Ctx,
+): void {
+  const diags = ctx.diags;
+  const src = typeof attrs.attrs["src"] === "string" ? (attrs.attrs["src"] as string).trim() : "";
+  // `part=` narrows a heading's section to its heading LINE or to what is
+  // under it. An unrecognised value keeps the whole target rather than
+  // silently selecting nothing — a projection that quietly loses content is
+  // the failure this whole design exists to remove.
+  const partAttr = attrs.attrs["part"];
+  if (partAttr !== undefined && !["whole", "head", "body", "intro"].includes(String(partAttr))) {
+    diags.push({ severity: "warning", code: "bad-embed-part", message: `embed: \`part=${String(partAttr)}\` is not \`whole\`, \`head\`, \`body\` or \`intro\`; the whole target stands`, line: openLineNo });
+  }
+  if (src === "") {
+    diags.push({ severity: "error", code: "embed-missing-src", message: "embed: missing `src=`", line: openLineNo });
+  } else {
+    const hash = src.indexOf("#");
+    const docPath = hash < 0 ? src : src.slice(0, hash);
+    const anchor = hash < 0 ? undefined : src.slice(hash + 1);
+    // §9.5: a destination naming a scheme outside the allowlist MUST NOT be
+    // emitted as a navigable or loadable target, and the check belongs HERE —
+    // when the model is built — so no consumer of the model can reintroduce
+    // it. The attribute is blanked as well as reported, the same treatment a
+    // media `src` already gets: a diagnostic alone would still leave the
+    // string in `attrs` for a renderer to put in an href.
+    if (!isSafeUrl(src)) {
+      diags.push({ severity: "error", code: "unsafe-embed-scheme", message: `embed: \`src=${src}\` names a disallowed URL scheme`, line: openLineNo });
+      block.attrs = { ...block.attrs, src: "" };
+    } else if (docPath !== "" && !/\.geml$/i.test(docPath)) {
+      diags.push({ severity: "error", code: "embed-target-not-geml", message: `embed: \`${docPath}\` is not a GEML document; \`src=\` names a \`.geml\` file (optionally with a #fragment)`, line: openLineNo });
+    } else if (docPath === "") {
+      // Recorded with an empty doc so the self-cycle pass can see it.
+      if (anchor !== undefined) (ctx.embeds ??= []).push({ doc: "", anchor, line: openLineNo });
+      // `src=#id`: a block of THIS document. Validated against local ids.
+      if (anchor !== undefined) ctx.refs.push({ kind: "internal", anchor, line: openLineNo });
+    } else {
+      ctx.refs.push({ kind: "cross", doc: docPath, anchor, line: openLineNo });
+      // Kept apart from refs: a transclusion can pull in a document that
+      // transcludes further, so cycle detection has to walk the graph.
+      (ctx.embeds ??= []).push(anchor === undefined ? { doc: docPath, line: openLineNo } : { doc: docPath, anchor, line: openLineNo });
+    }
+  }
+  if (body.some((l) => l.trim() !== "")) {
+    diags.push({ severity: "warning", code: "ignored-embed-body", message: "embed body is ignored; the target lives in `src=`", line: openLineNo });
+  }
+}
+
+/**
+ * What a raw body means to the types that read it in a SECOND stage.
+ *
+ * Every arm shares one shape: the body stayed raw at scan time, and this is where
+ * the type's own engine — a format, the table parser, a chart spec — reads it, or
+ * records it for a later pass that can see the whole document. A type with
+ * nothing to add has no arm.
+ */
+/**
+ * §GEP-0005's value tree, plus the two references a `data` block can carry.
+ * The body stayed raw at scan time; a format engine reads it here — the same
+ * two-stage shape `table` uses. `src=` and an inline body are exclusive, and
+ * `schema=` is reference-checked only.
+ */
+function readDataBody(
+  block: Extract<Block, { kind: "block" }>, attrs: Attrs, body: string[],
+  openLineNo: number, ctx: Ctx,
+): void {
+  const diags = ctx.diags;
+  // §GEP-0005: the value tree. The body stayed raw at scan time; a
+  // format engine parses it here — the same two-stage shape `table`
+  // uses. Admission to the format registry requires a SELF-DESCRIBING
+  // syntax (bytes alone determine the value): the core ships `json`
+  // (default — the model's own serialization) and `jsonl`; `yaml` and
+  // `toml` are reserved names with no engine here, and degrade exactly
+  // like an unknown `diagram` format: body kept raw, one warning.
+  const fmtRaw = attrs.attrs["format"];
+  const fmt = fmtRaw === undefined ? "json" : String(fmtRaw);
+  // `src=` names external content — the same one-source rule tables
+  // have (§6): exactly one of `src=` and an inline body. The engine
+  // runs over the file in a second pass (resolveDataSources); running
+  // it here over the empty body would report a spurious parse error.
+  const srcAttr = typeof attrs.attrs["src"] === "string" ? (attrs.attrs["src"] as string).trim() : undefined;
+  const hasBody = body.some((l) => l.trim() !== "");
+  if (srcAttr !== undefined && srcAttr !== "" && hasBody) {
+    diags.push({ severity: "error", code: "data-src-and-body", message: "data: carries both `src=` and an inline body; exactly one is permitted (the body wins here)", line: openLineNo });
+  }
+  if (srcAttr !== undefined && srcAttr !== "" && !hasBody) {
+    (ctx.dataSources ??= []).push({ block, line: openLineNo, target: srcAttr });
+  } else {
+    const parsed = parseDataBody(fmt, body, openLineNo);
+    for (const d of parsed.diags) diags.push(d);
+    if (parsed.value !== undefined) block.value = parsed.value;
+  }
+  // `schema=` is reference-checked ONLY (GEP-0005): it must name a
+  // block or a GEML document; validating the value against it is a
+  // later GEP. The reference goes through the ordinary §8 resolver so
+  // a dangling schema rots loudly like any other reference.
+  const schema = attrs.attrs["schema"];
+  if (schema !== undefined) {
+    const s = typeof schema === "string" ? schema.trim() : "";
+    if (s.startsWith("#") && s.length > 1) {
+      ctx.refs.push({ kind: "internal", anchor: s.slice(1), line: openLineNo });
+    } else if (/\.geml(#|$)/i.test(s)) {
+      const h = s.indexOf("#");
+      if (h < 0) ctx.refs.push({ kind: "cross", doc: s, anchor: undefined, line: openLineNo });
+      else ctx.refs.push({ kind: "cross", doc: s.slice(0, h), anchor: s.slice(h + 1), line: openLineNo });
+    } else {
+      diags.push({ severity: "error", code: "bad-data-schema", message: `data: \`schema=${s}\` must name a block (\`#id\`) or a GEML document (\`doc.geml[#id]\`)`, line: openLineNo });
+    }
+  }
+  // First definition wins, matching ctx.ids/ctx.tables.
+  if (block.id !== undefined && block.value !== undefined && !ctx.dataValues?.has(nameKey(block.id))) {
+    (ctx.dataValues ??= new Map()).set(nameKey(block.id), block.value);
+  }
+}
+
+/**
+ * A `code` block's `src=` is a ROUTE to the code it shows —
+ * `<path>[#L<start>[-<end>]]` — resolved in a second pass, like a table's. The
+ * code-graph runtime has always fetched and sliced it at render time; checking
+ * it here is what makes a stale range a build error rather than a panel that
+ * silently shows a path.
+ */
+function readCodeBody(
+  block: Extract<Block, { kind: "block" }>, attrs: Attrs, body: string[],
+  openLineNo: number, ctx: Ctx,
+): void {
+  const diags = ctx.diags;
+  // `src=` on a code block is a ROUTE to the code it shows —
+  // `<path>[#L<start>[-<end>]]` — resolved in a second pass, like a
+  // table's `src=`. The code-graph runtime has always fetched and
+  // sliced it at render time; checking it here is what makes a stale
+  // range a build error instead of a panel that silently shows a path.
+  const srcAttr = typeof attrs.attrs["src"] === "string" ? (attrs.attrs["src"] as string).trim() : undefined;
+  if (srcAttr !== undefined && srcAttr !== "") (ctx.codeSources ??= []).push({ block, line: openLineNo, target: srcAttr });
+}
+
+/**
+ * GEP-0008 §6: a `form-options` body is a value/label table, read by the SAME
+ * `parseTable` a `table` uses — another copy would drift from it, which is §10's
+ * lesson.
+ */
+function readFormOptionsBody(
+  block: Extract<Block, { kind: "block" }>, attrs: Attrs, body: string[],
+  openLineNo: number, ctx: Ctx,
+): void {
+  const diags = ctx.diags;
+  // 同一个 parseTable —— 另写一份迟早和 table 的语义分叉，§10 的教训。
+  const { model, diagnostics } = parseTable(body, attrs.attrs, openLineNo, ctx);
+  block.table = model;
+  for (const d of diagnostics) diags.push({ ...d, line: openLineNo });
+}
+
+/**
+ * §6: the raw body (visual or csv/tsv) becomes one table model, and an
+ * id-bearing table registers as a relation so a `view` can name it.
+ */
+function readTableBody(
+  block: Extract<Block, { kind: "block" }>, attrs: Attrs, body: string[],
+  openLineNo: number, ctx: Ctx,
+): void {
+  const diags = ctx.diags;
+  const srcAttr = typeof attrs.attrs["src"] === "string" ? (attrs.attrs["src"] as string).trim() : undefined;
+  // §6: parse the raw body (visual or csv/tsv) into one table model.
+  const { model, diagnostics } = parseTable(body, attrs.attrs, openLineNo, ctx);
+  if (srcAttr !== undefined) {
+    if (srcAttr.includes("#")) diags.push({ severity: "error", code: "table-source-is-block", message: `table source \`${srcAttr}\` names another block's output; use \`view\``, line: openLineNo });
+    else (ctx.tableSources ??= []).push({ block, line: openLineNo, target: srcAttr });
+  }
+  block.table = model;
+  for (const d of diagnostics) diags.push({ ...d, line: openLineNo });
+  // First definition wins, matching ctx.ids (a duplicate id is already
+  // reported as an error by registerId).
+  if (block.id !== undefined && !ctx.tables?.has(nameKey(block.id))) {
+    (ctx.tables ??= new Map()).set(nameKey(block.id), model);
+    (ctx.relations ??= new Map()).set(nameKey(block.id), block);
+  }
+}
+
+/**
+ * GEP-0012: a view is declared by `src=` and attributes ALONE — it has no body
+ * of its own, and its rows arrive in a later pass that can see the whole
+ * document.
+ */
+function readViewBody(
+  block: Extract<Block, { kind: "block" }>, attrs: Attrs, body: string[],
+  openLineNo: number, ctx: Ctx,
+): void {
+  const diags = ctx.diags;
+  const srcAttr = typeof attrs.attrs["src"] === "string" ? (attrs.attrs["src"] as string).trim() : "";
+  if (body.some((l) => l.trim() !== "")) {
+    diags.push({ severity: "error", code: "view-src-and-body", message: "view has a body; a view is declared by `src=` and attributes alone", line: openLineNo });
+  }
+  if (srcAttr === "") {
+    diags.push({ severity: "error", code: "view-missing-src", message: "view: missing required `src=`", line: openLineNo });
+  } else {
+    (ctx.viewSources ??= []).push({ block, line: openLineNo, target: srcAttr });
+  }
+  block.table = { header: true, columns: [], align: [], rows: [], src: srcAttr };
+  if (block.id !== undefined && !ctx.tables?.has(nameKey(block.id))) {
+    (ctx.tables ??= new Map()).set(nameKey(block.id), block.table);
+    (ctx.relations ??= new Map()).set(nameKey(block.id), block);
+  }
+}
+
+/**
+ * §7: a diagram's format selects a RENDERER, so the body stays raw whatever it
+ * says. The two native formats are resolved in a second pass instead, and an
+ * unknown format is a warning unless a declared vocabulary admits it (§8.6.1).
+ */
+function readDiagramBody(
+  block: Extract<Block, { kind: "block" }>, attrs: Attrs, body: string[],
+  openLineNo: number, ctx: Ctx,
+): void {
+  const diags = ctx.diags;
+  const fmt = attrs.attrs["format"];
+  if (fmt === "geml-chart") {
+    // §7: native chart — resolved in a second pass (data=#id may be
+    // defined later in the document).
+    if (body.length > 0 && body.some((l) => l.trim() !== "")) {
+      diags.push({ severity: "warning", code: "ignored-diagram-body", message: "geml-chart body is ignored; the chart spec lives in attributes", line: openLineNo });
+    }
+    (ctx.charts ??= []).push({ block, line: openLineNo });
+  } else if (fmt === "geml-code-graph") {
+    // Code-graph embed (GEP-0003): the ONLY attribute is src=, pointing
+    // at a codemap document; roots/depth come from that document's meta
+    // ("view config travels with the data"). Body is empty.
+    const src = attrs.attrs["src"];
+    if (typeof src !== "string" || src === "") {
+      diags.push({ severity: "warning", code: "code-graph-missing-src", message: "geml-code-graph: missing `src=` (nothing to render)", line: openLineNo });
+    } else if (ctx.resolveDoc && ctx.resolveDoc(src) === null) {
+      diags.push({ severity: "warning", code: "code-graph-unresolvable-document", message: `geml-code-graph: cannot resolve document \`${src}\``, line: openLineNo });
+    }
+    if (body.length > 0 && body.some((l) => l.trim() !== "")) {
+      diags.push({ severity: "warning", code: "ignored-diagram-body", message: "geml-code-graph body is ignored; the embed is configured by `src=` alone", line: openLineNo });
+    }
+  } else if (typeof fmt === "string" && !DIAGRAM_RENDERERS.has(fmt) && !ctx.vocab.formats.has(fmt)) {
+    // §7: warn on a diagram format with no registered renderer — unless a
+    // declared vocabulary admits it (§8.6.1). A diagram's format selects a
+    // RENDERER and its body is raw either way, so admitting one cannot move
+    // the document model; `table`/`data` formats choose how the body parses
+    // and are deliberately not admissible.
+    diags.push({ severity: "warning", code: "unknown-diagram-format", message: `no registered renderer for diagram format \`${fmt}\`; body kept raw`, line: openLineNo });
+  }
+}
+
+/**
+ * What a raw body means to the types that read it in a SECOND stage.
+ *
+ * Every arm shares one shape: the body stayed raw at scan time, and this is where
+ * the type's own engine reads it, or records it for a later pass that can see the
+ * whole document. A type with nothing to add has no arm.
+ */
+function readTypedRawBody(
+  block: Extract<Block, { kind: "block" }>, type: string, attrs: Attrs,
+  body: string[], openLineNo: number, ctx: Ctx,
+): void {
+  const arm = RAW_BODY_READERS.get(type);
+  if (arm !== undefined) arm(block, attrs, body, openLineNo, ctx);
+}
+
+/** The second-stage reader for each type that has one. */
+const RAW_BODY_READERS = new Map<string, (
+  block: Extract<Block, { kind: "block" }>, attrs: Attrs, body: string[],
+  openLineNo: number, ctx: Ctx,
+) => void>([
+  ["data", readDataBody],
+  ["code", readCodeBody],
+  ["form-options", readFormOptionsBody],
+  ["table", readTableBody],
+  ["view", readViewBody],
+  ["diagram", readDiagramBody],
+]);
+
+/**
+ * One fenced block, from its opening fence through its close.
+ *
+ * `next` is where the caller's scan resumes: past the close when there was one,
+ * at end-of-input when the fence was never closed.
+ */
+function readFencedBlock(
+  lines: string[], i: number, consumed: number, open: RegExpExecArray,
+  base: number, ctx: Ctx, depth: number,
+): { block: Extract<Block, { kind: "block" }>; next: number } {
+  const openLen = open[1]!.length;
+  const type = open[2]!;
+  const attrs = open[3] ? parseAttrs(open[3]) : { classes: [], attrs: {} };
+  const openLineNo = base + i + 1;
+  reportOddNames(attrs, openLineNo, ctx.diags);
+  reportDuplicateNames(attrs, openLineNo, ctx.diags);
+
+  const { body, end, closed } = scanFenceBody(lines, i + consumed, base, openLen, attrs.id, type, openLineNo, ctx);
+  const mode = bodyModeFor(type, attrs, openLineNo, ctx);
+
+  const block: Extract<Block, { kind: "block" }> = {
+    kind: "block", type, mode, classes: attrs.classes, attrs: attrs.attrs,
+  };
+  if (attrs.id !== undefined) { block.id = attrs.id; registerId(ctx, attrs.id, openLineNo); }
+  if (attrs.attrs["hidden"] === true) block.hidden = true; // §4: not rendered, still in model
+
+  if (type === "embed") recordEmbedSrc(block, attrs, body, openLineNo, ctx);
+
+  if (mode === "flow") {
+    if (depth >= MAX_NESTING) {
+      // Refuse to recurse past the cap: emit a diagnostic and keep the body
+      // as raw so the parser returns cleanly instead of overflowing the
+      // call stack on a pathologically nested document (DoS).
+      ctx.diags.push({ severity: "error", code: "block-nesting-too-deep", message: `block nesting too deep (max ${MAX_NESTING}); body kept as raw`, line: openLineNo });
+      block.raw = body;
+    } else {
+      block.children = scanBlocks(body, base + i + 1, ctx, depth + 1);
+    }
+  } else if (mode === "data") {
+    block.data = parseData(body);
+  } else {
+    block.raw = body;
+    readTypedRawBody(block, type, attrs, body, openLineNo, ctx);
+  }
+
+  return { block, next: closed ? end + 1 : end };
+}
+
 function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[] {
   const blocks: Block[] = [];
   const diags = ctx.diags;
@@ -712,272 +1125,9 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
 
     const open = FENCE_OPEN.exec(line);
     if (open) {
-      const openLen = open[1]!.length;
-      const type = open[2]!;
-      const attrs = open[3] ? parseAttrs(open[3]) : { classes: [], attrs: {} };
-      const openLineNo = base + i + 1;
-      reportOddNames(attrs, openLineNo, diags);
-      reportDuplicateNames(attrs, openLineNo, diags);
-
-      // Collect the body. A block closes on the FIRST line that is a bare fence
-      // of exactly the opening length, OR — when it has an id — a labeled fence
-      // `=== #id` (a `=` run of any length ≥ 3 followed by the block's id). The
-      // labeled close can't be gotten wrong by miscounting `=`, but it does NOT
-      // shadow the bare close: a same-length bare fence in the body still ends
-      // the block first, so nesting needs a longer outer fence (§3).
-      const labeled = attrs.id !== undefined ? new RegExp(`^={3,}[ \\t]*#${reLit(attrs.id)}[ \\t]*$`) : null;
-      const body: string[] = [];
-      let j = i + consumed;
-      let closed = false;
-      let closedByBare = false;
-      for (; j < lines.length; j++) {
-        if (isCloseFence(lines[j]!, openLen)) { closed = true; closedByBare = true; break; }
-        if (labeled && labeled.test(lines[j]!)) { closed = true; break; }
-        body.push(lines[j]!);
-      }
-      // Remember a bare close of an id-bearing block (first definition wins,
-      // mirroring ctx.ids): if a `=== #id` line for it turns up later as plain
-      // text, the stray-labeled-fence warning can name the line that really
-      // closed the block.
-      if (closedByBare && attrs.id !== undefined && !ctx.bareClosed?.has(nameKey(attrs.id))) {
-        (ctx.bareClosed ??= new Map()).set(nameKey(attrs.id), base + j + 1);
-      }
-      if (!closed) {
-        const how = attrs.id !== undefined ? `${"=".repeat(openLen)} or \`=== #${attrs.id}\`` : "=".repeat(openLen);
-        diags.push({ severity: "error", code: "unterminated-block", message: `unterminated \`${type}\` block (no matching ${how})`, line: openLineNo });
-      }
-
-      let mode = REGISTRY.get(type);
-      if (mode === undefined && ctx.vocab.types.has(type)) {
-        // 一个 profile 放行的类型。体模式也来自 profile —— 它影响解析结果、不只是诊断，
-        // 所以必须是**显式声明**的（`bodies: { form: "flow" }`）；没声明的照旧 raw。
-        mode = ctx.vocab.bodies.get(type) ?? "raw";
-      } else if (mode === undefined) {
-        diags.push({ severity: "warning", code: "unknown-block-type", message: `unknown block type \`${type}\`; body kept as raw`, line: openLineNo });
-        mode = "raw";
-      } else {
-        // `hidden` (§4) and `caption` (§4, and the label an auto-reference takes
-        // per §5.2) are not type-specific: every typed block may carry them. Only
-        // the extras below are per type.
-        let validRe: RegExp;
-        if (type === "table") validRe = /^(src|format|delim|header|format-data|span\d*)$/;
-        // form-options 的体是一张 value/label 表（GEP-0008 §6），所以它收表体那几个键。
-        else if (type === "form-options") validRe = /^(format|delim|header)$/;
-        else if (type === "view") validRe = /^(src|where|order|limit|select|compute\d*|summary\d*|by|aggregate\d*)$/;
-        else if (type === "data") validRe = /^(format|schema|src)$/;
-        else if (type === "embed") validRe = /^(src|part)$/;
-        else if (type === "diagram") validRe = /^(src|data|format|format-data|delim|header|type|rows|x|y|size|series)$/;
-        else if (type === "code") validRe = /^(lang|src)$/;
-        else validRe = /^$/;
-
-        const universal = /^(hidden|caption)$/;
-        // 本文档声明的 profile 额外放行的键（§3.3）。在此之前 codemap 的
-        // `anchor`/`name`/`entry-via` 硬编码在上面的 `code` 分支里，于是它们在
-        // 每份文档的每个 code 块上都静默通过 —— 现在只对声明了 codemap/v1 的
-        // 文档放行，其余文档拿回拼写检查。
-        const licensed = ctx.vocab.attrs.get(type);
-
-        for (const key of Object.keys(attrs.attrs)) {
-          if (universal.test(key) || validRe.test(key)) continue;
-          if (licensed?.has(key) === true) continue;
-          diags.push({ severity: "warning", code: "unknown-attribute", message: `unknown attribute \`${key}\` for block type \`${type}\``, line: openLineNo });
-        }
-      }
-
-      const block: Extract<Block, { kind: "block" }> = {
-        kind: "block", type, mode, classes: attrs.classes, attrs: attrs.attrs,
-      };
-      if (attrs.id !== undefined) { block.id = attrs.id; registerId(ctx, attrs.id, openLineNo); }
-      if (attrs.attrs["hidden"] === true) block.hidden = true; // §4: not rendered, still in model
-
-      // Block transclusion: `src=` names the content this block stands for, and
-      // is registered as an ordinary reference so the existing §8 resolver
-      // validates the document and the id. Without that, an embed would be the
-      // one reference shape whose rot is silent.
-      if (type === "embed") {
-        const src = typeof attrs.attrs["src"] === "string" ? (attrs.attrs["src"] as string).trim() : "";
-        // `part=` narrows a heading's section to its heading LINE or to what is
-        // under it. An unrecognised value keeps the whole target rather than
-        // silently selecting nothing — a projection that quietly loses content is
-        // the failure this whole design exists to remove.
-        const partAttr = attrs.attrs["part"];
-        if (partAttr !== undefined && !["whole", "head", "body", "intro"].includes(String(partAttr))) {
-          diags.push({ severity: "warning", code: "bad-embed-part", message: `embed: \`part=${String(partAttr)}\` is not \`whole\`, \`head\`, \`body\` or \`intro\`; the whole target stands`, line: openLineNo });
-        }
-        if (src === "") {
-          diags.push({ severity: "error", code: "embed-missing-src", message: "embed: missing `src=`", line: openLineNo });
-        } else {
-          const hash = src.indexOf("#");
-          const docPath = hash < 0 ? src : src.slice(0, hash);
-          const anchor = hash < 0 ? undefined : src.slice(hash + 1);
-          // §9.5: a destination naming a scheme outside the allowlist MUST NOT be
-          // emitted as a navigable or loadable target, and the check belongs HERE —
-          // when the model is built — so no consumer of the model can reintroduce
-          // it. The attribute is blanked as well as reported, the same treatment a
-          // media `src` already gets: a diagnostic alone would still leave the
-          // string in `attrs` for a renderer to put in an href.
-          if (!isSafeUrl(src)) {
-            diags.push({ severity: "error", code: "unsafe-embed-scheme", message: `embed: \`src=${src}\` names a disallowed URL scheme`, line: openLineNo });
-            block.attrs = { ...block.attrs, src: "" };
-          } else if (docPath !== "" && !/\.geml$/i.test(docPath)) {
-            diags.push({ severity: "error", code: "embed-target-not-geml", message: `embed: \`${docPath}\` is not a GEML document; \`src=\` names a \`.geml\` file (optionally with a #fragment)`, line: openLineNo });
-          } else if (docPath === "") {
-            // Recorded with an empty doc so the self-cycle pass can see it.
-            if (anchor !== undefined) (ctx.embeds ??= []).push({ doc: "", anchor, line: openLineNo });
-            // `src=#id`: a block of THIS document. Validated against local ids.
-            if (anchor !== undefined) ctx.refs.push({ kind: "internal", anchor, line: openLineNo });
-          } else {
-            ctx.refs.push({ kind: "cross", doc: docPath, anchor, line: openLineNo });
-            // Kept apart from refs: a transclusion can pull in a document that
-            // transcludes further, so cycle detection has to walk the graph.
-            (ctx.embeds ??= []).push(anchor === undefined ? { doc: docPath, line: openLineNo } : { doc: docPath, anchor, line: openLineNo });
-          }
-        }
-        if (body.some((l) => l.trim() !== "")) {
-          diags.push({ severity: "warning", code: "ignored-embed-body", message: "embed body is ignored; the target lives in `src=`", line: openLineNo });
-        }
-      }
-
-      if (mode === "flow") {
-        if (depth >= MAX_NESTING) {
-          // Refuse to recurse past the cap: emit a diagnostic and keep the body
-          // as raw so the parser returns cleanly instead of overflowing the
-          // call stack on a pathologically nested document (DoS).
-          diags.push({ severity: "error", code: "block-nesting-too-deep", message: `block nesting too deep (max ${MAX_NESTING}); body kept as raw`, line: openLineNo });
-          block.raw = body;
-        } else {
-          block.children = scanBlocks(body, base + i + 1, ctx, depth + 1);
-        }
-      } else if (mode === "data") {
-        block.data = parseData(body);
-      } else {
-        block.raw = body;
-        if (type === "data") {
-          // §GEP-0005: the value tree. The body stayed raw at scan time; a
-          // format engine parses it here — the same two-stage shape `table`
-          // uses. Admission to the format registry requires a SELF-DESCRIBING
-          // syntax (bytes alone determine the value): the core ships `json`
-          // (default — the model's own serialization) and `jsonl`; `yaml` and
-          // `toml` are reserved names with no engine here, and degrade exactly
-          // like an unknown `diagram` format: body kept raw, one warning.
-          const fmtRaw = attrs.attrs["format"];
-          const fmt = fmtRaw === undefined ? "json" : String(fmtRaw);
-          // `src=` names external content — the same one-source rule tables
-          // have (§6): exactly one of `src=` and an inline body. The engine
-          // runs over the file in a second pass (resolveDataSources); running
-          // it here over the empty body would report a spurious parse error.
-          const srcAttr = typeof attrs.attrs["src"] === "string" ? (attrs.attrs["src"] as string).trim() : undefined;
-          const hasBody = body.some((l) => l.trim() !== "");
-          if (srcAttr !== undefined && srcAttr !== "" && hasBody) {
-            diags.push({ severity: "error", code: "data-src-and-body", message: "data: carries both `src=` and an inline body; exactly one is permitted (the body wins here)", line: openLineNo });
-          }
-          if (srcAttr !== undefined && srcAttr !== "" && !hasBody) {
-            (ctx.dataSources ??= []).push({ block, line: openLineNo, target: srcAttr });
-          } else {
-            const parsed = parseDataBody(fmt, body, openLineNo);
-            for (const d of parsed.diags) diags.push(d);
-            if (parsed.value !== undefined) block.value = parsed.value;
-          }
-          // `schema=` is reference-checked ONLY (GEP-0005): it must name a
-          // block or a GEML document; validating the value against it is a
-          // later GEP. The reference goes through the ordinary §8 resolver so
-          // a dangling schema rots loudly like any other reference.
-          const schema = attrs.attrs["schema"];
-          if (schema !== undefined) {
-            const s = typeof schema === "string" ? schema.trim() : "";
-            if (s.startsWith("#") && s.length > 1) {
-              ctx.refs.push({ kind: "internal", anchor: s.slice(1), line: openLineNo });
-            } else if (/\.geml(#|$)/i.test(s)) {
-              const h = s.indexOf("#");
-              if (h < 0) ctx.refs.push({ kind: "cross", doc: s, anchor: undefined, line: openLineNo });
-              else ctx.refs.push({ kind: "cross", doc: s.slice(0, h), anchor: s.slice(h + 1), line: openLineNo });
-            } else {
-              diags.push({ severity: "error", code: "bad-data-schema", message: `data: \`schema=${s}\` must name a block (\`#id\`) or a GEML document (\`doc.geml[#id]\`)`, line: openLineNo });
-            }
-          }
-          // First definition wins, matching ctx.ids/ctx.tables.
-          if (block.id !== undefined && block.value !== undefined && !ctx.dataValues?.has(nameKey(block.id))) {
-            (ctx.dataValues ??= new Map()).set(nameKey(block.id), block.value);
-          }
-        } else if (type === "code") {
-          // `src=` on a code block is a ROUTE to the code it shows —
-          // `<path>[#L<start>[-<end>]]` — resolved in a second pass, like a
-          // table's `src=`. The code-graph runtime has always fetched and
-          // sliced it at render time; checking it here is what makes a stale
-          // range a build error instead of a panel that silently shows a path.
-          const srcAttr = typeof attrs.attrs["src"] === "string" ? (attrs.attrs["src"] as string).trim() : undefined;
-          if (srcAttr !== undefined && srcAttr !== "") (ctx.codeSources ??= []).push({ block, line: openLineNo, target: srcAttr });
-        } else if (type === "form-options") {
-          // 同一个 parseTable —— 另写一份迟早和 table 的语义分叉，§10 的教训。
-          const { model, diagnostics } = parseTable(body, attrs.attrs, openLineNo, ctx);
-          block.table = model;
-          for (const d of diagnostics) diags.push({ ...d, line: openLineNo });
-        } else if (type === "table") {
-          const srcAttr = typeof attrs.attrs["src"] === "string" ? (attrs.attrs["src"] as string).trim() : undefined;
-          // §6: parse the raw body (visual or csv/tsv) into one table model.
-          const { model, diagnostics } = parseTable(body, attrs.attrs, openLineNo, ctx);
-          if (srcAttr !== undefined) {
-            if (srcAttr.includes("#")) diags.push({ severity: "error", code: "table-source-is-block", message: `table source \`${srcAttr}\` names another block's output; use \`view\``, line: openLineNo });
-            else (ctx.tableSources ??= []).push({ block, line: openLineNo, target: srcAttr });
-          }
-          block.table = model;
-          for (const d of diagnostics) diags.push({ ...d, line: openLineNo });
-          // First definition wins, matching ctx.ids (a duplicate id is already
-          // reported as an error by registerId).
-          if (block.id !== undefined && !ctx.tables?.has(nameKey(block.id))) {
-            (ctx.tables ??= new Map()).set(nameKey(block.id), model);
-            (ctx.relations ??= new Map()).set(nameKey(block.id), block);
-          }
-        } else if (type === "view") {
-          const srcAttr = typeof attrs.attrs["src"] === "string" ? (attrs.attrs["src"] as string).trim() : "";
-          if (body.some((l) => l.trim() !== "")) {
-            diags.push({ severity: "error", code: "view-src-and-body", message: "view has a body; a view is declared by `src=` and attributes alone", line: openLineNo });
-          }
-          if (srcAttr === "") {
-            diags.push({ severity: "error", code: "view-missing-src", message: "view: missing required `src=`", line: openLineNo });
-          } else {
-            (ctx.viewSources ??= []).push({ block, line: openLineNo, target: srcAttr });
-          }
-          block.table = { header: true, columns: [], align: [], rows: [], src: srcAttr };
-          if (block.id !== undefined && !ctx.tables?.has(nameKey(block.id))) {
-            (ctx.tables ??= new Map()).set(nameKey(block.id), block.table);
-            (ctx.relations ??= new Map()).set(nameKey(block.id), block);
-          }
-        } else if (type === "diagram") {
-          const fmt = attrs.attrs["format"];
-          if (fmt === "geml-chart") {
-            // §7: native chart — resolved in a second pass (data=#id may be
-            // defined later in the document).
-            if (body.length > 0 && body.some((l) => l.trim() !== "")) {
-              diags.push({ severity: "warning", code: "ignored-diagram-body", message: "geml-chart body is ignored; the chart spec lives in attributes", line: openLineNo });
-            }
-            (ctx.charts ??= []).push({ block, line: openLineNo });
-          } else if (fmt === "geml-code-graph") {
-            // Code-graph embed (GEP-0003): the ONLY attribute is src=, pointing
-            // at a codemap document; roots/depth come from that document's meta
-            // ("view config travels with the data"). Body is empty.
-            const src = attrs.attrs["src"];
-            if (typeof src !== "string" || src === "") {
-              diags.push({ severity: "warning", code: "code-graph-missing-src", message: "geml-code-graph: missing `src=` (nothing to render)", line: openLineNo });
-            } else if (ctx.resolveDoc && ctx.resolveDoc(src) === null) {
-              diags.push({ severity: "warning", code: "code-graph-unresolvable-document", message: `geml-code-graph: cannot resolve document \`${src}\``, line: openLineNo });
-            }
-            if (body.length > 0 && body.some((l) => l.trim() !== "")) {
-              diags.push({ severity: "warning", code: "ignored-diagram-body", message: "geml-code-graph body is ignored; the embed is configured by `src=` alone", line: openLineNo });
-            }
-          } else if (typeof fmt === "string" && !DIAGRAM_RENDERERS.has(fmt) && !ctx.vocab.formats.has(fmt)) {
-            // §7: warn on a diagram format with no registered renderer — unless a
-            // declared vocabulary admits it (§8.6.1). A diagram's format selects a
-            // RENDERER and its body is raw either way, so admitting one cannot move
-            // the document model; `table`/`data` formats choose how the body parses
-            // and are deliberately not admissible.
-            diags.push({ severity: "warning", code: "unknown-diagram-format", message: `no registered renderer for diagram format \`${fmt}\`; body kept raw`, line: openLineNo });
-          }
-        }
-      }
-
+      const { block, next } = readFencedBlock(lines, i, consumed, open, base, ctx, depth);
       blocks.push(block);
-      i = closed ? j + 1 : j;
+      i = next;
       continue;
     }
 
