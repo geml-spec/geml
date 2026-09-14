@@ -77,6 +77,17 @@ export function stateClass(state, value) {
  * `place` 的九宫格 → flex 的两条对齐。默认 flex-direction 是 row，所以 `align-items`
  * 是竖直那条、`justify-content` 是水平那条。
  */
+/**
+ * 贴住哪条边 → 整条声明。查表而不是把值插进属性名位置：样式表是不可信输入（profile §9），
+ * 而 `${v}:` 处在冒号**前面**，一个域外值就是一次规则跳出，不是一个边名。
+ */
+const STICKY = {
+  top: "position: sticky; top: 0",
+  right: "position: sticky; right: 0",
+  bottom: "position: sticky; bottom: 0",
+  left: "position: sticky; left: 0",
+};
+
 const PLACE = {
   center: "align-items: center; justify-content: center",
   top: "align-items: flex-start; justify-content: center",
@@ -111,12 +122,15 @@ function declarations(box, dropped, where, skip = new Set()) {
     } else if (k === "item-align") out.push(`align-items: ${{ start: "flex-start", end: "flex-end" }[v] ?? String(v)}`);
     // 沿轴分布。`between` → space-between；start/end 同样显式写成 flex-* 形式。
     else if (k === "item-justify") out.push(`justify-content: ${{ start: "flex-start", end: "flex-end", between: "space-between" }[v] ?? String(v)}`);
-    // 贴住哪条边。值是边名，不是距顶的像素 —— 一块同时只贴一条边。
-    else if (k === "sticky") out.push(`position: sticky; ${v}: 0`);
+    // 贴住哪条边。值是边名，不是距顶的像素 —— 一块同时只贴一条边。域外值丢弃并记账，
+    // 不悄悄退回某个默认：那会画出样式表没要过的东西。
+    else if (k === "sticky" || k === "place") {
+      const decl = (k === "sticky" ? STICKY : PLACE)[v];
+      if (decl === undefined) { dropped.push(`${where}: ${k}=${JSON.stringify(String(v))} is not a value this host puts in CSS`); continue; }
+      out.push(decl);
+    }
     // 放不下就换行。容器是 flex，所以这就是 flex-wrap。
     else if (k === "wrap") out.push(`flex-wrap: ${v === "yes" ? "wrap" : "nowrap"}`);
-    // 贴在哪。`anchor` 已经把这一块做成了居中的 flex 容器，`place` 换掉那两条居中。
-    else if (k === "place") out.push(PLACE[v] ?? PLACE.center);
     else if (k === "scroll" && v === "own") out.push("overflow: auto; max-height: 100vh");
     // 贴最近的容器：浮出来、不占位置（.geml-frame 都是 position: relative，锚点靠它）。
     else if (k === "anchor" && v === "parent") out.push("position: absolute; top: 100%; left: 0; z-index: 20");
