@@ -81,14 +81,32 @@ export function stateClass(state, value) {
  * 贴住哪条边 → 整条声明。查表而不是把值插进属性名位置：样式表是不可信输入（profile §9），
  * 而 `${v}:` 处在冒号**前面**，一个域外值就是一次规则跳出，不是一个边名。
  */
-const STICKY = {
-  top: "position: sticky; top: 0",
-  right: "position: sticky; right: 0",
-  bottom: "position: sticky; bottom: 0",
-  left: "position: sticky; left: 0",
+const CLOSED = {
+  // 贴住哪条边 —— 一块同时只贴一条。
+  sticky: {
+    top: "position: sticky; top: 0",
+    right: "position: sticky; right: 0",
+    bottom: "position: sticky; bottom: 0",
+    left: "position: sticky; left: 0",
+  },
+  // 跨轴对齐。容器是 flex，所以这就是 align-items；start/end 显式写成 flex-start/flex-end，
+  // 不依赖引擎对裸 start/end 在 flex 里的支持。stretch 是默认，写出来也无害。
+  "item-align": {
+    start: "align-items: flex-start",
+    center: "align-items: center",
+    end: "align-items: flex-end",
+    stretch: "align-items: stretch",
+  },
+  // 沿轴分布。`between` → space-between；start/end 同样显式写成 flex-* 形式。
+  "item-justify": {
+    start: "justify-content: flex-start",
+    center: "justify-content: center",
+    end: "justify-content: flex-end",
+    between: "justify-content: space-between",
+  },
 };
 
-const PLACE = {
+CLOSED.place = {
   center: "align-items: center; justify-content: center",
   top: "align-items: flex-start; justify-content: center",
   bottom: "align-items: flex-end; justify-content: center",
@@ -117,15 +135,10 @@ function declarations(box, dropped, where, skip = new Set()) {
       if ((k === "width" || k === "height") && s !== "auto" && !out.includes("flex: 0 0 auto")) {
         out.push("flex: 0 0 auto");
       }
-    // 跨轴对齐。容器是 flex，所以这就是 align-items；start/end 显式写成 flex-start/flex-end，
-    // 不依赖引擎对裸 start/end 在 flex 里的支持。stretch 是默认，写出来也无害。
-    } else if (k === "item-align") out.push(`align-items: ${{ start: "flex-start", end: "flex-end" }[v] ?? String(v)}`);
-    // 沿轴分布。`between` → space-between；start/end 同样显式写成 flex-* 形式。
-    else if (k === "item-justify") out.push(`justify-content: ${{ start: "flex-start", end: "flex-end", between: "space-between" }[v] ?? String(v)}`);
-    // 贴住哪条边。值是边名，不是距顶的像素 —— 一块同时只贴一条边。域外值丢弃并记账，
-    // 不悄悄退回某个默认：那会画出样式表没要过的东西。
-    else if (k === "sticky" || k === "place") {
-      const decl = (k === "sticky" ? STICKY : PLACE)[v];
+    // 封闭值域的四个：查表取整条声明（见 CLOSED）。域外值丢弃并记账，不悄悄退回某个默认 ——
+    // 那会画出样式表没要过的东西。
+    } else if (CLOSED[k] !== undefined) {
+      const decl = CLOSED[k][v];
       if (decl === undefined) { dropped.push(`${where}: ${k}=${JSON.stringify(String(v))} is not a value this host puts in CSS`); continue; }
       out.push(decl);
     }

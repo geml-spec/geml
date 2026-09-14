@@ -199,7 +199,7 @@ col  = 1012
 | `wrap` | `yes` \| `no`（默认 `no`） | 容器，以及带 `axis` 的块：放不下的条目要不要另起一行。配合条目上的 `width`，表单一行排两个字段就是这么来的 |
 | `axis` | `row` \| `column`（默认 `column`） | `style-screen` / `style-frame`；以及块——它的条目（列表的项、表单的字段）沿这条轴排，横排的列表不画项目符号 |
 | `anchor` | `flow` \| `parent` \| `viewport`（默认 `flow`） | 块与容器：这一块**贴谁**。`flow` 跟着文档流、占位置；`parent` 贴最近的容器浮出来、不占位置（下拉菜单）；`viewport` 贴视口、盖满并把内容居中（开场提示、模态框、吐司）——`place` 可以把它挪离中央 |
-| `place` | `center`（默认） \| `top` \| `bottom` \| `left` \| `right` \| `top-left` \| `top-right` \| `bottom-left` \| `bottom-right` | `anchor=parent` / `anchor=viewport` 下的块与容器：这一块贴在**哪**。`anchor` 说贴谁，`place` 说贴哪——同一条轴的两面，如同 `item-justify` 之于 `item-align`。抽屉是 `viewport` + `left`，吐司是 `viewport` + `top-right`。写在 `anchor=flow` 上是 `style-unknown-attribute` |
+| `place` | `center`（默认） \| `top` \| `bottom` \| `left` \| `right` \| `top-left` \| `top-right` \| `bottom-left` \| `bottom-right` | `anchor=parent` / `anchor=viewport` 下的块与容器：这一块贴在**哪**。`anchor` 说贴谁，`place` 说贴哪——同一条轴的两面，如同 `item-justify` 之于 `item-align`。抽屉是 `viewport` + `left`，吐司是 `viewport` + `top-right`。只在这两者下被消费，否则惰性——和 `editable` 在 `view=source` 之外的待遇一致 |
 | `visible` | `yes` \| `no`（默认 `yes`） | 块与容器：**现在**显不显示。`hide-below` 是「不显示」按视口的那一半，这是按状态的那一半 |
 | `grow` | `yes` \| `no`（默认 `no`） | 块与容器：这一格吃不吃行/列里剩下的空间 |
 | `fade-out` `fade-in` | 秒数，0–60（默认 0，不淡） | 块与容器：`fade-out` 画出来之后自己淡掉，淡完也不再接点击；`fade-in` 是同一条轴的另一个方向。时间轴上只有这一件事；宿主遇到「减少动态效果」时直接跳到终点 |

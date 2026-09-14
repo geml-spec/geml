@@ -1102,11 +1102,11 @@ test("place：九宫格换掉 anchor 的居中；sticky 贴的是值里那条边
   }
 });
 
-test("sticky / place：域外值丢弃并记账，绝不插进属性名位置（样式表是不可信输入）", () => {
+test("封闭值域：域外值丢弃并记账，绝不插值进 CSS（样式表是不可信输入）", () => {
   // 绕开解析器那道闸，直接把一个恶意 box 喂给宿主 —— 宿主不该把安全性寄托在上游。
   const vmWith = (box) => ({ screens: [{ id: "p", slots: [], bindings: [{ doc: "d.geml", block: "#x", box }] }], frames: [], bindings: [], states: [] });
   for (const attack of ["x: 0; background: url(https://evil)", "top: 0} body{display:none", "TOP"]) {
-    for (const k of ["sticky", "place"]) {
+    for (const k of ["sticky", "place", "item-align", "item-justify"]) {
       const dropped = [];
       const css = cssForPage(vmWith({ [k]: attack }), dropped);
       assert.equal(/url\(|display: ?none|}/.test(css), false, k + " 漏了：" + css);
