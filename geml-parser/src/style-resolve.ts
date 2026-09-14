@@ -794,11 +794,176 @@ function ruleProps(r: StyleRule): Record<string, Value> {
 }
 
 /**
+ * 一条规则命中一个候选：规则本身、命中它的那条分支的条件集、以及规则在本轮里的序号。
+ * 序号只用于"谁先写"的消息措辞和同条件数变体的排序，不参与裁决。
+ */
+type Hit = { rule: StyleRule; conds: Set<string>; order: number };
+
+/**
+ * 同一个 `when=` 集合下的一组命中。`owner` 记住每个属性名当前由谁持有，因为裁决要
+ * 比较的是"上一个写它的规则"，不是"上一个值"。
+ */
+type Group = { when: WhenCond[]; order: number; params: Record<string, Value>; owner: Map<string, Hit> };
+
+/** 两条规则在同一个属性上撞车时怎么说。`identical` 区分"选择器相同"与"不可比"。 */
+type Clash = (a: Hit, b: Hit, key: string, identical: boolean) => void;
+
+/**
+ * 哪些规则命中这个候选，各自带着什么条件集。
+ *
+ * `screen=` 与 `when=` 都并进条件集，特异性因此自动成立（设计 §5.5 / §12.5）——
+ * 限定屏幕的规则天然是同选择器未限定规则的真超集，不需要任何 specificity 算术。
+ */
+function hitsFor(active: StyleRule[], c: Candidate, screenId: string | null, used: Set<string>): Hit[] {
+  const hits: Hit[] = [];
+  active.forEach((rule, order) => {
+    let best: Set<string> | null = null;
+    for (const b of rule.branches) {
+      if (!matches(b, c)) continue;
+      const conds = selectorConditions(b);
+      if (rule.screens.length > 0 && screenId !== null) conds.add(`screen:${screenId}`);
+      for (const cond of rule.when) conds.add(`when:${cond.state}=${cond.value}`);
+      if (best === null || moreSpecific(conds, best)) best = conds;
+    }
+    if (best !== null) { hits.push({ rule, conds: best, order }); used.add(rule.id); }
+  });
+  return hits;
+}
+
+/**
+ * 1) 按 `when=` 集合分组，并在**组内**照 §4 仲裁。`""` 是基础组（无条件）。
+ *
+ * 组间不在这里裁：一个有条件的规则赢了，它的值进 variant，不进基础参数。
+ */
+function arbitrateWithinGroups(hits: Hit[], clash: Clash): Map<string, Group> {
+  const groups = new Map<string, Group>();
+  const groupOf = (h: Hit): Group => {
+    const key = whenKey(h.rule.when);
+    let g = groups.get(key);
+    if (g === undefined) { g = { when: h.rule.when, order: h.order, params: {}, owner: new Map() }; groups.set(key, g); }
+    return g;
+  };
+  for (const hit of hits) {
+    const g = groupOf(hit);
+    for (const [k, v] of Object.entries(ruleProps(hit.rule))) {
+      const prev = g.owner.get(k);
+      if (prev === undefined) { g.params[k] = v; g.owner.set(k, hit); continue; }
+      // **跨层先决胜**，再谈特异性。层是显式声明的顺序（CSS `@layer` 的模型），
+      // 所以「上层赢」不需要任何 specificity 算术 —— 它甚至不看两个条件集。
+      // 顺序很重要：先比特异性会让默认层里一条更具体的规则赢过上层的粗规则，
+      // 那正是 `@layer` 存在的理由 —— 层的意思就是"这一层整体压过下面那层"。
+      if (hit.rule.layer !== prev.rule.layer) {
+        if (hit.rule.layer > prev.rule.layer) { g.params[k] = v; g.owner.set(k, hit); }
+        continue;
+      }
+      if (moreSpecific(hit.conds, prev.conds)) { g.params[k] = v; g.owner.set(k, hit); continue; }
+      if (moreSpecific(prev.conds, hit.conds)) continue;
+      // 情况 2（条件集相同）与情况 3（不可比）的**补救办法不同**，所以建议必须分开：
+      // 对相同的选择器建议"写并集"是不可能执行的 —— 两个相同集合的并集就是它自己。
+      const identical = prev.conds.size === hit.conds.size && [...prev.conds].every((x) => hit.conds.has(x));
+      clash(prev, hit, k, identical);
+    }
+  }
+  return groups;
+}
+
+/**
+ * 1b) 简写与它自己的某一边：见 BORDER_SIDES 上方。按属性名的仲裁看不见这一对，
+ * 因为 `border` 和 `border-top` 是两个名字 —— 得单独查。
+ */
+function reportBorderClashes(
+  groups: Map<string, Group>,
+  report: (a: Hit, aWord: string, b: Hit, bWord: string) => void,
+): void {
+  for (const g of groups.values()) {
+    const short = g.owner.get("border");
+    if (short === undefined) continue;
+    for (const side of BORDER_SIDES) {
+      const one = g.owner.get(side);
+      if (one === undefined || one.rule.id === short.rule.id) continue;
+      if (one.rule.layer !== short.rule.layer) continue;
+      const first = short.order <= one.order;
+      const [a, b] = first ? [short, one] : [one, short];
+      report(a, first ? "border" : side, b, first ? side : "border");
+    }
+  }
+}
+
+/**
+ * 2) 组间：同一属性出现在两个组里时 —— 互斥的 `when` 集合永不同时生效，跳过；
+ * 不同层，高层保留、低层丢掉该属性；同层要么一方是真超集（运行时按序叠加即可），
+ * 要么不可比 → ambiguous-rule。相同的完整条件集在不同组里不可能出现。
+ */
+function arbitrateAcrossGroups(gs: Group[], clash: Clash): void {
+  for (let i = 0; i < gs.length; i++) for (let j = i + 1; j < gs.length; j++) {
+    const A = gs[i]!, B = gs[j]!;
+    if (exclusive(A.when, B.when)) continue;
+    for (const k of Object.keys(A.params)) {
+      if (!(k in B.params)) continue;
+      const a = A.owner.get(k)!, b = B.owner.get(k)!;
+      if (a.rule.layer !== b.rule.layer) {
+        const loser = a.rule.layer > b.rule.layer ? B : A;
+        delete loser.params[k]; loser.owner.delete(k);
+        continue;
+      }
+      if (moreSpecific(a.conds, b.conds) || moreSpecific(b.conds, a.conds)) continue;
+      clash(a, b, k, false);
+    }
+  }
+}
+
+/** 内含词归 box，其余归组件参数。 */
+function splitParams(p: Record<string, Value>): { box: Record<string, Value>; params: Record<string, Value> } {
+  const box: Record<string, Value> = {}, params: Record<string, Value> = {};
+  for (const [k, v] of Object.entries(p)) (BOX_WORDS.has(k) ? box : params)[k] = v;
+  return { box, params };
+}
+
+/** 3) 组装：基础组进 box/params；其余组按条件数升序、同数按出现序进 variants。 */
+function assembleGroups(gs: Group[], groups: Map<string, Group>): {
+  base: { box: Record<string, Value>; params: Record<string, Value> };
+  variants: Variant[];
+} {
+  const base = splitParams(groups.get("")?.params ?? {});
+  // 跨层被拿空的组不再是一个 variant：一个什么都不设的 variant 是噪音，不是信息。
+  const variants: Variant[] = gs
+    .filter((g) => g.when.length > 0 && Object.keys(g.params).length > 0)
+    .sort((x, y) => x.when.length - y.when.length || x.order - y.order)
+    .map((g) => {
+      const s = splitParams(g.params);
+      // 无原型：状态名来自样式表，`$__proto__=closed` 写进普通对象改的是原型不是属性，条件就静静丢了
+      const when: Record<string, string> = Object.create(null);
+      for (const c of g.when) when[c.state] = c.value;
+      return { when, box: s.box, params: s.params };
+    });
+  return { base, variants };
+}
+
+/**
+ * 参数要有接收方（设计 2026-09-10 §4f）。按**合并后**的绑定判，不按单条规则：§4.3
+ * 允许一条规则给组件、另一条更具体的规则给参数。合并之后仍没有 `component=`/`handler=`
+ * 的参数，就是没人会读的键 —— 第一个页面用例里十个私有键零校验、拼错静默，就是这一刀没切。
+ * 容器那边装载期就能判，因为容器不合并。
+ *
+ * 返回空表示"有接收方，或者没有无主的键"。
+ */
+function strayParams(gs: Group[]): Map<string, Hit> {
+  const stray = new Map<string, Hit>();
+  if (gs.some((g) => g.params["component"] !== undefined || g.params["handler"] !== undefined)) return stray;
+  for (const g of gs) for (const [k, h] of g.owner) {
+    if (!RUNTIME_KEYS.has(k) && !BOX_WORDS.has(k) && !stray.has(k)) stray.set(k, h);
+  }
+  return stray;
+}
+
+/**
  * 在一个屏幕上下文里求解绑定（`screenId` 为 null = 全局，只用未限定屏幕的规则）。
  *
  * `screen=` 的裁决**不需要新逻辑**：它作为一个额外条件进入条件集，于是限定屏幕的
  * 规则天然是同选择器未限定规则的真超集 —— 通用规则全局生效，屏幕规则在自己屏幕里
  * 胜出，正是想要的语义，而且是既有偏序白送的。
+ *
+ * 每个候选走同一条流水线：命中 → 组内仲裁 → 简写/单边 → 组间仲裁 → 组装 → 无主参数。
  */
 function resolveBindings(
   sheet: Stylesheet,
@@ -813,33 +978,10 @@ function resolveBindings(
     r.screens.length === 0 || (screenId !== null && r.screens.includes(screenId)));
 
   for (const entry of all) {
-    const hits: { rule: StyleRule; conds: Set<string>; order: number }[] = [];
-    active.forEach((rule, order) => {
-      let best: Set<string> | null = null;
-      for (const b of rule.branches) {
-        if (!matches(b, entry.c)) continue;
-        const conds = selectorConditions(b);
-        // 屏幕限定与 when= 都进入条件集，特异性因此自动成立（设计 §5.5 / §12.5）。
-        if (rule.screens.length > 0 && screenId !== null) conds.add(`screen:${screenId}`);
-        for (const c of rule.when) conds.add(`when:${c.state}=${c.value}`);
-        if (best === null || moreSpecific(conds, best)) best = conds;
-      }
-      if (best !== null) { hits.push({ rule, conds: best, order }); used.add(rule.id); }
-    });
+    const hits = hitsFor(active, entry.c, screenId, used);
     if (hits.length === 0) continue;
 
-    // 按 when 集合分组。"" 是基础组（无条件）。组内照 §4 仲裁 —— 一字不改；
-    // 组间只查冲突与跨层，不赋值：一个有条件的规则赢了，它的值进 variant，不进基础参数。
-    type Hit = typeof hits[number];
-    type Group = { when: WhenCond[]; order: number; params: Record<string, Value>; owner: Map<string, Hit> };
-    const groups = new Map<string, Group>();
-    const groupOf = (h: Hit): Group => {
-      const key = whenKey(h.rule.when);
-      let g = groups.get(key);
-      if (g === undefined) { g = { when: h.rule.when, order: h.order, params: {}, owner: new Map() }; groups.set(key, g); }
-      return g;
-    };
-    const ambiguous = (a: Hit, b: Hit, k: string, identical: boolean): void => {
+    const clash: Clash = (a, b, k, identical) => {
       // 屏幕名只在冲突的一方确实限定了屏幕时才带上：两条**未限定**的规则在每一轮
       // 屏幕求解里都会再撞一次，消息一字不差，靠 resolveStyle 的按消息去重合成一条 ——
       // 带上屏幕名就去重不了，一个冲突会按屏幕数翻倍。
@@ -855,108 +997,34 @@ function resolveBindings(
       ));
     };
 
-    // 1) 组内仲裁：与 v1 落地时完全相同的循环，只是 owner 表按组分开。
-    for (const hit of hits) {
-      const g = groupOf(hit);
-      for (const [k, v] of Object.entries(ruleProps(hit.rule))) {
-        const prev = g.owner.get(k);
-        if (prev === undefined) { g.params[k] = v; g.owner.set(k, hit); continue; }
-        // **跨层先决胜**，再谈特异性。层是显式声明的顺序（CSS `@layer` 的模型），
-        // 所以「上层赢」不需要任何 specificity 算术 —— 它甚至不看两个条件集。
-        // 顺序很重要：先比特异性会让默认层里一条更具体的规则赢过上层的粗规则，
-        // 那正是 `@layer` 存在的理由 —— 层的意思就是"这一层整体压过下面那层"。
-        if (hit.rule.layer !== prev.rule.layer) {
-          if (hit.rule.layer > prev.rule.layer) { g.params[k] = v; g.owner.set(k, hit); }
-          continue;
-        }
-        if (moreSpecific(hit.conds, prev.conds)) { g.params[k] = v; g.owner.set(k, hit); continue; }
-        if (moreSpecific(prev.conds, hit.conds)) continue;
-        // 情况 2（条件集相同）与情况 3（不可比）的**补救办法不同**，所以建议必须分开：
-        // 对相同的选择器建议"写并集"是不可能执行的 —— 两个相同集合的并集就是它自己。
-        const identical = prev.conds.size === hit.conds.size && [...prev.conds].every((x) => hit.conds.has(x));
-        ambiguous(prev, hit, k, identical);
-      }
-    }
+    const groups = arbitrateWithinGroups(hits, clash);
+    reportBorderClashes(groups, (a, aWord, b, bWord) => {
+      diagnostics.push(styleDiag(
+        "ambiguous-rule",
+        `\`#${a.rule.id}\` sets \`${aWord}\` and \`#${b.rule.id}\` sets ` +
+        `\`${bWord}\` on \`${where(entry)}\` — a shorthand and one of its sides ` +
+        `in the same layer, where the result depends on which declaration lands last, and a layer has no order; ` +
+        `write both words in one rule, or put them in different layers`,
+        b.rule.id,
+      ));
+    });
 
-    // 1b) 简写与单边：见 BORDER_SIDES 上方。按属性名的仲裁看不见这一对，得单独查。
-    for (const g of groups.values()) {
-      const short = g.owner.get("border");
-      if (short === undefined) continue;
-      for (const side of BORDER_SIDES) {
-        const one = g.owner.get(side);
-        if (one === undefined || one.rule.id === short.rule.id) continue;
-        if (one.rule.layer !== short.rule.layer) continue;
-        const [a, b] = short.order <= one.order ? [short, one] : [one, short];
-        diagnostics.push(styleDiag(
-          "ambiguous-rule",
-          `\`#${a.rule.id}\` sets \`${a === short ? "border" : side}\` and \`#${b.rule.id}\` sets ` +
-          `\`${b === short ? "border" : side}\` on \`${where(entry)}\` — a shorthand and one of its sides ` +
-          `in the same layer, where the result depends on which declaration lands last, and a layer has no order; ` +
-          `write both words in one rule, or put them in different layers`,
-          b.rule.id,
-        ));
-      }
-    }
-
-    // 2) 组间：同一属性出现在两个组里时 —— 互斥的 when 集合永不同时生效，跳过；
-    //    不同层，高层保留、低层丢掉该属性；同层要么一方是真超集（运行时按序叠加即可），
-    //    要么不可比 → ambiguous-rule。相同的完整条件集在不同组里不可能出现。
     const gs = [...groups.values()];
-    for (let i = 0; i < gs.length; i++) for (let j = i + 1; j < gs.length; j++) {
-      const A = gs[i]!, B = gs[j]!;
-      if (exclusive(A.when, B.when)) continue;
-      for (const k of Object.keys(A.params)) {
-        if (!(k in B.params)) continue;
-        const a = A.owner.get(k)!, b = B.owner.get(k)!;
-        if (a.rule.layer !== b.rule.layer) {
-          const loser = a.rule.layer > b.rule.layer ? B : A;
-          delete loser.params[k]; loser.owner.delete(k);
-          continue;
-        }
-        if (moreSpecific(a.conds, b.conds) || moreSpecific(b.conds, a.conds)) continue;
-        ambiguous(a, b, k, false);
-      }
+    arbitrateAcrossGroups(gs, clash);
+    const { base, variants } = assembleGroups(gs, groups);
+
+    const stray = strayParams(gs);
+    if (stray.size > 0) {
+      const keys = [...stray.keys()];
+      const setBy = [...new Set([...stray.values()].map((h) => `#${h.rule.id}`))].join(", ");
+      diagnostics.push(styleDiag("style-unknown-attribute",
+        `\`${keys.join("\`, \`")}\` on \`${where(entry)}\` ${keys.length === 1 ? "has" : "have"} no \`component=\` to receive ${keys.length === 1 ? "it" : "them"} (set by ${setBy})`,
+        [...stray.values()][0]!.rule.id));
     }
 
-    // 3) 组装：基础组进 box/params；其余组按条件数升序、同数按出现序进 variants。
-    const split = (p: Record<string, Value>): { box: Record<string, Value>; params: Record<string, Value> } => {
-      const box: Record<string, Value> = {}, params: Record<string, Value> = {};
-      for (const [k, v] of Object.entries(p)) (BOX_WORDS.has(k) ? box : params)[k] = v;
-      return { box, params };
-    };
-    const base = groups.get("");
-    const baseSplit = split(base?.params ?? {});
-    // 跨层被拿空的组不再是一个 variant：一个什么都不设的 variant 是噪音，不是信息。
-    const variants: Variant[] = gs
-      .filter((g) => g.when.length > 0 && Object.keys(g.params).length > 0)
-      .sort((x, y) => x.when.length - y.when.length || x.order - y.order)
-      .map((g) => {
-        const s = split(g.params);
-        // 无原型：状态名来自样式表，`$__proto__=closed` 写进普通对象改的是原型不是属性，条件就静静丢了
-        const when: Record<string, string> = Object.create(null);
-        for (const c of g.when) when[c.state] = c.value;
-        return { when, box: s.box, params: s.params };
-      });
-    // 参数要有接收方（设计 2026-09-10 §4f）。按**合并后**的绑定判，不按单条规则：§4.3 允许一条规则
-    // 给组件、另一条更具体的规则给参数。合并之后仍没有 component=/handler= 的参数就是没人会读的键 ——
-    // 第一个页面用例里十个私有键零校验、拼错静默，就是这一刀没切。容器那边装载期就能判，因为容器不合并。
-    const hasReceiver = gs.some((g) => g.params["component"] !== undefined || g.params["handler"] !== undefined);
-    if (!hasReceiver) {
-      const stray = new Map<string, Hit>();
-      for (const g of gs) for (const [k, h] of g.owner) {
-        if (!RUNTIME_KEYS.has(k) && !BOX_WORDS.has(k) && !stray.has(k)) stray.set(k, h);
-      }
-      if (stray.size > 0) {
-        const keys = [...stray.keys()];
-        const setBy = [...new Set([...stray.values()].map((h) => `#${h.rule.id}`))].join(", ");
-        diagnostics.push(styleDiag("style-unknown-attribute",
-          `\`${keys.join("`, `")}\` on \`${where(entry)}\` ${keys.length === 1 ? "has" : "have"} no \`component=\` to receive ${keys.length === 1 ? "it" : "them"} (set by ${setBy})`,
-          [...stray.values()][0]!.rule.id));
-      }
-    }
     const binding: Binding = {
       doc: entry.path, block: address(entry.c), rules: hits.map((h) => h.rule.id),
-      params: baseSplit.params, box: baseSplit.box, variants,
+      params: base.params, box: base.box, variants,
     };
     if (entry.c.part !== undefined) binding.part = entry.c.part;
     bindings.push(binding);
