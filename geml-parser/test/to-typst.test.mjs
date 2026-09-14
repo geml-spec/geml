@@ -62,11 +62,11 @@ Paragraph with *italic*, **bold**, ~~strike~~, \`code\`, $E=mc^2$ and line\\
 break.
 `;
   const { typst } = typ(src);
-  assert.match(typst, /_italic_/);
-  assert.match(typst, /\*bold\*/);
+  assert.match(typst, /#emph\[italic\]/);
+  assert.match(typst, /#strong\[bold\]/);
   assert.match(typst, /#strike\[strike\]/);
   assert.match(typst, /`code`/);
-  assert.match(typst, /\$E=mc\^2\$/);
+  assert.match(typst, /\$E=m c\^2\$/);
   assert.match(typst, /line\\ \nbreak/);
 });
 
@@ -92,7 +92,7 @@ Footnote reference[^fn1]
   assert.match(typst, /#link\("other\.geml#sec"\)\[Doc\]/);
   assert.match(typst, /@hdr/);
   assert.match(typst, /#link\("other\.geml#remote"\)/);
-  assert.match(typst, /#footnote\[#link\(<fn1>\)\[#fn1\]\]/);
+  assert.match(typst, /#footnote\[\\#fn1\]/);
 });
 
 test("to-typst: images with and without caption", () => {

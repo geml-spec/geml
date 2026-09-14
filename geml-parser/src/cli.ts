@@ -111,7 +111,7 @@ function oneHop(file: string, src: string, root: string):
       && (o.span.start < u.span.start || o.span.end > u.span.end)));
     return { doc: rel, text, units: top.filter((u) => !(u.kind === "block" && u.type === "meta")), all: [], from: shownPath(rel, root) };
   }
-  const { units, all } = selectUnits(text, rel, `#${frag}`, rel);
+  const { units, all } = selectUnits(text, rel, `#${frag}`, rel, false, true);
   return { doc: rel, text, units, all, from: `${shownPath(rel, root)}#${frag}` };
 }
 
@@ -867,7 +867,7 @@ function runTransform(argv: string[]): void {
           // the renderer has always expanded it, which is the behaviour being
           // matched.
           if (target.startsWith("#")) {
-            const { units } = selectUnits(atText, at, target, at);
+            const { units } = selectUnits(atText, at, target, at, false, true);
             return render(at, atText, units);
           }
           const hop = oneHop(at, target, mdRoot);
@@ -907,7 +907,7 @@ function runTransform(argv: string[]): void {
         };
         try {
           if (target.startsWith("#")) {
-            const { units } = selectUnits(atText, at, target, at);
+            const { units } = selectUnits(atText, at, target, at, false, true);
             return render(at, atText, units);
           }
           const hop = oneHop(at, target, typRoot);
@@ -947,7 +947,7 @@ function runTransform(argv: string[]): void {
         };
         try {
           if (target.startsWith("#")) {
-            const { units } = selectUnits(atText, at, target, at);
+            const { units } = selectUnits(atText, at, target, at, false, true);
             return render(at, atText, units);
           }
           const hop = oneHop(at, target, typRoot);
@@ -1258,18 +1258,22 @@ function typeIndex(all: Addressed[], u: Unit): number {
 // grammar has one implementation: history's design §10.1 asks for exactly this,
 // and its §3.2 records what happened the last time a selector grammar was
 // written twice (the printed selectors stopped being readable back).
-function selectUnits(source: string, file: string, rawSel: string, where: string, allowCoord = false): { units: Unit[]; all: Addressed[]; sel: Selector } {
+function selectUnits(source: string, file: string, rawSel: string, where: string, allowCoord = false, throwOnError = false): { units: Unit[]; all: Addressed[]; sel: Selector } {
+  function err(msg: string, code = 1): never {
+    if (throwOnError) throw new ViewError("unresolvable-block", msg);
+    fail(msg, code);
+  }
   const sel: Selector = parseSelector(rawSel, (braces) => parseAttrs(braces).id);
   // Callers handle the empty selector themselves (list for `get`, usage error
   // for `set`); reaching here with one is a caller bug surfaced as usage.
-  if (sel.form === "list") fail(`no selector given — run \`geml get ${where}\` to list addressable blocks`, 2);
+  if (sel.form === "list") err(`no selector given — run \`geml get ${where}\` to list addressable blocks`, 2);
   // A coordinate (GEP 0011) names a unit inside a block, and every command but
   // `get` here acts on a block's SPAN. Resolving the base and proceeding would
   // have been the worst of both: `set '#fy[2]["Q1"]'` would have replaced the
   // whole table, silently and byte-exactly. Refused in one place so no call
   // site can forget, and the message names the address that does work.
   if (sel.form === "coord" && !allowCoord) {
-    fail(`\`${rawSel.trim()}\` addresses a unit INSIDE a block (GEP 0011), and this command takes a block address — write \`${sel.base}\` for the whole block`, 2);
+    err(`\`${rawSel.trim()}\` addresses a unit INSIDE a block (GEP 0011), and this command takes a block address — write \`${sel.base}\` for the whole block`, 2);
   }
   if (sel.form === "attr") {
     // §7: the wording says "not implemented yet", not "braces are meaningless" —
@@ -1279,7 +1283,7 @@ function selectUnits(source: string, file: string, rawSel: string, where: string
     const byType = sel.type === undefined
       ? ""
       : ` — use \`=== ${sel.type}\` for every ${sel.type} block, or address one by \`#id\` / \`@<hex>\``;
-    fail(`only \`#id\` and \`@<hex>\` are supported as filter keys today (got \`${sel.key}\`)${byType || " — address a block by `#id` / `@<hex>`, or `=== <type>` for every block of a type"}`, 2);
+    err(`only \`#id\` and \`@<hex>\` are supported as filter keys today (got \`${sel.key}\`)${byType || " — address a block by `#id` / `@<hex>`, or `=== <type>` for every block of a type"}`, 2);
   }
   const all = addressedUnits(source);
 
@@ -1290,10 +1294,10 @@ function selectUnits(source: string, file: string, rawSel: string, where: string
         // §3.3: the type prefix is a CHECK. Ignoring a wrong one would make it
         // a decoration that is allowed to lie, and would silently accept a
         // hand-edited address.
-        fail(`\`@${sel.hex}\` addresses a \`${hit.found}\` block, not \`${sel.type}\` — drop the type prefix to address it by content alone`, 1);
+        err(`\`@${sel.hex}\` addresses a \`${hit.found}\` block, not \`${sel.type}\` — drop the type prefix to address it by content alone`, 1);
       }
       const suffix = sel.nth ? `~${sel.nth}` : "";
-      fail(`no block matching \`@${sel.hex}${suffix}\` in ${where} — a content address goes stale when the block's content changes (that is the point: §3.2); run \`geml get ${where}\` for current addresses`, 1);
+      err(`no block matching \`@${sel.hex}${suffix}\` in ${where} — a content address goes stale when the block's content changes (that is the point: §3.2); run \`geml get ${where}\` for current addresses`, 1);
     }
     return { units: [hit.unit], all, sel };
   }
@@ -1305,14 +1309,14 @@ function selectUnits(source: string, file: string, rawSel: string, where: string
     // when the real answer is "that range is not one block".
     if (!hit) {
       const span = sel.from === sel.to ? `L${sel.from}` : `L${sel.from}-${sel.to}`;
-      fail(`no block contains ${span} in ${where} — a position selector names ONE block, so a range spanning two of them (or a line past the end) has no answer${discoveryHint(where)}`, 1);
+      err(`no block contains ${span} in ${where} — a position selector names ONE block, so a range spanning two of them (or a line past the end) has no answer${discoveryHint(where)}`, 1);
     }
     return { units: [hit], all, sel };
   }
 
   if (sel.form === "type") {
     const hits = matchType(sel.type, all);
-    if (!hits.length) fail(`no \`${sel.type}\` block in ${where}${discoveryHint(where)}`, 1);
+    if (!hits.length) err(`no \`${sel.type}\` block in ${where}${discoveryHint(where)}`, 1);
     return { units: hits, all, sel };
   }
 
@@ -1330,7 +1334,7 @@ function selectUnits(source: string, file: string, rawSel: string, where: string
   // has always seen, and which `set`'s own tests pin. `where` is appended only
   // when it is NOT the file the caller already named (a revision), so the
   // common case reads the same as before this selector grammar existed.
-  if (!unit) fail(`no block with id \`${id}\`${where.startsWith("revision ") ? ` in ${where}` : ""}`, 1);
+  if (!unit) err(`no block with id \`${id}\`${where.startsWith("revision ") ? ` in ${where}` : ""}`, 1);
   // A duplicate id is a build error, so this address names more than one block
   // and the first is a guess at which was meant. A WRITE through it is refused
   // (`duplicate-id` is UNFORGIVEN below); a READ used to take the first in

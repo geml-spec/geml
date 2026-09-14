@@ -15,7 +15,7 @@ import type { Value } from "./attrs.js";
 
 // Escape characters that have syntactic meaning in Typst markup mode.
 export function escText(s: string): string {
-  return s.replace(/[\\*_\`\$#\[\]@<>]/g, (c) => "\\" + c);
+  return s.replace(/[\\*_\`\$#\[\]@<>\/]/g, (c) => "\\" + c);
 }
 
 // Escape strings that appear inside Typst string literals ("...").
@@ -36,32 +36,135 @@ function linkDest(n: Extract<Inline, { type: "link" }>): { isInternal: boolean; 
   return { isInternal: false, dest: "" };
 }
 
+const KNOWN_MATH_IDENTIFIERS = new Set([
+  // Greek lowercase
+  "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta",
+  "iota", "kappa", "lambda", "mu", "nu", "xi", "omicron", "pi", "rho",
+  "sigma", "tau", "upsilon", "phi", "chi", "psi", "omega",
+  // Greek uppercase
+  "Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta", "Theta",
+  "Iota", "Kappa", "Lambda", "Mu", "Nu", "Xi", "Omicron", "Pi", "Rho",
+  "Sigma", "Tau", "Upsilon", "Phi", "Chi", "Psi", "Omega",
+  // Standard math functions
+  "sin", "cos", "tan", "cot", "sec", "csc",
+  "arcsin", "arccos", "arctan", "sinh", "cosh", "tanh",
+  "log", "ln", "exp", "deg", "gcd", "lcm", "min", "max", "inf", "lim",
+  "mod", "dim", "ker", "hom", "det", "arg",
+  // Symbols & operators
+  "sqrt", "root", "frac", "sum", "prod", "integral", "iint", "iiint", "oint",
+  "forall", "exists", "nabla", "partial", "infty", "infinity",
+  "pm", "mp", "times", "div", "cdot", "star", "circ", "bullet",
+  "cap", "cup", "subset", "subseteq", "supset", "supseteq",
+  "in", "notin", "ni", "equiv", "approx", "sim", "simeq", "cong",
+  "neq", "le", "ge", "leq", "geq", "ll", "gg", "prec", "succ",
+  "to", "gets", "rightarrow", "leftarrow", "Rightarrow", "Leftarrow",
+  "iff", "implies", "vec", "arrow", "hat", "tilde", "bar", "dot", "ddot",
+  "acute", "grave", "breve", "circle", "ring",
+  "mat", "cases", "limits", "scripts", "display", "inline",
+  "bold", "italic", "upright", "cal", "frak", "bb"
+]);
+
+function formatTypstMath(val: string): string | null {
+  if (val.includes("\n") || val.includes('"') || val.includes("'") || val.includes(";") ||
+      val.includes("|") || val.includes("&") || val.includes("<") || val.includes(">") ||
+      val.includes("#") || val.includes("[") || val.includes("]") || val.includes("//") ||
+      val.includes("`")) {
+    return null;
+  }
+  const words = val.match(/\b[a-zA-Z]{2,}\b/g);
+  if (words) {
+    for (const w of words) {
+      if (KNOWN_MATH_IDENTIFIERS.has(w)) continue;
+      if (w.length === 2 && /^[a-z]{2}$/.test(w) && /[=+\-*\/^_\\]/.test(val)) continue;
+      return null;
+    }
+  }
+  let formatted = val;
+  if (words) {
+    for (const w of words) {
+      if (!KNOWN_MATH_IDENTIFIERS.has(w) && w.length === 2 && /^[a-z]{2}$/.test(w)) {
+        formatted = formatted.replace(new RegExp(`\\b${w}\\b`, "g"), `${w[0]} ${w[1]}`);
+      }
+    }
+  }
+  return formatted;
+}
+
+const TYPST_IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp"]);
+
+function isSupportedImageFile(src: string): boolean {
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(src)) {
+    return false;
+  }
+  const noQuery = src.split("?")[0] ?? "";
+  const clean = (noQuery.split("#")[0] ?? "").toLowerCase();
+  const dot = clean.lastIndexOf(".");
+  if (dot === -1) return false;
+  return TYPST_IMAGE_EXTS.has(clean.slice(dot));
+}
+
 function inline(n: Inline, ctx: TypstCtx): string {
   switch (n.type) {
     case "text":
       return escText(n.value);
     case "emph":
-      return `_${seq(n.children, ctx)}_`;
+      return `#emph[${seq(n.children, ctx)}]`;
     case "strong":
-      return `*${seq(n.children, ctx)}*`;
+      return `#strong[${seq(n.children, ctx)}]`;
     case "strike":
       return `#strike[${seq(n.children, ctx)}]`;
-    case "code":
-      return "`" + n.value + "`";
-    case "math":
-      return `$${n.value}$`;
+    case "code": {
+      const val = n.value;
+      if (!val.includes("`") && !val.includes("\n")) {
+        return "`" + val + "`";
+      }
+      const m = val.match(/`+/g);
+      let max = 1;
+      if (m) {
+        for (const run of m) max = Math.max(max, run.length);
+      }
+      if (val.includes("\n")) {
+        const delim = "`".repeat(Math.max(3, max + 1));
+        const cleanBody = val.startsWith("\n") ? val.slice(1) : val;
+        return `\n${delim}\n${cleanBody.trimEnd()}\n${delim}\n`;
+      }
+      const delim = "`".repeat(max + 1);
+      return `${delim} ${val} ${delim}`;
+    }
+    case "math": {
+      const formatted = formatTypstMath(n.value);
+      if (formatted === null) {
+        return `\\$${escText(n.value)}\\$`;
+      }
+      return `$${formatted}$`;
+    }
     case "break":
       return "\\ \n";
-    case "image":
+    case "image": {
+      const validExt = isSupportedImageFile(n.src);
+      const available = validExt && (ctx.checkImage ? ctx.checkImage(n.src) : true);
+      if (!available) {
+        ctx.notes.add(`image "${n.src}" not embeddable in Typst; rendered as placeholder`);
+        const label = escText(n.alt || n.src);
+        const placeholder = `box(stroke: 0.5pt + luma(180), inset: (x: 8pt, y: 5pt), radius: 2pt)[#text(fill: luma(100))[🖼 ${label}]]`;
+        if (n.alt) {
+          return `#figure(${placeholder}, caption: [${escText(n.alt)}])`;
+        }
+        return `#${placeholder}`;
+      }
       if (n.alt) {
         return `#figure(image("${escString(n.src)}"), caption: [${escText(n.alt)}])`;
       }
       return `#image("${escString(n.src)}")`;
+    }
     case "link": {
       const { isInternal, dest } = linkDest(n);
       const text = seq(n.children, ctx);
       if (isInternal) {
-        return dest ? `#link(<${dest}>)[${text}]` : text;
+        if (dest && ctx.declaredLabels.has(dest)) {
+          return `#link(<${dest}>)[${text}]`;
+        }
+        return dest ? `#link("${escString('#' + dest)}")[${text}]` : text;
       }
       return dest ? `#link("${escString(dest)}")[${text}]` : text;
     }
@@ -73,10 +176,14 @@ function inline(n: Inline, ctx: TypstCtx): string {
       }
       if (anchor === undefined) return n.value ?? "";
       const label = sanitizeLabel(anchor);
-      if (n.value !== undefined && n.value !== `#${anchor}` && n.value !== anchor) {
-        return `#link(<${label}>)[${escText(n.value)}]`;
+      if (ctx.declaredLabels.has(label)) {
+        if (n.value !== undefined && n.value !== `#${anchor}` && n.value !== anchor) {
+          return `#link(<${label}>)[${escText(n.value)}]`;
+        }
+        return `@${label}`;
       }
-      return `@${label}`;
+      const text = n.value ?? `#${anchor}`;
+      return `#link("${escString('#' + anchor)}")[${escText(text)}]`;
     }
     case "project": {
       if (n.value !== undefined) return escText(n.value);
@@ -89,7 +196,10 @@ function inline(n: Inline, ctx: TypstCtx): string {
     }
     case "footnote": {
       const ref = sanitizeLabel(n.ref);
-      return `#footnote[#link(<${ref}>)[#${escText(n.ref)}]]`;
+      if (ctx.declaredLabels.has(ref)) {
+        return `#footnote[#link(<${ref}>)[\\#${escText(n.ref)}]]`;
+      }
+      return `#footnote[\\#${escText(n.ref)}]`;
     }
   }
 }
@@ -180,8 +290,10 @@ function listToTypst(b: Extract<Block, { kind: "list" }>, indent: string, ctx: T
 function codeFence(lang: string, body: string[]): string {
   let max = 2;
   for (const ln of body) {
-    const m = /^(`+)/.exec(ln.trim());
-    if (m) max = Math.max(max, m[1]!.length);
+    const m = ln.match(/`+/g);
+    if (m) {
+      for (const run of m) max = Math.max(max, run.length);
+    }
   }
   const f = "`".repeat(Math.max(3, max + 1));
   return [f + lang, ...body, f].join("\n");
@@ -246,19 +358,33 @@ function typedToTypst(b: Extract<Block, { kind: "block" }>, ctx: TypstCtx): stri
 
   if (b.type === "data") {
     const fmt = attr(b, "format") ?? "json";
+    let body: string[];
     if (raw.length === 0 && b.value !== undefined) {
       const v = b.value;
-      const body = fmt === "jsonl" && Array.isArray(v)
+      body = fmt === "jsonl" && Array.isArray(v)
         ? v.map((x) => JSON.stringify(x))
         : JSON.stringify(v, null, 2).split("\n");
-      return codeFence(fmt, body) + label;
+    } else {
+      body = raw;
     }
-    return codeFence(fmt, raw) + label;
+    const content = codeFence(fmt, body);
+    if (id || attr(b, "caption")) {
+      const cap = attr(b, "caption");
+      const capArg = cap ? `caption: [${escText(cap)}], ` : "";
+      return `#figure(\n${content},\n  ${capArg}\n)${label}`;
+    }
+    return content;
   }
 
   if (b.type === "diagram") {
     const fmt = attr(b, "format") ?? "";
-    return codeFence(fmt, raw) + label;
+    const content = codeFence(fmt, raw);
+    if (id || attr(b, "caption")) {
+      const cap = attr(b, "caption");
+      const capArg = cap ? `caption: [${escText(cap)}], ` : "";
+      return `#figure(\n${content},\n  ${capArg}\n)${label}`;
+    }
+    return content;
   }
 
   if (b.type === "embed") {
@@ -271,7 +397,11 @@ function typedToTypst(b: Extract<Block, { kind: "block" }>, ctx: TypstCtx): stri
   }
 
   // Fallback for unknown raw type
-  return codeFence(b.type, raw) + label;
+  const content = codeFence(b.type, raw);
+  if (id) {
+    return `#figure(\n${content}\n)${label}`;
+  }
+  return content;
 }
 
 function block(b: Block, ctx: TypstCtx): string {
@@ -321,7 +451,14 @@ function documentPreamble(metas: Record<string, Value>[]): string {
   // Language setup
   const lang = typeof merged["lang"] === "string" ? merged["lang"] : undefined;
   if (lang) {
-    lines.push(`#set text(lang: "${escString(lang)}")`);
+    const parts = lang.split(/[-_]/);
+    const langCode = parts[0]?.toLowerCase() ?? "";
+    const regionCode = parts[1]?.toLowerCase();
+    if (regionCode) {
+      lines.push(`#set text(lang: "${escString(langCode)}", region: "${escString(regionCode)}")`);
+    } else {
+      lines.push(`#set text(lang: "${escString(langCode)}")`);
+    }
   }
 
   // Numbering configuration
@@ -354,16 +491,40 @@ function documentPreamble(metas: Record<string, Value>[]): string {
 
 export interface TypstCtx {
   notes: Set<string>;
+  declaredLabels: Set<string>;
   resolveEmbed?: (src: string, attrs?: Record<string, Value>) => string | undefined;
+  checkImage?: (src: string) => boolean;
 }
 
 export interface TypstOptions {
   resolveEmbed?: (src: string, attrs?: Record<string, Value>) => string | undefined;
+  checkImage?: (src: string) => boolean;
 }
 
 export function gemlToTypst(doc: Document, opts: TypstOptions = {}): { typst: string; notes: string[] } {
   const notes = new Set<string>();
-  const ctx: TypstCtx = opts.resolveEmbed ? { notes, resolveEmbed: opts.resolveEmbed } : { notes };
+  const declaredLabels = new Set<string>();
+  function collectIds(blocks: Block[]) {
+    for (const b of blocks) {
+      if ((b.kind === "heading" || b.kind === "block") && b.id) {
+        declaredLabels.add(sanitizeLabel(b.id));
+      }
+      if (b.kind === "block" && b.children) collectIds(b.children);
+      if (b.kind === "list") {
+        for (const it of b.items) {
+          if (it.children) collectIds(it.children);
+        }
+      }
+    }
+  }
+  collectIds(doc.children);
+
+  const ctx: TypstCtx = {
+    notes,
+    declaredLabels,
+    resolveEmbed: opts.resolveEmbed,
+    checkImage: opts.checkImage,
+  };
   const metas: Record<string, Value>[] = [];
   const parts: string[] = [];
 
