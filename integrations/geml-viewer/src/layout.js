@@ -73,6 +73,22 @@ export function stateClass(state, value) {
   return `geml-s-${state}-${String(value).replace(/[^A-Za-z0-9_-]/g, "_")}`;
 }
 
+/**
+ * `place` 的九宫格 → flex 的两条对齐。默认 flex-direction 是 row，所以 `align-items`
+ * 是竖直那条、`justify-content` 是水平那条。
+ */
+const PLACE = {
+  center: "align-items: center; justify-content: center",
+  top: "align-items: flex-start; justify-content: center",
+  bottom: "align-items: flex-end; justify-content: center",
+  left: "align-items: center; justify-content: flex-start",
+  right: "align-items: center; justify-content: flex-end",
+  "top-left": "align-items: flex-start; justify-content: flex-start",
+  "top-right": "align-items: flex-start; justify-content: flex-end",
+  "bottom-left": "align-items: flex-end; justify-content: flex-start",
+  "bottom-right": "align-items: flex-end; justify-content: flex-end",
+};
+
 /** 一个 box 对象 → CSS 声明串。sticky/scroll/hide-below 不是 CSS 属性名，各有翻译；hide-below 走 @media，由 cssForPage 单独处理。 */
 function declarations(box, dropped, where, skip = new Set()) {
   const out = [];
@@ -95,7 +111,12 @@ function declarations(box, dropped, where, skip = new Set()) {
     } else if (k === "item-align") out.push(`align-items: ${{ start: "flex-start", end: "flex-end" }[v] ?? String(v)}`);
     // 沿轴分布。`between` → space-between；start/end 同样显式写成 flex-* 形式。
     else if (k === "item-justify") out.push(`justify-content: ${{ start: "flex-start", end: "flex-end", between: "space-between" }[v] ?? String(v)}`);
-    else if (k === "sticky") out.push(`position: sticky; top: ${Number(v)}px`);
+    // 贴住哪条边。值是边名，不是距顶的像素 —— 一块同时只贴一条边。
+    else if (k === "sticky") out.push(`position: sticky; ${v}: 0`);
+    // 放不下就换行。容器是 flex，所以这就是 flex-wrap。
+    else if (k === "wrap") out.push(`flex-wrap: ${v === "yes" ? "wrap" : "nowrap"}`);
+    // 贴在哪。`anchor` 已经把这一块做成了居中的 flex 容器，`place` 换掉那两条居中。
+    else if (k === "place") out.push(PLACE[v] ?? PLACE.center);
     else if (k === "scroll" && v === "own") out.push("overflow: auto; max-height: 100vh");
     // 贴最近的容器：浮出来、不占位置（.geml-frame 都是 position: relative，锚点靠它）。
     else if (k === "anchor" && v === "parent") out.push("position: absolute; top: 100%; left: 0; z-index: 20");

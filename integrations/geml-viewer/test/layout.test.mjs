@@ -144,7 +144,7 @@ profile = "geml-style/v1"
 ===
 === style-state {#tree type=scalar match="table#tree" on=toggle init-value=open}
 ===
-=== style-rule {#t match="table#tree" component=tree width=321px sticky=0 scroll=own hide-below=1012}
+=== style-rule {#t match="table#tree" component=tree width=321px sticky=top scroll=own hide-below=1012 wrap=yes}
 ===
 === style-rule {#tc match="table#tree" when="$tree=closed" width=0}
 ===
@@ -210,7 +210,8 @@ test("cssForPage：box 变 CSS；sticky/scroll/hide-below 各有翻译；variant
   const { vm } = vmOf(SHEET, DOC3);
   const css = cssForPage(vm);
   assert.match(css, /\.geml-b-tree \{[^}]*width: 321px/);
-  assert.match(css, /\.geml-b-tree \{[^}]*position: sticky; top: 0px/);
+  assert.match(css, /\.geml-b-tree \{[^}]*position: sticky; top: 0/);
+  assert.match(css, /\.geml-b-tree \{[^}]*flex-wrap: wrap/);
   assert.match(css, /\.geml-b-tree \{[^}]*overflow: auto/);
   assert.match(css, /@media \(max-width: 1011px\) \{ \.geml-b-tree \{ display: none \} \}/);
   assert.match(css, /\.geml-b-main \{[^}]*max-width: 1012px;[^}]*font-size: 16px;[^}]*line-height: 24px;[^}]*color: #1f2328/);
@@ -1077,6 +1078,28 @@ profile = "geml-style/v1"
   assert.ok(body.querySelector(".geml-borrowed"), "embed#doc 仍然整份画出去");
   // `#tpl` 没有任何槽位摆它 —— 它的活儿是把 template.geml 带进语料，不是漏摆
   assert.equal(out.unplaced, 0);
+});
+
+test("place：九宫格换掉 anchor 的居中；sticky 贴的是值里那条边", () => {
+  const doc = `=== text {#toast}\nhi\n===\n`;
+  const sheetOf = (attrs) => [
+    "=== meta", 'profile = "geml-style/v1"', "===", "",
+    `=== style-rule {#r match="text#toast" ${attrs}}`, "===", "",
+    '=== style-screen {#p slots="text#toast"}', "===", "",
+  ].join("\n");
+  const cssOf = (attrs) => cssForPage(vmOf(sheetOf(attrs), doc).vm);
+
+  const tr = cssOf("anchor=viewport place=top-right");
+  assert.match(tr, /position: fixed/);
+  assert.match(tr, /align-items: flex-start; justify-content: flex-end/);
+  // 抽屉贴左边
+  assert.match(cssOf("anchor=viewport place=left"), /align-items: center; justify-content: flex-start/);
+  // 不写 place 时 anchor 自己的居中仍在
+  assert.match(cssOf("anchor=viewport"), /align-items: center; justify-content: center/);
+  // 四条边各自translate成自己那条
+  for (const side of ["top", "right", "bottom", "left"]) {
+    assert.match(cssOf(`sticky=${side}`), new RegExp(`position: sticky; ${side}: 0`), side);
+  }
 });
 
 console.log(`\n${passed} layout tests passed.`);
