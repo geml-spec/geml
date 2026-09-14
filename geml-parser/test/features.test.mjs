@@ -527,4 +527,35 @@ test("a name written twice in one attribute object is an error — §4 says orde
   assert.equal(d.severity, "error");
 });
 
+test("every raw-body reader is keyed on a type whose body actually IS raw", () => {
+  // `readTypedRawBody` runs in ONE arm of `readFencedBlock`: the one where the
+  // mode is raw. A reader keyed on a type whose body parses as `flow` or `data`
+  // therefore never fires, and says nothing about it — the failure this codebase
+  // keeps finding, where the author wrote something and it was quietly dropped.
+  // The `if`/`else if` chain the lookup replaced could not fail that way: it was
+  // read in place, beside the mode it depended on.
+  //
+  // The list comes from the source rather than being written out here, so a
+  // reader added tomorrow is checked without anyone remembering to.
+  const source = readFileSync(join(repoRoot, "geml-parser", "src", "geml.ts"), "utf8");
+  const table = /const RAW_BODY_READERS[\s\S]*?\[([\s\S]*?)\]\)/.exec(source);
+  assert.ok(table, "RAW_BODY_READERS not found — renamed, or no longer a Map literal");
+  const types = [...table[1].matchAll(/\["([^"]+)",/g)].map((m) => m[1]);
+  assert.ok(types.length >= 6, "expected the readers to still be there, found " + types.length);
+
+  // One minimal document per type. `form-options` is admitted by a profile
+  // rather than by the core registry, which is the other half of the invariant:
+  // the mode may legitimately come from either place, and both must answer raw.
+  for (const type of types) {
+    const doc = type.startsWith("form")
+      ? '=== meta\nprofile = "geml-form/v1"\n===\n\n=== ' + type + " {#x}\nbody\n===\n"
+      : "=== " + type + " {#x}\nbody\n===\n";
+    const hits = parse(doc).children.filter((b) => b.kind === "block" && b.type === type);
+    assert.equal(hits.length, 1, type + ": expected exactly one block of this type");
+    assert.equal(hits[0].mode, "raw",
+      type + " has a raw-body reader, but its body parses as `" + hits[0].mode
+      + "` — the reader would never run");
+  }
+});
+
 console.log(`\n${passed} test(s) passed.`);

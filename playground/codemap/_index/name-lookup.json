@@ -396,11 +396,32 @@
       "id": "applyWrite"
     }
   ],
+  "arbitrateAcrossGroups": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/arbitrateAcrossGroups().",
+      "doc": "geml-parser--style-resolve.ts.geml",
+      "id": "arbitrateAcrossGroups"
+    }
+  ],
+  "arbitrateWithinGroups": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/arbitrateWithinGroups().",
+      "doc": "geml-parser--style-resolve.ts.geml",
+      "id": "arbitrateWithinGroups"
+    }
+  ],
   "asText": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`mcp.ts`/asText.",
       "doc": "geml-parser--mcp.ts.geml",
       "id": "asText"
+    }
+  ],
+  "assembleGroups": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/assembleGroups().",
+      "doc": "geml-parser--style-resolve.ts.geml",
+      "id": "assembleGroups"
     }
   ],
   "at": [
@@ -516,6 +537,13 @@
       "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/blocksOfType().",
       "doc": "geml-parser--cli.ts.geml",
       "id": "blocksOfType"
+    }
+  ],
+  "bodyModeFor": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`geml.ts`/bodyModeFor().",
+      "doc": "geml-parser--geml.ts.geml",
+      "id": "bodyModeFor"
     }
   ],
   "bodyRange": [
@@ -1605,6 +1633,13 @@
       "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/historyPositionals().",
       "doc": "geml-parser--cli.ts.geml",
       "id": "historyPositionals"
+    }
+  ],
+  "hitsFor": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/hitsFor().",
+      "doc": "geml-parser--style-resolve.ts.geml",
+      "id": "hitsFor"
     }
   ],
   "idAttr": [
@@ -2849,6 +2884,13 @@
       "id": "readBracket"
     }
   ],
+  "readCodeBody": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`geml.ts`/readCodeBody().",
+      "doc": "geml-parser--geml.ts.geml",
+      "id": "readCodeBody"
+    }
+  ],
   "readConfined": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`cli.ts`/readConfined().",
@@ -2861,6 +2903,34 @@
       "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/readContainer().",
       "doc": "geml-parser--style-resolve.ts.geml",
       "id": "readContainer"
+    }
+  ],
+  "readDataBody": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`geml.ts`/readDataBody().",
+      "doc": "geml-parser--geml.ts.geml",
+      "id": "readDataBody"
+    }
+  ],
+  "readDiagramBody": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`geml.ts`/readDiagramBody().",
+      "doc": "geml-parser--geml.ts.geml",
+      "id": "readDiagramBody"
+    }
+  ],
+  "readFencedBlock": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`geml.ts`/readFencedBlock().",
+      "doc": "geml-parser--geml.ts.geml",
+      "id": "readFencedBlock"
+    }
+  ],
+  "readFormOptionsBody": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`geml.ts`/readFormOptionsBody().",
+      "doc": "geml-parser--geml.ts.geml",
+      "id": "readFormOptionsBody"
     }
   ],
   "readInput": [
@@ -2884,11 +2954,32 @@
       "id": "readSource"
     }
   ],
+  "readTableBody": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`geml.ts`/readTableBody().",
+      "doc": "geml-parser--geml.ts.geml",
+      "id": "readTableBody"
+    }
+  ],
   "readText": [
     {
       "anchor": "scip-typescript npm geml-viewer 1.3.1 src/`content.js`/readText().",
       "doc": "geml-viewer--content.js.geml",
       "id": "readText"
+    }
+  ],
+  "readTypedRawBody": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`geml.ts`/readTypedRawBody().",
+      "doc": "geml-parser--geml.ts.geml",
+      "id": "readTypedRawBody"
+    }
+  ],
+  "readViewBody": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`geml.ts`/readViewBody().",
+      "doc": "geml-parser--geml.ts.geml",
+      "id": "readViewBody"
     }
   ],
   "realOf": [
@@ -2917,6 +3008,13 @@
       "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`history.ts`/reconstruct().",
       "doc": "geml-parser--history.ts.geml",
       "id": "reconstruct"
+    }
+  ],
+  "recordEmbedSrc": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`geml.ts`/recordEmbedSrc().",
+      "doc": "geml-parser--geml.ts.geml",
+      "id": "recordEmbedSrc"
     }
   ],
   "recordsToTable": [
@@ -3151,6 +3249,13 @@
       "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`coord.ts`/replaceField().",
       "doc": "geml-parser--coord.ts.geml",
       "id": "replaceField"
+    }
+  ],
+  "reportBorderClashes": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/reportBorderClashes().",
+      "doc": "geml-parser--style-resolve.ts.geml",
+      "id": "reportBorderClashes"
     }
   ],
   "reportDuplicateNames": [
@@ -3601,6 +3706,13 @@
       "id": "scanBlocks"
     }
   ],
+  "scanFenceBody": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`geml.ts`/scanFenceBody().",
+      "doc": "geml-parser--geml.ts.geml",
+      "id": "scanFenceBody"
+    }
+  ],
   "scanUnsupported": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`style-selector.ts`/scanUnsupported().",
@@ -3957,6 +4069,13 @@
       "id": "splitName"
     }
   ],
+  "splitParams": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/splitParams().",
+      "doc": "geml-parser--style-resolve.ts.geml",
+      "id": "splitParams"
+    }
+  ],
   "splitPipes": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`table.ts`/splitPipes().",
@@ -4002,6 +4121,13 @@
       "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/str().",
       "doc": "geml-parser--style-resolve.ts.geml",
       "id": "str"
+    }
+  ],
+  "strayParams": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/strayParams().",
+      "doc": "geml-parser--style-resolve.ts.geml",
+      "id": "strayParams"
     }
   ],
   "string": [
