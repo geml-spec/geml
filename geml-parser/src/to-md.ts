@@ -188,7 +188,7 @@ function typedToMd(b: Extract<Block, { kind: "block" }>, ctx: MdCtx): string {
     const inner = (b.children ?? []).map((c) => block(c, ctx)).filter(Boolean).join("\n\n");
     // `text` is an addressable prose container, not a callout: its children
     // project as plain paragraphs. Only `note` carries blockquote semantics.
-    if (b.type === "text") return inner;
+    if (b.prose === true) return inner;
     return inner.split("\n").map((l) => (l ? `> ${l}` : ">")).join("\n");
   }
 

@@ -637,13 +637,8 @@ export class RenderCtx {
         const inner = (b.children ?? []).map((c) => this.block(c)).filter((s) => s).join("\n");
         return `<aside${this.clsAttr(b.classes, "callout", b.type)}${idAttr}>\n${inner}\n</aside>`;
       }
-      case "text": {
-        // Addressable prose (§3): flow children in a NEUTRAL container — the
-        // block exists for its id/attrs, not for callout chrome (that's note).
-        const inner = (b.children ?? []).map((c) => this.block(c)).filter((s) => s).join("\n");
-        // (`text` is a chrome token, so an author's own `.text` is dropped.)
-        return `<div${this.clsAttr(b.classes, "text")}${idAttr}>\n${inner}\n</div>`;
-      }
+      case "text":
+        return this.proseBlock(b, idAttr);
       case "data": {
         // GEP-0005: the page shows a PREVIEW under the same row discipline
         // tables use (opts.tableRows, default 500) — the MODEL always keeps
@@ -695,11 +690,26 @@ export class RenderCtx {
       case "diagram":
         return this.diagram(b, raw, caption);
       default: {
+        // A profile type declared `prose:` is prose in the same sense `text` is
+        // (ProfileDef.prose) — same neutral container, not the fallback below.
+        if (b.prose === true) return this.proseBlock(b, idAttr);
         // Unknown type: preserved as raw (spec §3). Show it, labelled.
         return `<figure${idAttr}${this.clsAttr(b.classes)}><pre class="diagram-src" data-type="${escAttr(b.type)}">${esc(raw)}</pre>` +
           `<figcaption>unknown block type <code>${esc(b.type)}</code>; shown as raw</figcaption></figure>`;
       }
     }
+  }
+
+  /**
+   * Addressable prose (§3): flow children in a NEUTRAL container — the block
+   * exists for its id/attrs, not for callout chrome (that is `note`). Shared by
+   * core `text` and by any profile type declared `prose:`, so the two render
+   * the same way rather than one of them landing in the unknown-type fallback.
+   */
+  private proseBlock(b: Extract<Block, { kind: "block" }>, idAttr: string): string {
+    const inner = (b.children ?? []).map((c) => this.block(c)).filter((x) => x).join("\n");
+    // (the type name is a chrome token, so an author's own `.text` is dropped.)
+    return `<div${this.clsAttr(b.classes, b.type)}${idAttr}>\n${inner}\n</div>`;
   }
 
   private diagram(b: Extract<Block, { kind: "block" }>, raw: string, caption?: string): string {
