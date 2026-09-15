@@ -63,7 +63,7 @@ const suites = [
   // the yaml engine for `data` bodies: the subset it reads, and the refusals
   "yaml",
   // `geml mcp` — the document-CRUD MCP server (nine tools, confined root)
-  "mcp",
+  "mcp", "verbs", "host-fs",
   // security-audit regression suites: assert the fixed secure behavior
   // (XSS/DoS/RCE/injection/path-traversal) so the holes can't silently reopen.
   "sec-parser", "sec-codemap", "sec-integrations", "sec-embed",

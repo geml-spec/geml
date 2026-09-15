@@ -670,6 +670,28 @@ test("the write guards say what they REFUSED to write, and leave the file alone"
   rmSync(d, { recursive: true, force: true });
 });
 
+test("--json turns a refusal into a machine-readable frame: diagnostics with codes, or a usage error with its exit status", () => {
+  // The MCP server used to parse this frame out of the CLI child it spawned;
+  // it now runs the verbs in-process, so the frame is the CLI's own contract
+  // with programmatic callers and has to stay pinned here.
+  const both = run(["set", "-", "#n", "--json", "--in", "-", "-o", "-"], "");
+  assert.equal(both.code, 2, "document and content cannot both be stdin");
+  const usage = JSON.parse(both.err.trim().split(/\r?\n/).pop());
+  assert.deepEqual(Object.keys(usage).sort(), ["code", "error"]);
+  assert.equal(usage.code, 2);
+  const d = mkdtempSync(pjoin(tmpdir(), "geml-json-"));
+  const f = pjoin(d, "d.geml");
+  wf(f, GOOD);
+  const refused = run(["set", f, "#n", "--json", "--in", "-", "-o", "-"], "=== note {#n}\nsee [[#nowhere]]\n===\n");
+  assert.equal(refused.code, 1);
+  assert.equal(refused.out, "", "nothing is written");
+  const frame = JSON.parse(refused.err.trim().split(/\r?\n/).pop());
+  assert.equal(frame.code, 1);
+  assert.match(frame.error, /would break the document/);
+  assert.ok(Array.isArray(frame.diagnostics) && frame.diagnostics.some((x) => x.code === "unresolved-reference"), refused.err);
+  rmSync(d, { recursive: true, force: true });
+});
+
 console.log(`\n${passed} test(s) passed.`);
 // Exit explicitly: every assertion above has run, and on Linux this file's
 // server/fetch traffic can leave a live handle that keeps the process — and

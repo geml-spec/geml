@@ -529,3 +529,43 @@ test("fence-like-line names the cause: unclosed object, trailing text, stray `}`
   assert.match(msg("=== aaa}"), /pairs with no/);
   assert.match(msg("=== embed src=#a"), /attributes must be braced/);
 });
+
+// --- 成对的 ``` 遮住栅栏扫描（区内一切仍是散文，不是新的块类型） ---------
+
+const ids = (d) => d.children.filter((b) => b.id).map((b) => b.id);
+const tick = "`".repeat(3);
+
+test("成对的 ``` 之间，栅栏行不开块 —— 区内维持散文", () => {
+  const d = parse(`=== meta\ntitle = "t"\n===\n\n${tick}\n==== field {#legal-name label="x"}\n====\n${tick}\n`);
+  assert.equal(ids(d).includes("legal-name"), false, "示例块不该活过来：" + JSON.stringify(ids(d)));
+  assert.equal(d.diagnostics.filter((x) => x.severity === "error").length, 0);
+});
+
+test("落单的 ``` 什么都不遮 —— 一个孤立反引号不该吞掉后面整篇", () => {
+  const d = parse(`${tick}\n\n=== note {#a}\nhi\n===\n\n=== note {#b}\nho\n===\n`);
+  assert.deepEqual(ids(d), ["a", "b"], "未配对时保持今天的行为");
+});
+
+test("遮蔽是按层算的：flow 体内的一对 ``` 只遮它自己那一段", () => {
+  const d = parse(`==== note {#outer}\n${tick}\n=== note {#inner}\nx\n===\n${tick}\n====\n\n=== note {#after}\ny\n===\n`);
+  const all = ids(d).concat(d.children.flatMap((b) => (b.children ?? []).map((c) => c.id)).filter(Boolean));
+  assert.equal(all.includes("inner"), false, "被遮住的内层不该成块：" + JSON.stringify(all));
+  assert.equal(all.includes("outer") && all.includes("after"), true, JSON.stringify(all));
+});
+
+test("原始体里的 ``` 不参与配对 —— code 的正文照旧逐字保留", () => {
+  const d = parse(`==== code {#ex}\n${tick}\n====\n\n=== note {#a}\nhi\n===\n`);
+  assert.deepEqual(ids(d), ["ex", "a"], "code 体内的反引号不该遮住后面的块");
+});
+
+test("地址层和模型层看到同一份东西 —— 被遮的块不该还寻得到址", () => {
+  const src = `=== meta\ntitle = "t"\n===\n\n${tick}\n==== field {#legal-name label="x"}\n====\n${tick}\n`;
+  const d = parse(src);
+  const units = addressedUnits(src).map((u) => u.unit.id).filter(Boolean);
+  assert.equal(ids(d).includes("legal-name"), false, "模型");
+  assert.equal(units.includes("legal-name"), false, "地址层：" + JSON.stringify(units));
+  // 没被遮的照旧两边都在
+  const live = `=== note {#a}\nhi\n===\n`;
+  assert.equal(ids(parse(live)).includes("a") && addressedUnits(live).some((u) => u.unit.id === "a"), true);
+});
+
