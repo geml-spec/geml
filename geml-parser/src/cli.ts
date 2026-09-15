@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { checkMedia } from "./media-check.js";
+import { mediaIoFor } from "./host-fs.js";
 // The GEML command line. Split out of geml.ts so that file can be what the
 // viewer imports: a parser LIBRARY. Everything CLI-side lives here — argv
 // dispatch, file and stdin I/O, stdout and the exit codes, spawning
@@ -11,7 +13,7 @@
 
 import { readFileSync, writeFileSync, realpathSync, statSync, existsSync, mkdirSync, readdirSync, copyFileSync, renameSync } from "node:fs";
 import { loadStylesheet, resolveStyle } from "./style-resolve.js";
-import { basename, dirname, join, relative, resolve as resolvePath } from "node:path";
+import { basename, dirname, join, relative, sep, resolve as resolvePath } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -372,15 +374,27 @@ function runCheck(args: string[]): void {
     if (!isDir) fail(`--root ${root} is not a directory`);
   }
   const doc = verb(() => check(readInput(file), file, ctxFor(), root));
+  // 声明了 geml-media/v1 的文档，除核心诊断外再跑一趟 profile 的检查（profile 文档 §7）。
+  // 它是项目级的：从这份文档出发顺着 media 的引用把相关文档拉进来，范围由 --root 限定
+  // （默认这份文档自己的目录）。挂在 `geml check` 上而不是另起一个动词 —— 要不要按
+  // media 的规则查，是文档自己在 `=== meta` 里说了算的，不该再要求调用者换命令名。
+  const mediaRoot = root ?? dirname(resolvePath(file === "-" ? "." : file));
+  const mediaDiags = file === "-" ? [] : verb(() => {
+    const rel = relative(mediaRoot, resolvePath(file)).split(sep).join("/");
+    return checkMedia(rel, mediaIoFor(mediaRoot));
+  });
   if (json) {
-    console.log(JSON.stringify(doc.diagnostics, null, 2));
+    console.log(JSON.stringify(mediaDiags.length === 0 ? doc.diagnostics : { core: doc.diagnostics, media: mediaDiags }, null, 2));
   } else {
     for (const d of doc.diagnostics) console.error(`${d.severity}: ${d.message} (line ${d.line})`);
-    const errs = doc.diagnostics.filter((d) => d.severity === "error").length;
-    const warns = doc.diagnostics.filter((d) => d.severity === "warning").length;
+    // profile 的诊断按地址报，不按行号（媒体的检查跨文档，没有单一的行号可言）。
+    for (const d of mediaDiags) console.error(`${d.severity}: ${d.code}: ${d.message} (${d.doc}${d.id === undefined ? "" : "#" + d.id})`);
+    const all = [...doc.diagnostics, ...mediaDiags];
+    const errs = all.filter((d) => d.severity === "error").length;
+    const warns = all.filter((d) => d.severity === "warning").length;
     console.error(errs || warns ? `${errs} error(s), ${warns} warning(s)` : "ok: no diagnostics");
   }
-  if (doc.diagnostics.some((d) => d.severity === "error")) process.exit(1);
+  if ([...doc.diagnostics, ...mediaDiags].some((d) => d.severity === "error")) process.exit(1);
 }
 
 // Subcommand, file and revision, read positionally around the options —
