@@ -344,15 +344,23 @@ export function buildPlan(entry: string, outFile: string, io: MediaIO): BuildPla
   const aLabels: string[] = [];
   audio.forEach((c, k) => {
     const path = info(c.src, entry).path;
-    if (path === undefined) { notes.push(`片段 #${c.id} 的源没有文件路径，跳过`); return; }
+    if (path === undefined) { notes.push("片段 #" + c.id + " 的源没有文件路径，跳过"); return; }
     const i = addInput(path);
     const delayMs = Math.round(c.start * 1000);
-    filters.push(`[${i}:a]atrim=start=${c.in.toFixed(3)}:end=${(c.in + c.duration).toFixed(3)},asetpts=PTS-STARTPTS,adelay=${delayMs}|${delayMs}[a${k}]`);
-    aLabels.push(`[a${k}]`);
+    // `all=1`：延迟施加到**所有**声道，不必知道源是单声道还是立体声。
+    filters.push("[" + i + ":a]atrim=start=" + c.in.toFixed(3) + ":end=" + (c.in + c.duration).toFixed(3)
+      + ",asetpts=PTS-STARTPTS,adelay=" + delayMs + ":all=1[a" + k + "]");
+    aLabels.push("[a" + k + "]");
   });
-  if (vLabels.length > 0) filters.push(`${vLabels.join("")}concat=n=${vLabels.length}:v=1:a=0[vout]`);
-  if (aLabels.length > 1) filters.push(`${aLabels.join("")}amix=inputs=${aLabels.length}:normalize=0[aout]`);
-  else if (aLabels.length === 1) filters.push(`${aLabels[0] as string}anull[aout]`);
+  if (vLabels.length > 0) filters.push(vLabels.join("") + "concat=n=" + vLabels.length + ":v=1:a=0[vout]");
+  if (aLabels.length > 0) {
+    // 音频要**贯穿全长**，否则交织器会停在最后一段音频结束的地方等下去 —— 实测
+    // 一条 4.4s 才开始、6.5s 就结束的配音，让一条 10s 的片子卡死在 4.35s。所以先铺
+    // 一条和时间线等长的静音底，再把每段配音混上去，duration=first 以底为准。
+    const total = Math.max(tl.duration, 0.001).toFixed(3);
+    filters.push("anullsrc=channel_layout=stereo:sample_rate=44100:d=" + total + "[abed]");
+    filters.push("[abed]" + aLabels.join("") + "amix=inputs=" + (aLabels.length + 1) + ":duration=first:normalize=0[aout]");
+  }
 
   const args: string[] = ["-y"];
   for (const p2 of inputs) { args.push("-i", p2); }

@@ -385,7 +385,11 @@ test("build：ffmpeg 的参数由时间模型决定，字幕另出不烧进画�
   assert.equal(Math.round(plan.duration * 100) / 100, 10);
   const joined = plan.args.join(" ");
   assert.match(joined, /trim=start=0\.000:end=4\.000/, "第一个片段的入出点进了 trim");
-  assert.match(joined, /adelay=4400\|4400/, "配音按它在时间线上的起点延迟");
+  assert.match(joined, /adelay=4400:all=1/, "配音按起点延迟；all=1 不必知道源是单声道还是立体声");
+  // 音频要贯穿全长：一条 4.4s 才开始、6.5s 就结束的配音，会让交织器停在 4.35s 等下去，
+  // 整条 10s 的片子卡死在那里。实测撞到过，所以静音底是断言的一部分，不是实现细节。
+  assert.match(joined, /anullsrc=[^ ]*d=10.000/, "静音底与时间线等长");
+  assert.match(joined, /amix=inputs=2:duration=first/, "配音混在静音底上，以底为准");
   assert.match(joined, /concat=n=2/);
   assert.ok(plan.srt !== null, "有字幕轨就出 srt 边车");
   assert.ok(!/subtitles=/.test(joined), "不烧字：烧字要 libass 与一份中文字体");
