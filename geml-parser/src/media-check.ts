@@ -433,3 +433,31 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
   }
   return out;
 }
+
+/**
+ * 一个提示词或台词块展开全部投射之后的纯文本 —— 模型看到的那串字，也是
+ * `prompt-sha256` 哈希的对象。
+ *
+ * 导出它，是因为**算这个哈希的地方必须只有一处**。手工拼字符串算出来的是错的：
+ * 角色卡里的 `**银灰短发齐耳**` 展开后是纯文本，没有星号，而拼接的人会把标记
+ * 一起算进去。夹具生成器、将来的 `geml media prompt`、检查器，走的都是这一个实现。
+ * 核心有了 `get --resolved` 之后，这里改成它的薄封装。
+ */
+export function promptTextOf(ref: string, from: string, io: MediaIO): string | null {
+  const cache = new Map<string, Loaded | null>();
+  const load = (rel: string): Loaded | null => {
+    if (cache.has(rel)) return cache.get(rel) ?? null;
+    const src = io.readDoc(rel);
+    if (src === null) { cache.set(rel, null); return null; }
+    const doc = parse(src);
+    const l: Loaded = { rel, doc, meta: metaOf(doc) };
+    cache.set(rel, l);
+    return l;
+  };
+  const t = splitRef(ref, from);
+  if (t === null) return null;
+  const l = load(t.doc);
+  if (l === null) return null;
+  const b = blocksOf(l.doc).find((x) => x.id === t.id);
+  return b === undefined ? null : proseText(b, t.doc, load);
+}

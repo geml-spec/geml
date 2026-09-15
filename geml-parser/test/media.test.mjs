@@ -207,5 +207,82 @@ test("血缘：过期沿 DAG 向下传播 —— 上游的 take 变了，吃它�
   assert.match(ds.find((d) => d.id === "lips").message, /上游过期/);
   rmSync(root, { recursive: true, force: true });
 });
-console.log(`
-${passed} passed`);
+// ---- 夹具：设计记录 §3 的那一集，用 geml-media/v1 的词汇写成 -----------------
+//
+// 验收（§14 P1）：四份文档 check 干净；每处故意改坏，各得到对应的那一条诊断。
+// 夹具本身由 test/fixtures/media/build.mjs 生成，哈希是真算的。
+
+import { cpSync, readFileSync as read, writeFileSync as write } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+const FIX = fileURLToPath(new URL("./fixtures/media", import.meta.url));
+/** 把夹具复制到临时目录再改，committed 的那份永远不动。 */
+function fixture(mutate) {
+  const root = mkdtempSync(join(tmpdir(), "geml-fix-"));
+  cpSync(FIX, root, { recursive: true });
+  if (mutate) mutate({
+    root,
+    edit: (rel, from, to) => write(join(root, rel), read(join(root, rel), "utf8").replace(from, to)),
+    put: (rel, body) => write(join(root, rel), body),
+  });
+  return root;
+}
+
+test("夹具：四份文档的 profile check 干净", () => {
+  const root = fixture();
+  for (const entry of ["ep01/ep01-cut.geml", "ep01/ep01-library.geml", "characters.geml", "ep01/ep01-script.geml"]) {
+    assert.deepEqual(checkMedia(entry, mediaIoFor(root)), [], entry + " 应干净");
+  }
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("夹具：改角色卡一个词 —— 三条记录过期、两个片段过期，诊断点名 #hero-look", () => {
+  const root = fixture(({ edit }) => edit("characters.geml", "银灰短发齐耳", "银灰短发及肩"));
+  const ds = checkMedia("ep01/ep01-cut.geml", mediaIoFor(root));
+  const gens = ds.filter((d) => d.code === "media-stale-generation").map((d) => d.id).sort();
+  assert.deepEqual(gens, ["s01-key", "s01-take3", "s03-take2", "s03-take2-lips"], JSON.stringify(ds));
+  assert.match(ds.find((d) => d.id === "s01-key").message, /#hero-look/, "要点名是哪个投射源变了");
+  const clips = ds.filter((d) => d.code === "media-stale-clip").map((d) => d.id).sort();
+  assert.deepEqual(clips, ["c01", "c03"]);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("夹具：换掉一个素材文件的字节 —— 哈希不符 + 来历不明", () => {
+  const root = fixture(({ put }) => put("ep01/assets/s03-take2.mp4", "REGENERATED"));
+  const c = codes(checkMedia("ep01/ep01-library.geml", mediaIoFor(root)));
+  assert.ok(c.includes("media-hash-mismatch"), c.join(","));
+  assert.ok(c.includes("media-orphan-record"), c.join(","));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("夹具：删掉一个素材文件 —— media-file-missing", () => {
+  const root = fixture(({ edit }) => edit("ep01/ep01-library.geml", "src=assets/s01-key.png", "src=assets/gone.png"));
+  const c = codes(checkMedia("ep01/ep01-library.geml", mediaIoFor(root)));
+  assert.ok(c.includes("media-file-missing"), c.join(","));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("夹具：台词去掉 speaker= —— media-line-no-speaker", () => {
+  const root = fixture(({ edit }) => edit("ep01/ep01-script.geml", " speaker=../characters.geml#sister", ""));
+  const c = codes(checkMedia("ep01/ep01-script.geml", mediaIoFor(root)));
+  assert.ok(c.includes("media-line-no-speaker"), c.join(","));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("夹具：把 of= 指错 —— media-of-unresolved", () => {
+  const root = fixture(({ edit }) => edit("ep01/ep01-library.geml", "of=../characters.geml#hero", "of=../characters.geml#nobody"));
+  const c = codes(checkMedia("ep01/ep01-library.geml", mediaIoFor(root)));
+  assert.ok(c.includes("media-of-unresolved"), c.join(","));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("夹具：视频轨的片段指向台词块 —— media-src-not-asset", () => {
+  const root = fixture(({ edit }) => edit("ep01/ep01-cut.geml", "src=ep01-library.geml#s01-take3", "src=ep01-script.geml#s03-l1"));
+  const c = codes(checkMedia("ep01/ep01-cut.geml", mediaIoFor(root)));
+  assert.ok(c.includes("media-src-not-asset"), c.join(","));
+  rmSync(root, { recursive: true, force: true });
+});
+
+
+
+console.log(String.fromCharCode(10) + passed + " passed");
