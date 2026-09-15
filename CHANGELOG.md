@@ -18,6 +18,31 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **codemap gains a tree-sitter fallback — Zig is the first language.** Where
+  neither a SCIP indexer nor a Joern frontend exists, `geml codemap build` now
+  parses the sources with tree-sitter (web-tree-sitter + the `tree-sitter-wasms`
+  grammar bundle, fetched via npx like the SFC virtualizer — no new dependency
+  of `@geml/geml`) and resolves calls by name in three layers: same file, then
+  along `@import` / alias / struct / `self` bindings, then a repo-wide name
+  match capped at 8 candidates. Everything it emits is `resolution: heuristic`,
+  never `high`; files the grammar cannot parse are counted and reported.
+  `build.zig` / `.zig` are auto-detected; Gradle and Maven Java projects are
+  untouched (pinned by a test). Adding a language is one profile file under
+  `codemap/treesitter/` — design: `docs/design/specs/geml-codemap/DESIGN-codemap-treesitter.md`.
+- **codemap reads scip-java's `semanticdb` symbol scheme — Scala lands.** The
+  `scip` adapter knew two producers (scip-typescript, rust-analyzer); it now
+  reads the third, so an index from `scip-java index-semanticdb` (Scala; Java
+  and Kotlin come the same way) merges like any other. Names come out
+  owner-qualified (`App.run`, `Counter.inc`, constructors as `Counter.new`) and
+  the language follows the defining file. Not auto-detected: build the index
+  yourself and pass `--adapter scip --raw` — the geml-code-graph skill carries
+  the frozen recipe (scip-java 0.13 dropped Scala; 0.12.3 is the last that
+  indexes it) and the three gaps to report. Fixture: `test/fixtures/scala-app/`.
+- **Fixed: overloaded methods vanished from SCIP-fed codemaps.** A method
+  symbol is `name(<disambiguator>).` and JVM overloads carry `(+1)`, `(+2)`…;
+  the adapter matched the bare `().`, so every overload past the first — and
+  every call to one, `println(+1).` included — was silently dropped.
+
 ## [1.11.1] — 2026-09-18
 
 - **The core no longer names a vocabulary anywhere it dispatches.** Three places

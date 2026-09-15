@@ -294,6 +294,16 @@ MCP 三工具已交付(P2,`tools/geml-code-graph/mcp-server.mjs`,零依赖 newli
    一梯队 C/C++/Java/JS/Python 直接可用;二、三梯队(Kotlin;Go/Ruby/Swift/C#/PHP)
    接入前必须过冒烟测试闸门,不过关即降级 tree-sitter。另注意:官方 quickstart
    示例与实际运行结果有对不上的社区反馈(2026-02),P1 落地时以实测为准、不照抄文档。
+   - **Scala(2026-09-14 核实)**:Joern 无 frontend;走 SCIP,但 scip-java 0.13(2026-07)
+     已删 Scala,只能用冻结的 `com.sourcegraph:scip-java_2.13:0.12.3` `index-semanticdb`
+     (产出侧 Scala 3 `-Xsemanticdb` / Metals 仍由 scalameta 维护)。冒烟(4 文件 fixture):
+     同文件、跨文件(含重载选中)、trait 分发候选、main→run 全过;两处**数据源**缺口——
+     无 `enclosing_range`(归属降级为"最近前一定义",方法跨度 1 行)、Scala 3 SemanticDB
+     把 `new X(...)` 记为类型引用(构造调用不可见)。适配器侧顺带修了重载 `(+N).` 被整个
+     丢弃的缺陷(影响一切 scip-java 索引)。**不做自动检测**(不跑 sbt),显式 `--adapter scip --raw`。
+   - **tree-sitter 兜底已落地**(2026-09-14,Zig 首发):导出脚本 + 纯 Node 适配器 + 按语言
+     profile,三层名字解析全部 `heuristic`,设计与冒烟数据见
+     [`DESIGN-codemap-treesitter.md`](DESIGN-codemap-treesitter.md)。
 2. **P0 数据源跨文件调用缺失**(GEP-0002 实证:valkey 已解析跨文件 CALLS 仅 12 条)→ P0 的 `calls:` 行大多为同文件边 + 大量 `calls-unresolved:`;这是数据源天花板,**文档如实呈现即是 F7 的正确形态**,P1 Joern 换入后同一管道自动变准。
 3. **anchor 稳定性(P0)**:无签名数据下重载符号共享 `~n` 序号,文档顺序变化可能导致 `~2`/`~3` 互换 → id 漂移。缓解:`~n` 按 `line_start` 排序分配;P1 有签名后自然消解。
 4. **超高频符号的 backlink 页规模**(如被数千处调用的日志函数)→ P0 不处理(列表长但无害);P2 按调用方文档分组折叠。
