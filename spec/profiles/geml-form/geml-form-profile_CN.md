@@ -31,6 +31,21 @@ profile = "geml-form/v1"
 warning。声明了，且处理器认识这个名字，它们被放行。处理器不认识这个名字时视同未声明
 （§8.6 规则 3），仍然合规。
 
+## 1.1 参考实现的注册表里为什么不止六个
+
+下面六个是**这份 profile 定义的**。去看参考实现的注册表，会发现 `form-field` 上还有
+`label`、`description`、`placeholder`、`type`、`required`、`multiple`、`value`、
+`options`，以及 `form` 的 `handler`、`form-options` 的表体那几个键。**那些是
+GEP-0008 的，不是这份 profile 的。**
+
+它们暂住在那里，只因为有一道缝还没合上：GEP 落进 §3 之前，`form-*` 是 profile 放行的
+类型，而这类类型的属性检查由 profile 自己那张表驱动——表里只写六个，GEP-0008 定义的其余
+每一个键都会被报成 `unknown-attribute`，连 GEP 自己的示例表单也不例外。一张不完整的表
+不是"承诺得少一点"，是承诺错了。
+
+GEP-0008 落地之后，那些键搬回核心的逐类型表，这份 profile 只留六个。无论哪一边，profile
+**定义**的东西都没有变，下面 §4 照旧。
+
 ## 2. 六个键
 
 都只用于 `form-field`。值都是字符串，下表说 handler 应当怎么读。键落在不匹配的 `type=`
