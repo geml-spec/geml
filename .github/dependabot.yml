@@ -19,6 +19,7 @@ updates:
       - "/integrations/obsidian"
       - "/integrations/logseq"
       - "/integrations/dsh-plugin"
+      - "/integrations/geml-agent-runtime"
     schedule:
       interval: monthly
     groups:

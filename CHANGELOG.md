@@ -28,6 +28,20 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **agent-runtime**: `geml-agent run` starts dsh with the bundle in place, and the
+  repository's own docs name it — README, `docs/PUBLISHING`, and the npm
+  description. Publishing is blocked on a parser release that registers
+  `geml-agent/v1`: the package carries `@geml/geml` as a `file:` dependency until
+  then.
+
+- **agent-runtime**: the DeepSeek Harness plugin lands — per-state tool restriction and a
+  monotonic guard, the three `agent_*` tools regenerated on every state change, the
+  state's instruction and a few-hundred-byte snapshot injected per step, `pause`/`final`
+  concluding the turn, `rollback-on-error`, and a blind-appended hash-chained ledger that
+  resume reads back only after verifying it.
+
+- **agent-runtime**: a new package, `integrations/geml-agent-runtime` (npm `@geml/agent-runtime`, not yet published), beside `integrations/dsh-plugin`, which stays its own package, `@geml/dsh-plugin`. New `geml-agent/v1` profile (statechart + ledger vocabulary) registered in the parser; `geml-agent check|snapshot|verify|export|init` CLI. Design: `docs/design/specs/2026-09-14-geml-agent-runtime-design.md`.
+
 - **New profile `geml-statechart/v1`**: a state machine in one core `diagram`
   block, `format=geml-statechart`, whose body is a JSON object: `initial`,
   `states`, `transitions`, and the `vars` the guards read. The format fixes

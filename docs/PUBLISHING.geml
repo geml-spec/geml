@@ -42,7 +42,7 @@ has to remember.
 === table {#prereq}
 | What | Needed for | One-time setup |
 | --- | --- | --- |
-| Repo secret `NPM_TOKEN` | publishing @geml/geml and @geml/dsh-plugin from CI | npmjs.com -> Access Tokens -> Generate -> **Automation**; needs publish rights on the @geml scope. Nothing else is stored in the repo. |
+| Repo secret `NPM_TOKEN` | publishing @geml/geml, @geml/dsh-plugin and @geml/agent-runtime from CI | npmjs.com -> Access Tokens -> Generate -> **Automation**; needs publish rights on the @geml scope. Nothing else is stored in the repo. |
 | GitHub OIDC | the MCP registry | none — `id-token: write` in the workflow is the whole of it; no secret |
 | `contents: write` | attaching the viewer zip to its release | none — the default GITHUB_TOKEN |
 | Chrome Web Store developer account | putting the viewer in front of users | DONE (`opmhfphgoidpnipphfgkhhjhmnmaenie`). The workflow only attaches a zip to a GitHub release; the store upload stays manual. |
@@ -182,6 +182,31 @@ path reads the tree, not your working copy.
   even though the other two got theirs for free by riding the parser's version.
 - **Confirm.** `npm view @geml/dsh-plugin version`.
 
+## `@geml/agent-runtime` {#a-runtime}
+
+- **Lands at** npmjs.com/package/@geml/agent-runtime. It has no market listing
+  of its own yet: the awesome-dsh-plugin entry (PR #1310) is `@geml/dsh-plugin`'s,
+  which stays a separate package.
+- **Version** in its own `package.json`, on its own track — it does NOT follow
+  the parser, unlike the other two plugins.
+- **Blocked on the parser.** It depends on `@geml/geml` for the
+  `geml-agent/v1` profile, and carries that dependency as
+  `file:../../geml-parser` while in development. Publishing it therefore means,
+  in this order: release a parser version that registers the profile, change the
+  dependency to that version range, `npm test`, then publish. A `file:`
+  dependency that reached npm would install nothing.
+- **How.** Manual `npm publish` from `integrations/geml-agent-runtime`. It ships
+  `dist/`, `skills/`, `examples/`, `cordis.patch.yml` and `LICENSE` — this is the
+  one bundle here that carries CODE, so `dist/` must be built first (`npm run
+  build`) and the tests must pass against the built output, not the sources.
+- **Watch for.** Its vendored skill files are byte-identical copies of the
+  claude and codex plugins' — when those are refreshed, this one needs a release
+  even though the other two got theirs for free by riding the parser's version.
+  Its `peerDependencies` pin the harness at `^0.1.5-rc.1`; a harness major that
+  moves `ctx.tools.restrict`, `guard`, `agent/session-start` or
+  `systemPrompt.section` needs a release here too, and `test/dsh-parity.test.mjs`
+  is the test that notices.
+- **Confirm.** `npm view @geml/agent-runtime version`.
 ## Agent markets — one manifest per vendor {#a-agent-markets}
 
 The same two skills and the same stdio MCP server, listed in someone else's

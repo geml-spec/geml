@@ -1,0 +1,82 @@
+{
+  "name": "@geml/agent-runtime",
+  "version": "0.1.0",
+  "description": "GEML Agent Runtime for DeepSeek Harness: a statechart written in GEML gates which tools the model sees in each state, validates every transition and patch, and appends a hash-chained GEML ledger. Also ships the geml MCP server row and the authoring and code-graph skills.",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "geml-agent": "dist/cli.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "homepage": "https://github.com/geml-spec/geml",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/geml-spec/geml.git",
+    "directory": "integrations/geml-agent-runtime"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "dsh",
+    "deepseek-harness",
+    "geml",
+    "agent",
+    "statechart",
+    "state-machine",
+    "ledger",
+    "mcp"
+  ],
+  "files": [
+    "dist",
+    "skills",
+    "examples",
+    "cordis.patch.yml",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "tsc && node --test test/*.test.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "dependencies": {
+    "@geml/geml": "file:../../geml-parser"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.2",
+    "@deepseek-ai/dsh-agent": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-agent-loop": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-agent-loop-testkit": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-brand": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-invariants": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-llm": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-scope": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-session": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-session-persistence": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-session-projection": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-settings": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-system-prompt": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-tools": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-user-approval": "^0.1.5-rc.1",
+    "@deepseek-ai/schemastery": "^3.18.2",
+    "@types/node": "^26.5.0",
+    "c8": "^12.0.0",
+    "typescript": "^7.0.2"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.2",
+    "@deepseek-ai/dsh-agent": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-llm": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-session": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-system-prompt": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-tools": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-user-approval": "^0.1.5-rc.1",
+    "@deepseek-ai/schemastery": "^3.18.2"
+  }
+}
