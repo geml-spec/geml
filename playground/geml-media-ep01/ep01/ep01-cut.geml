@@ -1,0 +1,60 @@
+=== meta
+title = "EP01 粗剪 · 竖屏"
+fps = 24
+aspect = "9:16"
+tracks = "video dialogue bgm subtitle"
+primary = "video"
+===
+
+%% 核心词汇里没有「片段」这个类型，只能一个片段一个带 id 的 data 块。
+%% 主轨上块的先后就是播放顺序；其余轨用 over 锚到主轨某个片段上。
+%% 代价：src / over 都是 JSON 字符串，核心不解析——指向不存在的 id，check 不报。
+%% 而且顺序是「块在文件里的先后」，可 data 块之间没有任何东西表达这一点，
+%% 读的人只能靠肉眼；插一个片段要靠 geml add --after，位置对不对没人校验。
+
+# 第一场 灵堂 {#sc01}
+
+=== data {#c01a}
+{"track":"video","src":"ep01-library.geml#s01-take3","in":0,"out":2.0,"note":"睁眼前的静止段，take3 的前两秒最稳"}
+===
+
+=== data {#c01b}
+{"track":"video","src":"ep01-library.geml#s01-take5","in":2.0,"out":4.0,"transition-in":"dissolve","transition-dur":0.2,"note":"睫毛颤动到睁眼，接 take5 的后半段"}
+===
+
+=== data {#c02}
+{"track":"video","src":"ep01-library.geml#s02-take1","in":0,"out":5,"transition-in":"cut"}
+===
+
+=== data {#c03}
+{"track":"video","src":"ep01-library.geml#s03-take2-lips","in":0,"out":6,"transition-in":"cut","note":"用口型合成版"}
+===
+
+# 对白轨 {#dialogue}
+
+=== data {#vo-s01-l1}
+{"track":"dialogue","src":"ep01-library.geml#s01-l1-vo","over":"#c01a","offset":0.3,"gain":"0dB"}
+===
+
+=== data {#vo-s03-l1}
+{"track":"dialogue","src":"ep01-library.geml#s03-l1-vo","over":"#c03","offset":0.4,"gain":"0dB"}
+===
+
+=== data {#vo-s03-l2}
+{"track":"dialogue","src":"ep01-library.geml#s03-l2-vo","over":"#c03","offset":3.8,"gain":"0dB"}
+===
+
+# 字幕轨 {#subtitle}
+
+%% src 指剧本里的台词块而不是素材：台词只有一个家。
+=== data {#sub-s01-l1}
+{"track":"subtitle","src":"ep01-script.geml#s01-l1","over":"#c01a","offset":0.3,"dur":3.6}
+===
+
+=== data {#sub-s03-l1}
+{"track":"subtitle","src":"ep01-script.geml#s03-l1","over":"#c03","offset":0.4,"dur":2.1}
+===
+
+=== data {#sub-s03-l2}
+{"track":"subtitle","src":"ep01-script.geml#s03-l2","over":"#c03","offset":3.8,"dur":0.9}
+===

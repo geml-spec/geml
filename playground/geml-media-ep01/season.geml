@@ -1,0 +1,29 @@
+=== meta
+title = "《重生之夜》全季"
+episodes = 24
+platform = "hongguo"
+paywall = 8
+===
+
+%% 全季只有一份：分集大纲表 + 各集 brief 的投射。brief 本体在各集 script 里，这里不复制。
+
+# 分集大纲 {#outline}
+
+=== table {#episodes}
+| 集 | 标题 | 核心冲突 | 钩子 | 反转 | 结尾悬念 | 状态 |
+|---|---|---|---|---|---|---|
+| 1 | 她睁开了眼 | 葬礼上重生 | 3 秒睁眼 | 凶手是妹妹 | 妹妹推门进来 | 粗剪 |
+| 2 | 旧人 | 沈砚来吊唁 | 他叫她小名 | 他也记得前世 | 手机日期 | 剧本 |
+| 3 | 遗嘱 | 遗产归属 | | 遗嘱是假的 | 律师是妹妹的人 | 大纲 |
+===
+
+=== view {#no-hook src=#episodes where="钩子 = ''" select="集, 标题"}
+===
+
+=== view {#progress src=#episodes by="状态" aggregate="集数 = count(集)"}
+===
+
+# 各集 brief {#briefs}
+
+=== embed {src=ep01/ep01-script.geml#brief}
+===

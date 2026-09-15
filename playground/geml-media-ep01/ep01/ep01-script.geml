@@ -1,0 +1,80 @@
+=== meta
+title = "EP01 她睁开了眼"
+episode = 1
+platform = "hongguo"
+target-duration = 75
+aspect = "9:16"
+===
+
+# 单集 brief {#brief}
+
+- **开场 3 秒**：林夏在自己的葬礼上睁眼。
+- **钩子**：0:15 认出凶手是妹妹；结尾 妹妹推门进来。
+- **情绪曲线**：惊 → 恨 → 冷静 → 悬。
+
+# 分镜表 {#board}
+
+%% 给人扫的规划表。每行一个镜头，镜号是它的键。
+
+=== table {#shots}
+| 镜号 | 景别 | 运镜 | 时长 | 角色 | 动作/表情 | BGM |
+|---|---|---|---|---|---|---|
+| s01 | 特写 | 缓推 | 4 | #hero | 闭眼，睫毛颤动，猛然睁开 | 低频铺底 |
+| s02 | 全景 | 固定 | 5 | #hero | 躺在灵堂棺中，周围白花与烛火 | 低频铺底 |
+| s03 | 中景双人 | 缓摇 | 6 | #sister #hero | 妹妹低头抹泪、嘴角上扬；林夏盯着她 | 弦乐进 |
+| s04 | 近景 | 固定 | 4 | #hero | 瞳孔收缩，握紧手指 | 弦乐停 |
+===
+
+=== view {#runtime src=#shots summary="时长 = sum(时长)"}
+===
+
+# 镜头 {#shot-blocks}
+
+## s01 {#s01}
+
+=== text {#s01-prompt .prompt}
+![[../characters.geml#look]] ![[../characters.geml#hero-look]] 特写，从闭眼开始，睫毛颤动，猛然睁开；镜头缓推；烛光从下方打亮面部。
+===
+
+=== text {#s01-l1 .line .inner}
+我死过一次。这一次，我记得是谁推的手。
+===
+
+## s02 {#s02}
+
+=== text {#s02-prompt .prompt}
+![[../characters.geml#look]] ![[../characters.geml#hero-look]] 全景，![[../characters.geml#mourning-hall-desc]] 她半坐起身；固定机位。
+===
+
+## s03 {#s03}
+
+=== text {#s03-prompt .prompt}
+![[../characters.geml#look]] 中景双人，灵堂一角。左：![[../characters.geml#sister-look]] 低头抹泪，嘴角上扬。右：![[../characters.geml#hero-look]] 半坐在棺中盯着她。缓摇，从妹妹摇到林夏。
+===
+
+=== text {#s03-l1 .line}
+姐……你怎么会……
+===
+
+=== text {#s03-l2 .line}
+是你。
+===
+
+## s04 {#s04}
+
+=== text {#s04-prompt .prompt}
+![[../characters.geml#look]] ![[../characters.geml#hero-look]] 近景，瞳孔收缩，手指攥紧棺沿；固定机位；弦乐骤停。
+===
+
+# 台词的说话人与情绪 {#line-meta}
+
+%% 核心词汇里 text 块上挂不了 speaker= / emotion=，只能另立一张表，用 id 当外键。
+%% 代价：台词与它的说话人分居两处，改一个不会带动另一个，check 也不会发现对不上。
+
+=== table {#lines}
+| 台词 | 说话人 | 对谁 | 情绪 |
+|---|---|---|---|
+| #s01-l1 | #narrator | | 平 |
+| #s03-l1 | #sister | #hero | 假哭 |
+| #s03-l2 | #hero | #sister | 冷 |
+===
