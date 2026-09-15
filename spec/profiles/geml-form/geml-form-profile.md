@@ -40,6 +40,25 @@ processor that recognizes the name, they are admitted. A processor that does
 not recognize the name treats the declaration as absent (§8.6 rule 3) and is
 still conformant.
 
+## 1.1 What the reference registry holds, and why it is more than six
+
+The six below are what **this profile** defines. A reader looking at the
+reference implementation's registry will find more on `form-field` —
+`label`, `description`, `placeholder`, `type`, `required`, `multiple`,
+`value`, `options` — plus `handler` on `form` and the table-body keys on
+`form-options`. **Those are GEP-0008's, not this profile's.**
+
+They are held there for the duration of one gap. Until the GEP lands in §3,
+`form-*` are profile-admitted types, and the attribute check for such a type is
+driven by the profile's own table: a table holding only the six would report
+every other key GEP-0008 defines — including the ones in the GEP's own example
+forms — as `unknown-attribute`. An incomplete table is not a smaller promise,
+it is a wrong one.
+
+When GEP-0008 lands, those keys move to the core's per-type table and this
+profile keeps the six. Nothing about what the profile *defines* changes either
+way; §4 below is unaffected.
+
 ## 2. The six keys
 
 All six apply to `form-field` only. Each value is a string; the table says how
