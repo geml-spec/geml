@@ -25,10 +25,16 @@
 node tools/hash-prompts.mjs ep01/ep01-script.geml   # 展开投射，算提示词哈希
 node tools/build-log.mjs                            # 重算哈希，生成 .gen-log
 node tools/stale.mjs                                # 走血缘 DAG，报过期
-node ../../geml-parser/dist/geml.js check *.geml ep01/*.geml
+for f in *.geml ep01/*.geml; do node ../../geml-parser/dist/geml.js check $f --root .; done
 ```
 
-规模：**8 份文档 · 15 个素材 · 9 条生成记录 · 10 个片段**，`check` 全部干净。
+规模：**8 份文档 · 15 个素材 · 9 条生成记录 · 10 个片段**，逐份 `check` 全部干净。
+
+**两处要注意的**：`geml check` 一次只收**一个**文件（`check a.geml b.geml` 静默地只查
+第一个），所以要用循环；而且必须带 `--root .`——剧本里 `![[../characters.geml#hero-look]]`
+这样的跨集投射，默认根是文档自己的目录，`..` 越界，会得到十条 `cannot resolve document`。
+这是 §9.4 的根目录限定在按规矩办事，不是 bug，但它说明**项目级的检查需要一个项目级的入口**——
+profile 的检查器不能是逐文档的。
 
 ## 核心词汇顶住了什么
 
