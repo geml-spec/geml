@@ -245,4 +245,41 @@ test("geml-form/v1：声明了 profile 的文档，form-* 家族是注册类型�
   const bare = parse("=== form-field {#x type=text}\n===\n");
   assert.ok(bare.diagnostics.some((d) => d.code === "unknown-block-type"), "不声明就不认，profile 是门票");
 });
+test("geml-agent/v1：五个 agent-* 类型被放行，声明与否只差诊断", () => {
+  const doc = (declared) =>
+    "=== meta\n" + (declared ? 'profile = "geml-agent/v1"\n' : "") + 'title = "t"\n===\n\n'
+    + '=== agent-vars {#vars}\n{"type":"object","properties":{}}\n===\n\n'
+    + '=== agent-state {#a initial tools="read_file" vars=none rollback-on-error}\nDo the thing.\n===\n\n'
+    + '=== agent-state {#b final}\nStop.\n===\n\n'
+    + '=== agent-transition {#a-b from=#a to=#b requires=#g approval}\nGo.\n===\n\n'
+    + '=== data {#g format=json}\n{"type":"object"}\n===\n\n'
+    + '=== agent-snapshot {#rev-0 rev=0 state=#a cause=enter hash="sha256:00" at="2026-01-01T00:00:00Z"}\n{}\n===\n\n'
+    + '=== agent-refused {#refused-1 rev=0 at="2026-01-01T00:00:00Z" tool=agent_set}\n{"reason":"r","diagnostics":[]}\n===\n';
+  assert.deepEqual(parse(doc(true)).diagnostics, [], "declared: no diagnostics at all");
+  const undeclared = parse(doc(false)).diagnostics.map((d) => d.code);
+  assert.equal(undeclared.filter((c) => c === "unknown-block-type").length, 6, "undeclared: every agent-* block warns");
+});
+
+test("geml-agent/v1：agent-state / agent-transition 的体是 flow，其余是 raw", () => {
+  const src = '=== meta\nprofile = "geml-agent/v1"\n===\n\n'
+    + '=== agent-state {#a initial}\nRead [[#a]] first.\n\n- one\n- two\n===\n\n'
+    + '=== agent-vars {#v}\n{"type":"object"}\n===\n';
+  const d = parse(src);
+  const state = d.children.find((b) => b.kind === "block" && b.type === "agent-state");
+  const vars = d.children.find((b) => b.kind === "block" && b.type === "agent-vars");
+  assert.equal(state.mode, "flow");
+  assert.equal(state.children.some((c) => c.kind === "list"), true, "flow body parsed the list");
+  assert.equal(vars.mode, "raw");
+  assert.deepEqual(vars.raw, ['{"type":"object"}']);
+});
+
+test("geml-agent/v1：放行的属性键只挂在各自类型上", () => {
+  const v = vocabularyFor(meta({ profile: "geml-agent/v1" }));
+  assert.equal(v.attrs.get("agent-state")?.has("rollback-on-error"), true);
+  assert.equal(v.attrs.get("agent-transition")?.has("requires"), true);
+  assert.equal(v.attrs.get("agent-snapshot")?.has("restores"), true);
+  assert.equal(v.attrs.get("agent-refused")?.has("tool"), true);
+  assert.equal(v.attrs.get("agent-vars"), undefined, "agent-vars declares no keys");
+  assert.equal(v.attrs.get("agent-state")?.has("requires"), false);
+});
 console.log(`\n${passed} passed`);

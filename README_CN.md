@@ -379,13 +379,13 @@ server 随包带上。）*
 
 ### 用 DeepSeek Harness——装这个 bundle
 
-同一套东西打包成了 dsh bundle——geml MCP server 加写作、代码图谱两个技能：
+同一套东西打包成了 dsh bundle——geml MCP server 加写作、代码图谱两个技能，再加一个监督器：由你用 GEML 写的状态图决定 agent 在每个状态下看得见哪些工具。
 
 ```sh
-dsh plugin --profile web add @geml/dsh-plugin   # web 是 dsh 默认启动的 profile；用别的 profile 就换成它的名字
+dsh plugin --profile web add @geml/agent-runtime   # web 是 dsh 默认启动的 profile；用别的 profile 就换成它的名字
 ```
 
-已收录于 [dshmarket](https://dshmarket.com/p/geml-spec/geml--integrations-dsh-plugin/) 与 [awesome-dsh-plugin](https://awesome-dsh-plugin.com/p/geml-spec/geml--integrations-dsh-plugin/)，源码在 [integrations/dsh-plugin/](integrations/dsh-plugin/)。
+源码在 [integrations/geml-agent-runtime/](integrations/geml-agent-runtime/)，监督器是怎么回事也写在那里。这个名字还没发到 npm，目前请从检出装。
 
 ### 用 Codex——装这个插件
 
@@ -600,7 +600,7 @@ GEML 已是 `1.0`，但「稳定」是指**已有规则不会在你脚下变动*
 | **命令行** —— 文档的整个生命周期都可以用 geml 命令操作 | [`@geml/geml`](https://www.npmjs.com/package/@geml/geml)（源码 [`geml-parser/`](geml-parser/)） | 可用 |
 | **用 geml-code-graph 帮你理解项目** —— 整个调用图写成 GEML 文档树，可交互浏览 | `geml codemap build`（[设计](docs/design/specs/geml-codemap/DESIGN-geml-code-graph.md)） | 可用 |
 | **让 agent 按块改文档** —— 自带 MCP 服务器，agent 走的是和你一样的动词：读一块、改一块、校验、回退 | [`docs/mcp-guide_CN.md`](docs/mcp-guide_CN.md) | 可用 |
-| **在 DeepSeek Harness 里用** —— geml MCP server + 写作、代码图谱两个技能，一个 bundle 装齐 | [`@geml/dsh-plugin`](https://www.npmjs.com/package/@geml/dsh-plugin) · [dshmarket](https://dshmarket.com/p/geml-spec/geml--integrations-dsh-plugin/) · [源码](integrations/dsh-plugin/) | 可用 |
+| **在 DeepSeek Harness 里用** —— geml MCP server + 写作、代码图谱两个技能，再加一个按状态收窄 agent 工具的监督器 | [`@geml/agent-runtime`](integrations/geml-agent-runtime/) | 从检出安装；这个名字尚未发布 |
 | **在 Codex 里用** —— 同一套载荷再打一次包：两个技能、MCP server，加一个 `SessionStart` hook，从 `/plugins` 安装 | [`integrations/codex-plugin/`](integrations/codex-plugin/) | 本仓库内可用；尚未上公共插件目录 |
 | **在 Grok 里用** —— 同一套载荷再来一次：两个技能加 MCP server | [`integrations/grok-plugin/`](integrations/grok-plugin/) | 本仓库内可用；`xai-org/plugin-marketplace` 的 PR 尚未提交 |
 | **把 Logseq graph 同步成纯文本** —— Logseq 2.0 的 DB graph 持续同步成 GEML 文件，可寻址、对 git 友好，`restore` 是回去的路 | [`@geml/logseq-sync`](https://www.npmjs.com/package/@geml/logseq-sync) · [源码](integrations/logseq/) | watcher 已在 npm；插件目前装 release zip —— 市场上架（[PR #893](https://github.com/logseq/marketplace/pull/893)）尚未合并 |
@@ -625,7 +625,7 @@ integrations/          GEML 接入的所有地方：geml-viewer（浏览器扩�
                        langchain+llamaindex（RAG 加载器）、
                        windows-icon（资源管理器文件图标），以及四个 agent
                        宿主插件——claude-plugin、codex-plugin、grok-plugin、
-                       dsh-plugin
+                       geml-agent-runtime（dsh bundle + 监督器）
 .agents/、.claude-plugin/   插件市场清单，让插件从仓库检出即可出现
                        （Codex 的 /plugins、Claude Code 的 /plugin）
 playground/            浏览器内 playground（含本仓库的实时 geml-code-graph）

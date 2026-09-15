@@ -45,7 +45,7 @@ has to remember.
 
 | What | Needed for | One-time setup |
 | --- | --- | --- |
-| Repo secret `NPM_TOKEN` | publishing @geml/geml and @geml/dsh-plugin from CI | npmjs.com -> Access Tokens -> Generate -> **Automation**; needs publish rights on the @geml scope. Nothing else is stored in the repo. |
+| Repo secret `NPM_TOKEN` | publishing @geml/geml and @geml/agent-runtime from CI | npmjs.com -> Access Tokens -> Generate -> **Automation**; needs publish rights on the @geml scope. Nothing else is stored in the repo. |
 | GitHub OIDC | the MCP registry | none — `id-token: write` in the workflow is the whole of it; no secret |
 | `contents: write` | attaching the viewer zip to its release | none — the default GITHUB\_TOKEN |
 | Chrome Web Store developer account | putting the viewer in front of users | DONE (`opmhfphgoidpnipphfgkhhjhmnmaenie`). The workflow only attaches a zip to a GitHub release; the store upload stays manual. |
@@ -162,21 +162,38 @@ path reads the tree, not your working copy.
 - **Confirm.** Fetch the raw manifest and read its version · install the plugin
   in a fresh session and check a skill resolves.
 
-## `@geml/dsh-plugin`
+## `@geml/agent-runtime`
 
-- **Lands at** npmjs.com/package/@geml/dsh-plugin, and — separately — at the
+- **Lands at** npmjs.com/package/@geml/agent-runtime, and — separately — at the
   **awesome-dsh-plugin** list (`data/plugins`, entry accepted in PR #1310), which
   is what dshmarket reads. The npm publish is the release; the list entry is the
   listing, and only description/category changes need a new PR: the market tracks
   GitHub and npm on its own.
 - **Version** in its own `package.json`, on its own track — it does NOT follow
   the parser, unlike the other two plugins.
-- **How.** Manual `npm publish` from `integrations/dsh-plugin`. It ships
-  `cordis.patch.yml`, `skills/` and `LICENSE`.
+- **Blocked on the parser.** It depends on `@geml/geml` for the
+  `geml-agent/v1` profile, and carries that dependency as
+  `file:../../geml-parser` while in development. Publishing it therefore means,
+  in this order: release a parser version that registers the profile, change the
+  dependency to that version range, `npm test`, then publish. A `file:`
+  dependency that reached npm would install nothing.
+- **How.** Manual `npm publish` from `integrations/geml-agent-runtime`. It ships
+  `dist/`, `skills/`, `examples/`, `cordis.patch.yml` and `LICENSE` — this is the
+  one bundle here that carries CODE, so `dist/` must be built first (`npm run
+  build`) and the tests must pass against the built output, not the sources.
 - **Watch for.** Its vendored skill files are byte-identical copies of the
   claude and codex plugins' — when those are refreshed, this one needs a release
   even though the other two got theirs for free by riding the parser's version.
-- **Confirm.** `npm view @geml/dsh-plugin version`.
+  Its `peerDependencies` pin the harness at `^0.1.5-rc.1`; a harness major that
+  moves `ctx.tools.restrict`, `guard`, `agent/session-start` or
+  `systemPrompt.section` needs a release here too, and `test/dsh-parity.test.mjs`
+  is the test that notices.
+- **Renamed.** This package was published as `@geml/dsh-plugin` up to 1.0.4. The
+  first release under the new name should be followed by `npm deprecate
+  @geml/dsh-plugin "renamed to @geml/agent-runtime"`, and by a PR to
+  awesome-dsh-plugin moving the entry to the new path — the listing is keyed on
+  `integrations/dsh-plugin`, which no longer exists.
+- **Confirm.** `npm view @geml/agent-runtime version`.
 
 ## Agent markets — one manifest per vendor
 
@@ -188,7 +205,7 @@ the listings do not.
 | Vendor | What it reads | How a listing is granted | Status |
 | --- | --- | --- | --- |
 | Claude Code · Codex | `integrations/claude-plugin` and `integrations/codex-plugin`, via the two root marketplace manifests | none — this repository IS the marketplace | live; see the plugins section above |
-| DSH | `integrations/dsh-plugin` on npm; the GUI market indexes GitHub topics `dsh-plugin`, `agent-skills`, `claude-skills` | the awesome-dsh-plugin PR (accepted, #1310), plus those topics | live; see the dsh section above |
+| DSH | `integrations/geml-agent-runtime` on npm; the GUI market indexes GitHub topics `dsh-plugin`, `agent-skills`, `claude-skills` | the awesome-dsh-plugin PR (accepted, #1310), plus those topics | live; see the dsh section above |
 | Gemini CLI | `gemini-extension.json` — the crawler requires it in the ABSOLUTE root of the repository or the release archive, never a subdirectory | no application at all: add the `gemini-cli-extension` topic and the gallery crawler finds and validates the repo | manifest and topic in place 2026-09-03; NOT yet confirmed in the gallery |
 | Grok (xAI) | `integrations/grok-plugin` — `.mcp.json`, `.grok-plugin/plugin.json`, `skills/` | a pull request to xai-org/plugin-marketplace that vendors the directory into `external_plugins/` and adds an entry to their `.grok-plugin/marketplace.json`; their validator runs in CI and a code owner reviews | files ready, entry drafted; PR NOT OPENED — `integrations/grok-plugin/SUBMISSION.md` |
 | Kimi Code | `kimi.plugin.json` at the repository root | a listing request on forum.moonshot.ai; the official and curated catalogs are Moonshot's own | manifest in place; listing NOT REQUESTED |

@@ -1,0 +1,69 @@
+=== meta
+title   = "Refund approval"
+profile = "geml-agent/v1"
+tools   = "read_file grep"
+===
+
+=== agent-vars {#vars}
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "order":    { "type": "string",  "description": "Order id" },
+    "amount":   { "type": "number",  "default": 0 },
+    "approved": { "type": "boolean", "default": false }
+  }
+}
+===
+
+=== agent-state {#intake initial vars="order amount"}
+Collect the order id and the refund amount from the user. Do not judge yet.
+===
+
+=== agent-state {#review vars="approved"}
+Check the order against the refund policy in [[#policy]]. Set `approved`, then move on.
+===
+
+=== agent-state {#pay tools="pay_refund" vars=none rollback-on-error}
+Execute the refund exactly once. If the tool fails, the variables roll back to this state's entry.
+===
+
+=== agent-state {#wait-human pause}
+Amounts above the threshold need a human. Nothing to do until they answer.
+===
+
+=== agent-state {#done final}
+Summarize what happened and stop.
+===
+
+=== data {#has-order format=json}
+{ "type": "object", "required": ["order", "amount"] }
+===
+
+=== data {#is-approved format=json}
+{ "type": "object", "required": ["approved"], "properties": { "approved": { "const": true } } }
+===
+
+=== agent-transition {#to-review from=#intake to=#review requires=#has-order}
+The order id and the amount are known.
+===
+
+=== agent-transition {#to-pay from=#review to=#pay requires=#is-approved approval}
+Policy allows the refund. A human must approve this step.
+===
+
+=== agent-transition {#to-wait from=#review to=#wait-human}
+The amount is above the threshold; hand over to a human.
+===
+
+=== agent-transition {#resume-pay from=#wait-human to=#pay requires=#is-approved}
+The human confirmed.
+===
+
+=== agent-transition {#finish from=#pay to=#done}
+The refund went through.
+===
+
+## Refund policy {#policy}
+
+Refunds under 200 need no approval. Above that, a human confirms.
