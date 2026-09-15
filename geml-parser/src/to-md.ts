@@ -176,7 +176,10 @@ function attr(b: Extract<Block, { kind: "block" }>, key: string): string | undef
 function typedToMd(b: Extract<Block, { kind: "block" }>, ctx: MdCtx): string {
   if (b.hidden) { ctx.notes.add("`{hidden}` block(s) dropped (not part of the rendered output)"); return ""; }
 
-  if (b.mode === "flow") {
+  // A prose body (GEP-0013) projects like a flow one: its children are
+  // paragraphs, and a prose block is prose, so it lands as plain paragraphs
+  // rather than in the raw-fence path below.
+  if (b.mode === "flow" || b.mode === "prose") {
     // A note the author marked `.footnote` projects to a Markdown footnote
     // definition. The parser no longer synthesizes this class — the `[^id]: text`
     // definition line was withdrawn from §5.2 — but an author still writes it,

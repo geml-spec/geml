@@ -60,7 +60,7 @@ export function reLit(s: string): string {
 // Model
 // ---------------------------------------------------------------------------
 
-export type BodyMode = "raw" | "flow" | "data";
+export type BodyMode = "raw" | "flow" | "data" | "prose";
 
 // GEP-0005: the value tree a `data` block's format engine parses its body
 // into — exactly JSON's value domain, which is also why `json` is the type's
@@ -172,6 +172,20 @@ export interface Document {
 // Optional hook for resolving cross-document references (other.geml#id) at
 // build time. Returns the target file's source, or null if it cannot be found.
 export interface ParseOptions {
+  /**
+   * The vocabulary this text is read under, when the caller is parsing a SLICE
+   * of a document whose `=== meta` it already read. §8.6.2 rule 2 forbids
+   * INFERRING a vocabulary from content or file name; this is not an inference
+   * — it is the declaration of the very document the slice came from, carried
+   * across a cut that would otherwise drop it. Without it, expanding
+   * `![[#x]]` to Markdown re-parsed the target block's bytes alone, and every
+   * vocabulary type in it came back `unknown-block-type` and `raw`: a
+   * `media-text` paragraph rendered as an empty fenced code block.
+   *
+   * Cross-document expansion never needed it — there the whole target document
+   * is parsed, `=== meta` and all.
+   */
+  vocab?: Vocabulary;
   resolveDoc?: (doc: string) => string | null;
   // Does this target exist at all, even though `resolveDoc` could read no text
   // from it? Only link checking asks — a link to a directory is ordinary and
@@ -1106,7 +1120,9 @@ function readFencedBlock(
 
   if (type === "embed") recordEmbedSrc(block, attrs, body, openLineNo, ctx);
 
-  if (mode === "flow") {
+  if (mode === "prose") {
+    block.children = scanProse(body, base + i + 1, ctx);
+  } else if (mode === "flow") {
     if (depth >= MAX_NESTING) {
       // Refuse to recurse past the cap: emit a diagnostic and keep the body
       // as raw so the parser returns cleanly instead of overflowing the
@@ -1149,6 +1165,39 @@ function backtickShield(lines: string[]): Set<number> {
     open = -1;
   }
   return out;
+}
+
+/**
+ * A prose body (GEP-0013): paragraphs and inline content, and nothing else.
+ *
+ * The difference from `flow` is the whole point of the mode. A vocabulary may
+ * declare this one and only this one, because §8.6.2 rule 4 promises that
+ * admission does not change the SET OF ADDRESSABLE UNITS — and a body that can
+ * hold a block can hold an id, which would make an address appear or disappear
+ * with the reader's vocabulary list. So no line in here is a construct: a fence
+ * head, a heading, a list marker and a `%%` line are all just text. What a
+ * processor that does not recognize the vocabulary reads as one raw run, a
+ * processor that does reads as paragraphs of the same bytes, and both see
+ * exactly one address: the block's own.
+ */
+function scanProse(lines: string[], base: number, ctx: Ctx): Block[] {
+  const blocks: Block[] = [];
+  let para: string[] = [];
+  let start = 0;
+  const flush = (): void => {
+    if (para.length === 0) return;
+    const text = interpolate(para.join("\n"), base + start, ctx);
+    blocks.push({ kind: "paragraph", text, inlines: parseInline(text, base + start, ctx) });
+    para = [];
+  };
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
+    if (line.trim() === "") { flush(); continue; }
+    if (para.length === 0) start = i;
+    para.push(line);
+  }
+  flush();
+  return blocks;
 }
 
 function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[] {
@@ -1877,6 +1926,15 @@ function gatherIds(source: string): Set<string> {
 // document also defined at top level warned `duplicate-meta-key` against a
 // definition that does not exist. Closing is fenceClose's job too now, so a
 // `=== meta {#m}` may close on its labeled fence `=== #m` like any other block.
+/**
+ * The vocabulary a document's own `=== meta` declares. For a caller that is
+ * about to parse a SLICE of that document and must not lose the declaration
+ * across the cut (ParseOptions.vocab).
+ */
+export function vocabularyOf(source: string): Vocabulary {
+  return vocabularyFor(collectMeta(normalizeSource(source).split("\n")));
+}
+
 function collectMeta(lines: string[], diags?: Ctx["diags"]): Map<string, string> {
   const meta = new Map<string, string>();
   const firstLine = new Map<string, number>(); // key → 1-based line of the defining fence
@@ -2398,7 +2456,7 @@ export function parse(source: string, opts: ParseOptions = {}): Document {
   const lines = normalizeSource(source).split("\n");
   const diags: Ctx["diags"] = [];
   const meta = collectMeta(lines, diags);
-  const ctx: Ctx = { diags, ids: new Map(), refs: [], meta, vocab: vocabularyFor(meta), resolveDoc: opts.resolveDoc };
+  const ctx: Ctx = { diags, ids: new Map(), refs: [], meta, vocab: opts.vocab ?? vocabularyFor(meta), resolveDoc: opts.resolveDoc };
   const children = scanBlocks(lines, 0, ctx);
   // Before validateRefs: a reference may name a prose run (GEP 0010), and §8.2(5)
   // would otherwise make it an error in this processor and not in another.

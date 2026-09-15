@@ -27,13 +27,14 @@ export interface ProfileDef {
   /** 逐块类型额外放行的属性键 */
   attrs?: Record<string, string[]>;
   /** 这些类型的体怎么解析（默认 raw）。`flow` = 体里还能有块。 */
-  bodies?: Record<string, "raw" | "flow" | "data">;
+  bodies?: Record<string, "raw" | "flow" | "data" | "prose">;
   /**
    * **散文类型**：这些类型和核心 `text` 一样装散文，因此拿到核心今天只给 `text`
    * 的那几项待遇 —— 可以做 `![[…]]` 的目标、`--to md` 投成段落而不是引用块、
-   * `--to html` 渲成同一种容器。**蕴含 `bodies: flow`**（散文要装段落），不必声明两遍。
+   * `--to html` 渲成同一种容器。**蕴含 `bodies: prose`**（GEP-0013），不必声明两遍。
    *
-   * 与 `bodies: flow` 不是一回事：`form`/`form-group` 是 flow 的**容器**，它们不该
+   * 与 `bodies: flow` 不是一回事，而这正是 GEP-0013 的分界：`form`/`form-group` 是 flow 的
+   * **容器**（体里装带 id 的块，放行它们会让地址集随词汇表变化，规则 4 正为此存在）。它们不该
    * 能被行内投射、也不该渲染成一段话。所以两个轴分开声明，谁也顶替不了谁。
    */
   prose?: string[];
@@ -118,6 +119,33 @@ export const PROFILES: Record<string, ProfileDef> = {
       "form-options": ["format", "delim", "header", "src"],
     },
   },
+  // spec/profiles/geml-media/geml-media-profile.md —— 素材、剪辑与生成血缘。
+  //
+  // 三个类型，不是两个：`media-text` 是剧本层的散文块（外貌、提示词、台词），
+  // 它就是「`text` 加五个键」。为什么不直接在核心 `text` 上放行那五个键：那样键
+  // 跟着**文档**走，声明了 profile 的文档里每个 `text` 块都合法；挂在自己的类型上
+  // 则跟着**类型**走。代价是核心把 `text` 当特权类型的那几处要认得它 —— 所以有
+  // `prose`，没有它 `![[#hero-look]]` 这样的投射会直接报
+  // inline-transclusion-not-inline，而那是这份 profile 最核心的机制。
+  //
+  // 属性表是**闭集**（登记了 attrs 就会被查拼写）。这三个类型的键全部来自设计稿
+  // §5，按 P0 用例（playground/geml-media-ep01）跑过一遍。
+  "geml-media/v1": {
+    types: ["media-asset", "media-clip", "media-text"],
+    prose: ["media-text"],
+    attrs: {
+      // §5.1 一个文件。`of` 说这份素材画的是谁，`role` 说它在生成里当什么用 ——
+      // 没有这两个，「林夏的三视图是哪张」只能靠文件名猜。
+      "media-asset": ["src", "sha256", "kind", "duration", "fps", "size",
+        "origin", "license", "mime", "of", "role"],
+      // §5.2 一个片段。`track` 必填，轨道的种类由 meta.tracks 的「名字:种类」给出。
+      "media-clip": ["track", "src", "in", "out", "dur", "over", "offset", "at",
+        "transition-in", "transition-out", "transition-dur",
+        "gain", "fade-in", "fade-out", "speed", "xywh"],
+      // §5.4 剧本层。`speaker` 必填；`shot` 把提示词钉到分镜表的镜号上。
+      "media-text": ["shot", "speaker", "to", "emotion", "since"],
+    },
+  },
   // spec/profiles/geml-history/geml-history-profile.md
   // （语义是规范性的，在 spec/profiles/geml-history/geml-history-profile.md）—— `.gemlhistory` 边车自己的词汇表。它是一份
   // 姊妹**规范**的产物，不是第三方扩展，但同样必须声明：核心注册表只认 §3 的
@@ -145,7 +173,7 @@ export interface Vocabulary {
    * 这个 profile 的类型各自的体怎么解析（`flow` = 里面还能有块）。默认 `raw`。
    * 名字只影响诊断，体模式影响**解析结果** —— 所以它必须写出来，不能靠猜。
    */
-  bodies: Map<string, "raw" | "flow" | "data">;
+  bodies: Map<string, "raw" | "flow" | "data" | "prose">;
   /** 放行的 `diagram` format 名（§8.6.1） */
   formats: Set<string>;
   /** 散文类型：和核心 `text` 同待遇（见 ProfileDef.prose） */
@@ -162,7 +190,7 @@ export function vocabularyFor(meta: Map<string, string>): Vocabulary {
   const types = new Set<string>();
   const attrs = new Map<string, Set<string>>();
   const formats = new Set<string>();
-  const bodies = new Map<string, "raw" | "flow" | "data">();
+  const bodies = new Map<string, "raw" | "flow" | "data" | "prose">();
   const prose = new Set<string>();
   for (const [name, def] of Object.entries(PROFILES)) {
     if (!declared.has(name)) continue;
@@ -171,7 +199,7 @@ export function vocabularyFor(meta: Map<string, string>): Vocabulary {
     for (const [t, m] of Object.entries(def.bodies ?? {})) bodies.set(t, m);
     // `prose` 蕴含 flow：散文要装段落。显式的 bodies 优先，所以把一个 prose 类型
     // 声明成 raw 是说得出口的 —— 那是自相矛盾，由注册表自己的测试挡，不在这里猜。
-    for (const t of def.prose ?? []) { prose.add(t); if (!bodies.has(t)) bodies.set(t, "flow"); }
+    for (const t of def.prose ?? []) { prose.add(t); if (!bodies.has(t)) bodies.set(t, "prose"); }
     for (const [type, keys] of Object.entries(def.attrs ?? {})) {
       let set = attrs.get(type);
       if (set === undefined) { set = new Set<string>(); attrs.set(type, set); }
