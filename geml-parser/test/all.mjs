@@ -40,7 +40,7 @@ const suites = [
   "m2", "emphasis-atoms", "m3", "m4", "convert", "fixtures", "features", "render",
   "view-block",
   "conformance", "profile-conformance", "second-impl", "roundtrip", "to-md", "history",
-  "render-html", "codemap", "cli", "skill-install", "get-set", "replace", "find", "projection-refusals", "view-depth", "block-edit", "add", "delete", "rename", "revert", "to", "language-projection",
+  "render-html", "codemap", "treesitter", "cli", "skill-install", "get-set", "replace", "find", "projection-refusals", "view-depth", "block-edit", "add", "delete", "rename", "revert", "to", "language-projection",
   // branch-coverage suites: each targets the uncovered arms of one file
   // cluster (converters, render.js, history+CLI, codemap scripts/adapters,
   // serve, and both MCP servers) — kept separate from the feature suites they
@@ -66,7 +66,7 @@ const suites = [
   // the yaml engine for `data` bodies: the subset it reads, and the refusals
   "yaml",
   // `geml mcp` — the document-CRUD MCP server (nine tools, confined root)
-  "mcp", "verbs", "host-fs",
+  "mcp", "mcp-inline", "verbs", "host-fs", "mcp-protocol",
   // security-audit regression suites: assert the fixed secure behavior
   // (XSS/DoS/RCE/injection/path-traversal) so the holes can't silently reopen.
   "sec-parser", "sec-codemap", "sec-integrations", "sec-embed",

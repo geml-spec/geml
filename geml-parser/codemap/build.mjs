@@ -33,6 +33,9 @@
 //          honestly labelled resolution:"heuristic")           [P0, default]
 //   joern  Joern CPG export: run geml-parser/codemap/joern-export.sc inside
 //          joern first; --raw points at its outDir              [P1]
+//   treesitter  syntax-only fallback (Zig first): run
+//          geml-parser/codemap/treesitter-export.mjs under npx first;
+//          --raw points at its output dir; every edge is heuristic
 //
 // After building, run:  geml codemap verify <out-dir>
 import { writeFileSync, mkdirSync, existsSync, readFileSync, statSync } from "node:fs";
@@ -88,7 +91,7 @@ function deriveRepoName(rootAbs, explicit) {
 
 const USAGE = [
   "usage: geml codemap build [--root <repo-root>]   # auto-detect languages, index, and merge (--root defaults to the current directory)",
-  "   or: geml codemap build (--db <graph.db> | --adapter joern|scip --raw <dir|index.scip> [--remap <virtual-dir>])+  [--root <repo-root>] [--repo-name <name>] [--out .geml-code-graph] [--build .geml-code-graph/_build] [--container module|dir|file] [--lang <LANG>] [--joern <path>] [--exclude <glob>]... [--no-gitignore] [--history [-m msg]]",
+  "   or: geml codemap build (--db <graph.db> | --adapter joern|scip|treesitter --raw <dir|index.scip> [--remap <virtual-dir>])+  [--root <repo-root>] [--repo-name <name>] [--out .geml-code-graph] [--build .geml-code-graph/_build] [--container module|dir|file] [--lang <LANG>] [--joern <path>] [--exclude <glob>]... [--no-gitignore] [--history [-m msg]]",
 ].join("\n");
 if (args.includes("--help") || args.includes("-h")) { console.log(USAGE); process.exit(0); }
 
@@ -156,8 +159,9 @@ if (root && !inputs.length) {
 
   if (!jobs.length) {
     console.error(`could not auto-detect a supported language under ${rootAbs}.`);
-    console.error("supported: TypeScript/JS, Rust (scip); Java, C, Python, Go, Kotlin (joern).");
-    console.error("pass an explicit --adapter scip|joern --raw <in> or --db <graph.db> instead (geml codemap build --help).");
+    console.error("supported: TypeScript/JS, Rust (scip); Java, C, Python, Go, Kotlin (joern); Zig (tree-sitter, heuristic).");
+    console.error("Scala: not auto-built — index it with scip-java 0.12.3 `index-semanticdb`, then pass --adapter scip --raw index.scip (see the geml-code-graph skill).");
+    console.error("pass an explicit --adapter scip|joern|treesitter --raw <in> or --db <graph.db> instead (geml codemap build --help).");
     process.exit(1);
   }
 
@@ -271,6 +275,8 @@ if (root && !inputs.length) {
   const scriptPosix = scriptPath.replace(/\\/g, "/");
   const sfcScript = resolve(dirname(fileURLToPath(import.meta.url)), "sfc-virtualize.mjs");
   const sfcScriptPosix = sfcScript.replace(/\\/g, "/");
+  const tsScript = resolve(dirname(fileURLToPath(import.meta.url)), "treesitter-export.mjs");
+  const tsScriptPosix = tsScript.replace(/\\/g, "/");
   const relToRoot = (p) => (relative(rootAbs, p).replace(/\\/g, "/") || ".");
   mkdirSync(buildDir, { recursive: true });
   // Structured recipe steps { cwd?, env?, argv:[...] } (security fix R2-1).
@@ -290,7 +296,7 @@ if (root && !inputs.length) {
   console.error("indexing...");
   const failedLangs = [];
   for (const job of jobs) {
-    let cmd = indexerCommand(job, { root: rootAbs, buildDir, scriptPath, sfcScript });
+    let cmd = indexerCommand(job, { root: rootAbs, buildDir, scriptPath, sfcScript, tsScript, excludeGlobs: excludeGlobs0, gitignore: !args.includes("--no-gitignore") });
     let preStep = null;
     if (cmd.pre) {
       // SFC job: run the virtualizer first. If it fails (offline npx, exotic
@@ -306,7 +312,7 @@ if (root && !inputs.length) {
           + `(${pr.error ? pr.error.message : `exit ${pr.status}`}) — falling back to plain TS indexing; `
           + ".vue/.svelte files stay invisible until this is fixed and build re-runs.",
         );
-        cmd = indexerCommand({ ...job, sfc: undefined }, { root: rootAbs, buildDir, scriptPath, sfcScript });
+        cmd = indexerCommand({ ...job, sfc: undefined }, { root: rootAbs, buildDir, scriptPath, sfcScript, tsScript, excludeGlobs: excludeGlobs0, gitignore: !args.includes("--no-gitignore") });
       } else {
         // Runs at root (cmd.pre.cwd === root), so no cwd; the virtualizer reads
         // GEML_SRC/GEML_OUT (relative to root) from env. argv[-1] is the script
@@ -350,6 +356,15 @@ if (root && !inputs.length) {
         ? [...cmd.argv.slice(0, -1), relRaw]
         : ["rust-analyzer", "scip", ".", "--output", relRaw];
       indexSteps.push(step);
+    } else if (job.indexer === "treesitter") {
+      // The export runs at the root via npx (cmd.cwd === root): env paths
+      // re-based on the root, script recorded in forward-slash form — the same
+      // shape as the SFC virtualizer's pre-step. envOf drops the unset keys.
+      const relRaw = relative(rootAbs, cmd.raw).replace(/\\/g, "/");
+      indexSteps.push({
+        env: envOf({ GEML_SRC: ".", GEML_OUT: relRaw, GEML_LANG: job.tsLang, GEML_EXCLUDE: cmd.env.GEML_EXCLUDE, GEML_NO_GITIGNORE: cmd.env.GEML_NO_GITIGNORE }),
+        argv: [...cmd.argv.slice(0, -1), tsScriptPosix],
+      });
     } else {
       // Joern replays IN the build dir (cmd.cwd), so its workspace cache lands
       // under _build/ on refresh too — not at the repo root. Re-base the env
@@ -377,7 +392,7 @@ if (root && !inputs.length) {
   recordRecipe = { rootAbs, indexSteps };
 }
 
-const bad = inputs.find((s) => !["crg", "joern", "scip"].includes(s.adapter) || (s.adapter === "crg" ? !s.db : !s.raw));
+const bad = inputs.find((s) => !["crg", "joern", "scip", "treesitter"].includes(s.adapter) || (s.adapter === "crg" ? !s.db : !s.raw));
 if (!inputs.length || bad) {
   console.error(USAGE);
   process.exit(2);

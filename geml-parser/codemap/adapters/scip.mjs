@@ -130,15 +130,30 @@ function parseScip(path) {
 }
 
 // ---- SCIP symbol grammar helpers -------------------------------------------
-// Two producers, two symbol grammars behind the shared SCIP header
+// Three producers, three symbol grammars behind the shared SCIP header
 // "<scheme> <manager> <package> <version> <descriptors>":
 //   scip-typescript  "scip-typescript npm @geml/geml 1.0.0 src/`geml.ts`/parse()."
 //   rust-analyzer    "rust-analyzer cargo spike 0.1.0 util/multiply()."
 //                    "rust-analyzer cargo spike 0.1.0 impl#[Widget]new()."
 //                    "rust-analyzer cargo core https://… ops/arith/impl#[u32][`Mul<Self>`]mul()."
-const isFuncSym = (s) => s.endsWith("().");
+//   semanticdb       "semanticdb maven . . demo/App.run()."           (scip-java: Scala, Java, Kotlin)
+//                    "semanticdb maven . . demo/Util.shout(+1)."      (overload — `(+N)` disambiguator)
+//                    "semanticdb maven . . demo/Counter#`<init>`()."  (constructor)
+// A method descriptor is `name(<disambiguator>).` — empty for the first
+// overload, `+1`, `+2`, … for the rest. JVM languages overload freely
+// (scip-typescript and rust-analyzer never emit a disambiguator), so matching
+// the bare `().` would silently DROP every overloaded method and every call
+// to one — `println(+1).` included.
+const isFuncSym = (s) => s.endsWith(").");
 const isRustSym = (s) => s.startsWith("rust-analyzer ");
-const langOf = (s) => (isRustSym(s) ? "rust" : "typescript");
+const isSemanticdbSym = (s) => s.startsWith("semanticdb ");
+// The semanticdb scheme spans several JVM languages under one producer, so its
+// language is the defining FILE's; the other two schemes are single-language.
+const JVM_LANG_BY_EXT = { scala: "scala", sc: "scala", java: "java", kt: "kotlin", kts: "kotlin" };
+const langOf = (s, file = "") =>
+  isRustSym(s) ? "rust"
+    : isSemanticdbSym(s) ? (JVM_LANG_BY_EXT[file.slice(file.lastIndexOf(".") + 1).toLowerCase()] ?? "jvm")
+    : "typescript";
 // Term descriptor (`name.`): a const/property binding. scip-typescript gives
 // `const Foo = () => …` — the dominant React component form — a TERM symbol,
 // not a method one, so `().` alone would leave arrow components (and every
@@ -148,7 +163,7 @@ const langOf = (s) => (isRustSym(s) ? "rust" : "typescript");
 // () =>` carries one; object-literal consts, `createContext(...)` results and
 // interface members carry none). Rust symbols are excluded — rust closures
 // are locals and rust-analyzer's const semantics are unverified here.
-const isTermSym = (s) => s.endsWith(".") && !s.endsWith("().");
+const isTermSym = (s) => s.endsWith(".") && !isFuncSym(s);
 const isArrowFnDef = (o) => isTermSym(o.symbol) && !isRustSym(o.symbol) && o.enclosing.length > 0;
 
 // Descriptor tail: everything after the 4-token header. The version slot may
@@ -221,9 +236,30 @@ const rustNameOf = (s) => {
   return owner ? `${owner}::${ds[mi].name}` : ds[mi].name;
 };
 
-// Exported for tests: pure string → display name across both grammars.
+// semanticdb display names: a member reads Owner.name, where Owner is the
+// nearest enclosing TYPE (`Counter#`) or TERM (`App.` — a Scala object or
+// companion) scope; a package-level def keeps its plain name. The overload
+// disambiguator is not part of the name (both `shout` overloads read
+// `Util.shout`; their anchors stay distinct), and `<init>` reads `new`, as
+// the TS grammar's constructors do.
+const semanticdbNameOf = (s) => {
+  const ds = parseDescriptors(descriptorTail(s));
+  let mi = -1;
+  for (let j = ds.length - 1; j >= 0; j--) if (ds[j].kind === "method") { mi = j; break; }
+  if (mi < 0) return ds.at(-1)?.name || s.split("/").pop() || s;
+  const member = ds[mi].name === "<init>" ? "new" : ds[mi].name;
+  for (let j = mi - 1; j >= 0; j--) {
+    const x = ds[j];
+    if (x.kind === "type" || x.kind === "term") return `${x.name}.${member}`;
+    if (x.kind === "ns") break; // reached the package path — a top-level def
+  }
+  return member;
+};
+
+// Exported for tests: pure string → display name across the three grammars.
 export const nameOf = (s) => {
   if (isRustSym(s)) return rustNameOf(s);
+  if (isSemanticdbSym(s)) return semanticdbNameOf(s);
   // Class members read class-qualified (`RenderCtx.block`), constructors as
   // `Cls.new` — free functions (no `Owner#` scope) keep their plain name.
   if (/`?<constructor>`?\(\)\.$/.test(s)) {
@@ -540,9 +576,10 @@ export function extract({ raw: scipPath, root, remapDir }) {
   // must not emit edges to/from a definition that was dropped as generated.
   const survivors = new Set();
   for (const [sym, v] of defs) {
-    // lang follows the producing indexer's symbol scheme, so a merged
-    // TS + Rust codemap keeps each definition honestly labelled.
-    const lang = langOf(sym);
+    // lang follows the producing indexer's symbol scheme (and, for the
+    // multi-language semanticdb scheme, the defining file), so a merged
+    // TS + Rust + Scala codemap keeps each definition honestly labelled.
+    const lang = langOf(sym, v.file);
     let file = v.file, line_start = v.line_start, line_end = v.line_end;
     const info = sfc?.bySh.get(v.file);
     if (info) {

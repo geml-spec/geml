@@ -61,37 +61,13 @@ import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync, copyFi
 import { join, dirname, relative, resolve, basename, delimiter } from "node:path";
 import { createRequire } from "node:module";
 import { SKIP_DIRS } from "./detect.mjs";
+import { makeNpxResolver } from "./npx-require.mjs";
 
 const posix = (p) => p.replace(/\\/g, "/");
 
 // ---- library resolution (npx -p → project → this script) -------------------
-function makeResolver(srcAbs) {
-  const requires = [];
-  const npxBin = (process.env.PATH ?? "")
-    .split(delimiter)
-    .find((p) => /[\\/]_npx[\\/]/.test(p) && /[\\/]\.bin[\\/]?$/.test(p));
-  if (npxBin) {
-    try { requires.push(createRequire(join(npxBin.replace(/[\\/]\.bin[\\/]?$/, ""), "x.js"))); } catch { /* malformed PATH entry */ }
-  }
-  for (let d = srcAbs; ; ) {
-    if (existsSync(join(d, "node_modules"))) {
-      try { requires.push(createRequire(join(d, "node_modules", "x.js"))); } catch { /* keep walking */ }
-    }
-    const up = dirname(d);
-    if (up === d) break;
-    d = up;
-  }
-  try { requires.push(createRequire(import.meta.url)); } catch { /* no local context */ }
-  const lib = (name) => {
-    for (const r of requires) { try { return r(name); } catch { /* next origin */ } }
-    return null;
-  };
-  lib.path = (name) => {
-    for (const r of requires) { try { return r.resolve(name); } catch { /* next origin */ } }
-    return null;
-  };
-  return lib;
-}
+// Shared with the tree-sitter export: codemap/npx-require.mjs.
+const makeResolver = (srcAbs) => makeNpxResolver(srcAbs, import.meta.url);
 
 // ---- shared line helpers ----------------------------------------------------
 // offset -> 0-based line, O(log n) over precomputed line starts.

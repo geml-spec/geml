@@ -4,14 +4,13 @@
 // which documents can be searched — and this module supplies everything else:
 // the eleven tools' names, descriptions and schemas, the write pipeline that
 // validates a result before the host sees it, and the newline-delimited
-// JSON-RPC 2.0 handling the stdio server speaks.
+// JSON-RPC 2.0 handling both transports speak.
 //
-// One host exists today: mcp.ts binds a confined root directory on disk (the
+// Two hosts exist today. mcp.ts binds a confined root directory on disk (the
 // `geml mcp` stdio server: `file` is a path under `--root`, a write is saved
-// to `.gemlhistory` and then to the file). The seam is drawn so that a host
-// which keeps no files at all — the document travelling in the call, a write
-// coming back in the result — needs nothing from this module but a second
-// `McpHost`.
+// to `.gemlhistory` and then to the file). `inlineHost()` below binds nothing:
+// the document travels in `source` and a write comes back as `document`, which
+// is what a stateless HTTP server hands a client that keeps its own files.
 //
 // The verbs run IN-PROCESS (verbs.ts). Until this module existed the server
 // started a CLI child per tool call and fished a JSON frame out of its stderr;
@@ -20,8 +19,8 @@
 // call.
 import { type Diagnostic, type ParseOptions, parse, PARSER_VERSION } from "./geml.js";
 import {
-  type Content, type FindHit, type HistoryReader, type InFmt, type OutFmt, type VerbContext,
-  VerbError, add, del, formatFindRows, get, list, rename, revert, set, transform,
+  type Content, type DocOpts, type FindHit, type HistoryReader, type InFmt, type OutFmt, type VerbContext,
+  VerbError, add, del, findInSource, formatFindRows, get, list, rename, revert, set, transform,
 } from "./verbs.js";
 
 // One version for the whole package: `geml --version` and the MCP handshake
@@ -534,12 +533,78 @@ export function toolsFor(host: McpHost): Tool[] {
 }
 
 // ---------------------------------------------------------------------------
-// newline-delimited JSON-RPC 2.0
+// The inline host: documents travel with the call
 // ---------------------------------------------------------------------------
 
-const ok = (id: unknown, result: unknown): Record<string, unknown> => ({ jsonrpc: "2.0", id, result });
-const err = (id: unknown, code: number, message: string): Record<string, unknown> =>
-  ({ jsonrpc: "2.0", id, error: { code, message } });
+/**
+ * A host that keeps nothing. Every tool takes the document as `source` (and
+ * an optional `name`), a write comes back in the result as `document`, and no
+ * other document exists — so a cross-document reference is unresolvable here,
+ * and `geml_history` / `geml_revert` are not served.
+ */
+export function inlineHost(): McpHost {
+  const none: DocOpts = { resolveDoc: () => null, docExists: () => false };
+  const ctx: VerbContext = { docOpts: () => none, note: () => {} };
+  const openInline = (args: Record<string, any>): OpenedDoc => {
+    if (typeof args.source !== "string") throw new Error("`source` is required: the document's text");
+    const name = typeof args.name === "string" && args.name.trim() !== "" ? args.name.trim() : "document.geml";
+    return { text: args.source, file: name, label: name, ctx, validate: none };
+  };
+  return {
+    docArg: "inline",
+    docNote: " This server is STATELESS: the document travels in `source` and a write comes back as `document` for you to save; it holds no other documents, so a cross-document reference such as `[[other.geml#id]]` cannot be resolved here and is reported as `unresolvable-document`.",
+    unchangedHint: "The write was refused; no document was returned, so the text you sent is still the document.",
+    open: openInline,
+    write: (_doc, text) => ({ document: text }),
+    find(args) {
+      const doc = openInline(args);
+      return findInSource(doc.text, doc.file, String(args.pattern), { sensitive: !!args.case, withLine: !!args.head });
+    },
+    checkOpts: () => none,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// JSON-RPC 2.0, in two eras
+// ---------------------------------------------------------------------------
+
+// MCP changed shape in revision 2026-07-28 (SEP-2575 / SEP-2567): no `initialize`
+// handshake, no session, every request carries its protocol version and the
+// client's capabilities in `params._meta`, servers implement `server/discover`,
+// every result says `resultType: "complete"`. The spec names the two shapes
+// "legacy" (2025-11-25 and earlier) and "modern", and allows one server to
+// serve both — which this does, per message: a `_meta` protocol version makes
+// a message modern; anything else, `initialize` included, is legacy and is
+// answered exactly as before.
+export const LEGACY_VERSIONS: readonly string[] = ["2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25"];
+export const MODERN_VERSIONS: readonly string[] = ["2026-07-28"];
+export type Era = "legacy" | "modern";
+
+const META_VERSION = "io.modelcontextprotocol/protocolVersion";
+const META_CAPABILITIES = "io.modelcontextprotocol/clientCapabilities";
+const META_SERVER_INFO = "io.modelcontextprotocol/serverInfo";
+export const SERVER_INFO = { name: "geml", version: SERVER_VERSION };
+/** How long a client may cache `tools/list` and `server/discover`: the roster changes only with a release. */
+export const TOOLS_TTL_MS = 3_600_000;
+const INSTRUCTIONS =
+  "GEML documents, edited one block at a time. Call geml_list first: its addresses are what geml_get and the write tools take. " +
+  "Every write is validated before it lands and refused with diagnostics when it would break the document.";
+
+export function eraOf(msg: unknown): Era {
+  const v = (msg as any)?.params?._meta?.[META_VERSION];
+  return typeof v === "string" ? "modern" : "legacy";
+}
+
+export interface Dispatched {
+  /** The JSON-RPC reply, absent for a notification (there is nothing to send). */
+  reply?: Record<string, unknown>;
+  /** What an HTTP transport answers with; stdio has no use for it. */
+  status: 200 | 202 | 400 | 404;
+}
+
+const ok = (id: unknown, result: unknown): Dispatched => ({ reply: { jsonrpc: "2.0", id, result }, status: 200 });
+const err = (id: unknown, code: number, message: string, status: 200 | 400 | 404, data?: unknown): Dispatched =>
+  ({ reply: { jsonrpc: "2.0", id, error: { code, message, ...(data === undefined ? {} : { data }) } }, status });
 
 function callTool(name: unknown, args: unknown, tools: () => Tool[]): { result: Record<string, unknown> } | { unknown: true } {
   const tool = tools().find((t) => t.name === name);
@@ -555,28 +620,65 @@ function callTool(name: unknown, args: unknown, tools: () => Tool[]): { result: 
   }
 }
 
-/** One parsed JSON-RPC message in; the reply out, or nothing for a notification. */
-export function dispatch(msg: unknown, tools: () => Tool[]): Record<string, unknown> | undefined {
+/** One parsed JSON-RPC message in; zero or one reply out, with the HTTP status a transport would use. */
+export function dispatch(msg: unknown, tools: () => Tool[]): Dispatched {
   const m = msg as any;
   const id = m?.id;
   const method = m?.method;
   const params = m?.params;
-  if (method === "initialize") {
+  // Notifications get no response, in either era.
+  if (typeof method === "string" && method.startsWith("notifications/")) return { status: 202 };
+  if (typeof method !== "string") return err(id ?? null, -32600, "invalid request: `method` is required", 400);
+
+  if (eraOf(m) === "legacy") {
+    if (method === "initialize") {
+      const asked = params?.protocolVersion;
+      // Echo a version this server speaks; a stranger gets the newest legacy
+      // one, and no version at all keeps the oldest — the long-standing answer.
+      const version = asked === undefined ? LEGACY_VERSIONS[0]
+        : LEGACY_VERSIONS.includes(asked) ? asked : LEGACY_VERSIONS[LEGACY_VERSIONS.length - 1];
+      return ok(id, { protocolVersion: version, capabilities: { tools: {} }, serverInfo: SERVER_INFO });
+    }
+    if (method === "ping") return ok(id, {});
+    if (method === "tools/list") return ok(id, { tools: tools().map(({ name, description, inputSchema }) => ({ name, description, inputSchema })) });
+    if (method === "tools/call") {
+      const r = callTool(params?.name, params?.arguments, tools);
+      return "unknown" in r ? err(id, -32602, `unknown tool: ${params?.name}`, 200) : ok(id, r.result);
+    }
+    return err(id, -32601, `method not found: ${method}`, 200);
+  }
+
+  // Modern: the request stands alone. Version and capabilities travel with it,
+  // and a mismatch is answered per request — there is no session to fail.
+  const requested = params._meta[META_VERSION] as string;
+  if (!MODERN_VERSIONS.includes(requested)) {
+    return err(id, -32022, "Unsupported protocol version", 400, { supported: MODERN_VERSIONS, requested });
+  }
+  const caps = params._meta[META_CAPABILITIES];
+  if (typeof caps !== "object" || caps === null) {
+    return err(id, -32602, `invalid params: _meta.${META_CAPABILITIES} is required on every request`, 400);
+  }
+  const meta = { [META_SERVER_INFO]: SERVER_INFO };
+  if (method === "server/discover") {
     return ok(id, {
-      protocolVersion: params?.protocolVersion ?? "2024-11-05",
-      capabilities: { tools: {} },
-      serverInfo: { name: "geml", version: SERVER_VERSION },
+      resultType: "complete", supportedVersions: MODERN_VERSIONS, capabilities: { tools: {} },
+      _meta: meta, instructions: INSTRUCTIONS, ttlMs: TOOLS_TTL_MS, cacheScope: "public",
     });
   }
-  // Notifications get no response.
-  if (typeof method === "string" && method.startsWith("notifications/")) return undefined;
-  if (method === "ping") return ok(id, {});
-  if (method === "tools/list") return ok(id, { tools: tools().map(({ name, description, inputSchema }) => ({ name, description, inputSchema })) });
-  if (method === "tools/call") {
-    const r = callTool(params?.name, params?.arguments, tools);
-    return "unknown" in r ? err(id, -32602, `unknown tool: ${params?.name}`) : ok(id, r.result);
+  if (method === "tools/list") {
+    return ok(id, {
+      resultType: "complete",
+      tools: tools().map(({ name, description, inputSchema }) => ({ name, description, inputSchema })),
+      ttlMs: TOOLS_TTL_MS, cacheScope: "public", _meta: meta,
+    });
   }
-  return id !== undefined ? err(id, -32601, `method not found: ${method}`) : undefined;
+  if (method === "tools/call") {
+    const r = callTool(params.name, params.arguments, tools);
+    return "unknown" in r ? err(id, -32602, `unknown tool: ${params.name}`, 200) : ok(id, { resultType: "complete", ...r.result, _meta: meta });
+  }
+  // Unknown method — `initialize` and `ping` included. A legacy client that
+  // somehow arrives here has no fall-forward, so name the versions we speak.
+  return err(id, -32601, `method not found: ${method} (this server speaks MCP ${MODERN_VERSIONS.join(", ")}, and ${LEGACY_VERSIONS.join(", ")} via initialize)`, 404);
 }
 
 /**
@@ -591,8 +693,8 @@ export function createHandler(tools: () => Tool[]): (line: string, write: (s: st
     let msg: any;
     try { msg = JSON.parse(line); } catch { return; }
     try {
-      const reply = dispatch(msg, tools);
-      if (reply) write(JSON.stringify(reply) + "\n");
+      const d = dispatch(msg, tools);
+      if (d.reply) write(JSON.stringify(d.reply) + "\n");
     } catch (e) {
       if (msg?.id !== undefined) write(JSON.stringify({ jsonrpc: "2.0", id: msg.id, error: { code: -32603, message: String((e as Error)?.message ?? e) } }) + "\n");
     }

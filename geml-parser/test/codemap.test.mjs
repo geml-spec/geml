@@ -1472,6 +1472,74 @@ test("scip extract: React fixture — JSX render tree + hook/reducer wiring reso
   assert.ok(!all.some((e) => e.endsWith("->App")), "module-scope render in main.tsx attributes NO caller to App");
 });
 
+// ---- Scala via SCIP (scip-java 0.12.3 `index-semanticdb`) -------------------
+// test/fixtures/scala-app/ is a four-file Scala 3 project (trait dispatch,
+// overloads, companion apply, a cross-file call). Its index.scip is PRE-BAKED
+// and committed — produced with the LAST scip-java that still indexed Scala
+// (0.13 dropped it, 2026-07):
+//   cd test/fixtures/scala-app && mvn -B compile          # -Xsemanticdb via scala-maven-plugin
+//   java -cp <com.sourcegraph:scip-java_2.13:0.12.3 classpath> com.sourcegraph.scip_java.ScipJava \
+//     index-semanticdb --output index.scip target/classes
+// `semanticdb` is the third symbol scheme the adapter reads (after
+// scip-typescript and rust-analyzer); it also covers scip-java's Java/Kotlin.
+
+test("scip nameOf: semanticdb symbols — owner-qualified, overload disambiguator stripped, <init> reads .new", () => {
+  const S = "semanticdb maven . . ";
+  assert.equal(scipNameOf(S + "demo/App.run()."), "App.run", "object (term-scope) method carries its owner");
+  assert.equal(scipNameOf(S + "demo/Util.shout(+1)."), "Util.shout", "overload disambiguator is not part of the name");
+  assert.equal(scipNameOf(S + "demo/Counter#inc()."), "Counter.inc", "class (type-scope) method");
+  assert.equal(scipNameOf(S + "demo/Counter#`<init>`()."), "Counter.new", "constructor, like the TS `Cls.new`");
+  assert.equal(scipNameOf(S + "scala/Predef.println(+1)."), "Predef.println", "external overloaded call, readable");
+  assert.equal(scipNameOf(S + "java/lang/String#`+`()."), "String.+", "backtick-escaped operator method");
+  assert.equal(scipNameOf(S + "demo/App."), "App", "a term symbol with no method reads its own name");
+  assert.equal(scipNameOf(S + "demo/top()."), "top", "a package-level def has no owner");
+});
+
+test("scip extract: Scala fixture — both overloads are nodes, cross-file + dispatch resolve, constructor calls stay a known gap", () => {
+  const fxRoot = join(PKG, "test", "fixtures", "scala-app");
+  const r = scipExtract({ raw: join(fxRoot, "index.scip"), root: fxRoot });
+  assert.ok(r.symbols.length > 0 && r.symbols.every((s) => s.lang === "scala"), "semanticdb index over .scala files -> lang scala (File symbols too)");
+
+  const fns = r.symbols.filter((s) => s.kind === "Function");
+  const named = (n) => fns.filter((s) => s.name === n);
+  assert.equal(named("Util.shout").length, 2, "BOTH overloads are nodes: shout(). and shout(+1). are distinct anchors");
+  for (const n of ["App.run", "App.pick", "App.main", "Counter.apply", "Counter.inc", "Counter.new", "Greeter.greet", "Formal.greet", "Casual.greet"]) {
+    assert.equal(named(n).length, 1, `node '${n}'`);
+  }
+
+  const resolved = r.edges.filter((e) => e.to).map((e) => ({ k: `${scipNameOf(e.from)}->${scipNameOf(e.to)}`, e }));
+  const edge = (k) => resolved.find((x) => x.k === k)?.e;
+  assert.equal(edge("App.run->App.pick")?.confidence, "high", "same-file call");
+  assert.equal(edge("App.main->App.run")?.confidence, "high");
+  assert.equal(edge("App.run->Util.shout")?.confidence, "high", "cross-file call");
+  assert.equal(edge("App.run->Util.shout")?.to, "semanticdb maven . . demo/Util.shout().", "…resolved to the String overload, not the Int one");
+  assert.equal(edge("Util.shout->Util.shout")?.confidence, "high", "the Int overload calling the String overload (caller = the (+1) node)");
+  const g = edge("App.run->Greeter.greet");
+  assert.equal(g?.confidence, "medium", "trait method with two implementations -> dispatch");
+  assert.deepEqual((g?.candidates ?? []).map(scipNameOf).sort(), ["Casual.greet", "Formal.greet"]);
+
+  const unresolved = new Set(r.edges.filter((e) => e.to_text).map((e) => `${scipNameOf(e.from)}->${e.to_text}`));
+  assert.ok(unresolved.has("App.main->Predef.println"), "external OVERLOADED call lands unresolved instead of vanishing");
+
+  // Known gap, pinned: Scala 3 SemanticDB records `new X(...)` as a reference
+  // to the TYPE `X#`, never to `X#<init>` — constructor calls are invisible.
+  // If this assertion ever fails, the producer improved: drop it gladly.
+  assert.ok(!r.edges.some((e) => e.to && scipNameOf(e.to).endsWith(".new")), "no edge reaches a constructor (Scala 3 SemanticDB gap)");
+});
+
+// The user's constraint on adding Scala: Gradle-built Java repos must not
+// change. Regression pin — a build.gradle repo with .java (and a stray .scala)
+// yields exactly the one Joern JAVASRC job it always did.
+test("detect: build.gradle + .java (+ a stray .scala) -> exactly one joern JAVASRC job, unchanged by Scala", () => {
+  const fx = fixture({ "build.gradle": "", "src/main/java/A.java": "class A {}", "src/main/scala/B.scala": "object B" });
+  const jobs = detectLanguages(fx);
+  assert.equal(jobs.length, 1, "one job");
+  assert.equal(jobs[0].indexer, "joern");
+  assert.equal(jobs[0].gemlLang, "JAVASRC");
+  assert.equal(jobs[0].signal, "build.gradle");
+  rmSync(fx, { recursive: true, force: true });
+});
+
 // ---- SFC virtualization (detect flag, indexer command, adapter remap) -------
 
 test("detect: .vue + vue dependency -> the TS job carries sfc:'vue'", () => {

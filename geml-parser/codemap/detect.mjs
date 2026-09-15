@@ -36,6 +36,8 @@ const MANIFEST_LANG = {
   "build.gradle": "Java",
   "build.gradle.kts": "Java",
   "go.mod": "Go",
+  "build.zig": "Zig",
+  "build.zig.zon": "Zig",
 };
 
 // Source extension -> language. scip-typescript indexes JS as well as TS, so
@@ -51,6 +53,7 @@ const EXT_LANG = {
   py: "Python",
   go: "Go",
   kt: "Kotlin",
+  zig: "Zig",
 };
 
 // A path counts as "source" if its extension maps to a language we index. Used
@@ -63,9 +66,10 @@ export const isSourcePath = (p) => {
 
 // Language -> indexer + Joern frontend. scip covers TypeScript/JS (via
 // scip-typescript) and Rust (via rust-analyzer — the SCIP adapter reads both
-// symbol grammars); everything else is a Joern frontend whose --language name
-// (UPPERCASE) we pass as GEML_LANG so a mixed repo never falls back to
-// Joern's majority-language autodetect.
+// symbol grammars); Joern frontends take their --language name (UPPERCASE) as
+// GEML_LANG so a mixed repo never falls back to Joern's majority-language
+// autodetect; treesitter is the syntax-only fallback for languages neither
+// covers (Zig first) — `tsLang` names the profile under codemap/treesitter/.
 export const LANG_JOB = {
   TypeScript: { indexer: "scip", gemlLang: undefined },
   Rust: { indexer: "scip", gemlLang: undefined },
@@ -74,7 +78,15 @@ export const LANG_JOB = {
   Python: { indexer: "joern", gemlLang: "PYTHONSRC" },
   Go: { indexer: "joern", gemlLang: "GO" },
   Kotlin: { indexer: "joern", gemlLang: "KOTLIN" },
+  Zig: { indexer: "treesitter", gemlLang: undefined, tsLang: "zig" },
 };
+
+// The tree-sitter runtime and the all-grammars wasm bundle the build fetches
+// via npx for a treesitter job (also devDependencies, so the suite runs the
+// real grammar). web-tree-sitter is pinned to 0.25.x: the bundle's wasms carry
+// the legacy `dylink` section (built by tree-sitter-cli 0.20); 0.27 accepts
+// only `dylink.0` and refuses them, 0.20–0.25 load both.
+export const TREESITTER_NPX_PKGS = ["web-tree-sitter@0.25.10", "tree-sitter-wasms@0.1.13"];
 
 // A language detected ONLY by file extension (no manifest) must clear a small
 // presence bar, so a stray helper script (one .py in a big TS repo) can't drag
@@ -292,14 +304,15 @@ export function detectLanguages(root, { excluder = () => false, readdir, readJso
       }
       continue;
     }
-    jobs.push({ language, indexer: spec.indexer, adapter: spec.indexer, gemlLang: spec.gemlLang, signal });
+    jobs.push({ language, indexer: spec.indexer, adapter: spec.indexer, gemlLang: spec.gemlLang, ...(spec.tsLang ? { tsLang: spec.tsLang } : {}), signal });
   }
-  // Deterministic order: scip before joern, then by GEML_LANG, then language;
+  // Deterministic order: scip, then joern, then treesitter; then by GEML_LANG, then language;
   // same-language projects DEEPEST subroot first — a nested project's anchors
   // must win collisions with an enclosing one, so the merge keeps the FIRST
   // occurrence, which must be the deeper (more precise) index.
+  const rank = { scip: 0, joern: 1, treesitter: 2 };
   jobs.sort((a, b) =>
-    (a.indexer === b.indexer ? 0 : a.indexer === "scip" ? -1 : 1)
+    ((rank[a.indexer] ?? 9) - (rank[b.indexer] ?? 9))
     || (a.gemlLang ?? "").localeCompare(b.gemlLang ?? "")
     || a.language.localeCompare(b.language)
     || (b.subroot ?? "").length - (a.subroot ?? "").length
@@ -322,12 +335,31 @@ const SFC_NPX_PKGS = {
 //   buildDir    where intermediates land (typically <out>/_build)
 //   scriptPath  resolved path to joern-export.sc
 //   sfcScript   resolved path to sfc-virtualize.mjs (sfc jobs only)
+//   tsScript    resolved path to treesitter-export.mjs (treesitter jobs only)
+//   excludeGlobs, gitignore   the build's exclusion settings — a treesitter
+//               job walks the tree itself, so they ride along in its env
 //
 // An sfc job returns TWO steps: `pre` (the virtualizer, run first — shadows,
 // map sidecars and a synthetic tsconfig land in `remapDir`) and the main
 // scip run, which executes IN the virtual dir against that tsconfig. The
 // build passes `remapDir` through to the scip adapter.
-export function indexerCommand(job, { root, buildDir, scriptPath, sfcScript }) {
+export function indexerCommand(job, { root, buildDir, scriptPath, sfcScript, tsScript, excludeGlobs = [], gitignore = true }) {
+  if (job.indexer === "treesitter") {
+    // One raw dir per profile. Runs at the root via npx, like the SFC
+    // virtualizer: the two libraries are fetched, never installed. Env keys are
+    // present only when set, so the recipe fingerprint stays stable.
+    const raw = join(buildDir, `treesitter-${job.tsLang}`);
+    const env = { GEML_SRC: root, GEML_OUT: raw, GEML_LANG: job.tsLang };
+    if (excludeGlobs.length) env.GEML_EXCLUDE = excludeGlobs.join("\n");
+    if (!gitignore) env.GEML_NO_GITIGNORE = "1";
+    return {
+      adapter: "treesitter",
+      raw,
+      argv: ["npx", "-y", ...TREESITTER_NPX_PKGS.flatMap((p) => ["-p", p]), "node", tsScript],
+      env,
+      cwd: root,
+    };
+  }
   if (job.indexer === "scip") {
     // One .scip per project run — a subrooted job (monorepo app, standalone
     // crate) runs IN that directory and writes a slug-named index; the adapter
