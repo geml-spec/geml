@@ -314,3 +314,62 @@ select.geml-form-control { cursor: pointer; }
 }
 .geml-page .geml-form-field { display: contents; }
 .geml-page .geml-form-control { border: 0; padding: 0; outline: none; width: 100%; }
+
+/* geml-media：时间线。frame 组件只能给区块添个兄弟节点，包不住槽位里的块 ——
+   所以定位上下文必须是 frame 区块本身，由它的 data-component 认人。片段的
+   left/width 是组件按时间算出来的百分比，这里只负责让它们有处可落。 */
+[data-component="timeline-track"],
+[data-component="overlay-track"] { position: relative; }
+.geml-clip { position: absolute; box-sizing: border-box; overflow: hidden; }
+.geml-track-ruler { position: absolute; inset: 0 0 auto 0; }
+.geml-tick { position: absolute; }
+
+/* geml-media/v1 · 播放器（media-player.js）。一行外部资源都没有 —— viewer 跑在
+   default-src 'none' 的页面上，样式表里出现任何 url() 都会被 CSP 挡下。 */
+.geml-player { display: flex; flex-direction: column; gap: 8px; }
+.geml-player-empty { opacity: .7; font-style: italic; }
+.geml-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  overflow: hidden;
+  border-radius: 6px;
+}
+.geml-layer-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+/* 声音轨没有画面，但要留在 DOM 里让时钟推它 */
+.geml-layer-audio { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.geml-caption {
+  position: absolute;
+  left: 0; right: 0; bottom: 6%;
+  padding: 0 8%;
+  text-align: center;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .9);
+  line-height: 1.4;
+  pointer-events: none;
+}
+.geml-transport { display: flex; align-items: center; gap: 10px; }
+.geml-play {
+  width: 2.2em; height: 2.2em;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+.geml-seek { flex: 1; min-width: 0; }
+.geml-clock {
+  font: 12px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  opacity: .75;
+  min-width: 9ch;
+  text-align: right;
+}

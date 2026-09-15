@@ -1,4 +1,4 @@
-// geml-media/v1 的三个组件契约（profile 文档 §3 / 设计记录 §5.5）。
+// geml-media/v1 的组件契约（profile 文档 §3 / 设计记录 §5.5）。
 //
 // 时间怎么算**不在这里**：它和 `geml media build` / `export` 用同一份 layoutDoc，
 // 因为「这个片段从第几秒开始」只能有一个答案 —— 浏览器里画出来的和 ffmpeg 出片的
@@ -11,14 +11,20 @@
 //   · clip 是**块**组件：每个 media-clip 自己按时间摆到轨道上。
 //
 // 一行色值都没有：这里只出结构与相对位置，颜色尺寸归样式表（设计 2026-09-10 §5）。
+import { playerLive } from "./media-player.js";
 import { layoutDoc } from "../../../geml-parser/dist/media-timeline.js";
 
 /** 一份文档的时间线只算一次。key 是 Document 对象本身。 */
 const cache = new WeakMap();
 
 function timelineFor(ctx) {
-  // 片段住在哪份文档里：corpus 是 path → Document。带 media-clip 的那一份就是时间线。
-  for (const doc of (ctx.corpus?.values?.() ?? [])) {
+  // corpus 是 layout.js 给的 [{ path, doc }] 数组（不是 Map）—— 它默认就是
+  // `[{ path: docPath, doc: model }]`。一次真的渲染才发现这里认错了形状，
+  // 片段于是全部没被定位、堆在轨道左上角，而且是静默的。
+  const docs = [];
+  for (const e of ctx.corpus ?? []) docs.push(e && e.doc ? e.doc : e);
+  for (const doc of docs) {
+    if (!doc || !doc.children) continue;
     if (cache.has(doc)) return cache.get(doc);
     const hasClip = (function find(bs) {
       for (const b of bs ?? []) {
@@ -28,12 +34,22 @@ function timelineFor(ctx) {
       return false;
     })(doc.children);
     if (!hasClip) continue;
-    // 素材的固有时长从素材块读。跨文档的素材在 corpus 里，按 id 找。
+    // 素材的固有时长从素材块读。跨文档的素材也在 corpus 里，按 id 找。
     const durationOf = (ref) => {
       const id = ref.includes("#") ? ref.slice(ref.indexOf("#") + 1) : ref;
-      const b = ctx.byId?.get?.(id);
-      const d = b && b.attrs ? Number(b.attrs.duration) : NaN;
-      return Number.isFinite(d) ? d : undefined;
+      let found;
+      for (const d of docs) {
+        if (!d || !d.children) continue;
+        (function walk(bs) {
+          for (const b of bs ?? []) {
+            if (b.kind === "block" && b.id === id) found = found ?? b;
+            if (b.kind === "block" && b.children) walk(b.children);
+          }
+        })(d.children);
+        if (found) break;
+      }
+      const v = found && found.attrs ? Number(found.attrs.duration) : NaN;
+      return Number.isFinite(v) ? v : undefined;
     };
     const tl = layoutDoc(doc, { durationOf });
     cache.set(doc, tl);
@@ -70,15 +86,21 @@ export function clip(block, params, ctx) {
   label.textContent = block?.id ?? "";
   el.appendChild(label);
   const inner = block ? ctx.renderBlock(block, dom, ctx.labels, ctx.byId) : null;
-  if (inner) el.appendChild(inner);
+  if (inner) {
+    // 外层已经带了这个片段的 id（可寻址的是它），内层再带一次就是一份文档里两个同名 id。
+    if (inner.id) inner.removeAttribute("id");
+    el.appendChild(inner);
+  }
   return el;
 }
 
 function trackEl(ctx, extraClass, params) {
   const dom = ctx.dom;
+  // 只画刻度：frame 组件拿不到槽位里的块，也包不住它们（layout.js 先 append 组件
+  // 产物、再 append 槽位块，两者是兄弟）。所以**定位上下文是 frame 区块本身** ——
+  // geml.css 靠 [data-component="timeline-track"] 给它 position:relative。
   const el = dom.createElement("div");
   el.className = "geml-track" + (extraClass ? " " + extraClass : "");
-  el.style.position = "relative";
   const tl = timelineFor(ctx);
   if (tl) {
     el.setAttribute("data-duration", tl.duration.toFixed(3));
@@ -110,6 +132,7 @@ export function overlayTrack(block, params, ctx) { return trackEl(ctx, "geml-tra
 
 export const MEDIA_COMPONENTS = {
   clip,
+  player: playerLive,
   "timeline-track": timelineTrack,
   "overlay-track": overlayTrack,
 };
