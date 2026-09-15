@@ -532,3 +532,156 @@ export function importPlan(entry: string, items: ManifestItem[], io: MediaIO): I
   }
   return { newAssets, records, notes };
 }
+
+// ---------------------------------------------------------------------------
+// import 的格式判定：**看后缀**，不要求调用者说自己带的是什么。
+//
+// 字幕是其中一种，不是全部：一次生成跑完，手上可能是一份清单、一堆文件、或者别处
+// 来的一份 srt。让调用者先回答"这是什么格式"没有道理 —— 文件名已经说了。
+// ---------------------------------------------------------------------------
+
+export type ImportKind = "manifest" | "subtitles" | "asset" | "timeline" | "unknown";
+
+const EXT = (p: string): string => { const i = p.lastIndexOf("."); return i < 0 ? "" : p.slice(i + 1).toLowerCase(); };
+
+export function importKindOf(path: string): ImportKind {
+  const e = EXT(path);
+  if (e === "json") return "manifest";
+  if (e === "srt" || e === "vtt") return "subtitles";
+  // NLE 回写是 §13 的待讨论项，v1 不做 —— 但要认出它并说清楚，不能混进 unknown。
+  if (e === "otio" || e === "fcpxml" || e === "edl" || e === "xml") return "timeline";
+  if (["mp4", "mov", "webm", "mkv", "wav", "mp3", "m4a", "flac", "ogg", "png", "jpg", "jpeg", "webp", "gif", "safetensors", "ckpt", "pt"].includes(e)) return "asset";
+  return "unknown";
+}
+
+export interface Cue { start: number; end: number; text: string }
+
+/**
+ * srt / vtt → 字幕条目。两种格式的差别只有时间分隔符（`,` 与 `.`）和一行 WEBVTT 头，
+ * 所以一个解析器收两种；分不清的行跳过并计数，不猜。
+ */
+export function parseCues(text: string): { cues: Cue[]; skipped: number } {
+  const t = (s: string): number | null => {
+    const m = /^(?:(\d+):)?(\d{1,2}):(\d{2})[.,](\d{1,3})$/.exec(s.trim());
+    if (m === null) return null;
+    return (m[1] === undefined ? 0 : Number(m[1])) * 3600 + Number(m[2]) * 60 + Number(m[3]) + Number((m[4] as string).padEnd(3, "0")) / 1000;
+  };
+  const cues: Cue[] = [];
+  let skipped = 0;
+  for (const block of text.replace(/^﻿/, "").split(/\r?\n\s*\r?\n/)) {
+    const lines = block.split(/\r?\n/).filter((l) => l.trim() !== "");
+    if (lines.length === 0) continue;
+    if (/^WEBVTT/.test(lines[0] as string)) { lines.shift(); if (lines.length === 0) continue; }
+    let i = 0;
+    if (!(lines[i] as string).includes("-->")) i++;          // 序号行，vtt 里可能没有
+    const time = lines[i];
+    if (time === undefined || !time.includes("-->")) { skipped++; continue; }
+    const [a, b] = time.split("-->");
+    const start = t(a ?? ""), end = t((b ?? "").trim().split(/\s/)[0] ?? "");
+    if (start === null || end === null) { skipped++; continue; }
+    const body = lines.slice(i + 1).join(" ").trim();
+    if (body === "") { skipped++; continue; }
+    cues.push({ start, end, text: body });
+  }
+  return { cues, skipped };
+}
+
+export interface SubtitleImport {
+  /** 要写进剧本的台词块（GEML 文本） */
+  lines: string;
+  /** 要写进时间线的字幕片段（GEML 文本）；没给 cut 时为 null */
+  clips: string | null;
+  /** 新块占用的 id，交给调用者查重 */
+  ids: string[];
+  notes: string[];
+}
+
+export interface SubtitleOpts {
+  /** id 前缀：台词是 `<前缀>1`，字幕片段是 `sub-<前缀>1` */
+  idPrefix: string;
+  /** 台词块所在文档，写成从 cut 出发的路径；同一份文档时给空串 */
+  srcDoc: string;
+  /** 时间线文档（相对根）；给 null 就只出台词块 */
+  cutEntry: string | null;
+  track?: string;
+  /** 说话的人。srt 里没有这个信息，给了才写成 `.line`（台词），不给就是一条无名字幕。 */
+  speaker?: string;
+}
+
+/**
+ * srt/vtt → 台词块 + 字幕片段。
+ *
+ * **导入，不是挂载。** 转完之后文档是唯一的源，srt 只是它的来处 —— 一份外挂 srt 会是
+ * 同一段文字的第二份拷贝，还自带一套时间，与时间线的 over=/offset= 争"这句话什么时候
+ * 出现"。所以这里把它化进文档，而不是让字幕轨去指一个文件。
+ *
+ * 时间的落点：srt 的时刻是绝对的，字幕片段是锚定的。按每条字幕的起点找出那一刻在播的
+ * 主轨片段，写成 `over=#那一刀 offset=差值` —— 这样主轨插一个片段时字幕跟着走。找不到
+ * 就退回 `at=`（绝对起点，逃生口），并说出来。
+ */
+export function importSubtitles(srtText: string, opts: SubtitleOpts, io: MediaIO): SubtitleImport {
+  const { cues, skipped } = parseCues(srtText);
+  const notes: string[] = [];
+  if (skipped > 0) notes.push(String(skipped) + " 条读不出时间或正文，已跳过");
+  if (cues.length === 0) return { lines: "", clips: null, ids: [], notes: [...notes, "没有解析出任何字幕"] };
+
+  const lineId = (i: number): string => opts.idPrefix + String(i + 1);
+  const ids = cues.map((_, i) => lineId(i));
+  const lines = cues.map((c, i) =>
+    "=== media-text {#" + lineId(i)
+    + (opts.speaker === undefined ? "" : " .line speaker=" + opts.speaker)
+    + "}\n" + c.text + "\n===\n").join("\n");
+  if (opts.speaker === undefined) notes.push("没给 --speaker，台词块没写成 .line —— srt 不带说话人，编出一个不如不写");
+
+  if (opts.cutEntry === null) {
+    notes.push("没给 --cut，只产出台词块；字幕片段要知道主轨才能锚");
+    return { lines, clips: null, ids, notes };
+  }
+  const src = io.readDoc(opts.cutEntry);
+  if (src === null) return { lines, clips: null, ids, notes: [...notes, "读不到 " + opts.cutEntry] };
+  const p = loadProject(opts.cutEntry, io);
+  const info = assetInfo(p, io);
+  const cut = opts.cutEntry;
+  const tl = layout(src, { durationOf: (r) => info(r, cut).duration });
+  const primary = tl.clips.filter((c) => c.track === tl.primary).sort((a, b) => a.start - b.start);
+  if (primary.length === 0) notes.push("时间线主轨上没有片段，字幕只能用绝对起点 at=");
+
+  const round = (n: number): number => Math.round(n * 1000) / 1000;
+  let loose = 0;
+  const clips = cues.map((c, i) => {
+    const id = "sub-" + lineId(i);
+    ids.push(id);
+    const dur = Math.max(0.1, round(c.end - c.start));
+    const anchor = primary.find((x) => c.start >= x.start && c.start < x.start + x.duration);
+    const head = "=== media-clip {#" + id + " track=" + (opts.track ?? "subtitle")
+      + " src=" + opts.srcDoc + "#" + lineId(i);
+    if (anchor === undefined) {
+      loose++;
+      return head + " at=" + c.start.toFixed(3) + " dur=" + String(dur) + "}\n===\n";
+    }
+    return head + " over=#" + anchor.id + " offset=" + String(round(c.start - anchor.start))
+      + " dur=" + String(dur) + "}\n===\n";
+  }).join("\n");
+  if (loose > 0) notes.push(String(loose) + " 条落在主轨之外，用了绝对起点 at=（主轨一改就会错位）");
+  return { lines, clips, ids, notes };
+}
+
+/** 一个媒体文件 → 一个素材块。时长由宿主读（有 ffprobe 才是真值），读不到就不写。 */
+export function assetBlockFor(src: string, id: string, sha256: string | null, duration?: number): string {
+  const d = duration === undefined || !Number.isFinite(duration) ? "" : " duration=" + String(Math.round(duration * 1000) / 1000);
+  return "=== media-asset {#" + id + " src=" + src
+    + (sha256 === null ? "" : " sha256=" + sha256)
+    + " kind=" + kindFromExt(src) + d + " origin=generated}\n===\n";
+}
+
+/** 文件名 → 一个能当 id 用的名字。与 importPlan 用的是同一条规则。 */
+export function idFromFile(file: string): string {
+  return (file.split("/").pop() ?? file).replace(/\.[^.]+$/, "").replace(/[^A-Za-z0-9_-]/g, "-");
+}
+
+/** 文档里已经占掉的 id —— 插块之前查一遍，撞了就停，不覆盖别人的东西。 */
+export function idsTaken(text: string, want: string[]): string[] {
+  const has = new Set<string>();
+  for (const m of text.matchAll(/\{[^}\n]*#([A-Za-z0-9_-]+)/g)) has.add(m[1] as string);
+  return want.filter((w) => has.has(w));
+}

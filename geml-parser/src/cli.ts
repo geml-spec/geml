@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { checkMedia } from "./media-check.js";
 import { promptTextOf } from "./media-check.js";
-import { todo as mediaTodo, report as mediaReport, exportTimeline, lay as mediaLay, buildPlan, appendLog, importPlan, loadProject, type ExportFormat, type ManifestItem } from "./media-verbs.js";
+import { todo as mediaTodo, report as mediaReport, exportTimeline, lay as mediaLay, buildPlan, appendLog, importPlan, importKindOf, importSubtitles, assetBlockFor, idFromFile, idsTaken, loadProject, type ExportFormat, type ManifestItem } from "./media-verbs.js";
 import { mediaIoFor} from "./host-fs.js";
 // The GEML command line. Split out of geml.ts so that file can be what the
 // viewer imports: a parser LIBRARY. Everything CLI-side lives here — argv
@@ -372,7 +372,10 @@ const MEDIA_HELP = [
   "  build  <cut.geml> --out <file.mp4>             ffmpeg 出片（字幕另出 .srt，不烧进画面）",
   "  lay    <cut.geml> --over '#c03' [--gap 0.2]    按配音时长给出 offset/dur 的初值",
   "  log    <library.geml> --output '#id' --model m --mode x [--prompt ref] [--input ref]… [--seed n]",
-  "  import <manifest.json> --into <library.geml>",
+  "  import <file|dir> --into <目标文档>           按后缀分派：",
+  "           .json            生成清单 → 素材块 + 日志记录",
+  "           .srt / .vtt      字幕 → 台词块（加 --cut <cut.geml> 连字幕轨片段一起）",
+  "           媒体文件 / 目录  → 素材块（哈希去重，有 ffprobe 就带上时长）",
   "",
   "  --root <dir>  跨文档解析的根，缺省是入口文档自己的目录",
 ].join("\n");
@@ -389,6 +392,26 @@ function whichBin(bin: string): string | null {
     }
   }
   return null;
+}
+
+/** ffprobe 读时长。可选依赖：没装就不写 duration=，不猜。 */
+function probeDuration(abs: string): number | undefined {
+  const ff = whichBin("ffprobe");
+  if (ff === null) return undefined;
+  const r = spawnSync(ff, ["-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", abs], { encoding: "utf8" });
+  if (r.status !== 0) return undefined;
+  const n = Number((r.stdout ?? "").trim());
+  return Number.isFinite(n) ? n : undefined;
+}
+
+/** 目录里认得出的媒体文件，深度优先、按名排序，跳过隐藏目录与 node_modules。 */
+function mediaFilesUnder(dir: string, out: string[]): void {
+  for (const e of readdirSync(dir, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+    if (e.name.startsWith(".") || e.name === "node_modules") continue;
+    const p = join(dir, e.name);
+    if (e.isDirectory()) mediaFilesUnder(p, out);
+    else if (importKindOf(e.name) === "asset") out.push(p);
+  }
 }
 
 function mediaRootOf(file: string, root: string | undefined): { root: string; rel: string } {
@@ -510,21 +533,111 @@ function runMedia(args: string[]): void {
     return;
   }
   if (verb === "import") {
-    if (into === undefined) fail("import 需要 --into <library.geml>");
-    const items = JSON.parse(readInput(file)) as ManifestItem[];
+    // 后缀说了算：调用者手上有什么就给什么，不必先回答"这是什么格式"。
+    const kind = isDir ? "asset" : importKindOf(file);
+    if (kind === "timeline") {
+      fail("import 不接 " + basename(file) + "：剪辑软件的时间线回写（OTIO / FCPXML / EDL）是设计稿 §13 的待讨论项，"
+        + "v1 只往外导（geml media export --to otio），不往回读 —— 回读要能把别人改过的时间安全地并回锚定模型，那是另一件事。");
+    }
+    if (kind === "unknown") {
+      fail("认不出 " + basename(file) + " 是什么。import 按后缀分派：.json = 生成清单，.srt/.vtt = 字幕，媒体文件或目录 = 素材。");
+    }
+    if (into === undefined) fail("import 需要 --into <目标文档>");
     const target = mediaRootOf(into, root);
     const io2 = mediaIoFor(target.root);
-    const plan = importPlan(target.rel, items, io2);
-    for (const n of plan.notes) console.error("note: " + n);
-    let text = readFileSync(resolvePath(target.root, target.rel), "utf8");
+    const targetAbs = resolvePath(target.root, target.rel);
+    let text = readFileSync(targetAbs, "utf8");
     const nl = text.includes("\r\n") ? "\r\n" : "\n";
-    for (const a of plan.newAssets) {
-      const block = "=== media-asset {#" + a.id + " src=" + a.src + " sha256=" + a.sha256 + " kind=" + a.kind + " origin=generated}" + nl + "===" + nl + nl;
-      text = text.replace(/(={3,}\s+data\s*\{[^}]*\.gen-log)/, block + "$1");
+    // 新块插在日志块前面（素材库），没有日志块就接在文末（剧本、时间线）。
+    const put = (blocks: string): void => {
+      const b = blocks.replace(/\n/g, nl);
+      if (/={3,}\s+data\s*\{[^}]*\.gen-log/.test(text)) text = text.replace(/(={3,}\s+data\s*\{[^}]*\.gen-log)/, b + "$1");
+      else text = text.replace(/\s*$/, nl) + nl + b;
+    };
+    // id 撞了就停。import 是往别人的文档里写，覆盖一个已有的块比少导一次严重得多。
+    const guard = (inText: string, ids: string[]): void => {
+      const dup = idsTaken(inText, ids);
+      if (dup.length > 0) fail("目标文档里已经有这些 id：" + dup.join(" ") + "  （换个 --prefix 再来，不覆盖已有的块）");
+    };
+
+    if (kind === "manifest") {
+      const items = JSON.parse(readInput(file)) as ManifestItem[];
+      const plan = importPlan(target.rel, items, io2);
+      for (const n of plan.notes) console.error("note: " + n);
+      guard(text, plan.newAssets.map((a) => a.id));
+      for (const a of plan.newAssets) {
+        put("=== media-asset {#" + a.id + " src=" + a.src + " sha256=" + a.sha256 + " kind=" + a.kind + " origin=generated}\n===\n\n");
+      }
+      for (const r of plan.records) text = appendLog(text, r);
+      writeFileSync(targetAbs, text, "utf8");
+      console.error("imported " + String(plan.records.length) + " 条记录，新建 " + String(plan.newAssets.length) + " 个素材块 → " + into);
+      return;
     }
-    for (const r of plan.records) text = appendLog(text, r);
-    writeFileSync(resolvePath(target.root, target.rel), text, "utf8");
-    console.error("imported " + plan.records.length + " 条记录，新建 " + plan.newAssets.length + " 个素材块 → " + into);
+
+    if (kind === "subtitles") {
+      const cutArg = flag(rest, "--cut");
+      const prefix = flag(rest, "--prefix") ?? "l";
+      const trackName = flag(rest, "--track") ?? "subtitle";
+      const cut = cutArg === undefined ? null : mediaRootOf(cutArg, root);
+      if (cut !== null && resolvePath(cut.root) !== resolvePath(target.root)) {
+        fail("--cut 与 --into 落在两个根下；用 --root 指一个共同的根");
+      }
+      const cutAbs = cut === null ? null : resolvePath(cut.root, cut.rel);
+      // 台词块写进 --into，字幕片段的 src= 要从 cut 出发指回去；同一份文档时就是裸 #id。
+      const srcDoc = cutAbs === null || cutAbs === targetAbs ? ""
+        : relative(dirname(cutAbs), targetAbs).split(sep).join("/");
+      const sub = importSubtitles(readInput(file),
+        { idPrefix: prefix, srcDoc, cutEntry: cut === null ? null : cut.rel, track: trackName, speaker: flag(rest, "--speaker") }, io2);
+      for (const n of sub.notes) console.error("note: " + n);
+      if (sub.lines === "") fail("没有可导入的台词");
+      const lineIds = sub.ids.filter((x) => !x.startsWith("sub-"));
+      guard(text, lineIds);
+      put(sub.lines);
+      writeFileSync(targetAbs, text, "utf8");
+      console.error("imported " + String(lineIds.length) + " 条台词 → " + into);
+      if (sub.clips === null || cutAbs === null) return;
+      let ct = readFileSync(cutAbs, "utf8");           // 与 --into 同一份时，这里读到的是刚写完的
+      const cnl = ct.includes("\r\n") ? "\r\n" : "\n";
+      guard(ct, sub.ids.filter((x) => x.startsWith("sub-")));
+      const declared = /^\s*tracks\s*=\s*"([^"]*)"/m.exec(ct);
+      const names = declared === null ? [] : (declared[1] as string).split(/\s+/).map((t) => t.split(":")[0]);
+      if (!names.includes(trackName)) {
+        console.error("note: cut 的 meta 里没声明 " + trackName + " 轨，补一条 " + trackName + ":prose 进 tracks=，否则 check 会报未声明的轨");
+      }
+      ct = ct.replace(/\s*$/, cnl) + cnl + sub.clips.replace(/\n/g, cnl);
+      writeFileSync(cutAbs, ct, "utf8");
+      console.error("imported " + String(sub.ids.length - lineIds.length) + " 个字幕片段 → " + cutArg);
+      return;
+    }
+
+    // kind === "asset"：一个文件或一整个目录。哈希去重与清单导入同一条规则。
+    const files: string[] = [];
+    if (isDir) mediaFilesUnder(resolvePath(file), files); else files.push(resolvePath(file));
+    if (files.length === 0) fail("目录里没有认得出的媒体文件");
+    const proj = loadProject(target.rel, io2);
+    const byHash = new Map<string, string>();
+    for (const [key, a] of proj.assets) {
+      const h = a.b.attrs["sha256"];
+      if (typeof h === "string") byHash.set(h, key.slice(key.indexOf("#") + 1));
+    }
+    const ids: string[] = [];
+    const blocks: string[] = [];
+    for (const f of files) {
+      const shown = relative(target.root, f).split(sep).join("/");
+      const sha = io2.hashFile(shown);
+      if (sha === null) { console.error("note: " + shown + " 在根之外或读不到，跳过"); continue; }
+      const seen = byHash.get(sha);
+      if (seen !== undefined) { console.error("note: " + shown + " 的哈希与既有的 #" + seen + " 相同，复用它而不新建"); continue; }
+      const id = idFromFile(f.split(sep).join("/"));
+      byHash.set(sha, id);
+      ids.push(id);
+      blocks.push(assetBlockFor(relative(dirname(targetAbs), f).split(sep).join("/"), id, sha, probeDuration(f)));
+    }
+    if (blocks.length === 0) { console.error("没有要新建的素材块"); return; }
+    guard(text, ids);
+    for (const b of blocks) put(b + "\n");
+    writeFileSync(targetAbs, text, "utf8");
+    console.error("imported " + String(blocks.length) + " 个素材块 → " + into);
     return;
   }
   fail(MEDIA_HELP);

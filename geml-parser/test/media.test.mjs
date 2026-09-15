@@ -2,6 +2,7 @@
 // 它们按**地址**报（文档 + 块 id）而不是按行号 —— 这是 profile 自己的选择，和这个
 // 项目"id 优于行号"的立场一致，也因为跨文档的诊断没有单一的行号可言。
 import { checkMedia } from "../dist/media-check.js";
+import { importKindOf, parseCues, importSubtitles, idsTaken, assetBlockFor } from "../dist/media-verbs.js";
 import { mediaIoFor } from "../dist/host-fs.js";
 import { strict as assert } from "node:assert";
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
@@ -459,6 +460,93 @@ test("import：清单里读不到的文件被跳过并说明，不静默", () =>
   assert.equal(plan.records.length, 0);
   assert.match(plan.notes.join(" "), /读不到/);
   rmSync(root, { recursive: true, force: true });
+});
+
+// ---------------------------------------------------------------------------
+// import 按后缀分派（profile 文档 §6）—— 调用者手上有什么就给什么
+// ---------------------------------------------------------------------------
+
+test("importKindOf：按后缀分派，NLE 时间线单独认出来而不是混进 unknown", () => {
+  assert.equal(importKindOf("a/b/manifest.json"), "manifest");
+  assert.equal(importKindOf("x.SRT"), "subtitles");
+  assert.equal(importKindOf("x.vtt"), "subtitles");
+  assert.equal(importKindOf("shot.mp4"), "asset");
+  assert.equal(importKindOf("vo.wav"), "asset");
+  assert.equal(importKindOf("cut.otio"), "timeline");
+  assert.equal(importKindOf("cut.fcpxml"), "timeline");
+  assert.equal(importKindOf("notes.txt"), "unknown");
+  assert.equal(importKindOf("README"), "unknown");
+});
+
+test("parseCues：srt 与 vtt 同一个解析器，末尾时刻后跟的定位参数不影响时间", () => {
+  const srt = "1\n00:00:00,500 --> 00:00:02,000\n第一句\n\n2\n00:00:04,600 --> 00:00:06,200\n第二句\n";
+  const a = parseCues(srt);
+  assert.equal(a.skipped, 0);
+  assert.deepEqual(a.cues.map((c) => [c.start, c.end, c.text]),
+    [[0.5, 2, "第一句"], [4.6, 6.2, "第二句"]]);
+  const vtt = "WEBVTT\n\n00:00.500 --> 00:02.000 line:90%\n第一句\n";
+  const b = parseCues(vtt);
+  assert.equal(b.skipped, 0);
+  assert.deepEqual(b.cues, [{ start: 0.5, end: 2, text: "第一句" }]);
+});
+
+test("parseCues：读不出时间或没有正文的条目被跳过并计数，不猜", () => {
+  const r = parseCues("1\n乱七八糟\n正文\n\n2\n00:00:01,000 --> 00:00:02,000\n\n\n3\n00:00:03,000 --> 00:00:04,000\n好的\n");
+  assert.equal(r.cues.length, 1);
+  assert.equal(r.skipped, 2);
+});
+
+test("importSubtitles：每条字幕锚到那一刻在播的主轨片段上，用 over/offset 而不是绝对时间", () => {
+  const root = fixture();
+  const io = mediaIoFor(root);
+  const srt = "1\n00:00:00,500 --> 00:00:02,000\n第一句\n\n2\n00:00:04,600 --> 00:00:06,200\n第二句\n";
+  const r = importSubtitles(srt, { idPrefix: "imp", srcDoc: "ep01-script.geml", cutEntry: "ep01/ep01-cut.geml" }, io);
+  // #c01 是 0–4s，#c03 从 4s 起 —— 0.5s 落在前者，4.6s 落在后者。
+  assert.match(r.clips, /#sub-imp1 track=subtitle src=ep01-script\.geml#imp1 over=#c01 offset=0\.5 dur=1\.5/, r.clips);
+  assert.match(r.clips, /#sub-imp2 track=subtitle src=ep01-script\.geml#imp2 over=#c03 offset=0\.6 dur=1\.6/, r.clips);
+  assert.equal(r.clips.includes("at="), false, "落在主轨内的字幕不该用绝对时间");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("importSubtitles：落在主轨之外的字幕退回 at=，并且说出来", () => {
+  const root = fixture();
+  const r = importSubtitles("1\n00:00:59,000 --> 00:01:01,000\n片外\n", { idPrefix: "x", srcDoc: "s.geml", cutEntry: "ep01/ep01-cut.geml" }, mediaIoFor(root));
+  assert.match(r.clips, /at=59\.000 dur=2/, r.clips);
+  assert.match(r.notes.join(" "), /主轨之外/);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("importSubtitles：没给说话人就不写成 .line —— srt 不带这个信息，编一个不如不写", () => {
+  const root = fixture();
+  const io = mediaIoFor(root);
+  const srt = "1\n00:00:00,500 --> 00:00:02,000\n第一句\n";
+  const bare = importSubtitles(srt, { idPrefix: "a", srcDoc: "s.geml", cutEntry: null }, io);
+  assert.equal(bare.lines.includes(".line"), false, bare.lines);
+  assert.match(bare.notes.join(" "), /没给 --speaker/);
+  const named = importSubtitles(srt, { idPrefix: "a", srcDoc: "s.geml", cutEntry: null, speaker: "../characters.geml#hero" }, io);
+  assert.match(named.lines, /\.line speaker=\.\.\/characters\.geml#hero/, named.lines);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("importSubtitles：没给 cut 就只出台词块，不编一套时间", () => {
+  const root = fixture();
+  const r = importSubtitles("1\n00:00:00,500 --> 00:00:02,000\n第一句\n", { idPrefix: "a", srcDoc: "", cutEntry: null }, mediaIoFor(root));
+  assert.equal(r.clips, null);
+  assert.match(r.notes.join(" "), /没给 --cut/);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("idsTaken：往别人的文档里写之前查重，撞了要报出来", () => {
+  const doc = "=== media-text {#s03-l1 .line speaker=x}\n话\n===\n";
+  assert.deepEqual(idsTaken(doc, ["s03-l1", "imp1"]), ["s03-l1"]);
+  assert.deepEqual(idsTaken(doc, ["imp1"]), []);
+});
+
+test("assetBlockFor：读不到时长就不写 duration=，不填 0", () => {
+  assert.equal(assetBlockFor("assets/a.mp4", "a", "abc", 3.14159),
+    "=== media-asset {#a src=assets/a.mp4 sha256=abc kind=video duration=3.142 origin=generated}\n===\n");
+  assert.equal(assetBlockFor("assets/a.wav", "a", null).includes("duration="), false);
+  assert.match(assetBlockFor("assets/a.wav", "a", null), /kind=audio/);
 });
 
 console.log(String.fromCharCode(10) + passed + " passed");
