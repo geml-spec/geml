@@ -4,7 +4,7 @@
 // `anchor=` / `entry-via=` 在任何文档的任何 code 块上都静默通过，
 // 等于全世界每份 GEML 文档都让出了这三个键的拼写检查。
 import { vocabularyFor, PROFILES } from "../dist/profiles.js";
-import { parse } from "../dist/geml.js";
+import { parse, renderHtml } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
 import { readFileSync, existsSync } from "node:fs";
 
@@ -244,5 +244,100 @@ test("geml-form/v1：声明了 profile 的文档，form-* 家族是注册类型�
   // 没声明 profile 的文档照旧不认
   const bare = parse("=== form-field {#x type=text}\n===\n");
   assert.ok(bare.diagnostics.some((d) => d.code === "unknown-block-type"), "不声明就不认，profile 是门票");
+});
+
+// ---------------------------------------------------------------------------
+// profile 类型的一等公民化（设计 2026-09-15-geml-media §9 第 1 条）
+//
+// 在此之前 `bodyModeFor` 在 profile 分支提前 return，跳过整段属性拼写检查：
+// 一个 profile 给它的类型登记了 attrs，那张表从不被执行。下面钉两件事：
+// 属性检查按类型 opt-in；`prose` 让一个 profile 类型拿到核心今天只给 `text`
+// 的特权（行内投射、md 段落投影）。
+// ---------------------------------------------------------------------------
+
+/** 临时给注册表打补丁再还原（同上面 format 那条的做法）。 */
+function withProfile(name, patch, fn) {
+  const saved = PROFILES[name];
+  try { PROFILES[name] = { ...saved, ...patch }; fn(); }
+  finally { PROFILES[name] = saved; }
+}
+
+test("属性检查 opt-in：登记了 attrs 的 profile 类型，没登记的键被报出", () => {
+  const d = warns('=== meta\nprofile = "geml-form/v1"\n===\n\n'
+    + "=== form-field {#f sinse=3}\n===\n", "unknown-attribute");
+  assert.equal(d.length, 1, "登记过 attrs 的类型必须查拼写");
+  assert.match(d[0].message, /sinse/);
+});
+
+test("属性检查 opt-in：没登记 attrs 的 profile 类型保持开放 —— geml-style 的透传参数不能被误报", () => {
+  // style-rule 的属性空间是故意开放的：非内含词一律透传给宿主组件，
+  // 核心不可能有它的词典。一刀切会让每个透传参数都变成 unknown-attribute。
+  const d = warns('=== meta\nprofile = "geml-style/v1"\n===\n\n'
+    + '=== style-rule {#a match="table" component=grid overlay-place=bottom whatever=1}\n===\n',
+    "unknown-attribute");
+  assert.deepEqual(d, [], "没登记 attrs 就是开放集");
+});
+
+test("属性检查 opt-in：hidden / caption 对 profile 类型同样普适", () => {
+  const d = warns('=== meta\nprofile = "geml-form/v1"\n===\n\n'
+    + '=== form-field {#f pattern="x" hidden caption="c"}\n===\n', "unknown-attribute");
+  assert.deepEqual(d, []);
+});
+
+test("prose：声明了 prose 的 profile 类型可以做 ![[…]] 的目标", () => {
+  withProfile("geml-style/v1", { types: ["style-rule", "mt"], prose: ["mt"] }, () => {
+    const src = '=== meta\nprofile = "geml-style/v1"\n===\n\n'
+      + "=== mt {#look}\n银灰短发齐耳。\n===\n\n"
+      + "=== text {#p}\n![[#look]] 特写。\n===\n";
+    const d = parse(src).diagnostics.filter((x) => x.code === "inline-transclusion-not-inline");
+    assert.deepEqual(d, [], "prose 类型必须可被行内投射");
+  });
+});
+
+test("prose：只声明 flow 体、没声明 prose 的类型仍不能做投射目标 —— 两个轴不互相顶替", () => {
+  withProfile("geml-style/v1", { types: ["style-rule", "ct"], bodies: { ct: "flow" } }, () => {
+    const src = '=== meta\nprofile = "geml-style/v1"\n===\n\n'
+      + "=== ct {#look}\n银灰短发齐耳。\n===\n\n"
+      + "=== text {#p}\n![[#look]] 特写。\n===\n";
+    const d = parse(src).diagnostics.filter((x) => x.code === "inline-transclusion-not-inline");
+    assert.equal(d.length, 1, "flow 不等于 prose：容器类型不该被行内投射");
+  });
+});
+
+test("prose 蕴含 flow 体 —— 不必声明两遍", () => {
+  withProfile("geml-style/v1", { types: ["style-rule", "mt"], prose: ["mt"] }, () => {
+    const doc = parse('=== meta\nprofile = "geml-style/v1"\n===\n\n=== mt {#a}\n*强调*\n===\n');
+    const b = doc.children.find((c) => c.kind === "block" && c.type === "mt");
+    assert.equal(b.mode, "flow", "prose 类型的体是 flow，和核心 text 一样");
+  });
+});
+
+test("核心 text 的行为一字不变 —— 这组改动只增不改", () => {
+  const src = "=== text {#look}\n银灰短发齐耳。\n===\n\n=== text {#p}\n![[#look]] 特写。\n===\n";
+  assert.deepEqual(parse(src).diagnostics, []);
+  const b = parse(src).children.find((c) => c.kind === "block" && c.type === "text");
+  assert.equal(b.mode, "flow");
+});
+
+test("prose：--to html 也和核心 text 同待遇（第三处特权）", () => {
+  withProfile("geml-style/v1", { types: ["style-rule", "mt"], prose: ["mt"] }, () => {
+    const one = (src) => renderHtml(parse(src), { bare: true });
+    const mine = one('=== meta\nprofile = "geml-style/v1"\n===\n\n=== mt {#a}\n一段话。\n===\n');
+    const core = one('=== meta\nprofile = "geml-style/v1"\n===\n\n=== text {#a}\n一段话。\n===\n');
+    // 只差块类型这一个 chrome token，其余逐字相同
+    assert.equal(mine.replace(/"mt"/g, '"text"'), core, "prose 类型的 html 应与 text 同形");
+    assert.match(mine, /<div[^>]*id="a"[^>]*>/);
+  });
+});
+
+test("geml-form 的六个约束键：profile 文档说的那六个，注册表里一个不少", () => {
+  // profile 文档 §1.1 现在明说「注册表里不止六个，其余是 GEP-0008 的」。
+  // 那句话只有在**这六个确实都在**时才成立；声明一个不变量而不检查它，
+  // 就是让它慢慢变成假话（同上面索引表那条）。
+  const doc = readFileSync(new URL("../../spec/profiles/geml-form/geml-form-profile.md", import.meta.url), "utf8");
+  const six = [...doc.matchAll(/^\| `([a-z]+)` \| /gm)].map((m) => m[1]);
+  assert.equal(six.length, 6, "§2 的表应恰好六行: " + six.join(","));
+  const registered = new Set(PROFILES["geml-form/v1"].attrs?.["form-field"] ?? []);
+  for (const k of six) assert.ok(registered.has(k), `文档列了 \`${k}\`，注册表里没有`);
 });
 console.log(`\n${passed} passed`);

@@ -144,6 +144,8 @@ export type Block =
       classes: string[];
       attrs: Record<string, Value>;
       raw?: string[];
+      /** 这个块装的是散文（核心 `text`，或某个 profile 声明为 prose 的类型） */
+      prose?: true;
       children?: Block[];
       data?: Record<string, Value>;
       table?: TableModel;
@@ -729,6 +731,23 @@ function scanFenceBody(
   return { body, end: j, closed };
 }
 
+/** 每个带类型的块都可以带的两个键（§4，以及 §5.2 自动引用的标签）。 */
+const UNIVERSAL_ATTRS = /^(hidden|caption)$/;
+
+/**
+ * `hidden` 与 `caption` 之外，只有 `allowed` 认的键合法。核心类型与 profile
+ * 放行的闭集类型共用这一段，两边的消息因此逐字相同。
+ */
+function reportUnknownAttrs(
+  type: string, attrs: Attrs, allowed: (key: string) => boolean,
+  line: number, diags: Diagnostic[],
+): void {
+  for (const key of Object.keys(attrs.attrs)) {
+    if (UNIVERSAL_ATTRS.test(key) || allowed(key)) continue;
+    diags.push({ severity: "warning", code: "unknown-attribute", message: `unknown attribute \`${key}\` for block type \`${type}\``, line });
+  }
+}
+
 /**
  * The body mode for a type, and — for the core's own types ONLY — a spelling
  * check on its attribute keys.
@@ -743,6 +762,14 @@ function bodyModeFor(type: string, attrs: Attrs, openLineNo: number, ctx: Ctx): 
   if (mode === undefined && ctx.vocab.types.has(type)) {
     // 一个 profile 放行的类型。体模式也来自 profile —— 它影响解析结果、不只是诊断，
     // 所以必须是**显式声明**的（`bodies: { form: "flow" }`）；没声明的照旧 raw。
+    //
+    // 属性拼写检查**按类型 opt-in**：profile 给这个类型登记了 `attrs` ⇒ 闭集，查；
+    // 没登记 ⇒ 开集，不查。开集是 geml-style 要的 —— 它的非内含词一律透传给宿主
+    // 组件，核心不可能持有那份词典，一刀切会把每个透传参数报成笔误。在此之前这里
+    // 一律不查，于是 geml-form 给 form-field 登记的六个键从未被执行过：一张声明了
+    // 却不生效的表比没有更糟，它读起来像保证。
+    const licensed = ctx.vocab.attrs.get(type);
+    if (licensed !== undefined) reportUnknownAttrs(type, attrs, (k) => licensed.has(k), openLineNo, diags);
     return ctx.vocab.bodies.get(type) ?? "raw";
   }
   if (mode === undefined) {
@@ -754,8 +781,6 @@ function bodyModeFor(type: string, attrs: Attrs, openLineNo: number, ctx: Ctx): 
   // the extras below are per type.
   let validRe: RegExp;
   if (type === "table") validRe = /^(src|format|delim|header|format-data)$/;
-  // form-options 的体是一张 value/label 表（GEP-0008 §6），所以它收表体那几个键。
-  else if (type === "form-options") validRe = /^(format|delim|header)$/;
   else if (type === "view") validRe = /^(src|where|order|limit|select|compute\d*|summary\d*|by|aggregate\d*)$/;
   else if (type === "data") validRe = /^(format|schema|src)$/;
   else if (type === "embed") validRe = /^(src|part)$/;
@@ -763,18 +788,12 @@ function bodyModeFor(type: string, attrs: Attrs, openLineNo: number, ctx: Ctx): 
   else if (type === "code") validRe = /^(lang|src)$/;
   else validRe = /^$/;
 
-  const universal = /^(hidden|caption)$/;
   // 本文档声明的 profile 额外放行的键（§3.3）。在此之前 codemap 的
   // `anchor`/`name`/`entry-via` 硬编码在上面的 `code` 分支里，于是它们在
   // 每份文档的每个 code 块上都静默通过 —— 现在只对声明了 codemap/v1 的
   // 文档放行，其余文档拿回拼写检查。
   const licensed = ctx.vocab.attrs.get(type);
-
-  for (const key of Object.keys(attrs.attrs)) {
-    if (universal.test(key) || validRe.test(key)) continue;
-    if (licensed?.has(key) === true) continue;
-    diags.push({ severity: "warning", code: "unknown-attribute", message: `unknown attribute \`${key}\` for block type \`${type}\``, line: openLineNo });
-  }
+  reportUnknownAttrs(type, attrs, (k) => validRe.test(k) || licensed?.has(k) === true, openLineNo, diags);
   return mode;
 }
 
@@ -1079,6 +1098,9 @@ function readFencedBlock(
   const block: Extract<Block, { kind: "block" }> = {
     kind: "block", type, mode, classes: attrs.classes, attrs: attrs.attrs,
   };
+  // 散文类型：核心 `text`，加上声明了 `prose` 的 profile 类型。标在块上而不是让
+  // 每个消费点各自去查 meta —— 投射、`--to md`、`--to html` 三处共用同一个判断。
+  if (type === "text" || ctx.vocab.prose.has(type)) block.prose = true;
   if (attrs.id !== undefined) { block.id = attrs.id; registerId(ctx, attrs.id, openLineNo); }
   if (attrs.attrs["hidden"] === true) block.hidden = true; // §4: not rendered, still in model
 
@@ -1462,7 +1484,7 @@ export function projectableInlines(blocks: Block[], id: string): { inlines: Inli
     return undefined;
   })(blocks);
   if (found === undefined) return null;
-  if (found.kind !== "block" || found.type !== "text") return "not-inline";
+  if (found.kind !== "block" || found.prose !== true) return "not-inline";
   const kids = (found.children ?? []).filter((c) => !(c.kind === "paragraph" && c.text.trim() === ""));
   if (kids.length !== 1 || kids[0]!.kind !== "paragraph") return "not-inline";
   return { inlines: (kids[0] as Extract<Block, { kind: "paragraph" }>).inlines };

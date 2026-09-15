@@ -29,6 +29,15 @@ export interface ProfileDef {
   /** 这些类型的体怎么解析（默认 raw）。`flow` = 体里还能有块。 */
   bodies?: Record<string, "raw" | "flow" | "data">;
   /**
+   * **散文类型**：这些类型和核心 `text` 一样装散文，因此拿到核心今天只给 `text`
+   * 的那几项待遇 —— 可以做 `![[…]]` 的目标、`--to md` 投成段落而不是引用块、
+   * `--to html` 渲成同一种容器。**蕴含 `bodies: flow`**（散文要装段落），不必声明两遍。
+   *
+   * 与 `bodies: flow` 不是一回事：`form`/`form-group` 是 flow 的**容器**，它们不该
+   * 能被行内投射、也不该渲染成一段话。所以两个轴分开声明，谁也顶替不了谁。
+   */
+  prose?: string[];
+  /**
    * 额外放行的 `diagram` format 名（§8.6.1）。只有 diagram 的 format 可以这样
    * 放行：它选的是渲染器，正文无论如何都是 raw，所以放行**不改变文档模型**。
    * `table` 和 `data` 的 format 不行 —— 它们决定正文怎么解析，直接生成
@@ -89,7 +98,25 @@ export const PROFILES: Record<string, ProfileDef> = {
     types: ["form", "form-field", "form-group", "form-options", "form-note"],
     // form 和 form-group 是容器：`==== form` 里套 form-field（GEP-0008 §6）。
     bodies: { form: "flow", "form-group": "flow" },
-    attrs: { "form-field": ["pattern", "min", "max", "step", "maxlength", "accept"] },
+    // 这几张表现在**会被执行**（属性检查按类型 opt-in）。所以它们必须完整，否则
+    // GEP-0008 自己的例子会逐键报未知。键的归属是分开的，写在这里只是因为类型还
+    // 住在 profile 里：
+    //   · 六个约束键（pattern/min/max/step/maxlength/accept）是**这份 profile 的**；
+    //   · 其余是 **GEP-0008 的**（label/description/placeholder/type/required/
+    //     multiple/value/options，form 的 handler，form-options 的表体键）。
+    // GEP-0008 一旦落进 §3，后者应当搬到核心的类型表里，这里只留前六个。
+    attrs: {
+      "form-field": [
+        "pattern", "min", "max", "step", "maxlength", "accept",
+        "label", "description", "placeholder", "type", "required", "multiple", "value", "options",
+      ],
+      form: ["handler"],
+      "form-group": ["label", "description", "required"],
+      // 体是一张 value/label 表（GEP-0008 §6），所以收表体那几个键。此前这几个键
+      // 写在核心的 validRe 分支里，而那条分支永远走不到 —— form-options 不在核心
+      // REGISTRY 里，profile 类型在它之前就 return 了。
+      "form-options": ["format", "delim", "header", "src"],
+    },
   },
   // spec/profiles/geml-history/geml-history-profile.md
   // （语义是规范性的，在 spec/profiles/geml-history/geml-history-profile.md）—— `.gemlhistory` 边车自己的词汇表。它是一份
@@ -121,6 +148,8 @@ export interface Vocabulary {
   bodies: Map<string, "raw" | "flow" | "data">;
   /** 放行的 `diagram` format 名（§8.6.1） */
   formats: Set<string>;
+  /** 散文类型：和核心 `text` 同待遇（见 ProfileDef.prose） */
+  prose: Set<string>;
 }
 
 /**
@@ -134,18 +163,22 @@ export function vocabularyFor(meta: Map<string, string>): Vocabulary {
   const attrs = new Map<string, Set<string>>();
   const formats = new Set<string>();
   const bodies = new Map<string, "raw" | "flow" | "data">();
+  const prose = new Set<string>();
   for (const [name, def] of Object.entries(PROFILES)) {
     if (!declared.has(name)) continue;
     for (const t of def.types ?? []) types.add(t);
     for (const f of def.formats ?? []) formats.add(f);
     for (const [t, m] of Object.entries(def.bodies ?? {})) bodies.set(t, m);
+    // `prose` 蕴含 flow：散文要装段落。显式的 bodies 优先，所以把一个 prose 类型
+    // 声明成 raw 是说得出口的 —— 那是自相矛盾，由注册表自己的测试挡，不在这里猜。
+    for (const t of def.prose ?? []) { prose.add(t); if (!bodies.has(t)) bodies.set(t, "flow"); }
     for (const [type, keys] of Object.entries(def.attrs ?? {})) {
       let set = attrs.get(type);
       if (set === undefined) { set = new Set<string>(); attrs.set(type, set); }
       for (const k of keys) set.add(k);
     }
   }
-  return { types, attrs, formats, bodies };
+  return { types, attrs, formats, bodies, prose };
 }
 
 /**
@@ -153,4 +186,4 @@ export function vocabularyFor(meta: Map<string, string>): Vocabulary {
  * tableFromDocument：它们丢弃诊断，只要结构）。具名常量而不是就地 new，
  * 是为了让"这里确实什么都不放行"读起来像决定，而不像遗漏。
  */
-export const EMPTY_VOCABULARY: Vocabulary = { types: new Set(), attrs: new Map(), formats: new Set(), bodies: new Map() };
+export const EMPTY_VOCABULARY: Vocabulary = { types: new Set(), attrs: new Map(), formats: new Set(), bodies: new Map(), prose: new Set() };
