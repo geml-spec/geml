@@ -389,13 +389,13 @@ for every project. No `settings.json` edits, no hooks; re-run after an upgrade.
 
 ### Using DeepSeek Harness — add this bundle
 
-The same setup, packaged as a dsh bundle — the geml MCP server plus the authoring and code-graph skills:
+The same setup, packaged as a dsh bundle — the geml MCP server plus the authoring and code-graph skills, and a supervisor that decides which tools the agent can see in each state of a workflow you write in GEML:
 
 ```sh
-dsh plugin --profile web add @geml/dsh-plugin   # web = the profile dsh boots by default; use your own profile name if you run another
+dsh plugin --profile web add @geml/agent-runtime   # web = the profile dsh boots by default; use your own profile name if you run another
 ```
 
-Listed on [dshmarket](https://dshmarket.com/p/geml-spec/geml--integrations-dsh-plugin/) and [awesome-dsh-plugin](https://awesome-dsh-plugin.com/p/geml-spec/geml--integrations-dsh-plugin/); source in [integrations/dsh-plugin/](integrations/dsh-plugin/).
+Source in [integrations/geml-agent-runtime/](integrations/geml-agent-runtime/), which is also where the supervisor is explained. The package is not on npm under this name yet, so for now install it from a checkout.
 
 ### Using Codex — install the plugin
 
@@ -627,7 +627,7 @@ Or **put it to use**:
 | **From the command line** — validate, convert, edit by block, version history, all in one command | [`@geml/geml`](https://www.npmjs.com/package/@geml/geml) (source [`geml-parser/`](geml-parser/)) | Available |
 | **Read it in the browser** — open any raw `.geml` link and it renders in place: computed tables, charts, Mermaid, math, with diagnostics as a banner | [Chrome Web Store](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie) · [source](integrations/geml-viewer/) | Available |
 | **Let an agent edit by block** — an MCP server; the agent changes one block instead of rewriting the file, and every write is validated before it reaches disk | [`docs/mcp-guide.md`](docs/mcp-guide.md) | Available |
-| **Use it from DeepSeek Harness** — the geml MCP server plus the authoring and code-graph skills, one installable bundle | [`@geml/dsh-plugin`](https://www.npmjs.com/package/@geml/dsh-plugin) · [dshmarket](https://dshmarket.com/p/geml-spec/geml--integrations-dsh-plugin/) · [source](integrations/dsh-plugin/) | Available |
+| **Use it from DeepSeek Harness** — the geml MCP server, the authoring and code-graph skills, and a supervisor that gates an agent's tools state by state | [`@geml/agent-runtime`](integrations/geml-agent-runtime/) | Installs from a checkout; not published under this name yet |
 | **Use it from Codex** — the same payload again: both skills, the MCP server, and a `SessionStart` hook, installable from `/plugins` | [`integrations/codex-plugin/`](integrations/codex-plugin/) | Available from this repo; not in the public plugin directory yet |
 | **Use it from Grok** — the same payload once more: both skills and the MCP server | [`integrations/grok-plugin/`](integrations/grok-plugin/) | Available from this repo; the `xai-org/plugin-marketplace` PR is not opened yet |
 | **Sync a Logseq graph to plain text** — a Logseq 2.0 DB graph as continuously synced GEML files, addressable and git-friendly, with `restore` as the way back | [`@geml/logseq-sync`](https://www.npmjs.com/package/@geml/logseq-sync) · [source](integrations/logseq/) | Watcher on npm; the plugin installs from a release zip — the marketplace listing ([PR #893](https://github.com/logseq/marketplace/pull/893)) is not merged yet |
@@ -657,7 +657,8 @@ integrations/          Everywhere GEML plugs in: geml-viewer (browser extension)
                        vault sync + the watcher), tree-sitter (brief),
                        langchain+llamaindex (RAG loaders), windows-icon
                        (Explorer file icons), and the agent-harness plugins —
-                       claude-plugin, codex-plugin, grok-plugin, dsh-plugin
+                       claude-plugin, codex-plugin, grok-plugin, and
+                       geml-agent-runtime (the dsh bundle + the supervisor)
 .agents/, .claude-plugin/   Plugin marketplace manifests, so the plugins show up
                        from a checkout (Codex `/plugins`, Claude Code `/plugin`)
 playground/            In-browser playground (+ a live geml-code-graph of this repo)

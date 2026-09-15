@@ -251,3 +251,26 @@ jobs:
       - name: Obsidian integration tests
         working-directory: integrations/obsidian
         run: npm ci && npm test
+
+  agent-runtime:
+    name: agent-runtime integration — tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: Build the reference parser
+        working-directory: geml-parser
+        run: npm ci && npm run build
+      # This package depends on @geml/geml as `file:../../geml-parser`; `npm ci`
+      # requires the lockfile to match exactly and fails on that file: link in
+      # local trials, so `npm install` is the documented fallback here.
+      - name: Agent runtime integration tests
+        working-directory: integrations/geml-agent-runtime
+        run: npm install && npm test
