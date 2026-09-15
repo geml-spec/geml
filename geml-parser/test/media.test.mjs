@@ -284,5 +284,177 @@ test("夹具：视频轨的片段指向台词块 —— media-src-not-asset", ()
 });
 
 
+// ---- 动词：时间模型、导出、todo、report、import、log -------------------------
+
+import { layout } from "../dist/media-timeline.js";
+import { todo, report, exportTimeline, lay, buildPlan, appendLog, importPlan } from "../dist/media-verbs.js";
+
+test("时间模型：主轨顺序摆放，其余轨锚在主轨上", () => {
+  const root = fixture();
+  const io = mediaIoFor(root);
+  const dur = { "ep01-library.geml#s01-take3": 5, "ep01-library.geml#s03-take2-lips": 6, "ep01-library.geml#s03-l1-vo": 2.1 };
+  const tl = layout(read(join(root, "ep01/ep01-cut.geml"), "utf8"), { durationOf: (r) => dur[r] });
+  const at = (id) => tl.clips.find((c) => c.id === id);
+  assert.equal(at("c01").start, 0);
+  assert.equal(at("c01").duration, 4, "out=4 决定时长，不是素材的 5 秒");
+  assert.equal(at("c03").start, 4, "主轨第二个接在第一个的终点");
+  assert.equal(at("vo-s03-l1").start, 4.4, "锚在 #c03 起点 + offset 0.4");
+  assert.equal(at("sub-s03-l1").start, 4.4);
+  assert.equal(tl.duration, 10);
+  assert.deepEqual(tl.problems, []);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("时间模型：dissolve 的重叠量从前一个的终点往回借", () => {
+  const root = fixture(({ edit }) => edit("ep01/ep01-cut.geml",
+    "src=ep01-library.geml#s03-take2-lips in=0 out=6 transition-in=cut",
+    "src=ep01-library.geml#s03-take2-lips in=0 out=6 transition-in=dissolve transition-dur=0.5"));
+  const tl = layout(read(join(root, "ep01/ep01-cut.geml"), "utf8"), { durationOf: () => undefined });
+  assert.equal(tl.clips.find((c) => c.id === "c03").start, 3.5, "4 - 0.5");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("export：srt 的时码来自时间模型，preview 的 #t= 来自入出点", () => {
+  const root = fixture();
+  const io = mediaIoFor(root);
+  const srt = exportTimeline("ep01/ep01-cut.geml", "srt", io);
+  assert.match(srt, /00:00:04,400 --> 00:00:06,500/, srt);
+  assert.match(srt, /姐……你怎么会……/, "字幕文本取自台词块，不复制");
+  const html = exportTimeline("ep01/ep01-cut.geml", "preview", io);
+  assert.match(html, /#t=0\.00,4\.00/, "preview 用 W3C Media Fragments 逐段播放");
+  assert.ok(!/<script/i.test(html), "预览是零依赖的静态页，不含脚本");
+  const otio = JSON.parse(exportTimeline("ep01/ep01-cut.geml", "otio", io));
+  assert.equal(otio.OTIO_SCHEMA, "Timeline.1");
+  assert.ok(otio.tracks.children.length >= 2, "视频与音频各一条轨");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("todo：日志齐全时没有待办；删掉一条记录，那件事就回到清单上", () => {
+  const clean = fixture();
+  const all = ["characters.geml", "ep01/ep01-script.geml", "ep01/ep01-library.geml", "ep01/ep01-cut.geml"];
+  assert.deepEqual(todo(all, mediaIoFor(clean)), []);
+  rmSync(clean, { recursive: true, force: true });
+
+  const root = fixture(({ root: r }) => {
+    const f = join(r, "ep01/ep01-library.geml");
+    write(f, read(f, "utf8").split(/\r?\n/).filter((l) => !l.includes('"output":"#s03-l1-vo"')).join("\n"));
+  });
+  const items = todo(all, mediaIoFor(root));
+  assert.equal(items.length, 1, JSON.stringify(items));
+  assert.equal(items[0].kind, "voice");
+  assert.match(items[0].address, /#s03-l1$/);
+  assert.match(items[0].prompt ?? "", /姐……/, "待办带的是展开后的文本，发给模型的那串字");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("report：stats 按提示词统计生成次数与模型分布", () => {
+  const root = fixture();
+  const csv = report("ep01/ep01-library.geml", "stats", mediaIoFor(root));
+  assert.match(csv, /#s01-prompt,2,/, "同一条提示词生成了两次");
+  assert.match(csv, /jimeng-4\.5×1 seedance-2\.0×1/);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("import：按哈希去重 —— 同一个文件不会被建成第二个素材块", () => {
+  const root = fixture();
+  const io = mediaIoFor(root);
+  const plan = importPlan("ep01/ep01-library.geml", [
+    { file: "assets/s01-key.png", model: "m", mode: "t2i" },
+  ], io);
+  assert.equal(plan.newAssets.length, 0, "这个文件已经有素材块了");
+  assert.equal(plan.records.length, 1);
+  assert.match(plan.notes.join(" "), /复用/);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("log：追加记录的同时把素材块的 sha256 改成现值", () => {
+  const src = '=== meta\nprofile = "geml-media/v1"\n===\n\n'
+    + "=== media-asset {#a src=a.mp4 sha256=OLD kind=video}\n===\n\n"
+    + '=== data {#gen-log .gen-log format=jsonl}\n===\n';
+  const out = appendLog(src, { output: "#a", "output-sha256": "NEW", model: "m", mode: "t2v", at: "z" },
+    { id: "a", sha256: "NEW", duration: 4.2 });
+  assert.match(out, /sha256=NEW/, "素材块要跟着更新，否则下一次 check 是 hash-mismatch");
+  assert.match(out, /duration=4\.2/);
+  assert.ok(!/sha256=OLD/.test(out));
+  assert.match(out, /"output":"#a"/);
+});
+
+test("build：ffmpeg 的参数由时间模型决定，字幕另出不烧进画面", () => {
+  const root = fixture();
+  const plan = buildPlan("ep01/ep01-cut.geml", "out.mp4", mediaIoFor(root));
+  assert.equal(Math.round(plan.duration * 100) / 100, 10);
+  const joined = plan.args.join(" ");
+  assert.match(joined, /trim=start=0\.000:end=4\.000/, "第一个片段的入出点进了 trim");
+  assert.match(joined, /adelay=4400\|4400/, "配音按它在时间线上的起点延迟");
+  assert.match(joined, /concat=n=2/);
+  assert.ok(plan.srt !== null, "有字幕轨就出 srt 边车");
+  assert.ok(!/subtitles=/.test(joined), "不烧字：烧字要 libass 与一份中文字体");
+  rmSync(root, { recursive: true, force: true });
+});
+test("时间模型：时码按 meta.fps 换算；fps 缺失时带帧的时码无意义", () => {
+  const root = fixture(({ edit }) => edit("ep01/ep01-cut.geml",
+    "src=ep01-library.geml#s01-take3 in=0 out=4",
+    "src=ep01-library.geml#s01-take3 in=00:00:00:12 out=00:00:04:00"));
+  const tl = layout(read(join(root, "ep01/ep01-cut.geml"), "utf8"), { durationOf: () => undefined });
+  const c = tl.clips.find((x) => x.id === "c01");
+  assert.equal(c.in, 0.5, "12 帧 @24fps = 0.5 秒");
+  assert.equal(c.duration, 3.5);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("时间模型：at= 是逃生口，写了它锚定被忽略", () => {
+  const root = fixture(({ edit }) => edit("ep01/ep01-cut.geml", "over=#c03 offset=0.4 gain=0dB", "at=7 gain=0dB"));
+  const tl = layout(read(join(root, "ep01/ep01-cut.geml"), "utf8"),
+    { durationOf: (r) => (r.endsWith("#s03-l1-vo") ? 2.1 : undefined) });
+  assert.equal(tl.clips.find((c) => c.id === "vo-s03-l1").start, 7);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("时间模型：算不出时长、锚不到主轨，都记成 problems 而不是静默", () => {
+  const src = '=== meta\nprofile = "geml-media/v1"\ntracks = "video:video vo:audio"\nprimary = "video"\n===\n\n'
+    + "=== media-clip {#a track=video src=lib.geml#x}\n===\n\n"
+    + "=== media-clip {#b track=vo src=lib.geml#y over=#nope}\n===\n";
+  const tl = layout(src, { durationOf: () => undefined });
+  // #b 两条都真：既算不出时长，又锚不到主轨。
+  assert.equal(tl.problems.length, 3, JSON.stringify(tl.problems));
+  assert.match(tl.problems.join(" "), /算不出时长/);
+  assert.match(tl.problems.join(" "), /不是主轨上的片段/);
+});
+
+test("lay：按配音时长顺排，给出 offset 的初值", () => {
+  const root = fixture();
+  const s = lay("ep01/ep01-cut.geml", "#c03", mediaIoFor(root), 0.3);
+  assert.equal(s.length, 2, JSON.stringify(s));
+  assert.equal(s[0].offset, 0);
+  assert.equal(s[1].offset, 2.4, "第一条 2.1 秒 + 0.3 间隙");
+  assert.ok(s.some((x) => x.dur !== undefined), "字幕片段要给 dur");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("export：edl 带片段名，json 就是时间线本身", () => {
+  const root = fixture();
+  const io = mediaIoFor(root);
+  const edl = exportTimeline("ep01/ep01-cut.geml", "edl", io);
+  assert.match(edl, /FROM CLIP NAME: ep01\/assets\/s01-take3\.mp4/, edl.slice(0, 200));
+  const tl = JSON.parse(exportTimeline("ep01/ep01-cut.geml", "json", io));
+  assert.equal(tl.duration, 10);
+  assert.equal(tl.primary, "video");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("report：cast 列出每句台词的说话人", () => {
+  const root = fixture();
+  const csv = report("ep01/ep01-script.geml", "cast", mediaIoFor(root));
+  assert.match(csv, /#sister/, csv);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("import：清单里读不到的文件被跳过并说明，不静默", () => {
+  const root = fixture();
+  const plan = importPlan("ep01/ep01-library.geml", [{ file: "assets/nope.png", model: "m", mode: "t2i" }], mediaIoFor(root));
+  assert.equal(plan.records.length, 0);
+  assert.match(plan.notes.join(" "), /读不到/);
+  rmSync(root, { recursive: true, force: true });
+});
 
 console.log(String.fromCharCode(10) + passed + " passed");

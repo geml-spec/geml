@@ -6,6 +6,7 @@
 // GEML 本来就有办法说（列表 + 行内链接与图片、form-field select、view=source）。
 
 import { stateClass, safeCssValue } from "./layout.js";
+import { MEDIA_COMPONENTS } from "./media.js";
 
 /**
  * 状态存储。toggle 翻到哪个值 profile 没说：取 init-value 和所有 variant 的 when= 里
@@ -134,4 +135,4 @@ function codeGraph(block, params, ctx) {
   return ctx.renderBlock(block, ctx.dom, ctx.labels, ctx.byId);
 }
 
-export const COMPONENTS = { tree, segments, "code-graph": codeGraph };
+export const COMPONENTS = { tree, segments, "code-graph": codeGraph, ...MEDIA_COMPONENTS };

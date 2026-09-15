@@ -9,26 +9,26 @@ title = "共享素材库"
 # 共享素材 {#shared}
 
 === data {#hero-sheet}
-{"src":"assets/hero-sheet.png","sha256":"9e2c0680953691c86bce3cffb41297da4a4339afb25801307210d7e3752404a7","kind":"image","of":"characters.geml#hero","role":"sheet","origin":"generated"}
+{"src": "assets/hero-sheet.png", "sha256": "ed6cc7fd6e48eef0b94bfb6f32442b3492f1a02b9191357642381b08e9815419","kind":"image","of":"characters.geml#hero","role":"sheet","origin":"generated"}
 ===
 
 === data {#sister-sheet}
-{"src":"assets/sister-sheet.png","sha256":"c2da9fb8e40ddcba3c90cfbd3f04d1b32d134bd5811b0a94920301eb0075023b","kind":"image","of":"characters.geml#sister","role":"sheet","origin":"generated"}
+{"src": "assets/sister-sheet.png", "sha256": "a855ec16acea6405827e25e3d88acb85e426b4f7b330fdfb50ef826f4af71bc4","kind":"image","of":"characters.geml#sister","role":"sheet","origin":"generated"}
 ===
 
 === data {#mourning-hall}
-{"src":"assets/mourning-hall.png","sha256":"76cfa1aa909dfaed4648b00f704d6dd3631f0fef5ab2684d37d2c3e820f502c8","kind":"image","of":"characters.geml#mourning-hall-desc","role":"master","origin":"generated"}
+{"src": "assets/mourning-hall.png", "sha256": "84de11e2ead29f553156b4b3d551ce6bd50f8de030a2fa238e48988ced5b0c52","kind":"image","of":"characters.geml#mourning-hall-desc","role":"master","origin":"generated"}
 ===
 
 === data {#narrator-voice}
-{"src":"assets/narrator-voice.wav","sha256":"49b077727d760a2a0a38d3a88c7a4214feb2e7c6d7f1cd7e7e5bd285b93e1aa2","kind":"audio","duration":1,"of":"characters.geml#narrator","role":"voice","origin":"generated"}
+{"src": "assets/narrator-voice.wav", "sha256": "520b8be419a1618a69b283d9c6a603f91909e50b90b2d5aba0459d3aab5e16c7","kind":"audio","duration": 1,"of":"characters.geml#narrator","role":"voice","origin":"generated"}
 ===
 
 === data {#hero-voice}
-{"src":"assets/hero-voice.wav","sha256":"7862fe80c0e67d6bdb64ee3e6e3fb0c6253979c68f485c5bb47f568611360fbc","kind":"audio","duration":1,"of":"characters.geml#hero","role":"voice","origin":"generated"}
+{"src": "assets/hero-voice.wav", "sha256": "14f2f571b6fe1bf24c3e4f687c54e261337cbad8b91b9bea3f1445d151265847","kind":"audio","duration": 1,"of":"characters.geml#hero","role":"voice","origin":"generated"}
 ===
 
 === data {#sister-voice}
-{"src":"assets/sister-voice.wav","sha256":"7aa7ab0549f8d2cd545c3905a8cb2a33b339273855ef1bf7e11d2d0628226704","kind":"audio","duration":1,"of":"characters.geml#sister","role":"voice","origin":"generated"}
+{"src": "assets/sister-voice.wav", "sha256": "72cb959320a809bdf0edfaa0a4fdff8650759a7ff651dff126f45ba78f00551a","kind":"audio","duration": 1,"of":"characters.geml#sister","role":"voice","origin":"generated"}
 ===
 

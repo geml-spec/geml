@@ -25,7 +25,7 @@ const TRACK_KINDS = new Set(["video", "audio", "prose"]);
 /** 有固有时长的素材种类；其余（静图、模型、其它）在时间线上要 `dur`。 */
 const TIMED_KINDS = new Set(["video", "audio"]);
 
-interface Loaded { rel: string; doc: Document; meta: Map<string, string> }
+export interface Loaded { rel: string; doc: Document; meta: Map<string, string> }
 
 const dirOf = (rel: string): string => { const i = rel.lastIndexOf("/"); return i < 0 ? "" : rel.slice(0, i); };
 const joinRel = (base: string, rel: string): string => {
@@ -40,7 +40,7 @@ const joinRel = (base: string, rel: string): string => {
 };
 
 /** 把一个引用拆成 {文档, id}。`#id` 是本文档，`a.geml#id` 是别处。 */
-function splitRef(ref: string, from: string): { doc: string; id: string } | null {
+export function splitRef(ref: string, from: string): { doc: string; id: string } | null {
   const s = ref.trim();
   if (s === "") return null;
   const hash = s.indexOf("#");
@@ -51,7 +51,7 @@ function splitRef(ref: string, from: string): { doc: string; id: string } | null
   return { doc: docPart === "" ? from : joinRel(dirOf(from), docPart), id };
 }
 
-function blocksOf(doc: Document): Extract<Block, { kind: "block" }>[] {
+export function blocksOf(doc: Document): Extract<Block, { kind: "block" }>[] {
   const out: Extract<Block, { kind: "block" }>[] = [];
   const walk = (bs: Block[]): void => {
     for (const b of bs) {
@@ -62,7 +62,7 @@ function blocksOf(doc: Document): Extract<Block, { kind: "block" }>[] {
   return out;
 }
 
-function metaOf(doc: Document): Map<string, string> {
+export function metaOf(doc: Document): Map<string, string> {
   const m = new Map<string, string>();
   for (const b of doc.children) {
     if (b.kind === "block" && b.type === "meta" && b.data) {

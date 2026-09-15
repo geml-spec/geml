@@ -56,6 +56,16 @@ const rows = [
              { ref: "#s03-l2-vo", sha256: A("s03-l2-vo.wav") }],
     params: { speakers: 2 }, at: "2026-09-15T10:20:31Z" },
 ];
-const f = `${R}/ep01/ep01-library.geml`;
-writeFileSync(f, readFileSync(f, "utf8").replace("PROMPT_HASHES_GO_HERE", rows.map((r) => JSON.stringify(r)).join("\n")));
+// 重写 .gen-log 块的内容，而不是替换一个一次性占位符 —— 占位符第一次就被用掉了，
+// 之后每次运行都是空转：日志停在旧哈希上而素材块已经更新，走血缘时全成「来历不明」。
+const target = join(R, "ep01/ep01-library.geml");
+const text = readFileSync(target, "utf8");
+const src = text.split(/\r?\n/);
+const open = src.findIndex((l) => /^={3,}\s+data\s*\{[^}]*\.gen-log/.test(l));
+if (open < 0) throw new Error("没有 .gen-log 块");
+const fence = (/^(={3,})/.exec(src[open]) || [])[1] || "===";
+let close = -1;
+for (let i = open + 1; i < src.length; i++) { if (src[i].trim() === fence) { close = i; break; } }
+if (close < 0) throw new Error(".gen-log 没有收栏");
+writeFileSync(target, [...src.slice(0, open + 1), ...rows.map((r) => JSON.stringify(r)), ...src.slice(close)].join("\n"));
 console.log(rows.length + " 条记录写入日志");

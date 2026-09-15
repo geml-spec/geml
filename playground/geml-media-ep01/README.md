@@ -7,21 +7,24 @@
 
 ## 这不是什么
 
-**没有成片。** 一集真片要过生图、图生视频、TTS、口型四类生成器，本机一个都没接；
-`ffmpeg` / `ffprobe` 也不在。所以：
+**没有 AI 生成的画面，也没有成片。** 一集真片要过生图、图生视频、TTS、口型四类生成器，
+本机一个都没接（设计 §11 也明写 GEML 不接任何生成器）。所以：
 
-- `assets/` 下的文件是**真文件、真字节、真哈希**，但不是可播放的素材：PNG 是 1×1，
-  WAV 是真的 8kHz PCM，`.mp4` 是带标记的占位字节。
-- 时长（`duration`）是**声明的**，不是 ffprobe 读的。设计稿 §5.1 预见了这种情形
-  （`media-duration-unknown`）。
-- 因此本目录验证的是**文档这一层**：寻址、投射、血缘、过期传播。画面好不好看，
-  这里一个字都没资格说。
+- `assets/` 下是 **ffmpeg 合成的真视频真音频**（色块与正弦波，竖屏 270×480 / 24fps /
+  16kHz 单声道），不是画面。它们几 KB 一个，进得了仓库。
+- `duration` 由 **ffprobe 读出**，不是手写的。这一步不是形式：h264 按 GOP 收尾，标称
+  5 秒的片子实际是 **5.083 秒**，手写的时长是意图，ffprobe 读的是事实，而时间线要按
+  事实算才能和出片对得上。
+- 因此本目录验证的是**文档这一层**：寻址、投射、血缘、过期传播。画面好不好看，这里
+  一个字都没资格说。
 
-哈希是真的，这正是要验的那条链需要的全部。
+重建素材：`node tools/make-assets.mjs`（ffmpeg 不在 PATH 就跳过并说清楚，不静默）。
 
 ## 怎么复现
 
 ```sh
+node tools/make-assets.mjs                          # 用 ffmpeg 生成素材
+node tools/sync-assets.mjs                          # 把 sha256 / duration 同步成文件真值
 node tools/hash-prompts.mjs ep01/ep01-script.geml   # 展开投射，算提示词哈希
 node tools/build-log.mjs                            # 重算哈希，生成 .gen-log
 node tools/stale.mjs                                # 走血缘 DAG，报过期
@@ -82,13 +85,22 @@ profile 的检查器不能是逐文档的。
    `geml get` 返回原文。所以这个项目不得不自带 `tools/hash-prompts.mjs`（40 行）。
    设计稿 §9 第 2 条的用例，这里是实物。
 
-## 挖出的一个设计缺口
+## 挖出的三个设计缺口
 
-**`media log` 只说"追加一条记录"，没说更新素材块。** 重生一个镜头之后，文件变了、日志多了
+**一、`media log` 只说"追加一条记录"，没说更新素材块。** 重生一个镜头之后，文件变了、日志多了
 一条，但素材块里声明的 `sha256=`（和 `duration`）还是旧的——真实 profile 下这会立刻
 `media-hash-mismatch`（error）。对照 `media import`，设计稿明写它产出"素材块 + 日志记录"
 两样；`log` 少了前一半。**§6 的 `media log` 一行要补上"并更新目标素材块的 `sha256` /
 `duration`"**，否则每次重生都留下一个不一致的库。
+
+**二、一次性占位符写不出可重跑的生成器。** `build-log.mjs` 原本靠替换一个
+`PROMPT_HASHES_GO_HERE` 占位符写日志；占位符第一次就被用掉，之后每次运行都是空转 ——
+素材换了、哈希刷新了，日志却停在旧值上，走血缘时每个素材都「来历不明」。改成重写
+`.gen-log` 块的内容。凡是「生成物覆盖生成物」的工具都会撞上这一条。
+
+**三、`.gen-log` 这个 class 漏了。** 第一版把日志写成 `data {#gen-log format=jsonl}`，
+少了 class，而设计里正是靠这个 class 认出「这个 data 块按生成日志的 schema 验」。
+id 看起来像标记，但它不是 —— 这正说明 class 与 id 的分工要在 profile 文档里说死。
 
 ## 实际用到 / 从没用到
 

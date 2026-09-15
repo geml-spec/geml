@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { checkMedia } from "./media-check.js";
-import { mediaIoFor } from "./host-fs.js";
+import { promptTextOf } from "./media-check.js";
+import { todo as mediaTodo, report as mediaReport, exportTimeline, lay as mediaLay, buildPlan, appendLog, importPlan, loadProject, type ExportFormat, type ManifestItem } from "./media-verbs.js";
+import { mediaIoFor} from "./host-fs.js";
 // The GEML command line. Split out of geml.ts so that file can be what the
 // viewer imports: a parser LIBRARY. Everything CLI-side lives here — argv
 // dispatch, file and stdin I/O, stdout and the exit codes, spawning
@@ -361,6 +363,173 @@ function contentFrom(from: string | undefined): Content {
 
 // `geml check <file>` — validate only: diagnostics + exit code, no document
 // dump (cheap for agents). `--json` prints the diagnostics array for machines.
+const MEDIA_HELP = [
+  "usage: geml media <verb>",
+  "",
+  "  todo   <entry.geml> [--root d] [--json]        待办：没产出的提示词、没配音的台词",
+  "  report <entry.geml> --kind cast|stats [-o f]   跨文档聚合成 CSV",
+  "  export <cut.geml> --to preview|srt|edl|otio|json [-o f]",
+  "  build  <cut.geml> --out <file.mp4>             ffmpeg 出片（字幕另出 .srt，不烧进画面）",
+  "  lay    <cut.geml> --over '#c03' [--gap 0.2]    按配音时长给出 offset/dur 的初值",
+  "  log    <library.geml> --output '#id' --model m --mode x [--prompt ref] [--input ref]… [--seed n]",
+  "  import <manifest.json> --into <library.geml>",
+  "",
+  "  --root <dir>  跨文档解析的根，缺省是入口文档自己的目录",
+].join("\n");
+
+/** 在 PATH 上找一个可执行程序；找不到返回 null（可选依赖，缺了降级）。 */
+function whichBin(bin: string): string | null {
+  const win = process.platform === "win32";
+  const exts = win ? [".exe", ".cmd", ".bat", ""] : [""];
+  for (const dir of (process.env["PATH"] ?? "").split(win ? ";" : ":")) {
+    if (dir === "") continue;
+    for (const e of exts) {
+      const p = join(dir, bin + e);
+      try { if (statSync(p).isFile()) return p; } catch { /* 下一个 */ }
+    }
+  }
+  return null;
+}
+
+function mediaRootOf(file: string, root: string | undefined): { root: string; rel: string } {
+  const r = root ?? dirname(resolvePath(file));
+  return { root: r, rel: relative(r, resolvePath(file)).split(sep).join("/") };
+}
+
+// `geml media …` —— 这份 profile 自己的动词（spec/profiles/geml-media §6）。七个，
+// 不是十四个：check 并进了核心 `geml check`（文档自己在 meta 里声明了 profile，不该
+// 再要求调用者换命令名），prompt 并进了 `get --resolved` 的位置，stale 是 check 的一个
+// 过滤，预览与出片分家（依赖、失败模式、产物类型全不同），cast/stats 合成 report。
+function runMedia(args: string[]): void {
+  const verb = args[0];
+  if (verb === undefined) fail(MEDIA_HELP);
+  if (verb === "--help" || verb === "-h") { console.log(MEDIA_HELP); return; }
+  const rest = args.slice(1);
+  const root = flag(rest, "--root");
+  const out = flag(rest, "-o") ?? flag(rest, "--out");
+  const into = flag(rest, "--into");
+  const file = rest.find((a) => !a.startsWith("-") && a !== root && a !== out && a !== into);
+  if (file === undefined) fail(MEDIA_HELP);
+  const { root: mr, rel } = mediaRootOf(file, root);
+  const io = mediaIoFor(mr);
+  // 项目级的动词收一个目录：引用是有方向的，从剧本出发看不见素材库的日志。
+  const isDir = ((): boolean => { try { return statSync(resolvePath(file)).isDirectory(); } catch { return false; } })();
+  const seeds = ((): string | string[] => {
+    if (!isDir) return rel;
+    const found: string[] = [];
+    gemlFilesUnder(resolvePath(file), found, true);
+    return found.map((p) => relative(mr, p).split(sep).join("/"));
+  })();
+  const emit = (text: string): void => {
+    if (out === undefined) process.stdout.write(text);
+    else { writeFileSync(resolvePath(mr, out), text, "utf8"); console.error("wrote " + out); }
+  };
+
+  if (verb === "todo") {
+    const items = mediaTodo(seeds, io);
+    if (rest.includes("--json")) { console.log(JSON.stringify(items, null, 2)); return; }
+    if (items.length === 0) { console.error("todo: 没有待办"); return; }
+    for (const it of items) console.log((it.kind === "voice" ? "配音" : "生成") + "  " + it.address + "  (" + it.mode + ")");
+    return;
+  }
+  if (verb === "report") {
+    const kind = flag(rest, "--kind") ?? "stats";
+    if (kind !== "cast" && kind !== "stats") fail("--kind 只能是 cast 或 stats");
+    emit(mediaReport(seeds, kind, io));
+    return;
+  }
+  if (verb === "export") {
+    const to = flag(rest, "--to") ?? "preview";
+    if (!["preview", "srt", "edl", "otio", "json"].includes(to)) fail("--to 只能是 preview | srt | edl | otio | json");
+    emit(exportTimeline(rel, to as ExportFormat, io));
+    return;
+  }
+  if (verb === "lay") {
+    const over = flag(rest, "--over");
+    if (over === undefined) fail("lay 需要 --over 指出锚在哪个主轨片段上");
+    const gap = Number(flag(rest, "--gap") ?? "0.2");
+    console.log(JSON.stringify(mediaLay(rel, over, io, Number.isFinite(gap) ? gap : 0.2), null, 2));
+    return;
+  }
+  if (verb === "build") {
+    if (out === undefined) fail("build 需要 --out <file.mp4>");
+    const plan = buildPlan(rel, resolvePath(mr, out), io);
+    for (const n of plan.notes) console.error("note: " + n);
+    if (plan.srt !== null) {
+      const srtPath = resolvePath(mr, out).replace(/\.[^.]+$/, "") + ".srt";
+      writeFileSync(srtPath, plan.srt, "utf8");
+      console.error("wrote " + basename(srtPath) + "（字幕另出，不烧进画面：烧字要 libass 与一份中文字体）");
+    }
+    const ff = whichBin("ffmpeg");
+    if (ff === null) {
+      console.error("ffmpeg 不在 PATH 上；下面是本该跑的命令，装好后可直接执行：");
+      console.log(["ffmpeg", ...plan.args].map((a) => (/\s/.test(a) ? JSON.stringify(a) : a)).join(" "));
+      return;
+    }
+    const r = spawnSync(ff, plan.args, { cwd: mr, encoding: "utf8" });
+    if (r.status !== 0) fail("ffmpeg 失败（exit " + String(r.status ?? "?") + "）：\n" + (r.stderr ?? "").split("\n").slice(-12).join("\n"), 1);
+    console.error("wrote " + out + "  ·  " + plan.duration.toFixed(2) + "s");
+    return;
+  }
+  if (verb === "log") {
+    const outputId = flag(rest, "--output");
+    const model = flag(rest, "--model");
+    const mode = flag(rest, "--mode");
+    if (outputId === undefined || model === undefined || mode === undefined) fail("log 需要 --output --model --mode");
+    const rec: Record<string, unknown> = { output: outputId, model, mode, at: new Date().toISOString() };
+    const proj = loadProject(rel, io);
+    const hit = proj.assets.get(rel + "#" + outputId.replace(/^#/, ""));
+    let assetSha: { id: string; sha256: string } | undefined;
+    if (hit !== undefined) {
+      const p2 = String(hit.b.attrs["src"] ?? "");
+      const dir = rel.includes("/") ? rel.slice(0, rel.lastIndexOf("/")) : "";
+      const h = io.hashFile(dir === "" ? p2 : dir + "/" + p2);
+      // log 同时更新素材块的 sha256 —— 只追加记录会让库里继续声称一个文件已经没有的
+      // 哈希，下一次 check 就是 media-hash-mismatch（第一个真实用例挖出的缺口）。
+      if (h !== null) { rec["output-sha256"] = h; assetSha = { id: outputId.replace(/^#/, ""), sha256: h }; }
+    }
+    const promptRef = flag(rest, "--prompt");
+    if (promptRef !== undefined) {
+      rec["prompt"] = promptRef;
+      const t = promptTextOf(promptRef, rel, io);
+      if (t !== null) rec["prompt-sha256"] = io.hashText(t);
+    }
+    const inputs: { ref: string; sha256?: string }[] = [];
+    for (let i = 0; i < rest.length; i++) if (rest[i] === "--input" && rest[i + 1] !== undefined) inputs.push({ ref: rest[i + 1] as string });
+    if (inputs.length > 0) {
+      rec["inputs"] = inputs.map((x) => {
+        const b = proj.block(x.ref, rel);
+        const h = b === null ? "" : String(b.b.attrs["sha256"] ?? "");
+        return h === "" ? x : { ref: x.ref, sha256: h };
+      });
+    }
+    const seed = flag(rest, "--seed");
+    if (seed !== undefined) rec["seed"] = Number(seed);
+    writeFileSync(resolvePath(file), appendLog(readInput(file), rec, assetSha), "utf8");
+    console.error("logged " + outputId + " → " + file);
+    return;
+  }
+  if (verb === "import") {
+    if (into === undefined) fail("import 需要 --into <library.geml>");
+    const items = JSON.parse(readInput(file)) as ManifestItem[];
+    const target = mediaRootOf(into, root);
+    const io2 = mediaIoFor(target.root);
+    const plan = importPlan(target.rel, items, io2);
+    for (const n of plan.notes) console.error("note: " + n);
+    let text = readFileSync(resolvePath(target.root, target.rel), "utf8");
+    const nl = text.includes("\r\n") ? "\r\n" : "\n";
+    for (const a of plan.newAssets) {
+      const block = "=== media-asset {#" + a.id + " src=" + a.src + " sha256=" + a.sha256 + " kind=" + a.kind + " origin=generated}" + nl + "===" + nl + nl;
+      text = text.replace(/(={3,}\s+data\s*\{[^}]*\.gen-log)/, block + "$1");
+    }
+    for (const r of plan.records) text = appendLog(text, r);
+    writeFileSync(resolvePath(target.root, target.rel), text, "utf8");
+    console.error("imported " + plan.records.length + " 条记录，新建 " + plan.newAssets.length + " 个素材块 → " + into);
+    return;
+  }
+  fail(MEDIA_HELP);
+}
+
 function runCheck(args: string[]): void {
   const json = args.includes("--json");
   const root = flag(args, "--root");
@@ -1284,6 +1453,8 @@ const entry = (() => {
     else if (cmd === "check") runCheck(rest);
     else if (cmd === "mcp") runMcp(rest);
     else runSkill(rest);
+  } else if (cmd === "media") {
+    runMedia(argv.slice(1));
   } else if (cmd === "style") {
     runStyle(argv.slice(1));
   } else if (cmd === "codemap") {
