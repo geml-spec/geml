@@ -1,6 +1,6 @@
 # geml-vault — 在 Markdown 知识库上叠一层块寻址 · 设计文档
 
-日期：2026-09-16 · 状态：**已批准（2026-09-16），未开工** · 基线：`main` @ `4f6d9b5`
+日期：2026-09-16 · 状态：**已批准（2026-09-16），P0–P3 已实现** · 基线：`main` @ `91c8411`（实现分支已 rebase 到此）
 前置阅读：`integrations/obsidian/README.md`（现有的 `.geml` 渲染插件）、`geml-parser/src/cli.ts` §`gemlFilesUnder`、`.claude/skills/geml/instructions.geml`
 调研对象：[claudian](https://github.com/YishenTu/claudian)（Obsidian 原生插件）、[claude-obsidian](https://github.com/AgriciDaniel/claude-obsidian) v1.6.0（vault 模板 + 11 个 Claude Code skill）、[claude-obsidian-assistant](https://github.com/nemocake/claude-obsidian-assistant)（轻量 vault 模板）
 
@@ -172,7 +172,7 @@ claude-obsidian **已经有 PostToolUse 的 git-add 钩子在版本化整个 vau
 | P2 | `vault-graph.mjs` | 不变量 4/5 的回归测试过 |
 | P3 | 历史（默认关） | 适配层写明"claude-obsidian 下别开"；`.gemlhistory` 的处置（gitignore / Obsidian excluded files）留给用户 |
 
-分支：本设计是大改动，按仓约定开新特性分支，基线 `main` @ `4f6d9b5`（不叠在 `feat/geml-agent-runtime` 上）。
+分支：本设计是大改动，按仓约定开新特性分支；实现已 rebase 到 `origin/main` @ `91c8411` 并并入 `main`。
 
 ## 10. 待办 / 待讨论
 
@@ -180,11 +180,14 @@ claude-obsidian **已经有 PostToolUse 的 git-add 钩子在版本化整个 vau
 
 | # | 事项 | 处置 |
 |---|---|---|
-| 1 | skill 命名 `geml-vault` 是否合适（"vault" 是 Obsidian 词汇，而核心层号称通用） | P1 开工前定 |
+| 1 | skill 命名 `geml-vault` 是否合适（"vault" 是 Obsidian 词汇，而核心层号称通用） | 已定：沿用 `geml-vault`，它落在 `integrations/obsidian/` 下，词汇一致 |
 | 2 | 把 `vault-graph` 提升为 `geml vault graph\|lint` + `geml-vault/v1` profile | P2 跑顺、有真实用例后再议（§1.4） |
 | 3 | `find` 只支持字面子串，不支持正则 | 记录为已知限制；是否值得加，等使用反馈 |
 | 4 | `find --head` 每块只回一条命中行 | 同上 |
 | 5 | `set --body` 吃掉块尾 `---` 分隔线、吃掉标题后空行 | 本次不修，记入 `invariants.md`；是否算 bug 待定 |
 | 6 | **frontmatter 在 md 模式下是 anon prose 块，无法安全编辑** | 这是 GEML 面对 Obsidian 的真实缺口。要修得给 md 模式一个 frontmatter 块类型（能表达 YAML 列表）。本次只用禁忌绕开，不修 |
+| 6b | **`[[Note#Heading]]` 写不进去**：GEML 的跨文档引用语法与 Obsidian 的锚点 wikilink 同形，写入时被解析并校验，找不到名为 `Note` 的文档（只有 `Note.md`）→ 拒绝。`[[Note.md#Heading]]` 可以，Obsidian 也认。实施中发现，已钉进测试与 invariants | 与第 6 条同类：GEML 与 Obsidian 在同一串字符上语义冲突。真修需要 md 模式下把 `[[…]]` 整体当文本、不认作 GEML 引用——那会动到核心解析，本次不做 |
+| 6d | **`set --body` 打在散文块上静默追加而非替换**（旧内容一字不删，退出码 0）。上游 `91c8411` 修好了不带 `--body` 的那一半，`--body` 这一半仍在。本次用 skill 规则 + 测试钉住，未修 parser | 候选的后续 parser 修复：散文块上出现 `--body` 时应报错而非写入。改的是 `verbs.ts`，和 `91c8411` 同一处 |
+| 6c | 重复标题致全文件不可写，错误信息指的是碰撞处而非你的编辑，读起来像"你弄坏了没碰过的东西" | 信息措辞可改善（CLI 已有"预先存在的错误不是你造成的"这一说法，但这条路径没走它）。本次只记录 |
 | 7 | 全 `.geml` vault 路线 | 明确不做，改造清单见 §1.4 |
 | 8 | claudian 侧的集成 | 无事可做——它不对笔记格式做假设，本设计与它正交 |
