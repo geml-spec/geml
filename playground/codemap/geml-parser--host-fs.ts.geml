@@ -1,0 +1,110 @@
+=== meta
+profile = "geml-codemap/v1"
+module = geml-parser/host-fs.ts
+src = geml-parser/src/host-fs.ts
+entry = #resolverFor #docOptsFor #gemlFilesUnder #historyError #mediaIoFor
+resolution-default = cpg
+===
+
+# geml-parser/host-fs.ts
+
+=== code {#resolverFor src=geml-parser/src/host-fs.ts#L36-75 anchor="scip-typescript npm @geml/geml 1.10.3 src/`host-fs.ts`/resolverFor()."}
+===
+
+=== code {#existsFor src=geml-parser/src/host-fs.ts#L82-107 anchor="scip-typescript npm @geml/geml 1.10.3 src/`host-fs.ts`/existsFor()."}
+===
+
+=== code {#docOptsFor src=geml-parser/src/host-fs.ts#L111-113 anchor="scip-typescript npm @geml/geml 1.10.3 src/`host-fs.ts`/docOptsFor()."}
+===
+
+=== code {#readConfined src=geml-parser/src/host-fs.ts#L120-132 anchor="scip-typescript npm @geml/geml 1.10.3 src/`host-fs.ts`/readConfined()."}
+===
+
+=== code {#shownPath src=geml-parser/src/host-fs.ts#L138-141 anchor="scip-typescript npm @geml/geml 1.10.3 src/`host-fs.ts`/shownPath()."}
+===
+
+=== code {#walkable src=geml-parser/src/host-fs.ts#L152-155 anchor="scip-typescript npm @geml/geml 1.10.3 src/`host-fs.ts`/walkable."}
+===
+
+=== code {#gemlFilesUnder src=geml-parser/src/host-fs.ts#L174-182 anchor="scip-typescript npm @geml/geml 1.10.3 src/`host-fs.ts`/gemlFilesUnder()."}
+===
+
+=== code {#historyError src=geml-parser/src/host-fs.ts#L187-195 anchor="scip-typescript npm @geml/geml 1.10.3 src/`host-fs.ts`/historyError()."}
+===
+
+=== code {#mediaIoFor src=geml-parser/src/host-fs.ts#L202-223 anchor="scip-typescript npm @geml/geml 1.10.3 src/`host-fs.ts`/mediaIoFor()."}
+===
+
+=== table {#calls format=csv}
+from,            to,                                                kind, confidence
+#existsFor,      #resolverFor,                                      call,
+#docOptsFor,     #existsFor,                                        call,
+#docOptsFor,     #resolverFor,                                      call,
+#readConfined,   geml-parser--verbs.ts.geml#ViewError-new,          call,
+#readConfined,   geml-parser--verbs.ts.geml#ViewError-new,          call,
+#readConfined,   geml-parser--verbs.ts.geml#ViewError-new,          call,
+#gemlFilesUnder, #walkable,                                         call,
+#mediaIoFor,     geml-parser--media-check.ts.geml#MediaIO-hashFile, call,
+#mediaIoFor,     geml-parser--media-check.ts.geml#MediaIO-hashText, call,
+#mediaIoFor,     geml-parser--media-check.ts.geml#MediaIO-readDoc,  call,
+===
+
+=== table {#called-by format=csv}
+from,                                to,              kind, site
+geml-parser--cli.ts.geml#runStyle,   #resolverFor,    call, geml-parser/src/cli.ts:1305
+#existsFor,                          #resolverFor,    call, geml-parser/src/host-fs.ts:83
+#docOptsFor,                         #resolverFor,    call, geml-parser/src/host-fs.ts:112
+#docOptsFor,                         #existsFor,      call, geml-parser/src/host-fs.ts:112
+geml-parser--cli.ts.geml#docOpts,    #docOptsFor,     call, geml-parser/src/cli.ts:320
+geml-parser--mcp.ts.geml#ctxFor,     #docOptsFor,     call, geml-parser/src/mcp.ts:185
+#gemlFilesUnder,                     #walkable,       call, geml-parser/src/host-fs.ts:177
+geml-parser--cli.ts.geml#runMedia,   #gemlFilesUnder, call, geml-parser/src/cli.ts:445
+geml-parser--cli.ts.geml#runFind,    #gemlFilesUnder, call, geml-parser/src/cli.ts:978
+geml-parser--cli.ts.geml#runHistory, #historyError,   call, geml-parser/src/cli.ts:820
+geml-parser--cli.ts.geml#runRevert,  #historyError,   call, geml-parser/src/cli.ts:1215
+geml-parser--cli.ts.geml#runMedia,   #mediaIoFor,     call, geml-parser/src/cli.ts:439
+geml-parser--cli.ts.geml#runMedia,   #mediaIoFor,     call, geml-parser/src/cli.ts:563
+geml-parser--cli.ts.geml#runCheck,   #mediaIoFor,     call, geml-parser/src/cli.ts:682
+===
+
+=== table {#unresolved format=csv hidden}
+from,            to
+#resolverFor,    PlatformPath.dirname
+#resolverFor,    PlatformPath.isAbsolute
+#resolverFor,    PlatformPath.relative
+#resolverFor,    PlatformPath.resolve
+#resolverFor,    String.startsWith
+#resolverFor,    existsSync
+#resolverFor,    readFileSync
+#resolverFor,    realpathSync
+#existsFor,      PlatformPath.dirname
+#existsFor,      PlatformPath.isAbsolute
+#existsFor,      PlatformPath.relative
+#existsFor,      PlatformPath.resolve
+#existsFor,      String.startsWith
+#existsFor,      existsSync
+#existsFor,      realpathSync
+#readConfined,   PlatformPath.resolve
+#readConfined,   RegExp.test
+#readConfined,   String.startsWith
+#readConfined,   readFileSync
+#shownPath,      PlatformPath.relative
+#shownPath,      String.replace
+#walkable,       Array.some
+#walkable,       String.endsWith
+#walkable,       String.toLowerCase
+#gemlFilesUnder, Array.push
+#gemlFilesUnder, Array.sort
+#gemlFilesUnder, PlatformPath.join
+#gemlFilesUnder, StatsBase.isDirectory
+#gemlFilesUnder, String.startsWith
+#gemlFilesUnder, readdirSync
+#historyError,   PlatformPath.basename
+#historyError,   String.endsWith
+#mediaIoFor,     Hash.digest
+#mediaIoFor,     Hash.update
+#mediaIoFor,     PlatformPath.resolve
+#mediaIoFor,     String.startsWith
+#mediaIoFor,     createHash
+#mediaIoFor,     readFileSync
+===

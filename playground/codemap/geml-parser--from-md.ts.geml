@@ -52,27 +52,27 @@ from,       to,           kind, confidence
 ===
 
 === table {#called-by format=csv}
-from,                                  to,           kind, site
-#emitBlock,                            #fenceFor,    call, geml-parser/src/from-md.ts:45
-#mdToGeml,                             #emitBlock,   call, geml-parser/src/from-md.ts:163
-#mdToGeml,                             #emitBlock,   call, geml-parser/src/from-md.ts:190
-#mdToGeml,                             #emitBlock,   call, geml-parser/src/from-md.ts:191
-#mdToGeml,                             #emitBlock,   call, geml-parser/src/from-md.ts:201
-#mdToGeml,                             #emitBlock,   call, geml-parser/src/from-md.ts:234
-#mdToGeml,                             #emitBlock,   call, geml-parser/src/from-md.ts:246
-#mdToGeml,                             #emitBlock,   call, geml-parser/src/from-md.ts:257
-#mdToGeml,                             #metaLine,    call, geml-parser/src/from-md.ts:157
-#mdToGeml,                             #autolinks,   call, geml-parser/src/from-md.ts:234
-#mdToGeml,                             #autolinks,   call, geml-parser/src/from-md.ts:275
-#mdToGeml,                             #escMetaRefs, call, geml-parser/src/from-md.ts:210
-#mdToGeml,                             #escMetaRefs, call, geml-parser/src/from-md.ts:211
-#mdToGeml,                             #escMetaRefs, call, geml-parser/src/from-md.ts:234
-#mdToGeml,                             #escMetaRefs, call, geml-parser/src/from-md.ts:243
-#mdToGeml,                             #escMetaRefs, call, geml-parser/src/from-md.ts:270
-#mdToGeml,                             #escMetaRefs, call, geml-parser/src/from-md.ts:275
-#mdToGeml,                             #githubSlug,  call, geml-parser/src/from-md.ts:269
-geml-parser--cli.ts.geml#runTransform, #mdToGeml,    call, geml-parser/src/cli.ts:783
-geml-parser--cli.ts.geml#runTransform, #mdToGeml,    call, geml-parser/src/cli.ts:796
+from,                                 to,           kind, site
+#emitBlock,                           #fenceFor,    call, geml-parser/src/from-md.ts:45
+#mdToGeml,                            #emitBlock,   call, geml-parser/src/from-md.ts:163
+#mdToGeml,                            #emitBlock,   call, geml-parser/src/from-md.ts:190
+#mdToGeml,                            #emitBlock,   call, geml-parser/src/from-md.ts:191
+#mdToGeml,                            #emitBlock,   call, geml-parser/src/from-md.ts:201
+#mdToGeml,                            #emitBlock,   call, geml-parser/src/from-md.ts:234
+#mdToGeml,                            #emitBlock,   call, geml-parser/src/from-md.ts:246
+#mdToGeml,                            #emitBlock,   call, geml-parser/src/from-md.ts:257
+#mdToGeml,                            #metaLine,    call, geml-parser/src/from-md.ts:157
+#mdToGeml,                            #autolinks,   call, geml-parser/src/from-md.ts:234
+#mdToGeml,                            #autolinks,   call, geml-parser/src/from-md.ts:275
+#mdToGeml,                            #escMetaRefs, call, geml-parser/src/from-md.ts:210
+#mdToGeml,                            #escMetaRefs, call, geml-parser/src/from-md.ts:211
+#mdToGeml,                            #escMetaRefs, call, geml-parser/src/from-md.ts:234
+#mdToGeml,                            #escMetaRefs, call, geml-parser/src/from-md.ts:243
+#mdToGeml,                            #escMetaRefs, call, geml-parser/src/from-md.ts:270
+#mdToGeml,                            #escMetaRefs, call, geml-parser/src/from-md.ts:275
+#mdToGeml,                            #githubSlug,  call, geml-parser/src/from-md.ts:269
+geml-parser--verbs.ts.geml#transform, #mdToGeml,    call, geml-parser/src/verbs.ts:790
+geml-parser--verbs.ts.geml#transform, #mdToGeml,    call, geml-parser/src/verbs.ts:801
 ===
 
 === table {#unresolved format=csv hidden}

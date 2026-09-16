@@ -1,0 +1,61 @@
+=== meta
+profile = "geml-codemap/v1"
+module = geml-viewer/media.js
+src = integrations/geml-viewer/src/media.js
+resolution-default = cpg
+===
+
+# geml-viewer/media.js
+
+=== code {#timelineFor src=integrations/geml-viewer/src/media.js#L20-59 anchor="scip-typescript npm geml-viewer 1.3.1 src/`media.js`/timelineFor()."}
+===
+
+=== code {#pct .leaf src=integrations/geml-viewer/src/media.js#L62-62 anchor="scip-typescript npm geml-viewer 1.3.1 src/`media.js`/pct."}
+===
+
+=== code {#clip src=integrations/geml-viewer/src/media.js#L68-95 anchor="scip-typescript npm geml-viewer 1.3.1 src/`media.js`/clip()."}
+===
+
+=== code {#trackEl src=integrations/geml-viewer/src/media.js#L97-122 anchor="scip-typescript npm geml-viewer 1.3.1 src/`media.js`/trackEl()."}
+===
+
+=== code {#timelineTrack src=integrations/geml-viewer/src/media.js#L125-125 anchor="scip-typescript npm geml-viewer 1.3.1 src/`media.js`/timelineTrack()."}
+===
+
+=== code {#overlayTrack src=integrations/geml-viewer/src/media.js#L131-131 anchor="scip-typescript npm geml-viewer 1.3.1 src/`media.js`/overlayTrack()."}
+===
+
+=== table {#calls format=csv}
+from,           to,           kind, confidence
+#clip,          #pct,         call,
+#clip,          #pct,         call,
+#clip,          #timelineFor, call,
+#trackEl,       #pct,         call,
+#trackEl,       #timelineFor, call,
+#timelineTrack, #trackEl,     call,
+#overlayTrack,  #trackEl,     call,
+===
+
+=== table {#called-by format=csv}
+from,           to,           kind, site
+#clip,          #timelineFor, call, integrations/geml-viewer/src/media.js:73
+#trackEl,       #timelineFor, call, integrations/geml-viewer/src/media.js:104
+#clip,          #pct,         call, integrations/geml-viewer/src/media.js:77
+#clip,          #pct,         call, integrations/geml-viewer/src/media.js:78
+#trackEl,       #pct,         call, integrations/geml-viewer/src/media.js:115
+#timelineTrack, #trackEl,     call, integrations/geml-viewer/src/media.js:125
+#overlayTrack,  #trackEl,     call, integrations/geml-viewer/src/media.js:131
+===
+
+=== table {#unresolved format=csv hidden}
+from,         to
+#timelineFor, Array.push
+#timelineFor, NumberConstructor.isFinite
+#timelineFor, WeakMap.get
+#timelineFor, WeakMap.has
+#timelineFor, WeakMap.set
+#timelineFor, layoutDoc
+#clip,        Number.toFixed
+#trackEl,     Math.floor
+#trackEl,     Number.toFixed
+===

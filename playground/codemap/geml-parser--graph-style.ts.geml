@@ -83,9 +83,9 @@ from,                                       to,                      kind, site
 #graphStyleFromDoc,                         #writtenKnobs,           call, geml-parser/src/graph-style.ts:99
 #graphStyleFromLayers,                      #writtenKnobs,           call, geml-parser/src/graph-style.ts:113
 #parseGraphStyle,                           #graphStyleFromDoc,      call, geml-parser/src/graph-style.ts:68
-geml-parser--render.ts.geml#buildCodeGraph, #graphStyleFromLayers,   call, geml-parser/src/render.ts:903
+geml-parser--render.ts.geml#buildCodeGraph, #graphStyleFromLayers,   call, geml-parser/src/render.ts:913
 #loadOrSeedGraphStyle,                      #serializeGraphStyle,    call, geml-parser/src/graph-style.ts:223
-geml-parser--render.ts.geml#buildCodeGraph, #resolveStyleLayers,     call, geml-parser/src/render.ts:902
+geml-parser--render.ts.geml#buildCodeGraph, #resolveStyleLayers,     call, geml-parser/src/render.ts:912
 #loadOrSeedGraphStyle,                      #serializeStyleManifest, call, geml-parser/src/graph-style.ts:211
 ===
 
@@ -100,8 +100,8 @@ from,                  to
 #resolveStyleLayers,   Array.includes
 #resolveStyleLayers,   Array.push
 #resolveStyleLayers,   String.trim
+#loadOrSeedGraphStyle, PlatformPath.join
 #loadOrSeedGraphStyle, existsSync
-#loadOrSeedGraphStyle, join
 #loadOrSeedGraphStyle, mkdirSync
 #loadOrSeedGraphStyle, readFileSync
 #loadOrSeedGraphStyle, writeFileSync

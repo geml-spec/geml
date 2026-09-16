@@ -220,18 +220,18 @@ from,                                        to,              kind, site
 #writeTable,                                 #replaceField,   call, geml-parser/src/coord.ts:251
 #planCoordWrite,                             #writeTable,     call, geml-parser/src/coord.ts:422
 #planCoordWrite,                             #writeValue,     call, geml-parser/src/coord.ts:423
-geml-parser--cli.ts.geml#reservedMeta,       #metaView,       call, geml-parser/src/cli.ts:1262
-geml-parser--geml.ts.geml#blockFromDocument, #metaView,       call, geml-parser/src/geml.ts:1889
-geml-parser--geml.ts.geml#validateCoordRef,  #metaView,       call, geml-parser/src/geml.ts:1935
-geml-parser--cli.ts.geml#runGet,             #metaText,       call, geml-parser/src/cli.ts:1460
+geml-parser--geml.ts.geml#blockFromDocument, #metaView,       call, geml-parser/src/geml.ts:2000
+geml-parser--geml.ts.geml#validateCoordRef,  #metaView,       call, geml-parser/src/geml.ts:2046
+geml-parser--verbs.ts.geml#reservedMeta,     #metaView,       call, geml-parser/src/verbs.ts:521
+geml-parser--verbs.ts.geml#get,              #metaText,       call, geml-parser/src/verbs.ts:584
 #metaText,                                   #metaLiteral,    call, geml-parser/src/coord.ts:373
 #planMetaWrite,                              #metaLiteral,    call, geml-parser/src/coord.ts:395
-geml-parser--cli.ts.geml#runSetMeta,         #planMetaWrite,  call, geml-parser/src/cli.ts:1924
 #planCoordWrite,                             #planMetaWrite,  call, geml-parser/src/coord.ts:429
-geml-parser--cli.ts.geml#runSetCoord,        #planCoordWrite, call, geml-parser/src/cli.ts:1972
-geml-parser--cli.ts.geml#runGet,             #projectCoord,   call, geml-parser/src/cli.ts:1464
-geml-parser--cli.ts.geml#runGet,             #projectCoord,   call, geml-parser/src/cli.ts:1490
-geml-parser--geml.ts.geml#validateCoordRef,  #projectCoord,   call, geml-parser/src/geml.ts:1945
+geml-parser--verbs.ts.geml#setMeta,          #planMetaWrite,  call, geml-parser/src/verbs.ts:1266
+geml-parser--verbs.ts.geml#setCoord,         #planCoordWrite, call, geml-parser/src/verbs.ts:1312
+geml-parser--geml.ts.geml#validateCoordRef,  #projectCoord,   call, geml-parser/src/geml.ts:2056
+geml-parser--verbs.ts.geml#get,              #projectCoord,   call, geml-parser/src/verbs.ts:587
+geml-parser--verbs.ts.geml#get,              #projectCoord,   call, geml-parser/src/verbs.ts:612
 ===
 
 === table {#unresolved format=csv hidden}
