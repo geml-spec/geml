@@ -247,7 +247,8 @@ geml list    file.geml                # CALL FIRST: every block, its address, ki
 geml find    "text" file|dir          # search block CONTENT -> file<TAB>address; exit 1 = no hit
                                       # a NAMED file is searched whatever its extension — `list`,
                                       # `get` and `find` all read Markdown, so this addresses a
-                                      # plain README without converting it; a DIRECTORY walks *.geml
+                                      # plain README without converting it; a DIRECTORY walks
+                                      # *.geml and *.md — both formats the parser reads
 geml get     file.geml                # same listing as `list` (the no-selector default)
 geml get     file.geml '#id'          # print ONE block (raw span; --json = model node)
 geml get     file.geml '=== note'     # every block of a type; '@a3f9c1d2' = a block with no #id

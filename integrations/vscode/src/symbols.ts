@@ -64,7 +64,9 @@ export class GemlWorkspaceSymbols implements vscode.WorkspaceSymbolProvider {
     token: vscode.CancellationToken,
   ): Promise<vscode.SymbolInformation[]> {
     if (folder.uri.scheme !== "file") return [];
-    // `.` — the folder itself travels in cwd. `find` walks *.geml under it.
+    // `.` — the folder itself travels in cwd. `find` walks *.geml and *.md
+    // under it, so Ctrl+T reaches blocks in a repo's Markdown too — the same
+    // addresses `geml get` takes there.
     // The token is passed on so that the search VS Code has already abandoned
     // (because another key was pressed) stops walking the tree.
     const r = await spawnCli(["find", q, ".", "--json"], { cwd: folder.uri.fsPath, token });
