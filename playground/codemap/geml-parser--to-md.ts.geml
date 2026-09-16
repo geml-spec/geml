@@ -41,19 +41,19 @@ resolution-default = cpg
 === code {#attr .leaf src=geml-parser/src/to-md.ts#L170-173 anchor="scip-typescript npm @geml/geml 1.10.3 src/`to-md.ts`/attr()."}
 ===
 
-=== code {#typedToMd src=geml-parser/src/to-md.ts#L176-260 anchor="scip-typescript npm @geml/geml 1.10.3 src/`to-md.ts`/typedToMd()."}
+=== code {#typedToMd src=geml-parser/src/to-md.ts#L176-263 anchor="scip-typescript npm @geml/geml 1.10.3 src/`to-md.ts`/typedToMd()."}
 ===
 
-=== code {#block src=geml-parser/src/to-md.ts#L262-274 anchor="scip-typescript npm @geml/geml 1.10.3 src/`to-md.ts`/block()."}
+=== code {#block src=geml-parser/src/to-md.ts#L265-277 anchor="scip-typescript npm @geml/geml 1.10.3 src/`to-md.ts`/block()."}
 ===
 
-=== code {#yamlValue src=geml-parser/src/to-md.ts#L280-283 anchor="scip-typescript npm @geml/geml 1.10.3 src/`to-md.ts`/yamlValue()."}
+=== code {#yamlValue src=geml-parser/src/to-md.ts#L283-286 anchor="scip-typescript npm @geml/geml 1.10.3 src/`to-md.ts`/yamlValue()."}
 ===
 
-=== code {#frontmatter src=geml-parser/src/to-md.ts#L285-291 anchor="scip-typescript npm @geml/geml 1.10.3 src/`to-md.ts`/frontmatter()."}
+=== code {#frontmatter src=geml-parser/src/to-md.ts#L288-294 anchor="scip-typescript npm @geml/geml 1.10.3 src/`to-md.ts`/frontmatter()."}
 ===
 
-=== code {#gemlToMd src=geml-parser/src/to-md.ts#L315-335 anchor="scip-typescript npm @geml/geml 1.10.3 src/`to-md.ts`/gemlToMd()."}
+=== code {#gemlToMd src=geml-parser/src/to-md.ts#L318-338 anchor="scip-typescript npm @geml/geml 1.10.3 src/`to-md.ts`/gemlToMd()."}
 ===
 
 === table {#calls format=csv}
@@ -97,45 +97,45 @@ from,         to,           kind, confidence
 ===
 
 === table {#called-by format=csv}
-from,                                  to,           kind, site
-#inline,                               #escText,     call, geml-parser/src/to-md.ts:36
-#inline,                               #linkDest,    call, geml-parser/src/to-md.ts:44
-#seq,                                  #inline,      call, geml-parser/src/to-md.ts:73
-#inline,                               #seq,         call, geml-parser/src/to-md.ts:37
-#inline,                               #seq,         call, geml-parser/src/to-md.ts:38
-#inline,                               #seq,         call, geml-parser/src/to-md.ts:39
-#inline,                               #seq,         call, geml-parser/src/to-md.ts:44
-#cellText,                             #seq,         call, geml-parser/src/to-md.ts:101
-#listToMd,                             #seq,         call, geml-parser/src/to-md.ts:150
-#block,                                #seq,         call, geml-parser/src/to-md.ts:267
-#block,                                #seq,         call, geml-parser/src/to-md.ts:269
-#cellText,                             #escPipe,     call, geml-parser/src/to-md.ts:101
-#tableToMd,                            #escPipe,     call, geml-parser/src/to-md.ts:126
-#tableToMd,                            #cellText,    call, geml-parser/src/to-md.ts:132
-#tableToMd,                            #cellText,    call, geml-parser/src/to-md.ts:133
-#tableToMd,                            #sep,         call, geml-parser/src/to-md.ts:127
-#typedToMd,                            #tableToMd,   call, geml-parser/src/to-md.ts:225
-#block,                                #listToMd,    call, geml-parser/src/to-md.ts:271
-#typedToMd,                            #fence,       call, geml-parser/src/to-md.ts:197
-#typedToMd,                            #fence,       call, geml-parser/src/to-md.ts:215
-#typedToMd,                            #fence,       call, geml-parser/src/to-md.ts:217
-#typedToMd,                            #fence,       call, geml-parser/src/to-md.ts:232
-#typedToMd,                            #fence,       call, geml-parser/src/to-md.ts:234
-#typedToMd,                            #fence,       call, geml-parser/src/to-md.ts:259
-#typedToMd,                            #attr,        call, geml-parser/src/to-md.ts:197
-#typedToMd,                            #attr,        call, geml-parser/src/to-md.ts:208
-#typedToMd,                            #attr,        call, geml-parser/src/to-md.ts:214
-#typedToMd,                            #attr,        call, geml-parser/src/to-md.ts:227
-#typedToMd,                            #attr,        call, geml-parser/src/to-md.ts:231
-#block,                                #typedToMd,   call, geml-parser/src/to-md.ts:272
-#listToMd,                             #block,       call, geml-parser/src/to-md.ts:155
-#typedToMd,                            #block,       call, geml-parser/src/to-md.ts:185
-#typedToMd,                            #block,       call, geml-parser/src/to-md.ts:188
-#gemlToMd,                             #block,       call, geml-parser/src/to-md.ts:327
-#frontmatter,                          #yamlValue,   call, geml-parser/src/to-md.ts:290
-#gemlToMd,                             #frontmatter, call, geml-parser/src/to-md.ts:331
-geml-parser--cli.ts.geml#runTransform, #gemlToMd,    call, geml-parser/src/cli.ts:854
-geml-parser--cli.ts.geml#runTransform, #gemlToMd,    call, geml-parser/src/cli.ts:881
+from,                                 to,           kind, site
+#inline,                              #escText,     call, geml-parser/src/to-md.ts:36
+#inline,                              #linkDest,    call, geml-parser/src/to-md.ts:44
+#seq,                                 #inline,      call, geml-parser/src/to-md.ts:73
+#inline,                              #seq,         call, geml-parser/src/to-md.ts:37
+#inline,                              #seq,         call, geml-parser/src/to-md.ts:38
+#inline,                              #seq,         call, geml-parser/src/to-md.ts:39
+#inline,                              #seq,         call, geml-parser/src/to-md.ts:44
+#cellText,                            #seq,         call, geml-parser/src/to-md.ts:101
+#listToMd,                            #seq,         call, geml-parser/src/to-md.ts:150
+#block,                               #seq,         call, geml-parser/src/to-md.ts:270
+#block,                               #seq,         call, geml-parser/src/to-md.ts:272
+#cellText,                            #escPipe,     call, geml-parser/src/to-md.ts:101
+#tableToMd,                           #escPipe,     call, geml-parser/src/to-md.ts:126
+#tableToMd,                           #cellText,    call, geml-parser/src/to-md.ts:132
+#tableToMd,                           #cellText,    call, geml-parser/src/to-md.ts:133
+#tableToMd,                           #sep,         call, geml-parser/src/to-md.ts:127
+#typedToMd,                           #tableToMd,   call, geml-parser/src/to-md.ts:228
+#block,                               #listToMd,    call, geml-parser/src/to-md.ts:274
+#typedToMd,                           #fence,       call, geml-parser/src/to-md.ts:200
+#typedToMd,                           #fence,       call, geml-parser/src/to-md.ts:218
+#typedToMd,                           #fence,       call, geml-parser/src/to-md.ts:220
+#typedToMd,                           #fence,       call, geml-parser/src/to-md.ts:235
+#typedToMd,                           #fence,       call, geml-parser/src/to-md.ts:237
+#typedToMd,                           #fence,       call, geml-parser/src/to-md.ts:262
+#typedToMd,                           #attr,        call, geml-parser/src/to-md.ts:200
+#typedToMd,                           #attr,        call, geml-parser/src/to-md.ts:211
+#typedToMd,                           #attr,        call, geml-parser/src/to-md.ts:217
+#typedToMd,                           #attr,        call, geml-parser/src/to-md.ts:230
+#typedToMd,                           #attr,        call, geml-parser/src/to-md.ts:234
+#block,                               #typedToMd,   call, geml-parser/src/to-md.ts:275
+#listToMd,                            #block,       call, geml-parser/src/to-md.ts:155
+#typedToMd,                           #block,       call, geml-parser/src/to-md.ts:188
+#typedToMd,                           #block,       call, geml-parser/src/to-md.ts:191
+#gemlToMd,                            #block,       call, geml-parser/src/to-md.ts:330
+#frontmatter,                         #yamlValue,   call, geml-parser/src/to-md.ts:293
+#gemlToMd,                            #frontmatter, call, geml-parser/src/to-md.ts:334
+geml-parser--verbs.ts.geml#transform, #gemlToMd,    call, geml-parser/src/verbs.ts:861
+geml-parser--verbs.ts.geml#transform, #gemlToMd,    call, geml-parser/src/verbs.ts:888
 ===
 
 === table {#unresolved format=csv hidden}

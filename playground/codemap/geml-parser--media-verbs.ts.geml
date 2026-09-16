@@ -1,0 +1,362 @@
+=== meta
+profile = "geml-codemap/v1"
+module = geml-parser/media-verbs.ts
+src = geml-parser/src/media-verbs.ts
+entry = #loadProject #todo #report #exportTimeline #buildPlan #appendLog #lay #importPlan #importKindOf #importSubtitles #assetBlockFor #idFromFile #idsTaken
+resolution-default = cpg
+===
+
+# geml-parser/media-verbs.ts
+
+=== code {#MediaHost-writeDoc name="MediaHost.writeDoc" src=geml-parser/src/media-verbs.ts#L15-15 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-verbs.ts`/MediaHost#writeDoc()."}
+===
+
+=== code {#MediaHost-run name="MediaHost.run" src=geml-parser/src/media-verbs.ts#L17-17 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-verbs.ts`/MediaHost#run()."}
+===
+
+=== code {#str .leaf src=geml-parser/src/media-verbs.ts#L31-31 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-verbs.ts`/str."}
+===
+
+=== code {#loadProject src=geml-parser/src/media-verbs.ts#L40-96 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-verbs.ts`/loadProject()."}
+===
+
+=== code {#todo src=geml-parser/src/media-verbs.ts#L113-155 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-verbs.ts`/todo()."}
+===
+
+=== code {#csv src=geml-parser/src/media-verbs.ts#L163-164 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-verbs.ts`/csv."}
+===
+
+=== code {#report src=geml-parser/src/media-verbs.ts#L166-191 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-verbs.ts`/report()."}
+===
+
+=== code {#assetInfo src=geml-parser/src/media-verbs.ts#L202-218 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-verbs.ts`/assetInfo()."}
+===
+
+=== code {#hhmmss src=geml-parser/src/media-verbs.ts#L220-224 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-verbs.ts`/hhmmss."}
+===
+
+=== code {#esc src=geml-parser/src/media-verbs.ts#L225-225 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-verbs.ts`/esc."}
+===
+
+=== code {#exportTimeline src=geml-parser/src/media-verbs.ts#L227-298 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-verbs.ts`/exportTimeline()."}
+===
+
+=== code {#fgEsc src=geml-parser/src/media-verbs.ts#L333-334 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-verbs.ts`/fgEsc."}
+===
+
+=== code {#buildPlan src=geml-parser/src/media-verbs.ts#L336-421 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-verbs.ts`/buildPlan()."}
+===
+
+=== code {#appendLog src=geml-parser/src/media-verbs.ts#L434-477 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-verbs.ts`/appendLog()."}
+===
+
+=== code {#lay src=geml-parser/src/media-verbs.ts#L486-509 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-verbs.ts`/lay()."}
+===
+
+=== code {#kindFromExt src=geml-parser/src/media-verbs.ts#L529-536 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-verbs.ts`/kindFromExt."}
+===
+
+=== code {#importPlan src=geml-parser/src/media-verbs.ts#L538-579 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-verbs.ts`/importPlan()."}
+===
+
+=== code {#EXT src=geml-parser/src/media-verbs.ts#L590-590 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-verbs.ts`/EXT."}
+===
+
+=== code {#importKindOf src=geml-parser/src/media-verbs.ts#L592-600 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-verbs.ts`/importKindOf()."}
+===
+
+=== code {#parseCues src=geml-parser/src/media-verbs.ts#L608-632 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-verbs.ts`/parseCues()."}
+===
+
+=== code {#importSubtitles src=geml-parser/src/media-verbs.ts#L667-712 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-verbs.ts`/importSubtitles()."}
+===
+
+=== code {#assetBlockFor src=geml-parser/src/media-verbs.ts#L715-720 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-verbs.ts`/assetBlockFor()."}
+===
+
+=== code {#idFromFile src=geml-parser/src/media-verbs.ts#L723-725 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-verbs.ts`/idFromFile()."}
+===
+
+=== code {#idsTaken src=geml-parser/src/media-verbs.ts#L728-732 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-verbs.ts`/idsTaken()."}
+===
+
+=== table {#calls format=csv}
+from,             to,                                                kind, confidence
+#loadProject,     #str,                                              call,
+#loadProject,     #str,                                              call,
+#loadProject,     #str,                                              call,
+#loadProject,     geml-parser--geml.ts.geml#parse,                   call,
+#loadProject,     geml-parser--media-check.ts.geml#blocksOf,         call,
+#loadProject,     geml-parser--media-check.ts.geml#blocksOf,         call,
+#loadProject,     geml-parser--media-check.ts.geml#blocksOf,         call,
+#loadProject,     geml-parser--media-check.ts.geml#MediaIO-readDoc,  call,
+#loadProject,     geml-parser--media-check.ts.geml#metaOf,           call,
+#loadProject,     geml-parser--media-check.ts.geml#splitRef,         call,
+#loadProject,     geml-parser--media-check.ts.geml#splitRef,         call,
+#todo,            #loadProject,                                      call,
+#todo,            #str,                                              call,
+#todo,            #str,                                              call,
+#todo,            #str,                                              call,
+#todo,            #str,                                              call,
+#todo,            #str,                                              call,
+#todo,            geml-parser--media-check.ts.geml#promptTextOf,     call,
+#todo,            geml-parser--media-check.ts.geml#promptTextOf,     call,
+#todo,            geml-parser--media-check.ts.geml#splitRef,         call,
+#todo,            geml-parser--media-check.ts.geml#splitRef,         call,
+#todo,            geml-parser--media-check.ts.geml#splitRef,         call,
+#report,          #csv,                                              call,
+#report,          #csv,                                              call,
+#report,          #loadProject,                                      call,
+#report,          #str,                                              call,
+#report,          #str,                                              call,
+#report,          #str,                                              call,
+#report,          geml-parser--media-check.ts.geml#splitRef,         call,
+#assetInfo,       #str,                                              call,
+#assetInfo,       #str,                                              call,
+#assetInfo,       geml-parser--media-check.ts.geml#promptTextOf,     call,
+#exportTimeline,  #assetInfo,                                        call,
+#exportTimeline,  #esc,                                              call,
+#exportTimeline,  #esc,                                              call,
+#exportTimeline,  #esc,                                              call,
+#exportTimeline,  #esc,                                              call,
+#exportTimeline,  #hhmmss,                                           call,
+#exportTimeline,  #hhmmss,                                           call,
+#exportTimeline,  #hhmmss,                                           call,
+#exportTimeline,  #hhmmss,                                           call,
+#exportTimeline,  #hhmmss,                                           call,
+#exportTimeline,  #hhmmss,                                           call,
+#exportTimeline,  #loadProject,                                      call,
+#exportTimeline,  geml-parser--media-check.ts.geml#MediaIO-readDoc,  call,
+#exportTimeline,  geml-parser--media-timeline.ts.geml#layout,        call,
+#buildPlan,       #assetInfo,                                        call,
+#buildPlan,       #exportTimeline,                                   call,
+#buildPlan,       #fgEsc,                                            call,
+#buildPlan,       #fgEsc,                                            call,
+#buildPlan,       #loadProject,                                      call,
+#buildPlan,       geml-parser--media-check.ts.geml#MediaIO-readDoc,  call,
+#buildPlan,       geml-parser--media-timeline.ts.geml#layout,        call,
+#lay,             #assetInfo,                                        call,
+#lay,             #loadProject,                                      call,
+#lay,             #str,                                              call,
+#lay,             #str,                                              call,
+#lay,             #str,                                              call,
+#lay,             geml-parser--media-check.ts.geml#MediaIO-readDoc,  call,
+#lay,             geml-parser--media-timeline.ts.geml#layout,        call,
+#importPlan,      #kindFromExt,                                      call,
+#importPlan,      #loadProject,                                      call,
+#importPlan,      #str,                                              call,
+#importPlan,      #str,                                              call,
+#importPlan,      geml-parser--media-check.ts.geml#MediaIO-hashFile, call,
+#importPlan,      geml-parser--media-check.ts.geml#MediaIO-hashText, call,
+#importPlan,      geml-parser--media-check.ts.geml#promptTextOf,     call,
+#importKindOf,    #EXT,                                              call,
+#importSubtitles, #assetInfo,                                        call,
+#importSubtitles, #loadProject,                                      call,
+#importSubtitles, #parseCues,                                        call,
+#importSubtitles, geml-parser--media-check.ts.geml#MediaIO-readDoc,  call,
+#importSubtitles, geml-parser--media-timeline.ts.geml#layout,        call,
+#assetBlockFor,   #kindFromExt,                                      call,
+===
+
+=== table {#called-by format=csv}
+from,                                     to,               kind, site
+#loadProject,                             #str,             call, geml-parser/src/media-verbs.ts:61
+#loadProject,                             #str,             call, geml-parser/src/media-verbs.ts:64
+#loadProject,                             #str,             call, geml-parser/src/media-verbs.ts:65
+#todo,                                    #str,             call, geml-parser/src/media-verbs.ts:118
+#todo,                                    #str,             call, geml-parser/src/media-verbs.ts:132
+#todo,                                    #str,             call, geml-parser/src/media-verbs.ts:140
+#todo,                                    #str,             call, geml-parser/src/media-verbs.ts:145
+#todo,                                    #str,             call, geml-parser/src/media-verbs.ts:146
+#report,                                  #str,             call, geml-parser/src/media-verbs.ts:171
+#report,                                  #str,             call, geml-parser/src/media-verbs.ts:178
+#report,                                  #str,             call, geml-parser/src/media-verbs.ts:184
+#assetInfo,                               #str,             call, geml-parser/src/media-verbs.ts:207
+#assetInfo,                               #str,             call, geml-parser/src/media-verbs.ts:208
+#lay,                                     #str,             call, geml-parser/src/media-verbs.ts:497
+#lay,                                     #str,             call, geml-parser/src/media-verbs.ts:502
+#lay,                                     #str,             call, geml-parser/src/media-verbs.ts:504
+#importPlan,                              #str,             call, geml-parser/src/media-verbs.ts:542
+#importPlan,                              #str,             call, geml-parser/src/media-verbs.ts:571
+geml-parser--cli.ts.geml#runMedia,        #loadProject,     call, geml-parser/src/cli.ts:519
+geml-parser--cli.ts.geml#runMedia,        #loadProject,     call, geml-parser/src/cli.ts:633
+#todo,                                    #loadProject,     call, geml-parser/src/media-verbs.ts:114
+#report,                                  #loadProject,     call, geml-parser/src/media-verbs.ts:167
+#exportTimeline,                          #loadProject,     call, geml-parser/src/media-verbs.ts:228
+#buildPlan,                               #loadProject,     call, geml-parser/src/media-verbs.ts:337
+#lay,                                     #loadProject,     call, geml-parser/src/media-verbs.ts:487
+#importPlan,                              #loadProject,     call, geml-parser/src/media-verbs.ts:539
+#importSubtitles,                         #loadProject,     call, geml-parser/src/media-verbs.ts:687
+geml-parser--cli.ts.geml#runMedia,        #todo,            call, geml-parser/src/cli.ts:454
+#report,                                  #csv,             call, geml-parser/src/media-verbs.ts:174
+#report,                                  #csv,             call, geml-parser/src/media-verbs.ts:190
+geml-parser--cli.ts.geml#runMedia,        #report,          call, geml-parser/src/cli.ts:463
+#exportTimeline,                          #assetInfo,       call, geml-parser/src/media-verbs.ts:231
+#buildPlan,                               #assetInfo,       call, geml-parser/src/media-verbs.ts:339
+#lay,                                     #assetInfo,       call, geml-parser/src/media-verbs.ts:490
+#importSubtitles,                         #assetInfo,       call, geml-parser/src/media-verbs.ts:688
+#exportTimeline,                          #hhmmss,          call, geml-parser/src/media-verbs.ts:241
+#exportTimeline,                          #hhmmss,          call, geml-parser/src/media-verbs.ts:241
+#exportTimeline,                          #hhmmss,          call, geml-parser/src/media-verbs.ts:252
+#exportTimeline,                          #hhmmss,          call, geml-parser/src/media-verbs.ts:252
+#exportTimeline,                          #hhmmss,          call, geml-parser/src/media-verbs.ts:252
+#exportTimeline,                          #hhmmss,          call, geml-parser/src/media-verbs.ts:252
+#exportTimeline,                          #esc,             call, geml-parser/src/media-verbs.ts:279
+#exportTimeline,                          #esc,             call, geml-parser/src/media-verbs.ts:282
+#exportTimeline,                          #esc,             call, geml-parser/src/media-verbs.ts:286
+#exportTimeline,                          #esc,             call, geml-parser/src/media-verbs.ts:295
+geml-parser--cli.ts.geml#runMedia,        #exportTimeline,  call, geml-parser/src/cli.ts:469
+#buildPlan,                               #exportTimeline,  call, geml-parser/src/media-verbs.ts:420
+#buildPlan,                               #fgEsc,           call, geml-parser/src/media-verbs.ts:393
+#buildPlan,                               #fgEsc,           call, geml-parser/src/media-verbs.ts:394
+geml-parser--cli.ts.geml#runMedia,        #buildPlan,       call, geml-parser/src/cli.ts:491
+geml-parser--cli.ts.geml#runMedia,        #appendLog,       call, geml-parser/src/cli.ts:547
+geml-parser--cli.ts.geml#runMedia,        #appendLog,       call, geml-parser/src/cli.ts:587
+geml-parser--cli.ts.geml#runMedia,        #lay,             call, geml-parser/src/cli.ts:476
+#importPlan,                              #kindFromExt,     call, geml-parser/src/media-verbs.ts:556
+#assetBlockFor,                           #kindFromExt,     call, geml-parser/src/media-verbs.ts:719
+geml-parser--cli.ts.geml#runMedia,        #importPlan,      call, geml-parser/src/cli.ts:581
+#importKindOf,                            #EXT,             call, geml-parser/src/media-verbs.ts:593
+geml-parser--cli.ts.geml#mediaFilesUnder, #importKindOf,    call, geml-parser/src/cli.ts:415
+geml-parser--cli.ts.geml#runMedia,        #importKindOf,    call, geml-parser/src/cli.ts:553
+#importSubtitles,                         #parseCues,       call, geml-parser/src/media-verbs.ts:668
+geml-parser--cli.ts.geml#runMedia,        #importSubtitles, call, geml-parser/src/cli.ts:605
+geml-parser--cli.ts.geml#runMedia,        #assetBlockFor,   call, geml-parser/src/cli.ts:650
+geml-parser--cli.ts.geml#runMedia,        #idFromFile,      call, geml-parser/src/cli.ts:647
+geml-parser--cli.ts.geml#runMedia,        #idsTaken,        call, geml-parser/src/cli.ts:575
+===
+
+=== table {#unresolved format=csv hidden}
+from,             to
+#loadProject,     Array.find
+#loadProject,     Array.forEach
+#loadProject,     Array.includes
+#loadProject,     Array.push
+#loadProject,     Array.shift
+#loadProject,     ArrayConstructor.isArray
+#loadProject,     Map.get
+#loadProject,     Map.has
+#loadProject,     Map.set
+#loadProject,     Set.add
+#loadProject,     Set.has
+#loadProject,     String.includes
+#todo,            Array.push
+#todo,            Set.add
+#todo,            Set.has
+#csv,             Array.join
+#csv,             Array.map
+#csv,             RegExp.test
+#csv,             String.replace
+#report,          Array.join
+#report,          Array.map
+#report,          Array.push
+#report,          Map.get
+#report,          Map.set
+#assetInfo,       NumberConstructor.isFinite
+#assetInfo,       String.includes
+#assetInfo,       String.lastIndexOf
+#assetInfo,       String.slice
+#hhmmss,          Math.floor
+#hhmmss,          Math.round
+#hhmmss,          String.padStart
+#esc,             String.replace
+#exportTimeline,  Array.filter
+#exportTimeline,  Array.join
+#exportTimeline,  Array.map
+#exportTimeline,  Array.sort
+#exportTimeline,  JSON.stringify
+#exportTimeline,  Map.get
+#exportTimeline,  Map.set
+#exportTimeline,  Math.round
+#exportTimeline,  Number.toFixed
+#exportTimeline,  String.padStart
+#exportTimeline,  String.replace
+#exportTimeline,  String.trim
+#fgEsc,           Array.join
+#fgEsc,           Array.map
+#fgEsc,           Set.has
+#fgEsc,           StringConstructor.fromCharCode
+#buildPlan,       Array.filter
+#buildPlan,       Array.forEach
+#buildPlan,       Array.join
+#buildPlan,       Array.push
+#buildPlan,       Array.some
+#buildPlan,       Array.sort
+#buildPlan,       Map.get
+#buildPlan,       Map.set
+#buildPlan,       Math.max
+#buildPlan,       Math.round
+#buildPlan,       Number.toFixed
+#buildPlan,       NumberConstructor.isFinite
+#buildPlan,       String.split
+#appendLog,       Array.join
+#appendLog,       Array.splice
+#appendLog,       JSON.stringify
+#appendLog,       RegExp.exec
+#appendLog,       RegExp.test
+#appendLog,       String.charAt
+#appendLog,       String.includes
+#appendLog,       String.indexOf
+#appendLog,       String.lastIndexOf
+#appendLog,       String.replace
+#appendLog,       String.slice
+#appendLog,       String.split
+#appendLog,       String.startsWith
+#appendLog,       String.trim
+#lay,             Array.filter
+#lay,             Array.find
+#lay,             Array.map
+#lay,             Array.push
+#lay,             Number.toFixed
+#lay,             String.replace
+#kindFromExt,     Array.includes
+#kindFromExt,     Array.pop
+#kindFromExt,     String.split
+#kindFromExt,     String.toLowerCase
+#importPlan,      Array.map
+#importPlan,      Array.pop
+#importPlan,      Array.push
+#importPlan,      Date.toISOString
+#importPlan,      Map.get
+#importPlan,      Map.set
+#importPlan,      String.includes
+#importPlan,      String.indexOf
+#importPlan,      String.lastIndexOf
+#importPlan,      String.replace
+#importPlan,      String.slice
+#importPlan,      String.split
+#EXT,             String.lastIndexOf
+#EXT,             String.slice
+#EXT,             String.toLowerCase
+#importKindOf,    Array.includes
+#parseCues,       Array.filter
+#parseCues,       Array.join
+#parseCues,       Array.push
+#parseCues,       Array.shift
+#parseCues,       Array.slice
+#parseCues,       RegExp.exec
+#parseCues,       RegExp.test
+#parseCues,       String.includes
+#parseCues,       String.padEnd
+#parseCues,       String.replace
+#parseCues,       String.split
+#parseCues,       String.trim
+#importSubtitles, Array.filter
+#importSubtitles, Array.find
+#importSubtitles, Array.join
+#importSubtitles, Array.map
+#importSubtitles, Array.push
+#importSubtitles, Array.sort
+#importSubtitles, Math.max
+#importSubtitles, Math.round
+#importSubtitles, Number.toFixed
+#assetBlockFor,   Math.round
+#assetBlockFor,   NumberConstructor.isFinite
+#idFromFile,      Array.pop
+#idFromFile,      String.replace
+#idFromFile,      String.split
+#idsTaken,        Array.filter
+#idsTaken,        Set.add
+#idsTaken,        Set.has
+#idsTaken,        String.matchAll
+===

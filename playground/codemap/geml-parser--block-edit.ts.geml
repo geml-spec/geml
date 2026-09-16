@@ -44,20 +44,20 @@ from,              to,                                    kind, confidence
 ===
 
 === table {#called-by format=csv}
-from,                               to,                kind, site
-#normalizeBlockId,                  #splitLines,       call, geml-parser/src/block-edit.ts:99
-#findHead,                          #stripEnding,      call, geml-parser/src/block-edit.ts:81
-#normalizeBlockId,                  #stripEnding,      call, geml-parser/src/block-edit.ts:103
-#normalizeBlockId,                  #stripEnding,      call, geml-parser/src/block-edit.ts:117
-#normalizeBlockId,                  #trimSpaceTabEnd,  call, geml-parser/src/block-edit.ts:118
-#rewriteHead,                       #rewriteBraces,    call, geml-parser/src/block-edit.ts:65
-#normalizeBlockId,                  #rewriteHead,      call, geml-parser/src/block-edit.ts:105
-#normalizeBlockId,                  #findHead,         call, geml-parser/src/block-edit.ts:100
-geml-parser--cli.ts.geml#runSet,    #normalizeBlockId, call, geml-parser/src/cli.ts:1769
-geml-parser--cli.ts.geml#runRevert, #normalizeBlockId, call, geml-parser/src/cli.ts:2559
-geml-parser--cli.ts.geml#runRevert, #normalizeBlockId, call, geml-parser/src/cli.ts:2563
-geml-parser--cli.ts.geml#runRevert, #normalizeBlockId, call, geml-parser/src/cli.ts:2584
-geml-parser--cli.ts.geml#runRevert, #normalizeBlockId, call, geml-parser/src/cli.ts:2588
+from,                              to,                kind, site
+#normalizeBlockId,                 #splitLines,       call, geml-parser/src/block-edit.ts:99
+#findHead,                         #stripEnding,      call, geml-parser/src/block-edit.ts:81
+#normalizeBlockId,                 #stripEnding,      call, geml-parser/src/block-edit.ts:103
+#normalizeBlockId,                 #stripEnding,      call, geml-parser/src/block-edit.ts:117
+#normalizeBlockId,                 #trimSpaceTabEnd,  call, geml-parser/src/block-edit.ts:118
+#rewriteHead,                      #rewriteBraces,    call, geml-parser/src/block-edit.ts:65
+#normalizeBlockId,                 #rewriteHead,      call, geml-parser/src/block-edit.ts:105
+#normalizeBlockId,                 #findHead,         call, geml-parser/src/block-edit.ts:100
+geml-parser--verbs.ts.geml#set,    #normalizeBlockId, call, geml-parser/src/verbs.ts:1151
+geml-parser--verbs.ts.geml#revert, #normalizeBlockId, call, geml-parser/src/verbs.ts:1874
+geml-parser--verbs.ts.geml#revert, #normalizeBlockId, call, geml-parser/src/verbs.ts:1878
+geml-parser--verbs.ts.geml#revert, #normalizeBlockId, call, geml-parser/src/verbs.ts:1900
+geml-parser--verbs.ts.geml#revert, #normalizeBlockId, call, geml-parser/src/verbs.ts:1904
 ===
 
 === table {#unresolved format=csv hidden}

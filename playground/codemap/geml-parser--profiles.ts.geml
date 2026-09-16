@@ -8,21 +8,23 @@ resolution-default = cpg
 
 # geml-parser/profiles.ts
 
-=== code {#vocabularyFor src=geml-parser/src/profiles.ts#L131-149 anchor="scip-typescript npm @geml/geml 1.10.3 src/`profiles.ts`/vocabularyFor()."}
+=== code {#vocabularyFor src=geml-parser/src/profiles.ts#L188-210 anchor="scip-typescript npm @geml/geml 1.10.3 src/`profiles.ts`/vocabularyFor()."}
 ===
 
 === table {#called-by format=csv}
 from,                                     to,             kind, site
-geml-parser--geml.ts.geml#parse,          #vocabularyFor, call, geml-parser/src/geml.ts:2348
-geml-parser--geml.ts.geml#blockSpans,     #vocabularyFor, call, geml-parser/src/geml.ts:2562
-geml-parser--geml.ts.geml#unitSpans,      #vocabularyFor, call, geml-parser/src/geml.ts:2585
-geml-parser--geml.ts.geml#addressedUnits, #vocabularyFor, call, geml-parser/src/geml.ts:2799
+geml-parser--geml.ts.geml#vocabularyOf,   #vocabularyFor, call, geml-parser/src/geml.ts:1935
+geml-parser--geml.ts.geml#parse,          #vocabularyFor, call, geml-parser/src/geml.ts:2459
+geml-parser--geml.ts.geml#blockSpans,     #vocabularyFor, call, geml-parser/src/geml.ts:2676
+geml-parser--geml.ts.geml#unitSpans,      #vocabularyFor, call, geml-parser/src/geml.ts:2699
+geml-parser--geml.ts.geml#addressedUnits, #vocabularyFor, call, geml-parser/src/geml.ts:2913
 ===
 
 === table {#unresolved format=csv hidden}
 from,           to
 #vocabularyFor, Array.filter
 #vocabularyFor, Map.get
+#vocabularyFor, Map.has
 #vocabularyFor, Map.set
 #vocabularyFor, ObjectConstructor.entries
 #vocabularyFor, Set.add

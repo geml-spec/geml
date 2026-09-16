@@ -29,19 +29,19 @@ resolution-default = cpg
 === code {#stateClass src=integrations/geml-viewer/src/layout.js#L72-74 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/stateClass()."}
 ===
 
-=== code {#declarations src=integrations/geml-viewer/src/layout.js#L77-116 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/declarations()."}
+=== code {#declarations src=integrations/geml-viewer/src/layout.js#L122-164 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/declarations()."}
 ===
 
-=== code {#cssForPage src=integrations/geml-viewer/src/layout.js#L119-193 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/cssForPage()."}
+=== code {#cssForPage src=integrations/geml-viewer/src/layout.js#L167-241 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/cssForPage()."}
 ===
 
-=== code {#nodesByAddress src=integrations/geml-viewer/src/layout.js#L199-211 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/nodesByAddress()."}
+=== code {#nodesByAddress src=integrations/geml-viewer/src/layout.js#L247-259 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/nodesByAddress()."}
 ===
 
-=== code {#at .leaf src=integrations/geml-viewer/src/layout.js#L214-214 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/at."}
+=== code {#at .leaf src=integrations/geml-viewer/src/layout.js#L262-262 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/at."}
 ===
 
-=== code {#renderPage src=integrations/geml-viewer/src/layout.js#L229-494 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/renderPage()."}
+=== code {#renderPage src=integrations/geml-viewer/src/layout.js#L277-542 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/renderPage()."}
 ===
 
 === table {#calls format=csv}
@@ -77,36 +77,36 @@ from,          to,              kind, confidence
 
 === table {#called-by format=csv}
 from,                                        to,              kind, site
-#cssForPage,                                 #whenSelector,   call, integrations/geml-viewer/src/layout.js:134
-#cssForPage,                                 #whenSelector,   call, integrations/geml-viewer/src/layout.js:178
+#cssForPage,                                 #whenSelector,   call, integrations/geml-viewer/src/layout.js:182
+#cssForPage,                                 #whenSelector,   call, integrations/geml-viewer/src/layout.js:226
 #facesOf,                                    #faceOf,         call, integrations/geml-viewer/src/layout.js:44
 #facesOf,                                    #faceOf,         call, integrations/geml-viewer/src/layout.js:45
-#cssForPage,                                 #faceOf,         call, integrations/geml-viewer/src/layout.js:174
-#cssForPage,                                 #faceOf,         call, integrations/geml-viewer/src/layout.js:188
-#cssForPage,                                 #facesOf,        call, integrations/geml-viewer/src/layout.js:171
-#renderPage,                                 #facesOf,        call, integrations/geml-viewer/src/layout.js:393
-geml-viewer--components.js.geml#tree,        #safeCssValue,   call, integrations/geml-viewer/src/components.js:77
-#declarations,                               #safeCssValue,   call, integrations/geml-viewer/src/layout.js:83
-#cssForPage,                                 #safeCssValue,   call, integrations/geml-viewer/src/layout.js:146
-#cssForPage,                                 #safeCssValue,   call, integrations/geml-viewer/src/layout.js:157
-#cssForPage,                                 #classFor,       call, integrations/geml-viewer/src/layout.js:151
-#renderPage,                                 #classFor,       call, integrations/geml-viewer/src/layout.js:354
-#renderPage,                                 #classFor,       call, integrations/geml-viewer/src/layout.js:383
-#cssForPage,                                 #frameClassFor,  call, integrations/geml-viewer/src/layout.js:149
-#renderPage,                                 #frameClassFor,  call, integrations/geml-viewer/src/layout.js:429
-geml-viewer--components.js.geml#createState, #stateClass,     call, integrations/geml-viewer/src/components.js:31
+#cssForPage,                                 #faceOf,         call, integrations/geml-viewer/src/layout.js:222
+#cssForPage,                                 #faceOf,         call, integrations/geml-viewer/src/layout.js:236
+#cssForPage,                                 #facesOf,        call, integrations/geml-viewer/src/layout.js:219
+#renderPage,                                 #facesOf,        call, integrations/geml-viewer/src/layout.js:441
+geml-viewer--components.js.geml#tree,        #safeCssValue,   call, integrations/geml-viewer/src/components.js:78
+#declarations,                               #safeCssValue,   call, integrations/geml-viewer/src/layout.js:128
+#cssForPage,                                 #safeCssValue,   call, integrations/geml-viewer/src/layout.js:194
+#cssForPage,                                 #safeCssValue,   call, integrations/geml-viewer/src/layout.js:205
+#cssForPage,                                 #classFor,       call, integrations/geml-viewer/src/layout.js:199
+#renderPage,                                 #classFor,       call, integrations/geml-viewer/src/layout.js:402
+#renderPage,                                 #classFor,       call, integrations/geml-viewer/src/layout.js:431
+#cssForPage,                                 #frameClassFor,  call, integrations/geml-viewer/src/layout.js:197
+#renderPage,                                 #frameClassFor,  call, integrations/geml-viewer/src/layout.js:477
 geml-viewer--components.js.geml#createState, #stateClass,     call, integrations/geml-viewer/src/components.js:32
+geml-viewer--components.js.geml#createState, #stateClass,     call, integrations/geml-viewer/src/components.js:33
 #whenSelector,                               #stateClass,     call, integrations/geml-viewer/src/layout.js:31
-#cssForPage,                                 #declarations,   call, integrations/geml-viewer/src/layout.js:126
-#cssForPage,                                 #declarations,   call, integrations/geml-viewer/src/layout.js:136
-#cssForPage,                                 #declarations,   call, integrations/geml-viewer/src/layout.js:164
-#cssForPage,                                 #declarations,   call, integrations/geml-viewer/src/layout.js:180
-#renderPage,                                 #cssForPage,     call, integrations/geml-viewer/src/layout.js:492
-#renderPage,                                 #nodesByAddress, call, integrations/geml-viewer/src/layout.js:240
-#renderPage,                                 #at,             call, integrations/geml-viewer/src/layout.js:246
-#renderPage,                                 #at,             call, integrations/geml-viewer/src/layout.js:321
-#renderPage,                                 #at,             call, integrations/geml-viewer/src/layout.js:344
-#renderPage,                                 #at,             call, integrations/geml-viewer/src/layout.js:364
+#cssForPage,                                 #declarations,   call, integrations/geml-viewer/src/layout.js:174
+#cssForPage,                                 #declarations,   call, integrations/geml-viewer/src/layout.js:184
+#cssForPage,                                 #declarations,   call, integrations/geml-viewer/src/layout.js:212
+#cssForPage,                                 #declarations,   call, integrations/geml-viewer/src/layout.js:228
+#renderPage,                                 #cssForPage,     call, integrations/geml-viewer/src/layout.js:540
+#renderPage,                                 #nodesByAddress, call, integrations/geml-viewer/src/layout.js:288
+#renderPage,                                 #at,             call, integrations/geml-viewer/src/layout.js:294
+#renderPage,                                 #at,             call, integrations/geml-viewer/src/layout.js:369
+#renderPage,                                 #at,             call, integrations/geml-viewer/src/layout.js:392
+#renderPage,                                 #at,             call, integrations/geml-viewer/src/layout.js:412
 geml-viewer--content.js.geml#main,           #renderPage,     call, integrations/geml-viewer/src/content.js:120
 ===
 

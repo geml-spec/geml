@@ -8,86 +8,89 @@ resolution-default = cpg
 
 # geml-parser/style-resolve.ts
 
-=== code {#boxValueOk src=geml-parser/src/style-resolve.ts#L130-184 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/boxValueOk()."}
+=== code {#boxValueOk src=geml-parser/src/style-resolve.ts#L144-210 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/boxValueOk()."}
 ===
 
-=== code {#parseWhen src=geml-parser/src/style-resolve.ts#L209-231 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/parseWhen()."}
+=== code {#parseWhen src=geml-parser/src/style-resolve.ts#L238-260 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/parseWhen()."}
 ===
 
-=== code {#typedBlocks src=geml-parser/src/style-resolve.ts#L315-321 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/typedBlocks()."}
+=== code {#typedBlocks src=geml-parser/src/style-resolve.ts#L344-350 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/typedBlocks()."}
 ===
 
-=== code {#str .leaf src=geml-parser/src/style-resolve.ts#L323-325 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/str()."}
+=== code {#str .leaf src=geml-parser/src/style-resolve.ts#L352-354 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/str()."}
 ===
 
-=== code {#entryLayers src=geml-parser/src/style-resolve.ts#L385-403 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/entryLayers()."}
+=== code {#entryLayers src=geml-parser/src/style-resolve.ts#L414-432 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/entryLayers()."}
 ===
 
-=== code {#tokensOf src=geml-parser/src/style-resolve.ts#L421-425 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/tokensOf()."}
+=== code {#tokensOf src=geml-parser/src/style-resolve.ts#L450-454 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/tokensOf()."}
 ===
 
-=== code {#expandTokens src=geml-parser/src/style-resolve.ts#L431-469 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/expandTokens()."}
+=== code {#expandTokens src=geml-parser/src/style-resolve.ts#L460-498 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/expandTokens()."}
 ===
 
-=== code {#sheetBlocks src=geml-parser/src/style-resolve.ts#L472-474 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/sheetBlocks()."}
+=== code {#sheetBlocks src=geml-parser/src/style-resolve.ts#L501-503 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/sheetBlocks()."}
 ===
 
-=== code {#implicitEmbed .leaf src=geml-parser/src/style-resolve.ts#L478-480 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/implicitEmbed()."}
+=== code {#implicitEmbed .leaf src=geml-parser/src/style-resolve.ts#L507-509 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/implicitEmbed()."}
 ===
 
-=== code {#withDefaultStyle src=geml-parser/src/style-resolve.ts#L483-487 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/withDefaultStyle()."}
+=== code {#withDefaultStyle src=geml-parser/src/style-resolve.ts#L512-516 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/withDefaultStyle()."}
 ===
 
-=== code {#expandEmbeds src=geml-parser/src/style-resolve.ts#L490-535 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/expandEmbeds()."}
+=== code {#expandEmbeds src=geml-parser/src/style-resolve.ts#L519-564 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/expandEmbeds()."}
 ===
 
-=== code {#loadStylesheet src=geml-parser/src/style-resolve.ts#L538-551 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/loadStylesheet()."}
+=== code {#loadStylesheet src=geml-parser/src/style-resolve.ts#L567-580 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/loadStylesheet()."}
 ===
 
-=== code {#collect src=geml-parser/src/style-resolve.ts#L554-631 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/collect()."}
+=== code {#collect src=geml-parser/src/style-resolve.ts#L583-660 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/collect()."}
 ===
 
-=== code {#readContainer src=geml-parser/src/style-resolve.ts#L637-676 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/readContainer()."}
+=== code {#readContainer src=geml-parser/src/style-resolve.ts#L666-705 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/readContainer()."}
 ===
 
-=== code {#exclusive .leaf src=geml-parser/src/style-resolve.ts#L693-696 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/exclusive()."}
+=== code {#exclusive .leaf src=geml-parser/src/style-resolve.ts#L722-725 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/exclusive()."}
 ===
 
-=== code {#whenKey src=geml-parser/src/style-resolve.ts#L699-701 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/whenKey()."}
+=== code {#whenKey src=geml-parser/src/style-resolve.ts#L728-730 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/whenKey()."}
 ===
 
-=== code {#ruleProps .leaf src=geml-parser/src/style-resolve.ts#L787-794 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/ruleProps()."}
+=== code {#ruleProps .leaf src=geml-parser/src/style-resolve.ts#L816-823 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/ruleProps()."}
 ===
 
-=== code {#hitsFor src=geml-parser/src/style-resolve.ts#L817-831 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/hitsFor()."}
+=== code {#hitsFor src=geml-parser/src/style-resolve.ts#L846-860 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/hitsFor()."}
 ===
 
-=== code {#arbitrateWithinGroups src=geml-parser/src/style-resolve.ts#L838-868 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/arbitrateWithinGroups()."}
+=== code {#arbitrateWithinGroups src=geml-parser/src/style-resolve.ts#L867-897 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/arbitrateWithinGroups()."}
 ===
 
-=== code {#reportBorderClashes src=geml-parser/src/style-resolve.ts#L874-890 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/reportBorderClashes()."}
+=== code {#reportBorderClashes src=geml-parser/src/style-resolve.ts#L903-919 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/reportBorderClashes()."}
 ===
 
-=== code {#arbitrateAcrossGroups src=geml-parser/src/style-resolve.ts#L897-913 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/arbitrateAcrossGroups()."}
+=== code {#arbitrateAcrossGroups src=geml-parser/src/style-resolve.ts#L926-942 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/arbitrateAcrossGroups()."}
 ===
 
-=== code {#splitParams src=geml-parser/src/style-resolve.ts#L916-920 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/splitParams()."}
+=== code {#splitParams src=geml-parser/src/style-resolve.ts#L945-949 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/splitParams()."}
 ===
 
-=== code {#assembleGroups src=geml-parser/src/style-resolve.ts#L923-940 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/assembleGroups()."}
+=== code {#assembleGroups src=geml-parser/src/style-resolve.ts#L952-969 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/assembleGroups()."}
 ===
 
-=== code {#strayParams src=geml-parser/src/style-resolve.ts#L950-957 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/strayParams()."}
+=== code {#strayParams src=geml-parser/src/style-resolve.ts#L979-986 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/strayParams()."}
 ===
 
-=== code {#resolveBindings src=geml-parser/src/style-resolve.ts#L968-1033 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/resolveBindings()."}
+=== code {#resolveBindings src=geml-parser/src/style-resolve.ts#L997-1062 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/resolveBindings()."}
 ===
 
-=== code {#resolveStyle src=geml-parser/src/style-resolve.ts#L1044-1328 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/resolveStyle()."}
+=== code {#resolveStyle src=geml-parser/src/style-resolve.ts#L1073-1357 anchor="scip-typescript npm @geml/geml 1.10.3 src/`style-resolve.ts`/resolveStyle()."}
 ===
 
 === table {#calls format=csv}
 from,                   to,                                                     kind, confidence
+#boxValueOk,            geml-parser--style-diagnostics.ts.geml#styleDiag,       call,
+#boxValueOk,            geml-parser--style-diagnostics.ts.geml#styleDiag,       call,
+#boxValueOk,            geml-parser--style-diagnostics.ts.geml#styleDiag,       call,
 #boxValueOk,            geml-parser--style-diagnostics.ts.geml#styleDiag,       call,
 #boxValueOk,            geml-parser--style-diagnostics.ts.geml#styleDiag,       call,
 #boxValueOk,            geml-parser--style-diagnostics.ts.geml#styleDiag,       call,
@@ -211,63 +214,64 @@ from,                   to,                                                     
 
 === table {#called-by format=csv}
 from,                              to,                     kind, site
-#collect,                          #boxValueOk,            call, geml-parser/src/style-resolve.ts:581
-#readContainer,                    #boxValueOk,            call, geml-parser/src/style-resolve.ts:653
-#collect,                          #parseWhen,             call, geml-parser/src/style-resolve.ts:592
-#collect,                          #typedBlocks,           call, geml-parser/src/style-resolve.ts:556
-#entryLayers,                      #str,                   call, geml-parser/src/style-resolve.ts:389
-#expandEmbeds,                     #str,                   call, geml-parser/src/style-resolve.ts:497
-#collect,                          #str,                   call, geml-parser/src/style-resolve.ts:561
-#collect,                          #str,                   call, geml-parser/src/style-resolve.ts:570
-#collect,                          #str,                   call, geml-parser/src/style-resolve.ts:588
-#collect,                          #str,                   call, geml-parser/src/style-resolve.ts:589
-#collect,                          #str,                   call, geml-parser/src/style-resolve.ts:601
-#collect,                          #str,                   call, geml-parser/src/style-resolve.ts:602
-#collect,                          #str,                   call, geml-parser/src/style-resolve.ts:603
-#collect,                          #str,                   call, geml-parser/src/style-resolve.ts:606
-#collect,                          #str,                   call, geml-parser/src/style-resolve.ts:607
-#collect,                          #str,                   call, geml-parser/src/style-resolve.ts:621
-#collect,                          #str,                   call, geml-parser/src/style-resolve.ts:622
-#collect,                          #str,                   call, geml-parser/src/style-resolve.ts:623
-#readContainer,                    #str,                   call, geml-parser/src/style-resolve.ts:640
-#readContainer,                    #str,                   call, geml-parser/src/style-resolve.ts:645
-#readContainer,                    #str,                   call, geml-parser/src/style-resolve.ts:665
-#withDefaultStyle,                 #entryLayers,           call, geml-parser/src/style-resolve.ts:484
-#loadStylesheet,                   #entryLayers,           call, geml-parser/src/style-resolve.ts:545
-#sheetBlocks,                      #tokensOf,              call, geml-parser/src/style-resolve.ts:473
-#loadStylesheet,                   #tokensOf,              call, geml-parser/src/style-resolve.ts:549
-#sheetBlocks,                      #expandTokens,          call, geml-parser/src/style-resolve.ts:473
-#loadStylesheet,                   #expandTokens,          call, geml-parser/src/style-resolve.ts:549
-#expandEmbeds,                     #sheetBlocks,           call, geml-parser/src/style-resolve.ts:525
-#withDefaultStyle,                 #implicitEmbed,         call, geml-parser/src/style-resolve.ts:486
-#loadStylesheet,                   #implicitEmbed,         call, geml-parser/src/style-resolve.ts:546
-#sheetBlocks,                      #withDefaultStyle,      call, geml-parser/src/style-resolve.ts:473
-#loadStylesheet,                   #expandEmbeds,          call, geml-parser/src/style-resolve.ts:546
-#loadStylesheet,                   #expandEmbeds,          call, geml-parser/src/style-resolve.ts:549
-geml-parser--cli.ts.geml#runStyle, #loadStylesheet,        call, geml-parser/src/cli.ts:2710
-geml-parser--cli.ts.geml#runStyle, #loadStylesheet,        call, geml-parser/src/cli.ts:2715
-#loadStylesheet,                   #collect,               call, geml-parser/src/style-resolve.ts:546
-#loadStylesheet,                   #collect,               call, geml-parser/src/style-resolve.ts:549
-#collect,                          #readContainer,         call, geml-parser/src/style-resolve.ts:626
-#arbitrateAcrossGroups,            #exclusive,             call, geml-parser/src/style-resolve.ts:900
-#arbitrateWithinGroups,            #whenKey,               call, geml-parser/src/style-resolve.ts:841
-#arbitrateWithinGroups,            #ruleProps,             call, geml-parser/src/style-resolve.ts:848
-#resolveStyle,                     #ruleProps,             call, geml-parser/src/style-resolve.ts:1151
-#resolveBindings,                  #hitsFor,               call, geml-parser/src/style-resolve.ts:981
-#resolveBindings,                  #arbitrateWithinGroups, call, geml-parser/src/style-resolve.ts:1000
-#resolveBindings,                  #reportBorderClashes,   call, geml-parser/src/style-resolve.ts:1001
-#resolveBindings,                  #arbitrateAcrossGroups, call, geml-parser/src/style-resolve.ts:1013
-#assembleGroups,                   #splitParams,           call, geml-parser/src/style-resolve.ts:927
-#assembleGroups,                   #splitParams,           call, geml-parser/src/style-resolve.ts:933
-#resolveBindings,                  #assembleGroups,        call, geml-parser/src/style-resolve.ts:1014
-#resolveBindings,                  #strayParams,           call, geml-parser/src/style-resolve.ts:1016
-#resolveStyle,                     #resolveBindings,       call, geml-parser/src/style-resolve.ts:1077
-#resolveStyle,                     #resolveBindings,       call, geml-parser/src/style-resolve.ts:1079
-geml-parser--cli.ts.geml#runStyle, #resolveStyle,          call, geml-parser/src/cli.ts:2717
+#collect,                          #boxValueOk,            call, geml-parser/src/style-resolve.ts:610
+#readContainer,                    #boxValueOk,            call, geml-parser/src/style-resolve.ts:682
+#collect,                          #parseWhen,             call, geml-parser/src/style-resolve.ts:621
+#collect,                          #typedBlocks,           call, geml-parser/src/style-resolve.ts:585
+#entryLayers,                      #str,                   call, geml-parser/src/style-resolve.ts:418
+#expandEmbeds,                     #str,                   call, geml-parser/src/style-resolve.ts:526
+#collect,                          #str,                   call, geml-parser/src/style-resolve.ts:590
+#collect,                          #str,                   call, geml-parser/src/style-resolve.ts:599
+#collect,                          #str,                   call, geml-parser/src/style-resolve.ts:617
+#collect,                          #str,                   call, geml-parser/src/style-resolve.ts:618
+#collect,                          #str,                   call, geml-parser/src/style-resolve.ts:630
+#collect,                          #str,                   call, geml-parser/src/style-resolve.ts:631
+#collect,                          #str,                   call, geml-parser/src/style-resolve.ts:632
+#collect,                          #str,                   call, geml-parser/src/style-resolve.ts:635
+#collect,                          #str,                   call, geml-parser/src/style-resolve.ts:636
+#collect,                          #str,                   call, geml-parser/src/style-resolve.ts:650
+#collect,                          #str,                   call, geml-parser/src/style-resolve.ts:651
+#collect,                          #str,                   call, geml-parser/src/style-resolve.ts:652
+#readContainer,                    #str,                   call, geml-parser/src/style-resolve.ts:669
+#readContainer,                    #str,                   call, geml-parser/src/style-resolve.ts:674
+#readContainer,                    #str,                   call, geml-parser/src/style-resolve.ts:694
+#withDefaultStyle,                 #entryLayers,           call, geml-parser/src/style-resolve.ts:513
+#loadStylesheet,                   #entryLayers,           call, geml-parser/src/style-resolve.ts:574
+#sheetBlocks,                      #tokensOf,              call, geml-parser/src/style-resolve.ts:502
+#loadStylesheet,                   #tokensOf,              call, geml-parser/src/style-resolve.ts:578
+#sheetBlocks,                      #expandTokens,          call, geml-parser/src/style-resolve.ts:502
+#loadStylesheet,                   #expandTokens,          call, geml-parser/src/style-resolve.ts:578
+#expandEmbeds,                     #sheetBlocks,           call, geml-parser/src/style-resolve.ts:554
+#withDefaultStyle,                 #implicitEmbed,         call, geml-parser/src/style-resolve.ts:515
+#loadStylesheet,                   #implicitEmbed,         call, geml-parser/src/style-resolve.ts:575
+#sheetBlocks,                      #withDefaultStyle,      call, geml-parser/src/style-resolve.ts:502
+#loadStylesheet,                   #expandEmbeds,          call, geml-parser/src/style-resolve.ts:575
+#loadStylesheet,                   #expandEmbeds,          call, geml-parser/src/style-resolve.ts:578
+geml-parser--cli.ts.geml#runStyle, #loadStylesheet,        call, geml-parser/src/cli.ts:1304
+geml-parser--cli.ts.geml#runStyle, #loadStylesheet,        call, geml-parser/src/cli.ts:1309
+#loadStylesheet,                   #collect,               call, geml-parser/src/style-resolve.ts:575
+#loadStylesheet,                   #collect,               call, geml-parser/src/style-resolve.ts:578
+#collect,                          #readContainer,         call, geml-parser/src/style-resolve.ts:655
+#arbitrateAcrossGroups,            #exclusive,             call, geml-parser/src/style-resolve.ts:929
+#arbitrateWithinGroups,            #whenKey,               call, geml-parser/src/style-resolve.ts:870
+#arbitrateWithinGroups,            #ruleProps,             call, geml-parser/src/style-resolve.ts:877
+#resolveStyle,                     #ruleProps,             call, geml-parser/src/style-resolve.ts:1180
+#resolveBindings,                  #hitsFor,               call, geml-parser/src/style-resolve.ts:1010
+#resolveBindings,                  #arbitrateWithinGroups, call, geml-parser/src/style-resolve.ts:1029
+#resolveBindings,                  #reportBorderClashes,   call, geml-parser/src/style-resolve.ts:1030
+#resolveBindings,                  #arbitrateAcrossGroups, call, geml-parser/src/style-resolve.ts:1042
+#assembleGroups,                   #splitParams,           call, geml-parser/src/style-resolve.ts:956
+#assembleGroups,                   #splitParams,           call, geml-parser/src/style-resolve.ts:962
+#resolveBindings,                  #assembleGroups,        call, geml-parser/src/style-resolve.ts:1043
+#resolveBindings,                  #strayParams,           call, geml-parser/src/style-resolve.ts:1045
+#resolveStyle,                     #resolveBindings,       call, geml-parser/src/style-resolve.ts:1106
+#resolveStyle,                     #resolveBindings,       call, geml-parser/src/style-resolve.ts:1108
+geml-parser--cli.ts.geml#runStyle, #resolveStyle,          call, geml-parser/src/cli.ts:1311
 ===
 
 === table {#unresolved format=csv hidden}
 from,                   to
+#boxValueOk,            Array.join
 #boxValueOk,            Array.push
 #boxValueOk,            NumberConstructor.isFinite
 #boxValueOk,            Set.has

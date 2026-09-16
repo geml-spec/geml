@@ -168,11 +168,11 @@ from,                                          to,                kind, site
 #applyDerivations,                             #evalExpr,         call, geml-parser/src/table.ts:471
 #applyDerivations,                             #evalExpr,         call, geml-parser/src/table.ts:519
 #groupView,                                    #evalExpr,         call, geml-parser/src/table.ts:725
-geml-parser--geml.ts.geml#readFormOptionsBody, #parseTable,       call, geml-parser/src/geml.ts:933
-geml-parser--geml.ts.geml#readTableBody,       #parseTable,       call, geml-parser/src/geml.ts:949
-geml-parser--geml.ts.geml#chartSourceTable,    #parseTable,       call, geml-parser/src/geml.ts:1316
-geml-parser--geml.ts.geml#resolveTableSources, #parseTable,       call, geml-parser/src/geml.ts:1596
-geml-parser--geml.ts.geml#resolveViewSources,  #parseTable,       call, geml-parser/src/geml.ts:1752
+geml-parser--geml.ts.geml#readFormOptionsBody, #parseTable,       call, geml-parser/src/geml.ts:966
+geml-parser--geml.ts.geml#readTableBody,       #parseTable,       call, geml-parser/src/geml.ts:982
+geml-parser--geml.ts.geml#chartSourceTable,    #parseTable,       call, geml-parser/src/geml.ts:1418
+geml-parser--geml.ts.geml#resolveTableSources, #parseTable,       call, geml-parser/src/geml.ts:1698
+geml-parser--geml.ts.geml#resolveViewSources,  #parseTable,       call, geml-parser/src/geml.ts:1854
 #deriveView,                                   #applyDerivations, call, geml-parser/src/table.ts:834
 #deriveView,                                   #applyDerivations, call, geml-parser/src/table.ts:864
 #deriveView,                                   #applyDerivations, call, geml-parser/src/table.ts:900
@@ -194,7 +194,7 @@ geml-parser--geml.ts.geml#resolveViewSources,  #parseTable,       call, geml-par
 #deriveView,                                   #groupView,        call, geml-parser/src/table.ts:866
 #deriveView,                                   #orderView,        call, geml-parser/src/table.ts:870
 #deriveView,                                   #selectView,       call, geml-parser/src/table.ts:883
-geml-parser--geml.ts.geml#resolveViewSources,  #deriveView,       call, geml-parser/src/geml.ts:1789
+geml-parser--geml.ts.geml#resolveViewSources,  #deriveView,       call, geml-parser/src/geml.ts:1891
 #applyDerivations,                             #ensureCell,       call, geml-parser/src/table.ts:472
 ===
 
