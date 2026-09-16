@@ -86,3 +86,4 @@ is spelled `form`, while the same idea at the application layer is spelled
 | [0010](0010-language-projections.md) | Projections along the language axis — a translated document is a view, not a copy | draft |
 | [0011](0011-inner-unit-coordinates.md) | Coordinates for units inside a block — a table's rows and cells, a value tree in `data` or merged `meta` | final |
 | [0012](0012-view-block.md) | Register a `view` typed block — selection, derivation and aggregation of another relation | final |
+| [0013](0013-prose-body-for-vocabularies.md) | A vocabulary may declare a type's body `prose`; rule 4 becomes an invariant over addressable units | draft |

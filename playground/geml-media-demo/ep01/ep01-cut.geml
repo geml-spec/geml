@@ -1,0 +1,21 @@
+=== meta
+title = "EP01 粗剪"
+profile = "geml-media/v1"
+fps = 24
+tracks = "video:video dialogue:audio subtitle:prose"
+primary = "video"
+===
+
+# 第一场 {#sc01}
+
+=== media-clip {#c01 track=video src=ep01-library.geml#s01-take3 in=0 out=4}
+===
+
+=== media-clip {#c03 track=video src=ep01-library.geml#s03-take2-lips in=0 out=6 transition-in=cut}
+===
+
+=== media-clip {#vo-s03-l1 track=dialogue src=ep01-library.geml#s03-l1-vo over=#c03 offset=0.4 gain=0dB}
+===
+
+=== media-clip {#sub-s03-l1 track=subtitle src=ep01-script.geml#s03-l1 over=#c03 offset=0.4 dur=2.1}
+===

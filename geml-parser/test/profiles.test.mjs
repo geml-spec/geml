@@ -5,6 +5,7 @@
 // 等于全世界每份 GEML 文档都让出了这三个键的拼写检查。
 import { vocabularyFor, PROFILES } from "../dist/profiles.js";
 import { parse, renderHtml } from "../dist/geml.js";
+import { gemlToMd } from "../dist/to-md.js";
 import { strict as assert } from "node:assert";
 import { readFileSync, existsSync } from "node:fs";
 
@@ -304,11 +305,11 @@ test("prose：只声明 flow 体、没声明 prose 的类型仍不能做投射�
   });
 });
 
-test("prose 蕴含 flow 体 —— 不必声明两遍", () => {
+test("prose 蕴含 prose 体（GEP-0013）—— 不必声明两遍", () => {
   withProfile("geml-style/v1", { types: ["style-rule", "mt"], prose: ["mt"] }, () => {
     const doc = parse('=== meta\nprofile = "geml-style/v1"\n===\n\n=== mt {#a}\n*强调*\n===\n');
     const b = doc.children.find((c) => c.kind === "block" && c.type === "mt");
-    assert.equal(b.mode, "flow", "prose 类型的体是 flow，和核心 text 一样");
+    assert.equal(b.mode, "prose", "prose 类型的体是 prose：段落与行内，不含嵌套块");
   });
 });
 
@@ -339,5 +340,81 @@ test("geml-form 的六个约束键：profile 文档说的那六个，注册表�
   assert.equal(six.length, 6, "§2 的表应恰好六行: " + six.join(","));
   const registered = new Set(PROFILES["geml-form/v1"].attrs?.["form-field"] ?? []);
   for (const k of six) assert.ok(registered.has(k), `文档列了 \`${k}\`，注册表里没有`);
+});
+
+// ---------------------------------------------------------------------------
+// geml-media/v1 落地（设计 2026-09-15-geml-media §14 P1）
+// ---------------------------------------------------------------------------
+
+test("geml-media/v1：三个类型进来，media-text 是散文类型", () => {
+  const v = vocabularyFor(meta({ profile: "geml-media/v1" }));
+  for (const t of ["media-asset", "media-clip", "media-text"]) {
+    assert.equal(v.types.has(t), true, `应放行 ${t}`);
+  }
+  assert.equal(v.prose.has("media-text"), true, "media-text 必须是散文类型");
+  assert.equal(v.bodies.get("media-text"), "prose", "prose 蕴含 prose 体（GEP-0013）");
+});
+
+test("geml-media/v1：五个键挂在 media-text 上，核心 text 不受影响", () => {
+  const v = vocabularyFor(meta({ profile: "geml-media/v1" }));
+  for (const k of ["shot", "speaker", "to", "emotion", "since"]) {
+    assert.equal(v.attrs.get("media-text")?.has(k), true, `media-text 应放行 ${k}`);
+  }
+  assert.equal(v.attrs.get("text"), undefined, "核心 text 的命名空间必须干净");
+});
+
+test("geml-media/v1：提示词投射到角色卡不报错，且 --to md 投成段落", () => {
+  const src = '=== meta\nprofile = "geml-media/v1"\n===\n\n'
+    + "=== media-text {#hero-look .look}\n银灰短发齐耳。\n===\n\n"
+    + "=== media-text {#s01-prompt .prompt shot=s01}\n![[#hero-look]] 特写。\n===\n";
+  const doc = parse(src);
+  assert.deepEqual(doc.diagnostics.filter((d) => d.severity === "error"), [],
+    JSON.stringify(doc.diagnostics));
+  const md = gemlToMd(doc).text ?? gemlToMd(doc);
+  assert.ok(!String(md).split("\n").some((l) => l.startsWith("> ")),
+    "media-text 不该投成引用块: " + md);
+});
+
+test("geml-media/v1：属性拼写被查 —— 登记了 attrs 就是闭集", () => {
+  const d = warns('=== meta\nprofile = "geml-media/v1"\n===\n\n'
+    + "=== media-asset {#a src=x.png sha256=aa kind=image sha265=oops}\n===\n", "unknown-attribute");
+  assert.equal(d.length, 1, "sha265 应被报出");
+  assert.match(d[0].message, /sha265/);
+});
+
+// GEP-0013：散文体的不变量 —— 放行不得改变**可寻址单元的集合**。
+const addressesOf = (src) => {
+  const out = [];
+  const walk = (bs) => bs.forEach((b) => { if (b.id) out.push("#" + b.id); if (b.children) walk(b.children); });
+  walk(parse(src).children);
+  return out;
+};
+
+test("GEP-0013：散文体里的围栏行不是构造 —— 认不认识这份词汇表，地址集都一样", () => {
+  const body = "=== media-text {#outer}\n一段话。\n=== text {#nested}\n我不该成为一个块\n===\n===\n";
+  const know = addressesOf('=== meta\nprofile = "geml-media/v1"\n===\n\n' + body);
+  const dont = addressesOf('=== meta\ntitle = "x"\n===\n\n' + body);
+  assert.deepEqual(know, dont, "地址集必须一致（规则 4 的不变量）");
+  assert.deepEqual(know, ["#outer"], "散文体只贡献它自己这一个地址");
+});
+
+test("GEP-0013：散文体仍然解析行内 —— 强调、投射照常", () => {
+  const src = '=== meta\nprofile = "geml-media/v1"\n===\n\n'
+    + "=== media-text {#look}\n银灰短发。\n===\n\n"
+    + "=== media-text {#p}\n**强调** 与 ![[#look]] 投射。\n===\n";
+  const doc = parse(src);
+  assert.deepEqual(doc.diagnostics.filter((d) => d.severity === "error"), [],
+    JSON.stringify(doc.diagnostics));
+  const p = doc.children.find((c) => c.kind === "block" && c.id === "p");
+  const para = (p.children ?? []).find((c) => c.kind === "paragraph");
+  assert.ok(para, "散文体产出段落");
+  assert.ok(para.inlines.some((n) => n.type === "strong"), "强调被解析");
+  assert.ok(para.inlines.some((n) => n.type === "project"), "投射被解析");
+});
+
+test("GEP-0013：散文体是 prose，不是 flow —— 两者不可互相顶替", () => {
+  const doc = parse('=== meta\nprofile = "geml-media/v1"\n===\n\n=== media-text {#a}\nx\n===\n');
+  const b = doc.children.find((c) => c.kind === "block" && c.type === "media-text");
+  assert.equal(b.mode, "prose");
 });
 console.log(`\n${passed} passed`);

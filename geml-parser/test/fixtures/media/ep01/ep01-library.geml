@@ -1,0 +1,36 @@
+=== meta
+title = "EP01 素材库"
+profile = "geml-media/v1"
+===
+
+# 共享素材 {#shared}
+
+=== media-asset {#hero-sheet src=assets/hero-sheet.png sha256=57cfd58989b1c7e29240d21e806caa6bba283db439535c31f2ac8971af2b5c0c kind=image origin=generated of=../characters.geml#hero role=sheet}
+===
+
+# 本集产出 {#local}
+
+=== media-asset {#s01-key src=assets/s01-key.png sha256=6101836c36df5e3afe006200d7f3a110428ed1b1dfe4eb6f9057ad0ce53c151b kind=image origin=generated}
+===
+
+=== media-asset {#s01-take3 src=assets/s01-take3.mp4 sha256=63f00014148e357772f872aa7b0ce6fcbe83f91cd620792ae3ca2390e444311e kind=video duration=5 origin=generated}
+===
+
+=== media-asset {#s03-take2 src=assets/s03-take2.mp4 sha256=8a23669e5558b28f3117b26bda65e577311e9f9c17bfb59edeb25b28928d1e5b kind=video duration=6 origin=generated}
+===
+
+=== media-asset {#s03-l1-vo src=assets/s03-l1-vo.wav sha256=a1d58b98b2fd4795ef5cdab676e9e3e670afa64aa15e0ac0a278de1effcafefb kind=audio duration=2.1 origin=generated}
+===
+
+=== media-asset {#s03-take2-lips src=assets/s03-take2-lips.mp4 sha256=afc4652b74ed4b51bd8c0f5ee92864d346e6a7f1d39178904ddf0cf84f75b66f kind=video duration=6 origin=generated}
+===
+
+# 生成日志 {#gen}
+
+=== data {#gen-log .gen-log format=jsonl}
+{"output":"#s01-key","output-sha256":"6101836c36df5e3afe006200d7f3a110428ed1b1dfe4eb6f9057ad0ce53c151b","model":"jimeng-4.5","mode":"t2i","seed":20481,"prompt":"ep01-script.geml#s01-prompt","prompt-sha256":"42c2a78fe92677fe8471c991f997a6ed3b3a34d3ef398c5a7b95c3b48a9d7be7","prompt-refs":[{"ref":"../characters.geml#look","sha256":"be684a505c29a4113e6ed51c73dbb7dd3baf6023ad03f28f1a100ddc053b3e02"},{"ref":"../characters.geml#hero-look","sha256":"5f9bb75d849c6db8e57ed780efd0b3f0d7a0f51836f78bbfca386fe1c2776bd9"}],"inputs":[{"ref":"#hero-sheet","sha256":"57cfd58989b1c7e29240d21e806caa6bba283db439535c31f2ac8971af2b5c0c","role":"sheet"}],"at":"2026-09-15T09:12:03Z"}
+{"output":"#s01-take3","output-sha256":"63f00014148e357772f872aa7b0ce6fcbe83f91cd620792ae3ca2390e444311e","model":"seedance-2.0","mode":"i2v","seed":88213,"prompt":"ep01-script.geml#s01-prompt","prompt-sha256":"42c2a78fe92677fe8471c991f997a6ed3b3a34d3ef398c5a7b95c3b48a9d7be7","prompt-refs":[{"ref":"../characters.geml#look","sha256":"be684a505c29a4113e6ed51c73dbb7dd3baf6023ad03f28f1a100ddc053b3e02"},{"ref":"../characters.geml#hero-look","sha256":"5f9bb75d849c6db8e57ed780efd0b3f0d7a0f51836f78bbfca386fe1c2776bd9"}],"inputs":[{"ref":"#s01-key","sha256":"6101836c36df5e3afe006200d7f3a110428ed1b1dfe4eb6f9057ad0ce53c151b","role":"first-frame"}],"at":"2026-09-15T09:20:41Z"}
+{"output":"#s03-take2","output-sha256":"8a23669e5558b28f3117b26bda65e577311e9f9c17bfb59edeb25b28928d1e5b","model":"seedance-2.0","mode":"t2v","seed":41007,"prompt":"ep01-script.geml#s03-prompt","prompt-sha256":"ccca72ebeadadb02e968ad4f7dad587784da03cd86a9a83e3fdd7abe0fb85559","prompt-refs":[{"ref":"../characters.geml#look","sha256":"be684a505c29a4113e6ed51c73dbb7dd3baf6023ad03f28f1a100ddc053b3e02"},{"ref":"../characters.geml#sister-look","sha256":"3d8db9ccdc2e6cbf58ccaa419b1f8a4c82ee12aa633318dd3262a1e8f5ebfc50"},{"ref":"../characters.geml#hero-look","sha256":"5f9bb75d849c6db8e57ed780efd0b3f0d7a0f51836f78bbfca386fe1c2776bd9"}],"inputs":[{"ref":"#hero-sheet","sha256":"57cfd58989b1c7e29240d21e806caa6bba283db439535c31f2ac8971af2b5c0c","role":"sheet"}],"at":"2026-09-15T10:02:55Z"}
+{"output":"#s03-l1-vo","output-sha256":"a1d58b98b2fd4795ef5cdab676e9e3e670afa64aa15e0ac0a278de1effcafefb","model":"cosyvoice-3","mode":"tts","prompt":"ep01-script.geml#s03-l1","prompt-sha256":"3fc4466c1687c6a9333ff31f19ea695bd78e397e0fa68509c4ddc692b14fb092","prompt-refs":[],"inputs":[],"params":{"emotion":"假哭"},"at":"2026-09-15T10:11:40Z"}
+{"output":"#s03-take2-lips","output-sha256":"afc4652b74ed4b51bd8c0f5ee92864d346e6a7f1d39178904ddf0cf84f75b66f","model":"sekotalk-2.0","mode":"lipsync","inputs":[{"ref":"#s03-take2","sha256":"8a23669e5558b28f3117b26bda65e577311e9f9c17bfb59edeb25b28928d1e5b"},{"ref":"#s03-l1-vo","sha256":"a1d58b98b2fd4795ef5cdab676e9e3e670afa64aa15e0ac0a278de1effcafefb"}],"params":{"speakers":1},"at":"2026-09-15T10:20:31Z"}
+===
