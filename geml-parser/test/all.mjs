@@ -49,6 +49,9 @@ const suites = [
   "cov-adapters", "cov-serve", "cov-mcp",
   // GEP 0011 coordinates: the addresses that reach inside a block
   "coord",
+  // geml-media/v1 的检查器：素材哈希、轨道种类、片段与轨道的种类是否相符、
+  // 生成日志的 schema，以及血缘过期与它沿 DAG 的传播
+  "media",
   // the `edn` engine for `data` blocks: §3.2 reserves the name, this reading
   // is the processor’s own — so these tests are where it is pinned down
   "edn",

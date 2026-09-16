@@ -29,8 +29,7 @@ import {
   parse, blockSpans, sliceUnit, addressedUnits, relJoinPath, relDirPath,
   closeFenceLine, findBlockSite, isCloseFence, narrowToHead, newlineOf,
   narrowToIntro, reLit, sectionEndIndex, splitLines, stripEol, toLf, toNewline, trimSpaceTabEnd,
-  nameKey, resolveTarget,
-} from "./geml.js";
+  nameKey, resolveTarget, vocabularyOf } from "./geml.js";
 import { type Unit, type Addressed, type Selector } from "./selector.js";
 import { schemeOf } from "./inline.js";
 import { parseAttrs } from "./attrs.js";
@@ -856,7 +855,9 @@ export function transform(src: string, file: string, o: TransformOptions, ctx: V
         const render = (docPath: string, text: string, units: Unit[]): string | undefined => {
           const out: string[] = [];
           for (const u of units) {
-            const sub = parse(sliceUnit(text, u.span, part), { ...ctx.docOpts(docPath, mdRoot) });
+            // 切片带不走文档的 `=== meta`，所以把宿主已经算好的词汇表交给子解析 ——
+            // 否则 profile 的类型在这里全都变回未知类型，散文块会渲染成一个空围栏。
+            const sub = parse(sliceUnit(text, u.span, part), { ...ctx.docOpts(docPath, mdRoot), vocab: vocabularyOf(text) });
             const r = gemlToMd(sub, { resolveEmbed: expand(docPath, text, depth + 1) });
             inner.push(...r.notes);
             if (r.md.trim() !== "") out.push(r.md.trim());

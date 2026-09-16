@@ -1,0 +1,29 @@
+=== meta
+title = "EP01"
+profile = "geml-media/v1"
+episode = 1
+aspect = "9:16"
+===
+
+# 分镜表 {#board}
+
+=== table {#shots}
+| 镜号 | 时长 | 角色 |
+|---|---|---|
+| s01 | 4 | #hero |
+| s03 | 6 | #sister #hero |
+===
+
+# 镜头 {#shot-blocks}
+
+=== media-text {#s01-prompt .prompt shot=s01}
+![[../characters.geml#look]] ![[../characters.geml#hero-look]] 特写，从闭眼开始，猛然睁开。
+===
+
+=== media-text {#s03-prompt .prompt shot=s03}
+![[../characters.geml#look]] 中景双人。左：![[../characters.geml#sister-look]] 右：![[../characters.geml#hero-look]]
+===
+
+=== media-text {#s03-l1 .line speaker=../characters.geml#sister to=../characters.geml#hero emotion=假哭}
+姐……你怎么会……
+===
