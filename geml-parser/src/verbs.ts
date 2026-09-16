@@ -1118,10 +1118,16 @@ export function set(source: string, file: string, rawSel: string, o: SetOptions,
     // Default mode wants exactly ONE block. Pure prose has no head to carry the
     // id (steer to --body); multiple blocks are `add`'s job. --head takes a
     // lone head line, so it skips the whole-block shape check.
+    //
+    // 除非**目标本身就是一段散文**（GEP-0010 的散文运行）：那时散文正是它该有的
+    // 内容，也没有 id 要扛——它的地址由前后邻居决定，不写在文本里。以前这里一律
+    // 让人改用 --body，而散文没有 body，于是那条建议把新内容**追加**在旧散文后面，
+    // 旧的一个字没删。
+    const targetIsProse = target.unit.kind === "prose";
     if (!headOnly) {
       const shape = contentShape(text);
       if (shape === "empty") fail(NO_CONTENT, 1);
-      if (shape === "prose") fail(`content is prose, not a block — use --body to set the body of ${target.label}`, 1);
+      if (shape === "prose" && !targetIsProse) fail(`content is prose, not a block — use --body to set the body of ${target.label}`, 1);
       if (shape === "multi") fail("set replaces ONE block, but the content has multiple blocks (use add)", 1);
     }
   } else {
@@ -1138,8 +1144,11 @@ export function set(source: string, file: string, rawSel: string, o: SetOptions,
   // to GEML, visible junk in the GitHub-Flavored Markdown these verbs also
   // address. The judge is the parser itself, never a second copy of the slug
   // rule: whatever id the content parses to is the id it has.
+  // 散文运行的地址是位置派生的，没有 id 可往内容里盖——盖了只会在散文里多出一个
+  // `{#…}`。所以这一步跳过它。
   const carries = target.unit.id !== undefined && addressedUnits(text)[0]?.unit.id === target.unit.id;
-  const replacement = target.unit.id !== undefined && !carries ? normalizeBlockId(text, target.unit.id) : text;
+  const stamp = target.unit.id !== undefined && !carries && target.unit.kind !== "prose";
+  const replacement = stamp ? normalizeBlockId(text, target.unit.id as string) : text;
   const updated = spliceSpan(source, target.unit.span, replacement, file, ctx, headOnly, false, target.unit.id);
   reportNewAddress(updated, target, ctx);
   return { text: updated };
@@ -1698,7 +1707,12 @@ function spliceSpan(
   // hands the blocks over, sending them back keeps them, and nothing is dropped.
   const reparsed = parse(updated, { ...ctx.docOpts(file), self: selfOf(file) });
   const now = new Set(reparsed.ids);
-  if (id !== undefined && !now.has(id)) fail(`replacement removes id \`${id}\`; not written`, 1);
+  // GEP-0010 的散文地址不在 `ids` 里：它是**位置**派生的（`#容器-before-下一个`），
+  // 由前后邻居决定，不写在文本里。只问 `ids` 的话，换掉一段散文永远被判成"把 id 弄
+  // 没了"——而位置根本没动，那个地址一个字都不会变。`ids` 里没有时再问一次散文地址。
+  const survives = (name: string): boolean =>
+    now.has(name) || addressedUnits(updated).some((a) => a.unit.id === name);
+  if (id !== undefined && !survives(id)) fail(`replacement removes id \`${id}\`; not written`, 1);
   const droppedIds = beforeIds.filter((x) => x !== id && !now.has(x));
   const droppedAnon = Math.max(0, countBlockUnits(source) - countBlockUnits(updated) - droppedIds.length);
 
