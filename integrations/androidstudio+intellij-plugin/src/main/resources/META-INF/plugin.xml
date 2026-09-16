@@ -1,0 +1,106 @@
+<idea-plugin>
+  <id>org.geml.intellij</id>
+  <name>GEML</name>
+  <vendor url="https://github.com/geml-spec/geml">GEML</vendor>
+
+  <description><![CDATA[
+    Editor support for <a href="https://github.com/geml-spec/geml">GEML</a> documents
+    (<code>.geml</code>, <code>.gemlhistory</code>) in Android Studio and other
+    IntelliJ-based IDEs: syntax highlighting, a preview pane, a structure view of the
+    document's addressable blocks, folding, and live diagnostics from
+    <code>geml check</code>.
+    <p>
+    Every structural answer comes from the reference parser, which ships inside the
+    plugin — so the editor cannot disagree with what <code>geml check</code> says in CI,
+    and there is nothing to install but <a href="https://nodejs.org">Node</a>.
+    </p>
+  ]]></description>
+
+  <!-- Language extension points only: nothing here is Android-specific, so the
+       same build installs in Android Studio, IDEA CE/Ultimate, PyCharm and the rest. -->
+  <depends>com.intellij.modules.lang</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <fileType
+        name="GEML"
+        language="GEML"
+        extensions="geml;gemlhistory"
+        implementationClass="org.geml.intellij.GemlFileType"
+        fieldName="INSTANCE"/>
+
+    <lang.parserDefinition
+        language="GEML"
+        implementationClass="org.geml.intellij.lang.GemlParserDefinition"/>
+    <lang.syntaxHighlighterFactory
+        language="GEML"
+        implementationClass="org.geml.intellij.lang.GemlSyntaxHighlighterFactory"/>
+    <lang.commenter
+        language="GEML"
+        implementationClass="org.geml.intellij.lang.GemlCommenter"/>
+    <lang.psiStructureViewFactory
+        language="GEML"
+        implementationClass="org.geml.intellij.GemlStructureViewFactory"/>
+    <lang.foldingBuilder
+        language="GEML"
+        implementationClass="org.geml.intellij.GemlFoldingBuilder"/>
+
+    <externalAnnotator
+        language="GEML"
+        implementationClass="org.geml.intellij.GemlAnnotator"/>
+
+    <!-- Ctrl+click and F12 on a reference. -->
+    <gotoDeclarationHandler implementation="org.geml.intellij.GemlGotoDeclarationHandler"/>
+    <!-- Hover. Offset-based, which is what lets it work over a flat tree. -->
+    <platform.backend.documentation.targetProvider
+        implementation="org.geml.intellij.GemlDocumentationTargetProvider"/>
+    <!-- Shift+F6 on an id. -->
+    <renameHandler implementation="org.geml.intellij.GemlRenameHandler"/>
+    <!-- A Search Everywhere tab: find a block anywhere by address or content. -->
+    <searchEverywhereContributor
+        implementation="org.geml.intellij.GemlSearchEverywhereContributorFactory"/>
+
+    <fileEditorProvider implementation="org.geml.intellij.preview.GemlEditorProvider"/>
+
+    <applicationService serviceImplementation="org.geml.intellij.cli.GemlSettings"/>
+    <applicationConfigurable
+        parentId="tools"
+        id="org.geml.intellij.settings"
+        displayName="GEML"
+        instance="org.geml.intellij.cli.GemlConfigurable"/>
+
+    <notificationGroup id="GEML" displayType="BALLOON"/>
+  </extensions>
+
+  <actions>
+    <action id="org.geml.intellij.CopyAddress"
+            class="org.geml.intellij.GemlCopyAddressAction"
+            text="Copy GEML Block Address"
+            description="Copy the address `geml get` takes for the block at the caret">
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+    </action>
+    <action id="org.geml.intellij.CopyReference"
+            class="org.geml.intellij.GemlCopyReferenceAction"
+            text="Copy Reference to GEML Block"
+            description="Copy the [[#id]] another document would use to reference the block at the caret">
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="org.geml.intellij.CopyAddress"/>
+    </action>
+    <action id="org.geml.intellij.RevertBlock"
+            class="org.geml.intellij.GemlRevertBlockAction"
+            text="Revert GEML Block to a Past Revision..."
+            description="Restore the block at the caret to how it was in a chosen revision">
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="org.geml.intellij.CopyReference"/>
+    </action>
+    <action id="org.geml.intellij.SaveRevision"
+            class="org.geml.intellij.GemlSaveRevisionAction"
+            text="Save a GEML Revision"
+            description="Append this document to its .gemlhistory as a new revision">
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="org.geml.intellij.RevertBlock"/>
+    </action>
+    <action id="org.geml.intellij.FindBlock"
+            class="org.geml.intellij.GemlFindBlockAction"
+            text="Find GEML Block..."
+            description="Search every GEML document in the project by address or content">
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+    </action>
+  </actions>
+</idea-plugin>
