@@ -143,21 +143,38 @@ export function shownPath(rel: string, root: string): string {
 /** The verbs' view of a disk: confined sibling reads for `--view` and the Markdown export. */
 export const fsFiles: FileAccess = { readConfined, shownPath };
 
-// Walk for `.geml` files. Depth-first, sorted, so output order is stable across
-// platforms — a listing that reorders between machines is a listing nobody can
-// diff. Hidden directories and `node_modules` are skipped: a search verb that
-// dredges up vendored copies trains people to stop reading its output.
+// The extensions a directory walk admits: the two input formats the parser
+// reads from a path. Compared case-insensitively because a vault written on a
+// case-insensitive filesystem can hand `readdir` back `NOTES.MD`, and a search
+// that skips a file the user can see is the same silent "no" this walk used to
+// answer for Markdown.
+const WALKED = [".geml", ".md"];
+const walkable = (path: string): boolean => {
+  const lower = path.toLowerCase();
+  return WALKED.some((ext) => lower.endsWith(ext));
+};
+
+// Walk for the formats the parser reads. Depth-first, sorted, so output order is
+// stable across platforms — a listing that reorders between machines is a
+// listing nobody can diff. Hidden directories and `node_modules` are skipped: a
+// search verb that dredges up vendored copies trains people to stop reading its
+// output.
 // `explicit` marks a path the caller NAMED, as opposed to one this walk found.
 // A named file is searched whatever it is called: `get` and `list` already read
 // a `.md` this way, and having only `find` refuse meant
 // `geml find GEML README.md` exited 1 against a file holding forty-four
 // matches — a search that answers "no" about a file you pointed straight at.
-// The `.geml` filter belongs to the DIRECTORY walk, where taking every file
-// would drag the whole source tree through the parser.
+// The DIRECTORY walk still filters, or it would drag the whole source tree
+// through the parser — but it filters to BOTH formats the parser reads. Taking
+// only `.geml` made a directory of Markdown answer "no matches" to a pattern
+// on every page of it, and answer it silently: `list`, `get` and `set` all
+// accept those files, and only the walk that has to FIND them refused. That is
+// not a narrower search, it is a wrong one.
+// `.gemlhistory` does not end in `.geml`, so sidecars stay out of the walk.
 export function gemlFilesUnder(path: string, out: string[], explicit = false): void {
   let dir = false;
   try { dir = statSync(path).isDirectory(); } catch { return; }
-  if (!dir) { if (explicit || path.endsWith(".geml")) out.push(path); return; }
+  if (!dir) { if (explicit || walkable(path)) out.push(path); return; }
   for (const e of readdirSync(path, { withFileTypes: true }).sort((a, b) => a.name < b.name ? -1 : 1)) {
     if (e.name.startsWith(".") || e.name === "node_modules") continue;
     gemlFilesUnder(join(path, e.name), out);

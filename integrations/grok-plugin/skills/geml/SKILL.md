@@ -125,7 +125,7 @@ already; none is ever created for you. `--dry-run` shows what it would do.
 geml list    file.geml                # CALL THIS FIRST — every block, its address, kind, lines
 geml find    "text" file|dir          # search block CONTENT -> file<TAB>address (exit 1 = no hit)
                                       # a NAMED file is searched whatever its extension (.md too);
-                                      # a directory walks *.geml only
+                                      # a directory walks *.geml and *.md
 geml get     file.geml '#id'          # read ONE block (a heading id = its whole section)
 geml set     file.geml '#id' --in f   # replace ONE block (re-parsed; never writes a broken doc)
 geml history save file.geml -m "…"    # snapshot to .gemlhistory after each meaningful edit

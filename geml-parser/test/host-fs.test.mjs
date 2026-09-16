@@ -72,22 +72,28 @@ test("shownPath states provenance relative to the root, in forward slashes, and 
   assert.equal(fsFiles.shownPath, shownPath);
 });
 
-test("gemlFilesUnder walks .geml files in sorted order, skips hidden and vendored directories, and takes a named file whatever its extension", () => {
+test("gemlFilesUnder walks both formats the parser reads, in sorted order, skips hidden and vendored directories, and takes a named file whatever its extension", () => {
   const root = tree({
-    "b.geml": "", "a.geml": "", "readme.md": "",
-    "sub/z.geml": "", "sub/y.geml": "",
+    "b.geml": "", "a.geml": "", "readme.md": "", "UPPER.MD": "",
+    "app.ts": "", "page.geml.gemlhistory": "",
+    "sub/z.geml": "", "sub/y.md": "",
     ".hidden/h.geml": "", "node_modules/n.geml": "",
   });
   try {
     const out = [];
     gemlFilesUnder(root, out);
-    assert.deepEqual(out.map((p) => p.slice(root.length + 1).replace(/\\/g, "/")), ["a.geml", "b.geml", "sub/y.geml", "sub/z.geml"]);
+    // Markdown is walked because every other verb already reads it: a walk that
+    // found only `.geml` answered "no matches" about a directory of notes.
+    // `.ts` is not walked, or a bare `geml find` would drag a source tree
+    // through the parser. `.gemlhistory` is a sidecar, not a document.
+    assert.deepEqual(out.map((p) => p.slice(root.length + 1).replace(/\\/g, "/")),
+      ["UPPER.MD", "a.geml", "b.geml", "readme.md", "sub/y.md", "sub/z.geml"]);
     const named = [];
-    gemlFilesUnder(join(root, "readme.md"), named, true);
-    assert.deepEqual(named.map((p) => basename(p)), ["readme.md"], "a file the caller named is searched whatever it is called");
+    gemlFilesUnder(join(root, "app.ts"), named, true);
+    assert.deepEqual(named.map((p) => basename(p)), ["app.ts"], "a file the caller named is searched whatever it is called");
     const unnamed = [];
-    gemlFilesUnder(join(root, "readme.md"), unnamed);
-    assert.deepEqual(unnamed, [], "a non-.geml file the walk found is skipped");
+    gemlFilesUnder(join(root, "app.ts"), unnamed);
+    assert.deepEqual(unnamed, [], "a file the walk found in a format the parser does not read is skipped");
     gemlFilesUnder(join(root, "does-not-exist"), unnamed);
     assert.deepEqual(unnamed, []);
   } finally { rmSync(root, { recursive: true, force: true }); }

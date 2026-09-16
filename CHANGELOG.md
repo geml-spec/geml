@@ -18,6 +18,21 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **`geml find` walks Markdown too.** A directory handed to `find` was searched
+  for `*.geml` and nothing else, so pointing it at a folder of notes answered
+  "no matches" about a word on every page — silently, and with the exit code
+  that means "searched, found nothing". `list`, `get` and `set` all take a
+  `.md`; only the walk that has to FIND one refused, which made it not a
+  narrower search but a wrong one. The walk now admits both formats the parser
+  reads from a path, `*.geml` and `*.md`, matched case-insensitively so a
+  `NOTES.MD` from a case-insensitive filesystem is not skipped. It still
+  filters — a `.ts` or a `.py` would drag a whole source tree through the
+  parser — and a `.gemlhistory` sidecar is not a document, so it stays out.
+  **This is a behaviour change, not a fix**: `geml find X .` in a repository
+  holding Markdown now returns hits it used to hide. The MCP `geml_find` tool
+  and the VS Code workspace-symbol provider (Ctrl+T), which both go through the
+  same walk, widen with it.
+
 ## [1.10.3] — 2026-09-12
 
 - **`geml-style` places blocks, not just decorates them.** The profile could
