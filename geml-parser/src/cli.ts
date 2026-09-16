@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+import { checkMedia } from "./media-check.js";
+import { promptTextOf } from "./media-check.js";
+import { todo as mediaTodo, report as mediaReport, exportTimeline, lay as mediaLay, buildPlan, appendLog, importPlan, importKindOf, importSubtitles, assetBlockFor, idFromFile, idsTaken, loadProject, type ExportFormat, type ManifestItem } from "./media-verbs.js";
+import { mediaIoFor} from "./host-fs.js";
 // The GEML command line. Split out of geml.ts so that file can be what the
 // viewer imports: a parser LIBRARY. Everything CLI-side lives here — argv
 // dispatch, file and stdin I/O, stdout and the exit codes, spawning
@@ -11,7 +15,7 @@
 
 import { readFileSync, writeFileSync, realpathSync, statSync, existsSync, mkdirSync, readdirSync, copyFileSync, renameSync } from "node:fs";
 import { loadStylesheet, resolveStyle } from "./style-resolve.js";
-import { basename, dirname, join, relative, resolve as resolvePath } from "node:path";
+import { basename, dirname, join, relative, sep, resolve as resolvePath } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -359,6 +363,301 @@ function contentFrom(from: string | undefined): Content {
 
 // `geml check <file>` — validate only: diagnostics + exit code, no document
 // dump (cheap for agents). `--json` prints the diagnostics array for machines.
+const MEDIA_HELP = [
+  "usage: geml media <verb>",
+  "",
+  "  todo   <entry.geml> [--root d] [--json]        待办：没产出的提示词、没配音的台词",
+  "  report <entry.geml> --kind cast|stats [-o f]   跨文档聚合成 CSV",
+  "  export <cut.geml> --to preview|srt|edl|otio|json [-o f]",
+  "  build  <cut.geml> --out <file.mp4> [--burn-subs [--font 'Microsoft YaHei']]",
+  "                                                 ffmpeg 出片；字幕默认另出 .srt，--burn-subs 才烧进画面",
+  "  lay    <cut.geml> --over '#c03' [--gap 0.2]    按配音时长给出 offset/dur 的初值",
+  "  log    <library.geml> --output '#id' --model m --mode x [--prompt ref] [--input ref]… [--seed n]",
+  "  import <file|dir> --into <目标文档>           按后缀分派：",
+  "           .json            生成清单 → 素材块 + 日志记录",
+  "           .srt / .vtt      字幕 → 台词块（加 --cut <cut.geml> 连字幕轨片段一起）",
+  "           媒体文件 / 目录  → 素材块（哈希去重，有 ffprobe 就带上时长）",
+  "",
+  "  --root <dir>  跨文档解析的根，缺省是入口文档自己的目录",
+].join("\n");
+
+/** 在 PATH 上找一个可执行程序；找不到返回 null（可选依赖，缺了降级）。 */
+function whichBin(bin: string): string | null {
+  const win = process.platform === "win32";
+  const exts = win ? [".exe", ".cmd", ".bat", ""] : [""];
+  for (const dir of (process.env["PATH"] ?? "").split(win ? ";" : ":")) {
+    if (dir === "") continue;
+    for (const e of exts) {
+      const p = join(dir, bin + e);
+      try { if (statSync(p).isFile()) return p; } catch { /* 下一个 */ }
+    }
+  }
+  return null;
+}
+
+/** ffprobe 读时长。可选依赖：没装就不写 duration=，不猜。 */
+function probeDuration(abs: string): number | undefined {
+  const ff = whichBin("ffprobe");
+  if (ff === null) return undefined;
+  const r = spawnSync(ff, ["-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", abs], { encoding: "utf8" });
+  if (r.status !== 0) return undefined;
+  const n = Number((r.stdout ?? "").trim());
+  return Number.isFinite(n) ? n : undefined;
+}
+
+/** 目录里认得出的媒体文件，深度优先、按名排序，跳过隐藏目录与 node_modules。 */
+function mediaFilesUnder(dir: string, out: string[]): void {
+  for (const e of readdirSync(dir, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+    if (e.name.startsWith(".") || e.name === "node_modules") continue;
+    const p = join(dir, e.name);
+    if (e.isDirectory()) mediaFilesUnder(p, out);
+    else if (importKindOf(e.name) === "asset") out.push(p);
+  }
+}
+
+function mediaRootOf(file: string, root: string | undefined): { root: string; rel: string } {
+  const r = root ?? dirname(resolvePath(file));
+  return { root: r, rel: relative(r, resolvePath(file)).split(sep).join("/") };
+}
+
+// `geml media …` —— 这份 profile 自己的动词（spec/profiles/geml-media §6）。七个，
+// 不是十四个：check 并进了核心 `geml check`（文档自己在 meta 里声明了 profile，不该
+// 再要求调用者换命令名），prompt 并进了 `get --resolved` 的位置，stale 是 check 的一个
+// 过滤，预览与出片分家（依赖、失败模式、产物类型全不同），cast/stats 合成 report。
+function runMedia(args: string[]): void {
+  const verb = args[0];
+  if (verb === undefined) fail(MEDIA_HELP);
+  if (verb === "--help" || verb === "-h") { console.log(MEDIA_HELP); return; }
+  const rest = args.slice(1);
+  const root = flag(rest, "--root");
+  const out = flag(rest, "-o") ?? flag(rest, "--out");
+  const into = flag(rest, "--into");
+  const file = rest.find((a) => !a.startsWith("-") && a !== root && a !== out && a !== into);
+  if (file === undefined) fail(MEDIA_HELP);
+  const { root: mr, rel } = mediaRootOf(file, root);
+  const io = mediaIoFor(mr);
+  // 项目级的动词收一个目录：引用是有方向的，从剧本出发看不见素材库的日志。
+  const isDir = ((): boolean => { try { return statSync(resolvePath(file)).isDirectory(); } catch { return false; } })();
+  const seeds = ((): string | string[] => {
+    if (!isDir) return rel;
+    const found: string[] = [];
+    gemlFilesUnder(resolvePath(file), found, true);
+    return found.map((p) => relative(mr, p).split(sep).join("/"));
+  })();
+  const emit = (text: string): void => {
+    if (out === undefined) process.stdout.write(text);
+    else { writeFileSync(resolvePath(mr, out), text, "utf8"); console.error("wrote " + out); }
+  };
+
+  if (verb === "todo") {
+    const items = mediaTodo(seeds, io);
+    if (rest.includes("--json")) { console.log(JSON.stringify(items, null, 2)); return; }
+    if (items.length === 0) { console.error("todo: 没有待办"); return; }
+    for (const it of items) console.log((it.kind === "voice" ? "配音" : "生成") + "  " + it.address + "  (" + it.mode + ")");
+    return;
+  }
+  if (verb === "report") {
+    const kind = flag(rest, "--kind") ?? "stats";
+    if (kind !== "cast" && kind !== "stats") fail("--kind 只能是 cast 或 stats");
+    emit(mediaReport(seeds, kind, io));
+    return;
+  }
+  if (verb === "export") {
+    const to = flag(rest, "--to") ?? "preview";
+    if (!["preview", "srt", "edl", "otio", "json"].includes(to)) fail("--to 只能是 preview | srt | edl | otio | json");
+    emit(exportTimeline(rel, to as ExportFormat, io));
+    return;
+  }
+  if (verb === "lay") {
+    const over = flag(rest, "--over");
+    if (over === undefined) fail("lay 需要 --over 指出锚在哪个主轨片段上");
+    const gap = Number(flag(rest, "--gap") ?? "0.2");
+    console.log(JSON.stringify(mediaLay(rel, over, io, Number.isFinite(gap) ? gap : 0.2), null, 2));
+    return;
+  }
+  if (verb === "build") {
+    if (out === undefined) fail("build 需要 --out <file.mp4>");
+    const outAbs = resolvePath(mr, out);
+    const srtPath = outAbs.replace(/\.[^.]+$/, "") + ".srt";
+    const srtRel = relative(mr, srtPath).split(sep).join("/");
+    // 烧字幕是**交付**时的选择，不是剪辑的属性：默认另出 srt（谁都能关掉），
+    // --burn-subs 才把它烧进像素（烧了就再也拆不开）。
+    const burning = rest.includes("--burn-subs");
+    const font = flag(rest, "--font") ?? (process.platform === "win32" ? "Microsoft YaHei" : "sans-serif");
+    // fontsdir 默认不给：这个 ffmpeg 构建的 filtergraph 解析器吃不下带盘符的路径
+    // （ 和加引号都报 No option name），libass 走系统字体表即可。
+    const fontsdir = flag(rest, "--fontsdir");
+    const plan = buildPlan(rel, outAbs, io, burning
+      ? { burn: { file: srtRel, fontsdir, style: "FontName=" + font + ",FontSize=18,Outline=1,Shadow=0,MarginV=40" } }
+      : {});
+    for (const n of plan.notes) console.error("note: " + n);
+    if (plan.srt !== null) {
+      writeFileSync(srtPath, plan.srt, "utf8");
+      console.error("wrote " + basename(srtPath)
+        + (burning ? "（同时烧进画面，--burn-subs）" : "（字幕另出，不烧进画面；要烧加 --burn-subs）"));
+    } else if (burning) {
+      console.error("note: 这条时间线没有字幕轨，--burn-subs 没有东西可烧");
+    }
+    const ff = whichBin("ffmpeg");
+    if (ff === null) {
+      console.error("ffmpeg 不在 PATH 上；下面是本该跑的命令，装好后可直接执行：");
+      console.log(["ffmpeg", ...plan.args].map((a) => (/\s/.test(a) ? JSON.stringify(a) : a)).join(" "));
+      return;
+    }
+    const r = spawnSync(ff, plan.args, { cwd: mr, encoding: "utf8" });
+    if (r.status !== 0) fail("ffmpeg 失败（exit " + String(r.status ?? "?") + "）：\n" + (r.stderr ?? "").split("\n").slice(-12).join("\n"), 1);
+    console.error("wrote " + out + "  ·  " + plan.duration.toFixed(2) + "s");
+    return;
+  }
+  if (verb === "log") {
+    const outputId = flag(rest, "--output");
+    const model = flag(rest, "--model");
+    const mode = flag(rest, "--mode");
+    if (outputId === undefined || model === undefined || mode === undefined) fail("log 需要 --output --model --mode");
+    const rec: Record<string, unknown> = { output: outputId, model, mode, at: new Date().toISOString() };
+    const proj = loadProject(rel, io);
+    const hit = proj.assets.get(rel + "#" + outputId.replace(/^#/, ""));
+    let assetSha: { id: string; sha256: string } | undefined;
+    if (hit !== undefined) {
+      const p2 = String(hit.b.attrs["src"] ?? "");
+      const dir = rel.includes("/") ? rel.slice(0, rel.lastIndexOf("/")) : "";
+      const h = io.hashFile(dir === "" ? p2 : dir + "/" + p2);
+      // log 同时更新素材块的 sha256 —— 只追加记录会让库里继续声称一个文件已经没有的
+      // 哈希，下一次 check 就是 media-hash-mismatch（第一个真实用例挖出的缺口）。
+      if (h !== null) { rec["output-sha256"] = h; assetSha = { id: outputId.replace(/^#/, ""), sha256: h }; }
+    }
+    const promptRef = flag(rest, "--prompt");
+    if (promptRef !== undefined) {
+      rec["prompt"] = promptRef;
+      const t = promptTextOf(promptRef, rel, io);
+      if (t !== null) rec["prompt-sha256"] = io.hashText(t);
+    }
+    const inputs: { ref: string; sha256?: string }[] = [];
+    for (let i = 0; i < rest.length; i++) if (rest[i] === "--input" && rest[i + 1] !== undefined) inputs.push({ ref: rest[i + 1] as string });
+    if (inputs.length > 0) {
+      rec["inputs"] = inputs.map((x) => {
+        const b = proj.block(x.ref, rel);
+        const h = b === null ? "" : String(b.b.attrs["sha256"] ?? "");
+        return h === "" ? x : { ref: x.ref, sha256: h };
+      });
+    }
+    const seed = flag(rest, "--seed");
+    if (seed !== undefined) rec["seed"] = Number(seed);
+    writeFileSync(resolvePath(file), appendLog(readInput(file), rec, assetSha), "utf8");
+    console.error("logged " + outputId + " → " + file);
+    return;
+  }
+  if (verb === "import") {
+    // 后缀说了算：调用者手上有什么就给什么，不必先回答"这是什么格式"。
+    const kind = isDir ? "asset" : importKindOf(file);
+    if (kind === "timeline") {
+      fail("import 不接 " + basename(file) + "：剪辑软件的时间线回写（OTIO / FCPXML / EDL）是设计稿 §13 的待讨论项，"
+        + "v1 只往外导（geml media export --to otio），不往回读 —— 回读要能把别人改过的时间安全地并回锚定模型，那是另一件事。");
+    }
+    if (kind === "unknown") {
+      fail("认不出 " + basename(file) + " 是什么。import 按后缀分派：.json = 生成清单，.srt/.vtt = 字幕，媒体文件或目录 = 素材。");
+    }
+    if (into === undefined) fail("import 需要 --into <目标文档>");
+    const target = mediaRootOf(into, root);
+    const io2 = mediaIoFor(target.root);
+    const targetAbs = resolvePath(target.root, target.rel);
+    let text = readFileSync(targetAbs, "utf8");
+    const nl = text.includes("\r\n") ? "\r\n" : "\n";
+    // 新块插在日志块前面（素材库），没有日志块就接在文末（剧本、时间线）。
+    const put = (blocks: string): void => {
+      const b = blocks.replace(/\n/g, nl);
+      if (/={3,}\s+data\s*\{[^}]*\.gen-log/.test(text)) text = text.replace(/(={3,}\s+data\s*\{[^}]*\.gen-log)/, b + "$1");
+      else text = text.replace(/\s*$/, nl) + nl + b;
+    };
+    // id 撞了就停。import 是往别人的文档里写，覆盖一个已有的块比少导一次严重得多。
+    const guard = (inText: string, ids: string[]): void => {
+      const dup = idsTaken(inText, ids);
+      if (dup.length > 0) fail("目标文档里已经有这些 id：" + dup.join(" ") + "  （换个 --prefix 再来，不覆盖已有的块）");
+    };
+
+    if (kind === "manifest") {
+      const items = JSON.parse(readInput(file)) as ManifestItem[];
+      const plan = importPlan(target.rel, items, io2);
+      for (const n of plan.notes) console.error("note: " + n);
+      guard(text, plan.newAssets.map((a) => a.id));
+      for (const a of plan.newAssets) {
+        put("=== media-asset {#" + a.id + " src=" + a.src + " sha256=" + a.sha256 + " kind=" + a.kind + " origin=generated}\n===\n\n");
+      }
+      for (const r of plan.records) text = appendLog(text, r);
+      writeFileSync(targetAbs, text, "utf8");
+      console.error("imported " + String(plan.records.length) + " 条记录，新建 " + String(plan.newAssets.length) + " 个素材块 → " + into);
+      return;
+    }
+
+    if (kind === "subtitles") {
+      const cutArg = flag(rest, "--cut");
+      const prefix = flag(rest, "--prefix") ?? "l";
+      const trackName = flag(rest, "--track") ?? "subtitle";
+      const cut = cutArg === undefined ? null : mediaRootOf(cutArg, root);
+      if (cut !== null && resolvePath(cut.root) !== resolvePath(target.root)) {
+        fail("--cut 与 --into 落在两个根下；用 --root 指一个共同的根");
+      }
+      const cutAbs = cut === null ? null : resolvePath(cut.root, cut.rel);
+      // 台词块写进 --into，字幕片段的 src= 要从 cut 出发指回去；同一份文档时就是裸 #id。
+      const srcDoc = cutAbs === null || cutAbs === targetAbs ? ""
+        : relative(dirname(cutAbs), targetAbs).split(sep).join("/");
+      const sub = importSubtitles(readInput(file),
+        { idPrefix: prefix, srcDoc, cutEntry: cut === null ? null : cut.rel, track: trackName, speaker: flag(rest, "--speaker") }, io2);
+      for (const n of sub.notes) console.error("note: " + n);
+      if (sub.lines === "") fail("没有可导入的台词");
+      const lineIds = sub.ids.filter((x) => !x.startsWith("sub-"));
+      guard(text, lineIds);
+      put(sub.lines);
+      writeFileSync(targetAbs, text, "utf8");
+      console.error("imported " + String(lineIds.length) + " 条台词 → " + into);
+      if (sub.clips === null || cutAbs === null) return;
+      let ct = readFileSync(cutAbs, "utf8");           // 与 --into 同一份时，这里读到的是刚写完的
+      const cnl = ct.includes("\r\n") ? "\r\n" : "\n";
+      guard(ct, sub.ids.filter((x) => x.startsWith("sub-")));
+      const declared = /^\s*tracks\s*=\s*"([^"]*)"/m.exec(ct);
+      const names = declared === null ? [] : (declared[1] as string).split(/\s+/).map((t) => t.split(":")[0]);
+      if (!names.includes(trackName)) {
+        console.error("note: cut 的 meta 里没声明 " + trackName + " 轨，补一条 " + trackName + ":prose 进 tracks=，否则 check 会报未声明的轨");
+      }
+      ct = ct.replace(/\s*$/, cnl) + cnl + sub.clips.replace(/\n/g, cnl);
+      writeFileSync(cutAbs, ct, "utf8");
+      console.error("imported " + String(sub.ids.length - lineIds.length) + " 个字幕片段 → " + cutArg);
+      return;
+    }
+
+    // kind === "asset"：一个文件或一整个目录。哈希去重与清单导入同一条规则。
+    const files: string[] = [];
+    if (isDir) mediaFilesUnder(resolvePath(file), files); else files.push(resolvePath(file));
+    if (files.length === 0) fail("目录里没有认得出的媒体文件");
+    const proj = loadProject(target.rel, io2);
+    const byHash = new Map<string, string>();
+    for (const [key, a] of proj.assets) {
+      const h = a.b.attrs["sha256"];
+      if (typeof h === "string") byHash.set(h, key.slice(key.indexOf("#") + 1));
+    }
+    const ids: string[] = [];
+    const blocks: string[] = [];
+    for (const f of files) {
+      const shown = relative(target.root, f).split(sep).join("/");
+      const sha = io2.hashFile(shown);
+      if (sha === null) { console.error("note: " + shown + " 在根之外或读不到，跳过"); continue; }
+      const seen = byHash.get(sha);
+      if (seen !== undefined) { console.error("note: " + shown + " 的哈希与既有的 #" + seen + " 相同，复用它而不新建"); continue; }
+      const id = idFromFile(f.split(sep).join("/"));
+      byHash.set(sha, id);
+      ids.push(id);
+      blocks.push(assetBlockFor(relative(dirname(targetAbs), f).split(sep).join("/"), id, sha, probeDuration(f)));
+    }
+    if (blocks.length === 0) { console.error("没有要新建的素材块"); return; }
+    guard(text, ids);
+    for (const b of blocks) put(b + "\n");
+    writeFileSync(targetAbs, text, "utf8");
+    console.error("imported " + String(blocks.length) + " 个素材块 → " + into);
+    return;
+  }
+  fail(MEDIA_HELP);
+}
+
 function runCheck(args: string[]): void {
   const json = args.includes("--json");
   const root = flag(args, "--root");
@@ -372,15 +671,27 @@ function runCheck(args: string[]): void {
     if (!isDir) fail(`--root ${root} is not a directory`);
   }
   const doc = verb(() => check(readInput(file), file, ctxFor(), root));
+  // 声明了 geml-media/v1 的文档，除核心诊断外再跑一趟 profile 的检查（profile 文档 §7）。
+  // 它是项目级的：从这份文档出发顺着 media 的引用把相关文档拉进来，范围由 --root 限定
+  // （默认这份文档自己的目录）。挂在 `geml check` 上而不是另起一个动词 —— 要不要按
+  // media 的规则查，是文档自己在 `=== meta` 里说了算的，不该再要求调用者换命令名。
+  const mediaRoot = root ?? dirname(resolvePath(file === "-" ? "." : file));
+  const mediaDiags = file === "-" ? [] : verb(() => {
+    const rel = relative(mediaRoot, resolvePath(file)).split(sep).join("/");
+    return checkMedia(rel, mediaIoFor(mediaRoot));
+  });
   if (json) {
-    console.log(JSON.stringify(doc.diagnostics, null, 2));
+    console.log(JSON.stringify(mediaDiags.length === 0 ? doc.diagnostics : { core: doc.diagnostics, media: mediaDiags }, null, 2));
   } else {
     for (const d of doc.diagnostics) console.error(`${d.severity}: ${d.message} (line ${d.line})`);
-    const errs = doc.diagnostics.filter((d) => d.severity === "error").length;
-    const warns = doc.diagnostics.filter((d) => d.severity === "warning").length;
+    // profile 的诊断按地址报，不按行号（媒体的检查跨文档，没有单一的行号可言）。
+    for (const d of mediaDiags) console.error(`${d.severity}: ${d.code}: ${d.message} (${d.doc}${d.id === undefined ? "" : "#" + d.id})`);
+    const all = [...doc.diagnostics, ...mediaDiags];
+    const errs = all.filter((d) => d.severity === "error").length;
+    const warns = all.filter((d) => d.severity === "warning").length;
     console.error(errs || warns ? `${errs} error(s), ${warns} warning(s)` : "ok: no diagnostics");
   }
-  if (doc.diagnostics.some((d) => d.severity === "error")) process.exit(1);
+  if ([...doc.diagnostics, ...mediaDiags].some((d) => d.severity === "error")) process.exit(1);
 }
 
 // Subcommand, file and revision, read positionally around the options —
@@ -1270,6 +1581,8 @@ const entry = (() => {
     else if (cmd === "check") runCheck(rest);
     else if (cmd === "mcp") runMcp(rest);
     else runSkill(rest);
+  } else if (cmd === "media") {
+    runMedia(argv.slice(1));
   } else if (cmd === "style") {
     runStyle(argv.slice(1));
   } else if (cmd === "codemap") {

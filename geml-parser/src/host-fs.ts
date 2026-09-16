@@ -1,3 +1,5 @@
+import { type MediaIO } from "./media-check.js";
+import { createHash } from "node:crypto";
 // The filesystem host for the verbs (verbs.ts): how a document on disk reaches
 // its cross-document targets, how `--view` reads a confined sibling, and how a
 // directory is walked for `find`. Shared by the CLI and the stdio MCP server —
@@ -173,4 +175,32 @@ export function historyError(e: unknown, file: string, historyPath: string): str
     return `cannot read ${file}`;
   }
   return err?.message ?? String(e);
+}
+
+/**
+ * geml-media 的检查器要读文档、算文件哈希，而它自己不能碰 node:fs —— 浏览器打包
+ * （geml-viewer）会把那个模块一起吃进去，一个 node:* 依赖就够让整份扩展构建失败。
+ * 所以文件访问由宿主给，这里是宿主端：路径一律受根目录限定（规范 §9.4）。
+ */
+export function mediaIoFor(root: string): MediaIO {
+  const base = resolvePath(root);
+  const confined = (rel: string): string | null => {
+    const abs = resolvePath(base, rel);
+    return abs === base || abs.startsWith(base + sep) ? abs : null;
+  };
+  return {
+    readDoc(rel: string): string | null {
+      const abs = confined(rel);
+      if (abs === null) return null;
+      try { return readFileSync(abs, "utf8"); } catch { return null; }
+    },
+    hashText(text: string): string {
+      return createHash("sha256").update(text, "utf8").digest("hex");
+    },
+    hashFile(rel: string): string | null {
+      const abs = confined(rel);
+      if (abs === null) return null;
+      try { return createHash("sha256").update(readFileSync(abs)).digest("hex"); } catch { return null; }
+    },
+  };
 }

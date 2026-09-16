@@ -1,0 +1,31 @@
+=== meta
+title = "《重生之夜》角色库"
+profile = "geml-media/v1"
+===
+
+# 演员表 {#cast}
+
+=== table {#cast-table}
+| id | 角色 | 定位 |
+|---|---|---|
+| #hero | 林夏 | 女主 |
+| #sister | 林岚 | 反派 |
+===
+
+# 林夏 {#hero}
+
+=== media-text {#hero-look .look}
+二十六岁女性，**银灰短发齐耳**，左眉一道旧疤，红色长风衣。
+===
+
+# 林岚 {#sister}
+
+=== media-text {#sister-look .look}
+二十三岁女性，栗色长卷发，白色连衣裙。
+===
+
+# 风格板 {#look-board}
+
+=== media-text {#look}
+2D 手绘赛璐璐风，冷色调，蓝紫主色。
+===

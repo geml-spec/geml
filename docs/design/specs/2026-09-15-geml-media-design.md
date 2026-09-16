@@ -1,8 +1,10 @@
 # geml-media —— 素材、剪辑与生成血缘的应用层 profile
 
 - 日期：2026-09-15
-- 状态：设计稿（brainstorm 产出，尚未实现、尚未立 GEP）。GEML 今天没有的东西集中在
-  §9（依赖核心的改动）与 §13（待讨论的设计），不散在正文里。示例文档全部用当前 `geml`
+- 状态：设计记录。本文描述的 profile 已落地——词汇注册在 `profiles.ts`，检查器挂在核心
+  `geml check` 上，动词、出片与 viewer 组件都在。散文体那一条走
+  [GEP-0013](../../../spec/proposals/0013-prose-body-for-vocabularies.md)（draft）。仍然缺的
+  东西集中在 §13（待讨论的设计），不散在正文里。示例文档全部用当前 `geml`
   跑过 `check` / `list` / `get` / `add` / `set` / `revert` / `style check`，本文引用的
   命令与输出都是真实的，出处随文标注。
 - 目标：让 GEML 成为 AI 图片与视频创作全部**中间产物**的胶水——演员表、角色卡、风格板、
@@ -13,8 +15,9 @@
 - 验证用例：**AI 漫剧的一季**。选它有三个理由：它是 2026 年产量最大的 AI 视频形态
   （§2）；它的痛点恰好是 GEML 四条定律各对一条；它不依赖任何一家生成器，跑通不需要
   等谁的 API。
-- 词汇表在别处（将来）：落地后完整的属性表、诊断目录与一致性面写进
-  `spec/profiles/geml-media/geml-media-profile{,_CN}.md`，那份跟着实现走，本文停在设计当时。
+- 词汇表在别处：完整的属性表、诊断目录与一致性面在
+  `spec/profiles/geml-media/geml-media-profile{,_CN}.md`，那份是规范面、跟着实现走；本文是
+  **设计记录**——为什么是这个形状，以及哪些还没有证据（§10）。
 - 术语：**片段**＝时间线上的一段（`media-clip`，对应 clip；剪映、DaVinci、Final Cut 的
   中文界面都用这个词）；**镜头**＝shot，分镜表的单位，**一个镜头可以由多个片段拼成**
   （§5.2.2）；**刀 / 剪辑点**＝两个片段之间的那个切口，转场发生在那里。三个词在本文各归
@@ -121,7 +124,7 @@
 一季漫剧的骨架，八份文档。**角色库、共享素材库、剧本、本集素材库、时间线这五份必须声明
 `profile = "geml-media/v1"`**——角色卡是 `media-text`，素材与片段是 `media-asset` / `media-clip`。
 全季大纲与模型卡只用核心词汇，声明与否都合法；样式表声明 `geml-style/v1`。全部通过
-`geml check --root .`，此刻的 warning 全部来自这三个类型与五个属性键尚未注册，注册后为零。
+`geml check --root .`，0 warning。
 
 ### 3.0 项目布局
 
@@ -528,7 +531,7 @@ primary = "video"
 配音时长。今天两处手写；`check` 对同一台词块的配音片段与字幕片段 offset 或时长不一致报
 `media-subtitle-unmatched`（§7），自动摆放是 §9 的待办 `geml media lay`。
 
-### 3.6 样式表 `_index/style.geml` —— 轨道即 frame
+### 3.6 样式表 `_index/index.geml` —— 轨道即 frame
 
 ```geml
 === meta
@@ -564,7 +567,10 @@ track-h = 56
 ===
 ```
 
-`geml style check _index/style.geml ep01/ep01-cut.geml`：**0 error(s), 0 warning(s)**。视图模型
+文件名不是随便取的：viewer 打开一份文档时去找**同目录的 `_index/index.geml`**，靠
+`meta.profile` 认，不靠路径。放别的名字扩展找不到，打开时间线只会得到一列块。
+
+`geml style check _index/index.geml ep01/ep01-cut.geml`：**0 error(s), 0 warning(s)**。视图模型
 （`--json`）里 `#timeline` 的五个槽位各是一个 frame，每个 frame 用属性选择器
 `media-clip[track=…]` 从时间线里选中自己那条轨的所有片段。`geml-style` 一个字没改。
 两处是试写时撞出来的。**一、overlay 的位置键叫 `overlay-place=`，不叫 `anchor=` 也不叫
@@ -902,7 +908,7 @@ geml get ep01/ep01-script.geml '#s03'                    → 一个镜头的提�
 | `media stale` | **`geml check --only 'media-stale-*'`** | 过期是诊断的一个子集，不是另一种计算。单开一个动词等于让同一份装载与 DAG 遍历有两个入口，两处各自演化就会不一致 |
 | `media render` | **拆成 `export --to preview` 与 `media build`** | 预览产出的是**一份文档**（GEML/HTML），和导出 OTIO/SRT 同类；出成片是调 ffmpeg 产二进制。一个名字扛两件事，它们的依赖、失败模式、产物类型全不同 |
 | `media cast` + `media stats` | **一个 `media report --kind`** | 两者是同一件事的两个参数——跨文档聚合、产出 CSV、供 `table {src=}` 引入。而且都是 §13 第 2 条（`view` 接多源）的**替身**：那条一旦落地，这个动词整个消失，所以不值得占两个名字 |
-| `media index` | `geml check --write-index` 的副产品 | `check` 的第 1 步本来就要装载全部 `media-asset` 建表（§8）。再跑一个动词把同样的表算一遍并落盘，是重复计算。`_index/media.json` 还要不要，等 P0 真片跑完看查找到底慢不慢——codemap 建索引是因为图有上万节点，一季几千个素材未必需要 |
+| `media index` | `geml check --write-index` 的副产品 | `check` 的第 1 步本来就要装载全部 `media-asset` 建表（§8）。再跑一个动词把同样的表算一遍并落盘，是重复计算。`_index/media.json` 到今天一次都没被需要过：真实用例跑下来装载全部素材从来不是瓶颈——codemap 建索引是因为图有上万节点，一季几千个素材不是同一个量级 |
 
 **一个保留下来、但暴露了核心缺口的**：`media log` 要往一个 `data {format=jsonl}` 块**追加
 一条记录**，而核心今天没有这个动作——`add` 加的是块，`set` 换的是整块。所以 `log` 自己
@@ -910,6 +916,14 @@ geml get ep01/ep01-script.geml '#s03'                    → 一个镜头的提�
 用例，按本项目的规矩先在 profile 里跑，第二个用例出现再提核心（同 §9 第 7 条的态度）。
 
 ### 6.2 工具怎么接：MCP、CLI 与适配器
+
+> **media 动词最终要挂到 MCP 上，但不是现在。** `geml-mcp-worker` 那条线自己还没上线
+> 验证过，在一条没跑起来的通道上决定暴露几条动词是纸上谈兵。等它上线，按那时的实际
+> 调用面定。届时的形状是清楚的：六个动词不碰 ffmpeg（`check` `todo` `report` `export`
+> `lay` `log`；`import` 只有读媒体时长用 ffprobe，缺了就不写 `duration=`），三个 media
+> 模块也没有任何 `node:` 依赖，可以直接跑在 Worker 上；只有 `build` 需要一个有 ffmpeg
+> 的盒子。而 `build` 本身已经是**算计划**和**执行**分开的——`buildPlan()` 是纯函数，吐出
+> ffmpeg 的 argv，真正 spawn 的只有 CLI 那一行。
 
 一集漫剧要过手七八种工具：写剧本的大模型、生图、图生视频、TTS、口型、剪辑、审核。
 本 profile 对它们的态度只有一句：**文档说 what，不说 how；生成器不进 GEML。** 具体分三层。
@@ -921,7 +935,7 @@ geml get ep01/ep01-script.geml '#s03'                    → 一个镜头的提�
 （`media-stale-*`）。没有人给 agent 写任务单，它读诊断。这和 codemap 记 `resolution-default =
 cpg | heuristic` 是同一个原则：文档记下事实是**怎么来的**，引擎本身在文档外。
 
-**第二层，一套动词，两个传输——暴露多少条待定。** 每个 `geml media` 动词既是 CLI 子命令，也是 MCP 工具
+**第二层，一套动词，两个传输——MCP 暴露几条还没定。** 每个 `geml media` 动词既是 CLI 子命令，也是 MCP 工具
 （`geml_media_todo`、`geml_media_prompt`、`geml_media_log`、`geml_media_check`、
 `geml_media_stale`、`geml_media_lay`、`geml_media_import`、`geml_media_render`、
 `geml_media_export`），一份实现两个入口。这会是对现状的一个刻意改变：今天 MCP 只暴露
@@ -1270,44 +1284,40 @@ ffprobe、ffmpeg 都是**可选依赖**：没有它们，`check` 仍能做除真
 
 ---
 
-## 9. 待办：依赖核心的改动（不在 profile 内）
+## 9. 依赖核心的改动（不在 profile 内）
 
-GEML 今天没有、而本设计需要的东西。**逐条标了是不是规范级**——第 1、2、5 条只动实现，
-第 3、4 条动规范正文，第 6 条是 GEP 且现在不提。第 1 条是前置条件：它不落地，本 profile
-的三个类型连拼写检查都没有。
+GEML 今天没有、而本设计需要的东西。**逐条标了是不是规范级**——第 2、3、6 条只动实现，
+第 4、5 条动规范正文，第 7 条是 GEP 且现在不提。第 1 条是前置条件，已经落地。
 
-1. **profile 类型的属性检查与投影声明**（前置，独立于 media 的价值）。**不动规范。**
-   今天 `profiles.ts` 放行的类型，核心**一个属性都不检查**——`bodyModeFor` 在 profile 分支
-   提前 return，跳过整段拼写检查。实测 `form-field {pattern="x" bogus-key=1 sinse=3}` 得到
-   `ok: no diagnostics`。后果有二：`geml-form` 在 `profiles.ts` 里给 `form-field` 登记的六个
-   键**今天完全空转**；`geml.ts` 里那条 `form-options` 的属性白名单分支**是死代码**
-   （`form-options` 不在核心 `REGISTRY` 里，永远走不到）。
-   改法是**按类型 opt-in**：profile 为某类型声明了 `attrs` ⇒ 该类型是闭集，查拼写；
-   没声明 ⇒ 开集，不查。这样 `geml-style` 原样不动（它的属性空间是**故意开放**的——
-   非内含词一律透传给宿主组件，核心不可能有它的词典），而 `form-field`、`history-*`、
-   `media-*` 自动进检查。实测爆炸半径：`history-*` 用到的键与登记的完全一致，**零 warning**；
-   `form-field` 实际用到 `type`/`label`/`placeholder`/`value`/`options`/`description` 等一批
-   没登记的键——**词典残缺正是因为它从来没被执行过**，所以这条改动连带"补全 geml-form 的
-   词典 + 把 `form-options` 那条死分支搬进 profile 条目 + 全库回归"。
-   **同一条里还有第二件事：把"散文类型"变成可声明的。** 核心今天把 `text` 当特权类型，
-   硬编码在三处，profile 类型一处也继承不到：
+1. **profile 类型的属性检查与散文体声明**（前置，独立于 media 的价值）。**已落地。**
+   **不动规范正文**，散文体那一半走 [GEP-0013](../../../spec/proposals/0013-prose-body-for-vocabularies.md)（draft）。
 
-   | 位置 | 做什么 | 不改的后果 |
+   属性检查**按类型 opt-in**：profile 为某类型声明了 `attrs` ⇒ 该类型是闭集，查拼写；
+   没声明 ⇒ 开集，不查。`geml-style` 因此原样不动（它的属性空间是**故意开放**的——非
+   内含词一律透传给宿主组件，核心不可能有它的词典），而 `form-field`、`history-*`、
+   `media-*` 都进了检查。这一条不做的话，`profiles.ts` 里登记的键全是空转：改之前
+   `form-field {pattern="x" bogus-key=1 sinse=3}` 得到 `ok: no diagnostics`。
+
+   **散文体由词汇声明。** 核心曾把 `text` 当特权类型，硬编码在三处：
+
+   | 位置 | 做什么 | 不可声明的后果 |
    |---|---|---|
-   | `geml.ts` `projectableInlines`：`found.type !== "text"` | 行内投射的合法目标 | **`![[#hero-look]]` 直接报 `inline-transclusion-not-inline`**——本 profile 最核心的机制不工作 |
-   | `to-md.ts`：`if (b.type === "text") return inner;` | 投成段落还是引用块 | 角色卡、提示词、台词在 `--to md` 里全变 `>` 开头 |
-   | `render.ts`：`case "text"` → `<div class="text">` | html 里的标签与 class | 走默认分支 |
+   | `geml.ts` `projectableInlines` | 行内投射的合法目标 | **`![[#hero-look]]` 直接报 `inline-transclusion-not-inline`**——本 profile 最核心的机制不工作 |
+   | `to-md.ts` | 投成段落还是引用块 | 角色卡、提示词、台词在 `--to md` 里全变 `>` 开头 |
+   | `render.ts` | html 里的标签与 class | 走默认分支 |
 
-   实测过第一条：一个 profile 的 flow 类型作 `![[…]]` 的目标，`check` 直接给 error。
-   所以加 `prose: ["media-text"]`，和一个三处共查的 `isProseType(type, vocab)` 谓词。
-   `prose` **蕴含 `bodies=flow`**（散文类型必然装段落），不必声明两遍；`bodies` 留给
-   非散文的 flow 容器（`form`/`form-group` 那种——它们是 flow，但不该能被行内投射、
-   也不该渲染成段落），两个轴确实不同。在核心里再硬编码一个类型名，正是 `profiles.ts`
-   开头那段注释反对的做法。
-   **用词**：`prose` 这个词在代码里本来就是这么用的（`to-md.ts` 的注释：`text` is an
-   addressable **prose** container）。`meta.tracks` 的种类 `prose` 与它同指一个概念，
-   故意共用；而 `text` 此后在本 profile 里只剩"核心块类型"一个意思——`media-asset` 的
-   `kind=text` 已经删掉（§5.1），轨道种类也从 `text` 改成了 `prose`。
+   现在这三处查的是块上的 `prose` 标记，词汇用 `prose: ["media-text"]` 声明它。
+   **`prose` 是一种独立的体**，不是 `flow` 的别名：散文体里的围栏首行、标题、列表标记
+   和 `%%` 行都不是构造，因此不产生 id——这是 §8.6.2 规则 4 的要求（承认一个类型不得
+   改变文档模型），GEP-0013 把它重述成**可寻址单元集**上的不变量。`bodies=flow` 留给
+   非散文的容器（`form`/`form-group` 那种：是 flow，但不该能被行内投射、也不该渲染成
+   段落），两个轴确实不同。
+
+   **用词**：`prose` 在代码里本来就是这么用的（`to-md.ts`：`text` is an addressable
+   **prose** container）。`meta.tracks` 的种类 `prose` 与它同指一个概念，故意共用；
+   `text` 在本 profile 里只剩"核心块类型"一个意思——`media-asset` 的 `kind=text` 不存在
+   （§5.1），轨道种类是 `prose` 不是 `text`。
+
 2. **`geml get --resolved`。** **不动规范。** `get` 返回原文，投射标记原样留着；只有整篇
    `--to md` 才展开——实测 `geml get proj.geml '#s01-prompt'` 拿回的仍是 `![[#look]]`。
    给单个镜头出可发送的提示词需要按块展开，`prompt-sha256` 哈希的也正是展开后那串字。
@@ -1345,19 +1355,46 @@ GEML 今天没有、而本设计需要的东西。**逐条标了是不是规范�
 
 ## 10. 稳定性范围 —— 在它上面盖东西之前先读
 
-沿用 `geml-style` §0.1 的做法：只有被真实用例踩过的部分带稳定性承诺。**此刻真实用例
-是零**，所以下表左列是"第一个真实用例跑通后即冻结"的候选，右列是"跟着用例变形"的。
+沿用 `geml-style` §0.1 的做法：只有被真实用例踩过的部分带稳定性承诺。真实用例是
+`playground/geml-media-demo/`（四份文档、六个素材，从 `check` 到出片到浏览器播放走完
+一遍）加上 `geml-parser/test/fixtures/media/` 的夹具。下表按**证据**分档，不按意愿——
+每一行都是数出来的：扫过 demo、全部夹具与 profile 文档里每一个 `media-*` 块头。
 
-| 跑通后守住 | 可以变 |
+| 键 | 证据 |
 |---|---|
-| `profile = "geml-media/v1"` | 过渡词汇（`transition-*`）、`gain`/`fade-*`、`speed`、`xywh` |
-| `media-asset`：`src` `sha256` `kind` `origin` `license` | `mime`；`kind` 的枚举是否扩展 |
-| `media-clip`：`track` `src` `in` `out` `dur` `over` `offset` | `at` 是否保留；链式锚定 |
-| `.gen-log` 记录：`output` `output-sha256` `model` `mode` `prompt` `prompt-sha256` `prompt-refs[]` `inputs[].{ref,sha256}` `at` | `params` 的约定键；`cost` |
-| `media-text` 上的 `shot=` `speaker=` | `to=` `emotion=` `since=` 的取值形式 |
-| meta：`tracks`（含"名字:种类"写法与三个种类）`primary` `fps` `target-duration` `episode` | `aspect` 的取值形式；`episodes`/`paywall` |
-| `text` 种类的轨，`src` 指 `media-text` 块 | 平台版本的文件命名约定；分集目录的命名 |
-| 诊断的**存在**与级别 | 诊断的消息措辞 |
+| `profile = "geml-media/v1"` | 真实文档 |
+| `media-asset`：`src` `sha256` `kind` `origin` `duration` `of` `role` | 真实文档 |
+| `media-clip`：`track` `src` `in` `out` `over` `offset` `dur` `gain` `transition-in` `transition-dur` | 真实文档 |
+| `media-text`：`shot` `speaker` `to` `emotion` | 真实文档 |
+| `.gen-log` 记录：`output` `output-sha256` `model` `mode` `prompt` `prompt-sha256` `prompt-refs[]` `inputs[].{ref,sha256}` `seed` `at` | 真实文档 |
+| meta：`tracks`（含"名字:种类"写法与三个种类）`primary` `fps` `episode` `aspect` | 真实文档 |
+| `media-clip`：`at` | 只有测试——逃生口按设计生效，但没有用例真的需要过它 |
+| `media-asset`：`license` `mime` `fps` `size` | **还是猜测**，一个用例都没踩过 |
+| `media-clip`：`speed` `xywh` `fade-in` `fade-out` `transition-out` | **还是猜测** |
+| `media-text`：`since` | **还是猜测**（一集之内无从验证，跨集才有意义） |
+| meta：`target-duration` `episodes` `paywall` | **还是猜测** |
+| 诊断的**存在**与级别 | 真实文档（消息措辞可以变） |
+
+"还是猜测"不等于该删，它标的是一件具体的事：**改这些不算破坏兼容**，因为没有任何
+文档、夹具或实现路径依赖它们。第一个真的用上某个键的用例出现时，那一行才升档。
+
+### 10.1 预览与出片的差距
+
+时间两边一致，这是设计的中心承诺：`layout` 算出的起点与时长，浏览器里的播放器和
+`media build` 共用同一份结果。模型说 10.00 秒，ffprobe 量出来就是 10.000000 秒。
+
+**像素与电平不完全一致，这条要说在前面：**
+
+| | 播放器 | `media build` |
+|---|---|---|
+| 时间（含 `transition-*` 从前一刀借走的重叠） | 一致 | 一致 |
+| `gain` `fade-in` `fade-out` | 施加 | 施加（`volume` / `afade`） |
+| `transition-in=dissolve` 的画面淡入 | 做（opacity 斜坡） | **不做，是硬切** |
+| `speed` `xywh` | 不做 | 不做 |
+
+出片要做真的溶解得换掉 `concat` 结构（改用 `xfade`），那会把每一道接缝都变成一次重
+编码；v1 不做。**但不能不说**——一个人在浏览器里看到淡入、出片是硬切，会以为是 ffmpeg
+坏了，而不是知道这里有一条已知的差距。
 
 ---
 
@@ -1472,46 +1509,40 @@ GEML 今天没有、而且**不确定该不该有**的东西，各附倾向。
 
 ---
 
-## 14. 分期
+## 14. 交付状态
 
-**第一个真实用例排在词汇落地之前。** 理由是 §10 那句话：**此刻真实用例是零**。零用户的
-情况下这份设计已经写出三个类型、五个属性键、四十来条诊断码和七个动词——其中至少八条
-诊断是编导口味而不是文档的结构事实（`runtime-off-target`、`emotion-drift`、
-`look-outdated`、`episode-mismatch`、`gen-before-approval`…）。先冻它们等于拿猜测当规范。
-这个项目自己有过对照：`view` 是从 `table` 里长出来的，在 profile 里跑了两个月才进核心
-（§9 第 7 条正是拿它作类比）。
+**第一个真实用例排在词汇落地之前**，这条决定是这份设计最重要的一处。零用户的情况下
+它已经写出三个类型、五个属性键、四十来条诊断码和七个动词——其中至少八条诊断是编导
+口味而不是文档的结构事实（`runtime-off-target`、`emotion-drift`、`look-outdated`、
+`episode-mismatch`、`gen-before-approval`…）。先冻它们等于拿猜测当规范。这个项目自己
+有过对照：`view` 是从 `table` 里长出来的，在 profile 里跑了两个月才进核心（§9 第 7 条
+正是拿它作类比）。先跑用例的结果就是 §10 那张表：**四十来条诊断码最后落地十七条，
+猜出来的那一批一条没进。**
 
-- **P-1 前置：让 profile 类型成为一等公民**（§9 第 1 条）。不依赖 media，独立有价值。两件事：
-  ① **属性检查按类型 opt-in**——让 `geml-form` 登记的键从空转变成生效、干掉 `form-options`
-  那条死代码、并让此后任何 profile 的属性表被核心免费执行；
-  ② **`prose` 声明与 `isProseType` 谓词**——把写死在三处的 `text` 特权（行内投射、md 段落
-  投影、html 标签）换成可声明的。含补全 geml-form 词典与全库回归。
-  **验收**：`form-field` 的错键被报出；`history-*` 全库仍是零 warning；`geml-style` 的透传
-  参数一条都没被误报；一个声明了 `prose` 的 profile 类型可作 `![[…]]` 的目标、`--to md`
-  投成段落；核心 `text` 的行为逐字节不变。
-  **这一步单独一个 commit，不含任何 media 内容。**
-- **P0 一集真片，只用今天的核心词汇 + 一份纯文档的 profile 说明。** 从剧本到出片走一遍，
-  素材库、生成日志、时间线全部手写或用一次性脚本写，`check` 只有核心那一层。目的不是
-  出片，是**让用例来选词汇**：哪些属性真的每天在写，哪些诊断真的救过场，哪些是我们坐在
-  桌前想出来的。**验收**：一集成片；一份"实际用到 / 从没用到"的清单，逐条对照 §5 与 §7。
-- **P1 词汇落地，按 P0 的清单裁剪。** `profiles.ts` 注册 `geml-media/v1`（三个类型、
-  `media-text` 上五个键、`prose` 投影）；`spec/profiles/geml-media/` 两份 profile 文档；
-  profile 的检查挂进核心 `geml check`（§6.1）；§12 的夹具与测试。**诊断码只落 P0 用过的那些**，
-  编导口味的几条留在设计稿里不实现。**验收**：§3 的八份文档 `check` 干净（0 warning），
-  故意改坏每一处各得到对应诊断。
-- **P2 血缘、对白与预览。** `media log`、`media todo`、`media lay`、`export --to preview`；
-  按 P0 观察到的实际调用面决定 MCP 暴露几条（§6.2）；
-  agent 平台的 `geml-media` skill（§6.2 的循环）。**验收**：改台词一个字，`stale` 列出配音、
-  口型合成与那个片段；改 `#hero-look` 一个字，列出全部四个片段，且消息点名是 `#hero-look` 变了
-  （`prompt-refs`）；同一镜头重生两次后 `check` 仍干净（`output-sha256`）；浏览器里逐片段
-  按 `#t=` 播放。
-- **P3 出入口、全季与模型卡。** `media build`（ffmpeg）、`export --to otio|fcpxml|edl|srt`、
-  `import`、`report --kind cast|stats`；`_index/providers.geml` 的模型卡与路由表进 `todo` 与 `check`。
-  **验收**：导出的 OTIO 能进一款 NLE；ffmpeg 出片时长等于时间模型算出的总长；全季出场表
-  CSV 引入 `season.geml` 后 `check` 干净。
-- **P4 viewer。** `timeline-track` / `overlay-track` / `clip` 三个组件契约进 `geml-viewer`，
-  §3.6 样式表渲染成可拖动的时间线；分镜板主从视图。
-- §10 的左列在 P0 跑通之前不冻结。
+已经落地的：
+
+- **让 profile 类型成为一等公民**（§9 第 1 条）。属性检查按类型 opt-in——`geml-form`
+  登记的键从空转变成生效，`form-options` 那条死代码进了 profile 条目，此后任何 profile
+  的属性表被核心免费执行；散文体由词汇声明，把写死在三处的 `text` 特权（行内投射、
+  md 段落投影、html 标签）换成可声明的，走 [GEP-0013](../../../spec/proposals/0013-prose-body-for-vocabularies.md)。
+  核心 `text` 的行为逐字节不变。
+- **词汇**：`profiles.ts` 注册 `geml-media/v1`（三个类型、`media-text` 上五个键、`prose`
+  投影）；`spec/profiles/geml-media/` 中英两份 profile 文档；profile 的检查挂进核心
+  `geml check`（§6.1），**诊断码只落用例真正撞到的那些**，编导口味的几条留在 §7 不实现。
+- **血缘、对白与预览**：`media log`、`media todo`、`media lay`、`export --to preview`。
+  改台词一个字，配音、口型合成与那个片段一起过期；改 `#hero-look` 一个字，四个片段全部
+  过期且消息点名是 `#hero-look`（`prompt-refs`）；同一镜头重生两次后 `check` 仍干净
+  （`output-sha256`）。
+- **出入口与出片**：`media build`（ffmpeg，`--burn-subs` 才烧字幕）、`export --to
+  otio|edl|srt|json`、`import`（按后缀分派：清单 / 字幕 / 素材，NLE 时间线明确拒绝）、
+  `report --kind cast|stats`。出片时长等于时间模型算出的总长——模型 10.00 秒，ffprobe
+  10.000000 秒。
+- **viewer**：`timeline-track` / `overlay-track` / `clip` / `player` 四个组件契约进
+  `geml-viewer`。前三个把时间线画成可读的轨道；`player` 用同一份 `layoutDoc` 驱动真的
+  `<video>`/`<audio>`，于是**打开一份时间线就是看成片**（差距见 §10.1）。
+
+还没做的在 §13。**§10 的档位跟着证据走，不跟着愿望走**：一个键要升到"真实文档"，
+得有文档真的用它。
 
 ---
 
