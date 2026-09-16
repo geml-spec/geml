@@ -1194,6 +1194,7 @@ test("`find` walks a directory for *.geml and skips node_modules", () => {
 });
 
 rmSync(dir, { recursive: true, force: true });
+
 console.log(`\n${passed} test(s) passed.`);
 
 test("the listing gives EVERY row a line range — a section's most of all", () => {
@@ -1493,5 +1494,27 @@ test("a write refused only by errors that predate it says the edit caused none o
   assert.match(r.err, /already/i, "and says the document already carried it");
   assert.doesNotMatch(r.err, /would break the document/, "so it stops blaming the replacement");
   assert.equal(readFileSync(f, "utf8"), before, "nothing written");
+  rmSync(d, { recursive: true, force: true });
+});
+
+// GEP-0010 的散文地址是**位置**派生的（`#容器-before-下一个`），不写在文本里。保 id
+// 的那道闸只看 `reparsed.ids`，那里面从来没有这类地址，于是换掉一段散文永远被判成
+// "把 id 弄没了"——而位置没动，那个地址其实一个字都不会变。
+test("set: 位置派生地址的散文可以整段换掉 —— 地址由前后邻居决定，不由内容决定", () => {
+  const d = mkdtempSync(join(tmpdir(), "geml-prose-set-"));
+  const f = join(d, "doc.md");
+  writeFileSync(f, "## A\n\n原来的散文。\n\n### B\n\n正文。\n");
+  assert.match(run(["list", f]).out, /#a-before-b/, run(["list", f]).out);
+  const r = run(["set", f, "#a-before-b", "--in", "-", "-o", f], "换掉的散文。\n");
+  assert.equal(r.code, 0, r.err);
+  const after = readFileSync(f, "utf8");
+  assert.match(after, /换掉的散文。/);
+  assert.equal(after.includes("原来的散文"), false, after);
+  // 地址还在，而且指的还是那一段。
+  assert.match(run(["list", f]).out, /#a-before-b/);
+  assert.match(run(["get", f, "#a-before-b"]).out, /换掉的散文。/);
+  // 两个邻居一个字没动。
+  assert.match(after, /^## A\n/);
+  assert.match(after, /### B\n\n正文。\n$/);
   rmSync(d, { recursive: true, force: true });
 });
