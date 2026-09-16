@@ -1,0 +1,492 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>EP01 粗剪 · 成片</title>
+<style>
+body{margin:0;background:#0b0d10;color:#cbd5e1;font:13px/1.5 system-ui,sans-serif}
+.geml-page{max-width:520px;margin:0 auto;padding:24px 16px}
+.geml-track{margin:0 0 6px;border-radius:6px;background:#101418;overflow:hidden}
+.geml-clip{padding:4px 6px;top:22px;height:30px;white-space:nowrap;background:#2b6cb0;color:#e8eef4;border-radius:4px;font-size:11px}
+.geml-track-ruler{position:absolute;inset:0 0 auto 0;height:18px;font:10px/18px ui-monospace,monospace;color:#64748b}
+.geml-tick{padding-left:3px;border-left:1px solid #334155}
+/* GEML Viewer — document styling. Scoped under .geml-doc so it never leaks. */
+
+.geml-body {
+  margin: 0;
+  background: #fbfbfa;
+  color: #1f2328;
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.geml-doc {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 48px 24px 96px;
+}
+
+.geml-doc h1, .geml-doc h2, .geml-doc h3,
+.geml-doc h4, .geml-doc h5, .geml-doc h6 {
+  line-height: 1.25;
+  margin: 1.8em 0 0.6em;
+  font-weight: 600;
+}
+.geml-doc h1 { font-size: 2em; margin-top: 0; }
+.geml-doc h2 { font-size: 1.5em; padding-bottom: 0.3em; border-bottom: 1px solid #e6e6e3; }
+.geml-doc h3 { font-size: 1.25em; }
+.geml-doc h4 { font-size: 1.05em; }
+
+.geml-doc p { margin: 0 0 1em; }
+.geml-doc a { color: #0969da; text-decoration: none; }
+.geml-doc a:hover { text-decoration: underline; }
+.geml-doc a.geml-broken { color: #cf222e; text-decoration: underline wavy; }
+
+.geml-doc em { font-style: italic; }
+.geml-doc strong { font-weight: 600; }
+.geml-doc del { color: #6e7781; }
+
+.geml-doc code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 0.9em;
+  background: #eff1f3;
+  border-radius: 4px;
+  padding: 0.15em 0.4em;
+}
+
+.geml-doc pre {
+  background: #f6f8fa;
+  border: 1px solid #e6e6e3;
+  border-radius: 8px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+.geml-doc pre code { background: none; padding: 0; font-size: 0.875em; }
+
+/* code/diagram block with a small type tag in the corner */
+.geml-block { position: relative; margin: 0 0 1.2em; }
+.geml-tag {
+  position: absolute; top: 8px; right: 10px;
+  font: 11px/1 ui-monospace, monospace;
+  color: #6e7781; background: #fff; border: 1px solid #e6e6e3;
+  border-radius: 4px; padding: 2px 6px; user-select: none;
+}
+
+/* data block (GEP-0005): external-source / empty notes under the preview */
+.geml-data-note {
+  margin: 0 0 0.4em; font: 12px/1.4 ui-monospace, monospace; color: #6e7781;
+}
+
+/* The rest of a long data block: present, collapsed. Styled like the note it
+   replaced, so a page that used to end in "… 13 more line(s)" now ends in the
+   same grey line — except it opens. No resource of any kind: this renders under
+   `default-src 'none'`, so the marker is the system disclosure triangle. */
+.geml-data-more > summary {
+  font: 12px/1.4 ui-monospace, monospace; color: #6e7781;
+  cursor: pointer; user-select: none; margin: 0.4em 0;
+}
+.geml-data-more > pre { margin: 0.4em 0 0; }
+
+.geml-doc ul, .geml-doc ol { margin: 0 0 1em; padding-left: 1.6em; }
+.geml-doc li { margin: 0.2em 0; }
+
+.geml-doc blockquote.geml-note {
+  margin: 0 0 1.2em; padding: 0.5em 1em;
+  border-left: 4px solid #0969da; background: #f3f7fd; border-radius: 0 6px 6px 0;
+}
+.geml-doc blockquote.geml-note > :last-child { margin-bottom: 0; }
+
+/* Tables */
+.geml-doc table { border-collapse: collapse; margin: 0 0 1.2em; font-size: 0.95em; width: auto; }
+.geml-doc caption { caption-side: top; text-align: left; color: #6e7781; padding-bottom: 6px; font-size: 0.9em; }
+.geml-doc th, .geml-doc td { border: 1px solid #d0d7de; padding: 6px 12px; text-align: left; }
+.geml-doc thead th { background: #f6f8fa; }
+.geml-doc td.geml-num { text-align: right; font-variant-numeric: tabular-nums; }
+.geml-doc td.geml-computed { background: #f3fbf4; }
+.geml-doc tr.geml-summary td { font-weight: 600; border-top: 2px solid #afb8c1; background: #fafbfc; }
+
+/* Charts (geml-chart) and diagrams */
+.geml-chart, .geml-diagram { margin: 0 0 1.4em; text-align: center; }
+.geml-chart svg { max-width: 100%; height: auto; }
+.geml-d2 svg { max-width: 100%; height: auto; }
+.geml-d2-error { color: #82071e; font-size: 0.85em; margin: 6px 0 0; }
+.geml-graphviz svg { max-width: 100%; height: auto; }
+.geml-graphviz-error { color: #82071e; font-size: 0.85em; margin: 6px 0 0; }
+.geml-chart-legend { font-size: 0.85em; color: #57606a; margin-top: 6px; }
+.geml-chart-legend span { margin: 0 8px; }
+.geml-chart-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+
+/* Diagnostics banner */
+.geml-diag {
+  max-width: 860px; margin: 0 auto 12px; padding: 10px 14px;
+  border-radius: 8px; font-size: 0.9em;
+}
+.geml-diag-error { background: #fff0ef; border: 1px solid #ffcecb; color: #82071e; }
+.geml-diag-warn { background: #fff8c5; border: 1px solid #f0e3a1; color: #6b5e16; }
+.geml-diag ul { margin: 6px 0 0; padding-left: 1.4em; }
+.geml-diag code { background: rgba(0,0,0,0.05); }
+
+.katex-display { overflow-x: auto; overflow-y: hidden; }
+
+/* Task-list items (- [ ] / - [x]). Native disabled checkboxes render an ugly
+   grey, so we draw our own with appearance:none — a clean empty box for open,
+   a solid green box with a white tick for done.
+   The tick is a centred text glyph, NOT a background image: raw.githubusercontent.com
+   serves `Content-Security-Policy: default-src 'none'`, which strips data-URI
+   images — so an SVG-background tick vanishes in the browser extension. A "✓"
+   glyph needs no resource, survives the CSP, and flex-centres exactly. */
+.geml-doc li.geml-task { list-style: none; }
+.geml-doc li.geml-task > input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none;
+  width: 1.1em; height: 1.1em; margin: 0 0.5em 0 0; vertical-align: -0.2em;
+  border: 1.5px solid #c8ccd0; border-radius: 4px; background: #fff;
+  position: relative; opacity: 1; cursor: default; box-sizing: border-box;
+}
+.geml-doc li.geml-task > input[type="checkbox"]:checked {
+  background-color: #1f883d; border-color: #1f883d;
+}
+.geml-doc li.geml-task > input[type="checkbox"]:checked::after {
+  content: "✓";
+  position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 0.8em; line-height: 1; font-weight: 700;
+}
+
+/* geml-code-graph (GEP-0003): layered method flow. Pure CSS only — this file
+   is injected under strict page CSPs (default-src 'none'), so no resources. */
+.geml-doc .code-graph, .code-graph { margin: 0 0 1.4em; }
+/* The graph is the widest artifact in the document: let it break out of the
+   860px reading column and take the viewport, centred, leaving the prose
+   around it untouched. .geml-doc is `margin: 0 auto`, so negative inline
+   margins land centred; a transform would instead become the containing block
+   for the fullscreen overlay below. */
+@media (min-width: 900px) { .geml-doc .code-graph { margin-inline: calc((100% - min(96vw, 1600px)) / 2); } }
+.cg-mount { border: 1px solid #e6e6e3; border-radius: 8px; padding: 10px 12px; background: #fff; color: #6e7781; font-size: .85em; }
+.cg-scroll { overflow: auto; max-height: 84vh; }
+.cg-svg { display: block; }
+/* Fullscreen. The button and the class come from the parser's codeGraphRuntime,
+   which this bundle imports, so these rules are what make it do anything: one
+   class covers both the native Fullscreen API and the fixed-overlay fallback.
+   :fullscreen is deliberately absent from the selectors — a browser that
+   doesn't know it would drop the whole rule. The stage carries its own flex
+   here because the non-fullscreen sheet doesn't style it, and the z-index has
+   to beat the host page, not merely our own stacking context. */
+.cg-mount.cg-full { position: fixed; inset: 0; z-index: 2147483000; margin: 0; border: 0; border-radius: 0; padding: 10px 14px; background: #fff; display: flex; flex-direction: column; }
+.cg-mount.cg-full > .cg-bar, .cg-mount.cg-full > .cg-legend, .cg-mount.cg-full > .cg-groups { flex: 0 0 auto; }
+.cg-mount.cg-full .cg-stage { display: flex; gap: 10px; align-items: flex-start; flex: 1 1 auto; min-height: 0; }
+.cg-mount.cg-full .cg-stage .cg-scroll { flex: 1 1 auto; min-width: 0; }
+.cg-mount.cg-full .cg-scroll { min-height: 0; max-height: none; height: 100%; }
+.cg-mount.cg-full .cg-src-body { max-height: none; }
+.cg-mount.cg-full .cg-frame { flex: 1 1 auto; height: auto; }
+.cg-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .82em; color: #6e7781; margin-bottom: 6px; }
+.cg-bar button { font: inherit; padding: 1px 8px; border: 1px solid #d0d7de; border-radius: 5px; background: transparent; cursor: pointer; }
+.cg-crumb .cg-seg { border: 0; border-radius: 0; padding: 0; background: none; color: #0969da; cursor: pointer; font: inherit; }
+.cg-crumb .cg-seg:hover { text-decoration: underline; }
+.cg-legend { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; font-size: .75em; color: #6e7781; margin-top: 6px; }
+.cg-upbtn circle { fill: #fff; stroke: #94a3b8; }
+.cg-upbtn text { font-size: 11px; fill: #57606a; }
+.cg-upbtn:hover circle { stroke: #2563eb; }
+.cg-upbtn:hover text { fill: #2563eb; }
+.cg-groups { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; font-size: .75em; color: #6e7781; }
+.cg-chip { display: inline-flex; align-items: center; gap: 4px; }
+.cg-chip i { width: 10px; height: 10px; border-radius: 2px; border: 1px solid #94a3b8; display: inline-block; }
+.cg-note { font-size: .8em; color: #9a6700; }
+.cg-frame { display: block; width: 100%; height: 84vh; border: 0; background: #fff; }
+.cg-flash { color: #b42318; }
+.cg-n rect { fill: #eef2f7; stroke: #94a3b8; }
+.cg-n text { font-size: 12px; fill: #1f2328; font-family: ui-monospace, Consolas, monospace; }
+.cg-n { cursor: pointer; }
+.cg-n.root rect { fill: #dbeafe; stroke: #2563eb; stroke-width: 2; }
+.cg-n.leaf { opacity: .45; }
+.cg-n.test rect { stroke-dasharray: 3 2; }
+.cg-n.grp rect { stroke-width: 1.8; }
+.cg-e { fill: none; stroke: #94a3b8; stroke-width: .9; }
+.cg-e.cand { stroke-dasharray: 2 3; }
+.cg-e.back { stroke: #dc2626; stroke-dasharray: 5 3; }
+.cg-e.soft { opacity: .55; }
+/* hover: the caller cone lights up, the rest dims */
+.cg-svg.hl .cg-n { opacity: .22; }
+.cg-svg.hl .cg-e { opacity: .1; }
+.cg-svg.hl .cg-n.hl { opacity: 1; }
+.cg-svg.hl .cg-e.hl { opacity: 1; stroke-width: 1.6; }
+
+/* Transclusion (=== embed). Borrowed content is marked by a left rule; a
+   refused embed keeps its target link plus a visible note (S7 — never a
+   silent blank). Pure CSS only: this sheet is injected on pages that may run
+   under `default-src 'none'`, so it must load zero resources. */
+.geml-transclusion { border-left: 3px solid #d8dee4; padding-left: 12px; margin: 12px 0; }
+.geml-transclusion-unexpanded { color: #57606a; }
+.geml-transclusion-note { color: #6e7781; font-size: 0.85em; margin-left: 6px; }
+.geml-transclusion-error { background: #fff0ef; border: 1px solid #ffcecb; border-left: 3px solid #82071e; color: #82071e; padding: 6px 10px; }
+
+/* Single-block focus (URL #id): a bar noting the narrowed view + the way back. */
+.geml-focus-banner {
+  margin: 0 0 1.2em; padding: 8px 12px;
+  background: #fff8e6; border: 1px solid #f0e0a8; border-radius: 6px;
+  color: #6e5c1f; font-size: 0.9em;
+}
+.geml-focus-banner a.geml-focus-full { color: #0969da; text-decoration: none; }
+.geml-focus-banner a.geml-focus-full:hover { text-decoration: underline; }
+
+/* GEP 0010 — the affordance for a translation model that is not downloaded yet.
+   Chrome will only fetch one under a user activation, so the click is not a
+   nicety: it is the gesture the API requires, and the moment the reader agrees
+   to the download. */
+.geml-translate-offer { margin: 0 0 .5rem; }
+.geml-translate-offer button {
+  font: inherit; font-size: .85em; padding: .2em .6em; cursor: pointer;
+  border: 1px solid currentColor; border-radius: .25em;
+  background: transparent; color: inherit; opacity: .75;
+}
+.geml-translate-offer button:hover:not(:disabled) { opacity: 1; }
+.geml-translate-offer button:disabled { cursor: progress; opacity: .55; }
+/* A refusal the reader can see: the page is showing its source, and silence
+   would be indistinguishable from a document that was always in that language. */
+.geml-translate-refused { font-size: .8em; opacity: .65; font-style: italic; }
+
+/* Freeze what the page is showing. Fixed rather than in the flow because the
+   viewer injects into someone else's document and owns no header to sit in. */
+.geml-export-btn {
+  position: fixed; right: 1rem; bottom: 1rem; z-index: 9;
+  font: inherit; font-size: .85em; padding: .4rem .75rem;
+  border: 1px solid currentColor; border-radius: 6px;
+  background: Canvas; color: inherit; cursor: pointer; opacity: .55;
+}
+.geml-export-btn:hover:not(:disabled) { opacity: 1; }
+.geml-export-btn:disabled { cursor: progress; opacity: .35; }
+
+/* The source/translation switch rides at the end of its section's heading:
+   small, quiet, and out of the reading line. Sized in em so it shrinks with the
+   heading it hangs off rather than being one fixed size on an h1 and an h4. */
+.geml-source-toggle {
+  font: inherit; font-size: .6em; font-weight: 400; vertical-align: middle;
+  margin-left: .6em; padding: .1em .45em;
+  border: 1px solid currentColor; border-radius: 4px;
+  background: transparent; color: inherit; cursor: pointer; opacity: .4;
+}
+.geml-source-toggle:hover { opacity: .85; }
+
+/* geml-form/v1（GEP-0008）的控件。只画，不校验 —— 约束是声明，处理器才执行。 */
+.geml-form { display: flex; flex-direction: column; gap: 12px; }
+.geml-form-group { border: 1px solid currentColor; border-radius: 6px; padding: 12px; }
+.geml-form-field { display: flex; flex-direction: column; gap: 4px; }
+.geml-form-field[data-type="boolean"] { flex-direction: row; align-items: center; gap: 8px; }
+.geml-form-label { font-size: .9em; opacity: .85; }
+.geml-form-required { color: #f85149; margin-left: 2px; }
+.geml-form-control { font: inherit; color: inherit; background: transparent;
+  border: 1px solid currentColor; border-radius: 6px; padding: 5px 8px; max-width: 100%; }
+.geml-form-control:hover, .geml-form-control:focus { outline: none; border-color: currentColor; opacity: 1; }
+select.geml-form-control { cursor: pointer; }
+.geml-form-desc { margin: 0; font-size: .85em; opacity: .7; }
+
+/* ---- 页面布局（geml-style）。只有容器的 flex 与几条不带任何色值、尺寸的通用规则：
+   颜色、间距、字号全部来自样式表（cssForPage 生成）。注入页面的 CSS 不得加载任何资源。 */
+.geml-page { margin: 0; }
+.geml-frame { display: flex; min-width: 0; min-height: 0; position: relative; }
+/* 轴的默认放进一个匿名 @layer：未分层的规则一律赢过分层的，与特异性无关。
+   cssForPage 发出的是 `.geml-f-x` / `.geml-b-x` 单类（0,1,0），而这里是类+属性
+   （0,2,0）—— 不分层的话，`item-align` 在横排容器上、`grow` 在横排里的块上都会
+   被这两条静默压死（实测：align-items 仍是 stretch、flex-grow 仍是 0）。
+   宿主的默认必须让位给样式表说的话，这是一整类问题，不是某个词的问题。
+   `align-items: stretch` 同时被删掉：flex 容器不写它时计算值就是 `normal`，
+   行为完全相同，它唯一的作用是压住 `item-align`。 */
+@layer {
+  .geml-frame[data-axis="column"] { flex-direction: column; }
+  .geml-frame[data-axis="row"] { flex-direction: row; }
+  .geml-frame[data-axis="row"] > .geml-placed { flex: 0 0 auto; }
+}
+.geml-placed { min-width: 0; box-sizing: border-box; }
+.geml-placed[role="button"], .geml-frame[role="button"] { cursor: pointer; }
+.geml-page button { color: inherit; font: inherit; }
+/* 链接**不剥**：HTML 的默认是蓝色带下划线，去掉是外观决定，由样式表用 `color` 和
+   `underline=no` 说。宿主剥掉的那一版连嵌进来的文章里的链接都一起剥了 —— 正文里的链接
+   和正文的字一模一样，看不出是链接，而没有人要求过这个。 */
+.geml-page img { vertical-align: middle; }
+.geml-page .text > p { margin: 0; }
+/* 条目本身：沿轴排的一条就是一行。`gap` 由样式表给（cssForPage 同时落到容器和条目上），
+   这里只有「条目是什么形状」，没有任何长度。 */
+.geml-items > li { display: inline-flex; align-items: center; white-space: nowrap; }
+/* 树只有一个标记：`summary` 的展开三角。`li` 自己的项目符号要去掉 —— 一行两个标记
+   （• 和 ▾）是两套机制撞在一起，不是版面选择。缩进用 em，跟着样式表设的字号走，
+   宿主里因此没有页面常量；真需要按页定缩进时它是 tree 的组件参数（§12.3 点名的 `indent`），
+   不是内含词，等第一个真实需求再加。
+   list-style 是继承属性，所以 summary 要把三角要回来，否则连它一起没了。 */
+.geml-tree, .geml-tree ul { list-style: none; margin: 0; padding-left: 0; }
+.geml-tree summary { cursor: pointer; list-style: revert; }
+.geml-segments { display: inline-flex; }
+.geml-segments button { border: 0; background: none; cursor: pointer; }
+.geml-segments button[aria-pressed="true"] { background: Canvas; font-weight: 500; }
+.geml-source { width: 100%; box-sizing: border-box; min-height: 60vh; font-family: ui-monospace, monospace; }
+/* `fade-out=<秒>` 用的动画。淡完之后 visibility: hidden，于是它既看不见也挡不住点击。
+   时长由样式表给，这里只有形状。读者要求减少动态效果时直接跳到终点 —— 提示一闪而过，不是内容。 */
+@keyframes geml-fade { to { opacity: 0; visibility: hidden; } }
+@keyframes geml-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .geml-page .geml-frame, .geml-page .geml-placed { animation-duration: 1ms !important; }
+}
+.geml-page .geml-form-field { display: contents; }
+.geml-page .geml-form-control { border: 0; padding: 0; outline: none; width: 100%; }
+
+/* geml-media：时间线。frame 组件只能给区块添个兄弟节点，包不住槽位里的块 ——
+   所以定位上下文必须是 frame 区块本身，由它的 data-component 认人。片段的
+   left/width 是组件按时间算出来的百分比，这里只负责让它们有处可落。 */
+[data-component="timeline-track"],
+[data-component="overlay-track"] { position: relative; }
+.geml-clip { position: absolute; box-sizing: border-box; overflow: hidden; }
+.geml-track-ruler { position: absolute; inset: 0 0 auto 0; }
+.geml-tick { position: absolute; }
+
+/* geml-media/v1 · 播放器（media-player.js）。一行外部资源都没有 —— viewer 跑在
+   default-src 'none' 的页面上，样式表里出现任何 url() 都会被 CSP 挡下。 */
+.geml-player { display: flex; flex-direction: column; gap: 8px; }
+.geml-player-empty { opacity: .7; font-style: italic; }
+.geml-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  overflow: hidden;
+  border-radius: 6px;
+}
+.geml-layer-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+/* 声音轨没有画面，但要留在 DOM 里让时钟推它 */
+.geml-layer-audio { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.geml-caption {
+  position: absolute;
+  left: 0; right: 0; bottom: 6%;
+  padding: 0 8%;
+  text-align: center;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .9);
+  line-height: 1.4;
+  pointer-events: none;
+}
+.geml-transport { display: flex; align-items: center; gap: 10px; }
+.geml-play {
+  width: 2.2em; height: 2.2em;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+.geml-seek { flex: 1; min-width: 0; }
+.geml-clock {
+  font: 12px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  opacity: .75;
+  min-width: 9ch;
+  text-align: right;
+}
+
+.geml-f-video { height: 56px; flex: 0 0 auto }
+.geml-f-dialogue { height: 56px; flex: 0 0 auto }
+.geml-f-subtitle { height: 56px; flex: 0 0 auto }
+</style>
+<div class="geml-page"><section data-component="player" data-axis="column" data-id="play" class="geml-frame geml-f-play"><div data-captions="[{&quot;start&quot;:4.4,&quot;end&quot;:6.5,&quot;text&quot;:&quot;姐……你怎么会……&quot;}]" data-duration="10.000" class="geml-player"><div style="aspect-ratio:9 / 16" class="geml-stage"><video style="z-index:0" muted data-gain="1" data-in="0.000" data-end="4.000" data-start="0.000" data-clip="c01" playsinline preload="auto" src="ep01/assets/s01-take3.mp4" class="geml-layer geml-layer-video"></video><video data-transition-in="cut" style="z-index:0" muted data-gain="1" data-in="0.000" data-end="10.000" data-start="4.000" data-clip="c03" playsinline preload="auto" src="ep01/assets/s03-take2-lips.mp4" class="geml-layer geml-layer-video"></video><audio data-gain="1" data-in="0.000" data-end="6.500" data-start="4.400" data-clip="vo-s03-l1" playsinline preload="auto" src="ep01/assets/s03-l1-vo.wav" class="geml-layer geml-layer-audio"></audio><div class="geml-caption"></div></div><div class="geml-transport"><button aria-label="播放/暂停" type="button" class="geml-play">▶</button><input value="0" step="0.01" max="10.000" min="0" type="range" class="geml-seek"><span class="geml-clock">0:00.0 / 0:10.0</span></div></div><section data-component="timeline-track" data-axis="row" data-id="video" class="geml-frame geml-f-video"><div data-duration="10.000" class="geml-track"><div aria-hidden="true" class="geml-track-ruler"><span style="position:absolute;left:0.0000%" class="geml-tick">0</span><span style="position:absolute;left:10.0000%" class="geml-tick">1</span><span style="position:absolute;left:20.0000%" class="geml-tick">2</span><span style="position:absolute;left:30.0000%" class="geml-tick">3</span><span style="position:absolute;left:40.0000%" class="geml-tick">4</span><span style="position:absolute;left:50.0000%" class="geml-tick">5</span><span style="position:absolute;left:60.0000%" class="geml-tick">6</span><span style="position:absolute;left:70.0000%" class="geml-tick">7</span><span style="position:absolute;left:80.0000%" class="geml-tick">8</span><span style="position:absolute;left:90.0000%" class="geml-tick">9</span><span style="position:absolute;left:100.0000%" class="geml-tick">10</span></div></div><div data-component="clip" data-doc="ep01/ep01-cut.geml" data-block="#c01" class="geml-placed geml-b-c01"><div title="0.00s + 4.00s" data-duration="4.000" data-start="0.000" style="position:absolute;left:0.0000%;width:40.0000%" id="c01" class="geml-clip"><span class="geml-clip-label">c01</span><div class="geml-block"><span class="geml-tag">media-clip</span><pre><code></code></pre></div></div></div><div data-component="clip" data-doc="ep01/ep01-cut.geml" data-block="#c03" class="geml-placed geml-b-c03"><div title="4.00s + 6.00s" data-duration="6.000" data-start="4.000" style="position:absolute;left:40.0000%;width:60.0000%" id="c03" class="geml-clip"><span class="geml-clip-label">c03</span><div class="geml-block"><span class="geml-tag">media-clip</span><pre><code></code></pre></div></div></div></section><section data-component="timeline-track" data-axis="row" data-id="dialogue" class="geml-frame geml-f-dialogue"><div data-duration="10.000" class="geml-track"><div aria-hidden="true" class="geml-track-ruler"><span style="position:absolute;left:0.0000%" class="geml-tick">0</span><span style="position:absolute;left:10.0000%" class="geml-tick">1</span><span style="position:absolute;left:20.0000%" class="geml-tick">2</span><span style="position:absolute;left:30.0000%" class="geml-tick">3</span><span style="position:absolute;left:40.0000%" class="geml-tick">4</span><span style="position:absolute;left:50.0000%" class="geml-tick">5</span><span style="position:absolute;left:60.0000%" class="geml-tick">6</span><span style="position:absolute;left:70.0000%" class="geml-tick">7</span><span style="position:absolute;left:80.0000%" class="geml-tick">8</span><span style="position:absolute;left:90.0000%" class="geml-tick">9</span><span style="position:absolute;left:100.0000%" class="geml-tick">10</span></div></div><div data-component="clip" data-doc="ep01/ep01-cut.geml" data-block="#vo-s03-l1" class="geml-placed geml-b-vo-s03-l1"><div title="4.40s + 2.10s" data-duration="2.100" data-start="4.400" style="position:absolute;left:44.0000%;width:21.0000%" id="vo-s03-l1" class="geml-clip"><span class="geml-clip-label">vo-s03-l1</span><div class="geml-block"><span class="geml-tag">media-clip</span><pre><code></code></pre></div></div></div></section><section data-component="timeline-track" data-axis="row" data-id="subtitle" class="geml-frame geml-f-subtitle"><div data-duration="10.000" class="geml-track"><div aria-hidden="true" class="geml-track-ruler"><span style="position:absolute;left:0.0000%" class="geml-tick">0</span><span style="position:absolute;left:10.0000%" class="geml-tick">1</span><span style="position:absolute;left:20.0000%" class="geml-tick">2</span><span style="position:absolute;left:30.0000%" class="geml-tick">3</span><span style="position:absolute;left:40.0000%" class="geml-tick">4</span><span style="position:absolute;left:50.0000%" class="geml-tick">5</span><span style="position:absolute;left:60.0000%" class="geml-tick">6</span><span style="position:absolute;left:70.0000%" class="geml-tick">7</span><span style="position:absolute;left:80.0000%" class="geml-tick">8</span><span style="position:absolute;left:90.0000%" class="geml-tick">9</span><span style="position:absolute;left:100.0000%" class="geml-tick">10</span></div></div><div data-component="clip" data-doc="ep01/ep01-cut.geml" data-block="#sub-s03-l1" class="geml-placed geml-b-sub-s03-l1"><div title="4.40s + 2.10s" data-duration="2.100" data-start="4.400" style="position:absolute;left:44.0000%;width:21.0000%" id="sub-s03-l1" class="geml-clip"><span class="geml-clip-label">sub-s03-l1</span><div class="geml-block"><span class="geml-tag">media-clip</span><pre><code></code></pre></div></div></div></section></section></div>
+<script>(function drivePlayer(root) {
+  if (!root || root.__gemlDriven) return;
+  root.__gemlDriven = true;
+  const total = Number(root.getAttribute("data-duration")) || 0;
+  const layers = Array.prototype.slice.call(root.querySelectorAll(".geml-layer"));
+  const cap = root.querySelector(".geml-caption");
+  const btn = root.querySelector(".geml-play");
+  const seek = root.querySelector(".geml-seek");
+  const clock = root.querySelector(".geml-clock");
+  let cues = [];
+  try { cues = JSON.parse(root.getAttribute("data-captions") || "[]"); } catch (e) { cues = []; }
+
+  let t = 0, playing = false, last = 0, unlocked = false, timer = 0;
+  const fmt2 = (v) => {
+    const m = Math.floor(v / 60), s = v - m * 60;
+    return String(m) + ":" + (s < 10 ? "0" : "") + s.toFixed(1);
+  };
+  const num = (el, name, dflt) => {
+    const v = Number(el.getAttribute(name));
+    return isFinite(v) ? v : dflt;
+  };
+
+  function paint() {
+    for (const el of layers) {
+      const start = num(el, "data-start", 0), end = num(el, "data-end", 0), inPt = num(el, "data-in", 0);
+      if (t >= start && t < end) {
+        const want = inPt + (t - start);
+        if (Math.abs(el.currentTime - want) > 0.15) { try { el.currentTime = want; } catch (e) { /* 还没 loadedmetadata */ } }
+        // 转场只有淡入淡出会动不透明度；cut 什么都不做。
+        const td = num(el, "data-transition-dur", 0.3);
+        const ti = el.getAttribute("data-transition-in"), to = el.getAttribute("data-transition-out");
+        let o = 1;
+        if ((ti === "dissolve" || ti === "fade") && t - start < td) o = (t - start) / td;
+        if ((to === "dissolve" || to === "fade") && end - t < td) o = Math.min(o, (end - t) / td);
+        let g = num(el, "data-gain", 1);
+        const fi = num(el, "data-fade-in", 0), fo = num(el, "data-fade-out", 0);
+        if (fi > 0 && t - start < fi) g *= (t - start) / fi;
+        if (fo > 0 && end - t < fo) g *= (end - t) / fo;
+        if (!el.muted) el.volume = Math.max(0, Math.min(1, g));
+        el.style.opacity = String(Math.max(0, Math.min(1, o)));
+        el.style.visibility = "visible";
+        if (playing && el.paused) { const p = el.play(); if (p && p.catch) p.catch(() => {}); }
+        if (!playing && !el.paused) el.pause();
+      } else {
+        el.style.visibility = "hidden";
+        if (!el.paused) el.pause();
+      }
+    }
+    if (cap) {
+      let text = "";
+      for (const c of cues) if (t >= c.start && t < c.end) { text = c.text; break; }
+      if (cap.textContent !== text) cap.textContent = text;
+      cap.style.visibility = text ? "visible" : "hidden";
+    }
+    if (seek && root.ownerDocument.activeElement !== seek) seek.value = String(t);
+    if (clock) clock.textContent = fmt2(t) + " / " + fmt2(total);
+  }
+
+  function stop() {
+    playing = false;
+    if (timer !== 0) { clearInterval(timer); timer = 0; }
+    if (btn) btn.textContent = "\u25B6";
+    for (const el of layers) if (!el.paused) el.pause();
+  }
+  // 时钟走 setInterval 而不是 rAF：标签页切到后台时 rAF 完全停摆，而 <video> 照放不误
+  // —— 实测第一版就是这样，时钟停在 0:00 而画面已经播到 5s。setInterval 在后台只是被
+  // 节流到一秒一次，配合 performance.now() 的差值，时间依然是对的。
+  function tick() {
+    if (!playing) return;
+    const now = performance.now();
+    t += (now - last) / 1000;
+    last = now;
+    if (t >= total) { t = total; stop(); paint(); return; }
+    paint();
+  }
+  function start() {
+    if (t >= total) t = 0;
+    playing = true;
+    if (btn) btn.textContent = "\u23F8";
+    last = performance.now();
+    // 第一次播放要在用户手势里把每个元素解锁，否则后面才切进来的那些会被自动播放策略挡下。
+    if (!unlocked) {
+      unlocked = true;
+      for (const el of layers) {
+        const p = el.play();
+        if (p && p.then) p.then(() => { if (el.style.visibility === "hidden") el.pause(); }).catch(() => {});
+        else if (el.style.visibility === "hidden") el.pause();
+      }
+    }
+    if (timer !== 0) clearInterval(timer);
+    timer = setInterval(tick, 33);
+    paint();
+  }
+  if (btn) btn.addEventListener("click", () => { if (playing) { stop(); paint(); } else start(); });
+  if (seek) seek.addEventListener("input", () => { t = Number(seek.value) || 0; last = performance.now(); paint(); });
+  root.setAttribute("tabindex", "0");
+  root.addEventListener("keydown", (e) => {
+    if (e.key === " " || e.key === "k") { e.preventDefault(); if (playing) { stop(); paint(); } else start(); }
+  });
+  paint();
+})(document.querySelector('.geml-player'))</script>
