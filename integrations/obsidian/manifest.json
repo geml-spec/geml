@@ -1,9 +1,9 @@
 {
   "id": "geml",
   "name": "GEML",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "minAppVersion": "1.4.0",
-  "description": "Render GEML — typed blocks, computed tables, geml-chart, and build-time reference checking — in ```geml code blocks and .geml files.",
+  "description": "Render GEML \u2014 typed blocks, computed tables, geml-chart, and build-time reference checking \u2014 in ```geml code blocks and .geml files.",
   "author": "GEML",
   "authorUrl": "https://github.com/geml-spec/geml",
   "isDesktopOnly": false

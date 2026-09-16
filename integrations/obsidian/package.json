@@ -1,12 +1,13 @@
 {
   "name": "obsidian-geml",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Obsidian plugin to render GEML in code blocks and .geml files.",
+  "description": "Obsidian plugin to render GEML, and the geml-vault skill for working a Markdown vault by block address.",
   "type": "module",
   "scripts": {
     "build": "node esbuild.config.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/vault.test.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",
