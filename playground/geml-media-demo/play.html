@@ -1,3 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>EP01 粗剪 · 成片</title>
+<style>
+body{margin:0;background:#0b0d10;color:#cbd5e1;font:13px/1.5 system-ui,sans-serif}
+.geml-page{max-width:520px;margin:0 auto;padding:24px 16px}
+.geml-track{margin:0 0 6px;border-radius:6px;background:#101418;overflow:hidden}
+.geml-clip{padding:4px 6px;top:22px;height:30px;white-space:nowrap;background:#2b6cb0;color:#e8eef4;border-radius:4px;font-size:11px}
+.geml-track-ruler{position:absolute;inset:0 0 auto 0;height:18px;font:10px/18px ui-monospace,monospace;color:#64748b}
+.geml-tick{padding-left:3px;border-left:1px solid #334155}
 /* GEML Viewer — document styling. Scoped under .geml-doc so it never leaks. */
 
 .geml-body {
@@ -373,3 +383,110 @@ select.geml-form-control { cursor: pointer; }
   min-width: 9ch;
   text-align: right;
 }
+
+.geml-f-video { height: 56px; flex: 0 0 auto }
+.geml-f-dialogue { height: 56px; flex: 0 0 auto }
+.geml-f-subtitle { height: 56px; flex: 0 0 auto }
+</style>
+<div class="geml-page"><section data-component="player" data-axis="column" data-id="play" class="geml-frame geml-f-play"><div data-captions="[{&quot;start&quot;:4.4,&quot;end&quot;:6.5,&quot;text&quot;:&quot;姐……你怎么会……&quot;}]" data-duration="10.000" class="geml-player"><div style="aspect-ratio:9 / 16" class="geml-stage"><video style="z-index:0" muted data-gain="1" data-in="0.000" data-end="4.000" data-start="0.000" data-clip="c01" playsinline preload="auto" src="ep01/assets/s01-take3.mp4" class="geml-layer geml-layer-video"></video><video data-transition-in="cut" style="z-index:0" muted data-gain="1" data-in="0.000" data-end="10.000" data-start="4.000" data-clip="c03" playsinline preload="auto" src="ep01/assets/s03-take2-lips.mp4" class="geml-layer geml-layer-video"></video><audio data-gain="1" data-in="0.000" data-end="6.500" data-start="4.400" data-clip="vo-s03-l1" playsinline preload="auto" src="ep01/assets/s03-l1-vo.wav" class="geml-layer geml-layer-audio"></audio><div class="geml-caption"></div></div><div class="geml-transport"><button aria-label="播放/暂停" type="button" class="geml-play">▶</button><input value="0" step="0.01" max="10.000" min="0" type="range" class="geml-seek"><span class="geml-clock">0:00.0 / 0:10.0</span></div></div><section data-component="timeline-track" data-axis="row" data-id="video" class="geml-frame geml-f-video"><div data-duration="10.000" class="geml-track"><div aria-hidden="true" class="geml-track-ruler"><span style="position:absolute;left:0.0000%" class="geml-tick">0</span><span style="position:absolute;left:10.0000%" class="geml-tick">1</span><span style="position:absolute;left:20.0000%" class="geml-tick">2</span><span style="position:absolute;left:30.0000%" class="geml-tick">3</span><span style="position:absolute;left:40.0000%" class="geml-tick">4</span><span style="position:absolute;left:50.0000%" class="geml-tick">5</span><span style="position:absolute;left:60.0000%" class="geml-tick">6</span><span style="position:absolute;left:70.0000%" class="geml-tick">7</span><span style="position:absolute;left:80.0000%" class="geml-tick">8</span><span style="position:absolute;left:90.0000%" class="geml-tick">9</span><span style="position:absolute;left:100.0000%" class="geml-tick">10</span></div></div><div data-component="clip" data-doc="ep01/ep01-cut.geml" data-block="#c01" class="geml-placed geml-b-c01"><div title="0.00s + 4.00s" data-duration="4.000" data-start="0.000" style="position:absolute;left:0.0000%;width:40.0000%" id="c01" class="geml-clip"><span class="geml-clip-label">c01</span><div class="geml-block"><span class="geml-tag">media-clip</span><pre><code></code></pre></div></div></div><div data-component="clip" data-doc="ep01/ep01-cut.geml" data-block="#c03" class="geml-placed geml-b-c03"><div title="4.00s + 6.00s" data-duration="6.000" data-start="4.000" style="position:absolute;left:40.0000%;width:60.0000%" id="c03" class="geml-clip"><span class="geml-clip-label">c03</span><div class="geml-block"><span class="geml-tag">media-clip</span><pre><code></code></pre></div></div></div></section><section data-component="timeline-track" data-axis="row" data-id="dialogue" class="geml-frame geml-f-dialogue"><div data-duration="10.000" class="geml-track"><div aria-hidden="true" class="geml-track-ruler"><span style="position:absolute;left:0.0000%" class="geml-tick">0</span><span style="position:absolute;left:10.0000%" class="geml-tick">1</span><span style="position:absolute;left:20.0000%" class="geml-tick">2</span><span style="position:absolute;left:30.0000%" class="geml-tick">3</span><span style="position:absolute;left:40.0000%" class="geml-tick">4</span><span style="position:absolute;left:50.0000%" class="geml-tick">5</span><span style="position:absolute;left:60.0000%" class="geml-tick">6</span><span style="position:absolute;left:70.0000%" class="geml-tick">7</span><span style="position:absolute;left:80.0000%" class="geml-tick">8</span><span style="position:absolute;left:90.0000%" class="geml-tick">9</span><span style="position:absolute;left:100.0000%" class="geml-tick">10</span></div></div><div data-component="clip" data-doc="ep01/ep01-cut.geml" data-block="#vo-s03-l1" class="geml-placed geml-b-vo-s03-l1"><div title="4.40s + 2.10s" data-duration="2.100" data-start="4.400" style="position:absolute;left:44.0000%;width:21.0000%" id="vo-s03-l1" class="geml-clip"><span class="geml-clip-label">vo-s03-l1</span><div class="geml-block"><span class="geml-tag">media-clip</span><pre><code></code></pre></div></div></div></section><section data-component="timeline-track" data-axis="row" data-id="subtitle" class="geml-frame geml-f-subtitle"><div data-duration="10.000" class="geml-track"><div aria-hidden="true" class="geml-track-ruler"><span style="position:absolute;left:0.0000%" class="geml-tick">0</span><span style="position:absolute;left:10.0000%" class="geml-tick">1</span><span style="position:absolute;left:20.0000%" class="geml-tick">2</span><span style="position:absolute;left:30.0000%" class="geml-tick">3</span><span style="position:absolute;left:40.0000%" class="geml-tick">4</span><span style="position:absolute;left:50.0000%" class="geml-tick">5</span><span style="position:absolute;left:60.0000%" class="geml-tick">6</span><span style="position:absolute;left:70.0000%" class="geml-tick">7</span><span style="position:absolute;left:80.0000%" class="geml-tick">8</span><span style="position:absolute;left:90.0000%" class="geml-tick">9</span><span style="position:absolute;left:100.0000%" class="geml-tick">10</span></div></div><div data-component="clip" data-doc="ep01/ep01-cut.geml" data-block="#sub-s03-l1" class="geml-placed geml-b-sub-s03-l1"><div title="4.40s + 2.10s" data-duration="2.100" data-start="4.400" style="position:absolute;left:44.0000%;width:21.0000%" id="sub-s03-l1" class="geml-clip"><span class="geml-clip-label">sub-s03-l1</span><div class="geml-block"><span class="geml-tag">media-clip</span><pre><code></code></pre></div></div></div></section></section></div>
+<script>(function drivePlayer(root) {
+  if (!root || root.__gemlDriven) return;
+  root.__gemlDriven = true;
+  const total = Number(root.getAttribute("data-duration")) || 0;
+  const layers = Array.prototype.slice.call(root.querySelectorAll(".geml-layer"));
+  const cap = root.querySelector(".geml-caption");
+  const btn = root.querySelector(".geml-play");
+  const seek = root.querySelector(".geml-seek");
+  const clock = root.querySelector(".geml-clock");
+  let cues = [];
+  try { cues = JSON.parse(root.getAttribute("data-captions") || "[]"); } catch (e) { cues = []; }
+
+  let t = 0, playing = false, last = 0, unlocked = false, timer = 0;
+  const fmt2 = (v) => {
+    const m = Math.floor(v / 60), s = v - m * 60;
+    return String(m) + ":" + (s < 10 ? "0" : "") + s.toFixed(1);
+  };
+  const num = (el, name, dflt) => {
+    const v = Number(el.getAttribute(name));
+    return isFinite(v) ? v : dflt;
+  };
+
+  function paint() {
+    for (const el of layers) {
+      const start = num(el, "data-start", 0), end = num(el, "data-end", 0), inPt = num(el, "data-in", 0);
+      if (t >= start && t < end) {
+        const want = inPt + (t - start);
+        if (Math.abs(el.currentTime - want) > 0.15) { try { el.currentTime = want; } catch (e) { /* 还没 loadedmetadata */ } }
+        // 转场只有淡入淡出会动不透明度；cut 什么都不做。
+        const td = num(el, "data-transition-dur", 0.3);
+        const ti = el.getAttribute("data-transition-in"), to = el.getAttribute("data-transition-out");
+        let o = 1;
+        if ((ti === "dissolve" || ti === "fade") && t - start < td) o = (t - start) / td;
+        if ((to === "dissolve" || to === "fade") && end - t < td) o = Math.min(o, (end - t) / td);
+        let g = num(el, "data-gain", 1);
+        const fi = num(el, "data-fade-in", 0), fo = num(el, "data-fade-out", 0);
+        if (fi > 0 && t - start < fi) g *= (t - start) / fi;
+        if (fo > 0 && end - t < fo) g *= (end - t) / fo;
+        if (!el.muted) el.volume = Math.max(0, Math.min(1, g));
+        el.style.opacity = String(Math.max(0, Math.min(1, o)));
+        el.style.visibility = "visible";
+        if (playing && el.paused) { const p = el.play(); if (p && p.catch) p.catch(() => {}); }
+        if (!playing && !el.paused) el.pause();
+      } else {
+        el.style.visibility = "hidden";
+        if (!el.paused) el.pause();
+      }
+    }
+    if (cap) {
+      let text = "";
+      for (const c of cues) if (t >= c.start && t < c.end) { text = c.text; break; }
+      if (cap.textContent !== text) cap.textContent = text;
+      cap.style.visibility = text ? "visible" : "hidden";
+    }
+    if (seek && root.ownerDocument.activeElement !== seek) seek.value = String(t);
+    if (clock) clock.textContent = fmt2(t) + " / " + fmt2(total);
+  }
+
+  function stop() {
+    playing = false;
+    if (timer !== 0) { clearInterval(timer); timer = 0; }
+    if (btn) btn.textContent = "\u25B6";
+    for (const el of layers) if (!el.paused) el.pause();
+  }
+  // 时钟走 setInterval 而不是 rAF：标签页切到后台时 rAF 完全停摆，而 <video> 照放不误
+  // —— 实测第一版就是这样，时钟停在 0:00 而画面已经播到 5s。setInterval 在后台只是被
+  // 节流到一秒一次，配合 performance.now() 的差值，时间依然是对的。
+  function tick() {
+    if (!playing) return;
+    const now = performance.now();
+    t += (now - last) / 1000;
+    last = now;
+    if (t >= total) { t = total; stop(); paint(); return; }
+    paint();
+  }
+  function start() {
+    if (t >= total) t = 0;
+    playing = true;
+    if (btn) btn.textContent = "\u23F8";
+    last = performance.now();
+    // 第一次播放要在用户手势里把每个元素解锁，否则后面才切进来的那些会被自动播放策略挡下。
+    if (!unlocked) {
+      unlocked = true;
+      for (const el of layers) {
+        const p = el.play();
+        if (p && p.then) p.then(() => { if (el.style.visibility === "hidden") el.pause(); }).catch(() => {});
+        else if (el.style.visibility === "hidden") el.pause();
+      }
+    }
+    if (timer !== 0) clearInterval(timer);
+    timer = setInterval(tick, 33);
+    paint();
+  }
+  if (btn) btn.addEventListener("click", () => { if (playing) { stop(); paint(); } else start(); });
+  if (seek) seek.addEventListener("input", () => { t = Number(seek.value) || 0; last = performance.now(); paint(); });
+  root.setAttribute("tabindex", "0");
+  root.addEventListener("keydown", (e) => {
+    if (e.key === " " || e.key === "k") { e.preventDefault(); if (playing) { stop(); paint(); } else start(); }
+  });
+  paint();
+})(document.querySelector('.geml-player'))</script>

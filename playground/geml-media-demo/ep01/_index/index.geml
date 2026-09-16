@@ -1,0 +1,26 @@
+=== meta
+title = "EP01 的呈现：打开就是成片"
+profile = "geml-style/v1"
+track-h = 56
+===
+
+%% viewer 打开同目录任一份文档时会来找这份表（`_index/index.geml`，靠 meta.profile
+%% 认，不靠路径）。内容文档一个字都不为呈现让步：时间线只说"这一刀在哪条轨"，
+%% 怎么摆、要不要做成能播的，全在这里。
+
+%% component=player 是宿主实现的组件：它读的是同一份时间线，驱动真的
+%% <video>/<audio>。舞台在上，轨道在下——把片段摆进轨道的还是原来那三个 frame。
+=== style-screen {#play axis=column component=player slots="#video, #dialogue, #subtitle"}
+===
+
+=== style-frame {#video axis=row component=timeline-track slots="media-clip[track=video]" height="{{track-h}}px"}
+===
+
+=== style-frame {#dialogue axis=row component=timeline-track slots="media-clip[track=dialogue]" height="{{track-h}}px"}
+===
+
+=== style-frame {#subtitle axis=row component=timeline-track slots="media-clip[track=subtitle]" height="{{track-h}}px"}
+===
+
+=== style-rule {#clip-card match="media-clip" component=clip}
+===
