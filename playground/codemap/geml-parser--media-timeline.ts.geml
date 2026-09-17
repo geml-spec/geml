@@ -8,19 +8,25 @@ resolution-default = cpg
 
 # geml-parser/media-timeline.ts
 
-=== code {#num src=geml-parser/src/media-timeline.ts#L36-44 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-timeline.ts`/num."}
+=== code {#num src=geml-parser/src/media-timeline.ts#L44-52 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-timeline.ts`/num."}
 ===
 
-=== code {#timecodeToSeconds src=geml-parser/src/media-timeline.ts#L47-53 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-timeline.ts`/timecodeToSeconds()."}
+=== code {#timecodeToSeconds src=geml-parser/src/media-timeline.ts#L55-61 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-timeline.ts`/timecodeToSeconds()."}
 ===
 
-=== code {#time src=geml-parser/src/media-timeline.ts#L55-58 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-timeline.ts`/time."}
+=== code {#time src=geml-parser/src/media-timeline.ts#L63-66 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-timeline.ts`/time."}
 ===
 
-=== code {#layout src=geml-parser/src/media-timeline.ts#L68-73 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-timeline.ts`/layout()."}
+=== code {#layout src=geml-parser/src/media-timeline.ts#L86-91 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-timeline.ts`/layout()."}
 ===
 
-=== code {#layoutDoc src=geml-parser/src/media-timeline.ts#L76-156 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-timeline.ts`/layoutDoc()."}
+=== code {#layoutsOf src=geml-parser/src/media-timeline.ts#L98-112 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-timeline.ts`/layoutsOf()."}
+===
+
+=== code {#layoutDoc src=geml-parser/src/media-timeline.ts#L115-121 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-timeline.ts`/layoutDoc()."}
+===
+
+=== code {#layoutOne src=geml-parser/src/media-timeline.ts#L123-226 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-timeline.ts`/layoutOne()."}
 ===
 
 === table {#calls format=csv}
@@ -29,31 +35,41 @@ from,       to,                              kind, confidence
 #time,      #timecodeToSeconds,              call,
 #layout,    #layoutDoc,                      call,
 #layout,    geml-parser--geml.ts.geml#parse, call,
-#layoutDoc, #num,                            call,
-#layoutDoc, #num,                            call,
-#layoutDoc, #num,                            call,
-#layoutDoc, #num,                            call,
-#layoutDoc, #num,                            call,
-#layoutDoc, #time,                           call,
-#layoutDoc, #time,                           call,
+#layoutsOf, #layoutOne,                      call,
+#layoutDoc, #layoutsOf,                      call,
+#layoutOne, #num,                            call,
+#layoutOne, #num,                            call,
+#layoutOne, #num,                            call,
+#layoutOne, #num,                            call,
+#layoutOne, #num,                            call,
+#layoutOne, #num,                            call,
+#layoutOne, #time,                           call,
+#layoutOne, #time,                           call,
+#layoutOne, #time,                           call,
+#layoutOne, #time,                           call,
 ===
 
 === table {#called-by format=csv}
 from,                                             to,                 kind, site
-#time,                                            #num,               call, geml-parser/src/media-timeline.ts:57
-#layoutDoc,                                       #num,               call, geml-parser/src/media-timeline.ts:106
-#layoutDoc,                                       #num,               call, geml-parser/src/media-timeline.ts:109
-#layoutDoc,                                       #num,               call, geml-parser/src/media-timeline.ts:128
-#layoutDoc,                                       #num,               call, geml-parser/src/media-timeline.ts:142
-#layoutDoc,                                       #num,               call, geml-parser/src/media-timeline.ts:148
-#time,                                            #timecodeToSeconds, call, geml-parser/src/media-timeline.ts:56
-#layoutDoc,                                       #time,              call, geml-parser/src/media-timeline.ts:107
-#layoutDoc,                                       #time,              call, geml-parser/src/media-timeline.ts:108
-geml-parser--media-verbs.ts.geml#exportTimeline,  #layout,            call, geml-parser/src/media-verbs.ts:232
-geml-parser--media-verbs.ts.geml#buildPlan,       #layout,            call, geml-parser/src/media-verbs.ts:340
-geml-parser--media-verbs.ts.geml#lay,             #layout,            call, geml-parser/src/media-verbs.ts:491
-geml-parser--media-verbs.ts.geml#importSubtitles, #layout,            call, geml-parser/src/media-verbs.ts:690
-#layout,                                          #layoutDoc,         call, geml-parser/src/media-timeline.ts:72
+#time,                                            #num,               call, geml-parser/src/media-timeline.ts:65
+#layoutOne,                                       #num,               call, geml-parser/src/media-timeline.ts:145
+#layoutOne,                                       #num,               call, geml-parser/src/media-timeline.ts:176
+#layoutOne,                                       #num,               call, geml-parser/src/media-timeline.ts:179
+#layoutOne,                                       #num,               call, geml-parser/src/media-timeline.ts:198
+#layoutOne,                                       #num,               call, geml-parser/src/media-timeline.ts:212
+#layoutOne,                                       #num,               call, geml-parser/src/media-timeline.ts:218
+#time,                                            #timecodeToSeconds, call, geml-parser/src/media-timeline.ts:64
+#layoutOne,                                       #time,              call, geml-parser/src/media-timeline.ts:143
+#layoutOne,                                       #time,              call, geml-parser/src/media-timeline.ts:144
+#layoutOne,                                       #time,              call, geml-parser/src/media-timeline.ts:177
+#layoutOne,                                       #time,              call, geml-parser/src/media-timeline.ts:178
+geml-parser--media-verbs.ts.geml#exportTimeline,  #layout,            call, geml-parser/src/media-verbs.ts:242
+geml-parser--media-verbs.ts.geml#buildPlan,       #layout,            call, geml-parser/src/media-verbs.ts:422
+geml-parser--media-verbs.ts.geml#lay,             #layout,            call, geml-parser/src/media-verbs.ts:573
+geml-parser--media-verbs.ts.geml#importSubtitles, #layout,            call, geml-parser/src/media-verbs.ts:772
+#layoutDoc,                                       #layoutsOf,         call, geml-parser/src/media-timeline.ts:119
+#layout,                                          #layoutDoc,         call, geml-parser/src/media-timeline.ts:90
+#layoutsOf,                                       #layoutOne,         call, geml-parser/src/media-timeline.ts:106
 ===
 
 === table {#unresolved format=csv hidden}
@@ -64,20 +80,21 @@ from,               to
 #timecodeToSeconds, RegExp.exec
 #timecodeToSeconds, String.trim
 #time,              String.includes
-#layoutDoc,         Array.filter
-#layoutDoc,         Array.find
-#layoutDoc,         Array.push
-#layoutDoc,         Array.reduce
-#layoutDoc,         Array.sort
-#layoutDoc,         Map.get
-#layoutDoc,         Map.set
-#layoutDoc,         Math.max
-#layoutDoc,         ObjectConstructor.entries
-#layoutDoc,         Set.has
-#layoutDoc,         String.indexOf
-#layoutDoc,         String.localeCompare
-#layoutDoc,         String.replace
-#layoutDoc,         String.slice
-#layoutDoc,         String.split
-#layoutDoc,         String.trim
+#layoutsOf,         Array.push
+#layoutOne,         Array.filter
+#layoutOne,         Array.find
+#layoutOne,         Array.push
+#layoutOne,         Array.reduce
+#layoutOne,         Array.sort
+#layoutOne,         Map.get
+#layoutOne,         Map.set
+#layoutOne,         Math.max
+#layoutOne,         ObjectConstructor.entries
+#layoutOne,         Set.has
+#layoutOne,         String.indexOf
+#layoutOne,         String.localeCompare
+#layoutOne,         String.replace
+#layoutOne,         String.slice
+#layoutOne,         String.split
+#layoutOne,         String.trim
 ===

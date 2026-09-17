@@ -52,6 +52,7 @@ table.geml-table tfoot td { background:var(--code-bg); font-weight:600; border-t
 .c-grid { stroke:#eaecef; } .c-axis { stroke:#aab1b8; } .c-tick { font-size:11px; fill:var(--muted); } .c-legend { font-size:12px; fill:var(--fg); }
 .media { max-width:100%; border-radius:8px; }
 .diagram-src { color:var(--muted); } .render-error { color:#cf222e; }
+.geml-missing-vocab { border:1px solid #d4a72c66; background:#fff8c5; color:#4d2d00; padding:.6rem .8rem; border-radius:6px; margin:0 0 1rem; font-size:.9em; }
 .math-block { overflow-x:auto; padding:.4em 0; }
 sup.fn a { font-size:.75em; }
 .geml-footer { max-width:860px; margin:0 auto; padding:16px 24px 40px; color:var(--muted); font-size:.82em; }
@@ -129,15 +130,40 @@ sup.fn a { font-size:.75em; }
 </head>
 <body>
 <main>
-<figure class="code-graph"><div class="cg-mount" data-start="geml-parser--profiles.ts.geml" data-graph="{&quot;start&quot;:&quot;geml-parser--profiles.ts.geml&quot;,&quot;depth&quot;:6,&quot;roots&quot;:[&quot;geml-parser--profiles.ts.geml#vocabularyFor&quot;],&quot;nodes&quot;:{&quot;geml-parser--profiles.ts.geml#vocabularyFor&quot;:{&quot;n&quot;:&quot;vocabularyFor&quot;,&quot;doc&quot;:&quot;geml-parser--profiles.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/profiles.ts#L188-210&quot;}},&quot;edges&quot;:[],&quot;module&quot;:&quot;geml-parser/profiles.ts&quot;,&quot;style&quot;:{&quot;fold&quot;:1,&quot;depth&quot;:6,&quot;hideAccessors&quot;:true,&quot;palette&quot;:[&quot;#e3f2fd&quot;,&quot;#e8f5e9&quot;,&quot;#fff3e0&quot;,&quot;#f3e5f5&quot;,&quot;#e0f7fa&quot;,&quot;#fce4ec&quot;,&quot;#f1f8e9&quot;,&quot;#ede7f6&quot;,&quot;#fff8e1&quot;,&quot;#e0f2f1&quot;,&quot;#efebe9&quot;,&quot;#f9fbe7&quot;]}}"></div><figcaption>layered method flow — roots from this document's <code>entry</code></figcaption></figure>
+<figure class="code-graph"><div class="cg-mount" data-start="geml-parser--profiles.ts.geml" data-graph="{&quot;start&quot;:&quot;geml-parser--profiles.ts.geml&quot;,&quot;depth&quot;:6,&quot;roots&quot;:[&quot;geml-parser--profiles.ts.geml#unrecognizedVocabularies&quot;,&quot;geml-parser--profiles.ts.geml#declaredVocabularies&quot;,&quot;geml-parser--profiles.ts.geml#vocabularyFor&quot;],&quot;nodes&quot;:{&quot;geml-parser--profiles.ts.geml#unrecognizedVocabularies&quot;:{&quot;n&quot;:&quot;unrecognizedVocabularies&quot;,&quot;doc&quot;:&quot;geml-parser--profiles.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/profiles.ts#L304-308&quot;},&quot;geml-parser--profiles.ts.geml#declaredVocabularies&quot;:{&quot;n&quot;:&quot;declaredVocabularies&quot;,&quot;doc&quot;:&quot;geml-parser--profiles.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/profiles.ts#L314-318&quot;},&quot;geml-parser--profiles.ts.geml#vocabularyFor&quot;:{&quot;n&quot;:&quot;vocabularyFor&quot;,&quot;doc&quot;:&quot;geml-parser--profiles.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/profiles.ts#L320-342&quot;}},&quot;edges&quot;:[],&quot;module&quot;:&quot;geml-parser/profiles.ts&quot;,&quot;style&quot;:{&quot;fold&quot;:1,&quot;depth&quot;:6,&quot;hideAccessors&quot;:true,&quot;palette&quot;:[&quot;#e3f2fd&quot;,&quot;#e8f5e9&quot;,&quot;#fff3e0&quot;,&quot;#f3e5f5&quot;,&quot;#e0f7fa&quot;,&quot;#fce4ec&quot;,&quot;#f1f8e9&quot;,&quot;#ede7f6&quot;,&quot;#fff8e1&quot;,&quot;#e0f2f1&quot;,&quot;#efebe9&quot;,&quot;#f9fbe7&quot;]}}"></div><figcaption>layered method flow — roots from this document's <code>entry</code></figcaption></figure>
 <h1 id="geml-parserprofilests">geml-parser/profiles.ts</h1>
+<pre id="ProfileIO-readDoc" class="leaf"><code></code></pre>
+<pre id="ProfileIO-hashFile" class="leaf"><code></code></pre>
+<pre id="ProfileIO-hashText" class="leaf"><code></code></pre>
+<pre id="unrecognizedVocabularies"><code></code></pre>
+<pre id="declaredVocabularies"><code></code></pre>
 <pre id="vocabularyFor"><code></code></pre>
 <figure class="table-figure" id="called-by"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><div class="table-scroll"><table class="geml-table"><thead><tr><th>from</th><th>to</th><th>kind</th><th>site</th></tr></thead><tbody>
-<tr><td>geml-parser--geml.ts.geml#vocabularyOf</td><td>#vocabularyFor</td><td>call</td><td>geml-parser/src/geml.ts:1935</td></tr>
-<tr><td>geml-parser--geml.ts.geml#parse</td><td>#vocabularyFor</td><td>call</td><td>geml-parser/src/geml.ts:2459</td></tr>
-<tr><td>geml-parser--geml.ts.geml#blockSpans</td><td>#vocabularyFor</td><td>call</td><td>geml-parser/src/geml.ts:2676</td></tr>
-<tr><td>geml-parser--geml.ts.geml#unitSpans</td><td>#vocabularyFor</td><td>call</td><td>geml-parser/src/geml.ts:2699</td></tr>
-<tr><td>geml-parser--geml.ts.geml#addressedUnits</td><td>#vocabularyFor</td><td>call</td><td>geml-parser/src/geml.ts:2913</td></tr>
+<tr><td>geml-parser--host-fs.ts.geml#profileIoFor</td><td>#ProfileIO-readDoc</td><td>call</td><td>geml-parser/src/host-fs.ts:209</td></tr>
+<tr><td>geml-parser--media-check.ts.geml#checkMedia</td><td>#ProfileIO-readDoc</td><td>call</td><td>geml-parser/src/media-check.ts:138</td></tr>
+<tr><td>geml-parser--media-check.ts.geml#promptTextOf</td><td>#ProfileIO-readDoc</td><td>call</td><td>geml-parser/src/media-check.ts:475</td></tr>
+<tr><td>geml-parser--media-verbs.ts.geml#loadProject</td><td>#ProfileIO-readDoc</td><td>call</td><td>geml-parser/src/media-verbs.ts:45</td></tr>
+<tr><td>geml-parser--media-verbs.ts.geml#exportTimeline</td><td>#ProfileIO-readDoc</td><td>call</td><td>geml-parser/src/media-verbs.ts:239</td></tr>
+<tr><td>geml-parser--media-verbs.ts.geml#buildPlan</td><td>#ProfileIO-readDoc</td><td>call</td><td>geml-parser/src/media-verbs.ts:420</td></tr>
+<tr><td>geml-parser--media-verbs.ts.geml#lay</td><td>#ProfileIO-readDoc</td><td>call</td><td>geml-parser/src/media-verbs.ts:570</td></tr>
+<tr><td>geml-parser--media-verbs.ts.geml#importSubtitles</td><td>#ProfileIO-readDoc</td><td>call</td><td>geml-parser/src/media-verbs.ts:767</td></tr>
+<tr><td>geml-parser--cli.ts.geml#runMedia</td><td>#ProfileIO-hashFile</td><td>call</td><td>geml-parser/src/cli.ts:543</td></tr>
+<tr><td>geml-parser--cli.ts.geml#runMedia</td><td>#ProfileIO-hashFile</td><td>call</td><td>geml-parser/src/cli.ts:661</td></tr>
+<tr><td>geml-parser--host-fs.ts.geml#profileIoFor</td><td>#ProfileIO-hashFile</td><td>call</td><td>geml-parser/src/host-fs.ts:217</td></tr>
+<tr><td>geml-parser--media-check.ts.geml#checkMedia</td><td>#ProfileIO-hashFile</td><td>call</td><td>geml-parser/src/media-check.ts:213</td></tr>
+<tr><td>geml-parser--media-verbs.ts.geml#importPlan</td><td>#ProfileIO-hashFile</td><td>call</td><td>geml-parser/src/media-verbs.ts:633</td></tr>
+<tr><td>geml-parser--cli.ts.geml#runMedia</td><td>#ProfileIO-hashText</td><td>call</td><td>geml-parser/src/cli.ts:552</td></tr>
+<tr><td>geml-parser--host-fs.ts.geml#profileIoFor</td><td>#ProfileIO-hashText</td><td>call</td><td>geml-parser/src/host-fs.ts:214</td></tr>
+<tr><td>geml-parser--media-check.ts.geml#checkMedia</td><td>#ProfileIO-hashText</td><td>call</td><td>geml-parser/src/media-check.ts:371</td></tr>
+<tr><td>geml-parser--media-verbs.ts.geml#importPlan</td><td>#ProfileIO-hashText</td><td>call</td><td>geml-parser/src/media-verbs.ts:647</td></tr>
+<tr><td>geml-parser--geml.ts.geml#reportBorrowedVocabularies</td><td>#unrecognizedVocabularies</td><td>call</td><td>geml-parser/src/geml.ts:1511</td></tr>
+<tr><td>geml-parser--geml.ts.geml#parse</td><td>#unrecognizedVocabularies</td><td>call</td><td>geml-parser/src/geml.ts:2532</td></tr>
+<tr><td>geml-parser--cli.ts.geml#runCheck</td><td>#declaredVocabularies</td><td>call</td><td>geml-parser/src/cli.ts:703</td></tr>
+<tr><td>geml-parser--geml.ts.geml#vocabularyOf</td><td>#vocabularyFor</td><td>call</td><td>geml-parser/src/geml.ts:1981</td></tr>
+<tr><td>geml-parser--geml.ts.geml#parse</td><td>#vocabularyFor</td><td>call</td><td>geml-parser/src/geml.ts:2540</td></tr>
+<tr><td>geml-parser--geml.ts.geml#blockSpans</td><td>#vocabularyFor</td><td>call</td><td>geml-parser/src/geml.ts:2757</td></tr>
+<tr><td>geml-parser--geml.ts.geml#unitSpans</td><td>#vocabularyFor</td><td>call</td><td>geml-parser/src/geml.ts:2780</td></tr>
+<tr><td>geml-parser--geml.ts.geml#addressedUnits</td><td>#vocabularyFor</td><td>call</td><td>geml-parser/src/geml.ts:2994</td></tr>
 </tbody></table></div></figure>
 </main>
 <footer class="geml-footer">Rendered from <code>geml-parser--profiles.ts.geml</code> by the GEML runtime. Tables are sortable and filterable; the chart is inline SVG drawn from its bound table.</footer>
