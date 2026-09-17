@@ -7,6 +7,7 @@
 //
 // 分工与 timeline-track 一样：这里只出结构与行为，颜色尺寸归样式表。
 import { layoutDoc } from "../../../geml-parser/dist/media-timeline.js";
+import { drivePlayer } from "../../../geml-parser/dist/media-player-runtime.js";
 
 const dirOf = (p) => { const i = p.lastIndexOf("/"); return i < 0 ? "" : p.slice(0, i); };
 
@@ -196,116 +197,12 @@ export function player(block, params, ctx) {
   return el;
 }
 
-/**
- * 时钟。一个 rAF 循环推所有元素，没有哪个元素自己往下播 —— 浏览器和 ffmpeg 必须
- * 对同一条时间线负责，让 <video> 自由跑就会漂。
- *
- * 写成一个自足的函数（不引用模块作用域里的任何东西），因为导出的静态页把它的源码
- * 原样内联进 <script>；扩展里则直接调它。一份源码，两个宿主。
- */
-export function drivePlayer(root) {
-  if (!root || root.__gemlDriven) return;
-  root.__gemlDriven = true;
-  const total = Number(root.getAttribute("data-duration")) || 0;
-  const layers = Array.prototype.slice.call(root.querySelectorAll(".geml-layer"));
-  const cap = root.querySelector(".geml-caption");
-  const btn = root.querySelector(".geml-play");
-  const seek = root.querySelector(".geml-seek");
-  const clock = root.querySelector(".geml-clock");
-  let cues = [];
-  try { cues = JSON.parse(root.getAttribute("data-captions") || "[]"); } catch (e) { cues = []; }
-
-  let t = 0, playing = false, last = 0, unlocked = false, timer = 0;
-  const fmt2 = (v) => {
-    const m = Math.floor(v / 60), s = v - m * 60;
-    return String(m) + ":" + (s < 10 ? "0" : "") + s.toFixed(1);
-  };
-  const num = (el, name, dflt) => {
-    const v = Number(el.getAttribute(name));
-    return isFinite(v) ? v : dflt;
-  };
-
-  function paint() {
-    for (const el of layers) {
-      const start = num(el, "data-start", 0), end = num(el, "data-end", 0), inPt = num(el, "data-in", 0);
-      if (t >= start && t < end) {
-        const want = inPt + (t - start);
-        if (Math.abs(el.currentTime - want) > 0.15) { try { el.currentTime = want; } catch (e) { /* 还没 loadedmetadata */ } }
-        // 转场只有淡入淡出会动不透明度；cut 什么都不做。
-        const td = num(el, "data-transition-dur", 0.3);
-        const ti = el.getAttribute("data-transition-in"), to = el.getAttribute("data-transition-out");
-        let o = 1;
-        if ((ti === "dissolve" || ti === "fade") && t - start < td) o = (t - start) / td;
-        if ((to === "dissolve" || to === "fade") && end - t < td) o = Math.min(o, (end - t) / td);
-        let g = num(el, "data-gain", 1);
-        const fi = num(el, "data-fade-in", 0), fo = num(el, "data-fade-out", 0);
-        if (fi > 0 && t - start < fi) g *= (t - start) / fi;
-        if (fo > 0 && end - t < fo) g *= (end - t) / fo;
-        if (!el.muted) el.volume = Math.max(0, Math.min(1, g));
-        el.style.opacity = String(Math.max(0, Math.min(1, o)));
-        el.style.visibility = "visible";
-        if (playing && el.paused) { const p = el.play(); if (p && p.catch) p.catch(() => {}); }
-        if (!playing && !el.paused) el.pause();
-      } else {
-        el.style.visibility = "hidden";
-        if (!el.paused) el.pause();
-      }
-    }
-    if (cap) {
-      let text = "";
-      for (const c of cues) if (t >= c.start && t < c.end) { text = c.text; break; }
-      if (cap.textContent !== text) cap.textContent = text;
-      cap.style.visibility = text ? "visible" : "hidden";
-    }
-    if (seek && root.ownerDocument.activeElement !== seek) seek.value = String(t);
-    if (clock) clock.textContent = fmt2(t) + " / " + fmt2(total);
-  }
-
-  function stop() {
-    playing = false;
-    if (timer !== 0) { clearInterval(timer); timer = 0; }
-    if (btn) btn.textContent = "\u25B6";
-    for (const el of layers) if (!el.paused) el.pause();
-  }
-  // 时钟走 setInterval 而不是 rAF：标签页切到后台时 rAF 完全停摆，而 <video> 照放不误
-  // —— 实测第一版就是这样，时钟停在 0:00 而画面已经播到 5s。setInterval 在后台只是被
-  // 节流到一秒一次，配合 performance.now() 的差值，时间依然是对的。
-  function tick() {
-    if (!playing) return;
-    const now = performance.now();
-    t += (now - last) / 1000;
-    last = now;
-    if (t >= total) { t = total; stop(); paint(); return; }
-    paint();
-  }
-  function start() {
-    if (t >= total) t = 0;
-    playing = true;
-    if (btn) btn.textContent = "\u23F8";
-    last = performance.now();
-    // 第一次播放要在用户手势里把每个元素解锁，否则后面才切进来的那些会被自动播放策略挡下。
-    if (!unlocked) {
-      unlocked = true;
-      for (const el of layers) {
-        const p = el.play();
-        if (p && p.then) p.then(() => { if (el.style.visibility === "hidden") el.pause(); }).catch(() => {});
-        else if (el.style.visibility === "hidden") el.pause();
-      }
-    }
-    if (timer !== 0) clearInterval(timer);
-    timer = setInterval(tick, 33);
-    paint();
-  }
-  if (btn) btn.addEventListener("click", () => { if (playing) { stop(); paint(); } else start(); });
-  if (seek) seek.addEventListener("input", () => { t = Number(seek.value) || 0; last = performance.now(); paint(); });
-  root.setAttribute("tabindex", "0");
-  root.addEventListener("keydown", (e) => {
-    if (e.key === " " || e.key === "k") { e.preventDefault(); if (playing) { stop(); paint(); } else start(); }
-  });
-  paint();
-}
+// 时钟不在这里：它住在解析器（media-player-runtime），因为时间是解析器算的。
+// viewer 直接调，`geml media export --to player` 内联它的源码——一份源码，两个宿主。
 
 /** 自驱：组件建好就把时钟接上。静态导出没有 rAF，那条路由导出脚本内联 drivePlayer。 */
+export { drivePlayer };
+
 export function playerLive(block, params, ctx) {
   const el = player(block, params, ctx);
   if (typeof window !== "undefined") drivePlayer(el);

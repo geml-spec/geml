@@ -9,6 +9,7 @@
 import { parse, type Block } from "./geml.js";
 import { blocksOf, metaOf, splitRef, promptTextOf, type MediaIO, type Loaded } from "./media-check.js";
 import { layout, type Timeline } from "./media-timeline.js";
+import { drivePlayer } from "./media-player-runtime.js";
 
 /** 宿主能做、而这个模块不能做的事：跑外部程序、写文件。 */
 export interface MediaHost extends MediaIO {
@@ -196,7 +197,7 @@ export function report(entry: string | string[], kind: "cast" | "stats", io: Med
 // 产物类型全不同。
 // ---------------------------------------------------------------------------
 
-export type ExportFormat = "preview" | "srt" | "edl" | "otio" | "json";
+export type ExportFormat = "preview" | "player" | "srt" | "edl" | "otio" | "json";
 
 /** 素材的固有时长与路径：从素材块读，宿主可以用 ffprobe 补。 */
 function assetInfo(p: Project, io: MediaIO) {
@@ -224,6 +225,12 @@ const hhmmss = (t: number, sep = ",", ms = true): string => {
 };
 const esc = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
+/** `-14dB` → 线性音量。播放器用它设 `el.volume`，出片那边交给 ffmpeg 的 `volume` 滤镜。 */
+const dbToGain = (v: unknown): number => {
+  const m = /^(-?\d+(?:\.\d+)?)\s*dB$/i.exec(String(v ?? "").trim());
+  return m === null ? 1 : Math.round(Math.min(1, Math.pow(10, Number(m[1]) / 20)) * 1000) / 1000;
+};
+
 export function exportTimeline(entry: string, fmt: ExportFormat, io: MediaIO): string {
   const p = loadProject(entry, io);
   const src = io.readDoc(entry);
@@ -232,6 +239,78 @@ export function exportTimeline(entry: string, fmt: ExportFormat, io: MediaIO): s
   const tl: Timeline = layout(src, { durationOf: (r) => info(r, entry).duration });
 
   if (fmt === "json") return JSON.stringify(tl, null, 2) + "\n";
+
+  // `--to player`：整条时间线合成**一个能播的面**，零 ffmpeg、零编码。
+  //
+  // 和 `--to preview` 的分别就是"成片"和"联系表"的分别：preview 一刀一个独立播放器、
+  // 各播各的，用来核对素材；player 是一个舞台加一条走带，一个时钟推所有元素，看到的
+  // 就是 `media build` 会出的那条片子（差距见设计 §10.1）。
+  //
+  // 时钟的源码原样内联——和 viewer 组件调的是同一个 `drivePlayer`，一份源码两个宿主。
+  if (fmt === "player") {
+    const zOf = (name: string): number => Math.max(0, tl.tracks.findIndex((t) => t.name === name));
+    const cues: { start: number; end: number; text: string }[] = [];
+    const layers: string[] = [];
+    for (const c of tl.clips.sort((a, b) => a.start - b.start)) {
+      const i = info(c.src, entry);
+      if (c.kind === "prose") {
+        cues.push({ start: c.start, end: c.start + c.duration, text: (i.text ?? "").replace(/\s+/g, " ").trim() });
+        continue;
+      }
+      if (i.path === undefined) continue;
+      const tag = c.kind === "audio" ? "audio" : "video";
+      const attrs = [
+        `class="geml-layer geml-layer-${c.kind}"`,
+        `src="${esc(i.path)}"`, "preload=\"auto\"", "playsinline",
+        `data-clip="${esc(c.id)}"`,
+        `data-start="${c.start.toFixed(3)}"`,
+        `data-end="${(c.start + c.duration).toFixed(3)}"`,
+        `data-in="${c.in.toFixed(3)}"`,
+        `data-gain="${dbToGain(c.attrs["gain"])}"`,
+      ];
+      // 画面轨静音：声音走声音轨，画面轨再出声就是两份。
+      if (c.kind === "video") attrs.push("muted", `style="z-index:${zOf(c.track)}"`);
+      for (const k of ["transition-in", "transition-out", "transition-dur", "fade-in", "fade-out", "xywh"]) {
+        if (c.attrs[k] !== undefined) attrs.push(`data-${k}="${esc(c.attrs[k] as string)}"`);
+      }
+      layers.push(`  <${tag} ${attrs.join(" ")}></${tag}>`);
+    }
+    const aspect = p.docs.get(entry)?.meta.get("aspect");
+    const ratio = typeof aspect === "string" && /^\d+:\d+$/.test(aspect) ? aspect.replace(":", " / ") : "16 / 9";
+    const total = tl.duration.toFixed(3);
+    return `<!doctype html>
+<meta charset="utf-8">
+<title>${esc(entry)} — player</title>
+<style>
+ body{margin:0;background:#0b0d10;color:#cbd5e1;font:14px/1.5 system-ui,sans-serif}
+ .geml-player{max-width:min(92vw,520px);margin:24px auto;display:flex;flex-direction:column;gap:10px}
+ .geml-stage{position:relative;width:100%;aspect-ratio:${ratio};background:#000;border-radius:8px;overflow:hidden}
+ .geml-layer-video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+ .geml-layer-audio{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+ .geml-caption{position:absolute;left:0;right:0;bottom:6%;padding:0 8%;text-align:center;color:#fff;
+   text-shadow:0 1px 3px rgba(0,0,0,.9);line-height:1.4;pointer-events:none}
+ .geml-transport{display:flex;align-items:center;gap:10px}
+ .geml-play{width:2.2em;height:2.2em;border:1px solid currentColor;border-radius:50%;background:transparent;
+   color:inherit;font:inherit;line-height:1;cursor:pointer}
+ .geml-seek{flex:1;min-width:0}
+ .geml-clock{font:12px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;opacity:.75;min-width:9ch;text-align:right}
+</style>
+<div class="geml-player" data-duration="${total}" data-captions="${esc(JSON.stringify(cues))}" tabindex="0">
+ <div class="geml-stage">
+${layers.join("\n")}
+  <div class="geml-caption"></div>
+ </div>
+ <div class="geml-transport">
+  <button class="geml-play" type="button" aria-label="播放/暂停">\u25B6</button>
+  <input class="geml-seek" type="range" min="0" max="${total}" step="0.01" value="0">
+  <span class="geml-clock">0:00.0</span>
+ </div>
+</div>
+<script>
+(${drivePlayer.toString()})(document.querySelector('.geml-player'));
+<\/script>
+`;
+  }
 
   if (fmt === "srt") {
     // 字幕：prose 种类的轨，按时间排序，编号从 1 起。
