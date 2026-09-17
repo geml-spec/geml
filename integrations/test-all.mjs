@@ -63,6 +63,34 @@ function depsMissing(dir, manifest) {
   return !existsSync(join(dir, "node_modules"));
 }
 
+// Installed versions that do not match the lockfile. Read off disk rather than
+// asked of npm: this runner deliberately spawns no npm layer of its own (see the
+// note at the top), and one `npm ls` per integration would be exactly the layer
+// it avoids.
+//
+// Reported, not failed, and for the same reason "has code, has no tests" is
+// reported: a stale tree is not a broken integration, it is a fact about this
+// machine that the suite result alone hides. On 2026-09-17 a geml-viewer suite
+// failed here on `style.aspectRatio` and read for two rounds as an upstream bug;
+// the cause was linkedom 0.18.12 installed against a lock pinning 0.18.13, and
+// `npm ci` fixed it. CI always runs `npm ci`, so CI never sees any of this —
+// which is precisely why the local runner has to say it out loud.
+function depsStale(dir, manifest) {
+  let lock;
+  try { lock = JSON.parse(readFileSync(join(dir, "package-lock.json"), "utf8")); }
+  catch { return []; }
+  const out = [];
+  for (const dep of Object.keys({ ...manifest.dependencies, ...manifest.devDependencies })) {
+    const pinned = lock.packages?.[`node_modules/${dep}`]?.version;
+    if (pinned === undefined) continue;
+    let installed;
+    try { installed = JSON.parse(readFileSync(join(dir, "node_modules", dep, "package.json"), "utf8")).version; }
+    catch { continue; } // absent is `depsMissing`'s story, not this one
+    if (installed !== pinned) out.push(`${dep} ${installed} != ${pinned}`);
+  }
+  return out;
+}
+
 function runIntegration(name, dir) {
   return new Promise((resolve) => {
     const chunks = [];
@@ -91,6 +119,7 @@ const dirs = readdirSync(here, { withFileTypes: true })
 const jobs = [];
 const untested = [];
 const skipped = [];
+const stale = [];
 
 for (const name of dirs) {
   const dir = join(here, name);
@@ -101,10 +130,19 @@ for (const name of dirs) {
     skipped.push({ name, hint: `npm --prefix integrations/${name} install` });
     continue;
   }
+  const drift = depsStale(dir, manifest);
+  if (drift.length > 0) stale.push({ name, drift });
   jobs.push({ name, dir });
 }
 
 for (const s of skipped) console.log(`skip ${s.name} — dependencies not installed (${s.hint})`);
+// Printed BEFORE the suites run, so a failure below can be read against it
+// rather than diagnosed for two rounds and then traced back to this.
+for (const s of stale) {
+  console.log(`stale ${s.name} — node_modules does not match package-lock.json; ` +
+    `a failure below may be this, not the code (npm --prefix integrations/${s.name} ci)`);
+  for (const d of s.drift) console.log(`        ${d}`);
+}
 
 // Sequential. There are a handful of integrations, several of them build
 // bundles, and two esbuild runs competing for the same machine buys nothing
