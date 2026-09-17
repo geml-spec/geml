@@ -468,25 +468,24 @@ s03-take2 加两条配音后的口型合成版。时间线用它，不用原始 
 === meta
 title = "EP01 粗剪 · 竖屏"
 profile = "geml-media/v1"
-fps = 24
-aspect = "9:16"
-tracks = "video:video dialogue:audio bgm:audio subtitle:prose overlay:video"
-primary = "video"
 ===
 
-%% tracks 声明"名字:种类"。种类只有 video/audio/prose 三个，说的是内容是什么、住在哪——
-%% overlay 轨的种类是 video，它叠在画面上是样式表的事（§3.6）。
-%% 每个片段都显式写 track=。主轨（meta.primary）上块的先后就是播放顺序，每个片段的起点 = 前一个片段的终点。
-%% 其余轨道用 over= 锚到主轨的某个片段上，offset 是相对那个片段起点的秒数。
-%% 种类为 text 的轨，src 指剧本里的台词块而不是素材：台词只有一个家。
-
 # 第一场 灵堂 {#sc01}
+
+==== media {#ep01 tracks="video:video dialogue:audio bgm:audio subtitle:prose overlay:video" primary=video fps=24}
+
+%% 轨道表、主轨、帧率挂在这个块上，一份文档想装几条时间线装几条（§5.0）。
+%% tracks 声明"名字:种类"。种类只有 video/audio/prose 三个，说的是内容是什么、住在哪——
+%% overlay 轨的种类是 video，它叠在画面上是样式表的事（§3.6）。画面比例也在那边。
+%% 每个片段都显式写 track=。主轨（primary=，缺省是声明的第一条）上块的先后就是播放顺序，每个片段的起点 = 前一个片段的终点。
+%% 其余轨道用 over= 锚到主轨的某个片段上，offset 是相对那个片段起点的秒数。
+%% 种类为 prose 的轨，src 指剧本里的台词块而不是素材：台词只有一个家。
 
 === media-clip {#c01a track=video src=ep01-library.geml#s01-take3 in=0 out=2.0}
 睁眼前的静止段，take3 的前两秒最稳。
 ===
 
-=== media-clip {#c01b track=video src=ep01-library.geml#s01-take5 in=2.0 out=4.0 transition-in=dissolve transition-dur=0.2}
+=== media-clip {#c01b track=video src=ep01-library.geml#s01-take5 in=2.0 out=4.0 transition-in=dissolve transition-duration=0.2}
 睫毛颤动到睁眼，接 take5 的后半段。两条 take 拼成一个片段。
 ===
 
@@ -510,21 +509,23 @@ primary = "video"
 
 %% subtitle 轨（种类 prose）：src 指台词块，dur 与配音同长。
 
-=== media-clip {#sub-s01-l1 track=subtitle src=ep01-script.geml#s01-l1 over=#c01a offset=0.3 dur=3.6}
+=== media-clip {#sub-s01-l1 track=subtitle src=ep01-script.geml#s01-l1 over=#c01a offset=0.3 duration=3.6}
 ===
 
-=== media-clip {#sub-s03-l1 track=subtitle src=ep01-script.geml#s03-l1 over=#c03 offset=0.4 dur=2.1}
+=== media-clip {#sub-s03-l1 track=subtitle src=ep01-script.geml#s03-l1 over=#c03 offset=0.4 duration=2.1}
 ===
 
-=== media-clip {#sub-s03-l2 track=subtitle src=ep01-script.geml#s03-l2 over=#c03 offset=3.8 dur=0.9}
+=== media-clip {#sub-s03-l2 track=subtitle src=ep01-script.geml#s03-l2 over=#c03 offset=3.8 duration=0.9}
 ===
 
 === media-clip {#bgm track=bgm src=../library-shared.geml#bgm-lowdrone in=0 out=17 over=#c01a offset=0 gain=-14dB fade-out=1.0}
 ===
 
-=== media-clip {#title track=overlay .lower-third src=../library-shared.geml#hero-sheet over=#c02 offset=0.5 dur=2.5}
+=== media-clip {#title track=overlay .lower-third src=../library-shared.geml#hero-sheet over=#c02 offset=0.5 duration=2.5}
 临时占位：正式片名卡待出。
 ===
+
+====
 ```
 
 对白与字幕**成对**：同一句台词的配音片段和字幕片段锚同一镜头、同一 `offset`，字幕 `dur` 等于
@@ -632,6 +633,53 @@ geml get ep01/ep01-script.geml '#s03'                    → 一个镜头的提�
 
 ## 5. 词汇表
 
+### 5.0 `media` —— 一段可播的东西
+
+一份文档里的每一个 `media` 块各是**一条时间线**。轨道表、主轨、帧率挂在块上，不在
+文档 `meta` 里：它们是这条时间线的事实，不是这份文档的；挂在块上，一份文档想装几条
+装几条，而且作为属性会被 profile 的属性表查拼写——`primry=` 当场报，`meta` 里的
+`primry` 是静默的。
+
+两种形态由**形状**分，不由属性分，和 `<video>` 一样：
+
+```geml
+==== media {#ep01 tracks="video:video dialogue:audio subtitle:prose" primary=video fps=24}
+
+=== media-clip {#c01 track=video src=ep01-library.geml#s01-take3 in=0 out=4}
+===
+
+====
+```
+
+```geml
+=== media {#hero-shot src=ep01-library.geml#s01-take3 in=0 out=4}
+===
+```
+
+**有体＝装配**（`<video><source>…</video>`），**无体加 `src=`＝一个可播的单源**
+（`<video src>`）。单源就是「只有一个片段的时间线」，所以播放器、出片、导出三条路
+一行代码都不用分叉。没有 `type=` 或 `format=` 去重说一遍形状：同一件事两个说法，
+总有一天不一致。
+
+| 键 | 用在哪种形态 | 含义 |
+|---|---|---|
+| `tracks` | 装配 | 空格分隔的 **`名字:种类`** 列表。种类只有 `video` / `audio` / `prose` 三个，说的是内容是什么。轨道的顺序就是声明的顺序 |
+| `primary` | 装配 | 主轨的名字。**缺省是 `tracks=` 里的第一条**——那是这条片子的脊梁，其余轨都锚在它上面 |
+| `fps` | 两种都可 | 这条时间线的帧率。只有写了 `hh:mm:ss:ff` 时码才用得上；不写时码就不需要它 |
+| `src` | 单源 | 指向一个 `media-asset`。有体时不该出现 |
+| `in` | 两种都可 | **源内的入点**（秒或时码）：从被引的文件的第几秒开始取。剪辑软件和 W3C Media Fragments 都叫它入点 |
+| `out` | 两种都可 | **源内的出点**：取到第几秒为止。长度 = `out` − `in` |
+| `duration` | 两种都可 | 直接给长度。`out` 不知道时用它（例如一段没有固有时长的散文）。三者的优先级：`out` > `duration` > 源的固有时长 |
+
+**不在这儿的三个，各有各的去处**：画面比例是呈现，写在样式表上（`component=player
+aspect=9:16`）；种类从被引的 `media-asset` 的 `kind=` 读，不在引用它的地方重说一遍；
+播放策略（自动播、循环、静音、控件）压根不是文档的事——`<video>` 身上那一堆属性，
+一个都不进来，因为它是页面里的呈现元素，而 `media` 是内容事实。
+
+**音频不另立类型。** HTML 分 `<audio>` / `<video>` 是因为渲染的盒子不同；这里种类是
+**数据**（素材上的 `kind=`、轨道表里的 `dialogue:audio`），不是类型。只有对白轨、没有
+画面的粗剪照样是一条时间线，分开就得为混合的情况硬挑一个，而这里每条时间线都是混合的。
+
 ### 5.1 `media-asset` —— 一个文件
 
 | 属性 | 必需 | 含义 |
@@ -704,7 +752,7 @@ geml get ep01/ep01-script.geml '#s03'                    → 一个镜头的提�
 ```geml
 === media-clip {#c01a track=video src=ep01-library.geml#s01-take3 in=0 out=2.0}
 ===
-=== media-clip {#c01b track=video src=ep01-library.geml#s01-take5 in=2.0 out=4.0 transition-in=dissolve transition-dur=0.2}
+=== media-clip {#c01b track=video src=ep01-library.geml#s01-take5 in=2.0 out=4.0 transition-in=dissolve transition-duration=0.2}
 ===
 ```
 
@@ -714,7 +762,7 @@ geml get ep01/ep01-script.geml '#s03'                    → 一个镜头的提�
 #### 5.2.3 `prose` 种类的轨：`src` 指台词块
 
 ```geml
-=== media-clip {#sub-s03-l1 track=subtitle src=ep01-script.geml#s03-l1 over=#c03 offset=0.4 dur=2.1}
+=== media-clip {#sub-s03-l1 track=subtitle src=ep01-script.geml#s03-l1 over=#c03 offset=0.4 duration=2.1}
 ===
 ```
 
@@ -868,16 +916,20 @@ geml get ep01/ep01-script.geml '#s03'                    → 一个镜头的提�
 
 ### 5.7 `=== meta` 键
 
+`meta` 里只放**关于这份文件**的事。一条时间线的事实（轨道表、主轨、帧率）挂在它自己
+的 `media` 块上（§5.0）——一份文档能装好几条时间线，它们不该共用一套配置；而且挂在块
+上就是属性，拼错会被属性表当场逮住。
+
 | 键 | 文档 | 含义 |
 |---|---|---|
-| `tracks` | 时间线 | 空格分隔的 **`名字:种类`** 列表，如 `"video:video dialogue:audio subtitle:prose"`。种类是闭集 `video` \| `audio` \| `prose`，说的是**内容是什么、住在哪**（一个视频文件 / 一个音频文件 / 一个文档里的散文块），不是画在哪——overlay 轨的种类是 `video`，叠放由样式表决定。`prose` 与 §9 第 1 条的"散文类型"同指一个概念，故意共用一个词。只写名字不写种类报 `media-track-kind-missing`（error，不做兼容回退）；种类不在闭集里报 `media-track-kind-unknown`（error）。声明之外的 `track=` 值 warning |
-| `primary` | 时间线 | 主轨名，缺省 `video`。**不限定种类**：纯音频剪辑（播客、有声剧）把 `primary` 指向一条 `audio` 轨是合法的 |
-| `fps` | 时间线 | 时码换算基准 |
-| `aspect` | 剧本 / 时间线 | `9:16`、`16:9`；渲染参数，不影响时间 |
-| `target-duration` | 剧本 | 目标时长，秒。分镜表 `sum(时长)` 与时间线实际总长偏离 ±10% 以上报 `media-runtime-off-target`（warning） |
 | `episode` | 剧本 | 集号；与目录名、文件名对照 |
 | `episodes` / `paywall` | 全季 | 总集数；付费卡点所在集。`paywall` 不在 `episodes` 表里报 warning |
 | `platform` | 剧本 / 全季 | 元信息，不校验 |
+
+轨道表自己的毛病由 `media` 块上的 `tracks=` 报：只写名字不写种类是
+`media-track-kind-missing`（error，不做兼容回退），种类不在 `video` / `audio` / `prose`
+闭集里是 `media-track-kind-unknown`（error），声明之外的 `track=` 值是 warning。
+`primary` **不限定种类**：纯音频剪辑（播客、有声剧）把它指向一条 `audio` 轨是合法的。
 
 ---
 
@@ -1346,10 +1398,13 @@ GEML 今天没有、而本设计需要的东西。**逐条标了是不是规范�
    `count(角色)` 也说得通），不是一次性算子。
 6. **`schema=` 的校验。** **不动规范。** 规范把它留白。本 profile 对 `.gen-log` 自己校验；
    角色卡这类 `data` 块的字段完整性同样只能由应用层做，先不推核心。
-7. **裸 `media` 类型与源路由的 `#t=`。** 这两项是 GEP 而不是小改，**现在不提**。提的
-   条件：第二个实现要渲染 `media-clip`（需要规范级的 body 模式与 MUST 级诊断），或
-   `code` 之外的第二种源路由用户出现。`view` 从 `table` 里长出来用了两个月，这里也一样：
-   先在 profile 里跑，值不值得进核心让用例说。
+7. **源路由的 `#t=`。** 是 GEP 而不是小改，**现在不提**。提的条件：`code` 之外的
+   第二种源路由用户出现。
+
+   `media` 类型本身已经不在这条里了：它在这份 profile 里跑着（§5.0），走的正是本条
+   定下的那条路——`view` 从 `table` 里长出来用了两个月，先在 profile 里跑，值不值得
+   进核心让用例说。要进核心还缺的是第二个实现去渲染它（需要规范级的体模式与 MUST
+   级诊断）。
 
 ---
 
@@ -1363,16 +1418,17 @@ GEML 今天没有、而本设计需要的东西。**逐条标了是不是规范�
 | 键 | 证据 |
 |---|---|
 | `profile = "geml-media/v1"` | 真实文档 |
+| `media`：`tracks` `primary` `fps`（装配）· `src` `in` `out` `duration`（单源） | 真实文档 |
 | `media-asset`：`src` `sha256` `kind` `origin` `duration` `of` `role` | 真实文档 |
-| `media-clip`：`track` `src` `in` `out` `over` `offset` `dur` `gain` `transition-in` `transition-dur` | 真实文档 |
+| `media-clip`：`track` `src` `in` `out` `over` `offset` `duration` `gain` `transition-in` `transition-duration` | 真实文档 |
 | `media-text`：`shot` `speaker` `to` `emotion` | 真实文档 |
 | `.gen-log` 记录：`output` `output-sha256` `model` `mode` `prompt` `prompt-sha256` `prompt-refs[]` `inputs[].{ref,sha256}` `seed` `at` | 真实文档 |
-| meta：`tracks`（含"名字:种类"写法与三个种类）`primary` `fps` `episode` `aspect` | 真实文档 |
+| meta：`episode` | 真实文档 |
 | `media-clip`：`at` | 只有测试——逃生口按设计生效，但没有用例真的需要过它 |
 | `media-asset`：`license` `mime` `fps` `size` | **还是猜测**，一个用例都没踩过 |
 | `media-clip`：`speed` `xywh` `fade-in` `fade-out` `transition-out` | **还是猜测** |
 | `media-text`：`since` | **还是猜测**（一集之内无从验证，跨集才有意义） |
-| meta：`target-duration` `episodes` `paywall` | **还是猜测** |
+| meta：`episodes` `paywall` | **还是猜测** |
 | 诊断的**存在**与级别 | 真实文档（消息措辞可以变） |
 
 "还是猜测"不等于该删，它标的是一件具体的事：**改这些不算破坏兼容**，因为没有任何

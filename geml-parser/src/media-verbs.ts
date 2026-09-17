@@ -201,16 +201,19 @@ export type ExportFormat = "preview" | "player" | "srt" | "edl" | "otio" | "json
 
 /** 素材的固有时长与路径：从素材块读，宿主可以用 ffprobe 补。 */
 function assetInfo(p: Project, io: MediaIO) {
-  return (ref: string, from: string): { path?: string; duration?: number; text?: string } => {
+  return (ref: string, from: string): { path?: string; duration?: number; kind?: string; text?: string } => {
     const hit = p.block(ref, from);
     if (hit === null) return {};
     if (hit.b.type === "media-asset") {
       const src = str(hit.b.attrs["src"]);
       const d = Number(str(hit.b.attrs["duration"]) ?? "");
       const dir = hit.rel.includes("/") ? hit.rel.slice(0, hit.rel.lastIndexOf("/")) : "";
-      const out: { path?: string; duration?: number } = {};
+      const out: { path?: string; duration?: number; kind?: string } = {};
       if (src !== undefined) out.path = dir === "" ? src : `${dir}/${src}`;
       if (Number.isFinite(d)) out.duration = d;
+      // 种类从素材读，不在引用它的地方重说一遍 —— 同一件事有两个说法就会有一天不一致。
+      const k = str(hit.b.attrs["kind"]);
+      if (k !== undefined) out.kind = k;
       return out;
     }
     const text = promptTextOf(ref, from, io);
@@ -236,7 +239,7 @@ export function exportTimeline(entry: string, fmt: ExportFormat, io: MediaIO): s
   const src = io.readDoc(entry);
   if (src === null) return "";
   const info = assetInfo(p, io);
-  const tl: Timeline = layout(src, { durationOf: (r) => info(r, entry).duration });
+  const tl: Timeline = layout(src, { durationOf: (r) => info(r, entry).duration, kindOf: (r) => info(r, entry).kind });
 
   if (fmt === "json") return JSON.stringify(tl, null, 2) + "\n";
 
@@ -270,7 +273,7 @@ export function exportTimeline(entry: string, fmt: ExportFormat, io: MediaIO): s
       ];
       // 画面轨静音：声音走声音轨，画面轨再出声就是两份。
       if (c.kind === "video") attrs.push("muted", `style="z-index:${zOf(c.track)}"`);
-      for (const k of ["transition-in", "transition-out", "transition-dur", "fade-in", "fade-out", "xywh"]) {
+      for (const k of ["transition-in", "transition-out", "transition-duration", "fade-in", "fade-out", "xywh"]) {
         if (c.attrs[k] !== undefined) attrs.push(`data-${k}="${esc(c.attrs[k] as string)}"`);
       }
       layers.push(`  <${tag} ${attrs.join(" ")}></${tag}>`);
@@ -416,7 +419,7 @@ export function buildPlan(entry: string, outFile: string, io: MediaIO, opts: Bui
   const p = loadProject(entry, io);
   const src = io.readDoc(entry) ?? "";
   const info = assetInfo(p, io);
-  const tl = layout(src, { durationOf: (r) => info(r, entry).duration });
+  const tl = layout(src, { durationOf: (r) => info(r, entry).duration, kindOf: (r) => info(r, entry).kind });
   const notes = [...tl.problems];
 
   const video = tl.clips.filter((c) => c.kind === "video" && c.track === tl.primary).sort((a, b) => a.start - b.start);
@@ -567,7 +570,7 @@ export function lay(entry: string, anchorId: string, io: MediaIO, gap = 0.2): La
   const src = io.readDoc(entry);
   if (src === null) return [];
   const info = assetInfo(p, io);
-  const tl = layout(src, { durationOf: (r) => info(r, entry).duration });
+  const tl = layout(src, { durationOf: (r) => info(r, entry).duration, kindOf: (r) => info(r, entry).kind });
   const anchor = tl.clips.find((c) => c.id === anchorId.replace(/^#/, ""));
   if (anchor === undefined) return [];
   // 锚在这个镜头上的非主轨片段，按文档顺序（clips 里的原序由 layout 保持在 id 上）
@@ -766,7 +769,7 @@ export function importSubtitles(srtText: string, opts: SubtitleOpts, io: MediaIO
   const p = loadProject(opts.cutEntry, io);
   const info = assetInfo(p, io);
   const cut = opts.cutEntry;
-  const tl = layout(src, { durationOf: (r) => info(r, cut).duration });
+  const tl = layout(src, { durationOf: (r) => info(r, cut).duration, kindOf: (r) => info(r, cut).kind });
   const primary = tl.clips.filter((c) => c.track === tl.primary).sort((a, b) => a.start - b.start);
   if (primary.length === 0) notes.push("时间线主轨上没有片段，字幕只能用绝对起点 at=");
 
@@ -781,10 +784,10 @@ export function importSubtitles(srtText: string, opts: SubtitleOpts, io: MediaIO
       + " src=" + opts.srcDoc + "#" + lineId(i);
     if (anchor === undefined) {
       loose++;
-      return head + " at=" + c.start.toFixed(3) + " dur=" + String(dur) + "}\n===\n";
+      return head + " at=" + c.start.toFixed(3) + " duration=" + String(dur) + "}\n===\n";
     }
     return head + " over=#" + anchor.id + " offset=" + String(round(c.start - anchor.start))
-      + " dur=" + String(dur) + "}\n===\n";
+      + " duration=" + String(dur) + "}\n===\n";
   }).join("\n");
   if (loose > 0) notes.push(String(loose) + " 条落在主轨之外，用了绝对起点 at=（主轨一改就会错位）");
   return { lines, clips, ids, notes };

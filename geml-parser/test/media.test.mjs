@@ -53,8 +53,8 @@ test("哈希不符是 error，文件缺失是 warning，没哈希是 warning", (
 
 test("轨道：名字缺种类、种类不认识、片段没有 track=", () => {
   const root = project({
-    "cut.geml": '=== meta\nprofile = "geml-media/v1"\ntracks = "video:video bare subtitle:caption"\n===\n\n'
-      + "=== media-clip {#c1 src=#x}\n===\n",
+    "cut.geml": '=== meta\nprofile = "geml-media/v1"\n===\n\n==== media {#tl tracks="video:video bare subtitle:caption"}\n\n'
+      + "=== media-clip {#c1 src=#x}\n===\n\n====\n",
   });
   const ds = checkMedia("cut.geml", mediaIoFor(root));
   const c = codes(ds);
@@ -88,8 +88,8 @@ function lineageProject(look = "银灰短发齐耳。") {
             "prompt-refs": [{ ref: "script.geml#look", sha256: sha(look) }],
             at: "2026-09-15T00:00:00Z",
           }) + "\n===\n",
-      "cut.geml": '=== meta\nprofile = "geml-media/v1"\ntracks = "video:video"\n===\n\n'
-        + "=== media-clip {#c1 track=video src=lib.geml#take in=0 out=5}\n===\n",
+      "cut.geml": '=== meta\nprofile = "geml-media/v1"\n===\n\n==== media {#tl tracks="video:video"}\n\n'
+        + "=== media-clip {#c1 track=video src=lib.geml#take in=0 out=5}\n===\n\n====\n",
     },
   };
 }
@@ -133,14 +133,14 @@ test("片段：src 悬空、指错类型、缺 dur、轨道没声明", () => {
       + "=== media-asset {#still src=s.png kind=image}\n===\n\n"
       + "=== media-text {#who}\n角色\n===\n",
     "s.png": "PNG",
-    "cut.geml": '=== meta\nprofile = "geml-media/v1"\ntracks = "video:video sub:prose"\n===\n\n'
+    "cut.geml": '=== meta\nprofile = "geml-media/v1"\n===\n\n==== media {#tl tracks="video:video sub:prose"}\n\n'
       + "=== media-clip {#gone track=video src=lib.geml#nope}\n===\n\n"
       + "=== media-clip {#wrong track=video src=lib.geml#line}\n===\n\n"
       + "=== media-clip {#nodur track=video src=lib.geml#still}\n===\n\n"
-      + "=== media-clip {#odd track=ghost src=lib.geml#still dur=2}\n===\n",
+      + "=== media-clip {#odd track=ghost src=lib.geml#still duration=2}\n===\n\n====\n",
   });
   const c = codes(checkMedia("cut.geml", mediaIoFor(root)));
-  for (const want of ["media-src-unresolved", "media-src-not-asset", "media-dur-required", "media-track-undeclared"]) {
+  for (const want of ["media-src-unresolved", "media-src-not-asset", "media-duration-required", "media-track-undeclared"]) {
     assert.ok(c.includes(want), want + " 没报出: " + c.join(","));
   }
   rmSync(root, { recursive: true, force: true });
@@ -150,13 +150,13 @@ test("散文轨：src 必须指 media-text，且必须有 dur", () => {
   const root = project({
     "lib.geml": META + "=== media-asset {#a src=a.txt kind=other}\n===\n\n=== media-text {#l .line speaker=#w}\n台词\n===\n\n=== media-text {#w}\n人\n===\n",
     "a.txt": "",
-    "cut.geml": '=== meta\nprofile = "geml-media/v1"\ntracks = "sub:prose"\n===\n\n'
-      + "=== media-clip {#bad track=sub src=lib.geml#a dur=1}\n===\n\n"
-      + "=== media-clip {#nodur track=sub src=lib.geml#l}\n===\n",
+    "cut.geml": '=== meta\nprofile = "geml-media/v1"\n===\n\n==== media {#tl tracks="sub:prose"}\n\n'
+      + "=== media-clip {#bad track=sub src=lib.geml#a duration=1}\n===\n\n"
+      + "=== media-clip {#nodur track=sub src=lib.geml#l}\n===\n\n====\n",
   });
   const c = codes(checkMedia("cut.geml", mediaIoFor(root)));
   assert.ok(c.includes("media-src-not-asset"), c.join(","));
-  assert.ok(c.includes("media-dur-required"), c.join(","));
+  assert.ok(c.includes("media-duration-required"), c.join(","));
   rmSync(root, { recursive: true, force: true });
 });
 
@@ -287,7 +287,8 @@ test("夹具：视频轨的片段指向台词块 —— media-src-not-asset", ()
 
 // ---- 动词：时间模型、导出、todo、report、import、log -------------------------
 
-import { layout } from "../dist/media-timeline.js";
+import { layout, layoutsOf } from "../dist/media-timeline.js";
+import { parse } from "../dist/geml.js";
 import { todo, report, exportTimeline, lay, buildPlan, appendLog, importPlan } from "../dist/media-verbs.js";
 
 test("时间模型：主轨顺序摆放，其余轨锚在主轨上", () => {
@@ -309,7 +310,7 @@ test("时间模型：主轨顺序摆放，其余轨锚在主轨上", () => {
 test("时间模型：dissolve 的重叠量从前一个的终点往回借", () => {
   const root = fixture(({ edit }) => edit("ep01/ep01-cut.geml",
     "src=ep01-library.geml#s03-take2-lips in=0 out=6 transition-in=cut",
-    "src=ep01-library.geml#s03-take2-lips in=0 out=6 transition-in=dissolve transition-dur=0.5"));
+    "src=ep01-library.geml#s03-take2-lips in=0 out=6 transition-in=dissolve transition-duration=0.5"));
   const tl = layout(read(join(root, "ep01/ep01-cut.geml"), "utf8"), { durationOf: () => undefined });
   assert.equal(tl.clips.find((c) => c.id === "c03").start, 3.5, "4 - 0.5");
   rmSync(root, { recursive: true, force: true });
@@ -416,9 +417,9 @@ test("时间模型：at= 是逃生口，写了它锚定被忽略", () => {
 });
 
 test("时间模型：算不出时长、锚不到主轨，都记成 problems 而不是静默", () => {
-  const src = '=== meta\nprofile = "geml-media/v1"\ntracks = "video:video vo:audio"\nprimary = "video"\n===\n\n'
+  const src = '=== meta\nprofile = "geml-media/v1"\n===\n\n==== media {#tl tracks="video:video vo:audio" primary=video}\n\n'
     + "=== media-clip {#a track=video src=lib.geml#x}\n===\n\n"
-    + "=== media-clip {#b track=vo src=lib.geml#y over=#nope}\n===\n";
+    + "=== media-clip {#b track=vo src=lib.geml#y over=#nope}\n===\n\n====\n";
   const tl = layout(src, { durationOf: () => undefined });
   // #b 两条都真：既算不出时长，又锚不到主轨。
   assert.equal(tl.problems.length, 3, JSON.stringify(tl.problems));
@@ -502,8 +503,8 @@ test("importSubtitles：每条字幕锚到那一刻在播的主轨片段上，�
   const srt = "1\n00:00:00,500 --> 00:00:02,000\n第一句\n\n2\n00:00:04,600 --> 00:00:06,200\n第二句\n";
   const r = importSubtitles(srt, { idPrefix: "imp", srcDoc: "ep01-script.geml", cutEntry: "ep01/ep01-cut.geml" }, io);
   // #c01 是 0–4s，#c03 从 4s 起 —— 0.5s 落在前者，4.6s 落在后者。
-  assert.match(r.clips, /#sub-imp1 track=subtitle src=ep01-script\.geml#imp1 over=#c01 offset=0\.5 dur=1\.5/, r.clips);
-  assert.match(r.clips, /#sub-imp2 track=subtitle src=ep01-script\.geml#imp2 over=#c03 offset=0\.6 dur=1\.6/, r.clips);
+  assert.match(r.clips, /#sub-imp1 track=subtitle src=ep01-script\.geml#imp1 over=#c01 offset=0\.5 duration=1\.5/, r.clips);
+  assert.match(r.clips, /#sub-imp2 track=subtitle src=ep01-script\.geml#imp2 over=#c03 offset=0\.6 duration=1\.6/, r.clips);
   assert.equal(r.clips.includes("at="), false, "落在主轨内的字幕不该用绝对时间");
   rmSync(root, { recursive: true, force: true });
 });
@@ -511,7 +512,7 @@ test("importSubtitles：每条字幕锚到那一刻在播的主轨片段上，�
 test("importSubtitles：落在主轨之外的字幕退回 at=，并且说出来", () => {
   const root = fixture();
   const r = importSubtitles("1\n00:00:59,000 --> 00:01:01,000\n片外\n", { idPrefix: "x", srcDoc: "s.geml", cutEntry: "ep01/ep01-cut.geml" }, mediaIoFor(root));
-  assert.match(r.clips, /at=59\.000 dur=2/, r.clips);
+  assert.match(r.clips, /at=59\.000 duration=2/, r.clips);
   assert.match(r.notes.join(" "), /主轨之外/);
   rmSync(root, { recursive: true, force: true });
 });
@@ -631,6 +632,54 @@ test("export --to player 与 --to preview 是两件事：成片 vs 联系表", (
   assert.equal(player.includes("<video controls"), false, player.slice(0, 300));
   assert.match(player, /class="geml-transport"/);
   rmSync(root, { recursive: true, force: true });
+});
+
+const doc = (...lines) => lines.join(String.fromCharCode(10)) + String.fromCharCode(10);
+
+test("形状：有体又有 src= 说不清算哪种；两样都没有则什么也不指", () => {
+  const root = project({
+    "cut.geml": META + doc(
+      '==== media {#both tracks="video:video" src=lib.geml#a}', "",
+      "=== media-clip {#c1 track=video src=lib.geml#a in=0 out=2}", "===", "",
+      "====", "",
+      '=== media {#neither tracks="video:video"}', "==="),
+    "lib.geml": META + doc("=== media-asset {#a src=a.mp4 kind=video duration=9}", "==="),
+  });
+  const c = codes(checkMedia("cut.geml", mediaIoFor(root)));
+  assert.ok(c.includes("media-shape-ambiguous"), c.join(","));
+  assert.ok(c.includes("media-shape-empty"), c.join(","));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("不在任何 media 里的片段被点名 —— 它不属于任何一条时间线", () => {
+  const root = project({
+    "cut.geml": META + doc("=== media-clip {#loose track=video src=lib.geml#a in=0 out=2}", "==="),
+    "lib.geml": META + doc("=== media-asset {#a src=a.mp4 kind=video duration=9}", "==="),
+  });
+  const c = codes(checkMedia("cut.geml", mediaIoFor(root)));
+  assert.ok(c.includes("media-clip-unassembled"), c.join(","));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("一份文档装两条时间线，各按各的轨道表算", () => {
+  const root = fixture();
+  const extra = read(join(root, "ep01/ep01-cut.geml"), "utf8").trimEnd() + doc("", "",
+    '==== media {#teaser tracks="video:video"}', "",
+    "=== media-clip {#t1 track=video src=ep01-library.geml#s01-take3 in=0 out=2}", "===", "",
+    "====");
+  const all = layoutsOf(parse(extra), { durationOf: () => undefined });
+  assert.deepEqual(all.map((t) => t.id), ["ep01", "teaser"]);
+  assert.equal(all[1].duration, 2);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("单源 media：无体加 src=，就是只有一个片段的时间线", () => {
+  const src = META + doc("=== media {#one src=ep01-library.geml#s01-take3 in=1 out=3}", "===");
+  const tl = layout(src, { durationOf: () => 9, kindOf: () => "video" });
+  assert.equal(tl.clips.length, 1);
+  assert.equal(tl.duration, 2);
+  assert.equal(tl.clips[0].in, 1);
+  assert.equal(tl.clips[0].kind, "video", "种类从被引素材来，不在 media 上重说");
 });
 
 console.log(String.fromCharCode(10) + passed + " passed");

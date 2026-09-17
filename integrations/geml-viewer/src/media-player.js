@@ -60,20 +60,6 @@ const dbToGain = (v) => {
   return m === null ? 1 : Math.min(1, Math.pow(10, Number(m[1]) / 20));
 };
 
-function blockByType(doc, type) {
-  for (const b of (doc && doc.children) || []) if (b.kind === "block" && b.type === type) return b;
-  return null;
-}
-
-function metaOf(entries, key) {
-  for (const e of entries) {
-    const m = blockByType(e.doc, "meta");
-    if (m && m.attrs && m.attrs[key] !== undefined) return m.attrs[key];
-    if (m && m.data && m.data[key] !== undefined) return m.data[key];
-  }
-  return undefined;
-}
-
 /** 块的可读文字。散文块是若干段落，`raw` 体就是它的正文行 —— 两种都取字面。 */
 function textOf(block, ctx) {
   const out = [];
@@ -128,7 +114,9 @@ export function player(block, params, ctx) {
 
   const stage = dom.createElement("div");
   stage.className = "geml-stage";
-  const aspect = (params && params.aspect) || metaOf(entries, "aspect");
+  // 画面比例是**呈现**，只从样式表来（`component=player aspect=9:16`）。内容文档里
+  // 没有它：一条时间线是什么，不取决于要把它摆成竖屏还是横屏。
+  const aspect = params && params.aspect;
   if (typeof aspect === "string" && /^\d+:\d+$/.test(aspect)) stage.style.aspectRatio = aspect.replace(":", " / ");
 
   // 一个片段一个媒体元素。片段少的时候这最简单，也最诚实：每个 <video> 就是那一刀，
@@ -159,7 +147,7 @@ export function player(block, params, ctx) {
       media.setAttribute("muted", "");
       media.style.zIndex = String(zOf(c.track));
     }
-    for (const k of ["transition-in", "transition-out", "transition-dur", "fade-in", "fade-out", "xywh"]) {
+    for (const k of ["transition-in", "transition-out", "transition-duration", "fade-in", "fade-out", "xywh"]) {
       if (c.attrs[k] !== undefined) media.setAttribute("data-" + k, c.attrs[k]);
     }
     stage.appendChild(media);

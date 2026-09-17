@@ -24,7 +24,11 @@ export type MediaDiagnosticCode =
   | "media-file-missing"
   | "media-hash-mismatch"
   | "media-asset-unhashed"
-  | "media-dur-required"
+  // 形状：有体＝装配，无体加 src=＝单源。两样都占或两样都没有，就说不清它是哪种。
+  | "media-shape-ambiguous"
+  | "media-shape-empty"
+  | "media-clip-unassembled"
+  | "media-duration-required"
   | "media-track-missing"
   | "media-track-undeclared"
   | "media-track-kind-missing"
@@ -48,7 +52,10 @@ export const MEDIA_SEVERITY: Record<MediaDiagnosticCode, MediaSeverity> = {
   // 结构：引用断了、类型对不上、必填的没填
   "media-src-unresolved": "error",
   "media-src-not-asset": "error",
-  "media-dur-required": "error",
+  "media-shape-ambiguous": "error",
+  "media-shape-empty": "error",
+  "media-clip-unassembled": "error",
+  "media-duration-required": "error",
   "media-track-missing": "error",
   "media-track-kind-missing": "error",
   "media-track-kind-unknown": "error",

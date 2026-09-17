@@ -37,7 +37,7 @@ export function drivePlayer(root: any): void {
         const want = inPt + (t - start);
         if (Math.abs(el.currentTime - want) > 0.15) { try { el.currentTime = want; } catch (e) { /* 还没 loadedmetadata */ } }
         // 转场只有淡入淡出会动不透明度；cut 什么都不做。
-        const td = num(el, "data-transition-dur", 0.3);
+        const td = num(el, "data-transition-duration", 0.3);
         const ti = el.getAttribute("data-transition-in"), to = el.getAttribute("data-transition-out");
         let o = 1;
         if ((ti === "dissolve" || ti === "fade") && t - start < td) o = (t - start) / td;

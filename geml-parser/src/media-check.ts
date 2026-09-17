@@ -22,7 +22,7 @@ export interface MediaIO {
 
 /** 轨道的种类（profile §3.1）。说的是内容是什么、住在哪，不是画在哪。 */
 const TRACK_KINDS = new Set(["video", "audio", "prose"]);
-/** 有固有时长的素材种类；其余（静图、模型、其它）在时间线上要 `dur`。 */
+/** 有固有时长的素材种类；其余（静图、模型、其它）在时间线上要 `duration`。 */
 const TIMED_KINDS = new Set(["video", "audio"]);
 
 export interface Loaded { rel: string; doc: Document; meta: Map<string, string> }
@@ -106,7 +106,7 @@ function proseText(
   return render(para.inlines);
 }
 
-/** 把 `meta.tracks` 的「名字:种类」读成一张表，顺带报它自己的毛病。 */
+/** 把一条时间线的 `tracks=` 的「名字:种类」读成一张表，顺带报它自己的毛病。 */
 function trackKinds(m: Map<string, string>, rel: string, out: MediaDiagnostic[]): Map<string, string> {
   const kinds = new Map<string, string>();
   const decl = (m.get("tracks") ?? "").trim();
@@ -115,7 +115,7 @@ function trackKinds(m: Map<string, string>, rel: string, out: MediaDiagnostic[])
     const colon = entry.indexOf(":");
     if (colon < 0) {
       out.push(mediaDiag("media-track-kind-missing",
-        `\`meta.tracks\` 里的 \`${entry}\` 只有名字没有种类；写成 \`${entry}:video\`（种类是 video / audio / prose）`, rel));
+        `\`tracks=\` 里的 \`${entry}\` 只有名字没有种类；写成 \`${entry}:video\`（种类是 video / audio / prose）`, rel));
       continue;
     }
     const [name, kind] = [entry.slice(0, colon), entry.slice(colon + 1)];
@@ -242,17 +242,46 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
     const l = docs.get(rel);
     if (l === null || l === undefined) continue;
     const clips = blocksOf(l.doc).filter((b) => b.type === "media-clip");
+    // 轨道表属于**所属的 `media` 块**，不属于文档：一份文档能装好几条时间线，各有
+    // 各的轨。每块只验一次并记下来 —— 轨道表自己的毛病（少种类、种类不认得）跟有没有
+    // 片段用它无关，而逐片段重算会把同一条诊断报很多遍。
+    const byOwner = new Map<string, Map<string, string>>();
+    for (const m of blocksOf(l.doc)) {
+      if (m.type !== "media") continue;
+      const cfg = new Map(Object.entries(m.attrs).map(([k, v]) => [k, String(v)]));
+      const inner = blocksOf({ children: m.children ?? [] } as never).filter((c) => c.type === "media-clip");
+      // 形状：有体＝装配，无体加 `src=`＝单源。两样都占，就说不清该按哪种算；两样
+      // 都没有，它什么也不是 —— 与其让它默默摆出一条空时间线，不如当场说。
+      if (inner.length > 0 && cfg.has("src")) {
+        out.push(mediaDiag("media-shape-ambiguous",
+          "`media` 既有体又有 `src=`：有体是装配（片段说了算），无体加 `src=` 是单源，二选一", rel, m.id));
+      } else if (inner.length === 0 && !cfg.has("src")) {
+        out.push(mediaDiag("media-shape-empty",
+          "`media` 既没有片段也没有 `src=`，它不指向任何可播的东西", rel, m.id));
+      }
+      const kinds = trackKinds(cfg, rel, out);
+      for (const c of inner) if (c.id !== undefined) byOwner.set(c.id, kinds);
+    }
+    // 不在任何 `media` 体内的片段：没有轨道表可依，也不属于任何一条时间线。
+    for (const b of clips) {
+      if (b.id === undefined || !byOwner.has(b.id)) {
+        out.push(mediaDiag("media-clip-unassembled",
+          "`media-clip` 不在任何 `media` 块里 —— 它不属于任何一条时间线", rel, b.id));
+      }
+    }
     if (clips.length === 0) continue;
-    const kinds = trackKinds(l.meta, rel, out);
+    const EMPTY = new Map<string, string>();
+    const kindsFor = (id: string | undefined): Map<string, string> =>
+      (id === undefined ? undefined : byOwner.get(id)) ?? EMPTY;
     for (const b of clips) {
       const track = str(b.attrs["track"]);
       let kind: string | undefined;
       if (track === undefined || track === "") {
         out.push(mediaDiag("media-track-missing", "`media-clip` 没有 `track=`", rel, b.id));
-      } else if (!kinds.has(track)) {
-        out.push(mediaDiag("media-track-undeclared", `\`track=${track}\` 不在 \`meta.tracks\` 里`, rel, b.id));
+      } else if (!kindsFor(b.id).has(track)) {
+        out.push(mediaDiag("media-track-undeclared", `\`track=${track}\` 不在这条时间线的 \`tracks=\` 里`, rel, b.id));
       } else {
-        kind = kinds.get(track);
+        kind = kindsFor(b.id).get(track);
       }
       const src = str(b.attrs["src"]);
       if (src === undefined || src === "") { out.push(mediaDiag("media-src-unresolved", "`media-clip` 没有 `src=`", rel, b.id)); continue; }
@@ -262,8 +291,8 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
       if (kind === "prose") {
         if (target.type !== "media-text") {
           out.push(mediaDiag("media-src-not-asset", `轨道 \`${track}\` 的种类是 prose，\`src\` 必须指 \`media-text\`，实际是 \`${target.type}\``, rel, b.id));
-        } else if (str(b.attrs["dur"]) === undefined) {
-          out.push(mediaDiag("media-dur-required", "散文没有固有时长，这一刀要写 `dur=`", rel, b.id));
+        } else if (str(b.attrs["duration"]) === undefined) {
+          out.push(mediaDiag("media-duration-required", "散文没有固有时长，这一刀要写 `duration=`", rel, b.id));
         }
       } else if (kind !== undefined) {
         if (target.type !== "media-asset") {
@@ -271,8 +300,8 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
         } else {
           const akind = str(target.attrs["kind"]);
           const timed = akind !== undefined && TIMED_KINDS.has(akind) && str(target.attrs["duration"]) !== undefined;
-          if (!timed && str(b.attrs["dur"]) === undefined) {
-            out.push(mediaDiag("media-dur-required", "源没有固有时长（静图，或没写 `duration=` 的音视频），这一刀要写 `dur=`", rel, b.id));
+          if (!timed && str(b.attrs["duration"]) === undefined) {
+            out.push(mediaDiag("media-duration-required", "源没有固有时长（静图，或没写 `duration=` 的音视频），这一刀要写 `duration=`", rel, b.id));
           }
         }
       }

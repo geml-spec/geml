@@ -12,23 +12,23 @@ function test(name, fn) { fn(); passed++; console.log("ok", name); }
 const CUT = `=== meta
 title = "T"
 profile = "geml-media/v1"
-fps = 24
-tracks = "video:video dialogue:audio subtitle:prose"
-primary = "video"
-aspect = "9:16"
 ===
+
+==== media {#tl tracks="video:video dialogue:audio subtitle:prose" primary=video fps=24}
 
 === media-clip {#c01 track=video src=lib.geml#a1 in=0 out=4}
 ===
 
-=== media-clip {#c02 track=video src=lib.geml#a2 in=1 out=7 transition-in=dissolve transition-dur=0.5}
+=== media-clip {#c02 track=video src=lib.geml#a2 in=1 out=7 transition-in=dissolve transition-duration=0.5}
 ===
 
 === media-clip {#vo track=dialogue src=lib.geml#v1 over=#c02 offset=0.4 gain=-6dB}
 ===
 
-=== media-clip {#sub track=subtitle src=script.geml#l1 over=#c02 offset=0.4 dur=2.1}
+=== media-clip {#sub track=subtitle src=script.geml#l1 over=#c02 offset=0.4 duration=2.1}
 ===
+
+====
 `;
 const LIB = `=== meta
 profile = "geml-media/v1"
@@ -52,7 +52,7 @@ profile = "geml-media/v1"
 ===
 `;
 
-function build() {
+function build(params = {}) {
   const { document } = parseHTML("<!doctype html><html><head></head><body></body></html>");
   const cut = parse(CUT);
   const corpus = [
@@ -61,7 +61,7 @@ function build() {
     { path: "ep01/script.geml", doc: parse(SCRIPT) },
   ];
   const ctx = { dom: document, corpus, renderBlock, labels: collectLabels(cut.children), byId: new Map() };
-  return { el: player(null, {}, ctx), document };
+  return { el: player(null, params, ctx), document };
 }
 
 test("一个片段一个媒体元素，画面轨是 video、声音轨是 audio，散文轨不进舞台", () => {
@@ -105,16 +105,17 @@ test("散文轨成了字幕表，文字取自被引的块而不是它的类型�
   assert.deepEqual(cues, [{ start: 3.9, end: 6, text: "姐……你怎么会……" }]);
 });
 
-test("画面比例从 meta 的 aspect 来，竖屏就是竖屏", () => {
-  const { el } = build();
-  assert.equal(el.querySelector(".geml-stage").style.aspectRatio, "9 / 16");
+test("画面比例只从样式表来 —— 内容文档不决定摆成竖屏还是横屏", () => {
+  assert.equal(build({ aspect: "9:16" }).el.querySelector(".geml-stage").style.aspectRatio, "9 / 16");
+  // 样式表没说就不设，交给 CSS 的缺省，而不是让内容文档偷偷决定。
+  assert.equal(build().el.querySelector(".geml-stage").style.aspectRatio, "");
 });
 
 test("转场带到元素上，时钟才知道要不要淡", () => {
   const { el } = build();
   const c02 = el.querySelector('[data-clip="c02"]');
   assert.equal(c02.getAttribute("data-transition-in"), "dissolve");
-  assert.equal(c02.getAttribute("data-transition-dur"), "0.5");
+  assert.equal(c02.getAttribute("data-transition-duration"), "0.5");
 });
 
 test("没有时间线时说出来，不给一个空播放器", () => {
