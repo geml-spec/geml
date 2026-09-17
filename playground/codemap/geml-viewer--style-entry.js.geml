@@ -8,22 +8,22 @@ resolution-default = cpg
 
 # geml-viewer/style-entry.js
 
-=== code {#entryUrlFor .leaf src=integrations/geml-viewer/src/style-entry.js#L14-16 anchor="scip-typescript npm geml-viewer 1.3.1 src/`style-entry.js`/entryUrlFor()."}
+=== code {#entryUrlFor .leaf src=integrations/geml-viewer/src/style-entry.js#L14-16 anchor="scip-typescript npm geml-viewer 1.3.2 src/`style-entry.js`/entryUrlFor()."}
 ===
 
-=== code {#isStyleEntry src=integrations/geml-viewer/src/style-entry.js#L19-23 anchor="scip-typescript npm geml-viewer 1.3.1 src/`style-entry.js`/isStyleEntry()."}
+=== code {#isStyleEntry src=integrations/geml-viewer/src/style-entry.js#L19-23 anchor="scip-typescript npm geml-viewer 1.3.2 src/`style-entry.js`/isStyleEntry()."}
 ===
 
-=== code {#referencedDocs src=integrations/geml-viewer/src/style-entry.js#L26-51 anchor="scip-typescript npm geml-viewer 1.3.1 src/`style-entry.js`/referencedDocs()."}
+=== code {#referencedDocs src=integrations/geml-viewer/src/style-entry.js#L26-51 anchor="scip-typescript npm geml-viewer 1.3.2 src/`style-entry.js`/referencedDocs()."}
 ===
 
-=== code {#producersOf src=integrations/geml-viewer/src/style-entry.js#L58-70 anchor="scip-typescript npm geml-viewer 1.3.1 src/`style-entry.js`/producersOf()."}
+=== code {#producersOf src=integrations/geml-viewer/src/style-entry.js#L58-70 anchor="scip-typescript npm geml-viewer 1.3.2 src/`style-entry.js`/producersOf()."}
 ===
 
-=== code {#borrowedDocs src=integrations/geml-viewer/src/style-entry.js#L84-107 anchor="scip-typescript npm geml-viewer 1.3.1 src/`style-entry.js`/borrowedDocs()."}
+=== code {#borrowedDocs src=integrations/geml-viewer/src/style-entry.js#L84-107 anchor="scip-typescript npm geml-viewer 1.3.2 src/`style-entry.js`/borrowedDocs()."}
 ===
 
-=== code {#loadPageStyle src=integrations/geml-viewer/src/style-entry.js#L113-159 anchor="scip-typescript npm geml-viewer 1.3.1 src/`style-entry.js`/loadPageStyle()."}
+=== code {#loadPageStyle src=integrations/geml-viewer/src/style-entry.js#L113-159 anchor="scip-typescript npm geml-viewer 1.3.2 src/`style-entry.js`/loadPageStyle()."}
 ===
 
 === table {#calls format=csv}

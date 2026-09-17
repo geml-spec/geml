@@ -8,40 +8,40 @@ resolution-default = cpg
 
 # geml-viewer/layout.js
 
-=== code {#whenSelector src=integrations/geml-viewer/src/layout.js#L26-34 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/whenSelector()."}
+=== code {#whenSelector src=integrations/geml-viewer/src/layout.js#L26-34 anchor="scip-typescript npm geml-viewer 1.3.2 src/`layout.js`/whenSelector()."}
 ===
 
-=== code {#faceOf .leaf src=integrations/geml-viewer/src/layout.js#L37-40 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/faceOf()."}
+=== code {#faceOf .leaf src=integrations/geml-viewer/src/layout.js#L37-40 anchor="scip-typescript npm geml-viewer 1.3.2 src/`layout.js`/faceOf()."}
 ===
 
-=== code {#facesOf src=integrations/geml-viewer/src/layout.js#L43-47 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/facesOf()."}
+=== code {#facesOf src=integrations/geml-viewer/src/layout.js#L43-47 anchor="scip-typescript npm geml-viewer 1.3.2 src/`layout.js`/facesOf()."}
 ===
 
-=== code {#safeCssValue src=integrations/geml-viewer/src/layout.js#L57-61 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/safeCssValue()."}
+=== code {#safeCssValue src=integrations/geml-viewer/src/layout.js#L57-61 anchor="scip-typescript npm geml-viewer 1.3.2 src/`layout.js`/safeCssValue()."}
 ===
 
-=== code {#classFor src=integrations/geml-viewer/src/layout.js#L63-65 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/classFor()."}
+=== code {#classFor src=integrations/geml-viewer/src/layout.js#L63-65 anchor="scip-typescript npm geml-viewer 1.3.2 src/`layout.js`/classFor()."}
 ===
 
-=== code {#frameClassFor src=integrations/geml-viewer/src/layout.js#L68-70 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/frameClassFor()."}
+=== code {#frameClassFor src=integrations/geml-viewer/src/layout.js#L68-70 anchor="scip-typescript npm geml-viewer 1.3.2 src/`layout.js`/frameClassFor()."}
 ===
 
-=== code {#stateClass src=integrations/geml-viewer/src/layout.js#L72-74 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/stateClass()."}
+=== code {#stateClass src=integrations/geml-viewer/src/layout.js#L72-74 anchor="scip-typescript npm geml-viewer 1.3.2 src/`layout.js`/stateClass()."}
 ===
 
-=== code {#declarations src=integrations/geml-viewer/src/layout.js#L122-164 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/declarations()."}
+=== code {#declarations src=integrations/geml-viewer/src/layout.js#L122-164 anchor="scip-typescript npm geml-viewer 1.3.2 src/`layout.js`/declarations()."}
 ===
 
-=== code {#cssForPage src=integrations/geml-viewer/src/layout.js#L167-241 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/cssForPage()."}
+=== code {#cssForPage src=integrations/geml-viewer/src/layout.js#L167-241 anchor="scip-typescript npm geml-viewer 1.3.2 src/`layout.js`/cssForPage()."}
 ===
 
-=== code {#nodesByAddress src=integrations/geml-viewer/src/layout.js#L247-259 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/nodesByAddress()."}
+=== code {#nodesByAddress src=integrations/geml-viewer/src/layout.js#L247-259 anchor="scip-typescript npm geml-viewer 1.3.2 src/`layout.js`/nodesByAddress()."}
 ===
 
-=== code {#at .leaf src=integrations/geml-viewer/src/layout.js#L262-262 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/at."}
+=== code {#at .leaf src=integrations/geml-viewer/src/layout.js#L262-262 anchor="scip-typescript npm geml-viewer 1.3.2 src/`layout.js`/at."}
 ===
 
-=== code {#renderPage src=integrations/geml-viewer/src/layout.js#L277-542 anchor="scip-typescript npm geml-viewer 1.3.1 src/`layout.js`/renderPage()."}
+=== code {#renderPage src=integrations/geml-viewer/src/layout.js#L277-542 anchor="scip-typescript npm geml-viewer 1.3.2 src/`layout.js`/renderPage()."}
 ===
 
 === table {#calls format=csv}

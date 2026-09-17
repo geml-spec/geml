@@ -8,31 +8,34 @@ resolution-default = cpg
 
 # geml-parser/media-diagnostics.ts
 
-=== code {#mediaDiag .leaf src=geml-parser/src/media-diagnostics.ts#L83-87 anchor="scip-typescript npm @geml/geml 1.10.3 src/`media-diagnostics.ts`/mediaDiag()."}
+=== code {#mediaDiag .leaf src=geml-parser/src/media-diagnostics.ts#L90-94 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-diagnostics.ts`/mediaDiag()."}
 ===
 
 === table {#called-by format=csv}
 from,                                        to,         kind, site
-geml-parser--media-check.ts.geml#trackKinds, #mediaDiag, call, geml-parser/src/media-check.ts:117
-geml-parser--media-check.ts.geml#trackKinds, #mediaDiag, call, geml-parser/src/media-check.ts:123
-geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:213
+geml-parser--media-check.ts.geml#trackKinds, #mediaDiag, call, geml-parser/src/media-check.ts:113
+geml-parser--media-check.ts.geml#trackKinds, #mediaDiag, call, geml-parser/src/media-check.ts:119
+geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:209
+geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:216
+geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:218
 geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:220
-geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:222
-geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:224
-geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:229
-geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:235
-geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:251
-geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:253
-geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:258
-geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:261
+geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:225
+geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:231
+geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:252
+geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:255
 geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:264
-geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:266
-geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:270
-geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:275
+geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:276
+geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:278
+geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:283
+geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:286
 geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:289
+geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:291
 geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:295
-geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:326
-geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:357
-geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:413
-geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:429
+geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:300
+geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:314
+geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:320
+geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:351
+geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:382
+geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:438
+geml-parser--media-check.ts.geml#checkMedia, #mediaDiag, call, geml-parser/src/media-check.ts:454
 ===

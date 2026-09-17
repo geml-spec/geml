@@ -8,184 +8,184 @@ resolution-default = cpg
 
 # geml-parser/verbs.ts
 
-=== code {#VerbError-new .leaf name="VerbError.new" src=geml-parser/src/verbs.ts#L57-59 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/VerbError#`<constructor>`()."}
+=== code {#VerbError-new .leaf name="VerbError.new" src=geml-parser/src/verbs.ts#L57-59 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/VerbError#`<constructor>`()."}
 ===
 
-=== code {#ViewError-new .leaf name="ViewError.new" src=geml-parser/src/verbs.ts#L67-67 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/ViewError#`<constructor>`()."}
+=== code {#ViewError-new .leaf name="ViewError.new" src=geml-parser/src/verbs.ts#L67-67 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/ViewError#`<constructor>`()."}
 ===
 
-=== code {#FileAccess-readConfined .leaf name="FileAccess.readConfined" src=geml-parser/src/verbs.ts#L84-84 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/FileAccess#readConfined()."}
+=== code {#FileAccess-readConfined .leaf name="FileAccess.readConfined" src=geml-parser/src/verbs.ts#L84-84 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/FileAccess#readConfined()."}
 ===
 
-=== code {#FileAccess-shownPath .leaf name="FileAccess.shownPath" src=geml-parser/src/verbs.ts#L86-86 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/FileAccess#shownPath()."}
+=== code {#FileAccess-shownPath .leaf name="FileAccess.shownPath" src=geml-parser/src/verbs.ts#L86-86 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/FileAccess#shownPath()."}
 ===
 
-=== code {#VerbContext-docOpts .leaf name="VerbContext.docOpts" src=geml-parser/src/verbs.ts#L91-91 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/VerbContext#docOpts()."}
+=== code {#VerbContext-docOpts .leaf name="VerbContext.docOpts" src=geml-parser/src/verbs.ts#L91-91 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/VerbContext#docOpts()."}
 ===
 
-=== code {#VerbContext-note .leaf name="VerbContext.note" src=geml-parser/src/verbs.ts#L93-93 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/VerbContext#note()."}
+=== code {#VerbContext-note .leaf name="VerbContext.note" src=geml-parser/src/verbs.ts#L93-93 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/VerbContext#note()."}
 ===
 
-=== code {#HistoryReader-resolve .leaf name="HistoryReader.resolve" src=geml-parser/src/verbs.ts#L108-108 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/HistoryReader#resolve()."}
+=== code {#HistoryReader-resolve .leaf name="HistoryReader.resolve" src=geml-parser/src/verbs.ts#L108-108 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/HistoryReader#resolve()."}
 ===
 
-=== code {#HistoryReader-firstChanged .leaf name="HistoryReader.firstChanged" src=geml-parser/src/verbs.ts#L109-109 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/HistoryReader#firstChanged()."}
+=== code {#HistoryReader-firstChanged .leaf name="HistoryReader.firstChanged" src=geml-parser/src/verbs.ts#L109-109 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/HistoryReader#firstChanged()."}
 ===
 
-=== code {#fail src=geml-parser/src/verbs.ts#L112-112 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/fail()."}
+=== code {#fail src=geml-parser/src/verbs.ts#L112-112 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/fail()."}
 ===
 
-=== code {#refuseBroken src=geml-parser/src/verbs.ts#L113-113 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/refuseBroken()."}
+=== code {#refuseBroken src=geml-parser/src/verbs.ts#L113-113 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/refuseBroken()."}
 ===
 
-=== code {#baseName src=geml-parser/src/verbs.ts#L118-121 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/baseName()."}
+=== code {#baseName src=geml-parser/src/verbs.ts#L118-121 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/baseName()."}
 ===
 
-=== code {#selfOf src=geml-parser/src/verbs.ts#L122-122 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/selfOf."}
+=== code {#selfOf src=geml-parser/src/verbs.ts#L122-122 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/selfOf."}
 ===
 
-=== code {#whereOf .leaf src=geml-parser/src/verbs.ts#L123-123 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/whereOf."}
+=== code {#whereOf .leaf src=geml-parser/src/verbs.ts#L123-123 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/whereOf."}
 ===
 
-=== code {#filesOf src=geml-parser/src/verbs.ts#L142-148 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/filesOf()."}
+=== code {#filesOf src=geml-parser/src/verbs.ts#L142-148 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/filesOf()."}
 ===
 
-=== code {#oneHop src=geml-parser/src/verbs.ts#L152-185 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/oneHop()."}
+=== code {#oneHop src=geml-parser/src/verbs.ts#L152-185 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/oneHop()."}
 ===
 
-=== code {#viewResolve src=geml-parser/src/verbs.ts#L187-214 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/viewResolve()."}
+=== code {#viewResolve src=geml-parser/src/verbs.ts#L187-214 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/viewResolve()."}
 ===
 
-=== code {#embedSrcOf src=geml-parser/src/verbs.ts#L218-223 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/embedSrcOf()."}
+=== code {#embedSrcOf src=geml-parser/src/verbs.ts#L218-223 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/embedSrcOf()."}
 ===
 
-=== code {#resolveSelector src=geml-parser/src/verbs.ts#L250-289 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/resolveSelector()."}
+=== code {#resolveSelector src=geml-parser/src/verbs.ts#L250-289 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/resolveSelector()."}
 ===
 
-=== code {#columns src=geml-parser/src/verbs.ts#L298-314 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/columns()."}
+=== code {#columns src=geml-parser/src/verbs.ts#L298-314 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/columns()."}
 ===
 
-=== code {#pad src=geml-parser/src/verbs.ts#L315-317 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/pad()."}
+=== code {#pad src=geml-parser/src/verbs.ts#L315-317 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/pad()."}
 ===
 
-=== code {#list src=geml-parser/src/verbs.ts#L326-393 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/list()."}
+=== code {#list src=geml-parser/src/verbs.ts#L326-393 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/list()."}
 ===
 
-=== code {#blocksOfType src=geml-parser/src/verbs.ts#L399-411 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/blocksOfType()."}
+=== code {#blocksOfType src=geml-parser/src/verbs.ts#L399-411 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/blocksOfType()."}
 ===
 
-=== code {#typeIndex src=geml-parser/src/verbs.ts#L414-416 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/typeIndex()."}
+=== code {#typeIndex src=geml-parser/src/verbs.ts#L414-416 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/typeIndex()."}
 ===
 
-=== code {#selectUnits src=geml-parser/src/verbs.ts#L424-510 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/selectUnits()."}
+=== code {#selectUnits src=geml-parser/src/verbs.ts#L424-510 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/selectUnits()."}
 ===
 
-=== code {#reservedMeta src=geml-parser/src/verbs.ts#L517-524 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/reservedMeta()."}
+=== code {#reservedMeta src=geml-parser/src/verbs.ts#L517-524 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/reservedMeta()."}
 ===
 
-=== code {#unitNode src=geml-parser/src/verbs.ts#L529-542 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/unitNode()."}
+=== code {#unitNode src=geml-parser/src/verbs.ts#L529-542 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/unitNode()."}
 ===
 
-=== code {#reportMatches src=geml-parser/src/verbs.ts#L546-549 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/reportMatches()."}
+=== code {#reportMatches src=geml-parser/src/verbs.ts#L546-549 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/reportMatches()."}
 ===
 
-=== code {#get src=geml-parser/src/verbs.ts#L571-662 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/get()."}
+=== code {#get src=geml-parser/src/verbs.ts#L571-662 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/get()."}
 ===
 
-=== code {#findInSource src=geml-parser/src/verbs.ts#L675-709 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/findInSource()."}
+=== code {#findInSource src=geml-parser/src/verbs.ts#L675-709 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/findInSource()."}
 ===
 
-=== code {#formatFindRows src=geml-parser/src/verbs.ts#L712-722 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/formatFindRows()."}
+=== code {#formatFindRows src=geml-parser/src/verbs.ts#L712-722 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/formatFindRows()."}
 ===
 
-=== code {#check src=geml-parser/src/verbs.ts#L729-731 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/check()."}
+=== code {#check src=geml-parser/src/verbs.ts#L729-731 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/check()."}
 ===
 
-=== code {#loadModelJson src=geml-parser/src/verbs.ts#L762-776 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/loadModelJson()."}
+=== code {#loadModelJson src=geml-parser/src/verbs.ts#L762-776 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/loadModelJson()."}
 ===
 
-=== code {#transform src=geml-parser/src/verbs.ts#L783-895 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/transform()."}
+=== code {#transform src=geml-parser/src/verbs.ts#L783-895 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/transform()."}
 ===
 
-=== code {#replace src=geml-parser/src/verbs.ts#L906-995 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/replace()."}
+=== code {#replace src=geml-parser/src/verbs.ts#L906-995 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/replace()."}
 ===
 
-=== code {#extractBlock src=geml-parser/src/verbs.ts#L1016-1028 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/extractBlock()."}
+=== code {#extractBlock src=geml-parser/src/verbs.ts#L1016-1028 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/extractBlock()."}
 ===
 
-=== code {#contentText .leaf src=geml-parser/src/verbs.ts#L1031-1033 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/contentText()."}
+=== code {#contentText .leaf src=geml-parser/src/verbs.ts#L1031-1033 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/contentText()."}
 ===
 
-=== code {#resolveSetTarget src=geml-parser/src/verbs.ts#L1043-1063 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/resolveSetTarget()."}
+=== code {#resolveSetTarget src=geml-parser/src/verbs.ts#L1043-1063 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/resolveSetTarget()."}
 ===
 
-=== code {#reportNewAddress src=geml-parser/src/verbs.ts#L1068-1072 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/reportNewAddress()."}
+=== code {#reportNewAddress src=geml-parser/src/verbs.ts#L1068-1072 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/reportNewAddress()."}
 ===
 
-=== code {#set src=geml-parser/src/verbs.ts#L1092-1155 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/set()."}
+=== code {#set src=geml-parser/src/verbs.ts#L1092-1155 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/set()."}
 ===
 
-=== code {#setIntro src=geml-parser/src/verbs.ts#L1164-1188 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/setIntro()."}
+=== code {#setIntro src=geml-parser/src/verbs.ts#L1164-1188 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/setIntro()."}
 ===
 
-=== code {#setBody src=geml-parser/src/verbs.ts#L1194-1225 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/setBody()."}
+=== code {#setBody src=geml-parser/src/verbs.ts#L1194-1225 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/setBody()."}
 ===
 
-=== code {#setMeta src=geml-parser/src/verbs.ts#L1235-1279 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/setMeta()."}
+=== code {#setMeta src=geml-parser/src/verbs.ts#L1235-1279 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/setMeta()."}
 ===
 
-=== code {#setCoord src=geml-parser/src/verbs.ts#L1285-1325 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/setCoord()."}
+=== code {#setCoord src=geml-parser/src/verbs.ts#L1285-1325 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/setCoord()."}
 ===
 
-=== code {#add src=geml-parser/src/verbs.ts#L1345-1373 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/add()."}
+=== code {#add src=geml-parser/src/verbs.ts#L1345-1373 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/add()."}
 ===
 
-=== code {#insertFragment src=geml-parser/src/verbs.ts#L1380-1408 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/insertFragment()."}
+=== code {#insertFragment src=geml-parser/src/verbs.ts#L1380-1408 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/insertFragment()."}
 ===
 
-=== code {#del src=geml-parser/src/verbs.ts#L1425-1446 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/del()."}
+=== code {#del src=geml-parser/src/verbs.ts#L1425-1446 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/del()."}
 ===
 
-=== code {#rename src=geml-parser/src/verbs.ts#L1468-1499 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/rename()."}
+=== code {#rename src=geml-parser/src/verbs.ts#L1468-1499 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/rename()."}
 ===
 
-=== code {#rewriteId src=geml-parser/src/verbs.ts#L1509-1528 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/rewriteId()."}
+=== code {#rewriteId src=geml-parser/src/verbs.ts#L1509-1528 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/rewriteId()."}
 ===
 
-=== code {#bodyRange src=geml-parser/src/verbs.ts#L1537-1548 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/bodyRange()."}
+=== code {#bodyRange src=geml-parser/src/verbs.ts#L1537-1548 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/bodyRange()."}
 ===
 
-=== code {#contentShape src=geml-parser/src/verbs.ts#L1554-1565 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/contentShape()."}
+=== code {#contentShape src=geml-parser/src/verbs.ts#L1554-1565 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/contentShape()."}
 ===
 
-=== code {#spliceBlock src=geml-parser/src/verbs.ts#L1573-1577 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/spliceBlock()."}
+=== code {#spliceBlock src=geml-parser/src/verbs.ts#L1573-1577 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/spliceBlock()."}
 ===
 
-=== code {#countBlockUnits src=geml-parser/src/verbs.ts#L1582-1586 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/countBlockUnits()."}
+=== code {#countBlockUnits src=geml-parser/src/verbs.ts#L1582-1586 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/countBlockUnits()."}
 ===
 
-=== code {#forgives src=geml-parser/src/verbs.ts#L1614-1614 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/forgives."}
+=== code {#forgives src=geml-parser/src/verbs.ts#L1614-1614 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/forgives."}
 ===
 
-=== code {#errorKey .leaf src=geml-parser/src/verbs.ts#L1623-1623 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/errorKey."}
+=== code {#errorKey .leaf src=geml-parser/src/verbs.ts#L1623-1623 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/errorKey."}
 ===
 
-=== code {#predated src=geml-parser/src/verbs.ts#L1624-1627 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/predated()."}
+=== code {#predated src=geml-parser/src/verbs.ts#L1624-1627 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/predated()."}
 ===
 
-=== code {#refusalProse src=geml-parser/src/verbs.ts#L1631-1641 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/refusalProse()."}
+=== code {#refusalProse src=geml-parser/src/verbs.ts#L1631-1641 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/refusalProse()."}
 ===
 
-=== code {#errorsAdded src=geml-parser/src/verbs.ts#L1643-1663 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/errorsAdded()."}
+=== code {#errorsAdded src=geml-parser/src/verbs.ts#L1643-1663 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/errorsAdded()."}
 ===
 
-=== code {#spliceSpan src=geml-parser/src/verbs.ts#L1669-1765 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/spliceSpan()."}
+=== code {#spliceSpan src=geml-parser/src/verbs.ts#L1669-1765 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/spliceSpan()."}
 ===
 
-=== code {#revert src=geml-parser/src/verbs.ts#L1798-1925 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/revert()."}
+=== code {#revert src=geml-parser/src/verbs.ts#L1798-1925 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/revert()."}
 ===
 
-=== code {#resurrectPosition src=geml-parser/src/verbs.ts#L1933-1963 anchor="scip-typescript npm @geml/geml 1.10.3 src/`verbs.ts`/resurrectPosition()."}
+=== code {#resurrectPosition src=geml-parser/src/verbs.ts#L1933-1963 anchor="scip-typescript npm @geml/geml 1.11.0 src/`verbs.ts`/resurrectPosition()."}
 ===
 
 === table {#calls format=csv}
@@ -555,7 +555,7 @@ from,               to,                                               kind, conf
 
 === table {#called-by format=csv}
 from,                                      to,                          kind, site
-geml-parser--cli.ts.geml#contentFrom,      #VerbError-new,              call, geml-parser/src/cli.ts:360
+geml-parser--cli.ts.geml#contentFrom,      #VerbError-new,              call, geml-parser/src/cli.ts:377
 #fail,                                     #VerbError-new,              call, geml-parser/src/verbs.ts:112
 #refuseBroken,                             #VerbError-new,              call, geml-parser/src/verbs.ts:113
 #add,                                      #VerbError-new,              call, geml-parser/src/verbs.ts:1356
@@ -569,7 +569,7 @@ geml-parser--host-fs.ts.geml#readConfined, #ViewError-new,              call, ge
 #oneHop,                                   #FileAccess-readConfined,    call, geml-parser/src/verbs.ts:168
 #oneHop,                                   #FileAccess-shownPath,       call, geml-parser/src/verbs.ts:181
 #oneHop,                                   #FileAccess-shownPath,       call, geml-parser/src/verbs.ts:184
-geml-parser--cli.ts.geml#ctxFor,           #VerbContext-docOpts,        call, geml-parser/src/cli.ts:328
+geml-parser--cli.ts.geml#ctxFor,           #VerbContext-docOpts,        call, geml-parser/src/cli.ts:345
 geml-parser--mcp.ts.geml#ctxFor,           #VerbContext-docOpts,        call, geml-parser/src/mcp.ts:185
 #resolveSelector,                          #VerbContext-docOpts,        call, geml-parser/src/verbs.ts:260
 #list,                                     #VerbContext-docOpts,        call, geml-parser/src/verbs.ts:329
@@ -590,7 +590,7 @@ geml-parser--mcp.ts.geml#ctxFor,           #VerbContext-docOpts,        call, ge
 #spliceSpan,                               #VerbContext-docOpts,        call, geml-parser/src/verbs.ts:1708
 #revert,                                   #VerbContext-docOpts,        call, geml-parser/src/verbs.ts:1913
 #revert,                                   #VerbContext-docOpts,        call, geml-parser/src/verbs.ts:1915
-geml-parser--cli.ts.geml#ctxFor,           #VerbContext-note,           call, geml-parser/src/cli.ts:329
+geml-parser--cli.ts.geml#ctxFor,           #VerbContext-note,           call, geml-parser/src/cli.ts:346
 geml-parser--mcp.ts.geml#ctxFor,           #VerbContext-note,           call, geml-parser/src/mcp.ts:188
 #list,                                     #VerbContext-note,           call, geml-parser/src/verbs.ts:368
 #selectUnits,                              #VerbContext-note,           call, geml-parser/src/verbs.ts:507
@@ -604,9 +604,9 @@ geml-parser--mcp.ts.geml#ctxFor,           #VerbContext-note,           call, ge
 #spliceSpan,                               #VerbContext-note,           call, geml-parser/src/verbs.ts:1733
 #spliceSpan,                               #VerbContext-note,           call, geml-parser/src/verbs.ts:1735
 #revert,                                   #VerbContext-note,           call, geml-parser/src/verbs.ts:1887
-geml-parser--cli.ts.geml#runRevert,        #HistoryReader-resolve,      call, geml-parser/src/cli.ts:1210
+geml-parser--cli.ts.geml#runRevert,        #HistoryReader-resolve,      call, geml-parser/src/cli.ts:1276
 #revert,                                   #HistoryReader-resolve,      call, geml-parser/src/verbs.ts:1838
-geml-parser--cli.ts.geml#runRevert,        #HistoryReader-firstChanged, call, geml-parser/src/cli.ts:1211
+geml-parser--cli.ts.geml#runRevert,        #HistoryReader-firstChanged, call, geml-parser/src/cli.ts:1277
 #revert,                                   #HistoryReader-firstChanged, call, geml-parser/src/verbs.ts:1834
 #resolveSelector,                          #fail,                       call, geml-parser/src/verbs.ts:281
 #resolveSelector,                          #fail,                       call, geml-parser/src/verbs.ts:288
@@ -715,12 +715,12 @@ geml-parser--cli.ts.geml#runRevert,        #HistoryReader-firstChanged, call, ge
 #list,                                     #pad,                        call, geml-parser/src/verbs.ts:388
 #list,                                     #pad,                        call, geml-parser/src/verbs.ts:388
 #list,                                     #pad,                        call, geml-parser/src/verbs.ts:388
-geml-parser--cli.ts.geml#runList,          #list,                       call, geml-parser/src/cli.ts:955
-geml-parser--cli.ts.geml#runGet,           #list,                       call, geml-parser/src/cli.ts:1036
+geml-parser--cli.ts.geml#runList,          #list,                       call, geml-parser/src/cli.ts:1021
+geml-parser--cli.ts.geml#runGet,           #list,                       call, geml-parser/src/cli.ts:1102
 geml-parser--mcp-core.ts.geml#toolsFor,    #list,                       call, geml-parser/src/mcp-core.ts:239
 #unitNode,                                 #blocksOfType,               call, geml-parser/src/verbs.ts:539
 #unitNode,                                 #typeIndex,                  call, geml-parser/src/verbs.ts:539
-geml-parser--cli.ts.geml#runHistory,       #selectUnits,                call, geml-parser/src/cli.ts:794
+geml-parser--cli.ts.geml#runHistory,       #selectUnits,                call, geml-parser/src/cli.ts:860
 #oneHop,                                   #selectUnits,                call, geml-parser/src/verbs.ts:183
 #get,                                      #selectUnits,                call, geml-parser/src/verbs.ts:592
 #transform,                                #selectUnits,                call, geml-parser/src/verbs.ts:873
@@ -729,23 +729,23 @@ geml-parser--cli.ts.geml#runHistory,       #selectUnits,                call, ge
 #setCoord,                                 #selectUnits,                call, geml-parser/src/verbs.ts:1298
 #get,                                      #reservedMeta,               call, geml-parser/src/verbs.ts:580
 #set,                                      #reservedMeta,               call, geml-parser/src/verbs.ts:1104
-geml-parser--cli.ts.geml#runHistory,       #unitNode,                   call, geml-parser/src/cli.ts:798
+geml-parser--cli.ts.geml#runHistory,       #unitNode,                   call, geml-parser/src/cli.ts:864
 #get,                                      #unitNode,                   call, geml-parser/src/verbs.ts:612
 #get,                                      #unitNode,                   call, geml-parser/src/verbs.ts:621
 #get,                                      #unitNode,                   call, geml-parser/src/verbs.ts:623
 #setCoord,                                 #unitNode,                   call, geml-parser/src/verbs.ts:1300
-geml-parser--cli.ts.geml#runHistory,       #reportMatches,              call, geml-parser/src/cli.ts:801
+geml-parser--cli.ts.geml#runHistory,       #reportMatches,              call, geml-parser/src/cli.ts:867
 #get,                                      #reportMatches,              call, geml-parser/src/verbs.ts:637
-geml-parser--cli.ts.geml#runGet,           #get,                        call, geml-parser/src/cli.ts:1039
+geml-parser--cli.ts.geml#runGet,           #get,                        call, geml-parser/src/cli.ts:1105
 geml-parser--mcp-core.ts.geml#toolsFor,    #get,                        call, geml-parser/src/mcp-core.ts:296
-geml-parser--cli.ts.geml#runFind,          #findInSource,               call, geml-parser/src/cli.ts:986
-geml-parser--cli.ts.geml#runFind,          #formatFindRows,             call, geml-parser/src/cli.ts:990
+geml-parser--cli.ts.geml#runFind,          #findInSource,               call, geml-parser/src/cli.ts:1052
+geml-parser--cli.ts.geml#runFind,          #formatFindRows,             call, geml-parser/src/cli.ts:1056
 geml-parser--mcp-core.ts.geml#toolsFor,    #formatFindRows,             call, geml-parser/src/mcp-core.ts:266
-geml-parser--cli.ts.geml#runCheck,         #check,                      call, geml-parser/src/cli.ts:674
+geml-parser--cli.ts.geml#runCheck,         #check,                      call, geml-parser/src/cli.ts:693
 #transform,                                #loadModelJson,              call, geml-parser/src/verbs.ts:799
-geml-parser--cli.ts.geml#runTransform,     #transform,                  call, geml-parser/src/cli.ts:892
+geml-parser--cli.ts.geml#runTransform,     #transform,                  call, geml-parser/src/cli.ts:958
 geml-parser--mcp-core.ts.geml#toolsFor,    #transform,                  call, geml-parser/src/mcp-core.ts:391
-geml-parser--cli.ts.geml#runReplace,       #replace,                    call, geml-parser/src/cli.ts:1066
+geml-parser--cli.ts.geml#runReplace,       #replace,                    call, geml-parser/src/cli.ts:1132
 #set,                                      #extractBlock,               call, geml-parser/src/verbs.ts:1134
 #setIntro,                                 #extractBlock,               call, geml-parser/src/verbs.ts:1169
 #setBody,                                  #extractBlock,               call, geml-parser/src/verbs.ts:1209
@@ -756,19 +756,19 @@ geml-parser--cli.ts.geml#runReplace,       #replace,                    call, ge
 #set,                                      #reportNewAddress,           call, geml-parser/src/verbs.ts:1153
 #setIntro,                                 #reportNewAddress,           call, geml-parser/src/verbs.ts:1186
 #setBody,                                  #reportNewAddress,           call, geml-parser/src/verbs.ts:1223
-geml-parser--cli.ts.geml#runSet,           #set,                        call, geml-parser/src/cli.ts:1107
+geml-parser--cli.ts.geml#runSet,           #set,                        call, geml-parser/src/cli.ts:1173
 geml-parser--mcp-core.ts.geml#toolsFor,    #set,                        call, geml-parser/src/mcp-core.ts:429
 #set,                                      #setIntro,                   call, geml-parser/src/verbs.ts:1111
 #set,                                      #setBody,                    call, geml-parser/src/verbs.ts:1112
 #set,                                      #setMeta,                    call, geml-parser/src/verbs.ts:1105
 #set,                                      #setCoord,                   call, geml-parser/src/verbs.ts:1106
-geml-parser--cli.ts.geml#runAdd,           #add,                        call, geml-parser/src/cli.ts:1129
+geml-parser--cli.ts.geml#runAdd,           #add,                        call, geml-parser/src/cli.ts:1195
 geml-parser--mcp-core.ts.geml#toolsFor,    #add,                        call, geml-parser/src/mcp-core.ts:453
 #add,                                      #insertFragment,             call, geml-parser/src/verbs.ts:1372
 #revert,                                   #insertFragment,             call, geml-parser/src/verbs.ts:1890
-geml-parser--cli.ts.geml#runDelete,        #del,                        call, geml-parser/src/cli.ts:1145
+geml-parser--cli.ts.geml#runDelete,        #del,                        call, geml-parser/src/cli.ts:1211
 geml-parser--mcp-core.ts.geml#toolsFor,    #del,                        call, geml-parser/src/mcp-core.ts:471
-geml-parser--cli.ts.geml#runRename,        #rename,                     call, geml-parser/src/cli.ts:1171
+geml-parser--cli.ts.geml#runRename,        #rename,                     call, geml-parser/src/cli.ts:1237
 geml-parser--mcp-core.ts.geml#toolsFor,    #rename,                     call, geml-parser/src/mcp-core.ts:489
 #rename,                                   #rewriteId,                  call, geml-parser/src/verbs.ts:1482
 #extractBlock,                             #bodyRange,                  call, geml-parser/src/verbs.ts:1026
@@ -793,7 +793,7 @@ geml-parser--mcp-core.ts.geml#toolsFor,    #rename,                     call, ge
 #setMeta,                                  #spliceSpan,                 call, geml-parser/src/verbs.ts:1278
 #setCoord,                                 #spliceSpan,                 call, geml-parser/src/verbs.ts:1324
 #spliceBlock,                              #spliceSpan,                 call, geml-parser/src/verbs.ts:1576
-geml-parser--cli.ts.geml#runRevert,        #revert,                     call, geml-parser/src/cli.ts:1213
+geml-parser--cli.ts.geml#runRevert,        #revert,                     call, geml-parser/src/cli.ts:1279
 geml-parser--mcp-core.ts.geml#toolsFor,    #revert,                     call, geml-parser/src/mcp-core.ts:519
 #revert,                                   #resurrectPosition,          call, geml-parser/src/verbs.ts:1882
 ===

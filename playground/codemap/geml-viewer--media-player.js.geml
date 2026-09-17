@@ -7,121 +7,95 @@ resolution-default = cpg
 
 # geml-viewer/media-player.js
 
-=== code {#dirOf .leaf src=integrations/geml-viewer/src/media-player.js#L11-11 anchor="scip-typescript npm geml-viewer 1.3.1 src/`media-player.js`/dirOf."}
+=== code {#dirOf .leaf src=integrations/geml-viewer/src/media-player.js#L12-12 anchor="scip-typescript npm geml-viewer 1.3.2 src/`media-player.js`/dirOf."}
 ===
 
-=== code {#joinRel src=integrations/geml-viewer/src/media-player.js#L14-21 anchor="scip-typescript npm geml-viewer 1.3.1 src/`media-player.js`/joinRel()."}
+=== code {#joinRel src=integrations/geml-viewer/src/media-player.js#L15-22 anchor="scip-typescript npm geml-viewer 1.3.2 src/`media-player.js`/joinRel()."}
 ===
 
-=== code {#blockById .leaf src=integrations/geml-viewer/src/media-player.js#L23-33 anchor="scip-typescript npm geml-viewer 1.3.1 src/`media-player.js`/blockById()."}
+=== code {#blockById .leaf src=integrations/geml-viewer/src/media-player.js#L24-34 anchor="scip-typescript npm geml-viewer 1.3.2 src/`media-player.js`/blockById()."}
 ===
 
-=== code {#findRef src=integrations/geml-viewer/src/media-player.js#L39-55 anchor="scip-typescript npm geml-viewer 1.3.1 src/`media-player.js`/findRef()."}
+=== code {#findRef src=integrations/geml-viewer/src/media-player.js#L40-56 anchor="scip-typescript npm geml-viewer 1.3.2 src/`media-player.js`/findRef()."}
 ===
 
-=== code {#dbToGain src=integrations/geml-viewer/src/media-player.js#L57-60 anchor="scip-typescript npm geml-viewer 1.3.1 src/`media-player.js`/dbToGain."}
+=== code {#dbToGain src=integrations/geml-viewer/src/media-player.js#L58-61 anchor="scip-typescript npm geml-viewer 1.3.2 src/`media-player.js`/dbToGain."}
 ===
 
-=== code {#blockByType .leaf src=integrations/geml-viewer/src/media-player.js#L62-65 anchor="scip-typescript npm geml-viewer 1.3.1 src/`media-player.js`/blockByType()."}
+=== code {#textOf src=integrations/geml-viewer/src/media-player.js#L64-75 anchor="scip-typescript npm geml-viewer 1.3.2 src/`media-player.js`/textOf()."}
 ===
 
-=== code {#metaOf src=integrations/geml-viewer/src/media-player.js#L67-74 anchor="scip-typescript npm geml-viewer 1.3.1 src/`media-player.js`/metaOf()."}
+=== code {#timelineOf src=integrations/geml-viewer/src/media-player.js#L77-90 anchor="scip-typescript npm geml-viewer 1.3.2 src/`media-player.js`/timelineOf()."}
 ===
 
-=== code {#textOf src=integrations/geml-viewer/src/media-player.js#L77-88 anchor="scip-typescript npm geml-viewer 1.3.1 src/`media-player.js`/textOf()."}
+=== code {#fmt src=integrations/geml-viewer/src/media-player.js#L92-95 anchor="scip-typescript npm geml-viewer 1.3.2 src/`media-player.js`/fmt()."}
 ===
 
-=== code {#timelineOf src=integrations/geml-viewer/src/media-player.js#L90-103 anchor="scip-typescript npm geml-viewer 1.3.1 src/`media-player.js`/timelineOf()."}
+=== code {#player src=integrations/geml-viewer/src/media-player.js#L101-186 anchor="scip-typescript npm geml-viewer 1.3.2 src/`media-player.js`/player()."}
 ===
 
-=== code {#fmt src=integrations/geml-viewer/src/media-player.js#L105-108 anchor="scip-typescript npm geml-viewer 1.3.1 src/`media-player.js`/fmt()."}
-===
-
-=== code {#player src=integrations/geml-viewer/src/media-player.js#L114-197 anchor="scip-typescript npm geml-viewer 1.3.1 src/`media-player.js`/player()."}
-===
-
-=== code {#drivePlayer src=integrations/geml-viewer/src/media-player.js#L206-306 anchor="scip-typescript npm geml-viewer 1.3.1 src/`media-player.js`/drivePlayer()."}
-===
-
-=== code {#playerLive src=integrations/geml-viewer/src/media-player.js#L309-313 anchor="scip-typescript npm geml-viewer 1.3.1 src/`media-player.js`/playerLive()."}
+=== code {#playerLive src=integrations/geml-viewer/src/media-player.js#L194-198 anchor="scip-typescript npm geml-viewer 1.3.2 src/`media-player.js`/playerLive()."}
 ===
 
 === table {#calls format=csv}
-from,        to,           kind, confidence
-#findRef,    #blockById,   call,
-#findRef,    #blockById,   call,
-#metaOf,     #blockByType, call,
-#timelineOf, #findRef,     call,
-#player,     #dbToGain,    call,
-#player,     #dirOf,       call,
-#player,     #findRef,     call,
-#player,     #fmt,         call,
-#player,     #joinRel,     call,
-#player,     #metaOf,      call,
-#player,     #textOf,      call,
-#player,     #timelineOf,  call,
-#playerLive, #drivePlayer, call,
-#playerLive, #player,      call,
+from,        to,          kind, confidence
+#findRef,    #blockById,  call,
+#findRef,    #blockById,  call,
+#timelineOf, #findRef,    call,
+#player,     #dbToGain,   call,
+#player,     #dirOf,      call,
+#player,     #findRef,    call,
+#player,     #fmt,        call,
+#player,     #joinRel,    call,
+#player,     #textOf,     call,
+#player,     #timelineOf, call,
+#playerLive, #player,     call,
 ===
 
 === table {#called-by format=csv}
-from,        to,           kind, site
-#player,     #dirOf,       call, integrations/geml-viewer/src/media-player.js:148
-#player,     #joinRel,     call, integrations/geml-viewer/src/media-player.js:148
-#findRef,    #blockById,   call, integrations/geml-viewer/src/media-player.js:46
-#findRef,    #blockById,   call, integrations/geml-viewer/src/media-player.js:51
-#timelineOf, #findRef,     call, integrations/geml-viewer/src/media-player.js:95
-#player,     #findRef,     call, integrations/geml-viewer/src/media-player.js:138
-#player,     #dbToGain,    call, integrations/geml-viewer/src/media-player.js:155
-#metaOf,     #blockByType, call, integrations/geml-viewer/src/media-player.js:69
-#player,     #metaOf,      call, integrations/geml-viewer/src/media-player.js:130
-#player,     #textOf,      call, integrations/geml-viewer/src/media-player.js:140
-#player,     #timelineOf,  call, integrations/geml-viewer/src/media-player.js:118
-#player,     #fmt,         call, integrations/geml-viewer/src/media-player.js:191
-#playerLive, #player,      call, integrations/geml-viewer/src/media-player.js:310
-#playerLive, #drivePlayer, call, integrations/geml-viewer/src/media-player.js:311
+from,        to,          kind, site
+#player,     #dirOf,      call, integrations/geml-viewer/src/media-player.js:137
+#player,     #joinRel,    call, integrations/geml-viewer/src/media-player.js:137
+#findRef,    #blockById,  call, integrations/geml-viewer/src/media-player.js:47
+#findRef,    #blockById,  call, integrations/geml-viewer/src/media-player.js:52
+#timelineOf, #findRef,    call, integrations/geml-viewer/src/media-player.js:82
+#player,     #findRef,    call, integrations/geml-viewer/src/media-player.js:127
+#player,     #dbToGain,   call, integrations/geml-viewer/src/media-player.js:144
+#player,     #textOf,     call, integrations/geml-viewer/src/media-player.js:129
+#player,     #timelineOf, call, integrations/geml-viewer/src/media-player.js:105
+#player,     #fmt,        call, integrations/geml-viewer/src/media-player.js:180
+#playerLive, #player,     call, integrations/geml-viewer/src/media-player.js:195
 ===
 
 === table {#unresolved format=csv hidden}
-from,         to
-#joinRel,     Array.join
-#joinRel,     Array.pop
-#joinRel,     Array.push
-#joinRel,     String.split
-#findRef,     String.indexOf
-#findRef,     String.replace
-#findRef,     String.slice
-#dbToGain,    Math.min
-#dbToGain,    Math.pow
-#dbToGain,    RegExp.exec
-#dbToGain,    String.trim
-#textOf,      Array.join
-#textOf,      Array.push
-#textOf,      ArrayConstructor.isArray
-#textOf,      String.replace
-#textOf,      String.trim
-#timelineOf,  NumberConstructor.isFinite
-#timelineOf,  layoutDoc
-#fmt,         Math.floor
-#fmt,         Number.toFixed
-#player,      Array.findIndex
-#player,      Array.push
-#player,      Array.sort
-#player,      JSON.stringify
-#player,      Math.max
-#player,      Number.toFixed
-#player,      RegExp.test
-#player,      String.replace
-#drivePlayer, Array.slice
-#drivePlayer, Function.call
-#drivePlayer, JSON.parse
-#drivePlayer, Math.abs
-#drivePlayer, Math.floor
-#drivePlayer, Math.max
-#drivePlayer, Math.min
-#drivePlayer, Number.toFixed
-#drivePlayer, Performance.now
-#drivePlayer, clearInterval
-#drivePlayer, isFinite
-#drivePlayer, setInterval
+from,        to
+#joinRel,    Array.join
+#joinRel,    Array.pop
+#joinRel,    Array.push
+#joinRel,    String.split
+#findRef,    String.indexOf
+#findRef,    String.replace
+#findRef,    String.slice
+#dbToGain,   Math.min
+#dbToGain,   Math.pow
+#dbToGain,   RegExp.exec
+#dbToGain,   String.trim
+#textOf,     Array.join
+#textOf,     Array.push
+#textOf,     ArrayConstructor.isArray
+#textOf,     String.replace
+#textOf,     String.trim
+#timelineOf, NumberConstructor.isFinite
+#timelineOf, layoutDoc
+#fmt,        Math.floor
+#fmt,        Number.toFixed
+#player,     Array.findIndex
+#player,     Array.push
+#player,     Array.sort
+#player,     JSON.stringify
+#player,     Math.max
+#player,     Number.toFixed
+#player,     RegExp.test
+#player,     String.replace
+#playerLive, drivePlayer
 ===
