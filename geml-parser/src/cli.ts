@@ -369,7 +369,8 @@ const MEDIA_HELP = [
   "",
   "  todo   <entry.geml> [--root d] [--json]        待办：没产出的提示词、没配音的台词",
   "  report <entry.geml> --kind cast|stats [-o f]   跨文档聚合成 CSV",
-  "  export <cut.geml> --to preview|srt|edl|otio|json [-o f]",
+  "  export <cut.geml> --to player|preview|srt|edl|otio|json [-o f]",
+  "                     player=整条时间线合成一个能播的面（不编码，双击就看）· preview=一刀一个小播放器",
   "  build  <cut.geml> --out <file.mp4> [--burn-subs [--font 'Microsoft YaHei']]",
   "                                                 ffmpeg 出片；字幕默认另出 .srt，--burn-subs 才烧进画面",
   "  lay    <cut.geml> --over '#c03' [--gap 0.2]    按配音时长给出 offset/dur 的初值",
@@ -465,7 +466,7 @@ function runMedia(args: string[]): void {
   }
   if (verb === "export") {
     const to = flag(rest, "--to") ?? "preview";
-    if (!["preview", "srt", "edl", "otio", "json"].includes(to)) fail("--to 只能是 preview | srt | edl | otio | json");
+    if (!["preview", "player", "srt", "edl", "otio", "json"].includes(to)) fail("--to 只能是 preview | player | srt | edl | otio | json");
     emit(exportTimeline(rel, to as ExportFormat, io));
     return;
   }

@@ -604,4 +604,33 @@ test("build：gain=0dB 不生成 volume 滤镜 —— 零增益不该多一道�
   rmSync(root, { recursive: true, force: true });
 });
 
+test("export --to player：一个能播的面，零 ffmpeg —— 时间原样来自时间线", () => {
+  const root = fixture();
+  const html = exportTimeline("ep01/ep01-cut.geml", "player", mediaIoFor(root));
+  // 画面轨是 video、声音轨是 audio，散文轨不进舞台而是进字幕表。
+  assert.equal((html.match(/<video /g) ?? []).length, 2, html.slice(0, 400));
+  assert.equal((html.match(/<audio /g) ?? []).length, 1);
+  assert.match(html, /data-clip="c01"[^>]*data-start="0\.000"[^>]*data-end="4\.000"/);
+  assert.match(html, /data-clip="vo-s03-l1"[^>]*data-start="4\.400"/);
+  assert.match(html, /data-captions="[^"]*姐/, "散文轨成了字幕表");
+  // 画面轨静音：声音走声音轨，画面轨再出声就是两份。
+  assert.match(html, /<video [^>]*data-clip="c01"[^>]*muted/);
+  // 时钟的源码内联进来了，页面自己能跑，不依赖 viewer。
+  assert.match(html, /function drivePlayer/);
+  assert.equal(html.includes("geml-viewer"), false, "不该引用 viewer");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("export --to player 与 --to preview 是两件事：成片 vs 联系表", () => {
+  const root = fixture();
+  const io = mediaIoFor(root);
+  const preview = exportTimeline("ep01/ep01-cut.geml", "preview", io);
+  const player = exportTimeline("ep01/ep01-cut.geml", "player", io);
+  // 联系表每刀一个带 controls 的独立播放器；成片一个时钟推所有元素，没有 controls。
+  assert.match(preview, /<video controls/);
+  assert.equal(player.includes("<video controls"), false, player.slice(0, 300));
+  assert.match(player, /class="geml-transport"/);
+  rmSync(root, { recursive: true, force: true });
+});
+
 console.log(String.fromCharCode(10) + passed + " passed");
