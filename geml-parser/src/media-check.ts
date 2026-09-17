@@ -10,15 +10,11 @@
 // 依赖就能让整份扩展构建失败（node:os 那次）。文件访问走 MediaIO，由宿主给。
 import { parse, type Block, type Document, type Inline } from "./geml.js";
 import { mediaDiag, type MediaDiagnostic } from "./media-diagnostics.js";
+import { type ProfileIO } from "./profiles.js";
 
-export interface MediaIO {
-  /** 读一份文档（相对根目录）。越界或不存在返回 null。 */
-  readDoc(rel: string): string | null;
-  /** 一个文件的 SHA-256（十六进制全长）。不存在返回 null。 */
-  hashFile(rel: string): string | null;
-  /** 一段文本的 SHA-256（UTF-8，十六进制全长）。提示词展开后要算它。 */
-  hashText(text: string): string;
-}
+// 这份检查器读盘的方式，就是任何一份 profile 检查器读盘的方式（profiles.ts
+// `ProfileIO`）。别名留着，是因为这个文件通篇用它说话。
+export type MediaIO = ProfileIO;
 
 /** 轨道的种类（profile §3.1）。说的是内容是什么、住在哪，不是画在哪。 */
 const TRACK_KINDS = new Set(["video", "audio", "prose"]);

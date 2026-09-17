@@ -177,7 +177,7 @@ Four boundaries, each deliberate:
 |---|---|
 | one pass, no recursion | a `{{…}}` inside a token's own value stays literal, so no cycle can form and there is no resolution order to argue about |
 | per file | rules pulled in by `embed` expand against **their own** file's `meta`, never the host's — the rule the core already applies to borrowed content |
-| a dangling `{{key}}` is an **error** (`unknown-token`) | silently substituting an empty string drains the colour out of a page and says nothing |
+| a dangling `{{key}}` is an **error** (`style-unknown-token`) | silently substituting an empty string drains the colour out of a page and says nothing |
 | a value that is *exactly* one token keeps the token's **type** | `hide-below="{{col}}"` with `col = 1012` yields the number 1012, so the numeric built-in words can be fed from tokens at all; anywhere else the value is spliced in as text |
 
 Tokens are values, not rules: they carry no conditions, take no part in §4, and a token
@@ -324,7 +324,7 @@ is already implied by how it is consumed (`show="$s"` must be a block ref,
 and the specific kind with `type=` follows §7.1's `diagram {type=bar}`.
 
 **Multiple producers are allowed.** Two blocks writing one state is assignment
-over time, not a static conflict, so it is not `ambiguous-rule`.
+over time, not a static conflict, so it is not `style-ambiguous-rule`.
 
 ### 2.3 `style-screen` — a page
 
@@ -350,7 +350,7 @@ two.
 **Slot grammar.** A bare `#x` is a frame reference; anything with a type, class or
 attribute (`text#x`, `table.kpi`, `#x[attr]`) is a corpus selector. The split is
 syntactic, so it needs no lookup and no disambiguation error, and a mistyped `#bdoy`
-is an error (`unknown-frame`), not a warning. This follows GEML's own convention: a
+is an error (`style-unknown-frame`), not a warning. This follows GEML's own convention: a
 bare `#id` addresses this document; another document takes a path.
 
 **There is no `route=`.** Routing belongs to the host framework; a stylesheet
@@ -369,11 +369,11 @@ its own slots may name further frames — a page is a tree of frames. Unlike an
 
 | check | code | severity |
 |---|---|---|
-| a bare `#x` in `slots=` names no frame | `unknown-frame` | error |
-| a bare `#x` names a `style-screen` — a page cannot be placed inside another | `screen-nested` | error |
-| frames nest in a cycle (`#a → #b → #a`; the message carries the chain) | `frame-cycle` | error |
-| frames nest deeper than 16 along some placement path | `frame-too-deep` | error |
-| a frame no slot references | `unused-frame` | warning |
+| a bare `#x` in `slots=` names no frame | `style-unknown-frame` | error |
+| a bare `#x` names a `style-screen` — a page cannot be placed inside another | `style-screen-nested` | error |
+| frames nest in a cycle (`#a → #b → #a`; the message carries the chain) | `style-frame-cycle` | error |
+| frames nest deeper than 16 along some placement path | `style-frame-too-deep` | error |
+| a frame no slot references | `style-unused-frame` | warning |
 
 A frame **may** be placed by more than one slot: each placement renders it again,
 which is the same blocks appearing twice — exactly what naming those blocks in two
@@ -410,7 +410,7 @@ A selector may end in an **inline part** — `link`, `image`, `code-span`, `stro
 every link in `#nav`, nested lists included). The names are §5.1's own: `code` is a
 block type already, so the span is `code-span`. A part step must be the last step, must
 follow a block step, takes no `#id` / `.class` / `[attr]`, and a `match=` may not mix
-part branches with block branches — each is `selector-unsupported`. `*` and block
+part branches with block branches — each is `style-selector-unsupported`. `*` and block
 selectors never match parts, and a slot never places one: a part goes wherever its block
 goes.
 
@@ -446,7 +446,7 @@ Unsupported CSS is **named, not silently unmatched**:
 | `*` | universal selector |
 | `^=` `$=` `*=` `\|=` | substring matching — §9.2 keeps document text out of pattern languages |
 
-Each raises `selector-unsupported` (error) naming the construct. CSS similarity
+Each raises `style-selector-unsupported` (error) naming the construct. CSS similarity
 is meant to be a ramp, not a trap.
 
 The scan is **zoned** — pseudo-classes are looked for only *outside* brackets,
@@ -461,14 +461,14 @@ Merging is **per attribute**. When two rules set the *same* attribute on the
 conditions**. A selector's conditions are its type, classes, id, and attribute
 tests; `screen=` adds `screen:<id>`; each `when=` term adds `when:<state>=<value>`.
 If one rule's condition set strictly contains the other's, it wins. Otherwise →
-`ambiguous-rule`, an **error**.
+`style-ambiguous-rule`, an **error**.
 
 With `when=` in the condition set the arbitration applies unchanged: a conditional
 rule with the same selector is a strict superset of the unconditional one and wins —
 at runtime, when its state holds. Two conditional rules whose `when=` sets are
 **exclusive** (the same state, different values) can never both apply and are not a
 conflict; two that can both hold, are incomparable, and set one attribute are
-`ambiguous-rule`, exactly as before.
+`style-ambiguous-rule`, exactly as before.
 
 There is no specificity arithmetic, no `!important`, and **no source-order
 fallback**. Source order is excluded deliberately: a stylesheet that resolved by
@@ -486,7 +486,7 @@ where the two rules happen to sit in the file: precisely what excluding source o
 was protecting, and precisely what `geml add --before` would silently change. So two
 **different** rules in the same layer may not set `border` and one of `border-top` /
 `border-right` / `border-bottom` / `border-left` on the same block — that is
-`ambiguous-rule`. Writing both words in **one** rule is fine: there the order is one
+`style-ambiguous-rule`. Writing both words in **one** rule is fine: there the order is one
 the author wrote, and `geml set` replaces whole blocks. Across layers is fine too —
 a layer is a declared order. Sides never conflict with one another, and
 `border-radius` is not part of the family.
@@ -516,7 +516,7 @@ contributes nothing to it.
 Without this rule the section above is not enough. A default layer keyed on
 **types** plus an override layer keyed on **specific blocks** is this profile's
 most common shape, and those two selector kinds have condition sets that do not
-contain one another — every one of them would hit `ambiguous-rule`. Measured: the
+contain one another — every one of them would hit `style-ambiguous-rule`. Measured: the
 five homepage documents all errored before layers existed.
 
 **The reason for excluding source order still holds**, and this is worth stating:
@@ -543,7 +543,7 @@ cycle check that happens to pass — there is no graph, so there is no cycle to
 form. The catalogue therefore has **no `binding-cycle` code**.
 
 That sentence is about **state**. Frames (§2.4) are a second graph — regions holding
-regions — and that one can cycle, so it has `frame-cycle`. The two graphs do not touch:
+regions — and that one can cycle, so it has `style-frame-cycle`. The two graphs do not touch:
 state never reads state, and a frame holds no state.
 
 It also makes the pipeline **order-independent**, which §6's computed columns
@@ -563,7 +563,7 @@ same restraint as §6. If you need arithmetic, use §6's computed columns.
 **The operators are executed by the runtime, not by components.** A component
 receives *already resolved* data: filtered rows, the selected block. Letting each
 component interpret them would fork the semantics per component author and would
-demote checks like `unknown-value-source` from a guarantee to a suggestion.
+demote checks like `style-unknown-value-source` from a guarantee to a suggestion.
 
 At *check* time the operators are validated only for **reference existence** —
 every `$name` must be declared by some `style-state`. Their evaluation is the
@@ -578,21 +578,21 @@ One rule, and it is not arbitrary:
 
 Because **space is the descendant combinator**. Splitting `slots=` on whitespace
 turns `#api table.kpi` into two slots, neither of which matches anything, and
-hands you an `unmatched-rule` that explains nothing about why. (Measured, not
+hands you an `style-unmatched-rule` that explains nothing about why. (Measured, not
 theorised — it is how the convention was found.)
 
 ## 7. Closed vocabularies vs open registries
 
 | kind | example | unknown member |
 |---|---|---|
-| **closed** — the runtime interprets these names itself | `on=` | **error** (`unknown-interaction`) |
+| **closed** — the runtime interprets these names itself | `on=` | **error** (`style-unknown-interaction`) |
 | **open** — the host registers names the profile never sees | `component=`, `handler=` | **warning** + inert fallback |
 
 Core GEML already draws this line the same way: `chart-unknown-type` is an
 error, `unknown-diagram-format` is a warning. The open side must degrade rather
 than reject, or §8.5's forward-compatibility mechanism stops working.
 
-`unknown-component` / `unknown-handler` fire **only when the caller declares its
+`style-unknown-component` / `style-unknown-handler` fire **only when the caller declares its
 registry** (`--components=`, `--handlers=`). Without the flags the check does not
 run — a diagnostic that can never fire is worse than no diagnostic, and
 pretending to have checked is worse still.
@@ -607,31 +607,31 @@ fallback**, which is what preserves §8.5.
 
 | code | severity | catches |
 |---|---|---|
-| `selector-unsupported` | error | an unsupported CSS construct, named; also an inline part step that is not last, has no block step before it, carries a filter, or is mixed with block branches — and a slot that names a part |
-| `ambiguous-rule` | error | identical or incomparable rules setting one attribute |
-| `unknown-state` | error | a rule or slot references a `$foo` nobody declares |
-| `unknown-screen` | error | `screen=` names no `style-screen` block |
-| `unknown-value-source` | error | `value-from=` is not a column of the target table |
-| `unknown-interaction` | error | `on=` is not in the closed interaction vocabulary |
-| `unknown-token` | error | `{{key}}` in an attribute names no key of that stylesheet's `meta` (§1.2) |
+| `style-selector-unsupported` | error | an unsupported CSS construct, named; also an inline part step that is not last, has no block step before it, carries a filter, or is mixed with block branches — and a slot that names a part |
+| `style-ambiguous-rule` | error | identical or incomparable rules setting one attribute |
+| `style-unknown-state` | error | a rule or slot references a `$foo` nobody declares |
+| `style-unknown-screen` | error | `screen=` names no `style-screen` block |
+| `style-unknown-value-source` | error | `value-from=` is not a column of the target table |
+| `style-unknown-interaction` | error | `on=` is not in the closed interaction vocabulary |
+| `style-unknown-token` | error | `{{key}}` in an attribute names no key of that stylesheet's `meta` (§1.2) |
 | `style-missing-attribute` | error | a required attribute is absent |
-| `unmatched-rule` | warning | a rule (or screen slot) matched no block in the corpus |
-| `unmatched-producer` | warning | a state's `match=` matched no block |
-| `unknown-component` | warning | not in the declared registry → renders inert |
-| `unknown-handler` | warning | not in the declared registry → renders inert |
+| `style-unmatched-rule` | warning | a rule (or screen slot) matched no block in the corpus |
+| `style-unmatched-producer` | warning | a state's `match=` matched no block |
+| `style-unknown-component` | warning | not in the declared registry → renders inert |
+| `style-unknown-handler` | warning | not in the declared registry → renders inert |
 | `style-unknown-attribute` | warning | an unknown key on `style-state` / `style-screen` / `style-frame`; a parameter the merged binding has no `component=` / `handler=` to receive (§2.1); a block-only built-in word on a part rule |
 | `style-embed-not-expanded` | warning | an `embed` — including §1.1's two implicit ones — contributed no rules |
-| `unknown-frame` | error | a bare `#x` in `slots=` names no `style-frame` |
-| `screen-nested` | error | a bare `#x` in `slots=` names a `style-screen` |
-| `frame-cycle` | error | frames nest in a cycle; the message carries the chain |
-| `frame-too-deep` | error | frames nest deeper than 16 along some placement path |
-| `unused-frame` | warning | a `style-frame` no slot references |
+| `style-unknown-frame` | error | a bare `#x` in `slots=` names no `style-frame` |
+| `style-screen-nested` | error | a bare `#x` in `slots=` names a `style-screen` |
+| `style-frame-cycle` | error | frames nest in a cycle; the message carries the chain |
+| `style-frame-too-deep` | error | frames nest deeper than 16 along some placement path |
+| `style-unused-frame` | warning | a `style-frame` no slot references |
 | `style-invalid-value` | error | a closed-domain built-in word (`axis` / `anchor` / `place` / `scroll` / `sticky` / `hide-below` / `visible` / `grow` / `wrap` / `view` / `editable` / `fade-out` / `underline`) took a value outside its domain, or a `when=` term is neither `$state=value` nor one of `@hover` / `@focus` / `@invalid` / `@disabled` / `@checked` |
 
-`unknown-value-source` is checkable because §6 gives tables a real schema. When
+`style-unknown-value-source` is checkable because §6 gives tables a real schema. When
 the producer is not a table the check is **skipped**, not guessed at.
 
-`unmatched-rule` is the style layer's `bad-source-range`: the stylesheet is
+`style-unmatched-rule` is the style layer's `bad-source-range`: the stylesheet is
 internally consistent but has drifted from the corpus it styles.
 
 `style-embed-not-expanded` is a warning rather than an error for the same reason

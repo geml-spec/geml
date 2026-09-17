@@ -28,7 +28,7 @@ export interface Selector {
 
 export type SelectorResult =
   | { ok: true; selector: Selector; branches: Selector[]; notes?: string[] }
-  | { ok: false; code: "selector-unsupported"; message: string };
+  | { ok: false; code: "style-selector-unsupported"; message: string };
 
 const SUPPORTED = "supported: type, .class, #id, [attr], [attr=val], `*`, descendant, an inline part (link image code-span strong emphasis) as the last step";
 
@@ -100,7 +100,7 @@ function scanUnsupported(src: string): string | null {
 }
 
 function unsupported(what: string): SelectorResult {
-  return { ok: false, code: "selector-unsupported", message: `\`${what}\` is not supported (${SUPPORTED})` };
+  return { ok: false, code: "style-selector-unsupported", message: `\`${what}\` is not supported (${SUPPORTED})` };
 }
 
 /** 在括号与引号之外按空白切分成后代步骤。 */
@@ -223,13 +223,13 @@ export function parseSelector(src: string): SelectorResult {
   const branches: Selector[] = [];
   for (const b of splitBranches(trimmed)) {
     const r = parseOne(b);
-    if ("error" in r) return { ok: false, code: "selector-unsupported", message: `${r.error} (${SUPPORTED})` };
+    if ("error" in r) return { ok: false, code: "style-selector-unsupported", message: `${r.error} (${SUPPORTED})` };
     branches.push(r);
   }
   // 一条 match= 的分支要么全指块、要么全指部件：混着写会让同一条规则的内含词一半合法一半不合法。
   const partness = branches.map(isPartSelector);
   if (partness.some(Boolean) && !partness.every(Boolean)) {
-    return { ok: false, code: "selector-unsupported", message: `branches of \`${trimmed}\` mix inline parts with blocks; write two rules (${SUPPORTED})` };
+    return { ok: false, code: "style-selector-unsupported", message: `branches of \`${trimmed}\` mix inline parts with blocks; write two rules (${SUPPORTED})` };
   }
   if (branches.length === 0) return unsupported(trimmed);
   const notes = branches.flatMap((b) => b.notes ?? []);

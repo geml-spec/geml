@@ -93,7 +93,7 @@ Writing those blocks straight into `page.geml` still works — that is what this
 demo did until it was split — so "write the page directly" and "use a template"
 are the same mechanism seen from two ends, not two features.
 
-`check` is clean. `style check` reports **0 errors and 98 `unmatched-rule`
+`check` is clean. `style check` reports **0 errors and 98 `style-unmatched-rule`
 warnings** — one per slot this stylesheet declares that the template does not
 fill. Warnings rather than errors because an unfilled slot renders as nothing:
 

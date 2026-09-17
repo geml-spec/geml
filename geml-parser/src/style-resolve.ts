@@ -62,7 +62,7 @@ export const BOX_WORDS: ReadonlySet<string> = new Set([
  * 一条写 `border`、一条写 `border-left`，只要在文件里换个先后，渲染结果就不同，
  * 而且零诊断 —— 正是排除源码顺序要防的那件事（`geml add --before` 能悄悄改掉它）。
  *
- * 所以简写与单边在同一层、同一 when 组、来自**不同规则**时，直接报 `ambiguous-rule`。
+ * 所以简写与单边在同一层、同一 when 组、来自**不同规则**时，直接报 `style-ambiguous-rule`。
  * 写进同一条规则里是可以的：那里的先后是作者自己写下的，`geml set` 换的是整块。
  * 跨层也放行：层是声明出来的顺序（规则按层收集，低层先进 box），本来就有序。
  * `border-radius` 不在这一族里 —— 它跟边框的宽/样式/色互不覆盖。
@@ -398,7 +398,7 @@ const FRAME_DEPTH_CAP = 16;
  * **"它优先"是层号在起作用，不是 specificity。** 这是 CSS `@layer` 的模型：层的顺序
  * 是显式声明出来的（默认层在下、指派的那份在上、入口自己写的在最上），跨层冲突按
  * 层号决胜。§4 在**层内**一字不改 —— 不看来源、不算 specificity、只认严格超集，
- * 所以同一层里条件不可比的两条规则照常报 `ambiguous-rule`。
+ * 所以同一层里条件不可比的两条规则照常报 `style-ambiguous-rule`。
  *
  * 这一条是对 §4 的**扩展**，得记着：原本"仲裁与规则来自哪个文件无关"现在只对层内
  * 成立。没有它，默认层的 `match="note"` 和覆盖层的 `match="#hero"` 就是不可比的两条，
@@ -443,7 +443,7 @@ function entryLayers(doc: Document, forDoc?: string): { path: string; id: string
  *  - **一遍代换，不递归**。记号的值里的 `{{…}}` 原样留着，没有环可成。
  *  - **按文件**。embed 进来的规则用**它自己那份文件**的 meta —— 和核心对
  *    借来内容的规定一致（借来的 `{{key}}` 认源文档的 meta，不认宿主的）。
- *  - **悬空即错误**（`unknown-token`）。静默换成空串会让整页悄悄掉色。
+ *  - **悬空即错误**（`style-unknown-token`）。静默换成空串会让整页悄悄掉色。
  */
 const TOKEN_REF = /\{\{\s*([A-Za-z_][A-Za-z0-9_-]*)\s*\}\}/g;
 
@@ -468,7 +468,7 @@ function expandTokens(
     let attrs = n.attrs;
     for (const [k, v] of Object.entries(n.attrs)) {
       if (typeof v !== "string" || !v.includes("{{")) continue;
-      const miss = (key: string): void => void sheet.diagnostics.push(styleDiag("unknown-token",
+      const miss = (key: string): void => void sheet.diagnostics.push(styleDiag("style-unknown-token",
         `\`{{${key}}}\` in \`${k}=\` is not a key of this stylesheet's \`meta\``, n.id ?? "(anon)"));
       // 整个值就是一个记号时带上**类型**：`hide-below="{{col}}"` 配 meta 的 `col = 1012`
       // 要得到数字 1012，不是字符串 "1012" —— 否则数值域的内含词永远喂不进记号。
@@ -594,7 +594,7 @@ function collect(nodes: Block[], sheet: Stylesheet, layer: number): void {
       }
       const r = parseSelector(match);
       if (!r.ok) { sheet.diagnostics.push(selectorDiag(r, id)); continue; }
-      for (const note of r.notes ?? []) sheet.diagnostics.push(styleDiag("reserved-name", note, id));
+      for (const note of r.notes ?? []) sheet.diagnostics.push(styleDiag("style-reserved-name", note, id));
       const partRule = isPartSelector(r.branches[0]!);
       const component = str(b.attrs["component"]);
       const params: Record<string, Value> = {};
@@ -640,13 +640,13 @@ function collect(nodes: Block[], sheet: Stylesheet, layer: number): void {
         if (!STATE_KNOWN.has(k)) sheet.diagnostics.push(styleDiag("style-unknown-attribute", `unknown attribute \`${k}\` for \`style-state\``, id));
       }
       if (on !== undefined && !INTERACTIONS.has(on)) {
-        sheet.diagnostics.push(styleDiag("unknown-interaction",
+        sheet.diagnostics.push(styleDiag("style-unknown-interaction",
           `\`on=${on}\` is not an interaction this profile defines (known: ${[...INTERACTIONS].join(", ")})`, id));
       }
       if (match === undefined || on === undefined) continue;
       const r = parseSelector(match);
       if (!r.ok) { sheet.diagnostics.push(selectorDiag(r, id)); continue; }
-      for (const note of r.notes ?? []) sheet.diagnostics.push(styleDiag("reserved-name", note, id));
+      for (const note of r.notes ?? []) sheet.diagnostics.push(styleDiag("style-reserved-name", note, id));
       const st: StyleState = { id, type: str(b.attrs["type"]) ?? "block-ref", match: r.branches, on };
       const vf = str(b.attrs["value-from"]); if (vf !== undefined) st.valueFrom = vf;
       const iv = str(b.attrs["init-value"]); if (iv !== undefined) st.initValue = iv;
@@ -1016,7 +1016,7 @@ function resolveBindings(
       // 带上屏幕名就去重不了，一个冲突会按屏幕数翻倍。
       const scoped = a.rule.screens.length > 0 || b.rule.screens.length > 0;
       diagnostics.push(styleDiag(
-        "ambiguous-rule",
+        "style-ambiguous-rule",
         `\`#${a.rule.id}\` and \`#${b.rule.id}\` both set \`${k}\` on \`${where(entry)}\`` +
         (screenId !== null && scoped ? ` in screen \`#${screenId}\`` : "") + " — " +
         (identical
@@ -1029,7 +1029,7 @@ function resolveBindings(
     const groups = arbitrateWithinGroups(hits, clash);
     reportBorderClashes(groups, (a, aWord, b, bWord) => {
       diagnostics.push(styleDiag(
-        "ambiguous-rule",
+        "style-ambiguous-rule",
         `\`#${a.rule.id}\` sets \`${aWord}\` and \`#${b.rule.id}\` sets ` +
         `\`${bWord}\` on \`${where(entry)}\` — a shorthand and one of its sides ` +
         `in the same layer, where the result depends on which declaration lands last, and a layer has no order; ` +
@@ -1065,7 +1065,7 @@ function resolveBindings(
  * 把样式表对着语料求解成视图模型（设计 §4.3）。
  *
  * 合并按属性进行；同一属性被多条规则设置时，只有真超集能裁决，
- * 相同或不可比一律报 `ambiguous-rule` —— 不做源序兜底，因为样式表一旦
+ * 相同或不可比一律报 `style-ambiguous-rule` —— 不做源序兜底，因为样式表一旦
  * 顺序敏感，agent 的按块编辑（`geml set` / `geml add --before`）就会静默改变渲染。
  *
  * 冲突**对着语料判**：两条不可比的规则只有真的在某个块上共现才报错。
@@ -1079,7 +1079,7 @@ export function resolveStyle(sheet: Stylesheet, corpus: CorpusDoc[], opts: Resol
   if (opts.components !== undefined) {
     for (const c of [...sheet.screens, ...sheet.frames]) {
       if (c.component !== undefined && !opts.components.includes(c.component)) {
-        diagnostics.push(styleDiag("unknown-component",
+        diagnostics.push(styleDiag("style-unknown-component",
           `component \`${c.component}\` is not registered — renders inert`, c.id));
       }
     }
@@ -1097,7 +1097,7 @@ export function resolveStyle(sheet: Stylesheet, corpus: CorpusDoc[], opts: Resol
   for (const rule of sheet.rules) {
     for (const want of rule.screens) {
       if (!screenIds.has(want)) {
-        diagnostics.push(styleDiag("unknown-screen", `rule \`#${rule.id}\`: \`screen=${want}\` names no \`style-screen\` block`, rule.id));
+        diagnostics.push(styleDiag("style-unknown-screen", `rule \`#${rule.id}\`: \`screen=${want}\` names no \`style-screen\` block`, rule.id));
       }
     }
   }
@@ -1142,7 +1142,7 @@ export function resolveStyle(sheet: Stylesheet, corpus: CorpusDoc[], opts: Resol
   // 在别的屏幕那轮里当然不会被用到，那不是"没选中任何块"。
   for (const rule of sheet.rules) {
     if (!used.has(rule.id)) {
-      diagnostics.push(styleDiag("unmatched-rule", `rule \`#${rule.id}\` matched no block in the corpus`, rule.id));
+      diagnostics.push(styleDiag("style-unmatched-rule", `rule \`#${rule.id}\` matched no block in the corpus`, rule.id));
     }
   }
 
@@ -1150,7 +1150,7 @@ export function resolveStyle(sheet: Stylesheet, corpus: CorpusDoc[], opts: Resol
     const known = new Set(opts.components);
     for (const rule of sheet.rules) {
       if (rule.component !== undefined && !known.has(rule.component)) {
-        diagnostics.push(styleDiag("unknown-component", `component \`${rule.component}\` is not registered — renders inert`, rule.id));
+        diagnostics.push(styleDiag("style-unknown-component", `component \`${rule.component}\` is not registered — renders inert`, rule.id));
       }
     }
   }
@@ -1158,7 +1158,7 @@ export function resolveStyle(sheet: Stylesheet, corpus: CorpusDoc[], opts: Resol
     const known = new Set(opts.handlers);
     for (const rule of sheet.rules) {
       if (rule.handler !== undefined && !known.has(rule.handler)) {
-        diagnostics.push(styleDiag("unknown-handler", `handler \`${rule.handler}\` is not registered — renders inert`, rule.id));
+        diagnostics.push(styleDiag("style-unknown-handler", `handler \`${rule.handler}\` is not registered — renders inert`, rule.id));
       }
     }
   }
@@ -1173,7 +1173,7 @@ export function resolveStyle(sheet: Stylesheet, corpus: CorpusDoc[], opts: Resol
   const checkRefs = (v: Value | undefined, whereId: string): void => {
     for (const name of refs(v)) {
       if (!declared.has(name)) {
-        diagnostics.push(styleDiag("unknown-state", `\`$${name}\` is not declared by any \`style-state\` block`, whereId));
+        diagnostics.push(styleDiag("style-unknown-state", `\`$${name}\` is not declared by any \`style-state\` block`, whereId));
       }
     }
   };
@@ -1192,7 +1192,7 @@ export function resolveStyle(sheet: Stylesheet, corpus: CorpusDoc[], opts: Resol
       && containerIds.has(st.match[0]!.source.trim().slice(1));
     if (producers.length === 0 && onContainer) continue;
     if (producers.length === 0) {
-      diagnostics.push(styleDiag("unmatched-producer", `state \`#${st.id}\`: \`match=\` matched no block in the corpus`, st.id));
+      diagnostics.push(styleDiag("style-unmatched-producer", `state \`#${st.id}\`: \`match=\` matched no block in the corpus`, st.id));
       continue;
     }
     if (st.valueFrom === undefined) continue;
@@ -1203,7 +1203,7 @@ export function resolveStyle(sheet: Stylesheet, corpus: CorpusDoc[], opts: Resol
       const cols = table.columns;
       if (!cols.includes(st.valueFrom)) {
         diagnostics.push(styleDiag(
-          "unknown-value-source",
+          "style-unknown-value-source",
           `state \`#${st.id}\`: \`value-from=${st.valueFrom}\` is not a column of \`${where(p)}\` (has: ${cols.join(", ")})`,
           st.id,
         ));
@@ -1225,10 +1225,10 @@ export function resolveStyle(sheet: Stylesheet, corpus: CorpusDoc[], opts: Resol
     if (bare !== null) {
       const ref = bare[1]!;
       if (screenIds.has(ref)) {
-        diagnostics.push(styleDiag("screen-nested",
+        diagnostics.push(styleDiag("style-screen-nested",
           `${ownerKind} \`#${owner.id}\`: slot \`${slot}\` names a style-screen — a screen is a page and cannot be placed inside another; a region is a style-frame`, owner.id));
       } else if (!frameIds.has(ref)) {
-        diagnostics.push(styleDiag("unknown-frame",
+        diagnostics.push(styleDiag("style-unknown-frame",
           `${ownerKind} \`#${owner.id}\`: slot \`${slot}\` names no style-frame block (a bare #id in slots= is a frame of this stylesheet; a corpus block needs a type, e.g. \`text${slot}\`)`, owner.id));
       } else {
         const owners = referencedBy.get(ref);
@@ -1243,14 +1243,14 @@ export function resolveStyle(sheet: Stylesheet, corpus: CorpusDoc[], opts: Resol
     }
     // 槽位摆的是块；一类行内不是能摆的东西（它跟着自己的块走）。
     if (isPartSelector(r.branches[0]!)) {
-      diagnostics.push(styleDiag("selector-unsupported",
+      diagnostics.push(styleDiag("style-selector-unsupported",
         `${ownerKind} \`#${owner.id}\`: slot \`${slot}\` names an inline part; a slot places blocks, not parts of them`, owner.id));
       return { kind: "blocks", selector: slot, blocks: [] };
     }
     const picked = all.filter((x) => r.branches.some((b) => matches(b, x.c)))
       .map((x) => ({ doc: x.path, block: address(x.c) }));
     if (picked.length === 0) {
-      diagnostics.push(styleDiag("unmatched-rule", `${ownerKind} \`#${owner.id}\`: slot \`${slot}\` matched no block in the corpus`, owner.id));
+      diagnostics.push(styleDiag("style-unmatched-rule", `${ownerKind} \`#${owner.id}\`: slot \`${slot}\` matched no block in the corpus`, owner.id));
     }
     return { kind: "blocks", selector: slot, blocks: picked };
   });
@@ -1297,7 +1297,7 @@ export function resolveStyle(sheet: Stylesheet, corpus: CorpusDoc[], opts: Resol
           const chain = [...rotated, rotated[0]!].map((x) => `#${x}`).join(" → ");
           if (!reported.has(chain)) {
             reported.add(chain);
-            diagnostics.push(styleDiag("frame-cycle", `frames nest in a cycle: ${chain}`, rotated[0]!));
+            diagnostics.push(styleDiag("style-frame-cycle", `frames nest in a cycle: ${chain}`, rotated[0]!));
           }
           continue;
         }
@@ -1332,13 +1332,13 @@ export function resolveStyle(sheet: Stylesheet, corpus: CorpusDoc[], opts: Resol
   let deepest: { id: string; d: number } | null = null;
   for (const [id, d] of depth) if (d > FRAME_DEPTH_CAP && (deepest === null || d > deepest.d)) deepest = { id, d };
   if (deepest !== null) {
-    diagnostics.push(styleDiag("frame-too-deep",
+    diagnostics.push(styleDiag("style-frame-too-deep",
       `frames nest ${deepest.d} deep at \`#${deepest.id}\`; the cap is ${FRAME_DEPTH_CAP} — a page is not that deep`, deepest.id));
   }
 
   for (const f of sheet.frames) {
     if (!referencedBy.has(f.id)) {
-      diagnostics.push(styleDiag("unused-frame", `style-frame \`#${f.id}\` is referenced by no slot`, f.id));
+      diagnostics.push(styleDiag("style-unused-frame", `style-frame \`#${f.id}\` is referenced by no slot`, f.id));
     }
   }
 

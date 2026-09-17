@@ -1,0 +1,62 @@
+{
+  "profile": "geml-media/v1",
+  "state": "draft",
+  "codes": {
+    "media-src-unresolved": "error",
+    "media-src-not-asset": "error",
+    "media-shape-ambiguous": "error",
+    "media-shape-empty": "error",
+    "media-clip-unassembled": "error",
+    "media-duration-required": "error",
+    "media-track-missing": "error",
+    "media-track-kind-missing": "error",
+    "media-track-kind-unknown": "error",
+    "media-of-unresolved": "error",
+    "media-speaker-unresolved": "error",
+    "media-line-no-speaker": "error",
+    "media-gen-schema": "error",
+    "media-hash-mismatch": "error",
+    "media-file-missing": "warning",
+    "media-asset-unhashed": "warning",
+    "media-track-undeclared": "warning",
+    "media-stale-generation": "warning",
+    "media-stale-clip": "warning",
+    "media-orphan-record": "info"
+  },
+  "cases": [
+    {
+      "name": "a prose body adds no address: both readings see the same set",
+      "geml": "=== meta\nprofile = \"geml-media/v1\"\n===\n\n=== media-text {#look .look}\nTwenty-six, **silver bob**, an old scar.\n===\n",
+      "admits": [
+        "media-text"
+      ],
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#look"
+        ],
+        "undeclared": [
+          "#meta",
+          "#look"
+        ]
+      }
+    },
+    {
+      "name": "a clip carries its attributes on its own type",
+      "geml": "=== meta\nprofile = \"geml-media/v1\"\n===\n\n=== media-clip {#c1 track=video src=lib.geml#a1 in=0 out=4}\n===\n",
+      "admits": [
+        "media-clip"
+      ],
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#c1"
+        ],
+        "undeclared": [
+          "#meta",
+          "#c1"
+        ]
+      }
+    }
+  ]
+}

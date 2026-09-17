@@ -39,7 +39,7 @@ const suites = [
   "preliminaries",
   "m2", "emphasis-atoms", "m3", "m4", "convert", "fixtures", "features", "render",
   "view-block",
-  "conformance", "second-impl", "roundtrip", "to-md", "history",
+  "conformance", "profile-conformance", "second-impl", "roundtrip", "to-md", "history",
   "render-html", "codemap", "cli", "skill-install", "get-set", "replace", "find", "projection-refusals", "view-depth", "block-edit", "add", "delete", "rename", "revert", "to", "language-projection",
   // branch-coverage suites: each targets the uncovered arms of one file
   // cluster (converters, render.js, history+CLI, codemap scripts/adapters,

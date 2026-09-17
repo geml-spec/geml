@@ -12,7 +12,7 @@ import { createHash } from "node:crypto";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promptTextOf } from "../../../dist/media-check.js";
-import { mediaIoFor } from "../../../dist/host-fs.js";
+import { profileIoFor } from "../../../dist/host-fs.js";
 
 const R = dirname(fileURLToPath(import.meta.url));
 const sha = (b) => createHash("sha256").update(b).digest("hex");
@@ -51,7 +51,7 @@ w("ep01/ep01-script.geml",
   + `=== media-text {#s03-l1 .line speaker=../characters.geml#sister to=../characters.geml#hero emotion=假哭}\n${l1}\n===\n`);
 
 // 展开后的真实文本，由解析器给。
-const io = mediaIoFor(R);
+const io = profileIoFor(R);
 const P = (id) => {
   const t = promptTextOf(`ep01/ep01-script.geml#${id}`, "", io);
   if (t === null) throw new Error("展不开 " + id);

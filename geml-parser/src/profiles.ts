@@ -22,8 +22,88 @@
 // —— 规则 4 之所以能给这个例外，靠的就是规则 3 要求把这件事说出来。没声明 body
 // 的类型照旧 raw。
 
+import { MEDIA_SEVERITY } from "./media-diagnostics.js";
+import { STYLE_SEVERITY } from "./style-diagnostics.js";
+
+/**
+ * 一份 profile 在本项目里的成熟度（spec/profiles/README.md「Status」）。
+ *
+ * 这不是规范的事：§8.6.2 规则 3 明写「处理器认识哪些词汇表由实现自定」，规范
+ * 因此管不着一份词汇表有没有状态。它是**仓约定**——而自从 GEP-0013 让词汇表
+ * 可以声明 body 模式，它就从整洁变成了承重：加一个名字是小改动，改一个 body
+ * 模式会改变所有认识这个名字的人的解析结果。
+ *
+ * · `draft`    同一个 `/vN` 下还会改，包括改 body 模式。别拿它当稳定接口。
+ * · `stable`   同一个 `/vN` 下只增不改：可以加名字，不得改动或移除任何已有名字
+ *              的含义。要改就换 `/vN+1`。
+ * · `deprecated` 不再加东西，留着是为了已经写好的文档还能读。
+ */
+export type ProfileState = "draft" | "stable" | "deprecated";
+
+/** 一份 profile 的检查器：吃一个入口（相对根目录）与一份 IO，吐它自己的诊断。 */
+export type ProfileCheck = (entry: string, io: ProfileIO) => ProfileDiagnostic[];
+
+/**
+ * 一份 profile 自己的检查器报出的一条诊断。
+ *
+ * **不是**核心的 `Diagnostic`，而且不该是。核心那条报的是**位置**（归一化字符流
+ * 里的行号，附录 A 的原话），因为核心的检查全部发生在一份文档之内。profile 的
+ * 检查跨文档——「这个片段的 src 指的素材在另一份文件里，而那个文件的哈希对不上」
+ * ——它没有单一行号可言，它有的是**地址**。把它塞进核心那个形状，只能给每条塞一个
+ * 假的 0 行，那比两个类型更糟。
+ *
+ * 级别多一档 `info`：结构坏了是 error，事实过期是 warning，**选择**是 info。核心
+ * 用不上第三档（附录 A 只有 error 和 warning，而且那是规范性的），profile 用得上。
+ */
+export interface ProfileDiagnostic {
+  severity: "error" | "warning" | "info";
+  /** 这份词汇表自己的码，带它的前缀（README「Naming」）。 */
+  code: string;
+  message: string;
+  /** 出问题的文档，相对检查根目录。 */
+  doc: string;
+  /** 出问题的块；整份文档层面的问题（如 `meta.tracks`）没有 id。 */
+  id?: string;
+  /** 检查器知道行号时给出；跨文档的多数情况没有。 */
+  line?: number;
+}
+
+/** 一份 profile 的检查器读盘的方式。核心不替它决定文件从哪来。 */
+export interface ProfileIO {
+  /** 读一份文档（相对根目录）。越界或不存在返回 null。 */
+  readDoc(rel: string): string | null;
+  /** 一个文件的 SHA-256（十六进制全长）。不存在返回 null。 */
+  hashFile(rel: string): string | null;
+  /** 一段文本的 SHA-256（UTF-8，十六进制全长）。 */
+  hashText(text: string): string;
+}
+
 /** 一个 profile 放行的词汇。 */
 export interface ProfileDef {
+  /** 成熟度。必填 —— 一份没写状态的 profile，读的人无从判断能不能依赖它。 */
+  state: ProfileState;
+  /** 注册它的解析器版本，供 CHANGELOG 与索引表对照。 */
+  since?: string;
+  /**
+   * 这份词汇表在 `=== meta` 里用的键。**核心不校验 meta 键**（没有
+   * `unknown-meta-key` 这种诊断），所以登记它们不是为了执行，是为了让命名规则
+   * 测得着、让索引表有东西可对。
+   */
+  metaKeys?: string[];
+  /**
+   * 这份词汇表自己的诊断码，连同**默认级别**。
+   *
+   * 一张表而不是一串名字，买到三样东西：命名规则测得着（码是撞得最狠的一类名字，
+   * 因为读的人拿它去 grep、去配 CI 门禁）；`--severity <code>=<level>` 对任意码
+   * 成立，不必每条重要的诊断各长一个专用 flag；第二实现要复刻的是这张表——可抄、
+   * 可 diff、可断言，而不是去参考实现里挖字符串。
+   */
+  diagnostics?: Record<string, ProfileDiagnostic["severity"]>;
+  // 检查**函数**不在这里，而在 CLI 侧的注册表（cli.ts `PROFILE_CHECKS`）。
+  // 理由是打包：这个模块被 geml.ts 引，而 geml.ts 是浏览器包的入口。把
+  // checkMedia 拉进来，就把它的文件 IO 一路拖进扩展的构建——CLAUDE.md 点名过
+  // 这条，viewer 的 esbuild 在任何一个缺失的具名导出上整包失败。
+  // 声明的那一半（`diagnostics` 码表）留在这里，它是纯数据。
   /** 额外放行的块类型名 */
   types?: string[];
   /** 逐块类型额外放行的属性键 */
@@ -55,6 +135,7 @@ export interface ProfileDef {
 export const PROFILES: Record<string, ProfileDef> = {
   // spec/profiles/geml-codemap/geml-codemap-profile.md
   "geml-codemap/v1": {
+    state: "stable", since: "1.9.0",
     attrs: { code: ["anchor", "name", "entry-via"] },
   },
   // spec/profiles/geml-translator/geml-translator-profile.md — GEP 0010.
@@ -83,10 +164,15 @@ export const PROFILES: Record<string, ProfileDef> = {
   // a typo in such a list draws only `unknown attribute` and never an unresolved
   // reference — silence, in a vocabulary whose purpose is to remove it.
   "geml-translator/v1": {
+    state: "draft", since: "1.10.0",
     attrs: { embed: ["translate-to"] },
   },
   // spec/profiles/geml-style/geml-style-profile.md
   "geml-style/v1": {
+    state: "draft", since: "1.9.0",
+    // 八个码里七个不带 `style-` 前缀，违反本层的命名约定（README「Naming」）。
+    // 引用检查器自己的那张表而不是抄一遍——同一份事实抄两处，上游一动就漂。
+    diagnostics: STYLE_SEVERITY,
     types: ["style-rule", "style-state", "style-screen", "style-frame"],
   },
   // spec/profiles/geml-form/geml-form-profile.md — GEP 0008 (draft).
@@ -96,6 +182,7 @@ export const PROFILES: Record<string, ProfileDef> = {
   // form-field is a registered type these keys have nothing to attach to, and
   // admitting them is inert.
   "geml-form/v1": {
+    state: "draft", since: "1.10.0",
     // 类型进来了：在 GEP-0008 落到 §3 的核心注册表之前，声明了这个 profile 的文档就能用
     // form-* 家族 —— 和 geml-style 用同一条路。不声明的文档照旧 unknown-block-type。
     types: ["form", "form-field", "form-group", "form-options", "form-note"],
@@ -133,6 +220,11 @@ export const PROFILES: Record<string, ProfileDef> = {
   // 属性表是**闭集**（登记了 attrs 就会被查拼写）。这三个类型的键全部来自设计稿
   // §5，按第一个真实用例跑过一遍。
   "geml-media/v1": {
+    state: "draft", since: "1.10.3",
+    // 六个 meta 键都不带 `media-` 前缀，违反命名约定；`fps` 和 `aspect` 尤其是
+    // 第二份 profile 会想要的通用词。登记以让测试拦得住新增的同类。
+    metaKeys: ["tracks", "primary", "fps", "aspect", "target-duration", "episode"],
+    diagnostics: MEDIA_SEVERITY,
     types: ["media", "media-asset", "media-clip", "media-text"],
     prose: ["media-text"],
     // `media` 是容器：`==== media` 里套 `media-clip`。无体的 `media` 是一个可播的单源。
@@ -164,6 +256,7 @@ export const PROFILES: Record<string, ProfileDef> = {
   // 九个类型，所以在此之前这个项目写出的每一个 .gemlhistory 都固定吃三条
   // unknown-block-type（全库 333 处）。属性键取自规范的块定义，并与语料逐一核对。
   "geml-history/v1": {
+    state: "stable", since: "1.9.0",
     // §8.5 asks an extension for hyphenated names, so these carry the profile's
     // own prefix the way `style-rule` carries geml-style's. The bare `revision`
     // / `keyframe` / `blob` they replace are not read: an unhyphenated name this
@@ -212,6 +305,16 @@ export function unrecognizedVocabularies(meta: Map<string, string>): string[] {
   return (meta.get("profile") ?? "")
     .split(/\s+/)
     .filter((name) => name.length > 0 && !Object.hasOwn(PROFILES, name));
+}
+
+/**
+ * 文档声明了、而且**本处理器认识**的词汇表名。`unrecognizedVocabularies` 的补集，
+ * 供需要按 profile 做事的宿主用：跑哪几份词汇表的检查，由文档的 `=== meta` 说了算。
+ */
+export function declaredVocabularies(meta: Map<string, string>): string[] {
+  return (meta.get("profile") ?? "")
+    .split(/\s+/)
+    .filter((name) => name.length > 0 && Object.hasOwn(PROFILES, name));
 }
 
 export function vocabularyFor(meta: Map<string, string>): Vocabulary {

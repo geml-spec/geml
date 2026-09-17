@@ -1,0 +1,25 @@
+{
+  "profile": "geml-codemap/v1",
+  "state": "stable",
+  "codes": {},
+  "cases": [
+    {
+      "name": "an anchor on a code block is admitted by the declaration alone",
+      "geml": "=== meta\nprofile = \"geml-codemap/v1\"\n===\n\n=== code {#f lang=ts anchor=\"scip x\" name=\"f()\"}\nconst f = 1;\n===\n",
+      "admits": [
+        "anchor",
+        "name"
+      ],
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#f"
+        ],
+        "undeclared": [
+          "#meta",
+          "#f"
+        ]
+      }
+    }
+  ]
+}

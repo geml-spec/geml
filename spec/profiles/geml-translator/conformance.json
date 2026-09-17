@@ -1,0 +1,24 @@
+{
+  "profile": "geml-translator/v1",
+  "state": "draft",
+  "codes": {},
+  "cases": [
+    {
+      "name": "translate-to rides on an embed, and on meta as the document default",
+      "geml": "=== meta\nprofile = \"geml-translator/v1\"\ntranslate-to = \"zh-cn\"\n===\n\n=== embed {src=other.geml#x translate-to=none}\n===\n",
+      "admits": [
+        "translate-to"
+      ],
+      "addresses": {
+        "declared": [
+          "#meta",
+          "=== embed"
+        ],
+        "undeclared": [
+          "#meta",
+          "=== embed"
+        ]
+      }
+    }
+  ]
+}
