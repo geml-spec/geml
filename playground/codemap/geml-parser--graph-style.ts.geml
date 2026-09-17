@@ -8,40 +8,40 @@ resolution-default = cpg
 
 # geml-parser/graph-style.ts
 
-=== code {#defaultGraphStyle .leaf src=geml-parser/src/graph-style.ts#L34-36 anchor="scip-typescript npm @geml/geml 1.11.0 src/`graph-style.ts`/defaultGraphStyle()."}
+=== code {#defaultGraphStyle .leaf src=geml-parser/src/graph-style.ts#L34-36 anchor="scip-typescript npm @geml/geml 1.11.1 src/`graph-style.ts`/defaultGraphStyle()."}
 ===
 
-=== code {#num src=geml-parser/src/graph-style.ts#L38-41 anchor="scip-typescript npm @geml/geml 1.11.0 src/`graph-style.ts`/num()."}
+=== code {#num src=geml-parser/src/graph-style.ts#L38-41 anchor="scip-typescript npm @geml/geml 1.11.1 src/`graph-style.ts`/num()."}
 ===
 
-=== code {#bool .leaf src=geml-parser/src/graph-style.ts#L43-47 anchor="scip-typescript npm @geml/geml 1.11.0 src/`graph-style.ts`/bool()."}
+=== code {#bool .leaf src=geml-parser/src/graph-style.ts#L43-47 anchor="scip-typescript npm @geml/geml 1.11.1 src/`graph-style.ts`/bool()."}
 ===
 
-=== code {#findRule .leaf src=geml-parser/src/graph-style.ts#L49-56 anchor="scip-typescript npm @geml/geml 1.11.0 src/`graph-style.ts`/findRule()."}
+=== code {#findRule .leaf src=geml-parser/src/graph-style.ts#L49-56 anchor="scip-typescript npm @geml/geml 1.11.1 src/`graph-style.ts`/findRule()."}
 ===
 
-=== code {#parseGraphStyle src=geml-parser/src/graph-style.ts#L67-69 anchor="scip-typescript npm @geml/geml 1.11.0 src/`graph-style.ts`/parseGraphStyle()."}
+=== code {#parseGraphStyle src=geml-parser/src/graph-style.ts#L67-69 anchor="scip-typescript npm @geml/geml 1.11.1 src/`graph-style.ts`/parseGraphStyle()."}
 ===
 
-=== code {#writtenKnobs src=geml-parser/src/graph-style.ts#L78-91 anchor="scip-typescript npm @geml/geml 1.11.0 src/`graph-style.ts`/writtenKnobs()."}
+=== code {#writtenKnobs src=geml-parser/src/graph-style.ts#L78-91 anchor="scip-typescript npm @geml/geml 1.11.1 src/`graph-style.ts`/writtenKnobs()."}
 ===
 
-=== code {#graphStyleFromDoc src=geml-parser/src/graph-style.ts#L98-100 anchor="scip-typescript npm @geml/geml 1.11.0 src/`graph-style.ts`/graphStyleFromDoc()."}
+=== code {#graphStyleFromDoc src=geml-parser/src/graph-style.ts#L98-100 anchor="scip-typescript npm @geml/geml 1.11.1 src/`graph-style.ts`/graphStyleFromDoc()."}
 ===
 
-=== code {#graphStyleFromLayers src=geml-parser/src/graph-style.ts#L111-115 anchor="scip-typescript npm @geml/geml 1.11.0 src/`graph-style.ts`/graphStyleFromLayers()."}
+=== code {#graphStyleFromLayers src=geml-parser/src/graph-style.ts#L111-115 anchor="scip-typescript npm @geml/geml 1.11.1 src/`graph-style.ts`/graphStyleFromLayers()."}
 ===
 
-=== code {#serializeGraphStyle src=geml-parser/src/graph-style.ts#L118-129 anchor="scip-typescript npm @geml/geml 1.11.0 src/`graph-style.ts`/serializeGraphStyle()."}
+=== code {#serializeGraphStyle src=geml-parser/src/graph-style.ts#L118-129 anchor="scip-typescript npm @geml/geml 1.11.1 src/`graph-style.ts`/serializeGraphStyle()."}
 ===
 
-=== code {#resolveStyleLayers src=geml-parser/src/graph-style.ts#L149-174 anchor="scip-typescript npm @geml/geml 1.11.0 src/`graph-style.ts`/resolveStyleLayers()."}
+=== code {#resolveStyleLayers src=geml-parser/src/graph-style.ts#L149-174 anchor="scip-typescript npm @geml/geml 1.11.1 src/`graph-style.ts`/resolveStyleLayers()."}
 ===
 
-=== code {#serializeStyleManifest .leaf src=geml-parser/src/graph-style.ts#L184-195 anchor="scip-typescript npm @geml/geml 1.11.0 src/`graph-style.ts`/serializeStyleManifest()."}
+=== code {#serializeStyleManifest .leaf src=geml-parser/src/graph-style.ts#L184-195 anchor="scip-typescript npm @geml/geml 1.11.1 src/`graph-style.ts`/serializeStyleManifest()."}
 ===
 
-=== code {#loadOrSeedGraphStyle src=geml-parser/src/graph-style.ts#L201-229 anchor="scip-typescript npm @geml/geml 1.11.0 src/`graph-style.ts`/loadOrSeedGraphStyle()."}
+=== code {#loadOrSeedGraphStyle src=geml-parser/src/graph-style.ts#L201-229 anchor="scip-typescript npm @geml/geml 1.11.1 src/`graph-style.ts`/loadOrSeedGraphStyle()."}
 ===
 
 === table {#calls format=csv}
@@ -67,26 +67,26 @@ from,                  to,                              kind, confidence
 ===
 
 === table {#called-by format=csv}
-from,                                       to,                      kind, site
-#parseGraphStyle,                           #defaultGraphStyle,      call, geml-parser/src/graph-style.ts:68
-#writtenKnobs,                              #defaultGraphStyle,      call, geml-parser/src/graph-style.ts:83
-#writtenKnobs,                              #defaultGraphStyle,      call, geml-parser/src/graph-style.ts:84
-#graphStyleFromDoc,                         #defaultGraphStyle,      call, geml-parser/src/graph-style.ts:99
-#graphStyleFromLayers,                      #defaultGraphStyle,      call, geml-parser/src/graph-style.ts:112
-#loadOrSeedGraphStyle,                      #defaultGraphStyle,      call, geml-parser/src/graph-style.ts:218
-#loadOrSeedGraphStyle,                      #defaultGraphStyle,      call, geml-parser/src/graph-style.ts:220
-#writtenKnobs,                              #num,                    call, geml-parser/src/graph-style.ts:83
-#writtenKnobs,                              #num,                    call, geml-parser/src/graph-style.ts:84
-#writtenKnobs,                              #bool,                   call, geml-parser/src/graph-style.ts:85
-#writtenKnobs,                              #findRule,               call, geml-parser/src/graph-style.ts:79
-#loadOrSeedGraphStyle,                      #parseGraphStyle,        call, geml-parser/src/graph-style.ts:217
-#graphStyleFromDoc,                         #writtenKnobs,           call, geml-parser/src/graph-style.ts:99
-#graphStyleFromLayers,                      #writtenKnobs,           call, geml-parser/src/graph-style.ts:113
-#parseGraphStyle,                           #graphStyleFromDoc,      call, geml-parser/src/graph-style.ts:68
-geml-parser--render.ts.geml#buildCodeGraph, #graphStyleFromLayers,   call, geml-parser/src/render.ts:921
-#loadOrSeedGraphStyle,                      #serializeGraphStyle,    call, geml-parser/src/graph-style.ts:223
-geml-parser--render.ts.geml#buildCodeGraph, #resolveStyleLayers,     call, geml-parser/src/render.ts:920
-#loadOrSeedGraphStyle,                      #serializeStyleManifest, call, geml-parser/src/graph-style.ts:211
+from,                                           to,                      kind, site
+#parseGraphStyle,                               #defaultGraphStyle,      call, geml-parser/src/graph-style.ts:68
+#writtenKnobs,                                  #defaultGraphStyle,      call, geml-parser/src/graph-style.ts:83
+#writtenKnobs,                                  #defaultGraphStyle,      call, geml-parser/src/graph-style.ts:84
+#graphStyleFromDoc,                             #defaultGraphStyle,      call, geml-parser/src/graph-style.ts:99
+#graphStyleFromLayers,                          #defaultGraphStyle,      call, geml-parser/src/graph-style.ts:112
+#loadOrSeedGraphStyle,                          #defaultGraphStyle,      call, geml-parser/src/graph-style.ts:218
+#loadOrSeedGraphStyle,                          #defaultGraphStyle,      call, geml-parser/src/graph-style.ts:220
+#writtenKnobs,                                  #num,                    call, geml-parser/src/graph-style.ts:83
+#writtenKnobs,                                  #num,                    call, geml-parser/src/graph-style.ts:84
+#writtenKnobs,                                  #bool,                   call, geml-parser/src/graph-style.ts:85
+#writtenKnobs,                                  #findRule,               call, geml-parser/src/graph-style.ts:79
+#loadOrSeedGraphStyle,                          #parseGraphStyle,        call, geml-parser/src/graph-style.ts:217
+#graphStyleFromDoc,                             #writtenKnobs,           call, geml-parser/src/graph-style.ts:99
+#graphStyleFromLayers,                          #writtenKnobs,           call, geml-parser/src/graph-style.ts:113
+#parseGraphStyle,                               #graphStyleFromDoc,      call, geml-parser/src/graph-style.ts:68
+geml-parser--code-graph.ts.geml#buildCodeGraph, #graphStyleFromLayers,   call, geml-parser/src/code-graph.ts:105
+#loadOrSeedGraphStyle,                          #serializeGraphStyle,    call, geml-parser/src/graph-style.ts:223
+geml-parser--code-graph.ts.geml#buildCodeGraph, #resolveStyleLayers,     call, geml-parser/src/code-graph.ts:104
+#loadOrSeedGraphStyle,                          #serializeStyleManifest, call, geml-parser/src/graph-style.ts:211
 ===
 
 === table {#unresolved format=csv hidden}

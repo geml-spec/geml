@@ -18,6 +18,64 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+## [1.11.1] — 2026-09-18
+
+- **The core no longer names a vocabulary anywhere it dispatches.** Three places
+  did. The renderer's `diagram` dispatch had `geml-code-graph` in the same `if`
+  chain as the specification's own `geml-chart` and `mermaid`; the command line
+  had `media`, `style` and `codemap` as branches of its own; and `=== meta` keys
+  had no owner at all, so a vocabulary's parameters and a document's own
+  metadata were indistinguishable.
+
+  All three are lookups now. `RenderOptions.diagrams` is a `format` → renderer
+  table the host fills — §7 always said a `format=` names a **renderer** and
+  that an unknown one degrades to a labelled source block, so the extension
+  point was the specification's; what was missing was that the table could be
+  extended. The specification's own two are looked up first, so a host may add
+  formats and may not quietly redefine one the specification defines.
+  `ProfileDef.verbs` declares a vocabulary's CLI verbs and a host-side table
+  implements them.
+
+  **For a library consumer this changes behaviour**, and the CLI's own paths
+  hide it: `geml … --to html`, `geml codemap serve` and `codemap render-all` all
+  register `geml-code-graph`, so nothing about using the command line moves. A
+  host calling `renderHtml` **directly** gets §7's labelled-source fallback
+  where it used to get a graph. One line restores it:
+
+  ```js
+  import { renderHtml, codeGraphDiagram } from "@geml/geml";
+  renderHtml(doc, { loadDoc, parseDoc, diagrams: { "geml-code-graph": codeGraphDiagram } });
+  ``` `unknown-meta-key` reports a key that lies in a declared
+  vocabulary's **namespace** and that the vocabulary does not define — only the
+  namespace, because `=== meta` also carries the document's own metadata, which
+  is the author's and open. An earlier draft checked the whole block and
+  reported this repository's own tutorials for `chapter = "6 / 7"`.
+
+  `geml-code-graph`'s implementation moved out too, and the measurement is the
+  argument: **1683 of render.ts's 2894 lines were one vocabulary** — the
+  browser-side layered layout is the larger half — and its stylesheet, 5615
+  bytes, was inlined into every page this renderer produced whether or not one
+  drew a graph. `code-graph.ts` holds both now; the page shell asks for the CSS
+  through the same `ctx.use()` the runtime script already went through, so a page
+  that draws no graph is **46% smaller**. `render.ts` re-exports the symbols,
+  which is compatibility and is labelled as such: the viewer, the playground,
+  `codemap/serve.mjs` and a runtime URL import written into generated HTML all
+  take them from `render.js`, and moving that path is a cross-package migration
+  with a string in generated output at the end of it.
+
+- **A third party can register a vocabulary without forking the parser, and the
+  switch is off by default.** `PROFILES` is a compile-time list, so "which
+  vocabularies a processor recognizes is implementation-defined" (§8.6.2 rule 3)
+  meant *fork this parser* in practice. `enableProfileRegistration()` plus
+  `registerProfile()` opens a runtime route. Off by default because a host that
+  registers one reports different diagnostics from a host that does not — rule 1
+  permits exactly that, and it stays the host's decision rather than something an
+  `import` makes for it. This is not the inference rule 2 forbids: rule 2 is
+  about guessing a vocabulary from a document, and a host saying "I ship this
+  one" is a statement about the host. Registration **enforces** the naming
+  convention rather than merely testing it — the six built-ins carry historical
+  exceptions, a new one gets none.
+
 - **Every profile carries a conformance file.** §8.4's suite is the
   specification's and is stated over the document model, so it says nothing about
   any vocabulary on purpose — its own cases declare a name nothing recognizes,
@@ -81,6 +139,14 @@ and is released under `viewer-v*` tags.
   independent vocabulary needing the same thing, or an obligation on every
   conforming processor. Neither is a single vocabulary's convenience, which is
   the bar a registry entry deserves.
+
+- **Only the parser moves in this release.** `geml-viewer` and the Logseq
+  artifacts stay where they are: neither has a source change here, and the
+  "one patch per parser release" line in `docs/PUBLISHING.geml` is a convention
+  for when they do, not a rule that a parser release drags them along. The
+  viewer bundles the parser at build time, so it picks 1.11.1 up on its next
+  release whenever that is; the Logseq packages depend by range and their
+  lockfile pin is refreshed as its own act.
 
 - **Profiles carry a name prefix and a status, and a test holds both.** Two
   namespaces had no rule at all: a vocabulary's diagnostic codes and the

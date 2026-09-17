@@ -8,7 +8,7 @@ resolution-default = cpg
 
 # geml-parser/media-player-runtime.ts
 
-=== code {#drivePlayer src=geml-parser/src/media-player-runtime.ts#L10-111 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-player-runtime.ts`/drivePlayer()."}
+=== code {#drivePlayer src=geml-parser/src/media-player-runtime.ts#L10-111 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-player-runtime.ts`/drivePlayer()."}
 ===
 
 === table {#called-by format=csv}

@@ -1,0 +1,156 @@
+=== meta
+profile = "geml-codemap/v1"
+module = geml-parser/code-graph.ts
+src = geml-parser/src/code-graph.ts
+entry = #buildCodeGraph
+resolution-default = cpg
+===
+
+# geml-parser/code-graph.ts
+
+=== code {#cgDir src=geml-parser/src/code-graph.ts#L60-60 anchor="scip-typescript npm @geml/geml 1.11.1 src/`code-graph.ts`/cgDir()."}
+===
+
+=== code {#cgJoin src=geml-parser/src/code-graph.ts#L61-69 anchor="scip-typescript npm @geml/geml 1.11.1 src/`code-graph.ts`/cgJoin()."}
+===
+
+=== code {#buildCodeGraph src=geml-parser/src/code-graph.ts#L71-439 anchor="scip-typescript npm @geml/geml 1.11.1 src/`code-graph.ts`/buildCodeGraph()."}
+===
+
+=== code {#codeGraphRuntime src=geml-parser/src/code-graph.ts#L451-1655 anchor="scip-typescript npm @geml/geml 1.11.1 src/`code-graph.ts`/codeGraphRuntime()."}
+===
+
+=== code {#root-typeLiteral501-querySelecto .leaf name="(root)typeLiteral501:querySelectorAll" src=geml-parser/src/code-graph.ts#L451-451 anchor="scip-typescript npm @geml/geml 1.11.1 src/`code-graph.ts`/codeGraphRuntime().(root)typeLiteral501:querySelectorAll()."}
+===
+
+=== code {#codeGraphWaves src=geml-parser/src/code-graph.ts#L1667-1705 anchor="scip-typescript npm @geml/geml 1.11.1 src/`code-graph.ts`/codeGraphWaves()."}
+===
+
+=== table {#calls format=csv}
+from,              to,                                                    kind, confidence
+#buildCodeGraph,   #cgDir,                                                call,
+#buildCodeGraph,   #cgDir,                                                call,
+#buildCodeGraph,   #cgDir,                                                call,
+#buildCodeGraph,   #cgDir,                                                call,
+#buildCodeGraph,   #cgJoin,                                               call,
+#buildCodeGraph,   #cgJoin,                                               call,
+#buildCodeGraph,   #cgJoin,                                               call,
+#buildCodeGraph,   #cgJoin,                                               call,
+#buildCodeGraph,   #cgJoin,                                               call,
+#buildCodeGraph,   geml-parser--geml.ts.geml#nameKey,                     call,
+#buildCodeGraph,   geml-parser--geml.ts.geml#nameKey,                     call,
+#buildCodeGraph,   geml-parser--graph-style.ts.geml#graphStyleFromLayers, call,
+#buildCodeGraph,   geml-parser--graph-style.ts.geml#resolveStyleLayers,   call,
+#codeGraphRuntime, #root-typeLiteral501-querySelecto,                     call,
+#codeGraphWaves,   #buildCodeGraph,                                       call,
+===
+
+=== table {#called-by format=csv}
+from,                                                 to,                                kind, site
+#buildCodeGraph,                                      #cgDir,                            call, geml-parser/src/code-graph.ts:103
+#buildCodeGraph,                                      #cgDir,                            call, geml-parser/src/code-graph.ts:146
+#buildCodeGraph,                                      #cgDir,                            call, geml-parser/src/code-graph.ts:153
+#buildCodeGraph,                                      #cgDir,                            call, geml-parser/src/code-graph.ts:214
+#buildCodeGraph,                                      #cgJoin,                           call, geml-parser/src/code-graph.ts:85
+#buildCodeGraph,                                      #cgJoin,                           call, geml-parser/src/code-graph.ts:103
+#buildCodeGraph,                                      #cgJoin,                           call, geml-parser/src/code-graph.ts:146
+#buildCodeGraph,                                      #cgJoin,                           call, geml-parser/src/code-graph.ts:153
+#buildCodeGraph,                                      #cgJoin,                           call, geml-parser/src/code-graph.ts:214
+#codeGraphWaves,                                      #buildCodeGraph,                   call, geml-parser/src/code-graph.ts:1682
+geml-parser--codemap-render.ts.geml#codeGraphDiagram, #buildCodeGraph,                   call, geml-parser/src/codemap-render.ts:38
+#codeGraphRuntime,                                    #root-typeLiteral501-querySelecto, call, geml-parser/src/code-graph.ts:1634
+===
+
+=== table {#unresolved format=csv hidden}
+from,              to
+#cgDir,            String.lastIndexOf
+#cgDir,            String.slice
+#cgJoin,           Array.concat
+#cgJoin,           Array.join
+#cgJoin,           Array.pop
+#cgJoin,           Array.push
+#cgJoin,           String.split
+#buildCodeGraph,   Array.filter
+#buildCodeGraph,   Array.includes
+#buildCodeGraph,   Array.indexOf
+#buildCodeGraph,   Array.map
+#buildCodeGraph,   Array.push
+#buildCodeGraph,   Map.get
+#buildCodeGraph,   Map.has
+#buildCodeGraph,   Map.set
+#buildCodeGraph,   ObjectConstructor.keys
+#buildCodeGraph,   RegExp.test
+#buildCodeGraph,   Set.add
+#buildCodeGraph,   Set.has
+#buildCodeGraph,   String.indexOf
+#buildCodeGraph,   String.lastIndexOf
+#buildCodeGraph,   String.replace
+#buildCodeGraph,   String.slice
+#buildCodeGraph,   String.split
+#buildCodeGraph,   String.startsWith
+#codeGraphRuntime, Array.forEach
+#codeGraphRuntime, Array.join
+#codeGraphRuntime, Array.push
+#codeGraphRuntime, Array.slice
+#codeGraphRuntime, Array.sort
+#codeGraphRuntime, Body.json
+#codeGraphRuntime, CallableFunction.call
+#codeGraphRuntime, DOMTokenList.contains
+#codeGraphRuntime, DOMTokenList.toggle
+#codeGraphRuntime, Document.addEventListener
+#codeGraphRuntime, Document.createElement
+#codeGraphRuntime, Document.createElementNS
+#codeGraphRuntime, Document.exitFullscreen
+#codeGraphRuntime, Element#`<get>classList`().
+#codeGraphRuntime, Element#`<get>textContent`().
+#codeGraphRuntime, Element#`<set>classList`().
+#codeGraphRuntime, Element#`<set>textContent`().
+#codeGraphRuntime, Element.getAttribute
+#codeGraphRuntime, Element.requestFullscreen
+#codeGraphRuntime, Element.setAttribute
+#codeGraphRuntime, ElementCSSInlineStyle#`<get>style`().
+#codeGraphRuntime, ElementCSSInlineStyle#`<set>style`().
+#codeGraphRuntime, HTMLInputElement.addEventListener
+#codeGraphRuntime, HTMLOrSVGElement.blur
+#codeGraphRuntime, JSON.parse
+#codeGraphRuntime, Math.floor
+#codeGraphRuntime, Math.max
+#codeGraphRuntime, Math.min
+#codeGraphRuntime, Math.round
+#codeGraphRuntime, Node.appendChild
+#codeGraphRuntime, Node.contains
+#codeGraphRuntime, Node.removeChild
+#codeGraphRuntime, ObjectConstructor.keys
+#codeGraphRuntime, ParentNode.replaceChildren
+#codeGraphRuntime, Promise.catch
+#codeGraphRuntime, Promise.then
+#codeGraphRuntime, PromiseConstructor.resolve
+#codeGraphRuntime, RegExp.exec
+#codeGraphRuntime, RegExp.test
+#codeGraphRuntime, SVGElement.addEventListener
+#codeGraphRuntime, Storage.getItem
+#codeGraphRuntime, Storage.setItem
+#codeGraphRuntime, String.charCodeAt
+#codeGraphRuntime, String.indexOf
+#codeGraphRuntime, String.lastIndexOf
+#codeGraphRuntime, String.replace
+#codeGraphRuntime, String.slice
+#codeGraphRuntime, String.split
+#codeGraphRuntime, String.toLowerCase
+#codeGraphRuntime, String.trim
+#codeGraphRuntime, Window#`<get>location`().
+#codeGraphRuntime, Window#`<set>location`().
+#codeGraphRuntime, encodeURIComponent
+#codeGraphRuntime, fetch
+#codeGraphRuntime, parseInt
+#codeGraphRuntime, requestAnimationFrame
+#codeGraphRuntime, setTimeout
+#codeGraphWaves,   Array.map
+#codeGraphWaves,   Array.push
+#codeGraphWaves,   Map.get
+#codeGraphWaves,   Map.has
+#codeGraphWaves,   Map.set
+#codeGraphWaves,   PromiseConstructor.all
+#codeGraphWaves,   Set.add
+#codeGraphWaves,   Set.has
+===

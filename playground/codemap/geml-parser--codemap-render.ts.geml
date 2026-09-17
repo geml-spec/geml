@@ -1,0 +1,39 @@
+=== meta
+profile = "geml-codemap/v1"
+module = geml-parser/codemap-render.ts
+src = geml-parser/src/codemap-render.ts
+entry = #codeGraphDiagram
+resolution-default = cpg
+===
+
+# geml-parser/codemap-render.ts
+
+=== code {#codeGraphDiagram src=geml-parser/src/codemap-render.ts#L24-48 anchor="scip-typescript npm @geml/geml 1.11.1 src/`codemap-render.ts`/codeGraphDiagram."}
+===
+
+=== table {#calls format=csv}
+from,              to,                                             kind, confidence
+#codeGraphDiagram, geml-parser--code-graph.ts.geml#buildCodeGraph, call,
+#codeGraphDiagram, geml-parser--render.ts.geml#DiagramCtx-clsAttr, call,
+#codeGraphDiagram, geml-parser--render.ts.geml#DiagramCtx-clsAttr, call,
+#codeGraphDiagram, geml-parser--render.ts.geml#DiagramCtx-clsAttr, call,
+#codeGraphDiagram, geml-parser--render.ts.geml#DiagramCtx-clsAttr, call,
+#codeGraphDiagram, geml-parser--render.ts.geml#DiagramCtx-use,     call,
+#codeGraphDiagram, geml-parser--render.ts.geml#DiagramCtx-use,     call,
+#codeGraphDiagram, geml-parser--render.ts.geml#esc,                call,
+#codeGraphDiagram, geml-parser--render.ts.geml#escAttr,            call,
+#codeGraphDiagram, geml-parser--render.ts.geml#escAttr,            call,
+#codeGraphDiagram, geml-parser--render.ts.geml#escAttr,            call,
+#codeGraphDiagram, geml-parser--render.ts.geml#escAttr,            call,
+===
+
+=== table {#called-by format=csv}
+from,                                 to,                kind, site
+geml-parser--verbs.ts.geml#transform, #codeGraphDiagram, call, geml-parser/src/verbs.ts:825
+===
+
+=== table {#unresolved format=csv hidden}
+from,              to
+#codeGraphDiagram, JSON.stringify
+#codeGraphDiagram, encodeURIComponent
+===

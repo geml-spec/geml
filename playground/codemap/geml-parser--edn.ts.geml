@@ -8,64 +8,64 @@ resolution-default = cpg
 
 # geml-parser/edn.ts
 
-=== code {#isSpace .leaf .accessor src=geml-parser/src/edn.ts#L55-55 anchor="scip-typescript npm @geml/geml 1.11.0 src/`edn.ts`/isSpace."}
+=== code {#isSpace .leaf .accessor src=geml-parser/src/edn.ts#L55-55 anchor="scip-typescript npm @geml/geml 1.11.1 src/`edn.ts`/isSpace."}
 ===
 
-=== code {#isNameChar src=geml-parser/src/edn.ts#L59-59 anchor="scip-typescript npm @geml/geml 1.11.0 src/`edn.ts`/isNameChar."}
+=== code {#isNameChar src=geml-parser/src/edn.ts#L59-59 anchor="scip-typescript npm @geml/geml 1.11.1 src/`edn.ts`/isNameChar."}
 ===
 
-=== code {#Reader-new .leaf name="Reader.new" src=geml-parser/src/edn.ts#L64-64 anchor="scip-typescript npm @geml/geml 1.11.0 src/`edn.ts`/Reader#`<constructor>`()."}
+=== code {#Reader-new .leaf name="Reader.new" src=geml-parser/src/edn.ts#L64-64 anchor="scip-typescript npm @geml/geml 1.11.1 src/`edn.ts`/Reader#`<constructor>`()."}
 ===
 
-=== code {#Reader-line .leaf name="Reader.line" src=geml-parser/src/edn.ts#L67-71 anchor="scip-typescript npm @geml/geml 1.11.0 src/`edn.ts`/Reader#line()."}
+=== code {#Reader-line .leaf name="Reader.line" src=geml-parser/src/edn.ts#L67-71 anchor="scip-typescript npm @geml/geml 1.11.1 src/`edn.ts`/Reader#line()."}
 ===
 
-=== code {#Reader-skip name="Reader.skip" src=geml-parser/src/edn.ts#L74-89 anchor="scip-typescript npm @geml/geml 1.11.0 src/`edn.ts`/Reader#skip()."}
+=== code {#Reader-skip name="Reader.skip" src=geml-parser/src/edn.ts#L74-89 anchor="scip-typescript npm @geml/geml 1.11.1 src/`edn.ts`/Reader#skip()."}
 ===
 
-=== code {#Reader-refuse name="Reader.refuse" src=geml-parser/src/edn.ts#L92-94 anchor="scip-typescript npm @geml/geml 1.11.0 src/`edn.ts`/Reader#refuse()."}
+=== code {#Reader-refuse name="Reader.refuse" src=geml-parser/src/edn.ts#L92-94 anchor="scip-typescript npm @geml/geml 1.11.1 src/`edn.ts`/Reader#refuse()."}
 ===
 
-=== code {#Reader-value name="Reader.value" src=geml-parser/src/edn.ts#L96-107 anchor="scip-typescript npm @geml/geml 1.11.0 src/`edn.ts`/Reader#value()."}
+=== code {#Reader-value name="Reader.value" src=geml-parser/src/edn.ts#L96-107 anchor="scip-typescript npm @geml/geml 1.11.1 src/`edn.ts`/Reader#value()."}
 ===
 
-=== code {#Reader-map name="Reader.map" src=geml-parser/src/edn.ts#L109-140 anchor="scip-typescript npm @geml/geml 1.11.0 src/`edn.ts`/Reader#map()."}
+=== code {#Reader-map name="Reader.map" src=geml-parser/src/edn.ts#L109-140 anchor="scip-typescript npm @geml/geml 1.11.1 src/`edn.ts`/Reader#map()."}
 ===
 
-=== code {#Reader-mapKey name="Reader.mapKey" src=geml-parser/src/edn.ts#L147-159 anchor="scip-typescript npm @geml/geml 1.11.0 src/`edn.ts`/Reader#mapKey()."}
+=== code {#Reader-mapKey name="Reader.mapKey" src=geml-parser/src/edn.ts#L147-159 anchor="scip-typescript npm @geml/geml 1.11.1 src/`edn.ts`/Reader#mapKey()."}
 ===
 
-=== code {#Reader-vector name="Reader.vector" src=geml-parser/src/edn.ts#L161-171 anchor="scip-typescript npm @geml/geml 1.11.0 src/`edn.ts`/Reader#vector()."}
+=== code {#Reader-vector name="Reader.vector" src=geml-parser/src/edn.ts#L161-171 anchor="scip-typescript npm @geml/geml 1.11.1 src/`edn.ts`/Reader#vector()."}
 ===
 
-=== code {#Reader-string name="Reader.string" src=geml-parser/src/edn.ts#L173-200 anchor="scip-typescript npm @geml/geml 1.11.0 src/`edn.ts`/Reader#string()."}
+=== code {#Reader-string name="Reader.string" src=geml-parser/src/edn.ts#L173-200 anchor="scip-typescript npm @geml/geml 1.11.1 src/`edn.ts`/Reader#string()."}
 ===
 
-=== code {#Reader-dispatch name="Reader.dispatch" src=geml-parser/src/edn.ts#L203-230 anchor="scip-typescript npm @geml/geml 1.11.0 src/`edn.ts`/Reader#dispatch()."}
+=== code {#Reader-dispatch name="Reader.dispatch" src=geml-parser/src/edn.ts#L203-230 anchor="scip-typescript npm @geml/geml 1.11.1 src/`edn.ts`/Reader#dispatch()."}
 ===
 
-=== code {#Reader-atom name="Reader.atom" src=geml-parser/src/edn.ts#L233-260 anchor="scip-typescript npm @geml/geml 1.11.0 src/`edn.ts`/Reader#atom()."}
+=== code {#Reader-atom name="Reader.atom" src=geml-parser/src/edn.ts#L233-260 anchor="scip-typescript npm @geml/geml 1.11.1 src/`edn.ts`/Reader#atom()."}
 ===
 
-=== code {#Refusal-new .leaf name="Refusal.new" src=geml-parser/src/edn.ts#L264-264 anchor="scip-typescript npm @geml/geml 1.11.0 src/`edn.ts`/Refusal#`<constructor>`()."}
+=== code {#Refusal-new .leaf name="Refusal.new" src=geml-parser/src/edn.ts#L264-264 anchor="scip-typescript npm @geml/geml 1.11.1 src/`edn.ts`/Refusal#`<constructor>`()."}
 ===
 
-=== code {#describe src=geml-parser/src/edn.ts#L267-272 anchor="scip-typescript npm @geml/geml 1.11.0 src/`edn.ts`/describe()."}
+=== code {#describe src=geml-parser/src/edn.ts#L267-272 anchor="scip-typescript npm @geml/geml 1.11.1 src/`edn.ts`/describe()."}
 ===
 
-=== code {#parseEdn src=geml-parser/src/edn.ts#L279-292 anchor="scip-typescript npm @geml/geml 1.11.0 src/`edn.ts`/parseEdn()."}
+=== code {#parseEdn src=geml-parser/src/edn.ts#L279-292 anchor="scip-typescript npm @geml/geml 1.11.1 src/`edn.ts`/parseEdn()."}
 ===
 
-=== code {#isWrap src=geml-parser/src/edn.ts#L296-298 anchor="scip-typescript npm @geml/geml 1.11.0 src/`edn.ts`/isWrap."}
+=== code {#isWrap src=geml-parser/src/edn.ts#L296-298 anchor="scip-typescript npm @geml/geml 1.11.1 src/`edn.ts`/isWrap."}
 ===
 
-=== code {#scalar src=geml-parser/src/edn.ts#L300-314 anchor="scip-typescript npm @geml/geml 1.11.0 src/`edn.ts`/scalar()."}
+=== code {#scalar src=geml-parser/src/edn.ts#L300-314 anchor="scip-typescript npm @geml/geml 1.11.1 src/`edn.ts`/scalar()."}
 ===
 
-=== code {#serializeEdn src=geml-parser/src/edn.ts#L322-324 anchor="scip-typescript npm @geml/geml 1.11.0 src/`edn.ts`/serializeEdn()."}
+=== code {#serializeEdn src=geml-parser/src/edn.ts#L322-324 anchor="scip-typescript npm @geml/geml 1.11.1 src/`edn.ts`/serializeEdn()."}
 ===
 
-=== code {#render src=geml-parser/src/edn.ts#L326-346 anchor="scip-typescript npm @geml/geml 1.11.0 src/`edn.ts`/render()."}
+=== code {#render src=geml-parser/src/edn.ts#L326-346 anchor="scip-typescript npm @geml/geml 1.11.1 src/`edn.ts`/render()."}
 ===
 
 === table {#calls format=csv}
@@ -179,7 +179,7 @@ from,                                    to,               kind, site
 #Reader-value,                           #Reader-atom,     call, geml-parser/src/edn.ts:106
 #Reader-refuse,                          #Refusal-new,     call, geml-parser/src/edn.ts:93
 #Reader-mapKey,                          #describe,        call, geml-parser/src/edn.ts:149
-geml-parser--geml.ts.geml#parseDataBody, #parseEdn,        call, geml-parser/src/geml.ts:107
+geml-parser--geml.ts.geml#parseDataBody, #parseEdn,        call, geml-parser/src/geml.ts:111
 #render,                                 #isWrap,          call, geml-parser/src/edn.ts:327
 #render,                                 #isWrap,          call, geml-parser/src/edn.ts:328
 #render,                                 #isWrap,          call, geml-parser/src/edn.ts:329

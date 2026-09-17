@@ -8,79 +8,79 @@ resolution-default = cpg
 
 # geml-parser/media-verbs.ts
 
-=== code {#MediaHost-writeDoc name="MediaHost.writeDoc" src=geml-parser/src/media-verbs.ts#L16-16 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/MediaHost#writeDoc()."}
+=== code {#MediaHost-writeDoc name="MediaHost.writeDoc" src=geml-parser/src/media-verbs.ts#L16-16 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/MediaHost#writeDoc()."}
 ===
 
-=== code {#MediaHost-run name="MediaHost.run" src=geml-parser/src/media-verbs.ts#L18-18 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/MediaHost#run()."}
+=== code {#MediaHost-run name="MediaHost.run" src=geml-parser/src/media-verbs.ts#L18-18 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/MediaHost#run()."}
 ===
 
-=== code {#str .leaf src=geml-parser/src/media-verbs.ts#L32-32 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/str."}
+=== code {#str .leaf src=geml-parser/src/media-verbs.ts#L32-32 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/str."}
 ===
 
-=== code {#loadProject src=geml-parser/src/media-verbs.ts#L41-97 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/loadProject()."}
+=== code {#loadProject src=geml-parser/src/media-verbs.ts#L41-97 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/loadProject()."}
 ===
 
-=== code {#todo src=geml-parser/src/media-verbs.ts#L114-156 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/todo()."}
+=== code {#todo src=geml-parser/src/media-verbs.ts#L114-156 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/todo()."}
 ===
 
-=== code {#csv src=geml-parser/src/media-verbs.ts#L164-165 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/csv."}
+=== code {#csv src=geml-parser/src/media-verbs.ts#L164-165 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/csv."}
 ===
 
-=== code {#report src=geml-parser/src/media-verbs.ts#L167-192 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/report()."}
+=== code {#report src=geml-parser/src/media-verbs.ts#L167-192 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/report()."}
 ===
 
-=== code {#assetInfo src=geml-parser/src/media-verbs.ts#L203-222 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/assetInfo()."}
+=== code {#assetInfo src=geml-parser/src/media-verbs.ts#L203-222 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/assetInfo()."}
 ===
 
-=== code {#hhmmss src=geml-parser/src/media-verbs.ts#L224-228 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/hhmmss."}
+=== code {#hhmmss src=geml-parser/src/media-verbs.ts#L224-228 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/hhmmss."}
 ===
 
-=== code {#esc src=geml-parser/src/media-verbs.ts#L229-229 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/esc."}
+=== code {#esc src=geml-parser/src/media-verbs.ts#L229-229 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/esc."}
 ===
 
-=== code {#dbToGain src=geml-parser/src/media-verbs.ts#L232-235 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/dbToGain."}
+=== code {#dbToGain src=geml-parser/src/media-verbs.ts#L232-235 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/dbToGain."}
 ===
 
-=== code {#exportTimeline src=geml-parser/src/media-verbs.ts#L237-380 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/exportTimeline()."}
+=== code {#exportTimeline src=geml-parser/src/media-verbs.ts#L237-380 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/exportTimeline()."}
 ===
 
-=== code {#fgEsc src=geml-parser/src/media-verbs.ts#L415-416 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/fgEsc."}
+=== code {#fgEsc src=geml-parser/src/media-verbs.ts#L415-416 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/fgEsc."}
 ===
 
-=== code {#buildPlan src=geml-parser/src/media-verbs.ts#L418-503 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/buildPlan()."}
+=== code {#buildPlan src=geml-parser/src/media-verbs.ts#L418-503 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/buildPlan()."}
 ===
 
-=== code {#appendLog src=geml-parser/src/media-verbs.ts#L516-559 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/appendLog()."}
+=== code {#appendLog src=geml-parser/src/media-verbs.ts#L516-559 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/appendLog()."}
 ===
 
-=== code {#lay src=geml-parser/src/media-verbs.ts#L568-591 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/lay()."}
+=== code {#lay src=geml-parser/src/media-verbs.ts#L568-591 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/lay()."}
 ===
 
-=== code {#kindFromExt src=geml-parser/src/media-verbs.ts#L611-618 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/kindFromExt."}
+=== code {#kindFromExt src=geml-parser/src/media-verbs.ts#L611-618 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/kindFromExt."}
 ===
 
-=== code {#importPlan src=geml-parser/src/media-verbs.ts#L620-661 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/importPlan()."}
+=== code {#importPlan src=geml-parser/src/media-verbs.ts#L620-661 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/importPlan()."}
 ===
 
-=== code {#EXT src=geml-parser/src/media-verbs.ts#L672-672 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/EXT."}
+=== code {#EXT src=geml-parser/src/media-verbs.ts#L672-672 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/EXT."}
 ===
 
-=== code {#importKindOf src=geml-parser/src/media-verbs.ts#L674-682 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/importKindOf()."}
+=== code {#importKindOf src=geml-parser/src/media-verbs.ts#L674-682 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/importKindOf()."}
 ===
 
-=== code {#parseCues src=geml-parser/src/media-verbs.ts#L690-714 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/parseCues()."}
+=== code {#parseCues src=geml-parser/src/media-verbs.ts#L690-714 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/parseCues()."}
 ===
 
-=== code {#importSubtitles src=geml-parser/src/media-verbs.ts#L749-794 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/importSubtitles()."}
+=== code {#importSubtitles src=geml-parser/src/media-verbs.ts#L749-794 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/importSubtitles()."}
 ===
 
-=== code {#assetBlockFor src=geml-parser/src/media-verbs.ts#L797-802 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/assetBlockFor()."}
+=== code {#assetBlockFor src=geml-parser/src/media-verbs.ts#L797-802 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/assetBlockFor()."}
 ===
 
-=== code {#idFromFile src=geml-parser/src/media-verbs.ts#L805-807 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/idFromFile()."}
+=== code {#idFromFile src=geml-parser/src/media-verbs.ts#L805-807 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/idFromFile()."}
 ===
 
-=== code {#idsTaken src=geml-parser/src/media-verbs.ts#L810-814 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-verbs.ts`/idsTaken()."}
+=== code {#idsTaken src=geml-parser/src/media-verbs.ts#L810-814 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-verbs.ts`/idsTaken()."}
 ===
 
 === table {#calls format=csv}
@@ -190,8 +190,8 @@ from,                                     to,               kind, site
 #lay,                                     #str,             call, geml-parser/src/media-verbs.ts:586
 #importPlan,                              #str,             call, geml-parser/src/media-verbs.ts:624
 #importPlan,                              #str,             call, geml-parser/src/media-verbs.ts:653
-geml-parser--cli.ts.geml#runMedia,        #loadProject,     call, geml-parser/src/cli.ts:537
-geml-parser--cli.ts.geml#runMedia,        #loadProject,     call, geml-parser/src/cli.ts:651
+geml-parser--cli.ts.geml#runMedia,        #loadProject,     call, geml-parser/src/cli.ts:556
+geml-parser--cli.ts.geml#runMedia,        #loadProject,     call, geml-parser/src/cli.ts:670
 #todo,                                    #loadProject,     call, geml-parser/src/media-verbs.ts:115
 #report,                                  #loadProject,     call, geml-parser/src/media-verbs.ts:168
 #exportTimeline,                          #loadProject,     call, geml-parser/src/media-verbs.ts:238
@@ -199,10 +199,10 @@ geml-parser--cli.ts.geml#runMedia,        #loadProject,     call, geml-parser/sr
 #lay,                                     #loadProject,     call, geml-parser/src/media-verbs.ts:569
 #importPlan,                              #loadProject,     call, geml-parser/src/media-verbs.ts:621
 #importSubtitles,                         #loadProject,     call, geml-parser/src/media-verbs.ts:769
-geml-parser--cli.ts.geml#runMedia,        #todo,            call, geml-parser/src/cli.ts:472
+geml-parser--cli.ts.geml#runMedia,        #todo,            call, geml-parser/src/cli.ts:491
 #report,                                  #csv,             call, geml-parser/src/media-verbs.ts:175
 #report,                                  #csv,             call, geml-parser/src/media-verbs.ts:191
-geml-parser--cli.ts.geml#runMedia,        #report,          call, geml-parser/src/cli.ts:481
+geml-parser--cli.ts.geml#runMedia,        #report,          call, geml-parser/src/cli.ts:500
 #exportTimeline,                          #assetInfo,       call, geml-parser/src/media-verbs.ts:241
 #buildPlan,                               #assetInfo,       call, geml-parser/src/media-verbs.ts:421
 #lay,                                     #assetInfo,       call, geml-parser/src/media-verbs.ts:572
@@ -223,25 +223,25 @@ geml-parser--cli.ts.geml#runMedia,        #report,          call, geml-parser/sr
 #exportTimeline,                          #esc,             call, geml-parser/src/media-verbs.ts:368
 #exportTimeline,                          #esc,             call, geml-parser/src/media-verbs.ts:377
 #exportTimeline,                          #dbToGain,        call, geml-parser/src/media-verbs.ts:272
-geml-parser--cli.ts.geml#runMedia,        #exportTimeline,  call, geml-parser/src/cli.ts:487
+geml-parser--cli.ts.geml#runMedia,        #exportTimeline,  call, geml-parser/src/cli.ts:506
 #buildPlan,                               #exportTimeline,  call, geml-parser/src/media-verbs.ts:502
 #buildPlan,                               #fgEsc,           call, geml-parser/src/media-verbs.ts:475
 #buildPlan,                               #fgEsc,           call, geml-parser/src/media-verbs.ts:476
-geml-parser--cli.ts.geml#runMedia,        #buildPlan,       call, geml-parser/src/cli.ts:509
-geml-parser--cli.ts.geml#runMedia,        #appendLog,       call, geml-parser/src/cli.ts:565
-geml-parser--cli.ts.geml#runMedia,        #appendLog,       call, geml-parser/src/cli.ts:605
-geml-parser--cli.ts.geml#runMedia,        #lay,             call, geml-parser/src/cli.ts:494
+geml-parser--cli.ts.geml#runMedia,        #buildPlan,       call, geml-parser/src/cli.ts:528
+geml-parser--cli.ts.geml#runMedia,        #appendLog,       call, geml-parser/src/cli.ts:584
+geml-parser--cli.ts.geml#runMedia,        #appendLog,       call, geml-parser/src/cli.ts:624
+geml-parser--cli.ts.geml#runMedia,        #lay,             call, geml-parser/src/cli.ts:513
 #importPlan,                              #kindFromExt,     call, geml-parser/src/media-verbs.ts:638
 #assetBlockFor,                           #kindFromExt,     call, geml-parser/src/media-verbs.ts:801
-geml-parser--cli.ts.geml#runMedia,        #importPlan,      call, geml-parser/src/cli.ts:599
+geml-parser--cli.ts.geml#runMedia,        #importPlan,      call, geml-parser/src/cli.ts:618
 #importKindOf,                            #EXT,             call, geml-parser/src/media-verbs.ts:675
-geml-parser--cli.ts.geml#mediaFilesUnder, #importKindOf,    call, geml-parser/src/cli.ts:433
-geml-parser--cli.ts.geml#runMedia,        #importKindOf,    call, geml-parser/src/cli.ts:571
+geml-parser--cli.ts.geml#mediaFilesUnder, #importKindOf,    call, geml-parser/src/cli.ts:452
+geml-parser--cli.ts.geml#runMedia,        #importKindOf,    call, geml-parser/src/cli.ts:590
 #importSubtitles,                         #parseCues,       call, geml-parser/src/media-verbs.ts:750
-geml-parser--cli.ts.geml#runMedia,        #importSubtitles, call, geml-parser/src/cli.ts:623
-geml-parser--cli.ts.geml#runMedia,        #assetBlockFor,   call, geml-parser/src/cli.ts:668
-geml-parser--cli.ts.geml#runMedia,        #idFromFile,      call, geml-parser/src/cli.ts:665
-geml-parser--cli.ts.geml#runMedia,        #idsTaken,        call, geml-parser/src/cli.ts:593
+geml-parser--cli.ts.geml#runMedia,        #importSubtitles, call, geml-parser/src/cli.ts:642
+geml-parser--cli.ts.geml#runMedia,        #assetBlockFor,   call, geml-parser/src/cli.ts:687
+geml-parser--cli.ts.geml#runMedia,        #idFromFile,      call, geml-parser/src/cli.ts:684
+geml-parser--cli.ts.geml#runMedia,        #idsTaken,        call, geml-parser/src/cli.ts:612
 ===
 
 === table {#unresolved format=csv hidden}

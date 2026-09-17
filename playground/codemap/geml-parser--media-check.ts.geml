@@ -8,34 +8,34 @@ resolution-default = cpg
 
 # geml-parser/media-check.ts
 
-=== code {#dirOf src=geml-parser/src/media-check.ts#L26-26 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-check.ts`/dirOf."}
+=== code {#dirOf src=geml-parser/src/media-check.ts#L26-26 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-check.ts`/dirOf."}
 ===
 
-=== code {#joinRel src=geml-parser/src/media-check.ts#L27-36 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-check.ts`/joinRel."}
+=== code {#joinRel src=geml-parser/src/media-check.ts#L27-36 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-check.ts`/joinRel."}
 ===
 
-=== code {#splitRef src=geml-parser/src/media-check.ts#L39-48 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-check.ts`/splitRef()."}
+=== code {#splitRef src=geml-parser/src/media-check.ts#L39-48 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-check.ts`/splitRef()."}
 ===
 
-=== code {#blocksOf src=geml-parser/src/media-check.ts#L50-59 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-check.ts`/blocksOf()."}
+=== code {#blocksOf src=geml-parser/src/media-check.ts#L50-59 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-check.ts`/blocksOf()."}
 ===
 
-=== code {#metaOf src=geml-parser/src/media-check.ts#L61-69 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-check.ts`/metaOf()."}
+=== code {#metaOf src=geml-parser/src/media-check.ts#L61-69 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-check.ts`/metaOf()."}
 ===
 
-=== code {#str .leaf src=geml-parser/src/media-check.ts#L71-71 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-check.ts`/str."}
+=== code {#str .leaf src=geml-parser/src/media-check.ts#L71-71 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-check.ts`/str."}
 ===
 
-=== code {#proseText src=geml-parser/src/media-check.ts#L78-103 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-check.ts`/proseText()."}
+=== code {#proseText src=geml-parser/src/media-check.ts#L78-103 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-check.ts`/proseText()."}
 ===
 
-=== code {#trackKinds src=geml-parser/src/media-check.ts#L106-126 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-check.ts`/trackKinds()."}
+=== code {#trackKinds src=geml-parser/src/media-check.ts#L106-126 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-check.ts`/trackKinds()."}
 ===
 
-=== code {#checkMedia src=geml-parser/src/media-check.ts#L133-460 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-check.ts`/checkMedia()."}
+=== code {#checkMedia src=geml-parser/src/media-check.ts#L133-460 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-check.ts`/checkMedia()."}
 ===
 
-=== code {#promptTextOf src=geml-parser/src/media-check.ts#L471-488 anchor="scip-typescript npm @geml/geml 1.11.0 src/`media-check.ts`/promptTextOf()."}
+=== code {#promptTextOf src=geml-parser/src/media-check.ts#L471-488 anchor="scip-typescript npm @geml/geml 1.11.1 src/`media-check.ts`/promptTextOf()."}
 ===
 
 === table {#calls format=csv}
@@ -203,7 +203,7 @@ geml-parser--media-verbs.ts.geml#loadProject, #metaOf,       call, geml-parser/s
 #checkMedia,                                  #proseText,    call, geml-parser/src/media-check.ts:370
 #promptTextOf,                                #proseText,    call, geml-parser/src/media-check.ts:487
 #checkMedia,                                  #trackKinds,   call, geml-parser/src/media-check.ts:258
-geml-parser--cli.ts.geml#runMedia,            #promptTextOf, call, geml-parser/src/cli.ts:551
+geml-parser--cli.ts.geml#runMedia,            #promptTextOf, call, geml-parser/src/cli.ts:570
 geml-parser--media-verbs.ts.geml#todo,        #promptTextOf, call, geml-parser/src/media-verbs.ts:136
 geml-parser--media-verbs.ts.geml#todo,        #promptTextOf, call, geml-parser/src/media-verbs.ts:153
 geml-parser--media-verbs.ts.geml#assetInfo,   #promptTextOf, call, geml-parser/src/media-verbs.ts:219
