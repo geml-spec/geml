@@ -108,6 +108,25 @@ and is released under `viewer-v*` tags.
 
 ## [1.11.0] — 2026-09-17
 
+- **The packaged skill stops saying "never write to a Markdown file".** It said
+  to locate and read with `geml`, then edit with the ordinary tool, and called
+  that a safety property. Half of it was: a document nobody asked to address by
+  block should be edited the way its author edits it, and that stays the default.
+  The other half was untested caution. Measured on a real vault, `geml set` on a
+  `.md` leaves the frontmatter and every unaddressed block **byte-for-byte
+  unchanged** and writes the body verbatim — no escaping, no reflowing — so
+  block-addressed editing is available when it is what was asked for.
+
+  What made the caution reasonable is now written down instead of implied:
+  `references/markdown-writes.md` carries the five rules that bite, two of them
+  **silent** — `set` on the frontmatter block deletes the closing `---` and the
+  page loses every property, and `--body` on a prose block appends instead of
+  replacing because a prose block has no body of its own. Both exit 0. The other
+  three refuse loudly: a `[[name#anchor]]` link is GEML reference syntax and is
+  resolved on write, two identically-titled headings make a whole file
+  unwritable, and `--in <file>` takes a block id from that file rather than its
+  text.
+
 - **A vocabulary may declare a body mode, and a processor says when it does not
   recognize one** (GEP-0013). §8.6.2 rule 3 used to require meeting an
   unrecognized `profile` name in silence — "not an error, not a warning" — and

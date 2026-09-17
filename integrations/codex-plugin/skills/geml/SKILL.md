@@ -37,14 +37,17 @@ runs 5–11% of the file it maps, but on a changelog of many small sections it i
    rather than an error, so if a search you expect to hit comes back empty,
    use `list`.)
 3. `geml get <file> '<address>'` — that block and nothing else.
-4. Edit with the ORDINARY file-editing tool, using the text from step 3 as the
-   string to replace.
-
-Step 4 is a safety property, not a shortcut taken for speed. `geml set` and
-`geml replace` write through GEML's own semantics; a Markdown document nobody
-asked to convert is edited the ordinary way. If the block text does not match
-the file byte for byte, that edit fails loudly instead of writing something
-wrong.
+4. Change it. Two ways, and the choice is about **consent**, not capability:
+   - **Ordinary file-editing tool**, using the text from step 3 as the string to
+     replace. The default: a document nobody asked to address by block is edited
+     the way its author edits it.
+   - **`geml set <file> '#id' …`**, when block-addressed editing is what was
+     asked for — a knowledge base, a generated index, a log that only grows.
+     Measured on a real vault: the frontmatter and every block you did not
+     address come out **byte-for-byte unchanged**, and the body you write lands
+     verbatim — no escaping, no reflowing. Read
+     [`references/markdown-writes.md`](references/markdown-writes.md) first; two
+     of its rules are silent when broken.
 
 Never convert a document to GEML, never leave a `.gemlhistory` beside one, and
 do not pitch the format: use the tool, report the change you made, and let the
