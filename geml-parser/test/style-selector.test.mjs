@@ -9,15 +9,15 @@ let passed = 0;
 function test(name, fn) { fn(); passed++; console.log("ok", name); }
 
 test("诊断目录：结构性错误是 error，未知名字是 warning（设计 §7）", () => {
-  assert.equal(STYLE_SEVERITY["selector-unsupported"], "error");
-  assert.equal(STYLE_SEVERITY["ambiguous-rule"], "error");
-  assert.equal(STYLE_SEVERITY["unknown-state"], "error");
-  assert.equal(STYLE_SEVERITY["unknown-value-source"], "error");
-  assert.equal(STYLE_SEVERITY["unknown-interaction"], "error");
-  assert.equal(STYLE_SEVERITY["unmatched-rule"], "warning");
-  assert.equal(STYLE_SEVERITY["unmatched-producer"], "warning");
-  assert.equal(STYLE_SEVERITY["unknown-component"], "warning");
-  assert.equal(STYLE_SEVERITY["unknown-handler"], "warning");
+  assert.equal(STYLE_SEVERITY["style-selector-unsupported"], "error");
+  assert.equal(STYLE_SEVERITY["style-ambiguous-rule"], "error");
+  assert.equal(STYLE_SEVERITY["style-unknown-state"], "error");
+  assert.equal(STYLE_SEVERITY["style-unknown-value-source"], "error");
+  assert.equal(STYLE_SEVERITY["style-unknown-interaction"], "error");
+  assert.equal(STYLE_SEVERITY["style-unmatched-rule"], "warning");
+  assert.equal(STYLE_SEVERITY["style-unmatched-producer"], "warning");
+  assert.equal(STYLE_SEVERITY["style-unknown-component"], "warning");
+  assert.equal(STYLE_SEVERITY["style-unknown-handler"], "warning");
 });
 
 test("诊断目录：没有 binding-cycle —— 构造上不可能（设计 §5.1）", () => {
@@ -57,7 +57,7 @@ test("不支持的 CSS 构造必须点名，不得静默失配（设计 §4.4）
   for (const bad of [":nth-child(2)", "div > p", "a + b", "a ~ b", "*.kpi", "table.a*", 'a[href^="x"]']) {
     const r = parseSelector(bad);
     assert.equal(r.ok, false, `应当拒绝：${bad}`);
-    assert.equal(r.code, "selector-unsupported");
+    assert.equal(r.code, "style-selector-unsupported");
     assert.match(r.message, /supported: type, \.class, #id, \[attr\], \[attr=val\]/);
   }
 });
@@ -225,7 +225,7 @@ test("部件步：只能是最后一步、不带 #id/.class/[attr]；分支不�
   ]) {
     const r = parseSelector(src);
     assert.equal(r.ok, false, src);
-    assert.equal(r.code, "selector-unsupported");
+    assert.equal(r.code, "style-selector-unsupported");
     assert.match(r.message, re, src);
   }
 });

@@ -1,4 +1,4 @@
-import { type MediaIO } from "./media-check.js";
+import { type ProfileIO } from "./profiles.js";
 import { createHash } from "node:crypto";
 // The filesystem host for the verbs (verbs.ts): how a document on disk reaches
 // its cross-document targets, how `--view` reads a confined sibling, and how a
@@ -199,7 +199,7 @@ export function historyError(e: unknown, file: string, historyPath: string): str
  * （geml-viewer）会把那个模块一起吃进去，一个 node:* 依赖就够让整份扩展构建失败。
  * 所以文件访问由宿主给，这里是宿主端：路径一律受根目录限定（规范 §9.4）。
  */
-export function mediaIoFor(root: string): MediaIO {
+export function profileIoFor(root: string): ProfileIO {
   const base = resolvePath(root);
   const confined = (rel: string): string | null => {
     const abs = resolvePath(base, rel);

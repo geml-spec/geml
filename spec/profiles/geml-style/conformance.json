@@ -1,0 +1,46 @@
+{
+  "profile": "geml-style/v1",
+  "state": "draft",
+  "codes": {
+    "style-selector-unsupported": "error",
+    "style-ambiguous-rule": "error",
+    "style-unknown-state": "error",
+    "style-unknown-screen": "error",
+    "style-unknown-value-source": "error",
+    "style-unknown-interaction": "error",
+    "style-unknown-token": "error",
+    "style-reserved-name": "warning",
+    "style-missing-attribute": "error",
+    "style-unmatched-rule": "warning",
+    "style-unmatched-producer": "warning",
+    "style-unknown-component": "warning",
+    "style-unknown-handler": "warning",
+    "style-unknown-attribute": "warning",
+    "style-embed-not-expanded": "warning",
+    "style-unknown-frame": "error",
+    "style-screen-nested": "error",
+    "style-frame-cycle": "error",
+    "style-frame-too-deep": "error",
+    "style-unused-frame": "warning",
+    "style-invalid-value": "error"
+  },
+  "cases": [
+    {
+      "name": "a style-rule is a block type this vocabulary admits; its body stays raw",
+      "geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#r match=\"=== note\"}\n===\n",
+      "admits": [
+        "style-rule"
+      ],
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#r"
+        ],
+        "undeclared": [
+          "#meta",
+          "#r"
+        ]
+      }
+    }
+  ]
+}

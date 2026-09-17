@@ -148,7 +148,7 @@ col  = 1012
 |---|---|
 | 一遍代换，不递归 | 记号的值里的 `{{…}}` 原样留着，成不了环，也就没有"先解谁"可争 |
 | 按文件 | `embed` 进来的规则用**它自己那份文件**的 `meta`，不用宿主的——和核心对借来内容的规定一致 |
-| 悬空的 `{{key}}` 是**错误**（`unknown-token`） | 静默换成空串会让整页悄悄掉色，而且一声不吭 |
+| 悬空的 `{{key}}` 是**错误**（`style-unknown-token`） | 静默换成空串会让整页悄悄掉色，而且一声不吭 |
 | 整个值**恰好**是一个记号时，带上记号的**类型** | `hide-below="{{col}}"` 配 `col = 1012` 得到数字 1012，数值域的内含词才喂得进记号；其余位置一律按文本拼进去 |
 
 记号是**值**，不是规则：它不带条件、不参与 §4、也不是任何东西的兜底。`profile` 和别的键
@@ -273,7 +273,7 @@ profile 不为 tab 另造词。
 `diagram {type=bar}` 的同一个先例。
 
 **允许多产生者。** 两个块写同一个状态是时序赋值，不是静态冲突，因此不报
-`ambiguous-rule`。
+`style-ambiguous-rule`。
 
 ### 2.3 `style-screen` —— 一页
 
@@ -296,7 +296,7 @@ screen 是**根**：一整页。一份样式表能有几个根是**宿主**的�
 
 **槽位语法。** 裸 `#x` 是 frame 引用；带类型、类或属性的（`text#x`、`table.kpi`、
 `#x[attr]`）是语料选择器。这是**语法**上的区分，不需要查表、不需要消歧诊断，写错的
-`#bdoy` 是错误（`unknown-frame`）而不是警告。它遵循 GEML 自己的约定：裸 `#id` 指本文档，
+`#bdoy` 是错误（`style-unknown-frame`）而不是警告。它遵循 GEML 自己的约定：裸 `#id` 指本文档，
 别的文档要带路径。
 
 **不提供 `route=`。** 路由是宿主框架的事，样式表再声明一遍就是两套路由打架。
@@ -314,11 +314,11 @@ screen 是**根**：一整页。一份样式表能有几个根是**宿主**的�
 
 | 检查 | 码 | 级别 |
 |---|---|---|
-| `slots=` 里的裸 `#x` 没有对应 frame | `unknown-frame` | error |
-| 裸 `#x` 指到了 `style-screen`——页不能装进页 | `screen-nested` | error |
-| frame 嵌套成环（`#a → #b → #a`；消息带整条链） | `frame-cycle` | error |
-| 某条放置路径上嵌套深过 16 层 | `frame-too-deep` | error |
-| 没有任何槽位引用的 frame | `unused-frame` | warning |
+| `slots=` 里的裸 `#x` 没有对应 frame | `style-unknown-frame` | error |
+| 裸 `#x` 指到了 `style-screen`——页不能装进页 | `style-screen-nested` | error |
+| frame 嵌套成环（`#a → #b → #a`；消息带整条链） | `style-frame-cycle` | error |
+| 某条放置路径上嵌套深过 16 层 | `style-frame-too-deep` | error |
+| 没有任何槽位引用的 frame | `style-unused-frame` | warning |
 
 一个 frame **可以**被多个槽位放置：每放一处就再渲染一遍，等于同样的块出现两次——和把那些
 块在两个槽位里各点名一次完全一样，所以没有什么要禁止的。嵌套因此是一张以 screen 为根的
@@ -347,7 +347,7 @@ text#nav link                                        行内部件：只能是最
 选择器可以以**行内部件**收尾——`link`、`image`、`code-span`、`strong`、`emphasis`——指选中块
 里面的某一类行内（`text#nav link` 是 `#nav` 里的每个链接，嵌套列表里的也算）。名字取 §5.1
 自己的叫法：`code` 已经是块类型，所以代码段叫 `code-span`。部件步必须是最后一步、前面要有块步、
-不带 `#id` / `.class` / `[attr]`，一条 `match=` 的分支不能部件与块混写——各报 `selector-unsupported`。
+不带 `#id` / `.class` / `[attr]`，一条 `match=` 的分支不能部件与块混写——各报 `style-selector-unsupported`。
 `*` 与块选择器永不匹配部件，槽位也永不摆部件：部件跟着自己的块走。
 
 `*` 匹配任意节点，且**只有整步**才合法——`*.kpi`、`table.a*` 照旧拒绝。它之所以存在，
@@ -375,7 +375,7 @@ class 可选。
 | `*` | 通配符 |
 | `^=` `$=` `*=` `\|=` | 模糊匹配——§9.2 不让文档文本进模式语言 |
 
-各报一条 `selector-unsupported`（error）并点出构造名。CSS 相似性要当**坡道**，
+各报一条 `style-selector-unsupported`（error）并点出构造名。CSS 相似性要当**坡道**，
 不能当**陷阱**。
 
 扫描是**分区**的——伪类只在括号**外**找，模糊算子只在括号**内**找——因为属性值里
@@ -387,11 +387,11 @@ class 可选。
 合并**按属性进行**。两条规则在**同一个块**上设**同一个属性**时，只有一个关系能裁决：
 **条件集的真超集**。选择器的条件 = 它的类型、类、id、属性测试；`screen=` 额外贡献
 一个 `screen:<id>`；`when=` 的每一项额外贡献一个 `when:<state>=<value>`。一方真包含
-另一方就胜出；否则报 `ambiguous-rule` **错误**。
+另一方就胜出；否则报 `style-ambiguous-rule` **错误**。
 
 `when=` 进条件集之后裁决原样成立：同选择器的有条件规则是无条件那条的真超集，它赢——
 在运行时、当它的状态成立时。两条有条件规则若 `when=` 集合**互斥**（同一状态、不同值）则
-永不同时生效，不算冲突；能同时成立、互不包含、又争同一属性的两条，照旧是 `ambiguous-rule`。
+永不同时生效，不算冲突；能同时成立、互不包含、又争同一属性的两条，照旧是 `style-ambiguous-rule`。
 
 没有特异性算术，没有 `!important`，**没有源序兜底**。排除源序是刻意的：样式表一旦
 顺序敏感，agent 的按块编辑（`geml set`、`geml add --before`）——这个格式存在的理由
@@ -404,7 +404,7 @@ class 可选。
 顺序，于是渲染结果就取决于两条规则在文件里的先后：这正是排除源序要防的那件事，也正是
 `geml add --before` 能悄悄改掉的那件事。所以同一层里的两条**不同**规则，不能在同一个块上
 一条写 `border`、另一条写 `border-top` / `border-right` / `border-bottom` /
-`border-left` 之一——那是 `ambiguous-rule`。两个词写进**同一条**规则里是可以的：那里的
+`border-left` 之一——那是 `style-ambiguous-rule`。两个词写进**同一条**规则里是可以的：那里的
 先后是作者自己写下的，而 `geml set` 换的是整块。跨层也放行——层是声明出来的顺序。
 几个单边之间互不冲突，`border-radius` 不属于这一族。
 
@@ -427,7 +427,7 @@ class 可选。
 CSS `@layer` 的模型，不是 specificity：层号来自入口的两个键，选择器一个字都不参与。
 
 没有这一条，上面那套就不够用。默认层给**类型**定规则、覆盖层给**具体块**定规则，是这个
-profile 最常见的写法，而这两种选择器的条件集互不包含——每一处都会撞 `ambiguous-rule`。
+profile 最常见的写法，而这两种选择器的条件集互不包含——每一处都会撞 `style-ambiguous-rule`。
 实测过：首页那五份文档在没有层的时候全部报错。
 
 **排除源序的那个理由依然成立**，这一点要说清楚：层不是文件里的行序。同一层内没有顺序；
@@ -447,7 +447,7 @@ interaction  →  state  →  view
 单向、三段，且**状态永不读状态**。这不是"环检测碰巧通过"——根本没有图，也就没有环
 可成。因此目录里**没有 `binding-cycle` 这个码**。
 
-这句话说的是**状态**。frame（§2.4）是第二张图——区域装区域——它能成环，所以有 `frame-cycle`。
+这句话说的是**状态**。frame（§2.4）是第二张图——区域装区域——它能成环，所以有 `style-frame-cycle`。
 两张图不相干：状态永不读状态，frame 不持有状态。
 
 它同时让管道**与顺序无关**，这一点 §6 的计算列做不到：`style-state` 是顶层块，
@@ -466,7 +466,7 @@ agent 随时可能重排。
 
 **三个算子由运行时执行，不由组件执行。** 组件收到的是**已解析的结果**：已过滤的行、
 已选定的块。若交给组件自行解释，每个组件作者都要重实现一遍语义、实现会分叉，而
-`unknown-value-source` 一类检查也会从保证退化成建议。
+`style-unknown-value-source` 一类检查也会从保证退化成建议。
 
 **检查期**只验算子里的**引用存在性**——每个 `$name` 必须被某个 `style-state` 声明。
 求值是运行时的事。
@@ -479,20 +479,20 @@ agent 随时可能重排。
 - **选择器列表用逗号**——`match=`、`slots=`。
 
 因为**空格在选择器里是后代组合子**。按空白切 `slots=` 会把 `#api table.kpi` 劈成
-两个槽位，两个都选不中任何东西，还附送一条完全不解释真正原因的 `unmatched-rule`。
+两个槽位，两个都选不中任何东西，还附送一条完全不解释真正原因的 `style-unmatched-rule`。
 （实测出来的，不是推演出来的——这条约定就是这么找到的。）
 
 ## 7. 封闭词汇 vs 开放注册表
 
 | 种类 | 例子 | 未知成员 |
 |---|---|---|
-| **封闭**——运行时自己解释这些名字 | `on=` | **error**（`unknown-interaction`） |
+| **封闭**——运行时自己解释这些名字 | `on=` | **error**（`style-unknown-interaction`） |
 | **开放**——宿主注册的名字，profile 根本看不见 | `component=`、`handler=` | **warning** + 惰性回退 |
 
 核心 GEML 早就这么划线：`chart-unknown-type` 是 error，`unknown-diagram-format` 是
 warning。开放那侧必须降级而不能拒收，否则 §8.5 的前向兼容机制就失效了。
 
-`unknown-component` / `unknown-handler` **只在调用方声明了注册表时**才检查
+`style-unknown-component` / `style-unknown-handler` **只在调用方声明了注册表时**才检查
 （`--components=`、`--handlers=`）。不给旗标就不跑——一条永远不会触发的诊断比没有
 更糟，而**假装检查过**比这还糟。
 
@@ -504,31 +504,31 @@ warning。开放那侧必须降级而不能拒收，否则 §8.5 的前向兼容
 
 | 码 | 严重性 | 抓什么 |
 |---|---|---|
-| `selector-unsupported` | error | 不支持的 CSS 构造，点名；以及部件步不在最后、前面没有块步、带过滤、与块分支混写——还有槽位里写了部件 |
-| `ambiguous-rule` | error | 相同或不可比的规则争同一个属性 |
-| `unknown-state` | error | 规则或槽位引用了没人声明的 `$foo` |
-| `unknown-screen` | error | `screen=` 点名的 `style-screen` 不存在 |
-| `unknown-value-source` | error | `value-from=` 不是目标表的列 |
-| `unknown-interaction` | error | `on=` 不在封闭的交互词汇里 |
-| `unknown-token` | error | 属性里的 `{{key}}` 不是这份样式表 `meta` 的键（§1.2） |
+| `style-selector-unsupported` | error | 不支持的 CSS 构造，点名；以及部件步不在最后、前面没有块步、带过滤、与块分支混写——还有槽位里写了部件 |
+| `style-ambiguous-rule` | error | 相同或不可比的规则争同一个属性 |
+| `style-unknown-state` | error | 规则或槽位引用了没人声明的 `$foo` |
+| `style-unknown-screen` | error | `screen=` 点名的 `style-screen` 不存在 |
+| `style-unknown-value-source` | error | `value-from=` 不是目标表的列 |
+| `style-unknown-interaction` | error | `on=` 不在封闭的交互词汇里 |
+| `style-unknown-token` | error | 属性里的 `{{key}}` 不是这份样式表 `meta` 的键（§1.2） |
 | `style-missing-attribute` | error | 缺必需属性 |
-| `unmatched-rule` | warning | 规则（或屏幕槽位）在语料里选不中任何块 |
-| `unmatched-producer` | warning | 状态的 `match=` 选不中任何块 |
-| `unknown-component` | warning | 不在声明的注册表里 → 惰性渲染 |
-| `unknown-handler` | warning | 不在声明的注册表里 → 惰性渲染 |
+| `style-unmatched-rule` | warning | 规则（或屏幕槽位）在语料里选不中任何块 |
+| `style-unmatched-producer` | warning | 状态的 `match=` 选不中任何块 |
+| `style-unknown-component` | warning | 不在声明的注册表里 → 惰性渲染 |
+| `style-unknown-handler` | warning | 不在声明的注册表里 → 惰性渲染 |
 | `style-unknown-attribute` | warning | `style-state` / `style-screen` / `style-frame` 上的未知键；合并后的绑定没有 `component=` / `handler=` 接的参数（§2.1）；部件规则上只对块说得通的内含词 |
 | `style-embed-not-expanded` | warning | 一条 `embed`（含 §1.1 的两个隐式 embed）一条规则也没贡献 |
-| `unknown-frame` | error | `slots=` 里的裸 `#x` 没有对应的 `style-frame` |
-| `screen-nested` | error | `slots=` 里的裸 `#x` 指到了 `style-screen` |
-| `frame-cycle` | error | frame 嵌套成环；消息带整条链 |
-| `frame-too-deep` | error | 某条放置路径上 frame 嵌套深过 16 层 |
-| `unused-frame` | warning | 没有任何槽位引用的 `style-frame` |
+| `style-unknown-frame` | error | `slots=` 里的裸 `#x` 没有对应的 `style-frame` |
+| `style-screen-nested` | error | `slots=` 里的裸 `#x` 指到了 `style-screen` |
+| `style-frame-cycle` | error | frame 嵌套成环；消息带整条链 |
+| `style-frame-too-deep` | error | 某条放置路径上 frame 嵌套深过 16 层 |
+| `style-unused-frame` | warning | 没有任何槽位引用的 `style-frame` |
 | `style-invalid-value` | error | 封闭值域的内含词（`axis` / `anchor` / `place` / `scroll` / `sticky` / `hide-below` / `visible` / `grow` / `wrap` / `view` / `editable` / `fade-out` / `underline`）取了域外值，或 `when=` 的项既不是 `$state=value`，也不是 `@hover` / `@focus` / `@invalid` / `@disabled` / `@checked` 之一 |
 
-`unknown-value-source` 之所以能真查，是因为 §6 给了表真正的 schema。产生者不是表时
+`style-unknown-value-source` 之所以能真查，是因为 §6 给了表真正的 schema。产生者不是表时
 这项检查**跳过**，不猜。
 
-`unmatched-rule` 是样式层的 `bad-source-range`：样式表内部自洽，但已经和它所样式化
+`style-unmatched-rule` 是样式层的 `bad-source-range`：样式表内部自洽，但已经和它所样式化
 的语料漂移了。
 
 `style-embed-not-expanded` 是 warning，不是 error，因为它和 `style-unknown-attribute`

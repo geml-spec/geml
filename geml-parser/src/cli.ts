@@ -1,8 +1,26 @@
 #!/usr/bin/env node
 import { checkMedia } from "./media-check.js";
+import { PROFILES, declaredVocabularies, type ProfileCheck, type ProfileDiagnostic } from "./profiles.js";
+
+/**
+ * 哪份 profile 有自己的检查器。住在 CLI 侧而不是注册表里，理由是打包：注册表被
+ * geml.ts 引，而 geml.ts 是浏览器包的入口——把 checkMedia 放进去，就把它的文件
+ * IO 一路拖进扩展的构建。
+ *
+ * `geml style check` 不在这里，而且那是对的：它吃两份角色不同的文件（样式表 +
+ * 语料），输入不是「这份文档」，所以它该留作独立动词。
+ */
+const PROFILE_CHECKS: Record<string, ProfileCheck> = {
+  "geml-media/v1": checkMedia,
+};
+
+/** `--severity` 只认已注册词汇表定义过的码（核心的级别由附录 A 固定）。 */
+function knownProfileCode(code: string): boolean {
+  return Object.values(PROFILES).some((d) => d.diagnostics !== undefined && code in d.diagnostics);
+}
 import { promptTextOf } from "./media-check.js";
 import { todo as mediaTodo, report as mediaReport, exportTimeline, lay as mediaLay, buildPlan, appendLog, importPlan, importKindOf, importSubtitles, assetBlockFor, idFromFile, idsTaken, loadProject, type ExportFormat, type ManifestItem } from "./media-verbs.js";
-import { mediaIoFor} from "./host-fs.js";
+import { profileIoFor } from "./host-fs.js";
 // The GEML command line. Split out of geml.ts so that file can be what the
 // viewer imports: a parser LIBRARY. Everything CLI-side lives here — argv
 // dispatch, file and stdin I/O, stdout and the exit codes, spawning
@@ -22,8 +40,7 @@ import { spawnSync } from "node:child_process";
 
 import {
   type Diagnostic, type UnitPart,
-  PARSER_VERSION, VERSION, parse, historyPathFor, sliceUnit,
-} from "./geml.js";
+  PARSER_VERSION, VERSION, parse, historyPathFor, sliceUnit, metaOf } from "./geml.js";
 import { parseSelector } from "./selector.js";
 import { parseAttrs } from "./attrs.js";
 import { save, restore, verify, isCurrent, listRevisions, resolveContent, firstChangedContent } from "./history.js";
@@ -77,7 +94,7 @@ Usage:
   geml rename <file.geml|-> #old #new [-o f]   rename an id and every reference to it (id-boundary safe)
   geml revert <file.geml> #id [--rev <sel>] [--head]   undo one block to a past revision (splice / resurrect / remove)
                                              (sel: 0 | -N | id-prefix | changed; default -1)
-  geml check  <file.geml|-> [--root d] [--json]   validate only: diagnostics + exit code
+  geml check  <file.geml|-> [--root d] [--json] [--severity c=lvl]… [--only pat]   validate only: diagnostics + exit code
                                              (--root widens cross-doc refs to dir d, e.g. the repo root;
                                               every read and write verb takes it. A write is REFUSED when
                                               the result would not parse, so a document whose ../x.md
@@ -129,7 +146,7 @@ const SUBHELP = {
   list: "usage: geml list <file.geml|-> [--json]  (list every addressable block with its shortest unique address, its kind and its line range — the same listing `geml get <file>` prints with no selector, under the name the MCP surface already uses. Call it FIRST: the addresses it prints are what get/set/add/delete/rename/revert all take)",
   find: "usage: geml find <pattern> [<file|dir> …] [--json] [--case] [--head]  (search block CONTENT and print `<file>TAB<address>` per hit — an address, never a line number, so a hit is `geml get <file> '<address>'` with no editing. The address is the INNERMOST block holding the match, never its enclosing section, and a block is reported once however many lines in it matched. Substring, case-insensitive unless --case; a file you NAME is searched whatever its extension, including Markdown, while a directory is walked for the two formats the parser reads from a path, *.geml and *.md (a `.gemlhistory` sidecar is neither, and stays out); no path = the current directory; --head adds the matching line as a third column. Exit 1 when nothing matched, so `if geml find …` works in a script)",
   replace: "usage: geml replace <file.geml|-> <old> <new> [--within <selector>] [-o out.geml] [--root d]  (EXPERIMENTAL — this verb MAY BE WITHDRAWN in a later release; it is here to find out whether an addressed, checked replacement earns its place beside `sed`, and if it does not, it goes. Build nothing on it you cannot change, and say so in a discussion if it is doing real work for you. Swaps a LITERAL string — never a pattern, that is what `sed` is for and where the footguns are. Without --within the whole document; with it, only inside the blocks that selector matches, and unlike `set` it may match several: `--within '=== table'` means every table. What this buys over `sed -i`, at the same cost of two short strings and nothing read: the result is re-parsed and refused if it would break the document, the blocks it touched are NAMED on stderr, and the write lands in .gemlhistory where `revert` can undo it. An id is not text — a replacement that would rename one is refused and points at `geml rename`, which fixes every reference too. Exit 1 when nothing matched, so `if geml replace …` works in a script)",
-  check: "usage: geml check <file.geml|-> [--root <dir>] [--json]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory)",
+  check: "usage: geml check <file.geml|-> [--root <dir>] [--json] [--severity <code>=<level>]… [--only <pattern>]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory. A document whose `=== meta` declares a vocabulary this processor recognizes also gets that vocabulary's own checks, reported by ADDRESS rather than by line — they are cross-document, so there is no one line to name. --severity re-levels ONE such code: error | warning | info, and info is the floor, because a level that silences is what --only is for. It takes profile codes only; the core catalogue's severities are fixed by Appendix A and a processor that moved one would not conform. --only keeps just the profile codes matching a `*` pattern, as in --only 'media-stale-*')",
   revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--append|--before #x|--after #x] [--head] [--dry-run] [-o out] [--root d]  (reconcile #id to a revision: splice / resurrect / remove; sel: 0 | -N | id-prefix | changed; default -1)",
   history: `usage: geml history save    <file.geml> [-m <msg>]      append the working file as a new revision (identical to the tip = no-op)
        geml history get     <file.geml> [<rev>] [--json]   NO <rev>: every revision, newest first, first column = the selector; WITH <rev>: that revision's full text
@@ -221,7 +238,7 @@ const VERB_FLAGS: Record<string, { bool: readonly string[]; valued: readonly str
     bool: ["--dry-run", "--head", "--append"],
     valued: ["--rev", "--before", "--after", "-o", "--out", "--history", "--root"],
   },
-  check: { bool: ["--json"], valued: ["--root"] },
+  check: { bool: ["--json"], valued: ["--root", "--severity", "--only"] },
   history: {
     bool: ["--json", "--head", "--body", "--intro", "--force"],
     valued: ["-m", "--message", "--at", "--author", "--history"],
@@ -437,7 +454,7 @@ function runMedia(args: string[]): void {
   const file = rest.find((a) => !a.startsWith("-") && a !== root && a !== out && a !== into);
   if (file === undefined) fail(MEDIA_HELP);
   const { root: mr, rel } = mediaRootOf(file, root);
-  const io = mediaIoFor(mr);
+  const io = profileIoFor(mr);
   // 项目级的动词收一个目录：引用是有方向的，从剧本出发看不见素材库的日志。
   const isDir = ((): boolean => { try { return statSync(resolvePath(file)).isDirectory(); } catch { return false; } })();
   const seeds = ((): string | string[] => {
@@ -561,7 +578,7 @@ function runMedia(args: string[]): void {
     }
     if (into === undefined) fail("import 需要 --into <目标文档>");
     const target = mediaRootOf(into, root);
-    const io2 = mediaIoFor(target.root);
+    const io2 = profileIoFor(target.root);
     const targetAbs = resolvePath(target.root, target.rel);
     let text = readFileSync(targetAbs, "utf8");
     const nl = text.includes("\r\n") ? "\r\n" : "\n";
@@ -672,28 +689,76 @@ function runCheck(args: string[]): void {
     try { isDir = statSync(root).isDirectory(); } catch { /* missing -> not a dir */ }
     if (!isDir) fail(`--root ${root} is not a directory`);
   }
-  const doc = verb(() => check(readInput(file), file, ctxFor(), root));
-  // 声明了 geml-media/v1 的文档，除核心诊断外再跑一趟 profile 的检查（profile 文档 §7）。
-  // 它是项目级的：从这份文档出发顺着 media 的引用把相关文档拉进来，范围由 --root 限定
-  // （默认这份文档自己的目录）。挂在 `geml check` 上而不是另起一个动词 —— 要不要按
-  // media 的规则查，是文档自己在 `=== meta` 里说了算的，不该再要求调用者换命令名。
-  const mediaRoot = root ?? dirname(resolvePath(file === "-" ? "." : file));
-  const mediaDiags = file === "-" ? [] : verb(() => {
-    const rel = relative(mediaRoot, resolvePath(file)).split(sep).join("/");
-    return checkMedia(rel, mediaIoFor(mediaRoot));
-  });
+  const source = readInput(file);
+  const doc = verb(() => check(source, file, ctxFor(), root));
+  // 文档在 `=== meta` 里声明了哪些词汇表，就多跑哪几趟它们自己的检查。挂在
+  // `geml check` 上而不是每份 profile 另起一个动词 —— 要不要按某份词汇表的规则
+  // 查，是文档说了算的，不该再要求调用者换命令名。范围由 --root 限定（默认这份
+  // 文档自己的目录），因为这类检查是跨文档的。
+  const profileRoot = root ?? dirname(resolvePath(file === "-" ? "." : file));
+  let profileDiags: ProfileDiagnostic[] = [];
+  if (file !== "-") {
+    const rel = relative(profileRoot, resolvePath(file)).split(sep).join("/");
+    const io = profileIoFor(profileRoot);
+    for (const name of declaredVocabularies(metaOf(source))) {
+      const run = PROFILE_CHECKS[name];
+      if (run === undefined) continue;
+      profileDiags = profileDiags.concat(verb(() => run(rel, io)));
+    }
+  }
+  profileDiags = applySeverity(profileDiags, args);
+  const only = flag(args, "--only");
+  const shown = only === undefined ? profileDiags : profileDiags.filter((d) => globMatch(only, d.code));
   if (json) {
-    console.log(JSON.stringify(mediaDiags.length === 0 ? doc.diagnostics : { core: doc.diagnostics, media: mediaDiags }, null, 2));
+    console.log(JSON.stringify(shown.length === 0 ? doc.diagnostics : { core: doc.diagnostics, profile: shown }, null, 2));
   } else {
     for (const d of doc.diagnostics) console.error(`${d.severity}: ${d.message} (line ${d.line})`);
-    // profile 的诊断按地址报，不按行号（媒体的检查跨文档，没有单一的行号可言）。
-    for (const d of mediaDiags) console.error(`${d.severity}: ${d.code}: ${d.message} (${d.doc}${d.id === undefined ? "" : "#" + d.id})`);
-    const all = [...doc.diagnostics, ...mediaDiags];
+    // profile 的诊断按**地址**报，不按行号：它们跨文档，没有单一行号可言。
+    for (const d of shown) console.error(`${d.severity}: ${d.code}: ${d.message} (${d.doc}${d.id === undefined ? "" : "#" + d.id})`);
+    const all = [...doc.diagnostics, ...shown];
     const errs = all.filter((d) => d.severity === "error").length;
     const warns = all.filter((d) => d.severity === "warning").length;
-    console.error(errs || warns ? `${errs} error(s), ${warns} warning(s)` : "ok: no diagnostics");
+    const infos = all.filter((d) => d.severity === "info").length;
+    const parts = [errs ? `${errs} error(s)` : "", warns ? `${warns} warning(s)` : "", infos ? `${infos} info` : ""].filter(Boolean);
+    console.error(parts.length ? parts.join(", ") : "ok: no diagnostics");
   }
-  if ([...doc.diagnostics, ...mediaDiags].some((d) => d.severity === "error")) process.exit(1);
+  if ([...doc.diagnostics, ...shown].some((d) => d.severity === "error")) process.exit(1);
+}
+
+/**
+ * `--severity <code>=<level>`，可重复。只对 **profile** 的码成立：核心的码与级别
+ * 由附录 A 规定，而那是规范性的——「处理器必须以本附录指派的代码与严重级别报告
+ * 诊断」，一个改核心级别的开关会让本程序不合规。
+ *
+ * 可以升也可以降，但**降不到静默**：最低是 info。「我知道这批素材没 license，
+ * 别拦我」是真实需求，而「让它彻底消失」是 `--only` 的事——两者的区别是，降级
+ * 之后那条诊断仍然出现在输出和 --json 里，只是不再决定退出码。
+ */
+function applySeverity(diags: ProfileDiagnostic[], args: string[]): ProfileDiagnostic[] {
+  const overrides = new Map<string, ProfileDiagnostic["severity"]>();
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] !== "--severity") continue;
+    const spec = args[i + 1];
+    if (spec === undefined) fail("--severity needs <code>=<error|warning|info>", 2);
+    const eq = spec.lastIndexOf("=");
+    if (eq <= 0) fail(`--severity: expected <code>=<level>, got \`${spec}\``, 2);
+    const code = spec.slice(0, eq), level = spec.slice(eq + 1);
+    if (level !== "error" && level !== "warning" && level !== "info") {
+      fail(`--severity ${code}: level must be error, warning or info (info is the floor — use --only to hide)`, 2);
+    }
+    if (!knownProfileCode(code)) {
+      fail(`--severity: \`${code}\` is not a code any declared vocabulary defines; core severities are fixed by Appendix A`, 2);
+    }
+    overrides.set(code, level);
+  }
+  if (overrides.size === 0) return diags;
+  return diags.map((d) => (overrides.has(d.code) ? { ...d, severity: overrides.get(d.code)! } : d));
+}
+
+/** `*` 通配的前缀/后缀匹配，够 `--only 'media-stale-*'` 用，不引入正则的坑。 */
+function globMatch(pattern: string, code: string): boolean {
+  const parts = pattern.split("*").map((x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  return new RegExp(`^${parts.join(".*")}$`).test(code);
 }
 
 // Subcommand, file and revision, read positionally around the options —
@@ -1283,8 +1348,8 @@ function runStyle(args: string[]): void {
   if (sheetPath === undefined) fail("geml style check needs a stylesheet", 2);
   if (corpusPaths.length === 0) fail("geml style check needs at least one content document to resolve against", 2);
 
-  // 宿主的注册表只有宿主知道，CLI 不知道 —— 所以 `unknown-component` /
-  // `unknown-handler` 在命令行上必须由调用方声明才可能触发。不声明就不检查，
+  // 宿主的注册表只有宿主知道，CLI 不知道 —— 所以 `style-unknown-component` /
+  // `style-unknown-handler` 在命令行上必须由调用方声明才可能触发。不声明就不检查，
   // 而不是假装检查过：一条从不触发的诊断比没有这条诊断更糟。
   const listFlag = (name: string): string[] | undefined => {
     const pre = `--${name}=`;

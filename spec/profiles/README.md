@@ -31,14 +31,14 @@ that declare different profiles.
 
 ## Index
 
-| Profile | Admits | Document | CLI |
-|---|---|---|---|
-| `geml-codemap/v1` | `anchor`, `name`, `entry-via` on `code` blocks | [geml-codemap-profile.md](geml-codemap/geml-codemap-profile.md) · [中文](geml-codemap/geml-codemap-profile_CN.md) | `geml codemap build\|verify\|render\|serve\|refresh\|find` |
-| `geml-style/v1` | types `style-rule`, `style-state`, `style-screen`, `style-frame` | [geml-style-profile.md](geml-style/geml-style-profile.md) · [中文](geml-style/geml-style-profile_CN.md) | `geml style check` |
-| `geml-history/v1` | types `history-revision`, `history-keyframe`, `history-blob` and their attribute keys | [geml-history-profile.md](geml-history/geml-history-profile.md) · [中文](geml-history/geml-history-profile_CN.md) | `geml history save\|get\|restore\|verify` |
-| `geml-form/v1` | `form`, `form-field`, `form-group`, `form-options`, `form-note` blocks (`form` and `form-group` nest); `pattern`, `min`, `max`, `step`, `maxlength`, `accept` on `form-field` — GEP-0008, **draft** | [geml-form-profile.md](geml-form/geml-form-profile.md) · [中文](geml-form/geml-form-profile_CN.md) | — |
-| `geml-media/v1` | types `media` (a timeline, or one playable source), `media-asset`, `media-clip`, `media-text` (`media` holds blocks, `media-text` is prose) and their attribute keys; `.gen-log` on a `data` block | [geml-media-profile.md](geml-media/geml-media-profile.md) · [中文](geml-media/geml-media-profile_CN.md) | — |
-| `geml-translator/v1` | `translate-to` on `embed` blocks, and on `=== meta` as the document default — GEP-0010, **draft** | [geml-translator-profile.md](geml-translator/geml-translator-profile.md) · [中文](geml-translator/geml-translator-profile_CN.md) | — |
+| Profile | Status | Admits | Document | CLI |
+|---|---|---|---|---|
+| `geml-codemap/v1` | stable | `anchor`, `name`, `entry-via` on `code` blocks | [geml-codemap-profile.md](geml-codemap/geml-codemap-profile.md) · [中文](geml-codemap/geml-codemap-profile_CN.md) | `geml codemap build\|verify\|render\|serve\|refresh\|find` |
+| `geml-style/v1` | draft | types `style-rule`, `style-state`, `style-screen`, `style-frame` | [geml-style-profile.md](geml-style/geml-style-profile.md) · [中文](geml-style/geml-style-profile_CN.md) | `geml style check` |
+| `geml-history/v1` | stable | types `history-revision`, `history-keyframe`, `history-blob` and their attribute keys | [geml-history-profile.md](geml-history/geml-history-profile.md) · [中文](geml-history/geml-history-profile_CN.md) | `geml history save\|get\|restore\|verify` |
+| `geml-form/v1` | draft | `form`, `form-field`, `form-group`, `form-options`, `form-note` blocks (`form` and `form-group` nest); `pattern`, `min`, `max`, `step`, `maxlength`, `accept` on `form-field` — GEP-0008 | [geml-form-profile.md](geml-form/geml-form-profile.md) · [中文](geml-form/geml-form-profile_CN.md) | — |
+| `geml-media/v1` | draft | types `media` (a timeline, or one playable source), `media-asset`, `media-clip`, `media-text` (`media` holds blocks, `media-text` is prose) and their attribute keys; `.gen-log` on a `data` block | [geml-media-profile.md](geml-media/geml-media-profile.md) · [中文](geml-media/geml-media-profile_CN.md) | — |
+| `geml-translator/v1` | draft | `translate-to` on `embed` blocks, and on `=== meta` as the document default — GEP-0010 | [geml-translator-profile.md](geml-translator/geml-translator-profile.md) · [中文](geml-translator/geml-translator-profile_CN.md) | — |
 
 The reference implementation's registry is
 [`geml-parser/src/profiles.ts`](../../geml-parser/src/profiles.ts); this table
@@ -51,6 +51,119 @@ this layer: a vocabulary, a document that defines what the names mean, and
 whatever tooling reads and writes it. Core verbs — `check`, `list`, `get`,
 `set`, `add`, `delete`, `rename`, `find`, `--to` — never carry a profile name.
 
+## Naming
+
+A vocabulary owns the prefix of its own name: `geml-media/v1` owns `media-`.
+Three kinds of name MUST carry it — the **block types** it admits, the
+**diagnostic codes** its tooling emits, and the **`=== meta` keys** it reads.
+None of the three is scoped by anything else, and a collision in any of them is
+silent: two vocabularies that both define `style-unknown-token`, or both read `fps`,
+produce a document whose meaning depends on which tooling opens it.
+
+**Attribute keys are deliberately exempt.** They are registered per block type
+(`attrs: { code: ["anchor"] }`), so the type already scopes them: this layer's
+`code.anchor` cannot collide with another vocabulary's `x.anchor`. A prefix
+there would be a second scoping mechanism doing a job the first already does.
+
+§8.5 asks an extension for a hyphen so that unhyphenated names stay reserved for
+future versions of the specification. This convention is that rule taken one
+step further, into the two namespaces §8.5 does not mention.
+
+The registry declares all three (`types`, `diagnostics`, `metaKeys`), and a test
+in `geml-parser/test/profiles.test.mjs` enforces the rule against a table of
+**recorded exceptions** — each carrying why it is there and what clears it. A
+second test fails when an exception goes stale, so the table cannot quietly
+become permanent. The exceptions today are `form` and `media` (bare type names),
+`geml-style`'s seven unprefixed codes, and `geml-media`'s six meta keys; all
+predate this convention.
+
+`diagnostics` is a **code → default severity** table, not a list of names, and
+the core reads it for two things beyond the naming rule: `--severity` and
+`--only` work on any code in it, so an important diagnostic never needs a flag
+of its own, and a second implementation has one table to reproduce instead of
+forty strings to find in this one.
+
+## Checking
+
+A vocabulary's checks run from the core `geml check`, on any document whose
+`=== meta` declares it and whose vocabulary this processor recognizes. Whether a
+document should be read by a vocabulary's rules is something the document
+already says; asking the caller for a second command name would be asking twice.
+
+A profile's diagnostics are reported by **address** — `doc#id` — not by line.
+They are cross-document by nature (a clip in one file whose source lives in
+another), so there is no one line to name, and a fabricated line 0 would be
+worse than two shapes. `ProfileDiagnostic` in the registry is that shape, and it
+carries a third severity, `info`, that the core has no use for: a broken
+structure is an error, a stale fact is a warning, and a choice is info.
+
+A separate verb stays right when the **input** is different: `geml style check`
+takes a stylesheet and a corpus — two files in different roles — so it is not a
+question about "this document" and does not belong on `check`.
+
+Two flags apply to these codes, and to these only:
+
+- `--severity <code>=<error|warning|info>` re-levels one code. `info` is the
+  floor: a level that silences is what `--only` is for, and the difference
+  matters because a downgraded diagnostic still appears in the output and in
+  `--json` — it just stops deciding the exit code.
+- `--only <pattern>` keeps the profile codes matching a `*` pattern.
+
+Neither takes a core code. Appendix A fixes the severity of every code it
+defines, and a processor that moved one would not conform.
+
+## Status
+
+Every profile declares one of three, in the registry and in the index above:
+
+| State | What it promises |
+|---|---|
+| `draft` | Still moving inside its own `/vN`, body modes included. Do not build on it. |
+| `stable` | Additive only inside `/vN`: names may be added, and no existing name may change meaning or be removed. A change that is neither goes to `/vN+1`. |
+| `deprecated` | Nothing more will be added. It stays readable so documents already written still parse. |
+
+This is a repository convention and not a rule of the specification — §8.6.2
+rule 3 makes it implementation-defined which vocabularies a processor
+recognizes, so the specification has no place to say a vocabulary must carry a
+state. It became load-bearing with
+[GEP 0013](../proposals/0013-prose-body-for-vocabularies.md): before it, a
+vocabulary could only add names, and "what changed inside `/v1`" was a small
+question. A vocabulary may now declare **body modes**, and changing one changes
+how documents parse for every processor that recognizes the name.
+
+## Conformance
+
+Each profile carries `geml-<thing>/conformance.json` beside its document: the
+**observable contract** of the vocabulary, as data.
+
+| Field | What it fixes |
+|---|---|
+| `codes` | every diagnostic code and its default severity — the part a second implementation copies |
+| `cases[].addresses` | the addresses a document carries when the vocabulary is recognized, and when it is not |
+| `cases[].admits` | which names stop being `unknown-*` on declaration |
+
+The addresses are the point. §8.6.2 rule 4 lets a vocabulary's **declared body
+mode** change the addressable set and lets nothing else do so, and these files
+are where that is pinned per vocabulary. `geml-form/v1` is the one profile whose
+two readings differ — its `form` holds id-bearing `form-field` blocks — and
+`geml-media/v1` is the contrast: a prose body creates no ids, so both readings
+see the same addresses. A case that drifts across that line fails
+`geml-parser/test/profile-conformance.test.mjs`, in either direction, and so
+does a file whose `codes` or `state` stops matching the registry.
+
+One asymmetry is worth knowing before writing a case: a **nested** admitted name
+does not produce `unknown-block-type` in the undeclared reading. Its container
+falls back to a `raw` body, so the block inside it is never scanned as a block
+at all — it is text. `form-field` behaves this way. The suite therefore asks
+that a document produce *some* `unknown-*` without its declaration, not that
+every admitted name produce one.
+
+This is not §8.4. The specification's suite is stated over the document model
+and deliberately says nothing about any vocabulary — its own cases all declare a
+name nothing recognizes, so that no expected projection can depend on a
+processor's vocabulary list. That is right for the core, and it leaves this
+layer with nothing to reproduce. These files are that, one layer up.
+
 ## Adding one
 
 1. Decide it is a profile and not a specification change. The test is written
@@ -59,10 +172,14 @@ whatever tooling reads and writes it. Core verbs — `check`, `list`, `get`,
    a profile cannot carry a MUST — a processor that recognizes no vocabulary is
    conformant. If no, the remaining question is judgment: is this the format's,
    or one application's?
-2. Name it `geml-<thing>/v1`. §8.5 reserves unhyphenated type names for future
-   versions of the specification, so the vocabulary's own type names carry a
-   hyphen too; the version rides in the profile name, so a changed vocabulary
-   is a different name.
+2. Name it `geml-<thing>/v1`, and give every type, diagnostic code and `=== meta`
+   key it owns the prefix `<thing>-` — see **Naming** above. The version rides in
+   the profile name, so a changed vocabulary is a different name.
 3. Write `<name>/<name>-profile.md` (and `_CN`) in this directory: what it
    admits, what those names mean, and what the tooling does with them.
-4. Register the names in `geml-parser/src/profiles.ts` and add a row above.
+4. Register the names in `geml-parser/src/profiles.ts` — including `state`,
+   which is required, and `metaKeys` / `diagnostics` if it has any — and add a
+   row above carrying the same state. A test pins the two lists as one.
+5. Write `geml-<thing>/conformance.json` (see **Conformance**). A registered
+   profile without one fails the suite: a vocabulary nobody can reproduce is a
+   vocabulary only this implementation has.

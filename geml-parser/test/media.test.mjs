@@ -3,7 +3,7 @@
 // 项目"id 优于行号"的立场一致，也因为跨文档的诊断没有单一的行号可言。
 import { checkMedia } from "../dist/media-check.js";
 import { importKindOf, parseCues, importSubtitles, idsTaken, assetBlockFor } from "../dist/media-verbs.js";
-import { mediaIoFor } from "../dist/host-fs.js";
+import { profileIoFor } from "../dist/host-fs.js";
 import { strict as assert } from "node:assert";
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -30,7 +30,7 @@ test("干净的一份素材库没有诊断", () => {
     "lib.geml": META + '=== media-asset {#a src=a.txt sha256=' + "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" + ' kind=other}\n===\n',
     "a.txt": "",
   });
-  const ds = checkMedia("lib.geml", mediaIoFor(root));
+  const ds = checkMedia("lib.geml", profileIoFor(root));
   assert.deepEqual(ds, [], JSON.stringify(ds));
   rmSync(root, { recursive: true, force: true });
 });
@@ -43,7 +43,7 @@ test("哈希不符是 error，文件缺失是 warning，没哈希是 warning", (
       + "=== media-asset {#bare src=a.txt kind=other}\n===\n",
     "a.txt": "",
   });
-  const ds = checkMedia("lib.geml", mediaIoFor(root));
+  const ds = checkMedia("lib.geml", profileIoFor(root));
   assert.deepEqual(codes(ds), ["media-asset-unhashed", "media-file-missing", "media-hash-mismatch"], JSON.stringify(ds));
   const mismatch = ds.find((d) => d.code === "media-hash-mismatch");
   assert.equal(mismatch.severity, "error");
@@ -56,7 +56,7 @@ test("轨道：名字缺种类、种类不认识、片段没有 track=", () => {
     "cut.geml": '=== meta\nprofile = "geml-media/v1"\n===\n\n==== media {#tl tracks="video:video bare subtitle:caption"}\n\n'
       + "=== media-clip {#c1 src=#x}\n===\n\n====\n",
   });
-  const ds = checkMedia("cut.geml", mediaIoFor(root));
+  const ds = checkMedia("cut.geml", profileIoFor(root));
   const c = codes(ds);
   assert.ok(c.includes("media-track-kind-missing"), JSON.stringify(ds));
   assert.ok(c.includes("media-track-kind-unknown"), JSON.stringify(ds));
@@ -96,7 +96,7 @@ function lineageProject(look = "银灰短发齐耳。") {
 
 test("血缘：源头没动时，没有过期", () => {
   const root = project(lineageProject().files);
-  const ds = checkMedia("cut.geml", mediaIoFor(root));
+  const ds = checkMedia("cut.geml", profileIoFor(root));
   assert.deepEqual(ds, [], JSON.stringify(ds));
   rmSync(root, { recursive: true, force: true });
 });
@@ -105,7 +105,7 @@ test("血缘：改角色卡一个词 —— 记录过期，用它的片段跟着
   const p = lineageProject();
   p.files["script.geml"] = p.files["script.geml"].replace("银灰短发齐耳。", "银灰短发及肩。");
   const root = project(p.files);
-  const ds = checkMedia("cut.geml", mediaIoFor(root));
+  const ds = checkMedia("cut.geml", profileIoFor(root));
   const gen = ds.find((d) => d.code === "media-stale-generation");
   const clip = ds.find((d) => d.code === "media-stale-clip");
   assert.ok(gen, "记录该过期: " + JSON.stringify(ds));
@@ -119,7 +119,7 @@ test("血缘：日志缺必需字段是 media-gen-schema，点名记录序号与
   const root = project({
     "lib.geml": META + '=== data {#gen-log .gen-log format=jsonl}\n{"output":"#x","model":"m"}\n===\n',
   });
-  const ds = checkMedia("lib.geml", mediaIoFor(root));
+  const ds = checkMedia("lib.geml", profileIoFor(root));
   const d = ds.find((x) => x.code === "media-gen-schema");
   assert.ok(d, JSON.stringify(ds));
   assert.match(d.message, /\[0\]/, "要点名是第几条记录");
@@ -139,7 +139,7 @@ test("片段：src 悬空、指错类型、缺 dur、轨道没声明", () => {
       + "=== media-clip {#nodur track=video src=lib.geml#still}\n===\n\n"
       + "=== media-clip {#odd track=ghost src=lib.geml#still duration=2}\n===\n\n====\n",
   });
-  const c = codes(checkMedia("cut.geml", mediaIoFor(root)));
+  const c = codes(checkMedia("cut.geml", profileIoFor(root)));
   for (const want of ["media-src-unresolved", "media-src-not-asset", "media-duration-required", "media-track-undeclared"]) {
     assert.ok(c.includes(want), want + " 没报出: " + c.join(","));
   }
@@ -154,7 +154,7 @@ test("散文轨：src 必须指 media-text，且必须有 dur", () => {
       + "=== media-clip {#bad track=sub src=lib.geml#a duration=1}\n===\n\n"
       + "=== media-clip {#nodur track=sub src=lib.geml#l}\n===\n\n====\n",
   });
-  const c = codes(checkMedia("cut.geml", mediaIoFor(root)));
+  const c = codes(checkMedia("cut.geml", profileIoFor(root)));
   assert.ok(c.includes("media-src-not-asset"), c.join(","));
   assert.ok(c.includes("media-duration-required"), c.join(","));
   rmSync(root, { recursive: true, force: true });
@@ -168,7 +168,7 @@ test("台词与素材的引用：speaker 必填、speaker/to/of 悬空各自报�
       + "=== media-asset {#x src=x.txt kind=other of=#nobody}\n===\n",
     "x.txt": "",
   });
-  const ds = checkMedia("lib.geml", mediaIoFor(root));
+  const ds = checkMedia("lib.geml", profileIoFor(root));
   const c = codes(ds);
   assert.ok(c.includes("media-line-no-speaker"), c.join(","));
   assert.equal(ds.filter((d) => d.code === "media-speaker-unresolved").length, 2, "speaker 与 to 各一条");
@@ -180,7 +180,7 @@ test("血缘：现在的字节没有任何记录认领 —— media-orphan-recor
   const p = lineageProject();
   p.files["a.mp4"] = "DIFFERENT-BYTES";      // 文件换了，日志没跟上
   const root = project(p.files);
-  const c = codes(checkMedia("lib.geml", mediaIoFor(root)));
+  const c = codes(checkMedia("lib.geml", profileIoFor(root)));
   assert.ok(c.includes("media-orphan-record"), c.join(","));
   assert.ok(c.includes("media-hash-mismatch"), "素材块声明的哈希也对不上了: " + c.join(","));
   rmSync(root, { recursive: true, force: true });
@@ -202,7 +202,7 @@ test("血缘：过期沿 DAG 向下传播 —— 上游的 take 变了，吃它�
           inputs: [{ ref: "#take", sha256: sha(base) }], at: "2026-09-15T01:00:00Z" }) + "\n===\n\n"
       + `=== media-asset {#seed src=a.mp4 sha256=${sha(base)} kind=video duration=5}\n===\n`,
   });
-  const ds = checkMedia("lib.geml", mediaIoFor(root));
+  const ds = checkMedia("lib.geml", profileIoFor(root));
   const stale = ds.filter((d) => d.code === "media-stale-generation").map((d) => d.id).sort();
   assert.deepEqual(stale, ["lips", "take"], "take 因输入哈希对不上而过期，lips 因上游过期而过期: " + JSON.stringify(ds));
   assert.match(ds.find((d) => d.id === "lips").message, /上游过期/);
@@ -232,14 +232,14 @@ function fixture(mutate) {
 test("夹具：四份文档的 profile check 干净", () => {
   const root = fixture();
   for (const entry of ["ep01/ep01-cut.geml", "ep01/ep01-library.geml", "characters.geml", "ep01/ep01-script.geml"]) {
-    assert.deepEqual(checkMedia(entry, mediaIoFor(root)), [], entry + " 应干净");
+    assert.deepEqual(checkMedia(entry, profileIoFor(root)), [], entry + " 应干净");
   }
   rmSync(root, { recursive: true, force: true });
 });
 
 test("夹具：改角色卡一个词 —— 三条记录过期、两个片段过期，诊断点名 #hero-look", () => {
   const root = fixture(({ edit }) => edit("characters.geml", "银灰短发齐耳", "银灰短发及肩"));
-  const ds = checkMedia("ep01/ep01-cut.geml", mediaIoFor(root));
+  const ds = checkMedia("ep01/ep01-cut.geml", profileIoFor(root));
   const gens = ds.filter((d) => d.code === "media-stale-generation").map((d) => d.id).sort();
   assert.deepEqual(gens, ["s01-key", "s01-take3", "s03-take2", "s03-take2-lips"], JSON.stringify(ds));
   assert.match(ds.find((d) => d.id === "s01-key").message, /#hero-look/, "要点名是哪个投射源变了");
@@ -250,7 +250,7 @@ test("夹具：改角色卡一个词 —— 三条记录过期、两个片段过
 
 test("夹具：换掉一个素材文件的字节 —— 哈希不符 + 来历不明", () => {
   const root = fixture(({ put }) => put("ep01/assets/s03-take2.mp4", "REGENERATED"));
-  const c = codes(checkMedia("ep01/ep01-library.geml", mediaIoFor(root)));
+  const c = codes(checkMedia("ep01/ep01-library.geml", profileIoFor(root)));
   assert.ok(c.includes("media-hash-mismatch"), c.join(","));
   assert.ok(c.includes("media-orphan-record"), c.join(","));
   rmSync(root, { recursive: true, force: true });
@@ -258,28 +258,28 @@ test("夹具：换掉一个素材文件的字节 —— 哈希不符 + 来历不
 
 test("夹具：删掉一个素材文件 —— media-file-missing", () => {
   const root = fixture(({ edit }) => edit("ep01/ep01-library.geml", "src=assets/s01-key.png", "src=assets/gone.png"));
-  const c = codes(checkMedia("ep01/ep01-library.geml", mediaIoFor(root)));
+  const c = codes(checkMedia("ep01/ep01-library.geml", profileIoFor(root)));
   assert.ok(c.includes("media-file-missing"), c.join(","));
   rmSync(root, { recursive: true, force: true });
 });
 
 test("夹具：台词去掉 speaker= —— media-line-no-speaker", () => {
   const root = fixture(({ edit }) => edit("ep01/ep01-script.geml", " speaker=../characters.geml#sister", ""));
-  const c = codes(checkMedia("ep01/ep01-script.geml", mediaIoFor(root)));
+  const c = codes(checkMedia("ep01/ep01-script.geml", profileIoFor(root)));
   assert.ok(c.includes("media-line-no-speaker"), c.join(","));
   rmSync(root, { recursive: true, force: true });
 });
 
 test("夹具：把 of= 指错 —— media-of-unresolved", () => {
   const root = fixture(({ edit }) => edit("ep01/ep01-library.geml", "of=../characters.geml#hero", "of=../characters.geml#nobody"));
-  const c = codes(checkMedia("ep01/ep01-library.geml", mediaIoFor(root)));
+  const c = codes(checkMedia("ep01/ep01-library.geml", profileIoFor(root)));
   assert.ok(c.includes("media-of-unresolved"), c.join(","));
   rmSync(root, { recursive: true, force: true });
 });
 
 test("夹具：视频轨的片段指向台词块 —— media-src-not-asset", () => {
   const root = fixture(({ edit }) => edit("ep01/ep01-cut.geml", "src=ep01-library.geml#s01-take3", "src=ep01-script.geml#s03-l1"));
-  const c = codes(checkMedia("ep01/ep01-cut.geml", mediaIoFor(root)));
+  const c = codes(checkMedia("ep01/ep01-cut.geml", profileIoFor(root)));
   assert.ok(c.includes("media-src-not-asset"), c.join(","));
   rmSync(root, { recursive: true, force: true });
 });
@@ -293,7 +293,7 @@ import { todo, report, exportTimeline, lay, buildPlan, appendLog, importPlan } f
 
 test("时间模型：主轨顺序摆放，其余轨锚在主轨上", () => {
   const root = fixture();
-  const io = mediaIoFor(root);
+  const io = profileIoFor(root);
   const dur = { "ep01-library.geml#s01-take3": 5, "ep01-library.geml#s03-take2-lips": 6, "ep01-library.geml#s03-l1-vo": 2.1 };
   const tl = layout(read(join(root, "ep01/ep01-cut.geml"), "utf8"), { durationOf: (r) => dur[r] });
   const at = (id) => tl.clips.find((c) => c.id === id);
@@ -318,7 +318,7 @@ test("时间模型：dissolve 的重叠量从前一个的终点往回借", () =>
 
 test("export：srt 的时码来自时间模型，preview 的 #t= 来自入出点", () => {
   const root = fixture();
-  const io = mediaIoFor(root);
+  const io = profileIoFor(root);
   const srt = exportTimeline("ep01/ep01-cut.geml", "srt", io);
   assert.match(srt, /00:00:04,400 --> 00:00:06,500/, srt);
   assert.match(srt, /姐……你怎么会……/, "字幕文本取自台词块，不复制");
@@ -334,14 +334,14 @@ test("export：srt 的时码来自时间模型，preview 的 #t= 来自入出点
 test("todo：日志齐全时没有待办；删掉一条记录，那件事就回到清单上", () => {
   const clean = fixture();
   const all = ["characters.geml", "ep01/ep01-script.geml", "ep01/ep01-library.geml", "ep01/ep01-cut.geml"];
-  assert.deepEqual(todo(all, mediaIoFor(clean)), []);
+  assert.deepEqual(todo(all, profileIoFor(clean)), []);
   rmSync(clean, { recursive: true, force: true });
 
   const root = fixture(({ root: r }) => {
     const f = join(r, "ep01/ep01-library.geml");
     write(f, read(f, "utf8").split(/\r?\n/).filter((l) => !l.includes('"output":"#s03-l1-vo"')).join("\n"));
   });
-  const items = todo(all, mediaIoFor(root));
+  const items = todo(all, profileIoFor(root));
   assert.equal(items.length, 1, JSON.stringify(items));
   assert.equal(items[0].kind, "voice");
   assert.match(items[0].address, /#s03-l1$/);
@@ -351,7 +351,7 @@ test("todo：日志齐全时没有待办；删掉一条记录，那件事就回�
 
 test("report：stats 按提示词统计生成次数与模型分布", () => {
   const root = fixture();
-  const csv = report("ep01/ep01-library.geml", "stats", mediaIoFor(root));
+  const csv = report("ep01/ep01-library.geml", "stats", profileIoFor(root));
   assert.match(csv, /#s01-prompt,2,/, "同一条提示词生成了两次");
   assert.match(csv, /jimeng-4\.5×1 seedance-2\.0×1/);
   rmSync(root, { recursive: true, force: true });
@@ -359,7 +359,7 @@ test("report：stats 按提示词统计生成次数与模型分布", () => {
 
 test("import：按哈希去重 —— 同一个文件不会被建成第二个素材块", () => {
   const root = fixture();
-  const io = mediaIoFor(root);
+  const io = profileIoFor(root);
   const plan = importPlan("ep01/ep01-library.geml", [
     { file: "assets/s01-key.png", model: "m", mode: "t2i" },
   ], io);
@@ -383,7 +383,7 @@ test("log：追加记录的同时把素材块的 sha256 改成现值", () => {
 
 test("build：ffmpeg 的参数由时间模型决定，字幕另出不烧进画面", () => {
   const root = fixture();
-  const plan = buildPlan("ep01/ep01-cut.geml", "out.mp4", mediaIoFor(root));
+  const plan = buildPlan("ep01/ep01-cut.geml", "out.mp4", profileIoFor(root));
   assert.equal(Math.round(plan.duration * 100) / 100, 10);
   const joined = plan.args.join(" ");
   assert.match(joined, /trim=start=0\.000:end=4\.000/, "第一个片段的入出点进了 trim");
@@ -429,7 +429,7 @@ test("时间模型：算不出时长、锚不到主轨，都记成 problems 而�
 
 test("lay：按配音时长顺排，给出 offset 的初值", () => {
   const root = fixture();
-  const s = lay("ep01/ep01-cut.geml", "#c03", mediaIoFor(root), 0.3);
+  const s = lay("ep01/ep01-cut.geml", "#c03", profileIoFor(root), 0.3);
   assert.equal(s.length, 2, JSON.stringify(s));
   assert.equal(s[0].offset, 0);
   assert.equal(s[1].offset, 2.4, "第一条 2.1 秒 + 0.3 间隙");
@@ -439,7 +439,7 @@ test("lay：按配音时长顺排，给出 offset 的初值", () => {
 
 test("export：edl 带片段名，json 就是时间线本身", () => {
   const root = fixture();
-  const io = mediaIoFor(root);
+  const io = profileIoFor(root);
   const edl = exportTimeline("ep01/ep01-cut.geml", "edl", io);
   assert.match(edl, /FROM CLIP NAME: ep01\/assets\/s01-take3\.mp4/, edl.slice(0, 200));
   const tl = JSON.parse(exportTimeline("ep01/ep01-cut.geml", "json", io));
@@ -450,14 +450,14 @@ test("export：edl 带片段名，json 就是时间线本身", () => {
 
 test("report：cast 列出每句台词的说话人", () => {
   const root = fixture();
-  const csv = report("ep01/ep01-script.geml", "cast", mediaIoFor(root));
+  const csv = report("ep01/ep01-script.geml", "cast", profileIoFor(root));
   assert.match(csv, /#sister/, csv);
   rmSync(root, { recursive: true, force: true });
 });
 
 test("import：清单里读不到的文件被跳过并说明，不静默", () => {
   const root = fixture();
-  const plan = importPlan("ep01/ep01-library.geml", [{ file: "assets/nope.png", model: "m", mode: "t2i" }], mediaIoFor(root));
+  const plan = importPlan("ep01/ep01-library.geml", [{ file: "assets/nope.png", model: "m", mode: "t2i" }], profileIoFor(root));
   assert.equal(plan.records.length, 0);
   assert.match(plan.notes.join(" "), /读不到/);
   rmSync(root, { recursive: true, force: true });
@@ -499,7 +499,7 @@ test("parseCues：读不出时间或没有正文的条目被跳过并计数，�
 
 test("importSubtitles：每条字幕锚到那一刻在播的主轨片段上，用 over/offset 而不是绝对时间", () => {
   const root = fixture();
-  const io = mediaIoFor(root);
+  const io = profileIoFor(root);
   const srt = "1\n00:00:00,500 --> 00:00:02,000\n第一句\n\n2\n00:00:04,600 --> 00:00:06,200\n第二句\n";
   const r = importSubtitles(srt, { idPrefix: "imp", srcDoc: "ep01-script.geml", cutEntry: "ep01/ep01-cut.geml" }, io);
   // #c01 是 0–4s，#c03 从 4s 起 —— 0.5s 落在前者，4.6s 落在后者。
@@ -511,7 +511,7 @@ test("importSubtitles：每条字幕锚到那一刻在播的主轨片段上，�
 
 test("importSubtitles：落在主轨之外的字幕退回 at=，并且说出来", () => {
   const root = fixture();
-  const r = importSubtitles("1\n00:00:59,000 --> 00:01:01,000\n片外\n", { idPrefix: "x", srcDoc: "s.geml", cutEntry: "ep01/ep01-cut.geml" }, mediaIoFor(root));
+  const r = importSubtitles("1\n00:00:59,000 --> 00:01:01,000\n片外\n", { idPrefix: "x", srcDoc: "s.geml", cutEntry: "ep01/ep01-cut.geml" }, profileIoFor(root));
   assert.match(r.clips, /at=59\.000 duration=2/, r.clips);
   assert.match(r.notes.join(" "), /主轨之外/);
   rmSync(root, { recursive: true, force: true });
@@ -519,7 +519,7 @@ test("importSubtitles：落在主轨之外的字幕退回 at=，并且说出来"
 
 test("importSubtitles：没给说话人就不写成 .line —— srt 不带这个信息，编一个不如不写", () => {
   const root = fixture();
-  const io = mediaIoFor(root);
+  const io = profileIoFor(root);
   const srt = "1\n00:00:00,500 --> 00:00:02,000\n第一句\n";
   const bare = importSubtitles(srt, { idPrefix: "a", srcDoc: "s.geml", cutEntry: null }, io);
   assert.equal(bare.lines.includes(".line"), false, bare.lines);
@@ -531,7 +531,7 @@ test("importSubtitles：没给说话人就不写成 .line —— srt 不带这�
 
 test("importSubtitles：没给 cut 就只出台词块，不编一套时间", () => {
   const root = fixture();
-  const r = importSubtitles("1\n00:00:00,500 --> 00:00:02,000\n第一句\n", { idPrefix: "a", srcDoc: "", cutEntry: null }, mediaIoFor(root));
+  const r = importSubtitles("1\n00:00:00,500 --> 00:00:02,000\n第一句\n", { idPrefix: "a", srcDoc: "", cutEntry: null }, profileIoFor(root));
   assert.equal(r.clips, null);
   assert.match(r.notes.join(" "), /没给 --cut/);
   rmSync(root, { recursive: true, force: true });
@@ -552,7 +552,7 @@ test("assetBlockFor：读不到时长就不写 duration=，不填 0", () => {
 
 test("build：默认不烧字幕，滤镜链里没有 subtitles", () => {
   const root = fixture();
-  const plan = buildPlan("ep01/ep01-cut.geml", "out.mp4", mediaIoFor(root));
+  const plan = buildPlan("ep01/ep01-cut.geml", "out.mp4", profileIoFor(root));
   const fc = plan.args[plan.args.indexOf("--filter_complex") + 1] ?? plan.args.join(" ");
   assert.equal(fc.includes("subtitles="), false, fc);
   assert.equal(plan.args[plan.args.indexOf("-map") + 1], "[vout]");
@@ -562,7 +562,7 @@ test("build：默认不烧字幕，滤镜链里没有 subtitles", () => {
 
 test("build --burn-subs：字幕接在画面链末尾，force_style 加引号不逐个转义逗号", () => {
   const root = fixture();
-  const plan = buildPlan("ep01/ep01-cut.geml", "out.mp4", mediaIoFor(root),
+  const plan = buildPlan("ep01/ep01-cut.geml", "out.mp4", profileIoFor(root),
     { burn: { file: "out.srt", style: "FontName=Microsoft YaHei,FontSize=18" } });
   const fc = plan.args[plan.args.indexOf("-filter_complex") + 1];
   assert.match(fc, /\[vout\]subtitles=filename=out\.srt:force_style='FontName=Microsoft YaHei,FontSize=18'\[vsub\]/, fc);
@@ -573,7 +573,7 @@ test("build --burn-subs：字幕接在画面链末尾，force_style 加引号不
 
 test("build --burn-subs：文件名里的冒号逗号按 filtergraph 转义，样式里的单引号被去掉", () => {
   const root = fixture();
-  const plan = buildPlan("ep01/ep01-cut.geml", "out.mp4", mediaIoFor(root),
+  const plan = buildPlan("ep01/ep01-cut.geml", "out.mp4", profileIoFor(root),
     { burn: { file: "a,b:c.srt", style: "FontName=It's" } });
   const fc = plan.args[plan.args.indexOf("-filter_complex") + 1];
   // 反斜杠写成 fromCharCode：这份断言经过 shell 和 heredoc，字面反斜杠被吃掉一次
@@ -586,8 +586,8 @@ test("build --burn-subs：文件名里的冒号逗号按 filtergraph 转义，�
 
 test("build：gain 与 fade 真的施加在音频链上 —— 不然浏览器小声、出片原声", () => {
   const root = fixture(({ edit }) => edit("ep01/ep01-cut.geml", "gain=0dB", "gain=-14dB fade-in=0.3 fade-out=0.5"));
-  const fc = buildPlan("ep01/ep01-cut.geml", "out.mp4", mediaIoFor(root)).args[
-    buildPlan("ep01/ep01-cut.geml", "out.mp4", mediaIoFor(root)).args.indexOf("-filter_complex") + 1];
+  const fc = buildPlan("ep01/ep01-cut.geml", "out.mp4", profileIoFor(root)).args[
+    buildPlan("ep01/ep01-cut.geml", "out.mp4", profileIoFor(root)).args.indexOf("-filter_complex") + 1];
   assert.match(fc, /volume=-14dB/, fc);
   assert.match(fc, /afade=t=in:st=0:d=0\.3/, fc);
   // 淡出从**片段内**的 duration-0.5 起算，不是时间线绝对时刻。
@@ -599,7 +599,7 @@ test("build：gain 与 fade 真的施加在音频链上 —— 不然浏览器�
 
 test("build：gain=0dB 不生成 volume 滤镜 —— 零增益不该多一道处理", () => {
   const root = fixture();
-  const plan = buildPlan("ep01/ep01-cut.geml", "out.mp4", mediaIoFor(root));
+  const plan = buildPlan("ep01/ep01-cut.geml", "out.mp4", profileIoFor(root));
   const fc = plan.args[plan.args.indexOf("-filter_complex") + 1];
   assert.equal(fc.includes("volume="), false, fc);
   rmSync(root, { recursive: true, force: true });
@@ -607,7 +607,7 @@ test("build：gain=0dB 不生成 volume 滤镜 —— 零增益不该多一道�
 
 test("export --to player：一个能播的面，零 ffmpeg —— 时间原样来自时间线", () => {
   const root = fixture();
-  const html = exportTimeline("ep01/ep01-cut.geml", "player", mediaIoFor(root));
+  const html = exportTimeline("ep01/ep01-cut.geml", "player", profileIoFor(root));
   // 画面轨是 video、声音轨是 audio，散文轨不进舞台而是进字幕表。
   assert.equal((html.match(/<video /g) ?? []).length, 2, html.slice(0, 400));
   assert.equal((html.match(/<audio /g) ?? []).length, 1);
@@ -624,7 +624,7 @@ test("export --to player：一个能播的面，零 ffmpeg —— 时间原样�
 
 test("export --to player 与 --to preview 是两件事：成片 vs 联系表", () => {
   const root = fixture();
-  const io = mediaIoFor(root);
+  const io = profileIoFor(root);
   const preview = exportTimeline("ep01/ep01-cut.geml", "preview", io);
   const player = exportTimeline("ep01/ep01-cut.geml", "player", io);
   // 联系表每刀一个带 controls 的独立播放器；成片一个时钟推所有元素，没有 controls。
@@ -645,7 +645,7 @@ test("形状：有体又有 src= 说不清算哪种；两样都没有则什么�
       '=== media {#neither tracks="video:video"}', "==="),
     "lib.geml": META + doc("=== media-asset {#a src=a.mp4 kind=video duration=9}", "==="),
   });
-  const c = codes(checkMedia("cut.geml", mediaIoFor(root)));
+  const c = codes(checkMedia("cut.geml", profileIoFor(root)));
   assert.ok(c.includes("media-shape-ambiguous"), c.join(","));
   assert.ok(c.includes("media-shape-empty"), c.join(","));
   rmSync(root, { recursive: true, force: true });
@@ -656,7 +656,7 @@ test("不在任何 media 里的片段被点名 —— 它不属于任何一条�
     "cut.geml": META + doc("=== media-clip {#loose track=video src=lib.geml#a in=0 out=2}", "==="),
     "lib.geml": META + doc("=== media-asset {#a src=a.mp4 kind=video duration=9}", "==="),
   });
-  const c = codes(checkMedia("cut.geml", mediaIoFor(root)));
+  const c = codes(checkMedia("cut.geml", profileIoFor(root)));
   assert.ok(c.includes("media-clip-unassembled"), c.join(","));
   rmSync(root, { recursive: true, force: true });
 });

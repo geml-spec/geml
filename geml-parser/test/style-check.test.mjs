@@ -62,7 +62,7 @@ test("装载：style-state 上的未知键是 warning，不是 error", () => {
 
 test("装载：不合法的选择器点名报错（设计 §4.4）", () => {
   const s = sheet('=== style-rule {#r match="div > p" component=x}\n===\n');
-  assert.deepEqual(codes(s.diagnostics), ["selector-unsupported"]);
+  assert.deepEqual(codes(s.diagnostics), ["style-selector-unsupported"]);
   assert.equal(s.diagnostics[0].rule, "r");
 });
 
@@ -103,7 +103,7 @@ test("求解：条件集相同 + 同属性 = ambiguous-rule 错误（情况 2）
     '=== style-rule {#a match="table.kpi" component=x}\n===\n\n' +
     '=== style-rule {#b match="table.kpi" component=y}\n===\n'
   );
-  assert.deepEqual(codes(vm.diagnostics), ["ambiguous-rule"]);
+  assert.deepEqual(codes(vm.diagnostics), ["style-ambiguous-rule"]);
   assert.equal(vm.diagnostics[0].severity, "error");
   assert.match(vm.diagnostics[0].message, /#a/);
   assert.match(vm.diagnostics[0].message, /#b/);
@@ -117,7 +117,7 @@ test("求解：不可比 + 同属性 = ambiguous-rule 错误，并给出并集�
     '=== style-rule {#a match="table.kpi" component=x}\n===\n\n' +
     '=== style-rule {#b match="table[sortable]" component=y}\n===\n'
   );
-  assert.deepEqual(codes(vm.diagnostics), ["ambiguous-rule"]);
+  assert.deepEqual(codes(vm.diagnostics), ["style-ambiguous-rule"]);
   assert.match(vm.diagnostics[0].message, /neither is more specific/);
 });
 
@@ -126,21 +126,21 @@ test("求解：冲突对着语料判 —— 从不共现的规则不报错（设
     '=== style-rule {#a match="table.kpi" component=x}\n===\n\n' +
     '=== style-rule {#b match="code[anchor]" component=y}\n===\n'
   );
-  assert.deepEqual(codes(vm.diagnostics), ["unmatched-rule"]);
+  assert.deepEqual(codes(vm.diagnostics), ["style-unmatched-rule"]);
   assert.equal(vm.diagnostics[0].severity, "warning");
   assert.equal(vm.diagnostics[0].rule, "b");
 });
 
 test("求解：unknown-component 是 warning，惰性回退（设计 §7）", () => {
   const vm = resolveStyle(sheet('=== style-rule {#r match="table" component=nope}\n===\n'), corpus1, { components: ["data-table"] });
-  assert.deepEqual(codes(vm.diagnostics), ["unknown-component"]);
+  assert.deepEqual(codes(vm.diagnostics), ["style-unknown-component"]);
   assert.equal(vm.diagnostics[0].severity, "warning");
 });
 
 test("状态：规则引用未声明的 $foo 是错误（设计 §7）", () => {
   const vm = resolve('=== style-rule {#r match="table" component=x show="$nope"}\n===\n');
-  assert.equal(vm.diagnostics.some((d) => d.code === "unknown-state"), true);
-  assert.equal(vm.diagnostics.find((d) => d.code === "unknown-state").severity, "error");
+  assert.equal(vm.diagnostics.some((d) => d.code === "style-unknown-state"), true);
+  assert.equal(vm.diagnostics.find((d) => d.code === "style-unknown-state").severity, "error");
 });
 
 test("状态：screen 的槽位也能引用状态，且同样被检查（设计 §5.5）", () => {
@@ -148,9 +148,9 @@ test("状态：screen 的槽位也能引用状态，且同样被检查（设计 
     '=== style-state {#sel type=block-ref match="table" on=select value-from=a}\n===\n\n' +
     '=== style-screen {#s slots="table, $sel"}\n===\n'
   );
-  assert.equal(ok.diagnostics.some((d) => d.code === "unknown-state"), false);
+  assert.equal(ok.diagnostics.some((d) => d.code === "style-unknown-state"), false);
   const bad = resolve('=== style-screen {#s slots="table, $ghost"}\n===\n');
-  assert.equal(bad.diagnostics.some((d) => d.code === "unknown-state"), true);
+  assert.equal(bad.diagnostics.some((d) => d.code === "style-unknown-state"), true);
   // 槽位在视图模型里已解析：状态记名字，选择器展开成地址列表
   assert.deepEqual(ok.screens[0].slots[1], { kind: "state", state: "sel" });
   assert.equal(ok.screens[0].slots[0].kind, "blocks");
@@ -158,15 +158,15 @@ test("状态：screen 的槽位也能引用状态，且同样被检查（设计 
 
 test("状态：match= 选不中任何块是 warning（设计 §7）", () => {
   const vm = resolve('=== style-state {#sel type=block-ref match="code[anchor]" on=select value-from=id}\n===\n');
-  assert.equal(vm.diagnostics.some((d) => d.code === "unmatched-producer"), true);
-  assert.equal(vm.diagnostics.find((d) => d.code === "unmatched-producer").severity, "warning");
+  assert.equal(vm.diagnostics.some((d) => d.code === "style-unmatched-producer"), true);
+  assert.equal(vm.diagnostics.find((d) => d.code === "style-unmatched-producer").severity, "warning");
 });
 
 test("状态：value-from= 不在目标表 schema 里是错误 —— 表有 schema，能真查（设计 §7）", () => {
   const vm = resolve('=== style-state {#sel type=scalar match="table#kpi" on=select value-from=nosuch}\n===\n');
-  assert.equal(vm.diagnostics.some((d) => d.code === "unknown-value-source"), true);
+  assert.equal(vm.diagnostics.some((d) => d.code === "style-unknown-value-source"), true);
   const ok = resolve('=== style-state {#sel type=scalar match="table#kpi" on=select value-from=a}\n===\n');
-  assert.equal(ok.diagnostics.some((d) => d.code === "unknown-value-source"), false);
+  assert.equal(ok.diagnostics.some((d) => d.code === "style-unknown-value-source"), false);
 });
 
 test("状态：init-value= 抵达视图模型 —— 消费者看不见的旋钮等于没有旋钮", () => {
@@ -178,8 +178,8 @@ test("状态：init-value= 抵达视图模型 —— 消费者看不见的旋钮
 
 test("状态：多产生者是允许的 —— 时序赋值不是静态冲突（设计 §5.2）", () => {
   const vm = resolve('=== style-state {#sel type=block-ref match="table.kpi, table#plain" on=select value-from=a}\n===\n');
-  assert.equal(vm.diagnostics.some((d) => d.code === "ambiguous-rule"), false);
-  assert.equal(vm.diagnostics.some((d) => d.code === "unmatched-producer"), false);
+  assert.equal(vm.diagnostics.some((d) => d.code === "style-ambiguous-rule"), false);
+  assert.equal(vm.diagnostics.some((d) => d.code === "style-unmatched-producer"), false);
 });
 
 test("CLI：干净的样式表 exit 0", () => {
@@ -233,7 +233,7 @@ test("装载：type= 缺省是 block-ref；match= 不合法时点名报错", () 
   const ok = sheet('=== style-state {#sel match="table" on=select}\n===\n');
   assert.equal(ok.states[0].type, "block-ref");
   const bad = sheet('=== style-state {#sel match="div > p" on=select}\n===\n');
-  assert.deepEqual(codes(bad.diagnostics), ["selector-unsupported"]);
+  assert.deepEqual(codes(bad.diagnostics), ["style-selector-unsupported"]);
 });
 
 test("装载：没有 id 的样式块记作 (anon)", () => {
@@ -243,7 +243,7 @@ test("装载：没有 id 的样式块记作 (anon)", () => {
 
 test("求解：unknown-handler 是 warning，惰性回退（设计 §7）", () => {
   const vm = resolveStyle(sheet('=== style-rule {#r match="table" handler=nope}\n===\n'), corpus1, { handlers: ["subscribe"] });
-  assert.deepEqual(codes(vm.diagnostics), ["unknown-handler"]);
+  assert.deepEqual(codes(vm.diagnostics), ["style-unknown-handler"]);
   const ok = resolveStyle(sheet('=== style-rule {#r match="table" handler=subscribe}\n===\n'), corpus1, { handlers: ["subscribe"] });
   assert.deepEqual(codes(ok.diagnostics), []);
 });
@@ -251,12 +251,12 @@ test("求解：unknown-handler 是 warning，惰性回退（设计 §7）", () =
 test("状态：目标不是表时跳过 unknown-column，不误报", () => {
   const notes = parse('=== meta\ntitle = "n"\n===\n\n=== note {#n}\nhi\n===\n');
   const vm = resolveStyle(sheet('=== style-state {#sel type=scalar match="note#n" on=select value-from=whatever}\n===\n'), [{ path: "n.geml", doc: notes }]);
-  assert.equal(vm.diagnostics.some((d) => d.code === "unknown-value-source"), false);
+  assert.equal(vm.diagnostics.some((d) => d.code === "style-unknown-value-source"), false);
 });
 
 test("求解：非字符串参数不参与 $ 引用扫描", () => {
   const vm = resolve('=== style-rule {#r match="table" component=x dense collapsed=3}\n===\n');
-  assert.equal(vm.diagnostics.some((d) => d.code === "unknown-state"), false);
+  assert.equal(vm.diagnostics.some((d) => d.code === "style-unknown-state"), false);
 });
 
 test("验收：设计文档 §2 的 codemap 例子，零诊断", () => {
@@ -324,12 +324,12 @@ test("屏幕槽位在构建期解析完 —— 运行时不需要任何选择器
 
 test("槽位选不中任何块也报 unmatched-rule，和规则一样不静默", () => {
   const vm = resolve('=== style-screen {#s slots="code[anchor]"}\n===\n');
-  assert.equal(vm.diagnostics.some((d) => d.code === "unmatched-rule" && d.rule === "s"), true);
+  assert.equal(vm.diagnostics.some((d) => d.code === "style-unmatched-rule" && d.rule === "s"), true);
 });
 
 test("槽位里的畸形选择器点名报错，且该槽位解析成空", () => {
   const vm = resolve('=== style-screen {#s slots="div>p"}\n===\n');
-  assert.equal(vm.diagnostics.some((d) => d.code === "selector-unsupported" && d.rule === "s"), true);
+  assert.equal(vm.diagnostics.some((d) => d.code === "style-selector-unsupported" && d.rule === "s"), true);
   assert.deepEqual(vm.screens[0].slots[0].blocks, []);
 });
 
@@ -342,7 +342,7 @@ const twoScreens =
 
 test("screen=：限定屏幕的规则不再和未限定的冲突", () => {
   const vm = resolve(twoScreens);
-  assert.equal(vm.diagnostics.some((d) => d.code === "ambiguous-rule"), false);
+  assert.equal(vm.diagnostics.some((d) => d.code === "style-ambiguous-rule"), false);
 });
 
 test("screen=：限定屏幕的规则在自己屏幕里胜出，别处不生效", () => {
@@ -376,28 +376,28 @@ test("screen=：两条规则限定同一屏幕、选择器相同 —— 仍然�
     '=== style-rule {#a match="table#kpi" component=x screen=map}\n===\n\n' +
     '=== style-rule {#b match="table#kpi" component=y screen=map}\n===\n\n' +
     '=== style-screen {#map slots="table#kpi"}\n===\n');
-  assert.equal(vm.diagnostics.some((d) => d.code === "ambiguous-rule"), true);
-  assert.match(vm.diagnostics.find((d) => d.code === "ambiguous-rule").message, /selectors are identical/);
+  assert.equal(vm.diagnostics.some((d) => d.code === "style-ambiguous-rule"), true);
+  assert.match(vm.diagnostics.find((d) => d.code === "style-ambiguous-rule").message, /selectors are identical/);
 });
 
 test("screen=：点名不存在的屏幕是错误（悬空引用，和 unknown-state 同级）", () => {
   const vm = resolve('=== style-rule {#a match="table#kpi" component=x screen=ghost}\n===\n');
-  assert.equal(vm.diagnostics.some((d) => d.code === "unknown-screen"), true);
-  assert.equal(vm.diagnostics.find((d) => d.code === "unknown-screen").severity, "error");
+  assert.equal(vm.diagnostics.some((d) => d.code === "style-unknown-screen"), true);
+  assert.equal(vm.diagnostics.find((d) => d.code === "style-unknown-screen").severity, "error");
 });
 
 test("screen=：只在某屏幕生效但那屏幕没选中它的规则，仍报 unmatched-rule 一次", () => {
   const vm = resolve(
     '=== style-rule {#never match="code[anchor]" component=x screen=map}\n===\n\n' +
     '=== style-screen {#map slots="table#kpi"}\n===\n');
-  const un = vm.diagnostics.filter((d) => d.code === "unmatched-rule" && d.rule === "never");
+  const un = vm.diagnostics.filter((d) => d.code === "style-unmatched-rule" && d.rule === "never");
   assert.equal(un.length, 1, `应恰好报一次，实得 ${un.length}`);
 });
 
 // ---- on= 是封闭词汇，component/handler 是开放注册表
 test("on=：非法交互名是**错误**，和 chart-unknown-type 同级（封闭词汇）", () => {
   const vm = resolve('=== style-state {#sel match="table" on=whatever value-from=a}\n===\n');
-  const d = vm.diagnostics.find((x) => x.code === "unknown-interaction");
+  const d = vm.diagnostics.find((x) => x.code === "style-unknown-interaction");
   assert.notEqual(d, undefined, "应报 unknown-interaction");
   assert.equal(d.severity, "error");
   assert.match(d.message, /known: select/);
@@ -405,7 +405,7 @@ test("on=：非法交互名是**错误**，和 chart-unknown-type 同级（封�
 
 test("on=select 合法，不报", () => {
   const vm = resolve('=== style-state {#sel match="table" on=select value-from=a}\n===\n');
-  assert.equal(vm.diagnostics.some((x) => x.code === "unknown-interaction"), false);
+  assert.equal(vm.diagnostics.some((x) => x.code === "style-unknown-interaction"), false);
 });
 
 test("CLI：不声明注册表就不检查 —— 从不触发的诊断比没有更糟", () => {
@@ -632,10 +632,10 @@ test("default-style 指向自己 → 照常报 cycle，不炸栈", () => {
 // ---------------------------------------------------------------- 计划 E（设计 §12）
 
 test("诊断目录：frame 相关的四个码与 style-invalid-value（设计 §12.4 / §7）", () => {
-  assert.equal(STYLE_SEVERITY["unknown-frame"], "error");
-  assert.equal(STYLE_SEVERITY["screen-nested"], "error");
-  assert.equal(STYLE_SEVERITY["frame-cycle"], "error");
-  assert.equal(STYLE_SEVERITY["unused-frame"], "warning");
+  assert.equal(STYLE_SEVERITY["style-unknown-frame"], "error");
+  assert.equal(STYLE_SEVERITY["style-screen-nested"], "error");
+  assert.equal(STYLE_SEVERITY["style-frame-cycle"], "error");
+  assert.equal(STYLE_SEVERITY["style-unused-frame"], "warning");
   assert.equal(STYLE_SEVERITY["style-invalid-value"], "error");
 });
 
@@ -714,7 +714,7 @@ test("装载：on=toggle 进闭集；其它仍是 unknown-interaction", () => {
   assert.deepEqual(codes(ok.diagnostics), []);
   assert.equal(ok.states[0].on, "toggle");
   const bad = sheet('=== style-state {#t type=scalar match="table" on=hover}\n===\n');
-  assert.deepEqual(codes(bad.diagnostics), ["unknown-interaction"]);
+  assert.deepEqual(codes(bad.diagnostics), ["style-unknown-interaction"]);
 });
 
 test("装载：when= 解析成 $state=value 的列表，逗号并列（设计 §12.5）", () => {
@@ -745,7 +745,7 @@ test("frame：槽位里裸 #x 是本样式表的 frame，带类型的才是语�
 
 test("frame：裸 #x 没有对应 style-frame 是 unknown-frame 错误，消息教人加类型", () => {
   const vm = resolve('=== style-screen {#page slots="#kpi"}\n===\n');
-  assert.deepEqual(codes(vm.diagnostics), ["unknown-frame"]);
+  assert.deepEqual(codes(vm.diagnostics), ["style-unknown-frame"]);
   assert.match(vm.diagnostics[0].message, /text#kpi|a corpus block needs a type/);
   assert.equal(vm.diagnostics[0].rule, "page");
 });
@@ -755,7 +755,7 @@ test("frame：裸 #x 指到 style-screen 是 screen-nested 错误 —— 页不�
     '=== style-screen {#a slots="#b"}\n===\n\n' +
     '=== style-screen {#b slots="table"}\n===\n'
   );
-  assert.deepEqual(codes(vm.diagnostics), ["screen-nested"]);
+  assert.deepEqual(codes(vm.diagnostics), ["style-screen-nested"]);
 });
 
 test("frame：区域装区域成环是 frame-cycle 错误，消息带整条链", () => {
@@ -765,11 +765,11 @@ test("frame：区域装区域成环是 frame-cycle 错误，消息带整条链",
     '=== style-frame {#b slots="#c"}\n===\n\n' +
     '=== style-frame {#c slots="#a"}\n===\n'
   );
-  const cyc = vm.diagnostics.filter((d) => d.code === "frame-cycle");
+  const cyc = vm.diagnostics.filter((d) => d.code === "style-frame-cycle");
   assert.equal(cyc.length, 1, JSON.stringify(vm.diagnostics));
   assert.match(cyc[0].message, /#a → #b → #c → #a/);
   const self = resolve('=== style-frame {#a slots="#a"}\n===\n');
-  assert.match(self.diagnostics.find((d) => d.code === "frame-cycle").message, /#a → #a/);
+  assert.match(self.diagnostics.find((d) => d.code === "style-frame-cycle").message, /#a → #a/);
 });
 
 test("frame：声明了没人引用是 unused-frame warning", () => {
@@ -777,7 +777,7 @@ test("frame：声明了没人引用是 unused-frame warning", () => {
     '=== style-screen {#page slots="table"}\n===\n\n' +
     '=== style-frame {#orphan slots="table"}\n===\n'
   );
-  assert.deepEqual(codes(vm.diagnostics), ["unused-frame"]);
+  assert.deepEqual(codes(vm.diagnostics), ["style-unused-frame"]);
   assert.equal(vm.diagnostics[0].severity, "warning");
   assert.equal(vm.diagnostics[0].rule, "orphan");
 });
@@ -787,7 +787,7 @@ test("frame：#x 不再拿去匹配语料，所以不会再有那条 unmatched-r
     '=== style-screen {#page slots="#body"}\n===\n\n' +
     '=== style-frame {#body slots="table"}\n===\n'
   );
-  assert.equal(vm.diagnostics.some((d) => d.code === "unmatched-rule"), false);
+  assert.equal(vm.diagnostics.some((d) => d.code === "style-unmatched-rule"), false);
 });
 
 const TREE = parse(
@@ -828,7 +828,7 @@ test("when：可同时成立、互不包含、争同一属性 → ambiguous-rule
     '=== style-rule {#a match="table#tree" when="$tree=closed" width=0}\n===\n\n' +
     '=== style-rule {#b match="table#tree" when="$tab=Code"    width=100px}\n===\n'
   );
-  assert.deepEqual(codes(vm.diagnostics), ["ambiguous-rule"]);
+  assert.deepEqual(codes(vm.diagnostics), ["style-ambiguous-rule"]);
 });
 
 test("when：有条件但选择器更弱的规则，对无条件的强选择器规则 → 不可比 → ambiguous-rule", () => {
@@ -837,7 +837,7 @@ test("when：有条件但选择器更弱的规则，对无条件的强选择器�
     '=== style-rule {#strong match="table#tree" width=321px}\n===\n\n' +
     '=== style-rule {#weak   match="table" when="$tree=closed" width=0}\n===\n'
   );
-  assert.deepEqual(codes(vm.diagnostics), ["ambiguous-rule"]);
+  assert.deepEqual(codes(vm.diagnostics), ["style-ambiguous-rule"]);
 });
 
 test("when：variants 按条件数升序 —— 真超集排在后面，运行时无需再比", () => {
@@ -853,7 +853,7 @@ test("when：variants 按条件数升序 —— 真超集排在后面，运行�
 
 test("when：引用未声明的状态是 unknown-state", () => {
   const vm = resolveT('=== style-rule {#r match="table#tree" when="$ghost=1" width=0}\n===\n');
-  assert.deepEqual(codes(vm.diagnostics), ["unknown-state"]);
+  assert.deepEqual(codes(vm.diagnostics), ["style-unknown-state"]);
 });
 
 test("when：无条件规则的 variants 是空数组，既有绑定形状不变", () => {
@@ -970,7 +970,7 @@ test("求解：未限定屏幕的冲突在有屏幕时仍只报一次，不随�
     '=== style-screen {#s1 slots="table"}\n===\n\n' +
     '=== style-screen {#s2 slots="table"}\n===\n'
   );
-  const amb = vm.diagnostics.filter((d) => d.code === "ambiguous-rule");
+  const amb = vm.diagnostics.filter((d) => d.code === "style-ambiguous-rule");
   assert.equal(amb.length, 2, JSON.stringify(amb)); // 语料里两个块各一条，不是 2 × (1 + 两个屏幕)
   for (const d of amb) assert.equal(/in screen/.test(d.message), false, d.message);
 });
@@ -1082,7 +1082,7 @@ test("frame：一万多个 frame 串成的链不会打爆栈 —— 报一次 fr
   const vm = resolve(body);
   const ms = Date.now() - t0;
   assert.ok(ms < 8000, `took ${ms}ms`);
-  assert.deepEqual(codes(vm.diagnostics), ["frame-too-deep"]);
+  assert.deepEqual(codes(vm.diagnostics), ["style-frame-too-deep"]);
   assert.match(vm.diagnostics[0].message, /12000 deep at `#f11999`; the cap is 16/);
 });
 
@@ -1094,7 +1094,7 @@ test("frame：四十层菱形（每层两个槽位指向同一个子 frame）线
   const vm = resolve(body);
   const ms = Date.now() - t0;
   assert.ok(ms < 3000, `took ${ms}ms`);
-  assert.deepEqual(codes(vm.diagnostics), ["frame-too-deep"]);
+  assert.deepEqual(codes(vm.diagnostics), ["style-frame-too-deep"]);
 });
 
 test("frame：深度取最长的那条放置路径 —— 浅处先到也挡不住深处的超限", () => {
@@ -1102,14 +1102,14 @@ test("frame：深度取最长的那条放置路径 —— 浅处先到也挡不�
   let body = '=== style-screen {#s slots="#deep, #c0"}\n===\n=== style-frame {#deep slots="table"}\n===\n';
   for (let i = 0; i < 17; i++) body += `=== style-frame {#c${i} slots="${i + 1 < 17 ? `#c${i + 1}` : "#deep"}"}\n===\n`;
   const vm = resolve(body);
-  assert.deepEqual(codes(vm.diagnostics), ["frame-too-deep"]);
+  assert.deepEqual(codes(vm.diagnostics), ["style-frame-too-deep"]);
   assert.match(vm.diagnostics[0].message, /18 deep at `#deep`/);
 });
 
 test("frame：不挂在任何 screen 下的环也报出来；十六层以内不报深度", () => {
   const loose = resolve('=== style-frame {#a slots="#b"}\n===\n\n=== style-frame {#b slots="#a"}\n===\n');
-  assert.ok(loose.diagnostics.some((d) => d.code === "frame-cycle"), JSON.stringify(loose.diagnostics));
-  assert.equal(loose.diagnostics.some((d) => d.code === "frame-too-deep"), false);
+  assert.ok(loose.diagnostics.some((d) => d.code === "style-frame-cycle"), JSON.stringify(loose.diagnostics));
+  assert.equal(loose.diagnostics.some((d) => d.code === "style-frame-too-deep"), false);
   let body = '=== style-screen {#s slots="#f0"}\n===\n';
   for (let i = 0; i < 16; i++) body += `=== style-frame {#f${i} slots="${i + 1 < 16 ? `#f${i + 1}` : "table"}"}\n===\n`;
   assert.deepEqual(codes(resolve(body).diagnostics), []);
@@ -1172,12 +1172,12 @@ test("`*` 是整步才认的全选：一个槽位按文档顺序摆下整篇；�
   assert.deepEqual(vm.diagnostics, []);
   for (const bad of ["*.kpi", "table.a*", "table > p", "p:first-child"]) {
     const r = resolveStyle(sheet(`=== style-rule {#r match="${bad}" color=red}\n===\n`), [{ path: "d.geml", doc }]);
-    assert.ok(r.diagnostics.some((d) => d.code === "selector-unsupported"), bad);
+    assert.ok(r.diagnostics.some((d) => d.code === "style-selector-unsupported"), bad);
   }
   // `table *` 仍是合法的后代选择器
   assert.deepEqual(
     resolveStyle(sheet('=== style-rule {#r match="table *" color=red}\n===\n'), [{ path: "d.geml", doc }])
-      .diagnostics.filter((d) => d.code === "selector-unsupported"), []);
+      .diagnostics.filter((d) => d.code === "style-selector-unsupported"), []);
 });
 
 test("容器可以是组件并带参数：页面外壳属于样式表，不该塞进文档冒充块", () => {
@@ -1192,7 +1192,7 @@ test("容器可以是组件并带参数：页面外壳属于样式表，不该�
   // 未注册的组件名在给了注册表时报出来（宿主不传就不检查）
   const vm2 = resolveStyle(sheet('=== style-frame {#f component=nope slots="table"}\n===\n'
     + '=== style-screen {#p slots="#f"}\n===\n'), corpus1, { components: ["bar"] });
-  assert.ok(vm2.diagnostics.some((d) => d.code === "unknown-component"), JSON.stringify(vm2.diagnostics));
+  assert.ok(vm2.diagnostics.some((d) => d.code === "style-unknown-component"), JSON.stringify(vm2.diagnostics));
 });
 
 // ---------------------------------------------------------------- 第二个页面用例（设计 2026-09-10）
@@ -1243,12 +1243,12 @@ test("部件绑定：binding 带 part；块规则与部件规则不争；两条�
   assert.equal(nav.find((b) => b.part === undefined).box.color, "black");
   assert.equal(nav.find((b) => b.part === "link").box.color, "blue");
   assert.equal(nav.find((b) => b.part === "code-span").box.background, "grey");
-  assert.deepEqual(codes(vm.diagnostics), ["unmatched-rule"], "#miss 没命中：#nolink 里没有链接");
+  assert.deepEqual(codes(vm.diagnostics), ["style-unmatched-rule"], "#miss 没命中：#nolink 里没有链接");
   const clash = resolveStyle(sheet(
     '=== style-rule {#a match="text#nav link" color=blue}\n===\n' +
     '=== style-rule {#b match="text#nav link" color=red}\n===\n'
   ), corpus);
-  assert.deepEqual(codes(clash.diagnostics), ["ambiguous-rule"]);
+  assert.deepEqual(codes(clash.diagnostics), ["style-ambiguous-rule"]);
 });
 
 test("when=@hover：内建伪状态进条件集；与 $state 并列；@focus 与 @hover 争同一属性是 ambiguous-rule（设计 2026-09-10 §4e）", () => {
@@ -1267,7 +1267,7 @@ test("when=@hover：内建伪状态进条件集；与 $state 并列；@focus 与
     '=== style-rule {#h match="text#nav link" when="@hover" color=blue}\n===\n' +
     '=== style-rule {#f match="text#nav link" when="@focus" color=red}\n===\n'
   ), corpus);
-  assert.deepEqual(codes(clash.diagnostics), ["ambiguous-rule"], "可以同时成立、互不包含、争同一属性");
+  assert.deepEqual(codes(clash.diagnostics), ["style-ambiguous-rule"], "可以同时成立、互不包含、争同一属性");
   const typo = sheet('=== style-rule {#h match="text#nav" when="@hoover" color=blue}\n===\n');
   assert.deepEqual(codes(typo.diagnostics), ["style-invalid-value"]);
   assert.match(typo.diagnostics[0].message, /@hover/);
@@ -1379,7 +1379,7 @@ test("underline：闭域 yes/no，块和部件都收；域外值报 style-invali
 test("槽位不摆部件：slots 里写部件选择器是 selector-unsupported", () => {
   const vm = resolveStyle(sheet('=== style-screen {#p slots="text#nav link"}\n===\n'),
     [{ path: "p.geml", doc: parse('=== text {#nav}\n- [a](https://a)\n===\n') }]);
-  assert.ok(vm.diagnostics.some((d) => d.code === "selector-unsupported" && /slot places blocks/.test(d.message)), JSON.stringify(vm.diagnostics));
+  assert.ok(vm.diagnostics.some((d) => d.code === "style-selector-unsupported" && /slot places blocks/.test(d.message)), JSON.stringify(vm.diagnostics));
 });
 
 test("记号：属性里的 {{key}} 按本文件 meta 代换（设计 §13.13）", () => {
@@ -1402,8 +1402,8 @@ test("记号：悬空的 {{key}} 是 error，原文留着不静默换空串", ()
   const s = loadStylesheet(parse(
     '=== meta\nprofile = "geml-style/v1"\nline = "#d1d9e0"\n===\n\n' +
     '=== style-rule {#r match="text" color="{{nope}}" border="1px solid {{line}}"}\n===\n'));
-  assert.deepEqual(codes(s.diagnostics), ["unknown-token"]);
-  assert.equal(STYLE_SEVERITY["unknown-token"], "error");
+  assert.deepEqual(codes(s.diagnostics), ["style-unknown-token"]);
+  assert.equal(STYLE_SEVERITY["style-unknown-token"], "error");
   assert.match(s.diagnostics[0].message, /`\{\{nope\}\}` in `color=`/);
   assert.equal(s.rules[0].box.color, "{{nope}}");
   assert.equal(s.rules[0].box.border, "1px solid #d1d9e0", "同一条规则里认识的那个照常代换");
@@ -1441,7 +1441,7 @@ test("简写与单边：同层两条规则一个写 border、一个写某边 →
     '=== style-rule {#one match="text" border="1px solid red"}\n===\n';
   for (const [name, body] of [["原序", first], ["互换", flipped]]) {
     const d = resolveStyle(sheet(body), [{ path: "p.geml", doc }])
-      .diagnostics.filter((x) => x.code === "ambiguous-rule");
+      .diagnostics.filter((x) => x.code === "style-ambiguous-rule");
     assert.equal(d.length, 1, name);
     assert.match(d[0].message, /a shorthand and one of its sides in the same layer/, name);
   }
@@ -1477,8 +1477,8 @@ test("保留字：第一步上的部件名读作块类型 —— 尽量命中，
 
   const typed = run("link");
   assert.deepEqual(typed.hits, ["#L"], "照块类型命中");
-  assert.deepEqual(typed.codes, ["reserved-name"]);
-  assert.equal(STYLE_SEVERITY["reserved-name"], "warning", "不拒绝，只是说一声");
+  assert.deepEqual(typed.codes, ["style-reserved-name"]);
+  assert.equal(STYLE_SEVERITY["style-reserved-name"], "warning", "不拒绝，只是说一声");
 
   // 第二步上它还是部件，一个字没改
   assert.deepEqual(run("text#n link").hits, ["#n→link"]);
@@ -1487,10 +1487,10 @@ test("保留字：第一步上的部件名读作块类型 —— 尽量命中，
   // 另外两条部件规矩不变
   const notLast = resolveStyle(sheet('=== style-rule {#r match="text link em" color="#000"}\n===\n'),
     [{ path: "d.geml", doc }]);
-  assert.ok(notLast.diagnostics.some((d) => d.code === "selector-unsupported"));
+  assert.ok(notLast.diagnostics.some((d) => d.code === "style-selector-unsupported"));
   const filtered = resolveStyle(sheet('=== style-rule {#r match="text#n link.x" color="#000"}\n===\n'),
     [{ path: "d.geml", doc }]);
-  assert.ok(filtered.diagnostics.some((d) => d.code === "selector-unsupported"));
+  assert.ok(filtered.diagnostics.some((d) => d.code === "style-selector-unsupported"));
 });
 
 // --- 取值闸、记号、容器规则、状态：本来没人走过的几条 ---------------------------
@@ -1510,7 +1510,7 @@ test("记号：夹在一段文字中间的 {{key}} 悬空时同样报，同一�
   const s = loadStylesheet(parse(
     '=== meta\nprofile = "geml-style/v1"\nline = "#d1d9e0"\n===\n\n' +
     '=== style-rule {#r match="text" border="1px solid {{nope}}" padding="{{line}} 2px"}\n===\n'));
-  assert.deepEqual(codes(s.diagnostics), ["unknown-token"]);
+  assert.deepEqual(codes(s.diagnostics), ["style-unknown-token"]);
   assert.match(s.diagnostics[0].message, /`\{\{nope\}\}` in `border=`/);
   assert.equal(s.rules[0].box.border, "1px solid {{nope}}", "原文留着");
   assert.equal(s.rules[0].box.padding, "#d1d9e0 2px", "同一串里认得的那个照常换");
@@ -1520,7 +1520,7 @@ test("style-state 的 match= 也过同一道保留字提醒", () => {
   // 规则那边早有测试，状态这边共用同一个 parseSelector，提醒也该照发 —— 否则同一句
   // 写法在两种块上得到两种待遇。
   const s = sheet('=== style-state {#sel type=block-ref match="link" on=select}\n===\n');
-  assert.deepEqual(codes(s.diagnostics), ["reserved-name"]);
+  assert.deepEqual(codes(s.diagnostics), ["style-reserved-name"]);
   assert.match(s.diagnostics[0].message, /`link` is read as a block type here/);
   assert.deepEqual(s.states.map((x) => x.id), ["sel"], "提醒归提醒，状态照常装上");
 });
@@ -1532,7 +1532,7 @@ test("边框：简写与某一边撞车时，谁先写谁排在消息前面", ()
     '=== style-rule {#side match="table" border-top="1px solid red"}\n===\n\n' +
     '=== style-rule {#short match="table" border="2px solid blue"}\n===\n'),
     [{ path: "d.geml", doc: parse("=== table {#t format=csv}\na\n1\n===\n") }]);
-  assert.deepEqual(codes(vm.diagnostics), ["ambiguous-rule"]);
+  assert.deepEqual(codes(vm.diagnostics), ["style-ambiguous-rule"]);
   const m = vm.diagnostics[0].message;
   assert.ok(m.indexOf("#side") < m.indexOf("#short"), `先写的该排前面: ${m}`);
   assert.match(m, /`border-top`/);
@@ -1566,7 +1566,7 @@ test("状态挂在容器上时没有产出者不是错；挂在语料上却谁�
     '=== style-screen {#page slots="table"}\n===\n\n' +
     '=== style-state {#s type=block-ref match="no-such-type" on=select}\n===\n'),
     [{ path: "d.geml", doc }]);
-  assert.ok(onNothing.diagnostics.some((d) => d.code === "unmatched-producer"),
+  assert.ok(onNothing.diagnostics.some((d) => d.code === "style-unmatched-producer"),
     JSON.stringify(codes(onNothing.diagnostics)));
 });
 

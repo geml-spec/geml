@@ -542,4 +542,129 @@ test("GEP-0013：诊断带结构化的 subject —— 渲染器不必从散文�
   assert.deepEqual(d.map((x) => x.subject).sort(), ["acme-a/v1", "acme-b/v1"]);
 });
 
+// ---- 命名与生命周期：这一层自己的约定（spec/profiles/README.md）----
+//
+// 规范管不着这两件事。§8.6.2 规则 3 明写「处理器认识哪些词汇表由实现自定」，所以
+// 一份词汇表有没有状态、名字长什么样，规范都不该管。管的是本项目——而自从
+// GEP-0013 放开了 body 模式，不管的代价变大了：profile 会长得更快，而改一个 body
+// 模式会改变所有认识这个名字的人的解析结果。
+
+/**
+ * 已知的命名违规。每一条都带**理由**和**何时解除**——一张没有解除条件的豁免表
+ * 就是把规则作废，只是作废得比较客气。下面第二个测试会拦住陈旧的条目。
+ */
+const NAMING_EXCEPTIONS = {
+  "geml-form/v1:type:form": "GEP-0008 正把 form-* 家族送进 §3 的核心注册表，届时这个不带连字符的名字归规范所有。GEP 落地即解除；若 GEP 被否，改名。",
+  "geml-media/v1:type:media": "没有 GEP 认领它。media 设计稿 §9.7 明说裸 media 类型「现在不提」进核心，所以它今天就占着 §8.5 为规范未来版本保留的位置。这是真违规，解除办法是改名 media-timeline 或提 GEP。",
+  "geml-media/v1:meta:tracks": "六个 meta 键早于本约定；fps 与 aspect 尤其是第二份 profile 会想要的通用词。geml-media 仍是 draft，可在 /v1 内改名。",
+  "geml-media/v1:meta:primary": "同上。",
+  "geml-media/v1:meta:fps": "同上。",
+  "geml-media/v1:meta:aspect": "同上。",
+  "geml-media/v1:meta:target-duration": "同上。",
+  "geml-media/v1:meta:episode": "同上。",
+};
+
+const stemOf = (name) => name.replace(/^geml-/, "").replace(/\/v\d+$/, "");
+function namingViolations() {
+  const out = [];
+  for (const [name, def] of Object.entries(PROFILES)) {
+    const want = stemOf(name) + "-";
+    const check = (kind, names) => {
+      for (const n of names ?? []) if (!n.startsWith(want)) out.push(`${name}:${kind}:${n}`);
+    };
+    check("type", def.types);
+    check("code", Object.keys(def.diagnostics ?? {}));
+    check("meta", def.metaKeys);
+  }
+  return out;
+}
+
+test("命名：类型名、诊断码、meta 键都带 profile 自己的前缀", () => {
+  // 属性键**不**在内，而这是有理由的：它们已经按类型分桶登记，作用域由类型给，
+  // 所以 `code.anchor` 和别人的 `x.anchor` 撞不上。没有分桶的这三种才需要前缀。
+  const unexcused = namingViolations().filter((v) => !(v in NAMING_EXCEPTIONS));
+  assert.deepEqual(unexcused, [],
+    `命名约定见 spec/profiles/README.md「Naming」。要么改名，要么在 NAMING_EXCEPTIONS 里写清理由与解除条件`);
+});
+
+test("命名：豁免表里没有陈旧条目 —— 名字改好了就要把豁免删掉", () => {
+  // 一条留在表里却已经不成立的豁免，读起来像「这里有个问题」，其实没有。
+  const live = new Set(namingViolations());
+  const stale = Object.keys(NAMING_EXCEPTIONS).filter((k) => !live.has(k));
+  assert.deepEqual(stale, [], "这些豁免对应的名字已经合规，删掉它们");
+});
+
+test("生命周期：每份 profile 都声明状态，且只用三个值之一", () => {
+  for (const [name, def] of Object.entries(PROFILES)) {
+    assert.ok(["draft", "stable", "deprecated"].includes(def.state),
+      `${name} 的 state 是 ${JSON.stringify(def.state)}`);
+  }
+});
+
+test("生命周期：stable 的 profile 不得声明 body 模式之外的易变面", () => {
+  // stable 承诺的是「同一个 /vN 下只增不改」。今天能机械检查的那一半：一份
+  // stable 的 profile 若还在改 body 模式，它就不该叫 stable —— 所以要求它的
+  // bodies/prose 声明与文档一致地保守。这里只钉住「stable 必须有文档」，
+  // 更强的不变量要等第一次真正的 /v2 才知道怎么写。
+  for (const [name, def] of Object.entries(PROFILES)) {
+    if (def.state !== "stable") continue;
+    const dir = stemOf(name);
+    const doc = new URL(`../../spec/profiles/geml-${dir}/geml-${dir}-profile.md`, import.meta.url);
+    assert.ok(existsSync(doc), `${name} 标了 stable，却没有 spec/profiles/geml-${dir}/ 下的文档`);
+  }
+});
+
+test("索引表也带状态 —— 读的人不必翻进 profile 文档才知道能不能依赖它", () => {
+  const readme = readFileSync(new URL("../../spec/profiles/README.md", import.meta.url), "utf8");
+  for (const [name, def] of Object.entries(PROFILES)) {
+    const line = readme.split(/\r?\n/).find((l) => l.startsWith(`| \`${name}\``));
+    assert.ok(line, `索引表没有 ${name} 这一行`);
+    assert.ok(line.includes(def.state), `${name} 的行没写出它的状态 ${def.state}`);
+  }
+});
+
+// ---- profile 的检查挂在核心 check 上（#5）----
+
+import { spawnSync } from "node:child_process";
+import { resolve as presolve } from "node:path";
+const CLI = presolve("dist/geml.js");
+const FIX = presolve("test/fixtures/media/ep01/ep01-cut.geml");
+const cli = (...args) => {
+  const r = spawnSync(process.execPath, [CLI, "check", FIX, ...args], { encoding: "utf8" });
+  return { code: r.status, out: (r.stdout ?? "") + (r.stderr ?? "") };
+};
+
+test("分发：文档声明了哪份词汇表，就跑哪份的检查 —— 不必换命令名", () => {
+  // 要不要按 media 的规则查，是文档自己在 === meta 里说了算的。此前这是 cli.ts
+  // 里的一句 if；现在是对 declaredVocabularies 的一次循环，第七份 profile 接上
+  // 检查器时不用再动 check 这个动词。
+  const r = cli();
+  assert.match(r.out, /media-stale-clip/, "profile 的码出现在核心 check 的输出里");
+  assert.match(r.out, /ep01-cut\.geml#c0/, "而且按地址报，不是按行号");
+});
+
+test("--only 只留匹配的 profile 码，核心诊断不受影响", () => {
+  const all = cli(), only = cli("--only", "media-stale-*");
+  assert.match(all.out, /media-of-unresolved|media-speaker-unresolved/, "夹具里本来有非 stale 的码");
+  assert.doesNotMatch(only.out, /media-of-unresolved|media-speaker-unresolved/);
+  assert.match(only.out, /media-stale-/);
+});
+
+test("--severity 可以降级，但降不到静默 —— 最低是 info", () => {
+  const r = cli("--only", "media-stale-*", "--severity", "media-stale-clip=info");
+  assert.match(r.out, /^info: media-stale-clip/m, "级别变了");
+  assert.match(r.out, /info/, "但它仍然出现在输出里；让它消失是 --only 的事");
+  const bad = cli("--severity", "media-stale-clip=off");
+  assert.equal(bad.code, 2);
+  assert.match(bad.out, /info is the floor/);
+});
+
+test("--severity 拒绝核心的码 —— 附录 A 的级别是规范性的", () => {
+  // 「处理器必须以本附录指派的代码与严重级别报告诊断」。一个能改核心级别的开关
+  // 会让这个程序不合规，所以它只认已注册词汇表定义过的码。
+  const r = cli("--severity", "unknown-block-type=error");
+  assert.equal(r.code, 2);
+  assert.match(r.out, /Appendix A/);
+});
+
 console.log(`\n${passed} passed`);

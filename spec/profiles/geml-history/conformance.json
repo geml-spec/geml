@@ -1,0 +1,24 @@
+{
+  "profile": "geml-history/v1",
+  "state": "stable",
+  "codes": {},
+  "cases": [
+    {
+      "name": "the sidecar's three block types, with the attributes the revision carries",
+      "geml": "=== meta\nprofile = \"geml-history/v1\"\n===\n\n=== history-revision {#r1 author=\"a\" summary=\"s\" hash=\"h\"}\nbody\n===\n",
+      "admits": [
+        "history-revision"
+      ],
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#r1"
+        ],
+        "undeclared": [
+          "#meta",
+          "#r1"
+        ]
+      }
+    }
+  ]
+}

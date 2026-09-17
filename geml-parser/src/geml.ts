@@ -42,6 +42,7 @@ export { type Inline } from "./inline.js";
 export { type TableModel } from "./table.js";
 export { mdToGeml, type ConvertResult } from "./from-md.js";
 export { renderHtml, pageAssets } from "./render-html.js";
+export { declaredVocabularies, unrecognizedVocabularies, type ProfileDiagnostic, type ProfileIO, type ProfileCheck } from "./profiles.js";
 export { type RenderOptions } from "./render.js";
 export { serialize } from "./serialize.js";
 export { gemlToMd } from "./to-md.js";
@@ -224,7 +225,7 @@ interface Ctx extends RefSink {
   // after the declared ids — which is what makes an explicit `{#id}` shadow one.
   runIds?: Set<string>;
   meta: Map<string, string>; // merged `=== meta` keys, for `{{key}}` interpolation
-  vocab: Vocabulary; // 本文档 `profile=` 声明放行的块类型与属性键（§3.3）
+  vocab: Vocabulary; // 本文档 `profile=` 声明放行的块类型与属性键（§8.6）
   tables?: Map<string, TableModel>;
   // Every relation block (a material `table` or a derived `view`) by id.  The
   // model map above remains the public lookup used by charts; this one retains
@@ -802,7 +803,7 @@ function bodyModeFor(type: string, attrs: Attrs, openLineNo: number, ctx: Ctx): 
   else if (type === "code") validRe = /^(lang|src)$/;
   else validRe = /^$/;
 
-  // 本文档声明的 profile 额外放行的键（§3.3）。在此之前 codemap 的
+  // 本文档声明的 profile 额外放行的键（§8.6）。在此之前 codemap 的
   // `anchor`/`name`/`entry-via` 硬编码在上面的 `code` 分支里，于是它们在
   // 每份文档的每个 code 块上都静默通过 —— 现在只对声明了 codemap/v1 的
   // 文档放行，其余文档拿回拼写检查。
@@ -1978,6 +1979,16 @@ function gatherIds(source: string): Set<string> {
  */
 export function vocabularyOf(source: string): Vocabulary {
   return vocabularyFor(collectMeta(normalizeSource(source).split("\n")));
+}
+
+/**
+ * A document's own `=== meta`, for a host that has to ask it something the
+ * merged `Vocabulary` does not carry — which vocabularies it DECLARED, above
+ * all, since that is what decides whose checks run (§8.6.2 rule 2: a processor
+ * may act on the declaration and on nothing else).
+ */
+export function metaOf(source: string): Map<string, string> {
+  return collectMeta(normalizeSource(source).split("\n"));
 }
 
 function collectMeta(lines: string[], diags?: Ctx["diags"], definedAt?: Map<string, number>): Map<string, string> {
