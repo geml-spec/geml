@@ -18,6 +18,161 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **Every profile carries a conformance file.** §8.4's suite is the
+  specification's and is stated over the document model, so it says nothing about
+  any vocabulary on purpose — its own cases declare a name nothing recognizes,
+  precisely so no expected projection can depend on a processor's vocabulary
+  list. Right for the core, and it left a processor claiming to implement
+  `geml-media/v1` with nothing to reproduce.
+
+  `spec/profiles/geml-<x>/conformance.json` states each vocabulary's observable
+  contract as data: its diagnostic codes with default severities, and per case
+  the addresses a document carries **with and without** the declaration, plus
+  which names stop being `unknown-*`. A test holds the files against the
+  registry, so `codes` and `state` cannot drift into two versions of one fact.
+
+  The addresses carry the weight. §8.6.2 rule 4 lets a declared body mode change
+  the addressable set and lets nothing else do it, and these files pin that per
+  vocabulary: `geml-form/v1` is the one whose two readings differ — its `form`
+  holds id-bearing `form-field` blocks — and `geml-media/v1` is the contrast, a
+  prose body creating no ids. A case drifting across that line fails, in either
+  direction.
+
+  Writing them surfaced an asymmetry worth recording: a **nested** admitted name
+  produces no `unknown-block-type` in the undeclared reading, because its
+  container falls back to a `raw` body and the block inside is never scanned as a
+  block — it is text. So the suite asks a document for *some* `unknown-*` without
+  its declaration, not every admitted name for one.
+
+- **A vocabulary's checks run from `geml check`, and its codes carry a prefix.**
+  There were three shapes for the same job: `geml-media` ran through one
+  hardcoded `if` in `cli.ts`, `geml-style` and `geml-history` through verbs of
+  their own. Whether a document should be read by a vocabulary's rules is
+  something the document already says in `=== meta`; asking the caller for a
+  second command name asks twice. `check` now loops over the vocabularies a
+  document declares and this processor recognizes. A separate verb stays right
+  when the input is different — `geml style check` takes a stylesheet *and* a
+  corpus — so that one is unchanged.
+
+  Profile diagnostics keep their own shape, `ProfileDiagnostic`, and that is
+  deliberate: they are cross-document, so they report an **address** (`doc#id`)
+  where a core diagnostic reports a line, and they carry a third severity,
+  `info`, that Appendix A has no use for. Forcing them into the core shape would
+  have meant a fabricated line 0 on every one.
+
+  `--severity <code>=<error|warning|info>` re-levels one profile code, with
+  `info` as the floor — a level that silences is what `--only <pattern>` is for,
+  and the difference is that a downgraded diagnostic still appears in the output
+  and in `--json`, it just stops deciding the exit code. Neither flag takes a
+  core code: Appendix A fixes those severities and a processor that moved one
+  would not conform.
+
+  **`geml-style`'s seventeen unprefixed diagnostic codes are renamed** —
+  `unknown-component`, `unknown-handler`, `frame-cycle`, `reserved-name` and the
+  rest now carry `style-`. The profile documents itself as EXPERIMENTAL and says
+  its vocabulary moves with the first real use case; seventeen entries in an
+  exception table would have been the naming rule repealed politely. The
+  exception table is down to eight, and `ProfileDef.diagnostics` now points at
+  the checkers' own severity tables rather than restating them.
+
+- **The route out of a profile.** `spec/proposals/README.md` gains the direction
+  it was missing. It said where a
+  construct should START; it now says how one LEAVES a profile: a second
+  independent vocabulary needing the same thing, or an obligation on every
+  conforming processor. Neither is a single vocabulary's convenience, which is
+  the bar a registry entry deserves.
+
+- **Profiles carry a name prefix and a status, and a test holds both.** Two
+  namespaces had no rule at all: a vocabulary's diagnostic codes and the
+  `=== meta` keys it reads. `geml-style` emits `unknown-state` and
+  `unknown-token`; `geml-media` reads `fps` and `aspect` — names a second
+  vocabulary would plausibly want, colliding silently if it took them. A
+  vocabulary now owns the prefix of its own name across three namespaces: block
+  types, diagnostic codes and meta keys. Attribute keys stay exempt, and for a
+  reason rather than an oversight — they are registered per block type, so the
+  type already scopes them.
+
+  `ProfileDef` gains a required `state` (`draft` | `stable` | `deprecated`)
+  plus `since`, `metaKeys` and `diagnostics`. Status became load-bearing with
+  GEP-0013: before it a vocabulary could only add names, and now it can declare
+  body modes, which change how documents parse for everyone who recognizes the
+  name. `stable` therefore means additive-only inside `/vN`.
+
+  Both rules are repository conventions, not specification text — §8.6.2 rule 3
+  makes it implementation-defined which vocabularies a processor recognizes, so
+  the specification has no place to require a vocabulary carry a status. The
+  fifteen names that predate the convention are recorded as exceptions, each
+  with a reason and what clears it, and a second test fails when one goes stale
+  so the table cannot quietly become permanent. One of them is a real §8.5
+  squat: `geml-media/v1` admits the bare type name `media`, and no GEP claims it.
+
+## [1.11.0] — 2026-09-17
+
+- **A vocabulary may declare a body mode, and a processor says when it does not
+  recognize one** (GEP-0013). §8.6.2 rule 3 used to require meeting an
+  unrecognized `profile` name in silence — "not an error, not a warning" — and
+  rule 4 then had to make that silence safe by forbidding admission to change
+  anything observable. The two were one decision, and this takes the other side:
+  a processor MUST now report `unrecognized-vocabulary` (warning) naming the
+  vocabulary it does not ship, and rule 4 relaxes from "MUST NOT change the
+  document model" to "MUST NOT change the set of addressable units, except as
+  the vocabulary's declared body modes require". Nothing about the degradation
+  changes: a processor that does not recognize a vocabulary still admits nothing
+  and still reads those bodies as `raw`. What changes is that it says so. This
+  is the shape §3.2 already uses for a RESERVED `data` format a processor ships
+  no engine for — the body stays raw, `data-format-no-engine` says why, and the
+  value tree is not addressable there. `geml-form/v1`'s flow containers and
+  `geml-media/v1`'s prose body stop being recorded divergences from rule 4 and
+  become licensed extensions. The GEP-versus-profile test in
+  `spec/proposals/README.md` changes with it: *does GEML have to read inside the
+  body?* is withdrawn, and *does it put an obligation on every conforming
+  implementation?* — which was already written there as the second test —
+  becomes the only mechanical one.
+
+  The report **follows the content across an `=== embed`**, and only for a
+  target the host itself names. §3 already had the
+  good case right: a host that declares nothing, read by a processor that ships
+  the target's vocabulary, gets the target's blocks read the way its home reads
+  them. The bad case was silent — a host embedding a target whose vocabulary the
+  processor lacks rendered a fenced code block where prose should be and
+  answered `ok: no diagnostics`, and the host is the document the reader is
+  looking at. It is now reported at the embedding block. That draws a line the
+  specification did not have to state before: a diagnostic about what this
+  PROCESSOR cannot do follows the content, and one about a DOCUMENT's own fault
+  stays with that document.
+
+  The depth limit is the security half of that rule, and it is why the rule is
+  half a sentence longer than it first was. Hanging the report off the
+  transitive walk that already existed for cycle detection disclosed a third
+  document: `A` borrows one PUBLIC block of `B`; `B`, in a block `A` never took,
+  embeds `secret.geml`; `A`'s diagnostics and `A`'s published HTML then carried
+  `secret.geml`'s path and its vocabulary name, about a document `A` never named
+  and content it never received. **A diagnostic may name only documents this
+  document names.** Pinned as `R6-1` in the security suite. The page notice is
+  narrowed the same way from the other end: it appears only when the page
+  actually shows a block it could not read, so a vocabulary whose absence
+  changed nothing visible is never named at all.
+
+  The notice reaches the **rendered page**, not only `check`. The unknown-type
+  fallback labels such a block *unknown block type* — the same label a mistyped
+  type gets, so a reader cannot tell "this document is wrong" from "my renderer
+  is missing a vocabulary", which is the whole question of whose fault it is.
+  A full-page `--to html` now says once, above the content, which vocabularies
+  it was rendered without and what that label means there. `--fragment` gets
+  none of it: a fragment goes into someone else's layout, and the viewer already
+  renders every model diagnostic as a banner of its own, so it picks this one up
+  with no change. `Diagnostic` gains an optional `subject` carrying the name the
+  diagnostic is about, so a renderer never has to scrape it back out of a
+  message Appendix A says may be reworded.
+
+- **A ``` fence shields `=== meta` from the metadata pass too.** `scanBlocks`
+  shielded backtick fences and `collectMeta` did not, so the two passes
+  disagreed about what a block is: a document that merely *showed* the syntax
+  silently acquired its keys. This specification's own §8.6 example was setting
+  `profile` on the whole specification that way — found because GEP-0013's new
+  diagnostic made it audible. Eight documents in `spec/` were affected;
+  `geml-history-profile.md` loses four spurious warnings.
+
 - **`geml find` walks Markdown too.** A directory handed to `find` was searched
   for `*.geml` and nothing else, so pointing it at a folder of notes answered
   "no matches" about a word on every page — silently, and with the exit code
