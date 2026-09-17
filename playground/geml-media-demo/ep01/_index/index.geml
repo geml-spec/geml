@@ -10,7 +10,7 @@ track-h = 56
 
 %% component=player 是宿主实现的组件：它读的是同一份时间线，驱动真的
 %% <video>/<audio>。舞台在上，轨道在下——把片段摆进轨道的还是原来那三个 frame。
-=== style-screen {#play axis=column component=player slots="#video, #dialogue, #subtitle"}
+=== style-screen {#play axis=column component=player aspect=9:16 slots="#video, #dialogue, #subtitle"}
 ===
 
 === style-frame {#video axis=row component=timeline-track slots="media-clip[track=video]" height="{{track-h}}px"}

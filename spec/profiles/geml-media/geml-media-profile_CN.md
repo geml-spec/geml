@@ -31,7 +31,54 @@ profile = "geml-media/v1"
 不认识这个 profile 名的处理器把声明当作不存在（§8.6 规则 3），依然合规：它看到的是散文和
 raw 块，而它们本来就是。
 
-## 2. `media-asset` —— 一个文件
+## 2. `media` —— 一段可播的东西
+
+一份文档里的每一个 `media` 块各是**一条时间线**。轨道表、主轨、帧率挂在块上，不在
+文档 `meta` 里：它们是这条时间线的事实，不是装着它的那份文件的。挂在块上它们就是
+属性，于是这份词汇表的属性表会查它们的拼写——`primry=` 当场报，而写在 `meta` 里的
+`primry` 是静默的。
+
+两种形态由**形状**分，不由属性分，和 `<video>` 的做法一样：
+
+```geml
+==== media {#ep01 tracks="video:video dialogue:audio subtitle:prose" primary=video fps=24}
+
+=== media-clip {#c01 track=video src=library.geml#s01-take3 in=0 out=4}
+===
+
+====
+```
+
+```geml
+=== media {#hero-shot src=library.geml#s01-take3 in=0 out=4}
+===
+```
+
+**有体是装配**（`<video><source>…</video>`），**无体加 `src=` 是一个可播的单源**
+（`<video src>`）。单源就是「只有一个片段的时间线」，所以播放、出片、导出三条路一行
+代码都不用分叉。没有 `type=` 或 `format=` 去重说一遍形状：同一件事两个说法，总有一天
+互相矛盾。
+
+| 键 | 形态 | 含义 |
+|---|---|---|
+| `tracks` | 装配 | 空格分隔的 **`名字:种类`** 列表。种类只有 `video` / `audio` / `prose`，说的是内容是什么。声明的顺序就是轨道的顺序 |
+| `primary` | 装配 | 主轨的名字。**缺省是声明的第一条轨**——那是其余轨都锚上去的脊梁 |
+| `fps` | 都可 | 这条时间线的帧率。只有写了 `hh:mm:ss:ff` 时码才用得上 |
+| `src` | 单源 | 指向一个 `media-asset`。有体时不该出现 |
+| `in` | 都可 | **源内的入点**：从被引文件的第几秒开始取。剪辑软件与 W3C Media Fragments 用的都是这个词 |
+| `out` | 都可 | **源内的出点**。长度 = `out` − `in` |
+| `duration` | 都可 | 直接给长度，用于说不出 `out` 的源。优先级：`out` > `duration` > 源的固有时长 |
+
+有三个键是**故意不在这儿**的。**画面比例是呈现**，写在样式表上（`component=player
+aspect=9:16`）。**种类**从被引的 `media-asset` 的 `kind=` 读，不在引用它的地方重说一遍。
+**播放策略**——自动播、循环、静音、控件——根本不是文档的事实：`<video>` 身上那一堆
+属性一个都不进来，因为它是页面里的呈现元素，而 `media` 是关于内容的陈述。
+
+**音频不另立类型。** HTML 分 `<audio>` / `<video>` 是因为渲染的盒子不同。这里种类是
+**数据**（素材上的 `kind=`、轨道表里的 `dialogue:audio`），不是类型。只有对白轨没有画面
+的粗剪照样是一条时间线，而这里每条真实的时间线都是混合的。
+
+## 3. `media-asset` —— 一个文件
 
 | 键 | 必需 | 含义 |
 |---|---|---|
@@ -53,19 +100,19 @@ body 是 raw，放作者自己的备注。备注是文档事实，进历史；�
 （`media-file-missing`）。文件在、内容却不是它说的那个（`media-hash-mismatch`），比没有更糟：
 那是错的文件。
 
-## 3. `media-clip` —— 时间线上的一个片段
+## 4. `media-clip` —— 时间线上的一个片段
 
 | 键 | 必需 | 含义 |
 |---|---|---|
 | `track` | 是 | 轨道名，须在 `meta.tracks` 里声明过。下面哪几条规则适用，由轨道的**种类**决定，不由轨道的名字决定 |
 | `src` | 是 | 块引用。`video`/`audio` 种类的轨必须指 `media-asset`；`prose` 种类的轨必须指 `media-text` |
 | `in`、`out` | `video`/`audio` | 素材内的起止，秒**或** `hh:mm:ss:ff` 时码（按 `meta.fps` 换算） |
-| `dur` | 无固有时长的源 | 静图或一段散文在时间线上占多久 |
+| `duration` | 无固有时长的源 | 静图或一段散文在时间线上占多久 |
 | `over` | 非主轨 | 锚到**主轨**上的某个片段 |
 | `offset` | 否 | 相对锚点起点的秒数，默认 0 |
 | `at` | 否 | 绝对起点。逃生口：写了它，锚定被忽略 |
 | `transition-in`、`transition-out` | 否 | `cut`（默认）、`dissolve`、`fade`、`crossfade`，或宿主词 |
-| `transition-dur` | 否 | 秒 |
+| `transition-duration` | 否 | 秒 |
 | `gain`、`fade-in`、`fade-out` | 音频 | `-14dB`；秒 |
 | `speed` | 否 | 倍速，默认 1 |
 | `xywh` | 否 | 源画面的裁切，W3C Media Fragments 语法 |
@@ -77,8 +124,7 @@ body 是 raw，放作者自己的备注。备注是文档事实，进历史；�
 不是画在哪。overlay 轨的种类是 `video`；它叠在画面之上是样式表的决定，不是内容的。
 
 ```geml
-tracks = "video:video dialogue:audio bgm:audio subtitle:prose overlay:video"
-primary = "video"
+==== media {#ep01 tracks="video:video dialogue:audio bgm:audio subtitle:prose overlay:video" primary=video fps=24}
 ```
 
 只写名字不写种类是 error，种类不在这三个里也是 error。不做回退：一条要从名字猜种类的
@@ -88,12 +134,12 @@ primary = "video"
 
 - **主轨**（`meta.primary`，缺省 `video`）是**顺序的**：文档顺序就是播放顺序。第 *i* 个
   片段的起点 = 第 *i-1* 个的终点减去它 `transition-in` 声明的重叠量（`cut` 为 0，
-  `dissolve` 与 `crossfade` 为 `transition-dur`，`fade` 不重叠）。第一个片段从 0 开始。
-- 一个片段的时长 = `out - in`，无固有时长的源则是 `dur`，再除以 `speed`。
+  `dissolve` 与 `crossfade` 为 `transition-duration`，`fade` 不重叠）。第一个片段从 0 开始。
+- 一个片段的时长 = `out - in`，无固有时长的源则是 `duration`，再除以 `speed`。
 - **其余轨是锚定的**：起点 = 锚点片段的起点 + `offset`。在主轨插一个片段，后面所有锚定的
   字幕、配音、音乐跟着走。这和"id 优于行号"是同一个道理：锚在内容上，不锚在数字上。
 
-## 4. `media-text` —— 剧本层
+## 5. `media-text` —— 剧本层
 
 带剧本语义的散文：外貌、提示词、台词。它就是 **`text` 加五个键**——同样的 flow 体、同样
 可被行内投射、同样投成 Markdown 段落——所以参考实现把它声明为**散文类型**。
@@ -113,7 +159,7 @@ primary = "video"
 `data` 的 `schema=`、`view` 的 `src=`，以及行内 `[[…]]`。profile 放行的属性值核心从不解析，
 所以悬空的 `speaker=` 得到的是本 profile 的 `media-speaker-unresolved`，核心一声不吭。
 
-## 5. 生成日志 —— `data {.gen-log format=jsonl}`
+## 6. 生成日志 —— `data {.gen-log format=jsonl}`
 
 一次生成一条记录，只追加，不改写。它是带 class 的核心 `data` 块，不是自己的类型，这买到
 三样新类型会丢掉的东西：JSON 由核心校验、每条记录每个字段都有坐标
@@ -139,7 +185,7 @@ primary = "video"
 **追加记录的人同时要更新素材块**——它的 `sha256`，以及工具知道时的 `duration`。只追加记录
 会让库里继续声称一个文件已经没有的哈希，下一次 check 就是 `media-hash-mismatch`。
 
-## 6. `=== meta` 键
+## 7. `=== meta` 键
 
 | 键 | 文档 | 含义 |
 |---|---|---|
@@ -150,7 +196,7 @@ primary = "video"
 | `target-duration` | 剧本 | 目标时长，秒 |
 | `episode` | 剧本 | 集号 |
 
-## 7. 诊断
+## 8. 诊断
 
 级别沿用核心的规矩：**结构坏了是 error，事实过期是 warning，选择是 info。** 过期必须是
 warning 而不是 error——否则改一次角色卡整条流水线红掉，人就会学着忽略它。
@@ -162,7 +208,7 @@ warning 而不是 error——否则改一次角色卡整条流水线红掉，人
 | `media-file-missing` | warning | 素材的文件不存在 |
 | `media-hash-mismatch` | error | 文件在，但 SHA-256 不是声明的那个 |
 | `media-asset-unhashed` | warning | 素材没有 `sha256`，血缘无法校验 |
-| `media-dur-required` | error | 源无固有时长且未写 `dur` |
+| `media-duration-required` | error | 源无固有时长且未写 `duration` |
 | `media-track-missing` | error | 片段没有 `track=` |
 | `media-track-undeclared` | warning | `track=` 不在 `meta.tracks` 里 |
 | `media-track-kind-missing` | error | `meta.tracks` 里某条只写了名字没写种类 |
@@ -182,7 +228,7 @@ warning 而不是 error——否则改一次角色卡整条流水线红掉，人
 `media-absolute-anchor`、`media-subtitle-unmatched`）。第一个真实用例一条都没接近，
 而一条没人需要过的诊断，只是披着码的猜测。
 
-## 8. 这份 profile 不放行什么
+## 9. 这份 profile 不放行什么
 
 - **不接任何一家生成器的 API。** 日志记录下的是**用了什么**，从不是**怎么调用**：没有
   endpoint、没有 key、没有脚本（§9.1——文档是数据，永不是代码）。
@@ -194,7 +240,7 @@ warning 而不是 error——否则改一次角色卡整条流水线红掉，人
 - **不定义呈现层的画面几何。** overlay 摆在哪，是样式表透传给宿主的参数。对**源画面**的
   裁切（`xywh`）是另一回事，它是文档事实。
 
-## 9. 版本与范围
+## 10. 版本与范围
 
 `geml-media/v1` 就是上面这份名字清单。加一个名字是小版本改动；删掉一个、或改变一个名字的
 含义，要 `v2`。两种情况下规范都不变：这份 profile 放行的，全是 §8.6 本来就允许一份词汇表

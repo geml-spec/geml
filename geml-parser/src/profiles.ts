@@ -131,16 +131,26 @@ export const PROFILES: Record<string, ProfileDef> = {
   // 属性表是**闭集**（登记了 attrs 就会被查拼写）。这三个类型的键全部来自设计稿
   // §5，按第一个真实用例跑过一遍。
   "geml-media/v1": {
-    types: ["media-asset", "media-clip", "media-text"],
+    types: ["media", "media-asset", "media-clip", "media-text"],
     prose: ["media-text"],
+    // `media` 是容器：`==== media` 里套 `media-clip`。无体的 `media` 是一个可播的单源。
+    bodies: { media: "flow" },
     attrs: {
+      // §5.0 一段可播的东西，两种形态由**形状**分，不由属性分 —— 和 `<video>` 一样：
+      // `<video src>` 是单源，`<video><source></video>` 是它的孩子说了算。
+      //   **有体**＝装配：`tracks` `primary` `fps` 三个键，片段住在体里。
+      //   **无体 + src=**＝单源：`src` `in` `out` `duration`，它就是「只有一个片段的
+      //   时间线」，下游一条代码都不用分叉。
+      // 两组互斥，`check` 会管。画面比例不在这儿（那是呈现，归样式表），种类也不在
+      // （从被引的 `media-asset` 读，同一件事不写两遍）。
+      media: ["tracks", "primary", "fps", "src", "in", "out", "duration"],
       // §5.1 一个文件。`of` 说这份素材画的是谁，`role` 说它在生成里当什么用 ——
       // 没有这两个，「林夏的三视图是哪张」只能靠文件名猜。
       "media-asset": ["src", "sha256", "kind", "duration", "fps", "size",
         "origin", "license", "mime", "of", "role"],
-      // §5.2 一个片段。`track` 必填，轨道的种类由 meta.tracks 的「名字:种类」给出。
-      "media-clip": ["track", "src", "in", "out", "dur", "over", "offset", "at",
-        "transition-in", "transition-out", "transition-dur",
+      // §5.2 一个片段。`track` 必填，轨道的种类由所属 `media` 的 `tracks=` 给出。
+      "media-clip": ["track", "src", "in", "out", "duration", "over", "offset", "at",
+        "transition-in", "transition-out", "transition-duration",
         "gain", "fade-in", "fade-out", "speed", "xywh"],
       // §5.4 剧本层。`speaker` 必填；`shot` 把提示词钉到分镜表的镜号上。
       "media-text": ["shot", "speaker", "to", "emotion", "since"],

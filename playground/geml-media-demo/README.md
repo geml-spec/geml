@@ -77,7 +77,7 @@ tools/make-assets.mjs     重新生成那六个素材
 === media-clip {#c01 track=video src=ep01-library.geml#s01-take3 in=0 out=4}
 === media-clip {#c03 track=video src=ep01-library.geml#s03-take2-lips in=0 out=6}
 === media-clip {#vo-s03-l1 track=dialogue src=ep01-library.geml#s03-l1-vo over=#c03 offset=0.4 gain=0dB}
-=== media-clip {#sub-s03-l1 track=subtitle src=ep01-script.geml#s03-l1 over=#c03 offset=0.4 dur=2.1}
+=== media-clip {#sub-s03-l1 track=subtitle src=ep01-script.geml#s03-l1 over=#c03 offset=0.4 duration=2.1}
 ```
 
 绝对时间只有 `at=` 一个逃生口，别的都是锚定。

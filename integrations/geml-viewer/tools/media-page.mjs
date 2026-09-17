@@ -36,8 +36,16 @@ const joinRel = (dir, rel) => {
   }
   return out.join("/");
 };
-for (const b of cutDoc.children) {
-  const src = b.kind === "block" && b.attrs ? b.attrs.src : undefined;
+// **递归**地收：片段住在 `media` 块的体里，只扫顶层会连素材库都找不到。
+const everyBlock = (doc) => {
+  const out = [];
+  (function walk(bs) {
+    for (const b of bs ?? []) if (b.kind === "block") { out.push(b); if (b.children) walk(b.children); }
+  })(doc.children);
+  return out;
+};
+for (const b of everyBlock(cutDoc)) {
+  const src = b.attrs ? b.attrs.src : undefined;
   if (typeof src !== "string" || !src.includes("#")) continue;
   const p = joinRel(refDir, src.slice(0, src.indexOf("#")));
   if (p === "" || seen.has(p)) continue;
@@ -46,9 +54,9 @@ for (const b of cutDoc.children) {
 }
 // 二跳：剧本里的角色卡。
 for (const e of [...corpus]) {
-  for (const b of e.doc.children) {
+  for (const b of everyBlock(e.doc)) {
     for (const k of ["speaker", "to", "of"]) {
-      const v = b.kind === "block" && b.attrs ? b.attrs[k] : undefined;
+      const v = b.attrs ? b.attrs[k] : undefined;
       if (typeof v !== "string" || !v.includes("#")) continue;
       const p = joinRel(dirname(e.path).split("\\").join("/"), v.slice(0, v.indexOf("#")));
       if (p === "" || seen.has(p)) continue;

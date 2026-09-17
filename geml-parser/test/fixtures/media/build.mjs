@@ -102,6 +102,6 @@ w("ep01/ep01-cut.geml",
   + "=== media-clip {#c01 track=video src=ep01-library.geml#s01-take3 in=0 out=4}\n===\n\n"
   + "=== media-clip {#c03 track=video src=ep01-library.geml#s03-take2-lips in=0 out=6 transition-in=cut}\n===\n\n"
   + "=== media-clip {#vo-s03-l1 track=dialogue src=ep01-library.geml#s03-l1-vo over=#c03 offset=0.4 gain=0dB}\n===\n\n"
-  + "=== media-clip {#sub-s03-l1 track=subtitle src=ep01-script.geml#s03-l1 over=#c03 offset=0.4 dur=2.1}\n===\n");
+  + "=== media-clip {#sub-s03-l1 track=subtitle src=ep01-script.geml#s03-l1 over=#c03 offset=0.4 duration=2.1}\n===\n");
 
 console.log("夹具写好：6 个素材 + 4 份文档，提示词哈希由解析器展开后算");
