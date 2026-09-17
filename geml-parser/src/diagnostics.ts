@@ -107,13 +107,23 @@ export type DiagnosticCode =
   | "bad-data-schema"
   | "data-src-and-body"
   | "bad-data-source"
-  | "unresolvable-data-source";
+  | "unresolvable-data-source"
+  // --- Application-layer vocabularies (§8.6, GEP-0013) ---
+  | "unrecognized-vocabulary";
 
 export interface Diagnostic {
   severity: "error" | "warning";
   code: DiagnosticCode;
   message: string;
   line: number; // 1-based
+  /**
+   * The name a diagnostic is ABOUT, when it is about one — today only
+   * `unrecognized-vocabulary`, whose consumer is a renderer that has to tell a
+   * reader which vocabulary it is missing. The message already says it, and a
+   * renderer scraping the name back out of prose would tie the page's wording
+   * to the diagnostic's, which §Appendix A explicitly says may be reworded.
+   */
+  subject?: string;
 }
 
 // The severity each code is emitted with. The specification fixes severity per
@@ -214,6 +224,10 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   "data-src-and-body": "error",
   "bad-data-source": "error",
   "unresolvable-data-source": "error",
+  // A declared vocabulary this processor does not ship. Warning, and for the
+  // reason `data-format-no-engine` is one: the document is well formed and it
+  // is this reader that cannot see all of it (§8.6.2 rule 3).
+  "unrecognized-vocabulary": "warning",
 };
 
 // ---------------------------------------------------------------------------

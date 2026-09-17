@@ -106,6 +106,32 @@ export function renderHtml(doc: Document, opts: RenderOptions = {}): string {
   // Fragment mode: the body markup alone, for embedding into an existing
   // layout. No shell, no CDN tags, no inline CSS/JS — see RenderOptions.
   if (opts.fragment) return body + "\n";
+  // A vocabulary this processor does not ship (§8.6.2 rule 3) degrades what is
+  // on this page: its blocks are drawn by the unknown-type fallback, which
+  // labels them "unknown block type" — the same label a MISTYPED type gets. A
+  // reader cannot tell those apart from the block alone, and the difference is
+  // the whole question of whose fault it is. So the page says which vocabulary
+  // it was rendered without, once, above the content it explains.
+  //
+  // Fragment mode gets none of this on purpose: a fragment goes into someone
+  // else's layout, which owns its chrome, and the viewer already renders every
+  // model diagnostic as a banner of its own.
+  // …and only when the page actually shows a block it could not read. A notice
+  // naming a vocabulary whose absence changed nothing visible tells the reader
+  // about a dependency without showing them any effect of it.
+  const missing = !ctx.usedUnknownType ? [] : [...new Set(
+    (doc.diagnostics ?? [])
+      .filter((d) => d.code === "unrecognized-vocabulary" && d.subject !== undefined)
+      .map((d) => d.subject!),
+  )];
+  if (missing.length > 0) {
+    const names = missing.map((n) => `<code>${esc(n)}</code>`).join(", ");
+    const was = missing.length === 1 ? "a vocabulary this renderer does not have" : "vocabularies this renderer does not have";
+    body = `<div class="geml-missing-vocab">Rendered without ${was}: ${names}. `
+      + `Blocks those define are shown below as raw text, labelled <em>unknown block type</em>; `
+      + `that label here means this renderer is missing something, not that the document is wrong.</div>\n`
+      + body;
+  }
   const title = opts.title ?? ctx.docTitle() ?? "GEML document";
   return page(title, body, ctx, opts.source);
 }

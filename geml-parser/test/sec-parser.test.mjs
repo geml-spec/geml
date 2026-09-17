@@ -1626,3 +1626,52 @@ test("a fragment on a .geml target is still checked, exactly as before", () => {
     assert.equal(r.status, 1);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+// ---------------------------------------------------------------------------
+// R6-1 — a partial embed must not disclose the target's OTHER dependencies
+// ---------------------------------------------------------------------------
+// GEP-0013 makes a processor report a vocabulary it does not recognize, and
+// carry that report across an `embed` edge — the host renders the borrowed
+// blocks raw, and the host is the document the reader is looking at.
+//
+// The first implementation of that report hung off the transitive walk which
+// already existed for cycle detection. That walk follows EVERY embed in EVERY
+// document it reaches, which is right for cycles and wrong here: a host that
+// borrowed one public block learned the path and the vocabulary name of a third
+// document, reachable only through a part of the target it never took, and the
+// string travelled into the host's published HTML. Measured before the fix:
+//
+//   A embeds B#public; B, in #private, embeds secret.geml
+//   geml check A.geml -> `secret.geml` declares `acme-payroll-confidential/v1`
+//
+// The rule is now half a sentence longer: a diagnostic may name only documents
+// THIS document names. These two tests pin both halves — the hole stays shut,
+// and the capability it was narrowed out of still works one edge away.
+
+const embedDocs = {
+  "secret.geml": '=== meta\nprofile = "acme-payroll-confidential/v1"\n===\n\n=== payroll-row {#r1}\nx\n===\n',
+  "B.geml": "## public {#public}\n\nAn ordinary paragraph.\n\n## private {#private}\n\n=== embed {src=secret.geml#r1}\n===\n",
+};
+const resolveEmbedDoc = (p) => embedDocs[p] ?? null;
+
+test("R6-1: borrowing one public block must not name the target's other dependencies", () => {
+  const doc = parse("# A\n\n=== embed {src=B.geml#public}\n===\n",
+    { resolveDoc: resolveEmbedDoc, self: "A.geml" });
+  // Diagnostics AND the published page: the notice reaches both, so both are
+  // checked. A never named `secret.geml` and received no content from it.
+  const surface = JSON.stringify(doc.diagnostics) + renderHtml(doc, { source: "A.geml" });
+  assert.ok(!surface.includes("secret.geml"),
+    "a document this one never named must not appear in its output");
+  assert.ok(!surface.includes("acme-payroll-confidential"),
+    "nor must that document's vocabulary name");
+});
+
+test("R6-1: the document that writes the embed itself is still told", () => {
+  // Narrowed by DEPTH, not disabled: B wrote that embed, so the relationship is
+  // B's and the notice is B's to receive.
+  const d = parse("## private {#private}\n\n=== embed {src=secret.geml#r1}\n===\n",
+    { resolveDoc: resolveEmbedDoc, self: "B.geml" })
+    .diagnostics.filter((x) => x.code === "unrecognized-vocabulary");
+  assert.equal(d.length, 1);
+  assert.equal(d[0].subject, "acme-payroll-confidential/v1");
+});

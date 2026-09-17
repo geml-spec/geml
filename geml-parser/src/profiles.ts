@@ -17,8 +17,10 @@
 // 同样的理由排除了"旧产物兼容探测"（认 `resolution-default` 为隐式声明）：那是
 // 同一类实现特定知识，第二实现照样得复刻它。旧图重新 build 一次即可。
 //
-// v1 的范围：profile 只放行**名字**，不改 **body 模式** —— 一个被放行的类型，
-// body 仍按 §3 当 raw 处理。放宽它影响的是解析结果而不只是诊断，需要单独论证。
+// 范围（GEP-0013 之后）：profile 放行名字，**并且**为它放行的类型声明 body 模式。
+// 不认识这份词汇表的处理器把那些正文一律当 raw，并报出 `unrecognized-vocabulary`
+// —— 规则 4 之所以能给这个例外，靠的就是规则 3 要求把这件事说出来。没声明 body
+// 的类型照旧 raw。
 
 /** 一个 profile 放行的词汇。 */
 export interface ProfileDef {
@@ -195,6 +197,23 @@ export interface Vocabulary {
  * "这个名字允许吗"，不问"它是什么意思"，所以两个 profile 放行同一个键不是冲突，
  * 是同一个答案说了两遍（§8.6）。
  */
+/**
+ * 文档声明了、而本处理器不认识的词汇表名（§8.6.2 规则 3，GEP-0013）。
+ *
+ * 规则 3 从「当作不存在，不是错误也不是警告」改成了「什么也不放行，并且必须报出
+ * 来」。报的不是文档的毛病——文档有效——而是**这个读者读不全它**：那些类型的正文
+ * 会按 §8.2(6) 当 raw，那个词汇表本会让它们产生的可寻址单元在这里就是没有。规则 4
+ * 之所以能放开 body 模式，靠的正是这句话被说出来。
+ *
+ * `Object.hasOwn` 而不是 `in`：`PROFILES` 是普通对象，`in` 会把 `toString` 这类
+ * 原型键认成已注册的词汇表。
+ */
+export function unrecognizedVocabularies(meta: Map<string, string>): string[] {
+  return (meta.get("profile") ?? "")
+    .split(/\s+/)
+    .filter((name) => name.length > 0 && !Object.hasOwn(PROFILES, name));
+}
+
 export function vocabularyFor(meta: Map<string, string>): Vocabulary {
   const declared = new Set((meta.get("profile") ?? "").split(/\s+/).filter((x) => x.length > 0));
   const types = new Set<string>();

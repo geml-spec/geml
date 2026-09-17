@@ -19,12 +19,15 @@ is not**: §8.6 makes it implementation-defined which vocabularies a processor
 recognizes, and a processor that recognizes none is still conformant. This page
 records the ones this project publishes and its reference implementation knows.
 
-Admission licenses names only. It cannot change a block's body mode, so an
-admitted type keeps the `raw` body an unknown type would have had, and the same
-bytes parse to the same document model whether or not the vocabulary is
-recognized (§8.6 rule 4). That is what keeps `geml get`, `geml set` and
-`=== embed` behaving identically across two documents that declare different
-profiles.
+Admission licenses names, and — for the types a vocabulary admits — how their
+bodies are read. A processor that does **not** recognize the vocabulary reads
+every one of those bodies as `raw`, the body an unknown type would have had, and
+reports `unrecognized-vocabulary` saying so (§8.6 rule 3). So the two readings
+can differ, and the one that sees less announces it rather than presenting a
+partial document as a whole one (§8.6 rule 4, [GEP 0013](../proposals/0013-prose-body-for-vocabularies.md)).
+Addresses outside those bodies are untouched either way, which is what keeps
+`geml get`, `geml set` and `=== embed` behaving identically across two documents
+that declare different profiles.
 
 ## Index
 
@@ -50,12 +53,12 @@ whatever tooling reads and writes it. Core verbs — `check`, `list`, `get`,
 
 ## Adding one
 
-1. Decide it is a profile and not a specification change. The test is
-   mechanical and written down in
-   [`../proposals/README.md`](../proposals/README.md): **does GEML have to read
-   inside the block's body?** If yes — flow content, child ids, references
-   §8.2(5) requires to resolve — only §3's registry can assign a body mode, so
-   it is a GEP.
+1. Decide it is a profile and not a specification change. The test is written
+   down in [`../proposals/README.md`](../proposals/README.md): **does it put an
+   obligation on every conforming implementation?** If yes it is a GEP, because
+   a profile cannot carry a MUST — a processor that recognizes no vocabulary is
+   conformant. If no, the remaining question is judgment: is this the format's,
+   or one application's?
 2. Name it `geml-<thing>/v1`. §8.5 reserves unhyphenated type names for future
    versions of the specification, so the vocabulary's own type names carry a
    hyphen too; the version rides in the profile name, so a changed vocabulary

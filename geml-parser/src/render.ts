@@ -184,6 +184,13 @@ function indexLabelsInto(blocks: Block[], into: Map<string, string>): void {
 export class RenderCtx {
   usedMath = false;
   usedMermaid = false;
+  /**
+   * A block reached the unknown-type fallback below. The page-level notice about
+   * a missing vocabulary is gated on this: without an unreadable block there is
+   * nothing on the page for it to explain, and naming a vocabulary the reader
+   * cannot see the effect of is disclosure with no purpose (§8.6.2 rule 3).
+   */
+  usedUnknownType = false;
   usedCodeGraph = false;
   private renderDepth = 0;
   // S5: the (path#fragment) chain currently being expanded, for cycle
@@ -694,6 +701,7 @@ export class RenderCtx {
         // (ProfileDef.prose) — same neutral container, not the fallback below.
         if (b.prose === true) return this.proseBlock(b, idAttr);
         // Unknown type: preserved as raw (spec §3). Show it, labelled.
+        this.usedUnknownType = true;
         return `<figure${idAttr}${this.clsAttr(b.classes)}><pre class="diagram-src" data-type="${escAttr(b.type)}">${esc(raw)}</pre>` +
           `<figcaption>unknown block type <code>${esc(b.type)}</code>; shown as raw</figcaption></figure>`;
       }
@@ -1443,6 +1451,7 @@ table.geml-table tfoot td { background:var(--code-bg); font-weight:600; border-t
 .c-grid { stroke:#eaecef; } .c-axis { stroke:#aab1b8; } .c-tick { font-size:11px; fill:var(--muted); } .c-legend { font-size:12px; fill:var(--fg); }
 .media { max-width:100%; border-radius:8px; }
 .diagram-src { color:var(--muted); } .render-error { color:#cf222e; }
+.geml-missing-vocab { border:1px solid #d4a72c66; background:#fff8c5; color:#4d2d00; padding:.6rem .8rem; border-radius:6px; margin:0 0 1rem; font-size:.9em; }
 .math-block { overflow-x:auto; padding:.4em 0; }
 sup.fn a { font-size:.75em; }
 .geml-footer { max-width:860px; margin:0 auto; padding:16px 24px 40px; color:var(--muted); font-size:.82em; }

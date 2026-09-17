@@ -158,7 +158,7 @@ export type Block =
 // the package root. The catalogue of codes lives there (spec Appendix A).
 export { type Diagnostic, type DiagnosticCode, SEVERITY } from "./diagnostics.js";
 
-import { vocabularyFor, EMPTY_VOCABULARY, type Vocabulary } from "./profiles.js";
+import { vocabularyFor, unrecognizedVocabularies, EMPTY_VOCABULARY, type Vocabulary } from "./profiles.js";
 import { parseCoordPath } from "./selector.js";
 import { metaView, projectCoord } from "./coord.js";
 
@@ -1470,6 +1470,51 @@ function detectTransclusionCycles(ctx: Ctx, opts: ParseOptions): void {
   // only loses the A→…→A case, which is what happened before `self` existed.
   const root = opts.self ?? "";
   for (const e of ctx.embeds) walk(e.doc, relDirPath(root), [root], e.line);
+  reportBorrowedVocabularies(ctx, opts, root, resolve);
+}
+
+/**
+ * §8.6.2 rule 3, carried across an `embed` edge: a host that borrows from a
+ * document whose vocabulary this processor does not ship renders those blocks
+ * raw, and the reader is looking at the HOST — the degraded document is the one
+ * that appears to be fine.
+ *
+ * Over `ctx.embeds` — the embeds THIS document wrote — and deliberately not over
+ * the transitive walk above. The walk follows every embed in every document it
+ * reaches, which is right for cycle detection (a cycle anywhere is a cycle) and
+ * wrong here, twice over:
+ *
+ *   · it DISCLOSES. `A` embeds one public block of `B`; `B` elsewhere — in a
+ *     block `A` never took — embeds `secret.geml`. Reporting from the walk put
+ *     `secret.geml`'s path and its vocabulary name into A's diagnostics and into
+ *     A's published HTML, about a document A never named and content A never
+ *     received. A diagnostic may name only documents this document names.
+ *   · it LIES. "the blocks it brings in" is false of a document nothing was
+ *     taken from.
+ *
+ * What is left, and recorded rather than hidden: a host learns the vocabulary
+ * name of a document it embeds from even when the slice it took does not use
+ * that vocabulary. The host names that document and is reading it, so this is
+ * metadata of a document the host already depends on — not a third party's.
+ */
+function reportBorrowedVocabularies(
+  ctx: Ctx, opts: ParseOptions, root: string, resolve: (p: string) => string | null,
+): void {
+  const seen = new Set<string>();
+  for (const e of ctx.embeds ?? []) {
+    if (!e.doc) continue; // a self-embed borrows nothing from anywhere else
+    const rel = relJoinPath(relDirPath(root), e.doc);
+    const src = seen.has(rel) ? null : resolve(rel);
+    if (src === null) { seen.add(rel); continue; }
+    seen.add(rel);
+    for (const name of unrecognizedVocabularies(collectMeta(normalizeSource(src).split("\n")))) {
+      ctx.diags.push({
+        severity: "warning", code: "unrecognized-vocabulary",
+        message: `\`${rel}\`, embedded here, declares vocabulary \`${name}\`, which this processor does not recognize; blocks it defines arrive as raw`,
+        line: e.line, subject: name,
+      });
+    }
+  }
 }
 
 // The smallest cycle of all, and the one the cross-document walk above cannot
@@ -1935,11 +1980,21 @@ export function vocabularyOf(source: string): Vocabulary {
   return vocabularyFor(collectMeta(normalizeSource(source).split("\n")));
 }
 
-function collectMeta(lines: string[], diags?: Ctx["diags"]): Map<string, string> {
+function collectMeta(lines: string[], diags?: Ctx["diags"], definedAt?: Map<string, number>): Map<string, string> {
   const meta = new Map<string, string>();
-  const firstLine = new Map<string, number>(); // key → 1-based line of the defining fence
+  // key → 1-based line of the defining fence. `definedAt` lets a caller keep it:
+  // a diagnostic about a key's VALUE (§8.6's `profile`) has to point at the line
+  // the key was written on, and only this walk knows it.
+  const firstLine = definedAt ?? new Map<string, number>();
   const walk = (ls: string[], base: number, depth: number): void => {
+    // The same shield `scanBlocks` uses. Without it the two passes disagree
+    // about what a block is: a ``` pair makes `=== meta` an EXAMPLE to the
+    // scanner and a DEFINITION to this walk, so a document that merely shows
+    // the syntax silently acquired its keys. This specification's own §8.6
+    // example set `profile` on the whole specification that way.
+    const shielded = backtickShield(ls);
     for (let i = 0; i < ls.length; i++) {
+      if (shielded.has(i)) continue;
       const { line, consumed } = foldFence(ls, i);
       const open = FENCE_OPEN.exec(line);
       if (!open) continue;
@@ -2455,7 +2510,22 @@ function resolveCharts(ctx: Ctx, opts: ParseOptions): void {
 export function parse(source: string, opts: ParseOptions = {}): Document {
   const lines = normalizeSource(source).split("\n");
   const diags: Ctx["diags"] = [];
-  const meta = collectMeta(lines, diags);
+  const definedAt = new Map<string, number>();
+  const meta = collectMeta(lines, diags, definedAt);
+  // §8.6.2 rule 3: a declared vocabulary this processor does not ship is
+  // REPORTED, not passed over in silence — that report is what lets rule 4 grant
+  // a vocabulary its own body modes. Only when this parse computed the
+  // vocabulary itself: with `opts.vocab` the caller is handing down a
+  // declaration it already read, and already reported, one document up.
+  if (opts.vocab === undefined) {
+    for (const name of unrecognizedVocabularies(meta)) {
+      diags.push({
+        severity: "warning", code: "unrecognized-vocabulary",
+        message: `vocabulary \`${name}\` is not one this processor recognizes; it admits nothing and the types it would have admitted are read as raw`,
+        line: definedAt.get("profile") ?? 1, subject: name,
+      });
+    }
+  }
   const ctx: Ctx = { diags, ids: new Map(), refs: [], meta, vocab: opts.vocab ?? vocabularyFor(meta), resolveDoc: opts.resolveDoc };
   const children = scanBlocks(lines, 0, ctx);
   // Before validateRefs: a reference may name a prose run (GEP 0010), and §8.2(5)
