@@ -4,12 +4,12 @@
 profile           = "geml-history/v1"
 history-of        = "GEML-spec.geml"
 geml-version      = "1.0"
-current           = "20260904T124549Z-41b1c63d"
+current           = "20260917T131813Z-5edb5d6a"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== history-keyframe {id="20260904T124549Z-41b1c63d" hash="sha256:41b1c63d1ba3332240f29c92e01fb441cc19e2790c04775525acbe5213a46340"}
+===== history-keyframe {id="20260917T131813Z-5edb5d6a" hash="sha256:5edb5d6a2a3e14fd889819e0c63d969b6f71332afeb36bd561b413d7295177e4"}
 # GEML — General Expressive Markup Language
 
 *English | [中文](../GEML-spec_CN.md)*
@@ -351,7 +351,8 @@ typed-block    = fence , [ SP ] , type , [ SP , attrs ] , NL , body , close-fenc
                  (* the SP after the fence is OPTIONAL: `===note {#a}` and
                     `=== note {#a}` are the same block, as are `===#a` and
                     `=== #a` as labeled closes. A fence-like line is kept
-                    literal by the `\` block escape of §5.1, never by the
+                    literal by the `\` block escape of §5.1, or by sitting between a
+                    matched pair of ``` lines (below); never by the
                     absence of that space. *)
 fence          = "===" , { "=" } ;            (* open: N equals signs, N >= 3 *)
 close-fence    = fence ;                      (* exactly equal to the opening length *)
@@ -424,6 +425,21 @@ scripts are ordinary NAME characters. A TYPE-NAME is the exception, and §8.5's
 open registry is extended by DECLARING a vocabulary (§8.6), never by the shape
 of a name.
 
+A line of three or more backticks opens nothing — GEML has one code block,
+`=== code` — but a **matched pair** of such lines **shields** what lies between
+them from the scan above: no fence, heading, list or `%%` line inside is a
+construct there, and the region stays what it already was, flow text. The shield
+is what keeps an example from becoming a definition — a block written inside a
+Markdown fence to SHOW the syntax would otherwise take an id, enter the
+document’s address space and be rewritten by an editing tool, and nothing would
+say so. Two rules keep it honest. The pair must **close**: an unmatched run
+shields nothing, because "unclosed runs to the end of the document" would let
+one stray line swallow every block after it. And the shield is **per body** — a
+run opened inside one flow body does not reach out of it — so a backtick far
+away cannot silently re-parse a document. To show GEML *and* have it render as
+code, use `=== code` with a fence one longer than the example’s own (§3); to
+keep a single line literal, use §5.1’s `\`.
+
 
 ### 3.2 The `data` block
 
@@ -460,8 +476,8 @@ offending line.
   arrangement: the records stay a plain `.jsonl` file every existing tool
   can append to and tail, and the GEML document is its verified,
   addressable, chartable view.
-- `yaml` and `toml` are RESERVED format names (the value-tree readings of
-  those syntaxes). A processor without an engine for them MUST keep the body
+- `yaml`, `toml` and `edn` are RESERVED format names (the value-tree readings
+  of those syntaxes). A processor without an engine for them MUST keep the body
   raw and emit a **warning**, and MUST NOT guess — the same degradation as an
   unknown `diagram` format (§7). An unknown `format=` value degrades
   identically.
@@ -698,7 +714,13 @@ exactly when the slice is itself a value.
   fully reference-checked, but **not rendered** — e.g. a source table that only
   feeds a chart. A `%%` line is a hidden, raw, never-rendered author note. The division of labor is: use `hidden` for structured content that participates in the document model (data sources, reusable fragments) but should remain invisible; use `%%` for throwaway comments that do not participate in the document model. Note that `%%` is only recognized as a comment at block positions (top-level or inside the body of a `flow` block). Inside a `raw` block body, `%%` lines are preserved exactly as-is and are not treated as comments.
 - Attribute order is insignificant; the recommended order is `#id`, then
-  `.class`, then `key=val`.
+  `.class`, then `key=val`. A NAME therefore MUST NOT be written twice in one
+  attribute object: a repeat is precisely what would make order significant.
+  A class, a `key=val` and a bare flag all write the same NAME — a flag IS
+  `key=true` — so `{.link link=http://x link}` writes `link` three times and is
+  a `duplicate-name` **error** (Appendix A). `#id` is the primary key and does
+  not take part: `{#a .a}` is one id and one class, the same way `id` and
+  `class` are separate attributes in HTML.
 - **Line continuation:** A typed block fence (`===`) or heading (`#`) line ending
   with a backslash `\` continues its attribute object onto the next line. The
   backslash and newline are treated as a single space, allowing long attribute
@@ -774,6 +796,50 @@ Internal and cross-document references are validated at build time.
   use `=== embed {src=#id}` instead.
 - *Note (non-normative):* backlinks and graph views are a derived inverted index
   over resolved references; GEML adds no syntax for them.
+
+**A reference may carry a coordinate.** A block address MAY be followed by one or
+more bracket steps naming a unit INSIDE that block — a table's rows and cells, a
+node of a `data` block's value tree (§3.2), or a key of the merged `#meta` (§4):
+
+| Form | Meaning |
+|------|---------|
+| `#fy[2]` | the second BODY row of block `fy`; a header is not a row |
+| `#fy[2]["Q1"]` | one cell, the column named by its header |
+| `#fy["Q1"]` | one column, header excluded, in row order |
+| `#fy[summary]` | the `summary=` foot row (§6), and `#fy[summary]["FY"]` one of its cells |
+| `#intake["fields"][1]["name"]` | a node of a `data` block's value tree |
+| `#meta["version"]` | a value from this document's merged meta |
+
+- Three token species occur inside the brackets and no two can be confused: a
+  bare **integer** is a row or sequence index, a **quoted string** is a column
+  name or a map key, and a bare **word** is a reserved row name, of which
+  `summary` is the only one this specification defines. Rows are **1-based** and
+  a value tree's sequences are **0-based**: the first is a line a reader counts,
+  the second is JSON.
+- A table written with no header row carries letter column names (`A`, `B`, …),
+  which are the same names `compute=` and `summary=` read (§6) — one column
+  namespace, not two.
+- `[` MUST NOT occur in a NAME (§4), so a coordinate can never be read as part of
+  an id, and a document written before coordinates existed cannot change meaning.
+  A coordinate composes with cross-document addressing unchanged
+  (`other.geml#fy[2]["Q1"]`).
+- A coordinate that does not resolve — an index past the last row, a column no
+  header names, a key the value tree does not carry, or a coordinate on a block
+  that has no inner units — is an `unresolved-reference` **error**, like any
+  other unresolved reference. Only `table`, `view`, `data` and `meta` carry inner
+  units; an `embed` carries none of its own, because its body is empty and its
+  `src=` resolves at render time (§3), so a coordinate on an embed is that same
+  error and the diagnostic SHOULD name the address that does resolve — the
+  coordinate on the embed's source.
+- A coordinate MAY be the target of an inline projection `![[…]]` or an `embed`'s
+  `src=` when, and only when, it names a **leaf value** — one value, complete on
+  its own. A positional slice, a whole row or a whole column, MUST NOT be a
+  projection target: which row is wanted is a predicate rather than an index, and
+  selecting rows is the consuming block's business (§6.1), not an address's.
+- *Note (non-normative):* a coordinate is stable only while the units above it
+  are. Inserting a row moves every index below it, which is why an id is
+  preferable wherever a unit can carry one, why `summary` is a word rather than
+  an index, and why `geml find` reports the containing block.
 
 ### 5.3 Recognition order and emphasis
 
@@ -1087,6 +1153,10 @@ processor validates it (the body stays empty — a non-empty body is a warning):
 ===
 ====
 
+`data=` may name a `view` as readily as a `table`, and for a **derived** column
+it must: charting §6.1's `FY` is `data=#fy25-report y=FY`, since that is the
+block which publishes the column.
+
 - `type` — `bar | line | area | pie | scatter`. It only changes how the channels
   are drawn; it never adds new attributes.
 - Encoding channels (a closed set): `x` (category), `y` (value; a comma list is
@@ -1200,7 +1270,8 @@ profile = "acme-invoice/v1 acme-style/v1"
 A vocabulary admits three things and no others: block `type` names (§3),
 attribute keys (§4), and `diagram` `format` names (§7). What those names mean is
 defined by the vocabulary, not here; this section defines only how they come to
-be admitted.
+be admitted. For the types it admits — and only those — a vocabulary also
+declares how their bodies are read (§8.6.2 rule 4).
 
 A `diagram`'s `format` selects a **renderer**, and its body is `raw` whichever
 renderer is named, so admitting one cannot move the document model. The `format`
@@ -1212,19 +1283,19 @@ changed them would change the model, which rule 4 forbids.
 Everything else belongs to this specification and changes only through it. A
 vocabulary MUST NOT introduce or alter:
 
-- the **body mode** of any type — rule 4 below, and the reason the rest of this
-  list holds;
 - the **grammar** of §§2–5: fences, headings, lists, attribute objects, inline
   syntax, references;
 - the **diagnostic catalogue** of Appendix A, including the severity of any code;
 - the meaning of any name this specification already defines.
 
-The first of those decides where a construct belongs, and decides it
-mechanically rather than by degree. A construct whose body GEML must read —
-flow content, ids it must resolve, references §8.2(5) makes errors — cannot be
-admitted by a vocabulary, because the `raw` body rule 4 requires would leave
-those ids uncreated and those references unresolvable. Such a construct is a
-change to this specification, not an application layer.
+A vocabulary that declares a body mode is declaring what its **own** types
+hold. It may not restate the body mode of a type this specification registers —
+`text` is `flow`, a `data` block's is its format engine's — because that would be
+redefining a name it does not own, which is the last entry above. What decides
+whether a construct belongs here or in this specification is therefore not a
+property of its body but a question of ownership: a construct every reader of
+GEML should be able to read is this specification's, and one that serves a single
+application is a vocabulary's.
 
 Diagram `format` names are **not** admissible in this version, though §8.5
 recommends the same hyphen for them. An unknown format already degrades to a
@@ -1245,22 +1316,44 @@ A conforming processor:
    implementation would have to reproduce it exactly to agree about diagnostics
    — which is §8.4's conformance surface leaking into one implementation's
    private habits.
-3. MUST treat a declared name it does not recognize as if it were absent: not an
-   error, not a warning, admitting nothing. **Which vocabularies a processor
-   recognizes is implementation-defined**, and a processor that recognizes none
-   is conformant.
-4. MUST NOT let admission change the document model. Admission licenses NAMES
-   only: an admitted type keeps the `raw` body §8.2(6) gives an unknown one, so
-   the same input yields the same model whether or not the processor recognizes
-   the vocabulary.
+3. MUST treat a declared name it does not recognize as admitting nothing, and
+   MUST report `unrecognized-vocabulary` naming it. The declaration is not an
+   error — the document is valid, and it is the processor's view of it that is
+   incomplete, in a way the reader is now told about rather than left to
+   discover. A processor that resolves an `=== embed` (§3) MUST report the
+   target's unrecognized declaration too, at the embedding block: §3 parses the
+   target as a document in its own right, so the host renders those blocks raw,
+   and the host is the document the reader is looking at. This is the line
+   between two kinds of diagnostic — one about what this PROCESSOR cannot do,
+   which follows the content wherever its effect shows, and one about a
+   DOCUMENT's own fault, which stays with the document that has it. **Which
+   vocabularies a processor recognizes is implementation-defined**, and a
+   processor that recognizes none is conformant.
+4. MUST NOT let admission change the set of addressable units, except as the
+   vocabulary's declared body modes require and only in a processor that
+   recognizes it. A processor that does NOT recognize a vocabulary reads every
+   type it would have admitted as `raw` — the body §8.2(6) gives an unknown type
+   — and has reported rule 3's diagnostic, so the difference between the two
+   readings is announced rather than silent. Admission never changes the address
+   a document's recognized blocks carry, nor any address outside the admitted
+   types' bodies.
 
-Rule 4 is what makes rule 3 safe to state. §8.4's suite is stated over the
-document model, so no case's expected projection can depend on which
-vocabularies an implementation happens to know, and two conformant processors
-that recognize different sets still agree on every case. It is also what makes a
-document safe to edit across a boundary: block extraction, block replacement and
-`=== embed` behave identically on a document that declares a vocabulary and one
-that does not, so content moved between them cannot change meaning in transit.
+Rule 3's report is what makes rule 4's exception safe to grant. A processor
+that cannot read a vocabulary's bodies says so, so a reader never mistakes a
+partial view for the whole one, and an address that resolves under one processor
+and not under another is accompanied by the reason. §3.2 already works this way
+for a RESERVED `data` format a processor ships no engine for: the body stays raw,
+`data-format-no-engine` says why, and the value tree that format would have
+produced is not addressable in that processor. A vocabulary's bodies are the same
+situation with the same remedy.
+
+§8.4's suite is unaffected either way, because it is stated over the document
+model and diagnostics were never part of it — rule 1 is already entirely about
+diagnostics differing with what a processor recognizes. What keeps a document
+safe to edit across a boundary is not this rule but §3: every document is parsed
+under its own `=== meta`, so block extraction, block replacement and `=== embed`
+read a target under the target's own declaration, and content moved between
+documents cannot change meaning in transit.
 
 #### 8.6.3 Naming and versioning
 
@@ -1418,11 +1511,12 @@ original file.
 === table {#table-7}
 | Code | Severity | Condition |
 |------|----------|-----------|
+| `duplicate-name` | error | A NAME is written more than once in one attribute object (§4). A class, a `key=val` and a bare flag all write the same NAME, so `{.link link=http://x link}` writes `link` three times. It is an error rather than a warning because §4 promises attribute order is insignificant and a repeat makes that false — silently: the parse succeeds, and which value survives depends on which part was written last. `#id` does not take part. |
 | `name-not-a-name` | warning | An `id`, class or attribute key in an attribute object is not a NAME (§4). A warning, not an error, because such a document still parses — and parses as something else: the attribute object is whitespace-separated, so `{#a & b}` yields the id `a` plus boolean flags named `&` and `b`, and the id the author meant to address does not exist. |
 | `heading-attrs-trailing-text` | warning | A heading's attribute object is followed by further text on the line, as in `## Title {#sec}aaa`. §4 requires the object to be trailing, so it is not parsed as attributes at all: an explicit `{#id}` is silently lost, the heading keeps its derived id, and its section — which runs to the next heading of the same level — can no longer be addressed by the id the author wrote. An object quoted in a code span or inline math is not reported: GEML prose documents this very syntax. |
 | `heading-attrs-unclosed` | warning | A heading's attribute object is never closed by `}` (`## Title {#sec`), so §4 does not parse it as attributes at all: an explicit `{#id}` is silently lost and the heading keeps its derived id. |
 | `reserved-id` | error | A block declares `{#meta}` in a document that carries more than one `meta` block. `#meta` names the MERGED meta namespace (§4), and with several blocks the declared id would mean one of them while `#meta` means all of them merged — one address, two readings. With a single `meta` block the two agree and the id is legal. |
-| `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4). |
+| `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4), and sameness is NFD-insensitive (§4) — two ids that differ only in Unicode normalization form are one id and collide. |
 | `unresolved-reference` | error | An internal reference `[…](#id)` or `[[#id]]`, or a chart `data=#id`, names an id no block declares. |
 | `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block declares. |
 | `unresolved-cross-document-reference` | error | A reference `other.geml#id` resolved to a document that declares no such id. |
@@ -1435,11 +1529,10 @@ original file.
 | `media-target-is-document` | error | A media embed `![](…)` points at a GEML document. Block content cannot be expanded in inline position; the `embed` block is the form for it. |
 | `inline-transclusion-not-inline` | error | An inline projection `![[…]]` names a target that is not inline content — not a single-paragraph `text` block. Block content cannot be expanded inside a sentence; the `embed` block is the form for it. |
 | `unsafe-embed-scheme` | error | An `embed` block names a URL scheme outside the allowlist of §9.5. The attribute is blanked in the model as well as reported, so no consumer can emit it. |
-===
-
 | `unresolvable-table-source` | error | A table's `src=` names a data file that cannot be resolved. |
 | `table-source-not-a-table` | error | A table's `src=` names a block that exists but is not a table. |
 | `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
+| `unrecognized-vocabulary` | warning | A name in `=== meta`'s `profile` list (§8.6) is one this processor does not recognize. It admits nothing, every type it would have admitted keeps the `raw` body of an unknown type, and the reader's view of the document is to that extent incomplete. The document is valid: this reports what the processor lacks, never a fault in the document. |
 | `duplicate-meta-key` | warning | A key is defined in a later `=== meta` block when an earlier block already defines it. The first definition is kept (§4). |
 
 ### A.3 Tables (§6)
@@ -1450,16 +1543,42 @@ original file.
 | `table-src-and-body` | error | A table carries both `src=` and an inline body. Exactly one is permitted (§6). |
 | `unknown-table-format` | warning | The `format=` value is not a recognized data format; the body is parsed as a visual pipe grid instead. |
 | `bad-table-delimiter` | error | A `delim=` value is not exactly one character (§6). The format's natural delimiter is used instead, so the table still reads. |
+| `bad-embed-part` | warning | An `embed` carries a `part=` that is not `whole`, `head`, `body` or `intro` (§3). The whole target stands: a projection that quietly selects nothing is the failure §8.2 exists to prevent. Not `unknown-attribute` — the key is defined, the value is not one it takes. |
 | `ignored-table-delimiter` | warning | A table carries `delim=` but no data `format=`, so no delimited body exists for it to apply to; the body is parsed as a visual pipe grid. |
 | `bad-compute-formula` | error | A `compute` entry is not of the form `Name = expr`. |
-| `unlexable-compute-formula` | error | A `compute` expression contains a character or token the §6 expression grammar does not define. |
 | `compute-error` | error | A `compute` expression failed to evaluate — most often because it names a column that does not exist, or one computed later (§9.3). |
 | `compute-non-numeric-cell` | warning | A `compute` formula read a cell that is empty or not a number; it counted as `0` (§6). The result is still produced — the warning names the cell it rests on. |
 | `compute-not-a-number` | warning | A `compute` or `summary` expression produced a value a cell cannot hold — ±∞ from a division by zero, or NaN from `0 / 0` (§6). The cell holds no value and displays `-`. |
 | `bad-summary-entry` | error | A `summary` entry is not of the form `Cell = value`. |
 | `summary-unknown-column` | error | A `summary` entry's left-hand side names no column of the table. |
-| `unlexable-summary-expression` | error | A `summary` expression contains a token the §6 expression grammar does not define. |
 | `summary-error` | error | A `summary` expression failed to evaluate — including a column reference not reduced by an aggregate, which has no value in the summary row (§6). |
+===
+
+**Views (`=== view`).** A view derives a relation from another one; a `table`
+holds facts and derives nothing.
+
+=== table {#table-view-diagnostics}
+| Code | Severity | Condition |
+|---|---|---|
+| `view-missing-src` | error | A `view` carries no `src=`. A view is declared by its source and its attributes alone, so there is nothing for it to derive from. |
+| `view-src-and-body` | error | A `view` carries a body. Its content is its source's, and a body alongside `src=` is the same error a table's is (§6). |
+| `table-source-is-block` | error | A `table`'s `src=` names a block rather than a data file. A block target is another block's output, and a table holding facts someone else derived is what `view` is for. |
+| `view-source-not-a-relation` | error | A view's `src=` names a block that is neither a `table` nor a `view`, so it publishes no relation to derive from. |
+| `view-source-cycle` | error | A chain of `src=` references returns to where it started. Every view in the cycle is named, because none of them can be resolved first (§9.3). |
+| `view-source-too-deep` | error | A chain of views is deeper than §9.3's bound, which is the one a nested `embed` has. Each view past the bound is named and none of them publishes rows. |
+| `view-where-error` | error | A `where=` expression is not a comparison the grammar defines — an unclosed quote, a missing right-hand value, a column where an operator belongs, or a name no column carries. |
+| `view-numeric-column-required` | error | A `where=` compares a column against a number and no row of that column holds one. The filter could only ever match nothing, which is a typo rather than a state. |
+| `view-unknown-column` | error | A `by=`, `order=`, `select=` or `aggregate=` names a column the relation does not carry. |
+| `view-order-error` | error | An `order=` key is not `<column>[ asc\|desc]`. |
+| `view-limit-error` | error | A `limit=` is not a non-negative integer. |
+| `view-select-expression` | error | A `select=` entry contains `=`. It names columns and nothing more; deriving a column is `compute=`'s job. |
+| `summary-projected-away` | error | A `summary=` targets a column `select=` dropped. Projection runs before the report row, so there is no cell left to render it in. |
+| `circular-view-filter` | error | A `where=` names a column an aggregate formula derives. That value depends on which rows the filter keeps, so the filter would decide its own input. The diagnostic names the formula, not the reference. |
+| `shadowed-source-column` | warning | A `compute=` defines a column its source already publishes. Legal — the left of the `=` names this block's output and the right reads the source's — but the column then renders a different number than the source publishes under that name, and the source's is unreachable in this block. |
+| `grouping-compute-aggregate` | error | A `compute=` on a view that carries `by=` uses an aggregate. On a grouping view `compute=` is per input row; the group's columns are `aggregate=`'s. |
+| `bad-aggregate-entry` | error | An `aggregate=` entry is not of the form `Name = fn(Column)`, or its expression carries a token the §6 grammar does not define. |
+| `aggregate-error` | error | An `aggregate=` expression failed to evaluate. |
+| `aggregate-without-by` | error | A view carries `aggregate=` and no `by=`. Aggregate columns describe groups; one aggregate row over every row is `summary=`. |
 ===
 
 
@@ -1495,7 +1614,7 @@ original file.
 |------|----------|-----------|
 | `data-parse` | error | The body does not parse under the declared `format=` — not one JSON value (`json`), or a non-blank line that is not one JSON value (`jsonl`). The diagnostic names the offending line. |
 | `unknown-data-format` | warning | The `format=` value is not in the data format registry. The body is kept raw and not verified. |
-| `data-format-no-engine` | warning | The `format=` names a RESERVED format (`yaml`, `toml`) this processor ships no engine for. The body is kept raw and not verified — never guessed at. |
+| `data-format-no-engine` | warning | The `format=` names a RESERVED format (`yaml`, `toml`, `edn`) this processor ships no engine for. The body is kept raw and not verified — never guessed at. |
 | `bad-data-schema` | error | `schema=` is not a block reference (`#id`) or a GEML document reference (`doc.geml[#id]`). |
 | `data-src-and-body` | error | A `data` block carries both `src=` and an inline body; exactly one is permitted (§3.2). The body wins. |
 | `bad-data-source` | error | A data source does not name a data file its target admits (`src=`: `.json`/`.jsonl`/`.yaml`/`.yml`; a chart's `data=` file form: `.json`/`.jsonl`) — or a remote json/jsonl chart source was named without a `data` block to defer on. |
@@ -1536,7 +1655,7 @@ GEML has three syntactic positions:
 | `=== math` | typed | raw | §3 |
 | `=== table` | typed | raw: pipe grid or `format=` data | §6 |
 | `=== view` | typed | no body; `src=` names the relation it derives from | §6.1 |
-| `=== data` | typed | raw: `format=` value tree (`json` default, `jsonl`; `yaml`/`toml` reserved) | §3.2 |
+| `=== data` | typed | raw: `format=` value tree (`json` default, `jsonl`; `yaml`/`toml`/`edn` reserved) | §3.2 |
 | `=== diagram` | typed | raw: external DSL | §7 |
 | `=== embed` | typed | raw (body unused); `src=` names the content | §3, §6 |
 | `=== note` | typed | flow | §3 |
@@ -1545,6 +1664,7 @@ GEML has three syntactic positions:
 ===
 
 | `%%` comment line | line | raw, never rendered | §4 |
+| `` ``` `` run, matched pair | line pair | shield: everything between stays flow text | §3.1 |
 
 *Shape* is one of: **unfenced** (§2), **typed** (fenced, §3), and **line** — a
 single-line construct recognized during block parsing.
@@ -1572,7 +1692,8 @@ Eight attribute keys carry references; all of them are validated (Appendix A):
 === table {#table-12}
 | Key | Host block | Target | Defined in |
 |-----|------------|--------|------------|
-| `src=` | `table` | where the data comes from, in three forms: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL), `#id` naming a table block in this document, or `doc.geml#id` naming one in another. | §6 |
+| `src=` | `table` | where the data comes from: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL). A block target is an error naming `view`. | §6 |
+| `src=` | `view` | the relation it derives from, in three forms: a data file (`csv`/`tsv`), `#id` naming a `table` or `view` in this document, or `doc.geml#id` naming one in another. | §6.1 |
 | `data=` | `diagram` (`geml-chart`) | where the data comes from, in the same three forms a table's `src=` takes: a data file (`csv`/`tsv` standing for the anonymous table it describes; a local `.json`/`.jsonl` for the anonymous record source), `#id` in this document, or `doc.geml#id` in another — naming a `table`, or a record-array `data` block (§3.2). | §6, §7.1 |
 | `schema=` | `data` | a block (`#id`) or a GEML document (`doc.geml[#id]`) holding a schema; reference-checked only | §3.2 |
 | `src=` | `data` | the block's external content: a `.json`/`.jsonl`/`.yaml` file, taking the same route syntax as a code source (a line range MAY narrow it, which is how a window of a jsonl log is addressed); document-relative or `http(s)` (render-time) | §3.2 |
@@ -1621,6 +1742,443 @@ for a block or a section, the three granularities are a scalar, a phrase, and
 a block.
 
 =====
+
+=== history-revision {id="20260917T131813Z-5edb5d6a" parent="20260917T125026Z-cf663ce6" summary="GEP-0014：规则 3 的报告跟着内容穿过 embed" hash="sha256:5edb5d6a2a3e14fd889819e0c63d969b6f71332afeb36bd561b413d7295177e4" newline="lf"}
+delete @f8635cbe
+insert <- blob:b255 after @098dc6d0
+===
+
+=== history-blob {#b255 lang=geml}
+1. MUST NOT report an admitted `type` as `unknown-block-type`, nor an admitted
+   attribute key as `unknown-attribute`, when the document declares a vocabulary
+   the processor recognizes.
+2. MUST admit names ONLY through that declaration. A processor MUST NOT infer a
+   vocabulary from a document's content, its file name, or its file extension.
+   An inference is implementation-specific knowledge, and a second
+   implementation would have to reproduce it exactly to agree about diagnostics
+   — which is §8.4's conformance surface leaking into one implementation's
+   private habits.
+3. MUST treat a declared name it does not recognize as admitting nothing, and
+   MUST report `unrecognized-vocabulary` naming it. The declaration is not an
+   error — the document is valid, and it is the processor's view of it that is
+   incomplete, in a way the reader is now told about rather than left to
+   discover. **Which vocabularies a processor recognizes is
+   implementation-defined**, and a processor that recognizes none is conformant.
+4. MUST NOT let admission change the set of addressable units, except as the
+   vocabulary's declared body modes require and only in a processor that
+   recognizes it. A processor that does NOT recognize a vocabulary reads every
+   type it would have admitted as `raw` — the body §8.2(6) gives an unknown type
+   — and has reported rule 3's diagnostic, so the difference between the two
+   readings is announced rather than silent. Admission never changes the address
+   a document's recognized blocks carry, nor any address outside the admitted
+   types' bodies.
+
+===
+
+=== history-revision {id="20260917T125026Z-cf663ce6" parent="20260904T124549Z-41b1c63d" summary="GEP-0014：规则 3 改为宣告，规则 4 随之放开 body 模式" hash="sha256:cf663ce663314c892c2683ce98342dcdce64293e7ebadc7d11a7b46c6d6f029e" newline="lf"}
+delete @d9eef8e4
+delete @94d31520
+delete @9a5e224d
+delete @96c0e59f
+delete @6665268c
+delete @34043d32
+delete @e0e7e6e4
+delete @137166ad
+delete @53e89dad
+delete @aea0c89a
+delete @aeba3c69
+delete @75bd2c21
+delete @601e8d76
+delete @c7c02a33
+delete #table-view-diagnostics
+delete @76d4e09a
+delete @6bbaff59
+replace #code-2 <- blob:b238
+replace @b1bb9469 <- blob:b239
+replace #table-7 <- blob:b240
+replace #table-10 <- blob:b241
+replace #table-12 <- blob:b242
+insert <- blob:b243 after @2e85d09d
+insert <- blob:b244 after @59a0f430
+insert <- blob:b245 after @ea4edab7
+insert <- blob:b246 after @7614c94c
+insert <- blob:b247 after @5f231339
+insert <- blob:b248 after @098dc6d0
+insert <- blob:b249 after @d8b27c4e
+insert <- blob:b250 after #table-7
+insert <- blob:b251 after @e3118662
+insert <- blob:b252 after @0fc4b120
+insert <- blob:b253 after @c8e02e0e
+insert <- blob:b254 after #table-10
+===
+
+==== history-blob {#b238 lang=geml}
+=== code {#code-2 lang=ebnf}
+(* The grammar is stated over LOGICAL lines. Before it applies, a fence or
+   heading line ending with `\` is folded with the line(s) that follow it —
+   backslash and newline become one space (§4, line continuation) — so NL below
+   is the end of a folded logical line, and an attribute object may occupy more
+   than one physical line. *)
+
+document       = { block } ;
+block          = unfenced-block | typed-block ;
+
+typed-block    = fence , [ SP ] , type , [ SP , attrs ] , NL , body , close-fence ;
+                 (* the SP after the fence is OPTIONAL: `===note {#a}` and
+                    `=== note {#a}` are the same block, as are `===#a` and
+                    `=== #a` as labeled closes. A fence-like line is kept
+                    literal by the `\` block escape of §5.1, never by the
+                    absence of that space. *)
+fence          = "===" , { "=" } ;            (* open: N equals signs, N >= 3 *)
+close-fence    = fence ;                      (* exactly equal to the opening length *)
+type           = TYPE-NAME ;                  (* narrower than NAME; see below *)
+body           = { LINE } ;                    (* raw, flow or data per the registry *)
+
+unfenced-block = heading | list | paragraph | comment-line ;
+heading        = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ; (* 1 to 6 #s *)
+paragraph      = text-line , { text-line } ;
+text-line      = LINE ;                       (* non-empty line not matching an interruption rule *)
+comment-line   = indent , "%%" , [ SP , text ] , NL ; (* §4: kept, never rendered *)
+
+list           = item , { item | blank-line } ;
+item           = indent , marker , SP , [ task ] , text , NL , { continuation } ;
+continuation   = indent , text , NL ;  (* §2.2: non-blank, not an item line, not a
+                                          comment-line; indent > the item's marker
+                                          column; joined to the item as a soft wrap *)
+marker         = "-" | "*" | DIGIT , { DIGIT } , "." ;
+task           = "[" , ( " " | "x" | "X" ) , "]" , SP ;
+indent         = { " " | TAB } ;              (* nesting depth, by column *)
+
+attrs          = "{" , { attr-item , [ SP ] } , "}" ;
+attr-item      = id-attr | class-attr | kv-attr | flag-attr ;
+id-attr        = "#" , NAME ;
+class-attr     = "." , NAME ;
+kv-attr        = NAME , "=" , value ;
+flag-attr      = NAME ;                       (* boolean true flag *)
+value          = bare-word | quoted-string ;
+
+quoted-string  = '"' , { quoted-char } , '"' ;
+quoted-char    = escape-seq | ( CHAR - '"' - "\" ) ;
+escape-seq     = "\" , ( '"' | "\" ) ;         (* only " and \ can be escaped *)
+bare-word      = BARE-CHAR , { BARE-CHAR } ;
+BARE-CHAR      = CHAR - SP - TAB - '"' - "{" - "}" ;
+                 (* whitespace ends a bare word and the object's own braces
+                    delimit it, so a value containing whitespace, a quote or a
+                    brace MUST be quoted. Anything else is a bare word, which is
+                    what carries references and paths: `data=#fy25`,
+                    `src=b.geml#tbl`, `src=rows.csv`. NAME and `number` below
+                    are the two shapes §4 gives a meaning — a flag name, a
+                    typed number; every other bare word is a string. *)
+number         = [ "+" | "-" ] , ( DIGITS , [ "." , [ DIGITS ] ]
+                                 | "." , DIGITS ) , [ exp ] ;
+                 (* the bare-word shapes §4 types as a number: `42`, `-1`,
+                    `+1`, `1.5`, `1.`, `.5`, `1e3`, `1.5e-2`. Every other bare
+                    word stays a string — `0x10`, `1e`, `1_000`, `Infinity` — as
+                    does every quoted value. *)
+exp            = ( "e" | "E" ) , [ "+" | "-" ] , DIGITS ;
+DIGITS         = DIGIT , { DIGIT } ;
+                 (* leading zeros are allowed: `007` is 7 *)
+
+NAME           = NAME-CHAR , { NAME-CHAR } ;
+NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
+
+TYPE-NAME      = ASCII-LETTER , { ASCII-LETTER | DIGIT | "-" | "_" } ;
+                 (* the block type is the ONE name a document does not derive
+                    but chooses: it keys the type registry, is typed into
+                    commands, and reaches generated output as an identifier. So
+                    it is ASCII and starts with a letter, where NAME — which
+                    ids, classes and attribute keys use — is deliberately
+                    wider. Unicode here would buy two encodings of one name
+                    (NFC/NFD) and invisible confusables in a registry key, with
+                    no matching need: nothing forces a type name the way a
+                    non-Latin heading forces a non-Latin id. *)
+===
+
+====
+
+=== history-blob {#b239 lang=geml}
+A NAME is not restricted to ASCII, and needs no leading letter: the id a heading
+derives from its own text (§4) may begin with a digit or `-`, and non-Latin
+scripts are ordinary NAME characters. A TYPE-NAME is the exception, and §8.5's
+open registry is extended by DECLARING a vocabulary (§8.6), never by the shape
+of a name.
+
+
+===
+
+==== history-blob {#b240 lang=geml}
+=== table {#table-7}
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `name-not-a-name` | warning | An `id`, class or attribute key in an attribute object is not a NAME (§4). A warning, not an error, because such a document still parses — and parses as something else: the attribute object is whitespace-separated, so `{#a & b}` yields the id `a` plus boolean flags named `&` and `b`, and the id the author meant to address does not exist. |
+| `heading-attrs-trailing-text` | warning | A heading's attribute object is followed by further text on the line, as in `## Title {#sec}aaa`. §4 requires the object to be trailing, so it is not parsed as attributes at all: an explicit `{#id}` is silently lost, the heading keeps its derived id, and its section — which runs to the next heading of the same level — can no longer be addressed by the id the author wrote. An object quoted in a code span or inline math is not reported: GEML prose documents this very syntax. |
+| `heading-attrs-unclosed` | warning | A heading's attribute object is never closed by `}` (`## Title {#sec`), so §4 does not parse it as attributes at all: an explicit `{#id}` is silently lost and the heading keeps its derived id. |
+| `reserved-id` | error | A block declares `{#meta}` in a document that carries more than one `meta` block. `#meta` names the MERGED meta namespace (§4), and with several blocks the declared id would mean one of them while `#meta` means all of them merged — one address, two readings. With a single `meta` block the two agree and the id is legal. |
+| `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4). |
+| `unresolved-reference` | error | An internal reference `[…](#id)` or `[[#id]]`, or a chart `data=#id`, names an id no block declares. |
+| `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block declares. |
+| `unresolved-cross-document-reference` | error | A reference `other.geml#id` resolved to a document that declares no such id. |
+| `unresolvable-document` | error | The document named by a cross-document reference could not be read, or lies outside the confinement root (§9.4). |
+| `unchecked-cross-document-reference` | warning | A cross-document reference was found, but the processor was given no document resolver, so its target could not be verified. |
+| `embed-missing-src` | error | An `embed` block carries no `src=`, so it names no content. |
+| `ignored-embed-body` | warning | An `embed` block has a body. The content it stands for lives in `src=`; the body is ignored. |
+| `transclusion-cycle` | error | A chain of block transclusions returns to a document already being expanded. The chain is reported and expansion stops; it is never followed. |
+| `embed-target-not-geml` | error | An `embed` block names a target that is not a `.geml` document. Its bytes are never parsed as GEML. |
+| `media-target-is-document` | error | A media embed `![](…)` points at a GEML document. Block content cannot be expanded in inline position; the `embed` block is the form for it. |
+| `inline-transclusion-not-inline` | error | An inline projection `![[…]]` names a target that is not inline content — not a single-paragraph `text` block. Block content cannot be expanded inside a sentence; the `embed` block is the form for it. |
+| `unsafe-embed-scheme` | error | An `embed` block names a URL scheme outside the allowlist of §9.5. The attribute is blanked in the model as well as reported, so no consumer can emit it. |
+===
+
+====
+
+==== history-blob {#b241 lang=geml}
+=== table {#table-10}
+| Construct | Shape | Body | Defined in |
+|-----------|-------|------|------------|
+| Paragraph | unfenced | inline | §2, §3.1 |
+| Heading `#`…`######` | unfenced | inline | §1(6), §3.1, §4 |
+| List — `-`/`*`, `1.`; task marker `[ ]`/`[x]` | unfenced | inline items | §2.2 |
+| `=== code` | typed | raw | §3 |
+| `=== math` | typed | raw | §3 |
+| `=== table` | typed | raw: pipe grid or `format=` data | §6 |
+| `=== view` | typed | no body; `src=` names the relation it derives from | §6.1 |
+| `=== data` | typed | raw: `format=` value tree (`json` default, `jsonl`; `yaml`/`toml` reserved) | §3.2 |
+| `=== diagram` | typed | raw: external DSL | §7 |
+| `=== embed` | typed | raw (body unused); `src=` names the content | §3, §6 |
+| `=== note` | typed | flow | §3 |
+| `=== text` | typed | flow | §3 |
+| `=== meta` | typed | key–value | §3, §4 |
+===
+
+====
+
+==== history-blob {#b242 lang=geml}
+=== table {#table-12}
+| Key | Host block | Target | Defined in |
+|-----|------------|--------|------------|
+| `src=` | `table` | where the data comes from, in three forms: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL), `#id` naming a table block in this document, or `doc.geml#id` naming one in another. | §6 |
+| `data=` | `diagram` (`geml-chart`) | where the data comes from, in the same three forms a table's `src=` takes: a data file (`csv`/`tsv` standing for the anonymous table it describes; a local `.json`/`.jsonl` for the anonymous record source), `#id` in this document, or `doc.geml#id` in another — naming a `table`, or a record-array `data` block (§3.2). | §6, §7.1 |
+| `schema=` | `data` | a block (`#id`) or a GEML document (`doc.geml[#id]`) holding a schema; reference-checked only | §3.2 |
+| `src=` | `data` | the block's external content: a `.json`/`.jsonl`/`.yaml` file, taking the same route syntax as a code source (a line range MAY narrow it, which is how a window of a jsonl log is addressed); document-relative or `http(s)` (render-time) | §3.2 |
+| `src=` | `code` | the code the block shows: a source file, optionally narrowed to a line range — `<path>[#L<start>[-<end>]]`, 1-based and inclusive. Document-relative, or relative to the resolution root (`--root`); an `http(s)` route is fetched at render time. A range the file no longer has is an error. | §3.3 |
+| `src=` | `embed` | the content the block stands for: a document, optionally with a fragment | §3 |
+| `src=` | `diagram` (`geml-code-graph`) | a GEML document | §7 |
+===
+
+====
+
+=== history-blob {#b243 lang=geml}
+- `format=` selects a surface syntax *within* this one model. Admission to
+  the registry requires the syntax to be **self-describing** — the bytes
+  alone determine the value, with no dialect parameters. Delimited text fails
+  this (delimiter, header presence and quoting are parameters, and they are
+  only meaningful against a column model), which is why `csv`/`tsv` are
+  `table` formats (§6), not `data` formats.
+- `json` — the default — the body MUST parse as one JSON value. The default
+  follows a registry-wide rule: when a model has an isomorphic canonical
+  syntax, that syntax is the default (`table` → the pipe form). JSON is the
+  value tree's own serialization, and the one syntax a zero-dependency
+  processor can always verify.
+- `jsonl` — every non-blank body line MUST parse as one JSON value; blank
+  lines are ignored; the block's value is the sequence of line values. This
+  is the record-stream form: because a document is a flat sequence of blocks,
+  a complete `data` block appended at end-of-file is a valid continuation of
+  any document — jsonl's blind-append ergonomics, with ids and verification.
+- `src=` names the block's content externally, under the same one-source
+  discipline tables have (§6): exactly one of `src=` and an inline body —
+  both is an **error**. The file MUST look like data (`.json`/`.jsonl`/`.yaml`/`.yml`,
+  the extension naming the format; an explicit `format=` still wins over
+  it). An `http(s)` source is
+  fetched by the RENDERER, never the parser (§9.4) — the block, and any
+  chart over it, defers; any other URL scheme is refused. This is the log
+  arrangement: the records stay a plain `.jsonl` file every existing tool
+  can append to and tail, and the GEML document is its verified,
+  addressable, chartable view.
+- `yaml` and `toml` are RESERVED format names (the value-tree readings of
+  those syntaxes). A processor without an engine for them MUST keep the body
+  raw and emit a **warning**, and MUST NOT guess — the same degradation as an
+  unknown `diagram` format (§7). An unknown `format=` value degrades
+  identically.
+- A processor MAY ship an engine for a reserved name. Because full YAML is a
+  far larger language than this value domain, a `yaml` engine MUST read at
+  least the following subset, and MUST read it this way — so that a body
+  inside the subset means the same thing in every processor that has one:
+  - block mappings and block sequences, nested by indentation, including
+    `- key: value` and `- - item`; plain, single-quoted and double-quoted
+    scalars; the `|`, `|-`, `>` and `>-` block scalars; comments; a leading
+    `---` and a trailing `...`; and `[]` / `{}` as the empty sequence and the
+    empty map.
+  - the **core schema** of YAML 1.2 for plain scalars: `null`, `~` and an
+    empty value are null; `true`/`false` are booleans; its integer and float
+    forms (including `+80`, `0x1f`, `0o17`, `.5`) are numbers; everything
+    else is a string. So `yes`, `no`, `on` and `off` are STRINGS — the 1.1
+    readings MUST NOT be applied.
+  - anything else — anchors, aliases, tags, merge keys, a second document,
+    flow collections other than `[]` and `{}`, `.inf` and `.nan` (this value
+    domain has no infinity and no NaN), and a tab used for indentation — is
+    outside the subset. A processor MAY read further into YAML, but a
+    document that relies on more than the subset is NOT portable, and a
+    processor that does not read it MUST report a parse **error** rather than
+    guess at a value.
+- `schema=` is RESERVED: it names a block (`#id`) or a GEML document
+  (`doc.geml`, optionally `doc.geml#id`) holding a schema, and is
+  reference-checked like any other reference (§5); any other shape is an
+  error. Validating the value against the schema is not defined by this
+  version of the specification.
+- A successfully parsed body is exposed in the document model as the block's
+  `value`. Canonical serialization is defined for `json` and `jsonl` only —
+  pretty-printed at two-space indent, and one compact value per line,
+  respectively. A body in any other format is byte-preserved like any raw
+  body, **including one the processor parsed**: re-emitting a `yaml` body
+  from its value would rewrite the document's bytes into JSON.
+- A `data` block whose value is a **record array** may feed a chart — §7.1.
+
+===
+
+=== history-blob {#b244 lang=geml}
+  Interpolation is a **single pass over flow text**, and both halves of that are
+  normative. Single pass: a substituted value is never rescanned, so a value that
+  itself reads `{{other}}` produces those six characters literally — there is no
+  nesting to resolve, and therefore no cycle to detect (`a = "{{b}}"` with
+  `b = "{{a}}"` terminates, yielding the literal text). Flow text: `{{key}}` in an
+  attribute value is NOT interpolated — `caption="{{title}}"` is the literal
+  string — which is also why a heading's derived id (above) is stable.
+- The `hidden` flag marks a block as part of the document and
+  fully reference-checked, but **not rendered** — e.g. a source table that only
+  feeds a chart. A `%%` line is a hidden, raw, never-rendered author note. The division of labor is: use `hidden` for structured content that participates in the document model (data sources, reusable fragments) but should remain invisible; use `%%` for throwaway comments that do not participate in the document model. Note that `%%` is only recognized as a comment at block positions (top-level or inside the body of a `flow` block). Inside a `raw` block body, `%%` lines are preserved exactly as-is and are not treated as comments.
+- Attribute order is insignificant; the recommended order is `#id`, then
+  `.class`, then `key=val`.
+- **Line continuation:** A typed block fence (`===`) or heading (`#`) line ending
+  with a backslash `\` continues its attribute object onto the next line. The
+  backslash and newline are treated as a single space, allowing long attribute
+  objects (e.g., table schemas) to be split for readability. Folding repeats
+  while each continued line also ends with `\`, and stops after the first one
+  that does not; the folded result is the logical line the grammar of §3.1
+  parses. Only fence and heading lines fold: a `\` ending a line of prose is a
+  hard break (§5.1), and a `\` ending a line inside a block body is body text.
+
+
+===
+
+=== history-blob {#b245 lang=geml}
+A vocabulary admits three things and no others: block `type` names (§3),
+attribute keys (§4), and `diagram` `format` names (§7). What those names mean is
+defined by the vocabulary, not here; this section defines only how they come to
+be admitted.
+
+===
+
+=== history-blob {#b246 lang=geml}
+- the **body mode** of any type — rule 4 below, and the reason the rest of this
+  list holds;
+- the **grammar** of §§2–5: fences, headings, lists, attribute objects, inline
+  syntax, references;
+- the **diagnostic catalogue** of Appendix A, including the severity of any code;
+- the meaning of any name this specification already defines.
+
+===
+
+=== history-blob {#b247 lang=geml}
+The first of those decides where a construct belongs, and decides it
+mechanically rather than by degree. A construct whose body GEML must read —
+flow content, ids it must resolve, references §8.2(5) makes errors — cannot be
+admitted by a vocabulary, because the `raw` body rule 4 requires would leave
+those ids uncreated and those references unresolvable. Such a construct is a
+change to this specification, not an application layer.
+
+===
+
+=== history-blob {#b248 lang=geml}
+1. MUST NOT report an admitted `type` as `unknown-block-type`, nor an admitted
+   attribute key as `unknown-attribute`, when the document declares a vocabulary
+   the processor recognizes.
+2. MUST admit names ONLY through that declaration. A processor MUST NOT infer a
+   vocabulary from a document's content, its file name, or its file extension.
+   An inference is implementation-specific knowledge, and a second
+   implementation would have to reproduce it exactly to agree about diagnostics
+   — which is §8.4's conformance surface leaking into one implementation's
+   private habits.
+3. MUST treat a declared name it does not recognize as if it were absent: not an
+   error, not a warning, admitting nothing. **Which vocabularies a processor
+   recognizes is implementation-defined**, and a processor that recognizes none
+   is conformant.
+4. MUST NOT let admission change the document model. Admission licenses NAMES
+   only: an admitted type keeps the `raw` body §8.2(6) gives an unknown one, so
+   the same input yields the same model whether or not the processor recognizes
+   the vocabulary.
+
+===
+
+=== history-blob {#b249 lang=geml}
+Rule 4 is what makes rule 3 safe to state. §8.4's suite is stated over the
+document model, so no case's expected projection can depend on which
+vocabularies an implementation happens to know, and two conformant processors
+that recognize different sets still agree on every case. It is also what makes a
+document safe to edit across a boundary: block extraction, block replacement and
+`=== embed` behave identically on a document that declares a vocabulary and one
+that does not, so content moved between them cannot change meaning in transit.
+
+===
+
+=== history-blob {#b250 lang=geml}
+| `unresolvable-table-source` | error | A table's `src=` names a data file that cannot be resolved. |
+| `table-source-not-a-table` | error | A table's `src=` names a block that exists but is not a table. |
+| `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
+| `duplicate-meta-key` | warning | A key is defined in a later `=== meta` block when an earlier block already defines it. The first definition is kept (§4). |
+
+===
+
+=== history-blob {#b251 lang=geml}
+### A.3 Tables (§6)
+
+===
+
+==== history-blob {#b252 lang=geml}
+=== table {#table-8}
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `table-src-and-body` | error | A table carries both `src=` and an inline body. Exactly one is permitted (§6). |
+| `unknown-table-format` | warning | The `format=` value is not a recognized data format; the body is parsed as a visual pipe grid instead. |
+| `bad-table-delimiter` | error | A `delim=` value is not exactly one character (§6). The format's natural delimiter is used instead, so the table still reads. |
+| `ignored-table-delimiter` | warning | A table carries `delim=` but no data `format=`, so no delimited body exists for it to apply to; the body is parsed as a visual pipe grid. |
+| `bad-compute-formula` | error | A `compute` entry is not of the form `Name = expr`. |
+| `unlexable-compute-formula` | error | A `compute` expression contains a character or token the §6 expression grammar does not define. |
+| `compute-error` | error | A `compute` expression failed to evaluate — most often because it names a column that does not exist, or one computed later (§9.3). |
+| `compute-non-numeric-cell` | warning | A `compute` formula read a cell that is empty or not a number; it counted as `0` (§6). The result is still produced — the warning names the cell it rests on. |
+| `compute-not-a-number` | warning | A `compute` or `summary` expression produced a value a cell cannot hold — ±∞ from a division by zero, or NaN from `0 / 0` (§6). The cell holds no value and displays `-`. |
+| `bad-summary-entry` | error | A `summary` entry is not of the form `Cell = value`. |
+| `summary-unknown-column` | error | A `summary` entry's left-hand side names no column of the table. |
+| `unlexable-summary-expression` | error | A `summary` expression contains a token the §6 expression grammar does not define. |
+| `summary-error` | error | A `summary` expression failed to evaluate — including a column reference not reduced by an aggregate, which has no value in the summary row (§6). |
+===
+
+
+====
+
+==== history-blob {#b253 lang=geml}
+=== table
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `data-parse` | error | The body does not parse under the declared `format=` — not one JSON value (`json`), or a non-blank line that is not one JSON value (`jsonl`). The diagnostic names the offending line. |
+| `unknown-data-format` | warning | The `format=` value is not in the data format registry. The body is kept raw and not verified. |
+| `data-format-no-engine` | warning | The `format=` names a RESERVED format (`yaml`, `toml`) this processor ships no engine for. The body is kept raw and not verified — never guessed at. |
+| `bad-data-schema` | error | `schema=` is not a block reference (`#id`) or a GEML document reference (`doc.geml[#id]`). |
+| `data-src-and-body` | error | A `data` block carries both `src=` and an inline body; exactly one is permitted (§3.2). The body wins. |
+| `bad-data-source` | error | A data source does not name a data file its target admits (`src=`: `.json`/`.jsonl`/`.yaml`/`.yml`; a chart's `data=` file form: `.json`/`.jsonl`) — or a remote json/jsonl chart source was named without a `data` block to defer on. |
+| `unresolvable-data-source` | error | A data source could not be resolved, or names a disallowed URL scheme. |
+| `unresolvable-code-source` | warning | A `code` block route could not be resolved, so it was not checked. A warning, not an error: the block still names a region of code, so a graph read away from its sources stays valid (§3.3). |
+| `bad-code-source` | error | A `code` block route names a disallowed URL scheme (§3.3). |
+| `bad-source-range` | error | A source route's fragment is not `#L<start>[-<end>]`, names an empty range, or names lines the file no longer has — a drifted reference (§3.3). |
+| `code-src-and-body` | error | A `code` block carries both `src=` and an inline body; exactly one is permitted. The body is kept and the route is not fetched (§3.3). |
+===
+
+
+====
+
+=== history-blob {#b254 lang=geml}
+| `%%` comment line | line | raw, never rendered | §4 |
+
+===
 
 === history-revision {id="20260904T124549Z-41b1c63d" parent="20260904T124504Z-7ec9164c" summary="auto: Edit" hash="sha256:41b1c63d1ba3332240f29c92e01fb441cc19e2790c04775525acbe5213a46340" newline="crlf"}
 delete @3f948c6c

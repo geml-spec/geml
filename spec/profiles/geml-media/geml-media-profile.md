@@ -2,7 +2,7 @@
 
 *English | [中文](geml-media-profile_CN.md)*
 
-- Status: **draft**, and its `media-text` type depends on [GEP-0013](../../proposals/0013-prose-body-for-vocabularies.md) (draft): until a vocabulary may declare a prose body, that type is a divergence from §8.6.2 rule 4, not a licensed extension. The vocabulary below is registered in the reference
+- Status: **draft**. Its `media-text` type declares a prose body, which [GEP-0013](../../proposals/0013-prose-body-for-vocabularies.md) both licenses a vocabulary to do and defines. The vocabulary below is registered in the reference
   implementation and exercised by one real use case
   ([`playground/geml-media-demo/`](../../../playground/geml-media-demo/README.md));
   the design record is
@@ -33,10 +33,12 @@ profile = "geml-media/v1"
 ===
 ```
 
-Without the declaration the same document parses to the same model (§8.6 rule 4)
-and the three type names are `unknown-block-type`. A processor that does not
-recognize the profile name treats the declaration as absent (§8.6 rule 3) and is
-still conformant: it sees prose and raw blocks, which is what they are.
+Without the declaration the three type names are `unknown-block-type` and their
+bodies are raw. A processor that does not recognize the profile name admits
+nothing and reports `unrecognized-vocabulary` (§8.6 rule 3); it is still
+conformant, and it reads `media-text` as a raw block rather than as prose, which
+is the one thing recognizing this vocabulary changes about the model. Every
+address the document carries is the same either way (§8.6 rule 4).
 
 ## 2. `media` — one playable thing
 

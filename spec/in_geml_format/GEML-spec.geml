@@ -1258,7 +1258,8 @@ profile = "acme-invoice/v1 acme-style/v1"
 A vocabulary admits three things and no others: block `type` names (§3),
 attribute keys (§4), and `diagram` `format` names (§7). What those names mean is
 defined by the vocabulary, not here; this section defines only how they come to
-be admitted.
+be admitted. For the types it admits — and only those — a vocabulary also
+declares how their bodies are read (§8.6.2 rule 4).
 
 A `diagram`'s `format` selects a **renderer**, and its body is `raw` whichever
 renderer is named, so admitting one cannot move the document model. The `format`
@@ -1270,19 +1271,19 @@ changed them would change the model, which rule 4 forbids.
 Everything else belongs to this specification and changes only through it. A
 vocabulary MUST NOT introduce or alter:
 
-- the **body mode** of any type — rule 4 below, and the reason the rest of this
-  list holds;
 - the **grammar** of §§2–5: fences, headings, lists, attribute objects, inline
   syntax, references;
 - the **diagnostic catalogue** of Appendix A, including the severity of any code;
 - the meaning of any name this specification already defines.
 
-The first of those decides where a construct belongs, and decides it
-mechanically rather than by degree. A construct whose body GEML must read —
-flow content, ids it must resolve, references §8.2(5) makes errors — cannot be
-admitted by a vocabulary, because the `raw` body rule 4 requires would leave
-those ids uncreated and those references unresolvable. Such a construct is a
-change to this specification, not an application layer.
+A vocabulary that declares a body mode is declaring what its **own** types
+hold. It may not restate the body mode of a type this specification registers —
+`text` is `flow`, a `data` block's is its format engine's — because that would be
+redefining a name it does not own, which is the last entry above. What decides
+whether a construct belongs here or in this specification is therefore not a
+property of its body but a question of ownership: a construct every reader of
+GEML should be able to read is this specification's, and one that serves a single
+application is a vocabulary's.
 
 Diagram `format` names are **not** admissible in this version, though §8.5
 recommends the same hyphen for them. An unknown format already degrades to a
@@ -1303,22 +1304,49 @@ A conforming processor:
    implementation would have to reproduce it exactly to agree about diagnostics
    — which is §8.4's conformance surface leaking into one implementation's
    private habits.
-3. MUST treat a declared name it does not recognize as if it were absent: not an
-   error, not a warning, admitting nothing. **Which vocabularies a processor
-   recognizes is implementation-defined**, and a processor that recognizes none
-   is conformant.
-4. MUST NOT let admission change the document model. Admission licenses NAMES
-   only: an admitted type keeps the `raw` body §8.2(6) gives an unknown one, so
-   the same input yields the same model whether or not the processor recognizes
-   the vocabulary.
+3. MUST treat a declared name it does not recognize as admitting nothing, and
+   MUST report `unrecognized-vocabulary` naming it. The declaration is not an
+   error — the document is valid, and it is the processor's view of it that is
+   incomplete, in a way the reader is now told about rather than left to
+   discover. A processor that resolves an `=== embed` (§3) MUST report the
+   target's unrecognized declaration too, at the embedding block: §3 parses the
+   target as a document in its own right, so the host renders those blocks raw,
+   and the host is the document the reader is looking at. It MUST report this
+   only for a target **this document itself names**: a document reached solely
+   through another document's embeds is not one this document has any
+   relationship with, and naming it — its path, or the vocabulary it declares —
+   would disclose a dependency of the target that the host never took content
+   from. This is the line
+   between two kinds of diagnostic — one about what this PROCESSOR cannot do,
+   which follows the content wherever its effect shows, and one about a
+   DOCUMENT's own fault, which stays with the document that has it. **Which
+   vocabularies a processor recognizes is implementation-defined**, and a
+   processor that recognizes none is conformant.
+4. MUST NOT let admission change the set of addressable units, except as the
+   vocabulary's declared body modes require and only in a processor that
+   recognizes it. A processor that does NOT recognize a vocabulary reads every
+   type it would have admitted as `raw` — the body §8.2(6) gives an unknown type
+   — and has reported rule 3's diagnostic, so the difference between the two
+   readings is announced rather than silent. Admission never changes the address
+   a document's recognized blocks carry, nor any address outside the admitted
+   types' bodies.
 
-Rule 4 is what makes rule 3 safe to state. §8.4's suite is stated over the
-document model, so no case's expected projection can depend on which
-vocabularies an implementation happens to know, and two conformant processors
-that recognize different sets still agree on every case. It is also what makes a
-document safe to edit across a boundary: block extraction, block replacement and
-`=== embed` behave identically on a document that declares a vocabulary and one
-that does not, so content moved between them cannot change meaning in transit.
+Rule 3's report is what makes rule 4's exception safe to grant. A processor
+that cannot read a vocabulary's bodies says so, so a reader never mistakes a
+partial view for the whole one, and an address that resolves under one processor
+and not under another is accompanied by the reason. §3.2 already works this way
+for a RESERVED `data` format a processor ships no engine for: the body stays raw,
+`data-format-no-engine` says why, and the value tree that format would have
+produced is not addressable in that processor. A vocabulary's bodies are the same
+situation with the same remedy.
+
+§8.4's suite is unaffected either way, because it is stated over the document
+model and diagnostics were never part of it — rule 1 is already entirely about
+diagnostics differing with what a processor recognizes. What keeps a document
+safe to edit across a boundary is not this rule but §3: every document is parsed
+under its own `=== meta`, so block extraction, block replacement and `=== embed`
+read a target under the target's own declaration, and content moved between
+documents cannot change meaning in transit.
 
 #### 8.6.3 Naming and versioning
 
@@ -1497,6 +1525,7 @@ original file.
 | `unresolvable-table-source` | error | A table's `src=` names a data file that cannot be resolved. |
 | `table-source-not-a-table` | error | A table's `src=` names a block that exists but is not a table. |
 | `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
+| `unrecognized-vocabulary` | warning | A name in `=== meta`'s `profile` list (§8.6) is one this processor does not recognize. It admits nothing, every type it would have admitted keeps the `raw` body of an unknown type, and the reader's view of the document is to that extent incomplete. The document is valid: this reports what the processor lacks, never a fault in the document. |
 | `duplicate-meta-key` | warning | A key is defined in a later `=== meta` block when an earlier block already defines it. The first definition is kept (§4). |
 
 ### A.3 Tables (§6)

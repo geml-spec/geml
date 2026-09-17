@@ -3,7 +3,7 @@
 // 这个机制存在的理由是把 codemap 的词汇从核心 parser 收回去：在它之前，
 // `anchor=` / `entry-via=` 在任何文档的任何 code 块上都静默通过，
 // 等于全世界每份 GEML 文档都让出了这三个键的拼写检查。
-import { vocabularyFor, PROFILES } from "../dist/profiles.js";
+import { vocabularyFor, unrecognizedVocabularies, PROFILES } from "../dist/profiles.js";
 import { parse, renderHtml } from "../dist/geml.js";
 import { gemlToMd } from "../dist/to-md.js";
 import { strict as assert } from "node:assert";
@@ -417,4 +417,129 @@ test("GEP-0013：散文体是 prose，不是 flow —— 两者不可互相顶�
   const b = doc.children.find((c) => c.kind === "block" && c.type === "media-text");
   assert.equal(b.mode, "prose");
 });
+
+// ---- GEP-0013：不认识的词汇表要被宣告出来 ----
+
+const diagsOf = (src) => parse(src).diagnostics.filter((d) => d.code === "unrecognized-vocabulary");
+
+test("GEP-0013：声明了本处理器不认识的词汇表 → warning，指在 profile 那一行", () => {
+  const src = '=== meta\nprofile = "acme-invoice/v1"\n===\n\n# T\n';
+  const d = diagsOf(src);
+  assert.equal(d.length, 1, "恰好一条");
+  assert.equal(d[0].severity, "warning", "文档没毛病，是这个读者读不全它");
+  assert.equal(d[0].line, 1, "指向声明它的 meta 块，不是文档开头兜底的 1 —— 这里两者恰好同值");
+  assert.match(d[0].message, /acme-invoice\/v1/, "消息要指名是哪一个");
+});
+
+test("GEP-0013：认识的词汇表不报；一份都没声明也不报", () => {
+  assert.equal(diagsOf('=== meta\nprofile = "geml-media/v1"\n===\n').length, 0);
+  assert.equal(diagsOf("# 普通文档\n\n一段散文。\n").length, 0);
+});
+
+test("GEP-0013：混合声明只报不认识的那些", () => {
+  const src = '=== meta\nprofile = "geml-style/v1 acme-a/v1 geml-media/v1 acme-b/v1"\n===\n';
+  const named = diagsOf(src).map((d) => d.message.match(/`([^`]+)`/)[1]).sort();
+  assert.deepEqual(named, ["acme-a/v1", "acme-b/v1"]);
+});
+
+test("GEP-0013：unrecognizedVocabularies 不把原型键当成已注册词汇表", () => {
+  // `x in PROFILES` 会把 toString / constructor 认成注册过的，于是一个写了
+  // `profile = "toString"` 的文档静默通过。Object.hasOwn 不会。
+  assert.deepEqual(unrecognizedVocabularies(meta({ profile: "toString constructor" })),
+    ["toString", "constructor"]);
+});
+
+test("GEP-0013：规则 4 仍然拦着 —— 放行不改变被放行正文之外的地址", () => {
+  const withIt = parse('=== meta\nprofile = "geml-media/v1"\n===\n\n## S\n\n=== media-text {#x}\n散文\n===\n');
+  const without = parse('## S\n\n=== media-text {#x}\n散文\n===\n');
+  const ids = (doc) => JSON.stringify(doc).match(/"id":"[^"]+"/g)?.sort() ?? [];
+  assert.deepEqual(ids(withIt), ids(without), "认不认识这份词汇表，地址集相同");
+});
+
+test("注册表：两个 profile 不得对同一类型声明不同的 body 模式", () => {
+  // vocabularyFor 取并集，body 模式是最后写入者赢 —— 静默的。注册表是静态的，
+  // 所以这个冲突应当由测试挡在这里，而不是留给某份文档去发现。
+  const seen = new Map();
+  for (const [name, def] of Object.entries(PROFILES)) {
+    for (const [type, mode] of Object.entries(def.bodies ?? {})) {
+      const prev = seen.get(type);
+      assert.ok(prev === undefined || prev[1] === mode,
+        `${type} 的 body 模式被 ${prev?.[0]} 声明为 ${prev?.[1]}，又被 ${name} 声明为 ${mode}`);
+      seen.set(type, [name, mode]);
+    }
+    for (const type of def.prose ?? []) {
+      const prev = seen.get(type);
+      assert.ok(prev === undefined || prev[1] === "prose",
+        `${type} 被 ${name} 声明为 prose，却被 ${prev?.[0]} 声明为 ${prev?.[1]}`);
+      seen.set(type, [name, "prose"]);
+    }
+  }
+});
+
+test("GEP-0013：页面上没有读不了的块时，不点名任何词汇表", () => {
+  // 通知存在是为了解释页面下方那些 "unknown block type" 标签。没有要解释的东西，
+  // 就只剩下白白说出一个依赖的名字。
+  const docs = { "B.geml": '=== meta\nprofile = "acme-x/v1"\n===\n\n## 公开 {#public}\n\n只是一段散文。\n' };
+  const doc = parse("# A\n\n=== embed {src=B.geml#public}\n===\n",
+    { resolveDoc: (p) => docs[p] ?? null, self: "A.geml" });
+  assert.doesNotMatch(renderHtml(doc, {}), /geml-missing-vocab">Rendered/);
+});
+
+test("GEP-0013：不认识的词汇表**跟着内容**穿过 embed 边界，报在宿主那条 embed 上", () => {
+  // 宿主自己什么都没声明，看起来干干净净；被它嵌进来的目标声明了本处理器没有的
+  // 词汇表，于是宿主渲染出来的是 raw。读的人看的是宿主——所以宿主必须说话。
+  const target = '=== meta\nprofile = "acme-media/v1"\n===\n\n=== acme-text {#look}\n一段散文。\n===\n';
+  const host = "# 宿主\n\n=== embed {src=t.geml#look}\n===\n";
+  const d = parse(host, { resolveDoc: (p) => (p === "t.geml" ? target : null), self: "h.geml" })
+    .diagnostics.filter((x) => x.code === "unrecognized-vocabulary");
+  assert.equal(d.length, 1);
+  assert.equal(d[0].line, 3, "报在那条 embed 上 —— 是它把读不了的内容带进来的");
+  assert.match(d[0].message, /t\.geml/);
+  assert.match(d[0].message, /acme-media\/v1/);
+});
+
+test("GEP-0013：目标的词汇表认得时，穿过 embed 不产生噪音", () => {
+  const target = '=== meta\nprofile = "geml-media/v1"\n===\n\n=== media-text {#look}\n一段散文。\n===\n';
+  const host = "# 宿主\n\n=== embed {src=t.geml#look}\n===\n";
+  const d = parse(host, { resolveDoc: (p) => (p === "t.geml" ? target : null), self: "h.geml" })
+    .diagnostics.filter((x) => x.code === "unrecognized-vocabulary");
+  assert.equal(d.length, 0);
+});
+
+test("GEP-0013：文档自己的毛病不跟着走 —— 只有能力类诊断过边界", () => {
+  // 目标里的 unknown-block-type 是目标的事实，留在目标。跨过来的只有
+  // 「这个处理器读不了」这一条。
+  const target = "=== acme-thing {#x}\nbody\n===\n";
+  const host = "# 宿主\n\n=== embed {src=t.geml#x}\n===\n";
+  const codes = parse(host, { resolveDoc: (p) => (p === "t.geml" ? target : null), self: "h.geml" })
+    .diagnostics.map((x) => x.code);
+  assert.ok(!codes.includes("unknown-block-type"), "目标的 unknown-block-type 不该出现在宿主");
+});
+
+test("GEP-0013：自包含页面在顶上说清自己缺哪份词汇表", () => {
+  // 未知类型的兜底渲染把块标成 "unknown block type" —— 和一个**拼错的**类型
+  // 一模一样。读的人分不出"文档写错了"和"我的渲染器少一份词汇表"，而这正是
+  // 「是谁的错」这个问题本身。所以整页在内容之上说一次。
+  const doc = parse('=== meta\nprofile = "acme-media/v1"\n===\n\n=== acme-text {#x}\n一段散文。\n===\n');
+  const html = renderHtml(doc, {});
+  assert.match(html, /<div class="geml-missing-vocab">/);
+  assert.match(html, /<code>acme-media\/v1<\/code>/, "要指名是哪一份");
+  assert.match(html, /unknown block type/, "并把页面下方那个标签解释掉");
+});
+
+test("GEP-0013：认得的词汇表不出通知；fragment 模式一律不出", () => {
+  const known = parse('=== meta\nprofile = "geml-media/v1"\n===\n\n=== media-text {#x}\n一段散文。\n===\n');
+  assert.doesNotMatch(renderHtml(known, {}), /<div class="geml-missing-vocab">/);
+  // fragment 进的是别人的版面，chrome 归人家管；viewer 自己有横幅。
+  const missing = parse('=== meta\nprofile = "acme-media/v1"\n===\n\n=== acme-text {#x}\nx\n===\n');
+  assert.doesNotMatch(renderHtml(missing, { fragment: true }), /<div class="geml-missing-vocab">/);
+});
+
+test("GEP-0013：诊断带结构化的 subject —— 渲染器不必从散文里抠名字", () => {
+  // 附录 A 明写消息措辞可改；页面若去解析消息，就把页面绑在了措辞上。
+  const d = parse('=== meta\nprofile = "acme-a/v1 acme-b/v1"\n===\n')
+    .diagnostics.filter((x) => x.code === "unrecognized-vocabulary");
+  assert.deepEqual(d.map((x) => x.subject).sort(), ["acme-a/v1", "acme-b/v1"]);
+});
+
 console.log(`\n${passed} passed`);

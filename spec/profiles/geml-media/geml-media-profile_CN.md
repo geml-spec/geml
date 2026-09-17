@@ -2,7 +2,7 @@
 
 *[English](geml-media-profile.md) | 中文*
 
-- 状态：**草案**，其中 `media-text` 依赖 [GEP-0013](../../proposals/0013-prose-body-for-vocabularies.md)（草案）：在词汇表可以声明散文体之前，这个类型是对 §8.6.2 规则 4 的偏离，不是被放行的扩展。下面的词汇已在参考实现里注册，并由一个真实用例跑过
+- 状态：**草案**。其中 `media-text` 声明了散文体，而 [GEP-0013](../../proposals/0013-prose-body-for-vocabularies.md) 既放行词汇表这么做，也定义了 `prose` 体是什么。下面的词汇已在参考实现里注册，并由一个真实用例跑过
   （[`playground/geml-media-demo/`](../../../playground/geml-media-demo/README.md)）；
   设计记录在
   [`2026-09-15-geml-media-design.md`](../../../docs/design/specs/2026-09-15-geml-media-design.md)。
@@ -27,7 +27,7 @@ profile = "geml-media/v1"
 ===
 ```
 
-不声明，同一份文档解析出同一个模型（§8.6 规则 4），三个类型名是 `unknown-block-type`。
+不声明时，三个类型名是 `unknown-block-type`，正文是 raw。不认识这个 profile 名的处理器什么也不放行并报出 `unrecognized-vocabulary`（§8.6 规则 3）；它依然合规，只是把 `media-text` 读作 raw 块而不是散文——这是认识这份词汇表所改变的唯一一件事。文档携带的每一个地址两边相同（§8.6 规则 4）。
 不认识这个 profile 名的处理器把声明当作不存在（§8.6 规则 3），依然合规：它看到的是散文和
 raw 块，而它们本来就是。
 

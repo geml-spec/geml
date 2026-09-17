@@ -13,36 +13,57 @@ declare an **application-layer vocabulary** that admits type names and attribute
 keys this specification does not define, and a vocabulary needs no GEP — it is a
 document you write plus the names your own tools recognize.
 
-The line between the two is mechanical, not a matter of taste. §8.6 rule 4:
-admission licenses **names only** and MUST NOT change the document model, so a
-profile-admitted type keeps the `raw` body §8.2(6) gives an unknown one.
-So the question is:
+The line is drawn by one mechanical question:
 
-> **Does GEML have to read inside the block's body?**
+> **Does the change put an obligation on every conforming implementation?**
 
-- **No** — the body is opaque to GEML and something else interprets it. A
-  profile is enough, and a GEP would be overreach. `style-rule`, `style-screen`,
-  `style-state` (geml-style) and `history-revision`, `history-keyframe`,
-  `history-blob` (geml-history) are all of this kind.
-- **Yes** — the body carries flow content, child ids, or references that §8.2(5)
-  requires to resolve. **Only the specification can do this**, because only §3's
-  registry assigns a body mode and §8.6 forbids a profile from changing it.
-  Write a GEP.
+- **Yes** — write a GEP. A profile cannot carry a MUST, because §8.6 rule 3 says
+  a processor that recognizes no vocabulary at all is still conformant, and
+  anything a processor may legally ignore is not an obligation.
+- **No** — a profile is enough, and a GEP would be overreach.
 
-Worked case: [`0008-form-block.md`](0008-form-block.md) registers `form` because
-its fields are addressable — `[[#signup#email]]` has to resolve, and an
-unresolved reference is an **error** (§8.2(5)). Admitted through a profile
-instead, the body would stay raw, no field id would exist, and every such
-reference would be an error: the feature the GEP exists for is precisely the one
-a profile cannot deliver. The GEP is careful to show what the application layer
-*can* already do — a `table {.form}` bound through a stylesheet — and where that
-stops.
+Worked case: [`0008-form-block.md`](0008-form-block.md) registers `form` for its
+§8.3 clause — a conforming renderer MUST NOT submit a `form` block. That is an
+obligation on every processor, including one that has never heard of forms, so
+it cannot live in an application layer. (Until [GEP 0013](0013-prose-body-for-vocabularies.md)
+the GEP also rested on a second argument, that only §3 could give `form` a body
+its fields could be addressed in. A vocabulary may declare a body mode now, so
+that argument is gone and the §8.3 clause is the whole of the case.)
 
-A second test, independent of the first: **does the change put an obligation on
-conforming implementations?** GEP 0008 also adds a §8.3 clause — a conforming
-renderer MUST NOT submit a `form` block. That cannot live in a profile, because
-§8.6 rule 3 says a processor that recognizes no vocabulary at all is still
-conformant. Anything a processor may legally ignore cannot carry a MUST.
+**The older test is withdrawn.** It asked *does GEML have to read inside the
+block's body?*, and it worked while §8.6 rule 4 forbade a vocabulary a body
+mode. GEP 0013 lifted that, so the question no longer separates anything: a
+vocabulary may hold flow content, child ids and resolvable references, provided
+a processor that cannot read them says so.
+
+What is left over when the mechanical test answers "no" is a judgment, and it
+should be made as one: **is this construct the format's, or an application's?**
+A construct every reader of GEML should be able to read belongs in §3; one that
+serves a single application belongs in a vocabulary. That question has no crisp
+edge, which is why a profile now carries its own status and its own document —
+the governance that the mechanical test used to make unnecessary.
+
+## The other direction: a profile growing into the specification
+
+The test above asks where something should START. Most things start in a
+vocabulary, and some of them should not stay there. The route out is deliberately
+narrow, because "it has proved useful" is true of every vocabulary that anyone
+kept using and cannot on its own be the bar.
+
+A construct living in a profile belongs in a GEP when **either** holds:
+
+- **A second, independent vocabulary needs the same thing.** One vocabulary
+  wanting a shape is a use case; two wanting it is a gap in the format. `view`
+  took this route out of `table` over about two months, and `prose` bodies took
+  it out of `geml-media`.
+- **It needs an obligation** — the mechanical test above, applied late rather
+  than early. A construct that turns out to need a MUST on every conforming
+  processor has outgrown a layer that a processor may legally ignore.
+
+Neither is "the maintainer likes it", and neither is satisfied by a single
+vocabulary's convenience. Until one of them holds, the construct stays where it
+is and the use cases accumulate — which is the point: a registry entry is
+permanent, and the evidence for one should be something other than enthusiasm.
 
 Naming follows from the answer rather than deciding it. §8.5 reserves
 unhyphenated names for future versions of this specification, so the core type
@@ -86,4 +107,4 @@ is spelled `form`, while the same idea at the application layer is spelled
 | [0010](0010-language-projections.md) | Projections along the language axis — a translated document is a view, not a copy | draft |
 | [0011](0011-inner-unit-coordinates.md) | Coordinates for units inside a block — a table's rows and cells, a value tree in `data` or merged `meta` | final |
 | [0012](0012-view-block.md) | Register a `view` typed block — selection, derivation and aggregation of another relation | final |
-| [0013](0013-prose-body-for-vocabularies.md) | A vocabulary may declare a type's body `prose`; rule 4 becomes an invariant over addressable units | draft |
+| [0013](0013-prose-body-for-vocabularies.md) | A vocabulary may declare a body mode; an unrecognized one is announced | accepted |

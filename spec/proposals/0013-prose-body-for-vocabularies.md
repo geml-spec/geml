@@ -1,89 +1,132 @@
 ---
 gep: 0013
-title: A vocabulary may declare a prose body
-state: draft
+title: A vocabulary may declare a body mode; an unrecognized one is announced
+state: accepted
 author: GEML (maintainer)
-created: 2026-09-15
+created: 2026-09-17
 issue: (pending)
 ---
 
 ## Summary
 
-§8.6 lets a vocabulary admit names and nothing else: an admitted type keeps the
-`raw` body §8.2(6) gives an unknown one, so the document model does not depend on
-which vocabularies a processor happens to know. That rule costs more than it was
-meant to. A vocabulary cannot have a type that holds **prose** — a run of
-paragraphs with emphasis, links and projections — even though prose creates no
-addresses and therefore threatens nothing rule 4 protects.
+§8.6.2 rule 3 requires a processor to meet a vocabulary it does not know in
+**silence** — "not an error, not a warning". Rule 4 then has to make that silence
+safe, by forbidding admission to change anything a reader could observe. The two
+rules are one decision, and this proposal takes the other side of it: a processor
+**MUST say** it did not recognize a declared vocabulary, and admission **MAY**
+then declare a body mode for the types it admits.
 
-This proposal adds one narrowly defined body mode a vocabulary may declare,
-**`prose`**, and restates the invariant rule 4 was really after: admission MUST
-NOT change **the set of addressable units**. `geml-media/v1` is the first
-vocabulary that needs it, and the reason it is proposed now.
+Nothing about the degradation changes — a processor that does not know a
+vocabulary still admits nothing and still reads those bodies as `raw`. What
+changes is that the reader is told, and that the processor which *does* know the
+vocabulary is allowed to read the body the vocabulary says it holds.
 
 ## Motivation
 
-What rule 4 buys is worth keeping, and it is one specific thing. Measured, on
-`geml-form/v1`, whose `form` type holds `form-field` blocks:
+### Rule 4 exists to protect rule 3
 
-```
-a processor that knows the vocabulary sees addresses: #outer #inner
-one that does not sees:                               #outer
-```
+Rule 3 is a generous claim, and the reason GEML is cheap to implement twice:
 
-`geml get doc.geml '#inner'` therefore succeeds for one tool and fails for
-another, on the same bytes. For a format whose pitch is *address a document by
-its blocks*, an address set that depends on your tool's vocabulary list is not a
-detail — it is the pitch failing.
+> Which vocabularies a processor recognizes is implementation-defined, and a
+> processor that recognizes none is conformant.
 
-The specification gives rule 4 a second justification, that content cannot change
-meaning as it moves between documents. Measured, that one is already covered by
-something else: every document is parsed under **its own** `=== meta profile`
+It holds only while recognizing a vocabulary cannot change the answer to anything
+§8.4's suite asks. The suite is stated over the document model, so if admission
+could set a body mode, one input would have two expected projections and the
+suite would have to be indexed by vocabulary set. Rule 4 buys rule 3 by making
+admission unobservable.
+
+### One of rule 4's two justifications is already spent
+
+§8.6.2 gives two. The second — that content cannot change meaning as it moves
+between documents — was measured in
+[GEP-0013](0013-prose-body-for-vocabularies.md) and found to be carried by
+something else entirely: every document is parsed under **its own** `=== meta`
 declaration, so a host that declares nothing still projects a target that
-declares `geml-media/v1` correctly:
+declares `geml-media/v1` correctly. The rule is standing guard over a door
+another mechanism already holds.
+
+What remains is one thing, and GEP-0013 named it: **the set of addressable
+units**. For a format whose claim is *address a document by its blocks*,
+`geml get doc.geml '#x'` must not have one answer for a tool that ships a
+vocabulary and another for a tool that does not.
+
+### The specification already ships exactly that
+
+Measured, on the reference implementation, with no profile involved:
 
 ```
-host declares no profile; `![[t.geml#look]]` into t.geml's media-text: resolves
+=== data {#d format=json}     geml get '#d["k"]'  ->  v
+=== data {#d format=toml}     geml get '#d["k"]'  ->  error: this `data` block
+                                declares `format=toml`, which this processor
+                                keeps raw — there is no value tree to address
 ```
 
-So the rule is carrying one real load, not two.
+§3.2 makes `yaml`, `toml` and `edn` RESERVED format names and requires a
+processor with no engine for one to keep the body raw and emit a warning
+(`data-format-no-engine`, Appendix A). Such a processor is **conformant**. So a
+processor that ships a TOML engine has the address `#d["k"]` and one that does
+not, does not — same bytes, both conformant, addressable set differing by
+implementation capability.
 
-**Prose does not put anything on that load.** A body of paragraphs and inline
-content creates no ids, and no addressable unit of any other kind: GEP-0011's
-coordinates reach a table's rows and cells, a `data` block's value tree and
-`meta`'s keys — never a paragraph. A vocabulary type whose body is prose is
-therefore invisible to the one thing rule 4 protects, and the rule refuses it
-anyway.
+This is the property rule 4 forbids a vocabulary from having. §3 has it, in the
+core, today.
 
-The concrete case is `geml-media/v1` (design record
-`docs/design/specs/2026-09-15-geml-media-design.md`). Its script layer is
-character cards, prompts and lines; a prompt is written
+### The difference is announcement, not substance
 
-```geml
-=== media-text {#s01-prompt .prompt shot=s01}
-![[../characters.geml#look]] ![[../characters.geml#hero-look]] 特写，缓推。
-===
-```
+The `format=toml` degradation is harmless because it is **declared by the
+document and announced by the processor**: the document says `format=toml`, the
+processor warns that it has no engine, and an address into that block fails with
+a message naming the reason. A reader is never under the impression that it is
+looking at a complete view.
 
-and the projection is the whole mechanism: the character card is the single
-source, expanded into every prompt that references it, so that changing one word
-of it makes every shot that used it stale. With a `raw` body the projection is
-not parsed at all, and the profile has no reason to exist.
+A profile's degradation is equally declared by the document — `profile =` is a
+reserved key, written by the author — and rule 3 forbids the processor from
+announcing it. That is the whole asymmetry. Rule 4's severity is the price of a
+silence nothing else in the specification asks for.
 
-Today that leaves two routes, both bad. Put a near-duplicate of `text` into §3's
-registry — a specification change to win a namespace. Or put the five script keys
-on core `text`, which is legal and costs nothing structurally, but makes those
-keys valid on every `text` block in the document. Neither is about prose; both
-are about a rule that reaches further than its purpose.
-
-**This proposal also names a current violation.** `geml-form/v1` declares `form`
-and `form-group` as flow bodies in the reference implementation. Those are
-containers of id-bearing blocks — exactly the case rule 4 exists for — and this
-proposal does **not** legalize them. They belong in §3's registry, which is what
-GEP-0008 already proposes; until it lands, that declaration is a divergence and
-should be recorded as one.
+GEP-0009 considered and rejected a nearby idea: letting a checker read a
+hyphenated name as a deliberate extension. That rejection was right and is
+untouched here — reading a namespace out of a **name's shape** is inference, and
+rule 2 forbids it. Reporting that a name the **document explicitly declared** is
+one this processor does not ship is not inference of any kind. The two were
+rejected together; only one of them deserved it.
 
 ## Design
+
+### §8.6.2 rule 3
+
+> 3. MUST treat a declared name it does not recognize as admitting nothing, and
+>    **MUST report `unrecognized-vocabulary`** naming it. The declaration is not
+>    an error: the document is valid, and the processor's view of it is
+>    incomplete in a way the reader is now told about. **Which vocabularies a
+>    processor recognizes is implementation-defined**, and a processor that
+>    recognizes none is conformant.
+
+### §8.6.2 rule 4
+
+> 4. MUST NOT let admission change the **set of addressable units** except as a
+>    vocabulary's declared body modes require, and then only in a processor that
+>    recognizes the vocabulary. A processor that does not recognize it reads
+>    every admitted type's body as `raw` — the body §8.2(6) gives an unknown type
+>    — and has reported rule 3's diagnostic, so the difference is observable
+>    rather than silent. Admission never changes the addresses a document's
+>    **recognized** blocks carry, nor any address outside the admitted types'
+>    bodies.
+
+### §8.6.1
+
+The first entry of the MUST-NOT list — "the **body mode** of any type" — is
+removed, and the paragraph that follows it loses its force and is replaced by:
+
+> A vocabulary that declares a body mode is declaring what its own types hold.
+> It may not restate the body mode of a type **this specification** registers:
+> `text` is `flow`, `data` is its format engine's, and a vocabulary that
+> disagreed would be redefining a name it does not own (the last entry of this
+> list).
+
+The rest of the list — grammar, diagnostic catalogue, the meaning of names this
+specification defines — is unchanged.
 
 ### The `prose` body mode
 
@@ -118,48 +161,58 @@ implementation that is one field:
 `prose` implies the body is read; there is no separate body-mode declaration and
 no way to say "prose but raw".
 
-### The specification changes
+### The report follows the content across an `embed`
 
-**§8.6.1**, the bullet list of what a vocabulary MUST NOT introduce or alter,
-changes its first entry from
+§3 parses an `embed`'s target as a document in its own right, under its own
+`=== meta`. Measured, that already gives the good case for free: a host that
+declares nothing, read by a processor that ships `geml-media/v1`, projects the
+target's `media-text` as a paragraph — the embedded block arrives read the way
+its home reads it, which is the whole point of embedding one.
 
-> - the **body mode** of any type — rule 4 below, and the reason the rest of this
->   list holds;
+The bad case is the one that needs the rule. A processor that does NOT ship the
+vocabulary renders those blocks raw, and the reader is looking at the **host** —
+a document that declares nothing, has no fault of its own, and appeared perfectly
+clean before this proposal:
 
-to
+```
+host embeds a target declaring an unrecognized vocabulary
+before:  geml check host.geml  ->  ok: no diagnostics
+         geml host.geml --to md ->  a fenced code block where prose should be
+```
 
-> - the **body mode** of any type, except that a vocabulary MAY declare a type's
->   body to be `prose` (§8.6.3) — rule 4 below, and the reason the rest of this
->   list holds;
+So rule 3's report is required at the embedding block as well — **and only for
+a target the host itself names.** Reporting it from the transitive walk that
+already exists for cycle detection was measured to disclose a third document:
 
-and the paragraph that follows it keeps its force with one word narrowed: a
-construct whose body GEML must read **as blocks** — ids it must resolve,
-references §8.2(5) makes errors — cannot be admitted by a vocabulary.
+```
+A embeds one PUBLIC block of B; B, in a block A never took, embeds secret.geml
+leaked:  geml check A.geml -> `secret.geml` declares `acme-payroll/v1` …
+         and the same string in A's published --to html
+```
 
-**§8.6.2 rule 4** changes from "MUST NOT let admission change the document
-model" to:
+`A` never named `secret.geml` and received no content from it. So the rule has a
+second half: a diagnostic may name only documents this document names. The host
+still learns the vocabulary of a document it embeds from even when the slice it
+took does not use it — that document is one the host names and reads, so it is a
+dependency the host already has, and the rendered page suppresses the notice
+anyway unless the page actually shows a block it could not read.
 
-> 4. MUST NOT let admission change **the set of addressable units**. Admission
->    licenses names, and — for a type the vocabulary declares `prose` (§8.6.3) —
->    how that type's body is read. A processor that does not recognize the
->    vocabulary reads the body as `raw`, one that does reads it as prose, and
->    both yield the same block, with the same id, and no addressable unit inside
->    it. Every other admitted type keeps the `raw` body §8.2(6) gives an unknown
->    one.
+ That draws a line
+this specification did not have to state before: a diagnostic about **what this
+processor cannot do** follows the content, because its effect follows the
+content; a diagnostic about **a document's own fault** stays with that document.
+`unknown-block-type` inside the target is the target's fact and does not travel.
 
-**§8.6.3** is new and defines the prose body as above.
+### Appendix A
 
-### What a non-recognizing processor sees
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `unrecognized-vocabulary` | warning | A `profile` name this processor does not recognize (§8.6.2 rule 3). The vocabulary admits nothing and every type it would have admitted keeps the `raw` body of an unknown type; the reader's view of the document is incomplete. |
 
-Unchanged: `raw`, as §8.2(6) requires for an unknown type. The two processors
-therefore differ in the block's body *representation* and agree on every address.
-They may also differ in **diagnostics** — a dangling `[[#x]]` inside a prose body
-is an `unresolved-reference` for the processor that reads it and silence for the
-one that does not. That difference is not new: rule 1 is entirely about
-diagnostics differing with what a processor recognizes, and §8.4's suite is
-stated over the model, not over diagnostics.
+Severity follows `data-format-no-engine`, which reports the same class of fact:
+the document is well-formed and this processor cannot read part of it.
 
-### Before / after
+### What each processor sees
 
 ```geml
 === meta
@@ -171,36 +224,46 @@ profile = "geml-media/v1"
 ===
 ```
 
-*Before:* `#hero-look` is a block with a `raw` body. `![[#hero-look]]` elsewhere
-is `inline-transclusion-not-inline`, because the target is not a single-paragraph
-prose block. The projection cannot be written.
+| | recognizes `geml-media/v1` | does not |
+|---|---|---|
+| `#hero-look` | a block with a prose body | a block with a `raw` body |
+| addresses | `#hero-look` | `#hero-look` |
+| diagnostics | none | `unrecognized-vocabulary` |
+| `![[#hero-look]]` | expands | `inline-transclusion-not-inline`, alongside the warning that says why |
 
-*After:* `#hero-look` is a block with a prose body of one paragraph; the
-projection resolves and expands. The document's addresses are `#hero-look` in
-both readings.
+The second column is a processor that has told the reader it is reading with one
+eye shut. That is the whole change.
 
 ## Conformance impact
 
-The existing case **"a profile declaration does not change the document model"**
-stands unchanged. Its vocabulary (`acme-invoice/v1`) is one no implementation
-recognizes, so what it pins is rule 3 and the `raw` default — neither moves.
+**The suite does not change.** §8.4's suite is stated over the document model,
+and diagnostics were never part of it — rule 1 is already entirely about
+diagnostics differing with what a processor recognizes. The six cases in
+`conformance/vocabulary.json` use a vocabulary name nothing recognizes and assert
+identical projections; they assert the same projections after this proposal,
+because a vocabulary nothing recognizes still admits nothing.
 
-Two cases are added to `geml-parser/test/conformance/vocabulary.json`, stated
-over **the addressable set**, which both kinds of processor produce identically
-and which is what the amended rule 4 promises:
-
-1. *a prose-declared type contributes exactly one address* — a document whose
-   vocabulary type holds a fence-open line and a heading line in its body has the
-   same addressable set as the same document with a paragraph there.
-2. *a fence line inside a prose body is not a construct* — the same document,
-   projected, shows no second block.
-
-Whether a body was read as prose is **deliberately not observable** in the
-suite's projection. That is the point of the amended rule: two conformant
-processors that recognize different vocabularies still agree on every case, and
-the suite is what makes that testable rather than asserted.
+**The second implementation needs no change.** `conformance/impl2.mjs` already
+has `collectMeta` and states in three places that diagnostics are out of its
+scope. The new MUST is a requirement on a production processor that the suite
+does not reach — which is worth saying plainly rather than claiming a rigour the
+mechanism does not have. If the announcement should be verifiable, the place for
+it is a per-profile conformance suite, which does not exist yet and is out of
+scope here.
 
 ## Alternatives considered
+
+**The narrow rule — one exception, for prose only.** This was this proposal's
+own first draft, and the version the maintainer accepted "without being
+convinced by the reasoning end to end". It amends rule 4 to admit a `prose` body
+and nothing else, on the ground that prose provably creates no addresses. It
+works for `geml-media/v1` and for nothing else: `geml-form/v1`'s containers stay
+illegal, and the draft's own drawbacks named the repetition to come — *if
+vocabularies keep needing types that hold id-bearing blocks, the narrow rule
+becomes a toll booth on the same road*. What reopened it was noticing that the
+ban it was tiptoeing around had a cause, rule 3's mandated silence, and that the
+cause was the thing to fix. The `prose` body mode survives from that draft on
+its own merits; the exception it was built to justify does not.
 
 **Do nothing, and put the five script keys on core `text`.** Fully legal today:
 attribute keys are one of the three things §8.6.1 admits, and admitting them
@@ -234,61 +297,81 @@ recorded, `--to md` would not expand them, and every consumer would need the
 vocabulary's own parser to read a block GEML had already declined to read. It
 reintroduces, one layer down, exactly the split §8.6 exists to prevent.
 
+**Relax rule 4 and leave rule 3 silent.** The address set would then vary between
+processors with nothing to tell a reader which one it has. This is the version of
+the idea GEP-0013 rejected, and rejecting it was right: an unobservable
+difference in an address set is exactly the failure a per-block addressing format
+cannot afford. Announcement is what makes the same relaxation safe.
+
+**Make the announcement a SHOULD.** Then rule 4's relaxation would be
+conditioned on something a conformant processor may skip, and the guarantee would
+be worth nothing in the one case it exists for. A processor that does not want to
+report it can recognize the vocabulary instead.
+
+**Infer the vocabulary from a name's shape** (`acme-…` is deliberate, `ntoe` is a
+typo). Rejected by GEP-0009 as rule 2, and still rejected. Nothing here reads a
+namespace out of a name; it reports a name the document wrote.
+
 ## Compatibility & migration
 
-No existing valid document changes meaning, and none can: no vocabulary declares
-a prose body today, and the default for an admitted type is unchanged. A document
-that a processor could read before it reads identically after.
+**No document changes meaning.** A document that parsed before parses identically
+after; the only new output is a warning on documents that declare a vocabulary
+the reader does not ship. A processor that recognizes every declared vocabulary
+emits nothing new.
 
-`geml <file> --to geml` is unaffected — a prose body serializes to the same bytes
-it was written as, whether it was read as prose or as raw.
+**Two recorded divergences become licensed extensions.**
+`geml-form/v1`'s `bodies: { form: "flow", "form-group": "flow" }` and
+`geml-media/v1`'s prose body are both described in their own documents as
+divergences from rule 4. They stop being divergences. GEP-0008 is unaffected in
+substance — whether `form` belongs in §3 is now a question about *ownership*,
+not about what a profile is permitted to do.
 
-**`geml-form/v1` is not legalized by this.** Its `form` and `form-group` hold
-`form-field` blocks with ids; they are containers, not prose, and the measurement
-in *Motivation* is theirs. They belong in §3, which GEP-0008 proposes; until that
-lands, the reference implementation's `bodies` declaration for them is a
-divergence from §8.6.2 rule 4 and should be recorded as one rather than read as
-precedent.
+**GEP-0013 narrows rather than dies.** Its rule-4 amendment is superseded by this
+one. Its `prose` body mode is not: a body in which a fence-open line, a heading
+and a list marker are **text rather than constructs** is a real and useful shape,
+distinct from `flow`, and `ProfileDef.prose`'s other job — granting a type the
+privileges core gives `text` (inline-projection target, Markdown paragraph
+projection, the same rendered container) — is untouched by this proposal and
+still needs saying. 0013 should be rewritten as "a `prose` body mode and a
+prose-type declaration", with its rule-4 argument removed.
+
+**The reference implementation** already carries the machinery: `ProfileDef.bodies`
+exists and is honoured, and `vocabularyFor` merges it. What it does not yet do is
+report the new code, and it silently lets the last-registered profile win when two
+declare different body modes for one type — a static conflict a registry test
+should refuse.
 
 ## Drawbacks & open questions
 
-**The whole shape of this is provisional, and deliberately recorded as such.**
-The maintainer accepted the narrow rule as the current version without being
-convinced by the reasoning end to end; it is not a settled position, and a later
-version may take it back. What is actually unsettled is the choice against full
-relaxation: whether an address set that depends on the reader’s vocabulary list
-is intolerable, or merely untidy. The narrow rule is the conservative answer to
-that question, chosen because it is the one that can be widened later without
-invalidating a document — not because the argument closed.
+**The mechanical GEP-versus-profile test is lost, and it was load-bearing.**
+`spec/proposals/README.md` asks one question — *does GEML have to read inside the
+block's body?* — and answers it from rule 4. After this proposal a vocabulary may
+have GEML read inside its bodies, so the question stops deciding anything. This
+is the sharpest form of GEP-0009's own warning: "a tier is a place to hide… the
+§8.6-rule-4 test is the only thing standing between that and a core registry that
+never grows again." **A replacement boundary has to land with this proposal, not
+after it.** The candidate is a question about ownership rather than mechanism —
+*is this construct the format's, or an application's?* — which is a judgment, and
+therefore needs the governance the mechanical test made unnecessary: a `state` on
+every profile, and a conformance suite per profile. Both are proposed separately;
+neither exists today. **This is the open question on which this proposal should be
+accepted or rejected.**
 
-Three things would move it:
+**Warning noise on generic tooling.** A tool reading a repository of codemap
+output, history sidecars and media documents now warns once per document. That is
+the intended signal, and it is also the first thing a user will want to silence.
+`--severity unrecognized-vocabulary=off` is the obvious escape hatch and does not
+exist; a general per-code severity control is proposed in the `geml-media` design
+record (§7.1) and would serve this too.
 
-- **More container cases.** If vocabularies keep needing types that hold
-  id-bearing blocks, the narrow rule becomes a toll booth on the same road and
-  full relaxation gets stronger by repetition. `geml-form/v1` is already
-  one.
-- **GEP-0011 growing downward.** The invariant here rests on paragraphs not
-  being addressable. If inner-unit coordinates ever reach into prose, the
-  justification has to be rewritten, not patched.
-- **How real the second implementation is.** Rule 4 protects agreement between
-  independent processors. This repository has a clean-room second implementation
-  in its suite, so the concern is not hypothetical — but if that stays the only
-  one, the rule is being paid for by a reader who does not exist yet.
+**The address set genuinely varies now**, and no amount of announcement makes
+`geml get doc.geml '#inner'` return the same thing to two tools. What the warning
+buys is that the tool which cannot see `#inner` knows it cannot, and can say so
+instead of reporting that the address does not exist. Whether that is enough is
+the judgment this proposal asks for; the `format=toml` precedent is the evidence
+that the specification has already judged it enough once.
 
-- **A third body mode.** `raw`, `flow`, `prose` — and prose is *almost* flow.
-  The difference is exactly "may not contain blocks", and it exists to keep an
-  invariant rather than to express a new shape. That is a real cost in the
-  specification's surface, paid for one property.
-- **The model shape still differs** between a recognizing and a non-recognizing
-  processor (`children` of paragraphs versus `raw` lines), even though the
-  addressable set does not. The suite is stated so as not to depend on it; a
-  reader of the model, however, can still tell. Whether that is "the model
-  changed" is a judgment the amended rule 4 settles by naming addresses instead
-  of the model — but it is a narrowing, and it should be read as one.
-- **Should §3's own types be able to declare prose?** `text` and `note` are
-  `flow` and may nest blocks. Nothing here changes them, and nothing needs to;
-  raised only because the obvious next question is whether `text` should have
-  been prose all along.
-- **Lists.** Excluded from prose bodies for the reason in *Design*. If GEP-0011
-  never makes a list item addressable, that exclusion is pure cost and can be
-  revisited.
+**The model shape differs too**, not only the address set — `children` of
+paragraphs versus `raw` lines. GEP-0013 raised this and settled it by naming
+addresses instead of the model. The same settlement is assumed here, and it is
+the same narrowing.
