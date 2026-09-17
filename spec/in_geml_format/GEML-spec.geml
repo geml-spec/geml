@@ -1526,6 +1526,7 @@ original file.
 | `table-source-not-a-table` | error | A table's `src=` names a block that exists but is not a table. |
 | `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
 | `unrecognized-vocabulary` | warning | A name in `=== meta`'s `profile` list (§8.6) is one this processor does not recognize. It admits nothing, every type it would have admitted keeps the `raw` body of an unknown type, and the reader's view of the document is to that extent incomplete. The document is valid: this reports what the processor lacks, never a fault in the document. |
+| `unknown-meta-key` | warning | A `=== meta` key lies inside a declared vocabulary's namespace — it begins with that vocabulary's prefix (`media-` for `geml-media/v1`) — and the vocabulary does not define it (§8.6). Only the namespace is checked: `=== meta` also carries the DOCUMENT's own metadata, which is the author's and open, so a key with no vocabulary prefix is never reported. |
 | `duplicate-meta-key` | warning | A key is defined in a later `=== meta` block when an earlier block already defines it. The first definition is kept (§4). |
 
 ### A.3 Tables (§6)

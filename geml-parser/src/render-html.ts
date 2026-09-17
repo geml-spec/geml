@@ -16,6 +16,7 @@ import {
   CSS,
   JS,
   CODE_GRAPH_JS,
+  CODE_GRAPH_CSS,
   RenderCtx,
   esc,
   escAttr,
@@ -41,7 +42,7 @@ function page(title: string, body: string, ctx: RenderCtx, source?: string): str
   // node:* for its CLI paths — an import map points those at the served stub
   // (same trick as the viewer's esbuild alias), and the process shim must be
   // in place BEFORE the modules evaluate, hence the dynamic import().
-  const wantLive = ctx.usedCodeGraph && !!ctx.opts.liveGraph;
+  const wantLive = ctx.usedAssets.has("code-graph") && !!ctx.opts.liveGraph;
   const lg = wantLive ? escAttr(ctx.opts.liveGraph!) : "";
   const importMap = wantLive
     ? `<script type="importmap">{"imports":{"node:fs":"${lg}_node-stub.js","node:path":"${lg}_node-stub.js","node:crypto":"${lg}_node-stub.js","node:url":"${lg}_node-stub.js","node:child_process":"${lg}_node-stub.js","node:os":"${lg}_node-stub.js"}}</script>\n`
@@ -74,7 +75,7 @@ for (const m of document.querySelectorAll(".cg-mount[data-start]")) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
-<style>${CSS}</style>
+<style>${CSS}${ctx.usedAssets.has("code-graph") ? CODE_GRAPH_CSS : ""}</style>
 ${importMap}${mathHead}${mermaidHead}</head>
 <body>
 <main>
@@ -82,7 +83,7 @@ ${body}
 </main>
 ${footer}
 <script>${JS}</script>
-${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}</script>\n` : ""}${liveJs}</body>
+${ctx.usedAssets.has("code-graph") ? `<script>${CODE_GRAPH_JS}</script>\n` : ""}${liveJs}</body>
 </html>
 `;
 }
@@ -101,7 +102,18 @@ export function renderHtml(doc: Document, opts: RenderOptions = {}): string {
     const cap = md["entry"] !== undefined || md["container"] !== undefined
       ? `layered method flow — roots from this document's <code>entry</code>`
       : `layered method flow — roots: in-degree-zero methods (no <code>entry</code> declared)`;
-    body = ctx.codeGraphFigure(opts.source, "", `<figcaption>${cap}</figcaption>`) + "\n" + body;
+    // Through the registered renderer, not a method on the context: this page
+    // shell used to reach into the core renderer for one vocabulary's figure.
+    // A build that does not register `geml-code-graph` simply gets no offer.
+    const draw = opts.diagrams?.["geml-code-graph"];
+    if (draw !== undefined) {
+      const synthetic = { kind: "block", type: "diagram", mode: "raw", classes: [], attrs: { format: "geml-code-graph", src: opts.source } } as Parameters<typeof draw>[0];
+      body = draw(synthetic, {
+        raw: "", idAttr: "", cap: `<figcaption>${cap}</figcaption>`, classes: [],
+        clsAttr: (cs, own) => ` class="${[...cs, ...(own === undefined ? [] : [own])].join(" ")}"`,
+        opts, use: (asset) => { ctx.usedAssets.add(asset); },
+      }) + "\n" + body;
+    }
   }
   // Fragment mode: the body markup alone, for embedding into an existing
   // layout. No shell, no CDN tags, no inline CSS/JS — see RenderOptions.
@@ -140,4 +152,4 @@ export function renderHtml(doc: Document, opts: RenderOptions = {}): string {
 // geml-* class a fragment emits (include once per site); `js` is the tables'
 // sort/filter enhancement (once per page); `codeGraphJs` matters only when a
 // fragment carries a code-graph mount. The full-page output inlines all three.
-export const pageAssets = { css: CSS, js: JS, codeGraphJs: CODE_GRAPH_JS } as const;
+export const pageAssets = { css: CSS, js: JS, codeGraphJs: CODE_GRAPH_JS, codeGraphCss: CODE_GRAPH_CSS } as const;

@@ -667,4 +667,98 @@ test("--severity 拒绝核心的码 —— 附录 A 的级别是规范性的", (
   assert.match(r.out, /Appendix A/);
 });
 
+test("meta 键：只查落在已声明词汇表命名空间里的那些", () => {
+  // `=== meta` 同时装两种东西：文档元数据（作者的，开放）和词汇表参数。对整块做
+  // 闭集检查会把前者报成拼错——实测本仓 playground 的教程用 `chapter = "6 / 7"`，
+  // 它不该也不可能被任何词汇表登记。所以查的是命名空间，不是整块。
+  const withMeta = (src) => parse(src).diagnostics.filter((d) => d.code === "unknown-meta-key");
+
+  // 不带前缀 = 作者的，永不报
+  assert.equal(withMeta('=== meta\nprofile = "geml-media/v1"\nchapter = "6 / 7"\ntitle = "t"\n===\n').length, 0);
+
+  // 带前缀、而那份词汇表没登记 = 报
+  const d = withMeta('=== meta\nprofile = "geml-media/v1"\nmedia-fsp = 24\n===\n');
+  assert.equal(d.length, 1);
+  assert.equal(d[0].subject, "media-fsp");
+  assert.match(d[0].message, /geml-media\/v1/, "要指名是谁的命名空间");
+
+  // 没声明那份词汇表时，同一个键不归任何人管，也不报
+  assert.equal(withMeta('=== meta\ntitle = "t"\nmedia-fsp = 24\n===\n').length, 0);
+});
+
+test("meta 键：一份没有登记 metaKeys 的词汇表，命名空间不设防", () => {
+  // geml-style 的 meta 是一张作者自定义的 token 表（`{{accent}}` 这样引用），
+  // 和它的属性空间开放同理——核心不可能持有那份词典。登记一个闭集会把每个 token
+  // 报成拼错的键；实测最初那版就是这么报了 accent / fg / line / muted 七个。
+  const d = parse('=== meta\nprofile = "geml-style/v1"\nstyle-anything = 1\n===\n')
+    .diagnostics.filter((x) => x.code === "unknown-meta-key");
+  assert.equal(d.length, 0);
+});
+
+// ---- 运行时注册：机制在，开关默认关 ----
+
+import { enableProfileRegistration, registerProfile, knownProfiles } from "../dist/geml.js";
+
+test("注册：开关默认是关的 —— 一次 import 不该替宿主做决定", () => {
+  // 一个宿主注册了词汇表，它的诊断就和别的宿主不同。规则 1 允许这件事，但那是
+  // **宿主的决定**，所以要显式打开。
+  assert.throws(() => registerProfile("acme-x/v1", { state: "draft" }), /registration is off/);
+});
+
+test("注册：打开之后，一份第三方词汇表不必 fork 解析器就能被认识", () => {
+  enableProfileRegistration();
+  try {
+    const before = parse('=== meta\nprofile = "acme-plot/v1"\n===\n\n=== acme-plot-fig {#f}\nx\n===\n').diagnostics;
+    assert.ok(before.some((d) => d.code === "unrecognized-vocabulary"), "注册前：不认识");
+    assert.ok(before.some((d) => d.code === "unknown-block-type"), "注册前：类型也不认识");
+
+    registerProfile("acme-plot/v1", { state: "draft", types: ["acme-plot-fig"] });
+    const after = parse('=== meta\nprofile = "acme-plot/v1"\n===\n\n=== acme-plot-fig {#f}\nx\n===\n').diagnostics;
+    assert.equal(after.length, 0, `注册后应当干净，得到 ${JSON.stringify(after)}`);
+    assert.ok(knownProfiles().includes("acme-plot/v1"));
+  } finally { enableProfileRegistration(false); }
+});
+
+test("注册：当场执行命名约定 —— 内建的有历史豁免，新来的没有", () => {
+  enableProfileRegistration();
+  try {
+    assert.throws(() => registerProfile("acme-plot/v1", { state: "draft", types: ["plot"] }),
+      /owns the prefix `acme-plot-`/, "类型名不带前缀");
+    assert.throws(() => registerProfile("acme-plot/v1", { state: "draft", diagnostics: { "bad-thing": "error" } }),
+      /owns the prefix/, "诊断码不带前缀");
+    assert.throws(() => registerProfile("Acme/V1", { state: "draft" }), /must look like/, "名字形状");
+    assert.throws(() => registerProfile("geml-media/v1", { state: "draft" }), /is built in/, "不得替换内建");
+  } finally { enableProfileRegistration(false); }
+});
+
+test("注册：关掉开关会把注册过的清空 —— 不留下半开的状态", () => {
+  enableProfileRegistration();
+  registerProfile("acme-q/v1", { state: "draft", types: ["acme-q-box"] });
+  assert.ok(knownProfiles().includes("acme-q/v1"));
+  enableProfileRegistration(false);
+  assert.ok(!knownProfiles().includes("acme-q/v1"));
+});
+
+test("动词槽位：注册表声明名字，CLI 分派查表 —— 两边是同一张表", () => {
+  // 分派此前是三个写死的 else if（media / style / codemap），核心的命令行因此
+  // 按名字认识三份词汇表。现在名字由注册表声明；这条断言把两边钉在一起。
+  const declared = new Set(Object.values(PROFILES).flatMap((d) => d.verbs ?? []));
+  for (const v of ["media", "style", "codemap", "history"]) {
+    assert.ok(declared.has(v), `${v} 应当由某份词汇表声明`);
+  }
+  // 每个声明的动词都真的能跑（history 走核心那条路径，其余走 PROFILE_VERBS）
+  for (const v of declared) {
+    const r = spawnSync(process.execPath, [CLI, v], { encoding: "utf8" });
+    assert.notEqual(r.status, 0, `${v} 无参数应当报用法`);
+    assert.match((r.stdout ?? "") + (r.stderr ?? ""), /usage|unknown .* subcommand/i,
+      `${v} 应当认得自己，而不是落进「unknown command」`);
+  }
+});
+
+test("动词槽位：没被任何词汇表声明的词仍然是「unknown command」", () => {
+  const r = spawnSync(process.execPath, [CLI, "acme-nope"], { encoding: "utf8" });
+  assert.equal(r.status, 2);
+  assert.match((r.stderr ?? ""), /unknown command/);
+});
+
 console.log(`\n${passed} passed`);

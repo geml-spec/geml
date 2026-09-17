@@ -10,7 +10,7 @@
 // stale, use `geml codemap serve` instead.
 import { readdirSync, readFileSync, writeFileSync, realpathSync, unlinkSync } from "node:fs";
 import { join, basename, sep, resolve as resolvePath } from "node:path";
-import { parse, renderHtml } from "../dist/geml.js";
+import { parse, renderHtml, codeGraphDiagram } from "../dist/geml.js";
 
 if (process.argv[2] === "--help" || process.argv[2] === "-h") {
   console.error("usage: geml codemap render [codemap-dir]   (dir defaults to ./.geml-code-graph)");
@@ -65,7 +65,7 @@ for (const f of files) {
     const text = loadDoc(f);
     if (text === null) throw new Error("unreadable");
     const doc = parseDoc(text);
-    const html = renderHtml(doc, { source: basename(f), loadDoc, parseDoc });
+    const html = renderHtml(doc, { source: basename(f), loadDoc, parseDoc, diagrams: { "geml-code-graph": codeGraphDiagram } });
     writeFileSync(join(dir, f.replace(/\.geml$/, ".html")), html);
     n++;
   } catch (e) {

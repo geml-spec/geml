@@ -109,7 +109,8 @@ export type DiagnosticCode =
   | "bad-data-source"
   | "unresolvable-data-source"
   // --- Application-layer vocabularies (§8.6, GEP-0013) ---
-  | "unrecognized-vocabulary";
+  | "unrecognized-vocabulary"
+  | "unknown-meta-key";
 
 export interface Diagnostic {
   severity: "error" | "warning";
@@ -228,6 +229,10 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   // reason `data-format-no-engine` is one: the document is well formed and it
   // is this reader that cannot see all of it (§8.6.2 rule 3).
   "unrecognized-vocabulary": "warning",
+  // A meta key no declared vocabulary owns, in a document where at least one
+  // vocabulary DID declare its keys. Warning, like `unknown-attribute`: the
+  // document parses and means what it says; what it probably is, is a typo.
+  "unknown-meta-key": "warning",
 };
 
 // ---------------------------------------------------------------------------

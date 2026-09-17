@@ -77,6 +77,26 @@ become permanent. The exceptions today are `form` and `media` (bare type names),
 `geml-style`'s seven unprefixed codes, and `geml-media`'s six meta keys; all
 predate this convention.
 
+`metaKeys` is what makes a vocabulary's `=== meta` namespace checkable. Only
+that namespace: `=== meta` carries the **document's own** metadata too — a
+`title`, a `chapter`, whatever the author wants to record — and that is the
+author's and open. So `unknown-meta-key` reports a key that begins with a
+declared vocabulary's prefix and that the vocabulary does not define, and says
+nothing about a key with no prefix at all. An earlier draft checked the whole
+block and reported this repository's own tutorial pages for `chapter = "6 / 7"`,
+which is the failure mode that rule exists to avoid.
+
+It follows that the check is quiet today, and that is honest rather than
+disappointing: the meta keys in this repository predate the naming convention
+and carry no prefix, so they sit in the exception table. The day one is renamed,
+the check starts working on it by itself — which makes that table not only a
+list of things to fix but the switch this check runs on.
+
+A vocabulary whose `=== meta` is genuinely open declares no `metaKeys` at all.
+`geml-style/v1` is one: a stylesheet's meta is an author-defined **token table**
+(`{{accent}}`), the same reason its attribute space is open — the core cannot
+hold that dictionary, and a closed set would report every token as a typo.
+
 `diagnostics` is a **code → default severity** table, not a list of names, and
 the core reads it for two things beyond the naming rule: `--severity` and
 `--only` work on any code in it, so an important diagnostic never needs a flag
@@ -100,6 +120,19 @@ structure is an error, a stale fact is a warning, and a choice is info.
 A separate verb stays right when the **input** is different: `geml style check`
 takes a stylesheet and a corpus — two files in different roles — so it is not a
 question about "this document" and does not belong on `check`.
+
+Such a verb is **declared** in the registry (`ProfileDef.verbs`) and
+**implemented** host-side, the same split as the checker and for the same
+reason. The dispatch used to name three of them — `media`, `style`, `codemap` —
+in branches of its own, so the core command line knew three vocabularies by
+name; it is a lookup now, and a word no vocabulary declares is still an unknown
+command.
+
+Verbs are deliberately outside the prefix convention. That convention covers the
+three namespaces that collide **inside a document** — types, diagnostic codes,
+meta keys. A command line is the CLI's namespace, `geml media` reads better than
+`geml media-media`, and a clash there is refused at registration rather than
+prevented by spelling.
 
 Two flags apply to these codes, and to these only:
 
@@ -130,6 +163,73 @@ state. It became load-bearing with
 vocabulary could only add names, and "what changed inside `/v1`" was a small
 question. A vocabulary may now declare **body modes**, and changing one changes
 how documents parse for every processor that recognizes the name.
+
+## Rendering
+
+A vocabulary that draws something supplies the renderer; the core does not know
+it by name. §7 already said a `diagram`'s `format=` names a **renderer** and that
+an unknown one degrades to a labelled source block — so the extension point was
+the specification's all along. What was missing is that the table could be
+extended, and `RenderOptions.diagrams` is that table: `format` → function,
+supplied by the host.
+
+The specification's own two (`geml-chart`, `mermaid`) are built in and are
+looked up **first**, so a host may add formats and may not quietly redefine one
+the specification defines — otherwise the same document draws two different
+things on two conformant processors.
+
+`geml-code-graph` is the worked example. It belongs to `geml-codemap/v1`
+(GEP-0003) and used to sit in the same `if` chain as the two above, so the core
+renderer knew one vocabulary by name. It is registered now — by `--to html`, by
+codemap's own `serve` and `render-all`, and by the browser extension — and a
+build that does not register it leaves such a block to §7's fallback, which is
+the correct degradation rather than an error.
+
+One residual is worth naming rather than leaving to be found: the core table
+renderer still asks `isCodemapDoc` whether to fold a long table, which is one
+vocabulary's `#modules` table known by name in the renderer's own layout
+heuristic. The fix is content-level rather than another slot — a `{.no-fold}`
+class the vocabulary emits — and it changes generated output, so it is its own
+change.
+
+The renderer declares what a page needs through `ctx.use(name)`; the page shell
+reads the set — script **and** stylesheet. `geml-code-graph`'s CSS is 5615 bytes,
+larger than the core stylesheet's 4540, and it used to be inlined into every page
+this renderer produced whether or not one drew a graph; a page that draws none is
+46% smaller now. That is how the code-graph's runtime script reaches the page
+without the shell knowing which vocabulary asked for it.
+
+## Registering one that this repository does not ship
+
+`geml-parser/src/profiles.ts` is a compile-time list, so until now "which
+vocabularies a processor recognizes is implementation-defined" (§8.6.2 rule 3)
+meant, in practice, *fork the parser*. That is conformant and it caps the
+ecosystem at whatever this repository ships.
+
+There is a runtime route now, and it is **off by default**:
+
+```js
+import { enableProfileRegistration, registerProfile } from "@geml/geml";
+
+enableProfileRegistration();
+registerProfile("acme-plot/v1", { state: "draft", types: ["acme-plot-fig"] });
+```
+
+Off by default on purpose. A host that registers a vocabulary reports different
+diagnostics from a host that does not — rule 1 permits exactly that, and it is
+still the **host's** decision, not something an `import` should make on its
+behalf.
+
+Registration is not the inference rule 2 forbids. Rule 2 is about guessing a
+vocabulary from a document's content, name or extension; a host saying "I ship
+this one" is a statement about the host, not a reading of the document.
+
+The naming convention above is **enforced at registration**, not merely tested:
+a `registerProfile` whose types, diagnostic codes or meta keys do not carry the
+vocabulary's own prefix is refused, as is one that tries to replace a built-in.
+The six vocabularies this repository ships carry historical exceptions; a new
+one gets none, which is the only place that convention can actually stop
+something.
 
 ## Conformance
 

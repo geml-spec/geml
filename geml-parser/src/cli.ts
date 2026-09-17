@@ -14,6 +14,25 @@ const PROFILE_CHECKS: Record<string, ProfileCheck> = {
   "geml-media/v1": checkMedia,
 };
 
+/**
+ * 词汇表贡献的 CLI 动词：名字 → 实现。
+ *
+ * 分派此前是三个写死的 `else if`（media / style / codemap），所以核心的命令行
+ * 按名字认识三份词汇表。名字由注册表声明（`ProfileDef.verbs`），实现住在这里
+ * —— 和 PROFILE_CHECKS 同一个切分，同一个理由：注册表被 geml.ts 引，而 geml.ts
+ * 是浏览器包的入口。
+ *
+ * `history` 不在这张表里：它是核心 VERB_FLAGS 里的动词，走的是核心那条路径。
+ * 它在注册表里仍然登记为 geml-history/v1 的动词，因为那是事实——登记与分派是
+ * 两件事，而这里只管分派。
+ */
+const PROFILE_VERBS: Record<string, (argv: string[]) => void> = {
+  media: runMedia,
+  style: runStyle,
+  // codemap 不做 flag 检查：它转发给自己的工具箱，子命令自己管自己的 flag。
+  codemap: runCodemap,
+};
+
 /** `--severity` 只认已注册词汇表定义过的码（核心的级别由附录 A 固定）。 */
 function knownProfileCode(code: string): boolean {
   return Object.values(PROFILES).some((d) => d.diagnostics !== undefined && code in d.diagnostics);
@@ -1648,14 +1667,10 @@ const entry = (() => {
     else if (cmd === "check") runCheck(rest);
     else if (cmd === "mcp") runMcp(rest);
     else runSkill(rest);
-  } else if (cmd === "media") {
-    runMedia(argv.slice(1));
-  } else if (cmd === "style") {
-    runStyle(argv.slice(1));
-  } else if (cmd === "codemap") {
-    // Not flag-checked here: codemap forwards to its own toolkit, whose
-    // subcommands own their flags.
-    runCodemap(argv.slice(1));
+  } else if (Object.hasOwn(PROFILE_VERBS, cmd)) {
+    // A verb a vocabulary contributes. The dispatch used to name three of them
+    // (`media`, `style`, `codemap`) in `else if`s of its own.
+    PROFILE_VERBS[cmd]!(argv.slice(1));
   } else if (cmd !== "-" && !/[.\/\\]/.test(cmd)) {
     // A bare word that is neither a known command nor a path is almost always
     // a mistyped command — say so, don't try to read it as a file. (The

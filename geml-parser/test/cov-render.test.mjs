@@ -4,7 +4,7 @@
 // probe paths, flash contract, source panel, module-tree derivation) that the
 // main suites leave dark. Same conventions as test/render-html.test.mjs: the
 // compiled dist API drives everything, the viewer runs under a fake DOM.
-import { parse } from "../dist/geml.js";
+import { parse, codeGraphDiagram } from "../dist/geml.js";
 import { buildCodeGraph, codeGraphRuntime, codeGraphWaves } from "../dist/render.js";
 import { renderHtml } from "../dist/render-html.js";
 import { strict as assert } from "node:assert";
@@ -128,7 +128,7 @@ kept raw
 ===
 `;
 
-const tourHtml = renderHtml(parse(TOUR), { source: "cov.geml" });
+const tourHtml = renderHtml(parse(TOUR), { source: "cov.geml", diagrams: { "geml-code-graph": codeGraphDiagram } });
 
 test("inline: strong, strike, break, cross-doc + unresolved autorefs, audio, doc links, link attrs", () => {
   assert.match(tourHtml, /<strong>bold<\/strong>/);
@@ -223,7 +223,7 @@ test("fold: an oversized UNNAMED table folds with a generic summary, and keeps i
 // ---------------------------------------------------------------------------
 
 const M = {}; // fixture documents by relative path
-const opts2 = { loadDoc: (p) => M[p] ?? null, parseDoc: (s) => parse(s) };
+const opts2 = { loadDoc: (p) => M[p] ?? null, parseDoc: (s) => parse(s), diagrams: { "geml-code-graph": codeGraphDiagram } };
 
 M["edge1.geml"] =
   "=== meta\nmodule = e1\nentry = #a\n===\n\n" +
@@ -1489,7 +1489,7 @@ test("an inline projection declines by name: no resolver, a cycle, and the depth
     "a.geml": "=== text {#x}\nfrom A ![[b.geml#y]]\n===\n",
     "b.geml": "=== text {#y}\nfrom B ![[a.geml#x]]\n===\n",
   };
-  const opts = { loadDoc: (p) => two[p] ?? null, parseDoc: (s) => parse(s) };
+  const opts = { loadDoc: (p) => two[p] ?? null, parseDoc: (s) => parse(s), diagrams: { "geml-code-graph": codeGraphDiagram } };
   const cyc = renderHtml(parse("# H {#h}\n\nsee ![[a.geml#x]] here\n", { resolveDoc: (p) => two[p] ?? null }), opts);
   assert.match(cyc, /transclusion cycle/);
   assert.match(cyc, /from A[\s\S]*from B/, "and both real levels are still shown");
@@ -1520,6 +1520,7 @@ test("a `../` target resolves against the host document's directory", () => {
   const html = renderHtml(parse("# H {#h}\n\n=== embed {src=docs/guide.geml#s}\n===\n"), {
     loadDoc: (p) => { asked.push(p); return files[p] ?? null; },
     parseDoc: (s) => parse(s),
+    diagrams: { "geml-code-graph": codeGraphDiagram },
   });
   assert.ok(asked.includes("shared/x.geml"), `expected shared/x.geml, asked for ${JSON.stringify(asked)}`);
   assert.match(html, /borrowed from a sibling directory/);

@@ -2,7 +2,7 @@
 // every chart type drawn as inline SVG (incl. negative values and a size
 // channel), the diagram fallbacks, output/code/math blocks, tables, notes,
 // lists, and inline constructs. This is the path `--to html` uses.
-import { pageAssets, parse, renderHtml } from "../dist/geml.js";
+import { pageAssets, parse, renderHtml, codeGraphDiagram } from "../dist/geml.js";
 import { buildCodeGraph, codeGraphRuntime, codeGraphWaves } from "../dist/render.js";
 import { strict as assert } from "node:assert";
 
@@ -169,6 +169,7 @@ const CODEMAP = {
 const cgOpts = {
   loadDoc: (p) => CODEMAP[p] ?? null,
   parseDoc: (s) => parse(s),
+  diagrams: { "geml-code-graph": codeGraphDiagram },
 };
 const graphData = (out) => {
   const m = out.match(/data-graph="([^"]*)"/);
@@ -238,7 +239,7 @@ test("code-graph: callers view surfaces #api-served-by frontend callers as http 
       "=== meta\nmodule = web\nentry = #save\nresolution-default = heuristic\n===\n\n" +
       '=== code {#save src=web/api.ts#L1-5 anchor="w1"}\n===\n',
   };
-  const { data } = buildCodeGraph("srv.geml", { loadDoc: (p) => XMAP[p] ?? null, parseDoc: (s) => parse(s) }, { dir: "up", node: "srv.geml#handle" });
+  const { data } = buildCodeGraph("srv.geml", { loadDoc: (p) => XMAP[p] ?? null, parseDoc: (s) => parse(s), diagrams: { "geml-code-graph": codeGraphDiagram } }, { dir: "up", node: "srv.geml#handle" });
   const http = data.edges.find((e) => e[2] === "http");
   assert.ok(http, "an http edge is emitted in the callers view");
   assert.equal(http[4], "POST /res/save", "endpoint label carried");
@@ -786,7 +787,7 @@ test("big tables: the code-graph reads the MODEL, and the folded #calls table ca
   const rows = Array.from({ length: 600 }, (_, i) => `#m0, #m${i + 1}, call,`).join("\n");
   const doc = `=== meta\nmodule = big\nentry = #m0\n===\n\n=== code {#m0 src=s#L1-2 anchor="m0"}\n===\n\n=== table {#calls format=csv}\nfrom, to, kind, confidence\n${rows}\n===\n`;
   const MAP = { "big.geml": doc };
-  const out = renderHtml(parse(doc), { source: "big.geml", loadDoc: (p) => MAP[p] ?? null, parseDoc: (s) => parse(s) });
+  const out = renderHtml(parse(doc), { source: "big.geml", loadDoc: (p) => MAP[p] ?? null, parseDoc: (s) => parse(s), diagrams: { "geml-code-graph": codeGraphDiagram } });
   const d = graphData(out);
   assert.equal(d.edges.length, 600, "all 600 edges in the graph payload");
   assert.equal((out.match(/<tr>/g) || []).length, 1 + 600, "and all 600 rows in the HTML, folded shut");
@@ -802,7 +803,7 @@ test("code-graph indexes: equivalent to the old linear scan — first duplicate 
       "=== table {#calls format=csv}\nfrom, to, kind, confidence\n#a, #b, call,\n#b, #c, call,\n===\n\n" +
       "=== table {#calls format=csv}\nfrom, to, kind, confidence\n#a, #ignored, call,\n===\n", // second #calls table is ignored (old behaviour)
   };
-  const opts2 = { loadDoc: (p) => MAP[p] ?? null, parseDoc: (s) => parse(s) };
+  const opts2 = { loadDoc: (p) => MAP[p] ?? null, parseDoc: (s) => parse(s), diagrams: { "geml-code-graph": codeGraphDiagram } };
   const r = buildCodeGraph("chain.geml", opts2);
   assert.ok(r.data.nodes["chain.geml#b"].leaf, "duplicate id resolves to the FIRST block (its .leaf)");
   assert.ok(r.data.nodes["chain.geml#b"].more, "depth horizon still marked through the indexed rows");
@@ -1178,3 +1179,39 @@ test("pageAssets exports the shell's css/js for fragment consumers", () => {
 });
 
 console.log(`\n${passed} test(s) passed.`);
+
+test("diagram 槽位：宿主能注册自己的 format，没注册的按 §7 降级成带标签的源码块", () => {
+  // 这是「核心不认识任何 profile」那句话的检验。§7 本来就说 format 选的是渲染器、
+  // 未知 format 降级成带标签的源码块 —— 扩展点一直是规范的，缺的只是那张表可以被
+  // 扩展。geml-code-graph 从 render.ts 的 if 链里搬出去之后，走的就是这条路。
+  const doc = parse("=== diagram {#d format=acme-plot}\nx: 1\n===\n");
+
+  // 没注册：源码块 + 「这个构建没有渲染器」的说明。不是错误。
+  const bare = renderHtml(doc, {});
+  assert.match(bare, /class="diagram-src" data-format="acme-plot"/);
+  assert.match(bare, /no bundled renderer in this build/);
+
+  // 注册了：宿主的函数说了算，而且拿得到块与上下文。
+  const seen = [];
+  const out = renderHtml(doc, {
+    diagrams: {
+      "acme-plot": (b, ctx) => {
+        seen.push({ type: b.type, format: b.attrs.format, raw: ctx.raw.trim() });
+        ctx.use("acme-plot-js");
+        return `<figure${ctx.idAttr}><svg data-acme="1"></svg>${ctx.cap}</figure>`;
+      },
+    },
+  });
+  assert.match(out, /<svg data-acme="1">/, "宿主画的东西进了页面");
+  assert.doesNotMatch(out, /no bundled renderer/, "不再走降级");
+  assert.deepEqual(seen, [{ type: "diagram", format: "acme-plot", raw: "x: 1" }]);
+});
+
+test("diagram 槽位：宿主不能悄悄改写规范自己的两个 format", () => {
+  // geml-chart 与 mermaid 是 §7 的，查表在它们之后。一个宿主可以**增加** format，
+  // 不能把规范定义的那两个换掉 —— 否则同一份文档在两个合规处理器上画出两样东西。
+  const doc = parse("=== diagram {format=mermaid}\ngraph TD; a-->b;\n===\n");
+  const out = renderHtml(doc, { diagrams: { mermaid: () => "<p>hijacked</p>" } });
+  assert.match(out, /<pre class="mermaid">/, "仍然是核心的 mermaid 输出");
+  assert.doesNotMatch(out, /hijacked/);
+});

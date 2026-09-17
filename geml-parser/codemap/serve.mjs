@@ -31,7 +31,7 @@ import { randomBytes } from "node:crypto";
 import { tmpdir } from "node:os";
 import { spawn } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { parse, renderHtml } from "../dist/geml.js";
+import { parse, renderHtml, codeGraphDiagram } from "../dist/geml.js";
 import { buildCodeGraph } from "../dist/render.js";
 import { isSourcePath, SKIP_DIRS } from "./detect.mjs";
 
@@ -405,6 +405,8 @@ export function createApp({ dir, root, port, cacheMb, srcRoot }) {
           const doc = loadCached(geml).doc;
           const html = renderHtml(doc, {
             source: basename(geml), loadDoc, parseDoc,
+            // codemap's own diagram format, registered by codemap's own host.
+            diagrams: { "geml-code-graph": codeGraphDiagram },
             liveGraph: "/_dist/", graphSidecar: "/_graph?doc=",
           });
           done(200);

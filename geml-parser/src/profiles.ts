@@ -99,6 +99,15 @@ export interface ProfileDef {
    * 可 diff、可断言，而不是去参考实现里挖字符串。
    */
   diagnostics?: Record<string, ProfileDiagnostic["severity"]>;
+  /**
+   * 这份词汇表贡献的 CLI 动词名。**声明**在这里，**实现**在 CLI 侧的
+   * `PROFILE_VERBS` —— 和检查器同一个切分，同一个理由（打包）。
+   *
+   * 动词**不受**命名前缀约定管：那条约定管的是会在文档里相撞的三个命名空间
+   * （类型、诊断码、meta 键）。命令行的动词空间是 CLI 的，而 `geml media` 比
+   * `geml media-media` 好读；撞名由 CLI 自己在注册时拒绝。
+   */
+  verbs?: string[];
   // 检查**函数**不在这里，而在 CLI 侧的注册表（cli.ts `PROFILE_CHECKS`）。
   // 理由是打包：这个模块被 geml.ts 引，而 geml.ts 是浏览器包的入口。把
   // checkMedia 拉进来，就把它的文件 IO 一路拖进扩展的构建——CLAUDE.md 点名过
@@ -135,6 +144,7 @@ export interface ProfileDef {
 export const PROFILES: Record<string, ProfileDef> = {
   // spec/profiles/geml-codemap/geml-codemap-profile.md
   "geml-codemap/v1": {
+    verbs: ["codemap"],
     state: "stable", since: "1.9.0",
     attrs: { code: ["anchor", "name", "entry-via"] },
   },
@@ -169,7 +179,11 @@ export const PROFILES: Record<string, ProfileDef> = {
   },
   // spec/profiles/geml-style/geml-style-profile.md
   "geml-style/v1": {
+    verbs: ["style"],
     state: "draft", since: "1.9.0",
+    // metaKeys 故意不声明：样式表的 `=== meta` 是一张**作者自定义的 token 表**
+    // （`{{accent}}` 这样引用），和它的属性空间开放是同一个理由——核心不可能持有
+    // 那份词典。声明一个闭集会把每个 token 报成拼错的键。
     // 八个码里七个不带 `style-` 前缀，违反本层的命名约定（README「Naming」）。
     // 引用检查器自己的那张表而不是抄一遍——同一份事实抄两处，上游一动就漂。
     diagnostics: STYLE_SEVERITY,
@@ -220,6 +234,7 @@ export const PROFILES: Record<string, ProfileDef> = {
   // 属性表是**闭集**（登记了 attrs 就会被查拼写）。这三个类型的键全部来自设计稿
   // §5，按第一个真实用例跑过一遍。
   "geml-media/v1": {
+    verbs: ["media"],
     state: "draft", since: "1.10.3",
     // 六个 meta 键都不带 `media-` 前缀，违反命名约定；`fps` 和 `aspect` 尤其是
     // 第二份 profile 会想要的通用词。登记以让测试拦得住新增的同类。
@@ -256,6 +271,7 @@ export const PROFILES: Record<string, ProfileDef> = {
   // 九个类型，所以在此之前这个项目写出的每一个 .gemlhistory 都固定吃三条
   // unknown-block-type（全库 333 处）。属性键取自规范的块定义，并与语料逐一核对。
   "geml-history/v1": {
+    verbs: ["history"],
     state: "stable", since: "1.9.0",
     // §8.5 asks an extension for hyphenated names, so these carry the profile's
     // own prefix the way `style-rule` carries geml-style's. The bare `revision`
@@ -270,6 +286,66 @@ export const PROFILES: Record<string, ProfileDef> = {
     },
   },
 };
+
+// ---------------------------------------------------------------------------
+// 运行时注册（默认关）
+// ---------------------------------------------------------------------------
+//
+// `PROFILES` 是编译期常量，所以在此之前「处理器认识哪些词汇表由实现自定」
+// （§8.6.2 规则 3）在实践中等于「fork 这个解析器」。这合规，但它把生态的上限
+// 锁死在这个仓发了什么。
+//
+// 开关默认**关**，而且这是有意的：一个宿主注册了词汇表，它的诊断就和别的宿主
+// 不同——规则 1 本来就允许这件事（它整条都是在说诊断随处理器认识什么而不同），
+// 但那是**这个宿主的决定**，不该由一次 import 悄悄替它做。所以要显式打开。
+//
+// 注册**不是**规则 2 禁止的推断：规则 2 禁的是从文档内容、文件名或扩展名去猜一份
+// 词汇表。宿主说「我认识这一份」，是宿主在陈述自己的能力，不是在读文档。
+let registrationOpen = false;
+const RUNTIME: Record<string, ProfileDef> = Object.create(null);
+
+/** 打开/关闭运行时注册。默认关；宿主自己决定要不要开。 */
+export function enableProfileRegistration(on = true): void {
+  registrationOpen = on;
+  if (!on) for (const k of Object.keys(RUNTIME)) delete RUNTIME[k];
+}
+
+/**
+ * 注册一份词汇表。要求开关已打开，并且**当场执行命名约定**——名字的形状，以及
+ * 它自己的类型、诊断码、meta 键都带自己的前缀。内建的那六份有历史豁免（见
+ * `geml-parser/test/profiles.test.mjs` 的 NAMING_EXCEPTIONS）；新来的没有，这是
+ * 这条约定唯一能真正拦住东西的地方。
+ */
+export function registerProfile(name: string, def: ProfileDef): void {
+  if (!registrationOpen) {
+    throw new Error("profile registration is off; call enableProfileRegistration() first");
+  }
+  if (!/^[a-z][a-z0-9-]*\/v\d+$/.test(name)) {
+    throw new Error(`profile name must look like \`thing/v1\`, got \`${name}\``);
+  }
+  if (Object.hasOwn(PROFILES, name)) {
+    throw new Error(`\`${name}\` is built in; a registration may not replace it`);
+  }
+  const stem = name.replace(/^geml-/, "").replace(/\/v\d+$/, "") + "-";
+  const offenders = [
+    ...(def.types ?? []),
+    ...Object.keys(def.diagnostics ?? {}),
+    ...(def.metaKeys ?? []),
+  ].filter((n) => !n.startsWith(stem));
+  if (offenders.length > 0) {
+    throw new Error(`\`${name}\` owns the prefix \`${stem}\`; these do not carry it: ${offenders.join(", ")}`);
+  }
+  RUNTIME[name] = def;
+}
+
+/** 内建的与已注册的，内建优先（注册不得替换内建）。 */
+function profileDef(name: string): ProfileDef | undefined {
+  return Object.hasOwn(PROFILES, name) ? PROFILES[name] : RUNTIME[name];
+}
+/** 本处理器此刻认识的全部词汇表名。 */
+export function knownProfiles(): string[] {
+  return [...Object.keys(PROFILES), ...Object.keys(RUNTIME)];
+}
 
 export interface Vocabulary {
   types: Set<string>;
@@ -301,10 +377,37 @@ export interface Vocabulary {
  * `Object.hasOwn` 而不是 `in`：`PROFILES` 是普通对象，`in` 会把 `toString` 这类
  * 原型键认成已注册的词汇表。
  */
+/**
+ * 一个 `=== meta` 键**落在某份已声明词汇表的命名空间里、而那份词汇表没有声明它**
+ * 时，返回那个词汇表名；否则返回 null。
+ *
+ * 这是 meta 检查唯一正确的形状，而第一版不是。`=== meta` 同时装着两种东西：
+ * **文档元数据**（`title`、`chapter`、作者想记的任何事——开放，永远是作者的）和
+ * **词汇表参数**（`media-fps` 这种）。对整块做闭集检查会把前者报成拼写错误：实测
+ * 本仓的 playground 教程用 `chapter = "6 / 7"`，它不该也不可能被任何词汇表登记。
+ *
+ * 所以检查的是**命名空间**，不是整块。一份词汇表拥有前缀 `<stem>-`
+ * （spec/profiles/README「Naming」），落在那个前缀里的键就该由它登记；不带前缀的
+ * 键核心不置一词。
+ *
+ * 今天这条几乎不发声，而那是诚实的：codemap 与 media 的 meta 键都早于命名约定、
+ * 不带前缀，登记在豁免表里。名字改好的那天它自己就开始生效——豁免表因此不只是
+ * 一张催办单，它还是这条检查的开关。
+ */
+export function misnamespacedMetaKey(key: string, declared: string[]): string | null {
+  for (const name of declared) {
+    const stem = name.replace(/^geml-/, "").replace(/\/v\d+$/, "") + "-";
+    if (!key.startsWith(stem)) continue;
+    const owned = profileDef(name)?.metaKeys;
+    if (owned !== undefined && !owned.includes(key)) return name;
+  }
+  return null;
+}
+
 export function unrecognizedVocabularies(meta: Map<string, string>): string[] {
   return (meta.get("profile") ?? "")
     .split(/\s+/)
-    .filter((name) => name.length > 0 && !Object.hasOwn(PROFILES, name));
+    .filter((name) => name.length > 0 && profileDef(name) === undefined);
 }
 
 /**
@@ -314,7 +417,7 @@ export function unrecognizedVocabularies(meta: Map<string, string>): string[] {
 export function declaredVocabularies(meta: Map<string, string>): string[] {
   return (meta.get("profile") ?? "")
     .split(/\s+/)
-    .filter((name) => name.length > 0 && Object.hasOwn(PROFILES, name));
+    .filter((name) => name.length > 0 && profileDef(name) !== undefined);
 }
 
 export function vocabularyFor(meta: Map<string, string>): Vocabulary {
@@ -324,8 +427,9 @@ export function vocabularyFor(meta: Map<string, string>): Vocabulary {
   const formats = new Set<string>();
   const bodies = new Map<string, "raw" | "flow" | "data" | "prose">();
   const prose = new Set<string>();
-  for (const [name, def] of Object.entries(PROFILES)) {
-    if (!declared.has(name)) continue;
+  for (const name of declared) {
+    const def = profileDef(name);
+    if (def === undefined) continue;
     for (const t of def.types ?? []) types.add(t);
     for (const f of def.formats ?? []) formats.add(f);
     for (const [t, m] of Object.entries(def.bodies ?? {})) bodies.set(t, m);

@@ -4,7 +4,7 @@
 // `_index/foldings.geml`（一份「edit freely」的 GEML 文档），显示期折叠写死在
 // 渲染器 JS 里。这个模块给显示期补上同样的面。
 import { parseGraphStyle, defaultGraphStyle, serializeGraphStyle } from "../dist/graph-style.js";
-import { parse } from "../dist/geml.js";
+import { parse, codeGraphDiagram } from "../dist/geml.js";
 import { renderHtml, pageAssets } from "../dist/render-html.js";
 import { loadOrSeedGraphStyle } from "../dist/graph-style.js";
 import { strict as assert } from "node:assert";
@@ -149,6 +149,7 @@ function graphData(dir) {
   const html = renderHtml(parse(src), {
     loadDoc: (rel) => { try { return readFileSync(join(dir, rel), "utf8"); } catch { return null; } },
     parseDoc: (text) => parse(text),
+    diagrams: { "geml-code-graph": codeGraphDiagram },
   });
   const m = /data-graph="([^"]*)"/.exec(html);
   assert.notEqual(m, null, "应当渲染出 cg-mount");

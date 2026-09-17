@@ -42,7 +42,11 @@ export { type Inline } from "./inline.js";
 export { type TableModel } from "./table.js";
 export { mdToGeml, type ConvertResult } from "./from-md.js";
 export { renderHtml, pageAssets } from "./render-html.js";
-export { declaredVocabularies, unrecognizedVocabularies, type ProfileDiagnostic, type ProfileIO, type ProfileCheck } from "./profiles.js";
+// `geml-codemap/v1`'s diagram renderer. Exported so a HOST registers it —
+// codemap's own tooling, the `--to html` verb, the viewer — rather than the
+// core dispatch knowing the format by name (RenderOptions.diagrams).
+export { codeGraphDiagram } from "./codemap-render.js";
+export { declaredVocabularies, unrecognizedVocabularies, enableProfileRegistration, registerProfile, knownProfiles, type ProfileDef, type ProfileDiagnostic, type ProfileIO, type ProfileCheck } from "./profiles.js";
 export { type RenderOptions } from "./render.js";
 export { serialize } from "./serialize.js";
 export { gemlToMd } from "./to-md.js";
@@ -159,7 +163,7 @@ export type Block =
 // the package root. The catalogue of codes lives there (spec Appendix A).
 export { type Diagnostic, type DiagnosticCode, SEVERITY } from "./diagnostics.js";
 
-import { vocabularyFor, unrecognizedVocabularies, EMPTY_VOCABULARY, type Vocabulary } from "./profiles.js";
+import { vocabularyFor, unrecognizedVocabularies, declaredVocabularies, misnamespacedMetaKey, EMPTY_VOCABULARY, type Vocabulary } from "./profiles.js";
 import { parseCoordPath } from "./selector.js";
 import { metaView, projectCoord } from "./coord.js";
 
@@ -2538,6 +2542,24 @@ export function parse(source: string, opts: ParseOptions = {}): Document {
     }
   }
   const ctx: Ctx = { diags, ids: new Map(), refs: [], meta, vocab: opts.vocab ?? vocabularyFor(meta), resolveDoc: opts.resolveDoc };
+  // §4 never checked a `=== meta` key, so a typo in one was silent — and with
+  // GEP-0013 a vocabulary's keys became part of what it owns. The check is
+  // OPT-IN per document, exactly as the attribute check is opt-in per type: it
+  // runs only when some declared vocabulary said what its keys are. A document
+  // that declares none, or only vocabularies that declared none, keeps the open
+  // meta namespace it always had.
+  if (opts.vocab === undefined) {
+    const declaredNames = declaredVocabularies(meta);
+    for (const [k] of meta) {
+      const owner = misnamespacedMetaKey(k, declaredNames);
+      if (owner === null) continue;
+      diags.push({
+        severity: "warning", code: "unknown-meta-key",
+        message: `meta key \`${k}\` is in \`${owner}\`'s namespace but that vocabulary does not define it`,
+        line: definedAt.get(k) ?? 1, subject: k,
+      });
+    }
+  }
   const children = scanBlocks(lines, 0, ctx);
   // Before validateRefs: a reference may name a prose run (GEP 0010), and §8.2(5)
   // would otherwise make it an error in this processor and not in another.
