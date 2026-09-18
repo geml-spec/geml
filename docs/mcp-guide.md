@@ -113,7 +113,7 @@ read those four from the table below rather than from a CLI verb.
 | `geml_check` | Diagnostics with stable codes ([Appendix A](../spec/GEML-spec.md#appendix-a-diagnostic-catalogue)) |
 | `geml_history` | Recorded revisions, newest first |
 | `geml_to` | Convert a whole document — `json` / `md` / `geml` / `html`; nothing is written |
-| `geml_set` | Replace one block (whole / head / body) |
+| `geml_set` | Replace one block (whole / head / intro / body) |
 | `geml_add` | Insert blocks or prose (append / before / after) |
 | `geml_delete` | Remove blocks by id |
 | `geml_rename` | Rename an id **and every reference to it** |
