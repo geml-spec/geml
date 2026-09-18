@@ -3,4 +3,5 @@
 .pack/
 coverage/
 dist/
+geml-agent-runtime-pkg/
 node_modules/

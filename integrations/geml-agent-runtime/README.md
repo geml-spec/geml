@@ -197,13 +197,20 @@ nothing here is published yet, so step 1 builds the package from this checkout.
 API key for whichever model you point the harness at — the supervisor never
 sees it.
 
+`pi install` takes a package **directory**, an `npm:` source or a `git:` one —
+**not a `.tgz`**. Hand it a tarball and it accepts the path, writes it into
+`settings.json`, and then fails to start every session afterwards with
+`Unknown file extension ".tgz"`. If that has happened, `pi remove <the same
+path>` puts it right.
+
 ```sh
 # 1. build an installable tarball (bundles the parser, which is not on npm yet)
 cd integrations/geml-agent-runtime && npm install && npm run pack:local
 
-# 2. install it — the CLI globally, the supervisor into your harness
-npm install -g ./geml-agent-runtime-0.1.0.tgz
-pi install /absolute/path/to/geml-agent-runtime-0.1.0.tgz
+# 2. install it — the two installers take different things, and pack:local
+#    prints both paths when it finishes
+npm install -g ./geml-agent-runtime-0.1.0.tgz          # the CLI: a tarball
+pi install /absolute/path/to/geml-agent-runtime-pkg    # pi agent: a DIRECTORY
 
 # 3. in the repository you want to work on
 cd ~/code/my-project

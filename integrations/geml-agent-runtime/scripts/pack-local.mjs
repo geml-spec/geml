@@ -67,10 +67,25 @@ const tarball = readdirSync(staging).find((n) => n.endsWith(".tgz"));
 if (!tarball) throw new Error("npm pack produced no tarball");
 const finalPath = join(outDir, tarball);
 cpSync(join(staging, tarball), finalPath);
+
+// Two artifacts, because the two installers want different things: `npm
+// install -g` takes the tarball, and `pi install` takes a package DIRECTORY —
+// hand it a .tgz and it records the path in settings.json and then fails to
+// load it on every later start, which is a confusing way to find that out.
+//
+// The directory is the staging tree itself rather than an extraction of the
+// tarball: it holds exactly the same files, and copying it is portable, where
+// shelling out to `tar` is not (Git Bash and cmd.exe do not agree about
+// --strip-components on Windows).
+const unpacked = join(outDir, "geml-agent-runtime-pkg");
+rmSync(unpacked, { recursive: true, force: true });
+cpSync(staging, unpacked, { recursive: true });
+rmSync(join(unpacked, tarball), { force: true });
 rmSync(staging, { recursive: true, force: true });
 
-console.log(`\n${finalPath}\n`);
-console.log("install it with any of:");
-console.log(`  npm install -g ${tarball}                 # the geml-agent CLI`);
-console.log(`  pi install ${finalPath}                   # pi agent: supervisor + skills`);
-console.log(`  dsh plugin --profile web add ${finalPath} # DeepSeek Harness: the bundle`);
+console.log(`\n  tarball    ${finalPath}`);
+console.log(`  unpacked   ${unpacked}\n`);
+console.log("install it:");
+console.log(`  npm install -g "${finalPath}"        # the geml-agent CLI (takes the tarball)`);
+console.log(`  pi install "${unpacked}"             # pi agent: the supervisor and the skills`);
+console.log(`\n  pi remove "${unpacked}"             # if you want it out again`);
