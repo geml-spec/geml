@@ -83,43 +83,50 @@ Vocabulary: [`spec/profiles/geml-agent/`](../../spec/profiles/geml-agent/geml-ag
 
 ## A statechart
 
+This is the workflow `geml-agent init` writes, abridged — the one that governs
+a coding session:
+
 ```geml
 === meta
 profile = "geml-agent/v1"
-tools   = "read_file grep"
+tools   = "read grep find ls"
 ===
 
 === agent-vars {#vars}
 { "type": "object", "additionalProperties": false, "properties": {
-    "order":    { "type": "string" },
-    "amount":   { "type": "number",  "default": 0 },
-    "approved": { "type": "boolean", "default": false } } }
+    "goal":       { "type": "string" },
+    "plan":       { "type": "string" },
+    "command":    { "type": "string" },
+    "tests-pass": { "type": "boolean", "default": false } } }
 ===
 
-=== agent-state {#intake initial vars="order amount"}
-Collect the order id and the refund amount. Do not judge yet.
+=== agent-state {#explore initial vars="goal touched"}
+Read the code before proposing anything. This state admits no way to change the
+repository.
 ===
 
-=== agent-state {#pay tools="pay_refund" vars=none rollback-on-error}
-Execute the refund exactly once.
+=== agent-state {#implement tools="read edit write grep ls" vars=none}
+Make the change. `edit` and `write` exist here and nowhere else, and `bash`
+does not exist here at all.
 ===
 
-=== data {#is-approved format=json}
-{ "type": "object", "required": ["approved"], "properties": { "approved": { "const": true } } }
+=== data {#tests-green format=json}
+{ "type": "object", "required": ["tests-pass"], "properties": { "tests-pass": { "const": true } } }
 ===
 
-=== agent-transition {#to-pay from=#review to=#pay requires=#is-approved approval}
-Policy allows the refund. A human must approve this step.
+=== agent-transition {#to-review from=#verify to=#review requires=#tests-green}
+The command passed. Hand it to a person.
 ===
 ```
 
-In `#pay` the model sees exactly one external tool, may write nothing, and any
-failure rolls the variables back to where the state was entered. `geml check`
-validates the document like any other GEML; `geml get agent.geml '#pay'` reads
-one state; `.gemlhistory` versions it.
+In `#implement` the model can edit but cannot run anything; in `#verify` it can
+run but cannot edit. Neither is a rule in a prompt that the model may forget or
+argue with — the tools are simply not in the request. `geml check` validates the
+document like any other GEML; `geml get agent.geml '#implement'` reads one
+state; `.gemlhistory` versions it.
 
-Run `geml-agent init` to write this example (the full version) into the current
-directory.
+`geml-agent init` writes the full version into the current directory, and
+`geml-agent init --template refund` writes an approval workflow instead.
 
 ## What it does not do
 
@@ -141,10 +148,18 @@ oversights:
   because a pi agent tool cannot be re-registered mid-session. The move is still
   refused — by gate 5, one step later, and recorded as a refusal.
 
-The fit is therefore **enumerable processes** — approvals, KYC, ticket triage,
-operations runbooks. Open-ended work (writing code, doing research) has no
-enumerable state, and forcing one on it removes the flexibility the agent is
-for.
+The fit is therefore **whatever has an enumerable order**, which is not the
+same as work whose *content* is enumerable. Approvals, KYC and ticket triage
+are the easy case: the steps themselves are known in advance.
+
+Writing code is the interesting one. What the agent will write is not
+enumerable and should not be — but the **phases** are: you read before you
+plan, plan before you edit, and run the tests before you claim they pass. The
+shipped `agent.geml` models exactly that and nothing finer. A state per file or
+per function would be the failure mode: it spends the model's judgement on
+paperwork and buys nothing, because the order of those steps carries no
+meaning. If a step's position in the order does not matter, it does not deserve
+a state.
 
 ## CLI
 
@@ -153,7 +168,7 @@ geml-agent check <flow.geml> [--tools a,b]        static checks (exit 1 on error
 geml-agent snapshot <ledger.geml> [--json]        the last revision
 geml-agent verify <ledger.geml> [--statechart f]  hash chain and consistency
 geml-agent export <ledger.geml> --to md           revision table with per-step diffs
-geml-agent init [dir]                             write the example agent.geml
+geml-agent init [dir] [--template coding|refund]  a starting agent.geml (default: coding)
 geml-agent run [--profile name] <task>            add the bundle to a dsh profile and run the task there
 ```
 

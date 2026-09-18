@@ -79,41 +79,46 @@ flowchart TB
 
 ## 一份状态图
 
+下面是 `geml-agent init` 写出来的那份（节选）——管一次 coding 会话的那份：
+
 ```geml
 === meta
 profile = "geml-agent/v1"
-tools   = "read_file grep"
+tools   = "read grep find ls"
 ===
 
 === agent-vars {#vars}
 { "type": "object", "additionalProperties": false, "properties": {
-    "order":    { "type": "string" },
-    "amount":   { "type": "number",  "default": 0 },
-    "approved": { "type": "boolean", "default": false } } }
+    "goal":       { "type": "string" },
+    "plan":       { "type": "string" },
+    "command":    { "type": "string" },
+    "tests-pass": { "type": "boolean", "default": false } } }
 ===
 
-=== agent-state {#intake initial vars="order amount"}
-向用户问清订单号和退款金额，此时先不做判断。
+=== agent-state {#explore initial vars="goal touched"}
+先把代码读明白再提方案。这个状态里没有任何能改动仓库的途径。
 ===
 
-=== agent-state {#pay tools="pay_refund" vars=none rollback-on-error}
-把这笔退款执行恰好一次。
+=== agent-state {#implement tools="read edit write grep ls" vars=none}
+动手改。`edit` 和 `write` 只在这里有，而 `bash` 在这里根本不存在。
 ===
 
-=== data {#is-approved format=json}
-{ "type": "object", "required": ["approved"], "properties": { "approved": { "const": true } } }
+=== data {#tests-green format=json}
+{ "type": "object", "required": ["tests-pass"], "properties": { "tests-pass": { "const": true } } }
 ===
 
-=== agent-transition {#to-pay from=#review to=#pay requires=#is-approved approval}
-政策允许退款。这一步需要人工点头。
+=== agent-transition {#to-review from=#verify to=#review requires=#tests-green}
+命令过了，交给人。
 ===
 ```
 
-在 `#pay` 里，模型只看得见一个外部工具，什么变量都不能写，任何失败都会把变量拨
-回进入该状态时的样子。`geml check` 像验任何 GEML 一样验它；`geml get agent.geml
-'#pay'` 取一个状态；`.gemlhistory` 给它记版本。
+在 `#implement` 里模型能改文件但执行不了任何命令；在 `#verify` 里能执行但改不了
+文件。这两条都不是写在提示词里、模型可以忘掉或者跟你讲道理的规矩——那些工具压根
+不在请求里。`geml check` 像验任何 GEML 一样验它；`geml get agent.geml '#implement'`
+取一个状态；`.gemlhistory` 给它记版本。
 
-`geml-agent init` 会把这份示例（完整版）写到当前目录。
+`geml-agent init` 把完整版写到当前目录；`geml-agent init --template refund` 写的
+则是一份审批流程。
 
 ## 它不做什么
 
@@ -130,8 +135,14 @@ tools   = "read_file grep"
   因为它的工具不能在会话中途重注册。但这一步仍然会被拒——晚一道闸，由闸5 拒，
   并且照样记进台账。
 
-因此适用面是**可枚举的流程**——审批、KYC、工单分级、运维 runbook。开放式任务
-（写代码、做研究）枚举不出状态，硬套只会把 agent 本身的价值抹掉。
+因此适用面是**顺序可枚举的事**——注意这跟「内容可枚举」不是一回事。审批、KYC、
+工单分级是容易的那一类：步骤本身事先就知道。
+
+写代码是有意思的那一类。agent 会写出什么，不可枚举，也不该枚举——但**阶段**是可
+枚举的：先读再想，先有计划再动文件，先真跑测试再说测试过了。自带那份 `agent.geml`
+建模的就是这个，不再细。细到一个文件一个状态、一个函数一个状态，那就是失败模式：
+把模型的判断力花在填表上，而且什么都没买到——因为那些步骤的先后本来就不承载意义。
+一个步骤排在哪儿无所谓，它就不配拥有一个状态。
 
 ## CLI
 
@@ -140,7 +151,7 @@ geml-agent check <flow.geml> [--tools a,b]        静态检查（有 error 退�
 geml-agent snapshot <ledger.geml> [--json]        最后一条修订
 geml-agent verify <ledger.geml> [--statechart f]  哈希链与自洽性
 geml-agent export <ledger.geml> --to md           修订表，逐步变量 diff
-geml-agent init [dir]                             写出示例 agent.geml
+geml-agent init [dir] [--template coding|refund]  写出一份起步的 agent.geml（默认 coding）
 geml-agent run [--profile name] <task>            把 bundle 加进某个 dsh profile，并在那里跑这个任务
 ```
 
