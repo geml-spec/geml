@@ -166,7 +166,7 @@ geml-agent run [--profile name] <task>            把 bundle 加进某个 dsh pr
 
 ```sh
 # 1. 打一个能装的包（把还没发布的解析器打进去）
-cd integrations/geml-agent-runtime && npm install && node scripts/pack-local.mjs
+cd integrations/geml-agent-runtime && npm install && npm run pack:local
 
 # 2. 装：CLI 装全局，监督器装进 harness
 npm install -g ./geml-agent-runtime-0.1.0.tgz
@@ -197,7 +197,7 @@ pi "把 test/user.test.ts 里那个挂掉的用例修好"
 ### 不用 API key，先把整条路看一遍
 
 ```sh
-node examples/walkthrough.mjs
+npm run walkthrough
 ```
 
 它会起一个**真的** pi agent 会话，对着一个临时项目（里面有个挂掉的测试），由一个
