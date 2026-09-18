@@ -383,6 +383,22 @@ test("codeGraphWaves: seeded documents skip the fetch; a throwing fetch is remem
 
 const fakeEl = (tag) => ({
   tag, attrs: {}, children: [], listeners: {}, textContent: "", style: {}, parentNode: null,
+  // 全屏那一组是运行时唯一用 classList 的地方（进/出只翻一个 .cg-full）。
+  classes: new Set(),
+  get classList() {
+    const s = this.classes;
+    return {
+      contains: (c) => s.has(c),
+      add: (c) => { s.add(c); },
+      remove: (c) => { s.delete(c); },
+      toggle: (c, on) => {
+        if (on === undefined) { if (s.has(c)) s.delete(c); else s.add(c); }
+        else if (on) s.add(c);
+        else s.delete(c);
+        return s.has(c);
+      },
+    };
+  },
   setAttribute(k, v) { this.attrs[k] = String(v); },
   getAttribute(k) { return this.attrs[k] ?? null; },
   appendChild(c) { c.parentNode = this; this.children.push(c); return c; },
@@ -1416,6 +1432,190 @@ await atest("runtime security: a legitimate module `doc` still navigates the fra
     globalThis.document = prevDoc; globalThis.window = prevWin;
     if (prevLoc === undefined) delete globalThis.location; else globalThis.location = prevLoc;
   }
+});
+
+// ---------------------------------------------------------------------------
+// 全屏。两条路走同一个 .cg-full：浏览器给原生全屏就用原生（浏览器 chrome 自己让开、
+// Esc 自己处理），不给就铺一个固定定位的覆盖层（沙箱 iframe、被权限策略拒掉的场合
+// 照样有地方看图）。翻完类名画布还是按旧尺寸缩放的，所以两条路都要重排一次。
+// 整组此前一行没跑过 —— 七个函数全是这儿的。
+// ---------------------------------------------------------------------------
+
+const FS_DATA = {
+  start: "s.geml", depth: 6, roots: ["s.geml#r"],
+  nodes: { "s.geml#r": { n: "r" }, "s.geml#h": { n: "run" } },
+  edges: [["s.geml#r", "s.geml#h", "call", ""]],
+};
+
+/** 装一套假的浏览器：document/window/rAF，返回收尾函数。 */
+function fsEnv({ raf = true } = {}) {
+  const prev = {
+    doc: globalThis.document, win: globalThis.window,
+    raf: globalThis.requestAnimationFrame, loc: globalThis.location,
+  };
+  globalThis.document = mkDocument();
+  globalThis.window = { location: { href: "" }, localStorage: { setItem() {}, getItem() { return null; } } };
+  globalThis.location = { protocol: "file:", href: "" };
+  const frames = { n: 0 };
+  if (raf) globalThis.requestAnimationFrame = (f) => { frames.n++; f(); return 1; };
+  else delete globalThis.requestAnimationFrame;
+  return {
+    frames,
+    done() {
+      globalThis.document = prev.doc; globalThis.window = prev.win;
+      if (prev.raf === undefined) delete globalThis.requestAnimationFrame; else globalThis.requestAnimationFrame = prev.raf;
+      if (prev.loc === undefined) delete globalThis.location; else globalThis.location = prev.loc;
+    },
+  };
+}
+const fullBtnOf = (mount) => barOf(mount).children.find((b) => /fullscreen/.test(b.textContent || ""));
+
+test("全屏：浏览器不给原生就铺覆盖层，Esc 收回来", () => {
+  const env = fsEnv();
+  try {
+    const m = bootMount(FS_DATA);
+    const btn = fullBtnOf(m);
+    assert.equal(btn.textContent, "⛶ fullscreen");
+    const before = env.frames.n;
+    btn.listeners.click();
+    assert.equal(m.classList.contains("cg-full"), true, "翻到覆盖层");
+    assert.equal(btn.textContent, "⛶ exit fullscreen", "按钮文案跟着翻");
+    assert.match(btn.title, /leave fullscreen/);
+    assert.ok(env.frames.n > before, "翻完重排了一次：画布还是按旧尺寸缩放的");
+
+    // 覆盖层的 Esc 要自己收 —— 原生全屏才由浏览器代劳
+    globalThis.document.listeners.keydown({ key: "Escape" });
+    assert.equal(m.classList.contains("cg-full"), false);
+    assert.equal(btn.textContent, "⛶ fullscreen");
+    // 不在全屏时的 Esc 什么都不做
+    globalThis.document.listeners.keydown({ key: "Escape" });
+    assert.equal(m.classList.contains("cg-full"), false);
+    // 别的键也不做
+    btn.listeners.click();
+    globalThis.document.listeners.keydown({ key: "f" });
+    assert.equal(m.classList.contains("cg-full"), true);
+  } finally { env.done(); }
+});
+
+test("全屏：有原生 API 就走原生，类名等 fullscreenchange 来落", () => {
+  const env = fsEnv();
+  try {
+    const m = bootMount(FS_DATA);
+    let asked = 0;
+    m.requestFullscreen = function () { asked++; globalThis.document.fullscreenElement = m; return undefined; };
+    fullBtnOf(m).listeners.click();
+    assert.equal(asked, 1, "问的是浏览器，不是自己铺");
+    assert.equal(m.classList.contains("cg-full"), true);
+
+    // 浏览器回报：还在全屏里，类名已经对，只是几何变了 —— 只重排
+    const beforeFrames = env.frames.n;
+    globalThis.document.listeners.fullscreenchange();
+    assert.equal(m.classList.contains("cg-full"), true);
+    assert.ok(env.frames.n > beforeFrames);
+
+    // 用户按 F11 或浏览器 UI 退出：元素没了，类名要跟着落
+    globalThis.document.fullscreenElement = null;
+    globalThis.document.listeners.fullscreenchange();
+    assert.equal(m.classList.contains("cg-full"), false);
+
+    // 反过来：浏览器先进了全屏，类名还没翻
+    globalThis.document.fullscreenElement = m;
+    globalThis.document.listeners.fullscreenchange();
+    assert.equal(m.classList.contains("cg-full"), true);
+  } finally { env.done(); }
+});
+
+test("全屏：原生态下再按一次是请浏览器退出，不是自己摘类名", () => {
+  const env = fsEnv();
+  try {
+    const m = bootMount(FS_DATA);
+    m.requestFullscreen = function () { globalThis.document.fullscreenElement = m; return undefined; };
+    fullBtnOf(m).listeners.click();
+
+    let exited = 0;
+    globalThis.document.exitFullscreen = function () { exited++; };
+    fullBtnOf(m).listeners.click();
+    assert.equal(exited, 1);
+    assert.equal(m.classList.contains("cg-full"), true, "类名留着，等 fullscreenchange 来摘");
+    globalThis.document.fullscreenElement = null;
+    globalThis.document.listeners.fullscreenchange();
+    assert.equal(m.classList.contains("cg-full"), false);
+  } finally { env.done(); }
+});
+
+test("全屏：exitFullscreen 抛了就自己摘，不会卡在全屏里", () => {
+  const env = fsEnv();
+  try {
+    const m = bootMount(FS_DATA);
+    m.requestFullscreen = function () { globalThis.document.fullscreenElement = m; return undefined; };
+    fullBtnOf(m).listeners.click();
+    globalThis.document.exitFullscreen = function () { throw new Error("nope"); };
+    fullBtnOf(m).listeners.click();
+    assert.equal(m.classList.contains("cg-full"), false, "退回覆盖层那条路，自己把类名摘掉");
+  } finally { env.done(); }
+});
+
+test("全屏：原生请求被拒或抛出，都退回覆盖层而不是什么都不做", () => {
+  // 被拒：requestFullscreen 返回的 promise reject（沙箱 iframe、权限策略）
+  const denied = fsEnv();
+  try {
+    const m = bootMount(FS_DATA);
+    let caught = 0;
+    m.requestFullscreen = function () {
+      return { catch(cb) { caught++; cb(); return { catch() {} }; } };
+    };
+    fullBtnOf(m).listeners.click();
+    assert.equal(caught, 1, "挂上了拒绝处理");
+    assert.equal(m.classList.contains("cg-full"), true, "覆盖层顶上");
+  } finally { denied.done(); }
+
+  const threw = fsEnv();
+  try {
+    const m = bootMount(FS_DATA);
+    m.requestFullscreen = function () { throw new Error("denied"); };
+    fullBtnOf(m).listeners.click();
+    assert.equal(m.classList.contains("cg-full"), true);
+  } finally { threw.done(); }
+});
+
+test("全屏：读 fullscreenElement 本身抛出时当作没有原生全屏", () => {
+  const env = fsEnv();
+  try {
+    const m = bootMount(FS_DATA);
+    Object.defineProperty(globalThis.document, "fullscreenElement", {
+      get() { throw new Error("blocked by policy"); }, configurable: true,
+    });
+    fullBtnOf(m).listeners.click();                 // 进覆盖层
+    assert.equal(m.classList.contains("cg-full"), true);
+    globalThis.document.listeners.keydown({ key: "Escape" });
+    assert.equal(m.classList.contains("cg-full"), false, "读不到就按覆盖层处理，Esc 照样收");
+  } finally { env.done(); }
+});
+
+test("全屏：没有 requestAnimationFrame 就当场重排", () => {
+  const env = fsEnv({ raf: false });
+  try {
+    const m = bootMount(FS_DATA);
+    assert.equal(typeof m._cgRefit, "function", "draw 发布了重排钩子");
+    fullBtnOf(m).listeners.click();                 // 不该因为缺 rAF 就抛
+    assert.equal(m.classList.contains("cg-full"), true);
+  } finally { env.done(); }
+});
+
+test("重排只动自动缩放，手挑过的倍率不被覆盖", () => {
+  const env = fsEnv();
+  try {
+    const m = bootMount(FS_DATA);
+    const svgBefore = svgIn(m);
+    const autoTransform = svgBefore.attrs.transform ?? svgBefore.children[0]?.attrs?.transform;
+    m._cgRefit();                                    // 没手动缩放过：重排照做
+    btnOf(m, "+").listeners.click();                 // 手挑一个倍率
+    const picked = svgIn(m).attrs.transform ?? svgIn(m).children[0]?.attrs?.transform;
+    m._cgRefit();                                    // 手挑过之后：原地返回
+    const after = svgIn(m).attrs.transform ?? svgIn(m).children[0]?.attrs?.transform;
+    assert.equal(after, picked, "手挑的倍率没被重排改掉");
+    void autoTransform;
+  } finally { env.done(); }
 });
 
 // ---------------------------------------------------------------------------
