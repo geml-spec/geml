@@ -455,7 +455,7 @@ created         = "2026-09-14T12:00:00Z"
     - id: geml-agent
       name: '@geml/agent-runtime'
       config:
-        statechart: agent.geml                     # 相对路径按会话 cwd 解析；绝对路径原样
+        statechart: .geml/agent.geml                     # 相对路径按会话 cwd 解析；绝对路径原样
         ledgerDir: !!js dshHomePath('geml-agent')  # DSH 规则：部署可变的值必须是 Config 字段，不得写死在代码里
         onMissing: skip                            # skip | fail —— cwd 下没有状态图时，跳过（agent 照常）或让该 agent 启动失败
 ```
@@ -554,7 +554,7 @@ refund.geml ──▶ loadStatechart ──▶ 工厂体（加载时）─┬─
 | `init [dir]` | 写一份示例 `agent.geml`（退款流）；已存在则拒绝覆盖 | 同上 |
 | `run [--profile headless] "<task>"` | 薄启动器：找到 `dsh`（PATH，否则 `npx -y @deepseek-ai/dsh`）→ `dsh plugin --profile <p> add @geml/agent-runtime`（幂等）→ `dsh --profile <p> "<task>"`，透传退出码。不复制 DSH 任何逻辑。 | 透传 |
 
-`run` 是唯一有外部依赖的动词。测试用 PATH 上的 `dsh` 替身（`.cmd` + 带 shebang 的 POSIX 脚本，两份都要）记录参数序列并断言。`--statechart` 参数是否能经 `dsh --patch` 覆盖层传入，待核实该 flag 的确切用法；核实前 `run` 只支持默认路径 `agent.geml`（cwd）。
+`run` 是唯一有外部依赖的动词。测试用 PATH 上的 `dsh` 替身（`.cmd` + 带 shebang 的 POSIX 脚本，两份都要）记录参数序列并断言。`--statechart` 参数是否能经 `dsh --patch` 覆盖层传入，待核实该 flag 的确切用法；核实前 `run` 只支持默认路径 `.geml/agent.geml`（相对 cwd）。
 
 ## 8. 模块切分与目录
 

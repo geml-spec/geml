@@ -122,7 +122,7 @@ The command passed. Hand it to a person.
 In `#implement` the model can edit but cannot run anything; in `#verify` it can
 run but cannot edit. Neither is a rule in a prompt that the model may forget or
 argue with — the tools are simply not in the request. `geml check` validates the
-document like any other GEML; `geml get agent.geml '#implement'` reads one
+document like any other GEML; `geml get .geml/agent.geml '#implement'` reads one
 state; `.gemlhistory` versions it.
 
 `geml-agent init` writes the full version into the current directory, and
@@ -214,8 +214,8 @@ pi install /absolute/path/to/geml-agent-runtime-pkg    # pi agent: a DIRECTORY
 
 # 3. in the repository you want to work on
 cd ~/code/my-project
-geml-agent init                      # writes agent.geml: the coding workflow
-geml-agent check agent.geml          # 0 = it will load
+geml-agent init                # writes .geml/agent.geml: the coding workflow
+geml-agent check .geml/agent.geml   # 0 = it will load
 
 # 4. work
 pi "make the failing test in test/user.test.ts pass"
@@ -231,7 +231,7 @@ and the refusal is in the ledger.
 The ledger lands in `<session dir>/geml-agent/<session>.geml`. Read it with
 `geml-agent export <ledger> --to md`, check it with `geml-agent verify`.
 
-**Edit `agent.geml` to fit your project.** It is the whole configuration: the
+**Edit `.geml/agent.geml` to fit your project.** It is the whole configuration: the
 states, the tools each one admits, the variables, and the guards. The shipped
 one makes four claims — no edit before a plan, no command while editing, no
 "done" without a recorded test result, and a human on the last step. If your
@@ -291,7 +291,7 @@ it. That is why the path is an environment variable and not a flag — flags are
 not parsed yet at that point:
 
 ```sh
-GEML_AGENT_STATECHART=agent.geml pi      # the default, relative to the cwd
+GEML_AGENT_STATECHART=.geml/agent.geml pi      # the default, relative to the cwd
 GEML_AGENT_LEDGER_DIR=/var/ledgers pi    # default: <session dir>/geml-agent
 GEML_AGENT_VISIBILITY=guard-only pi      # keep the tool list static (see Status)
 ```

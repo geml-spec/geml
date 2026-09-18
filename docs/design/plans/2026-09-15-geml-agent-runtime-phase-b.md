@@ -1031,7 +1031,7 @@ test("the bundle patch contributes the runtime row alongside the MCP server and 
     - id: geml-agent
       name: '@geml/agent-runtime'
       config:
-        statechart: agent.geml
+        statechart: .geml/agent.geml
         ledgerDir: !!js dshHomePath('geml-agent')
         onMissing: skip
 ```

@@ -75,5 +75,5 @@ A、B、C 三期的**仓内工作已全部完成**。这份文档只列**仓外�
 
 - **接真实模型的端到端**：需要 DeepSeek API key。插件与 CLI 的互通已用 testkit 的真 agent 验过（模型走完退款流、台账被 `verify` 通过），但没有一次真实模型对话。README 里没有任何地方声称做过。
 - **pi agent 上没跑过真 `pi`**：适配器是对着 `@earendil-works/pi-coding-agent@0.85.1` 的 `.d.ts` 与随包文档写的，测试用的是按它的管线顺序、并且用它自己的 typebox 校验器跑的替身，`pi-parity` 再拿真包的声明钉住形状。三件事只能在真 `pi` 上看：① 每次跃迁换活跃工具集对提示词前缀缓存的代价（它的文档说非增量替换会重发整表、可能失效）；② `hasUI` 为假时 `ctx.ui.confirm` 是抛还是返回默认值（我们两种都按拒处理，但语义要确认）；③ fork 之后 `getBranch()` 给的是分支还是整棵树（哈希链的 `parent` 按它返回的东西算，错了 `geml-agent verify` 会抓到）。README 的两个语言版本都写了这三条。
-- **`run --statechart`**：设计 §7 提过，依赖 dsh 的 `--patch` 覆盖层，那个 flag 的确切用法我没核实，所以 `run` 只支持默认的 `agent.geml`（cwd），这也正是 bundle 配置里写的。
+- **`run --statechart`**：设计 §7 提过，依赖 dsh 的 `--patch` 覆盖层，那个 flag 的确切用法我没核实，所以 `run` 只支持默认的 `.geml/agent.geml`（相对会话 cwd），这也正是 bundle 配置里写的。
 - **把快照镜像进会话日志**：设计 §1.3 那条硬约束还在（DSH 不让仓外插件写自定义会话事件），等上游开了 `ignorable` 的写入口再说。

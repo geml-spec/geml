@@ -25,6 +25,7 @@ import { hasErrors, loadStatechart, type Statechart } from "../../core/statechar
 import { metaFor, openRun, Supervisor, VERBS, type ApprovalGate } from "../../core/supervisor.js";
 import type { ParamEntry, ParamSpec, ToolSpec } from "../../core/tools.js";
 import { ledgerFromEntries, SNAPSHOT_ENTRY, type BranchEntry } from "./ledger-entries.js";
+import { DEFAULT_STATECHART } from "../../core/layout.js";
 
 /** How gate 1 is enforced. `guard-only` trades it away to keep the prompt cache. */
 export type VisibilityMode = "active-tools" | "guard-only";
@@ -139,7 +140,7 @@ export function readSettings(env: Record<string, string | undefined>): PiSetting
   const visibility: VisibilityMode = env["GEML_AGENT_VISIBILITY"] === "guard-only" ? "guard-only" : "active-tools";
   const ledgerDir = env["GEML_AGENT_LEDGER_DIR"];
   return {
-    statechart: resolve(process.cwd(), env["GEML_AGENT_STATECHART"] ?? "agent.geml"),
+    statechart: resolve(process.cwd(), env["GEML_AGENT_STATECHART"] ?? DEFAULT_STATECHART),
     visibility,
     ...(ledgerDir ? { ledgerDir } : {}),
   };
