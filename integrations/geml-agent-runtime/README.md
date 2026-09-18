@@ -184,7 +184,7 @@ sees it.
 
 ```sh
 # 1. build an installable tarball (bundles the parser, which is not on npm yet)
-cd integrations/geml-agent-runtime && npm install && node scripts/pack-local.mjs
+cd integrations/geml-agent-runtime && npm install && npm run pack:local
 
 # 2. install it — the CLI globally, the supervisor into your harness
 npm install -g ./geml-agent-runtime-0.1.0.tgz
@@ -218,7 +218,7 @@ project wants a different order, that is a text edit, not a code change.
 ### See the whole thing run, without an API key
 
 ```sh
-node examples/walkthrough.mjs
+npm run walkthrough
 ```
 
 That starts a REAL pi agent session against a throwaway project with a failing
