@@ -49,7 +49,7 @@ flowchart TB
 上面每一道闸的**判断**都只有一份（`src/core/supervisor.ts`），两个宿主各自只提供
 **机制**，谁也没有第二份拷贝：
 
-| | DeepSeek Harness | Pi |
+| | DeepSeek Harness | pi agent |
 |---|---|---|
 | 闸1 可见性 | `agent.ctx.tools.restrict()` | `pi.setActiveTools()` |
 | 闸2 参数域 | 动词按状态重注册，枚举就是 `outgoing(σ)` | 每会话只注册一次，枚举是状态图里的全部目标；其余交给闸5 拒 |
@@ -69,9 +69,9 @@ flowchart TB
 
 | | |
 |---|---|
-| 现在可用 | `geml-agent/v1` 词汇表；核心库（状态图载入与静态检查、哈希链快照、台账渲染/读取/校验、监督器本身）；`geml-agent` CLI；两个宿主适配器——DeepSeek Harness `0.1.5-rc.1` 的 Cordis 插件与 Pi `0.85.x` 的扩展。 |
-| 不接模型也测过 | 五道闸在两个宿主上各测一遍：DSH 侧用 `dsh-agent-loop-testkit` 起真 agent，Pi 侧用一个按 Pi 自己的管线顺序、并且用 Pi 自己的参数校验器（typebox）跑的替身。接真模型跑一遍是手工步骤，见下。 |
-| 还没实测 | 按状态门控在 Pi 上对提示词前缀缓存的真实代价。Pi 文档写明：非增量地更换活跃工具集要重发整张工具表、可能让缓存前缀失效——而每次跃迁干的正好是这件事。`GEML_AGENT_VISIBILITY=guard-only` 可以把闸1 换掉省这笔钱，闸3 照拦。 |
+| 现在可用 | `geml-agent/v1` 词汇表；核心库（状态图载入与静态检查、哈希链快照、台账渲染/读取/校验、监督器本身）；`geml-agent` CLI；两个宿主适配器——DeepSeek Harness `0.1.5-rc.1` 的 Cordis 插件与 pi agent `0.85.x` 的扩展。 |
+| 不接模型也测过 | 五道闸在两个宿主上各测一遍：DSH 侧用 `dsh-agent-loop-testkit` 起真 agent，pi agent 侧用一个按它自己的管线顺序、并且用它自己的参数校验器（typebox）跑的替身。接真模型跑一遍是手工步骤，见下。 |
+| 还没实测 | 按状态门控在 pi agent 上对提示词前缀缓存的真实代价。它自己的文档写明：非增量地更换活跃工具集要重发整张工具表、可能让缓存前缀失效——而每次跃迁干的正好是这件事。`GEML_AGENT_VISIBILITY=guard-only` 可以把闸1 换掉省这笔钱，闸3 照拦。 |
 | bundle 里还带着 | GEML MCP server，以及写作与代码图谱两个技能（见[安装](#安装)）。 |
 
 设计：[`docs/design/specs/2026-09-14-geml-agent-runtime-design.md`](../../docs/design/specs/2026-09-14-geml-agent-runtime-design.md)。
@@ -126,8 +126,8 @@ tools   = "read_file grep"
 - **恢复恢复的是状态，不是对话。** 几百字节带回"在哪、能做什么"；对话由 harness
   按它自己的规则重放。
 - **一道闸的强度按宿主最弱的那个机制算**，上面那张表写的就是哪一个。闸2 是现成的
-  例子：Pi 上 `to` 的枚举是状态图里的全部目标，而不是只有 `σ` 当下能到的那几个，
-  因为 Pi 的工具不能在会话中途重注册。但这一步仍然会被拒——晚一道闸，由闸5 拒，
+  例子：pi agent 上 `to` 的枚举是状态图里的全部目标，而不是只有 `σ` 当下能到的那几个，
+  因为它的工具不能在会话中途重注册。但这一步仍然会被拒——晚一道闸，由闸5 拒，
   并且照样记进台账。
 
 因此适用面是**可枚举的流程**——审批、KYC、工单分级、运维 runbook。开放式任务
@@ -178,14 +178,14 @@ server**（`npx -y @geml/geml mcp --root .`，限定在会话自己的项目目�
 图谱。要覆盖哪一行，在你 profile 的 `cordis.patch.yml` 里按 `id` 重写，注意把该行
 需要的每个键都写全。
 
-### Pi
+### pi agent
 
 ```sh
 pi install npm:@geml/agent-runtime
 ```
 
 同一个包就是一个 pi package：`pi.extensions` 指向监督器，`pi.skills` 指向同样那
-两个技能——它们本来就是一个技能一个 `SKILL.md` 文件夹，正是 Pi 自己的约定。
+两个技能——它们本来就是一个技能一个 `SKILL.md` 文件夹，正是 pi agent 自己的约定。
 
 状态图在**扩展加载时**读一次，因为三个动词必须在第一个会话开始之前注册好，而它们
 的 schema 来自状态图。这也是为什么路径是环境变量而不是命令行 flag——那个时刻 flag
@@ -199,7 +199,7 @@ GEML_AGENT_VISIBILITY=guard-only pi      # 工具表保持不变（见"状态"�
 
 没有状态图时：不注册、不监听，`pi` 的行为和没装这个包完全一样。
 
-Pi 这边有三件事只读过它发布的类型与随包文档、没有实测，接真模型跑的时候正是要看
+pi agent 这边有三件事只读过它发布的类型与随包文档、没有实测，接真模型跑的时候正是要看
 它们：按状态门控对提示词前缀缓存的代价；没有 UI 时 `ctx.ui.confirm` 是抛异常还是
 返回默认值（两种情况本适配器都按拒处理）；以及 fork 之后 `getBranch()` 给的是分支
 还是整棵树（`hash`/`parent` 是按它返回的东西算的，出问题由 `geml-agent verify`

@@ -393,7 +393,7 @@ The same setup, packaged for a harness — the geml MCP server plus the authorin
 
 ```sh
 dsh plugin --profile web add @geml/agent-runtime   # DeepSeek Harness (web is the profile dsh boots by default)
-pi install npm:@geml/agent-runtime                 # Pi — the same tarball is also a pi package
+pi install npm:@geml/agent-runtime                 # pi agent — the same tarball is also a pi package
 ```
 
 Source in [integrations/geml-agent-runtime/](integrations/geml-agent-runtime/), which is also where the supervisor is explained and where the gates are compared host by host. The package is not on npm under this name yet, so for now install it from a checkout.
@@ -581,7 +581,7 @@ Every profile this project publishes: [`spec/profiles/`](spec/profiles/README.md
 - [x] Official MCP server (`geml mcp`) for Claude Code, Cursor, Codex and other MCP hosts
 - [x] codemap — a whole codebase's call graph, written as GEML
 - [x] The VS Code extension published on the Visual Studio Marketplace (publisher `geml`)
-- [x] Ecosystem integrations: VS Code highlighting and reference checking, tree-sitter, Obsidian, Logseq (two-way sync against a live DB graph), the browser viewer, a GitHub Action, LangChain / LlamaIndex, and the agent-harness plugins — Claude Code, Codex, Grok, DeepSeek Harness, Pi, plus root manifests for Gemini CLI and Kimi Code
+- [x] Ecosystem integrations: VS Code highlighting and reference checking, tree-sitter, Obsidian, Logseq (two-way sync against a live DB graph), the browser viewer, a GitHub Action, LangChain / LlamaIndex, and the agent-harness plugins — Claude Code, Codex, Grok, DeepSeek Harness, pi agent, plus root manifests for Gemini CLI and Kimi Code
 - [ ] The Logseq plugin listed in the Logseq marketplace ([PR #893](https://github.com/logseq/marketplace/pull/893)) and the Grok plugin listed in `xai-org/plugin-marketplace`
 - [ ] Parsers in other languages (Rust / Python) — the spec and the conformance suite are public, so community implementations are welcome; we are glad to help line them up
 
@@ -628,7 +628,7 @@ Or **put it to use**:
 | **From the command line** — validate, convert, edit by block, version history, all in one command | [`@geml/geml`](https://www.npmjs.com/package/@geml/geml) (source [`geml-parser/`](geml-parser/)) | Available |
 | **Read it in the browser** — open any raw `.geml` link and it renders in place: computed tables, charts, Mermaid, math, with diagnostics as a banner | [Chrome Web Store](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie) · [source](integrations/geml-viewer/) | Available |
 | **Let an agent edit by block** — an MCP server; the agent changes one block instead of rewriting the file, and every write is validated before it reaches disk | [`docs/mcp-guide.md`](docs/mcp-guide.md) | Available |
-| **Use it from an agent harness** — the geml MCP server, the authoring and code-graph skills, and a supervisor that gates an agent's tools state by state; one host-agnostic module with an adapter per harness, DeepSeek Harness and Pi today | [`@geml/agent-runtime`](integrations/geml-agent-runtime/) | Installs from a checkout; not published under this name yet |
+| **Use it from an agent harness** — the geml MCP server, the authoring and code-graph skills, and a supervisor that gates an agent's tools state by state; one host-agnostic module with an adapter per harness, DeepSeek Harness and pi agent today | [`@geml/agent-runtime`](integrations/geml-agent-runtime/) | Installs from a checkout; not published under this name yet |
 | **Use it from Codex** — the same payload again: both skills, the MCP server, and a `SessionStart` hook, installable from `/plugins` | [`integrations/codex-plugin/`](integrations/codex-plugin/) | Available from this repo; not in the public plugin directory yet |
 | **Use it from Grok** — the same payload once more: both skills and the MCP server | [`integrations/grok-plugin/`](integrations/grok-plugin/) | Available from this repo; the `xai-org/plugin-marketplace` PR is not opened yet |
 | **Sync a Logseq graph to plain text** — a Logseq 2.0 DB graph as continuously synced GEML files, addressable and git-friendly, with `restore` as the way back | [`@geml/logseq-sync`](https://www.npmjs.com/package/@geml/logseq-sync) · [source](integrations/logseq/) | Watcher on npm; the plugin installs from a release zip — the marketplace listing ([PR #893](https://github.com/logseq/marketplace/pull/893)) is not merged yet |
