@@ -755,14 +755,24 @@ test("big tables: a codemap edge table folds the same way, and keeps every row t
   assert.equal((out.match(/<tr>/g) || []).length, 1 + 501, "header + every row, behind the fold");
 });
 
-test("big tables: the codemap index #modules table is CONTENT — full, open, unbounded", () => {
-  // 1216-module repos (flink) scan and filter this table; a 500-row preview
-  // hid more than half the inventory. Edge tables keep the fold (see above).
-  const doc = `=== meta\ncontainer = dir\n===\n\n=== table {#modules format=csv header=1}\nK, V\n${csvRows(501)}\n===\n`;
+test("big tables: `{.no-fold}` says this table is CONTENT — full, open, unbounded", () => {
+  // 1216-module repos (flink) scan and filter the codemap's inventory table; a
+  // 500-row preview hid more than half of it. Edge tables keep the fold (above).
+  //
+  // The renderer used to infer this from the DOCUMENT being a codemap and the
+  // table being called `modules` — one vocabulary's table known by name inside
+  // the core layout. The document says it now; the renderer does not guess
+  // whose document it is reading.
+  const doc = `=== meta\ncontainer = dir\n===\n\n=== table {#modules .no-fold format=csv header=1}\nK, V\n${csvRows(501)}\n===\n`;
   const out = renderHtml(parse(doc), { source: "index.geml", ...cgOpts });
   assert.doesNotMatch(out, /<details/, "the inventory people came to scan stays OPEN at any size");
   assert.match(out, />r500</, "the last row is rendered");
   assert.equal((out.match(/<tr>/g) || []).length, 1 + 501, "header + every row");
+
+  // 没有那个类，同一份文档里的同一张表照旧折叠 —— 判据不再是「这是谁的文档」。
+  const bare = `=== meta\ncontainer = dir\n===\n\n=== table {#modules format=csv header=1}\nK, V\n${csvRows(501)}\n===\n`;
+  assert.match(renderHtml(parse(bare), { source: "index.geml", ...cgOpts }), /<details/,
+    "文档是不是 codemap 不再决定折叠");
 });
 
 test("big tables: tableRows bounds what is OPEN and can never drop a row", () => {

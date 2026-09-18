@@ -256,13 +256,6 @@
       "id": "RenderCtx-get-currentDocRel"
     }
   ],
-  "RenderCtx#`<get>isCodemapDoc`().": [
-    {
-      "anchor": "scip-typescript npm @geml/geml 1.11.1 src/`render.ts`/RenderCtx#`<get>isCodemapDoc`().",
-      "doc": "geml-parser--render.ts.geml",
-      "id": "RenderCtx-get-isCodemapDoc"
-    }
-  ],
   "RenderCtx.block": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.11.1 src/`render.ts`/RenderCtx#block().",

@@ -1,7 +1,7 @@
 === meta
 profile = "geml-codemap/v1"
 repo = geml
-commit = eff724e
+commit = 02476b8
 container = file
 entry = geml-viewer--content.js.geml#main
 resolution-default = cpg
@@ -9,11 +9,11 @@ resolution-default = cpg
 
 # Code map — geml
 
-=== table {#modules format=csv}
+=== table {#modules format=csv .no-fold}
 module,                              doc,                                       methods, entries, tests
 geml-parser/geml.ts,                 geml-parser--geml.ts.geml,                 98,      25,      0
 geml-parser/verbs.ts,                geml-parser--verbs.ts.geml,                60,      21,      0
-geml-parser/render.ts,               geml-parser--render.ts.geml,               48,      7,       0
+geml-parser/render.ts,               geml-parser--render.ts.geml,               47,      7,       0
 geml-parser/cli.ts,                  geml-parser--cli.ts.geml,                  41,      0,       0
 geml-parser/history.ts,              geml-parser--history.ts.geml,              39,      7,       0
 geml-viewer/render.js,               geml-viewer--render.js.geml,               28,      5,       0

@@ -1782,3 +1782,14 @@ export const CODE_GRAPH_CSS = `.code-graph { margin:1.4em 0; }
 .cg-svg.hl .cg-e { opacity:.1; }
 .cg-svg.hl .cg-n.hl { opacity:1; }
 .cg-svg.hl .cg-e.hl { opacity:1; stroke-width:1.6; }`;
+
+/**
+ * The class names this vocabulary's figures wear as chrome.
+ *
+ * The renderer refuses to let an author's `{.cg-mount}` wear them (render.ts
+ * `RENDERER_CLASS`), and that list used to spell these out — one vocabulary's
+ * chrome enumerated inside the core renderer. The vocabulary states them here
+ * and the renderer composes; `no-fold` is deliberately NOT among them, because
+ * it is an AUTHOR-facing class the renderer acts on, not chrome it emits.
+ */
+export const CODE_GRAPH_CHROME = ["code-graph", "cg-mount", "cg-note"];

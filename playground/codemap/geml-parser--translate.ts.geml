@@ -70,7 +70,7 @@ from,              to,                kind, confidence
 
 === table {#called-by format=csv}
 from,                                             to,                kind, site
-geml-parser--render.ts.geml#RenderCtx-transclude, #resolveTarget,    call, geml-parser/src/render.ts:440
+geml-parser--render.ts.geml#RenderCtx-transclude, #resolveTarget,    call, geml-parser/src/render.ts:427
 geml-parser--verbs.ts.geml#transform,             #resolveTarget,    call, geml-parser/src/verbs.ts:854
 #maskTerms,                                       #ph,               call, geml-parser/src/translate.ts:96
 #mask,                                            #ph,               call, geml-parser/src/translate.ts:126
@@ -88,7 +88,7 @@ geml-parser--verbs.ts.geml#transform,             #resolveTarget,    call, geml-
 #translateBlocks,                                 #translateItems,   call, geml-parser/src/translate.ts:277
 #translateBlocks,                                 #translateAttrs,   call, geml-parser/src/translate.ts:284
 #translateBlocks,                                 #translateTable,   call, geml-parser/src/translate.ts:297
-geml-parser--render.ts.geml#RenderCtx-transclude, #translateBlocks,  call, geml-parser/src/render.ts:442
+geml-parser--render.ts.geml#RenderCtx-transclude, #translateBlocks,  call, geml-parser/src/render.ts:429
 #translateItems,                                  #translateBlocks,  call, geml-parser/src/translate.ts:229
 ===
 

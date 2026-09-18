@@ -407,9 +407,13 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
     + (fileHintsByDoc.size ? `app-entry-docs = ${[...fileHintsByDoc.keys()].sort().join(" ")}\n` : "")
     + `resolution-default = ${RESOLUTION_DEFAULT}\n===\n`,
     `# Code map — ${esc(repoName)}\n`,
+    // `.no-fold`: this table is the page's content — the inventory people came
+    // to scan and filter — so it stays open however long it gets. The renderer
+    // used to infer that from the document being a codemap and the table being
+    // called `modules`; saying it in the document is the vocabulary's job.
     csv("modules", ["module", "doc", "methods", "entries", "tests"],
       indexRows.sort((a, b) => b.methods - a.methods)
-        .map((r) => [csvCell(r.module), r.doc, r.methods, r.entries, r.tests])) ?? "",
+        .map((r) => [csvCell(r.module), r.doc, r.methods, r.entries, r.tests]), " .no-fold") ?? "",
     csv("module-edges", ["from", "to", "calls"],
       [...moduleEdges.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
         .map(([k, n]) => { const [fd, td] = k.split(" "); return [csvCell(modName(fd)), csvCell(modName(td)), n]; })) ?? "",

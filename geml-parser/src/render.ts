@@ -18,6 +18,7 @@ import { type Align, type TableCell, type TableModel } from "./table.js";
 import { type ChartModel } from "./chart.js";
 import { type Value } from "./attrs.js";
 import { graphStyleFromLayers, resolveStyleLayers, type GraphStyle } from "./graph-style.js";
+import { CODE_GRAPH_CHROME } from "./code-graph.js";
 import { translateBlocks, resolveTarget, type Translator } from "./translate.js";
 
 const PALETTE = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#db2777", "#0891b2", "#ea580c"];
@@ -147,8 +148,14 @@ function classAttr(tokens: string[]): string {
 // verbatim (the charset filter above only strips characters), so a plain note
 // could wear the build-error styling and read as a system message. Content
 // classes stay content classes; a token that names the chrome is dropped.
-const RENDERER_CLASS =
-  /^(render-error|diagram-src|callout|text|geml-.*|transclusion(-.*)?|math|math-block|mermaid|chart|code-graph|computed|media|fn|task|task-list|table-.*|data-(src|more)|c-(axis|grid|legend|tick|title)|cg-(mount|note))$/;
+// The vocabulary chrome is composed in rather than spelled out: `code-graph`
+// and `cg-*` belong to code-graph.ts, and listing them here was one more place
+// the core renderer named a vocabulary.
+const RENDERER_CLASS = new RegExp(
+  "^(render-error|diagram-src|callout|text|geml-.*|transclusion(-.*)?|math|math-block|mermaid"
+  + "|chart|computed|media|fn|task|task-list|table-.*|data-(src|more)|c-(axis|grid|legend|tick|title)"
+  + CODE_GRAPH_CHROME.map((c) => "|" + c).join("")
+  + ")$");
 const authorClasses = (cs: readonly string[]): string[] => cs.filter((c) => !RENDERER_CLASS.test(c));
 
 // Maximum block-nesting depth the renderer will descend before bailing out with
@@ -287,19 +294,6 @@ export class RenderCtx {
     this.indexLabels(doc.children);
     const meta = doc.children.find((b) => b.kind === "block" && b.type === "meta" && b.data);
     this.docMeta = (meta?.kind === "block" ? meta.data : undefined) ?? {};
-  }
-
-  // Codemap documents (meta declares module= / container=) are machine data:
-  // their oversized tables fold shut by default. Everywhere else a big table
-  // is still the document's CONTENT — it truncates for the DOM's sake but
-  // stays visible.
-  get isCodemapDoc(): boolean {
-    for (const b of this.doc.children) {
-      if (b.kind === "block" && b.type === "meta" && b.data) {
-        return b.data["module"] !== undefined || b.data["container"] !== undefined;
-      }
-    }
-    return false;
   }
 
   // Build the id -> label map: a heading's text, or a block's caption, or its id.
@@ -818,7 +812,13 @@ export class RenderCtx {
     // costs the reader one click and costs the document nothing. It used to
     // slice the rows away and say the complete table was in the source, which
     // made `--to html` a lossy conversion of a table the model holds in full.
-    const foldAbove = this.isCodemapDoc && id === "modules" ? Infinity : (this.opts.tableRows ?? 500);
+    // `{.no-fold}` says this table is the page's CONTENT, however long: show it
+    // all, never inside a collapsed <details>. It replaces a heuristic that
+    // asked whether the DOCUMENT was a codemap and whether the table was called
+    // `modules` — one vocabulary's table known by name inside the core
+    // renderer's layout. A document says what it wants; the renderer does not
+    // guess from whose document it is.
+    const foldAbove = classes.includes("no-fold") ? Infinity : (this.opts.tableRows ?? 500);
     const allRows = t.rows;
     const rows = allRows;
 
