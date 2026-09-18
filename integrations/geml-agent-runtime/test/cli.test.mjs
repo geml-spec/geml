@@ -100,17 +100,19 @@ test("export --to md renders a revision table with per-step diffs", () => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-test("init writes the coding workflow by default and refuses to overwrite", () => {
+test("init writes the coding workflow into .geml/ and refuses to overwrite", () => {
   const dir = ws();
   const r = run(["init"], dir);
   assert.equal(r.code, 0, r.err);
-  const written = readFileSync(join(dir, "agent.geml"), "utf8");
+  // Under .geml/, not at the repo root: a project root is contested space.
+  assert.equal(existsSync(join(dir, "agent.geml")), false, "nothing lands at the root");
+  const written = readFileSync(join(dir, ".geml", "agent.geml"), "utf8");
   const shipped = fileURLToPath(new URL("../examples/coding/agent.geml", import.meta.url));
   assert.equal(written, readFileSync(shipped, "utf8").replace(/\r\n/g, "\n"));
   // What a repository gets: the four claims the workflow is there to make.
   assert.match(written, /#explore/);
   assert.match(written, /#implement/);
-  assert.equal(run(["check", "agent.geml"], dir).code, 0);
+  assert.equal(run(["check", ".geml/agent.geml"], dir).code, 0);
   const again = run(["init"], dir);
   assert.equal(again.code, 1);
   assert.match(again.err, /already exists/);
@@ -121,7 +123,7 @@ test("init --template refund writes the other one, and an unknown template is a 
   const dir = ws();
   assert.equal(run(["init", "--template", "refund"], dir).code, 0);
   const shipped = fileURLToPath(new URL("../examples/refund/agent.geml", import.meta.url));
-  assert.equal(readFileSync(join(dir, "agent.geml"), "utf8"), readFileSync(shipped, "utf8").replace(/\r\n/g, "\n"));
+  assert.equal(readFileSync(join(dir, ".geml", "agent.geml"), "utf8"), readFileSync(shipped, "utf8").replace(/\r\n/g, "\n"));
 
   const bad = run(["init", "--template", "nonsense"], ws());
   assert.equal(bad.code, 2);

@@ -23,7 +23,7 @@ import { globToRegExp } from "./exclude.mjs";
 // SKIP_DIRS plus the codemap's own output dir.
 export const SKIP_DIRS = new Set([
   "node_modules", "target", "dist", "out", "build", ".git", "vendor",
-  ".geml-code-graph", ".geml-build", ".idea", ".gradle",
+  ".geml/codemap", ".geml-build", ".idea", ".gradle",
 ]);
 
 // Manifest filename -> the language it declares. Presence is a STRONG signal
@@ -386,7 +386,7 @@ export function indexerCommand(job, { root, buildDir, scriptPath, sfcScript }) {
   const raw = join(buildDir, `joern-${String(job.gemlLang).toLowerCase()}`);
   // Run IN the build dir, not the repo root. Joern's importCode writes its CPG
   // workspace to <cwd>/workspace/; anchoring cwd at buildDir keeps that cache
-  // inside .geml-code-graph/_build/workspace/ instead of scattering a stray
+  // inside .geml/codemap/_build/workspace/ instead of scattering a stray
   // `workspace/` at the repo root. GEML_SRC/GEML_OUT are absolute and the
   // script path is absolute, so the move never affects what Joern reads or writes.
   return {

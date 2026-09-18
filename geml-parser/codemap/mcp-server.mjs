@@ -50,7 +50,7 @@ const { blockSpans } = await import(`file://${parserPath.replace(/\\/g, "/")}`);
 const { resolveSrcRoot } = await import("./serve.mjs");
 const splitLines = (s) => s.split(/(?<=\n)/);
 
-export const graphDirOf = (args) => resolve(args?.graph_dir ?? process.env.GEML_GRAPH_DIR ?? ".geml-code-graph");
+export const graphDirOf = (args) => resolve(args?.graph_dir ?? process.env.GEML_GRAPH_DIR ?? ".geml/codemap");
 
 export const readBlock = (graphDir, doc, id) => {
   const p = join(graphDir, doc);
@@ -227,7 +227,7 @@ export const TOOLS = [
         query: { type: "string", description: "The symbol name, or a substring of it (e.g. `token` matches issueToken and TokenStore)" },
         exact: { type: "boolean", description: "Match the WHOLE name instead of a substring (default false)" },
         limit: { type: "number", description: "Maximum candidates to return (default 50). Narrow the query rather than raising this." },
-        graph_dir: { type: "string", description: "Graph directory (default: $GEML_GRAPH_DIR or ./.geml-code-graph)" },
+        graph_dir: { type: "string", description: "Graph directory (default: $GEML_GRAPH_DIR or ./.geml/codemap)" },
       },
       required: ["query"],
     },
@@ -271,7 +271,7 @@ export const TOOLS = [
         id: { type: "string", description: "The symbol's block id, e.g. hashtableFind" },
         direction: { type: "string", enum: ["callees", "callers"], description: "`callees` = what this calls (default); `callers` = what calls this" },
         depth: { type: "number", description: "How many hops to follow (default 3, max 6)" },
-        graph_dir: { type: "string", description: "Graph directory (default: $GEML_GRAPH_DIR or ./.geml-code-graph)" },
+        graph_dir: { type: "string", description: "Graph directory (default: $GEML_GRAPH_DIR or ./.geml/codemap)" },
       },
       required: ["doc", "id"],
     },
@@ -331,7 +331,7 @@ export const TOOLS = [
       type: "object",
       properties: {
         module: { type: "string", description: "Module name (e.g. geml-parser) or its document (geml-parser.geml). Omit to list every module." },
-        graph_dir: { type: "string", description: "Graph directory (default: $GEML_GRAPH_DIR or ./.geml-code-graph)" },
+        graph_dir: { type: "string", description: "Graph directory (default: $GEML_GRAPH_DIR or ./.geml/codemap)" },
       },
     },
     run: (args) => {
@@ -374,7 +374,7 @@ export const TOOLS = [
         doc: { type: "string", description: "Document path relative to the graph dir, e.g. hashtable.c.geml" },
         id: { type: "string", description: "Block id, e.g. hashtableFind (or #calls / #called-by / #unresolved for the edge tables)" },
         source: { type: "boolean", description: "Also return the real source lines that `src=` points at (default false). Off by default because a node is often opened in a loop, where the pointer is enough." },
-        graph_dir: { type: "string", description: "Graph directory (default: $GEML_GRAPH_DIR or ./.geml-code-graph)" },
+        graph_dir: { type: "string", description: "Graph directory (default: $GEML_GRAPH_DIR or ./.geml/codemap)" },
       },
       required: ["doc", "id"],
     },

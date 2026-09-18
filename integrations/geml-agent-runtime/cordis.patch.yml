@@ -41,6 +41,6 @@
     - id: geml-agent
       name: '@geml/agent-runtime/dsh'
       config:
-        statechart: agent.geml
+        statechart: .geml/agent.geml
         ledgerDir: !!js dshHomePath('geml-agent')
         onMissing: skip

@@ -43,13 +43,15 @@ writeFileSync(join(project, "test.mjs"), [
   'console.log("ok");',
   "",
 ].join("\n"));
-writeFileSync(join(project, "agent.geml"), readFileSync(join(here, "coding/agent.geml"), "utf8"));
+mkdirSync(join(project, ".geml"), { recursive: true });
+const statechart = join(project, ".geml", "agent.geml");
+writeFileSync(statechart, readFileSync(join(here, "coding/agent.geml"), "utf8"));
 
 const ledgers = join(project, "ledgers");
 const trace = join(project, "trace.json");
 
 console.log(`project   ${project}`);
-console.log(`statechart ${join(project, "agent.geml")}\n`);
+console.log(`statechart ${statechart}\n`);
 
 // --- the run ---------------------------------------------------------------
 // -ne / -ns / -nc keep the walkthrough from picking up whatever else is
@@ -65,7 +67,7 @@ const args = [
 ];
 const env = {
   ...process.env,
-  GEML_AGENT_STATECHART: join(project, "agent.geml"),
+  GEML_AGENT_STATECHART: statechart,
   GEML_AGENT_LEDGER_DIR: ledgers,
   GEML_DEMO_SCRIPT: join(here, "coding/script.json"),
   GEML_DEMO_TRACE: trace,
@@ -100,7 +102,7 @@ console.log(run("export", ledgerFile, "--to", "md").trim());
 // is the exit code rather than the text.
 let verdict;
 try {
-  run("verify", ledgerFile, "--statechart", join(project, "agent.geml"));
+  run("verify", ledgerFile, "--statechart", statechart);
   verdict = "the chain verifies against the statechart (exit 0)";
 } catch (error) {
   verdict = `FAILED — ${String(error.stdout ?? "")}${String(error.stderr ?? "")}`.trim();

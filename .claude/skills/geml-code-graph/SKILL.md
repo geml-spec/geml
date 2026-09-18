@@ -5,7 +5,7 @@ description: >-
   documents. Use when asked to see/update/build a project's code graph or
   codemap (看下/更新下 code-graph), when asked "who calls X" / "what does X
   call" / to trace a call chain or impact path, or whenever a
-  .geml-code-graph/ directory with index.geml and _index/name-lookup.json
+  .geml/codemap/ directory with index.geml and _index/name-lookup.json
   exists.
   Detects the project's languages itself — never asks the user; viewing ends
   with the browser OPEN on the graph.
@@ -24,21 +24,21 @@ empty-body `code` blocks per method, and up to three CSV edge tables —
 
 ```sh
 # 1. resolve a name — where does a symbol live
-node -e "console.log(JSON.stringify(require('./.geml-code-graph/_index/name-lookup.json')['hashtableFind'],null,1))"
+node -e "console.log(JSON.stringify(require('./.geml/codemap/_index/name-lookup.json')['hashtableFind'],null,1))"
 #   → [{"anchor":"c:hashtable.c#hashtableFind(…)","doc":"hashtable.c.geml","id":"hashtableFind"}, …]
 #   Multiple entries = real ambiguity (e.g. a .c definition and a .h inline) — inspect each.
 
 # 2. container overview — the module's surface, one glance
-head -8 .geml-code-graph/hashtable.c.geml          # meta: entry = the externally-called methods
+head -8 .geml/codemap/hashtable.c.geml          # meta: entry = the externally-called methods
 
 # 3. open the method block (src= tells you exactly where the code is)
-geml get .geml-code-graph/hashtable.c.geml '#hashtableFind'
+geml get .geml/codemap/hashtable.c.geml '#hashtableFind'
 
 # 4. forward: what it calls (grep your method's rows; follow doc.geml#id refs)
-geml get .geml-code-graph/hashtable.c.geml '#calls'
+geml get .geml/codemap/hashtable.c.geml '#calls'
 
 # 5. reverse: who calls it (aggregated, with file:line sites)
-geml get .geml-code-graph/hashtable.c.geml '#called-by'
+geml get .geml/codemap/hashtable.c.geml '#called-by'
 ```
 
 A reference is `#id` (same document) or `sibling.geml#id` (that document, that
@@ -88,10 +88,10 @@ Pick the executor BEFORE starting:
   reports: `serve --background`, open the browser (if an older codemap was
   already on screen, telling the user to F5 is the whole move).
 
-1. **Have a codemap?** `<proj>/.geml-code-graph/index.geml` exists → skip to
+1. **Have a codemap?** `<proj>/.geml/codemap/index.geml` exists → skip to
    step 4 (view) or step 3 (update was asked). An older `codemap/`/`graph/`
    tree from before the rename is not special: regenerate into
-   `.geml-code-graph/` (one build; carry the `*.gemlhistory` sidecars over
+   `.geml/codemap/` (one build; carry the `*.gemlhistory` sidecars over
    first if they matter) and remove the old directory.
 2. **Detect the language(s) — NEVER ask the user.** (Steps 2–3 are the
    generation work — per Dispatch above they normally run inside the
@@ -147,34 +147,34 @@ Pick the executor BEFORE starting:
 
    ```sh
    geml codemap build --adapter scip --raw index.scip --root <proj> \
-        --out <proj>/.geml-code-graph --history      # --container module|dir|file: match
+        --out <proj>/.geml/codemap --history      # --container module|dir|file: match
                                             # the layout (default dir; flat C repo → file)
-   geml codemap verify <proj>/.geml-code-graph       # MUST exit 0 before showing anyone
+   geml codemap verify <proj>/.geml/codemap       # MUST exit 0 before showing anyone
    ```
 
    **First successful build: record the recipe** so `refresh` (and the
-   commit hook) can replay it — write `<proj>/.geml-code-graph/_index/refresh.json`
+   commit hook) can replay it — write `<proj>/.geml/codemap/_index/refresh.json`
    with the EXACT commands you ran:
 
    ```json
    { "root": "..",
      "steps": ["npx --yes @sourcegraph/scip-typescript index --output index.scip",
-               "geml codemap build --adapter scip --raw index.scip --root . --out .geml-code-graph --history",
-               "geml codemap verify .geml-code-graph"] }
+               "geml codemap build --adapter scip --raw index.scip --root . --out .geml/codemap --history",
+               "geml codemap verify .geml/codemap"] }
    ```
 
-   From then on, "更新下" = `geml codemap refresh <proj>/.geml-code-graph` (skips
+   From then on, "更新下" = `geml codemap refresh <proj>/.geml/codemap` (skips
    itself when git HEAD hasn't moved; log at `_index/refresh.log`).
 4. **View — finish with the browser OPEN, not with instructions.**
 
    ```sh
-   geml codemap serve <proj>/.geml-code-graph --background   # detached: SURVIVES the agent session;
+   geml codemap serve <proj>/.geml/codemap --background   # detached: SURVIVES the agent session;
                                                     # http://localhost:8140, pages render live
                                                     # from .geml — rebuild + F5, never stale.
                                                     # already-running port → reused, not stacked.
-   geml codemap serve <proj>/.geml-code-graph --stop         # stop it (pid: .geml-code-graph/_index/serve.pid)
-   geml codemap render <proj>/.geml-code-graph               # serverless alternative: bake .html next to
-                                                    # each doc; open file:///…/.geml-code-graph/index.html
+   geml codemap serve <proj>/.geml/codemap --stop         # stop it (pid: .geml/codemap/_index/serve.pid)
+   geml codemap render <proj>/.geml/codemap               # serverless alternative: bake .html next to
+                                                    # each doc; open file:///…/.geml/codemap/index.html
    ```
 
    Always `--background` (a viewer must not die with the session). Then open
@@ -196,11 +196,11 @@ projects without `refresh.json` are silently skipped). Add to the project's
 
 ```json
 { "hooks": { "PostToolUse": [ { "matcher": "Bash", "hooks": [
-  { "type": "command", "command": "geml codemap refresh .geml-code-graph --hook --commit" }
+  { "type": "command", "command": "geml codemap refresh .geml/codemap --hook --commit" }
 ] } ] } }
 ```
 
-(`.geml-code-graph` = the codemap dir relative to the project root; use an absolute
+(`.geml/codemap` = the codemap dir relative to the project root; use an absolute
 path if the hook cwd differs.) With `--commit`, the refreshed documents land
 as their own follow-up commit — `chore(codemap): refresh for <sha>`, codemap
 dir only — so the next push carries code + graph together. It is loop-safe
@@ -214,8 +214,8 @@ re-runs the recipe after 30s of quiet whenever an indexed source file
 changes — pages render live, so a browser reload shows the new graph.
 
 Add `--history [-m msg]` to build to snapshot changed documents into
-`.gemlhistory` sidecars — then `geml history get .geml-code-graph/<doc>.geml` shows
-the graph's evolution and `geml revert .geml-code-graph/<doc>.geml '#method' --rev -1`
+`.gemlhistory` sidecars — then `geml history get .geml/codemap/<doc>.geml` shows
+the graph's evolution and `geml revert .geml/codemap/<doc>.geml '#method' --rev -1`
 rolls one method's edges back. Language maturity tiers and the smoke-test
 gate: `docs/design/specs/geml-codemap/DESIGN-geml-code-graph.md` §3.4. An MCP wrapper
 exists (`geml mcp --root <dir>`, which serves the four read-only

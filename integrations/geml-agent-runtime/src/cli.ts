@@ -4,6 +4,7 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { exists, readText, writeNew } from "./host-fs.js";
+import { DEFAULT_STATECHART } from "./core/layout.js";
 import { run as runTask } from "./hosts/dsh/launch.js";
 import { loadStatechart, hasErrors, type AgentDiagnostic } from "./core/statechart.js";
 import { readLedger, verifyLedger } from "./core/ledger.js";
@@ -119,7 +120,7 @@ function main(argv: string[]): number {
         fail(`unknown template "${template}"; expected coding or refund`, 2);
       }
       const dir = resolve(rest.filter((a) => a !== "--template" && a !== template)[0] ?? ".");
-      const target = resolve(dir, "agent.geml");
+      const target = resolve(dir, DEFAULT_STATECHART);
       const example = readText(fileURLToPath(new URL(`../examples/${template}/agent.geml`, import.meta.url))).replace(/\r\n/g, "\n");
       try { writeNew(target, example); }
       catch (e) { fail((e as NodeJS.ErrnoException).code === "EEXIST" ? `${target} already exists; not overwriting` : String(e), 1); }
@@ -135,8 +136,8 @@ function main(argv: string[]): number {
       if (at >= 0) { skip.add(at); skip.add(at + 1); }
       const task = rest.filter((_, i) => !skip.has(i)).join(" ").trim();
       if (task.length === 0) fail(USAGE, 2);
-      if (!exists(resolve(".", "agent.geml"))) {
-        console.error("geml-agent: no agent.geml here — the agent will run unsupervised (`geml-agent init` writes one)");
+      if (!exists(resolve(".", DEFAULT_STATECHART))) {
+        console.error(`geml-agent: no ${DEFAULT_STATECHART} here — the agent will run unsupervised ("geml-agent init" writes one)`);
       }
       return runTask({ profile, task });
     }

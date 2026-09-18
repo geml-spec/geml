@@ -278,7 +278,7 @@ export function allTools(): Tool[] {
 }
 
 // The upstream `graph_dir` description advertises `$GEML_GRAPH_DIR or
-// ./.geml-code-graph`, neither of which applies here — the env var is bypassed
+// ./.geml/codemap`, neither of which applies here — the env var is bypassed
 // (we always pass a resolved directory) and the default is this server's
 // --graph. A tool description that names something the server will refuse is
 // the exact failure `eb7390a` fixed for `latest`, so rewrite it rather than
@@ -352,7 +352,7 @@ export const MCP_USAGE = `usage: geml mcp --root <dir> [--graph <dir>] [--no-his
                       Every path a client names is confined to this directory;
                       a client cannot widen or override it.
   --graph <dir>       Code-graph directory, inside --root. Defaults to
-                      <root>/.geml-code-graph when that holds an index.geml.
+                      <root>/.geml/codemap when that holds an index.geml.
                       With no graph, the code-graph tools are not served
                       at all (a client sees only the document tools).
   --no-history        Do not save a .gemlhistory revision before each
@@ -394,11 +394,11 @@ export function parseArgs(args: string[]): McpOptions {
 // An EXPLICIT --graph is trusted to be a graph (the operator said so) and only
 // has to exist inside the root — failing fast beats starting a server whose
 // graph tools all error. The IMPLICIT default has to be sure it found one, so
-// it requires an index.geml: an unrelated `.geml-code-graph` directory must not
+// it requires an index.geml: an unrelated `.geml/codemap` directory must not
 // make three broken tools appear.
 function resolveGraphOpt(realRoot: string, graph: string | undefined): string | undefined {
   if (graph === undefined || graph === "") {
-    const guess = resolve(realRoot, ".geml-code-graph");
+    const guess = resolve(realRoot, ".geml/codemap");
     return existsSync(resolve(guess, "index.geml")) ? realpathSync(guess) : undefined;
   }
   const abs = resolve(realRoot, graph);

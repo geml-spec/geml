@@ -114,7 +114,7 @@ tools   = "read grep find ls"
 
 在 `#implement` 里模型能改文件但执行不了任何命令；在 `#verify` 里能执行但改不了
 文件。这两条都不是写在提示词里、模型可以忘掉或者跟你讲道理的规矩——那些工具压根
-不在请求里。`geml check` 像验任何 GEML 一样验它；`geml get agent.geml '#implement'`
+不在请求里。`geml check` 像验任何 GEML 一样验它；`geml get .geml/agent.geml '#implement'`
 取一个状态；`.gemlhistory` 给它记版本。
 
 `geml-agent init` 把完整版写到当前目录；`geml-agent init --template refund` 写的
@@ -139,7 +139,7 @@ tools   = "read grep find ls"
 工单分级是容易的那一类：步骤本身事先就知道。
 
 写代码是有意思的那一类。agent 会写出什么，不可枚举，也不该枚举——但**阶段**是可
-枚举的：先读再想，先有计划再动文件，先真跑测试再说测试过了。自带那份 `agent.geml`
+枚举的：先读再想，先有计划再动文件，先真跑测试再说测试过了。自带那份 `.geml/agent.geml`
 建模的就是这个，不再细。细到一个文件一个状态、一个函数一个状态，那就是失败模式：
 把模型的判断力花在填表上，而且什么都没买到——因为那些步骤的先后本来就不承载意义。
 一个步骤排在哪儿无所谓，它就不配拥有一个状态。
@@ -189,8 +189,8 @@ pi install /绝对路径/geml-agent-runtime-pkg          # pi agent：要一个�
 
 # 3. 到你要干活的仓库里
 cd ~/code/my-project
-geml-agent init                      # 写出 agent.geml：默认就是「写代码」这套流程
-geml-agent check agent.geml          # 0 表示它能载入
+geml-agent init                     # 写出 .geml/agent.geml：默认就是「写代码」这套流程
+geml-agent check .geml/agent.geml   # 0 表示它能载入
 
 # 4. 干活
 pi "把 test/user.test.ts 里那个挂掉的用例修好"
@@ -204,7 +204,7 @@ pi "把 test/user.test.ts 里那个挂掉的用例修好"
 台账落在 `<会话目录>/geml-agent/<session>.geml`。`geml-agent export <台账> --to md`
 读它，`geml-agent verify` 验它。
 
-**`agent.geml` 就是全部配置，按你的项目改它。** 状态、每个状态放哪些工具、变量、
+**`.geml/agent.geml` 就是全部配置，按你的项目改它。** 状态、每个状态放哪些工具、变量、
 守卫，全在里面。自带这份做了四个约束：没计划不许改文件、改文件时不许执行命令、
 没有真实测试结果不许说完成、最后一步交给人。你的项目要别的顺序，那是改一段文本，
 不是改代码。
@@ -237,7 +237,7 @@ dsh --profile web
 ```
 
 bundle 贡献三行：**监督器**（`@geml/agent-runtime/dsh`，按 agent 挂载；会话的工作
-目录里没有 `agent.geml` 时它什么都不做——这就是 `onMissing: skip`）、**GEML MCP
+目录里没有 `.geml/agent.geml` 时它什么都不做——这就是 `onMissing: skip`）、**GEML MCP
 server**（`npx -y @geml/geml mcp --root .`，限定在会话自己的项目目录内，于是模型
 一次改一个块而不是重写整个文件），以及 `skills/` 下的两个**技能**——写作与代码
 图谱。要覆盖哪一行，在你 profile 的 `cordis.patch.yml` 里按 `id` 重写，注意把该行
@@ -257,7 +257,7 @@ pi install npm:@geml/agent-runtime
 还没解析：
 
 ```sh
-GEML_AGENT_STATECHART=agent.geml pi      # 默认值，相对当前目录
+GEML_AGENT_STATECHART=.geml/agent.geml pi      # 默认值，相对当前目录
 GEML_AGENT_LEDGER_DIR=/var/ledgers pi    # 默认 <会话目录>/geml-agent
 GEML_AGENT_VISIBILITY=guard-only pi      # 工具表保持不变（见"状态"）
 ```

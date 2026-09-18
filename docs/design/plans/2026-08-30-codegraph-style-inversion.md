@@ -542,8 +542,8 @@ Expected: `EXIT=0`。若报 missing named export，按 CLAUDE.md 同步
 
 ```bash
 node geml-parser/dist/geml.js codemap build --root <repo>
-sed -i '' 's/fold=1/fold=2/' .geml-code-graph/_index/style.geml
-node geml-parser/dist/geml.js codemap render .geml-code-graph
+sed -i '' 's/fold=1/fold=2/' .geml/codemap/_index/style.geml
+node geml-parser/dist/geml.js codemap render .geml/codemap
 ```
 打开 `index.html`：模块数应当随 `fold` 变化，**渲染器一行没改**。
 

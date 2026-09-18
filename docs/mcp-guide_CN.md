@@ -68,7 +68,7 @@ claude mcp add --scope user geml -- npx -y @geml/geml mcp --root .
 
 ## 同时服务代码图
 
-把 `--root` 指向仓库，server 会自动发现 `<root>/.geml-code-graph`，并把四个 `geml_codemap_*` 工具加进同一份工具清单：
+把 `--root` 指向仓库，server 会自动发现 `<root>/.geml/codemap`，并把四个 `geml_codemap_*` 工具加进同一份工具清单：
 
 ```sh
 geml codemap build --root /abs/path/to/repo      # 先建一次图

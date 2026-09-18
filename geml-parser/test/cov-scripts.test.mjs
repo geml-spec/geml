@@ -66,7 +66,7 @@ test("find: --help exits 0 with usage; no args exits 2", () => {
   assert.match(none.err, /usage: geml codemap find/);
 });
 
-test("find: default dir (cwd/.geml-code-graph) without a built codemap exits 1", () => {
+test("find: default dir (cwd/.geml/codemap) without a built codemap exits 1", () => {
   const dir = tmp();
   const r = run("find.mjs", ["alpha"], { cwd: dir }); // no dir arg -> default
   assert.equal(r.status, 1);
@@ -195,7 +195,7 @@ test("verify: without a built parser it names the build command and exits 1", ()
   const dir = tmp();
   mkdirSync(join(dir, "codemap"), { recursive: true });
   writeFileSync(join(dir, "codemap", "verify.mjs"), readFileSync(join(PKG, "codemap", "verify.mjs"), "utf8"));
-  const r = spawnSync(process.execPath, [join(dir, "codemap", "verify.mjs"), join(dir, ".geml-code-graph")],
+  const r = spawnSync(process.execPath, [join(dir, "codemap", "verify.mjs"), join(dir, ".geml/codemap")],
     { encoding: "utf8", timeout: 60_000 });
   const all = (r.stdout ?? "") + (r.stderr ?? "");
   assert.equal(r.status, 1, all);
@@ -468,7 +468,7 @@ test("refresh: a step's `env` reaches the child and is shown in the log line", (
 
 test("refresh: default dir without a recipe exits 1; --hook without a recipe exits 0 silently", () => {
   const dir = tmp();
-  const plain = run("refresh.mjs", [], { cwd: dir }); // defaults to ./.geml-code-graph
+  const plain = run("refresh.mjs", [], { cwd: dir }); // defaults to ./.geml/codemap
   assert.equal(plain.status, 1);
   assert.match(plain.err, /refresh\.json not found/);
   const hook = run("refresh.mjs", ["--hook"], { cwd: dir, input: "{}" });
@@ -1092,7 +1092,7 @@ test("build auto: full pipeline — 15 jobs, one indexer fails, SFC fallback + r
   };
   vueProj("vue1");
   vueProj("vue2");
-  const out = join(fx, ".geml-code-graph");
+  const out = join(fx, ".geml/codemap");
   const r = run("build.mjs", ["--root", fx, "--out", out, "--container", "file", "--history", "--exclude", "zzz/**"],
     { env: shimEnv(shim) });
   assert.equal(r.status, 0, r.all);
@@ -1104,17 +1104,17 @@ test("build auto: full pipeline — 15 jobs, one indexer fails, SFC fallback + r
   assert.match(r.err, /history: committed \d+ document\(s\)/);
   assert.match(r.err, /recorded build recipe/);
   const cfg = JSON.parse(readFileSync(join(out, "_index", "refresh.json"), "utf8"));
-  assert.equal(cfg.root, "..");
+  assert.equal(cfg.root, "../..", "relative to the out dir, which is .geml/codemap");
   // Structured steps { cwd?, env?, argv:[...] } (R2-1) — assert on the shape.
   const stepsJson = cfg.steps.map((s) => JSON.stringify(s)).join("\n");
   assert.ok(cfg.steps.some((s) => s.cwd === "good1" && s.argv.join(" ").includes("npx --yes @sourcegraph/scip-typescript index --output")),
     "subrooted scip replay step");
   assert.ok(cfg.steps.some((s) => s.argv?.slice(0, 4).join(" ") === "rust-analyzer scip . --output"), "rust replay step");
   assert.ok(cfg.steps.some((s) => s.env?.GEML_SRC === "vue2"), "successful virtualizer pre-step recorded");
-  assert.match(stepsJson, /--remap.*\.geml-code-graph\/_build\/virtual-vue2/, "remap forwarded into the replay build");
+  assert.match(stepsJson, /--remap.*\.geml\/codemap\/_build\/virtual-vue2/, "remap forwarded into the replay build");
   assert.ok(cfg.steps.some((s) => s.argv?.includes("--container") && s.argv.includes("file") && s.argv.includes("--history")),
     "the build step records --container file --history");
-  assert.deepEqual(cfg.steps.at(-1), { argv: ["geml", "codemap", "verify", ".geml-code-graph"] });
+  assert.deepEqual(cfg.steps.at(-1), { argv: ["geml", "codemap", "verify", ".geml/codemap"] });
   assert.ok(!cfg.steps.some((s) => s.env?.GEML_SRC === "vue1"), "failed virtualizer left NO pre-step (only its fallback index run)");
   rmSync(fx, { recursive: true, force: true });
   rmSync(shim, { recursive: true, force: true });

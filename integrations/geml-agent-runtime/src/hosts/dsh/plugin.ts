@@ -25,6 +25,7 @@ import type { Run } from "../../core/run.js";
 import { metaFor, openRun, Supervisor, type ApprovalGate } from "../../core/supervisor.js";
 import type { ToolSpec } from "../../core/tools.js";
 import type { JsonValue } from "../../core/schema.js";
+import { DEFAULT_STATECHART } from "../../core/layout.js";
 
 /** Cordis plugin name, used by loader diagnostics. */
 export const name = "geml-agent";
@@ -42,7 +43,7 @@ export interface Config {
 }
 
 export const Config: z<Config> = z.object({
-  statechart: z.string().default("agent.geml"),
+  statechart: z.string().default(DEFAULT_STATECHART),
   ledgerDir: z.string().required(),
   onMissing: z.union([z.const("skip"), z.const("fail")]).default("skip"),
 });
@@ -91,7 +92,7 @@ export function attach(
   const log = ctx.logger(name);
   const onMissing = config.onMissing ?? "skip";
   const cwd = agent.session.header.cwd ?? process.cwd();
-  const file = resolve(cwd, config.statechart ?? "agent.geml");
+  const file = resolve(cwd, config.statechart ?? DEFAULT_STATECHART);
 
   let text: string;
   try {

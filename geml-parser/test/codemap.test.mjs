@@ -58,18 +58,18 @@ const runEmit = (symbols, edges = [], extra = {}) => {
   return { dir, out, stats, doc: (n = "src.geml") => readFileSync(join(out, n), "utf8") };
 };
 
-// Build a codemap into `<tmp>/.geml-code-graph` — the conventional location a
+// Build a codemap into `<tmp>/.geml/codemap` — the conventional location a
 // tool must find by DEFAULTING when run with cwd = <tmp> and no dir argument.
 const emitCodeGraph = (symbols, edges = []) => {
   const dir = tmp();
-  const out = join(dir, ".geml-code-graph"), build = join(dir, "build");
+  const out = join(dir, ".geml/codemap"), build = join(dir, "build");
   mkdirSync(out, { recursive: true });
   mkdirSync(build, { recursive: true });
   emit({ symbols, edges, outDir: out, buildDir: build, repoName: "t", container: "dir", commit: "t0" });
   return { dir, out };
 };
 // Like runTool, but with an explicit cwd — needed to exercise the
-// ./.geml-code-graph default, which resolves against the current directory.
+// ./.geml/codemap default, which resolves against the current directory.
 const runToolIn = (cwd, script, ...args) => {
   const r = spawnSync(process.execPath, [script, ...args], { cwd, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 120_000 });
   assert.equal(r.status, 0, `exit ${r.status}: ${r.stderr || r.stdout}`);
@@ -287,10 +287,10 @@ test("render-all.mjs: batch render (shared parse cache) produces every page", ()
   rmSync(dir, { recursive: true, force: true });
 });
 
-test("verify.mjs: no dir argument defaults to ./.geml-code-graph (cwd = its parent)", () => {
+test("verify.mjs: no dir argument defaults to ./.geml/codemap (cwd = its parent)", () => {
   const { dir } = emitCodeGraph([fn("alpha", "t:a#alpha"), fileSym()]);
   const outText = runToolIn(dir, join(PKG, "codemap", "verify.mjs")); // NO dir arg
-  assert.match(outText, /pass geml check/, "defaulted to ./.geml-code-graph and verified it");
+  assert.match(outText, /pass geml check/, "defaulted to ./.geml/codemap and verified it");
   assert.match(outText, /all resolve/, "profile reference pass ran against the defaulted dir");
   rmSync(dir, { recursive: true, force: true });
 });
@@ -303,11 +303,11 @@ test("verify.mjs: an explicit dir path still works (regression)", () => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-test("render-all.mjs: no dir argument defaults to ./.geml-code-graph (cwd = its parent)", () => {
+test("render-all.mjs: no dir argument defaults to ./.geml/codemap (cwd = its parent)", () => {
   const { dir, out } = emitCodeGraph([fn("alpha", "t:a#alpha"), fileSym()]);
   const outText = runToolIn(dir, join(PKG, "codemap", "render-all.mjs")); // NO dir arg
   assert.match(outText, /rendered \d+ page/, "batch render ran against the defaulted dir");
-  assert.match(readFileSync(join(out, "index.html"), "utf8"), /Code map/, "index page rendered into ./.geml-code-graph");
+  assert.match(readFileSync(join(out, "index.html"), "utf8"), /Code map/, "index page rendered into ./.geml/codemap");
   rmSync(dir, { recursive: true, force: true });
 });
 
@@ -932,7 +932,7 @@ test("detect: an excluded (gitignored) source file does not trigger its language
 });
 
 test("indexerCommand: scip job (tsconfig signal) -> npx args, no inferred config", () => {
-  const cmd = indexerCommand({ indexer: "scip", signal: "tsconfig.json" }, { root: "/r", buildDir: "/r/.geml-code-graph/_build", scriptPath: "/x/joern-export.sc" });
+  const cmd = indexerCommand({ indexer: "scip", signal: "tsconfig.json" }, { root: "/r", buildDir: "/r/.geml/codemap/_build", scriptPath: "/x/joern-export.sc" });
   assert.equal(cmd.adapter, "scip");
   assert.deepEqual(cmd.argv.slice(0, 5), ["npx", "--yes", "@sourcegraph/scip-typescript", "index", "--output"]);
   assert.ok(!cmd.argv.includes("--infer-tsconfig"), "a real tsconfig means no inferred one");
@@ -947,7 +947,7 @@ test("indexerCommand: scip job never infers a config (tsconfig-less groups are d
   // We no longer synthesize a config with --infer-tsconfig: a group without a
   // tsconfig (and not an SFC app) is loose files, not a project, and never
   // becomes a scip job. So the scip argv carries no --infer-tsconfig, ever.
-  const cmd = indexerCommand({ indexer: "scip", signal: ".ts" }, { root: "/r", buildDir: "/r/.geml-code-graph/_build", scriptPath: "/x/joern-export.sc" });
+  const cmd = indexerCommand({ indexer: "scip", signal: ".ts" }, { root: "/r", buildDir: "/r/.geml/codemap/_build", scriptPath: "/x/joern-export.sc" });
   assert.deepEqual(cmd.argv.slice(0, 4), ["npx", "--yes", "@sourcegraph/scip-typescript", "index"]);
   assert.ok(!cmd.argv.includes("--infer-tsconfig"), "no config is ever inferred");
   assert.equal(cmd.argv.at(-1), cmd.raw);
@@ -973,7 +973,7 @@ test("detect: multi-package TS -> a scip job only for tsconfig-bearing groups; c
 });
 
 test("indexerCommand: joern job -> GEML_SRC/OUT/LANG env, script path, raw dir", () => {
-  const cmd = indexerCommand({ indexer: "joern", gemlLang: "JAVASRC" }, { root: "/r", buildDir: "/r/.geml-code-graph/_build", scriptPath: "/x/joern-export.sc" });
+  const cmd = indexerCommand({ indexer: "joern", gemlLang: "JAVASRC" }, { root: "/r", buildDir: "/r/.geml/codemap/_build", scriptPath: "/x/joern-export.sc" });
   assert.equal(cmd.adapter, "joern");
   assert.deepEqual(cmd.argv, ["joern", "--script", "/x/joern-export.sc"]);
   assert.equal(cmd.env.GEML_SRC, "/r");
@@ -981,9 +981,9 @@ test("indexerCommand: joern job -> GEML_SRC/OUT/LANG env, script path, raw dir",
   assert.equal(cmd.env.GEML_OUT, cmd.raw, "GEML_OUT is the adapter raw dir");
   assert.equal(basename(cmd.raw), "joern-javasrc");
   // Joern writes its CPG workspace to <cwd>/workspace/. Running IN the build dir
-  // keeps that cache inside .geml-code-graph/_build/ instead of scattering a
+  // keeps that cache inside .geml/codemap/_build/ instead of scattering a
   // `workspace/` at the repo root. GEML_SRC/OUT are absolute, so cwd is free to move.
-  assert.equal(cmd.cwd.replace(/\\/g, "/"), "/r/.geml-code-graph/_build", "joern runs in the build dir, not the repo root");
+  assert.equal(cmd.cwd.replace(/\\/g, "/"), "/r/.geml/codemap/_build", "joern runs in the build dir, not the repo root");
 });
 
 test("detect: nested tsconfig in a Java monorepo -> the scip job carries the tsconfig's dir (flink shape)", () => {
@@ -1041,7 +1041,7 @@ test("build.mjs auto: Joern absent -> install instructions and non-zero exit", (
   // everywhere; the only pre-probe PATH user is gitIgnored(), which absorbs a
   // missing git.
   const r = spawnSync(process.execPath,
-    [join(PKG, "codemap", "build.mjs"), "--root", fx, "--out", join(fx, ".geml-code-graph")],
+    [join(PKG, "codemap", "build.mjs"), "--root", fx, "--out", join(fx, ".geml/codemap")],
     { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 60_000, env: { ...process.env, GEML_JOERN: "geml-no-such-joern-xyz", PATH: fx } });
   const outText = (r.stdout || "") + (r.stderr || "");
   assert.notEqual(r.status, 0, `expected non-zero exit; got ${r.status}: ${outText}`);
@@ -1053,7 +1053,7 @@ test("build.mjs auto: Joern absent -> install instructions and non-zero exit", (
 test("build.mjs auto: no supported language -> clear error, non-zero exit", () => {
   const fx = fixture({ "README.md": "# hi", "notes.txt": "x" });
   const r = spawnSync(process.execPath,
-    [join(PKG, "codemap", "build.mjs"), "--root", fx, "--out", join(fx, ".geml-code-graph")],
+    [join(PKG, "codemap", "build.mjs"), "--root", fx, "--out", join(fx, ".geml/codemap")],
     { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 60_000 });
   const outText = (r.stdout || "") + (r.stderr || "");
   assert.notEqual(r.status, 0, `expected non-zero exit; got ${r.status}`);
@@ -1105,7 +1105,7 @@ test("detect: mixed tsconfig.json + Cargo.toml -> two scip jobs, distinct raw ou
 });
 
 test("indexerCommand: rust job -> rust-analyzer argv and a raw rust.scip under _build", () => {
-  const cmd = indexerCommand({ indexer: "scip", language: "Rust" }, { root: "/r", buildDir: "/r/.geml-code-graph/_build", scriptPath: "/x/joern-export.sc" });
+  const cmd = indexerCommand({ indexer: "scip", language: "Rust" }, { root: "/r", buildDir: "/r/.geml/codemap/_build", scriptPath: "/x/joern-export.sc" });
   assert.equal(cmd.adapter, "scip");
   assert.deepEqual(cmd.argv.slice(0, 4), ["rust-analyzer", "scip", ".", "--output"]);
   assert.equal(cmd.argv.at(-1), cmd.raw, "the --output value IS the adapter raw");
@@ -1306,7 +1306,7 @@ test("build.mjs auto: rust-analyzer absent -> install hint and non-zero exit", (
   }
   const fx = fixture({ "Cargo.toml": "[package]\nname = \"x\"\n", "src/main.rs": "fn main() {}\n" });
   const r = spawnSync(process.execPath,
-    [join(PKG, "codemap", "build.mjs"), "--root", fx, "--out", join(fx, ".geml-code-graph")],
+    [join(PKG, "codemap", "build.mjs"), "--root", fx, "--out", join(fx, ".geml/codemap")],
     { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 60_000 });
   const outText = (r.stdout || "") + (r.stderr || "");
   assert.notEqual(r.status, 0, `expected non-zero exit; got ${r.status}: ${outText}`);
@@ -1342,7 +1342,7 @@ test("e2e: cargo crate -> auto-detected rust build + verify (needs rust-analyzer
     "src/util.rs": "pub fn multiply(a: u32, b: u32) -> u32 { a * b }\n\npub fn format_area(a: u32) -> String { format!(\"area={}\", a) }\n",
     "src/main.rs": "use spike_crate::{describe, Widget};\n\nfn main() {\n    let w = Widget::new(3, 4);\n    println!(\"{}\", describe(&w));\n}\n",
   });
-  const out = join(fx, ".geml-code-graph");
+  const out = join(fx, ".geml/codemap");
   // rust-analyzer runs `cargo metadata`, which may touch the network once —
   // give the whole build a generous ceiling, not runTool's 120s.
   const r = spawnSync(process.execPath,
@@ -1568,7 +1568,7 @@ test("indexerCommand: sfc job -> virtualizer pre-step, scip runs IN the virtual 
 
 test("scip extract remap: shadows -> original .vue/.svelte, template nodes, local admission", () => {
   const dir = tmp(); // the repo root
-  const vdir = join(dir, ".geml-code-graph", "_build", "virtual-root");
+  const vdir = join(dir, ".geml/codemap", "_build", "virtual-root");
   mkdirSync(join(vdir, "src"), { recursive: true });
   writeFileSync(join(vdir, "sfc-manifest.json"), JSON.stringify({
     version: 1, src: dir.replace(/\\/g, "/"),
@@ -1621,7 +1621,7 @@ test("scip extract remap: shadows -> original .vue/.svelte, template nodes, loca
       scipOcc({ range: [5, 22, 28], symbol: TS + "src/`helper.ts`/helper()." }),      // call inside bump
       scipOcc({ range: [11, 53, 57], symbol: "local 3" }),                            // markup ref (gen 12 -> orig 7)
     ]),
-    ...scipDoc("../../../src/helper.ts", [
+    ...scipDoc("../../../../src/helper.ts", [
       scipOcc({ range: [1, 16, 22], symbol: TS + "src/`helper.ts`/helper().", roles: 1, enclosing: [1, 0, 3, 1] }),
     ]),
     ...scipDoc("svelte-shims.d.ts", [
@@ -1745,7 +1745,7 @@ const fakeIndexerBin = () => {
   return bin;
 };
 const runBuildWithFakes = (bin, fx) => spawnSync(process.execPath,
-  [join(PKG, "codemap", "build.mjs"), "--root", fx, "--out", join(fx, ".geml-code-graph")],
+  [join(PKG, "codemap", "build.mjs"), "--root", fx, "--out", join(fx, ".geml/codemap")],
   // cwd = fx: reproduce a user running `geml codemap build` from INSIDE the repo,
   // so any joern spawn that forgets to set cwd drops its workspace at the root.
   { cwd: fx, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 60_000,
@@ -1763,25 +1763,26 @@ test("build.mjs auto: one indexer failing does not sink the others (partial map 
   assert.match(outText, /indexer failed for TypeScript at web \(scip\)/, "the failure names the project dir");
   assert.match(outText, /continuing WITHOUT TypeScript/, "partiality is called out, not silent");
   assert.match(outText, /geml-code-graph: .*1 methods/, "the Joern extraction still merged");
-  const recipe = JSON.parse(readFileSync(join(fx, ".geml-code-graph", "_index", "refresh.json"), "utf8"));
+  const recipe = JSON.parse(readFileSync(join(fx, ".geml/codemap", "_index", "refresh.json"), "utf8"));
   assert.ok(!recipe.steps.some((s) => JSON.stringify(s).includes("scip-typescript")), "the failed indexer is not recorded for replay");
   // The joern step must replay IN the build dir (so refresh, too, keeps Joern's
   // workspace under _build/): cwd recorded relative to root, GEML_SRC/OUT re-based
-  // on that cwd (root is two levels up; the raw dir is a sibling under _build).
+  // on that cwd (root is three levels up from .geml/codemap/_build; the raw dir
+  // is a sibling under _build).
   const jstep = recipe.steps.find((s) => Array.isArray(s.argv) && s.argv.includes("joern"));
   assert.ok(jstep, "a joern step is recorded");
-  assert.equal(jstep.cwd, ".geml-code-graph/_build", "joern replays in the build dir");
-  assert.equal(jstep.env.GEML_SRC, "../..", "GEML_SRC points back to the repo root from the build dir");
+  assert.equal(jstep.cwd, ".geml/codemap/_build", "joern replays in the build dir");
+  assert.equal(jstep.env.GEML_SRC, "../../..", "GEML_SRC points back to the repo root from the build dir");
   assert.equal(jstep.env.GEML_OUT, "joern-javasrc", "GEML_OUT is relative to the build-dir cwd");
   assert.equal(jstep.env.GEML_LANG, "JAVASRC");
   // The build drops a .gitignore so its transient _build/ (incl. Joern's
   // workspace cache) is never committed, while the .geml graph + _index stay committable.
-  const ignore = readFileSync(join(fx, ".geml-code-graph", ".gitignore"), "utf8");
+  const ignore = readFileSync(join(fx, ".geml/codemap", ".gitignore"), "utf8");
   assert.match(ignore, /^_build\/$/m, "_build/ is git-ignored");
   // EVERY joern spawn (the --version probe AND the export run) must launch from
   // the build dir, so Joern's startup `workspace/` cache never lands at the root.
   assert.ok(!existsSync(join(fx, "workspace")), "no stray Joern workspace at the repo root");
-  assert.ok(existsSync(join(fx, ".geml-code-graph", "_build", "workspace")), "Joern workspace lands under _build");
+  assert.ok(existsSync(join(fx, ".geml/codemap", "_build", "workspace")), "Joern workspace lands under _build");
   rmSync(fx, { recursive: true, force: true });
   rmSync(bin, { recursive: true, force: true });
 });
@@ -1901,7 +1902,7 @@ test("build.mjs auto: seeds _index/foldings.geml and folds an above-root ceremon
   });
   const bin = fakeIndexerBin();
   runBuildWithFakes(bin, fx);
-  const p = join(fx, ".geml-code-graph", "_index", "foldings.geml");
+  const p = join(fx, ".geml/codemap", "_index", "foldings.geml");
   assert.ok(existsSync(p), "foldings.geml seeded");
   const cfg = parseFoldings(readFileSync(p, "utf8"));
   assert.ok(cfg.foldPrefixes.includes("modules"), "the above-root ceremony dir is seeded as a fold prefix");

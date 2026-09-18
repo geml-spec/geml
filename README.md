@@ -332,7 +332,7 @@ To test GEML's expressive power and flexibility — and above all to see whether
 
 ```sh
 npm i -g @geml/geml
-geml codemap build              # --root defaults to . : detect languages -> index -> one merged graph in ./.geml-code-graph/
+geml codemap build              # --root defaults to . : detect languages -> index -> one merged graph in ./.geml/codemap/
 geml codemap serve              # opens your browser on the graph
 ```
 
@@ -347,7 +347,7 @@ geml codemap serve              # opens your browser on the graph
 > **Java / C / Python / Go / Kotlin** — one extra download, [Joern](https://docs.joern.io/installation): unzip its release package and pass that folder to build, e.g. `--joern ~/joern/joern-cli` (`--joern C:\joern\joern-cli` on Windows), or put it on PATH and skip the flag.
 > Mixed front-end + back-end repo — everything merges into **one graph**.
 
-geml-code-graph is itself a diagram format — one line embeds it in any GEML document (`=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml} ===`), and an optional per-commit hook (bundled with the Claude skill) rebuilds it as the code moves, so the graph doesn't drift.
+geml-code-graph is itself a diagram format — one line embeds it in any GEML document (`=== diagram {format=geml-code-graph src=.geml/codemap/index.geml} ===`), and an optional per-commit hook (bundled with the Claude skill) rebuilds it as the code moves, so the graph doesn't drift.
 
 Scale is measured, not promised: on Apache Flink's codebase — **13,585 Java source
 files, ~81,000 methods, 266,821 call edges** — the plain-text *data tables* still
