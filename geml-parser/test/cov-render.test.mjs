@@ -1356,6 +1356,68 @@ await atest("runtime security: a legitimate relative data-src still prefixes bot
   }
 });
 
+// The third navigation sink, and the one the two tests above do not reach.
+// `openDoc` takes its target from a module row's own `doc` field — page data
+// out of a .geml, as untrusted as `data-src` — and inside a frame it assigns
+// `window.location.href` directly, without the same-origin probe the unframed
+// path runs. relOnly() is the only thing standing there, so pin it: the framed
+// branch must refuse and say why rather than navigate.
+await atest("runtime security: a hostile module `doc` never reaches the framed navigation", async () => {
+  const prevDoc = globalThis.document, prevWin = globalThis.window, prevLoc = globalThis.location;
+  try {
+    const payloads = [
+      "javascript:alert(1)", " javascript:alert(1)", "\tjavascript:alert(1)", "\x01javascript:alert(1)",
+      "java\tscript:alert(1)", "JaVaScRiPt:alert(1)", "data:text/html,<script>x</script>", "vbscript:msgbox(1)",
+      "//evil.example.com/x.geml", " //evil.example.com/x.geml",
+    ];
+    const asNavigated = (u) => String(u ?? "").replace(/^[\x00-\x20]+/, "").replace(/[\t\n\r]/g, "");
+    const hostile = (u) => /^[a-z][a-z0-9+.-]*:/i.test(asNavigated(u)) || asNavigated(u).slice(0, 2) === "//";
+
+    for (const payload of payloads) {
+      globalThis.document = mkDocument();
+      // self !== top, so openDoc takes the FRAMED branch: it navigates the
+      // window plainly instead of probing and embedding in place.
+      const loc = { protocol: "file:", href: "" };
+      globalThis.window = { self: {}, top: {}, location: loc };
+      globalThis.location = loc;
+      const mount = bootMount({
+        mode: "modules", start: "i.geml", depth: 99, roots: [], nodes: {}, edges: [],
+        mods: [{ p: "a", doc: payload, m: 1 }, { p: "b", doc: "b.geml", m: 1 }], medges: [],
+      });
+      const svg = svgIn(mount);
+      clickNode(svg, gOf(svg, payload));
+      await flush();
+      assert.ok(!hostile(loc.href), `framed navigation escaped for ${JSON.stringify(payload)}: ${JSON.stringify(loc.href)}`);
+      const flash = barOf(mount).children.find((c) => (c.attrs?.class || "") === "cg-flash");
+      assert.match(flash.textContent, /not a document-relative path/, `no refusal shown for ${JSON.stringify(payload)}`);
+    }
+  } finally {
+    globalThis.document = prevDoc; globalThis.window = prevWin;
+    if (prevLoc === undefined) delete globalThis.location; else globalThis.location = prevLoc;
+  }
+});
+
+await atest("runtime security: a legitimate module `doc` still navigates the framed view", async () => {
+  const prevDoc = globalThis.document, prevWin = globalThis.window, prevLoc = globalThis.location;
+  try {
+    globalThis.document = mkDocument();
+    const loc = { protocol: "file:", href: "" };
+    globalThis.window = { self: {}, top: {}, location: loc };
+    globalThis.location = loc;
+    const mount = bootMount({
+      mode: "modules", start: "i.geml", depth: 99, roots: [], nodes: {}, edges: [],
+      mods: [{ p: "a", doc: "sub/a.geml", m: 1 }, { p: "b", doc: "b.geml", m: 1 }], medges: [],
+    });
+    const svg = svgIn(mount);
+    clickNode(svg, gOf(svg, "sub/a.geml"));
+    await flush();
+    assert.equal(loc.href, "sub/a.html", "the relative target still reaches its pre-rendered page");
+  } finally {
+    globalThis.document = prevDoc; globalThis.window = prevWin;
+    if (prevLoc === undefined) delete globalThis.location; else globalThis.location = prevLoc;
+  }
+});
+
 // ---------------------------------------------------------------------------
 // N) The document renderer's own edges: a coordinate reference that has a
 //    VALUE but no block to link to, a href no browser should follow, a data

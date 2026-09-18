@@ -408,7 +408,13 @@ test("geml_find: no match is a result (empty), not an error — exit 1 is not a 
 
 test("geml_find requires a non-empty pattern", () => {
   const dir = ws();
-  for (const args of [{}, { pattern: "" }, { pattern: 7 }]) {
+  // Two refusals, both naming the argument. ABSENT is caught by the schema's
+  // own `required` list, before the tool runs at all; PRESENT-but-unusable is
+  // the tool's own check, which the list cannot express.
+  const absent = call("geml_find", {});
+  assert.ok(absent.isError, absent.text);
+  assert.match(absent.text, /^error: geml_find needs `pattern`/);
+  for (const args of [{ pattern: "" }, { pattern: 7 }]) {
     const r = call("geml_find", args);
     assert.ok(r.isError, JSON.stringify(args));
     assert.match(r.text, /`pattern` is required/);

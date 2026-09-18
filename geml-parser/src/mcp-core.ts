@@ -564,11 +564,30 @@ const ok = (id: unknown, result: unknown): Record<string, unknown> => ({ jsonrpc
 const err = (id: unknown, code: number, message: string): Record<string, unknown> =>
   ({ jsonrpc: "2.0", id, error: { code, message } });
 
+// Every tool's inputSchema already declares the arguments it cannot work
+// without. Enforce THAT list here, so a forgotten argument is refused by name
+// rather than surfacing as whichever TypeError the verb happens to throw first:
+// `geml_set` without `id` answered "Cannot read properties of undefined
+// (reading 'trim')", which names neither the tool nor the argument and leaves a
+// model guessing. One source for the schema and the check — the same rule the
+// `part` enum follows.
+function missingRequired(tool: Tool, args: Record<string, any>): string[] {
+  const req = (tool.inputSchema as { required?: unknown } | undefined)?.required;
+  if (!Array.isArray(req)) return [];
+  return req.filter((k): k is string => typeof k === "string" && args[k] === undefined);
+}
+
 function callTool(name: unknown, args: unknown, tools: () => Tool[]): { result: Record<string, unknown> } | { unknown: true } {
   const tool = tools().find((t) => t.name === name);
   if (!tool) return { unknown: true };
+  const given = (args as Record<string, any>) ?? {};
+  const missing = missingRequired(tool, given);
+  if (missing.length > 0) {
+    const names = missing.map((m) => `\`${m}\``).join(", ");
+    return { result: { content: [{ type: "text", text: `error: ${String(name)} needs ${names}` }], isError: true } };
+  }
   try {
-    const out = tool.run((args as Record<string, any>) ?? {});
+    const out = tool.run(given);
     // A refused write is a RESULT, not a protocol error: the model must be
     // able to read the diagnostics that refused it.
     const isError = typeof out === "object" && out !== null && (out as WriteResult).ok === false;
