@@ -86,6 +86,66 @@ test("动词后面没有文件也是错", () => {
   assert.match(r.err, /todo/);
 });
 
+// 入口文档以前挑的是「第一个不以 - 开头、且不等于 --root/-o/--into 三者之值的参数」，
+// 于是别的带值 flag 的值全在射程内：`--to json` 里的 `json` 成了入口文档名，读不到、
+// 一个字都不输出、退出 0 —— 该拒绝的时候静默成功，和这一批 PR 修的是同一类毛病。
+test("带值 flag 的值不会被当成入口文档，缺文档就是错", () => {
+  for (const args of [
+    ["export", "--to", "json"],
+    ["report", "--kind", "stats"],
+    ["lay", "--over", "#c1"],
+    ["build", "--out", "out.mp4"],
+    ["log", "--output", "#clip", "--model", "m", "--mode", "t2i"],
+    ["import", "--into", "lib.geml"],
+    ["todo", "--root", "somewhere"],
+  ]) {
+    const r = run(args);
+    assert.equal(r.code, 2, `${args.join(" ")} 应当拒绝，实际 exit ${r.code}：${r.out}`);
+    assert.match(r.err, /usage: geml media/, args.join(" "));
+  }
+});
+
+// 等号写法读不了（flag() 只认空格分隔那一种），以前放过去就等于"没给"：--to 悄悄
+// 退回 preview、--out 悄悄变成写标准输出。读不了就明说。
+test("--name=value 这种写法当场说清楚，而不是悄悄退回默认值", () => {
+  const p = project();
+  try {
+    const r = run(["export", "--to=json", p.at("cut.geml")]);
+    assert.equal(r.code, 2, r.out.slice(0, 80));
+    assert.match(r.err, /--to 的值要另起一个参数：写成 --to json/);
+    const o = run(["export", p.at("cut.geml"), "--out=x.json"]);
+    assert.equal(o.code, 2);
+    assert.match(o.err, /--out 的值要另起一个参数/);
+  } finally { p.drop(); }
+});
+
+test("入口文档恰好和某个 flag 的值同名也认得出来", () => {
+  const p = project();
+  try {
+    // 旧的按值比较会把它当成 --into 的值跳过，于是又落到「没有入口文档」
+    const r = run(["import", p.at("manifest.json"), "--into", p.at("manifest.json")]);
+    assert.notEqual(r.code, 0, "目标是清单自己，该有话说");
+    assert.doesNotMatch(r.err, /usage: geml media/, "而不是报成「没给文档」：" + r.err);
+  } finally { p.drop(); }
+});
+
+test("拼错的 flag 当场拒绝，不再被默默跳过", () => {
+  const p = project();
+  try {
+    const r = run(["export", p.at("cut.geml"), "--josn"]);
+    assert.equal(r.code, 2);
+    assert.match(r.err, /unknown flag '--josn' for 'media'/, r.err);
+  } finally { p.drop(); }
+});
+
+test("每个动词的 --help 都进 stdout 并退出 0", () => {
+  for (const args of [["export", "--help"], ["build", "-h"], ["import", "--help"]]) {
+    const r = run(args);
+    assert.equal(r.code, 0, `${args.join(" ")}: ${r.err}`);
+    assert.match(r.out, /usage: geml media/);
+  }
+});
+
 // ---------------------------------------------------------------------------
 // export
 // ---------------------------------------------------------------------------

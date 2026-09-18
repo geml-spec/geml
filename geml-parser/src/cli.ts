@@ -244,7 +244,9 @@ let jsonMode = false;
 // codemap is absent on purpose: it forwards argv to its own toolkit, whose
 // subcommands own their (many, evolving) flags. `set` lists --view only to
 // reach its own, better refusal ("set refuses --view").
-const VERB_FLAGS: Record<string, { bool: readonly string[]; valued: readonly string[] }> = {
+interface FlagTable { bool: readonly string[]; valued: readonly string[] }
+
+const VERB_FLAGS: Record<string, FlagTable> = {
   get: { bool: ["--json", "--head", "--body", "--intro", "--view"], valued: ["--root"] },
   list: { bool: ["--json"], valued: ["--root"] },
   find: { bool: ["--json", "--case", "--head"], valued: ["--root"] },
@@ -275,8 +277,10 @@ const VERB_FLAGS: Record<string, { bool: readonly string[]; valued: readonly str
 // flags: `-` (stdin) and `-N` (a history revision selector — the first column
 // `history get` prints). `--help`/`-h` answer with the verb's own usage.
 // A bare `--` is refused with the working alternative, not silently dropped.
-function rejectUnknownFlags(verb: string, args: string[]): void {
-  const table = VERB_FLAGS[verb];
+// `table` is a parameter so a verb dispatched OUTSIDE the core table can still
+// use this: `media` is a vocabulary's verb (PROFILE_VERBS), so it never reaches
+// VERB_FLAGS, and for want of a table it had no flag checking at all.
+function rejectUnknownFlags(verb: string, args: string[], table: FlagTable | undefined = VERB_FLAGS[verb]): void {
   if (!table) return;
   for (let i = 0; i < args.length; i++) {
     const a = args[i]!;
@@ -419,6 +423,38 @@ const MEDIA_HELP = [
   "  --root <dir>  跨文档解析的根，缺省是入口文档自己的目录",
 ].join("\n");
 
+// `geml media` 这一族自己的 flag 表。入口文档的定位和未知 flag 的拒绝都从这**一张**
+// 表来：各写各的一份，正是「schema 提供了一个值、检查却不认」那一类 bug 的温床。
+const MEDIA_FLAGS: FlagTable = {
+  bool: ["--burn-subs", "--json"],
+  valued: [
+    "--cut", "--font", "--fontsdir", "--gap", "--input", "--into", "--kind", "--mode",
+    "--model", "-o", "--out", "--output", "--over", "--prefix", "--prompt", "--root",
+    "--seed", "--speaker", "--to", "--track",
+  ],
+};
+
+/**
+ * 入口文档：第一个既不是 flag、也不是某个 flag 的值的位置参数。
+ *
+ * 以前这里挑的是「第一个不以 `-` 开头、且不等于 --root/-o/--into 三者之值的参数」。
+ * 别的带值 flag 全在射程内：`geml media export --to json` 于是把 `json` 当成了入口
+ * 文档，读不到、什么都不输出、退出 0 —— 该拒绝的时候静默成功。按值比较还会误伤：
+ * 一个恰好与某个 flag 值同名的文件会被当成那个值跳过。
+ *
+ * 改成按位置扫：遇到带值的 flag 就连它的值一起跳过，`--name=value` 自带值不跳。
+ */
+function mediaEntry(rest: string[]): string | undefined {
+  for (let i = 0; i < rest.length; i++) {
+    const a = rest[i] as string;
+    if (!a.startsWith("-")) return a;
+    const eq = a.indexOf("=");
+    const name = eq > 1 ? a.slice(0, eq) : a;
+    if (eq < 0 && MEDIA_FLAGS.valued.includes(name)) i++;
+  }
+  return undefined;
+}
+
 /** 在 PATH 上找一个可执行程序；找不到返回 null（可选依赖，缺了降级）。 */
 function whichBin(bin: string): string | null {
   const win = process.platform === "win32";
@@ -467,10 +503,21 @@ function runMedia(args: string[]): void {
   if (verb === undefined) fail(MEDIA_HELP);
   if (verb === "--help" || verb === "-h") { console.log(MEDIA_HELP); return; }
   const rest = args.slice(1);
+  // `geml media <verb> --help` 也是求助，不是用法错误：帮助进 stdout，退出 0。
+  if (rest.includes("--help") || rest.includes("-h")) { console.log(MEDIA_HELP); return; }
+  rejectUnknownFlags("media", rest, MEDIA_FLAGS);
+  // `--to=json` 这类等号写法：flag() 只认空格分隔的那一种，读不到就当成"没给"——
+  // 于是 --to 悄悄退回默认值、--out 悄悄变成写标准输出。读不了就明说，不要读成别的。
+  for (const a of rest) {
+    const eq = a.startsWith("-") ? a.indexOf("=") : -1;
+    if (eq > 1 && MEDIA_FLAGS.valued.includes(a.slice(0, eq))) {
+      fail(`${a.slice(0, eq)} 的值要另起一个参数：写成 ${a.slice(0, eq)} ${a.slice(eq + 1)}`);
+    }
+  }
   const root = flag(rest, "--root");
   const out = flag(rest, "-o") ?? flag(rest, "--out");
   const into = flag(rest, "--into");
-  const file = rest.find((a) => !a.startsWith("-") && a !== root && a !== out && a !== into);
+  const file = mediaEntry(rest);
   if (file === undefined) fail(MEDIA_HELP);
   const { root: mr, rel } = mediaRootOf(file, root);
   const io = profileIoFor(mr);
