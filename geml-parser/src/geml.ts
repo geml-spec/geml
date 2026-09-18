@@ -2659,16 +2659,18 @@ function fenceClose(lines: string[], i: number, open: RegExpExecArray, consumed 
 // A heading's span covers its whole SECTION: the heading line through the line
 // just before the next heading of same-or-higher level (fewer-or-equal `#`) in
 // the current scope, or end-of-scope. Fenced blocks are skipped whole — a `#`
-// line inside a `=== code` body is content, never a boundary.
-function sectionEnd(lines: string[], i: number, level: number, consumed = 1): number {
+// line inside a `=== code` body is content, never a boundary. So is a line the
+// backtick shield covers: scanBlocks never reads a heading or a fence there, so
+// a `# comment` inside a ``` example must not end the section around it.
+function sectionEnd(lines: string[], i: number, level: number, consumed: number, shielded: Set<number>): number {
   let j = i + consumed;
   while (j < lines.length) {
     // Folded here too: a continued fence must be SKIPPED WHOLE, and a continued
     // heading must still be recognised as the boundary it is.
     const { line, consumed: c } = foldFence(lines, j);
-    const open = FENCE_OPEN.exec(line);
+    const open = shielded.has(j) ? null : FENCE_OPEN.exec(line);
     if (open) { j = fenceClose(lines, j, open, c).end; continue; }
-    const h = matchHeading(line);
+    const h = shielded.has(j) ? null : matchHeading(line);
     if (h && h[1]!.length <= level) return j;
     j += c;
   }
@@ -2736,7 +2738,7 @@ function collectSpans(
       // section registers its own span — spans intentionally OVERLAP: #sec
       // contains #code, and each remains addressable on its own.
       const hid = idOfHeading(h[3], h[2]!, base + i + 1, ctx);
-      const hend = base + sectionEnd(lines, i, h[1]!.length, consumed);
+      const hend = base + sectionEnd(lines, i, h[1]!.length, consumed, shielded);
       add(hid, base + i, hend);
       units?.push({ span: { start: base + i, end: hend }, kind: "heading", id: hid, level: h[1]!.length, text: h[2]! });
       i += consumed;

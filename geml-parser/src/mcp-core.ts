@@ -18,11 +18,12 @@
 // the tool table was *defined* as CLI equivalences and stays so — each tool is
 // still named after the verb it wraps — but the equivalence is now a function
 // call.
-import { type Diagnostic, type ParseOptions, parse, PARSER_VERSION } from "./geml.js";
+import { type Diagnostic, type ParseOptions, type UnitPart, parse, PARSER_VERSION } from "./geml.js";
 import {
   type Content, type FindHit, type HistoryReader, type InFmt, type OutFmt, type VerbContext,
   VerbError, add, del, formatFindRows, get, list, rename, revert, set, transform,
 } from "./verbs.js";
+import { BARE_LINE } from "./selector.js";
 
 // One version for the whole package: `geml --version` and the MCP handshake
 // must not disagree. This used to be its own literal and had drifted to 0.1.0
@@ -197,8 +198,32 @@ const hashId = (id: string) => (id.startsWith("#") ? id : `#${id}`);
 // (add/delete/rename/revert) take ids only, so accepting a selector here would
 // promise something the CLI would then refuse.
 // A selector starts with `#` (id or heading line), `@` (content address), or a
-// `=` fence run (type filter). Anything else is a bare id.
-const selectorArg = (s: string) => (/^([#@]|={3,})/.test(s.trim()) ? s.trim() : `#${s}`);
+// `=` fence run (type filter), or is a position `L27` / `L27-58` — the range
+// `geml_list` prints on every row. Anything else is a bare id. The position is
+// checked by the selector's own pattern: prefixed, `#L27` would ask for a block
+// NAMED L27, which is how a real id of that spelling stays reachable.
+const selectorArg = (s: string) => {
+  const t = s.trim();
+  return /^([#@]|={3,})/.test(t) || BARE_LINE.test(t) ? t : `#${s}`;
+};
+
+// The parts a `part` argument names: the same four regions the CLI's
+// --head/--intro/--body select. geml_get and geml_set take this ONE list for
+// both their schema enum and their validation, so the schema can never offer a
+// value the tool then refuses — which is what happened to `intro` while the
+// enum and the check were written out separately.
+const PARTS: readonly UnitPart[] = ["whole", "head", "intro", "body"];
+
+// A `part` argument, validated. A client is free to ignore the schema, so the
+// enum is enforced here too, and a bad value is refused by name.
+function partArg(v: unknown): UnitPart {
+  const part = v ?? "whole";
+  if (!PARTS.includes(part as UnitPart)) throw new Error(`part must be ${PARTS.join("|")}, got \`${String(part)}\``);
+  return part as UnitPart;
+}
+
+// The CLI flag that names a part, for the verbs' messages; `whole` names none.
+const partFlagOf = (part: UnitPart): string | undefined => (part === "whole" ? undefined : `--${part}`);
 
 const FILE_ARG = { type: "string", description: "Document path relative to the server's --root directory, e.g. notes/spec.geml" };
 const SOURCE_ARG = { type: "string", description: "The document's full text. This server keeps no files: what you send is the document." };
@@ -281,7 +306,7 @@ export function toolsFor(host: McpHost): Tool[] {
         },
         part: {
           type: "string",
-          enum: ["whole", "head", "intro", "body"],
+          enum: [...PARTS],
           description: "How much of the block to return (default: whole). For a SECTION these cut it three ways: `head` is the heading line, `intro` everything under it up to its first subheading, `body` everything under it — so `body` always contains `intro`, and equals it when the section has no subheading. Reach for `intro` to read a section's opening without pulling its subsections into the conversation; a whole `#id` on a top-level heading is often the entire document. Only a heading has an intro. `body` is usually what you want together with `view`.",
         },
       }, ["id"]),
@@ -290,9 +315,8 @@ export function toolsFor(host: McpHost): Tool[] {
         const sel = selectorArg(args.id);
         // Same name, same enum, same validation as `geml_set` — one concept for a
         // model to learn, and `body` is already taken there for the replacement text.
-        const part = args.part ?? "whole";
-        if (!["whole", "head", "body"].includes(part)) throw new Error(`part must be whole|head|body, got \`${part}\``);
-        const partFlag = part === "head" ? "--head" : part === "body" ? "--body" : undefined;
+        const part = partArg(args.part);
+        const partFlag = partFlagOf(part);
         const r = get(doc.text, doc.label, sel, { part, partFlag, json: false, view: !!args.view, root: doc.root }, doc.ctx);
         if (!args.view) return r.output;
         // Provenance is mandatory, and there is no stderr across an MCP call:
@@ -405,7 +429,6 @@ export function toolsFor(host: McpHost): Tool[] {
 
   // ----- write -----
   const raw = (text: unknown): Content => ({ kind: "raw", text: typeof text === "string" ? text : "" });
-  const partFlags = (part: string): string[] => (part === "head" ? ["--head"] : part === "body" ? ["--body"] : []);
 
   tools.push(
     {
@@ -415,18 +438,18 @@ export function toolsFor(host: McpHost): Tool[] {
       inputSchema: schema({
         id: {
           type: "string",
-          description: "Which block to replace: an id (with or without `#`), or a `@<hex>` content address from `geml_list` for a block with no id. Must match exactly one block",
+          description: "Which block to replace: an id (with or without `#`), a `@<hex>` content address from `geml_list` for a block with no id, or `L27`/`L27-58` for the smallest block holding those lines. Must match exactly one block",
         },
         body: { type: "string", description: "The replacement text" },
-        part: { type: "string", enum: ["whole", "head", "intro", "body"], description: "What to replace (default: whole). `intro` replaces a section's opening — everything under the heading up to its first subheading — and leaves every subsection byte-identical, which is what makes a read-edit-write cycle on a long section safe. An empty intro (a subheading follows the heading immediately) is written into, so this also adds an opening where there was none." },
+        part: { type: "string", enum: [...PARTS], description: "What to replace (default: whole). `intro` replaces a section's opening — everything under the heading up to its first subheading — and leaves every subsection byte-identical, which is what makes a read-edit-write cycle on a long section safe. An empty intro (a subheading follows the heading immediately) is written into, so this also adds an opening where there was none." },
       }, ["id", "body"]),
       run: (args) => {
         const doc = host.open(args);
-        const part = args.part ?? "whole";
-        if (!["whole", "head", "body"].includes(part)) throw new Error(`part must be whole|head|body, got \`${part}\``);
+        const part = partArg(args.part);
+        const flag = partFlagOf(part);
         return applyWrite(host, {
           doc,
-          produce: () => set(doc.text, doc.label, selectorArg(args.id), { part, named: partFlags(part), content: raw(args.body) }, doc.ctx).text,
+          produce: () => set(doc.text, doc.label, selectorArg(args.id), { part, named: flag ? [flag] : [], content: raw(args.body) }, doc.ctx).text,
           summary: `mcp: before write to ${selectorArg(args.id)}`,
         });
       },
@@ -541,11 +564,30 @@ const ok = (id: unknown, result: unknown): Record<string, unknown> => ({ jsonrpc
 const err = (id: unknown, code: number, message: string): Record<string, unknown> =>
   ({ jsonrpc: "2.0", id, error: { code, message } });
 
+// Every tool's inputSchema already declares the arguments it cannot work
+// without. Enforce THAT list here, so a forgotten argument is refused by name
+// rather than surfacing as whichever TypeError the verb happens to throw first:
+// `geml_set` without `id` answered "Cannot read properties of undefined
+// (reading 'trim')", which names neither the tool nor the argument and leaves a
+// model guessing. One source for the schema and the check — the same rule the
+// `part` enum follows.
+function missingRequired(tool: Tool, args: Record<string, any>): string[] {
+  const req = (tool.inputSchema as { required?: unknown } | undefined)?.required;
+  if (!Array.isArray(req)) return [];
+  return req.filter((k): k is string => typeof k === "string" && args[k] === undefined);
+}
+
 function callTool(name: unknown, args: unknown, tools: () => Tool[]): { result: Record<string, unknown> } | { unknown: true } {
   const tool = tools().find((t) => t.name === name);
   if (!tool) return { unknown: true };
+  const given = (args as Record<string, any>) ?? {};
+  const missing = missingRequired(tool, given);
+  if (missing.length > 0) {
+    const names = missing.map((m) => `\`${m}\``).join(", ");
+    return { result: { content: [{ type: "text", text: `error: ${String(name)} needs ${names}` }], isError: true } };
+  }
   try {
-    const out = tool.run((args as Record<string, any>) ?? {});
+    const out = tool.run(given);
     // A refused write is a RESULT, not a protocol error: the model must be
     // able to read the diagnostics that refused it.
     const isError = typeof out === "object" && out !== null && (out as WriteResult).ok === false;

@@ -108,6 +108,36 @@ test("set on a section replaces it whole; the other section is byte-identical", 
   assert.equal(run(["get", f, "#a"]).out, repl);
 });
 
+// The same boundary rule as `sec3`, for a ``` PAIR rather than a `=== code`
+// fence. §3.1 shields every line between matched backtick fences, so the `#`
+// line inside is content and cannot end the section around it.
+const TICKDOC =
+  "## Quick {#quick}\n\nOpening prose.\n\n" +
+  "```bash\n# Build / watch\npnpm build\n```\n\n" +
+  "After the sample.\n\n" +
+  "## Glossary {#glossary}\n\nx\n";
+
+test("a `#` line inside a ``` pair is not a section boundary either", () => {
+  const f = write("tick1.geml", TICKDOC);
+  assert.equal(
+    run(["get", f, "#quick"]).out,
+    "## Quick {#quick}\n\nOpening prose.\n\n```bash\n# Build / watch\npnpm build\n```\n\nAfter the sample.\n\n",
+  );
+});
+
+// `set --body` is where getting that boundary wrong DESTROYS bytes rather than
+// merely mis-reporting them: the replaced span stopped at the phantom heading,
+// which deleted the opening ``` and left the closing one reading as an OPENING
+// fence with the shell comment promoted to document text.
+test("set --body on that section carries the whole ``` pair, never half of one", () => {
+  const f = write("tick2.geml", TICKDOC);
+  const r = run(["set", f, "#quick", "--body", "-o", f], "\nREPLACED\n\n");
+  assert.equal(r.code, 0, r.err);
+  assert.equal(read(f), "## Quick {#quick}\n\nREPLACED\n\n## Glossary {#glossary}\n\nx\n");
+  assert.ok(!read(f).includes("```"), "no half of the backtick pair is left behind");
+  assert.ok(!read(f).includes("# Build / watch"), "the shielded comment went with the block it lived in");
+});
+
 test("an interpolated heading's auto-slug id is addressable by raw get (parity with the parser)", () => {
   const f = write("sec24.geml", "=== meta\ntitle = GEML\n===\n\n# {{title}} Setup\n\nprose\n");
   const r = run(["get", f, "#title-setup"]);   // the id the parser registers (from raw text)

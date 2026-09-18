@@ -109,6 +109,41 @@ test("an unknown tool is a protocol error, not a silent success", () => {
   assert.equal(r.rpcError.code, -32602);
 });
 
+// A missing required argument is the client's most ordinary mistake, and the
+// answer has to name what is missing. It used to be whatever TypeError the verb
+// reached first — `geml_set` without `id` said "Cannot read properties of
+// undefined (reading 'trim')", naming neither the tool nor the argument — so a
+// model could not tell a forgotten field from a broken server. The check reads
+// the SAME `required` list the schema advertises.
+test("a missing required argument is refused by name, for every tool that declares one", () => {
+  ws();
+  const cases = [
+    ["geml_get", {}, ["id"]],
+    ["geml_set", { body: "y" }, ["id"]],
+    ["geml_set", { id: "alpha" }, ["body"]],
+    ["geml_set", {}, ["id", "body"]],
+    ["geml_delete", {}, ["ids"]],
+    ["geml_rename", {}, ["old", "new"]],
+    ["geml_add", {}, ["content", "position"]],
+    ["geml_revert", {}, ["id"]],
+    ["geml_find", {}, ["pattern"]],
+  ];
+  for (const [tool, args, wanted] of cases) {
+    const r = call(tool, { file: "d.geml", ...args });
+    assert.ok(r.isError, `${tool}: expected a refusal, got ${r.text}`);
+    assert.match(r.text, new RegExp(`^error: ${tool} needs `), `${tool}: ${r.text}`);
+    for (const w of wanted) assert.match(r.text, new RegExp("`" + w + "`"), `${tool} must name \`${w}\`: ${r.text}`);
+    assert.doesNotMatch(r.text, /Cannot read properties/, `${tool} leaked a TypeError: ${r.text}`);
+  }
+});
+
+test("the document argument the host requires is named too, not left to the opener", () => {
+  ws();
+  const r = call("geml_list", {});
+  assert.ok(r.isError, r.text);
+  assert.match(r.text, /^error: geml_list needs `file`/);
+});
+
 // ---------------------------------------------------------------------------
 // Read tools
 // ---------------------------------------------------------------------------
@@ -159,6 +194,50 @@ test("geml_get returns ONE block, with or without the leading #", () => {
   assert.equal(withHash, without);
   assert.match(withHash, /^=== note \{#alpha\}\nfirst block\n===/);
   assert.ok(!withHash.includes("second block"), "only the addressed block comes back");
+});
+
+test("geml_get and geml_set take a line position, the range geml_list prints", () => {
+  // The schema advertises `L27`/`L27-58`, and the listing prints that range on
+  // every row. Prefixed with `#`, a position became a request for a block NAMED
+  // L8 and matched nothing. In DOC, `#alpha` is lines 7-9.
+  const dir = ws();
+  const alpha = call("geml_get", { file: "d.geml", id: "#alpha" }).text;
+  assert.equal(call("geml_get", { file: "d.geml", id: "L8" }).text, alpha, "one line: the smallest block holding it");
+  assert.equal(call("geml_get", { file: "d.geml", id: "L7-9" }).text, alpha, "the listed range pastes straight back");
+  assert.equal(call("geml_get", { file: "d.geml", id: "l8" }).text, alpha, "the selector's own pattern, lowercase included");
+
+  const w = call("geml_set", { file: "d.geml", id: "L8", part: "body", body: "moved by position\n" });
+  assert.equal(w.json.ok, true, w.text);
+  assert.match(readFileSync(join(dir, "d.geml"), "utf8"), /=== note \{#alpha\}\nmoved by position\n===/);
+});
+
+test("a block really named L2 is still reached by its id, `#L2`", () => {
+  // The position form wins for the bare spelling, as it does on the CLI; the
+  // explicit key form is how an id of that spelling stays reachable.
+  ws("=== note {#L2}\nnamed\n===\n\n=== note {#other}\nplain\n===\n", "l.geml");
+  assert.match(call("geml_get", { file: "l.geml", id: "#L2" }).text, /^=== note \{#L2\}\nnamed\n===/);
+  assert.match(call("geml_get", { file: "l.geml", id: "L6" }).text, /^=== note \{#other\}\nplain\n===/);
+});
+
+// `L0` and `L10-5` are typos, not positions: the selector refuses to clamp
+// them, so they fall through to the id fallthrough and report as a missing id —
+// exactly what the CLI does with the same strings. Pinned because the position
+// test in `selectorArg` and the range validation in `parseSelector` are two
+// different checks, and a future tightening of either must not silently turn
+// one of these into a block lookup that succeeds.
+test("an out-of-range position is not a position, and says which id it looked for", () => {
+  const dir = ws();
+  for (const bad of ["L0", "L10-5"]) {
+    const r = call("geml_get", { file: "d.geml", id: bad });
+    assert.ok(r.isError, `${bad}: ${r.text}`);
+    assert.match(r.text, new RegExp(`no block with id \`${bad}\``));
+  }
+  // A well-formed position with no single block behind it refuses differently:
+  // it is read AS a position, and says so.
+  const past = call("geml_get", { file: "d.geml", id: "L9999" });
+  assert.ok(past.isError, past.text);
+  assert.match(past.text, /position selector names ONE block/);
+  rmSync(dir, { recursive: true, force: true });
 });
 
 test("geml_check reports diagnostics with their Appendix A codes", () => {
@@ -705,7 +784,7 @@ test("write_block: an unknown `part` is rejected by name, before anything is wri
   const before = readFileSync(join(dir, "d.geml"), "utf8");
   const r = call("geml_set", { file: "d.geml", id: "alpha", body: "x", part: "sideways" });
   assert.ok(r.isError, "reported as an error result");
-  assert.match(r.text, /part must be whole\|head\|body, got `sideways`/);
+  assert.match(r.text, /part must be whole\|head\|intro\|body, got `sideways`/);
   assert.equal(readFileSync(join(dir, "d.geml"), "utf8"), before, "the document is untouched");
   rmSync(dir, { recursive: true, force: true });
 });
@@ -1166,7 +1245,76 @@ test("geml_get part=body pairs with view, and a bad part is refused", () => {
   assert.equal(call("geml_get", { file: "host.geml", id: "#e", part: "head" }).text,
     '=== embed {#e src="part.geml#tip"}\n');
   const bad = call("geml_get", { file: "host.geml", id: "#e", part: "middle" });
-  assert.match(bad.text, /part must be whole\|head\|body/);
+  assert.match(bad.text, /part must be whole\|head\|intro\|body/);
+});
+
+// A section with an opening AND a subsection, so `intro` and `body` differ.
+const SECTION_DOC = `=== meta
+title = "Sections"
+===
+
+## Section {#sec}
+
+Opening line.
+
+### Child {#child}
+
+Child text.
+`;
+
+test("geml_get part=intro reads a section's opening, without its subsections", () => {
+  const dir = ws(SECTION_DOC);
+  const r = call("geml_get", { file: "d.geml", id: "sec", part: "intro" });
+  assert.ok(!r.isError, r.text);
+  assert.match(r.text, /Opening line\./);
+  assert.doesNotMatch(r.text, /Child/, "the subsection stays out of the answer");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("write_block: part=intro replaces a section's opening and leaves its subsections byte-identical", () => {
+  const dir = ws(SECTION_DOC);
+  const r = call("geml_set", { file: "d.geml", id: "sec", body: "\nRewritten opening.\n\n", part: "intro" });
+  assert.ok(!r.isError, r.text);
+  const doc = readFileSync(join(dir, "d.geml"), "utf8");
+  assert.match(doc, /Rewritten opening\./, "intro replaced");
+  assert.doesNotMatch(doc, /Opening line\./, "the old opening is gone");
+  assert.ok(doc.endsWith("### Child {#child}\n\nChild text.\n"), "the subsection is byte-identical");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+// `intro` is a HEADING's opening region. On a typed block there is no such
+// region, and the refusal has to say so by name and write nothing. Worth its
+// own test because this path is newly REACHABLE from MCP: while the tool
+// refused `intro` at the door, the verb's own message was unreachable here.
+test("part=intro on a block that is not a heading is refused by name, and writes nothing", () => {
+  const dir = ws();
+  const before = readFileSync(join(dir, "d.geml"), "utf8");
+  const got = call("geml_get", { file: "d.geml", id: "alpha", part: "intro" });
+  assert.ok(got.isError, got.text);
+  assert.match(got.text, /--intro names a heading's opening region/);
+  assert.match(got.text, /`note` block/, "the refusal names what the block actually is");
+
+  const wrote = call("geml_set", { file: "d.geml", id: "alpha", part: "intro", body: "x\n" });
+  assert.ok(wrote.isError, wrote.text);
+  assert.equal(readFileSync(join(dir, "d.geml"), "utf8"), before, "the document is untouched");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+// The two fixes meet here. `intro` runs to the section's first SUBHEADING, and
+// that bound is read from the addressed units — so a `#` line shielded inside a
+// ``` pair must not cut the opening short. Neither fix's own tests cover the
+// combination, and on 1.11.1 it was broken twice over.
+test("part=intro carries a ``` pair whose body holds a `#` line", () => {
+  const tick = "`".repeat(3);
+  const dir = ws(
+    `## Quick {#quick}\n\nOpening prose.\n\n${tick}bash\n# Build / watch\npnpm build\n${tick}\n\nAfter the sample.\n\n### Child {#child}\n\nChild text.\n`,
+  );
+  const r = call("geml_get", { file: "d.geml", id: "quick", part: "intro" });
+  assert.ok(!r.isError, r.text);
+  assert.match(r.text, /# Build \/ watch/, "the shielded comment is part of the opening");
+  assert.match(r.text, /After the sample\./, "the opening does not stop at the shielded line");
+  assert.doesNotMatch(r.text, /Child text\./, "the subsection still bounds the opening");
+  rmSync(dir, { recursive: true, force: true });
 });
 
 test("the view provenance line has the format the MCP layer parses", () => {

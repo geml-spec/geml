@@ -18,6 +18,30 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **A line inside a matched backtick fence no longer ends the section around
+  it.** `collectSpans` computed the shield §3.1 requires but never handed it to
+  `sectionEnd`, so a `#` comment in a shell sample cut its section in half, and
+  a shielded `===` ran it to end-of-document. `geml check` stayed silent,
+  because only the addresses were wrong. Worst on `set --body`, which replaced
+  up to the phantom boundary and left half a fence behind at exit 0. Twenty-one
+  documents here addressed differently before the fix.
+
+- **`geml_get` and `geml_set` accept the `part=intro` their schemas offer.** The
+  enum and the validation were separate and only the enum learned `intro`, so
+  MCP refused a value it advertised while the CLI's `--intro` worked on the same
+  file. One `PARTS` list now feeds both.
+
+- **`geml_get` and `geml_set` take the `L27-58` position `geml_list` prints.**
+  `selectorArg` prefixed it with `#`, turning a position into a request for a
+  block NAMED `L27`. It now recognises one with `BARE_LINE`, the selector's own
+  pattern; a block really named `L27` keeps its key form, `#L27`.
+
+- **A missing required argument is refused by name.** Nothing enforced each
+  tool's declared `required` list, so a forgotten field surfaced as whichever
+  TypeError the verb reached first — `Cannot read properties of undefined` named
+  neither the tool nor the argument. The schema and the check now read from one
+  source.
+
 - **agent-runtime**: one supervisor, two hosts. Every gate decision moves into
   `src/core/supervisor.ts`, which knows nothing about its host; `src/hosts/dsh/`
   keeps the Cordis plugin and `src/hosts/pi/` adds a Pi extension, and each is now

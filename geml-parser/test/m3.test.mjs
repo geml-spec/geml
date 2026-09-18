@@ -569,3 +569,22 @@ test("地址层和模型层看到同一份东西 —— 被遮的块不该还寻
   assert.equal(ids(parse(live)).includes("a") && addressedUnits(live).some((u) => u.unit.id === "a"), true);
 });
 
+test("a shielded `#` line does not end a section: a shell comment inside ``` stays inside its heading's span", () => {
+  // lines: 0 heading, 1 blank, 2 ```bash, 3 # comment, 4 command, 5 ```, 6 blank, 7 next heading.
+  const src = `## Quick {#quick}\n\n${tick}bash\n# Build / watch\npnpm build\n${tick}\n\n## Glossary {#glossary}\nx\n`;
+  const span = (id) => addressedUnits(src).find((u) => u.unit.id === id).unit.span;
+  assert.deepEqual(span("quick"), { start: 0, end: 7 }, "the section runs to the next real heading");
+  // the last section runs to the end of the source, its trailing empty line included.
+  assert.deepEqual(span("glossary"), { start: 7, end: 10 });
+  // the shielded line is not a heading either, so no unit starts there.
+  assert.equal(addressedUnits(src).some((u) => u.unit.kind === "heading" && u.unit.span.start === 3), false);
+});
+
+test("a shielded fence line inside a section is not skipped as a block, so it cannot carry the section past its end", () => {
+  // the `===` inside the ``` pair never opens a block, so its missing close cannot swallow `## Next`.
+  const src = `## A {#a}\n\n${tick}\n=== note {#example}\n${tick}\n\n## Next {#next}\ny\n`;
+  const span = (id) => addressedUnits(src).find((u) => u.unit.id === id).unit.span;
+  assert.deepEqual(span("a"), { start: 0, end: 6 });
+  assert.deepEqual(span("next"), { start: 6, end: 9 });
+});
+
