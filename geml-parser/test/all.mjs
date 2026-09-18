@@ -46,12 +46,17 @@ const suites = [
   // serve, and both MCP servers) — kept separate from the feature suites they
   // extend, because what they cover is refusal logic rather than a feature.
   "cov-convert", "cov-render", "cov-history-cli", "cov-scripts", "cov-installer",
-  "cov-adapters", "cov-serve", "cov-mcp",
+  "cov-adapters", "cov-serve", "cov-mcp", "cov-media",
   // GEP 0011 coordinates: the addresses that reach inside a block
   "coord",
   // geml-media/v1 的检查器：素材哈希、轨道种类、片段与轨道的种类是否相符、
   // 生成日志的 schema，以及血缘过期与它沿 DAG 的传播
   "media",
+  // 播放器时钟本身：假 DOM + 假时钟，对着 drivePlayer 的转场、增益、字幕和解锁跑
+  "media-player",
+  // `geml media …` 在命令行上的那一层：参数怎么认、产物写到哪、每一条拒绝。
+  // spawn 时清空 PATH，好让「没装 ffmpeg」这条路在三个平台上都是同一个答案。
+  "media-cli",
   // the `edn` engine for `data` blocks: §3.2 reserves the name, this reading
   // is the processor’s own — so these tests are where it is pinned down
   "edn",
