@@ -124,7 +124,8 @@ read those four from the table below rather than from a CLI verb.
 `geml_get` and `geml_set`, so a block with no id is readable and writable here,
 not only from the CLI. The parameter is still called `id` and still takes a bare
 one; it simply also accepts the other forms the listing prints (`## Heading`,
-`=== type`, `@<hex>`). A content address changes when you write to the block, so
+`=== type`, `@<hex>`, and the `L27-58` line range, which names the smallest
+block holding those lines; a block really named `L27` is `#L27`). A content address changes when you write to the block, so
 re-read it from `geml_list` before a second edit, and note that `geml_set`
 refuses an address matching several blocks rather than choosing one.
 

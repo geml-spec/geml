@@ -161,6 +161,29 @@ test("geml_get returns ONE block, with or without the leading #", () => {
   assert.ok(!withHash.includes("second block"), "only the addressed block comes back");
 });
 
+test("geml_get and geml_set take a line position, the range geml_list prints", () => {
+  // The schema advertises `L27`/`L27-58`, and the listing prints that range on
+  // every row. Prefixed with `#`, a position became a request for a block NAMED
+  // L8 and matched nothing. In DOC, `#alpha` is lines 7-9.
+  const dir = ws();
+  const alpha = call("geml_get", { file: "d.geml", id: "#alpha" }).text;
+  assert.equal(call("geml_get", { file: "d.geml", id: "L8" }).text, alpha, "one line: the smallest block holding it");
+  assert.equal(call("geml_get", { file: "d.geml", id: "L7-9" }).text, alpha, "the listed range pastes straight back");
+  assert.equal(call("geml_get", { file: "d.geml", id: "l8" }).text, alpha, "the selector's own pattern, lowercase included");
+
+  const w = call("geml_set", { file: "d.geml", id: "L8", part: "body", body: "moved by position\n" });
+  assert.equal(w.json.ok, true, w.text);
+  assert.match(readFileSync(join(dir, "d.geml"), "utf8"), /=== note \{#alpha\}\nmoved by position\n===/);
+});
+
+test("a block really named L2 is still reached by its id, `#L2`", () => {
+  // The position form wins for the bare spelling, as it does on the CLI; the
+  // explicit key form is how an id of that spelling stays reachable.
+  ws("=== note {#L2}\nnamed\n===\n\n=== note {#other}\nplain\n===\n", "l.geml");
+  assert.match(call("geml_get", { file: "l.geml", id: "#L2" }).text, /^=== note \{#L2\}\nnamed\n===/);
+  assert.match(call("geml_get", { file: "l.geml", id: "L6" }).text, /^=== note \{#other\}\nplain\n===/);
+});
+
 test("geml_check reports diagnostics with their Appendix A codes", () => {
   const dir = ws();
   assert.equal(call("geml_check", { file: "d.geml" }).json.ok, true);
