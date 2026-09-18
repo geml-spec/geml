@@ -1,7 +1,7 @@
 // The approval gate fails closed on every path that is not an explicit grant.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { gateFor } from "../dist/approval.js";
+import { gateFor } from "../dist/hosts/dsh/approval.js";
 
 const req = { agent: {}, toolName: "agent_transition", reason: "transition #to-pay needs approval" };
 

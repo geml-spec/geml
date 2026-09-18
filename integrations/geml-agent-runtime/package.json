@@ -1,7 +1,7 @@
 {
   "name": "@geml/agent-runtime",
   "version": "0.1.0",
-  "description": "GEML Agent Runtime for DeepSeek Harness: a statechart written in GEML gates which tools the model sees in each state, validates every transition and patch, and appends a hash-chained GEML ledger. Also ships the geml MCP server row and the authoring and code-graph skills.",
+  "description": "GEML Agent Runtime: a statechart written in GEML supervises an agent - it gates which tools the model sees in each state, validates every transition and patch, and appends a hash-chained GEML ledger. One supervisor, two hosts: DeepSeek Harness (Cordis plugin) and Pi (extension). Also ships the geml MCP server row and the authoring and code-graph skills.",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
@@ -22,6 +22,8 @@
     "dsh-plugin",
     "dsh",
     "deepseek-harness",
+    "pi-package",
+    "pi",
     "geml",
     "agent",
     "statechart",
@@ -65,8 +67,10 @@
     "@deepseek-ai/dsh-tools": "^0.1.5-rc.1",
     "@deepseek-ai/dsh-user-approval": "^0.1.5-rc.1",
     "@deepseek-ai/schemastery": "^3.18.2",
+    "@earendil-works/pi-coding-agent": "^0.85.1",
     "@types/node": "^26.5.0",
     "c8": "^12.0.0",
+    "typebox": "^1.3.7",
     "typescript": "^7.0.2"
   },
   "peerDependencies": {
@@ -77,6 +81,63 @@
     "@deepseek-ai/dsh-system-prompt": "^0.1.5-rc.1",
     "@deepseek-ai/dsh-tools": "^0.1.5-rc.1",
     "@deepseek-ai/dsh-user-approval": "^0.1.5-rc.1",
-    "@deepseek-ai/schemastery": "^3.18.2"
+    "@deepseek-ai/schemastery": "^3.18.2",
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./dsh": {
+      "types": "./dist/hosts/dsh/plugin.d.ts",
+      "default": "./dist/hosts/dsh/plugin.js"
+    },
+    "./pi": {
+      "types": "./dist/hosts/pi/extension.d.ts",
+      "default": "./dist/hosts/pi/extension.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "pi": {
+    "extensions": [
+      "./dist/hosts/pi/extension.js"
+    ],
+    "skills": [
+      "./skills"
+    ]
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/cordis": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-agent": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-llm": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-session": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-system-prompt": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-tools": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-user-approval": {
+      "optional": true
+    },
+    "@deepseek-ai/schemastery": {
+      "optional": true
+    },
+    "@earendil-works/pi-coding-agent": {
+      "optional": true
+    },
+    "typebox": {
+      "optional": true
+    }
   }
 }

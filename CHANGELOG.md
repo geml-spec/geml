@@ -18,6 +18,17 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **agent-runtime**: one supervisor, two hosts. Every gate decision moves into
+  `src/core/supervisor.ts`, which knows nothing about its host; `src/hosts/dsh/`
+  keeps the Cordis plugin and `src/hosts/pi/` adds a Pi extension, and each is now
+  an `exports` subpath (`@geml/agent-runtime/dsh`, `/pi`) so an install with one
+  harness never resolves the other's packages — both host families are optional
+  peers. On Pi the ledger is written twice: to the same `.geml` file, and to one
+  session entry per block, which is what lets a forked session inherit the chain
+  (a file cannot express a tree). Two gates are weaker there and both are
+  documented: the `to` enum names every target in the statechart because a Pi tool
+  cannot be re-registered mid-session, and the state instruction plus snapshot
+  refresh once per user turn rather than once per step.
 - **agent-runtime**: `geml-agent run` starts dsh with the bundle in place, and the
   repository's own docs follow the rename — README, `docs/PUBLISHING`, and the npm
   description. Publishing is blocked on a parser release that registers

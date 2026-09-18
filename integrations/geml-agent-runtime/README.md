@@ -1,4 +1,4 @@
-# @geml/agent-runtime — a supervisor for DeepSeek Harness agents
+# @geml/agent-runtime — a supervisor for coding agents
 
 English | [中文](README.zh.md)
 
@@ -18,17 +18,17 @@ the model will do.
 flowchart TB
     subgraph plant["plant — deliberately unmodelled"]
         M["LLM + its whole context window"]
-        L["dsh-agent-loop: turn / step"]
+        L["the host's agent loop: turn / step"]
         M --- L
     end
 
     L -->|"proposes an event e"| G1
 
     subgraph sup["supervisor — a deterministic automaton that only subtracts"]
-        G1{"gate 1 · visibility<br/>tools.restrict({allow})<br/>a tool outside A(σ) never<br/>reaches the prompt"}
-        G2{"gate 2 · argument domain<br/>agent_transition's to enum<br/>= outgoing(σ)"}
-        G3{"gate 3 · pre-dispatch cut-out<br/>tools/pre-execute → guard()<br/>monotonic: it can only deny"}
-        G4{"gate 4 · human gate<br/>ctx.approval.request()<br/>anything but allowed-once denies"}
+        G1{"gate 1 · visibility<br/>a tool outside A(σ) never<br/>reaches the prompt"}
+        G2{"gate 2 · argument domain<br/>agent_transition's to enum"}
+        G3{"gate 3 · pre-dispatch cut-out<br/>monotonic: it can only deny"}
+        G4{"gate 4 · human gate<br/>anything but a yes denies"}
         G5{"gate 5 · verb validation<br/>requires / vars schema<br/>validate, then write"}
         G1 --> G2 --> G3 --> G4 --> G5
     end
@@ -38,7 +38,7 @@ flowchart TB
     G4 -.->|"denied"| REF
     G5 -.->|"denied"| REF
 
-    UNC["uncontrollable events<br/>a tool fails · the user speaks"] ==>|"observe only"| RESP["tools/result listener<br/>→ error-rollback"]
+    UNC["uncontrollable events<br/>a tool fails · the user speaks"] ==>|"observe only"| RESP["the tool-result listener<br/>→ error-rollback"]
     RESP --> NEXT
 
     NEXT --> LEDGER[("ledger .geml<br/>the projected history<br/>hash-chained")]
@@ -46,8 +46,22 @@ flowchart TB
     LEDGER -->|"resume: read the last block"| SIGMA
     SIGMA["σ = (state, vars)"] --> G1
     NEXT --> SIGMA
-    SIGMA -->|"systemPrompt.context<br/>a few hundred bytes"| M
+    SIGMA -->|"the state's instruction<br/>+ a few hundred bytes"| M
 ```
+
+Only the mechanism is the host's; every decision above is one module
+(`src/core/supervisor.ts`) that neither host has a copy of:
+
+| | DeepSeek Harness | Pi |
+|---|---|---|
+| gate 1 · visibility | `agent.ctx.tools.restrict()` | `pi.setActiveTools()` |
+| gate 2 · argument domain | the verbs are re-registered per state, so the enum is `outgoing(σ)` | registered once per session, so the enum is every target in the statechart; gate 5 refuses the rest |
+| gate 3 · cut-out | `agent.ctx.tools.guard()` | `tool_call` → `{ block, reason }` |
+| gate 4 · human gate | `ctx.approval.request()` — no service, a throw, or anything but `allowed-once` denies | `ctx.ui.confirm()` — and no UI at all (`-p`, json) denies |
+| gate 5 · verb validation | the same module | the same module |
+| pause / final ends the turn | `exec.concludeTurn()` | `AgentToolResult.terminate` |
+| σ reaches the model | a prompt section + a per-step context block | the system prompt, rebuilt once per user turn |
+| the ledger | `<ledgerDir>/<session>.geml` | the same file, plus one session entry per block — which is what makes a forked session inherit the chain |
 
 The supervisor's state is `σ = (state, vars)`, and the allowed set is one line:
 
@@ -59,8 +73,9 @@ The supervisor's state is `σ = (state, vars)`, and the allowed set is one line:
 
 | | |
 |---|---|
-| Shipping now | The `geml-agent/v1` vocabulary, the core library (statechart loading and static checks, hash-chained snapshots, ledger render/read/verify), and the `geml-agent` CLI. |
-| Not yet | The harness plugin that enforces the statechart at runtime — the gates above are designed against DeepSeek Harness `0.1.5-rc.1`'s real hooks, but the plugin row is not in this bundle yet. |
+| Shipping now | The `geml-agent/v1` vocabulary; the core library (statechart loading and static checks, hash-chained snapshots, ledger render/read/verify, the supervisor itself); the `geml-agent` CLI; and both host adapters — a Cordis plugin for DeepSeek Harness `0.1.5-rc.1` and an extension for Pi `0.85.x`. |
+| Tested without a model | Every gate, on both hosts: the DSH adapter against a real agent from `dsh-agent-loop-testkit`, the Pi adapter against a double that runs Pi's own pipeline order and Pi's own argument validator. A run against a live model is a manual step, below. |
+| Not yet measured | What per-state gating costs Pi's prompt-prefix cache. Pi documents that a non-additive change to the active tool set resends the whole tool list and may invalidate the cached prefix, which is what every transition does. `GEML_AGENT_VISIBILITY=guard-only` trades gate 1 away to avoid it; gate 3 still refuses the call. |
 | Also in this bundle | The GEML MCP server and the authoring and code-graph skills (see [Install](#install)). |
 
 Design: [`docs/design/specs/2026-09-14-geml-agent-runtime-design.md`](../../docs/design/specs/2026-09-14-geml-agent-runtime-design.md).
@@ -120,6 +135,11 @@ oversights:
 - **Resuming restores the state, not the conversation.** A few hundred bytes
   bring back where the run is and what may happen next; the transcript is
   replayed by the harness under its own rules.
+- **A gate is only as strong as the host's weakest mechanism for it**, and the
+  table above says which. Gate 2 is the live example: on Pi the `to` enum names
+  every target in the statechart rather than only the ones reachable from `σ`,
+  because a Pi tool cannot be re-registered mid-session. The move is still
+  refused — by gate 5, one step later, and recorded as a refusal.
 
 The fit is therefore **enumerable processes** — approvals, KYC, ticket triage,
 operations runbooks. Open-ended work (writing code, doing research) has no
@@ -154,6 +174,8 @@ the statechart — every recorded transition matching a declared edge. Deleting 
 
 ## Install
 
+### DeepSeek Harness
+
 ```sh
 dsh plugin --profile web add @geml/agent-runtime
 ```
@@ -165,11 +187,46 @@ dsh --profile web --dump-config   # shows a "# == @geml/agent-runtime" layer
 dsh --profile web
 ```
 
-The bundle contributes two rows today: the **GEML MCP server**
-(`npx -y @geml/geml mcp --root .`, confined to the session's project directory,
-so the model edits one block at a time instead of rewriting files) and the two
-**skills** under `skills/` — authoring and code-graph. Override either by `id`
-in your profile's `cordis.patch.yml`, restating every key the row needs.
+The bundle contributes three rows: the **supervisor**
+(`@geml/agent-runtime/dsh`, which attaches per agent and does nothing at all
+when the session's working directory holds no `agent.geml` — that is
+`onMissing: skip`), the **GEML MCP server** (`npx -y @geml/geml mcp --root .`,
+confined to the session's project directory, so the model edits one block at a
+time instead of rewriting files) and the two **skills** under `skills/` —
+authoring and code-graph. Override any of them by `id` in your profile's
+`cordis.patch.yml`, restating every key the row needs.
+
+### Pi
+
+```sh
+pi install npm:@geml/agent-runtime
+```
+
+The same tarball is a pi package: its `pi.extensions` points at the supervisor
+and its `pi.skills` at the same two skills, which already sit one `SKILL.md`
+folder each — Pi's own convention.
+
+The statechart is read when the extension loads, because the three verbs have
+to be registered before the first session starts and their schemas come from
+it. That is why the path is an environment variable and not a flag — flags are
+not parsed yet at that point:
+
+```sh
+GEML_AGENT_STATECHART=agent.geml pi      # the default, relative to the cwd
+GEML_AGENT_LEDGER_DIR=/var/ledgers pi    # default: <session dir>/geml-agent
+GEML_AGENT_VISIBILITY=guard-only pi      # keep the tool list static (see Status)
+```
+
+No statechart, no registrations and no listeners: `pi` behaves exactly as it
+does without this package.
+
+Three things about Pi are read from its published types and docs rather than
+measured, and a run against a live model is where to check them: what per-state
+gating costs the prompt-prefix cache; whether `ctx.ui.confirm` throws or
+returns a default when there is no UI (either way this adapter denies); and
+whether `getBranch()` after a fork returns the branch or the whole tree (the
+`hash`/`parent` chain is computed from what it returns, and `geml-agent verify`
+is what would catch it).
 
 The CLI alone, without the harness:
 
@@ -185,7 +242,15 @@ npm install        # links @geml/geml from ../../geml-parser
 npm test           # tsc + node --test
 ```
 
-`src/core/` is a pure library — no `node:fs`, no `process`, no `console` (a
-test pins it) — so the CLI and the future harness plugin share one
-implementation. `src/host-fs.ts` is the only module that touches the file
-system.
+`src/core/` is a pure library — no `node:fs`, no `process`, no `console`, and
+no host package either (tests pin all of it) — so the CLI and both adapters
+share one implementation. `src/host-fs.ts` is the only module that touches the
+file system.
+
+The layout follows from that: `src/core/supervisor.ts` decides, and
+`src/hosts/dsh/` and `src/hosts/pi/` only translate. Neither adapter may import
+the other's host — they are optional peer dependencies, so an install with one
+harness must never resolve the other's packages, and a test enforces it. Each
+host also has a parity test (`dsh-parity`, `pi-parity`) that asserts the shapes
+this package depends on against the installed packages: when a host moves, the
+suite goes red here rather than in someone's session.

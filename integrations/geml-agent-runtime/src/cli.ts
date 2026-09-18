@@ -4,7 +4,7 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { exists, readText, writeNew } from "./host-fs.js";
-import { run as runTask } from "./launch.js";
+import { run as runTask } from "./hosts/dsh/launch.js";
 import { loadStatechart, hasErrors, type AgentDiagnostic } from "./core/statechart.js";
 import { readLedger, verifyLedger } from "./core/ledger.js";
 import { canonical } from "./core/snapshot.js";
