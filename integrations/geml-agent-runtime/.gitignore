@@ -1,4 +1,6 @@
-node_modules/
-dist/
-coverage/
+*.tgz
 .nyc_output/
+.pack/
+coverage/
+dist/
+node_modules/

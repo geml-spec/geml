@@ -16,7 +16,7 @@ const USAGE = [
   "  snapshot <ledger.geml> [--json]        the last revision",
   "  verify <ledger.geml> [--statechart f]  hash chain and consistency",
   "  export <ledger.geml> --to md           revision table with per-step diffs",
-  "  init [dir]                             write the example agent.geml",
+  "  init [dir] [--template coding|refund]  write a starting agent.geml (default: coding)",
   "  run [--profile name] <task>            add the bundle to a dsh profile and run the task there",
 ].join("\n");
 
@@ -110,9 +110,17 @@ function main(argv: string[]): number {
       return 0;
     }
     case "init": {
-      const dir = resolve(rest[0] ?? ".");
+      // `coding` is the default because that is what a repository is for: the
+      // states are explore / plan / implement / verify / review, and the point
+      // of them is that a file cannot be edited before a plan is recorded and
+      // nothing reaches "done" without a recorded test result.
+      const template = flag(rest, "--template") ?? "coding";
+      if (template !== "coding" && template !== "refund") {
+        fail(`unknown template "${template}"; expected coding or refund`, 2);
+      }
+      const dir = resolve(rest.filter((a) => a !== "--template" && a !== template)[0] ?? ".");
       const target = resolve(dir, "agent.geml");
-      const example = readText(fileURLToPath(new URL("../examples/refund/agent.geml", import.meta.url))).replace(/\r\n/g, "\n");
+      const example = readText(fileURLToPath(new URL(`../examples/${template}/agent.geml`, import.meta.url))).replace(/\r\n/g, "\n");
       try { writeNew(target, example); }
       catch (e) { fail((e as NodeJS.ErrnoException).code === "EEXIST" ? `${target} already exists; not overwriting` : String(e), 1); }
       console.log(`wrote ${target}`);

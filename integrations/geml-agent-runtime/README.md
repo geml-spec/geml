@@ -172,6 +172,63 @@ equal to the previous hash, every hash recomputed from its content, and — give
 the statechart — every recorded transition matching a declared edge. Deleting a
 **trailing** run of blocks is the one edit the chain cannot detect.
 
+## Start on a repository
+
+What it looks like to use this on a project, end to end. Five minutes, and
+nothing here is published yet, so step 1 builds the package from this checkout.
+
+**Dependencies.** Node 22 or newer, and a harness: [pi agent](https://pi.dev)
+(`npm install -g @earendil-works/pi-coding-agent`) or DeepSeek Harness. Plus an
+API key for whichever model you point the harness at — the supervisor never
+sees it.
+
+```sh
+# 1. build an installable tarball (bundles the parser, which is not on npm yet)
+cd integrations/geml-agent-runtime && npm install && node scripts/pack-local.mjs
+
+# 2. install it — the CLI globally, the supervisor into your harness
+npm install -g ./geml-agent-runtime-0.1.0.tgz
+pi install /absolute/path/to/geml-agent-runtime-0.1.0.tgz
+
+# 3. in the repository you want to work on
+cd ~/code/my-project
+geml-agent init                      # writes agent.geml: the coding workflow
+geml-agent check agent.geml          # 0 = it will load
+
+# 4. work
+pi "make the failing test in test/user.test.ts pass"
+```
+
+From step 4 on it is an ordinary session, except that the tool list the model
+gets is the one the current state declares. In `#explore` that is `read grep
+find ls` — the model cannot edit, and cannot run a command, until it has
+recorded a goal and a plan and moved to `#implement`. Ask it to commit before
+the tests have run and the transition is refused with the reason, in words,
+and the refusal is in the ledger.
+
+The ledger lands in `<session dir>/geml-agent/<session>.geml`. Read it with
+`geml-agent export <ledger> --to md`, check it with `geml-agent verify`.
+
+**Edit `agent.geml` to fit your project.** It is the whole configuration: the
+states, the tools each one admits, the variables, and the guards. The shipped
+one makes four claims — no edit before a plan, no command while editing, no
+"done" without a recorded test result, and a human on the last step. If your
+project wants a different order, that is a text edit, not a code change.
+
+### See the whole thing run, without an API key
+
+```sh
+node examples/walkthrough.mjs
+```
+
+That starts a REAL pi agent session against a throwaway project with a failing
+test, driven by a scripted model (`examples/scripted-model.js`) so it needs no
+credentials and says the same thing every time. Everything else is real — pi
+agent's loop, its tool pipeline, the `bash` calls actually run. It prints which
+tools the model was offered at each step, what the gates refused, and the
+ledger that came out. It is the shortest way to decide whether this shape of
+constraint is one you want.
+
 ## Install
 
 ### DeepSeek Harness
