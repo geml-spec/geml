@@ -92,7 +92,10 @@ export function sha8(text: string): string {
 // groups. (Mirrors geml.ts's FENCE_OPEN, which had the same shape.)
 const FENCE_SEL = /^={3,}[ \t]*([A-Za-z][A-Za-z0-9_-]*)[ \t]*(?:(@[0-9a-fA-F]{1,}(?:~\d+)?)[ \t]*)?(?:(\{.*\})[ \t]*)?$/;
 const BARE_AT = /^@([0-9a-fA-F]+)(?:~(\d+))?$/;
-const BARE_LINE = /^[Ll](\d+)(?:-(\d+))?$/;
+// Exported for the MCP surface, which prefixes a bare id with `#` and must know
+// a position when it sees one: `#L27` is an id, so the prefix would change what
+// the address means.
+export const BARE_LINE = /^[Ll](\d+)(?:-(\d+))?$/;
 // One `[…]` step. Anchored and applied in a single left-to-right walk, never
 // as a global regex over the whole selector, so a pathological string cannot
 // make the engine try divisions of it (the lesson FENCE_SEL above records).

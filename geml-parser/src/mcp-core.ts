@@ -23,6 +23,7 @@ import {
   type Content, type FindHit, type HistoryReader, type InFmt, type OutFmt, type VerbContext,
   VerbError, add, del, formatFindRows, get, list, rename, revert, set, transform,
 } from "./verbs.js";
+import { BARE_LINE } from "./selector.js";
 
 // One version for the whole package: `geml --version` and the MCP handshake
 // must not disagree. This used to be its own literal and had drifted to 0.1.0
@@ -197,8 +198,14 @@ const hashId = (id: string) => (id.startsWith("#") ? id : `#${id}`);
 // (add/delete/rename/revert) take ids only, so accepting a selector here would
 // promise something the CLI would then refuse.
 // A selector starts with `#` (id or heading line), `@` (content address), or a
-// `=` fence run (type filter). Anything else is a bare id.
-const selectorArg = (s: string) => (/^([#@]|={3,})/.test(s.trim()) ? s.trim() : `#${s}`);
+// `=` fence run (type filter), or is a position `L27` / `L27-58` — the range
+// `geml_list` prints on every row. Anything else is a bare id. The position is
+// checked by the selector's own pattern: prefixed, `#L27` would ask for a block
+// NAMED L27, which is how a real id of that spelling stays reachable.
+const selectorArg = (s: string) => {
+  const t = s.trim();
+  return /^([#@]|={3,})/.test(t) || BARE_LINE.test(t) ? t : `#${s}`;
+};
 
 const FILE_ARG = { type: "string", description: "Document path relative to the server's --root directory, e.g. notes/spec.geml" };
 const SOURCE_ARG = { type: "string", description: "The document's full text. This server keeps no files: what you send is the document." };
@@ -415,7 +422,7 @@ export function toolsFor(host: McpHost): Tool[] {
       inputSchema: schema({
         id: {
           type: "string",
-          description: "Which block to replace: an id (with or without `#`), or a `@<hex>` content address from `geml_list` for a block with no id. Must match exactly one block",
+          description: "Which block to replace: an id (with or without `#`), a `@<hex>` content address from `geml_list` for a block with no id, or `L27`/`L27-58` for the smallest block holding those lines. Must match exactly one block",
         },
         body: { type: "string", description: "The replacement text" },
         part: { type: "string", enum: ["whole", "head", "intro", "body"], description: "What to replace (default: whole). `intro` replaces a section's opening — everything under the heading up to its first subheading — and leaves every subsection byte-identical, which is what makes a read-edit-write cycle on a long section safe. An empty intro (a subheading follows the heading immediately) is written into, so this also adds an opening where there was none." },
