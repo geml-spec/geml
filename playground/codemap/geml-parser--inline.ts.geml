@@ -128,8 +128,8 @@ geml-parser--verbs.ts.geml#oneHop,                          #schemeOf,        ca
 geml-parser--geml.ts.geml#recordEmbedSrc,                   #isSafeUrl,       call, geml-parser/src/geml.ts:850
 #classifyDest,                                              #isSafeUrl,       call, geml-parser/src/inline.ts:124
 #scanAtoms,                                                 #isSafeUrl,       call, geml-parser/src/inline.ts:309
-geml-parser--render.ts.geml#RenderCtx-projectFallback,      #isSafeUrl,       call, geml-parser/src/render.ts:486
-geml-parser--render.ts.geml#RenderCtx-transclusionFallback, #isSafeUrl,       call, geml-parser/src/render.ts:578
+geml-parser--render.ts.geml#RenderCtx-projectFallback,      #isSafeUrl,       call, geml-parser/src/render.ts:493
+geml-parser--render.ts.geml#RenderCtx-transclusionFallback, #isSafeUrl,       call, geml-parser/src/render.ts:585
 #scanAtoms,                                                 #inferAs,         call, geml-parser/src/inline.ts:318
 #scanAtoms,                                                 #classifyDest,    call, geml-parser/src/inline.ts:283
 #scanAtoms,                                                 #classifyDest,    call, geml-parser/src/inline.ts:330

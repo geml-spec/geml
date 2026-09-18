@@ -1,7 +1,7 @@
 === meta
 profile = "geml-codemap/v1"
 repo = geml
-commit = 02476b8
+commit = e4e0a03
 container = file
 entry = geml-viewer--content.js.geml#main
 resolution-default = cpg
