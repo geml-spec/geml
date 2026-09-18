@@ -52,7 +52,7 @@ flowchart TB
 Only the mechanism is the host's; every decision above is one module
 (`src/core/supervisor.ts`) that neither host has a copy of:
 
-| | DeepSeek Harness | Pi |
+| | DeepSeek Harness | pi agent |
 |---|---|---|
 | gate 1 · visibility | `agent.ctx.tools.restrict()` | `pi.setActiveTools()` |
 | gate 2 · argument domain | the verbs are re-registered per state, so the enum is `outgoing(σ)` | registered once per session, so the enum is every target in the statechart; gate 5 refuses the rest |
@@ -73,9 +73,9 @@ The supervisor's state is `σ = (state, vars)`, and the allowed set is one line:
 
 | | |
 |---|---|
-| Shipping now | The `geml-agent/v1` vocabulary; the core library (statechart loading and static checks, hash-chained snapshots, ledger render/read/verify, the supervisor itself); the `geml-agent` CLI; and both host adapters — a Cordis plugin for DeepSeek Harness `0.1.5-rc.1` and an extension for Pi `0.85.x`. |
-| Tested without a model | Every gate, on both hosts: the DSH adapter against a real agent from `dsh-agent-loop-testkit`, the Pi adapter against a double that runs Pi's own pipeline order and Pi's own argument validator. A run against a live model is a manual step, below. |
-| Not yet measured | What per-state gating costs Pi's prompt-prefix cache. Pi documents that a non-additive change to the active tool set resends the whole tool list and may invalidate the cached prefix, which is what every transition does. `GEML_AGENT_VISIBILITY=guard-only` trades gate 1 away to avoid it; gate 3 still refuses the call. |
+| Shipping now | The `geml-agent/v1` vocabulary; the core library (statechart loading and static checks, hash-chained snapshots, ledger render/read/verify, the supervisor itself); the `geml-agent` CLI; and both host adapters — a Cordis plugin for DeepSeek Harness `0.1.5-rc.1` and an extension for pi agent `0.85.x`. |
+| Tested without a model | Every gate, on both hosts: the DSH adapter against a real agent from `dsh-agent-loop-testkit`, the pi agent adapter against a double that runs its own pipeline order and its own argument validator. A run against a live model is a manual step, below. |
+| Not yet measured | What per-state gating costs pi agent's prompt-prefix cache. Its own docs say that a non-additive change to the active tool set resends the whole tool list and may invalidate the cached prefix, which is what every transition does. `GEML_AGENT_VISIBILITY=guard-only` trades gate 1 away to avoid it; gate 3 still refuses the call. |
 | Also in this bundle | The GEML MCP server and the authoring and code-graph skills (see [Install](#install)). |
 
 Design: [`docs/design/specs/2026-09-14-geml-agent-runtime-design.md`](../../docs/design/specs/2026-09-14-geml-agent-runtime-design.md).
@@ -136,9 +136,9 @@ oversights:
   bring back where the run is and what may happen next; the transcript is
   replayed by the harness under its own rules.
 - **A gate is only as strong as the host's weakest mechanism for it**, and the
-  table above says which. Gate 2 is the live example: on Pi the `to` enum names
+  table above says which. Gate 2 is the live example: on pi agent, the `to` enum names
   every target in the statechart rather than only the ones reachable from `σ`,
-  because a Pi tool cannot be re-registered mid-session. The move is still
+  because a pi agent tool cannot be re-registered mid-session. The move is still
   refused — by gate 5, one step later, and recorded as a refusal.
 
 The fit is therefore **enumerable processes** — approvals, KYC, ticket triage,
@@ -196,7 +196,7 @@ time instead of rewriting files) and the two **skills** under `skills/` —
 authoring and code-graph. Override any of them by `id` in your profile's
 `cordis.patch.yml`, restating every key the row needs.
 
-### Pi
+### pi agent
 
 ```sh
 pi install npm:@geml/agent-runtime
@@ -204,7 +204,7 @@ pi install npm:@geml/agent-runtime
 
 The same tarball is a pi package: its `pi.extensions` points at the supervisor
 and its `pi.skills` at the same two skills, which already sit one `SKILL.md`
-folder each — Pi's own convention.
+folder each — pi agent's own convention.
 
 The statechart is read when the extension loads, because the three verbs have
 to be registered before the first session starts and their schemas come from
@@ -220,7 +220,7 @@ GEML_AGENT_VISIBILITY=guard-only pi      # keep the tool list static (see Status
 No statechart, no registrations and no listeners: `pi` behaves exactly as it
 does without this package.
 
-Three things about Pi are read from its published types and docs rather than
+Three things about pi agent are read from its published types and docs rather than
 measured, and a run against a live model is where to check them: what per-state
 gating costs the prompt-prefix cache; whether `ctx.ui.confirm` throws or
 returns a default when there is no UI (either way this adapter denies); and

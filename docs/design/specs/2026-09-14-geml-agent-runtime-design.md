@@ -2,7 +2,7 @@
 
 日期：2026-09-14 · 状态：**已批准（2026-09-14），实施中** · 基线：`main` @ `41a83eb`
 前置阅读：`integrations/geml-agent-runtime/README.md`（这个 bundle 的形态；改造前它叫 `dsh-plugin`）、`spec/GEML-spec.md` §3.2 与 §8.6、`spec/profiles/README.md`、`spec/profiles/geml-history/`（哈希链先例）、`spec/proposals/0005-data-block.md`（盲追加约定）。
-宿主：DeepSeek Harness `0.1.5-rc.1`（npm `@deepseek-ai/dsh*`）与 Pi `0.85.1`（npm `@earendil-works/pi-coding-agent`、`@earendil-works/pi-agent-core`，MIT）。本文引用的每个接口名都取自这两家发布包的 `.d.ts` 与随包文档，不是从博客转述的。
+宿主：DeepSeek Harness `0.1.5-rc.1`（npm `@deepseek-ai/dsh*`）与 pi agent `0.85.1`（npm `@earendil-works/pi-coding-agent`、`@earendil-works/pi-agent-core`，MIT）。本文引用的每个接口名都取自这两家发布包的 `.d.ts` 与随包文档，不是从博客转述的。
 
 ---
 
@@ -10,19 +10,19 @@
 
 用一份 GEML 文档描述 agent 的状态图——状态、跃迁、变量、每个状态下可见的工具——挂在一个 harness 上做监督器：模型在任一时刻只看得见当前状态允许的工具与跃迁；每次状态变化先校验后落地，成为一条带哈希链的 GEML 快照记录；会话恢复时只读最后一条快照，不重放推理。
 
-监督器本身与宿主无关（`src/core/`，纯函数 + 一个 `Supervisor` 对象），宿主适配器只做接线：DeepSeek Harness 一个 Cordis 插件，Pi 一个扩展。门控逻辑只有一份，不许各自抄。
+监督器本身与宿主无关（`src/core/`，纯函数 + 一个 `Supervisor` 对象），宿主适配器只做接线：DeepSeek Harness 一个 Cordis 插件，pi agent 一个扩展。门控逻辑只有一份，不许各自抄。
 
 ## 1. 出发点
 
 ### 1.1 用户提出的五个问题 → 本设计的落点
 
-| # | 问题 | 传统 harness | 本设计（GEML 状态图 + 宿主 harness） | 落在宿主的哪个缝（DSH · Pi） |
+| # | 问题 | 传统 harness | 本设计（GEML 状态图 + 宿主 harness） | 落在宿主的哪个缝（DSH · pi agent） |
 |---|---|---|---|---|
 | 1 | 状态回滚 | 提示词求模型回滚，底层脏读 | 补丁与跃迁先经 JSON Schema 与守卫校验，失败**不落地**；`agent_rollback` 与 `rollback-on-error` 把指针拨回上一个有效修订；台账只追加不改写 | 动词体内先校验；`tools/result` · `tool_result` 观察 |
 | 2 | 沙箱隔离 | 容器硬抗，逻辑越权难防 | 载入时静态检查状态图；运行时按当前状态用**单调守卫**在派发前熔断越权调用，命令根本到不了 shell | `ToolRuntime.guard()` · `tool_call → {block}` |
 | 3 | 工具冲突 | 全局函数池概率盲猜 | `restrict({allow})` 按状态收窄模型**可见**的工具集；`agent_transition` 的 `to` 枚举只含当前合法目标 | `ToolRuntime.restrict()` + 按状态重注册 · `setActiveTools()`（枚举域的差别见 §6.5） |
 | 4 | 断点续跑 | 重灌全量 token | 快照 = `{rev, state, vars, hash}` 几百字节；进入 `pause`/`final` 状态结束回合（`exec.concludeTurn()` · `AgentToolResult.terminate`）；恢复只读台账最后一块——恢复的是**合法动作集**，不是 agent 行为（§1.4） | `agent/session-start {source:'resume'}` + `systemPrompt.context()` · `session_start` + `before_agent_start` |
-| 5 | 事件持久化 | 非结构化日志 | 每次推进追加一个 `agent-snapshot` 块到 `.geml` 台账（GEP-0005 盲追加），带 `rev/cause/parent/hash`；`geml-agent verify` 确定性重算整条链 | 自有 GEML 台账文件；Pi 另把每块镜像成会话自定义条目（§1.3） |
+| 5 | 事件持久化 | 非结构化日志 | 每次推进追加一个 `agent-snapshot` 块到 `.geml` 台账（GEP-0005 盲追加），带 `rev/cause/parent/hash`；`geml-agent verify` 确定性重算整条链 | 自有 GEML 台账文件；pi agent 另把每块镜像成会话自定义条目（§1.3） |
 
 ### 1.2 为什么落在这两个 harness 上是自然的
 
@@ -33,13 +33,13 @@
 - `restrict()`/`register()` 按调用上下文分层：经 `agent.ctx` 调用只影响该 agent；scoped 注册遮蔽全局；restriction 过滤的是继承面，**不过滤 scope 自己的注册**——我们自己的 `agent_*` 工具永不被自己的限制误伤。
 - 会话是事件溯源、append-only，原则「模型可见 ⟺ 已记录」。
 
-**Pi**（0.85.1 的 `.d.ts` 与随包 `docs/`）：
+**pi agent**（0.85.1 的 `.d.ts` 与随包 `docs/`）：
 
 - 扩展是 `export default function (pi: ExtensionAPI)`，`pi.on(event, handler)` + `registerTool / registerCommand / registerProvider`。事件加注册表，不是 IoC 微内核：`on` 与 `registerTool` **都不返回 disposer**，也没有 per-agent 作用域——扩展是**会话级**的，一个会话一份 σ。
 - `setActiveTools(names)` 就是门①，而且 `activeToolNames` 是 `LaneConfiguration` 的一部分，**跟着会话持久化**；DSH 的 `restrict` 只活在进程里。
 - `tool_call` 处理器返回 `{ block: true, reason, terminate }` 就是门③，按加载序链式调用。
 - `ctx.ui.confirm / select / input` 内建，就是门④，不需要另挂审批服务；但 `ctx.hasUI` 在 `-p` 与 json 模式下为假（随包文档原话：扩展照跑，但不能提问）。
-- `appendEntry(customType, data)` 把扩展状态写进会话，文档明写**不参与 LLM 上下文**；会话条目是一棵树（`parentId`），有 `fork` / `getBranch()`。这两条直接决定了 §1.3 与 §5.4 在 Pi 上长什么样。
+- `appendEntry(customType, data)` 把扩展状态写进会话，文档明写**不参与 LLM 上下文**；会话条目是一棵树（`parentId`），有 `fork` / `getBranch()`。这两条直接决定了 §1.3 与 §5.4 在 pi agent 上长什么样。
 - 可测性对等或更好：`createAgentSession({ customTools, sessionManager: SessionManager.inMemory() })` 加 `DefaultResourceLoader({ extensions: [factory] })`，不必像 DSH 那样先去探 testkit 挂不挂审批服务。
 - 它自己的 `skills/` 约定就是「递归找 SKILL.md 文件夹」，与本 bundle 已有的 `skills/` 布局一字不差——同一个包既能送监督器扩展，也能送那两个 GEML 技能。
 
@@ -54,9 +54,9 @@
 
 写了自定义事件，会话一持久化就再也恢复不了。所以在 DSH 上状态**不进会话日志**，只进自有的 GEML 台账文件，恢复也只读它。这不违反「模型可见 ⟺ 已记录」：模型看到的只有工具结果与运行时上下文快照，两者都由 DSH 自己记录。会话日志管对话，GEML 台账管状态——和 `.geml`/`.gemlhistory` 分热路径与冷路径是同一个道理。等 DSH 暴露 ignorable 写入口，再把快照镜像进会话日志（供 Web 时间线用），台账仍是记录源。
 
-**Pi：能写，而且必须写。** `appendEntry(customType, data)` 正是给这件事用的，文档明写自定义条目不参与 LLM 上下文。必须写的理由不是省事，是**正确性**：Pi 的会话是一棵树（条目带 `parentId`，`ctx.fork(entryId)` 从任一条目分叉，`session_start` 带 `reason: "fork"`），而一个平铺追加的文件表达不了树。恢复因此读**当前分支**上的条目（`ctx.sessionManager.getBranch()`）；台账文件同时照写，作审计产物与跨宿主的交换格式。fork 出的会话有自己的 id、自己的台账文件，内容由继承来的条目重放生成：两条链共享分叉点之前的前缀，各自往后长。
+**pi agent：能写，而且必须写。** `appendEntry(customType, data)` 正是给这件事用的，文档明写自定义条目不参与 LLM 上下文。必须写的理由不是省事，是**正确性**：pi agent 的会话是一棵树（条目带 `parentId`，`ctx.fork(entryId)` 从任一条目分叉，`session_start` 带 `reason: "fork"`），而一个平铺追加的文件表达不了树。恢复因此读**当前分支**上的条目（`ctx.sessionManager.getBranch()`）；台账文件同时照写，作审计产物与跨宿主的交换格式。fork 出的会话有自己的 id、自己的台账文件，内容由继承来的条目重放生成：两条链共享分叉点之前的前缀，各自往后长。
 
-「分支上每条轨迹各带一份 σ」在 §1.4 的框架里是顺理成章的——监督器的状态是历史在它自己字母表上的投影，历史分叉，投影就分叉——但它不是本设计最初建模的对象。这是 Pi 这条线上独有的、可以做实验的部分。
+「分支上每条轨迹各带一份 σ」在 §1.4 的框架里是顺理成章的——监督器的状态是历史在它自己字母表上的投影，历史分叉，投影就分叉——但它不是本设计最初建模的对象。这是 pi agent 这条线上独有的、可以做实验的部分。
 
 ### 1.4 这不是 agent 的模型，是监督自动机
 
@@ -159,7 +159,7 @@ stateDiagram-v2
 - 监督器对象（`core/supervisor.ts`，同样与宿主无关）：持有 σ，对外只回答「此刻允许什么」——允许的全局工具集、门③的判定、三个动词的参数 schema 与执行、错误回滚、提示词两段文本。三个动词的每条拒绝路径都在这里，宿主适配器只翻译不判断。
 - 两个宿主适配器，同一个 npm 包：
   - **DSH**：一个 Cordis 插件 bundle。把现有的 `integrations/dsh-plugin` **原地改造**为 `integrations/geml-agent-runtime/`（`git mv`），npm 包从 `@geml/dsh-plugin` 改名为 `@geml/agent-runtime`。原有两行（geml MCP server、`skills/` 下的两个技能）保留不动，新增运行时一行；bundle 从「纯配置」变成「配置 + 代码」。三个 scoped 工具、按状态的 restrict + guard、提示词注入、暂停与恢复、错误回滚、台账落盘。
-  - **Pi**：一个扩展。`package.json` 加 `pi.extensions` 指向它，`skills/` 直接落在 Pi 的技能约定上（递归找 `SKILL.md`），所以同一个包既送监督器也送那两个 GEML 技能。接线与逐门差异见 §6.5。
+  - **pi agent**：一个扩展。`package.json` 加 `pi.extensions` 指向它，`skills/` 直接落在它的技能约定上（递归找 `SKILL.md`），所以同一个包既送监督器也送那两个 GEML 技能。接线与逐门差异见 §6.5。
 - CLI `geml-agent`：`check`、`snapshot`、`verify`、`export`、`init`、`run`（薄启动器，§7）。
 - 一个可跑的示例状态图（退款审批流）与 README（中英）。
 
@@ -169,7 +169,7 @@ stateDiagram-v2
 - 不做表达式守卫语言：守卫就是 JSON Schema，且是 DSH 工具注册表自己用的那个子集。
 - 不做并行/复合状态、定时器跃迁、事件驱动的自动跃迁：跃迁只由模型调用 `agent_transition`，或由 `rollback-on-error` 触发回滚。
 - 不做 Web UI 面板。
-- 不接管 agent loop：循环仍是宿主自己的（DSH `dsh-agent-loop`、Pi `AgentHarness`），适配器只在缝上挂钩。
+- 不接管 agent loop：循环仍是宿主自己的（DSH `dsh-agent-loop`、pi agent `AgentHarness`），适配器只在缝上挂钩。
 
 ### 2.1 已知边界（写在前面，README 照抄）
 
@@ -178,7 +178,7 @@ stateDiagram-v2
 - **回滚只及声明变量与控制状态。** 台账能把 `approved` 拨回 `false`，拨不回已经打出去的退款。外部副作用要靠状态图作者自己写补偿跃迁（compensation），运行时不替他发明。
 - **隔离是按状态的能力门控，不替代 sandbox。** 不该出现的工具不出现、出现了也在派发前被拒；但一个被放行的 `bash` 里写什么，它管不了，那仍是 DSH sandbox 的事。两层互补。
 - **恢复便宜的是状态，不是对话。** 几百字节恢复的是「我在哪、能做什么」；对话历史仍由宿主的会话日志按它自己的规则重放。
-- **门的强度随宿主变，宣称以最弱的那个为准。** 五道门不是每个宿主都能一样强：Pi 的 `registerTool` 不返回 disposer，门②的 `to` 枚举只能收窄到「这份状态图里的状态」，「σ 当下的合法目标」退给门⑤拒绝、由每回合的提示词说明（§6.5 有逐门对照）。README 写门的强度时按最弱的宿主写。
+- **门的强度随宿主变，宣称以最弱的那个为准。** 五道门不是每个宿主都能一样强：pi agent 的 `registerTool` 不返回 disposer，门②的 `to` 枚举只能收窄到「这份状态图里的状态」，「σ 当下的合法目标」退给门⑤拒绝、由每回合的提示词说明（§6.5 有逐门对照）。README 写门的强度时按最弱的宿主写。
 
 适用面因此是**可枚举的流程**——审批、KYC、工单分级、运维 runbook；开放式任务（写代码、做研究）枚举不出状态，硬套只会把 LLM agent 的灵活性杀掉。这个项目真正新的部分是工程学上的：状态图与台账都是 GEML 文档，可寻址（`geml get '#pay'`）、可验证（`geml check`）、可版本（`.gemlhistory`）、台账带哈希链且能盲追加。它让「谁在什么时候允许了什么」有一个可 diff 的载体，不是把 agent 的收敛问题解决了。
 
@@ -210,7 +210,7 @@ refund.geml ──▶ loadStatechart ──▶ agent/session-start ─┬─ age
 
 五道门（§1.4.2）落在两个宿主上的接线，逐门一行：
 
-| 门 | 监督器给出 | DSH | Pi |
+| 门 | 监督器给出 | DSH | pi agent |
 |---|---|---|---|
 | ① 可见性 | `allowedGlobals(names)` → `{allow}` 或 `{deny}` | `agent.ctx.tools.restrict()` | `pi.setActiveTools()` |
 | ② 参数域 | `specs()` → 三个动词的 JSON Schema | 每次刷新重注册 scoped 工具 | 加载时注册一次，枚举收窄到整份状态图 |
@@ -418,8 +418,8 @@ created         = "2026-09-14T12:00:00Z"
 - `state=#intake`：属性值就是字符串 `#intake`，与状态图里的 `from=` / `to=` 同一写法。
 - 每块的 id 是 `#rev-N` / `#refused-N`，所以 `geml get ledger.geml '#rev-7'` 直接取第 7 次修订，`geml find` 能定位。
 - `geml check` 验它是合法 GEML（raw 体不验 JSON）；`geml-agent verify` 验链。
-- **Pi 上每块写两处**：文件照写，同时 `pi.appendEntry("geml-agent/snapshot", { block })`。条目里存的就是这块的**渲染文本**，所以「当前分支的台账」= meta ++ 分支上各条目的 `block` 拼接，可以原样喂给同一个 `readLedger`/`resumeRun`——不为 Pi 另写一套读法。理由见 §1.3。
-- **恢复**：DSH `agent/session-start {source:'resume'}` · Pi `session_start {reason:'resume'|'fork'}` → 拿到台账文本（DSH 读文件；Pi 读当前分支的条目，没有条目时退回读文件），取 `rev` 最大的快照，核对 `statechart-hash`：一致 → 就地恢复；不一致但当前 `state` 仍存在于新状态图 → 继续运行，台账追加一行 `%% statechart changed: <old> → <new>`，日志警告；当前状态已不存在 → 不激活状态图，向模型说明一句，agent 以普通方式运行。
+- **pi agent 上每块写两处**：文件照写，同时 `pi.appendEntry("geml-agent/snapshot", { block })`。条目里存的就是这块的**渲染文本**，所以「当前分支的台账」= meta ++ 分支上各条目的 `block` 拼接，可以原样喂给同一个 `readLedger`/`resumeRun`——不为 pi agent 另写一套读法。理由见 §1.3。
+- **恢复**：DSH `agent/session-start {source:'resume'}` · pi agent `session_start {reason:'resume'|'fork'}` → 拿到台账文本（DSH 读文件；pi agent 那边读当前分支的条目，没有条目时退回读文件），取 `rev` 最大的快照，核对 `statechart-hash`：一致 → 就地恢复；不一致但当前 `state` 仍存在于新状态图 → 继续运行，台账追加一行 `%% statechart changed: <old> → <new>`，日志警告；当前状态已不存在 → 不激活状态图，向模型说明一句，agent 以普通方式运行。
 - **`verify(ledger, statechart?)`**：`rev` 连续；每块 `parent` 等于前一块 `hash`；每块 `hash` 重算一致；`cause` 与 `from` / `restores` 自洽（transition 必有 `from`；rollback 必有 `restores < rev`）；给了状态图则每个 `state` 存在、每次 transition 对应一条真实边。任何一项不满足都是 error，退出码 1。
 
 ### 5.5 `clear` 与 `compact`
@@ -509,12 +509,12 @@ tools here: read_file grep · settable vars: approved
 
 几百字节，每步重算。压缩或恢复之后，模型不需要任何历史就知道自己在哪、能做什么、下一步有哪几条路。
 
-### 6.5 Pi：扩展
+### 6.5 pi agent：扩展
 
-Pi 的扩展是 `export default function (pi: ExtensionAPI)`，随会话加载一次：`pi.on` 与 `pi.registerTool` 都不返回 disposer，也没有 per-agent 作用域。监督器因此挂在**会话**上，一个会话一份 σ；`session_start` 每次触发都重开（`reason` 决定是新开、恢复还是分叉）。
+pi agent 的扩展是 `export default function (pi: ExtensionAPI)`，随会话加载一次：`pi.on` 与 `pi.registerTool` 都不返回 disposer，也没有 per-agent 作用域。监督器因此挂在**会话**上，一个会话一份 σ；`session_start` 每次触发都重开（`reason` 决定是新开、恢复还是分叉）。
 
 ```
-   编写                     运行（Pi 进程内，每个会话一份）                          审计
+   编写                     运行（pi agent 进程内，每个会话一份）                          审计
 refund.geml ──▶ loadStatechart ──▶ 工厂体（加载时）─┬─ pi.registerTool ×3      agent_transition / agent_set / agent_rollback
 (geml-agent/v1)   (E/W 诊断)                        │                          （to 的枚举 = 这份状态图的全部状态）
                                    session_start ───┼─ pi.setActiveTools       当前状态的工具 ++ 三个动词
@@ -528,20 +528,20 @@ refund.geml ──▶ loadStatechart ──▶ 工厂体（加载时）─┬─
 
 逐门对照，差异有三处，都写在这里免得以后当惊喜：
 
-| 门 | Pi 的接线 | 与 DSH 的差别 |
+| 门 | pi agent 的接线 | 与 DSH 的差别 |
 |---|---|---|
-| ① 可见性 | `pi.setActiveTools([...当前状态的工具, ...σ 用得上的动词])`；`getAllTools()` 给出可命名的集合 | `activeToolNames` 属于 `LaneConfiguration`，**跟着会话持久化**，恢复时不必重下。另外这道门在 Pi 上还要多干一件事：DSH 在 `vars=none` 的状态里根本不注册 `agent_set`（`specs()` 返回 null），Pi 的注册是永久的，所以「σ 用不上的动词」也只能靠活跃集拿掉。代价见下 |
-| ② 参数域 | `to` 的枚举在**工厂体里**按整份状态图生成，一次性注册 | **弱一档**：Pi 的 `registerTool` 无 disposer，中途重注册不保证生效，所以枚举是「这份状态图里的状态」而不是「σ 当下的合法目标」；后者退给门⑤拒绝，并由每回合的提示词逐条列出 |
-| ③ 熔断 | `pi.on("tool_call") → { block: true, reason }` | 等价。Pi 的处理器按加载序链式调用，`block` 同样只能拒不能放 |
+| ① 可见性 | `pi.setActiveTools([...当前状态的工具, ...σ 用得上的动词])`；`getAllTools()` 给出可命名的集合 | `activeToolNames` 属于 `LaneConfiguration`，**跟着会话持久化**，恢复时不必重下。另外这道门在 pi agent 上还要多干一件事：DSH 在 `vars=none` 的状态里根本不注册 `agent_set`（`specs()` 返回 null），pi agent 的注册是永久的，所以「σ 用不上的动词」也只能靠活跃集拿掉。代价见下 |
+| ② 参数域 | `to` 的枚举在**工厂体里**按整份状态图生成，一次性注册 | **弱一档**：pi agent 的 `registerTool` 无 disposer，中途重注册不保证生效，所以枚举是「这份状态图里的状态」而不是「σ 当下的合法目标」；后者退给门⑤拒绝，并由每回合的提示词逐条列出 |
+| ③ 熔断 | `pi.on("tool_call") → { block: true, reason }` | 等价。pi agent 的处理器按加载序链式调用，`block` 同样只能拒不能放 |
 | ④ 人工闸 | `ctx.ui.confirm(title, message)`；`ctx.hasUI === false`（`-p` / json 模式）时**不问，直接拒** | 不需要 DSH 那种「回合外会抛」的适配；fail closed 的触发条件从「审批服务没挂」换成「没有可交互的 UI」 |
 | ⑤ 动词校验 | 同一个 `Supervisor.invoke()` | 不变 |
-| σ 到模型眼前 | `before_agent_start` 把状态指令与快照接在系统提示词后面 | **第三处差异**：DSH 的 `systemPrompt.context()` 每步重算，Pi 的 `before_agent_start` 每个**用户回合**触发一次。一个回合内模型连续调工具时，提示词里的快照会旧——但每个动词的返回值都带着 `{rev, state, hash}`，工具集也跟着变，所以回合内的增量由工具结果承担。用 `context` 事件往消息里插也行，但那会碰到「插在工具结果之后要不要换角色」的问题，不值得 |
+| σ 到模型眼前 | `before_agent_start` 把状态指令与快照接在系统提示词后面 | **第三处差异**：DSH 的 `systemPrompt.context()` 每步重算，pi agent 的 `before_agent_start` 每个**用户回合**触发一次。一个回合内模型连续调工具时，提示词里的快照会旧——但每个动词的返回值都带着 `{rev, state, hash}`，工具集也跟着变，所以回合内的增量由工具结果承担。用 `context` 事件往消息里插也行，但那会碰到「插在工具结果之后要不要换角色」的问题，不值得 |
 
 暂停与终态：`AgentToolResult.terminate` 与 DSH 的 `exec.concludeTurn()` 等价——跃迁进 `pause` / `final` 的那一次调用把它置真，这批工具结束后 agent 停下来等人。
 
-**门①的代价。** Pi 随包文档写明：**非增量**地更换活跃工具集要重发整张工具表，并且可能让 provider 的提示词前缀缓存失效（原生延迟加载只对增量变化生效）。而「按状态门控」每次跃迁干的正好是非增量替换。省这笔钱的唯一办法是常驻工具超集、单靠门③拦，代价是模型看得见自己调不动的工具——那等于放弃门①。默认按门①走；`visibility: "active-tools" | "guard-only"` 作为配置项留给愿意换的人，两条路径的门③都照拦，所以放弃的只有「看不见」，不是「拦不住」。
+**门①的代价。** pi agent 随包文档写明：**非增量**地更换活跃工具集要重发整张工具表，并且可能让 provider 的提示词前缀缓存失效（原生延迟加载只对增量变化生效）。而「按状态门控」每次跃迁干的正好是非增量替换。省这笔钱的唯一办法是常驻工具超集、单靠门③拦，代价是模型看得见自己调不动的工具——那等于放弃门①。默认按门①走；`visibility: "active-tools" | "guard-only"` 作为配置项留给愿意换的人，两条路径的门③都照拦，所以放弃的只有「看不见」，不是「拦不住」。
 
-**分发。** 同一个 npm 包：`package.json` 加 `pi` 清单（`extensions` 指向编译出的扩展，`skills` 指向已有的 `skills/`），`keywords` 加 `pi-package`。Pi 的宿主包按它的要求进 `peerDependencies` 且范围写 `"*"`、不打包；两家宿主的 peer 都标 `optional`，装哪个都不会为另一个报警。用户侧一条命令：`pi install npm:@geml/agent-runtime`。
+**分发。** 同一个 npm 包：`package.json` 加 `pi` 清单（`extensions` 指向编译出的扩展，`skills` 指向已有的 `skills/`），`keywords` 加 `pi-package`。pi agent 的宿主包按它的要求进 `peerDependencies` 且范围写 `"*"`、不打包；两家宿主的 peer 都标 `optional`，装哪个都不会为另一个报警。用户侧一条命令：`pi install npm:@geml/agent-runtime`。
 
 ## 7. CLI `geml-agent`
 
@@ -606,7 +606,7 @@ integrations/test-all.mjs                       不改：有 test 脚本即被�
 - **核心库**（`node --test`，无外部依赖）：§4.3 每个码一正一反；快照哈希用固定 fixture 钉死（算法改了测试必红）；三个动词的每条拒绝路径；台账 round-trip（render → `parse` → read → 同值）；`verify` 对篡改各一例——改 vars、换序、删中间块、改 parent。
 - **CLI**：spawn `dist/cli.js`，与 parser 的 `test/*.test.mjs` 同款写法；`run` 用 PATH shim。
 - **DSH 管线**（真 DSH 包，不接模型）：`@deepseek-ai/dsh-agent-loop-testkit` 的 `mountAgentLoopTestDependencies` + `mountAgentLoopTestHarness` 起一个**生产 AgentLoop 的真 agent**，装本插件，然后直接 `ctx.tools.execute({ name: 'agent_transition', arguments, agent, callId, signal })` 走完整管线。断言：越权工具被 guard 拒（原因文本）；`tools.schemas(agentScope)` 只含当前状态的工具；跃迁后 `agent_transition` 枚举变化；进入 `pause` 的结果带 `concludesTurn`；台账多了对应的块；`agents.resume` 后快照与恢复前一致；`rollback-on-error` 在一个人为失败的工具后把 vars 拨回。接真实模型的端到端跑法（`dsh --profile headless`）写进 README，不进 CI。
-- **Pi 扩展**：Pi 的 `ExtensionAPI` 是一个纯对象接口（没有内核、没有服务容器），所以用一个记录调用的假实现驱动扩展，断言五道门的每条路径——被门③拦的调用、`setActiveTools` 每次跃迁后的集合、`hasUI` 为假时审批直接拒、进 `pause` 的结果带 `terminate`、`appendEntry` 的块与文件里的块逐字一致、分支条目重放出的台账能被 `resumeRun` 接住。另有一个 `pi-parity` 测试对着**真包**的类型与导出钉住我们依赖的那部分形状（与 `dsh-parity` 同样的用意：宿主改了接口要在这里红，不要在用户那里红）。
+- **pi agent 扩展**：它的 `ExtensionAPI` 是一个纯对象接口（没有内核、没有服务容器），所以用一个记录调用的假实现驱动扩展，断言五道门的每条路径——被门③拦的调用、`setActiveTools` 每次跃迁后的集合、`hasUI` 为假时审批直接拒、进 `pause` 的结果带 `terminate`、`appendEntry` 的块与文件里的块逐字一致、分支条目重放出的台账能被 `resumeRun` 接住。另有一个 `pi-parity` 测试对着**真包**的类型与导出钉住我们依赖的那部分形状（与 `dsh-parity` 同样的用意：宿主改了接口要在这里红，不要在用户那里红）。
 - **跨平台**：路径一律 `path.join`；台账写 LF；shim 两份；台账追加用单次 `appendFileSync`；测试不假设 git 身份、不依赖大小写敏感。
 
 ## 10. 分期
@@ -616,7 +616,7 @@ integrations/test-all.mjs                       不改：有 test 脚本即被�
 | A | parser：profile 登记 + 测试 + `spec/profiles/geml-agent/` 文档；runtime：核心库 + CLI `check / snapshot / verify / export / init` | `geml check examples/refund/agent.geml` 0 error；核心库分支覆盖 ≥ 95%；示例台账 `verify` 通过 |
 | B | DSH 插件 + bundle patch + testkit 管线测试 | testkit 用例全绿；`dsh --profile headless` 手工跑通退款流，台账附在 PR 里 |
 | C | `run` 启动器、README（中英，含 §2.1）、CHANGELOG、parser 发版 1.11.0 后把 `file:` 换回版本范围；**改名善后**：全库 `dsh-plugin` 引用改指新名（README/README_CN/CHANGELOG/`docs/PUBLISHING{,_CN}.geml`/技能同步脚本）、`@geml/dsh-plugin` 在 npm 上 `npm deprecate` 指向新名（外部动作，由你执行）、awesome-dsh-plugin 列表条目改名（外部 PR） | 一条命令起跑：`npx -y @geml/agent-runtime run "refund order A-17 for 120"` |
-| D | 监督器与宿主解耦（`core/supervisor.ts`）+ Pi 适配器：`pi` 清单、三个工具、五道门、台账双写与分支恢复、假 `ExtensionAPI` 测试与 `pi-parity` | 原有 DSH 用例的**断言一条不改**（只改 import 路径）且全绿；Pi 用例覆盖五道门、分支恢复与两处台账的逐字一致；`pi install npm:@geml/agent-runtime` 后 `pi` 起得来（真模型端到端仍在 README，不进 CI） |
+| D | 监督器与宿主解耦（`core/supervisor.ts`）+ pi agent 适配器：`pi` 清单、三个工具、五道门、台账双写与分支恢复、假 `ExtensionAPI` 测试与 `pi-parity` | 原有 DSH 用例的**断言一条不改**（只改 import 路径）且全绿；pi agent 用例覆盖五道门、分支恢复与两处台账的逐字一致；`pi install npm:@geml/agent-runtime` 后 `pi` 起得来（真模型端到端仍在 README，不进 CI） |
 
 每期一份实施计划；每期结束跑一次全量、提交。
 
@@ -628,8 +628,8 @@ integrations/test-all.mjs                       不改：有 test 脚本即被�
 - **key=val 体声明变量**（借 §4 的属性值类型推断）：GEML 味很足，但表达不了 enum / 必填 / 嵌套，而 `agent_set` 的参数最终必须是 JSON Schema——不再造第二套类型系统。
 - **表达式守卫**（`when="amount > 100"`）：一门小语言就是一个新的攻击面与二义性来源；JSON Schema 已能表达 const / enum / required / oneOf，够本期用。
 - **接管 agent loop**（用状态机替代 ReAct）：DSH 把 loop 做成插件，理论上可换；但本期价值在「约束」不在「重写」，且 testkit 只驱动官方 loop。
-- **Pi 上每个目标状态注册一个工具**（`agent_to_pay`、`agent_to_refunded`……），用 `setActiveTools` 只放出合法的那几个——这样门②在 Pi 上也能精确到 σ。放弃：动词表随状态图膨胀，台账里 `tool=` 记的名字会因宿主而异，profile 的 `agent-refused.tool` 也就不再是同一个词汇表。宁可门②弱一档、在文档里写明，也不让两个宿主的台账长得不一样。
-- **Pi 上只用会话条目、不写台账文件**：恢复够用，但丢掉了这个项目的产物本身——一份可 `geml get '#rev-7'`、可 `geml check`、可 diff、可交给另一个宿主验证的 GEML 文档。条目是恢复源，文件是产物，两者都要。
+- **pi agent 上每个目标状态注册一个工具**（`agent_to_pay`、`agent_to_refunded`……），用 `setActiveTools` 只放出合法的那几个——这样门②在它上面也能精确到 σ。放弃：动词表随状态图膨胀，台账里 `tool=` 记的名字会因宿主而异，profile 的 `agent-refused.tool` 也就不再是同一个词汇表。宁可门②弱一档、在文档里写明，也不让两个宿主的台账长得不一样。
+- **pi agent 上只用会话条目、不写台账文件**：恢复够用，但丢掉了这个项目的产物本身——一份可 `geml get '#rev-7'`、可 `geml check`、可 diff、可交给另一个宿主验证的 GEML 文档。条目是恢复源，文件是产物，两者都要。
 
 ## 12. 风险与开放问题
 
@@ -645,9 +645,9 @@ integrations/test-all.mjs                       不改：有 test 脚本即被�
 10. **`applyRollback` / `checkpointRev` 需要整条快照历史**，不是当前快照：插件要么在内存里持有本会话的全部快照，要么每次回滚重新解析台账（O(文件大小)，随运行时长增长）。B 期实施计划必须选定一种并写明。
 11. **恢复取 `max(rev)`，且信任之前先 `verifyLedger`。** 台账是按文档顺序读出的；正常台账两者一致，但顺序被破坏时只有 `verify` 看得出来。
 12. **dsh-tools 子集一致性测试是 B 期的任务**（设计 §4.4 承诺过）：同一批 schema 在本实现与 `assertSupportedJsonSchema` 上判定一致。`required` 无 `properties` 正是它要抓的那类分歧——本实现接受（§4.1 的示例守卫依赖它），若 dsh-tools 拒绝，B 期必须在此处对齐。
-13. **Pi 的三件事只读过类型与随包文档，没有实测**，D 期的假 `ExtensionAPI` 测不了它们，必须在真 `pi` 上验：① 每次跃迁换活跃工具集对提示词前缀缓存的真实代价；② `hasUI` 为假时 `ctx.ui.confirm` 是抛还是返回默认值（我们按「拒」处理，若它抛，适配器要包 try/catch——已经包了，但语义要确认）；③ fork 之后 `getBranch()` 给的是分支视图还是全树（决定哈希链的 `parent` 从哪算）。三条都在 README 的验证清单里。
-14. **Pi 是 0.85.1，没有 semver 或稳定性承诺**（随包两篇主文档里唯一的 "Experimental" 说的是别的东西）。DSH 那边是 `0.1.5-rc.1`，更早。两家都可能动接口，所以两家各有一份 parity 测试，且宿主包都是 optional peer——装哪个都不拖另一个。
-15. **Pi 不含权限系统**（随包 `security.md`：以启动它的用户权限运行，边界靠容器化），且 `containerization.md` 明写「扩展在 pi 进程所在处运行」——Gondolin 微 VM 只路由内建工具，我们注册的工具仍在宿主上跑。§2.1 第二条（门控不替代 sandbox）在 Pi 上一字不改地成立。
+13. **pi agent 的三件事只读过类型与随包文档，没有实测**，D 期的假 `ExtensionAPI` 测不了它们，必须在真 `pi` 上验：① 每次跃迁换活跃工具集对提示词前缀缓存的真实代价；② `hasUI` 为假时 `ctx.ui.confirm` 是抛还是返回默认值（我们按「拒」处理，若它抛，适配器要包 try/catch——已经包了，但语义要确认）；③ fork 之后 `getBranch()` 给的是分支视图还是全树（决定哈希链的 `parent` 从哪算）。三条都在 README 的验证清单里。
+14. **pi agent 是 0.85.1，没有 semver 或稳定性承诺**（随包两篇主文档里唯一的 "Experimental" 说的是别的东西）。DSH 那边是 `0.1.5-rc.1`，更早。两家都可能动接口，所以两家各有一份 parity 测试，且宿主包都是 optional peer——装哪个都不拖另一个。
+15. **pi agent 不含权限系统**（随包 `security.md`：以启动它的用户权限运行，边界靠容器化），且 `containerization.md` 明写「扩展在 pi 进程所在处运行」——Gondolin 微 VM 只路由内建工具，我们注册的工具仍在宿主上跑。§2.1 第二条（门控不替代 sandbox）在 pi agent 上一字不改地成立。
 
 ## 13. 待你拍板的决策
 
@@ -655,13 +655,13 @@ integrations/test-all.mjs                       不改：有 test 脚本即被�
 |---|---|---|---|
 | D1 | 名字（**已定**） | 项目 `geml-agent-runtime` · 目录 `integrations/geml-agent-runtime/`（`git mv` 自 `dsh-plugin`）· npm `@geml/agent-runtime`（原 `@geml/dsh-plugin` 弃用）· bin `geml-agent` · profile `geml-agent/v1` | — |
 | D9 | 新包起始版本 | `0.1.0`（peer 钉的 DSH 本身是 rc，1.0 留给 DSH 出正式版之后） | 沿用 `1.1.0` 表示与 dsh-plugin 的延续 |
-| D2 | 状态记录源 | GEML 台账文件；Pi 上每块另镜像成会话条目，并以**当前分支的条目**为恢复源（§1.3、§5.4） | 只进会话条目（DSH 上不可能，且丢掉可 diff 的产物） |
+| D2 | 状态记录源 | GEML 台账文件；pi agent 上每块另镜像成会话条目，并以**当前分支的条目**为恢复源（§1.3、§5.4） | 只进会话条目（DSH 上不可能，且丢掉可 diff 的产物） |
 | D3 | 变量声明 | `agent-vars` 类型，体为 JSON Schema | `data` 块 + `role=` |
 | D4 | 守卫 | JSON Schema（`requires=#data`） | 表达式语言 |
-| D5 | 语言 | TypeScript → `dist/`；两家宿主都是 optional peer（DSH 钉 rc.1，Pi 按其要求写 `"*"`） | 纯 JS ESM |
-| D6 | 进入 `pause` / `final` 自动结束回合 | 是（DSH `exec.concludeTurn()` · Pi `AgentToolResult.terminate`） | 由模型自己停 |
+| D5 | 语言 | TypeScript → `dist/`；两家宿主都是 optional peer（DSH 钉 rc.1，pi agent 按其要求写 `"*"`） | 纯 JS ESM |
+| D6 | 进入 `pause` / `final` 自动结束回合 | 是（DSH `exec.concludeTurn()` · pi agent `AgentToolResult.terminate`） | 由模型自己停 |
 | D7 | 台账目录 | Config 必填，bundle patch 给 `dshHomePath('geml-agent')` | 工作区 `.geml-agent/` |
 | D8 | 拒绝也入台账（`agent-refused`） | 是 | 只记日志 |
-| D10 | Pi 上门①的默认策略 | `active-tools`：每次跃迁重下活跃工具集，接受提示词前缀缓存失效的代价（门①是本设计的卖点之一） | `guard-only`：常驻超集只靠门③拦，省缓存但模型看得见调不动的工具——留作配置项 |
+| D10 | pi agent 上门①的默认策略 | `active-tools`：每次跃迁重下活跃工具集，接受提示词前缀缓存失效的代价（门①是本设计的卖点之一） | `guard-only`：常驻超集只靠门③拦，省缓存但模型看得见调不动的工具——留作配置项 |
 
 每期一份实施计划，落在 `docs/design/plans/`。

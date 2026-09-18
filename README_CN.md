@@ -418,7 +418,7 @@ dsh plugin --profile web add @geml/dsh-plugin   # web 是 dsh 默认启动的 pr
 
 ```sh
 dsh plugin --profile web add @geml/agent-runtime   # DeepSeek Harness（web 是 dsh 默认启动的 profile）
-pi install npm:@geml/agent-runtime                 # Pi——同一个 tarball 本身就是一个 pi package
+pi install npm:@geml/agent-runtime                 # pi agent——同一个 tarball 本身就是一个 pi package
 ```
 
 源码在 [integrations/geml-agent-runtime/](integrations/geml-agent-runtime/)，监督器是怎么回事、五道门在两家宿主上分别落在哪里，都写在那里。这个名字还没发到 npm，目前请从检出装。
@@ -649,7 +649,7 @@ GEML 已是 `1.0`，但「稳定」是指**已有规则不会在你脚下变动*
 | **用 codemap 帮你理解项目** —— 整个调用图写成 GEML 文档树，可交互浏览 | `geml codemap build`（[使用指南](spec/profiles/geml-codemap/geml-codemap-guide_CN.md) · [设计](docs/design/specs/geml-codemap/DESIGN-geml-code-graph.md)） | 可用 |
 | **让 agent 按块改文档** —— 自带 MCP 服务器，agent 走的是和你一样的动词：读一块、改一块、校验、回退 | [`docs/mcp-guide_CN.md`](docs/mcp-guide_CN.md) | 可用 |
 | **在 DeepSeek Harness 里用** —— geml MCP server + 写作、代码图谱两个技能，一个 bundle 装齐 | [`@geml/dsh-plugin`](https://www.npmjs.com/package/@geml/dsh-plugin) · [dshmarket](https://dshmarket.com/p/geml-spec/geml--integrations-dsh-plugin/) · [源码](integrations/dsh-plugin/) | 可用 |
-| **在 agent harness 里用** —— geml MCP server + 写作、代码图谱两个技能，再加一个按状态收窄 agent 工具的监督器；判断只有一份，每家 harness 配一个适配器，今天是 DeepSeek Harness 和 Pi | [`@geml/agent-runtime`](integrations/geml-agent-runtime/) | 从检出安装；这个名字尚未发布 |
+| **在 agent harness 里用** —— geml MCP server + 写作、代码图谱两个技能，再加一个按状态收窄 agent 工具的监督器；判断只有一份，每家 harness 配一个适配器，今天是 DeepSeek Harness 和 pi agent | [`@geml/agent-runtime`](integrations/geml-agent-runtime/) | 从检出安装；这个名字尚未发布 |
 | **在 Codex 里用** —— 同一套载荷再打一次包：两个技能、MCP server，加一个 `SessionStart` hook，从 `/plugins` 安装 | [`integrations/codex-plugin/`](integrations/codex-plugin/) | 本仓库内可用；尚未上公共插件目录 |
 | **在 Grok 里用** —— 同一套载荷再来一次：两个技能加 MCP server | [`integrations/grok-plugin/`](integrations/grok-plugin/) | 本仓库内可用；`xai-org/plugin-marketplace` 的 PR 尚未提交 |
 | **把 Logseq graph 同步成纯文本** —— Logseq 2.0 的 DB graph 持续同步成 GEML 文件，可寻址、对 git 友好，`restore` 是回去的路 | [`@geml/logseq-sync`](https://www.npmjs.com/package/@geml/logseq-sync) · [源码](integrations/logseq/) | watcher 已在 npm；插件目前装 release zip —— 市场上架（[PR #893](https://github.com/logseq/marketplace/pull/893)）尚未合并 |
