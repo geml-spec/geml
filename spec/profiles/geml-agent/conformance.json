@@ -1,0 +1,64 @@
+{
+  "profile": "geml-agent/v1",
+  "state": "draft",
+  "codes": {},
+  "cases": [
+    {
+      "name": "a statechart: agent-state and agent-transition carry flow bodies, so a heading inside one is addressable only when the vocabulary is recognized",
+      "geml": "=== meta\nprofile = \"geml-agent/v1\"\n===\n\n=== agent-vars {#vars}\n{\"type\":\"object\",\"properties\":{}}\n===\n\n=== agent-state {#plan initial tools=\"read_file\" rollback-on-error}\nRead the brief first.\n\n## Notes\n===\n\n=== agent-transition {#plan-done from=#plan to=#done}\nGo when the brief is read.\n===\n\n=== agent-state {#done final}\nStop.\n===\n",
+      "admits": [
+        "agent-vars",
+        "agent-state",
+        "agent-transition",
+        "initial",
+        "tools",
+        "rollback-on-error",
+        "from",
+        "to"
+      ],
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#vars",
+          "#plan",
+          "#notes",
+          "#plan-done",
+          "#done"
+        ],
+        "undeclared": [
+          "#meta",
+          "#vars",
+          "#plan",
+          "#plan-done",
+          "#done"
+        ]
+      }
+    },
+    {
+      "name": "the ledger: agent-snapshot and agent-refused keep raw bodies, so recognizing the vocabulary changes nothing but the diagnostics",
+      "geml": "=== meta\nprofile = \"geml-agent/v1\"\n===\n\n=== agent-snapshot {#rev-0 rev=0 state=#plan cause=enter hash=\"sha256:00\" at=\"2026-01-01T00:00:00Z\"}\n{}\n===\n\n=== agent-refused {#refused-1 rev=0 at=\"2026-01-01T00:00:00Z\" tool=agent_set}\n{\"reason\":\"r\",\"diagnostics\":[]}\n===\n",
+      "admits": [
+        "agent-snapshot",
+        "agent-refused",
+        "rev",
+        "state",
+        "cause",
+        "hash",
+        "at",
+        "tool"
+      ],
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#rev-0",
+          "#refused-1"
+        ],
+        "undeclared": [
+          "#meta",
+          "#rev-0",
+          "#refused-1"
+        ]
+      }
+    }
+  ]
+}

@@ -77,7 +77,7 @@ resolved through it, with symlinks followed before the check, so neither
 ## Serving the code graph too
 
 Point `--root` at the repository and the server picks up
-`<root>/.geml-code-graph` automatically, adding the four `geml_codemap_*` tools
+`<root>/.geml/codemap` automatically, adding the four `geml_codemap_*` tools
 to the same tool list:
 
 ```sh

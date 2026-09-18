@@ -11,8 +11,8 @@
 // index/build/verify commands it ran):
 //
 //   { "root": "..", "steps": ["npx --yes @sourcegraph/scip-typescript index …",
-//     "geml codemap build --adapter scip --raw index.scip --root . --out .geml-code-graph --history",
-//     "geml codemap verify .geml-code-graph"] }
+//     "geml codemap build --adapter scip --raw index.scip --root . --out .geml/codemap --history",
+//     "geml codemap verify .geml/codemap"] }
 //
 // Steps run sequentially with the project root as cwd; the run is skipped
 // when git HEAD hasn't moved past the commit the codemap was built from —
@@ -50,10 +50,10 @@ const autoCommit = args.includes("--commit");
 // gate below refuses any recipe whose fingerprint is not in the trust store.
 const trustFlag = args.includes("--trust");
 if (args.includes("--help")) {
-  console.error("usage: geml codemap refresh [codemap-dir] [--trust] [--force] [--commit] [--background|--hook]   (dir defaults to ./.geml-code-graph)");
+  console.error("usage: geml codemap refresh [codemap-dir] [--trust] [--force] [--commit] [--background|--hook]   (dir defaults to ./.geml/codemap)");
   process.exit(2);
 }
-const dir = args.find((a) => !a.startsWith("--")) || ".geml-code-graph";
+const dir = args.find((a) => !a.startsWith("--")) || ".geml/codemap";
 const cmDir = resolve(dir);
 const cfgPath = join(cmDir, "_index", "refresh.json");
 // 运行时日志住 _build/（可再生、整个忽略），不和 _index/ 里手写与生成的产物混住。

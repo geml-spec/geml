@@ -35,7 +35,7 @@
 
 ### 2.1 内容文档 —— codemap 的输出，一个字不改
 
-`.geml-code-graph/geml-parser--core.geml`，由 `geml codemap build` 生成：
+`.geml/codemap/geml-parser--core.geml`，由 `geml codemap build` 生成：
 
 ```
 === code {#renderHtml src=render-html.ts#L90-110 anchor="ts:render-html.ts#renderHtml(...)"}

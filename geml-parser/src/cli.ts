@@ -174,13 +174,13 @@ const SUBHELP = {
        (<rev>: 0 = the tip | -N = N revisions back | an unambiguous revision id — the strings 'get' prints.
         All four take --history <path> to point at a sidecar other than <file>.gemlhistory.)`,
   codemap: `usage: geml codemap build  [--root <repo>] [--exclude <glob>]… [--no-gitignore]   # auto-detect languages, run the indexer(s), and merge into one codemap (--root defaults to the current directory)
-       geml codemap build  (--db <graph.db> | --adapter joern|scip --raw <in> [--remap <virtual-dir>])+ [--root <repo>] [--repo-name <name>] [--out .geml-code-graph] [--build <out>/_build] [--container module|dir|file] [--lang <JAVASRC|NEWC|…>] [--joern <path>] [--exclude <glob>]… [--no-gitignore] [--history [-m msg]]
+       geml codemap build  (--db <graph.db> | --adapter joern|scip --raw <in> [--remap <virtual-dir>])+ [--root <repo>] [--repo-name <name>] [--out .geml/codemap] [--build <out>/_build] [--container module|dir|file] [--lang <JAVASRC|NEWC|…>] [--joern <path>] [--exclude <glob>]… [--no-gitignore] [--history [-m msg]]
        geml codemap verify [dir]                 geml check + profile reference checks
        geml codemap render [dir]                 every doc -> sibling .html (open index.html from disk)
        geml codemap serve  [dir] [--port 8140] [--watch] [--background|--stop]   live viewer: pages render from .geml on request; --watch re-runs the recipe when sources change
        geml codemap refresh [dir] [--force] [--commit] [--background|--hook]   re-run the recorded build recipe (_index/refresh.json); --commit lands it as its own commit
        geml codemap find <name> [dir]            locate a symbol by substring name -> doc#id + src (stdout, no browser)
-       (<dir> for verify/render/serve/refresh/find defaults to ./.geml-code-graph; codegraph and code-graph are accepted as aliases of codemap)`,
+       (<dir> for verify/render/serve/refresh/find defaults to ./.geml/codemap; codegraph and code-graph are accepted as aliases of codemap)`,
   mcp: `usage: geml mcp --root <dir> [--graph <dir>] [--no-history]
 
   Serve GEML document CRUD over the MCP stdio transport (JSON-RPC 2.0).
@@ -197,7 +197,7 @@ const SUBHELP = {
   --root <dir>        REQUIRED. Root holding the .geml documents. Every path a
                       client names is confined here; a client cannot widen it.
   --graph <dir>       Code-graph directory, inside --root. Defaults to
-                      <root>/.geml-code-graph when it holds an index.geml; with
+                      <root>/.geml/codemap when it holds an index.geml; with
                       no graph the four graph tools are not served at all.
   --no-history        Skip the .gemlhistory revision saved before each write
                       (default: save one, so geml_revert always has a revision
@@ -1392,7 +1392,7 @@ function runCodemap(args: string[]): void {
   // `unknown codemap subcommand`: this string is what an operator sees in a
   // client's server log when the entry they registered stops starting.
   if (sub === "mcp") {
-    fail("geml codemap mcp was removed: use `geml mcp --root <dir>`, which serves the four code-graph tools alongside the document tools (graph: <root>/.geml-code-graph, or --graph <dir>).");
+    fail("geml codemap mcp was removed: use `geml mcp --root <dir>`, which serves the four code-graph tools alongside the document tools (graph: <root>/.geml/codemap, or --graph <dir>).");
   }
   const script = scripts[sub];
   if (!script) fail(`unknown codemap subcommand '${sub}'.\n${SUBHELP.codemap}`);
@@ -1681,7 +1681,7 @@ const entry = (() => {
 {
   void entry;
   const argv = process.argv.slice(2);
-  // The on-disk artifact is `.geml-code-graph/`, so people reconstruct the
+  // The on-disk artifact is `.geml/codemap/`, so people reconstruct the
   // command from the directory name — accept those spellings as `codemap`.
   const cmd = argv[0] === "codegraph" || argv[0] === "code-graph" ? "codemap" : argv[0];
   jsonMode = argv.includes("--json");

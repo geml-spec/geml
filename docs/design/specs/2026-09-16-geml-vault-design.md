@@ -52,7 +52,7 @@
 
 **全 `.geml` vault**：只有在放弃 Obsidian、自己做阅读器时才成立（本仓有 geml-viewer + playground）。那就不是扩展 Obsidian 而是和它竞争。若将来要做，最小改造清单是：`=== meta` 支持 YAML 列表、md writer 不转义 `[[`、callout 往返保真、把 `integrations/obsidian` 从只读视图升级成可编辑视图 + 链接解析 + graph 数据源。本设计**不做**，记录于此以免重新论证。
 
-**vault 索引派生物**（仿 `.geml-code-graph/`）：会陈旧，且本设计选择了"修真缺口"（§3）而不是"加一层缓存"。
+**vault 索引派生物**（仿 `.geml/codemap/`）：会陈旧，且本设计选择了"修真缺口"（§3）而不是"加一层缓存"。
 
 **提升为 CLI 子命令 `geml vault graph|lint` + `geml-vault/v1` profile**：有先例（`geml codemap build/verify`），但路径 3 的图谱逻辑还没被真实用例打磨过。先在 `integrations/` 里当脚本养着，跑顺了再按 codemap 的成例提升。见 §10。
 

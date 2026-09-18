@@ -72,7 +72,7 @@ test("every in-repo skill copy is identical to the packaged skill (no drift)", (
   const copies = [
     join("..", "integrations", "claude-plugin", "skills", "geml"),
     join("..", "integrations", "codex-plugin", "skills", "geml"),
-    join("..", "integrations", "dsh-plugin", "skills", "geml"),
+    join("..", "integrations", "geml-agent-runtime", "skills", "geml"),
     join("..", "integrations", "grok-plugin", "skills", "geml"),
     join("..", ".claude", "skills", "geml"),
   ];
@@ -104,7 +104,7 @@ test("the harness plugins ship the same payload (no drift between them)", () => 
   const claude = join("..", "integrations", "claude-plugin");
   for (const [dir, rels] of [
     ["codex-plugin", [["skills", "geml-code-graph", "SKILL.md"], ["hooks", "inject-trigger.mjs"], ["LICENSE"]]],
-    ["dsh-plugin", [["skills", "geml-code-graph", "SKILL.md"], ["LICENSE"]]],
+    ["geml-agent-runtime", [["skills", "geml-code-graph", "SKILL.md"], ["LICENSE"]]],
     ["grok-plugin", [["skills", "geml-code-graph", "SKILL.md"], ["LICENSE"]]],
   ]) {
     for (const rel of rels) {

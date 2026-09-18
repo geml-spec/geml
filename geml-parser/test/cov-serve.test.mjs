@@ -106,7 +106,7 @@ const mkMap = ({ lookup = true } = {}) => {
 // =============================================================================
 const MAP = mkMap();
 
-test("mcp graphDirOf: per-call graph_dir beats env beats the ./.geml-code-graph default", () => {
+test("mcp graphDirOf: per-call graph_dir beats env beats the ./.geml/codemap default", () => {
   assert.equal(mcp.graphDirOf({ graph_dir: MAP }), resolve(MAP));
   const saved = process.env.GEML_GRAPH_DIR;
   process.env.GEML_GRAPH_DIR = MAP;
@@ -114,7 +114,7 @@ test("mcp graphDirOf: per-call graph_dir beats env beats the ./.geml-code-graph 
     assert.equal(mcp.graphDirOf({}), resolve(MAP), "env fallback");
     assert.equal(mcp.graphDirOf(undefined), resolve(MAP), "args may be absent entirely");
   } finally { delete process.env.GEML_GRAPH_DIR; if (saved !== undefined) process.env.GEML_GRAPH_DIR = saved; }
-  assert.equal(mcp.graphDirOf({}), resolve(".geml-code-graph"), "no env, no arg: conventional default");
+  assert.equal(mcp.graphDirOf({}), resolve(".geml/codemap"), "no env, no arg: conventional default");
 });
 
 test("mcp readBlock: verbatim block by id, # prefix tolerated, misses throw", () => {
@@ -304,7 +304,7 @@ await atest("`geml codemap mcp` names its replacement instead of a bare unknown-
 
 test("serve args: defaults, flags, and the dir argument dodging option values", () => {
   assert.deepEqual(serve.parseServeArgs([]), {
-    dir: ".geml-code-graph", port: 8140, background: false, stop: false,
+    dir: ".geml/codemap", port: 8140, background: false, stop: false,
     noWarm: false, noOpen: false, watchMode: false, cacheMb: 256,
   });
   const all = serve.parseServeArgs(["--port", "8460", "mymap", "--cache-mb", "64", "--background", "--no-warm", "--no-open", "--watch"]);
@@ -1107,14 +1107,15 @@ test("geml_codemap_callchain distinguishes an unknown symbol from one with no ed
 // WHERE the sources are and WHAT may be read — the same source the local
 // viewer's panel shows.
 
-// A realistic layout: sources at the repo root, graph in a subdirectory, and a
-// recipe recording `root: ".."` exactly as `codemap build` writes it.
+// A realistic layout: sources at the repo root, the graph at .geml/codemap/,
+// and a recipe recording `root: "../.."` exactly as `codemap build` writes it
+// for a graph that deep.
 const LOGIN_TS = Array.from({ length: 12 }, (_, i) => `line ${i + 1} of login.ts`).join("\n");
-const mkRepo = ({ recipeRoot = ".." } = {}) => {
+const mkRepo = ({ recipeRoot = "../.." } = {}) => {
   const repo = tmp();
   mkdirSync(join(repo, "src"), { recursive: true });
   writeFileSync(join(repo, "src", "login.ts"), LOGIN_TS + "\n");
-  const graph = join(repo, ".geml-code-graph");
+  const graph = join(repo, ".geml/codemap");
   mkdirSync(join(graph, "_index"), { recursive: true });
   writeFileSync(join(graph, "index.geml"), INDEX_GEML);
   writeFileSync(join(graph, "auth.geml"), AUTH_GEML);
@@ -1214,16 +1215,17 @@ test("serve srcRoot: a recipe root pointing OUT of the project falls back to the
   const base = tmp();
   mkdirSync(join(base, "outside", "lib"), { recursive: true });
   writeFileSync(join(base, "outside", "lib", "secret.ts"), "OUTSIDE-SRCROOT-CANARY\n");
-  const root = join(base, "repo", ".geml-code-graph");
+  const root = join(base, "repo", ".geml/codemap");
   mkdirSync(join(root, "_index"), { recursive: true });
   writeFileSync(join(root, "_index", "refresh.json"), JSON.stringify({ version: 1, root: join(base, "outside"), steps: [] }));
   const m = errMark();
   const srcRoot = serve.resolveSrcRoot(root);
   assert.equal(srcRoot, serve.projectBound(root), "an escaping recipe root is replaced by the project bound");
-  assert.equal(srcRoot, resolve(join(base, "repo")), "…which, with no .git above, is the codemap's parent");
+  assert.equal(srcRoot, resolve(join(base, "repo")), "…which, with no .git above, is the repo above .geml/codemap/");
   assert.match(errSince(m), /lies outside the project/, "and the substitution is said out loud");
-  // A `..` root that stays inside still works — the legitimate layout this repo uses.
-  writeFileSync(join(root, "_index", "refresh.json"), JSON.stringify({ version: 1, root: "..", steps: [] }));
+  // A relative root that stays inside still works — the legitimate layout,
+  // which for a graph at .geml/codemap/ is two hops rather than one.
+  writeFileSync(join(root, "_index", "refresh.json"), JSON.stringify({ version: 1, root: "../..", steps: [] }));
   assert.equal(serve.resolveSrcRoot(root), resolve(join(base, "repo")));
 });
 
@@ -1233,7 +1235,7 @@ await atest("serve: an escaping recipe root cannot widen the source route (end t
   writeFileSync(join(base, "outside", "lib", "secret.ts"), "OUTSIDE-SRCROOT-CANARY\n");
   mkdirSync(join(base, "repo", "src"), { recursive: true });
   writeFileSync(join(base, "repo", "src", "app.ts"), "INSIDE-OK\n");
-  const root = join(base, "repo", ".geml-code-graph");
+  const root = join(base, "repo", ".geml/codemap");
   mkdirSync(join(root, "_index"), { recursive: true });
   writeFileSync(join(root, "index.geml"), INDEX_GEML);
   writeFileSync(join(root, "_index", "refresh.json"), JSON.stringify({ version: 1, root: join(base, "outside"), steps: [] }));
@@ -1254,7 +1256,7 @@ await atest("serve: a foreign Host header is refused; localhost, 127.0.0.1 and [
   const base = tmp();
   mkdirSync(join(base, "proj", "src"), { recursive: true });
   writeFileSync(join(base, "proj", "src", "app.ts"), "HOST-OK\n");
-  const root = join(base, "proj", ".geml-code-graph");
+  const root = join(base, "proj", ".geml/codemap");
   mkdirSync(join(root, "_index"), { recursive: true });
   writeFileSync(join(root, "index.geml"), INDEX_GEML);
   const port = claimPort();
@@ -1316,7 +1318,7 @@ await atest("serve: confinement holds across ..-encodings, and a symlink out of 
     symlinkSync(join(base, "outside.ts"), join(base, "proj", "src", "out.ts"));
     symlinkSync(join(base, "proj", "src", "app.ts"), join(base, "proj", "src", "in.ts"));
   } catch { linked = false; }
-  const root = join(base, "proj", ".geml-code-graph");
+  const root = join(base, "proj", ".geml/codemap");
   mkdirSync(join(root, "_index"), { recursive: true });
   writeFileSync(join(root, "index.geml"), INDEX_GEML);
   const port = claimPort();

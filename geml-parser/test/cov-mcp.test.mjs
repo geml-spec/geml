@@ -48,7 +48,7 @@ test("a graph tool called with no graph configured names the missing flag", () =
   // tools/list can still call it. Falling back to some other directory would
   // be the worst answer; a blank failure is the second worst.
   const dir = ws();
-  const graph = join(dir, ".geml-code-graph");
+  const graph = join(dir, ".geml/codemap");
   mkdirSync(join(graph, "_index"), { recursive: true });
   writeFileSync(join(graph, "index.geml"), "=== meta\nrepo = demo\n===\n");
   // What matters is the DELTA — the four graph tools appear and are withdrawn.
@@ -179,7 +179,7 @@ from, to, kind, site
 function wsGraph({ sources = true, modules = true } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "geml-covgraph-"));
   writeFileSync(join(dir, "d.geml"), DOC);
-  const graph = join(dir, ".geml-code-graph");
+  const graph = join(dir, ".geml/codemap");
   mkdirSync(join(graph, "_index"), { recursive: true });
   writeFileSync(join(graph, "index.geml"), "=== meta\nrepo = demo\n===\n"
     + (modules ? "\n=== table {#modules format=csv}\nmodule, doc, symbols\nauth, auth.geml, 2\n===\n" : ""));
@@ -301,7 +301,7 @@ test("a source file reached through a symlink out of the tree is refused", () =>
   let linked = false;
   try { symlinkSync(join(outside, "secret.ts"), join(dir, "src", "link.ts")); linked = true; } catch { /* needs privilege on Windows */ }
   if (!linked) { console.log("   (symlink unavailable — skipped)"); return; }
-  const graph = join(dir, ".geml-code-graph");
+  const graph = join(dir, ".geml/codemap");
   writeFileSync(join(graph, "auth.geml"), AUTH.replace("src=src/login.ts#L2-3", "src=src/link.ts#L1-1"));
   const r = call("geml_codemap_node", { doc: "auth.geml", id: "login", source: true });
   assert.ok(!r.text.includes("SECRET"), `a symlink must not leak content: ${r.text}`);
