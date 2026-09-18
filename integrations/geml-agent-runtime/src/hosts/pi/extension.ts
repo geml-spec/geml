@@ -22,7 +22,7 @@ import { Type, type TSchema } from "typebox";
 import type { AgentToolResult, ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { appendOrCreate, exists, readText } from "../../host-fs.js";
 import { hasErrors, loadStatechart, type Statechart } from "../../core/statechart.js";
-import { metaFor, openRun, Supervisor, type ApprovalGate } from "../../core/supervisor.js";
+import { metaFor, openRun, Supervisor, VERBS, type ApprovalGate } from "../../core/supervisor.js";
 import type { ParamEntry, ParamSpec, ToolSpec } from "../../core/tools.js";
 import { ledgerFromEntries, SNAPSHOT_ENTRY, type BranchEntry } from "./ledger-entries.js";
 
@@ -164,9 +164,13 @@ export default function gemlAgent(pi: ExtensionAPI): void {
     return;
   }
 
-  const loaded = loadStatechart(text, settings.statechart, {
-    knownTools: pi.getAllTools().map((t) => t.name),
-  });
+  // No `knownTools` here, on purpose: while an extension is loading, pi agent
+  // refuses every action method ("Extension runtime not initialized"), and
+  // `getAllTools` is one - measured, not guessed. The statechart still has to
+  // be read now, because the verbs are registered from it, so the unknown-tool
+  // warning moves to `session_start`, the first moment the registry can be
+  // asked at all.
+  const loaded = loadStatechart(text, settings.statechart);
   if (!loaded.statechart || hasErrors(loaded.diagnostics)) {
     // Reported through Pi's own notifier rather than the console: this is a TUI,
     // and a stray write corrupts its rendering. Nothing else is registered, so a
@@ -186,6 +190,7 @@ export default function gemlAgent(pi: ExtensionAPI): void {
   /** The most recent context Pi handed us; the approval dialog needs one. */
   let current: ExtensionContext | undefined;
   let sup: Supervisor | undefined;
+  let warnedAboutTools = false;
   const verbs = verbSpecs(sc);
   const verbNames = verbs.map((v) => v.name);
 
@@ -241,6 +246,23 @@ export default function gemlAgent(pi: ExtensionAPI): void {
   pi.on("session_start", (event, ctx) => {
     current = ctx;
     sup = undefined;
+
+    // The unknown-tool warning `check` gives offline, given once per session
+    // now that the registry can be asked: a state that names a tool nobody
+    // registered simply admits nothing, which is easy to mistake for a bug in
+    // the gate.
+    if (!warnedAboutTools) {
+      warnedAboutTools = true;
+      const registered = new Set(pi.getAllTools().map((t) => t.name));
+      const named: string[] = [
+        ...(sc.defaultTools ?? []),
+        ...[...sc.states.values()].flatMap((s) => s.tools ?? []),
+      ];
+      const missing = [...new Set(named)].filter((n) => !registered.has(n) && !VERBS.includes(n));
+      if (missing.length) {
+        ctx.ui.notify(`geml-agent: the statechart names ${missing.join(", ")}, which no tool provides here`, "warning");
+      }
+    }
 
     const session = ctx.sessionManager.getSessionId();
     const dir = settings.ledgerDir ?? join(ctx.sessionManager.getSessionDir(), "geml-agent");

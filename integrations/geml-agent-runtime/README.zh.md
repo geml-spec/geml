@@ -156,6 +156,56 @@ geml-agent run [--profile name] <task>            把 bundle 加进某个 dsh pr
 重算、并且——给了状态图时——每次记录的跃迁都对应一条声明过的边。删掉**末尾**
 一段块是这条链唯一检测不出的改动。
 
+## 在一个项目上开始用
+
+从零到跑起来，五分钟。东西还没发 npm，所以第一步是从这份检出里打包。
+
+**依赖**：Node 22 以上，加一个 harness——[pi agent](https://pi.dev)
+（`npm install -g @earendil-works/pi-coding-agent`）或者 DeepSeek Harness；再加
+你给 harness 配的模型 key——监督器不碰它。
+
+```sh
+# 1. 打一个能装的包（把还没发布的解析器打进去）
+cd integrations/geml-agent-runtime && npm install && node scripts/pack-local.mjs
+
+# 2. 装：CLI 装全局，监督器装进 harness
+npm install -g ./geml-agent-runtime-0.1.0.tgz
+pi install /绝对路径/geml-agent-runtime-0.1.0.tgz
+
+# 3. 到你要干活的仓库里
+cd ~/code/my-project
+geml-agent init                      # 写出 agent.geml：默认就是「写代码」这套流程
+geml-agent check agent.geml          # 0 表示它能载入
+
+# 4. 干活
+pi "把 test/user.test.ts 里那个挂掉的用例修好"
+```
+
+第 4 步之后就是一次普通会话，唯一的差别是：模型拿到的工具表是**当前状态**声明的
+那一份。在 `#explore` 里那是 `read grep find ls`——它改不了文件，也执行不了命令，
+除非先记下目标和计划、跃迁到 `#implement`。让它在测试没跑之前就收工，跃迁会被拒，
+理由用人话给出，并且这条拒绝进台账。
+
+台账落在 `<会话目录>/geml-agent/<session>.geml`。`geml-agent export <台账> --to md`
+读它，`geml-agent verify` 验它。
+
+**`agent.geml` 就是全部配置，按你的项目改它。** 状态、每个状态放哪些工具、变量、
+守卫，全在里面。自带这份做了四个约束：没计划不许改文件、改文件时不许执行命令、
+没有真实测试结果不许说完成、最后一步交给人。你的项目要别的顺序，那是改一段文本，
+不是改代码。
+
+### 不用 API key，先把整条路看一遍
+
+```sh
+node examples/walkthrough.mjs
+```
+
+它会起一个**真的** pi agent 会话，对着一个临时项目（里面有个挂掉的测试），由一个
+脚本化的模型（`examples/scripted-model.js`）驱动，所以不需要任何凭证，而且每次输出
+一样。除了模型，其它全是真的——pi agent 自己的循环、它的工具管线，`bash` 是真跑的。
+它会打印每一步模型**实际拿到**的工具表、每道闸拒了什么、以及最后那本台账。想判断
+这种约束形态是不是你要的，这是最短的路。
+
 ## 安装
 
 ### DeepSeek Harness
