@@ -91,7 +91,7 @@ claude mcp add geml -- geml mcp --root /abs/path/to/repo
 | `geml_check` | 带稳定代码的诊断（[附录 A](../spec/GEML-spec.md#appendix-a-diagnostic-catalogue)） |
 | `geml_history` | 已记录的修订，最新在前 |
 | `geml_to` | 转换整篇文档——`json` / `md` / `geml` / `html`；不写任何文件 |
-| `geml_set` | 替换一个块（整块 / head / body） |
+| `geml_set` | 替换一个块（整块 / head / intro / body） |
 | `geml_add` | 插入块或散文（append / before / after） |
 | `geml_delete` | 按 id 删除块 |
 | `geml_rename` | 重命名一个 id，**以及指向它的每一处引用** |
