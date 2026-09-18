@@ -705,7 +705,7 @@ test("write_block: an unknown `part` is rejected by name, before anything is wri
   const before = readFileSync(join(dir, "d.geml"), "utf8");
   const r = call("geml_set", { file: "d.geml", id: "alpha", body: "x", part: "sideways" });
   assert.ok(r.isError, "reported as an error result");
-  assert.match(r.text, /part must be whole\|head\|body, got `sideways`/);
+  assert.match(r.text, /part must be whole\|head\|intro\|body, got `sideways`/);
   assert.equal(readFileSync(join(dir, "d.geml"), "utf8"), before, "the document is untouched");
   rmSync(dir, { recursive: true, force: true });
 });
@@ -1166,7 +1166,41 @@ test("geml_get part=body pairs with view, and a bad part is refused", () => {
   assert.equal(call("geml_get", { file: "host.geml", id: "#e", part: "head" }).text,
     '=== embed {#e src="part.geml#tip"}\n');
   const bad = call("geml_get", { file: "host.geml", id: "#e", part: "middle" });
-  assert.match(bad.text, /part must be whole\|head\|body/);
+  assert.match(bad.text, /part must be whole\|head\|intro\|body/);
+});
+
+// A section with an opening AND a subsection, so `intro` and `body` differ.
+const SECTION_DOC = `=== meta
+title = "Sections"
+===
+
+## Section {#sec}
+
+Opening line.
+
+### Child {#child}
+
+Child text.
+`;
+
+test("geml_get part=intro reads a section's opening, without its subsections", () => {
+  const dir = ws(SECTION_DOC);
+  const r = call("geml_get", { file: "d.geml", id: "sec", part: "intro" });
+  assert.ok(!r.isError, r.text);
+  assert.match(r.text, /Opening line\./);
+  assert.doesNotMatch(r.text, /Child/, "the subsection stays out of the answer");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("write_block: part=intro replaces a section's opening and leaves its subsections byte-identical", () => {
+  const dir = ws(SECTION_DOC);
+  const r = call("geml_set", { file: "d.geml", id: "sec", body: "\nRewritten opening.\n\n", part: "intro" });
+  assert.ok(!r.isError, r.text);
+  const doc = readFileSync(join(dir, "d.geml"), "utf8");
+  assert.match(doc, /Rewritten opening\./, "intro replaced");
+  assert.doesNotMatch(doc, /Opening line\./, "the old opening is gone");
+  assert.ok(doc.endsWith("### Child {#child}\n\nChild text.\n"), "the subsection is byte-identical");
+  rmSync(dir, { recursive: true, force: true });
 });
 
 test("the view provenance line has the format the MCP layer parses", () => {
