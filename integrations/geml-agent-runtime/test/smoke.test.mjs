@@ -20,6 +20,27 @@ test("the two dsh-plugin skills travelled with the rename", () => {
   assert.ok(existsSync(new URL("../cordis.patch.yml", here)));
 });
 
+test("one package, two hosts: a subpath each, and both peers optional", () => {
+  assert.deepEqual(Object.keys(pkg.exports).sort(), [".", "./dsh", "./package.json", "./pi"]);
+  assert.equal(pkg.exports["./dsh"].default, "./dist/hosts/dsh/plugin.js");
+  assert.equal(pkg.exports["./pi"].default, "./dist/hosts/pi/extension.js");
+  // Pi's docs/packages.md: its own packages go in peerDependencies with a "*"
+  // range and are not bundled.
+  assert.equal(pkg.peerDependencies["@earendil-works/pi-coding-agent"], "*");
+  assert.equal(pkg.peerDependencies["typebox"], "*");
+  for (const name of Object.keys(pkg.peerDependencies)) {
+    assert.equal(pkg.peerDependenciesMeta[name]?.optional, true, name);
+  }
+  assert.equal(pkg.bundledDependencies, undefined);
+});
+
+test("the pi manifest points at the extension and reuses the existing skills", () => {
+  assert.deepEqual(pkg.pi.extensions, ["./dist/hosts/pi/extension.js"]);
+  assert.deepEqual(pkg.pi.skills, ["./skills"]);
+  assert.ok(pkg.keywords.includes("pi-package"), "the gallery keys on this keyword");
+  assert.ok(pkg.keywords.includes("dsh-plugin"), "the dsh catalogue keys on this one");
+});
+
 test("dist/index.js exports the runtime version", async () => {
   const mod = await import(new URL("../dist/index.js", here));
   assert.equal(mod.RUNTIME_VERSION, pkg.version);
@@ -37,7 +58,10 @@ test("the bundle patch contributes the runtime row alongside the MCP server and 
   for (const id of ["mcp-geml", "skill-geml", "geml-agent"]) {
     assert.ok(lines.includes(`- id: ${id}`), `row ${id}`);
   }
-  assert.ok(lines.includes("name: '@geml/agent-runtime'"), "the runtime row names this package");
+  // The subpath, not the package root: Cordis needs a module whose namespace
+  // has `apply` (lib/index.js isApplicable), and the root is the host-agnostic
+  // library. It is also what keeps the DSH import out of a Pi-only install.
+  assert.ok(lines.includes("name: '@geml/agent-runtime/dsh'"), "the runtime row names the DSH adapter");
   assert.ok(lines.includes("ledgerDir: !!js dshHomePath('geml-agent')"), "the ledger directory is deployment config, not a constant");
   assert.ok(lines.includes("onMissing: skip"), "a session with no statechart is left alone by default");
 });

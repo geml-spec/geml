@@ -31,8 +31,15 @@
     # nothing at all when the session's working directory holds no statechart —
     # `onMissing: skip` is what keeps this row harmless in a profile that wants
     # only the MCP server and the skills above.
+    #
+    # The name is the `./dsh` SUBPATH, not the package root. Two reasons, both
+    # load-bearing: cordis accepts a function or an object with an `apply`
+    # method (lib/index.js `isApplicable`, no `.default` unwrapping), and the
+    # package root is the host-agnostic library, which has no `apply`; and the
+    # root must stay importable for someone who installed Pi instead, so it
+    # cannot pull the @deepseek-ai packages in.
     - id: geml-agent
-      name: '@geml/agent-runtime'
+      name: '@geml/agent-runtime/dsh'
       config:
         statechart: agent.geml
         ledgerDir: !!js dshHomePath('geml-agent')

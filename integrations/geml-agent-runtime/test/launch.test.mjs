@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, writeFileSync, chmodSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, delimiter } from "node:path";
-import { launcherFor, resolveOnPath, run, warnAboutPercent } from "../dist/launch.js";
+import { launcherFor, resolveOnPath, run, warnAboutPercent } from "../dist/hosts/dsh/launch.js";
 
 const WIN = process.platform === "win32";
 

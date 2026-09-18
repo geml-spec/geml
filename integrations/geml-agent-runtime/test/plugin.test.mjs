@@ -6,7 +6,7 @@ import { copyFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { world } from "./helpers/harness.mjs";
-import { attach } from "../dist/plugin.js";
+import { attach } from "../dist/hosts/dsh/plugin.js";
 import { readLedger, verifyLedger } from "../dist/core/ledger.js";
 import { loadStatechart } from "../dist/core/statechart.js";
 
@@ -219,7 +219,7 @@ test("apply(): mounted as a Cordis plugin, an agent is supervised the moment it 
   const { SessionId } = await import("@deepseek-ai/dsh-session");
   const { mkdtempSync, rmSync } = await import("node:fs");
   const { tmpdir } = await import("node:os");
-  const plugin = await import("../dist/plugin.js");
+  const plugin = await import("../dist/hosts/dsh/plugin.js");
 
   const ctx = new Context();
   await mountAgentLoopTestDependencies(ctx);

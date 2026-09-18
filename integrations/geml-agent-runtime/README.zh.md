@@ -1,4 +1,4 @@
-# @geml/agent-runtime — DeepSeek Harness 上的 agent 监督器
+# @geml/agent-runtime — coding agent 的监督器
 
 [English](README.md) | 中文
 
@@ -15,17 +15,17 @@ LLM 加它的整个上下文，任意、不建模；监督器在旁边并行运�
 flowchart TB
     subgraph plant["被控对象 plant — 刻意不建模"]
         M["LLM + 整个上下文窗口"]
-        L["dsh-agent-loop：turn / step"]
+        L["宿主的 agent loop：turn / step"]
         M --- L
     end
 
     L -->|"提出一个事件 e"| G1
 
     subgraph sup["监督器 supervisor — 确定性自动机，只做减法"]
-        G1{"闸1 可见性<br/>tools.restrict({allow})<br/>不在 A(σ) 的工具<br/>根本不进提示词"}
-        G2{"闸2 参数域<br/>agent_transition 的 to 枚举<br/>= outgoing(σ)"}
-        G3{"闸3 派发前熔断<br/>tools/pre-execute → guard()<br/>单调：只能拒，拒了没人能翻"}
-        G4{"闸4 人工闸<br/>ctx.approval.request()<br/>非 allowed-once 即拒"}
+        G1{"闸1 可见性<br/>不在 A(σ) 的工具<br/>根本不进提示词"}
+        G2{"闸2 参数域<br/>agent_transition 的 to 枚举"}
+        G3{"闸3 派发前熔断<br/>单调：只能拒，拒了没人能翻"}
+        G4{"闸4 人工闸<br/>除了明确的同意以外都算拒"}
         G5{"闸5 动词校验<br/>requires / vars schema<br/>先验后写"}
         G1 --> G2 --> G3 --> G4 --> G5
     end
@@ -35,7 +35,7 @@ flowchart TB
     G4 -.->|"拒"| REF
     G5 -.->|"拒"| REF
 
-    UNC["不可控事件<br/>工具失败 · 用户输入"] ==>|"只能观察"| RESP["tools/result 监听<br/>→ error-rollback"]
+    UNC["不可控事件<br/>工具失败 · 用户输入"] ==>|"只能观察"| RESP["工具结果监听<br/>→ error-rollback"]
     RESP --> NEXT
 
     NEXT --> LEDGER[("台账 .geml<br/>投影后的完整历史<br/>哈希链")]
@@ -43,8 +43,22 @@ flowchart TB
     LEDGER -->|"恢复：读最后一块"| SIGMA
     SIGMA["σ = (state, vars)"] --> G1
     NEXT --> SIGMA
-    SIGMA -->|"systemPrompt.context<br/>几百字节"| M
+    SIGMA -->|"状态指令<br/>+ 几百字节快照"| M
 ```
+
+上面每一道闸的**判断**都只有一份（`src/core/supervisor.ts`），两个宿主各自只提供
+**机制**，谁也没有第二份拷贝：
+
+| | DeepSeek Harness | Pi |
+|---|---|---|
+| 闸1 可见性 | `agent.ctx.tools.restrict()` | `pi.setActiveTools()` |
+| 闸2 参数域 | 动词按状态重注册，枚举就是 `outgoing(σ)` | 每会话只注册一次，枚举是状态图里的全部目标；其余交给闸5 拒 |
+| 闸3 熔断 | `agent.ctx.tools.guard()` | `tool_call` → `{ block, reason }` |
+| 闸4 人工闸 | `ctx.approval.request()`——没挂服务、抛异常、非 `allowed-once` 都算拒 | `ctx.ui.confirm()`——连 UI 都没有（`-p`、json）也算拒 |
+| 闸5 动词校验 | 同一份 | 同一份 |
+| 进 pause / final 结束回合 | `exec.concludeTurn()` | `AgentToolResult.terminate` |
+| σ 怎么到模型眼前 | 一段提示词 section + 每步一次的 context | 系统提示词，每个用户回合重建一次 |
+| 台账 | `<ledgerDir>/<session>.geml` | 同一个文件，外加每块一条会话条目——分叉出去的会话就是靠它继承整条链的 |
 
 监督器的状态是 `σ = (state, vars)`，允许集一行说完：
 
@@ -55,8 +69,9 @@ flowchart TB
 
 | | |
 |---|---|
-| 现在可用 | `geml-agent/v1` 词汇表、核心库（状态图载入与静态检查、哈希链快照、台账渲染/读取/校验）、`geml-agent` CLI。 |
-| 还没有 | 在运行时执行状态图的 harness 插件——上图的五道闸是对着 DeepSeek Harness `0.1.5-rc.1` 的真实钩子设计的，但插件那一行还没进这个 bundle。 |
+| 现在可用 | `geml-agent/v1` 词汇表；核心库（状态图载入与静态检查、哈希链快照、台账渲染/读取/校验、监督器本身）；`geml-agent` CLI；两个宿主适配器——DeepSeek Harness `0.1.5-rc.1` 的 Cordis 插件与 Pi `0.85.x` 的扩展。 |
+| 不接模型也测过 | 五道闸在两个宿主上各测一遍：DSH 侧用 `dsh-agent-loop-testkit` 起真 agent，Pi 侧用一个按 Pi 自己的管线顺序、并且用 Pi 自己的参数校验器（typebox）跑的替身。接真模型跑一遍是手工步骤，见下。 |
+| 还没实测 | 按状态门控在 Pi 上对提示词前缀缓存的真实代价。Pi 文档写明：非增量地更换活跃工具集要重发整张工具表、可能让缓存前缀失效——而每次跃迁干的正好是这件事。`GEML_AGENT_VISIBILITY=guard-only` 可以把闸1 换掉省这笔钱，闸3 照拦。 |
 | bundle 里还带着 | GEML MCP server，以及写作与代码图谱两个技能（见[安装](#安装)）。 |
 
 设计：[`docs/design/specs/2026-09-14-geml-agent-runtime-design.md`](../../docs/design/specs/2026-09-14-geml-agent-runtime-design.md)。
@@ -110,6 +125,10 @@ tools   = "read_file grep"
   里干了什么，那是 harness 沙箱的事。两层互补。
 - **恢复恢复的是状态，不是对话。** 几百字节带回"在哪、能做什么"；对话由 harness
   按它自己的规则重放。
+- **一道闸的强度按宿主最弱的那个机制算**，上面那张表写的就是哪一个。闸2 是现成的
+  例子：Pi 上 `to` 的枚举是状态图里的全部目标，而不是只有 `σ` 当下能到的那几个，
+  因为 Pi 的工具不能在会话中途重注册。但这一步仍然会被拒——晚一道闸，由闸5 拒，
+  并且照样记进台账。
 
 因此适用面是**可枚举的流程**——审批、KYC、工单分级、运维 runbook。开放式任务
 （写代码、做研究）枚举不出状态，硬套只会把 agent 本身的价值抹掉。
@@ -139,6 +158,8 @@ geml-agent run [--profile name] <task>            把 bundle 加进某个 dsh pr
 
 ## 安装
 
+### DeepSeek Harness
+
 ```sh
 dsh plugin --profile web add @geml/agent-runtime
 ```
@@ -150,10 +171,39 @@ dsh --profile web --dump-config   # 应能看到 "# == @geml/agent-runtime" 这�
 dsh --profile web
 ```
 
-bundle 今天贡献两行：**GEML MCP server**（`npx -y @geml/geml mcp --root .`，限定在
-会话自己的项目目录内，于是模型一次改一个块而不是重写整个文件），以及 `skills/`
-下的两个**技能**——写作与代码图谱。要覆盖哪一行，在你 profile 的
-`cordis.patch.yml` 里按 `id` 重写，注意把该行需要的每个键都写全。
+bundle 贡献三行：**监督器**（`@geml/agent-runtime/dsh`，按 agent 挂载；会话的工作
+目录里没有 `agent.geml` 时它什么都不做——这就是 `onMissing: skip`）、**GEML MCP
+server**（`npx -y @geml/geml mcp --root .`，限定在会话自己的项目目录内，于是模型
+一次改一个块而不是重写整个文件），以及 `skills/` 下的两个**技能**——写作与代码
+图谱。要覆盖哪一行，在你 profile 的 `cordis.patch.yml` 里按 `id` 重写，注意把该行
+需要的每个键都写全。
+
+### Pi
+
+```sh
+pi install npm:@geml/agent-runtime
+```
+
+同一个包就是一个 pi package：`pi.extensions` 指向监督器，`pi.skills` 指向同样那
+两个技能——它们本来就是一个技能一个 `SKILL.md` 文件夹，正是 Pi 自己的约定。
+
+状态图在**扩展加载时**读一次，因为三个动词必须在第一个会话开始之前注册好，而它们
+的 schema 来自状态图。这也是为什么路径是环境变量而不是命令行 flag——那个时刻 flag
+还没解析：
+
+```sh
+GEML_AGENT_STATECHART=agent.geml pi      # 默认值，相对当前目录
+GEML_AGENT_LEDGER_DIR=/var/ledgers pi    # 默认 <会话目录>/geml-agent
+GEML_AGENT_VISIBILITY=guard-only pi      # 工具表保持不变（见"状态"）
+```
+
+没有状态图时：不注册、不监听，`pi` 的行为和没装这个包完全一样。
+
+Pi 这边有三件事只读过它发布的类型与随包文档、没有实测，接真模型跑的时候正是要看
+它们：按状态门控对提示词前缀缓存的代价；没有 UI 时 `ctx.ui.confirm` 是抛异常还是
+返回默认值（两种情况本适配器都按拒处理）；以及 fork 之后 `getBranch()` 给的是分支
+还是整棵树（`hash`/`parent` 是按它返回的东西算的，出问题由 `geml-agent verify`
+抓）。
 
 不装 harness，只用 CLI：
 
@@ -169,6 +219,12 @@ npm install        # 把 @geml/geml 链到 ../../geml-parser
 npm test           # tsc + node --test
 ```
 
-`src/core/` 是纯函数库——不碰 `node:fs`、`process`、`console`（有测试钉着）——
-所以 CLI 和将来的 harness 插件共用同一份实现。`src/host-fs.ts` 是唯一碰文件系统
-的模块。
+`src/core/` 是纯函数库——不碰 `node:fs`、`process`、`console`，也不 import 任何
+宿主的包（这几条都有测试钉着）——所以 CLI 和两个适配器共用同一份实现。
+`src/host-fs.ts` 是唯一碰文件系统的模块。
+
+目录结构就是从这条规矩来的：`src/core/supervisor.ts` 做判断，`src/hosts/dsh/` 与
+`src/hosts/pi/` 只做翻译。两个适配器谁都不许 import 对方的宿主——宿主包都是可选
+peer，只装了一家 harness 的人绝不能被解析到另一家的包上，这条有测试拦着。每个宿主
+还各有一份 parity 测试（`dsh-parity`、`pi-parity`），拿我们依赖的形状去对已安装的
+包做断言：宿主改了接口，红在这儿，而不是红在用户的会话里。
