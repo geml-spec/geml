@@ -42,7 +42,7 @@ flowchart TD
 
 | 东西 | 用于 | 一次性设置 |
 | --- | --- | --- |
-| 仓库 secret `NPM_TOKEN` | 从 CI 发布 @geml/geml 与 @geml/dsh-plugin | npmjs.com -> Access Tokens -> Generate -> **Automation**；需要 @geml scope 的发布权限。仓库里不存别的东西。 |
+| 仓库 secret `NPM_TOKEN` | 从 CI 发布 @geml/geml 与 @geml/agent-runtime | npmjs.com -> Access Tokens -> Generate -> **Automation**；需要 @geml scope 的发布权限。仓库里不存别的东西。 |
 | GitHub OIDC | MCP registry | 无 —— workflow 里的 `id-token: write` 就是全部，不需要任何 secret |
 | `contents: write` | 把 viewer 的 zip 挂到它的 release 上 | 无 —— 默认的 GITHUB\_TOKEN |
 | Chrome 应用商店开发者账号 | 让 viewer 真正到达用户 | 已完成（`opmhfphgoidpnipphfgkhhjhmnmaenie`）。workflow 只把 zip 挂到 GitHub release；上架商店仍是手工的。 |
@@ -142,17 +142,33 @@ flowchart TD
 - **发后确认。** 取 raw 清单读它的版本 · 在一个全新会话里安装该插件，确认某个 skill
   能被解析到。
 
-## `@geml/dsh-plugin`
+## `@geml/agent-runtime`
 
-- **落到** npmjs.com/package/@geml/dsh-plugin。
+- **落到** npmjs.com/package/@geml/agent-runtime，以及——另外一件事——
+  **awesome-dsh-plugin** 列表（`data/plugins`，条目在 PR #1310 已接受），dshmarket
+  读的就是它。npm publish 是发布，列表条目只是上架；只有描述和分类变了才需要新的
+  PR：市场自己跟踪 GitHub 和 npm。
 - **版本**在它自己的 `package.json`，走**自己的轨道** —— 与另外两个插件不同，它
   **不**跟随解析器。
-- **怎么发。** 在 `integrations/dsh-plugin` 手工 `npm publish`。它发出去的是
-  `cordis.patch.yml`、`skills/` 和 `LICENSE`。
+- **卡在解析器上。** 它依赖 `@geml/geml` 提供 `geml-agent/v1` profile，开发期这条
+  依赖写的是 `file:../../geml-parser`。所以发布它意味着按这个顺序来：先发一版登记了
+  该 profile 的解析器，把依赖改成对应的版本范围，`npm test`，再发布。一条 `file:`
+  依赖如果发上了 npm，装下来什么都没有。
+- **怎么发。** 在 `integrations/geml-agent-runtime` 手工 `npm publish`。它发出去的是
+  `dist/`、`skills/`、`examples/`、`cordis.patch.yml` 和 `LICENSE` —— 这是这里唯一
+  **带代码**的 bundle，所以必须先 `npm run build`，并且测试要跑在构建产物上而不是
+  源码上。
 - **注意。** 它 vendored 的 skill 文件与 claude、codex 两个插件是**逐字节相同**的
   拷贝 —— 那些文件一被刷新，它就需要一次发布，而另外两个因为跟着解析器的版本走，
-  等于顺带就发了。
-- **发后确认。** `npm view @geml/dsh-plugin version`。
+  等于顺带就发了。它的 `peerDependencies` 把 harness 钉在 `^0.1.5-rc.1`；harness
+  的大版本如果挪动了 `ctx.tools.restrict`、`guard`、`agent/session-start` 或
+  `systemPrompt.section`，这里也要发一版，而 `test/dsh-parity.test.mjs` 是会先叫
+  出来的那个测试。
+- **改过名。** 这个包到 1.0.4 为止发布为 `@geml/dsh-plugin`。新名字第一次发布之后，
+  要跟上 `npm deprecate @geml/dsh-plugin "renamed to @geml/agent-runtime"`，以及一个
+  把条目挪到新路径的 awesome-dsh-plugin PR —— 那份上架是按 `integrations/dsh-plugin`
+  作键的，而这个路径已经不存在了。
+- **发后确认。** `npm view @geml/agent-runtime version`。
 
 ## Agent 市场 —— 每个厂商一份清单
 
@@ -163,7 +179,7 @@ flowchart TD
 | 厂商 | 它读什么 | 上架怎么获批 | 状态 |
 | --- | --- | --- | --- |
 | Claude Code · Codex | `integrations/claude-plugin` 与 `integrations/codex-plugin`，经两份根市场清单 | 不需要 —— 本仓库**就是**那个市场 | 已生效；见上面的插件小节 |
-| DSH | npm 上的 `integrations/dsh-plugin`；GUI 市场按 GitHub topic `dsh-plugin`、`agent-skills`、`claude-skills` 索引 | awesome-dsh-plugin 的 PR（已接受，#1310），加上那几个 topic | 已生效；见上面的 dsh 小节 |
+| DSH | npm 上的 `integrations/geml-agent-runtime`；GUI 市场按 GitHub topic `dsh-plugin`、`agent-skills`、`claude-skills` 索引 | awesome-dsh-plugin 的 PR（已接受，#1310），加上那几个 topic | 已生效；见上面的 dsh 小节 |
 | Gemini CLI | `gemini-extension.json` —— 爬虫要求它在仓库或 release 压缩包的**绝对根目录**，绝不能在子目录 | 完全不用申请：加上 `gemini-cli-extension` topic，画廊爬虫自己会找到并校验仓库 | 清单与 topic 已于 2026-09-03 到位；**尚未确认**出现在画廊里 |
 | Grok (xAI) | `integrations/grok-plugin` —— `.mcp.json`、`.grok-plugin/plugin.json`、`skills/` | 向 xai-org/plugin-marketplace 提 PR，把该目录 vendor 进 `external_plugins/` 并在他们的 `.grok-plugin/marketplace.json` 加一条；他们的校验器在 CI 里跑，再由 code owner 审 | 文件已备好、条目已起草；**PR 未提交** —— 见 `integrations/grok-plugin/SUBMISSION.md` |
 | Kimi Code | 仓库根的 `kimi.plugin.json` | 在 forum.moonshot.ai 上提上架请求；官方目录与精选目录都是 Moonshot 自己的 | 清单已到位；**上架未申请** |

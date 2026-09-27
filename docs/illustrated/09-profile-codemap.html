@@ -93,7 +93,7 @@
           <thead><tr><th></th><th>Rule</th><th>Source</th><th>Status</th></tr></thead>
           <tbody>
             <tr><td class="n">1</td><td>An application-layer profile, not part of the standard. The declaration admits three keys on <code>code</code>: <code>anchor</code>, <code>name</code>, <code>entry-via</code> (<code>profiles.ts</code>). <strong>Required</strong>: an old map without it gets one warning per code block; a rebuild fixes it.</td><td class="src">§2 · §8.6</td><td><span class="st st-spec">Settled</span></td></tr>
-            <tr><td class="n">2</td><td>Layout: under <code>.geml-code-graph/</code>, <code>index.geml</code> (repo metadata + module summary table), one <code>&lt;container&gt;.geml</code> per container, <code>_index/name-lookup.json</code>, <code>_index/cross-stack.json</code>, <code>_build/</code> (intermediates; agents never read it). <code>foldings.geml</code> tunes build-time naming, <code>style.geml</code> tunes display: seeded on first build, never overwritten.</td><td class="src">§1</td><td><span class="st st-spec">Settled</span></td></tr>
+            <tr><td class="n">2</td><td>Layout: under <code>.geml/codemap/</code>, <code>index.geml</code> (repo metadata + module summary table), one <code>&lt;container&gt;.geml</code> per container, <code>_index/name-lookup.json</code>, <code>_index/cross-stack.json</code>, <code>_build/</code> (intermediates; agents never read it). <code>foldings.geml</code> tunes build-time naming, <code>style.geml</code> tunes display: seeded on first build, never overwritten.</td><td class="src">§1</td><td><span class="st st-spec">Settled</span></td></tr>
             <tr><td class="n">3</td><td>Container document name = display path sanitized (<code>/</code>→<code>--</code>, anything outside <code>[A-Za-z0-9_.-]</code>→<code>-</code>), <code>-2</code> on collision. Build skips <code>.gitignore</code>d files by default and <code>--exclude</code> drops more; edges to excluded symbols vanish with them.</td><td class="src">§1</td><td><span class="st st-spec">Settled</span></td></tr>
             <tr><td class="n">4</td><td><strong>Exactly one</strong> meta per document: <code>profile</code> (all), <code>module</code> (containers: display path, build root and common prefix stripped), <code>src</code> (real relative path), <code>entry</code> (methods called from outside the container, space-separated, <strong>checked by verify</strong>), <code>resolution-default</code> cpg / heuristic, <code>repo</code> <code>commit</code> <code>container</code> on the index, optional <code>graph-depth</code>.</td><td class="src">§2</td><td><span class="st st-spec">Settled</span></td></tr>
             <tr><td class="n">5</td><td>Method block: <code>code {#id src=path#Lstart-end anchor="…"}</code>, <strong>empty body</strong>. <code>src=</code> is an ordinary attribute the agent follows to open the source; <code>anchor=</code> is the engine-level stable identity; <code>name=</code> is written only when sanitizing changed the id.</td><td class="src">§3</td><td><span class="st st-spec">Settled</span></td></tr>
@@ -104,7 +104,7 @@
             <tr><td class="n">10</td><td>Division of labour: <code>geml check</code> handles structure, id uniqueness, native references; CSV cells and meta values are <strong>opaque to the standard, on purpose</strong>. <code>codemap verify</code> resolves every from/to in #calls / #called-by and the meta entry; a dangling one = exit 1. Cross-stack tables are lenient: the <code>#id</code> end must resolve, the <code>file:line</code> end may lie outside the map.</td><td class="src">§5</td><td><span class="st st-spec">Settled</span></td></tr>
             <tr><td class="n">11</td><td>Rendering: the generated documents are pure data and <strong>contain no diagram block</strong>; a renderer that recognizes a codemap document gives a layered method-flow view (roots = meta entry, depth = graph-depth); to embed the graph elsewhere write <code>diagram {format=geml-code-graph src=…}</code>, with src as its only attribute.</td><td class="src">§6 · GEP-0003</td><td><span class="st st-spec">Settled</span></td></tr>
             <tr><td class="n">12</td><td>Versioning and trust: <code>build --history</code> commits each changed document into its own .gemlhistory; <code>revert doc '#method' --rev -1</code> rolls back one method. <code>resolution-default</code> says where the edges came from; the confidence column and candidate rows are where the resolver refused to guess for you; <code>#unresolved</code> is a blind spot, not "no calls".</td><td class="src">§7 · §8</td><td><span class="st st-spec">Settled</span></td></tr>
-            <tr><td class="n">13</td><td>CLI: <code>geml codemap build | verify | render | serve | refresh | find</code>, dir defaults to <code>./.geml-code-graph</code>, <code>codegraph</code> / <code>code-graph</code> are aliases. All 35 playground documents pass verify; <code>find</code> needs <code>_index/name-lookup.json</code>, which the playground does not ship.</td><td class="src">geml codemap --help</td><td><span class="st st-obs">Observed</span></td></tr>
+            <tr><td class="n">13</td><td>CLI: <code>geml codemap build | verify | render | serve | refresh | find</code>, dir defaults to <code>./.geml/codemap</code>, <code>codegraph</code> / <code>code-graph</code> are aliases. All 35 playground documents pass verify; <code>find</code> needs <code>_index/name-lookup.json</code>, which the playground does not ship.</td><td class="src">geml codemap --help</td><td><span class="st st-obs">Observed</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -126,7 +126,7 @@
       <figcaption>Directory and entry document <span class="st st-spec">Settled</span></figcaption>
       <div class="panes">
         <div>
-          <div class="pane-h"><span>.geml-code-graph/</span></div>
+          <div class="pane-h"><span>.geml/codemap/</span></div>
 <div class="tree"><span class="k">index.geml</span>                   <span class="m">entry: repo metadata + module summary table</span>
 <span class="k">&lt;container&gt;.geml</span>             <span class="m">one per container (module | dir | file granularity)</span>
 _index/
@@ -260,12 +260,12 @@ from,                                    to,          kind, site
       <div class="panes">
         <div>
           <div class="pane-h"><span>shell · §8</span></div>
-<pre class="term"><span class="cmd">$ node -e "console.log(JSON.stringify(require('./.geml-code-graph/_index/name-lookup.json')['buildChart']))"</span>
+<pre class="term"><span class="cmd">$ node -e "console.log(JSON.stringify(require('./.geml/codemap/_index/name-lookup.json')['buildChart']))"</span>
 {"anchor":"…","doc":"geml-parser--chart.ts.geml","id":"buildChart"}   <span class="dim">name → document + id</span>
-<span class="cmd">$ geml get .geml-code-graph/geml-parser--chart.ts.geml '#buildChart'</span>   <span class="dim">the method block; src= is one hop to source</span>
-<span class="cmd">$ geml get .geml-code-graph/geml-parser--chart.ts.geml '#calls'</span>        <span class="dim">outgoing; follow doc.geml#id downwards</span>
-<span class="cmd">$ geml get .geml-code-graph/geml-parser--chart.ts.geml '#called-by'</span>    <span class="dim">who calls me, with site</span>
-<span class="cmd">$ head -8 .geml-code-graph/geml-parser--chart.ts.geml</span>                 <span class="dim">meta: the entry surface at a glance</span></pre>
+<span class="cmd">$ geml get .geml/codemap/geml-parser--chart.ts.geml '#buildChart'</span>   <span class="dim">the method block; src= is one hop to source</span>
+<span class="cmd">$ geml get .geml/codemap/geml-parser--chart.ts.geml '#calls'</span>        <span class="dim">outgoing; follow doc.geml#id downwards</span>
+<span class="cmd">$ geml get .geml/codemap/geml-parser--chart.ts.geml '#called-by'</span>    <span class="dim">who calls me, with site</span>
+<span class="cmd">$ head -8 .geml/codemap/geml-parser--chart.ts.geml</span>                 <span class="dim">meta: the entry surface at a glance</span></pre>
         </div>
         <div>
           <div class="pane-h"><span>Trust semantics · §8</span></div>

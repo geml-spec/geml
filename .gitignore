@@ -1,7 +1,7 @@
 # Local-only working files, not part of the published repo.
 .claude/launch.json
 .code-review-graph/
-.geml-code-graph/
+.geml/codemap/
 
 # codemap runtime artifacts (regenerable)
 # 运行时状态与可再生产物都住 _build/ —— 一条规则就够；

@@ -1,0 +1,58 @@
+[
+  { "why": "read the test before proposing anything — #explore admits this",
+    "call": ["read", { "path": "test.mjs" }] },
+
+  { "why": "try to edit while still exploring — gate 3 must stop this",
+    "call": ["write", { "path": "sum.mjs", "content": "whatever" }] },
+
+  { "why": "record what this change is for",
+    "call": ["agent_set", { "goal": "sum(a, b) should add, and the test should pass", "touched": "sum.mjs" }] },
+
+  { "why": "the guard #has-goal now holds",
+    "call": ["agent_transition", { "to": "plan" }] },
+
+  { "why": "write the plan down before any file is touched",
+    "call": ["agent_set", { "plan": "1. fix sum.mjs to add. 2. run the test. 3. hand back.", "command": "node test.mjs" }] },
+
+  { "why": "now editing is allowed",
+    "call": ["agent_transition", { "to": "implement" }] },
+
+  { "why": "make the change — but get it wrong the first time",
+    "call": ["write", { "path": "sum.mjs", "content": "export const sum = (a, b) => a - b;\n" }] },
+
+  { "why": "try to run the test from #implement — gate 3 must stop this",
+    "call": ["bash", { "command": "node test.mjs" }] },
+
+  { "why": "move to the state where commands exist",
+    "call": ["agent_transition", { "to": "verify" }] },
+
+  { "why": "run it for real — this fails, and the failure is the point",
+    "call": ["bash", { "command": "node test.mjs" }] },
+
+  { "why": "record the truth of it",
+    "call": ["agent_set", { "tests-pass": false }] },
+
+  { "why": "try to hand over anyway — gate 5 must refuse it",
+    "call": ["agent_transition", { "to": "review" }] },
+
+  { "why": "go back and fix it",
+    "call": ["agent_transition", { "to": "implement" }] },
+
+  { "why": "the actual fix",
+    "call": ["write", { "path": "sum.mjs", "content": "export const sum = (a, b) => a + b;\n" }] },
+
+  { "why": "back to where commands exist",
+    "call": ["agent_transition", { "to": "verify" }] },
+
+  { "why": "run it again — passes this time",
+    "call": ["bash", { "command": "node test.mjs" }] },
+
+  { "why": "record that",
+    "call": ["agent_set", { "tests-pass": true }] },
+
+  { "why": "now the guard holds; #review is a pause state, so the turn ends here",
+    "call": ["agent_transition", { "to": "review" }] },
+
+  { "why": "final answer",
+    "text": "sum.mjs adds now; node test.mjs passes. Over to you." }
+]

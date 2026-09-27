@@ -13,7 +13,7 @@
 ## 1. File layout
 
 ```
-.geml-code-graph/          %% default output directory (older codemap/, graph/ dirs: regenerate once to replace)
+.geml/codemap/          %% default output directory (older codemap/, graph/ dirs: regenerate once to replace)
   index.geml                 the entry point: repo metadata + module aggregate table
   <container>.geml           one per container (module|dir|file granularity, --container)
   _index/name-lookup.json    name → {anchor, doc, id} (F4)
@@ -151,7 +151,7 @@ through an HTTP string across a network boundary. The profile joins them on
   subtree is not expanded into a frontend view — it opens in its own flow on
   click.
 - **Scenario ② (embedding the graph in any document)**:
-  `=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml}` —
+  `=== diagram {format=geml-code-graph src=.geml/codemap/index.geml}` —
   **the only attribute is `src=`**; roots/depth always come from the meta of
   the document `src` points at (view configuration travels with the data).
   Drill-down is interaction, not an authoring attribute.
@@ -165,11 +165,11 @@ through an HTTP string across a network boundary. The profile joins them on
 ## 8. Consumption cheat-sheet (agents)
 
 ```sh
-node -e "console.log(JSON.stringify(require('./.geml-code-graph/_index/name-lookup.json')['hashtableFind']))"
-geml get .geml-code-graph/hashtable.c.geml '#hashtableFind'     # method block (src= is one hop to source)
-geml get .geml-code-graph/hashtable.c.geml '#calls'             # out-edges; follow doc.geml#id refs onward
-geml get .geml-code-graph/hashtable.c.geml '#called-by'         # who calls me (with site)
-head -8 .geml-code-graph/hashtable.c.geml                       # meta: the entry surface at a glance
+node -e "console.log(JSON.stringify(require('./.geml/codemap/_index/name-lookup.json')['hashtableFind']))"
+geml get .geml/codemap/hashtable.c.geml '#hashtableFind'     # method block (src= is one hop to source)
+geml get .geml/codemap/hashtable.c.geml '#calls'             # out-edges; follow doc.geml#id refs onward
+geml get .geml/codemap/hashtable.c.geml '#called-by'         # who calls me (with site)
+head -8 .geml/codemap/hashtable.c.geml                       # meta: the entry surface at a glance
 ```
 
 Trust semantics: `resolution-default` says where the edges came from (`cpg`

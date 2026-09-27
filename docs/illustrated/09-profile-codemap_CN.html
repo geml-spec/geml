@@ -94,7 +94,7 @@
           <thead><tr><th></th><th>规则</th><th>出处</th><th>状态</th></tr></thead>
           <tbody>
             <tr><td class="n">1</td><td>应用层 profile，不是标准的一部分。声明放行 <code>code</code> 块上的 <code>anchor</code>、<code>name</code>、<code>entry-via</code> 三个键（<code>profiles.ts</code>）。<strong>必需</strong>：没有声明的老图每个 code 块都 warning，重建即修。</td><td class="src">§2 · §8.6</td><td><span class="st st-spec">规范已定</span></td></tr>
-            <tr><td class="n">2</td><td>布局：<code>.geml-code-graph/</code> 下 <code>index.geml</code>（仓库元数据 + 模块汇总表）、每容器一份 <code>&lt;container&gt;.geml</code>、<code>_index/name-lookup.json</code>、<code>_index/cross-stack.json</code>、<code>_build/</code>（中间产物，agent 不读）。<code>foldings.geml</code> 调构建期命名，<code>style.geml</code> 调显示：首次构建播种，之后不覆盖。</td><td class="src">§1</td><td><span class="st st-spec">规范已定</span></td></tr>
+            <tr><td class="n">2</td><td>布局：<code>.geml/codemap/</code> 下 <code>index.geml</code>（仓库元数据 + 模块汇总表）、每容器一份 <code>&lt;container&gt;.geml</code>、<code>_index/name-lookup.json</code>、<code>_index/cross-stack.json</code>、<code>_build/</code>（中间产物，agent 不读）。<code>foldings.geml</code> 调构建期命名，<code>style.geml</code> 调显示：首次构建播种，之后不覆盖。</td><td class="src">§1</td><td><span class="st st-spec">规范已定</span></td></tr>
             <tr><td class="n">3</td><td>容器文档名 = 显示路径 sanitize（<code>/</code>→<code>--</code>，其它非 <code>[A-Za-z0-9_.-]</code>→<code>-</code>），冲突加 <code>-2</code>。build 默认跳过 <code>.gitignore</code> 的文件，<code>--exclude</code> 再排除，被排除符号的边一起消失。</td><td class="src">§1</td><td><span class="st st-spec">规范已定</span></td></tr>
             <tr><td class="n">4</td><td>每文档<strong>恰一个</strong> meta：<code>profile</code>（全部）、<code>module</code>（容器：显示路径，剥掉构建根和公共前缀）、<code>src</code>（真实相对路径）、<code>entry</code>（被容器外调用的方法，空格分隔，<strong>verify 检查</strong>）、<code>resolution-default</code> cpg / heuristic、index 上 <code>repo</code> <code>commit</code> <code>container</code>、可选 <code>graph-depth</code>。</td><td class="src">§2</td><td><span class="st st-spec">规范已定</span></td></tr>
             <tr><td class="n">5</td><td>方法块：<code>code {#id src=path#Lstart-end anchor="…"}</code>，<strong>空体</strong>。<code>src=</code> 是普通属性，agent 顺着它打开源码；<code>anchor=</code> 是引擎级稳定身份；<code>name=</code> 只在 id 被 sanitize 改动时写。</td><td class="src">§3</td><td><span class="st st-spec">规范已定</span></td></tr>
@@ -105,7 +105,7 @@
             <tr><td class="n">10</td><td>分工：<code>geml check</code> 管结构、id 唯一、原生引用；CSV 格和 meta 值对标准<strong>不透明，有意如此</strong>。<code>codemap verify</code> 逐格解析 #calls / #called-by 的 from/to 和 meta entry，悬空 = exit 1；跨栈表宽松：<code>#id</code> 必须解析，<code>file:line</code> 端允许在图外。</td><td class="src">§5</td><td><span class="st st-spec">规范已定</span></td></tr>
             <tr><td class="n">11</td><td>渲染：生成的文档是纯数据，<strong>不含 diagram 块</strong>；认出 codemap 文档的渲染器给分层方法流视图（根 = meta entry，深度 = graph-depth）；嵌进别的文档用 <code>diagram {format=geml-code-graph src=…}</code>，只有 src 一个属性。</td><td class="src">§6 · GEP-0003</td><td><span class="st st-spec">规范已定</span></td></tr>
             <tr><td class="n">12</td><td>版本与信任：<code>build --history</code> 把变更文档提交进各自 .gemlhistory；<code>revert doc '#method' --rev -1</code> 回滚单个方法。<code>resolution-default</code> 说边从哪来，confidence 列和 candidate 行是解析器拒绝替你猜的地方，<code>#unresolved</code> 是盲区不是「没有」。</td><td class="src">§7 · §8</td><td><span class="st st-spec">规范已定</span></td></tr>
-            <tr><td class="n">13</td><td>CLI：<code>geml codemap build | verify | render | serve | refresh | find</code>，dir 缺省 <code>./.geml-code-graph</code>，<code>codegraph</code> / <code>code-graph</code> 是别名。playground 里 35 份文档 verify 全过；<code>find</code> 需要 <code>_index/name-lookup.json</code>，playground 没带。</td><td class="src">geml codemap --help</td><td><span class="st st-obs">实测</span></td></tr>
+            <tr><td class="n">13</td><td>CLI：<code>geml codemap build | verify | render | serve | refresh | find</code>，dir 缺省 <code>./.geml/codemap</code>，<code>codegraph</code> / <code>code-graph</code> 是别名。playground 里 35 份文档 verify 全过；<code>find</code> 需要 <code>_index/name-lookup.json</code>，playground 没带。</td><td class="src">geml codemap --help</td><td><span class="st st-obs">实测</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -127,7 +127,7 @@
       <figcaption>目录与入口文档 <span class="st st-spec">规范已定</span></figcaption>
       <div class="panes">
         <div>
-          <div class="pane-h"><span>.geml-code-graph/</span></div>
+          <div class="pane-h"><span>.geml/codemap/</span></div>
 <div class="tree"><span class="k">index.geml</span>                   <span class="m">入口：仓库元数据 + 模块汇总表</span>
 <span class="k">&lt;container&gt;.geml</span>             <span class="m">每容器一份（module | dir | file 粒度）</span>
 _index/
@@ -261,12 +261,12 @@ from,                                    to,          kind, site
       <div class="panes">
         <div>
           <div class="pane-h"><span>shell · §8</span></div>
-<pre class="term"><span class="cmd">$ node -e "console.log(JSON.stringify(require('./.geml-code-graph/_index/name-lookup.json')['buildChart']))"</span>
+<pre class="term"><span class="cmd">$ node -e "console.log(JSON.stringify(require('./.geml/codemap/_index/name-lookup.json')['buildChart']))"</span>
 {"anchor":"…","doc":"geml-parser--chart.ts.geml","id":"buildChart"}   <span class="dim">名字 → 文档 + id</span>
-<span class="cmd">$ geml get .geml-code-graph/geml-parser--chart.ts.geml '#buildChart'</span>   <span class="dim">方法块；src= 一跳到源码</span>
-<span class="cmd">$ geml get .geml-code-graph/geml-parser--chart.ts.geml '#calls'</span>        <span class="dim">出边；顺着 doc.geml#id 往下走</span>
-<span class="cmd">$ geml get .geml-code-graph/geml-parser--chart.ts.geml '#called-by'</span>    <span class="dim">谁调我，带 site</span>
-<span class="cmd">$ head -8 .geml-code-graph/geml-parser--chart.ts.geml</span>                 <span class="dim">meta：入口面一眼看完</span></pre>
+<span class="cmd">$ geml get .geml/codemap/geml-parser--chart.ts.geml '#buildChart'</span>   <span class="dim">方法块；src= 一跳到源码</span>
+<span class="cmd">$ geml get .geml/codemap/geml-parser--chart.ts.geml '#calls'</span>        <span class="dim">出边；顺着 doc.geml#id 往下走</span>
+<span class="cmd">$ geml get .geml/codemap/geml-parser--chart.ts.geml '#called-by'</span>    <span class="dim">谁调我，带 site</span>
+<span class="cmd">$ head -8 .geml/codemap/geml-parser--chart.ts.geml</span>                 <span class="dim">meta：入口面一眼看完</span></pre>
         </div>
         <div>
           <div class="pane-h"><span>信任语义 · §8</span></div>

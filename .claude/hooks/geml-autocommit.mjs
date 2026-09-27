@@ -56,6 +56,11 @@ const NO_HISTORY = [
 ];
 if (/(^|\/)playground\//.test(file.replace(/\\/g, "/"))) process.exit(0);
 const posix = file.replace(/\\/g, "/");
+// Test fixtures anywhere, and this runtime's shipped examples, are inputs to
+// tests and demos, not maintained records: no fixture in the repository carries
+// a sidecar, and one grown here was committed by accident once (Task 4 of the
+// agent-runtime plan) before this rule existed.
+if (/(^|\/)test\/fixtures\//.test(posix) || /(^|\/)integrations\/geml-agent-runtime\/examples\//.test(posix)) process.exit(0);
 if (NO_HISTORY.some((p) => posix === p || posix.endsWith("/" + p))) process.exit(0);
 try {
   // Only the head is read: `=== meta` is the first block a projection carries.

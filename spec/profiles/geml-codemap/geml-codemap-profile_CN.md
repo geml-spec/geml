@@ -8,7 +8,7 @@
 ## 1. 文件布局
 
 ```
-.geml-code-graph/          %% 默认输出目录名(更早的 codemap/、graph/ 目录:重新生成一次替代即可)
+.geml/codemap/          %% 默认输出目录名(更早的 codemap/、graph/ 目录:重新生成一次替代即可)
   index.geml                 总入口:仓库元信息 + 模块聚合表
   <container>.geml           每容器一份(module|dir|file 粒度,--container)
   _index/name-lookup.json    名称 → {anchor, doc, id}(F4)
@@ -90,7 +90,7 @@
 ## 6. 渲染(阶段 B,唯一 GEP:`geml-code-graph` diagram format)
 
 - **场景①(codemap 内)**:生成文档是纯数据,**不含 diagram 块**。识别到 codemap 文档(meta 含 `module =`/`container =`)的渲染器 SHOULD 提供分层方法流视图:roots = 该文档 meta `entry`,深度 = `graph-depth` 或默认;`.leaf` 淡化、`.test` 可过滤;回边虚线、自递归环徽标。跨栈 `http` 边会连到其到达的后端 handler,作为边界节点绘制(样式区分,悬停显示端点);该 handler 自身的子树不会展开进前端视图——点击可在其自身流程图中打开。
-- **场景②(任意文档嵌图)**:`=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml}` ——**唯一属性 `src=`**;roots/depth 永远读 src 指向文档的 meta(视图配置跟着数据走)。下钻 = 交互,不是作者属性。
+- **场景②(任意文档嵌图)**:`=== diagram {format=geml-code-graph src=.geml/codemap/index.geml}` ——**唯一属性 `src=`**;roots/depth 永远读 src 指向文档的 meta(视图配置跟着数据走)。下钻 = 交互,不是作者属性。
 
 ## 7. 版本化
 
@@ -99,11 +99,11 @@
 ## 8. 消费速查(agent)
 
 ```sh
-node -e "console.log(JSON.stringify(require('./.geml-code-graph/_index/name-lookup.json')['hashtableFind']))"
-geml get .geml-code-graph/hashtable.c.geml '#hashtableFind'     # 方法块(src= 一跳到源码)
-geml get .geml-code-graph/hashtable.c.geml '#calls'             # 出边;跟 doc.geml#id 引用继续走
-geml get .geml-code-graph/hashtable.c.geml '#called-by'         # 谁调我(含 site)
-head -8 .geml-code-graph/hashtable.c.geml                       # meta:entry 面一眼可见
+node -e "console.log(JSON.stringify(require('./.geml/codemap/_index/name-lookup.json')['hashtableFind']))"
+geml get .geml/codemap/hashtable.c.geml '#hashtableFind'     # 方法块(src= 一跳到源码)
+geml get .geml/codemap/hashtable.c.geml '#calls'             # 出边;跟 doc.geml#id 引用继续走
+geml get .geml/codemap/hashtable.c.geml '#called-by'         # 谁调我(含 site)
+head -8 .geml/codemap/hashtable.c.geml                       # meta:entry 面一眼可见
 ```
 
 信任语义:`resolution-default` 说明边怎么来的(`cpg` 精确 / `heuristic` 语法级);confidence 列与 candidate 行是解析器拒绝替你猜的地方;`#unresolved` 是盲区不是"没有";heuristic 下"无 `#called-by` 行"≠"无调用方"。

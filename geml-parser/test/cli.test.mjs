@@ -309,7 +309,7 @@ test("codemap --help exits 0; unknown subcommand exits 2 with the usage", () => 
   assert.match(bad.err, /unknown codemap subcommand 'nope'/);
 });
 
-test("codegraph / code-graph alias to codemap (people reconstruct the command from the .geml-code-graph dir name)", () => {
+test("codegraph / code-graph alias to codemap (people reconstruct the command from the .geml/codemap dir name)", () => {
   for (const alias of ["codegraph", "code-graph"]) {
     const h = run([alias, "--help"]);
     assert.equal(h.code, 0, h.err);

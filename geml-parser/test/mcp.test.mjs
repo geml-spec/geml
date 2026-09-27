@@ -931,7 +931,7 @@ from, to, kind, site
 
 // A root that holds BOTH a .geml document and a code graph — the shape the
 // merge exists for (one directory, one server, one client entry).
-function wsGraph({ index = true, dirName = ".geml-code-graph" } = {}) {
+function wsGraph({ index = true, dirName = ".geml/codemap" } = {}) {
   const dir = ws();
   const graph = join(dir, dirName);
   mkdirSync(join(graph, "_index"), { recursive: true });
@@ -985,7 +985,7 @@ test("a client-named graph_dir may narrow into --root, never escape it", () => {
   configure({ graph });
 
   // Narrowing to the same directory by relative name is fine.
-  assert.match(call("geml_codemap_search", { query: "login", exact: true, graph_dir: ".geml-code-graph" }).text,
+  assert.match(call("geml_codemap_search", { query: "login", exact: true, graph_dir: ".geml/codemap" }).text,
     /^login	auth\.geml#login/m);
 
   // Escapes: absolute, `../`, and a symlink planted inside the root.
@@ -1008,7 +1008,10 @@ test("a client-named graph_dir may narrow into --root, never escape it", () => {
 
   // The graph server's own guard still applies underneath ours: `doc` stays in
   // the graph dir even when graph_dir itself was legal.
-  const esc = call("geml_codemap_node", { doc: "../d.geml", id: "alpha" });
+  // Two levels up, because the graph lives at .geml/codemap/: the point is a
+  // doc that escapes the graph dir AND exists, so the guard is what refuses it
+  // rather than the file simply not being there.
+  const esc = call("geml_codemap_node", { doc: "../../d.geml", id: "alpha" });
   assert.ok(esc.isError && /escapes the graph dir/.test(esc.text), esc.text);
   rmSync(outside, { recursive: true, force: true });
 });
@@ -1031,15 +1034,15 @@ test("GEML_GRAPH_DIR cannot redirect this server", () => {
 test("--graph must be a directory inside --root", () => {
   const { dir, graph } = wsGraph();
   assert.equal(parseArgs(["--root", dir, "--graph", graph]).graph, realpathSync(graph));
-  assert.equal(parseArgs(["--root", dir, "--graph=.geml-code-graph"]).graph, realpathSync(graph));
+  assert.equal(parseArgs(["--root", dir, "--graph=.geml/codemap"]).graph, realpathSync(graph));
   assert.throws(() => parseArgs(["--root", dir, "--graph", tmpdir()]), /--graph must live inside --root/);
   assert.throws(() => parseArgs(["--root", dir, "--graph", "nope"]), /--graph is not a directory/);
 });
 
 // Auto-detection has to be SURE it found a graph: an unrelated directory that
-// happens to be named .geml-code-graph must not make three broken tools appear.
+// happens to be named .geml/codemap must not make three broken tools appear.
 // An explicit --graph is the operator's word and only has to exist.
-test("the default graph is adopted only when .geml-code-graph holds an index.geml", () => {
+test("the default graph is adopted only when .geml/codemap holds an index.geml", () => {
   const withIndex = wsGraph();
   assert.equal(parseArgs(["--root", withIndex.dir]).graph, realpathSync(withIndex.graph));
 

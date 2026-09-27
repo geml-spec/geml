@@ -285,6 +285,25 @@ export const PROFILES: Record<string, ProfileDef> = {
       "history-blob": ["lang"],
     },
   },
+  // spec/profiles/geml-agent/geml-agent-profile.md — the GEML Agent Runtime's
+  // statechart and ledger vocabulary (docs/design/specs/2026-09-14-geml-agent-runtime-design.md §4).
+  // Two bodies are flow on purpose: a state's body is the prose the model is
+  // given while in that state, a transition's body is how the model is told
+  // about it — both want reference checking and rendering. The other three
+  // carry JSON the runtime parses itself, so they stay raw.
+  "geml-agent/v1": {
+    // `since` 留空：这份词汇表还没随任何一个解析器版本发出去（CHANGELOG 里它在
+    // Unreleased 下），填一个尚不存在的版本号就是把索引表写成假话。
+    state: "draft",
+    types: ["agent-vars", "agent-state", "agent-transition", "agent-snapshot", "agent-refused"],
+    bodies: { "agent-state": "flow", "agent-transition": "flow" },
+    attrs: {
+      "agent-state": ["initial", "final", "pause", "tools", "vars", "rollback-on-error"],
+      "agent-transition": ["from", "to", "requires", "approval"],
+      "agent-snapshot": ["rev", "state", "cause", "parent", "hash", "at", "call", "from", "restores"],
+      "agent-refused": ["rev", "at", "tool", "call"],
+    },
+  },
 };
 
 // ---------------------------------------------------------------------------

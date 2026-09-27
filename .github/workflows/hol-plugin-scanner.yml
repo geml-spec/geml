@@ -23,11 +23,17 @@ name: AI plugin scan
 # names `plugin-scanner verify . --format text` — as its LOCAL check. Tried it:
 # verify is not "scan with suppressions off", it is a per-check pass/fail gate
 # where a single non-pass fails the run — `min_score` and `fail_on_severity`
-# stop participating entirely. What it failed on was one ⚠️, "@geml/dsh-plugin ·
-# Cordis apply(ctx) export - Runtime entry point is missing a detectable
-# apply(ctx) export", against a plugin that ships cordis.patch.yml and skills/
-# and has no JS entry at all by design. That is the regex-not-analysis class
-# above, so scan's thresholds are the honest gate here and verify is not.
+# stop participating entirely. What it failed on was one ⚠️, "Cordis apply(ctx)
+# export - Runtime entry point is missing a detectable apply(ctx) export",
+# against what was then `@geml/dsh-plugin` — a bundle that shipped
+# cordis.patch.yml and skills/ and had no JS entry at all by design. That is the
+# regex-not-analysis class above, so scan's thresholds are the honest gate here
+# and verify is not.
+#
+# That package is now `@geml/agent-runtime` and DOES export `apply(ctx)`, so
+# this particular ⚠️ would no longer fire. The reasoning stands on its own
+# anyway: the finding was wrong about a bundle that had no entry point, and a
+# per-check gate that cannot be thresholded is still the wrong shape for CI.
 #
 # `online` stays at its default of false: a scan that reaches a network service
 # on every push trades a real dependency for findings we have not needed yet.

@@ -481,7 +481,7 @@ test("R2-1(c) a REAL build records STRUCTURED steps + auto-trusts them; refresh 
   writeFileSync(join(fx, "src", "a.ts"), "export const x = 1;\nexport function foo() {\n  return x;\n}\n");
   const shim = makeTsShim();
   addGemlLauncher(shim); // so refresh's recorded `geml codemap build|verify` steps resolve
-  const out = join(fx, ".geml-code-graph");
+  const out = join(fx, ".geml/codemap");
   // A real auto-detect build: fake scip indexer via the shim, everything else
   // real. It writes _index/refresh.json AND auto-trusts that recipe's
   // fingerprint into the isolated store (empty until now).
@@ -519,8 +519,8 @@ test("R2-1(d) recipeFingerprint is stable over the structured form: JSON round-t
   const recipe = {
     root: "..",
     steps: [
-      { cwd: "pkg/app", env: { GEML_OUT: ".geml-code-graph", GEML_SRC: ".", GEML_LANG: "JAVASRC" }, argv: ["joern", "--script", "x.sc"] },
-      { argv: ["geml", "codemap", "verify", ".geml-code-graph"] },
+      { cwd: "pkg/app", env: { GEML_OUT: ".geml/codemap", GEML_SRC: ".", GEML_LANG: "JAVASRC" }, argv: ["joern", "--script", "x.sc"] },
+      { argv: ["geml", "codemap", "verify", ".geml/codemap"] },
     ],
   };
   const fp = recipeFingerprint(recipe);
@@ -531,8 +531,8 @@ test("R2-1(d) recipeFingerprint is stable over the structured form: JSON round-t
   const reordered = {
     root: "..",
     steps: [
-      { cwd: "pkg/app", env: { GEML_LANG: "JAVASRC", GEML_SRC: ".", GEML_OUT: ".geml-code-graph" }, argv: ["joern", "--script", "x.sc"] },
-      { argv: ["geml", "codemap", "verify", ".geml-code-graph"] },
+      { cwd: "pkg/app", env: { GEML_LANG: "JAVASRC", GEML_SRC: ".", GEML_OUT: ".geml/codemap" }, argv: ["joern", "--script", "x.sc"] },
+      { argv: ["geml", "codemap", "verify", ".geml/codemap"] },
     ],
   };
   assert.equal(recipeFingerprint(reordered), fp, "independent of env-key order");
@@ -545,7 +545,7 @@ test("R2-1(d) recipeFingerprint is stable over the structured form: JSON round-t
   argvReordered.steps[0].argv = ["joern", "x.sc", "--script"];
   assert.notEqual(recipeFingerprint(argvReordered), fp, "argv order participates in identity");
   assert.notEqual(
-    recipeFingerprint({ root: "..", steps: ["joern --script x.sc", "geml codemap verify .geml-code-graph"] }),
+    recipeFingerprint({ root: "..", steps: ["joern --script x.sc", "geml codemap verify .geml/codemap"] }),
     fp,
     "the structured form is not confused with the legacy string form",
   );
@@ -561,7 +561,7 @@ test("R2-1(e) build UPGRADES a pre-versioning refresh.json on rebuild, but leave
   // ranges always come from the file it parsed, so the fixture must agree too.
   writeFileSync(join(fx, "src", "a.ts"), "export const x = 1;\nexport function foo() {\n  return x;\n}\n");
   const shim = makeTsShim(); // fake scip indexer; auto-mode build does the merge/emit in-process (no `geml` spawn)
-  const out = join(fx, ".geml-code-graph");
+  const out = join(fx, ".geml/codemap");
   const cfgPath = join(out, "_index", "refresh.json");
   const buildArgs = ["build.mjs", ["--root", fx, "--out", out], { env: shimEnv(shim), cwd: fx }];
 

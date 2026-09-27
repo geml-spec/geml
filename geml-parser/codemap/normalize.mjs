@@ -45,7 +45,7 @@ const MODULE_MARKERS = /^(pom\.xml|build\.gradle|build\.gradle\.kts|package\.jso
 // Never descend into these — dependency dumps and build output are not source.
 const SKIP_DIRS = new Set([
   "node_modules", "target", "dist", "out", "build", ".git",
-  ".geml-code-graph", ".geml-build", ".idea", ".gradle", "bin_",
+  ".geml/codemap", ".geml-build", ".idea", ".gradle", "bin_",
 ]);
 
 // Discover module roots under `root`: every directory holding a build manifest.

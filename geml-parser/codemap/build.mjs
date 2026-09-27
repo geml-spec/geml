@@ -7,7 +7,7 @@
 //   geml codemap build --adapter joern --raw <dir> \
 //                                        --adapter scip  --raw <index.scip> --root <repo>  # merged multi-language
 //   geml codemap build --adapter joern --raw <dir> --root <repo-root>   # joern
-//                                [--out .geml-code-graph] [--build .geml-code-graph/_build]
+//                                [--out .geml/codemap] [--build .geml/codemap/_build]
 //                                [--container module|dir|file]   container granularity (default dir)
 //                                [--lang <JAVASRC|NEWC|…>]   force the Joern frontend (auto mode,
 //                                                            mixed-majority repos)
@@ -88,16 +88,16 @@ function deriveRepoName(rootAbs, explicit) {
 
 const USAGE = [
   "usage: geml codemap build [--root <repo-root>]   # auto-detect languages, index, and merge (--root defaults to the current directory)",
-  "   or: geml codemap build (--db <graph.db> | --adapter joern|scip --raw <dir|index.scip> [--remap <virtual-dir>])+  [--root <repo-root>] [--repo-name <name>] [--out .geml-code-graph] [--build .geml-code-graph/_build] [--container module|dir|file] [--lang <LANG>] [--joern <path>] [--exclude <glob>]... [--no-gitignore] [--history [-m msg]]",
+  "   or: geml codemap build (--db <graph.db> | --adapter joern|scip --raw <dir|index.scip> [--remap <virtual-dir>])+  [--root <repo-root>] [--repo-name <name>] [--out .geml/codemap] [--build .geml/codemap/_build] [--container module|dir|file] [--lang <LANG>] [--joern <path>] [--exclude <glob>]... [--no-gitignore] [--history [-m msg]]",
 ].join("\n");
 if (args.includes("--help") || args.includes("-h")) { console.log(USAGE); process.exit(0); }
 
 // --root defaults to the current directory, so `geml codemap build` with no
 // arguments indexes the repo you're standing in.
 const root = flag("--root", ".");
-const outDir = resolve(flag("--out", ".geml-code-graph"));
+const outDir = resolve(flag("--out", ".geml/codemap"));
 // Intermediates live INSIDE the codemap dir (alongside _index) so a build
-// leaves nothing scattered at the repo root — `.geml-code-graph/_build/`.
+// leaves nothing scattered at the repo root — `.geml/codemap/_build/`.
 const buildDir = resolve(flag("--build", join(outDir, "_build")));
 
 // Adapter inputs are REPEATABLE — one codemap can merge several extractions
@@ -642,10 +642,11 @@ if (recordRecipe) {
       version: RECIPE_VERSION,
       generator: `geml ${pkgVersion}`,
       // Project root relative to the codemap dir (refresh runs each step under
-      // <root>). Normally outDir is a subdir of root so relative() yields ".."
-      // etc.; when --out == --root it yields "" and the project root IS the
-      // codemap dir, so record "." — recording ".." would send refresh into
-      // the PARENT of the real root.
+      // <root>). Normally outDir is under root, so relative() yields one hop
+      // per level — "../.." for the conventional .geml/codemap/; when
+      // --out == --root it yields "" and the project root IS the codemap dir,
+      // so record "." — recording ".." would send refresh into the PARENT of
+      // the real root.
       root: relative(outDir, recordRecipe.rootAbs).replace(/\\/g, "/") || ".",
       steps: [...recordRecipe.indexSteps, { argv: buildArgv }, { argv: ["geml", "codemap", "verify", relOut] }],
     };

@@ -1,0 +1,46 @@
+# The layer this bundle contributes. Three rows: the first two configure plugins
+# that ship inside the dsh installation (`apps/cli` depends on them), so they are
+# configuration and skill text only; the third mounts this package's own
+# supervisor, which is why the bundle now carries code.
+- insert:
+    # The geml MCP server, one stdio connection per session. `--root .` confines
+    # it to the session's own project directory. The model sees the tools as
+    # `mcp__geml__geml_get`, `mcp__geml__geml_set`, … — server-qualified names.
+    - id: mcp-geml
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: geml
+        transport: stdio
+        command: npx
+        args: ['-y', '@geml/geml', 'mcp', '--root', '.']
+
+    # The skills travel with this package rather than being copied into the
+    # user's skill root: `baseUrl` is this patch file's own directory, so the
+    # root resolves wherever the bundle is installed. An isolated provider
+    # (`includeDefaultRoots: false`, own `providerName`) contributes these two
+    # skills without shadowing or duplicating the user's own roots.
+    - id: skill-geml
+      name: '@deepseek-ai/dsh-skill-filesystem'
+      config:
+        providerName: geml
+        includeDefaultRoots: false
+        customSkillDirs:
+          - !!js "process.getBuiltinModule('node:url').fileURLToPath(new URL('skills/', baseUrl))"
+
+    # The supervisor. It attaches per agent at agent/session-start and does
+    # nothing at all when the session's working directory holds no statechart —
+    # `onMissing: skip` is what keeps this row harmless in a profile that wants
+    # only the MCP server and the skills above.
+    #
+    # The name is the `./dsh` SUBPATH, not the package root. Two reasons, both
+    # load-bearing: cordis accepts a function or an object with an `apply`
+    # method (lib/index.js `isApplicable`, no `.default` unwrapping), and the
+    # package root is the host-agnostic library, which has no `apply`; and the
+    # root must stay importable for someone who installed Pi instead, so it
+    # cannot pull the @deepseek-ai packages in.
+    - id: geml-agent
+      name: '@geml/agent-runtime/dsh'
+      config:
+        statechart: .geml/agent.geml
+        ledgerDir: !!js dshHomePath('geml-agent')
+        onMissing: skip
