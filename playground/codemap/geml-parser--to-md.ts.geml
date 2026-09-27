@@ -134,8 +134,8 @@ from,                                 to,           kind, site
 #gemlToMd,                            #block,       call, geml-parser/src/to-md.ts:330
 #frontmatter,                         #yamlValue,   call, geml-parser/src/to-md.ts:293
 #gemlToMd,                            #frontmatter, call, geml-parser/src/to-md.ts:334
-geml-parser--verbs.ts.geml#transform, #gemlToMd,    call, geml-parser/src/verbs.ts:864
-geml-parser--verbs.ts.geml#transform, #gemlToMd,    call, geml-parser/src/verbs.ts:891
+geml-parser--verbs.ts.geml#transform, #gemlToMd,    call, geml-parser/src/verbs.ts:873
+geml-parser--verbs.ts.geml#transform, #gemlToMd,    call, geml-parser/src/verbs.ts:900
 ===
 
 === table {#unresolved format=csv hidden}

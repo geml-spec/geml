@@ -203,7 +203,7 @@ geml-parser--media-verbs.ts.geml#loadProject, #metaOf,       call, geml-parser/s
 #checkMedia,                                  #proseText,    call, geml-parser/src/media-check.ts:370
 #promptTextOf,                                #proseText,    call, geml-parser/src/media-check.ts:487
 #checkMedia,                                  #trackKinds,   call, geml-parser/src/media-check.ts:258
-geml-parser--cli.ts.geml#runMedia,            #promptTextOf, call, geml-parser/src/cli.ts:570
+geml-parser--cli.ts.geml#runMedia,            #promptTextOf, call, geml-parser/src/cli.ts:617
 geml-parser--media-verbs.ts.geml#todo,        #promptTextOf, call, geml-parser/src/media-verbs.ts:136
 geml-parser--media-verbs.ts.geml#todo,        #promptTextOf, call, geml-parser/src/media-verbs.ts:153
 geml-parser--media-verbs.ts.geml#assetInfo,   #promptTextOf, call, geml-parser/src/media-verbs.ts:219

@@ -100,8 +100,8 @@ from,                  to
 #resolveStyleLayers,   Array.includes
 #resolveStyleLayers,   Array.push
 #resolveStyleLayers,   String.trim
-#loadOrSeedGraphStyle, PlatformPath.join
 #loadOrSeedGraphStyle, existsSync
+#loadOrSeedGraphStyle, join
 #loadOrSeedGraphStyle, mkdirSync
 #loadOrSeedGraphStyle, readFileSync
 #loadOrSeedGraphStyle, writeFileSync

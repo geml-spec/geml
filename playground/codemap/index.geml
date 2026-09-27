@@ -1,7 +1,7 @@
 === meta
 profile = "geml-codemap/v1"
 repo = geml
-commit = e4e0a03
+commit = b4dbf5b
 container = file
 entry = geml-viewer--content.js.geml#main
 resolution-default = cpg
@@ -11,18 +11,18 @@ resolution-default = cpg
 
 === table {#modules format=csv .no-fold}
 module,                              doc,                                       methods, entries, tests
-geml-parser/geml.ts,                 geml-parser--geml.ts.geml,                 98,      25,      0
-geml-parser/verbs.ts,                geml-parser--verbs.ts.geml,                60,      21,      0
+geml-parser/geml.ts,                 geml-parser--geml.ts.geml,                 104,     26,      0
+geml-parser/verbs.ts,                geml-parser--verbs.ts.geml,                63,      21,      0
 geml-parser/render.ts,               geml-parser--render.ts.geml,               47,      7,       0
-geml-parser/cli.ts,                  geml-parser--cli.ts.geml,                  41,      0,       0
+geml-parser/cli.ts,                  geml-parser--cli.ts.geml,                  42,      0,       0
 geml-parser/history.ts,              geml-parser--history.ts.geml,              39,      7,       0
 geml-viewer/render.js,               geml-viewer--render.js.geml,               28,      5,       0
 geml-parser/style-resolve.ts,        geml-parser--style-resolve.ts.geml,        26,      2,       0
 geml-parser/table.ts,                geml-parser--table.ts.geml,                26,      2,       0
+geml-parser/mcp-core.ts,             geml-parser--mcp-core.ts.geml,             25,      0,       0
 geml-parser/media-verbs.ts,          geml-parser--media-verbs.ts.geml,          25,      13,      0
 geml-parser/coord.ts,                geml-parser--coord.ts.geml,                22,      5,       0
-geml-parser/mcp-core.ts,             geml-parser--mcp-core.ts.geml,             22,      0,       0
-geml-parser/inline.ts,               geml-parser--inline.ts.geml,               21,      3,       0
+geml-parser/inline.ts,               geml-parser--inline.ts.geml,               22,      4,       0
 geml-parser/edn.ts,                  geml-parser--edn.ts.geml,                  20,      2,       0
 geml-parser/style-selector.ts,       geml-parser--style-selector.ts.geml,       20,      8,       0
 geml-viewer/transclude.js,           geml-viewer--transclude.js.geml,           19,      1,       0
@@ -32,13 +32,13 @@ geml-parser/mcp.ts,                  geml-parser--mcp.ts.geml,                  
 geml-parser/translate.ts,            geml-parser--translate.ts.geml,            13,      2,       0
 geml-viewer/chart.js,                geml-viewer--chart.js.geml,                13,      1,       0
 geml-parser/graph-style.ts,          geml-parser--graph-style.ts.geml,          12,      2,       0
+geml-parser/host-fs.ts,              geml-parser--host-fs.ts.geml,              12,      6,       0
 geml-parser/selector.ts,             geml-parser--selector.ts.geml,             12,      8,       0
 geml-viewer/layout.js,               geml-viewer--layout.js.geml,               12,      3,       0
 geml-parser/profiles.ts,             geml-parser--profiles.ts.geml,             11,      7,       0
 geml-viewer/content.js,              geml-viewer--content.js.geml,              11,      1,       0
 geml-parser/media-check.ts,          geml-parser--media-check.ts.geml,          10,      4,       0
 geml-viewer/media-player.js,         geml-viewer--media-player.js.geml,         10,      0,       0
-geml-parser/host-fs.ts,              geml-parser--host-fs.ts.geml,              9,       5,       0
 geml-viewer/inline-src.js,           geml-viewer--inline-src.js.geml,           9,       3,       0
 geml-parser/block-edit.ts,           geml-parser--block-edit.ts.geml,           7,       1,       0
 geml-parser/from-md.ts,              geml-parser--from-md.ts.geml,              7,       1,       0
@@ -67,7 +67,7 @@ geml-viewer/render-html-stub.js,     geml-viewer--render-html-stub.js.geml,     
 
 === table {#module-edges format=csv}
 from,                          to,                                  calls
-geml-parser/verbs.ts,          geml-parser/geml.ts,                 115
+geml-parser/verbs.ts,          geml-parser/geml.ts,                 122
 geml-parser/style-resolve.ts,  geml-parser/style-diagnostics.ts,    49
 geml-parser/media-check.ts,    geml-parser/media-diagnostics.ts,    25
 geml-parser/style-resolve.ts,  geml-parser/style-selector.ts,       22
@@ -76,15 +76,15 @@ geml-parser/cli.ts,            geml-parser/media-verbs.ts,          16
 geml-parser/geml.ts,           geml-parser/diagnostics.ts,          16
 geml-parser/verbs.ts,          geml-parser/selector.ts,             15
 geml-parser/media-verbs.ts,    geml-parser/media-check.ts,          14
+geml-parser/geml.ts,           geml-parser/inline.ts,               12
 geml-parser/codemap-render.ts, geml-parser/render.ts,               11
-geml-parser/geml.ts,           geml-parser/inline.ts,               11
 geml-parser/cli.ts,            geml-parser/history.ts,              10
+geml-parser/cli.ts,            geml-parser/host-fs.ts,              10
 geml-parser/geml.ts,           geml-parser/attrs.ts,                10
-geml-parser/cli.ts,            geml-parser/host-fs.ts,              9
+geml-parser/cli.ts,            geml-parser/geml.ts,                 9
 geml-parser/geml.ts,           geml-parser/profiles.ts,             9
 geml-parser/mcp-core.ts,       geml-parser/verbs.ts,                9
 geml-parser/render-html.ts,    geml-parser/render.ts,               9
-geml-parser/cli.ts,            geml-parser/geml.ts,                 8
 geml-parser/media-verbs.ts,    geml-parser/profiles.ts,             7
 geml-parser/geml.ts,           geml-parser/table.ts,                6
 geml-parser/verbs.ts,          geml-parser/attrs.ts,                6
@@ -130,6 +130,7 @@ geml-parser/geml.ts,           geml-parser/chart.ts,                1
 geml-parser/geml.ts,           geml-parser/edn.ts,                  1
 geml-parser/geml.ts,           geml-parser/yaml.ts,                 1
 geml-parser/graph-style.ts,    geml-parser/geml.ts,                 1
+geml-parser/host-fs.ts,        geml-parser/geml.ts,                 1
 geml-parser/mcp.ts,            geml-parser/host-fs.ts,              1
 geml-parser/media-timeline.ts, geml-parser/geml.ts,                 1
 geml-parser/media-verbs.ts,    geml-parser/geml.ts,                 1
