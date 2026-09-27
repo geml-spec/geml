@@ -180,44 +180,44 @@ test("an @address is a content hash and changes when the content does", () => {
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test("a page with two identically titled headings refuses every write", () => {
+test("two identically titled headings get GitHub's suffix, and every section stays writable", () => {
   const root = fixture();
   try {
     const page = join(root, "dup.md");
     writeFileSync(page, "# Dup\n\n## Intro\n\ntext\n\n## Added\n\none\n\n## Added\n\ntwo\n");
-    const check = geml(["check", page]);
-    assert.notEqual(check.status, 0, "the duplicate id is an error before anyone edits");
+    // Read as Markdown, the second `## Added` is `#added-1` — the anchor GitHub
+    // gives it. It used to be a duplicate id, which no write forgives, and the
+    // whole page went read-only until someone renamed a heading by hand.
+    assert.equal(geml(["check", page]).status, 0);
+    const ids = JSON.parse(geml(["list", page, "--json"]).stdout).map((b) => b.address);
+    assert.ok(ids.includes("#added") && ids.includes("#added-1"), ids.join(" "));
 
-    // The guard judges the RESULT, so an edit that leaves the collision
-    // standing is refused however far from it the edit lands.
     const r = geml(["set", page, "#intro", "--body", "--in", "-"], "rewritten\n");
-    assert.notEqual(r.status, 0, "an unrelated section of the same file is unwritable too");
-    assert.match(r.stderr, /duplicate id/);
-
-    // And an edit that happens to REMOVE the collision goes through, which is
-    // why the rule is about the result and not about the file.
-    const gone = geml(["set", page, "#dup", "--body", "--in", "-"], "just one section now\n");
-    assert.equal(gone.status, 0, `removing the collision must be allowed: ${gone.stderr}`);
+    assert.equal(r.status, 0, `an unrelated section is writable: ${r.stderr}`);
+    const second = geml(["set", page, "#added-1", "--in", "-"], "## Added\n\ntwo, edited\n");
+    assert.equal(second.status, 0, `the second one is addressable: ${second.stderr}`);
+    const after = readFileSync(page, "utf8");
+    assert.match(after, /## Added\n\ntwo, edited/);
+    assert.doesNotMatch(after, /\{#/, "and nothing GEML-only is stamped into the Markdown");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test("a wikilink carrying a # anchor cannot be written — GEML reads it as its own cross-document reference", () => {
+test("a wikilink carrying a # anchor is written through, resolved as Obsidian resolves it", () => {
   const root = fixture();
   try {
     const page = join(root, "Concepts.md");
-    // `[[file#id]]` is GEML reference syntax, checked at write time. Obsidian
-    // means something else by the same spelling, and there is no file named
-    // `Alpha` — only `Alpha.md` — so the reference does not resolve and the
-    // write is refused. This is a real limit on what blocks are editable.
-    for (const link of ["[[Alpha#Body]]", "[[Alpha#Body|alias]]", "[[Alpha#^abc123]]"]) {
+    // Read as Markdown, `[[Alpha#Body]]` is Obsidian's wikilink — the note is
+    // `Alpha.md`, found by name — not GEML's reference to a document called
+    // `Alpha`. Every shape a vault writes goes in verbatim.
+    for (const link of ["[[Alpha#Body]]", "[[Alpha#Body|alias]]", "[[Alpha#^abc123]]", "![[Alpha#Body]]", "[[Alpha.md#Alpha]]"]) {
       const r = geml(["set", page, "#concepts", "--body", "--in", "-"], `see ${link}\n`);
-      assert.notEqual(r.status, 0, `${link} must be refused, not silently written`);
-      assert.match(r.stderr, /cannot resolve document/);
+      assert.equal(r.status, 0, `${link} must be writable: ${r.stderr}`);
+      assert.ok(readFileSync(page, "utf8").includes(`see ${link}`), `${link} is written verbatim`);
     }
-    // Spelling the target with its extension resolves, and Obsidian follows
-    // that form too — the escape hatch when a block must hold an anchored link.
-    const ok = geml(["set", page, "#concepts", "--body", "--in", "-"], "see [[Alpha.md#Alpha]]\n");
-    assert.equal(ok.status, 0, `the .md form must be writable: ${ok.stderr}`);
+    // A note not yet written is how a vault plans one: a warning, never a refusal.
+    const planned = geml(["set", page, "#concepts", "--body", "--in", "-"], "see [[Not Written Yet#Part]]\n");
+    assert.equal(planned.status, 0, planned.stderr);
+    assert.match(geml(["check", page]).stderr, /names no note/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

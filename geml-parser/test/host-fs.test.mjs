@@ -7,7 +7,7 @@ import { strict as assert } from "node:assert";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, basename } from "node:path";
-import { docOptsFor, existsFor, fsFiles, gemlFilesUnder, historyError, readConfined, resolverFor, shownPath } from "../dist/host-fs.js";
+import { docOptsFor, existsFor, fsFiles, gemlFilesUnder, historyError, noteFinderFor, obsidianVaultAbove, readConfined, resolverFor, shownPath } from "../dist/host-fs.js";
 import { ViewError } from "../dist/verbs.js";
 
 function tree(files) {
@@ -106,4 +106,42 @@ test("historyError words a missing sidecar, a missing document, and any other fa
   assert.equal(historyError(Object.assign(new Error("gone"), { code: "ENOENT" }), "d.geml", "h"), "cannot read d.geml", "an ENOENT with no path is the document");
   assert.equal(historyError(new Error("chain broken"), "d.geml", "h"), "chain broken");
   assert.equal(historyError("plain string", "d.geml", "h"), "plain string");
+});
+
+test("noteFinderFor: a vault's lookup — by name, any folder, any case — confined to the base", () => {
+  const root = tree({ "base/Note.md": "N", "base/deep/er/Deep Note.md": "D", "base/pic.png": "P", "outside/Far.md": "F" });
+  try {
+    const find = noteFinderFor(join(root, "base", "page.md"));
+    for (const name of ["Note", "note", "Note.md", "Deep Note", "er/Deep Note", "deep/er/Deep Note.md", "pic.png"]) {
+      assert.equal(find(name), true, name);
+    }
+    for (const name of ["Far", "../outside/Far", "outside/Far", "", "/", "./", "deep/Deep Note"]) {
+      assert.equal(find(name), false, `${JSON.stringify(name)} is not a note inside the base`);
+    }
+    assert.equal(noteFinderFor(join(root, "base", "page.md"), root)("Far"), true, "the user's --root widens it");
+    assert.equal(noteFinderFor(join(root, "missing-dir", "page.md"))("Note"), false, "a base that is not there finds nothing");
+    assert.equal(noteFinderFor("-")("no-such-note-5c1f0e"), false, "stdin resolves from the working directory");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("docOptsFor wires the note lookup for a .md only", () => {
+  const root = tree({ "a.md": "", "a.geml": "", "Note.md": "N" });
+  try {
+    assert.equal(docOptsFor(join(root, "a.md")).markdown, true);
+    assert.equal(docOptsFor(join(root, "a.md")).findNote("Note"), true);
+    assert.equal(docOptsFor(join(root, "a.geml")).markdown, false);
+    assert.equal(docOptsFor(join(root, "a.geml")).findNote, undefined);
+    assert.equal(docOptsFor("-").findNote, undefined);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("obsidianVaultAbove names a vault root strictly above the base, and nothing else", () => {
+  const root = tree({ "vault/.obsidian/app.json": "{}", "vault/a/b/page.md": "" });
+  try {
+    const page = join(root, "vault", "a", "b", "page.md");
+    assert.equal(obsidianVaultAbove(page), join(root, "vault"));
+    assert.equal(obsidianVaultAbove(page, join(root, "vault", "a")), join(root, "vault"), "a --root inside the vault");
+    assert.equal(obsidianVaultAbove(page, join(root, "vault")), null, "the base IS the vault");
+    assert.equal(obsidianVaultAbove(join(root, "elsewhere", "p.md")), null, "no vault anywhere above");
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });

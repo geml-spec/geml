@@ -24,7 +24,7 @@ import { normalizeBlockId } from "./block-edit.js";
 import { type Diagnostic, normalizeSource } from "./diagnostics.js";
 import type { DiagnosticCode } from "./diagnostics.js";
 import { type Attrs, type Value, coerce, duplicateNames, oddNames, parseAttrs } from "./attrs.js";
-import { type Inline, type RefSink, META_REF_SRC, parseInline , isSafeUrl, schemeOf } from "./inline.js";
+import { type Inline, type Ref, type RefSink, META_REF_SRC, parseInline , isSafeUrl, schemeOf, lineOf } from "./inline.js";
 import { type TableCell, type TableDiag, type TableModel, deriveView, parseTable } from "./table.js";
 import { type ChartModel, USES, buildChart } from "./chart.js";
 import { mdToGeml } from "./from-md.js";
@@ -161,7 +161,7 @@ export type Block =
 
 // Re-exported from ./diagnostics.js so that `Diagnostic` stays importable from
 // the package root. The catalogue of codes lives there (spec Appendix A).
-export { type Diagnostic, type DiagnosticCode, SEVERITY } from "./diagnostics.js";
+export { type Diagnostic, type DiagnosticCode, SEVERITY, CATALOGUE_EXEMPT } from "./diagnostics.js";
 
 import { vocabularyFor, unrecognizedVocabularies, declaredVocabularies, misnamespacedMetaKey, EMPTY_VOCABULARY, type Vocabulary } from "./profiles.js";
 import { parseCoordPath } from "./selector.js";
@@ -191,6 +191,25 @@ export interface ParseOptions {
    * is parsed, `=== meta` and all.
    */
   vocab?: Vocabulary;
+  /**
+   * Read this text as **Markdown** — a `.md` file (see isMarkdownPath) — rather
+   * than as GEML. GEML's grammar is close enough to Markdown's that a `.md` is
+   * parsed directly, which is what keeps a round trip byte-exact; this switch
+   * names every place the two grammars disagree and, in each, reads the text the
+   * way its own format does. It changes nothing a `.geml` sees.
+   *
+   * The register, and the only place to add to it:
+   *  - a heading whose derived id is taken gets GitHub's suffix (`#notes-1`);
+   *  - `[^label]: …` defines a footnote, and a `[^x]` nothing defines is text;
+   *  - `{{…}}` is text — a template engine's, not a `=== meta` reference;
+   *  - `~~~` fences and indented code blocks are code, as ``` already is;
+   *  - `[[name]]` / `![[name]]` are wikilinks, resolved by name (see findNote).
+   */
+  markdown?: boolean;
+  // Under Markdown reading: does a note answer to this wikilink name? Obsidian's
+  // lookup, confined exactly as resolveDoc is (host-fs noteFinderFor). Absent,
+  // a wikilink to another note is not checked at all — there is nothing to ask.
+  findNote?: (name: string) => boolean;
   resolveDoc?: (doc: string) => string | null;
   // Does this target exist at all, even though `resolveDoc` could read no text
   // from it? Only link checking asks — a link to a directory is ordinary and
@@ -252,6 +271,13 @@ interface Ctx extends RefSink {
   // paragraph text can then name the close that actually ended the block.
   bareClosed?: Map<string, number>;
   resolveDoc?: (doc: string) => string | null; // threaded from ParseOptions
+  // Under ParseOptions.markdown (RefSink.markdown), the walk-scoped state
+  // GitHub's `-N` rule needs: every heading id taken so far, and the next
+  // suffix per base.
+  headingSlugs?: { used: Set<string>; next: Map<string, number> };
+  // Under Markdown reading, the Obsidian block markers (`… ^id` ending a line)
+  // the document carries, for `[[#^id]]`.
+  blockMarkers?: Set<string>;
 }
 
 // Type registry: which body mode each typed block uses. Unknown types are a
@@ -507,6 +533,41 @@ export function isCloseFence(line: string, openLen: number): boolean {
 //     An EXPLICIT id is untouched by any of this — it is stored and reported
 //     verbatim, and only the NFD comparison in nameKey() makes its two spellings
 //     one name.
+// A `.md` file is read as Markdown (ParseOptions.markdown). One rule, in one
+// place, so no two surfaces can disagree about which files it is.
+export function isMarkdownPath(path: string): boolean {
+  return /\.md$/i.test(path);
+}
+
+// A heading's id, for BOTH walks — the parse that registers it and the
+// addressing walk (collectSpans) that `list`/`get`/`set` read. They are two
+// computations of one name, and a heading renamed in one and not the other
+// would be two blocks to the reader and one to the writer.
+//
+// Under Markdown reading, a derived id already taken gets GitHub's suffix: the
+// second `## Notes` is `#notes-1`, the third `#notes-2`, skipping any suffix a
+// heading already holds — github-slugger's rule, so the address is the anchor
+// GitHub gives the same heading. §4's remedy for a collision is an explicit
+// `{#id}`, and a Markdown author has none to write: without this, one repeated
+// `## Summary` made the whole file unwritable, since duplicate-id is the one
+// defect no write forgives. Only headings take part, as on GitHub, and both
+// walks visit the same headings in the same order — so they agree by
+// construction. An explicit id is never renamed; a duplicate one is still an
+// error.
+function headingId(explicit: string | undefined, rawText: string, ctx: Ctx): string {
+  let id = explicit ?? slug(rawText);
+  if (!ctx.markdown) return id;
+  const s = (ctx.headingSlugs ??= { used: new Set(), next: new Map() });
+  if (explicit === undefined && s.used.has(nameKey(id))) {
+    const base = id;
+    let n = s.next.get(nameKey(base)) ?? 0;
+    do { n++; id = `${base}-${n}`; } while (s.used.has(nameKey(id)));
+    s.next.set(nameKey(base), n);
+  }
+  s.used.add(nameKey(id));
+  return id;
+}
+
 function slug(text: string): string {
   return text
     .toLowerCase()                                  // §4 step 1
@@ -541,6 +602,13 @@ export function nameKey(name: string): string {
 const META_REF = new RegExp(META_REF_SRC, "y");
 function interpolate(text: string, line: number, ctx: Ctx): string {
   if (!text.includes("{{")) return text;
+  // Markdown has no metadata interpolation: in a `.md`, `{{title}}` is a template
+  // engine's placeholder (Obsidian's, Templater's) and stays text — the same
+  // reading from-md.ts's escMetaRefs gives it on the way to GEML.
+  if (ctx.markdown) return text;
+  // A paragraph arrives joined, so `line` is only where it starts; an unknown key
+  // on its third line is reported on its third line (see lineOf in inline.ts).
+  const at = lineOf(text, line);
   let out = "";
   let i = 0;
   while (i < text.length) {
@@ -573,7 +641,7 @@ function interpolate(text: string, line: number, ctx: Ctx): string {
         const key = m[1]!;
         if (ctx.meta.has(key)) out += ctx.meta.get(key)!;
         else {
-          ctx.diags.push({ severity: "error", code: "unknown-metadata-reference", message: `unknown metadata reference \`{{${key}}}\``, line });
+          ctx.diags.push({ severity: "error", code: "unknown-metadata-reference", message: `unknown metadata reference \`{{${key}}}\``, line: at(i) });
           out += m[0];
         }
         i = META_REF.lastIndex;
@@ -1173,6 +1241,89 @@ function backtickShield(lines: string[]): Set<number> {
 }
 
 /**
+ * Markdown reading (ParseOptions.markdown): the lines CommonMark reads as CODE,
+ * as whole runs — fence lines included — so the scanner can hand each over
+ * intact and every pass can agree to look past them.
+ *
+ * A ``` pair was already shielded, and got away with less: the lines between
+ * stay paragraph text and the inline scan reads ```…``` as one code span, so
+ * nothing inside is a reference. A `~~~` fence and an indented code block have
+ * no inline form to fall back on — shielded that way, `[^0-9]` inside one still
+ * read as a footnote and `[[#x]]` as a reference. So under Markdown reading a
+ * run is its own paragraph, one code span, never inline-parsed.
+ *
+ *  - fenced: ``` or ~~~, up to three spaces in; closed by a run of the SAME
+ *    character at least as long, on a line of its own. As in backtickShield,
+ *    an unclosed fence shields nothing — CommonMark lets it run to the end of
+ *    the document, and one stray fence emptying `geml list` is worse than the
+ *    fault it would fix.
+ *  - indented: four spaces (a tab counts as four) after a blank line or a
+ *    heading, outside a list — inside one, four spaces are the item's own
+ *    continuation. Trailing blank lines are not part of the run.
+ *
+ * YAML frontmatter is skipped: a nested list there is indented, and is YAML.
+ */
+interface CodeRun { start: number; end: number }  // [start, end) line indices
+const MD_FENCE_OPEN = /^ {0,3}(`{3,}|~{3,})(.*)$/;
+function markdownCodeRuns(lines: string[]): CodeRun[] {
+  const runs: CodeRun[] = [];
+  const indent = (l: string): number => {
+    let n = 0;
+    for (const ch of l) { if (ch === " ") n++; else if (ch === "\t") n += 4 - (n % 4); else break; }
+    return n;
+  };
+  const blank = (l: string | undefined): boolean => l === undefined || l.trim() === "";
+  let i = 0;
+  if (/^---[ \t]*$/.test(lines[0] ?? "")) {
+    const close = lines.findIndex((l, k) => k > 0 && /^(---|\.\.\.)[ \t]*$/.test(l));
+    if (close > 0) i = close + 1;
+  }
+  // The nearest line above `k` that sets the context an indented line sits in.
+  const inList = (k: number): boolean => {
+    for (let j = k - 1; j >= 0; j--) {
+      const l = lines[j]!;
+      if (blank(l) || indent(l) >= 4) continue;
+      return indent(l) > 0 || LIST_ITEM.test(l);
+    }
+    return false;
+  };
+  while (i < lines.length) {
+    const line = lines[i]!;
+    const open = MD_FENCE_OPEN.exec(line);
+    if (open && !(open[1]![0] === "`" && open[2]!.includes("`"))) {
+      const ch = open[1]![0]!;
+      const len = open[1]!.length;
+      let close = -1;
+      for (let j = i + 1; j < lines.length; j++) {
+        const m = /^ {0,3}(`{3,}|~{3,})[ \t]*$/.exec(lines[j]!);
+        if (m && m[1]![0] === ch && m[1]!.length >= len) { close = j; break; }
+      }
+      if (close > i) { runs.push({ start: i, end: close + 1 }); i = close + 1; continue; }
+    }
+    const prev = lines[i - 1];
+    if (!blank(line) && indent(line) >= 4 && (i === 0 || blank(prev) || matchHeading(prev!) !== null) && !inList(i)) {
+      let end = i + 1;
+      while (end < lines.length && (blank(lines[end]) || indent(lines[end]!) >= 4)) end++;
+      while (end > i + 1 && blank(lines[end - 1])) end--;
+      runs.push({ start: i, end });
+      i = end;
+      continue;
+    }
+    i++;
+  }
+  return runs;
+}
+
+// The shield a pass uses: GEML's ``` pairs, or — reading Markdown — every line
+// of every Markdown code run. One function so no pass can pick the other rule.
+function shieldFor(lines: string[], markdown: boolean | undefined): Set<number> {
+  if (!markdown) return backtickShield(lines);
+  const out = new Set<number>();
+  for (const r of markdownCodeRuns(lines)) for (let k = r.start; k < r.end; k++) out.add(k);
+  return out;
+}
+
+/**
  * A prose body (GEP-0013): paragraphs and inline content, and nothing else.
  *
  * The difference from `flow` is the whole point of the mode. A vocabulary may
@@ -1208,7 +1359,10 @@ function scanProse(lines: string[], base: number, ctx: Ctx): Block[] {
 function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[] {
   const blocks: Block[] = [];
   const diags = ctx.diags;
-  const shielded = backtickShield(lines);
+  const shielded = shieldFor(lines, ctx.markdown);
+  // Markdown reading: each code run by the line it starts on (markdownCodeRuns).
+  const codeRunAt = new Map<number, number>();
+  if (ctx.markdown) for (const r of markdownCodeRuns(lines)) codeRunAt.set(r.start, r.end);
   let i = 0;
 
   while (i < lines.length) {
@@ -1217,6 +1371,14 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
     const { line, consumed } = foldFence(lines, i);
 
     if (line.trim() === "") { i++; continue; }
+
+    const runEnd = codeRunAt.get(i);
+    if (runEnd !== undefined) {
+      const text = lines.slice(i, runEnd).join("\n");
+      blocks.push({ kind: "paragraph", text, inlines: [{ type: "code", value: text }] });
+      i = runEnd;
+      continue;
+    }
 
     // A `%%` line is hidden: kept in the model (tools can find it), never
     // rendered, and not inline-parsed (so a scratch note can't break the build).
@@ -1243,7 +1405,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       reportOddNames(a, lineNo, diags);
       reportDuplicateNames(a, lineNo, diags);
       const text = interpolate(rawText, lineNo, ctx);
-      const id = a.id ?? slug(rawText);
+      const id = headingId(a.id, rawText, ctx);
       registerId(ctx, id, lineNo);
       // Sibling trap to fence-like-line: an attribute object that does not END
       // the heading line is not an attribute object at all — matchHeading
@@ -1295,6 +1457,9 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
     while (
       i < lines.length &&
       lines[i]!.trim() !== "" &&
+      // A Markdown code run is handed over whole at the top of the loop, so a
+      // paragraph stops at one (a fence interrupts a paragraph in CommonMark).
+      !codeRunAt.has(i) &&
       // 遮蔽区内一律当正文吃下去。漏掉这一条，被遮的栅栏行没有任何构造消费它，
       // i 不前进 —— 死循环。
       (shielded.has(i) || (
@@ -1530,7 +1695,7 @@ function reportBorrowedVocabularies(
 function detectSelfEmbedCycles(source: string, ctx: Ctx): void {
   const selfEmbeds = (ctx.embeds ?? []).filter((e) => e.doc === "" && e.anchor !== undefined);
   if (selfEmbeds.length === 0) return;
-  const spans = blockSpans(source);
+  const spans = blockSpans(source, { markdown: ctx.markdown });
   for (const e of selfEmbeds) {
     const span = spans.get(e.anchor!);
     if (span === undefined) continue; // a missing id is already an unresolved reference
@@ -1552,7 +1717,7 @@ function detectSelfEmbedCycles(source: string, ctx: Ctx): void {
 function detectSelfProjectionCycles(source: string, ctx: Ctx): void {
   const local = (ctx.projections ?? []).filter((p) => p.doc === undefined);
   if (local.length === 0) return;
-  const spans = blockSpans(source);
+  const spans = blockSpans(source, { markdown: ctx.markdown });
   for (const p of local) {
     const span = spans.get(p.anchor);
     if (span === undefined) continue;
@@ -1995,7 +2160,7 @@ export function metaOf(source: string): Map<string, string> {
   return collectMeta(normalizeSource(source).split("\n"));
 }
 
-function collectMeta(lines: string[], diags?: Ctx["diags"], definedAt?: Map<string, number>): Map<string, string> {
+function collectMeta(lines: string[], diags?: Ctx["diags"], definedAt?: Map<string, number>, markdown?: boolean): Map<string, string> {
   const meta = new Map<string, string>();
   // key → 1-based line of the defining fence. `definedAt` lets a caller keep it:
   // a diagnostic about a key's VALUE (§8.6's `profile`) has to point at the line
@@ -2007,7 +2172,7 @@ function collectMeta(lines: string[], diags?: Ctx["diags"], definedAt?: Map<stri
     // scanner and a DEFINITION to this walk, so a document that merely shows
     // the syntax silently acquired its keys. This specification's own §8.6
     // example set `profile` on the whole specification that way.
-    const shielded = backtickShield(ls);
+    const shielded = shieldFor(ls, markdown);
     for (let i = 0; i < ls.length; i++) {
       if (shielded.has(i)) continue;
       const { line, consumed } = foldFence(ls, i);
@@ -2140,9 +2305,47 @@ function validateCoordRef(ref: Ctx["refs"][number], children: Block[], ctx: Ctx,
   return true;
 }
 
+// Obsidian's block markers: a `^id` ending a line (`Some text. ^abc123`),
+// outside code. What `[[#^abc123]]` points at.
+function blockMarkersOf(lines: string[]): Set<string> {
+  const out = new Set<string>();
+  const shielded = shieldFor(lines, true);
+  lines.forEach((l, k) => {
+    const m = shielded.has(k) ? null : /(?:^|\s)\^([A-Za-z0-9-]+)[ \t]*$/.exec(l);
+    if (m) out.add(m[1]!);
+  });
+  return out;
+}
+
+// A wikilink (Markdown reading). Within the document it is GEML's own promise —
+// every anchor resolves — read the way Obsidian writes it: `[[#Heading Text]]`
+// names the heading by its text, so its slug counts, and `[[#^id]]` names a
+// block marker. To another note, the note has to exist; its fragment is left to
+// the format, as for any non-GEML target. A missing note is a WARNING, not an
+// error: in a vault `[[Not Yet Written]]` is how a note is planned, and
+// Obsidian creates it on the first click.
+function validateWikilink(ref: Ref, ctx: Ctx, opts: ParseOptions): void {
+  if (ref.doc === undefined) {
+    // The scanner records a same-page wikilink only with a fragment to check.
+    const a = ref.anchor as string;
+    const found = a.startsWith("^")
+      ? ctx.blockMarkers?.has(a.slice(1)) === true
+      : ctx.ids.has(nameKey(a)) || ctx.ids.has(nameKey(slug(a))) || ctx.runIds?.has(nameKey(a)) === true;
+    if (!found) ctx.diags.push({ severity: "error", code: "unresolved-reference", message: `unresolved reference \`#${a}\``, line: ref.line });
+    return;
+  }
+  if (opts.findNote !== undefined && !opts.findNote(ref.doc)) {
+    ctx.diags.push({
+      severity: "warning", code: "markdown-unresolved-wikilink", line: ref.line,
+      message: `wikilink \`[[${ref.doc}]]\` names no note under the resolution root — in a vault that is a note not yet written`,
+    });
+  }
+}
+
 function validateRefs(ctx: Ctx, opts: ParseOptions, children: Block[]): void {
   const docIds = new Map<string, Set<string>>(); // memoized cross-doc id sets
   for (const ref of ctx.refs) {
+    if (ref.kind === "wikilink") { validateWikilink(ref, ctx, opts); continue; }
     if (validateCoordRef(ref, children, ctx, opts)) continue;
     if (ref.kind === "cross") {
       if (!ref.doc) continue;
@@ -2205,6 +2408,12 @@ function validateRefs(ctx: Ctx, opts: ParseOptions, children: Block[]): void {
       }
       continue;
     }
+    // Markdown reading: a footnote is GFM's, and GFM has no broken one. With a
+    // `[^label]:` definition `[^label]` is a footnote; with none it was never
+    // one — GitHub prints it as the text it is, which is why `[^0-9]` in a
+    // sentence about a regex is not a reference at all. Neither is an error, so
+    // nothing here needs to know which it was.
+    if (ctx.markdown && ref.kind === "footnote") continue;
     // internal, autoref, footnote — anchor must be a known id in this document.
     if (ref.anchor !== undefined && !ctx.ids.has(nameKey(ref.anchor)) && ctx.runIds?.has(nameKey(ref.anchor)) !== true) {
       const footnote = ref.kind === "footnote";
@@ -2526,7 +2735,7 @@ export function parse(source: string, opts: ParseOptions = {}): Document {
   const lines = normalizeSource(source).split("\n");
   const diags: Ctx["diags"] = [];
   const definedAt = new Map<string, number>();
-  const meta = collectMeta(lines, diags, definedAt);
+  const meta = collectMeta(lines, diags, definedAt, opts.markdown);
   // §8.6.2 rule 3: a declared vocabulary this processor does not ship is
   // REPORTED, not passed over in silence — that report is what lets rule 4 grant
   // a vocabulary its own body modes. Only when this parse computed the
@@ -2541,7 +2750,7 @@ export function parse(source: string, opts: ParseOptions = {}): Document {
       });
     }
   }
-  const ctx: Ctx = { diags, ids: new Map(), refs: [], meta, vocab: opts.vocab ?? vocabularyFor(meta), resolveDoc: opts.resolveDoc };
+  const ctx: Ctx = { diags, ids: new Map(), refs: [], meta, vocab: opts.vocab ?? vocabularyFor(meta), resolveDoc: opts.resolveDoc, markdown: opts.markdown === true };
   // §4 never checked a `=== meta` key, so a typo in one was silent — and with
   // GEP-0013 a vocabulary's keys became part of what it owns. The check is
   // OPT-IN per document, exactly as the attribute check is opt-in per type: it
@@ -2572,6 +2781,7 @@ export function parse(source: string, opts: ParseOptions = {}): Document {
   resolveCodeSources(ctx, opts);
   resolveCharts(ctx, opts);
   checkReservedMetaId(children, ctx);
+  if (ctx.markdown) ctx.blockMarkers = blockMarkersOf(lines);
   validateRefs(ctx, opts, children);
   detectTransclusionCycles(ctx, opts);
   detectSelfEmbedCycles(source, ctx);
@@ -2601,13 +2811,22 @@ export function parse(source: string, opts: ParseOptions = {}): Document {
 // original bytes — so `get`/`set` can splice by span without re-serializing.
 export interface Span { start: number; end: number; }
 
+/**
+ * What the addressing walks (blockSpans, unitSpans, addressedUnits,
+ * narrowToIntro) need from ParseOptions: only whether the text is Markdown,
+ * since that changes which id a repeated heading gets. A caller that parses a
+ * file with `markdown` MUST walk it with `markdown` too, or the two disagree
+ * about its names.
+ */
+export interface WalkOptions { markdown?: boolean }
+
 // The id that a fence/heading line defines, matching how scanBlocks derives it
 // (parseAttrs for the attribute object; heading text slug when no explicit id).
 // The slug MUST come from the RAW text, before interpolation, so that changing
 // a meta variable does not silently change the block's addressable id.
 // `ctx` is passed just in case future features need context.
 function idOfHeading(braces: string | undefined, text: string, line: number, ctx: Ctx): string {
-  return (braces ? parseAttrs(braces).id : undefined) ?? slug(text);
+  return headingId(braces ? parseAttrs(braces).id : undefined, text, ctx);
 }
 
 // The matching close of the fence opened at lines[i] (equal-length run, or the
@@ -2697,7 +2916,7 @@ function collectSpans(
   };
   // 同一道遮蔽。这一趟的契约就是"exactly as scanBlocks does"——漏掉它，模型里没有的块
   // 在 list/get/set 里还寻得到址，比不改更糟。
-  const shielded = backtickShield(lines);
+  const shielded = shieldFor(lines, ctx.markdown);
   let i = 0;
   while (i < lines.length) {
     // Fold FIRST, exactly as `parse` does: a fence whose attribute object is
@@ -2772,13 +2991,13 @@ export function trimSpaceTabEnd(s: string): string {
   return i === s.length ? s : s.slice(0, i);
 }
 
-export function blockSpans(source: string): Map<string, Span> {
+export function blockSpans(source: string, o: WalkOptions = {}): Map<string, Span> {
   const out = new Map<string, Span>();
   const lines = normalizeSource(source).split("\n");
   // Inert context: heading auto-ids slug the raw text, but parseDoc still
   // requires a valid context to parse the document.
-  const spanMeta = collectMeta(lines);
-  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: spanMeta, vocab: vocabularyFor(spanMeta) };
+  const spanMeta = collectMeta(lines, undefined, undefined, o.markdown);
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: spanMeta, vocab: vocabularyFor(spanMeta), markdown: o.markdown === true };
   collectSpans(lines, 0, out, ctx);
   return out;
 }
@@ -2798,10 +3017,10 @@ export function blockSpans(source: string): Map<string, Span> {
 // needs to know where the blocks are (which block holds this line, how many
 // bytes it is) does not need the hashes, and this is the honest way to say so
 // rather than making the browser pay for an address it will not use.
-export function unitSpans(source: string): Unit[] {
+export function unitSpans(source: string, o: WalkOptions = {}): Unit[] {
   const lines = normalizeSource(source).split("\n");
-  const spanMeta = collectMeta(lines);
-  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: spanMeta, vocab: vocabularyFor(spanMeta) };
+  const spanMeta = collectMeta(lines, undefined, undefined, o.markdown);
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: spanMeta, vocab: vocabularyFor(spanMeta), markdown: o.markdown === true };
   const units: Unit[] = [];
   collectSpans(lines, 0, new Map(), ctx, 0, units);
   return units;
@@ -3012,10 +3231,10 @@ function runAddress(
   return undefined;
 }
 
-export function addressedUnits(source: string): Addressed[] {
+export function addressedUnits(source: string, o: WalkOptions = {}): Addressed[] {
   const lines = normalizeSource(source).split("\n");
-  const spanMeta = collectMeta(lines);
-  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: spanMeta, vocab: vocabularyFor(spanMeta) };
+  const spanMeta = collectMeta(lines, undefined, undefined, o.markdown);
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: spanMeta, vocab: vocabularyFor(spanMeta), markdown: o.markdown === true };
   const units: Unit[] = [];
   collectSpans(lines, 0, new Map(), ctx, 0, units);
   // GEP 0010: prose runs join the index. Their spans are trimmed to the prose
@@ -3105,10 +3324,10 @@ function narrowToBody(lines: string[], span: Span): Span {
 // The bound comes from the parsed units, never from scanning for `#`: a `#`
 // inside a fenced block is body text, and a line scan would cut the section in
 // half there.
-export function narrowToIntro(source: string, span: Span): Span {
+export function narrowToIntro(source: string, span: Span, o: WalkOptions = {}): Span {
   const body = narrowToBody(splitLines(source), span);
   let end = body.end;
-  for (const a of addressedUnits(source)) {
+  for (const a of addressedUnits(source, o)) {
     const u = a.unit;
     if (u.kind !== "heading") continue;
     if (u.span.start > span.start && u.span.start < body.end) { end = u.span.start; break; }
@@ -3120,11 +3339,11 @@ export function narrowToIntro(source: string, span: Span): Span {
 export type UnitPart = "whole" | "head" | "body" | "intro";
 
 // Slice one unit's output bytes, honouring --head / --body / --intro.
-export function sliceUnit(source: string, span: Span, part: UnitPart = "whole"): string {
+export function sliceUnit(source: string, span: Span, part: UnitPart = "whole", o: WalkOptions = {}): string {
   const lines = splitLines(source);
   const s = part === "head" ? narrowToHead(span)
     : part === "body" ? narrowToBody(lines, span)
-    : part === "intro" ? narrowToIntro(source, span)
+    : part === "intro" ? narrowToIntro(source, span, o)
     : span;
   return lines.slice(s.start, s.end).join("");
 }

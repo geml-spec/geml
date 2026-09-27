@@ -11,6 +11,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve as resolvePath, sep } from "node:path";
 import { type DocOpts, type FileAccess, ViewError } from "./verbs.js";
+import { isMarkdownPath } from "./geml.js";
 
 // A cross-document resolver rooted at the input's directory (cwd for stdin),
 // CONFINED to that directory's subtree. A reference that resolves outside the
@@ -109,7 +110,78 @@ export function existsFor(file: string, root?: string): (d: string) => boolean {
 // Both halves for a parse: every call site wants them together, and pairing
 // them here keeps a resolver from being wired up without its existence probe.
 export function docOptsFor(file: string, root?: string): DocOpts {
-  return { resolveDoc: resolverFor(file, root), docExists: existsFor(file, root) };
+  const markdown = isMarkdownPath(file);
+  return {
+    resolveDoc: resolverFor(file, root), docExists: existsFor(file, root), markdown,
+    ...(markdown ? { findNote: noteFinderFor(file, root) } : {}),
+  };
+}
+
+// Obsidian's lookup for a wikilink name — inside the confinement base, never
+// beyond it. First the name as written and with `.md`, from the document's
+// directory and from the base: existsFor, so the same two starting points and
+// the same gates as every other reference. Failing those, by name anywhere
+// under the base, the way a vault resolves `[[Note]]` to `projects/2026/Note.md`
+// — a file called `<name>` or `<name>.md`, or for a name with a `/`, a path
+// ending in it; compared case-insensitively, as Obsidian compares. The walk
+// skips dot-directories, `node_modules` and EVERY symlink, a link being the one
+// thing that could carry it outside the base. Widening what a note may probe
+// stays the user's `--root` to grant (resolverFor), never the vault's.
+export function noteFinderFor(file: string, root?: string): (name: string) => boolean {
+  const exists = existsFor(file, root);
+  const dirAbs = resolvePath(file === "-" ? "." : dirname(file));
+  const baseAbs = root === undefined ? dirAbs : resolvePath(root);
+  return (name) => {
+    const n = name.replace(/\\/g, "/").replace(/^\.?\//, "");
+    if (n === "") return false;
+    if (exists(n) || exists(`${n}.md`)) return true;
+    const want = n.toLowerCase();
+    const index = notesUnder(baseAbs);
+    if (!want.includes("/")) return index.names.has(want) || index.names.has(`${want}.md`);
+    return index.paths.some((r) => r === want || r === `${want}.md` || r.endsWith(`/${want}`) || r.endsWith(`/${want}.md`));
+  };
+}
+
+// Every file under a base, lower-cased: its name, and its base-relative path.
+// Cached briefly, keyed by the real base: one verb parses a file more than once,
+// and a long-running MCP server still sees a note created a moment ago.
+const NOTE_INDEX = new Map<string, { at: number; names: Set<string>; paths: string[] }>();
+const NOTE_INDEX_TTL_MS = 5000;
+const NOTE_INDEX_MAX = 200_000;
+function notesUnder(baseAbs: string): { names: Set<string>; paths: string[] } {
+  let real: string;
+  try { real = realpathSync(baseAbs); } catch { return { names: new Set(), paths: [] }; }
+  const hit = NOTE_INDEX.get(real);
+  if (hit !== undefined && Date.now() - hit.at < NOTE_INDEX_TTL_MS) return hit;
+  const names = new Set<string>();
+  const paths: string[] = [];
+  const walk = (dir: string, rel: string): void => {
+    let entries;
+    try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const e of entries) {
+      if (paths.length >= NOTE_INDEX_MAX) return;
+      if (e.name.startsWith(".") || e.name === "node_modules" || e.isSymbolicLink()) continue;
+      const r = rel === "" ? e.name : `${rel}/${e.name}`;
+      if (e.isDirectory()) walk(join(dir, e.name), r);
+      else if (e.isFile()) { names.add(e.name.toLowerCase()); paths.push(r.toLowerCase()); }
+    }
+  };
+  walk(real, "");
+  const index = { at: Date.now(), names, paths };
+  NOTE_INDEX.set(real, index);
+  return index;
+}
+
+// The Obsidian vault a document sits in, when its root lies ABOVE the base —
+// where wikilinks to notes elsewhere in the vault cannot resolve. The host says
+// so; it never widens the base itself (see noteFinderFor).
+export function obsidianVaultAbove(file: string, root?: string): string | null {
+  const dirAbs = resolvePath(file === "-" ? "." : dirname(file));
+  const baseAbs = root === undefined ? dirAbs : resolvePath(root);
+  for (let d = dirname(baseAbs); ; d = dirname(d)) {
+    if (existsSync(join(d, ".obsidian"))) return d;
+    if (dirname(d) === d) return null;
+  }
 }
 
 // Walking a `--view` chain is DOCUMENT-DRIVEN file access: `src=` comes from

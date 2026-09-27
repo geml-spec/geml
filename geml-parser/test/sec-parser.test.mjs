@@ -1675,3 +1675,58 @@ test("R6-1: the document that writes the embed itself is still told", () => {
   assert.equal(d.length, 1);
   assert.equal(d[0].subject, "acme-payroll-confidential/v1");
 });
+
+// ---------------------------------------------------------------------------
+// R7-1 — a wikilink must not probe what lies outside the resolution root
+// ---------------------------------------------------------------------------
+// Reading a `.md` as Markdown resolves `[[Note]]` the way a vault does: by name,
+// anywhere under the root. "Anywhere" is a directory walk driven by what a
+// DOCUMENT wrote, and the diagnostic it produces — found, or a warning — is an
+// answer to "does this exist?". Everywhere else that question is confined
+// (resolverFor / existsFor), and this walk must be too: the base, never above
+// it; no symlink or junction followed out of it; and so no difference in the
+// output between a target outside the base that exists and one that does not.
+// Widening the base stays the user's `--root` to grant — a `.obsidian/` above
+// the file changes what check SAYS, never what it reads.
+
+test("R7-1: a wikilink cannot find a note outside the base, by name, path, `..` or link", () => {
+  const root = mkdtempSync(join(tmpdir(), "geml-sec-r7-1-"));
+  try {
+    const base = join(root, "base");
+    const outside = join(root, "outside");
+    mkdirSync(base, { recursive: true });
+    mkdirSync(outside, { recursive: true });
+    mkdirSync(join(root, ".obsidian"), { recursive: true });   // a vault ABOVE the base
+    writeFileSync(join(outside, "secret.md"), "# secret\n");
+    let linked = false;
+    try { symlinkSync(outside, join(base, "evildir"), "junction"); linked = true; } catch { /* no links here */ }
+    const note = join(base, "note.md");
+    writeFileSync(note, "# N\n\n[[secret]] [[../outside/secret]] [[outside/secret]] [[evildir/secret]]\n");
+
+    const check = () => {
+      const r = spawnSync(process.execPath, ["dist/geml.js", "check", note], { encoding: "utf8", timeout: 60000 });
+      return (r.stderr || "").split("\n").filter((l) => l.startsWith("warning:")).join("\n");
+    };
+    const withSecret = check();
+    assert.equal((withSecret.match(/names no note/g) ?? []).length, 4,
+      `every shape is "no such note" from inside the base${linked ? ", the junction included" : ""}:\n${withSecret}`);
+    // The existence oracle, closed: the same answer whether the target is there.
+    rmSync(join(outside, "secret.md"));
+    assert.equal(check(), withSecret, "a target outside the base must not change the output by existing");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("R7-1: the user's --root is what widens the search, and it does", () => {
+  const root = mkdtempSync(join(tmpdir(), "geml-sec-r7-1b-"));
+  try {
+    mkdirSync(join(root, "a"), { recursive: true });
+    mkdirSync(join(root, "b"), { recursive: true });
+    writeFileSync(join(root, "b", "Other.md"), "# Other\n");
+    const note = join(root, "a", "note.md");
+    writeFileSync(note, "# N\n\n[[Other]]\n");
+    const narrow = spawnSync(process.execPath, ["dist/geml.js", "check", note], { encoding: "utf8", timeout: 60000 });
+    assert.match(narrow.stderr, /names no note/);
+    const wide = spawnSync(process.execPath, ["dist/geml.js", "check", note, "--root", root], { encoding: "utf8", timeout: 60000 });
+    assert.match(wide.stderr, /ok: no diagnostics/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

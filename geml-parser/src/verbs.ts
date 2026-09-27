@@ -29,7 +29,7 @@ import {
   parse, blockSpans, sliceUnit, addressedUnits, relJoinPath, relDirPath,
   closeFenceLine, findBlockSite, isCloseFence, narrowToHead, newlineOf,
   narrowToIntro, reLit, sectionEndIndex, splitLines, stripEol, toLf, toNewline, trimSpaceTabEnd,
-  nameKey, resolveTarget, vocabularyOf } from "./geml.js";
+  nameKey, resolveTarget, vocabularyOf, isMarkdownPath, type WalkOptions } from "./geml.js";
 import { type Unit, type Addressed, type Selector } from "./selector.js";
 import { schemeOf } from "./inline.js";
 import { parseAttrs } from "./attrs.js";
@@ -72,6 +72,10 @@ export class ViewError extends VerbError {
 export interface DocOpts {
   resolveDoc: (d: string) => string | null;
   docExists: (d: string) => boolean;
+  /** Read the file as Markdown (ParseOptions.markdown). Hosts set it from isMarkdownPath. */
+  markdown?: boolean;
+  /** Markdown reading: Obsidian's note lookup for a wikilink (ParseOptions.findNote). */
+  findNote?: (name: string) => boolean;
 }
 
 /**
@@ -120,6 +124,11 @@ function baseName(p: string): string {
   const parts = p.split(/[\\/]/);
   return parts[parts.length - 1] ?? p;
 }
+// How an addressing walk reads a file: by the rule its parse does (the host
+// sets DocOpts.markdown from the same isMarkdownPath), because the two compute
+// the same names and must agree on them. Keyed on the file the TEXT belongs to
+// — a `--view` hop's target, an `--in F`'s F, a revision of this file.
+const walkOf = (file: string): WalkOptions => ({ markdown: isMarkdownPath(file) });
 const selfOf = (file: string): string | undefined => (file === "-" ? undefined : baseName(file));
 const whereOf = (file: string): string => (file === "-" ? "stdin" : file);
 
@@ -175,7 +184,7 @@ function oneHop(file: string, src: string, root: string, ctx: VerbContext):
     //
     // Only TOP-LEVEL units: a heading's unit spans its whole section, so taking
     // every addressed unit would emit the blocks inside a section twice.
-    const every = addressedUnits(text).map((a) => a.unit);
+    const every = addressedUnits(text, walkOf(rel)).map((a) => a.unit);
     const top = every.filter((u) => !every.some((o) =>
       o !== u && o.span.start <= u.span.start && o.span.end >= u.span.end
       && (o.span.start < u.span.start || o.span.end > u.span.end)));
@@ -254,7 +263,7 @@ function resolveSelector(source: string, file: string, raw: string, ctx: VerbCon
   if (!m) return bare; // not a `#`-run form: an id, verbatim
   // 1. The id is canonical and always wins. Checked without a parse, so the
   //    common `get #id` stays a byte-slice on a document with diagnostics.
-  if (blockSpans(source).has(bare)) return bare;
+  if (blockSpans(source, walkOf(file)).has(bare)) return bare;
 
   const level = m[1]!.length;
   const want = m[2]!;
@@ -326,7 +335,7 @@ function pad(s: string, width: number): string {
  */
 export function list(source: string, file: string, json: boolean, ctx: VerbContext): string {
   const where = whereOf(file);
-  const all = addressedUnits(source);
+  const all = addressedUnits(source, walkOf(file));
   const doc = parse(source, { ...ctx.docOpts(file), self: selfOf(file) });
 
   interface Row {
@@ -445,7 +454,7 @@ export function selectUnits(source: string, file: string, rawSel: string, where:
       : ` — use \`=== ${sel.type}\` for every ${sel.type} block, or address one by \`#id\` / \`@<hex>\``;
     fail(`only \`#id\` and \`@<hex>\` are supported as filter keys today (got \`${sel.key}\`)${byType || " — address a block by `#id` / `@<hex>`, or `=== <type>` for every block of a type"}`, 2);
   }
-  const all = addressedUnits(source);
+  const all = addressedUnits(source, walkOf(file));
 
   if (sel.form === "content") {
     const hit = matchContent(sel, all);
@@ -645,7 +654,7 @@ export function get(source: string, file: string, rawSel: string, o: GetOptions,
     for (const u of units) {
       for (const res of viewResolve(source, startDoc, u, viewRoot, ctx)) {
         if (res.from !== "") from.push(res.from);
-        out.push(sliceUnit(res.text, res.unit.span, part));
+        out.push(sliceUnit(res.text, res.unit.span, part, walkOf(res.from === "" ? file : res.from)));
       }
     }
     for (const f of from) ctx.note(`view: ${rawSel} -> ${f}`);
@@ -659,7 +668,7 @@ export function get(source: string, file: string, rawSel: string, o: GetOptions,
       fail(`--intro names a heading's opening region, and \`${rawSel}\` is a \`${u.type ?? u.kind}\` block — use --body for a block's content`, 2);
     }
   }
-  return { output: units.map((u) => sliceUnit(source, u.span, part)).join(""), from: [] };
+  return { output: units.map((u) => sliceUnit(source, u.span, part, walkOf(file))).join(""), from: [] };
 }
 
 // ---------------------------------------------------------------------------
@@ -676,7 +685,7 @@ export interface FindHit { file: string; address: string; kind: string; lines: [
 export function findInSource(source: string, file: string, pattern: string, o: { sensitive: boolean; withLine: boolean }): FindHit[] {
   const needle = o.sensitive ? pattern : pattern.toLowerCase();
   const hits: FindHit[] = [];
-  const all = addressedUnits(source);
+  const all = addressedUnits(source, walkOf(file));
   // Match by LINE, then resolve each line to the innermost unit holding it —
   // exactly what the `L` selector does, so `find` is `grep` composed with
   // `L` rather than a second notion of "which block is this in". Testing the
@@ -860,7 +869,7 @@ export function transform(src: string, file: string, o: TransformOptions, ctx: V
           for (const u of units) {
             // 切片带不走文档的 `=== meta`，所以把宿主已经算好的词汇表交给子解析 ——
             // 否则 profile 的类型在这里全都变回未知类型，散文块会渲染成一个空围栏。
-            const sub = parse(sliceUnit(text, u.span, part), { ...ctx.docOpts(docPath, mdRoot), vocab: vocabularyOf(text) });
+            const sub = parse(sliceUnit(text, u.span, part, walkOf(docPath)), { ...ctx.docOpts(docPath, mdRoot), vocab: vocabularyOf(text) });
             const r = gemlToMd(sub, { resolveEmbed: expand(docPath, text, depth + 1) });
             inner.push(...r.notes);
             if (r.md.trim() !== "") out.push(r.md.trim());
@@ -908,7 +917,7 @@ export function transform(src: string, file: string, o: TransformOptions, ctx: V
  */
 export function replace(source: string, file: string, oldText: string, newText: string, within: string | undefined, ctx: VerbContext): { text: string; summary: string } {
   const where = whereOf(file);
-  const all = addressedUnits(source);
+  const all = addressedUnits(source, walkOf(file));
 
   // Scope: the whole document, or every block a selector matches. Several
   // matches are fine here — `replace … --within '=== table'` meaning "in all
@@ -986,7 +995,7 @@ export function replace(source: string, file: string, oldText: string, newText: 
   }
 
   // Blocks the replacement removed follow `set`'s rule: carried out, and named.
-  const droppedAnon = Math.max(0, countBlockUnits(source) - countBlockUnits(updated) - goneIds.length);
+  const droppedAnon = Math.max(0, countBlockUnits(source, walkOf(file)) - countBlockUnits(updated, walkOf(file)) - goneIds.length);
   if (goneIds.length || droppedAnon) {
     const named = goneIds.map((x) => `\`#${x}\``).join(", ");
     const anon = droppedAnon ? `${droppedAnon} unnamed block${droppedAnon > 1 ? "s" : ""}` : "";
@@ -1022,8 +1031,13 @@ function extractBlock(content: Extract<Content, { kind: "file" }>, targetId: str
   const fragFile = hash >= 0 ? spec.slice(0, hash) : spec;
   const fragId = hash >= 0 ? spec.slice(hash + 1).replace(/^#/, "") : targetId;
   const text = content.read(fragFile);
-  const span = blockSpans(text).get(fragId);
-  if (!span) fail(`no block with id \`${fragId}\` in ${fragFile}`, 1);
+  const span = blockSpans(text, walkOf(fragFile)).get(fragId);
+  // `--in F` alone reads F's block of the TARGET's id, not F's text — the
+  // form that gets written expecting the other one. Say which channel does.
+  if (!span) {
+    fail(`no block with id \`${fragId}\` in ${fragFile}` + (hash >= 0 ? "" :
+      ` — \`--in F\` takes the block of that id FROM F; to write F's text as the content, use \`--in - < ${fragFile}\``), 1);
+  }
   const lines = splitLines(text);
   if (part === "head") return lines.slice(span!.start, span!.start + 1).join("");
   if (part === "body") { const b = bodyRange(text, span!); return lines.slice(b.start, b.end).join(""); }
@@ -1068,10 +1082,22 @@ function resolveSetTarget(source: string, file: string, rawSel: string, ctx: Ver
 // §5.3: writing through a content address CHANGES it, so print the new one —
 // otherwise a script editing the same block twice has to re-list in between.
 // stderr, because stdout may be the document itself (`-o -`).
-function reportNewAddress(updated: string, target: SetTarget, ctx: VerbContext): void {
+// The id the unit at `span.start` would have with `text` spliced over `span`,
+// judged by the same walk `list` uses. Unguarded — it decides whether to stamp
+// an id, and the guarded splice that follows is what refuses a broken result.
+function idInPlace(source: string, span: Span, text: string, file: string): string | undefined {
+  const lines = splitLines(source);
+  const nl = newlineOf(source);
+  let frag = toNewline(text, nl);
+  if (!frag.endsWith("\n")) frag += nl;
+  const trial = lines.slice(0, span.start).join("") + frag + lines.slice(span.end).join("");
+  return addressedUnits(trial, walkOf(file)).find((a) => a.unit.span.start === span.start)?.unit.id;
+}
+
+function reportNewAddress(updated: string, target: SetTarget, file: string, ctx: VerbContext): void {
   if (!target.byContent) return;
-  const after = addressedUnits(updated).find((a) => a.unit.span.start === target.unit.span.start);
-  if (after) ctx.note(`new address: ${shortestAddress(after, addressedUnits(updated))}`);
+  const after = addressedUnits(updated, walkOf(file)).find((a) => a.unit.span.start === target.unit.span.start);
+  if (after) ctx.note(`new address: ${shortestAddress(after, addressedUnits(updated, walkOf(file)))}`);
 }
 
 /**
@@ -1149,11 +1175,18 @@ export function set(source: string, file: string, rawSel: string, o: SetOptions,
   // rule: whatever id the content parses to is the id it has.
   // 散文运行的地址是位置派生的，没有 id 可往内容里盖——盖了只会在散文里多出一个
   // `{#…}`。所以这一步跳过它。
-  const carries = target.unit.id !== undefined && addressedUnits(text)[0]?.unit.id === target.unit.id;
+  //
+  // Under Markdown reading the judge is the content IN PLACE, not alone: a
+  // repeated heading's id depends on the headings above it, so the second
+  // `## Notes` — `#notes-1` where it stands — parses to `#notes` on its own, and
+  // was stamped `{#notes-1}`: GEML syntax, which GitHub prints as text.
+  const carries = target.unit.id !== undefined && (
+    addressedUnits(text, walkOf(file))[0]?.unit.id === target.unit.id
+    || (isMarkdownPath(file) && idInPlace(source, target.unit.span, text, file) === target.unit.id));
   const stamp = target.unit.id !== undefined && !carries && target.unit.kind !== "prose";
   const replacement = stamp ? normalizeBlockId(text, target.unit.id as string) : text;
   const updated = spliceSpan(source, target.unit.span, replacement, file, ctx, headOnly, false, target.unit.id);
-  reportNewAddress(updated, target, ctx);
+  reportNewAddress(updated, target, file, ctx);
   return { text: updated };
 }
 
@@ -1168,7 +1201,7 @@ function setIntro(source: string, file: string, target: SetTarget, content: Cont
   if (target.unit.kind !== "heading") {
     fail(`--intro names a heading's opening region, and \`${target.label}\` is a \`${target.unit.type ?? target.unit.kind}\` block — use --body for a block's content`, 2);
   }
-  const region = narrowToIntro(source, target.unit.span);
+  const region = narrowToIntro(source, target.unit.span, walkOf(file));
   let body = content.kind === "raw" ? content.text : extractBlock(content, target.unit.id ?? "", "body");
   if (content.kind === "raw" && body === "") fail(NO_CONTENT, 1);
   body = toLf(body);
@@ -1186,7 +1219,7 @@ function setIntro(source: string, file: string, target: SetTarget, content: Cont
   // A following heading needs the separation; end-of-document does not.
   if (body !== "" && region.end < around.length && !blankLine(body.split("\n").slice(-2)[0])) body += "\n";
   const updated = spliceSpan(source, region, body, file, ctx, false, false, target.unit.id);
-  reportNewAddress(updated, target, ctx);
+  reportNewAddress(updated, target, file, ctx);
   return { text: updated };
 }
 
@@ -1223,7 +1256,7 @@ function setBody(source: string, file: string, target: SetTarget, content: Conte
   // and inject siblings (SEC F2). A heading section body has no close fence and
   // may legitimately contain blocks, so it is not count-guarded.
   const updated = spliceSpan(source, found, replacement, file, ctx, false, closeLine !== null, target.unit.id);
-  reportNewAddress(updated, target, ctx);
+  reportNewAddress(updated, target, file, ctx);
   return { text: updated };
 }
 
@@ -1256,7 +1289,7 @@ function setMeta(
   if (value === "") fail(NO_CONTENT, 1);
 
   const ownerIdx = view.owner.get(key) ?? 0;
-  const all = addressedUnits(source);
+  const all = addressedUnits(source, walkOf(file));
   const metaUnits = all.filter((a) => a.unit.type === "meta").map((a) => a.unit);
   const unit = metaUnits[ownerIdx];
   if (!unit) fail(`\`${rawSel.trim()}\`: this document has no \`meta\` block to write into`, 1);
@@ -1367,7 +1400,7 @@ export function add(source: string, file: string, o: AddOptions, ctx: VerbContex
     at = lines.length;
   } else {
     const anchorId = (before ?? after)!.replace(/^#/, "");
-    const span = blockSpans(source).get(anchorId);
+    const span = blockSpans(source, walkOf(file)).get(anchorId);
     if (!span) fail(`no block with id \`${anchorId}\` in ${whereOf(file)}`, 1);
     at = before !== undefined ? span!.start : span!.end;
   }
@@ -1381,7 +1414,8 @@ export function add(source: string, file: string, o: AddOptions, ctx: VerbContex
 // or duplicate id surfaces as an error diagnostic) and no pre-existing id may
 // vanish. Returns the updated text; on any violation fail()s and writes nothing.
 function insertFragment(source: string, lines: string[], at: number, fragment: string, file: string, ctx: VerbContext): string {
-  const beforeIds = parse(source, { ...ctx.docOpts(file), self: selfOf(file) }).ids;
+  const beforeDoc = parse(source, { ...ctx.docOpts(file), self: selfOf(file) });
+  const beforeIds = beforeDoc.ids;
   const before = lines.slice(0, at);
   const after = lines.slice(at);
   const nl = newlineOf(source);   // the fragment AND every separator we add
@@ -1399,11 +1433,11 @@ function insertFragment(source: string, lines: string[], at: number, fragment: s
   const updated = before.join("") + sepBefore + frag + sepAfter + after.join("");
 
   const reparsed = parse(updated, { ...ctx.docOpts(file), self: selfOf(file) });
-  const errs = reparsed.diagnostics.filter((d) => d.severity === "error");
-  if (errs.length) {
-    const first = errs[0]!;
-    refuseBroken(`adding the content would break the document: ${first.message} (line ${first.line}); not written`, errs);
-  }
+  // The gate `set` and `replace` use, not a stricter one of its own: a `.md`
+  // carrying an old defect somewhere else stayed writable by `set` and was
+  // refused by `add`, which named that defect as the thing the addition broke.
+  const errs = errorsAdded(beforeDoc, reparsed, file);
+  if (errs.length) refuseBroken(refusalProse(beforeDoc, errs, "adding the content would break the document"), errs);
   const now = new Set(reparsed.ids);
   const dropped = beforeIds.find((x) => !now.has(x));
   if (dropped !== undefined) fail(`adding the content would drop block \`#${dropped}\`; not written`, 1);
@@ -1426,7 +1460,7 @@ function insertFragment(source: string, lines: string[], at: number, fragment: s
  * remove, the text comes back unchanged.
  */
 export function del(source: string, file: string, ids: string[], ctx: VerbContext): { text: string } {
-  const spans = blockSpans(source);
+  const spans = blockSpans(source, walkOf(file));
   const toDelete = new Set<number>();
   let found = 0;
   for (const raw of ids) {
@@ -1439,10 +1473,13 @@ export function del(source: string, file: string, ids: string[], ctx: VerbContex
   if (found === 0) return { text: source }; // nothing to remove
 
   const updated = splitLines(source).filter((_, i) => !toDelete.has(i)).join("");
-  // Lenient guard: surface any resulting error diagnostic (a reference now
-  // dangling) as a WARNING, but write regardless.
-  const reparsed = parse(updated, { ...ctx.docOpts(file), self: selfOf(file) });
-  for (const d of reparsed.diagnostics.filter((x) => x.severity === "error")) {
+  // Lenient guard: surface each error this delete CAUSED (a reference now
+  // dangling) as a WARNING, but write regardless. Only the ones it caused: a
+  // footnote that never resolved was reported as "left dangling by delete",
+  // sending the reader to look for what the delete removed.
+  const opts = { ...ctx.docOpts(file), self: selfOf(file) };
+  const reparsed = parse(updated, opts);
+  for (const d of introduced(parse(source, opts), reparsed)) {
     ctx.note(`warning: ${d.message} (line ${d.line}) — left dangling by delete; run 'geml check' to see it as an error`);
   }
   return { text: updated };
@@ -1478,14 +1515,14 @@ export function rename(source: string, file: string, rawOld: string, rawNew: str
   if (!hasName(before.ids, oldId)) fail(`no block with id \`${oldId}\``, 1);
   if (hasName(before.ids, newId)) fail(`id \`${newId}\` already exists; not written`, 1);
 
-  if (o.historyTip !== undefined && blockSpans(o.historyTip).has(oldId)) {
+  if (o.historyTip !== undefined && blockSpans(o.historyTip, walkOf(file)).has(oldId)) {
     ctx.note(`warning: #${oldId} has history; revert across this rename is not tracked — see docs`);
   }
 
   const updated = rewriteId(source, oldId, newId, file, ctx);
   const reparsed = parse(updated, { ...ctx.docOpts(file), self: selfOf(file) });
-  const errs = reparsed.diagnostics.filter((d) => d.severity === "error");
-  if (errs.length) { const e = errs[0]!; refuseBroken(`rename would break the document: ${e.message} (line ${e.line}); not written`, errs); }
+  const errs = errorsAdded(before, reparsed, file);
+  if (errs.length) refuseBroken(refusalProse(before, errs, "rename would break the document"), errs);
   if (!hasName(reparsed.ids, newId)) fail(`rename did not produce #${newId}; not written`, 1);
   if (hasName(reparsed.ids, oldId)) fail(`#${oldId} still present after rename; not written`, 1);
   // Every OTHER id must be untouched. The `#old` match boundary treats a char
@@ -1511,7 +1548,7 @@ export function rename(source: string, file: string, rawOld: string, rawNew: str
 // code/math spans in flow content — see design §8.)
 function rewriteId(source: string, oldId: string, newId: string, file: string, ctx: VerbContext): string {
   const doc = parse(source, { ...ctx.docOpts(file), self: selfOf(file) });
-  const spans = blockSpans(source);
+  const spans = blockSpans(source, walkOf(file));
   const protectedLines = new Set<number>();
   for (const b of doc.children) {
     if (b.kind === "block" && (b.mode === "raw" || b.mode === "data") && b.id) {
@@ -1574,7 +1611,7 @@ function contentShape(content: string): "empty" | "prose" | "single" | "multi" {
 // violation it fails and never returns a corrupt document. Shared by `set` and
 // `revert`.
 function spliceBlock(source: string, id: string, replacement: string, file: string, ctx: VerbContext, headOnly = false, guardCount = false): string {
-  const found = blockSpans(source).get(id);
+  const found = blockSpans(source, walkOf(file)).get(id);
   if (!found) fail(`no block with id \`${id}\``, 1);
   return spliceSpan(source, found!, replacement, file, ctx, headOnly, guardCount, id);
 }
@@ -1582,9 +1619,9 @@ function spliceBlock(source: string, id: string, replacement: string, file: stri
 // How many typed blocks a document holds. Ids only account for the named ones,
 // so this is what makes an unnamed block's removal reportable instead of silent
 // — the whole point of treating both the same.
-function countBlockUnits(source: string): number {
+function countBlockUnits(source: string, o: WalkOptions): number {
   let n = 0;
-  for (const a of addressedUnits(source)) if (a.unit.kind === "block") n++;
+  for (const a of addressedUnits(source, o)) if (a.unit.kind === "block") n++;
   return n;
 }
 
@@ -1652,9 +1689,21 @@ function errorsAdded(
   if (!forgives(file)) {
     return after.diagnostics.filter((d) => d.severity === "error" && !exclude(d));
   }
+  return introduced(before, after, exclude, UNFORGIVEN);
+}
+
+// The error diagnostics `after` carries that `before` did not — the pure count
+// diff, with no opinion on which documents may keep an old defect. `always`
+// names codes that count as new even when `before` already had them.
+function introduced(
+  before: { diagnostics: readonly Diagnostic[] },
+  after: { diagnostics: readonly Diagnostic[] },
+  exclude: (d: Diagnostic) => boolean = () => false,
+  always: ReadonlySet<string> = new Set(),
+): Diagnostic[] {
   const had = new Map<string, number>();
   for (const d of before.diagnostics) {
-    if (d.severity === "error" && !UNFORGIVEN.has(d.code ?? "")) had.set(d.message, (had.get(d.message) ?? 0) + 1);
+    if (d.severity === "error" && !always.has(d.code ?? "")) had.set(d.message, (had.get(d.message) ?? 0) + 1);
   }
   const seen = new Map<string, number>();
   return after.diagnostics.filter((d) => {
@@ -1714,10 +1763,10 @@ function spliceSpan(
   // 由前后邻居决定，不写在文本里。只问 `ids` 的话，换掉一段散文永远被判成"把 id 弄
   // 没了"——而位置根本没动，那个地址一个字都不会变。`ids` 里没有时再问一次散文地址。
   const survives = (name: string): boolean =>
-    now.has(name) || addressedUnits(updated).some((a) => a.unit.id === name);
+    now.has(name) || addressedUnits(updated, walkOf(file)).some((a) => a.unit.id === name);
   if (id !== undefined && !survives(id)) fail(`replacement removes id \`${id}\`; not written`, 1);
   const droppedIds = beforeIds.filter((x) => x !== id && !now.has(x));
-  const droppedAnon = Math.max(0, countBlockUnits(source) - countBlockUnits(updated) - droppedIds.length);
+  const droppedAnon = Math.max(0, countBlockUnits(source, walkOf(file)) - countBlockUnits(updated, walkOf(file)) - droppedIds.length);
 
   // A reference left dangling BY THE REMOVAL is a consequence the caller is
   // being told about, exactly as `delete` tells them. A reference the new
@@ -1758,7 +1807,7 @@ function spliceSpan(
   // ends it short of that; whatever follows is the injection.
   if (guardCount) {
     const expectedEnd = span.start + splitLines(inject).length;
-    const target = addressedUnits(updated).find((a) =>
+    const target = addressedUnits(updated, walkOf(file)).find((a) =>
       a.unit.kind === "block" && a.unit.span.start === span.start && (id === undefined || a.unit.id === undefined || nameKey(a.unit.id) === nameKey(id)));
     if (!target || target.unit.span.end !== expectedEnd) {
       fail(`replacement does not stay one block (a fence in the body closed ${id !== undefined ? `#${id}` : "the target"} early and injected sibling block(s)?); not written`, 1);
@@ -1814,7 +1863,7 @@ export function revert(source: string, file: string, rawId: string, o: RevertOpt
   // firing), so compare normalized and write back in the file's own style.
   const norm = toLf;                              // compare on the LF form
   const toFileNl = (s: string) => toNewline(s, newlineOf(source));
-  const curFull = blockSpans(source).get(id);            // undefined => absent now
+  const curFull = blockSpans(source, walkOf(file)).get(id);            // undefined => absent now
   const curBlock = curFull === undefined ? undefined : ((): string => {
     const span = headOnly ? narrowToHead(curFull) : curFull;
     return splitLines(source).slice(span.start, span.end).join("");
@@ -1823,7 +1872,7 @@ export function revert(source: string, file: string, rawId: string, o: RevertOpt
   // Extract #id's block from a reconstructed revision (undefined => absent
   // there). Under `--head`, extract only the head line.
   const pick = (text: string): string | undefined => {
-    const s = blockSpans(text).get(id);
+    const s = blockSpans(text, walkOf(file)).get(id);
     if (!s) return undefined;
     const span = headOnly ? narrowToHead(s) : s;
     return splitLines(text).slice(span.start, span.end).join("");
@@ -1875,7 +1924,7 @@ export function revert(source: string, file: string, rawId: string, o: RevertOpt
     // present under a different id, #id was likely renamed away — resurrecting
     // would duplicate it. Point at `rename` instead of writing.
     const cmpKey = normalizeBlockId(norm(oldBlock), "__cmp__");
-    for (const [cid, cs] of blockSpans(source)) {
+    for (const [cid, cs] of blockSpans(source, walkOf(file))) {
       if (cid === id) continue;
       const csrc = splitLines(source).slice(cs.start, cs.end).join("");
       if (normalizeBlockId(norm(csrc), "__cmp__") === cmpKey) {
@@ -1901,7 +1950,7 @@ export function revert(source: string, file: string, rawId: string, o: RevertOpt
   // renamed block. Point at `rename` instead (the dangerous direction).
   {
     const cmpKey = normalizeBlockId(norm(curBlock!), "__cmp__");
-    for (const [rid, rs] of blockSpans(target.text)) {
+    for (const [rid, rs] of blockSpans(target.text, walkOf(file))) {
       if (rid === id) continue;
       const rsrc = splitLines(target.text).slice(rs.start, rs.end).join("");
       if (normalizeBlockId(rsrc, "__cmp__") === cmpKey) {
@@ -1913,14 +1962,12 @@ export function revert(source: string, file: string, rawId: string, o: RevertOpt
     return { kind: "dry-run", message: `would remove #${id} (absent at ${target.id})` };
   }
   const span = curFull!;
-  const beforeIds = parse(source, { ...ctx.docOpts(file), self: selfOf(file) }).ids;
+  const beforeDoc = parse(source, { ...ctx.docOpts(file), self: selfOf(file) });
+  const beforeIds = beforeDoc.ids;
   const updated = splitLines(source).filter((_, i) => i < span.start || i >= span.end).join("");
   const reparsed = parse(updated, { ...ctx.docOpts(file), self: selfOf(file) });
-  const errs = reparsed.diagnostics.filter((d) => d.severity === "error");
-  if (errs.length) {
-    const first = errs[0]!;
-    refuseBroken(`removing #${id} would break the document: ${first.message} (line ${first.line}); not written`, errs);
-  }
+  const errs = errorsAdded(beforeDoc, reparsed, file);
+  if (errs.length) refuseBroken(refusalProse(beforeDoc, errs, `removing #${id} would break the document`), errs);
   const now = new Set(reparsed.ids);
   const dropped = beforeIds.find((x) => x !== id && !now.has(x));
   if (dropped !== undefined) fail(`removing #${id} would drop block \`#${dropped}\`; not written`, 1);
@@ -1938,7 +1985,7 @@ function resurrectPosition(
   before: string | undefined, after: string | undefined, append: boolean, file: string,
 ): { at: number; where: string; warn: boolean } {
   const lines = splitLines(source);
-  const here = blockSpans(source);
+  const here = blockSpans(source, walkOf(file));
   if (append) return { at: lines.length, where: "end", warn: false };
   if (before !== undefined) {
     const a = before.replace(/^#/, "");
@@ -1952,7 +1999,7 @@ function resurrectPosition(
     if (!s) fail(`no block with id \`${a}\` in ${file}`, 1);
     return { at: s!.end, where: `after #${a}`, warn: false };
   }
-  const revIds = [...blockSpans(revText).keys()];
+  const revIds = [...blockSpans(revText, walkOf(file)).keys()];
   const idx = revIds.indexOf(id);
   for (let i = idx - 1; i >= 0; i--) {
     const s = here.get(revIds[i]!);

@@ -9,7 +9,7 @@
 //      spec lists exactly the codes the implementation can emit. A code added
 //      to the parser without a spec row, or documented without being emitted,
 //      fails here.
-import { parse, blockSpans, SEVERITY } from "../dist/geml.js";
+import { parse, blockSpans, SEVERITY, CATALOGUE_EXEMPT } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -108,9 +108,13 @@ function catalogueFromSpec(specPath) {
   return new Map(rows.map((m) => [m[1], m[2]]));
 }
 
+// Appendix A's own rule: a condition the specification does not define gets a
+// prefixed code outside the catalogue. Those are the implementation's alone.
+const exempt = (code) => CATALOGUE_EXEMPT.some((p) => code.startsWith(p));
+
 test("Appendix A: the spec catalogue and the implementation list exactly the same codes", () => {
   const spec = catalogueFromSpec(join(repoRoot, "spec", "GEML-spec.md"));
-  const impl = new Set(Object.keys(SEVERITY));
+  const impl = new Set(Object.keys(SEVERITY).filter((c) => !exempt(c)));
   const undocumented = [...impl].filter((c) => !spec.has(c));
   const unimplemented = [...spec.keys()].filter((c) => !impl.has(c));
   assert.deepEqual(undocumented, [], "codes the parser can emit but Appendix A does not document");
@@ -118,9 +122,16 @@ test("Appendix A: the spec catalogue and the implementation list exactly the sam
   assert.ok(impl.size >= 30, `catalogue is populated (${impl.size} codes)`);
 });
 
+test("Appendix A: a code outside the catalogue by its own rule is never documented in it", () => {
+  const spec = catalogueFromSpec(join(repoRoot, "spec", "GEML-spec.md"));
+  assert.ok(CATALOGUE_EXEMPT.length > 0 && Object.keys(SEVERITY).some(exempt), "the exemption covers a real code");
+  assert.deepEqual([...spec.keys()].filter(exempt), [], "Appendix A lists a code whose prefix marks it as outside the specification");
+});
+
 test("Appendix A: every code's severity matches the spec row", () => {
   const spec = catalogueFromSpec(join(repoRoot, "spec", "GEML-spec.md"));
   for (const [code, severity] of Object.entries(SEVERITY)) {
+    if (exempt(code)) continue;
     assert.equal(spec.get(code), severity, `severity of \`${code}\` disagrees between spec and implementation`);
   }
 });

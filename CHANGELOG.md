@@ -18,6 +18,53 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **A `.md` is read as Markdown.** GEML parses Markdown directly — that is what
+  keeps a write byte-exact — and until now read it with GEML's grammar wherever
+  the two disagree. An outside evaluation on a real Obsidian vault measured the
+  cost: a page with two `## 小结` headings was read-only in full, a block holding
+  `[[Note#Heading]]` could not be written, and every Markdown footnote was an
+  error even beside its own definition. `ParseOptions.markdown` — set by the
+  host from the extension — now names every place the grammars disagree and
+  reads each as Markdown does. Nothing a `.geml` sees changes.
+  - A repeated heading gets GitHub's suffix: the second `## Notes` is `#notes-1`,
+    the anchor GitHub gives it. `set` judges the id a heading carries **in
+    place**, so it no longer stamps `{#notes-1}` — GEML syntax GitHub prints as
+    text — onto a heading that already has it. An explicit duplicate id is still
+    an error, and §4's rule for GEML is unchanged.
+  - `[^label]:` defines a footnote, and a `[^x]` nothing defines is text, as on
+    GitHub: `[^0-9]` in a sentence is not a reference.
+  - `{{title}}` is a template placeholder, not a `=== meta` reference — the
+    reading `--to geml` already gave it.
+  - `~~~` fences and indented code blocks are code, as ``` ones were; nothing
+    inside is a heading, a link or a footnote.
+  - `[[Note]]`, `[[Note#Heading|alias]]`, `![[Note#Heading]]` and `[[#^block]]`
+    are Obsidian links. The note is found by name anywhere under the resolution
+    root; one not yet written is the new warning `markdown-unresolved-wikilink`,
+    which sits outside Appendix A by Appendix A's own rule for conditions the
+    specification does not define. The search never leaves the root and follows
+    no symlink (R7-1); below a vault's `.obsidian/`, `geml check` names the
+    `--root` that resolves the rest.
+
+  The walks behind `list`, `get` and `set` — `addressedUnits`, `blockSpans`,
+  `unitSpans`, `narrowToIntro`, `sliceUnit` — take the same switch as an optional
+  argument, so the parse and the addresses cannot disagree about a heading's
+  name. A library caller that passes nothing reads GEML, as before.
+
+- **`add`, `rename` and `revert` use the write gate `set` and `replace` already
+  had.** In a `.md`, a defect the document already carried somewhere else is not
+  the edit's doing; `set` knew that, and the other three refused while naming
+  the old defect as the thing the edit broke. In a `.geml` nothing is forgiven,
+  as before — and the refusal now says the error predates the edit. `delete`
+  reports only the references it left dangling itself.
+
+- **A reference reports the line it is on.** A paragraph or a list item is
+  inline-parsed as one string, and every reference, footnote and `{{key}}` in it
+  reported the paragraph's first line, in both formats. The evaluation's
+  "reported 245, actually 249" was this.
+
+- **`--in F` without `#src` says what it read.** When F holds no block with the
+  target's id, the refusal names the stdin form that writes F's text instead.
+
 - **A line inside a matched backtick fence no longer ends the section around
   it.** `collectSpans` computed the shield §3.1 requires but never handed it to
   `sectionEnd`, so a `#` comment in a shell sample cut its section in half, and

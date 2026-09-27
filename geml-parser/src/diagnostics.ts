@@ -110,7 +110,20 @@ export type DiagnosticCode =
   | "unresolvable-data-source"
   // --- Application-layer vocabularies (§8.6, GEP-0013) ---
   | "unrecognized-vocabulary"
-  | "unknown-meta-key";
+  | "unknown-meta-key"
+  // --- Outside the catalogue: Markdown reading (ParseOptions.markdown) ---
+  // Appendix A lets a processor add diagnostics for conditions the
+  // specification does not define, under a prefix a future catalogue cannot
+  // collide with. Reading a `.md` is one — the specification is GEML's — so
+  // these carry `markdown-` and appear in no spec row (CATALOGUE_EXEMPT).
+  | "markdown-unresolved-wikilink";
+
+/**
+ * Prefixes of the codes Appendix A does not list, by its own rule: conditions
+ * the specification does not define. The catalogue drift guard skips them, and
+ * requires that Appendix A never documents one.
+ */
+export const CATALOGUE_EXEMPT: readonly string[] = ["markdown-"];
 
 export interface Diagnostic {
   severity: "error" | "warning";
@@ -233,6 +246,9 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   // vocabulary DID declare its keys. Warning, like `unknown-attribute`: the
   // document parses and means what it says; what it probably is, is a typo.
   "unknown-meta-key": "warning",
+  // A wikilink to a note not found under the resolution root. Warning: in a
+  // vault that is how a note is planned — Obsidian creates it on first click.
+  "markdown-unresolved-wikilink": "warning",
 };
 
 // ---------------------------------------------------------------------------

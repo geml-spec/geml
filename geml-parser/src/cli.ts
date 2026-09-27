@@ -59,7 +59,7 @@ import { spawnSync } from "node:child_process";
 
 import {
   type Diagnostic, type UnitPart,
-  PARSER_VERSION, VERSION, parse, historyPathFor, sliceUnit, metaOf } from "./geml.js";
+  PARSER_VERSION, VERSION, parse, historyPathFor, sliceUnit, metaOf, isMarkdownPath } from "./geml.js";
 import { parseSelector } from "./selector.js";
 import { parseAttrs } from "./attrs.js";
 import { save, restore, verify, isCurrent, listRevisions, resolveContent, firstChangedContent } from "./history.js";
@@ -68,7 +68,7 @@ import {
   VerbError, add, check, del, findInSource, formatFindRows, get, list, rename, replace, reportMatches,
   revert, selectUnits, set, transform, unitNode,
 } from "./verbs.js";
-import { docOptsFor, fsFiles, gemlFilesUnder, historyError, resolverFor } from "./host-fs.js";
+import { docOptsFor, fsFiles, gemlFilesUnder, historyError, obsidianVaultAbove, resolverFor } from "./host-fs.js";
 
 const USAGE = `geml — GEML reference CLI
 
@@ -787,6 +787,16 @@ function runCheck(args: string[]): void {
     const infos = all.filter((d) => d.severity === "info").length;
     const parts = [errs ? `${errs} error(s)` : "", warns ? `${warns} warning(s)` : "", infos ? `${infos} info` : ""].filter(Boolean);
     console.error(parts.length ? parts.join(", ") : "ok: no diagnostics");
+    // A note linking across its vault reads as "no such note" when the base is
+    // a subfolder of it. Say where the vault is; the base is the user's to move.
+    if (file !== "-" && doc.diagnostics.some((d) => d.code === "markdown-unresolved-wikilink")) {
+      const vault = obsidianVaultAbove(file, root);
+      if (vault !== null) {
+        const shown = relative(process.cwd(), vault) || ".";
+        const arg = /\s/.test(shown) ? `"${shown}"` : shown;
+        console.error(`note: ${file} is in the Obsidian vault at ${shown}; --root ${arg} resolves [[links]] across it`);
+      }
+    }
   }
   if ([...doc.diagnostics, ...shown].some((d) => d.severity === "error")) process.exit(1);
 }
@@ -931,7 +941,7 @@ function runHistory(args: string[]): void {
             console.log(JSON.stringify({ id, block: units.length === 1 ? nodes[0] : nodes }, null, 2));
           } else {
             if (units.length > 1) reportMatches(units[0]!.type ?? "", units, ctxFor());
-            for (const u of units) process.stdout.write(sliceUnit(text, u.span, part));
+            for (const u of units) process.stdout.write(sliceUnit(text, u.span, part, { markdown: isMarkdownPath(file) }));
           }
         }
       }

@@ -85,18 +85,19 @@ that bite hardest:
    The wrong way round is refused on a heading and silent on prose.
 4. **Never `Write` a page that already exists.** Use `set` / `add`. `Write` is
    for a page you are creating.
-5. **A block holding `[[Note#Heading]]` cannot be written.** `[[file#id]]` is
-   GEML's own reference syntax and is checked on write; there is no document
-   called `Note`, only `Note.md`, so the write is refused. `[[Note]]`,
-   `[[Note|alias]]` and `![[image.png]]` are all fine, and `[[Note.md#Heading]]`
-   is the spelling that passes — Obsidian follows it too.
-6. **A page with two identically-titled headings cannot be written** — the
-   derived ids collide, and the guard judges the result, so a write to any
-   section of that page is refused. Check with `geml check <file>` first.
+5. **A repeated heading's address is a position.** The second `## Added` is
+   `#added-1` — the anchor GitHub gives it — and inserting another `## Added`
+   above renumbers it. Take such an address from a fresh `geml list` right
+   before the write.
+6. **Links resolve inside the resolution root, and no further.** `[[Note]]`,
+   `[[Note#Heading]]`, aliases, embeds and `#^block` resolve by note name in any
+   folder under it; a note not yet written is a warning, not a refusal. The root
+   is the page's own folder unless `--root` names the vault — from a subfolder,
+   pass it, or every link into a sibling folder warns.
 
-Rules 5 and 6 are refusals — nothing is written, and the error says so. Rules 1,
-2 and 3 are silent, which is why they have to be rules rather than error
-messages you would see.
+Rules 1, 2 and 3 are silent, which is why they have to be rules rather than
+error messages you would see. Rules 5 and 6 refuse nothing; they are about
+reading an address, and a warning, correctly.
 
 ## Using this with an existing vault convention
 

@@ -40,7 +40,9 @@ export type Inline =
 export interface Ref {
   // "internal": #anchor in this file; "cross": other.geml(#anchor)?;
   // "footnote": [^id]; "autoref": [[#id]] (internal) — all build-time checked.
-  kind: "internal" | "cross" | "footnote" | "autoref";
+  // "wikilink": under Markdown reading, Obsidian's `[[name#frag]]` — `doc` is
+  // the note NAME (absent for `[[#frag]]`), resolved as a vault resolves it.
+  kind: "internal" | "cross" | "footnote" | "autoref" | "wikilink";
   doc?: string;
   anchor?: string;
   line: number;
@@ -52,6 +54,10 @@ export interface Ref {
 
 export interface RefSink {
   refs: Ref[];
+  // ParseOptions.markdown: the text is Markdown, so `[[name]]` is a wikilink, a
+  // footnote needs a `[^label]:` definition to be one, and so on (geml.ts keeps
+  // the register).
+  markdown?: boolean;
   // Transclusion targets, kept apart from `refs` because they need a second,
   // recursive pass: a transclusion can pull in another document's
   // transclusions, so cycle detection has to walk the graph. Optional so a
@@ -205,11 +211,30 @@ function readAttrs(s: string, i: number): { attrs: ReturnType<typeof parseAttrs>
 // hard break's consumed `\n` counts as the whitespace it is.
 type AtomPart = { node: Inline; first: string; last: string };
 
+// `lineOf(s, first)(k)`: the 1-based line holding offset `k` of `s`, when `s`
+// begins on line `first`. Exported because the `{{key}}` pass over a paragraph
+// has the same shape of problem and must answer it the same way.
+export function lineOf(s: string, first: number): (k: number) => number {
+  const nl: number[] = [];
+  for (let k = s.indexOf("\n"); k >= 0; k = s.indexOf("\n", k + 1)) nl.push(k);
+  if (nl.length === 0) return () => first;
+  return (k) => {
+    let lo = 0, hi = nl.length;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (nl[m]! < k) lo = m + 1; else hi = m; }
+    return first + lo;
+  };
+}
+
 // Phase A: pull out high-priority atoms (escapes, code, math, media, links,
 // auto-refs, footnotes, hard breaks). Everything else is left as text runs for
 // phase B (emphasis). Children of links are fully re-parsed.
 function scanAtoms(s: string, line: number, sink: RefSink, depth: number, p: Pairs): (string | AtomPart)[] {
   const out: (string | AtomPart)[] = [];
+  // The line a construct is ON. `line` is where this string starts, and a
+  // paragraph or list item arrives here as ONE string with its lines joined, so
+  // reporting `line` for everything in it sent a reference on a paragraph's
+  // third line to its first — and an author looking there found nothing wrong.
+  const at = lineOf(s, line);
   let buf = "";
   const flush = () => { if (buf) { out.push(buf); buf = ""; } };
   // Emit `node` as the atom occupying source span [start, end).
@@ -272,6 +297,38 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth: number, p: Pai
       continue;
     }
 
+    // Markdown reading: `[[name#frag|alias]]` and `![[…]]` are Obsidian's
+    // wikilink and embed, not GEML's reference and projection. The alias is
+    // display text; the name is a NOTE name, `.md` implied and found anywhere
+    // in the vault (the host's findNote); a heading fragment may be the
+    // heading's text; `#^id` is a block marker. And an embed is a link that
+    // previews — `![[#Section]]` pulls a section in Obsidian, which GEML's
+    // projection rules would refuse twice over (not inline content; a cycle).
+    // A name ending in `.geml` is a GEML document and keeps GEML's check.
+    if (sink.markdown && (c === "[" ? s[i + 1] === "[" : c === "!" && s[i + 1] === "[" && s[i + 2] === "[")) {
+      const inner = readBracket(s, c === "!" ? i + 2 : i + 1, p);
+      if (inner && s[inner.end] === "]") {
+        const bar = inner.content.indexOf("|");
+        const dest = (bar < 0 ? inner.content : inner.content.slice(0, bar)).trim();
+        const hash = dest.indexOf("#");
+        const name = (hash < 0 ? dest : dest.slice(0, hash)).trim();
+        const frag = hash < 0 ? undefined : dest.slice(hash + 1).trim();
+        if (name !== "" || (frag !== undefined && frag !== "")) {
+          const node: Inline = frag !== undefined
+            ? { type: "autoref", anchor: frag, ...(name !== "" ? { doc: name } : {}) }
+            : { type: "text", value: s.slice(i, inner.end + 1) };
+          atom(node, i, inner.end + 1);
+          if (/\.geml$/i.test(name)) {
+            sink.refs.push({ kind: "cross", doc: name, anchor: frag, line: at(i), ...(node.type === "autoref" ? { node } : {}) });
+          } else {
+            sink.refs.push({ kind: "wikilink", ...(name !== "" ? { doc: name } : {}), anchor: frag, line: at(i) });
+          }
+          i = inner.end + 1;
+          continue;
+        }
+      }
+    }
+
     // §5.3(2): image ![alt](src){…}.
     // §5.3 precedence: inline projection `![[…]]` is tried BEFORE the image atom.
     // Otherwise `![[#x]]` reads as an image whose label happens to be `[#x]`, and
@@ -287,8 +344,8 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth: number, p: Pai
           atom(node, i, inner.end + 1);
           // Validated by the same §8 resolver as any reference; the target's TYPE
           // is checked separately, since only inline content can be projected.
-          sink.refs.push({ kind: doc ? "cross" : "autoref", doc, anchor, line, node });
-          (sink.projections ??= []).push(doc === undefined ? { anchor, line } : { doc, anchor, line });
+          sink.refs.push({ kind: doc ? "cross" : "autoref", doc, anchor, line: at(i), node });
+          (sink.projections ??= []).push(doc === undefined ? { anchor, line: at(i) } : { doc, anchor, line: at(i) });
           i = inner.end + 1;
           continue;
         }
@@ -309,7 +366,7 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth: number, p: Pai
         const src = isSafeUrl(rawSrc, true) ? rawSrc : "";
         // A GEML target here means the author wanted a transclusion, which is a
         // block: `=== embed`. Recorded for the caller to report.
-        if (/\.geml(#|$)/i.test(src)) (sink.mediaDocTargets ??= []).push({ src, line });
+        if (/\.geml(#|$)/i.test(src)) (sink.mediaDocTargets ??= []).push({ src, line: at(i) });
         const node: Extract<Inline, { type: "image" }> = {
           type: "image", alt: label.content, src, attrs: attrObj.attrs,
         };
@@ -332,7 +389,7 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth: number, p: Pai
           const node: Extract<Inline, { type: "autoref" }> = { type: "autoref", anchor };
           if (doc) node.doc = doc;
           atom(node, i, inner.end + 1);
-          sink.refs.push({ kind: doc ? "cross" : "autoref", doc, anchor, line, node });
+          sink.refs.push({ kind: doc ? "cross" : "autoref", doc, anchor, line: at(i), node });
           i = inner.end + 1;
           continue;
         }
@@ -345,7 +402,7 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth: number, p: Pai
       if (br && br.content.startsWith("^")) {
         const ref = br.content.slice(1).trim();
         atom({ type: "footnote", ref }, i, br.end);
-        sink.refs.push({ kind: "footnote", anchor: ref, line });
+        sink.refs.push({ kind: "footnote", anchor: ref, line: at(i) });
         i = br.end;
         continue;
       }
@@ -363,14 +420,14 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth: number, p: Pai
           type: "link",
           // The label window starts one character past this `[`, so the shared
           // maps are read at that offset instead of being rebuilt for it.
-          children: parseInline(label.content, line, sink, depth + 1, { br: p.br, pa: p.pa, off: p.off + i + 1 }),
+          children: parseInline(label.content, at(i + 1), sink, depth + 1, { br: p.br, pa: p.pa, off: p.off + i + 1 }),
           attrs: attrObj.attrs,
         };
         if (dest.href) node.href = dest.href;
         if (dest.doc) node.doc = dest.doc;
         if (dest.anchor) node.anchor = dest.anchor;
         if (dest.anchor || dest.doc) {
-          sink.refs.push({ kind: dest.doc ? "cross" : "internal", doc: dest.doc, anchor: dest.anchor, line });
+          sink.refs.push({ kind: dest.doc ? "cross" : "internal", doc: dest.doc, anchor: dest.anchor, line: at(i) });
         }
         atom(node, i, a ? a.end : paren.end);
         i = a ? a.end : paren.end;

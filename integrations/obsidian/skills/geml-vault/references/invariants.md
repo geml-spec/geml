@@ -70,43 +70,40 @@ So the rule is the opposite of what one habit would give you, and picking wrong
 fails loudly one way and quietly the other. `geml list` names the kind in its
 second column — read it before choosing.
 
-### 4. Repeated heading text makes a page unwritable
+### 4. A repeated heading is numbered by position
 
-Two `## Added` headings in one file derive the same id. The guard judges the
-**result** of a write, and the result still carries the collision, so the write
-is refused — including a write to a section nowhere near it. The message names
-the collision, not your edit, which reads as if you broke something you did not
-touch.
+A `.md` is read as Markdown, so two `## Added` headings take GitHub's anchors:
+the first is `#added`, the second `#added-1`, the third `#added-2`. Every section
+is writable — a Keep-a-Changelog file with nineteen `### Added` headings edits
+like any other page.
 
-(The one write that goes through is one that happens to *remove* the collision,
-because then the result is clean. That is the rule working, not an exception to
-it.)
+The cost is GitHub's too: the number is a **position**. Insert another
+`## Added` above `#added-1` and it becomes `#added-2`. So for a repeated heading
+take the address from a fresh `geml list` right before the write, never from an
+earlier one.
 
-This is why a Keep-a-Changelog file — nineteen `### Added` headings — cannot be
-edited this way at all. Check before planning an edit:
+An explicit `{#id}` is never renumbered, and two identical explicit ids are
+still an error.
 
-```sh
-geml check <file>          # exit 0 = writable
-```
+### 5. Wikilinks resolve by note name — within the root, and no further
 
-### 5. A wikilink carrying a `#` anchor cannot be written
+Every shape a vault writes goes in verbatim and resolves the way Obsidian
+resolves it — the note by name, `.md` implied, in any folder under the
+resolution root:
 
-`[[file#id]]` is GEML's own cross-document reference syntax, and it is resolved
-and checked when a write lands. Obsidian means something else by the same
-spelling. There is no document called `Alpha` — only `Alpha.md` — so the
-reference does not resolve and the write is **refused**:
-
-| written into a block | `geml set` |
+| written into a block | `geml set` / `geml check` |
 |---|---|
 | `[[Alpha]]`, `[[Alpha\|alias]]`, `![[cover.png]]` | fine |
-| `[[Alpha#Heading]]` | refused — `cannot resolve document 'Alpha'` |
-| `[[Alpha#Heading\|alias]]` | refused |
-| `[[Alpha#^block-id]]` | refused |
-| `[[Alpha.md#Heading]]` | fine — and Obsidian follows this form too |
+| `[[Alpha#Heading]]`, `[[Alpha#Heading\|alias]]`, `![[Alpha#Heading]]` | fine — the heading is Obsidian's to resolve |
+| `[[Alpha#^block-id]]`, `[[Alpha.md#Heading]]` | fine |
+| `[[#Heading Text]]`, `[[#^block-id]]` on the same page | checked: the heading or the `^block-id` marker must be there |
+| `[[Not Written Yet]]` | a **warning**, never a refusal — a vault plans notes this way |
 
-So a block holding an anchored wikilink is effectively **read-only** through
-this skill, unless the link is respelled with the `.md` extension. Refused, note
-— not silently mangled. Nothing is written.
+The resolution root is the page's own folder unless `--root` names another. A
+note linking across its vault from a subfolder therefore warns about every link
+into a sibling folder until it is checked with `--root <vault>`; `geml check`
+names the vault when it sees `.obsidian/` above. It never searches above the
+root on its own — what a page may probe is the user's to widen.
 
 ### 6. `--in <file>` is not "read this text"
 

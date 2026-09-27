@@ -26,7 +26,34 @@ if the result would not parse, nothing is written.
 every platform, and it survives anything happening above it. That is the whole
 reason to address a file this way instead of by line number.
 
-## The five that bite
+One exception, and it is GitHub's too: **a repeated heading is numbered by
+position.** The second `## Added` is `#added-1`, the third `#added-2` — the same
+anchors GitHub gives them — so a Keep-a-Changelog file is writable section by
+section. But a new `## Added` inserted above one shifts it: `#added-1` becomes
+`#added-2`. Take a repeated heading's address from a fresh `geml list`, never
+from memory.
+
+**The file is read as Markdown, not as GEML.** Where the two disagree, a `.md`
+gets Markdown's reading:
+
+- `[[Note]]`, `[[Note#Heading]]`, `[[Note#Heading|alias]]`, `[[Note#^block]]`
+  and `![[Note#Heading]]` are Obsidian links. The note is found by name
+  anywhere under the resolution root, `.md` implied; one that does not exist
+  yet is a **warning**, never a refusal — a vault plans notes that way.
+  Within the page, `[[#Heading Text]]` may name a heading by its text.
+- `[^label]` is a GFM footnote. With a `[^label]:` line it is a footnote;
+  without one it is plain text — so `[^0-9]` in a sentence about a regex is
+  nothing to worry about.
+- `{{title}}` is text: a template engine's placeholder, not a reference.
+- `~~~` fences and indented code blocks are code, like ``` ones. Nothing inside
+  is a link, a heading or a footnote.
+
+The resolution root is the file's own directory unless you pass `--root`. A
+note in a subfolder that links across its vault needs `--root <vault>`, and
+`geml check` says so when it sees the vault's `.obsidian/` above you. It never
+looks above the root on its own.
+
+## The three that bite
 
 ### 1. Never `set` the frontmatter block — it destroys the frontmatter
 
@@ -53,28 +80,7 @@ The rule is the opposite of what one habit would give you, and picking wrong
 fails loudly one way and quietly the other. `geml list` prints the kind in its
 second column — read it before choosing. This is the other silent one.
 
-### 3. A `[[name#anchor]]` link is a GEML reference, and is checked
-
-`[[file#id]]` is GEML's own cross-document reference syntax, resolved when a
-write lands. A wiki-style `[[Note#Heading]]` has the same shape, and there is
-usually no document called `Note` — only `Note.md` — so the reference does not
-resolve and **the write is refused**. Plain `[[Note]]`, `[[Note|alias]]` and
-`![[image.png]]` are fine, and `[[Note.md#Heading]]` passes.
-
-Refused, note — not mangled. Nothing is written.
-
-### 4. Repeated heading text makes the whole file unwritable
-
-Two `## Added` headings derive the same id. The guard judges the **result** of a
-write, and the result still carries the collision, so the write is refused —
-including one in a section nowhere near it, and the message names the collision
-rather than your edit. A Keep-a-Changelog file cannot be edited this way at all.
-
-```sh
-geml check <file>          # exit 0 = writable
-```
-
-### 5. `--in <file>` is not "read this text"
+### 3. `--in <file>` is not "read this text"
 
 `--in F` means *take block `#id` from file F*. Raw text goes in on **stdin**:
 
@@ -82,6 +88,8 @@ geml check <file>          # exit 0 = writable
 printf '…' | geml set page.md '#id' --body --in -      # right
 geml set page.md '#id' --body --in fragment.txt        # looks for #id INSIDE fragment.txt
 ```
+
+Loud, at least: when F has no such block the refusal names the stdin form.
 
 ## Smaller things worth knowing
 
@@ -96,6 +104,9 @@ geml set page.md '#id' --body --in fragment.txt        # looks for #id INSIDE fr
   `.raw/` must name that directory: `geml find 'x' notes .raw`.
 - `@…` addresses are content hashes and change when the content does. Fine to
   read from a fresh `list`; never store one, and never write to one.
+
+Before a first write to a page, `geml check <file>` — exit 0 means every block is
+writable; warnings (a note not yet written) never block one.
 
 ## Do not convert the file
 
