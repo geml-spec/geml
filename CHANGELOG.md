@@ -18,6 +18,8 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+## [1.11.2] — 2026-09-28
+
 - **A `.md` is read as Markdown.** GEML parses Markdown directly — that is what
   keeps a write byte-exact — and until now read it with GEML's grammar wherever
   the two disagree. An outside evaluation on a real Obsidian vault measured the
@@ -98,6 +100,19 @@ and is released under `viewer-v*` tags.
   TypeError the verb reached first — `Cannot read properties of undefined` named
   neither the tool nor the argument. The schema and the check now read from one
   source.
+
+- **`geml media` no longer reads a flag's value as the entry document.** The
+  entry was the first argument that did not start with `-` and was not the value
+  of `--root`, `-o` or `--into`, so `geml media export --to json` took `json` for
+  the document, found nothing, printed nothing and exited 0; and a document named
+  like some flag's value was skipped as that value. The scan is positional now
+  and steps over a valued flag's value, from one table that also feeds flag
+  checking — which `geml media`, a vocabulary's verb, never had: `--josn` is
+  refused now, as on every core verb. `--to=json` says the value belongs in its
+  own argument instead of silently falling back to the default, a boolean
+  written `--json=yes` is refused instead of read as not given — which printed
+  the human text where JSON was asked for — and `geml media <verb> --help`
+  answers on stdout with exit 0.
 
 ## [1.11.1] — 2026-09-18
 
