@@ -1453,6 +1453,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
 
     // Paragraph: consecutive non-blank lines that start no other construct.
     const paraStart = base + i + 1;
+    const paraFirst = i;   // `lines` index of para[0], for the shield
     const para: string[] = [];
     while (
       i < lines.length &&
@@ -1478,7 +1479,14 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
     // out of the block. Warn: "ok: no diagnostics" over a truncated document is
     // the failure mode this diagnostic exists for. The id is used only as a Map
     // key here — no RegExp is built from it, so reLit() does not apply.
+    // Neither check looks at a SHIELDED line. §3.1 names two ways to keep a
+    // fence-like line literal — the `\` block escape, or a matched ``` pair
+    // around it — and both are the author saying so. The escape was already
+    // quiet; the shield was not, and told the author of a correct example
+    // `=== note {#x}` that "attributes must be braced". Both codes are about a
+    // line that fell through BY ACCIDENT (Appendix A); this one was put there.
     for (let k = 0; k < para.length; k++) {
+      if (shielded.has(paraFirst + k)) continue;
       const stray = STRAY_LABELED_FENCE.exec(para[k]!);
       if (!stray) continue;
       const id = stray[1]!;
@@ -1492,6 +1500,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       });
     }
     for (let k = 0; k < para.length; k++) {
+      if (shielded.has(paraFirst + k)) continue;
       // Sibling trap to the stray labeled close: a would-be OPEN fence that
       // missed the production and silently became prose (§3 requires braced
       // attributes; `=== embed src=#a` is the classic miss).

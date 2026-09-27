@@ -62,6 +62,16 @@ and is released under `viewer-v*` tags.
   reported the paragraph's first line, in both formats. The evaluation's
   "reported 245, actually 249" was this.
 
+- **A fence-like line inside a ``` pair no longer draws a fall-through
+  warning.** §3.1 names two ways to keep such a line literal — the `\` escape
+  and a matched ``` pair around it. The escape was always quiet; the shield was
+  not, and `fence-like-line` told the author of a correct `=== note {#x}` example
+  that "attributes must be braced", while `stray-labeled-fence` flagged a
+  labeled close shown the same way. Both codes are for a line that fell through
+  by accident, and a shielded one was put there. The shield itself is
+  unchanged: after a blank line inside a pair the text is flow text again, and
+  its references are checked — showing GEML as code is `=== code`.
+
 - **`--in F` without `#src` says what it read.** When F holds no block with the
   target's id, the refusal names the stdin form that writes F's text instead.
 

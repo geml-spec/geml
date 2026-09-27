@@ -588,3 +588,35 @@ test("a shielded fence line inside a section is not skipped as a block, so it ca
   assert.deepEqual(span("next"), { start: 6, end: 9 });
 });
 
+test("a fence-like line inside a ``` pair is literal on purpose: neither fall-through warning fires", () => {
+  // §3.1: a fence-like line is kept literal by the `\` escape OR by a matched
+  // ``` pair. The escape was always quiet; the shield told the author of this
+  // correct example that "attributes must be braced". With and without a blank
+  // line inside the pair, and for an open fence and a labeled close alike.
+  const falls = (src) => parse(src).diagnostics.filter((d) => d.code === "fence-like-line" || d.code === "stray-labeled-fence");
+  assert.deepEqual(falls(`# T\n\n${tick}geml\n=== note {#x}\nline\n===\n${tick}\n`), []);
+  assert.deepEqual(falls(`# T\n\n${tick}geml\nintro\n\n=== note {#x}\nline\n=== #x\n${tick}\n`), []);
+  assert.deepEqual(falls(`# T\n\n\\=== note {#x}\nline\n`), [], "the escape, for comparison");
+});
+
+test("outside a shield both fall-through warnings still fire", () => {
+  const codes = (src) => parse(src).diagnostics.map((d) => d.code);
+  assert.ok(codes(`# T\n\n=== note #x\nline\n`).includes("fence-like-line"));
+  assert.ok(codes(`# T\n\n=== #x\n`).includes("stray-labeled-fence"));
+  // and an UNPAIRED ``` shields nothing, so it does not silence them either
+  assert.ok(codes(`# T\n\n${tick}\n=== note #x\nline\n`).includes("fence-like-line"));
+});
+
+test("§3.1: a shielded region stays flow text, so after a blank line its references are checked", () => {
+  // Pinned on purpose. The shield keeps an example from becoming a DEFINITION;
+  // it does not make the region code — GEML has one code block, `=== code`. A
+  // pair with no blank line is one paragraph, and ```…``` is one code span in
+  // it, so nothing inside is a reference. A blank line ends the paragraph (§5),
+  // and what follows is ordinary flow text. Showing GEML as code is `=== code`
+  // with a longer fence. Changing this is a change to §3.1, not a fix.
+  const refs = (src) => parse(src).diagnostics.filter((d) => d.code === "unresolved-reference").length;
+  assert.equal(refs(`# T\n\n${tick}\nsee [[#nope]]\n${tick}\n`), 0, "one paragraph: inside the code span");
+  assert.equal(refs(`# T\n\n${tick}\nfirst\n\nafter a blank [[#nope]]\n${tick}\n`), 1, "two paragraphs: flow text");
+  assert.equal(refs(`# T\n\n==== code\nfirst\n\nafter a blank [[#nope]]\n====\n`), 0, "the way to show it as code");
+});
+
