@@ -116,6 +116,10 @@ test("--name=value 这种写法当场说清楚，而不是悄悄退回默认值"
     const o = run(["export", p.at("cut.geml"), "--out=x.json"]);
     assert.equal(o.code, 2);
     assert.match(o.err, /--out 的值要另起一个参数/);
+    // 布尔旗标写成等号，同一类静默：`--json=yes` 以前被当成没给，输出人读的文本。
+    const b = run(["todo", "--json=yes", p.at("cut.geml")]);
+    assert.equal(b.code, 2, b.out.slice(0, 80));
+    assert.match(b.err, /--json 不带值：写成 --json/);
   } finally { p.drop(); }
 });
 

@@ -508,10 +508,14 @@ function runMedia(args: string[]): void {
   rejectUnknownFlags("media", rest, MEDIA_FLAGS);
   // `--to=json` 这类等号写法：flag() 只认空格分隔的那一种，读不到就当成"没给"——
   // 于是 --to 悄悄退回默认值、--out 悄悄变成写标准输出。读不了就明说，不要读成别的。
+  // 布尔旗标同理：`--json=yes` 从来不是 `--json`，以前照样当"没给"，悄悄输出给人看的文本。
   for (const a of rest) {
     const eq = a.startsWith("-") ? a.indexOf("=") : -1;
     if (eq > 1 && MEDIA_FLAGS.valued.includes(a.slice(0, eq))) {
       fail(`${a.slice(0, eq)} 的值要另起一个参数：写成 ${a.slice(0, eq)} ${a.slice(eq + 1)}`);
+    }
+    if (eq > 1 && MEDIA_FLAGS.bool.includes(a.slice(0, eq))) {
+      fail(`${a.slice(0, eq)} 不带值：写成 ${a.slice(0, eq)}`);
     }
   }
   const root = flag(rest, "--root");
