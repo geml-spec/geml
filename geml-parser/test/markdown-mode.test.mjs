@@ -11,7 +11,7 @@ import { writeFileSync, readFileSync, mkdtempSync, mkdirSync, rmSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { strict as assert } from "node:assert";
-import { parse, addressedUnits, blockSpans } from "../dist/geml.js";
+import { parse, addressedUnits, blockSpans, unitSpans } from "../dist/geml.js";
 
 let passed = 0;
 function test(name, fn) { fn(); passed++; console.log("ok", name); }
@@ -88,8 +88,11 @@ try {
     const parsed = md(DUP).ids;
     const listed = addressedUnits(DUP, { markdown: true }).map((a) => a.unit.id).filter((x) => x !== undefined);
     const spans = [...blockSpans(DUP, { markdown: true }).keys()];
+    // unitSpans is the walk the browser bundles (viewer, vscode) address with.
+    const browser = unitSpans(DUP, { markdown: true }).map((u) => u.id).filter((x) => x !== undefined);
     assert.deepEqual(listed, parsed);
     assert.deepEqual(spans.sort(), [...parsed].sort());
+    assert.deepEqual(browser, parsed);
   });
 
   test("a .geml keeps §4: two headings deriving one id are duplicate-id", () => {
@@ -112,6 +115,13 @@ try {
     assert.equal(r.code, 0, r.err);
     assert.match(read(f), /## 小结\n\nthree, edited\./);
     assert.doesNotMatch(read(f), /\{#/, "the heading carries its id in place, so nothing is stamped");
+  });
+
+  test("content without a final newline is judged in place the same way", () => {
+    const f = write("dup3.md", DUP);
+    const r = run(["set", f, "#小结-1", "--in", "-"], "## 小结\n\nno newline at the end");
+    assert.equal(r.code, 0, r.err);
+    assert.doesNotMatch(read(f), /\{#/);
   });
 
   test("set that changes a repeated heading's text still keeps its address", () => {
@@ -218,6 +228,12 @@ try {
     assert.ok(codes(md("para\n    lazy [[#e]]\n")).includes("unresolved-reference"), "but a paragraph's lazy line is not code");
   });
 
+  test("an empty flow body is scanned like any other", () => {
+    const doc = md("# T\n\n=== note {#n}\n===\n");
+    assert.ok(doc.ids.includes("n"));
+    assert.deepEqual(codes(doc), []);
+  });
+
   test("an unclosed frontmatter opener is a thematic break, not a place to stop looking", () => {
     // Nothing closes the `---`, so there is no frontmatter to skip, and the
     // indented line after the blank one is code.
@@ -282,6 +298,9 @@ try {
     assert.equal(r.code, 1);
     assert.match(r.err, /other\.geml#nope/);
     assert.doesNotMatch(r.err, /other\.geml#top/);
+    const whole = run(["check", write("vault/to-geml2.md", "# X\n\n[[other.geml]] [[gone.geml]]\n")]);
+    assert.match(whole.err, /cannot resolve document `gone\.geml`/);
+    assert.doesNotMatch(whole.err, /`other\.geml`/, "a whole-document link to one that exists is clean");
   });
 
   test("with no host to ask, a wikilink to another note is not checked", () => {
@@ -302,6 +321,12 @@ try {
     assert.match(r.err, /note: A\.md is in the Obsidian vault at \.\.; --root \.\. resolves/);
     const rooted = run(["check", f, "--root", join(dir, "vault2")]);
     assert.match(rooted.err, /ok: no diagnostics/);
+    // From the vault root itself the hint is `--root .`; a path with a space is quoted.
+    assert.match(run(["check", join("a", "A.md")], undefined, join(dir, "vault2")).err, /--root \. resolves/);
+    write("my vault/.obsidian/app.json", "{}");
+    write("my vault/b/Other.md", "# O\n");
+    write("my vault/a/A.md", "# A\n\n[[Other]]\n");
+    assert.match(run(["check", join("my vault", "a", "A.md")], undefined, dir).err, /--root "my vault" resolves/);
   });
 
   // -------------------------------------------------------------------------
