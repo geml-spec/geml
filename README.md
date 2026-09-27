@@ -64,7 +64,7 @@ Blocks have names so the verbs have somewhere to land — the full syntax is in
 [the format in 1 minute](#one-minute).
 
 **Contents:** [What it solves](#problems) · [Why now](#why-now) · [What's different](#whats-different) ·
-[The format in 1 minute](#one-minute) · [A gift for programmers](#code-graph) ·
+[The format in 1 minute](#one-minute) · [Profiles](#profiles) · [A gift for programmers](#code-graph) ·
 [Get hands-on](#hands-on) · [With an LLM](#with-an-llm) ·
 [Maturity & versions](#maturity) · [The design](#challenge) · [Roadmap](#roadmap) · [Take part](#contributing) ·
 [License](#license)
@@ -104,6 +104,10 @@ Blocks have names so the verbs have somewhere to land — the full syntax is in
 * One block shape for the whole language — easy to generate and hard to get wrong, a good match for mainstream LLM output distributions.
 * A strict validator with precise error locations and actionable repair feedback.
 
+#### 5. Profile-based domain extensibility
+* Zero dialect chaos: extend domain vocabularies (e.g. design styles, interactive forms, code graphs, media timelines) through declarative `profile` metadata without inventing new syntax or breaking parsers.
+* Static type and constraint checking with safe fallback to standard blocks in unknown environments.
+
 ### Comparison
 
 | Dimension | Markdown | JSON / YAML | GEML |
@@ -112,6 +116,7 @@ Blocks have names so the verbs have somewhere to land — the full syntax is in
 | **Precise AST operations** | Weak (no strict semantic nodes) | Strong | **Strong (built for agent reads and writes)** |
 | **Human readability** | High | Medium | **High** |
 | **Single-source references** | Unsupported | Needs protocol extensions | **Native (modular embeds)** |
+| **Domain extensibility** | Fractured (proprietary syntax hacks) | Schema-dependent | **Native Profiles (zero new syntax + verified)** |
 | **Write safety** | Weak | Medium | **Strong (a bad write is refused before landing + single-block revert)** |
 
 ---
@@ -319,8 +324,55 @@ One block can stand for another: in the same document by `src=#id`, across docum
 ```
 
 The body stays empty; the target lives in `src=`.
-
+ 
 Markdown can't show you the projection. To see it live: install the [browser extension](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie), open the [raw link to sample.geml](https://raw.githubusercontent.com/geml-spec/geml/main/playground/sample.geml), and scroll to the **Transclusion** section — a same-document projection (`src=#roadmap`), cross-document projections, and even chained resolution (an embed pulls a chart, which itself binds to a table in another file) all render in place: nothing is written there, yet edit the source once and the projection follows.
+ 
+<a id="profiles"></a>
+## Profiles — domain vocabularies, assembled like Lego bricks
+
+Want to author interactive forms, define a design token system, or map an entire codebase's call graph inside your documents?
+In traditional Markdown, this requires proprietary plugins (`:::note`, custom JSX tags), inevitably fracturing into incompatible dialect silos.
+
+GEML solves this with **Profiles (Application-layer vocabularies, spec §8.6)**: **A single-line declaration that unlocks domain-specific structured superpowers on demand.**
+
+```geml
+=== meta
+profile = "geml-style/v1 geml-form/v1"
+===
+
+=== form-field {#email label="Work email" type=email required pattern="[^@]+@acme\\.com"}
+===
+
+=== style-rule {#cta match="button.cta" bg="{{brand}}" radius="6px"}
+===
+```
+
+### Extension without fragmentation
+
+• 🧩 **Mix & match like Lego bricks**
+The core syntax stays minimal and frozen, while domain capabilities expand infinitely. Call graphs, design tokens, form validation, version history... compose multiple domain vocabularies with one `profile = "..."` line.
+
+• ⚡ **Zero-plugin overhead with instant tooling support**
+Adding a new domain block **requires zero parser forks or custom plugins**. Custom blocks instantly inherit the entire infrastructure: deterministic `#id` addressing, `geml get/set` blockwise mutation, CLI verbs, MCP protocol, and autonomous AI Agent control.
+
+• 🛡️ **Naturally portable, never locked in**
+Extend capabilities without breaking interoperability. In any third-party or unfamiliar processor, documents maintain 100% structural integrity and block-level addressability, ending the nightmare of broken formatting when switching tools.
+
+### Standard Published Profiles
+
+| Profile | Status | Domain & Role | Superpowers Admitted | CLI | Live Demo / Example |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| [`geml-codemap/v1`](spec/profiles/geml-codemap/geml-codemap-profile.md) | stable | Codebase architecture & call graphs | `code` blocks: `anchor`, `name`, `entry-via` | `geml codemap build\|verify\|serve` | [Interactive Call Graph](https://geml-spec.github.io/geml/playground/) · [`sample.geml`](playground/sample.geml) |
+| [`geml-media/v1`](spec/profiles/geml-media/geml-media-profile.md) | draft | Media timelines, asset tracks & clips | `media`, `media-asset`, `media-clip`, `media-text` | `geml media build\|export\|lay\|todo` | [Doc-to-Video (Doc to MP4 via ffmpeg)](playground/geml-media-demo/README.md) |
+| [`geml-style/v1`](spec/profiles/geml-style/geml-style-profile.md) | draft | Design tokens & responsive styling | `style-rule`, `style-state`, `style-screen`, `style-frame` | `geml style check` | [GitHub Blob Page 1:1 Replica](playground/style-demo/) |
+| [`geml-history/v1`](spec/profiles/geml-history/geml-history-profile.md) | stable | Block-level version snapshots & rollback | `history-revision`, `history-keyframe`, `history-blob` | `geml history save\|get\|restore` | [Atomic Block Rollback Workflow](spec/profiles/geml-history/geml-history-profile.md#4-the-history-workflow) |
+| [`geml-form/v1`](spec/profiles/geml-form/geml-form-profile.md) | draft | Declarative forms & input constraints | `form`, `form-field`, `form-group` + validation rules | — | [Interactive Complex Form Example](spec/proposals/0008-form-block-example/) |
+| [`geml-translator/v1`](spec/profiles/geml-translator/geml-translator-profile.md) | draft | Multi-locale translation & transclusion | `embed` and `meta` attribute `translate-to` | — | — |
+
+> 💡 **Want to see Profiles in action?**
+> • **`geml-media` live demo**: One cut document and one command (`geml media build ep01-cut.geml --out ep01.mp4 --burn-subs`) orchestrates ffmpeg to align audio/video, mix tracks, and burn subtitles into a finished video (details in [`playground/geml-media-demo`](playground/geml-media-demo/)).
+> • **`geml-style` live demo**: Content stays pure text in `page.geml`, while styles and layout live in `github.style.geml` — rendering a 1:1 pixel-accurate replica of GitHub's blob page without CSS lock-in (details in [`playground/style-demo`](playground/style-demo/)).
+> • **The code graph in the next section is itself a Profile**: every document in `.geml-code-graph/` declares `profile = "geml-codemap/v1"`. You can also easily [create your own custom domain profile](spec/profiles/README.md).
 
 <a id="code-graph"></a>
 ## A gift for programmers — geml-code-graph
@@ -549,19 +601,23 @@ Every profile this project publishes: [`spec/profiles/`](spec/profiles/README.md
 
 ### What the design follows
 
-**It is plain text meant for people to read.** Fully readable with no renderer — which is why there is no raw-HTML escape hatch, and why a style may never change what a document says.
+1. **Human–Agent Isomorphism, Not a Compromise**
+   Instead of splitting the difference between human-readable Markdown and machine-readable JSON, GEML treats human readability and machine determinism as a single, uncompromising constraint. Humans get clean, distraction-free prose; agents get a strongly typed AST—eliminating translation loss between two separate formats.
 
-**One primitive, a few models.** Every kind of content is the same typed block; extending the format means **registering a type, not inventing syntax**. The type says what it **becomes**: `meta` is key–value shared across the document, `code` is a region of code at a location, `data` is a data value, `table` is a grid waiting to be worked, `diagram` is a hosted external DSL, `embed` is a view onto a source of content
+2. **Doc-as-a-Base, Not a Stream of Characters**
+   Traditional documents are fragile streams of characters where editing one sentence often forces a full-file rewrite. GEML treats a document as an addressable database of structured records with stable primary keys (`#id`). Every block has an independent lifecycle, spatial coordinate, and atomic CRUD interface suited for O(1) agent reads and writes.
 
-**A reference is a window, not a navigation.** An HTML link navigates: the target is not in the document you are holding, so people copy it in anyway. What is being designed out is not dead links; it is the incentive to copy. *Cost: rendering may need to read several files, and must degrade gracefully when it can't.*
+3. **One Syntax Primitive, Infinite Domain Vocabularies**
+   Refuse to invent syntax patches for every new kind of content. GEML uses a single **typed-block primitive** (`=== type`) to carry code, data, tables, math, and layout. Domain capabilities expand infinitely through **Profiles** (`profile = "..."`): the grammar stays 100% frozen, while vocabularies remain open—ending dialect fragmentation at the root.
 
-**Prefer subtraction.** Where a rule breeds edge cases, the feature goes rather than the edge cases getting specified: no underscore emphasis, no setext headings, no indented code blocks, no raw HTML. The ambiguity is deleted at the source instead of enumerated in test cases. *Cost: some things you can write in Markdown you cannot write here.*
+4. **Transclusion over Duplication: Kill the Incentive to Copy**
+   Traditional hyperlinks are signposts pointing elsewhere, encouraging copy-pasting that inevitably causes copies to drift out of sync. GEML references are dynamic viewports (`=== embed`): define once at the source, and project live everywhere. Maintain a single source of truth by removing the motivation to copy.
 
-**No broken windows.** Markdown's ethos is never to fail — render something. GEML's is the opposite: verified at build time rather than tolerated at render time. A dangling `#id` is an error with a non-zero exit. Stable ids, `geml check` and the diagnostic catalogue all follow from that one decision. *Cost: a document that "looks fine" can fail your build.*
+5. **Compiler-Grade Integrity: Treat Documentation Like Code**
+   Markdown's ethos is "never fail, render something"—the primary breeding ground for agent hallucinations and silent documentation decay. GEML enforces strict build-time static validation. Broken `#id`s, invalid attributes, and cyclic references fail the build with a non-zero exit code. Catch errors before they pollute downstream systems.
 
-**A sidecar travels with the document without getting into it.** The `.geml` file is the source of content and stays deliberately small. Anything else is not pushed into it but points back at it — a version history in `.gemlhistory`, say — and deleting that leaves the document perfectly valid. *Cost: a convention, explicit or implied, and two files that travel together.*
-
-**The command line is built for an agent.** The fewest verbs that cover everything, kept orthogonal, with pipeable input and output and options that stay consistent across them.
+6. **Local-First History, Not Cloud Lock-in or Git Overhead**
+   Data belongs on the local filesystem, and versioning belongs at block granularity. GEML refuses to lock version history behind proprietary cloud platforms (like Notion or Google Docs), while avoiding the heavy whole-repo commit overhead of Git for micro-edits. The companion `.gemlhistory` gives plain text **local-first atomic snapshots and surgical rollback** (`geml revert #id`), ensuring true data sovereignty and safety.
 
 ### What it therefore refuses
 

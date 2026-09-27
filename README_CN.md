@@ -62,7 +62,7 @@ geml get doc.geml '#hello'   # 按名字，只取这一块
 块有名字，动词才有落点。完整语法见[1分钟学会](#one-minute)。
 
 **目录：**[它解决什么](#problems) · [为什么需要新格式](#why-now) · [GEML有何不同](#whats-different) ·
-[1分钟学会](#one-minute) · [给程序员的小礼物](#code-graph) ·
+[1分钟学会](#one-minute) · [Profile扩展体系](#profiles) · [给程序员的小礼物](#code-graph) ·
 [即刻上手试试](#hands-on) · [搭配大模型使用](#with-an-llm) ·
 [生态成熟度](#maturity) · [设计思路](#challenge) · [路线图](#roadmap) · [参与我们](#contributing) · [许可](#license)
 
@@ -101,6 +101,10 @@ geml get doc.geml '#hello'   # 按名字，只取这一块
 * 全语言只有一种块形态，生成侧易学难错，适配主流 LLM 的生成分布。
 * 解析器具备严格的验证机制，提供明确的语法错误定位与修复反馈。
 
+#### 5. 基于 Profile 的无感领域扩展
+* 终结方言割裂：通过 `=== meta` 中的 `profile` 声明扩展特定领域词汇（如设计令牌、交互表单、代码图谱、音视频轨），绝不发明私有语法，不破坏解析器稳定性。
+* 具备编译器级静态类型与约束检查，在未知工具环境中自动安全降级，保障 100% 互通性。
+
 ### 特性对比 (Comparison)
 
 | 维度 | Markdown | JSON / YAML | GEML |
@@ -109,6 +113,7 @@ geml get doc.geml '#hello'   # 按名字，只取这一块
 | **AST 精准操作** | 弱（缺乏严格语义节点） | 强 | **强（专为 Agent 读写优化）** |
 | **人类可读性** | 高 | 中 | **高** |
 | **单一数据源引用** | 不支持 | 需扩展协议 | **原生支持（模块化嵌入）** |
+| **领域扩展机制** | 严重割裂（各家私造方言/语法补丁） | 依赖 Schema / 命名空间 | **原生 Profile（零新语法 + 静态强校验）** |
 | **写入安全** | 弱 | 中 | **强（坏写入落盘前被拒 + 单块回退）** |
 
 ---
@@ -314,8 +319,52 @@ xychart-beta
 ```
 
 正文保持为空，目标写在 `src=` 里。
-
+ 
 Markdown 里看不到投影效果。想亲眼看：装上[浏览器扩展](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)，打开 [sample.geml 的 raw 链接](https://raw.githubusercontent.com/geml-spec/geml/main/playground/sample.geml)，翻到 **Transclusion** 一节——同文档投影（`src=#roadmap`）、跨文档投影、乃至跨文件链式解析（embed 引一张图，图又绑另一文件里的表）都在就地渲染：那里一个字都没写，改源头一处，投影处即变。
+ 
+<a id="profiles"></a>
+## Profile —— 领域词汇扩展，像搭乐高一样组合文档能力
+
+想在文档里写交互表单、管理设计系统，或是嵌入整个代码库的调用图？
+在传统 Markdown 里，这意味着各家私造插件（`:::note`、自定义 JSX 标签），最终沦为互不兼容的方言地狱。
+
+GEML 的解法是 **Profile（应用层词汇表，规范 §8.6）**：**一行声明，按需给文档接入专业领域的结构化能力。**
+
+```geml
+=== meta
+profile = "geml-style/v1 geml-form/v1"
+===
+
+=== form-field {#email label="工作邮箱" type=email required pattern="[^@]+@acme\\.com"}
+===
+
+=== style-rule {#cta match="button.cta" bg="{{brand}}" radius="6px"}
+===
+```
+
+### 扩展而不割裂
+
+• 🧩 **像搭乐高一样按需混搭 (Mix & Match)**
+核心语法极简收敛，而领域能力无限扩展。代码图谱、样式系统、表单约束、版本回退……一行 `profile = "..."` 即可组合多个专业领域的表达能力。
+
+• ⚡ **无需编写插件，一秒接入全套工具链**
+定义新的领域块**不需要开发解析器或写插件**。扩展块从诞生的第一秒起，天然具备全套基础设施支持：稳定的 `#id` 寻址、`geml get/set` 局部读写、CLI 动词、MCP 协议以及 AI Agent 的精准操控。
+
+• 🛡️ **天然可移植，永不锁死 (Never Fractured)**
+扩展了能力，却绝不破坏文档通用性。在任何未知或第三方工具中，文档依然保持 100% 结构完整与块级寻址能力，彻底告别 Markdown 换个平台就乱码崩溃的方言困境。
+
+### 官方已落地的 Profile 矩阵
+
+| Profile | 状态 | 领域与职责 | 赋予文档的专属能力 | 专属 CLI |
+| :--- | :--- | :--- | :--- | :--- |
+| [`geml-codemap/v1`](spec/profiles/geml-codemap/geml-codemap-profile_CN.md) | stable | 代码库架构与双向调用图谱 | `code` 块上的 `anchor`、`name`、`entry-via` | `geml codemap build\|verify\|serve` |
+| [`geml-history/v1`](spec/profiles/geml-history/geml-history-profile_CN.md) | stable | 块级版本快照与原子回退 | `history-revision`、`history-keyframe`、`history-blob` | `geml history save\|get\|restore` |
+| [`geml-style/v1`](spec/profiles/geml-style/geml-style-profile_CN.md) | draft | 设计令牌与响应式布局规范 | `style-rule`、`style-state`、`style-screen`、`style-frame` | `geml style check` |
+| [`geml-form/v1`](spec/profiles/geml-form/geml-form-profile_CN.md) | draft | 声明式表单与输入约束校验 | `form`、`form-field`、`form-group` 及验证规则 | — |
+| [`geml-media/v1`](spec/profiles/geml-media/geml-media-profile_CN.md) | draft | 多媒体时间轴、音视频素材与轨道 | `media`、`media-asset`、`media-clip`、`media-text` | — |
+| [`geml-translator/v1`](spec/profiles/geml-translator/geml-translator-profile_CN.md) | draft | 多语言国际化翻译与跨语言投影 | `embed` 与 `meta` 上的 `translate-to` 属性 | — |
+
+> 💡 **下一节的代码图谱（codemap）就是一个 Profile**：`.geml-code-graph/` 下的每份文档开头都声明了 `profile = "geml-codemap/v1"`。开发者也可以按规范轻松[定制自己的专属业务 Profile](spec/profiles/README.md)。
 
 <a id="code-graph"></a>
 ## 一份给程序员的礼物：geml-code-graph
@@ -521,19 +570,23 @@ GEML 是一份小而年轻的规范，但已经**稳定**：已发布 **`1.0`**�
 
 ### 设计遵循什么
 
-**定位是适合人类阅读的纯文本。** 没有渲染器也要完整可读——这决定了没有 raw-HTML 逃生舱、样式不得改变文档说了什么。
+1. **人机同构，而非两极折中 (Human-Agent Isomorphism)**
+   不是在“人类易读的 Markdown”与“机器可读的 JSON”之间和稀泥，而是把“人可无障碍直读”与“机器可确定性操作”作为同一条不可妥协的设计硬约束。人类看到的是清爽排版，Agent 与程序拿到的是强类型 AST 节点，彻底终结两套信息媒介的转换损耗。
 
-**一个原语，几个模型。** 所有内容都是同一种类型块；扩展格式是**注册一个类型，不是发明写法**。类型说明它**变成什么**：`meta` 是文档内共用的键值，`code` 是某处的一段代码，`data` 是数据值，`table` 是待加工的网格，`diagram` 是托管的外部 DSL，`embed` 是内容源的视图
+2. **文档即数据库，而非字符流 (Doc-as-a-Base)**
+   传统文档是一串扁平脆弱的字符流，修改一处往往需要整篇重写；GEML 把文档视为由结构化记录与稳定主键（`#id`）构成的微型数据库。每个区块拥有独立的生命周期、坐标系统与原子级 CRUD 操作接口，天然契合 Agent 的 O(1) 级精准读写。
 
-**引用是视窗，不是导航。** HTML 的链接是导航：目标不在你手上这份文档里，所以人们照旧复制一份过来。要消灭的不是死链，是**复制的动机**。*代价：渲染可能要读多份文件，取不到时得优雅降级。*
+3. **单一语法原语，词汇无界外延 (One Primitive, Infinite Vocabularies)**
+   拒绝为每种内容发明专有语法补丁。全语言仅凭唯一的**类型块（Typed Block）原语**承载代码、数据、图表、计算与排版；通过 **Profile 机制**开放无限的领域词汇扩展，语法 100% 收敛冻结，词汇 100% 自由扩展，从根源上消灭方言割裂。
 
-**多用减法。** 一条规则会长出边角情况，就砍掉这个特性，而不是把边角写进规范：没有下划线强调、没有 setext 标题、没有缩进代码块、没有 raw HTML。歧义在源头删掉，而不是在用例里穷举。*代价：Markdown 能写的一些东西这里写不了。*
+4. **消除复制动机，而非仅修补死链 (Transclusion over Duplication)**
+   传统超链接是“路标”，诱导人们反复 copy-paste 导致分布式副本迅速漂移；GEML 的引用是“动态视窗”（`=== embed`）。一处定义，处处实时投影，从源头消灭冗余副本，捍卫唯一的“真相源（Single Source of Truth）”。
 
-**避免破窗效应。** Markdown 的信条是永不失败、总要渲染出点什么；GEML 反过来——构建期校验，而非渲染期容忍。断掉的 `#id` 是错误，退出码非零。稳定 id、`geml check`、诊断目录，都从这一条推出来。*代价：一份「看着还行」的文档会让构建变红。*
+5. **像对待代码一样对待文档 (Compiler-Grade Integrity)**
+   Markdown 的信条是“永不报错，凑合渲染”，这是 Agent 幻觉失控与知识腐化的温床；GEML 奉行严格的构建期静态强检。断掉的 `#id`、非法属性、隐式循环在构建期直接拦截（Non-zero exit），宁可构建报错，绝不把坏数据留给下游。
 
-**sidecar 式机制。** GEML 是内容源，刻意保持小。其他诉求不塞进来，而是反向引用它/依赖它（比如版本历史 `.gemlhistory`），删掉它文档照样有效。*代价：显式或隐含约定，两个文件得一起走。*
-
-**命令行要为 agent 设计，能支持操作文档的全生命周期。** 最少动词，覆盖全面、正交化、输入输出管道化、参数设计要具备一致性。
+6. **以伴生历史捍卫 Local-First，而非云端锁定 (Local-First History over Cloud Lock-in)**
+   数据的归宿在本地，版本的粒度在区块。GEML 拒绝将历史追溯绑架在中心化云端服务（如 Notion / Google Docs），也不强依赖笨重的全库 Git 提交。通过紧邻文档的伴生 `.gemlhistory`，让纯文本天然具备**本地优先（Local-First）的块级原子快照与秒级回退能力**（`geml revert #id`），把数据主权与版本安全网牢牢留在本地。
 
 ### 于是拒绝了这些
 
