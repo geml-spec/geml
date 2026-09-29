@@ -492,4 +492,90 @@ test("import：种类按扩展名分到 model 和 other", () => {
   assert.deepEqual(plan.newAssets.map((a) => a.kind), ["model", "other"]);
 });
 
+// ---------------------------------------------------------------------------
+// 合成的几何（media-compose.ts）：读坏值的退路，解算里「答不上来」的每一臂
+// ---------------------------------------------------------------------------
+
+import { parsePoints, parsePointNames, parseSize, parseXywh, parseEnd, layerSpec, scaleOf, solveLayout } from "../dist/media-compose.js";
+
+test("点、点名、尺寸、裁切、端点：不是字符串或写坏了，就当没写 —— 不猜也不炸", () => {
+  assert.deepEqual([...parsePoints(undefined).keys()], []);
+  assert.deepEqual([...parsePoints("bad hand:1,2 x:y,z eyes:3.5,-4").entries()], [["hand", { x: 1, y: 2 }], ["eyes", { x: 3.5, y: -4 }]], "坏条目跳过，好的留下");
+  assert.equal(parsePointNames(undefined), null);
+  assert.equal(parsePointNames("   "), null, "空声明等于没声明：不查");
+  assert.deepEqual([...parsePointNames(" hand  eyes ")], ["hand", "eyes"]);
+  assert.equal(parseSize("abc"), undefined);
+  assert.equal(parseSize(720), undefined);
+  assert.deepEqual(parseSize(" 720x1280 "), { w: 720, h: 1280 });
+  assert.equal(parseXywh("1,2,3"), undefined);
+  assert.equal(parseXywh("1,2,three,4"), undefined);
+  assert.equal(parseXywh(undefined), undefined);
+  assert.equal(parseEnd(undefined), null);
+  assert.equal(parseEnd("#a"), null);
+  assert.equal(parseEnd("a:hand"), null, "要带 #");
+  assert.deepEqual(parseEnd(" #a:hand "), { layer: "a", point: "hand" });
+});
+
+test("layerSpec：读不成数的 x/y/w 当没写，dx/dy 缺省 0；scaleOf 在裁切宽为 0 时答不上来", () => {
+  const s = layerSpec("l", 0, { x: "abc", y: "", w: "nope", dx: "", xywh: "0,0,0,10" }, { size: "10x10", points: "p:1,1" });
+  assert.equal(s.x, undefined); assert.equal(s.y, undefined); assert.equal(s.w, undefined);
+  assert.equal(s.dx, 0); assert.equal(s.dy, 0);
+  assert.equal(scaleOf(s), 1, "没有 w 就不缩放");
+  const zero = layerSpec("z", 0, { w: "50", xywh: "0,0,0,10" }, {});
+  assert.equal(scaleOf(zero), null, "裁切宽 0，比例算不出来");
+  const nosize = layerSpec("n", 0, { w: "50" }, {});
+  assert.equal(scaleOf(nosize), null);
+  assert.equal(scaleOf(layerSpec("ok", 0, { w: "50" }, { size: "100x100" })), 0.5);
+});
+
+test("solveLayout：连接指的层不在这批里、点在解算时缺了 —— 跳过，不报，不炸", () => {
+  const A = layerSpec("A", 0, { x: "0", y: "0" }, { points: "p:10,10" });
+  const B = layerSpec("B", 1, {}, { points: "q:5,5" });
+  const ghost = solveLayout([A, B], [{ id: "i", a: { layer: "A", point: "p" }, b: { layer: "Z", point: "q" }, kind: "contact" }]);
+  assert.deepEqual(ghost.problems, []);
+  assert.deepEqual(ghost.pos.get("B"), { x: 0, y: 0 }, "没被任何连接放过，就是缺省位置");
+  const missing = solveLayout([A, B], [{ id: "i", a: { layer: "A", point: "nope" }, b: { layer: "B", point: "q" }, kind: "contact" }]);
+  assert.deepEqual(missing.problems, []);
+  assert.equal(missing.placedBy.size, 0);
+});
+
+test("solveLayout：a 写的是靠后的层也一样 —— 动的永远是文档里靠后的那个", () => {
+  const A = layerSpec("A", 0, { x: "100", y: "100" }, { points: "p:10,10" });
+  const B = layerSpec("B", 1, {}, { points: "q:5,5" });
+  const r = solveLayout([A, B], [{ id: "i", a: { layer: "B", point: "q" }, b: { layer: "A", point: "p" }, kind: "contact" }]);
+  assert.deepEqual(r.pos.get("A"), { x: 100, y: 100 }, "A 在前，不动");
+  assert.deepEqual(r.pos.get("B"), { x: 105, y: 105 });
+  assert.equal(r.placedBy.get("B"), "i");
+});
+
+test("solveLayout：gaze 定位的层写了 y 是冲突，消息只说 y；自由层带裁切时点按裁切原点算", () => {
+  const A = layerSpec("A", 0, { x: "0", y: "0" }, { points: "eyes:0,300" });
+  const B = layerSpec("B", 1, { x: "50", y: "7" }, { points: "eyes:0,40" });
+  const conflict = solveLayout([A, B], [{ id: "g", a: { layer: "A", point: "eyes" }, b: { layer: "B", point: "eyes" }, kind: "gaze" }]);
+  assert.equal(conflict.problems[0].code, "position-conflict");
+  assert.match(conflict.problems[0].message, /写了 y，/);
+  assert.ok(!/x\/y/.test(conflict.problems[0].message));
+  // 裁切：B 从 (100,200) 起裁，点 (110,240) 在裁切内是 (10,40)；w=50 / 裁切宽 100 → 0.5
+  const C = layerSpec("C", 1, { w: "50", xywh: "100,200,100,100" }, { points: "eyes:110,240" });
+  const cropped = solveLayout([A, C], [{ id: "g2", a: { layer: "A", point: "eyes" }, b: { layer: "C", point: "eyes" }, kind: "gaze" }]);
+  assert.deepEqual(cropped.pos.get("C"), { x: 0, y: 300 - 40 * 0.5 });
+  const D = layerSpec("D", 1, { w: "50", xywh: "100,200,100,100" }, { points: "eyes:110,240" });
+  const contact = solveLayout([A, D], [{ id: "c", a: { layer: "A", point: "eyes" }, b: { layer: "D", point: "eyes" }, kind: "contact" }]);
+  assert.deepEqual(contact.pos.get("D"), { x: 0 - 10 * 0.5, y: 300 - 40 * 0.5 });
+});
+
+test("solveLayout：只验的连接里点缺了就跳过；缺 size 的层被两条连接用到也只报一次", () => {
+  const A = layerSpec("A", 0, { x: "0", y: "0" }, { points: "p:10,10 q:20,20" });
+  const B = layerSpec("B", 1, { w: "50" }, { points: "p:0,0" });
+  const r = solveLayout([A, B], [
+    { id: "first", a: { layer: "A", point: "p" }, b: { layer: "B", point: "p" }, kind: "contact" },
+    { id: "second", a: { layer: "A", point: "q" }, b: { layer: "B", point: "gone" }, kind: "contact" },
+    { id: "third", a: { layer: "A", point: "q" }, b: { layer: "B", point: "p" }, kind: "contact" },
+  ]);
+  assert.deepEqual(r.problems.filter((p) => p.code === "size-required").map((p) => p.id), ["B"], JSON.stringify(r.problems));
+  const apart = r.problems.filter((p) => p.code === "apart");
+  assert.deepEqual(apart.map((p) => p.id), ["third"], "second 的点缺了，跳过；third 只验，分开了");
+  assert.match(apart[0].message, /差 14 像素/);
+});
+
 console.log(`\n${passed} test(s) passed.`);
