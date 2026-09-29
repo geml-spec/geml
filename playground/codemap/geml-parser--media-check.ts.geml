@@ -2,7 +2,7 @@
 profile = "geml-codemap/v1"
 module = geml-parser/media-check.ts
 src = geml-parser/src/media-check.ts
-entry = #splitRef #blocksOf #metaOf #promptTextOf
+entry = #splitRef #blocksOf #metaOf #checkMedia #promptTextOf
 resolution-default = cpg
 ===
 
@@ -203,11 +203,13 @@ from,                                         to,            kind, site
 #promptTextOf,                                #splitRef,     call, geml-parser/src/media-check.ts:663
 geml-parser--media-verbs.ts.geml#loadProject, #splitRef,     call, geml-parser/src/media-verbs.ts:72
 geml-parser--media-verbs.ts.geml#loadProject, #splitRef,     call, geml-parser/src/media-verbs.ts:94
-geml-parser--media-verbs.ts.geml#todo,        #splitRef,     call, geml-parser/src/media-verbs.ts:137
-geml-parser--media-verbs.ts.geml#todo,        #splitRef,     call, geml-parser/src/media-verbs.ts:160
-geml-parser--media-verbs.ts.geml#todo,        #splitRef,     call, geml-parser/src/media-verbs.ts:165
-geml-parser--media-verbs.ts.geml#report,      #splitRef,     call, geml-parser/src/media-verbs.ts:209
-geml-parser--media-verbs.ts.geml#composePlan, #splitRef,     call, geml-parser/src/media-verbs.ts:551
+geml-parser--media-verbs.ts.geml#todo,        #splitRef,     call, geml-parser/src/media-verbs.ts:139
+geml-parser--media-verbs.ts.geml#todo,        #splitRef,     call, geml-parser/src/media-verbs.ts:162
+geml-parser--media-verbs.ts.geml#todo,        #splitRef,     call, geml-parser/src/media-verbs.ts:167
+geml-parser--media-verbs.ts.geml#todo,        #splitRef,     call, geml-parser/src/media-verbs.ts:200
+geml-parser--media-verbs.ts.geml#todo,        #splitRef,     call, geml-parser/src/media-verbs.ts:204
+geml-parser--media-verbs.ts.geml#report,      #splitRef,     call, geml-parser/src/media-verbs.ts:245
+geml-parser--media-verbs.ts.geml#composePlan, #splitRef,     call, geml-parser/src/media-verbs.ts:589
 #proseText,                                   #blocksOf,     call, geml-parser/src/media-check.ts:97
 #compText,                                    #blocksOf,     call, geml-parser/src/media-check.ts:136
 #checkMedia,                                  #blocksOf,     call, geml-parser/src/media-check.ts:205
@@ -276,12 +278,15 @@ geml-parser--media-verbs.ts.geml#loadProject, #metaOf,       call, geml-parser/s
 #checkMedia,                                  #blockText,    call, geml-parser/src/media-check.ts:551
 #promptTextOf,                                #blockText,    call, geml-parser/src/media-check.ts:668
 #checkMedia,                                  #trackKinds,   call, geml-parser/src/media-check.ts:315
-geml-parser--cli.ts.geml#runMedia,            #promptTextOf, call, geml-parser/src/cli.ts:651
-geml-parser--cli.ts.geml#runMedia,            #promptTextOf, call, geml-parser/src/cli.ts:682
-geml-parser--media-verbs.ts.geml#todo,        #promptTextOf, call, geml-parser/src/media-verbs.ts:152
-geml-parser--media-verbs.ts.geml#todo,        #promptTextOf, call, geml-parser/src/media-verbs.ts:169
-geml-parser--media-verbs.ts.geml#assetInfo,   #promptTextOf, call, geml-parser/src/media-verbs.ts:247
-geml-parser--media-verbs.ts.geml#importPlan,  #promptTextOf, call, geml-parser/src/media-verbs.ts:750
+geml-parser--media-verbs.ts.geml#todo,        #checkMedia,   call, geml-parser/src/media-verbs.ts:193
+geml-parser--cli.ts.geml#runMedia,            #promptTextOf, call, geml-parser/src/cli.ts:653
+geml-parser--cli.ts.geml#runMedia,            #promptTextOf, call, geml-parser/src/cli.ts:684
+geml-parser--media-verbs.ts.geml#todo,        #promptTextOf, call, geml-parser/src/media-verbs.ts:154
+geml-parser--media-verbs.ts.geml#todo,        #promptTextOf, call, geml-parser/src/media-verbs.ts:171
+geml-parser--media-verbs.ts.geml#todo,        #promptTextOf, call, geml-parser/src/media-verbs.ts:214
+geml-parser--media-verbs.ts.geml#todo,        #promptTextOf, call, geml-parser/src/media-verbs.ts:216
+geml-parser--media-verbs.ts.geml#assetInfo,   #promptTextOf, call, geml-parser/src/media-verbs.ts:283
+geml-parser--media-verbs.ts.geml#importPlan,  #promptTextOf, call, geml-parser/src/media-verbs.ts:789
 ===
 
 === table {#unresolved format=csv hidden}

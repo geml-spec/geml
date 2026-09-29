@@ -1,7 +1,7 @@
 === meta
 profile = "geml-codemap/v1"
 repo = geml
-commit = 9ffa048
+commit = dc09f77
 container = file
 entry = geml-viewer--content.js.geml#main
 resolution-default = cpg
@@ -33,7 +33,7 @@ geml-parser/translate.ts,            geml-parser--translate.ts.geml,            
 geml-viewer/chart.js,                geml-viewer--chart.js.geml,                13,      1,       0
 geml-parser/graph-style.ts,          geml-parser--graph-style.ts.geml,          12,      2,       0
 geml-parser/host-fs.ts,              geml-parser--host-fs.ts.geml,              12,      6,       0
-geml-parser/media-check.ts,          geml-parser--media-check.ts.geml,          12,      4,       0
+geml-parser/media-check.ts,          geml-parser--media-check.ts.geml,          12,      5,       0
 geml-parser/selector.ts,             geml-parser--selector.ts.geml,             12,      8,       0
 geml-viewer/layout.js,               geml-viewer--layout.js.geml,               12,      3,       0
 geml-parser/profiles.ts,             geml-parser--profiles.ts.geml,             11,      7,       0
@@ -74,8 +74,8 @@ geml-parser/media-check.ts,    geml-parser/media-diagnostics.ts,    39
 geml-parser/style-resolve.ts,  geml-parser/style-selector.ts,       22
 geml-parser/cli.ts,            geml-parser/verbs.ts,                21
 geml-parser/cli.ts,            geml-parser/media-verbs.ts,          20
+geml-parser/media-verbs.ts,    geml-parser/media-check.ts,          20
 geml-parser/geml.ts,           geml-parser/diagnostics.ts,          16
-geml-parser/media-verbs.ts,    geml-parser/media-check.ts,          15
 geml-parser/verbs.ts,          geml-parser/selector.ts,             15
 geml-parser/geml.ts,           geml-parser/inline.ts,               12
 geml-parser/codemap-render.ts, geml-parser/render.ts,               11

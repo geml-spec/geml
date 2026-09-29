@@ -68,16 +68,16 @@ geml-parser--media-check.ts.geml#checkMedia,  #parsePointNames, call, geml-parse
 #layerSpec,                                   #parseXywh,       call, geml-parser/src/media-compose.ts:96
 geml-parser--media-check.ts.geml#compText,    #parseEnd,        call, geml-parser/src/media-check.ts:132
 geml-parser--media-check.ts.geml#checkMedia,  #parseEnd,        call, geml-parser/src/media-check.ts:454
-geml-parser--media-verbs.ts.geml#composePlan, #parseEnd,        call, geml-parser/src/media-verbs.ts:575
-geml-parser--media-verbs.ts.geml#composePlan, #parseEnd,        call, geml-parser/src/media-verbs.ts:576
+geml-parser--media-verbs.ts.geml#composePlan, #parseEnd,        call, geml-parser/src/media-verbs.ts:614
+geml-parser--media-verbs.ts.geml#composePlan, #parseEnd,        call, geml-parser/src/media-verbs.ts:615
 geml-parser--media-check.ts.geml#checkMedia,  #layerSpec,       call, geml-parser/src/media-check.ts:437
-geml-parser--media-verbs.ts.geml#composePlan, #layerSpec,       call, geml-parser/src/media-verbs.ts:569
+geml-parser--media-verbs.ts.geml#composePlan, #layerSpec,       call, geml-parser/src/media-verbs.ts:607
 #solveLayout,                                 #scaleOf,         call, geml-parser/src/media-compose.ts:132
 #solveLayout,                                 #canvasPoint,     call, geml-parser/src/media-compose.ts:156
 #solveLayout,                                 #canvasPoint,     call, geml-parser/src/media-compose.ts:173
 #solveLayout,                                 #canvasPoint,     call, geml-parser/src/media-compose.ts:174
 geml-parser--media-check.ts.geml#checkMedia,  #solveLayout,     call, geml-parser/src/media-check.ts:473
-geml-parser--media-verbs.ts.geml#composePlan, #solveLayout,     call, geml-parser/src/media-verbs.ts:585
+geml-parser--media-verbs.ts.geml#composePlan, #solveLayout,     call, geml-parser/src/media-verbs.ts:624
 ===
 
 === table {#unresolved format=csv hidden}
