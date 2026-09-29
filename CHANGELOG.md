@@ -29,6 +29,16 @@ and is released under `viewer-v*` tags.
   the shots that used it, and `geml media todo` lists an unclaimed comp as a
   `composite` item. `geml media log` gains `--params <json>`. Design record:
   `docs/design/specs/2026-09-15-geml-media-design.md` §16.
+- **geml-media: interactions.** Where two things meet is a fact of the shot:
+  `points` on an image asset (named positions in its own pixels, plates
+  included), `points` on the character or scene block it is `of=` (the names
+  — a schema), `media-interaction` inside a comp (`a=#layer:point
+  b=#layer:point kind=contact|gaze`, a prose block whose body is the beat),
+  `at` on a comp for a sequence of frames, `dx`/`dy` on a layer. `compose`
+  moves the later layer onto the earlier one's point; `check` and `compose`
+  share one geometry (`media-compose.ts`); a moved point stales the comps that
+  used it. Eight codes, from `media-interaction-unresolved` to
+  `media-interaction-apart`. Design record §16.8.
 - **An entry's `output` must be an asset** (`media-gen-output-not-asset`,
   error): the first layered episode lost its key-frame blocks because the
   id check behind `compose --log` and `import` read `"#s01-key"` inside a log

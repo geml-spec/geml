@@ -240,8 +240,10 @@ export const PROFILES: Record<string, ProfileDef> = {
     // 第二份 profile 会想要的通用词。登记以让测试拦得住新增的同类。
     metaKeys: ["tracks", "primary", "fps", "aspect", "target-duration", "episode"],
     diagnostics: MEDIA_SEVERITY,
-    types: ["media", "media-asset", "media-clip", "media-text", "media-comp", "media-layer"],
-    prose: ["media-text"],
+    types: ["media", "media-asset", "media-clip", "media-text", "media-comp", "media-layer", "media-interaction"],
+    // `media-interaction` 也是散文：头行是几何（谁的哪个点碰谁的哪个点），body 是这一步发生了
+    // 什么 —— 人按步读，写实的精修拿它当提示词（§16.8）。
+    prose: ["media-text", "media-interaction"],
     // `media` 是容器：`==== media` 里套 `media-clip`。无体的 `media` 是一个可播的单源。
     // `media-comp` 同形：`==== media-comp` 里套 `media-layer`（设计记录 §16）。
     bodies: { media: "flow", "media-comp": "flow" },
@@ -256,19 +258,25 @@ export const PROFILES: Record<string, ProfileDef> = {
       media: ["tracks", "primary", "fps", "src", "in", "out", "duration"],
       // §5.1 一个文件。`of` 说这份素材画的是谁，`role` 说它在生成里当什么用 ——
       // 没有这两个，「林夏的三视图是哪张」只能靠文件名猜。
+      // `points`（§16.8）：这张图上的点，源坐标 —— `"hand:562,522 eyes:290,300"`。
       "media-asset": ["src", "sha256", "kind", "duration", "fps", "size",
-        "origin", "license", "mime", "of", "role"],
+        "origin", "license", "mime", "of", "role", "points"],
       // §5.2 一个片段。`track` 必填，轨道的种类由所属 `media` 的 `tracks=` 给出。
       "media-clip": ["track", "src", "in", "out", "duration", "over", "offset", "at",
         "transition-in", "transition-out", "transition-duration",
         "gain", "fade-in", "fade-out", "speed", "xywh"],
-      // §5.4 剧本层。`speaker` 必填；`shot` 把提示词钉到分镜表的镜号上。
-      "media-text": ["shot", "speaker", "to", "emotion", "since"],
+      // §5.4 剧本层。`speaker` 必填；`shot` 把提示词钉到分镜表的镜号上。`points` 在角色 /
+      // 场景的 `.look` 上声明点的**名字**（坐标在素材上）—— 标题节上的同名属性核心本来不查。
+      "media-text": ["shot", "speaker", "to", "emotion", "since", "points"],
       // §16 一张合成的画面：`size` 是画布，是这张图的事实而不是呈现。`shot` 同 `.prompt`。
-      "media-comp": ["shot", "size"],
+      // `at`（§16.8.1）：这一帧在镜头里的时刻；同 shot 的几个 comp 按它排成序列。
+      "media-comp": ["shot", "size", "at"],
       // §16 一层：先裁（`xywh`，与 `media-clip` 同一把尺）、再缩（`w`，等比）、再翻
       // （`flip=h`）、再放（`x` `y`，左上角）。层序是文档顺序，所以没有 `z`。
-      "media-layer": ["src", "xywh", "w", "x", "y", "flip"],
+      // `dx` `dy`：位置由连接定了之后的微调（§16.8）。
+      "media-layer": ["src", "xywh", "w", "x", "y", "flip", "dx", "dy"],
+      // §16.8 一条连接：`a` `b` 是 `#层:点`，`kind` 是 contact（重合）或 gaze（对上）。
+      "media-interaction": ["a", "b", "kind"],
     },
   },
   // spec/profiles/geml-history/geml-history-profile.md

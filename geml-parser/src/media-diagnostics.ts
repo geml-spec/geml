@@ -45,7 +45,16 @@ export type MediaDiagnosticCode =
   | "media-layer-unassembled"
   | "media-comp-size-missing"
   | "media-comp-empty"
-  | "media-layer-not-image";
+  | "media-layer-not-image"
+  // 互动（设计记录 §16.8）：点、连接、序列。
+  | "media-interaction-unassembled"
+  | "media-interaction-unresolved"
+  | "media-interaction-point-undeclared"
+  | "media-interaction-same-layer"
+  | "media-layer-position-conflict"
+  | "media-asset-size-required"
+  | "media-comp-at-duplicate"
+  | "media-interaction-apart";
 
 export type MediaSeverity = "error" | "warning" | "info";
 
@@ -74,6 +83,15 @@ export const MEDIA_SEVERITY: Record<MediaDiagnosticCode, MediaSeverity> = {
   "media-comp-size-missing": "error",
   "media-comp-empty": "error",
   "media-layer-not-image": "error",
+  "media-interaction-unassembled": "error",
+  "media-interaction-unresolved": "error",
+  "media-interaction-point-undeclared": "error",
+  "media-interaction-same-layer": "error",
+  "media-layer-position-conflict": "error",
+  "media-asset-size-required": "error",
+  "media-comp-at-duplicate": "error",
+  // 两点声称相碰，合成后却分开了：位置由更早的连接或写死的坐标定了，这一条只验 —— 是事实，不是结构。
+  "media-interaction-apart": "warning",
   // 文件在、内容却不是它说的那个 —— 比没有更糟，那是错的文件。
   "media-hash-mismatch": "error",
   // 描述别处素材的库照样合法，只是未校验。

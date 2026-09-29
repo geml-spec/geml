@@ -212,6 +212,44 @@ body 是 raw，放作者自己的备注。备注是文档事实，进历史；�
 `prompt=` 该 comp、`inputs[]` 各层素材——因为 `inputs[]` 唯一正确的来源就是 comp 本身。
 `geml media todo` 把没有记录认领的 comp 列成一件 `composite` 待办。
 
+### 5.2 点与互动 —— 两样东西在哪里碰上
+
+手搭在碗上、两人对视、脚落在地上——两样东西在哪里碰上，是这一镜的事实，不是把它们画进
+同一张图的理由。三个键加一个类型承载它（设计记录 §16.8）：
+
+| 在哪 | 键 | 含义 |
+|---|---|---|
+| `media-asset`（立绘**和母版**） | `points` | 这张图自己像素坐标里的命名点：`points="hand:562,522 eyes:290,300"`。母版的 `floor`、`bed-edge`、`door` 才是多数站位问题所在 |
+| 素材 `of=` 指向的角色 / 场景块——标题节的属性，或 `.look` 那个 `media-text` 的属性 | `points` | 只有**名字**：`points="hand eyes feet"`。它是 schema，不是坐标：立绘缺了角色声明的点、互动引了角色没有的点，在合成之前就报出来 |
+| `media-comp` 里的 `media-interaction` | `a`、`b`、`kind` | `a=#层:点 b=#层:点 kind=contact\|gaze`。**散文**类型：body 写这一拍发生了什么——按步可读（`geml get '#s05-handoff'`），用到生成式精修时就是它的提示词 |
+| `media-comp` | `at` | 这一帧在镜头里的时刻，秒。同 `shot=` 的几个 comp 是一个序列；帧与帧之间层按素材 `of=` 的角色对应，不按 id——id 在一份文档里唯一 |
+| `media-layer` | `dx`、`dy` | 位置由互动定了之后的微调 |
+
+```geml
+==== media-comp {#s05-comp shot=s05 size=720x1280}
+
+=== media-layer {#s05-bg src=library.geml#bedroom-plate}
+===
+=== media-layer {#s05-sister src=library.geml#sister-hand x=-90 y=370 w=560}
+===
+=== media-layer {#s05-bowl src=library.geml#bowl w=180}
+===
+=== media-interaction {#s05-handoff a=#s05-sister:hand b=#s05-bowl:left-grip kind=contact}
+林岚双手端着碗，递到林夏面前。
+===
+
+====
+```
+
+**摆放。** 层按文档顺序放。一条互动指的两层里，**靠后的那层动**，向前面那层靠；`a` `b`
+的先后无关。`contact` 让两点重合；`gaze` 只把两点的高度对齐，`x` 不动。一个层由它的
+**第一条**互动定位置，之后的互动只验：两点合成后相距超过 2 像素报 `media-interaction-apart`。
+由 contact 定位的层不能再写 `x`/`y`，由 gaze 定位的不能写 `y`（`media-layer-position-conflict`），
+微调用 `dx`/`dy`。点随 `w` 缩放要知道源图多宽：有 `xywh` 用裁切宽，否则用素材的 `size=`
+（`media-asset-size-required`）。互动只在关键帧上成立：两个 `at` 之间是视频模型或补间器的事。
+comp 的规范化文本带上解析后的点坐标，点挪了，用它的 comp 就过期。`check` 和 `compose` 用的
+是同一份几何。
+
 ## 6. 生成日志 —— `data {.gen-log format=jsonl}`
 
 一次生成一条记录，只追加，不改写。它是带 class 的核心 `data` 块，不是自己的类型，这买到
@@ -224,7 +262,7 @@ body 是 raw，放作者自己的备注。备注是文档事实，进历史；�
 | `output-sha256` | `output` 非 null 时必需 | **产出当刻**那个文件的哈希。它回答"素材现在这份字节是哪条记录产的"。没有它，一次重生之后被取代的旧记录会永远对不上现值，素材读起来就是永远过期 |
 | `model` | 是 | 模型名，自由字符串，带版本 |
 | `mode` | 是 | `t2i`、`i2v`、`t2v`、`tts`、`lipsync`、`upscale`、`composite`、`other` |
-| `prompt` | 条件 | 提示词块、台词块或 comp 块（§5.1） |
+| `prompt` | 条件 | 提示词块、台词块、comp 块或互动块（§5.1、§5.2） |
 | `prompt-sha256` | 与 `prompt` 同 | **展开投射之后**的提示词的哈希：模型看到的那串字 |
 | `prompt-refs[]` | 与 `prompt` 同 | `{ref, sha256}`，**这条提示词投射到的每个块**。只有 `prompt-sha256` 的话，诊断只能说"提示词变了"；有了它才说得出**是哪个源**变了 |
 | `inputs[]` | 否 | `{ref, sha256, role?}`：参考图、LoRA、关键帧、声线样本、口型合成吃进去的 take 与配音、ComfyUI 的 workflow |
@@ -278,6 +316,14 @@ warning 而不是 error——否则改一次角色卡整条流水线红掉，人
 | `media-comp-size-missing` | error | `media-comp` 没有 `size=宽x高` |
 | `media-comp-empty` | error | `media-comp` 的体里一层都没有 |
 | `media-layer-not-image` | error | 层的 `src` 解析到的不是图片素材。悬空的 `src` 是 `media-src-unresolved` |
+| `media-interaction-unassembled` | error | `media-interaction` 不在任何 `media-comp` 里 |
+| `media-interaction-unresolved` | error | `a`/`b` 不是 `#层:点`、指的层不在这个 comp 里、层的素材没有那个点，或 `kind` 不是 `contact` / `gaze` |
+| `media-interaction-point-undeclared` | error | 点名不在素材所画的角色 / 场景声明的名字里 |
+| `media-interaction-same-layer` | error | 一条互动的两端在同一层上 |
+| `media-layer-position-conflict` | error | 由互动定位的层又写了那条互动要定的坐标 |
+| `media-asset-size-required` | error | 点要随 `w` 缩放，而 `xywh` 和素材的 `size=` 都没给源图宽 |
+| `media-comp-at-duplicate` | error | 同一镜两个 comp 的 `at` 相同 |
+| `media-interaction-apart` | warning | 只验不动的那条互动，两点合成后相距超过 2 像素 |
 
 **v1 刻意不实现**（设计记录里描述过的）：编导口味的几条（`media-runtime-off-target`、
 `media-emotion-drift`、`media-look-outdated`、`media-episode-mismatch`、
@@ -305,5 +351,6 @@ warning 而不是 error——否则改一次角色卡整条流水线红掉，人
 含义，要 `v2`。两种情况下规范都不变：这份 profile 放行的，全是 §8.6 本来就允许一份词汇表
 放行的名字。
 
-2026-09-29：加了 `media-comp`、`media-layer`、`composite` 模式与四个码（§5.1）——只加名字，
-是小版本改动；`v1` 不变。
+2026-09-29：加了 `media-comp`、`media-layer`、`composite` 模式与四个码（§5.1），随后加了
+`media-interaction`、`points`、`at`、`dx`/`dy` 与八个码（§5.2）——只加名字，是小版本改动；
+`v1` 不变。

@@ -10,6 +10,7 @@ import { parse, type Block } from "./geml.js";
 import { blocksOf, metaOf, splitRef, promptTextOf, type MediaIO, type Loaded } from "./media-check.js";
 import { layout, type Timeline } from "./media-timeline.js";
 import { drivePlayer } from "./media-player-runtime.js";
+import { layerSpec, parseEnd, solveLayout, type End, type InteractionSpec, type LayerSpec } from "./media-compose.js";
 
 /** 宿主能做、而这个模块不能做的事：跑外部程序、写文件。 */
 export interface MediaHost extends MediaIO {
@@ -559,24 +560,41 @@ export function composePlan(ref: string, outFile: string, io: MediaIO): ComposeP
   const filters: string[] = ["[0:v]format=rgba[b0]"];
   const layers: ComposePlan["layers"] = [];
   const notes: string[] = [];
-  let n = 0;
+  // 先收齐能摆的层，再按连接解算位置（§16.8）—— 和 check 用的是同一份几何。
+  const placed: { layer: Extract<Block, { kind: "block" }>; asset: { rel: string; b: Extract<Block, { kind: "block" }> }; path: string; spec: LayerSpec }[] = [];
   for (const { layer, asset } of layersOf(p, hit.rel, hit.b)) {
     const src = str(layer.attrs["src"]);
     const path = src === undefined ? undefined : info(src, hit.rel).path;
     if (asset === null || path === undefined) { notes.push(`层 #${layer.id ?? "?"} 的源没有文件路径，跳过`); continue; }
+    placed.push({ layer, asset, path, spec: layerSpec(layer.id ?? `layer-${placed.length}`, placed.length, layer.attrs, asset.b.attrs) });
+  }
+  const specs = new Map(placed.map((x) => [x.spec.id, x.spec]));
+  const interactions: InteractionSpec[] = [];
+  for (const c of hit.b.children ?? []) {
+    if (c.kind !== "block" || c.type !== "media-interaction") continue;
+    const a = parseEnd(c.attrs["a"]);
+    const b = parseEnd(c.attrs["b"]);
+    const kind = str(c.attrs["kind"]);
+    const ok = (e: End | null): e is End => e !== null && (specs.get(e.layer)?.points.has(e.point) ?? false);
+    if (!ok(a) || !ok(b) || (kind !== "contact" && kind !== "gaze") || a.layer === b.layer) {
+      notes.push(`连接 #${c.id ?? "?"} 引不到或写错了，跳过（check 会说是哪里）`);
+      continue;
+    }
+    interactions.push({ id: c.id ?? "?", a, b, kind });
+  }
+  const solved = solveLayout(placed.map((x) => x.spec), interactions);
+  for (const pr of solved.problems) if (pr.code !== "apart") notes.push(pr.message);
+  let n = 0;
+  for (const { layer, asset, path, spec } of placed) {
     inputs.push("-i", path);
     const steps: string[] = [];
-    const xywh = str(layer.attrs["xywh"]);
-    if (xywh !== undefined) {
-      const [x, y, w, h] = xywh.split(",").map((s) => s.trim());
-      steps.push(`crop=${w ?? ""}:${h ?? ""}:${x ?? ""}:${y ?? ""}`);
-    }
-    const w = str(layer.attrs["w"]);
-    if (w !== undefined) steps.push(`scale=${w}:-1`);
+    if (spec.crop !== undefined) steps.push(`crop=${spec.crop.w}:${spec.crop.h}:${spec.crop.x}:${spec.crop.y}`);
+    if (spec.w !== undefined) steps.push(`scale=${spec.w}:-1`);
     if (str(layer.attrs["flip"]) === "h") steps.push("hflip");
     steps.push("format=rgba");
+    const pos = solved.pos.get(spec.id) ?? { x: 0, y: 0 };
     filters.push(`[${n + 1}:v]${steps.join(",")}[l${n}]`);
-    filters.push(`[b${n}][l${n}]overlay=${str(layer.attrs["x"]) ?? "0"}:${str(layer.attrs["y"]) ?? "0"}[b${n + 1}]`);
+    filters.push(`[b${n}][l${n}]overlay=${Math.round(pos.x)}:${Math.round(pos.y)}[b${n + 1}]`);
     const sha = str(asset.b.attrs["sha256"]);
     layers.push(sha === undefined ? { ref: `${asset.rel}#${asset.b.id ?? ""}`, path } : { ref: `${asset.rel}#${asset.b.id ?? ""}`, path, sha256: sha });
     n++;

@@ -253,6 +253,50 @@ new block, or the existing block's `sha256=`) and appends the entry —
 layers' assets — because the only correct source of that `inputs[]` is the comp
 itself. `geml media todo` lists a comp no entry claims as a `composite` item.
 
+### 5.2 Points and interactions — where two things meet
+
+Where two things meet — a hand on a bowl, two people looking at each other, feet
+on the floor — is a fact of the shot, not a reason to draw both in one image.
+Three keys and one type carry it (design record §16.8):
+
+| where | key | meaning |
+|---|---|---|
+| `media-asset` (stands **and plates**) | `points` | named positions in that image's own pixels: `points="hand:562,522 eyes:290,300"`. A plate's `floor`, `bed-edge`, `door` are what most blocking is about |
+| the character or scene block the asset is `of=` — a heading's attribute, or `points` on a `.look` `media-text` | `points` | the **names** only: `points="hand eyes feet"`. A schema, not coordinates: a stand missing a point its character declares, or an interaction naming a point the character does not have, is reported before anything is composed |
+| `media-interaction`, inside a `media-comp` | `a`, `b`, `kind` | `a=#layer:point b=#layer:point kind=contact\|gaze`. A **prose** type: its body says what happens in this beat — readable per step (`geml get '#s05-handoff'`), and the prompt of a generative finish where one is used |
+| `media-comp` | `at` | the moment within the shot, seconds. Several comps sharing `shot=` are a sequence; layers correspond across frames by the character their asset is `of=`, not by id — ids are unique in a document |
+| `media-layer` | `dx`, `dy` | an offset applied when an interaction places the layer |
+
+```geml
+==== media-comp {#s05-comp shot=s05 size=720x1280}
+
+=== media-layer {#s05-bg src=library.geml#bedroom-plate}
+===
+=== media-layer {#s05-sister src=library.geml#sister-hand x=-90 y=370 w=560}
+===
+=== media-layer {#s05-bowl src=library.geml#bowl w=180}
+===
+=== media-interaction {#s05-handoff a=#s05-sister:hand b=#s05-bowl:left-grip kind=contact}
+林岚双手端着碗，递到林夏面前。
+===
+
+====
+```
+
+**Placement.** Layers are placed in document order. Of the two layers an
+interaction names, the **later one moves** toward the earlier; the order of `a`
+and `b` does not matter. `contact` moves it so the two points coincide; `gaze`
+aligns the vertical position of the two points and leaves `x` alone. A layer is
+placed by its **first** interaction; later interactions on it only verify, and
+report `media-interaction-apart` when the points end up more than 2 px apart. A
+layer placed by a contact must not write `x`/`y`; one placed by a gaze must not
+write `y` (`media-layer-position-conflict`) — adjust with `dx`/`dy` instead.
+Scaling a point by `w` needs the source width: `xywh` supplies it, otherwise the
+asset's `size=` (`media-asset-size-required`). Interactions hold at keyframes
+only: what happens between two `at`s is the video model's or the tweener's.
+The comp's canonical text carries the resolved point coordinates, so a moved
+point stales every comp that used it. `check` and `compose` share one geometry.
+
 ## 6. The generation log — `data {.gen-log format=jsonl}`
 
 One entry per generation, appended, never rewritten. It is a core `data` block
@@ -266,7 +310,7 @@ lose: the JSON is validated by the core, every entry and field has a coordinate
 | `output-sha256` | yes, when `output` is not null | the hash of the produced file **at the time it was produced**. It answers "which entry produced the bytes this asset has now". Without it, one regeneration leaves the superseded entry mismatching the current value for ever, and the asset reads as permanently stale |
 | `model` | yes | model name, free string, version included |
 | `mode` | yes | `t2i`, `i2v`, `t2v`, `tts`, `lipsync`, `upscale`, `composite`, `other` |
-| `prompt` | conditional | the prompt, line or comp block (§5.1) |
+| `prompt` | conditional | the prompt, line, comp or interaction block (§5.1, §5.2) |
 | `prompt-sha256` | with `prompt` | the hash of the prompt **after projections are expanded**: the string the model saw |
 | `prompt-refs[]` | with `prompt` | `{ref, sha256}` for **each block the prompt projects**. `prompt-sha256` alone can only say "the prompt changed"; this says *which source* changed |
 | `inputs[]` | no | `{ref, sha256, role?}`: reference images, LoRAs, key frames, voice samples, the take and voice-overs a lip-sync consumes, a ComfyUI workflow |
@@ -325,6 +369,14 @@ learn to ignore it.
 | `media-comp-size-missing` | error | a `media-comp` without `size=WxH` |
 | `media-comp-empty` | error | a `media-comp` with no layer in its body |
 | `media-layer-not-image` | error | a layer's `src` resolves to something that is not an image asset. A dangling `src` is `media-src-unresolved` |
+| `media-interaction-unassembled` | error | a `media-interaction` outside any `media-comp` |
+| `media-interaction-unresolved` | error | `a`/`b` is not `#layer:point`, names a layer outside this comp or a point its asset does not have; or `kind` is not `contact` / `gaze` |
+| `media-interaction-point-undeclared` | error | the point is not among the names the asset's character or scene declares |
+| `media-interaction-same-layer` | error | both ends of an interaction on one layer |
+| `media-layer-position-conflict` | error | a layer placed by an interaction also writes the coordinate that interaction sets |
+| `media-asset-size-required` | error | a point must be scaled by `w` and neither `xywh` nor the asset's `size=` gives the source width |
+| `media-comp-at-duplicate` | error | two comps of one shot at the same `at` |
+| `media-interaction-apart` | warning | an interaction that only verifies finds its two points more than 2 px apart |
 
 **Deliberately not implemented in v1**, though the design record describes them:
 the editorial checks (`media-runtime-off-target`, `media-emotion-drift`,
@@ -359,4 +411,5 @@ one, or changing what a name means, needs `v2`. The specification does not chang
 either way: this profile only admits names §8.6 already lets a vocabulary admit.
 
 2026-09-29: `media-comp`, `media-layer`, the `composite` mode and four codes were
-added (§5.1) — names only, so a minor change; `v1` stands.
+added (§5.1), then `media-interaction`, `points`, `at`, `dx`/`dy` and eight codes
+(§5.2) — names only, so minor changes; `v1` stands.

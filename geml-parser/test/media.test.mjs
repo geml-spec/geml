@@ -825,4 +825,146 @@ test("compose：comp 找不到、没有 size、层没有文件 —— 说出来�
   rmSync(root, { recursive: true, force: true });
 });
 
+// ---- 互动（设计记录 §16.8）：点、连接、序列 ---------------------------------------
+
+const blocksOfDoc = (doc) => { const out = []; const walk = (bs) => { for (const b of bs) if (b.kind === "block") { out.push(b); if (b.children) walk(b.children); } }; walk(doc.children); return out; };
+
+/**
+ * 递碗：母版、林岚（已放好）、碗（自由）、林夏（自由）。i1 把碗放到林岚手上，i2 把林夏的手
+ * 放到碗的另一侧把手上，i3 是对视 —— 林夏已经被 i2 定了位置，i3 只验，而两人眼睛差了三百多像素。
+ */
+function interProject() {
+  const PNG = "PNGBYTES";
+  const asset = (id, extra) => `=== media-asset {#${id} src=${id}.png sha256=${sha(PNG)} kind=image ${extra}}\n===\n\n`;
+  return {
+    "bg.png": PNG, "sister.png": PNG, "bowl.png": PNG, "hero.png": PNG, "nosize.png": PNG,
+    "chars.geml": META
+      + '# 林岚 {#sister points="hand eyes feet"}\n\n# 林夏 {#hero points="hand eyes"}\n\n'
+      + '=== media-text {#bedroom .look points="floor bed-edge"}\n清晨的卧室。\n===\n',
+    "lib.geml": META
+      + asset("bg", 'role=master of=chars.geml#bedroom size=720x1280 points="floor:0,1180 bed-edge:300,900"')
+      + asset("sister", 'role=stand of=chars.geml#sister size=720x1280 points="hand:562,522 eyes:290,300 feet:250,1240"')
+      + asset("bowl", 'role=prop size=400x240 points="left-grip:40,120 right-grip:360,120"')
+      + asset("hero", 'role=stand of=chars.geml#hero size=720x1280 points="hand:200,900 eyes:360,240 chin:360,400"')
+      + asset("nosize", 'role=stand of=chars.geml#hero points="hand:1,1"')
+      + "=== data {#gen-log .gen-log format=jsonl}\n===\n",
+    "script.geml": META
+      + "==== media-comp {#c shot=s05 size=720x1280}\n\n"
+      + "=== media-layer {#L-bg src=lib.geml#bg}\n===\n\n"
+      + "=== media-layer {#L-sister src=lib.geml#sister x=-90 y=370 w=560}\n===\n\n"
+      + "=== media-layer {#L-bowl src=lib.geml#bowl w=180}\n===\n\n"
+      + "=== media-layer {#L-hero src=lib.geml#hero w=520}\n===\n\n"
+      + "=== media-interaction {#i1 a=#L-sister:hand b=#L-bowl:left-grip kind=contact}\n林岚双手端着碗，递到林夏面前。\n===\n\n"
+      + "=== media-interaction {#i2 a=#L-bowl:right-grip b=#L-hero:hand kind=contact}\n===\n\n"
+      + "=== media-interaction {#i3 a=#L-sister:eyes b=#L-hero:eyes kind=gaze}\n===\n\n"
+      + "====\n",
+  };
+}
+
+test("互动：media-interaction 是登记过的散文类型，points / at / a b kind 都是放行的键", () => {
+  const root = project(interProject());
+  const doc = parse(read(join(root, "script.geml"), "utf8"));
+  assert.deepEqual(doc.diagnostics.filter((d) => d.code === "unknown-block-type" || d.code === "unknown-attribute"), [], JSON.stringify(doc.diagnostics));
+  const i1 = blocksOfDoc(doc).find((b) => b.id === "i1");
+  assert.equal(i1.prose, true, "body 是散文：这一步发生了什么，人读、模型读、按步检索");
+  assert.equal(promptTextOf("script.geml#i1", "lib.geml", profileIoFor(root)), "林岚双手端着碗，递到林夏面前。");
+  const lib = parse(read(join(root, "lib.geml"), "utf8"));
+  assert.deepEqual(lib.diagnostics.filter((d) => d.code === "unknown-attribute"), [], "素材上的 points= 放行");
+  const at = parse(META + "==== media-comp {#k1 shot=s07 at=0.6 size=1x1}\n\n=== media-layer {#l src=#a}\n===\n\n====\n");
+  assert.deepEqual(at.diagnostics.filter((d) => d.code === "unknown-attribute"), [], "comp 上的 at= 放行");
+  const chars = parse(read(join(root, "chars.geml"), "utf8"));
+  assert.deepEqual(chars.diagnostics.filter((d) => d.code === "unknown-attribute"), [], ".look 上的 points= 放行");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("互动：递碗的 comp 干净，只有对视那条只验不动、且两人眼睛不齐 —— media-interaction-apart", () => {
+  const root = project(interProject());
+  const ds = checkMedia("script.geml", profileIoFor(root));
+  assert.deepEqual(ds.map((d) => d.code), ["media-interaction-apart"], JSON.stringify(ds));
+  assert.equal(ds[0].id, "i3");
+  assert.equal(ds[0].severity, "warning");
+  assert.match(ds[0].message, /30[0-9]/, "消息说出差了多少像素");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("互动：解算 —— 接触把后面的层放到前面层的点上，compose 的 overlay 用解出来的坐标", () => {
+  const root = project(interProject());
+  const plan = verbs.composePlan("script.geml#c", "o.png", profileIoFor(root));
+  assert.deepEqual(plan.notes, [], plan.notes.join(" "));
+  const graph = plan.args[plan.args.indexOf("-filter_complex") + 1];
+  // 林岚 x=-90 y=370 w=560 → 比例 560/720，手 (562,522) 落在画布 (347.1, 776.0)
+  assert.match(graph, /\[b1\]\[l1\]overlay=-90:370\[b2\]/, graph);
+  // 碗 w=180 / 400 → 0.45，左把手 (40,120) 要落到手上：x = 347.1 − 18 = 329，y = 776 − 54 = 722
+  assert.match(graph, /\[b2\]\[l2\]overlay=329:722\[b3\]/, graph);
+  // 林夏 w=520 / 720，手 (200,900) 落到右把手 (491.1, 776.0)：x = 491.1 − 144.4 = 347，y = 776 − 650 = 126
+  assert.match(graph, /\[b3\]\[l3\]overlay=347:126\[b4\]/, graph);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("互动：对视只动 y；dx dy 是微调；后放的层自由，先放的不动", () => {
+  const f = interProject();
+  f["script.geml"] = META
+    + "==== media-comp {#g size=720x1280}\n\n"
+    + "=== media-layer {#A src=lib.geml#sister x=0 y=100 w=720}\n===\n\n"
+    + "=== media-layer {#B src=lib.geml#hero x=300 w=360 dy=10}\n===\n\n"
+    + "=== media-interaction {#eyes a=#A:eyes b=#B:eyes kind=gaze}\n===\n\n"
+    + "====\n";
+  const root = project(f);
+  assert.deepEqual(checkMedia("script.geml", profileIoFor(root)), []);
+  const graph = verbs.composePlan("script.geml#g", "o.png", profileIoFor(root)).args.find((a) => a.includes("overlay"));
+  // A 的眼睛 y = 100 + 300 = 400；B 比例 0.5，眼睛 (360,240) → y = 400 − 120 + dy 10 = 290；x 保留 300
+  assert.match(graph, /\[b1\]\[l1\]overlay=300:290\[b2\]/, graph);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("互动：引不到层、层上没那个点、点名不在角色声明里、两端同一层、不在 comp 里、位置冲突、缺 size、同镜同时刻 —— 各自点名", () => {
+  const f = interProject();
+  f["script.geml"] = META
+    + "=== media-interaction {#loose a=#x:hand b=#y:hand kind=contact}\n===\n\n"
+    + "==== media-comp {#d size=720x1280}\n\n"
+    + "=== media-layer {#s src=lib.geml#sister x=0 y=0 w=720}\n===\n\n"
+    + "=== media-layer {#h src=lib.geml#hero x=5 y=5 w=720}\n===\n\n"
+    + "=== media-layer {#n src=lib.geml#nosize w=100}\n===\n\n"
+    + "=== media-layer {#h2 src=lib.geml#hero w=720}\n===\n\n"
+    + "=== media-interaction {#nolayer a=#s:hand b=#zz:hand kind=contact}\n===\n\n"
+    + "=== media-interaction {#nopoint a=#s:hand b=#h:nose kind=contact}\n===\n\n"
+    + "=== media-interaction {#undeclared a=#s:hand b=#h2:chin kind=contact}\n===\n\n"
+    + "=== media-interaction {#same a=#s:hand b=#s:eyes kind=contact}\n===\n\n"
+    + "=== media-interaction {#conflict a=#s:hand b=#h:hand kind=contact}\n===\n\n"
+    + "=== media-interaction {#nosize a=#s:hand b=#n:hand kind=contact}\n===\n\n"
+    + "=== media-interaction {#badkind a=#s:hand b=#h2:hand kind=hug}\n===\n\n"
+    + "====\n\n"
+    + "==== media-comp {#k1 shot=s07 at=0 size=1x1}\n\n=== media-layer {#k1l src=lib.geml#bg}\n===\n\n====\n\n"
+    + "==== media-comp {#k2 shot=s07 at=0 size=1x1}\n\n=== media-layer {#k2l src=lib.geml#bg}\n===\n\n====\n";
+  const root = project(f);
+  const ds = checkMedia("script.geml", profileIoFor(root));
+  const by = (code) => ds.filter((d) => d.code === code).map((d) => d.id).sort();
+  assert.deepEqual(by("media-interaction-unassembled"), ["loose"], JSON.stringify(ds));
+  assert.deepEqual(by("media-interaction-unresolved"), ["badkind", "loose", "nolayer", "nopoint"], JSON.stringify(ds));
+  assert.deepEqual(by("media-interaction-point-undeclared"), ["undeclared"], JSON.stringify(ds));
+  assert.deepEqual(by("media-interaction-same-layer"), ["same"], JSON.stringify(ds));
+  assert.deepEqual(by("media-layer-position-conflict"), ["h"], "h 写了 x y 又被 #conflict 定位：" + JSON.stringify(ds));
+  assert.deepEqual(by("media-asset-size-required"), ["n"], JSON.stringify(ds));
+  assert.deepEqual(by("media-comp-at-duplicate"), ["k2"], JSON.stringify(ds));
+  for (const d of ds) if (d.code !== "media-interaction-apart") assert.equal(d.severity, "error", d.code);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("互动：comp 的规范化文本带上解析后用到的点坐标 —— 素材上的 points= 一改，合成就过期", () => {
+  const root = project(interProject());
+  const io = profileIoFor(root);
+  const text = promptTextOf("script.geml#c", "lib.geml", io);
+  assert.match(text, /^media-interaction #i1 a=#L-sister:hand@562,522 b=#L-bowl:left-grip@40,120 kind=contact$/m, text);
+  write(join(root, "o.png"), "OUT");
+  write(join(root, "lib.geml"), read(join(root, "lib.geml"), "utf8")
+    .replace("=== data {#gen-log", `=== media-asset {#o src=o.png sha256=${sha("OUT")} kind=image role=first-frame}\n===\n\n=== data {#gen-log`)
+    .replace("format=jsonl}\n===", "format=jsonl}\n" + JSON.stringify({ output: "#o", "output-sha256": sha("OUT"), model: "ffmpeg-overlay", mode: "composite", prompt: "script.geml#c", "prompt-sha256": sha(text), at: "2026-09-29T00:00:00Z" }) + "\n==="));
+  assert.deepEqual(checkMedia("lib.geml", io).filter((d) => d.code !== "media-interaction-apart"), []);
+  write(join(root, "lib.geml"), read(join(root, "lib.geml"), "utf8").replace("hand:562,522", "hand:570,522"));
+  const st = checkMedia("lib.geml", io).find((d) => d.code === "media-stale-generation");
+  assert.ok(st, "点挪了 8 像素，合成该过期");
+  assert.equal(st.id, "o");
+  rmSync(root, { recursive: true, force: true });
+});
+
 console.log(String.fromCharCode(10) + passed + " passed");

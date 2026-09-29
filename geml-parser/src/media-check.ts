@@ -11,6 +11,7 @@
 import { parse, type Block, type Document, type Inline } from "./geml.js";
 import { mediaDiag, type MediaDiagnostic } from "./media-diagnostics.js";
 import { type ProfileIO } from "./profiles.js";
+import { layerSpec, parseEnd, parsePoints, parsePointNames, solveLayout, type End, type InteractionSpec, type LayerSpec } from "./media-compose.js";
 
 // 这份检查器读盘的方式，就是任何一份 profile 检查器读盘的方式（profiles.ts
 // `ProfileIO`）。别名留着，是因为这个文件通篇用它说话。
@@ -111,14 +112,34 @@ function proseText(
  * 于是重排空白、调换属性顺序都不算改动，而 `x=300` 改成 `x=340` 就是 —— 和提示词
  * 的哈希忽略标记、只看展开后的字是同一个道理。
  */
-function compText(block: Extract<Block, { kind: "block" }>): string {
-  const head = (b: Extract<Block, { kind: "block" }>): string => [
+function compText(
+  block: Extract<Block, { kind: "block" }>,
+  from: string,
+  load: (rel: string) => Loaded | null,
+): string {
+  type B = Extract<Block, { kind: "block" }>;
+  const head = (b: B, attrs: Record<string, unknown> = b.attrs): string => [
     b.type,
     ...(b.id === undefined ? [] : [`#${b.id}`]),
-    ...Object.keys(b.attrs).sort().map((k) => `${k}=${String(b.attrs[k])}`),
+    ...Object.keys(attrs).sort().map((k) => `${k}=${String(attrs[k])}`),
   ].join(" ");
   const lines = [head(block)];
-  for (const c of block.children ?? []) if (c.kind === "block" && c.type === "media-layer") lines.push(head(c));
+  const kids = (block.children ?? []).filter((c): c is B => c.kind === "block");
+  const layers = new Map<string, B>();
+  for (const c of kids) if (c.type === "media-layer") { lines.push(head(c)); if (c.id !== undefined) layers.set(c.id, c); }
+  // 连接的两端带上解析后的点坐标（§16.8）：素材上的 points= 一改，用它的 comp 就过期。
+  const withPoint = (v: unknown): string => {
+    const e = parseEnd(v);
+    const src = e === null ? undefined : str(layers.get(e.layer)?.attrs["src"]);
+    const t = src === undefined ? null : splitRef(src, from);
+    const into = t === null ? null : load(t.doc);
+    const asset = into === null || t === null ? undefined : blocksOf(into.doc).find((x) => x.id === t.id);
+    const p = asset === undefined || e === null ? undefined : parsePoints(asset.attrs["points"]).get(e.point);
+    return p === undefined ? `${String(v)}@?` : `${String(v)}@${p.x},${p.y}`;
+  };
+  for (const c of kids) {
+    if (c.type === "media-interaction") lines.push(head(c, { ...c.attrs, a: withPoint(c.attrs["a"]), b: withPoint(c.attrs["b"]) }));
+  }
   return lines.join("\n");
 }
 
@@ -128,7 +149,7 @@ function blockText(
   from: string,
   load: (rel: string) => Loaded | null,
 ): string | null {
-  return block.type === "media-comp" ? compText(block) : proseText(block, from, load);
+  return block.type === "media-comp" ? compText(block, from, load) : proseText(block, from, load);
 }
 
 /** 把一条时间线的 `tracks=` 的「名字:种类」读成一张表，顺带报它自己的毛病。 */
@@ -222,6 +243,13 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
     if (l === null || l === undefined) return false;
     if (blocksOf(l.doc).some((x) => x.id === id)) return true;
     return l.doc.ids.includes(id);
+  };
+  // 角色是标题节：`# 林夏 {#hero points="hand eyes"}`。标题不在 blocksOf 里，单独找。
+  const headingAt = (doc: string, id: string): Extract<Block, { kind: "heading" }> | undefined => {
+    const l = docs.get(doc);
+    if (l === null || l === undefined) return undefined;
+    for (const b of l.doc.children) if (b.kind === "heading" && b.id === id) return b;
+    return undefined;
   };
   for (const rel of seen) {
     const l = docs.get(rel);
@@ -365,6 +393,89 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
       if (kind !== "image") {
         out.push(mediaDiag("media-layer-not-image", `\`src=${src}\` 不是一张图片（是 ${kind}）：层只能是立绘或母版`, rel, b.id));
       }
+    }
+  }
+
+  // ---- 互动：点、连接、序列（§16.8）------------------------------------------
+  //
+  // 解算和 compose 用同一份几何（media-compose.ts）：这里报"位置冲突""缺 size""两点分开"，
+  // compose 据同一份算坐标。引不到、同一层、不在 comp 里，是这里独有的结构检查。
+  const codeOf = {
+    "position-conflict": "media-layer-position-conflict",
+    "size-required": "media-asset-size-required",
+    "apart": "media-interaction-apart",
+  } as const;
+  for (const rel of seen) {
+    const l = docs.get(rel);
+    if (l === null || l === undefined) continue;
+    type B = Extract<Block, { kind: "block" }>;
+    const owned = new Set<B>();
+    const byShot = new Map<string, Map<string, string>>();
+    for (const m of blocksOf(l.doc)) {
+      if (m.type !== "media-comp") continue;
+      const shot = str(m.attrs["shot"]);
+      const at = str(m.attrs["at"]);
+      if (shot !== undefined && at !== undefined) {
+        const ats = byShot.get(shot) ?? new Map<string, string>();
+        const prev = ats.get(at);
+        if (prev !== undefined) {
+          out.push(mediaDiag("media-comp-at-duplicate", `镜 ${shot} 在 at=${at} 已经有 #${prev}：同一时刻两帧，说不清哪个是画面`, rel, m.id));
+        } else ats.set(at, m.id ?? "?");
+        byShot.set(shot, ats);
+      }
+      const kids = (m.children ?? []).filter((c): c is B => c.kind === "block");
+      const inter = kids.filter((c) => c.type === "media-interaction");
+      for (const c of inter) owned.add(c);
+      if (inter.length === 0) continue;
+      const specs = new Map<string, LayerSpec>();
+      const declared = new Map<string, Set<string> | null>();
+      kids.filter((c) => c.type === "media-layer").forEach((c, index) => {
+        if (c.id === undefined) return;
+        const src = str(c.attrs["src"]);
+        const t = src === undefined ? null : splitRef(src, rel);
+        const asset = t === null ? undefined : blockAt(t.doc, t.id);
+        specs.set(c.id, layerSpec(c.id, index, c.attrs, asset?.attrs ?? {}));
+        // 点的名字声明在素材 of= 指向的角色 / 场景上：标题节或 .look 块。
+        let names: Set<string> | null = null;
+        const of = asset === undefined ? undefined : str(asset.attrs["of"]);
+        if (of !== undefined && t !== null) {
+          const ot = splitRef(of, t.doc);
+          const target = ot === null ? undefined : (blockAt(ot.doc, ot.id) ?? headingAt(ot.doc, ot.id));
+          names = target === undefined ? null : parsePointNames(target.attrs["points"]);
+        }
+        declared.set(c.id, names);
+      });
+      const valid: InteractionSpec[] = [];
+      for (const b of inter) {
+        let problem: string | null = null;
+        const ends: End[] = [];
+        for (const k of ["a", "b"]) {
+          const v = str(b.attrs[k]);
+          const e = parseEnd(v);
+          if (e === null) { problem ??= `\`${k}=${v ?? ""}\` 要写成 \`#层:点\``; continue; }
+          const spec = specs.get(e.layer);
+          if (spec === undefined) { problem ??= `\`${k}=${v}\` 指的层 #${e.layer} 不在这个 comp 里`; continue; }
+          if (!spec.points.has(e.point)) { problem ??= `层 #${e.layer} 的素材没有点 \`${e.point}\``; continue; }
+          const names = declared.get(e.layer) ?? null;
+          if (names !== null && !names.has(e.point)) {
+            out.push(mediaDiag("media-interaction-point-undeclared", `点 \`${e.point}\` 不在层 #${e.layer} 所画的角色 / 场景声明的点名里`, rel, b.id));
+          }
+          ends.push(e);
+        }
+        const kindRaw = str(b.attrs["kind"]);
+        const kind: InteractionSpec["kind"] | null = kindRaw === "contact" || kindRaw === "gaze" ? kindRaw : null;
+        if (kind === null) problem ??= `\`kind=${kindRaw ?? ""}\` 不是 contact / gaze`;
+        if (problem !== null || kind === null) { out.push(mediaDiag("media-interaction-unresolved", problem ?? "", rel, b.id)); continue; }
+        const [ea, eb] = ends as [End, End];
+        if (ea.layer === eb.layer) { out.push(mediaDiag("media-interaction-same-layer", "连接的两端在同一层上：一层不能和自己相碰", rel, b.id)); continue; }
+        valid.push({ id: b.id ?? "?", a: ea, b: eb, kind });
+      }
+      for (const p of solveLayout([...specs.values()], valid).problems) out.push(mediaDiag(codeOf[p.code], p.message, rel, p.id));
+    }
+    for (const b of blocksOf(l.doc)) {
+      if (b.type !== "media-interaction" || owned.has(b)) continue;
+      out.push(mediaDiag("media-interaction-unassembled", "`media-interaction` 不在任何 `media-comp` 里 —— 它连的层无从解析", rel, b.id));
+      out.push(mediaDiag("media-interaction-unresolved", "不在 comp 里，`a=` `b=` 指的层无从解析", rel, b.id));
     }
   }
 

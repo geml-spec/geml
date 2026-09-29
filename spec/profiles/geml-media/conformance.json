@@ -26,7 +26,15 @@
     "media-layer-unassembled": "error",
     "media-comp-size-missing": "error",
     "media-comp-empty": "error",
-    "media-layer-not-image": "error"
+    "media-layer-not-image": "error",
+    "media-interaction-unassembled": "error",
+    "media-interaction-unresolved": "error",
+    "media-interaction-point-undeclared": "error",
+    "media-interaction-same-layer": "error",
+    "media-layer-position-conflict": "error",
+    "media-asset-size-required": "error",
+    "media-comp-at-duplicate": "error",
+    "media-interaction-apart": "warning"
   },
   "cases": [
     {
@@ -79,6 +87,23 @@
         "undeclared": [
           "#meta",
           "#s05"
+        ]
+      }
+    },
+    {
+      "name": "an interaction is prose: its body adds no address, so both readings see the same set",
+      "geml": "=== meta\nprofile = \"geml-media/v1\"\n===\n\n=== media-interaction {#i1 a=#l1:hand b=#l2:left-grip kind=contact}\n林岚把碗递到林夏面前。\n===\n",
+      "admits": [
+        "media-interaction"
+      ],
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#i1"
+        ],
+        "undeclared": [
+          "#meta",
+          "#i1"
         ]
       }
     }
