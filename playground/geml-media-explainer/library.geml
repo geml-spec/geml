@@ -176,39 +176,39 @@ profile = "geml-media/v1"
 ===
 
 
-=== media-asset {#ep-hero-sheet src=episode/assets/hero-sheet.png sha256=559ab5d2962024ce9c8458d6d995c94f838acc64c12fc947a01b94383d1b4d28 kind=image origin=generated role=workflow}
+=== media-asset {#ep-hero-sheet src=episode/assets/hero-sheet.png sha256=559ab5d2962024ce9c8458d6d995c94f838acc64c12fc947a01b94383d1b4d28 kind=image origin=generated role=workflow size=720x1280}
 ===
 
 
-=== media-asset {#ep-sister-sheet src=episode/assets/sister-sheet.png sha256=9478d54c72204762339a0d641e4785758e3a6a25eaa3f67c5d8da4416e12f9a0 kind=image origin=generated role=workflow}
+=== media-asset {#ep-sister-sheet src=episode/assets/sister-sheet.png sha256=9478d54c72204762339a0d641e4785758e3a6a25eaa3f67c5d8da4416e12f9a0 kind=image origin=generated role=workflow size=720x1280}
 ===
 
 
-=== media-asset {#ep-s01-key src=episode/assets/s01-key.png sha256=6a3b8caf47fc996250a871939f49d8371779c3e5a0c7f559564a06e333b0affd kind=image origin=generated role=workflow}
+=== media-asset {#ep-s01-key src=episode/assets/s01-key.png sha256=3e956364518870fd2dd65afb43a31a53eb92758082fafd86c1b1e21cf0604ba7 kind=image origin=generated role=workflow size=720x1280}
 ===
 
 
-=== media-asset {#ep-s02-key src=episode/assets/s02-key.png sha256=c90f17e74e2d86011380e27a58895191fc58d890d5675fbd84a3cf5cdb9cfa04 kind=image origin=generated role=workflow}
+=== media-asset {#ep-s02-key src=episode/assets/s02-key.png sha256=ecdc9fe9dbcb24770711fa79cc5c2cef42df193c9d70bab889d7c287652bfcb5 kind=image origin=generated role=workflow size=720x1280}
 ===
 
 
-=== media-asset {#ep-s03-key src=episode/assets/s03-key.png sha256=d4db2444a75cd2a3679f66d34ef06744bd710153668cff179a8825289533b1e2 kind=image origin=generated role=workflow}
+=== media-asset {#ep-s03-key src=episode/assets/s03-key.png sha256=5016283d6265b4796152a8a5c0b3a120dced1e9fed40b5be53eaf5090159ab1c kind=image origin=generated role=workflow size=720x1280}
 ===
 
 
-=== media-asset {#ep-s04-key src=episode/assets/s04-key.png sha256=1d08230e3346ec16a298c6b607486af60e4b3b15bdeed90af7390f0503a94fc8 kind=image origin=generated role=workflow}
+=== media-asset {#ep-s04-key src=episode/assets/s04-key.png sha256=383b4ea0e8144c84c4ef9338e4ebf26bfb82cdce75777ec424ed0891914115e6 kind=image origin=generated role=workflow size=720x1280}
 ===
 
 
-=== media-asset {#ep-s05-key src=episode/assets/s05-key.png sha256=c7b58efab765ac678f0783c74253ecb9520d0805ed8f69c2f66b3f92acbca9c4 kind=image origin=generated role=workflow}
+=== media-asset {#ep-s05-key src=episode/assets/s05-key.png sha256=edbc53326d32e4b3439772302b833a4024eb6a72007a11ed264373a4e588d522 kind=image origin=generated role=workflow size=720x1280}
 ===
 
 
-=== media-asset {#ep-s06-key src=episode/assets/s06-key.png sha256=00c753468c495251f3a72a4ae4ee14e72fef0983dec8c4cd7d9471132f53fd95 kind=image origin=generated role=workflow}
+=== media-asset {#ep-s06-key src=episode/assets/s06-key.png sha256=46241e814e04c561f670c8272434b99c38b2e45f790347747988b0a4ac9d53c0 kind=image origin=generated role=workflow size=720x1280}
 ===
 
 
-=== media-asset {#ep-final src=episode/out/ep01.mp4 sha256=1bf4c9736beeedb2629b918a41f65be72ddce2ee2731a9e5ce7f0535b5e1ba13 kind=video duration=36 origin=generated role=workflow}
+=== media-asset {#ep-final src=episode/out/ep01.mp4 sha256=4f20a7101b5585bb56dffe56467d9bf0c6ef648bb31133bed84c6028328065e7 kind=video duration=36 origin=generated role=workflow}
 ===
 
 
@@ -216,7 +216,7 @@ profile = "geml-media/v1"
 ===
 
 
-=== media-asset {#ep-frame src=assets/ep-frame.png sha256=306dfcba8fa3d492ff4000481418aa6a79b8cb381888c450889abd9fa517d06b kind=image origin=generated role=take}
+=== media-asset {#ep-frame src=assets/ep-frame.png sha256=a518e45a2c3912887e0b26e50f37e6c952964c82b02ce803a5fde9c3aa4703ba kind=image origin=generated role=take size=720x1280}
 ===
 
 
@@ -496,4 +496,6 @@ profile = "geml-media/v1"
 {"output":"#shot-s11-en","model":"render-scenes","mode":"code2v","at":"2026-09-28T11:52:04.768Z","output-sha256":"5494a5b36c986b7185199d8e19e7c23cea06d5fcc8d6335a98469048d6c6db72","inputs":[{"ref":"#scene-s11","sha256":"a56295bcaf09e014a60ccd5a14ec125c64c78013c76939f6d9b35df68d6c4b56"},{"ref":"#evidence-ep-script","sha256":"c162bb99eb25295d47f0171064e26ecc189405b1b3956727f705467542538f99"},{"ref":"#evidence-ep-change-line","sha256":"1d2cf7e9fb0dd06db9d1429db399dca4bdfad7cfc99cd369d114178719586efd"}]}
 {"output":"#shot-s12-zh","model":"render-scenes","mode":"code2v","at":"2026-09-28T11:52:21.272Z","output-sha256":"cd7d6e76826de07ee67ee800c803a5ec37bc611f05330c7cc66217f75940f89e","inputs":[{"ref":"#scene-s12","sha256":"fb5cfb2f10b14f941b11221d3455371a733725fe012dd7da58d76253cddd3554"}]}
 {"output":"#shot-s12-en","model":"render-scenes","mode":"code2v","at":"2026-09-28T11:52:37.700Z","output-sha256":"b1a3157422ea68ae3f3b99fb6fa2a7b903ee5c1fb7761c5ad73f9426a04aad3f","inputs":[{"ref":"#scene-s12","sha256":"fb5cfb2f10b14f941b11221d3455371a733725fe012dd7da58d76253cddd3554"}]}
+{"output":"#ep-audio","model":"ffmpeg","mode":"other","at":"2026-09-29T12:09:44.416Z","output-sha256":"e44e7a36f90cd474b582dbe36d4344bdc65955b0b317acf706f98c5d80f3c592","inputs":[{"ref":"#ep-final","sha256":"4f20a7101b5585bb56dffe56467d9bf0c6ef648bb31133bed84c6028328065e7"}]}
+{"output":"#ep-frame","model":"ffmpeg","mode":"other","at":"2026-09-29T12:09:44.966Z","output-sha256":"a518e45a2c3912887e0b26e50f37e6c952964c82b02ce803a5fde9c3aa4703ba","inputs":[{"ref":"#ep-final","sha256":"4f20a7101b5585bb56dffe56467d9bf0c6ef648bb31133bed84c6028328065e7"}]}
 ===
