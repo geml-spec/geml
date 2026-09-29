@@ -16,6 +16,16 @@ aspect = "9:16"
 | s04 | 6 | 推近 | 林岚端着汤推门进来，微笑 | #l2 |
 | s05 | 7 | 缓推 | 双人中景，林岚递汤 | #l3 |
 | s06 | 7 | 推近 | 特写，林夏冷笑，把汤推回 | #l4 |
+| s07 | 3 | 急推 | 林夏单手把碗推向林岚 | |
+| s08 | 3 | 急推 | 林岚单手推回来 | |
+| s09 | 4 | 推近 | 四只手在碗上，控制与反控制 | |
+| s10 | 4 | 推近 | 林岚把碗掀向林夏的嘴 | |
+| s11 | 4 | 抖动 | 碗被抛起，两人双手互攻 | |
+| s12 | 3 | 急推 | 碗落下，林夏接住 | |
+| s13 | 3 | 抖动 | 再攻，碗脱手落下 | |
+| s14 | 3 | 急拉 | 林岚抬脚接住，垫起 | |
+| s15 | 4 | 抖动 | 碗在半空；两人双手同时接住、互推 | |
+| s16 | 4 | 拉远 | 碗碎，两人跃开 | #l5 |
 ===
 
 # 角色图 {#sheets}
@@ -64,12 +74,78 @@ aspect = "9:16"
 ![[characters.geml#look]] ![[characters.geml#sister-look]] 全身，侧身朝右，双臂在腰腹的高度向前平伸，双手掌心向上像端着东西，手里什么都没有，温柔微笑。纯色浅紫背景。
 ===
 
+%% 打戏（s07–s16）的姿势。每张一次出图，手里一律是空的：碗是道具层，由连接放进手里。
+
+=== media-text {#hero-push-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#hero-look]] 半身，正面略偏左，左臂向前平伸、掌心向前推，手里什么都没有，冷笑。纯色浅紫背景。
+===
+
+=== media-text {#hero-grip-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#hero-look]] 半身正面，双臂向前伸出，双手做出抓握的姿势，手里什么都没有，咬牙用力的表情。纯色浅紫背景。
+===
+
+=== media-text {#hero-fed-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#hero-look]] 半身正面，头向后仰，张着嘴，一只手抬到脸前抵挡，另一只手向前推，手里什么都没有，惊怒。纯色浅紫背景。
+===
+
+=== media-text {#hero-strike-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#hero-look]] 全身，武术出掌的姿势，双掌向左前方击出，重心压低，凌厉的表情。纯色浅紫背景。
+===
+
+=== media-text {#hero-catch-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#hero-look]] 全身，双臂高举过头，双手掌心向上像要接住落下来的东西，手里什么都没有，抬头看向上方。纯色浅紫背景。
+===
+
+=== media-text {#hero-hold2-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#hero-look]] 半身正面，双手在胸前托举、用力向左前方推的姿势，手里什么都没有，咬牙。纯色浅紫背景。
+===
+
+=== media-text {#hero-leap-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#hero-look]] 全身，向右后方跃开、双脚离地，双臂张开护在身前，惊愕。纯色浅紫背景。
+===
+
+=== media-text {#sister-push-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#sister-look]] 半身，侧身朝右，右臂向前平伸、掌心向前推，手里什么都没有，笑容僵硬。纯色浅紫背景。
+===
+
+=== media-text {#sister-grip-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#sister-look]] 半身，侧身朝右，双臂向前伸出，双手做出抓握的姿势，手里什么都没有，用力。纯色浅紫背景。
+===
+
+=== media-text {#sister-pour-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#sister-look]] 半身，侧身朝右，双手向前上方抬起、像端着东西向前倾倒，手里什么都没有，表情狰狞。纯色浅紫背景。
+===
+
+=== media-text {#sister-strike-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#sister-look]] 全身，侧身朝右，武术出掌，双掌向右前方击出，重心压低。纯色浅紫背景。
+===
+
+=== media-text {#sister-kick-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#sister-look]] 全身，侧身朝右，单腿站立，另一条腿向前抬起、脚面朝上像要用脚接住东西，双臂张开平衡。纯色浅紫背景。
+===
+
+=== media-text {#sister-hold2-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#sister-look]] 半身，侧身朝右，双手在胸前托举、用力向右前方推，手里什么都没有，咬牙。纯色浅紫背景。
+===
+
+=== media-text {#sister-leap-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#sister-look]] 全身，向左后方跃开、双脚离地，双臂张开，惊愕。纯色浅紫背景。
+===
+
 # 道具 {#prop-prompts}
 
 %% 道具不画在任何人手里：它自己一层，放进哪只手是 comp 里一条连接的事。
 
 === media-text {#bowl-prompt .prompt}
 ![[characters.geml#look]] ![[characters.geml#bowl]] 单独一只碗，从正前方略高处看，没有手，没有桌子。纯色浅紫背景。
+===
+
+=== media-text {#bowl-tilt-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#bowl-tilt]] 单独一只碗，向左倾斜约四十五度，汤从碗沿泼出来，没有手，没有桌子。纯色浅紫背景。
+===
+
+=== media-text {#bowl-broken-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#bowl-broken]] 从正前方略高处看，没有手。纯色浅紫背景。
 ===
 
 # 母版 {#plates}
@@ -220,4 +296,282 @@ This soup... in my last life I drank it, and lost everything.
 
 === media-text {#l4-en .translation}
 This time, you drink it.
+===
+
+## s07 {#s07}
+
+==== media-comp {#s07-comp shot=s07 size=720x1280}
+
+=== media-layer {#s07-bg src=library.geml#bedroom-plate}
+===
+
+=== media-layer {#s07-sister src=library.geml#sister-grip x=-40 y=360 w=380}
+===
+
+=== media-layer {#s07-bowl src=library.geml#bowl xywh=40,500,640,520 w=110}
+===
+
+=== media-layer {#s07-hero src=library.geml#hero-push w=380}
+===
+
+=== media-interaction {#s07-resist a=#s07-sister:hand b=#s07-bowl:rim-left kind=contact}
+林岚伸手挡住碗。
+===
+
+=== media-interaction {#s07-push a=#s07-bowl:rim-right b=#s07-hero:hand kind=contact}
+林夏单手把碗推向林岚。
+===
+
+====
+
+## s08 {#s08}
+
+==== media-comp {#s08-comp shot=s08 size=720x1280}
+
+=== media-layer {#s08-bg src=library.geml#bedroom-plate}
+===
+
+=== media-layer {#s08-hero src=library.geml#hero-push x=300 y=330 w=380}
+===
+
+=== media-layer {#s08-bowl src=library.geml#bowl xywh=40,500,640,520 w=110}
+===
+
+=== media-layer {#s08-sister src=library.geml#sister-push w=380}
+===
+
+=== media-interaction {#s08-resist a=#s08-hero:hand b=#s08-bowl:rim-right kind=contact}
+林夏的手还按在碗上。
+===
+
+=== media-interaction {#s08-push a=#s08-bowl:rim-left b=#s08-sister:hand kind=contact}
+林岚单手把碗推回去。
+===
+
+====
+
+## s09 {#s09}
+
+==== media-comp {#s09-comp shot=s09 size=720x1280}
+
+=== media-layer {#s09-bg src=library.geml#bedroom-plate}
+===
+
+=== media-layer {#s09-hero src=library.geml#hero-grip x=250 y=300 w=520}
+===
+
+=== media-layer {#s09-bowl src=library.geml#bowl xywh=40,500,640,520 w=150}
+===
+
+=== media-layer {#s09-sister src=library.geml#sister-grip w=520}
+===
+
+=== media-interaction {#s09-grip-a a=#s09-hero:hand b=#s09-bowl:rim-right kind=contact}
+两人各上第二只手，四只手抓着同一只碗，控制与反控制。
+===
+
+=== media-interaction {#s09-grip-b a=#s09-bowl:rim-left b=#s09-sister:hand kind=contact}
+===
+
+====
+
+## s10 {#s10}
+
+==== media-comp {#s10-comp shot=s10 size=720x1280}
+
+=== media-layer {#s10-bg src=library.geml#bedroom-plate}
+===
+
+=== media-layer {#s10-sister src=library.geml#sister-pour x=-40 y=300 w=520 flip=h}
+===
+
+=== media-layer {#s10-bowl src=library.geml#bowl-tilt xywh=40,400,640,620 w=170}
+===
+
+=== media-layer {#s10-hero src=library.geml#hero-fed w=520}
+===
+
+=== media-interaction {#s10-pour a=#s10-sister:hand b=#s10-bowl:base kind=contact}
+林岚把碗掀起来，要往林夏嘴里灌。
+===
+
+=== media-interaction {#s10-mouth a=#s10-bowl:lip b=#s10-hero:mouth kind=contact}
+碗沿抵到林夏嘴边，她仰头躲。
+===
+
+====
+
+## s11 {#s11}
+
+==== media-comp {#s11-k1 shot=s11 at=0 size=720x1280}
+
+=== media-layer {#s11-k1-bg src=library.geml#bedroom-plate}
+===
+
+=== media-layer {#s11-k1-hero src=library.geml#hero-strike x=230 y=380 w=520}
+===
+
+=== media-layer {#s11-k1-sister src=library.geml#sister-strike x=-60 w=520}
+===
+
+=== media-layer {#s11-k1-bowl src=library.geml#bowl xywh=40,500,640,520 w=140 x=290 y=330}
+===
+
+=== media-interaction {#s11-k1-throw a=#s11-k1-hero:hand b=#s11-k1-sister:hand kind=gaze}
+碗被抛起的一瞬，两人双掌互攻。
+===
+
+====
+
+==== media-comp {#s11-k2 shot=s11 at=2 size=720x1280}
+
+=== media-layer {#s11-k2-bg src=library.geml#bedroom-plate}
+===
+
+=== media-layer {#s11-k2-hero src=library.geml#hero-strike x=250 y=380 w=520}
+===
+
+=== media-layer {#s11-k2-sister src=library.geml#sister-strike x=-80 y=380 w=520}
+===
+
+=== media-layer {#s11-k2-bowl src=library.geml#bowl xywh=40,500,640,520 w=120 x=300 y=120}
+===
+
+====
+
+## s12 {#s12}
+
+==== media-comp {#s12-comp shot=s12 size=720x1280}
+
+=== media-layer {#s12-bg src=library.geml#bedroom-plate}
+===
+
+=== media-layer {#s12-sister src=library.geml#sister-strike x=-60 y=380 w=520}
+===
+
+=== media-layer {#s12-hero src=library.geml#hero-catch x=220 y=200 w=520}
+===
+
+=== media-layer {#s12-bowl src=library.geml#bowl xywh=40,500,640,520 w=150}
+===
+
+=== media-interaction {#s12-catch a=#s12-hero:hand b=#s12-bowl:base kind=contact}
+碗落下来，林夏接住。
+===
+
+====
+
+## s13 {#s13}
+
+==== media-comp {#s13-comp shot=s13 size=720x1280}
+
+=== media-layer {#s13-bg src=library.geml#bedroom-plate}
+===
+
+=== media-layer {#s13-hero src=library.geml#hero-strike x=230 y=380 w=520}
+===
+
+=== media-layer {#s13-sister src=library.geml#sister-strike x=-60 w=520}
+===
+
+=== media-layer {#s13-bowl src=library.geml#bowl-tilt xywh=40,400,640,620 w=160 x=280 y=620}
+===
+
+=== media-interaction {#s13-again a=#s13-hero:hand b=#s13-sister:hand kind=gaze}
+再攻，碗脱手往下掉。
+===
+
+====
+
+## s14 {#s14}
+
+==== media-comp {#s14-comp shot=s14 size=720x1280}
+
+=== media-layer {#s14-bg src=library.geml#bedroom-plate}
+===
+
+=== media-layer {#s14-hero src=library.geml#hero-strike x=250 y=380 w=520}
+===
+
+=== media-layer {#s14-sister src=library.geml#sister-kick x=-40 y=300 w=560 flip=h}
+===
+
+=== media-layer {#s14-bowl src=library.geml#bowl xywh=40,500,640,520 w=150}
+===
+
+=== media-interaction {#s14-kick a=#s14-sister:foot b=#s14-bowl:base kind=contact}
+林岚抬脚接住碗，垫起来。
+===
+
+====
+
+## s15 {#s15}
+
+==== media-comp {#s15-k1 shot=s15 at=0 size=720x1280}
+
+=== media-layer {#s15-k1-bg src=library.geml#bedroom-plate}
+===
+
+=== media-layer {#s15-k1-hero src=library.geml#hero-hold2 x=260 y=340 w=520}
+===
+
+=== media-layer {#s15-k1-sister src=library.geml#sister-grip x=-60 y=340 w=520}
+===
+
+=== media-layer {#s15-k1-bowl src=library.geml#bowl xywh=40,500,640,520 w=130 x=295 y=100}
+===
+
+====
+
+==== media-comp {#s15-k2 shot=s15 at=2 size=720x1280}
+
+=== media-layer {#s15-k2-bg src=library.geml#bedroom-plate}
+===
+
+=== media-layer {#s15-k2-hero src=library.geml#hero-hold2 x=260 y=340 w=520}
+===
+
+=== media-layer {#s15-k2-bowl src=library.geml#bowl xywh=40,500,640,520 w=150}
+===
+
+=== media-layer {#s15-k2-sister src=library.geml#sister-grip w=520}
+===
+
+=== media-interaction {#s15-k2-hold-a a=#s15-k2-hero:hand b=#s15-k2-bowl:rim-right kind=contact}
+两人双手同时接住碗，往对方那边推。
+===
+
+=== media-interaction {#s15-k2-hold-b a=#s15-k2-bowl:rim-left b=#s15-k2-sister:hand kind=contact}
+===
+
+====
+
+## s16 {#s16}
+
+==== media-comp {#s16-comp shot=s16 size=720x1280}
+
+=== media-layer {#s16-bg src=library.geml#bedroom-plate}
+===
+
+=== media-layer {#s16-bowl src=library.geml#bowl-broken xywh=0,400,720,600 w=360 x=180 y=960}
+===
+
+=== media-layer {#s16-hero src=library.geml#hero-leap x=330 y=200 w=480}
+===
+
+=== media-layer {#s16-sister src=library.geml#sister-leap x=-120 w=480 flip=h}
+===
+
+=== media-interaction {#s16-shatter a=#s16-hero:hand b=#s16-sister:hand kind=gaze}
+碗碎在地上，两人同时跃开。
+===
+
+====
+
+=== media-text {#l5 .line speaker=characters.geml#sister to=characters.geml#hero emotion=喘气}
+不喝就算了。
+===
+
+=== media-text {#l5-en .translation}
+Fine. Don't drink it, then.
 ===

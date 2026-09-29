@@ -24,7 +24,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statfsSync, w
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { ROOT, FFMPEG, geml, blockBody, blockAttrs, registerFile, logGen, needsRegen, hasBlock } from "./lib/geml.mjs";
+import { ROOT, FFMPEG, geml, blockBody, blockAttrs, registerFile, logGen, needsRegen, hasBlock, listIds } from "./lib/geml.mjs";
 import { parseVoices, synth as sayTo } from "./make-voice.mjs";
 import { synth as synthMusic, wav } from "./make-music.mjs";
 import { openBrowser } from "./lib/chrome.mjs";
@@ -42,11 +42,16 @@ export const SEEDS = {
   "rooftop-plate": 5101, "bedroom-plate": 5102, "bedroom-door-plate": 5103,
   "hero-fall-take": 4101, "hero-wake-take": 4102, "hero-mirror-take": 4103, "hero-sit-take": 4104, "hero-refuse-take": 4105,
   "sister-door-take": 4106, "sister-hand-take": 4107, "sister-offer-take": 4108,
-  "bowl-take": 4201,
+  // 打戏（s07–s16）
+  "hero-push-take": 4111, "hero-grip-take": 4112, "hero-fed-take": 4113, "hero-strike-take": 4114,
+  "hero-catch-take": 4115, "hero-hold2-take": 4116, "hero-leap-take": 4117,
+  "sister-push-take": 4121, "sister-grip-take": 4122, "sister-pour-take": 4123, "sister-strike-take": 4124,
+  "sister-kick-take": 4125, "sister-hold2-take": 4126, "sister-leap-take": 4127,
+  "bowl-take": 4201, "bowl-tilt-take": 4202, "bowl-broken-take": 4203,
 };
 
-/** 道具：和立绘一样纯色背景出图、抠成一层，但角色是 prop，归属指角色库里的道具块。 */
-const PROPS = new Set(["bowl"]);
+/** 道具：和立绘一样纯色背景出图、抠成一层，但角色是 prop，归属指角色库里的道具块（名字整个用）。 */
+const PROPS = new Set(["bowl", "bowl-tilt", "bowl-broken"]);
 export const roleFor = (stand) => (PROPS.has(stand) ? "prop" : "stand");
 
 /** 提示词块 → 它产出的素材 id：角色图与母版直接出图；立绘先出一张 take，抠像后才是立绘。 */
@@ -56,9 +61,10 @@ export const outputOf = (promptId) => {
 };
 /** 立绘的 take → 抠好的立绘 id。不是立绘的 take（母版、角色图）没有。 */
 export const standOf = (id) => (/-take$/.test(id) ? id.replace(/-take$/, "") : null);
-/** 素材画的是谁：母版归场景（去掉 -plate），其余归 id 第一段的那个角色。 */
+/** 素材画的是谁：母版归场景（去掉 -plate），道具归同名的道具块，其余归 id 第一段的那个角色。 */
 export const ofFor = (id) => {
   const base = id.replace(/-take$/, "");
+  if (PROPS.has(base)) return `characters.geml#${base}`;
   return `characters.geml#${/-plate$/.test(base) ? base.replace(/-plate$/, "") : base.split("-")[0]}`;
 };
 /**
@@ -97,10 +103,28 @@ const freeDisk = (dir) => { const s = statfsSync(dir); return s.bavail * s.bsize
 
 const table = (doc, id, root) => blockBody(doc, id, root).split("\n").slice(2).map((l) => l.split("|").slice(1, -1).map((c) => c.trim()));
 
-/** 分镜表：[{ id, duration, motion, line }] */
+/** 分镜表：[{ id, duration, motion, line? }]。台词栏空着的镜（打戏）没有 line。 */
 export function shots(root = EP) {
-  return table("script.geml", "shots", root).map(([id, d, motion, , line]) => ({ id, duration: Number(d), motion, line: line.replace(/^#/, "") }));
+  return table("script.geml", "shots", root).map(([id, d, motion, , line]) => {
+    const l = (line ?? "").replace(/^#/, "");
+    return { id, duration: Number(d), motion, ...(l === "" ? {} : { line: l }) };
+  });
 }
+
+/**
+ * 一镜的关键帧：`sNN-comp` 是单帧；`sNN-kM` 几个按 `at` 排成序列（设计记录 §16.8.1）。
+ * ids 是剧本里全部块 id，attrsOf 读一个块的头行属性。
+ */
+export function keysOf(shot, ids, attrsOf) {
+  if (ids.includes(`${shot}-comp`)) return [{ id: `${shot}-comp`, at: 0 }];
+  const re = new RegExp(`^${shot}-k\\d+$`);
+  const keys = ids.filter((id) => re.test(id)).map((id) => ({ id, at: Number(attrsOf(id).at ?? 0) }));
+  if (keys.length === 0) throw new Error(`镜 ${shot} 没有 comp：剧本里要有 #${shot}-comp，或 #${shot}-k1、#${shot}-k2…`);
+  return keys.sort((a, b) => a.at - b.at);
+}
+
+/** 每个关键帧占多久：到下一帧开始为止，最后一帧到镜尾。 */
+export const keySeconds = (duration, keys) => keys.map((k, i) => (i + 1 < keys.length ? keys[i + 1].at : duration) - k.at);
 
 /** 运镜 → ffmpeg zoompan 的表达式。N = 帧数；on = 当前帧。 */
 export function motionExpr(motion) {
@@ -109,10 +133,41 @@ export function motionExpr(motion) {
   switch (motion) {
     case "推近": return { z: `1+0.18*${p}`, ...center };
     case "缓推": return { z: `1+0.08*${p}`, ...center };
+    case "急推": return { z: `1+0.30*${p}`, ...center };
     case "拉远": return { z: `1.22-0.22*${p}`, ...center };
+    case "急拉": return { z: `1.30-0.30*${p}`, ...center };
     case "横移": return { z: "1.14", x: `(iw-iw/zoom)*${p}`, y: center.y };
-    default: throw new Error(`不认识的运镜「${motion}」：分镜表只认 推近 / 缓推 / 拉远 / 横移`);
+    // 打戏的定格：不推不拉，画面小幅抖，像被震了一下。
+    case "抖动": return { z: "1.12", x: "(iw-iw/zoom)/2+12*sin(on*1.3)", y: "(ih-ih/zoom)/2+9*cos(on*1.7)" };
+    default: throw new Error(`不认识的运镜「${motion}」：分镜表只认 推近 / 缓推 / 急推 / 拉远 / 急拉 / 横移 / 抖动`);
   }
+}
+
+/** 配乐的长度是它自己的事，不随分镜表变：片子比它长，时间线上再引一次（musicClips）。 */
+export const BGM_SECONDS = 38;
+
+/**
+ * 配乐在时间线上怎么铺：同一段 #bgm 切一刀或几刀，每刀锚在它开始时正在播的那一镜上。
+ * 片段是对素材某一段的引用，不是复制 —— 再放一遍就是再引一次。
+ */
+export function musicClips(total, bgmDur, list) {
+  const starts = [];
+  let t = 0;
+  for (const s of list) { starts.push(t); t += s.duration; }
+  const out = [];
+  for (let pos = 0, n = 0; pos < total; n++) {
+    const i = starts.findLastIndex((st) => st <= pos);
+    const len = Math.min(bgmDur, total - pos);
+    out.push({ id: n === 0 ? "music" : `music-${n + 1}`, over: `#c${i + 1}`, offset: pos - starts[i], in: 0, out: len });
+    pos += len;
+  }
+  return out;
+}
+
+/** 配乐要不要重做：记录里的 params.seconds 和要的长度不一样就重做。没记录、老记录没记秒数，都算。 */
+export function musicParamsChanged(logText, seconds) {
+  const last = logText.split("\n").filter((l) => l.startsWith("{")).map((l) => JSON.parse(l)).filter((r) => r.output === "#bgm").pop();
+  return last?.params?.seconds !== seconds;
 }
 
 /** 出图命令的参数。讲解片画面上那条命令也由它生成，和真正跑的逐字一致。 */
@@ -175,13 +230,20 @@ function stands(root) {
   }
 }
 
-// 3. 合成：剧本里每镜一个 comp，compose 把母版与立绘叠成关键帧并自己登记（各层就是 inputs）。
+/** 一镜的关键帧和各自的产出 id：单帧是 sNN-key，多帧是 sNN-kM-key。 */
+function shotKeys(s, root) {
+  const ids = listIds("script.geml", root);
+  return keysOf(s.id, ids, (id) => blockAttrs("script.geml", id, root)).map((k) => ({ ...k, out: k.id === `${s.id}-comp` ? `${s.id}-key` : `${k.id}-key` }));
+}
+
+// 3. 合成：剧本里每镜一个或几个 comp，compose 把母版、立绘、道具叠成关键帧并自己登记（各层就是 inputs）。
 function compose(root) {
   for (const s of shots(root)) {
-    const key = `${s.id}-key`;
-    if (!needsRegen(LIB, key, root)) continue;
-    geml(["media", "compose", `script.geml#${s.id}-comp`, "--out", `assets/${key}.png`, "--log", LIB, "--as", `#${key}`, "--root", "."], { root });
-    say(`合成  #${key}`);
+    for (const k of shotKeys(s, root)) {
+      if (!needsRegen(LIB, k.out, root)) continue;
+      geml(["media", "compose", `script.geml#${k.id}`, "--out", `assets/${k.out}.png`, "--log", LIB, "--as", `#${k.out}`, "--root", "."], { root });
+      say(`合成  #${k.out}`);
+    }
   }
 }
 
@@ -207,36 +269,44 @@ function voices(root) {
   }
 }
 
-// 4. 运镜：读关键帧 #sNN-key，不知道也不必知道它是合成来的
+// 4. 运镜：读关键帧 #sNN-key（多帧则 #sNN-kM-key 各占一段，硬切拼成一段），不知道也不必知道它们是合成来的
 function takes(root) {
   for (const s of shots(root)) {
     const out = `${s.id}-take`;
     if (!needsRegen(LIB, out, root)) continue;
-    const key = `${s.id}-key`;
-    if (!hasBlock(LIB, key, root)) throw new Error(`#${key} 还没有图：先出图`);
-    const n = Math.round((s.duration + 0.5) * FPS);
+    const keys = shotKeys(s, root);
+    for (const k of keys) if (!hasBlock(LIB, k.out, root)) throw new Error(`#${k.out} 还没有图：先合成`);
     const m = motionExpr(s.motion);
+    const secs = keySeconds(s.duration + 0.5, keys);
+    const args = ["-loglevel", "error", "-y"];
+    const chains = [];
+    let total = 0;
+    keys.forEach((k, i) => {
+      const n = Math.round(secs[i] * FPS);
+      total += n;
+      args.push("-i", join(root, blockAttrs(LIB, k.out, root).src));
+      chains.push(`[${i}:v]scale=${W * 4}:-1,zoompan=z='${m.z.replaceAll("N", String(n))}':x='${m.x.replaceAll("N", String(n))}':y='${m.y.replaceAll("N", String(n))}':d=${n}:s=${W}x${H}:fps=${FPS}[v${i}]`);
+    });
+    const graph = keys.length === 1 ? chains[0].replace(/\[v0\]$/, "[v]") : `${chains.join(";")};${keys.map((_, i) => `[v${i}]`).join("")}concat=n=${keys.length}:v=1:a=0[v]`;
     const file = `assets/${out}.mp4`;
-    run(FFMPEG, ["-loglevel", "error", "-y", "-i", join(root, blockAttrs(LIB, key, root).src),
-      "-vf", `scale=${W * 4}:-1,zoompan=z='${m.z.replaceAll("N", String(n))}':x='${m.x.replaceAll("N", String(n))}':y='${m.y.replaceAll("N", String(n))}':d=${n}:s=${W}x${H}:fps=${FPS}`,
-      "-frames:v", String(n), "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", join(root, file)], `运镜 #${out}`);
+    run(FFMPEG, [...args, "-filter_complex", graph, "-map", "[v]", "-frames:v", String(total), "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", join(root, file)], `运镜 #${out}`);
     registerFile(LIB, out, file, { kind: "video", role: "take" }, root);
-    logGen(LIB, { output: out, model: "ffmpeg-zoompan", mode: "i2v", inputs: [key] }, root);
-    say(`运镜  #${out}  ${s.motion}  ${s.duration}s`);
+    logGen(LIB, { output: out, model: "ffmpeg-zoompan", mode: "i2v", inputs: keys.map((k) => k.out) }, root);
+    say(`运镜  #${out}  ${s.motion}  ${s.duration}s${keys.length > 1 ? `  ${keys.length} 帧` : ""}`);
   }
 }
 
 // 4. 配乐
 function music(root) {
-  if (!needsRegen(LIB, "bgm", root)) return;
-  const total = shots(root).reduce((a, s) => a + s.duration, 0) + 2;
+  const total = BGM_SECONDS;
+  if (!needsRegen(LIB, "bgm", root) && !musicParamsChanged(blockBody(LIB, "gen-log", root), total)) return;
   const dir = mkdtempSync(join(tmpdir(), "episode-bgm-"));
   try {
     writeFileSync(join(dir, "bgm.wav"), wav(synthMusic(total)));
     run(FFMPEG, ["-loglevel", "error", "-y", "-i", join(dir, "bgm.wav"), "-c:a", "aac", "-b:a", "128k", "-fflags", "+bitexact", "-flags:a", "+bitexact", "-map_metadata", "-1", join(root, "assets/bgm.m4a")], "配乐");
   } finally { rmSync(dir, { recursive: true, force: true }); }
   registerFile(LIB, "bgm", "assets/bgm.m4a", { kind: "audio", role: "take" }, root);
-  logGen(LIB, { output: "bgm", model: "make-music.mjs", mode: "other" }, root);
+  logGen(LIB, { output: "bgm", model: "make-music.mjs", mode: "other", params: { seconds: total } }, root);
   say(`配乐  #bgm  ${total}s`);
 }
 
@@ -252,8 +322,11 @@ export function layCut(root = EP) {
   ];
   const clip = (a) => out.push(`=== media-clip {${a}}`, "===", "");
   list.forEach((s, i) => clip(`#c${i + 1} track=video src=library.geml#${s.id}-take in=0 out=${s.duration}`));
-  clip(`#music track=music src=library.geml#bgm over=#c1 in=0 out=${total} gain=-16dB fade-in=1 fade-out=2`);
+  for (const m of musicClips(total, BGM_SECONDS, list)) {
+    clip(`#${m.id} track=music src=library.geml#bgm over=${m.over}${m.offset === 0 ? "" : ` offset=${m.offset}`} in=${m.in} out=${m.out} gain=-16dB fade-in=1 fade-out=2`);
+  }
   list.forEach((s, i) => {
+    if (s.line === undefined) return;                      // 打戏没有台词：这一镜只有画面和配乐
     const dur = r3(Number(blockAttrs(LIB, `${s.line}-vo`, root).duration));
     clip(`#d-${s.line} track=dialogue src=library.geml#${s.line}-vo over=#c${i + 1} offset=${LEAD}`);
     clip(`#t-${s.line} track=sub-zh src=script.geml#${s.line} over=#c${i + 1} offset=${LEAD} duration=${dur}`);

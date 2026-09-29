@@ -161,6 +161,178 @@ profile = "geml-media/v1"
 ===
 
 
+=== media-asset {#hero-push-take src=assets/hero-push-take.png sha256=f5cc6d576ab2c6b2dd74a2f1d754525c2d7e0dbd4aa8e1878fa5c151c7cb9b92 kind=image origin=generated of=characters.geml#hero role=take size=720x1280}
+===
+
+
+=== media-asset {#hero-grip-take src=assets/hero-grip-take.png sha256=c612c08e30c4da2b55aadc3d80d3f0876e53efe5650d2045bf4d600c322fb09a kind=image origin=generated of=characters.geml#hero role=take size=720x1280}
+===
+
+
+=== media-asset {#hero-fed-take src=assets/hero-fed-take.png sha256=444cd7b581c9d193732d5492b41a4629d68868e0be9ad0e372b7012d4221bdb3 kind=image origin=generated of=characters.geml#hero role=take size=720x1280}
+===
+
+
+=== media-asset {#hero-strike-take src=assets/hero-strike-take.png sha256=20725b2c0dc3b842717227d91f44ca0f4c15367b1bd94648494bf82666212094 kind=image origin=generated of=characters.geml#hero role=take size=720x1280}
+===
+
+
+=== media-asset {#hero-catch-take src=assets/hero-catch-take.png sha256=50b275586d9fa8db04a6e089152abfa1f0ddbfdd5309246859bc2b41c589392b kind=image origin=generated of=characters.geml#hero role=take size=720x1280}
+===
+
+
+=== media-asset {#hero-hold2-take src=assets/hero-hold2-take.png sha256=6c00996c5b303e725dd01d039c5da24d6b81e59c9e036124c90e714a9c455857 kind=image origin=generated of=characters.geml#hero role=take size=720x1280}
+===
+
+
+=== media-asset {#hero-leap-take src=assets/hero-leap-take.png sha256=579581b1874788a3fb191584f47723e1375858385e40facb3fd031fb5b1221dd kind=image origin=generated of=characters.geml#hero role=take size=720x1280}
+===
+
+
+=== media-asset {#sister-push-take src=assets/sister-push-take.png sha256=50117b0351210cfdf65f4af15785529eb027849ad5c573b29afc78bc2605e901 kind=image origin=generated of=characters.geml#sister role=take size=720x1280}
+===
+
+
+=== media-asset {#sister-grip-take src=assets/sister-grip-take.png sha256=2cd1b47f95e0c93d727ecadbf4f4509c69d0d3d723831bd19299a06dc5b10daf kind=image origin=generated of=characters.geml#sister role=take size=720x1280}
+===
+
+
+=== media-asset {#sister-pour-take src=assets/sister-pour-take.png sha256=5ff58d6deba5ddfe00d8b71bf682c6c60c7289785fefefccd8d8a6225065caac kind=image origin=generated of=characters.geml#sister role=take size=720x1280}
+===
+
+
+=== media-asset {#sister-strike-take src=assets/sister-strike-take.png sha256=ff3b4527911d5a8e59ecd442f618ffd5381bf691005e953c45d1c01683ab536e kind=image origin=generated of=characters.geml#sister role=take size=720x1280}
+===
+
+
+=== media-asset {#sister-kick-take src=assets/sister-kick-take.png sha256=a2c6fb429ef70315c3b6727344332e4ebfbc6f5378c947f0b661507b329aec7f kind=image origin=generated of=characters.geml#sister role=take size=720x1280}
+===
+
+
+=== media-asset {#sister-hold2-take src=assets/sister-hold2-take.png sha256=712ea04a28195ebed719a531728fb9400e61c2f5b2d1d530447f629c8bbcc883 kind=image origin=generated of=characters.geml#sister role=take size=720x1280}
+===
+
+
+=== media-asset {#sister-leap-take src=assets/sister-leap-take.png sha256=caee2515baa17953d3e3141036ca9eacf3b39b6433b62e4a2854bcc8a29b3fb5 kind=image origin=generated of=characters.geml#sister role=take size=720x1280}
+===
+
+
+=== media-asset {#bowl-tilt-take src=assets/bowl-tilt-take.png sha256=9152f6e67ee720c316d1e58565d638d84cb126565edc45d52550cc63283b1bd9 kind=image origin=generated of=characters.geml#bowl-tilt role=take size=720x1280}
+===
+
+
+=== media-asset {#bowl-broken-take src=assets/bowl-broken-take.png sha256=31acef3d33a5d085206cc68a6278e3cef7cf7a32d008ef5542052b1910f4c40c kind=image origin=generated of=characters.geml#bowl-broken role=take size=720x1280}
+===
+
+
+=== media-asset {#hero-push src=assets/hero-push.png sha256=f5d18c20002bd0ded3f2a464225f048c04724d86f710a66b0d6fa6b78d8aa940 kind=image origin=generated of=characters.geml#hero role=stand size=720x1280 points="hand:140,740"}
+===
+
+
+=== media-asset {#hero-grip src=assets/hero-grip.png sha256=387fc70169176da184cf73dbc64e5d5d8dc371e1789fdf7b0140ca6f7108cee9 kind=image origin=generated of=characters.geml#hero role=stand size=720x1280 points="hand:395,640 hand2:245,470"}
+===
+
+
+=== media-asset {#hero-fed src=assets/hero-fed.png sha256=49c7d941822eb897a2b58759e5bf863720978f469dc523f8f72c936fd1545523 kind=image origin=generated of=characters.geml#hero role=stand size=720x1280 points="mouth:372,398 hand:440,690 hand2:300,380"}
+===
+
+
+=== media-asset {#hero-strike src=assets/hero-strike.png sha256=8b2cedaee4ce53ed1e7ddda2aa85d9b66a1ea0132e8b64b2ea35b41635b803cb kind=image origin=generated of=characters.geml#hero role=stand size=720x1280 points="hand:205,385 hand2:270,400"}
+===
+
+
+=== media-asset {#hero-catch src=assets/hero-catch.png sha256=99e44a1def911102c79f9faf8767fa2a2b8acd90aadaac242c7cfc0d097a285a kind=image origin=generated of=characters.geml#hero role=stand size=720x1280 points="hand:350,240 hand2:530,230"}
+===
+
+
+=== media-asset {#hero-hold2 src=assets/hero-hold2.png sha256=7f59e575a18a0c7f22c8862f9e646356c26fe19695f938d256399618e144f22b kind=image origin=generated of=characters.geml#hero role=stand size=720x1280 points="hand:180,520"}
+===
+
+
+=== media-asset {#hero-leap src=assets/hero-leap.png sha256=93c5f29efd32f7dd80105e4fb0a0dc075d04881d967eb120515981528dafcc27 kind=image origin=generated of=characters.geml#hero role=stand size=720x1280 points="hand:520,430 hand2:650,420"}
+===
+
+
+=== media-asset {#sister-push src=assets/sister-push.png sha256=fad1c03a49921dca5d596f37bd19aa45af2de19fab4fec26802bdb619ece3f4e kind=image origin=generated of=characters.geml#sister role=stand size=720x1280 points="hand:640,555"}
+===
+
+
+=== media-asset {#sister-grip src=assets/sister-grip.png sha256=dac0b09c6c22a49f09ec6df7e85c7ab0f0fb4014e33e9e14c2ca62ec399d83b5 kind=image origin=generated of=characters.geml#sister role=stand size=720x1280 points="hand:620,440"}
+===
+
+
+=== media-asset {#sister-pour src=assets/sister-pour.png sha256=6d773331b092ce3e06602870870b8214dbe0d95be0a7fe186635f2bb4bc34cea kind=image origin=generated of=characters.geml#sister role=stand size=720x1280 points="hand:150,390"}
+===
+
+
+=== media-asset {#sister-strike src=assets/sister-strike.png sha256=0d0c82acbbd15e4cfcce18036f4c2edc048930b9cca38dcb3fe9071393b99601 kind=image origin=generated of=characters.geml#sister role=stand size=720x1280 points="hand:585,470 foot:560,1140"}
+===
+
+
+=== media-asset {#sister-kick src=assets/sister-kick.png sha256=c15e58210fe83ed236745c10677411ce98828153d32391026435da18deaf93b5 kind=image origin=generated of=characters.geml#sister role=stand size=720x1280 points="foot:140,700 hand:600,340"}
+===
+
+
+=== media-asset {#sister-hold2 src=assets/sister-hold2.png sha256=2e04850d240dbcce6d5f1502ba34593f2c3a4f0bb058385caaefceb02a461361 kind=image origin=generated of=characters.geml#sister role=stand size=720x1280 points="hand:470,495"}
+===
+
+
+=== media-asset {#sister-leap src=assets/sister-leap.png sha256=1b40236ce7a95138c16fbb04279b5ccb96ddf61fe9eec2e78d22ef80a027690a kind=image origin=generated of=characters.geml#sister role=stand size=720x1280 points="hand:640,540 hand2:185,215"}
+===
+
+
+=== media-asset {#bowl-tilt src=assets/bowl-tilt.png sha256=5448c102f3aa3988e5f36dd2c2ba161600a2391fc01939febafe4aeacd2df5da kind=image origin=generated of=characters.geml#bowl-tilt role=prop size=720x1280 points="base:230,880 lip:560,735 rim-left:100,560 rim-right:560,650"}
+===
+
+
+=== media-asset {#bowl-broken src=assets/bowl-broken.png sha256=ff15825066e90e271c194d16894745965271facd40e8b68e4dc5f79629411f91 kind=image origin=generated of=characters.geml#bowl-broken role=prop size=720x1280}
+===
+
+
+=== media-asset {#s07-take src=assets/s07-take.mp4 sha256=f6fe68f1982f18e047ac1702ce9555ece83854e1d23e9b8f73159d687f92181a kind=video duration=3.5 origin=generated role=take}
+===
+
+
+=== media-asset {#s08-take src=assets/s08-take.mp4 sha256=e69b293a92366eb9160cb7f96d24c988f947a3f8e7c0f6faf8b43dbe21d04caf kind=video duration=3.5 origin=generated role=take}
+===
+
+
+=== media-asset {#s09-take src=assets/s09-take.mp4 sha256=6f28aa9bba911de0797b00c4199ca0f9cde46a84bbfed43a52bd5e9408b980a4 kind=video duration=4.5 origin=generated role=take}
+===
+
+
+=== media-asset {#s10-take src=assets/s10-take.mp4 sha256=24e02226f1944f1c76fa15b5ddd18a75cf46c083c5f4bef94a36a190c85c3dcb kind=video duration=4.5 origin=generated role=take}
+===
+
+
+=== media-asset {#s11-take src=assets/s11-take.mp4 sha256=d04acf0f16e1875fbd81475f9f9a2a3f36f2dca549b3e99e3396ff29fe15982f kind=video duration=4.5 origin=generated role=take}
+===
+
+
+=== media-asset {#s12-take src=assets/s12-take.mp4 sha256=6cb85026823558f7e48107ea447f030038991ebc9029599e4bbe4ee236644d27 kind=video duration=3.5 origin=generated role=take}
+===
+
+
+=== media-asset {#s13-take src=assets/s13-take.mp4 sha256=3d992dc194d6f6d7998634a28d40ffd50f3c87962439f691fe04aed0e28561d8 kind=video duration=3.5 origin=generated role=take}
+===
+
+
+=== media-asset {#s14-take src=assets/s14-take.mp4 sha256=9b735d2f69ad5e3e44ec87b8dabf53b01803cb29032794e9ad5511c618406946 kind=video duration=3.5 origin=generated role=take}
+===
+
+
+=== media-asset {#s15-take src=assets/s15-take.mp4 sha256=9e8e0055f4ab0df1e6f0f6c4d82bbc0b53413dd9948033ff826b42d5d7da62a3 kind=video duration=4.5 origin=generated role=take}
+===
+
+
+=== media-asset {#s16-take src=assets/s16-take.mp4 sha256=a3d2b58133f9f45f005200b08889aff8ad9bc246a89a58d70fff3c913005ac5d kind=video duration=4.5 origin=generated role=take}
+===
+
+
+=== media-asset {#l5-vo src=assets/l5-vo.m4a sha256=6bbca01801ca54f4c9c29f9e78beee2572cc09f68384b835931e66cdd3c84a62 kind=audio duration=1.038 origin=generated of=characters.geml#sister role=voice}
+===
+
+
 # 生成日志 {#gen}
 
 === media-asset {#s01-key src=assets/s01-key.png sha256=3e956364518870fd2dd65afb43a31a53eb92758082fafd86c1b1e21cf0604ba7 kind=image origin=generated role=first-frame}
@@ -179,6 +351,42 @@ profile = "geml-media/v1"
 ===
 
 === media-asset {#s06-key src=assets/s06-key.png sha256=46241e814e04c561f670c8272434b99c38b2e45f790347747988b0a4ac9d53c0 kind=image origin=generated role=first-frame}
+===
+
+=== media-asset {#s07-key src=assets/s07-key.png sha256=6392123d253faaa8560ffff462fabbe6c3a0be6f43d0b1eaa228dadf8cac02f3 kind=image origin=generated role=first-frame}
+===
+
+=== media-asset {#s08-key src=assets/s08-key.png sha256=0ea81b01c750255b4ec3a074d7517293627901ea271a9d3ee4adc50d5ba1e071 kind=image origin=generated role=first-frame}
+===
+
+=== media-asset {#s09-key src=assets/s09-key.png sha256=e9c265c3d37095d3a4511030c34343afc9ab897d510fd5a0d47007e60346bde2 kind=image origin=generated role=first-frame}
+===
+
+=== media-asset {#s10-key src=assets/s10-key.png sha256=3f8aa70efb10e31198940c746af3f8a8da143c673d1934bf8f1687bc13ad67cb kind=image origin=generated role=first-frame}
+===
+
+=== media-asset {#s11-k1-key src=assets/s11-k1-key.png sha256=0d9092267d96e0bbf120edfe5c75ffee00b53b8636d6d5dbdb7b4d0ecc62086d kind=image origin=generated role=first-frame}
+===
+
+=== media-asset {#s11-k2-key src=assets/s11-k2-key.png sha256=e7c57d30e3fc9f74e43573c20a307630789fbf1d5065b2d964fa1c49517e16e7 kind=image origin=generated role=first-frame}
+===
+
+=== media-asset {#s12-key src=assets/s12-key.png sha256=921fd57e16bd759b29b51f2004514ed14bf64fc4b47bf9f78b7224b70b7d14f6 kind=image origin=generated role=first-frame}
+===
+
+=== media-asset {#s13-key src=assets/s13-key.png sha256=efd93c003d79b474188d828ef465fa2574e8679e1d58f4dbe82d13dc59e8f287 kind=image origin=generated role=first-frame}
+===
+
+=== media-asset {#s14-key src=assets/s14-key.png sha256=550e7f499a1dcf6f555ab74f539bab5d2cfc8fc64623bf70dde0314985d36ff0 kind=image origin=generated role=first-frame}
+===
+
+=== media-asset {#s15-k1-key src=assets/s15-k1-key.png sha256=168341127fe910eeb4d1eb3fc823031c9d65fe5c0a4d870a60e621f1ec33d291 kind=image origin=generated role=first-frame}
+===
+
+=== media-asset {#s15-k2-key src=assets/s15-k2-key.png sha256=8a9d2bfa4dd80a4444d07bc2320e4b6388ab2b39d984329155dea631306aa2f6 kind=image origin=generated role=first-frame}
+===
+
+=== media-asset {#s16-key src=assets/s16-key.png sha256=c4909f869cce3cffb46394e6292af79ea07f90e3889655fa8a801e6f2a361692 kind=image origin=generated role=first-frame}
 ===
 
 === data {#gen-log .gen-log format=jsonl}
@@ -267,4 +475,68 @@ profile = "geml-media/v1"
 {"output":"#sister-offer-take","model":"z-image-turbo-q8","mode":"t2i","at":"2026-09-29T07:24:13.411Z","output-sha256":"1547f6dc82b20542010196a53a5b4f6d4a016bee0c629143d973b45c4ab5994b","prompt":"script.geml#sister-offer-prompt","prompt-sha256":"f0286c2dd3a23dcc49f1b1eb614bca6958429fed7a9a97cde2b7704b670a15fe","seed":4108}
 {"output":"#s05-key","output-sha256":"edbc53326d32e4b3439772302b833a4024eb6a72007a11ed264373a4e588d522","model":"ffmpeg-overlay","mode":"composite","prompt":"script.geml#s05-comp","at":"2026-09-29T07:25:13.362Z","prompt-sha256":"08b1a7cf2ca77dd4caf8efbfae19cbd7a69eeb1629043c2255c26d9ba5ab9af8","inputs":[{"ref":"#bedroom-plate","sha256":"a2851c099045b5caf7f3953c804ea43b9f9767951d4e91c3d9405dd59191ef2a"},{"ref":"#hero-sit","sha256":"033de19777423d75431ab9495296b1ef2c71cf2f40861ce7bee839b8620c71d8"},{"ref":"#sister-offer","sha256":"aa2c9d9dc1ad44eb51a43084c8a176fec254bbf22d06884942c59e0694e6b3d5"},{"ref":"#bowl","sha256":"c65369a3c8c66e43c87df2ce7a45c024297e1faa42726db7947d9342639f0c56"}]}
 {"output":"#s05-take","model":"ffmpeg-zoompan","mode":"i2v","at":"2026-09-29T07:25:51.293Z","output-sha256":"5ac96a607892a227a6ad37bcbb7aaadd47bcd1299df661574be61bba1421fc3c","inputs":[{"ref":"#s05-key","sha256":"edbc53326d32e4b3439772302b833a4024eb6a72007a11ed264373a4e588d522"}]}
+{"output":"#hero-push-take","model":"z-image-turbo-q8","mode":"t2i","at":"2026-09-29T07:41:41.951Z","output-sha256":"f5cc6d576ab2c6b2dd74a2f1d754525c2d7e0dbd4aa8e1878fa5c151c7cb9b92","prompt":"script.geml#hero-push-prompt","prompt-sha256":"7facd8080ba1ee666235168a201485609866255b54ba70ce57ca5a60b06ea6f1","seed":4111}
+{"output":"#hero-grip-take","model":"z-image-turbo-q8","mode":"t2i","at":"2026-09-29T07:44:44.633Z","output-sha256":"c612c08e30c4da2b55aadc3d80d3f0876e53efe5650d2045bf4d600c322fb09a","prompt":"script.geml#hero-grip-prompt","prompt-sha256":"8ce7bd8ff6faa52d98e602def7ead0e51a6c79dc3fea25f3c530794fb2725880","seed":4112}
+{"output":"#hero-fed-take","model":"z-image-turbo-q8","mode":"t2i","at":"2026-09-29T07:47:47.452Z","output-sha256":"444cd7b581c9d193732d5492b41a4629d68868e0be9ad0e372b7012d4221bdb3","prompt":"script.geml#hero-fed-prompt","prompt-sha256":"025b9bc8b955b199740710a65a81868896eedee5c162b3f7f13615aeeef4d3c4","seed":4113}
+{"output":"#hero-strike-take","model":"z-image-turbo-q8","mode":"t2i","at":"2026-09-29T07:50:50.448Z","output-sha256":"20725b2c0dc3b842717227d91f44ca0f4c15367b1bd94648494bf82666212094","prompt":"script.geml#hero-strike-prompt","prompt-sha256":"eb2e1053cdc22205170436d538921b923439288ab9870de43d89a81973609cef","seed":4114}
+{"output":"#hero-catch-take","model":"z-image-turbo-q8","mode":"t2i","at":"2026-09-29T07:53:53.685Z","output-sha256":"50b275586d9fa8db04a6e089152abfa1f0ddbfdd5309246859bc2b41c589392b","prompt":"script.geml#hero-catch-prompt","prompt-sha256":"1420d5e765e05930d6f2c207a848e016ad18301dd708c7d406f7f2af64b07a36","seed":4115}
+{"output":"#hero-hold2-take","model":"z-image-turbo-q8","mode":"t2i","at":"2026-09-29T07:56:56.999Z","output-sha256":"6c00996c5b303e725dd01d039c5da24d6b81e59c9e036124c90e714a9c455857","prompt":"script.geml#hero-hold2-prompt","prompt-sha256":"7404527d72ae20f459d79b70644cf4fbe0d44aae070ac8648e58880fd1298ee2","seed":4116}
+{"output":"#hero-leap-take","model":"z-image-turbo-q8","mode":"t2i","at":"2026-09-29T08:00:00.271Z","output-sha256":"579581b1874788a3fb191584f47723e1375858385e40facb3fd031fb5b1221dd","prompt":"script.geml#hero-leap-prompt","prompt-sha256":"18e3a6b34ae2ccb53ad6f9067d77f7a912aa7bbbd5ad6d5cca5eceeb8ca85730","seed":4117}
+{"output":"#sister-push-take","model":"z-image-turbo-q8","mode":"t2i","at":"2026-09-29T08:03:03.989Z","output-sha256":"50117b0351210cfdf65f4af15785529eb027849ad5c573b29afc78bc2605e901","prompt":"script.geml#sister-push-prompt","prompt-sha256":"a60e09590bed560668038881fbb6851f8ad8056ac9d7acc3477c3dc8e6718218","seed":4121}
+{"output":"#sister-grip-take","model":"z-image-turbo-q8","mode":"t2i","at":"2026-09-29T08:06:07.305Z","output-sha256":"2cd1b47f95e0c93d727ecadbf4f4509c69d0d3d723831bd19299a06dc5b10daf","prompt":"script.geml#sister-grip-prompt","prompt-sha256":"f059afeb8eb7896ac1c4b4e5c6328b77c0ba6830ea8350cea335b6135db775fc","seed":4122}
+{"output":"#sister-pour-take","model":"z-image-turbo-q8","mode":"t2i","at":"2026-09-29T08:09:10.410Z","output-sha256":"5ff58d6deba5ddfe00d8b71bf682c6c60c7289785fefefccd8d8a6225065caac","prompt":"script.geml#sister-pour-prompt","prompt-sha256":"7ee597efc570a959484a33696c8008fd8bd9c9d37e0f9de1820cbd3600d0ac3c","seed":4123}
+{"output":"#sister-strike-take","model":"z-image-turbo-q8","mode":"t2i","at":"2026-09-29T08:12:14.126Z","output-sha256":"ff3b4527911d5a8e59ecd442f618ffd5381bf691005e953c45d1c01683ab536e","prompt":"script.geml#sister-strike-prompt","prompt-sha256":"c818d9abc064fe0c2f3677e7dd7ed5c01686c37cb58aa86274f1699d582e13f3","seed":4124}
+{"output":"#sister-kick-take","model":"z-image-turbo-q8","mode":"t2i","at":"2026-09-29T08:15:16.573Z","output-sha256":"a2c6fb429ef70315c3b6727344332e4ebfbc6f5378c947f0b661507b329aec7f","prompt":"script.geml#sister-kick-prompt","prompt-sha256":"b30403944fd3270985dd6b2882496de770533ac67cabb2d7429d7f951267e53e","seed":4125}
+{"output":"#sister-hold2-take","model":"z-image-turbo-q8","mode":"t2i","at":"2026-09-29T08:18:20.116Z","output-sha256":"712ea04a28195ebed719a531728fb9400e61c2f5b2d1d530447f629c8bbcc883","prompt":"script.geml#sister-hold2-prompt","prompt-sha256":"fe4a3ee2387751e350145ce21785b05cdab80e5534038ef70f4816a2a4fd8f78","seed":4126}
+{"output":"#sister-leap-take","model":"z-image-turbo-q8","mode":"t2i","at":"2026-09-29T08:21:23.204Z","output-sha256":"caee2515baa17953d3e3141036ca9eacf3b39b6433b62e4a2854bcc8a29b3fb5","prompt":"script.geml#sister-leap-prompt","prompt-sha256":"490e198a4c6081bf5d4f149ba25595b2748dd04ec4bb0a97ebb88327dba446b7","seed":4127}
+{"output":"#bowl-tilt-take","model":"z-image-turbo-q8","mode":"t2i","at":"2026-09-29T08:24:26.833Z","output-sha256":"9152f6e67ee720c316d1e58565d638d84cb126565edc45d52550cc63283b1bd9","prompt":"script.geml#bowl-tilt-prompt","prompt-sha256":"5553b6d37efeb8eb3ff956f87040dbbd01858cf743084ad2cc9c401d45d414e2","seed":4202}
+{"output":"#bowl-broken-take","model":"z-image-turbo-q8","mode":"t2i","at":"2026-09-29T08:27:30.460Z","output-sha256":"31acef3d33a5d085206cc68a6278e3cef7cf7a32d008ef5542052b1910f4c40c","prompt":"script.geml#bowl-broken-prompt","prompt-sha256":"b50b9868bfe2eb129ad06b58759ecbb81a33fe220be456066741be0c98e640ab","seed":4203}
+{"output":"#hero-push","model":"ffmpeg-colorkey","mode":"other","at":"2026-09-29T08:27:45.082Z","output-sha256":"f5d18c20002bd0ded3f2a464225f048c04724d86f710a66b0d6fa6b78d8aa940","inputs":[{"ref":"#hero-push-take","sha256":"f5cc6d576ab2c6b2dd74a2f1d754525c2d7e0dbd4aa8e1878fa5c151c7cb9b92"}],"params":{"key":"#a1a9f4","method":"colorkey+floodfill","similarity":0.22,"feather":1}}
+{"output":"#hero-grip","model":"ffmpeg-colorkey","mode":"other","at":"2026-09-29T08:27:45.698Z","output-sha256":"387fc70169176da184cf73dbc64e5d5d8dc371e1789fdf7b0140ca6f7108cee9","inputs":[{"ref":"#hero-grip-take","sha256":"c612c08e30c4da2b55aadc3d80d3f0876e53efe5650d2045bf4d600c322fb09a"}],"params":{"key":"#9d9ef8","method":"colorkey+floodfill","similarity":0.22,"feather":1}}
+{"output":"#hero-fed","model":"ffmpeg-colorkey","mode":"other","at":"2026-09-29T08:27:46.259Z","output-sha256":"49c7d941822eb897a2b58759e5bf863720978f469dc523f8f72c936fd1545523","inputs":[{"ref":"#hero-fed-take","sha256":"444cd7b581c9d193732d5492b41a4629d68868e0be9ad0e372b7012d4221bdb3"}],"params":{"key":"#abb4f4","method":"colorkey+floodfill","similarity":0.22,"feather":1}}
+{"output":"#hero-strike","model":"ffmpeg-colorkey","mode":"other","at":"2026-09-29T08:27:46.891Z","output-sha256":"8b2cedaee4ce53ed1e7ddda2aa85d9b66a1ea0132e8b64b2ea35b41635b803cb","inputs":[{"ref":"#hero-strike-take","sha256":"20725b2c0dc3b842717227d91f44ca0f4c15367b1bd94648494bf82666212094"}],"params":{"key":"#a7aaf7","method":"colorkey+floodfill","similarity":0.22,"feather":1}}
+{"output":"#hero-catch","model":"ffmpeg-colorkey","mode":"other","at":"2026-09-29T08:27:47.456Z","output-sha256":"99e44a1def911102c79f9faf8767fa2a2b8acd90aadaac242c7cfc0d097a285a","inputs":[{"ref":"#hero-catch-take","sha256":"50b275586d9fa8db04a6e089152abfa1f0ddbfdd5309246859bc2b41c589392b"}],"params":{"key":"#afb4ee","method":"colorkey+floodfill","similarity":0.22,"feather":1}}
+{"output":"#hero-hold2","model":"ffmpeg-colorkey","mode":"other","at":"2026-09-29T08:27:48.077Z","output-sha256":"7f59e575a18a0c7f22c8862f9e646356c26fe19695f938d256399618e144f22b","inputs":[{"ref":"#hero-hold2-take","sha256":"6c00996c5b303e725dd01d039c5da24d6b81e59c9e036124c90e714a9c455857"}],"params":{"key":"#a3a4f8","method":"colorkey+floodfill","similarity":0.22,"feather":1}}
+{"output":"#hero-leap","model":"ffmpeg-colorkey","mode":"other","at":"2026-09-29T08:27:48.588Z","output-sha256":"93c5f29efd32f7dd80105e4fb0a0dc075d04881d967eb120515981528dafcc27","inputs":[{"ref":"#hero-leap-take","sha256":"579581b1874788a3fb191584f47723e1375858385e40facb3fd031fb5b1221dd"}],"params":{"key":"#a2a9e6","method":"colorkey+floodfill","similarity":0.22,"feather":1}}
+{"output":"#sister-push","model":"ffmpeg-colorkey","mode":"other","at":"2026-09-29T08:27:49.076Z","output-sha256":"fad1c03a49921dca5d596f37bd19aa45af2de19fab4fec26802bdb619ece3f4e","inputs":[{"ref":"#sister-push-take","sha256":"50117b0351210cfdf65f4af15785529eb027849ad5c573b29afc78bc2605e901"}],"params":{"key":"#adafef","method":"colorkey+floodfill","similarity":0.22,"feather":1}}
+{"output":"#sister-grip","model":"ffmpeg-colorkey","mode":"other","at":"2026-09-29T08:27:49.649Z","output-sha256":"dac0b09c6c22a49f09ec6df7e85c7ab0f0fb4014e33e9e14c2ca62ec399d83b5","inputs":[{"ref":"#sister-grip-take","sha256":"2cd1b47f95e0c93d727ecadbf4f4509c69d0d3d723831bd19299a06dc5b10daf"}],"params":{"key":"#b8bcfd","method":"colorkey+floodfill","similarity":0.22,"feather":1}}
+{"output":"#sister-pour","model":"ffmpeg-colorkey","mode":"other","at":"2026-09-29T08:27:50.181Z","output-sha256":"6d773331b092ce3e06602870870b8214dbe0d95be0a7fe186635f2bb4bc34cea","inputs":[{"ref":"#sister-pour-take","sha256":"5ff58d6deba5ddfe00d8b71bf682c6c60c7289785fefefccd8d8a6225065caac"}],"params":{"key":"#abb3ed","method":"colorkey+floodfill","similarity":0.22,"feather":1}}
+{"output":"#sister-strike","model":"ffmpeg-colorkey","mode":"other","at":"2026-09-29T08:27:50.715Z","output-sha256":"0d0c82acbbd15e4cfcce18036f4c2edc048930b9cca38dcb3fe9071393b99601","inputs":[{"ref":"#sister-strike-take","sha256":"ff3b4527911d5a8e59ecd442f618ffd5381bf691005e953c45d1c01683ab536e"}],"params":{"key":"#abb0fa","method":"colorkey+floodfill","similarity":0.22,"feather":1}}
+{"output":"#sister-kick","model":"ffmpeg-colorkey","mode":"other","at":"2026-09-29T08:27:51.273Z","output-sha256":"c15e58210fe83ed236745c10677411ce98828153d32391026435da18deaf93b5","inputs":[{"ref":"#sister-kick-take","sha256":"a2c6fb429ef70315c3b6727344332e4ebfbc6f5378c947f0b661507b329aec7f"}],"params":{"key":"#a2a3ee","method":"colorkey+floodfill","similarity":0.22,"feather":1}}
+{"output":"#sister-hold2","model":"ffmpeg-colorkey","mode":"other","at":"2026-09-29T08:27:51.765Z","output-sha256":"2e04850d240dbcce6d5f1502ba34593f2c3a4f0bb058385caaefceb02a461361","inputs":[{"ref":"#sister-hold2-take","sha256":"712ea04a28195ebed719a531728fb9400e61c2f5b2d1d530447f629c8bbcc883"}],"params":{"key":"#b1b1ff","method":"colorkey+floodfill","similarity":0.22,"feather":1}}
+{"output":"#sister-leap","model":"ffmpeg-colorkey","mode":"other","at":"2026-09-29T08:27:52.307Z","output-sha256":"1b40236ce7a95138c16fbb04279b5ccb96ddf61fe9eec2e78d22ef80a027690a","inputs":[{"ref":"#sister-leap-take","sha256":"caee2515baa17953d3e3141036ca9eacf3b39b6433b62e4a2854bcc8a29b3fb5"}],"params":{"key":"#b0b6f3","method":"colorkey+floodfill","similarity":0.22,"feather":1}}
+{"output":"#bowl-tilt","model":"ffmpeg-colorkey","mode":"other","at":"2026-09-29T08:27:52.955Z","output-sha256":"5448c102f3aa3988e5f36dd2c2ba161600a2391fc01939febafe4aeacd2df5da","inputs":[{"ref":"#bowl-tilt-take","sha256":"9152f6e67ee720c316d1e58565d638d84cb126565edc45d52550cc63283b1bd9"}],"params":{"key":"#bcb1ff","method":"colorkey+floodfill","similarity":0.22,"feather":1}}
+{"output":"#bowl-broken","model":"ffmpeg-colorkey","mode":"other","at":"2026-09-29T08:27:53.532Z","output-sha256":"ff15825066e90e271c194d16894745965271facd40e8b68e4dc5f79629411f91","inputs":[{"ref":"#bowl-broken-take","sha256":"31acef3d33a5d085206cc68a6278e3cef7cf7a32d008ef5542052b1910f4c40c"}],"params":{"key":"#a5aae3","method":"colorkey+floodfill","similarity":0.22,"feather":1}}
+{"output":"#s07-key","output-sha256":"e118af20be511a28ba4f716ec2cdb733beb86457aafe63506b3d0fb45ebd2157","model":"ffmpeg-overlay","mode":"composite","prompt":"script.geml#s07-comp","at":"2026-09-29T08:31:34.821Z","prompt-sha256":"1c00490df6e0c4874253f87523dcc26e81017d6770f9e427a536d49f6cf983af","inputs":[{"ref":"#bedroom-plate","sha256":"a2851c099045b5caf7f3953c804ea43b9f9767951d4e91c3d9405dd59191ef2a"},{"ref":"#hero-push","sha256":"f5d18c20002bd0ded3f2a464225f048c04724d86f710a66b0d6fa6b78d8aa940"},{"ref":"#bowl","sha256":"c65369a3c8c66e43c87df2ce7a45c024297e1faa42726db7947d9342639f0c56"},{"ref":"#sister-grip","sha256":"dac0b09c6c22a49f09ec6df7e85c7ab0f0fb4014e33e9e14c2ca62ec399d83b5"}]}
+{"output":"#s08-key","output-sha256":"ee67896307f3887d51dbdd32b6ebd888459143e9fe20cbdf013fad81f77789d6","model":"ffmpeg-overlay","mode":"composite","prompt":"script.geml#s08-comp","at":"2026-09-29T08:31:35.194Z","prompt-sha256":"9a5ff635a7588e194ea556e97ee3034e70bfd69bdf69f71c46875637a34c1960","inputs":[{"ref":"#bedroom-plate","sha256":"a2851c099045b5caf7f3953c804ea43b9f9767951d4e91c3d9405dd59191ef2a"},{"ref":"#sister-push","sha256":"fad1c03a49921dca5d596f37bd19aa45af2de19fab4fec26802bdb619ece3f4e"},{"ref":"#bowl","sha256":"c65369a3c8c66e43c87df2ce7a45c024297e1faa42726db7947d9342639f0c56"},{"ref":"#hero-push","sha256":"f5d18c20002bd0ded3f2a464225f048c04724d86f710a66b0d6fa6b78d8aa940"}]}
+{"output":"#s09-key","output-sha256":"e9c265c3d37095d3a4511030c34343afc9ab897d510fd5a0d47007e60346bde2","model":"ffmpeg-overlay","mode":"composite","prompt":"script.geml#s09-comp","at":"2026-09-29T08:31:35.575Z","prompt-sha256":"021375b65cd1a361311ec8a40df476d643c9eb5f21a77ed06be34ef7aa2baf74","inputs":[{"ref":"#bedroom-plate","sha256":"a2851c099045b5caf7f3953c804ea43b9f9767951d4e91c3d9405dd59191ef2a"},{"ref":"#hero-grip","sha256":"387fc70169176da184cf73dbc64e5d5d8dc371e1789fdf7b0140ca6f7108cee9"},{"ref":"#bowl","sha256":"c65369a3c8c66e43c87df2ce7a45c024297e1faa42726db7947d9342639f0c56"},{"ref":"#sister-grip","sha256":"dac0b09c6c22a49f09ec6df7e85c7ab0f0fb4014e33e9e14c2ca62ec399d83b5"}]}
+{"output":"#s10-key","output-sha256":"3f8aa70efb10e31198940c746af3f8a8da143c673d1934bf8f1687bc13ad67cb","model":"ffmpeg-overlay","mode":"composite","prompt":"script.geml#s10-comp","at":"2026-09-29T08:31:35.956Z","prompt-sha256":"428e9db1f5b81cf07db8c7c0d01beb47c2628bce54cbdc8a015a9c55ec47ba7f","inputs":[{"ref":"#bedroom-plate","sha256":"a2851c099045b5caf7f3953c804ea43b9f9767951d4e91c3d9405dd59191ef2a"},{"ref":"#sister-pour","sha256":"6d773331b092ce3e06602870870b8214dbe0d95be0a7fe186635f2bb4bc34cea"},{"ref":"#bowl-tilt","sha256":"5448c102f3aa3988e5f36dd2c2ba161600a2391fc01939febafe4aeacd2df5da"},{"ref":"#hero-fed","sha256":"49c7d941822eb897a2b58759e5bf863720978f469dc523f8f72c936fd1545523"}]}
+{"output":"#s11-k1-key","output-sha256":"0d9092267d96e0bbf120edfe5c75ffee00b53b8636d6d5dbdb7b4d0ecc62086d","model":"ffmpeg-overlay","mode":"composite","prompt":"script.geml#s11-k1","at":"2026-09-29T08:31:36.411Z","prompt-sha256":"93fd7f1aa51555a8581c8c263370a9d141a5505b5597434868f7daf20b5d42a5","inputs":[{"ref":"#bedroom-plate","sha256":"a2851c099045b5caf7f3953c804ea43b9f9767951d4e91c3d9405dd59191ef2a"},{"ref":"#hero-strike","sha256":"8b2cedaee4ce53ed1e7ddda2aa85d9b66a1ea0132e8b64b2ea35b41635b803cb"},{"ref":"#sister-strike","sha256":"0d0c82acbbd15e4cfcce18036f4c2edc048930b9cca38dcb3fe9071393b99601"},{"ref":"#bowl","sha256":"c65369a3c8c66e43c87df2ce7a45c024297e1faa42726db7947d9342639f0c56"}]}
+{"output":"#s11-k2-key","output-sha256":"e7c57d30e3fc9f74e43573c20a307630789fbf1d5065b2d964fa1c49517e16e7","model":"ffmpeg-overlay","mode":"composite","prompt":"script.geml#s11-k2","at":"2026-09-29T08:31:36.733Z","prompt-sha256":"ff67a1022f061cd9c0ef51cfbc0d3b03efcd8a4101c1a5d3000ddcb076de4a3a","inputs":[{"ref":"#bedroom-plate","sha256":"a2851c099045b5caf7f3953c804ea43b9f9767951d4e91c3d9405dd59191ef2a"},{"ref":"#hero-strike","sha256":"8b2cedaee4ce53ed1e7ddda2aa85d9b66a1ea0132e8b64b2ea35b41635b803cb"},{"ref":"#sister-strike","sha256":"0d0c82acbbd15e4cfcce18036f4c2edc048930b9cca38dcb3fe9071393b99601"},{"ref":"#bowl","sha256":"c65369a3c8c66e43c87df2ce7a45c024297e1faa42726db7947d9342639f0c56"}]}
+{"output":"#s12-key","output-sha256":"921fd57e16bd759b29b51f2004514ed14bf64fc4b47bf9f78b7224b70b7d14f6","model":"ffmpeg-overlay","mode":"composite","prompt":"script.geml#s12-comp","at":"2026-09-29T08:31:37.104Z","prompt-sha256":"8f7bd6caca915b1d4b76ce189f129053ce5500e6d7d01c6de3a7380819333572","inputs":[{"ref":"#bedroom-plate","sha256":"a2851c099045b5caf7f3953c804ea43b9f9767951d4e91c3d9405dd59191ef2a"},{"ref":"#sister-strike","sha256":"0d0c82acbbd15e4cfcce18036f4c2edc048930b9cca38dcb3fe9071393b99601"},{"ref":"#hero-catch","sha256":"99e44a1def911102c79f9faf8767fa2a2b8acd90aadaac242c7cfc0d097a285a"},{"ref":"#bowl","sha256":"c65369a3c8c66e43c87df2ce7a45c024297e1faa42726db7947d9342639f0c56"}]}
+{"output":"#s13-key","output-sha256":"efd93c003d79b474188d828ef465fa2574e8679e1d58f4dbe82d13dc59e8f287","model":"ffmpeg-overlay","mode":"composite","prompt":"script.geml#s13-comp","at":"2026-09-29T08:31:37.486Z","prompt-sha256":"1f146c436d47b5d60c04ffb25506f0eb22e3ad8d1df95c40f7debe857904ca63","inputs":[{"ref":"#bedroom-plate","sha256":"a2851c099045b5caf7f3953c804ea43b9f9767951d4e91c3d9405dd59191ef2a"},{"ref":"#hero-strike","sha256":"8b2cedaee4ce53ed1e7ddda2aa85d9b66a1ea0132e8b64b2ea35b41635b803cb"},{"ref":"#sister-strike","sha256":"0d0c82acbbd15e4cfcce18036f4c2edc048930b9cca38dcb3fe9071393b99601"},{"ref":"#bowl-tilt","sha256":"5448c102f3aa3988e5f36dd2c2ba161600a2391fc01939febafe4aeacd2df5da"}]}
+{"output":"#s14-key","output-sha256":"550e7f499a1dcf6f555ab74f539bab5d2cfc8fc64623bf70dde0314985d36ff0","model":"ffmpeg-overlay","mode":"composite","prompt":"script.geml#s14-comp","at":"2026-09-29T08:31:37.871Z","prompt-sha256":"944f211a312b927375b908df8131f833cbd85224b4b4cfa0aefab38aad281b57","inputs":[{"ref":"#bedroom-plate","sha256":"a2851c099045b5caf7f3953c804ea43b9f9767951d4e91c3d9405dd59191ef2a"},{"ref":"#hero-strike","sha256":"8b2cedaee4ce53ed1e7ddda2aa85d9b66a1ea0132e8b64b2ea35b41635b803cb"},{"ref":"#sister-kick","sha256":"c15e58210fe83ed236745c10677411ce98828153d32391026435da18deaf93b5"},{"ref":"#bowl","sha256":"c65369a3c8c66e43c87df2ce7a45c024297e1faa42726db7947d9342639f0c56"}]}
+{"output":"#s15-k1-key","output-sha256":"08e30b25162e6cbb0276032928a292f982754488df06494d14d854256af73dee","model":"ffmpeg-overlay","mode":"composite","prompt":"script.geml#s15-k1","at":"2026-09-29T08:31:38.320Z","prompt-sha256":"7a8565ac2e6db658d831c10a3000c0dfe090c40b70fb7f6c0ddd1c282ce5c375","inputs":[{"ref":"#bedroom-plate","sha256":"a2851c099045b5caf7f3953c804ea43b9f9767951d4e91c3d9405dd59191ef2a"},{"ref":"#hero-hold2","sha256":"7f59e575a18a0c7f22c8862f9e646356c26fe19695f938d256399618e144f22b"},{"ref":"#sister-hold2","sha256":"2e04850d240dbcce6d5f1502ba34593f2c3a4f0bb058385caaefceb02a461361"},{"ref":"#bowl","sha256":"c65369a3c8c66e43c87df2ce7a45c024297e1faa42726db7947d9342639f0c56"}]}
+{"output":"#s15-k2-key","output-sha256":"198dc9cbdda8d039f661f152b55390f926e6f331b5508f5861cefe82fd5eee13","model":"ffmpeg-overlay","mode":"composite","prompt":"script.geml#s15-k2","at":"2026-09-29T08:31:38.636Z","prompt-sha256":"0e4018133cc1795b5c108e96ae3e6449e9197c2c35a55c48965c0b924d25bb67","inputs":[{"ref":"#bedroom-plate","sha256":"a2851c099045b5caf7f3953c804ea43b9f9767951d4e91c3d9405dd59191ef2a"},{"ref":"#hero-hold2","sha256":"7f59e575a18a0c7f22c8862f9e646356c26fe19695f938d256399618e144f22b"},{"ref":"#bowl","sha256":"c65369a3c8c66e43c87df2ce7a45c024297e1faa42726db7947d9342639f0c56"},{"ref":"#sister-hold2","sha256":"2e04850d240dbcce6d5f1502ba34593f2c3a4f0bb058385caaefceb02a461361"}]}
+{"output":"#s16-key","output-sha256":"c4909f869cce3cffb46394e6292af79ea07f90e3889655fa8a801e6f2a361692","model":"ffmpeg-overlay","mode":"composite","prompt":"script.geml#s16-comp","at":"2026-09-29T08:31:39.016Z","prompt-sha256":"a4e39c6df7bc840ecc9bd8bbbc6b4e6876a344db20aa287f77bf91fad383b63f","inputs":[{"ref":"#bedroom-plate","sha256":"a2851c099045b5caf7f3953c804ea43b9f9767951d4e91c3d9405dd59191ef2a"},{"ref":"#bowl-broken","sha256":"ff15825066e90e271c194d16894745965271facd40e8b68e4dc5f79629411f91"},{"ref":"#hero-leap","sha256":"93c5f29efd32f7dd80105e4fb0a0dc075d04881d967eb120515981528dafcc27"},{"ref":"#sister-leap","sha256":"1b40236ce7a95138c16fbb04279b5ccb96ddf61fe9eec2e78d22ef80a027690a"}]}
+{"output":"#s07-key","output-sha256":"9f6a65c72437b13a2bcace5c232fcd54a52baaf872b2901a360d6d74bd80a202","model":"ffmpeg-overlay","mode":"composite","prompt":"script.geml#s07-comp","at":"2026-09-29T08:33:05.304Z","prompt-sha256":"bfef7a88c3accc69bf711790d0974721e96e6450a90f3af18e4195aa24f2ed07","inputs":[{"ref":"#bedroom-plate","sha256":"a2851c099045b5caf7f3953c804ea43b9f9767951d4e91c3d9405dd59191ef2a"},{"ref":"#sister-grip","sha256":"dac0b09c6c22a49f09ec6df7e85c7ab0f0fb4014e33e9e14c2ca62ec399d83b5"},{"ref":"#bowl","sha256":"c65369a3c8c66e43c87df2ce7a45c024297e1faa42726db7947d9342639f0c56"},{"ref":"#hero-push","sha256":"f5d18c20002bd0ded3f2a464225f048c04724d86f710a66b0d6fa6b78d8aa940"}]}
+{"output":"#s08-key","output-sha256":"97fc917b9da8963ab46893feba06a306df9b12d7630680dfcd12abfc8b89d087","model":"ffmpeg-overlay","mode":"composite","prompt":"script.geml#s08-comp","at":"2026-09-29T08:33:05.760Z","prompt-sha256":"c82f88cc77824c91a54aefa46940a957c48ebed6926ee77f51b8f559488b4b54","inputs":[{"ref":"#bedroom-plate","sha256":"a2851c099045b5caf7f3953c804ea43b9f9767951d4e91c3d9405dd59191ef2a"},{"ref":"#hero-push","sha256":"f5d18c20002bd0ded3f2a464225f048c04724d86f710a66b0d6fa6b78d8aa940"},{"ref":"#bowl","sha256":"c65369a3c8c66e43c87df2ce7a45c024297e1faa42726db7947d9342639f0c56"},{"ref":"#sister-push","sha256":"fad1c03a49921dca5d596f37bd19aa45af2de19fab4fec26802bdb619ece3f4e"}]}
+{"output":"#s15-k1-key","output-sha256":"168341127fe910eeb4d1eb3fc823031c9d65fe5c0a4d870a60e621f1ec33d291","model":"ffmpeg-overlay","mode":"composite","prompt":"script.geml#s15-k1","at":"2026-09-29T08:33:07.771Z","prompt-sha256":"11ceaa144a5fb8b07406e0801f21f3b1781a757b07be6d3aa33c2800a4fd593a","inputs":[{"ref":"#bedroom-plate","sha256":"a2851c099045b5caf7f3953c804ea43b9f9767951d4e91c3d9405dd59191ef2a"},{"ref":"#hero-hold2","sha256":"7f59e575a18a0c7f22c8862f9e646356c26fe19695f938d256399618e144f22b"},{"ref":"#sister-grip","sha256":"dac0b09c6c22a49f09ec6df7e85c7ab0f0fb4014e33e9e14c2ca62ec399d83b5"},{"ref":"#bowl","sha256":"c65369a3c8c66e43c87df2ce7a45c024297e1faa42726db7947d9342639f0c56"}]}
+{"output":"#s15-k2-key","output-sha256":"8a9d2bfa4dd80a4444d07bc2320e4b6388ab2b39d984329155dea631306aa2f6","model":"ffmpeg-overlay","mode":"composite","prompt":"script.geml#s15-k2","at":"2026-09-29T08:33:08.169Z","prompt-sha256":"6fc03dca80f3bceaa04958d13fa582f8de7cb73e9132b9c8a48112aa4976fa92","inputs":[{"ref":"#bedroom-plate","sha256":"a2851c099045b5caf7f3953c804ea43b9f9767951d4e91c3d9405dd59191ef2a"},{"ref":"#hero-hold2","sha256":"7f59e575a18a0c7f22c8862f9e646356c26fe19695f938d256399618e144f22b"},{"ref":"#bowl","sha256":"c65369a3c8c66e43c87df2ce7a45c024297e1faa42726db7947d9342639f0c56"},{"ref":"#sister-grip","sha256":"dac0b09c6c22a49f09ec6df7e85c7ab0f0fb4014e33e9e14c2ca62ec399d83b5"}]}
+{"output":"#s07-take","model":"ffmpeg-zoompan","mode":"i2v","at":"2026-09-29T08:33:10.409Z","output-sha256":"f3273be2cf5a6ab8eec1280061a22fd6fa8ab16549c70c0adad1620ea1664897","inputs":[{"ref":"#s07-key","sha256":"9f6a65c72437b13a2bcace5c232fcd54a52baaf872b2901a360d6d74bd80a202"}]}
+{"output":"#s08-take","model":"ffmpeg-zoompan","mode":"i2v","at":"2026-09-29T08:33:11.479Z","output-sha256":"f5d73cbff87c25f3d2171fbc16e9992c732eaefd5d30e4d450bf843f461e6f89","inputs":[{"ref":"#s08-key","sha256":"97fc917b9da8963ab46893feba06a306df9b12d7630680dfcd12abfc8b89d087"}]}
+{"output":"#s09-take","model":"ffmpeg-zoompan","mode":"i2v","at":"2026-09-29T08:33:12.704Z","output-sha256":"6f28aa9bba911de0797b00c4199ca0f9cde46a84bbfed43a52bd5e9408b980a4","inputs":[{"ref":"#s09-key","sha256":"e9c265c3d37095d3a4511030c34343afc9ab897d510fd5a0d47007e60346bde2"}]}
+{"output":"#s10-take","model":"ffmpeg-zoompan","mode":"i2v","at":"2026-09-29T08:33:13.920Z","output-sha256":"24e02226f1944f1c76fa15b5ddd18a75cf46c083c5f4bef94a36a190c85c3dcb","inputs":[{"ref":"#s10-key","sha256":"3f8aa70efb10e31198940c746af3f8a8da143c673d1934bf8f1687bc13ad67cb"}]}
+{"output":"#s11-take","model":"ffmpeg-zoompan","mode":"i2v","at":"2026-09-29T08:33:15.289Z","output-sha256":"d04acf0f16e1875fbd81475f9f9a2a3f36f2dca549b3e99e3396ff29fe15982f","inputs":[{"ref":"#s11-k1-key","sha256":"0d9092267d96e0bbf120edfe5c75ffee00b53b8636d6d5dbdb7b4d0ecc62086d"},{"ref":"#s11-k2-key","sha256":"e7c57d30e3fc9f74e43573c20a307630789fbf1d5065b2d964fa1c49517e16e7"}]}
+{"output":"#s12-take","model":"ffmpeg-zoompan","mode":"i2v","at":"2026-09-29T08:33:16.361Z","output-sha256":"6cb85026823558f7e48107ea447f030038991ebc9029599e4bbe4ee236644d27","inputs":[{"ref":"#s12-key","sha256":"921fd57e16bd759b29b51f2004514ed14bf64fc4b47bf9f78b7224b70b7d14f6"}]}
+{"output":"#s13-take","model":"ffmpeg-zoompan","mode":"i2v","at":"2026-09-29T08:33:17.406Z","output-sha256":"3d992dc194d6f6d7998634a28d40ffd50f3c87962439f691fe04aed0e28561d8","inputs":[{"ref":"#s13-key","sha256":"efd93c003d79b474188d828ef465fa2574e8679e1d58f4dbe82d13dc59e8f287"}]}
+{"output":"#s14-take","model":"ffmpeg-zoompan","mode":"i2v","at":"2026-09-29T08:33:18.471Z","output-sha256":"9b735d2f69ad5e3e44ec87b8dabf53b01803cb29032794e9ad5511c618406946","inputs":[{"ref":"#s14-key","sha256":"550e7f499a1dcf6f555ab74f539bab5d2cfc8fc64623bf70dde0314985d36ff0"}]}
+{"output":"#s15-take","model":"ffmpeg-zoompan","mode":"i2v","at":"2026-09-29T08:33:19.837Z","output-sha256":"9e8e0055f4ab0df1e6f0f6c4d82bbc0b53413dd9948033ff826b42d5d7da62a3","inputs":[{"ref":"#s15-k1-key","sha256":"168341127fe910eeb4d1eb3fc823031c9d65fe5c0a4d870a60e621f1ec33d291"},{"ref":"#s15-k2-key","sha256":"8a9d2bfa4dd80a4444d07bc2320e4b6388ab2b39d984329155dea631306aa2f6"}]}
+{"output":"#s16-take","model":"ffmpeg-zoompan","mode":"i2v","at":"2026-09-29T08:33:21.038Z","output-sha256":"a3d2b58133f9f45f005200b08889aff8ad9bc246a89a58d70fff3c913005ac5d","inputs":[{"ref":"#s16-key","sha256":"c4909f869cce3cffb46394e6292af79ea07f90e3889655fa8a801e6f2a361692"}]}
+{"output":"#l5-vo","model":"say-Meijia-zh_TW","mode":"tts","at":"2026-09-29T08:33:24.415Z","output-sha256":"6bbca01801ca54f4c9c29f9e78beee2572cc09f68384b835931e66cdd3c84a62","prompt":"script.geml#l5","prompt-sha256":"2e945d21c2d87a68578d16f4bf1fc0cc40b97ed59b0a9a593295f6e41b4f8477"}
+{"output":"#bgm","model":"make-music.mjs","mode":"other","at":"2026-09-29T08:33:25.920Z","output-sha256":"a2a7fc57bcbc50707e2b71d8311726ce0205c0f57981fc3805ced24930491edd","params":{"seconds":38}}
+{"output":"#s07-key","output-sha256":"6392123d253faaa8560ffff462fabbe6c3a0be6f43d0b1eaa228dadf8cac02f3","model":"ffmpeg-overlay","mode":"composite","prompt":"script.geml#s07-comp","at":"2026-09-29T08:34:57.323Z","prompt-sha256":"e6ba901e0710c61305bc3478f11dd69d3748c90c16c888e526458c6278e9322f","inputs":[{"ref":"#bedroom-plate","sha256":"a2851c099045b5caf7f3953c804ea43b9f9767951d4e91c3d9405dd59191ef2a"},{"ref":"#sister-grip","sha256":"dac0b09c6c22a49f09ec6df7e85c7ab0f0fb4014e33e9e14c2ca62ec399d83b5"},{"ref":"#bowl","sha256":"c65369a3c8c66e43c87df2ce7a45c024297e1faa42726db7947d9342639f0c56"},{"ref":"#hero-push","sha256":"f5d18c20002bd0ded3f2a464225f048c04724d86f710a66b0d6fa6b78d8aa940"}]}
+{"output":"#s08-key","output-sha256":"0ea81b01c750255b4ec3a074d7517293627901ea271a9d3ee4adc50d5ba1e071","model":"ffmpeg-overlay","mode":"composite","prompt":"script.geml#s08-comp","at":"2026-09-29T08:34:57.771Z","prompt-sha256":"8c5d2d9447ce5989f80362fe7253c49eddc050a3c5b309714ec9fd6c4dcab5ff","inputs":[{"ref":"#bedroom-plate","sha256":"a2851c099045b5caf7f3953c804ea43b9f9767951d4e91c3d9405dd59191ef2a"},{"ref":"#hero-push","sha256":"f5d18c20002bd0ded3f2a464225f048c04724d86f710a66b0d6fa6b78d8aa940"},{"ref":"#bowl","sha256":"c65369a3c8c66e43c87df2ce7a45c024297e1faa42726db7947d9342639f0c56"},{"ref":"#sister-push","sha256":"fad1c03a49921dca5d596f37bd19aa45af2de19fab4fec26802bdb619ece3f4e"}]}
+{"output":"#s07-take","model":"ffmpeg-zoompan","mode":"i2v","at":"2026-09-29T08:35:02.205Z","output-sha256":"f6fe68f1982f18e047ac1702ce9555ece83854e1d23e9b8f73159d687f92181a","inputs":[{"ref":"#s07-key","sha256":"6392123d253faaa8560ffff462fabbe6c3a0be6f43d0b1eaa228dadf8cac02f3"}]}
+{"output":"#s08-take","model":"ffmpeg-zoompan","mode":"i2v","at":"2026-09-29T08:35:03.446Z","output-sha256":"e69b293a92366eb9160cb7f96d24c988f947a3f8e7c0f6faf8b43dbe21d04caf","inputs":[{"ref":"#s08-key","sha256":"0ea81b01c750255b4ec3a074d7517293627901ea271a9d3ee4adc50d5ba1e071"}]}
 ===
