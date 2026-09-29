@@ -1,0 +1,3 @@
+$ geml media build cut.geml --out out/ep01.mp4 --root .
+wrote ep01.srt（字幕另出，不烧进画面；要烧加 --burn-subs）
+wrote out/ep01.mp4  ·  36.00s

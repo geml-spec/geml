@@ -1,0 +1,6 @@
+$ geml set script.geml "#s05-hero" --head   # x=270 → x=310
+$ geml check cut.geml --root .
+warning: media-stale-generation: 产出它的那条记录已经对不上现值：提示词 `script.geml#s05-comp` (library.geml#s05-key)
+warning: media-stale-generation: 产出它的那条记录已经对不上现值：上游过期 `#s05-key` (library.geml#s05-take)
+warning: media-stale-clip: 它用的 `library.geml#s05-take` 已过期：上游过期 `#s05-key` (cut.geml#c5)
+3 warning(s)

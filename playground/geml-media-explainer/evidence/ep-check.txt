@@ -1,0 +1,2 @@
+$ geml check cut.geml --root .
+ok: no diagnostics

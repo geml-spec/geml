@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>explainer stage</title>
+<style>
+  html, body { margin: 0; background: #0b0d12; overflow: hidden; }
+  #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #0b0d12; transform-origin: 0 0; }
+  #scrub { position: fixed; left: 0; right: 0; bottom: 0; width: 100%; display: none; }
+  body.preview #scrub { display: block; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<input id="scrub" type="range" min="0" step="0.001" value="0">
+<script type="module">
+  // 唯一的舞台页：?scene=s10&lang=zh 载入同目录的 s10.js，按语言渲染。
+  // 渲染工具只用 window.__seek(t)。带 &preview=1&d=14 时页面自己走带、可拖动 ——
+  // 只给人看；渲染不走这条路，所以这里用 requestAnimationFrame 不违反「t 的纯函数」。
+  // 加载阶段的异常（场景模块抛错、证据取不回来……）记在 __error 上：顶层 await 的异常不一定报成
+  // Runtime.exceptionThrown，渲染工具只会等到超时——S05 就这样只报过一句「5 秒内没有就绪」。
+  try {
+  const q = new URLSearchParams(location.search);
+  const root = document.getElementById("root");
+  const lang = q.get("lang") ?? "zh";
+  document.documentElement.lang = lang;
+  window.__art = await (await fetch("/_art.json")).json();
+  const scene = await import(`./${q.get("scene")}.js`);
+  const mod = scene.default;
+  // 证据是文本，render 要同步地读它：第一次渲染之前全部取回。
+  window.__evidence = {};
+  for (const id of (scene.uses ?? []).filter((x) => x.startsWith("evidence-"))) {
+    const r = await fetch(`/${window.__art[id]}`);
+    if (!r.ok) throw new Error(`证据 #${id} 取不回来：${r.status}`);
+    window.__evidence[id] = await r.text();
+  }
+  window.__seek = (t) => { mod.render(t, root, { lang }); return true; };
+  window.__seek(0);
+  await document.fonts.ready;
+  // 场景第一次 render 就建好全部 <img>。等它们都解码完才算就绪——否则第一帧会截到半张图；
+  // 有一张载不出来就不就绪，渲染工具会报出来，而不是渲出一段缺图的镜头。
+  await Promise.all([...root.querySelectorAll("img")].map((i) => i.decode()));
+  window.__ready = true;
+
+  if (q.get("preview") === "1") {
+    const d = Number(q.get("d") ?? 10);
+    document.body.classList.add("preview");
+    const fit = () => { root.style.transform = `scale(${Math.min(innerWidth / 1920, innerHeight / 1080)})`; };
+    fit(); addEventListener("resize", fit);
+    const scrub = document.getElementById("scrub");
+    scrub.max = String(d);
+    let t0 = performance.now(), dragging = false;
+    scrub.addEventListener("input", () => { dragging = true; window.__seek(Number(scrub.value)); });
+    scrub.addEventListener("change", () => { t0 = performance.now() - Number(scrub.value) * 1000; dragging = false; });
+    const tick = (now) => {
+      if (!dragging) { const t = ((now - t0) / 1000) % d; scrub.value = String(t); window.__seek(t); }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+  } catch (e) {
+    window.__error = String(e && e.stack || e);
+  }
+</script>
+</body>
+</html>

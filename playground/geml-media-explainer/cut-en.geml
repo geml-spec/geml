@@ -1,0 +1,175 @@
+=== meta
+title = "geml-media 讲解片 · 英文版时间线"
+profile = "geml-media/v1"
+===
+
+%% 由 tools/lay-cut.mjs 从 script.geml 与 library.geml 派生，手改会被覆盖。
+
+==== media {#explainer-en tracks="video:video narration:audio music:audio subtitle:prose" primary=video fps=30}
+
+=== media-clip {#v-s01 track=video src=library.geml#shot-s01-en in=0 out=12}
+===
+
+=== media-clip {#v-s02 track=video src=library.geml#shot-s02-en in=0 out=8}
+===
+
+=== media-clip {#v-s03 track=video src=library.geml#shot-s03-en in=0 out=12}
+===
+
+=== media-clip {#v-s04 track=video src=library.geml#shot-s04-en in=0 out=12}
+===
+
+=== media-clip {#v-s05 track=video src=library.geml#shot-s05-en in=0 out=16}
+===
+
+=== media-clip {#v-s06 track=video src=library.geml#shot-s06-en in=0 out=12}
+===
+
+=== media-clip {#v-s07 track=video src=library.geml#shot-s07-en in=0 out=12}
+===
+
+=== media-clip {#v-s08 track=video src=library.geml#shot-s08-en in=0 out=8}
+===
+
+=== media-clip {#v-s09 track=video src=library.geml#shot-s09-en in=0 out=38}
+===
+
+=== media-clip {#v-s10 track=video src=library.geml#shot-s10-en in=0 out=10}
+===
+
+=== media-clip {#v-s11 track=video src=library.geml#shot-s11-en in=0 out=10}
+===
+
+=== media-clip {#v-s12 track=video src=library.geml#shot-s12-en in=0 out=12}
+===
+
+=== media-clip {#music-1 track=music src=library.geml#bgm over=#v-s01 in=0 out=92 gain=-20dB fade-in=1 fade-out=1.5}
+===
+
+=== media-clip {#music-2 track=music src=library.geml#bgm over=#v-s10 in=130 out=162 gain=-20dB fade-in=1.5 fade-out=3}
+===
+
+=== media-clip {#ep-audio-s09 track=narration src=library.geml#ep-audio over=#v-s09 offset=1}
+===
+
+=== media-clip {#n-s01-1 track=narration src=library.geml#voice-s01-en-1 over=#v-s01 offset=0.3}
+===
+
+=== media-clip {#t-s01-1 track=subtitle src=script.geml#vo-s01-en-1 over=#v-s01 offset=0.3 duration=2.802}
+===
+
+=== media-clip {#n-s01-2 track=narration src=library.geml#voice-s01-en-2 over=#v-s01 offset=3.352}
+===
+
+=== media-clip {#t-s01-2 track=subtitle src=script.geml#vo-s01-en-2 over=#v-s01 offset=3.352 duration=4.23}
+===
+
+=== media-clip {#n-s02-1 track=narration src=library.geml#voice-s02-en-1 over=#v-s02 offset=0.3}
+===
+
+=== media-clip {#t-s02-1 track=subtitle src=script.geml#vo-s02-en-1 over=#v-s02 offset=0.3 duration=4.698}
+===
+
+=== media-clip {#n-s03-1 track=narration src=library.geml#voice-s03-en-1 over=#v-s03 offset=0.3}
+===
+
+=== media-clip {#t-s03-1 track=subtitle src=script.geml#vo-s03-en-1 over=#v-s03 offset=0.3 duration=1.894}
+===
+
+=== media-clip {#n-s03-2 track=narration src=library.geml#voice-s03-en-2 over=#v-s03 offset=2.444}
+===
+
+=== media-clip {#t-s03-2 track=subtitle src=script.geml#vo-s03-en-2 over=#v-s03 offset=2.444 duration=6.593}
+===
+
+=== media-clip {#n-s04-1 track=narration src=library.geml#voice-s04-en-1 over=#v-s04 offset=0.3}
+===
+
+=== media-clip {#t-s04-1 track=subtitle src=script.geml#vo-s04-en-1 over=#v-s04 offset=0.3 duration=2.877}
+===
+
+=== media-clip {#n-s04-2 track=narration src=library.geml#voice-s04-en-2 over=#v-s04 offset=3.427}
+===
+
+=== media-clip {#t-s04-2 track=subtitle src=script.geml#vo-s04-en-2 over=#v-s04 offset=3.427 duration=4.633}
+===
+
+=== media-clip {#n-s05-1 track=narration src=library.geml#voice-s05-en-1 over=#v-s05 offset=0.3}
+===
+
+=== media-clip {#t-s05-1 track=subtitle src=script.geml#vo-s05-en-1 over=#v-s05 offset=0.3 duration=5.037}
+===
+
+=== media-clip {#n-s05-2 track=narration src=library.geml#voice-s05-en-2 over=#v-s05 offset=5.587}
+===
+
+=== media-clip {#t-s05-2 track=subtitle src=script.geml#vo-s05-en-2 over=#v-s05 offset=5.587 duration=2.899}
+===
+
+=== media-clip {#n-s06-1 track=narration src=library.geml#voice-s06-en-1 over=#v-s06 offset=0.3}
+===
+
+=== media-clip {#t-s06-1 track=subtitle src=script.geml#vo-s06-en-1 over=#v-s06 offset=0.3 duration=5.238}
+===
+
+=== media-clip {#n-s06-2 track=narration src=library.geml#voice-s06-en-2 over=#v-s06 offset=5.788}
+===
+
+=== media-clip {#t-s06-2 track=subtitle src=script.geml#vo-s06-en-2 over=#v-s06 offset=5.788 duration=1.324}
+===
+
+=== media-clip {#n-s07-1 track=narration src=library.geml#voice-s07-en-1 over=#v-s07 offset=0.3}
+===
+
+=== media-clip {#t-s07-1 track=subtitle src=script.geml#vo-s07-en-1 over=#v-s07 offset=0.3 duration=3.135}
+===
+
+=== media-clip {#n-s07-2 track=narration src=library.geml#voice-s07-en-2 over=#v-s07 offset=3.685}
+===
+
+=== media-clip {#t-s07-2 track=subtitle src=script.geml#vo-s07-en-2 over=#v-s07 offset=3.685 duration=2.945}
+===
+
+=== media-clip {#n-s08-1 track=narration src=library.geml#voice-s08-en-1 over=#v-s08 offset=0.3}
+===
+
+=== media-clip {#t-s08-1 track=subtitle src=script.geml#vo-s08-en-1 over=#v-s08 offset=0.3 duration=4.263}
+===
+
+=== media-clip {#n-s10-1 track=narration src=library.geml#voice-s10-en-1 over=#v-s10 offset=0.3}
+===
+
+=== media-clip {#t-s10-1 track=subtitle src=script.geml#vo-s10-en-1 over=#v-s10 offset=0.3 duration=1.047}
+===
+
+=== media-clip {#n-s10-2 track=narration src=library.geml#voice-s10-en-2 over=#v-s10 offset=1.597}
+===
+
+=== media-clip {#t-s10-2 track=subtitle src=script.geml#vo-s10-en-2 over=#v-s10 offset=1.597 duration=4.268}
+===
+
+=== media-clip {#n-s11-1 track=narration src=library.geml#voice-s11-en-1 over=#v-s11 offset=0.3}
+===
+
+=== media-clip {#t-s11-1 track=subtitle src=script.geml#vo-s11-en-1 over=#v-s11 offset=0.3 duration=1.077}
+===
+
+=== media-clip {#n-s11-2 track=narration src=library.geml#voice-s11-en-2 over=#v-s11 offset=1.627}
+===
+
+=== media-clip {#t-s11-2 track=subtitle src=script.geml#vo-s11-en-2 over=#v-s11 offset=1.627 duration=4.245}
+===
+
+=== media-clip {#n-s12-1 track=narration src=library.geml#voice-s12-en-1 over=#v-s12 offset=0.3}
+===
+
+=== media-clip {#t-s12-1 track=subtitle src=script.geml#vo-s12-en-1 over=#v-s12 offset=0.3 duration=4.364}
+===
+
+=== media-clip {#n-s12-2 track=narration src=library.geml#voice-s12-en-2 over=#v-s12 offset=4.914}
+===
+
+=== media-clip {#t-s12-2 track=subtitle src=script.geml#vo-s12-en-2 over=#v-s12 offset=4.914 duration=2.563}
+===
+
+====

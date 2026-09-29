@@ -1,0 +1,3 @@
+$ geml media log library.geml --output '#s01-key' --model z-image-turbo-q8 --mode t2i --prompt 'script.geml#s01-prompt' --seed 3101 --root .
+logged #s01-key → library.geml
+{"output":"#s01-key","model":"z-image-turbo-q8","mode":"t2i","at":"2026-09-28T11:37:14.007Z","output-sha256":"6a3b8caf47fc996250a871939f49d8371779c3e5a0c7f559564a06e333b0affd","prompt":"script.geml#s01-prompt","prompt-sha256":"1ee7584fecd6a63e2fdb0cc33af6bbb3a8727066bcf98a3f6105ba9f7389332e","seed":3101}

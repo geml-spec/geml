@@ -1,0 +1,1 @@
+$ mflux-generate-z-image-turbo --low-ram --model mflux-community/z-image-turbo-mflux-q8 --prompt '2D 手绘赛璐璐风，冷色调，蓝紫主色。 雨夜，高楼天台边缘，远景，霓虹灯光。二十六岁女性，银灰短发齐耳，左眉一道旧疤，红色长风衣。 向后坠落，雨丝飞散。' --seed 3101 --width 720 --height 1280 --steps 9 --no-metadata --output assets/s01-key.png

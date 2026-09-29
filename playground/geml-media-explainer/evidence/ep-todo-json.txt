@@ -1,0 +1,235 @@
+$ geml media todo . --root . --json
+[
+  {
+    "kind": "generate",
+    "address": "script.geml#hero-sheet-prompt",
+    "mode": "t2i",
+    "prompt": "2D 手绘赛璐璐风，冷色调，蓝紫主色。 二十六岁女性，银灰短发齐耳，左眉一道旧疤，红色长风衣。 角色设定图，正面半身像，纯色背景。",
+    "refs": [
+      {
+        "ref": "library.geml#hero-sheet",
+        "role": "sheet"
+      },
+      {
+        "ref": "library.geml#sister-sheet",
+        "role": "sheet"
+      }
+    ]
+  },
+  {
+    "kind": "generate",
+    "address": "script.geml#sister-sheet-prompt",
+    "mode": "t2i",
+    "prompt": "2D 手绘赛璐璐风，冷色调，蓝紫主色。 二十三岁女性，栗色长卷发，白色连衣裙。 角色设定图，正面半身像，纯色背景。",
+    "refs": [
+      {
+        "ref": "library.geml#hero-sheet",
+        "role": "sheet"
+      },
+      {
+        "ref": "library.geml#sister-sheet",
+        "role": "sheet"
+      }
+    ]
+  },
+  {
+    "kind": "generate",
+    "address": "script.geml#s01-prompt",
+    "mode": "t2i",
+    "prompt": "2D 手绘赛璐璐风，冷色调，蓝紫主色。 雨夜，高楼天台边缘，远景，霓虹灯光。二十六岁女性，银灰短发齐耳，左眉一道旧疤，红色长风衣。 向后坠落，雨丝飞散。",
+    "refs": [
+      {
+        "ref": "library.geml#hero-sheet",
+        "role": "sheet"
+      },
+      {
+        "ref": "library.geml#sister-sheet",
+        "role": "sheet"
+      }
+    ]
+  },
+  {
+    "kind": "generate",
+    "address": "script.geml#s02-prompt",
+    "mode": "t2i",
+    "prompt": "2D 手绘赛璐璐风，冷色调，蓝紫主色。 面部特写。二十六岁女性，银灰短发齐耳，左眉一道旧疤，红色长风衣。 猛然睁开双眼，清晨的窗光照在脸上。",
+    "refs": [
+      {
+        "ref": "library.geml#hero-sheet",
+        "role": "sheet"
+      },
+      {
+        "ref": "library.geml#sister-sheet",
+        "role": "sheet"
+      }
+    ]
+  },
+  {
+    "kind": "generate",
+    "address": "script.geml#s03-prompt",
+    "mode": "t2i",
+    "prompt": "2D 手绘赛璐璐风，冷色调，蓝紫主色。 清晨的卧室，落地镜前。二十六岁女性，银灰短发齐耳，左眉一道旧疤，红色长风衣。 看着镜中的自己，神情震惊。",
+    "refs": [
+      {
+        "ref": "library.geml#hero-sheet",
+        "role": "sheet"
+      },
+      {
+        "ref": "library.geml#sister-sheet",
+        "role": "sheet"
+      }
+    ]
+  },
+  {
+    "kind": "generate",
+    "address": "script.geml#s04-prompt",
+    "mode": "t2i",
+    "prompt": "2D 手绘赛璐璐风，冷色调，蓝紫主色。 卧室门口。二十三岁女性，栗色长卷发，白色连衣裙。 双手端着一碗热汤推门进来，温柔微笑。",
+    "refs": [
+      {
+        "ref": "library.geml#hero-sheet",
+        "role": "sheet"
+      },
+      {
+        "ref": "library.geml#sister-sheet",
+        "role": "sheet"
+      }
+    ]
+  },
+  {
+    "kind": "generate",
+    "address": "script.geml#s05-prompt",
+    "mode": "t2i",
+    "prompt": "2D 手绘赛璐璐风，冷色调，蓝紫主色。 中景双人。左：二十三岁女性，栗色长卷发，白色连衣裙。 递出一碗汤。右：二十六岁女性，银灰短发齐耳，左眉一道旧疤，红色长风衣。 坐在床边，盯着汤碗。",
+    "refs": [
+      {
+        "ref": "library.geml#hero-sheet",
+        "role": "sheet"
+      },
+      {
+        "ref": "library.geml#sister-sheet",
+        "role": "sheet"
+      }
+    ]
+  },
+  {
+    "kind": "generate",
+    "address": "script.geml#s06-prompt",
+    "mode": "t2i",
+    "prompt": "2D 手绘赛璐璐风，冷色调，蓝紫主色。 特写。二十六岁女性，银灰短发齐耳，左眉一道旧疤，红色长风衣。 嘴角冷笑，把汤碗推回去。",
+    "refs": [
+      {
+        "ref": "library.geml#hero-sheet",
+        "role": "sheet"
+      },
+      {
+        "ref": "library.geml#sister-sheet",
+        "role": "sheet"
+      }
+    ]
+  },
+  {
+    "kind": "voice",
+    "address": "script.geml#n1",
+    "mode": "tts",
+    "prompt": "那一夜，林夏从天台坠落。",
+    "refs": [
+      {
+        "ref": "library.geml#n1-vo",
+        "role": "voice"
+      },
+      {
+        "ref": "library.geml#n2-vo",
+        "role": "voice"
+      }
+    ]
+  },
+  {
+    "kind": "voice",
+    "address": "script.geml#n2",
+    "mode": "tts",
+    "prompt": "再睁眼，她回到了三年前。",
+    "refs": [
+      {
+        "ref": "library.geml#n1-vo",
+        "role": "voice"
+      },
+      {
+        "ref": "library.geml#n2-vo",
+        "role": "voice"
+      }
+    ]
+  },
+  {
+    "kind": "voice",
+    "address": "script.geml#l1",
+    "mode": "tts",
+    "prompt": "三年前……我还活着？",
+    "refs": [
+      {
+        "ref": "library.geml#l1-vo",
+        "role": "voice"
+      },
+      {
+        "ref": "library.geml#l3-vo",
+        "role": "voice"
+      },
+      {
+        "ref": "library.geml#l4-vo",
+        "role": "voice"
+      }
+    ]
+  },
+  {
+    "kind": "voice",
+    "address": "script.geml#l2",
+    "mode": "tts",
+    "prompt": "姐，你醒啦？我给你煮了汤。",
+    "refs": [
+      {
+        "ref": "library.geml#l2-vo",
+        "role": "voice"
+      }
+    ]
+  },
+  {
+    "kind": "voice",
+    "address": "script.geml#l3",
+    "mode": "tts",
+    "prompt": "就是这碗汤……前世我喝下它，错过了一切。",
+    "refs": [
+      {
+        "ref": "library.geml#l1-vo",
+        "role": "voice"
+      },
+      {
+        "ref": "library.geml#l3-vo",
+        "role": "voice"
+      },
+      {
+        "ref": "library.geml#l4-vo",
+        "role": "voice"
+      }
+    ]
+  },
+  {
+    "kind": "voice",
+    "address": "script.geml#l4",
+    "mode": "tts",
+    "prompt": "这一次，换你喝。",
+    "refs": [
+      {
+        "ref": "library.geml#l1-vo",
+        "role": "voice"
+      },
+      {
+        "ref": "library.geml#l3-vo",
+        "role": "voice"
+      },
+      {
+        "ref": "library.geml#l4-vo",
+        "role": "voice"
+      }
+    ]
+  }
+]

@@ -1,0 +1,223 @@
+=== meta
+title = "《重生之夜》第一集 · 剧本"
+profile = "geml-media/v1"
+episode = 1
+aspect = "9:16"
+===
+
+# 分镜表 {#board}
+
+=== table {#shots}
+| 镜号 | 时长 | 运镜 | 画面 | 台词 |
+|---|---|---|---|---|
+| s01 | 5 | 拉远 | 雨夜天台，林夏向后坠落 | #n1 |
+| s02 | 5 | 推近 | 特写，林夏猛然睁眼 | #n2 |
+| s03 | 6 | 横移 | 卧室镜前，林夏看着镜中的自己 | #l1 |
+| s04 | 6 | 推近 | 林岚端着汤推门进来，微笑 | #l2 |
+| s05 | 7 | 缓推 | 双人中景，林岚递汤 | #l3 |
+| s06 | 7 | 推近 | 特写，林夏冷笑，把汤推回 | #l4 |
+===
+
+# 角色图 {#sheets}
+
+=== media-text {#hero-sheet-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#hero-look]] 角色设定图，正面半身像，纯色背景。
+===
+
+=== media-text {#sister-sheet-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#sister-look]] 角色设定图，正面半身像，纯色背景。
+===
+
+# 立绘 {#stands}
+
+%% 每个「角色 × 姿势」一张，纯色背景出图，抠成带 alpha 的立绘后在镜头里反复用：同一张脸靠构造保证。
+
+=== media-text {#hero-fall-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#hero-look]] 全身，身体向后仰倒、正在坠落的姿势，双臂张开，短发和衣摆向上飞起，惊愕的表情。纯色浅紫背景，没有任何场景。
+===
+
+=== media-text {#hero-wake-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#hero-look]] 面部特写，猛然睁开双眼，瞳孔收缩，清晨的光照在脸上。纯色浅紫背景。
+===
+
+=== media-text {#hero-mirror-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#hero-look]] 半身正面，双手抬到脸前，神情震惊。纯色浅紫背景。
+===
+
+=== media-text {#hero-sit-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#hero-look]] 全身，坐着的姿势，双手放在膝上，盯着前方，神情冷淡。纯色浅紫背景，没有椅子也没有床。
+===
+
+=== media-text {#hero-refuse-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#hero-look]] 半身，嘴角冷笑，单手把一碗汤推向前方。纯色浅紫背景。
+===
+
+=== media-text {#sister-door-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#sister-look]] 全身正面，双手端着一碗热汤，温柔微笑。纯色浅紫背景，没有任何场景。
+===
+
+=== media-text {#sister-hand-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#sister-look]] 全身，侧身朝右，双手把一碗汤递出去，温柔微笑。纯色浅紫背景。
+===
+
+=== media-text {#sister-offer-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#sister-look]] 全身，侧身朝右，双臂在腰腹的高度向前平伸，双手掌心向上像端着东西，手里什么都没有，温柔微笑。纯色浅紫背景。
+===
+
+# 道具 {#prop-prompts}
+
+%% 道具不画在任何人手里：它自己一层，放进哪只手是 comp 里一条连接的事。
+
+=== media-text {#bowl-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#bowl]] 单独一只碗，从正前方略高处看，没有手，没有桌子。纯色浅紫背景。
+===
+
+# 母版 {#plates}
+
+%% 场景各一张，无人。机位是 comp 里对母版的裁切（xywh），同一个房间在四个镜头里靠这个保持一致。
+
+=== media-text {#rooftop-plate-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#rooftop]] 远景，空无一人。
+===
+
+=== media-text {#bedroom-plate-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#bedroom]] 中景，空无一人。
+===
+
+=== media-text {#bedroom-door-plate-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#bedroom-door]] 空无一人。
+===
+
+# 镜头 {#shot-blocks}
+
+%% 一镜一个标题节：这一镜的画面（comp）、台词、英文字幕。`geml get '#s05'` 取回整镜。
+
+## s01 {#s01}
+
+==== media-comp {#s01-comp shot=s01 size=720x1280}
+
+=== media-layer {#s01-bg src=library.geml#rooftop-plate}
+===
+
+=== media-layer {#s01-hero src=library.geml#hero-fall x=100 y=200 w=520}
+===
+
+====
+
+=== media-text {#n1 .line .inner speaker=characters.geml#narrator}
+那一夜，林夏从天台坠落。
+===
+
+=== media-text {#n1-en .translation}
+That night, Lin Xia fell from the rooftop.
+===
+
+## s02 {#s02}
+
+==== media-comp {#s02-comp shot=s02 size=720x1280}
+
+=== media-layer {#s02-bg src=library.geml#bedroom-plate xywh=100,100,520,924 w=720}
+===
+
+=== media-layer {#s02-hero src=library.geml#hero-wake x=0 y=120 w=720}
+===
+
+====
+
+=== media-text {#n2 .line .inner speaker=characters.geml#narrator}
+再睁眼，她回到了三年前。
+===
+
+=== media-text {#n2-en .translation}
+When she opened her eyes, she was three years back.
+===
+
+## s03 {#s03}
+
+==== media-comp {#s03-comp shot=s03 size=720x1280}
+
+=== media-layer {#s03-bg src=library.geml#bedroom-plate}
+===
+
+=== media-layer {#s03-hero src=library.geml#hero-mirror x=130 y=380 w=460}
+===
+
+====
+
+=== media-text {#l1 .line speaker=characters.geml#hero emotion=震惊}
+三年前……我还活着？
+===
+
+=== media-text {#l1-en .translation}
+Three years ago... I'm still alive?
+===
+
+## s04 {#s04}
+
+==== media-comp {#s04-comp shot=s04 size=720x1280}
+
+=== media-layer {#s04-bg src=library.geml#bedroom-door-plate}
+===
+
+=== media-layer {#s04-sister src=library.geml#sister-door x=120 y=380 w=480}
+===
+
+====
+
+=== media-text {#l2 .line speaker=characters.geml#sister to=characters.geml#hero emotion=温柔}
+姐，你醒啦？我给你煮了汤。
+===
+
+=== media-text {#l2-en .translation}
+You're awake? I made you some soup.
+===
+
+## s05 {#s05}
+
+==== media-comp {#s05-comp shot=s05 size=720x1280}
+
+=== media-layer {#s05-bg src=library.geml#bedroom-plate}
+===
+
+=== media-layer {#s05-hero src=library.geml#hero-sit x=270 y=430 w=470}
+===
+
+=== media-layer {#s05-sister src=library.geml#sister-offer x=-90 y=460 w=560}
+===
+
+=== media-layer {#s05-bowl src=library.geml#bowl xywh=40,500,640,520 w=150}
+===
+
+=== media-interaction {#s05-handoff a=#s05-sister:hand b=#s05-bowl:base kind=contact}
+林岚双手托着汤碗，递到林夏面前；林夏坐在床沿，盯着那碗汤，没有伸手。
+===
+
+====
+
+=== media-text {#l3 .line .inner speaker=characters.geml#hero emotion=冷}
+就是这碗汤……前世我喝下它，错过了一切。
+===
+
+=== media-text {#l3-en .translation}
+This soup... in my last life I drank it, and lost everything.
+===
+
+## s06 {#s06}
+
+==== media-comp {#s06-comp shot=s06 size=720x1280}
+
+=== media-layer {#s06-bg src=library.geml#bedroom-plate xywh=200,0,520,924 w=720}
+===
+
+=== media-layer {#s06-hero src=library.geml#hero-refuse x=10 y=60 w=700}
+===
+
+====
+
+=== media-text {#l4 .line speaker=characters.geml#hero to=characters.geml#sister emotion=冷笑}
+这一次，换你喝。
+===
+
+=== media-text {#l4-en .translation}
+This time, you drink it.
+===

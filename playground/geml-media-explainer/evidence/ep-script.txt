@@ -1,0 +1,107 @@
+=== meta
+title = "《重生之夜》第一集 · 剧本"
+profile = "geml-media/v1"
+episode = 1
+aspect = "9:16"
+===
+
+# 分镜表 {#board}
+
+=== table {#shots}
+| 镜号 | 时长 | 运镜 | 画面 | 台词 |
+|---|---|---|---|---|
+| s01 | 5 | 拉远 | 雨夜天台，林夏向后坠落 | #n1 |
+| s02 | 5 | 推近 | 特写，林夏猛然睁眼 | #n2 |
+| s03 | 6 | 横移 | 卧室镜前，林夏看着镜中的自己 | #l1 |
+| s04 | 6 | 推近 | 林岚端着汤推门进来，微笑 | #l2 |
+| s05 | 7 | 缓推 | 双人中景，林岚递汤 | #l3 |
+| s06 | 7 | 推近 | 特写，林夏冷笑，把汤推回 | #l4 |
+===
+
+# 角色图 {#sheets}
+
+=== media-text {#hero-sheet-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#hero-look]] 角色设定图，正面半身像，纯色背景。
+===
+
+=== media-text {#sister-sheet-prompt .prompt}
+![[characters.geml#look]] ![[characters.geml#sister-look]] 角色设定图，正面半身像，纯色背景。
+===
+
+# 镜头提示词 {#shot-prompts}
+
+=== media-text {#s01-prompt .prompt shot=s01}
+![[characters.geml#look]] 雨夜，高楼天台边缘，远景，霓虹灯光。![[characters.geml#hero-look]] 向后坠落，雨丝飞散。
+===
+
+=== media-text {#s02-prompt .prompt shot=s02}
+![[characters.geml#look]] 面部特写。![[characters.geml#hero-look]] 猛然睁开双眼，清晨的窗光照在脸上。
+===
+
+=== media-text {#s03-prompt .prompt shot=s03}
+![[characters.geml#look]] 清晨的卧室，落地镜前。![[characters.geml#hero-look]] 看着镜中的自己，神情震惊。
+===
+
+=== media-text {#s04-prompt .prompt shot=s04}
+![[characters.geml#look]] 卧室门口。![[characters.geml#sister-look]] 双手端着一碗热汤推门进来，温柔微笑。
+===
+
+=== media-text {#s05-prompt .prompt shot=s05}
+![[characters.geml#look]] 中景双人。左：![[characters.geml#sister-look]] 递出一碗汤。右：![[characters.geml#hero-look]] 坐在床边，盯着汤碗。
+===
+
+=== media-text {#s06-prompt .prompt shot=s06}
+![[characters.geml#look]] 特写。![[characters.geml#hero-look]] 嘴角冷笑，把汤碗推回去。
+===
+
+# 台词 {#lines}
+
+=== media-text {#n1 .line .inner speaker=characters.geml#narrator}
+那一夜，林夏从天台坠落。
+===
+
+=== media-text {#n2 .line .inner speaker=characters.geml#narrator}
+再睁眼，她回到了三年前。
+===
+
+=== media-text {#l1 .line speaker=characters.geml#hero emotion=震惊}
+三年前……我还活着？
+===
+
+=== media-text {#l2 .line speaker=characters.geml#sister to=characters.geml#hero emotion=温柔}
+姐，你醒啦？我给你煮了汤。
+===
+
+=== media-text {#l3 .line .inner speaker=characters.geml#hero emotion=冷}
+就是这碗汤……前世我喝下它，错过了一切。
+===
+
+=== media-text {#l4 .line speaker=characters.geml#hero to=characters.geml#sister emotion=冷笑}
+这一次，换你喝。
+===
+
+# 英文字幕 {#subs-en}
+
+=== media-text {#n1-en .translation}
+That night, Lin Xia fell from the rooftop.
+===
+
+=== media-text {#n2-en .translation}
+When she opened her eyes, she was three years back.
+===
+
+=== media-text {#l1-en .translation}
+Three years ago... I'm still alive?
+===
+
+=== media-text {#l2-en .translation}
+You're awake? I made you some soup.
+===
+
+=== media-text {#l3-en .translation}
+This soup... in my last life I drank it, and lost everything.
+===
+
+=== media-text {#l4-en .translation}
+This time, you drink it.
+===

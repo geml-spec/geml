@@ -1,0 +1,7 @@
+$ geml media todo . --root .
+配音  script.geml#n1  (tts)
+配音  script.geml#n2  (tts)
+配音  script.geml#l1  (tts)
+配音  script.geml#l2  (tts)
+配音  script.geml#l3  (tts)
+配音  script.geml#l4  (tts)

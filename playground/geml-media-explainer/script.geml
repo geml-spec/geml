@@ -1,0 +1,191 @@
+=== meta
+title = "geml-media 讲解片 · 剧本"
+profile = "geml-media/v1"
+===
+
+# 分镜表 {#board}
+
+镜头时长是设计出来的定值；中英旁白都写来适配同一个槽位（设计 §6）。「声音」一栏：旁白镜念旁白；
+成片镜放《重生之夜》第一集自己的声音，讲解片的配乐在这一镜让开。
+
+=== table {#shots}
+| 镜号 | 时长 | 概念 | 声音 |
+|---|---|---|---|
+| s01 | 12 | concepts.geml#premise | 旁白 |
+| s02 | 8 | concepts.geml#premise | 旁白 |
+| s03 | 12 | concepts.geml#reference | 旁白 |
+| s04 | 12 | concepts.geml#reference | 旁白 |
+| s05 | 16 | concepts.geml#lineage | 旁白 |
+| s06 | 12 | concepts.geml#lineage | 旁白 |
+| s07 | 12 | concepts.geml#anchoring | 旁白 |
+| s08 | 8 | concepts.geml#anchoring | 旁白 |
+| s09 | 38 | concepts.geml#episode | 成片 |
+| s10 | 10 | concepts.geml#lineage | 旁白 |
+| s11 | 10 | concepts.geml#lineage | 旁白 |
+| s12 | 12 | concepts.geml#premise | 旁白 |
+===
+
+# 旁白 {#narration}
+
+一镜一至两句，按序号先后念；`tools/check-timing.mjs` 保证念得完。
+
+=== media-text {#vo-s01-zh-1 .line speaker=concepts.geml#narrator}
+你也许已经用 Agent 串起了即梦和可灵。
+===
+
+=== media-text {#vo-s01-zh-2 .line speaker=concepts.geml#narrator}
+可分镜表、资产和进度，还散在表格和文件夹里。
+===
+
+=== media-text {#vo-s01-en-1 .line speaker=concepts.geml#narrator}
+Maybe you already chain Jimeng and Kling with an agent.
+===
+
+=== media-text {#vo-s01-en-2 .line speaker=concepts.geml#narrator}
+But the storyboard, the assets and the progress still live in sheets and folders.
+===
+
+=== media-text {#vo-s02-zh-1 .line speaker=concepts.geml#narrator}
+geml-media 把它们写成几份文本：Agent 读得懂，工具核得了。
+===
+
+=== media-text {#vo-s02-en-1 .line speaker=concepts.geml#narrator}
+geml-media keeps them in a few text files that an agent can read and a tool can check.
+===
+
+=== media-text {#vo-s03-zh-1 .line speaker=concepts.geml#narrator}
+从一页梗概开始。
+===
+
+=== media-text {#vo-s03-zh-2 .line speaker=concepts.geml#narrator}
+Agent 写出角色卡和分镜表：六个镜头，每镜的时长、运镜和台词。
+===
+
+=== media-text {#vo-s03-en-1 .line speaker=concepts.geml#narrator}
+Start from a one-page synopsis.
+===
+
+=== media-text {#vo-s03-en-2 .line speaker=concepts.geml#narrator}
+The agent writes the character cards and a storyboard: six shots, each with its length, camera move and line.
+===
+
+=== media-text {#vo-s04-zh-1 .line speaker=concepts.geml#narrator}
+提示词只写画面，外貌引用角色卡。
+===
+
+=== media-text {#vo-s04-zh-2 .line speaker=concepts.geml#narrator}
+文档自己说出还差什么：八张图，六句配音。
+===
+
+=== media-text {#vo-s04-en-1 .line speaker=concepts.geml#narrator}
+Prompts describe the shot and embed the character card.
+===
+
+=== media-text {#vo-s04-en-2 .line speaker=concepts.geml#narrator}
+The documents themselves say what is missing: eight images, six lines to voice.
+===
+
+=== media-text {#vo-s05-zh-1 .line speaker=concepts.geml#narrator}
+Agent 拿展开好的提示词去出图，这里用的是本机的开源模型。
+===
+
+=== media-text {#vo-s05-zh-2 .line speaker=concepts.geml#narrator}
+每出一张就登记：模型、种子、提示词。
+===
+
+=== media-text {#vo-s05-en-1 .line speaker=concepts.geml#narrator}
+The agent takes each expanded prompt to an image model, here an open model running locally.
+===
+
+=== media-text {#vo-s05-en-2 .line speaker=concepts.geml#narrator}
+Every image is logged with its model, seed and prompt.
+===
+
+=== media-text {#vo-s06-zh-1 .line speaker=concepts.geml#narrator}
+静图按分镜表的运镜动起来，台词按角色库里的声音配好。
+===
+
+=== media-text {#vo-s06-zh-2 .line speaker=concepts.geml#narrator}
+待办清零。
+===
+
+=== media-text {#vo-s06-en-1 .line speaker=concepts.geml#narrator}
+Stills move with the camera direction from the storyboard, and each line gets its character's voice.
+===
+
+=== media-text {#vo-s06-en-2 .line speaker=concepts.geml#narrator}
+The to-do list is empty.
+===
+
+=== media-text {#vo-s07-zh-1 .line speaker=concepts.geml#narrator}
+时间线也是文本：每一刀指向一个镜头，
+===
+
+=== media-text {#vo-s07-zh-2 .line speaker=concepts.geml#narrator}
+配音和中英字幕，都锚在镜头上。
+===
+
+=== media-text {#vo-s07-en-1 .line speaker=concepts.geml#narrator}
+The timeline is text too: each cut points at a shot,
+===
+
+=== media-text {#vo-s07-en-2 .line speaker=concepts.geml#narrator}
+and the voices and both subtitle tracks are anchored to it.
+===
+
+=== media-text {#vo-s08-zh-1 .line speaker=concepts.geml#narrator}
+一条命令出片，再把中英字幕叠进画面。
+===
+
+=== media-text {#vo-s08-en-1 .line speaker=concepts.geml#narrator}
+One command renders it, then the bilingual subtitles are laid over the picture.
+===
+
+=== media-text {#vo-s10-zh-1 .line speaker=concepts.geml#narrator}
+做到一半断了？
+===
+
+=== media-text {#vo-s10-zh-2 .line speaker=concepts.geml#narrator}
+重跑只做剩下的，做完的文档都记着。
+===
+
+=== media-text {#vo-s10-en-1 .line speaker=concepts.geml#narrator}
+Stopped halfway?
+===
+
+=== media-text {#vo-s10-en-2 .line speaker=concepts.geml#narrator}
+Run it again and only what is left gets done. The documents remember the rest.
+===
+
+=== media-text {#vo-s11-zh-1 .line speaker=concepts.geml#narrator}
+改一句台词，
+===
+
+=== media-text {#vo-s11-zh-2 .line speaker=concepts.geml#narrator}
+检查只点名它的配音和用到它的那一段，别的不动。
+===
+
+=== media-text {#vo-s11-en-1 .line speaker=concepts.geml#narrator}
+Change one line,
+===
+
+=== media-text {#vo-s11-en-2 .line speaker=concepts.geml#narrator}
+and the check names only its voice and the cut that uses it. Nothing else moves.
+===
+
+=== media-text {#vo-s12-zh-1 .line speaker=concepts.geml#narrator}
+你刚看的这一集，和这支片子本身，都是这么做出来的。
+===
+
+=== media-text {#vo-s12-zh-2 .line speaker=concepts.geml#narrator}
+装上 geml，照着仓库里的例子跑一遍。
+===
+
+=== media-text {#vo-s12-en-1 .line speaker=concepts.geml#narrator}
+The episode you just watched, and this video itself, were made this way.
+===
+
+=== media-text {#vo-s12-en-2 .line speaker=concepts.geml#narrator}
+Install geml and run the example in the repo.
+===
+

@@ -1,0 +1,6 @@
+{
+  "name": "geml-media-explainer",
+  "private": true,
+  "type": "module",
+  "description": "A geml-media explainer built with geml-media itself. No dependencies: see README.md."
+}

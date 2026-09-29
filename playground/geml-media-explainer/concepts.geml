@@ -1,0 +1,38 @@
+=== meta
+title = "geml-media 讲解片 · 立意与概念"
+profile = "geml-media/v1"
+===
+
+# 立意 {#premise}
+
+给**自建漫剧流水线的团队**看：用几份文本文档当 Agent 的生产台账，从一页梗概做完一集漫剧。
+这支片子本身也是用 geml-media 做的：每个镜头是一个 `media-asset`，时间线是 `media-clip`，
+旁白带生成记录，成片由 `geml media build` 出。
+
+# 成片 {#episode}
+
+片中完整播放的《重生之夜》第一集（`episode/`）：它由讲解片里演示的那条流水线从零做出来。
+
+# 旁白 {#narrator}
+
+片中唯一的说话人。中文版用 macOS 的 Tingting，英文版用 Samantha；实际用了哪个声音，
+记在每条旁白生成记录的 `model` 里。
+
+# 素材有身份 {#identity}
+
+一个文件一个 `media-asset`，`sha256` 是它的身份，`src` 只是它现在放在哪。
+
+# 片段是引用 {#reference}
+
+`media-clip` 指向素材的一段时间，不复制字节——和 `code {src=file#L14-24}` 指向源码的
+一段同一个形状。
+
+# 血缘可校验 {#lineage}
+
+每次生成追加一条记录，记下生成当刻每个输入的哈希。改了源头，`geml check` 沿血缘图把
+所有下游标成过期。过期是诊断，不是猜。
+
+# 时间是锚定的 {#anchoring}
+
+主轨顺排，其余轨 `over=` 锚在主轨的某个片段上。改一刀，锚在它后面的配音与字幕自动跟着挪。
+绝对时间只有 `at=` 一个逃生口。

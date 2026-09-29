@@ -1,0 +1,4 @@
+$ geml check cut.geml --root .
+warning: media-stale-generation: 产出它的那条记录已经对不上现值：提示词 `script.geml#l4` (library.geml#l4-vo)
+warning: media-stale-clip: 它用的 `library.geml#l4-vo` 已过期：提示词 `script.geml#l4` (cut.geml#d-l4)
+2 warning(s)

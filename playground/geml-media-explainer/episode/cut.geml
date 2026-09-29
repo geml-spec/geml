@@ -1,0 +1,86 @@
+=== meta
+title = "《重生之夜》第一集 · 时间线"
+profile = "geml-media/v1"
+aspect = "9:16"
+===
+
+%% 由 tools/produce-episode.mjs 从分镜表与配音时长派生。
+
+==== media {#ep01 tracks="video:video dialogue:audio music:audio sub-zh:prose sub-en:prose" primary=video fps=30}
+
+=== media-clip {#c1 track=video src=library.geml#s01-take in=0 out=5}
+===
+
+=== media-clip {#c2 track=video src=library.geml#s02-take in=0 out=5}
+===
+
+=== media-clip {#c3 track=video src=library.geml#s03-take in=0 out=6}
+===
+
+=== media-clip {#c4 track=video src=library.geml#s04-take in=0 out=6}
+===
+
+=== media-clip {#c5 track=video src=library.geml#s05-take in=0 out=7}
+===
+
+=== media-clip {#c6 track=video src=library.geml#s06-take in=0 out=7}
+===
+
+=== media-clip {#music track=music src=library.geml#bgm over=#c1 in=0 out=36 gain=-16dB fade-in=1 fade-out=2}
+===
+
+=== media-clip {#d-n1 track=dialogue src=library.geml#n1-vo over=#c1 offset=0.4}
+===
+
+=== media-clip {#t-n1 track=sub-zh src=script.geml#n1 over=#c1 offset=0.4 duration=2.798}
+===
+
+=== media-clip {#e-n1 track=sub-en src=script.geml#n1-en over=#c1 offset=0.4 duration=2.798}
+===
+
+=== media-clip {#d-n2 track=dialogue src=library.geml#n2-vo over=#c2 offset=0.4}
+===
+
+=== media-clip {#t-n2 track=sub-zh src=script.geml#n2 over=#c2 offset=0.4 duration=2.792}
+===
+
+=== media-clip {#e-n2 track=sub-en src=script.geml#n2-en over=#c2 offset=0.4 duration=2.792}
+===
+
+=== media-clip {#d-l1 track=dialogue src=library.geml#l1-vo over=#c3 offset=0.4}
+===
+
+=== media-clip {#t-l1 track=sub-zh src=script.geml#l1 over=#c3 offset=0.4 duration=1.964}
+===
+
+=== media-clip {#e-l1 track=sub-en src=script.geml#l1-en over=#c3 offset=0.4 duration=1.964}
+===
+
+=== media-clip {#d-l2 track=dialogue src=library.geml#l2-vo over=#c4 offset=0.4}
+===
+
+=== media-clip {#t-l2 track=sub-zh src=script.geml#l2 over=#c4 offset=0.4 duration=2.574}
+===
+
+=== media-clip {#e-l2 track=sub-en src=script.geml#l2-en over=#c4 offset=0.4 duration=2.574}
+===
+
+=== media-clip {#d-l3 track=dialogue src=library.geml#l3-vo over=#c5 offset=0.4}
+===
+
+=== media-clip {#t-l3 track=sub-zh src=script.geml#l3 over=#c5 offset=0.4 duration=4.382}
+===
+
+=== media-clip {#e-l3 track=sub-en src=script.geml#l3-en over=#c5 offset=0.4 duration=4.382}
+===
+
+=== media-clip {#d-l4 track=dialogue src=library.geml#l4-vo over=#c6 offset=0.4}
+===
+
+=== media-clip {#t-l4 track=sub-zh src=script.geml#l4 over=#c6 offset=0.4 duration=1.705}
+===
+
+=== media-clip {#e-l4 track=sub-en src=script.geml#l4-en over=#c6 offset=0.4 duration=1.705}
+===
+
+====

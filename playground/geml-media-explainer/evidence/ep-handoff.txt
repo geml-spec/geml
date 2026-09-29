@@ -1,0 +1,33 @@
+$ geml get script.geml "#s05-comp"
+==== media-comp {#s05-comp shot=s05 size=720x1280}
+
+=== media-layer {#s05-bg src=library.geml#bedroom-plate}
+===
+
+=== media-layer {#s05-hero src=library.geml#hero-sit x=270 y=430 w=470}
+===
+
+=== media-layer {#s05-sister src=library.geml#sister-offer x=-90 y=460 w=560}
+===
+
+=== media-layer {#s05-bowl src=library.geml#bowl xywh=40,500,640,520 w=150}
+===
+
+=== media-interaction {#s05-handoff a=#s05-sister:hand b=#s05-bowl:base kind=contact}
+林岚双手托着汤碗，递到林夏面前；林夏坐在床沿，盯着那碗汤，没有伸手。
+===
+
+====
+
+$ geml media compose script.geml#s05-comp --out assets/s05-key.png --root .   # 各层解出的位置（底图 林夏 林岚 碗）
+overlay=0:0 overlay=270:430 overlay=-90:460 overlay=286:773
+
+$ geml set script.geml "#s05-sister" --head   # x=-90 → x=-40：只挪林岚，碗没有写坐标
+$ geml media compose script.geml#s05-comp --out assets/s05-key.png --root .
+overlay=0:0 overlay=270:430 overlay=-40:460 overlay=336:773
+
+$ geml check cut.geml --root .
+warning: media-stale-generation: 产出它的那条记录已经对不上现值：提示词 `script.geml#s05-comp` (library.geml#s05-key)
+warning: media-stale-generation: 产出它的那条记录已经对不上现值：上游过期 `#s05-key` (library.geml#s05-take)
+warning: media-stale-clip: 它用的 `library.geml#s05-take` 已过期：上游过期 `#s05-key` (cut.geml#c5)
+3 warning(s)

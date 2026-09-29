@@ -1,0 +1,66 @@
+=== meta
+title = "《重生之夜》角色库"
+profile = "geml-media/v1"
+===
+
+# 演员表 {#cast}
+
+每个角色一个声音；配音工具按这张表挑。
+
+=== table {#voices}
+| 角色 | 块 | 声音 |
+|---|---|---|
+| 林夏 | #hero | Tingting |
+| 林岚 | #sister | Meijia |
+| 旁白 | #narrator | Reed |
+===
+
+# 林夏 {#hero points="hand eyes seat"}
+
+女主。被妹妹害死后，重生回三年前。标题上的 `points=` 是她的立绘该标出的点的名字——坐标在每张立绘上。
+
+=== media-text {#hero-look .look}
+二十六岁女性，银灰短发齐耳，左眉一道旧疤，红色长风衣。
+===
+
+# 林岚 {#sister points="hand eyes feet"}
+
+妹妹，反派，表面温柔。
+
+=== media-text {#sister-look .look}
+二十三岁女性，栗色长卷发，白色连衣裙。
+===
+
+# 旁白 {#narrator}
+
+片中的讲述者，不出镜。
+
+# 风格板 {#look-board}
+
+=== media-text {#look}
+2D 手绘赛璐璐风，冷色调，蓝紫主色。
+===
+
+# 场景 {#scenes}
+
+每个场景一张无人的母版图（`role=master`），机位靠合成时的裁切。
+
+=== media-text {#rooftop .look}
+雨夜的高楼天台，边缘没有护栏，远处霓虹灯光，雨丝飞散。
+===
+
+=== media-text {#bedroom .look points="floor bed-edge"}
+清晨的卧室：一面落地镜靠墙，单人床铺着浅色床单，窗外透进晨光。
+===
+
+=== media-text {#bedroom-door .look}
+清晨卧室的房门，从室内看，门半开着，门外是走廊。
+===
+
+# 道具 {#props}
+
+道具单独出图、单独抠成一层（`role=prop`）；它在谁手里，由合成时的连接决定，不画在任何人手里。
+
+=== media-text {#bowl .look points="base rim-left rim-right"}
+一碗热汤：白瓷碗，汤面冒着热气，能看到几片葱花。
+===

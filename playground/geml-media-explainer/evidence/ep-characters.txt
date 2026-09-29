@@ -1,0 +1,42 @@
+=== meta
+title = "《重生之夜》角色库"
+profile = "geml-media/v1"
+===
+
+# 演员表 {#cast}
+
+每个角色一个声音；配音工具按这张表挑。
+
+=== table {#voices}
+| 角色 | 块 | 声音 |
+|---|---|---|
+| 林夏 | #hero | Tingting |
+| 林岚 | #sister | Meijia |
+| 旁白 | #narrator | Reed |
+===
+
+# 林夏 {#hero}
+
+女主。被妹妹害死后，重生回三年前。
+
+=== media-text {#hero-look .look}
+二十六岁女性，银灰短发齐耳，左眉一道旧疤，红色长风衣。
+===
+
+# 林岚 {#sister}
+
+妹妹，反派，表面温柔。
+
+=== media-text {#sister-look .look}
+二十三岁女性，栗色长卷发，白色连衣裙。
+===
+
+# 旁白 {#narrator}
+
+片中的讲述者，不出镜。
+
+# 风格板 {#look-board}
+
+=== media-text {#look}
+2D 手绘赛璐璐风，冷色调，蓝紫主色。
+===
