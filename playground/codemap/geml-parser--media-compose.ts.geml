@@ -1,0 +1,111 @@
+=== meta
+profile = "geml-codemap/v1"
+module = geml-parser/media-compose.ts
+src = geml-parser/src/media-compose.ts
+entry = #parsePoints #parsePointNames #parseEnd #layerSpec #solveLayout
+resolution-default = cpg
+===
+
+# geml-parser/media-compose.ts
+
+=== code {#num src=geml-parser/src/media-compose.ts#L47-51 anchor="scip-typescript npm @geml/geml 1.11.2 src/`media-compose.ts`/num."}
+===
+
+=== code {#parsePoints src=geml-parser/src/media-compose.ts#L54-62 anchor="scip-typescript npm @geml/geml 1.11.2 src/`media-compose.ts`/parsePoints()."}
+===
+
+=== code {#parsePointNames src=geml-parser/src/media-compose.ts#L65-68 anchor="scip-typescript npm @geml/geml 1.11.2 src/`media-compose.ts`/parsePointNames()."}
+===
+
+=== code {#parseSize src=geml-parser/src/media-compose.ts#L70-74 anchor="scip-typescript npm @geml/geml 1.11.2 src/`media-compose.ts`/parseSize()."}
+===
+
+=== code {#parseXywh src=geml-parser/src/media-compose.ts#L76-81 anchor="scip-typescript npm @geml/geml 1.11.2 src/`media-compose.ts`/parseXywh()."}
+===
+
+=== code {#parseEnd src=geml-parser/src/media-compose.ts#L84-88 anchor="scip-typescript npm @geml/geml 1.11.2 src/`media-compose.ts`/parseEnd()."}
+===
+
+=== code {#layerSpec src=geml-parser/src/media-compose.ts#L91-99 anchor="scip-typescript npm @geml/geml 1.11.2 src/`media-compose.ts`/layerSpec()."}
+===
+
+=== code {#scaleOf .leaf src=geml-parser/src/media-compose.ts#L102-107 anchor="scip-typescript npm @geml/geml 1.11.2 src/`media-compose.ts`/scaleOf()."}
+===
+
+=== code {#canvasPoint .leaf src=geml-parser/src/media-compose.ts#L110-114 anchor="scip-typescript npm @geml/geml 1.11.2 src/`media-compose.ts`/canvasPoint()."}
+===
+
+=== code {#solveLayout src=geml-parser/src/media-compose.ts#L124-181 anchor="scip-typescript npm @geml/geml 1.11.2 src/`media-compose.ts`/solveLayout()."}
+===
+
+=== table {#calls format=csv}
+from,         to,           kind, confidence
+#layerSpec,   #num,         call,
+#layerSpec,   #num,         call,
+#layerSpec,   #num,         call,
+#layerSpec,   #num,         call,
+#layerSpec,   #num,         call,
+#layerSpec,   #parsePoints, call,
+#layerSpec,   #parseSize,   call,
+#layerSpec,   #parseXywh,   call,
+#solveLayout, #canvasPoint, call,
+#solveLayout, #canvasPoint, call,
+#solveLayout, #canvasPoint, call,
+#solveLayout, #scaleOf,     call,
+===
+
+=== table {#called-by format=csv}
+from,                                         to,               kind, site
+#layerSpec,                                   #num,             call, geml-parser/src/media-compose.ts:92
+#layerSpec,                                   #num,             call, geml-parser/src/media-compose.ts:92
+#layerSpec,                                   #num,             call, geml-parser/src/media-compose.ts:93
+#layerSpec,                                   #num,             call, geml-parser/src/media-compose.ts:94
+#layerSpec,                                   #num,             call, geml-parser/src/media-compose.ts:95
+geml-parser--media-check.ts.geml#compText,    #parsePoints,     call, geml-parser/src/media-check.ts:137
+#layerSpec,                                   #parsePoints,     call, geml-parser/src/media-compose.ts:92
+geml-parser--media-check.ts.geml#checkMedia,  #parsePointNames, call, geml-parser/src/media-check.ts:444
+#layerSpec,                                   #parseSize,       call, geml-parser/src/media-compose.ts:97
+#layerSpec,                                   #parseXywh,       call, geml-parser/src/media-compose.ts:96
+geml-parser--media-check.ts.geml#compText,    #parseEnd,        call, geml-parser/src/media-check.ts:132
+geml-parser--media-check.ts.geml#checkMedia,  #parseEnd,        call, geml-parser/src/media-check.ts:454
+geml-parser--media-verbs.ts.geml#composePlan, #parseEnd,        call, geml-parser/src/media-verbs.ts:575
+geml-parser--media-verbs.ts.geml#composePlan, #parseEnd,        call, geml-parser/src/media-verbs.ts:576
+geml-parser--media-check.ts.geml#checkMedia,  #layerSpec,       call, geml-parser/src/media-check.ts:437
+geml-parser--media-verbs.ts.geml#composePlan, #layerSpec,       call, geml-parser/src/media-verbs.ts:569
+#solveLayout,                                 #scaleOf,         call, geml-parser/src/media-compose.ts:132
+#solveLayout,                                 #canvasPoint,     call, geml-parser/src/media-compose.ts:156
+#solveLayout,                                 #canvasPoint,     call, geml-parser/src/media-compose.ts:173
+#solveLayout,                                 #canvasPoint,     call, geml-parser/src/media-compose.ts:174
+geml-parser--media-check.ts.geml#checkMedia,  #solveLayout,     call, geml-parser/src/media-check.ts:473
+geml-parser--media-verbs.ts.geml#composePlan, #solveLayout,     call, geml-parser/src/media-verbs.ts:585
+===
+
+=== table {#unresolved format=csv hidden}
+from,             to
+#num,             NumberConstructor.isFinite
+#parsePoints,     Map.set
+#parsePoints,     RegExp.exec
+#parsePoints,     String.split
+#parsePoints,     String.trim
+#parsePointNames, String.split
+#parsePointNames, String.trim
+#parseSize,       RegExp.exec
+#parseSize,       String.trim
+#parseXywh,       Array.map
+#parseXywh,       Array.some
+#parseXywh,       NumberConstructor.isFinite
+#parseXywh,       String.split
+#parseXywh,       String.trim
+#parseEnd,        RegExp.exec
+#parseEnd,        String.trim
+#solveLayout,     Array.map
+#solveLayout,     Array.push
+#solveLayout,     Map.get
+#solveLayout,     Map.has
+#solveLayout,     Map.set
+#solveLayout,     Math.abs
+#solveLayout,     Math.hypot
+#solveLayout,     Math.round
+#solveLayout,     Set.add
+#solveLayout,     Set.has
+===

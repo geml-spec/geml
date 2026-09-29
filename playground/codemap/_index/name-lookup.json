@@ -756,6 +756,13 @@
       "id": "blockSpans"
     }
   ],
+  "blockText": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`media-check.ts`/blockText().",
+      "doc": "geml-parser--media-check.ts.geml",
+      "id": "blockText"
+    }
+  ],
   "blocksOf": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`media-check.ts`/blocksOf().",
@@ -852,6 +859,13 @@
       "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`style-selector.ts`/candidates().",
       "doc": "geml-parser--style-selector.ts.geml",
       "id": "candidates"
+    }
+  ],
+  "canvasPoint": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`media-compose.ts`/canvasPoint().",
+      "doc": "geml-parser--media-compose.ts.geml",
+      "id": "canvasPoint"
     }
   ],
   "cartesianSvg": [
@@ -1086,6 +1100,20 @@
       "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`verbs.ts`/columns().",
       "doc": "geml-parser--verbs.ts.geml",
       "id": "columns"
+    }
+  ],
+  "compText": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`media-check.ts`/compText().",
+      "doc": "geml-parser--media-check.ts.geml",
+      "id": "compText"
+    }
+  ],
+  "composePlan": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`media-verbs.ts`/composePlan().",
+      "doc": "geml-parser--media-verbs.ts.geml",
+      "id": "composePlan"
     }
   ],
   "computedAttrs": [
@@ -2547,6 +2575,20 @@
       "id": "lay"
     }
   ],
+  "layerSpec": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`media-compose.ts`/layerSpec().",
+      "doc": "geml-parser--media-compose.ts.geml",
+      "id": "layerSpec"
+    }
+  ],
+  "layersOf": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`media-verbs.ts`/layersOf().",
+      "doc": "geml-parser--media-verbs.ts.geml",
+      "id": "layersOf"
+    }
+  ],
   "layout": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`media-timeline.ts`/layout().",
@@ -3202,6 +3244,11 @@
       "id": "num"
     },
     {
+      "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`media-compose.ts`/num.",
+      "doc": "geml-parser--media-compose.ts.geml",
+      "id": "num"
+    },
+    {
       "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`media-timeline.ts`/num.",
       "doc": "geml-parser--media-timeline.ts.geml",
       "id": "num"
@@ -3382,6 +3429,13 @@
       "id": "parseEdn"
     }
   ],
+  "parseEnd": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`media-compose.ts`/parseEnd().",
+      "doc": "geml-parser--media-compose.ts.geml",
+      "id": "parseEnd"
+    }
+  ],
   "parseGraphStyle": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`graph-style.ts`/parseGraphStyle().",
@@ -3424,6 +3478,20 @@
       "id": "parseOps"
     }
   ],
+  "parsePointNames": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`media-compose.ts`/parsePointNames().",
+      "doc": "geml-parser--media-compose.ts.geml",
+      "id": "parsePointNames"
+    }
+  ],
+  "parsePoints": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`media-compose.ts`/parsePoints().",
+      "doc": "geml-parser--media-compose.ts.geml",
+      "id": "parsePoints"
+    }
+  ],
   "parseSelector": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`selector.ts`/parseSelector().",
@@ -3441,6 +3509,13 @@
       "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`style-selector.ts`/parseSimple().",
       "doc": "geml-parser--style-selector.ts.geml",
       "id": "parseSimple"
+    }
+  ],
+  "parseSize": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`media-compose.ts`/parseSize().",
+      "doc": "geml-parser--media-compose.ts.geml",
+      "id": "parseSize"
     }
   ],
   "parseSourceRoute": [
@@ -3469,6 +3544,13 @@
       "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`style-resolve.ts`/parseWhen().",
       "doc": "geml-parser--style-resolve.ts.geml",
       "id": "parseWhen"
+    }
+  ],
+  "parseXywh": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`media-compose.ts`/parseXywh().",
+      "doc": "geml-parser--media-compose.ts.geml",
+      "id": "parseXywh"
     }
   ],
   "parseYaml": [
@@ -4623,6 +4705,13 @@
       "id": "scalar"
     }
   ],
+  "scaleOf": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`media-compose.ts`/scaleOf().",
+      "doc": "geml-parser--media-compose.ts.geml",
+      "id": "scaleOf"
+    }
+  ],
   "scanAtoms": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`inline.ts`/scanAtoms().",
@@ -5012,6 +5101,13 @@
       "anchor": "scip-typescript npm geml-viewer 1.3.2 src/`snapshot.js`/snapshot().",
       "doc": "geml-viewer--snapshot.js.geml",
       "id": "snapshot"
+    }
+  ],
+  "solveLayout": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`media-compose.ts`/solveLayout().",
+      "doc": "geml-parser--media-compose.ts.geml",
+      "id": "solveLayout"
     }
   ],
   "sourceToggle": [
@@ -5452,11 +5548,11 @@
       "id": "typeIndex"
     }
   ],
-  "typeLiteral684:write": [
+  "typeLiteral780:write": [
     {
-      "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/resolveOutTarget().typeLiteral684:write().",
+      "anchor": "scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/resolveOutTarget().typeLiteral780:write().",
       "doc": "geml-parser--cli.ts.geml",
-      "id": "typeLiteral684-write"
+      "id": "typeLiteral780-write"
     }
   ],
   "typed": [
