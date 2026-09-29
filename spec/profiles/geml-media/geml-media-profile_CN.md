@@ -247,8 +247,8 @@ body 是 raw，放作者自己的备注。备注是文档事实，进历史；�
 的先后无关。`contact` 让两点重合；`gaze` 只把两点的高度对齐，`x` 不动。一个层由它的
 **第一条**互动定位置，之后的互动只验：两点合成后相距超过 2 像素报 `media-interaction-apart`。
 由 contact 定位的层不能再写 `x`/`y`，由 gaze 定位的不能写 `y`（`media-layer-position-conflict`），
-微调用 `dx`/`dy`。点随 `w` 缩放要知道源图多宽：有 `xywh` 用裁切宽，否则用素材的 `size=`
-（`media-asset-size-required`）。互动只在关键帧上成立：两个 `at` 之间是视频模型或补间器的事。
+微调用 `dx`/`dy`。`flip=h` 的层，点跟着镜像。点随 `w` 缩放、或镜像，都要知道源图多宽：
+有 `xywh` 用裁切宽，否则用素材的 `size=`（`media-asset-size-required`）。互动只在关键帧上成立：两个 `at` 之间是视频模型或补间器的事。
 comp 的规范化文本带上解析后的点坐标，点挪了，用它的 comp 就过期。`check` 和 `compose` 用的
 是同一份几何；互动引不到层或点时 `compose` 拒绝，不会把那一层放到原点再登记一条看似正常的
 记录——立绘重出之后像素变了，旧的点不再是它的事实，得重标。

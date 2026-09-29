@@ -20,8 +20,10 @@ export interface LayerSpec {
   w?: number;
   /** 先裁切（源坐标） */
   crop?: { x: number; y: number; w: number; h: number };
-  /** 源图尺寸（素材的 size=）；有 w 没 crop 时缩放比例要它 */
+  /** 源图尺寸（素材的 size=）；有 w 没 crop 时缩放比例要它，翻转时镜像也要它 */
   size?: { w: number; h: number };
+  /** `flip=h`：水平镜像 —— 点的 x 也跟着从右边量 */
+  flip?: "h";
   /** 素材上的点，源坐标 */
   points: Map<string, Pt>;
 }
@@ -95,22 +97,34 @@ export function layerSpec(id: string, index: number, attrs: Record<string, unkno
   const w = num(attrs["w"]); if (w !== undefined) spec.w = w;
   const crop = parseXywh(attrs["xywh"]); if (crop !== undefined) spec.crop = crop;
   const size = parseSize(assetAttrs["size"]); if (size !== undefined) spec.size = size;
+  if (attrs["flip"] === "h") spec.flip = "h";
   return spec;
 }
+
+/** 源图（裁切后）多宽：有裁切用裁切宽，否则用素材的 size=。答不上来是 undefined。 */
+export const widthOf = (l: LayerSpec): number | undefined => l.crop?.w ?? l.size?.w;
 
 /** 缩放比例。有 w 没 crop 也没 size 时答不上来 —— 返回 null，调用方报 size-required。 */
 export function scaleOf(l: LayerSpec): number | null {
   if (l.w === undefined) return 1;
-  const srcW = l.crop?.w ?? l.size?.w;
+  const srcW = widthOf(l);
   if (srcW === undefined || srcW <= 0) return null;
   return l.w / srcW;
 }
 
-/** 源图上的一个点落在画布的哪里。 */
-export function canvasPoint(l: LayerSpec, pos: Pt, p: Pt, s: number): Pt {
+/** 一个点在这一层"自己的"坐标里：裁切后的位置，翻转过就从右边量。 */
+export function localPoint(l: LayerSpec, p: Pt): Pt {
   const cx = l.crop?.x ?? 0;
   const cy = l.crop?.y ?? 0;
-  return { x: pos.x + (p.x - cx) * s, y: pos.y + (p.y - cy) * s };
+  let lx = p.x - cx;
+  if (l.flip === "h") { const srcW = widthOf(l); if (srcW !== undefined) lx = srcW - lx; }
+  return { x: lx, y: p.y - cy };
+}
+
+/** 源图上的一个点落在画布的哪里。 */
+export function canvasPoint(l: LayerSpec, pos: Pt, p: Pt, s: number): Pt {
+  const lp = localPoint(l, p);
+  return { x: pos.x + lp.x * s, y: pos.y + lp.y * s };
 }
 
 /** 两点合成后相距超过这个数就算分开了（像素）。 */
@@ -128,13 +142,15 @@ export function solveLayout(layers: LayerSpec[], interactions: InteractionSpec[]
   const placedBy = new Map<string, string>();
   const problems: Problem[] = [];
   const sized = new Set<string>();
+  const needWidth = (l: LayerSpec, why: string): void => {
+    if (sized.has(l.id)) return;
+    sized.add(l.id);
+    problems.push({ code: "size-required", id: l.id, message: `层 #${l.id} ${why}，却既没有裁切也没有素材的 size=：算不出来，给素材写上 size=宽x高` });
+  };
   const scale = (l: LayerSpec): number => {
     const s = scaleOf(l);
-    if (s !== null) return s;
-    if (!sized.has(l.id)) {
-      sized.add(l.id);
-      problems.push({ code: "size-required", id: l.id, message: `层 #${l.id} 有 w= 却既没有裁切也没有素材的 size=：点随 w 怎么缩放算不出来，给素材写上 size=宽x高` });
-    }
+    if (s !== null) { if (l.flip === "h" && widthOf(l) === undefined) needWidth(l, "翻转了（点要从右边量）"); return s; }
+    needWidth(l, "有 w=（点要随 w 缩放）");
     return 1;
   };
   const verify: InteractionSpec[] = [];
@@ -155,12 +171,11 @@ export function solveLayout(layers: LayerSpec[], interactions: InteractionSpec[]
     if (pf === undefined || pt === undefined) continue;
     const target = canvasPoint(fixed, pos.get(fixed.id) as Pt, pt, scale(fixed));
     const s = scale(free);
-    const cx = free.crop?.x ?? 0;
-    const cy = free.crop?.y ?? 0;
+    const lp = localPoint(free, pf);
     const cur = pos.get(free.id) as Pt;
     const next: Pt = it.kind === "contact"
-      ? { x: target.x - (pf.x - cx) * s + free.dx, y: target.y - (pf.y - cy) * s + free.dy }
-      : { x: cur.x, y: target.y - (pf.y - cy) * s + free.dy };
+      ? { x: target.x - lp.x * s + free.dx, y: target.y - lp.y * s + free.dy }
+      : { x: cur.x, y: target.y - lp.y * s + free.dy };
     pos.set(free.id, next);
     placedBy.set(free.id, it.id);
   }

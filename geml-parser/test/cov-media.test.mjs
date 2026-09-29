@@ -564,6 +564,21 @@ test("solveLayout：gaze 定位的层写了 y 是冲突，消息只说 y；自�
   assert.deepEqual(contact.pos.get("D"), { x: 0 - 10 * 0.5, y: 300 - 40 * 0.5 });
 });
 
+test("solveLayout：翻转的层，点也跟着翻 —— x 在源图里从右边量；没裁切又没 size 就答不上来", () => {
+  const A = layerSpec("A", 0, { x: "0", y: "0" }, { points: "p:200,300" });
+  const B = layerSpec("B", 1, { w: "50", flip: "h" }, { size: "100x100", points: "p:10,40" });
+  const r = solveLayout([A, B], [{ id: "i", a: { layer: "A", point: "p" }, b: { layer: "B", point: "p" }, kind: "contact" }]);
+  // 翻转后 p 在源图里是 (90,40)；比例 0.5 → B 左上角 = (200 − 45, 300 − 20)
+  assert.deepEqual(r.pos.get("B"), { x: 155, y: 280 });
+  const C = layerSpec("C", 1, { w: "50", flip: "h", xywh: "20,0,60,100" }, { size: "100x100", points: "p:30,40" });
+  const rc = solveLayout([A, C], [{ id: "i", a: { layer: "A", point: "p" }, b: { layer: "C", point: "p" }, kind: "contact" }]);
+  // 裁切 (20,0,60,100)：p 在裁切内是 (10,40)，翻转后 (50,40)；比例 50/60
+  assert.deepEqual(rc.pos.get("C"), { x: 200 - 50 * (50 / 60), y: 300 - 40 * (50 / 60) });
+  const D = layerSpec("D", 1, { flip: "h" }, { points: "p:10,40" });
+  const rd = solveLayout([A, D], [{ id: "i", a: { layer: "A", point: "p" }, b: { layer: "D", point: "p" }, kind: "contact" }]);
+  assert.equal(rd.problems[0]?.code, "size-required", "翻转要知道源图多宽");
+});
+
 test("solveLayout：只验的连接里点缺了就跳过；缺 size 的层被两条连接用到也只报一次", () => {
   const A = layerSpec("A", 0, { x: "0", y: "0" }, { points: "p:10,10 q:20,20" });
   const B = layerSpec("B", 1, { w: "50" }, { points: "p:0,0" });

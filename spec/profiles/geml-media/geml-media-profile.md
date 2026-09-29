@@ -295,8 +295,9 @@ placed by its **first** interaction; later interactions on it only verify, and
 report `media-interaction-apart` when the points end up more than 2 px apart. A
 layer placed by a contact must not write `x`/`y`; one placed by a gaze must not
 write `y` (`media-layer-position-conflict`) — adjust with `dx`/`dy` instead.
-Scaling a point by `w` needs the source width: `xywh` supplies it, otherwise the
-asset's `size=` (`media-asset-size-required`). Interactions hold at keyframes
+A `flip=h` layer's points mirror with it. Scaling a point by `w`, or mirroring
+it, needs the source width: `xywh` supplies it, otherwise the asset's `size=`
+(`media-asset-size-required`). Interactions hold at keyframes
 only: what happens between two `at`s is the video model's or the tweener's.
 The comp's canonical text carries the resolved point coordinates, so a moved
 point stales every comp that used it. `check` and `compose` share one geometry,
