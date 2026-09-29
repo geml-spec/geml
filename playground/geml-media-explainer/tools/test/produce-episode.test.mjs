@@ -1,7 +1,7 @@
 // produce-episode.test.mjs —— 做一集的纯规则：产出命名、归属、抠像命令、步骤顺序、运镜、字幕配对、分镜表。
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { outputOf, standOf, ofFor, roleFor, keyArgs, KEY_PARAMS, keyParamsChanged, keysOf, keySeconds, musicParamsChanged, musicClips, BGM_SECONDS, STEPS, diskOk, assertDisk, motionExpr, cues, shots, SEEDS, EP } from "../produce-episode.mjs";
+import { outputOf, standOf, ofFor, roleFor, keyArgs, KEY_PARAMS, keyParamsChanged, STEPS, diskOk, assertDisk, motionExpr, cues, shots, SEEDS, EP } from "../produce-episode.mjs";
 
 test("提示词 → 产出：角色图与母版直接出图，立绘先出一张 take 再抠成 stand", () => {
   assert.equal(outputOf("hero-sheet-prompt"), "hero-sheet");
@@ -12,59 +12,11 @@ test("提示词 → 产出：角色图与母版直接出图，立绘先出一张
   assert.equal(standOf("hero-sheet"), null, "角色图不抠");
 });
 
-test("道具也是一张抠好的图，但角色是 prop 不是 stand；归属指道具块，名字整个用", () => {
+test("道具也是一张抠好的图，但角色是 prop 不是 stand；归属指道具块", () => {
   assert.equal(roleFor("bowl"), "prop");
-  assert.equal(roleFor("bowl-tilt"), "prop");
   assert.equal(roleFor("hero-fall"), "stand");
   assert.equal(ofFor("bowl-take"), "characters.geml#bowl");
-  assert.equal(ofFor("bowl-tilt-take"), "characters.geml#bowl-tilt", "道具名带连字符，不能只取第一段");
-  assert.equal(ofFor("bowl-broken"), "characters.geml#bowl-broken");
   assert.equal(standOf("bowl-take"), "bowl");
-});
-
-test("分镜表：台词栏可以为空（打戏没有台词），剪辑就不给那一镜配音和字幕", () => {
-  const list = shots(EP);
-  assert.equal(list.length, 16);
-  assert.equal(list[6].id, "s07");
-  assert.equal(list[6].line, undefined);
-  assert.equal(list[15].line, "l5");
-  assert.equal(list.reduce((a, s) => a + s.duration, 0), 71);
-});
-
-test("一镜几帧：sNN-comp 是单帧，sNN-kM 按 at 排成序列；每帧占到下一帧开始，最后一帧占到镜尾", () => {
-  const ids = ["s05-comp", "s11-k2", "s11-k1", "s15-k1", "l5", "s15-k2"];
-  const at = { "s11-k1": "0", "s11-k2": "2", "s15-k1": "0", "s15-k2": "2" };
-  assert.deepEqual(keysOf("s05", ids, (id) => ({ at: at[id] })), [{ id: "s05-comp", at: 0 }]);
-  assert.deepEqual(keysOf("s11", ids, (id) => ({ at: at[id] })), [{ id: "s11-k1", at: 0 }, { id: "s11-k2", at: 2 }]);
-  assert.deepEqual(keySeconds(4, [{ id: "a", at: 0 }, { id: "b", at: 2.5 }]), [2.5, 1.5]);
-  assert.deepEqual(keySeconds(5, [{ id: "a", at: 0 }]), [5]);
-  assert.throws(() => keysOf("s12", ids, () => ({})), /没有 comp/);
-});
-
-test("运镜：打戏的三个词 —— 急推、急拉、抖动", () => {
-  assert.match(motionExpr("急推").z, /^1\+0\.3/);
-  assert.match(motionExpr("急拉").z, /^1\.30-/);
-  const j = motionExpr("抖动");
-  assert.match(j.x, /sin/, "抖动是 x y 上的小幅摆动");
-  assert.match(j.y, /cos/);
-});
-
-test("配乐不重出：同一段 #bgm 在时间线上再引一次，第二刀锚在它接上的那一镜", () => {
-  const list = [5, 5, 6, 6, 7, 7, 3, 3, 4, 4, 4, 3, 3, 3, 4, 4].map((d, i) => ({ id: `s${String(i + 1).padStart(2, "0")}`, duration: d }));
-  assert.deepEqual(musicClips(71, 38, list), [
-    { id: "music", over: "#c1", offset: 0, in: 0, out: 38 },
-    { id: "music-2", over: "#c7", offset: 2, in: 0, out: 33 },
-  ]);
-  assert.deepEqual(musicClips(36, 38, list.slice(0, 6)), [{ id: "music", over: "#c1", offset: 0, in: 0, out: 36 }], "够长就一刀");
-  assert.equal(BGM_SECONDS, 38, "配乐的长度是它自己的事，不随分镜表变");
-});
-
-test("配乐随总时长重出：记录里的秒数和分镜表算出来的不一样就重做", () => {
-  const log = JSON.stringify({ output: "#bgm", model: "make-music.mjs", mode: "other", params: { seconds: 38 } });
-  assert.equal(musicParamsChanged(log, 38), false);
-  assert.equal(musicParamsChanged(log, 73), true);
-  assert.equal(musicParamsChanged("", 38), true, "没记录也算");
-  assert.equal(musicParamsChanged(JSON.stringify({ output: "#bgm", model: "make-music.mjs", mode: "other" }), 38), true, "老记录没记秒数");
 });
 
 test("产出的 of=：角色的归角色，母版归场景", () => {
@@ -76,13 +28,10 @@ test("产出的 of=：角色的归角色，母版归场景", () => {
   assert.equal(ofFor("bedroom-door-plate"), "characters.geml#bedroom-door");
 });
 
-test("每个要出的图都有种子：两张角色图、三张母版、二十二张立绘、三张道具", () => {
+test("每个要出的图都有种子：两张角色图、三张母版、八张立绘、一张道具", () => {
   const ids = ["hero-sheet", "sister-sheet", "rooftop-plate", "bedroom-plate", "bedroom-door-plate",
     "hero-fall-take", "hero-wake-take", "hero-mirror-take", "hero-sit-take", "hero-refuse-take", "sister-door-take", "sister-hand-take",
-    "sister-offer-take", "bowl-take",
-    "hero-push-take", "hero-grip-take", "hero-fed-take", "hero-strike-take", "hero-catch-take", "hero-hold2-take", "hero-leap-take",
-    "sister-push-take", "sister-grip-take", "sister-pour-take", "sister-strike-take", "sister-kick-take", "sister-hold2-take", "sister-leap-take",
-    "bowl-tilt-take", "bowl-broken-take"];
+    "sister-offer-take", "bowl-take"];
   for (const id of ids) assert.ok(Number.isInteger(SEEDS[id]), id);
   assert.equal(Object.keys(SEEDS).length, ids.length, "种子表里没有多余的名字");
 });
@@ -120,11 +69,11 @@ test("八步：抠像与合成接在出图之后、运镜之前", () => {
   assert.deepEqual(STEPS, ["images", "stands", "compose", "takes", "voices", "music", "cut", "render"]);
 });
 
-test("分镜表：十六镜，时长、运镜、台词都读得出", () => {
+test("分镜表：六镜，时长、运镜、台词都读得出", () => {
   const list = shots(EP);
-  assert.equal(list.length, 16);
+  assert.equal(list.length, 6);
   assert.deepEqual(list[0], { id: "s01", duration: 5, motion: "拉远", line: "n1" });
-  assert.equal(list.slice(0, 6).reduce((a, s) => a + s.duration, 0), 36);
+  assert.equal(list.reduce((a, s) => a + s.duration, 0), 36);
 });
 
 test("运镜：四种都有表达式，不认识的直接报错", () => {

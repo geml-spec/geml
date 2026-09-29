@@ -15,7 +15,7 @@ profile = "geml-media/v1"
 | 旁白 | #narrator | Reed |
 ===
 
-# 林夏 {#hero points="hand hand2 foot mouth eyes seat feet"}
+# 林夏 {#hero points="hand eyes seat"}
 
 女主。被妹妹害死后，重生回三年前。标题上的 `points=` 是她的立绘该标出的点的名字——坐标在每张立绘上。
 
@@ -23,7 +23,7 @@ profile = "geml-media/v1"
 二十六岁女性，银灰短发齐耳，左眉一道旧疤，红色长风衣。
 ===
 
-# 林岚 {#sister points="hand hand2 foot mouth eyes seat feet"}
+# 林岚 {#sister points="hand eyes feet"}
 
 妹妹，反派，表面温柔。
 
@@ -63,12 +63,4 @@ profile = "geml-media/v1"
 
 === media-text {#bowl .look points="base rim-left rim-right"}
 一碗热汤：白瓷碗，汤面冒着热气，能看到几片葱花。
-===
-
-=== media-text {#bowl-tilt .look points="base rim-left rim-right lip"}
-那只白瓷碗被掀斜了，汤正从碗沿泼出来。
-===
-
-=== media-text {#bowl-broken .look}
-摔碎在地板上的白瓷碗：碎瓷片散开，汤泼了一地。
 ===

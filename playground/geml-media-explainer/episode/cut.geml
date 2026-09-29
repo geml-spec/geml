@@ -26,40 +26,7 @@ aspect = "9:16"
 === media-clip {#c6 track=video src=library.geml#s06-take in=0 out=7}
 ===
 
-=== media-clip {#c7 track=video src=library.geml#s07-take in=0 out=3}
-===
-
-=== media-clip {#c8 track=video src=library.geml#s08-take in=0 out=3}
-===
-
-=== media-clip {#c9 track=video src=library.geml#s09-take in=0 out=4}
-===
-
-=== media-clip {#c10 track=video src=library.geml#s10-take in=0 out=4}
-===
-
-=== media-clip {#c11 track=video src=library.geml#s11-take in=0 out=4}
-===
-
-=== media-clip {#c12 track=video src=library.geml#s12-take in=0 out=3}
-===
-
-=== media-clip {#c13 track=video src=library.geml#s13-take in=0 out=3}
-===
-
-=== media-clip {#c14 track=video src=library.geml#s14-take in=0 out=3}
-===
-
-=== media-clip {#c15 track=video src=library.geml#s15-take in=0 out=4}
-===
-
-=== media-clip {#c16 track=video src=library.geml#s16-take in=0 out=4}
-===
-
-=== media-clip {#music track=music src=library.geml#bgm over=#c1 in=0 out=38 gain=-16dB fade-in=1 fade-out=2}
-===
-
-=== media-clip {#music-2 track=music src=library.geml#bgm over=#c7 offset=2 in=0 out=33 gain=-16dB fade-in=1 fade-out=2}
+=== media-clip {#music track=music src=library.geml#bgm over=#c1 in=0 out=36 gain=-16dB fade-in=1 fade-out=2}
 ===
 
 === media-clip {#d-n1 track=dialogue src=library.geml#n1-vo over=#c1 offset=0.4}
@@ -114,15 +81,6 @@ aspect = "9:16"
 ===
 
 === media-clip {#e-l4 track=sub-en src=script.geml#l4-en over=#c6 offset=0.4 duration=1.705}
-===
-
-=== media-clip {#d-l5 track=dialogue src=library.geml#l5-vo over=#c16 offset=0.4}
-===
-
-=== media-clip {#t-l5 track=sub-zh src=script.geml#l5 over=#c16 offset=0.4 duration=1.038}
-===
-
-=== media-clip {#e-l5 track=sub-en src=script.geml#l5-en over=#c16 offset=0.4 duration=1.038}
 ===
 
 ====
