@@ -7,130 +7,130 @@ resolution-default = cpg
 
 # geml-parser/cli.ts
 
-=== code {#knownProfileCode src=geml-parser/src/cli.ts#L37-39 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/knownProfileCode()."}
+=== code {#knownProfileCode src=geml-parser/src/cli.ts#L37-39 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/knownProfileCode()."}
 ===
 
-=== code {#rejectUnknownFlags src=geml-parser/src/cli.ts#L283-308 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/rejectUnknownFlags()."}
+=== code {#rejectUnknownFlags src=geml-parser/src/cli.ts#L283-308 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/rejectUnknownFlags()."}
 ===
 
-=== code {#fail src=geml-parser/src/cli.ts#L310-314 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/fail()."}
+=== code {#fail src=geml-parser/src/cli.ts#L310-314 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/fail()."}
 ===
 
-=== code {#refuseBroken src=geml-parser/src/cli.ts#L322-328 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/refuseBroken()."}
+=== code {#refuseBroken src=geml-parser/src/cli.ts#L322-328 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/refuseBroken()."}
 ===
 
-=== code {#readInput src=geml-parser/src/cli.ts#L331-337 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/readInput()."}
+=== code {#readInput src=geml-parser/src/cli.ts#L331-337 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/readInput()."}
 ===
 
-=== code {#useRoot src=geml-parser/src/cli.ts#L352-357 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/useRoot()."}
+=== code {#useRoot src=geml-parser/src/cli.ts#L352-357 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/useRoot()."}
 ===
 
-=== code {#docOpts src=geml-parser/src/cli.ts#L359-361 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/docOpts()."}
+=== code {#docOpts src=geml-parser/src/cli.ts#L359-361 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/docOpts()."}
 ===
 
-=== code {#ctxFor src=geml-parser/src/cli.ts#L366-372 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/ctxFor()."}
+=== code {#ctxFor src=geml-parser/src/cli.ts#L366-372 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/ctxFor()."}
 ===
 
-=== code {#verb src=geml-parser/src/cli.ts#L378-388 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/verb()."}
+=== code {#verb src=geml-parser/src/cli.ts#L378-388 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/verb()."}
 ===
 
-=== code {#contentFrom src=geml-parser/src/cli.ts#L393-403 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/contentFrom()."}
+=== code {#contentFrom src=geml-parser/src/cli.ts#L393-403 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/contentFrom()."}
 ===
 
-=== code {#mediaEntry src=geml-parser/src/cli.ts#L449-458 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/mediaEntry()."}
+=== code {#mediaEntry src=geml-parser/src/cli.ts#L449-458 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/mediaEntry()."}
 ===
 
-=== code {#whichBin src=geml-parser/src/cli.ts#L461-472 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/whichBin()."}
+=== code {#whichBin src=geml-parser/src/cli.ts#L461-472 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/whichBin()."}
 ===
 
-=== code {#probeDuration src=geml-parser/src/cli.ts#L475-482 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/probeDuration()."}
+=== code {#probeDuration src=geml-parser/src/cli.ts#L475-482 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/probeDuration()."}
 ===
 
-=== code {#mediaFilesUnder src=geml-parser/src/cli.ts#L485-492 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/mediaFilesUnder()."}
+=== code {#mediaFilesUnder src=geml-parser/src/cli.ts#L485-492 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/mediaFilesUnder()."}
 ===
 
-=== code {#mediaRootOf src=geml-parser/src/cli.ts#L494-497 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/mediaRootOf()."}
+=== code {#mediaRootOf src=geml-parser/src/cli.ts#L494-497 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/mediaRootOf()."}
 ===
 
-=== code {#runMedia src=geml-parser/src/cli.ts#L503-816 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/runMedia()."}
+=== code {#runMedia src=geml-parser/src/cli.ts#L503-816 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/runMedia()."}
 ===
 
-=== code {#runCheck src=geml-parser/src/cli.ts#L818-874 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/runCheck()."}
+=== code {#runCheck src=geml-parser/src/cli.ts#L818-874 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/runCheck()."}
 ===
 
-=== code {#applySeverity src=geml-parser/src/cli.ts#L885-904 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/applySeverity()."}
+=== code {#applySeverity src=geml-parser/src/cli.ts#L885-904 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/applySeverity()."}
 ===
 
-=== code {#globMatch src=geml-parser/src/cli.ts#L907-910 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/globMatch()."}
+=== code {#globMatch src=geml-parser/src/cli.ts#L907-910 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/globMatch()."}
 ===
 
-=== code {#historyPositionals src=geml-parser/src/cli.ts#L920-929 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/historyPositionals()."}
+=== code {#historyPositionals src=geml-parser/src/cli.ts#L920-929 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/historyPositionals()."}
 ===
 
-=== code {#runHistory src=geml-parser/src/cli.ts#L931-1036 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/runHistory()."}
+=== code {#runHistory src=geml-parser/src/cli.ts#L931-1036 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/runHistory()."}
 ===
 
-=== code {#runTransform src=geml-parser/src/cli.ts#L1049-1113 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/runTransform()."}
+=== code {#runTransform src=geml-parser/src/cli.ts#L1049-1113 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/runTransform()."}
 ===
 
-=== code {#writeOut src=geml-parser/src/cli.ts#L1116-1119 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/writeOut()."}
+=== code {#writeOut src=geml-parser/src/cli.ts#L1116-1119 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/writeOut()."}
 ===
 
-=== code {#resolveOutTarget src=geml-parser/src/cli.ts#L1129-1138 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/resolveOutTarget()."}
+=== code {#resolveOutTarget src=geml-parser/src/cli.ts#L1129-1138 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/resolveOutTarget()."}
 ===
 
-=== code {#typeLiteral780-write .leaf name="typeLiteral780:write" src=geml-parser/src/cli.ts#L1129-1129 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/resolveOutTarget().typeLiteral780:write()."}
+=== code {#typeLiteral780-write .leaf name="typeLiteral780:write" src=geml-parser/src/cli.ts#L1129-1129 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/resolveOutTarget().typeLiteral780:write()."}
 ===
 
-=== code {#positionals src=geml-parser/src/cli.ts#L1144-1154 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/positionals()."}
+=== code {#positionals src=geml-parser/src/cli.ts#L1144-1154 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/positionals()."}
 ===
 
-=== code {#runList src=geml-parser/src/cli.ts#L1160-1170 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/runList()."}
+=== code {#runList src=geml-parser/src/cli.ts#L1160-1170 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/runList()."}
 ===
 
-=== code {#runFind src=geml-parser/src/cli.ts#L1179-1209 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/runFind()."}
+=== code {#runFind src=geml-parser/src/cli.ts#L1179-1209 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/runFind()."}
 ===
 
-=== code {#runGet src=geml-parser/src/cli.ts#L1222-1255 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/runGet()."}
+=== code {#runGet src=geml-parser/src/cli.ts#L1222-1255 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/runGet()."}
 ===
 
-=== code {#runReplace src=geml-parser/src/cli.ts#L1271-1283 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/runReplace()."}
+=== code {#runReplace src=geml-parser/src/cli.ts#L1271-1283 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/runReplace()."}
 ===
 
-=== code {#runSet src=geml-parser/src/cli.ts#L1290-1323 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/runSet()."}
+=== code {#runSet src=geml-parser/src/cli.ts#L1290-1323 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/runSet()."}
 ===
 
-=== code {#runAdd src=geml-parser/src/cli.ts#L1327-1345 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/runAdd()."}
+=== code {#runAdd src=geml-parser/src/cli.ts#L1327-1345 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/runAdd()."}
 ===
 
-=== code {#runDelete src=geml-parser/src/cli.ts#L1349-1361 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/runDelete()."}
+=== code {#runDelete src=geml-parser/src/cli.ts#L1349-1361 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/runDelete()."}
 ===
 
-=== code {#runRename src=geml-parser/src/cli.ts#L1366-1387 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/runRename()."}
+=== code {#runRename src=geml-parser/src/cli.ts#L1366-1387 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/runRename()."}
 ===
 
-=== code {#flag src=geml-parser/src/cli.ts#L1390-1393 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/flag()."}
+=== code {#flag src=geml-parser/src/cli.ts#L1390-1393 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/flag()."}
 ===
 
-=== code {#runRevert src=geml-parser/src/cli.ts#L1402-1456 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/runRevert()."}
+=== code {#runRevert src=geml-parser/src/cli.ts#L1402-1456 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/runRevert()."}
 ===
 
-=== code {#runCodemap src=geml-parser/src/cli.ts#L1462-1484 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/runCodemap()."}
+=== code {#runCodemap src=geml-parser/src/cli.ts#L1462-1484 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/runCodemap()."}
 ===
 
-=== code {#runStyle src=geml-parser/src/cli.ts#L1490-1540 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/runStyle()."}
+=== code {#runStyle src=geml-parser/src/cli.ts#L1490-1540 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/runStyle()."}
 ===
 
-=== code {#runMcp src=geml-parser/src/cli.ts#L1547-1551 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/runMcp()."}
+=== code {#runMcp src=geml-parser/src/cli.ts#L1547-1551 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/runMcp()."}
 ===
 
-=== code {#skillTextFor src=geml-parser/src/cli.ts#L1582-1587 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/skillTextFor()."}
+=== code {#skillTextFor src=geml-parser/src/cli.ts#L1582-1587 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/skillTextFor()."}
 ===
 
-=== code {#installOtherTools src=geml-parser/src/cli.ts#L1589-1628 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/installOtherTools()."}
+=== code {#installOtherTools src=geml-parser/src/cli.ts#L1589-1628 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/installOtherTools()."}
 ===
 
-=== code {#runSkill src=geml-parser/src/cli.ts#L1630-1745 anchor="scip-typescript npm @geml/geml 1.11.2 src/`cli.ts`/runSkill()."}
+=== code {#runSkill src=geml-parser/src/cli.ts#L1630-1745 anchor="scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/runSkill()."}
 ===
 
 === table {#calls format=csv}

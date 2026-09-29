@@ -8,7 +8,7 @@ resolution-default = cpg
 
 # geml-parser/diagnostics.ts
 
-=== code {#normalizeSource src=geml-parser/src/diagnostics.ts#L269-272 anchor="scip-typescript npm @geml/geml 1.11.2 src/`diagnostics.ts`/normalizeSource()."}
+=== code {#normalizeSource src=geml-parser/src/diagnostics.ts#L269-272 anchor="scip-typescript npm @geml/geml 1.11.3 src/`diagnostics.ts`/normalizeSource()."}
 ===
 
 === table {#called-by format=csv}

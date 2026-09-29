@@ -18,6 +18,8 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+## [1.11.3] — 2026-09-29
+
 - **geml-media: a shot composed from layers.** Two new block types,
   `media-comp` (a canvas) and `media-layer` (one image asset cropped, scaled,
   flipped and placed on it), a `composite` log mode and four diagnostics

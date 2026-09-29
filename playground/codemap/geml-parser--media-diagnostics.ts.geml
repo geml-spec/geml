@@ -8,7 +8,7 @@ resolution-default = cpg
 
 # geml-parser/media-diagnostics.ts
 
-=== code {#mediaDiag .leaf src=geml-parser/src/media-diagnostics.ts#L119-123 anchor="scip-typescript npm @geml/geml 1.11.2 src/`media-diagnostics.ts`/mediaDiag()."}
+=== code {#mediaDiag .leaf src=geml-parser/src/media-diagnostics.ts#L119-123 anchor="scip-typescript npm @geml/geml 1.11.3 src/`media-diagnostics.ts`/mediaDiag()."}
 ===
 
 === table {#called-by format=csv}
