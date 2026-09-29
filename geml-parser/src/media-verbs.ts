@@ -7,7 +7,7 @@
 // 和 media-check 一样，这个模块不碰 node:fs —— 文件、哈希、以及**外部程序**
 // （ffmpeg/ffprobe）全部走 MediaIO/MediaHost，由宿主给。
 import { parse, type Block } from "./geml.js";
-import { blocksOf, metaOf, splitRef, promptTextOf, type MediaIO, type Loaded } from "./media-check.js";
+import { blocksOf, metaOf, splitRef, promptTextOf, checkMedia, type MediaIO, type Loaded } from "./media-check.js";
 import { layout, type Timeline } from "./media-timeline.js";
 import { drivePlayer } from "./media-player-runtime.js";
 import { layerSpec, parseEnd, solveLayout, type End, type InteractionSpec, type LayerSpec } from "./media-compose.js";
@@ -125,6 +125,8 @@ export interface TodoItem {
   /** 展开投射之后的提示词或台词文本 —— 发给模型的那串字 */
   prompt: string | null;
   refs: { ref: string; role?: string }[];
+  /** 它有产出，只是产出对不上现值了（check 的 media-stale-generation）：要重做，不是第一次做 */
+  stale?: true;
 }
 
 export function todo(entry: string | string[], io: MediaIO): TodoItem[] {
@@ -169,8 +171,7 @@ export function todo(entry: string | string[], io: MediaIO): TodoItem[] {
     out.push({ kind: "voice", address, mode: "tts", prompt: promptTextOf(address, "", io), refs });
   }
   // 合成：没有记录认领的 comp。没有要发给模型的文字，refs 是各层的素材。
-  for (const { rel, b } of p.comps) {
-    if (!askedFor(rel, b)) continue;
+  const compRefs = (rel: string, b: Extract<Block, { kind: "block" }>): { ref: string; role?: string }[] => {
     const refs: { ref: string; role?: string }[] = [];
     for (const { asset } of layersOf(p, rel, b)) {
       if (asset === null || asset.b.id === undefined) continue;
@@ -178,7 +179,42 @@ export function todo(entry: string | string[], io: MediaIO): TodoItem[] {
       const ref = `${asset.rel}#${asset.b.id}`;
       refs.push(role === undefined ? { ref } : { ref, role });
     }
-    out.push({ kind: "composite", address: `${rel}#${b.id as string}`, mode: "composite", prompt: null, refs });
+    return refs;
+  };
+  for (const { rel, b } of p.comps) {
+    if (!askedFor(rel, b)) continue;
+    out.push({ kind: "composite", address: `${rel}#${b.id as string}`, mode: "composite", prompt: null, refs: compRefs(rel, b) });
+  }
+  // 过期的也是待办（设计记录 §6.2 的第三类，第一个真实用例撞到才做）：check 说哪份素材的
+  // 当前记录对不上现值，那条记录照着做的块就回到清单上，标 stale。只看当前记录 —— 被取代
+  // 的旧记录不参与，和 check 一样。
+  const stale = new Set<string>();
+  for (const e of Array.isArray(entry) ? entry : [entry]) {
+    for (const d of checkMedia(e, io)) if (d.code === "media-stale-generation" && d.id !== undefined) stale.add(`${d.doc}#${d.id}`);
+  }
+  const listed = new Set(out.map((x) => x.address));
+  for (const rec of p.records) {
+    const outRef = str(rec.r["output"]);
+    const pr = str(rec.r["prompt"]);
+    if (outRef === undefined || pr === undefined) continue;
+    const ot = splitRef(outRef, rec.rel);
+    if (ot === null || !stale.has(`${ot.doc}#${ot.id}`)) continue;
+    const asset = p.assets.get(`${ot.doc}#${ot.id}`);
+    if (asset === undefined || str(rec.r["output-sha256"]) !== str(asset.b.attrs["sha256"])) continue;   // 不是当前记录
+    const t = splitRef(pr, rec.rel);
+    const hit = t === null ? null : p.block(pr, rec.rel);
+    if (t === null || hit === null) continue;
+    const address = `${t.doc}#${t.id}`;
+    if (listed.has(address)) continue;
+    listed.add(address);
+    const b = hit.b;
+    if (b.type === "media-comp") {
+      out.push({ kind: "composite", address, mode: "composite", prompt: null, refs: compRefs(hit.rel, b), stale: true });
+    } else if (b.type === "media-text" && b.classes.includes("line")) {
+      out.push({ kind: "voice", address, mode: "tts", prompt: promptTextOf(address, "", io), refs: [], stale: true });
+    } else if (b.type === "media-text" && b.classes.includes("prompt")) {
+      out.push({ kind: "generate", address, mode: "t2i", prompt: promptTextOf(address, "", io), refs: [], stale: true });
+    }
   }
   return out;
 }
@@ -544,10 +580,12 @@ export interface ComposePlan {
   notes: string[];
   /** 摆上去的各层引用的素材（"doc#id"）、文件路径与声明的哈希 —— --log 记 inputs 用 */
   layers: { ref: string; path: string; sha256?: string }[];
+  /** 引不到、写错了的连接：文档坏了，合成该拒绝，不该悄悄把那一层放到 (0,0) 再登记 */
+  broken: string[];
 }
 
 export function composePlan(ref: string, outFile: string, io: MediaIO): ComposePlan {
-  const none = (note: string): ComposePlan => ({ args: [], notes: [note], layers: [] });
+  const none = (note: string): ComposePlan => ({ args: [], notes: [note], layers: [], broken: [] });
   const t = splitRef(ref, "");
   if (t === null) return none(`\`${ref}\` 不是「文档#id」的形状`);
   const p = loadProject(t.doc, io);
@@ -570,6 +608,7 @@ export function composePlan(ref: string, outFile: string, io: MediaIO): ComposeP
   }
   const specs = new Map(placed.map((x) => [x.spec.id, x.spec]));
   const interactions: InteractionSpec[] = [];
+  const broken: string[] = [];
   for (const c of hit.b.children ?? []) {
     if (c.kind !== "block" || c.type !== "media-interaction") continue;
     const a = parseEnd(c.attrs["a"]);
@@ -577,7 +616,7 @@ export function composePlan(ref: string, outFile: string, io: MediaIO): ComposeP
     const kind = str(c.attrs["kind"]);
     const ok = (e: End | null): e is End => e !== null && (specs.get(e.layer)?.points.has(e.point) ?? false);
     if (!ok(a) || !ok(b) || (kind !== "contact" && kind !== "gaze") || a.layer === b.layer) {
-      notes.push(`连接 #${c.id ?? "?"} 引不到或写错了，跳过（check 会说是哪里）`);
+      broken.push(`#${c.id ?? "?"}`);
       continue;
     }
     interactions.push({ id: c.id ?? "?", a, b, kind });
@@ -599,10 +638,10 @@ export function composePlan(ref: string, outFile: string, io: MediaIO): ComposeP
     layers.push(sha === undefined ? { ref: `${asset.rel}#${asset.b.id ?? ""}`, path } : { ref: `${asset.rel}#${asset.b.id ?? ""}`, path, sha256: sha });
     n++;
   }
-  if (n === 0) return { args: [], notes: [...notes, `\`${ref}\` 一层都摆不上`], layers: [] };
+  if (n === 0) return { args: [], notes: [...notes, `\`${ref}\` 一层都摆不上`], layers: [], broken };
   return {
     args: [...inputs, "-filter_complex", filters.join(";"), "-map", `[b${n}]`, "-frames:v", "1", "-update", "1", outFile],
-    notes, layers,
+    notes, layers, broken,
   };
 }
 

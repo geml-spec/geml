@@ -558,6 +558,19 @@ test("compose --log：日志里已有提到同名 id 的旧记录，素材块照
   } finally { p.drop(); rmSync(bin, { recursive: true, force: true }); }
 });
 
+test("compose：连接引不到点就拒绝，不悄悄把那一层放到 (0,0) 再登记", () => {
+  const p = compProject();
+  try {
+    writeFileSync(p.at("script.geml"), p.read("script.geml").replace("====\n",
+      "=== media-interaction {#hold a=#s05-hero:hand b=#s05-bg:floor kind=contact}\n===\n\n====\n"));
+    const r = run(["compose", p.at("script.geml#s05-comp"), "--out", "assets/s05-key.png"]);
+    assert.equal(r.code, 2, r.out + r.err);
+    assert.match(r.err, /#hold/);
+    assert.match(r.err, /check/);
+    assert.ok(!/^ffmpeg /m.test(r.out), "拒绝了就不打命令");
+  } finally { p.drop(); }
+});
+
 test("compose --log --as：产出块的 id 由 --as 定；没有 ffmpeg 时 --log 没东西可登记，命令照打、退出 1", () => {
   const p = compProject();
   try {

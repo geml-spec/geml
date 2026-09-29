@@ -210,7 +210,9 @@ body 是 raw，放作者自己的备注。备注是文档事实，进历史；�
 同样的输入，永远出同一串字节。带 `--log` 时顺手登记产出（`role=first-frame`；没有就新建
 块，有就只换 `sha256=`）并追加记录——`mode=composite`、`model=ffmpeg-overlay`、
 `prompt=` 该 comp、`inputs[]` 各层素材——因为 `inputs[]` 唯一正确的来源就是 comp 本身。
-`geml media todo` 把没有记录认领的 comp 列成一件 `composite` 待办。
+`geml media todo` 把没有记录认领的 comp 列成一件 `composite` 待办——和提示词、台词一样，
+一旦 `check` 发现它的产出对不上现值（挪了一层、重出了一张立绘），它再次上清单，带 `stale: true`：
+待办从诊断同一批事实派生。
 
 ### 5.2 点与互动 —— 两样东西在哪里碰上
 
@@ -248,7 +250,8 @@ body 是 raw，放作者自己的备注。备注是文档事实，进历史；�
 微调用 `dx`/`dy`。点随 `w` 缩放要知道源图多宽：有 `xywh` 用裁切宽，否则用素材的 `size=`
 （`media-asset-size-required`）。互动只在关键帧上成立：两个 `at` 之间是视频模型或补间器的事。
 comp 的规范化文本带上解析后的点坐标，点挪了，用它的 comp 就过期。`check` 和 `compose` 用的
-是同一份几何。
+是同一份几何；互动引不到层或点时 `compose` 拒绝，不会把那一层放到原点再登记一条看似正常的
+记录——立绘重出之后像素变了，旧的点不再是它的事实，得重标。
 
 ## 6. 生成日志 —— `data {.gen-log format=jsonl}`
 

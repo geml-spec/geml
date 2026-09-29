@@ -251,7 +251,11 @@ the same bytes. With `--log` it also registers the output (`role=first-frame`; a
 new block, or the existing block's `sha256=`) and appends the entry —
 `mode=composite`, `model=ffmpeg-overlay`, `prompt=` the comp, `inputs[]` the
 layers' assets — because the only correct source of that `inputs[]` is the comp
-itself. `geml media todo` lists a comp no entry claims as a `composite` item.
+itself. `geml media todo` lists a comp no entry claims as a `composite` item —
+and, as for any prompt or line, lists it again with `stale: true` once `check`
+finds its output no longer matches what produced it (a moved layer, a
+regenerated stand): the to-do list is derived from the same facts the
+diagnostics are.
 
 ### 5.2 Points and interactions — where two things meet
 
@@ -295,7 +299,11 @@ Scaling a point by `w` needs the source width: `xywh` supplies it, otherwise the
 asset's `size=` (`media-asset-size-required`). Interactions hold at keyframes
 only: what happens between two `at`s is the video model's or the tweener's.
 The comp's canonical text carries the resolved point coordinates, so a moved
-point stales every comp that used it. `check` and `compose` share one geometry.
+point stales every comp that used it. `check` and `compose` share one geometry,
+and `compose` refuses a comp whose interaction names a layer or point it cannot
+find rather than placing that layer at the origin and logging a plausible-looking
+entry — a regenerated stand has new pixels, so its old points are no longer facts
+about it and must be marked again.
 
 ## 6. The generation log — `data {.gen-log format=jsonl}`
 

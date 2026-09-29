@@ -777,6 +777,22 @@ test("血缘：记录的 output 指不到任何素材块 —— media-gen-output
   rmSync(root, { recursive: true, force: true });
 });
 
+test("todo：过期的也是待办 —— 改了角色卡，那条提示词回到清单上并标 stale，其余不动", () => {
+  const p = lineageProject();
+  const clean = project(p.files);
+  assert.deepEqual(verbs.todo(["cut.geml", "lib.geml", "script.geml"], profileIoFor(clean)), [], "源头没动，没有待办");
+  rmSync(clean, { recursive: true, force: true });
+  p.files["script.geml"] = p.files["script.geml"].replace("银灰短发齐耳。", "银灰短发及肩。");
+  const root = project(p.files);
+  const items = verbs.todo(["cut.geml", "lib.geml", "script.geml"], profileIoFor(root));
+  assert.equal(items.length, 1, JSON.stringify(items));
+  assert.equal(items[0].kind, "generate");
+  assert.equal(items[0].address, "script.geml#p");
+  assert.equal(items[0].stale, true, "它有产出，只是产出对不上现值了");
+  assert.match(items[0].prompt, /及肩/, "带的是展开后的新提示词");
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("todo：没有记录认领的 comp 是一件 composite 待办，各层素材是它的 refs", () => {
   const root = project(compProject());
   const items = verbs.todo(["script.geml", "lib.geml"], profileIoFor(root));

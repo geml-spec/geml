@@ -39,6 +39,11 @@ and is released under `viewer-v*` tags.
   share one geometry (`media-compose.ts`); a moved point stales the comps that
   used it. Eight codes, from `media-interaction-unresolved` to
   `media-interaction-apart`. Design record §16.8.
+- **`geml media todo` lists stale work too.** A prompt, line or comp whose
+  output `check` reports as stale comes back on the list with `stale: true`,
+  so a pipeline driven by `todo` regenerates what a changed look or a moved
+  layer invalidated instead of only what was never made. `compose` now refuses
+  a comp whose interaction names a layer or point it cannot resolve.
 - **An entry's `output` must be an asset** (`media-gen-output-not-asset`,
   error): the first layered episode lost its key-frame blocks because the
   id check behind `compose --log` and `import` read `"#s01-key"` inside a log

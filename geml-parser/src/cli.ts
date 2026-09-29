@@ -613,6 +613,8 @@ function runMedia(args: string[]): void {
     const compRef = rel + "#" + entryId;
     const plan = composePlan(compRef, outAbs, io);
     for (const n of plan.notes) console.error("note: " + n);
+    // 连接引不到点就是文档坏了：拒绝，不悄悄把那一层放到 (0,0) 再登记一条看似正常的记录。
+    if (plan.broken.length > 0) fail("compose 拒绝：连接 " + plan.broken.join("、") + " 引不到层或点（立绘重出后点要重标）；先 geml check " + rel);
     if (plan.args.length === 0) fail("compose 没有可执行的命令：" + plan.notes.join("；"));
     const logTarget = flag(rest, "--log");
     const ff = whichBin("ffmpeg");
