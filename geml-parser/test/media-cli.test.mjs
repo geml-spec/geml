@@ -383,19 +383,25 @@ test("import：清单进库，新素材块与日志记录一起落下", () => {
 test("import：字幕进剧本，加 --cut 连字幕片段一起", () => {
   const p = project();
   try {
-    const r = run(["import", p.at("sub.srt"), "--into", p.at("script.geml"), "--cut", p.at("cut.geml")]);
+    // 剧本里已经有 #l1，缺省前缀 l 会撞上：换个前缀。
+    const r = run(["import", p.at("sub.srt"), "--into", p.at("script.geml"), "--cut", p.at("cut.geml"), "--prefix", "t"]);
     assert.equal(r.code, 0, r.err);
     assert.match(p.read("script.geml"), /第一句/);
     assert.match(p.read("cut.geml"), /media-clip \{#sub-/, "字幕片段写进了时间线");
   } finally { p.drop(); }
 });
 
-test("import：id 撞了就停，不覆盖别人的块", () => {
+test("import：id 撞了就停，不覆盖别人的块 —— 头行里别的 #引用不算，块自己的 id 才算", () => {
   const p = project();
   try {
-    const once = run(["import", p.at("sub.srt"), "--into", p.at("script.geml")]);
+    // 剧本里的 `{#l1 .line speaker=lib.geml#hero}`：以前的正则只看到最后那个 #hero，漏掉了 #l1，
+    // 于是缺省前缀 l 的导入会静默覆盖它。
+    const clash = run(["import", p.at("sub.srt"), "--into", p.at("script.geml")]);
+    assert.equal(clash.code, 2, clash.err);
+    assert.match(clash.err, /已经有这些 id：l1/);
+    const once = run(["import", p.at("sub.srt"), "--into", p.at("script.geml"), "--prefix", "t"]);
     assert.equal(once.code, 0, once.err);
-    const twice = run(["import", p.at("sub.srt"), "--into", p.at("script.geml")]);
+    const twice = run(["import", p.at("sub.srt"), "--into", p.at("script.geml"), "--prefix", "t"]);
     assert.equal(twice.code, 2);
     assert.match(twice.err, /已经有这些 id/);
   } finally { p.drop(); }
@@ -533,6 +539,22 @@ test("compose --log：登记产出素材并追加 composite 记录；再跑一�
     const lib2 = p.read("lib.geml");
     assert.equal((lib2.match(/\{#s05-key /g) ?? []).length, 1, "同一个产出不建第二个块");
     assert.equal(records(lib2).length, 2, "每次合成一条记录");
+  } finally { p.drop(); rmSync(bin, { recursive: true, force: true }); }
+});
+
+test("compose --log：日志里已有提到同名 id 的旧记录，素材块照样新建 —— 记录里的字符串不是块", () => {
+  if (process.platform === "win32") { console.log("skip: 假 ffmpeg 在 Windows 上要 .cmd + shell"); return; }
+  const p = compProject();
+  const bin = fakeFfmpeg();
+  try {
+    // 第一版流水线用 t2i 直出过 #s05-key，块删了、记录留着（日志只追加）。
+    writeFileSync(p.at("lib.geml"), p.read("lib.geml").replace("format=jsonl}\n===",
+      'format=jsonl}\n{"output":"#s05-key","output-sha256":"00","model":"m","mode":"t2i","at":"2026-09-28T00:00:00Z"}\n==='));
+    const r = run(["compose", p.at("script.geml#s05-comp"), "--out", "assets/s05-key.png", "--log", "lib.geml"], { PATH: bin });
+    assert.equal(r.code, 0, r.err);
+    const lib = p.read("lib.geml");
+    assert.equal((lib.match(/=== media-asset \{#s05-key /g) ?? []).length, 1, "该有且只有一个素材块：\n" + lib);
+    assert.equal(records(lib).length, 2);
   } finally { p.drop(); rmSync(bin, { recursive: true, force: true }); }
 });
 

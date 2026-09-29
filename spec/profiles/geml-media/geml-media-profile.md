@@ -317,6 +317,7 @@ learn to ignore it.
 | `media-speaker-unresolved` | error | a line's `speaker=` or `to=` names no block |
 | `media-line-no-speaker` | error | a `.line` with no `speaker=` |
 | `media-gen-schema` | error | a log entry missing a required field, naming the entry's index and the field |
+| `media-gen-output-not-asset` | error | an entry's `output` names no `media-asset`: the log claims a file the library does not have, and whatever consumed it can no longer be told it changed |
 | `media-orphan-record` | info | no entry's `output-sha256` equals the asset's current value: the bytes it has now have no recorded provenance |
 | `media-stale-generation` | warning | in the entry that matches the asset's current value, an input hash, `prompt-sha256` or a `prompt-refs[]` hash disagrees with the current value; the message names what changed |
 | `media-stale-clip` | warning | a cut's `src` is the output of a stale entry, or of one whose ancestor is stale; the message carries the chain |

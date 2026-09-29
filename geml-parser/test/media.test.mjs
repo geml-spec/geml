@@ -764,6 +764,19 @@ test("合成：comp 是分层写的提示词 —— promptTextOf 给规范化文
   rmSync(root, { recursive: true, force: true });
 });
 
+test("血缘：记录的 output 指不到任何素材块 —— media-gen-output-not-asset，点名记录序号与引用", () => {
+  const root = project({
+    "lib.geml": META + '=== data {#gen-log .gen-log format=jsonl}\n'
+      + JSON.stringify({ output: "#gone", "output-sha256": "ab", model: "m", mode: "t2i", at: "2026-09-29T00:00:00Z" }) + "\n===\n",
+  });
+  const ds = checkMedia("lib.geml", profileIoFor(root));
+  const d = ds.find((x) => x.code === "media-gen-output-not-asset");
+  assert.ok(d, JSON.stringify(ds));
+  assert.equal(d.severity, "error");
+  assert.match(d.message, /\[0\].*#gone/, "要点名是第几条记录、指的是谁");
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("todo：没有记录认领的 comp 是一件 composite 待办，各层素材是它的 refs", () => {
   const root = project(compProject());
   const items = verbs.todo(["script.geml", "lib.geml"], profileIoFor(root));

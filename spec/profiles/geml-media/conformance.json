@@ -15,6 +15,7 @@
     "media-speaker-unresolved": "error",
     "media-line-no-speaker": "error",
     "media-gen-schema": "error",
+    "media-gen-output-not-asset": "error",
     "media-hash-mismatch": "error",
     "media-file-missing": "warning",
     "media-asset-unhashed": "warning",

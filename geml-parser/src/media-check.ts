@@ -419,6 +419,12 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
     const t = splitRef(outRef, rec.rel);
     if (t === null) continue;
     const key = `${t.doc}#${t.id}`;
+    // 记录说它产出了一份素材，库里却没有这个块：结构坏了。第一个真实用例撞到的 —— 素材块
+    // 没建成，下游的运镜记录以它为输入，过期从此判不出来，成片悄悄用了旧图。
+    if (!assets.has(key)) {
+      out.push(mediaDiag("media-gen-output-not-asset",
+        `记录 [${rec.i}] 的 \`output=${outRef}\` 指不到任何 \`media-asset\``, rec.rel, rec.id));
+    }
     const list = byOutput.get(key);
     if (list === undefined) byOutput.set(key, [rec]); else list.push(rec);
   }

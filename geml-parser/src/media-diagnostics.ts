@@ -37,6 +37,7 @@ export type MediaDiagnosticCode =
   | "media-speaker-unresolved"
   | "media-line-no-speaker"
   | "media-gen-schema"
+  | "media-gen-output-not-asset"
   | "media-orphan-record"
   | "media-stale-generation"
   | "media-stale-clip"
@@ -68,6 +69,7 @@ export const MEDIA_SEVERITY: Record<MediaDiagnosticCode, MediaSeverity> = {
   "media-speaker-unresolved": "error",
   "media-line-no-speaker": "error",
   "media-gen-schema": "error",
+  "media-gen-output-not-asset": "error",
   "media-layer-unassembled": "error",
   "media-comp-size-missing": "error",
   "media-comp-empty": "error",

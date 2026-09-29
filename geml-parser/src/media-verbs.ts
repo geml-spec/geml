@@ -892,9 +892,13 @@ export function idFromFile(file: string): string {
   return (file.split("/").pop() ?? file).replace(/\.[^.]+$/, "").replace(/[^A-Za-z0-9_-]/g, "-");
 }
 
-/** 文档里已经占掉的 id —— 插块之前查一遍，撞了就停，不覆盖别人的东西。 */
+/**
+ * 文档里已经占掉的 id —— 插块之前查一遍，撞了就停，不覆盖别人的东西。
+ *
+ * 问解析器，不扫正则：以前那条 `\{[^}\n]*#id` 把日志 JSON 里的 `{"output":"#s01-key"` 也算成
+ * 块，于是 compose --log 在一份带旧记录的库里永远不建素材块，运镜那一步从此看不见它的输入。
+ */
 export function idsTaken(text: string, want: string[]): string[] {
-  const has = new Set<string>();
-  for (const m of text.matchAll(/\{[^}\n]*#([A-Za-z0-9_-]+)/g)) has.add(m[1] as string);
+  const has = new Set<string>(parse(text).ids);
   return want.filter((w) => has.has(w));
 }

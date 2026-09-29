@@ -270,6 +270,7 @@ warning 而不是 error——否则改一次角色卡整条流水线红掉，人
 | `media-speaker-unresolved` | error | 台词的 `speaker=` 或 `to=` 指不到任何块 |
 | `media-line-no-speaker` | error | `.line` 没有 `speaker=` |
 | `media-gen-schema` | error | 日志记录缺必需字段，消息点名记录序号与字段 |
+| `media-gen-output-not-asset` | error | 记录的 `output` 指不到任何 `media-asset`：日志声称产出了一份库里没有的文件，吃过它的东西从此判不出过期 |
 | `media-orphan-record` | info | 没有任何记录的 `output-sha256` 等于素材现值：它现在这份字节来历不明 |
 | `media-stale-generation` | warning | 与素材现值匹配的那条记录里，某个输入的哈希、`prompt-sha256` 或某条 `prompt-refs[]` 与现值不符；消息点名变了的那个 |
 | `media-stale-clip` | warning | 片段的 `src` 是过期记录的产出，或其祖先过期；消息带整条链 |

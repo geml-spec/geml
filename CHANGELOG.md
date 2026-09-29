@@ -29,6 +29,12 @@ and is released under `viewer-v*` tags.
   the shots that used it, and `geml media todo` lists an unclaimed comp as a
   `composite` item. `geml media log` gains `--params <json>`. Design record:
   `docs/design/specs/2026-09-15-geml-media-design.md` §16.
+- **An entry's `output` must be an asset** (`media-gen-output-not-asset`,
+  error): the first layered episode lost its key-frame blocks because the
+  id check behind `compose --log` and `import` read `"#s01-key"` inside a log
+  record as a block; that check now asks the parser for the document's ids,
+  and a log that names a file the library does not have is reported instead
+  of silently leaving every consumer of that file unable to see it change.
 
 ## [1.11.2] — 2026-09-28
 
