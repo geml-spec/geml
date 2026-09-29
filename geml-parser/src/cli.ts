@@ -38,7 +38,7 @@ function knownProfileCode(code: string): boolean {
   return Object.values(PROFILES).some((d) => d.diagnostics !== undefined && code in d.diagnostics);
 }
 import { promptTextOf } from "./media-check.js";
-import { todo as mediaTodo, report as mediaReport, exportTimeline, lay as mediaLay, buildPlan, appendLog, importPlan, importKindOf, importSubtitles, assetBlockFor, idFromFile, idsTaken, loadProject, type ExportFormat, type ManifestItem } from "./media-verbs.js";
+import { todo as mediaTodo, report as mediaReport, exportTimeline, lay as mediaLay, buildPlan, composePlan, appendLog, importPlan, importKindOf, importSubtitles, assetBlockFor, idFromFile, idsTaken, loadProject, type ExportFormat, type ManifestItem } from "./media-verbs.js";
 import { profileIoFor } from "./host-fs.js";
 // The GEML command line. Split out of geml.ts so that file can be what the
 // viewer imports: a parser LIBRARY. Everything CLI-side lives here — argv
@@ -414,7 +414,9 @@ const MEDIA_HELP = [
   "  build  <cut.geml> --out <file.mp4> [--burn-subs [--font 'Microsoft YaHei']]",
   "                                                 ffmpeg 出片；字幕默认另出 .srt，--burn-subs 才烧进画面",
   "  lay    <cut.geml> --over '#c03' [--gap 0.2]    按配音时长给出 offset/dur 的初值",
-  "  log    <library.geml> --output '#id' --model m --mode x [--prompt ref] [--input ref]… [--seed n]",
+  "  compose <script.geml#comp> --out <file.png> [--log <library.geml> [--as '#id']]",
+  "                                                 ffmpeg 把一个 media-comp 的层合成一张图；--log 才登记素材与记录",
+  "  log    <library.geml> --output '#id' --model m --mode x [--prompt ref] [--input ref]… [--seed n] [--params json]",
   "  import <file|dir> --into <目标文档>           按后缀分派：",
   "           .json            生成清单 → 素材块 + 日志记录",
   "           .srt / .vtt      字幕 → 台词块（加 --cut <cut.geml> 连字幕轨片段一起）",
@@ -428,8 +430,8 @@ const MEDIA_HELP = [
 const MEDIA_FLAGS: FlagTable = {
   bool: ["--burn-subs", "--json"],
   valued: [
-    "--cut", "--font", "--fontsdir", "--gap", "--input", "--into", "--kind", "--mode",
-    "--model", "-o", "--out", "--output", "--over", "--prefix", "--prompt", "--root",
+    "--as", "--cut", "--font", "--fontsdir", "--gap", "--input", "--into", "--kind", "--log", "--mode",
+    "--model", "-o", "--out", "--output", "--over", "--params", "--prefix", "--prompt", "--root",
     "--seed", "--speaker", "--to", "--track",
   ],
 };
@@ -521,8 +523,12 @@ function runMedia(args: string[]): void {
   const root = flag(rest, "--root");
   const out = flag(rest, "-o") ?? flag(rest, "--out");
   const into = flag(rest, "--into");
-  const file = mediaEntry(rest);
-  if (file === undefined) fail(MEDIA_HELP);
+  const entryArg = mediaEntry(rest);
+  if (entryArg === undefined) fail(MEDIA_HELP);
+  // compose 的入口带块 id（`script.geml#s05-comp`）；别的动词不带，带了也只拿文件那一半。
+  const hashAt = entryArg.indexOf("#");
+  const file = hashAt < 0 ? entryArg : entryArg.slice(0, hashAt);
+  const entryId = hashAt < 0 ? undefined : entryArg.slice(hashAt + 1);
   const { root: mr, rel } = mediaRootOf(file, root);
   const io = profileIoFor(mr);
   // 项目级的动词收一个目录：引用是有方向的，从剧本出发看不见素材库的日志。
@@ -542,7 +548,8 @@ function runMedia(args: string[]): void {
     const items = mediaTodo(seeds, io);
     if (rest.includes("--json")) { console.log(JSON.stringify(items, null, 2)); return; }
     if (items.length === 0) { console.error("todo: 没有待办"); return; }
-    for (const it of items) console.log((it.kind === "voice" ? "配音" : "生成") + "  " + it.address + "  (" + it.mode + ")");
+    const word = { voice: "配音", composite: "合成", generate: "生成" };
+    for (const it of items) console.log(word[it.kind] + "  " + it.address + "  (" + it.mode + ")");
     return;
   }
   if (verb === "report") {
@@ -598,6 +605,60 @@ function runMedia(args: string[]): void {
     console.error("wrote " + out + "  ·  " + plan.duration.toFixed(2) + "s");
     return;
   }
+  if (verb === "compose") {
+    if (entryId === undefined) fail("compose 的入口要带块 id：写成 script.geml#s05-comp");
+    if (out === undefined) fail("compose 需要 --out <file.png>");
+    const outAbs = resolvePath(mr, out);
+    const outRel = relative(mr, outAbs).split(sep).join("/");
+    const compRef = rel + "#" + entryId;
+    const plan = composePlan(compRef, outAbs, io);
+    for (const n of plan.notes) console.error("note: " + n);
+    if (plan.args.length === 0) fail("compose 没有可执行的命令：" + plan.notes.join("；"));
+    const logTarget = flag(rest, "--log");
+    const ff = whichBin("ffmpeg");
+    if (ff === null) {
+      console.error("ffmpeg 不在 PATH 上；下面是本该跑的命令，装好后可直接执行：");
+      console.log(["ffmpeg", ...plan.args].map((a) => (/\s/.test(a) ? JSON.stringify(a) : a)).join(" "));
+      if (logTarget !== undefined) fail("--log 没有产出可登记：ffmpeg 没跑，" + outRel + " 不存在", 1);
+      return;
+    }
+    const r = spawnSync(ff, plan.args, { cwd: mr, encoding: "utf8" });
+    if (r.status !== 0) fail("ffmpeg 失败（exit " + String(r.status ?? "?") + "）：\n" + (r.stderr ?? "").split("\n").slice(-12).join("\n"), 1);
+    console.error("wrote " + outRel);
+    if (logTarget === undefined) return;
+    // --log：登记产出素材（没有就新建，有就只换哈希）并追加一条 composite 记录。
+    // inputs 的唯一正确来源是 comp 块本身，让 agent 再手抄一遍等于制造漏记（设计记录 §16.3）。
+    const libAbs = resolvePath(mr, logTarget);
+    const libDir = dirname(libAbs);
+    const id = (flag(rest, "--as") ?? idFromFile(outRel)).replace(/^#/, "");
+    const sha = io.hashFile(outRel);
+    if (sha === null) fail("产出 " + outRel + " 读不到，不登记", 1);
+    let text = readFileSync(libAbs, "utf8");
+    const nl = text.includes("\r\n") ? "\r\n" : "\n";
+    if (idsTaken(text, [id]).length === 0) {
+      const src = relative(libDir, outAbs).split(sep).join("/");
+      const block = ("=== media-asset {#" + id + " src=" + src + " sha256=" + sha + " kind=image origin=generated role=first-frame}\n===\n\n").replace(/\n/g, nl);
+      if (/={3,}\s+data\s*\{[^}]*\.gen-log/.test(text)) text = text.replace(/(={3,}\s+data\s*\{[^}]*\.gen-log)/, block + "$1");
+      else text = text.replace(/\s*$/, nl) + nl + block;
+    }
+    // 引用从素材库出发写：同一份文档就是 `#id`，别的文档带相对路径。
+    const refFrom = (key: string): string => {
+      const h = key.indexOf("#");
+      const docAbs = resolvePath(mr, key.slice(0, h));
+      if (docAbs === libAbs) return key.slice(h);
+      return relative(libDir, docAbs).split(sep).join("/") + key.slice(h);
+    };
+    const promptText = promptTextOf(compRef, "", io);
+    const rec: Record<string, unknown> = {
+      output: "#" + id, "output-sha256": sha, model: "ffmpeg-overlay", mode: "composite",
+      prompt: refFrom(compRef), at: new Date().toISOString(),
+    };
+    if (promptText !== null) rec["prompt-sha256"] = io.hashText(promptText);
+    rec["inputs"] = plan.layers.map((l) => (l.sha256 === undefined ? { ref: refFrom(l.ref) } : { ref: refFrom(l.ref), sha256: l.sha256 }));
+    writeFileSync(libAbs, appendLog(text, rec, { id, sha256: sha }), "utf8");
+    console.error("logged #" + id + " → " + logTarget);
+    return;
+  }
   if (verb === "log") {
     const outputId = flag(rest, "--output");
     const model = flag(rest, "--model");
@@ -632,6 +693,11 @@ function runMedia(args: string[]): void {
     }
     const seed = flag(rest, "--seed");
     if (seed !== undefined) rec["seed"] = Number(seed);
+    // 开放 map 本来就是 JSON；`k=v` 装不下嵌套（抠像的键色、容差，写实风合成器的一串参数）。
+    const params = flag(rest, "--params");
+    if (params !== undefined) {
+      try { rec["params"] = JSON.parse(params) as unknown; } catch { fail("--params 要是一段 JSON（开放 map），读不成：" + params); }
+    }
     writeFileSync(resolvePath(file), appendLog(readInput(file), rec, assetSha), "utf8");
     console.error("logged " + outputId + " → " + file);
     return;

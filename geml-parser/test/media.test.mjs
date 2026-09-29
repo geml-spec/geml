@@ -682,4 +682,134 @@ test("单源 media：无体加 src=，就是只有一个片段的时间线", () 
   assert.equal(tl.clips[0].kind, "video", "种类从被引素材来，不在 media 上重说");
 });
 
+// ---- 合成（设计记录 §16）：立绘、母版、comp 与 compose ------------------------
+
+import * as verbs from "../dist/media-verbs.js";
+import { promptTextOf } from "../dist/media-check.js";
+
+/** 一个最小的分层项目：一张母版、一张立绘、一个两层的 comp。 */
+function compProject({ x = 300 } = {}) {
+  const BG = "BGPNG", HERO = "HEROPNG", VID = "VIDBYTES";
+  return {
+    "assets/bg.png": BG, "assets/hero.png": HERO, "clip.mp4": VID,
+    "lib.geml": META
+      + `=== media-asset {#bg src=assets/bg.png sha256=${sha(BG)} kind=image role=master}\n===\n\n`
+      + `=== media-asset {#hero src=assets/hero.png sha256=${sha(HERO)} kind=image role=stand}\n===\n\n`
+      + `=== media-asset {#vid src=clip.mp4 sha256=${sha(VID)} kind=video duration=1}\n===\n\n`
+      + "=== data {#gen-log .gen-log format=jsonl}\n===\n",
+    "script.geml": META
+      + "==== media-comp {#s05-comp shot=s05 size=720x1280}\n\n"
+      + "=== media-layer {#s05-bg src=lib.geml#bg xywh=0,200,720,1280}\n===\n\n"
+      + `=== media-layer {#s05-hero src=lib.geml#hero x=${x} y=340 w=480 flip=h}\n===\n\n`
+      + "====\n",
+  };
+}
+
+test("合成：comp 与 layer 是登记过的类型，键拼错会被查出来，干净的 comp 没有 profile 诊断", () => {
+  const root = project(compProject());
+  const ds = checkMedia("script.geml", profileIoFor(root));
+  assert.deepEqual(ds, [], JSON.stringify(ds));
+  const doc = parse(read(join(root, "script.geml"), "utf8"));
+  assert.deepEqual(doc.diagnostics.filter((d) => d.code === "unknown-block-type"), [], JSON.stringify(doc.diagnostics));
+  const typo = parse(META + "==== media-comp {#c size=1x1}\n\n=== media-layer {#l src=#a flp=h}\n===\n\n====\n");
+  assert.ok(typo.diagnostics.some((d) => d.code === "unknown-attribute" && /flp/.test(d.message)), JSON.stringify(typo.diagnostics));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("合成：层不在 comp 里、comp 没 size、comp 空、层指到非图片、层 src 悬空 —— 各自点名", () => {
+  const f = compProject();
+  f["script.geml"] = META
+    + "=== media-layer {#loose src=lib.geml#bg}\n===\n\n"
+    + "==== media-comp {#nosize}\n\n=== media-layer {#l1 src=lib.geml#bg}\n===\n\n====\n\n"
+    + "==== media-comp {#empty size=720x1280}\n\n====\n\n"
+    + "==== media-comp {#bad size=720x1280}\n\n=== media-layer {#l2 src=lib.geml#vid}\n===\n\n=== media-layer {#l3 src=lib.geml#nope}\n===\n\n=== media-layer {#nosrc}\n===\n\n====\n";
+  const root = project(f);
+  const ds = checkMedia("script.geml", profileIoFor(root));
+  const by = (code) => ds.filter((d) => d.code === code).map((d) => d.id).sort();
+  assert.deepEqual(by("media-layer-unassembled"), ["loose"], JSON.stringify(ds));
+  assert.deepEqual(by("media-comp-size-missing"), ["nosize"], JSON.stringify(ds));
+  assert.deepEqual(by("media-comp-empty"), ["empty"], JSON.stringify(ds));
+  assert.deepEqual(by("media-layer-not-image"), ["l2"], JSON.stringify(ds));
+  assert.deepEqual(by("media-src-unresolved"), ["l3", "nosrc"], JSON.stringify(ds));
+  for (const d of ds) assert.equal(d.severity, "error", d.code);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("合成：comp 是分层写的提示词 —— promptTextOf 给规范化文本，改一个数字记录就过期，todo 不再列它", () => {
+  const root = project(compProject());
+  const io = profileIoFor(root);
+  const text = promptTextOf("script.geml#s05-comp", "lib.geml", io);
+  assert.ok(text !== null, "comp 也该有可哈希的文本");
+  assert.match(text, /^media-comp #s05-comp .*size=720x1280/m);
+  assert.match(text, /^media-layer #s05-hero .*x=300/m);
+  const OUT = "KEYPNG";
+  write(join(root, "assets/s05-key.png"), OUT);
+  const rec = JSON.stringify({
+    output: "#s05-key", "output-sha256": sha(OUT), model: "ffmpeg-overlay", mode: "composite",
+    prompt: "script.geml#s05-comp", "prompt-sha256": sha(text),
+    inputs: [{ ref: "#bg", sha256: sha("BGPNG") }, { ref: "#hero", sha256: sha("HEROPNG") }],
+    at: "2026-09-29T00:00:00Z",
+  });
+  write(join(root, "lib.geml"), read(join(root, "lib.geml"), "utf8")
+    .replace("=== data {#gen-log", `=== media-asset {#s05-key src=assets/s05-key.png sha256=${sha(OUT)} kind=image role=first-frame}\n===\n\n=== data {#gen-log`)
+    .replace("format=jsonl}\n===", "format=jsonl}\n" + rec + "\n==="));
+  assert.deepEqual(checkMedia("lib.geml", io), []);
+  assert.deepEqual(verbs.todo(["script.geml", "lib.geml"], io).filter((x) => x.kind === "composite"), [], "有记录认领的 comp 不是待办");
+  write(join(root, "script.geml"), read(join(root, "script.geml"), "utf8").replace("x=300", "x=340"));
+  const ds = checkMedia("lib.geml", io);
+  const st = ds.find((d) => d.code === "media-stale-generation");
+  assert.ok(st, JSON.stringify(ds));
+  assert.equal(st.id, "s05-key");
+  assert.match(st.message, /s05-comp/, "消息要点名是 comp 变了");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("todo：没有记录认领的 comp 是一件 composite 待办，各层素材是它的 refs", () => {
+  const root = project(compProject());
+  const items = verbs.todo(["script.geml", "lib.geml"], profileIoFor(root));
+  const c = items.find((x) => x.kind === "composite");
+  assert.ok(c, JSON.stringify(items));
+  assert.equal(c.address, "script.geml#s05-comp");
+  assert.equal(c.mode, "composite");
+  assert.equal(c.prompt, null, "comp 没有要发给模型的文字");
+  assert.deepEqual(c.refs, [{ ref: "lib.geml#bg", role: "master" }, { ref: "lib.geml#hero", role: "stand" }]);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("compose：filtergraph 由层决定 —— 裁、缩、翻、放，顺序固定，画布透明", () => {
+  const root = project(compProject());
+  const plan = verbs.composePlan("script.geml#s05-comp", "out/s05-key.png", profileIoFor(root));
+  assert.deepEqual(plan.notes, []);
+  assert.deepEqual(plan.layers.map((l) => l.ref), ["lib.geml#bg", "lib.geml#hero"]);
+  assert.deepEqual(plan.args, [
+    "-y",
+    "-f", "lavfi", "-i", "color=c=black@0.0:s=720x1280:d=1",
+    "-i", "assets/bg.png",
+    "-i", "assets/hero.png",
+    "-filter_complex",
+    "[0:v]format=rgba[b0];"
+      + "[1:v]crop=720:1280:0:200,format=rgba[l0];[b0][l0]overlay=0:0[b1];"
+      + "[2:v]scale=480:-1,hflip,format=rgba[l1];[b1][l1]overlay=300:340[b2]",
+    "-map", "[b2]", "-frames:v", "1", "-update", "1",
+    "out/s05-key.png",
+  ]);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("compose：comp 找不到、没有 size、层没有文件 —— 说出来，不出命令", () => {
+  const f = compProject();
+  f["script.geml"] += "\n==== media-comp {#nosize}\n\n=== media-layer {#n1 src=lib.geml#bg}\n===\n\n====\n"
+    + "\n==== media-comp {#nofile size=10x10}\n\n=== media-layer {#n2 src=lib.geml#nope}\n===\n\n====\n";
+  const root = project(f);
+  const io = profileIoFor(root);
+  assert.deepEqual(verbs.composePlan("script.geml#nope", "o.png", io).args, []);
+  assert.match(verbs.composePlan("script.geml#nope", "o.png", io).notes.join(" "), /nope/);
+  assert.deepEqual(verbs.composePlan("script.geml#nosize", "o.png", io).args, []);
+  assert.match(verbs.composePlan("script.geml#nosize", "o.png", io).notes.join(" "), /size/);
+  const p = verbs.composePlan("script.geml#nofile", "o.png", io);
+  assert.deepEqual(p.args, [], "一层都摆不上就没有命令");
+  assert.match(p.notes.join(" "), /n2/);
+  rmSync(root, { recursive: true, force: true });
+});
+
 console.log(String.fromCharCode(10) + passed + " passed");

@@ -240,10 +240,11 @@ export const PROFILES: Record<string, ProfileDef> = {
     // 第二份 profile 会想要的通用词。登记以让测试拦得住新增的同类。
     metaKeys: ["tracks", "primary", "fps", "aspect", "target-duration", "episode"],
     diagnostics: MEDIA_SEVERITY,
-    types: ["media", "media-asset", "media-clip", "media-text"],
+    types: ["media", "media-asset", "media-clip", "media-text", "media-comp", "media-layer"],
     prose: ["media-text"],
     // `media` 是容器：`==== media` 里套 `media-clip`。无体的 `media` 是一个可播的单源。
-    bodies: { media: "flow" },
+    // `media-comp` 同形：`==== media-comp` 里套 `media-layer`（设计记录 §16）。
+    bodies: { media: "flow", "media-comp": "flow" },
     attrs: {
       // §5.0 一段可播的东西，两种形态由**形状**分，不由属性分 —— 和 `<video>` 一样：
       // `<video src>` 是单源，`<video><source></video>` 是它的孩子说了算。
@@ -263,6 +264,11 @@ export const PROFILES: Record<string, ProfileDef> = {
         "gain", "fade-in", "fade-out", "speed", "xywh"],
       // §5.4 剧本层。`speaker` 必填；`shot` 把提示词钉到分镜表的镜号上。
       "media-text": ["shot", "speaker", "to", "emotion", "since"],
+      // §16 一张合成的画面：`size` 是画布，是这张图的事实而不是呈现。`shot` 同 `.prompt`。
+      "media-comp": ["shot", "size"],
+      // §16 一层：先裁（`xywh`，与 `media-clip` 同一把尺）、再缩（`w`，等比）、再翻
+      // （`flip=h`）、再放（`x` `y`，左上角）。层序是文档顺序，所以没有 `z`。
+      "media-layer": ["src", "xywh", "w", "x", "y", "flip"],
     },
   },
   // spec/profiles/geml-history/geml-history-profile.md

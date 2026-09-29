@@ -16,9 +16,9 @@ let passed = 0;
 function test(name, fn) { fn(); passed++; console.log("ok", name); }
 
 const NO_PATH = { ...process.env, PATH: "", Path: "" };
-function run(args) {
+function run(args, env = {}) {
   const r = spawnSync(process.execPath, ["dist/geml.js", "media", ...args], {
-    encoding: "utf8", timeout: 60_000, env: NO_PATH,
+    encoding: "utf8", timeout: 60_000, env: { ...NO_PATH, ...env },
   });
   return { code: r.status ?? 1, out: r.stdout ?? "", err: r.stderr ?? "" };
 }
@@ -70,11 +70,11 @@ test("没有动词就是错，并且把帮助一起给出来", () => {
   assert.match(r.err, /export/);
 });
 
-test("--help 退出 0，七个动词都在", () => {
+test("--help 退出 0，八个动词都在", () => {
   for (const f of ["--help", "-h"]) {
     const r = run([f]);
     assert.equal(r.code, 0, r.err);
-    for (const v of ["todo", "report", "export", "build", "lay", "log", "import"]) {
+    for (const v of ["todo", "report", "export", "build", "lay", "log", "import", "compose"]) {
       assert.match(r.out, new RegExp(v), `${f} 少了 ${v}`);
     }
   }
@@ -438,6 +438,132 @@ test("import：不给 --into 就拒绝", () => {
     const r = run(["import", p.at("manifest.json")]);
     assert.equal(r.code, 2);
     assert.match(r.err, /import 需要 --into/);
+  } finally { p.drop(); }
+});
+
+// ---------------------------------------------------------------------------
+// compose（设计记录 §16）：把一个 media-comp 渲成一张图；--log 才登记
+// ---------------------------------------------------------------------------
+
+const BG = "BGPNG", HERO = "HEROPNG";
+/** 一个分层项目：母版、立绘、一个两层的 comp，空日志。 */
+function compProject() {
+  const root = mkdtempSync(join(tmpdir(), "geml-media-comp-"));
+  mkdirSync(join(root, "assets"));
+  writeFileSync(join(root, "assets", "bg.png"), BG);
+  writeFileSync(join(root, "assets", "hero.png"), HERO);
+  writeFileSync(join(root, "lib.geml"), META
+    + `=== media-asset {#bg src=assets/bg.png sha256=${sha(BG)} kind=image role=master}\n===\n\n`
+    + `=== media-asset {#hero src=assets/hero.png sha256=${sha(HERO)} kind=image role=stand}\n===\n\n`
+    + "=== data {#gen-log .gen-log format=jsonl}\n===\n");
+  writeFileSync(join(root, "script.geml"), META
+    + "==== media-comp {#s05-comp shot=s05 size=720x1280}\n\n"
+    + "=== media-layer {#s05-bg src=lib.geml#bg xywh=0,200,720,1280}\n===\n\n"
+    + "=== media-layer {#s05-hero src=lib.geml#hero x=300 y=340 w=480 flip=h}\n===\n\n"
+    + "====\n");
+  return { root, at: (rel) => join(root, rel), read: (rel) => readFileSync(join(root, rel), "utf8"), drop: () => rmSync(root, { recursive: true, force: true }) };
+}
+
+/** 一个假 ffmpeg：把 PNGBYTES 写到最后一个参数指的文件里。Windows 上要 .cmd + shell，跳过。 */
+function fakeFfmpeg() {
+  const bin = mkdtempSync(join(tmpdir(), "geml-fake-ffmpeg-"));
+  writeFileSync(join(bin, "ffmpeg"), '#!/bin/sh\nfor a in "$@"; do last="$a"; done\nprintf PNGBYTES > "$last"\n', { mode: 0o755 });
+  return bin;
+}
+const gemlCheck = (file) => spawnSync(process.execPath, ["dist/geml.js", "check", file], { encoding: "utf8", env: NO_PATH });
+const records = (lib) => lib.split("\n").filter((l) => l.startsWith("{")).map((l) => JSON.parse(l));
+
+test("compose：没有 ffmpeg 就把本该执行的命令打出来，退出 0", () => {
+  const p = compProject();
+  try {
+    const r = run(["compose", p.at("script.geml#s05-comp"), "--out", "assets/s05-key.png"]);
+    assert.equal(r.code, 0, r.err);
+    assert.match(r.err, /ffmpeg 不在 PATH 上/);
+    assert.match(r.out, /^ffmpeg -y -f lavfi -i color=c=black@0\.0:s=720x1280:d=1 -i assets\/bg\.png -i assets\/hero\.png -filter_complex /);
+    assert.match(r.out, /overlay=300:340\[b2\]/);
+    assert.match(r.out, /-update 1 .*s05-key\.png/);
+    assert.ok(!existsSync(p.at("assets/s05-key.png")), "没跑 ffmpeg 就没有文件");
+  } finally { p.drop(); }
+});
+
+test("todo：待合成的 comp 在给人看的清单里叫「合成」", () => {
+  const p = compProject();
+  try {
+    const r = run(["todo", p.root]);
+    assert.equal(r.code, 0, r.err);
+    assert.match(r.out, /^合成  \S*script\.geml#s05-comp  \(composite\)$/m, r.out);
+  } finally { p.drop(); }
+});
+
+test("compose：不给 --out、入口没有 #id、comp 找不到 —— 各自拒绝", () => {
+  const p = compProject();
+  try {
+    const noOut = run(["compose", p.at("script.geml#s05-comp")]);
+    assert.equal(noOut.code, 2); assert.match(noOut.err, /--out/);
+    const noId = run(["compose", p.at("script.geml"), "--out", "x.png"]);
+    assert.equal(noId.code, 2); assert.match(noId.err, /#/);
+    const gone = run(["compose", p.at("script.geml#nope"), "--out", "x.png"]);
+    assert.equal(gone.code, 2); assert.match(gone.err, /nope/);
+  } finally { p.drop(); }
+});
+
+test("compose --log：登记产出素材并追加 composite 记录；再跑一次只更新哈希，不建第二个块", () => {
+  if (process.platform === "win32") { console.log("skip: 假 ffmpeg 在 Windows 上要 .cmd + shell"); return; }
+  const p = compProject();
+  const bin = fakeFfmpeg();
+  try {
+    const r = run(["compose", p.at("script.geml#s05-comp"), "--out", "assets/s05-key.png", "--log", "lib.geml"], { PATH: bin });
+    assert.equal(r.code, 0, r.err);
+    assert.equal(readFileSync(p.at("assets/s05-key.png"), "utf8"), "PNGBYTES", "假 ffmpeg 写了产出");
+    const lib = p.read("lib.geml");
+    assert.match(lib, new RegExp(`=== media-asset \\{#s05-key src=assets/s05-key\\.png sha256=${sha("PNGBYTES")} kind=image origin=generated role=first-frame\\}`), lib);
+    const recs = records(lib);
+    assert.equal(recs.length, 1);
+    assert.equal(recs[0].output, "#s05-key");
+    assert.equal(recs[0]["output-sha256"], sha("PNGBYTES"));
+    assert.equal(recs[0].mode, "composite");
+    assert.equal(recs[0].model, "ffmpeg-overlay");
+    assert.equal(recs[0].prompt, "script.geml#s05-comp");
+    assert.match(recs[0]["prompt-sha256"], /^[0-9a-f]{64}$/);
+    assert.deepEqual(recs[0].inputs, [{ ref: "#bg", sha256: sha(BG) }, { ref: "#hero", sha256: sha(HERO) }], "输入是各层的素材，引用从素材库出发写");
+    const c = gemlCheck(p.at("lib.geml"));
+    assert.equal(c.status, 0, "登记完 check 要干净：" + c.stdout + c.stderr);
+    const again = run(["compose", p.at("script.geml#s05-comp"), "--out", "assets/s05-key.png", "--log", "lib.geml"], { PATH: bin });
+    assert.equal(again.code, 0, again.err);
+    const lib2 = p.read("lib.geml");
+    assert.equal((lib2.match(/\{#s05-key /g) ?? []).length, 1, "同一个产出不建第二个块");
+    assert.equal(records(lib2).length, 2, "每次合成一条记录");
+  } finally { p.drop(); rmSync(bin, { recursive: true, force: true }); }
+});
+
+test("compose --log --as：产出块的 id 由 --as 定；没有 ffmpeg 时 --log 没东西可登记，命令照打、退出 1", () => {
+  const p = compProject();
+  try {
+    const dry = run(["compose", p.at("script.geml#s05-comp"), "--out", "assets/k.png", "--log", "lib.geml", "--as", "#key05"]);
+    assert.equal(dry.code, 1, dry.err);
+    assert.match(dry.out, /^ffmpeg /);
+    assert.match(dry.err, /没有产出/);
+    assert.ok(!/key05/.test(p.read("lib.geml")), "没产出就不登记");
+    if (process.platform === "win32") return;
+    const bin = fakeFfmpeg();
+    try {
+      const r = run(["compose", p.at("script.geml#s05-comp"), "--out", "assets/k.png", "--log", "lib.geml", "--as", "#key05"], { PATH: bin });
+      assert.equal(r.code, 0, r.err);
+      assert.match(p.read("lib.geml"), /\{#key05 src=assets\/k\.png /);
+    } finally { rmSync(bin, { recursive: true, force: true }); }
+  } finally { p.drop(); }
+});
+
+test("log --params：JSON 进 params；读不成 JSON 就拒绝", () => {
+  const p = project();
+  try {
+    const r = run(["log", p.at("lib.geml"), "--output", "#clip", "--model", "ffmpeg-colorkey", "--mode", "other",
+      "--params", '{"key":"#847ff6","similarity":0.18}']);
+    assert.equal(r.code, 0, r.err);
+    assert.deepEqual(records(p.read("lib.geml"))[0].params, { key: "#847ff6", similarity: 0.18 });
+    const bad = run(["log", p.at("lib.geml"), "--output", "#clip", "--model", "m", "--mode", "other", "--params", "{nope"]);
+    assert.equal(bad.code, 2);
+    assert.match(bad.err, /--params/);
   } finally { p.drop(); }
 });
 

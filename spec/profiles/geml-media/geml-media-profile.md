@@ -23,7 +23,10 @@ carrying the hash of each input *at the time it ran*, and thereby turns "I
 changed the character card, which shots have to be made again?" into a question
 `geml check` answers. An asset is a file with an identity (`sha256`); a cut is a
 **reference to a span of one**, never a copy of its bytes — the same shape as
-`code {src=file#L14-24}` pointing at a span of source.
+`code {src=file#L14-24}` pointing at a span of source. A shot's picture can also
+be **built from parts** — a scene plate, character stands, each an asset placed on
+a canvas (§5.1) — and then the lineage reaches inside the picture: which layer
+changed, and which shots used it.
 
 ## 1. Declaring the profile
 
@@ -106,7 +109,7 @@ timeline, and every real timeline here is mixed anyway.
 | `license` | conditional | the grant. Missing on `captured`/`licensed` → `media-license-missing` |
 | `mime` | no | explicit media type, overriding the extension |
 | `of` | recommended | **what this asset depicts**: a reference to the character, scene or prop block it belongs to |
-| `role` | recommended | what it does in a generation: `sheet`, `master`, `lora`, `voice`, `first-frame`, `last-frame`, `style-ref`, `workflow`, `take`, or a host word. Open set |
+| `role` | recommended | what it does in a generation: `sheet`, `master`, `stand` (a matted character cut-out, §5.1), `lora`, `voice`, `first-frame`, `last-frame`, `style-ref`, `workflow`, `take`, or a host word. Open set |
 
 The body is raw and holds the author's own note. A note is a documented fact and
 belongs in history; it is not a caption — how it renders is the stylesheet's
@@ -188,6 +191,68 @@ core records references in four places only: `embed`'s `src=`, `data`'s
 profile is never resolved by the core, so a dangling `speaker=` draws
 `media-speaker-unresolved` from this profile and nothing from the core.
 
+### 5.1 `media-comp` and `media-layer` — a prompt written in layers
+
+A shot's picture can be asked for in words (a `.prompt`) or **built from parts**:
+a scene plate and one or more character stands, each an image `media-asset`,
+placed on a canvas. `media-comp` is that recipe and `media-layer` is one part of
+it. The comp is to `compose` what a `.prompt` is to a model — both are "the block
+a generation was made from", both carry `shot=`, both appear in a log entry's
+`prompt`. It is **not** the shot: a shot may have no comp (one prompt, one picture)
+or two (a first and a last frame).
+
+```geml
+==== media-comp {#s05-comp shot=s05 size=720x1280}
+
+=== media-layer {#s05-bg src=library.geml#bedroom-master xywh=0,200,720,1280}
+===
+
+=== media-layer {#s05-hero src=library.geml#hero-sit x=300 y=340 w=480 flip=h}
+===
+
+====
+```
+
+| type | key | required | meaning |
+|---|---|---|---|
+| `media-comp` | `shot` | no | which shot this picture belongs to, as on `.prompt` |
+| | `size` | yes | the canvas, `WxH`. A fact about **this picture**, not presentation, so not on the stylesheet. Missing → `media-comp-size-missing` |
+| `media-layer` | `src` | yes | a `media-asset` of `kind=image`: a stand, a plate. Not an image → `media-layer-not-image`; dangling → `media-src-unresolved` |
+| | `xywh` | no | a crop of the source **before** placing, W3C Media Fragments syntax as on `media-clip`. One plate, several crops: that is how a location gets its camera positions |
+| | `w` | no | the width after scaling, aspect kept; default the source's (cropped) width |
+| | `x`, `y` | no | the top-left corner on the canvas, pixels, may be negative; default `0 0` |
+| | `flip` | no | `h` mirrors horizontally: one stand, two facings |
+
+**Stacking order is document order**, first layer at the bottom — the same rule as
+track order, so there is no `z=`. **Four transforms only** — crop, scale, flip,
+place — each one ffmpeg filter, in that fixed order (`crop` → `scale` → `hflip`
+→ `overlay`). Rotation, opacity and blend modes are not admitted: nothing has
+needed them, and every extra transform is one more thing two renderers can
+disagree on.
+
+What is **not** a layout fact: how a stand was matted, a contact shadow, colour
+matching, a harmonising repaint. Those are the compositor's and belong in the log
+entry's `params` — so the same document composes on a cel-style pipeline with
+`colorkey` and on a photoreal one with a matting model and a shadow pass, and
+`check` tells the same truth on both.
+
+**A comp is hashed like a prompt.** An entry whose `prompt` names a comp carries
+`prompt-sha256` = the hash of the comp's **canonical text**: derived from the
+model, not sliced from the source — the type, the id and the attributes sorted by
+key, one line for the comp and one per layer in document order, LF, UTF-8.
+Reordering attributes or whitespace changes nothing; `x=300` becoming `x=340`
+stales the entry. Each layer's asset is an `inputs[]` entry, so a regenerated
+stand stales it too.
+
+`geml media compose <doc>#<comp> --out <file.png> [--log <library.geml> [--as '#id']]`
+renders one comp with ffmpeg: a transparent canvas of `size`, each layer cropped,
+scaled, flipped and overlaid in turn — the same document and the same inputs give
+the same bytes. With `--log` it also registers the output (`role=first-frame`; a
+new block, or the existing block's `sha256=`) and appends the entry —
+`mode=composite`, `model=ffmpeg-overlay`, `prompt=` the comp, `inputs[]` the
+layers' assets — because the only correct source of that `inputs[]` is the comp
+itself. `geml media todo` lists a comp no entry claims as a `composite` item.
+
 ## 6. The generation log — `data {.gen-log format=jsonl}`
 
 One entry per generation, appended, never rewritten. It is a core `data` block
@@ -200,8 +265,8 @@ lose: the JSON is validated by the core, every entry and field has a coordinate
 | `output` | yes | the asset block produced; **`null` on failure**, with `error` |
 | `output-sha256` | yes, when `output` is not null | the hash of the produced file **at the time it was produced**. It answers "which entry produced the bytes this asset has now". Without it, one regeneration leaves the superseded entry mismatching the current value for ever, and the asset reads as permanently stale |
 | `model` | yes | model name, free string, version included |
-| `mode` | yes | `t2i`, `i2v`, `t2v`, `tts`, `lipsync`, `upscale`, `other` |
-| `prompt` | conditional | the prompt or line block |
+| `mode` | yes | `t2i`, `i2v`, `t2v`, `tts`, `lipsync`, `upscale`, `composite`, `other` |
+| `prompt` | conditional | the prompt, line or comp block (§5.1) |
 | `prompt-sha256` | with `prompt` | the hash of the prompt **after projections are expanded**: the string the model saw |
 | `prompt-refs[]` | with `prompt` | `{ref, sha256}` for **each block the prompt projects**. `prompt-sha256` alone can only say "the prompt changed"; this says *which source* changed |
 | `inputs[]` | no | `{ref, sha256, role?}`: reference images, LoRAs, key frames, voice samples, the take and voice-overs a lip-sync consumes, a ComfyUI workflow |
@@ -255,6 +320,10 @@ learn to ignore it.
 | `media-orphan-record` | info | no entry's `output-sha256` equals the asset's current value: the bytes it has now have no recorded provenance |
 | `media-stale-generation` | warning | in the entry that matches the asset's current value, an input hash, `prompt-sha256` or a `prompt-refs[]` hash disagrees with the current value; the message names what changed |
 | `media-stale-clip` | warning | a cut's `src` is the output of a stale entry, or of one whose ancestor is stale; the message carries the chain |
+| `media-layer-unassembled` | error | a `media-layer` outside any `media-comp` |
+| `media-comp-size-missing` | error | a `media-comp` without `size=WxH` |
+| `media-comp-empty` | error | a `media-comp` with no layer in its body |
+| `media-layer-not-image` | error | a layer's `src` resolves to something that is not an image asset. A dangling `src` is `media-src-unresolved` |
 
 **Deliberately not implemented in v1**, though the design record describes them:
 the editorial checks (`media-runtime-off-target`, `media-emotion-drift`,
@@ -278,10 +347,15 @@ a diagnostic nobody has needed is a guess wearing a code.
   reads "these diagnostics are empty".
 - **No picture geometry of the presentation layer.** Where an overlay sits is a
   parameter the stylesheet passes to the host. A crop of the *source* frame
-  (`xywh`) is a different thing and is a documented fact.
+  (`xywh`) is a different thing and is a documented fact — and so is a layer's
+  `x`/`y`/`w` (§5.1): not where a track is drawn in a player, but where a
+  compositor puts pixels in a file it produces.
 
 ## 10. Versioning and scope
 
 `geml-media/v1` is this list of names. Adding a name is a minor change; removing
 one, or changing what a name means, needs `v2`. The specification does not change
 either way: this profile only admits names §8.6 already lets a vocabulary admit.
+
+2026-09-29: `media-comp`, `media-layer`, the `composite` mode and four codes were
+added (§5.1) — names only, so a minor change; `v1` stands.

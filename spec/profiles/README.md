@@ -37,7 +37,7 @@ that declare different profiles.
 | `geml-style/v1` | draft | types `style-rule`, `style-state`, `style-screen`, `style-frame` | [geml-style-profile.md](geml-style/geml-style-profile.md) · [中文](geml-style/geml-style-profile_CN.md) | `geml style check` |
 | `geml-history/v1` | stable | types `history-revision`, `history-keyframe`, `history-blob` and their attribute keys | [geml-history-profile.md](geml-history/geml-history-profile.md) · [中文](geml-history/geml-history-profile_CN.md) | `geml history save\|get\|restore\|verify` |
 | `geml-form/v1` | draft | `form`, `form-field`, `form-group`, `form-options`, `form-note` blocks (`form` and `form-group` nest); `pattern`, `min`, `max`, `step`, `maxlength`, `accept` on `form-field` — GEP-0008 | [geml-form-profile.md](geml-form/geml-form-profile.md) · [中文](geml-form/geml-form-profile_CN.md) | — |
-| `geml-media/v1` | draft | types `media` (a timeline, or one playable source), `media-asset`, `media-clip`, `media-text` (`media` holds blocks, `media-text` is prose) and their attribute keys; `.gen-log` on a `data` block | [geml-media-profile.md](geml-media/geml-media-profile.md) · [中文](geml-media/geml-media-profile_CN.md) | — |
+| `geml-media/v1` | draft | types `media` (a timeline, or one playable source), `media-asset`, `media-clip`, `media-text`, `media-comp` (a picture composed from layers) and `media-layer` (`media` and `media-comp` hold blocks, `media-text` is prose) and their attribute keys; `.gen-log` on a `data` block | [geml-media-profile.md](geml-media/geml-media-profile.md) · [中文](geml-media/geml-media-profile_CN.md) | — |
 | `geml-translator/v1` | draft | `translate-to` on `embed` blocks, and on `=== meta` as the document default — GEP-0010 | [geml-translator-profile.md](geml-translator/geml-translator-profile.md) · [中文](geml-translator/geml-translator-profile_CN.md) | — |
 
 The reference implementation's registry is
@@ -244,10 +244,11 @@ Each profile carries `geml-<thing>/conformance.json` beside its document: the
 
 The addresses are the point. §8.6.2 rule 4 lets a vocabulary's **declared body
 mode** change the addressable set and lets nothing else do so, and these files
-are where that is pinned per vocabulary. `geml-form/v1` is the one profile whose
-two readings differ — its `form` holds id-bearing `form-field` blocks — and
-`geml-media/v1` is the contrast: a prose body creates no ids, so both readings
-see the same addresses. A case that drifts across that line fails
+are where that is pinned per vocabulary. `geml-form/v1`'s two readings differ —
+its `form` holds id-bearing `form-field` blocks — and `geml-media/v1` carries one
+case of each kind: a prose body creates no ids, so both readings see the same
+addresses, while a `media-comp` container's layers are addresses only under the
+declaration. A case that drifts across that line fails
 `geml-parser/test/profile-conformance.test.mjs`, in either direction, and so
 does a file whose `codes` or `state` stops matching the registry.
 

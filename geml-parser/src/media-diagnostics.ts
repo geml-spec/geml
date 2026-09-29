@@ -39,7 +39,12 @@ export type MediaDiagnosticCode =
   | "media-gen-schema"
   | "media-orphan-record"
   | "media-stale-generation"
-  | "media-stale-clip";
+  | "media-stale-clip"
+  // 合成（设计记录 §16）：层要在 comp 里，comp 要有画布和至少一层，层要指向图片。
+  | "media-layer-unassembled"
+  | "media-comp-size-missing"
+  | "media-comp-empty"
+  | "media-layer-not-image";
 
 export type MediaSeverity = "error" | "warning" | "info";
 
@@ -63,6 +68,10 @@ export const MEDIA_SEVERITY: Record<MediaDiagnosticCode, MediaSeverity> = {
   "media-speaker-unresolved": "error",
   "media-line-no-speaker": "error",
   "media-gen-schema": "error",
+  "media-layer-unassembled": "error",
+  "media-comp-size-missing": "error",
+  "media-comp-empty": "error",
+  "media-layer-not-image": "error",
   // 文件在、内容却不是它说的那个 —— 比没有更糟，那是错的文件。
   "media-hash-mismatch": "error",
   // 描述别处素材的库照样合法，只是未校验。

@@ -17,7 +17,9 @@
 每一个**一个带地址的块**，把每次生成记成一条**只追加的记录**，记下**生成当刻**每个输入的
 哈希，于是"我改了角色卡，哪些镜头要重做"变成 `geml check` 能回答的问题。素材是有身份的
 文件（`sha256`）；一个片段是**对它某一段的引用**，从不复制字节——和
-`code {src=file#L14-24}` 指向源码的一段是同一个形状。
+`code {src=file#L14-24}` 指向源码的一段是同一个形状。一镜的画面也可以**由几层拼出来**
+——一张场景母版、几张角色立绘，每张都是素材，摆在一块画布上（§5.1）——于是血缘伸进
+画面内部：哪一层变了，哪些镜头用过它。
 
 ## 1. 声明 profile
 
@@ -91,7 +93,7 @@ aspect=9:16`）。**种类**从被引的 `media-asset` 的 `kind=` 读，不在�
 | `license` | 条件 | 授权依据。`captured`/`licensed` 而缺失 → `media-license-missing` |
 | `mime` | 否 | 显式媒体类型，覆盖扩展名推断 |
 | `of` | 推荐 | 这份素材**画的是谁**：指向它所属的角色、场景或道具块 |
-| `role` | 推荐 | 它在生成里当什么用：`sheet`、`master`、`lora`、`voice`、`first-frame`、`last-frame`、`style-ref`、`workflow`、`take`，或宿主词。开放集 |
+| `role` | 推荐 | 它在生成里当什么用：`sheet`、`master`、`stand`（抠好的角色立绘，§5.1）、`lora`、`voice`、`first-frame`、`last-frame`、`style-ref`、`workflow`、`take`，或宿主词。开放集 |
 
 body 是 raw，放作者自己的备注。备注是文档事实，进历史；它不是 caption——渲染成什么由
 样式表决定。
@@ -159,6 +161,57 @@ body 是 raw，放作者自己的备注。备注是文档事实，进历史；�
 `data` 的 `schema=`、`view` 的 `src=`，以及行内 `[[…]]`。profile 放行的属性值核心从不解析，
 所以悬空的 `speaker=` 得到的是本 profile 的 `media-speaker-unresolved`，核心一声不吭。
 
+### 5.1 `media-comp` 与 `media-layer` —— 分层写的提示词
+
+一镜的画面可以用字要（一条 `.prompt`），也可以**由几部分拼出来**：一张场景母版、一张或几张
+角色立绘，每张都是 `kind=image` 的 `media-asset`，摆在一块画布上。`media-comp` 就是这份
+配方，`media-layer` 是其中一层。comp 之于 `compose`，正如 `.prompt` 之于模型——都是
+"这次生成照着哪个块做"，都挂 `shot=`，都出现在记录的 `prompt` 字段里。它**不是**分镜：
+一镜可以没有 comp（一条提示词直出一张图），也可以有两个（首帧与尾帧）。
+
+```geml
+==== media-comp {#s05-comp shot=s05 size=720x1280}
+
+=== media-layer {#s05-bg src=library.geml#bedroom-master xywh=0,200,720,1280}
+===
+
+=== media-layer {#s05-hero src=library.geml#hero-sit x=300 y=340 w=480 flip=h}
+===
+
+====
+```
+
+| 类型 | 键 | 必需 | 含义 |
+|---|---|---|---|
+| `media-comp` | `shot` | 否 | 这张画面属于哪一镜，与 `.prompt` 上的同义 |
+| | `size` | 是 | 画布 `宽x高`。它是**这张图**的事实，不是呈现，所以不在样式表。缺失 → `media-comp-size-missing` |
+| `media-layer` | `src` | 是 | 一个 `kind=image` 的 `media-asset`：立绘、母版。不是图片 → `media-layer-not-image`；悬空 → `media-src-unresolved` |
+| | `xywh` | 否 | 摆放**之前**先对源裁切，语法与 `media-clip` 的 `xywh` 同（W3C Media Fragments）。一张母版、几种裁切，场景的机位就是这么来的 |
+| | `w` | 否 | 缩放后的宽，等比；缺省为源（裁切后）的宽 |
+| | `x`、`y` | 否 | 左上角在画布上的位置，像素，可为负；缺省 `0 0` |
+| | `flip` | 否 | `h` 水平镜像：一张立绘，两个朝向 |
+
+**层序就是文档顺序**，先写的在下——和轨道顺序是同一条规则，所以没有 `z=`。**变换只有
+四个**——裁、缩、翻、放——每个对应 ffmpeg 一个滤镜，顺序固定（`crop` → `scale` →
+`hflip` → `overlay`）。旋转、透明度、混合模式不放行：还没有谁需要，而每多一种变换，
+两个渲染器就多一处可能不一致。
+
+**不是布局事实的**：立绘怎么抠的、接触阴影、色彩匹配、融合重绘。那些是合成器的事，进
+记录的 `params`——于是同一份文档在赛璐璐风管线上用 `colorkey` 合成，在写实风管线上用
+抠图模型加阴影合成，`check` 在两边说的是同一个真相。
+
+**comp 像提示词一样哈希。** `prompt` 指向 comp 的记录，其 `prompt-sha256` 是该 comp
+**规范化文本**的哈希：从模型生成，不切源文本——类型、id、按键排序的属性，comp 一行，
+每层一行，层按文档顺序，LF，UTF-8。调换属性顺序、重排空白都不算改动；`x=300` 改成 `x=340`
+就过期。各层的素材各是一条 `inputs[]`，所以立绘重出一张也过期。
+
+`geml media compose <doc>#<comp> --out <file.png> [--log <library.geml> [--as '#id']]`
+用 ffmpeg 渲一个 comp：`size` 大小的透明画布，每层依次裁、缩、翻、叠——同一份文档、
+同样的输入，永远出同一串字节。带 `--log` 时顺手登记产出（`role=first-frame`；没有就新建
+块，有就只换 `sha256=`）并追加记录——`mode=composite`、`model=ffmpeg-overlay`、
+`prompt=` 该 comp、`inputs[]` 各层素材——因为 `inputs[]` 唯一正确的来源就是 comp 本身。
+`geml media todo` 把没有记录认领的 comp 列成一件 `composite` 待办。
+
 ## 6. 生成日志 —— `data {.gen-log format=jsonl}`
 
 一次生成一条记录，只追加，不改写。它是带 class 的核心 `data` 块，不是自己的类型，这买到
@@ -170,8 +223,8 @@ body 是 raw，放作者自己的备注。备注是文档事实，进历史；�
 | `output` | 是 | 产出的素材块；**失败时为 `null`**，并带 `error` |
 | `output-sha256` | `output` 非 null 时必需 | **产出当刻**那个文件的哈希。它回答"素材现在这份字节是哪条记录产的"。没有它，一次重生之后被取代的旧记录会永远对不上现值，素材读起来就是永远过期 |
 | `model` | 是 | 模型名，自由字符串，带版本 |
-| `mode` | 是 | `t2i`、`i2v`、`t2v`、`tts`、`lipsync`、`upscale`、`other` |
-| `prompt` | 条件 | 提示词块或台词块 |
+| `mode` | 是 | `t2i`、`i2v`、`t2v`、`tts`、`lipsync`、`upscale`、`composite`、`other` |
+| `prompt` | 条件 | 提示词块、台词块或 comp 块（§5.1） |
 | `prompt-sha256` | 与 `prompt` 同 | **展开投射之后**的提示词的哈希：模型看到的那串字 |
 | `prompt-refs[]` | 与 `prompt` 同 | `{ref, sha256}`，**这条提示词投射到的每个块**。只有 `prompt-sha256` 的话，诊断只能说"提示词变了"；有了它才说得出**是哪个源**变了 |
 | `inputs[]` | 否 | `{ref, sha256, role?}`：参考图、LoRA、关键帧、声线样本、口型合成吃进去的 take 与配音、ComfyUI 的 workflow |
@@ -220,6 +273,10 @@ warning 而不是 error——否则改一次角色卡整条流水线红掉，人
 | `media-orphan-record` | info | 没有任何记录的 `output-sha256` 等于素材现值：它现在这份字节来历不明 |
 | `media-stale-generation` | warning | 与素材现值匹配的那条记录里，某个输入的哈希、`prompt-sha256` 或某条 `prompt-refs[]` 与现值不符；消息点名变了的那个 |
 | `media-stale-clip` | warning | 片段的 `src` 是过期记录的产出，或其祖先过期；消息带整条链 |
+| `media-layer-unassembled` | error | `media-layer` 不在任何 `media-comp` 里 |
+| `media-comp-size-missing` | error | `media-comp` 没有 `size=宽x高` |
+| `media-comp-empty` | error | `media-comp` 的体里一层都没有 |
+| `media-layer-not-image` | error | 层的 `src` 解析到的不是图片素材。悬空的 `src` 是 `media-src-unresolved` |
 
 **v1 刻意不实现**（设计记录里描述过的）：编导口味的几条（`media-runtime-off-target`、
 `media-emotion-drift`、`media-look-outdated`、`media-episode-mismatch`、
@@ -238,10 +295,14 @@ warning 而不是 error——否则改一次角色卡整条流水线红掉，人
 - **不做工作流引擎。** 没有队列、没有调度器、没有重试策略。GEML 给流水线的是派生的任务
   清单、幂等的写入，和一道"这几类诊断为零"的门。
 - **不定义呈现层的画面几何。** overlay 摆在哪，是样式表透传给宿主的参数。对**源画面**的
-  裁切（`xywh`）是另一回事，它是文档事实。
+  裁切（`xywh`）是另一回事，它是文档事实——层的 `x`/`y`/`w`（§5.1）也是：它们不是一条轨
+  在**播放器**里画在哪，而是合成器据以在它**产出的文件**里摆像素的地方。
 
 ## 10. 版本与范围
 
 `geml-media/v1` 就是上面这份名字清单。加一个名字是小版本改动；删掉一个、或改变一个名字的
 含义，要 `v2`。两种情况下规范都不变：这份 profile 放行的，全是 §8.6 本来就允许一份词汇表
 放行的名字。
+
+2026-09-29：加了 `media-comp`、`media-layer`、`composite` 模式与四个码（§5.1）——只加名字，
+是小版本改动；`v1` 不变。

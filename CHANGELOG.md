@@ -18,6 +18,18 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **geml-media: a shot composed from layers.** Two new block types,
+  `media-comp` (a canvas) and `media-layer` (one image asset cropped, scaled,
+  flipped and placed on it), a `composite` log mode and four diagnostics
+  (`media-layer-unassembled`, `media-comp-size-missing`, `media-comp-empty`,
+  `media-layer-not-image`). `geml media compose <doc>#<comp> --out x.png`
+  renders one comp deterministically with ffmpeg; `--log <library>` registers
+  the output and appends the entry with every layer as an input. A comp is
+  hashed like a prompt — its canonical text — so moving a layer stales exactly
+  the shots that used it, and `geml media todo` lists an unclaimed comp as a
+  `composite` item. `geml media log` gains `--params <json>`. Design record:
+  `docs/design/specs/2026-09-15-geml-media-design.md` §16.
+
 ## [1.11.2] — 2026-09-28
 
 - **A `.md` is read as Markdown.** GEML parses Markdown directly — that is what

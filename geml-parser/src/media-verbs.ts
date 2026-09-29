@@ -27,6 +27,8 @@ export interface Project {
   prompts: { rel: string; b: Extract<Block, { kind: "block" }> }[];
   lines: { rel: string; b: Extract<Block, { kind: "block" }> }[];
   clips: { rel: string; b: Extract<Block, { kind: "block" }> }[];
+  /** `media-comp`：分层写的提示词（§16） */
+  comps: { rel: string; b: Extract<Block, { kind: "block" }> }[];
 }
 
 const str = (v: unknown): string | undefined => (typeof v === "string" ? v : typeof v === "number" ? String(v) : undefined);
@@ -74,10 +76,12 @@ export function loadProject(entry: string | string[], io: MediaIO): Project {
   const prompts: Project["prompts"] = [];
   const lines: Project["lines"] = [];
   const clips: Project["clips"] = [];
+  const comps: Project["comps"] = [];
   for (const [rel, l] of docs) {
     for (const b of blocksOf(l.doc)) {
       if (b.type === "media-asset" && b.id !== undefined) assets.set(`${rel}#${b.id}`, { rel, b });
       if (b.type === "media-clip") clips.push({ rel, b });
+      if (b.type === "media-comp") comps.push({ rel, b });
       if (b.type === "media-text" && b.classes.includes("prompt")) prompts.push({ rel, b });
       if (b.type === "media-text" && b.classes.includes("line")) lines.push({ rel, b });
       if (b.classes.includes("gen-log") && Array.isArray(b.value)) {
@@ -93,7 +97,18 @@ export function loadProject(entry: string | string[], io: MediaIO): Project {
     const b = blocksOf(l.doc).find((x) => x.id === t.id);
     return b === undefined ? null : { rel: t.doc, b };
   };
-  return { docs, block, assets, records, prompts, lines, clips };
+  return { docs, block, assets, records, prompts, lines, clips, comps };
+}
+
+/** 一个 comp 的各层：层块、它引用的素材（解析得到的话）。 */
+function layersOf(p: Project, rel: string, comp: Extract<Block, { kind: "block" }>) {
+  const out: { layer: Extract<Block, { kind: "block" }>; asset: { rel: string; b: Extract<Block, { kind: "block" }> } | null }[] = [];
+  for (const c of comp.children ?? []) {
+    if (c.kind !== "block" || c.type !== "media-layer") continue;
+    const src = str(c.attrs["src"]);
+    out.push({ layer: c, asset: src === undefined ? null : p.block(src, rel) });
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -102,7 +117,7 @@ export function loadProject(entry: string | string[], io: MediaIO): Project {
 // ---------------------------------------------------------------------------
 
 export interface TodoItem {
-  kind: "generate" | "voice";
+  kind: "generate" | "voice" | "composite";
   /** 要做的那件事的地址 */
   address: string;
   mode: string;
@@ -151,6 +166,18 @@ export function todo(entry: string | string[], io: MediaIO): TodoItem[] {
       }
     }
     out.push({ kind: "voice", address, mode: "tts", prompt: promptTextOf(address, "", io), refs });
+  }
+  // 合成：没有记录认领的 comp。没有要发给模型的文字，refs 是各层的素材。
+  for (const { rel, b } of p.comps) {
+    if (!askedFor(rel, b)) continue;
+    const refs: { ref: string; role?: string }[] = [];
+    for (const { asset } of layersOf(p, rel, b)) {
+      if (asset === null || asset.b.id === undefined) continue;
+      const role = str(asset.b.attrs["role"]);
+      const ref = `${asset.rel}#${asset.b.id}`;
+      refs.push(role === undefined ? { ref } : { ref, role });
+    }
+    out.push({ kind: "composite", address: `${rel}#${b.id as string}`, mode: "composite", prompt: null, refs });
   }
   return out;
 }
@@ -500,6 +527,65 @@ export function buildPlan(entry: string, outFile: string, io: MediaIO, opts: Bui
 
   const hasSubs = tl.clips.some((c) => c.kind === "prose");
   return { args, srt: hasSubs ? exportTimeline(entry, "srt", io) : null, duration: tl.duration, notes };
+}
+
+// ---------------------------------------------------------------------------
+// compose —— 把一个 media-comp 渲成一张图：build 的空间孪生（设计记录 §16.3）。
+//
+// 透明画布 `size` → 每层依次 crop（xywh）→ scale（w，等比）→ hflip（flip=h）→
+// overlay（x y），一条 filtergraph，一次 ffmpeg。像素只由文档与各层文件决定：同一份
+// 文档、同样的输入，永远出同一串字节 —— 这正是把编辑挪到投影之前的全部意义。
+// ---------------------------------------------------------------------------
+
+export interface ComposePlan {
+  /** ffmpeg 的参数；一层都摆不上时为空 */
+  args: string[];
+  notes: string[];
+  /** 摆上去的各层引用的素材（"doc#id"）、文件路径与声明的哈希 —— --log 记 inputs 用 */
+  layers: { ref: string; path: string; sha256?: string }[];
+}
+
+export function composePlan(ref: string, outFile: string, io: MediaIO): ComposePlan {
+  const none = (note: string): ComposePlan => ({ args: [], notes: [note], layers: [] });
+  const t = splitRef(ref, "");
+  if (t === null) return none(`\`${ref}\` 不是「文档#id」的形状`);
+  const p = loadProject(t.doc, io);
+  const hit = p.block(ref, "");
+  if (hit === null || hit.b.type !== "media-comp") return none(`找不到 media-comp \`${ref}\``);
+  const size = str(hit.b.attrs["size"]);
+  if (size === undefined || !/^\d+x\d+$/.test(size)) return none(`\`${ref}\` 没有 \`size=WxH\`，画布多大无从知道`);
+  const info = assetInfo(p, io);
+  const inputs: string[] = ["-y", "-f", "lavfi", "-i", `color=c=black@0.0:s=${size}:d=1`];
+  const filters: string[] = ["[0:v]format=rgba[b0]"];
+  const layers: ComposePlan["layers"] = [];
+  const notes: string[] = [];
+  let n = 0;
+  for (const { layer, asset } of layersOf(p, hit.rel, hit.b)) {
+    const src = str(layer.attrs["src"]);
+    const path = src === undefined ? undefined : info(src, hit.rel).path;
+    if (asset === null || path === undefined) { notes.push(`层 #${layer.id ?? "?"} 的源没有文件路径，跳过`); continue; }
+    inputs.push("-i", path);
+    const steps: string[] = [];
+    const xywh = str(layer.attrs["xywh"]);
+    if (xywh !== undefined) {
+      const [x, y, w, h] = xywh.split(",").map((s) => s.trim());
+      steps.push(`crop=${w ?? ""}:${h ?? ""}:${x ?? ""}:${y ?? ""}`);
+    }
+    const w = str(layer.attrs["w"]);
+    if (w !== undefined) steps.push(`scale=${w}:-1`);
+    if (str(layer.attrs["flip"]) === "h") steps.push("hflip");
+    steps.push("format=rgba");
+    filters.push(`[${n + 1}:v]${steps.join(",")}[l${n}]`);
+    filters.push(`[b${n}][l${n}]overlay=${str(layer.attrs["x"]) ?? "0"}:${str(layer.attrs["y"]) ?? "0"}[b${n + 1}]`);
+    const sha = str(asset.b.attrs["sha256"]);
+    layers.push(sha === undefined ? { ref: `${asset.rel}#${asset.b.id ?? ""}`, path } : { ref: `${asset.rel}#${asset.b.id ?? ""}`, path, sha256: sha });
+    n++;
+  }
+  if (n === 0) return { args: [], notes: [...notes, `\`${ref}\` 一层都摆不上`], layers: [] };
+  return {
+    args: [...inputs, "-filter_complex", filters.join(";"), "-map", `[b${n}]`, "-frames:v", "1", "-update", "1", outFile],
+    notes, layers,
+  };
 }
 
 // ---------------------------------------------------------------------------

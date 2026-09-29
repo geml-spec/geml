@@ -21,7 +21,11 @@
     "media-track-undeclared": "warning",
     "media-stale-generation": "warning",
     "media-stale-clip": "warning",
-    "media-orphan-record": "info"
+    "media-orphan-record": "info",
+    "media-layer-unassembled": "error",
+    "media-comp-size-missing": "error",
+    "media-comp-empty": "error",
+    "media-layer-not-image": "error"
   },
   "cases": [
     {
@@ -55,6 +59,25 @@
         "undeclared": [
           "#meta",
           "#c1"
+        ]
+      }
+    },
+    {
+      "name": "a layer carries its attributes on its own type; the comp is a flow container, so its layers are addresses only under the declaration (§8.6.2 rule 4)",
+      "geml": "=== meta\nprofile = \"geml-media/v1\"\n===\n\n==== media-comp {#s05 size=720x1280}\n\n=== media-layer {#l1 src=lib.geml#bg x=0 y=0}\n===\n\n====\n",
+      "admits": [
+        "media-comp",
+        "media-layer"
+      ],
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#s05",
+          "#l1"
+        ],
+        "undeclared": [
+          "#meta",
+          "#s05"
         ]
       }
     }

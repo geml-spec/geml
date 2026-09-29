@@ -20,6 +20,8 @@ export type MediaIO = ProfileIO;
 const TRACK_KINDS = new Set(["video", "audio", "prose"]);
 /** 有固有时长的素材种类；其余（静图、模型、其它）在时间线上要 `duration`。 */
 const TIMED_KINDS = new Set(["video", "audio"]);
+/** 没写 `kind=` 时按后缀认图片 —— 与 media-verbs 的 kindFromExt 同一份名单。 */
+const IMAGE_EXT = new Set(["png", "jpg", "jpeg", "webp", "gif"]);
 
 export interface Loaded { rel: string; doc: Document; meta: Map<string, string> }
 
@@ -100,6 +102,33 @@ function proseText(
     return v ?? "";
   }).join("");
   return render(para.inlines);
+}
+
+/**
+ * 一个 comp 的规范化文本 —— `prompt-sha256` 对它哈希的对象（设计记录 §16.2）。
+ *
+ * 从模型生成，不切源文本：类型、id、按键排序的属性，一层一行，层按文档顺序。
+ * 于是重排空白、调换属性顺序都不算改动，而 `x=300` 改成 `x=340` 就是 —— 和提示词
+ * 的哈希忽略标记、只看展开后的字是同一个道理。
+ */
+function compText(block: Extract<Block, { kind: "block" }>): string {
+  const head = (b: Extract<Block, { kind: "block" }>): string => [
+    b.type,
+    ...(b.id === undefined ? [] : [`#${b.id}`]),
+    ...Object.keys(b.attrs).sort().map((k) => `${k}=${String(b.attrs[k])}`),
+  ].join(" ");
+  const lines = [head(block)];
+  for (const c of block.children ?? []) if (c.kind === "block" && c.type === "media-layer") lines.push(head(c));
+  return lines.join("\n");
+}
+
+/** 一个块「作为提示词」的文本：散文块展开投射，comp 取规范化文本。 */
+function blockText(
+  block: Extract<Block, { kind: "block" }>,
+  from: string,
+  load: (rel: string) => Loaded | null,
+): string | null {
+  return block.type === "media-comp" ? compText(block) : proseText(block, from, load);
 }
 
 /** 把一条时间线的 `tracks=` 的「名字:种类」读成一张表，顺带报它自己的毛病。 */
@@ -304,6 +333,41 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
     }
   }
 
+  // ---- 合成：层要在 comp 里，comp 要有画布和至少一层，层要指向图片（§16）------
+  for (const rel of seen) {
+    const l = docs.get(rel);
+    if (l === null || l === undefined) continue;
+    const layers = blocksOf(l.doc).filter((b) => b.type === "media-layer");
+    const owned = new Set<Extract<Block, { kind: "block" }>>();
+    for (const m of blocksOf(l.doc)) {
+      if (m.type !== "media-comp") continue;
+      const inner = blocksOf({ children: m.children ?? [] } as never).filter((c) => c.type === "media-layer");
+      for (const c of inner) owned.add(c);
+      const size = str(m.attrs["size"]);
+      if (size === undefined || !/^\d+x\d+$/.test(size)) {
+        out.push(mediaDiag("media-comp-size-missing", "`media-comp` 没有 `size=`：画布多大无从知道，写成 `size=720x1280`", rel, m.id));
+      }
+      if (inner.length === 0) {
+        out.push(mediaDiag("media-comp-empty", "`media-comp` 的体里一个 `media-layer` 都没有，它合不出任何东西", rel, m.id));
+      }
+    }
+    for (const b of layers) {
+      if (!owned.has(b)) {
+        out.push(mediaDiag("media-layer-unassembled", "`media-layer` 不在任何 `media-comp` 里 —— 它不属于任何一张合成", rel, b.id));
+      }
+      const src = str(b.attrs["src"]);
+      if (src === undefined || src === "") { out.push(mediaDiag("media-src-unresolved", "`media-layer` 没有 `src=`", rel, b.id)); continue; }
+      const t = splitRef(src, rel);
+      const target = t === null ? undefined : blockAt(t.doc, t.id);
+      if (target === undefined) { out.push(mediaDiag("media-src-unresolved", `\`src=${src}\` 指不到任何块`, rel, b.id)); continue; }
+      const kind = target.type !== "media-asset" ? target.type
+        : str(target.attrs["kind"]) ?? (IMAGE_EXT.has((str(target.attrs["src"]) ?? "").split(".").pop()?.toLowerCase() ?? "") ? "image" : "other");
+      if (kind !== "image") {
+        out.push(mediaDiag("media-layer-not-image", `\`src=${src}\` 不是一张图片（是 ${kind}）：层只能是立绘或母版`, rel, b.id));
+      }
+    }
+  }
+
   // ---- 台词：speaker 必填，speaker/to 要解析得到 -----------------------------
   for (const rel of seen) {
     const l = docs.get(rel);
@@ -359,7 +423,7 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
     if (list === undefined) byOutput.set(key, [rec]); else list.push(rec);
   }
 
-  /** 一个引用现在的哈希：素材看文件，散文块看展开后的文本。 */
+  /** 一个引用现在的哈希：素材看文件，散文块看展开后的文本，comp 看规范化文本。 */
   const nowHashOf = (ref: string, from: string): string | null => {
     const t = splitRef(ref, from);
     if (t === null) return null;
@@ -367,7 +431,7 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
     if (assets.has(key)) return currentHash.get(key) ?? null;
     const b = blockAt(t.doc, t.id);
     if (b === undefined) return null;
-    const text = proseText(b, t.doc, load);
+    const text = blockText(b, t.doc, load);
     return text === null ? null : io.hashText(text);
   };
 
@@ -484,5 +548,5 @@ export function promptTextOf(ref: string, from: string, io: MediaIO): string | n
   const l = load(t.doc);
   if (l === null) return null;
   const b = blocksOf(l.doc).find((x) => x.id === t.id);
-  return b === undefined ? null : proseText(b, t.doc, load);
+  return b === undefined ? null : blockText(b, t.doc, load);
 }
