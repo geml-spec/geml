@@ -315,7 +315,7 @@ test("夹具：视频轨的片段指向台词块 —— media-src-not-asset", ()
 
 import { layout, layoutsOf } from "../dist/media-timeline.js";
 import { parse } from "../dist/geml.js";
-import { todo, report, exportTimeline, lay, buildPlan, appendLog, importPlan } from "../dist/media-verbs.js";
+import { todo, report, exportTimeline, lay, buildPlan, appendLog, genLogSpan, importPlan } from "../dist/media-verbs.js";
 
 test("时间模型：主轨顺序摆放，其余轨锚在主轨上", () => {
   const root = fixture();
@@ -405,6 +405,17 @@ test("log：追加记录的同时把素材块的 sha256 改成现值", () => {
   assert.match(out, /duration=4\.2/);
   assert.ok(!/sha256=OLD/.test(out));
   assert.match(out, /"output":"#a"/);
+});
+
+test("log：genLogSpan 找日志块的开栏与收栏，按开栏的等号数收 —— 找不到、没收栏各给一句为什么，appendLog 照这句抛", () => {
+  const head = '=== meta\nprofile = "geml-media/v1"\n===\n\n';
+  assert.deepEqual(genLogSpan(head + "=== data {#gen-log .gen-log format=jsonl}\n===\n"), { open: 4, close: 5 });
+  // 四个等号开的栏，里面三个等号的行不是它的收栏。CRLF 也按行数。
+  assert.deepEqual(genLogSpan(head + "==== data {.gen-log format=jsonl}\r\n===\r\n====\r\n"), { open: 4, close: 6 });
+  for (const [src, why] of [[head, /没有 `data \{\.gen-log\}` 块/], [head + "=== data {#gen-log .gen-log format=jsonl}\n", /没有收栏/]]) {
+    assert.match(genLogSpan(src), why);
+    assert.throws(() => appendLog(src, { output: null, model: "m", mode: "t2i", at: "z" }), why);
+  }
 });
 
 test("build：ffmpeg 的参数由时间模型决定，字幕另出不烧进画面", () => {

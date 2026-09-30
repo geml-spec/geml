@@ -38,7 +38,7 @@ function knownProfileCode(code: string): boolean {
   return Object.values(PROFILES).some((d) => d.diagnostics !== undefined && code in d.diagnostics);
 }
 import { promptTextOf } from "./media-check.js";
-import { todo as mediaTodo, report as mediaReport, exportTimeline, lay as mediaLay, buildPlan, composePlan, appendLog, importPlan, importKindOf, importSubtitles, assetBlockFor, idFromFile, idsTaken, loadProject, type ExportFormat, type ManifestItem } from "./media-verbs.js";
+import { todo as mediaTodo, report as mediaReport, exportTimeline, lay as mediaLay, buildPlan, composePlan, appendLog, genLogSpan, importPlan, importKindOf, importSubtitles, assetBlockFor, idFromFile, idsTaken, loadProject, type ExportFormat, type ManifestItem } from "./media-verbs.js";
 import { profileIoFor } from "./host-fs.js";
 // The GEML command line. Split out of geml.ts so that file can be what the
 // viewer imports: a parser LIBRARY. Everything CLI-side lives here — argv
@@ -512,6 +512,18 @@ function mediaFilesUnder(dir: string, out: string[]): void {
   }
 }
 
+/**
+ * 往素材库追加记录的三处 —— log、import 清单、compose --log —— 都要一个收了栏的
+ * `.gen-log` 块。缺了就在动手之前一行拒绝：compose 在跑 ffmpeg 之前，import 在建素材块
+ * 之前。以前是 appendLog 的 Error 带着堆栈甩出来，compose 那时产出已经写在盘上、没登记。
+ */
+function needGenLog(source: string, shown: string): void {
+  const span = genLogSpan(source);
+  if (typeof span === "string") {
+    fail(shown + "：" + span + "。先在里面加一个空的：\n  === data {#gen-log .gen-log format=jsonl}\n  ===");
+  }
+}
+
 function mediaRootOf(file: string, root: string | undefined): { root: string; rel: string } {
   const r = root ?? dirname(resolvePath(file));
   return { root: r, rel: relative(r, resolvePath(file)).split(sep).join("/") };
@@ -638,6 +650,7 @@ function runMedia(args: string[]): void {
     if (plan.broken.length > 0) fail("compose 拒绝：连接 " + plan.broken.join("、") + " 引不到层或点（立绘重出后点要重标）；先 geml check " + rel);
     if (plan.args.length === 0) fail("compose 没有可执行的命令：" + plan.notes.join("；"));
     const logTarget = flag(rest, "--log");
+    if (logTarget !== undefined) needGenLog(readInput(resolvePath(mr, logTarget)), logTarget);
     const ff = whichBin("ffmpeg");
     if (ff === null) {
       console.error("ffmpeg 不在 PATH 上；下面是本该跑的命令，装好后可直接执行：");
@@ -661,8 +674,7 @@ function runMedia(args: string[]): void {
     if (idsTaken(text, [id]).length === 0) {
       const src = relative(libDir, outAbs).split(sep).join("/");
       const block = ("=== media-asset {#" + id + " src=" + src + " sha256=" + sha + " kind=image origin=generated role=first-frame}\n===\n\n").replace(/\n/g, nl);
-      if (/={3,}\s+data\s*\{[^}]*\.gen-log/.test(text)) text = text.replace(/(={3,}\s+data\s*\{[^}]*\.gen-log)/, block + "$1");
-      else text = text.replace(/\s*$/, nl) + nl + block;
+      text = text.replace(/(={3,}\s+data\s*\{[^}]*\.gen-log)/, block + "$1");   // 有没有日志块，跑 ffmpeg 前就查过了
     }
     // 引用从素材库出发写：同一份文档就是 `#id`，别的文档带相对路径。
     const refFrom = (key: string): string => {
@@ -721,7 +733,9 @@ function runMedia(args: string[]): void {
     if (params !== undefined) {
       try { rec["params"] = JSON.parse(params) as unknown; } catch { fail("--params 要是一段 JSON（开放 map），读不成：" + params); }
     }
-    writeFileSync(resolvePath(file), appendLog(readInput(file), rec, assetSha), "utf8");
+    const libText = readInput(file);
+    needGenLog(libText, file);
+    writeFileSync(resolvePath(file), appendLog(libText, rec, assetSha), "utf8");
     console.error("logged " + outputId + " → " + file);
     return;
   }
@@ -757,6 +771,7 @@ function runMedia(args: string[]): void {
       const items = JSON.parse(readInput(file)) as ManifestItem[];
       const plan = importPlan(target.rel, items, io2);
       for (const n of plan.notes) console.error("note: " + n);
+      if (plan.records.length > 0) needGenLog(text, into);
       guard(text, plan.newAssets.map((a) => a.id));
       for (const a of plan.newAssets) {
         put("=== media-asset {#" + a.id + " src=" + a.src + " sha256=" + a.sha256 + " kind=" + a.kind + " origin=generated}\n===\n\n");

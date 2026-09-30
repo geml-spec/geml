@@ -69,6 +69,14 @@ and is released under `viewer-v*` tags.
   `- `, so arm B had been charged a refusal message for a search that never
   ran (131 bytes more than the real output; the printed ratios move from
   1.79× to 1.80× input and stay 7.49× for saying where).
+- **geml-media: a library without a generation log is refused, not a crash.**
+  `geml media log`, `geml media import <manifest.json>` and
+  `geml media compose --log` append to the library's
+  `data {.gen-log}` block, and when it had none — or it was never closed —
+  each one died with a Node stack trace. `compose` had already run ffmpeg by
+  then, so the image sat on disk unregistered. Each verb now checks the
+  library before it does anything, `compose` before ffmpeg runs, and refuses
+  in one line (exit 2) that names the empty block to add.
 
 ## [1.11.3] — 2026-09-29
 

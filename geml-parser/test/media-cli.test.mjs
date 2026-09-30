@@ -689,4 +689,30 @@ test("log --params：JSON 进 params；读不成 JSON 就拒绝", () => {
   } finally { p.drop(); }
 });
 
+test("没有 .gen-log 块（或它没收栏）：log、import 清单、compose --log 都在动手之前一行拒绝 —— 不写半边、不甩堆栈", () => {
+  const p = compProject();
+  const bin = WIN ? null : fakeFfmpeg();
+  try {
+    const noLog = p.read("lib.geml").replace("=== data {#gen-log .gen-log format=jsonl}\n===\n", "");
+    const unclosed = noLog + "=== data {#gen-log .gen-log format=jsonl}\n";
+    writeFileSync(p.at("m.json"), JSON.stringify([{ file: "assets/bg.png", model: "m", mode: "t2i" }]));
+    for (const [lib, why] of [[noLog, /没有 `data \{\.gen-log\}` 块/], [unclosed, /`\.gen-log` 块没有收栏/]]) {
+      writeFileSync(p.at("lib.geml"), lib);
+      const tries = [
+        run(["log", p.at("lib.geml"), "--output", "#bg", "--model", "m", "--mode", "t2i"]),
+        run(["import", p.at("m.json"), "--into", p.at("lib.geml")]),
+        run(["compose", p.at("script.geml#s05-comp"), "--out", "assets/k.png", "--log", "lib.geml"], bin === null ? {} : { PATH: bin }),
+      ];
+      for (const r of tries) {
+        assert.equal(r.code, 2, r.err);
+        assert.match(r.err, why);
+        assert.match(r.err, /=== data \{#gen-log \.gen-log format=jsonl\}/, "告诉人该加什么");
+        assert.doesNotMatch(r.err, /\n\s+at /, "不是堆栈");
+      }
+      assert.equal(p.read("lib.geml"), lib, "库没动");
+      assert.ok(!existsSync(p.at("assets/k.png")), "compose 在跑 ffmpeg 之前就停了，盘上没有没登记的产出");
+    }
+  } finally { p.drop(); if (bin !== null) rmSync(bin, { recursive: true, force: true }); }
+});
+
 console.log(`\n${passed} test(s) passed.`);

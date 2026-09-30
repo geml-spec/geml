@@ -655,22 +655,28 @@ export function composePlan(ref: string, outFile: string, io: MediaIO): ComposeP
 
 export interface LogEntry { [k: string]: unknown }
 
+/**
+ * 一份文档接不接得下一条记录：接得下，给 `.gen-log` 开栏与收栏的行号（按 `\r?\n` 切行）；
+ * 接不下，给一句为什么。appendLog 用它找位置，命令行在动手之前用它拒绝 —— 追加记录的
+ * 动词不该先写出一半（compose 已经跑完 ffmpeg），再在这里失败。
+ */
+export function genLogSpan(source: string): { open: number; close: number } | string {
+  const lines = source.split(/\r?\n/);
+  const open = lines.findIndex((l) => /^={3,}\s+data\s*\{[^}]*\.gen-log/.test(l));
+  if (open < 0) return "这份文档里没有 `data {.gen-log}` 块";
+  // 开栏那一行刚被 `^={3,}` 认过，这里一定匹配得上。
+  const fence = /^=+/.exec(lines[open] as string)![0];
+  const close = lines.findIndex((l, i) => i > open && l.trim() === fence);
+  return close < 0 ? "`.gen-log` 块没有收栏" : { open, close };
+}
+
 /** 往一份素材库文本里追加一条记录，并把产出素材的 sha256 改成现值。返回新文本。 */
 export function appendLog(librarySource: string, rec: LogEntry, assetSha?: { id: string; sha256: string; duration?: number }): string {
   const nl = librarySource.includes("\r\n") ? "\r\n" : "\n";
   const lines = librarySource.split(/\r?\n/);
-  // 找 .gen-log 的开栏与它的收栏
-  let open = -1;
-  for (let i = 0; i < lines.length; i++) {
-    const l = lines[i] as string;
-    if (/^={3,}\s+data\s*\{[^}]*\.gen-log/.test(l)) { open = i; break; }
-  }
-  if (open < 0) throw new Error("这份文档里没有 `data {.gen-log}` 块");
-  const fence = /^(={3,})/.exec(lines[open] as string)?.[1] ?? "===";
-  let close = -1;
-  for (let i = open + 1; i < lines.length; i++) { if ((lines[i] as string).trim() === fence) { close = i; break; } }
-  if (close < 0) throw new Error("`.gen-log` 块没有收栏");
-  lines.splice(close, 0, JSON.stringify(rec));
+  const span = genLogSpan(librarySource);
+  if (typeof span === "string") throw new Error(span);
+  lines.splice(span.close, 0, JSON.stringify(rec));
 
   if (assetSha !== undefined) {
     // 不用正则找这一行：模板字符串里的 `` 是退格符、`s` 是 s —— 写出来的正则
