@@ -2042,6 +2042,13 @@
       "id": "gemlToMd"
     }
   ],
+  "genLogSpan": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`media-verbs.ts`/genLogSpan().",
+      "doc": "geml-parser--media-verbs.ts.geml",
+      "id": "genLogSpan"
+    }
+  ],
   "get": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`verbs.ts`/get().",
@@ -2199,6 +2206,20 @@
       "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`style-resolve.ts`/hitsFor().",
       "doc": "geml-parser--style-resolve.ts.geml",
       "id": "hitsFor"
+    }
+  ],
+  "htmlAnchorsOf": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`geml.ts`/htmlAnchorsOf().",
+      "doc": "geml-parser--geml.ts.geml",
+      "id": "htmlAnchorsOf"
+    }
+  ],
+  "htmlAttributes": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`geml.ts`/htmlAttributes().",
+      "doc": "geml-parser--geml.ts.geml",
+      "id": "htmlAttributes"
     }
   ],
   "idAttr": [
@@ -3123,6 +3144,13 @@
       "id": "narrowToRoot"
     }
   ],
+  "needGenLog": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/needGenLog().",
+      "doc": "geml-parser--cli.ts.geml",
+      "id": "needGenLog"
+    }
+  ],
   "new": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`edn.ts`/Reader#`<constructor>`().",
@@ -3317,11 +3345,25 @@
       "id": "McpHost-open"
     }
   ],
+  "optionArgs": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/optionArgs().",
+      "doc": "geml-parser--cli.ts.geml",
+      "id": "optionArgs"
+    }
+  ],
   "orderView": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`table.ts`/orderView().",
       "doc": "geml-parser--table.ts.geml",
       "id": "orderView"
+    }
+  ],
+  "outsideCodeSpans": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`geml.ts`/outsideCodeSpans().",
+      "doc": "geml-parser--geml.ts.geml",
+      "id": "outsideCodeSpans"
     }
   ],
   "overlayTrack": [
@@ -4051,6 +4093,13 @@
       "id": "refuseInline"
     }
   ],
+  "registerGithubAnchor": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`geml.ts`/registerGithubAnchor().",
+      "doc": "geml-parser--geml.ts.geml",
+      "id": "registerGithubAnchor"
+    }
+  ],
   "registerId": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`geml.ts`/registerId().",
@@ -4236,6 +4285,13 @@
       "anchor": "scip-typescript npm geml-viewer 1.3.2 src/`content.js`/renderViaSandbox().",
       "doc": "geml-viewer--content.js.geml",
       "id": "renderViaSandbox"
+    }
+  ],
+  "renderedText": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`geml.ts`/renderedText().",
+      "doc": "geml-parser--geml.ts.geml",
+      "id": "renderedText"
     }
   ],
   "replace": [
@@ -5555,11 +5611,11 @@
       "id": "typeIndex"
     }
   ],
-  "typeLiteral780:write": [
+  "typeLiteral792:write": [
     {
-      "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/resolveOutTarget().typeLiteral780:write().",
+      "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/resolveOutTarget().typeLiteral792:write().",
       "doc": "geml-parser--cli.ts.geml",
-      "id": "typeLiteral780-write"
+      "id": "typeLiteral792-write"
     }
   ],
   "typed": [
@@ -5868,6 +5924,13 @@
       "anchor": "scip-typescript npm geml-viewer 1.3.2 src/`translate-browser.js`/withTimeout().",
       "doc": "geml-viewer--translate-browser.js.geml",
       "id": "withTimeout"
+    }
+  ],
+  "withoutClosingHashes": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`geml.ts`/withoutClosingHashes().",
+      "doc": "geml-parser--geml.ts.geml",
+      "id": "withoutClosingHashes"
     }
   ],
   "word": [

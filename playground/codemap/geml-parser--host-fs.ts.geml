@@ -64,24 +64,24 @@ from,            to,                                               kind, confide
 
 === table {#called-by format=csv}
 from,                                to,                  kind, site
-geml-parser--cli.ts.geml#runStyle,   #resolverFor,        call, geml-parser/src/cli.ts:1519
+geml-parser--cli.ts.geml#runStyle,   #resolverFor,        call, geml-parser/src/cli.ts:1558
 #existsFor,                          #resolverFor,        call, geml-parser/src/host-fs.ts:84
 #docOptsFor,                         #resolverFor,        call, geml-parser/src/host-fs.ts:115
 #docOptsFor,                         #existsFor,          call, geml-parser/src/host-fs.ts:115
 #noteFinderFor,                      #existsFor,          call, geml-parser/src/host-fs.ts:131
-geml-parser--cli.ts.geml#docOpts,    #docOptsFor,         call, geml-parser/src/cli.ts:360
+geml-parser--cli.ts.geml#docOpts,    #docOptsFor,         call, geml-parser/src/cli.ts:381
 geml-parser--mcp.ts.geml#ctxFor,     #docOptsFor,         call, geml-parser/src/mcp.ts:185
 #docOptsFor,                         #noteFinderFor,      call, geml-parser/src/host-fs.ts:116
 #noteFinderFor,                      #notesUnder,         call, geml-parser/src/host-fs.ts:139
-geml-parser--cli.ts.geml#runCheck,   #obsidianVaultAbove, call, geml-parser/src/cli.ts:865
+geml-parser--cli.ts.geml#runCheck,   #obsidianVaultAbove, call, geml-parser/src/cli.ts:901
 #gemlFilesUnder,                     #walkable,           call, geml-parser/src/host-fs.ts:249
-geml-parser--cli.ts.geml#runMedia,   #gemlFilesUnder,     call, geml-parser/src/cli.ts:539
-geml-parser--cli.ts.geml#runFind,    #gemlFilesUnder,     call, geml-parser/src/cli.ts:1192
-geml-parser--cli.ts.geml#runHistory, #historyError,       call, geml-parser/src/cli.ts:1034
-geml-parser--cli.ts.geml#runRevert,  #historyError,       call, geml-parser/src/cli.ts:1429
-geml-parser--cli.ts.geml#runMedia,   #profileIoFor,       call, geml-parser/src/cli.ts:533
-geml-parser--cli.ts.geml#runMedia,   #profileIoFor,       call, geml-parser/src/cli.ts:719
-geml-parser--cli.ts.geml#runCheck,   #profileIoFor,       call, geml-parser/src/cli.ts:840
+geml-parser--cli.ts.geml#runMedia,   #gemlFilesUnder,     call, geml-parser/src/cli.ts:572
+geml-parser--cli.ts.geml#runFind,    #gemlFilesUnder,     call, geml-parser/src/cli.ts:1231
+geml-parser--cli.ts.geml#runHistory, #historyError,       call, geml-parser/src/cli.ts:1070
+geml-parser--cli.ts.geml#runRevert,  #historyError,       call, geml-parser/src/cli.ts:1468
+geml-parser--cli.ts.geml#runMedia,   #profileIoFor,       call, geml-parser/src/cli.ts:566
+geml-parser--cli.ts.geml#runMedia,   #profileIoFor,       call, geml-parser/src/cli.ts:754
+geml-parser--cli.ts.geml#runCheck,   #profileIoFor,       call, geml-parser/src/cli.ts:876
 ===
 
 === table {#unresolved format=csv hidden}
