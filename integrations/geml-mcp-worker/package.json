@@ -1,0 +1,16 @@
+{
+  "name": "geml-mcp-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "GEML's MCP server as a stateless Cloudflare Worker: the document travels with each call, a write comes back as text. Same tools, same verbs as `geml mcp`, no files kept.",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "wrangler deploy --dry-run --outdir=.wrangler/dry",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.95.0"
+  }
+}
