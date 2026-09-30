@@ -396,13 +396,20 @@ doc.geml	#upgrade
 
 <span class="cmd">$ geml rename doc.geml '#install' '#setup'</span>
 # 安装 {#setup}
-见 [[#setup]]。                  <span class="dim"># 引用一起改</span></pre>
+见 [[#setup]]。                  <span class="dim"># 引用一起改</span>
+
+<span class="cmd">$ geml list doc.geml --within '#install'</span>
+#install-before-upgrade  prose          L3-3
+#upgrade                 heading  h2    L5-8  升级
+
+<span class="cmd">$ geml get complex-form.geml '=== form-field {type=date}'</span>
+<span class="dim">4 `form-field` blocks (L48-49 #founded · L99-101 #iso-expiry · …)</span></pre>
           </div>
-          <p class="cap">地址是作者写下的 <code>#id</code>，标题改名不影响它；没写 id 的段落也有一个由位置推出的地址，如 <code>#install-before-upgrade</code>。每次写入先整份重新检查。</p>
+          <p class="cap">地址是作者写下的 <code>#id</code>，标题改名不影响它；没写 id 的段落也有一个由位置推出的地址，如 <code>#install-before-upgrade</code>。选择器还能按属性筛、用 <code>--within</code> 限定在一节里，最后一条取自仓库里 GEP-0008 的表单示例。每次写入先整份重新检查。</p>
         </div>
       </div>
       <dl class="decision">
-        <dt>重叠</dt><dd>mq 是清单里离 <code>geml get/find/list</code> 最近的工具，也同样有命令行和 MCP 两个入口。它的选择器表达力比 GEML 强：<code>.h(1..3)</code>、<code>.code("rust")</code> 这类按类型批量选取，GEML 只能用 <code>--within</code> 和类型选择器做一部分。</dd>
+        <dt>重叠</dt><dd>mq 是清单里离 <code>geml get/find/list</code> 最近的工具，也同样有命令行和 MCP 两个入口。GEML 的选择器可以按类型、属性和内容地址筛，比如 <code>=== code {lang=rust}</code>、<code>{.warn}</code>，也可以用 <code>--within</code> 限定在某一节里；mq 多出的是管道和 map，以及 <code>.h(1..3)</code> 这样按标题层级选取。</dd>
         <dt>区别</dt><dd>mq 查询的是「任意 Markdown」，所以地址只能从内容推出来。GEML 让作者写下 id，地址才稳定，写入才能被检查。mq-mcp 不开放写入，GEML 开放写入但每次都过检查门，还有块级历史兜底。这是对「agent 能不能自己写」的两种回答。</dd>
       </dl>
     </figure>
@@ -591,14 +598,14 @@ Q2,180
             <tr><td>Slidev<br><span class="cap">内置，2026-07</span></td><td>一页幻灯片</td><td>改、插、删、移一页，写回 <code>.md</code></td><td>页码，插入一页后后面的都变</td><td>无</td><td>无</td></tr>
             <tr><td>demarkus<br><span class="cap">15 个工具</span></td><td>整篇，或按标题 slug 取一节；大文档先给提纲</td><td>整篇发布或追加，带预期版本，冲突时给合并候选</td><td>路径、内容哈希、标题 slug</td><td>版本冲突检测</td><td>整篇，服务器端哈希链</td></tr>
             <tr><td>mq<br><span class="cap">mq-mcp</span></td><td>一节或一类节点</td><td><strong>不开放写入</strong></td><td>选择器、标题文字</td><td>不适用</td><td>无</td></tr>
-            <tr><td>GEML<br><span class="cap">11 个工具</span></td><td>一块、一节、一个坐标</td><td>按块、按节直接写文件</td><td>作者写的 <code>#id</code></td><td>整份文档重新检查，坏了就拒</td><td>按块，<code>.gemlhistory</code></td></tr>
+            <tr><td>GEML<br><span class="cap">11 个工具</span></td><td>一块、一节、一个坐标</td><td>按块、按节直接写文件</td><td>作者写的 <code>#id</code></td><td>整份文档重新检查，坏了就拒；选择器带上内容地址时，内容变了就不写</td><td>按块，<code>.gemlhistory</code></td></tr>
           </tbody>
         </table>
       </div>
       <dl class="decision">
         <dt>重叠</dt><dd>GEML 的「按块读写 + MCP」不再是独有的卖点。分量最重的证据是近五万 star 的 Slidev，它已经内置了按页读写的 MCP；Carve 连 agent skill 都有，只是社区还很小。</dd>
         <dt>区别</dt><dd>只有 GEML 的地址是作者写下、不随位置和标题文字变的 id，也只有 GEML 在写入的那一刻检查整份文档。Carve 走的是另一种安全：不直接写，交出一个带哈希的补丁让人或程序确认。</dd>
-        <dt>启示</dt><dd>Carve 的源码哈希和 demarkus 的预期版本，解决的是 GEML 没有覆盖的一个问题：agent 先读了一块，别人随后改了它，agent 再写回去时不会被发现。GEML 的写入可以接受一个可选的预期哈希，对不上就拒。</dd>
+        <dt>启示</dt><dd>Carve 的源码哈希和 demarkus 的预期版本，防的是 agent 先读了一块、别人随后改了它、agent 再写回去。GEML 的选择器 <code>=== note@&lt;hex&gt; {#id}</code> 能做同样的校验，内容一变就选不中、不写；还缺的是 <code>get --json</code> 和 MCP 把这个哈希直接交给调用方。</dd>
       </dl>
     </figure>
   </div>
@@ -664,8 +671,8 @@ Q2,180
         <p>思路相撞的两个都小：Carve 32 个 star，mq 1,040 个。影响大的是 Slidev（48,891）、Pandoc（46,456）、MDX（19,809）和 Markdoc（8,494）。评估对 GEML 的影响时，以后者为准：Slidev 说明按单元读写的 MCP 已经进了主流工具；Markdoc 是讲 GEML 时最好的参照系。</p>
       </div>
       <div class="card">
-        <h3><span class="st st-learn">可借鉴</span> 七件 GEML 还没有的事</h3>
-        <p>行内元素的属性和 id（Djot、Carve）；按名字引用源码片段（mdcode、Slidev 的 region，AsciiDoc 的 tag）；把文档里的代码改动推回源文件（mdcode）；文件搬家后修复跨文档引用（darnlink）；待审的修改建议（CriticMarkup）；写入时带预期哈希（Carve、demarkus）；更强的选择器，如按类型批量选取（mq）。</p>
+        <h3><span class="st st-learn">可借鉴</span> 六件 GEML 还没有的事</h3>
+        <p>行内元素的属性和 id（Djot、Carve）；按名字引用源码片段（mdcode、Slidev 的 region，AsciiDoc 的 tag）；把文档里的代码改动推回源文件（mdcode）；文件搬家后修复跨文档引用（darnlink）；待审的修改建议（CriticMarkup）；把内容哈希交给调用方做写前校验（Carve、demarkus）。</p>
       </div>
       <div class="card">
         <h3><span class="st st-diff">不必担心</span> 底座和另一层</h3>
@@ -673,7 +680,7 @@ Q2,180
       </div>
     </div>
     <dl class="decision">
-      <dt>建议</dt><dd>「可借鉴」里的七件事，按项目的规矩都应在设计文档里有名字和阶段。其中两件最小、最贴近现有功能：写入时的预期哈希，直接补在 <code>set</code> 和 MCP 的写入上；按 region 引用源码，补在 <code>code {src=}</code> 上。</dd>
+      <dt>建议</dt><dd>「可借鉴」里的六件事，按项目的规矩都应在设计文档里有名字和阶段。其中两件最小、最贴近现有功能：让 <code>get --json</code> 和 MCP 返回内容哈希，配合选择器里的内容地址做写前校验；按 region 引用源码，补在 <code>code {src=}</code> 上。</dd>
     </dl>
   </div>
 </section>
@@ -727,7 +734,7 @@ Q2,180
         <tbody>
           <tr><td class="mono">refs.geml · new.geml</td><td>坏引用在另一节，改本节</td><td><span class="badge b-err">1 error</span> 写入被拒</td><td>id 与引用检查</td></tr>
           <tr><td class="mono">code.geml · src/math.js</td><td>行号范围取代码，范围过期</td><td><span class="badge b-err">1 error</span> 范围过期</td><td>嵌入与同步</td></tr>
-          <tr><td class="mono">doc.geml</td><td>list、find、get --head、rename</td><td><span class="badge b-ok">0 诊断</span></td><td>查询与改写</td></tr>
+          <tr><td class="mono">doc.geml · complex-form.geml</td><td>list、list --within、find、get --head、rename；属性过滤</td><td><span class="badge b-ok">0 诊断</span></td><td>查询与改写</td></tr>
           <tr><td class="mono">samples.geml</td><td>note、table、data、geml-chart 的写法</td><td><span class="badge b-ok">0 诊断</span></td><td>通用块 · 组件与扩展点</td></tr>
         </tbody>
       </table>

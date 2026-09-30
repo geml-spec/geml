@@ -1916,13 +1916,6 @@
       "id": "firstChangedContent"
     }
   ],
-  "firstKey": [
-    {
-      "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`selector.ts`/firstKey().",
-      "doc": "geml-parser--selector.ts.geml",
-      "id": "firstKey"
-    }
-  ],
   "flag": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/flag().",
@@ -2414,6 +2407,13 @@
       "id": "insertFragment"
     }
   ],
+  "insideAny": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`verbs.ts`/insideAny().",
+      "doc": "geml-parser--verbs.ts.geml",
+      "id": "insideAny"
+    }
+  ],
   "installOtherTools": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`cli.ts`/installOtherTools().",
@@ -2592,6 +2592,13 @@
       "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`history.ts`/keyedUnits().",
       "doc": "geml-parser--history.ts.geml",
       "id": "keyedUnits"
+    }
+  ],
+  "keysOf": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`geml.ts`/keysOf().",
+      "doc": "geml-parser--geml.ts.geml",
+      "id": "keysOf"
     }
   ],
   "kindFromExt": [
@@ -2953,6 +2960,13 @@
       "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`translate.ts`/maskTerms().",
       "doc": "geml-parser--translate.ts.geml",
       "id": "maskTerms"
+    }
+  ],
+  "matchAttr": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`selector.ts`/matchAttr().",
+      "doc": "geml-parser--selector.ts.geml",
+      "id": "matchAttr"
     }
   ],
   "matchContent": [
@@ -4876,6 +4890,13 @@
       "id": "schemeOf"
     }
   ],
+  "scopesOf": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`verbs.ts`/scopesOf().",
+      "doc": "geml-parser--verbs.ts.geml",
+      "id": "scopesOf"
+    }
+  ],
   "sectionEnd": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`geml.ts`/sectionEnd().",
@@ -5978,6 +5999,13 @@
       "anchor": "scip-typescript npm geml-viewer 1.3.2 src/`translate-browser.js`/withTimeout().",
       "doc": "geml-viewer--translate-browser.js.geml",
       "id": "withTimeout"
+    }
+  ],
+  "withinArg": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/withinArg().",
+      "doc": "geml-parser--mcp-core.ts.geml",
+      "id": "withinArg"
     }
   ],
   "withoutClosingHashes": [

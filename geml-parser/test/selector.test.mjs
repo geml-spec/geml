@@ -392,8 +392,8 @@ test("every discarded-flag combination is a usage error (exit 2)", () => {
     [["get", f, "#warn", "--head", "--body"], /mutually exclusive/, "both parts at once"],
     [["get", f, "#warn", "--json", "--head"], /--json cannot be combined/, "json + part"],
     [["get", f, "#warn", "--json", "--body"], /--json cannot be combined/, "json + part"],
-    [["get", f, "=== note {lang=py}"], /only `#id` and `@<hex>` are supported as filter keys/, "attr key"],
-    [["set", f, "=== note {lang=py}"], /only `#id` and `@<hex>` are supported as filter keys/, "attr key on set"],
+    [["get", f, "=== note {}"], /names no key/, "braces naming nothing"],
+    [["set", f, "=== note {}"], /names no key/, "braces naming nothing, on set"],
   ];
   for (const [args, re, why] of cases) {
     const r = run(args, "x\n");
@@ -402,17 +402,17 @@ test("every discarded-flag combination is a usage error (exit 2)", () => {
   }
 });
 
-test("the attribute-key error says NOT YET, not `braces are meaningless`", () => {
-  // §7: §2 declares attribute keys as part of the model, so implementing them
-  // later fills a declared slot instead of reversing this message.
+test("an attribute key fills the slot §2 declared: a filter, and no match is a lookup failure", () => {
+  // `{…}` holding keys other than a lone `#id` or `@<hex>` filters by them.
   const f = write("u2.geml", ANON);
   const r = run(["get", f, "=== note {lang=py}"]);
-  assert.match(r.err, /today \(got `lang`\)/);
-  assert.match(r.err, /use `=== note` for every note block/);
+  assert.equal(r.code, 1);
+  assert.match(r.err, /no block matching `=== note \{lang=py\}`/);
 });
 
 test("`=== type {#id}` is the id key written out in full, and is accepted", () => {
-  // §2: redundant but legal — it is the same key, not a different form.
+  // §2: redundant but legal — it is the same key, not a different form. The
+  // type is still a check: a wrong one is refused (coord.test.mjs pins that).
   const f = write("u3.geml", ANON);
   assert.equal(run(["get", f, "=== note {#warn}"]).out, run(["get", f, "#warn"]).out);
 });

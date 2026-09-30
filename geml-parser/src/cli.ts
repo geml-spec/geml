@@ -88,9 +88,9 @@ Usage:
                                                geml notes.md                -> GEML   (md inferred from extension)
                                                geml model.json --to geml    -> GEML   (round-trips a prior --to json)
                                                geml - --from md             read Markdown on stdin
-  geml list   <file.geml|-> [--json]                  list every addressable block: address, kind, lines
+  geml list   <file.geml|-> [--within <sel>] [--json]  list every addressable block: address, kind, lines
                                              (call this first — its addresses are what every verb below takes)
-  geml find   <pattern> [<file|dir> …] [--json] [--case] [--head]   search block content -> file#address
+  geml find   <pattern> [<file|dir> …] [--within <sel>] [--json] [--case] [--head]   search block content -> file#address
                                              (an address, not a line number, so a hit pastes into get/set;
                                               a named file is searched whatever its extension, a dir walks
                                               the formats the parser reads — *.geml and *.md; exit 1 when
@@ -159,13 +159,13 @@ Exit codes:
 // One-line usage for each subcommand — the single source for both the error
 // shown on misuse and the `<cmd> --help` text.
 const SUBHELP = {
-  get: "usage: geml get <file.geml|-> [<selector>] [--head|--intro|--body] [--view [--root <dir>]] [--json]  (selector = a filter over blocks: #id | '## Heading' (its whole section) | '=== type' (every block of that type — N matches print N contents, count on stderr) | '=== type@<hex>[~n]' or '@<hex>[~n]' (content address, for blocks with no #id) | L<n> or L<n>-<m> (position — the smallest block that fully contains those lines, so the `L27-58` the listing prints pastes straight back, and a line number from an editor, a linter or a diff hunk becomes a block) | <block>[2][\"name\"] (a unit INSIDE a block, GEP 0011: a table's rows, cells and columns, a `data` block's value tree, and `meta`'s keys as `#meta[\"title\"]` — answered from the model, so it names no span and `--head`/`--body` do not apply); `#id` and `@<hex>` are the short spellings of the brace keys `{#id}` and `{@<hex>}`, which are equally legal with or without a `=== type` in front, and any OTHER key in braces is declared but not implemented; a section cuts three ways — --head = the heading line, --intro = its opening region: everything under it up to its FIRST SUBHEADING (empty when one follows immediately, the whole body when none does; a block has no intro and is refused), --body = everything under it; --view = read THROUGH an `embed` to the entity block it stands for, following a chain to its end (the identity on any other block, and on a section selector — it never splices two documents' bytes together); provenance goes to stderr as `view: <sel> -> <doc>[#<id>]`; read-only, `set` refuses it; chain reads are confined to --root (default: the document's own directory) and never fetched over the network; without a selector: list every addressable block with its shortest unique address, --json = array)",
+  get: "usage: geml get <file.geml|-> [<selector>] [--within <selector>] [--head|--intro|--body] [--view [--root <dir>]] [--json]  (selector = a filter over blocks: #id | '## Heading' (its whole section) | '=== type' (every block of that type — N matches print N contents, count on stderr) | '=== type@<hex>[~n]' or '@<hex>[~n]' (content address, for blocks with no #id) | L<n> or L<n>-<m> (position — the smallest block that fully contains those lines, so the `L27-58` the listing prints pastes straight back, and a line number from an editor, a linter or a diff hunk becomes a block) | <block>[2][\"name\"] (a unit INSIDE a block, GEP 0011: a table's rows, cells and columns, a `data` block's value tree, and `meta`'s keys as `#meta[\"title\"]` — answered from the model, so it names no span and `--head`/`--body` do not apply); `#id` and `@<hex>` are the short spellings of the brace keys `{#id}` and `{@<hex>}`, which are equally legal with or without a `=== type` in front — the type is then a check, and a wrong one is refused; any OTHER keys in braces filter by attributes — '=== code {lang=py}', '{.warn}', '{#id .warn}': a block or heading matches when its attribute object carries every key given with the same value, 0..N matches, and a `@<hex>` beside other keys is one more condition, so '=== note@<hex> {#id}' names #id only while its content is unchanged; --within <selector> = keep only the matches inside the blocks that selector names (a heading names its whole section); a section cuts three ways — --head = the heading line, --intro = its opening region: everything under it up to its FIRST SUBHEADING (empty when one follows immediately, the whole body when none does; a block has no intro and is refused), --body = everything under it; --view = read THROUGH an `embed` to the entity block it stands for, following a chain to its end (the identity on any other block, and on a section selector — it never splices two documents' bytes together); provenance goes to stderr as `view: <sel> -> <doc>[#<id>]`; read-only, `set` refuses it; chain reads are confined to --root (default: the document's own directory) and never fetched over the network; without a selector: list every addressable block with its shortest unique address, --json = array)",
   set: "usage: geml set <file.geml|-> <selector> [--head|--intro|--body] [--in F | --in F#src | --in -] [-o out.geml] [--root d]  (selector as in `get`, but it must match exactly ONE block — '=== type' matching several is refused; content: --in F takes F's block #id, --in F#src takes #src, else stdin raw; default = whole block, --head = head line — both normalize the id when the target has one — --body = body, --intro = a heading's opening region up to its first subheading (an empty region INSERTS there); guarded splice, refused if it breaks the doc — but a replacement that REMOVES blocks is carried out and reported on stderr, named ones and unnamed alike, with `geml revert` as the way back (the same stance `delete` takes; the ordinary read-edit-write cycle removes nothing, since `get` handed those blocks over); writing through an @<hex> address prints the new address on stderr)",
   add: "usage: geml add <file.geml|-> (--append | --before #id | --after #id) [--in F | --in F#src | --in -] [-o out.geml] [--root d]  (insert a GEML fragment — 1+ blocks and/or prose — at a position; --in F takes all of F, --in F#src takes #src, else stdin raw; content keeps its own ids, a collision is refused)",
   delete: "usage: geml delete <file.geml|-> #id [#id2 …] [-o out.geml] [--root d]  (remove one or more blocks; a missing id is skipped with a note, not an error; a reference left dangling is a warning, not a refusal — delete never fails on a live reference)",
   rename: "usage: geml rename <file.geml|-> #old #new [-o out.geml] [--root d]  (rewrite an id's declaration AND every reference — [[#id]], [text](#id), chart data=#id, footnote [^id] — id-boundary safe, skipping raw block bodies; #new must be free; refused if it breaks the doc)",
-  list: "usage: geml list <file.geml|-> [--json]  (list every addressable block with its shortest unique address, its kind and its line range — the same listing `geml get <file>` prints with no selector, under the name the MCP surface already uses. Call it FIRST: the addresses it prints are what get/set/add/delete/rename/revert all take)",
-  find: "usage: geml find <pattern> [<file|dir> …] [--json] [--case] [--head]  (search block CONTENT and print `<file>TAB<address>` per hit — an address, never a line number, so a hit is `geml get <file> '<address>'` with no editing. The address is the INNERMOST block holding the match, never its enclosing section, and a block is reported once however many lines in it matched. Substring, case-insensitive unless --case; a file you NAME is searched whatever its extension, including Markdown, while a directory is walked for the two formats the parser reads from a path, *.geml and *.md (a `.gemlhistory` sidecar is neither, and stays out); no path = the current directory; --head adds the matching line as a third column; a pattern or path that starts with `-` goes after `--` (`geml find -- '- list item' notes.md`), and everything after `--` is taken as text, flags included. Exit 1 when nothing matched, so `if geml find …` works in a script)",
+  list: "usage: geml list <file.geml|-> [--within <selector>] [--json]  (list every addressable block with its shortest unique address, its kind and its line range; --within lists only what is inside the blocks that selector names — the same listing `geml get <file>` prints with no selector, under the name the MCP surface already uses. Call it FIRST: the addresses it prints are what get/set/add/delete/rename/revert all take)",
+  find: "usage: geml find <pattern> [<file|dir> …] [--within <selector>] [--json] [--case] [--head]  (search block CONTENT; --within searches only the lines inside the blocks that selector names, and skips a file where it names none and print `<file>TAB<address>` per hit — an address, never a line number, so a hit is `geml get <file> '<address>'` with no editing. The address is the INNERMOST block holding the match, never its enclosing section, and a block is reported once however many lines in it matched. Substring, case-insensitive unless --case; a file you NAME is searched whatever its extension, including Markdown, while a directory is walked for the two formats the parser reads from a path, *.geml and *.md (a `.gemlhistory` sidecar is neither, and stays out); no path = the current directory; --head adds the matching line as a third column; a pattern or path that starts with `-` goes after `--` (`geml find -- '- list item' notes.md`), and everything after `--` is taken as text, flags included. Exit 1 when nothing matched, so `if geml find …` works in a script)",
   replace: "usage: geml replace <file.geml|-> <old> <new> [--within <selector>] [-o out.geml] [--root d]  (EXPERIMENTAL — this verb MAY BE WITHDRAWN in a later release; it is here to find out whether an addressed, checked replacement earns its place beside `sed`, and if it does not, it goes. Build nothing on it you cannot change, and say so in a discussion if it is doing real work for you. Swaps a LITERAL string — never a pattern, that is what `sed` is for and where the footguns are. Without --within the whole document; with it, only inside the blocks that selector matches, and unlike `set` it may match several: `--within '=== table'` means every table. What this buys over `sed -i`, at the same cost of two short strings and nothing read: the result is re-parsed and refused if it would break the document, the blocks it touched are NAMED on stderr, and the write lands in .gemlhistory where `revert` can undo it. An id is not text — a replacement that would rename one is refused and points at `geml rename`, which fixes every reference too. Exit 1 when nothing matched, so `if geml replace …` works in a script)",
   check: "usage: geml check <file.geml|-> [--root <dir>] [--json] [--severity <code>=<level>]… [--only <pattern>]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory. A document whose `=== meta` declares a vocabulary this processor recognizes also gets that vocabulary's own checks, reported by ADDRESS rather than by line — they are cross-document, so there is no one line to name. --severity re-levels ONE such code: error | warning | info, and info is the floor, because a level that silences is what --only is for. It takes profile codes only; the core catalogue's severities are fixed by Appendix A and a processor that moved one would not conform. --only keeps just the profile codes matching a `*` pattern, as in --only 'media-stale-*')",
   revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--append|--before #x|--after #x] [--head] [--dry-run] [-o out] [--root d]  (reconcile #id to a revision: splice / resurrect / remove; sel: 0 | -N | id-prefix | changed; default -1)",
@@ -253,9 +253,9 @@ let jsonMode = false;
 interface FlagTable { bool: readonly string[]; valued: readonly string[]; operands?: true }
 
 const VERB_FLAGS: Record<string, FlagTable> = {
-  get: { bool: ["--json", "--head", "--body", "--intro", "--view"], valued: ["--root"] },
-  list: { bool: ["--json"], valued: ["--root"] },
-  find: { bool: ["--json", "--case", "--head"], valued: ["--root"], operands: true },
+  get: { bool: ["--json", "--head", "--body", "--intro", "--view"], valued: ["--root", "--within"] },
+  list: { bool: ["--json"], valued: ["--root", "--within"] },
+  find: { bool: ["--json", "--case", "--head"], valued: ["--root", "--within"], operands: true },
   set: { bool: ["--head", "--body", "--intro", "--view"], valued: ["--in", "-o", "--out", "--root"] },
   replace: { bool: [], valued: ["--within", "-o", "--out", "--root"] },
   add: { bool: ["--append"], valued: ["--in", "--before", "--after", "-o", "--out", "--root"] },
@@ -1196,7 +1196,7 @@ function positionals(args: string[], valued: string[]): string[] {
 // had two names across two surfaces; this makes the CLI agree with the tool
 // descriptions agents are already reading. `get <file>` keeps working.
 function runList(args: string[]): void {
-  const [file, extra] = positionals(args, ["--root"]);
+  const [file, extra] = positionals(args, ["--root", "--within"]);
   useRoot(args);
   if (!file) fail(SUBHELP.list);
   // `list` IS the empty filter, so a selector here means the caller wanted
@@ -1204,7 +1204,7 @@ function runList(args: string[]): void {
   if (extra !== undefined) {
     fail(`\`list\` takes no selector — it lists every block. To read one: \`geml get ${file} '${extra}'\``, 2);
   }
-  process.stdout.write(verb(() => list(readInput(file), file, args.includes("--json"), ctxFor())));
+  process.stdout.write(verb(() => list(readInput(file), file, args.includes("--json"), ctxFor(), flag(args, "--within"))));
 }
 
 // `geml find <pattern> [path…]` — search block CONTENT, print ADDRESSES.
@@ -1221,12 +1221,13 @@ function runFind(args: string[]): void {
   // After `--` every argument is an operand, taken verbatim: that is how a
   // pattern (or a path) that starts with `-` gets in.
   const opts = optionArgs("find", args);
-  const pos = [...positionals(opts, ["--root"]), ...args.slice(opts.length + 1)];
+  const pos = [...positionals(opts, ["--root", "--within"]), ...args.slice(opts.length + 1)];
   const pattern = pos[0];
   if (pattern === undefined) fail(SUBHELP.find);
   const sensitive = opts.includes("--case");
   const withLine = opts.includes("--head");
   const json = opts.includes("--json");
+  const within = flag(opts, "--within");
 
   const files: string[] = [];
   const named = pos.slice(1);
@@ -1238,7 +1239,7 @@ function runFind(args: string[]): void {
     // An unreadable file mid-walk must not abort the search — report nothing
     // for it and keep going, the way every search tool behaves.
     try { source = readFileSync(f, "utf8"); } catch { continue; }
-    hits.push(...findInSource(source, f, pattern, { sensitive, withLine }));
+    hits.push(...verb(() => findInSource(source, f, pattern, { sensitive, withLine, ...(within === undefined ? {} : { within: { selector: within, ctx: ctxFor() } }) })));
   }
 
   if (json) console.log(JSON.stringify(hits, null, 2));
@@ -1266,7 +1267,7 @@ function runGet(args: string[]): void {
   const bodyOnly = args.includes("--body");
   const introOnly = args.includes("--intro");
   const view = args.includes("--view");
-  const [file, rawSel] = positionals(args, ["--root"]);
+  const [file, rawSel] = positionals(args, ["--root", "--within"]);
   useRoot(args);
   if (!file) fail(SUBHELP.get);
   const parts = [headOnly && "--head", introOnly && "--intro", bodyOnly && "--body"].filter(Boolean) as string[];
@@ -1288,10 +1289,10 @@ function runGet(args: string[]): void {
     if (partFlag) {
       fail(`${partFlag} names part of ONE block, so it needs a selector — run \`geml list ${where}\` to see what to address`, 2);
     }
-    process.stdout.write(verb(() => list(source, file, json, ctxFor())));
+    process.stdout.write(verb(() => list(source, file, json, ctxFor(), flag(args, "--within"))));
     return;
   }
-  const r = verb(() => get(source, file, rawSel!, { part, partFlag, json, view, root: flag(args, "--root") }, ctxFor()));
+  const r = verb(() => get(source, file, rawSel!, { part, partFlag, json, view, root: flag(args, "--root"), within: flag(args, "--within") }, ctxFor()));
   process.stdout.write(r.output);
 }
 

@@ -46,40 +46,43 @@ resolution-default = cpg
 === code {#hashId src=geml-parser/src/mcp-core.ts#L186-186 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/hashId."}
 ===
 
-=== code {#selectorArg src=geml-parser/src/mcp-core.ts#L205-208 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/selectorArg."}
+=== code {#selectorArg src=geml-parser/src/mcp-core.ts#L205-210 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/selectorArg."}
 ===
 
-=== code {#partArg src=geml-parser/src/mcp-core.ts#L219-223 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/partArg()."}
+=== code {#partArg src=geml-parser/src/mcp-core.ts#L221-225 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/partArg()."}
 ===
 
-=== code {#partFlagOf .leaf src=geml-parser/src/mcp-core.ts#L226-226 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/partFlagOf."}
+=== code {#withinArg src=geml-parser/src/mcp-core.ts#L231-235 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/withinArg()."}
 ===
 
-=== code {#docProps .leaf src=geml-parser/src/mcp-core.ts#L234-238 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/docProps()."}
+=== code {#partFlagOf .leaf src=geml-parser/src/mcp-core.ts#L239-239 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/partFlagOf."}
 ===
 
-=== code {#inFmtOf src=geml-parser/src/mcp-core.ts#L241-246 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/inFmtOf()."}
+=== code {#docProps .leaf src=geml-parser/src/mcp-core.ts#L247-251 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/docProps()."}
 ===
 
-=== code {#toolsFor src=geml-parser/src/mcp-core.ts#L249-557 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/toolsFor()."}
+=== code {#inFmtOf src=geml-parser/src/mcp-core.ts#L254-259 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/inFmtOf()."}
 ===
 
-=== code {#ok .leaf src=geml-parser/src/mcp-core.ts#L563-563 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/ok."}
+=== code {#toolsFor src=geml-parser/src/mcp-core.ts#L262-573 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/toolsFor()."}
 ===
 
-=== code {#err .leaf src=geml-parser/src/mcp-core.ts#L564-565 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/err."}
+=== code {#ok .leaf src=geml-parser/src/mcp-core.ts#L579-579 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/ok."}
 ===
 
-=== code {#missingRequired src=geml-parser/src/mcp-core.ts#L574-578 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/missingRequired()."}
+=== code {#err .leaf src=geml-parser/src/mcp-core.ts#L580-581 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/err."}
 ===
 
-=== code {#callTool src=geml-parser/src/mcp-core.ts#L580-598 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/callTool()."}
+=== code {#missingRequired src=geml-parser/src/mcp-core.ts#L590-594 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/missingRequired()."}
 ===
 
-=== code {#dispatch src=geml-parser/src/mcp-core.ts#L601-622 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/dispatch()."}
+=== code {#callTool src=geml-parser/src/mcp-core.ts#L596-614 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/callTool()."}
 ===
 
-=== code {#createHandler src=geml-parser/src/mcp-core.ts#L629-642 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/createHandler()."}
+=== code {#dispatch src=geml-parser/src/mcp-core.ts#L617-638 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/dispatch()."}
+===
+
+=== code {#createHandler src=geml-parser/src/mcp-core.ts#L645-658 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp-core.ts`/createHandler()."}
 ===
 
 === table {#calls format=csv}
@@ -134,6 +137,8 @@ from,           to,                                        kind, confidence
 #toolsFor,      #selectorArg,                              call,
 #toolsFor,      #selectorArg,                              call,
 #toolsFor,      #selectorArg,                              call,
+#toolsFor,      #withinArg,                                call,
+#toolsFor,      #withinArg,                                call,
 #toolsFor,      geml-parser--geml.ts.geml#parse,           call,
 #toolsFor,      geml-parser--verbs.ts.geml#add,            call,
 #toolsFor,      geml-parser--verbs.ts.geml#del,            call,
@@ -158,64 +163,66 @@ from,           to,                                        kind, confidence
 
 === table {#called-by format=csv}
 from,           to,                          kind, site
-#toolsFor,      #HistoryAccess-exists,       call, geml-parser/src/mcp-core.ts:369
-#toolsFor,      #HistoryAccess-list,         call, geml-parser/src/mcp-core.ts:377
-#toolsFor,      #HistoryAccess-resolve,      call, geml-parser/src/mcp-core.ts:380
-#toolsFor,      #HistoryAccess-historyError, call, geml-parser/src/mcp-core.ts:544
-#toolsFor,      #McpHost-open,               call, geml-parser/src/mcp-core.ts:263
-#toolsFor,      #McpHost-open,               call, geml-parser/src/mcp-core.ts:314
-#toolsFor,      #McpHost-open,               call, geml-parser/src/mcp-core.ts:335
-#toolsFor,      #McpHost-open,               call, geml-parser/src/mcp-core.ts:366
-#toolsFor,      #McpHost-open,               call, geml-parser/src/mcp-core.ts:403
-#toolsFor,      #McpHost-open,               call, geml-parser/src/mcp-core.ts:447
-#toolsFor,      #McpHost-open,               call, geml-parser/src/mcp-core.ts:467
-#toolsFor,      #McpHost-open,               call, geml-parser/src/mcp-core.ts:489
-#toolsFor,      #McpHost-open,               call, geml-parser/src/mcp-core.ts:509
-#toolsFor,      #McpHost-open,               call, geml-parser/src/mcp-core.ts:530
+#toolsFor,      #HistoryAccess-exists,       call, geml-parser/src/mcp-core.ts:385
+#toolsFor,      #HistoryAccess-list,         call, geml-parser/src/mcp-core.ts:393
+#toolsFor,      #HistoryAccess-resolve,      call, geml-parser/src/mcp-core.ts:396
+#toolsFor,      #HistoryAccess-historyError, call, geml-parser/src/mcp-core.ts:560
+#toolsFor,      #McpHost-open,               call, geml-parser/src/mcp-core.ts:276
+#toolsFor,      #McpHost-open,               call, geml-parser/src/mcp-core.ts:330
+#toolsFor,      #McpHost-open,               call, geml-parser/src/mcp-core.ts:351
+#toolsFor,      #McpHost-open,               call, geml-parser/src/mcp-core.ts:382
+#toolsFor,      #McpHost-open,               call, geml-parser/src/mcp-core.ts:419
+#toolsFor,      #McpHost-open,               call, geml-parser/src/mcp-core.ts:463
+#toolsFor,      #McpHost-open,               call, geml-parser/src/mcp-core.ts:483
+#toolsFor,      #McpHost-open,               call, geml-parser/src/mcp-core.ts:505
+#toolsFor,      #McpHost-open,               call, geml-parser/src/mcp-core.ts:525
+#toolsFor,      #McpHost-open,               call, geml-parser/src/mcp-core.ts:546
 #applyWrite,    #McpHost-write,              call, geml-parser/src/mcp-core.ts:171
-#toolsFor,      #McpHost-find,               call, geml-parser/src/mcp-core.ts:291
-#toolsFor,      #McpHost-checkOpts,          call, geml-parser/src/mcp-core.ts:336
-#toolsFor,      #McpHost-history,            call, geml-parser/src/mcp-core.ts:349
-#toolsFor,      #McpHost-history,            call, geml-parser/src/mcp-core.ts:350
-#toolsFor,      #McpHost-history,            call, geml-parser/src/mcp-core.ts:519
-#toolsFor,      #McpHost-history,            call, geml-parser/src/mcp-core.ts:520
+#toolsFor,      #McpHost-find,               call, geml-parser/src/mcp-core.ts:306
+#toolsFor,      #McpHost-checkOpts,          call, geml-parser/src/mcp-core.ts:352
+#toolsFor,      #McpHost-history,            call, geml-parser/src/mcp-core.ts:365
+#toolsFor,      #McpHost-history,            call, geml-parser/src/mcp-core.ts:366
+#toolsFor,      #McpHost-history,            call, geml-parser/src/mcp-core.ts:535
+#toolsFor,      #McpHost-history,            call, geml-parser/src/mcp-core.ts:536
 #applyWrite,    #refuse,                     call, geml-parser/src/mcp-core.ts:144
 #applyWrite,    #refuse,                     call, geml-parser/src/mcp-core.ts:151
 #applyWrite,    #refuse,                     call, geml-parser/src/mcp-core.ts:163
-#callTool,      #asText,                     call, geml-parser/src/mcp-core.ts:594
-#toolsFor,      #applyWrite,                 call, geml-parser/src/mcp-core.ts:450
-#toolsFor,      #applyWrite,                 call, geml-parser/src/mcp-core.ts:474
-#toolsFor,      #applyWrite,                 call, geml-parser/src/mcp-core.ts:492
-#toolsFor,      #applyWrite,                 call, geml-parser/src/mcp-core.ts:510
-#toolsFor,      #applyWrite,                 call, geml-parser/src/mcp-core.ts:539
-#toolsFor,      #hashId,                     call, geml-parser/src/mcp-core.ts:472
-#toolsFor,      #hashId,                     call, geml-parser/src/mcp-core.ts:477
-#toolsFor,      #hashId,                     call, geml-parser/src/mcp-core.ts:494
-#toolsFor,      #hashId,                     call, geml-parser/src/mcp-core.ts:495
-#toolsFor,      #hashId,                     call, geml-parser/src/mcp-core.ts:512
-#toolsFor,      #hashId,                     call, geml-parser/src/mcp-core.ts:512
-#toolsFor,      #hashId,                     call, geml-parser/src/mcp-core.ts:513
-#toolsFor,      #hashId,                     call, geml-parser/src/mcp-core.ts:513
-#toolsFor,      #hashId,                     call, geml-parser/src/mcp-core.ts:542
-#toolsFor,      #hashId,                     call, geml-parser/src/mcp-core.ts:550
-#toolsFor,      #selectorArg,                call, geml-parser/src/mcp-core.ts:315
-#toolsFor,      #selectorArg,                call, geml-parser/src/mcp-core.ts:452
-#toolsFor,      #selectorArg,                call, geml-parser/src/mcp-core.ts:453
-#toolsFor,      #partArg,                    call, geml-parser/src/mcp-core.ts:318
-#toolsFor,      #partArg,                    call, geml-parser/src/mcp-core.ts:448
-#toolsFor,      #partFlagOf,                 call, geml-parser/src/mcp-core.ts:319
-#toolsFor,      #partFlagOf,                 call, geml-parser/src/mcp-core.ts:449
-#toolsFor,      #docProps,                   call, geml-parser/src/mcp-core.ts:250
-#toolsFor,      #inFmtOf,                    call, geml-parser/src/mcp-core.ts:411
-#dispatch,      #ok,                         call, geml-parser/src/mcp-core.ts:607
-#dispatch,      #ok,                         call, geml-parser/src/mcp-core.ts:615
-#dispatch,      #ok,                         call, geml-parser/src/mcp-core.ts:616
-#dispatch,      #ok,                         call, geml-parser/src/mcp-core.ts:619
-#dispatch,      #err,                        call, geml-parser/src/mcp-core.ts:619
-#dispatch,      #err,                        call, geml-parser/src/mcp-core.ts:621
-#callTool,      #missingRequired,            call, geml-parser/src/mcp-core.ts:584
-#dispatch,      #callTool,                   call, geml-parser/src/mcp-core.ts:618
-#createHandler, #dispatch,                   call, geml-parser/src/mcp-core.ts:636
+#callTool,      #asText,                     call, geml-parser/src/mcp-core.ts:610
+#toolsFor,      #applyWrite,                 call, geml-parser/src/mcp-core.ts:466
+#toolsFor,      #applyWrite,                 call, geml-parser/src/mcp-core.ts:490
+#toolsFor,      #applyWrite,                 call, geml-parser/src/mcp-core.ts:508
+#toolsFor,      #applyWrite,                 call, geml-parser/src/mcp-core.ts:526
+#toolsFor,      #applyWrite,                 call, geml-parser/src/mcp-core.ts:555
+#toolsFor,      #hashId,                     call, geml-parser/src/mcp-core.ts:488
+#toolsFor,      #hashId,                     call, geml-parser/src/mcp-core.ts:493
+#toolsFor,      #hashId,                     call, geml-parser/src/mcp-core.ts:510
+#toolsFor,      #hashId,                     call, geml-parser/src/mcp-core.ts:511
+#toolsFor,      #hashId,                     call, geml-parser/src/mcp-core.ts:528
+#toolsFor,      #hashId,                     call, geml-parser/src/mcp-core.ts:528
+#toolsFor,      #hashId,                     call, geml-parser/src/mcp-core.ts:529
+#toolsFor,      #hashId,                     call, geml-parser/src/mcp-core.ts:529
+#toolsFor,      #hashId,                     call, geml-parser/src/mcp-core.ts:558
+#toolsFor,      #hashId,                     call, geml-parser/src/mcp-core.ts:566
+#toolsFor,      #selectorArg,                call, geml-parser/src/mcp-core.ts:331
+#toolsFor,      #selectorArg,                call, geml-parser/src/mcp-core.ts:468
+#toolsFor,      #selectorArg,                call, geml-parser/src/mcp-core.ts:469
+#toolsFor,      #partArg,                    call, geml-parser/src/mcp-core.ts:334
+#toolsFor,      #partArg,                    call, geml-parser/src/mcp-core.ts:464
+#toolsFor,      #withinArg,                  call, geml-parser/src/mcp-core.ts:277
+#toolsFor,      #withinArg,                  call, geml-parser/src/mcp-core.ts:336
+#toolsFor,      #partFlagOf,                 call, geml-parser/src/mcp-core.ts:335
+#toolsFor,      #partFlagOf,                 call, geml-parser/src/mcp-core.ts:465
+#toolsFor,      #docProps,                   call, geml-parser/src/mcp-core.ts:263
+#toolsFor,      #inFmtOf,                    call, geml-parser/src/mcp-core.ts:427
+#dispatch,      #ok,                         call, geml-parser/src/mcp-core.ts:623
+#dispatch,      #ok,                         call, geml-parser/src/mcp-core.ts:631
+#dispatch,      #ok,                         call, geml-parser/src/mcp-core.ts:632
+#dispatch,      #ok,                         call, geml-parser/src/mcp-core.ts:635
+#dispatch,      #err,                        call, geml-parser/src/mcp-core.ts:635
+#dispatch,      #err,                        call, geml-parser/src/mcp-core.ts:637
+#callTool,      #missingRequired,            call, geml-parser/src/mcp-core.ts:600
+#dispatch,      #callTool,                   call, geml-parser/src/mcp-core.ts:634
+#createHandler, #dispatch,                   call, geml-parser/src/mcp-core.ts:652
 ===
 
 === table {#unresolved format=csv hidden}
@@ -231,6 +238,7 @@ from,             to
 #selectorArg,     String.trim
 #partArg,         ReadonlyArray.includes
 #partArg,         ReadonlyArray.join
+#withinArg,       String.trim
 #inFmtOf,         RegExp.test
 #toolsFor,        Array.filter
 #toolsFor,        Array.includes

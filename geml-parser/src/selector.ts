@@ -13,6 +13,7 @@
 // selector logic stays here, where it can be unit-tested on plain data.
 
 import { createHash } from "node:crypto";
+import { type Value, parseAttrs, tokenize } from "./attrs.js";
 
 // Structurally identical to geml.ts's Span; declared here so this module stays
 // import-free of geml.ts (see the header note).
@@ -33,14 +34,21 @@ export interface Unit {
   id?: string;
   level?: number;
   text?: string;
+  // What an attribute filter (`{.warn lang=py}`) tests: the classes and the
+  // key=value pairs of a block's or heading's attribute object. Absent when it
+  // has none.
+  classes?: string[];
+  attrs?: Record<string, Value>;
 }
 
 export type Selector =
   // No selector: the empty filter, which LISTS (§6).
   | { form: "list" }
   // `#id` / `id` / `## Heading` — resolved to an id by the caller, which is the
-  // only layer that can parse the document to match heading text (§2).
-  | { form: "id"; raw: string }
+  // only layer that can parse the document to match heading text (§2). `type`
+  // is the prefix of `=== note {#id}`: a CHECK, as it is on `=== note@<hex>`,
+  // so a wrong one is refused rather than dropped (§7).
+  | { form: "id"; raw: string; type?: string }
   // `=== type` — type filter, 0..N matches (§2).
   | { form: "type"; type: string }
   // `=== type@<hex>[~n]` or `@<hex>[~n]` — content key, ≤1 match. `type`
@@ -54,10 +62,16 @@ export type Selector =
   // nothing else. `#L27` is still an id, so a block actually named `L27` stays
   // reachable.
   | { form: "line"; from: number; to: number }
-  // `{k=v}` with a key other than `#id` / `@<hex>` — DECLARED by §2, not
-  // implemented; the caller reports it as a usage error (§7). `type` is absent
-  // on the bare brace form, which carries no type check.
-  | { form: "attr"; type?: string; key: string }
+  // An attribute filter: `=== code {lang=py}`, `{.warn}`, `{#id .warn}`,
+  // `=== note@<hex> {#id}` (§2). The braces are read as an attribute object, and
+  // a unit matches when it carries every key given with the same value — several
+  // keys mean all of them. A content key is one more condition: the unit's
+  // content address must be that one. 0..N matches, like the type filter.
+  // `keys` is what the caller typed, for messages.
+  | {
+    form: "attr"; type?: string; id?: string; content: { hex: string; nth: number }[];
+    classes: string[]; attrs: Record<string, Value>; keys: string[];
+  }
   // `#fy[2]["Q1"]` / `#intake["rows"][0]` / `#meta["version"]` — a unit INSIDE
   // a block (GEP 0011). `base` is whatever an id form would have been, and
   // `path` is what narrows it; the caller resolves the base and then projects,
@@ -138,7 +152,7 @@ export function parseSelector(raw: string | undefined, attrsIdOf: (braces: strin
     const braces = fence[3];
     // `=== type {#id}` / `=== type {@<hex>}` are the two keys written out in
     // full — redundant but legal (§2). Any OTHER key is declared-not-implemented.
-    if (braces !== undefined) return keyForm(braces, type, attrsIdOf);
+    if (braces !== undefined) return keyForm(braces, type, attrsIdOf, at);
     if (at !== undefined) {
       const m = BARE_AT.exec(at)!;
       return { form: "content", type, hex: m[1]!.toLowerCase(), nth: m[2] ? Number(m[2]) : 0 };
@@ -201,31 +215,46 @@ function atKeyOf(braces: string): { hex: string; nth: number } | undefined {
 // spellings land on the same Selector here, which is what keeps every consumer
 // downstream from having to know there are two.
 function keyForm(
-  braces: string, type: string | undefined, attrsIdOf: (b: string) => string | undefined,
+  braces: string, type: string | undefined, attrsIdOf: (b: string) => string | undefined, outerAt?: string,
 ): Selector {
+  // Every key the caller typed, in order: `@<hex>` in front of the braces, then
+  // each token inside them. One key keeps its own form; several are a filter in
+  // which every key must hold, so none of them can be dropped.
+  const tokens = tokenize(braces.trim().replace(/^\{/, "").replace(/\}$/, ""));
+  const keys = outerAt === undefined ? tokens : [outerAt, ...tokens];
   const id = attrsIdOf(braces);
-  if (id !== undefined) return { form: "id", raw: `#${id}` };
+  if (keys.length === 1 && id !== undefined) {
+    return type === undefined ? { form: "id", raw: `#${id}` } : { form: "id", raw: `#${id}`, type };
+  }
   const at = atKeyOf(braces);
-  if (at !== undefined) {
+  if (keys.length === 1 && at !== undefined) {
     return type === undefined
       ? { form: "content", hex: at.hex, nth: at.nth }
       : { form: "content", type, hex: at.hex, nth: at.nth };
   }
-  return type === undefined ? { form: "attr", key: firstKey(braces) } : { form: "attr", type, key: firstKey(braces) };
+  // Anything else is an attribute filter. Content keys are taken out first —
+  // `@` is not an attribute-object key — and the rest is read with the same
+  // parser as a block's own attribute object, so a quoted value or a class
+  // means what it means in the document.
+  const content: { hex: string; nth: number }[] = [];
+  const rest: string[] = [];
+  for (const k of keys) {
+    const m = AT_KEY.exec(k);
+    if (m) content.push({ hex: m[1]!.toLowerCase(), nth: m[2] ? Number(m[2]) : 0 });
+    else rest.push(k);
+  }
+  const a = parseAttrs(`{${rest.join(" ")}}`);
+  return {
+    form: "attr",
+    ...(type !== undefined ? { type } : {}),
+    ...(a.id !== undefined ? { id: a.id } : {}),
+    content, classes: a.classes, attrs: a.attrs, keys,
+  };
 }
 
 // Is this whole selector one braced key? Anchored on both ends so a brace
 // inside a quoted value cannot make a partial string look like one.
 const BRACED = /^\{[\s\S]*\}$/;
-
-// The first key inside `{…}`, for the §7 error message. Best-effort: it only
-// has to name what the caller typed, and a class (`.warn`) is reported as
-// written so the message does not claim a key that is not there.
-function firstKey(braces: string): string {
-  const inner = braces.replace(/^\{/, "").replace(/\}$/, "").trim();
-  const m = /^([.#]?[A-Za-z_][A-Za-z0-9_-]*)/.exec(inner);
-  return m ? m[1]! : inner.split(/[\s=]/)[0] ?? "";
-}
 
 // A unit decorated with its content address. `nth` is the occurrence index
 // among byte-identical units: document order first is 0 (printed without a
@@ -314,4 +343,21 @@ export function matchLine(sel: Extract<Selector, { form: "line" }>, all: Address
 // by whether one is present would be a rule nobody wrote down (§2).
 export function matchType(type: string, all: Addressed[]): Unit[] {
   return all.filter((a) => a.unit.type === type).map((a) => a.unit);
+}
+
+// An attribute filter's matches, in document order (§2). A unit matches when it
+// carries every key given: the type if one was written, the id (compared by
+// `sameId`, which the caller supplies so ids match the way they do everywhere
+// else), the content address, every class, and every key=value pair with the
+// same value. A heading has no type, so a type prefix leaves headings out.
+export function matchAttr(
+  sel: Extract<Selector, { form: "attr" }>, all: Addressed[], sameId: (a: string, b: string) => boolean,
+): Unit[] {
+  return all.filter(({ unit: u, hex, nth }) =>
+    (sel.type === undefined || u.type === sel.type)
+    && (sel.id === undefined || (u.id !== undefined && sameId(u.id, sel.id)))
+    && sel.content.every((c) => c.hex === hex && c.nth === nth)
+    && sel.classes.every((c) => u.classes?.includes(c) === true)
+    && Object.entries(sel.attrs).every(([k, v]) => u.attrs !== undefined && Object.hasOwn(u.attrs, k) && u.attrs[k] === v))
+    .map((a) => a.unit);
 }

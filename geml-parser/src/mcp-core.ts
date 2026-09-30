@@ -204,7 +204,9 @@ const hashId = (id: string) => (id.startsWith("#") ? id : `#${id}`);
 // NAMED L27, which is how a real id of that spelling stays reachable.
 const selectorArg = (s: string) => {
   const t = s.trim();
-  return /^([#@]|={3,})/.test(t) || BARE_LINE.test(t) ? t : `#${s}`;
+  // `{…}` is a selector already (`{#id}`, `{@<hex>}`, `{lang=py}`); prefixing
+  // it would turn every braced form into an id no block has.
+  return /^([#@{]|={3,})/.test(t) || BARE_LINE.test(t) ? t : `#${s}`;
 };
 
 // The parts a `part` argument names: the same four regions the CLI's
@@ -221,6 +223,17 @@ function partArg(v: unknown): UnitPart {
   if (!PARTS.includes(part as UnitPart)) throw new Error(`part must be ${PARTS.join("|")}, got \`${String(part)}\``);
   return part as UnitPart;
 }
+
+// A `within` argument (geml_get, geml_list, geml_find): a selector naming the
+// blocks to look inside, as the CLI's `--within`. A value that is not a
+// selector is refused rather than ignored: a scope that quietly widens to the
+// whole document is the failure §7 of the selector design exists to prevent.
+export function withinArg(v: unknown): string | undefined {
+  if (v === undefined) return undefined;
+  if (typeof v !== "string" || v.trim() === "") throw new Error("`within` must be a selector, e.g. `#install` or `=== table`");
+  return v;
+}
+const WITHIN_ARG = { type: "string", description: "Optional: only look inside the blocks this selector names, e.g. `#install` for a section or `=== table` for every table. It takes the same selector forms as geml_get's `id`." };
 
 // The CLI flag that names a part, for the verbs' messages; `whole` names none.
 const partFlagOf = (part: UnitPart): string | undefined => (part === "whole" ? undefined : `--${part}`);
@@ -258,10 +271,10 @@ export function toolsFor(host: McpHost): Tool[] {
       name: "geml_list",
       description:
         "List every addressable block in a GEML document: its address, kind, and heading text. Call this FIRST — the `id` values it returns are what every other tool in this server addresses. Cheaper and more reliable than reading the file to find out what is in it. Rows marked `anon` have no `#id` (their `address` is a type or content address the CLI understands); this server's other tools take an `id`, so give such a block an id before addressing it here." + note,
-      inputSchema: schema({}),
+      inputSchema: schema({ within: WITHIN_ARG }),
       run: (args) => {
         const doc = host.open(args);
-        return list(doc.text, doc.label, true, doc.ctx).trim();
+        return list(doc.text, doc.label, true, doc.ctx, withinArg(args.within)).trim();
       },
     },
     {
@@ -278,6 +291,7 @@ export function toolsFor(host: McpHost): Tool[] {
             path: { type: "string", description: "Optional file or directory under the server root; default: the whole root" },
             case: { type: "boolean", description: "Match case exactly (default: case-insensitive)" },
             head: { type: "boolean", description: "Add the matching line as a third column" },
+            within: WITHIN_ARG,
           },
           required: ["pattern"],
         }
@@ -285,6 +299,7 @@ export function toolsFor(host: McpHost): Tool[] {
           pattern: { type: "string", description: "Text to look for inside block bodies" },
           case: { type: "boolean", description: "Match case exactly (default: case-insensitive)" },
           head: { type: "boolean", description: "Add the matching line as a third column" },
+          within: WITHIN_ARG,
         }, ["pattern"]),
       run: (args) => {
         if (typeof args.pattern !== "string" || args.pattern === "") throw new Error("`pattern` is required");
@@ -298,7 +313,7 @@ export function toolsFor(host: McpHost): Tool[] {
       inputSchema: schema({
         id: {
           type: "string",
-          description: "What to read: a block id (with or without `#`), a `## Heading` line (its whole section), `=== type` for every block of a type, a `@<hex>` content address for a block with no id, or `L27`/`L27-58` for the smallest block holding those lines — the forms `geml_list` prints, plus the line numbers an editor or a diff hunk speaks",
+          description: "What to read: a block id (with or without `#`), a `## Heading` line (its whole section), `=== type` for every block of a type, `=== code {lang=py}` or `{.warn}` for every block carrying those attributes, a `@<hex>` content address for a block with no id, or `L27`/`L27-58` for the smallest block holding those lines — the forms `geml_list` prints, plus the line numbers an editor or a diff hunk speaks",
         },
         view: {
           type: "boolean",
@@ -309,6 +324,7 @@ export function toolsFor(host: McpHost): Tool[] {
           enum: [...PARTS],
           description: "How much of the block to return (default: whole). For a SECTION these cut it three ways: `head` is the heading line, `intro` everything under it up to its first subheading, `body` everything under it — so `body` always contains `intro`, and equals it when the section has no subheading. Reach for `intro` to read a section's opening without pulling its subsections into the conversation; a whole `#id` on a top-level heading is often the entire document. Only a heading has an intro. `body` is usually what you want together with `view`.",
         },
+        within: WITHIN_ARG,
       }, ["id"]),
       run: (args) => {
         const doc = host.open(args);
@@ -317,7 +333,7 @@ export function toolsFor(host: McpHost): Tool[] {
         // model to learn, and `body` is already taken there for the replacement text.
         const part = partArg(args.part);
         const partFlag = partFlagOf(part);
-        const r = get(doc.text, doc.label, sel, { part, partFlag, json: false, view: !!args.view, root: doc.root }, doc.ctx);
+        const r = get(doc.text, doc.label, sel, { part, partFlag, json: false, view: !!args.view, root: doc.root, within: withinArg(args.within) }, doc.ctx);
         if (!args.view) return r.output;
         // Provenance is mandatory, and there is no stderr across an MCP call:
         // it travels as a field of its own.

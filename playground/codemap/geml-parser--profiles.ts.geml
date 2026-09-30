@@ -81,9 +81,9 @@ geml-parser--cli.ts.geml#runCheck,                    #declaredVocabularies,    
 geml-parser--geml.ts.geml#parse,                      #declaredVocabularies,     call, geml-parser/src/geml.ts:2920
 geml-parser--geml.ts.geml#vocabularyOf,               #vocabularyFor,            call, geml-parser/src/geml.ts:2232
 geml-parser--geml.ts.geml#parse,                      #vocabularyFor,            call, geml-parser/src/geml.ts:2912
-geml-parser--geml.ts.geml#blockSpans,                 #vocabularyFor,            call, geml-parser/src/geml.ts:3163
-geml-parser--geml.ts.geml#unitSpans,                  #vocabularyFor,            call, geml-parser/src/geml.ts:3186
-geml-parser--geml.ts.geml#addressedUnits,             #vocabularyFor,            call, geml-parser/src/geml.ts:3400
+geml-parser--geml.ts.geml#blockSpans,                 #vocabularyFor,            call, geml-parser/src/geml.ts:3174
+geml-parser--geml.ts.geml#unitSpans,                  #vocabularyFor,            call, geml-parser/src/geml.ts:3197
+geml-parser--geml.ts.geml#addressedUnits,             #vocabularyFor,            call, geml-parser/src/geml.ts:3411
 ===
 
 === table {#unresolved format=csv hidden}

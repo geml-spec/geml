@@ -252,6 +252,10 @@ geml find    "text" file|dir          # search block CONTENT -> file<TAB>address
 geml get     file.geml                # same listing as `list` (the no-selector default)
 geml get     file.geml '#id'          # print ONE block (raw span; --json = model node)
 geml get     file.geml '=== note'     # every block of a type; '@a3f9c1d2' = a block with no #id
+geml get     file.geml '{lang=py}'    # blocks carrying those attributes: '=== code {lang=py}',
+                                      # '{.warn}', '{#id .warn}' — every key must hold
+geml get     file.geml '=== code' --within '#sec'   # only the matches inside #sec;
+                                      # list and find take --within too
 geml get     file.geml 'L27-58'       # position: the smallest block holding those lines
 geml get     file.geml '#sec' --intro # a section cut three ways: --head | --intro | --body
 geml set     file.geml '#id' --in f   # replace ONE block (guarded: re-parsed, never writes broken)

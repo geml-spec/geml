@@ -662,6 +662,21 @@ test("a refusal on pre-existing errors reports their lines in the file on disk, 
   assert.equal(readFileSync(join(dir, "refs.geml"), "utf8"), doc, "nothing was written");
 });
 
+test("attribute filters and `within` reach the model: braced selectors pass through, and a bad scope is refused", () => {
+  const dir = ws("# 安装 {#install}\n\n=== code {#py1 lang=py}\nprint(1)\n===\n\n# 升级 {#upgrade}\n\n=== code {#py2 lang=py}\nprint(2)\n===\n\n=== note {#warn .x}\n注意\n===\n", "f.geml");
+  const scoped = call("geml_get", { file: "f.geml", id: "{lang=py}", within: "#upgrade" });
+  assert.equal(scoped.isError, false, scoped.text);
+  assert.match(scoped.text, /^=== code \{#py2 lang=py\}/, "a `{…}` selector is not prefixed into an id no block has");
+  assert.doesNotMatch(scoped.text, /#py1/);
+  assert.match(call("geml_get", { file: "f.geml", id: "{#warn .x}" }).text, /注意/);
+  assert.deepEqual(call("geml_list", { file: "f.geml", within: "#install" }).json.map((r) => r.address), ["#py1"]);
+  assert.equal(call("geml_find", { pattern: "print", within: "#upgrade" }).text.trim(), "f.geml\t#py2");
+  const bad = call("geml_find", { pattern: "print", within: 42 });
+  assert.equal(bad.isError, true);
+  assert.match(bad.text, /`within` must be a selector/);
+  assert.ok(dir);
+});
+
 // ---------------------------------------------------------------------------
 // Cross-document references resolve INSIDE the workspace, and only there
 // ---------------------------------------------------------------------------

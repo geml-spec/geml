@@ -110,6 +110,29 @@ and is released under `viewer-v*` tags.
   reported at its line on disk, in the sentence, in the `--json` refusal frame
   and in the MCP result alike. An error the edit introduced keeps the
   candidate's line, the only one it has.
+- **Block selectors filter by attributes, and `--within` narrows get, list
+  and find.** Braces holding more than a lone `#id` or `@<hex>` are an
+  attribute filter: `=== code {lang=py}`, `{.warn}`, `{#id .warn}`. They are
+  read with the same attribute syntax a block uses, and a block or heading
+  matches when it carries every key given with the same value, so several keys
+  must all hold and a selector can match 0..N blocks. A content address is one
+  more condition: `=== note@2bac3f13 {#warn}` names `#warn` only while its
+  content is the one that address was taken from, so a write through it is
+  refused once someone else has changed the block. `--within <selector>`,
+  which `replace` already took, now narrows `get`, `list` and `find` to the
+  blocks another selector names: `geml get notes.geml '=== code' --within
+  '#install'`. `find` counts a match by its line, so text in a section's own
+  opening is inside that section, and it skips a file where the scope names
+  nothing. The MCP tools `geml_get`, `geml_list` and `geml_find` take the same
+  optional `within`, and `geml_get` now passes a braced selector through
+  instead of reading it as an id.
+- **A selector no longer drops part of what it was given.** A content address
+  written beside another key, as in `=== note@deadbeef {#warn}`, was ignored and
+  `#warn` came back with exit 0 although the hash was wrong; every key now has
+  to hold, and a wrong hash matches nothing (exit 1). A type in front of an id
+  was dropped too, so `=== code {#warn}` answered a note; the type is now
+  checked the way it already was on `@<hex>`, with exit 1 when it does not
+  match.
 
 ## [1.11.3] — 2026-09-29
 

@@ -62,7 +62,7 @@ const suites = [
   "edn",
   // the one block-selector syntax `get`/`set` share: content addresses, the
   // HEAD/BODY round-trip invariant, cardinality, and the no-silent-discard rule
-  "selector",
+  "selector", "select-filter",
   // block transclusion (`=== embed`) and the one src=/data= source rule
   "embed", "table-src", "source-route", "inline-project",
   // the `data` block (GEP-0005): format engines, schema= shape, chart binding

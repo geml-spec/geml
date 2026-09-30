@@ -247,8 +247,8 @@ from,                              to,                     kind, site
 #sheetBlocks,                      #withDefaultStyle,      call, geml-parser/src/style-resolve.ts:502
 #loadStylesheet,                   #expandEmbeds,          call, geml-parser/src/style-resolve.ts:575
 #loadStylesheet,                   #expandEmbeds,          call, geml-parser/src/style-resolve.ts:578
-geml-parser--cli.ts.geml#runStyle, #loadStylesheet,        call, geml-parser/src/cli.ts:1559
-geml-parser--cli.ts.geml#runStyle, #loadStylesheet,        call, geml-parser/src/cli.ts:1564
+geml-parser--cli.ts.geml#runStyle, #loadStylesheet,        call, geml-parser/src/cli.ts:1560
+geml-parser--cli.ts.geml#runStyle, #loadStylesheet,        call, geml-parser/src/cli.ts:1565
 #loadStylesheet,                   #collect,               call, geml-parser/src/style-resolve.ts:575
 #loadStylesheet,                   #collect,               call, geml-parser/src/style-resolve.ts:578
 #collect,                          #readContainer,         call, geml-parser/src/style-resolve.ts:655
@@ -266,7 +266,7 @@ geml-parser--cli.ts.geml#runStyle, #loadStylesheet,        call, geml-parser/src
 #resolveBindings,                  #strayParams,           call, geml-parser/src/style-resolve.ts:1045
 #resolveStyle,                     #resolveBindings,       call, geml-parser/src/style-resolve.ts:1106
 #resolveStyle,                     #resolveBindings,       call, geml-parser/src/style-resolve.ts:1108
-geml-parser--cli.ts.geml#runStyle, #resolveStyle,          call, geml-parser/src/cli.ts:1566
+geml-parser--cli.ts.geml#runStyle, #resolveStyle,          call, geml-parser/src/cli.ts:1567
 ===
 
 === table {#unresolved format=csv hidden}

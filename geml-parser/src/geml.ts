@@ -3065,6 +3065,16 @@ function sectionEnd(lines: string[], i: number, level: number, consumed: number,
 // First definition wins, mirroring ctx.ids (a duplicate id is a build error, so
 // `get`/`set` operate on the one the parser actually registered). `base` is the
 // absolute line offset of this slice within the whole document.
+// The classes and attributes a unit carries, for a selector's `{.warn lang=py}`
+// filter. Added only when present, so a unit with none looks as it always did.
+function keysOf(a: Attrs | undefined): { classes?: string[]; attrs?: Record<string, Value> } {
+  if (a === undefined) return {};
+  return {
+    ...(a.classes.length > 0 ? { classes: a.classes } : {}),
+    ...(Object.keys(a.attrs).length > 0 ? { attrs: a.attrs } : {}),
+  };
+}
+
 function collectSpans(
   lines: string[], base: number, out: Map<string, Span>, ctx: Ctx, depth = 0,
   // Optional second index: every addressable unit in document order — typed
@@ -3099,10 +3109,11 @@ function collectSpans(
     const open = shielded.has(i) ? null : FENCE_OPEN.exec(line);
     if (open) {
       const type = open[2]!;
-      const id = open[3] ? parseAttrs(open[3]).id : undefined;
+      const a = open[3] ? parseAttrs(open[3]) : undefined;
+      const id = a?.id;
       const { end, closed } = fenceClose(lines, i, open, consumed);
       if (id !== undefined) add(id, base + i, base + end);
-      units?.push({ span: { start: base + i, end: base + end }, kind: "block", type, ...(id !== undefined ? { id } : {}) });
+      units?.push({ span: { start: base + i, end: base + end }, kind: "block", type, ...(id !== undefined ? { id } : {}), ...keysOf(a) });
       // Only a flow body is scanned for nested blocks (raw/data bodies are
       // opaque), so an id inside a `code` body is *not* addressable — exactly
       // the parser's contract.
@@ -3122,7 +3133,7 @@ function collectSpans(
       const hid = idOfHeading(h[3], h[2]!, base + i + 1, ctx);
       const hend = base + sectionEnd(lines, i, h[1]!.length, consumed, shielded);
       add(hid, base + i, hend);
-      units?.push({ span: { start: base + i, end: hend }, kind: "heading", id: hid, level: h[1]!.length, text: h[2]! });
+      units?.push({ span: { start: base + i, end: hend }, kind: "heading", id: hid, level: h[1]!.length, text: h[2]!, ...keysOf(h[3] ? parseAttrs(h[3]) : undefined) });
       i += consumed;
       continue;
     }

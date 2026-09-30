@@ -34,22 +34,22 @@ resolution-default = cpg
 === code {#ctxFor src=geml-parser/src/mcp.ts#L183-191 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp.ts`/ctxFor()."}
 ===
 
-=== code {#allTools src=geml-parser/src/mcp.ts#L276-278 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp.ts`/allTools()."}
+=== code {#allTools src=geml-parser/src/mcp.ts#L277-279 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp.ts`/allTools()."}
 ===
 
-=== code {#confineSchema .leaf src=geml-parser/src/mcp.ts#L286-300 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp.ts`/confineSchema()."}
+=== code {#confineSchema .leaf src=geml-parser/src/mcp.ts#L287-301 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp.ts`/confineSchema()."}
 ===
 
-=== code {#loadGraphTools src=geml-parser/src/mcp.ts#L306-328 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp.ts`/loadGraphTools()."}
+=== code {#loadGraphTools src=geml-parser/src/mcp.ts#L307-329 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp.ts`/loadGraphTools()."}
 ===
 
-=== code {#handleLine src=geml-parser/src/mcp.ts#L336-338 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp.ts`/handleLine()."}
+=== code {#handleLine src=geml-parser/src/mcp.ts#L337-339 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp.ts`/handleLine()."}
 ===
 
-=== code {#parseArgs src=geml-parser/src/mcp.ts#L365-392 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp.ts`/parseArgs()."}
+=== code {#parseArgs src=geml-parser/src/mcp.ts#L366-393 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp.ts`/parseArgs()."}
 ===
 
-=== code {#resolveGraphOpt src=geml-parser/src/mcp.ts#L399-409 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp.ts`/resolveGraphOpt()."}
+=== code {#resolveGraphOpt src=geml-parser/src/mcp.ts#L400-410 anchor="scip-typescript npm @geml/geml 1.11.3 src/`mcp.ts`/resolveGraphOpt()."}
 ===
 
 === table {#calls format=csv}
@@ -70,9 +70,9 @@ from,             to,                                             kind, confiden
 from,             to,               kind, site
 #resolveRoot,     #narrowToRoot,    call, geml-parser/src/mcp.ts:112
 #resolveGraphDir, #narrowToRoot,    call, geml-parser/src/mcp.ts:122
-#loadGraphTools,  #resolveGraphDir, call, geml-parser/src/mcp.ts:325
-#loadGraphTools,  #confineSchema,   call, geml-parser/src/mcp.ts:321
-#parseArgs,       #resolveGraphOpt, call, geml-parser/src/mcp.ts:391
+#loadGraphTools,  #resolveGraphDir, call, geml-parser/src/mcp.ts:326
+#loadGraphTools,  #confineSchema,   call, geml-parser/src/mcp.ts:322
+#parseArgs,       #resolveGraphOpt, call, geml-parser/src/mcp.ts:392
 ===
 
 === table {#unresolved format=csv hidden}

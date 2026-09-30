@@ -883,12 +883,22 @@ const idOf = (braces) => {
   return m ? m[1] : undefined;
 };
 
-test("键的展开形：`{#id}` 和 `#id` 解析成同一个选择符，带不带类型都一样", () => {
+test("键的展开形：`{#id}` 和 `#id` 解析成同一个选择符；类型写在前面时，类型带着走", () => {
   const short = parseSelector("#fy", idOf);
   assert.deepEqual(short, { form: "id", raw: "#fy" });
   assert.deepEqual(parseSelector("{#fy}", idOf), short);
   assert.deepEqual(parseSelector("{ #fy }", idOf), short, "花括号里的空白由调用方的 parseAttrs 吃掉");
-  assert.deepEqual(parseSelector("=== table {#fy}", idOf), short, "类型 + id key，冗余但合法");
+  assert.deepEqual(parseSelector("=== table {#fy}", idOf), { form: "id", raw: "#fy", type: "table" },
+    "类型 + id key：类型是检查，和 `=== table@<hex>` 一样，不能在解析时丢掉");
+});
+
+test("键的展开形：内容键和别的键同写，是过滤里的又一个条件，一个都不丢", () => {
+  assert.deepEqual(parseSelector("=== note@ab12cd34 {#fy}", idOf),
+    { form: "attr", type: "note", id: "fy", content: [{ hex: "ab12cd34", nth: 0 }], classes: [], attrs: {}, keys: ["@ab12cd34", "#fy"] },
+    "哈希不能被悄悄扔掉，只剩 `#fy`");
+  assert.deepEqual(parseSelector("{@AB12CD34~1 .warn}", idOf),
+    { form: "attr", content: [{ hex: "ab12cd34", nth: 1 }], classes: ["warn"], attrs: {}, keys: ["@AB12CD34~1", ".warn"] },
+    "hex 归一成小写，~n 照收，`@` 不当成属性旗标");
 });
 
 test("键的展开形：`{@<hex>}` 也是键；类型写在前面时类型检查照旧带上", () => {
@@ -900,10 +910,13 @@ test("键的展开形：`{@<hex>}` 也是键；类型写在前面时类型检查
     { form: "content", type: "note", hex: "ab12cd34", nth: 0 });
 });
 
-test("键的展开形：第三种键仍是「声明未实现」，裸花括号那支不谎报类型", () => {
-  assert.deepEqual(parseSelector("=== note {k=v}", idOf), { form: "attr", type: "note", key: "k" });
-  assert.deepEqual(parseSelector("{k=v}", idOf), { form: "attr", key: "k" },
-    "没有类型可报，就不要在消息里编一个");
+test("键的展开形：第三种键是属性过滤，花括号按文档里同一套属性语法读", () => {
+  assert.deepEqual(parseSelector("=== note {k=v}", idOf), { form: "attr", type: "note", content: [], classes: [], attrs: { k: "v" }, keys: ["k=v"] });
+  assert.deepEqual(parseSelector("{k=v}", idOf), { form: "attr", content: [], classes: [], attrs: { k: "v" }, keys: ["k=v"] },
+    "没写类型就不带类型");
+  assert.deepEqual(parseSelector('{#fy .warn n=3 t="a b"}', idOf),
+    { form: "attr", id: "fy", content: [], classes: ["warn"], attrs: { n: 3, t: "a b" }, keys: ["#fy", ".warn", "n=3", 't="a b"'] },
+    "id、类、数字、带引号的值都照文档的规矩来");
 });
 
 test("键的展开形：坐标的基址也能写全 —— `{#fy}[2]` 归一成 `#fy`", () => {
@@ -929,6 +942,38 @@ test("CLI：八种写法在一份真文档上给出同一个块", () => {
   const wrong = run(["get", f, `=== text {@${hex}}`]);
   assert.equal(wrong.code, 1);
   assert.match(wrong.err, /addresses a `note` block, not `text`/);
+});
+
+test("CLI：调用方打出的每一部分要么生效、要么被拒 —— 类型前缀检查 id，多给的键整条拒绝，get 与 set 都一样", () => {
+  const doc = "# 标题 {#top}\n\n=== note\n匿名\n===\n\n=== note {#named}\n有名\n===\n";
+  const f = write("keys-drop.geml", doc);
+  const hex = /@([0-9a-f]{8})/.exec(run(["list", f]).out)[1];
+  const typed = run(["get", f, "=== code {#named}"]);
+  assert.equal(typed.code, 1, "类型对不上就拒，不答出那个 note");
+  assert.match(typed.err, /`#named` addresses a `note` block, not `code`/);
+  const heading = run(["get", f, "=== note {#top}"]);
+  assert.equal(heading.code, 1);
+  assert.match(heading.err, /`#top` addresses a heading, and `=== note` names a typed block/);
+  for (const sel of [`=== note@deadbeef {#named}`, `=== note@deadbeef {@${hex}}`, "{#named .x}", "=== note {#named lang=py}"]) {
+    const r = run(["get", f, sel]);
+    assert.equal(r.code, 1, `${sel}: 每个键都要满足，#named 没有它 —— ${r.err}`);
+    assert.match(r.err, /no block matching/, sel);
+  }
+  const repl = write("keys-drop-new.geml", "=== note {#named}\n改了\n===\n");
+  const set = run(["set", f, "=== note@deadbeef {#named}", "--in", repl]);
+  assert.equal(set.code, 1, set.err);
+  assert.match(set.err, /no block matching `=== note@deadbeef \{#named\}`/);
+  const setTyped = run(["set", f, "=== code {#named}", "--in", repl]);
+  assert.equal(setTyped.code, 1, setTyped.err);
+  assert.match(setTyped.err, /addresses a `note` block, not `code`/);
+  assert.equal(readFileSync(f, "utf8"), doc, "两次都没有写");
+  assert.equal(run(["get", f, "=== note {#named}"]).code, 0, "类型对上时照旧取到");
+  // `#meta` 走的是合并视图那条路，类型前缀在那里同样是检查
+  const m = write("keys-meta.geml", '=== meta\ntitle = "T"\n===\n');
+  const metaWrong = run(["get", m, "=== note {#meta}"]);
+  assert.equal(metaWrong.code, 1);
+  assert.match(metaWrong.err, /`#meta` addresses the merged `meta` view, not `note`/);
+  assert.match(run(["get", m, "=== meta {#meta}"]).out, /title = "T"/);
 });
 
 test("CLI：坐标够不到的块，报错要把 meta 也说上 —— `#meta[\"k\"]` 是能用的", () => {

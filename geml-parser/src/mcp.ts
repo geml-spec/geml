@@ -46,7 +46,7 @@ import { type VerbContext, type FindHit, findInSource } from "./verbs.js";
 import { docOptsFor, fsFiles, gemlFilesUnder, historyError } from "./host-fs.js";
 import {
   type McpHost, type OpenedDoc, type Tool, type WriteResult,
-  createHandler, toolsFor,
+  createHandler, toolsFor, withinArg,
 } from "./mcp-core.js";
 
 export { type Tool, type WriteResult } from "./mcp-core.js";
@@ -218,12 +218,13 @@ const fsHost: McpHost = {
     const files: string[] = [];
     gemlFilesUnder(where, files, true);
     const hits: FindHit[] = [];
+    const within = withinArg(args.within);
     for (const f of files) {
       let source: string;
       // An unreadable file mid-walk must not abort the search — report nothing
       // for it and keep going, the way every search tool behaves.
       try { source = readFileSync(f, "utf8"); } catch { continue; }
-      hits.push(...findInSource(source, f, String(args.pattern), { sensitive: !!args.case, withLine: !!args.head }));
+      hits.push(...findInSource(source, f, String(args.pattern), { sensitive: !!args.case, withLine: !!args.head, ...(within === undefined ? {} : { within: { selector: within, ctx: ctxFor(rootReal()) } }) }));
     }
     // Every other tool in this server speaks paths relative to the root, and a
     // model is meant to paste a row's file straight into geml_get — so put the

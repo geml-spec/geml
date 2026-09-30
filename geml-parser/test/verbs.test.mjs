@@ -78,11 +78,11 @@ test("an empty selector is a usage error on get and on set", () => {
   refused(() => set(DOC, "d.geml", "", { part: "whole", named: [], content: raw("x") }, ctxOf()), 2);
 });
 
-test("an attribute filter is refused, naming the type when there is one", () => {
-  const typed = refused(() => get(DOC, "d.geml", "=== note {key=v}", { part: "whole", json: false, view: false }, ctxOf()), 2);
-  assert.match(typed.message, /use `=== note` for every note block/);
-  const bare = refused(() => get(DOC, "d.geml", "{key=v}", { part: "whole", json: false, view: false }, ctxOf()), 2);
-  assert.match(bare.message, /address a block by `#id`/);
+test("an attribute filter matching nothing is a lookup failure; braces naming nothing are a usage error", () => {
+  const miss = refused(() => get(DOC, "d.geml", "=== note {key=v}", { part: "whole", json: false, view: false }, ctxOf()), 1);
+  assert.match(miss.message, /no block matching `=== note \{key=v\}` in d\.geml/);
+  const none = refused(() => get(DOC, "d.geml", "{}", { part: "whole", json: false, view: false }, ctxOf()), 2);
+  assert.match(none.message, /`\{\}` names no key/);
 });
 
 test("a line selector past the end, single or range, names the span it could not place", () => {

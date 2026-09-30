@@ -26,9 +26,9 @@ geml-parser--geml.ts.geml#blockFromDocument,          #normalizeSource, call, ge
 geml-parser--geml.ts.geml#sliceSourceRange,           #normalizeSource, call, geml-parser/src/geml.ts:2621
 geml-parser--geml.ts.geml#resolveCharts,              #normalizeSource, call, geml-parser/src/geml.ts:2839
 geml-parser--geml.ts.geml#parse,                      #normalizeSource, call, geml-parser/src/geml.ts:2894
-geml-parser--geml.ts.geml#blockSpans,                 #normalizeSource, call, geml-parser/src/geml.ts:3159
-geml-parser--geml.ts.geml#unitSpans,                  #normalizeSource, call, geml-parser/src/geml.ts:3184
-geml-parser--geml.ts.geml#addressedUnits,             #normalizeSource, call, geml-parser/src/geml.ts:3398
+geml-parser--geml.ts.geml#blockSpans,                 #normalizeSource, call, geml-parser/src/geml.ts:3170
+geml-parser--geml.ts.geml#unitSpans,                  #normalizeSource, call, geml-parser/src/geml.ts:3195
+geml-parser--geml.ts.geml#addressedUnits,             #normalizeSource, call, geml-parser/src/geml.ts:3409
 ===
 
 === table {#unresolved format=csv hidden}

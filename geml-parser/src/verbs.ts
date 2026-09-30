@@ -33,7 +33,7 @@ import {
 import { type Unit, type Addressed, type Selector } from "./selector.js";
 import { schemeOf } from "./inline.js";
 import { parseAttrs } from "./attrs.js";
-import { addressUnits, discoveryHint, matchContent, matchLine, matchType, parseSelector, shortestAddress } from "./selector.js";
+import { addressUnits, discoveryHint, matchAttr, matchContent, matchLine, matchType, parseSelector, shortestAddress } from "./selector.js";
 import { type MetaView, metaText, metaView, planCoordWrite, planMetaWrite, projectCoord } from "./coord.js";
 import { mdToGeml } from "./from-md.js";
 import { serialize } from "./serialize.js";
@@ -333,9 +333,25 @@ function pad(s: string, width: number): string {
  * empty answer (§6.6): `--json` prints `[]`, the text form is empty with a
  * note, and neither is a failure.
  */
-export function list(source: string, file: string, json: boolean, ctx: VerbContext): string {
+// `--within <selector>` for get, list and find: the spans a verb is narrowed
+// to, which are the units the selector matches, resolved exactly as
+// `replace --within` resolves them.
+function scopesOf(source: string, file: string, within: string, where: string, ctx: VerbContext): { start: number; end: number }[] {
+  return selectUnits(source, file, within, where, ctx).units.map((u) => u.span);
+}
+// A unit inside a scope: its lines lie within the scope's and it is not the
+// scope itself. A heading's span is its section, so `--within '#install'`
+// reaches every block and subheading under it.
+function insideAny(u: Unit, scopes: readonly { start: number; end: number }[]): boolean {
+  return scopes.some((s) => u.span.start >= s.start && u.span.end <= s.end && (u.span.start !== s.start || u.span.end !== s.end));
+}
+
+export function list(source: string, file: string, json: boolean, ctx: VerbContext, within?: string): string {
   const where = whereOf(file);
   const all = addressedUnits(source, walkOf(file));
+  // Rows are narrowed, addresses are not: each one printed must still be the
+  // shortest unique address in the WHOLE document, or it would not paste back.
+  const scopes = within === undefined ? undefined : scopesOf(source, file, within, where, ctx);
   const doc = parse(source, { ...ctx.docOpts(file), self: selfOf(file) });
 
   interface Row {
@@ -351,7 +367,7 @@ export function list(source: string, file: string, json: boolean, ctx: VerbConte
   const unregistered = new Set(
     doc.diagnostics.filter((d) => d.code === "unknown-block-type").map((d) => d.line),
   );
-  const rows: Row[] = all.map((a) => {
+  const rows: Row[] = all.filter((a) => scopes === undefined || insideAny(a.unit, scopes)).map((a) => {
     const u = a.unit;
     const row: Row = {
       address: shortestAddress(a, all),
@@ -375,7 +391,10 @@ export function list(source: string, file: string, json: boolean, ctx: VerbConte
   });
 
   if (json) return JSON.stringify(rows, null, 2) + "\n";
-  if (rows.length === 0) { ctx.note(`no addressable blocks in ${where}`); return ""; }
+  if (rows.length === 0) {
+    ctx.note(within === undefined ? `no addressable blocks in ${where}` : `nothing addressable inside \`${within}\` in ${where}`);
+    return "";
+  }
 
   const addrW = Math.max(...rows.map((r) => columns(r.address)));
   const kindW = Math.max(...rows.map((r) => columns(r.kind)));
@@ -444,15 +463,8 @@ export function selectUnits(source: string, file: string, rawSel: string, where:
   if (sel.form === "coord" && !allowCoord) {
     fail(`\`${rawSel.trim()}\` addresses a unit INSIDE a block (GEP 0011), and this command takes a block address — write \`${sel.base}\` for the whole block`, 2);
   }
-  if (sel.form === "attr") {
-    // §7: the wording says "not implemented yet", not "braces are meaningless" —
-    // §2 declares attribute keys as part of the model, so implementing them
-    // later fills in a declared slot rather than reversing this message.
-    // `#id` and `@<hex>` ARE implemented in braces now; a third key is not.
-    const byType = sel.type === undefined
-      ? ""
-      : ` — use \`=== ${sel.type}\` for every ${sel.type} block, or address one by \`#id\` / \`@<hex>\``;
-    fail(`only \`#id\` and \`@<hex>\` are supported as filter keys today (got \`${sel.key}\`)${byType || " — address a block by `#id` / `@<hex>`, or `=== <type>` for every block of a type"}`, 2);
+  if (sel.form === "attr" && sel.keys.length === 0) {
+    fail(`\`${rawSel.trim()}\` names no key — write one inside the braces, such as \`{#id}\`, \`{.warn}\` or \`{lang=py}\`, or drop them`, 2);
   }
   const all = addressedUnits(source, walkOf(file));
 
@@ -489,6 +501,13 @@ export function selectUnits(source: string, file: string, rawSel: string, where:
     return { units: hits, all, sel };
   }
 
+  if (sel.form === "attr") {
+    // §2's attribute filter: every key given must be on the unit, 0..N matches.
+    const hits = matchAttr(sel, all, (a, b) => nameKey(a) === nameKey(b));
+    if (!hits.length) fail(`no block matching \`${rawSel.trim()}\` in ${where}${discoveryHint(where)}`, 1);
+    return { units: hits, all, sel };
+  }
+
   // `#id` / bare id / a pasted `## Heading` line — resolveSelector needs a parse
   // to match heading TEXT, so it stays the one path that reaches the model.
   //
@@ -504,6 +523,14 @@ export function selectUnits(source: string, file: string, rawSel: string, where:
   // when it is NOT the file the caller already named (a revision), so the
   // common case reads the same as before this selector grammar existed.
   if (!unit) fail(`no block with id \`${id}\`${where.startsWith("revision ") ? ` in ${where}` : ""}`, 1);
+  // `=== note {#warn}`: the type is a check, as on `=== note@<hex>` (§3.3), so
+  // `=== code {#warn}` does not answer a note.
+  if (sel.form === "id" && sel.type !== undefined && unit!.type !== sel.type) {
+    const why = unit!.kind === "block"
+      ? `addresses a \`${unit!.type}\` block, not \`${sel.type}\``
+      : `addresses a ${unit!.kind}, and \`=== ${sel.type}\` names a typed block`;
+    fail(`\`#${id}\` ${why} — drop the type prefix to address it by id alone`, 1);
+  }
   // A duplicate id is a build error, so this address names more than one block
   // and the first is a guess at which was meant. A WRITE through it is refused
   // (`duplicate-id` is UNFORGIVEN below); a READ used to take the first in
@@ -570,6 +597,8 @@ export interface GetOptions {
   view: boolean;
   /** `--root`: where the `--view` chain is confined; default the document's own directory. */
   root?: string;
+  /** `--within <selector>`: keep only the matches inside the blocks this selector names. */
+  within?: string;
 }
 
 /**
@@ -583,6 +612,9 @@ export function get(source: string, file: string, rawSel: string, o: GetOptions,
   const where = whereOf(file);
   const sel: Selector = parseSelector(rawSel, (braces) => parseAttrs(braces).id);
   if (sel.form === "list") fail(`no selector given — run \`geml get ${where}\` to list addressable blocks`, 2);
+  if (o.within !== undefined && sel.form === "coord") {
+    fail(`--within narrows the blocks a selector matches, and \`${rawSel.trim()}\` is a coordinate naming one unit inside a block`, 2);
+  }
   // `#meta` answers the VIEW rather than a span: there may be no block with
   // that id at all, and when there are several `meta` blocks there is no one
   // span that means what the reader asked for.
@@ -590,6 +622,10 @@ export function get(source: string, file: string, rawSel: string, o: GetOptions,
   const reserved = metaBase === "" ? null : reservedMeta(source, file, metaBase, ctx);
   if (reserved) {
     if (partFlag) fail(`${partFlag} names part of a block, and \`#meta\` names a merged view rather than one block`, 2);
+    if (o.within !== undefined) fail("--within narrows the blocks a selector matches, and `#meta` names a merged view rather than a block", 2);
+    if (sel.form === "id" && sel.type !== undefined && sel.type !== "meta") {
+      fail(`\`#meta\` addresses the merged \`meta\` view, not \`${sel.type}\` — drop the type prefix`, 1);
+    }
     if (sel.form === "id") {
       return { output: json ? `${JSON.stringify(reserved.view.value, null, 2)}\n` : `${metaText(reserved.view)}\n`, from: [] };
     }
@@ -599,7 +635,14 @@ export function get(source: string, file: string, rawSel: string, o: GetOptions,
     return { output: json ? `${JSON.stringify(hit.json, null, 2)}\n` : `${hit.text}\n`, from: [] };
   }
 
-  const { units, all } = selectUnits(source, file, rawSel, where, ctx, true);
+  const picked = selectUnits(source, file, rawSel, where, ctx, true);
+  const all = picked.all;
+  let units = picked.units;
+  if (o.within !== undefined) {
+    const scopes = scopesOf(source, file, o.within, where, ctx);
+    units = units.filter((u) => insideAny(u, scopes));
+    if (!units.length) fail(`no block matching \`${rawSel.trim()}\` inside \`${o.within}\` in ${where}`, 1);
+  }
   // The chain is composed with `/` — relJoinPath's rule, and `src=` values are
   // always `/`-separated — so normalize the PLATFORM path at this boundary. On
   // Windows `sub\host.geml` otherwise has no directory as far as relDirPath can
@@ -682,10 +725,25 @@ export interface FindHit { file: string; address: string; kind: string; lines: [
  * matching line, once per block. Walking a directory is the host's job — this
  * is `grep` composed with the `L` selector, and nothing more.
  */
-export function findInSource(source: string, file: string, pattern: string, o: { sensitive: boolean; withLine: boolean }): FindHit[] {
+export function findInSource(
+  source: string, file: string, pattern: string,
+  o: { sensitive: boolean; withLine: boolean; within?: { selector: string; ctx: VerbContext } },
+): FindHit[] {
   const needle = o.sensitive ? pattern : pattern.toLowerCase();
   const hits: FindHit[] = [];
   const all = addressedUnits(source, walkOf(file));
+  // `--within`: only lines inside the named blocks count. A search walks many
+  // files, and a file where the selector names nothing is simply not searched;
+  // a selector that is malformed (exit 2) is still refused.
+  let scopes: { start: number; end: number }[] | undefined;
+  if (o.within !== undefined) {
+    try {
+      scopes = scopesOf(source, file, o.within.selector, whereOf(file), o.within.ctx);
+    } catch (e) {
+      if (e instanceof VerbError && e.exit === 1) return [];
+      throw e;
+    }
+  }
   // Match by LINE, then resolve each line to the innermost unit holding it —
   // exactly what the `L` selector does, so `find` is `grep` composed with
   // `L` rather than a second notion of "which block is this in". Testing the
@@ -697,6 +755,9 @@ export function findInSource(source: string, file: string, pattern: string, o: {
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i]!;
     if (!(o.sensitive ? raw : raw.toLowerCase()).includes(needle)) continue;
+    // The LINE must be inside a scope, not the unit: text written directly in
+    // a section's own prose has the section's heading as its innermost unit.
+    if (scopes !== undefined && !scopes.some((s) => i >= s.start && i < s.end)) continue;
     const unit = matchLine({ form: "line", from: i + 1, to: i + 1 }, all);
     if (!unit) continue;
     const a = all.find((x) => x.unit === unit)!;
