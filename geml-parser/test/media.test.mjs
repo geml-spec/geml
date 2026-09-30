@@ -186,6 +186,32 @@ test("血缘：现在的字节没有任何记录认领 —— media-orphan-recor
   rmSync(root, { recursive: true, force: true });
 });
 
+test("血缘：一份产出几条记录 —— 字节对得上的那几条里，按 at 最新的一条说了算，与日志里的先后无关", () => {
+  const OLD = "黑色长发。";
+  const rec = (at, bytes, look) => JSON.stringify({
+    output: "#take", "output-sha256": sha(bytes), model: "m", mode: "t2v",
+    prompt: "script.geml#p", "prompt-sha256": sha(look + " 特写，缓推。"),
+    "prompt-refs": [{ ref: "script.geml#look", sha256: sha(look) }], at,
+  });
+  const withLog = (...lines) => {
+    const p = lineageProject();
+    p.files["lib.geml"] = p.files["lib.geml"].replace(/format=jsonl\}\n[\s\S]*\n===\n$/, "format=jsonl}\n" + lines.join("\n") + "\n===\n");
+    const root = project(p.files);
+    const ds = checkMedia("cut.geml", profileIoFor(root));
+    rmSync(root, { recursive: true, force: true });
+    return ds;
+  };
+  const NOW = "银灰短发齐耳。";
+  // 重生成过一版、没采用：新记录的产出不是盘上这份字节，于是轮不到它判过期。
+  assert.deepEqual(withLog(rec("2026-09-15T00:00:00Z", "TAKE-BYTES", NOW), rec("2026-09-20T00:00:00Z", "OTHER-TAKE", OLD)), []);
+  // 同一份字节登记了两回：改完角色卡、看过这条还能用，重记了一次。新的那条在前在后都一样。
+  assert.deepEqual(withLog(rec("2026-09-20T00:00:00Z", "TAKE-BYTES", NOW), rec("2026-09-10T00:00:00Z", "TAKE-BYTES", OLD)), []);
+  assert.deepEqual(withLog(rec("2026-09-10T00:00:00Z", "TAKE-BYTES", OLD), rec("2026-09-20T00:00:00Z", "TAKE-BYTES", NOW)), []);
+  // 反过来：最新的那条记的是旧角色卡，就是过期 —— 不因为更早有一条对得上而放过。
+  const ds = withLog(rec("2026-09-10T00:00:00Z", "TAKE-BYTES", NOW), rec("2026-09-20T00:00:00Z", "TAKE-BYTES", OLD));
+  assert.deepEqual(codes(ds), ["media-stale-clip", "media-stale-generation"], JSON.stringify(ds));
+});
+
 test("血缘：过期沿 DAG 向下传播 —— 上游的 take 变了，吃它的合成也过期", () => {
   const base = "TAKE";
   const comp = "COMPOSITE";
@@ -735,7 +761,7 @@ test("合成：层不在 comp 里、comp 没 size、comp 空、层指到非图�
   rmSync(root, { recursive: true, force: true });
 });
 
-test("合成：comp 是分层写的提示词 —— promptTextOf 给规范化文本，改一个数字记录就过期，todo 不再列它", () => {
+test("合成：comp 是分层写的提示词 —— promptTextOf 给规范化文本，有记录就不再是待办，改一个数字记录过期、又回到待办", () => {
   const root = project(compProject());
   const io = profileIoFor(root);
   const text = promptTextOf("script.geml#s05-comp", "lib.geml", io);
@@ -761,6 +787,12 @@ test("合成：comp 是分层写的提示词 —— promptTextOf 给规范化文
   assert.ok(st, JSON.stringify(ds));
   assert.equal(st.id, "s05-key");
   assert.match(st.message, /s05-comp/, "消息要点名是 comp 变了");
+  // 过期之后它又是待办：还是那个 comp，标 stale，各层素材照旧是 refs。
+  const back = verbs.todo(["script.geml", "lib.geml"], io).filter((x) => x.kind === "composite");
+  assert.equal(back.length, 1, JSON.stringify(back));
+  assert.equal(back[0].address, "script.geml#s05-comp");
+  assert.equal(back[0].stale, true, "它有产出，只是产出对不上现值了");
+  assert.deepEqual(back[0].refs.map((r) => r.ref), ["lib.geml#bg", "lib.geml#hero"]);
   rmSync(root, { recursive: true, force: true });
 });
 
@@ -790,6 +822,61 @@ test("todo：过期的也是待办 —— 改了角色卡，那条提示词回�
   assert.equal(items[0].address, "script.geml#p");
   assert.equal(items[0].stale, true, "它有产出，只是产出对不上现值了");
   assert.match(items[0].prompt, /及肩/, "带的是展开后的新提示词");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("todo：台词改了，配过的音就过期 —— 那句台词回到清单上，是一件标 stale 的 voice", () => {
+  const LINE = "你来了。";
+  const files = {
+    "script.geml": META + `=== media-text {#l1 .line}\n${LINE}\n===\n`,
+    "voice.wav": "WAVBYTES",
+  };
+  const root = project(files);
+  const io = profileIoFor(root);
+  const text = promptTextOf("script.geml#l1", "lib.geml", io);
+  assert.ok(text !== null, "台词也有可哈希的文本");
+  write(join(root, "lib.geml"), META
+    + `=== media-asset {#v1 src=voice.wav sha256=${sha("WAVBYTES")} kind=audio}\n===\n\n`
+    + "=== data {#gen-log .gen-log format=jsonl}\n"
+    + JSON.stringify({ output: "#v1", "output-sha256": sha("WAVBYTES"), model: "tts-1", mode: "tts",
+      prompt: "script.geml#l1", "prompt-sha256": sha(text), at: "2026-09-29T00:00:00Z" }) + "\n===\n");
+  assert.deepEqual(verbs.todo(["script.geml", "lib.geml"], io).filter((x) => x.kind === "voice"), [], "配过音、记录对得上，不是待办");
+  write(join(root, "script.geml"), read(join(root, "script.geml"), "utf8").replace(LINE, "你终于来了。"));
+  const items = verbs.todo(["script.geml", "lib.geml"], io).filter((x) => x.kind === "voice");
+  assert.equal(items.length, 1, JSON.stringify(items));
+  assert.equal(items[0].address, "script.geml#l1");
+  assert.equal(items[0].mode, "tts");
+  assert.equal(items[0].stale, true);
+  assert.match(items[0].prompt, /终于/, "带的是改过之后的台词");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("没写 src=：素材和片段各自点名 media-src-unresolved，不当成空的放过去", () => {
+  const root = project({
+    "lib.geml": META + "=== media-asset {#nosrc kind=image}\n===\n",
+    "cut.geml": META + '==== media {#tl tracks="video:video"}\n\n'
+      + "=== media-clip {#bare track=video duration=2}\n===\n\n"
+      + "=== media-clip {#uses track=video src=lib.geml#nosrc duration=2}\n===\n\n====\n",
+  });
+  const ds = checkMedia("cut.geml", profileIoFor(root)).filter((d) => d.code === "media-src-unresolved");
+  assert.deepEqual(ds.map((d) => d.id).sort(), ["bare", "nosrc"], JSON.stringify(ds));
+  assert.ok(ds.every((d) => /没有 `src=`/.test(d.message)), JSON.stringify(ds));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("互动：端点不是「#层:点」的形状 —— media-interaction-unresolved，并说该怎么写", () => {
+  const f = interProject();
+  f["script.geml"] = META
+    + "==== media-comp {#c size=720x1280}\n\n"
+    + "=== media-layer {#s src=lib.geml#sister x=0 y=0 w=720}\n===\n\n"
+    + "=== media-layer {#h src=lib.geml#hero w=720}\n===\n\n"
+    + "=== media-interaction {#shape a=s:hand b=#h:hand kind=contact}\n===\n\n"
+    + "====\n";
+  const root = project(f);
+  const d = checkMedia("script.geml", profileIoFor(root)).find((x) => x.code === "media-interaction-unresolved");
+  assert.ok(d, "没点名");
+  assert.equal(d.id, "shape");
+  assert.match(d.message, /`a=s:hand` 要写成 `#层:点`/, d.message);
   rmSync(root, { recursive: true, force: true });
 });
 

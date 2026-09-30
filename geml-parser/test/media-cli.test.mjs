@@ -24,6 +24,18 @@ function run(args, env = {}) {
 }
 
 const sha = (s) => createHash("sha256").update(Buffer.from(s)).digest("hex");
+
+/**
+ * 一个假可执行文件，独占一个临时目录 —— 把这个目录当 PATH 传给 run，whichBin 就只找得到它。
+ * 函数声明而不是 const：前面的测试也要用，得先提升。Windows 上要 .cmd + shell，调用处跳过。
+ */
+function fakeBin(name, body) {
+  const bin = mkdtempSync(join(tmpdir(), `geml-fake-${name}-`));
+  writeFileSync(join(bin, name), "#!/bin/sh\n" + body, { mode: 0o755 });
+  return bin;
+}
+const WIN = process.platform === "win32";
+const skipOnWin = () => { if (WIN) console.log("skip: 假可执行文件在 Windows 上要 .cmd + shell"); return WIN; };
 const META = '=== meta\nprofile = "geml-media/v1"\n===\n\n';
 const CLIP = "VIDEOBYTES";
 const VO = "AUDIOBYTES";
@@ -68,6 +80,17 @@ test("没有动词就是错，并且把帮助一起给出来", () => {
   assert.equal(r.code, 2);
   assert.match(r.err, /todo/, "错误里带着这份帮助");
   assert.match(r.err, /export/);
+});
+
+test("认不出的动词：给了入口也是用法错误，退出 2、帮助一起给出来 —— 不拿它当别的动词去跑", () => {
+  const p = project();
+  try {
+    const r = run(["frobnicate", p.at("lib.geml")]);
+    assert.equal(r.code, 2, r.err);
+    assert.match(r.err, /todo/);
+    assert.match(r.err, /compose/);
+    assert.equal(r.out, "");
+  } finally { p.drop(); }
 });
 
 test("--help 退出 0，八个动词都在", () => {
@@ -291,6 +314,24 @@ test("build：没有 ffmpeg 就把本该执行的命令打出来，而不是失�
   } finally { p.drop(); }
 });
 
+test("build：装了 ffmpeg 就真跑 —— 成功报产出与时长；失败退出 1，带上 ffmpeg 自己最后说的话", () => {
+  if (skipOnWin()) return;
+  const p = project();
+  const good = fakeBin("ffmpeg", 'for a in "$@"; do last="$a"; done\nprintf MP4BYTES > "$last"\n');
+  const bad = fakeBin("ffmpeg", 'echo "Unknown encoder libx264" >&2\nexit 3\n');
+  try {
+    const r = run(["build", p.at("cut.geml"), "--out", "out.mp4"], { PATH: good });
+    assert.equal(r.code, 0, r.err);
+    assert.equal(r.out, "", "真跑了就不再打印命令");
+    assert.match(r.err, /^wrote out\.mp4  ·  7\.00s$/m, r.err);
+    assert.equal(p.read("out.mp4"), "MP4BYTES", "ffmpeg 在项目根下跑，产出落在 --out 指的地方");
+    const f = run(["build", p.at("cut.geml"), "--out", "again.mp4"], { PATH: bad });
+    assert.equal(f.code, 1, f.err);
+    assert.match(f.err, /ffmpeg 失败（exit 3）/);
+    assert.match(f.err, /Unknown encoder libx264/, "失败原因是 ffmpeg 的 stderr，不是一句笼统的「失败了」");
+  } finally { p.drop(); rmSync(good, { recursive: true, force: true }); rmSync(bad, { recursive: true, force: true }); }
+});
+
 test("build：字幕默认另出一个 .srt，--burn-subs 才烧进画面", () => {
   const p = project();
   try {
@@ -423,6 +464,54 @@ test("import：单个媒体文件与整个目录都进素材块", () => {
   } finally { many.drop(); }
 });
 
+test("import：--cut 与 --into 各在一个根下就拒绝、两边都不写；--root 指一个共同的根就过", () => {
+  const p = project();
+  try {
+    mkdirSync(p.at("ep2"));
+    writeFileSync(p.at("ep2/cut.geml"), p.read("cut.geml"));
+    const script = p.read("script.geml"), cut = p.read("ep2/cut.geml");
+    const r = run(["import", p.at("sub.srt"), "--into", p.at("script.geml"), "--cut", p.at("ep2/cut.geml"), "--prefix", "t"]);
+    assert.equal(r.code, 2, r.err);
+    assert.match(r.err, /--cut 与 --into 落在两个根下.*--root/);
+    assert.equal(p.read("script.geml"), script, "剧本没动");
+    assert.equal(p.read("ep2/cut.geml"), cut, "时间线没动");
+    const ok = run(["import", p.at("sub.srt"), "--into", p.at("script.geml"), "--cut", p.at("ep2/cut.geml"), "--prefix", "t", "--root", p.root]);
+    assert.equal(ok.code, 0, ok.err);
+    assert.match(p.read("ep2/cut.geml"), /media-clip \{#sub-t1 track=subtitle src=\.\.\/script\.geml#t1 /, "字幕片段从时间线出发指回剧本");
+  } finally { p.drop(); }
+});
+
+test("import：素材库的根之外的文件一个个跳过并说明；一个都没进就不写库", () => {
+  const p = project();
+  const far = mkdtempSync(join(tmpdir(), "geml-media-far-"));
+  try {
+    writeFileSync(join(far, "far.png"), "FAR");
+    const before = p.read("lib.geml");
+    const r = run(["import", far, "--into", p.at("lib.geml")]);
+    assert.equal(r.code, 0, r.err);
+    assert.match(r.err, /far\.png 在根之外或读不到，跳过/);
+    assert.match(r.err, /没有要新建的素材块/);
+    assert.equal(p.read("lib.geml"), before);
+  } finally { p.drop(); rmSync(far, { recursive: true, force: true }); }
+});
+
+test("import：装了 ffprobe 就写 duration=；它失败了、或说不出一个数，就不写 —— 不猜", () => {
+  if (skipOnWin()) return;
+  for (const [body, want] of [["printf '3.5\\n'\n", "3.5"], ["exit 1\n", null], ["echo N/A\n", null]]) {
+    const p = project();
+    const bin = fakeBin("ffprobe", body);
+    try {
+      writeFileSync(p.at("new.mp4"), "NEWCLIP");
+      const r = run(["import", p.at("new.mp4"), "--into", p.at("lib.geml")], { PATH: bin });
+      assert.equal(r.code, 0, r.err);
+      const head = p.read("lib.geml").split("\n").find((l) => l.includes("{#new "));
+      assert.ok(head, p.read("lib.geml"));
+      if (want === null) assert.doesNotMatch(head, /duration=/, body);
+      else assert.match(head, new RegExp(`duration=${want.replace(".", "\\.")}\\b`), head);
+    } finally { p.drop(); rmSync(bin, { recursive: true, force: true }); }
+  }
+});
+
 test("import：认不出的后缀与时间线格式各有各的说法", () => {
   const p = project();
   try {
@@ -472,9 +561,7 @@ function compProject() {
 
 /** 一个假 ffmpeg：把 PNGBYTES 写到最后一个参数指的文件里。Windows 上要 .cmd + shell，跳过。 */
 function fakeFfmpeg() {
-  const bin = mkdtempSync(join(tmpdir(), "geml-fake-ffmpeg-"));
-  writeFileSync(join(bin, "ffmpeg"), '#!/bin/sh\nfor a in "$@"; do last="$a"; done\nprintf PNGBYTES > "$last"\n', { mode: 0o755 });
-  return bin;
+  return fakeBin("ffmpeg", 'for a in "$@"; do last="$a"; done\nprintf PNGBYTES > "$last"\n');
 }
 const gemlCheck = (file) => spawnSync(process.execPath, ["dist/geml.js", "check", file], { encoding: "utf8", env: NO_PATH });
 const records = (lib) => lib.split("\n").filter((l) => l.startsWith("{")).map((l) => JSON.parse(l));
