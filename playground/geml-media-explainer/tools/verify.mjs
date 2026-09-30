@@ -33,7 +33,9 @@ for (const lang of LANGS) {
   ok(got.toFixed(3) === expected.toFixed(3), `${mp4} 时长 ${got.toFixed(3)} = 模型 ${expected.toFixed(3)}`);
   const a = spawnSync(FFPROBE, ["-v", "error", "-select_streams", "a", "-show_entries", "stream=index", "-of", "csv=p=0", join(ROOT, mp4)], { encoding: "utf8" });
   ok(a.stdout.trim().split("\n").filter(Boolean).length === 1, `${mp4} 有且只有一条音轨`);
-  const cues = (readFileSync(join(ROOT, mp4.replace(/\.mp4$/, ".srt")), "utf8").match(/-->/g) ?? []).length;
+  // 一条字幕就是一行时间：`00:00:00,500 --> 00:00:02,000`。
+  const cues = readFileSync(join(ROOT, mp4.replace(/\.mp4$/, ".srt")), "utf8").split(/\r?\n/)
+    .filter((l) => /^\d{2}:\d{2}:\d{2},\d{3} /.test(l) && l.includes(" --> ")).length;
   const subs = (readFileSync(join(ROOT, `cut-${lang}.geml`), "utf8").match(/track=subtitle/g) ?? []).length;
   ok(cues === subs, `${lang} 字幕 ${cues} 条 = 字幕片段 ${subs} 个`);
 }

@@ -50,295 +50,295 @@ resolution-default = cpg
 === code {#withoutClosingHashes src=geml-parser/src/geml.ts#L619-624 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/withoutClosingHashes()."}
 ===
 
-=== code {#renderedText src=geml-parser/src/geml.ts#L629-641 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/renderedText()."}
+=== code {#renderedText src=geml-parser/src/geml.ts#L632-644 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/renderedText()."}
 ===
 
-=== code {#slug src=geml-parser/src/geml.ts#L643-651 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/slug()."}
+=== code {#slug src=geml-parser/src/geml.ts#L646-654 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/slug()."}
 ===
 
-=== code {#nameKey src=geml-parser/src/geml.ts#L660-662 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/nameKey()."}
+=== code {#nameKey src=geml-parser/src/geml.ts#L663-665 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/nameKey()."}
 ===
 
-=== code {#interpolate src=geml-parser/src/geml.ts#L675-727 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/interpolate()."}
+=== code {#interpolate src=geml-parser/src/geml.ts#L678-730 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/interpolate()."}
 ===
 
-=== code {#registerId src=geml-parser/src/geml.ts#L730-738 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/registerId()."}
+=== code {#registerId src=geml-parser/src/geml.ts#L733-741 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/registerId()."}
 ===
 
-=== code {#matchMarker src=geml-parser/src/geml.ts#L747-759 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/matchMarker()."}
+=== code {#matchMarker src=geml-parser/src/geml.ts#L750-762 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/matchMarker()."}
 ===
 
-=== code {#indentColumns .leaf src=geml-parser/src/geml.ts#L763-771 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/indentColumns()."}
+=== code {#indentColumns .leaf src=geml-parser/src/geml.ts#L766-774 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/indentColumns()."}
 ===
 
-=== code {#makeListItem src=geml-parser/src/geml.ts#L773-789 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/makeListItem()."}
+=== code {#makeListItem src=geml-parser/src/geml.ts#L776-792 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/makeListItem()."}
 ===
 
-=== code {#parseList src=geml-parser/src/geml.ts#L795-853 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/parseList()."}
+=== code {#parseList src=geml-parser/src/geml.ts#L798-856 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/parseList()."}
 ===
 
-=== code {#scanFenceBody src=geml-parser/src/geml.ts#L865-891 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/scanFenceBody()."}
+=== code {#scanFenceBody src=geml-parser/src/geml.ts#L868-894 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/scanFenceBody()."}
 ===
 
-=== code {#reportUnknownAttrs src=geml-parser/src/geml.ts#L900-908 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/reportUnknownAttrs()."}
+=== code {#reportUnknownAttrs src=geml-parser/src/geml.ts#L903-911 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/reportUnknownAttrs()."}
 ===
 
-=== code {#bodyModeFor src=geml-parser/src/geml.ts#L918-957 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/bodyModeFor()."}
+=== code {#bodyModeFor src=geml-parser/src/geml.ts#L921-960 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/bodyModeFor()."}
 ===
 
-=== code {#recordEmbedSrc src=geml-parser/src/geml.ts#L964-1010 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/recordEmbedSrc()."}
+=== code {#recordEmbedSrc src=geml-parser/src/geml.ts#L967-1013 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/recordEmbedSrc()."}
 ===
 
-=== code {#readDataBody src=geml-parser/src/geml.ts#L1026-1077 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/readDataBody()."}
+=== code {#readDataBody src=geml-parser/src/geml.ts#L1029-1080 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/readDataBody()."}
 ===
 
-=== code {#readCodeBody src=geml-parser/src/geml.ts#L1086-1098 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/readCodeBody()."}
+=== code {#readCodeBody src=geml-parser/src/geml.ts#L1089-1101 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/readCodeBody()."}
 ===
 
-=== code {#readFormOptionsBody src=geml-parser/src/geml.ts#L1105-1114 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/readFormOptionsBody()."}
+=== code {#readFormOptionsBody src=geml-parser/src/geml.ts#L1108-1117 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/readFormOptionsBody()."}
 ===
 
-=== code {#readTableBody src=geml-parser/src/geml.ts#L1120-1140 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/readTableBody()."}
+=== code {#readTableBody src=geml-parser/src/geml.ts#L1123-1143 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/readTableBody()."}
 ===
 
-=== code {#readViewBody src=geml-parser/src/geml.ts#L1147-1166 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/readViewBody()."}
+=== code {#readViewBody src=geml-parser/src/geml.ts#L1150-1169 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/readViewBody()."}
 ===
 
-=== code {#readDiagramBody src=geml-parser/src/geml.ts#L1173-1207 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/readDiagramBody()."}
+=== code {#readDiagramBody src=geml-parser/src/geml.ts#L1176-1210 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/readDiagramBody()."}
 ===
 
-=== code {#readTypedRawBody src=geml-parser/src/geml.ts#L1216-1222 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/readTypedRawBody()."}
+=== code {#readTypedRawBody src=geml-parser/src/geml.ts#L1219-1225 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/readTypedRawBody()."}
 ===
 
-=== code {#readFencedBlock src=geml-parser/src/geml.ts#L1243-1288 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/readFencedBlock()."}
+=== code {#readFencedBlock src=geml-parser/src/geml.ts#L1246-1291 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/readFencedBlock()."}
 ===
 
-=== code {#backtickShield src=geml-parser/src/geml.ts#L1303-1313 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/backtickShield()."}
+=== code {#backtickShield src=geml-parser/src/geml.ts#L1306-1316 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/backtickShield()."}
 ===
 
-=== code {#markdownCodeRuns src=geml-parser/src/geml.ts#L1340-1387 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/markdownCodeRuns()."}
+=== code {#markdownCodeRuns src=geml-parser/src/geml.ts#L1343-1390 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/markdownCodeRuns()."}
 ===
 
-=== code {#shieldFor src=geml-parser/src/geml.ts#L1391-1396 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/shieldFor()."}
+=== code {#shieldFor src=geml-parser/src/geml.ts#L1394-1399 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/shieldFor()."}
 ===
 
-=== code {#scanProse src=geml-parser/src/geml.ts#L1411-1429 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/scanProse()."}
+=== code {#scanProse src=geml-parser/src/geml.ts#L1414-1432 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/scanProse()."}
 ===
 
-=== code {#scanBlocks src=geml-parser/src/geml.ts#L1431-1610 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/scanBlocks()."}
+=== code {#scanBlocks src=geml-parser/src/geml.ts#L1434-1613 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/scanBlocks()."}
 ===
 
-=== code {#parseData src=geml-parser/src/geml.ts#L1613-1622 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/parseData()."}
+=== code {#parseData src=geml-parser/src/geml.ts#L1616-1625 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/parseData()."}
 ===
 
-=== code {#chartSourceTable src=geml-parser/src/geml.ts#L1640-1674 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/chartSourceTable()."}
+=== code {#chartSourceTable src=geml-parser/src/geml.ts#L1643-1677 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/chartSourceTable()."}
 ===
 
-=== code {#inferDataFormat src=geml-parser/src/geml.ts#L1676-1676 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/inferDataFormat."}
+=== code {#inferDataFormat src=geml-parser/src/geml.ts#L1679-1679 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/inferDataFormat."}
 ===
 
-=== code {#detectTransclusionCycles src=geml-parser/src/geml.ts#L1682-1726 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/detectTransclusionCycles()."}
+=== code {#detectTransclusionCycles src=geml-parser/src/geml.ts#L1685-1729 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/detectTransclusionCycles()."}
 ===
 
-=== code {#reportBorrowedVocabularies src=geml-parser/src/geml.ts#L1752-1770 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/reportBorrowedVocabularies()."}
+=== code {#reportBorrowedVocabularies src=geml-parser/src/geml.ts#L1755-1773 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/reportBorrowedVocabularies()."}
 ===
 
-=== code {#detectSelfEmbedCycles src=geml-parser/src/geml.ts#L1777-1794 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/detectSelfEmbedCycles()."}
+=== code {#detectSelfEmbedCycles src=geml-parser/src/geml.ts#L1780-1797 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/detectSelfEmbedCycles()."}
 ===
 
-=== code {#detectSelfProjectionCycles src=geml-parser/src/geml.ts#L1799-1816 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/detectSelfProjectionCycles()."}
+=== code {#detectSelfProjectionCycles src=geml-parser/src/geml.ts#L1802-1819 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/detectSelfProjectionCycles()."}
 ===
 
-=== code {#projectableInlines src=geml-parser/src/geml.ts#L1823-1837 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/projectableInlines()."}
+=== code {#projectableInlines src=geml-parser/src/geml.ts#L1826-1840 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/projectableInlines()."}
 ===
 
-=== code {#validateProjections src=geml-parser/src/geml.ts#L1842-1864 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/validateProjections()."}
+=== code {#validateProjections src=geml-parser/src/geml.ts#L1845-1867 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/validateProjections()."}
 ===
 
-=== code {#relJoinPath src=geml-parser/src/geml.ts#L1867-1882 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/relJoinPath()."}
+=== code {#relJoinPath src=geml-parser/src/geml.ts#L1870-1885 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/relJoinPath()."}
 ===
 
-=== code {#relDirPath src=geml-parser/src/geml.ts#L1884-1887 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/relDirPath()."}
+=== code {#relDirPath src=geml-parser/src/geml.ts#L1887-1890 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/relDirPath()."}
 ===
 
-=== code {#gatherEmbeds src=geml-parser/src/geml.ts#L1890-1894 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/gatherEmbeds()."}
+=== code {#gatherEmbeds src=geml-parser/src/geml.ts#L1893-1897 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/gatherEmbeds()."}
 ===
 
-=== code {#tableFromDocument src=geml-parser/src/geml.ts#L1901-1918 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/tableFromDocument()."}
+=== code {#tableFromDocument src=geml-parser/src/geml.ts#L1904-1921 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/tableFromDocument()."}
 ===
 
-=== code {#checkReservedMetaId src=geml-parser/src/geml.ts#L1926-1955 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/checkReservedMetaId()."}
+=== code {#checkReservedMetaId src=geml-parser/src/geml.ts#L1929-1958 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/checkReservedMetaId()."}
 ===
 
-=== code {#resolveTableSources src=geml-parser/src/geml.ts#L1957-2006 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/resolveTableSources()."}
+=== code {#resolveTableSources src=geml-parser/src/geml.ts#L1960-2009 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/resolveTableSources()."}
 ===
 
-=== code {#copyRelation src=geml-parser/src/geml.ts#L2011-2021 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/copyRelation()."}
+=== code {#copyRelation src=geml-parser/src/geml.ts#L2014-2024 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/copyRelation()."}
 ===
 
-=== code {#relationBlock src=geml-parser/src/geml.ts#L2023-2034 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/relationBlock()."}
+=== code {#relationBlock src=geml-parser/src/geml.ts#L2026-2037 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/relationBlock()."}
 ===
 
-=== code {#remoteRelation src=geml-parser/src/geml.ts#L2037-2078 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/remoteRelation()."}
+=== code {#remoteRelation src=geml-parser/src/geml.ts#L2040-2081 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/remoteRelation()."}
 ===
 
-=== code {#resolveViewSources src=geml-parser/src/geml.ts#L2080-2197 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/resolveViewSources()."}
+=== code {#resolveViewSources src=geml-parser/src/geml.ts#L2083-2200 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/resolveViewSources()."}
 ===
 
-=== code {#blockCaption .leaf src=geml-parser/src/geml.ts#L2199-2202 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/blockCaption()."}
+=== code {#blockCaption .leaf src=geml-parser/src/geml.ts#L2202-2205 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/blockCaption()."}
 ===
 
-=== code {#gatherIds src=geml-parser/src/geml.ts#L2204-2213 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/gatherIds()."}
+=== code {#gatherIds src=geml-parser/src/geml.ts#L2207-2216 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/gatherIds()."}
 ===
 
-=== code {#vocabularyOf src=geml-parser/src/geml.ts#L2231-2233 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/vocabularyOf()."}
+=== code {#vocabularyOf src=geml-parser/src/geml.ts#L2234-2236 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/vocabularyOf()."}
 ===
 
-=== code {#metaOf src=geml-parser/src/geml.ts#L2241-2243 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/metaOf()."}
+=== code {#metaOf src=geml-parser/src/geml.ts#L2244-2246 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/metaOf()."}
 ===
 
-=== code {#collectMeta src=geml-parser/src/geml.ts#L2245-2286 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/collectMeta()."}
+=== code {#collectMeta src=geml-parser/src/geml.ts#L2248-2289 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/collectMeta()."}
 ===
 
-=== code {#blockFromDocument src=geml-parser/src/geml.ts#L2295-2329 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/blockFromDocument()."}
+=== code {#blockFromDocument src=geml-parser/src/geml.ts#L2298-2332 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/blockFromDocument()."}
 ===
 
-=== code {#validateCoordRef src=geml-parser/src/geml.ts#L2337-2388 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/validateCoordRef()."}
+=== code {#validateCoordRef src=geml-parser/src/geml.ts#L2340-2391 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/validateCoordRef()."}
 ===
 
-=== code {#blockMarkersOf src=geml-parser/src/geml.ts#L2392-2400 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/blockMarkersOf()."}
+=== code {#blockMarkersOf src=geml-parser/src/geml.ts#L2395-2403 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/blockMarkersOf()."}
 ===
 
-=== code {#htmlAnchorsOf src=geml-parser/src/geml.ts#L2417-2440 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/htmlAnchorsOf()."}
+=== code {#htmlAnchorsOf src=geml-parser/src/geml.ts#L2420-2443 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/htmlAnchorsOf()."}
 ===
 
-=== code {#outsideCodeSpans src=geml-parser/src/geml.ts#L2445-2460 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/outsideCodeSpans()."}
+=== code {#outsideCodeSpans src=geml-parser/src/geml.ts#L2448-2463 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/outsideCodeSpans()."}
 ===
 
-=== code {#htmlAttributes src=geml-parser/src/geml.ts#L2467-2474 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/htmlAttributes()."}
+=== code {#htmlAttributes src=geml-parser/src/geml.ts#L2470-2477 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/htmlAttributes()."}
 ===
 
-=== code {#validateWikilink src=geml-parser/src/geml.ts#L2483-2499 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/validateWikilink()."}
+=== code {#validateWikilink src=geml-parser/src/geml.ts#L2486-2502 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/validateWikilink()."}
 ===
 
-=== code {#validateRefs src=geml-parser/src/geml.ts#L2501-2584 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/validateRefs()."}
+=== code {#validateRefs src=geml-parser/src/geml.ts#L2504-2587 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/validateRefs()."}
 ===
 
-=== code {#parseSourceRoute src=geml-parser/src/geml.ts#L2599-2616 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/parseSourceRoute()."}
+=== code {#parseSourceRoute src=geml-parser/src/geml.ts#L2602-2619 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/parseSourceRoute()."}
 ===
 
-=== code {#sliceSourceRange src=geml-parser/src/geml.ts#L2620-2629 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/sliceSourceRange()."}
+=== code {#sliceSourceRange src=geml-parser/src/geml.ts#L2623-2632 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/sliceSourceRange()."}
 ===
 
-=== code {#resolveCodeSources src=geml-parser/src/geml.ts#L2631-2671 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/resolveCodeSources()."}
+=== code {#resolveCodeSources src=geml-parser/src/geml.ts#L2634-2674 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/resolveCodeSources()."}
 ===
 
-=== code {#resolveDataSources src=geml-parser/src/geml.ts#L2678-2732 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/resolveDataSources()."}
+=== code {#resolveDataSources src=geml-parser/src/geml.ts#L2681-2735 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/resolveDataSources()."}
 ===
 
-=== code {#recordsToTable src=geml-parser/src/geml.ts#L2741-2783 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/recordsToTable()."}
+=== code {#recordsToTable src=geml-parser/src/geml.ts#L2744-2786 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/recordsToTable()."}
 ===
 
-=== code {#resolveCharts src=geml-parser/src/geml.ts#L2787-2891 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/resolveCharts()."}
+=== code {#resolveCharts src=geml-parser/src/geml.ts#L2790-2894 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/resolveCharts()."}
 ===
 
-=== code {#parse src=geml-parser/src/geml.ts#L2893-2964 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/parse()."}
+=== code {#parse src=geml-parser/src/geml.ts#L2896-2967 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/parse()."}
 ===
 
-=== code {#idOfHeading src=geml-parser/src/geml.ts#L2991-2993 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/idOfHeading()."}
+=== code {#idOfHeading src=geml-parser/src/geml.ts#L2994-2996 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/idOfHeading()."}
 ===
 
-=== code {#foldFence src=geml-parser/src/geml.ts#L3012-3027 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/foldFence()."}
+=== code {#foldFence src=geml-parser/src/geml.ts#L3015-3030 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/foldFence()."}
 ===
 
-=== code {#fenceClose src=geml-parser/src/geml.ts#L3031-3039 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/fenceClose()."}
+=== code {#fenceClose src=geml-parser/src/geml.ts#L3034-3042 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/fenceClose()."}
 ===
 
-=== code {#sectionEnd src=geml-parser/src/geml.ts#L3047-3060 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/sectionEnd()."}
+=== code {#sectionEnd src=geml-parser/src/geml.ts#L3050-3063 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/sectionEnd()."}
 ===
 
-=== code {#keysOf src=geml-parser/src/geml.ts#L3070-3076 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/keysOf()."}
+=== code {#keysOf src=geml-parser/src/geml.ts#L3073-3079 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/keysOf()."}
 ===
 
-=== code {#collectSpans src=geml-parser/src/geml.ts#L3078-3143 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/collectSpans()."}
+=== code {#collectSpans src=geml-parser/src/geml.ts#L3081-3146 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/collectSpans()."}
 ===
 
-=== code {#stripEol src=geml-parser/src/geml.ts#L3147-3149 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/stripEol()."}
+=== code {#stripEol src=geml-parser/src/geml.ts#L3150-3152 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/stripEol()."}
 ===
 
-=== code {#trimSpaceTabEnd src=geml-parser/src/geml.ts#L3158-3166 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/trimSpaceTabEnd()."}
+=== code {#trimSpaceTabEnd src=geml-parser/src/geml.ts#L3161-3169 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/trimSpaceTabEnd()."}
 ===
 
-=== code {#blockSpans src=geml-parser/src/geml.ts#L3168-3177 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/blockSpans()."}
+=== code {#blockSpans src=geml-parser/src/geml.ts#L3171-3180 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/blockSpans()."}
 ===
 
-=== code {#unitSpans src=geml-parser/src/geml.ts#L3194-3201 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/unitSpans()."}
+=== code {#unitSpans src=geml-parser/src/geml.ts#L3197-3204 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/unitSpans()."}
 ===
 
-=== code {#selectEmbed src=geml-parser/src/geml.ts#L3214-3219 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/selectEmbed()."}
+=== code {#selectEmbed src=geml-parser/src/geml.ts#L3217-3222 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/selectEmbed()."}
 ===
 
-=== code {#narrowEmbed src=geml-parser/src/geml.ts#L3231-3242 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/narrowEmbed()."}
+=== code {#narrowEmbed src=geml-parser/src/geml.ts#L3234-3245 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/narrowEmbed()."}
 ===
 
-=== code {#findEmbedTarget src=geml-parser/src/geml.ts#L3244-3254 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/findEmbedTarget()."}
+=== code {#findEmbedTarget src=geml-parser/src/geml.ts#L3247-3257 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/findEmbedTarget()."}
 ===
 
-=== code {#findDeclaredTarget src=geml-parser/src/geml.ts#L3256-3275 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/findDeclaredTarget()."}
+=== code {#findDeclaredTarget src=geml-parser/src/geml.ts#L3259-3278 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/findDeclaredTarget()."}
 ===
 
-=== code {#proseRunTargets src=geml-parser/src/geml.ts#L3284-3322 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/proseRunTargets()."}
+=== code {#proseRunTargets src=geml-parser/src/geml.ts#L3287-3325 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/proseRunTargets()."}
 ===
 
-=== code {#proseRuns src=geml-parser/src/geml.ts#L3341-3388 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/proseRuns()."}
+=== code {#proseRuns src=geml-parser/src/geml.ts#L3344-3391 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/proseRuns()."}
 ===
 
-=== code {#runAddress .leaf src=geml-parser/src/geml.ts#L3392-3406 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/runAddress()."}
+=== code {#runAddress .leaf src=geml-parser/src/geml.ts#L3395-3409 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/runAddress()."}
 ===
 
-=== code {#addressedUnits src=geml-parser/src/geml.ts#L3408-3433 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/addressedUnits()."}
+=== code {#addressedUnits src=geml-parser/src/geml.ts#L3411-3436 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/addressedUnits()."}
 ===
 
-=== code {#splitLines src=geml-parser/src/geml.ts#L3440-3442 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/splitLines()."}
+=== code {#splitLines src=geml-parser/src/geml.ts#L3443-3445 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/splitLines()."}
 ===
 
-=== code {#newlineOf src=geml-parser/src/geml.ts#L3450-3452 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/newlineOf()."}
+=== code {#newlineOf src=geml-parser/src/geml.ts#L3453-3455 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/newlineOf()."}
 ===
 
-=== code {#toLf src=geml-parser/src/geml.ts#L3453-3455 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/toLf()."}
+=== code {#toLf src=geml-parser/src/geml.ts#L3456-3458 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/toLf()."}
 ===
 
-=== code {#toNewline src=geml-parser/src/geml.ts#L3456-3459 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/toNewline()."}
+=== code {#toNewline src=geml-parser/src/geml.ts#L3459-3462 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/toNewline()."}
 ===
 
-=== code {#narrowToHead .leaf src=geml-parser/src/geml.ts#L3467-3469 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/narrowToHead()."}
+=== code {#narrowToHead .leaf src=geml-parser/src/geml.ts#L3470-3472 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/narrowToHead()."}
 ===
 
-=== code {#closeFenceLine src=geml-parser/src/geml.ts#L3476-3483 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/closeFenceLine()."}
+=== code {#closeFenceLine src=geml-parser/src/geml.ts#L3479-3486 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/closeFenceLine()."}
 ===
 
-=== code {#narrowToBody src=geml-parser/src/geml.ts#L3488-3490 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/narrowToBody()."}
+=== code {#narrowToBody src=geml-parser/src/geml.ts#L3491-3493 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/narrowToBody()."}
 ===
 
-=== code {#narrowToIntro src=geml-parser/src/geml.ts#L3501-3510 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/narrowToIntro()."}
+=== code {#narrowToIntro src=geml-parser/src/geml.ts#L3504-3513 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/narrowToIntro()."}
 ===
 
-=== code {#sliceUnit src=geml-parser/src/geml.ts#L3516-3523 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/sliceUnit()."}
+=== code {#sliceUnit src=geml-parser/src/geml.ts#L3519-3526 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/sliceUnit()."}
 ===
 
-=== code {#findBlockSite src=geml-parser/src/geml.ts#L3530-3549 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/findBlockSite()."}
+=== code {#findBlockSite src=geml-parser/src/geml.ts#L3533-3552 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/findBlockSite()."}
 ===
 
-=== code {#sectionEndIndex .leaf src=geml-parser/src/geml.ts#L3557-3564 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/sectionEndIndex()."}
+=== code {#sectionEndIndex .leaf src=geml-parser/src/geml.ts#L3560-3567 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/sectionEndIndex()."}
 ===
 
-=== code {#historyPathFor src=geml-parser/src/geml.ts#L3571-3573 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/historyPathFor()."}
+=== code {#historyPathFor src=geml-parser/src/geml.ts#L3574-3576 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/historyPathFor()."}
 ===
 
-=== code {#isCliInvocation src=geml-parser/src/geml.ts#L3604-3624 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/isCliInvocation()."}
+=== code {#isCliInvocation src=geml-parser/src/geml.ts#L3607-3627 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/isCliInvocation()."}
 ===
 
-=== code {#realOf src=geml-parser/src/geml.ts#L3628-3634 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/realOf()."}
+=== code {#realOf src=geml-parser/src/geml.ts#L3631-3637 anchor="scip-typescript npm @geml/geml 1.11.4 src/`geml.ts`/realOf()."}
 ===
 
 === table {#calls format=csv}
@@ -653,44 +653,44 @@ from,                        to,                                                
 
 === table {#called-by format=csv}
 from,                                                to,                          kind, site
-#scanFenceBody,                                      #reLit,                      call, geml-parser/src/geml.ts:869
-#fenceClose,                                         #reLit,                      call, geml-parser/src/geml.ts:3034
-#closeFenceLine,                                     #reLit,                      call, geml-parser/src/geml.ts:3481
+#scanFenceBody,                                      #reLit,                      call, geml-parser/src/geml.ts:872
+#fenceClose,                                         #reLit,                      call, geml-parser/src/geml.ts:3037
+#closeFenceLine,                                     #reLit,                      call, geml-parser/src/geml.ts:3484
 geml-parser--verbs.ts.geml#rewriteId,                #reLit,                      call, geml-parser/src/verbs.ts:1622
 geml-parser--verbs.ts.geml#bodyRange,                #reLit,                      call, geml-parser/src/verbs.ts:1646
-#readDataBody,                                       #parseDataBody,              call, geml-parser/src/geml.ts:1052
-#resolveDataSources,                                 #parseDataBody,              call, geml-parser/src/geml.ts:2723
-#resolveCharts,                                      #parseDataBody,              call, geml-parser/src/geml.ts:2839
+#readDataBody,                                       #parseDataBody,              call, geml-parser/src/geml.ts:1055
+#resolveDataSources,                                 #parseDataBody,              call, geml-parser/src/geml.ts:2726
+#resolveCharts,                                      #parseDataBody,              call, geml-parser/src/geml.ts:2842
 #parseDataBody,                                      #jsonErrorLine,              call, geml-parser/src/geml.ts:86
-#readFencedBlock,                                    #reportDuplicateNames,       call, geml-parser/src/geml.ts:1252
-#scanBlocks,                                         #reportDuplicateNames,       call, geml-parser/src/geml.ts:1478
-#readFencedBlock,                                    #reportOddNames,             call, geml-parser/src/geml.ts:1251
-#scanBlocks,                                         #reportOddNames,             call, geml-parser/src/geml.ts:1477
-#markdownCodeRuns,                                   #matchHeading,               call, geml-parser/src/geml.ts:1376
-#scanBlocks,                                         #matchHeading,               call, geml-parser/src/geml.ts:1471
-#scanBlocks,                                         #matchHeading,               call, geml-parser/src/geml.ts:1542
-#sectionEnd,                                         #matchHeading,               call, geml-parser/src/geml.ts:3055
-#collectSpans,                                       #matchHeading,               call, geml-parser/src/geml.ts:3127
+#readFencedBlock,                                    #reportDuplicateNames,       call, geml-parser/src/geml.ts:1255
+#scanBlocks,                                         #reportDuplicateNames,       call, geml-parser/src/geml.ts:1481
+#readFencedBlock,                                    #reportOddNames,             call, geml-parser/src/geml.ts:1254
+#scanBlocks,                                         #reportOddNames,             call, geml-parser/src/geml.ts:1480
+#markdownCodeRuns,                                   #matchHeading,               call, geml-parser/src/geml.ts:1379
+#scanBlocks,                                         #matchHeading,               call, geml-parser/src/geml.ts:1474
+#scanBlocks,                                         #matchHeading,               call, geml-parser/src/geml.ts:1545
+#sectionEnd,                                         #matchHeading,               call, geml-parser/src/geml.ts:3058
+#collectSpans,                                       #matchHeading,               call, geml-parser/src/geml.ts:3130
 #lastAttrObjectLike,                                 #looksLikeAttrObject,        call, geml-parser/src/geml.ts:449
 #lastAttrObjectLike,                                 #looksLikeAttrObject,        call, geml-parser/src/geml.ts:458
-#scanBlocks,                                         #lastAttrObjectLike,         call, geml-parser/src/geml.ts:1490
-#scanBlocks,                                         #clip,                       call, geml-parser/src/geml.ts:1499
-#scanBlocks,                                         #clip,                       call, geml-parser/src/geml.ts:1505
-#scanFenceBody,                                      #isCloseFence,               call, geml-parser/src/geml.ts:875
-#fenceClose,                                         #isCloseFence,               call, geml-parser/src/geml.ts:3036
-#closeFenceLine,                                     #isCloseFence,               call, geml-parser/src/geml.ts:3482
+#scanBlocks,                                         #lastAttrObjectLike,         call, geml-parser/src/geml.ts:1493
+#scanBlocks,                                         #clip,                       call, geml-parser/src/geml.ts:1502
+#scanBlocks,                                         #clip,                       call, geml-parser/src/geml.ts:1508
+#scanFenceBody,                                      #isCloseFence,               call, geml-parser/src/geml.ts:878
+#fenceClose,                                         #isCloseFence,               call, geml-parser/src/geml.ts:3039
+#closeFenceLine,                                     #isCloseFence,               call, geml-parser/src/geml.ts:3485
 geml-parser--verbs.ts.geml#bodyRange,                #isCloseFence,               call, geml-parser/src/verbs.ts:1647
 geml-parser--cli.ts.geml#runHistory,                 #isMarkdownPath,             call, geml-parser/src/cli.ts:1054
 geml-parser--host-fs.ts.geml#docOptsFor,             #isMarkdownPath,             call, geml-parser/src/host-fs.ts:113
 geml-parser--verbs.ts.geml#walkOf,                   #isMarkdownPath,             call, geml-parser/src/verbs.ts:131
 geml-parser--verbs.ts.geml#set,                      #isMarkdownPath,             call, geml-parser/src/verbs.ts:1248
-#scanBlocks,                                         #headingId,                  call, geml-parser/src/geml.ts:1480
-#idOfHeading,                                        #headingId,                  call, geml-parser/src/geml.ts:2992
-#scanBlocks,                                         #registerGithubAnchor,       call, geml-parser/src/geml.ts:1514
+#scanBlocks,                                         #headingId,                  call, geml-parser/src/geml.ts:1483
+#idOfHeading,                                        #headingId,                  call, geml-parser/src/geml.ts:2995
+#scanBlocks,                                         #registerGithubAnchor,       call, geml-parser/src/geml.ts:1517
 #registerGithubAnchor,                               #withoutClosingHashes,       call, geml-parser/src/geml.ts:596
 #registerGithubAnchor,                               #renderedText,               call, geml-parser/src/geml.ts:599
 #headingId,                                          #slug,                       call, geml-parser/src/geml.ts:570
-#validateWikilink,                                   #slug,                       call, geml-parser/src/geml.ts:2489
+#validateWikilink,                                   #slug,                       call, geml-parser/src/geml.ts:2492
 geml-parser--code-graph.ts.geml#buildCodeGraph,      #nameKey,                    call, geml-parser/src/code-graph.ts:118
 geml-parser--code-graph.ts.geml#buildCodeGraph,      #nameKey,                    call, geml-parser/src/code-graph.ts:118
 #headingId,                                          #nameKey,                    call, geml-parser/src/geml.ts:573
@@ -699,73 +699,73 @@ geml-parser--code-graph.ts.geml#buildCodeGraph,      #nameKey,                  
 #headingId,                                          #nameKey,                    call, geml-parser/src/geml.ts:577
 #headingId,                                          #nameKey,                    call, geml-parser/src/geml.ts:579
 #registerGithubAnchor,                               #nameKey,                    call, geml-parser/src/geml.ts:612
-#registerId,                                         #nameKey,                    call, geml-parser/src/geml.ts:731
-#scanFenceBody,                                      #nameKey,                    call, geml-parser/src/geml.ts:883
-#scanFenceBody,                                      #nameKey,                    call, geml-parser/src/geml.ts:884
-#readDataBody,                                       #nameKey,                    call, geml-parser/src/geml.ts:1074
-#readDataBody,                                       #nameKey,                    call, geml-parser/src/geml.ts:1075
-#readTableBody,                                      #nameKey,                    call, geml-parser/src/geml.ts:1136
-#readTableBody,                                      #nameKey,                    call, geml-parser/src/geml.ts:1137
-#readTableBody,                                      #nameKey,                    call, geml-parser/src/geml.ts:1138
-#readViewBody,                                       #nameKey,                    call, geml-parser/src/geml.ts:1162
-#readViewBody,                                       #nameKey,                    call, geml-parser/src/geml.ts:1163
-#readViewBody,                                       #nameKey,                    call, geml-parser/src/geml.ts:1164
-#scanBlocks,                                         #nameKey,                    call, geml-parser/src/geml.ts:1567
-#projectableInlines,                                 #nameKey,                    call, geml-parser/src/geml.ts:1824
+#registerId,                                         #nameKey,                    call, geml-parser/src/geml.ts:734
+#scanFenceBody,                                      #nameKey,                    call, geml-parser/src/geml.ts:886
+#scanFenceBody,                                      #nameKey,                    call, geml-parser/src/geml.ts:887
+#readDataBody,                                       #nameKey,                    call, geml-parser/src/geml.ts:1077
+#readDataBody,                                       #nameKey,                    call, geml-parser/src/geml.ts:1078
+#readTableBody,                                      #nameKey,                    call, geml-parser/src/geml.ts:1139
+#readTableBody,                                      #nameKey,                    call, geml-parser/src/geml.ts:1140
+#readTableBody,                                      #nameKey,                    call, geml-parser/src/geml.ts:1141
+#readViewBody,                                       #nameKey,                    call, geml-parser/src/geml.ts:1165
+#readViewBody,                                       #nameKey,                    call, geml-parser/src/geml.ts:1166
+#readViewBody,                                       #nameKey,                    call, geml-parser/src/geml.ts:1167
+#scanBlocks,                                         #nameKey,                    call, geml-parser/src/geml.ts:1570
 #projectableInlines,                                 #nameKey,                    call, geml-parser/src/geml.ts:1827
-#tableFromDocument,                                  #nameKey,                    call, geml-parser/src/geml.ts:1904
-#tableFromDocument,                                  #nameKey,                    call, geml-parser/src/geml.ts:1908
-#tableFromDocument,                                  #nameKey,                    call, geml-parser/src/geml.ts:1912
-#tableFromDocument,                                  #nameKey,                    call, geml-parser/src/geml.ts:1912
-#checkReservedMetaId,                                #nameKey,                    call, geml-parser/src/geml.ts:1938
-#checkReservedMetaId,                                #nameKey,                    call, geml-parser/src/geml.ts:1938
-#checkReservedMetaId,                                #nameKey,                    call, geml-parser/src/geml.ts:1951
-#resolveTableSources,                                #nameKey,                    call, geml-parser/src/geml.ts:2003
-#relationBlock,                                      #nameKey,                    call, geml-parser/src/geml.ts:2025
-#relationBlock,                                      #nameKey,                    call, geml-parser/src/geml.ts:2025
-#resolveViewSources,                                 #nameKey,                    call, geml-parser/src/geml.ts:2093
-#resolveViewSources,                                 #nameKey,                    call, geml-parser/src/geml.ts:2095
-#resolveViewSources,                                 #nameKey,                    call, geml-parser/src/geml.ts:2095
-#resolveViewSources,                                 #nameKey,                    call, geml-parser/src/geml.ts:2176
-#resolveViewSources,                                 #nameKey,                    call, geml-parser/src/geml.ts:2181
-#resolveViewSources,                                 #nameKey,                    call, geml-parser/src/geml.ts:2191
-#gatherIds,                                          #nameKey,                    call, geml-parser/src/geml.ts:2211
-#blockFromDocument,                                  #nameKey,                    call, geml-parser/src/geml.ts:2316
-#blockFromDocument,                                  #nameKey,                    call, geml-parser/src/geml.ts:2316
-#blockFromDocument,                                  #nameKey,                    call, geml-parser/src/geml.ts:2316
-#blockFromDocument,                                  #nameKey,                    call, geml-parser/src/geml.ts:2323
-#blockFromDocument,                                  #nameKey,                    call, geml-parser/src/geml.ts:2323
-#validateCoordRef,                                   #nameKey,                    call, geml-parser/src/geml.ts:2361
-#validateCoordRef,                                   #nameKey,                    call, geml-parser/src/geml.ts:2361
-#validateCoordRef,                                   #nameKey,                    call, geml-parser/src/geml.ts:2361
-#validateCoordRef,                                   #nameKey,                    call, geml-parser/src/geml.ts:2367
-#validateCoordRef,                                   #nameKey,                    call, geml-parser/src/geml.ts:2385
-#validateCoordRef,                                   #nameKey,                    call, geml-parser/src/geml.ts:2385
-#htmlAnchorsOf,                                      #nameKey,                    call, geml-parser/src/geml.ts:2435
-#validateWikilink,                                   #nameKey,                    call, geml-parser/src/geml.ts:2489
-#validateWikilink,                                   #nameKey,                    call, geml-parser/src/geml.ts:2489
-#validateWikilink,                                   #nameKey,                    call, geml-parser/src/geml.ts:2489
-#validateRefs,                                       #nameKey,                    call, geml-parser/src/geml.ts:2562
-#validateRefs,                                       #nameKey,                    call, geml-parser/src/geml.ts:2576
-#validateRefs,                                       #nameKey,                    call, geml-parser/src/geml.ts:2576
-#validateRefs,                                       #nameKey,                    call, geml-parser/src/geml.ts:2577
-#resolveDataSources,                                 #nameKey,                    call, geml-parser/src/geml.ts:2727
-#resolveDataSources,                                 #nameKey,                    call, geml-parser/src/geml.ts:2728
-#resolveCharts,                                      #nameKey,                    call, geml-parser/src/geml.ts:2802
-#resolveCharts,                                      #nameKey,                    call, geml-parser/src/geml.ts:2803
-#resolveCharts,                                      #nameKey,                    call, geml-parser/src/geml.ts:2807
-#resolveCharts,                                      #nameKey,                    call, geml-parser/src/geml.ts:2852
-#parse,                                              #nameKey,                    call, geml-parser/src/geml.ts:2934
-#findEmbedTarget,                                    #nameKey,                    call, geml-parser/src/geml.ts:3251
-#findEmbedTarget,                                    #nameKey,                    call, geml-parser/src/geml.ts:3251
-#findDeclaredTarget,                                 #nameKey,                    call, geml-parser/src/geml.ts:3259
-#findDeclaredTarget,                                 #nameKey,                    call, geml-parser/src/geml.ts:3259
-#findDeclaredTarget,                                 #nameKey,                    call, geml-parser/src/geml.ts:3268
-#findDeclaredTarget,                                 #nameKey,                    call, geml-parser/src/geml.ts:3268
-#addressedUnits,                                     #nameKey,                    call, geml-parser/src/geml.ts:3418
-#addressedUnits,                                     #nameKey,                    call, geml-parser/src/geml.ts:3426
-#findBlockSite,                                      #nameKey,                    call, geml-parser/src/geml.ts:3531
+#projectableInlines,                                 #nameKey,                    call, geml-parser/src/geml.ts:1830
+#tableFromDocument,                                  #nameKey,                    call, geml-parser/src/geml.ts:1907
+#tableFromDocument,                                  #nameKey,                    call, geml-parser/src/geml.ts:1911
+#tableFromDocument,                                  #nameKey,                    call, geml-parser/src/geml.ts:1915
+#tableFromDocument,                                  #nameKey,                    call, geml-parser/src/geml.ts:1915
+#checkReservedMetaId,                                #nameKey,                    call, geml-parser/src/geml.ts:1941
+#checkReservedMetaId,                                #nameKey,                    call, geml-parser/src/geml.ts:1941
+#checkReservedMetaId,                                #nameKey,                    call, geml-parser/src/geml.ts:1954
+#resolveTableSources,                                #nameKey,                    call, geml-parser/src/geml.ts:2006
+#relationBlock,                                      #nameKey,                    call, geml-parser/src/geml.ts:2028
+#relationBlock,                                      #nameKey,                    call, geml-parser/src/geml.ts:2028
+#resolveViewSources,                                 #nameKey,                    call, geml-parser/src/geml.ts:2096
+#resolveViewSources,                                 #nameKey,                    call, geml-parser/src/geml.ts:2098
+#resolveViewSources,                                 #nameKey,                    call, geml-parser/src/geml.ts:2098
+#resolveViewSources,                                 #nameKey,                    call, geml-parser/src/geml.ts:2179
+#resolveViewSources,                                 #nameKey,                    call, geml-parser/src/geml.ts:2184
+#resolveViewSources,                                 #nameKey,                    call, geml-parser/src/geml.ts:2194
+#gatherIds,                                          #nameKey,                    call, geml-parser/src/geml.ts:2214
+#blockFromDocument,                                  #nameKey,                    call, geml-parser/src/geml.ts:2319
+#blockFromDocument,                                  #nameKey,                    call, geml-parser/src/geml.ts:2319
+#blockFromDocument,                                  #nameKey,                    call, geml-parser/src/geml.ts:2319
+#blockFromDocument,                                  #nameKey,                    call, geml-parser/src/geml.ts:2326
+#blockFromDocument,                                  #nameKey,                    call, geml-parser/src/geml.ts:2326
+#validateCoordRef,                                   #nameKey,                    call, geml-parser/src/geml.ts:2364
+#validateCoordRef,                                   #nameKey,                    call, geml-parser/src/geml.ts:2364
+#validateCoordRef,                                   #nameKey,                    call, geml-parser/src/geml.ts:2364
+#validateCoordRef,                                   #nameKey,                    call, geml-parser/src/geml.ts:2370
+#validateCoordRef,                                   #nameKey,                    call, geml-parser/src/geml.ts:2388
+#validateCoordRef,                                   #nameKey,                    call, geml-parser/src/geml.ts:2388
+#htmlAnchorsOf,                                      #nameKey,                    call, geml-parser/src/geml.ts:2438
+#validateWikilink,                                   #nameKey,                    call, geml-parser/src/geml.ts:2492
+#validateWikilink,                                   #nameKey,                    call, geml-parser/src/geml.ts:2492
+#validateWikilink,                                   #nameKey,                    call, geml-parser/src/geml.ts:2492
+#validateRefs,                                       #nameKey,                    call, geml-parser/src/geml.ts:2565
+#validateRefs,                                       #nameKey,                    call, geml-parser/src/geml.ts:2579
+#validateRefs,                                       #nameKey,                    call, geml-parser/src/geml.ts:2579
+#validateRefs,                                       #nameKey,                    call, geml-parser/src/geml.ts:2580
+#resolveDataSources,                                 #nameKey,                    call, geml-parser/src/geml.ts:2730
+#resolveDataSources,                                 #nameKey,                    call, geml-parser/src/geml.ts:2731
+#resolveCharts,                                      #nameKey,                    call, geml-parser/src/geml.ts:2805
+#resolveCharts,                                      #nameKey,                    call, geml-parser/src/geml.ts:2806
+#resolveCharts,                                      #nameKey,                    call, geml-parser/src/geml.ts:2810
+#resolveCharts,                                      #nameKey,                    call, geml-parser/src/geml.ts:2855
+#parse,                                              #nameKey,                    call, geml-parser/src/geml.ts:2937
+#findEmbedTarget,                                    #nameKey,                    call, geml-parser/src/geml.ts:3254
+#findEmbedTarget,                                    #nameKey,                    call, geml-parser/src/geml.ts:3254
+#findDeclaredTarget,                                 #nameKey,                    call, geml-parser/src/geml.ts:3262
+#findDeclaredTarget,                                 #nameKey,                    call, geml-parser/src/geml.ts:3262
+#findDeclaredTarget,                                 #nameKey,                    call, geml-parser/src/geml.ts:3271
+#findDeclaredTarget,                                 #nameKey,                    call, geml-parser/src/geml.ts:3271
+#addressedUnits,                                     #nameKey,                    call, geml-parser/src/geml.ts:3421
+#addressedUnits,                                     #nameKey,                    call, geml-parser/src/geml.ts:3429
 #findBlockSite,                                      #nameKey,                    call, geml-parser/src/geml.ts:3534
+#findBlockSite,                                      #nameKey,                    call, geml-parser/src/geml.ts:3537
 geml-parser--style-selector.ts.geml#matchSimple,     #nameKey,                    call, geml-parser/src/style-selector.ts:345
 geml-parser--style-selector.ts.geml#matchSimple,     #nameKey,                    call, geml-parser/src/style-selector.ts:345
 geml-parser--verbs.ts.geml#selectUnits,              #nameKey,                    call, geml-parser/src/verbs.ts:506
@@ -778,110 +778,110 @@ geml-parser--verbs.ts.geml#rename,                   #nameKey,                  
 geml-parser--verbs.ts.geml#rename,                   #nameKey,                    call, geml-parser/src/verbs.ts:1577
 geml-parser--verbs.ts.geml#spliceSpan,               #nameKey,                    call, geml-parser/src/verbs.ts:1900
 geml-parser--verbs.ts.geml#spliceSpan,               #nameKey,                    call, geml-parser/src/verbs.ts:1900
-#makeListItem,                                       #interpolate,                call, geml-parser/src/geml.ts:774
-#scanProse,                                          #interpolate,                call, geml-parser/src/geml.ts:1417
-#scanBlocks,                                         #interpolate,                call, geml-parser/src/geml.ts:1479
-#scanBlocks,                                         #interpolate,                call, geml-parser/src/geml.ts:1605
-#readFencedBlock,                                    #registerId,                 call, geml-parser/src/geml.ts:1263
-#scanBlocks,                                         #registerId,                 call, geml-parser/src/geml.ts:1481
-#parseList,                                          #matchMarker,                call, geml-parser/src/geml.ts:801
-#parseList,                                          #matchMarker,                call, geml-parser/src/geml.ts:802
-#parseList,                                          #matchMarker,                call, geml-parser/src/geml.ts:808
-#parseList,                                          #matchMarker,                call, geml-parser/src/geml.ts:844
-#parseList,                                          #indentColumns,              call, geml-parser/src/geml.ts:844
-#parseList,                                          #makeListItem,               call, geml-parser/src/geml.ts:848
-#scanBlocks,                                         #parseList,                  call, geml-parser/src/geml.ts:1521
-#readFencedBlock,                                    #scanFenceBody,              call, geml-parser/src/geml.ts:1254
-#bodyModeFor,                                        #reportUnknownAttrs,         call, geml-parser/src/geml.ts:931
-#bodyModeFor,                                        #reportUnknownAttrs,         call, geml-parser/src/geml.ts:955
-#readFencedBlock,                                    #bodyModeFor,                call, geml-parser/src/geml.ts:1255
-#readFencedBlock,                                    #recordEmbedSrc,             call, geml-parser/src/geml.ts:1266
-#readFencedBlock,                                    #readTypedRawBody,           call, geml-parser/src/geml.ts:1284
-#scanBlocks,                                         #readFencedBlock,            call, geml-parser/src/geml.ts:1465
-#shieldFor,                                          #backtickShield,             call, geml-parser/src/geml.ts:1392
-#shieldFor,                                          #markdownCodeRuns,           call, geml-parser/src/geml.ts:1394
-#scanBlocks,                                         #markdownCodeRuns,           call, geml-parser/src/geml.ts:1437
-#scanBlocks,                                         #shieldFor,                  call, geml-parser/src/geml.ts:1434
-#collectMeta,                                        #shieldFor,                  call, geml-parser/src/geml.ts:2257
-#blockMarkersOf,                                     #shieldFor,                  call, geml-parser/src/geml.ts:2394
-#htmlAnchorsOf,                                      #shieldFor,                  call, geml-parser/src/geml.ts:2419
-#collectSpans,                                       #shieldFor,                  call, geml-parser/src/geml.ts:3092
-#readFencedBlock,                                    #scanProse,                  call, geml-parser/src/geml.ts:1269
-#readFencedBlock,                                    #scanBlocks,                 call, geml-parser/src/geml.ts:1278
-#gatherEmbeds,                                       #scanBlocks,                 call, geml-parser/src/geml.ts:1892
-#tableFromDocument,                                  #scanBlocks,                 call, geml-parser/src/geml.ts:1903
-#gatherIds,                                          #scanBlocks,                 call, geml-parser/src/geml.ts:2206
-#blockFromDocument,                                  #scanBlocks,                 call, geml-parser/src/geml.ts:2297
-#parse,                                              #scanBlocks,                 call, geml-parser/src/geml.ts:2931
-#readFencedBlock,                                    #parseData,                  call, geml-parser/src/geml.ts:1281
-#collectMeta,                                        #parseData,                  call, geml-parser/src/geml.ts:2268
-#resolveCharts,                                      #chartSourceTable,           call, geml-parser/src/geml.ts:2825
-#chartSourceTable,                                   #inferDataFormat,            call, geml-parser/src/geml.ts:1663
-#parse,                                              #detectTransclusionCycles,   call, geml-parser/src/geml.ts:2949
-#detectTransclusionCycles,                           #reportBorrowedVocabularies, call, geml-parser/src/geml.ts:1725
-#parse,                                              #detectSelfEmbedCycles,      call, geml-parser/src/geml.ts:2950
-#parse,                                              #detectSelfProjectionCycles, call, geml-parser/src/geml.ts:2952
-#validateProjections,                                #projectableInlines,         call, geml-parser/src/geml.ts:1852
+#makeListItem,                                       #interpolate,                call, geml-parser/src/geml.ts:777
+#scanProse,                                          #interpolate,                call, geml-parser/src/geml.ts:1420
+#scanBlocks,                                         #interpolate,                call, geml-parser/src/geml.ts:1482
+#scanBlocks,                                         #interpolate,                call, geml-parser/src/geml.ts:1608
+#readFencedBlock,                                    #registerId,                 call, geml-parser/src/geml.ts:1266
+#scanBlocks,                                         #registerId,                 call, geml-parser/src/geml.ts:1484
+#parseList,                                          #matchMarker,                call, geml-parser/src/geml.ts:804
+#parseList,                                          #matchMarker,                call, geml-parser/src/geml.ts:805
+#parseList,                                          #matchMarker,                call, geml-parser/src/geml.ts:811
+#parseList,                                          #matchMarker,                call, geml-parser/src/geml.ts:847
+#parseList,                                          #indentColumns,              call, geml-parser/src/geml.ts:847
+#parseList,                                          #makeListItem,               call, geml-parser/src/geml.ts:851
+#scanBlocks,                                         #parseList,                  call, geml-parser/src/geml.ts:1524
+#readFencedBlock,                                    #scanFenceBody,              call, geml-parser/src/geml.ts:1257
+#bodyModeFor,                                        #reportUnknownAttrs,         call, geml-parser/src/geml.ts:934
+#bodyModeFor,                                        #reportUnknownAttrs,         call, geml-parser/src/geml.ts:958
+#readFencedBlock,                                    #bodyModeFor,                call, geml-parser/src/geml.ts:1258
+#readFencedBlock,                                    #recordEmbedSrc,             call, geml-parser/src/geml.ts:1269
+#readFencedBlock,                                    #readTypedRawBody,           call, geml-parser/src/geml.ts:1287
+#scanBlocks,                                         #readFencedBlock,            call, geml-parser/src/geml.ts:1468
+#shieldFor,                                          #backtickShield,             call, geml-parser/src/geml.ts:1395
+#shieldFor,                                          #markdownCodeRuns,           call, geml-parser/src/geml.ts:1397
+#scanBlocks,                                         #markdownCodeRuns,           call, geml-parser/src/geml.ts:1440
+#scanBlocks,                                         #shieldFor,                  call, geml-parser/src/geml.ts:1437
+#collectMeta,                                        #shieldFor,                  call, geml-parser/src/geml.ts:2260
+#blockMarkersOf,                                     #shieldFor,                  call, geml-parser/src/geml.ts:2397
+#htmlAnchorsOf,                                      #shieldFor,                  call, geml-parser/src/geml.ts:2422
+#collectSpans,                                       #shieldFor,                  call, geml-parser/src/geml.ts:3095
+#readFencedBlock,                                    #scanProse,                  call, geml-parser/src/geml.ts:1272
+#readFencedBlock,                                    #scanBlocks,                 call, geml-parser/src/geml.ts:1281
+#gatherEmbeds,                                       #scanBlocks,                 call, geml-parser/src/geml.ts:1895
+#tableFromDocument,                                  #scanBlocks,                 call, geml-parser/src/geml.ts:1906
+#gatherIds,                                          #scanBlocks,                 call, geml-parser/src/geml.ts:2209
+#blockFromDocument,                                  #scanBlocks,                 call, geml-parser/src/geml.ts:2300
+#parse,                                              #scanBlocks,                 call, geml-parser/src/geml.ts:2934
+#readFencedBlock,                                    #parseData,                  call, geml-parser/src/geml.ts:1284
+#collectMeta,                                        #parseData,                  call, geml-parser/src/geml.ts:2271
+#resolveCharts,                                      #chartSourceTable,           call, geml-parser/src/geml.ts:2828
+#chartSourceTable,                                   #inferDataFormat,            call, geml-parser/src/geml.ts:1666
+#parse,                                              #detectTransclusionCycles,   call, geml-parser/src/geml.ts:2952
+#detectTransclusionCycles,                           #reportBorrowedVocabularies, call, geml-parser/src/geml.ts:1728
+#parse,                                              #detectSelfEmbedCycles,      call, geml-parser/src/geml.ts:2953
+#parse,                                              #detectSelfProjectionCycles, call, geml-parser/src/geml.ts:2955
+#validateProjections,                                #projectableInlines,         call, geml-parser/src/geml.ts:1855
 geml-parser--render.ts.geml#RenderCtx-projectInline, #projectableInlines,         call, geml-parser/src/render.ts:490
-#parse,                                              #validateProjections,        call, geml-parser/src/geml.ts:2951
-#detectTransclusionCycles,                           #relJoinPath,                call, geml-parser/src/geml.ts:1697
-#reportBorrowedVocabularies,                         #relJoinPath,                call, geml-parser/src/geml.ts:1758
-#remoteRelation,                                     #relJoinPath,                call, geml-parser/src/geml.ts:2051
-#resolveViewSources,                                 #relJoinPath,                call, geml-parser/src/geml.ts:2112
+#parse,                                              #validateProjections,        call, geml-parser/src/geml.ts:2954
+#detectTransclusionCycles,                           #relJoinPath,                call, geml-parser/src/geml.ts:1700
+#reportBorrowedVocabularies,                         #relJoinPath,                call, geml-parser/src/geml.ts:1761
+#remoteRelation,                                     #relJoinPath,                call, geml-parser/src/geml.ts:2054
+#resolveViewSources,                                 #relJoinPath,                call, geml-parser/src/geml.ts:2115
 geml-parser--verbs.ts.geml#oneHop,                   #relJoinPath,                call, geml-parser/src/verbs.ts:176
-#detectTransclusionCycles,                           #relDirPath,                 call, geml-parser/src/geml.ts:1717
-#detectTransclusionCycles,                           #relDirPath,                 call, geml-parser/src/geml.ts:1724
-#reportBorrowedVocabularies,                         #relDirPath,                 call, geml-parser/src/geml.ts:1758
-#remoteRelation,                                     #relDirPath,                 call, geml-parser/src/geml.ts:2050
-#resolveViewSources,                                 #relDirPath,                 call, geml-parser/src/geml.ts:2112
+#detectTransclusionCycles,                           #relDirPath,                 call, geml-parser/src/geml.ts:1720
+#detectTransclusionCycles,                           #relDirPath,                 call, geml-parser/src/geml.ts:1727
+#reportBorrowedVocabularies,                         #relDirPath,                 call, geml-parser/src/geml.ts:1761
+#remoteRelation,                                     #relDirPath,                 call, geml-parser/src/geml.ts:2053
+#resolveViewSources,                                 #relDirPath,                 call, geml-parser/src/geml.ts:2115
 geml-parser--verbs.ts.geml#oneHop,                   #relDirPath,                 call, geml-parser/src/verbs.ts:176
 geml-parser--verbs.ts.geml#get,                      #relDirPath,                 call, geml-parser/src/verbs.ts:651
 geml-parser--verbs.ts.geml#transform,                #relDirPath,                 call, geml-parser/src/verbs.ts:907
-#detectTransclusionCycles,                           #gatherEmbeds,               call, geml-parser/src/geml.ts:1714
-#resolveCharts,                                      #tableFromDocument,          call, geml-parser/src/geml.ts:2866
-#parse,                                              #checkReservedMetaId,        call, geml-parser/src/geml.ts:2942
-#blockFromDocument,                                  #resolveTableSources,        call, geml-parser/src/geml.ts:2308
-#parse,                                              #resolveTableSources,        call, geml-parser/src/geml.ts:2937
-#resolveViewSources,                                 #copyRelation,               call, geml-parser/src/geml.ts:2186
-#remoteRelation,                                     #relationBlock,              call, geml-parser/src/geml.ts:2063
-#resolveViewSources,                                 #remoteRelation,             call, geml-parser/src/geml.ts:2123
-#blockFromDocument,                                  #resolveViewSources,         call, geml-parser/src/geml.ts:2309
-#parse,                                              #resolveViewSources,         call, geml-parser/src/geml.ts:2938
-#resolveViewSources,                                 #blockCaption,               call, geml-parser/src/geml.ts:2186
-#validateRefs,                                       #gatherIds,                  call, geml-parser/src/geml.ts:2559
+#detectTransclusionCycles,                           #gatherEmbeds,               call, geml-parser/src/geml.ts:1717
+#resolveCharts,                                      #tableFromDocument,          call, geml-parser/src/geml.ts:2869
+#parse,                                              #checkReservedMetaId,        call, geml-parser/src/geml.ts:2945
+#blockFromDocument,                                  #resolveTableSources,        call, geml-parser/src/geml.ts:2311
+#parse,                                              #resolveTableSources,        call, geml-parser/src/geml.ts:2940
+#resolveViewSources,                                 #copyRelation,               call, geml-parser/src/geml.ts:2189
+#remoteRelation,                                     #relationBlock,              call, geml-parser/src/geml.ts:2066
+#resolveViewSources,                                 #remoteRelation,             call, geml-parser/src/geml.ts:2126
+#blockFromDocument,                                  #resolveViewSources,         call, geml-parser/src/geml.ts:2312
+#parse,                                              #resolveViewSources,         call, geml-parser/src/geml.ts:2941
+#resolveViewSources,                                 #blockCaption,               call, geml-parser/src/geml.ts:2189
+#validateRefs,                                       #gatherIds,                  call, geml-parser/src/geml.ts:2562
 geml-parser--verbs.ts.geml#transform,                #vocabularyOf,               call, geml-parser/src/verbs.ts:933
 geml-parser--cli.ts.geml#runCheck,                   #metaOf,                     call, geml-parser/src/cli.ts:879
-#reportBorrowedVocabularies,                         #collectMeta,                call, geml-parser/src/geml.ts:1762
-#vocabularyOf,                                       #collectMeta,                call, geml-parser/src/geml.ts:2232
-#metaOf,                                             #collectMeta,                call, geml-parser/src/geml.ts:2242
-#parse,                                              #collectMeta,                call, geml-parser/src/geml.ts:2897
-#blockSpans,                                         #collectMeta,                call, geml-parser/src/geml.ts:3173
-#unitSpans,                                          #collectMeta,                call, geml-parser/src/geml.ts:3196
-#addressedUnits,                                     #collectMeta,                call, geml-parser/src/geml.ts:3410
-#validateCoordRef,                                   #blockFromDocument,          call, geml-parser/src/geml.ts:2359
-#validateRefs,                                       #validateCoordRef,           call, geml-parser/src/geml.ts:2505
-#parse,                                              #blockMarkersOf,             call, geml-parser/src/geml.ts:2944
-#parse,                                              #htmlAnchorsOf,              call, geml-parser/src/geml.ts:2946
-#htmlAnchorsOf,                                      #outsideCodeSpans,           call, geml-parser/src/geml.ts:2423
-#htmlAnchorsOf,                                      #htmlAttributes,             call, geml-parser/src/geml.ts:2434
-#validateRefs,                                       #validateWikilink,           call, geml-parser/src/geml.ts:2504
-#parse,                                              #validateRefs,               call, geml-parser/src/geml.ts:2948
-#resolveCodeSources,                                 #parseSourceRoute,           call, geml-parser/src/geml.ts:2640
-#resolveDataSources,                                 #parseSourceRoute,           call, geml-parser/src/geml.ts:2688
-#resolveCodeSources,                                 #sliceSourceRange,           call, geml-parser/src/geml.ts:2659
-#resolveDataSources,                                 #sliceSourceRange,           call, geml-parser/src/geml.ts:2721
-#parse,                                              #resolveCodeSources,         call, geml-parser/src/geml.ts:2940
-#blockFromDocument,                                  #resolveDataSources,         call, geml-parser/src/geml.ts:2310
-#parse,                                              #resolveDataSources,         call, geml-parser/src/geml.ts:2939
-#resolveCharts,                                      #recordsToTable,             call, geml-parser/src/geml.ts:2807
-#resolveCharts,                                      #recordsToTable,             call, geml-parser/src/geml.ts:2842
-#resolveCharts,                                      #recordsToTable,             call, geml-parser/src/geml.ts:2870
-#parse,                                              #resolveCharts,              call, geml-parser/src/geml.ts:2941
+#reportBorrowedVocabularies,                         #collectMeta,                call, geml-parser/src/geml.ts:1765
+#vocabularyOf,                                       #collectMeta,                call, geml-parser/src/geml.ts:2235
+#metaOf,                                             #collectMeta,                call, geml-parser/src/geml.ts:2245
+#parse,                                              #collectMeta,                call, geml-parser/src/geml.ts:2900
+#blockSpans,                                         #collectMeta,                call, geml-parser/src/geml.ts:3176
+#unitSpans,                                          #collectMeta,                call, geml-parser/src/geml.ts:3199
+#addressedUnits,                                     #collectMeta,                call, geml-parser/src/geml.ts:3413
+#validateCoordRef,                                   #blockFromDocument,          call, geml-parser/src/geml.ts:2362
+#validateRefs,                                       #validateCoordRef,           call, geml-parser/src/geml.ts:2508
+#parse,                                              #blockMarkersOf,             call, geml-parser/src/geml.ts:2947
+#parse,                                              #htmlAnchorsOf,              call, geml-parser/src/geml.ts:2949
+#htmlAnchorsOf,                                      #outsideCodeSpans,           call, geml-parser/src/geml.ts:2426
+#htmlAnchorsOf,                                      #htmlAttributes,             call, geml-parser/src/geml.ts:2437
+#validateRefs,                                       #validateWikilink,           call, geml-parser/src/geml.ts:2507
+#parse,                                              #validateRefs,               call, geml-parser/src/geml.ts:2951
+#resolveCodeSources,                                 #parseSourceRoute,           call, geml-parser/src/geml.ts:2643
+#resolveDataSources,                                 #parseSourceRoute,           call, geml-parser/src/geml.ts:2691
+#resolveCodeSources,                                 #sliceSourceRange,           call, geml-parser/src/geml.ts:2662
+#resolveDataSources,                                 #sliceSourceRange,           call, geml-parser/src/geml.ts:2724
+#parse,                                              #resolveCodeSources,         call, geml-parser/src/geml.ts:2943
+#blockFromDocument,                                  #resolveDataSources,         call, geml-parser/src/geml.ts:2313
+#parse,                                              #resolveDataSources,         call, geml-parser/src/geml.ts:2942
+#resolveCharts,                                      #recordsToTable,             call, geml-parser/src/geml.ts:2810
+#resolveCharts,                                      #recordsToTable,             call, geml-parser/src/geml.ts:2845
+#resolveCharts,                                      #recordsToTable,             call, geml-parser/src/geml.ts:2873
+#parse,                                              #resolveCharts,              call, geml-parser/src/geml.ts:2944
 geml-parser--cli.ts.geml#runStyle,                   #parse,                      call, geml-parser/src/cli.ts:1562
 geml-parser--cli.ts.geml#runStyle,                   #parse,                      call, geml-parser/src/cli.ts:1565
 geml-parser--cli.ts.geml#runStyle,                   #parse,                      call, geml-parser/src/cli.ts:1566
-#validateProjections,                                #parse,                      call, geml-parser/src/geml.ts:1849
-#remoteRelation,                                     #parse,                      call, geml-parser/src/geml.ts:2060
+#validateProjections,                                #parse,                      call, geml-parser/src/geml.ts:1852
+#remoteRelation,                                     #parse,                      call, geml-parser/src/geml.ts:2063
 geml-parser--graph-style.ts.geml#parseGraphStyle,    #parse,                      call, geml-parser/src/graph-style.ts:68
 geml-parser--mcp-core.ts.geml#applyWrite,            #parse,                      call, geml-parser/src/mcp-core.ts:123
 geml-parser--mcp-core.ts.geml#applyWrite,            #parse,                      call, geml-parser/src/mcp-core.ts:156
@@ -914,22 +914,22 @@ geml-parser--verbs.ts.geml#spliceSpan,               #parse,                    
 geml-parser--verbs.ts.geml#spliceSpan,               #parse,                      call, geml-parser/src/verbs.ts:1849
 geml-parser--verbs.ts.geml#revert,                   #parse,                      call, geml-parser/src/verbs.ts:2054
 geml-parser--verbs.ts.geml#revert,                   #parse,                      call, geml-parser/src/verbs.ts:2057
-#collectSpans,                                       #idOfHeading,                call, geml-parser/src/geml.ts:3133
-#scanBlocks,                                         #foldFence,                  call, geml-parser/src/geml.ts:1443
-#collectMeta,                                        #foldFence,                  call, geml-parser/src/geml.ts:2260
-#sectionEnd,                                         #foldFence,                  call, geml-parser/src/geml.ts:3052
-#collectSpans,                                       #foldFence,                  call, geml-parser/src/geml.ts:3097
-#collectMeta,                                        #fenceClose,                 call, geml-parser/src/geml.ts:2264
-#sectionEnd,                                         #fenceClose,                 call, geml-parser/src/geml.ts:3054
-#collectSpans,                                       #fenceClose,                 call, geml-parser/src/geml.ts:3114
-#collectSpans,                                       #sectionEnd,                 call, geml-parser/src/geml.ts:3134
-#collectSpans,                                       #keysOf,                     call, geml-parser/src/geml.ts:3116
-#collectSpans,                                       #keysOf,                     call, geml-parser/src/geml.ts:3136
-#blockSpans,                                         #collectSpans,               call, geml-parser/src/geml.ts:3175
-#unitSpans,                                          #collectSpans,               call, geml-parser/src/geml.ts:3199
-#addressedUnits,                                     #collectSpans,               call, geml-parser/src/geml.ts:3413
-#closeFenceLine,                                     #stripEol,                   call, geml-parser/src/geml.ts:3477
-#closeFenceLine,                                     #stripEol,                   call, geml-parser/src/geml.ts:3479
+#collectSpans,                                       #idOfHeading,                call, geml-parser/src/geml.ts:3136
+#scanBlocks,                                         #foldFence,                  call, geml-parser/src/geml.ts:1446
+#collectMeta,                                        #foldFence,                  call, geml-parser/src/geml.ts:2263
+#sectionEnd,                                         #foldFence,                  call, geml-parser/src/geml.ts:3055
+#collectSpans,                                       #foldFence,                  call, geml-parser/src/geml.ts:3100
+#collectMeta,                                        #fenceClose,                 call, geml-parser/src/geml.ts:2267
+#sectionEnd,                                         #fenceClose,                 call, geml-parser/src/geml.ts:3057
+#collectSpans,                                       #fenceClose,                 call, geml-parser/src/geml.ts:3117
+#collectSpans,                                       #sectionEnd,                 call, geml-parser/src/geml.ts:3137
+#collectSpans,                                       #keysOf,                     call, geml-parser/src/geml.ts:3119
+#collectSpans,                                       #keysOf,                     call, geml-parser/src/geml.ts:3139
+#blockSpans,                                         #collectSpans,               call, geml-parser/src/geml.ts:3178
+#unitSpans,                                          #collectSpans,               call, geml-parser/src/geml.ts:3202
+#addressedUnits,                                     #collectSpans,               call, geml-parser/src/geml.ts:3416
+#closeFenceLine,                                     #stripEol,                   call, geml-parser/src/geml.ts:3480
+#closeFenceLine,                                     #stripEol,                   call, geml-parser/src/geml.ts:3482
 geml-parser--verbs.ts.geml#setIntro,                 #stripEol,                   call, geml-parser/src/verbs.ts:1280
 geml-parser--verbs.ts.geml#insertFragment,           #stripEol,                   call, geml-parser/src/verbs.ts:1493
 geml-parser--verbs.ts.geml#bodyRange,                #stripEol,                   call, geml-parser/src/verbs.ts:1642
@@ -938,10 +938,10 @@ geml-parser--verbs.ts.geml#bodyRange,                #stripEol,                 
 #matchHeading,                                       #trimSpaceTabEnd,            call, geml-parser/src/geml.ts:396
 #registerGithubAnchor,                               #trimSpaceTabEnd,            call, geml-parser/src/geml.ts:596
 #withoutClosingHashes,                               #trimSpaceTabEnd,            call, geml-parser/src/geml.ts:623
-#closeFenceLine,                                     #trimSpaceTabEnd,            call, geml-parser/src/geml.ts:3479
+#closeFenceLine,                                     #trimSpaceTabEnd,            call, geml-parser/src/geml.ts:3482
 geml-parser--verbs.ts.geml#bodyRange,                #trimSpaceTabEnd,            call, geml-parser/src/verbs.ts:1644
-#detectSelfEmbedCycles,                              #blockSpans,                 call, geml-parser/src/geml.ts:1780
-#detectSelfProjectionCycles,                         #blockSpans,                 call, geml-parser/src/geml.ts:1802
+#detectSelfEmbedCycles,                              #blockSpans,                 call, geml-parser/src/geml.ts:1783
+#detectSelfProjectionCycles,                         #blockSpans,                 call, geml-parser/src/geml.ts:1805
 geml-parser--verbs.ts.geml#resolveSelector,          #blockSpans,                 call, geml-parser/src/verbs.ts:266
 geml-parser--verbs.ts.geml#extractBlock,             #blockSpans,                 call, geml-parser/src/verbs.ts:1097
 geml-parser--verbs.ts.geml#add,                      #blockSpans,                 call, geml-parser/src/verbs.ts:1466
@@ -957,16 +957,16 @@ geml-parser--verbs.ts.geml#resurrectPosition,        #blockSpans,               
 geml-parser--verbs.ts.geml#resurrectPosition,        #blockSpans,                 call, geml-parser/src/verbs.ts:2091
 geml-parser--render.ts.geml#RenderCtx-transclude,    #selectEmbed,                call, geml-parser/src/render.ts:432
 geml-parser--style-resolve.ts.geml#expandEmbeds,     #selectEmbed,                call, geml-parser/src/style-resolve.ts:557
-#selectEmbed,                                        #narrowEmbed,                call, geml-parser/src/geml.ts:3218
-#selectEmbed,                                        #findEmbedTarget,            call, geml-parser/src/geml.ts:3217
-#findEmbedTarget,                                    #findDeclaredTarget,         call, geml-parser/src/geml.ts:3245
-#gatherIds,                                          #proseRunTargets,            call, geml-parser/src/geml.ts:2211
-#parse,                                              #proseRunTargets,            call, geml-parser/src/geml.ts:2934
-#findEmbedTarget,                                    #proseRunTargets,            call, geml-parser/src/geml.ts:3250
-#addressedUnits,                                     #proseRuns,                  call, geml-parser/src/geml.ts:3419
-#proseRunTargets,                                    #runAddress,                 call, geml-parser/src/geml.ts:3294
-#proseRuns,                                          #runAddress,                 call, geml-parser/src/geml.ts:3383
-#narrowToIntro,                                      #addressedUnits,             call, geml-parser/src/geml.ts:3504
+#selectEmbed,                                        #narrowEmbed,                call, geml-parser/src/geml.ts:3221
+#selectEmbed,                                        #findEmbedTarget,            call, geml-parser/src/geml.ts:3220
+#findEmbedTarget,                                    #findDeclaredTarget,         call, geml-parser/src/geml.ts:3248
+#gatherIds,                                          #proseRunTargets,            call, geml-parser/src/geml.ts:2214
+#parse,                                              #proseRunTargets,            call, geml-parser/src/geml.ts:2937
+#findEmbedTarget,                                    #proseRunTargets,            call, geml-parser/src/geml.ts:3253
+#addressedUnits,                                     #proseRuns,                  call, geml-parser/src/geml.ts:3422
+#proseRunTargets,                                    #runAddress,                 call, geml-parser/src/geml.ts:3297
+#proseRuns,                                          #runAddress,                 call, geml-parser/src/geml.ts:3386
+#narrowToIntro,                                      #addressedUnits,             call, geml-parser/src/geml.ts:3507
 geml-parser--verbs.ts.geml#oneHop,                   #addressedUnits,             call, geml-parser/src/verbs.ts:187
 geml-parser--verbs.ts.geml#list,                     #addressedUnits,             call, geml-parser/src/verbs.ts:351
 geml-parser--verbs.ts.geml#selectUnits,              #addressedUnits,             call, geml-parser/src/verbs.ts:469
@@ -980,8 +980,8 @@ geml-parser--verbs.ts.geml#setMeta,                  #addressedUnits,           
 geml-parser--verbs.ts.geml#countBlockUnits,          #addressedUnits,             call, geml-parser/src/verbs.ts:1687
 geml-parser--verbs.ts.geml#spliceSpan,               #addressedUnits,             call, geml-parser/src/verbs.ts:1855
 geml-parser--verbs.ts.geml#spliceSpan,               #addressedUnits,             call, geml-parser/src/verbs.ts:1899
-#narrowToIntro,                                      #splitLines,                 call, geml-parser/src/geml.ts:3502
-#sliceUnit,                                          #splitLines,                 call, geml-parser/src/geml.ts:3517
+#narrowToIntro,                                      #splitLines,                 call, geml-parser/src/geml.ts:3505
+#sliceUnit,                                          #splitLines,                 call, geml-parser/src/geml.ts:3520
 geml-parser--verbs.ts.geml#replace,                  #splitLines,                 call, geml-parser/src/verbs.ts:989
 geml-parser--verbs.ts.geml#extractBlock,             #splitLines,                 call, geml-parser/src/verbs.ts:1104
 geml-parser--verbs.ts.geml#idInPlace,                #splitLines,                 call, geml-parser/src/verbs.ts:1152
@@ -1006,7 +1006,7 @@ geml-parser--verbs.ts.geml#idInPlace,                #newlineOf,                
 geml-parser--verbs.ts.geml#insertFragment,           #newlineOf,                  call, geml-parser/src/verbs.ts:1484
 geml-parser--verbs.ts.geml#spliceSpan,               #newlineOf,                  call, geml-parser/src/verbs.ts:1829
 geml-parser--verbs.ts.geml#revert,                   #newlineOf,                  call, geml-parser/src/verbs.ts:1954
-#toNewline,                                          #toLf,                       call, geml-parser/src/geml.ts:3457
+#toNewline,                                          #toLf,                       call, geml-parser/src/geml.ts:3460
 geml-parser--verbs.ts.geml#setIntro,                 #toLf,                       call, geml-parser/src/verbs.ts:1270
 geml-parser--verbs.ts.geml#setBody,                  #toLf,                       call, geml-parser/src/verbs.ts:1313
 geml-parser--verbs.ts.geml#setMeta,                  #toLf,                       call, geml-parser/src/verbs.ts:1363
@@ -1016,25 +1016,25 @@ geml-parser--verbs.ts.geml#idInPlace,                #toNewline,                
 geml-parser--verbs.ts.geml#insertFragment,           #toNewline,                  call, geml-parser/src/verbs.ts:1489
 geml-parser--verbs.ts.geml#spliceSpan,               #toNewline,                  call, geml-parser/src/verbs.ts:1830
 geml-parser--verbs.ts.geml#revert,                   #toNewline,                  call, geml-parser/src/verbs.ts:1954
-#sliceUnit,                                          #narrowToHead,               call, geml-parser/src/geml.ts:3518
+#sliceUnit,                                          #narrowToHead,               call, geml-parser/src/geml.ts:3521
 geml-parser--verbs.ts.geml#spliceSpan,               #narrowToHead,               call, geml-parser/src/verbs.ts:1826
 geml-parser--verbs.ts.geml#revert,                   #narrowToHead,               call, geml-parser/src/verbs.ts:1957
 geml-parser--verbs.ts.geml#revert,                   #narrowToHead,               call, geml-parser/src/verbs.ts:1966
-#narrowToBody,                                       #closeFenceLine,             call, geml-parser/src/geml.ts:3489
+#narrowToBody,                                       #closeFenceLine,             call, geml-parser/src/geml.ts:3492
 geml-parser--verbs.ts.geml#setBody,                  #closeFenceLine,             call, geml-parser/src/verbs.ts:1301
 geml-parser--verbs.ts.geml#setMeta,                  #closeFenceLine,             call, geml-parser/src/verbs.ts:1361
 geml-parser--verbs.ts.geml#setCoord,                 #closeFenceLine,             call, geml-parser/src/verbs.ts:1407
-#narrowToIntro,                                      #narrowToBody,               call, geml-parser/src/geml.ts:3502
-#sliceUnit,                                          #narrowToBody,               call, geml-parser/src/geml.ts:3519
-#sliceUnit,                                          #narrowToIntro,              call, geml-parser/src/geml.ts:3520
+#narrowToIntro,                                      #narrowToBody,               call, geml-parser/src/geml.ts:3505
+#sliceUnit,                                          #narrowToBody,               call, geml-parser/src/geml.ts:3522
+#sliceUnit,                                          #narrowToIntro,              call, geml-parser/src/geml.ts:3523
 geml-parser--verbs.ts.geml#setIntro,                 #narrowToIntro,              call, geml-parser/src/verbs.ts:1267
 geml-parser--cli.ts.geml#runHistory,                 #sliceUnit,                  call, geml-parser/src/cli.ts:1054
 geml-parser--verbs.ts.geml#embedSrcOf,               #sliceUnit,                  call, geml-parser/src/verbs.ts:229
 geml-parser--verbs.ts.geml#get,                      #sliceUnit,                  call, geml-parser/src/verbs.ts:700
 geml-parser--verbs.ts.geml#get,                      #sliceUnit,                  call, geml-parser/src/verbs.ts:714
 geml-parser--verbs.ts.geml#transform,                #sliceUnit,                  call, geml-parser/src/verbs.ts:933
-#remoteRelation,                                     #findBlockSite,              call, geml-parser/src/geml.ts:2065
-#validateCoordRef,                                   #findBlockSite,              call, geml-parser/src/geml.ts:2368
+#remoteRelation,                                     #findBlockSite,              call, geml-parser/src/geml.ts:2068
+#validateCoordRef,                                   #findBlockSite,              call, geml-parser/src/geml.ts:2371
 geml-parser--verbs.ts.geml#resolveSelector,          #findBlockSite,              call, geml-parser/src/verbs.ts:272
 geml-parser--verbs.ts.geml#list,                     #findBlockSite,              call, geml-parser/src/verbs.ts:386
 geml-parser--verbs.ts.geml#reservedMeta,             #findBlockSite,              call, geml-parser/src/verbs.ts:557
@@ -1044,8 +1044,8 @@ geml-parser--verbs.ts.geml#contentShape,             #sectionEndIndex,          
 geml-parser--cli.ts.geml#runHistory,                 #historyPathFor,             call, geml-parser/src/cli.ts:972
 geml-parser--cli.ts.geml#runRename,                  #historyPathFor,             call, geml-parser/src/cli.ts:1422
 geml-parser--cli.ts.geml#runRevert,                  #historyPathFor,             call, geml-parser/src/cli.ts:1460
-#isCliInvocation,                                    #realOf,                     call, geml-parser/src/geml.ts:3620
-#isCliInvocation,                                    #realOf,                     call, geml-parser/src/geml.ts:3620
+#isCliInvocation,                                    #realOf,                     call, geml-parser/src/geml.ts:3623
+#isCliInvocation,                                    #realOf,                     call, geml-parser/src/geml.ts:3623
 ===
 
 === table {#unresolved format=csv hidden}

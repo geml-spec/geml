@@ -491,11 +491,15 @@ try {
     // GitHub's anchor and §4's id differ, so only GitHub's rule can resolve it:
     // a trailing `\` leaves no trace (GEML's §4 fold takes it before the text is
     // read; GitHub's slug deletes it); a closing `##` is not text; `C#` keeps its
-    // `#` up to the slug; and a heading with no letter or digit gets no anchor.
+    // `#` up to the slug; a tag nested in a tag leaves no markup, and a bare
+    // `<` or `>` is punctuation; and a heading with no letter or digit gets no
+    // anchor.
     const cases = [
       ["C++ & Rust\\", "c--rust"],
       ["C++ & Rust ##", "c--rust"],
       ["C++ & C#", "c--c"],
+      ["a <scr<b>ipt> b", "a-script-b"],
+      ["1 < 2 > 0 x", "1--2--0-x"],
     ];
     for (const [heading, anchor] of cases) {
       const errs = md(`# Doc\n\n[x](#${anchor})\n\n## ${heading}\n`).diagnostics.filter((d) => d.code === "unresolved-reference");

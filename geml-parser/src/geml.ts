@@ -626,10 +626,13 @@ function withoutClosingHashes(s: string): string {
 // A heading's text as GitHub's renderer leaves it for the slug: what a reader
 // sees, with no markup. An image has alt text but no text content, and a raw
 // HTML tag (`<a id="x"></a>`, which Markdown reading keeps as text) is markup.
+// One pass over `<scr<b>ipt>` leaves `<script>`, so the `<` and `>` that
+// remain go too; the slug drops them anyway, and none survives to be read as
+// a tag.
 function renderedText(inlines: Inline[]): string {
   let out = "";
   for (const n of inlines) {
-    if (n.type === "text") out += n.value.replace(/<\/?[A-Za-z][^<>]*>/g, "");
+    if (n.type === "text") out += n.value.replace(/<\/?[A-Za-z][^<>]*>/g, "").replace(/[<>]/g, "");
     else if (n.type === "code" || n.type === "math") out += n.value;
     else if (n.type === "emph" || n.type === "strong" || n.type === "strike" || n.type === "link") out += renderedText(n.children);
     // No `break`: a heading is one line, and the only break it could hold is a

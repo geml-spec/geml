@@ -220,8 +220,8 @@ from,                                        to,              kind, site
 #writeTable,                                 #replaceField,   call, geml-parser/src/coord.ts:251
 #planCoordWrite,                             #writeTable,     call, geml-parser/src/coord.ts:422
 #planCoordWrite,                             #writeValue,     call, geml-parser/src/coord.ts:423
-geml-parser--geml.ts.geml#blockFromDocument, #metaView,       call, geml-parser/src/geml.ts:2317
-geml-parser--geml.ts.geml#validateCoordRef,  #metaView,       call, geml-parser/src/geml.ts:2363
+geml-parser--geml.ts.geml#blockFromDocument, #metaView,       call, geml-parser/src/geml.ts:2320
+geml-parser--geml.ts.geml#validateCoordRef,  #metaView,       call, geml-parser/src/geml.ts:2366
 geml-parser--verbs.ts.geml#reservedMeta,     #metaView,       call, geml-parser/src/verbs.ts:558
 geml-parser--verbs.ts.geml#get,              #metaText,       call, geml-parser/src/verbs.ts:630
 #metaText,                                   #metaLiteral,    call, geml-parser/src/coord.ts:373
@@ -229,7 +229,7 @@ geml-parser--verbs.ts.geml#get,              #metaText,       call, geml-parser/
 #planCoordWrite,                             #planMetaWrite,  call, geml-parser/src/coord.ts:429
 geml-parser--verbs.ts.geml#setMeta,          #planMetaWrite,  call, geml-parser/src/verbs.ts:1365
 geml-parser--verbs.ts.geml#setCoord,         #planCoordWrite, call, geml-parser/src/verbs.ts:1411
-geml-parser--geml.ts.geml#validateCoordRef,  #projectCoord,   call, geml-parser/src/geml.ts:2373
+geml-parser--geml.ts.geml#validateCoordRef,  #projectCoord,   call, geml-parser/src/geml.ts:2376
 geml-parser--verbs.ts.geml#get,              #projectCoord,   call, geml-parser/src/verbs.ts:633
 geml-parser--verbs.ts.geml#get,              #projectCoord,   call, geml-parser/src/verbs.ts:665
 ===
