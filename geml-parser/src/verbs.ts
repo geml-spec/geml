@@ -18,9 +18,9 @@
 //     context or through a reader the host binds, never through a path this
 //     module opens itself.
 //
-// Two hosts consume it: the CLI (cli.ts — argv, files, stdout, exit codes) and
-// the stdio MCP server (mcp.ts — a confined root on disk); a host whose
-// documents arrive as text would need nothing more. The wording of every
+// Three hosts consume it: the CLI (cli.ts — argv, files, stdout, exit codes),
+// the stdio MCP server (mcp.ts — a confined root on disk), and any host whose
+// documents arrive as text (mcp-core's inline host). The wording of every
 // message is unchanged from the CLI: it is what the tests pin and what the
 // agents reading these messages have learned.
 import {

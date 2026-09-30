@@ -48,5 +48,11 @@
         }
       ]
     }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://geml-mcp.<subdomain>.workers.dev/mcp"
+    }
   ]
 }
