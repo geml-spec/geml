@@ -11,6 +11,7 @@ import { writeFileSync, readFileSync, mkdtempSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { strict as assert } from "node:assert";
+import { addressedUnits } from "../dist/geml.js";
 
 let passed = 0;
 function test(name, fn) { fn(); passed++; console.log("ok", name); }
@@ -89,15 +90,9 @@ test("a content key beside an id is one more condition: the write goes through w
   const g = write("guard.geml", "=== note {#warn}\nold text\n===\n\n=== note\nother\n===\n");
   const listed = run(["list", g]).out;
   assert.match(listed, /^#warn /m);
-  // The listing prints #warn by id; its content address is the one `@<hex>` a
-  // reader of the anonymous block would see, computed over the same span.
-  const hexOf = (doc, id) => {
-    const r = spawnSync(process.execPath, ["--input-type=module", "-e",
-      `import("${join(process.cwd(), "dist", "geml.js").replace(/\\/g, "/")}").then((g) => console.log(g.addressedUnits(process.argv[1]).find((a) => a.unit.id === process.argv[2]).hex))`,
-      doc, id], { encoding: "utf8" });
-    return r.stdout.trim();
-  };
-  const hex = hexOf(readFileSync(g, "utf8"), "warn");
+  // The listing prints #warn by id; its content address is the one `@<hex>`
+  // the CLI computes over the same span.
+  const hex = addressedUnits(readFileSync(g, "utf8")).find((a) => a.unit.id === "warn").hex;
   assert.match(hex, /^[0-9a-f]{8}$/);
   const sel = `=== note@${hex} {#warn}`;
   assert.equal(run(["get", g, sel]).code, 0, "id and content both hold");
