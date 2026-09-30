@@ -410,6 +410,13 @@
       "id": "RenderCtx-table"
     }
   ],
+  "RenderCtx.titleHeading": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`render.ts`/RenderCtx#titleHeading().",
+      "doc": "geml-parser--render.ts.geml",
+      "id": "RenderCtx-titleHeading"
+    }
+  ],
   "RenderCtx.transclude": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`render.ts`/RenderCtx#transclude().",
@@ -999,6 +1006,13 @@
       "id": "closeFenceLine"
     }
   ],
+  "closesFence": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`from-md.ts`/closesFence().",
+      "doc": "geml-parser--from-md.ts.geml",
+      "id": "closesFence"
+    }
+  ],
   "clsAttr": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`render.ts`/DiagramCtx#clsAttr().",
@@ -1425,6 +1439,11 @@
     }
   ],
   "docTitle": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`doc-title.ts`/docTitle().",
+      "doc": "geml-parser--doc-title.ts.geml",
+      "id": "docTitle"
+    },
     {
       "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`render.ts`/RenderCtx#docTitle().",
       "doc": "geml-parser--render.ts.geml",
@@ -2119,6 +2138,13 @@
       "id": "hasInline"
     }
   ],
+  "hasLevelOneHeading": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`from-md.ts`/hasLevelOneHeading().",
+      "doc": "geml-parser--from-md.ts.geml",
+      "id": "hasLevelOneHeading"
+    }
+  ],
   "hasSrcTable": [
     {
       "anchor": "scip-typescript npm geml-viewer 1.3.2 src/`inline-src.js`/hasSrcTable().",
@@ -2159,6 +2185,13 @@
       "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`geml.ts`/headingId().",
       "doc": "geml-parser--geml.ts.geml",
       "id": "headingId"
+    }
+  ],
+  "headingShift": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`doc-title.ts`/headingShift().",
+      "doc": "geml-parser--doc-title.ts.geml",
+      "id": "headingShift"
     }
   ],
   "hhmmss": [
@@ -5424,6 +5457,13 @@
       "id": "timelineTrack"
     }
   ],
+  "titleHeading": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`render.ts`/RenderCtx#titleHeading().",
+      "doc": "geml-parser--render.ts.geml",
+      "id": "RenderCtx-titleHeading"
+    }
+  ],
   "toLf": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`geml.ts`/toLf().",
@@ -5994,6 +6034,13 @@
       "anchor": "scip-typescript npm geml-viewer 1.3.2 src/`chart.js`/yScale().",
       "doc": "geml-viewer--chart.js.geml",
       "id": "yScale"
+    }
+  ],
+  "yamlScalar": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.11.3 src/`from-md.ts`/yamlScalar().",
+      "doc": "geml-parser--from-md.ts.geml",
+      "id": "yamlScalar"
     }
   ],
   "yamlValue": [

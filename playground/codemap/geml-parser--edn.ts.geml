@@ -179,7 +179,7 @@ from,                                    to,               kind, site
 #Reader-value,                           #Reader-atom,     call, geml-parser/src/edn.ts:106
 #Reader-refuse,                          #Refusal-new,     call, geml-parser/src/edn.ts:93
 #Reader-mapKey,                          #describe,        call, geml-parser/src/edn.ts:149
-geml-parser--geml.ts.geml#parseDataBody, #parseEdn,        call, geml-parser/src/geml.ts:111
+geml-parser--geml.ts.geml#parseDataBody, #parseEdn,        call, geml-parser/src/geml.ts:112
 #render,                                 #isWrap,          call, geml-parser/src/edn.ts:327
 #render,                                 #isWrap,          call, geml-parser/src/edn.ts:328
 #render,                                 #isWrap,          call, geml-parser/src/edn.ts:329

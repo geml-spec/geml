@@ -11,6 +11,7 @@ body { margin:0; color:var(--fg); background:#fafbfc; font:16px/1.6 -apple-syste
 main { max-width: 860px; margin: 0 auto; padding: 48px 24px 96px; background:var(--bg); }
 h1,h2,h3,h4,h5,h6 { line-height:1.25; margin:1.6em 0 .6em; scroll-margin-top:16px; }
 h1 { font-size:2em; border-bottom:1px solid var(--bd); padding-bottom:.3em; }
+h1.geml-title { margin-top:0; }
 h2 { font-size:1.5em; border-bottom:1px solid var(--bd); padding-bottom:.3em; }
 h3 { font-size:1.25em; } h4 { font-size:1em; }
 p { margin:.7em 0; }
@@ -155,25 +156,25 @@ sup.fn a { font-size:.75em; }
 </tbody></table></div></figure>
 <figure class="table-figure" id="called-by"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><div class="table-scroll"><table class="geml-table"><thead><tr><th>from</th><th>to</th><th>kind</th><th>site</th></tr></thead><tbody>
 <tr><td>#addressUnits</td><td>#sha8</td><td>call</td><td>geml-parser/src/selector.ts:241</td></tr>
-<tr><td>geml-parser--geml.ts.geml#validateCoordRef</td><td>#parseCoordPath</td><td>call</td><td>geml-parser/src/geml.ts:2341</td></tr>
+<tr><td>geml-parser--geml.ts.geml#validateCoordRef</td><td>#parseCoordPath</td><td>call</td><td>geml-parser/src/geml.ts:2342</td></tr>
 <tr><td>#parseSelector</td><td>#parseCoordPath</td><td>call</td><td>geml-parser/src/selector.ts:167</td></tr>
-<tr><td>geml-parser--cli.ts.geml#runGet</td><td>#parseSelector</td><td>call</td><td>geml-parser/src/cli.ts:1281</td></tr>
+<tr><td>geml-parser--cli.ts.geml#runGet</td><td>#parseSelector</td><td>call</td><td>geml-parser/src/cli.ts:1283</td></tr>
 <tr><td>geml-parser--verbs.ts.geml#selectUnits</td><td>#parseSelector</td><td>call</td><td>geml-parser/src/verbs.ts:435</td></tr>
 <tr><td>geml-parser--verbs.ts.geml#get</td><td>#parseSelector</td><td>call</td><td>geml-parser/src/verbs.ts:584</td></tr>
-<tr><td>geml-parser--verbs.ts.geml#resolveSetTarget</td><td>#parseSelector</td><td>call</td><td>geml-parser/src/verbs.ts:1062</td></tr>
-<tr><td>geml-parser--verbs.ts.geml#set</td><td>#parseSelector</td><td>call</td><td>geml-parser/src/verbs.ts:1131</td></tr>
+<tr><td>geml-parser--verbs.ts.geml#resolveSetTarget</td><td>#parseSelector</td><td>call</td><td>geml-parser/src/verbs.ts:1064</td></tr>
+<tr><td>geml-parser--verbs.ts.geml#set</td><td>#parseSelector</td><td>call</td><td>geml-parser/src/verbs.ts:1133</td></tr>
 <tr><td>#keyForm</td><td>#atKeyOf</td><td>call</td><td>geml-parser/src/selector.ts:208</td></tr>
 <tr><td>#parseSelector</td><td>#keyForm</td><td>call</td><td>geml-parser/src/selector.ts:141</td></tr>
 <tr><td>#parseSelector</td><td>#keyForm</td><td>call</td><td>geml-parser/src/selector.ts:173</td></tr>
 <tr><td>#parseSelector</td><td>#keyForm</td><td>call</td><td>geml-parser/src/selector.ts:182</td></tr>
 <tr><td>#keyForm</td><td>#firstKey</td><td>call</td><td>geml-parser/src/selector.ts:214</td></tr>
 <tr><td>#keyForm</td><td>#firstKey</td><td>call</td><td>geml-parser/src/selector.ts:214</td></tr>
-<tr><td>geml-parser--geml.ts.geml#addressedUnits</td><td>#addressUnits</td><td>call</td><td>geml-parser/src/geml.ts:3420</td></tr>
+<tr><td>geml-parser--geml.ts.geml#addressedUnits</td><td>#addressUnits</td><td>call</td><td>geml-parser/src/geml.ts:3421</td></tr>
 <tr><td>geml-parser--verbs.ts.geml#list</td><td>#shortestAddress</td><td>call</td><td>geml-parser/src/verbs.ts:357</td></tr>
 <tr><td>geml-parser--verbs.ts.geml#findInSource</td><td>#shortestAddress</td><td>call</td><td>geml-parser/src/verbs.ts:703</td></tr>
-<tr><td>geml-parser--verbs.ts.geml#replace</td><td>#shortestAddress</td><td>call</td><td>geml-parser/src/verbs.ts:979</td></tr>
-<tr><td>geml-parser--verbs.ts.geml#resolveSetTarget</td><td>#shortestAddress</td><td>call</td><td>geml-parser/src/verbs.ts:1073</td></tr>
-<tr><td>geml-parser--verbs.ts.geml#reportNewAddress</td><td>#shortestAddress</td><td>call</td><td>geml-parser/src/verbs.ts:1100</td></tr>
+<tr><td>geml-parser--verbs.ts.geml#replace</td><td>#shortestAddress</td><td>call</td><td>geml-parser/src/verbs.ts:981</td></tr>
+<tr><td>geml-parser--verbs.ts.geml#resolveSetTarget</td><td>#shortestAddress</td><td>call</td><td>geml-parser/src/verbs.ts:1075</td></tr>
+<tr><td>geml-parser--verbs.ts.geml#reportNewAddress</td><td>#shortestAddress</td><td>call</td><td>geml-parser/src/verbs.ts:1102</td></tr>
 <tr><td>geml-parser--verbs.ts.geml#selectUnits</td><td>#matchContent</td><td>call</td><td>geml-parser/src/verbs.ts:460</td></tr>
 <tr><td>geml-parser--verbs.ts.geml#selectUnits</td><td>#discoveryHint</td><td>call</td><td>geml-parser/src/verbs.ts:481</td></tr>
 <tr><td>geml-parser--verbs.ts.geml#selectUnits</td><td>#discoveryHint</td><td>call</td><td>geml-parser/src/verbs.ts:488</td></tr>

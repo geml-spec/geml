@@ -11,6 +11,7 @@ body { margin:0; color:var(--fg); background:#fafbfc; font:16px/1.6 -apple-syste
 main { max-width: 860px; margin: 0 auto; padding: 48px 24px 96px; background:var(--bg); }
 h1,h2,h3,h4,h5,h6 { line-height:1.25; margin:1.6em 0 .6em; scroll-margin-top:16px; }
 h1 { font-size:2em; border-bottom:1px solid var(--bd); padding-bottom:.3em; }
+h1.geml-title { margin-top:0; }
 h2 { font-size:1.5em; border-bottom:1px solid var(--bd); padding-bottom:.3em; }
 h3 { font-size:1.25em; } h4 { font-size:1em; }
 p { margin:.7em 0; }
@@ -197,20 +198,20 @@ sup.fn a { font-size:.75em; }
 <tr><td>#parseInline</td><td>#scanAtoms</td><td>call</td><td></td></tr>
 </tbody></table></div></figure>
 <figure class="table-figure" id="called-by"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><div class="table-scroll"><table class="geml-table"><thead><tr><th>from</th><th>to</th><th>kind</th><th>site</th></tr></thead><tbody>
-<tr><td>geml-parser--geml.ts.geml#chartSourceTable</td><td>#schemeOf</td><td>call</td><td>geml-parser/src/geml.ts:1646</td></tr>
-<tr><td>geml-parser--geml.ts.geml#resolveTableSources</td><td>#schemeOf</td><td>call</td><td>geml-parser/src/geml.ts:1970</td></tr>
-<tr><td>geml-parser--geml.ts.geml#resolveViewSources</td><td>#schemeOf</td><td>call</td><td>geml-parser/src/geml.ts:2132</td></tr>
-<tr><td>geml-parser--geml.ts.geml#resolveCodeSources</td><td>#schemeOf</td><td>call</td><td>geml-parser/src/geml.ts:2632</td></tr>
-<tr><td>geml-parser--geml.ts.geml#resolveDataSources</td><td>#schemeOf</td><td>call</td><td>geml-parser/src/geml.ts:2680</td></tr>
-<tr><td>geml-parser--geml.ts.geml#resolveCharts</td><td>#schemeOf</td><td>call</td><td>geml-parser/src/geml.ts:2827</td></tr>
+<tr><td>geml-parser--geml.ts.geml#chartSourceTable</td><td>#schemeOf</td><td>call</td><td>geml-parser/src/geml.ts:1647</td></tr>
+<tr><td>geml-parser--geml.ts.geml#resolveTableSources</td><td>#schemeOf</td><td>call</td><td>geml-parser/src/geml.ts:1971</td></tr>
+<tr><td>geml-parser--geml.ts.geml#resolveViewSources</td><td>#schemeOf</td><td>call</td><td>geml-parser/src/geml.ts:2133</td></tr>
+<tr><td>geml-parser--geml.ts.geml#resolveCodeSources</td><td>#schemeOf</td><td>call</td><td>geml-parser/src/geml.ts:2633</td></tr>
+<tr><td>geml-parser--geml.ts.geml#resolveDataSources</td><td>#schemeOf</td><td>call</td><td>geml-parser/src/geml.ts:2681</td></tr>
+<tr><td>geml-parser--geml.ts.geml#resolveCharts</td><td>#schemeOf</td><td>call</td><td>geml-parser/src/geml.ts:2828</td></tr>
 <tr><td>#isSafeUrl</td><td>#schemeOf</td><td>call</td><td>geml-parser/src/inline.ts:105</td></tr>
 <tr><td>#classifyDest</td><td>#schemeOf</td><td>call</td><td>geml-parser/src/inline.ts:126</td></tr>
 <tr><td>geml-parser--verbs.ts.geml#oneHop</td><td>#schemeOf</td><td>call</td><td>geml-parser/src/verbs.ts:172</td></tr>
-<tr><td>geml-parser--geml.ts.geml#recordEmbedSrc</td><td>#isSafeUrl</td><td>call</td><td>geml-parser/src/geml.ts:989</td></tr>
+<tr><td>geml-parser--geml.ts.geml#recordEmbedSrc</td><td>#isSafeUrl</td><td>call</td><td>geml-parser/src/geml.ts:990</td></tr>
 <tr><td>#classifyDest</td><td>#isSafeUrl</td><td>call</td><td>geml-parser/src/inline.ts:130</td></tr>
 <tr><td>#scanAtoms</td><td>#isSafeUrl</td><td>call</td><td>geml-parser/src/inline.ts:366</td></tr>
-<tr><td>geml-parser--render.ts.geml#RenderCtx-projectFallback</td><td>#isSafeUrl</td><td>call</td><td>geml-parser/src/render.ts:493</td></tr>
-<tr><td>geml-parser--render.ts.geml#RenderCtx-transclusionFallback</td><td>#isSafeUrl</td><td>call</td><td>geml-parser/src/render.ts:585</td></tr>
+<tr><td>geml-parser--render.ts.geml#RenderCtx-projectFallback</td><td>#isSafeUrl</td><td>call</td><td>geml-parser/src/render.ts:510</td></tr>
+<tr><td>geml-parser--render.ts.geml#RenderCtx-transclusionFallback</td><td>#isSafeUrl</td><td>call</td><td>geml-parser/src/render.ts:602</td></tr>
 <tr><td>#scanAtoms</td><td>#inferAs</td><td>call</td><td>geml-parser/src/inline.ts:375</td></tr>
 <tr><td>#scanAtoms</td><td>#classifyDest</td><td>call</td><td>geml-parser/src/inline.ts:340</td></tr>
 <tr><td>#scanAtoms</td><td>#classifyDest</td><td>call</td><td>geml-parser/src/inline.ts:387</td></tr>
@@ -228,7 +229,7 @@ sup.fn a { font-size:.75em; }
 <tr><td>#scanAtoms</td><td>#readBracket</td><td>call</td><td>geml-parser/src/inline.ts:413</td></tr>
 <tr><td>#scanAtoms</td><td>#readAttrs</td><td>call</td><td>geml-parser/src/inline.ts:359</td></tr>
 <tr><td>#scanAtoms</td><td>#readAttrs</td><td>call</td><td>geml-parser/src/inline.ts:416</td></tr>
-<tr><td>geml-parser--geml.ts.geml#interpolate</td><td>#lineOf</td><td>call</td><td>geml-parser/src/geml.ts:682</td></tr>
+<tr><td>geml-parser--geml.ts.geml#interpolate</td><td>#lineOf</td><td>call</td><td>geml-parser/src/geml.ts:683</td></tr>
 <tr><td>#scanAtoms</td><td>#lineOf</td><td>call</td><td>geml-parser/src/inline.ts:237</td></tr>
 <tr><td>#parseInline</td><td>#scanAtoms</td><td>call</td><td>geml-parser/src/inline.ts:672</td></tr>
 <tr><td>#flank</td><td>#isPunct</td><td>call</td><td>geml-parser/src/inline.ts:492</td></tr>
@@ -246,11 +247,11 @@ sup.fn a { font-size:.75em; }
 <tr><td>#emphasize</td><td>#finalize</td><td>call</td><td>geml-parser/src/inline.ts:656</td></tr>
 <tr><td>#parseInline</td><td>#emphasize</td><td>call</td><td>geml-parser/src/inline.ts:670</td></tr>
 <tr><td>#parseInline</td><td>#emphasize</td><td>call</td><td>geml-parser/src/inline.ts:672</td></tr>
-<tr><td>geml-parser--geml.ts.geml#registerGithubAnchor</td><td>#parseInline</td><td>call</td><td>geml-parser/src/geml.ts:598</td></tr>
-<tr><td>geml-parser--geml.ts.geml#makeListItem</td><td>#parseInline</td><td>call</td><td>geml-parser/src/geml.ts:786</td></tr>
-<tr><td>geml-parser--geml.ts.geml#scanProse</td><td>#parseInline</td><td>call</td><td>geml-parser/src/geml.ts:1417</td></tr>
-<tr><td>geml-parser--geml.ts.geml#scanBlocks</td><td>#parseInline</td><td>call</td><td>geml-parser/src/geml.ts:1510</td></tr>
-<tr><td>geml-parser--geml.ts.geml#scanBlocks</td><td>#parseInline</td><td>call</td><td>geml-parser/src/geml.ts:1605</td></tr>
+<tr><td>geml-parser--geml.ts.geml#registerGithubAnchor</td><td>#parseInline</td><td>call</td><td>geml-parser/src/geml.ts:599</td></tr>
+<tr><td>geml-parser--geml.ts.geml#makeListItem</td><td>#parseInline</td><td>call</td><td>geml-parser/src/geml.ts:787</td></tr>
+<tr><td>geml-parser--geml.ts.geml#scanProse</td><td>#parseInline</td><td>call</td><td>geml-parser/src/geml.ts:1418</td></tr>
+<tr><td>geml-parser--geml.ts.geml#scanBlocks</td><td>#parseInline</td><td>call</td><td>geml-parser/src/geml.ts:1511</td></tr>
+<tr><td>geml-parser--geml.ts.geml#scanBlocks</td><td>#parseInline</td><td>call</td><td>geml-parser/src/geml.ts:1606</td></tr>
 <tr><td>#scanAtoms</td><td>#parseInline</td><td>call</td><td>geml-parser/src/inline.ts:423</td></tr>
 <tr><td>geml-parser--serialize.ts.geml#serInlines</td><td>#parseInline</td><td>call</td><td>geml-parser/src/serialize.ts:152</td></tr>
 <tr><td>geml-parser--serialize.ts.geml#serInlines</td><td>#parseInline</td><td>call</td><td>geml-parser/src/serialize.ts:154</td></tr>
