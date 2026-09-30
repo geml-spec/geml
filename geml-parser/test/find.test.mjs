@@ -140,4 +140,54 @@ test("the walk matches the extension case-insensitively", () => {
   rmSync(dir, { recursive: true, force: true });
 });
 
+test("a pattern that starts with '-' is searched once it follows --", () => {
+  // A list item's own text begins `- `, so the one pattern an agent copies out
+  // of a Markdown list was the one find could not take: as a bare argument it
+  // reads as a flag, and `--` was refused outright.
+  const dir = ws();
+  const md = join(dir, "notes.md");
+  writeFileSync(md, "# Notes\n\n## Options\n\n- External link options go in the attributes\n- another item\n");
+  const r = run(["find", "--", "- External link options", md]);
+  assert.equal(r.code, 0, r.err);
+  assert.equal(r.out.trim(), `${md}\t#options`);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("everything after -- is an operand, however dash-shaped", () => {
+  // `--json`, `--help` and `--case` past the marker are text to look for, not
+  // switches: a marker that stopped only the flag scan would still let the
+  // dispatcher answer with help, or switch the output to JSON.
+  const dir = ws();
+  const f = join(dir, "a.geml");
+  writeFileSync(f, "# A {#a}\n\n=== note {#n}\nrun it with --json to get rows\n===\n\n=== note {#h}\nsee --help first\n===\n");
+  const j = run(["find", "--", "--json", f]);
+  assert.equal(j.code, 0, j.err);
+  assert.equal(j.out.trim(), `${f}\t#n`, "a plain row, not a JSON array");
+  const h = run(["find", "--", "--help", f]);
+  assert.equal(h.code, 0, h.err);
+  assert.equal(h.out.trim(), `${f}\t#h`, "a hit, not the usage line");
+  const miss = run(["find", "--", "--case", f]);
+  assert.equal(miss.code, 1, "--case after the marker is the text '--case', which is not there");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("flags before -- still apply, and a path may follow it too", () => {
+  const dir = ws();
+  const f = join(dir, "-odd.geml");
+  writeFileSync(f, "# A {#a}\n\n-Needle capitalised\n");
+  const exact = run(["find", "--case", "--", "-needle", "-odd.geml"], dir);
+  assert.equal(exact.code, 1, "--case before the marker makes the search exact");
+  const json = run(["find", "--json", "--", "-Needle", "-odd.geml"], dir);
+  assert.equal(json.code, 0, json.err);
+  assert.equal(JSON.parse(json.out)[0].address, "#a", "and the dash-leading path is searched");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("without --, a dash-leading pattern is refused and told where it goes", () => {
+  const r = run(["find", "- item", "x.md"]);
+  assert.equal(r.code, 2);
+  assert.match(r.err, /unknown flag '- item' for 'find'/);
+  assert.match(r.err, /geml find -- '- item'/, "the refusal names the spelling that works");
+});
+
 console.log(`find: ${passed} passed`);

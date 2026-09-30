@@ -1428,12 +1428,13 @@ test("set still stamps the id when the content would not otherwise carry it", ()
 });
 
 test("a defect the document already had does not block an unrelated edit", () => {
-  // `[…](#short)` aims at an `<a id>` GEML does not model: an unresolved
-  // reference here, ordinary Markdown on GitHub. It used to make every write to
-  // the file fail — the guard is for breakage this edit CAUSES.
+  // `[…](#short)` aims at nothing in the file — a real unresolved reference.
+  // It used to make every write to the file fail — the guard is for breakage
+  // this edit CAUSES. (The fixture once used a link to an `<a id>` anchor as
+  // its defect; that link now resolves, as it does on GitHub.)
   const d = mkdtempSync(join(tmpdir(), "geml-preexisting-"));
   const f = join(d, "anchored.md");
-  const src = '# Doc\n\nSee [the guide](#short).\n\n<a id="short"></a>\n## A Long Heading Title\n\nbody here.\n';
+  const src = '# Doc\n\nSee [the guide](#short).\n\n## A Long Heading Title\n\nbody here.\n';
   writeFileSync(f, src);
   assert.match(run(["check", f]).err + run(["check", f]).out, /unresolved reference/, "the defect is real and reported");
 

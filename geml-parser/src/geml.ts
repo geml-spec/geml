@@ -203,7 +203,9 @@ export interface ParseOptions {
    *  - `[^label]: …` defines a footnote, and a `[^x]` nothing defines is text;
    *  - `{{…}}` is text — a template engine's, not a `=== meta` reference;
    *  - `~~~` fences and indented code blocks are code, as ``` already is;
-   *  - `[[name]]` / `![[name]]` are wikilinks, resolved by name (see findNote).
+   *  - `[[name]]` / `![[name]]` are wikilinks, resolved by name (see findNote);
+   *  - a `[text](#frag)` may target an `<a id>`, `<a name>` or `<span id>`
+   *    anchor, or GitHub's anchor for a heading — link targets, never addresses.
    */
   markdown?: boolean;
   // Under Markdown reading: does a note answer to this wikilink name? Obsidian's
@@ -278,6 +280,15 @@ interface Ctx extends RefSink {
   // Under Markdown reading, the Obsidian block markers (`… ^id` ending a line)
   // the document carries, for `[[#^id]]`.
   blockMarkers?: Set<string>;
+  // Under Markdown reading, the fragments a forge resolves that GEML's own ids
+  // do not cover (nameKey'd), for `[text](#fragment)`: each `<a id>` / `<a name>`
+  // / `<span id>` anchor, and GitHub's anchor for each heading. Link targets only — never ids,
+  // never addresses.
+  markdownTargets?: Set<string>;
+  // github-slugger's occurrence count per generated anchor, for the `-N` suffix
+  // GitHub gives a repeated one. Kept apart from headingSlugs: the two schemes
+  // generate different strings, so they collide at different headings.
+  githubAnchors?: Map<string, number>;
 }
 
 // Type registry: which body mode each typed block uses. Unknown types are a
@@ -566,6 +577,66 @@ function headingId(explicit: string | undefined, rawText: string, ctx: Ctx): str
   }
   s.used.add(nameKey(id));
   return id;
+}
+
+// GitHub's anchor for a heading, kept as a LINK TARGET under Markdown reading:
+// the `[C++](#c--rust)` a README's contents table carries works on GitHub, and
+// the heading's id — §4's derivation, which deletes code spans, folds whitespace
+// runs and drops diacritics — is `#c-rust`. The id stays the address; this only
+// lets the link GitHub follows resolve, as an `<a id>` anchor does.
+//
+// GitHub slugs the heading's RENDERED text: code text kept, a link's text kept
+// and its URL gone, emphasis markers and raw HTML tags gone, and a trailing
+// `{#id}` — GEML syntax, which GitHub prints — kept as text. github-slugger's
+// rule then lower-cases it, deletes every character that is not a letter, mark,
+// number, connector punctuation, space or `-`, and makes EACH space a `-` (not
+// each run), and a repeated anchor gets `-1`, `-2`, … by its own count.
+function registerGithubAnchor(ctx: Ctx, h: HeadingMatch, inlines: Inline[], line: number): void {
+  const shown = withoutClosingHashes(trimSpaceTabEnd(h[0].replace(HEADING_HEAD, "")));
+  // Re-parse only when GitHub's text is not the one already parsed; a scratch
+  // sink, so GitHub's reading adds no reference of its own to the document.
+  const rendered = renderedText(shown === h[2] ? inlines : parseInline(shown, line, { refs: [], markdown: true }));
+  const base = rendered.toLowerCase().replace(/[^\p{L}\p{M}\p{N}\p{Pc} -]/gu, "").replace(/ /g, "-");
+  if (base === "") return;
+  const seen = (ctx.githubAnchors ??= new Map());
+  let anchor = base;
+  while (seen.has(anchor)) {
+    // Defined: the first pass tests `base` itself, and every anchor handed out
+    // is recorded — so a count for `base` exists whenever this loop runs.
+    const n = seen.get(base)! + 1;
+    seen.set(base, n);
+    anchor = `${base}-${n}`;
+  }
+  seen.set(anchor, 0);
+  (ctx.markdownTargets ??= new Set()).add(nameKey(anchor));
+}
+
+// CommonMark's optional closing sequence (`## Title ##`), which is not part of
+// the heading's text. Only a run of `#` that the text is separated from counts:
+// `## C#` keeps its `#`. Scanned from the end, so no regex backtracks over a
+// long whitespace run.
+function withoutClosingHashes(s: string): string {
+  let k = s.length;
+  while (k > 0 && s[k - 1] === "#") k--;
+  if (k === s.length || (k > 0 && s[k - 1] !== " " && s[k - 1] !== "\t")) return s;
+  return trimSpaceTabEnd(s.slice(0, k));
+}
+
+// A heading's text as GitHub's renderer leaves it for the slug: what a reader
+// sees, with no markup. An image has alt text but no text content, and a raw
+// HTML tag (`<a id="x"></a>`, which Markdown reading keeps as text) is markup.
+function renderedText(inlines: Inline[]): string {
+  let out = "";
+  for (const n of inlines) {
+    if (n.type === "text") out += n.value.replace(/<\/?[A-Za-z][^<>]*>/g, "");
+    else if (n.type === "code" || n.type === "math") out += n.value;
+    else if (n.type === "emph" || n.type === "strong" || n.type === "strike" || n.type === "link") out += renderedText(n.children);
+    // No `break`: a heading is one line, and the only break it could hold is a
+    // trailing `\` — which the §4 continuation fold (foldFence) consumes before
+    // the text is ever inline-parsed. GitHub's anchor agrees: `## C++ & Rust\`
+    // is `#c--rust` there too.
+  }
+  return out;
 }
 
 function slug(text: string): string {
@@ -1439,6 +1510,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
         kind: "heading", level, text, inlines: parseInline(text, lineNo, ctx), id, classes: a.classes, attrs: a.attrs,
       };
       if (a.attrs["hidden"] === true) block.hidden = true;
+      if (ctx.markdown) registerGithubAnchor(ctx, h, block.inlines, lineNo);
       blocks.push(block);
       i += consumed;
       continue;
@@ -2326,6 +2398,80 @@ function blockMarkersOf(lines: string[]): Set<string> {
   return out;
 }
 
+// HTML anchors (Markdown reading): the `id` of an `<a>` element, or its legacy
+// `name`, and the `id` of a `<span>`. GitHub keeps all three, so
+// `[Why now](#why-now)` beside `<a id="why-now"></a>` is a link that works there,
+// and so is MinerU's page footnote — `[\[1\]](#note-one)` pointing at
+// `<span id="note-one">`. Those two elements and no others, on purpose: every
+// element GitHub keeps an `id` on would be a wider rule than the documents that
+// need one, and each element added is a case to get right. Reading the element
+// as the text GEML keeps it as made `check` call every such link broken, this
+// repo's own README first. They are link TARGETS and nothing more: not blocks,
+// not ids `get` can address, and the raw HTML still renders and converts as
+// the text it always was. An element inside code (a fence, an indented block,
+// a code span) or an HTML comment is not an anchor, as it is not on GitHub.
+// A line with no `<` outside a comment holds neither a tag nor a comment's
+// start, so ordinary prose is never scanned; the tag and attribute scans stop
+// at the next `<` or `>`, and the code-span match is the inline parser's own.
+function htmlAnchorsOf(lines: string[]): Set<string> {
+  const out = new Set<string>();
+  const shielded = shieldFor(lines, true);
+  let inComment = false;
+  lines.forEach((l, k) => {
+    if (shielded.has(k) || (!inComment && !l.includes("<"))) return;
+    const line = outsideCodeSpans(l);
+    let s = "";
+    for (let i = 0; i < line.length;) {
+      const at = line.indexOf(inComment ? "-->" : "<!--", i);
+      if (!inComment) s += line.slice(i, at < 0 ? line.length : at);
+      if (at < 0) break;
+      i = at + (inComment ? 3 : 4);
+      inComment = !inComment;
+    }
+    for (const tag of s.matchAll(/<(a|span)(?=[\s/>])[^<>]*>/gi)) {
+      const isA = tag[1]!.length === 1;
+      for (const [name, value] of htmlAttributes(tag[0], tag[1]!.length + 1)) {
+        if ((name === "id" || (isA && name === "name")) && value !== "") out.add(nameKey(value));
+      }
+    }
+  });
+  return out;
+}
+
+// A line with its code spans blanked, read by the rule the inline parser uses
+// (§5.3(1)): a run of N backticks opens, the next run of N closes, `\` escapes
+// the character after it, and a run with no closer is literal text.
+function outsideCodeSpans(line: string): string {
+  let out = "";
+  let i = 0;
+  while (i < line.length) {
+    const c = line[i]!;
+    if (c === "\\") { out += line.slice(i, i + 2); i += 2; continue; }
+    if (c !== "`") { out += c; i++; continue; }
+    let n = 0;
+    while (line[i + n] === "`") n++;
+    const close = line.indexOf("`".repeat(n), i + n);
+    if (close < 0) { out += line.slice(i, i + n); i += n; continue; }
+    out += " ".repeat(close + n - i);
+    i = close + n;
+  }
+  return out;
+}
+
+// The attributes of one start tag (`<a …>`, `<span …>`), read from `from` — the
+// index just past the tag name — with names lowercased as HTML reads
+// them: `name="v"`, `name='v'`, `name=v`, or a bare `name`. Read left to right
+// one attribute at a time, so `data-id="x"` is not an `id` and `title="id=x"`
+// is a title.
+function htmlAttributes(tag: string, from: number): Array<[string, string]> {
+  const out: Array<[string, string]> = [];
+  const attr = /\s+([^\s"'<>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/y;
+  attr.lastIndex = from; // past `<a` or `<span`
+  let m: RegExpExecArray | null;
+  while ((m = attr.exec(tag)) !== null) out.push([m[1]!.toLowerCase(), m[2] ?? m[3] ?? m[4] ?? ""]);
+  return out;
+}
+
 // A wikilink (Markdown reading). Within the document it is GEML's own promise —
 // every anchor resolves — read the way Obsidian writes it: `[[#Heading Text]]`
 // names the heading by its text, so its slug counts, and `[[#^id]]` names a
@@ -2423,8 +2569,11 @@ function validateRefs(ctx: Ctx, opts: ParseOptions, children: Block[]): void {
     // sentence about a regex is not a reference at all. Neither is an error, so
     // nothing here needs to know which it was.
     if (ctx.markdown && ref.kind === "footnote") continue;
-    // internal, autoref, footnote — anchor must be a known id in this document.
-    if (ref.anchor !== undefined && !ctx.ids.has(nameKey(ref.anchor)) && ctx.runIds?.has(nameKey(ref.anchor)) !== true) {
+    // internal, autoref, footnote — anchor must be a known id in this document,
+    // or (Markdown reading) a fragment a forge resolves: an `<a id>` / `<a name>` /
+    // `<span id>` anchor, or GitHub's anchor for a heading.
+    if (ref.anchor !== undefined && !ctx.ids.has(nameKey(ref.anchor)) && ctx.runIds?.has(nameKey(ref.anchor)) !== true
+      && ctx.markdownTargets?.has(nameKey(ref.anchor)) !== true) {
       const footnote = ref.kind === "footnote";
       const what = footnote ? `footnote \`[^${ref.anchor}]\`` : `reference \`#${ref.anchor}\``;
       const code = footnote ? "unresolved-footnote" : "unresolved-reference";
@@ -2790,7 +2939,11 @@ export function parse(source: string, opts: ParseOptions = {}): Document {
   resolveCodeSources(ctx, opts);
   resolveCharts(ctx, opts);
   checkReservedMetaId(children, ctx);
-  if (ctx.markdown) ctx.blockMarkers = blockMarkersOf(lines);
+  if (ctx.markdown) {
+    ctx.blockMarkers = blockMarkersOf(lines);
+    const targets = (ctx.markdownTargets ??= new Set());
+    for (const a of htmlAnchorsOf(lines)) targets.add(a);
+  }
   validateRefs(ctx, opts, children);
   detectTransclusionCycles(ctx, opts);
   detectSelfEmbedCycles(source, ctx);

@@ -18,6 +18,58 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **A `.md` link to GitHub's anchor for a heading resolves.** §4's heading-id
+  derivation and GitHub's slug part ways on three points: §4 deletes a code
+  span, folds a run of whitespace into one `-` and drops diacritics; GitHub
+  keeps code text, turns each space into its own `-` and keeps `é`. So
+  `## C++ & Rust` is `#c-rust` to GEML and `#c--rust` on GitHub,
+  ``## `geml get` in 5 minutes`` is `#in-5-minutes` and
+  `#geml-get-in-5-minutes`, and a README contents table written against
+  GitHub failed `check` on every such link. Under Markdown reading GitHub's
+  anchor is now a link target too — slugged from the heading's rendered text
+  (link text without its URL, no emphasis markers or HTML tags, no closing
+  `##`, a trailing `{#id}` kept as the text GitHub prints), with
+  github-slugger's `-1`, `-2` for a repeated one — for `check` and for the
+  write gate. Like an `<a id>` anchor it is a target and not an address:
+  `get`/`set` still take the heading's §4 id, which is unchanged, and a
+  `.geml` reads §4's id alone.
+- **A `.md` link to an `<a id>`, `<a name>` or `<span id>` anchor
+  resolves.** Many READMEs anchor their sections with raw HTML —
+  `<a id="why-now"></a>` — because
+  Markdown has no way to name a place, and GitHub follows every
+  `[Why now](#why-now)` that points at one. Read as the text GEML keeps raw
+  HTML as, each of those links was an `unresolved reference` error: this
+  repo's own `README.md` checked with 16 of them and `README_CN.md` with 17,
+  all false, and the same errors stood in the write gate. MinerU, which turns
+  PDFs into Markdown for agents, anchors each page footnote the same way with a
+  `<span id>` — `[\[1\]](#note-one)` — and a footnote added in that shape was
+  refused. Under Markdown reading an `<a>` element's `id`, or its legacy
+  `name`, and a `<span>`'s `id` are now link targets for `check` and for every
+  write that re-checks the document. Those two elements and no others: GitHub
+  keeps an `id` on more, but each one added is another case to get right, and
+  these are the two real documents anchor with. It is a target and nothing
+  more: not a block, not an id `get` can address, and the HTML
+  still renders and converts as the text it was. An element inside code (a
+  fence, an indented block, a code span) or an HTML comment is not an anchor,
+  and `data-id=` or an `id=` inside another attribute's value is not an `id`.
+  A `.geml` is untouched: GEML has no raw HTML (§8.2(9)), and there the same
+  line is prose. Both READMEs now check clean.
+- **`geml find` takes a pattern that starts with `-`.** A Markdown list
+  item's own text begins `- `, and that was the one pattern `find` could not
+  take: as a bare argument it read as an unknown flag, and `--` was refused
+  on every verb. `find` now honours `--` — everything after it is an operand,
+  taken as text however dash-shaped (`geml find -- '- list item' notes.md`),
+  and a `--json` or `--help` after it is searched for rather than obeyed.
+  An unknown flag on `find` now also says where such text goes. Every other
+  verb still refuses `--` with the `./<name>` alternative: their positional
+  scanners step over dash-arguments, so the marker would be dropped silently.
+  MCP's `geml_find` was never affected — it passes the pattern straight
+  through. The two benchmarks under `docs/benchmarks/` now pass `--` before
+  their phrase: in `addressing-cost.mjs`, 2 of today's 11 phrases begin with
+  `- `, so arm B had been charged a refusal message for a search that never
+  ran (131 bytes more than the real output; the printed ratios move from
+  1.79× to 1.80× input and stay 7.49× for saying where).
+
 ## [1.11.3] — 2026-09-29
 
 - **geml-media: a shot composed from layers.** Two new block types,

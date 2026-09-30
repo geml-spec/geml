@@ -163,7 +163,7 @@ const SUBHELP = {
   delete: "usage: geml delete <file.geml|-> #id [#id2 …] [-o out.geml] [--root d]  (remove one or more blocks; a missing id is skipped with a note, not an error; a reference left dangling is a warning, not a refusal — delete never fails on a live reference)",
   rename: "usage: geml rename <file.geml|-> #old #new [-o out.geml] [--root d]  (rewrite an id's declaration AND every reference — [[#id]], [text](#id), chart data=#id, footnote [^id] — id-boundary safe, skipping raw block bodies; #new must be free; refused if it breaks the doc)",
   list: "usage: geml list <file.geml|-> [--json]  (list every addressable block with its shortest unique address, its kind and its line range — the same listing `geml get <file>` prints with no selector, under the name the MCP surface already uses. Call it FIRST: the addresses it prints are what get/set/add/delete/rename/revert all take)",
-  find: "usage: geml find <pattern> [<file|dir> …] [--json] [--case] [--head]  (search block CONTENT and print `<file>TAB<address>` per hit — an address, never a line number, so a hit is `geml get <file> '<address>'` with no editing. The address is the INNERMOST block holding the match, never its enclosing section, and a block is reported once however many lines in it matched. Substring, case-insensitive unless --case; a file you NAME is searched whatever its extension, including Markdown, while a directory is walked for the two formats the parser reads from a path, *.geml and *.md (a `.gemlhistory` sidecar is neither, and stays out); no path = the current directory; --head adds the matching line as a third column. Exit 1 when nothing matched, so `if geml find …` works in a script)",
+  find: "usage: geml find <pattern> [<file|dir> …] [--json] [--case] [--head]  (search block CONTENT and print `<file>TAB<address>` per hit — an address, never a line number, so a hit is `geml get <file> '<address>'` with no editing. The address is the INNERMOST block holding the match, never its enclosing section, and a block is reported once however many lines in it matched. Substring, case-insensitive unless --case; a file you NAME is searched whatever its extension, including Markdown, while a directory is walked for the two formats the parser reads from a path, *.geml and *.md (a `.gemlhistory` sidecar is neither, and stays out); no path = the current directory; --head adds the matching line as a third column; a pattern or path that starts with `-` goes after `--` (`geml find -- '- list item' notes.md`), and everything after `--` is taken as text, flags included. Exit 1 when nothing matched, so `if geml find …` works in a script)",
   replace: "usage: geml replace <file.geml|-> <old> <new> [--within <selector>] [-o out.geml] [--root d]  (EXPERIMENTAL — this verb MAY BE WITHDRAWN in a later release; it is here to find out whether an addressed, checked replacement earns its place beside `sed`, and if it does not, it goes. Build nothing on it you cannot change, and say so in a discussion if it is doing real work for you. Swaps a LITERAL string — never a pattern, that is what `sed` is for and where the footguns are. Without --within the whole document; with it, only inside the blocks that selector matches, and unlike `set` it may match several: `--within '=== table'` means every table. What this buys over `sed -i`, at the same cost of two short strings and nothing read: the result is re-parsed and refused if it would break the document, the blocks it touched are NAMED on stderr, and the write lands in .gemlhistory where `revert` can undo it. An id is not text — a replacement that would rename one is refused and points at `geml rename`, which fixes every reference too. Exit 1 when nothing matched, so `if geml replace …` works in a script)",
   check: "usage: geml check <file.geml|-> [--root <dir>] [--json] [--severity <code>=<level>]… [--only <pattern>]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory. A document whose `=== meta` declares a vocabulary this processor recognizes also gets that vocabulary's own checks, reported by ADDRESS rather than by line — they are cross-document, so there is no one line to name. --severity re-levels ONE such code: error | warning | info, and info is the floor, because a level that silences is what --only is for. It takes profile codes only; the core catalogue's severities are fixed by Appendix A and a processor that moved one would not conform. --only keeps just the profile codes matching a `*` pattern, as in --only 'media-stale-*')",
   revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--append|--before #x|--after #x] [--head] [--dry-run] [-o out] [--root d]  (reconcile #id to a revision: splice / resurrect / remove; sel: 0 | -N | id-prefix | changed; default -1)",
@@ -244,12 +244,16 @@ let jsonMode = false;
 // codemap is absent on purpose: it forwards argv to its own toolkit, whose
 // subcommands own their (many, evolving) flags. `set` lists --view only to
 // reach its own, better refusal ("set refuses --view").
-interface FlagTable { bool: readonly string[]; valued: readonly string[] }
+// `operands` marks a verb that honours `--`: everything after it is an operand,
+// however dash-shaped. Only a verb whose operands are free text needs it —
+// find's pattern is whatever the caller is looking for, and a Markdown list
+// item's own text begins `- `.
+interface FlagTable { bool: readonly string[]; valued: readonly string[]; operands?: true }
 
 const VERB_FLAGS: Record<string, FlagTable> = {
   get: { bool: ["--json", "--head", "--body", "--intro", "--view"], valued: ["--root"] },
   list: { bool: ["--json"], valued: ["--root"] },
-  find: { bool: ["--json", "--case", "--head"], valued: ["--root"] },
+  find: { bool: ["--json", "--case", "--head"], valued: ["--root"], operands: true },
   set: { bool: ["--head", "--body", "--intro", "--view"], valued: ["--in", "-o", "--out", "--root"] },
   replace: { bool: [], valued: ["--within", "-o", "--out", "--root"] },
   add: { bool: ["--append"], valued: ["--in", "--before", "--after", "-o", "--out", "--root"] },
@@ -276,7 +280,9 @@ const VERB_FLAGS: Record<string, FlagTable> = {
 // Nothing dash-shaped may go unclaimed. Exemptions that are arguments, not
 // flags: `-` (stdin) and `-N` (a history revision selector — the first column
 // `history get` prints). `--help`/`-h` answer with the verb's own usage.
-// A bare `--` is refused with the working alternative, not silently dropped.
+// A bare `--` ends the options of a verb that honours it (`operands`); every
+// other verb refuses it with the working alternative, because their positional
+// scanners step over dash-arguments and would drop the marker silently.
 // `table` is a parameter so a verb dispatched OUTSIDE the core table can still
 // use this: `media` is a vocabulary's verb (PROFILE_VERBS), so it never reaches
 // VERB_FLAGS, and for want of a table it had no flag checking at all.
@@ -289,7 +295,10 @@ function rejectUnknownFlags(verb: string, args: string[], table: FlagTable | und
       console.log((SUBHELP as Record<string, string>)[verb] ?? USAGE);
       process.exit(0);
     }
-    if (a === "--") fail(`'--' is not supported; write a dash-leading path as ./<name>`);
+    if (a === "--") {
+      if (table.operands) return;
+      fail(`'--' is not supported; write a dash-leading path as ./<name>`);
+    }
     // `--json` is read at dispatch, before any verb: it switches errors to the
     // JSON channel, and the MCP layer passes it to every verb it drives.
     if (a === "--json") continue;
@@ -299,12 +308,24 @@ function rejectUnknownFlags(verb: string, args: string[], table: FlagTable | und
     const name = eq > 1 ? a.slice(0, eq) : a;
     if (table.valued.includes(name)) { if (eq < 0) i++; continue; }
     if (table.bool.includes(name)) continue;
+    // A verb with free-text operands cannot tell a typo from text that merely
+    // starts with `-`, so it says both: what the flags are, and where text goes.
     fail(
       verb === "convert"
         ? `unknown flag '${name}'. Run 'geml --help'.`
-        : `unknown flag '${name}' for '${verb}'. Run 'geml ${verb} --help', or 'geml --help' for the verb list.`
+        : `unknown flag '${name}' for '${verb}'. Run 'geml ${verb} --help', or 'geml --help' for the verb list.` +
+          (table.operands ? ` Text that starts with '-' goes after '--': geml ${verb} -- '${a}' …` : "")
     );
   }
+}
+
+// The part of a verb's arguments that is OPTIONS: for a verb that honours `--`,
+// what precedes it; for every other verb, all of them. The dispatcher reads
+// `--help` and `--json` through this, so neither switch fires on an operand.
+function optionArgs(verb: string | undefined, args: string[]): string[] {
+  const honours = verb !== undefined && Object.hasOwn(VERB_FLAGS, verb) && VERB_FLAGS[verb]!.operands;
+  const at = honours ? args.indexOf("--") : -1;
+  return at < 0 ? args : args.slice(0, at);
 }
 
 function fail(msg: string, code = 2): never {
@@ -1180,12 +1201,15 @@ function runFind(args: string[]): void {
   // `--root` is declared here, and ignored, so that it cannot be mistaken for
   // one more path to search: `find` resolves no cross-document references, and
   // swallowing the directory as a search path widens what a caller narrowed.
-  const pos = positionals(args, ["--root"]);
+  // After `--` every argument is an operand, taken verbatim: that is how a
+  // pattern (or a path) that starts with `-` gets in.
+  const opts = optionArgs("find", args);
+  const pos = [...positionals(opts, ["--root"]), ...args.slice(opts.length + 1)];
   const pattern = pos[0];
   if (pattern === undefined) fail(SUBHELP.find);
-  const sensitive = args.includes("--case");
-  const withLine = args.includes("--head");
-  const json = args.includes("--json");
+  const sensitive = opts.includes("--case");
+  const withLine = opts.includes("--head");
+  const json = opts.includes("--json");
 
   const files: string[] = [];
   const named = pos.slice(1);
@@ -1766,8 +1790,9 @@ const entry = (() => {
   // The on-disk artifact is `.geml-code-graph/`, so people reconstruct the
   // command from the directory name — accept those spellings as `codemap`.
   const cmd = argv[0] === "codegraph" || argv[0] === "code-graph" ? "codemap" : argv[0];
-  jsonMode = argv.includes("--json");
+  jsonMode = optionArgs(cmd, argv).includes("--json");
   const rest = argv.slice(1);
+  const restOpts = optionArgs(cmd, rest);
   if (cmd === "--help" || cmd === "-h") {
     console.log(USAGE);
   } else if (cmd === "--version" || cmd === "-V") {
@@ -1776,7 +1801,7 @@ const entry = (() => {
   } else if (cmd === undefined) {
     console.error(USAGE);
     process.exit(2);
-  } else if (SUBHELP[cmd as keyof typeof SUBHELP] && (rest.includes("--help") || rest.includes("-h"))) {
+  } else if (SUBHELP[cmd as keyof typeof SUBHELP] && (restOpts.includes("--help") || restOpts.includes("-h"))) {
     // `geml <cmd> --help` is a help request, not a usage error: usage to
     // stdout, exit 0 — never the `error:`-prefixed exit-2 path.
     console.log(SUBHELP[cmd as keyof typeof SUBHELP]);

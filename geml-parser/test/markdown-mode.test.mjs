@@ -380,6 +380,191 @@ try {
     assert.equal(r.code, 1);
     assert.match(r.err, /no block with id `a` in .*raw\.txt — `--in F` takes the block of that id FROM F; to write F's text as the content, use `--in - </);
   });
+
+  // -------------------------------------------------------------------------
+  // HTML anchors are link targets, as on GitHub
+  // -------------------------------------------------------------------------
+
+  test("a link to an <a id> or <a name> anchor resolves; a link to no anchor still fails", () => {
+    // This repo's own README anchors its contents table this way, and GitHub
+    // follows every one of those links — so `check` calling them broken was a
+    // wrong answer, not a strict one.
+    const doc = md(
+      "# Doc\n\n- [Why now](#why-now) · [Old](#old-style) · [Upper](#Mixed-Case) · [Nope](#nope)\n\n" +
+      '<a id="why-now"></a>\n## Why GEML, and why now\n\n' +
+      "text <a name='old-style'></a> more\n\n" +
+      '<A HREF="#x" ID=Mixed-Case>jump</A>\n',
+    );
+    const errs = doc.diagnostics.filter((d) => d.severity === "error");
+    assert.deepEqual(errs.map((d) => d.message), ["unresolved reference `#nope`"]);
+  });
+
+  test("a <span id> is an anchor too; a <span name>, and any other element's id, is not", () => {
+    // MinerU marks a page footnote `<span id="note-one">` and links it as
+    // `[\[1\]](#note-one)`. The rule stops at <a> and <span> on purpose: GitHub
+    // keeps an id on more elements than that, but each one added is a case to
+    // get right, and these two are the ones real documents anchor with.
+    const doc = md(
+      "# Doc\n\n[a](#fn) [b](#span-name) [c](#div-id) [d](#sup-id)\n\n" +
+      '<small><span id="fn" class="docvortex-page-footnote">Body.</span></small>\n\n' +
+      '<span name="span-name">x</span> <div id="div-id">y</div> <sup id="sup-id">2</sup>\n',
+    );
+    const missing = doc.diagnostics.filter((d) => d.code === "unresolved-reference").map((d) => d.message);
+    assert.deepEqual(missing, [
+      "unresolved reference `#span-name`", "unresolved reference `#div-id`", "unresolved reference `#sup-id`",
+    ]);
+  });
+
+  test("an anchor inside code, a code span or a comment is text, not a target", () => {
+    const doc = md(
+      "# Doc\n\n[a](#in-fence) [b](#in-span) [c](#in-comment) [d](#in-block-comment) [e](#data-attr)\n\n" +
+      '```html\n<a id="in-fence"></a>\n```\n\n' +
+      'Write `<a id="in-span"></a>` to make one.\n\n' +
+      '<!-- <a id="in-comment"></a> -->\n\n' +
+      '<!--\n<a id="in-block-comment"></a>\n-->\n\n' +
+      '<a data-id="data-attr" title="id=data-attr"></a>\n',
+    );
+    const missing = doc.diagnostics.filter((d) => d.code === "unresolved-reference").map((d) => d.message);
+    assert.deepEqual(missing, [
+      "unresolved reference `#in-fence`", "unresolved reference `#in-span`",
+      "unresolved reference `#in-comment`", "unresolved reference `#in-block-comment`",
+      "unresolved reference `#data-attr`",
+    ]);
+  });
+
+  test("an anchor is a link target only: it is not an address, and a .geml reads it as text", () => {
+    const src = "# Doc\n\n[x](#why-now)\n\n<a id=\"why-now\"></a>\n\n## Section\n\nbody\n";
+    assert.ok(!md(src).ids.includes("why-now"), "not a block id `get` could address");
+    const f = write("anchor-addr.md", src);
+    assert.equal(run(["get", f, "#why-now"]).code, 1, "and `get` finds nothing there");
+    // GEML has no raw HTML, so in a .geml the same text is prose and the link is broken.
+    const geml = parse(src);
+    assert.ok(geml.diagnostics.some((d) => d.code === "unresolved-reference"));
+  });
+
+  test("a link to GitHub's anchor for a heading resolves, beside the heading's own id", () => {
+    // §4's derivation and github-slugger part ways on code spans, whitespace
+    // runs and diacritics. A README's contents table is written against GitHub,
+    // so each of these links works there — and each was reported broken.
+    const doc = md(
+      "# Doc\n\n" +
+      "[a](#c--rust) [b](#geml-get-in-5-minutes) [c](#café) [d](#see-the-docs-old-new) [e](#renamed-alpha) [f](#q--a)\n\n" +
+      "[g](#c-rust) [h](#in-5-minutes) [i](#cafe) [j](#alpha) [k](#nope)\n\n" +
+      "## C++ & Rust\n\n## `geml get` in 5 minutes\n\n## Café\n\n" +
+      "## See [the docs](https://example.com) ~~old~~ **new**\n\n## Renamed {#alpha}\n\n## Q & A ##\n",
+    );
+    const missing = doc.diagnostics.filter((d) => d.code === "unresolved-reference").map((d) => d.message);
+    assert.deepEqual(missing, ["unresolved reference `#nope`"], "GitHub's anchors and GEML's ids both resolve; nothing else does");
+  });
+
+  test("GitHub's anchor on the edges, as GitHub's own renderer gives it", () => {
+    // Each expected anchor is what GitHub's Markdown API (mode=markdown, the one
+    // a README renders with) returned for the heading on 2026-09-30. Chosen where
+    // GitHub's anchor and §4's id differ, so only GitHub's rule can resolve it:
+    // a trailing `\` leaves no trace (GEML's §4 fold takes it before the text is
+    // read; GitHub's slug deletes it); a closing `##` is not text; `C#` keeps its
+    // `#` up to the slug; and a heading with no letter or digit gets no anchor.
+    const cases = [
+      ["C++ & Rust\\", "c--rust"],
+      ["C++ & Rust ##", "c--rust"],
+      ["C++ & C#", "c--c"],
+    ];
+    for (const [heading, anchor] of cases) {
+      const errs = md(`# Doc\n\n[x](#${anchor})\n\n## ${heading}\n`).diagnostics.filter((d) => d.code === "unresolved-reference");
+      assert.deepEqual(errs, [], `## ${heading} → #${anchor}`);
+    }
+    for (const bare of ["!!!", "###"]) {
+      assert.deepEqual(codes(md(`# Doc\n\n## ${bare}\n`)), [], `## ${bare} registers nothing and breaks nothing`);
+    }
+  });
+
+  test("an <a id> beside an escaped backtick, an unclosed one, or a bare attribute is still an anchor", () => {
+    // GitHub keeps all three (checked against its renderer): `\`` is a literal
+    // backtick, an unclosed run is literal text, and `hidden` takes no value.
+    const doc = md(
+      "# Doc\n\n[a](#esc) [b](#open) [c](#bare)\n\n" +
+      '\\`x <a id="esc"></a>\n\n`unclosed <a id="open"></a>\n\n<a hidden id="bare"></a>\n',
+    );
+    assert.deepEqual(doc.diagnostics.filter((d) => d.code === "unresolved-reference"), []);
+  });
+
+  test("a repeated heading's GitHub anchor takes github-slugger's -N", () => {
+    const doc = md("# Doc\n\n[a](#c--rust-1) [b](#c--rust-2)\n\n## C++ & Rust\n\n## C++ & Rust\n");
+    const missing = doc.diagnostics.filter((d) => d.code === "unresolved-reference").map((d) => d.message);
+    assert.deepEqual(missing, ["unresolved reference `#c--rust-2`"], "two headings: -1 exists, -2 does not");
+  });
+
+  test("GitHub's anchor is a link target only: the address is still the heading's id, and a .geml is unaffected", () => {
+    const src = "# Doc\n\n[x](#c--rust)\n\n## C++ & Rust\n\nbody\n";
+    const f = write("gh-anchor.md", src);
+    assert.equal(run(["get", f, "#c--rust"]).code, 1, "not an address");
+    assert.equal(run(["get", f, "#c-rust"]).code, 0, "the address is unchanged");
+    const geml = parse(src);
+    assert.ok(geml.diagnostics.some((d) => d.code === "unresolved-reference"), "a .geml reads §4's id only");
+  });
+
+  test("check and the write gate agree: a .md whose links point at anchors checks clean and takes a write", () => {
+    const f = write("anchors.md", '# Doc\n\n[Jump](#later)\n\n<a id="later"></a>\n\n## A\n\na\n\n## B\n\nb\n');
+    const c = run(["check", f]);
+    assert.equal(c.code, 0, c.err);
+    const s = run(["set", f, "#a", "--body", "--in", "-"], "see [Jump](#later) again\n");
+    assert.equal(s.code, 0, s.err);
+    const bad = run(["set", f, "#b", "--body", "--in", "-"], "see [Gone](#not-an-anchor)\n");
+    assert.equal(bad.code, 1);
+    assert.match(bad.err, /unresolved reference `#not-an-anchor`/);
+  });
+  // -------------------------------------------------------------------------
+  // A real producer: MinerU's Markdown
+  // -------------------------------------------------------------------------
+  // test/fixtures/mineru-output.md is assembled from the EXPECTED outputs in
+  // DocVortex's tests/unittest/test_markdown_render.py — the renderer behind
+  // MinerU (opendatalab/MinerU), which turns PDFs into Markdown for agents. Each
+  // part is a string that renderer is pinned to produce: a contents link to an
+  // `<a id>` anchor, a page footnote linked to a `<span id>`, `$$` and `\[…\]`
+  // formulas, a GFM table with `A\|B` and a formula in a cell, a complex table
+  // left as `<table>`, fences of four backticks around three, a table inside
+  // `<details>`, the `\-` and `\---` it escapes, and a base64 image.
+
+  const MINERU = readFileSync(join(process.cwd(), "test", "fixtures", "mineru-output.md"), "utf8");
+
+  test("MinerU's Markdown checks clean: every construct it emits reads as Markdown", () => {
+    const f = write("mineru.md", MINERU);
+    const r = run(["check", f]);
+    assert.equal(r.code, 0, r.err);
+    assert.match(r.err, /ok: no diagnostics/);
+  });
+
+  test("MinerU's Markdown round-trips byte for byte, unit by unit", () => {
+    const f = write("mineru-rt.md", MINERU);
+    const addresses = JSON.parse(run(["list", f, "--json"]).out).map((b) => b.address);
+    assert.ok(addresses.length >= 2, addresses.join(" "));
+    for (const a of addresses) {
+      const got = run(["get", f, a]);
+      assert.equal(got.code, 0, got.err);
+      assert.equal(run(["set", f, a, "--in", "-"], got.out).code, 0, a);
+      assert.equal(read(f), MINERU, `${a} came back unchanged`);
+    }
+  });
+
+  test("a footnote added the way MinerU writes one is accepted", () => {
+    const f = write("mineru-add.md", MINERU);
+    const r = run(["add", f, "--append", "--in", "-"],
+      '## Added\n\nAlso see [\\[2\\]](#note-two).\n\n<small><span id="note-two">Second.</span></small>\n');
+    assert.equal(r.code, 0, r.err);
+    assert.equal(run(["check", f]).code, 0);
+  });
+
+  test("MinerU's Markdown converts: $$ to math, pipe tables to tables, every fence to code", () => {
+    const f = write("mineru-conv.md", MINERU);
+    const r = run([f, "--to", "geml"]);
+    assert.equal(r.code, 0, r.err);
+    const kinds = [...r.out.matchAll(/^=+ (\w+)/gm)].map((m) => m[1]);
+    assert.deepEqual(kinds.filter((k) => k === "math").length, 1, "the $$ block; \\[…\\] is not recognized yet");
+    assert.deepEqual(kinds.filter((k) => k === "table").length, 2, "the pipe table and the one inside <details>");
+    assert.deepEqual(kinds.filter((k) => k === "code").length, 3, "```` around ```, ````python and ```txt");
+    assert.match(r.out, /=== code \{#code-2 lang=python\}/);
+  });
+
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }

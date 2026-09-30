@@ -112,7 +112,9 @@ for (const e of data.edits) {
   const phrase = phraseOf(e.landed);
   if (!phrase) { dropped.noPhrase++; continue; }
   if (!md.includes(phrase.slice(0, 24))) { dropped.superseded++; continue; }
-  const found = geml("find", phrase, twin);
+  // `--`: a phrase that begins with `-` is otherwise refused as a flag, and the
+  // edit would be dropped as superseded when it was only unsearched.
+  const found = geml("find", "--", phrase, twin);
   const hit = found.split(/\r?\n/).find((l) => l.includes("\t"));
   if (!hit) { dropped.superseded++; continue; }
   const address = hit.split("\t")[1];

@@ -79,6 +79,13 @@ test("bare -- is refused with the working alternative, not silently dropped", ()
   const r = run(["list", "--", "x.geml"]);
   assert.equal(r.code, 2);
   assert.match(r.err, /'--' is not supported/);
+  // `find` honours the marker; the verbs that do not must keep refusing it,
+  // or `--` would be dropped and a dash-leading id read as the flag it looks like.
+  for (const verb of ["get", "set", "check", "replace"]) {
+    const v = run([verb, "--", "x.geml"]);
+    assert.equal(v.code, 2, verb);
+    assert.match(v.err, /'--' is not supported/, verb);
+  }
 });
 
 test("the transform entry rejects unknown flags too", () => {

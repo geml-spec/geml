@@ -135,8 +135,10 @@ for (const [mdPath, gemlPath] of PAIRS) {
     const blockLines = block.split(/\r?\n/).length;
     const secondRead = blockLines > WINDOW + 1 ? mdLines.slice(hit, hit + blockLines).join("\n") : "";
 
-    // --- arm B
-    const findOut = geml("find", phrase, gemlPath);
+    // --- arm B.  The same guard, for the same reason: without `--` a phrase
+    // that begins with `-` is refused as an unknown flag, and arm B would be
+    // charged one short error line for a search that never ran.
+    const findOut = geml("find", "--", phrase, gemlPath);
 
     rows.push({
       doc: mdPath.split("/").pop(),
