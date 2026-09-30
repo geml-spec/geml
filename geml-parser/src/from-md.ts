@@ -151,6 +151,32 @@ const FENCE = /^(\s*)(`{3,}|~{3,})(.*)$/;
 const SETEXT_UL = /^=+\s*$/;
 const SETEXT_DASH = /^-+\s*$/;
 const THEMATIC = /^\s*([-*_])(\s*\1){2,}\s*$/;
+
+// CommonMark: a closing fence is indented at most 3 spaces, uses the same
+// marker, and is at least as long as the opener. A more-indented run of the
+// same character is content — this is what lets a document *show* nested ```
+// fences without ending the block early.
+function closesFence(raw: string, marker: string): boolean {
+  const indent = raw.length - raw.trimStart().length;
+  const c = raw.trimEnd().trimStart();
+  return indent <= 3 && c.length >= marker.length && c[0] === marker[0]! && /^[`~]+$/.test(c);
+}
+
+// Whether the body, from line `from` on, holds a level-1 heading — ATX `# …`
+// or a `===` setext underline — outside fenced code. These are the tests the
+// conversion loop below applies, so the two cannot disagree about a heading.
+function hasLevelOneHeading(lines: readonly string[], from: number): boolean {
+  let fence: string | null = null;
+  for (let k = from; k < lines.length; k++) {
+    const line = lines[k]!;
+    if (fence !== null) { if (closesFence(line, fence)) fence = null; continue; }
+    const f = FENCE.exec(line);
+    if (f) { fence = f[2]!; continue; }
+    if (/^#\s+/.test(line)) return true;
+    if (line.trim() !== "" && !THEMATIC.test(line) && SETEXT_UL.test(lines[k + 1] ?? "")) return true;
+  }
+  return false;
+}
 const TABLE_SEP = /^\s*\|?\s*:?-{1,}:?\s*(\|\s*:?-{1,}:?\s*)*\|?\s*$/;
 
 export function mdToGeml(source: string): ConvertResult {
@@ -194,6 +220,13 @@ export function mdToGeml(source: string): ConvertResult {
     const h1 = /^#\s+(.*?)\s*$/.exec(lines[k] ?? "");
     const words = h1?.[1]!.replace(/\\([\\`*_[\]])/g, "$1").trim();
     if (h1 && words === fmTitle) { promote = true; i = k + 1; }
+    // The other shape a Markdown title takes: Jekyll, Hugo and Docusaurus show
+    // the frontmatter `title` as the page's h1, and the author starts the
+    // sections at `##` under it. Those sections move up one level too, or the
+    // projection's own shift would push a `## Intro` down to h3. What decides it
+    // is only that the body has no level-1 heading at all — which heading is
+    // the title is still never guessed.
+    else if (!hasLevelOneHeading(lines, i)) promote = true;
   }
   const level = (n: number): number => {
     if (!promote) return n;
@@ -213,13 +246,7 @@ export function mdToGeml(source: string): ConvertResult {
       let j = i + 1;
       for (; j < lines.length; j++) {
         const raw = lines[j]!;
-        // CommonMark: a closing fence is indented at most 3 spaces, uses the same
-        // marker, and is at least as long as the opener. A more-indented run of
-        // the same character is content — this is what lets a document *show*
-        // nested ``` fences without ending the block early.
-        const indent = raw.length - raw.trimStart().length;
-        const c = raw.trimEnd().trimStart();
-        if (indent <= 3 && c.length >= marker.length && c[0] === marker[0]! && /^[`~]+$/.test(c)) break;
+        if (closesFence(raw, marker)) break;
         body.push(raw);
       }
       if (DIAGRAM_LANGS.has(info)) emitBlock(out, "diagram", `{format=${info}}`, body, ids);

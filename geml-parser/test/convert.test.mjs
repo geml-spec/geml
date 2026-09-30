@@ -1,6 +1,6 @@
 // Markdown -> GEML conversion checks. Run with `npm test`.
 import { spawnSync } from "node:child_process";
-import { gemlToMd, mdToGeml, parse } from "../dist/geml.js";
+import { gemlToMd, mdToGeml, parse, renderHtml } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
 
 let passed = 0;
@@ -212,6 +212,42 @@ test("the echo is matched on the title's plain text: quoting styles, escapes", (
 test("no echo without a closed frontmatter, and a frontmatter alone is fine", () => {
   assert.match(conv("---\ntitle: T\nnever closed\n\n# T\n\n## S\n"), /\n# T\n\n## S\n/);
   assert.match(conv("---\ntitle: T\n---\n"), /title=T/);
+});
+
+// Jekyll, Hugo and Docusaurus show the frontmatter title as the page's h1, so
+// their authors start the sections at `##`. With no level-1 heading anywhere in
+// the body, the sections sit under the title and move up with it.
+
+test("frontmatter title over a body with no h1: the sections move up a level, and project back to ## under the title", () => {
+  const md = "---\ntitle: My Post\n---\n\n## Intro\n\nText.\n\n### Deeper\n\n## Details\n";
+  const g = conv(md);
+  assert.match(g, /=== meta\ntitle="My Post"\n===\n/);
+  assert.match(g, /\n# Intro\n\nText\.\n\n## Deeper\n\n# Details\n/, g);
+  const back = gemlToMd(parse(g)).md;
+  assert.match(back, /\n# My Post\n\n## Intro\n\nText\.\n\n### Deeper\n\n## Details\n$/, "the author's ## are ## again, under the title's #");
+  const html = renderHtml(parse(g), { fragment: true });
+  assert.deepEqual([...html.matchAll(/<h([1-6])[^>]*>([^<]*)/g)].map((m) => m[1] + m[2]), ["1My Post", "2Intro", "3Deeper", "2Details"]);
+});
+
+test("an h1 anywhere in the body, ATX or setext, leaves the levels alone; one inside a code fence is not an h1", () => {
+  assert.match(conv("---\ntitle: T\n---\n\n## A\n\n# Later\n"), /\n## A\n\n# Later\n/, "a later ATX h1");
+  assert.match(conv("---\ntitle: T\n---\n\n## A\n\nLater\n=====\n"), /\n## A\n\n# Later\n/, "a setext h1");
+  for (const fence of ["```", "~~~"]) {
+    const g = conv(`---\ntitle: T\n---\n\n## A\n\n${fence}sh\n# a shell comment\n${fence}\n\n## B\n`);
+    assert.match(g, /\n# A\n/, `${fence}: the # in the fence does not count`);
+    assert.match(g, /\n# B\n/, `${fence}: the fence closed, the scan went on`);
+  }
+  const nested = conv("---\ntitle: T\n---\n\n## A\n\n````md\n```\n# inside\n```\n````\n\n## B\n");
+  assert.match(nested, /\n# B\n/, "a shorter fence inside a longer one does not close it");
+  // A thematic break over a `===` line is not a setext heading, and a last
+  // line with no newline after it has nothing under it to be one.
+  assert.match(conv("---\ntitle: T\n---\n\n## A\n\n***\n=====\n\n## B"), /\n# A\n[\s\S]*\n# B/);
+});
+
+test("no frontmatter title, no promotion: a ## body with other frontmatter keys keeps its levels", () => {
+  assert.match(conv("---\nauthor: me\n---\n\n## A\n"), /\n## A\n/);
+  assert.match(conv("---\ntitle: \"\"\n---\n\n## A\n"), /\n## A\n/, "an empty title is no title");
+  assert.match(conv("## A\n\n### B\n"), /^## A\n\n### B\n/);
 });
 
 console.log(`\n${passed} test(s) passed.`);

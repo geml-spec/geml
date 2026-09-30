@@ -94,9 +94,13 @@ and is released under `viewer-v*` tags.
   trip (`geml notes.md`) recognises exactly the shape `--to md` writes —
   frontmatter `title`, then a level-1 heading of the same words — drops the
   echo and moves the headings back up, so `geml → md → geml` keeps the title
-  in meta and the sections at level 1. A heading pushed past level 6, or one
-  that cannot rise above level 1, is clamped and reported in the notes.
-  `docs/PUBLISHING.md` is regenerated in the new shape.
+  in meta and the sections at level 1. So does the shape Jekyll, Hugo and
+  Docusaurus write — a frontmatter `title` over sections that start at `##`,
+  with no level-1 heading anywhere in the body: those sections sit under the
+  title and move up with it, so they project back to `##` rather than being
+  pushed to `###`. A heading pushed past level 6, or one that cannot rise above
+  level 1, is clamped and reported in the notes. `docs/PUBLISHING.md` is
+  regenerated in the new shape.
 
 ## [1.11.3] — 2026-09-29
 
