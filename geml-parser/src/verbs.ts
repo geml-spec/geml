@@ -993,7 +993,7 @@ export function replace(source: string, file: string, oldText: string, newText: 
 
   const errs = errorsAdded(before, after, file);
   if (errs.length) {
-    refuseBroken(refusalProse(before, errs, "the replacement would break the document"), errs);
+    refuseWrite(before, errs, "the replacement would break the document");
   }
 
   // Blocks the replacement removed follow `set`'s rule: carried out, and named.
@@ -1439,7 +1439,7 @@ function insertFragment(source: string, lines: string[], at: number, fragment: s
   // carrying an old defect somewhere else stayed writable by `set` and was
   // refused by `add`, which named that defect as the thing the addition broke.
   const errs = errorsAdded(beforeDoc, reparsed, file);
-  if (errs.length) refuseBroken(refusalProse(beforeDoc, errs, "adding the content would break the document"), errs);
+  if (errs.length) refuseWrite(beforeDoc, errs, "adding the content would break the document");
   const now = new Set(reparsed.ids);
   const dropped = beforeIds.find((x) => !now.has(x));
   if (dropped !== undefined) fail(`adding the content would drop block \`#${dropped}\`; not written`, 1);
@@ -1524,7 +1524,7 @@ export function rename(source: string, file: string, rawOld: string, rawNew: str
   const updated = rewriteId(source, oldId, newId, file, ctx);
   const reparsed = parse(updated, { ...ctx.docOpts(file), self: selfOf(file) });
   const errs = errorsAdded(before, reparsed, file);
-  if (errs.length) refuseBroken(refusalProse(before, errs, "rename would break the document"), errs);
+  if (errs.length) refuseWrite(before, errs, "rename would break the document");
   if (!hasName(reparsed.ids, newId)) fail(`rename did not produce #${newId}; not written`, 1);
   if (hasName(reparsed.ids, oldId)) fail(`#${oldId} still present after rename; not written`, 1);
   // Every OTHER id must be untouched. The `#old` match boundary treats a char
@@ -1668,6 +1668,32 @@ function predated(before: { diagnostics: readonly Diagnostic[] }, errs: readonly
   return errs.length > 0 && errs.every((d) => had.has(errorKey(d)));
 }
 
+// A refused write's diagnostics, each at the line a reader will look for it. An
+// error the document already had is reported where it sits in the document on
+// disk: the candidate that tripped over it was never written, and its numbering
+// moves with every line the edit added or removed. Errors pair with their
+// pre-edit twins by the key `predated` uses, in order, so a second copy the edit
+// introduced keeps the only line it has, the candidate's.
+function onDisk(before: { diagnostics: readonly Diagnostic[] }, errs: readonly Diagnostic[]): Diagnostic[] {
+  const had = new Map<string, Diagnostic[]>();
+  for (const d of before.diagnostics) {
+    if (d.severity !== "error") continue;
+    const twins = had.get(errorKey(d));
+    if (twins) twins.push(d); else had.set(errorKey(d), [d]);
+  }
+  return errs.map((d) => {
+    const twin = had.get(errorKey(d))?.shift();
+    return twin === undefined ? d : { ...d, line: twin.line };
+  });
+}
+
+// Refuse a guarded write. The sentence and the diagnostics it carries (the
+// `--json` frame, the MCP result) number lines the same way.
+function refuseWrite(before: { diagnostics: readonly Diagnostic[] }, errs: Diagnostic[], verb: string): never {
+  const shown = onDisk(before, errs);
+  refuseBroken(refusalProse(before, shown, verb), shown);
+}
+
 // The refusal sentence for a guarded write: what refused it, and whose fault it
 // is. `verb` names the edit for the case where the edit really did break it.
 function refusalProse(
@@ -1779,7 +1805,7 @@ function spliceSpan(
     droppedIds.some((x) => d.message.includes(`\`#${x}\``) || d.message.includes(`#${x}\``));
   const errs = errorsAdded(beforeDoc, reparsed, file, collateral);
   if (errs.length) {
-    refuseBroken(refusalProse(beforeDoc, errs, "replacement would break the document"), errs);
+    refuseWrite(beforeDoc, errs, "replacement would break the document");
   }
   if (droppedIds.length || droppedAnon) {
     const named = droppedIds.map((x) => `\`#${x}\``).join(", ");
@@ -1969,7 +1995,7 @@ export function revert(source: string, file: string, rawId: string, o: RevertOpt
   const updated = splitLines(source).filter((_, i) => i < span.start || i >= span.end).join("");
   const reparsed = parse(updated, { ...ctx.docOpts(file), self: selfOf(file) });
   const errs = errorsAdded(beforeDoc, reparsed, file);
-  if (errs.length) refuseBroken(refusalProse(beforeDoc, errs, `removing #${id} would break the document`), errs);
+  if (errs.length) refuseWrite(beforeDoc, errs, `removing #${id} would break the document`);
   const now = new Set(reparsed.ids);
   const dropped = beforeIds.find((x) => x !== id && !now.has(x));
   if (dropped !== undefined) fail(`removing #${id} would drop block \`#${dropped}\`; not written`, 1);

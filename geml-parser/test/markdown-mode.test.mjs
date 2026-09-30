@@ -361,6 +361,34 @@ try {
     assert.match(r.err, /refused by an error the document ALREADY had/);
   });
 
+  test("a refusal on an old defect names its line in the file on disk, not in the rejected candidate", () => {
+    // The replacement is one line shorter (no trailing blank), so the defect sits
+    // a line higher in the candidate than in the file the reader opens.
+    const doc = "# 预算 {#budget}\n\n托管费每月 120 元。\n\n# 附录 {#appendix}\n\n见 [[#budjet]]。\n";
+    const f = write("gate-lines.geml", doc);
+    assert.match(run(["check", f]).err, /unresolved reference `#budjet` \(line 7\)/);
+    const shorter = run(["set", f, "#budget", "--in", "-"], "# 预算 {#budget}\n\n托管费每月 150 元。");
+    assert.equal(shorter.code, 1);
+    assert.match(shorter.err, /ALREADY had.*unresolved reference `#budjet` \(line 7\)/);
+    const frame = JSON.parse(run(["set", f, "#budget", "--json", "--in", "-"], "# 预算 {#budget}\n\n托管费每月 150 元。").err.trim().split(/\r?\n/).pop());
+    assert.deepEqual(frame.diagnostics.map((d) => [d.code, d.line]), [["unresolved-reference", 7]], "the --json frame uses the same numbering");
+    // Longer, the other way: three lines more in the candidate, still line 7 on disk.
+    const longer = run(["set", f, "#budget", "--in", "-"], "# 预算 {#budget}\n\n托管费每月 150 元。\n\n含备份。\n\n含监控。\n");
+    assert.match(longer.err, /unresolved reference `#budjet` \(line 7\)/);
+    assert.equal(readFileSync(f, "utf8"), doc, "nothing was written");
+  });
+
+  test("two copies of one old defect keep their own on-disk lines, and a warning is nobody's twin", () => {
+    const doc = "# 预算 {#budget}\n\n托管费每月 120 元。\n\n=== note {#n oops=1}\nx\n===\n\n# 附录 {#appendix}\n\n见 [[#budjet]]。\n\n又见 [[#budjet]]。\n";
+    const f = write("gate-twins.geml", doc);
+    const disk = JSON.parse(run(["check", f, "--json"]).out).filter((d) => d.severity === "error").map((d) => d.line);
+    assert.deepEqual(disk, [11, 13]);
+    const r = run(["set", f, "#budget", "--json", "--in", "-"], "# 预算 {#budget}\n\n托管费每月 150 元。");
+    assert.equal(r.code, 1);
+    const frame = JSON.parse(r.err.trim().split(/\r?\n/).pop());
+    assert.deepEqual(frame.diagnostics.map((d) => d.line), disk, "each copy pairs with its own twin, in order");
+  });
+
   test("delete reports only what it left dangling", () => {
     const f = write("gate-del.md", "# Doc\n\nOld [[#gone]].\n\n## A {#a}\n\na\n\n## B\n\n[[#a]]\n");
     const r = run(["delete", f, "#a"]);

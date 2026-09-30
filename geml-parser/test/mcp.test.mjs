@@ -649,6 +649,19 @@ test("a document with PRE-EXISTING errors refuses writes, and says the edit was 
   assert.equal(call("geml_check", { file: "b.geml" }).json.ok, true);
 });
 
+test("a refusal on pre-existing errors reports their lines in the file on disk, not in the rejected candidate", () => {
+  const doc = "# 预算 {#budget}\n\n托管费每月 120 元。\n\n# 附录 {#appendix}\n\n见 [[#budjet]]。\n";
+  const dir = ws(doc, "refs.geml");
+  // One line shorter than the section it replaces: in the candidate the old
+  // defect sits on line 6, in the file the model will open it is on line 7.
+  const r = call("geml_set", { file: "refs.geml", id: "budget", body: "# 预算 {#budget}\n\n托管费每月 150 元。" });
+  assert.equal(r.json.ok, false);
+  assert.deepEqual(r.json.diagnostics.map((d) => [d.code, d.line]), [["unresolved-reference", 7]]);
+  assert.match(r.json.hint, /\(line 7\)/, "the sentence and the diagnostics agree");
+  assert.match(r.json.hint, /ALREADY in the document before this edit/);
+  assert.equal(readFileSync(join(dir, "refs.geml"), "utf8"), doc, "nothing was written");
+});
+
 // ---------------------------------------------------------------------------
 // Cross-document references resolve INSIDE the workspace, and only there
 // ---------------------------------------------------------------------------

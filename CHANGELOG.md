@@ -101,6 +101,15 @@ and is released under `viewer-v*` tags.
   pushed to `###`. A heading pushed past level 6, or one that cannot rise above
   level 1, is clamped and reported in the notes. `docs/PUBLISHING.md` is
   regenerated in the new shape.
+- **A write refused by an old error names that error's line in the file.**
+  When `set`, `add`, `rename`, `revert` or `replace` was refused by an error the
+  document already had, the refusal gave its line in the rejected candidate, so
+  an edit that added or removed lines sent the reader to the wrong place: a
+  replacement one line shorter reported line 6 for a broken reference that
+  `geml check` puts on line 7. An error the document already had is now
+  reported at its line on disk, in the sentence, in the `--json` refusal frame
+  and in the MCP result alike. An error the edit introduced keeps the
+  candidate's line, the only one it has.
 
 ## [1.11.3] — 2026-09-29
 
