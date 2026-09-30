@@ -8,22 +8,22 @@ resolution-default = cpg
 
 # geml-parser/code-graph.ts
 
-=== code {#cgDir src=geml-parser/src/code-graph.ts#L60-60 anchor="scip-typescript npm @geml/geml 1.11.3 src/`code-graph.ts`/cgDir()."}
+=== code {#cgDir src=geml-parser/src/code-graph.ts#L60-60 anchor="scip-typescript npm @geml/geml 1.11.4 src/`code-graph.ts`/cgDir()."}
 ===
 
-=== code {#cgJoin src=geml-parser/src/code-graph.ts#L61-69 anchor="scip-typescript npm @geml/geml 1.11.3 src/`code-graph.ts`/cgJoin()."}
+=== code {#cgJoin src=geml-parser/src/code-graph.ts#L61-69 anchor="scip-typescript npm @geml/geml 1.11.4 src/`code-graph.ts`/cgJoin()."}
 ===
 
-=== code {#buildCodeGraph src=geml-parser/src/code-graph.ts#L71-439 anchor="scip-typescript npm @geml/geml 1.11.3 src/`code-graph.ts`/buildCodeGraph()."}
+=== code {#buildCodeGraph src=geml-parser/src/code-graph.ts#L71-439 anchor="scip-typescript npm @geml/geml 1.11.4 src/`code-graph.ts`/buildCodeGraph()."}
 ===
 
-=== code {#codeGraphRuntime src=geml-parser/src/code-graph.ts#L451-1655 anchor="scip-typescript npm @geml/geml 1.11.3 src/`code-graph.ts`/codeGraphRuntime()."}
+=== code {#codeGraphRuntime src=geml-parser/src/code-graph.ts#L451-1655 anchor="scip-typescript npm @geml/geml 1.11.4 src/`code-graph.ts`/codeGraphRuntime()."}
 ===
 
-=== code {#root-typeLiteral501-querySelecto .leaf name="(root)typeLiteral501:querySelectorAll" src=geml-parser/src/code-graph.ts#L451-451 anchor="scip-typescript npm @geml/geml 1.11.3 src/`code-graph.ts`/codeGraphRuntime().(root)typeLiteral501:querySelectorAll()."}
+=== code {#root-typeLiteral501-querySelecto .leaf name="(root)typeLiteral501:querySelectorAll" src=geml-parser/src/code-graph.ts#L451-451 anchor="scip-typescript npm @geml/geml 1.11.4 src/`code-graph.ts`/codeGraphRuntime().(root)typeLiteral501:querySelectorAll()."}
 ===
 
-=== code {#codeGraphWaves src=geml-parser/src/code-graph.ts#L1667-1705 anchor="scip-typescript npm @geml/geml 1.11.3 src/`code-graph.ts`/codeGraphWaves()."}
+=== code {#codeGraphWaves src=geml-parser/src/code-graph.ts#L1667-1705 anchor="scip-typescript npm @geml/geml 1.11.4 src/`code-graph.ts`/codeGraphWaves()."}
 ===
 
 === table {#calls format=csv}

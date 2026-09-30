@@ -18,6 +18,8 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+## [1.11.4] — 2026-09-30
+
 - **A `.md` link to GitHub's anchor for a heading resolves.** §4's heading-id
   derivation and GitHub's slug part ways on three points: §4 deletes a code
   span, folds a run of whitespace into one `-` and drops diacritics; GitHub

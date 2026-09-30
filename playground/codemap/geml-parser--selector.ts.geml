@@ -8,40 +8,40 @@ resolution-default = cpg
 
 # geml-parser/selector.ts
 
-=== code {#sha8 src=geml-parser/src/selector.ts#L97-99 anchor="scip-typescript npm @geml/geml 1.11.3 src/`selector.ts`/sha8()."}
+=== code {#sha8 src=geml-parser/src/selector.ts#L97-99 anchor="scip-typescript npm @geml/geml 1.11.4 src/`selector.ts`/sha8()."}
 ===
 
-=== code {#parseCoordPath src=geml-parser/src/selector.ts#L122-134 anchor="scip-typescript npm @geml/geml 1.11.3 src/`selector.ts`/parseCoordPath()."}
+=== code {#parseCoordPath src=geml-parser/src/selector.ts#L122-134 anchor="scip-typescript npm @geml/geml 1.11.4 src/`selector.ts`/parseCoordPath()."}
 ===
 
-=== code {#parseSelector src=geml-parser/src/selector.ts#L141-200 anchor="scip-typescript npm @geml/geml 1.11.3 src/`selector.ts`/parseSelector()."}
+=== code {#parseSelector src=geml-parser/src/selector.ts#L141-200 anchor="scip-typescript npm @geml/geml 1.11.4 src/`selector.ts`/parseSelector()."}
 ===
 
-=== code {#atKeyOf src=geml-parser/src/selector.ts#L207-210 anchor="scip-typescript npm @geml/geml 1.11.3 src/`selector.ts`/atKeyOf()."}
+=== code {#atKeyOf src=geml-parser/src/selector.ts#L207-210 anchor="scip-typescript npm @geml/geml 1.11.4 src/`selector.ts`/atKeyOf()."}
 ===
 
-=== code {#keyForm src=geml-parser/src/selector.ts#L217-253 anchor="scip-typescript npm @geml/geml 1.11.3 src/`selector.ts`/keyForm()."}
+=== code {#keyForm src=geml-parser/src/selector.ts#L217-253 anchor="scip-typescript npm @geml/geml 1.11.4 src/`selector.ts`/keyForm()."}
 ===
 
-=== code {#addressUnits src=geml-parser/src/selector.ts#L266-275 anchor="scip-typescript npm @geml/geml 1.11.3 src/`selector.ts`/addressUnits()."}
+=== code {#addressUnits src=geml-parser/src/selector.ts#L266-275 anchor="scip-typescript npm @geml/geml 1.11.4 src/`selector.ts`/addressUnits()."}
 ===
 
-=== code {#shortestAddress src=geml-parser/src/selector.ts#L281-294 anchor="scip-typescript npm @geml/geml 1.11.3 src/`selector.ts`/shortestAddress()."}
+=== code {#shortestAddress src=geml-parser/src/selector.ts#L281-294 anchor="scip-typescript npm @geml/geml 1.11.4 src/`selector.ts`/shortestAddress()."}
 ===
 
-=== code {#matchContent src=geml-parser/src/selector.ts#L306-313 anchor="scip-typescript npm @geml/geml 1.11.3 src/`selector.ts`/matchContent()."}
+=== code {#matchContent src=geml-parser/src/selector.ts#L306-313 anchor="scip-typescript npm @geml/geml 1.11.4 src/`selector.ts`/matchContent()."}
 ===
 
-=== code {#discoveryHint .leaf src=geml-parser/src/selector.ts#L318-320 anchor="scip-typescript npm @geml/geml 1.11.3 src/`selector.ts`/discoveryHint()."}
+=== code {#discoveryHint .leaf src=geml-parser/src/selector.ts#L318-320 anchor="scip-typescript npm @geml/geml 1.11.4 src/`selector.ts`/discoveryHint()."}
 ===
 
-=== code {#matchLine .leaf src=geml-parser/src/selector.ts#L330-339 anchor="scip-typescript npm @geml/geml 1.11.3 src/`selector.ts`/matchLine()."}
+=== code {#matchLine .leaf src=geml-parser/src/selector.ts#L330-339 anchor="scip-typescript npm @geml/geml 1.11.4 src/`selector.ts`/matchLine()."}
 ===
 
-=== code {#matchType src=geml-parser/src/selector.ts#L344-346 anchor="scip-typescript npm @geml/geml 1.11.3 src/`selector.ts`/matchType()."}
+=== code {#matchType src=geml-parser/src/selector.ts#L344-346 anchor="scip-typescript npm @geml/geml 1.11.4 src/`selector.ts`/matchType()."}
 ===
 
-=== code {#matchAttr src=geml-parser/src/selector.ts#L353-363 anchor="scip-typescript npm @geml/geml 1.11.3 src/`selector.ts`/matchAttr()."}
+=== code {#matchAttr src=geml-parser/src/selector.ts#L353-363 anchor="scip-typescript npm @geml/geml 1.11.4 src/`selector.ts`/matchAttr()."}
 ===
 
 === table {#calls format=csv}
