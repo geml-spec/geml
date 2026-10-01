@@ -249,8 +249,6 @@ Services,  3,  4,  4,  5
 
 表格还支持用 `src="regions.csv"` 引入外部 CSV。
 
-> ❓ **问题探讨：** 这里该不该保留这个计算列和汇总行功能？[保留、冻结，还是砍掉——说一个](https://github.com/geml-spec/geml/discussions/19)。
-
 ### 公式
 
 ```
@@ -588,13 +586,13 @@ GEML 已是 `1.0`，但「稳定」是指**已有规则不会在你脚下变动*
 目前只有**一个实现**，规范背后也只有**一套意见**。你的想法可以改动规范本身。
 如果有兴趣参与，可以：
 
-**一起来讨论**：
+**一起来讨论**这几份还在草案阶段的提案：
 
-- [文档格式该不该做表格算术？](https://github.com/geml-spec/geml/discussions/19)
-- [GEML 到底该不该有样式层？](https://github.com/geml-spec/geml/discussions/17)
-- [`.gemlhistory` 边车什么时候才真的值得拥有？](https://github.com/geml-spec/geml/discussions/18)
-- [`geml get` 不给 selector 时在列块。这个行为该不该归 `geml list`？](https://github.com/geml-spec/geml/discussions/20)
-- [`--view` 是参数还是动词？](https://github.com/geml-spec/geml/discussions/21)
+- [GEP-0006 · 声明式投影——文档写明从它派生出哪些文件](spec/proposals/0006-declared-projections.md)
+- [GEP-0008 · `form` 块——可寻址的字段，惰性的提交目标](spec/proposals/0008-form-block.md)
+- [GEP-0010 · 沿语言轴的投影——译文是视图，不是副本](spec/proposals/0010-language-projections.md)
+
+还有别的想法？[发起一个讨论](https://github.com/geml-spec/geml/discussions/new/choose)。
 
 <a id="integrations"></a>
 或者**认领一件事**：

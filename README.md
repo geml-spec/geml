@@ -254,8 +254,6 @@ Services,  3,  4,  4,  5
 
 Tables can also pull their data from an external CSV via `src="regions.csv"`.
 
-> ❓ **Up for discussion:** should computed columns and the summary row stay? [Keep, freeze, or drop — say which](https://github.com/geml-spec/geml/discussions/19).
-
 ### Math
 
 ```
@@ -617,13 +615,13 @@ not that the design is settled. There is exactly **one implementation** so far, 
 **one set of opinions** behind the spec. Your thinking can still change the spec itself.
 If you want a hand in it:
 
-**Come argue about these**:
+**Come argue about these**, the proposals still in draft:
 
-- [Should a document format do table arithmetic?](https://github.com/geml-spec/geml/discussions/19)
-- [Should GEML have a style layer at all?](https://github.com/geml-spec/geml/discussions/17)
-- [When is a `.gemlhistory` sidecar actually worth having?](https://github.com/geml-spec/geml/discussions/18)
-- [`geml get` with no selector lists blocks. Should that be `geml list`?](https://github.com/geml-spec/geml/discussions/20)
-- [`--view` reads through an embed. Flag, or its own verb?](https://github.com/geml-spec/geml/discussions/21)
+- [GEP-0006 · Declared projections — a document names the files derived from it](spec/proposals/0006-declared-projections.md)
+- [GEP-0008 · A `form` typed block — addressable fields, an inert destination](spec/proposals/0008-form-block.md)
+- [GEP-0010 · Projections along the language axis — a translated document is a view, not a copy](spec/proposals/0010-language-projections.md)
+
+Something else on your mind? [Start a discussion](https://github.com/geml-spec/geml/discussions/new/choose).
 
 <a id="integrations"></a>
 Or **claim a piece**:
