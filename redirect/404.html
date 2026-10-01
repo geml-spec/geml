@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GEML has moved</title>
+<meta name="robots" content="noindex">
+<script>
+  // The site moved from geml-spec.github.io/geml/ to geml-spec.github.io/.
+  // GitHub Pages serves this file for the old root and (as 404.html) for every
+  // old path, so forward to the same path without the /geml prefix. A trailing
+  // slash is dropped: the new site uses clean URLs.
+  var path = location.pathname.replace(/^\/geml(?=\/|$)/, "").replace(/\/$/, "") || "/";
+  location.replace("https://geml-spec.github.io" + path + location.search + location.hash);
+</script>
+<meta http-equiv="refresh" content="0; url=https://geml-spec.github.io/">
+</head>
+<body>
+<p>GEML has moved to <a href="https://geml-spec.github.io/">geml-spec.github.io</a>.</p>
+</body>
+</html>
