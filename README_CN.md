@@ -152,7 +152,7 @@ GEML 不发明新的重型运行时，而是借鉴Roy Fielding博士提出的**[
 > **文档需要的不再只是一个格式，而是一组动词。** GEML 让文档既保留纯文本的可读性，又具备确定性的块级操作能力。
 
 > 💡 **深潜阅读：**
-> 如果你对大模型时代工程文档面临的困境、以及我们为什么要重新设计一种纯文本格式感兴趣，请阅读我们博客上的完整文章：[**《为什么大模型时代需要一种全新的文本格式？》**](https://geml-spec.github.io/geml/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms_cn/)。
+> 如果你对大模型时代工程文档面临的困境、以及我们为什么要重新设计一种纯文本格式感兴趣，请阅读我们博客上的完整文章：[**《为什么大模型时代需要一种全新的文本格式？》**](https://geml-spec.github.io/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms_cn/)。
 
 ---
 
@@ -320,7 +320,7 @@ xychart-beta
 
 正文保持为空，目标写在 `src=` 里。
  
-Markdown 里看不到投影效果。想亲眼看：装上[浏览器扩展](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)，打开 [sample.geml 的 raw 链接](https://raw.githubusercontent.com/geml-spec/geml/main/playground/sample.geml)，翻到 **Transclusion** 一节——同文档投影（`src=#roadmap`）、跨文档投影、乃至跨文件链式解析（embed 引一张图，图又绑另一文件里的表）都在就地渲染：那里一个字都没写，改源头一处，投影处即变。
+Markdown 里看不到投影效果。想亲眼看：装上[浏览器扩展](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)，打开 [sample.geml 的 raw 链接](https://raw.githubusercontent.com/geml-spec/geml-spec.github.io/main/public/playground/sample.geml)，翻到 **Transclusion** 一节——同文档投影（`src=#roadmap`）、跨文档投影、乃至跨文件链式解析（embed 引一张图，图又绑另一文件里的表）都在就地渲染：那里一个字都没写，改源头一处，投影处即变。
  
 <a id="profiles"></a>
 ## Profile —— 领域词汇扩展，像搭乐高一样组合文档能力
@@ -399,12 +399,12 @@ geml-code-graph 本身就是一个 diagram 格式，一行就能把它嵌进任�
 <a id="hands-on"></a>
 ## 下一步——即刻上手试试
 
-▶ **[到 Playground 试写 GEML](https://geml-spec.github.io/geml/playground/)**——左边编辑、右边实时渲染，引用一断，构建判定当场翻红。无需安装，也不用先读任何东西。
+▶ **[到 Playground 试写 GEML](https://geml-spec.github.io/playground/)**——左边编辑、右边实时渲染，引用一断，构建判定当场翻红。无需安装，也不用先读任何东西。
 
 然后按你顺手的次序：
 
-1. **在浏览器里看它渲染。** 装上**[浏览器扩展](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)**，打开任一 raw `.geml` 链接*（要 raw 文件本身，不是 GitHub 的 blob 页面，那个是 HTML）*：**[GEML 规范本身](https://raw.githubusercontent.com/geml-spec/geml/main/spec/in_geml_format/GEML-spec.geml)**（dogfood，规范本身就是一份 GEML，规模化渲染）、**[showcase](https://raw.githubusercontent.com/geml-spec/geml/main/playground/showcase.geml)**（计算表、四张图、一条 Mermaid 流程、公式），或 **[playground/sample.geml](https://raw.githubusercontent.com/geml-spec/geml/main/playground/sample.geml)** 看交互式代码图。
-2. **看一份文档怎么排成一整页。** [`playground/style-demo/`](playground/style-demo) 是 GitHub blob 页的 1:1 复刻——顶栏、文件树、面包屑、Preview/Code/Blame、下拉菜单——每一个字在 `page.geml`，每一个颜色和尺寸在 `github.style.geml`，而 viewer 两边都不认识。它要装扩展**并且**在本地起服务（[为什么、两条命令](playground/README.md#the-page-layout-demo-style-demo)）：这一页要取自己的样式表和图标，而 `raw.githubusercontent.com` 不允许。
+1. **在浏览器里看它渲染。** 装上**[浏览器扩展](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)**，打开任一 raw `.geml` 链接*（要 raw 文件本身，不是 GitHub 的 blob 页面，那个是 HTML）*：**[GEML 规范本身](https://raw.githubusercontent.com/geml-spec/geml/main/spec/in_geml_format/GEML-spec.geml)**（dogfood，规范本身就是一份 GEML，规模化渲染）、**[showcase](https://raw.githubusercontent.com/geml-spec/geml-spec.github.io/main/public/playground/showcase.geml)**（计算表、四张图、一条 Mermaid 流程、公式），或 **[playground/sample.geml](https://raw.githubusercontent.com/geml-spec/geml-spec.github.io/main/public/playground/sample.geml)** 看交互式代码图。
+2. **看一份文档怎么排成一整页。** [样式演示](https://geml-spec.github.io/demos) 是 GitHub blob 页的 1:1 复刻——顶栏、文件树、面包屑、Preview/Code/Blame、下拉菜单——每一个字在 `page.geml`，每一个颜色和尺寸在 `github.style.geml`，而 viewer 两边都不认识。它要装扩展**并且**在本地起服务（[为什么、两条命令](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/playground/README.md#the-page-layout-demo-style-demo)）：这一页要取自己的样式表和图标，而 `raw.githubusercontent.com` 不允许。
 3. **在本地跑起来。** `npm i -g @geml/geml`（Node 22+），然后 `geml check` 一份文档，或对着你自己的仓库跑 `geml codemap build`。
 4. **配好 Claude Code——一条命令。** `npx -y @geml/geml skill install` 把写作技能、CLI、MCP server 一次装到用户全局，所有项目通用；不改任何设置、不装 hook。[详情](#with-an-llm)。
 5. **读语法。** **[完整规范](spec/GEML-spec_CN.md)**（中 / [English](spec/GEML-spec.md)）是规范性文本，短到可以一口气读完。
@@ -648,7 +648,7 @@ GEML 已是 `1.0`，但「稳定」是指**已有规则不会在你脚下变动*
 
 | 场景 | 在哪 | 状态 |
 |---|---|---|
-| **不装任何东西先试** —— 左边编辑、右边实时渲染 | [Playground](https://geml-spec.github.io/geml/playground/) | 可用 |
+| **不装任何东西先试** —— 左边编辑、右边实时渲染 | [Playground](https://geml-spec.github.io/playground/) | 可用 |
 | **在浏览器里读** —— 打开任一 raw `.geml` 链接就地渲染：计算表格、图表、Mermaid、公式，诊断以横幅呈现 | [Chrome 应用商店](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie) · [源码](integrations/geml-viewer/) | 可用 |
 | **命令行** —— 文档的整个生命周期都可以用 geml 命令操作 | [`@geml/geml`](https://www.npmjs.com/package/@geml/geml)（源码 [`geml-parser/`](geml-parser/)） | 可用 |
 | **用 geml-code-graph 帮你理解项目** —— 整个调用图写成 GEML 文档树，可交互浏览 | `geml codemap build`（[设计](docs/design/specs/geml-codemap/DESIGN-geml-code-graph.md)） | 可用 |
@@ -681,27 +681,23 @@ integrations/          GEML 接入的所有地方：geml-viewer（浏览器扩�
                        dsh-plugin
 .agents/、.claude-plugin/   插件市场清单，让插件从仓库检出即可出现
                        （Codex 的 /plugins、Claude Code 的 /plugin）
-playground/            浏览器内 playground（含本仓库的实时 geml-code-graph）
 docs/                  指南、设计笔记、comparisons/（COMPARISON + 对比 CommonMark +
-                       对比 XML/JSON）、图片资产（下方 Pages 站点复用其中的 logo），
+                       对比 XML/JSON）、图片资产（logo），
                        以及一个可自行渲染的示例 .geml 文档
 .claude/skills/        Claude 技能：GEML 写作，以及代码图
 .github/               CI 与 geml-check 工作流、MCP 注册表发布，以及 issue 模板
                        （bug、GEP、新实现）
-site/                  geml-spec.github.io/geml 的 Pages 站点：项目主页（index.md）
-                       + 一个 Jekyll 博客（blog/，文章在 _posts/）——长文《为什么
-                       需要一种新格式》（英 / 中）就作为博客的第一篇文章。本地用
-                       `cd site && bundle exec jekyll serve` 构建预览；
-                       .github/workflows/ci.yml 里的 pages 两个 job 在 push 到
-                       main 时构建并部署（把 playground/ 拼接进静态产物）——
-                       playground.js 在那里构建，不再提交进仓库。
+（网站）               主页、playground、演示和博客在它们自己的仓库
+                       geml-spec/geml-spec.github.io 里，每次部署都从本仓库的一份
+                       检出构建。本仓库在 geml-spec.github.io/geml/ 发布的只剩
+                       redirect/——把旧路径转到新站的同一路径。
 ```
 
 <a id="license"></a>
 ## 许可与治理
 
 **代码为 MIT**（[`LICENSE`](LICENSE)）：本仓库除规范文档之外的一切，包括 `geml-parser/`、
-`integrations/` 全部、`playground/`、`.claude/skills/`，以及 `spec/proposals/` 里的 GEP。
+`integrations/` 全部、`.claude/skills/`，以及 `spec/proposals/` 里的 GEP。
 
 **规范文档为 CC-BY-4.0**（[`LICENSE-spec.md`](spec/LICENSE-spec.md) 里逐份列明）：
 `spec/GEML-spec*` 与 `spec/in_geml_format/*`。主规范只有一份；`spec/profiles/` 下的 profile 属于应用层，为 MIT。规范不是软件，所以任何人

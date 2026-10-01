@@ -3,7 +3,7 @@
 *[English](geml-media-profile.md) | 中文*
 
 - 状态：**草案**。其中 `media-text` 声明了散文体，而 [GEP-0013](../../proposals/0013-prose-body-for-vocabularies.md) 既放行词汇表这么做，也定义了 `prose` 体是什么。下面的词汇已在参考实现里注册，并由一个真实用例跑过
-  （[`playground/geml-media-demo/`](../../../playground/geml-media-demo/README.md)）；
+  （[geml-media 演示](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/playground/geml-media-demo/README.md)）；
   设计记录在
   [`2026-09-15-geml-media-design.md`](../../../docs/design/specs/2026-09-15-geml-media-design.md)。
 - 性质：**应用层 profile，不是 GEML 标准的一部分。** 它放行三个块类型名、这些类型上的

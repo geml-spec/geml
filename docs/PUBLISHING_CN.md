@@ -24,10 +24,9 @@ flowchart TD
   DIST --> NPM["@geml/geml on npm"]
   DIST --> MCP["MCP registry 条目<br/>以 server.json 为键"]
   DIST --> VIEWER["geml-viewer<br/>Chrome 扩展"]
-  DIST --> BUNDLE["playground/playground.js<br/>部署时构建"]
-  DIST --> MAP["playground/codemap/<br/>已提交产物"]
+  DIST --> SITE["geml-spec.github.io<br/>playground bundle + codemap<br/>在那边部署时构建"]
   VIEWER --> VSCODE["vscode 扩展<br/>prepublish 时构建 webview"]
-  VIEWER --> BUNDLE
+  VIEWER --> SITE
 
   NPM -.-> LOGSEQ["@geml/logseq-sync<br/>按范围依赖 ^1.x"]
   NPM -.-> PLUGINS["claude / codex 插件<br/>经 npx 运行 MCP server"]
@@ -271,15 +270,11 @@ flowchart TD
 # 顺序
 
 1. **升版本**：解析器的六个文件、`CHANGELOG.md` 条目、构建。
-2. **重新生成携带拷贝的产物**，在发布任何东西之前：bundle 用
-   `npm --prefix integrations/geml-viewer run build:playground`；
-   `playground/codemap/` 在解析器或 viewer 源码**任何**改动、以及任何版本变动时，都
-   要用 `geml codemap build` 重建。这一页原先写的是"在解析器增删了模块时"，那太窄了：
-   这张图是**函数级**的，每个节点带 `src=…#L<a>-<b>` 行号区间和 `@geml/geml <版本>`
-   锚。插入一个函数会移动它之后的每个区间，升版本会重盖每个锚。往 `geml.ts` 里加
-   `slugify()` 就让整张图的尾部错位了 50 行，而没有任何东西说出来。改动尚未提交时要用
-   `geml codemap refresh playground/codemap --force`：不加 `--force` 它会拿 commit
-   比较，然后直接跳过。
+2. **本仓库里没有携带拷贝、需要重新生成的产物。** playground 的 bundle 和解析器的
+   codemap 由 `geml-spec/geml-spec.github.io` 在每次部署站点时从本仓库的一份检出构建，
+   所以升版本不需要 `codemap build`，它们也不在这里提交。两个扩展各自捆绑解析器，由
+   各自的发布任务重建。发布之后要触发站点的部署（或往它推一次），新解析器才会被拾起：
+   往本仓库推送不会重新部署站点。
 3. **跑门**：`node test/all.mjs` · `npm run coverage:check` · 逐包的
    `npm ci --dry-run --ignore-scripts` · 对全库 `.geml` 跑 `geml check`。每个退出码
    都要**取自那次运行本身** —— `| tail` 管道报的是 tail 的退出码，不是命令的。
@@ -301,8 +296,7 @@ flowchart TD
 | 陷阱 | 表现成什么样 | 什么能拦住 |
 | --- | --- | --- |
 | "解析器的版本有六个家" | "npm 上已是 1.9.0，而已安装的插件仍自报 1.8.8" | "mcp 测试逐个比对插件清单与 package.json" |
-| "playground/playground.js 由 Deploy Pages 构建，不再提交" | "线上就是那次运行产出的东西——npm 安装或打包一挂，首页跟着发不出去" | "部署会明确失败；而且 `paths:` 现在包含 geml-parser/** 和 integrations/geml-viewer/**，改 parser 会真的触发重新部署，不会把页面留在旧 bundle 上" |
-| "playground/codemap/ 是已提交产物，而且是函数级的" | "被插入的函数之后，每个 `#L<a>-<b>` 区间都指向错的行；而新函数根本没有节点" | "没有 —— `codemap verify` 在过期的图上照样通过：它只检查文档能解析、引用能解析，从不检查区间是否还对得上源码" |
+| "站点从本仓库的一份检出构建" | "geml-spec.github.io 发出去的是它部署那一刻 `main` 上的东西，而且不会自己拾起新版本" | "它的 `geml-source.json` 指定 ref；发布之后要部署一次站点" |
 | "viewer 的 tag 必须等于 manifest.json" | "一个 viewer-v1.2.4 的 release 挂着 geml-viewer-1.2.3.zip" | "release-viewer.yml 会拒绝这种不一致" |
 | "Logseq 是镜像发布，不是就地打 tag" | "先打 tag 会用陈旧的 checkout 构建，zip 带上旧版本号" | "没有 —— 先镜像、核对镜像的 plugin/package.json、再打 tag" |
 | "锁文件带着自身包的版本" | "npm ci 拒绝，CI 的锁文件 job 变红" | "逐包的 `npm ci --dry-run` job" |

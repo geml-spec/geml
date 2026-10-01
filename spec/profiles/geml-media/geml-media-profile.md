@@ -4,7 +4,7 @@
 
 - Status: **draft**. Its `media-text` type declares a prose body, which [GEP-0013](../../proposals/0013-prose-body-for-vocabularies.md) both licenses a vocabulary to do and defines. The vocabulary below is registered in the reference
   implementation and exercised by one real use case
-  ([`playground/geml-media-demo/`](../../../playground/geml-media-demo/README.md));
+  ([the geml-media demo](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/playground/geml-media-demo/README.md));
   the design record is
   [`2026-09-15-geml-media-design.md`](../../../docs/design/specs/2026-09-15-geml-media-design.md).
 - Nature: **an application-layer profile, not part of the GEML standard.** It

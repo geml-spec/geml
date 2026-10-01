@@ -156,7 +156,7 @@ GEML invents no heavy new runtime. Borrowing from the **[REST](https://www.ics.u
 > **A document no longer needs just a format — it needs a set of verbs.** GEML keeps plain-text readability and adds deterministic block-level operations.
 
 > 💡 **Deep Dive:**
-> If you are interested in the dilemma of engineering documents in the LLM era and why we need to redesign a plain-text format from the ground up, read our full article on the blog: [**"Why Do We Need a New Text Format in the Era of LLMs?"**](https://geml-spec.github.io/geml/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms/)
+> If you are interested in the dilemma of engineering documents in the LLM era and why we need to redesign a plain-text format from the ground up, read our full article on the blog: [**"Why Do We Need a New Text Format in the Era of LLMs?"**](https://geml-spec.github.io/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms/)
 
 ---
 
@@ -325,7 +325,7 @@ One block can stand for another: in the same document by `src=#id`, across docum
 
 The body stays empty; the target lives in `src=`.
  
-Markdown can't show you the projection. To see it live: install the [browser extension](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie), open the [raw link to sample.geml](https://raw.githubusercontent.com/geml-spec/geml/main/playground/sample.geml), and scroll to the **Transclusion** section — a same-document projection (`src=#roadmap`), cross-document projections, and even chained resolution (an embed pulls a chart, which itself binds to a table in another file) all render in place: nothing is written there, yet edit the source once and the projection follows.
+Markdown can't show you the projection. To see it live: install the [browser extension](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie), open the [raw link to sample.geml](https://raw.githubusercontent.com/geml-spec/geml-spec.github.io/main/public/playground/sample.geml), and scroll to the **Transclusion** section — a same-document projection (`src=#roadmap`), cross-document projections, and even chained resolution (an embed pulls a chart, which itself binds to a table in another file) all render in place: nothing is written there, yet edit the source once and the projection follows.
  
 <a id="profiles"></a>
 ## Profiles — domain vocabularies, assembled like Lego bricks
@@ -362,16 +362,16 @@ Extend capabilities without breaking interoperability. In any third-party or unf
 
 | Profile | Status | Domain & Role | Superpowers Admitted | CLI | Live Demo / Example |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| [`geml-codemap/v1`](spec/profiles/geml-codemap/geml-codemap-profile.md) | stable | Codebase architecture & call graphs | `code` blocks: `anchor`, `name`, `entry-via` | `geml codemap build\|verify\|serve` | [Interactive Call Graph](https://geml-spec.github.io/geml/playground/) · [`sample.geml`](playground/sample.geml) |
-| [`geml-media/v1`](spec/profiles/geml-media/geml-media-profile.md) | draft | Media timelines, asset tracks & clips | `media`, `media-asset`, `media-clip`, `media-text` | `geml media build\|export\|lay\|todo` | [Doc-to-Video (Doc to MP4 via ffmpeg)](playground/geml-media-demo/README.md) |
-| [`geml-style/v1`](spec/profiles/geml-style/geml-style-profile.md) | draft | Design tokens & responsive styling | `style-rule`, `style-state`, `style-screen`, `style-frame` | `geml style check` | [GitHub Blob Page 1:1 Replica](playground/style-demo/) |
+| [`geml-codemap/v1`](spec/profiles/geml-codemap/geml-codemap-profile.md) | stable | Codebase architecture & call graphs | `code` blocks: `anchor`, `name`, `entry-via` | `geml codemap build\|verify\|serve` | [Interactive Call Graph](https://geml-spec.github.io/playground/) · [`sample.geml`](https://geml-spec.github.io/playground/#ch=visual) |
+| [`geml-media/v1`](spec/profiles/geml-media/geml-media-profile.md) | draft | Media timelines, asset tracks & clips | `media`, `media-asset`, `media-clip`, `media-text` | `geml media build\|export\|lay\|todo` | [Doc-to-Video (Doc to MP4 via ffmpeg)](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/playground/geml-media-demo/README.md) |
+| [`geml-style/v1`](spec/profiles/geml-style/geml-style-profile.md) | draft | Design tokens & responsive styling | `style-rule`, `style-state`, `style-screen`, `style-frame` | `geml style check` | [GitHub Blob Page 1:1 Replica](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/playground/style-demo/) |
 | [`geml-history/v1`](spec/profiles/geml-history/geml-history-profile.md) | stable | Block-level version snapshots & rollback | `history-revision`, `history-keyframe`, `history-blob` | `geml history save\|get\|restore` | [Atomic Block Rollback Workflow](spec/profiles/geml-history/geml-history-profile.md#4-the-history-workflow) |
 | [`geml-form/v1`](spec/profiles/geml-form/geml-form-profile.md) | draft | Declarative forms & input constraints | `form`, `form-field`, `form-group` + validation rules | — | [Interactive Complex Form Example](spec/proposals/0008-form-block-example/) |
 | [`geml-translator/v1`](spec/profiles/geml-translator/geml-translator-profile.md) | draft | Multi-locale translation & transclusion | `embed` and `meta` attribute `translate-to` | — | — |
 
 > 💡 **Want to see Profiles in action?**
-> • **`geml-media` live demo**: One cut document and one command (`geml media build ep01-cut.geml --out ep01.mp4 --burn-subs`) orchestrates ffmpeg to align audio/video, mix tracks, and burn subtitles into a finished video (details in [`playground/geml-media-demo`](playground/geml-media-demo/)).
-> • **`geml-style` live demo**: Content stays pure text in `page.geml`, while styles and layout live in `github.style.geml` — rendering a 1:1 pixel-accurate replica of GitHub's blob page without CSS lock-in (details in [`playground/style-demo`](playground/style-demo/)).
+> • **`geml-media` live demo**: One cut document and one command (`geml media build ep01-cut.geml --out ep01.mp4 --burn-subs`) orchestrates ffmpeg to align audio/video, mix tracks, and burn subtitles into a finished video (details on the [demos page](https://geml-spec.github.io/demos)).
+> • **`geml-style` live demo**: Content stays pure text in `page.geml`, while styles and layout live in `github.style.geml` — rendering a 1:1 pixel-accurate replica of GitHub's blob page without CSS lock-in (details on the [demos page](https://geml-spec.github.io/demos)).
 > • **The code graph in the next section is itself a Profile**: every document in `.geml-code-graph/` declares `profile = "geml-codemap/v1"`. You can also easily [create your own custom domain profile](spec/profiles/README.md).
 
 <a id="code-graph"></a>
@@ -410,12 +410,12 @@ its root.
 <a id="hands-on"></a>
 ## Next — get hands-on now
 
-▶ **[Try writing GEML in the Playground](https://geml-spec.github.io/geml/playground/)** — edit on the left, rendered live on the right, and the build verdict flips red the moment a reference breaks. No install, nothing to read first.
+▶ **[Try writing GEML in the Playground](https://geml-spec.github.io/playground/)** — edit on the left, rendered live on the right, and the build verdict flips red the moment a reference breaks. No install, nothing to read first.
 
 Then, in the order that suits you:
 
-1. **See it render in your browser.** Install the **[extension](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)** and open a raw `.geml` link *(the raw file, not the GitHub blob page — that one is HTML)*: the **[GEML spec itself](https://raw.githubusercontent.com/geml-spec/geml/main/spec/in_geml_format/GEML-spec.geml)** (dogfood — the spec is a GEML document, rendered at scale), the **[showcase](https://raw.githubusercontent.com/geml-spec/geml/main/playground/showcase.geml)** (a computed table, four charts, a Mermaid flow, and math), or **[playground/sample.geml](https://raw.githubusercontent.com/geml-spec/geml/main/playground/sample.geml)** for the interactive code-graph.
-2. **See a whole *page* laid out from a document.** [`playground/style-demo/`](playground/style-demo) is a 1:1 replica of a GitHub blob page — top bar, file tree, breadcrumb, Preview/Code/Blame, dropdown menus — where `page.geml` holds every string and `github.style.geml` holds every colour and length, and the viewer knows about neither. It needs the extension **and** a local server ([why, and the two commands](playground/README.md#the-page-layout-demo-style-demo)): the page fetches its stylesheet and icons, which `raw.githubusercontent.com` forbids.
+1. **See it render in your browser.** Install the **[extension](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)** and open a raw `.geml` link *(the raw file, not the GitHub blob page — that one is HTML)*: the **[GEML spec itself](https://raw.githubusercontent.com/geml-spec/geml/main/spec/in_geml_format/GEML-spec.geml)** (dogfood — the spec is a GEML document, rendered at scale), the **[showcase](https://raw.githubusercontent.com/geml-spec/geml-spec.github.io/main/public/playground/showcase.geml)** (a computed table, four charts, a Mermaid flow, and math), or **[playground/sample.geml](https://raw.githubusercontent.com/geml-spec/geml-spec.github.io/main/public/playground/sample.geml)** for the interactive code-graph.
+2. **See a whole *page* laid out from a document.** [The style demo](https://geml-spec.github.io/demos) is a 1:1 replica of a GitHub blob page — top bar, file tree, breadcrumb, Preview/Code/Blame, dropdown menus — where `page.geml` holds every string and `github.style.geml` holds every colour and length, and the viewer knows about neither. It needs the extension **and** a local server ([why, and the two commands](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/playground/README.md#the-page-layout-demo-style-demo)): the page fetches its stylesheet and icons, which `raw.githubusercontent.com` forbids.
 3. **Run it locally.** `npm i -g @geml/geml` (Node 22+), then `geml check` a document, or point it at your own repo with `geml codemap build`.
 4. **Set up Claude Code — one command.** `npx -y @geml/geml skill install` puts the authoring skill, the CLI and the MCP server in place, user-global, for every project. It edits no settings and installs no hooks. [Details](#with-an-llm).
 5. **Read the grammar.** The **[full spec](spec/GEML-spec.md)** (EN / [中文](spec/GEML-spec_CN.md)) is normative and short enough to read in a sitting.
@@ -691,7 +691,7 @@ Or **put it to use**:
 | **Write it in your editor** — syntax highlighting + build-time reference checking | [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=geml.geml) · [source](integrations/vscode/) | Available |
 | **Render it in Obsidian** — the reference parser + the viewer's renderer, the same code path as the web | [`integrations/obsidian/`](integrations/obsidian/) | Built, not in the community store |
 | **Feed a RAG / agent framework** — block-level loaders (one chunk per block, carrying `block_id`) + agent editing tools | [`integrations/langchain+llamaindex/`](integrations/langchain+llamaindex/) | Reference implementation |
-| **Try it without installing anything** — edit on the left, live render on the right | [Playground](https://geml-spec.github.io/geml/playground/) | Available |
+| **Try it without installing anything** — edit on the left, live render on the right | [Playground](https://geml-spec.github.io/playground/) | Available |
 
 Three files to read first: [`GOVERNANCE.md`](GOVERNANCE.md) for how decisions get
 made, [`CONTRIBUTING.md`](CONTRIBUTING.md) for how to send work, and
@@ -716,28 +716,24 @@ integrations/          Everywhere GEML plugs in: geml-viewer (browser extension)
                        claude-plugin, codex-plugin, grok-plugin, dsh-plugin
 .agents/, .claude-plugin/   Plugin marketplace manifests, so the plugins show up
                        from a checkout (Codex `/plugins`, Claude Code `/plugin`)
-playground/            In-browser playground (+ a live geml-code-graph of this repo)
 docs/                  Guides, design notes, comparisons/ (COMPARISON + vs-CommonMark +
-                       vs-XML-and-JSON), assets (logos, used by the Pages site below),
+                       vs-XML-and-JSON), assets (logos),
                        and an example .geml to render
 .claude/skills/        Claude skills: GEML authoring, and the code graph
 .github/               CI + geml-check workflows, MCP registry publish, and issue
                        templates (bug, GEP, new implementation)
-site/                  The geml-spec.github.io/geml Pages site: a project homepage
-                       (index.md) plus a Jekyll blog (blog/, posts in _posts/) —
-                       the long-form "why a new format" article (EN / 中文) lives
-                       there as its first post. `cd site && bundle exec jekyll
-                       serve` builds it locally; the pages jobs in
-                       .github/workflows/ci.yml build and deploy it on push to
-                       main, grafting in playground/ as static output — with
-                       playground.js built there rather than committed.
+(website)              The homepage, playground, demos and blog live in their own
+                       repository, geml-spec/geml-spec.github.io, which builds
+                       them from a checkout of this one on every deploy. What
+                       this repository publishes at geml-spec.github.io/geml/ is
+                       redirect/ — a forward to the same path on the new site.
 ```
 
 <a id="license"></a>
 ## License & governance
 
 **Code is MIT** ([`LICENSE`](LICENSE)): everything in this repository —
-`geml-parser/`, all of `integrations/`, `playground/`, `.claude/skills/`, the GEPs
+`geml-parser/`, all of `integrations/`, `.claude/skills/`, the GEPs
 in `spec/proposals/` — except the specification documents.
 
 **The specification documents are CC-BY-4.0** ([`LICENSE-spec.md`](spec/LICENSE-spec.md),

@@ -33,7 +33,7 @@ print("hi")
 - **Versioned** — `geml history` and `geml revert` snapshot and rewind
   revisions over a plain-text `.gemlhistory` sidecar.
 
-Try the format in the [playground](https://geml-spec.github.io/geml/playground/)
+Try the format in the [playground](https://geml-spec.github.io/playground/)
 — no install. Full pitch, spec, and format comparison live in the
 [repository](https://github.com/geml-spec/geml).
 

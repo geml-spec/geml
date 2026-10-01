@@ -31,7 +31,7 @@
       "Read",
       "Write"
     ],
-    "websiteURL": "https://geml-spec.github.io/geml/",
+    "websiteURL": "https://geml-spec.github.io/",
     "defaultPrompt": [
       "List the blocks in README.md, then read just the installation section.",
       "Find which block of the spec documents `=== embed` and show me that block.",

@@ -37,9 +37,9 @@ packaged source — regenerate the zip after any release, never edit it.
 | Developer name | geml-spec |
 | Logo | `assets/logo.png` (512×512) |
 | Brand color | `#E00A1E` |
-| Website | <https://geml-spec.github.io/geml/> |
+| Website | <https://geml-spec.github.io/> |
 | Support | <https://github.com/geml-spec/geml/issues> |
-| Privacy / Terms | <https://geml-spec.github.io/geml/privacy/> · <https://geml-spec.github.io/geml/terms/> |
+| Privacy / Terms | <https://geml-spec.github.io/privacy/> · <https://geml-spec.github.io/terms/> |
 
 Long description — same text as `interface.longDescription` in
 [.codex-plugin/plugin.json](.codex-plugin/plugin.json).
@@ -126,5 +126,5 @@ Both pages now exist under `site/` (`privacy.md`, `terms.md`) and are linked
 from the site footer. Put these in the Info tab once the Pages build has
 deployed them:
 
-- <https://geml-spec.github.io/geml/privacy/>
-- <https://geml-spec.github.io/geml/terms/>
+- <https://geml-spec.github.io/privacy/>
+- <https://geml-spec.github.io/terms/>

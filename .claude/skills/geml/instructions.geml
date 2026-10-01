@@ -13,8 +13,11 @@ howto = "edit one section: geml set <file> '#id' --body --in - ; raw text needs 
   see `spec/profiles/README.md`), `spec/proposals/` the GEPs.
 - `geml-parser/` — reference parser + `geml` CLI (TypeScript; npm package
   `@geml/geml`; `server.json` is the MCP registry manifest).
-- `docs/` — site and docs assets · `integrations/` — editor/tooling
-  integrations · `playground/` — demos, incl. the codemap playground.
+- `docs/` — guides, design records, comparisons, benchmarks · `integrations/` —
+  editor/tooling integrations. The website, playground and demos live in the
+  `geml-spec/geml-spec.github.io` repository (cloned beside this one as
+  `../geml-spec.github.io`), which builds them from a checkout of this
+  repository on every deploy; nothing here is copied there by hand.
 # Build, test, validate {#build-test}
 
 === code {lang=sh}
@@ -40,10 +43,10 @@ Run an expensive suite ONCE and take output + exit code from that same run.
   `gemini-extension.json`, and
   `integrations/grok-plugin/.grok-plugin/plugin.json` (the mcp suite guards all
   four). `PARSER_VERSION` is read at runtime — never hand-bump it. Add the
-  release to `CHANGELOG.md` in the same commit. Three artifacts BUNDLE a copy
-  of the parser: the committed `playground/codemap/`, the two extensions, and
-  `playground/playground.js` — that last one is built in CI and no longer
-  committed, so it is the one that cannot go stale.
+  release to `CHANGELOG.md` in the same commit. Two artifacts BUNDLE a copy
+  of the parser: the two extensions. The website's playground bundle and
+  codemap are built by the site repository from a checkout, so neither can
+  go stale here.
   `docs/PUBLISHING{,_CN}.{geml,md}` has the dependency graph, every artifact's
   version files / where it lands / how it publishes / prerequisites /
   post-release checks, the order, and the traps; read it before cutting any

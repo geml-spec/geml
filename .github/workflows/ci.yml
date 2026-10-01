@@ -101,98 +101,37 @@ jobs:
         working-directory: integrations/geml-viewer
         run: npm ci && npm run coverage:check
 
-      # playground/playground.js used to be a COMMITTED artifact, and this job
-      # rebuilt it and let `git diff` judge — because it had once gone stale
-      # silently, sitting five versions behind (still the 1.7.8 parser, missing
-      # 1.8.1's hang fixes) while being the page a Show HN pointed at.
-      #
-      # The bundle is no longer committed: Deploy Pages builds it. That retires
-      # the diff check rather than satisfying it — `git diff` says nothing about
-      # an untracked file, so keeping it would have left a step that always
-      # passes. What replaces it is that a stale bundle can no longer exist:
-      # the only copy is the one built at deploy time. The build itself is still
-      # exercised here, because the step below bundles the same renderer.
-      #
       # The VS Code preview's bundle is NOT committed (~8 MB of KaTeX and
       # Mermaid; vscode:prepublish rebuilds it), so there is no staleness to
       # check — but nothing else would notice if a renderer change broke the
-      # build until someone tried to package a vsix. Same reasoning as above for
-      # living in this job: the parser dist and the viewer's node_modules are
-      # already here.
+      # build until someone tried to package a vsix. It lives in this job
+      # because the parser dist and the viewer's node_modules are already here.
       - name: The VS Code preview bundle still builds
         run: npm --prefix integrations/geml-viewer run build:vscode
-
-      # The playground bundle is BUILT HERE and nowhere else. Not because the
-      # site's job wants it here, but because this is the only job that has both
-      # halves installed — and a fresh runner shares nothing, so building it in
-      # the pages job below would mean a second `npm ci` of both packages for a
-      # file this job can produce for free. It travels as an artifact instead.
-      - name: Build the playground bundle and its fonts
-        run: npm --prefix integrations/geml-viewer run build:playground
-
-      - name: Hand the playground bundle to the pages job
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: playground-bundle
-          path: |
-            playground/playground.js
-            playground/fonts/
-          retention-days: 1
-          if-no-files-found: error
 
       - name: VS Code extension — compile + tests
         working-directory: integrations/vscode
         run: npm ci && npm test
 
   # ---- the site ------------------------------------------------------------
-  # Deploying used to be its own workflow. It lives here so that the playground
-  # bundle is built exactly once: the viewer job above already installs the
-  # parser and the viewer, and artifacts move between jobs of one workflow
-  # without the `workflow_run` chaining a separate workflow would need.
-  #
-  # Consequences worth knowing. The old `paths:` filter is gone, so a push to
-  # main deploys the site even when only the parser changed — which is the point,
-  # since the bundle now tracks the parser.
-  #
-  # `needs: viewer` is the structural minimum: that job produces the artifact.
-  # It means a red parser or logseq job does NOT hold the deploy back. Widening
-  # it to every test job would make a green suite a precondition for publishing
-  # — a policy choice, not a requirement of this layout, so it is not made here.
+  # The website moved to geml-spec/geml-spec.github.io, which builds itself
+  # from a checkout of this repository on every deploy. What this repository
+  # still publishes at geml-spec.github.io/geml/ is a redirect: index.html for
+  # the old root, and a 404.html whose script strips the /geml prefix and
+  # forwards every old path — the playground, the blog posts, privacy, terms —
+  # to the same path on the new site.
   pages:
-    name: pages — build the site
-    needs: viewer
+    name: pages — the redirect
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Take the playground bundle built by the viewer job
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: playground-bundle
-          path: playground
-
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
-        with:
-          ruby-version: "3.3"
-          bundler-cache: true
-          working-directory: site
-
-      - name: Build site (Jekyll)
-        env:
-          JEKYLL_ENV: production
-        run: bundle exec jekyll build --source . --destination _site
-        working-directory: site
-
-      - name: Graft in the playground (static, non-Jekyll)
-        run: cp -r playground site/_site/playground
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
-          path: site/_site
+          path: redirect
 
   deploy-pages:
     name: pages — deploy

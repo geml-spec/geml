@@ -7,5 +7,5 @@ contact_links:
     url: https://github.com/geml-spec/geml/blob/main/docs/WRITING-A-PARSER.md
     about: Build an independent implementation — the highest-impact contribution.
   - name: Try GEML in the browser
-    url: https://geml-spec.github.io/geml/playground/
+    url: https://geml-spec.github.io/playground/
     about: The playground — edit GEML and watch a broken reference fail the build.
