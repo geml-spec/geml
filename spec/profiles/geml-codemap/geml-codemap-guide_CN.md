@@ -68,4 +68,4 @@ Claude 技能里带一个可选的提交钩子，每次提交后自动跑它。
 
 agent 也能通过 MCP 问同样的问题：`--root` 下有图时，`geml mcp --root .` 会多出四个只读的 `geml_codemap_*` 工具。
 
-**延伸：** [参考文档](geml-codemap-profile_CN.md) · [图解](https://geml-spec.github.io/illustrated/09-profile-codemap_CN.html) · [演示](https://geml-spec.github.io/demos) · [技能](../../../integrations/claude-plugin/skills/geml-code-graph/SKILL.md)
+**延伸：** [参考文档](geml-codemap-profile_CN.md) · [图解](https://geml-spec.github.io/illustrated/09-profile-codemap_CN.html) · [演示](https://geml-spec.github.io/demos/codemap) · [技能](../../../integrations/claude-plugin/skills/geml-code-graph/SKILL.md)

@@ -74,4 +74,4 @@ geml media build hello.geml --out hello.mp4
 
 An agent can run the whole loop: `geml media todo hello.geml --json` lists prompts with no output and lines with no voice, `geml media log` records what it made in the library's generation log (§6), and after a prompt changes `geml check` names the clips that are now stale (§8).
 
-**More:** [Reference](geml-media-profile.md) · [Demo](https://geml-spec.github.io/demos)
+**More:** [Reference](geml-media-profile.md) · [Demo](https://geml-spec.github.io/demos/media-cut)

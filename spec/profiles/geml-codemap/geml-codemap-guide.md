@@ -69,4 +69,4 @@ Put the graph inside any GEML document with one block:
 
 Agents ask the same questions over MCP: `geml mcp --root .` adds four read-only `geml_codemap_*` tools when the root holds a graph.
 
-**More:** [Reference](geml-codemap-profile.md) · [Illustrated](https://geml-spec.github.io/illustrated/09-profile-codemap.html) · [Demo](https://geml-spec.github.io/demos) · [Skill](../../../integrations/claude-plugin/skills/geml-code-graph/SKILL.md)
+**More:** [Reference](geml-codemap-profile.md) · [Illustrated](https://geml-spec.github.io/illustrated/09-profile-codemap.html) · [Demo](https://geml-spec.github.io/demos/codemap) · [Skill](../../../integrations/claude-plugin/skills/geml-code-graph/SKILL.md)

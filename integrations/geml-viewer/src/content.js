@@ -2,11 +2,9 @@
 // render it to DOM, and upgrade math (KaTeX) and mermaid diagrams. Runs once at
 // document_idle on URLs narrowed by include_globs in the manifest.
 
-import { parse, codeGraphWaves, codeGraphRuntime, loadStylesheet, resolveStyle } from "./parse-entry.js";
-import { renderDocument, renderBlock, collectLabels, viewerDiagnostics } from "./render.js";
-import { loadPageStyle, borrowedDocs } from "./style-entry.js";
-import { renderPage } from "./layout.js";
-import { createState, COMPONENTS } from "./components.js";
+import { parse, codeGraphWaves, codeGraphRuntime } from "./parse-entry.js";
+import { renderDocument, viewerDiagnostics } from "./render.js";
+import { loadPage, paintPage } from "./page.js";
 import { expandTransclusions } from "./transclude.js";
 import { snapshot } from "./snapshot.js";
 import { hasSrcTable, inlineSrcTables, looksTabular } from "./inline-src.js";
@@ -83,53 +81,22 @@ async function main() {
   // not a document problem. Real errors/warnings still show.
   model.diagnostics = viewerDiagnostics(model.diagnostics);
 
-  // 页面布局（计划 F）：文档旁边有样式入口（`_index/index.geml`）就按它画整页。没有、或它
-  // 不认、或它有错，都退回下面今天的路径 —— 有错时多一条横幅说清楚。fetch 走 readText，
-  // 和 src= 表、embed、code-graph 同一道同源闸。
+  // 页面布局（计划 F，page.js）：文档旁边有样式入口就按它画整页。没有、或它不认、或它有错，
+  // 都退回下面今天的路径 —— 有错时多一条横幅说清楚。fetch 走 readText，和 src= 表、embed、
+  // code-graph 同一道同源闸。
   let page = null;
   try {
-    page = await loadPageStyle({
-      docUrl: location.href,
+    page = await loadPage({
+      docUrl: location.href, raw, model,
       fetchText: async (url) => (isSameOriginSrc(url) ? await readText(url) : null),
-      parse, loadStylesheet, resolveStyle, model,
-      // 文档 embed 进来的那些也进语料 —— 样式才指得到借来的块（地址是 `other.geml#id`）。
-      // 同一道同源闸；取不到就少一份语料，页面照画。
-      docs: await borrowedDocs(model, parse, async (url) => (isSameOriginSrc(url) ? await readText(url) : null), location.href),
-      // 注册表往下传，unknown-component 才检查得起来（否则组件名写错静默退回默认渲染）。
-      components: Object.keys(COMPONENTS),
     });
   } catch (e) {
     console.error("[geml-viewer] style entry failed:", e);
   }
-  // 宿主文档的原文也进语料：`view=source` 要按行段切出块的源码。借来的文档在 borrowedDocs 里已带 text。
-  if (page && page.corpus && page.corpus[0]) page.corpus[0].text = raw;
-  // 画一页；样式表有错或 screen 数不是 1 时退回默认文档并在顶上说明。
-  const paintPage = (focus) => {
-    const banner = (text) => {
-      const d = document.createElement("div");
-      d.className = "geml-diag geml-diag-error";
-      d.textContent = text;
-      return d;
-    };
-    if (page.errors.length > 0) {
-      const root = renderDocument(model, document, focus);
-      root.prepend(banner(`stylesheet has ${page.errors.length} error(s); rendering without it — ` + page.errors.map((d) => `${d.code}: ${d.message}`).join(" · ")));
-      return { root, usedLayout: false };
-    }
-    const state = createState(page.vm, document);
-    const out = renderPage(page.vm, model, document, {
-      renderBlock, labels: collectLabels(model.children), components: COMPONENTS, state, producers: page.producers,
-      corpus: page.corpus,
-    });
-    if (out.error) {
-      const root = renderDocument(model, document, focus);
-      root.prepend(banner(`stylesheet: ${out.error}; rendering without it`));
-      return { root, usedLayout: false };
-    }
-    if (out.unplaced > 0) console.info(`[geml-viewer] ${out.unplaced} block(s) are placed by no slot and are not shown`);
-    for (const line of out.unsafe) console.warn(`[geml-viewer] stylesheet value dropped — ${line}`);
-    if (pageCss) pageCss.textContent = out.css;
-    return { root: out.root, usedLayout: true };
+  const paintStyled = (focus) => {
+    const painted = paintPage(page, model, document, focus);
+    if (painted.css != null && pageCss) pageCss.textContent = painted.css;
+    return painted;
   };
 
   injectStyle();
@@ -145,7 +112,7 @@ async function main() {
     document.body.className = "geml-body";
     let usedLayout = false;
     if (page) {
-      const painted = paintPage(focus);
+      const painted = paintStyled(focus);
       usedLayout = painted.usedLayout;
       document.body.replaceChildren(painted.root);
     } else {

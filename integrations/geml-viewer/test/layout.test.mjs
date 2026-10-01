@@ -7,6 +7,7 @@ import { renderBlock, collectLabels, renderDocument } from "../src/render.js";
 import { entryUrlFor, isStyleEntry, loadPageStyle, producersOf, STYLE_PREFETCH_FILES } from "../src/style-entry.js";
 import { classFor, cssForPage, renderPage } from "../src/layout.js";
 import { createState, COMPONENTS } from "../src/components.js";
+import { loadPage, paintPage } from "../src/page.js";
 import { parseHTML } from "linkedom";
 import { strict as assert } from "node:assert";
 
@@ -1117,6 +1118,40 @@ test("封闭值域：域外值丢弃并记账，绝不插值进 CSS（样式表�
   // 合法值照常
   assert.match(cssForPage(vmWith({ sticky: "bottom" })), /position: sticky; bottom: 0/);
   assert.match(cssForPage(vmWith({ place: "top-right" })), /align-items: flex-start; justify-content: flex-end/);
+});
+
+// ---------------------------------------------------------------- page.js：扩展与 playground 共用的整页路径
+
+await atest("page.js loadPage：文档旁边没有样式入口就是 null", async () => {
+  const page = await loadPage({ docUrl: "https://host.test/bare/page.geml", raw: DOC, model: parse(DOC), fetchText: fetchFrom(FILES) });
+  assert.equal(page, null);
+});
+
+await atest("page.js：整页画出来，CSS 交还宿主而不自己写进页面，宿主原文进语料", async () => {
+  const model = parse(DOC);
+  const page = await loadPage({ docUrl: SITE + "page.geml", raw: DOC, model, fetchText: fetchFrom(FILES) });
+  assert.equal(page.corpus[0].text, DOC, "view=source 要宿主原文");
+  const { document } = dom();
+  const out = paintPage(page, model, document, null);
+  assert.equal(out.usedLayout, true);
+  const host = document.createElement("div");
+  host.append(out.root);
+  assert.ok(host.querySelector(".geml-page"), "画的是整页");
+  assert.match(out.css, /321px/, "共享样式表里那条 tree 的宽度");
+  assert.equal(document.head.querySelector("style"), null, "<style> 由宿主放，page.js 不碰");
+});
+
+await atest("page.js：样式表有错就退回默认渲染，横幅说清楚，css 为 null", async () => {
+  const files = new Map(FILES);
+  files.set(SITE + "_index/base.geml", BASE.replace("font-size=16px", 'scroll="<b>"'));
+  const model = parse(DOC);
+  const page = await loadPage({ docUrl: SITE + "page.geml", raw: DOC, model, fetchText: fetchFrom(files) });
+  assert.ok(page.errors.length > 0);
+  const { document } = dom();
+  const out = paintPage(page, model, document, null);
+  assert.equal(out.usedLayout, false);
+  assert.equal(out.css, null);
+  assert.match(out.root.querySelector(".geml-diag-error").textContent, /stylesheet has \d+ error/);
 });
 
 console.log(`\n${passed} layout tests passed.`);

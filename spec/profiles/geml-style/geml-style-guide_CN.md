@@ -68,4 +68,4 @@ warning: style-unmatched-rule: rule `#tip-look` matched no block in the corpus (
 **交给 agent 改。** 每条规则都是带 id 的块，agent 用
 `geml get _index/index.geml '#tip-look'` 读出一条，用 `geml set` 换掉，再跑一遍检查。
 
-**延伸：** [参考文档](geml-style-profile_CN.md) · [图解](https://geml-spec.github.io/illustrated/10-profile-style_CN.html) · [演示](https://geml-spec.github.io/demos)
+**延伸：** [参考文档](geml-style-profile_CN.md) · [图解](https://geml-spec.github.io/illustrated/10-profile-style_CN.html) · [演示](https://geml-spec.github.io/demos/style)

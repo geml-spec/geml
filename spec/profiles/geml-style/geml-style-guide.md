@@ -71,4 +71,4 @@ for each block, the rules that hit it and the values they set (reference §10).
 with `geml get _index/index.geml '#tip-look'`, replaces it with `geml set`, and
 runs the check again.
 
-**More:** [Reference](geml-style-profile.md) · [Illustrated](https://geml-spec.github.io/illustrated/10-profile-style.html) · [Demo](https://geml-spec.github.io/demos)
+**More:** [Reference](geml-style-profile.md) · [Illustrated](https://geml-spec.github.io/illustrated/10-profile-style.html) · [Demo](https://geml-spec.github.io/demos/style)

@@ -25,12 +25,11 @@ components and handlers are *named*, and the host supplies the implementations,
 the same registry pattern `diagram {format=…}` already uses. Ambiguity is a
 **build error**, not a silent fallback.
 
-**See one.** [The style demo](https://geml-spec.github.io/demos) is a
+**See one.** [The style demo](https://geml-spec.github.io/demos/style) is a
 whole page built this way — a 1:1 replica of a GitHub blob page, where
 `page.geml` holds every string and `github.style.geml` holds every colour,
-length and state. It needs `geml-viewer` installed and a local server;
-[its README](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/examples/README.md#the-page-layout-demo-style-demo)
-says why and gives the two commands.
+length and state. It opens in any browser, drawn by the viewer's own code, with
+the documents that make it below.
 
 ## 0.1 Stability scope — read this before building on it
 

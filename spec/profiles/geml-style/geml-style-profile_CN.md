@@ -19,11 +19,10 @@
 script**：组件和处理器**只报名字**，实现由宿主提供，与 `diagram {format=…}` 完全
 同构的注册表模式。**歧义是构建错误**，不是静默兜底。
 
-**看一个。** [样式演示](https://geml-spec.github.io/demos) 是照这套
+**看一个。** [样式演示](https://geml-spec.github.io/demos/style) 是照这套
 排出来的一整页 —— GitHub blob 页的 1:1 复刻，每一个字在 `page.geml`，每一个颜色、
-尺寸和状态在 `github.style.geml`。它要装 `geml-viewer` 并在本地起服务；
-[它的 README](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/examples/README.md#the-page-layout-demo-style-demo)
-说清了为什么，也给了那两条命令。
+尺寸和状态在 `github.style.geml`。任何浏览器点开就能看，页面由 viewer 自己的代码
+画出来，生成它的那几份文档就在下面。
 
 ## 0.1 稳定性范围 —— 在它上面盖东西之前先读这一节
 

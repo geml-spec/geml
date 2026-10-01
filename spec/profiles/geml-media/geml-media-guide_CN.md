@@ -74,4 +74,4 @@ geml media build hello.geml --out hello.mp4
 
 这一整套 agent 可以自己跑：`geml media todo hello.geml --json` 列出还没产出的提示词和还没配音的台词，`geml media log` 把做好的东西记进素材库的生成日志（§6），提示词改过之后，`geml check` 会指出哪些片段已经过期（§8）。
 
-**延伸：** [参考文档](geml-media-profile_CN.md) · [演示](https://geml-spec.github.io/demos)
+**延伸：** [参考文档](geml-media-profile_CN.md) · [演示](https://geml-spec.github.io/demos/media-cut)
