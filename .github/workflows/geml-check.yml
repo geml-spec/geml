@@ -41,10 +41,11 @@ jobs:
         # built above instead of the npm one.
         with:
           cli: geml-parser/dist/geml.js
-          # Explicit grant: docs/comparisons/COMPARISON*.geml legitimately reference
-          # ../spec/* and ../README* — widen cross-doc checking to the repo
-          # root (escapes past it are still refused). Requires a @geml/geml
-          # release with `--root` (> 1.2.2).
+          # Explicit grant: spec/in_geml_format/*.geml and the media fixtures
+          # legitimately reference files above their own directory
+          # (../GEML-spec_CN.md, ../characters.geml) — widen cross-doc checking
+          # to the repo root (escapes past it are still refused). Requires a
+          # @geml/geml release with `--root` (> 1.2.2).
           root: "."
 
       # The other half of the same promise. `geml check` proves references

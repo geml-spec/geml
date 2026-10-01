@@ -4,12 +4,12 @@
 profile           = "geml-history/v1"
 history-of        = "GEML-spec.geml"
 geml-version      = "1.0"
-current           = "20260917T170051Z-8385f18e"
+current           = "20261001T071052Z-b81b131c"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== history-keyframe {id="20260917T170051Z-8385f18e" hash="sha256:8385f18e40ed62782f45dbd40613706ee017f4ceee0241369b25289653b7e5ec"}
+===== history-keyframe {id="20261001T071052Z-b81b131c" hash="sha256:b81b131c3c2a74090787d6a88eba765c4c212ab6e1083dfc657c634640524408"}
 # GEML — General Expressive Markup Language
 
 *English | [中文](../GEML-spec_CN.md)*
@@ -832,14 +832,20 @@ node of a `data` block's value tree (§3.2), or a key of the merged `#meta` (§4
   error and the diagnostic SHOULD name the address that does resolve — the
   coordinate on the embed's source.
 - A coordinate MAY be the target of an inline projection `![[…]]` or an `embed`'s
-  `src=` when, and only when, it names a **leaf value** — one value, complete on
-  its own. A positional slice, a whole row or a whole column, MUST NOT be a
-  projection target: which row is wanted is a predicate rather than an index, and
-  selecting rows is the consuming block's business (§6.1), not an address's.
+  `src=` when it names a **leaf value** — one value, complete on its own — or a
+  **whole row** of a `table` or `view` (`#fy[2]`, `#fy[summary]`). Inline, a row
+  reads as its cells in column order joined by `", "` on ONE line, whatever the
+  cells hold; as a block, it is a one-row table under the table's own header. A
+  whole column, and a value-tree node that holds more nodes, MUST NOT be a
+  projection target: it is as many values as it has members, which no sentence
+  holds. Inline that is `inline-transclusion-not-inline`; as an `embed`'s `src=`
+  it is `embed-target-not-projectable` (Appendix A).
 - *Note (non-normative):* a coordinate is stable only while the units above it
-  are. Inserting a row moves every index below it, which is why an id is
-  preferable wherever a unit can carry one, why `summary` is a word rather than
-  an index, and why `geml find` reports the containing block.
+  are. Inserting a row moves every index below it — a projected row and a
+  projected cell alike — which is why an id is preferable wherever a unit can
+  carry one, why a reference that must survive edits should project from a
+  `view` whose `where=` selects its row, why `summary` is a word rather than an
+  index, and why `geml find` reports the containing block.
 
 ### 5.3 Recognition order and emphasis
 
@@ -1532,7 +1538,8 @@ original file.
 | `transclusion-cycle` | error | A chain of block transclusions returns to a document already being expanded. The chain is reported and expansion stops; it is never followed. |
 | `embed-target-not-geml` | error | An `embed` block names a target that is not a `.geml` document. Its bytes are never parsed as GEML. |
 | `media-target-is-document` | error | A media embed `![](…)` points at a GEML document. Block content cannot be expanded in inline position; the `embed` block is the form for it. |
-| `inline-transclusion-not-inline` | error | An inline projection `![[…]]` names a target that is not inline content — not a single-paragraph `text` block. Block content cannot be expanded inside a sentence; the `embed` block is the form for it. |
+| `inline-transclusion-not-inline` | error | An inline projection `![[…]]` names a target that is not inline content — not a single-paragraph `text` block, nor a coordinate naming one value or a whole row (§5.2). Block content cannot be expanded inside a sentence; the `embed` block is the form for it. |
+| `embed-target-not-projectable` | error | An `embed`'s `src=` is a coordinate naming neither one value nor a whole row of a `table` or `view` — a whole column, or a value-tree node holding more nodes (§5.2). |
 | `unsafe-embed-scheme` | error | An `embed` block names a URL scheme outside the allowlist of §9.5. The attribute is blanked in the model as well as reported, so no consumer can emit it. |
 | `unresolvable-table-source` | error | A table's `src=` names a data file that cannot be resolved. |
 | `table-source-not-a-table` | error | A table's `src=` names a block that exists but is not a table. |
@@ -1748,6 +1755,99 @@ for a block or a section, the three granularities are a scalar, a phrase, and
 a block.
 
 =====
+
+=== history-revision {id="20261001T071052Z-b81b131c" parent="20261001T071048Z-89da622a" summary="auto: Edit" hash="sha256:b81b131c3c2a74090787d6a88eba765c4c212ab6e1083dfc657c634640524408" newline="crlf"}
+replace #table-7 <- blob:b259
+===
+
+==== history-blob {#b259 lang=geml}
+=== table {#table-7}
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `duplicate-name` | error | A NAME is written more than once in one attribute object (§4). A class, a `key=val` and a bare flag all write the same NAME, so `{.link link=http://x link}` writes `link` three times. It is an error rather than a warning because §4 promises attribute order is insignificant and a repeat makes that false — silently: the parse succeeds, and which value survives depends on which part was written last. `#id` does not take part. |
+| `name-not-a-name` | warning | An `id`, class or attribute key in an attribute object is not a NAME (§4). A warning, not an error, because such a document still parses — and parses as something else: the attribute object is whitespace-separated, so `{#a & b}` yields the id `a` plus boolean flags named `&` and `b`, and the id the author meant to address does not exist. |
+| `heading-attrs-trailing-text` | warning | A heading's attribute object is followed by further text on the line, as in `## Title {#sec}aaa`. §4 requires the object to be trailing, so it is not parsed as attributes at all: an explicit `{#id}` is silently lost, the heading keeps its derived id, and its section — which runs to the next heading of the same level — can no longer be addressed by the id the author wrote. An object quoted in a code span or inline math is not reported: GEML prose documents this very syntax. |
+| `heading-attrs-unclosed` | warning | A heading's attribute object is never closed by `}` (`## Title {#sec`), so §4 does not parse it as attributes at all: an explicit `{#id}` is silently lost and the heading keeps its derived id. |
+| `reserved-id` | error | A block declares `{#meta}` in a document that carries more than one `meta` block. `#meta` names the MERGED meta namespace (§4), and with several blocks the declared id would mean one of them while `#meta` means all of them merged — one address, two readings. With a single `meta` block the two agree and the id is legal. |
+| `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4), and sameness is NFD-insensitive (§4) — two ids that differ only in Unicode normalization form are one id and collide. |
+| `unresolved-reference` | error | An internal reference `[…](#id)` or `[[#id]]`, or a chart `data=#id`, names an id no block declares. |
+| `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block declares. |
+| `unresolved-cross-document-reference` | error | A reference `other.geml#id` resolved to a document that declares no such id. |
+| `unresolvable-document` | error | The document named by a cross-document reference could not be read, or lies outside the confinement root (§9.4). |
+| `unchecked-cross-document-reference` | warning | A cross-document reference was found, but the processor was given no document resolver, so its target could not be verified. |
+| `embed-missing-src` | error | An `embed` block carries no `src=`, so it names no content. |
+| `ignored-embed-body` | warning | An `embed` block has a body. The content it stands for lives in `src=`; the body is ignored. |
+| `transclusion-cycle` | error | A chain of block transclusions returns to a document already being expanded. The chain is reported and expansion stops; it is never followed. |
+| `embed-target-not-geml` | error | An `embed` block names a target that is not a `.geml` document. Its bytes are never parsed as GEML. |
+| `media-target-is-document` | error | A media embed `![](…)` points at a GEML document. Block content cannot be expanded in inline position; the `embed` block is the form for it. |
+| `inline-transclusion-not-inline` | error | An inline projection `![[…]]` names a target that is not inline content — not a single-paragraph `text` block. Block content cannot be expanded inside a sentence; the `embed` block is the form for it. |
+| `unsafe-embed-scheme` | error | An `embed` block names a URL scheme outside the allowlist of §9.5. The attribute is blanked in the model as well as reported, so no consumer can emit it. |
+| `unresolvable-table-source` | error | A table's `src=` names a data file that cannot be resolved. |
+| `table-source-not-a-table` | error | A table's `src=` names a block that exists but is not a table. |
+| `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
+| `unrecognized-vocabulary` | warning | A name in `=== meta`'s `profile` list (§8.6) is one this processor does not recognize. It admits nothing, every type it would have admitted keeps the `raw` body of an unknown type, and the reader's view of the document is to that extent incomplete. The document is valid: this reports what the processor lacks, never a fault in the document. |
+| `unknown-meta-key` | warning | A `=== meta` key lies inside a declared vocabulary's namespace — it begins with that vocabulary's prefix (`media-` for `geml-media/v1`) — and the vocabulary does not define it (§8.6). Only the namespace is checked: `=== meta` also carries the DOCUMENT's own metadata, which is the author's and open, so a key with no vocabulary prefix is never reported. |
+| `duplicate-meta-key` | warning | A key is defined in a later `=== meta` block when an earlier block already defines it. The first definition is kept (§4). |
+
+### A.3 Tables (§6)
+
+=== table {#table-8}
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `table-src-and-body` | error | A table carries both `src=` and an inline body. Exactly one is permitted (§6). |
+| `unknown-table-format` | warning | The `format=` value is not a recognized data format; the body is parsed as a visual pipe grid instead. |
+| `bad-table-delimiter` | error | A `delim=` value is not exactly one character (§6). The format's natural delimiter is used instead, so the table still reads. |
+| `bad-embed-part` | warning | An `embed` carries a `part=` that is not `whole`, `head`, `body` or `intro` (§3). The whole target stands: a projection that quietly selects nothing is the failure §8.2 exists to prevent. Not `unknown-attribute` — the key is defined, the value is not one it takes. |
+| `ignored-table-delimiter` | warning | A table carries `delim=` but no data `format=`, so no delimited body exists for it to apply to; the body is parsed as a visual pipe grid. |
+| `bad-compute-formula` | error | A `compute` entry is not of the form `Name = expr`. |
+| `compute-error` | error | A `compute` expression failed to evaluate — most often because it names a column that does not exist, or one computed later (§9.3). |
+| `compute-non-numeric-cell` | warning | A `compute` formula read a cell that is empty or not a number; it counted as `0` (§6). The result is still produced — the warning names the cell it rests on. |
+| `compute-not-a-number` | warning | A `compute` or `summary` expression produced a value a cell cannot hold — ±∞ from a division by zero, or NaN from `0 / 0` (§6). The cell holds no value and displays `-`. |
+| `bad-summary-entry` | error | A `summary` entry is not of the form `Cell = value`. |
+| `summary-unknown-column` | error | A `summary` entry's left-hand side names no column of the table. |
+| `summary-error` | error | A `summary` expression failed to evaluate — including a column reference not reduced by an aggregate, which has no value in the summary row (§6). |
+===
+
+====
+
+=== history-revision {id="20261001T071048Z-89da622a" parent="20260917T170051Z-8385f18e" summary="auto: Edit" hash="sha256:89da622a64ad2828a57f464f405e507cc379f01eab2a9b8cb7bfdf50859f7722" newline="crlf"}
+delete @5bdddd2f
+insert <- blob:b258 after @6665268c
+===
+
+=== history-blob {#b258 lang=geml}
+- Three token species occur inside the brackets and no two can be confused: a
+  bare **integer** is a row or sequence index, a **quoted string** is a column
+  name or a map key, and a bare **word** is a reserved row name, of which
+  `summary` is the only one this specification defines. Rows are **1-based** and
+  a value tree's sequences are **0-based**: the first is a line a reader counts,
+  the second is JSON.
+- A table written with no header row carries letter column names (`A`, `B`, …),
+  which are the same names `compute=` and `summary=` read (§6) — one column
+  namespace, not two.
+- `[` MUST NOT occur in a NAME (§4), so a coordinate can never be read as part of
+  an id, and a document written before coordinates existed cannot change meaning.
+  A coordinate composes with cross-document addressing unchanged
+  (`other.geml#fy[2]["Q1"]`).
+- A coordinate that does not resolve — an index past the last row, a column no
+  header names, a key the value tree does not carry, or a coordinate on a block
+  that has no inner units — is an `unresolved-reference` **error**, like any
+  other unresolved reference. Only `table`, `view`, `data` and `meta` carry inner
+  units; an `embed` carries none of its own, because its body is empty and its
+  `src=` resolves at render time (§3), so a coordinate on an embed is that same
+  error and the diagnostic SHOULD name the address that does resolve — the
+  coordinate on the embed's source.
+- A coordinate MAY be the target of an inline projection `![[…]]` or an `embed`'s
+  `src=` when, and only when, it names a **leaf value** — one value, complete on
+  its own. A positional slice, a whole row or a whole column, MUST NOT be a
+  projection target: which row is wanted is a predicate rather than an index, and
+  selecting rows is the consuming block's business (§6.1), not an address's.
+- *Note (non-normative):* a coordinate is stable only while the units above it
+  are. Inserting a row moves every index below it, which is why an id is
+  preferable wherever a unit can carry one, why `summary` is a word rather than
+  an index, and why `geml find` reports the containing block.
+
+===
 
 === history-revision {id="20260917T170051Z-8385f18e" parent="20260917T131813Z-5edb5d6a" summary="附录 A：unknown-meta-key" hash="sha256:8385f18e40ed62782f45dbd40613706ee017f4ceee0241369b25289653b7e5ec" newline="lf"}
 delete @ff1bad6f

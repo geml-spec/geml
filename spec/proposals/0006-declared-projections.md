@@ -27,9 +27,9 @@ that is the one this repository actually got bitten by.
 
 ### The evidence is this repository
 
-`docs/comparisons/` carries four hand-maintained pairs: `COMPARISON.geml` /
-`COMPARISON.md`, and the same in Chinese. The `.geml` is the dogfooded source;
-the `.md` exists because GitHub does not render `.geml`. Nothing connects them.
+[`docs/comparisons/`](https://github.com/geml-spec/geml/tree/e6829e7c41c38c308ae9de93993878c2c4359eac/docs/comparisons) carried four hand-maintained pairs: `COMPARISON.geml` /
+`COMPARISON.md`, and the same in Chinese. The `.geml` was the dogfooded source;
+the `.md` existed because GitHub does not render `.geml`. Nothing connected them.
 
 Measured on 2026-08-07, projecting the source and diffing against the checked-in
 copy:

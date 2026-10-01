@@ -15,9 +15,17 @@ import { type Block, type DataValue, type Value } from "./geml.js";
 import { type CoordStep } from "./selector.js";
 import { type TableCell, type TableModel } from "./table.js";
 
+/**
+ * What a coordinate landed on: one value, a table's whole row, a table's whole
+ * column, or a value-tree node that holds more nodes. §5.2 decides which of
+ * these may be projected, so the answer says which one it is.
+ */
+export type CoordShape = "leaf" | "row" | "column" | "tree";
+
 export type CoordResult =
-  /** `text` is what `geml get` prints; `json` is what `--json` answers. */
-  | { ok: true; text: string; json: unknown }
+  /** `text` is what `geml get` prints; `json` is what `--json` answers. A row
+   *  also carries its cells' texts, in column order, for a projection. */
+  | { ok: true; text: string; json: unknown; shape: CoordShape; cells?: string[] }
   /** `why` is a whole sentence: it is the CLI's error message verbatim. */
   | { ok: false; why: string };
 
@@ -31,6 +39,25 @@ export function stepText(s: CoordStep): string {
 }
 
 export const pathText = (path: CoordStep[]): string => path.map(stepText).join("");
+
+/**
+ * Turns an embed's `src=` — written relative to the document that holds the
+ * embed — into the form the reader of the refusal would write. The default
+ * keeps it as written, which is right whenever that document is the reader's.
+ */
+export type SrcRebase = (src: string) => string;
+
+// A block with nothing inside a coordinate could name. An embed is the case
+// worth more than a refusal (§5.2): its body is empty and its `src=` resolves
+// at render time, so the unit the reader wants is on the source, and the
+// diagnostic SHOULD name that address. A whole-document embed (`src=` without
+// `#`) has no block for a coordinate to start from, so it gets the bare refusal.
+function noUnits(block: Block & { kind: "block" }, path: CoordStep[], rebase: SrcRebase = (s) => s): string {
+  const why = `\`${block.type}\` carries no addressable units inside it — a coordinate needs a table, a \`data\` block, or \`meta\` (GEP 0011)`;
+  const src = block.type === "embed" ? block.attrs["src"] : undefined;
+  if (typeof src !== "string" || !src.includes("#")) return why;
+  return `${why}; address it on the embed's source instead: \`${rebase(src)}${pathText(path)}\``;
+}
 
 // The one column namespace (§6): a header name, or the letter that IS the name
 // when the table has no header row. `compute=`/`summary=` resolve a column this
@@ -112,10 +139,10 @@ function projectTable(block: Block & { kind: "block" }, model: TableModel, path:
     const ci = columnIndex(model, first.name);
     if (ci < 0) return miss(`this table has no column \`${first.name}\` (it has ${model.columns.map((c) => `\`${c}\``).join(", ")})`);
     const column = model.rows.map((r) => r[ci]).filter((c): c is TableCell => c !== undefined);
-    return { ok: true, text: column.map((c) => c.text).join("\n"), json: column.map(cellJson) };
+    return { ok: true, text: column.map((c) => c.text).join("\n"), json: column.map(cellJson), shape: "column" };
   }
 
-  if (path.length === 1) return { ok: true, text: rowText(block, cells), json: cells.map(cellJson) };
+  if (path.length === 1) return { ok: true, text: rowText(block, cells), json: cells.map(cellJson), shape: "row", cells: cells.map((c) => c.text) };
 
   const second = path[1]!;
   if (second.kind !== "key") return miss(`inside a row, a step names a column: write \`["<column>"]\` rather than \`${stepText(second)}\``);
@@ -124,7 +151,7 @@ function projectTable(block: Block & { kind: "block" }, model: TableModel, path:
   if (ci < 0) return miss(`this table has no column \`${second.name}\` (it has ${model.columns.map((c) => `\`${c}\``).join(", ")})`);
   const cell = cells[ci];
   if (!cell) return miss(`${whatRow} has no cell in column \`${second.name}\``);
-  return { ok: true, text: cell.text, json: cellJson(cell) };
+  return { ok: true, text: cell.text, json: cellJson(cell), shape: "leaf" };
 }
 
 // A value tree walks by KEY into a map and by INDEX into a sequence, which is
@@ -151,7 +178,8 @@ function projectValue(value: DataValue, path: CoordStep[]): CoordResult {
     if (step.n < 0 || step.n >= cur.length) return miss(`\`${so_far}\` is out of range: that sequence has ${cur.length} element${cur.length === 1 ? "" : "s"}`);
     cur = cur[step.n]!;
   }
-  return { ok: true, text: typeof cur === "string" ? cur : JSON.stringify(cur), json: cur };
+  const shape: CoordShape = cur !== null && typeof cur === "object" ? "tree" : "leaf";
+  return { ok: true, text: typeof cur === "string" ? cur : JSON.stringify(cur), json: cur, shape };
 }
 
 function describe(v: DataValue): string {
@@ -430,16 +458,17 @@ export function planCoordWrite(block: Block, path: CoordStep[], value: string, b
     return { ok: false, why: `a meta key is written as \`["<key>"]\` — one quoted key, and nothing deeper` };
   }
   if (block.type === "data") return { ok: false, why: noValueTree(block) };
-  return { ok: false, why: `\`${block.type}\` carries no addressable units inside it — a coordinate needs a table, a \`data\` block, or \`meta\` (GEP 0011)` };
+  return { ok: false, why: noUnits(block, path) };
 }
 
 /**
  * Project a coordinate onto the block its base resolved to.
  *
  * The block is the one the id names; every refusal here is about what is
- * INSIDE it, so the caller can print `why` without adding context.
+ * INSIDE it, so the caller can print `why` without adding context. `rebase` is
+ * for a block that came from another document: see `SrcRebase`.
  */
-export function projectCoord(block: Block, path: CoordStep[]): CoordResult {
+export function projectCoord(block: Block, path: CoordStep[], rebase?: SrcRebase): CoordResult {
   if (path.length === 0) return miss("a coordinate needs at least one `[…]` step");
   if (block.kind !== "block") {
     return miss(`a coordinate addresses a unit inside a table or a \`data\` block; \`${block.kind}\` has none`);
@@ -460,5 +489,42 @@ export function projectCoord(block: Block, path: CoordStep[]): CoordResult {
   if (block.value !== undefined) return projectValue(block.value, path);
   if (block.data !== undefined) return projectValue(block.data as DataValue, path);
   if (block.type === "data") return miss(noValueTree(block));
-  return miss(`\`${block.type}\` carries no addressable units inside it — a coordinate needs a table, a \`data\` block, or \`meta\` (GEP 0011)`);
+  return miss(noUnits(block, path, rebase));
+}
+
+// --------------------------------------------------------------------------
+// Projection targets (§5.2). A coordinate may stand in for content elsewhere
+// when it names ONE value, or one ROW of a table or view: a row reads as its
+// cells in column order, on one line. A whole column is as many values as the
+// table has rows, and a value-tree node that holds more nodes is the same case,
+// so neither may be projected — inline or as a block. The parser's check, the
+// renderers and the browser viewer all ask these functions, so none of them can
+// draw the line somewhere else.
+
+/** Why a column or a non-leaf value-tree node may not be projected. */
+export function notProjectable(shape: "column" | "tree", written: string): string {
+  return shape === "column"
+    ? `\`${written}\` is a whole column — as many values as the table has rows; project one cell (\`[<row>]["<column>"]\`), a whole row (\`[<row>]\`), or select the rows with a \`view\` (\`where=\`, \`select=\`)`
+    : `\`${written}\` is a value-tree node with more nodes inside it; project one leaf value under it`;
+}
+
+/** What an inline projection `![[…]]` of a coordinate shows, or why it may not. */
+export function inlineProjection(hit: Extract<CoordResult, { ok: true }>, written: string): { ok: true; text: string } | { ok: false; why: string } {
+  if (hit.shape === "leaf") return { ok: true, text: hit.text };
+  // One line whatever the cells hold: a newline inside a sentence is the
+  // failure this rule exists to prevent.
+  if (hit.shape === "row") return { ok: true, text: (hit.cells ?? []).map((c) => c.replace(/\s*\n\s*/g, " ")).join(", ") };
+  return { ok: false, why: notProjectable(hit.shape, written) };
+}
+
+/** A block embed of a row: that row as a one-row table, header and all. */
+export function rowTable(block: Block, path: CoordStep[]): TableModel | null {
+  if (block.kind !== "block" || !block.table || path.length !== 1) return null;
+  const model = block.table;
+  const step = path[0]!;
+  const cells = step.kind === "index" ? model.rows[step.n - 1]
+    : step.kind === "word" && step.name === "summary" ? model.summary
+    : undefined;
+  if (!cells) return null;
+  return { header: model.header, columns: model.columns, align: model.align, rows: [cells] };
 }

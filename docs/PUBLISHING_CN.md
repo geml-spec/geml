@@ -24,7 +24,7 @@ flowchart TD
   DIST --> NPM["@geml/geml on npm"]
   DIST --> MCP["MCP registry 条目<br/>以 server.json 为键"]
   DIST --> VIEWER["geml-viewer<br/>Chrome 扩展"]
-  DIST --> SITE["geml-spec.github.io<br/>playground bundle + codemap<br/>在那边部署时构建"]
+  DIST --> SITE["geml-spec.github.io<br/>playground bundle + codemap<br/>由 website 工作流推送"]
   VIEWER --> VSCODE["vscode 扩展<br/>prepublish 时构建 webview"]
   VIEWER --> SITE
 
@@ -271,10 +271,9 @@ flowchart TD
 
 1. **升版本**：解析器的六个文件、`CHANGELOG.md` 条目、构建。
 2. **本仓库里没有携带拷贝、需要重新生成的产物。** playground 的 bundle 和解析器的
-   codemap 由 `geml-spec/geml-spec.github.io` 在每次部署站点时从本仓库的一份检出构建，
-   所以升版本不需要 `codemap build`，它们也不在这里提交。两个扩展各自捆绑解析器，由
-   各自的发布任务重建。发布之后要触发站点的部署（或往它推一次），新解析器才会被拾起：
-   往本仓库推送不会重新部署站点。
+   codemap 由 `website` 工作流重建：只要 `main` 上解析器或 viewer 有改动，它就重建并推到
+   `geml-spec/geml-spec.github.io`，所以升版本不需要 `codemap build`，它们也不在这里提交。
+   两个扩展各自捆绑解析器，由各自的发布任务重建。
 3. **跑门**：`node test/all.mjs` · `npm run coverage:check` · 逐包的
    `npm ci --dry-run --ignore-scripts` · 对全库 `.geml` 跑 `geml check`。每个退出码
    都要**取自那次运行本身** —— `| tail` 管道报的是 tail 的退出码，不是命令的。
@@ -296,7 +295,7 @@ flowchart TD
 | 陷阱 | 表现成什么样 | 什么能拦住 |
 | --- | --- | --- |
 | "解析器的版本有六个家" | "npm 上已是 1.9.0，而已安装的插件仍自报 1.8.8" | "mcp 测试逐个比对插件清单与 package.json" |
-| "站点从本仓库的一份检出构建" | "geml-spec.github.io 发出去的是它部署那一刻 `main` 上的东西，而且不会自己拾起新版本" | "它的 `geml-source.json` 指定 ref；发布之后要部署一次站点" |
+| "站点留着自己的一份 playground bundle" | "geml-spec.github.io 提供的是 `website` 工作流最后一次推过去的东西；没配 `SITE_DEPLOY_KEY` 这个 secret 就不再更新" | "缺密钥时工作流会给出警告；也可以用 `workflow_dispatch` 手动跑一次" |
 | "viewer 的 tag 必须等于 manifest.json" | "一个 viewer-v1.2.4 的 release 挂着 geml-viewer-1.2.3.zip" | "release-viewer.yml 会拒绝这种不一致" |
 | "Logseq 是镜像发布，不是就地打 tag" | "先打 tag 会用陈旧的 checkout 构建，zip 带上旧版本号" | "没有 —— 先镜像、核对镜像的 plugin/package.json、再打 tag" |
 | "锁文件带着自身包的版本" | "npm ci 拒绝，CI 的锁文件 job 变红" | "逐包的 `npm ci --dry-run` job" |

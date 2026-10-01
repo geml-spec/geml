@@ -29,7 +29,7 @@ the same registry pattern `diagram {format=…}` already uses. Ambiguity is a
 whole page built this way — a 1:1 replica of a GitHub blob page, where
 `page.geml` holds every string and `github.style.geml` holds every colour,
 length and state. It needs `geml-viewer` installed and a local server;
-[its README](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/playground/README.md#the-page-layout-demo-style-demo)
+[its README](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/examples/README.md#the-page-layout-demo-style-demo)
 says why and gives the two commands.
 
 ## 0.1 Stability scope — read this before building on it

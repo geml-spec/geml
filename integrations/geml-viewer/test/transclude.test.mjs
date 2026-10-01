@@ -816,6 +816,26 @@ test("a coordinate that misses says what it could not reach", async () => {
   assert.match(bad[1].getAttribute("title"), /no `#nosuch`/);
 });
 
+// §5.2: a whole ROW may be projected — inline as its cells on one line, or as a
+// block, a one-row table under the table's header; a whole column may not.
+test("a row projects inline on one line, and a column is refused", async () => {
+  const root = await view(`Row ![[nums.geml#facts[1]]]; view row ![[nums.geml#fy[1]]]; column ![[nums.geml#facts["Q1"]]].\n`);
+  assert.match(root.textContent, /Row Cloud, 8, 10;/, "a table row, joined with \", \"");
+  assert.match(root.textContent, /view row Cloud, 8, 10, 18;/, "a view row carries its computed column too");
+  const bad = [...root.querySelectorAll(".geml-transclusion-invalid")];
+  assert.equal(bad.length, 1, "only the column is refused");
+  assert.match(bad[0].getAttribute("title"), /whole column/);
+});
+
+test("a block embed of a row is a one-row table under its header", async () => {
+  const root = await view("=== embed {src=nums.geml#facts[1]}\n===\n");
+  const table = root.querySelector("table");
+  assert.ok(table, "the row came back as a table");
+  assert.deepEqual([...table.querySelectorAll("th")].map((t) => t.textContent.trim()), ["Segment", "Q1", "Q2"]);
+  assert.equal(table.querySelectorAll("tbody tr").length, 1, "one row");
+  assert.match(table.querySelector("tbody").textContent, /Cloud/);
+});
+
 test("a refusal nothing can clear gets a note, not a button", async () => {
   const never = async () => ({ ok: false, why: "this browser has no built-in Translator" });
   const root = await view(SRC_PROJ, { translateSlice: never });

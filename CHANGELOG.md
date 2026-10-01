@@ -18,6 +18,42 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+## [1.11.5] — 2026-10-01
+
+- **An embed on the line after its target is not a cycle.** The self-cycle
+  checks read a span's `end` as the block's last line, but it is the first line
+  after it — the half-open span `geml list` prints. An `=== embed {src=#q1}` or
+  a `![[#t]]` written right under its target's closing fence, with no blank line
+  between, was reported as `transclusion-cycle`. An embed or a projection inside
+  its own target is still one.
+- **An embedded view keeps its rows in `--to md`.** The Markdown export expands
+  an `embed` from a slice of the target document, and the slice holds the view
+  but not the table its `src=#id` reads: the view came out as an empty grid
+  ("table from external source `#fy` could not be read") where `--to html`
+  shows its rows. A relation whose same-document source the slice lacks now
+  takes its rows from the whole document, for an embed in the same document and
+  across documents alike.
+- **A whole row may be projected; a whole column may not.** §5.2 allowed only a
+  leaf value as a projection target, yet `check` passed any slice:
+  `![[#fy["revenue"]]]` put a newline into the sentence, and
+  `=== embed {src=#fy[2]}` passed `check` but rendered as a dangling link. A row
+  — `#fy[2]`, `#fy[summary]` — now projects inline as its cells joined by ", "
+  on one line, and as a block embed renders a one-row table under the table's
+  header, in `--to html`, `--to md` and the browser viewer alike, across
+  documents too. A whole column, or a value-tree node holding more nodes, is
+  `inline-transclusion-not-inline` inline and the new
+  `embed-target-not-projectable` as an embed's `src=`, and the message says what
+  to use instead.
+- **A coordinate on an `embed` names the address that resolves.** §5.2 makes
+  `#tbl[1]["Item"]` on an embed an `unresolved-reference` error and says the
+  diagnostic SHOULD name the same coordinate on the embed's source; the message
+  only explained why. `get`, `set`, `check` and the MCP tools now end the
+  refusal with that address — `a.geml#tbl[1]["Item"]` for `src=a.geml#tbl`,
+  `#src-tbl[1]["Item"]` for a same-document `src=#src-tbl` — and `check`
+  rebases it onto the referenced document when the embed lives there. A
+  whole-document embed (`src=a.geml`) has no block to start from and keeps the
+  bare refusal.
+
 ## [1.11.4] — 2026-09-30
 
 - **A `.md` link to GitHub's anchor for a heading resolves.** §4's heading-id

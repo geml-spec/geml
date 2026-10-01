@@ -38,7 +38,7 @@ geml get doc.geml '#fy[2]["Q1"]'                     # 一个单元格
 geml set doc.geml '#intake["fields"][1]["name"]'     # JSON 里的一个叶子
 ```
 
-对人，它是清晰可读的纯文本；对 agent，它是可寻址、可校验、可溯源、可回退的**[“Doc-as-a-Base（文档即真相之源）”](docs/MANIFESTO_CN.md)**。
+对人，它是清晰可读的纯文本；对 agent，它是可寻址、可校验、可溯源、可回退的**[“Doc-as-a-Base（文档即真相之源）”](https://geml-spec.github.io/manifesto-cn)**。
 
 ---
 
@@ -62,7 +62,7 @@ geml get doc.geml '#hello'   # 按名字，只取这一块
 块有名字，动词才有落点。完整语法见[1分钟学会](#one-minute)。
 
 **目录：**[它解决什么](#problems) · [为什么需要新格式](#why-now) · [GEML有何不同](#whats-different) ·
-[1分钟学会](#one-minute) · [Profile扩展体系](#profiles) · [给程序员的小礼物](#code-graph) ·
+[1分钟学会](#one-minute) · [Profile扩展体系](#profiles) ·
 [即刻上手试试](#hands-on) · [搭配大模型使用](#with-an-llm) ·
 [生态成熟度](#maturity) · [设计思路](#challenge) · [路线图](#roadmap) · [参与我们](#contributing) · [许可](#license)
 
@@ -138,7 +138,7 @@ geml get doc.geml '#hello'   # 按名字，只取这一块
 
 这三条的病根，恰恰是三者各自的优点：Markdown 的"永不报错、怎么写都行"成全了人的书写自由，也注定了机器无法信任它读到的结构；JSON/XML 的严格 schema 成全了机器的确定性，也注定了没人愿意在里面写散文。优点即病根，所以补丁修不动——给 Markdown 加上"坏引用必须报错"是对它契约的违背，给 JSON 剥掉包裹语法是对它本性的否定。当人与 agent 开始在同一份文本上高频协作，需要的不是两极之间的折中，而是把"人可读"与"机可操作"从第一天就写进同一条设计约束。
 
-### 核心解法：**[“Doc-as-a-Base（文档即真相之源）”](docs/MANIFESTO_CN.md)**
+### 核心解法：**[“Doc-as-a-Base（文档即真相之源）”](https://geml-spec.github.io/manifesto-cn)**
 
 GEML 不发明新的重型运行时，而是借鉴Roy Fielding博士提出的**[REST]( https://www.ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm )** 架构风格，为纯文本文档引入一组标准操作语义：
 
@@ -152,7 +152,7 @@ GEML 不发明新的重型运行时，而是借鉴Roy Fielding博士提出的**[
 > **文档需要的不再只是一个格式，而是一组动词。** GEML 让文档既保留纯文本的可读性，又具备确定性的块级操作能力。
 
 > 💡 **深潜阅读：**
-> 如果你对大模型时代工程文档面临的困境、以及我们为什么要重新设计一种纯文本格式感兴趣，请阅读我们博客上的完整文章：[**《为什么大模型时代需要一种全新的文本格式？》**](https://geml-spec.github.io/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms_cn/)。
+> 如果你对大模型时代工程文档面临的困境、以及我们为什么要重新设计一种纯文本格式感兴趣，请阅读我们博客上的完整文章：[**《为什么大模型时代需要一种全新的文本格式？》**](https://geml-spec.github.io/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms_cn)。
 
 ---
 
@@ -174,7 +174,7 @@ GEML 是刻意做小的——设计怎么想的、拒绝了什么、哪些还没
 | **JSON / XML** | 数据序列化 | ✔️ (id / schema) | ⚠️ 仅 XML 有（XInclude，外置） | ✔️ 依赖外部工具链 | ❌ 格式内没有，必须依赖外部 Git |
 | **GEML** | **纯文本 + 块结构** | **✔️ 每块独立 `#id`（原生可引用）** | **✔️ `=== embed` 引用即取值（原生嵌入）** | **✔️ 构建期强校验报错** | **✔️ `.gemlhistory` 紧邻文件（原生可溯源）** |
 
-逐项对比：[对比 CommonMark](docs/comparisons/GEML-vs-CommonMark_CN.md) · [对比 XML 与 JSON](docs/comparisons/GEML-vs-XML-and-JSON_CN.md) · [7 种格式能力矩阵](docs/comparisons/COMPARISON_CN.md) · [awesome-markdown 里的 Markdown 变体与工具](docs/comparisons/GEML-vs-Markdown-variants_CN.html)（HTML 页面）。
+逐项对比：[对比 CommonMark](https://geml-spec.github.io/compare/commonmark-cn) · [对比 XML 与 JSON](https://geml-spec.github.io/compare/xml-and-json-cn) · [7 种格式能力矩阵](https://geml-spec.github.io/compare/matrix-cn) · [awesome-markdown 里的 Markdown 变体与工具](https://geml-spec.github.io/illustrated/geml-vs-markdown-variants_CN.html)（HTML 页面）。
 
 与 Markdown 的共存方案：GEML 当作**编辑侧的事实源**，而 Markdown 作为交付物。用 `geml <file> --to md|html` 单向投影，交付照旧是 `.md` / `.html`。**只协同，不锁定。**（投影有损：块 id 与绑表图表不会跟过去。）
 
@@ -182,7 +182,7 @@ GEML 是刻意做小的——设计怎么想的、拒绝了什么、哪些还没
 
 > 你基于 claude 你自己在前面编辑 README 等文档的经历，描述下你处理文档的命令过程步骤（我看用到了 grep 之类的），以及是否缓存文档，以节省 token，我们来对照下，基于这个看 geml 有哪些是能够派上用场的
 
-得到这样的结果 **[单次编辑的成本](docs/benchmarks/addressing-cost_CN.md)**和**[真实一天的回放](docs/benchmarks/mixed-toolchain_CN.md)**，你也可以贴给你的大模型，看看他给你的答案是什么。
+得到这样的结果 **[单次编辑的成本](https://geml-spec.github.io/benchmarks/addressing-cost-cn)**和**[真实一天的回放](https://geml-spec.github.io/benchmarks/mixed-toolchain-cn)**，你也可以贴给你的大模型，看看他给你的答案是什么。
 PS: 我还在试能不能用上geml的codemap生成的上游链（被调用链）和下游链（调用链）功能来快速精确定位函数、调用点和修改项目代码,到时候我来贴个报告。
 
 <a id="one-minute"></a>
@@ -355,46 +355,16 @@ profile = "geml-style/v1 geml-form/v1"
 
 ### 官方已落地的 Profile 矩阵
 
-| Profile | 状态 | 领域与职责 | 赋予文档的专属能力 | 专属 CLI |
+| Profile（使用指南） | 状态 | 用来做什么 | 赋予文档的专属能力 | 专属 CLI |
 | :--- | :--- | :--- | :--- | :--- |
-| [`geml-codemap/v1`](spec/profiles/geml-codemap/geml-codemap-profile_CN.md) | stable | 代码库架构与双向调用图谱 | `code` 块上的 `anchor`、`name`、`entry-via` | `geml codemap build\|verify\|serve` |
-| [`geml-history/v1`](spec/profiles/geml-history/geml-history-profile_CN.md) | stable | 块级版本快照与原子回退 | `history-revision`、`history-keyframe`、`history-blob` | `geml history save\|get\|restore` |
-| [`geml-style/v1`](spec/profiles/geml-style/geml-style-profile_CN.md) | draft | 设计令牌与响应式布局规范 | `style-rule`、`style-state`、`style-screen`、`style-frame` | `geml style check` |
-| [`geml-form/v1`](spec/profiles/geml-form/geml-form-profile_CN.md) | draft | 声明式表单与输入约束校验 | `form`、`form-field`、`form-group` 及验证规则 | — |
-| [`geml-media/v1`](spec/profiles/geml-media/geml-media-profile_CN.md) | draft | 多媒体时间轴、音视频素材与轨道 | `media`、`media-asset`、`media-clip`、`media-text` | — |
-| [`geml-translator/v1`](spec/profiles/geml-translator/geml-translator-profile_CN.md) | draft | 多语言国际化翻译与跨语言投影 | `embed` 与 `meta` 上的 `translate-to` 属性 | — |
+| [`geml-codemap/v1`](spec/profiles/geml-codemap/geml-codemap-guide_CN.md) | stable | 把代码库的调用图生成为一组 GEML 文档：每个方法一个块，能查谁调用它、它又调用了谁；前后端合成同一张图 | `code` 块上的 `anchor`、`name`、`entry-via` | `geml codemap build\|verify\|serve` |
+| [`geml-history/v1`](spec/profiles/geml-history/geml-history-guide_CN.md) | stable | 在文档旁边的 `.gemlhistory` 里保存历史版本：能查看任意旧版、只退回某一个块，或整份回滚 | `history-revision`、`history-keyframe`、`history-blob` | `geml history save\|get\|restore` |
+| [`geml-style/v1`](spec/profiles/geml-style/geml-style-guide_CN.md) | draft | 颜色、间距、布局写在单独的样式文档里，按规则作用到内容文档上，内容文档本身不用改 | `style-rule`、`style-state`、`style-screen`、`style-frame` | `geml style check` |
+| [`geml-form/v1`](spec/profiles/geml-form/geml-form-guide_CN.md) | draft | 在文档里描述表单：有哪些字段、什么类型、是否必填、取值范围；浏览器扩展和 playground 会画出表单预览 | `form`、`form-field`、`form-group`、`form-options`、`form-note`，以及 `form-field` 上的 `pattern`、`min`、`max` 等约束属性 | — |
+| [`geml-media/v1`](spec/profiles/geml-media/geml-media-guide_CN.md) | draft | 用一份文档描述一条视频时间轴：素材、片段、字幕和配音轨道；可导出成网页播放，或用 ffmpeg 出成片 | `media`、`media-asset`、`media-clip`、`media-text` | `geml media build\|export\|lay\|todo` |
+| [`geml-translator/v1`](spec/profiles/geml-translator/geml-translator-guide_CN.md) | draft | 译文文档里不放译文，只引用原文并写明目标语言，打开时由浏览器扩展现场机翻；原文改了，译文跟着变 | `embed` 与 `meta` 上的 `translate-to` 属性 | — |
 
-> 💡 **下一节的代码图谱（codemap）就是一个 Profile**：`.geml-code-graph/` 下的每份文档开头都声明了 `profile = "geml-codemap/v1"`。开发者也可以按规范轻松[定制自己的专属业务 Profile](spec/profiles/README.md)。
-
-<a id="code-graph"></a>
-## 一份给程序员的礼物：geml-code-graph
-
-为了试验 GEML 格式的表达能力与灵活性，特别是验证块级双向链接效果，我们拿程序员最熟悉、也最有挑战性的场景之一——代码图——来试一试。
-**把整个代码库的调用图，写成 GEML。** `geml codemap build` 把调用图落成一棵 GEML 文档树，每个方法一个 `#id` 块，`#calls` / `#called-by` 正反向边。正向调用的**下游链**做问题排查，反向被调用的**上游链**查看影响面，全都秒速得见；
-
-![geml-parser/render.ts 的方法图：悬停 RenderCtx.inline，整条调用链高亮、其余变暗；点击节点，该方法源码就显示在图旁边](docs/assets/codemap-render-ts.gif)
-
-```sh
-npm i -g @geml/geml
-geml codemap build              # --root 默认当前目录：识别语言 → 索引 → 合并成一张图，落在 ./.geml-code-graph/
-geml codemap serve              # 自动打开浏览器看图
-```
-
-> [!NOTE]
-> **前置条件。** CLI 需要 Node **22+**（`npm i -g @geml/geml`）。以下都是可选项，仅在用到时才需要：
-> 代码图里的非 TS/JS 语言需要 [Joern](https://docs.joern.io/installation)；
-> [浏览器扩展](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)需要 Chrome。
-
-> [!TIP]
-> **TS/JS**——零前置，`build` 会自己拉取 scip 索引器。
-> **Java / C / Python / Go / Kotlin**——多下载一个 [Joern](https://docs.joern.io/installation)：release 包解压后把目录传给 build，例如 `--joern ~/joern/joern-cli`（Windows 上是 `--joern C:\joern\joern-cli`）；放进 PATH 也行，可省掉这个参数。
-> 前端 + 后端混合仓库——会并进**同一张图**。
-
-geml-code-graph 本身就是一个 diagram 格式，一行就能把它嵌进任何 GEML 文档（`=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml} ===`），配套的 Claude 技能还带一个可选的提交钩子，代码一动图就跟着重建，不会脱节。
-
-规模是量出来的，不是许诺的：在 Apache Flink 代码库上实测，**13,585 个 Java 源文件、约 8.1 万
-个方法、266,821 条调用边**，纯文本**数据表**依然秒开秒查，随意搜方法名可以定位调用链路。想自己
-复现：克隆 `apache/flink`，在仓库根目录跑 `geml codemap build --joern …`。
+> 💡 **表里每个 profile 名都链接到它的一页使用指南**：它做什么、第一条命令、常用操作。写代码的话，从 `geml-codemap` 开始。开发者也可以按规范轻松[定制自己的专属业务 Profile](spec/profiles/README.md)。
 
 <a id="hands-on"></a>
 ## 下一步——即刻上手试试
@@ -403,12 +373,12 @@ geml-code-graph 本身就是一个 diagram 格式，一行就能把它嵌进任�
 
 然后按你顺手的次序：
 
-1. **在浏览器里看它渲染。** 装上**[浏览器扩展](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)**，打开任一 raw `.geml` 链接*（要 raw 文件本身，不是 GitHub 的 blob 页面，那个是 HTML）*：**[GEML 规范本身](https://raw.githubusercontent.com/geml-spec/geml/main/spec/in_geml_format/GEML-spec.geml)**（dogfood，规范本身就是一份 GEML，规模化渲染）、**[showcase](https://raw.githubusercontent.com/geml-spec/geml-spec.github.io/main/public/playground/showcase.geml)**（计算表、四张图、一条 Mermaid 流程、公式），或 **[playground/sample.geml](https://raw.githubusercontent.com/geml-spec/geml-spec.github.io/main/public/playground/sample.geml)** 看交互式代码图。
-2. **看一份文档怎么排成一整页。** [样式演示](https://geml-spec.github.io/demos) 是 GitHub blob 页的 1:1 复刻——顶栏、文件树、面包屑、Preview/Code/Blame、下拉菜单——每一个字在 `page.geml`，每一个颜色和尺寸在 `github.style.geml`，而 viewer 两边都不认识。它要装扩展**并且**在本地起服务（[为什么、两条命令](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/playground/README.md#the-page-layout-demo-style-demo)）：这一页要取自己的样式表和图标，而 `raw.githubusercontent.com` 不允许。
+1. **在浏览器里看它渲染。** 装上**[浏览器扩展](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)**，打开任一 raw `.geml` 链接*（要 raw 文件本身，不是 GitHub 的 blob 页面，那个是 HTML）*：**[GEML 规范本身](https://raw.githubusercontent.com/geml-spec/geml/main/spec/in_geml_format/GEML-spec.geml)**（dogfood，规范本身就是一份 GEML，规模化渲染）、**[showcase](https://raw.githubusercontent.com/geml-spec/geml-spec.github.io/main/public/examples/showcase.geml)**（计算表、四张图、一条 Mermaid 流程、公式），或 **[playground/sample.geml](https://raw.githubusercontent.com/geml-spec/geml-spec.github.io/main/public/playground/sample.geml)** 看交互式代码图。
+2. **看一份文档怎么排成一整页。** [样式演示](https://geml-spec.github.io/demos) 是 GitHub blob 页的 1:1 复刻——顶栏、文件树、面包屑、Preview/Code/Blame、下拉菜单——每一个字在 `page.geml`，每一个颜色和尺寸在 `github.style.geml`，而 viewer 两边都不认识。它要装扩展**并且**在本地起服务（[为什么、两条命令](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/examples/README.md#the-page-layout-demo-style-demo)）：这一页要取自己的样式表和图标，而 `raw.githubusercontent.com` 不允许。
 3. **在本地跑起来。** `npm i -g @geml/geml`（Node 22+），然后 `geml check` 一份文档，或对着你自己的仓库跑 `geml codemap build`。
 4. **配好 Claude Code——一条命令。** `npx -y @geml/geml skill install` 把写作技能、CLI、MCP server 一次装到用户全局，所有项目通用；不改任何设置、不装 hook。[详情](#with-an-llm)。
 5. **读语法。** **[完整规范](spec/GEML-spec_CN.md)**（中 / [English](spec/GEML-spec.md)）是规范性文本，短到可以一口气读完。
-6. **或者看逐条图解。** **[GEML 图解](docs/illustrated/README_CN.md)**（中 / [English](docs/illustrated/README.md)）——11 页自包含页面，每个块类型、每个 profile、以及 CLI 各一页：左边是 GEML，右边是处理器**实际**做了什么（`geml check` 诊断、`geml list` 地址、`--to html` 标记），每条规则都标了出处与状态。
+6. **或者看逐条图解。** **[GEML 图解](https://geml-spec.github.io/demos#illustrated-syntax)**（中英两版）——11 页自包含页面，每个块类型、每个 profile、以及 CLI 各一页：左边是 GEML，右边是处理器**实际**做了什么（`geml check` 诊断、`geml list` 地址、`--to html` 标记），每条规则都标了出处与状态。
 
 <a id="with-an-llm"></a>
 ## 配合大模型与 agent 使用 GEML
@@ -651,7 +621,7 @@ GEML 已是 `1.0`，但「稳定」是指**已有规则不会在你脚下变动*
 | **不装任何东西先试** —— 左边编辑、右边实时渲染 | [Playground](https://geml-spec.github.io/playground/) | 可用 |
 | **在浏览器里读** —— 打开任一 raw `.geml` 链接就地渲染：计算表格、图表、Mermaid、公式，诊断以横幅呈现 | [Chrome 应用商店](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie) · [源码](integrations/geml-viewer/) | 可用 |
 | **命令行** —— 文档的整个生命周期都可以用 geml 命令操作 | [`@geml/geml`](https://www.npmjs.com/package/@geml/geml)（源码 [`geml-parser/`](geml-parser/)） | 可用 |
-| **用 geml-code-graph 帮你理解项目** —— 整个调用图写成 GEML 文档树，可交互浏览 | `geml codemap build`（[设计](docs/design/specs/geml-codemap/DESIGN-geml-code-graph.md)） | 可用 |
+| **用 codemap 帮你理解项目** —— 整个调用图写成 GEML 文档树，可交互浏览 | `geml codemap build`（[使用指南](spec/profiles/geml-codemap/geml-codemap-guide_CN.md) · [设计](docs/design/specs/geml-codemap/DESIGN-geml-code-graph.md)） | 可用 |
 | **让 agent 按块改文档** —— 自带 MCP 服务器，agent 走的是和你一样的动词：读一块、改一块、校验、回退 | [`docs/mcp-guide_CN.md`](docs/mcp-guide_CN.md) | 可用 |
 | **在 DeepSeek Harness 里用** —— geml MCP server + 写作、代码图谱两个技能，一个 bundle 装齐 | [`@geml/dsh-plugin`](https://www.npmjs.com/package/@geml/dsh-plugin) · [dshmarket](https://dshmarket.com/p/geml-spec/geml--integrations-dsh-plugin/) · [源码](integrations/dsh-plugin/) | 可用 |
 | **在 Codex 里用** —— 同一套载荷再打一次包：两个技能、MCP server，加一个 `SessionStart` hook，从 `/plugins` 安装 | [`integrations/codex-plugin/`](integrations/codex-plugin/) | 本仓库内可用；尚未上公共插件目录 |
@@ -669,7 +639,9 @@ GEML 已是 `1.0`，但「稳定」是指**已有规则不会在你脚下变动*
 ```
 spec/                  规范的 .md 版（英 / 中）与 CC-BY 规范许可证，另有
                        profiles/（应用层——geml-history、geml-codemap、
-                       geml-style、geml-form）与 proposals/（GEP），两者均为 MIT
+                       geml-style、geml-form、geml-media、geml-translator，
+                       每个都是参考文档加一页使用指南）与 proposals/（GEP），
+                       两者均为 MIT
 spec/in_geml_format/   dogfood：用 GEML 写成的规范本身，连带 .gemlhistory 伴生文件
 geml-parser/           参考实现、渲染器、CLI + codemap 工具集（TypeScript, Node 22）
 integrations/          GEML 接入的所有地方：geml-viewer（浏览器扩展）、
@@ -678,19 +650,19 @@ integrations/          GEML 接入的所有地方：geml-viewer（浏览器扩�
                        langchain+llamaindex（RAG 加载器）、
                        windows-icon（资源管理器文件图标），以及四个 agent
                        宿主插件——claude-plugin、codex-plugin、grok-plugin、
-                       dsh-plugin
+                       dsh-plugin，以及 website（本仓库推给主页的东西）
 .agents/、.claude-plugin/   插件市场清单，让插件从仓库检出即可出现
                        （Codex 的 /plugins、Claude Code 的 /plugin）
-docs/                  指南、设计笔记、comparisons/（COMPARISON + 对比 CommonMark +
-                       对比 XML/JSON）、图片资产（logo），
-                       以及一个可自行渲染的示例 .geml 文档
+docs/                  指南（MCP、写一个解析器）、设计记录、发版手册、
+                       图片资产（logo）
 .claude/skills/        Claude 技能：GEML 写作，以及代码图
 .github/               CI 与 geml-check 工作流、MCP 注册表发布，以及 issue 模板
                        （bug、GEP、新实现）
-（网站）               主页、playground、演示和博客在它们自己的仓库
-                       geml-spec/geml-spec.github.io 里，每次部署都从本仓库的一份
-                       检出构建。本仓库在 geml-spec.github.io/geml/ 发布的只剩
-                       redirect/——把旧路径转到新站的同一路径。
+（网站）               主页、playground、演示、博客、格式对比、基准测试、
+                       宣言和图解页在它们自己的仓库 geml-spec/geml-spec.github.io
+                       里；规范和各篇指南链接回本仓库，playground 的 bundle、代码图
+                       和 logo 由 website 工作流推过去。本仓库在 geml-spec.github.io/geml/ 发布的只剩
+                       site/——把旧路径转到新站的同一路径。
 ```
 
 <a id="license"></a>

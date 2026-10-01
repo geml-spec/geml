@@ -3,7 +3,7 @@
 // `window.GEML`. Output lands in ../vscode/media/, alongside KaTeX's fonts.
 //
 // It lives here, not in the vscode package, for the same reason
-// the site repository's playground build does: this package owns the renderer, the node-module
+// playground.build.mjs does: this package owns the renderer, the node-module
 // stubs, the esbuild dependency and the KaTeX/Mermaid versions. A second
 // esbuild configuration in another directory would be a second place for the
 // alias list to go stale — and the alias list is exactly what makes a

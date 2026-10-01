@@ -5,19 +5,25 @@ howto = "edit one section: geml set <file> '#id' --body --in - ; raw text needs 
 ===
 
 # Repo map {#repo-map}
-
 - `spec/` — the ONE normative specification: `GEML-spec.md` (EN),
   `GEML-spec_CN.md` (中文), with `spec/in_geml_format/` holding its GEML dogfood
-  copies. `spec/profiles/` holds the application-layer vocabularies
-  (`geml-codemap/v1`, `geml-style/v1`, `geml-history/v1` — MIT, not the spec;
-  see `spec/profiles/README.md`), `spec/proposals/` the GEPs.
+  copies. `spec/profiles/` holds the application-layer vocabularies (MIT, not
+  the spec; see `spec/profiles/README.md`): each `geml-<p>/` directory carries
+  the reference (`geml-<p>-profile.md`), `conformance.json`, and a one-page
+  usage guide (`geml-<p>-guide.md`, informative). `spec/proposals/` holds the
+  GEPs.
 - `geml-parser/` — reference parser + `geml` CLI (TypeScript; npm package
   `@geml/geml`; `server.json` is the MCP registry manifest).
-- `docs/` — guides, design records, comparisons, benchmarks · `integrations/` —
-  editor/tooling integrations. The website, playground and demos live in the
+- `docs/` — guides (MCP, writing a parser), design records, the release
+  runbook · `integrations/` —
+  editor/tooling integrations. The website, playground, demos, comparisons,
+  benchmarks, manifesto and illustrated pages live in the
   `geml-spec/geml-spec.github.io` repository (cloned beside this one as
-  `../geml-spec.github.io`), which builds them from a checkout of this
-  repository on every deploy; nothing here is copied there by hand.
+  `../geml-spec.github.io`). It copies no document from here — it links to the
+  spec, profiles, guides, GEPs and changelog on GitHub — and builds nothing
+  from here: `integrations/website/update.mjs` writes the playground bundle,
+  the parser's code graph and the logos into it, and the `website` workflow
+  pushes them there on every change to `main` (secret `SITE_DEPLOY_KEY`).
 # Build, test, validate {#build-test}
 
 === code {lang=sh}
@@ -43,10 +49,10 @@ Run an expensive suite ONCE and take output + exit code from that same run.
   `gemini-extension.json`, and
   `integrations/grok-plugin/.grok-plugin/plugin.json` (the mcp suite guards all
   four). `PARSER_VERSION` is read at runtime — never hand-bump it. Add the
-  release to `CHANGELOG.md` in the same commit. Two artifacts BUNDLE a copy
-  of the parser: the two extensions. The website's playground bundle and
-  codemap are built by the site repository from a checkout, so neither can
-  go stale here.
+  release to `CHANGELOG.md` in the same commit. Three artifacts BUNDLE a copy
+  of the parser: the two extensions, and the website's playground bundle,
+  which the `website` workflow rebuilds and pushes to the site (with the
+  parser's codemap) whenever `main` changes the parser or the viewer.
   `docs/PUBLISHING{,_CN}.{geml,md}` has the dependency graph, every artifact's
   version files / where it lands / how it publishes / prerequisites /
   post-release checks, the order, and the traps; read it before cutting any

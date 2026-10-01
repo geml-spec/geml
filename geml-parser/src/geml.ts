@@ -166,7 +166,7 @@ export { type Diagnostic, type DiagnosticCode, SEVERITY, CATALOGUE_EXEMPT } from
 
 import { vocabularyFor, unrecognizedVocabularies, declaredVocabularies, misnamespacedMetaKey, EMPTY_VOCABULARY, type Vocabulary } from "./profiles.js";
 import { parseCoordPath } from "./selector.js";
-import { metaView, projectCoord } from "./coord.js";
+import { inlineProjection, metaView, notProjectable, projectCoord, rowTable } from "./coord.js";
 
 export interface Document {
   kind: "document";
@@ -999,9 +999,9 @@ function recordEmbedSrc(
       // Recorded with an empty doc so the self-cycle pass can see it.
       if (anchor !== undefined) (ctx.embeds ??= []).push({ doc: "", anchor, line: openLineNo });
       // `src=#id`: a block of THIS document. Validated against local ids.
-      if (anchor !== undefined) ctx.refs.push({ kind: "internal", anchor, line: openLineNo });
+      if (anchor !== undefined) ctx.refs.push({ kind: "internal", anchor, line: openLineNo, embed: true });
     } else {
-      ctx.refs.push({ kind: "cross", doc: docPath, anchor, line: openLineNo });
+      ctx.refs.push({ kind: "cross", doc: docPath, anchor, line: openLineNo, embed: true });
       // Kept apart from refs: a transclusion can pull in a document that
       // transcludes further, so cycle detection has to walk the graph.
       (ctx.embeds ??= []).push(anchor === undefined ? { doc: docPath, line: openLineNo } : { doc: docPath, anchor, line: openLineNo });
@@ -1784,8 +1784,12 @@ function detectSelfEmbedCycles(source: string, ctx: Ctx): void {
   for (const e of selfEmbeds) {
     const span = spans.get(e.anchor!);
     if (span === undefined) continue; // a missing id is already an unresolved reference
-    const line = e.line - 1; // spans are 0-based line indices
-    if (line >= span.start && line <= span.end) {
+    // Spans are 0-based and half-open — `end` is the first line AFTER the
+    // block, the same span `geml list` prints and `get` slices. Counting `end`
+    // as inside put an embed written on the very next line (no blank line
+    // between the fences) inside its own target.
+    const line = e.line - 1;
+    if (line >= span.start && line < span.end) {
       ctx.diags.push({
         severity: "error",
         code: "transclusion-cycle",
@@ -1806,8 +1810,8 @@ function detectSelfProjectionCycles(source: string, ctx: Ctx): void {
   for (const p of local) {
     const span = spans.get(p.anchor);
     if (span === undefined) continue;
-    const line = p.line - 1;
-    if (line >= span.start && line <= span.end) {
+    const line = p.line - 1; // half-open, as above
+    if (line >= span.start && line < span.end) {
       ctx.diags.push({
         severity: "error",
         code: "transclusion-cycle",
@@ -2373,14 +2377,30 @@ function validateCoordRef(ref: Ctx["refs"][number], children: Block[], ctx: Ctx,
     if (!block) return err("unresolved-reference", `unresolved reference \`#${base}\``);
   }
 
-  const hit = projectCoord(block, path);
+  // An embed found in ANOTHER document wrote its `src=` relative to that
+  // document; the address this one would write is rebased onto it.
+  const doc = ref.doc;
+  const rebase = doc === undefined ? undefined
+    : (src: string) => (src.startsWith("#") ? `${doc}${src}` : relJoinPath(relDirPath(doc), src));
+  const hit = projectCoord(block, path, rebase);
   if (!hit.ok) return err("unresolved-reference", `\`${written}\`: ${hit.why}`);
+  // §5.2: a projection — inline or an embed's `src=` — may stand for one value
+  // or one row, never a whole column or a value-tree node holding more nodes.
+  const projected = ref.node?.type === "project";
+  let shown = hit.text;
+  if (projected) {
+    const inline = inlineProjection(hit, written);
+    if (!inline.ok) return err("inline-transclusion-not-inline", `\`![[${written}]]\` projects inline content, but ${inline.why}`);
+    shown = inline.text;
+  } else if (ref.embed && (hit.shape === "column" || hit.shape === "tree")) {
+    return err("embed-target-not-projectable", `\`=== embed {src=${written}}\` cannot stand for that target: ${notProjectable(hit.shape, written)}`);
+  }
   // The answer lands on the node: a coordinate has no anchor of its own, so a
   // renderer that had to work this out would need the document model — and
   // there are four renderers. What the reference SAYS is the projected text;
   // where a link may point is the block that holds it.
   if (ref.node) {
-    ref.node.value = hit.text;
+    ref.node.value = shown;
     // `#meta` is the merged view rather than a block, so it has no anchor a
     // link could point at: leaving `base` unset is what tells a renderer to
     // put the value in as text.
@@ -3244,7 +3264,29 @@ export function narrowEmbed(picked: Block[], part: EmbedPart): Block[] {
   return sub < 0 ? body : body.slice(0, sub);
 }
 
+// §5.2: an embed whose `src=` is a coordinate stands for what the coordinate
+// names — a row as a one-row table under the table's own header, a single value
+// as a paragraph. A whole column or a value-tree node holding more nodes is not
+// a projection target; `check` reports it, and here it selects nothing.
+function embedCoordinate(blocks: Block[], base: string, rest: string): Block[] | null {
+  const path = parseCoordPath(rest);
+  const block = path === null ? undefined : findDeclaredTarget(blocks, base)?.[0];
+  if (path === null || block === undefined) return null;
+  const hit = projectCoord(block, path);
+  if (!hit.ok) return null;
+  if (hit.shape === "row") {
+    const table = rowTable(block, path);
+    if (table === null || block.kind !== "block") return null;
+    return [{ kind: "block", type: "table", mode: block.mode, classes: [], attrs: {}, table }];
+  }
+  if (hit.shape === "leaf") return [{ kind: "paragraph", text: hit.text, inlines: [{ type: "text", value: hit.text }] }];
+  return null;
+}
+
 function findEmbedTarget(blocks: Block[], id: string): Block[] | null {
+  // `[` never occurs in a name (§4), so an anchor holding one is a coordinate.
+  const at = id.indexOf("[");
+  if (at > 0) return embedCoordinate(blocks, id.slice(0, at), id.slice(at));
   const declared = findDeclaredTarget(blocks, id);
   if (declared !== null) return declared;
   // GEP 0010: no block carries that id, so it may name a PROSE RUN. Consulted

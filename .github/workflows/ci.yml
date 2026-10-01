@@ -114,9 +114,9 @@ jobs:
         run: npm ci && npm test
 
   # ---- the site ------------------------------------------------------------
-  # The website moved to geml-spec/geml-spec.github.io, which builds itself
-  # from a checkout of this repository on every deploy. What this repository
-  # still publishes at geml-spec.github.io/geml/ is a redirect: index.html for
+  # The website moved to geml-spec/geml-spec.github.io; website.yml pushes the
+  # files it serves that are made from here. What this repository
+  # still publishes at geml-spec.github.io/geml/ is site/, a redirect: index.html for
   # the old root, and a 404.html whose script strips the /geml prefix and
   # forwards every old path — the playground, the blog posts, privacy, terms —
   # to the same path on the new site.
@@ -131,7 +131,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
-          path: redirect
+          path: site
 
   deploy-pages:
     name: pages — deploy

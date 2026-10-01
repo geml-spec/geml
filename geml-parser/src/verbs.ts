@@ -29,7 +29,7 @@ import {
   parse, blockSpans, sliceUnit, addressedUnits, relJoinPath, relDirPath,
   closeFenceLine, findBlockSite, isCloseFence, narrowToHead, newlineOf,
   narrowToIntro, reLit, sectionEndIndex, splitLines, stripEol, toLf, toNewline, trimSpaceTabEnd,
-  nameKey, resolveTarget, vocabularyOf, isMarkdownPath, type WalkOptions } from "./geml.js";
+  nameKey, resolveTarget, selectEmbed, vocabularyOf, isMarkdownPath, type WalkOptions } from "./geml.js";
 import { type Unit, type Addressed, type Selector } from "./selector.js";
 import { schemeOf } from "./inline.js";
 import { parseAttrs } from "./attrs.js";
@@ -927,10 +927,28 @@ export function transform(src: string, file: string, o: TransformOptions, ctx: V
         }
         const render = (docPath: string, text: string, units: Unit[]): string | undefined => {
           const out: string[] = [];
+          // A relation borrowed by itself loses what its `src=#id` named: the
+          // slice holds the view but not the table it reads, so it parsed with
+          // no rows, and the export showed an empty grid where `--to html`
+          // shows the view. Its model is taken from the WHOLE document instead,
+          // where `#id` resolves — parsed once, and only when needed.
+          let whole: Block[] | undefined;
+          const rehome = (blocks: Block[]): void => {
+            for (const b of blocks) {
+              if (b.kind !== "block") continue;
+              if (b.children) rehome(b.children);
+              const src = b.attrs["src"];
+              if (b.id === undefined || !b.table || b.table.columns.length > 0 || typeof src !== "string" || !src.trim().startsWith("#")) continue;
+              whole ??= parse(text, { ...ctx.docOpts(docPath, mdRoot), vocab: vocabularyOf(text) }).children;
+              const same = selectEmbed(whole, b.id)?.[0];
+              if (same?.kind === "block" && same.table) b.table = same.table;
+            }
+          };
           for (const u of units) {
             // 切片带不走文档的 `=== meta`，所以把宿主已经算好的词汇表交给子解析 ——
             // 否则 profile 的类型在这里全都变回未知类型，散文块会渲染成一个空围栏。
             const sub = parse(sliceUnit(text, u.span, part, walkOf(docPath)), { ...ctx.docOpts(docPath, mdRoot), vocab: vocabularyOf(text) });
+            rehome(sub.children);
             // Borrowed content: no frontmatter or title of its own, headings one
             // level under the host's (MdOptions.embedded in to-md.ts).
             const r = gemlToMd(sub, { resolveEmbed: expand(docPath, text, depth + 1), embedded: true, headingShift: host?.headingShift ?? 0 });
@@ -940,6 +958,24 @@ export function transform(src: string, file: string, o: TransformOptions, ctx: V
           return out.length === 0 ? undefined : out.join("\n\n");
         };
         try {
+          // §5.2: a coordinate — `#fy[2]`, `other.geml#fy[2]` — names a unit with
+          // no span of its own to slice, so it is answered from the MODEL,
+          // through the same selectEmbed the renderers use: a row comes back as
+          // a one-row table under its header, a value as a paragraph.
+          const hash = target.indexOf("#");
+          const frag = hash < 0 ? "" : target.slice(hash + 1);
+          if (frag.includes("[")) {
+            const docPath = target.slice(0, hash);
+            if (schemeOf(docPath) !== null) return undefined;
+            const rel = docPath === "" ? at : relJoinPath(relDirPath(at), docPath);
+            const text = docPath === "" ? atText : filesOf(ctx).readConfined(rel, mdRoot);
+            const model = parse(text, { ...ctx.docOpts(rel, mdRoot), vocab: vocabularyOf(text) });
+            const picked = selectEmbed(model.children, frag);
+            if (picked === null) return undefined;
+            const r = gemlToMd({ ...model, children: picked }, { embedded: true, headingShift: host?.headingShift ?? 0 });
+            inner.push(...r.notes);
+            return r.md.trim() === "" ? undefined : r.md.trim();
+          }
           // `src=#id` names a block in THIS document. `oneHop` refuses it (an
           // empty document path), so the same-document case is selected here —
           // the renderer has always expanded it, which is the behaviour being

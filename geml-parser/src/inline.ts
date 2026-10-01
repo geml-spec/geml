@@ -50,6 +50,9 @@ export interface Ref {
   // coordinate is resolved by the same pass that checks it, and the answer has
   // to land somewhere a renderer can read: on the node.
   node?: Extract<Inline, { type: "autoref" | "project" }>;
+  // An `=== embed`'s `src=`: a projection target, so a coordinate there must
+  // name what §5.2 lets a block stand for (a value or a row).
+  embed?: true;
 }
 
 export interface RefSink {

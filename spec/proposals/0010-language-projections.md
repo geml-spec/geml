@@ -853,7 +853,7 @@ sentence is worse than an untranslated one.
 
 The reference implementation hands the translator one inline `text` node at a
 time, which is how it keeps code spans and link targets out of the engine's
-reach. Measured on `docs/MANIFESTO.geml`: 133 calls carrying 9798 characters,
+reach. Measured on [`docs/MANIFESTO.geml`](https://github.com/geml-spec/geml/blob/e6829e7c41c38c308ae9de93993878c2c4359eac/docs/MANIFESTO.geml): 133 calls carrying 9798 characters,
 and **57 of those 133 strings are shorter than 25 characters** — because a
 sentence carrying `**bold**` or a code span arrives as several. `" / "` is sent
 four times. So is `"), and a standard set of verbs ("`. So is a lone `"."`.
@@ -1135,7 +1135,7 @@ it means a translator must understand the table model rather than the block body
 — the first place this stops being a body-level operation.
 
 **6. A glossary fires where a human would not.** Measured on
-`docs/MANIFESTO.geml`: the source reads "the source of truth that systems run on
+[`docs/MANIFESTO.geml`](https://github.com/geml-spec/geml/blob/e6829e7c41c38c308ae9de93993878c2c4359eac/docs/MANIFESTO.geml): the source reads "the source of truth that systems run on
 and collaborate through (Doc-as-a-Base)", and the hand-written Chinese renders
 the sentence in Chinese while leaving the parenthesis in English — the ordinary
 convention for introducing a term. A glossary substituting every occurrence turns

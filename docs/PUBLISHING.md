@@ -28,7 +28,7 @@ flowchart TD
   DIST --> NPM["@geml/geml on npm"]
   DIST --> MCP["MCP registry entry<br/>keys on server.json"]
   DIST --> VIEWER["geml-viewer<br/>Chrome extension"]
-  DIST --> SITE["geml-spec.github.io<br/>playground bundle + codemap<br/>BUILT THERE ON DEPLOY"]
+  DIST --> SITE["geml-spec.github.io<br/>playground bundle + codemap<br/>PUSHED BY THE WEBSITE WORKFLOW"]
   VIEWER --> VSCODE["vscode extension<br/>prepublish builds the webview"]
   VIEWER --> SITE
 
@@ -332,12 +332,11 @@ listed here so the next reader does not read their absence as an omission.
 
 1. **Bump** the parser in all six files, write the `CHANGELOG.md` entry, build.
 2. **Nothing here carries a copy to regenerate.** The playground bundle and the
-   parser's codemap are built by `geml-spec/geml-spec.github.io` from a checkout
-   of this repository on every deploy of the site, so a bump needs no
-   `codemap build` and nothing of theirs is committed here. The two extensions
-   bundle the parser and are rebuilt by their own release jobs. After a release,
-   trigger the site's deploy (or push to it) so it picks the new parser up: a push
-   here does not redeploy the site.
+   parser's codemap are rebuilt by the `website` workflow and pushed to
+   `geml-spec/geml-spec.github.io` whenever `main` changes the parser or the
+   viewer, so a bump needs no `codemap build` and nothing of theirs is committed
+   here. The two extensions bundle the parser and are rebuilt by their own release
+   jobs.
 3. **Run the gates.** `node test/all.mjs` · `npm run coverage:check` · the
    per-package `npm ci --dry-run --ignore-scripts` · `geml check` over the
    repo's `.geml`. Take each exit code from the run itself — a `| tail` pipe
@@ -361,7 +360,7 @@ listed here so the next reader does not read their absence as an omission.
 | Trap | What it looks like | What catches it |
 | --- | --- | --- |
 | The parser version has six homes | npm ships 1.9.0 while installed plugins still advertise 1.8.8 | the mcp suite compares each plugin manifest to package.json |
-| The site is built from a checkout of this repository | geml-spec.github.io ships whatever `main` holds at its deploy, and never picks a release up by itself | its `geml-source.json` names the ref; deploy the site after a release |
+| The site keeps its own copy of the playground bundle | geml-spec.github.io serves whatever the `website` workflow last pushed; without the `SITE_DEPLOY_KEY` secret it stops updating | the workflow's warning when the key is missing; run it by hand with `workflow_dispatch` |
 | The viewer tag must equal manifest.json | a viewer-v1.2.4 release carrying geml-viewer-1.2.3.zip | release-viewer.yml refuses the mismatch |
 | Logseq is mirrored — not tagged in place | tagging first builds the zip from a stale checkout and names it with the OLD version | nothing — mirror; verify the mirror's plugin/package.json; then tag |
 | Lockfiles carry their own package's version | npm ci refuses and the CI lockfile job goes red | the per-package `npm ci --dry-run` job |

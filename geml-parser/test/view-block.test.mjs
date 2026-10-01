@@ -473,4 +473,55 @@ test("a local data file that reads: the delimiter comes from the extension", () 
     "a .tsv is read tab-delimited, not as one wide column");
 });
 
+// An embedded view is exported by `--to md` from a slice of its document, and a
+// slice holds the view but not the table its `src=#id` reads — it came out as an
+// empty grid ("table from external source `#fy` could not be read") where
+// `--to html` shows the view's rows. These go through the CLI, which is where
+// the export expands an embed.
+{
+  const { spawnSync } = await import("node:child_process");
+  const { mkdtempSync, writeFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = mkdtempSync(join(tmpdir(), "geml-view-md-"));
+  const write = (name, s) => { const f = join(dir, name); writeFileSync(f, s); return f; };
+  const toMd = (f) => spawnSync(process.execPath, ["dist/geml.js", f, "--to", "md"], { encoding: "utf8" });
+  const Q1 = [
+    "=== table {#fy format=csv header=1}",
+    "quarter, revenue",
+    "Q1, 120",
+    "Q2, 150",
+    "===",
+    "",
+    `=== view {#q1 src=#fy where="quarter = 'Q1'"}`,
+    "===",
+    "",
+    "",
+  ].join("\n");
+  const oneRow = /\| quarter \| revenue \|\r?\n\| --- \| --- \|\r?\n\| Q1 \| 120 \|\r?\n?$/;
+
+  test("an embedded view exports its rows to Markdown, as --to html shows them", () => {
+    const r = toMd(write("same.geml", Q1 + "=== embed {src=#q1}\n===\n"));
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, oneRow);
+    assert.doesNotMatch(r.stderr, /could not be read/);
+  });
+
+  test("so does a view embedded from another document", () => {
+    write("other.geml", Q1);
+    const r = toMd(write("host.geml", "From outside:\n\n=== embed {src=other.geml#q1}\n===\n"));
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, oneRow);
+    assert.doesNotMatch(r.stderr, /could not be read/);
+  });
+
+  test("and a section holding a view keeps the view's rows", () => {
+    const r = toMd(write("section.geml", Q1 + "## Q1 only {#q1-sec}\n\n=== view {#q1b src=#fy where=\"quarter = 'Q1'\"}\n===\n\n## Elsewhere\n\n=== embed {src=#q1-sec}\n===\n"));
+    assert.equal(r.status, 0, r.stderr);
+    const embedded = r.stdout.slice(r.stdout.lastIndexOf("## Elsewhere"));
+    assert.match(embedded, /\| Q1 \| 120 \|/);
+    assert.doesNotMatch(r.stderr, /could not be read/);
+  });
+}
+
 console.log(`\n${passed} GEP-0012 view tests passed.`);

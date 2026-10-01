@@ -7,13 +7,13 @@
 // the projection (which decides what a coordinate ANSWERS, from the model).
 // The CLI cases at the end are the contract a reader actually pastes.
 import { spawnSync } from "node:child_process";
-import { writeFileSync, readFileSync, mkdtempSync } from "node:fs";
+import { writeFileSync, readFileSync, mkdtempSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { strict as assert } from "node:assert";
 import { parse } from "../dist/geml.js";
 import { parseSelector, parseCoordPath } from "../dist/selector.js";
-import { planCoordWrite, projectCoord } from "../dist/coord.js";
+import { inlineProjection, planCoordWrite, projectCoord } from "../dist/coord.js";
 
 let passed = 0;
 function test(name, fn) { fn(); passed++; console.log("ok", name); }
@@ -1055,6 +1055,151 @@ test("a coordinate write is refused for a body this processor reads but cannot W
   assert.equal(planCoordWrite(j, parseCoordPath('["real"]'), '"changed"', ['{"real": "kept"}']).ok, true);
   const e = block('=== data {#d format=edn}\n{:real "kept"}\n===');
   assert.equal(planCoordWrite(e, parseCoordPath('[":real"]'), '"changed"', ['{:real "kept"}']).ok, true);
+});
+
+// §5.2: a coordinate on an embed is an error, and the diagnostic SHOULD name
+// the address that does resolve — the same coordinate on the embed's source.
+test("a coordinate on an embed names the same coordinate on its source", () => {
+  const path = parseCoordPath('[1]["Item"]');
+  const cross = projectCoord(block("=== embed {#tbl src=a.geml#tbl}\n==="), path);
+  assert.equal(cross.ok, false);
+  assert.match(cross.why, /carries no addressable units/);
+  assert.match(cross.why, /address it on the embed's source instead: `a\.geml#tbl\[1\]\["Item"\]`/);
+  const same = projectCoord(block("=== embed {#copy src=#src-tbl}\n==="), path);
+  assert.match(same.why, /instead: `#src-tbl\[1\]\["Item"\]`/);
+  // The caller says how the reader would write a `src=` from elsewhere.
+  const rebased = projectCoord(block("=== embed {#tbl src=a.geml#tbl}\n==="), path, (s) => `sub/${s}`);
+  assert.match(rebased.why, /instead: `sub\/a\.geml#tbl\[1\]\["Item"\]`/);
+  // A whole-document embed has no block for a coordinate to start from.
+  const whole = projectCoord(block("=== embed {#whole src=a.geml}\n==="), path);
+  assert.match(whole.why, /carries no addressable units/);
+  assert.doesNotMatch(whole.why, /instead/);
+  // The write path refuses with the same address.
+  const plan = planCoordWrite(block("=== embed {#tbl src=a.geml#tbl}\n==="), parseCoordPath('[1]["Qty"]'), "5", []);
+  assert.equal(plan.ok, false);
+  assert.match(plan.why, /instead: `a\.geml#tbl\[1\]\["Qty"\]`/);
+});
+
+test("get, set and check name the working address for a coordinate on an embed", () => {
+  const TBL = "=== table {#tbl format=csv header=1}\nItem, Qty\npen, 2\n===\n";
+  write("e-a.geml", TBL);
+  const doc = '=== embed {#tbl src=e-a.geml#tbl}\n===\n\nSee [[#tbl[1]["Item"]]].\n';
+  const b = write("e-b.geml", doc);
+  const want = /address it on the embed's source instead: `e-a\.geml#tbl\[1\]\["Item"\]`/;
+
+  const got = cli(["get", b, '#tbl[1]["Item"]']);
+  assert.equal(got.code, 1);
+  assert.match(got.err, want);
+  const set = cli(["set", b, '#tbl[1]["Qty"]', "-o", b], "5");
+  assert.equal(set.code, 1);
+  assert.match(set.err, /instead: `e-a\.geml#tbl\[1\]\["Qty"\]`/);
+  assert.equal(readFileSync(b, "utf8"), doc, "the refused write left the file alone");
+  const checked = cli(["check", b]);
+  assert.equal(checked.code, 1);
+  assert.match(checked.err, /unresolved|carries no addressable units/);
+  assert.match(checked.err, want);
+  // The suggestion is real: it resolves.
+  assert.equal(cli(["get", join(dir, "e-a.geml"), '#tbl[1]["Item"]']).out.trim(), "pen");
+
+  // Same document: the source is a block beside the embed.
+  const same = write("e-same.geml", "=== table {#src-tbl format=csv header=1}\nItem, Qty\npen, 2\n===\n\n=== embed {#copy src=#src-tbl}\n===\n");
+  assert.match(cli(["get", same, '#copy[1]["Item"]']).err, /instead: `#src-tbl\[1\]\["Item"\]`/);
+});
+
+test("check rebases the suggestion when the embed lives in another document", () => {
+  // sub/e-b.geml embeds sub/e-a.geml; a document one level up refers through
+  // it, so the address it should write is sub/e-a.geml#…, not e-a.geml#….
+  mkdirSync(join(dir, "sub"), { recursive: true });
+  write("sub/e-a.geml", "=== table {#tbl format=csv header=1}\nItem, Qty\npen, 2\n===\n");
+  write("sub/e-b.geml", "=== embed {#tbl src=e-a.geml#tbl}\n===\n");
+  const outside = write("e-c.geml", 'From outside: [[sub/e-b.geml#tbl[1]["Item"]]].\n');
+  const r = cli(["check", outside]);
+  assert.equal(r.code, 1);
+  assert.match(r.err, /instead: `sub\/e-a\.geml#tbl\[1\]\["Item"\]`/);
+  const fixed = write("e-c2.geml", 'From outside: [[sub/e-a.geml#tbl[1]["Item"]]].\n');
+  assert.equal(cli(["check", fixed]).code, 0, "the rebased address resolves from where it is written");
+});
+
+// §5.2: a projection — inline `![[…]]` or an embed's `src=` — may name one
+// value or one ROW of a table or view. A whole column, or a value-tree node
+// holding more nodes, may not.
+const ROWS = [
+  '=== table {#fy format=csv header=1 delim=";"}',
+  "quarter; revenue",
+  "Q1; 120",
+  "Q2; 150",
+  "===",
+  "",
+  `=== view {#fyv src=#fy summary="quarter = 'Total'; revenue = sum(revenue)"}`,
+  "===",
+  "",
+].join("\n");
+const nodeValues = (doc) => {
+  const out = [];
+  (function walk(x) {
+    if (Array.isArray(x)) return x.forEach(walk);
+    if (x && typeof x === "object") { if (x.type === "project" && x.value !== undefined) out.push(x.value); Object.values(x).forEach(walk); }
+  })(doc.children);
+  return out;
+};
+
+test("a row may be projected inline, as its cells on one line joined with \", \"", () => {
+  const doc = parse(ROWS + 'Row: ![[#fy[1]]]. Total: ![[#fyv[summary]]]. View row: ![[#fyv[2]]]. Cell: ![[#fy[2]["revenue"]]].\n');
+  assert.deepEqual((doc.diagnostics ?? []).filter((d) => d.severity === "error"), []);
+  // ", " whatever the table's own delimiter is: a projection reads as prose.
+  assert.deepEqual(nodeValues(doc), ["Q1, 120", "Total, 270", "Q2, 150", "150"]);
+});
+
+test("a row's cells never put a newline into the sentence", () => {
+  const shown = inlineProjection({ ok: true, text: "", json: null, shape: "row", cells: ["x\ny", "2"] }, "#t[1]");
+  assert.deepEqual(shown, { ok: true, text: "x y, 2" });
+  const col = inlineProjection({ ok: true, text: "1\n2", json: null, shape: "column" }, '#t["a"]');
+  assert.equal(col.ok, false);
+});
+
+test("a whole column, or a value-tree node with more inside, is not inline content", () => {
+  const ds = diagsOf(ROWS + '=== data {#cfg}\n{"items": [1, 2], "name": "x"}\n===\n\nColumn ![[#fy["revenue"]]], tree ![[#cfg["items"]]], leaf ![[#cfg["name"]]].\n');
+  const bad = ds.filter((d) => d.code === "inline-transclusion-not-inline");
+  assert.equal(bad.length, 2, JSON.stringify(ds));
+  assert.match(bad[0].message, /`#fy\["revenue"\]` is a whole column/);
+  assert.match(bad[0].message, /`view` \(`where=`, `select=`\)/, "it says what to use instead");
+  assert.match(bad[1].message, /value-tree node with more nodes inside it/);
+});
+
+test("an embed of a column is embed-target-not-projectable; of a row or a cell it is fine", () => {
+  const ds = diagsOf(ROWS + "=== embed {src=#fy[\"revenue\"]}\n===\n\n=== embed {src=#fy[1]}\n===\n\n=== embed {src=#fy[1][\"revenue\"]}\n===\n");
+  const errs = ds.filter((d) => d.severity === "error");
+  assert.equal(errs.length, 1, JSON.stringify(errs));
+  assert.equal(errs[0].code, "embed-target-not-projectable");
+  assert.match(errs[0].message, /whole column/);
+});
+
+test("a block embed of a row renders a one-row table under the header, in HTML and Markdown", () => {
+  const f = write("rows.geml", ROWS + "=== embed {src=#fy[2]}\n===\n\n=== embed {src=#fyv[summary]}\n===\n");
+  const html = run([f, "--to", "html", "--fragment"]);
+  assert.equal(html.code, 0, html.err);
+  const sections = [...html.out.matchAll(/<section class="transclusion" data-src="([^"]+)">([\s\S]*?)<\/section>/g)];
+  assert.deepEqual(sections.map((m) => m[1]), ["#fy[2]", "#fyv[summary]"]);
+  for (const [, , inner] of sections) {
+    assert.match(inner, /<th[^>]*>quarter<\/th>\s*<th[^>]*>revenue<\/th>/, "the header row is there");
+    assert.equal((inner.match(/<tbody>[\s\S]*?<\/tbody>/)?.[0].match(/<tr/g) ?? []).length, 1, "one body row");
+  }
+  assert.match(sections[0][2], /Q2[\s\S]*150/);
+  assert.match(sections[1][2], /Total[\s\S]*270/);
+  const md = run([f, "--to", "md"]);
+  assert.equal(md.code, 0, md.err);
+  assert.match(md.out, /\| quarter \| revenue \|\r?\n\| --- \| --- \|\r?\n\| Q2 \| 150 \|\r?\n\r?\n\| quarter \| revenue \|\r?\n\| --- \| --- \|\r?\n\| Total \| 270 \|/);
+});
+
+test("a row embedded from another document renders the same way, and checks clean", () => {
+  write("rows-src.geml", ROWS);
+  const host = write("rows-host.geml", "From outside:\n\n=== embed {src=rows-src.geml#fy[1]}\n===\n\nInline: ![[rows-src.geml#fy[2]]].\n");
+  assert.equal(run(["check", host]).code, 0, run(["check", host]).err);
+  const md = run([host, "--to", "md"]);
+  assert.match(md.out, /\| quarter \| revenue \|\r?\n\| --- \| --- \|\r?\n\| Q1 \| 120 \|/);
+  assert.match(md.out, /Inline: Q2, 150\./);
+  const html = run([host, "--to", "html", "--fragment"]);
+  assert.match(html.out, /<section class="transclusion" data-src="rows-src\.geml#fy\[1\]">[\s\S]*Q1[\s\S]*120[\s\S]*<\/section>/);
 });
 
 console.log(`\n${passed} test(s) passed.`);

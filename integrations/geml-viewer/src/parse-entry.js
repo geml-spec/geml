@@ -24,7 +24,7 @@ export { selectEmbed } from "../../../geml-parser/dist/geml.js";
 // `geml.js` uses both but re-exports neither, and widening its surface is the
 // change the viewer's esbuild stubs have to mirror.
 export { parseCoordPath } from "../../../geml-parser/dist/selector.js";
-export { projectCoord, metaView } from "../../../geml-parser/dist/coord.js";
+export { projectCoord, metaView, inlineProjection } from "../../../geml-parser/dist/coord.js";
 // geml-code-graph (GEP-0003): the slice builder, the draw-time runtime AND
 // the async wave builder are implemented ONCE in the reference renderer;
 // browser consumers reuse them.

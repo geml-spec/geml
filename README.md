@@ -39,7 +39,7 @@ geml get doc.geml '#fy[2]["Q1"]'                     # one cell
 geml set doc.geml '#intake["fields"][1]["name"]'     # one leaf in the JSON
 ```
 
-For people, it is plain text that reads clean; for agents, it is an addressable, verifiable, traceable, revertible **["Doc-as-a-Base"](docs/MANIFESTO.md)**.
+For people, it is plain text that reads clean; for agents, it is an addressable, verifiable, traceable, revertible **["Doc-as-a-Base"](https://geml-spec.github.io/manifesto)**.
 
 ---
 
@@ -64,7 +64,7 @@ Blocks have names so the verbs have somewhere to land — the full syntax is in
 [the format in 1 minute](#one-minute).
 
 **Contents:** [What it solves](#problems) · [Why now](#why-now) · [What's different](#whats-different) ·
-[The format in 1 minute](#one-minute) · [Profiles](#profiles) · [A gift for programmers](#code-graph) ·
+[The format in 1 minute](#one-minute) · [Profiles](#profiles) ·
 [Get hands-on](#hands-on) · [With an LLM](#with-an-llm) ·
 [Maturity & versions](#maturity) · [The design](#challenge) · [Roadmap](#roadmap) · [Take part](#contributing) ·
 [License](#license)
@@ -142,7 +142,7 @@ Yet none of our existing text infrastructure was designed for this scene:
 
 The root of all three failures is each tool's own virtue: Markdown's "never error, write anything" is what gives people their freedom to write — and exactly why a machine cannot trust the structure it reads back; JSON/XML's strict schema is what gives machines their certainty — and exactly why nobody writes prose in it. **The virtue is the defect, which is why patches cannot fix this**: bolting "a broken reference must fail the build" onto Markdown betrays its contract, and stripping the wrapper syntax from JSON denies its nature. When people and agents start co-writing the same text at high frequency, what is needed is not a compromise between the two poles, but a format that treats "readable by people" and "operable by machines" as **one design constraint from day one**.
 
-### The answer: **["Doc-as-a-Base"](docs/MANIFESTO.md)**
+### The answer: **["Doc-as-a-Base"](https://geml-spec.github.io/manifesto)**
 
 GEML invents no heavy new runtime. Borrowing from the **[REST](https://www.ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm)** architectural style of Dr. Roy Fielding's dissertation, it gives plain-text documents one standard set of operational semantics:
 
@@ -156,7 +156,7 @@ GEML invents no heavy new runtime. Borrowing from the **[REST](https://www.ics.u
 > **A document no longer needs just a format — it needs a set of verbs.** GEML keeps plain-text readability and adds deterministic block-level operations.
 
 > 💡 **Deep Dive:**
-> If you are interested in the dilemma of engineering documents in the LLM era and why we need to redesign a plain-text format from the ground up, read our full article on the blog: [**"Why Do We Need a New Text Format in the Era of LLMs?"**](https://geml-spec.github.io/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms/)
+> If you are interested in the dilemma of engineering documents in the LLM era and why we need to redesign a plain-text format from the ground up, read our full article on the blog: [**"Why Do We Need a New Text Format in the Era of LLMs?"**](https://geml-spec.github.io/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms)
 
 ---
 
@@ -178,7 +178,7 @@ Each of the four has mature solutions in its own field; what's unusual is meetin
 | **JSON / XML** | Data serialization | ✔️ (id / schema) | ⚠️ XML only (XInclude, external) | ✔️ Via an external toolchain | ❌ None in-format — external git required |
 | **GEML** | **Plain text + block structure** | **✔️ A unique `#id` per block (referenceable natively)** | **✔️ `=== embed`: a reference is a lookup (native)** | **✔️ A build-time error** | **✔️ `.gemlhistory` next to the file (traceable natively)** |
 
-Item by item: [vs. CommonMark](docs/comparisons/GEML-vs-CommonMark.md) · [vs. XML and JSON](docs/comparisons/GEML-vs-XML-and-JSON.md) · [a 7-format capability matrix](docs/comparisons/COMPARISON.md) · [the Markdown variants and tools in awesome-markdown](docs/comparisons/GEML-vs-Markdown-variants_CN.html) (Chinese, an HTML page).
+Item by item: [vs. CommonMark](https://geml-spec.github.io/compare/commonmark) · [vs. XML and JSON](https://geml-spec.github.io/compare/xml-and-json) · [a 7-format capability matrix](https://geml-spec.github.io/compare/matrix) · [the Markdown variants and tools in awesome-markdown](https://geml-spec.github.io/illustrated/geml-vs-markdown-variants_CN.html) (Chinese, an HTML page).
 
 Coexisting with Markdown: GEML is the **editing source of truth**, Markdown is the delivered artifact. Project one way with `geml <file> --to md|html` and ship `.md` or `.html` as before. **Collaboration, not lock-in.** *(Projection is lossy: block ids and table-bound charts don't survive it.)*
 
@@ -186,7 +186,7 @@ Coexisting with Markdown: GEML is the **editing source of truth**, Markdown is t
 
 > Based on your own experience editing the READMEs just now, describe the command steps you go through on a document (I saw you using grep and such), and whether you cache documents to save tokens — let's compare, and from that see which parts of GEML would actually earn their place.
 
-What came back: **[what one edit costs](docs/benchmarks/addressing-cost.md)** and **[a real day replayed](docs/benchmarks/mixed-toolchain.md)**. Paste the question to your own model and see what it tells you.
+What came back: **[what one edit costs](https://geml-spec.github.io/benchmarks/addressing-cost)** and **[a real day replayed](https://geml-spec.github.io/benchmarks/mixed-toolchain)**. Paste the question to your own model and see what it tells you.
 PS: I am still trying to work out whether the upstream chain (who calls this) and the downstream chain (what it calls) that `codemap` produces can pin down functions and call sites — and change project code — the same way. I will post a report when I have one.
 
 <a id="one-minute"></a>
@@ -360,52 +360,19 @@ Extend capabilities without breaking interoperability. In any third-party or unf
 
 ### Standard Published Profiles
 
-| Profile | Status | Domain & Role | Superpowers Admitted | CLI | Live Demo / Example |
+| Profile (guide) | Status | What it's for | Superpowers Admitted | CLI | Live Demo / Example |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| [`geml-codemap/v1`](spec/profiles/geml-codemap/geml-codemap-profile.md) | stable | Codebase architecture & call graphs | `code` blocks: `anchor`, `name`, `entry-via` | `geml codemap build\|verify\|serve` | [Interactive Call Graph](https://geml-spec.github.io/playground/) · [`sample.geml`](https://geml-spec.github.io/playground/#ch=visual) |
-| [`geml-media/v1`](spec/profiles/geml-media/geml-media-profile.md) | draft | Media timelines, asset tracks & clips | `media`, `media-asset`, `media-clip`, `media-text` | `geml media build\|export\|lay\|todo` | [Doc-to-Video (Doc to MP4 via ffmpeg)](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/playground/geml-media-demo/README.md) |
-| [`geml-style/v1`](spec/profiles/geml-style/geml-style-profile.md) | draft | Design tokens & responsive styling | `style-rule`, `style-state`, `style-screen`, `style-frame` | `geml style check` | [GitHub Blob Page 1:1 Replica](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/playground/style-demo/) |
-| [`geml-history/v1`](spec/profiles/geml-history/geml-history-profile.md) | stable | Block-level version snapshots & rollback | `history-revision`, `history-keyframe`, `history-blob` | `geml history save\|get\|restore` | [Atomic Block Rollback Workflow](spec/profiles/geml-history/geml-history-profile.md#4-the-history-workflow) |
-| [`geml-form/v1`](spec/profiles/geml-form/geml-form-profile.md) | draft | Declarative forms & input constraints | `form`, `form-field`, `form-group` + validation rules | — | [Interactive Complex Form Example](spec/proposals/0008-form-block-example/) |
-| [`geml-translator/v1`](spec/profiles/geml-translator/geml-translator-profile.md) | draft | Multi-locale translation & transclusion | `embed` and `meta` attribute `translate-to` | — | — |
+| [`geml-codemap/v1`](spec/profiles/geml-codemap/geml-codemap-guide.md) | stable | Generates your codebase's call graph as GEML documents: one block per method, so you can see who calls it and what it calls; front-end and back-end merge into one graph | `code` blocks: `anchor`, `name`, `entry-via` | `geml codemap build\|verify\|serve` | [Interactive Call Graph](https://geml-spec.github.io/playground/) · [`sample.geml`](https://geml-spec.github.io/playground/#ch=visual) |
+| [`geml-media/v1`](spec/profiles/geml-media/geml-media-guide.md) | draft | Describes a video timeline in one document: assets, clips, subtitle and voice tracks; export it as a web player, or render an MP4 with ffmpeg | `media`, `media-asset`, `media-clip`, `media-text` | `geml media build\|export\|lay\|todo` | [Doc-to-Video (Doc to MP4 via ffmpeg)](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/examples/geml-media-demo/README.md) |
+| [`geml-style/v1`](spec/profiles/geml-style/geml-style-guide.md) | draft | Colours, spacing and layout live in a separate stylesheet document whose rules apply to your content; the content document itself stays unchanged | `style-rule`, `style-state`, `style-screen`, `style-frame` | `geml style check` | [GitHub Blob Page 1:1 Replica](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/examples/style-demo/) |
+| [`geml-history/v1`](spec/profiles/geml-history/geml-history-guide.md) | stable | Keeps past versions in a `.gemlhistory` file beside the document: read any old version, put back a single block, or roll back the whole file | `history-revision`, `history-keyframe`, `history-blob` | `geml history save\|get\|restore` | [Atomic Block Rollback Workflow](spec/profiles/geml-history/geml-history-profile.md#4-the-history-workflow) |
+| [`geml-form/v1`](spec/profiles/geml-form/geml-form-guide.md) | draft | Describes a form in a document: its fields, their types, which are required, allowed ranges; the browser extension and the playground draw a preview | `form`, `form-field`, `form-group`, `form-options`, `form-note`; constraint attributes `pattern`, `min`, `max`… on `form-field` | — | [Interactive Complex Form Example](spec/proposals/0008-form-block-example/) |
+| [`geml-translator/v1`](spec/profiles/geml-translator/geml-translator-guide.md) | draft | A translation document holds no translated text: it embeds the source and names the target language, and the browser extension machine-translates it on open, so it follows every change to the source | `embed` and `meta` attribute `translate-to` | — | — |
 
 > 💡 **Want to see Profiles in action?**
 > • **`geml-media` live demo**: One cut document and one command (`geml media build ep01-cut.geml --out ep01.mp4 --burn-subs`) orchestrates ffmpeg to align audio/video, mix tracks, and burn subtitles into a finished video (details on the [demos page](https://geml-spec.github.io/demos)).
 > • **`geml-style` live demo**: Content stays pure text in `page.geml`, while styles and layout live in `github.style.geml` — rendering a 1:1 pixel-accurate replica of GitHub's blob page without CSS lock-in (details on the [demos page](https://geml-spec.github.io/demos)).
-> • **The code graph in the next section is itself a Profile**: every document in `.geml-code-graph/` declares `profile = "geml-codemap/v1"`. You can also easily [create your own custom domain profile](spec/profiles/README.md).
-
-<a id="code-graph"></a>
-## A gift for programmers — geml-code-graph
-
-To test GEML's expressive power and flexibility — and above all to see whether block-level bidirectional linking holds up — let's try it on a code graph, a familiar but demanding case for programmers:
-**your whole codebase's call graph, written as GEML.** `geml codemap build` lays the call graph out as a tree of GEML documents — every method an `#id` block, with `#calls` / `#called-by` edges both ways. The **downstream chain** (what a method calls) for troubleshooting, the **upstream chain** (who calls it) for the blast radius — all visible in a second;
-
-![The method graph of geml-parser/render.ts: hovering RenderCtx.inline lights up its whole caller chain while everything else dims; clicking a node opens its source right beside the graph](docs/assets/codemap-render-ts.gif)
-
-```sh
-npm i -g @geml/geml
-geml codemap build              # --root defaults to . : detect languages -> index -> one merged graph in ./.geml-code-graph/
-geml codemap serve              # opens your browser on the graph
-```
-
-> [!NOTE]
-> **Requirements.** Node **22+** for the CLI (`npm i -g @geml/geml`). Everything
-> below is optional and used only where noted: [Joern](https://docs.joern.io/installation)
-> for non-TS/JS languages in the code graph, and Chrome for the
-> [viewer extension](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie).
-
-> [!TIP]
-> **TS/JS** — zero setup: `build` fetches the scip indexer by itself.
-> **Java / C / Python / Go / Kotlin** — one extra download, [Joern](https://docs.joern.io/installation): unzip its release package and pass that folder to build, e.g. `--joern ~/joern/joern-cli` (`--joern C:\joern\joern-cli` on Windows), or put it on PATH and skip the flag.
-> Mixed front-end + back-end repo — everything merges into **one graph**.
-
-geml-code-graph is itself a diagram format — one line embeds it in any GEML document (`=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml} ===`), and an optional per-commit hook (bundled with the Claude skill) rebuilds it as the code moves, so the graph doesn't drift.
-
-Scale is measured, not promised: on Apache Flink's codebase — **13,585 Java source
-files, ~81,000 methods, 266,821 call edges** — the plain-text *data tables* still
-open and query instantly, and you can grep any method name to trace its call chain.
-Reproduce it yourself: clone `apache/flink` and run `geml codemap build --joern …` at
-its root.
+> • **Every profile name in the table opens its one-page guide** — what it does, the first command, everyday use. If you write code, start with `geml-codemap`. You can also easily [create your own custom domain profile](spec/profiles/README.md).
 
 <a id="hands-on"></a>
 ## Next — get hands-on now
@@ -414,12 +381,12 @@ its root.
 
 Then, in the order that suits you:
 
-1. **See it render in your browser.** Install the **[extension](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)** and open a raw `.geml` link *(the raw file, not the GitHub blob page — that one is HTML)*: the **[GEML spec itself](https://raw.githubusercontent.com/geml-spec/geml/main/spec/in_geml_format/GEML-spec.geml)** (dogfood — the spec is a GEML document, rendered at scale), the **[showcase](https://raw.githubusercontent.com/geml-spec/geml-spec.github.io/main/public/playground/showcase.geml)** (a computed table, four charts, a Mermaid flow, and math), or **[playground/sample.geml](https://raw.githubusercontent.com/geml-spec/geml-spec.github.io/main/public/playground/sample.geml)** for the interactive code-graph.
-2. **See a whole *page* laid out from a document.** [The style demo](https://geml-spec.github.io/demos) is a 1:1 replica of a GitHub blob page — top bar, file tree, breadcrumb, Preview/Code/Blame, dropdown menus — where `page.geml` holds every string and `github.style.geml` holds every colour and length, and the viewer knows about neither. It needs the extension **and** a local server ([why, and the two commands](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/playground/README.md#the-page-layout-demo-style-demo)): the page fetches its stylesheet and icons, which `raw.githubusercontent.com` forbids.
+1. **See it render in your browser.** Install the **[extension](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)** and open a raw `.geml` link *(the raw file, not the GitHub blob page — that one is HTML)*: the **[GEML spec itself](https://raw.githubusercontent.com/geml-spec/geml/main/spec/in_geml_format/GEML-spec.geml)** (dogfood — the spec is a GEML document, rendered at scale), the **[showcase](https://raw.githubusercontent.com/geml-spec/geml-spec.github.io/main/public/examples/showcase.geml)** (a computed table, four charts, a Mermaid flow, and math), or **[playground/sample.geml](https://raw.githubusercontent.com/geml-spec/geml-spec.github.io/main/public/playground/sample.geml)** for the interactive code-graph.
+2. **See a whole *page* laid out from a document.** [The style demo](https://geml-spec.github.io/demos) is a 1:1 replica of a GitHub blob page — top bar, file tree, breadcrumb, Preview/Code/Blame, dropdown menus — where `page.geml` holds every string and `github.style.geml` holds every colour and length, and the viewer knows about neither. It needs the extension **and** a local server ([why, and the two commands](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/examples/README.md#the-page-layout-demo-style-demo)): the page fetches its stylesheet and icons, which `raw.githubusercontent.com` forbids.
 3. **Run it locally.** `npm i -g @geml/geml` (Node 22+), then `geml check` a document, or point it at your own repo with `geml codemap build`.
 4. **Set up Claude Code — one command.** `npx -y @geml/geml skill install` puts the authoring skill, the CLI and the MCP server in place, user-global, for every project. It edits no settings and installs no hooks. [Details](#with-an-llm).
 5. **Read the grammar.** The **[full spec](spec/GEML-spec.md)** (EN / [中文](spec/GEML-spec_CN.md)) is normative and short enough to read in a sitting.
-6. **Or see it worked through, rule by rule.** **[GEML, illustrated](docs/illustrated/README.md)** (EN / [中文](docs/illustrated/README_CN.md)) — eleven self-contained pages, one per block type, per profile, and for the CLI: GEML on the left, what the processor *actually* does on the right (`geml check` diagnostics, `geml list` addresses, `--to html` markup), each rule tagged with its source and status.
+6. **Or see it worked through, rule by rule.** **[GEML, illustrated](https://geml-spec.github.io/demos#illustrated-syntax)** (EN and 中文) — eleven self-contained pages, one per block type, per profile, and for the CLI: GEML on the left, what the processor *actually* does on the right (`geml check` diagnostics, `geml list` addresses, `--to html` markup), each rule tagged with its source and status.
 
 <a id="with-an-llm"></a>
 ## Using GEML with an LLM
@@ -687,7 +654,7 @@ Or **put it to use**:
 | **Use it from Codex** — the same payload again: both skills, the MCP server, and a `SessionStart` hook, installable from `/plugins` | [`integrations/codex-plugin/`](integrations/codex-plugin/) | Available from this repo; not in the public plugin directory yet |
 | **Use it from Grok** — the same payload once more: both skills and the MCP server | [`integrations/grok-plugin/`](integrations/grok-plugin/) | Available from this repo; the `xai-org/plugin-marketplace` PR is not opened yet |
 | **Sync a Logseq graph to plain text** — a Logseq 2.0 DB graph as continuously synced GEML files, addressable and git-friendly, with `restore` as the way back | [`@geml/logseq-sync`](https://www.npmjs.com/package/@geml/logseq-sync) · [source](integrations/logseq/) | Watcher on npm; the plugin installs from a release zip — the marketplace listing ([PR #893](https://github.com/logseq/marketplace/pull/893)) is not merged yet |
-| **Turn a codebase into a document** — the whole call graph as a tree of GEML documents, browsable | `geml codemap build` ([design](docs/design/specs/geml-codemap/DESIGN-geml-code-graph.md)) | Available |
+| **Turn a codebase into a document** — the whole call graph as a tree of GEML documents, browsable | `geml codemap build` ([guide](spec/profiles/geml-codemap/geml-codemap-guide.md) · [design](docs/design/specs/geml-codemap/DESIGN-geml-code-graph.md)) | Available |
 | **Write it in your editor** — syntax highlighting + build-time reference checking | [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=geml.geml) · [source](integrations/vscode/) | Available |
 | **Render it in Obsidian** — the reference parser + the viewer's renderer, the same code path as the web | [`integrations/obsidian/`](integrations/obsidian/) | Built, not in the community store |
 | **Feed a RAG / agent framework** — block-level loaders (one chunk per block, carrying `block_id`) + agent editing tools | [`integrations/langchain+llamaindex/`](integrations/langchain+llamaindex/) | Reference implementation |
@@ -703,8 +670,9 @@ disagree with the design as sharply as you like, not with the person.
 ```
 spec/                  The specification as .md (EN / 中文) and the CC-BY spec
                        license, with profiles/ (application layers — geml-history,
-                       geml-codemap, geml-style, geml-form) and proposals/ (GEPs),
-                       both MIT
+                       geml-codemap, geml-style, geml-form, geml-media,
+                       geml-translator — each a reference beside a one-page usage
+                       guide) and proposals/ (GEPs), both MIT
 spec/in_geml_format/   The dogfood: the specification written in GEML, with its
                        .gemlhistory sidecar
 geml-parser/           Reference parser, renderer, CLI + codemap toolkit (TypeScript, Node 22)
@@ -712,21 +680,23 @@ integrations/          Everywhere GEML plugs in: geml-viewer (browser extension)
                        geml-check-action (CI), vscode, obsidian, logseq (two-way
                        vault sync + the watcher), tree-sitter (brief),
                        langchain+llamaindex (RAG loaders), windows-icon
-                       (Explorer file icons), and the agent-harness plugins —
-                       claude-plugin, codex-plugin, grok-plugin, dsh-plugin
+                       (Explorer file icons), the agent-harness plugins —
+                       claude-plugin, codex-plugin, grok-plugin, dsh-plugin — and
+                       website (what this repository pushes to the site)
 .agents/, .claude-plugin/   Plugin marketplace manifests, so the plugins show up
                        from a checkout (Codex `/plugins`, Claude Code `/plugin`)
-docs/                  Guides, design notes, comparisons/ (COMPARISON + vs-CommonMark +
-                       vs-XML-and-JSON), assets (logos),
-                       and an example .geml to render
+docs/                  Guides (MCP, writing a parser), design records, the release
+                       runbook, assets (logos)
 .claude/skills/        Claude skills: GEML authoring, and the code graph
 .github/               CI + geml-check workflows, MCP registry publish, and issue
                        templates (bug, GEP, new implementation)
-(website)              The homepage, playground, demos and blog live in their own
-                       repository, geml-spec/geml-spec.github.io, which builds
-                       them from a checkout of this one on every deploy. What
+(website)              The homepage, playground, demos, blog, comparisons,
+                       benchmarks, manifesto and illustrated pages live in their
+                       own repository, geml-spec/geml-spec.github.io, which links
+                       here for the spec and guides; the website workflow pushes it
+                       the playground bundle, code graph and logos. What
                        this repository publishes at geml-spec.github.io/geml/ is
-                       redirect/ — a forward to the same path on the new site.
+                       site/ — a forward to the same path on the new site.
 ```
 
 <a id="license"></a>

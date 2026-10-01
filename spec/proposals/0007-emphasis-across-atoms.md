@@ -74,20 +74,17 @@ manifesto. All of them render as:
 Literal asterisks, in the HTML path the Chrome extension and the published site
 both use. This was found while auditing the Markdown projection, not by any check.
 
-### Two published statements are false because of it
+### A published statement is false because of it
 
-Both were written believing emphasis behaved as it does in CommonMark:
+§5.3's own closing sentence was written believing emphasis behaved as it does in
+CommonMark: "*This is the CommonMark emphasis algorithm restricted to GEML's
+delimiters: `*` and `~~`, with no `_` emphasis.*" The restriction is not only
+the delimiter set; the phase structure differs, and that difference changes
+results on ordinary input.
 
-1. **§5.3's own closing sentence** — "*This is the CommonMark emphasis algorithm
-   restricted to GEML's delimiters: `*` and `~~`, with no `_` emphasis.*" The
-   restriction is not only the delimiter set; the phase structure differs, and
-   that difference changes results on ordinary input.
-2. **`docs/comparisons/GEML-vs-CommonMark.md`** — "Delimiter algorithm | Flanking
-   runs + rule of three | **Identical algorithm**, restricted to `*` and `~~`".
-
-Those two need correcting whatever happens to this GEP. If it is accepted they
-become true; if it is rejected they must be rewritten to describe a deliberate
-divergence. They cannot stay as they are.
+It needs correcting whatever happens to this GEP. If it is accepted it becomes
+true; if it is rejected it must be rewritten to describe a deliberate
+divergence. It cannot stay as it is.
 
 ## Design
 
@@ -161,7 +158,7 @@ is rejected, and a reasonable transitional step if it is accepted late. It does
 not make the common construct work.
 
 **Keep the rule, fix the documents.** Rewrite the 22 sites to avoid the shape, and
-correct the two false statements. Cheapest, but it fixes the symptom in one
+correct the false statement. Cheapest, but it fixes the symptom in one
 repository while every future author walks into the same trap.
 
 **Go further and adopt CommonMark's inline pass wholesale.** Rejected: GEML

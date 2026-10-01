@@ -33,23 +33,41 @@ that declare different profiles.
 
 | Profile | Status | Admits | Document | CLI |
 |---|---|---|---|---|
-| `geml-codemap/v1` | stable | `anchor`, `name`, `entry-via` on `code` blocks | [geml-codemap-profile.md](geml-codemap/geml-codemap-profile.md) · [中文](geml-codemap/geml-codemap-profile_CN.md) | `geml codemap build\|verify\|render\|serve\|refresh\|find` |
-| `geml-style/v1` | draft | types `style-rule`, `style-state`, `style-screen`, `style-frame` | [geml-style-profile.md](geml-style/geml-style-profile.md) · [中文](geml-style/geml-style-profile_CN.md) | `geml style check` |
-| `geml-history/v1` | stable | types `history-revision`, `history-keyframe`, `history-blob` and their attribute keys | [geml-history-profile.md](geml-history/geml-history-profile.md) · [中文](geml-history/geml-history-profile_CN.md) | `geml history save\|get\|restore\|verify` |
-| `geml-form/v1` | draft | `form`, `form-field`, `form-group`, `form-options`, `form-note` blocks (`form` and `form-group` nest); `pattern`, `min`, `max`, `step`, `maxlength`, `accept` on `form-field` — GEP-0008 | [geml-form-profile.md](geml-form/geml-form-profile.md) · [中文](geml-form/geml-form-profile_CN.md) | — |
-| `geml-media/v1` | draft | types `media` (a timeline, or one playable source), `media-asset`, `media-clip`, `media-text`, `media-comp` (a picture composed from layers), `media-layer` and `media-interaction` (where two layers' points meet; `media` and `media-comp` hold blocks, `media-text` and `media-interaction` are prose) and their attribute keys; `.gen-log` on a `data` block | [geml-media-profile.md](geml-media/geml-media-profile.md) · [中文](geml-media/geml-media-profile_CN.md) | — |
-| `geml-translator/v1` | draft | `translate-to` on `embed` blocks, and on `=== meta` as the document default — GEP-0010 | [geml-translator-profile.md](geml-translator/geml-translator-profile.md) · [中文](geml-translator/geml-translator-profile_CN.md) | — |
+| `geml-codemap/v1` | stable | `anchor`, `name`, `entry-via` on `code` blocks | [geml-codemap-profile.md](geml-codemap/geml-codemap-profile.md) · [中文](geml-codemap/geml-codemap-profile_CN.md) · guide: [EN](geml-codemap/geml-codemap-guide.md) · [中文](geml-codemap/geml-codemap-guide_CN.md) | `geml codemap build\|verify\|render\|serve\|refresh\|find` |
+| `geml-style/v1` | draft | types `style-rule`, `style-state`, `style-screen`, `style-frame` | [geml-style-profile.md](geml-style/geml-style-profile.md) · [中文](geml-style/geml-style-profile_CN.md) · guide: [EN](geml-style/geml-style-guide.md) · [中文](geml-style/geml-style-guide_CN.md) | `geml style check` |
+| `geml-history/v1` | stable | types `history-revision`, `history-keyframe`, `history-blob` and their attribute keys | [geml-history-profile.md](geml-history/geml-history-profile.md) · [中文](geml-history/geml-history-profile_CN.md) · guide: [EN](geml-history/geml-history-guide.md) · [中文](geml-history/geml-history-guide_CN.md) | `geml history save\|get\|restore\|verify` |
+| `geml-form/v1` | draft | `form`, `form-field`, `form-group`, `form-options`, `form-note` blocks (`form` and `form-group` nest); `pattern`, `min`, `max`, `step`, `maxlength`, `accept` on `form-field` — GEP-0008 | [geml-form-profile.md](geml-form/geml-form-profile.md) · [中文](geml-form/geml-form-profile_CN.md) · guide: [EN](geml-form/geml-form-guide.md) · [中文](geml-form/geml-form-guide_CN.md) | — |
+| `geml-media/v1` | draft | types `media` (a timeline, or one playable source), `media-asset`, `media-clip`, `media-text`, `media-comp` (a picture composed from layers), `media-layer` and `media-interaction` (where two layers' points meet; `media` and `media-comp` hold blocks, `media-text` and `media-interaction` are prose) and their attribute keys; `.gen-log` on a `data` block | [geml-media-profile.md](geml-media/geml-media-profile.md) · [中文](geml-media/geml-media-profile_CN.md) · guide: [EN](geml-media/geml-media-guide.md) · [中文](geml-media/geml-media-guide_CN.md) | `geml media todo|report|export|build|lay|log|import` |
+| `geml-translator/v1` | draft | `translate-to` on `embed` blocks, and on `=== meta` as the document default — GEP-0010 | [geml-translator-profile.md](geml-translator/geml-translator-profile.md) · [中文](geml-translator/geml-translator-profile_CN.md) · guide: [EN](geml-translator/geml-translator-guide.md) · [中文](geml-translator/geml-translator-guide_CN.md) | — |
 
 The reference implementation's registry is
 [`geml-parser/src/profiles.ts`](../../geml-parser/src/profiles.ts); this table
 and that file are the same list stated twice, and a test pins the naming
 convention (`^geml-[a-z-]+/vN$`).
 
-A profile may carry its own CLI verbs, as three of these do (`geml style check`
-is EXPERIMENTAL; the other two are settled). That is the shape of
+A profile may carry its own CLI verbs, as four of these do (`geml style check`
+is EXPERIMENTAL and `geml media` moves with its draft profile; the other two are
+settled). That is the shape of
 this layer: a vocabulary, a document that defines what the names mean, and
 whatever tooling reads and writes it. Core verbs — `check`, `list`, `get`,
 `set`, `add`, `delete`, `rename`, `find`, `--to` — never carry a profile name.
+
+## A profile's directory
+
+```
+geml-<thing>/
+  geml-<thing>-profile.md  (+ _CN)   the reference: what the vocabulary admits
+                                     and what the names mean
+  conformance.json                   the cases a second implementation must reproduce
+  geml-<thing>-guide.md    (+ _CN)   a one-page usage guide: what it does, the
+                                     first command, everyday use
+```
+
+The guide is informative and moves with the tools, not with the version in the
+profile's name: a new CLI flag changes the guide, never `/v1`. Rules live only
+in the reference — the guide links to them rather than restating them — and the
+guide stays short: one screen to the first working command, two screens in all.
+A profile without one is visibly missing it.
 
 ## Naming
 
@@ -284,3 +302,5 @@ layer with nothing to reproduce. These files are that, one layer up.
 5. Write `geml-<thing>/conformance.json` (see **Conformance**). A registered
    profile without one fails the suite: a vocabulary nobody can reproduce is a
    vocabulary only this implementation has.
+6. Write `geml-<thing>/geml-<thing>-guide.md` (and `_CN`) — see
+   **A profile's directory** above.

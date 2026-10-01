@@ -39,6 +39,7 @@ export type DiagnosticCode =
   | "ignored-embed-body"
   | "transclusion-cycle"
   | "embed-target-not-geml"
+  | "embed-target-not-projectable"
   | "media-target-is-document"
   | "inline-transclusion-not-inline"
   | "unsafe-embed-scheme"
@@ -174,6 +175,7 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   "ignored-embed-body": "warning",
   "transclusion-cycle": "error",
   "embed-target-not-geml": "error",
+  "embed-target-not-projectable": "error",
   "media-target-is-document": "error",
   "inline-transclusion-not-inline": "error",
   "unsafe-embed-scheme": "error",

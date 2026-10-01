@@ -1,6 +1,6 @@
 {
   "name": "geml-viewer",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "private": true,
   "type": "module",
   "description": "Chrome extension (MV3) that renders .geml documents in the browser.",
@@ -10,7 +10,8 @@
     "test": "node build.mjs && node test/all.mjs",
     "coverage": "node build.mjs && c8 --all --include=src/**/*.js --exclude=src/node-stub.js --exclude=src/render-html-stub.js --exclude=src/mermaid-chunk.js --exclude=src/d2-sandbox.js --exclude=src/graphviz-sandbox.js --exclude=src/offscreen.js --reporter=text --reporter=text-summary node test/all.mjs",
     "coverage:check": "node build.mjs && c8 --all --include=src/**/*.js --exclude=src/node-stub.js --exclude=src/render-html-stub.js --exclude=src/mermaid-chunk.js --exclude=src/d2-sandbox.js --exclude=src/graphviz-sandbox.js --exclude=src/offscreen.js --check-coverage --lines 85 --statements 85 --functions 90 --branches 75 node test/all.mjs",
-    "build:vscode": "node vscode.build.mjs"
+    "build:vscode": "node vscode.build.mjs",
+    "build:playground": "node playground.build.mjs"
   },
   "devDependencies": {
     "@terrastruct/d2": "^0.1.33",

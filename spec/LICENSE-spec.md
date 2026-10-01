@@ -35,12 +35,8 @@ the reference implementation. Those are application layers, process, commentary
 and code, not the specification. The list above is exhaustive: if a file is not
 on it, it is MIT.
 
-Two entries have left this list, and both left for the same reason — being
-*about* the specification, or *on top of* it, is not being it.
-
-`docs/comparisons/COMPARISON*` made one directory carry two licenses: the
-`GEML-vs-*` walkthroughs beside it were already MIT, and so were
-`COMPARISON*.gemlhistory`, while `COMPARISON*.geml` was not.
+One entry has left this list — being *on top of* the specification is not
+being it.
 
 `GEML-history-spec*` was a companion specification until it became the
 `geml-history/v1` profile ([`profiles/geml-history/`](profiles/geml-history/geml-history-profile.md)).

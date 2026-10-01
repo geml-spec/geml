@@ -21,7 +21,7 @@
 
 import { renderBlock, renderInlines, collectLabels } from "./render.js";
 import { hasSrcTable, inlineSrcTables, looksTabular } from "./inline-src.js";
-import { resolveTarget, selectEmbed, glossaryFrom, parseCoordPath, projectCoord, metaView } from "./parse-entry.js";
+import { resolveTarget, selectEmbed, glossaryFrom, parseCoordPath, projectCoord, metaView, inlineProjection } from "./parse-entry.js";
 import { translateSlice } from "./translate-browser.js";
 
 export const EMBED_DEPTH_CAP = 8;
@@ -369,13 +369,16 @@ async function expandOneInline(el, curUrl, curChildren, stack, state) {
     }
     const hit = projectCoord(block, coordPath);
     if (!hit.ok) return refuseInline(el, "unresolved", `\`#${anchor}\`: ${hit.why}`);
+    // §5.2: one value, or a row on one line; a column is refused, as `check` does.
+    const shown = inlineProjection(hit, written);
+    if (!shown.ok) return refuseInline(el, "invalid", shown.why);
     const cell = dom.createElement("span");
     cell.className = "geml-transclusion-inline geml-transclusion-inline-expanded";
     cell.setAttribute("data-src", written);
-    cell.textContent = hit.text;
+    cell.textContent = shown.text;
     el.replaceWith(cell);
     state.count++;
-    state.bytes += hit.text.length;
+    state.bytes += shown.text.length;
     return;
   }
 

@@ -167,19 +167,22 @@ from the file.
 
 ### A coordinate as an embed's target
 
-The converse direction is allowed, for one shape: a coordinate may be the target
-of block transclusion or inline projection when it names a **leaf value**.
+The converse direction is allowed, for two shapes: a coordinate may be the target
+of block transclusion or inline projection when it names a **leaf value** or a
+**whole row** of a table or view.
 
 ```
 ![[vars.geml#vars["version"]]]      inline projection of one value
+![[A.geml#tickets[2]]]              inline projection of a row: its cells, ", "-joined, on one line
+=== embed {src=A.geml#tickets[2]}   block transclusion of a row: a one-row table under the header
 ```
 
-A **positional slice** — `src=A.geml#tickets[2]`, a row or a column — is not a
-transclusion target. "Which row" is almost always a predicate rather than an
-index, so the useful form of that feature is a filter — and a filter is the
-consuming block's business, declared as an attribute beside `src=`, not an
-address. A named leaf value has no such analogue: it is one value, complete on
-its own, and nothing about it moves when the rows around it do.
+A **whole column** — `#tickets["Status"]` — and a value-tree node that holds more
+nodes are not targets: each is as many values as it has members, and no sentence
+holds that. A row is one record, so it reads on one line and stands as one table
+row. A row index is positional, exactly like a cell's: inserting a row above it
+moves both. When "which row" is really a predicate, the durable form is a `view`
+whose `where=` selects it, projected by its own coordinate.
 
 ### Reading
 

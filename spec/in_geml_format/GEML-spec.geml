@@ -820,14 +820,20 @@ node of a `data` block's value tree (§3.2), or a key of the merged `#meta` (§4
   error and the diagnostic SHOULD name the address that does resolve — the
   coordinate on the embed's source.
 - A coordinate MAY be the target of an inline projection `![[…]]` or an `embed`'s
-  `src=` when, and only when, it names a **leaf value** — one value, complete on
-  its own. A positional slice, a whole row or a whole column, MUST NOT be a
-  projection target: which row is wanted is a predicate rather than an index, and
-  selecting rows is the consuming block's business (§6.1), not an address's.
+  `src=` when it names a **leaf value** — one value, complete on its own — or a
+  **whole row** of a `table` or `view` (`#fy[2]`, `#fy[summary]`). Inline, a row
+  reads as its cells in column order joined by `", "` on ONE line, whatever the
+  cells hold; as a block, it is a one-row table under the table's own header. A
+  whole column, and a value-tree node that holds more nodes, MUST NOT be a
+  projection target: it is as many values as it has members, which no sentence
+  holds. Inline that is `inline-transclusion-not-inline`; as an `embed`'s `src=`
+  it is `embed-target-not-projectable` (Appendix A).
 - *Note (non-normative):* a coordinate is stable only while the units above it
-  are. Inserting a row moves every index below it, which is why an id is
-  preferable wherever a unit can carry one, why `summary` is a word rather than
-  an index, and why `geml find` reports the containing block.
+  are. Inserting a row moves every index below it — a projected row and a
+  projected cell alike — which is why an id is preferable wherever a unit can
+  carry one, why a reference that must survive edits should project from a
+  `view` whose `where=` selects its row, why `summary` is a word rather than an
+  index, and why `geml find` reports the containing block.
 
 ### 5.3 Recognition order and emphasis
 
@@ -1520,7 +1526,8 @@ original file.
 | `transclusion-cycle` | error | A chain of block transclusions returns to a document already being expanded. The chain is reported and expansion stops; it is never followed. |
 | `embed-target-not-geml` | error | An `embed` block names a target that is not a `.geml` document. Its bytes are never parsed as GEML. |
 | `media-target-is-document` | error | A media embed `![](…)` points at a GEML document. Block content cannot be expanded in inline position; the `embed` block is the form for it. |
-| `inline-transclusion-not-inline` | error | An inline projection `![[…]]` names a target that is not inline content — not a single-paragraph `text` block. Block content cannot be expanded inside a sentence; the `embed` block is the form for it. |
+| `inline-transclusion-not-inline` | error | An inline projection `![[…]]` names a target that is not inline content — not a single-paragraph `text` block, nor a coordinate naming one value or a whole row (§5.2). Block content cannot be expanded inside a sentence; the `embed` block is the form for it. |
+| `embed-target-not-projectable` | error | An `embed`'s `src=` is a coordinate naming neither one value nor a whole row of a `table` or `view` — a whole column, or a value-tree node holding more nodes (§5.2). |
 | `unsafe-embed-scheme` | error | An `embed` block names a URL scheme outside the allowlist of §9.5. The attribute is blanked in the model as well as reported, so no consumer can emit it. |
 | `unresolvable-table-source` | error | A table's `src=` names a data file that cannot be resolved. |
 | `table-source-not-a-table` | error | A table's `src=` names a block that exists but is not a table. |

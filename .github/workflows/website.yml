@@ -1,0 +1,87 @@
+# Push the files geml-spec.github.io serves that are made from this repository
+# — the playground bundle and its fonts, the parser's code graph, the logos —
+# into that repository whenever main changes them. integrations/website/update.mjs
+# writes them into a checkout of the site and checks every demo document there
+# with this parser; the result is committed and pushed, which deploys the site.
+#
+# The push needs SITE_DEPLOY_KEY: the private half of a deploy key with write
+# access on geml-spec/geml-spec.github.io. Without it the job says so and stops.
+name: website
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - geml-parser/src/**
+      - geml-parser/package.json
+      - integrations/geml-viewer/src/**
+      - integrations/geml-viewer/playground-entry.js
+      - integrations/geml-viewer/playground.build.mjs
+      - integrations/geml-viewer/package.json
+      - integrations/website/**
+      - docs/assets/logo/**
+      - .github/workflows/website.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: website
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Is the deploy key configured?
+        id: key
+        env:
+          KEY: ${{ secrets.SITE_DEPLOY_KEY }}
+        run: |
+          if [ -n "$KEY" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"
+          else echo "::warning::SITE_DEPLOY_KEY is not set, so the website was not updated"; fi
+
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.ok == 'true'
+
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.ok == 'true'
+        with:
+          repository: geml-spec/geml-spec.github.io
+          path: site
+          ssh-key: ${{ secrets.SITE_DEPLOY_KEY }}
+
+      - uses: actions/setup-node@v4
+        if: steps.key.outputs.ok == 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            geml-parser/package-lock.json
+            integrations/geml-viewer/package-lock.json
+
+      - name: Build the parser
+        if: steps.key.outputs.ok == 'true'
+        working-directory: geml-parser
+        run: npm ci && npm run build
+
+      - name: Install the viewer (esbuild, KaTeX, Mermaid)
+        if: steps.key.outputs.ok == 'true'
+        working-directory: integrations/geml-viewer
+        run: npm ci
+
+      - name: Write the site's files and check its demos
+        if: steps.key.outputs.ok == 'true'
+        run: node integrations/website/update.mjs site
+
+      - name: Commit and push to the site
+        if: steps.key.outputs.ok == 'true'
+        working-directory: site
+        run: |
+          git add -A
+          if git diff --cached --quiet; then echo "the site is already up to date"; exit 0; fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Update from geml-spec/geml@${GITHUB_SHA::7}"
+          git push

@@ -265,6 +265,41 @@ test("a section containing its own embed is a cycle, not 2^n copies (S5)", () =>
   assert.ok(copies <= 1, `expected at most one container, got ${copies}`);
 });
 
+// A span's `end` is the first line AFTER the block (half-open), the span `geml
+// list` prints. The self-cycle passes counted that line as inside, so an embed
+// or a projection written on the line right after its target's closing fence —
+// no blank line between — was reported as projecting itself.
+const cycles = (src) => (parse(src).diagnostics ?? []).filter((d) => d.code === "transclusion-cycle");
+
+test("an embed on the line right after its target's closing fence is not a cycle", () => {
+  const tight = "=== table {#fy format=csv header=1}\nquarter, revenue\nQ1, 120\n===\n\n=== view {#q1 src=#fy}\n===\n=== embed {src=#q1}\n===\n";
+  assert.deepEqual(cycles(tight), []);
+  const note = "=== note {#n}\nhello\n===\n=== embed {src=#n}\n===\n";
+  assert.deepEqual(cycles(note), [], "any block, not only a view");
+});
+
+test("an embed right after a section's last line is outside the section", () => {
+  // The section `#a` ends where `## B` starts; the embed opens `## B`'s body.
+  const after = "## A {#a}\n\n=== note {#n}\nx\n===\n## B\n=== embed {src=#a}\n===\n";
+  assert.deepEqual(cycles(after), []);
+});
+
+test("an inline projection right after its target's closing fence is not a cycle", () => {
+  const tight = "=== text {#t}\nOne paragraph.\n===\nSee ![[#t]].\n";
+  assert.deepEqual(cycles(tight), []);
+});
+
+test("an embed or a projection inside its own target is still a cycle", () => {
+  const inSection = cycles("## A {#a}\n\nprose\n\n=== embed {src=#a}\n===\n");
+  assert.equal(inSection.length, 1);
+  assert.match(inSection[0].message, /`#a` selects the content this embed is part of/);
+  const onLastLine = cycles("## A {#a}\n\nprose\n=== embed {src=#a}\n===");
+  assert.equal(onLastLine.length, 1, "the embed on the section's last lines is still inside it");
+  const projection = cycles("=== text {#t}\nSee ![[#t]].\n===\n");
+  assert.equal(projection.length, 1);
+  assert.match(projection[0].message, /projects the content it is part of/);
+});
+
 test("an indirect cycle A -> B -> C -> A is caught (S5)", () => {
   const dir = workspace();
   writeFileSync(join(dir, "a.geml"), "=== note {#a}\nA.\n===\n\n" + embed("b.geml#b"));
