@@ -3,7 +3,7 @@
   "name": "io.github.geml-spec/geml",
   "title": "GEML — a plain-text document format built to be edited in place, one section at a time",
   "description": "One section in, one section out — on Markdown/GEML files, bad writes refused.",
-  "websiteUrl": "https://github.com/geml-spec/geml",
+  "websiteUrl": "https://geml-spec.github.io/",
   "icons": [
     {
       "src": "https://raw.githubusercontent.com/geml-spec/geml/main/docs/assets/logo/avatar-512.png",

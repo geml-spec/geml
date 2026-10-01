@@ -23,7 +23,7 @@
     "url": "https://github.com/geml-spec/geml.git",
     "directory": "integrations/vscode"
   },
-  "homepage": "https://github.com/geml-spec/geml",
+  "homepage": "https://geml-spec.github.io/",
   "activationEvents": [
     "onLanguage:geml"
   ],

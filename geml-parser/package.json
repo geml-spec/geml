@@ -46,7 +46,7 @@
     "url": "git+https://github.com/geml-spec/geml.git",
     "directory": "geml-parser"
   },
-  "homepage": "https://github.com/geml-spec/geml#readme",
+  "homepage": "https://geml-spec.github.io/",
   "bugs": {
     "url": "https://github.com/geml-spec/geml/issues"
   },
