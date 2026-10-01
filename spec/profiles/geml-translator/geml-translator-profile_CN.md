@@ -11,8 +11,7 @@
 
 ## 0. 一段话说清
 
-一份译文是源文档沿**语言轴**的投影，和 `.md` 沿格式轴的投影是同一个形状
-（[GEP-0006](../../proposals/0006-declared-projections.md)）：译文文件里除了
+一份译文是源文档沿**语言轴**的投影，和从它导出的 `.md` 沿格式轴的投影是同一个形状：译文文件里除了
 `embed` 什么都没有，每个 embed 指向源的一个单元，并说它要哪种语言。声明了
 `profile = "geml-translator/v1"` 的文档，可以在这些 embed 上、以及在
 `=== meta` 上（作为文档默认）写 `translate-to`，而 `geml check` 不会把它报成

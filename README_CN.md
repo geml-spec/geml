@@ -588,7 +588,6 @@ GEML 已是 `1.0`，但「稳定」是指**已有规则不会在你脚下变动*
 
 **一起来讨论**这几份还在草案阶段的提案：
 
-- [GEP-0006 · 声明式投影——文档写明从它派生出哪些文件](spec/proposals/0006-declared-projections.md)
 - [GEP-0008 · `form` 块——可寻址的字段，惰性的提交目标](spec/proposals/0008-form-block.md)
 - [GEP-0010 · 沿语言轴的投影——译文是视图，不是副本](spec/proposals/0010-language-projections.md)
 

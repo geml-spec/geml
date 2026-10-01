@@ -1,11 +1,17 @@
 ---
 gep: 0006
 title: Declared projections — a document names the files derived from it
-state: draft
+state: withdrawn
 author: GEML (maintainer)
 created: 2026-08-07
 issue: (pending)
 ---
+
+> **Withdrawn (2026-10-02).** GEML reads Markdown directly (a `.md` is read as
+> Markdown since 1.11.2), so a project no longer needs a `.geml` source with a
+> derived `.md` beside it to be read on a forge: it can keep the `.md`. The pairs
+> this was written for have left the repository; the one that remains,
+> `docs/PUBLISHING`, is regenerated with `--to md`.
 
 ## Summary
 

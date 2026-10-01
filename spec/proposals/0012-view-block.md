@@ -421,8 +421,8 @@ side effect at render time, no longer idempotent, and against both §9.1 and a
 renderer that must not modify its input. So it is a tool verb —
 `geml materialize <file> '#view'` replacing the block with a `table` and its
 computed rows — and if the result should keep saying where it came from, that
-is [GEP 0006](0006-declared-projections.md)'s declared-projection machinery,
-which can then report a snapshot whose source has moved on.
+needs a way for a document to declare what it was derived from, which GEML
+does not have.
 
 **`join` / `on`, and `offset`.** The first fails question 1 above and is
 *never*: join upstream and point `src=` at the result. `offset` passes all three

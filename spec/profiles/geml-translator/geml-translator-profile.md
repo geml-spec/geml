@@ -15,7 +15,7 @@
 ## 0. What it is in one paragraph
 
 A translation is the source document projected along the **language axis**, the
-same shape a `.md` has along the format axis ([GEP-0006](../../proposals/0006-declared-projections.md)):
+same shape a `.md` exported from it has along the format axis:
 the translated file holds nothing but `embed` blocks, each naming a unit of the
 source and saying which language it wants. A document that declares
 `profile = "geml-translator/v1"` may write `translate-to` on those embeds — and

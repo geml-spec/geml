@@ -617,7 +617,6 @@ If you want a hand in it:
 
 **Come argue about these**, the proposals still in draft:
 
-- [GEP-0006 · Declared projections — a document names the files derived from it](spec/proposals/0006-declared-projections.md)
 - [GEP-0008 · A `form` typed block — addressable fields, an inert destination](spec/proposals/0008-form-block.md)
 - [GEP-0010 · Projections along the language axis — a translated document is a view, not a copy](spec/proposals/0010-language-projections.md)
 

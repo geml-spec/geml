@@ -100,7 +100,7 @@ is spelled `form`, while the same idea at the application layer is spelled
 | [0003](0003-geml-code-graph-format.md) | The `geml-code-graph` diagram format | accepted |
 | [0004](0004-text-block.md) | Register a `text` typed block — an addressable prose container | final |
 | [0005](0005-data-block.md) | Register a `data` typed block — the value tree, with a scoped format registry | final |
-| [0006](0006-declared-projections.md) | Declared projections — a document names the files derived from it | draft |
+| [0006](0006-declared-projections.md) | Declared projections — a document names the files derived from it | withdrawn |
 | [0007](0007-emphasis-across-atoms.md) | Emphasis may span an inline atom | final |
 | [0008](0008-form-block.md) | Register a `form` typed block — addressable fields, an inert destination | draft |
 | [0009](0009-application-layer-profiles.md) | The profile mechanism is how GEML is extended | final |
