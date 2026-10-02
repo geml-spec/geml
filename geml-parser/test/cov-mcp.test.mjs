@@ -440,3 +440,21 @@ test("geml_find: `path` goes through the same confinement gate as every file arg
   assert.ok(r.isError, "escaping the root is refused");
   rmSync(dir, { recursive: true, force: true });
 });
+
+test("geml_find: `path` may name a directory, which it walks for .geml and .md", () => {
+  // The description promised a directory and the gate admitted only files:
+  // `path: "docs"` answered "not a file: docs".
+  const dir = ws();
+  mkdirSync(join(dir, "docs"));
+  writeFileSync(join(dir, "docs", "a.geml"), "=== note {#inside}\nfirst here\n===\n");
+  writeFileSync(join(dir, "docs", "b.md"), "# First in markdown\n");
+  const r = call("geml_find", { pattern: "first", path: "docs" });
+  assert.ok(!r.isError, r.text);
+  const rows = r.text.split("\n").sort();
+  assert.deepEqual(rows, ["docs/a.geml\t#inside", "docs/b.md\t#first-in-markdown"],
+    "both formats under the directory, and nothing from d.geml beside it");
+  const escape = call("geml_find", { pattern: "x", path: ".." });
+  assert.ok(escape.isError, "a directory above the root is still refused");
+  assert.match(escape.text, /escapes the server root/);
+  rmSync(dir, { recursive: true, force: true });
+});

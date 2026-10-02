@@ -77,7 +77,7 @@ export function configure(o: Partial<McpOptions>): McpOptions {
 // server, whose `graph_dir` is intentionally client-chosen, the root here is
 // fixed by the operator at startup: this server WRITES, so a client that could
 // name its own root could write anywhere.
-export function resolveInRoot(file: string): string {
+export function resolveInRoot(file: string, { orDir = false } = {}): string {
   if (typeof file !== "string" || file === "") throw new Error("`file` is required");
   const root = realpathSync(OPTS.root);
   const target = resolve(root, file);
@@ -90,7 +90,8 @@ export function resolveInRoot(file: string): string {
   if (real !== root && !real.startsWith(root + sep)) {
     throw new Error(`path escapes the server root: ${file}`);
   }
-  if (!statSync(real).isFile()) throw new Error(`not a file: ${file}`);
+  const st = statSync(real);
+  if (!st.isFile() && !(orDir && st.isDirectory())) throw new Error(`not a file: ${file}`);
   return real;
 }
 
@@ -226,8 +227,9 @@ const fsHost: McpHost = {
   },
   find(args) {
     // `path` goes through the same confinement gate as every other file
-    // argument; omitting it searches the root, which is confined by being it.
-    const where = args.path === undefined ? OPTS.root : resolveInRoot(args.path);
+    // argument, which here also admits a directory to walk; omitting it
+    // searches the root, which is confined by being it.
+    const where = args.path === undefined ? OPTS.root : resolveInRoot(args.path, { orDir: true });
     const files: string[] = [];
     gemlFilesUnder(where, files, true);
     const hits: FindHit[] = [];
