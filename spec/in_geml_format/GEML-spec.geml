@@ -135,14 +135,15 @@ editing (`geml get`/`set`) byte-faithful for the untouched part of a file.
 | | |
 |---|---|
 | File extension | `.geml` (version sidecar: `.gemlhistory`) |
-| Media type | `text/geml` |
-| Vendor-tree name | `text/vnd.geml` |
+| Media type | `text/vnd.geml` |
 | `charset` parameter | `UTF-8` is the only permitted value, and SHOULD be omitted as redundant with §0.1 |
 | Fragment identifier | a block `id`, or a prose address derived from two block ids (§4) |
 ===
 
-`text/geml` is not currently registered with IANA; `text/vnd.geml` is the
-vendor-tree name to use where a registered type is required. A fragment
+`text/vnd.geml` is a vendor-tree name (RFC 6838 §3.2), the tree open to a
+specification published outside a standards body. The standards-tree name
+`text/geml` can be applied for only if this specification is published through
+the IETF; until then `text/vnd.geml` is the only media type for GEML. A fragment
 identifier on a `.geml` resource denotes the block bearing that `id`, matching
 the reference syntax of §5.2 — `other.geml#budget` names the same block whether
 it is written as a GEML reference or as a URL. It may also denote **prose** — the text between two blocks, which bears no `id`
