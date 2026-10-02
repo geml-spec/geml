@@ -11,6 +11,7 @@
 //   public/playground/playground.js, fonts/   the playground bundle (geml-viewer's playground.build.mjs)
 //   public/playground/codemap/                the parser's and the viewer's own call graph
 //   public/logo/                              docs/assets/logo/, the five files the site uses
+//   public/favicon.ico                        docs/assets/logo/geml.ico, for the browsers and crawlers that ask for it
 import { existsSync, mkdirSync, rmSync, copyFileSync, readdirSync, mkdtempSync } from "node:fs";
 import { dirname, join, resolve, relative } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -62,6 +63,8 @@ mkdirSync(logoOut, { recursive: true });
 for (const f of ["geml-favicon.svg", "geml-mark.svg", "geml-mark-mono.svg", "geml-logo-light.svg", "geml-logo-dark.svg"]) {
   copyFileSync(join(repo, "docs", "assets", "logo", f), join(logoOut, f));
 }
+// A page that names no icon makes the browser ask for /favicon.ico; so do crawlers.
+copyFileSync(join(repo, "docs", "assets", "logo", "geml.ico"), join(site, "public", "favicon.ico"));
 
 // 4. Every demo document the site ships must pass this parser's check. The
 //    codemap is checked by its own verify above.

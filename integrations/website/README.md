@@ -12,6 +12,7 @@ made:
 | `public/playground/playground.js`, `fonts/` | the parser and the viewer's renderer, bundled by `integrations/geml-viewer/playground.build.mjs` |
 | `public/playground/codemap/` | the parser's and the viewer's own call graph |
 | `public/logo/` | `docs/assets/logo/` |
+| `public/favicon.ico` | `docs/assets/logo/geml.ico` |
 
 `update.mjs` writes them into a checkout of the site, then runs `geml check`
 over every demo document the site ships. The `website` workflow
