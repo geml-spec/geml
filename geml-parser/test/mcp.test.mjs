@@ -142,6 +142,37 @@ test("the code-graph tools are listed as read-only", async () => {
   }
 });
 
+test("a .md is checked and validated as Markdown, as the CLI reads it; a .geml as it always was", () => {
+  // Every Markdown-only reading — `<a id>` anchors, link titles, `{{x}}` as text —
+  // used to be lost here: the server validated a `.md` with GEML's grammar.
+  const md = "# Doc\n\nSee [why](#why-now \"the reason\") and {{brand}}.\n\n<a id=\"why-now\"></a>\n\n## A\n\nbody\n";
+  const dir = ws(md, "readme.md");
+  const checked = call("geml_check", { file: "readme.md" }).json;
+  assert.equal(checked.ok, true, JSON.stringify(checked.diagnostics));
+  // A write's own re-validation reads it the same way, so an edit elsewhere lands.
+  const w = call("geml_set", { file: "readme.md", id: "#a", part: "body", body: "edited\n" });
+  assert.equal(w.json.ok, true, w.text);
+  // The same text as a .geml is read with GEML's grammar, exactly as before.
+  writeFileSync(join(dir, "same.geml"), md);
+  const geml = call("geml_check", { file: "same.geml" }).json;
+  assert.equal(geml.ok, false);
+  assert.ok(geml.diagnostics.some((d) => /why-now/.test(d.message)), "no <a id> anchors in GEML");
+});
+
+test("a write that dropped a block or moved an address says so in `notes`", () => {
+  ws("# D {#top}\n\n## A {#a}\n\nalpha\n\n### A1 {#a1}\n\nsub\n");
+  const dropped = call("geml_set", { file: "d.geml", id: "a", body: "## A {#a}\n\nalpha only\n" }).json;
+  assert.equal(dropped.ok, true);
+  assert.ok(dropped.notes?.some((n) => /#a1/.test(n)), `the dropped block is named: ${JSON.stringify(dropped.notes)}`);
+  const plain = call("geml_set", { file: "d.geml", id: "a", part: "body", body: "alpha again\n" }).json;
+  assert.equal(plain.notes, undefined, "a write with nothing to say carries no notes");
+
+  ws("# Doc\n\nSee [r](#risks).\n\n## Risks\n\nbody\n", "n.md");
+  const moved = call("geml_set", { file: "n.md", id: "risks", part: "head", body: "## Hazards\n" }).json;
+  assert.equal(moved.ok, true, JSON.stringify(moved));
+  assert.ok(moved.notes?.some((n) => /#risks is now #hazards/.test(n)), JSON.stringify(moved.notes));
+});
+
 test("an unknown tool is a protocol error, not a silent success", () => {
   ws();
   const r = call("geml_nope", {});
@@ -568,8 +599,9 @@ test("every revision selector the tool DESCRIPTIONS name is one the resolver acc
   // Word-shaped selectors are the ones that rot: `-N`/`0` are grammar and an id
   // is data, but a keyword like `latest` only works while the resolver knows it.
   const keywords = [...prose.matchAll(/`([a-z][a-z]+)`/g)].map((m) => m[1]);
-  // Argument and field names, not selectors: `hint` is the write result's field.
-  const notSelectors = new Set(["rev", "geml_history", "id", "prefix", "true", "false", "hint"]);
+  // Argument and field names, not selectors: `hint` and `notes` are fields of
+  // the write result.
+  const notSelectors = new Set(["rev", "geml_history", "id", "prefix", "true", "false", "hint", "notes"]);
   const claimed = [...new Set(keywords)].filter((w) => !notSelectors.has(w));
 
   call("geml_set", { file: "d.geml", id: "alpha", part: "body", body: "v2" });

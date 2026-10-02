@@ -45,6 +45,8 @@ export interface OpenedDoc {
   label: string;
   /** Resolution and side remarks for the verbs. */
   ctx: VerbContext;
+  /** Where the host collects what the verbs say through `ctx.note` during this call. */
+  notes?: string[];
   /** Independent validation of a write's RESULT — what the server itself checks before saving. */
   validate: ParseOptions;
   /** The root `--view` chains and the Markdown export are confined to, when the host has one. */
@@ -90,6 +92,8 @@ export interface WriteResult {
   hint?: string;
   revision?: string;
   document?: string;
+  /** What the verb said about a write that went through: a block it dropped, an address it changed. */
+  notes?: string[];
 }
 
 function refuse(file: string, diagnostics: Diagnostic[], hint: string): WriteResult {
@@ -169,7 +173,7 @@ function applyWrite(host: McpHost, spec: WriteSpec): WriteResult {
   // 3. Save the PRE-write state so this edit is revertible, then write — both
   //    the host's business.
   const landed = host.write(doc, after, spec.summary);
-  return { ok: true, file: doc.file, diagnostics: diags, ...landed };
+  return { ok: true, file: doc.file, diagnostics: diags, ...landed, ...(doc.notes?.length ? { notes: doc.notes } : {}) };
 }
 
 // ---------------------------------------------------------------------------
@@ -203,7 +207,7 @@ export interface Tool {
 }
 
 // What every write tool returns, said once so each description can point at it.
-const WRITE_RESULT = " Returns `{ok, file, diagnostics, revision}`; a refusal is `ok: false` with a `hint`, and the file is unchanged.";
+const WRITE_RESULT = " Returns `{ok, file, diagnostics, revision}`, with `notes` when the write did something to say out loud (a block it dropped, an address it changed); a refusal is `ok: false` with a `hint`, and the file is unchanged.";
 
 const hashId = (id: string) => (id.startsWith("#") ? id : `#${id}`);
 
@@ -478,7 +482,7 @@ export function toolsFor(host: McpHost): Tool[] {
     {
       name: "geml_set",
       description:
-        "Replace ONE block and leave every other byte untouched — prefer this to rewriting a file. For content that does not exist yet use geml_add; to remove a block, geml_delete. The replacement is validated before it is written: if it would break the document, nothing is written and the diagnostics come back — fix the body rather than resending it. Removing content is not refused: if the replacement drops blocks, the write goes through and the result names each one, so check it after shortening a section; geml_revert puts one back. `part` replaces the whole block (default), its head line, a section's `intro`, or its body. An `id` that matches no block, or several, is refused." + WRITE_RESULT + note,
+        "Replace ONE block and leave every other byte untouched — prefer this to rewriting a file. For content that does not exist yet use geml_add; to remove a block, geml_delete. The replacement is validated before it is written: if it would break the document, nothing is written and the diagnostics come back — fix the body rather than resending it. Removing content is not refused: if the replacement drops blocks, the write goes through and the result names each one, so check it after shortening a section; geml_revert puts one back. `part` replaces the whole block (default), its head line, a section's `intro`, or its body. In a Markdown file a heading's anchor is its text, as on GitHub: new heading text gives the heading a new address, and the document's links to the old one follow in the same write. GEML content written over a Markdown heading or prose is converted to Markdown, as in geml_add; a GEML block already in the file stays GEML. An `id` that matches no block, or several, is refused." + WRITE_RESULT + note,
       inputSchema: schema({
         id: {
           type: "string",
@@ -502,7 +506,7 @@ export function toolsFor(host: McpHost): Tool[] {
     {
       name: "geml_add",
       description:
-        "Insert new content — one or more blocks, or prose — at the end of the document (`position: append`) or before/after the block named by `anchor`. Use this for content that does not exist yet; to change a block that does, use geml_set. Ids inside the content are kept. Like every write here it is validated first: a missing anchor, an id that clashes with an existing one, or content that would break the document is refused." + WRITE_RESULT + note,
+        "Insert new content — one or more blocks, or prose — at the end of the document (`position: append`) or before/after the block named by `anchor`. Use this for content that does not exist yet; to change a block that does, use geml_set. Ids inside the content are kept. In a `.md` file Markdown lands as written, and GEML content is converted to Markdown as `to: \"md\"` converts it, the result's `notes` saying so; content Markdown cannot hold, such as a view without its source, is refused. Like every write here it is validated first: a missing anchor, an id that clashes with an existing one, or content that would break the document is refused." + WRITE_RESULT + note,
       inputSchema: schema({
         content: { type: "string", description: "The GEML fragment to insert" },
         position: { type: "string", enum: ["append", "before", "after"], description: "Where to insert" },
@@ -547,7 +551,7 @@ export function toolsFor(host: McpHost): Tool[] {
     {
       name: "geml_rename",
       description:
-        "Rename a block id AND every reference to it in the same document, in one id-boundary-safe write. Use this rather than geml_set or a text search-and-replace, which would also hit ids that merely share a prefix. An `old` id that does not exist, or a `new` one already taken, is refused." + WRITE_RESULT + note,
+        "Rename a block id AND every reference to it in the same document, in one id-boundary-safe write. Use this rather than geml_set or a text search-and-replace, which would also hit ids that merely share a prefix. A Markdown heading's anchor is its text, so it is renamed by changing the heading with geml_set (`part: head`), not here. An `old` id that does not exist, or a `new` one already taken, is refused." + WRITE_RESULT + note,
       inputSchema: schema({
         old: { type: "string", description: "Current id" },
         new: { type: "string", description: "New id" },

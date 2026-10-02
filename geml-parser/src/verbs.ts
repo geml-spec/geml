@@ -1193,6 +1193,110 @@ function idInPlace(source: string, span: Span, text: string, file: string): stri
   return addressedUnits(trial, walkOf(file)).find((a) => a.unit.span.start === span.start)?.unit.id;
 }
 
+// Is this content GEML rather than Markdown? Only syntax Markdown cannot mean
+// counts: a typed-block fence (`=== note`, `=== table {…}` — Markdown's setext
+// underline is `=` alone) or an attribute object ending a heading line
+// (`## T {#x}`, which GitHub prints). What Markdown's own fences hold is code.
+// `[[…]]`, `{{…}}` and `%%` are left alone: Obsidian and template engines give
+// them a Markdown meaning, so Markdown that uses them is not GEML.
+function gemlSyntaxIn(text: string): boolean {
+  let fence: string | null = null;
+  for (const line of text.split(/\r?\n/)) {
+    const open = /^[ ]{0,3}(`{3,}|~{3,})/.exec(line);
+    if (fence !== null) {
+      if (open && open[1]![0] === fence[0] && open[1]!.length >= fence.length && line.trim() === open[1]) fence = null;
+      continue;
+    }
+    if (open) { fence = open[1]!; continue; }
+    if (/^[ ]{0,3}={3,}[ \t]*[A-Za-z]/.test(line)) return true;
+    if (/^[ ]{0,3}#{1,6}[ \t]/.test(line) && headingAttrObject(line)) return true;
+  }
+  return false;
+}
+
+// The attribute object ending a heading line, if one is there: `{#x}`, `{.c}`,
+// `{key=v}` — not `{a, b}` in a heading about set notation.
+function headingAttrObject(line: string): string | undefined {
+  const m = /\{([^{}]*)\}[ \t]*$/.exec(stripEol(line));
+  if (!m) return undefined;
+  const inner = m[1]!.trim();
+  return inner.startsWith("#") || inner.startsWith(".") || /^[A-Za-z][A-Za-z0-9_-]*=/.test(inner) ? inner : undefined;
+}
+
+// Content written in GEML, headed for a `.md`, lands as Markdown: converted the
+// way `--to md` converts a document, so the file stays the Markdown it was and
+// GitHub renders what was written instead of printing its fences. Markdown
+// content lands verbatim, as it always has. What the conversion cannot carry —
+// a block's id, a live chart — it reports, and the caller hears it. A view
+// whose source table is not in the content would come out empty, and a `.md`
+// has no table block for it to read, so that is refused rather than written.
+function asMarkdown(text: string, file: string, ctx: VerbContext): string {
+  if (!isMarkdownPath(file) || !gemlSyntaxIn(text)) return text;
+  const { md, notes } = gemlToMd(parse(text), { embedded: true });
+  const lost = notes.find((n) => /could not be read/.test(n));
+  if (lost) fail(`the content is GEML, and converting it to Markdown for ${file} would lose data (${lost}) — write that part in Markdown`, 1);
+  ctx.note(`the content was GEML and was converted to Markdown, as --to md converts it${notes.length ? `: ${notes.join("; ")}` : ""}`);
+  // The conversion normalises whitespace; the blank lines the caller put around
+  // the content are what separate it from its neighbours, so they go back on.
+  const lead = /^(?:[ \t]*\r?\n)*/.exec(text)![0];
+  const trail = /(?:\r?\n[ \t]*)*$/.exec(text)![0];
+  return lead + md.replace(/\n+$/, "") + (trail === "" ? "\n" : trail);
+}
+
+// Does a heading line declare its id with an attribute object (`## T {#x}`)?
+function declaresId(line: string): boolean {
+  const m = /\{([^{}]*)\}[ \t]*$/.exec(stripEol(line));
+  return m !== null && parseAttrs(`{${m[1]}}`).id !== undefined;
+}
+
+// Point a Markdown document's links at `#newId` where they pointed at `#oldId`:
+// an inline link's destination (`[t](#old)`, a title may follow) and a
+// reference definition (`[l]: #old`). In Markdown only a link destination is a
+// reference, so nothing else moves — not code in a fence, not a code span, not
+// prose that happens to say `#old` — and the fragment must match whole:
+// `#old-x` is another anchor.
+function relinkMarkdown(source: string, oldId: string, newId: string): { text: string; count: number } {
+  const frag = reLit(oldId);
+  const inline = new RegExp(`(\\]\\(\\s*)#${frag}(?=[\\s)])`, "g");
+  const refdef = new RegExp(`^([ ]{0,3}\\[[^\\]]+\\]:[ \\t]*)#${frag}(?=\\s|$)`);
+  let count = 0;
+  const relink = (prose: string): string => prose.replace(inline, (_m, lead: string) => { count++; return `${lead}#${newId}`; });
+  const lines = splitLines(source);
+  let fence: string | null = null;
+  for (let i = 0; i < lines.length; i++) {
+    const line = stripEol(lines[i]!);
+    const eol = lines[i]!.slice(line.length);
+    const open = /^[ ]{0,3}(`{3,}|~{3,})/.exec(line);
+    if (fence !== null) {
+      if (open && open[1]![0] === fence[0] && open[1]!.length >= fence.length && line.trim() === open[1]) fence = null;
+      continue;
+    }
+    if (open) { fence = open[1]!; continue; }
+    let out = line.replace(refdef, (_m, lead: string) => { count++; return `${lead}#${newId}`; });
+    // Relink outside code spans only: a run of N backticks opens, the next run
+    // of N closes, and an unmatched run is text.
+    let done = "";
+    for (let j = 0; j < out.length;) {
+      if (out[j] !== "`") {
+        const next = out.indexOf("`", j);
+        const end = next < 0 ? out.length : next;
+        done += relink(out.slice(j, end));
+        j = end;
+        continue;
+      }
+      let n = 0;
+      while (out[j + n] === "`") n++;
+      const close = out.indexOf("`".repeat(n), j + n);
+      const end = close < 0 ? j + n : close + n;
+      done += out.slice(j, end);
+      j = end;
+    }
+    out = done;
+    lines[i] = out + eol;
+  }
+  return { text: lines.join(""), count };
+}
+
 function reportNewAddress(updated: string, target: SetTarget, file: string, ctx: VerbContext): void {
   if (!target.byContent) return;
   const after = addressedUnits(updated, walkOf(file)).find((a) => a.unit.span.start === target.unit.span.start);
@@ -1261,6 +1365,9 @@ export function set(source: string, file: string, rawSel: string, o: SetOptions,
   } else {
     text = extractBlock(content, target.unit.id ?? "", headOnly ? "head" : "whole");
   }
+  // A heading or prose in a `.md` is Markdown, and so is what replaces it. A
+  // GEML block someone put in the `.md` on purpose is left to GEML's rules.
+  if (target.unit.kind !== "block") text = asMarkdown(text, file, ctx);
   // §5.2: `@<hex>` is not an id, so "normalize the content's id to the target's"
   // has no subject — the content is used verbatim, and an id it brings that
   // collides is caught by the splice guard like any other. An id target keeps
@@ -1282,6 +1389,27 @@ export function set(source: string, file: string, rawSel: string, o: SetOptions,
   const carries = target.unit.id !== undefined && (
     addressedUnits(text, walkOf(file))[0]?.unit.id === target.unit.id
     || (isMarkdownPath(file) && idInPlace(source, target.unit.span, text, file) === target.unit.id));
+  // Under Markdown reading a heading's anchor IS its text — Markdown has no
+  // other way to name a heading — so new text means a new id, as it does on
+  // GitHub. Stamping `{#old}` to hold the old one would write GEML syntax that
+  // GitHub prints. Instead the heading takes the id its text derives where it
+  // stands, and the document's links to the old id follow in the same write.
+  // A heading in the file that declares its id is GEML syntax its author chose,
+  // and keeps the rule below. (Content that brings `{#id}` into a `.md` has
+  // already been converted to Markdown, so it carries none.)
+  if (isMarkdownPath(file) && target.unit.kind === "heading" && target.unit.id !== undefined && !carries
+    && !declaresId(splitLines(source)[target.unit.span.start] ?? "")) {
+    const oldId = target.unit.id;
+    const newId = idInPlace(source, target.unit.span, text, file);
+    if (newId !== undefined && newId !== "" && newId !== oldId) {
+      const doc = relinkMarkdown(source, oldId, newId);
+      const own = relinkMarkdown(text, oldId, newId);
+      const updated = spliceSpan(doc.text, target.unit.span, own.text, file, ctx, headOnly, false, newId, oldId);
+      const n = doc.count + own.count;
+      ctx.note(`#${oldId} is now #${newId}: a Markdown heading's anchor is its text${n ? `; ${n} link${n === 1 ? "" : "s"} to it updated` : ""}`);
+      return { text: updated };
+    }
+  }
   const stamp = target.unit.id !== undefined && !carries && target.unit.kind !== "prose";
   const replacement = stamp ? normalizeBlockId(text, target.unit.id as string) : text;
   const updated = spliceSpan(source, target.unit.span, replacement, file, ctx, headOnly, false, target.unit.id);
@@ -1303,7 +1431,7 @@ function setIntro(source: string, file: string, target: SetTarget, content: Cont
   const region = narrowToIntro(source, target.unit.span, walkOf(file));
   let body = content.kind === "raw" ? content.text : extractBlock(content, target.unit.id ?? "", "body");
   if (content.kind === "raw" && body === "") fail(NO_CONTENT, 1);
-  body = toLf(body);
+  body = toLf(asMarkdown(body, file, ctx));
   if (body !== "" && !body.endsWith("\n")) body += "\n";
 
   // Give the opening its blank lines back. `get --intro` hands the region over
@@ -1344,6 +1472,7 @@ function setBody(source: string, file: string, target: SetTarget, content: Conte
     body = extractBlock(content, target.unit.id ?? "", "body");
   }
 
+  if (closeLine === null) body = asMarkdown(body, file, ctx);
   let head = headLine;
   if (head !== "" && !/(\r\n|\r|\n)$/.test(head)) head += "\n";
   let b = toLf(body);   // spliceBlock converts the result to the document's style
@@ -1491,6 +1620,7 @@ export function add(source: string, file: string, o: AddOptions, ctx: VerbContex
     catch (e) { throw e instanceof VerbError ? new VerbError(e.message, 2) : e; }
   }
   if (text.trim() === "") fail("no content to add (use --in FILE or pipe it on stdin)", 1);
+  text = asMarkdown(text, file, ctx);
 
   // Resolve the physical-line insertion point.
   const lines = splitLines(source);
@@ -1613,6 +1743,15 @@ export function rename(source: string, file: string, rawOld: string, rawNew: str
   const hasName = (ids: string[], n: string) => ids.some((x) => nameKey(x) === nameKey(n));
   if (!hasName(before.ids, oldId)) fail(`no block with id \`${oldId}\``, 1);
   if (hasName(before.ids, newId)) fail(`id \`${newId}\` already exists; not written`, 1);
+  // Markdown has no way to name a heading apart from its text, so its id cannot
+  // be renamed on its own: rewriting the links would leave the heading behind.
+  if (isMarkdownPath(file)) {
+    const heading = addressedUnits(source, walkOf(file))
+      .find((a) => a.unit.kind === "heading" && a.unit.id !== undefined && nameKey(a.unit.id) === nameKey(oldId));
+    if (heading && !declaresId(splitLines(source)[heading.unit.span.start] ?? "")) {
+      fail(`in Markdown a heading's anchor is its text, so \`#${oldId}\` cannot be renamed apart from it — change the heading's text instead (geml set <file> '#${oldId}' --head), and the links to it follow`, 1);
+    }
+  }
 
   if (o.historyTip !== undefined && blockSpans(o.historyTip, walkOf(file)).has(oldId)) {
     ctx.note(`warning: #${oldId} has history; revert across this rename is not tracked — see docs`);
@@ -1845,7 +1984,7 @@ function introduced(
 // pre-existing id must still survive, which the `dropped` check below covers.
 function spliceSpan(
   source: string, found: Span, replacement: string, file: string, ctx: VerbContext,
-  headOnly = false, guardCount = false, id?: string,
+  headOnly = false, guardCount = false, id?: string, renamedFrom?: string,
 ): string {
   const beforeDoc = parse(source, { ...ctx.docOpts(file), self: selfOf(file) });
   const beforeIds = beforeDoc.ids;
@@ -1890,7 +2029,7 @@ function spliceSpan(
   const survives = (name: string): boolean =>
     now.has(name) || addressedUnits(updated, walkOf(file)).some((a) => a.unit.id === name);
   if (id !== undefined && !survives(id)) fail(`replacement removes id \`${id}\`; not written`, 1);
-  const droppedIds = beforeIds.filter((x) => x !== id && !now.has(x));
+  const droppedIds = beforeIds.filter((x) => x !== id && x !== renamedFrom && !now.has(x));
   const droppedAnon = Math.max(0, countBlockUnits(source, walkOf(file)) - countBlockUnits(updated, walkOf(file)) - droppedIds.length);
 
   // A reference left dangling BY THE REMOVAL is a consequence the caller is

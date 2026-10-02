@@ -44,6 +44,7 @@ import { createInterface } from "node:readline";
 import { save, listRevisions, isCurrent, resolveContent, firstChangedContent } from "./history.js";
 import { type VerbContext, type FindHit, findInSource } from "./verbs.js";
 import { docOptsFor, fsFiles, gemlFilesUnder, historyError } from "./host-fs.js";
+import { isMarkdownPath, type ParseOptions } from "./geml.js";
 import {
   type McpHost, type OpenedDoc, type Tool, type WriteResult,
   createHandler, reads, toolsFor, withinArg,
@@ -180,14 +181,24 @@ const UNCHANGED = "The write was refused; the file on disk is unchanged.";
 // target (macOS: `/var/folders` -> `/private/var/folders`), and mixing the two
 // spellings made every cross-document reference in the workspace resolve to
 // nothing — on CI, never on Windows.
-function ctxFor(root: string): VerbContext {
+function ctxFor(root: string, notes: string[]): VerbContext {
   return {
     docOpts: (file, r) => docOptsFor(file, r ?? root),
-    // A verb's side remarks (`dropped #x`, `3 note blocks`) have no channel
-    // across an MCP call: the result carries what the model needs.
-    note: () => {},
+    // A verb's side remarks (`dropped #x`, `#old is now #new`) are what the CLI
+    // prints on stderr. Across an MCP call they ride in the write result as
+    // `notes`, or a model that shortened a section never learns what went.
+    note: (msg) => { notes.push(msg); },
     files: fsFiles,
   };
+}
+
+// A `.md` is read as Markdown here exactly as the CLI reads it — the document
+// options the CLI uses, references still confined to the server root. Without
+// them a `.md` was validated as GEML, and a README the CLI checked clean failed
+// on every Markdown-only construct. A `.geml` gets nothing from this: its
+// validation is what it always was.
+function markdownOpts(file: string, root: string): Partial<ParseOptions> {
+  return isMarkdownPath(file) ? docOptsFor(file, root) : {};
 }
 
 const fsHost: McpHost = {
@@ -197,12 +208,14 @@ const fsHost: McpHost = {
   open(args): OpenedDoc {
     const real = resolveInRoot(args.file);
     const root = rootReal();
+    const notes: string[] = [];
     return {
       text: readFileSync(real, "utf8"),
       file: args.file,
       label: real,
-      ctx: ctxFor(root),
-      validate: { resolveDoc: docResolver(root, real) },
+      ctx: ctxFor(root, notes),
+      notes,
+      validate: { ...markdownOpts(real, root), resolveDoc: docResolver(root, real) },
       root,
     };
   },
@@ -224,7 +237,7 @@ const fsHost: McpHost = {
       // An unreadable file mid-walk must not abort the search — report nothing
       // for it and keep going, the way every search tool behaves.
       try { source = readFileSync(f, "utf8"); } catch { continue; }
-      hits.push(...findInSource(source, f, String(args.pattern), { sensitive: !!args.case, withLine: !!args.head, ...(within === undefined ? {} : { within: { selector: within, ctx: ctxFor(rootReal()) } }) }));
+      hits.push(...findInSource(source, f, String(args.pattern), { sensitive: !!args.case, withLine: !!args.head, ...(within === undefined ? {} : { within: { selector: within, ctx: ctxFor(rootReal(), []) } }) }));
     }
     // Every other tool in this server speaks paths relative to the root, and a
     // model is meant to paste a row's file straight into geml_get — so put the
@@ -240,7 +253,8 @@ const fsHost: McpHost = {
     });
   },
   checkOpts(doc, root) {
-    return { resolveDoc: docResolver(resolveRoot(root === undefined ? undefined : String(root)), doc.label) };
+    const r = resolveRoot(root === undefined ? undefined : String(root));
+    return { ...markdownOpts(doc.label, r), resolveDoc: docResolver(r, doc.label) };
   },
   history(doc) {
     const historyPath = doc.label.replace(/\.geml$/, "") + ".gemlhistory";

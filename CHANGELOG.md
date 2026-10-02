@@ -18,6 +18,41 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **In a Markdown file, a renamed heading takes the anchor of its new text.**
+  A Markdown heading's anchor is its text, so `set` that changes a heading's
+  text no longer stamps `{#old}` onto it — GEML syntax, which GitHub prints.
+  The heading takes the id its new text derives where it stands (a repeated
+  title gets GitHub's `-1`), and the page's links to the old id follow in the
+  same write: inline links, ones with a title, and reference definitions; not
+  code spans, not fences, not another anchor that shares the prefix. `set`
+  says `#old is now #new`. `rename` refuses a Markdown heading's derived id
+  and says how to rename it instead, rather than failing on the links it had
+  rewritten. A heading in the file that declares `{#id}` is GEML syntax and
+  keeps GEML's rule. In a `.geml` nothing changed: a renamed heading keeps its
+  declared address, and `rename` answers as before.
+- **GEML written into a Markdown file lands as Markdown.** `set` and `add` on
+  a `.md` convert content that is GEML — a `=== type` block, a heading with
+  `{#id}` — as `--to md` converts it: a note becomes a blockquote, a table a
+  pipe table, `## Risks {#r}` plain `## Risks`. The write says so and names
+  what was lost. Such content had landed as written, GEML syntax that GitHub
+  prints as text. Content Markdown cannot hold, such as a view whose source is
+  not in it, is refused. Markdown content still lands byte for byte, a GEML
+  block already in the `.md` stays GEML when it is replaced, and a `.geml` is
+  not converted.
+- **A Markdown link's title is a title.** `[t](#x "Title")`, `'Title'` and
+  `(Title)` link to `#x`, and `[t](<#x>)` does too; read whole, the title was
+  part of the target and every such link was reported broken. A `.geml` reads
+  a link's parenthesis as it always has — GEML has no link titles.
+- **The MCP server reads a `.md` as Markdown, as the CLI does.** `geml_check`
+  and the validation every write runs before it lands parsed a `.md` with
+  GEML's grammar, so a README the CLI checked clean failed there with dozens of
+  errors (`{{brand}}` as a meta reference, `<a id>` anchors unseen) and an edit
+  to it could be refused for errors it never had. A `.geml` is validated as it
+  was.
+- **MCP write results carry the verb's notes.** A write that went through and
+  did something worth saying — dropped the blocks a shortened section held,
+  moved a heading's address — returns it as `notes`. `geml_set`'s description
+  promised the dropped blocks would be named, and the result did not name them.
 - **MCP tools declare annotations, and their descriptions say how they fail.**
   Each of the eleven tools — and the four code-graph tools — now carries a
   `title` and MCP annotations: the six reads and the graph tools are

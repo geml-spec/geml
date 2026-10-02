@@ -14,10 +14,19 @@ they are the reason to read this before the first write rather than after.
 frontmatter and every block other than `#id` are byte-for-byte what they were.
 The verb splices; it does not re-serialize the file.
 
-**The body lands verbatim.** Whatever you write goes in as typed — a
+**Markdown lands verbatim.** Whatever Markdown you write goes in as typed — a
 `> [!tip]` callout, a `[[wikilink]]`, a `` ```dataview `` fence, a table. No
 escaping, no reflowing, no normalization of your Markdown to anyone else's
 taste.
+
+**GEML lands as Markdown.** Content with a `=== type` block, or a heading
+carrying `{#id}`, is GEML, and it is converted as `geml <file> --to md` converts
+it: a note becomes a blockquote, a table a pipe table, `## Risks {#r}` plain
+`## Risks`. `geml` says so (`the content was GEML and was converted to
+Markdown`), naming anything lost. Content Markdown cannot hold — a view whose
+source is not in the content — is refused rather than written short; write that
+part in Markdown. A GEML block already in the file stays GEML when you replace
+it.
 
 **A broken result is refused.** The file is re-parsed before the write lands;
 if the result would not parse, nothing is written.
@@ -33,6 +42,15 @@ section. But a new `## Added` inserted above one shifts it: `#added-1` becomes
 `#added-2`. Take a repeated heading's address from a fresh `geml list`, never
 from memory.
 
+**Renaming a heading renames its address.** A Markdown heading's anchor is its
+text, as on GitHub, so `set '#risks' --head` with `## Hazards` makes it
+`#hazards`, and the page's links to `#risks` — inline links, ones with a title
+too, and `[label]: #risks` definitions — follow in the same write; `geml` says
+so (`#risks is now #hazards`). Code spans and fences are left alone. `geml
+rename` refuses a heading's derived id, since Markdown has nowhere to keep one
+apart from the text; a heading written with `{#id}` is GEML syntax, and renames
+as it does in GEML.
+
 **The file is read as Markdown, not as GEML.** Where the two disagree, a `.md`
 gets Markdown's reading:
 
@@ -45,6 +63,8 @@ gets Markdown's reading:
   without one it is plain text — so `[^0-9]` in a sentence about a regex is
   nothing to worry about.
 - `{{title}}` is text: a template engine's placeholder, not a reference.
+- `[text](#x "Title")` links to `#x`; the title is a tooltip, not part of the
+  target. So does `[text](<#x>)`.
 - `~~~` fences and indented code blocks are code, like ``` ones. Nothing inside
   is a link, a heading or a footnote.
 

@@ -1482,13 +1482,25 @@ test("set still stamps the id when the content would not otherwise carry it", ()
   const d = mkdtempSync(join(tmpdir(), "geml-stamp-"));
   const at = (n, s) => { const f = join(d, n); writeFileSync(f, s); return f; };
 
-  const renamed = at("renamed.md", "# Doc\n\n## Alpha\n\nfirst.\n");
+  // In GEML an id is declared, so a renamed heading keeps its address. (In
+  // Markdown a heading's anchor is its text: see the Markdown tests below.)
+  const renamed = at("renamed.geml", "# Doc\n\n## Alpha\n\nfirst.\n");
   run(["set", renamed, "#alpha", "--in", "-", "-o", renamed], "## Renamed\n\nbody.\n");
   assert.match(readFileSync(renamed, "utf8"), /## Renamed \{#alpha\}/, "a renamed heading keeps the address");
+  const renamedHead = at("renamed-head.geml", "# Doc\n\nSee [[#alpha]].\n\n## Alpha\n\nfirst.\n");
+  assert.equal(run(["set", renamedHead, "#alpha", "--head", "--in", "-", "-o", renamedHead], "## Renamed\n").code, 0);
+  assert.match(readFileSync(renamedHead, "utf8"), /## Renamed \{#alpha\}/, "--head too: the .geml rule is unchanged");
+  assert.match(readFileSync(renamedHead, "utf8"), /\[\[#alpha\]\]/, "and its references are left alone");
 
-  const foreign = at("foreign.md", "# Doc\n\n## Alpha\n\nfirst.\n");
+  const foreign = at("foreign.geml", "# Doc\n\n## Alpha\n\nfirst.\n");
   run(["set", foreign, "#alpha", "--in", "-", "-o", foreign], "## Alpha {#other}\n\nbody.\n");
   assert.match(readFileSync(foreign, "utf8"), /## Alpha \{#alpha\}/, "a foreign id is normalized, not kept");
+  // Into a .md the same content is GEML, so it lands as Markdown: the attribute
+  // object goes, and `## Alpha` is `#alpha` by its text.
+  const foreignMd = at("foreign.md", "# Doc\n\n## Alpha\n\nfirst.\n");
+  assert.equal(run(["set", foreignMd, "#alpha", "--in", "-", "-o", foreignMd], "## Alpha {#other}\n\nbody.\n").code, 0);
+  assert.match(readFileSync(foreignMd, "utf8"), /^## Alpha$/m);
+  assert.doesNotMatch(readFileSync(foreignMd, "utf8"), /\{#/);
 
   const fenced = at("fenced.geml", "=== meta\ntitle = \"t\"\n===\n\n=== code {#hello lang=py}\nx=1\n===\n");
   run(["set", fenced, "#hello", "--in", "-", "-o", fenced], "=== code {lang=py}\ny=2\n===\n");

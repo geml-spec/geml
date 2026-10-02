@@ -139,6 +139,22 @@ function classifyDest(dest: string): { href?: string; doc?: string; anchor?: str
   return {};
 }
 
+// Markdown reading: CommonMark lets a title follow a link's destination —
+// `[t](#x "Title")`, `'Title'` or `(Title)` — and lets `<…>` wrap the
+// destination. Only the destination is a target (GitHub shows the title as a
+// tooltip), so that is what is classified; read whole, `#x "Title"` named an
+// anchor no heading has. GEML's own grammar has neither form, so a `.geml`
+// reads the parenthesis as it always did.
+function markdownDest(content: string): string {
+  const d = content.trim();
+  if (d.startsWith("<")) {
+    const end = d.indexOf(">");
+    if (end > 0) return d.slice(1, end);
+  }
+  const m = /^(\S+)\s+(?:"[^"]*"|'[^']*'|\([^()]*\))$/.exec(d);
+  return m ? m[1]! : d;
+}
+
 // Partner index of every `[`/`(` in a string, or -1 where there is none: one
 // stack pass instead of a fresh depth count per construct tried.
 //
@@ -418,7 +434,7 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth: number, p: Pai
       if (label && paren) {
         const a = readAttrs(s, paren.end);
         const attrObj = a ? a.attrs : { classes: [], attrs: {} };
-        const dest = classifyDest(paren.content);
+        const dest = classifyDest(sink.markdown ? markdownDest(paren.content) : paren.content);
         const node: Extract<Inline, { type: "link" }> = {
           type: "link",
           // The label window starts one character past this `[`, so the shared

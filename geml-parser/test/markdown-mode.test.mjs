@@ -124,10 +124,16 @@ try {
     assert.doesNotMatch(read(f), /\{#/);
   });
 
-  test("set that changes a repeated heading's text still keeps its address", () => {
+  test("set that changes a repeated heading's text gives it the anchor of its new text", () => {
+    // A Markdown heading's anchor is its text, so `## 总结` is `#总结` — no
+    // `{#小结-1}` stamped to hold the old one, which GitHub would print.
     const f = write("dup2.md", DUP);
-    assert.equal(run(["set", f, "#小结-1", "--in", "-"], "## 总结\n\nrenamed.\n").code, 0);
-    assert.match(read(f), /## 总结 \{#小结-1\}/);
+    const r = run(["set", f, "#小结-1", "--in", "-"], "## 总结\n\nrenamed.\n");
+    assert.equal(r.code, 0, r.err);
+    assert.match(read(f), /^## 总结$/m);
+    assert.doesNotMatch(read(f), /\{#/);
+    assert.match(r.err, /#小结-1 is now #总结/);
+    assert.equal(run(["get", f, "#总结"]).code, 0);
   });
 
   // -------------------------------------------------------------------------
@@ -597,6 +603,148 @@ try {
     assert.match(r.out, /=== code \{#code-2 lang=python\}/);
   });
 
+
+  // -------------------------------------------------------------------------
+  // A Markdown heading's anchor is its text
+  // -------------------------------------------------------------------------
+
+  const RENAMABLE =
+    "# Doc\n\nSee [the risks](#risks), [again](#risks \"why\") and [other](#risks-x).\n\n[r]: #risks\n\n" +
+    "Code `[x](#risks)` stays.\n\n```md\n[in a fence](#risks)\n```\n\n" +
+    "## Risks\n\nbody\n\n## Risks x\n\nother\n\n## Install\n\nsteps\n";
+
+  test("set --head on a Markdown heading gives it the anchor its new text derives, and its links follow", () => {
+    const f = write("rename-head.md", RENAMABLE);
+    const r = run(["set", f, "#risks", "--head", "--in", "-", "-o", f], "## Hazards\n");
+    assert.equal(r.code, 0, r.err);
+    const after = read(f);
+    assert.match(after, /^## Hazards$/m, "the heading is plain Markdown");
+    assert.doesNotMatch(after, /\{#/, "no GEML attribute object anywhere");
+    assert.match(after, /\[the risks\]\(#hazards\)/);
+    assert.match(after, /\[again\]\(#hazards "why"\)/, "a link with a title follows too");
+    assert.match(after, /^\[r\]: #hazards$/m, "a reference definition follows");
+    assert.match(after, /\[other\]\(#risks-x\)/, "another anchor sharing the prefix is left alone");
+    assert.match(after, /`\[x\]\(#risks\)`/, "a code span is not a link");
+    assert.match(after, /\[in a fence\]\(#risks\)/, "a fenced block is not a link");
+    assert.match(r.err, /#risks is now #hazards: a Markdown heading's anchor is its text; 3 links to it updated/);
+    assert.equal(run(["get", f, "#hazards"]).code, 0, "the new address reads");
+    assert.equal(run(["check", f]).code, 0, "and the document is clean");
+  });
+
+  test("a whole-section set that renames a Markdown heading follows the same rule", () => {
+    const f = write("rename-whole.md", RENAMABLE);
+    const r = run(["set", f, "#risks", "--in", "-", "-o", f], "## Hazards\n\nnew body\n");
+    assert.equal(r.code, 0, r.err);
+    assert.match(read(f), /^## Hazards$/m);
+    assert.match(read(f), /\[the risks\]\(#hazards\)/);
+  });
+
+  test("renamed to the text of another heading, a Markdown heading takes GitHub's -1 and its links follow", () => {
+    const f = write("rename-dup.md", RENAMABLE);
+    const r = run(["set", f, "#risks", "--head", "--in", "-", "-o", f], "## Install\n");
+    assert.equal(r.code, 0, r.err);
+    assert.match(read(f), /\[the risks\]\(#install\)/, "the first `## Install` is now this one, as on GitHub");
+    assert.equal(run(["check", f]).code, 0, run(["check", f]).err);
+  });
+
+  test("a Markdown heading that declares its id keeps it, as in GEML", () => {
+    const f = write("rename-declared.md", "# Doc\n\nSee [r](#risks).\n\n## Risks {#risks}\n\nbody\n");
+    assert.equal(run(["set", f, "#risks", "--head", "--in", "-", "-o", f], "## Hazards\n").code, 0);
+    assert.match(read(f), /^## Hazards \{#risks\}$/m, "the declared id stays");
+    assert.match(read(f), /\[r\]\(#risks\)/);
+  });
+
+  test("rename refuses a Markdown heading's derived id and says how to rename it", () => {
+    const f = write("rename-verb.md", RENAMABLE);
+    const before = read(f);
+    const r = run(["rename", f, "#risks", "#hazards"]);
+    assert.equal(r.code, 1);
+    assert.match(r.err, /in Markdown a heading's anchor is its text, so `#risks` cannot be renamed apart from it — change the heading's text instead \(geml set <file> '#risks' --head\)/);
+    assert.equal(read(f), before, "nothing written");
+    const g = write("rename-verb-declared.md", "# Doc\n\nSee [r](#risks).\n\n## Risks {#risks}\n\nbody\n");
+    assert.equal(run(["rename", g, "#risks", "#hazards"]).code, 0, "a declared id renames as in GEML");
+    assert.match(read(g), /\[r\]\(#hazards\)/);
+  });
+
+  test("in a .geml a renamed heading keeps its address and rename works as before", () => {
+    const f = write("rename-unchanged.geml", "# Doc {#top}\n\nSee [[#risks]].\n\n## Risks\n\nbody\n");
+    assert.equal(run(["set", f, "#risks", "--head", "--in", "-", "-o", f], "## Hazards\n").code, 0);
+    assert.match(read(f), /^## Hazards \{#risks\}$/m);
+    // rename on a .geml heading answers as it always has: a derived id is refused
+    // by the reference check (not with the Markdown message), a declared one renames.
+    const g = write("rename-unchanged-2.geml", "# Doc {#top}\n\nSee [[#risks]].\n\n## Risks\n\nbody\n");
+    const derived = run(["rename", g, "#risks", "#hazards"]);
+    assert.equal(derived.code, 1);
+    assert.match(derived.err, /rename would break the document: unresolved reference `#hazards`/);
+    assert.doesNotMatch(derived.err, /in Markdown/);
+    const h = write("rename-unchanged-3.geml", "# Doc {#top}\n\nSee [[#risks]].\n\n## Risks {#risks}\n\nbody\n");
+    assert.equal(run(["rename", h, "#risks", "#hazards"]).code, 0);
+    assert.match(read(h), /\[\[#hazards\]\]/);
+    assert.match(read(h), /^## Risks \{#hazards\}$/m);
+  });
+
+  // -------------------------------------------------------------------------
+  // A link title is a title
+  // -------------------------------------------------------------------------
+
+  test("a Markdown link's title and <…> destination are not part of its target; a .geml reads them as before", () => {
+    const doc = md('# Doc\n\n[a](#doc "Title") [b](#doc \'t\') [c](#doc (t)) [d](<#doc>) [e](#nope "Title")\n');
+    assert.deepEqual(doc.diagnostics.filter((d) => d.code === "unresolved-reference").map((d) => d.message),
+      ["unresolved reference `#nope`"]);
+    const geml = parse('# Doc {#doc}\n\n[a](#doc "Title")\n');
+    assert.ok(geml.diagnostics.some((d) => d.message === 'unresolved reference `#doc "Title"`'), "GEML has no link titles");
+  });
+
+  // -------------------------------------------------------------------------
+  // GEML content written into a .md lands as Markdown
+  // -------------------------------------------------------------------------
+
+  test("GEML content added to a .md is converted to Markdown, and the write says so", () => {
+    const f = write("conv-add.md", "# Doc\n\n## A\n\nbody\n");
+    const r = run(["add", f, "--after", "#a", "--in", "-"], "=== note {#tip}\nA *tip*.\n===\n");
+    assert.equal(r.code, 0, r.err);
+    assert.match(read(f), /^> A \*tip\*\.$/m, "a note is a blockquote");
+    assert.doesNotMatch(read(f), /===|\{#/, "no GEML syntax lands");
+    assert.match(r.err, /the content was GEML and was converted to Markdown, as --to md converts it/);
+  });
+
+  test("a GEML body set into a .md section converts block by block, keeping the blank lines around it", () => {
+    const f = write("conv-body.md", "# Doc\n\n## Risks\n\nbody\n\n## Notes\n\nn\n");
+    const r = run(["set", f, "#risks", "--body", "--in", "-"],
+      "\nCosts:\n\n=== table {#c format=csv header=1}\nItem, Q1\nCloud, 8\n===\n\n=== code {lang=py}\nx = 1\n===\n\n");
+    assert.equal(r.code, 0, r.err);
+    assert.equal(read(f),
+      "# Doc\n\n## Risks\n\nCosts:\n\n| Item | Q1 |\n| --- | --- |\n| Cloud | 8 |\n\n```py\nx = 1\n```\n\n## Notes\n\nn\n");
+  });
+
+  test("Markdown content lands verbatim, Obsidian and template syntax included", () => {
+    const f = write("conv-verbatim.md", "# Doc\n\n## Notes\n\nn\n");
+    const body = "See [[#Notes]], {{title}} and `=== code` in a span.\n\n%% an Obsidian comment %%\n\n```\n=== not a fence here\n```\n";
+    const r = run(["set", f, "#notes", "--body", "--in", "-"], body);
+    assert.equal(r.code, 0, r.err);
+    assert.ok(read(f).includes(body), "byte for byte");
+    assert.doesNotMatch(r.err, /converted/);
+  });
+
+  test("a view whose source is not in the content is refused, not written empty", () => {
+    const f = write("conv-view.md", "# Doc\n\n## A\n\nbody\n");
+    const before = read(f);
+    const r = run(["add", f, "--after", "#a", "--in", "-"], '=== view {#v src=#t compute="x = a"}\n===\n');
+    assert.equal(r.code, 1);
+    assert.match(r.err, /converting it to Markdown for .*conv-view\.md would lose data \(table from external source `#t` could not be read/);
+    assert.equal(read(f), before);
+  });
+
+  test("a GEML block already in a .md is left to GEML, and a .geml is not converted at all", () => {
+    const f = write("conv-kept.md", "# Doc\n\n## Notes\n\n=== note {#kept}\nold\n===\n");
+    assert.equal(run(["set", f, "#kept", "--in", "-"], "=== note {#kept}\nnew\n===\n").code, 0);
+    assert.match(read(f), /=== note \{#kept\}\nnew\n===/);
+    const g = write("conv-control.geml", "# D {#top}\n\n## A {#a}\n\nalpha\n");
+    const r = run(["add", g, "--after", "#a", "--in", "-"], "=== note {#tip}\nA *tip*.\n===\n");
+    assert.equal(r.code, 0, r.err);
+    assert.match(read(g), /=== note \{#tip\}\nA \*tip\*\.\n===/);
+    assert.doesNotMatch(r.err, /converted/);
+  });
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
