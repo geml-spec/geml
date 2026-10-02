@@ -1223,6 +1223,75 @@ test("`find` walks a directory for *.geml and skips node_modules", () => {
   assert.doesNotMatch(r.out, /skip\.md/, "only .geml is searched");
 });
 
+// -- the size line: what a read or a write touched, on stderr ---------------
+// stdout carries the document bytes and nothing else. One line on stderr says
+// how much of the file the call touched, so what addressing saves is visible on
+// the first call instead of in a benchmark.
+
+test("get says on stderr how much of the file it read; stdout is unchanged", () => {
+  const f = write("z1.geml", DOC);
+  const r = run(["get", f, "#snippet"]);
+  assert.equal(r.code, 0);
+  assert.equal(r.out, '=== code {#snippet lang=py}\nprint("hi")\nx = 1\n===\n');
+  assert.match(r.err, /^read 50 B of 118 B \(42%\)$/m);
+});
+
+test("the size line counts UTF-8 bytes, not characters, and scales to KB", () => {
+  // 1024 × 汉 is 1024 characters but 3072 bytes: a character count would say 1.0 KB.
+  const f = write("z2.geml", "# A {#a}\n\nx\n\n# B {#b}\n\n" + "汉".repeat(1024) + "\n");
+  const r = run(["get", f, "#a"]);
+  assert.equal(r.code, 0);
+  assert.match(r.err, /^read 13 B of 3\.0 KB \(<1%\)$/m);
+});
+
+test("a file past a megabyte is measured in MB", () => {
+  const f = write("z3.geml", "# A {#a}\n\nx\n\n# B {#b}\n\n" + "y".repeat(1536 * 1024) + "\n");
+  const r = run(["get", f, "#a"]);
+  assert.equal(r.code, 0);
+  assert.match(r.err, /^read 13 B of 1\.5 MB \(<1%\)$/m);
+});
+
+test("get prints no size line for the listing, --json or --view: none is a slice of this file", () => {
+  const f = write("z4.geml", DOC);
+  for (const args of [["get", f], ["get", f, "#snippet", "--json"]]) {
+    const r = run(args);
+    assert.equal(r.code, 0, args.join(" "));
+    assert.doesNotMatch(r.err, /^read /m, args.join(" "));
+  }
+  write("z4-part.geml", "=== note {#tip}\nBorrowed body.\n===\n");
+  const host = write("z4-host.geml", '=== embed {#e src="z4-part.geml#tip"}\n===\n');
+  const v = run(["get", host, "#e", "--view"]);
+  assert.equal(v.code, 0, v.err);
+  assert.match(v.err, /^view: /m, "the provenance line is still there");
+  assert.doesNotMatch(v.err, /^read /m);
+});
+
+test("set's wrote line says how much changed and how much of the file it left alone", () => {
+  const f = write("z5.geml", DOC);
+  // `an aside` (8 B) becomes `X` (1 B); the other 110 of 118 bytes stay put.
+  const r = run(["set", f, "#aside", "--body"], "X\n");
+  assert.equal(r.code, 0, r.err);
+  assert.ok(r.err.split("\n").includes(`wrote ${f} — 1 B changed, 110 B of 118 B untouched`), r.err);
+});
+
+test("set to stdout has no wrote line, so the size line stands on its own", () => {
+  const f = write("z6.geml", DOC);
+  const r = run(["set", f, "#aside", "--body", "-o", "-"], "X\n");
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /=== note \{#aside\}\nX\n===\n$/);
+  assert.match(r.err, /^1 B changed, 110 B of 118 B untouched$/m);
+  assert.doesNotMatch(r.err, /wrote /);
+});
+
+test("a refused set says why and prints no size line: nothing was written", () => {
+  const f = write("z7.geml", DOC);
+  const r = run(["set", f, "#snippet", "--in",
+    write("z7-new.geml", "===== code {#snippet}\nno matching close fence\n"), "-o", f]);
+  assert.equal(r.code, 1);
+  assert.match(r.err, /not written/);
+  assert.doesNotMatch(r.err, /untouched/);
+});
+
 rmSync(dir, { recursive: true, force: true });
 
 console.log(`\n${passed} test(s) passed.`);
@@ -1549,3 +1618,4 @@ test("set: 位置派生地址的散文可以整段换掉 —— 地址由前后�
   assert.match(after, /### B\n\n正文。\n$/);
   rmSync(d, { recursive: true, force: true });
 });
+

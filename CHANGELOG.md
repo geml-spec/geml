@@ -34,6 +34,14 @@ and is released under `viewer-v*` tags.
   sanitizer even though the result is only ever slugged. A scanner does the
   same work; its output matched the old one on 711,111 inputs, and every
   anchor checked against GitHub's renderer still resolves.
+- **`get` and `set` say how much of the file they touched.** A read ends with
+  `read 1.5 KB of 50.7 KB (3%)` on stderr, and the `wrote` line of a `set`
+  reads `wrote README.md — 10 B changed, 50.7 KB of 50.7 KB untouched`, so what
+  addressing saves shows on the first call rather than in a benchmark. The
+  counts are UTF-8 bytes. stdout is unchanged. The listing, `--json` and
+  `--view` print no read line, since none of them is a slice of the file named;
+  a `set` whose document goes to stdout prints its line on its own. The MCP
+  tools' results are unchanged.
 
 ## [1.11.5] — 2026-10-01
 

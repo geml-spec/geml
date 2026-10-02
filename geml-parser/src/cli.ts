@@ -159,8 +159,8 @@ Exit codes:
 // One-line usage for each subcommand — the single source for both the error
 // shown on misuse and the `<cmd> --help` text.
 const SUBHELP = {
-  get: "usage: geml get <file.geml|-> [<selector>] [--within <selector>] [--head|--intro|--body] [--view [--root <dir>]] [--json]  (selector = a filter over blocks: #id | '## Heading' (its whole section) | '=== type' (every block of that type — N matches print N contents, count on stderr) | '=== type@<hex>[~n]' or '@<hex>[~n]' (content address, for blocks with no #id) | L<n> or L<n>-<m> (position — the smallest block that fully contains those lines, so the `L27-58` the listing prints pastes straight back, and a line number from an editor, a linter or a diff hunk becomes a block) | <block>[2][\"name\"] (a unit INSIDE a block, GEP 0011: a table's rows, cells and columns, a `data` block's value tree, and `meta`'s keys as `#meta[\"title\"]` — answered from the model, so it names no span and `--head`/`--body` do not apply); `#id` and `@<hex>` are the short spellings of the brace keys `{#id}` and `{@<hex>}`, which are equally legal with or without a `=== type` in front — the type is then a check, and a wrong one is refused; any OTHER keys in braces filter by attributes — '=== code {lang=py}', '{.warn}', '{#id .warn}': a block or heading matches when its attribute object carries every key given with the same value, 0..N matches, and a `@<hex>` beside other keys is one more condition, so '=== note@<hex> {#id}' names #id only while its content is unchanged; --within <selector> = keep only the matches inside the blocks that selector names (a heading names its whole section); a section cuts three ways — --head = the heading line, --intro = its opening region: everything under it up to its FIRST SUBHEADING (empty when one follows immediately, the whole body when none does; a block has no intro and is refused), --body = everything under it; --view = read THROUGH an `embed` to the entity block it stands for, following a chain to its end (the identity on any other block, and on a section selector — it never splices two documents' bytes together); provenance goes to stderr as `view: <sel> -> <doc>[#<id>]`; read-only, `set` refuses it; chain reads are confined to --root (default: the document's own directory) and never fetched over the network; without a selector: list every addressable block with its shortest unique address, --json = array)",
-  set: "usage: geml set <file.geml|-> <selector> [--head|--intro|--body] [--in F | --in F#src | --in -] [-o out.geml] [--root d]  (selector as in `get`, but it must match exactly ONE block — '=== type' matching several is refused; content: --in F takes F's block #id, --in F#src takes #src, else stdin raw; default = whole block, --head = head line — both normalize the id when the target has one — --body = body, --intro = a heading's opening region up to its first subheading (an empty region INSERTS there); guarded splice, refused if it breaks the doc — but a replacement that REMOVES blocks is carried out and reported on stderr, named ones and unnamed alike, with `geml revert` as the way back (the same stance `delete` takes; the ordinary read-edit-write cycle removes nothing, since `get` handed those blocks over); writing through an @<hex> address prints the new address on stderr)",
+  get: "usage: geml get <file.geml|-> [<selector>] [--within <selector>] [--head|--intro|--body] [--view [--root <dir>]] [--json]  (selector = a filter over blocks: #id | '## Heading' (its whole section) | '=== type' (every block of that type — N matches print N contents, count on stderr) | '=== type@<hex>[~n]' or '@<hex>[~n]' (content address, for blocks with no #id) | L<n> or L<n>-<m> (position — the smallest block that fully contains those lines, so the `L27-58` the listing prints pastes straight back, and a line number from an editor, a linter or a diff hunk becomes a block) | <block>[2][\"name\"] (a unit INSIDE a block, GEP 0011: a table's rows, cells and columns, a `data` block's value tree, and `meta`'s keys as `#meta[\"title\"]` — answered from the model, so it names no span and `--head`/`--body` do not apply); `#id` and `@<hex>` are the short spellings of the brace keys `{#id}` and `{@<hex>}`, which are equally legal with or without a `=== type` in front — the type is then a check, and a wrong one is refused; any OTHER keys in braces filter by attributes — '=== code {lang=py}', '{.warn}', '{#id .warn}': a block or heading matches when its attribute object carries every key given with the same value, 0..N matches, and a `@<hex>` beside other keys is one more condition, so '=== note@<hex> {#id}' names #id only while its content is unchanged; --within <selector> = keep only the matches inside the blocks that selector names (a heading names its whole section); a section cuts three ways — --head = the heading line, --intro = its opening region: everything under it up to its FIRST SUBHEADING (empty when one follows immediately, the whole body when none does; a block has no intro and is refused), --body = everything under it; --view = read THROUGH an `embed` to the entity block it stands for, following a chain to its end (the identity on any other block, and on a section selector — it never splices two documents' bytes together); provenance goes to stderr as `view: <sel> -> <doc>[#<id>]`; read-only, `set` refuses it; chain reads are confined to --root (default: the document's own directory) and never fetched over the network; without a selector: list every addressable block with its shortest unique address, --json = array; a read ends with `read <n> of <file size> (<pct>)` on stderr, in UTF-8 bytes — not for the listing, --json or --view)",
+  set: "usage: geml set <file.geml|-> <selector> [--head|--intro|--body] [--in F | --in F#src | --in -] [-o out.geml] [--root d]  (selector as in `get`, but it must match exactly ONE block — '=== type' matching several is refused; content: --in F takes F's block #id, --in F#src takes #src, else stdin raw; default = whole block, --head = head line — both normalize the id when the target has one — --body = body, --intro = a heading's opening region up to its first subheading (an empty region INSERTS there); guarded splice, refused if it breaks the doc — but a replacement that REMOVES blocks is carried out and reported on stderr, named ones and unnamed alike, with `geml revert` as the way back (the same stance `delete` takes; the ordinary read-edit-write cycle removes nothing, since `get` handed those blocks over); writing through an @<hex> address prints the new address on stderr; the `wrote` line says how many bytes changed and how many of the file's were left untouched, and stands alone on stderr when the document goes to stdout)",
   add: "usage: geml add <file.geml|-> (--append | --before #id | --after #id) [--in F | --in F#src | --in -] [-o out.geml] [--root d]  (insert a GEML fragment — 1+ blocks and/or prose — at a position; --in F takes all of F, --in F#src takes #src, else stdin raw; content keeps its own ids, a collision is refused)",
   delete: "usage: geml delete <file.geml|-> #id [#id2 …] [-o out.geml] [--root d]  (remove one or more blocks; a missing id is skipped with a note, not an error; a reference left dangling is a warning, not a refusal — delete never fails on a live reference)",
   rename: "usage: geml rename <file.geml|-> #old #new [-o out.geml] [--root d]  (rewrite an id's declaration AND every reference — [[#id]], [text](#id), chart data=#id, footnote [^id] — id-boundary safe, skipping raw block bodies; #new must be free; refused if it breaks the doc)",
@@ -1163,16 +1163,54 @@ function writeOut(text: string, out: string | undefined): void {
 // target, so it falls back to stdout. `-o` always wins when given: `-o -`
 // explicitly requests stdout (even for a file input), `-o <path>` writes
 // there. Every write announces itself with `wrote <path>` on stderr; stdout
-// stays reserved for the document bytes so it's still pipeable.
-function resolveOutTarget(file: string, oFlag: string | undefined): { write(text: string): void } {
+// stays reserved for the document bytes so it's still pipeable. A `note` rides
+// on the `wrote` line, or stands alone on stderr when the bytes go to stdout.
+function resolveOutTarget(file: string, oFlag: string | undefined): { write(text: string, note?: string): void } {
   const toFile = (path: string) => ({
-    write(text: string) { writeFileSync(path, text); console.error(`wrote ${path}`); },
+    write(text: string, note?: string) {
+      writeFileSync(path, text);
+      console.error(note ? `wrote ${path} — ${note}` : `wrote ${path}`);
+    },
   });
-  const toStdout = { write(text: string) { process.stdout.write(text); } };
+  const toStdout = {
+    write(text: string, note?: string) {
+      process.stdout.write(text);
+      if (note) console.error(note);
+    },
+  };
   if (oFlag === "-") return toStdout;
   if (oFlag !== undefined) return toFile(oFlag);
   if (file === "-") return toStdout;
   return toFile(file);
+}
+
+// The size line on stderr: how much of the file a `get` or `set` touched, so
+// what addressing saves is visible on the first call. UTF-8 bytes, what a file
+// weighs on disk and in a context window, not characters.
+function fmtBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function readNote(output: string, source: string): string {
+  const got = Buffer.byteLength(output);
+  const all = Buffer.byteLength(source);
+  const pct = got === 0 ? "0%" : got / all < 0.01 ? "<1%" : `${Math.round((got / all) * 100)}%`;
+  return `read ${fmtBytes(got)} of ${fmtBytes(all)} (${pct})`;
+}
+
+// A write changed only the window between the longest common prefix and suffix
+// of the two texts; every byte outside it is identical to the file before.
+function writeNote(before: string, after: string): string {
+  const max = Math.min(before.length, after.length);
+  let p = 0;
+  while (p < max && before.charCodeAt(p) === after.charCodeAt(p)) p++;
+  let s = 0;
+  while (s < max - p && before.charCodeAt(before.length - 1 - s) === after.charCodeAt(after.length - 1 - s)) s++;
+  const untouched = Buffer.byteLength(before.slice(0, p)) + Buffer.byteLength(before.slice(before.length - s));
+  const changed = Buffer.byteLength(after.slice(p, after.length - s));
+  return `${fmtBytes(changed)} changed, ${fmtBytes(untouched)} of ${fmtBytes(Buffer.byteLength(before))} untouched`;
 }
 
 // Positional args (a file, an id) are the non-flag tokens that aren't the value
@@ -1294,6 +1332,9 @@ function runGet(args: string[]): void {
   }
   const r = verb(() => get(source, file, rawSel!, { part, partFlag, json, view, root: flag(args, "--root"), within: flag(args, "--within") }, ctxFor()));
   process.stdout.write(r.output);
+  // --json is the model, not a slice of the file; --view's bytes come from
+  // another document. Either would make this file the wrong denominator.
+  if (!json && !view) console.error(readNote(r.output, source));
 }
 
 // `geml replace <file> <old> <new> [--within <selector>]` — swap a literal
@@ -1361,7 +1402,7 @@ function runSet(args: string[]): void {
   const source = readInput(file);
   const part = headOnly ? "head" : bodyOnly ? "body" : introOnly ? "intro" : "whole";
   const r = verb(() => set(source, file, rawSel, { part, named, content: contentFrom(from) }, ctxFor()));
-  resolveOutTarget(file, out).write(r.text);
+  resolveOutTarget(file, out).write(r.text, writeNote(source, r.text));
 }
 
 // `geml add <file|-> (--append | --before #x | --after #x) [--in F|F#src|-] [-o]`
