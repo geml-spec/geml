@@ -31,7 +31,7 @@ import {
   narrowToIntro, reLit, sectionEndIndex, splitLines, stripEol, toLf, toNewline, trimSpaceTabEnd,
   nameKey, resolveTarget, selectEmbed, vocabularyOf, isMarkdownPath, type WalkOptions } from "./geml.js";
 import { type Unit, type Addressed, type Selector } from "./selector.js";
-import { schemeOf } from "./inline.js";
+import { schemeOf, backtickRun, findCodeSpanClose } from "./inline.js";
 import { parseAttrs } from "./attrs.js";
 import { addressUnits, discoveryHint, matchAttr, matchContent, matchLine, matchType, parseSelector, shortestAddress } from "./selector.js";
 import { type MetaView, metaText, metaView, planCoordWrite, planMetaWrite, projectCoord } from "./coord.js";
@@ -1284,9 +1284,8 @@ function relinkMarkdown(source: string, oldId: string, newId: string): { text: s
         j = end;
         continue;
       }
-      let n = 0;
-      while (out[j + n] === "`") n++;
-      const close = out.indexOf("`".repeat(n), j + n);
+      const n = backtickRun(out, j);
+      const close = findCodeSpanClose(out, j, n); // §5.3(1)
       const end = close < 0 ? j + n : close + n;
       done += out.slice(j, end);
       j = end;

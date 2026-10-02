@@ -197,6 +197,12 @@ export const PROFILES: Record<string, ProfileDef> = {
   // admitting them is inert.
   "geml-form/v1": {
     state: "draft", since: "1.10.0",
+    // GEP-0008's structural rules, held here with the family until the GEP
+    // lands in §3 — as the profile's §1.1 says of the attribute keys: a
+    // `form-*` block is meaningful only inside a `form` (geml.ts checkFormChild),
+    // and a field carries a `name=` no other field of its form carries
+    // (checkFieldName) — the key a handler receives and a coordinate addresses.
+    diagnostics: { "form-child-outside-form": "error", "form-field-missing-name": "error", "form-duplicate-name": "error" },
     // 类型进来了：在 GEP-0008 落到 §3 的核心注册表之前，声明了这个 profile 的文档就能用
     // form-* 家族 —— 和 geml-style 用同一条路。不声明的文档照旧 unknown-block-type。
     types: ["form", "form-field", "form-group", "form-options", "form-note"],
@@ -206,13 +212,13 @@ export const PROFILES: Record<string, ProfileDef> = {
     // GEP-0008 自己的例子会逐键报未知。键的归属是分开的，写在这里只是因为类型还
     // 住在 profile 里：
     //   · 六个约束键（pattern/min/max/step/maxlength/accept）是**这份 profile 的**；
-    //   · 其余是 **GEP-0008 的**（label/description/placeholder/type/required/
+    //   · 其余是 **GEP-0008 的**（name/label/description/placeholder/type/required/
     //     multiple/value/options，form 的 handler，form-options 的表体键）。
     // GEP-0008 一旦落进 §3，后者应当搬到核心的类型表里，这里只留前六个。
     attrs: {
       "form-field": [
         "pattern", "min", "max", "step", "maxlength", "accept",
-        "label", "description", "placeholder", "type", "required", "multiple", "value", "options",
+        "name", "label", "description", "placeholder", "type", "required", "multiple", "value", "options",
       ],
       form: ["handler"],
       "form-group": ["label", "description", "required"],

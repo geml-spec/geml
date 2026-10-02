@@ -41,6 +41,20 @@ const isSafeDest = (d) => {
 // resource and runs nothing.
 const isSafeMedia = (d) => isSafeDest(d) || /^data:image\//i.test(String(d).replace(/[\x00-\x20]/g, ""));
 
+// §5.3(1): a code span opened by the run of n backticks at i closes at the next
+// run of EXACTLY n (CommonMark); -1 when there is none and the run is literal.
+function codeSpanClose(s, i, n) {
+  let j = i + n;
+  while (j < s.length) {
+    const k = s.indexOf("`", j);
+    if (k < 0) return -1;
+    let m = 0; while (s[k + m] === "`") m++;
+    if (m === n) return k;
+    j = k + m;
+  }
+  return -1;
+}
+
 function readBracket(s, i) {
   if (s[i] !== "[") return null;
   let depth = 0;
@@ -98,11 +112,11 @@ function atoms(s) {
       buf += c; i++; continue;
     }
     if (c === "`") {
+      // §5.3(1): the closer is the next run of EXACTLY n backticks; another length is content.
       let n = 0; while (s[i + n] === "`") n++;
-      const fence = "`".repeat(n);
-      const close = s.indexOf(fence, i + n);
+      const close = codeSpanClose(s, i, n);
       if (close >= 0) { atom({ type: "code", value: s.slice(i + n, close) }, i, close + n); i = close + n; continue; }
-      buf += fence; i += n; continue;
+      buf += "`".repeat(n); i += n; continue;
     }
     if (c === "$") {
       const close = s.indexOf("$", i + 1);
@@ -415,7 +429,7 @@ function interp(s, meta) {
     if (c === "`") {
       let n = 0;
       while (s[i + n] === "`") n++;
-      const close = s.indexOf("`".repeat(n), i + n);
+      const close = codeSpanClose(s, i, n); // §5.3(1)
       if (close >= 0) { out += s.slice(i, close + n); i = close + n; continue; }
       out += s.slice(i, i + n); i += n; continue;
     }

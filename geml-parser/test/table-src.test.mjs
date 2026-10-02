@@ -230,12 +230,16 @@ test("a chart naming an unresolvable data file is an error", () => {
 // Source-rule paths that only the fallbacks reach
 // ---------------------------------------------------------------------------
 
-test("a table source that is not a data file is refused", () => {
+test("a table source's suffix does not matter: `format=` decides, and a file that is not there is refused by name", () => {
+  // §6: no suffix gate — the confinement root (§9.4) is the boundary, as it is
+  // for a `code` route. A `.dat` export reads under `format=csv` like any other.
   const dir = workspace();
-  writeFileSync(join(dir, "host.geml"), '=== table {#t src=".env" format=csv}\n===\n');
+  writeFileSync(join(dir, "rows.dat"), "a,b\n1,2\n");
+  writeFileSync(join(dir, "host.geml"), '=== table {#t src=rows.dat format=csv}\n===\n\n=== table {#u src=gone.dat format=csv}\n===\n');
   const r = cli(dir, "check", "host.geml");
-  assert.equal(r.status, 1, "a data source is data — not any file under the base");
-  assert.match(r.stdout + r.stderr, /csv|tsv/, "the message says what a source may be");
+  assert.equal(r.status, 1);
+  assert.match(r.stdout + r.stderr, /cannot resolve table source `gone\.dat`/);
+  assert.doesNotMatch(r.stdout + r.stderr, /rows\.dat/, "the file that is there is read, whatever its suffix");
 });
 
 test("a table source naming an http(s) URL defers to render time, per §9.4", () => {

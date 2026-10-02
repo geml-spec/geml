@@ -255,29 +255,42 @@ without scanning.
 ## 4. Block identity and ids
 
 Reverse patches address blocks by **block identity** (distinct from a *revision*
-id, §8):
+id, §8). Identity is a **unit key**, derived by one rule, so that a sidecar one
+tool wrote is one every tool can verify, reconstruct and extend:
 
-- If a block carries an explicit `#id`, that id is its identity.
-- Otherwise the tool derives a stable key from the block's content hash and its
-  structural position (anchored to the nearest id-bearing block or heading).
-  **The derivation algorithm for id-less blocks is implementation-defined**,
-  which means two implementations may track the same id-less block differently
-  and fall back to coarser deltas. Identity bookkeeping for id-less blocks lives
-  in the `.gemlhistory` file and is **never written back** into the live `.geml`.
-- Unfenced blocks (headings, paragraphs, lists) are addressable by derived key in
-  the same way, so a reverse patch can anchor relative to prose — not only to
-  fenced blocks.
+- A document is tiled into **units** that together reproduce it byte for byte.
+  A unit is a typed block — from its opening fence to the line that closes it
+  as GEML §3 says, an equal-length `=` run or, when the block has an id, its
+  labeled fence `=== #id` — or a **flow segment**: a maximal run of consecutive
+  non-blank lines that open no fence (a heading, a paragraph, a list, or a
+  heading and the paragraph directly under it). Each unit also owns the blank
+  lines that follow it; blank lines before the first unit are a unit of their
+  own.
+- A unit's key is `#<id>` when the unit declares one — a typed block's `#id`, or
+  the explicit `{#id}` on the heading that opens a flow segment — and otherwise
+  `@` followed by the first 8 hexadecimal digits of the SHA-256 of the unit's
+  lines, trailing blank lines excluded, joined by LF and encoded as UTF-8. A
+  heading's *derived* id (GEML §4) is not a key: it changes with the heading's
+  text exactly as the content hash does, and only the explicit id is stable.
+- Keys repeat — two identical paragraphs, two blank runs, an out-of-spec
+  document that writes one id twice — and the second and later occurrences in
+  document order take a `~n` suffix, `n` counting from 1 (`@3f9a1c2e`,
+  `@3f9a1c2e~1`). The keys a revision's `delete` and `replace` name are resolved
+  against the newer version as a whole, before any op is applied; `insert` and
+  `move` anchors are resolved as the ops run.
+
+Identity bookkeeping for id-less units lives in the `.gemlhistory` file and is
+**never written back** into the live `.geml`.
 
 Block ids remain **optional** in the language; this extension does NOT mandate
 ids on any block. Two properties make mandatory ids unnecessary:
 
 1. **Keyframes are full snapshots**, so block matching is used only to make the
    delta between adjacent revisions compact — never to guarantee the correctness
-   of a reconstruction. When an id-less block cannot be matched confidently, the
-   delta degrades to a coarser whole-block replacement, and the nearest keyframe
-   remains an exact fallback.
-2. **Headings auto-derive ids** (core spec §4), so section-level anchors are
-   always available even with no explicit ids in the document.
+   of a reconstruction. When a unit changes, the delta is a whole-unit
+   replacement, and the nearest keyframe remains an exact fallback.
+2. **Flow segments are units too**, so a reverse patch anchors to prose — a
+   paragraph, a list, a heading — by its content key, not only to fenced blocks.
 
 Tools **SHOULD** record an explicit `#id` on blocks that are likely to be
 referenced or revised and that need stable cross-version identity (tables,
@@ -291,9 +304,9 @@ renames requires an explicit id.
 ## 5. Reverse-patch operations
 
 A `history-revision` body is a line-oriented list of operations that transform the
-content of a revision into the content of its `parent`. A **block-key** is
-`#<id>` for an id-bearing block, or a tool-derived key token for an id-less
-block. An **anchor** is one of `at-start`, `at-end`, `after <block-key>`, or
+content of a revision into the content of its `parent`. A **block-key** is a
+unit key as §4 derives it — `#<id>`, or `@` and eight hex digits, either with a
+`~n` occurrence suffix. An **anchor** is one of `at-start`, `at-end`, `after <block-key>`, or
 `before <block-key>`.
 
 | Operation | Undoes (in the newer revision) | Effect (toward the parent) |

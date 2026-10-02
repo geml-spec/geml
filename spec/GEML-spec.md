@@ -233,7 +233,10 @@ columns). An item indented *more* than the current item's marker opens a nested
 list under that item; an item indented *less* closes back to an enclosing list. A
 **blank line** between two sibling items makes the list **loose** (otherwise it is
 **tight**); blank lines do not otherwise end a list. A list ends at the first line
-that is neither blank nor an item line at or below its indentation.
+that is neither blank nor an item line at or below its indentation, and at an
+item line of the other **kind** at its own indentation: an ordered item after
+unordered ones, or the reverse, ends the list and opens a new one, while `-` and
+`*` are both unordered markers and continue the same list.
 A `%%` comment line (§4) is not an item line and therefore ends the list;
 it is then recognized as a comment at block level.
 
@@ -418,7 +421,9 @@ of a name.
 A line of three or more backticks opens nothing — GEML has one code block,
 `=== code` — but a **matched pair** of such lines **shields** what lies between
 them from the scan above: no fence, heading, list or `%%` line inside is a
-construct there, and the region stays what it already was, flow text. The shield
+construct there, and the region stays what it already was, flow text — a blank
+line inside the pair still ends a paragraph, because the shield suppresses the
+recognition of constructs, not the paragraph break. The shield
 is what keeps an example from becoming a definition — a block written inside a
 Markdown fence to SHOW the syntax would otherwise take an id, enter the
 document’s address space and be rewritten by an editing tool, and nothing would
@@ -683,8 +688,13 @@ exactly when the slice is itself a value.
   word is a string. Arrays, dates and nested tables are not supported.
 - A bare attribute word with no `=` is a boolean flag set to `true` (e.g.
   `hidden`).
-- A `=== meta` block holds document metadata as one `key=val` per line, using
-  the value typing above. If a document contains multiple `=== meta` blocks,
+- A `=== meta` block holds document metadata as one `key=val` per line: the key
+  is the text before the first `=` and the value everything after it, each
+  trimmed of surrounding whitespace, and the value is typed as above. A value
+  that is neither quoted, a boolean nor a number is a string however it is
+  spelled — `title = hello world` is the string `hello world`, with no quotes
+  needed, because a `meta` line is not an attribute object and nothing in it
+  ends at whitespace. If a document contains multiple `=== meta` blocks,
   their keys are merged; the **first** definition of a key takes precedence —
   a later definition of the same key is a `duplicate-meta-key` **warning** and
   is ignored. Which blocks count is the ordinary nesting rule of §3: a `=== meta`
@@ -813,9 +823,10 @@ node of a `data` block's value tree (§3.2), or a key of the merged `#meta` (§4
   `summary` is the only one this specification defines. Rows are **1-based** and
   a value tree's sequences are **0-based**: the first is a line a reader counts,
   the second is JSON.
-- A table written with no header row carries letter column names (`A`, `B`, …),
-  which are the same names `compute=` and `summary=` read (§6) — one column
-  namespace, not two.
+- A table written with no header row carries letter column names — `A` to `Z`,
+  then `AA` to `ZZ`, then `AAA`, as a spreadsheet letters its columns — which
+  are the same names `compute=` and `summary=` read (§6): one column namespace,
+  not two.
 - `[` MUST NOT occur in a NAME (§4), so a coordinate can never be read as part of
   an id, and a document written before coordinates existed cannot change meaning.
   A coordinate composes with cross-document addressing unchanged
@@ -859,7 +870,12 @@ parse to every input.
 
 1. Backslash escapes (`\` + ASCII punctuation → that literal character; `\` at
    line end → hard break), code spans, and inline math; their contents are not
-   parsed further.
+   parsed further. A code span opens at a run of *n* backticks and closes at
+   the next run of **exactly** *n* backticks — CommonMark's rule: a run of any
+   other length inside it is content, which is how a span carries a backtick
+   (`` ``a`b`` `` is one span, and `` `a``b` `` is one span, not two), and an
+   opening run with no such closer is literal text, after which scanning
+   resumes. The content between the runs is verbatim; no space is trimmed.
 2. Metadata interpolations (`{{key}}`); replaced with the scalar value.
 3. Images (`![alt](src)`), links, auto-refs (`[[#id]]`), inline projections (`![[#id]]`), and footnote refs (`[^id]`); a link or
    ref MUST NOT nest inside another link or ref.
@@ -970,6 +986,11 @@ fences and all — is a paragraph.* The example resolves to:
 | Services | 45.2 | 47.8 | 49.1 | 52.6 | 168.0 | 194.7 | 15.9% |
 | **Total** | **257.8** | **263.6** | **282.2** | **306.6** | **1010** | **1110.2** | **9.9%** |
 
+- **Header** — a data body's first row is its header unless `header=false`
+  (or `header=0`) says otherwise. `header` is a boolean (§4): `true`/`1` is the
+  default and need not be written, and any other value reads as the default. A
+  headerless body carries spreadsheet letter column names (`A`…`Z`, `AA`…;
+  §5.2) and is as wide as its widest row.
 - **Delimiter** — a data body splits on its format's natural delimiter: `,` for
   `format=csv`, a tab for `format=tsv`. `delim=` overrides it with any single
   character, so a European `;`-separated CSV or a `|`-delimited export is
@@ -991,18 +1012,24 @@ fences and all — is a paragraph.* The example resolves to:
   never dropped silently.
 - **Data from elsewhere** — instead of an inline body, a table MAY name where its
   data comes from. For a `table` block that is the `src=` attribute (a `diagram`
-  spells the same idea `data=`; see Appendix B.3), and it takes one of three
-  targets: a data file with `format=csv`/`tsv` (a path relative to the document,
-  or an `http(s)` URL). A `src=` that names a **block** — `#id`, or
-  `doc.geml#id` — is an **error** naming `view` (§6.1): a block's output is
+  spells the same idea `data=`; see Appendix B.3), and it names a **data file**:
+  a path relative to the document, or an `http(s)` URL, read under the block's
+  `format=csv`/`tsv` — the file's suffix does not matter. A `src=` that names a **block** — `#id`,
+  or `doc.geml#id` — is an **error** naming `view` (§6.1): a block's output is
   something another block derived, and a table holding facts someone else
-  derived would be neither. A local-path target MUST be resolved and
-  existence-checked at build time — an unresolvable one is an error. Only the `src` text — never
-  the resolved contents — enters the `.gemlhistory` hash. A table MUST NOT carry
-  both `src` and an inline body (an error). Because the data arrives at render
-  time, the column names used by `compute` and by a referencing `geml-chart` are
-  validated then, not at build time. Inlining stays the default; `src` is an
-  explicit choice.
+  derived would be neither. A **local** file is read at **build time**: a
+  processor MUST resolve it, read it, and parse its lines exactly as it would
+  parse them written in the body — under the block's own `format=`, `header=`
+  and `delim=` — so its rows are the table's model, and a column name a `view`
+  or a `geml-chart` reads from it is checked then, like any other. A file that
+  cannot be resolved, and a URL in any scheme other than `http(s)`, are each
+  `unresolvable-table-source` (Appendix A). A **remote** `http(s)` file is the exception: it is fetched by
+  the renderer, never the parser (§9.4), so the table has no rows at build time
+  and the column names a `view` or a chart reads from it are validated when the
+  data is — by the renderer. Only the `src` text — never the resolved contents —
+  enters the `.gemlhistory` hash. A table MUST NOT carry both `src` and an
+  inline body (an error). Inlining stays the default; `src` is an explicit
+  choice.
 
 The four rules that follow — computed columns, results a cell cannot hold, the
 summary row, and the display format — define the **grammar** `compute=` and
@@ -1066,7 +1093,11 @@ A `view` publishes a relation **derived** from another one. It takes **no body**
 — a body alongside `src=` is an error — and a **required `src=`** naming a data
 file (`rows.csv`), a block in this document (`#tickets`), or a block in another
 (`other.geml#tickets`). A `src=` that resolves to a block which is neither a
-`table` nor a `view` is an error: it publishes no relation to derive from.
+`table` nor a `view` is an error: it publishes no relation to derive from. A data
+file is read as a table's `src=` reads one (§6): a local file at build time —
+`tsv` when its suffix is `.tsv`, `csv` otherwise, its first row the header — a
+remote `http(s)` one at render time; one that cannot be resolved or names
+another scheme is `unresolvable-table-source`.
 
 - **Selection.** `where="<expr>"` keeps rows; `order="<key>[ asc|desc][, …]"`
   sorts, `asc` being the default; `limit=<n>` takes the first *n* after
@@ -1156,9 +1187,10 @@ graph LR
 ### 7.1 Data-bound charts
 
 A `diagram` MAY declare a data source with `data=`, taking the same three
-target forms as a table's `src=` (§6): a data file (`.csv`/`.tsv`
-document-relative path or `http(s)` URL, standing for an anonymous table;
-or a local `.json`/`.jsonl` file for an anonymous record source); `#id`
+target forms as a table's `src=` (§6): a data file (a document-relative path
+or `http(s)` URL standing for an anonymous table, read as `tsv` when its
+suffix is `.tsv` and as `csv` otherwise; or a local `.json`/`.jsonl` file for
+an anonymous record source); `#id`
 naming a block in this document; or `doc.geml#id` naming a block in another
 document. The processor MUST resolve the reference and supply a **table
 model** to the renderer. A `table` block contributes its model (computed
@@ -1191,9 +1223,10 @@ block which publishes the column.
 - `rows` — `data` (default, summary row excluded), `all` (data + the summary row
   as one extra point), or `summary` (only the summary row).
 - Column names, the `data` id, and `rows` are validated against the table:
-  a typo'd column or a dangling id is a build error. (If the table's data is
-  external and fetched at render time per §9.4, column validation is deferred
-  to the renderer).
+  a typo'd column or a dangling id is a build error. A local data file is read
+  at build time, as a table's `src=` is (§6), so its columns are checked then
+  too; only when the data is remote — an `http(s)` URL fetched at render time
+  per §9.4 — is column validation deferred to the renderer.
 - Charts that need more (annotations, reference lines, heatmaps, …) use a hosted
   DSL instead: `=== diagram {format=vega-lite data=#fy25}` with the spec in the
   body. The body is raw and NOT column-checked.
@@ -1424,7 +1457,9 @@ input. It MUST NOT overflow its call stack, abort, or fail to produce a model.
 The bounds are implementation-defined; a processor SHOULD admit at least 64
 levels of each, which is far past any document written to be read. *The
 reference implementation admits 256 levels of block and list nesting and 100 of
-inline nesting.*
+inline nesting.* The depth of a transclusion or `view` chain (§9.3) is a
+different bound, and a fixed one — 16 — because two processors have to agree on
+where a chain stops.
 
 A processor MUST NOT construct a regular expression, a shell command, or any
 other executable form from document-controlled text without escaping that text
@@ -1443,7 +1478,22 @@ make it loop:
   processor collects the target document's ids *without* resolving that
   document's own references, so two documents that reference each other
   terminate when validating references.
-- **Content transclusion** (an `embed` block or inline projection expanding its target in-place) is recursive. A processor MUST track the chain of expanded documents and stop if a document transcludes a target in a document already being expanded in that chain, emitting a `transclusion-cycle` error.
+- **Content transclusion** (an `embed` block or inline projection expanding its
+  target in place) is recursive, and is bounded twice. **Cycles:** a processor
+  MUST track the chain of documents being expanded and report
+  `transclusion-cycle` when a step names a target in a document already on that
+  chain — counted per document, so `a → b → a#z` is a cycle whether or not `#z`
+  would lead back. A target in the document that names it opens no new document
+  and is not, by itself, a cycle: `=== embed {src=#local}` is ordinary. It is one
+  when the transclusion lies inside the very content it selects — an `embed` of
+  a heading's section written in that section, a projection of the paragraph
+  that holds it. **Depth:** a chain of nested expansions MUST NOT be followed
+  past **16**: the sixteenth nested `embed` or projection is expanded, the
+  seventeenth is not, and what stands in its place is the renderer's (§8.3). The
+  same bound holds for a `view`'s `src=` chain (§6.1), where a chain of more than
+  16 views is `view-source-too-deep`. The number is fixed rather than
+  implementation-defined like §9.2's because it is observable: two processors
+  MUST agree on whether the seventeenth link of a chain is expanded.
 - **Computed columns** (§6) are evaluated in declaration order, and a formula
   sees only data columns and *earlier* computed columns. A self-reference or a
   forward reference is therefore not a cycle but an unknown column, reported as
@@ -1480,6 +1530,13 @@ not at the rendering sink, so that every consumer of the model inherits it. The
 check MUST ignore leading and embedded characters in the range U+0000–U+0020
 when determining the scheme, because user agents strip them before acting on a
 URL — `java&#9;script:` is `javascript:`.
+
+One exception is admitted, for media alone. A media embed `![…](…)` (§5.1) MAY
+name a `data:` URL whose media type is an image — `data:image/png;base64,…` — so
+that a generated document can carry a small picture without a second file. The
+check admits `data:` only there and only for `image/…`: in a link, and for any
+other `data:` type, it is refused like any other scheme. The conformance suite's
+`safety.json` pins both halves.
 
 A renderer emitting a markup format MUST escape document-controlled text for
 the position it occupies — element text, attribute value, or URL — and MUST
@@ -1554,14 +1611,13 @@ original file.
 | `unchecked-cross-document-reference` | warning | A cross-document reference was found, but the processor was given no document resolver, so its target could not be verified. |
 | `embed-missing-src` | error | An `embed` block carries no `src=`, so it names no content. |
 | `ignored-embed-body` | warning | An `embed` block has a body. The content it stands for lives in `src=`; the body is ignored. |
-| `transclusion-cycle` | error | A chain of block transclusions returns to a document already being expanded. The chain is reported and expansion stops; it is never followed. |
+| `transclusion-cycle` | error | A chain of transclusions returns to a document already being expanded, or a transclusion lies inside the very content it selects (§9.3). The chain is reported and expansion stops; it is never followed. |
 | `embed-target-not-geml` | error | An `embed` block names a target that is not a `.geml` document. Its bytes are never parsed as GEML. |
 | `media-target-is-document` | error | A media embed `![](…)` points at a GEML document. Block content cannot be expanded in inline position; the `embed` block is the form for it. |
 | `inline-transclusion-not-inline` | error | An inline projection `![[…]]` names a target that is not inline content — not a single-paragraph `text` block, nor a coordinate naming one value or a whole row (§5.2). Block content cannot be expanded inside a sentence; the `embed` block is the form for it. |
 | `embed-target-not-projectable` | error | An `embed`'s `src=` is a coordinate naming neither one value nor a whole row of a `table` or `view` — a whole column, or a value-tree node holding more nodes (§5.2). |
 | `unsafe-embed-scheme` | error | An `embed` block names a URL scheme outside the allowlist of §9.5. The attribute is blanked in the model as well as reported, so no consumer can emit it. |
-| `unresolvable-table-source` | error | A table's `src=` names a data file that cannot be resolved. |
-| `table-source-not-a-table` | error | A table's `src=` names a block that exists but is not a table. |
+| `unresolvable-table-source` | error | A `table`'s or `view`'s `src=`, or a `geml-chart`'s `data=`, names a data file that cannot be resolved, or a URL scheme other than `http(s)` (§6, §7.1). |
 | `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
 | `unrecognized-vocabulary` | warning | A name in `=== meta`'s `profile` list (§8.6) is one this processor does not recognize. It admits nothing, every type it would have admitted keeps the `raw` body of an unknown type, and the reader's view of the document is to that extent incomplete. The document is valid: this reports what the processor lacks, never a fault in the document. |
 | `unknown-meta-key` | warning | A `=== meta` key lies inside a declared vocabulary's namespace — it begins with that vocabulary's prefix (`media-` for `geml-media/v1`) — and the vocabulary does not define it (§8.6). Only the namespace is checked: `=== meta` also carries the DOCUMENT's own metadata, which is the author's and open, so a key with no vocabulary prefix is never reported. |
@@ -1595,7 +1651,7 @@ holds facts and derives nothing.
 | `table-source-is-block` | error | A `table`'s `src=` names a block rather than a data file. A block target is another block's output, and a table holding facts someone else derived is what `view` is for. |
 | `view-source-not-a-relation` | error | A view's `src=` names a block that is neither a `table` nor a `view`, so it publishes no relation to derive from. |
 | `view-source-cycle` | error | A chain of `src=` references returns to where it started. Every view in the cycle is named, because none of them can be resolved first (§9.3). |
-| `view-source-too-deep` | error | A chain of views is deeper than §9.3's bound, which is the one a nested `embed` has. Each view past the bound is named and none of them publishes rows. |
+| `view-source-too-deep` | error | A chain of views is more than 16 long — §9.3's bound, the one a nested `embed` has. Each view past the bound is named and none of them publishes rows. |
 | `view-where-error` | error | A `where=` expression is not a comparison the grammar defines — an unclosed quote, a missing right-hand value, a column where an operator belongs, or a name no column carries. |
 | `view-numeric-column-required` | error | A `where=` compares a column against a number and no row of that column holds one. The filter could only ever match nothing, which is a typo rather than a state. |
 | `view-unknown-column` | error | A `by=`, `order=`, `select=` or `aggregate=` names a column the relation does not carry. |
@@ -1643,7 +1699,7 @@ holds facts and derives nothing.
 | `data-format-no-engine` | warning | The `format=` names a RESERVED format (`yaml`, `toml`, `edn`) this processor ships no engine for. The body is kept raw and not verified — never guessed at. |
 | `bad-data-schema` | error | `schema=` is not a block reference (`#id`) or a GEML document reference (`doc.geml[#id]`). |
 | `data-src-and-body` | error | A `data` block carries both `src=` and an inline body; exactly one is permitted (§3.2). The body wins. |
-| `bad-data-source` | error | A data source does not name a data file its target admits (`src=`: `.json`/`.jsonl`/`.yaml`/`.yml`; a chart's `data=` file form: `.json`/`.jsonl`) — or a remote json/jsonl chart source was named without a `data` block to defer on. |
+| `bad-data-source` | error | A data source does not name a data file its target admits (a `data` block's `src=`: `.json`/`.jsonl`/`.yaml`/`.yml`) — or a remote json/jsonl chart source was named without a `data` block to defer on. |
 | `unresolvable-data-source` | error | A data source could not be resolved, or names a disallowed URL scheme. |
 | `unresolvable-code-source` | warning | A `code` block route could not be resolved, so it was not checked. A warning, not an error: the block still names a region of code, so a graph read away from its sources stays valid (§3.3). |
 | `bad-code-source` | error | A `code` block route names a disallowed URL scheme (§3.3). |

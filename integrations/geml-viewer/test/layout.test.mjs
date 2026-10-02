@@ -604,13 +604,13 @@ test("geml-form/v1 的控件：七种 type 各画成什么，options=#id 从哪�
   const doc = parse('=== meta\nprofile = "geml-form/v1"\n===\n'
     + '=== form-options {#plans format=csv}\nvalue,label\nbasic,Basic\npro,Pro\n===\n'
     + '==== form {#f handler=onboarding}\n'
-    + '=== form-field {#a label="Name" type=text required maxlength=40 placeholder="Full name"}\n===\n'
-    + '=== form-field {#b label="Bio" type=textarea}\n===\n'
-    + '=== form-field {#c label="Revenue" type=number min=0 max=99999 step=1}\n===\n'
-    + '=== form-field {#d label="When" type=date}\n===\n'
-    + '=== form-field {#e label="Agree" type=boolean}\n===\n'
-    + '=== form-field {#g label="Plan" type=select options=#plans}\n===\n'
-    + '=== form-field {#h label="Licence" type=file accept=".pdf,image/*"}\n===\n'
+    + '=== form-field {#a name=a label="Name" type=text required maxlength=40 placeholder="Full name"}\n===\n'
+    + '=== form-field {#b name=b label="Bio" type=textarea}\n===\n'
+    + '=== form-field {#c name=c label="Revenue" type=number min=0 max=99999 step=1}\n===\n'
+    + '=== form-field {#d name=d label="When" type=date}\n===\n'
+    + '=== form-field {#e name=e label="Agree" type=boolean}\n===\n'
+    + '=== form-field {#g name=g label="Plan" type=select options=#plans}\n===\n'
+    + '=== form-field {#h name=h label="Licence" type=file accept=".pdf,image/*"}\n===\n'
     + '=== form-note {#n}\nWe never share it.\n===\n'
     + '====\n');
   const { document } = dom();
@@ -801,7 +801,7 @@ profile = "geml-style/v1"
 === style-rule {#c match="text#doc" when="$tab=Code" color=red}
 ===
 `;
-  const doc = '=== meta\nprofile = "geml-form/v1"\n===\n=== form-options {#views format=csv}\nvalue,label\nPreview,Preview\nCode,Code\n===\n=== form-field {#view type=select options=#views value=Preview}\n===\n=== text {#doc}\nbody\n===\n';
+  const doc = '=== meta\nprofile = "geml-form/v1"\n===\n=== form-options {#views format=csv}\nvalue,label\nPreview,Preview\nCode,Code\n===\n=== form-field {#view name=view type=select options=#views value=Preview}\n===\n=== text {#doc}\nbody\n===\n';
   const { vm, model, sheet: loaded } = vmOf(sheet, doc);
   const { document } = dom();
   const state = createState(vm, document);
@@ -827,7 +827,7 @@ profile = "geml-style/v1"
 === style-rule {#seg match="form-field#view" component=segments}
 ===
 `;
-  const doc = '=== meta\nprofile = "geml-form/v1"\n===\n=== form-options {#views format=csv}\nvalue,label\nPreview,Preview\nCode,Code\nBlame,Blame\n===\n=== form-field {#view type=select options=#views value=Preview}\n===\n';
+  const doc = '=== meta\nprofile = "geml-form/v1"\n===\n=== form-options {#views format=csv}\nvalue,label\nPreview,Preview\nCode,Code\nBlame,Blame\n===\n=== form-field {#view name=view type=select options=#views value=Preview}\n===\n';
   const { vm, model, sheet: loaded } = vmOf(sheet, doc);
   const { document } = dom();
   const state = createState(vm, document);

@@ -1,11 +1,15 @@
 {
   "profile": "geml-form/v1",
   "state": "draft",
-  "codes": {},
+  "codes": {
+    "form-child-outside-form": "error",
+    "form-field-missing-name": "error",
+    "form-duplicate-name": "error"
+  },
   "cases": [
     {
       "name": "a form holds addressable fields, so recognizing the vocabulary ADDS an address",
-      "geml": "=== meta\nprofile = \"geml-form/v1\"\n===\n\n==== form {#signup}\n=== form-field {#email label=\"Email\" required}\n===\n====\n",
+      "geml": "=== meta\nprofile = \"geml-form/v1\"\n===\n\n==== form {#signup}\n=== form-field {#email name=email label=\"Email\" required}\n===\n====\n",
       "addresses": {
         "declared": [
           "#meta",
@@ -21,6 +25,100 @@
         "declared": [],
         "undeclared": [
           "unknown-block-type:warning"
+        ]
+      }
+    },
+    {
+      "name": "a form-* block outside a form is GEP-0008's error once the vocabulary is recognized; without it, an unknown type",
+      "geml": "=== meta\nprofile = \"geml-form/v1\"\n===\n\n=== form-field {#email label=\"Email\"}\n===\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#email"
+        ],
+        "undeclared": [
+          "#meta",
+          "#email"
+        ]
+      },
+      "diagnostics": {
+        "declared": [
+          "form-child-outside-form:error"
+        ],
+        "undeclared": [
+          "unknown-block-type:warning"
+        ]
+      }
+    },
+    {
+      "name": "a form-field without name= is GEP-0008's error: the name is the key its handler receives and the step a coordinate addresses it by",
+      "geml": "=== meta\nprofile = \"geml-form/v1\"\n===\n\n==== form {#signup}\n=== form-field {label=\"Email\" type=text}\n===\n====\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#signup"
+        ],
+        "undeclared": [
+          "#meta",
+          "#signup"
+        ]
+      },
+      "diagnostics": {
+        "declared": [
+          "form-field-missing-name:error"
+        ],
+        "undeclared": [
+          "unknown-block-type:warning"
+        ]
+      }
+    },
+    {
+      "name": "a name is unique within its form, a group adds no namespace, and another form may reuse it",
+      "geml": "=== meta\nprofile = \"geml-form/v1\"\n===\n\n===== form {#signup}\n=== form-field {name=email label=\"Email\" type=text}\n===\n==== form-group {#contacts label=\"Contacts\"}\n=== form-field {name=email label=\"Contact email\" type=text}\n===\n====\n=====\n\n==== form {#vendor}\n=== form-field {name=email label=\"Vendor email\" type=text}\n===\n====\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#signup",
+          "#contacts",
+          "#vendor"
+        ],
+        "undeclared": [
+          "#meta",
+          "#signup",
+          "#vendor"
+        ]
+      },
+      "diagnostics": {
+        "declared": [
+          "form-duplicate-name:error"
+        ],
+        "undeclared": [
+          "unknown-block-type:warning",
+          "unknown-block-type:warning"
+        ]
+      }
+    },
+    {
+      "name": "a field is addressed by GEP-0011's coordinate on its form or group, and a reference to it says its label; a field needs no id",
+      "geml": "=== meta\nprofile = \"geml-form/v1\"\n===\n\n===== form {#signup}\n=== form-field {name=email label=\"Email address\" type=text}\n===\n==== form-group {#contacts label=\"Contacts\"}\n=== form-field {name=role label=\"Role\" type=text}\n===\n====\n=====\n\nSee [[#signup[\"email\"]]], [[#signup[\"role\"]]] and [[#contacts[\"role\"]]].\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#signup",
+          "#contacts"
+        ],
+        "undeclared": [
+          "#meta",
+          "#signup"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning",
+          "unresolved-reference:error",
+          "unresolved-reference:error",
+          "unresolved-reference:error"
         ]
       }
     }

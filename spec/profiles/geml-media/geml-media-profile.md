@@ -238,11 +238,12 @@ entry's `params` — so the same document composes on a cel-style pipeline with
 
 **A comp is hashed like a prompt.** An entry whose `prompt` names a comp carries
 `prompt-sha256` = the hash of the comp's **canonical text**: derived from the
-model, not sliced from the source — the type, the id and the attributes sorted by
-key, one line for the comp and one per layer in document order, LF, UTF-8.
-Reordering attributes or whitespace changes nothing; `x=300` becoming `x=340`
-stales the entry. Each layer's asset is an `inputs[]` entry, so a regenerated
-stand stales it too.
+model, not sliced from the source — one line for the comp, one per layer and one
+per interaction, each the type, the id and the attributes sorted by key; §6
+spells the lines out. Reordering attributes or whitespace changes nothing;
+`x=300` becoming `x=340` stales the entry, and so does a moved point, because an
+interaction line carries the coordinates it resolved to. Each layer's asset is
+an `inputs[]` entry, so a regenerated stand stales it too.
 
 `geml media compose <doc>#<comp> --out <file.png> [--log <library.geml> [--as '#id']]`
 renders one comp with ffmpeg: a transparent canvas of `size`, each layer cropped,
@@ -320,12 +321,32 @@ lose: the JSON is validated by the core, every entry and field has a coordinate
 | `model` | yes | model name, free string, version included |
 | `mode` | yes | `t2i`, `i2v`, `t2v`, `tts`, `lipsync`, `upscale`, `composite`, `other` |
 | `prompt` | conditional | the prompt, line, comp or interaction block (§5.1, §5.2) |
-| `prompt-sha256` | with `prompt` | the hash of the prompt **after projections are expanded**: the string the model saw |
+| `prompt-sha256` | with `prompt` | the hash of the prompt **after projections are expanded**: the string the model saw, as defined below |
 | `prompt-refs[]` | with `prompt` | `{ref, sha256}` for **each block the prompt projects**. `prompt-sha256` alone can only say "the prompt changed"; this says *which source* changed |
 | `inputs[]` | no | `{ref, sha256, role?}`: reference images, LoRAs, key frames, voice samples, the take and voice-overs a lip-sync consumes, a ComfyUI workflow |
 | `seed`, `params` | no | a seed; an open map |
 | `at` | yes | ISO-8601 |
 | `cost`, `tool`, `prompt-text`, `error` | no | a number; where it ran; the full prompt for reproducibility; why it failed |
+
+**What `prompt-sha256` hashes** is fixed here so that two tools agree on it: the
+SHA-256 of the UTF-8 bytes of the text below, which carries no trailing newline.
+
+- For a `media-text` line, or any other **prose** prompt, the text is the block's
+  first paragraph rendered to plain text: literal text as written; a code span or
+  inline math as its body; emphasis, strong, strikethrough and a link as the text
+  they wrap; an inline projection `![[…]]` as the projected block's text by this
+  same rule, recursively, to GEML §9.3's transclusion depth bound — a projection
+  that does not resolve contributes nothing; an auto-reference as the value it
+  carries when it names a coordinate, else nothing; an image embed, a hard break
+  and a footnote reference contribute nothing.
+- For a `media-comp`, the text is its **canonical text**: one line for the comp,
+  then one per `media-layer` in document order, then one per `media-interaction`
+  in document order, joined by LF. A line is the block's type, its `#id` when it
+  has one, and its attributes sorted by key as `key=value`, all separated by one
+  space, a value written as its text (`true` for a bare flag). On an interaction
+  line the `a=` and `b=` values carry the point they resolved to: the written
+  value, `@`, then the point's `x,y` as the asset's `points=` gives them —
+  `a=#s05-sister:hand@562,522` — or `@?` when the point does not resolve.
 
 **Staleness is evaluated on the entry whose `output-sha256` matches the asset's
 current value**, and it propagates down the lineage graph: a stale voice-over

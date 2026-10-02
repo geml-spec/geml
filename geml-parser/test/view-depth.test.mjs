@@ -37,12 +37,12 @@ test("--view follows a chain of frames to the entity block at its end", () => {
 
 test("a chain still not on an entity block at the cap is an error, never a frame", () => {
   const dir = mkdtempSync(join(tmpdir(), "geml-view-deep-"));
-  // Twelve frames pointing at the next, past any cap, and the last one at a
-  // note — so the ONLY reason to stop early is the cap itself.
-  for (let i = 0; i < 12; i++) {
+  // Twenty frames pointing at the next, past the cap of 16 (§9.3), and the last
+  // one at a note — so the ONLY reason to stop early is the cap itself.
+  for (let i = 0; i < 20; i++) {
     writeFileSync(join(dir, `f${i}.geml`), `=== embed {#f${i} src=f${i + 1}.geml#f${i + 1}}\n===\n`);
   }
-  writeFileSync(join(dir, "f12.geml"), "=== note {#f12}\nthe end\n===\n");
+  writeFileSync(join(dir, "f20.geml"), "=== note {#f20}\nthe end\n===\n");
   const r = cli(dir, "get", "f0.geml", "#f0", "--view");
   assert.equal(r.status, 1, "a chain that does not arrive is a failed read");
   assert.match(r.stderr, /depth|hops/i, "and it says the cap is why");

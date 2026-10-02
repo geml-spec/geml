@@ -333,8 +333,10 @@ GEML 的解法是 **Profile（应用层词汇表，规范 §8.6）**：**一行�
 profile = "geml-style/v1 geml-form/v1"
 ===
 
-=== form-field {#email label="工作邮箱" type=email required pattern="[^@]+@acme\\.com"}
+==== form {#signup handler=subscribe}
+=== form-field {name=email label="工作邮箱" type=text required pattern="[^@]+@acme\\.com"}
 ===
+====
 
 === style-rule {#cta match="button.cta" bg="{{brand}}" radius="6px"}
 ===

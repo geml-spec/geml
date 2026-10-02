@@ -46,6 +46,13 @@ GEP-0008 的，不是这份 profile 的。**
 GEP-0008 落地之后，那些键搬回核心的逐类型表，这份 profile 只留六个。无论哪一边，profile
 **定义**的东西都没有变，下面 §4 照旧。
 
+GEP 的结构规则也这样随行，对声明了这份 profile 的文档生效，一致性文件列了这些码，因为 GEP
+落地之前，让 `form-*` 成为一个家族的就是这份 profile：`form-*` 块出现在 `form` 之外——字段不
+直接在 form 或 group 里、group 套 group、选项表或说明不直接在 form 里——是
+`form-child-outside-form`（**error**）；`form-field` 没有 `name=` 是 `form-field-missing-name`
+（**error**）；同一张表单里两个字段同名是 `form-duplicate-name`（**error**）。name 是 handler
+收到的键，也是坐标寻址字段用的那一步——`#vendor["phone"]`——所以字段不需要 id。
+
 ## 2. 六个键
 
 都只用于 `form-field`。值都是字符串，下表说 handler 应当怎么读。键落在不匹配的 `type=`
@@ -97,9 +104,9 @@ GEP-0008 落地之后，那些键搬回核心的逐类型表，这份 profile �
 
 - `unknown-attribute`——未声明 profile 时的约束键；
 - `unknown-field-type`——七个之外的 `type=` 值；
-- `form-child-outside-form`、`form-field-has-body`、`options-not-form-options`、
-  `note-not-form-note`、`unused-form-block`、`duplicate-id`——GEP-0008 的家族诊断，不受本
-  profile 影响。
+- `form-child-outside-form`、`form-field-missing-name`、`form-duplicate-name`、
+  `form-field-has-body`、`options-not-form-options`、`note-not-form-note`、
+  `unused-form-block`、`duplicate-id`——GEP-0008 的家族诊断，不受本 profile 影响。
 
 检查器可以在值按键自身的规则读不通时额外 warning——`number` 上的 `min=abc`、不是合法
 正则的 `pattern=`——但不得当作 error：文档仍是数据。
@@ -112,13 +119,13 @@ profile = "geml-form/v1"
 ===
 
 ==== form {#vendor handler=onboarding}
-=== form-field {#revenue label="年营收（百万元）" type=number
+=== form-field {#revenue name=revenue label="年营收（百万元）" type=number
                min=0 max=99999 step=1 description="整数。"}
 ===
-=== form-field {#phone label="手机" type=text required pattern="^[+0-9 ]+$"
+=== form-field {#phone name=phone label="手机" type=text required pattern="^[+0-9 ]+$"
                placeholder="+86 138 0000 0000"}
 ===
-=== form-field {#licence label="营业执照" type=file required accept=".pdf,image/*"}
+=== form-field {#licence name=licence label="营业执照" type=file required accept=".pdf,image/*"}
 ===
 ====
 ```

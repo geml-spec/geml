@@ -54,6 +54,18 @@
     "diagnostics": []
   },
   {
+    "name": "letter column names continue past Z as a spreadsheet's do: AA follows Z",
+    "geml": "=== table {#w format=csv header=0}\n1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27\n===\n\nAA1: [[#w[1][\"AA\"]]].\n",
+    "want": "table([\"A\",\"B\",\"C\",\"D\",\"E\",\"F\",\"G\",\"H\",\"I\",\"J\",\"K\",\"L\",\"M\",\"N\",\"O\",\"P\",\"Q\",\"R\",\"S\",\"T\",\"U\",\"V\",\"W\",\"X\",\"Y\",\"Z\",\"AA\"] [\"1\",\"2\",\"3\",\"4\",\"5\",\"6\",\"7\",\"8\",\"9\",\"10\",\"11\",\"12\",\"13\",\"14\",\"15\",\"16\",\"17\",\"18\",\"19\",\"20\",\"21\",\"22\",\"23\",\"24\",\"25\",\"26\",\"27\"]) \"AA1: \" ref(\"#w[1][\\\"AA\\\"]\" -> \"27\") \".\"",
+    "diagnostics": []
+  },
+  {
+    "name": "header= is a boolean: false reads no header, any other value reads the default",
+    "geml": "=== table {#n format=csv header=false}\nk,v\n===\n\n=== table {#h format=csv header=yes}\nk,v\na,1\n===\n",
+    "want": "table([\"A\",\"B\"] [\"k\",\"v\"]) table([\"k\",\"v\"] [\"a\",\"1\"])",
+    "diagnostics": []
+  },
+  {
     "name": "a row index past the last row does not resolve",
     "geml": "=== table {#t format=csv header=1}\nSegment, Q1\nCloud, 8\n===\n\nX: [[#t[2]]].\n",
     "want": "table([\"Segment\",\"Q1\"] [\"Cloud\",\"8\"]) \"X: \" ref(\"#t[2]\") \".\"",

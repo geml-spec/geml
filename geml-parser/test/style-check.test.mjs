@@ -98,13 +98,14 @@ test("求解：同属性冲突时最特定的赢（情况 1，设计 §4.3）", 
   assert.equal(binding(vm, "#plain").params.component, "data-table");
 });
 
-test("求解：条件集相同 + 同属性 = ambiguous-rule 错误（情况 2）", () => {
+test("求解：条件集相同 + 同属性 = ambiguous-rule 警告，先写的规则生效（情况 2）", () => {
   const vm = resolve(
     '=== style-rule {#a match="table.kpi" component=x}\n===\n\n' +
     '=== style-rule {#b match="table.kpi" component=y}\n===\n'
   );
   assert.deepEqual(codes(vm.diagnostics), ["style-ambiguous-rule"]);
-  assert.equal(vm.diagnostics[0].severity, "error");
+  assert.equal(vm.diagnostics[0].severity, "warning");
+  assert.equal(binding(vm, "#kpi").params.component, "x", "§4：先写的规则的值进绑定");
   assert.match(vm.diagnostics[0].message, /#a/);
   assert.match(vm.diagnostics[0].message, /#b/);
   // 情况 2 的补救办法和情况 3 不同：并集在这里是不可能执行的建议
@@ -112,13 +113,21 @@ test("求解：条件集相同 + 同属性 = ambiguous-rule 错误（情况 2）
   assert.doesNotMatch(vm.diagnostics[0].message, /union/);
 });
 
-test("求解：不可比 + 同属性 = ambiguous-rule 错误，并给出并集写法（情况 3）", () => {
+test("求解：不可比 + 同属性 = ambiguous-rule 警告，并给出并集写法（情况 3）", () => {
   const vm = resolve(
     '=== style-rule {#a match="table.kpi" component=x}\n===\n\n' +
     '=== style-rule {#b match="table[sortable]" component=y}\n===\n'
   );
   assert.deepEqual(codes(vm.diagnostics), ["style-ambiguous-rule"]);
   assert.match(vm.diagnostics[0].message, /neither is more specific/);
+  assert.equal(binding(vm, "#kpi").params.component, "x", "先写的规则生效；后写的值不进绑定");
+  // 互换先后：生效的跟着"谁先写"走，而且照样报 —— 顺序起作用的地方总被说出来
+  const flipped = resolve(
+    '=== style-rule {#b match="table[sortable]" component=y}\n===\n\n' +
+    '=== style-rule {#a match="table.kpi" component=x}\n===\n'
+  );
+  assert.deepEqual(codes(flipped.diagnostics), ["style-ambiguous-rule"]);
+  assert.equal(binding(flipped, "#kpi").params.component, "y");
 });
 
 test("求解：冲突对着语料判 —— 从不共现的规则不报错（设计 §4.3）", () => {
@@ -190,15 +199,16 @@ test("CLI：干净的样式表 exit 0", () => {
   assert.match(r.out, /0 error/);
 });
 
-test("CLI：ambiguous-rule 让构建失败（exit 1）", () => {
+test("CLI：ambiguous-rule 是警告 —— 报出来，构建不失败（exit 0）", () => {
   w("bad.geml",
     '=== meta\nprofile = "geml-style/v1"\n===\n\n' +
     '=== style-rule {#a match="table.kpi" component=x}\n===\n\n' +
     '=== style-rule {#b match="table[sortable]" component=y}\n===\n');
   w("c2.geml", '=== meta\ntitle = "c"\n===\n\n=== table {#kpi .kpi format=csv sortable}\na,b\n1,2\n===\n');
   const r = cli("style", "check", p("bad.geml"), p("c2.geml"));
-  assert.equal(r.code, 1);
-  assert.match(r.err + r.out, /ambiguous-rule/);
+  assert.equal(r.code, 0);
+  assert.match(r.out, /warning: style-ambiguous-rule/);
+  assert.match(r.out, /0 error\(s\), 1 warning\(s\)/);
 });
 
 test("CLI：--json 吐出视图模型 —— 本 profile 的一致性面（设计 §8）", () => {
@@ -589,16 +599,16 @@ test("分层：层号先于特异性 —— 下层更具体的规则也压不过
 });
 
 test("分层：ambiguous-rule 仍然在**层内**成立 —— §4 没被架空", () => {
-  // 层只解决跨层。同一层里条件不可比的两条规则照旧是错误，补救办法也照旧是
+  // 层只解决跨层。同一层里条件不可比的两条规则照旧要报，补救办法也照旧是
   // 「写并集」。这一条钉住扩展的边界：别让层号悄悄把 §4 整个吃掉。
   const content = w("ac.geml", "=== note {#hero}\nhi\n===\n");
   const sh = w("ash.geml", '=== meta\nprofile = "geml-style/v1"\n===\n\n'
     + '=== style-rule {#byType match="note" component=section}\n===\n\n'
     + '=== style-rule {#byId match="#hero" component=hero}\n===\n');
   const r = cli("style", "check", sh, content);
-  assert.equal(r.code, 1, "层内不可比 —— 这是 error，构建该失败");
-  assert.match(r.err, /ambiguous-rule/);
-  assert.match(r.err, /union of both selectors/, "层内的补救办法仍是写并集");
+  assert.equal(r.code, 0, "层内不可比 —— 这是 warning，构建不失败");
+  assert.match(r.out, /ambiguous-rule/);
+  assert.match(r.out, /union of both selectors/, "层内的补救办法仍是写并集");
 });
 
 test("分层：同一份被指派成 default-style 自己时，不当两层读", () => {
@@ -1022,15 +1032,15 @@ test("embed：目标文档是空的，也点名说出来", () => {
 });
 
 test("embed：嵌套超过深度上限时停下并说出上限", () => {
-  for (let i = 0; i <= 9; i++) {
-    const next = i < 9
+  for (let i = 0; i <= 17; i++) {
+    const next = i < 17
       ? `=== embed {#e src="deep${i + 1}.geml"}\n===\n`
       : '=== style-rule {#leaf match="table" component=x}\n===\n';
     w(`deep${i}.geml`, '=== meta\nprofile = "geml-style/v1"\n===\n\n' + next);
   }
   const c = w("deep-c.geml", "=== table {#t}\n| a |\n|---|\n| 1 |\n===\n");
   const r = cli("style", "check", p("deep0.geml"), c);
-  assert.match(r.out + r.err, /deeper than 8/);
+  assert.match(r.out + r.err, /deeper than 16/);
 });
 
 test("sitemap：不匹配的行被跳过，匹配的那行才加载", () => {
@@ -1439,11 +1449,14 @@ test("简写与单边：同层两条规则一个写 border、一个写某边 →
   const flipped =
     '=== style-rule {#two match="text#a" border-left="0"}\n===\n\n' +
     '=== style-rule {#one match="text" border="1px solid red"}\n===\n';
-  for (const [name, body] of [["原序", first], ["互换", flipped]]) {
-    const d = resolveStyle(sheet(body), [{ path: "p.geml", doc }])
-      .diagnostics.filter((x) => x.code === "style-ambiguous-rule");
+  for (const [name, body, kept, dropped] of [["原序", first, "border", "border-left"], ["互换", flipped, "border-left", "border"]]) {
+    const vm = resolveStyle(sheet(body), [{ path: "p.geml", doc }]);
+    const d = vm.diagnostics.filter((x) => x.code === "style-ambiguous-rule");
     assert.equal(d.length, 1, name);
     assert.match(d[0].message, /a shorthand and one of its sides in the same layer/, name);
+    // 先写的词留下，后写的词不进绑定 —— 宿主永远不会同时发出这一对
+    assert.ok(kept in vm.bindings[0].box, `${name}: ${kept} 该留下`);
+    assert.ok(!(dropped in vm.bindings[0].box), `${name}: ${dropped} 该被丢掉`);
   }
 });
 

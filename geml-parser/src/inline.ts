@@ -77,6 +77,34 @@ export interface RefSink {
 
 const MAX_INLINE_NESTING = 100; // cap parseInline<->scanAtoms recursion (R2-7 DoS)
 
+/** Length of the backtick run starting at `i`. */
+export function backtickRun(s: string, i: number): number {
+  let n = 0;
+  while (s[i + n] === "`") n++;
+  return n;
+}
+
+/**
+ * §5.3(1): where the code span opened by the run of `n` backticks at `i`
+ * closes — the index of the next run of EXACTLY `n` backticks (CommonMark's
+ * rule), or -1 when there is none, in which case the opening run is literal
+ * text. A run of any other length is content, which is how `` ``a`b`` ``
+ * carries a backtick and why `` `a``b` `` is one span, not two. Shared with the
+ * heading-id derivation (§4 step 3) and the Markdown importer, so a code span
+ * is one thing everywhere.
+ */
+export function findCodeSpanClose(s: string, i: number, n: number): number {
+  let j = i + n;
+  while (j < s.length) {
+    const k = s.indexOf("`", j);
+    if (k < 0) return -1;
+    const m = backtickRun(s, k);
+    if (m === n) return k;
+    j = k + m;
+  }
+  return -1;
+}
+
 // §4: the source pattern of a `{{key}}` metadata reference. Owned here as the
 // single definition of what a reference looks like — the parser substitutes it
 // (geml.ts), the serializer escapes it on emit (serialize.ts), and the md
@@ -287,18 +315,17 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth: number, p: Pai
       continue;
     }
 
-    // §5.3(1): code span — matched by run length, content kept raw.
+    // §5.3(1): code span — opened by a run of n backticks, closed by the next
+    // run of EXACTLY n (findCodeSpanClose); content kept raw.
     if (c === "`") {
-      let n = 0;
-      while (s[i + n] === "`") n++;
-      const fence = "`".repeat(n);
-      const close = s.indexOf(fence, i + n);
+      const n = backtickRun(s, i);
+      const close = findCodeSpanClose(s, i, n);
       if (close >= 0) {
         atom({ type: "code", value: s.slice(i + n, close) }, i, close + n);
         i = close + n;
         continue;
       }
-      buf += fence;
+      buf += "`".repeat(n);
       i += n;
       continue;
     }

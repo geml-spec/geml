@@ -157,9 +157,14 @@ function resolveDelim(fmt: string, raw: Value | undefined, diagnostics: TableDia
   return natural;
 }
 
+// §5.2: spreadsheet column letters — A…Z, AA…ZZ, AAA… (bijective base 26).
 function letters(n: number): string[] {
   const out: string[] = [];
-  for (let i = 0; i < n; i++) out.push(String.fromCharCode(65 + i));
+  for (let i = 0; i < n; i++) {
+    let s = "";
+    for (let k = i; k >= 0; k = Math.floor(k / 26) - 1) s = String.fromCharCode(65 + (k % 26)) + s;
+    out.push(s);
+  }
   return out;
 }
 
@@ -363,7 +368,8 @@ export function parseTable(
       diagnostics.push({ severity: "error", code: "table-src-and-body", message: "table has both `src` and an inline body; provide one, not both" });
     }
     const headerAttr = attrs["header"];
-    const header = headerAttr === undefined ? true : headerAttr === true || headerAttr === 1 || headerAttr === "1";
+    // §6: a boolean; `false`/`0` reads none, anything else is the default.
+    const header = !(headerAttr === false || headerAttr === 0 || headerAttr === "0" || headerAttr === "false");
     const model: TableModel = { header, columns: [], align: [], rows: [], src };
     const caption = attrs["caption"];
     if (typeof caption === "string") model.caption = caption;
@@ -373,7 +379,8 @@ export function parseTable(
   let raw: RawGrid;
   if (fmt === "csv" || fmt === "tsv") {
     const headerAttr = attrs["header"];
-    const header = headerAttr === undefined ? true : headerAttr === true || headerAttr === 1 || headerAttr === "1";
+    // §6: a boolean; `false`/`0` reads none, anything else is the default.
+    const header = !(headerAttr === false || headerAttr === 0 || headerAttr === "0" || headerAttr === "false");
     raw = parseDelimited(body, resolveDelim(fmt, attrs["delim"], diagnostics), header);
   } else {
     if (fmt !== undefined) diagnostics.push({ severity: "warning", code: "unknown-table-format", message: `unknown table format \`${fmt}\`; parsed as visual grid` });

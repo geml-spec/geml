@@ -229,8 +229,8 @@ test("geml-form/v1：声明了 profile 的文档，form-* 家族是注册类型�
   const doc = parse('=== meta\nprofile = "geml-form/v1"\n===\n\n'
     + '==== form {#f handler=onboarding}\n'
     + '=== form-options {#plans format=csv delim=;}\nvalue ; label\nbasic ; Basic\npro ; Pro\n===\n'
-    + '=== form-field {#plan label="Plan" type=select options=#plans}\n===\n'
-    + '=== form-field {#phone label="Mobile" type=text required pattern="^[+0-9 ]+$"}\n===\n'
+    + '=== form-field {#plan name=plan label="Plan" type=select options=#plans}\n===\n'
+    + '=== form-field {#phone name=phone label="Mobile" type=text required pattern="^[+0-9 ]+$"}\n===\n'
     + '=== form-note {#n}\nWe never share it.\n===\n'
     + '====\n');
   assert.deepEqual(doc.diagnostics.filter((d) => d.severity !== "info"), [], JSON.stringify(doc.diagnostics));
@@ -245,6 +245,21 @@ test("geml-form/v1：声明了 profile 的文档，form-* 家族是注册类型�
   // 没声明 profile 的文档照旧不认
   const bare = parse("=== form-field {#x type=text}\n===\n");
   assert.ok(bare.diagnostics.some((d) => d.code === "unknown-block-type"), "不声明就不认，profile 是门票");
+});
+
+test("geml-form/v1：字段必须带 name=，同一表单内唯一；分组不另开命名空间；另一张表单可以复用（GEP-0008）", () => {
+  const pre = '=== meta\nprofile = "geml-form/v1"\n===\n\n';
+  const codes = (src) => parse(src).diagnostics.map((d) => d.code).sort();
+  assert.deepEqual(codes(pre + '==== form {#f}\n=== form-field {label="Email" type=text}\n===\n====\n'), ["form-field-missing-name"]);
+  assert.deepEqual(codes(pre + '==== form {#f}\n=== form-field {name="" label="Email"}\n===\n====\n'), ["form-field-missing-name"], "空字符串不算名字");
+  const dup = parse(pre + '===== form {#f}\n=== form-field {name=email}\n===\n==== form-group {#g}\n=== form-field {name=email}\n===\n====\n=====\n');
+  assert.deepEqual(dup.diagnostics.map((d) => d.code), ["form-duplicate-name"]);
+  assert.equal(dup.diagnostics[0].line, 9, "报在后写的那个字段上");
+  assert.deepEqual(codes(pre + '==== form {#a}\n=== form-field {name=email}\n===\n====\n\n==== form {#b}\n=== form-field {name=email}\n===\n====\n'), [], "name 是表单作用域的");
+  // 游离在 form 外的字段只报 form-child-outside-form：先放对位置，再谈名字
+  assert.deepEqual(codes(pre + '=== form-field {label="x"}\n===\n'), ["form-child-outside-form"]);
+  // 不声明 profile：form-* 不被认得，也就没有这些检查
+  assert.deepEqual(codes('==== form {#f}\n=== form-field {label="Email"}\n===\n====\n'), ["unknown-block-type"]);
 });
 
 // ---------------------------------------------------------------------------

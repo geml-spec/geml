@@ -11,12 +11,13 @@ issue: (pending)
 
 Register `form` as a typed block, and with it a family of four child types
 that are meaningful only inside one — `form-field`, `form-group`,
-`form-options`, `form-note` — whose **ids live in the form's own scope**. A
-field is referenced as `[[#signup#email]]`, a field in a group as
-`[[#vendor#contacts#email]]`: the same `#` narrowing operator GEML already
-uses at two levels (`other.geml#id`, `path#L14-24`), applied once or twice
-more. Groups do not nest, so three segments is the maximum. A `form` is
-self-contained: everything a renderer or a handler needs is inside its fences.
+`form-options`, `form-note`. Every field carries a **`name=`**, the key its
+handler receives, unique within its form; a field is addressed by that name
+with [GEP 0011](0011-inner-unit-coordinates.md)'s coordinate —
+`[[#signup["email"]]]`, `geml get '#signup["email"]'` — and needs no id of
+its own, though it may carry one like any block. Groups do not nest. A `form`
+is self-contained: everything a renderer or a handler needs is inside its
+fences.
 
 A `form` block **describes** a form; it never **is** one. §9.1 says a `code`
 block's body "MUST NOT be run"; §8.3 gains the symmetric clause: a conforming
@@ -72,12 +73,12 @@ addressability, and agent-editability by block. A form is one of the few
 structures where the **field itself** is what a reader references, an agent
 edits, and a history reverts:
 
-1. `[[#signup#email]]` in prose becomes a checked reference — rename the field
-   and the build fails instead of the prose quietly lying.
-2. `geml get '#signup#email'` / `geml set` edits one field, rather than
-   rewriting the whole table around it.
-3. `.gemlhistory` versions the field; `geml revert '#signup#email'` rolls back
-   one field.
+1. `[[#signup["email"]]]` in prose becomes a checked reference — remove or
+   rename the field and the build fails instead of the prose quietly lying.
+2. `geml get '#signup["email"]'` reads one field, and `geml set` on a field's
+   `{#id}` edits it, rather than rewriting the whole table around it.
+3. `.gemlhistory` versions the field as a block of its own; `geml revert`
+   rolls back one field.
 
 None of the three is available when the fields live inside a table's cells.
 
@@ -100,7 +101,7 @@ which is the pattern §9.1 already blesses for `diagram`.
 
 ```
 ==== form {#signup handler=subscribe}
-=== form-field {#email label="Email address" type=text required}
+=== form-field {#email name=email label="Email address" type=text required}
 ===
 === form-options {#plans format=csv delim=;}
 value ; label
@@ -108,7 +109,7 @@ basic ; Basic
 pro   ; Pro
 team  ; Team
 ===
-=== form-field {#plan label="Plan" type=select options=#plans}
+=== form-field {#plan name=plan label="Plan" type=select options=#plans}
 ===
 ====
 ```
@@ -148,8 +149,8 @@ reasons a first draft with bare names ran into.
   unambiguous **error** (`form-child-outside-form`) rather than an unknown
   type with a raw body.
 
-**Every `form-*` block is meaningful only inside a `form`, and every `form-*`
-id lives in the form's scope** (§ *Field ids*). `form-field` may sit in a
+**Every `form-*` block is meaningful only inside a `form`**, and a field is
+addressed by its `name=` (§ *Fields are named*). `form-field` may sit in a
 form or in a group; `form-group`, `form-options` and `form-note` sit directly
 in the form, and a group holds only fields. A heading or a paragraph inside a form is not a `form-*` block
 and keeps its ordinary, document-level behaviour. The consequence is that a
@@ -174,6 +175,7 @@ and re-measurable, and a third written against a deliberately complex form
 
 | | where | why |
 |---|---|---|
+| `name=` | attribute, **required**: a NAME (§4) | the key the handler receives the value under, and the step a coordinate addresses the field by — `#signup["email"]` (§ *Fields are named*). Unique within the form; a group adds no namespace; free to recur in another form. HTML's `<input name>` is the precedent, and every form library asks for it. Missing: `form-field-missing-name`, an **error**; repeated within a form: `form-duplicate-name`, an **error** |
 | `label=` | attribute: plain text, or `#id` of a `form-note` | measured: **9/9** fields in the next.js form have a label and every one is a single short line, so plain text is the common case. Absent, a renderer shows the field id. A label that wants a link points at a `form-note` (§ *Prose, headings and form-note*) |
 | `description=` | attribute: plain text, or `#id` of a `form-note` | the help text shown with the control. Plain for one line; a `form-note` for links, bold or several paragraphs |
 | `placeholder=` | attribute: plain text, or `#id` of a `form-note` | the grey text an empty control shows. It vanishes on input, where `description` stays. Same rule as the other two for uniformity; a renderer flattens a `form-note` here to plain text, since a placeholder cannot carry markup |
@@ -197,9 +199,10 @@ dropdown has 44 options and **23 of them contain spaces**, so a
 space-separated attribute is dead on arrival, and §4 has no arrays.
 `form-options` has a table body — `format=csv`/`tsv`, `delim=`, and `src=` to
 bring a long list in from a file, all as §3 defines them for `table` — and is
-its own type so that a table is never two things. `options=` names one by the
-id it has in the enclosing form (`options=#plans` inside `#signup` means
-`#signup#plans`); naming a `table`, or nothing, is an **error**. The
+its own type so that a table is never two things. `options=` names one by its
+id (`options=#plans`), and the target MUST be a `form-options` of the
+enclosing form; naming a `table`, one in another form, or nothing, is an
+**error**. The
 contract: the **first column** is the value submitted; a column headed
 `label` is the text shown, and because cells parse inline it may carry a link
 or bold — what GitHub's `checkboxes` options support and a plain string list
@@ -223,10 +226,10 @@ draft-mode      ; Draft Mode
 create-next-app ; create-next-app
 turbopack       ; [Turbopack](https://example.invalid/turbopack)
 ===
-=== form-field {#area label="Which area(s) are affected?" type=select multiple required
+=== form-field {#area name=area label="Which area(s) are affected?" type=select multiple required
                options=#areas}
 ===
-=== form-field {#version label="Next.js version" type=text required
+=== form-field {#version name=version label="Next.js version" type=text required
                pattern="^\d+\.\d+\.\d+" placeholder="15.0.3"}
 ===
 ====
@@ -263,11 +266,11 @@ repetition, a multi-valued field has none.
 ```
 ==== form-group {#contacts label="Contacts" required
                 description="At least one; add as many as needed."}
-=== form-field {#name label="Name" type=text required}
+=== form-field {#name name=name label="Name" type=text required}
 ===
-=== form-field {#email label="Email" type=text pattern="^[^@]+@[^@]+$" required}
+=== form-field {#email name=email label="Email" type=text pattern="^[^@]+@[^@]+$" required}
 ===
-=== form-field {#role label="Role" type=select options=#roles}
+=== form-field {#role name=role label="Role" type=select options=#roles}
 ===
 ====
 ```
@@ -278,15 +281,17 @@ repetition, a multi-valued field has none.
   not one of its attributes — there is nothing for it to add.
 - A group sits directly in a form and holds only fields: **groups do not
   nest**. No trial form had a repeating group inside a repeating group, and
-  not nesting fixes the scope depth at two (form, then group), the address at
-  three segments, and the fence at five `=` — no downstream tool has to walk a
-  recursive scope. A `form-group` inside a `form-group` is an error
+  not nesting fixes the structure at two levels (form, then group) and the
+  fence at five `=` — no downstream tool has to walk a recursive structure. A
+  `form-group` inside a `form-group` is an error
   (`form-child-outside-form`, the same one that catches a stray field). It
   waits for an instance, as `multiple`'s split did.
 - A group is a shape of structure, not a shape of value, which is why it is a
   type of its own and not a `type=` value.
-- A group's fields are addressed **through** it: `#vendor#contacts#email`.
-  Address depth follows nesting depth (§ *Field ids*).
+- A group's fields are fields of the form: their names share the form's
+  namespace, and `#vendor["email"]` reaches a field inside a group as
+  `#contacts["email"]` does; a group adds structure, not an address level
+  (§ *Fields are named*).
 - A group is **not** the way to put a heading over a run of fields — a heading
   does that (§ *Prose, headings and form-note*). A non-repeating composite is
   not defined (*Deliberately not defined*).
@@ -310,7 +315,7 @@ bold, a second paragraph — is a `form-note`, and the field points at it:
 Read the [code of conduct](https://example.invalid/coc) first. Ticking the box
 accepts its **anti-bribery** and **data protection** clauses.
 ===
-=== form-field {#agree label="I have read and accept the code of conduct" type=boolean required
+=== form-field {#agree name=agree label="I have read and accept the code of conduct" type=boolean required
                description=#coc-note}
 ===
 ```
@@ -381,64 +386,60 @@ heading covers the visual case; and no trial form had a composite value that
 was not also a list. It waits for an instance, as `multiple`'s split did.
 
 **Nested groups** — a repeating group inside a repeating group. No trial form
-had one, and not admitting it bounds the id scope at two levels for every
-downstream tool (*Drawbacks* 1). It waits for an instance too.
+had one, and not admitting it bounds the structure at two levels for every
+downstream tool. It waits for an instance too.
 
-### Field ids are scoped to their form
+### Fields are named, and addressed by coordinate
 
-This is the substantive change to §4. Today the id space is flat and document
--wide. A `form` opens a nested scope; every `form-*` block inside it — field,
-group, options list, note — takes its id **in that scope**, and a `form-group`
-opens one further scope for its fields. Groups do not nest, so there are at
-most two nested scopes. The document-level id space contains only the form's
-own id, plus the ids of any headings inside the form, which are not `form-*`
-blocks and stay document-level.
+Every `form-field` carries `name=`: the key its form's handler receives the
+value under, HTML's `<input name>`. It is **required** — a field without one
+is `form-field-missing-name`, an error, because a handler cannot receive a
+value under no key and a document cannot know when a field will be referenced
+— and it is **unique within the form**: two fields of one form with the same
+name are `form-duplicate-name`, an error, reported on the later one. A
+`form-group` adds structure, not a namespace, so a field inside a group shares
+its form's names. Another form may use the same names freely: `email` in
+`#signup` and `email` in `#vendor` are two keys to two handlers.
 
-- **Address**: one `#` per level — `[[#signup#email]]`,
-  `[[#vendor#contacts#email]]`, `[[#report#areas]]` for an options list.
-  Three segments is the maximum.
-- **Cross-document**: `other.geml#vendor#contacts#email`, composing with §5.2
-  unchanged.
-- **Duplicate detection**: two `form-*` blocks with the same id in one scope,
-  whatever their types, is a `duplicate-id` error, exactly as at document
-  level; the same id in two different scopes — two forms, or two groups — is
-  fine, which is the whole point.
-- **A bare `[[#email]]` does not resolve to a field**, and neither does a
-  partial path — `[[#vendor#email]]` for a field that lives in `#contacts`.
-  From outside a form, its contents are reachable only through the full path.
-  This keeps the flat document space flat.
-- **Inside a form, a `form-field`'s `#` attributes resolve relative to it.**
-  `options=`, `label=`, `description=` and `placeholder=` name a `form-*`
-  block *of the enclosing form* — `options=#plans`, `description=#coc-note` —
-  because that is the only place their target can be, and writing
-  `#signup#plans` there would name a path that does not exist inside
-  `#signup`. These are the only relative references in GEML, confined to the
-  attributes of one type that cannot point anywhere else; every other `#` in a
-  document is absolute, and a `form-note` or `form-options` has no attribute
-  pointing back.
+A field is **addressed by that name**, with [GEP 0011](0011-inner-unit-coordinates.md)'s
+coordinate on the form or the group that holds it: `#signup["email"]`,
+`#contacts["role"]`, and across documents `forms.geml#signup["email"]`. A
+`form` and a `form-group` thereby carry inner units the way a `table` carries
+rows; the step names a field as a quoted string or a bare word, and a position
+(`[1]`) is refused, because a form's fields are a set of names, not a
+sequence. The answer is the field block: `geml get '#signup["email"]'` prints
+it as written and `--json` gives its attributes, id included when it has one.
+A reference `[[#signup["email"]]]` resolves while the field exists and **says
+the field's label** (its name when it has none), linking to the form; a
+projection `![[#signup["email"]]]` and an `embed` of one are refused, because
+a field is a control, not content. `geml set` on a field coordinate is refused
+too: a field is a block of its own, and a field that is to be edited by
+address carries an `{#id}` and is edited by that.
 
-`#` is the separator because GEML already uses it as *the* narrowing operator
-at two levels — `other.geml#id` narrows a document to a block, `path#L14-24`
-narrows a file to a line range. A field is the same operation one level in,
-and a field in a group is the same operation once more.
+A field's **`#id` is optional** and, when present, an ordinary id in §4's one
+flat, document-wide space: `[[#signup-email]]`, `geml get '#signup-email'`,
+`.gemlhistory` and a style selector reach it as they reach any block, and two
+fields writing the same id are the `duplicate-id` error §4 defines. The id is
+for tools that address blocks; the name is for the handler, and for the
+reader who wants to say "the email field of the signup form" without inventing
+a document-wide name for it.
 
-**The separator is unambiguous by the existing NAME rule.** §4 constrains a
-conforming id to letters, digits, `-`, `_`; the reference implementation warns
-on anything else (`id 'a#email' is not a NAME`). A conforming id therefore
-cannot contain `#`, so `#a#b#c` has exactly one reading. No existing conforming
-document changes meaning.
+A `form-field`'s `#` attributes — `options=`, `label=`, `description=`,
+`placeholder=` — are ordinary absolute references. What is checked is the
+**target's place**: it MUST be a `form-*` block of the enclosing form
+(`options-not-form-options`, `note-not-form-note`), so a form stays
+self-contained without a second address grammar. A nested id scope was
+weighed and is recorded under *Alternatives considered*.
 
-Unnamed inner units — a table's cells, a `data` block's value tree — take
-coordinates rather than ids; that is
-[GEP 0011](0011-inner-unit-coordinates.md)'s. This rule stays here, scoped to
-the `form-*` family, because it has exactly one consumer: §3's registry holds
-no other container-mode type to generalize it from.
+Unnamed inner units — a table's cells, a `data` block's value tree — are
+GEP 0011's; it owns the bracket syntax a field is addressed with here, and
+what a step means is decided by the block it lands on.
 
 ### The destination
 
 ```
 ==== form {#subscribe-form handler=subscribe}
-=== form-field {#email label="Email address" type=text required}
+=== form-field {#email name=email label="Email address" type=text required}
 ===
 ====
 ```
@@ -463,22 +464,24 @@ application layer's act.
 
 - **Parsers** gain five registered types — `form` (flow), `form-field` (empty
   body), `form-group` (flow, `form-field` children only), `form-options` (a
-  table body), `form-note` (flow) — and a nested id scope for `form` and, one
-  level down, `form-group`; groups do not nest, so the depth is bounded at
-  two. Reference resolution gains one production (`#a#b`), applied at most
-  twice; §9.3's termination argument is unaffected — a field address is still
-  a lookup per level, not a traversal. A `form-field`'s `#` attributes resolve
-  within the enclosing form.
+  table body), `form-note` (flow); groups do not nest, so the structure is
+  bounded at two levels. Reference resolution gains one carrier: a `form` and
+  a `form-group` answer GEP 0011's coordinate with the field the step names
+  (`#signup["email"]`), a reference to it says the field's label, and a
+  projection of it is refused; a `form-field`'s `#` attributes are ordinary
+  references whose target MUST lie in the enclosing form.
 - **Diagnostics** gain: `form-child-outside-form` (**error**; a `form-*`
   block outside a `form`, or a `form-group` / `form-options` / `form-note`
   anywhere but directly in one — the usual cause is a `form` fence one `=`
-  too short), `form-field-has-body` (warning), `unknown-field-type` (warning; the
+  too short), `form-field-missing-name` (**error**; a field without `name=`),
+  `form-duplicate-name` (**error**; two fields of one form sharing a name,
+  reported on the later), `form-field-has-body` (warning), `unknown-field-type` (warning; the
   field renders as `text`), `options-not-form-options` (**error**; `options=`
   names something other than a `form-options` in this form),
   `note-not-form-note` (**error**; a `#` in `label=`, `description=` or
   `placeholder=` names something other than a `form-note` in this form),
   `unused-form-block` (warning; a `form-options` or `form-note` no field
-  points at), and `duplicate-id` applied per scope.
+  points at); `duplicate-id` applies as §4 defines it.
 - **§8.5** gains the converse sentence: an extension type name SHOULD NOT
   begin with a registered type name followed by `-`.
 - **Renderers** gain the MUST NOT of §8.3(5). A renderer that ignores `form`
@@ -487,11 +490,13 @@ application layer's act.
 - **A profile**, `geml-form/v1`, admitting the six constraint keys on
   `form-field`. It is added to `spec/profiles/README.md` and to the reference
   implementation's profile registry, and needs nothing from §3.
-- **The conformance suite** gains cases for: id scoping at two and three
-  levels; `#a#b#c` resolution; a `form-group` inside a `form-group` (error); a
-  partial path failing to resolve; duplicate
-  ids within one scope across `form-*` types; the same id across two scopes; a
-  bare `[[#field]]` failing to resolve; `options=` naming a `table` (error)
+- **The conformance suite** gains cases for: a field referenced by coordinate
+  on its form and on its group, the reference saying the label; a projection
+  of a field (error); a field without `name=` (error); two fields of one form
+  sharing a name (error) and the same name in two forms (clean); a field
+  carrying an id beside its name; a `form-group` inside a `form-group` (error); duplicate
+  ids across `form-*` types (error); `options=` naming a `form-options` of
+  another form (error); `options=` naming a `table` (error)
   and a missing block (error); `description=#id` naming a `form-note`, a
   `form-options` (error) and nothing (error); a `label=` whose plain text
   happens to contain a `#` after its first character; an unknown `type=` value
@@ -502,15 +507,27 @@ application layer's act.
 
 ## Alternatives considered
 
-**Document-global field ids.** Zero specification change: authors write
-`#signup-email` and live with it. Rejected because a 30-field form injects 30
-names into the document space, and two forms that both have an `email` field
-collide — `duplicate-id`, for a name collision that is not one. The burden
-lands on every author, forever, to avoid a problem the format created.
+**Scoped field ids** — `[[#signup#email]]`, `[[#vendor#contacts#email]]`: a
+`form` opening a nested id scope and a `form-group` one more, one `#` per
+level, `#` being the narrowing operator GEML already uses in `other.geml#id`
+and `path#L14-24`. Rejected. Those two uses narrow a *resource* to a part of
+it and leave the id space flat; a nested scope changes the id space itself,
+and every consumer of an address would have to learn it — `geml list`,
+`get`/`set`/`rename`, `.gemlhistory` keys, the MCP server, the viewer, style
+selectors, coordinates, and every second implementation — to spare the author
+of the occasional document whose two forms share a field name one prefix.
+A field's `name=` under GEP 0011's bracket gives the same address —
+`#signup["email"]` — in a grammar every consumer already reads, and the id
+space stays flat; the conformance file and the trial forms are written that
+way. (`.` as the separator, `[[#signup.email]]`, fell with it: `.` already
+means a class in attribute position.)
 
-**`.` as the separator** (`[[#signup.email]]`). Rejected: `.` already means a
-class in attribute position (`{.warning}`), and reusing it for narrowing reads
-as a different concept in a different place.
+**The id as the field's name** — `#email` doing both jobs, so a field carries
+one word. Rejected: a handler needs a key for every field, and an id is
+document-unique while a key is form-unique, so the one word would force a
+30-field form to invent 30 document-wide names and forbid two forms the same
+`email`. HTML separates `id` from `name` for exactly this reason, and every
+form library a trial form was translated from asks for the name.
 
 **Keep using `table` / `data` with a stylesheet.** This is what works today and
 this proposal does not remove it. But the gate this GEP set for itself — build
@@ -606,16 +623,18 @@ would have caught it.
 
 ## Drawbacks & open questions
 
-1. **It makes the id space non-flat**, which every downstream tool must
-   learn: `geml list`, `geml get/set`, `geml rename`, `.gemlhistory`, the MCP
-   server, the viewer. That is the real cost of this proposal, and it is not
-   small. The earlier open question — whether one nested scope stays one — is
-   answered by bounding it: a form opens one scope and a group one more, and
-   groups do not nest, so no tool walks a recursive scope. If nested groups
-   are ever admitted, this item reopens.
-2. **`geml rename` semantics** across the levels are unspecified here: does
-   renaming a form rewrite every `#form#…` reference to it, and every
-   `options=` / `description=` inside it when a child is renamed? (It should.)
+1. **A form's names are a second namespace**, scoped to the form, beside the
+   document's ids: a reader of `#signup["email"]` has to know that the step is
+   a field's name rather than a column's, and `geml list` does not enumerate
+   fields, as GEP 0011 says of every inner unit. That is the cost of letting a
+   field go without a document-wide id (§ *Fields are named*), paid by the
+   reader of an address rather than by the author of a large form.
+2. **`geml rename` semantics** are unspecified here: does renaming a field's
+   id rewrite the `options=` / `label=` / `description=` / `placeholder=`
+   references that point at it? (It should, as for every other reference.)
+   Changing a field's `name=` is not a rename at all — it is `set` on the
+   field — and the coordinates that used the old name then fail to resolve,
+   as a row coordinate does when its row is deleted (GEP 0011's note).
 3. **The field vocabulary is settled by measurement and one review.** `label=`
    and `description=` are single plain lines, and a `form-field` body is
    always empty, because the review wanted a field's text in attributes and

@@ -59,6 +59,17 @@ When GEP-0008 lands, those keys move to the core's per-type table and this
 profile keeps the six. Nothing about what the profile *defines* changes either
 way; §4 below is unaffected.
 
+The GEP's structural rules ride the same way, for a document that declares this
+profile, and the conformance file lists their codes, because until the GEP lands
+this profile is what makes `form-*` a family at all: a `form-*` block outside a
+`form` — a field not directly in a form or a group, a group inside a group, an
+options list or a note anywhere but directly in a form — is
+`form-child-outside-form` (**error**); a `form-field` without `name=` is
+`form-field-missing-name` (**error**); two fields of one form sharing a name are
+`form-duplicate-name` (**error**). The name is the key the handler receives and
+the step a coordinate addresses the field by — `#vendor["phone"]` — so a field
+needs no id.
+
 ## 2. The six keys
 
 All six apply to `form-field` only. Each value is a string; the table says how
@@ -119,9 +130,10 @@ meets are the core's and GEP-0008's:
 
 - `unknown-attribute` — a constraint key without the profile declared;
 - `unknown-field-type` — a `type=` value outside the seven;
-- `form-child-outside-form`, `form-field-has-body`,
-  `options-not-form-options`, `note-not-form-note`, `unused-form-block`,
-  `duplicate-id` — GEP-0008's family diagnostics, unaffected by this profile.
+- `form-child-outside-form`, `form-field-missing-name`, `form-duplicate-name`,
+  `form-field-has-body`, `options-not-form-options`, `note-not-form-note`,
+  `unused-form-block`, `duplicate-id` — GEP-0008's family diagnostics,
+  unaffected by this profile.
 
 A checker MAY additionally warn when a value is unreadable in the key's own
 terms — `min=abc` on a `number`, `pattern=` that is not a valid regular
@@ -135,13 +147,13 @@ profile = "geml-form/v1"
 ===
 
 ==== form {#vendor handler=onboarding}
-=== form-field {#revenue label="Annual revenue (CNY, millions)" type=number
+=== form-field {#revenue name=revenue label="Annual revenue (CNY, millions)" type=number
                min=0 max=99999 step=1 description="Whole millions."}
 ===
-=== form-field {#phone label="Mobile" type=text required pattern="^[+0-9 ]+$"
+=== form-field {#phone name=phone label="Mobile" type=text required pattern="^[+0-9 ]+$"
                placeholder="+86 138 0000 0000"}
 ===
-=== form-field {#licence label="Business licence" type=file required accept=".pdf,image/*"}
+=== form-field {#licence name=licence label="Business licence" type=file required accept=".pdf,image/*"}
 ===
 ====
 ```

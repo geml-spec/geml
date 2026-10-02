@@ -36,7 +36,7 @@ export type StyleSeverity = "error" | "warning";
 
 export const STYLE_SEVERITY: Record<StyleDiagnosticCode, StyleSeverity> = {
   "style-selector-unsupported": "error",
-  "style-ambiguous-rule": "error",
+  "style-ambiguous-rule": "warning",
   "style-unknown-state": "error",
   "style-unknown-screen": "error",
   "style-unknown-value-source": "error",

@@ -263,7 +263,7 @@ Each profile carries `geml-<thing>/conformance.json` beside its document: the
 The addresses are the point. §8.6.2 rule 4 lets a vocabulary's **declared body
 mode** change the addressable set and lets nothing else do so, and these files
 are where that is pinned per vocabulary. `geml-form/v1`'s two readings differ —
-its `form` holds id-bearing `form-field` blocks — and `geml-media/v1` carries one
+its `form` holds `form-field` blocks, named by `name=` and addressed as `#signup["email"]` — and `geml-media/v1` carries one
 case of each kind: a prose body creates no ids, so both readings see the same
 addresses, while a `media-comp` container's layers are addresses only under the
 declaration. A case that drifts across that line fails
@@ -296,11 +296,23 @@ layer with nothing to reproduce. These files are that, one layer up.
    the profile name, so a changed vocabulary is a different name.
 3. Write `<name>/<name>-profile.md` (and `_CN`) in this directory: what it
    admits, what those names mean, and what the tooling does with them.
-4. Register the names in `geml-parser/src/profiles.ts` — including `state`,
+4. Say of each type whether it is defined by **containment** or by
+   **reference**, because that decides what a stray one is. A type whose rules
+   speak of "the enclosing X" — a `form-field`'s `options=` names an options
+   list *of its form*, a `media-layer` sits on *its comp's* canvas — has no
+   meaning outside that container, and one found elsewhere is an **error**
+   (`form-child-outside-form`, `media-layer-unassembled`): the usual cause is
+   a container fence one `=` too short, and rendering the stray block as if it
+   stood alone would hide exactly that. A type that stands on its own and is
+   linked by id — a `style-frame` a slot names, a `media-asset` a layer's
+   `src=` names — is checked where it is referenced, and one nothing refers to
+   is at most a **warning** (`style-unused-frame`). Which kind a type is
+   follows from how its rules are written, not from a judgment per case.
+5. Register the names in `geml-parser/src/profiles.ts` — including `state`,
    which is required, and `metaKeys` / `diagnostics` if it has any — and add a
    row above carrying the same state. A test pins the two lists as one.
-5. Write `geml-<thing>/conformance.json` (see **Conformance**). A registered
+6. Write `geml-<thing>/conformance.json` (see **Conformance**). A registered
    profile without one fails the suite: a vocabulary nobody can reproduce is a
    vocabulary only this implementation has.
-6. Write `geml-<thing>/geml-<thing>-guide.md` (and `_CN`) — see
+7. Write `geml-<thing>/geml-<thing>-guide.md` (and `_CN`) — see
    **A profile's directory** above.

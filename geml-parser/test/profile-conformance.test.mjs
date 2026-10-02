@@ -55,8 +55,11 @@ function addresses(geml) {
   assert.equal(r.status, 0, `geml list failed: ${r.stderr}`);
   return JSON.parse(r.stdout).map((b) => b.address).filter((a) => a.startsWith("#"));
 }
-const diagnosticsOf = (geml) =>
-  parse(geml).diagnostics.filter((d) => !CATALOGUE_EXEMPT.some((p) => d.code.startsWith(p))).map((d) => `${d.code}:${d.severity}`).sort();
+// Codes outside Appendix A are dropped — except the profile's own: a code the
+// parser emits under a declared vocabulary (`form-child-outside-form`) is
+// exempt from the catalogue and IS what this file pins.
+const diagnosticsOf = (geml, own) =>
+  parse(geml).diagnostics.filter((d) => !CATALOGUE_EXEMPT.some((p) => p !== own && d.code.startsWith(p))).map((d) => `${d.code}:${d.severity}`).sort();
 const UNKNOWN = /^unknown-(block-type|attribute):/;
 // The same document with its declaration removed — §8.6.2 rule 3's other reading.
 const undeclare = (g) => g.replace(/^profile\s*=.*$/m, 'title = "undeclared"');
@@ -107,8 +110,9 @@ test("放行：两种读法的诊断就是文件里记的那两组，且声明�
   for (const name of Object.keys(PROFILES)) {
     const f = JSON.parse(readFileSync(fileFor(name), "utf8"));
     for (const c of f.cases) {
-      assert.deepEqual(diagnosticsOf(c.geml), [...c.diagnostics.declared].sort(), `${name} / ${c.name}（声明时）`);
-      assert.deepEqual(diagnosticsOf(undeclare(c.geml)), [...c.diagnostics.undeclared].sort(), `${name} / ${c.name}（不声明）`);
+      const own = stemOf(name) + "-";
+      assert.deepEqual(diagnosticsOf(c.geml, own), [...c.diagnostics.declared].sort(), `${name} / ${c.name}（声明时）`);
+      assert.deepEqual(diagnosticsOf(undeclare(c.geml), own), [...c.diagnostics.undeclared].sort(), `${name} / ${c.name}（不声明）`);
       // 只要求不声明时**更多**，不要求每个放行的名字各报一条：一个 NESTED 的名字
       // 在不声明时根本不会被报成 unknown，因为它的容器退回 raw 体之后，里面那个
       // 块从没被当成块扫过 —— 它是纯文本。geml-form 的 form-field 就是这种。

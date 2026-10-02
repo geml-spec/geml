@@ -224,16 +224,18 @@ of the document)"；加上 flow block 的 body 嵌套，一条组合子全覆盖
 | | 情况 | 处理 |
 |---|---|---|
 | 1 | `A ⊃ B` 真超集 | A 赢 |
-| 2 | `A = B` 条件集相同 | **`ambiguous-rule` 错误** |
-| 3 | `A ⊄ B` 且 `B ⊄ A`（不可比） | **`ambiguous-rule` 错误** |
+| 2 | `A = B` 条件集相同 | **`ambiguous-rule` 警告**，先写的规则生效 |
+| 3 | `A ⊄ B` 且 `B ⊄ A`（不可比） | **`ambiguous-rule` 警告**，先写的规则生效 |
 
-**情况 2 必须报错**：两条规则对完全相同的集合说相反的话，没有第三条规则能比它俩都特定。
-形状等同于 §4 的 `duplicate-id`——同一地址两份定义。源序兜底会让第一条变成静默死代码。
+**情况 2 必须报**：两条规则对完全相同的集合说相反的话，没有第三条规则能比它俩都特定。
+形状等同于 §4 的 `duplicate-id`——同一地址两份定义。先写的生效，但一定报出来：
+不报，第二条就成了静默死代码。
 
-**情况 3 也报错，理由是顺序无关性**：这个格式存在的理由是 block 级可寻址、
+**情况 3 也报，理由是顺序无关性**：这个格式存在的理由是 block 级可寻址、
 agent 用 `geml get/set` 单块编辑、`geml add --before/--after` 插入。
-**若渲染依赖源序，agent 挪动一条规则就会静默改变 UI。**
-CSS 敢用源序，是因为 CSS 由人整体维护、顺序是有意编排的；这里不是。
+**若渲染静默依赖源序，agent 挪动一条规则就会静默改变 UI。** 所以顺序只在被报出来的
+争夺上起作用：先写的生效，`geml style check` 每次构建都点名那一对。
+CSS 敢用源序而不报，是因为 CSS 由人整体维护、顺序是有意编排的；这里不是。
 
 情况 3 的逃生出口永远存在且便宜：写 `A ∪ B`，它必是两者真超集。
 
@@ -243,7 +245,7 @@ CSS 敢用源序，是因为 CSS 由人整体维护、顺序是有意编排的�
 诊断必须直接可操作：
 
 ```
-error ambiguous-rule: `#kpis` and `#sortables` both set `component` on `q3.geml#revenue`
+warning ambiguous-rule: `#kpis` and `#sortables` both set `component` on `q3.geml#revenue`
   #kpis      match="table.kpi"
   #sortables match="table[sortable]"
   neither is more specific — write a rule matching `table.kpi[sortable]`
@@ -453,7 +455,7 @@ codegen 优先的产物会被手改，再生成时静默摧毁手改——同一
 | 码 | 严重性 | 抓什么 |
 |---|---|---|
 | `selector-unsupported` | error | 不支持的 CSS 构造 |
-| `ambiguous-rule` | error | 相同或不可比的规则争同一属性 |
+| `ambiguous-rule` | warning | 相同或不可比的规则争同一属性；先写的规则生效 |
 | `unmatched-rule` | warning | 规则在语料里选不中任何块——**style 层的 `bad-source-range`** |
 | `unknown-state` | error | 规则或槽位引用了不存在的 `$foo` |
 | `unknown-screen` | error | `screen=` 点名的 `style-screen` 不存在 |
@@ -1254,7 +1256,7 @@ when      { "$state": value, … } ∪ { "@hover": true, "@focus": true }
 | `style-invalid-value` | error | 新情形：`view` `editable` `fade-out` 域外值；`layer=screen` 之外的第四个值；`@` 后不是 `hover`/`focus` |
 | `style-unknown-attribute` | warning | 新情形：合并后的绑定没有 `component=` / `handler=` 接的参数（点出键与规则）；部件规则上不适用于行内的内含词 |
 | `unmatched-rule` | warning | 部件规则在语料里没有命中任何行内时照旧触发 |
-| `ambiguous-rule` | error | 不改；`@hover` 与 `@focus` 争同一属性照旧 |
+| `ambiguous-rule` | warning | 不改；`@hover` 与 `@focus` 争同一属性照旧 |
 
 没有新诊断码。
 

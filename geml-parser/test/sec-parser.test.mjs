@@ -1562,7 +1562,7 @@ test("content routes still refuse a directory — they need bytes", () => {
     mkdirSync(join(root, "realdir"), { recursive: true });
     const cases = [
       ["embed", "=== embed {#e src=realdir/}\n===\n", /not a GEML document/],
-      ["table", "=== table {#tb src=realdir/}\n===\n", /not a `\.csv`\/`\.tsv`/],
+      ["table", "=== table {#tb src=realdir/}\n===\n", /cannot resolve table source/],
       ["data", "=== data {#d format=json src=realdir/}\n===\n", /not a `\.json`\/`\.jsonl`/],
     ];
     for (const [name, block, expected] of cases) {

@@ -45,7 +45,6 @@ export type DiagnosticCode =
   | "unsafe-embed-scheme"
 
   | "unresolvable-table-source"
-  | "table-source-not-a-table"
   | "unknown-metadata-reference"
   | "duplicate-meta-key"
   | "reserved-id"
@@ -118,14 +117,20 @@ export type DiagnosticCode =
   // specification does not define, under a prefix a future catalogue cannot
   // collide with. Reading a `.md` is one — the specification is GEML's — so
   // these carry `markdown-` and appear in no spec row (CATALOGUE_EXEMPT).
-  | "markdown-unresolved-wikilink";
+  | "markdown-unresolved-wikilink"
+  // GEP-0008's one structural rule, emitted only for a document that declares
+  // `geml-form/v1`. A profile's code (prefix `form-`), catalogued in the form
+  // profile's conformance file rather than in Appendix A (CATALOGUE_EXEMPT).
+  | "form-child-outside-form"
+  | "form-field-missing-name"
+  | "form-duplicate-name";
 
 /**
  * Prefixes of the codes Appendix A does not list, by its own rule: conditions
  * the specification does not define. The catalogue drift guard skips them, and
  * requires that Appendix A never documents one.
  */
-export const CATALOGUE_EXEMPT: readonly string[] = ["markdown-"];
+export const CATALOGUE_EXEMPT: readonly string[] = ["markdown-", "form-"];
 
 export interface Diagnostic {
   severity: "error" | "warning";
@@ -182,7 +187,6 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   "unsafe-embed-scheme": "error",
 
   "unresolvable-table-source": "error",
-  "table-source-not-a-table": "error",
   "unknown-metadata-reference": "error",
   "duplicate-meta-key": "warning",
   "reserved-id": "error",
@@ -253,6 +257,9 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   // A wikilink to a note not found under the resolution root. Warning: in a
   // vault that is how a note is planned — Obsidian creates it on first click.
   "markdown-unresolved-wikilink": "warning",
+  "form-child-outside-form": "error",
+  "form-field-missing-name": "error",
+  "form-duplicate-name": "error",
 };
 
 // ---------------------------------------------------------------------------

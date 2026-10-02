@@ -98,7 +98,11 @@ dangling references are left behind.
 - **Reference syntax** (from/to columns, meta `entry` values): `#id` (this
   document) or `doc.geml#id` (relative-path sibling document); the reserved
   reads values may carry a plain-text `.member` suffix (the id charset excludes
-  `.`, so it splits mechanically).
+  `.`, so it splits mechanically). Three kinds of cell are exempt and hold plain
+  text: `#unresolved`'s `to`; `#api-calls`'s `to` when the route sits outside any
+  indexed function (`file:line`); and every `endpoint` (`METHOD /path`) and
+  `site` (`file:line`) column. A checker verifies the references in `from`/`to`
+  everywhere else and does not read these cells as references.
 - Plain-text cells (site, unresolved `to`) must not contain commas or newlines
   (the generator replaces them with spaces), and square brackets are replaced
   with parentheses — **table cells are inline-parsed**, so `f[i](&x)` would be

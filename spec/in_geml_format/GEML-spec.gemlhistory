@@ -4,12 +4,12 @@
 profile           = "geml-history/v1"
 history-of        = "GEML-spec.geml"
 geml-version      = "1.0"
-current           = "20261002T113436Z-1ad275a9"
+current           = "20261002T171237Z-a8c73815"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== history-keyframe {id="20261002T113436Z-1ad275a9" hash="sha256:1ad275a993aafd3a04e4d6b89412c3a7fd45ca19f5b03e498780c6898055fadf"}
+===== history-keyframe {id="20261002T171237Z-a8c73815" hash="sha256:a8c738154306e4d39e3ef61572ea4d162ead4feadf5c8a06c05040093616bef6"}
 # GEML — General Expressive Markup Language
 
 *English | [中文](../GEML-spec_CN.md)*
@@ -245,7 +245,10 @@ columns). An item indented *more* than the current item's marker opens a nested
 list under that item; an item indented *less* closes back to an enclosing list. A
 **blank line** between two sibling items makes the list **loose** (otherwise it is
 **tight**); blank lines do not otherwise end a list. A list ends at the first line
-that is neither blank nor an item line at or below its indentation.
+that is neither blank nor an item line at or below its indentation, and at an
+item line of the other **kind** at its own indentation: an ordered item after
+unordered ones, or the reverse, ends the list and opens a new one, while `-` and
+`*` are both unordered markers and continue the same list.
 A `%%` comment line (§4) is not an item line and therefore ends the list;
 it is then recognized as a comment at block level.
 
@@ -429,7 +432,9 @@ of a name.
 A line of three or more backticks opens nothing — GEML has one code block,
 `=== code` — but a **matched pair** of such lines **shields** what lies between
 them from the scan above: no fence, heading, list or `%%` line inside is a
-construct there, and the region stays what it already was, flow text. The shield
+construct there, and the region stays what it already was, flow text — a blank
+line inside the pair still ends a paragraph, because the shield suppresses the
+recognition of constructs, not the paragraph break. The shield
 is what keeps an example from becoming a definition — a block written inside a
 Markdown fence to SHOW the syntax would otherwise take an id, enter the
 document’s address space and be rewritten by an editing tool, and nothing would
@@ -694,8 +699,13 @@ exactly when the slice is itself a value.
   word is a string. Arrays, dates and nested tables are not supported.
 - A bare attribute word with no `=` is a boolean flag set to `true` (e.g.
   `hidden`).
-- A `=== meta` block holds document metadata as one `key=val` per line, using
-  the value typing above. If a document contains multiple `=== meta` blocks,
+- A `=== meta` block holds document metadata as one `key=val` per line: the key
+  is the text before the first `=` and the value everything after it, each
+  trimmed of surrounding whitespace, and the value is typed as above. A value
+  that is neither quoted, a boolean nor a number is a string however it is
+  spelled — `title = hello world` is the string `hello world`, with no quotes
+  needed, because a `meta` line is not an attribute object and nothing in it
+  ends at whitespace. If a document contains multiple `=== meta` blocks,
   their keys are merged; the **first** definition of a key takes precedence —
   a later definition of the same key is a `duplicate-meta-key` **warning** and
   is ignored. Which blocks count is the ordinary nesting rule of §3: a `=== meta`
@@ -873,7 +883,12 @@ parse to every input.
 
 1. Backslash escapes (`\` + ASCII punctuation → that literal character; `\` at
    line end → hard break), code spans, and inline math; their contents are not
-   parsed further.
+   parsed further. A code span opens at a run of *n* backticks and closes at
+   the next run of **exactly** *n* backticks — CommonMark's rule: a run of any
+   other length inside it is content, which is how a span carries a backtick
+   (`` ``a`b`` `` is one span, and `` `a``b` `` is one span, not two), and an
+   opening run with no such closer is literal text, after which scanning
+   resumes. The content between the runs is verbatim; no space is trimmed.
 2. Metadata interpolations (`{{key}}`); replaced with the scalar value.
 3. Images (`![alt](src)`), links, auto-refs (`[[#id]]`), inline projections (`![[#id]]`), and footnote refs (`[^id]`); a link or
    ref MUST NOT nest inside another link or ref.
@@ -985,6 +1000,10 @@ fences and all — is a paragraph.* The example resolves to:
 | **Total** | **257.8** | **263.6** | **282.2** | **306.6** | **1010** | **1110.2** | **9.9%** |
 ===
 
+- **Header** — a data body's first row is its header unless `header=0` (or
+  `header=false`) says otherwise; `header=1` is the default and need not be
+  written. A headerless body carries letter column names (`A`, `B`, …; §5.2)
+  and is as wide as its widest row.
 - **Delimiter** — a data body splits on its format's natural delimiter: `,` for
   `format=csv`, a tab for `format=tsv`. `delim=` overrides it with any single
   character, so a European `;`-separated CSV or a `|`-delimited export is
@@ -1006,18 +1025,25 @@ fences and all — is a paragraph.* The example resolves to:
   never dropped silently.
 - **Data from elsewhere** — instead of an inline body, a table MAY name where its
   data comes from. For a `table` block that is the `src=` attribute (a `diagram`
-  spells the same idea `data=`; see Appendix B.3), and it takes one of three
-  targets: a data file with `format=csv`/`tsv` (a path relative to the document,
-  or an `http(s)` URL). A `src=` that names a **block** — `#id`, or
-  `doc.geml#id` — is an **error** naming `view` (§6.1): a block's output is
+  spells the same idea `data=`; see Appendix B.3), and it names a **data file**,
+  read with `format=csv`/`tsv`: a `.csv` or `.tsv` path relative to the
+  document, or an `http(s)` URL to one. A `src=` that names a **block** — `#id`,
+  or `doc.geml#id` — is an **error** naming `view` (§6.1): a block's output is
   something another block derived, and a table holding facts someone else
-  derived would be neither. A local-path target MUST be resolved and
-  existence-checked at build time — an unresolvable one is an error. Only the `src` text — never
-  the resolved contents — enters the `.gemlhistory` hash. A table MUST NOT carry
-  both `src` and an inline body (an error). Because the data arrives at render
-  time, the column names used by `compute` and by a referencing `geml-chart` are
-  validated then, not at build time. Inlining stays the default; `src` is an
-  explicit choice.
+  derived would be neither. A **local** file is read at **build time**: a
+  processor MUST resolve it, read it, and parse its lines exactly as it would
+  parse them written in the body — under the block's own `format=`, `header=`
+  and `delim=` — so its rows are the table's model, and a column name a `view`
+  or a `geml-chart` reads from it is checked then, like any other. A file that
+  cannot be resolved, a target that is not a `.csv`/`.tsv` file, and a URL in
+  any scheme other than `http(s)` are each `unresolvable-table-source`
+  (Appendix A). A **remote** `http(s)` file is the exception: it is fetched by
+  the renderer, never the parser (§9.4), so the table has no rows at build time
+  and the column names a `view` or a chart reads from it are validated when the
+  data is — by the renderer. Only the `src` text — never the resolved contents —
+  enters the `.gemlhistory` hash. A table MUST NOT carry both `src` and an
+  inline body (an error). Inlining stays the default; `src` is an explicit
+  choice.
 
 The four rules that follow — computed columns, results a cell cannot hold, the
 summary row, and the display format — define the **grammar** `compute=` and
@@ -1081,7 +1107,11 @@ A `view` publishes a relation **derived** from another one. It takes **no body**
 — a body alongside `src=` is an error — and a **required `src=`** naming a data
 file (`rows.csv`), a block in this document (`#tickets`), or a block in another
 (`other.geml#tickets`). A `src=` that resolves to a block which is neither a
-`table` nor a `view` is an error: it publishes no relation to derive from.
+`table` nor a `view` is an error: it publishes no relation to derive from. A data
+file is read as a table's `src=` reads one (§6): a local `.csv`/`.tsv` at build
+time, its format taken from the suffix and its first row as the header; a
+remote `http(s)` one at render time; and one that cannot be resolved, is not a
+`.csv`/`.tsv` file, or names another scheme is `unresolvable-table-source`.
 
 - **Selection.** `where="<expr>"` keeps rows; `order="<key>[ asc|desc][, …]"`
   sorts, `asc` being the default; `limit=<n>` takes the first *n* after
@@ -1205,9 +1235,10 @@ block which publishes the column.
 - `rows` — `data` (default, summary row excluded), `all` (data + the summary row
   as one extra point), or `summary` (only the summary row).
 - Column names, the `data` id, and `rows` are validated against the table:
-  a typo'd column or a dangling id is a build error. (If the table's data is
-  external and fetched at render time per §9.4, column validation is deferred
-  to the renderer).
+  a typo'd column or a dangling id is a build error. A local data file is read
+  at build time, as a table's `src=` is (§6), so its columns are checked then
+  too; only when the data is remote — an `http(s)` URL fetched at render time
+  per §9.4 — is column validation deferred to the renderer.
 - Charts that need more (annotations, reference lines, heatmaps, …) use a hosted
   DSL instead: `=== diagram {format=vega-lite data=#fy25}` with the spec in the
   body. The body is raw and NOT column-checked.
@@ -1437,7 +1468,9 @@ input. It MUST NOT overflow its call stack, abort, or fail to produce a model.
 The bounds are implementation-defined; a processor SHOULD admit at least 64
 levels of each, which is far past any document written to be read. *The
 reference implementation admits 256 levels of block and list nesting and 100 of
-inline nesting.*
+inline nesting.* The depth of a transclusion or `view` chain (§9.3) is a
+different bound, and a fixed one — 16 — because two processors have to agree on
+where a chain stops.
 
 A processor MUST NOT construct a regular expression, a shell command, or any
 other executable form from document-controlled text without escaping that text
@@ -1456,7 +1489,22 @@ make it loop:
   processor collects the target document's ids *without* resolving that
   document's own references, so two documents that reference each other
   terminate when validating references.
-- **Content transclusion** (an `embed` block or inline projection expanding its target in-place) is recursive. A processor MUST track the chain of expanded documents and stop if a document transcludes a target in a document already being expanded in that chain, emitting a `transclusion-cycle` error.
+- **Content transclusion** (an `embed` block or inline projection expanding its
+  target in place) is recursive, and is bounded twice. **Cycles:** a processor
+  MUST track the chain of documents being expanded and report
+  `transclusion-cycle` when a step names a target in a document already on that
+  chain — counted per document, so `a → b → a#z` is a cycle whether or not `#z`
+  would lead back. A target in the document that names it opens no new document
+  and is not, by itself, a cycle: `=== embed {src=#local}` is ordinary. It is one
+  when the transclusion lies inside the very content it selects — an `embed` of
+  a heading's section written in that section, a projection of the paragraph
+  that holds it. **Depth:** a chain of nested expansions MUST NOT be followed
+  past **16**: the sixteenth nested `embed` or projection is expanded, the
+  seventeenth is not, and what stands in its place is the renderer's (§8.3). The
+  same bound holds for a `view`'s `src=` chain (§6.1), where a chain of more than
+  16 views is `view-source-too-deep`. The number is fixed rather than
+  implementation-defined like §9.2's because it is observable: two processors
+  MUST agree on whether the seventeenth link of a chain is expanded.
 - **Computed columns** (§6) are evaluated in declaration order, and a formula
   sees only data columns and *earlier* computed columns. A self-reference or a
   forward reference is therefore not a cycle but an unknown column, reported as
@@ -1493,6 +1541,13 @@ not at the rendering sink, so that every consumer of the model inherits it. The
 check MUST ignore leading and embedded characters in the range U+0000–U+0020
 when determining the scheme, because user agents strip them before acting on a
 URL — `java&#9;script:` is `javascript:`.
+
+One exception is admitted, for media alone. A media embed `![…](…)` (§5.1) MAY
+name a `data:` URL whose media type is an image — `data:image/png;base64,…` — so
+that a generated document can carry a small picture without a second file. The
+check admits `data:` only there and only for `image/…`: in a link, and for any
+other `data:` type, it is refused like any other scheme. The conformance suite's
+`safety.json` pins both halves.
 
 A renderer emitting a markup format MUST escape document-controlled text for
 the position it occupies — element text, attribute value, or URL — and MUST
@@ -1569,14 +1624,13 @@ original file.
 | `unchecked-cross-document-reference` | warning | A cross-document reference was found, but the processor was given no document resolver, so its target could not be verified. |
 | `embed-missing-src` | error | An `embed` block carries no `src=`, so it names no content. |
 | `ignored-embed-body` | warning | An `embed` block has a body. The content it stands for lives in `src=`; the body is ignored. |
-| `transclusion-cycle` | error | A chain of block transclusions returns to a document already being expanded. The chain is reported and expansion stops; it is never followed. |
+| `transclusion-cycle` | error | A chain of transclusions returns to a document already being expanded, or a transclusion lies inside the very content it selects (§9.3). The chain is reported and expansion stops; it is never followed. |
 | `embed-target-not-geml` | error | An `embed` block names a target that is not a `.geml` document. Its bytes are never parsed as GEML. |
 | `media-target-is-document` | error | A media embed `![](…)` points at a GEML document. Block content cannot be expanded in inline position; the `embed` block is the form for it. |
 | `inline-transclusion-not-inline` | error | An inline projection `![[…]]` names a target that is not inline content — not a single-paragraph `text` block, nor a coordinate naming one value or a whole row (§5.2). Block content cannot be expanded inside a sentence; the `embed` block is the form for it. |
 | `embed-target-not-projectable` | error | An `embed`'s `src=` is a coordinate naming neither one value nor a whole row of a `table` or `view` — a whole column, or a value-tree node holding more nodes (§5.2). |
 | `unsafe-embed-scheme` | error | An `embed` block names a URL scheme outside the allowlist of §9.5. The attribute is blanked in the model as well as reported, so no consumer can emit it. |
-| `unresolvable-table-source` | error | A table's `src=` names a data file that cannot be resolved. |
-| `table-source-not-a-table` | error | A table's `src=` names a block that exists but is not a table. |
+| `unresolvable-table-source` | error | A `table`'s or `view`'s `src=`, or a `geml-chart`'s `data=`, names a `.csv`/`.tsv` data file that cannot be resolved, a file that is not `.csv`/`.tsv`, or a URL scheme other than `http(s)` (§6, §7.1). |
 | `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
 | `unrecognized-vocabulary` | warning | A name in `=== meta`'s `profile` list (§8.6) is one this processor does not recognize. It admits nothing, every type it would have admitted keeps the `raw` body of an unknown type, and the reader's view of the document is to that extent incomplete. The document is valid: this reports what the processor lacks, never a fault in the document. |
 | `unknown-meta-key` | warning | A `=== meta` key lies inside a declared vocabulary's namespace — it begins with that vocabulary's prefix (`media-` for `geml-media/v1`) — and the vocabulary does not define it (§8.6). Only the namespace is checked: `=== meta` also carries the DOCUMENT's own metadata, which is the author's and open, so a key with no vocabulary prefix is never reported. |
@@ -1614,7 +1668,7 @@ holds facts and derives nothing.
 | `table-source-is-block` | error | A `table`'s `src=` names a block rather than a data file. A block target is another block's output, and a table holding facts someone else derived is what `view` is for. |
 | `view-source-not-a-relation` | error | A view's `src=` names a block that is neither a `table` nor a `view`, so it publishes no relation to derive from. |
 | `view-source-cycle` | error | A chain of `src=` references returns to where it started. Every view in the cycle is named, because none of them can be resolved first (§9.3). |
-| `view-source-too-deep` | error | A chain of views is deeper than §9.3's bound, which is the one a nested `embed` has. Each view past the bound is named and none of them publishes rows. |
+| `view-source-too-deep` | error | A chain of views is more than 16 long — §9.3's bound, the one a nested `embed` has. Each view past the bound is named and none of them publishes rows. |
 | `view-where-error` | error | A `where=` expression is not a comparison the grammar defines — an unclosed quote, a missing right-hand value, a column where an operator belongs, or a name no column carries. |
 | `view-numeric-column-required` | error | A `where=` compares a column against a number and no row of that column holds one. The filter could only ever match nothing, which is a typo rather than a state. |
 | `view-unknown-column` | error | A `by=`, `order=`, `select=` or `aggregate=` names a column the relation does not carry. |
@@ -1792,14 +1846,299 @@ a block.
 
 =====
 
+=== history-revision {id="20261002T171237Z-a8c73815" parent="20261002T165229Z-380883aa" summary="spec: unresolvable-table-source covers a chart's data file" hash="sha256:a8c738154306e4d39e3ef61572ea4d162ead4feadf5c8a06c05040093616bef6" newline="lf"}
+replace #table-7 <- blob:b148
+===
+
+==== history-blob {#b148 lang=geml}
+=== table {#table-7}
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `duplicate-name` | error | A NAME is written more than once in one attribute object (§4). A class, a `key=val` and a bare flag all write the same NAME, so `{.link link=http://x link}` writes `link` three times. It is an error rather than a warning because §4 promises attribute order is insignificant and a repeat makes that false — silently: the parse succeeds, and which value survives depends on which part was written last. `#id` does not take part. |
+| `name-not-a-name` | warning | An `id`, class or attribute key in an attribute object is not a NAME (§4). A warning, not an error, because such a document still parses — and parses as something else: the attribute object is whitespace-separated, so `{#a & b}` yields the id `a` plus boolean flags named `&` and `b`, and the id the author meant to address does not exist. |
+| `heading-attrs-trailing-text` | warning | A heading's attribute object is followed by further text on the line, as in `## Title {#sec}aaa`. §4 requires the object to be trailing, so it is not parsed as attributes at all: an explicit `{#id}` is silently lost, the heading keeps its derived id, and its section — which runs to the next heading of the same level — can no longer be addressed by the id the author wrote. An object quoted in a code span or inline math is not reported: GEML prose documents this very syntax. |
+| `heading-attrs-unclosed` | warning | A heading's attribute object is never closed by `}` (`## Title {#sec`), so §4 does not parse it as attributes at all: an explicit `{#id}` is silently lost and the heading keeps its derived id. |
+| `reserved-id` | error | A block declares `{#meta}` in a document that carries more than one `meta` block. `#meta` names the MERGED meta namespace (§4), and with several blocks the declared id would mean one of them while `#meta` means all of them merged — one address, two readings. With a single `meta` block the two agree and the id is legal. |
+| `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4), and sameness is NFD-insensitive (§4) — two ids that differ only in Unicode normalization form are one id and collide. |
+| `unresolved-reference` | error | An internal reference `[…](#id)` or `[[#id]]`, or a chart `data=#id`, names an id no block declares. |
+| `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block declares. |
+| `unresolved-cross-document-reference` | error | A reference `other.geml#id` resolved to a document that declares no such id. |
+| `unresolvable-document` | error | The document named by a cross-document reference could not be read, or lies outside the confinement root (§9.4). |
+| `unchecked-cross-document-reference` | warning | A cross-document reference was found, but the processor was given no document resolver, so its target could not be verified. |
+| `embed-missing-src` | error | An `embed` block carries no `src=`, so it names no content. |
+| `ignored-embed-body` | warning | An `embed` block has a body. The content it stands for lives in `src=`; the body is ignored. |
+| `transclusion-cycle` | error | A chain of transclusions returns to a document already being expanded, or a transclusion lies inside the very content it selects (§9.3). The chain is reported and expansion stops; it is never followed. |
+| `embed-target-not-geml` | error | An `embed` block names a target that is not a `.geml` document. Its bytes are never parsed as GEML. |
+| `media-target-is-document` | error | A media embed `![](…)` points at a GEML document. Block content cannot be expanded in inline position; the `embed` block is the form for it. |
+| `inline-transclusion-not-inline` | error | An inline projection `![[…]]` names a target that is not inline content — not a single-paragraph `text` block, nor a coordinate naming one value or a whole row (§5.2). Block content cannot be expanded inside a sentence; the `embed` block is the form for it. |
+| `embed-target-not-projectable` | error | An `embed`'s `src=` is a coordinate naming neither one value nor a whole row of a `table` or `view` — a whole column, or a value-tree node holding more nodes (§5.2). |
+| `unsafe-embed-scheme` | error | An `embed` block names a URL scheme outside the allowlist of §9.5. The attribute is blanked in the model as well as reported, so no consumer can emit it. |
+| `unresolvable-table-source` | error | A `table`'s or `view`'s `src=` names a data file that cannot be resolved, is not a `.csv`/`.tsv` file, or names a URL scheme other than `http(s)` (§6). |
+| `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
+| `unrecognized-vocabulary` | warning | A name in `=== meta`'s `profile` list (§8.6) is one this processor does not recognize. It admits nothing, every type it would have admitted keeps the `raw` body of an unknown type, and the reader's view of the document is to that extent incomplete. The document is valid: this reports what the processor lacks, never a fault in the document. |
+| `unknown-meta-key` | warning | A `=== meta` key lies inside a declared vocabulary's namespace — it begins with that vocabulary's prefix (`media-` for `geml-media/v1`) — and the vocabulary does not define it (§8.6). Only the namespace is checked: `=== meta` also carries the DOCUMENT's own metadata, which is the author's and open, so a key with no vocabulary prefix is never reported. |
+| `duplicate-meta-key` | warning | A key is defined in a later `=== meta` block when an earlier block already defines it. The first definition is kept (§4). |
+===
+
+====
+
+=== history-revision {id="20261002T165229Z-380883aa" parent="20261002T162101Z-b5255b99" summary="spec: code span closes at a run of exactly its opening length" hash="sha256:380883aa1e06b1ef596d80a88652506608dc80effd132ea4db2ced092298b1f9" newline="lf"}
+delete @67d7d39d
+insert <- blob:b147 after @055fd030
+===
+
+=== history-blob {#b147 lang=geml}
+1. Backslash escapes (`\` + ASCII punctuation → that literal character; `\` at
+   line end → hard break), code spans, and inline math; their contents are not
+   parsed further.
+2. Metadata interpolations (`{{key}}`); replaced with the scalar value.
+3. Images (`![alt](src)`), links, auto-refs (`[[#id]]`), inline projections (`![[#id]]`), and footnote refs (`[^id]`); a link or
+   ref MUST NOT nest inside another link or ref.
+
+===
+
+=== history-revision {id="20261002T162101Z-b5255b99" parent="20261002T113436Z-1ad275a9" summary="spec: state the rules the reference enforced; chain bound 16" hash="sha256:b5255b99a6d1289b2475e61585794e8047a6261558f33b7f5052d0f20f31b229" newline="lf"}
+delete @106ce114
+delete @e1f1a575
+delete @67340a59
+delete @fdb4f50a
+delete @64f88b72
+delete @cd529a8f
+delete @a81948bd
+delete @fc0dbc78
+delete @7016982d
+replace #table-7 <- blob:b137
+replace #table-view-diagnostics <- blob:b138
+insert <- blob:b139 after @1708d7a2
+insert <- blob:b140 after @b1bb9469
+insert <- blob:b141 after @1f2eee46
+insert <- blob:b142 after #table-5
+insert <- blob:b143 after #61-the-view-block
+insert <- blob:b144 after @e0e7e6e4
+insert <- blob:b145 after @49d2d523
+insert <- blob:b146 after @a20f2f6b
+===
+
+==== history-blob {#b137 lang=geml}
+=== table {#table-7}
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `duplicate-name` | error | A NAME is written more than once in one attribute object (§4). A class, a `key=val` and a bare flag all write the same NAME, so `{.link link=http://x link}` writes `link` three times. It is an error rather than a warning because §4 promises attribute order is insignificant and a repeat makes that false — silently: the parse succeeds, and which value survives depends on which part was written last. `#id` does not take part. |
+| `name-not-a-name` | warning | An `id`, class or attribute key in an attribute object is not a NAME (§4). A warning, not an error, because such a document still parses — and parses as something else: the attribute object is whitespace-separated, so `{#a & b}` yields the id `a` plus boolean flags named `&` and `b`, and the id the author meant to address does not exist. |
+| `heading-attrs-trailing-text` | warning | A heading's attribute object is followed by further text on the line, as in `## Title {#sec}aaa`. §4 requires the object to be trailing, so it is not parsed as attributes at all: an explicit `{#id}` is silently lost, the heading keeps its derived id, and its section — which runs to the next heading of the same level — can no longer be addressed by the id the author wrote. An object quoted in a code span or inline math is not reported: GEML prose documents this very syntax. |
+| `heading-attrs-unclosed` | warning | A heading's attribute object is never closed by `}` (`## Title {#sec`), so §4 does not parse it as attributes at all: an explicit `{#id}` is silently lost and the heading keeps its derived id. |
+| `reserved-id` | error | A block declares `{#meta}` in a document that carries more than one `meta` block. `#meta` names the MERGED meta namespace (§4), and with several blocks the declared id would mean one of them while `#meta` means all of them merged — one address, two readings. With a single `meta` block the two agree and the id is legal. |
+| `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4), and sameness is NFD-insensitive (§4) — two ids that differ only in Unicode normalization form are one id and collide. |
+| `unresolved-reference` | error | An internal reference `[…](#id)` or `[[#id]]`, or a chart `data=#id`, names an id no block declares. |
+| `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block declares. |
+| `unresolved-cross-document-reference` | error | A reference `other.geml#id` resolved to a document that declares no such id. |
+| `unresolvable-document` | error | The document named by a cross-document reference could not be read, or lies outside the confinement root (§9.4). |
+| `unchecked-cross-document-reference` | warning | A cross-document reference was found, but the processor was given no document resolver, so its target could not be verified. |
+| `embed-missing-src` | error | An `embed` block carries no `src=`, so it names no content. |
+| `ignored-embed-body` | warning | An `embed` block has a body. The content it stands for lives in `src=`; the body is ignored. |
+| `transclusion-cycle` | error | A chain of block transclusions returns to a document already being expanded. The chain is reported and expansion stops; it is never followed. |
+| `embed-target-not-geml` | error | An `embed` block names a target that is not a `.geml` document. Its bytes are never parsed as GEML. |
+| `media-target-is-document` | error | A media embed `![](…)` points at a GEML document. Block content cannot be expanded in inline position; the `embed` block is the form for it. |
+| `inline-transclusion-not-inline` | error | An inline projection `![[…]]` names a target that is not inline content — not a single-paragraph `text` block, nor a coordinate naming one value or a whole row (§5.2). Block content cannot be expanded inside a sentence; the `embed` block is the form for it. |
+| `embed-target-not-projectable` | error | An `embed`'s `src=` is a coordinate naming neither one value nor a whole row of a `table` or `view` — a whole column, or a value-tree node holding more nodes (§5.2). |
+| `unsafe-embed-scheme` | error | An `embed` block names a URL scheme outside the allowlist of §9.5. The attribute is blanked in the model as well as reported, so no consumer can emit it. |
+| `unresolvable-table-source` | error | A table's `src=` names a data file that cannot be resolved. |
+| `table-source-not-a-table` | error | A table's `src=` names a block that exists but is not a table. |
+| `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
+| `unrecognized-vocabulary` | warning | A name in `=== meta`'s `profile` list (§8.6) is one this processor does not recognize. It admits nothing, every type it would have admitted keeps the `raw` body of an unknown type, and the reader's view of the document is to that extent incomplete. The document is valid: this reports what the processor lacks, never a fault in the document. |
+| `unknown-meta-key` | warning | A `=== meta` key lies inside a declared vocabulary's namespace — it begins with that vocabulary's prefix (`media-` for `geml-media/v1`) — and the vocabulary does not define it (§8.6). Only the namespace is checked: `=== meta` also carries the DOCUMENT's own metadata, which is the author's and open, so a key with no vocabulary prefix is never reported. |
+| `duplicate-meta-key` | warning | A key is defined in a later `=== meta` block when an earlier block already defines it. The first definition is kept (§4). |
+===
+
+====
+
+==== history-blob {#b138 lang=geml}
+=== table {#table-view-diagnostics}
+| Code | Severity | Condition |
+|---|---|---|
+| `view-missing-src` | error | A `view` carries no `src=`. A view is declared by its source and its attributes alone, so there is nothing for it to derive from. |
+| `view-src-and-body` | error | A `view` carries a body. Its content is its source's, and a body alongside `src=` is the same error a table's is (§6). |
+| `table-source-is-block` | error | A `table`'s `src=` names a block rather than a data file. A block target is another block's output, and a table holding facts someone else derived is what `view` is for. |
+| `view-source-not-a-relation` | error | A view's `src=` names a block that is neither a `table` nor a `view`, so it publishes no relation to derive from. |
+| `view-source-cycle` | error | A chain of `src=` references returns to where it started. Every view in the cycle is named, because none of them can be resolved first (§9.3). |
+| `view-source-too-deep` | error | A chain of views is deeper than §9.3's bound, which is the one a nested `embed` has. Each view past the bound is named and none of them publishes rows. |
+| `view-where-error` | error | A `where=` expression is not a comparison the grammar defines — an unclosed quote, a missing right-hand value, a column where an operator belongs, or a name no column carries. |
+| `view-numeric-column-required` | error | A `where=` compares a column against a number and no row of that column holds one. The filter could only ever match nothing, which is a typo rather than a state. |
+| `view-unknown-column` | error | A `by=`, `order=`, `select=` or `aggregate=` names a column the relation does not carry. |
+| `view-order-error` | error | An `order=` key is not `<column>[ asc\|desc]`. |
+| `view-limit-error` | error | A `limit=` is not a non-negative integer. |
+| `view-select-expression` | error | A `select=` entry contains `=`. It names columns and nothing more; deriving a column is `compute=`'s job. |
+| `summary-projected-away` | error | A `summary=` targets a column `select=` dropped. Projection runs before the report row, so there is no cell left to render it in. |
+| `circular-view-filter` | error | A `where=` names a column an aggregate formula derives. That value depends on which rows the filter keeps, so the filter would decide its own input. The diagnostic names the formula, not the reference. |
+| `shadowed-source-column` | warning | A `compute=` defines a column its source already publishes. Legal — the left of the `=` names this block's output and the right reads the source's — but the column then renders a different number than the source publishes under that name, and the source's is unreachable in this block. |
+| `grouping-compute-aggregate` | error | A `compute=` on a view that carries `by=` uses an aggregate. On a grouping view `compute=` is per input row; the group's columns are `aggregate=`'s. |
+| `bad-aggregate-entry` | error | An `aggregate=` entry is not of the form `Name = fn(Column)`, or its expression carries a token the §6 grammar does not define. |
+| `aggregate-error` | error | An `aggregate=` expression failed to evaluate. |
+| `aggregate-without-by` | error | A view carries `aggregate=` and no `by=`. Aggregate columns describe groups; one aggregate row over every row is `summary=`. |
+===
+
+
+====
+
+=== history-blob {#b139 lang=geml}
+**Nesting is by indentation.** Indentation is a column count (a tab counts as 4
+columns). An item indented *more* than the current item's marker opens a nested
+list under that item; an item indented *less* closes back to an enclosing list. A
+**blank line** between two sibling items makes the list **loose** (otherwise it is
+**tight**); blank lines do not otherwise end a list. A list ends at the first line
+that is neither blank nor an item line at or below its indentation.
+A `%%` comment line (§4) is not an item line and therefore ends the list;
+it is then recognized as a comment at block level.
+
+===
+
+=== history-blob {#b140 lang=geml}
+A line of three or more backticks opens nothing — GEML has one code block,
+`=== code` — but a **matched pair** of such lines **shields** what lies between
+them from the scan above: no fence, heading, list or `%%` line inside is a
+construct there, and the region stays what it already was, flow text. The shield
+is what keeps an example from becoming a definition — a block written inside a
+Markdown fence to SHOW the syntax would otherwise take an id, enter the
+document’s address space and be rewritten by an editing tool, and nothing would
+say so. Two rules keep it honest. The pair must **close**: an unmatched run
+shields nothing, because "unclosed runs to the end of the document" would let
+one stray line swallow every block after it. And the shield is **per body** — a
+run opened inside one flow body does not reach out of it — so a backtick far
+away cannot silently re-parse a document. To show GEML *and* have it render as
+code, use `=== code` with a fence one longer than the example’s own (§3); to
+keep a single line literal, use §5.1’s `\`.
+
+
+===
+
+=== history-blob {#b141 lang=geml}
+- Style note (non-normative): keep the document title in `=== meta`
+  (`title = "…"`), not in a top-level heading — every heading then denotes a
+  genuine section of the document.
+- Attribute value typing: a quoted `"…"` is always a string; `true`/`false` is a
+  boolean; a bare word matching integer/float syntax is a number; any other bare
+  word is a string. Arrays, dates and nested tables are not supported.
+- A bare attribute word with no `=` is a boolean flag set to `true` (e.g.
+  `hidden`).
+- A `=== meta` block holds document metadata as one `key=val` per line, using
+  the value typing above. If a document contains multiple `=== meta` blocks,
+  their keys are merged; the **first** definition of a key takes precedence —
+  a later definition of the same key is a `duplicate-meta-key` **warning** and
+  is ignored. Which blocks count is the ordinary nesting rule of §3: a `=== meta`
+  at the top level or inside a `flow` body is a block and its keys are the
+  document's, while one appearing inside a `raw` or `data` body is that body's
+  content and defines nothing — so a document may show `=== meta` as an example
+  inside a longer-fenced `code` block without those keys becoming real.
+  `profile` is a **reserved** meta key: it declares the application-layer
+  vocabularies this document uses (§8.6), and a processor MUST NOT read it as
+  anything else.
+  In flow text, `{{key}}` is replaced with the matching
+  `meta` value; an unknown key is a build **error**. Interpolation reads the
+  flow source text and honors the verbatim atoms of §5.3 phase 1(1): a
+  `{{key}}` inside a code span or inline math is left untouched (so a GEML
+  document can quote this very syntax), raw block bodies are never
+  interpolated, and a backslash-escaped `\{{key}}` renders as the literal text
+  `{{key}}`.
+
+===
+
+=== history-blob {#b142 lang=geml}
+- **Delimiter** — a data body splits on its format's natural delimiter: `,` for
+  `format=csv`, a tab for `format=tsv`. `delim=` overrides it with any single
+  character, so a European `;`-separated CSV or a `|`-delimited export is
+  readable as it stands. The value MUST be exactly one character; anything else is
+  a `bad-table-delimiter` error, and the natural delimiter is used so the rest of
+  the table still reads. Attribute values carry no escape syntax (§4), so a tab
+  delimiter is spelled `format=tsv`, never `delim="\t"`. A data body splits on the
+  delimiter and on nothing else: with `delim="|"` the outer pipes of `| a | b |`
+  are cells of their own — stripping them is the visual form's rule (a), not this
+  one. `delim` refines the data form, it does not select it: on a table with no
+  data `format` it is ignored, with an `ignored-table-delimiter` warning.
+- **Cell text** — a cell's text is what lies between its delimiters, with leading
+  and trailing whitespace — the Unicode `White_Space` property, as in §4 —
+  removed.
+- **Row width** — a table has as many columns as its header row has cells, or,
+  with no header, as its widest row has. A body row with more cells is cut to
+  that width and one with fewer is padded with empty cells; either is a
+  `ragged-table-row` warning naming the row, so a cell the model drops is
+  never dropped silently.
+- **Data from elsewhere** — instead of an inline body, a table MAY name where its
+  data comes from. For a `table` block that is the `src=` attribute (a `diagram`
+  spells the same idea `data=`; see Appendix B.3), and it takes one of three
+  targets: a data file with `format=csv`/`tsv` (a path relative to the document,
+  or an `http(s)` URL). A `src=` that names a **block** — `#id`, or
+  `doc.geml#id` — is an **error** naming `view` (§6.1): a block's output is
+  something another block derived, and a table holding facts someone else
+  derived would be neither. A local-path target MUST be resolved and
+  existence-checked at build time — an unresolvable one is an error. Only the `src` text — never
+  the resolved contents — enters the `.gemlhistory` hash. A table MUST NOT carry
+  both `src` and an inline body (an error). Because the data arrives at render
+  time, the column names used by `compute` and by a referencing `geml-chart` are
+  validated then, not at build time. Inlining stays the default; `src` is an
+  explicit choice.
+
+===
+
+=== history-blob {#b143 lang=geml}
+A `view` publishes a relation **derived** from another one. It takes **no body**
+— a body alongside `src=` is an error — and a **required `src=`** naming a data
+file (`rows.csv`), a block in this document (`#tickets`), or a block in another
+(`other.geml#tickets`). A `src=` that resolves to a block which is neither a
+`table` nor a `view` is an error: it publishes no relation to derive from.
+
+===
+
+=== history-blob {#b144 lang=geml}
+- `type` — `bar | line | area | pie | scatter`. It only changes how the channels
+  are drawn; it never adds new attributes.
+- Encoding channels (a closed set): `x` (category), `y` (value; a comma list is
+  multiple series), `series` (group by a column), `size` (scatter bubble).
+  Required: `x`, `y`. A channel a type does not use is a warning.
+- `rows` — `data` (default, summary row excluded), `all` (data + the summary row
+  as one extra point), or `summary` (only the summary row).
+- Column names, the `data` id, and `rows` are validated against the table:
+  a typo'd column or a dangling id is a build error. (If the table's data is
+  external and fetched at render time per §9.4, column validation is deferred
+  to the renderer).
+- Charts that need more (annotations, reference lines, heatmaps, …) use a hosted
+  DSL instead: `=== diagram {format=vega-lite data=#fy25}` with the spec in the
+  body. The body is raw and NOT column-checked.
+
+
+===
+
+=== history-blob {#b145 lang=geml}
+The bounds are implementation-defined; a processor SHOULD admit at least 64
+levels of each, which is far past any document written to be read. *The
+reference implementation admits 256 levels of block and list nesting and 100 of
+inline nesting.*
+
+===
+
+=== history-blob {#b146 lang=geml}
+- **Internal references** cannot loop: ids are unique per document (§4), so
+  resolving `#id` is a lookup, not a traversal.
+- **Cross-document references** are *checked* exactly one level deep. A
+  processor collects the target document's ids *without* resolving that
+  document's own references, so two documents that reference each other
+  terminate when validating references.
+- **Content transclusion** (an `embed` block or inline projection expanding its target in-place) is recursive. A processor MUST track the chain of expanded documents and stop if a document transcludes a target in a document already being expanded in that chain, emitting a `transclusion-cycle` error.
+- **Computed columns** (§6) are evaluated in declaration order, and a formula
+  sees only data columns and *earlier* computed columns. A self-reference or a
+  forward reference is therefore not a cycle but an unknown column, reported as
+  `compute-error`. GEML tables need no cycle detector: the evaluation order
+  makes the dependency graph acyclic by construction.
+
+===
+
 === history-revision {id="20261002T113436Z-1ad275a9" parent="20261002T104524Z-761bbf70" summary="§6: a cell's text is trimmed of White_Space; display formats are one exact subset" hash="sha256:1ad275a993aafd3a04e4d6b89412c3a7fd45ca19f5b03e498780c6898055fadf" newline="crlf"}
 delete @7780bfb0
 delete @92751869
-insert <- blob:b271 after #table-5
-insert <- blob:b272 after @b119e7b3
+insert <- blob:b135 after #table-5
+insert <- blob:b136 after @b119e7b3
 ===
 
-=== history-blob {#b271 lang=geml}
+=== history-blob {#b135 lang=geml}
 - **Delimiter** — a data body splits on its format's natural delimiter: `,` for
   `format=csv`, a tab for `format=tsv`. `delim=` overrides it with any single
   character, so a European `;`-separated CSV or a `|`-delimited export is
@@ -1833,7 +2172,7 @@ insert <- blob:b272 after @b119e7b3
 
 ===
 
-=== history-blob {#b272 lang=geml}
+=== history-blob {#b136 lang=geml}
 - **Computed columns** — `compute` lists one or more `Name = expr` formulas
   separated by `;`. Each `expr` is evaluated once per data row over `+ - * / ( )`
   and unary `-` (with `*`/`/` binding tighter than `+`/`-`, left-associative).
@@ -1869,10 +2208,10 @@ insert <- blob:b272 after @b119e7b3
 
 === history-revision {id="20261002T104524Z-761bbf70" parent="20261002T095748Z-35d68a26" summary="§4: a typed block's flow body is a prose container" hash="sha256:761bbf7045a1ec0187b1bb2885e97140f6e37e23b30a352efe12107707dad4f7" newline="crlf"}
 delete @33ab66f9
-insert <- blob:b270 after @75fd2bcf
+insert <- blob:b134 after @75fd2bcf
 ===
 
-=== history-blob {#b270 lang=geml}
+=== history-blob {#b134 lang=geml}
   **Prose**, here, is a maximal stretch of adjacent content that is neither a
   typed block nor a heading. Its **container** is the innermost heading whose section
   holds it, or the document. Let *P* be the nearest typed block or heading before
@@ -1884,10 +2223,10 @@ insert <- blob:b270 after @75fd2bcf
 delete @98e4f2b3
 delete @0fc4b120
 delete #table-8
-replace #table-7 <- blob:b269
+replace #table-7 <- blob:b133
 ===
 
-==== history-blob {#b269 lang=geml}
+==== history-blob {#b133 lang=geml}
 === table {#table-7}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -1946,16 +2285,16 @@ delete @2c736434
 delete @5d37870f
 delete @84042c29
 delete @00c84216
-replace #table-7 <- blob:b262
-insert <- blob:b263 after @a47618e2
-insert <- blob:b264 after @2e85d09d
-insert <- blob:b265 after @66af3922
-insert <- blob:b266 after @6665268c
-insert <- blob:b267 after #table-5
-insert <- blob:b268 after @c8e02e0e
+replace #table-7 <- blob:b126
+insert <- blob:b127 after @a47618e2
+insert <- blob:b128 after @2e85d09d
+insert <- blob:b129 after @66af3922
+insert <- blob:b130 after @6665268c
+insert <- blob:b131 after #table-5
+insert <- blob:b132 after @c8e02e0e
 ===
 
-==== history-blob {#b262 lang=geml}
+==== history-blob {#b126 lang=geml}
 === table {#table-7}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -2006,7 +2345,7 @@ insert <- blob:b268 after @c8e02e0e
 
 ====
 
-=== history-blob {#b263 lang=geml}
+=== history-blob {#b127 lang=geml}
 A `data` block carries the **value tree** — scalars, sequences and maps,
 exactly JSON's value domain — as *verified data*, where `code` carries text
 the processor must never interpret. The body is `raw` at scan time (fences
@@ -2016,7 +2355,7 @@ offending line.
 
 ===
 
-=== history-blob {#b264 lang=geml}
+=== history-blob {#b128 lang=geml}
 - `format=` selects a surface syntax *within* this one model. Admission to
   the registry requires the syntax to be **self-describing** — the bytes
   alone determine the value, with no dialect parameters. Delimited text fails
@@ -2084,7 +2423,7 @@ offending line.
 
 ===
 
-=== history-blob {#b265 lang=geml}
+=== history-blob {#b129 lang=geml}
 - `{#budget}` sets block id `budget`. Ids MUST be unique per document.
 - **Two NAMEs are the same name when they are equal after Unicode NFD
   normalization.** A NAME may contain any Unicode letter, and a letter carrying a
@@ -2142,7 +2481,7 @@ offending line.
 
 ===
 
-=== history-blob {#b266 lang=geml}
+=== history-blob {#b130 lang=geml}
 - Three token species occur inside the brackets and no two can be confused: a
   bare **integer** is a row or sequence index, a **quoted string** is a column
   name or a map key, and a bare **word** is a reserved row name, of which
@@ -2182,7 +2521,7 @@ offending line.
 
 ===
 
-=== history-blob {#b267 lang=geml}
+=== history-blob {#b131 lang=geml}
 - **Delimiter** — a data body splits on its format's natural delimiter: `,` for
   `format=csv`, a tab for `format=tsv`. `delim=` overrides it with any single
   character, so a European `;`-separated CSV or a `|`-delimited export is
@@ -2211,7 +2550,7 @@ offending line.
 
 ===
 
-==== history-blob {#b268 lang=geml}
+==== history-blob {#b132 lang=geml}
 === table
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -2233,11 +2572,11 @@ offending line.
 
 === history-revision {id="20261002T084518Z-37849022" parent="20261001T071052Z-b81b131c" summary="media type: text/vnd.geml is the one name" hash="sha256:37849022c65946547d304c96331ffbfd6a1aacc5c7740691eb71ea7748431439" newline="crlf"}
 delete @c9b0d469
-replace #table-2 <- blob:b260
-insert <- blob:b261 after #table-2
+replace #table-2 <- blob:b124
+insert <- blob:b125 after #table-2
 ===
 
-==== history-blob {#b260 lang=geml}
+==== history-blob {#b124 lang=geml}
 === table {#table-2}
 | | |
 |---|---|
@@ -2250,7 +2589,7 @@ insert <- blob:b261 after #table-2
 
 ====
 
-=== history-blob {#b261 lang=geml}
+=== history-blob {#b125 lang=geml}
 `text/geml` is not currently registered with IANA; `text/vnd.geml` is the
 vendor-tree name to use where a registered type is required. A fragment
 identifier on a `.geml` resource denotes the block bearing that `id`, matching
@@ -2263,10 +2602,10 @@ another does not is the same document building in one and failing in the other.
 ===
 
 === history-revision {id="20261001T071052Z-b81b131c" parent="20261001T071048Z-89da622a" summary="auto: Edit" hash="sha256:b81b131c3c2a74090787d6a88eba765c4c212ab6e1083dfc657c634640524408" newline="crlf"}
-replace #table-7 <- blob:b259
+replace #table-7 <- blob:b123
 ===
 
-==== history-blob {#b259 lang=geml}
+==== history-blob {#b123 lang=geml}
 === table {#table-7}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -2318,10 +2657,10 @@ replace #table-7 <- blob:b259
 
 === history-revision {id="20261001T071048Z-89da622a" parent="20260917T170051Z-8385f18e" summary="auto: Edit" hash="sha256:89da622a64ad2828a57f464f405e507cc379f01eab2a9b8cb7bfdf50859f7722" newline="crlf"}
 delete @5bdddd2f
-insert <- blob:b258 after @6665268c
+insert <- blob:b122 after @6665268c
 ===
 
-=== history-blob {#b258 lang=geml}
+=== history-blob {#b122 lang=geml}
 - Three token species occur inside the brackets and no two can be confused: a
   bare **integer** is a row or sequence index, a **quoted string** is a column
   name or a map key, and a bare **word** is a reserved row name, of which
@@ -2357,11 +2696,11 @@ insert <- blob:b258 after @6665268c
 
 === history-revision {id="20260917T170051Z-8385f18e" parent="20260917T131813Z-5edb5d6a" summary="附录 A：unknown-meta-key" hash="sha256:8385f18e40ed62782f45dbd40613706ee017f4ceee0241369b25289653b7e5ec" newline="lf"}
 delete @ff1bad6f
-replace #table-7 <- blob:b256
-insert <- blob:b257 after @098dc6d0
+replace #table-7 <- blob:b120
+insert <- blob:b121 after @098dc6d0
 ===
 
-==== history-blob {#b256 lang=geml}
+==== history-blob {#b120 lang=geml}
 === table {#table-7}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -2410,7 +2749,7 @@ insert <- blob:b257 after @098dc6d0
 
 ====
 
-=== history-blob {#b257 lang=geml}
+=== history-blob {#b121 lang=geml}
 1. MUST NOT report an admitted `type` as `unknown-block-type`, nor an admitted
    attribute key as `unknown-attribute`, when the document declares a vocabulary
    the processor recognizes.
@@ -2446,10 +2785,10 @@ insert <- blob:b257 after @098dc6d0
 
 === history-revision {id="20260917T131813Z-5edb5d6a" parent="20260917T125026Z-cf663ce6" summary="GEP-0014：规则 3 的报告跟着内容穿过 embed" hash="sha256:5edb5d6a2a3e14fd889819e0c63d969b6f71332afeb36bd561b413d7295177e4" newline="lf"}
 delete @f8635cbe
-insert <- blob:b255 after @098dc6d0
+insert <- blob:b119 after @098dc6d0
 ===
 
-=== history-blob {#b255 lang=geml}
+=== history-blob {#b119 lang=geml}
 1. MUST NOT report an admitted `type` as `unknown-block-type`, nor an admitted
    attribute key as `unknown-attribute`, when the document declares a vocabulary
    the processor recognizes.
@@ -2494,26 +2833,26 @@ delete @c7c02a33
 delete #table-view-diagnostics
 delete @76d4e09a
 delete @6bbaff59
-replace #code-2 <- blob:b238
-replace @b1bb9469 <- blob:b239
-replace #table-7 <- blob:b240
-replace #table-10 <- blob:b241
-replace #table-12 <- blob:b242
-insert <- blob:b243 after @2e85d09d
-insert <- blob:b244 after @59a0f430
-insert <- blob:b245 after @ea4edab7
-insert <- blob:b246 after @7614c94c
-insert <- blob:b247 after @5f231339
-insert <- blob:b248 after @098dc6d0
-insert <- blob:b249 after @d8b27c4e
-insert <- blob:b250 after #table-7
-insert <- blob:b251 after @e3118662
-insert <- blob:b252 after @0fc4b120
-insert <- blob:b253 after @c8e02e0e
-insert <- blob:b254 after #table-10
+replace #code-2 <- blob:b102
+replace @b1bb9469 <- blob:b103
+replace #table-7 <- blob:b104
+replace #table-10 <- blob:b105
+replace #table-12 <- blob:b106
+insert <- blob:b107 after @2e85d09d
+insert <- blob:b108 after @59a0f430
+insert <- blob:b109 after @ea4edab7
+insert <- blob:b110 after @7614c94c
+insert <- blob:b111 after @5f231339
+insert <- blob:b112 after @098dc6d0
+insert <- blob:b113 after @d8b27c4e
+insert <- blob:b114 after #table-7
+insert <- blob:b115 after @e3118662
+insert <- blob:b116 after @0fc4b120
+insert <- blob:b117 after @c8e02e0e
+insert <- blob:b118 after #table-10
 ===
 
-==== history-blob {#b238 lang=geml}
+==== history-blob {#b102 lang=geml}
 === code {#code-2 lang=ebnf}
 (* The grammar is stated over LOGICAL lines. Before it applies, a fence or
    heading line ending with `\` is folded with the line(s) that follow it —
@@ -2597,7 +2936,7 @@ TYPE-NAME      = ASCII-LETTER , { ASCII-LETTER | DIGIT | "-" | "_" } ;
 
 ====
 
-=== history-blob {#b239 lang=geml}
+=== history-blob {#b103 lang=geml}
 A NAME is not restricted to ASCII, and needs no leading letter: the id a heading
 derives from its own text (§4) may begin with a digit or `-`, and non-Latin
 scripts are ordinary NAME characters. A TYPE-NAME is the exception, and §8.5's
@@ -2607,7 +2946,7 @@ of a name.
 
 ===
 
-==== history-blob {#b240 lang=geml}
+==== history-blob {#b104 lang=geml}
 === table {#table-7}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -2632,7 +2971,7 @@ of a name.
 
 ====
 
-==== history-blob {#b241 lang=geml}
+==== history-blob {#b105 lang=geml}
 === table {#table-10}
 | Construct | Shape | Body | Defined in |
 |-----------|-------|------|------------|
@@ -2653,7 +2992,7 @@ of a name.
 
 ====
 
-==== history-blob {#b242 lang=geml}
+==== history-blob {#b106 lang=geml}
 === table {#table-12}
 | Key | Host block | Target | Defined in |
 |-----|------------|--------|------------|
@@ -2668,7 +3007,7 @@ of a name.
 
 ====
 
-=== history-blob {#b243 lang=geml}
+=== history-blob {#b107 lang=geml}
 - `format=` selects a surface syntax *within* this one model. Admission to
   the registry requires the syntax to be **self-describing** — the bytes
   alone determine the value, with no dialect parameters. Delimited text fails
@@ -2736,7 +3075,7 @@ of a name.
 
 ===
 
-=== history-blob {#b244 lang=geml}
+=== history-blob {#b108 lang=geml}
   Interpolation is a **single pass over flow text**, and both halves of that are
   normative. Single pass: a substituted value is never rescanned, so a value that
   itself reads `{{other}}` produces those six characters literally — there is no
@@ -2761,7 +3100,7 @@ of a name.
 
 ===
 
-=== history-blob {#b245 lang=geml}
+=== history-blob {#b109 lang=geml}
 A vocabulary admits three things and no others: block `type` names (§3),
 attribute keys (§4), and `diagram` `format` names (§7). What those names mean is
 defined by the vocabulary, not here; this section defines only how they come to
@@ -2769,7 +3108,7 @@ be admitted.
 
 ===
 
-=== history-blob {#b246 lang=geml}
+=== history-blob {#b110 lang=geml}
 - the **body mode** of any type — rule 4 below, and the reason the rest of this
   list holds;
 - the **grammar** of §§2–5: fences, headings, lists, attribute objects, inline
@@ -2779,7 +3118,7 @@ be admitted.
 
 ===
 
-=== history-blob {#b247 lang=geml}
+=== history-blob {#b111 lang=geml}
 The first of those decides where a construct belongs, and decides it
 mechanically rather than by degree. A construct whose body GEML must read —
 flow content, ids it must resolve, references §8.2(5) makes errors — cannot be
@@ -2789,7 +3128,7 @@ change to this specification, not an application layer.
 
 ===
 
-=== history-blob {#b248 lang=geml}
+=== history-blob {#b112 lang=geml}
 1. MUST NOT report an admitted `type` as `unknown-block-type`, nor an admitted
    attribute key as `unknown-attribute`, when the document declares a vocabulary
    the processor recognizes.
@@ -2810,7 +3149,7 @@ change to this specification, not an application layer.
 
 ===
 
-=== history-blob {#b249 lang=geml}
+=== history-blob {#b113 lang=geml}
 Rule 4 is what makes rule 3 safe to state. §8.4's suite is stated over the
 document model, so no case's expected projection can depend on which
 vocabularies an implementation happens to know, and two conformant processors
@@ -2821,7 +3160,7 @@ that does not, so content moved between them cannot change meaning in transit.
 
 ===
 
-=== history-blob {#b250 lang=geml}
+=== history-blob {#b114 lang=geml}
 | `unresolvable-table-source` | error | A table's `src=` names a data file that cannot be resolved. |
 | `table-source-not-a-table` | error | A table's `src=` names a block that exists but is not a table. |
 | `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
@@ -2829,12 +3168,12 @@ that does not, so content moved between them cannot change meaning in transit.
 
 ===
 
-=== history-blob {#b251 lang=geml}
+=== history-blob {#b115 lang=geml}
 ### A.3 Tables (§6)
 
 ===
 
-==== history-blob {#b252 lang=geml}
+==== history-blob {#b116 lang=geml}
 === table {#table-8}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -2856,7 +3195,7 @@ that does not, so content moved between them cannot change meaning in transit.
 
 ====
 
-==== history-blob {#b253 lang=geml}
+==== history-blob {#b117 lang=geml}
 === table
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -2876,13 +3215,13 @@ that does not, so content moved between them cannot change meaning in transit.
 
 ====
 
-=== history-blob {#b254 lang=geml}
+=== history-blob {#b118 lang=geml}
 | `%%` comment line | line | raw, never rendered | §4 |
 
 ===
 
 === history-revision {id="20260904T124549Z-41b1c63d" parent="20260904T124504Z-7ec9164c" summary="auto: Edit" hash="sha256:41b1c63d1ba3332240f29c92e01fb441cc19e2790c04775525acbe5213a46340" newline="crlf"}
-delete @3f948c6c
+delete #61-the-view-block
 delete @5985056d
 delete @557ac9a8
 delete @63b107bf
@@ -2892,10 +3231,10 @@ delete @b9dec734
 delete @ad6e64da
 delete @cf9ca147
 delete @81d9f469
-replace @9b7b0d61 <- blob:b237
+replace @9b7b0d61 <- blob:b101
 ===
 
-=== history-blob {#b237 lang=geml}
+=== history-blob {#b101 lang=geml}
   The split is defined on the left side of a formula, and only there: a format is
   the LAST `[…]` group of the left side, it MUST end the left side (trailing
   whitespace aside), it MUST NOT contain `]`, and it MUST contain a `%`. Everything
@@ -2918,12 +3257,12 @@ delete @b119e7b3
 === history-revision {id="20260904T124452Z-f000474d" parent="20260904T124429Z-a49e8f7d" summary="auto: Edit" hash="sha256:f000474d8fb190d17b5e5fb3290f2474f51dbd2497c67ae95a313efdeae1e67e" newline="crlf"}
 delete @eb32ff90
 delete @9bf9b765
-replace #code-6 <- blob:b234
-insert <- blob:b235 after #table-5
-insert <- blob:b236 after @191c6b14
+replace #code-6 <- blob:b98
+insert <- blob:b99 after #table-5
+insert <- blob:b100 after @191c6b14
 ===
 
-===== history-blob {#b234 lang=geml}
+===== history-blob {#b98 lang=geml}
 ==== code {#code-6}
 === diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=FY caption="FY revenue"}
 ===
@@ -2931,7 +3270,7 @@ insert <- blob:b236 after @191c6b14
 
 =====
 
-=== history-blob {#b235 lang=geml}
+=== history-blob {#b99 lang=geml}
 - **Delimiter** — a data body splits on its format's natural delimiter: `,` for
   `format=csv`, a tab for `format=tsv`. `delim=` overrides it with any single
   character, so a European `;`-separated CSV or a `|`-delimited export is
@@ -2959,16 +3298,16 @@ insert <- blob:b236 after @191c6b14
 
 ===
 
-=== history-blob {#b236 lang=geml}
+=== history-blob {#b100 lang=geml}
 Seven attribute keys carry references; all of them are validated (Appendix A):
 
 ===
 
 === history-revision {id="20260904T124429Z-a49e8f7d" parent="20260904T124420Z-5cf4f51d" summary="auto: Edit" hash="sha256:a49e8f7d2d3f6c9c6a0f53a361d0742734b7f846bc687ad1a6eff657b6ccff9a" newline="crlf"}
-replace #table-10 <- blob:b233
+replace #table-10 <- blob:b97
 ===
 
-==== history-blob {#b233 lang=geml}
+==== history-blob {#b97 lang=geml}
 === table {#table-10}
 | Construct | Shape | Body | Defined in |
 |-----------|-------|------|------------|
@@ -2990,10 +3329,10 @@ replace #table-10 <- blob:b233
 
 === history-revision {id="20260904T124420Z-5cf4f51d" parent="20260904T124355Z-3fd52672" summary="auto: Edit" hash="sha256:5cf4f51da8aac65767f0508ed2ca66097c7fc460e90a13efcf0a4aa97212372c" newline="crlf"}
 delete @d73caa04
-insert <- blob:b232 after @b7727683
+insert <- blob:b96 after @b7727683
 ===
 
-=== history-blob {#b232 lang=geml}
+=== history-blob {#b96 lang=geml}
 Block type `table` accepts two interchangeable bodies, parsed to one model.
 
 ===
@@ -3002,11 +3341,11 @@ Block type `table` accepts two interchangeable bodies, parsed to one model.
 delete @a2e336f1
 delete @43a6940b
 delete #code-4-view
-replace #code-4 <- blob:b230
-insert <- blob:b231 after #code-3
+replace #code-4 <- blob:b94
+insert <- blob:b95 after #code-3
 ===
 
-===== history-blob {#b230 lang=geml}
+===== history-blob {#b94 lang=geml}
 ==== code {#code-4}
 === table {#fy25 caption="FY2025 revenue by segment ($M)" format=csv header=1 \
            compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4; \
@@ -3024,7 +3363,7 @@ Services,  45.2,  47.8,  49.1,  52.6,  168.0
 
 =====
 
-=== history-blob {#b231 lang=geml}
+=== history-blob {#b95 lang=geml}
 **(b) Data form** — with computed columns and a summary row:
 
 ===
@@ -3033,13 +3372,13 @@ Services,  45.2,  47.8,  49.1,  52.6,  168.0
 delete @eaf0c6c7
 delete @41311e08
 delete @c38b452e
-replace #table-12 <- blob:b226
-insert <- blob:b227 after @2e85d09d
-insert <- blob:b228 after @75a28a48
-insert <- blob:b229 after @c8e02e0e
+replace #table-12 <- blob:b90
+insert <- blob:b91 after @2e85d09d
+insert <- blob:b92 after @75a28a48
+insert <- blob:b93 after @c8e02e0e
 ===
 
-==== history-blob {#b226 lang=geml}
+==== history-blob {#b90 lang=geml}
 === table {#table-12}
 | Key | Host block | Target | Defined in |
 |-----|------------|--------|------------|
@@ -3054,7 +3393,7 @@ insert <- blob:b229 after @c8e02e0e
 
 ====
 
-=== history-blob {#b227 lang=geml}
+=== history-blob {#b91 lang=geml}
 - `format=` selects a surface syntax *within* this one model. Admission to
   the registry requires the syntax to be **self-describing** — the bytes
   alone determine the value, with no dialect parameters. Delimited text fails
@@ -3121,7 +3460,7 @@ insert <- blob:b229 after @c8e02e0e
 
 ===
 
-=== history-blob {#b228 lang=geml}
+=== history-blob {#b92 lang=geml}
 - **Resolution.** A route resolves relative to the document. When a resolution
   root is named (`--root`), a route that does not exist document-relative MAY
   also be resolved relative to that root — how a generated code graph writes
@@ -3151,7 +3490,7 @@ insert <- blob:b229 after @c8e02e0e
 
 ===
 
-==== history-blob {#b229 lang=geml}
+==== history-blob {#b93 lang=geml}
 === table
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -3173,10 +3512,10 @@ insert <- blob:b229 after @c8e02e0e
 
 === history-revision {id="20260904T030614Z-7ab50a11" parent="20260904T030607Z-a944ce37" summary="auto: Edit" hash="sha256:7ab50a1192fba2ba51efa02ee03c2a5a636552a4248ee792ddd49837c287385f" newline="lf"}
 delete @48066b02
-insert <- blob:b225 after @2e85d09d
+insert <- blob:b89 after @2e85d09d
 ===
 
-=== history-blob {#b225 lang=geml}
+=== history-blob {#b89 lang=geml}
 - `format=` selects a surface syntax *within* this one model. Admission to
   the registry requires the syntax to be **self-describing** — the bytes
   alone determine the value, with no dialect parameters. Delimited text fails
@@ -3243,10 +3582,10 @@ insert <- blob:b225 after @2e85d09d
 
 === history-revision {id="20260904T030607Z-a944ce37" parent="20260903T115701Z-91b0561a" summary="auto: Edit" hash="sha256:a944ce379a8a49d2706f523f2c6e059c85660d689c3a5bf8d9e079ea83c2c3cd" newline="lf"}
 delete @b842ad84
-insert <- blob:b224 after @2e85d09d
+insert <- blob:b88 after @2e85d09d
 ===
 
-=== history-blob {#b224 lang=geml}
+=== history-blob {#b88 lang=geml}
 - `format=` selects a surface syntax *within* this one model. Admission to
   the registry requires the syntax to be **self-describing** — the bytes
   alone determine the value, with no dialect parameters. Delimited text fails
@@ -3301,15 +3640,15 @@ delete @7ba49203
 delete @d36b2a3a
 delete @1f2eee46
 delete @59a0f430
-replace #table-2 <- blob:b218
-replace #table-7 <- blob:b219
-insert <- blob:b220 after #table-2
-insert <- blob:b221 after #code-1
-insert <- blob:b222 after @66af3922
-insert <- blob:b223 after @44200356
+replace #table-2 <- blob:b82
+replace #table-7 <- blob:b83
+insert <- blob:b84 after #table-2
+insert <- blob:b85 after #code-1
+insert <- blob:b86 after @66af3922
+insert <- blob:b87 after @44200356
 ===
 
-==== history-blob {#b218 lang=geml}
+==== history-blob {#b82 lang=geml}
 === table {#table-2}
 | | |
 |---|---|
@@ -3322,7 +3661,7 @@ insert <- blob:b223 after @44200356
 
 ====
 
-==== history-blob {#b219 lang=geml}
+==== history-blob {#b83 lang=geml}
 === table {#table-7}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -3346,7 +3685,7 @@ insert <- blob:b223 after @44200356
 
 ====
 
-=== history-blob {#b220 lang=geml}
+=== history-blob {#b84 lang=geml}
 `text/geml` is not currently registered with IANA; `text/vnd.geml` is the
 vendor-tree name to use where a registered type is required. A fragment
 identifier on a `.geml` resource denotes the block bearing that `id`, matching
@@ -3356,7 +3695,7 @@ it is written as a GEML reference or as a URL.
 
 ===
 
-=== history-blob {#b221 lang=geml}
+=== history-blob {#b85 lang=geml}
 - The fence is a run of `=` (≥ 3). A block is closed by the **first** subsequent
   line that is either a run of `=` of exactly the opening length, or — when the
   block has an `#id` — its **labeled fence** `=== #id` (a `=` run of any length
@@ -3394,7 +3733,7 @@ it is written as a GEML reference or as a URL.
 
 ===
 
-=== history-blob {#b222 lang=geml}
+=== history-blob {#b86 lang=geml}
 - `{#budget}` sets block id `budget`. Ids MUST be unique per document.
 - `{.warning}` adds a semantic class (no styling implied).
 - `{caption="Annual cost"}` and other `key=val` pairs are type-defined
@@ -3420,7 +3759,7 @@ it is written as a GEML reference or as a URL.
 
 ===
 
-=== history-blob {#b223 lang=geml}
+=== history-blob {#b87 lang=geml}
   So `## Use \`foo()\` in 2024 Design` derives `#use-in-2024-design`, and — since
   step 3 keeps every Unicode letter — `## Ubytovací zařízení` derives
   `#ubytovací-zařízení` and `## 设计说明` derives `#设计说明`. A derived id
@@ -3465,10 +3804,10 @@ it is written as a GEML reference or as a URL.
 === history-revision {id="20260831T105929Z-cf7ee53f" parent="20260831T104502Z-f3b7ac3d" summary="§8.6.1: a vocabulary may admit diagram format names; table/data formats may not" hash="sha256:cf7ee53faa193eeec9f798631f59ce780f817119fb603f2f067096b54c33cc07" newline="lf"}
 delete @015e971a
 delete @3bf75cbb
-insert <- blob:b217 after @ea4edab7
+insert <- blob:b81 after @ea4edab7
 ===
 
-=== history-blob {#b217 lang=geml}
+=== history-blob {#b81 lang=geml}
 A vocabulary admits two things and no others: block `type` names (§3) and
 attribute keys (§4). What those names mean is defined by the vocabulary, not
 here; this section defines only how they come to be admitted.
@@ -3480,34 +3819,34 @@ delete @630af659
 delete @ea4edab7
 delete @68000e47
 delete @304e6d2d
-insert <- blob:b213 after @8303ce31
-insert <- blob:b214 after @e9d975b9
-insert <- blob:b215 after @1892207b
-insert <- blob:b216 after @4d876340
+insert <- blob:b77 after @8303ce31
+insert <- blob:b78 after @e9d975b9
+insert <- blob:b79 after @1892207b
+insert <- blob:b80 after @4d876340
 ===
 
-=== history-blob {#b213 lang=geml}
+=== history-blob {#b77 lang=geml}
 ### 8.6 How this specification is extended {#8-6-how-this-specification-is-extended}
 
 ===
 
-=== history-blob {#b214 lang=geml}
+=== history-blob {#b78 lang=geml}
 #### Application-layer vocabularies
 
 ===
 
-=== history-blob {#b215 lang=geml}
+=== history-blob {#b79 lang=geml}
 #### Rules for a conforming processor
 
 ===
 
-=== history-blob {#b216 lang=geml}
+=== history-blob {#b80 lang=geml}
 #### Naming and versioning
 
 ===
 
 === history-revision {id="20260831T104300Z-7cca3195" parent="20260831T103940Z-46b20c1a" summary="§8.6 retitled to its subject; vocabularies, processor rules and naming become subsections" hash="sha256:7cca3195b41a641011cce1b4f86fb0434113bdb8090b11ffaf3bf556ac38cbd7" newline="lf"}
-delete @078cc278
+delete #8-6-how-this-specification-is-extended
 delete @c76708ed
 delete @d3c748a9
 delete @7614c94c
@@ -3516,16 +3855,16 @@ delete @12043cfd
 delete @1892207b
 delete @c896ed5a
 delete @7b5f7f9d
-insert <- blob:b211 after @8303ce31
-insert <- blob:b212 after @e9d975b9
+insert <- blob:b75 after @8303ce31
+insert <- blob:b76 after @e9d975b9
 ===
 
-=== history-blob {#b211 lang=geml}
+=== history-blob {#b75 lang=geml}
 ### 8.6 Application-layer vocabularies {#8-6-application-layer-vocabularies}
 
 ===
 
-=== history-blob {#b212 lang=geml}
+=== history-blob {#b76 lang=geml}
 A vocabulary admits block `type` names and attribute keys beyond the ones this
 specification defines. What it admits, and what those names mean, is defined by
 the vocabulary and not here: this section defines only the mechanism.
@@ -3534,10 +3873,10 @@ the vocabulary and not here: this section defines only the mechanism.
 
 === history-revision {id="20260831T103940Z-46b20c1a" parent="20260831T100849Z-c2cefc7e" summary="§8.6: the profile mechanism is the ONLY way the specification is extended" hash="sha256:46b20c1a0c84fc5e238323d1a421857d798c87b4ae746d973becc80ace2c10f4" newline="lf"}
 delete @149e33bf
-insert <- blob:b210 after @dced1fe1
+insert <- blob:b74 after #8-6-application-layer-vocabularies
 ===
 
-=== history-blob {#b210 lang=geml}
+=== history-blob {#b74 lang=geml}
 A hyphen keeps an extension out of this specification's way; it does not tell a
 processor what the name means, and §8.2(6) still requires the name to degrade to
 a warning. `profile` is how a document says which extensions it is using. The
@@ -3549,7 +3888,7 @@ names**:
 === history-revision {id="20260831T100849Z-c2cefc7e" parent="20260831T092506Z-56384579" summary="§8.6: application-layer vocabularies — the profile mechanism becomes normative" hash="sha256:c2cefc7eb32dbc67cb424c31071ae4480467cf9e830cd2db4fb69658ce243de6" newline="lf"}
 delete @b1bb9469
 delete @e112402e
-delete @dced1fe1
+delete #8-6-application-layer-vocabularies
 delete @fc8f325b
 delete @e9d975b9
 delete @5c1bba75
@@ -3557,12 +3896,12 @@ delete @098dc6d0
 delete @d8b27c4e
 delete @4d876340
 delete @3e087d98
-replace @8303ce31 <- blob:b207
-insert <- blob:b208 after #code-2
-insert <- blob:b209 after @44200356
+replace @8303ce31 <- blob:b71
+insert <- blob:b72 after #code-2
+insert <- blob:b73 after @44200356
 ===
 
-=== history-blob {#b207 lang=geml}
+=== history-blob {#b71 lang=geml}
 The **type registry** (§3) is open. A type name that is not defined by this
 specification and not registered SHOULD contain a hyphen (for example
 `acme-invoice`), reserving unhyphenated names for future versions of this
@@ -3571,7 +3910,7 @@ specification. Diagram `format` names follow the same convention.
 
 ===
 
-=== history-blob {#b208 lang=geml}
+=== history-blob {#b72 lang=geml}
 A NAME is not restricted to ASCII, and needs no leading letter: the id a heading
 derives from its own text (§4) may begin with a digit or `-`, and non-Latin
 scripts are ordinary NAME characters. A TYPE-NAME is the exception, and §8.5's
@@ -3581,7 +3920,7 @@ never by the shape of a name.
 
 ===
 
-=== history-blob {#b209 lang=geml}
+=== history-blob {#b73 lang=geml}
   So `## Use \`foo()\` in 2024 Design` derives `#use-in-2024-design`, and — since
   step 3 keeps every Unicode letter — `## Ubytovací zařízení` derives
   `#ubytovací-zařízení` and `## 设计说明` derives `#设计说明`. A derived id
@@ -3622,11 +3961,11 @@ never by the shape of a name.
 
 === history-revision {id="20260831T092506Z-56384579" parent="20260831T090953Z-bdf7fe20" summary="§3.1: type gets its own TYPE-NAME production, narrower than NAME" hash="sha256:56384579cdc93e415a571f68bfe672e5ab2aa74e664e9b250614b1434cd4bcbe" newline="lf"}
 delete @906f3a51
-replace #code-2 <- blob:b205
-insert <- blob:b206 after #code-2
+replace #code-2 <- blob:b69
+insert <- blob:b70 after #code-2
 ===
 
-==== history-blob {#b205 lang=geml}
+==== history-blob {#b69 lang=geml}
 === code {#code-2 lang=ebnf}
 (* The grammar is stated over LOGICAL lines. Before it applies, a fence or
    heading line ending with `\` is folded with the line(s) that follow it —
@@ -3699,7 +4038,7 @@ NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 
 ====
 
-=== history-blob {#b206 lang=geml}
+=== history-blob {#b70 lang=geml}
 A NAME is not restricted to ASCII, and needs no leading letter: the id a heading
 derives from its own text (§4) may begin with a digit or `-`, and non-Latin
 scripts are ordinary NAME characters.
@@ -3708,11 +4047,11 @@ scripts are ordinary NAME characters.
 ===
 
 === history-revision {id="20260831T090953Z-bdf7fe20" parent="20260828T115339Z-88780ba9" summary="§3.1: the SP after the fence is optional; Appendix A drops fence-glued-text" hash="sha256:bdf7fe20f5cf6e82c6b6fee83f4e4444abcd91ab49e1a879607afbfbe23a75c5" newline="lf"}
-replace #code-2 <- blob:b203
-replace #table-6 <- blob:b204
+replace #code-2 <- blob:b67
+replace #table-6 <- blob:b68
 ===
 
-==== history-blob {#b203 lang=geml}
+==== history-blob {#b67 lang=geml}
 === code {#code-2 lang=ebnf}
 (* The grammar is stated over LOGICAL lines. Before it applies, a fence or
    heading line ending with `\` is folded with the line(s) that follow it —
@@ -3780,7 +4119,7 @@ NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 
 ====
 
-==== history-blob {#b204 lang=geml}
+==== history-blob {#b68 lang=geml}
 === table {#table-6}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -3800,14 +4139,14 @@ NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 === history-revision {id="20260828T115339Z-88780ba9" parent="20260824T040041Z-186c6608" summary="Appendix A: fence-glued-text, heading-attrs-*; Appendix B: bare-word and number match the parser" hash="sha256:88780ba9c27da0623773e1c3c539d095c42952f7ffdee9dc3ab41357b349a9f0" newline="crlf"}
 delete @1708d7a2
 delete @592dbaa1
-replace #code-2 <- blob:b198
-replace #table-6 <- blob:b199
-replace #table-7 <- blob:b200
-insert <- blob:b201 after @a43a9d11
-insert <- blob:b202 after @d65f81f8
+replace #code-2 <- blob:b62
+replace #table-6 <- blob:b63
+replace #table-7 <- blob:b64
+insert <- blob:b65 after @a43a9d11
+insert <- blob:b66 after @d65f81f8
 ===
 
-==== history-blob {#b198 lang=geml}
+==== history-blob {#b62 lang=geml}
 === code {#code-2 lang=ebnf}
 (* The grammar is stated over LOGICAL lines. Before it applies, a fence or
    heading line ending with `\` is folded with the line(s) that follow it —
@@ -3859,7 +4198,7 @@ NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 
 ====
 
-==== history-blob {#b199 lang=geml}
+==== history-blob {#b63 lang=geml}
 === table {#table-6}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -3875,7 +4214,7 @@ NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 
 ====
 
-==== history-blob {#b200 lang=geml}
+==== history-blob {#b64 lang=geml}
 === table {#table-7}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -3897,14 +4236,14 @@ NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 
 ====
 
-=== history-blob {#b201 lang=geml}
+=== history-blob {#b65 lang=geml}
 An item's content is a single line. A list item MAY begin with a **task marker** —
 `[ ]`, `[x]`, or `[X]` followed by a space — which is stripped and recorded as a
 checked/unchecked state.
 
 ===
 
-=== history-blob {#b202 lang=geml}
+=== history-blob {#b66 lang=geml}
 Multi-paragraph list items are not part of GEML; rich item content belongs in a
 typed block (§3).
 
@@ -3913,10 +4252,10 @@ typed block (§3).
 
 === history-revision {id="20260824T040041Z-186c6608" parent="20260817T122339Z-8dced537" summary="§4: derived ids keep underscores (was contradicting step 3 and the parser); meta blocks count by the §3 nesting rule" hash="sha256:186c6608e95d990bff190dad230db463743defadebb2c84f2b8f0c57cf9b542d" newline="crlf"}
 delete @d1d34362
-insert <- blob:b197 after @44200356
+insert <- blob:b61 after @44200356
 ===
 
-=== history-blob {#b197 lang=geml}
+=== history-blob {#b61 lang=geml}
   So `## Use \`foo()\` in 2024 Design` derives `#use-in-2024-design`, and — since
   step 3 keeps every Unicode letter — `## Ubytovací zařízení` derives
   `#ubytovací-zařízení` and `## 设计说明` derives `#设计说明`. A derived id
@@ -3960,18 +4299,18 @@ delete @c824dee0
 delete @174be36e
 delete @e3118662
 delete @3d91b556
-replace #table-7 <- blob:b188
-insert <- blob:b189 after @75a28a48
-insert <- blob:b190 after @66af3922
-insert <- blob:b191 after @3be2fba4
-insert <- blob:b192 after @426eb5a5
-insert <- blob:b193 after @5a42a3fb
-insert <- blob:b194 after @af4cf90a
-insert <- blob:b195 after #table-7
-insert <- blob:b196 after @c8e02e0e
+replace #table-7 <- blob:b52
+insert <- blob:b53 after @75a28a48
+insert <- blob:b54 after @66af3922
+insert <- blob:b55 after @3be2fba4
+insert <- blob:b56 after @426eb5a5
+insert <- blob:b57 after @5a42a3fb
+insert <- blob:b58 after @af4cf90a
+insert <- blob:b59 after #table-7
+insert <- blob:b60 after @c8e02e0e
 ===
 
-==== history-blob {#b188 lang=geml}
+==== history-blob {#b52 lang=geml}
 === table {#table-7}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -3992,7 +4331,7 @@ insert <- blob:b196 after @c8e02e0e
 
 ====
 
-=== history-blob {#b189 lang=geml}
+=== history-blob {#b53 lang=geml}
 - **Resolution.** A route resolves relative to the document. When a resolution
   root is named (`--root`), a route that does not exist document-relative MAY
   also be resolved relative to that root — how a generated code graph writes
@@ -4022,7 +4361,7 @@ insert <- blob:b196 after @c8e02e0e
 
 ===
 
-=== history-blob {#b190 lang=geml}
+=== history-blob {#b54 lang=geml}
 - `{#budget}` sets block id `budget`. Ids MUST be unique per document.
 - `{.warning}` adds a semantic class (no styling implied).
 - `{caption="Annual cost"}` and other `key=val` pairs are type-defined
@@ -4049,7 +4388,7 @@ insert <- blob:b196 after @c8e02e0e
 
 ===
 
-=== history-blob {#b191 lang=geml}
+=== history-blob {#b55 lang=geml}
   So `## Use \`foo()\` in 2024 Design` derives `#use-in-2024-design`, and — since
   step 3 keeps every Unicode letter — `## Ubytovací zařízení` derives
   `#ubytovací-zařízení` and `## 设计说明` derives `#设计说明`. A derived id
@@ -4083,14 +4422,14 @@ insert <- blob:b196 after @c8e02e0e
 
 ===
 
-=== history-blob {#b192 lang=geml}
+=== history-blob {#b56 lang=geml}
 **Phase 2 — emphasis** runs over each maximal run of literal text *between*
 phase-1 atoms; emphasis never spans an atom or a block boundary. Emphasis, strong,
 and strikethrough are resolved by **delimiter-run flanking**:
 
 ===
 
-=== history-blob {#b193 lang=geml}
+=== history-blob {#b57 lang=geml}
 - A **delimiter run** is a maximal run of `*`, or a maximal run of two or more `~`
   (a single `~` is literal).
 - Taking the characters immediately before and after a run (the start and end of
@@ -4114,7 +4453,7 @@ and strikethrough are resolved by **delimiter-run flanking**:
 
 ===
 
-=== history-blob {#b194 lang=geml}
+=== history-blob {#b58 lang=geml}
 *This is the CommonMark delimiter-run algorithm — flanking, and the rule of three
 — restricted to GEML's delimiters: `*` and `~~`, with no `_` emphasis. It is NOT
 the whole of CommonMark's inline pass: phase 2 above runs per literal-text run,
@@ -4126,14 +4465,14 @@ containing a link. Whether that restriction should stand is
 
 ===
 
-=== history-blob {#b195 lang=geml}
+=== history-blob {#b59 lang=geml}
 | `unresolvable-table-source` | error | A table's `src=` names a data file that cannot be resolved. |
 | `table-source-not-a-table` | error | A table's `src=` names a block that exists but is not a table. |
 | `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
 
 ===
 
-==== history-blob {#b196 lang=geml}
+==== history-blob {#b60 lang=geml}
 === table
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -4155,10 +4494,10 @@ containing a link. Whether that restriction should stand is
 
 === history-revision {id="20260815T055704Z-39e9040f" parent="20260815T055642Z-49a7bb9b" summary="auto: Edit" hash="sha256:39e9040fce20346f8f4a9f8aab784fc85f5bb911b30fbaab86a0441fa345428f" newline="crlf"}
 delete @77855bd2
-insert <- blob:b187 after #table-4
+insert <- blob:b51 after #table-4
 ===
 
-=== history-blob {#b187 lang=geml}
+=== history-blob {#b51 lang=geml}
 - External link options go in the attribute object:
   `[text](url){rel=nofollow target=_blank}`.
 - An unresolved `#id`, `other.geml#id`, or `[^id]` is a build **error**.
@@ -4175,10 +4514,10 @@ insert <- blob:b187 after #table-4
 
 === history-revision {id="20260815T055642Z-49a7bb9b" parent="20260815T055631Z-aea2c26d" summary="auto: Edit" hash="sha256:49a7bb9b1fe5517d3f6b87a21bac324e31b9e94caba3eda5fc877f78d2b235bb" newline="crlf"}
 delete @4b7aadf1
-insert <- blob:b186 after @3be2fba4
+insert <- blob:b50 after @3be2fba4
 ===
 
-=== history-blob {#b186 lang=geml}
+=== history-blob {#b50 lang=geml}
   So `## Use \`foo()\` in 2024 Design` derives `#use-in-2024-design`, and — since
   step 3 keeps every Unicode letter — `## Ubytovací zařízení` derives
   `#ubytovací-zařízení` and `## 设计说明` derives `#设计说明`. A derived id
@@ -4213,10 +4552,10 @@ insert <- blob:b186 after @3be2fba4
 
 === history-revision {id="20260815T055631Z-aea2c26d" parent="20260815T055045Z-b70c0db5" summary="auto: Edit" hash="sha256:aea2c26d3778b793dde2e1c4a7a6b9735019f5505cf7a7182c4cb80cb6ac6e26" newline="crlf"}
 delete @5c9f55d7
-insert <- blob:b185 after #code-1
+insert <- blob:b49 after #code-1
 ===
 
-=== history-blob {#b185 lang=geml}
+=== history-blob {#b49 lang=geml}
 - The fence is a run of `=` (≥ 3). A block is closed by the **first** subsequent
   line that is either a run of `=` of exactly the opening length, or — when the
   block has an `#id` — its **labeled fence** `=== #id` (a `=` run of any length
@@ -4253,10 +4592,10 @@ insert <- blob:b185 after #code-1
 ===
 
 === history-revision {id="20260815T055045Z-b70c0db5" parent="20260815T055014Z-7da49c7a" summary="auto: Edit" hash="sha256:b70c0db548f2d11a6ae3777c2b7ec718ec78221d590e1ab6b8aa9ab505bc52fc" newline="crlf"}
-replace #table-8 <- blob:b184
+replace #table-8 <- blob:b48
 ===
 
-==== history-blob {#b184 lang=geml}
+==== history-blob {#b48 lang=geml}
 === table {#table-8}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -4279,10 +4618,10 @@ replace #table-8 <- blob:b184
 
 === history-revision {id="20260815T055014Z-7da49c7a" parent="20260815T054955Z-9a15ecc3" summary="auto: Edit" hash="sha256:7da49c7abbd185f43dc1e36ab9249789c276e3bd4af13de3e56b2b3ddd5e4dfd" newline="crlf"}
 delete @e259bb5b
-insert <- blob:b183 after @323da7af
+insert <- blob:b47 after @323da7af
 ===
 
-=== history-blob {#b183 lang=geml}
+=== history-blob {#b47 lang=geml}
 A `diagram` MAY declare a data source with `data=#id`. The processor MUST
 resolve the reference and supply a **table model** to the renderer. Two
 target forms produce one: a `table` (its model, computed columns included),
@@ -4307,16 +4646,16 @@ delete @83360927
 delete @a5f28255
 delete @8c8a2448
 delete @fbc1e3d7
-replace @bbbb2263 <- blob:b176
-replace #table-12 <- blob:b177
-insert <- blob:b178 after @6304c9eb
-insert <- blob:b179 after #table-4
-insert <- blob:b180 after @af4cf90a
-insert <- blob:b181 after @c8e02e0e
-insert <- blob:b182 after @191c6b14
+replace @bbbb2263 <- blob:b40
+replace #table-12 <- blob:b41
+insert <- blob:b42 after @6304c9eb
+insert <- blob:b43 after #table-4
+insert <- blob:b44 after @af4cf90a
+insert <- blob:b45 after @c8e02e0e
+insert <- blob:b46 after @191c6b14
 ===
 
-=== history-blob {#b176 lang=geml}
+=== history-blob {#b40 lang=geml}
 - `format=` selects a surface syntax *within* this one model. Admission to
   the registry requires the syntax to be **self-describing** — the bytes
   alone determine the value, with no dialect parameters. Delimited text fails
@@ -4361,7 +4700,7 @@ insert <- blob:b182 after @191c6b14
 
 ===
 
-==== history-blob {#b177 lang=geml}
+==== history-blob {#b41 lang=geml}
 === table {#table-12}
 | Key | Host block | Target | Defined in |
 |-----|------------|--------|------------|
@@ -4375,7 +4714,7 @@ insert <- blob:b182 after @191c6b14
 
 ====
 
-=== history-blob {#b178 lang=geml}
+=== history-blob {#b42 lang=geml}
 **Nesting is by indentation.** Indentation is a column count (a tab counts as 4
 columns). An item indented *more* than the current item's marker opens a nested
 list under that item; an item indented *less* closes back to an enclosing list. A
@@ -4385,7 +4724,7 @@ that is neither blank nor an item line at or below its indentation.
 
 ===
 
-=== history-blob {#b179 lang=geml}
+=== history-blob {#b43 lang=geml}
 - External link options go in the attribute object:
   `[text](url){rel=nofollow target=_blank}`.
 - An unresolved `#id`, `other.geml#id`, or `[^id]` is a build **error**.
@@ -4395,14 +4734,14 @@ that is neither blank nor an item line at or below its indentation.
 
 ===
 
-=== history-blob {#b180 lang=geml}
+=== history-blob {#b44 lang=geml}
 *This is the CommonMark emphasis algorithm restricted to GEML's delimiters: `*`
 and `~~`, with no `_` emphasis.*
 
 
 ===
 
-==== history-blob {#b181 lang=geml}
+==== history-blob {#b45 lang=geml}
 === table
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -4418,16 +4757,16 @@ and `~~`, with no `_` emphasis.*
 
 ====
 
-=== history-blob {#b182 lang=geml}
+=== history-blob {#b46 lang=geml}
 Six attribute keys carry references; all of them are validated (Appendix A):
 
 ===
 
 === history-revision {id="20260805T083455Z-fcfa215b" parent="20260805T044415Z-25c2a2d6" summary="auto: Edit" hash="sha256:fcfa215b9290f1a905cbe6dec4a4fc3a6eccfe1dac4dc7fe8356955db5d10b32" newline="crlf"}
-replace #table-6 <- blob:b175
+replace #table-6 <- blob:b39
 ===
 
-==== history-blob {#b175 lang=geml}
+==== history-blob {#b39 lang=geml}
 === table {#table-6}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -4451,16 +4790,16 @@ delete @a5626aaa
 delete @c8e02e0e
 delete @f65624bf
 delete @bd882d26
-replace #table-9 <- blob:b168
-replace #table-10 <- blob:b169
-replace #table-12 <- blob:b170
-replace #table-13 <- blob:b171
-insert <- blob:b172 after #code-1
-insert <- blob:b173 after @323da7af
-insert <- blob:b174 after @191c6b14
+replace #table-9 <- blob:b32
+replace #table-10 <- blob:b33
+replace #table-12 <- blob:b34
+replace #table-13 <- blob:b35
+insert <- blob:b36 after #code-1
+insert <- blob:b37 after @323da7af
+insert <- blob:b38 after @191c6b14
 ===
 
-==== history-blob {#b168 lang=geml}
+==== history-blob {#b32 lang=geml}
 === table {#table-9}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -4485,7 +4824,7 @@ insert <- blob:b174 after @191c6b14
 
 ====
 
-==== history-blob {#b169 lang=geml}
+==== history-blob {#b33 lang=geml}
 === table {#table-10}
 | Construct | Shape | Body | Defined in |
 |-----------|-------|------|------------|
@@ -4504,7 +4843,7 @@ insert <- blob:b174 after @191c6b14
 
 ====
 
-==== history-blob {#b170 lang=geml}
+==== history-blob {#b34 lang=geml}
 === table {#table-12}
 | Key | Host block | Target | Defined in |
 |-----|------------|--------|------------|
@@ -4516,7 +4855,7 @@ insert <- blob:b174 after @191c6b14
 
 ====
 
-==== history-blob {#b171 lang=geml}
+==== history-blob {#b35 lang=geml}
 === table {#table-13}
 | Concept | Inline position | Block position |
 |---------|-----------------|----------------|
@@ -4533,7 +4872,7 @@ insert <- blob:b174 after @191c6b14
 
 ====
 
-=== history-blob {#b172 lang=geml}
+=== history-blob {#b36 lang=geml}
 - The fence is a run of `=` (≥ 3). A block is closed by the **first** subsequent
   line that is either a run of `=` of exactly the opening length, or — when the
   block has an `#id` — its **labeled fence** `=== #id` (a `=` run of any length
@@ -4568,7 +4907,7 @@ insert <- blob:b174 after @191c6b14
 
 ===
 
-=== history-blob {#b173 lang=geml}
+=== history-blob {#b37 lang=geml}
 A `diagram` MAY declare a data source with `data=#id`. The processor MUST
 resolve the reference (a dangling id, or a target that is not a `table`, is a
 build **error**) and supply the referenced table's model — computed columns
@@ -4576,16 +4915,16 @@ included — to the renderer. The processor still does NOT interpret the body.
 
 ===
 
-=== history-blob {#b174 lang=geml}
+=== history-blob {#b38 lang=geml}
 Four attribute keys carry references; all of them are validated (Appendix A):
 
 ===
 
 === history-revision {id="20260805T040305Z-089be060" parent="20260805T034555Z-3072c76f" summary="auto: Edit" hash="sha256:089be060e6704be5c49a85401d068edf101c2495313eea1fe65ac07302a6d572" newline="crlf"}
-replace #table-12 <- blob:b167
+replace #table-12 <- blob:b31
 ===
 
-==== history-blob {#b167 lang=geml}
+==== history-blob {#b31 lang=geml}
 === table {#table-12}
 | Key | Host block | Target | Defined in |
 |-----|------------|--------|------------|
@@ -4599,11 +4938,11 @@ replace #table-12 <- blob:b167
 
 === history-revision {id="20260805T034555Z-3072c76f" parent="20260805T020559Z-5e944bf5" summary="§6: delim= overrides the data form's natural delimiter" hash="sha256:3072c76f75d70426ec8a6a3bd4c9d056f687ecc18896565bd5d27ae4f7c6de9a" newline="crlf"}
 delete @57b1643c
-replace #table-8 <- blob:b165
-insert <- blob:b166 after #table-5
+replace #table-8 <- blob:b29
+insert <- blob:b30 after #table-5
 ===
 
-==== history-blob {#b165 lang=geml}
+==== history-blob {#b29 lang=geml}
 === table {#table-8}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -4622,7 +4961,7 @@ insert <- blob:b166 after #table-5
 
 ====
 
-=== history-blob {#b166 lang=geml}
+=== history-blob {#b30 lang=geml}
 - **Data from elsewhere** — instead of an inline body, a table MAY name where its
   data comes from. For a `table` block that is the `src=` attribute (a `diagram`
   spells the same idea `data=`; see Appendix B.3), and it takes one of three
@@ -4641,10 +4980,10 @@ insert <- blob:b166 after #table-5
 
 === history-revision {id="20260805T020559Z-5e944bf5" parent="20260804T112950Z-c654ce9b" summary="auto: Edit" hash="sha256:5e944bf58ce5476032a75a1bae8a9ee2a19f582a60334c047932c52ed24838af" newline="crlf"}
 delete @0d6bb979
-insert <- blob:b164 after @7d15d899
+insert <- blob:b28 after @7d15d899
 ===
 
-=== history-blob {#b164 lang=geml}
+=== history-blob {#b28 lang=geml}
 `!` is the projection prefix throughout: `![](src)` projects media, `![[#id]]`
 projects content. The line between the two content projections is *value* versus
 *content*. `{{key}}` substitutes a metadata **scalar** — no markup, no context
@@ -4656,10 +4995,10 @@ a scalar, a phrase, and a block.
 ===
 
 === history-revision {id="20260804T112950Z-c654ce9b" parent="20260804T110025Z-10493e89" summary="auto: Edit" hash="sha256:c654ce9be6f1dcc9b160fea79f9198dfc909b572bc153059d917118dde25aef0" newline="crlf"}
-replace #table-6 <- blob:b163
+replace #table-6 <- blob:b27
 ===
 
-==== history-blob {#b163 lang=geml}
+==== history-blob {#b27 lang=geml}
 === table {#table-6}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -4675,10 +5014,10 @@ replace #table-6 <- blob:b163
 
 === history-revision {id="20260804T110025Z-10493e89" parent="20260804T105329Z-155c43f8" summary="labeled close: only removes length-counting; same-length bare fence still closes first" hash="sha256:10493e89717686db39369ac9b722a4ad18f09063959a3bf34b7a218434d87721" newline="crlf"}
 delete @4ab14d2d
-insert <- blob:b162 after #code-1
+insert <- blob:b26 after #code-1
 ===
 
-=== history-blob {#b162 lang=geml}
+=== history-blob {#b26 lang=geml}
 - The fence is a run of `=` (≥ 3). A block is closed by a run of `=` of exactly
   the opening length, OR — when the block has an `#id` — by a **labeled fence**
   `=== #id` (a `=` run of any length ≥ 3 followed by the block's id).
@@ -4710,10 +5049,10 @@ delete @daf349d0
 delete #code-embed-base
 delete @e7fca185
 delete @9ab638f3
-insert <- blob:b161 after @faf9dc12
+insert <- blob:b25 after @faf9dc12
 ===
 
-=== history-blob {#b161 lang=geml}
+=== history-blob {#b25 lang=geml}
 A transcluded target is processed **as a document in its own right**, not as a
 text fragment spliced into the host. Its metadata, its references, the base
 against which its relative paths resolve, and its external data (`src=`) MUST all
@@ -4726,10 +5065,10 @@ chain is the base for the one it transcludes.
 
 === history-revision {id="20260804T104120Z-ce50f769" parent="20260804T104118Z-8d659c3a" summary="auto: Edit" hash="sha256:ce50f76934e0fc16c3244db65989aa80487b9333c9af2861b7b4e0fce1097884" newline="crlf"}
 delete @bf7446d2
-insert <- blob:b160 after @7d15d899
+insert <- blob:b24 after @7d15d899
 ===
 
-=== history-blob {#b160 lang=geml}
+=== history-blob {#b24 lang=geml}
 `!` is the projection prefix throughout: `![](src)` projects media, `![[#id]]`
 projects content. The line between the two content projections is *value* versus
 *content*. `{{key}}` substitutes a metadata **scalar** — no markup, no context
@@ -4750,12 +5089,12 @@ delete @32893055
 delete @dc862834
 delete @064b167a
 delete @61e27b49
-replace @3e426b1a <- blob:b157
-insert <- blob:b158 after @65caf158
-insert <- blob:b159 after @0ed80d6e
+replace @3e426b1a <- blob:b21
+insert <- blob:b22 after @65caf158
+insert <- blob:b23 after @0ed80d6e
 ===
 
-=== history-blob {#b157 lang=geml}
+=== history-blob {#b21 lang=geml}
 A renderer emitting a markup format MUST escape document-controlled text for
 the position it occupies — element text, attribute value, or URL — and MUST
 reduce `.class` tokens (§4) to the target format's identifier character set
@@ -4764,12 +5103,12 @@ rather than escaping them alone.
 
 ===
 
-=== history-blob {#b158 lang=geml}
+=== history-blob {#b22 lang=geml}
 *English | [中文](GEML-spec_CN.md)*
 
 ===
 
-=== history-blob {#b159 lang=geml}
+=== history-blob {#b23 lang=geml}
 This English text is the **normative** version of the specification.
 Translations (such as [中文](GEML-spec_CN.md)) are informative: where a
 translation and this document disagree, this document governs.
@@ -4789,21 +5128,21 @@ delete @f4b8a4ba
 delete @fcd3eaac
 delete @247b5965
 delete @49d2d523
-replace #table-10 <- blob:b145
-insert <- blob:b146 after @e5797c4f
-insert <- blob:b147 after @f88ed501
-insert <- blob:b148 after @6304c9eb
-insert <- blob:b149 after @66af3922
-insert <- blob:b150 after @0977257d
-insert <- blob:b151 after @5a42a3fb
-insert <- blob:b152 after #table-5
-insert <- blob:b153 after @0ec5cd43
-insert <- blob:b154 after @895ee505
-insert <- blob:b155 after @0ac6792f
-insert <- blob:b156 after @c5c8ecf5
+replace #table-10 <- blob:b9
+insert <- blob:b10 after @e5797c4f
+insert <- blob:b11 after @f88ed501
+insert <- blob:b12 after @6304c9eb
+insert <- blob:b13 after @66af3922
+insert <- blob:b14 after @0977257d
+insert <- blob:b15 after @5a42a3fb
+insert <- blob:b16 after #table-5
+insert <- blob:b17 after @0ec5cd43
+insert <- blob:b18 after @895ee505
+insert <- blob:b19 after @0ac6792f
+insert <- blob:b20 after @c5c8ecf5
 ===
 
-==== history-blob {#b145 lang=geml}
+==== history-blob {#b9 lang=geml}
 === table {#table-10}
 | Construct | Shape | Body | Defined in |
 |-----------|-------|------|------------|
@@ -4822,7 +5161,7 @@ insert <- blob:b156 after @c5c8ecf5
 
 ====
 
-=== history-blob {#b146 lang=geml}
+=== history-blob {#b10 lang=geml}
 1. A `.geml` file MUST be fully readable as plain text without rendering.
 2. Code, diagrams, tables, math and callouts MUST share the single typed-block
    primitive (§3); no per-content grammar.
@@ -4837,7 +5176,7 @@ insert <- blob:b156 after @c5c8ecf5
 
 ===
 
-=== history-blob {#b147 lang=geml}
+=== history-blob {#b11 lang=geml}
 - **Unfenced blocks** — paragraphs, headings, and lists; their body is parsed as
   inline GEML.
 - **Typed blocks** — fenced; their body handling is decided by the block *type*
@@ -4845,7 +5184,7 @@ insert <- blob:b156 after @c5c8ecf5
 
 ===
 
-=== history-blob {#b148 lang=geml}
+=== history-blob {#b12 lang=geml}
 **Nesting is by indentation.** Indentation is a column count (a tab counts as 4
 column). An item indented *more* than the current item's marker opens a nested
 list under that item; an item indented *less* closes back to an enclosing list. A
@@ -4855,7 +5194,7 @@ that is neither blank nor an item line at or below its indentation.
 
 ===
 
-=== history-blob {#b149 lang=geml}
+=== history-blob {#b13 lang=geml}
 - `{#budget}` sets block id `budget`. Ids MUST be unique per document.
 - `{.warning}` adds a semantic class (no styling implied).
 - `{caption="Annual cost"}` and other `key=val` pairs are type-defined
@@ -4879,7 +5218,7 @@ that is neither blank nor an item line at or below its indentation.
 
 ===
 
-=== history-blob {#b150 lang=geml}
+=== history-blob {#b14 lang=geml}
   So `## Use \`foo()\` in 2024 设计` derives `#use-in-2024-设计`. A derived id
   collides like any other: two headings that derive the SAME id are a
   `duplicate-id` **error** (Appendix A) — the id addresses the first, and the
@@ -4910,7 +5249,7 @@ that is neither blank nor an item line at or below its indentation.
 
 ===
 
-=== history-blob {#b151 lang=geml}
+=== history-blob {#b15 lang=geml}
 - A **delimiter run** is a maximal run of `*`, or a maximal run of two or more `~`
   (a single `~` is literal).
 - Taking the characters immediately before and after a run (the start and end of
@@ -4933,7 +5272,7 @@ that is neither blank nor an item line at or below its indentation.
 
 ===
 
-=== history-blob {#b152 lang=geml}
+=== history-blob {#b16 lang=geml}
 - **Data from elsewhere** — instead of an inline body, a table MAY name where its
   data comes from. For a `table` block, use the `src=` attribute (unlike in `diagram` blocks where their semantics differ, see Appendix B.3). a data file
   with `format=csv`/`tsv` (a path relative to the document, or an `http(s)` URL);
@@ -4949,7 +5288,7 @@ that is neither blank nor an item line at or below its indentation.
 
 ===
 
-=== history-blob {#b153 lang=geml}
+=== history-blob {#b17 lang=geml}
 Every input is nonetheless *parseable*: §2.1, §3, §5.3 and §6 assign exactly one
 document model to any character stream. There is no input a conforming parser
 may reject, refuse to model, or fail on — a non-conforming document still
@@ -4957,7 +5296,7 @@ produces a model, alongside the errors that describe it.
 
 ===
 
-=== history-blob {#b154 lang=geml}
+=== history-blob {#b18 lang=geml}
 1. Normalize its input exactly as §0.5 requires.
 2. Parse the typed-block primitive (§3) and the attribute object (§4).
 3. Build a document model in which every block id is unique and resolvable.
@@ -4973,7 +5312,7 @@ produces a model, alongside the errors that describe it.
 
 ===
 
-=== history-blob {#b155 lang=geml}
+=== history-blob {#b19 lang=geml}
 A **conformance suite** accompanies the spec: input `.geml` paired with a
 normalized projection of the expected document model. The suite is the normative
 reference for the rules this document states algorithmically — inline emphasis
@@ -4984,7 +5323,7 @@ reference repository it lives under
 
 ===
 
-=== history-blob {#b156 lang=geml}
+=== history-blob {#b20 lang=geml}
 A processor MUST bound the depth to which it will recurse over a document, for
 each of: typed-block nesting (§3), list nesting (§2.1), and inline nesting
 (§5). On reaching a bound it MUST emit the corresponding
@@ -4999,12 +5338,12 @@ delete @c50c0b0e
 delete @6c8203c8
 delete @efae4d0e
 delete @9b7b0d61
-insert <- blob:b142 after @0977257d
-insert <- blob:b143 after @5a42a3fb
-insert <- blob:b144 after @e4fea482
+insert <- blob:b6 after @0977257d
+insert <- blob:b7 after @5a42a3fb
+insert <- blob:b8 after @e4fea482
 ===
 
-=== history-blob {#b142 lang=geml}
+=== history-blob {#b6 lang=geml}
   So `## Use \`foo()\` in 2024 设计` derives `#use-in-2024-设计`. A derived id
   collides like any other: two headings that derive the SAME id are a
   `duplicate-id` **error** (Appendix A) — the id addresses the first, and the
@@ -5049,7 +5388,7 @@ insert <- blob:b144 after @e4fea482
 
 ===
 
-=== history-blob {#b143 lang=geml}
+=== history-blob {#b7 lang=geml}
 - A **delimiter run** is a maximal run of `*`, or a maximal run of two or more `~`
   (a single `~` is literal).
 - Taking the characters immediately before and after a run (the start and end of
@@ -5067,7 +5406,7 @@ insert <- blob:b144 after @e4fea482
 
 ===
 
-=== history-blob {#b144 lang=geml}
+=== history-blob {#b8 lang=geml}
 - **Computed columns** — `compute` lists one or more `Name = expr` formulas
   separated by `;`. Each `expr` is evaluated once per data row over `+ - * / ( )`
   and unary `-` (with `*`/`/` binding tighter than `+`/`-`, left-associative).
@@ -5102,14 +5441,14 @@ insert <- blob:b144 after @e4fea482
 delete @2d5f77f7
 delete @b30de13e
 delete @79395be2
-replace #code-2 <- blob:b137
-replace #code-4 <- blob:b138
-insert <- blob:b139 after @58631006
-insert <- blob:b140 after @0977257d
-insert <- blob:b141 after #code-4
+replace #code-2 <- blob:b1
+replace #code-4 <- blob:b2
+insert <- blob:b3 after @58631006
+insert <- blob:b4 after @0977257d
+insert <- blob:b5 after #code-4
 ===
 
-==== history-blob {#b137 lang=geml}
+==== history-blob {#b1 lang=geml}
 === code {#code-2 lang=ebnf}
 document       = { block } ;
 block          = unfenced-block | typed-block ;
@@ -5154,7 +5493,7 @@ NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 
 ====
 
-===== history-blob {#b138 lang=geml}
+===== history-blob {#b2 lang=geml}
 ==== code {#code-4}
 === table {#fy25 caption="FY2025 revenue by segment ($M)" format=csv header=1
            compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4;
@@ -5172,13 +5511,13 @@ Services,  45.2,  47.8,  49.1,  52.6,  168.0
 
 =====
 
-=== history-blob {#b139 lang=geml}
+=== history-blob {#b3 lang=geml}
 Every block MAY carry an **attribute object** `{#id .class key=val}`. Inline
 content exists only inside unfenced blocks.
 
 ===
 
-=== history-blob {#b140 lang=geml}
+=== history-blob {#b4 lang=geml}
   So `## Use \`foo()\` in 2024 设计` derives `#use-in-2024-设计`. Two headings
   that derive the SAME id do not make the document invalid — only the first is
   addressable by it, and a later one that needs an address MUST declare an
@@ -5212,7 +5551,7 @@ content exists only inside unfenced blocks.
 
 ===
 
-=== history-blob {#b141 lang=geml}
+=== history-blob {#b5 lang=geml}
 *The `{…}` attribute object is one physical line; it is wrapped above only for
 readability — per §3.1, GEML attributes do not span lines.* The example resolves
 to:
@@ -5220,429 +5559,4 @@ to:
 ===
 
 === history-revision {id="20260801T082811Z-ad9c2183" summary="spec §6 + Appendix A: compute-non-numeric-cell — a substituted cell is reported, not silent" hash="sha256:ad9c2183acf9e5a3e52c837d2b0e3dd75f9203d75eb1a4a70728a08c0fbea0c0" newline="lf"}
-delete @cf79c3e5
-delete @7e2b5b5b
-delete @720219a3
-delete @ff6f7ed0
-delete @9d0cbdf3
-delete @275814fc
-delete @faf9dc12
-delete @0977257d
-delete @2ff1edc3
-delete @89666a0f
-delete @21c290ea
-delete @c1f80fe5
-delete @e4fea482
-delete @c78e1cb6
-delete @44ca0374
-delete @406d2f0c
-delete @163356e9
-delete @b6d71495
-delete @96755ef4
-replace #code-2 <- blob:b116
-replace #table-3 <- blob:b117
-replace #table-4 <- blob:b118
-replace #table-6 <- blob:b119
-replace #table-7 <- blob:b120
-replace #table-8 <- blob:b121
-replace #table-10 <- blob:b122
-replace #table-12 <- blob:b123
-replace #table-13 <- blob:b124
-insert <- blob:b125 after @2bb22397
-insert <- blob:b126 after @6304c9eb
-insert <- blob:b127 after #code-1
-insert <- blob:b128 after @66af3922
-insert <- blob:b129 after @02f77c2e
-insert <- blob:b130 after #table-3
-insert <- blob:b131 after #table-4
-insert <- blob:b132 after @055fd030
-insert <- blob:b133 after #table-5
-insert <- blob:b134 after #code-6
-insert <- blob:b135 after @37b84fef
-insert <- blob:b136 after @a20f2f6b
-===
-
-==== history-blob {#b116 lang=geml}
-=== code {#code-2 lang=ebnf}
-document       = { block } ;
-block          = unfenced-block | typed-block ;
-
-typed-block    = fence , SP , type , [ SP , attrs ] , NL , body , close-fence ;
-fence          = "===" , { "=" } ;            (* open: N equals signs, N >= 3 *)
-close-fence    = fence ;                      (* exactly equal to the opening length *)
-type           = NAME ;
-body           = { LINE } ;                    (* raw, flow or data per the registry *)
-
-unfenced-block = heading | list | paragraph ;
-heading        = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ;
-paragraph      = text-line , { text-line } ;
-
-list           = item , { item | blank-line } ;
-item           = indent , marker , SP , [ task ] , text , NL ;
-marker         = "-" | "*" | DIGIT , { DIGIT } , "." ;
-task           = "[" , ( " " | "x" | "X" ) , "]" , SP ;
-indent         = { " " | TAB } ;              (* nesting depth, by column *)
-
-attrs          = "{" , { attr-item , [ SP ] } , "}" ;
-attr-item      = id-attr | class-attr | kv-attr ;
-id-attr        = "#" , NAME ;
-class-attr     = "." , NAME ;
-kv-attr        = NAME , "=" , value ;
-value          = bare-word | quoted-string ;
-
-NAME           = NAME-CHAR , { NAME-CHAR } ;
-NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
-===
-
-====
-
-==== history-blob {#b117 lang=geml}
-=== table {#table-3}
-| Syntax | Meaning |
-|--------|---------|
-| `*emphasis*` | emphasis |
-| `**strong**` | strong |
-| `` `code` `` | code span (verbatim; nothing parsed inside) |
-| `~~strike~~` | strikethrough |
-| `$…$` | inline math (verbatim body) |
-| `![alt](src){…}` | in-place media embed (image/audio/video) |
-| `\` at line end | hard line break |
-| `\` + ASCII punctuation | escape: the punctuation is literal |
-===
-
-====
-
-==== history-blob {#b118 lang=geml}
-=== table {#table-4}
-| Form | Meaning |
-|------|---------|
-| `[text](https://…)` | external link |
-| `[text](#budget)` | internal ref to block `budget`, explicit text |
-| `[[#budget]]` | auto-ref: link text taken from target's caption/heading |
-| `[[other.geml#budget]]` | the same, across documents: the block in that document |
-| `[text](other.geml#budget)` | cross-document ref |
-| `[^note]` | footnote: renders the block with id `note` as a footnote |
-===
-
-====
-
-==== history-blob {#b119 lang=geml}
-=== table {#table-6}
-| Code | Severity | Condition |
-|------|----------|-----------|
-| `unterminated-block` | error | A typed block's fence is never closed by an equal-length `=` run, nor by its labeled fence `=== #id`. The body is kept, running to the end of the enclosing content. |
-| `unknown-block-type` | warning | The block `type` is not in the registry. Its body is preserved verbatim as `raw` (§8.2(6)). |
-| `block-nesting-too-deep` | error | Typed-block nesting exceeded the processor's bound (§9.2). The body at that depth is kept as `raw` rather than scanned further. |
-| `list-nesting-too-deep` | error | List nesting exceeded the processor's bound (§9.2). |
-| `inline-nesting-too-deep` | error | Inline nesting exceeded the processor's bound (§9.2). The over-deep run degrades to text with emphasis only. |
-===
-
-====
-
-==== history-blob {#b120 lang=geml}
-=== table {#table-7}
-| Code | Severity | Condition |
-|------|----------|-----------|
-| `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4). |
-| `unresolved-reference` | error | An internal reference `[…](#id)` or `[[#id]]`, or a chart `data=#id`, names an id no block declares. |
-| `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block and no footnote definition declares. |
-| `unresolved-cross-document-reference` | error | A reference `other.geml#id` resolved to a document that declares no such id. |
-| `unresolvable-document` | error | The document named by a cross-document reference could not be read, or lies outside the confinement root (§9.4). |
-| `unchecked-cross-document-reference` | warning | A cross-document reference was found, but the processor was given no document resolver, so its target could not be verified. |
-| `embed-missing-src` | error | An `embed` block carries no `src=`, so it names no content. |
-| `ignored-embed-body` | warning | An `embed` block has a body. The content it stands for lives in `src=`; the body is ignored. |
-| `transclusion-cycle` | error | A chain of block transclusions returns to a document already being expanded. The chain is reported and expansion stops; it is never followed. |
-| `embed-target-not-geml` | error | An `embed` block names a target that is not a `.geml` document. Its bytes are never parsed as GEML. |
-| `media-target-is-document` | error | A media embed `![](…)` points at a GEML document. Block content cannot be expanded in inline position; the `embed` block is the form for it. |
-| `inline-transclusion-not-inline` | error | An inline projection `![[…]]` names a target that is not inline content — not a single-paragraph `text` block. Block content cannot be expanded inside a sentence; the `embed` block is the form for it. |
-| `unsafe-embed-scheme` | error | An `embed` block names a URL scheme outside the allowlist of §9.5. The attribute is blanked in the model as well as reported, so no consumer can emit it. |
-| `source-attr-conflict` | error | A block carries both `src=` and `data=`. They name the same thing; exactly one must be given. |
-| `unresolvable-table-source` | error | A table's `src=`/`data=` names a data file that cannot be resolved. |
-| `table-source-not-a-table` | error | A table's `src=`/`data=` names a block that exists but is not a table. |
-| `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
-===
-
-====
-
-==== history-blob {#b121 lang=geml}
-=== table {#table-8}
-| Code | Severity | Condition |
-|------|----------|-----------|
-| `table-src-and-body` | error | A table carries both `src=` and an inline body. Exactly one is permitted (§6). |
-| `unknown-table-format` | warning | The `format=` value is not a recognized data format; the body is parsed as a visual pipe grid instead. |
-| `bad-compute-formula` | error | A `compute` entry is not of the form `Name = expr`. |
-| `unlexable-compute-formula` | error | A `compute` expression contains a character or token the §6 expression grammar does not define. |
-| `compute-error` | error | A `compute` expression failed to evaluate — most often because it names a column that does not exist, or one computed later (§9.3). |
-| `bad-summary-entry` | error | A `summary` entry is not of the form `Cell = value`. |
-| `summary-unknown-column` | error | A `summary` entry's left-hand side names no column of the table. |
-| `unlexable-summary-expression` | error | A `summary` expression contains a token the §6 expression grammar does not define. |
-| `summary-error` | error | A `summary` expression failed to evaluate — including a column reference not reduced by an aggregate, which has no value in the summary row (§6). |
-===
-
-====
-
-==== history-blob {#b122 lang=geml}
-=== table {#table-10}
-| Construct | Shape | Body | Defined in |
-|-----------|-------|------|------------|
-| Paragraph | unfenced | inline | §2, §3.1 |
-| Heading `#`…`######` | unfenced | inline | §1(6), §3.1, §4 |
-| List — `-`/`*`, `1.`; task marker `[ ]`/`[x]` | unfenced | inline items | §2.1 |
-| `=== code` | typed | raw | §3 |
-| `=== math` | typed | raw | §3 |
-| `=== table` | typed | raw: pipe grid or `format=` data | §6 |
-| `=== diagram` | typed | raw: external DSL | §7 |
-| `=== embed` | typed | raw (body unused); `src=` names the content | §3, §6 |
-| `=== note` | typed | flow | §3 |
-| `=== text` | typed | flow | §3 |
-| `=== meta` | typed | data | §3, §4 |
-| Footnote definition `[^id]: text` | line | inline | §5.2 |
-| `%%` comment line | line | raw, never rendered | §4 |
-===
-
-====
-
-==== history-blob {#b123 lang=geml}
-=== table {#table-12}
-| Key | Host block | Target | Defined in |
-|-----|------------|--------|------------|
-| `src=` / `data=` | `table` | where the data comes from, in three forms: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL), `#id` naming a table block in this document, or `doc.geml#id` naming one in another. The two spellings are synonyms; carrying both is an error. | §6 |
-| `data=` | `diagram` (`geml-chart`) | a `table` block: `#id` in this document, or `doc.geml#id` in another (not a data file) | §7.1 |
-| `src=` | `embed` | the content the block stands for: a document, optionally with a fragment | §3 |
-| `src=` | `diagram` (`geml-code-graph`) | a GEML document | §7 |
-===
-
-====
-
-==== history-blob {#b124 lang=geml}
-=== table {#table-13}
-| Concept | Inline position | Block position |
-|---------|-----------------|----------------|
-| Prose | text run | paragraph |
-| Code | `` `code` `` | `=== code` |
-| Math | `$…$` | `=== math` |
-| Projection — render a target in place | `![alt](src)` (media), `![[#id]]` (content) | `=== embed {src=…}` |
-| Navigation — a link the reader follows | `[t](…)`, `[[#id]]`, `[^id]` | — |
-| Spatial content | — | heading, list, `table`, `diagram`, `note`, `text` |
-| Hidden content, comments | — | `hidden` flag, `%%` line |
-| Metadata | `{{key}}` (use) | `=== meta` (definition) |
-| Footnote | `[^id]` (use) | `[^id]: text` (definition) |
-===
-
-====
-
-=== history-blob {#b125 lang=geml}
-### 2.1 Lists
-
-===
-
-=== history-blob {#b126 lang=geml}
-**Nesting is by indentation.** Indentation is a column count (a tab counts as one
-column). An item indented *more* than the current item's marker opens a nested
-list under that item; an item indented *less* closes back to an enclosing list. A
-**blank line** between two sibling items makes the list **loose** (otherwise it is
-**tight**); blank lines do not otherwise end a list. A list ends at the first line
-that is neither blank nor an item line at or below its indentation.
-
-===
-
-=== history-blob {#b127 lang=geml}
-- The fence is a run of `=` (≥ 3). A block is closed by a run of `=` of exactly
-  the opening length, OR — when the block has an `#id` — by a **labeled fence**
-  `=== #id` (a `=` run of any length ≥ 3 followed by the block's id).
-- Nesting works two ways: with **longer outer fences** (`====` wraps `===`), or,
-  more robustly, by giving each block an `#id` and closing it with `=== #id`.
-  The labeled close is *local* — it does not depend on counting `=` — and is
-  RECOMMENDED when a block's body itself contains fence-like lines.
-- The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
-  `code` with `lang=`, `diagram`/`table` with `format=`, `math`, `embed` with
-  `src=`),
-  `flow` (parsed, e.g. `note`, `text`), or `data` (one `key=val` per line, e.g.
-  `meta`).
-- An unknown type is a build warning; its body is preserved as raw.
-- A `text` block is an **addressable prose container**: a flow body whose only
-  purpose is to give a run of prose an `#id` and attributes, so it can be
-  referenced, block-edited (`geml get`/`set`), and versioned. It renders as a
-  neutral block — no callout chrome (a callout is `note`). Wrap only prose you
-  actually need to address; plain paragraphs remain the default.
-- An `embed` block stands for content that lives elsewhere: `src=` names a
-  document, optionally with a fragment (`src=other.geml#budget`), and the block
-  renders as that content in place. A fragment naming a heading selects the
-  heading's whole section. `src=` is reference-checked like any other reference
-  (§5), and the body of an `embed` block is ignored.
-
-===
-
-=== history-blob {#b128 lang=geml}
-- `{#budget}` sets block id `budget`. Ids MUST be unique per document.
-- `{.warning}` adds a semantic class (no styling implied).
-- `{caption="Annual cost"}` and other `key=val` pairs are type-defined
-  parameters.
-- A heading auto-derives an id from its text; an explicit id is written as a
-  trailing attribute object on the heading line, e.g. `## Title {#sec}`. The
-  derivation is **normative**: a reference (`[[#id]]`, `other.geml#id`, a URL
-  fragment) has to name the same block in every implementation, so the id a
-  heading yields cannot be left to one. From the heading's text — taken **after**
-  `{{key}}` interpolation, so the substituted text is what is slugged — a
-  processor MUST, in this order:
-  1. lower-case it;
-  2. delete every code span, its backticks and its content alike — so the
-     punctuation inside `` `foo()` `` cannot leak into the id;
-  3. delete every character that is neither a Unicode letter, a digit,
-     whitespace, nor `-` (an underscore is therefore dropped: `_` is legal in an
-     explicit id but never survives a derivation);
-  4. trim leading and trailing whitespace;
-  5. replace each run of whitespace with a single `-`.
-
-===
-
-=== history-blob {#b129 lang=geml}
-  So `## Use \`foo()\` in 2024 设计` derives `#use-in-2024-设计`. Two headings
-  that derive the SAME id do not make the document invalid — only the first is
-  addressable by it, and a later one that needs an address MUST declare an
-  explicit `{#id}`. A heading whose text carries no letter and no digit derives
-  an empty id; address such a heading by giving it an explicit `{#id}`.
-- Style note (non-normative): keep the document title in `=== meta`
-  (`title = "…"`), not in a top-level heading — every heading then denotes a
-  genuine section of the document.
-- Attribute value typing: a quoted `"…"` is always a string; `true`/`false` is a
-  boolean; a bare word matching integer/float syntax is a number; any other bare
-  word is a string. Arrays, dates and nested tables are not supported.
-- A bare attribute word with no `=` is a boolean flag set to `true` (e.g.
-  `hidden`).
-- A `=== meta` block holds document metadata as one `key=val` per line, using
-  the value typing above. In flow text, `{{key}}` is replaced with the matching
-  `meta` value; an unknown key is a build **error**. Interpolation reads the
-  flow source text and honors the verbatim atoms of §5.3 phase 1(1): a
-  `{{key}}` inside a code span or inline math is left untouched (so a GEML
-  document can quote this very syntax), raw block bodies are never
-  interpolated, and a backslash-escaped `\{{key}}` renders as the literal text
-  `{{key}}`.
-- The `hidden` flag marks a block (or a `%%` line) as part of the document and
-  fully reference-checked, but **not rendered** — e.g. a source table that only
-  feeds a chart. A `%%` line is a hidden, raw, never-rendered note.
-- Attribute order is insignificant; the recommended order is `#id`, then
-  `.class`, then `key=val`.
-
-
-===
-
-=== history-blob {#b130 lang=geml}
-- Emphasis/strong delimiters MUST attach to a non-space character and MUST NOT
-  span block boundaries.
-- Block-level math uses the `=== math` typed block (§3).
-- An embed `![…]` renders/plays its source in place (never navigates), while a
-  link `[…]` navigates. `as ∈ {image, audio, video}`, inferred from the source
-  extension when omitted.
-- A list item MAY begin with a **task marker** — `[ ]` (open) or `[x]`/`[X]`
-  (done) followed by a space. The marker is stripped from the item text and
-  recorded as a checked/unchecked state; the remaining text is parsed as inline.
-
-===
-
-=== history-blob {#b131 lang=geml}
-- External link options go in the attribute object:
-  `[text](url){rel=nofollow target=_blank}`.
-- An unresolved `#id`, `other.geml#id`, or `[^id]` is a build **error**.
-- A footnote target MAY be written as a **footnote definition** `[^id]: text` on
-  its own line (Markdown-style): it records a note block with that id, so the
-  matching `[^id]` reference resolves.
-- *Note (non-normative):* backlinks and graph views are a derived inverted index
-  over resolved references; GEML adds no syntax for them.
-
-===
-
-=== history-blob {#b132 lang=geml}
-1. Backslash escapes (`\` + ASCII punctuation → that literal character; `\` at
-   line end → hard break), code spans, and inline math; their contents are not
-   parsed further.
-2. Images, links, auto-refs (`[[#id]]`), and footnote refs (`[^id]`); a link or
-   ref MUST NOT nest inside another link or ref.
-
-===
-
-=== history-blob {#b133 lang=geml}
-- **Data from elsewhere** — instead of an inline body, a table MAY name where its
-  data comes from. `src=` and `data=` are the same attribute in two spellings, and
-  carrying both is an error. Three target forms resolve by one rule: a data file
-  with `format=csv`/`tsv` (a path relative to the document, or an `http(s)` URL);
-  `#id`, naming a table block in this document; or `doc.geml#id`, naming one in
-  another document. A local-path or cross-document target MUST be resolved and
-  existence-checked at build time — an unresolvable one is an error, and a target
-  that exists but is not a table is an error. Only the `src`/`data` text — never
-  the resolved contents — enters the `.gemlhistory` hash. A table MUST NOT carry
-  both `src` and an inline body (an error). Because the data arrives at render
-  time, the column names used by `compute` and by a referencing `geml-chart` are
-  validated then, not at build time. Inlining stays the default; `src` is an
-  explicit choice.
-- **Computed columns** — `compute` lists one or more `Name = expr` formulas
-  separated by `;`. Each `expr` is evaluated once per data row over `+ - * / ( )`
-  and unary `-` (with `*`/`/` binding tighter than `+`/`-`, left-associative),
-  operating on numeric cells. Columns are referenced by header name — quoting
-  names with spaces in single quotes, e.g. `'Unit Price'` — or by spreadsheet
-  letter (`A`, `B`, …). A formula MAY reference an earlier computed column (above,
-  `YoY` references `FY`); references MUST be acyclic. Computed columns are appended
-  after the data columns in formula order and are NOT written in the body.
-- **Summary row** — `summary` defines a single row at the foot of the table, as
-  `Cell = value` entries separated by `;`, the left side naming the target
-  column. Each `value` is either a string/number literal used as a label
-  (`Segment = 'Total'`) or an expression combining the aggregates `sum, avg, min,
-  max, count` — each applied to one column — with `+ - * / ( )` and literals
-  (`(sum(FY) - sum(PriorFY)) * 100 / sum(PriorFY)`). Aggregates fold a column
-  over the data rows and are the only construct that crosses rows; every column
-  reference in a summary expression MUST be reduced by an aggregate (a bare
-  column name has no value in the summary row). Unspecified columns are blank.
-- **Display format** — a computed column or summary cell MAY carry a `[printf]`
-  format bound to its name on the left: `FY [%.1f]`, `YoY [%.1f%%]` (`%%` is a
-  literal percent). The format is numeric and affects display only, not the
-  stored value. There is no date/time format: cell values are string, number, or
-  boolean (§4); dates are written as plain ISO-8601 text.
-- **Excluded by design**, to keep tables a document feature rather than a
-  spreadsheet engine: single-cell and range addressing (`@3$4`, `@2$1..@4$3`),
-  relative-row references (`@-1`), conditionals, cross-table `remote()`
-  references, lookup/VLOOKUP, and any embedded program (no Lisp, no JS).
-
-
-===
-
-=== history-blob {#b134 lang=geml}
-- `type` — `bar | line | area | pie | scatter`. It only changes how the channels
-  are drawn; it never adds new attributes.
-- Encoding channels (a closed set): `x` (category), `y` (value; a comma list is
-  multiple series), `series` (group by a column), `size` (scatter bubble).
-  Required: `x`, `y`. A channel a type does not use is a warning.
-- `rows` — `data` (default, summary row excluded), `all` (data + the summary row
-  as one extra point), or `summary` (only the summary row).
-- Column names, the `data` id, and `rows` are validated against the table:
-  a typo'd column or a dangling id is a build error.
-- Charts that need more (annotations, reference lines, heatmaps, …) use a hosted
-  DSL instead: `=== diagram {format=vega-lite data=#fy25}` with the spec in the
-  body. The body is raw and NOT column-checked.
-
-
-===
-
-=== history-blob {#b135 lang=geml}
-- a `code` block's body is stored text; it MUST NOT be run (§3);
-- a `diagram` body MUST be passed verbatim to the external renderer selected by
-  `format` and MUST NOT be interpreted by the processor (§7);
-- there is no raw-HTML escape hatch (§1.5) and no expression language beyond the
-  closed arithmetic of §6 — which has no conditionals, no lookups, no
-  cross-table references, and no embedded program by construction.
-
-===
-
-=== history-blob {#b136 lang=geml}
-- **Internal references** cannot loop: ids are unique per document (§4), so
-  resolving `#id` is a lookup, not a traversal.
-- **Cross-document references** are resolved exactly one level deep. A
-  processor collects the target document's ids *without* resolving that
-  document's own references, so two documents that reference each other
-  terminate.
-- **Computed columns** (§6) are evaluated in declaration order, and a formula
-  sees only data columns and *earlier* computed columns. A self-reference or a
-  forward reference is therefore not a cycle but an unknown column, reported as
-  `compute-error`. GEML tables need no cycle detector: the evaluation order
-  makes the dependency graph acyclic by construction.
-
 ===

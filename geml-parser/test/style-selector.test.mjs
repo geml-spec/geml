@@ -10,7 +10,7 @@ function test(name, fn) { fn(); passed++; console.log("ok", name); }
 
 test("诊断目录：结构性错误是 error，未知名字是 warning（设计 §7）", () => {
   assert.equal(STYLE_SEVERITY["style-selector-unsupported"], "error");
-  assert.equal(STYLE_SEVERITY["style-ambiguous-rule"], "error");
+  assert.equal(STYLE_SEVERITY["style-ambiguous-rule"], "warning");
   assert.equal(STYLE_SEVERITY["style-unknown-state"], "error");
   assert.equal(STYLE_SEVERITY["style-unknown-value-source"], "error");
   assert.equal(STYLE_SEVERITY["style-unknown-interaction"], "error");

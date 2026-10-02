@@ -53,10 +53,10 @@ test("a target that is not inline content is refused as such", () => {
 
 test("a chain past the depth cap stops, and the document says where", () => {
   const files = {};
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 20; i++) {
     files[`d${i}.geml`] = `# D${i} {#d${i}}\n\nlink ![[d${i + 1}.geml#d${i + 1}]]\n`;
   }
-  files["d12.geml"] = "# D12 {#d12}\n\nthe end\n";
+  files["d20.geml"] = "# D20 {#d20}\n\nthe end\n";
   const dir = ws(files);
   const r = toHtml(dir, "d0.geml");
   assert.ok(r.out.length < 200_000, "it terminated");

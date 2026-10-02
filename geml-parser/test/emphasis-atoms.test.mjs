@@ -110,9 +110,12 @@ test("strikethrough crosses atoms; a lone tilde still does not delimit", () => {
 });
 
 test("adjacent atoms with no text between them wrap as one span", () => {
-  const em = inlines("*`a``b`*")[0];
+  // `*`a`$b$*`, not `*`a``b`*`: under §5.3(1) the latter is ONE code span
+  // (a run of exactly one backtick closes it, and `` `` `` is not one).
+  const em = inlines("*`a`$b$*")[0];
   assert.equal(em.type, "emph");
-  assert.equal(types(em.children), "code code");
+  assert.equal(types(em.children), "code math");
+  assert.equal(types(inlines("*`a``b`*")[0].children), "code", "a longer run inside a span is content");
   assert.equal(types(inlines("**![a](i.png)**")[0].children), "image");
 });
 

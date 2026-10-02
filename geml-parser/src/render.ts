@@ -171,7 +171,7 @@ const MAX_NESTING = 256;
 
 // S5: how deep transclusions may nest before the renderer stops expanding and
 // degrades to the reference link instead.
-const EMBED_DEPTH_CAP = 8;
+const EMBED_DEPTH_CAP = 16; // §9.3's fixed bound; geml.ts EMBED_DEPTH_LIMIT is the same number
 
 // Depth and cycle detection bound the SHAPE of a transclusion graph, never its
 // total. A diamond is not a cycle, and the cycle key is `path#fragment`, so eight

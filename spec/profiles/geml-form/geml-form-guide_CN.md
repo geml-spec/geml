@@ -18,14 +18,16 @@ profile = "geml-form/v1"
 ===
 
 ==== form {#signup handler=subscribe}
-=== form-field {#email label="工作邮箱" type=text required pattern=".+@.+"}
+=== form-field {#email name=email label="工作邮箱" type=text required pattern=".+@.+"}
 ===
-=== form-field {#seats label="席位数" type=number min=1 max=50}
+=== form-field {#seats name=seats label="席位数" type=number min=1 max=50}
 ===
 ====
 ```
 
-`form` 的围栏比字段多一个 `=`，字段才装得进去。
+`form` 的围栏比字段多一个 `=`，字段才装得进去。每个字段都有 `name=`：handler 收到这个值时
+用的键，同一张表单里不重复。指向字段也靠它——`[[#signup["email"]]]` 链接到字段并显示它的
+label，`geml get signup.geml '#signup["email"]'` 打印它——所以字段不需要 `#id`。
 
 ```
 geml check signup.geml
@@ -48,7 +50,7 @@ value, label
 basic, 基础版
 pro,   专业版
 ===
-=== form-field {#plan label="套餐" type=select options=#plans}
+=== form-field {#plan name=plan label="套餐" type=select options=#plans}
 ===
 ```
 

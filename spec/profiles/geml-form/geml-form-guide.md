@@ -19,14 +19,18 @@ profile = "geml-form/v1"
 ===
 
 ==== form {#signup handler=subscribe}
-=== form-field {#email label="Work email" type=text required pattern=".+@.+"}
+=== form-field {#email name=email label="Work email" type=text required pattern=".+@.+"}
 ===
-=== form-field {#seats label="Seats" type=number min=1 max=50}
+=== form-field {#seats name=seats label="Seats" type=number min=1 max=50}
 ===
 ====
 ```
 
 The form's fence is one `=` longer than its fields', so the fields sit inside it.
+Every field has a `name=`: the key the handler gets the value under, unique
+within the form. It is also how you point at a field — `[[#signup["email"]]]`
+links to it and shows its label, and `geml get signup.geml '#signup["email"]'`
+prints it — so a field needs no `#id`.
 
 ```
 geml check signup.geml
@@ -52,7 +56,7 @@ value, label
 basic, Basic
 pro,   Pro
 ===
-=== form-field {#plan label="Plan" type=select options=#plans}
+=== form-field {#plan name=plan label="Plan" type=select options=#plans}
 ===
 ```
 

@@ -15,7 +15,7 @@
 //
 // Anything else (ATX headings, lists, paragraphs) is already valid GEML.
 
-import { META_REF_SRC } from "./inline.js";
+import { META_REF_SRC, backtickRun, findCodeSpanClose } from "./inline.js";
 
 export interface ConvertResult {
   geml: string;
@@ -110,9 +110,8 @@ function escMetaRefs(s: string): string {
     const c = s[i]!;
     if (c === "\\" && i + 1 < s.length) { out += s.slice(i, i + 2); i += 2; continue; }
     if (c === "`") {
-      let n = 0;
-      while (s[i + n] === "`") n++;
-      const close = s.indexOf("`".repeat(n), i + n);
+      const n = backtickRun(s, i);
+      const close = findCodeSpanClose(s, i, n); // §5.3(1), as the parser reads one
       if (close >= 0) { out += s.slice(i, close + n); i = close + n; continue; }
       out += s.slice(i, i + n);
       i += n;

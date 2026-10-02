@@ -332,6 +332,8 @@ function formField(b, dom, byId) {
     row.appendChild(lab);
   }
   const common = {};
+  // name= is the key the handler receives (GEP-0008); the control carries it as HTML does.
+  if (a.name !== undefined) common.name = String(a.name);
   if (a.placeholder !== undefined) common.placeholder = String(a.placeholder);
   if (a.required !== undefined) common.required = "";
   for (const k of CONSTRAINTS) if (a[k] !== undefined) common[k] = String(a[k]);

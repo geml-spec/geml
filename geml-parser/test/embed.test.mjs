@@ -234,15 +234,15 @@ test("a chain deeper than the cap degrades instead of expanding forever (S5)", (
   const dir = workspace();
   // Whole-document embeds, so each level's own embed is inside what the level
   // above selects — a `#id` fragment would select one block and stop the chain.
-  for (let i = 0; i < 12; i++) {
-    const next = i < 11 ? "\n" + embed(`d${i + 1}.geml`) : "";
+  for (let i = 0; i < 20; i++) {
+    const next = i < 19 ? "\n" + embed(`d${i + 1}.geml`) : "";
     writeFileSync(join(dir, `d${i}.geml`), `=== note {#d${i}}\nLevel ${i}.\n===\n${next}`);
   }
   writeFileSync(join(dir, "host.geml"), "# Host\n\n" + embed("d0.geml"));
   const r = cli(dir, "host.geml", "--to", "html");
   assert.match(r.stdout, /Level 0\./, "the shallow levels still expand");
   assert.match(r.stdout, /depth/i, "the cap has to be reported, not silently truncated");
-  assert.doesNotMatch(r.stdout, /Level 11\./, "past the cap nothing expands");
+  assert.doesNotMatch(r.stdout, /Level 19\./, "past the cap nothing expands");
 });
 
 // ---------------------------------------------------------------------------

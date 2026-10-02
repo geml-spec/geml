@@ -84,7 +84,7 @@ function proseText(
   load: (rel: string) => Loaded | null,
   depth = 0,
 ): string | null {
-  if (depth > 8) return null;
+  if (depth > 16) return null; // GEML §9.3's bound on a projection chain
   const para = (block.children ?? []).find((c) => c.kind === "paragraph");
   if (para === undefined || para.kind !== "paragraph") return null;
   const render = (nodes: Inline[]): string => nodes.map((n): string => {

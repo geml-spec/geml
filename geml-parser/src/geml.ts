@@ -24,7 +24,7 @@ import { normalizeBlockId } from "./block-edit.js";
 import { type Diagnostic, normalizeSource } from "./diagnostics.js";
 import type { DiagnosticCode } from "./diagnostics.js";
 import { type Attrs, type Value, coerce, duplicateNames, oddNames, parseAttrs } from "./attrs.js";
-import { type Inline, type Ref, type RefSink, META_REF_SRC, parseInline , isSafeUrl, schemeOf, lineOf } from "./inline.js";
+import { type Inline, type Ref, type RefSink, META_REF_SRC, parseInline , isSafeUrl, schemeOf, lineOf, backtickRun, findCodeSpanClose } from "./inline.js";
 import { type TableCell, type TableDiag, type TableModel, deriveView, parseTable, trimWhiteSpace } from "./table.js";
 import { type ChartModel, USES, buildChart } from "./chart.js";
 import { mdToGeml } from "./from-md.js";
@@ -263,6 +263,13 @@ export interface ParseOptions {
 // (id -> defining line, for uniqueness), and discovered references.
 interface Ctx extends RefSink {
   diags: Diagnostic[];
+  // The types of the flow blocks being scanned, outermost first — what a
+  // `form-*` block is checked against (GEP-0008: meaningful only in a `form`).
+  parentTypes?: string[];
+  // One set per `form` being scanned, innermost last: the field names it has
+  // seen. GEP-0008 makes `name=` unique within a form — a group adds structure,
+  // not a namespace — so a `form-group` pushes nothing here.
+  formNames?: Set<string>[];
   ids: Map<string, { line: number; as: string }>;
   // GEP 0010 — NFD keys of the PROSE RUN addresses this document synthesises.
   // Kept apart from `ids` on purpose: a run is not a declared id, so it never
@@ -448,9 +455,8 @@ function lastAttrObjectLike(text: string): { group: AttrObjectLike | null; unclo
     const c = text[i]!;
     if (c === "\\") { i += 2; continue; }
     if (c === "`") {
-      let n = 0;
-      while (text[i + n] === "`") n++;
-      const close = text.indexOf("`".repeat(n), i + n);
+      const n = backtickRun(text, i);
+      const close = findCodeSpanClose(text, i, n); // §5.3(1)
       i = close >= 0 ? close + n : i + n;
       continue;
     }
@@ -694,9 +700,8 @@ function withoutCodeSpans(s: string): string {
     const c = s[i]!;
     if (c === "\\" && /[!-/:-@[-`{-~]/.test(s.charAt(i + 1))) { out += s.slice(i, i + 2); i += 2; continue; }
     if (c === "`") {
-      let n = 0;
-      while (s[i + n] === "`") n++;
-      const close = s.indexOf("`".repeat(n), i + n);
+      const n = backtickRun(s, i);
+      const close = findCodeSpanClose(s, i, n); // §5.3(1): a run of exactly n closes
       if (close >= 0) { i = close + n; continue; }
       out += s.slice(i, i + n);
       i += n;
@@ -767,9 +772,8 @@ function interpolate(text: string, line: number, ctx: Ctx): string {
       continue;
     }
     if (c === "`") {
-      let n = 0;
-      while (text[i + n] === "`") n++;
-      const close = text.indexOf("`".repeat(n), i + n);
+      const n = backtickRun(text, i);
+      const close = findCodeSpanClose(text, i, n); // §5.3(1)
       if (close >= 0) { out += text.slice(i, close + n); i = close + n; continue; }
       out += text.slice(i, i + n);   // unclosed run: literal, keep scanning
       i += n;
@@ -1316,6 +1320,46 @@ const RAW_BODY_READERS = new Map<string, (
  * `next` is where the caller's scan resumes: past the close when there was one,
  * at end-of-input when the fence was never closed.
  */
+// GEP-0008: every `form-*` block is meaningful only inside a `form`. A field
+// sits in a form or in a group; a group, an options list and a note sit
+// directly in a form; groups do not nest. Checked only when the document
+// declares the vocabulary that makes the family one — without it they are
+// unknown types with raw bodies, and §8.6 says nothing more about them.
+const FORM_CHILDREN: ReadonlySet<string> = new Set(["form-field", "form-group", "form-options", "form-note"]);
+
+function checkFormChild(type: string, openLineNo: number, ctx: Ctx): boolean {
+  const parent = ctx.parentTypes?.at(-1);
+  const ok = type === "form-field" ? parent === "form" || parent === "form-group" : parent === "form";
+  if (ok) return true;
+  const where = parent === undefined ? "lies outside any `form`" : `sits in a \`${parent}\``;
+  const belongs = type === "form-field"
+    ? "a field belongs directly in a `form`, or in a `form-group` inside one"
+    : type === "form-group"
+      ? "a group belongs directly in a `form`, and groups do not nest"
+      : `a \`${type}\` belongs directly in a \`form\``;
+  ctx.diags.push({ severity: "error", code: "form-child-outside-form", message: `\`${type}\` ${where}; ${belongs} (GEP-0008)`, line: openLineNo });
+  return false;
+}
+
+// GEP-0008: every field carries `name=` — the key its form's handler receives
+// and the step a coordinate addresses it by (`#signup["email"]`) — and no two
+// fields of one form share a name. The name is form-scoped, so the same `email`
+// may recur in every form of the document; an id stays optional.
+function checkFieldName(attrs: Record<string, Value>, openLineNo: number, ctx: Ctx): void {
+  const name = attrs["name"];
+  if (typeof name !== "string" || name.length === 0) {
+    ctx.diags.push({ severity: "error", code: "form-field-missing-name", message: "a `form-field` needs `name=` — the key its handler receives, unique within the form (GEP-0008)", line: openLineNo });
+    return;
+  }
+  const names = ctx.formNames?.at(-1);
+  if (names === undefined) return;
+  if (names.has(name)) {
+    ctx.diags.push({ severity: "error", code: "form-duplicate-name", message: `two fields of this form are named \`${name}\`; a name is unique within its form (GEP-0008)`, line: openLineNo });
+    return;
+  }
+  names.add(name);
+}
+
 function readFencedBlock(
   lines: string[], i: number, consumed: number, open: RegExpExecArray,
   base: number, ctx: Ctx, depth: number,
@@ -1340,6 +1384,10 @@ function readFencedBlock(
   if (attrs.attrs["hidden"] === true) block.hidden = true; // §4: not rendered, still in model
 
   if (type === "embed") recordEmbedSrc(block, attrs, body, openLineNo, ctx);
+  if (FORM_CHILDREN.has(type) && ctx.vocab.types.has("form")) {
+    const placed = checkFormChild(type, openLineNo, ctx);
+    if (placed && type === "form-field") checkFieldName(attrs.attrs, openLineNo, ctx);
+  }
 
   if (mode === "prose") {
     block.children = scanProse(body, base + i + 1, ctx);
@@ -1351,7 +1399,11 @@ function readFencedBlock(
       ctx.diags.push({ severity: "error", code: "block-nesting-too-deep", message: `block nesting too deep (max ${MAX_NESTING}); body kept as raw`, line: openLineNo });
       block.raw = body;
     } else {
+      (ctx.parentTypes ??= []).push(type);
+      if (type === "form") (ctx.formNames ??= []).push(new Set());
       block.children = scanBlocks(body, base + i + 1, ctx, depth + 1);
+      if (type === "form") ctx.formNames!.pop();
+      ctx.parentTypes.pop();
     }
   } else if (mode === "data") {
     block.data = parseData(body);
@@ -1751,9 +1803,11 @@ function chartSourceTable(
 
 const inferDataFormat = (target: string): string => (/\.tsv$/i.test(target) ? "tsv" : "csv");
 
-// The renderer's own cap (render.ts EMBED_DEPTH_CAP). Kept in step here so the
-// check and the render agree on which documents are reachable at all.
-export const EMBED_DEPTH_LIMIT = 8;
+// §9.3's bound on a transclusion or view chain: 16, fixed by the specification
+// so that two processors agree on where a chain stops. The renderer's own cap
+// (render.ts EMBED_DEPTH_CAP) is the same number, so the check and the render
+// agree on which documents are reachable at all.
+export const EMBED_DEPTH_LIMIT = 16;
 
 function detectTransclusionCycles(ctx: Ctx, opts: ParseOptions): void {
   if (!opts.resolveDoc || ctx.embeds === undefined || ctx.embeds.length === 0) return;
@@ -1917,7 +1971,7 @@ export function projectableInlines(blocks: Block[], id: string): { inlines: Inli
 }
 
 // A projection may only stand for inline content, and the target decides — the
-// same shape of rule as `table-source-not-a-table`, not a rule about where the
+// same shape of rule as `view-source-not-a-relation`, not a rule about where the
 // reference was written.
 function validateProjections(children: Block[], ctx: Ctx, opts: ParseOptions): void {
   for (const p of ctx.projections ?? []) {
@@ -2052,13 +2106,6 @@ function resolveTableSources(ctx: Ctx, opts: ParseOptions): void {
     if (scheme === "http" || scheme === "https") continue;
     if (scheme !== null) {
       err(line, "unresolvable-table-source", `table source \`${target}\` names a disallowed URL scheme`);
-      continue;
-    }
-    // A data source is data. Without this the loader read any file under the base
-    // — a `.env`, a private key — split it into rows, and put it in the model and
-    // the page, with no diagnostic. `embed` already applies the same shape of rule.
-    if (!/\.(csv|tsv)$/i.test(target)) {
-      err(line, "unresolvable-table-source", `table source \`${target}\` is not a \`.csv\`/\`.tsv\` data file`);
       continue;
     }
     if (!opts.resolveDoc) {
@@ -2217,8 +2264,8 @@ function resolveViewSources(ctx: Ctx, opts: ParseOptions): void {
     // yet`: an entry that never becomes ready never leaves `unresolved`, and the
     // closing sweep then reports the view as a cycle it was never part of.
     if (scheme === "http" || scheme === "https") return null;
-    if (scheme !== null || !/\.(csv|tsv)$/i.test(target)) {
-      error(line, "unresolvable-table-source", `view source \`${target}\` is not a \`.csv\`/\`.tsv\` data file or a relation target`);
+    if (scheme !== null) {
+      error(line, "unresolvable-table-source", `view source \`${target}\` names a disallowed URL scheme`);
       return null;
     }
     if (!opts.resolveDoc) {
@@ -2469,10 +2516,14 @@ function validateCoordRef(ref: Ctx["refs"][number], children: Block[], ctx: Ctx,
   if (projected) {
     if (!inline.ok) return err("inline-transclusion-not-inline", `\`![[${written}]]\` projects inline content, but ${inline.why}`);
     shown = inline.text;
-  } else if (ref.embed && (hit.shape === "column" || hit.shape === "tree")) {
-    return err("embed-target-not-projectable", `\`=== embed {src=${written}}\` cannot stand for that target: ${notProjectable(hit.shape, written)}`);
+  } else if (ref.embed && !inline.ok) {
+    return err("embed-target-not-projectable", `\`=== embed {src=${written}}\` cannot stand for that target: ${inline.why}`);
   } else if (inline.ok) {
     shown = inline.text;
+  } else if (hit.shown !== undefined) {
+    // A unit with no inline projection may still have something a reference
+    // SAYS — a form field's label (GEP-0008).
+    shown = hit.shown;
   }
   // The answer lands on the node: a coordinate has no anchor of its own, so a
   // renderer that had to work this out would need the document model — and
@@ -2551,9 +2602,8 @@ function outsideCodeSpans(line: string): string {
     const c = line[i]!;
     if (c === "\\") { out += line.slice(i, i + 2); i += 2; continue; }
     if (c !== "`") { out += c; i++; continue; }
-    let n = 0;
-    while (line[i + n] === "`") n++;
-    const close = line.indexOf("`".repeat(n), i + n);
+    const n = backtickRun(line, i);
+    const close = findCodeSpanClose(line, i, n); // §5.3(1)
     if (close < 0) { out += line.slice(i, i + n); i += n; continue; }
     out += " ".repeat(close + n - i);
     i = close + n;
@@ -2920,14 +2970,10 @@ function resolveCharts(ctx: Ctx, opts: ParseOptions): void {
         // A chart is a view of a table, and a data file is one of the three ways
         // §6 lets a table name its content. So `data=rows.csv` desugars: it is an
         // anonymous table with that source, feeding this chart. Nothing new is
-        // invented — the resolution, the `.csv`/`.tsv` gate, the §9.4 remote rule
-        // and `format=` all come from the table rules, which is what makes the one
-        // source rule hold for charts too instead of charts being its exception.
-        if (hash < 0 && /\.(csv|tsv)$/i.test(id)) {
-          const sugar = chartSourceTable(ctx, opts, block, id, line);
-          if (sugar === null) continue; // already reported by the table rules
-          table = sugar;
-        } else if (hash < 0 && /\.(json|jsonl)$/i.test(id) && schemeOf(id) === null) {
+        // invented — the resolution, the §9.4 remote rule and `format=` all come
+        // from the table rules, which is what makes the one source rule hold for
+        // charts too instead of charts being its exception.
+        if (hash < 0 && /\.(json|jsonl)$/i.test(id) && schemeOf(id) === null) {
           // GEP-0005 sugar, the json/jsonl twin of the csv path: an anonymous
           // LOCAL data source projected through the record-array rules. A
           // remote URL needs a NAMED `data` block with `src=` — its fetch is
@@ -2948,8 +2994,11 @@ function resolveCharts(ctx: Ctx, opts: ParseOptions): void {
           ctx.diags.push({ severity: "error", code: "bad-data-source", message: `geml-chart: \`data=${id}\`: a remote json/jsonl source needs a named \`data\` block with \`src=\``, line });
           continue;
         } else if (hash < 0 && /\.[a-z0-9]+$/i.test(id)) {
-          ctx.diags.push({ severity: "error", code: "unresolvable-table-source", message: `geml-chart: \`data=${id}\` is not a \`.csv\`/\`.tsv\`/\`.json\`/\`.jsonl\` data file, and not a \`#id\` naming a table or data block`, line });
-          continue;
+          // Any other file is a delimited table (§7.1): `tsv` by its suffix,
+          // `csv` otherwise — no suffix gate, exactly as for a table's `src=`.
+          const sugar = chartSourceTable(ctx, opts, block, id, line);
+          if (sugar === null) continue; // already reported by the table rules
+          table = sugar;
         } else {
           const known = ctx.ids.has(nameKey(id));
           const what = known ? `data target \`#${id}\` is not a table` : `unresolved reference \`#${id}\``;

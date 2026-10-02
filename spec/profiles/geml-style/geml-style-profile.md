@@ -382,8 +382,8 @@ at the screens, not strictly a tree, and depth is the longest placement path.
 The depth cap is a security boundary as much as a shape rule. A stylesheet is
 untrusted input like any document (§9): a chain of ten thousand frames — no cycle
 anywhere — would otherwise have to be rendered ten thousand boxes deep. The cap is
-16: the GitHub blob page is four levels, and `embed` has had the same kind of cap (8)
-for the same reason. The checker visits each frame once and computes depth in one
+16: the GitHub blob page is four levels, and the core's transclusion chain has the
+same bound, 16, for the same reason (GEML §9.3). The checker visits each frame once and computes depth in one
 topological pass, so a hostile sheet — a diamond chain forty levels deep included —
 costs it linear time.
 
@@ -412,6 +412,12 @@ follow a block step, takes no `#id` / `.class` / `[attr]`, and a `match=` may no
 part branches with block branches — each is `style-selector-unsupported`. `*` and block
 selectors never match parts, and a slot never places one: a part goes wherever its block
 goes.
+
+A part name in the **first** step is read as a block type — a part needs a block
+step before it, so there is nothing else it could be there — and the processor
+says so with `style-reserved-name` (warning): a block type that happens to be
+called `link` stays selectable by its type, and an author who meant the inline
+part is told what is missing (`text#nav link`).
 
 `*` matches any node. It is only legal as a **whole step** — `*.kpi` and `table.a*`
 are still refused — and it exists because a slot that has to lay out a whole document
@@ -460,7 +466,11 @@ Merging is **per attribute**. When two rules set the *same* attribute on the
 conditions**. A selector's conditions are its type, classes, id, and attribute
 tests; `screen=` adds `screen:<id>`; each `when=` term adds `when:<state>=<value>`.
 If one rule's condition set strictly contains the other's, it wins. Otherwise →
-`style-ambiguous-rule`, an **error**.
+`style-ambiguous-rule`, a **warning** — and the rule written **first** keeps the
+attribute: its value enters the binding, the later rule's enters nothing (§10).
+The contest is reported so that order never decides silently; it is not an
+error, because a stylesheet with one open contest still renders, and renders
+the way its author can read off the file.
 
 With `when=` in the condition set the arbitration applies unchanged: a conditional
 rule with the same selector is a strict superset of the unconditional one and wins —
@@ -469,24 +479,26 @@ at runtime, when its state holds. Two conditional rules whose `when=` sets are
 conflict; two that can both hold, are incomparable, and set one attribute are
 `style-ambiguous-rule`, exactly as before.
 
-There is no specificity arithmetic, no `!important`, and **no source-order
-fallback**. Source order is excluded deliberately: a stylesheet that resolved by
-order would be silently re-rendered by the very block-level agent edits
-(`geml set`, `geml add --before`) this format exists to support.
+There is no specificity arithmetic and no `!important`. Source order decides
+nothing **except a reported contest**: a stylesheet that resolved by order
+silently would be re-rendered by the very block-level agent edits (`geml set`,
+`geml add --before`) this format exists to support, so wherever order does
+decide, `geml style check` names the pair on every build.
 
-Conflicts are judged **against the corpus**: two incomparable rules are only an
-error if they actually co-occur on some real block.
+Conflicts are judged **against the corpus**: two incomparable rules are only
+reported if they actually co-occur on some real block.
 
 **Shorthands and their sides.** Merging is per attribute *name*, and `border` and
 `border-left` are two names — so they never meet in the arbitration above, both
 survive, and which one takes effect is decided by whichever declaration the host
 emits last. A layer has no order, so that would make the rendered result depend on
-where the two rules happen to sit in the file: precisely what excluding source order
-was protecting, and precisely what `geml add --before` would silently change. So two
-**different** rules in the same layer may not set `border` and one of `border-top` /
-`border-right` / `border-bottom` / `border-left` on the same block — that is
-`style-ambiguous-rule`. Writing both words in **one** rule is fine: there the order is one
-the author wrote, and `geml set` replaces whole blocks. Across layers is fine too —
+where the two rules happen to sit in the file, silently — precisely what `geml add
+--before` would change without a word. So two **different** rules in the same layer
+may not set `border` and one of `border-top` / `border-right` / `border-bottom` /
+`border-left` on the same block — that is `style-ambiguous-rule`, and the word
+written first stays while the later rule's word enters no binding. Writing both
+words in **one** rule is fine: there the order is one the author wrote, and
+`geml set` replaces whole blocks. Across layers is fine too —
 a layer is a declared order. Sides never conflict with one another, and
 `border-radius` is not part of the family.
 
@@ -518,12 +530,12 @@ most common shape, and those two selector kinds have condition sets that do not
 contain one another — every one of them would hit `style-ambiguous-rule`. Measured: the
 five homepage documents all errored before layers existed.
 
-**The reason for excluding source order still holds**, and this is worth stating:
-a layer is not line order in a file. Within a layer there is no order; `#sitemap`
+**A layer is not line order in a file**, and this is worth stating. Within a
+layer, order decides only a contest that `style-ambiguous-rule` reports; `#sitemap`
 is an exact match, so reordering its rows changes nothing; the number of layers is
 fixed by the entry's two keys. Block-level agent edits (`geml set`, `geml add
---before`) therefore still cannot silently re-render a document — which is what
-excluding source order was protecting.
+--before`) therefore still cannot re-render a document without `geml style check`
+saying so.
 
 The cost is honest: §4's opening claim that arbitration is independent of which
 file a rule came from now holds **within a layer** only. What it buys is that
@@ -607,7 +619,7 @@ fallback**, which is what preserves §8.5.
 | code | severity | catches |
 |---|---|---|
 | `style-selector-unsupported` | error | an unsupported CSS construct, named; also an inline part step that is not last, has no block step before it, carries a filter, or is mixed with block branches — and a slot that names a part |
-| `style-ambiguous-rule` | error | identical or incomparable rules setting one attribute |
+| `style-ambiguous-rule` | warning | identical or incomparable rules setting one attribute; the first-written rule's value is kept |
 | `style-unknown-state` | error | a rule or slot references a `$foo` nobody declares |
 | `style-unknown-screen` | error | `screen=` names no `style-screen` block |
 | `style-unknown-value-source` | error | `value-from=` is not a column of the target table |
@@ -625,6 +637,7 @@ fallback**, which is what preserves §8.5.
 | `style-frame-cycle` | error | frames nest in a cycle; the message carries the chain |
 | `style-frame-too-deep` | error | frames nest deeper than 16 along some placement path |
 | `style-unused-frame` | warning | a `style-frame` no slot references |
+| `style-reserved-name` | warning | a selector's **first** step names an inline part (`link`, `image`, `code-span`, `strong`, `emphasis`); it is read as a block type, since a part needs a block step before it, and the message says what a part would need (§3) |
 | `style-invalid-value` | error | a closed-domain built-in word (`axis` / `anchor` / `place` / `scroll` / `sticky` / `hide-below` / `visible` / `grow` / `wrap` / `view` / `editable` / `fade-out` / `underline`) took a value outside its domain, or a `when=` term is neither `$state=value` nor one of `@hover` / `@focus` / `@invalid` / `@disabled` / `@checked` |
 
 `style-unknown-value-source` is checkable because §6 gives tables a real schema. When
@@ -665,7 +678,13 @@ what a host consumes. It has four fields:
 A **binding** is `{doc, block, part?, rules, params, box, variants}`. `part` is present on
 a binding a part rule made (§3) and names the inline kind — `link` `image` `code-span`
 `strong` `emphasis`; such a binding shares its block's address and is a separate target
-for §4's arbitration. In `variants[].when`, the built-in `@hover` / `@focus` / `@invalid` / `@disabled` / `@checked` appear as
+for §4's arbitration. `block` is the block's address: `#id` when it has one, otherwise
+`[n]`, `n` being the block's position in that document, counted from 0 in document order
+among the nodes a selector can match (§3) — headings, prose between blocks and typed
+blocks, nested ones included — so an id-less block is still named, and a host joins it to
+the corpus by position. An attribute under `style-ambiguous-rule` (§4) carries the
+**first-written** rule's value, base and variants alike; the later rule's value appears
+nowhere in the binding. In `variants[].when`, the built-in `@hover` / `@focus` / `@invalid` / `@disabled` / `@checked` appear as
 keys with the value `"true"`. `params` are the
 component's words (including `component` / `handler` / `show` / `filter`); `box` the
 built-in words of §2.1, kept apart so a host applies them uniformly and a component
@@ -762,6 +781,12 @@ the compatibility unit, and unknown members degrade per §7.
 differ — a written-in address binds the stylesheet to an environment), routing,
 theming beyond §1.2's tokens, or any body
 content in its three block types.
+
+**Not in v1, with its slot named**: an `override` attribute on a `style-rule`, for
+the author who means a contested attribute to be that rule's without widening its
+selector. §4's warning-and-first-wins is the rule until a real stylesheet shows the
+warning is not enough; if that day comes, the answer is that attribute, not another
+layer.
 
 **Named but not yet exercised by a real stylesheet**: everything in §0.1's right
 column. `filter=` in particular has never run against real noise (mustapi's edges

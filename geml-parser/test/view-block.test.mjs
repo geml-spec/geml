@@ -108,21 +108,21 @@ test("view chains cannot close a cycle, and cannot run deeper than §9.3's bound
   assert.equal(errors(cycle).filter((d) => d.code === "view-source-cycle").length, 2);
 
   // The GEP bounds a chain "exactly as a nested `embed`'s is (§9.3)", which is
-  // 8. Depth follows the chain, not the pass count: a document that declares
+  // 16. Depth follows the chain, not the pass count: a document that declares
   // its views in dependency order resolves any length in ONE pass, so counting
   // passes bounded nothing. Past the bound every view says so and none of them
-  // publishes rows — otherwise the chain restarted at every ninth link.
+  // publishes rows — otherwise the chain restarted at every seventeenth link.
   const chain = (n) => {
     let src = `${source}\n`;
     for (let i = 1; i <= n; i++) src += `=== view {#v${i} src=${i === 1 ? "#tickets" : `#v${i - 1}`}}\n===\n`;
     return parse(src);
   };
-  assert.deepEqual(errors(chain(8)), [], "eight deep is legal");
-  assert.equal(byId(chain(8), "v8").table.columns.length, 4);
-  const deep = chain(11);
+  assert.deepEqual(errors(chain(16)), [], "sixteen deep is legal");
+  assert.equal(byId(chain(16), "v16").table.columns.length, 4);
+  const deep = chain(19);
   const past = errors(deep).filter((d) => d.code === "view-source-too-deep");
   assert.equal(past.length, 3, "one per view past the bound, not one per document");
-  assert.match(past[0].message, /is 9 deep; the bound is 8/);
+  assert.match(past[0].message, /is 17 deep; the bound is 16/);
 
   // And twenty INDEPENDENT views are not a deep chain.
   let flat = `${source}\n`;
@@ -270,11 +270,11 @@ test("a cross-document view chain is parsed once per document, and bounded at th
     }
     return docs;
   };
-  // Twelve deep, fan-out three: past the bound, and fast BECAUSE it is bounded and cached.
-  let docs = chain(12);
+  // Twenty deep, fan-out three: past the bound, and fast BECAUSE it is bounded and cached.
+  let docs = chain(20);
   let t = Date.now();
   let doc = parse(docs.get("D0.geml"), { resolveDoc: (d) => docs.get(d) ?? null, self: "D0.geml" });
-  assert.ok(Date.now() - t < 1500, `12-deep fan-out took ${Date.now() - t} ms`);
+  assert.ok(Date.now() - t < 1500, `20-deep fan-out took ${Date.now() - t} ms`);
   assert.ok(doc.diagnostics.some((d) => d.severity === "error" && d.code === "view-source-too-deep"), "the bound is reported by name");
   // Six deep: inside the bound, clean, and still fast.
   docs = chain(6);
@@ -360,7 +360,8 @@ test("where：数字比较与文本比较的六个算子都能求值，结果与
 
 test("compute / aggregate：写坏了的声明各自点名", () => {
   assert.ok(has(view('by="Nope" aggregate="N = count(Id)"'), "view-unknown-column"));
-  assert.ok(has(view('by="Area" aggregate="nonsense"'), "bad-aggregate-entry"));  assert.ok(has(view('by="Area" aggregate="S = sum(Age) +"'), "aggregate-error"));
+  assert.ok(has(view('by="Area" aggregate="nonsense"'), "bad-aggregate-entry"));
+  assert.ok(has(view('by="Area" aggregate="S = sum(Age) +"'), "aggregate-error"));
 });
 
 test("aggregate：count 数非空格、sum 对无数字的列得 0、avg 求均值", () => {
@@ -440,12 +441,14 @@ test("the remote-source answer does not soften a real cycle", () => {
   assert.deepEqual(codesOf(chain.diagnostics ?? []), []);
 });
 
-test("a view src that is neither a relation nor a .csv/.tsv is refused by name", () => {
-  for (const src of ["notes.txt", "fy.json", "ftp://host/fy.csv"]) {
-    const ds = viewOn(src);
-    const hit = ds.find((d) => d.code === "unresolvable-table-source");
-    assert.ok(hit, `${src}: ${JSON.stringify(codesOf(ds))}`);
-    assert.match(hit.message, /is not a `\.csv`\/`\.tsv` data file or a relation target/, src);
+test("a view src in a scheme other than http(s) is refused by name; a local file of any suffix is a delimited source", () => {
+  const ftp = viewOn("ftp://host/fy.csv").find((d) => d.code === "unresolvable-table-source");
+  assert.ok(ftp);
+  assert.match(ftp.message, /disallowed URL scheme/);
+  // §6.1: no suffix gate — a view's file is `tsv` by its suffix and `csv` otherwise.
+  for (const src of ["notes.txt", "fy.json"]) {
+    const ds = viewOn(src, { resolveDoc: (p) => (p === src ? "a,b\n1,2\n" : null) });
+    assert.deepEqual(codesOf(ds), [], src);
   }
 });
 

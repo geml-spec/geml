@@ -18,6 +18,66 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **GEP-0008's structural rules are checked.** With `geml-form/v1` declared, a
+  `form-*` block outside a `form` — a field not directly in a form or a group,
+  a group inside a group, an options list or a note anywhere but directly in a
+  form — is `form-child-outside-form`; a `form-field` without `name=` is
+  `form-field-missing-name`, and two fields of one form sharing a name are
+  `form-duplicate-name`, all errors the GEP defines, and the form profile's
+  conformance file lists the codes with cases. A `form` or a `form-group`
+  answers a coordinate with the field the step names — `#signup["email"]` —
+  so `geml get` prints a field by name, `[[#signup["email"]]]` says its label,
+  and `![[…]]`, an `embed` and `geml set` of a field are refused. The viewer's
+  controls carry the name. The Rust implementation now follows every rule the entries
+  below settle: CommonMark code spans, the chain bound of 16, local data files
+  read at build time, `[n]` view-model addresses, `style-reserved-name` as the
+  profile defines it, the history unit key with `~n` occurrences, and the media
+  hashes with interaction lines.
+- **Four more rules the second implementation asked for, decided.** A code
+  span closes at the next run of *exactly* its opening length, CommonMark's
+  rule: a longer run inside is content, so `` ``a`b`` `` carries a backtick
+  and `` `a``b` `` is one span, not two. The parser, the heading-id derivation
+  and the Markdown importer read it so; one conformance case moved from the
+  old reading to the new and three pin it. A contest between two style
+  rules (`style-ambiguous-rule`) is a warning, not an error, and the
+  first-written rule's value is what the binding carries; the later rule's
+  appears nowhere, so a build still succeeds and says where order decided.
+  GEP-0008's fields carry a mandatory `name=`, unique within their form, and
+  a field is addressed with GEP-0011's coordinate — `#signup["email"]` — so
+  it needs no id; a field without a name, or two fields of one form sharing
+  one, is an error (`form-field-missing-name`, `form-duplicate-name`), and
+  `[[#signup["email"]]]` says the field's label, `geml get` prints the field,
+  and a projection of a field is refused. The scoped-id design
+  (`#signup#email`) is recorded under the GEP's alternatives. The history profile fixes the unit key a
+  sidecar uses — `#id`, else `@` and eight hex digits of the unit's SHA-256,
+  `~n` on repeats — and the parser follows it where it did not: a block closed
+  by its labeled fence is one unit, an id is any NAME, and a heading's
+  explicit `{#id}` keys its segment. A sidecar written under the earlier
+  tool-defined keys does not read back; this repository's was rebuilt under
+  the rule, every revision id and hash unchanged.
+- **The specification states what the reference parser enforced.** Writing a
+  second implementation from the text alone exposed rules the parser applied
+  and the specification never said. The text now says them. A data-form
+  table's first row is its header unless `header=false`; a headerless table
+  letters its columns as a spreadsheet does, `AA` after `Z`. A local data file
+  named by a table, a view or a chart is read at build time and its columns
+  are checked then; only an `http(s)` source defers to the renderer, and the
+  file's suffix no longer matters — `format=` decides, a view's or a chart's
+  file is `tsv` by suffix and `csv` otherwise. `unresolvable-table-source`
+  covers a view's or a chart's file as well as a table's and a disallowed
+  scheme, and `table-source-not-a-table`, which nothing ever emitted, leaves
+  Appendix A and the parser's catalogue. A media
+  embed may name `data:image/…`, and only a media embed. A change of
+  list-marker kind ends a list. A `meta` value with spaces needs no quotes. A
+  blank line inside a ``` pair still ends a paragraph. An `embed` of a target
+  in its own document is not a cycle, and the cycle rule is stated per
+  document. The bound on a transclusion or `view` chain is a fixed 16 — it was
+  the reference's own 8, written nowhere — and the renderer, the style
+  checker's embed expansion and the media checker's prompt expansion follow
+  it. The media profile defines the bytes `prompt-sha256` hashes, interaction
+  lines included; the style profile catalogues `style-reserved-name` and names
+  an id-less block `[n]` in the view model; the codemap profile says which
+  edge-table cells are plain text.
 - **Stopping `geml codemap` or `geml mcp` stops what it started.** Both run
   their program as a child, and a signal sent to `geml` alone, such as a
   supervisor's SIGTERM or a test's kill, ended `geml` without it: `codemap

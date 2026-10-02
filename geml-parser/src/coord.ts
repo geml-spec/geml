@@ -12,20 +12,24 @@
 // selector's business; this module only interprets them against a block.
 import { serializeEdn } from "./edn.js";
 import { type Block, type DataValue, type Value } from "./geml.js";
+import { serialize } from "./serialize.js";
 import { type CoordStep } from "./selector.js";
 import { escapeCellPipes, whiteSpaceBounds, type TableCell, type TableModel } from "./table.js";
 
 /**
  * What a coordinate landed on: one value, a table's whole row, a table's whole
- * column, or a value-tree node that holds more nodes. §5.2 decides which of
- * these may be projected, so the answer says which one it is.
+ * column, a value-tree node that holds more nodes, or a form's field (GEP-0008:
+ * a block addressed by its `name=`). §5.2 decides which of these may be
+ * projected, so the answer says which one it is.
  */
-export type CoordShape = "leaf" | "row" | "column" | "tree";
+export type CoordShape = "leaf" | "row" | "column" | "tree" | "field";
 
 export type CoordResult =
   /** `text` is what `geml get` prints; `json` is what `--json` answers. A row
-   *  also carries its cells' texts, in column order, for a projection. */
-  | { ok: true; text: string; json: unknown; shape: CoordShape; cells?: string[] }
+   *  also carries its cells' texts, in column order, for a projection. `shown`
+   *  is what a reference `[[…]]` SAYS when the unit has no inline projection —
+   *  a form field's label. */
+  | { ok: true; text: string; json: unknown; shape: CoordShape; cells?: string[]; shown?: string }
   /** `why` is a whole sentence: it is the CLI's error message verbatim. */
   | { ok: false; why: string };
 
@@ -53,7 +57,7 @@ export type SrcRebase = (src: string) => string;
 // diagnostic SHOULD name that address. A whole-document embed (`src=` without
 // `#`) has no block for a coordinate to start from, so it gets the bare refusal.
 function noUnits(block: Block & { kind: "block" }, path: CoordStep[], rebase: SrcRebase = (s) => s): string {
-  const why = `\`${block.type}\` carries no addressable units inside it — a coordinate needs a table, a \`data\` block, or \`meta\` (GEP 0011)`;
+  const why = `\`${block.type}\` carries no addressable units inside it — a coordinate needs a table, a \`data\` block, \`meta\` (GEP 0011), or a \`form\` (GEP 0008)`;
   const src = block.type === "embed" ? block.attrs["src"] : undefined;
   if (typeof src !== "string" || !src.includes("#")) return why;
   return `${why}; address it on the embed's source instead: \`${rebase(src)}${pathText(path)}\``;
@@ -446,6 +450,9 @@ export function planCoordWrite(block: Block, path: CoordStep[], value: string, b
   if (path.length === 0) return { ok: false, why: "a coordinate needs at least one `[…]` step" };
   if (block.kind !== "block") return { ok: false, why: `a coordinate writes a unit inside a table or a \`data\` block; \`${block.kind}\` has none` };
   if (block.type === "view") return { ok: false, why: "a view has no body rows to write — edit the source relation or this view's attributes" };
+  if (block.type === "form" || block.type === "form-group") {
+    return { ok: false, why: "a form's field is a block of its own — give it an `{#id}` and edit it with `geml set '#<id>'`; a coordinate writes a unit inside a table or a `data` block" };
+  }
   if (block.table) return writeTable(block, block.table, path, value, body);
   if (block.value !== undefined) return writeValue(block, path, value, block.value);
   if (block.type === "meta") {
@@ -484,6 +491,8 @@ export function projectCoord(block: Block, path: CoordStep[], rebase?: SrcRebase
   if (block.type === "view" && (block.table === undefined || block.table.columns.length === 0)) {
     return miss("this view's `src=` did not resolve, so it has no rows to address");
   }
+  // GEP-0008: a form's fields are its inner units, named by `name=`.
+  if (block.type === "form" || block.type === "form-group") return projectForm(block, path);
   if (block.table) return projectTable(block, block.table, path);
   if (block.value !== undefined) return projectValue(block.value, path);
   if (block.data !== undefined) return projectValue(block.data as DataValue, path);
@@ -500,11 +509,56 @@ export function projectCoord(block: Block, path: CoordStep[], rebase?: SrcRebase
 // renderers and the browser viewer all ask these functions, so none of them can
 // draw the line somewhere else.
 
-/** Why a column or a non-leaf value-tree node may not be projected. */
-export function notProjectable(shape: "column" | "tree", written: string): string {
-  return shape === "column"
-    ? `\`${written}\` is a whole column — as many values as the table has rows; project one cell (\`[<row>]["<column>"]\`), a whole row (\`[<row>]\`), or select the rows with a \`view\` (\`where=\`, \`select=\`)`
-    : `\`${written}\` is a value-tree node with more nodes inside it; project one leaf value under it`;
+/** Why a column, a non-leaf value-tree node or a form field may not be projected. */
+export function notProjectable(shape: "column" | "tree" | "field", written: string): string {
+  if (shape === "column") {
+    return `\`${written}\` is a whole column — as many values as the table has rows; project one cell (\`[<row>]["<column>"]\`), a whole row (\`[<row>]\`), or select the rows with a \`view\` (\`where=\`, \`select=\`)`;
+  }
+  if (shape === "field") {
+    return `\`${written}\` is a form field — a control, not content; reference it with \`[[…]]\`, which says its label`;
+  }
+  return `\`${written}\` is a value-tree node with more nodes inside it; project one leaf value under it`;
+}
+
+// --------------------------------------------------------------------------
+// A form's fields (GEP-0008). A `form` is a flow container whose inner units are
+// its `form-field` blocks, each carrying a `name=` unique within the form; a
+// `form-group` adds structure, not a namespace, so a field inside a group is
+// addressed on the form (`#signup["email"]`) as well as on the group. The
+// answer is the field BLOCK — `geml get` prints it as written, `--json` gives
+// its attributes — and a reference says the field's label. A field is a
+// control, not content, so §5.2 refuses to project it.
+
+function formFields(blocks: Block[]): (Block & { kind: "block" })[] {
+  const out: (Block & { kind: "block" })[] = [];
+  for (const b of blocks) {
+    if (b.kind !== "block") continue;
+    if (b.type === "form-field") out.push(b);
+    else if (b.type === "form-group" && b.children !== undefined) out.push(...formFields(b.children));
+  }
+  return out;
+}
+
+function projectForm(block: Block & { kind: "block" }, path: CoordStep[]): CoordResult {
+  const step = path[0]!;
+  if (step.kind === "index") {
+    return miss(`a ${block.type}'s fields are addressed by \`name=\` — \`["<name>"]\` — not by position`);
+  }
+  if (block.children === undefined) {
+    return miss(`this \`${block.type}\` was not read as a form, so it has no fields to address — is \`geml-form/v1\` declared?`);
+  }
+  const fields = formFields(block.children);
+  const field = fields.find((f) => f.attrs["name"] === step.name);
+  if (field === undefined) {
+    const names = fields.map((f) => attrStr(f.attrs, "name")).filter((n): n is string => n !== undefined);
+    const have = names.length === 0 ? "it has no named field" : `its fields are ${names.map((n) => `\`${n}\``).join(", ")}`;
+    return miss(`this \`${block.type}\` has no field named \`${step.name}\`; ${have}`);
+  }
+  if (path.length > 1) {
+    return miss(`a field carries no units inside it — \`${pathText(path.slice(1))}\` addresses nothing under \`${stepText(step)}\``);
+  }
+  const json: Record<string, unknown> = field.id !== undefined ? { id: field.id, ...field.attrs } : { ...field.attrs };
+  return { ok: true, shape: "field", text: serialize([field]).trimEnd(), json, shown: attrStr(field.attrs, "label") ?? step.name };
 }
 
 /** What an inline projection `![[…]]` of a coordinate shows, or why it may not. */

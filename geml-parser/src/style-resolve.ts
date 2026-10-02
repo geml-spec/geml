@@ -375,7 +375,7 @@ export interface StyleLoadOptions {
   forDoc?: string;
 }
 
-const EMBED_DEPTH_CAP = 8;
+const EMBED_DEPTH_CAP = 16; // GEML §9.3's fixed bound on a transclusion chain
 /**
  * frame 嵌套的上限。和 EMBED_DEPTH_CAP 同一个理由：样式表是不可信输入，一条一万个 frame 的链
  * 没有环、却不能让宿主去渲染一万层盒子。GitHub 的 blob 页是 4 层；16 是给设计留的余量，不是量出来的。
@@ -832,6 +832,10 @@ type Hit = { rule: StyleRule; conds: Set<string>; order: number };
  * 同一个 `when=` 集合下的一组命中。`owner` 记住每个属性名当前由谁持有，因为裁决要
  * 比较的是"上一个写它的规则"，不是"上一个值"。
  */
+// §4/§10: an attribute two rules contest (`style-ambiguous-rule`, a warning)
+// carries the value of the rule written FIRST — `owner` is never moved onto the
+// later rule, and the later rule's value is dropped where it sits in another
+// group — so the binding is one the author can read off the stylesheet.
 type Group = { when: WhenCond[]; order: number; params: Record<string, Value>; owner: Map<string, Hit> };
 
 /** 两条规则在同一个属性上撞车时怎么说。`identical` 区分"选择器相同"与"不可比"。 */
@@ -890,6 +894,7 @@ function arbitrateWithinGroups(hits: Hit[], clash: Clash): Map<string, Group> {
       // 情况 2（条件集相同）与情况 3（不可比）的**补救办法不同**，所以建议必须分开：
       // 对相同的选择器建议"写并集"是不可能执行的 —— 两个相同集合的并集就是它自己。
       const identical = prev.conds.size === hit.conds.size && [...prev.conds].every((x) => hit.conds.has(x));
+      // `prev` keeps the attribute: it is the rule written first (§4).
       clash(prev, hit, k, identical);
     }
   }
@@ -913,6 +918,10 @@ function reportBorderClashes(
       if (one.rule.layer !== short.rule.layer) continue;
       const first = short.order <= one.order;
       const [a, b] = first ? [short, one] : [one, short];
+      // The word written first stays; the later rule's word is dropped, so the
+      // host never emits the pair and nothing depends on which lands last.
+      const dropped = first ? side : "border";
+      delete g.params[dropped]; g.owner.delete(dropped);
       report(a, first ? "border" : side, b, first ? side : "border");
     }
   }
@@ -921,7 +930,8 @@ function reportBorderClashes(
 /**
  * 2) 组间：同一属性出现在两个组里时 —— 互斥的 `when` 集合永不同时生效，跳过；
  * 不同层，高层保留、低层丢掉该属性；同层要么一方是真超集（运行时按序叠加即可），
- * 要么不可比 → ambiguous-rule。相同的完整条件集在不同组里不可能出现。
+ * 要么不可比 → ambiguous-rule 警告，先写的规则保留、后写的丢掉该属性。
+ * 相同的完整条件集在不同组里不可能出现。
  */
 function arbitrateAcrossGroups(gs: Group[], clash: Clash): void {
   for (let i = 0; i < gs.length; i++) for (let j = i + 1; j < gs.length; j++) {
@@ -936,6 +946,8 @@ function arbitrateAcrossGroups(gs: Group[], clash: Clash): void {
         continue;
       }
       if (moreSpecific(a.conds, b.conds) || moreSpecific(b.conds, a.conds)) continue;
+      const loser = a.order <= b.order ? B : A;
+      delete loser.params[k]; loser.owner.delete(k);
       clash(a, b, k, false);
     }
   }
@@ -1065,8 +1077,9 @@ function resolveBindings(
  * 把样式表对着语料求解成视图模型（设计 §4.3）。
  *
  * 合并按属性进行；同一属性被多条规则设置时，只有真超集能裁决，
- * 相同或不可比一律报 `style-ambiguous-rule` —— 不做源序兜底，因为样式表一旦
- * 顺序敏感，agent 的按块编辑（`geml set` / `geml add --before`）就会静默改变渲染。
+ * 相同或不可比报 `style-ambiguous-rule` 警告，先写的规则生效 —— 源序只在
+ * 被报出来的争夺上起作用，所以 agent 的按块编辑（`geml set` / `geml add --before`）
+ * 改变渲染时，`geml style check` 会说出来。
  *
  * 冲突**对着语料判**：两条不可比的规则只有真的在某个块上共现才报错。
  */

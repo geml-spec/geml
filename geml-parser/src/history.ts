@@ -160,7 +160,12 @@ function fenceFor(contentLf: string): string {
 // key only arises for OUT-OF-SPEC documents that repeat an id — without it the
 // key is ambiguous, reverse-patch ops hit the wrong occurrence, and save()'s
 // round-trip gate (correctly) aborts. Well-formed documents never emit it.
-const KEY = String.raw`(#[A-Za-z][A-Za-z0-9_-]*(?:~\d+)?|@[0-9a-f]+(?:~\d+)?)`;
+const KEY = String.raw`(#[\p{L}\p{N}_-]+(?:~\d+)?|@[0-9a-f]+(?:~\d+)?)`;
+// Profile §4: an id is a NAME (GEML §4) — any Unicode letter or number, `-`, `_`.
+const ID_IN_ATTRS = /#([\p{L}\p{N}_-]+)/u;
+// A heading line with a trailing attribute object: `## Title {#id}`. Its explicit
+// id keys the flow segment it opens; its derived id does not (profile §4).
+const HEADING_ATTRS = /^#{1,6}[ \t]+\S.*\{([^{}]*)\}[ \t]*$/u;
 
 function sha8(s: string): string {
   return createHash("sha256").update(Buffer.from(s, "utf8")).digest("hex").slice(0, 8);
@@ -187,15 +192,20 @@ function tile(lines: string[]): Unit[] {
     let id: string | undefined;
     if (fo) {
       const fenceLen = fo[1]!.length;
-      id = /#([A-Za-z][A-Za-z0-9_-]*)/.exec(fo[3] ?? "")?.[1];
+      id = ID_IN_ATTRS.exec(fo[3] ?? "")?.[1];
+      // Profile §4: a block runs to the line that closes it as GEML §3 says — an
+      // equal-length bare run, or, when it has an id, its labeled fence `=== #id`.
+      const labeled = id === undefined ? null : new RegExp(String.raw`^={3,}[ \t]*#${id}[ \t]*$`, "u");
       i++;
       while (i < n) {
         const t = lines[i]!.trimEnd();
-        const close = /^=+$/.test(t) && t.length === fenceLen;
+        const close = (/^=+$/.test(t) && t.length === fenceLen) || (labeled !== null && labeled.test(t));
         i++;
         if (close) break;
       }
     } else { // flow segment: consecutive non-blank, non-fence lines
+      const h = HEADING_ATTRS.exec(lines[i]!);
+      if (h) id = ID_IN_ATTRS.exec(h[1]!)?.[1];
       i++;
       while (i < n && lines[i]!.trim() !== "" && !FENCE_OPEN.test(lines[i]!)) i++;
     }
@@ -233,7 +243,7 @@ interface Op { kind: "delete" | "replace" | "insert" | "move"; key?: string; blo
 
 function parseAnchor(s: string): Anchor {
   if (s === "at-start" || s === "at-end") return s;
-  const m = new RegExp("^after\\s+" + KEY + "$").exec(s);
+  const m = new RegExp("^after\\s+" + KEY + "$", "u").exec(s);
   if (!m) throw new Error(`history: bad anchor: ${s}`);
   return { after: m[1]! };
 }
@@ -248,13 +258,13 @@ function parseOps(body: string): Op[] {
     const line = raw.trim();
     if (!line) continue;
     let m: RegExpExecArray | null;
-    if ((m = new RegExp("^delete\\s+" + KEY + "$").exec(line))) {
+    if ((m = new RegExp("^delete\\s+" + KEY + "$", "u").exec(line))) {
       ops.push({ kind: "delete", key: m[1]! });
-    } else if ((m = new RegExp("^replace\\s+" + KEY + "\\s+<-\\s+blob:(\\S+)$").exec(line))) {
+    } else if ((m = new RegExp("^replace\\s+" + KEY + "\\s+<-\\s+blob:(\\S+)$", "u").exec(line))) {
       ops.push({ kind: "replace", key: m[1]!, blob: m[2]! });
     } else if ((m = /^insert\s+<-\s+blob:(\S+)\s+(.+)$/.exec(line))) {
       ops.push({ kind: "insert", blob: m[1]!, anchor: parseAnchor(m[2]!) });
-    } else if ((m = new RegExp("^move\\s+" + KEY + "\\s+(.+)$").exec(line))) {
+    } else if ((m = new RegExp("^move\\s+" + KEY + "\\s+(.+)$", "u").exec(line))) {
       ops.push({ kind: "move", key: m[1]!, anchor: parseAnchor(m[2]!) });
     } else {
       throw new Error(`history: unrecognized reverse-patch op: ${line}`);

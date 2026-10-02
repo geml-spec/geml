@@ -1759,12 +1759,12 @@ test("an inline projection declines by name: no resolver, a cycle, and the depth
   // A chain longer than the depth cap: d0 borrows d1 borrows d2 … The cap is
   // what keeps a mutually-recursive document set from being a stack overflow.
   const chain = {};
-  for (let i = 0; i <= 12; i++) chain[`d${i}.geml`] = `=== text {#p}\nlevel ${i} ![[d${i + 1}.geml#p]]\n===\n`;
+  for (let i = 0; i <= 20; i++) chain[`d${i}.geml`] = `=== text {#p}\nlevel ${i} ![[d${i + 1}.geml#p]]\n===\n`;
   const deep = renderHtml(parse("# H {#h}\n\nstart ![[d0.geml#p]]\n", { resolveDoc: (p) => chain[p] ?? null }), {
     loadDoc: (p) => chain[p] ?? null, parseDoc: (s) => parse(s),
   });
   assert.match(deep, /depth cap/);
-  assert.equal((deep.match(/level \d+/g) ?? []).length, 8, "eight levels expand, and the ninth says why it did not");
+  assert.equal((deep.match(/level \d+/g) ?? []).length, 16, "sixteen levels expand (§9.3), and the seventeenth says why it did not");
 });
 
 test("a `../` target resolves against the host document's directory", () => {

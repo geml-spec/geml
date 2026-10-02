@@ -325,7 +325,7 @@ DAG，不严格是树；深度取最长的那条放置路径。
 
 深度上限是**安全边界**，不只是形状规则。样式表和任何文档一样是不可信输入（§9）：一万个
 frame 串成一条链——哪儿都没有环——宿主就得渲染一万层盒子。上限取 16：GitHub 的 blob 页是
-四层，`embed` 出于同一个理由早就有同类上限（8）。校验器对每个 frame 只访问一次、深度用一遍
+四层，核心的投射链出于同一个理由也是这个上限，16（GEML §9.3）。校验器对每个 frame 只访问一次、深度用一遍
 拓扑 DP 算出，所以恶意样式表——包括四十层的菱形链——都只花线性时间。
 
 校验器的线性不等于宿主的线性。一个 frame 可以放进多个槽位，所以嵌套 × 复用是乘法：每层两个
@@ -348,6 +348,10 @@ text#nav link                                        行内部件：只能是最
 自己的叫法：`code` 已经是块类型，所以代码段叫 `code-span`。部件步必须是最后一步、前面要有块步、
 不带 `#id` / `.class` / `[attr]`，一条 `match=` 的分支不能部件与块混写——各报 `style-selector-unsupported`。
 `*` 与块选择器永不匹配部件，槽位也永不摆部件：部件跟着自己的块走。
+
+部件名出现在**第一步**时按块类型读——部件前面要有块步，所以在那里它不可能是别的——
+处理器会用 `style-reserved-name`（warning）说出这一点：一个碰巧叫 `link` 的块类型照样
+能按类型选到，而本想要行内部件的作者会被告知缺了什么（`text#nav link`）。
 
 `*` 匹配任意节点，且**只有整步**才合法——`*.kpi`、`table.a*` 照旧拒绝。它之所以存在，
 是因为一个槽位要按文档顺序摆下整篇文档时，别无写法：两个块之间的散文段落身上没有
@@ -386,25 +390,27 @@ class 可选。
 合并**按属性进行**。两条规则在**同一个块**上设**同一个属性**时，只有一个关系能裁决：
 **条件集的真超集**。选择器的条件 = 它的类型、类、id、属性测试；`screen=` 额外贡献
 一个 `screen:<id>`；`when=` 的每一项额外贡献一个 `when:<state>=<value>`。一方真包含
-另一方就胜出；否则报 `style-ambiguous-rule` **错误**。
+另一方就胜出；否则报 `style-ambiguous-rule` **警告**——**先写的**那条规则保留该属性：它的值进绑定，
+后写的那条什么都不进（§10）。争夺一定报出来，顺序才不会静默决定结果；不算错误，是因为带着一处争夺的
+样式表照样能渲染，而且渲染成作者从文件上能读出来的样子。
 
 `when=` 进条件集之后裁决原样成立：同选择器的有条件规则是无条件那条的真超集，它赢——
 在运行时、当它的状态成立时。两条有条件规则若 `when=` 集合**互斥**（同一状态、不同值）则
 永不同时生效，不算冲突；能同时成立、互不包含、又争同一属性的两条，照旧是 `style-ambiguous-rule`。
 
-没有特异性算术，没有 `!important`，**没有源序兜底**。排除源序是刻意的：样式表一旦
-顺序敏感，agent 的按块编辑（`geml set`、`geml add --before`）——这个格式存在的理由
-本身——就会静默改变渲染结果。
+没有特异性算术，没有 `!important`。源序**只在被报出来的争夺上**起作用：样式表若静默地按
+顺序裁决，agent 的按块编辑（`geml set`、`geml add --before`）——这个格式存在的理由本身——
+就会悄悄改变渲染结果；所以凡是顺序在起作用的地方，`geml style check` 每次构建都点名那一对。
 
-冲突**对着语料判**：两条不可比的规则只有真的在某个块上共现才报错。
+冲突**对着语料判**：两条不可比的规则只有真的在某个块上共现才报。
 
 **简写与它的单边。** 合并是按属性**名**做的，而 `border` 和 `border-left` 是两个名字——
 它们从不在上面的裁决里相遇，两条都活着，谁生效取决于宿主把哪条声明发在后面。层内没有
-顺序，于是渲染结果就取决于两条规则在文件里的先后：这正是排除源序要防的那件事，也正是
-`geml add --before` 能悄悄改掉的那件事。所以同一层里的两条**不同**规则，不能在同一个块上
-一条写 `border`、另一条写 `border-top` / `border-right` / `border-bottom` /
-`border-left` 之一——那是 `style-ambiguous-rule`。两个词写进**同一条**规则里是可以的：那里的
-先后是作者自己写下的，而 `geml set` 换的是整块。跨层也放行——层是声明出来的顺序。
+顺序，于是渲染结果就静默地取决于两条规则在文件里的先后：正是 `geml add --before` 能一声不响
+改掉的那件事。所以同一层里的两条**不同**规则，不能在同一个块上一条写 `border`、另一条写
+`border-top` / `border-right` / `border-bottom` / `border-left` 之一——那是
+`style-ambiguous-rule`，先写的词留下，后写那条的词不进绑定。两个词写进**同一条**规则里是可以的：
+那里的先后是作者自己写下的，而 `geml set` 换的是整块。跨层也放行——层是声明出来的顺序。
 几个单边之间互不冲突，`border-radius` 不属于这一族。
 
 诊断把两种情形分开说，因为补救办法不同——对**相同**的选择器建议"写并集"是不可能
@@ -429,9 +435,9 @@ CSS `@layer` 的模型，不是 specificity：层号来自入口的两个键，�
 profile 最常见的写法，而这两种选择器的条件集互不包含——每一处都会撞 `style-ambiguous-rule`。
 实测过：首页那五份文档在没有层的时候全部报错。
 
-**排除源序的那个理由依然成立**，这一点要说清楚：层不是文件里的行序。同一层内没有顺序；
+**层不是文件里的行序**，这一点要说清楚。同一层内，顺序只决定 `style-ambiguous-rule` 报出来的那种争夺；
 `#sitemap` 是精确匹配，所以改行序不改结果；层数由入口那两个键固定。agent 的按块编辑
-（`geml set`、`geml add --before`）因此仍然不会静默改变渲染——那正是排除源序要守的东西。
+（`geml set`、`geml add --before`）因此仍然不会在 `geml style check` 不吭声的情况下改变渲染。
 
 代价是诚实的：§4 开头"裁决与规则来自哪个文件无关"从此只对**层内**成立。换来的是
 "默认层 + 例外"这个写法能用；不换，它就得靠每条覆盖规则重复默认层的条件（写成
@@ -504,7 +510,7 @@ warning。开放那侧必须降级而不能拒收，否则 §8.5 的前向兼容
 | 码 | 严重性 | 抓什么 |
 |---|---|---|
 | `style-selector-unsupported` | error | 不支持的 CSS 构造，点名；以及部件步不在最后、前面没有块步、带过滤、与块分支混写——还有槽位里写了部件 |
-| `style-ambiguous-rule` | error | 相同或不可比的规则争同一个属性 |
+| `style-ambiguous-rule` | warning | 相同或不可比的规则争同一个属性；先写的规则的值保留 |
 | `style-unknown-state` | error | 规则或槽位引用了没人声明的 `$foo` |
 | `style-unknown-screen` | error | `screen=` 点名的 `style-screen` 不存在 |
 | `style-unknown-value-source` | error | `value-from=` 不是目标表的列 |
@@ -522,6 +528,7 @@ warning。开放那侧必须降级而不能拒收，否则 §8.5 的前向兼容
 | `style-frame-cycle` | error | frame 嵌套成环；消息带整条链 |
 | `style-frame-too-deep` | error | 某条放置路径上 frame 嵌套深过 16 层 |
 | `style-unused-frame` | warning | 没有任何槽位引用的 `style-frame` |
+| `style-reserved-name` | warning | 选择器的**第一步**用了行内部件名（`link`、`image`、`code-span`、`strong`、`emphasis`）；它按块类型读，因为部件前面要有块步，消息会说出部件还缺什么（§3） |
 | `style-invalid-value` | error | 封闭值域的内含词（`axis` / `anchor` / `place` / `scroll` / `sticky` / `hide-below` / `visible` / `grow` / `wrap` / `view` / `editable` / `fade-out` / `underline`）取了域外值，或 `when=` 的项既不是 `$state=value`，也不是 `@hover` / `@focus` / `@invalid` / `@disabled` / `@checked` 之一 |
 
 `style-unknown-value-source` 之所以能真查，是因为 §6 给了表真正的 schema。产生者不是表时
@@ -557,7 +564,11 @@ geml style check <stylesheet.geml> <corpus…> [--json] [--components=a,b] [--ha
 
 一条**绑定**是 `{doc, block, part?, rules, params, box, variants}`。`part` 只在部件规则（§3）
 造出的绑定上出现，写的是行内种类——`link` `image` `code-span` `strong` `emphasis`；这种绑定
-和它的块同地址，但在 §4 的裁决里是另一个目标。`variants[].when` 里内建的 `@hover` / `@focus` / `@invalid` / `@disabled` / `@checked`
+和它的块同地址，但在 §4 的裁决里是另一个目标。`block` 是块的地址：有 `#id` 用 `#id`，否则是
+`[n]`，`n` 是该块在这份文档里按文档顺序、从 0 数起、在选择器可匹配的节点（§3）——标题、块
+之间的散文段、类型块，嵌套的也算——中的位置；于是没有 id 的块照样有名字，宿主按位置就能把
+它接回语料。处在 `style-ambiguous-rule`（§4）之下的属性带的是**先写的**那条规则的值，基础部分和
+variants 都一样；后写那条的值在绑定里任何地方都不出现。`variants[].when` 里内建的 `@hover` / `@focus` / `@invalid` / `@disabled` / `@checked`
 作为键出现，值恒为 `"true"`。`params` 是组件的词（含
 `component` / `handler` / `show` / `filter`）；`box` 是 §2.1 的内含词，单独放着，宿主统一
 处理、组件永远看不到。`variants` 是 `{when, box, params}[]`——只在每一项 `when`
@@ -636,6 +647,10 @@ style.geml"的回落，因为那等于永久留着第二条发现路径、两套
 **v1 刻意没有的东西**：任何形式的 script；URL（dev/staging/prod 地址不同，写死会让
 样式表绑定环境）；路由；§1.2 的记号之外的主题化；
 三种块的 body 内容。
+
+**v1 没有、但位置已经留好的**：`style-rule` 上的 `override` 属性，给那种明确要让被争的属性归
+自己、又不想把选择器写宽的作者。§4 的"警告 + 先写的生效"是现行规则，直到某份真实样式表证明
+光报警告不够；到那天，答案是这个属性，不是再加一层。
 
 **已定义但尚未被真实样式表验过**：§0.1 右列的全部。其中 `filter=` 从没对着真实噪音
 跑过（mustapi 的边全是 `kind=call`、confidence 全空，没有可过滤的东西），`handler=`

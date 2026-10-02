@@ -999,7 +999,7 @@ test("CLI：坐标够不到的块，报错要把 meta 也说上 —— `#meta[\"
   assert.match(run(["get", f, '#meta["title"]']).out, /^T/m, "GEP 0011 的表里 meta 就在");
   const miss = run(["get", f, '#x["k"]']);
   assert.equal(miss.code, 1);
-  assert.match(miss.err, /a table, a `data` block, or `meta`/);
+  assert.match(miss.err, /a table, a `data` block, `meta` \(GEP 0011\), or a `form`/);
 });
 
 // --- what a coordinate REFERENCE does when it cannot be checked --------------
@@ -1218,6 +1218,75 @@ test("a row embedded from another document renders the same way, and checks clea
   assert.match(md.out, /Inline: Q2, 150\./);
   const html = run([host, "--to", "html", "--fragment"]);
   assert.match(html.out, /<section class="transclusion" data-src="rows-src\.geml#fy\[1\]">[\s\S]*Q1[\s\S]*120[\s\S]*<\/section>/);
+});
+
+// GEP-0008: a form's fields are its inner units, addressed by `name=` with this
+// GEP's bracket syntax — `#signup["email"]`. The answer is the field BLOCK (a
+// field is a control, not content, so it is referenced and never projected).
+const FORM = [
+  "=== meta", 'profile = "geml-form/v1"', "===", "",
+  "===== form {#signup handler=subscribe}",
+  '=== form-field {name=email label="Email address" type=text required}', "===",
+  '=== form-field {#plan name=plan label="Plan" type=select}', "===",
+  '==== form-group {#contacts label="Contacts"}',
+  '=== form-field {name=role label="Role" type=text}', "===",
+  "====", "=====", "",
+].join("\n") + "\n";
+const formBlock = (src, id) => {
+  const find = (bs) => { for (const b of bs) { if (b.id === id) return b; const hit = b.children && find(b.children); if (hit) return hit; } };
+  return find(parse(src).children);
+};
+
+test("a form field is addressed by name on its form or its group; the answer is the field block, and `shown` is its label", () => {
+  const form = formBlock(FORM, "signup");
+  const hit = projectCoord(form, parseCoordPath('["email"]'));
+  assert.equal(hit.ok, true, hit.why);
+  assert.equal(hit.shape, "field");
+  assert.equal(hit.shown, "Email address");
+  assert.match(hit.text, /^=== form-field \{name="email" label="Email address" type="text" required\}\n===$/);
+  assert.deepEqual(hit.json, { name: "email", label: "Email address", type: "text", required: true });
+  // a field inside a group is a field of the form too — a group adds structure,
+  // not a namespace — and the group addresses it as well; a bare word works
+  assert.equal(projectCoord(form, parseCoordPath('["role"]')).ok, true);
+  assert.equal(projectCoord(formBlock(FORM, "contacts"), parseCoordPath("[role]")).ok, true);
+  // an id, when the field has one, rides along in the JSON answer
+  assert.deepEqual(projectCoord(form, parseCoordPath('["plan"]')).json, { id: "plan", name: "plan", label: "Plan", type: "select" });
+});
+
+test("a form field refuses: a position, a name nobody carries, a step below a field, a projection, a write", () => {
+  const form = formBlock(FORM, "signup");
+  assert.match(projectCoord(form, parseCoordPath("[1]")).why, /addressed by `name=`/);
+  assert.match(projectCoord(form, parseCoordPath('["nope"]')).why, /no field named `nope`; its fields are `email`, `plan`, `role`/);
+  assert.match(projectCoord(form, parseCoordPath('["email"]["x"]')).why, /a field carries no units inside it/);
+  const inline = inlineProjection(projectCoord(form, parseCoordPath('["email"]')), '#signup["email"]');
+  assert.equal(inline.ok, false);
+  assert.match(inline.why, /is a form field — a control, not content/);
+  // without the vocabulary a `form` is an unknown type with a raw body: no fields
+  const raw = parse(FORM.replace(/^=== meta[\s\S]*?===\n\n/, "")).children.find((b) => b.type === "form");
+  assert.match(projectCoord(raw, parseCoordPath('["email"]')).why, /is `geml-form\/v1` declared\?/);
+  assert.match(planCoordWrite(form, parseCoordPath('["email"]'), "x", []).why, /give it an `\{#id\}`/);
+});
+
+test("CLI: a reference to a field checks clean and says its label; `get` prints the field; projection, embed and `set` are refused", () => {
+  const f = write("form.geml", FORM + 'Reach [[#signup["email"]]] and [[#contacts["role"]]].\n');
+  const chk = run(["check", f]);
+  assert.equal(chk.code, 0, chk.err);
+  const md = run([f, "--to", "md"]);
+  assert.match(md.out, /Reach \[Email address\]\(#signup\) and \[Role\]\(#contacts\)\./);
+  const get = run(["get", f, '#signup["role"]']);
+  assert.equal(get.code, 0, get.err);
+  assert.match(get.out, /^=== form-field \{name="role" label="Role" type="text"\}\n===\n$/);
+  const json = run(["get", f, '#signup["plan"]', "--json"]);
+  assert.deepEqual(JSON.parse(json.out), { id: "plan", name: "plan", label: "Plan", type: "select" });
+  const bad = write("form-bad.geml", FORM + 'Say ![[#signup["email"]]] and [[#signup["nope"]]].\n\n=== embed {src=#signup["plan"]}\n===\n');
+  const r = run(["check", bad]);
+  assert.equal(r.code, 1);
+  assert.match(r.err, /projects inline content, but `#signup\["email"\]` is a form field/);
+  assert.match(r.err, /no field named `nope`/);
+  assert.match(r.err, /cannot stand for that target: `#signup\["plan"\]` is a form field/);
+  const set = run(["set", f, '#signup["email"]', "--in", write("repl.txt", "x\n")]);
+  assert.equal(set.code, 1);
+  assert.match(set.err, /a form's field is a block of its own/);
 });
 
 console.log(`\n${passed} test(s) passed.`);

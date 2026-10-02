@@ -66,7 +66,7 @@ test("an unsafe scheme in an inline projection never reaches an href", () => {
 // ---------------------------------------------------------------------------
 
 // One document, eight sections, each holding N embeds of the next. No cycle, and
-// depth is 8 — so neither the cycle stack nor EMBED_DEPTH_CAP applies. Before the
+// depth is 8, under §9.3's cap of 16 — so neither the cycle stack nor EMBED_DEPTH_CAP applies. Before the
 // budget, N=4 turned 866 bytes into 4.3MB and N=11 crashed the process with an
 // uncaught RangeError.
 function fanOut(n, levels = 8) {

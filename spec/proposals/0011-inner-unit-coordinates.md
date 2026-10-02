@@ -30,9 +30,10 @@ narrow — refused wherever the source holds no byte to change (a computed colum
 a `src=`-fed table) and wherever changing one byte would corrupt its neighbours
 (a delimiter inside a `format=csv` cell).
 
-**Named** inner units are not this GEP's business.
-[GEP 0008](0008-form-block.md) addresses a `form`'s fields as `#signup#email`
-and keeps that rule scoped to `form`, where its one consumer is.
+**Named** inner units are not this GEP's business, but they take its syntax:
+[GEP 0008](0008-form-block.md) addresses a `form`'s fields by their `name=` as
+`#signup["email"]`, so a reader meets one bracket grammar, and what a step means
+is decided by the block it lands on.
 
 ## Motivation
 
@@ -69,7 +70,7 @@ three of them, and every other type's are already addressed elsewhere:
 | `note`, `text` | prose runs | already addressable as units in their own right (GEP 0010) |
 | `embed` | none — `src=` points at the content, the body is unused | — |
 | `meta` | keys | **this GEP** — coordinates under the reserved `#meta` |
-| `form` (GEP 0008, not yet registered) | fields, which carry ids | GEP 0008 — `#form#field` |
+| `form`, `form-group` (GEP 0008, not yet registered) | fields, named by `name=` | GEP 0008 — `#signup["email"]`, this GEP's syntax |
 
 #### `#meta` is the merged namespace, and it is reserved
 
@@ -263,17 +264,18 @@ neither of them wrote.
 
 ## Alternatives considered
 
-**`#fy#Q1` — the `#` narrowing operator, as GEP 0008 uses for fields.**
-Rejected for unnamed units: `Q1` and `B3` are conforming NAMEs, so the second
-segment's meaning would depend on the parent block's type, and an address would
-stop being self-describing — every other form in §2 can be read without knowing
-what it points at. A bracket says "coordinate" in the address itself.
+**`#fy#Q1` — a `#` narrowing operator.** Rejected: `Q1` and `B3` are
+conforming NAMEs, so the second segment's meaning would depend on the parent
+block's type, and an address would stop being self-describing — every other
+form in §2 can be read without knowing what it points at. A bracket says
+"coordinate" in the address itself. GEP 0008 weighed the same operator for a
+form's fields and rejected it for the same reason; its fields take the bracket.
 
-**Generalizing GEP 0008's rule into "named inner units" and covering both here.**
-Rejected: `#a#b` has exactly one consumer, and §3's registry has no
-container-mode type at all, so the general rule would be written for a
-hypothetical second one. It stays in 0008, scoped to `form`, until a second
-container type exists to generalize it *from*.
+**Defining "named inner units" here, for every container at once.** Rejected:
+§3's registry has no container-mode type, so the general rule would be written
+for a hypothetical. Each container GEP says what its steps name — GEP 0008's
+`["email"]` is a field's `name=` — and this GEP owns only the syntax and the
+rule that a coordinate is answered from the model.
 
 **JSON Pointer for `data`** (`#intake#/sections/0/fields/1`). Rejected: it would
 give the format two coordinate languages for one concept. Brackets already reach

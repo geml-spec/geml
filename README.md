@@ -338,8 +338,10 @@ GEML solves this with **Profiles (Application-layer vocabularies, spec §8.6)**:
 profile = "geml-style/v1 geml-form/v1"
 ===
 
-=== form-field {#email label="Work email" type=email required pattern="[^@]+@acme\\.com"}
+==== form {#signup handler=subscribe}
+=== form-field {name=email label="Work email" type=text required pattern="[^@]+@acme\\.com"}
 ===
+====
 
 === style-rule {#cta match="button.cta" bg="{{brand}}" radius="6px"}
 ===

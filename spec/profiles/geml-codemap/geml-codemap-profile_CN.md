@@ -70,7 +70,7 @@
 | `#api-served-by` | `from, to, endpoint, site` | **跨栈**入向链接(§4.1):后端 handler ← 到达它的前端调用方。site = 调用点 `文件:行`,纯文本 |
 | `#ref-by` | `from, to, kind, member` | **预留**(reads/writes 反向,member 为纯文本字段名;启用另行决定) |
 
-- **引用语法**(from/to 列、meta `entry` 值):`#id`(本文档)或 `doc.geml#id`(相对路径兄弟文档);预留的 reads 值可带 `.member` 纯文本后缀(id 字符集不含 `.`,机械可切)。
+- **引用语法**(from/to 列、meta `entry` 值):`#id`(本文档)或 `doc.geml#id`(相对路径兄弟文档);预留的 reads 值可带 `.member` 纯文本后缀(id 字符集不含 `.`,机械可切)。有三类格子例外,装的是纯文本:`#unresolved` 的 `to`;路由不在任何已索引函数里时 `#api-calls` 的 `to`(`file:line`);以及所有 `endpoint`(`METHOD /path`)与 `site`(`file:line`)列。校验器核对其余各处 `from`/`to` 的引用,不把这些格子当引用读。
 - 纯文本单元格(site、unresolved to)不得含逗号/换行(生成器以空格替换),且方括号替换为圆括号——**表格单元格会被 inline 解析**,`f[i](&x)` 会被误读为链接。
 
 ### 4.1 跨栈 API 链接

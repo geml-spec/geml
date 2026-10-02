@@ -281,8 +281,23 @@
   },
   {
     "name": "adjacent atoms wrap as one emphasis",
-    "geml": "*`a``b`*",
-    "want": "em(code(\"a\") code(\"b\"))"
+    "geml": "*`a`$b$*",
+    "want": "em(code(\"a\") math(\"b\"))"
+  },
+  {
+    "name": "a code span closes at the next run of exactly its opening length (CommonMark), so a longer run inside is content",
+    "geml": "`a``b`",
+    "want": "code(\"a``b\")"
+  },
+  {
+    "name": "a span opened by two backticks may carry one",
+    "geml": "``a`b``",
+    "want": "code(\"a`b\")"
+  },
+  {
+    "name": "an opening run with no closer of its own length is literal text",
+    "geml": "`a```",
+    "want": "\"`a```\""
   },
   {
     "name": "a star inside a code span never pairs outward",

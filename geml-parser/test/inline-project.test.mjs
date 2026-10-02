@@ -9,7 +9,7 @@
 // The physical constraint that killed that attempt has not gone away: block
 // content cannot go in the middle of a sentence. It is enforced as a check on the
 // TARGET's type rather than on where the reference sits, the way
-// `table-source-not-a-table` is: v1 projects a `text` block whose body is a single
+// `view-source-not-a-relation` is: v1 projects a `text` block whose body is a single
 // paragraph, and anything else is a diagnostic.
 import { parse } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
