@@ -1685,8 +1685,11 @@ function insertFragment(source: string, lines: string[], at: number, fragment: s
  * never a refusal (delete is reversible via revert + history, and `geml check`
  * still flags the dangling ref afterward). Contained/overlapping spans (a
  * nested block inside a deleted heading section) are handled by deleting the
- * UNION of target lines, so a line is never spliced twice. With nothing to
- * remove, the text comes back unchanged.
+ * UNION of target lines, so a line is never spliced twice. Each removed run
+ * takes ONE separating blank line with it, the one `add` would have put there:
+ * the line after it when blank lines stood on both sides, the one between it and
+ * the document's edge otherwise. So `add` then `delete` restores the bytes. With
+ * nothing to remove, the text comes back unchanged.
  */
 export function del(source: string, file: string, ids: string[], ctx: VerbContext): { text: string } {
   const spans = blockSpans(source, walkOf(file));
@@ -1701,7 +1704,21 @@ export function del(source: string, file: string, ids: string[], ctx: VerbContex
   }
   if (found === 0) return { text: source }; // nothing to remove
 
-  const updated = splitLines(source).filter((_, i) => !toDelete.has(i)).join("");
+  const lines = splitLines(source);
+  const blank = (i: number) => stripEol(lines[i]!).trim() === "";
+  const kept = (i: number, step: number) => { while (i >= 0 && i < lines.length && toDelete.has(i)) i += step; return i; };
+  // Runs are the blocks' own lines; a separator taken below must not fuse two.
+  const runs = new Set(toDelete);
+  for (let s = 0; s < lines.length; s++) {
+    if (!runs.has(s) || runs.has(s - 1)) continue; // s starts a run
+    const prev = kept(s, -1);
+    const next = kept(s, 1);
+    const atStart = prev < 0;
+    const atEnd = next >= lines.length;
+    if (!atEnd && blank(next) && (atStart || blank(prev))) toDelete.add(next);
+    else if (atEnd && !atStart && blank(prev)) toDelete.add(prev);
+  }
+  const updated = lines.filter((_, i) => !toDelete.has(i)).join("");
   // Lenient guard: surface each error this delete CAUSED (a reference now
   // dangling) as a WARNING, but write regardless. Only the ones it caused: a
   // footnote that never resolved was reported as "left dangling by delete",

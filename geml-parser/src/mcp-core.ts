@@ -531,7 +531,7 @@ export function toolsFor(host: McpHost): Tool[] {
     {
       name: "geml_delete",
       description:
-        "Remove one or more blocks by id. To undo a deletion, geml_revert the removed id; to change a block rather than remove it, use geml_set. References left pointing at a removed block come back as diagnostics but do NOT block the deletion — read them, then repair the references or revert. An id that matches nothing is skipped, so repeating a call changes nothing." + WRITE_RESULT + note,
+        "Remove one or more blocks by id. Each block takes the blank line that separated it from its neighbours, so deleting what geml_add inserted leaves the file as it was. To undo a deletion, geml_revert the removed id; to change a block rather than remove it, use geml_set. References left pointing at a removed block come back as diagnostics but do NOT block the deletion — read them, then repair the references or revert. An id that matches nothing is skipped, so repeating a call changes nothing." + WRITE_RESULT + note,
       inputSchema: schema({
         ids: { type: "array", items: { type: "string" }, description: "Block ids to remove" },
       }, ["ids"]),

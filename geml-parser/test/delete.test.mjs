@@ -97,5 +97,37 @@ test("output: stdin doc -> stdout; -o - -> stdout, file untouched", () => {
   assert.equal(read(f), before, "-o - leaves the file untouched");
 });
 
+test("delete takes the blank line that separated the block, so add then delete is byte-identical", () => {
+  // `add` puts one blank line between the fragment and its neighbours; delete
+  // left that line behind, so every add-then-delete grew the file by a line.
+  const f = write("d-sep.geml", DOC);
+  for (const where of [["--after", "#a"], ["--before", "#a"], ["--append"]]) {
+    assert.equal(run(["add", f, ...where], "=== note {#x}\nx\n===\n").code, 0, where.join(" "));
+    assert.equal(run(["delete", f, "#x"]).code, 0, where.join(" "));
+    assert.equal(read(f), DOC, where.join(" "));
+  }
+});
+
+test("delete of the first and last block leaves no blank line at the document edge", () => {
+  const f = write("d-edge.geml", "=== note {#a}\nalpha\n===\n\n=== note {#b}\nbeta\n===\n\n=== note {#c}\ngamma\n===\n");
+  assert.equal(run(["delete", f, "#a", "#c"]).code, 0);
+  assert.equal(read(f), "=== note {#b}\nbeta\n===\n");
+});
+
+test("delete of two neighbouring blocks takes both separators", () => {
+  // The separator the first run takes sits right before the second run; it
+  // must not hide where the second run starts.
+  const f = write("d-pair.geml", "=== note {#a}\nalpha\n===\n\n=== note {#b}\nbeta\n===\n\n=== note {#c}\ngamma\n===\n");
+  assert.equal(run(["delete", f, "#a", "#b"]).code, 0);
+  assert.equal(read(f), "=== note {#c}\ngamma\n===\n");
+});
+
+test("delete removes one separator, not the author's extra spacing", () => {
+  // Two blank lines on each side: one goes with the block, three stay.
+  const f = write("d-wide.geml", "=== note {#a}\nalpha\n===\n\n\n=== note {#b}\nbeta\n===\n\n\n=== note {#c}\ngamma\n===\n");
+  assert.equal(run(["delete", f, "#b"]).code, 0);
+  assert.equal(read(f), "=== note {#a}\nalpha\n===\n\n\n\n=== note {#c}\ngamma\n===\n");
+});
+
 rmSync(dir, { recursive: true, force: true });
 console.log(`\n${passed} test(s) passed.`);

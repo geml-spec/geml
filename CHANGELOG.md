@@ -23,6 +23,13 @@ and is released under `viewer-v*` tags.
   docs`: the gate in front of it admitted files only. A directory now passes
   the same confinement check a file does, and one above the root is still
   refused.
+- **`delete` takes the blank line that separated the block.** `add` puts one
+  blank line between new content and its neighbours, and `delete` left it
+  behind, so deleting what was just added grew the file by a line. Each removed
+  block now takes one separating line with it: the one after it when blank
+  lines stand on both sides, the one at the document's edge otherwise. An add
+  followed by a delete leaves the bytes as they were; spacing beyond one
+  blank line stays as the author wrote it. The MCP tool runs the same verb.
 
 ## [1.11.6] — 2026-10-02
 

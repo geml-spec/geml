@@ -411,8 +411,9 @@ test("delete skips a missing id with a note, warns about references it strands, 
   const ctx = ctxOf();
   const r = del(DOC, "d.geml", ["alpha", "#nope"], ctx);
   assert.doesNotMatch(r.text, /#alpha\}/);
-  // The reference moved up to line 7 once #alpha's four lines were gone.
-  assert.deepEqual(ctx.notes.map((n) => n.split(" —")[0]), ["skipped #nope: no such block", "warning: unresolved reference `#alpha` (line 7)"]);
+  // The reference moved up to line 6 once #alpha's four lines, and the blank
+  // line that separated them, were gone.
+  assert.deepEqual(ctx.notes.map((n) => n.split(" —")[0]), ["skipped #nope: no such block", "warning: unresolved reference `#alpha` (line 6)"]);
   assert.equal(del(DOC, "d.geml", ["nope"], ctxOf()).text, DOC);
 });
 
