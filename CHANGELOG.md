@@ -18,6 +18,18 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **Stopping `geml codemap` or `geml mcp` stops what it started.** Both run
+  their program as a child, and a signal sent to `geml` alone, such as a
+  supervisor's SIGTERM or a test's kill, ended `geml` without it: `codemap
+  serve` kept listening with no parent, on a port the next run might pick.
+  Every signal that would end `geml` is now passed on to the child, and `geml`
+  exits with the child's status. `geml mcp` went down with `geml` only because
+  its stdin closed; in a container `geml` is PID 1, for which Linux takes no
+  default action on SIGTERM, so `docker stop` waited out its timeout. A
+  server stopped by a signal also takes its token out of the temp dir, which
+  only a normal exit did. Windows has no signals to pass on; there, stop the
+  process tree.
+
 ## [1.12.0] — 2026-10-02
 
 - **`geml_find` walks a directory named in `path`.** The tool says a

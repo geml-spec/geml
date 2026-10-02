@@ -28,7 +28,7 @@ import { createServer } from "node:http";
 import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync, openSync, unlinkSync, readdirSync, watch, realpathSync } from "node:fs";
 import { join, resolve, sep, basename, dirname, relative } from "node:path";
 import { randomBytes } from "node:crypto";
-import { tmpdir } from "node:os";
+import { tmpdir, constants as osConstants } from "node:os";
 import { spawn } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parse, renderHtml, codeGraphDiagram } from "../dist/geml.js";
@@ -662,6 +662,14 @@ export async function main(argv = process.argv.slice(2)) {
 }
 
 // Auto-run only as a MAIN module: the CLI dispatcher spawns this file as a
-// child's entry script (src/geml.ts runCodemap), and `node codemap/serve.mjs`
+// child's entry script (src/cli.ts runCodemap), and `node codemap/serve.mjs`
 // hits it directly — an in-process `import` (the tests) stays inert.
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await main();
+//
+// A signal ends a process without running its "exit" handlers, and the one
+// startServing installs is what takes the token out of the temp dir. So a
+// server stopped by a signal (Ctrl-C, a supervisor, `geml` passing one on)
+// leaves through process.exit, with the shell's status for death by that signal.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.once(sig, () => process.exit(128 + (osConstants.signals[sig] ?? 0)));
+  await main();
+}

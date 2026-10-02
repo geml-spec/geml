@@ -55,7 +55,7 @@ import { loadStylesheet, resolveStyle } from "./style-resolve.js";
 import { basename, dirname, join, relative, sep, resolve as resolvePath } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 
 import {
   type Diagnostic, type UnitPart,
@@ -1562,8 +1562,25 @@ function runCodemap(args: string[]): void {
   const script = scripts[sub];
   if (!script) fail(`unknown codemap subcommand '${sub}'.\n${SUBHELP.codemap}`);
   const mod = join(dirname(fileURLToPath(import.meta.url)), "..", "codemap", script);
-  const r = spawnSync(process.execPath, [mod, ...args.slice(1)], { stdio: "inherit" });
-  process.exit(r.status ?? 1);
+  runChild(mod, args.slice(1), `geml codemap ${sub}`);
+}
+
+// Run one of this package's programs as a child that owns the terminal, and
+// stand in for it: `geml` exits when the child does, with its status. The child
+// is this command's to stop, so every signal that would end `geml` is passed
+// on. A terminal's Ctrl-C reaches the whole process group, but a signal sent
+// to `geml` alone (a supervisor's SIGTERM, a test's child.kill()) ended `geml`
+// and left `codemap serve` listening on its port with no parent. `geml mcp`
+// went down with it only because its stdin closed; and in a container `geml`
+// is PID 1, for which Linux takes no default action on SIGTERM, so `docker
+// stop` waited out its timeout and killed the server.
+// Windows has no signals to pass: there a caller stops the tree (taskkill /T).
+function runChild(mod: string, args: string[], what: string): void {
+  const child = spawn(process.execPath, [mod, ...args], { stdio: "inherit" });
+  const forward = (sig: NodeJS.Signals): void => { child.kill(sig); };
+  for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"] as const) process.on(sig, forward);
+  child.on("error", (e) => fail(`${what}: ${e.message}`, 1));
+  child.on("exit", (code) => process.exit(code ?? 1));
 }
 
 // geml style check <stylesheet.geml> <corpus…> [--json]
@@ -1629,8 +1646,7 @@ function runStyle(args: string[]): void {
 // parser from here).
 function runMcp(args: string[]): void {
   const mod = join(dirname(fileURLToPath(import.meta.url)), "mcp.js");
-  const r = spawnSync(process.execPath, [mod, ...args], { stdio: "inherit" });
-  process.exit(r.status ?? 1);
+  runChild(mod, args, "geml mcp");
 }
 
 // geml skill install: one command that makes GEML usable everywhere for a

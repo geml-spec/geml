@@ -387,10 +387,14 @@ test("codemap refresh: replays the recorded recipe; hook mode filters and never 
 // so its assertions land before the summary line.
 async function testAsync(name, fn) { await fn(); passed++; console.log("ok", name); }
 
-await testAsync("codemap serve renders pages live, answers HEAD, and refuses traversal", async () => {
+await testAsync("codemap serve renders pages live, answers HEAD, refuses traversal, and stops with geml", async () => {
   const { spawn } = await import("node:child_process");
   const port = 8791 + (process.pid % 100); // avoid collisions across CI runs
   const child = spawn(process.execPath, ["dist/geml.js", "codemap", "serve", CODEMAP_DIR, "--port", String(port)], { stdio: ["ignore", "ignore", "pipe"] });
+  // `geml` runs the server as a child of its own. Stopping `geml` has to stop
+  // that server too: when it did not, every run left one listening, holding
+  // a port the next run's 8791 + pid % 100 could land on ("serve exited early").
+  let servePid;
   try {
     // wait for the listen banner
     await new Promise((resolveP, rejectP) => {
@@ -418,9 +422,24 @@ await testAsync("codemap serve renders pages live, answers HEAD, and refuses tra
     // Windows, encoded backslashes. Either way the file must not be served.
     const evil = await get("/%5c..%5c..%5cpackage.json");
     assert.notEqual(evil.status, 200, "path traversal refused");
+    servePid = Number(rf(pjoin(CODEMAP_DIR, "_build", "serve.pid"), "utf8").split("\n")[0]);
   } finally {
-    child.kill();
-    await new Promise((r) => { child.once("exit", r); setTimeout(r, 2000).unref(); });
+    // A signal to `geml` alone, as a supervisor sends one. Windows has no
+    // signals to pass on, so there the caller stops the tree.
+    const exited = new Promise((r) => { if (child.exitCode !== null || child.signalCode !== null) r(); else child.once("exit", r); setTimeout(r, 5000).unref(); });
+    if (process.platform === "win32") spawnSync("taskkill", ["/pid", String(child.pid), "/T", "/F"]);
+    else child.kill();
+    await exited;
+  }
+  const alive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
+  for (let i = 0; i < 50 && alive(servePid); i++) await new Promise((r) => setTimeout(r, 100));
+  if (alive(servePid)) {
+    process.kill(servePid); // never leave it behind, even when the assertion below fails
+    assert.fail(`the server (pid ${servePid}) outlived the geml that started it`);
+  }
+  await assert.rejects(fetch(`http://127.0.0.1:${port}/`, { method: "HEAD" }), "nothing answers on the port");
+  if (process.platform !== "win32") {
+    assert.ok(!existsSync(pjoin(tmpdir(), `geml-codemap-serve-${servePid}.token`)), "a server stopped by a signal takes its token with it");
   }
 });
 
@@ -450,6 +469,44 @@ await testAsync("codemap serve --background: outlives the launcher; --stop ends 
   const s2 = run(["codemap", "serve", CODEMAP_DIR, "--stop"]);
   assert.equal(s2.code, 0);
   assert.match(s2.err, /nothing to stop/);
+});
+
+await testAsync("a signal to geml mcp is passed on: the server ends, and so does geml", async () => {
+  // Windows has no signals to pass on; a caller stops the tree there.
+  if (process.platform === "win32") return;
+  const { spawn } = await import("node:child_process");
+  const dir = mkdtempSync(pjoin(tmpdir(), "geml-mcp-stop-"));
+  // geml handles the signal now, so it no longer dies of it: it has to end the
+  // server and then itself, or it would hang. stdin stays open, so what ends
+  // the server is the signal, not an EOF.
+  const child = spawn(process.execPath, ["dist/geml.js", "mcp", "--root", dir], { stdio: ["pipe", "pipe", "pipe"] });
+  let mcpPid;
+  try {
+    await new Promise((resolveP, rejectP) => {
+      const to = setTimeout(() => rejectP(new Error("mcp did not answer")), 10000);
+      child.stdout.on("data", (d) => { if (String(d).includes('"serverInfo"')) { clearTimeout(to); resolveP(); } });
+      child.on("exit", () => rejectP(new Error("mcp exited early")));
+      child.stdin.write(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} }) + "\n");
+    });
+    const kids = (spawnSync("pgrep", ["-P", String(child.pid)], { encoding: "utf8" }).stdout ?? "").trim().split("\n").filter(Boolean).map(Number);
+    assert.equal(kids.length, 1, `geml runs the server as one child (pgrep -P: ${kids.join(",")})`);
+    mcpPid = kids[0];
+  } finally {
+    const exited = new Promise((r) => { if (child.exitCode !== null || child.signalCode !== null) r(); else child.once("exit", r); setTimeout(r, 5000).unref(); });
+    child.kill(); // SIGTERM to geml alone, as an MCP host sends it
+    await exited;
+  }
+  const gemlExited = child.exitCode !== null || child.signalCode !== null;
+  const alive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
+  for (let i = 0; i < 50 && alive(mcpPid); i++) await new Promise((r) => setTimeout(r, 100));
+  const outlived = alive(mcpPid);
+  // never leave either behind, even when an assertion below fails
+  if (outlived) process.kill(mcpPid);
+  if (!gemlExited) child.kill("SIGKILL");
+  child.stdin.destroy();
+  rmSync(dir, { recursive: true, force: true });
+  assert.ok(!outlived, `the MCP server (pid ${mcpPid}) outlived the signal sent to geml`);
+  assert.ok(gemlExited, "geml exits once the server has");
 });
 
 test("--to md expands an embed in place, like --to html has always done", () => {
