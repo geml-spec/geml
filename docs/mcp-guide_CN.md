@@ -101,6 +101,8 @@ claude mcp add geml -- geml mcp --root /abs/path/to/repo
 
 `geml_add`、`geml_delete`、`geml_rename` 和 `geml_revert` 仍然只接受 id——它们对应的 CLI 命令也是如此，在这里接受地址就等于承诺了背后那条命令会拒绝的事。
 
+每个工具还声明了 MCP annotations，客户端不读描述也能知道一次调用会做什么：六个读工具是 `readOnlyHint`；`geml_add` 和 `geml_rename` 会写但不破坏内容；`geml_set`、`geml_delete` 和 `geml_revert` 是 `destructiveHint`，客户端该让人确认。它们只碰 `--root` 下的文档（`openWorldHint: false`）。
+
 `--root` 下有代码图时，再多四个（全部只读）：
 
 | 工具 | 做什么 |

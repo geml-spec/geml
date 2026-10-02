@@ -46,7 +46,7 @@ import { type VerbContext, type FindHit, findInSource } from "./verbs.js";
 import { docOptsFor, fsFiles, gemlFilesUnder, historyError } from "./host-fs.js";
 import {
   type McpHost, type OpenedDoc, type Tool, type WriteResult,
-  createHandler, toolsFor, withinArg,
+  createHandler, reads, toolsFor, withinArg,
 } from "./mcp-core.js";
 
 export { type Tool, type WriteResult } from "./mcp-core.js";
@@ -304,6 +304,13 @@ function confineSchema(schema: any): unknown {
  * Load and confine the code-graph tools. Idempotent; awaited at startup and by
  * the suite, which drives `handleLine` in-process.
  */
+const GRAPH_TITLES: Record<string, string> = {
+  geml_codemap_search: "Search the code graph",
+  geml_codemap_callchain: "Trace a call chain",
+  geml_codemap_list: "List code-graph modules",
+  geml_codemap_node: "Read one code-graph node",
+};
+
 export async function loadGraphTools(): Promise<Tool[]> {
   if (GRAPH_TOOLS.length) return GRAPH_TOOLS;
   // Non-literal specifier on purpose: this resolves at RUNTIME from dist/ to
@@ -320,6 +327,9 @@ export async function loadGraphTools(): Promise<Tool[]> {
     name: t.name,
     description: t.description,
     inputSchema: confineSchema(t.inputSchema),
+    // Every graph tool reads the graph and, with `source: true`, the confined
+    // sources; none writes.
+    annotations: reads(GRAPH_TITLES[t.name] ?? t.name),
     // Resolve the directory HERE, then hand the tool an absolute path: its own
     // `graphDirOf` prefers an explicit `graph_dir`, so this shuts out both the
     // env var and the relative default without touching that file.

@@ -133,6 +133,12 @@ refuses an address matching several blocks rather than choosing one.
 their CLI counterparts do too, so accepting an address here would promise
 something the command behind it would refuse.
 
+Each tool also declares MCP annotations, so a client can tell what a call does
+without reading its description: the six reads are `readOnlyHint`; `geml_add`
+and `geml_rename` write without destroying anything; `geml_set`, `geml_delete`
+and `geml_revert` are `destructiveHint`, the ones a client should confirm. All
+of them touch documents under `--root` only (`openWorldHint: false`).
+
 With a code graph under `--root`, four more (read-only):
 
 | Tool | What it does |

@@ -18,6 +18,18 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **MCP tools declare annotations, and their descriptions say how they fail.**
+  Each of the eleven tools — and the four code-graph tools — now carries a
+  `title` and MCP annotations: the six reads and the graph tools are
+  `readOnlyHint`; `geml_add` and `geml_rename` write without destroying
+  anything; `geml_set`, `geml_delete` and `geml_revert` are `destructiveHint`;
+  none is open-world. A client can now tell a read from a destructive write
+  without reading prose. The descriptions were reworked against Glama's tool
+  review: every one says what happens when its target is missing, the write
+  tools state their result shape once (`{ok, file, diagnostics, revision}`, a
+  refusal with a `hint` and the file unchanged), `geml_add`, `geml_delete` and
+  `geml_get` name the sibling to use instead, and `geml_find` and `geml_set`
+  are shorter. Nothing a tool does changed.
 - **`LICENSE` is the MIT text and nothing else.** A note had been appended
   below it saying which parts of the repository the MIT license covers, and
   that was enough for GitHub — and every listing that reads its answer — to

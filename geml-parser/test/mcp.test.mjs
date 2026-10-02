@@ -103,6 +103,45 @@ test("initialize / tools/list / ping speak JSON-RPC 2.0", () => {
   assert.equal(rpc("notifications/initialized"), undefined);
 });
 
+test("every tool declares what it does to the world, and tools/list carries it", () => {
+  // Annotations are what a client acts on without reading prose: a read-only
+  // tool may run unprompted, a destructive one should be confirmed. They must
+  // say what the code does, so each tool's class is pinned here by name.
+  const expect = {
+    geml_list: "read", geml_find: "read", geml_get: "read", geml_check: "read", geml_history: "read", geml_to: "read",
+    geml_set: { destructive: true, idempotent: true },
+    geml_add: { destructive: false, idempotent: false },
+    geml_delete: { destructive: true, idempotent: true },
+    geml_rename: { destructive: false, idempotent: true },
+    geml_revert: { destructive: true, idempotent: false },
+  };
+  for (const t of TOOLS) {
+    const a = t.annotations;
+    assert.ok(a && a.title.length > 0, `${t.name} has a title`);
+    assert.equal(a.openWorldHint, false, `${t.name} touches nothing outside the server root`);
+    const want = expect[t.name];
+    if (want === "read") {
+      assert.equal(a.readOnlyHint, true, `${t.name} is read-only`);
+    } else {
+      assert.equal(a.readOnlyHint, false, `${t.name} writes`);
+      assert.equal(a.destructiveHint, want.destructive, `${t.name} destructiveHint`);
+      assert.equal(a.idempotentHint, want.idempotent, `${t.name} idempotentHint`);
+    }
+  }
+  ws();
+  for (const t of rpc("tools/list").result.tools) {
+    assert.ok(t.annotations, `${t.name} is listed with its annotations`);
+    assert.equal(t.title, t.annotations.title, `${t.name} carries its title at the top level too`);
+  }
+});
+
+test("the code-graph tools are listed as read-only", async () => {
+  for (const t of await loadGraphTools()) {
+    assert.equal(t.annotations.readOnlyHint, true, `${t.name} only reads the graph`);
+    assert.ok(t.annotations.title && t.annotations.title !== t.name, `${t.name} has a display title`);
+  }
+});
+
 test("an unknown tool is a protocol error, not a silent success", () => {
   ws();
   const r = call("geml_nope", {});
@@ -529,7 +568,8 @@ test("every revision selector the tool DESCRIPTIONS name is one the resolver acc
   // Word-shaped selectors are the ones that rot: `-N`/`0` are grammar and an id
   // is data, but a keyword like `latest` only works while the resolver knows it.
   const keywords = [...prose.matchAll(/`([a-z][a-z]+)`/g)].map((m) => m[1]);
-  const notSelectors = new Set(["rev", "geml_history", "id", "prefix", "true", "false"]);
+  // Argument and field names, not selectors: `hint` is the write result's field.
+  const notSelectors = new Set(["rev", "geml_history", "id", "prefix", "true", "false", "hint"]);
   const claimed = [...new Set(keywords)].filter((w) => !notSelectors.has(w));
 
   call("geml_set", { file: "d.geml", id: "alpha", part: "body", body: "v2" });

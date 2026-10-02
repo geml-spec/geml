@@ -176,12 +176,34 @@ function applyWrite(host: McpHost, spec: WriteSpec): WriteResult {
 // Tools
 // ---------------------------------------------------------------------------
 
+// MCP tool annotations (protocol 2025-03-26 on): what a call does to the world,
+// as data a client can act on without reading prose — a read-only tool can run
+// without a confirmation prompt, a destructive one should get one. The protocol
+// calls them HINTS a client should not trust from an untrusted server; these
+// restate what each tool's code does. Every tool here touches documents under
+// the server root and nothing else, so none is open-world. `title` is the
+// display name, carried at the top level of the listing as well.
+export interface ToolAnnotations {
+  title: string;
+  readOnlyHint: boolean;
+  destructiveHint?: boolean;
+  idempotentHint?: boolean;
+  openWorldHint: boolean;
+}
+export const reads = (title: string): ToolAnnotations => ({ title, readOnlyHint: true, openWorldHint: false });
+const writes = (title: string, o: { destructive: boolean; idempotent: boolean }): ToolAnnotations =>
+  ({ title, readOnlyHint: false, destructiveHint: o.destructive, idempotentHint: o.idempotent, openWorldHint: false });
+
 export interface Tool {
   name: string;
   description: string;
   inputSchema: unknown;
+  annotations: ToolAnnotations;
   run: (args: Record<string, any>) => unknown;
 }
+
+// What every write tool returns, said once so each description can point at it.
+const WRITE_RESULT = " Returns `{ok, file, diagnostics, revision}`; a refusal is `ok: false` with a `hint`, and the file is unchanged.";
 
 const hashId = (id: string) => (id.startsWith("#") ? id : `#${id}`);
 
@@ -270,8 +292,9 @@ export function toolsFor(host: McpHost): Tool[] {
     {
       name: "geml_list",
       description:
-        "List every addressable block in a GEML document: its address, kind, and heading text. Call this FIRST — the `id` values it returns are what every other tool in this server addresses. Cheaper and more reliable than reading the file to find out what is in it. Rows marked `anon` have no `#id` (their `address` is a type or content address the CLI understands); this server's other tools take an `id`, so give such a block an id before addressing it here." + note,
+        "List every addressable block in a GEML document — its address, kind and heading text — in one call, with no paging. Call this FIRST: what it returns is what every other tool here addresses, and it is cheaper and more reliable than reading the file to see what is in it. Rows marked `anon` have no `#id`; geml_get and geml_set take their `address` as `id`, while the other write tools need a real id, so give such a block one first. A file that is not under the server root is an error." + note,
       inputSchema: schema({ within: WITHIN_ARG }),
+      annotations: reads("List the blocks of a document"),
       run: (args) => {
         const doc = host.open(args);
         return list(doc.text, doc.label, true, doc.ctx, withinArg(args.within)).trim();
@@ -281,8 +304,8 @@ export function toolsFor(host: McpHost): Tool[] {
       name: "geml_find",
       description:
         (host.docArg === "path"
-          ? "Search block CONTENT across the served documents and get back ADDRESSES, one row of `<file>\\t<address>` per hit. This is the other half of geml_list: `list` says what a document contains, `find` says which block holds the words you are looking for — and it answers with an address that pastes straight into geml_get or geml_set, never a line number that the next edit invalidates. The address is the innermost block holding the match, and a block that matches on many lines is reported once. Substring, case-insensitive unless `case` is true. Omit `path` to search every `*.geml` and `*.md` under the server root, or give a file or directory to narrow it — a file you name is searched whatever its extension, while a directory walks the two formats the parser reads from a path, `*.geml` and `*.md`. No match is not an error: the result is empty."
-          : "Search block CONTENT in the document and get back ADDRESSES, one row of `<name>\\t<address>` per hit. This is the other half of geml_list: `list` says what a document contains, `find` says which block holds the words you are looking for — and it answers with an address that pastes straight into geml_get or geml_set, never a line number that the next edit invalidates. The address is the innermost block holding the match, and a block that matches on many lines is reported once. Substring, case-insensitive unless `case` is true. No match is not an error: the result is empty.") + note,
+          ? "Search block CONTENT across the served documents; each hit is one `<file>\\t<address>` row. geml_list says what a document contains, this says which block holds the words — as an address that pastes straight into geml_get or geml_set, not a line number the next edit invalidates. The address is the innermost block holding the match, and a block matching on many lines is reported once. Substring, case-insensitive unless `case` is true. Omit `path` to search every `*.geml` and `*.md` under the server root; a file you name is searched whatever its extension, a directory walks `*.geml` and `*.md`. No match is an empty result, not an error."
+          : "Search block CONTENT in the document; each hit is one `<name>\\t<address>` row. geml_list says what a document contains, this says which block holds the words — as an address that pastes straight into geml_get or geml_set, not a line number the next edit invalidates. The address is the innermost block holding the match, and a block matching on many lines is reported once. Substring, case-insensitive unless `case` is true. No match is an empty result, not an error.") + note,
       inputSchema: host.docArg === "path"
         ? {
           type: "object",
@@ -301,6 +324,7 @@ export function toolsFor(host: McpHost): Tool[] {
           head: { type: "boolean", description: "Add the matching line as a third column" },
           within: WITHIN_ARG,
         }, ["pattern"]),
+      annotations: reads("Find the blocks that hold some text"),
       run: (args) => {
         if (typeof args.pattern !== "string" || args.pattern === "") throw new Error("`pattern` is required");
         return formatFindRows(host.find(args), !!args.head).trim();
@@ -309,7 +333,7 @@ export function toolsFor(host: McpHost): Tool[] {
     {
       name: "geml_get",
       description:
-        "Read ONE block from a GEML document. Use this instead of reading the whole file: it returns only that block, typically a few percent of the document. Call `geml_list` first and pass back the `address` it gives — that also reaches blocks with no `#id`, which an id alone cannot." + note,
+        "Read ONE block from a GEML document instead of the whole file: only that block comes back, typically a few percent of the document. Pass the `address` geml_list prints as `id` — it also reaches blocks with no `#id`; to locate a block by its words instead, use geml_find first. An `id` that matches nothing, or a file that is not under the server root, is an error naming it." + note,
       inputSchema: schema({
         id: {
           type: "string",
@@ -326,6 +350,7 @@ export function toolsFor(host: McpHost): Tool[] {
         },
         within: WITHIN_ARG,
       }, ["id"]),
+      annotations: reads("Read one block"),
       run: (args) => {
         const doc = host.open(args);
         const sel = selectorArg(args.id);
@@ -343,10 +368,11 @@ export function toolsFor(host: McpHost): Tool[] {
     {
       name: "geml_check",
       description:
-        "Validate a GEML document: returns every diagnostic with a stable `code`, a severity, and a line. An empty list means the document is valid. Use this to confirm a document is sound before reporting work as finished — and note that writes through this server are already checked, so a refusal from a write tool is the same information delivered earlier." + note,
+        "Validate a GEML document without changing it: returns every diagnostic with a stable `code`, a severity and a line, and an empty list means the document is valid. Use it to confirm a document is sound before reporting work as finished. Every write through this server runs the same check before it lands, so a refused write already carries this information." + note,
       inputSchema: schema(host.docArg === "path"
         ? { root: { type: "string", description: "Directory (inside the server root) against which cross-document references resolve. Defaults to the server root itself. This is a REFERENCE root and is distinct from the server's own --root sandbox, which it can only narrow." } }
         : {}),
+      annotations: reads("Validate a document"),
       run: (args) => {
         const doc = host.open(args);
         const parsed = parse(doc.text, host.checkOpts(doc, args.root));
@@ -378,6 +404,7 @@ export function toolsFor(host: McpHost): Tool[] {
       inputSchema: schema({
         rev: { type: "string", description: "Revision selector — `0` for the current tip, `-N` for N revisions back, or a revision id from the list. Omit it to get the list instead of one revision's text." },
       }),
+      annotations: reads("Read a document's history"),
       run: (args) => {
         const doc = host.open(args);
         const h = history(doc);
@@ -402,7 +429,7 @@ export function toolsFor(host: McpHost): Tool[] {
   tools.push({
     name: "geml_to",
     description:
-      "Convert a WHOLE document and get the result back as text — the read half of the CLI's `geml <file> --to <fmt>`. `to: \"geml\"` on a Markdown file is the importer, the one thing the block tools cannot do; `to: \"md\"` projects a GEML document out (lossy); `to: \"json\"` returns the full document model, for when geml_list plus geml_get is not enough. Nothing is written — pass the result to geml_add or geml_set to land it. `to: \"html\"` also works but returns a whole self-contained page, usually tens of kilobytes this server cannot save for you: prefer the CLI (`geml <file> --to html -o out.html`) unless you really want the markup in the conversation." + note,
+      "Convert a WHOLE document and get the result back as text — the read half of the CLI's `geml <file> --to <fmt>`. `to: \"geml\"` on a Markdown file is the importer, the one thing the block tools cannot do; `to: \"md\"` projects a GEML document out (lossy); `to: \"json\"` returns the full document model, for when geml_list plus geml_get is not enough. Nothing is written — pass the result to geml_add or geml_set to land it. `to: \"html\"` also works but returns a whole self-contained page, usually tens of kilobytes this server cannot save: prefer the CLI (`geml <file> --to html -o out.html`) unless you want the markup in the conversation. A document with errors returns its diagnostics instead of a conversion, and a file that is not under the server root is an error." + note,
     inputSchema: schema({
       to: {
         type: "string",
@@ -415,6 +442,7 @@ export function toolsFor(host: McpHost): Tool[] {
         description: "Override the input format, which is otherwise inferred from the extension (.md -> md, .json -> json, else geml).",
       },
     }),
+    annotations: reads("Convert a whole document"),
     run: (args) => {
       const doc = host.open(args);
       // Enforce the enums here too: a client is free to ignore the schema, and a
@@ -450,7 +478,7 @@ export function toolsFor(host: McpHost): Tool[] {
     {
       name: "geml_set",
       description:
-        "Replace ONE block, leaving every other byte of the document untouched. Prefer this over rewriting a file. The replacement is VALIDATED BEFORE it is written: if it would break the document, nothing is written and you get the diagnostics back — re-read them and fix the body rather than retrying the same content. Breaking the document is what gets refused — removing content is not: if your replacement drops blocks, the write goes through and the result names every block that went, unnamed ones included, so check that line whenever you shortened a section. `geml_revert` puts one back. The way to keep a block is to keep it in the text you send; `geml_get` on the same address just handed it to you. `part` selects whole block (default), the head/fence line, a section's `intro`, or the body. An address matching SEVERAL blocks is refused — this writes one block, so narrow it first." + note,
+        "Replace ONE block and leave every other byte untouched — prefer this to rewriting a file. For content that does not exist yet use geml_add; to remove a block, geml_delete. The replacement is validated before it is written: if it would break the document, nothing is written and the diagnostics come back — fix the body rather than resending it. Removing content is not refused: if the replacement drops blocks, the write goes through and the result names each one, so check it after shortening a section; geml_revert puts one back. `part` replaces the whole block (default), its head line, a section's `intro`, or its body. An `id` that matches no block, or several, is refused." + WRITE_RESULT + note,
       inputSchema: schema({
         id: {
           type: "string",
@@ -459,6 +487,7 @@ export function toolsFor(host: McpHost): Tool[] {
         body: { type: "string", description: "The replacement text" },
         part: { type: "string", enum: [...PARTS], description: "What to replace (default: whole). `intro` replaces a section's opening — everything under the heading up to its first subheading — and leaves every subsection byte-identical, which is what makes a read-edit-write cycle on a long section safe. An empty intro (a subheading follows the heading immediately) is written into, so this also adds an opening where there was none." },
       }, ["id", "body"]),
+      annotations: writes("Replace one block", { destructive: true, idempotent: true }),
       run: (args) => {
         const doc = host.open(args);
         const part = partArg(args.part);
@@ -473,12 +502,13 @@ export function toolsFor(host: McpHost): Tool[] {
     {
       name: "geml_add",
       description:
-        "Insert new content — one or more blocks, or prose — at a chosen point. `position` is append (end of document), or before/after a block named by `anchor`. Ids inside the content are kept, and a clash with an existing id is refused. Validated before writing, like every write here." + note,
+        "Insert new content — one or more blocks, or prose — at the end of the document (`position: append`) or before/after the block named by `anchor`. Use this for content that does not exist yet; to change a block that does, use geml_set. Ids inside the content are kept. Like every write here it is validated first: a missing anchor, an id that clashes with an existing one, or content that would break the document is refused." + WRITE_RESULT + note,
       inputSchema: schema({
         content: { type: "string", description: "The GEML fragment to insert" },
         position: { type: "string", enum: ["append", "before", "after"], description: "Where to insert" },
         anchor: { type: "string", description: "Block id the insertion is relative to; required for before/after" },
       }, ["content", "position"]),
+      annotations: writes("Insert new content", { destructive: false, idempotent: false }),
       run: (args) => {
         const doc = host.open(args);
         let where: { append: boolean; before?: string; after?: string };
@@ -497,10 +527,11 @@ export function toolsFor(host: McpHost): Tool[] {
     {
       name: "geml_delete",
       description:
-        "Remove one or more blocks by id. References left pointing at a removed block are reported as diagnostics but do NOT block the deletion — read them and decide whether to repair or restore. A missing id is skipped, not an error." + note,
+        "Remove one or more blocks by id. To undo a deletion, geml_revert the removed id; to change a block rather than remove it, use geml_set. References left pointing at a removed block come back as diagnostics but do NOT block the deletion — read them, then repair the references or revert. An id that matches nothing is skipped, so repeating a call changes nothing." + WRITE_RESULT + note,
       inputSchema: schema({
         ids: { type: "array", items: { type: "string" }, description: "Block ids to remove" },
       }, ["ids"]),
+      annotations: writes("Delete blocks", { destructive: true, idempotent: true }),
       run: (args) => {
         const doc = host.open(args);
         const ids: string[] = Array.isArray(args.ids) ? args.ids : [args.ids];
@@ -516,11 +547,12 @@ export function toolsFor(host: McpHost): Tool[] {
     {
       name: "geml_rename",
       description:
-        "Rename a block id AND every reference to it in the same document, in one id-boundary-safe operation. Use this instead of a text search-and-replace, which would also hit ids that merely share a prefix." + note,
+        "Rename a block id AND every reference to it in the same document, in one id-boundary-safe write. Use this rather than geml_set or a text search-and-replace, which would also hit ids that merely share a prefix. An `old` id that does not exist, or a `new` one already taken, is refused." + WRITE_RESULT + note,
       inputSchema: schema({
         old: { type: "string", description: "Current id" },
         new: { type: "string", description: "New id" },
       }, ["old", "new"]),
+      annotations: writes("Rename a block id", { destructive: false, idempotent: true }),
       run: (args) => {
         const doc = host.open(args);
         return applyWrite(host, {
@@ -537,11 +569,12 @@ export function toolsFor(host: McpHost): Tool[] {
     tools.push({
       name: "geml_revert",
       description:
-        "Undo ONE block, leaving every other block byte-for-byte unchanged — recover a single block after a bad edit without losing the good edits around it. `rev` defaults to undoing this block's LAST change (its previous distinct version), which holds even when other blocks were edited afterwards; or pass `0` for the tip, a `-N` offset, or a revision id from `geml_history`. Reverting across a revision where the block was deleted restores it; across one where it did not exist removes it." + note,
+        "Undo ONE block, leaving every other block byte-for-byte unchanged — recover a single block after a bad edit without losing the good edits around it. `rev` defaults to undoing this block's LAST change (its previous distinct version), which holds even when other blocks were edited afterwards; or pass `0` for the tip, a `-N` offset, or a revision id from `geml_history`. Reverting across a revision where the block was deleted restores it; across one where it did not exist removes it. A `rev` that matches no revision, or a document with no history yet, is refused." + WRITE_RESULT + note,
       inputSchema: schema({
         id: { type: "string", description: "Block id to revert" },
         rev: { type: "string", description: "Revision selector: 0 (the tip) | -N (N revisions back) | id prefix. Omit to undo this block's last change (robust to edits of other blocks since)." },
       }, ["id"]),
+      annotations: writes("Revert one block", { destructive: true, idempotent: false }),
       run: (args) => {
         const doc = host.open(args);
         const h = history(doc);
@@ -629,7 +662,9 @@ export function dispatch(msg: unknown, tools: () => Tool[]): Record<string, unkn
   // Notifications get no response.
   if (typeof method === "string" && method.startsWith("notifications/")) return undefined;
   if (method === "ping") return ok(id, {});
-  if (method === "tools/list") return ok(id, { tools: tools().map(({ name, description, inputSchema }) => ({ name, description, inputSchema })) });
+  if (method === "tools/list") {
+    return ok(id, { tools: tools().map(({ name, description, inputSchema, annotations }) => ({ name, title: annotations.title, description, inputSchema, annotations })) });
+  }
   if (method === "tools/call") {
     const r = callTool(params?.name, params?.arguments, tools);
     return "unknown" in r ? err(id, -32602, `unknown tool: ${params?.name}`) : ok(id, r.result);
