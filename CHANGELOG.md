@@ -18,6 +18,8 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+## [1.11.6] — 2026-10-02
+
 - **In a Markdown file, a renamed heading takes the anchor of its new text.**
   A Markdown heading's anchor is its text, so `set` that changes a heading's
   text no longer stamps `{#old}` onto it — GEML syntax, which GitHub prints.
