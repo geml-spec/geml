@@ -626,13 +626,34 @@ function withoutClosingHashes(s: string): string {
 // A heading's text as GitHub's renderer leaves it for the slug: what a reader
 // sees, with no markup. An image has alt text but no text content, and a raw
 // HTML tag (`<a id="x"></a>`, which Markdown reading keeps as text) is markup.
-// One pass over `<scr<b>ipt>` leaves `<script>`, so the `<` and `>` that
-// remain go too; the slug drops them anyway, and none survives to be read as
-// a tag.
+// A text run with its tags removed — `<`, an optional `/`, a letter, then up to
+// the next `>` with no `<` or `>` between — and every `<` or `>` left over
+// dropped as well. One scan: `<scr<b>ipt>` loses `<b>` and then its stray
+// brackets, leaving `script`, which is what GitHub's anchor reads. Nothing that
+// comes out can open a tag, and the slug deletes brackets anyway; the result
+// is only ever slugged, never rendered. Each character is visited at most
+// twice: a failed tag scan stops at the next bracket, which is where the outer
+// loop resumes.
+function withoutMarkup(s: string): string {
+  let out = "";
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i]!;
+    if (c === ">") continue;
+    if (c !== "<") { out += c; continue; }
+    let j = i + 1;
+    if (s[j] === "/") j++;
+    if (!/[A-Za-z]/.test(s[j] ?? "")) continue;
+    let k = j + 1;
+    while (k < s.length && s[k] !== "<" && s[k] !== ">") k++;
+    if (s[k] === ">") i = k;
+  }
+  return out;
+}
+
 function renderedText(inlines: Inline[]): string {
   let out = "";
   for (const n of inlines) {
-    if (n.type === "text") out += n.value.replace(/<\/?[A-Za-z][^<>]*>/g, "").replace(/[<>]/g, "");
+    if (n.type === "text") out += withoutMarkup(n.value);
     else if (n.type === "code" || n.type === "math") out += n.value;
     else if (n.type === "emph" || n.type === "strong" || n.type === "strike" || n.type === "link") out += renderedText(n.children);
     // No `break`: a heading is one line, and the only break it could hold is a

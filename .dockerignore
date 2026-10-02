@@ -1,0 +1,7 @@
+# The image is built from geml-parser/ alone (see Dockerfile); send nothing else.
+*
+!geml-parser/
+geml-parser/node_modules/
+geml-parser/dist/
+geml-parser/coverage/
+geml-parser/.geml-code-graph/

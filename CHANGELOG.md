@@ -18,6 +18,23 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **`LICENSE` is the MIT text and nothing else.** A note had been appended
+  below it saying which parts of the repository the MIT license covers, and
+  that was enough for GitHub — and every listing that reads its answer — to
+  report the license as "Other". The scope it described is in the README's
+  License section, which says the same thing; the package's `LICENSE` and the
+  six plugin copies are the plain text again.
+- **A `Dockerfile` runs the MCP server.** It builds the parser from the
+  checkout and starts `geml mcp --root /workspace` on stdio, which is what MCP
+  directories such as Glama build to inspect a server's tools; `docker run -i
+  -v "$PWD:/workspace"` gives a local client the same thing.
+- **The GitHub-anchor scan reads tags in one pass by hand.** The text a
+  heading's GitHub anchor is slugged from had its tags removed with two
+  regular expressions, a shape code scanning reports as an incomplete
+  sanitizer even though the result is only ever slugged. A scanner does the
+  same work; its output matched the old one on 711,111 inputs, and every
+  anchor checked against GitHub's renderer still resolves.
+
 ## [1.11.5] — 2026-10-01
 
 - **An embed on the line after its target is not a cycle.** The self-cycle
