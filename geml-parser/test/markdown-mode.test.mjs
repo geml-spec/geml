@@ -745,6 +745,63 @@ try {
     assert.match(read(g), /=== note \{#tip\}\nA \*tip\*\.\n===/);
     assert.doesNotMatch(r.err, /converted/);
   });
+
+  test("a GEML heading set over a Markdown one lands plain, and takes the anchor of its text", () => {
+    const f = write("conv-head.md", RENAMABLE);
+    const r = run(["set", f, "#risks", "--head", "--in", "-", "-o", f], "## Hazards {#h}\n");
+    assert.equal(r.code, 0, r.err);
+    const after = read(f);
+    assert.match(after, /^## Hazards$/m);
+    assert.doesNotMatch(after, /\{#/, "the declared id is not written");
+    assert.match(after, /\[the risks\]\(#hazards\)/, "links follow the text's anchor, not the id the content declared");
+    assert.match(r.err, /converted to Markdown, as --to md converts it: heading id\/attributes dropped/);
+    assert.match(r.err, /#risks is now #hazards/);
+  });
+
+  test("GEML set as a section's intro is converted, and the subsections stay", () => {
+    const f = write("conv-intro.md", "# Doc\n\n## Risks\n\nintro\n\n### Sub\n\ns\n");
+    const r = run(["set", f, "#risks", "--intro", "--in", "-", "-o", f], "=== note\nWatch out.\n===\n");
+    assert.equal(r.code, 0, r.err);
+    assert.equal(read(f), "# Doc\n\n## Risks\n\n> Watch out.\n\n### Sub\n\ns\n");
+  });
+
+  test("converted content with no final newline still ends its line", () => {
+    const f = write("conv-eol.md", "# Doc\n\n## A\n\nbody\n\n## B\n\nb\n");
+    const r = run(["add", f, "--after", "#a", "--in", "-", "-o", f], "=== note\nTip\n===");
+    assert.equal(r.code, 0, r.err);
+    assert.equal(read(f), "# Doc\n\n## A\n\nbody\n\n> Tip\n\n## B\n\nb\n");
+  });
+
+  test("a heading's attribute object marks the content GEML; braces that are not one do not", () => {
+    const f = write("conv-attrs.md", "# Doc\n\n## A\n\nbody\n");
+    const r = run(["add", f, "--after", "#a", "--in", "-", "-o", f], "## Wide {.wide}\n\ntext\n\n## Lang {lang=en}\n\nmore\n");
+    assert.equal(r.code, 0, r.err);
+    assert.match(read(f), /^## Wide$/m, "a class is an attribute object");
+    assert.match(read(f), /^## Lang$/m, "so is key=value");
+    assert.match(r.err, /converted to Markdown/);
+    const g = write("conv-braces.md", "# Doc\n\n## A\n\nbody\n");
+    const plain = run(["add", g, "--after", "#a", "--in", "-", "-o", g], "## Sets {a, b}\n\nx\n");
+    assert.equal(plain.code, 0, plain.err);
+    assert.match(read(g), /^## Sets \{a, b\}$/m, "a heading about set notation is Markdown");
+    assert.doesNotMatch(plain.err, /converted/);
+  });
+
+  test("a tilde fence, and a longer fence around a shorter one, keep GEML-looking lines as code", () => {
+    const f = write("conv-tilde.md", "# Doc\n\n## Notes\n\nn\n");
+    const body = "~~~\n=== note {#x}\n~~~\n\n~~~~md\n~~~\n## Not a heading {#y}\n~~~~\n";
+    const r = run(["set", f, "#notes", "--body", "--in", "-", "-o", f], body);
+    assert.equal(r.code, 0, r.err);
+    assert.ok(read(f).includes(body), "byte for byte");
+    assert.doesNotMatch(r.err, /converted/);
+  });
+
+  test("an unmatched backtick is text: a link after it on the line still follows the heading", () => {
+    const f = write("relink-tick.md", "# Doc\n\nA lone ` tick, then [r](#risks).\n\n## Risks\n\nbody\n");
+    const r = run(["set", f, "#risks", "--head", "--in", "-", "-o", f], "## Hazards\n");
+    assert.equal(r.code, 0, r.err);
+    assert.match(read(f), /A lone ` tick, then \[r\]\(#hazards\)\./);
+    assert.match(r.err, /1 link to it updated/);
+  });
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }

@@ -173,6 +173,19 @@ test("a write that dropped a block or moved an address says so in `notes`", () =
   assert.ok(moved.notes?.some((n) => /#risks is now #hazards/.test(n)), JSON.stringify(moved.notes));
 });
 
+test("GEML added to a .md lands as Markdown and the result's notes say so; what Markdown cannot hold is refused", () => {
+  const dir = ws("# Doc\n\n## A\n\nbody\n", "m.md");
+  const added = call("geml_add", { file: "m.md", content: "=== note {#tip}\nA tip.\n===\n", position: "after", anchor: "a" }).json;
+  assert.equal(added.ok, true, JSON.stringify(added));
+  assert.match(readFileSync(join(dir, "m.md"), "utf8"), /^> A tip\.$/m);
+  assert.ok(added.notes?.some((n) => /converted to Markdown/.test(n)), JSON.stringify(added.notes));
+  const before = readFileSync(join(dir, "m.md"), "utf8");
+  const view = call("geml_add", { file: "m.md", content: '=== view {#v src=#t compute="x = a"}\n===\n', position: "append" });
+  assert.equal(view.json.ok, false, view.text);
+  assert.match(view.text, /would lose data/);
+  assert.equal(readFileSync(join(dir, "m.md"), "utf8"), before, "nothing written");
+});
+
 test("an unknown tool is a protocol error, not a silent success", () => {
   ws();
   const r = call("geml_nope", {});
