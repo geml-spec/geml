@@ -6,10 +6,6 @@
     {
       "name": "a form holds addressable fields, so recognizing the vocabulary ADDS an address",
       "geml": "=== meta\nprofile = \"geml-form/v1\"\n===\n\n==== form {#signup}\n=== form-field {#email label=\"Email\" required}\n===\n====\n",
-      "admits": [
-        "form",
-        "form-field"
-      ],
       "addresses": {
         "declared": [
           "#meta",
@@ -19,6 +15,12 @@
         "undeclared": [
           "#meta",
           "#signup"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning"
         ]
       }
     }

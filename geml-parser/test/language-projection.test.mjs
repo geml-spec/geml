@@ -108,6 +108,40 @@ test("§GEP-0010: an explicit id shadows the run address it would collide with",
   assert.equal(hit.unit.kind, "block", "the declared block wins; the run goes unnamed");
 });
 
+// §4: a typed block's flow body is a container like a heading's section. The
+// model (proseRunTargets, what a reference resolves against) and the listing
+// (addressedUnits, what `get`/`set` address) must name the same runs.
+const NESTED = "==== note {#outer}\nlead\n\n=== code {#a}\nx\n===\n\nmiddle\n\n- item\n\n=== code {#b}\ny\n===\n\ntail\n====\n";
+
+test("§4: a flow body is a container — the model and the listing name the same runs", () => {
+  const runs = proseRunTargets(parse(NESTED).children);
+  assert.deepEqual([...runs.keys()], ["outer-before-a", "a-between-b", "outer-after-b"]);
+  assert.deepEqual(runs.get("a-between-b").map((b) => b.kind), ["paragraph", "list"], "a run inside a body is everything between its anchors");
+  const all = addressedUnits(NESTED);
+  const listed = all.filter((a) => a.unit.kind === "prose").map((a) => [shortestAddress(a, all), a.unit.span.start + 1, a.unit.span.end]);
+  assert.deepEqual(listed, [["#outer-before-a", 2, 2], ["#a-between-b", 8, 10], ["#outer-after-b", 16, 16]],
+    "spans stop at the fences: the opening and closing lines are the block's, not the run's");
+});
+
+test("§4: a heading inside a flow body is the innermost container, in the model as in the listing", () => {
+  const src = "==== note {#outer}\n## Inner {#inner}\n\nunder\n\n=== code {#c}\nx\n===\n====\n";
+  assert.deepEqual([...proseRunTargets(parse(src).children).keys()], ["inner-before-c"]);
+  const all = addressedUnits(src);
+  assert.deepEqual(all.filter((a) => a.unit.kind === "prose").map((a) => shortestAddress(a, all)), ["#inner-before-c"]);
+});
+
+test("§4: an anonymous block's body still names prose between named blocks, and only that", () => {
+  const src = NESTED.replace("==== note {#outer}", "==== note");
+  assert.deepEqual([...proseRunTargets(parse(src).children).keys()], ["a-between-b"]);
+});
+
+test("§4: a raw body is no container, and a body of prose alone is its block's", () => {
+  assert.deepEqual([...proseRunTargets(parse("==== code {#c}\nlead\n=== note {#y}\nz\n===\n====\n").children).keys()], []);
+  assert.deepEqual([...proseRunTargets(parse("=== note {#n}\njust prose\n===\n").children).keys()], []);
+  const all = addressedUnits("=== note {#n}\njust prose\n===\n");
+  assert.deepEqual(all.map((a) => shortestAddress(a, all)), ["#n"], "no extra row for a body the block already names");
+});
+
 test("§GEP-0010: a reference resolves a run address, in this document and across one", () => {
   const dir = mkdtempSync(join(tmpdir(), "geml-proj-"));
   writeFileSync(join(dir, "pub.geml"), PUB);

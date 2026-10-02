@@ -1,0 +1,91 @@
+[
+  {
+    "name": "yaml: block mappings and sequences nest by indentation",
+    "geml": "=== data {#y format=yaml}\nname: geml\ntags:\n  - doc\n  - spec\nnested:\n  a: 1\n===\n",
+    "want": "data({\"name\":\"geml\",\"nested\":{\"a\":1},\"tags\":[\"doc\",\"spec\"]})",
+    "diagnostics": []
+  },
+  {
+    "name": "yaml: `- key: value` is a mapping in a sequence, `- - item` a sequence in one",
+    "geml": "=== data {#y format=yaml}\n- k: 1\n  j: 2\n- - a\n  - b\n===\n",
+    "want": "data([{\"j\":2,\"k\":1},[\"a\",\"b\"]])"
+  },
+  {
+    "name": "yaml: plain, single- and double-quoted scalars",
+    "geml": "=== data {#y format=yaml}\na: plain text\nb: 'single ''quoted'''\nc: \"double \\\"quoted\\\"\"\n===\n",
+    "want": "data({\"a\":\"plain text\",\"b\":\"single 'quoted'\",\"c\":\"double \\\"quoted\\\"\"})"
+  },
+  {
+    "name": "yaml: the four block scalars",
+    "geml": "=== data {#y format=yaml}\nlit: |\n  one\n  two\nstrip: |-\n  one\nfold: >\n  one\n  two\nfoldstrip: >-\n  one\n===\n",
+    "want": "data({\"fold\":\"one two\\n\",\"foldstrip\":\"one\",\"lit\":\"one\\ntwo\\n\",\"strip\":\"one\"})"
+  },
+  {
+    "name": "yaml: comments, a leading --- and a trailing ...",
+    "geml": "=== data {#y format=yaml}\n---\n# a comment\na: 1 # trailing\n...\n===\n",
+    "want": "data({\"a\":1})"
+  },
+  {
+    "name": "yaml: [] and {} are the empty sequence and the empty map",
+    "geml": "=== data {#y format=yaml}\ns: []\nm: {}\n===\n",
+    "want": "data({\"m\":{},\"s\":[]})"
+  },
+  {
+    "name": "yaml: the core schema — null, booleans, integers in every base, floats",
+    "geml": "=== data {#y format=yaml}\nn1: null\nn2: ~\nn3:\nt: true\nf: false\ni: +80\nh: 0x1f\no: 0o17\nd: .5\ne: 1e3\n===\n",
+    "want": "data({\"d\":0.5,\"e\":1000,\"f\":false,\"h\":31,\"i\":80,\"n1\":null,\"n2\":null,\"n3\":null,\"o\":15,\"t\":true})"
+  },
+  {
+    "name": "yaml: yes, no, on and off are strings, not the 1.1 booleans",
+    "geml": "=== data {#y format=yaml}\n- yes\n- no\n- on\n- off\n===\n",
+    "want": "data([\"yes\",\"no\",\"on\",\"off\"])"
+  },
+  {
+    "name": "yaml: an anchor is outside the subset — a parse error, never a guess",
+    "geml": "=== data {#y format=yaml}\na: &x 1\nb: *x\n===\n",
+    "want": "block:data",
+    "diagnostics": [
+      "data-parse:error"
+    ]
+  },
+  {
+    "name": "yaml: a tag is outside the subset",
+    "geml": "=== data {#y format=yaml}\na: !!str 1\n===\n",
+    "want": "block:data",
+    "diagnostics": [
+      "data-parse:error"
+    ]
+  },
+  {
+    "name": "yaml: a flow collection other than [] and {} is outside the subset",
+    "geml": "=== data {#y format=yaml}\na: [1, 2]\n===\n",
+    "want": "block:data",
+    "diagnostics": [
+      "data-parse:error"
+    ]
+  },
+  {
+    "name": "yaml: .inf and .nan are outside the subset",
+    "geml": "=== data {#y format=yaml}\na: .inf\n===\n",
+    "want": "block:data",
+    "diagnostics": [
+      "data-parse:error"
+    ]
+  },
+  {
+    "name": "yaml: a tab used for indentation is outside the subset",
+    "geml": "=== data {#y format=yaml}\na:\n\tb: 1\n===\n",
+    "want": "block:data",
+    "diagnostics": [
+      "data-parse:error"
+    ]
+  },
+  {
+    "name": "yaml: a key twice in one mapping is outside the value domain",
+    "geml": "=== data {#y format=yaml}\na: 1\na: 2\n===\n",
+    "want": "block:data",
+    "diagnostics": [
+      "data-parse:error"
+    ]
+  }
+]

@@ -252,13 +252,14 @@ neither of them wrote.
   index, a cell read by header name, a cell in a header-less table read by
   letter, a value-tree walk mixing keys and indices, an out-of-range coordinate,
   and one refusal per rule above. A resolved coordinate REFERENCE is part of the
-  model, so the shared projection prints the value it resolved to and a second
-  implementation has to reproduce it.
+  model, so the shared projection prints the value it resolved to — a leaf's, or
+  a row's cells joined by `", "`; a column or a non-leaf node resolves with none
+  — and a second implementation has to reproduce it.
 - **The second implementation does not reproduce these yet, and that is the
   acceptance test still owed.** It stops at the inline and unfenced subset plus
   `data`; a coordinate onto a table needs the table model, including the
-  aggregates `summary=` computes. Until it does, `coordinates.json` runs against
-  the reference alone — the one case file that does.
+  aggregates `summary=` computes. Until it does, `coordinates.json` and
+  `views.json` run against the reference alone.
 
 ## Alternatives considered
 

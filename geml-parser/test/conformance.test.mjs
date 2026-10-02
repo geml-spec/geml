@@ -1,33 +1,42 @@
-// Conformance suite: input GEML -> a normalized projection of the document model
-// (see conformance/_project.mjs for the projection grammar). The case files are
-// the normative reference — a second, independent GEML implementation conforms
-// when it reproduces every `want`. Run with `npm test` (after `tsc`).
-import { parse } from "../dist/geml.js";
-import { project } from "./conformance/_project.mjs";
+// Conformance suite, run against the reference parser. The case files and
+// manifest.json are the normative reference — a second, independent GEML
+// implementation conforms when it reproduces every case its capabilities
+// reach. The loop is conformance/_runner.mjs; this file supplies the reference
+// parser's answers for each capability. Run with `npm test` (after `tsc`).
+import { parse, addressedUnits, CATALOGUE_EXEMPT } from "../dist/geml.js";
+import { shortestAddress } from "../dist/selector.js";
+import { runConformance, manifest } from "./conformance/_runner.mjs";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const files = ["inline.json", "precedence.json", "lists.json", "interp.json", "transclusion.json", "safety.json", "data.json", "fences.json", "vocabulary.json", "coordinates.json", "views.json"];
 
-let pass = 0;
-let fail = 0;
-for (const file of files) {
-  const cases = JSON.parse(readFileSync(join(here, "conformance", file), "utf8"));
-  for (const c of cases) {
-    const got = project(parse(c.geml));
-    if (got === c.want) {
-      pass++;
-    } else {
-      fail++;
-      console.error(`FAIL [${file}] ${c.name}`);
-      console.error(`  geml: ${JSON.stringify(c.geml)}`);
-      console.error(`  want: ${c.want}`);
-      console.error(`  got:  ${got}`);
-    }
-  }
+// The README's file table and the manifest list one set of files: a case file
+// the table leaves out is undocumented, and one the manifest leaves out never runs.
+const readme = readFileSync(join(here, "conformance", "README.md"), "utf8");
+const documented = [...readme.matchAll(/^\| `([a-z]+\.json)` \|/gm)].map((m) => m[1]).sort();
+const listed = manifest.files.map((f) => f.file).sort();
+if (JSON.stringify(documented) !== JSON.stringify(listed)) {
+  console.error(`README table lists ${JSON.stringify(documented)}\nmanifest lists     ${JSON.stringify(listed)}`);
+  process.exit(1);
 }
 
-console.log(`\nconformance: ${pass} case(s) passed${fail ? `, ${fail} FAILED` : ""}.`);
-if (fail) process.exit(1);
+const catalogued = (d) => !CATALOGUE_EXEMPT.some((p) => d.code.startsWith(p));
+
+const ok = runConformance({
+  label: "conformance",
+  has: new Set(Object.keys(manifest.capabilities)),
+  parse,
+  // What `readFileSync(file, "utf8")` does, which is how the CLI reads a document.
+  decode: (bytes) => Buffer.from(bytes).toString("utf8"),
+  ids: (doc) => doc.ids,
+  // What `geml list` prints, less the CLI's own content addresses (`@…`,
+  // `=== type…`), which no specification defines.
+  addresses: (text) => {
+    const all = addressedUnits(text);
+    return all.map((a) => shortestAddress(a, all)).filter((s) => s.startsWith("#"));
+  },
+  diagnostics: (doc) => doc.diagnostics.filter(catalogued).map((d) => `${d.code}:${d.severity}`),
+});
+if (!ok) process.exit(1);

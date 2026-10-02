@@ -433,11 +433,11 @@ keep a single line literal, use §5.1’s `\`.
 ### 3.2 The `data` block
 
 A `data` block carries the **value tree** — scalars, sequences and maps,
-exactly JSON's value domain — as *verified data*, where `code` carries text
-the processor must never interpret. The body is `raw` at scan time (fences
-delimit verbatim text); a **format engine** then parses it into the block's
-**value**, and a body the engine rejects is a build **error** naming the
-offending line.
+JSON's value domain within the limits of I-JSON (RFC 7493) — as *verified
+data*, where `code` carries text the processor must never interpret. The body
+is `raw` at scan time (fences delimit verbatim text); a **format engine** then
+parses it into the block's **value**, and a body the engine rejects is a build
+**error** naming the offending line.
 
 - `format=` selects a surface syntax *within* this one model. Admission to
   the registry requires the syntax to be **self-describing** — the bytes
@@ -455,6 +455,12 @@ offending line.
   is the record-stream form: because a document is a flat sequence of blocks,
   a complete `data` block appended at end-of-file is a valid continuation of
   any document — jsonl's blind-append ergonomics, with ids and verification.
+- The value tree keeps I-JSON's limits whichever engine reads the body: no map
+  holds the same key twice (keys compared after their escapes are read), no
+  string or key holds a lone surrogate, and a number is its nearest IEEE 754
+  binary64 value — so `1.0` and `1` are one value, and a number past
+  binary64's range has none. A body outside these limits is the same
+  `data-parse` error as one the engine cannot read.
 - `src=` names the block's content externally, under the same one-source
   discipline tables have (§6): exactly one of `src=` and an inline body —
   both is an **error**. The file MUST look like data (`.json`/`.jsonl`/`.yaml`/`.yml`,
@@ -602,9 +608,12 @@ exactly when the slice is itself a value.
      deleted — the same kind of input, two fates. It also makes the derivation
      independent of which normalization form the author's editor produced;
   3. delete every code span, its backticks and its content alike — so the
-     punctuation inside `` `foo()` `` cannot leak into the id;
-  4. delete every character that is neither a Unicode letter, a digit,
-     whitespace, `-`, nor `_`;
+     punctuation inside `` `foo()` `` cannot leak into the id. A code span is
+     recognized exactly as §5.3 phase 1 recognizes one: by backtick-run length,
+     never opened by an escaped backtick or by one inside inline math;
+  4. delete every character that is neither a letter (Unicode General Category
+     L), a number (General Category N), whitespace (the Unicode `White_Space`
+     property, as in steps 5 and 6), `-`, nor `_`;
   5. trim leading and trailing whitespace;
   6. replace each run of whitespace with a single `-`.
 
@@ -634,8 +643,9 @@ exactly when the slice is itself a value.
 
   **Prose**, here, is a maximal stretch of adjacent content that is neither a
   typed block nor a heading. Its **container** is the innermost heading whose section
-  holds it, or the document. Let *P* be the nearest typed block or heading before
-  it inside that container, *N* the nearest one after it, and *C* the container:
+  holds it or typed block whose flow body holds it, or else the document. Let *P* be
+  the nearest typed block or heading before it inside that container, *N* the
+  nearest one after it, and *C* the container:
 
   | | address |
   |---|---|
@@ -827,6 +837,12 @@ node of a `data` block's value tree (§3.2), or a key of the merged `#meta` (§4
   projection target: it is as many values as it has members, which no sentence
   holds. Inline that is `inline-transclusion-not-inline`; as an `embed`'s `src=`
   it is `embed-target-not-projectable` (Appendix A).
+- A reference `[[…]]` that carries a coordinate says the same text an inline
+  projection of that coordinate would — a leaf's value, or a row's cells
+  joined by `", "` — and links to the block that holds it. A whole column,
+  and a value-tree node that holds more nodes, has no such text: the
+  reference still resolves and links to that block, but carries no value of
+  its own.
 - *Note (non-normative):* a coordinate is stable only while the units above it
   are. Inserting a row moves every index below it — a projected row and a
   projected cell alike — which is why an id is preferable wherever a unit can
@@ -914,6 +930,9 @@ own.
 ===
 ```
 
+A row's cells are split on `|`, with the outer pipes stripped; `\|` is a literal
+`|` inside a cell, code spans included — as in GitHub's tables.
+
 **(b) Data form** — delimited text, one row per line:
 
 ```
@@ -962,6 +981,14 @@ fences and all — is a paragraph.* The example resolves to:
   are cells of their own — stripping them is the visual form's rule (a), not this
   one. `delim` refines the data form, it does not select it: on a table with no
   data `format` it is ignored, with an `ignored-table-delimiter` warning.
+- **Cell text** — a cell's text is what lies between its delimiters, with leading
+  and trailing whitespace — the Unicode `White_Space` property, as in §4 —
+  removed.
+- **Row width** — a table has as many columns as its header row has cells, or,
+  with no header, as its widest row has. A body row with more cells is cut to
+  that width and one with fewer is padded with empty cells; either is a
+  `ragged-table-row` warning naming the row, so a cell the model drops is
+  never dropped silently.
 - **Data from elsewhere** — instead of an inline body, a table MAY name where its
   data comes from. For a `table` block that is the `src=` attribute (a `diagram`
   spells the same idea `data=`; see Appendix B.3), and it takes one of three
@@ -1012,8 +1039,14 @@ warning like any other misplaced key (§8.2).
 - **Display format** — a computed column or summary cell MAY carry a `[printf]`
   format bound to its name on the left: `FY [%.1f]`, `YoY [%.1f%%]` (`%%` is a
   literal percent). The format is numeric and affects display only, not the
-  stored value. There is no date/time format: cell values are string, number, or
-  boolean (§4); dates are written as plain ISO-8601 text.
+  stored value. Without a format a number shows rounded to 12 significant digits,
+  then in its shortest round-trip form (ECMAScript Number-to-String: `1e+21` past
+  `1e21`). A format is one of `%.Nf`, `%.Ne`, `%d`, `%.Ng`, or `%%` for a literal
+  percent. Rounding is to nearest, ties away from zero, on the exact value; `%e`
+  writes at least two exponent digits; `%g` keeps N significant digits. Width and
+  flags are not part of a format and are ignored. There is no date/time format:
+  cell values are string, number, or boolean (§4); dates are written as plain
+  ISO-8601 text.
 
   The split is defined on the left side of a formula, and only there: a format
   is the LAST `[…]` group of the left side, it MUST end the left side (trailing
@@ -1543,6 +1576,7 @@ original file.
 | `bad-table-delimiter` | error | A `delim=` value is not exactly one character (§6). The format's natural delimiter is used instead, so the table still reads. |
 | `bad-embed-part` | warning | An `embed` carries a `part=` that is not `whole`, `head`, `body` or `intro` (§3). The whole target stands: a projection that quietly selects nothing is the failure §8.2 exists to prevent. Not `unknown-attribute` — the key is defined, the value is not one it takes. |
 | `ignored-table-delimiter` | warning | A table carries `delim=` but no data `format=`, so no delimited body exists for it to apply to; the body is parsed as a visual pipe grid. |
+| `ragged-table-row` | warning | A body row carries more or fewer cells than the table has columns — as many as the header row has cells, or a header-less table's widest row (§6). The row is cut, or padded with empty cells, to that width; the warning names the row. |
 | `bad-compute-formula` | error | A `compute` entry is not of the form `Name = expr`. |
 | `compute-error` | error | A `compute` expression failed to evaluate — most often because it names a column that does not exist, or one computed later (§9.3). |
 | `compute-non-numeric-cell` | warning | A `compute` formula read a cell that is empty or not a number; it counted as `0` (§6). The result is still produced — the warning names the cell it rests on. |
@@ -1604,7 +1638,7 @@ holds facts and derives nothing.
 
 | Code | Severity | Condition |
 |------|----------|-----------|
-| `data-parse` | error | The body does not parse under the declared `format=` — not one JSON value (`json`), or a non-blank line that is not one JSON value (`jsonl`). The diagnostic names the offending line. |
+| `data-parse` | error | The body does not parse under the declared `format=` — not one JSON value (`json`), or a non-blank line that is not one JSON value (`jsonl`) — or what it parses to breaks the value tree's limits (§3.2): a key twice in one map, a lone surrogate, a number past binary64's range. The diagnostic names the offending line. |
 | `unknown-data-format` | warning | The `format=` value is not in the data format registry. The body is kept raw and not verified. |
 | `data-format-no-engine` | warning | The `format=` names a RESERVED format (`yaml`, `toml`, `edn`) this processor ships no engine for. The body is kept raw and not verified — never guessed at. |
 | `bad-data-schema` | error | `schema=` is not a block reference (`#id`) or a GEML document reference (`doc.geml[#id]`). |

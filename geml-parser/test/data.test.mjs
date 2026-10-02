@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parse, renderHtml, serialize } from "../dist/geml.js";
 import { gemlToMd } from "../dist/to-md.js";
+import { valueFault } from "../dist/ijson.js";
 
 let passed = 0;
 function test(name, fn) { fn(); passed++; console.log("ok", name); }
@@ -32,6 +33,41 @@ test("a malformed json body is data-parse, naming the body line", () => {
   assert.equal(e[0].code, "data-parse");
   // open fence is doc line 3; the bad token sits on body line 2 -> doc line 5
   assert.equal(e[0].line, 5);
+});
+
+test("valid json outside I-JSON's limits is data-parse, naming the line of the offending token (§3.2)", () => {
+  // open fence is doc line 3; the second "a" sits on body line 3 -> doc line 6
+  const dup = errs(parse('# T\n\n=== data {#d}\n{\n  "a": 1,\n  "a": 2\n}\n===\n'));
+  assert.deepEqual(dup.map((e) => [e.code, e.line]), [["data-parse", 6]]);
+  assert.match(dup[0].message, /"a" occurs twice/);
+  const lone = errs(parse('=== data {#d}\n["ok",\n "\\udc00"]\n===\n'));
+  assert.deepEqual(lone.map((e) => [e.code, e.line]), [["data-parse", 3]]);
+  assert.match(lone[0].message, /lone surrogate/);
+  const big = errs(parse('=== data {#d}\n{"n": -1e999}\n===\n'));
+  assert.match(big[0].message, /-1e999 is past the range/);
+  const jl = errs(parse('=== data {#l format=jsonl}\n{"a": 1}\n{"a": 1, "a": 1}\n===\n'));
+  assert.deepEqual(jl.map((e) => [e.code, e.line]), [["data-parse", 3]]);
+  assert.match(jl[0].message, /body line 2/);
+});
+
+test("the value domain's limits hold for every engine: yaml and edn (§3.2)", () => {
+  for (const src of [
+    "=== data {#y format=yaml}\na: 1\na: 2\n===\n",
+    '=== data {#y format=yaml}\nv: "\\ud800"\n===\n',
+    '=== data {#y format=yaml}\n"\\ud800": 1\n===\n',
+    '=== data {#e format=edn}\n{:s "\\ud800"}\n===\n',
+  ]) {
+    const d = parse(src);
+    assert.deepEqual(d.diagnostics.map((x) => x.code), ["data-parse"], src);
+    assert.equal(d.children[0].value, undefined, `${src} carries no value`);
+  }
+  const ok = parse("=== data {#y format=yaml}\nx:\n  a: 1\ny:\n  a: 2\n===\n");
+  assert.deepEqual(ok.diagnostics, [], "one key in two different maps is no repetition");
+});
+
+test("valueFault: a tree another engine built is checked for what that engine cannot refuse", () => {
+  assert.equal(valueFault({ a: [1, "x", null, true, { b: 2 }] }), null);
+  assert.match(valueFault([Infinity]), /no finite value/);
 });
 
 test("jsonl: per-line values, blank lines ignored, per-line failure named", () => {

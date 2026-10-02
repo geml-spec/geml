@@ -280,6 +280,25 @@ test("a visual grid's cell write rebuilds that row and no other line", () => {
   assert.match(r.text, /^\|------\|--:\|$/m, "the separator row is left alone");
 });
 
+test("a cell write keeps the field's own padding — exactly what the reader trims (§6)", () => {
+  // A no-break space is White_Space, so it is padding and stays; U+FEFF is not,
+  // so it is the old value's first character and goes with it.
+  const body = ["A,B", " x ,1", "﻿y,2"];
+  const block = parse(`=== table {#t format=csv header=1}\n${body.join("\n")}\n===\n`).children[0];
+  const one = planCoordWrite(block, parseCoordPath('[1]["A"]'), "q", body);
+  assert.equal(one.body[1], " q ,1");
+  const two = planCoordWrite(block, parseCoordPath('[2]["A"]'), "q", body);
+  assert.equal(two.body[2], "q,2");
+});
+
+test("a pipe written into a visual grid goes back as `\\|`, and reads back as the value (§6(a))", () => {
+  const r = setCoord("w2p.geml", '#v[1]["Plan"]', "Basic | Pro");
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.text, /^\| Basic \\\| Pro \| 1 \|$/m);
+  const cell = parse(r.text).children.find((b) => b.id === "v").table.rows[0][0];
+  assert.equal(cell.text, "Basic | Pro");
+});
+
 test("a whole row may be written as one line", () => {
   const r = setCoord("w3.geml", "#fy[1]", "Cloud, 80, 100");
   assert.equal(r.code, 0, r.err);
@@ -306,7 +325,6 @@ test("every write refusal exits 1 and leaves the document byte-identical", () =>
     ['#derived[1]["FY"]', "X", /no body rows to write — edit the source relation/],
     ['#derived[1]["Q1"]', "X", /no body rows to write — edit the source relation/],
     ['#fy[1]["Segment"]', "a, b", /contains `,`, the delimiter/],
-    ['#v[1]["Plan"]', "a|b", /contains `\|`/],
     ['#fy[summary]["Q1"]', "X", /declared in `summary=`/],
     ['#fy["Q1"]', "X", /a column is one unit per row/],
     ['#fy[9]["Q1"]', "X", /2 body rows/],

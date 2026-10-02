@@ -66,13 +66,45 @@ function alignOf(sep: string): Align | undefined {
   return undefined;
 }
 
-// Split a visual table row `| a | b |` into trimmed cell strings.
-function splitPipes(line: string): string[] {
-  let s = line.trim();
-  if (s.startsWith("|")) s = s.slice(1);
-  if (s.endsWith("|")) s = s.slice(0, -1);
-  return s.split("|").map((c) => c.trim());
+const WHITE = /^\p{White_Space}$/u;
+
+/**
+ * [start, end) of `s` without its leading and trailing whitespace — the Unicode
+ * White_Space property, the one whitespace §4 and §6 name. Found by scanning:
+ * an anchored `\p{White_Space}+$` restarts at every index of a long inner run,
+ * which is quadratic. Every White_Space character is in the BMP, so one code
+ * unit is one character here.
+ */
+export function whiteSpaceBounds(s: string): [number, number] {
+  let a = 0;
+  let b = s.length;
+  while (a < b && WHITE.test(s[a]!)) a++;
+  while (b > a && WHITE.test(s[b - 1]!)) b--;
+  return [a, b];
 }
+export const trimWhiteSpace = (s: string): string => { const [a, b] = whiteSpaceBounds(s); return s.slice(a, b); };
+
+// Split a visual table row `| a | b |` into trimmed cell strings. §6(a): a `|`
+// right after a `\` is part of the cell, code spans included, and that
+// backslash goes — GitHub's rule, so a GFM table's `\|` survives `--from md`.
+// Every other `|` separates cells.
+function splitPipes(line: string): string[] {
+  let s = trimWhiteSpace(line);
+  if (s.startsWith("|")) s = s.slice(1);
+  if (s.endsWith("|") && !s.endsWith("\\|")) s = s.slice(0, -1);
+  const cells: string[] = [];
+  let cur = "";
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] === "\\" && s[i + 1] === "|") { cur += "|"; i++; continue; }
+    if (s[i] === "|") { cells.push(trimWhiteSpace(cur)); cur = ""; continue; }
+    cur += s[i];
+  }
+  cells.push(trimWhiteSpace(cur));
+  return cells;
+}
+
+/** A cell's text written back into a visual row: its pipes escaped, §6(a). */
+export const escapeCellPipes = (text: string): string => text.replace(/\|/g, "\\|");
 
 function parseVisual(body: string[]): RawGrid {
   const kept: number[] = [];
@@ -86,7 +118,7 @@ function parseVisual(body: string[]): RawGrid {
     const headerRow = sepIdx > 0 ? rows[sepIdx - 1]! : [];
     const align = rows[sepIdx]!.map(alignOf);
     const cells = rows.slice(sepIdx + 1);
-    const columns = headerRow.length ? headerRow : letters(cells[0]?.length ?? align.length);
+    const columns = headerRow.length ? headerRow : letters(cells.length ? cells.reduce((m, r) => Math.max(m, r.length), 0) : align.length);
     return { columns, align, header: headerRow.length > 0, cells, lines: kept.slice(sepIdx + 1) };
   }
   // No separator: headerless, columns are letters.
@@ -97,7 +129,7 @@ function parseVisual(body: string[]): RawGrid {
 function parseDelimited(body: string[], sep: string, header: boolean): RawGrid {
   const kept: number[] = [];
   const rows: string[][] = [];
-  body.forEach((l, i) => { if (l.trim() !== "") { kept.push(i); rows.push(l.split(sep).map((c) => c.trim())); } });
+  body.forEach((l, i) => { if (l.trim() !== "") { kept.push(i); rows.push(l.split(sep).map(trimWhiteSpace)); } });
   if (header && rows.length) {
     return { columns: rows[0]!, align: [], header: true, cells: rows.slice(1), lines: kept.slice(1) };
   }
@@ -213,21 +245,43 @@ function defaultNum(v: number): string {
   return String(parseFloat(v.toPrecision(12)));
 }
 
-// Minimal printf for a single numeric value: handles %f/%e/%d/%g with optional
-// precision, and `%%` as a literal percent. Width/flags are not padded.
+// The §6 display format, for a single numeric value: `%.Nf`, `%.Ne`, `%d`,
+// `%.Ng`, and `%%` for a literal percent. Nothing else is a conversion, so any
+// other `%…` — an upper-case letter, a left-out precision — stays text. Width
+// and flags are not part of a format and are ignored.
+//
+// Rounding is to nearest with ties away from zero on the value's exact binary
+// expansion, in every conversion — toFixed and toExponential already round that
+// way (they pick the larger magnitude on a tie), so `%d` is the one that needs
+// it spelled out: Math.round sends -2.5 to -2, while `%.0f` gives -3.
 function applyFormat(fmt: string, v: number): string {
   if (!isFinite(v)) return "-";
-  return fmt.replace(/%%|%[-+ 0]*\d*(?:\.\d+)?[fFeEgGd]/g, (m) => {
+  return fmt.replace(/%%|%[-+ 0#]*\d*(?:\.(\d+)([feg])|d)/g, (m, digits: string | undefined, type: string | undefined) => {
     if (m === "%%") return "%";
-    const mm = /^%[-+ 0]*\d*(?:\.(\d+))?([fFeEgGd])$/.exec(m);
-    if (!mm) return m;
-    const prec = mm[1] !== undefined ? parseInt(mm[1]!, 10) : undefined;
-    const type = mm[2]!;
-    if (type === "d") return String(Math.round(v));
-    if (type === "e" || type === "E") return v.toExponential(prec);
-    if (type === "g" || type === "G") return String(v);
-    return v.toFixed(prec ?? 6); // f / F
+    if (type === undefined) return String(Math.sign(v) * Math.round(Math.abs(v)) || 0); // %d
+    // toFixed and toExponential take at most 100 digits and throw past it.
+    const prec = Math.min(parseInt(digits!, 10), 100);
+    if (type === "e") return exponent(v.toExponential(prec));
+    if (type === "g") return significant(v, prec);
+    return v.toFixed(prec);
   });
+}
+
+// printf writes at least two exponent digits: `3.333e-01`, not `3.333e-1`.
+const exponent = (s: string): string => s.replace(/e([+-])(\d)$/, "e$10$2");
+
+// `%.Ng`: N significant digits (0 counts as 1), in fixed notation unless the
+// exponent is below -4 or at least N, trailing zeros and a bare point removed.
+function significant(v: number, prec: number): string {
+  const p = Math.max(prec, 1);
+  const e = v.toExponential(p - 1);
+  const x = Number(e.slice(e.indexOf("e") + 1));
+  const strip = (s: string): string => (s.includes(".") ? s.replace(/0+$/, "").replace(/\.$/, "") : s);
+  if (x < -4 || x >= p) {
+    const at = e.indexOf("e");
+    return exponent(strip(e.slice(0, at)) + e.slice(at));
+  }
+  return strip(v.toFixed(Math.min(p - 1 - x, 100)));
 }
 
 // Recursive-descent evaluator restricted to + - * / ( ) and aggregate funcs.
@@ -336,7 +390,15 @@ export function parseTable(
   if (typeof caption === "string") model.caption = caption;
 
   // Build body cells with inline content and numeric values.
-  for (const r of raw.cells) {
+  for (const [ri, r] of raw.cells.entries()) {
+    // §6: a row is cut or padded to the column count — the header's, or a
+    // header-less table's widest row — and never silently.
+    if (r.length !== columns.length) {
+      const n = Math.abs(r.length - columns.length);
+      const which = n === 1 ? "cell is" : `${n} cells are`;
+      const fix = r.length > columns.length ? `the extra ${which} dropped` : `the missing ${which} empty`;
+      diagnostics.push({ severity: "warning", code: "ragged-table-row", message: `table body row ${ri + 1} has ${r.length} cell${r.length === 1 ? "" : "s"} for ${columns.length} column${columns.length === 1 ? "" : "s"}; ${fix}` });
+    }
     const row: TableCell[] = [];
     for (let c = 0; c < columns.length; c++) {
       const text = r[c] ?? "";

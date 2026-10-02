@@ -55,6 +55,7 @@ export type DiagnosticCode =
   | "bad-table-delimiter"
   | "bad-embed-part"
   | "ignored-table-delimiter"
+  | "ragged-table-row"
   | "bad-compute-formula"
   | "compute-error"
   | "compute-non-numeric-cell"
@@ -190,6 +191,7 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   "bad-table-delimiter": "error",
   "bad-embed-part": "warning",
   "ignored-table-delimiter": "warning",
+  "ragged-table-row": "warning",
   "bad-compute-formula": "error",
   "compute-error": "error",
   "compute-non-numeric-cell": "warning",

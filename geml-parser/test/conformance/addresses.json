@@ -1,0 +1,158 @@
+[
+  {
+    "name": "prose between two blocks is P-between-N",
+    "geml": "=== note {#a}\nx\n===\n\nprose\n\n=== note {#b}\ny\n===\n",
+    "want": "block:note \"prose\" block:note",
+    "addresses": [
+      "#a",
+      "#a-between-b",
+      "#b"
+    ]
+  },
+  {
+    "name": "prose that opens a section is C-before-N; prose that closes it is C-after-P",
+    "geml": "# Pub {#pub}\n\nintro\n\n=== code {#cmd}\nx\n===\n\noutro\n",
+    "want": "h1(\"Pub\") \"intro\" block:code \"outro\"",
+    "addresses": [
+      "#pub",
+      "#pub-before-cmd",
+      "#cmd",
+      "#pub-after-cmd"
+    ]
+  },
+  {
+    "name": "prose that is all a section holds has no address of its own: the section names it",
+    "geml": "# Only {#only}\n\njust prose\n",
+    "want": "h1(\"Only\") \"just prose\"",
+    "addresses": [
+      "#only"
+    ]
+  },
+  {
+    "name": "prose beside an anonymous block has no address",
+    "geml": "=== note {#a}\nx\n===\n\nprose\n\n=== note\ny\n===\n",
+    "want": "block:note \"prose\" block:note",
+    "addresses": [
+      "#a"
+    ]
+  },
+  {
+    "name": "prose directly in the document body opens no container with an id",
+    "geml": "intro\n\n=== note {#a}\nx\n===\n",
+    "want": "\"intro\" block:note",
+    "addresses": [
+      "#a"
+    ]
+  },
+  {
+    "name": "a declared id wins over the prose address it spells",
+    "geml": "=== note {#a}\nx\n===\n\nprose\n\n=== note {#b}\ny\n===\n\n=== note {#a-between-b}\nz\n===\n",
+    "want": "block:note \"prose\" block:note block:note",
+    "addresses": [
+      "#a",
+      "#b",
+      "#a-between-b"
+    ],
+    "diagnostics": []
+  },
+  {
+    "name": "headings are containers; a heading is an anchor like a block",
+    "geml": "# A\n\n## B\n\nx\n\n=== note {#n}\ny\n===\n\n## C\n",
+    "want": "h1(\"A\") h2(\"B\") \"x\" block:note h2(\"C\")",
+    "addresses": [
+      "#a",
+      "#b",
+      "#b-before-n",
+      "#n",
+      "#c"
+    ]
+  },
+  {
+    "name": "a document's one meta block is #meta",
+    "geml": "=== meta\nt = \"x\"\n===\n\n=== note {#n}\ny\n===\n",
+    "want": "block:note",
+    "addresses": [
+      "#meta",
+      "#n"
+    ]
+  },
+  {
+    "name": "with two meta blocks #meta names the merge, which is no block of its own",
+    "geml": "=== meta\nt = \"x\"\n===\n\n=== meta\nu = \"y\"\n===\n",
+    "want": "",
+    "addresses": []
+  },
+  {
+    "name": "a nested block's id is an address too, after its parent's",
+    "geml": "==== note {#outer}\n=== note {#in}\nx\n===\n====\n",
+    "want": "block:note",
+    "addresses": [
+      "#outer",
+      "#in"
+    ]
+  },
+  {
+    "name": "a typed block's flow body is a container: the prose before, between and after its blocks",
+    "geml": "==== note {#outer}\nlead\n\n=== code {#a}\nx\n===\n\nmiddle\n\n=== code {#b}\ny\n===\n\ntail\n====\n",
+    "want": "block:note",
+    "addresses": [
+      "#outer",
+      "#outer-before-a",
+      "#a",
+      "#a-between-b",
+      "#b",
+      "#outer-after-b"
+    ]
+  },
+  {
+    "name": "a heading inside a flow body is the innermost container of the prose under it",
+    "geml": "==== note {#outer}\n## Inner {#inner}\n\nunder the heading\n\n=== code {#c}\nx\n===\n====\n",
+    "want": "block:note",
+    "addresses": [
+      "#outer",
+      "#inner",
+      "#inner-before-c",
+      "#c"
+    ]
+  },
+  {
+    "name": "a flow body that is all prose is named by its block",
+    "geml": "=== note {#n}\njust prose\n===\n",
+    "want": "block:note",
+    "addresses": [
+      "#n"
+    ]
+  },
+  {
+    "name": "a raw body is no container: what it holds is content",
+    "geml": "==== code {#c}\nlead\n=== note {#y}\nz\n===\n====\n",
+    "want": "block:code",
+    "addresses": [
+      "#c"
+    ]
+  },
+  {
+    "name": "inside an anonymous block, prose between two named blocks has an address and its edges do not",
+    "geml": "==== note\nlead\n\n=== code {#a}\nx\n===\n\nmiddle\n\n=== code {#b}\ny\n===\n\ntail\n====\n",
+    "want": "block:note",
+    "addresses": [
+      "#a",
+      "#a-between-b",
+      "#b"
+    ]
+  },
+  {
+    "name": "a reference to prose inside a block resolves like any other address",
+    "geml": "==== note {#outer}\nlead\n\n=== code {#a}\nx\n===\n## Inner {#inner}\n\nunder\n\n=== code {#c}\ny\n===\n====\n\nSee [[#outer-before-a]] and [[#inner-before-c]].\n\n=== embed {src=#outer-before-a}\n===\n",
+    "want": "block:note \"See \" ref(\"#outer-before-a\") \" and \" ref(\"#inner-before-c\") \".\" embed(\"#outer-before-a\")",
+    "addresses": [
+      "#outer",
+      "#outer-before-a",
+      "#a",
+      "#inner",
+      "#inner-before-c",
+      "#c"
+    ],
+    "diagnostics": []
+  }
+]

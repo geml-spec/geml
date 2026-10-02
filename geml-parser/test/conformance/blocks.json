@@ -1,0 +1,171 @@
+[
+  {
+    "name": "attribute values are typed: a bare number, a boolean, a flag, a bare word",
+    "geml": "=== note {#n .a .b caption=\"Hi there\" n=3 neg=-1 f=1.5 e=1e3 dot=.5 t=true fa=false flag word=bare}\nx\n===\n",
+    "want": "block:note",
+    "blocks": "note#n.a.b{\"caption\":\"Hi there\",\"dot\":0.5,\"e\":1000,\"f\":1.5,\"fa\":false,\"flag\":true,\"n\":3,\"neg\":-1,\"t\":true,\"word\":\"bare\"}[p(\"x\")]",
+    "diagnostics": [
+      "unknown-attribute:warning",
+      "unknown-attribute:warning",
+      "unknown-attribute:warning",
+      "unknown-attribute:warning",
+      "unknown-attribute:warning",
+      "unknown-attribute:warning",
+      "unknown-attribute:warning",
+      "unknown-attribute:warning",
+      "unknown-attribute:warning"
+    ]
+  },
+  {
+    "name": "a quoted value is always a string",
+    "geml": "=== note {#n n=\"3\" t=\"true\"}\nx\n===\n",
+    "want": "block:note",
+    "blocks": "note#n{\"n\":\"3\",\"t\":\"true\"}[p(\"x\")]"
+  },
+  {
+    "name": "a quoted value escapes only \" and \\",
+    "geml": "=== note {#n caption=\"say \\\"hi\\\" \\\\ \\n ok\"}\nx\n===\n",
+    "want": "block:note",
+    "blocks": "note#n{\"caption\":\"say \\\"hi\\\" \\\\ \\\\n ok\"}[p(\"x\")]"
+  },
+  {
+    "name": "a bare word that is not number syntax is a string",
+    "geml": "=== note {#n v=1.2.3 x=0x1f p=+5 q=1_000 r=5.}\nx\n===\n",
+    "want": "block:note",
+    "blocks": "note#n{\"p\":5,\"q\":\"1_000\",\"r\":5,\"v\":\"1.2.3\",\"x\":\"0x1f\"}[p(\"x\")]"
+  },
+  {
+    "name": "attribute order is not significant",
+    "geml": "=== note {word=b #n flag .c}\nx\n===\n",
+    "want": "block:note",
+    "blocks": "note#n.c{\"flag\":true,\"word\":\"b\"}[p(\"x\")]"
+  },
+  {
+    "name": "a `\\` continuation folds an attribute object across lines",
+    "geml": "=== note {#n \\\n    caption=\"a\" \\\n    n=2}\nx\n===\n",
+    "want": "block:note",
+    "blocks": "note#n{\"caption\":\"a\",\"n\":2}[p(\"x\")]"
+  },
+  {
+    "name": "a NAME written twice in one attribute object is an error",
+    "geml": "=== note {#n k=1 k=2}\nx\n===\n",
+    "want": "block:note",
+    "diagnostics": [
+      "duplicate-name:error",
+      "unknown-attribute:warning"
+    ]
+  },
+  {
+    "name": "a key a type does not define is a warning, and is kept",
+    "geml": "=== code {#c lang=sh colour=red}\nx\n===\n",
+    "want": "block:code",
+    "blocks": "code#c{\"colour\":\"red\",\"lang\":\"sh\"}(\"x\")",
+    "diagnostics": [
+      "unknown-attribute:warning"
+    ]
+  },
+  {
+    "name": "`hidden` is a flag on every typed block",
+    "geml": "=== note {#n hidden}\nx\n===\n",
+    "want": "block:note",
+    "blocks": "note#n{\"hidden\":true}[p(\"x\")]"
+  },
+  {
+    "name": "a flow body holds prose and nested blocks",
+    "geml": "==== note {#outer}\npara\n\n=== note {#inner}\ny\n===\n====\n",
+    "want": "block:note",
+    "blocks": "note#outer[p(\"para\") note#inner[p(\"y\")]]",
+    "ids": [
+      "outer",
+      "inner"
+    ]
+  },
+  {
+    "name": "three levels nest by fence length",
+    "geml": "===== note {#a}\n==== note {#b}\n=== note {#c}\nz\n===\n====\n=====\n",
+    "want": "block:note",
+    "blocks": "note#a[note#b[note#c[p(\"z\")]]]",
+    "ids": [
+      "a",
+      "b",
+      "c"
+    ]
+  },
+  {
+    "name": "a raw body is verbatim: a fence inside it is text, and defines no id",
+    "geml": "==== code {#c}\n=== note {#x}\nz\n===\n====\n",
+    "want": "block:code",
+    "blocks": "code#c(\"=== note {#x}\\nz\\n===\")",
+    "ids": [
+      "c"
+    ]
+  },
+  {
+    "name": "a `%%` line in a flow body is hidden; in a raw body it is text",
+    "geml": "==== note {#n}\n%% a note to self\nvisible\n=== code {#c}\n%% kept\n===\n====\n",
+    "want": "block:note",
+    "blocks": "note#n[hidden p(\"visible\") code#c(\"%% kept\")]"
+  },
+  {
+    "name": "a labeled close closes its own block",
+    "geml": "=== note {#a}\nx\n=== #a\n",
+    "want": "block:note",
+    "blocks": "note#a[p(\"x\")]",
+    "diagnostics": []
+  },
+  {
+    "name": "a bare close inside a labeled block still closes it; the labeled close after it is stray",
+    "geml": "=== code {#c}\na\n===\nb\n=== #c\n",
+    "want": "block:code \"b\\n=== #c\"",
+    "blocks": "code#c(\"a\") p(\"b\\n=== #c\")",
+    "diagnostics": [
+      "stray-labeled-fence:warning"
+    ]
+  },
+  {
+    "name": "an unterminated block runs to the end of the document",
+    "geml": "=== note {#n}\nx\n",
+    "want": "block:note",
+    "blocks": "note#n[p(\"x\")]",
+    "diagnostics": [
+      "unterminated-block:error"
+    ]
+  },
+  {
+    "name": "a `text` block's body is prose",
+    "geml": "=== text {#t}\nphrase *one*\n\nphrase two\n===\n",
+    "want": "block:text",
+    "blocks": "text#t[p(\"phrase \" em(\"one\")) p(\"phrase two\")]"
+  },
+  {
+    "name": "an unknown type keeps its body verbatim",
+    "geml": "=== acme-chart {#a}\n*not emphasis*\n===\n",
+    "want": "block:acme-chart",
+    "blocks": "acme-chart#a(\"*not emphasis*\")",
+    "diagnostics": [
+      "unknown-block-type:warning"
+    ]
+  },
+  {
+    "name": "a ``` pair inside a flow body shields its lines; the block after the body is a block",
+    "geml": "==== note {#outer}\n```\n=== note {#inner}\nx\n===\n```\n====\n\n=== note {#after}\ny\n===\n",
+    "want": "block:note block:note",
+    "blocks": "note#outer[p(code(\"\\n=== note {#inner}\\nx\\n===\\n\"))] note#after[p(\"y\")]",
+    "ids": [
+      "outer",
+      "after"
+    ]
+  },
+  {
+    "name": "a meta block holds the keys it defines",
+    "geml": "=== meta\ntitle = \"t\"\nn = 3\nok = true\n===\n",
+    "want": "",
+    "blocks": "meta({\"n\":3,\"ok\":true,\"title\":\"t\"})"
+  },
+  {
+    "name": "a heading carries its derived id in the tree",
+    "geml": "# Use `x` here\n\ntext\n",
+    "want": "h1(\"Use \" code(\"x\") \" here\") \"text\"",
+    "blocks": "h1#use-here(\"Use \" code(\"x\") \" here\") p(\"text\")"
+  }
+]

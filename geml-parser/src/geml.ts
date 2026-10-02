@@ -25,11 +25,12 @@ import { type Diagnostic, normalizeSource } from "./diagnostics.js";
 import type { DiagnosticCode } from "./diagnostics.js";
 import { type Attrs, type Value, coerce, duplicateNames, oddNames, parseAttrs } from "./attrs.js";
 import { type Inline, type Ref, type RefSink, META_REF_SRC, parseInline , isSafeUrl, schemeOf, lineOf } from "./inline.js";
-import { type TableCell, type TableDiag, type TableModel, deriveView, parseTable } from "./table.js";
+import { type TableCell, type TableDiag, type TableModel, deriveView, parseTable, trimWhiteSpace } from "./table.js";
 import { type ChartModel, USES, buildChart } from "./chart.js";
 import { mdToGeml } from "./from-md.js";
 import { parseYaml } from "./yaml.js";
 import { parseEdn } from "./edn.js";
+import { iJsonFault, valueFault } from "./ijson.js";
 import { serialize } from "./serialize.js";
 import {
   type Addressed, type Selector, type Unit,
@@ -79,12 +80,21 @@ export type DataValue = null | boolean | number | string | DataValue[] | { [key:
 // an inline body, the block's own line for external content.
 function parseDataBody(fmt: string, body: string[], openLineNo: number): { value?: DataValue; diags: Diagnostic[] } {
   const diags: Diagnostic[] = [];
+  // §3.2: valid JSON is not yet a value of the domain — see ijson.ts.
+  const outside = (why: string, line: number): void => {
+    diags.push({ severity: "error", code: "data-parse", message: `data: ${why}, which the value domain excludes (I-JSON)`, line });
+  };
   if (fmt === "json") {
     const text = body.join("\n");
-    try { return { value: JSON.parse(text) as DataValue, diags }; }
+    let value: DataValue;
+    try { value = JSON.parse(text) as DataValue; }
     catch (e) {
       diags.push({ severity: "error", code: "data-parse", message: `data: body is not valid JSON (${e instanceof Error ? e.message : String(e)})`, line: jsonErrorLine(e, text, openLineNo) });
+      return { diags };
     }
+    const fault = iJsonFault(text);
+    if (!fault) return { value, diags };
+    outside(fault.why, openLineNo + text.slice(0, fault.offset).split("\n").length);
   } else if (fmt === "jsonl") {
     const values: DataValue[] = [];
     let ok = true;
@@ -95,7 +105,10 @@ function parseDataBody(fmt: string, body: string[], openLineNo: number): { value
       catch {
         diags.push({ severity: "error", code: "data-parse", message: `data: body line ${li + 1} is not one JSON value`, line: openLineNo + 1 + li });
         ok = false;
+        continue;
       }
+      const fault = iJsonFault(t);
+      if (fault) { outside(`body line ${li + 1}: ${fault.why}`, openLineNo + 1 + li); ok = false; }
     }
     if (ok) return { value: values, diags };
   } else if (fmt === "yaml") {
@@ -104,14 +117,20 @@ function parseDataBody(fmt: string, body: string[], openLineNo: number): { value
     // without one still keeps the body raw and warns. Reading a construct
     // outside the subset is a parse failure, not a guess.
     const r = parseYaml(body);
-    if ("value" in r) return { value: r.value, diags };
-    diags.push({ severity: "error", code: "data-parse", message: `data: body is not YAML this processor reads (${r.error})`, line: openLineNo + 1 + r.line });
+    if ("value" in r) {
+      const fault = valueFault(r.value);
+      if (!fault) return { value: r.value, diags };
+      outside(fault, openLineNo);
+    } else diags.push({ severity: "error", code: "data-parse", message: `data: body is not YAML this processor reads (${r.error})`, line: openLineNo + 1 + r.line });
   } else if (fmt === "edn") {
     // §3.2 reserves the name; this processor ships an engine for it (edn.ts),
     // whose reading is deliberately NOT specified — see that file's header.
     const r = parseEdn(body);
-    if ("value" in r) return { value: r.value, diags };
-    diags.push({ severity: "error", code: "data-parse", message: `data: body is not EDN this processor reads (${r.error})`, line: openLineNo + 1 + r.line });
+    if ("value" in r) {
+      const fault = valueFault(r.value);
+      if (!fault) return { value: r.value, diags };
+      outside(fault, openLineNo);
+    } else diags.push({ severity: "error", code: "data-parse", message: `data: body is not EDN this processor reads (${r.error})`, line: openLineNo + 1 + r.line });
   } else if (fmt === "toml") {
     diags.push({ severity: "warning", code: "data-format-no-engine", message: `data: no \`${fmt}\` engine in this processor; body kept raw, not verified`, line: openLineNo });
   } else {
@@ -664,14 +683,47 @@ function renderedText(inlines: Inline[]): string {
   return out;
 }
 
+// §4 step 3: delete every code span, recognized exactly as §5.3 phase 1 does —
+// an escaped backtick opens none, a run of n backticks closes on the next run
+// of n, and a `$…$` span is verbatim, so a backtick inside it opens nothing.
+// A single-backtick pattern here kept the content of ``x`` in the id.
+function withoutCodeSpans(s: string): string {
+  let out = "";
+  let i = 0;
+  while (i < s.length) {
+    const c = s[i]!;
+    if (c === "\\" && /[!-/:-@[-`{-~]/.test(s.charAt(i + 1))) { out += s.slice(i, i + 2); i += 2; continue; }
+    if (c === "`") {
+      let n = 0;
+      while (s[i + n] === "`") n++;
+      const close = s.indexOf("`".repeat(n), i + n);
+      if (close >= 0) { i = close + n; continue; }
+      out += s.slice(i, i + n);
+      i += n;
+      continue;
+    }
+    if (c === "$") {
+      const close = s.indexOf("$", i + 1);
+      if (close > i + 1) { out += s.slice(i, close + 1); i = close + 1; continue; }
+    }
+    out += c;
+    i++;
+  }
+  return out;
+}
+
+// Whitespace is Unicode's White_Space property throughout, not `\s`: the two
+// differ on U+FEFF (not White_Space) and U+0085 (White_Space), and an id has to
+// come out the same in every implementation.
 function slug(text: string): string {
-  return text
-    .toLowerCase()                                  // §4 step 1
-    .normalize("NFD")                                // step 2
-    .replace(/`[^`]*`/g, "")                         // step 3
-    .replace(/[^\p{L}\p{N}\s\-_]/gu, "")            // step 4
-    .trim()                                          // step 5
-    .replace(/\s+/g, "-");                           // step 6
+  const kept = withoutCodeSpans(
+    text
+      .toLowerCase()                                   // §4 step 1
+      .normalize("NFD"),                               // step 2
+  )                                                    // step 3
+    .replace(/[^\p{L}\p{N}\p{White_Space}\-_]/gu, ""); // step 4
+  return trimWhiteSpace(kept)                          // step 5
+    .replace(/\p{White_Space}+/gu, "-");               // step 6
 }
 
 // §4: two NAMEs are the same name when equal after NFD normalization. Every
@@ -2408,20 +2460,26 @@ function validateCoordRef(ref: Ctx["refs"][number], children: Block[], ctx: Ctx,
   // §5.2: a projection — inline or an embed's `src=` — may stand for one value
   // or one row, never a whole column or a value-tree node holding more nodes.
   const projected = ref.node?.type === "project";
-  let shown = hit.text;
+  // A reference says what an inline projection of the same coordinate says —
+  // one rule for both. A whole column or a value-tree node that holds more
+  // nodes has no inline text: projected it is an error, referenced it still
+  // resolves, says nothing of its own and links to the block that holds it.
+  const inline = inlineProjection(hit, written);
+  let shown: string | undefined;
   if (projected) {
-    const inline = inlineProjection(hit, written);
     if (!inline.ok) return err("inline-transclusion-not-inline", `\`![[${written}]]\` projects inline content, but ${inline.why}`);
     shown = inline.text;
   } else if (ref.embed && (hit.shape === "column" || hit.shape === "tree")) {
     return err("embed-target-not-projectable", `\`=== embed {src=${written}}\` cannot stand for that target: ${notProjectable(hit.shape, written)}`);
+  } else if (inline.ok) {
+    shown = inline.text;
   }
   // The answer lands on the node: a coordinate has no anchor of its own, so a
   // renderer that had to work this out would need the document model — and
   // there are four renderers. What the reference SAYS is the projected text;
   // where a link may point is the block that holds it.
   if (ref.node) {
-    ref.node.value = shown;
+    if (shown !== undefined) ref.node.value = shown;
     // `#meta` is the merged view rather than a block, so it has no anchor a
     // link could point at: leaving `base` unset is what tells a renderer to
     // put the value in as text.
@@ -3157,11 +3215,13 @@ function collectSpans(
       const id = a?.id;
       const { end, closed } = fenceClose(lines, i, open, consumed);
       if (id !== undefined) add(id, base + i, base + end);
-      units?.push({ span: { start: base + i, end: base + end }, kind: "block", type, ...(id !== undefined ? { id } : {}), ...keysOf(a) });
       // Only a flow body is scanned for nested blocks (raw/data bodies are
       // opaque), so an id inside a `code` body is *not* addressable — exactly
       // the parser's contract.
-      if ((REGISTRY.get(type) ?? ctx.vocab.bodies.get(type) ?? "raw") === "flow" && depth < MAX_NESTING) {
+      const flow = (REGISTRY.get(type) ?? ctx.vocab.bodies.get(type) ?? "raw") === "flow";
+      const body = { start: base + i + consumed, end: base + (closed ? end - 1 : end) };
+      units?.push({ span: { start: base + i, end: base + end }, kind: "block", type, ...(id !== undefined ? { id } : {}), ...keysOf(a), ...(flow ? { body } : {}) });
+      if (flow && depth < MAX_NESTING) {
         collectSpans(lines.slice(i + consumed, closed ? end - 1 : end), base + i + consumed, out, ctx, depth + 1, units);
       }
       i = end;
@@ -3347,8 +3407,15 @@ function findDeclaredTarget(blocks: Block[], id: string): Block[] | null {
 //
 // A run is a maximal stretch of non-anchor blocks; anchors are `heading` and
 // `block`. `paragraph`, `list` and `hidden` are content and fall inside a run.
+// A typed block with a flow body is a container too (§4): its children are
+// walked with the block as the container their headings nest inside.
 export function proseRunTargets(blocks: Block[]): Map<string, Block[]> {
   const out = new Map<string, Block[]>();
+  collectRunTargets(blocks, null, out);
+  return out;
+}
+
+function collectRunTargets(blocks: Block[], root: { id?: string } | null, out: Map<string, Block[]>): void {
   const stack: Extract<Block, { kind: "heading" }>[] = [];
   let prev: Block | null = null;   // last anchor INSIDE the current container
   let run: Block[] = [];
@@ -3356,7 +3423,7 @@ export function proseRunTargets(blocks: Block[]): Map<string, Block[]> {
   const isAnchor = (b: Block): boolean => b.kind === "heading" || b.kind === "block";
   const flush = (next: Block | null): void => {
     if (run.length > 0) {
-      const container = stack.length > 0 ? stack[stack.length - 1]! : null;
+      const container = stack.length > 0 ? stack[stack.length - 1]! : root;
       const id = runAddress(
         container === null ? null : { id: container.id },
         prev === null ? null : { id: (prev as { id?: string }).id },
@@ -3382,9 +3449,9 @@ export function proseRunTargets(blocks: Block[]): Map<string, Block[]> {
     }
     flush(b);
     prev = b;
+    if (b.kind === "block" && b.mode === "flow" && b.children) collectRunTargets(b.children, { id: b.id }, out);
   }
   flush(null);
-  return out;
 }
 
 // GEP 0010 — the prose runs between addressable units, each given the address
@@ -3405,36 +3472,31 @@ export function proseRunTargets(blocks: Block[]): Map<string, Block[]> {
 // document body (the root has no id). Those keep the content address `@<hex>` they
 // already had — the proposal's own fallback for anonymous neighbours.
 function proseRuns(units: Unit[], lineCount: number): Unit[] {
-  // Containers are HEADINGS: a heading's region runs to the next heading of its
-  // own level or shallower, so a stack over document order nests them correctly.
-  // A block is never a container here — its body is scanned by collectSpans into
-  // units of its own, and those are skipped below rather than treated as siblings.
+  // Containers are HEADINGS and typed blocks with a FLOW body (§4). A heading's
+  // region runs to the next heading of its own level or shallower, and a block's
+  // is its body, so a stack over document order nests them correctly — a
+  // heading inside a note is the innermost container of the prose under it.
   const children = new Map<Unit | null, Unit[]>();
   const stack: Unit[] = [];
   for (const u of units) {
     while (stack.length > 0 && u.span.start >= stack[stack.length - 1]!.span.end) stack.pop();
     const parent = stack.length > 0 ? stack[stack.length - 1]! : null;
     (children.get(parent) ?? children.set(parent, []).get(parent)!).push(u);
-    if (u.kind === "heading") stack.push(u);
+    if (u.kind === "heading" || u.body !== undefined) stack.push(u);
   }
 
   const runs: Unit[] = [];
   for (const [container, kids] of children) {
-    // A heading's body starts the line AFTER its own line; the document's starts
-    // at the top. Its end is the container's region end, or the last line.
-    const bodyStart = container === null ? 0 : container.span.start + 1;
-    const bodyEnd = container === null ? lineCount : container.span.end;
+    // A heading's body starts the line AFTER its own line and a block's after
+    // its opening fence; the document's starts at the top. It ends at the
+    // heading's region end, the block's closing fence, or the last line.
+    const bodyStart = container === null ? 0 : container.body?.start ?? container.span.start + 1;
+    const bodyEnd = container === null ? lineCount : container.body?.end ?? container.span.end;
 
-    // Skip a unit nested INSIDE a preceding sibling — collectSpans descends into
-    // flow bodies, so `=== code` inside a `note` arrives here as a sibling of the
-    // note it lives in, and treating it as one would invert a gap.
-    const siblings: Unit[] = [];
-    let cursor = bodyStart;
-    for (const k of kids) {
-      if (k.span.start < cursor) continue;
-      siblings.push(k);
-      cursor = k.span.end;
-    }
+    // Every unit nested inside a sibling belongs to that sibling's container —
+    // a heading, or a block with a flow body; nothing else holds units — so the
+    // children listed here are exactly the siblings.
+    const siblings = kids;
 
     const gaps: { from: number; to: number; prev: Unit | null; next: Unit | null }[] = [];
     let at = bodyStart;

@@ -19,17 +19,11 @@ const errs = (doc) => doc.diagnostics.filter((d) => d.severity === "error");
 // to-md.js
 // ---------------------------------------------------------------------------
 
-// escPipe (the GFM cell escape) matches a backslash RUN and an optional pipe as
-// one atomic token, because the obvious `(\\*)\|` is quadratic: on a run that
-// never reaches a pipe the engine retries from every index in it (16k
-// backslashes took 99 ms and grew with the square — js/polynomial-redos). The
-// arm that regression would live in is exactly this one: a run with no pipe
-// after it, which must come out BYTE-IDENTICAL — not doubled, not trimmed.
-//
-// Its sibling arm, the one that doubles a run before the escape, cannot be
-// reached from here at all: GEML's table row parser has no `\|` escape, so it
-// splits on the raw byte and a pipe never survives into a cell. Nothing in this
-// file can produce one; see the note in the commit.
+// escPipe (the GFM cell escape) puts one backslash before each pipe and touches
+// nothing else, so a backslash run that reaches no pipe must come out
+// BYTE-IDENTICAL — not doubled, not trimmed — and in linear time: a
+// backtracking expression such as `(\\*)\|` is quadratic on that run (16k
+// backslashes took 99 ms and grew with the square — js/polynomial-redos).
 test("to-md: a backslash run in a cell survives the pipe escape unchanged", () => {
   const { md: out } = md("=== table {#t}\n| a | b |\n|---|---|\n| `x\\\\\\\\y` | q |\n===\n");
   const row = out.split("\n").find((l) => l.includes("x"));
@@ -46,6 +40,23 @@ test("to-md: a backslash run in a cell survives the pipe escape unchanged", () =
   md(`=== table {#t}\n| a |\n|---|\n| \`${evil}\` |\n===\n`);
   const ms = Date.now() - t0;
   assert.ok(ms < 3000, `a 120k backslash run took ${ms} ms — the cell escape is backtracking again (js/polynomial-redos)`);
+});
+
+// GitHub reads any `|` right after a `\` as cell content and drops that one
+// backslash, code spans included; GEML's visual form reads a row the same way
+// (§6(a)). So each pipe goes out with exactly one backslash in front of it, and
+// the Markdown reads back as the cells it came from.
+test("to-md: a pipe in a cell goes out as `\\|`, code spans included, and reads back as the same cell", () => {
+  // Cell 1 is a code span holding `x\|y` (a backslash, then a pipe); cell 2 is text `p | q`.
+  const src = "=== table {#t}\n| a | b |\n|---|---|\n| `x\\\\|y` | p \\| q |\n===\n";
+  const cells = (doc) => doc.children.find((b) => b.type === "table").table.rows[0].map((c) => c.text);
+  assert.deepEqual(cells(parse(src)), ["`x\\|y`", "p | q"]);
+  const { md: out } = md(src);
+  const row = out.split("\n").find((l) => l.includes("x"));
+  assert.equal(row, "| `x\\\\|y` | p \\| q |", "one backslash before each pipe — the code span's own backslash is not doubled");
+  const back = parse(mdToGeml(out).geml);
+  assert.deepEqual(cells(back), ["`x\\|y`", "p | q"], "and the Markdown reads back as the same two cells");
+  assert.deepEqual(back.children.find((b) => b.type === "table").table.rows[0][0].inlines, [{ type: "code", value: "x\\|y" }]);
 });
 
 test("to-md: strike/math/image/break and every link-destination shape", () => {
@@ -288,13 +299,13 @@ test("table: src table respects an explicit header attribute", () => {
   assert.equal(t.src, "x.csv");
 });
 
-test("table: compute display formats %d/%e/%g/%f and %% literal", () => {
-  const t = parse('=== table {#facts format=csv}\nA,B\n2.5,5\n===\n\n=== view {#v src=#facts compute="D [%d] = A; E [%.1e] = A; G [%g] = A; F [%f] = A; P [%.1f%%] = A/B*100"}\n===\n').children[1].table;
+test("table: compute display formats %d/%.Ne/%.Ng/%.Nf and %% literal", () => {
+  const t = parse('=== table {#facts format=csv}\nA,B\n2.5,5\n===\n\n=== view {#v src=#facts compute="D [%d] = A; E [%.1e] = A; G [%.3g] = A; F [%.6f] = A; P [%.1f%%] = A/B*100"}\n===\n').children[1].table;
   const cell = (name) => t.rows[0][t.columns.indexOf(name)].text;
-  assert.equal(cell("D"), "3");        // %d rounds, no precision
-  assert.equal(cell("E"), "2.5e+0");   // %e with precision
-  assert.equal(cell("G"), "2.5");      // %g -> String
-  assert.equal(cell("F"), "2.500000"); // %f default precision 6
+  assert.equal(cell("D"), "3");        // %d rounds, ties away from zero
+  assert.equal(cell("E"), "2.5e+00");  // %e writes at least two exponent digits
+  assert.equal(cell("G"), "2.5");      // %g keeps N significant digits, trailing zeros dropped
+  assert.equal(cell("F"), "2.500000"); // %f to N places
   assert.equal(cell("P"), "50.0%");    // %% literal percent
 });
 

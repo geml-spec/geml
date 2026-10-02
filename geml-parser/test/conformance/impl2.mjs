@@ -260,6 +260,104 @@ function inline(s) {
 }
 
 // ---------------------------------------------------------------------------
+// The data value domain — §3.2
+// ---------------------------------------------------------------------------
+
+// A `data` body is JSON read under I-JSON's limits (§3.2): a member name may
+// not occur twice in one object, a string may not hold a lone surrogate, and a
+// number must have a finite binary64 value. Read by a parser of its own, not
+// JSON.parse, which keeps the last of two equal names without a word.
+function readIJson(text) {
+  let i = 0;
+  const fail = (why) => { throw new Error(`${why} at offset ${i}`); };
+  const ws = () => { while (i < text.length && " \t\n\r".includes(text[i])) i++; };
+  const ESC = { '"': '"', "\\": "\\", "/": "/", b: "\b", f: "\f", n: "\n", r: "\r", t: "\t" };
+  const string = () => {
+    i++;
+    let out = "";
+    for (;;) {
+      const c = text[i];
+      if (c === undefined) fail("unterminated string");
+      if (c === '"') { i++; break; }
+      if (c < " ") fail("raw control character in a string");
+      if (c !== "\\") { out += c; i++; continue; }
+      const e = text[i + 1];
+      if (e in ESC) { out += ESC[e]; i += 2; continue; }
+      const hex = text.slice(i + 2, i + 6);
+      if (e !== "u" || !/^[0-9a-fA-F]{4}$/.test(hex)) fail("bad escape");
+      out += String.fromCharCode(parseInt(hex, 16));
+      i += 6;
+    }
+    // Escapes may spell half a pair; only a whole pair is a character.
+    for (let k = 0; k < out.length; k++) {
+      const u = out.charCodeAt(k);
+      if (u >= 0xd800 && u <= 0xdbff) {
+        const v = out.charCodeAt(k + 1);
+        if (v >= 0xdc00 && v <= 0xdfff) { k++; continue; }
+        fail("lone surrogate");
+      }
+      if (u >= 0xdc00 && u <= 0xdfff) fail("lone surrogate");
+    }
+    return out;
+  };
+  const value = () => {
+    ws();
+    const c = text[i];
+    if (c === '"') return string();
+    if (c === "{") {
+      i++;
+      const o = {};
+      const names = new Set();
+      ws();
+      if (text[i] === "}") { i++; return o; }
+      for (;;) {
+        ws();
+        if (text[i] !== '"') fail("expected a member name");
+        const k = string();
+        if (names.has(k)) fail("a member name occurs twice");
+        names.add(k);
+        ws();
+        if (text[i] !== ":") fail("expected `:`");
+        i++;
+        Object.defineProperty(o, k, { value: value(), enumerable: true, writable: true, configurable: true });
+        ws();
+        if (text[i] === ",") { i++; continue; }
+        if (text[i] === "}") { i++; return o; }
+        fail("expected `,` or `}`");
+      }
+    }
+    if (c === "[") {
+      i++;
+      const a = [];
+      ws();
+      if (text[i] === "]") { i++; return a; }
+      for (;;) {
+        a.push(value());
+        ws();
+        if (text[i] === ",") { i++; continue; }
+        if (text[i] === "]") { i++; return a; }
+        fail("expected `,` or `]`");
+      }
+    }
+    for (const [word, v] of [["true", true], ["false", false], ["null", null]]) {
+      if (text.startsWith(word, i)) { i += word.length; return v; }
+    }
+    const m = /-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/y;
+    m.lastIndex = i;
+    const n = m.exec(text);
+    if (!n) fail("expected a value");
+    const x = Number(n[0]);
+    if (!Number.isFinite(x)) fail("a number past binary64's range");
+    i += n[0].length;
+    return x;
+  };
+  const v = value();
+  ws();
+  if (i !== text.length) fail("text after the value");
+  return v;
+}
+
+// ---------------------------------------------------------------------------
 // Metadata interpolation — §4
 // ---------------------------------------------------------------------------
 
@@ -469,8 +567,8 @@ function blocks(lines, meta) {
         const fm = obj ? /(?:^|\s)format\s*=\s*("([^"]*)"|([^\s}]+))/.exec(obj[1]) : null;
         const format = fm ? (fm[2] ?? fm[3]) : "json";
         try {
-          if (format === "json") blk.value = JSON.parse(body.join("\n"));
-          else if (format === "jsonl") blk.value = body.filter((l) => l.trim() !== "").map((l) => JSON.parse(l));
+          if (format === "json") blk.value = readIJson(body.join("\n"));
+          else if (format === "jsonl") blk.value = body.filter((l) => l.trim() !== "").map(readIJson);
         } catch { /* no value */ }
       }
       out.push(blk);
@@ -498,6 +596,9 @@ function blocks(lines, meta) {
 }
 
 export function parse2(src) {
-  const lines = src.replace(/\r\n?/g, "\n").split("\n");
+  // §0.5, after decoding: one leading U+FEFF goes, every line ending becomes
+  // U+000A, and U+0000 becomes U+FFFD — in that order.
+  const normalized = src.replace(/^﻿/, "").replace(/\r\n?/g, "\n").replace(/\u0000/g, "�");
+  const lines = normalized.split("\n");
   return { kind: "document", children: blocks(lines, collectMeta(lines)) };
 }

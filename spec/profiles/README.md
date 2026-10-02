@@ -257,8 +257,8 @@ Each profile carries `geml-<thing>/conformance.json` beside its document: the
 | Field | What it fixes |
 |---|---|
 | `codes` | every diagnostic code and its default severity — the part a second implementation copies |
-| `cases[].addresses` | the addresses a document carries when the vocabulary is recognized, and when it is not |
-| `cases[].admits` | which names stop being `unknown-*` on declaration |
+| `cases[].addresses` | the `#…` addresses a document carries when the vocabulary is recognized, and when it is not |
+| `cases[].diagnostics` | each reading's diagnostics as `code:severity` multisets — what declaring the vocabulary stops being `unknown-*`, stated in codes rather than in message text |
 
 The addresses are the point. §8.6.2 rule 4 lets a vocabulary's **declared body
 mode** change the addressable set and lets nothing else do so, and these files
@@ -274,8 +274,8 @@ One asymmetry is worth knowing before writing a case: a **nested** admitted name
 does not produce `unknown-block-type` in the undeclared reading. Its container
 falls back to a `raw` body, so the block inside it is never scanned as a block
 at all — it is text. `form-field` behaves this way. The suite therefore asks
-that a document produce *some* `unknown-*` without its declaration, not that
-every admitted name produce one.
+that a document produce *more* `unknown-*` without its declaration than with
+it, not that every admitted name produce one.
 
 This is not §8.4. The specification's suite is stated over the document model
 and deliberately says nothing about any vocabulary — its own cases all declare a

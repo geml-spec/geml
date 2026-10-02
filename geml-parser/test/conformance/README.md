@@ -10,6 +10,19 @@ part of the document model, so that is pinned by the parser's own suites; what t
 suite fixes is how the two forms parse and what they carry. A second, independent
 GEML implementation **conforms** when it reproduces every `want`.
 
+A case may also carry the fields below, and may give its input as `geml_base64` —
+bytes, for §0.1's decoding — instead of `geml`. [`manifest.json`](manifest.json)
+lists every case file with the capabilities it needs, and the capability each
+field needs; a harness runs what its implementation's capabilities reach.
+[`_runner.mjs`](_runner.mjs) is the reference harness.
+
+| Field | Holds |
+|---|---|
+| `ids` | the document's block ids, declared and derived, in document order |
+| `addresses` | the `#…` addresses a listing of the document gives, in order: block and heading ids, §4 prose addresses, `#meta` |
+| `blocks` | the block tree — the grammar is below |
+| `diagnostics` | the `code:severity` of each diagnostic Appendix A catalogues, compared as a multiset |
+
 | File | Covers |
 |------|--------|
 | `inline.json` | emphasis / strong / strikethrough by delimiter-run flanking, the rule of three, escapes, intraword and nested cases |
@@ -18,12 +31,24 @@ GEML implementation **conforms** when it reproduces every `want`.
 | `interp.json` | `{{key}}` metadata interpolation: substitution in paragraphs/headings/list items, the verbatim-atom skips (code span, inline math), the `\{{key}}` escape, unknown keys kept literal |
 | `transclusion.json` | the `embed` block and its target (a document, a fragment, a local id), and inline projection `![[…]]` in and out of a sentence |
 | `safety.json` | the URL-scheme rule of [GEML-spec §9](../../../spec/GEML-spec.md#9-security-and-resource-limits): which destinations are neutralized in the MODEL, and — just as important — which must survive |
+| `data.json` | the `data` block's value tree (§3.2): `json` and `jsonl` parsed and projected, the bodies that carry no value, and I-JSON's limits — a repeated name, a lone surrogate, a number past binary64 |
+| `fences.json` | typed-block fences (§3): glued and spaced spellings, labeled closes, what is not a type name, the ` ``` ` shield |
+| `vocabulary.json` | a `profile` declaration does not change the document model (§8.6) |
+| `coordinates.json` | coordinate references (§5.2): rows, cells, columns, `[summary]`, `#meta`, value trees, header-less letters, out-of-range; a table's row width (§6) |
+| `views.json` | the `view` block (§6.1): `where=`, `order=`, `limit=`, `select=`, `compute=`, `summary=`, `by=` / `aggregate=` |
+| `ids.json` | heading-id derivation (§4): code spans, diacritics, Unicode letters, numbers and whitespace, collisions |
+| `normalize.json` | §0.5: one leading U+FEFF removed, every line ending one U+000A, U+0000 and ill-formed UTF-8 as U+FFFD |
+| `blocks.json` | the block tree (§3, §4): nesting by fence length, raw vs. flow bodies, labeled and unterminated closes, `%%` lines, attribute typing and escapes |
+| `addresses.json` | what a listing gives (§4): `P-between-N`, `C-before-N`, `C-after-P`, what has none, a declared id shadowing a derived one, `#meta` |
+| `yaml.json` | the subset a `yaml` engine must read (§3.2), and what lies outside it |
 
 Run via `npm test`. Two runners consume these cases: [`../conformance.test.mjs`](../conformance.test.mjs)
 checks the reference parser, and [`../second-impl.test.mjs`](../second-impl.test.mjs)
 checks a **second, independent implementation** ([`impl2.mjs`](impl2.mjs), written
-only from the spec, importing none of the reference parser). Both reproducing
-every `want` is the spec's acceptance test (§8).
+only from the spec, importing none of the reference parser). impl2 builds the
+projection and nothing else, so it declares no capability: it skips the files
+that need one, and the `geml_base64` cases. Both reproducing every `want` is the
+spec's acceptance test (§8).
 
 ## Security requirements: what this suite can and cannot certify
 
@@ -71,9 +96,25 @@ Projection grammar, in brief:
 ```
 text   "abc"          emphasis  em( … )        strong  strong( … )    strike  s( … )
 code   code("…")      math      math("…")      break   br             image   img("src")
-link   link("target" … )   auto-ref  ref("target")    footnote  fn("id")
-embed  embed("target")     projection  project("target")
+link   link("target" … )   auto-ref  ref("target") | ref("target" -> "value")    footnote  fn("id")
+embed  embed("target")     projection  project("target") | project("target" -> "value")
 para   children, space-separated         heading  h<level>( … )
 list   ul[…] | ol[…]   ( "*" = loose, "@N" = ordered start N )
 item   li(…) | li[ ](…) | li[x](…)   with nested lists appended inside
+data   data(<JSON>)        table / view  table(<columns> <row>… [summary <row>])   ( each a JSON array of cell texts )
+other  block:<type>        %% line  hidden
+```
+
+`-> "value"` is the text a resolved coordinate says (GEML-spec §5.2). A JSON value
+prints as `JSON.stringify` writes it. Adjacent text nodes print as one string and
+an empty one as nothing: how an implementation splits text is not part of the
+model. Map keys print sorted by UTF-16 code unit.
+
+```
+blocks  each item of the document, space-joined:
+        p( … )  h<level>#<id>( … )  ul[…] / ol[…]  hidden
+        <type>[#<id>][.<class>…][<attributes as JSON>]<body>
+body    [ items… ]          a flow or prose body
+        ( "<raw text>" )    a raw body, its lines joined by \n
+        ( <JSON> )          a meta block: the keys it defines
 ```

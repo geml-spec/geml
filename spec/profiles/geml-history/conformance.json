@@ -6,9 +6,6 @@
     {
       "name": "the sidecar's three block types, with the attributes the revision carries",
       "geml": "=== meta\nprofile = \"geml-history/v1\"\n===\n\n=== history-revision {#r1 author=\"a\" summary=\"s\" hash=\"h\"}\nbody\n===\n",
-      "admits": [
-        "history-revision"
-      ],
       "addresses": {
         "declared": [
           "#meta",
@@ -17,6 +14,12 @@
         "undeclared": [
           "#meta",
           "#r1"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning"
         ]
       }
     }

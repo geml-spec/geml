@@ -14,8 +14,10 @@
 //                 part a second implementation copies; before it existed the
 //                 answer was forty strings scattered through a checker.
 //   · `cases`   — for each, the ADDRESSES a document carries when the vocabulary
-//                 is recognized and when it is not, and which names stop being
-//                 `unknown-*` on declaration.
+//                 is recognized and when it is not, and the DIAGNOSTICS of each
+//                 reading as `code:severity` multisets — what declaring the
+//                 vocabulary stops being `unknown-*`, stated in codes, so a
+//                 second implementation need not word its messages like this one.
 //
 // The addresses are the point. §8.6.2 rule 4 (GEP-0013) allows a vocabulary's
 // declared body mode to change the addressable set, and allows nothing else to.
@@ -24,7 +26,7 @@
 // prose body creates no ids, so both readings see the same set. A case that
 // drifts across that line fails below, whichever direction it drifts.
 import { PROFILES } from "../dist/profiles.js";
-import { parse } from "../dist/geml.js";
+import { parse, CATALOGUE_EXEMPT } from "../dist/geml.js";
 import { readFileSync, existsSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
@@ -44,14 +46,18 @@ const stemOf = (name) => name.replace(/^geml-/, "").replace(/\/v\d+$/, "");
 const fileFor = (name) => join(PROFILES_DIR, `geml-${stemOf(name)}`, "conformance.json");
 
 // `geml list`'s addresses, which is the contract a reader sees — not an internal
-// projection this test could quietly redefine.
+// projection this test could quietly redefine. Only the `#…` ones: the CLI's own
+// content addresses (`@…`, `=== type…`) are no specification's.
 function addresses(geml) {
   const f = join(work, "case.geml");
   writeFileSync(f, geml);
   const r = spawnSync(process.execPath, [CLI, "list", f, "--json"], { encoding: "utf8" });
   assert.equal(r.status, 0, `geml list failed: ${r.stderr}`);
-  return JSON.parse(r.stdout).map((b) => b.address);
+  return JSON.parse(r.stdout).map((b) => b.address).filter((a) => a.startsWith("#"));
 }
+const diagnosticsOf = (geml) =>
+  parse(geml).diagnostics.filter((d) => !CATALOGUE_EXEMPT.some((p) => d.code.startsWith(p))).map((d) => `${d.code}:${d.severity}`).sort();
+const UNKNOWN = /^unknown-(block-type|attribute):/;
 // The same document with its declaration removed — §8.6.2 rule 3's other reading.
 const undeclare = (g) => g.replace(/^profile\s*=.*$/m, 'title = "undeclared"');
 
@@ -96,23 +102,19 @@ test("规则 4：地址集只在词汇表声明了 body 模式时才可以不同
   }
 });
 
-test("放行：声明之后那些名字不再是 unknown-*，不声明时仍然是", () => {
+test("放行：两种读法的诊断就是文件里记的那两组，且声明之后 unknown-* 变少", () => {
+  // 比的是 code:severity 多重集，不比消息文字：第二实现的措辞不必和这一份一样。
   for (const name of Object.keys(PROFILES)) {
     const f = JSON.parse(readFileSync(fileFor(name), "utf8"));
     for (const c of f.cases) {
-      const declared = parse(c.geml).diagnostics;
-      const bare = parse(undeclare(c.geml)).diagnostics;
-      const unknownOf = (diags) => diags.filter((d) => /^unknown-(block-type|attribute)$/.test(d.code));
-      for (const n of c.admits) {
-        assert.ok(!unknownOf(declared).some((d) => d.message.includes(`\`${n}\``)),
-          `${name} / ${c.name}：声明之后 \`${n}\` 仍被报为 unknown-*`);
-      }
-      // 反向只要求**至少一个**：一个 NESTED 的名字在不声明时根本不会被报成
-      // unknown，因为它的容器退回 raw 体之后，里面那个块从没被当成块扫过 —— 它
-      // 是纯文本。geml-form 的 form-field 就是这种。所以「不声明时会警告」是关于
-      // 这份文档的断言，不是关于每个名字的。
-      assert.ok(c.admits.some((n) => unknownOf(bare).some((d) => d.message.includes(`\`${n}\``))),
-        `${name} / ${c.name}：不声明时一个 unknown-* 都没有 —— 那这份文档根本不需要这份词汇表放行什么`);
+      assert.deepEqual(diagnosticsOf(c.geml), [...c.diagnostics.declared].sort(), `${name} / ${c.name}（声明时）`);
+      assert.deepEqual(diagnosticsOf(undeclare(c.geml)), [...c.diagnostics.undeclared].sort(), `${name} / ${c.name}（不声明）`);
+      // 只要求不声明时**更多**，不要求每个放行的名字各报一条：一个 NESTED 的名字
+      // 在不声明时根本不会被报成 unknown，因为它的容器退回 raw 体之后，里面那个
+      // 块从没被当成块扫过 —— 它是纯文本。geml-form 的 form-field 就是这种。
+      const unknowns = (xs) => xs.filter((x) => UNKNOWN.test(x)).length;
+      assert.ok(unknowns(c.diagnostics.undeclared) > unknowns(c.diagnostics.declared),
+        `${name} / ${c.name}：不声明时的 unknown-* 不比声明时多 —— 那这份文档根本不需要这份词汇表放行什么`);
     }
   }
 });

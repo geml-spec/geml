@@ -30,6 +30,45 @@ and is released under `viewer-v*` tags.
   lines stand on both sides, the one at the document's edge otherwise. An add
   followed by a delete leaves the bytes as they were; spacing beyond one
   blank line stays as the author wrote it. The MCP tool runs the same verb.
+- **A coordinate reference says what its inline projection says.**
+  `[[#v[1]]]` read a row in its body's own form — `| y | b |` for a view or a
+  pipe grid, `a; b` with `delim=;` — while `![[#v[1]]]` read `y, b`. Both now
+  read the cells joined by ", " (§5.2). A whole column or a non-leaf value-tree
+  node still resolves and links to its block, but carries no value.
+- **Derived heading ids follow §4 to the letter.** A double-backtick code span
+  left its content in the id (`## Use ``x`` here` derived `#use-x-here`); every
+  code span is now deleted as §5.3 recognizes one. Whitespace is the Unicode
+  `White_Space` property, so U+FEFF is deleted rather than separating and
+  U+0085 separates.
+- **A `data` value stays inside I-JSON (RFC 7493).** A name twice in one
+  object, a lone surrogate, a number past binary64's range are `data-parse`
+  errors in json, jsonl, yaml and edn alike (§3.2) — JSON.parse kept the last
+  name silently and made `1e400` null.
+- **A table row of the wrong width says so.** Extra cells were dropped and
+  missing ones padded silently; both now raise the new `ragged-table-row`
+  warning naming the row (§6, Appendix A).
+- **`\|` is a literal pipe in a visual table cell**, code spans included, as
+  on GitHub; `geml set` writes `|` as `\|` instead of refusing it (§6(a)).
+- **A cell's text is trimmed of `White_Space`.** `trim()` matched no Unicode
+  property (it removed U+FEFF, kept U+0085); a coordinate write keeps the same
+  set as padding (§6).
+- **Display formats are one exact subset.** `%d` rounded ties toward +∞
+  (`-2.5` → `-2`) while `%.0f` gave `-3`; both now round ties away from zero.
+  `%g` keeps N significant digits (it ignored N), `%e` writes two exponent
+  digits, any other `%…` form stays text, a precision past 100 is held at 100.
+  The unformatted display is now written in §6.
+- **Prose inside a typed block's flow body has an address** —
+  `#outer-before-a`, `#a-between-b`, `#outer-after-b` — listed, readable and
+  writable with get/set, and a reference to it resolves (§4). It had no address
+  at all before, not even a content one.
+- **`--to md` puts one backslash before a cell's pipe.** The exporter doubled a
+  backslash run first, so a code span holding `x\|y` came out as `x\\|y` on
+  GitHub; `--from md` now reads the row back exactly.
+- **The conformance suite is language-neutral.** `manifest.json` +
+  `_runner.mjs`; optional `ids`/`addresses`/`blocks`/`diagnostics` and
+  `geml_base64`; tables and views project as relations; new files ids,
+  normalize, blocks, addresses, yaml; profile files state diagnostics as code
+  multisets.
 
 ## [1.11.6] — 2026-10-02
 

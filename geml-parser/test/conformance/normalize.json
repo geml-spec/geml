@@ -1,0 +1,80 @@
+[
+  {
+    "name": "one leading U+FEFF is removed",
+    "geml": "﻿hello",
+    "want": "\"hello\"",
+    "diagnostics": []
+  },
+  {
+    "name": "only ONE leading U+FEFF is removed; a second is content",
+    "geml": "﻿﻿hello",
+    "want": "\"﻿hello\""
+  },
+  {
+    "name": "a U+FEFF anywhere else is content",
+    "geml": "a﻿b",
+    "want": "\"a﻿b\""
+  },
+  {
+    "name": "CRLF and LF give one model",
+    "geml": "- a\r\n- b\r\n",
+    "want": "ul[li(\"a\") li(\"b\")]"
+  },
+  {
+    "name": "a lone CR is a line ending too",
+    "geml": "- a\r- b\r",
+    "want": "ul[li(\"a\") li(\"b\")]"
+  },
+  {
+    "name": "mixed line endings give one model",
+    "geml": "- a\r\n- b\r- c\n",
+    "want": "ul[li(\"a\") li(\"b\") li(\"c\")]"
+  },
+  {
+    "name": "a line ending inside a paragraph is one newline, whichever it was",
+    "geml": "a\r\nb\rc",
+    "want": "\"a\\nb\\nc\""
+  },
+  {
+    "name": "line endings inside a block normalize like any others",
+    "geml": "=== note {#n}\r\nbody\r\n===\r\n",
+    "want": "block:note",
+    "blocks": "note#n[p(\"body\")]"
+  },
+  {
+    "name": "U+0000 becomes U+FFFD in prose",
+    "geml": "a\u0000b",
+    "want": "\"a�b\""
+  },
+  {
+    "name": "U+0000 becomes U+FFFD in a raw body too",
+    "geml": "=== code {#c}\nx\u0000y\n===\n",
+    "want": "block:code",
+    "blocks": "code#c(\"x�y\")"
+  },
+  {
+    "name": "the byte-order mark is removed from the bytes as decoded",
+    "geml_base64": "77u/aGk=",
+    "want": "\"hi\""
+  },
+  {
+    "name": "an ill-formed byte is U+FFFD",
+    "geml_base64": "Yf9i",
+    "want": "\"a�b\""
+  },
+  {
+    "name": "a continuation byte with no lead is U+FFFD",
+    "geml_base64": "YYBi",
+    "want": "\"a�b\""
+  },
+  {
+    "name": "an overlong encoding is two ill-formed bytes, two U+FFFD",
+    "geml_base64": "YcCvYg==",
+    "want": "\"a��b\""
+  },
+  {
+    "name": "well-formed multi-byte text decodes as itself",
+    "geml_base64": "6K6+6K6hIOKckyDwn5iA",
+    "want": "\"设计 ✓ 😀\""
+  }
+]

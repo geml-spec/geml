@@ -144,6 +144,48 @@ test("delim= on a table with no data format is an ignored-table-delimiter warnin
   assert.deepEqual(d.children[0].table.columns, ["A"]);
 });
 
+test("a visual cell holds a pipe written `\\|`, code spans included; every other pipe separates (§6(a))", () => {
+  const d = parse("=== table {#t}\n| A | B |\n|---|---|\n| `x \\| y` | a \\| b |\n| c | d \\|\n===");
+  assert.deepEqual(d.diagnostics, []);
+  assert.deepEqual(d.children[0].table.rows.map((r) => r.map((c) => c.text)), [["`x | y`", "a | b"], ["c", "d |"]]);
+  assert.deepEqual(d.children[0].table.rows[0][0].inlines, [{ type: "code", value: "x | y" }]);
+});
+
+test("display format: only the five forms §6 lists convert, and a precision past 100 is held (§6)", () => {
+  const col = (compute) => {
+    const d = parse(`=== table {#t format=csv header=1}\nN\n1\n12345\n===\n\n=== view {#v src=#t compute="${compute}"}\n===\n`);
+    assert.deepEqual(d.diagnostics, [], compute);
+    return d.children[1].table.rows.map((r) => r[1].text);
+  };
+  for (const f of ["%.2E", "%.2G", "%.2F", "%f", "%e", "%g", "%.2d", "%s"]) {
+    assert.deepEqual(col(`X [${f} n] = N / 3`), [`${f} n`, `${f} n`], `${f} is not one of the five, so it stays text`);
+  }
+  assert.deepEqual(col("X [%5d] = N / 3"), ["0", "4115"], "a width before %d is ignored");
+  assert.deepEqual(col("X [%.0g] = N * 25"), ["3e+01", "3e+05"], "a precision of 0 keeps one significant digit");
+  const long = col("X [%.200f] = N / 3; Y [%.200g] = N / 3; Z [%.200e] = N / 3");
+  assert.equal(long[0].split(".")[1].length, 100, "toFixed takes at most 100 digits; a longer precision is held there, never thrown");
+});
+
+test("a whitespace-only cell is empty, and a long whitespace run trims in linear time (§6)", () => {
+  const d = parse("=== table {format=csv header=1}\nA,B\n   ,x\n===");
+  assert.deepEqual(d.children[0].table.rows[0].map((c) => c.text), ["", "x"]);
+  const run = " ".repeat(200_000);
+  const t0 = Date.now();
+  parse(`=== table {format=csv header=1}\nA,B\n${run}x${run}y${run},z\n===`);
+  assert.ok(Date.now() - t0 < 3000, "trimming a cell must not backtrack over its inner whitespace");
+});
+
+test("a row wider or narrower than the table is cut or padded, and says so (§6)", () => {
+  const d = parse("=== table {format=csv header=1}\nA, B\n1, 2, 3, 4\n5\n6, 7\n===");
+  assert.deepEqual(d.children[0].table.rows.map((r) => r.map((c) => c.text)), [["1", "2"], ["5", ""], ["6", "7"]]);
+  assert.deepEqual(d.diagnostics.map((x) => [x.code, x.severity, x.message]), [
+    ["ragged-table-row", "warning", "table body row 1 has 4 cells for 2 columns; the extra 2 cells are dropped"],
+    ["ragged-table-row", "warning", "table body row 2 has 1 cell for 2 columns; the missing cell is empty"],
+  ]);
+  const one = parse("=== table {format=csv header=1}\nA\n1, 2\n===");
+  assert.match(one.diagnostics[0].message, /2 cells for 1 column; the extra cell is dropped$/);
+});
+
 test("delim= is a registered attribute on table and diagram (no unknown-attribute)", () => {
   for (const src of [
     '=== table {format=csv delim=";"}\nA;B\n===',

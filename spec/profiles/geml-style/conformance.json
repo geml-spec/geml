@@ -28,9 +28,6 @@
     {
       "name": "a style-rule is a block type this vocabulary admits; its body stays raw",
       "geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#r match=\"=== note\"}\n===\n",
-      "admits": [
-        "style-rule"
-      ],
       "addresses": {
         "declared": [
           "#meta",
@@ -39,6 +36,12 @@
         "undeclared": [
           "#meta",
           "#r"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning"
         ]
       }
     }

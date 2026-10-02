@@ -263,6 +263,8 @@ export function parseYaml(body: string[]): YamlResult {
       refuseExtras(rawKey, l.n);
       const qk = quotedScalar(rawKey);
       const key = qk === null ? rawKey : qk;
+      // §3.2: no map in the value tree holds a key twice, whichever engine read it.
+      if (Object.prototype.hasOwnProperty.call(out, key)) throw new Refusal(`the mapping has the key \`${key}\` twice`, l.n);
       const rest = l.text.slice(cut + 1).trim();
       const at = l.n;
       p++;

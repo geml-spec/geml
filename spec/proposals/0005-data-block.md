@@ -132,9 +132,10 @@ where headerless bodies already get `A, B, …` columns today.
 - `#id`, `.class`, `caption=`, `hidden` — as on any typed block. `hidden`
   supports the source-feeds-a-chart idiom unchanged.
 
-**Verification.** `format=json`: the body MUST parse as one JSON value; a
-parse failure is an **error** diagnostic naming the body-relative line.
-`format=jsonl`: every non-blank line MUST parse as one JSON value (blank lines
+**Verification.** `format=json`: the body MUST parse as one JSON value within
+the value tree's I-JSON limits (GEML-spec §3.2); a parse failure is an
+**error** diagnostic naming the body-relative line. `format=jsonl`: every
+non-blank line MUST parse as one JSON value within those limits (blank lines
 are permitted and ignored); the diagnostic names the offending line. There are
 no cross-record checks.
 

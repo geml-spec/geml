@@ -12,7 +12,7 @@ container  | select  | Granularity      | false    | module           | module d
 adapter    | select  | Adapter          | false    |                  | joern scip           | pairs with `--raw`; mutually exclusive with `--db`
 db         | path    | Graph DB         | false    |                  |                      | `--db`; mutually exclusive with `--adapter`
 raw        | path    | Raw indexer out  | false    |                  |                      | required *when* `--adapter` is given
-lang       | text    | Language         | false    |                  |                      | `--lang JAVASRC|NEWC|…`
+lang       | text    | Language         | false    |                  |                      | `--lang`: `JAVASRC`, `NEWC`, …
 joern      | path    | Joern binary     | false    |                  |                      | `--joern`
 exclude    | text    | Exclude glob     | false    |                  |                      | **repeatable**
 history    | boolean | Snapshot history | false    | false            |                      | `--history`

@@ -1,0 +1,131 @@
+[
+  {
+    "name": "a heading derives its id: code spans go, punctuation goes, whitespace runs become one hyphen",
+    "geml": "## Use `foo()` in 2024 Design",
+    "want": "h2(\"Use \" code(\"foo()\") \" in 2024 Design\")",
+    "ids": ["use-in-2024-design"]
+  },
+  {
+    "name": "a derived id carries no diacritics: NFD splits them off and step 4 deletes the marks",
+    "geml": "## Ubytovací zařízení",
+    "want": "h2(\"Ubytovací zařízení\")",
+    "ids": ["ubytovaci-zarizeni"]
+  },
+  {
+    "name": "a script that writes no combining marks is untouched",
+    "geml": "## 设计说明",
+    "want": "h2(\"设计说明\")",
+    "ids": ["设计说明"]
+  },
+  {
+    "name": "a mark with no precomposed form is deleted like any other: İ lower-cases to i + U+0307",
+    "geml": "## İstanbul",
+    "want": "h2(\"İstanbul\")",
+    "ids": ["istanbul"]
+  },
+  {
+    "name": "the id does not depend on the normalization form the text was written in",
+    "geml": "## Café\n\n## Café",
+    "want": "h2(\"Café\") h2(\"Café\")",
+    "ids": ["cafe"],
+    "diagnostics": ["duplicate-id:error"]
+  },
+  {
+    "name": "two headings that differ only in their diacritics collide",
+    "geml": "## Résumé\n\n## Resume",
+    "want": "h2(\"Résumé\") h2(\"Resume\")",
+    "ids": ["resume"],
+    "diagnostics": ["duplicate-id:error"]
+  },
+  {
+    "name": "underscores survive, so foo_bar and foobar are two ids",
+    "geml": "## foo_bar\n\n## foobar",
+    "want": "h2(\"foo_bar\") h2(\"foobar\")",
+    "ids": ["foo_bar", "foobar"]
+  },
+  {
+    "name": "a double-backtick code span is a code span: its content goes too",
+    "geml": "## Use ``x`` here",
+    "want": "h2(\"Use \" code(\"x\") \" here\")",
+    "ids": ["use-here"]
+  },
+  {
+    "name": "a code span is recognised by run length, so a shorter run inside it is content",
+    "geml": "## Use ``a`b`` here",
+    "want": "h2(\"Use \" code(\"a`b\") \" here\")",
+    "ids": ["use-here"]
+  },
+  {
+    "name": "an escaped backtick opens no code span, so the letters between stay",
+    "geml": "## a \\`b\\` c",
+    "want": "h2(\"a `b` c\")",
+    "ids": ["a-b-c"]
+  },
+  {
+    "name": "an unmatched backtick run opens no code span",
+    "geml": "## a ``b` c",
+    "want": "h2(\"a ``b` c\")",
+    "ids": ["a-b-c"]
+  },
+  {
+    "name": "a backtick inside inline math opens no code span; the code span after it still goes",
+    "geml": "## $a`b$ and `c` d",
+    "want": "h2(math(\"a`b\") \" and \" code(\"c\") \" d\")",
+    "ids": ["ab-and-d"]
+  },
+  {
+    "name": "a number is any character of General Category N, not only a decimal digit",
+    "geml": "## Step ² and ½ and Ⅳ",
+    "want": "h2(\"Step ² and ½ and Ⅳ\")",
+    "ids": ["step-²-and-½-and-ⅳ"]
+  },
+  {
+    "name": "whitespace is the White_Space property: a no-break space separates",
+    "geml": "## a b",
+    "want": "h2(\"a b\")",
+    "ids": ["a-b"]
+  },
+  {
+    "name": "whitespace is the White_Space property: NEL separates",
+    "geml": "## a\u0085b",
+    "want": "h2(\"a\u0085b\")",
+    "ids": ["a-b"]
+  },
+  {
+    "name": "whitespace is the White_Space property: U+FEFF is not in it, so it is deleted",
+    "geml": "## a﻿b",
+    "want": "h2(\"a﻿b\")",
+    "ids": ["ab"]
+  },
+  {
+    "name": "an ideographic space separates",
+    "geml": "## 设计　说明",
+    "want": "h2(\"设计　说明\")",
+    "ids": ["设计-说明"]
+  },
+  {
+    "name": "a heading with no letter and no number derives the empty id",
+    "geml": "## !!!",
+    "want": "h2(\"!!!\")",
+    "ids": [""]
+  },
+  {
+    "name": "the empty id collides like any other",
+    "geml": "## !!!\n\n## ???",
+    "want": "h2(\"!!!\") h2(\"???\")",
+    "ids": [""],
+    "diagnostics": ["duplicate-id:error"]
+  },
+  {
+    "name": "the id is derived before interpolation, so a meta value cannot move it",
+    "geml": "=== meta\nv = \"1\"\n===\n\n## Release {{v}}",
+    "want": "h2(\"Release 1\")",
+    "ids": ["release-v"]
+  },
+  {
+    "name": "an explicit id replaces the derived one",
+    "geml": "## Title {#sec}",
+    "want": "h2(\"Title\")",
+    "ids": ["sec"]
+  }
+]

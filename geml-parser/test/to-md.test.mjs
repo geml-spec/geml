@@ -1,5 +1,5 @@
 // GEML -> Markdown exporter (to-md.js): parse real GEML, assert the projection.
-import { parse, gemlToMd } from "../dist/geml.js";
+import { parse, gemlToMd, mdToGeml } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
 
 let passed = 0;
@@ -98,11 +98,14 @@ test("an unknown block type is preserved as a fenced block with a note", () => {
   assert.ok(notes.some((n) => /unknown block type/.test(n)), "unknown-type noted");
 });
 
-test("a table cell's backslash run before a pipe is doubled so the escape survives (escPipe)", () => {
-  // Cell text `c\\|d`: the run of backslashes would eat the added `\|` escape,
-  // so the exporter doubles the run — `c\\\\\|d` reads back as the same cell.
+test("a table cell's pipe gets one backslash in front, whatever backslashes precede it (escPipe)", () => {
+  // Cell text `c\\|d` renders `c\|d`; its Markdown is `c\\|d`. GitHub drops the
+  // one backslash right before a pipe and keeps the rest for the inline parse, so
+  // `c\\\|d` renders `c\|d` again — doubling the run first would add a backslash.
   const { md: out } = md("=== table {format=csv delim=;}\nh1;h2\na;c\\\\|d\n===\n");
-  assert.match(out, /c\\\\\\\\\\\|d/, "backslash run doubled, pipe escape appended");
+  assert.match(out, /\| c\\\\\\\|d \|/, "one backslash added, in front of the pipe");
+  const back = parse(mdToGeml(out).geml).children.find((b) => b.type === "table").table.rows[0][1];
+  assert.equal(back.text, "c\\\\|d", "and GEML's own reading of the row gives the cell back");
 });
 
 test("a soft-wrapped list item stays ONE item in Markdown, wrap intact (§2.2)", () => {

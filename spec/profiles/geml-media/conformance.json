@@ -40,9 +40,6 @@
     {
       "name": "a prose body adds no address: both readings see the same set",
       "geml": "=== meta\nprofile = \"geml-media/v1\"\n===\n\n=== media-text {#look .look}\nTwenty-six, **silver bob**, an old scar.\n===\n",
-      "admits": [
-        "media-text"
-      ],
       "addresses": {
         "declared": [
           "#meta",
@@ -51,15 +48,18 @@
         "undeclared": [
           "#meta",
           "#look"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning"
         ]
       }
     },
     {
       "name": "a clip carries its attributes on its own type",
       "geml": "=== meta\nprofile = \"geml-media/v1\"\n===\n\n=== media-clip {#c1 track=video src=lib.geml#a1 in=0 out=4}\n===\n",
-      "admits": [
-        "media-clip"
-      ],
       "addresses": {
         "declared": [
           "#meta",
@@ -69,15 +69,17 @@
           "#meta",
           "#c1"
         ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning"
+        ]
       }
     },
     {
       "name": "a layer carries its attributes on its own type; the comp is a flow container, so its layers are addresses only under the declaration (§8.6.2 rule 4)",
       "geml": "=== meta\nprofile = \"geml-media/v1\"\n===\n\n==== media-comp {#s05 size=720x1280}\n\n=== media-layer {#l1 src=lib.geml#bg x=0 y=0}\n===\n\n====\n",
-      "admits": [
-        "media-comp",
-        "media-layer"
-      ],
       "addresses": {
         "declared": [
           "#meta",
@@ -88,14 +90,17 @@
           "#meta",
           "#s05"
         ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning"
+        ]
       }
     },
     {
       "name": "an interaction is prose: its body adds no address, so both readings see the same set",
       "geml": "=== meta\nprofile = \"geml-media/v1\"\n===\n\n=== media-interaction {#i1 a=#l1:hand b=#l2:left-grip kind=contact}\n林岚把碗递到林夏面前。\n===\n",
-      "admits": [
-        "media-interaction"
-      ],
       "addresses": {
         "declared": [
           "#meta",
@@ -104,6 +109,12 @@
         "undeclared": [
           "#meta",
           "#i1"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning"
         ]
       }
     }

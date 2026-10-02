@@ -25,8 +25,72 @@
     "want": "block:data"
   },
   {
-    "name": "data: a nested json value round-trips through the projection intact",
+    "name": "data: a nested json value round-trips through the projection intact, its map keys sorted",
     "geml": "=== data {#nested}\n{\"rows\": [{\"k\": \"x\", \"n\": [1, 2]}, {\"k\": \"y\", \"n\": []}], \"deep\": {\"a\": {\"b\": false}}}\n===\n",
-    "want": "data({\"rows\":[{\"k\":\"x\",\"n\":[1,2]},{\"k\":\"y\",\"n\":[]}],\"deep\":{\"a\":{\"b\":false}}})"
+    "want": "data({\"deep\":{\"a\":{\"b\":false}},\"rows\":[{\"k\":\"x\",\"n\":[1,2]},{\"k\":\"y\",\"n\":[]}]})"
+  },
+  {
+    "name": "data: a member name that occurs twice in one object is outside the value domain, so the body carries no value",
+    "geml": "=== data {#dup}\n{\"a\": 1, \"a\": 2}\n===\n",
+    "want": "block:data",
+    "diagnostics": [
+      "data-parse:error"
+    ]
+  },
+  {
+    "name": "data: names are compared after their escapes are read, so \"a\" and \"\\u0061\" are the same name",
+    "geml": "=== data {#dup}\n{\"a\": 1, \"\\u0061\": 2}\n===\n",
+    "want": "block:data",
+    "diagnostics": [
+      "data-parse:error"
+    ]
+  },
+  {
+    "name": "data: the same name in two different objects is no repetition",
+    "geml": "=== data {#two}\n{\"x\": {\"a\": 1}, \"y\": {\"a\": 2}}\n===\n",
+    "want": "data({\"x\":{\"a\":1},\"y\":{\"a\":2}})",
+    "diagnostics": []
+  },
+  {
+    "name": "data: an escape that spells half a surrogate pair is outside the value domain",
+    "geml": "=== data {#s}\n[\"\\ud800\"]\n===\n",
+    "want": "block:data",
+    "diagnostics": [
+      "data-parse:error"
+    ]
+  },
+  {
+    "name": "data: an escaped surrogate PAIR is one character",
+    "geml": "=== data {#s}\n[\"\\ud83d\\ude00\"]\n===\n",
+    "want": "data([\"😀\"])",
+    "diagnostics": []
+  },
+  {
+    "name": "data: a number past the range of binary64 is outside the value domain",
+    "geml": "=== data {#n}\n[1e400]\n===\n",
+    "want": "block:data",
+    "diagnostics": [
+      "data-parse:error"
+    ]
+  },
+  {
+    "name": "data: a number is its nearest binary64 value, so 1.0 is 1 and a long integer rounds",
+    "geml": "=== data {#n}\n[1.0, 1e2, 12345678901234567890, 0.1]\n===\n",
+    "want": "data([1,100,12345678901234567000,0.1])",
+    "diagnostics": []
+  },
+  {
+    "name": "data: in jsonl the limits hold line by line",
+    "geml": "=== data {#log format=jsonl}\n{\"v\": 1}\n{\"v\": 2, \"v\": 3}\n===\n",
+    "want": "block:data",
+    "diagnostics": [
+      "data-parse:error"
+    ]
+  },
+  {
+    "name": "data: map keys print sorted by UTF-16 code unit, so \"10\" comes before \"9\" and both before \"b\"",
+    "geml": "=== data {#k}\n{\"b\": 1, \"10\": 2, \"9\": 3}\n===\n",
+    "want": "data({\"10\":2,\"9\":3,\"b\":1})",
+    "diagnostics": []
   }
 ]

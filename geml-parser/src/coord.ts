@@ -13,7 +13,7 @@
 import { serializeEdn } from "./edn.js";
 import { type Block, type DataValue, type Value } from "./geml.js";
 import { type CoordStep } from "./selector.js";
-import { type TableCell, type TableModel } from "./table.js";
+import { escapeCellPipes, whiteSpaceBounds, type TableCell, type TableModel } from "./table.js";
 
 /**
  * What a coordinate landed on: one value, a table's whole row, a table's whole
@@ -92,7 +92,7 @@ function rowText(block: Block & { kind: "block" }, cells: TableCell[]): string {
   if (fmt === "csv") {
     return texts.join(`${delimOf(block.attrs)} `);
   }
-  return `| ${texts.join(" | ")} |`;
+  return `| ${texts.map(escapeCellPipes).join(" | ")} |`;
 }
 
 // Why a `data` block has no value tree to address. GEP-0005 makes `format=`
@@ -211,8 +211,10 @@ const oneLine = (v: string): boolean => !/[\r\n]/.test(v);
 function replaceField(line: string, sep: string, ci: number, value: string): string | null {
   const parts = line.split(sep);
   if (ci >= parts.length) return null;
-  const m = /^(\s*)(.*?)(\s*)$/.exec(parts[ci]!)!;
-  parts[ci] = m[1]! + value + m[3]!;
+  // Keep the field's own padding — what the reader trims (§6) — around the value.
+  const field = parts[ci]!;
+  const [a, b] = whiteSpaceBounds(field);
+  parts[ci] = field.slice(0, a) + value + field.slice(b);
   return parts.join(sep);
 }
 
@@ -283,13 +285,10 @@ function writeTable(block: Block & { kind: "block" }, model: TableModel, path: C
   }
 
   // A visual grid: the row is rebuilt from its cells, which is also what
-  // re-pads it. `|` cannot appear in a cell of a form whose delimiter it is.
-  if (value.includes("|")) {
-    return { ok: false, why: "that value contains `|`, which a visual grid splits on — use `format=csv` (with a `delim=` the data does not contain) for cells that carry pipes" };
-  }
+  // re-pads it. A pipe in any of them goes back as `\|` (§6(a)).
   const texts = cells.map((c) => c.text);
   texts[ci] = value;
-  out[lineIdx] = `| ${texts.join(" | ")} |`;
+  out[lineIdx] = `| ${texts.map(escapeCellPipes).join(" | ")} |`;
   return { ok: true, body: out };
 }
 

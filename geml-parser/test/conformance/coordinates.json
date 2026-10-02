@@ -2,27 +2,28 @@
   {
     "name": "a coordinate reference resolves to the cell it names",
     "geml": "=== table {#fy format=csv header=1}\nSegment, Q1\nCloud, 8\nEdge, 3\n===\n\nQ1 is [[#fy[1][\"Q1\"]]].\n",
-    "want": "block:table \"Q1 is \" ref(\"#fy[1][\\\"Q1\\\"]\" -> \"8\") \".\""
+    "want": "table([\"Segment\",\"Q1\"] [\"Cloud\",\"8\"] [\"Edge\",\"3\"]) \"Q1 is \" ref(\"#fy[1][\\\"Q1\\\"]\" -> \"8\") \".\""
   },
   {
     "name": "a coordinate reference may name a whole row",
     "geml": "=== table {#fy format=csv header=1}\nSegment, Q1\nCloud, 8\nEdge, 3\n===\n\nRow: [[#fy[2]]].\n",
-    "want": "block:table \"Row: \" ref(\"#fy[2]\" -> \"Edge, 3\") \".\""
+    "want": "table([\"Segment\",\"Q1\"] [\"Cloud\",\"8\"] [\"Edge\",\"3\"]) \"Row: \" ref(\"#fy[2]\" -> \"Edge, 3\") \".\""
   },
   {
     "name": "a coordinate reference may name a summary row, which a `view` declares",
     "geml": "=== table {#fy format=csv header=1}\nSegment, Q1\nCloud, 8\nEdge, 3\n===\n\n=== view {#total src=#fy summary=\"Segment = 'Total'; Q1 = sum(Q1)\"}\n===\n\nTotal: [[#total[summary][\"Q1\"]]].\n",
-    "want": "block:table block:view \"Total: \" ref(\"#total[summary][\\\"Q1\\\"]\" -> \"11\") \".\""
+    "want": "table([\"Segment\",\"Q1\"] [\"Cloud\",\"8\"] [\"Edge\",\"3\"]) view([\"Segment\",\"Q1\"] [\"Cloud\",\"8\"] [\"Edge\",\"3\"] summary [\"Total\",\"11\"]) \"Total: \" ref(\"#total[summary][\\\"Q1\\\"]\" -> \"11\") \".\""
   },
   {
-    "name": "a coordinate reference may name a column",
+    "name": "a coordinate reference may name a column: it resolves, and carries no value of its own",
     "geml": "=== table {#fy format=csv header=1}\nSegment, Q1\nCloud, 8\nEdge, 3\n===\n\nAll: [[#fy[\"Q1\"]]].\n",
-    "want": "block:table \"All: \" ref(\"#fy[\\\"Q1\\\"]\" -> \"8\\n3\") \".\""
+    "want": "table([\"Segment\",\"Q1\"] [\"Cloud\",\"8\"] [\"Edge\",\"3\"]) \"All: \" ref(\"#fy[\\\"Q1\\\"]\") \".\"",
+    "diagnostics": []
   },
   {
     "name": "an inline projection of a coordinate is its value",
     "geml": "=== table {#fy format=csv header=1}\nSegment, Q1\nCloud, 8\nEdge, 3\n===\n\nProjected: ![[#fy[1][\"Q1\"]]].\n",
-    "want": "block:table \"Projected: \" project(\"#fy[1][\\\"Q1\\\"]\" -> \"8\") \".\""
+    "want": "table([\"Segment\",\"Q1\"] [\"Cloud\",\"8\"] [\"Edge\",\"3\"]) \"Projected: \" project(\"#fy[1][\\\"Q1\\\"]\" -> \"8\") \".\""
   },
   {
     "name": "`#meta` names the merged namespace, the first definition winning",
@@ -33,5 +34,97 @@
     "name": "a value tree resolves by key and by index",
     "geml": "=== data {#d format=json}\n{\"rows\": [{\"n\": 7}]}\n===\n\nn is [[#d[\"rows\"][0][\"n\"]]].\n",
     "want": "data({\"rows\":[{\"n\":7}]}) \"n is \" ref(\"#d[\\\"rows\\\"][0][\\\"n\\\"]\" -> \"7\") \".\""
+  },
+  {
+    "name": "a row reads as its cells joined by \", \", whatever delimiter the body was written in",
+    "geml": "=== table {#t format=csv header=1 delim=\";\"}\nA;B\n1;2\n===\n\nRow: [[#t[1]]].\n",
+    "want": "table([\"A\",\"B\"] [\"1\",\"2\"]) \"Row: \" ref(\"#t[1]\" -> \"1, 2\") \".\"",
+    "diagnostics": []
+  },
+  {
+    "name": "a reference to a value-tree node that holds more nodes resolves and carries no value of its own",
+    "geml": "=== data {#d}\n{\"rows\": [{\"n\": 7}]}\n===\n\nAll: [[#d[\"rows\"]]].\n",
+    "want": "data({\"rows\":[{\"n\":7}]}) \"All: \" ref(\"#d[\\\"rows\\\"]\") \".\"",
+    "diagnostics": []
+  },
+  {
+    "name": "a header-less table names its columns by letter",
+    "geml": "=== table {#t format=csv header=0}\nCloud, 8\nEdge, 3\n===\n\nB2: [[#t[2][\"B\"]]].\n",
+    "want": "table([\"A\",\"B\"] [\"Cloud\",\"8\"] [\"Edge\",\"3\"]) \"B2: \" ref(\"#t[2][\\\"B\\\"]\" -> \"3\") \".\"",
+    "diagnostics": []
+  },
+  {
+    "name": "a row index past the last row does not resolve",
+    "geml": "=== table {#t format=csv header=1}\nSegment, Q1\nCloud, 8\n===\n\nX: [[#t[2]]].\n",
+    "want": "table([\"Segment\",\"Q1\"] [\"Cloud\",\"8\"]) \"X: \" ref(\"#t[2]\") \".\"",
+    "diagnostics": [
+      "unresolved-reference:error"
+    ]
+  },
+  {
+    "name": "a row with more cells than the table has columns is cut to the header's width, with a warning",
+    "geml": "=== table {#t format=csv header=1}\nA, B\n1, 2, 3\n===\n",
+    "want": "table([\"A\",\"B\"] [\"1\",\"2\"])",
+    "diagnostics": [
+      "ragged-table-row:warning"
+    ]
+  },
+  {
+    "name": "a row with fewer cells is padded with empty cells, with a warning",
+    "geml": "=== table {#t format=csv header=1}\nA, B\n4\n===\n",
+    "want": "table([\"A\",\"B\"] [\"4\",\"\"])",
+    "diagnostics": [
+      "ragged-table-row:warning"
+    ]
+  },
+  {
+    "name": "a header-less table is as wide as its widest row; a shorter row is padded, with a warning",
+    "geml": "=== table {#t format=csv header=0}\n1\n2, 3\n===\n",
+    "want": "table([\"A\",\"B\"] [\"1\",\"\"] [\"2\",\"3\"])",
+    "diagnostics": [
+      "ragged-table-row:warning"
+    ]
+  },
+  {
+    "name": "the visual form's rows are held to the header's width the same way",
+    "geml": "=== table {#t}\n| A | B |\n|---|---|\n| 1 | 2 | 3 |\n===\n",
+    "want": "table([\"A\",\"B\"] [\"1\",\"2\"])",
+    "diagnostics": [
+      "ragged-table-row:warning"
+    ]
+  },
+  {
+    "name": "a header-less visual grid is as wide as its widest body row",
+    "geml": "=== table {#t}\n|---|---|\n| 1 |\n| 2 | 3 |\n===\n",
+    "want": "table([\"A\",\"B\"] [\"1\",\"\"] [\"2\",\"3\"])",
+    "diagnostics": [
+      "ragged-table-row:warning"
+    ]
+  },
+  {
+    "name": "a data body splits on the delimiter and on nothing else, so a quoted comma splits too",
+    "geml": "=== table {#t format=csv header=1}\nSegment, Q1\n\"Cloud, EU\", 8\n===\n",
+    "want": "table([\"Segment\",\"Q1\"] [\"\\\"Cloud\",\"EU\\\"\"])",
+    "diagnostics": [
+      "ragged-table-row:warning"
+    ]
+  },
+  {
+    "name": "a visual cell holds a pipe written `\\|`, code spans included; every other pipe separates",
+    "geml": "=== table {#t}\n| Key | Values |\n|---|---|\n| `order` | `asc \\| desc` |\n| sep | a \\| b |\n===\n\nRow: [[#t[1]]].\n",
+    "want": "table([\"Key\",\"Values\"] [\"`order`\",\"`asc | desc`\"] [\"sep\",\"a | b\"]) \"Row: \" ref(\"#t[1]\" -> \"`order`, `asc | desc`\") \".\"",
+    "diagnostics": []
+  },
+  {
+    "name": "a cell's text is trimmed of White_Space: a no-break space and NEL go, U+FEFF is content and stays",
+    "geml": "=== table {#t format=csv header=1}\nA,B\n x ,y\n﻿z,w\n===\n",
+    "want": "table([\"A\",\"B\"] [\"x\",\"y\"] [\"﻿z\",\"w\"])",
+    "diagnostics": []
+  },
+  {
+    "name": "the visual form's cells are trimmed of the same White_Space",
+    "geml": "=== table {#t}\n| A | B |\n|---|---|\n|　a　| ﻿b |\n===\n",
+    "want": "table([\"A\",\"B\"] [\"a\",\"﻿b\"])",
+    "diagnostics": []
   }
 ]

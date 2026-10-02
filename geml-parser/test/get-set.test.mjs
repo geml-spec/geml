@@ -1609,6 +1609,22 @@ test("a write refused only by errors that predate it says the edit caused none o
   rmSync(d, { recursive: true, force: true });
 });
 
+// §4：类型块的 flow 正文也是容器，正文里的散文和标题小节里的一样能单独读写，
+// 两道围栏和邻居块都是块自己的，不能被改到。
+test("get/set: 块正文里的散文按位置地址单独读写，围栏与邻居一个字不动", () => {
+  const d = mkdtempSync(join(tmpdir(), "geml-nested-prose-"));
+  const f = join(d, "doc.geml");
+  writeFileSync(f, "==== note {#outer}\nlead\n\n=== code {#a}\nx\n===\n\nmiddle\n\n=== code {#b}\ny\n===\n\ntail\n====\n");
+  const listed = run(["list", f]).out;
+  for (const a of ["#outer-before-a", "#a-between-b", "#outer-after-b"]) assert.match(listed, new RegExp(a), listed);
+  assert.equal(run(["get", f, "#outer-before-a"]).out.trim(), "lead");
+  const r = run(["set", f, "#a-between-b", "--in", "-", "-o", f], "换掉的中段。\n");
+  assert.equal(r.code, 0, r.err);
+  assert.equal(readFileSync(f, "utf8"), "==== note {#outer}\nlead\n\n=== code {#a}\nx\n===\n\n换掉的中段。\n\n=== code {#b}\ny\n===\n\ntail\n====\n");
+  assert.equal(run(["get", f, "#a-between-b"]).out.trim(), "换掉的中段。");
+  rmSync(d, { recursive: true, force: true });
+});
+
 // GEP-0010 的散文地址是**位置**派生的（`#容器-before-下一个`），不写在文本里。保 id
 // 的那道闸只看 `reparsed.ids`，那里面从来没有这类地址，于是换掉一段散文永远被判成
 // "把 id 弄没了"——而位置没动，那个地址其实一个字都不会变。

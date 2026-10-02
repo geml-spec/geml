@@ -75,25 +75,15 @@ function seq(ns: Inline[], ctx: MdCtx): string {
 }
 
 // Escape a `|` so GFM keeps it inside the cell instead of splitting the row.
-// GFM resolves backslash escapes in a row BEFORE it splits on `|`, so a
-// backslash run sitting right in front of our escape would eat it: a code span
-// holding `a\|b` became `a\\|b`, which reads as a literal backslash followed by
-// an UNescaped pipe — a spurious cell break. Double any such run first, then
-// escape the pipe. Runs already produced by escText (`\\` for a literal
-// backslash) survive this unchanged, so pre-rendered Markdown stays intact.
-//
-// The backslash run is matched as `\\+\|?` — one ATOMIC token, run and pipe
-// together — not as `(\\*)\|`. The latter is quadratic: on a cell holding a
-// long run of backslashes and no pipe, the engine matches the run from every
-// index in it and fails at the required `|` each time. Here the greedy `\\+`
-// takes the whole run in one match and the trailing `\|?` is optional, so
-// nothing backtracks and each character is visited once.
+// GitHub's tables (cmark-gfm, and markdown-it with it) read ANY `|` right after
+// a `\` as cell content and drop that one backslash before the inline parse —
+// inside a code span too, where nothing else is unescaped. So the inverse is one
+// backslash in front of every pipe, whatever stands before it. Doubling a
+// backslash run first, as a reader that counts the run's parity would need (marked
+// does), left an extra backslash in every code span holding `\|`. GEML's visual
+// form reads a row the same way (§6(a)), so `--to md` and `--from md` invert.
 function escPipe(s: string): string {
-  return s.replace(/\\+\|?|\|/g, (m) => {
-    if (m.charAt(m.length - 1) !== "|") return m; // a run with no pipe after it
-    const bs = m.slice(0, -1); // the run that would otherwise eat our escape
-    return bs + bs + "\\|";
-  });
+  return s.replace(/\|/g, "\\|");
 }
 
 // Inline text for a table cell: render inlines, then neutralise the two bytes

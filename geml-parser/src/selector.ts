@@ -39,6 +39,9 @@ export interface Unit {
   // has none.
   classes?: string[];
   attrs?: Record<string, Value>;
+  // A typed block's FLOW body: the lines between its fences. Present only for a
+  // flow body, which is what makes the block a prose container (§4).
+  body?: Span;
 }
 
 export type Selector =
