@@ -18,6 +18,8 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+## [1.12.0] — 2026-10-02
+
 - **`geml_find` walks a directory named in `path`.** The tool says a
   directory narrows the search, and `path: "docs"` answered `not a file:
   docs`: the gate in front of it admitted files only. A directory now passes
