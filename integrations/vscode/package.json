@@ -196,7 +196,7 @@
     "vscode:prepublish": "npm run compile && npm run build:webview"
   },
   "devDependencies": {
-    "@types/node": "^26.5.0",
+    "@types/node": "^26.6.3",
     "@types/vscode": "^1.90.0",
     "typescript": "^7.0.2"
   }
