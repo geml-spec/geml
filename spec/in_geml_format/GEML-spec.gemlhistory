@@ -4,12 +4,12 @@
 profile           = "geml-history/v1"
 history-of        = "GEML-spec.geml"
 geml-version      = "1.0"
-current           = "20261003T122519Z-a4d2e3f2"
+current           = "20261003T142655Z-34b9d6f9"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== history-keyframe {id="20261003T122519Z-a4d2e3f2" hash="sha256:a4d2e3f2f6c22e5ec2ebed1e648b092f0ac9aa8d4388967831a9171791ea1a72"}
+===== history-keyframe {id="20261003T142655Z-34b9d6f9" hash="sha256:34b9d6f9c3355062cf970858f4556e0580c658142449d19466b6687fcced82a4"}
 # GEML — General Expressive Markup Language
 
 *English | [中文](../GEML-spec_CN.md)*
@@ -957,7 +957,17 @@ parse to every input.
    signs, and `$$x$` is a dollar sign before the math `x`.
 2. Metadata interpolations (`{{key}}`); replaced with the scalar value.
 3. Images (`![alt](src)`), links, auto-refs (`[[#id]]`), inline projections (`![[#id]]`), and footnote refs (`[^id]`); a link or
-   ref MUST NOT nest inside another link or ref.
+   ref MUST NOT nest inside another link or ref. A link's text and an image's
+   alt run from the `[` to the `]` that balances it, counting only the brackets
+   item 1 leaves outside a code span, inline math and a backslash escape —
+   CommonMark's rule, those atoms binding tighter than link text: ``[a`]`b](x)``
+   is a link whose text holds the code span `` `]` ``, and `[a\]b](x)` one whose
+   text is `a]b`. The destination follows that `]` directly and runs from the
+   `(` to the `)` that balances it on the same line, a `\` and the character
+   after it never counting; it is kept as written, whitespace at either end
+   aside, since a coordinate in it reads its own escapes (§5.2). Where there is
+   no such `]`, or no such destination after it, the opening `[` or `!` is text
+   and scanning resumes after it.
 
 Text between atoms is literal. An **escaped** delimiter character is a literal atom
 and is therefore not eligible for emphasis.
@@ -1924,6 +1934,30 @@ for a block or a section, the three granularities are a scalar, a phrase, and
 a block.
 
 =====
+
+=== history-revision {id="20261003T142655Z-34b9d6f9" parent="20261003T122519Z-a4d2e3f2" summary="§5.3: a link's text and destination balance as CommonMark's do" hash="sha256:34b9d6f9c3355062cf970858f4556e0580c658142449d19466b6687fcced82a4" newline="lf"}
+delete @65b677f0
+insert <- blob:b169 after @055fd030
+===
+
+=== history-blob {#b169 lang=geml}
+1. Backslash escapes (`\` + ASCII punctuation → that literal character; `\` at
+   line end → hard break), code spans, and inline math; their contents are not
+   parsed further. A code span opens at a run of *n* backticks and closes at
+   the next run of **exactly** *n* backticks — CommonMark's rule: a run of any
+   other length inside it is content, which is how a span carries a backtick
+   (`` ``a`b`` `` is one span, and `` `a``b` `` is one span, not two), and an
+   opening run with no such closer is literal text, after which scanning
+   resumes. The content between the runs is verbatim; no space is trimmed.
+   Inline math opens at a `$` and closes at the next `$`, its content verbatim.
+   A `$` directly followed by another `$`, or with no `$` after it, opens
+   nothing and is literal, and scanning resumes after it: `$$` is two dollar
+   signs, and `$$x$` is a dollar sign before the math `x`.
+2. Metadata interpolations (`{{key}}`); replaced with the scalar value.
+3. Images (`![alt](src)`), links, auto-refs (`[[#id]]`), inline projections (`![[#id]]`), and footnote refs (`[^id]`); a link or
+   ref MUST NOT nest inside another link or ref.
+
+===
 
 === history-revision {id="20261003T122519Z-a4d2e3f2" parent="20261003T115848Z-5edb5113" summary="§3.3, §6: a remote source has no model at build time, and what reads it defers" hash="sha256:a4d2e3f2f6c22e5ec2ebed1e648b092f0ac9aa8d4388967831a9171791ea1a72" newline="lf"}
 delete @4af53184

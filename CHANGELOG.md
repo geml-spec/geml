@@ -18,6 +18,14 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **A link's text and its destination end where CommonMark's do.** A link's
+  text and an image's alt run to the `]` that balances the `[`, a bracket inside
+  a code span, inline math or a backslash escape not counting, so
+  ``[a`]`b](x)`` is a link; the destination balances its parentheses on one
+  line, `\)` not counting, and is kept as written. The reference parser counted
+  every bracket and let a destination run across a line end, so such text made
+  no link there, or a different one; §5.3 states the rule and
+  `precedence.json` pins it.
 - **What a third implementation needs to read a document the same way, stated
   and checked.** Running both implementations over every document in this
   repository and the site found readings the specification left open; each is

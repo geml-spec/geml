@@ -244,9 +244,16 @@ test("R2-2: control-char / obfuscated dangerous schemes never reach an href/src"
     assert.ok(!n.startsWith("data:text/html"), `no data:text/html at a sink, got: ${JSON.stringify(v)}`);
     assert.ok(!n.startsWith("vbscript:"), `no vbscript: at a sink, got: ${JSON.stringify(v)}`);
   }
-  // And the raw payloads never survive anywhere in the output.
-  assert.ok(!R2_2_HTML.includes("alert(1)"), "the javascript payload was stripped");
-  assert.ok(!R2_2_HTML.includes("<script>bad"), "the data:text/html script body never reaches the HTML");
+  // And the raw payloads never survive anywhere in the output — but for the one
+  // that spans a line: a destination ends with its line (§5.3), so that one is
+  // no link or image at all, and its characters are printed as the text they are.
+  const oneLine = R2_2_BAD.filter((d) => !d.includes("\n"));
+  const html = renderHtml(parse(oneLine.flatMap((d, i) => [`[l${i}](${d})`, "", `![m${i}](${d})`, ""]).join("\n")), { source: "x.geml" });
+  assert.ok(!html.includes("alert(1)"), "the javascript payload was stripped");
+  assert.ok(!html.includes("<script>bad"), "the data:text/html script body never reaches the HTML");
+  const split = parse("[l](java\nscript:alert(1))\n\n![m](java\nscript:alert(1))\n");
+  const kinds = split.children.flatMap((b) => (b.inlines ?? []).map((n) => n.type));
+  assert.deepEqual([...new Set(kinds)], ["text"], "a destination split by a line end makes no link and no image");
 });
 
 test("R2-2: legitimate URLs, refs and image data survive with a working href/src", () => {

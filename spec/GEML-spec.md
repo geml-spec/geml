@@ -943,7 +943,17 @@ parse to every input.
    signs, and `$$x$` is a dollar sign before the math `x`.
 2. Metadata interpolations (`{{key}}`); replaced with the scalar value.
 3. Images (`![alt](src)`), links, auto-refs (`[[#id]]`), inline projections (`![[#id]]`), and footnote refs (`[^id]`); a link or
-   ref MUST NOT nest inside another link or ref.
+   ref MUST NOT nest inside another link or ref. A link's text and an image's
+   alt run from the `[` to the `]` that balances it, counting only the brackets
+   item 1 leaves outside a code span, inline math and a backslash escape —
+   CommonMark's rule, those atoms binding tighter than link text: ``[a`]`b](x)``
+   is a link whose text holds the code span `` `]` ``, and `[a\]b](x)` one whose
+   text is `a]b`. The destination follows that `]` directly and runs from the
+   `(` to the `)` that balances it on the same line, a `\` and the character
+   after it never counting; it is kept as written, whitespace at either end
+   aside, since a coordinate in it reads its own escapes (§5.2). Where there is
+   no such `]`, or no such destination after it, the opening `[` or `!` is text
+   and scanning resumes after it.
 
 Text between atoms is literal. An **escaped** delimiter character is a literal atom
 and is therefore not eligible for emphasis.

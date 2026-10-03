@@ -196,22 +196,52 @@ function markdownDest(content: string): string {
 // balance since it returns to zero, which is what the count measured.
 interface Pairs {
   br: Int32Array;   // partner of `[` at absolute index k, or -1
-  pa: Int32Array;   // partner of `(` at absolute index k, or -1
+  lb: Int32Array;   // partner of a link text's or an image alt's `[`, or -1
+  pa: Int32Array;   // partner of a destination's `(`, or -1
   off: number;      // absolute index of the current window's first character
 }
 
+// §5.3(3): a link's text and an image's alt balance only the brackets phase 1's
+// first item leaves outside a code span, inline math and a backslash escape —
+// CommonMark's rule, those atoms binding tighter than link text. A
+// destination's parentheses skip a `\` and the character after it. A
+// reference's or a footnote's brackets are an address's, and are counted raw.
+const ESCAPABLE = /[!-/:-@[-`{-~]/;
 function pairsOf(s: string): Pairs {
   const br = new Int32Array(s.length).fill(-1);
+  const lb = new Int32Array(s.length).fill(-1);
   const pa = new Int32Array(s.length).fill(-1);
-  const bs: number[] = [], ps: number[] = [];
+  const bs: number[] = [], ls: number[] = [], ps: number[] = [];
   for (let i = 0; i < s.length; i++) {
     const c = s[i];
     if (c === "[") bs.push(i);
     else if (c === "]") { const j = bs.pop(); if (j !== undefined) br[j] = i; }
-    else if (c === "(") ps.push(i);
+  }
+  for (let i = 0; i < s.length;) {
+    const c = s[i]!;
+    if (c === "\\" && ESCAPABLE.test(s[i + 1] ?? "")) { i += 2; continue; }
+    if (c === "`") {
+      const n = backtickRun(s, i);
+      const close = findCodeSpanClose(s, i, n);
+      i = close >= 0 ? close + n : i + n;
+      continue;
+    }
+    if (c === "$") {
+      const close = s.indexOf("$", i + 1);
+      i = close > i + 1 ? close + 1 : i + 1;
+      continue;
+    }
+    if (c === "[") ls.push(i);
+    else if (c === "]") { const j = ls.pop(); if (j !== undefined) lb[j] = i; }
+    i++;
+  }
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === "\\") { i++; continue; }
+    if (c === "(") ps.push(i);
     else if (c === ")") { const j = ps.pop(); if (j !== undefined) pa[j] = i; }
   }
-  return { br, pa, off: 0 };
+  return { br, lb, pa, off: 0 };
 }
 
 // A link label is a bracket-balanced span, so the map restricted to it IS the
@@ -227,11 +257,21 @@ function pairEnd(m: Int32Array, p: Pairs, s: string, i: number): number {
   return end < s.length ? end : -1;
 }
 
-// Read a balanced `(...)` starting at s[i]==='('. Returns content and index
-// just past the closing ')', or null if unbalanced.
+// Read a destination's balanced `(...)` starting at s[i]==='('. Returns content
+// and index just past the closing ')', or null if unbalanced or broken by a
+// line end (§5.3(3)).
 function readParen(s: string, i: number, p: Pairs): { content: string; end: number } | null {
   if (s[i] !== "(") return null;
   const j = pairEnd(p.pa, p, s, i);
+  if (j < 0) return null;
+  const content = s.slice(i + 1, j);
+  return content.includes("\n") ? null : { content, end: j + 1 };
+}
+
+// Read a link's text or an image's alt, `[...]` starting at s[i]==='[' (§5.3(3)).
+function readLabel(s: string, i: number, p: Pairs): { content: string; end: number } | null {
+  if (s[i] !== "[") return null;
+  const j = pairEnd(p.lb, p, s, i);
   return j < 0 ? null : { content: s.slice(i + 1, j), end: j + 1 };
 }
 
@@ -406,7 +446,7 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth: number, p: Pai
     }
 
     if (c === "!" && s[i + 1] === "[") {
-      const label = readBracket(s, i + 1, p);
+      const label = readLabel(s, i + 1, p);
       const paren = label ? readParen(s, label.end, p) : null;
       if (label && paren) {
         const a = readAttrs(s, paren.end);
@@ -463,7 +503,7 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth: number, p: Pai
 
     // §5.3(2): link [text](dest){…}.
     if (c === "[") {
-      const label = readBracket(s, i, p);
+      const label = readLabel(s, i, p);
       const paren = label ? readParen(s, label.end, p) : null;
       if (label && paren) {
         const a = readAttrs(s, paren.end);
@@ -473,7 +513,7 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth: number, p: Pai
           type: "link",
           // The label window starts one character past this `[`, so the shared
           // maps are read at that offset instead of being rebuilt for it.
-          children: parseInline(label.content, at(i + 1), sink, depth + 1, { br: p.br, pa: p.pa, off: p.off + i + 1 }),
+          children: parseInline(label.content, at(i + 1), sink, depth + 1, { br: p.br, lb: p.lb, pa: p.pa, off: p.off + i + 1 }),
           attrs: attrObj.attrs,
         };
         if (dest.href) node.href = dest.href;

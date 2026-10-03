@@ -73,5 +73,50 @@
     "name": "a single bracket after the bang is still an image",
     "geml": "![alt](p.png)",
     "want": "img(\"p.png\")"
+  },
+  {
+    "name": "a code span in a link's text is opaque: a `]` inside it does not close the text",
+    "geml": "[a`]`b](x)\n",
+    "want": "link(\"x\" \"a\" code(\"]\") \"b\")"
+  },
+  {
+    "name": "inline math in a link's text is opaque",
+    "geml": "[a$]b$](x)\n",
+    "want": "link(\"x\" \"a\" math(\"]b\"))"
+  },
+  {
+    "name": "`$$` in a link's text is two dollar signs, and the math after it is opaque",
+    "geml": "[a$$]b$](x)\n",
+    "want": "link(\"x\" \"a$\" math(\"]b\"))"
+  },
+  {
+    "name": "an escaped bracket does not count in a link's text",
+    "geml": "[a\\]b](x)\n",
+    "want": "link(\"x\" \"a]b\")"
+  },
+  {
+    "name": "an image's alt balances as a link's text does",
+    "geml": "![a`]`b](i.png)\n",
+    "want": "img(\"i.png\")"
+  },
+  {
+    "name": "a code span that runs past a `]` decides where the text ends",
+    "geml": "[`a](x)`](y)\n",
+    "want": "link(\"y\" code(\"a](x)\"))"
+  },
+  {
+    "name": "an escaped parenthesis does not count in a destination, which is kept as written",
+    "geml": "[a](x\\)y)\n",
+    "want": "link(\"x\\\\)y\" \"a\")"
+  },
+  {
+    "name": "an escaped backslash leaves the parenthesis after it counting",
+    "geml": "[a](x\\\\)y)\n",
+    "want": "link(\"x\\\\\\\\\" \"a\") \"y)\""
+  },
+  {
+    "name": "a destination does not run past a line end",
+    "geml": "[a](x\ny)\n",
+    "want": "\"[a](x\\ny)\""
   }
 ]

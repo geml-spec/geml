@@ -64,12 +64,41 @@ function readBracket(s, i) {
   }
   return null;
 }
+// §5.3(3): a destination balances its parentheses on one line, a `\\` and the
+// character after it not counting.
 function readParen(s, i) {
   if (s[i] !== "(") return null;
   let depth = 0;
   for (let j = i; j < s.length; j++) {
+    if (s[j] === "\n") return null;
+    if (s[j] === "\\") { j++; continue; }
     if (s[j] === "(") depth++;
     else if (s[j] === ")" && --depth === 0) return { content: s.slice(i + 1, j), end: j + 1 };
+  }
+  return null;
+}
+// §5.3(3): a link's text or an image's alt balances only the brackets outside a
+// code span, inline math and a backslash escape (CommonMark's rule).
+function readLabel(s, i) {
+  if (s[i] !== "[") return null;
+  let depth = 0;
+  for (let j = i; j < s.length;) {
+    const c = s[j];
+    if (c === "\\" && /[!-/:-@[-`{-~]/.test(s[j + 1] ?? "")) { j += 2; continue; }
+    if (c === "`") {
+      let n = 0; while (s[j + n] === "`") n++;
+      const close = codeSpanClose(s, j, n);
+      j = close >= 0 ? close + n : j + n;
+      continue;
+    }
+    if (c === "$") {
+      const close = s.indexOf("$", j + 1);
+      j = close > j + 1 ? close + 1 : j + 1;
+      continue;
+    }
+    if (c === "[") depth++;
+    else if (c === "]" && --depth === 0) return { content: s.slice(i + 1, j), end: j + 1 };
+    j++;
   }
   return null;
 }
@@ -150,7 +179,7 @@ function atoms(s) {
       }
     }
     if (c === "!" && s[i + 1] === "[") {
-      const lab = readBracket(s, i + 1);
+      const lab = readLabel(s, i + 1);
       const par = lab ? readParen(s, lab.end) : null;
       if (lab && par) {
         // §9: an unsafe media scheme loses the src, keeping the alt — the same
@@ -174,7 +203,7 @@ function atoms(s) {
       if (br && br.content.startsWith("^")) { atom({ type: "footnote", ref: br.content.slice(1).trim() }, i, br.end); i = br.end; continue; }
     }
     if (c === "[") {
-      const lab = readBracket(s, i);
+      const lab = readLabel(s, i);
       const par = lab ? readParen(s, lab.end) : null;
       if (lab && par) {
         const d = classify(par.content);
