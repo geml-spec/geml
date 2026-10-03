@@ -29,7 +29,7 @@ over time, so that depending on GEML need not mean depending on one person.
   specification; the profiles under `spec/profiles/` are application layers and
   are MIT). Anyone may build
   a conformant parser without permission.
-- The **reference implementation** (`geml-parser/`, `integrations/geml-viewer/`) is MIT. It
+- The **reference implementation** (`geml-parser/`, `integrations/chrome-geml-viewer/`) is MIT. It
   is the *first* conformant implementation, not the definition of GEML.
 
 ## Succession & growth

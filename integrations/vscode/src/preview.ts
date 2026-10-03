@@ -463,7 +463,7 @@ export class PreviewManager {
       return true;
     } catch {
       void vscode.window.showErrorMessage(
-        "GEML: the preview renderer has not been built. Run `npm --prefix integrations/geml-viewer run build:vscode`.",
+        "GEML: the preview renderer has not been built. Run `npm --prefix integrations/chrome-geml-viewer run build:vscode`.",
       );
       return false;
     }

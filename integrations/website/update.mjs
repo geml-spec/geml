@@ -6,7 +6,7 @@
 //
 //   node integrations/website/update.mjs [<site-checkout>]   (default: ../geml-spec.github.io)
 //
-// Needs geml-parser built (npm run build) and integrations/geml-viewer installed (npm ci).
+// Needs geml-parser built (npm run build) and integrations/chrome-geml-viewer installed (npm ci).
 //
 //   public/playground/playground.js, fonts/   the playground bundle (geml-viewer's playground.build.mjs)
 //   public/playground/codemap/                the parser's and the viewer's own call graph
@@ -21,13 +21,13 @@ import { fileURLToPath } from "node:url";
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const site = resolve(process.argv[2] ?? join(repo, "..", "geml-spec.github.io"));
 const geml = join(repo, "geml-parser", "dist", "geml.js");
-const viewer = join(repo, "integrations", "geml-viewer");
+const viewer = join(repo, "integrations", "chrome-geml-viewer");
 const playground = join(site, "public", "playground");
 
 for (const [what, p] of [
   ["a site checkout", join(site, "public", "playground", "index.html")],
   ["the parser build (cd geml-parser && npm run build)", geml],
-  ["the viewer's node_modules (cd integrations/geml-viewer && npm ci)", join(viewer, "node_modules", "esbuild")],
+  ["the viewer's node_modules (cd integrations/chrome-geml-viewer && npm ci)", join(viewer, "node_modules", "esbuild")],
 ]) {
   if (!existsSync(p)) { console.error(`website: ${what} is missing at ${p}`); process.exit(1); }
 }

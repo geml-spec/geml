@@ -8,8 +8,8 @@ A codemap container's module *display* name is the module root's repo-relative
 path. Real repos wrap module roots in **ceremony directories** that carry no
 navigational meaning:
 
-- `integrations/geml-viewer` — geml's own `integrations/` is a management dir,
-  not a module layer; the container reads clearer as just `geml-viewer`.
+- `integrations/chrome-geml-viewer` — geml's own `integrations/` is a management dir,
+  not a module layer; the container reads clearer as just `chrome-geml-viewer`.
 - `crates/core` — a Cargo workspace parks member crates under a bare `crates/`.
 - `modules/foo`, `apps/web`, `packages/ui` — the same shape in other ecosystems.
 
@@ -72,7 +72,7 @@ note = "Ceremony folded out of module display names. Seeded on first build; edit
 ===
 
 === fold-prefixes
-# above the module root: integrations/geml-viewer -> geml-viewer
+# above the module root: integrations/chrome-geml-viewer -> geml-viewer
 integrations
 crates
 ===
@@ -108,7 +108,7 @@ other:
 
 1. **`fold-prefixes`** apply to the **module-root path** (`mod`). Strip the
    leading run of segments matching a listed prefix (single or multi-segment,
-   e.g. `libs/vendor`). `integrations/geml-viewer` → `geml-viewer`.
+   e.g. `libs/vendor`). `integrations/chrome-geml-viewer` → `geml-viewer`.
 2. **`source-roots` / `test-roots`** apply to the **module-relative path**
    (`rel`, i.e. the path *below* the module root). Strip the leading matching
    source/test root; a `test-root` match additionally routes the container to

@@ -14,10 +14,10 @@ on:
     paths:
       - geml-parser/src/**
       - geml-parser/package.json
-      - integrations/geml-viewer/src/**
-      - integrations/geml-viewer/playground-entry.js
-      - integrations/geml-viewer/playground.build.mjs
-      - integrations/geml-viewer/package.json
+      - integrations/chrome-geml-viewer/src/**
+      - integrations/chrome-geml-viewer/playground-entry.js
+      - integrations/chrome-geml-viewer/playground.build.mjs
+      - integrations/chrome-geml-viewer/package.json
       - integrations/website/**
       - docs/assets/logo/**
       - .github/workflows/website.yml
@@ -60,7 +60,7 @@ jobs:
           cache: npm
           cache-dependency-path: |
             geml-parser/package-lock.json
-            integrations/geml-viewer/package-lock.json
+            integrations/chrome-geml-viewer/package-lock.json
 
       - name: Build the parser
         if: steps.key.outputs.ok == 'true'
@@ -69,7 +69,7 @@ jobs:
 
       - name: Install the viewer (esbuild, KaTeX, Mermaid)
         if: steps.key.outputs.ok == 'true'
-        working-directory: integrations/geml-viewer
+        working-directory: integrations/chrome-geml-viewer
         run: npm ci
 
       - name: Write the site's files and check its demos

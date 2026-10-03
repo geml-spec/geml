@@ -659,13 +659,13 @@ test("normalize: file-mode container paths are normalised too (src stripped, rep
 });
 
 test("normalize: fold-prefixes strip a leading ceremony run (single and multi-segment)", () => {
-  const roots = ["integrations/geml-viewer", "libs/vendor/auth"];
+  const roots = ["integrations/chrome-geml-viewer", "libs/vendor/auth"];
   const m = normalizeDirs(
-    ["integrations/geml-viewer/src/x", "integrations/geml-viewer/src/y",
+    ["integrations/chrome-geml-viewer/src/x", "integrations/chrome-geml-viewer/src/y",
      "libs/vendor/auth/src/p", "libs/vendor/auth/src/q"], roots, "repo", false,
     { foldPrefixes: ["integrations", "libs/vendor"] });
-  assert.equal(m.get("integrations/geml-viewer/src/x"), "geml-viewer/x", "single-segment fold prefix");
-  assert.equal(m.get("integrations/geml-viewer/src/y"), "geml-viewer/y");
+  assert.equal(m.get("integrations/chrome-geml-viewer/src/x"), "chrome-geml-viewer/x", "single-segment fold prefix");
+  assert.equal(m.get("integrations/chrome-geml-viewer/src/y"), "chrome-geml-viewer/y");
   assert.equal(m.get("libs/vendor/auth/src/p"), "auth/p", "multi-segment fold prefix");
   assert.equal(m.get("libs/vendor/auth/src/q"), "auth/q");
 });
@@ -1842,7 +1842,7 @@ test("foldings: options strip-shared-prefix off is read as false; missing sectio
 });
 
 test("deriveFoldLayers: top-level non-module ancestors are ceremony; module roots are not", () => {
-  assert.deepEqual(deriveFoldLayers(["integrations/geml-viewer", "integrations/obsidian", "geml-parser"]), ["integrations"]);
+  assert.deepEqual(deriveFoldLayers(["integrations/chrome-geml-viewer", "integrations/obsidian", "geml-parser"]), ["integrations"]);
   assert.deepEqual(deriveFoldLayers(["crates/core", "crates/util"]), ["crates"]);
   assert.deepEqual(deriveFoldLayers(["core", "web"]), [], "flat multi-module: nothing is ceremony");
   assert.deepEqual(deriveFoldLayers(["modules/core", "modules/web"]), ["modules"]);
@@ -1858,14 +1858,14 @@ test("defaultFoldings: structural ∪ language prefixes; source/test-root defaul
 
 test("loadOrSeedFoldings: seeds _index/foldings.geml when absent, does not overwrite when present", () => {
   const out = mkdtempSync(join(tmpdir(), "fold-io-"));
-  const r1 = loadOrSeedFoldings({ outDir: out, moduleRoots: ["integrations/geml-viewer"], languages: ["TypeScript"] });
+  const r1 = loadOrSeedFoldings({ outDir: out, moduleRoots: ["integrations/chrome-geml-viewer"], languages: ["TypeScript"] });
   assert.equal(r1.seeded, true);
   const p = join(out, "_index", "foldings.geml");
   assert.ok(existsSync(p), "file written");
   assert.deepEqual(r1.config.foldPrefixes, ["integrations"]);
   // user edits the file
   writeFileSync(p, "## fold-prefixes\n\n- myceremony\n");
-  const r2 = loadOrSeedFoldings({ outDir: out, moduleRoots: ["integrations/geml-viewer"], languages: [] });
+  const r2 = loadOrSeedFoldings({ outDir: out, moduleRoots: ["integrations/chrome-geml-viewer"], languages: [] });
   assert.equal(r2.seeded, false, "existing file left untouched");
   assert.deepEqual(r2.config.foldPrefixes, ["myceremony"], "user edit honoured");
   rmSync(out, { recursive: true, force: true });

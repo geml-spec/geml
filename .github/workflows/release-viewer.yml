@@ -6,7 +6,7 @@ name: Release viewer
 # tagged commit, in a clean checkout, by the same `npm run package` a developer
 # runs locally.
 #
-#   npm version --no-git-tag-version <x.y.z>   # in integrations/geml-viewer
+#   npm version --no-git-tag-version <x.y.z>   # in integrations/chrome-geml-viewer
 #   (commit, land on main)
 #   git tag viewer-v<x.y.z> && git push origin viewer-v<x.y.z>
 #
@@ -48,12 +48,12 @@ jobs:
       # Tests before packaging: a release is the one build that must not ship
       # a red suite, and the gate costs a minute.
       - name: Viewer build + tests + coverage gate
-        working-directory: integrations/geml-viewer
+        working-directory: integrations/chrome-geml-viewer
         run: npm install && npm run coverage:check
 
       - name: The tag must name the version the manifest declares
         id: version
-        working-directory: integrations/geml-viewer
+        working-directory: integrations/chrome-geml-viewer
         env:
           # Through env, not ${{ }} inside run: a workflow_dispatch input is
           # attacker-typed text and must never be interpolated into the script.
@@ -80,7 +80,7 @@ jobs:
       # runner happened to check out", and rebuilding could only ever produce a
       # different-looking archive of identical files.
       - name: Package the extension
-        working-directory: integrations/geml-viewer
+        working-directory: integrations/chrome-geml-viewer
         run: |
           SOURCE_DATE_EPOCH=$(git -C "$GITHUB_WORKSPACE" log -1 --format=%ct)
           export SOURCE_DATE_EPOCH
@@ -91,7 +91,7 @@ jobs:
       # produced it — and, because packaging is reproducible, checkable by
       # rebuilding the tag rather than by trusting this runner.
       - name: Checksum
-        working-directory: integrations/geml-viewer
+        working-directory: integrations/chrome-geml-viewer
         run: sha256sum "${{ steps.version.outputs.zip }}"
 
       # `gh` is preinstalled on the runner, so releasing needs no third-party
@@ -99,7 +99,7 @@ jobs:
       # Re-runnable: an existing release keeps its hand-written notes and just
       # takes the new asset.
       - name: Create the release and attach the zip
-        working-directory: integrations/geml-viewer
+        working-directory: integrations/chrome-geml-viewer
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.event.inputs.tag || github.ref_name }}

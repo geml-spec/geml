@@ -440,7 +440,7 @@ codegen 优先的产物会被手改，再生成时静默摧毁手改——同一
 | `@geml/style-react` | 运行时、组件注册表、处理器注册表 | 新包 |
 
 若 `geml style check` 改动了 `geml-parser/src/geml.ts` 的顶层导入或再导出，
-**必须同步 viewer 的 esbuild stub**（`integrations/geml-viewer/src/render-html-stub.js`、node-stub），
+**必须同步 viewer 的 esbuild stub**（`integrations/chrome-geml-viewer/src/render-html-stub.js`、node-stub），
 并捕获 viewer gate 的**真实退出码**（`| tail` 管道报的是 tail 的）。
 
 ---
@@ -826,8 +826,8 @@ slot  =  { kind:"blocks", selector, blocks[] } | { kind:"state", state } | { kin
 
 | 在哪 | 是什么 | 实测 |
 |---|---|---|
-| `integrations/geml-viewer/src/components.js` | 只认这一页的组件：`bar` `tree` `tab-bar` `field` `editor` `icon` `markdown-body` | 459 行，7 个 |
-| `integrations/geml-viewer/src/geml.css` 257–355 行 | 页面段：带 GitHub 调色板的宿主 CSS，含一条按**块 id** 写的 `.geml-b-toolbar` | 99 行，22 处色值，10 个不同的色 |
+| `integrations/chrome-geml-viewer/src/components.js` | 只认这一页的组件：`bar` `tree` `tab-bar` `field` `editor` `icon` `markdown-body` | 459 行，7 个 |
+| `integrations/chrome-geml-viewer/src/geml.css` 257–355 行 | 页面段：带 GitHub 调色板的宿主 CSS，含一条按**块 id** 写的 `.geml-b-toolbar` | 99 行，22 处色值，10 个不同的色 |
 | `_index/github.style.geml` | rule 上无人校验的私有参数键：`icon icon-dir icon-open icon-closed icon-size shortcut state source-when preview-max-width title` | 10 个 |
 
 方法是反着看：现有实现里每一段 CSS/JS 都问一句「GEML 本来有没有说这件事的办法」。多数有；少数要补词，

@@ -2,7 +2,7 @@
   "name": "geml",
   "displayName": "GEML",
   "description": "Preview, outline, hover, go-to-definition, rename, per-block revert, workspace search and live reference checking for GEML (.geml) documents.",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "publisher": "geml",
   "license": "MIT",
   "icon": "icon.png",
@@ -191,7 +191,7 @@
   "scripts": {
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "build:webview": "npm --prefix ../geml-viewer run build:vscode",
+    "build:webview": "npm --prefix ../chrome-geml-viewer run build:vscode",
     "test": "npm run compile && node test/all.mjs",
     "vscode:prepublish": "npm run compile && npm run build:webview"
   },

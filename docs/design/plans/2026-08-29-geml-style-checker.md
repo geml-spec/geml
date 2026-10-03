@@ -29,7 +29,7 @@
 **刻意的架构决定：新模块不从 `geml.ts` 再导出。** 测试直接
 `import { … } from "../dist/style-selector.js"`。理由是仓库既有的硬约束——
 对 `geml.ts` 顶层导入/再导出的任何改动都必须同步 viewer 的 esbuild stub
-（`integrations/geml-viewer/src/render-html-stub.js`、node-stub），
+（`integrations/chrome-geml-viewer/src/render-html-stub.js`、node-stub），
 否则整个浏览器 bundle 构建失败（`node:os` 在 4b93941、`pageAssets` 在 cd8bed4 都栽过）。
 不再导出就完全绕开这个雷区。
 
@@ -3423,7 +3423,7 @@ git diff main -- geml-parser/src/geml.ts | head -3
 
 **Goal:** geml-viewer 打开一份 `.geml` 时，找到它的样式入口，把计划 E 交出的视图模型画成一整页 —— frame 嵌套、内含词变 CSS、三个组件、两种交互 —— 没有样式入口时与今天一字不差。
 
-**Architecture:** 三个新模块，都在 `integrations/geml-viewer/src/`，都是纯函数、能在 linkedom 里跑：`style-entry.js` 异步预取样式入口及其引用的每份文件，再用**同步**的 `loadDoc` 喂给解析器的 `loadStylesheet`/`resolveStyle`（它们是同步 API，浏览器 fetch 不是，预取到 Map 里是唯一的接法）；`layout.js` 把 `screens[0]` 展成 DOM 树、把每个 binding 的 `box` 和 `variants` 生成一段 CSS，状态是 `<body>` 上的 class，所以状态变化不重绘；`components.js` 是宿主注册表（`tree` / `tab-bar` / `markdown-body`）加 `toggle` / `select` 的接线。`content.js` 只多一个分叉：有样式入口且恰好一个 screen → 走 `layout.js`，否则今天的路径。
+**Architecture:** 三个新模块，都在 `integrations/chrome-geml-viewer/src/`，都是纯函数、能在 linkedom 里跑：`style-entry.js` 异步预取样式入口及其引用的每份文件，再用**同步**的 `loadDoc` 喂给解析器的 `loadStylesheet`/`resolveStyle`（它们是同步 API，浏览器 fetch 不是，预取到 Map 里是唯一的接法）；`layout.js` 把 `screens[0]` 展成 DOM 树、把每个 binding 的 `box` 和 `variants` 生成一段 CSS，状态是 `<body>` 上的 class，所以状态变化不重绘；`components.js` 是宿主注册表（`tree` / `tab-bar` / `markdown-body`）加 `toggle` / `select` 的接线。`content.js` 只多一个分叉：有样式入口且恰好一个 screen → 走 `layout.js`，否则今天的路径。
 
 **Tech Stack:** esbuild 打包（已有 `build.mjs`）、linkedom 测试、`c8` 闸门（viewer 的门槛是 lines 85 / statements 85 / functions 90 / branches 75）。
 
@@ -3436,7 +3436,7 @@ git diff main -- geml-parser/src/geml.ts | head -3
 - **同源限制**：样式入口和它引用的每份文件都经 `content.js` 既有的 `isSameOriginSrc` 闸（http(s) 同源；`file://` 同目录），`credentials: "omit"`，HTML content-type 拒收。和 `src=` 表、`embed`、code-graph 三条既有 fetch 路径**一字不差**。
 - 预取有上限：深度 8（与 `EMBED_DEPTH_CAP` 同值）、总文件数 32、单文件 4 MB（`EMBED_DOC_BYTES_CAP`）。超限 = 没有样式入口，退回默认渲染并在 console 说明。
 - 跨平台：测试用 linkedom，不依赖真实浏览器；fixture 用 `\n`。
-- 贵命令跑一次：`npm --prefix integrations/geml-viewer run coverage:check`（含 build + 全套件），退出码从同一次取。**`| tail` 管道报的是 tail 的退出码** —— 用 `${PIPESTATUS[0]}`。
+- 贵命令跑一次：`npm --prefix integrations/chrome-geml-viewer run coverage:check`（含 build + 全套件），退出码从同一次取。**`| tail` 管道报的是 tail 的退出码** —— 用 `${PIPESTATUS[0]}`。
 - 发布前 `grep -c "cdn.jsdelivr" dist/viewer.bundle.js` 必须是 0（CWS 拒含远程代码字符串的 bundle）。`style-resolve.js` 不含，但闸门照跑。
 - 提交用用户 git 身份，无 AI 署名；不 bump manifest 版本、不写 CHANGELOG。
 
@@ -3446,14 +3446,14 @@ git diff main -- geml-parser/src/geml.ts | head -3
 
 | 文件 | 职责 |
 |---|---|
-| `integrations/geml-viewer/src/parse-entry.js`（修改） | +`loadStylesheet` / `resolveStyle` 再导出 |
-| `integrations/geml-viewer/src/style-entry.js`（新建） | 找 `_index/index.geml`，预取它引用的每份样式表，装载并求解 → 视图模型（或 `null`） |
-| `integrations/geml-viewer/src/layout.js`（新建） | 视图模型 → DOM（screen / frame / slot / 块）+ 生成的 CSS（`box`、`variants`、`hide-below`）+ 状态 class |
-| `integrations/geml-viewer/src/components.js`（新建） | 宿主注册表：`tree` / `tab-bar` / `markdown-body`；`toggle` / `select` 接线 |
-| `integrations/geml-viewer/src/content.js`（修改） | 分叉：有页就画页，否则今天的路径；诊断横幅 |
-| `integrations/geml-viewer/src/geml.css`（修改） | `.geml-page` / `.geml-frame[data-axis]` / `.geml-placed` / `.geml-tree` / `.geml-tabs` 的静态规则 |
-| `integrations/geml-viewer/test/layout.test.mjs`（新建） | 三个模块的 linkedom 测试 + 用真 fixture 的端到端 |
-| `integrations/geml-viewer/test/all.mjs`（修改） | 注册 `layout` |
+| `integrations/chrome-geml-viewer/src/parse-entry.js`（修改） | +`loadStylesheet` / `resolveStyle` 再导出 |
+| `integrations/chrome-geml-viewer/src/style-entry.js`（新建） | 找 `_index/index.geml`，预取它引用的每份样式表，装载并求解 → 视图模型（或 `null`） |
+| `integrations/chrome-geml-viewer/src/layout.js`（新建） | 视图模型 → DOM（screen / frame / slot / 块）+ 生成的 CSS（`box`、`variants`、`hide-below`）+ 状态 class |
+| `integrations/chrome-geml-viewer/src/components.js`（新建） | 宿主注册表：`tree` / `tab-bar` / `markdown-body`；`toggle` / `select` 接线 |
+| `integrations/chrome-geml-viewer/src/content.js`（修改） | 分叉：有页就画页，否则今天的路径；诊断横幅 |
+| `integrations/chrome-geml-viewer/src/geml.css`（修改） | `.geml-page` / `.geml-frame[data-axis]` / `.geml-placed` / `.geml-tree` / `.geml-tabs` 的静态规则 |
+| `integrations/chrome-geml-viewer/test/layout.test.mjs`（新建） | 三个模块的 linkedom 测试 + 用真 fixture 的端到端 |
+| `integrations/chrome-geml-viewer/test/all.mjs`（修改） | 注册 `layout` |
 | `docs/design/specs/2026-08-29-geml-style-design.md`（修改） | §12.7 补四条实现中定下来的规则（Task 0） |
 
 **刻意的决定 —— 状态是 `<body>` 上的 class，variant 是带 body 选择器的 CSS 规则。** `when="$tree=closed"` 生成 `body.geml-s-tree-closed .geml-b-file-tree { width: 0 }`。状态一变只换 body class，不重绘；两个条件的 variant 选择器天然比一个条件的特异性高，和 §12.5 "更具体的赢"一致，运行时零仲裁。
@@ -3495,8 +3495,8 @@ git commit -m "docs(style): §12.7 — where the viewer looks, what toggle flips
 ## Task 1: 把解析器的样式求解露给 bundle
 
 **Files:**
-- Modify: `integrations/geml-viewer/src/parse-entry.js`
-- Test: `integrations/geml-viewer/test/layout.test.mjs`（新建，本 Task 只放导入）
+- Modify: `integrations/chrome-geml-viewer/src/parse-entry.js`
+- Test: `integrations/chrome-geml-viewer/test/layout.test.mjs`（新建，本 Task 只放导入）
 
 - [ ] **Step 1: 写失败的测试 —— 新建 `test/layout.test.mjs`**
 
@@ -3523,7 +3523,7 @@ console.log(`\n${passed} layout tests passed.`);
 - [ ] **Step 2: 跑，确认失败**
 
 ```bash
-cd integrations/geml-viewer && node test/layout.test.mjs
+cd integrations/chrome-geml-viewer && node test/layout.test.mjs
 ```
 
 预期：`SyntaxError: The requested module '../src/parse-entry.js' does not provide an export named 'loadStylesheet'`。
@@ -3556,8 +3556,8 @@ git commit -m "feat(viewer): the bundle carries the stylesheet loader and resolv
 ## Task 2: `style-entry.js` —— 找入口、预取、求解
 
 **Files:**
-- Create: `integrations/geml-viewer/src/style-entry.js`
-- Test: `integrations/geml-viewer/test/layout.test.mjs`
+- Create: `integrations/chrome-geml-viewer/src/style-entry.js`
+- Test: `integrations/chrome-geml-viewer/test/layout.test.mjs`
 
 **Interfaces:**
 - Produces:
@@ -3799,8 +3799,8 @@ git commit -m "feat(viewer): find the style entry beside the document, prefetch 
 ## Task 3: `layout.js` —— 视图模型 → DOM + CSS
 
 **Files:**
-- Create: `integrations/geml-viewer/src/layout.js`
-- Test: `integrations/geml-viewer/test/layout.test.mjs`
+- Create: `integrations/chrome-geml-viewer/src/layout.js`
+- Test: `integrations/chrome-geml-viewer/test/layout.test.mjs`
 
 **Interfaces:**
 - Produces:
@@ -4069,8 +4069,8 @@ git commit -m "feat(viewer): a view model renders as a page — frames to sectio
 ## Task 4: `components.js` —— 三个组件与两种交互
 
 **Files:**
-- Create: `integrations/geml-viewer/src/components.js`
-- Test: `integrations/geml-viewer/test/layout.test.mjs`
+- Create: `integrations/chrome-geml-viewer/src/components.js`
+- Test: `integrations/chrome-geml-viewer/test/layout.test.mjs`
 
 **Interfaces:**
 - Produces:
@@ -4335,9 +4335,9 @@ git commit -m "feat(viewer): tree, tab-bar and markdown-body components; toggle 
 ## Task 5: `content.js` 分叉 + `geml.css` + 端到端
 
 **Files:**
-- Modify: `integrations/geml-viewer/src/content.js`
-- Modify: `integrations/geml-viewer/src/geml.css`
-- Test: `integrations/geml-viewer/test/layout.test.mjs`（用真 fixture 的端到端）
+- Modify: `integrations/chrome-geml-viewer/src/content.js`
+- Modify: `integrations/chrome-geml-viewer/src/geml.css`
+- Test: `integrations/chrome-geml-viewer/test/layout.test.mjs`（用真 fixture 的端到端）
 
 - [ ] **Step 1: 写失败的测试 —— 真 fixture 走完整链**
 
@@ -4483,7 +4483,7 @@ git commit -m "feat(viewer): a document with a style entry beside it renders as 
 ## Task 6: 注册套件、跑闸门
 
 **Files:**
-- Modify: `integrations/geml-viewer/test/all.mjs`
+- Modify: `integrations/chrome-geml-viewer/test/all.mjs`
 
 - [ ] **Step 1: 注册**
 
@@ -4494,7 +4494,7 @@ const suites = ["render", "transclude", "inline-src", "chart", "upgrade", "secur
 - [ ] **Step 2: viewer 闸门 —— 一次，取真实退出码**
 
 ```bash
-cd integrations/geml-viewer && npm run coverage:check > /tmp/viewer-cov.log 2>&1; echo "VIEWER_EXIT=$?"; grep -E "all viewer suites passed|suite FAILED|^All files|ERROR" /tmp/viewer-cov.log
+cd integrations/chrome-geml-viewer && npm run coverage:check > /tmp/viewer-cov.log 2>&1; echo "VIEWER_EXIT=$?"; grep -E "all viewer suites passed|suite FAILED|^All files|ERROR" /tmp/viewer-cov.log
 ```
 
 预期 `VIEWER_EXIT=0`。掉门槛最可能在 `components.js` 的 `producing()` 分支（warn 路径）—— 补一条 state 用宽选择器（`match="table"`）的测试，断言 console.warn 被调用且组件不装开关。
@@ -4520,8 +4520,8 @@ git commit -m "test(viewer): register the layout suite"
 
 browser pane 是另一个 Chromium，没装扩展；扩展只能在用户的 Chrome 里验。步骤写死在这里，做完把截图贴回来：
 
-- [ ] **Step 1**：`cd integrations/geml-viewer && node build.mjs`
-- [ ] **Step 2**：Chrome → `chrome://extensions` → 开发者模式 → Load unpacked → 选 `integrations/geml-viewer/`（已装过就点刷新）
+- [ ] **Step 1**：`cd integrations/chrome-geml-viewer && node build.mjs`
+- [ ] **Step 2**：Chrome → `chrome://extensions` → 开发者模式 → Load unpacked → 选 `integrations/chrome-geml-viewer/`（已装过就点刷新）
 - [ ] **Step 3**：造一个目录：把 `geml-parser/test/fixtures/style-page/page.geml` 拷到 `C:\tmp\blob\page.geml`，`github.style.geml` 拷到 `C:\tmp\blob\_index\github.style.geml`，再写 `C:\tmp\blob\_index\index.geml`：
   ```
   === meta
@@ -5093,8 +5093,8 @@ git commit -m "feat(style): when= takes @hover and @focus — a pointer's state 
 ## Task 11：viewer —— 链接与图片的 `{title=}` 落到 HTML
 
 **Files:**
-- Modify: `integrations/geml-viewer/src/render.js`（`linkAttrs`、`renderMedia`）
-- Test: `integrations/geml-viewer/test/render.test.mjs`
+- Modify: `integrations/chrome-geml-viewer/src/render.js`（`linkAttrs`、`renderMedia`）
+- Test: `integrations/chrome-geml-viewer/test/render.test.mjs`
 
 - [ ] **Step 1: 写失败的测试**
 
@@ -5113,7 +5113,7 @@ test("§5.2 属性对象里的 title 落到 a/img 的 title；alt 照旧；不�
 - [ ] **Step 2: 跑，确认失败**
 
 ```bash
-cd integrations/geml-viewer && node test/render.test.mjs
+cd integrations/chrome-geml-viewer && node test/render.test.mjs
 ```
 
 - [ ] **Step 3: 实现**
@@ -5141,7 +5141,7 @@ node test/render.test.mjs
 - [ ] **Step 5: Commit**
 
 ```bash
-git add integrations/geml-viewer/src/render.js integrations/geml-viewer/test/render.test.mjs
+git add integrations/chrome-geml-viewer/src/render.js integrations/chrome-geml-viewer/test/render.test.mjs
 git commit -m "feat(viewer): a link's or image's {title=} reaches the DOM"
 ```
 
@@ -5150,8 +5150,8 @@ git commit -m "feat(viewer): a link's or image's {title=} reaches the DOM"
 ## Task 12：viewer —— 视图模型到 CSS：部件、伪状态、块上的 axis、view 的两副面孔
 
 **Files:**
-- Modify: `integrations/geml-viewer/src/layout.js`（`cssForPage`、新 helper）
-- Test: `integrations/geml-viewer/test/layout.test.mjs`
+- Modify: `integrations/chrome-geml-viewer/src/layout.js`（`cssForPage`、新 helper）
+- Test: `integrations/chrome-geml-viewer/test/layout.test.mjs`
 
 **Interfaces:**
 - Produces: `export const PART_TAG = { link: "a", image: "img", "code-span": "code", strong: "strong", emphasis: "em" }`；`export function whenSelector(when) → { body, suffix }`；CSS 形状：部件 `.geml-b-nav a { … }`；伪状态 `.geml-b-nav a:hover { … }` / `body.geml-s-side-closed .geml-b-nav a:hover { … }`；块 axis `.geml-b-nav .geml-items { display: flex; flex-direction: row; list-style: none; margin: 0; padding: 0; gap: 16px }`；面 `.geml-b-doc > .geml-face { display: none }` `.geml-b-doc > .geml-face-rendered { display: revert }` 与按条件的同形。
@@ -5319,7 +5319,7 @@ node test/layout.test.mjs
 - [ ] **Step 5: Commit**
 
 ```bash
-git add integrations/geml-viewer/src/layout.js integrations/geml-viewer/test/layout.test.mjs
+git add integrations/chrome-geml-viewer/src/layout.js integrations/chrome-geml-viewer/test/layout.test.mjs
 git commit -m "feat(viewer): part bindings, @hover, axis on blocks and view faces compile to CSS"
 ```
 
@@ -5328,13 +5328,13 @@ git commit -m "feat(viewer): part bindings, @hover, axis on blocks and view face
 ## Task 13：viewer —— 放置：条目标记、两副面、块触发、字段喂状态；组件表只剩 tree / segments / code-graph；宿主 CSS 页面段瘦身
 
 **Files:**
-- Modify: `integrations/geml-viewer/src/layout.js`（`renderPage`：`place`、`container`、`wireTrigger`）
-- Rewrite: `integrations/geml-viewer/src/components.js`
-- Modify: `integrations/geml-viewer/src/content.js`（把宿主文档原文挂进语料）
-- Modify: `integrations/geml-viewer/src/parse-entry.js`（若未导出 `blockSpans` 则再导出）
-- Modify: `integrations/geml-viewer/src/geml.css`（257–355 行整段替换）
-- Test: `integrations/geml-viewer/test/layout.test.mjs`（删 7 条、改 2 条、加 6 条）
-- Test: `integrations/geml-viewer/test/security.test.mjs`（若引用了 `bar`/`field`，改为部件路径）
+- Modify: `integrations/chrome-geml-viewer/src/layout.js`（`renderPage`：`place`、`container`、`wireTrigger`）
+- Rewrite: `integrations/chrome-geml-viewer/src/components.js`
+- Modify: `integrations/chrome-geml-viewer/src/content.js`（把宿主文档原文挂进语料）
+- Modify: `integrations/chrome-geml-viewer/src/parse-entry.js`（若未导出 `blockSpans` 则再导出）
+- Modify: `integrations/chrome-geml-viewer/src/geml.css`（257–355 行整段替换）
+- Test: `integrations/chrome-geml-viewer/test/layout.test.mjs`（删 7 条、改 2 条、加 6 条）
+- Test: `integrations/chrome-geml-viewer/test/security.test.mjs`（若引用了 `bar`/`field`，改为部件路径）
 
 **Interfaces:**
 - Produces: `COMPONENTS = { tree, segments, "code-graph": passthrough }`；`createState` 忽略 `@` 开头的 when 键；`renderPage` opts 不变，`ctx` 多 `sources`（path → 原文）与 `spans`（Map id → {start,end}，仅宿主文档）；`.geml-items` 标在块里第一个 `ul/ol/.geml-form` 上；面：`div.geml-face.geml-face-rendered` / `.geml-face-source`（`pre.geml-source`）/ `.geml-face-source-editable`（`textarea.geml-source`）；toggle 状态的块产生者：包装 div `role=button tabindex=0`；select 状态的 form-field 产生者：控件 `change` 写状态、无 init-value 时用字段 `value=`。
@@ -5827,7 +5827,7 @@ Expected: 全部 ok。若 `security.test.mjs` 引用了 `bar`/`field`/`icon`，�
 - [ ] **Step 7: Commit**
 
 ```bash
-git add integrations/geml-viewer/src/layout.js integrations/geml-viewer/src/components.js integrations/geml-viewer/src/content.js integrations/geml-viewer/src/parse-entry.js integrations/geml-viewer/src/geml.css integrations/geml-viewer/test/layout.test.mjs integrations/geml-viewer/test/security.test.mjs
+git add integrations/chrome-geml-viewer/src/layout.js integrations/chrome-geml-viewer/src/components.js integrations/chrome-geml-viewer/src/content.js integrations/chrome-geml-viewer/src/parse-entry.js integrations/chrome-geml-viewer/src/geml.css integrations/chrome-geml-viewer/test/layout.test.mjs integrations/chrome-geml-viewer/test/security.test.mjs
 git commit -m "feat(viewer): page chrome is lists and fields — tree and segments stay, seven page components go, host CSS loses its palette"
 ```
 
@@ -6329,14 +6329,14 @@ Expected: 全部 ok，闸 95 通过。
 - [ ] **Step 2: viewer 全量 + 覆盖率闸（一次）**
 
 ```bash
-cd integrations/geml-viewer && npm run coverage:check 2>&1 | tail -30; echo EXIT=$?
+cd integrations/chrome-geml-viewer && npm run coverage:check 2>&1 | tail -30; echo EXIT=$?
 ```
 Expected: 全部 ok，闸 85/85/90/75 通过。若 components.js 因删代码而覆盖率变化，只加测试、不降闸。
 
 - [ ] **Step 3: bundle 不含远程代码串**
 
 ```bash
-grep -c "cdn.jsdelivr" integrations/geml-viewer/dist/viewer.bundle.js
+grep -c "cdn.jsdelivr" integrations/chrome-geml-viewer/dist/viewer.bundle.js
 ```
 Expected: 0。
 
@@ -6429,7 +6429,7 @@ Expected: 全部 ok，闸 95 通过。
 - [ ] **Step 2: viewer 全量 + 覆盖率闸（一次）**
 
 ```bash
-cd integrations/geml-viewer && npm run coverage:check 2>&1 | tail -30; echo EXIT=$?
+cd integrations/chrome-geml-viewer && npm run coverage:check 2>&1 | tail -30; echo EXIT=$?
 ```
 Expected: 全部 ok，闸 85/85/90/75 通过。
 
@@ -6438,9 +6438,9 @@ Expected: 全部 ok，闸 85/85/90/75 通过。
 **Files:**
 - Create: `playground/style-demo/template.geml`（模板，223 行）
 - Modify: `playground/style-demo/page.geml`（装配单，13 行）
-- Modify: `integrations/geml-viewer/src/layout.js`（`inCorpus`，unplaced 不再算带文档进来的 embed）
+- Modify: `integrations/chrome-geml-viewer/src/layout.js`（`inCorpus`，unplaced 不再算带文档进来的 embed）
 - Modify: `playground/README.md`（文件表 + 为什么零新机制）
-- Test: `integrations/geml-viewer/test/layout.test.mjs`
+- Test: `integrations/chrome-geml-viewer/test/layout.test.mjs`
 
 - [x] **Step 1: 先证明零新机制**
 
@@ -6475,6 +6475,6 @@ const inCorpus = (node) => node.type === "embed" && corpus.some((c) => c.path ==
 
 ```bash
 cd geml-parser && npm run coverage:check 2>&1 | tail -30; echo EXIT=$?
-cd integrations/geml-viewer && npm run coverage:check 2>&1 | tail -30; echo EXIT=$?
+cd integrations/chrome-geml-viewer && npm run coverage:check 2>&1 | tail -30; echo EXIT=$?
 ```
 Expected: 两个都 EXIT=0。

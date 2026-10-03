@@ -463,7 +463,7 @@ git commit -m "test(profiles): register the profile-vocabulary suite"
 本计划改了 `geml.ts`。虽然只新增了一个**内部导入**（不是顶层再导出），
 仍必须确认 viewer 的 esbuild bundle 没被打断。
 
-Run: `cd integrations/geml-viewer && npm run build > /tmp/viewer.txt 2>&1; echo "EXIT=$?"`
+Run: `cd integrations/chrome-geml-viewer && npm run build > /tmp/viewer.txt 2>&1; echo "EXIT=$?"`
 Expected: `EXIT=0`。若报 missing named export，按 CLAUDE.md 的规矩同步
 `src/render-html-stub.js` 与 node-stub。
 

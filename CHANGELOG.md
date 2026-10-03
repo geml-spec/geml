@@ -13,10 +13,12 @@ project follows [Semantic Versioning](https://semver.org/). Entries for `1.0.0`
 through `1.7.2` were reconstructed from the release commits, so they record what
 each version shipped rather than a contemporaneous editorial note.
 
-The browser extension (`integrations/geml-viewer/`) versions on its own track
+The browser extension (`integrations/chrome-geml-viewer/`) versions on its own track
 and is released under `viewer-v*` tags.
 
 ## [Unreleased]
+
+## [1.12.1] — 2026-10-03
 
 - **A link's text and its destination end where CommonMark's do.** A link's
   text and an image's alt run to the `]` that balances the `[`, a bracket inside
@@ -167,6 +169,11 @@ and is released under `viewer-v*` tags.
   server stopped by a signal also takes its token out of the temp dir, which
   only a normal exit did. Windows has no signals to pass on; there, stop the
   process tree.
+- **The Chrome extension lives in `integrations/chrome-geml-viewer`**, renamed
+  from `integrations/geml-viewer` so the directory says which browser it is
+  for. Its name, its package name, the release zip and the `viewer-v*` tags are
+  unchanged; the workflows, Dependabot, the VS Code, Obsidian and IntelliJ
+  builds that import its renderer, and the docs follow the new path.
 
 ## [1.12.0] — 2026-10-02
 

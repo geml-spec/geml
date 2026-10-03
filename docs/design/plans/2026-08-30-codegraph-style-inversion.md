@@ -534,7 +534,7 @@ Expected: `EXIT=0`，四项 ≥ 95%。
 
 本计划改了 `render.ts` 的顶层导入。
 
-Run: `cd integrations/geml-viewer && npm run build > /tmp/viewer.txt 2>&1; echo "EXIT=$?"`
+Run: `cd integrations/chrome-geml-viewer && npm run build > /tmp/viewer.txt 2>&1; echo "EXIT=$?"`
 Expected: `EXIT=0`。若报 missing named export，按 CLAUDE.md 同步
 `src/render-html-stub.js` 与 node-stub。
 

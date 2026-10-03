@@ -120,7 +120,7 @@ npx @vscode/vsce package # → geml-<version>.vsix, then "Install from VSIX…"
 
 The preview's bundle is a build artifact, not a committed file: it is ~8 MB of
 KaTeX and Mermaid, and `vscode:prepublish` rebuilds it before packaging. It is
-built by `integrations/geml-viewer`, which owns the renderer and the bundler, so
+built by `integrations/chrome-geml-viewer`, which owns the renderer and the bundler, so
 there is one esbuild configuration for the browser viewer, the playground and
 this pane rather than three that drift.
 

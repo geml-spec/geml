@@ -14,11 +14,11 @@
 // the stylesheet's own URL and the pane's theme overrides land last in the
 // cascade — neither of which is true for CSS injected from script.
 import { parse } from "../../../geml-parser/dist/geml.js";
-import { renderDocument, viewerDiagnostics } from "../../geml-viewer/src/render.js";
-import { expandTransclusions } from "../../geml-viewer/src/transclude.js";
-import { translateSliceWith } from "../../geml-viewer/src/translate-map.js";
-import { snapshot } from "../../geml-viewer/src/snapshot.js";
-import { upgradeMath, upgradeMermaid } from "../../geml-viewer/src/upgrade.js";
+import { renderDocument, viewerDiagnostics } from "../../chrome-geml-viewer/src/render.js";
+import { expandTransclusions } from "../../chrome-geml-viewer/src/transclude.js";
+import { translateSliceWith } from "../../chrome-geml-viewer/src/translate-map.js";
+import { snapshot } from "../../chrome-geml-viewer/src/snapshot.js";
+import { upgradeMath, upgradeMermaid } from "../../chrome-geml-viewer/src/upgrade.js";
 import katex from "katex";
 import mermaid from "mermaid";
 

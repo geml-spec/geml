@@ -110,7 +110,7 @@ val prepareBundledRuntime by tasks.registering(Sync::class) {
       "geml-parser is not built. Run:  cd ../../geml-parser && npm install && npm run build"
     }
     check(previewEntry.exists()) {
-      "the preview bundle is not built. Run:  npm --prefix ../geml-viewer run build:vscode"
+      "the preview bundle is not built. Run:  npm --prefix ../chrome-geml-viewer run build:vscode"
     }
   }
 }

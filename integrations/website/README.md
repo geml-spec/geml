@@ -9,7 +9,7 @@ made:
 
 | file in the site | made from |
 |---|---|
-| `public/playground/playground.js`, `fonts/` | the parser and the viewer's renderer, bundled by `integrations/geml-viewer/playground.build.mjs` |
+| `public/playground/playground.js`, `fonts/` | the parser and the viewer's renderer, bundled by `integrations/chrome-geml-viewer/playground.build.mjs` |
 | `public/playground/codemap/` | the parser's and the viewer's own call graph |
 | `public/logo/` | `docs/assets/logo/` |
 | `public/favicon.ico` | `docs/assets/logo/geml.ico` |
@@ -23,7 +23,7 @@ By hand, with the site checked out beside this repository:
 
 ```sh
 (cd geml-parser && npm ci && npm run build)
-(cd integrations/geml-viewer && npm ci)
+(cd integrations/chrome-geml-viewer && npm ci)
 node integrations/website/update.mjs ../geml-spec.github.io
 ```
 

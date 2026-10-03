@@ -84,7 +84,7 @@ flowchart TD
 - **先落到** GitHub release 的资产，**再**上 Chrome 应用商店。
 - **版本**在 `manifest.json`、`package.json` 与 `package-lock.json`（两处）。
   惯例：解析器每发一版，它升一个 patch —— 1.2.2 陪着解析器 1.8.8 就是这么来的。
-- **怎么发。** 在 `integrations/geml-viewer` 里
+- **怎么发。** 在 `integrations/chrome-geml-viewer` 里
   `npm version --no-git-tag-version <x.y.z>`，提交，落到 main，然后
   `git tag viewer-v<x.y.z> && git push origin viewer-v<x.y.z>`。
 - **注意。** tag **必须**等于 manifest 里的版本 —— 不等的话 job 会拒绝，因为 zip
@@ -114,7 +114,7 @@ flowchart TD
   `
 
   `vscode:prepublish` 会跑 `compile` 和 `build:webview`，而后者是
-  `npm --prefix ../geml-viewer run build:vscode` —— 解析器就是在这一步被打包进去的。
+  `npm --prefix ../chrome-geml-viewer run build:vscode` —— 解析器就是在这一步被打包进去的。
 
 - **注意。** **不要**不带包路径去跑 `vsce publish` 和 `ovsx publish`：那样每个都会
   自己构建一个 `.vsix`，于是同一个版本号下两个市场装的是**不同的字节**。打包前必须

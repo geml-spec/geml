@@ -618,7 +618,7 @@ GEML 已是 `1.0`，但「稳定」是指**已有规则不会在你脚下变动*
 | 场景 | 在哪 | 状态 |
 |---|---|---|
 | **不装任何东西先试** —— 左边编辑、右边实时渲染 | [Playground](https://geml-spec.github.io/playground/) | 可用 |
-| **在浏览器里读** —— 打开任一 raw `.geml` 链接就地渲染：计算表格、图表、Mermaid、公式，诊断以横幅呈现 | [Chrome 应用商店](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie) · [源码](integrations/geml-viewer/) | 可用 |
+| **在浏览器里读** —— 打开任一 raw `.geml` 链接就地渲染：计算表格、图表、Mermaid、公式，诊断以横幅呈现 | [Chrome 应用商店](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie) · [源码](integrations/chrome-geml-viewer/) | 可用 |
 | **命令行** —— 文档的整个生命周期都可以用 geml 命令操作 | [`@geml/geml`](https://www.npmjs.com/package/@geml/geml)（源码 [`geml-parser/`](geml-parser/)） | 可用 |
 | **用 codemap 帮你理解项目** —— 整个调用图写成 GEML 文档树，可交互浏览 | `geml codemap build`（[使用指南](spec/profiles/geml-codemap/geml-codemap-guide_CN.md) · [设计](docs/design/specs/geml-codemap/DESIGN-geml-code-graph.md)） | 可用 |
 | **让 agent 按块改文档** —— 自带 MCP 服务器，agent 走的是和你一样的动词：读一块、改一块、校验、回退 | [`docs/mcp-guide_CN.md`](docs/mcp-guide_CN.md) | 可用 |
@@ -643,7 +643,7 @@ spec/                  规范的 .md 版（英 / 中）与 CC-BY 规范许可证
                        两者均为 MIT
 spec/in_geml_format/   dogfood：用 GEML 写成的规范本身，连带 .gemlhistory 伴生文件
 geml-parser/           参考实现、渲染器、CLI + codemap 工具集（TypeScript, Node 22）
-integrations/          GEML 接入的所有地方：geml-viewer（浏览器扩展）、
+integrations/          GEML 接入的所有地方：chrome-geml-viewer（浏览器扩展）、
                        geml-check-action（CI）、vscode、obsidian、logseq（双向
                        vault 同步 + watcher）、tree-sitter（简报）、
                        langchain+llamaindex（RAG 加载器）、

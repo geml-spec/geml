@@ -96,7 +96,7 @@ path reads the tree, not your working copy.
 - **Version** in `manifest.json`, `package.json` and `package-lock.json`
   (twice). Convention: one patch per parser release — 1.2.2 accompanied parser
   1.8.8 the same way.
-- **How.** In `integrations/geml-viewer`:
+- **How.** In `integrations/chrome-geml-viewer`:
   `npm version --no-git-tag-version <x.y.z>`, commit, land on main, then
   `git tag viewer-v<x.y.z> && git push origin viewer-v<x.y.z>`.
 - **Watch for.** The tag MUST equal the manifest version — the job refuses

@@ -647,7 +647,7 @@ Or **put it to use**:
 | Scenario | Where | State |
 |---|---|---|
 | **From the command line** — validate, convert, edit by block, version history, all in one command | [`@geml/geml`](https://www.npmjs.com/package/@geml/geml) (source [`geml-parser/`](geml-parser/)) | Available |
-| **Read it in the browser** — open any raw `.geml` link and it renders in place: computed tables, charts, Mermaid, math, with diagnostics as a banner | [Chrome Web Store](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie) · [source](integrations/geml-viewer/) | Available |
+| **Read it in the browser** — open any raw `.geml` link and it renders in place: computed tables, charts, Mermaid, math, with diagnostics as a banner | [Chrome Web Store](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie) · [source](integrations/chrome-geml-viewer/) | Available |
 | **Let an agent edit by block** — an MCP server; the agent changes one block instead of rewriting the file, and every write is validated before it reaches disk | [`docs/mcp-guide.md`](docs/mcp-guide.md) | Available |
 | **Use it from DeepSeek Harness** — the geml MCP server plus the authoring and code-graph skills, one installable bundle | [`@geml/dsh-plugin`](https://www.npmjs.com/package/@geml/dsh-plugin) · [dshmarket](https://dshmarket.com/p/geml-spec/geml--integrations-dsh-plugin/) · [source](integrations/dsh-plugin/) | Available |
 | **Use it from Codex** — the same payload again: both skills, the MCP server, and a `SessionStart` hook, installable from `/plugins` | [`integrations/codex-plugin/`](integrations/codex-plugin/) | Available from this repo; not in the public plugin directory yet |
@@ -675,7 +675,7 @@ spec/                  The specification as .md (EN / 中文) and the CC-BY spec
 spec/in_geml_format/   The dogfood: the specification written in GEML, with its
                        .gemlhistory sidecar
 geml-parser/           Reference parser, renderer, CLI + codemap toolkit (TypeScript, Node 22)
-integrations/          Everywhere GEML plugs in: geml-viewer (browser extension),
+integrations/          Everywhere GEML plugs in: chrome-geml-viewer (browser extension),
                        geml-check-action (CI), vscode, obsidian, logseq (two-way
                        vault sync + the watcher), tree-sitter (brief),
                        langchain+llamaindex (RAG loaders), windows-icon

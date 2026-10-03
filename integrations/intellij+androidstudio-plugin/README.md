@@ -42,7 +42,7 @@ build those first:
 
 ```sh
 cd ../../geml-parser && npm install && npm run build
-npm --prefix ../geml-viewer run build:vscode
+npm --prefix ../chrome-geml-viewer run build:vscode
 ```
 
 Then:
@@ -89,7 +89,7 @@ GemlCli ────────────── the bundled parser, over Gene
        └─ GemlSearchEverywhere  `geml find`, a Search Everywhere tab
 GemlRefs ───────────── what reference is under the caret, for navigation
   └─ GemlNavigation ── go-to-definition and hover, both offset-based
-GemlPreviewEditor ──── JCEF + integrations/geml-viewer's bundle, unchanged
+GemlPreviewEditor ──── JCEF + integrations/chrome-geml-viewer's bundle, unchanged
 ```
 
 The preview reuses `integrations/vscode/media/preview.js` verbatim. It talks to

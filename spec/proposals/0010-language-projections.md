@@ -769,7 +769,7 @@ configured endpoint, then nothing — which is the shape the Logseq integration
 already settled on for finding a CLI. Target language and on/off belong in the
 extension's options; neither belongs in the document, and neither belongs here.
 
-Measured: `integrations/geml-viewer/src/` performs no platform-capability
+Measured: `integrations/chrome-geml-viewer/src/` performs no platform-capability
 detection today, so all of this is new code.
 
 **Locally it is discovery and then trust**, and the repository already knows how

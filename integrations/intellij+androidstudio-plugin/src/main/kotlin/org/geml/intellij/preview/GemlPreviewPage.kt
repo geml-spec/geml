@@ -17,7 +17,7 @@ import java.nio.file.Path
  *
  * The renderer is the viewer's, byte for byte — the same bundle the VS Code
  * webview, the browser extension and the playground use, built once by
- * integrations/geml-viewer. So the pane cannot show something a reader would
+ * integrations/chrome-geml-viewer. So the pane cannot show something a reader would
  * not see, and there is no second renderer here to keep in step.
  *
  * Two things are this plugin's own. The page script talks to its host through

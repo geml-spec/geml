@@ -138,7 +138,7 @@ class GemlPreviewEditor(private val project: Project, private val file: VirtualF
 
   private fun missingBundleNotice(): JComponent = notice(
     "The GEML plugin is missing its preview bundle. Rebuild it with: " +
-      "npm --prefix ../geml-viewer run build:vscode"
+      "npm --prefix ../chrome-geml-viewer run build:vscode"
   )
 
   private fun notice(text: String): JComponent = JLabel(

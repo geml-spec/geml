@@ -40,7 +40,7 @@ jobs:
         run: npm ci && npm run build
 
       - name: Build the webview bundle into the extension's media/
-        working-directory: integrations/geml-viewer
+        working-directory: integrations/chrome-geml-viewer
         run: npm ci && npm run build:vscode
 
       - name: Install, compile and test the extension

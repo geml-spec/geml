@@ -11,7 +11,7 @@
 // The SLICE BUILDER stays in render.ts and is imported here, which is a
 // deliberate stop short of the whole move: `buildCodeGraph`,
 // `codeGraphRuntime` and `codeGraphWaves` are on the viewer's own import path
-// (`integrations/geml-viewer/src/parse-entry.js` takes all three from
+// (`integrations/chrome-geml-viewer/src/parse-entry.js` takes all three from
 // `render.js`), and the extension's esbuild build fails on any missing named
 // export. Moving them is a cross-package change, not a refactor of this file.
 import { buildCodeGraph, CG_MAX_NODES, type DiagramRenderer, esc, escAttr } from "./render.js";

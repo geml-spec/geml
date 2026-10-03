@@ -14,7 +14,7 @@ updates:
   - package-ecosystem: npm
     directories:
       - "/geml-parser"
-      - "/integrations/geml-viewer"
+      - "/integrations/chrome-geml-viewer"
       - "/integrations/vscode"
       - "/integrations/obsidian"
       - "/integrations/logseq"
@@ -25,6 +25,12 @@ updates:
       dev-dependencies:
         dependency-type: development
         patterns: ["*"]
+    # `@types/vscode` must not pass the VS Code extension's `engines.vscode`
+    # floor: `vsce package` refuses an extension whose types are newer than the
+    # oldest editor it claims to run in. It moves with that floor, by hand.
+    ignore:
+      - dependency-name: "@types/vscode"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
 
   - package-ecosystem: pip
     directory: "/integrations/langchain+llamaindex"

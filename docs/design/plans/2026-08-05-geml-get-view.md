@@ -16,7 +16,7 @@
 - Build: `cd geml-parser && npm run build` (i.e. `./node_modules/.bin/tsc`). Full suite: `node test/all.mjs` — never `npm test` inside another npm (Windows PATH overflow). Run the expensive suite **once**, at the end, and take output + exit code from that same run.
 - Coverage gate: `npm run coverage:check` must pass — 95% lines/statements/functions/branches.
 - **No new diagnostic code** (§3). Reuse `transclusion-cycle`, `unresolvable-document`, `unresolved-reference`, `embed-target-not-geml`, `unchecked-cross-document-reference`.
-- **Do not touch `geml.ts`'s top-level imports or re-exports.** The viewer's esbuild stubs (`integrations/geml-viewer/src/render-html-stub.js`, node-stub) mirror them and esbuild fails the whole build on any missing named export.
+- **Do not touch `geml.ts`'s top-level imports or re-exports.** The viewer's esbuild stubs (`integrations/chrome-geml-viewer/src/render-html-stub.js`, node-stub) mirror them and esbuild fails the whole build on any missing named export.
 - **Do not change spec files.** `--view` introduces no language semantics (§9).
 - Never send a network request while walking a chain (§3.1).
 - Exit codes: `1` = did not get the entity block; `2` = usage error. Never `0` with an empty stdout.

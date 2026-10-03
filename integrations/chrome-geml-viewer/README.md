@@ -28,7 +28,7 @@ The extension bundles the parser's compiled output, so build it first:
 
 ```sh
 cd geml-parser && npm install && npm run build && cd ..
-cd integrations/geml-viewer && npm install && npm run build
+cd integrations/chrome-geml-viewer && npm install && npm run build
 ```
 
 `npm run build` writes `dist/viewer.bundle.js` and copies KaTeX fonts to
@@ -46,7 +46,7 @@ to file URLs**.
 ### Load unpacked (development)
 
 1. Go to `chrome://extensions`, enable **Developer mode**.
-2. **Load unpacked** → select this `integrations/geml-viewer/` directory.
+2. **Load unpacked** → select this `integrations/chrome-geml-viewer/` directory.
 3. To view local files, turn on **Allow access to file URLs** as above.
 4. Open any `.geml` file over `file://` (e.g. `file:///…/GEML-spec.geml`), or a
    **raw** `.geml` URL — the raw file, not the GitHub blob page (that one is HTML).
