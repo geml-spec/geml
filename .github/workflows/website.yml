@@ -82,6 +82,10 @@ jobs:
         run: |
           git add -A
           if git diff --cached --quiet; then echo "the site is already up to date"; exit 0; fi
-          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-            commit -q -m "Update from geml-spec/geml@${GITHUB_SHA::7}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -q -m "Update from geml-spec/geml@${GITHUB_SHA::7}"
+          # A commit pushed to the site while this job ran would turn the push
+          # away. This job writes only generated files, so its commit goes on top.
+          git pull --rebase -q
           git push
