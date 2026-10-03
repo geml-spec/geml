@@ -1,0 +1,32 @@
+[package]
+name = "geml"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+description = "A second, independent GEML 1.0 parser, written from the specification and its conformance suite"
+license = "MIT"
+repository = "https://github.com/geml-spec/geml"
+publish = false
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[features]
+default = []
+wasm = ["dep:wasm-bindgen"]
+
+[dependencies]
+unicode-normalization = "0.1.25"
+unicode-general-category = "1.1.0"
+wasm-bindgen = { version = "0.2", optional = true }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+
+# wasm-opt is fetched from the network on first use; the release profile above
+# already optimizes for size, and the build should not depend on a download.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false

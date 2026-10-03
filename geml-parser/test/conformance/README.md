@@ -59,6 +59,12 @@ projection and nothing else, so it declares no capability: it skips the files
 that need one, and the `geml_base64` cases. Both reproducing every `want` is the
 spec's acceptance test (§8).
 
+A third, in another language, reads the same manifest:
+[`geml-parser-rs/`](../../../geml-parser-rs/), a Rust implementation written from
+the spec and this suite alone. It declares every capability, and runs the suite
+natively and as WebAssembly through `_runner.mjs`, so its model is read by
+`_project.mjs` itself.
+
 ## Security requirements: what this suite can and cannot certify
 
 **Passing every case here does not make an implementation safe.** That is not a

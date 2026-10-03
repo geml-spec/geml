@@ -80,10 +80,12 @@ and is released under `viewer-v*` tags.
   so `geml get` prints a field by name, `[[#signup["email"]]]` says its label,
   and `![[…]]`, an `embed` and `geml set` of a field are refused. The viewer's
   controls carry the name. The Rust implementation now follows every rule the entries
-  below settle: CommonMark code spans, the chain bound of 16, local data files
-  read at build time, `[n]` view-model addresses, `style-reserved-name` as the
-  profile defines it, the history unit key with `~n` occurrences, and the media
-  hashes with interaction lines.
+  below settle: CommonMark code spans, the chain bound of 16, `header=` as a
+  boolean, local data files read at build time whatever their suffix, `[n]`
+  view-model addresses, `style-reserved-name` as the profile defines it, the
+  style contest as a warning with the first-written rule's value kept, the
+  form names and field coordinates, the history unit key with `~n`
+  occurrences, and the media hashes with interaction lines.
 - **Four more rules the second implementation asked for, decided.** A code
   span closes at the next run of *exactly* its opening length, CommonMark's
   rule: a longer run inside is content, so `` ``a`b`` `` carries a backtick
@@ -129,6 +131,23 @@ and is released under `viewer-v*` tags.
   lines included; the style profile catalogues `style-reserved-name` and names
   an id-less block `[n]` in the view model; the codemap profile says which
   edge-table cells are plain text.
+- **A second implementation, in Rust and WebAssembly.** `geml-parser-rs/` is a
+  GEML 1.0 parser written from the specification and the conformance suite
+  alone, without reading the reference parser. It passes all 376 cases with
+  every capability the manifest names declared, natively and as WebAssembly
+  through the suite's own `_runner.mjs` and `_project.mjs`; reports Appendix A's
+  codes with their severities; and holds lines, regions and functions at 95%
+  coverage or more. CI runs it in a `parser-rs` job. It recognizes the six vocabularies under
+  `spec/profiles/` and runs their checks: form, media (all 33 codes, lineage
+  across documents included), style (the view model), history (sidecar
+  verification and reconstruction) and codemap; every profile conformance file
+  passes in both readings, and the style view-model cases with them. A host resolves references into other documents and
+  reports file hashes, and the WebAssembly build exposes it as `parseIn`,
+  `styleCheck`, `historyVerify`, `historyReconstruct` and `codemapVerify`.
+  Through the host it also reads the files a document names — code routes
+  with their ranges, `data` routes into the block's value, the data files of
+  tables, views and charts — and follows transclusion chains across
+  documents, reporting `transclusion-cycle`.
 - **Stopping `geml codemap` or `geml mcp` stops what it started.** Both run
   their program as a child, and a signal sent to `geml` alone, such as a
   supervisor's SIGTERM or a test's kill, ended `geml` without it: `codemap

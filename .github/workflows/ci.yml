@@ -85,6 +85,44 @@ jobs:
         if: matrix.os != 'ubuntu-latest'
         run: npm test # `tsc && node test/all.mjs` — dist/ has to exist first
 
+  # The second implementation (geml-parser-rs/), written from the spec and the
+  # conformance suite alone. It runs the suite twice: natively, through its own
+  # harness, and as WebAssembly through the suite's _runner.mjs and
+  # _project.mjs, so the model the wasm module returns is read by the suite's
+  # projection rather than by any code of the crate. Both declare every
+  # capability the manifest names, so no case is skipped. The vocabularies'
+  # conformance files and the specification's history sidecar run through the
+  # wasm build too.
+  parser-rs:
+    name: parser-rs — conformance (native + wasm) + coverage gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: geml-parser-rs
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: Toolchain
+        run: |
+          rustup toolchain install stable --profile minimal --component clippy,rustfmt,llvm-tools-preview
+          rustup target add wasm32-unknown-unknown
+          cargo install cargo-llvm-cov --locked --version 0.9.1
+          cargo install wasm-pack --locked --version 0.13.1
+      - name: Format and lint
+        run: cargo fmt --check && cargo clippy --all-targets --features wasm -- -D warnings
+      # Branch coverage needs a nightly compiler, so the gate holds the three
+      # measures stable Rust reports: lines, regions and functions.
+      - name: Tests + coverage gate (lines, regions, functions >= 95%)
+        run: cargo llvm-cov --fail-under-lines 95 --fail-under-regions 95 --fail-under-functions 95
+      - name: WebAssembly build + the suite's own harness
+        run: |
+          wasm-pack build --target nodejs --out-dir wasm/pkg --release -- --features wasm
+          node wasm/conformance.mjs
+          node wasm/profiles.mjs
+
   viewer:
     name: viewer — build + tests
     runs-on: ubuntu-latest
