@@ -332,7 +332,8 @@ not by this grammar.
 === code {#code-2 lang=ebnf}
 (* The grammar is stated over LOGICAL lines. Before it applies, a fence or
    heading line ending with `\` is folded with the line(s) that follow it —
-   backslash and newline become one space (§4, line continuation) — so NL below
+   the backslash, the newline and the whitespace around them become one space
+   (§4, line continuation) — so NL below
    is the end of a folded logical line, and an attribute object may occupy more
    than one physical line. *)
 
@@ -366,26 +367,37 @@ marker         = "-" | "*" | DIGIT , { DIGIT } , "." ;
 task           = "[" , ( " " | "x" | "X" ) , "]" , SP ;
 indent         = { " " | TAB } ;              (* nesting depth, by column *)
 
-attrs          = "{" , { attr-item , [ SP ] } , "}" ;
+attrs          = "{" , { attr-item | WS } , "}" ;
+                 (* where an object begins and ends is decided before it is
+                    read (§4, reading an attribute object): on a fence line it
+                    runs to the LAST "}" of the line, so a brace between is an
+                    ordinary character *)
 attr-item      = id-attr | class-attr | kv-attr | flag-attr ;
 id-attr        = "#" , NAME ;
 class-attr     = "." , NAME ;
 kv-attr        = NAME , "=" , value ;
 flag-attr      = NAME ;                       (* boolean true flag *)
-value          = bare-word | quoted-string ;
+value          = quoted-string | bare-word ;
 
 quoted-string  = '"' , { quoted-char } , '"' ;
-quoted-char    = escape-seq | ( CHAR - '"' - "\" ) ;
-escape-seq     = "\" , ( '"' | "\" ) ;         (* only " and \ can be escaped *)
-bare-word      = BARE-CHAR , { BARE-CHAR } ;
-BARE-CHAR      = CHAR - SP - TAB - '"' - "{" - "}" ;
-                 (* whitespace ends a bare word and the object's own braces
-                    delimit it, so a value containing whitespace, a quote or a
-                    brace MUST be quoted. Anything else is a bare word, which is
-                    what carries references and paths: `data=#fy25`,
-                    `src=b.geml#tbl`, `src=rows.csv`. NAME and `number` below
-                    are the two shapes §4 gives a meaning — a flag name, a
-                    typed number; every other bare word is a string. *)
+                 (* only as a WHOLE value: one that begins and ends with `"` *)
+quoted-char    = escape-seq | ( CHAR - '"' - "\" ) | "\" ;
+                 (* a `\` before anything but `"` or `\` is itself *)
+escape-seq     = "\" , ( '"' | "\" ) ;         (* only " and \ are escapes *)
+bare-word      = bare-piece , { bare-piece } ;
+bare-piece     = BARE-CHAR | quoted-span ;
+quoted-span    = '"' , { quoted-char } , [ '"' ] ;
+                 (* a `"` inside a bare word opens a span that the next
+                    unescaped `"` closes, or the end of the object when none
+                    does; whitespace inside a span does not end the word *)
+BARE-CHAR      = CHAR - WS - '"' ;
+                 (* a value needs quotes only to hold whitespace outside a
+                    span: `data=#fy25`, `src=b.geml#tbl`, `src=#t[1]["Q 1"]`
+                    and `x=a{b}` are bare words, taken verbatim, quotes
+                    included. NAME and `number` below are the two shapes §4
+                    gives a meaning — a flag name, a typed number; every other
+                    bare word is a string. *)
+WS             = ? a character with the Unicode White_Space property ? ;
 number         = [ "+" | "-" ] , ( DIGITS , [ "." , [ DIGITS ] ]
                                  | "." , DIGITS ) , [ exp ] ;
                  (* the bare-word shapes §4 types as a number: `42`, `-1`,
@@ -502,6 +514,12 @@ parses it into the block's **value**, and a body the engine rejects is a build
     document that relies on more than the subset is NOT portable, and a
     processor that does not read it MUST report a parse **error** rather than
     guess at a value.
+- **Portability.** `json` and `jsonl` read the same in every conforming
+  processor, and the `yaml` subset in every processor that has a `yaml` engine.
+  `toml` and `edn` have no reading this specification defines: a processor
+  that ships an engine for one reads it its own way, and another processor
+  finds a raw body and a warning, or a different value. A document whose value
+  must read the same in every processor keeps it in `json` or `jsonl`.
 - `schema=` is RESERVED: it names a block (`#id`) or a GEML document
   (`doc.geml`, optionally `doc.geml#id`) holding a schema, and is
   reference-checked like any other reference (§5); any other shape is an
@@ -530,13 +548,18 @@ and inclusive** (`#L14-24`, or `#L14` for a single line). With no fragment the
 route names the whole file. A range MUST NOT be empty or start before line 1.
 
 - **Resolution.** A route resolves relative to the document. When a resolution
-  root is named (`--root`), a route that does not exist document-relative MAY
-  also be resolved relative to that root — how a generated code graph writes
-  routes from documents nested below the sources they describe. Both resolutions
-  stay inside the confinement boundary of §9.4.
+  root is configured (`--root`) and nothing exists at that path, the route
+  resolves relative to the root — how a generated code graph writes routes from
+  documents nested below the sources they describe. The same two steps resolve
+  every relative path a document names: a reference to another document, an
+  `embed`'s or a `view`'s source, a `data` route, and the data file of a table,
+  a view or a chart. Both resolutions stay inside the confinement boundary of
+  §9.4.
 - **Remote.** An `http(s)` route is fetched by the **renderer**, not the parser
-  (§9.4); the block, and anything reading it, defers. Any other URL scheme MUST
-  be refused.
+  (§9.4); the block, and anything reading it, defers: at build time the block
+  has no model — not an empty one — and a `view`, a chart or a coordinate
+  reading it is neither resolved nor checked, and is no error, until the
+  renderer has the data. Any other URL scheme MUST be refused.
 - **A route that cannot be resolved is a warning, not an error.** A `code` block
   names a region of code at a location whether or not that file is reachable, so
   a document describing sources that are absent — a generated code graph
@@ -646,7 +669,8 @@ exactly when the slice is itself a value.
   reference has to name the same content in every implementation.
 
   **Prose**, here, is a maximal stretch of adjacent content that is neither a
-  typed block nor a heading. Its **container** is the innermost heading whose section
+  typed block nor a heading. A `%%` line (§4) is not content: it does not break
+  a stretch, and a stretch of nothing else is not prose and has no address. Its **container** is the innermost heading whose section
   holds it or typed block whose flow body holds it, or else the document. Let *P* be
   the nearest typed block or heading before it inside that container, *N* the
   nearest one after it, and *C* the container:
@@ -668,8 +692,12 @@ exactly when the slice is itself a value.
 
   Three rules complete it:
   1. An address needs its anchors to HAVE ids. Prose beside an anonymous block, or
-     directly in a document body, has no address; it is still content, merely not
-     referenceable.
+     at the start or end of the document body, which has no id, has no address; it
+     is still content, merely not referenceable. A `meta` block with no id of its
+     own anchors as `meta` when it is the document's only `meta` block, since
+     `#meta` then names it: the prose after a leading `meta` block is
+     `#meta-between-…`. With two or more, `#meta` names their merge, and an
+     id-less `meta` block is an anonymous anchor.
   2. A declared `id` always wins. A processor resolves a fragment against the
      declared ids first and these addresses only after, so a block someone names
      `{#pub-before-cmd}` shadows the prose rather than competing with it.
@@ -682,6 +710,36 @@ exactly when the slice is itself a value.
 - Style note (non-normative): keep the document title in `=== meta`
   (`title = "…"`), not in a top-level heading — every heading then denotes a
   genuine section of the document.
+- **Reading an attribute object.** Every processor MUST read an object the same
+  way, because what it yields is the block's model. §3.1's grammar states the
+  shapes; these three steps decide every input:
+  1. *Where it is.* On a fence line the object opens at the `{` after the type
+     name and runs to the **last** `}` of the logical line, which only whitespace
+     may follow; a brace between them is an ordinary character. On a heading
+     line it is the trailing group: the heading's text, trailing spaces and tabs
+     removed, ends in `}`, and reading leftwards from that `}` — a `"` toggles a
+     quoted span unless an odd run of `\` precedes it — the nearest `{` outside a
+     span, a code span and inline math (§5.3) opens the object when whitespace,
+     or the start of the heading's text, precedes it. A `}` met outside a span
+     before that `{`, or a `{` with no whitespace before it, leaves the heading
+     without an object: `## Title{#a}` and `## a {b}x}` keep all their text.
+     After a link or an image (§5.1) the object opens at the `{` directly after
+     it and closes at the first `}` outside a quoted span; with no such `}`
+     there is none, and the `{` is text.
+  2. *Items.* Inside the braces White_Space separates items, except inside a
+     quoted span: a `"` anywhere in an item opens one, and the next `"` that `\`
+     does not escape closes it. Inside a span `\"` and `\\` are escapes and
+     nothing else is; a span left open runs to the end of the object. An item
+     that begins with `#` is the id and one that begins with `.` a class; an
+     item with `=` after its first character is `key=value`, split at its first
+     `=`; any other item is a flag. Of two ids, or two items naming one key, the
+     first is the one read.
+  3. *Values.* A value that begins and ends with `"` is a quoted string: its
+     text is what lies between, `\"` read as `"` and `\\` as `\`. Any other
+     value is a bare word, taken verbatim with any quotes it holds, so
+     `src=#t[1]["Net revenue"]` needs no outer quotes; a value needs them only to
+     hold whitespace outside a span. An id, class or key that is not a NAME is
+     still read, and is a `name-not-a-name` warning.
 - Attribute value typing: a quoted `"…"` is always a string; `true`/`false` is a
   boolean; a bare word matching integer/float syntax is a number; any other bare
   word is a string. Arrays, dates and nested tables are not supported.
@@ -732,8 +790,9 @@ exactly when the slice is itself a value.
   `class` are separate attributes in HTML.
 - **Line continuation:** A typed block fence (`===`) or heading (`#`) line ending
   with a backslash `\` continues its attribute object onto the next line. The
-  backslash and newline are treated as a single space, allowing long attribute
-  objects (e.g., table schemas) to be split for readability. Folding repeats
+  backslash, the newline and the White_Space on either side of them become a
+  single space, so the continued line's indentation never reaches a value, and
+  long attribute objects (e.g., table schemas) can be split for readability. Folding repeats
   while each continued line also ends with `\`, and stops after the first one
   that does not; the folded result is the logical line the grammar of §3.1
   parses. Only fence and heading lines fold: a `\` ending a line of prose is a
@@ -753,7 +812,7 @@ Inline elements appear only inside unfenced blocks.
 | `**strong**` | strong |
 | `` `code` `` | code span (verbatim; nothing parsed inside) |
 | `~~strike~~` | strikethrough |
-| `$…$` | inline math (verbatim body) |
+| `$…$` | inline math (verbatim body, at least one character) |
 | `![alt](src){…}` | in-place media embed (image/audio/video) |
 | `![[#id]]` | in-place content embed (inline projection) |
 | `\` at line end | hard line break |
@@ -797,12 +856,14 @@ Internal and cross-document references are validated at build time.
   resolves nor reports it. The target document must still exist; only the part
   after `#` is left to the format that defines it.
 - A footnote reference points to any block with a matching `#id` (typically a `note` block). The renderer may use this to present it as a document footnote.
-- An inline projection `![[#id]]` MUST resolve to a `text` block whose body
-  contains exactly one non-empty paragraph — the projection inserts that
-  paragraph's inlines at the projection site. Targeting a heading, any
-  non-`text` block type, or a `text` block with more than one paragraph is the
-  `inline-transclusion-not-inline` error (Appendix A). For block-level content
-  use `=== embed {src=#id}` instead.
+- An inline projection `![[#id]]` MUST resolve to a `text` block — or a block of
+  a type a vocabulary declares to hold prose as `text` does (§8.6) — whose body is
+  exactly one non-empty paragraph, `%%` lines aside: the projection inserts that
+  paragraph's inlines at the projection site. A coordinate naming one value or a
+  whole row is the other inline target (below). Targeting a heading, a stretch
+  of prose (§4), any other block type, or a `text` block whose body holds
+  anything more is the `inline-transclusion-not-inline` error (Appendix A). For
+  block-level content use `=== embed {src=#id}` instead.
 - *Note (non-normative):* backlinks and graph views are a derived inverted index
   over resolved references; GEML adds no syntax for them.
 
@@ -878,6 +939,10 @@ parse to every input.
    (`` ``a`b`` `` is one span, and `` `a``b` `` is one span, not two), and an
    opening run with no such closer is literal text, after which scanning
    resumes. The content between the runs is verbatim; no space is trimmed.
+   Inline math opens at a `$` and closes at the next `$`, its content verbatim.
+   A `$` directly followed by another `$`, or with no `$` after it, opens
+   nothing and is literal, and scanning resumes after it: `$$` is two dollar
+   signs, and `$$x$` is a dollar sign before the math `x`.
 2. Metadata interpolations (`{{key}}`); replaced with the scalar value.
 3. Images (`![alt](src)`), links, auto-refs (`[[#id]]`), inline projections (`![[#id]]`), and footnote refs (`[^id]`); a link or
    ref MUST NOT nest inside another link or ref.
@@ -1026,9 +1091,11 @@ fences and all — is a paragraph.* The example resolves to:
   and `delim=` — so its rows are the table's model, and a column name a `view`
   or a `geml-chart` reads from it is checked then, like any other. A file that
   cannot be resolved, and a URL in any scheme other than `http(s)`, are each
-  `unresolvable-table-source` (Appendix A). A **remote** `http(s)` file is the exception: it is fetched by
-  the renderer, never the parser (§9.4), so the table has no rows at build time
-  and the column names a `view` or a chart reads from it are validated when the
+  `unresolvable-table-source` (Appendix A), and leave the table empty — no
+  columns and no rows. A **remote** `http(s)` file is the exception: it is fetched by
+  the renderer, never the parser (§9.4), so at build time the table has no
+  model at all — not an empty one, since its columns are not known either — and
+  the column names a `view` or a chart reads from it are validated when the
   data is — by the renderer. Only the `src` text — never the resolved contents —
   enters the `.gemlhistory` hash. A table MUST NOT carry both `src` and an
   inline body (an error). Inlining stays the default; `src` is an explicit
@@ -1480,15 +1547,25 @@ make it loop:
   document's own references, so two documents that reference each other
   terminate when validating references.
 - **Content transclusion** (an `embed` block or inline projection expanding its
-  target in place) is recursive, and is bounded twice. **Cycles:** a processor
-  MUST track the chain of documents being expanded and report
-  `transclusion-cycle` when a step names a target in a document already on that
-  chain — counted per document, so `a → b → a#z` is a cycle whether or not `#z`
-  would lead back. A target in the document that names it opens no new document
-  and is not, by itself, a cycle: `=== embed {src=#local}` is ordinary. It is one
-  when the transclusion lies inside the very content it selects — an `embed` of
-  a heading's section written in that section, a projection of the paragraph
-  that holds it. **Depth:** a chain of nested expansions MUST NOT be followed
+  target in place) is recursive, and is bounded twice. **Steps:** expanding a
+  transclusion yields the content its target selects — the whole document, a
+  block, a heading's section narrowed by `part=`, or a stretch of prose — and
+  the transclusions inside that content are the next steps; those elsewhere in
+  the target's document are not expanded and are not steps. A coordinate
+  selects a value, and an inline projection that is itself an error (§5.2)
+  expands nothing, so neither is a step. **Cycles:** a processor MUST track the
+  chain of expansions and report `transclusion-cycle` when a step's target is
+  in another document already on the chain — counted per document, so
+  `a → b → a#z` is a cycle whether or not `#z` would lead back — or is a target
+  in its own document that the chain is already expanding.
+  `=== embed {src=#local}` is ordinary; a projection of the paragraph that
+  holds it, an `embed` of a heading's section written in that section, and two
+  blocks that project each other are cycles. A processor reports one
+  `transclusion-cycle` for each line of the checked document on which a
+  transclusion starts a chain that meets a cycle. A processor MAY bound the
+  total work it spends walking one document's chains, as §9.2 bounds nesting;
+  the bound is implementation-defined, and a document that reaches it is not one
+  two processors are required to agree on. **Depth:** a chain of nested expansions MUST NOT be followed
   past **16**: the sixteenth nested `embed` or projection is expanded, the
   seventeenth is not, and what stands in its place is the renderer's (§8.3). The
   same bound holds for a `view`'s `src=` chain (§6.1), where a chain of more than

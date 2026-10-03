@@ -18,6 +18,57 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **What a third implementation needs to read a document the same way, stated
+  and checked.** Running both implementations over every document in this
+  repository and the site found readings the specification left open; each is
+  now a rule in the text and a case in the suite. An attribute object on a fence
+  line runs to the line's last `}`, a heading's is found leftwards from its
+  final `}`, White_Space separates items, and a `"` groups rather than
+  delimits, so `src=#t[1]["Q 1"]` needs no outer quotes; an object after a
+  link or an image closes at the first `}` outside quotes; of a repeated id or
+  key the first is read; a fold's whitespace
+  collapses into one space; `$$` opens no math; an id-less `meta` block anchors
+  prose as `#meta` when it is the only one, and a gap of `%%` lines is no
+  prose; a projection's target may hold `%%` lines but is never a stretch of
+  prose; a data file that cannot be read leaves the table empty, and a remote
+  one leaves it with no model at all, a view, a chart or a coordinate reading it
+  deferring with it — so a coordinate into a remote table or `data` block is no
+  longer an `unresolved-reference` error, and the page and the Markdown export
+  name the source where the rows will come from; every relative
+  path a document names resolves against its directory, then the root; a
+  transclusion chain steps only through the content each target selects,
+  follows projections as well as embeds, and is reported once per line. The
+  suite gains a `host` capability and `documents.json`, whose cases give a file
+  tree; its README says the specification decides wherever a case and the text
+  differ, and what the specification leaves to the implementation stays out of
+  the cases. The media profile says so of one such choice: whether a check
+  repeats the diagnostics of the documents it reads is the processor's.
+- **The style profile arbitrates the same way whatever order the rules are read
+  in.** Of the rules setting an attribute, the ones no other contains decide,
+  and the first written of those holds it; across `when=` sets the holders are
+  compared all at once. A binding names its rules `#id` or `[n]`, a stretch of
+  prose is one node named by its prose address, the bindings' order and empty
+  variants are fixed, and variants come fewest `when=` entries first. The step
+  before an inline part matches the node that owns it, not an ancestor of it,
+  and a node has a part only when it holds an inline of that kind; a heading an
+  ancestor step matches is a `heading` with its level, which an author's
+  `level=` does not override; `caption` and `hidden` keep their core meaning on
+  every style block; a closed-domain value outside its domain is dropped.
+  Loading is stated too: a stylesheet's `embed` selects what the core's `embed`
+  selects, `part=` included, a bare `#id` naming a target in its own file and a
+  relative path resolving against that file's directory, then the root; style
+  blocks and `embed`s count wherever they stand; an embedded file brings its
+  own `default-style`; the entry is on the expansion chain from the start, so
+  naming itself as its default is a cycle read once. A rule whose `match=` is
+  one bare `#id` naming a screen or a frame dresses it, merged by §4, and the
+  view model's screens and frames carry `params`, `box` and `variants`; a
+  container can produce a state. The corpus takes in each GEML document an
+  `embed` in it names, whole and once, in the order met — `geml style check`
+  and the browser viewer alike — and `geml style check` follows these rules
+  through a loader that resolves each path from the file naming it. The
+  conformance file gains `views`: thirty-four cases, each a file tree with a
+  stylesheet and a corpus, whose whole view model must be reproduced. The
+  browser viewer places a stretch of prose as one unit.
 - **GEP-0008's structural rules are checked.** With `geml-form/v1` declared, a
   `form-*` block outside a `form` — a field not directly in a form or a group,
   a group inside a group, an options list or a note anywhere but directly in a

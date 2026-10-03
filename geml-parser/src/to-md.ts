@@ -217,6 +217,8 @@ function typedToMd(b: Extract<Block, { kind: "block" }>, ctx: MdCtx): string {
   // `--to md` showed nothing, which is the exact shape of the three losses the
   // export-parity test was written for.
   if ((b.type === "table" || b.type === "view") && b.table) return tableToMd(b.table, ctx);
+  // §3.3: a remote source, or a view over one, has no rows at build time.
+  if (b.type === "table" || b.type === "view") return `*External data \`${attr(b, "src") ?? ""}\` — loaded at render time.*`;
   if (b.type === "diagram") {
     const fmt = attr(b, "format") ?? "";
     if (fmt === "geml-chart") {

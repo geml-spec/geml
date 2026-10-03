@@ -676,13 +676,18 @@ test("R3-F3: the rewritten head scanners still read every legitimate head", () =
   assert.equal(errs.length, 0, `no errors: ${JSON.stringify(errs)}`);
 });
 
-test("R3-F3: a heading whose text ENDS in a brace group is still attrs, not text", () => {
-  // `# a}b{c}` — the last `}` inside the text forces the group to start at the
-  // `{` after it. Getting this backwards silently moves bytes between the two.
-  const d = parse("# a}b{#c}\n");
+test("R3-F3: a heading whose text holds a `}` before its trailing group keeps it as text", () => {
+  // §4: the object is found leftwards from the final `}`, so the `}` inside the
+  // text is never part of it. Getting this backwards silently moves bytes
+  // between the two.
+  const d = parse("# a}b {#c}\n");
   const h = d.children.find((b) => b.kind === "heading");
   assert.equal(h.text, "a}b", "text keeps its own closing brace");
   assert.equal(h.id, "c", "and the trailing group is read as attrs");
+  // A group glued to the text is not an object: whitespace has to precede it.
+  const glued = parse("# a}b{#c}\n").children[0];
+  assert.equal(glued.text, "a}b{#c}", "a glued group stays text");
+  assert.equal(glued.attrs.id, undefined);
 });
 
 // ---------------------------------------------------------------------------

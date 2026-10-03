@@ -32,7 +32,7 @@ Each case is `{ name, geml, want }`:
 
 `want` is a **projection** of the parsed model — a compact string. Project *your* model the same way and assert it equals `want`. A case may also carry `ids`, `addresses`, `blocks` or `diagnostics`, or give its input as bytes (`geml_base64`): check the ones your capabilities cover.
 
-[`_project.mjs`](../geml-parser/test/conformance/_project.mjs) is the reference projection — the tiebreaker if anything is unclear. [`impl2.mjs`](../geml-parser/test/conformance/impl2.mjs) is a full parser + projection written only from the spec (a few hundred lines) — a worked example of what you're building.
+[`_project.mjs`](../geml-parser/test/conformance/_project.mjs) is the reference projection — what the `want` strings are written in. What a document *means* is the specification's: every case is derived from its text, and where a case and the text disagree, the text decides. [`impl2.mjs`](../geml-parser/test/conformance/impl2.mjs) is a full parser + projection written only from the spec (a few hundred lines) — a worked example of what you're building.
 
 ## Build order
 
@@ -40,13 +40,14 @@ Each step maps to a spec section and what tests it. Do them incrementally.
 
 0. **Normalize the input** (§0.5) — decode UTF-8, strip one leading BOM, collapse CRLF/CR to LF, replace `U+0000`. Do this first and everything downstream gets simpler; every step preserves the line count, so you can still index the original bytes by line. → `normalize.json`
 1. **Fences + block scanner** (§2–§3) — a `=`-run opens a block, an equal-length run closes it, a longer fence nests; ATX headings, lists, paragraphs, `%%` lines. → `fences.json`, `blocks.json`, dogfood
-2. **Attribute object** `{#id .class key=val}` (§4) — value typing; a bare word with no `=` is a boolean flag. → `blocks.json`, dogfood
+2. **Attribute object** `{#id .class key=val}` (§4) — where an object begins and ends (to a fence line's last `}`; a heading's trailing group), items split on White_Space outside quoted spans, value typing; a bare word with no `=` is a boolean flag. → `blocks.json`, dogfood
 3. **`meta` + `{{key}}` interpolation** (§3–§4) — substitute in flow source text, skipping the verbatim atoms (code spans, inline math) and escaped `\{{key}}`. → `interp.json`
 4. **Inline** (§5) — emphasis/strong/strike (rule of three), code, math, links, auto-refs, footnotes, images, breaks, escapes. **The hard part; lean on the fixtures.** → `inline.json`, `precedence.json`
 5. **Lists** (§2.1) — ordering, `start`, nesting, tight/loose, `[ ]`/`[x]`. → `lists.json`
 6. **References + checks** (§8) — collect ids, resolve refs, error on duplicates and dangling. → `ids.json`, `addresses.json`, dogfood
 7. **Tables and views** (§6, §6.1) — pipe grid and `format=csv`/`tsv` parse to one model, which holds facts; a `view` derives from one with `compute=`, `summary=`, `where=`, `order=`, `limit=`, `select=`, `by=`/`aggregate=`. → `coordinates.json`, `views.json`, dogfood
 8. **Diagrams & charts** (§7) — diagram bodies are never interpreted; `geml-chart data=#id` charts a table by reference. → dogfood
+9. **Documents through a host** (§3.3, §5.2, §9.3, §9.4) — references into other documents one level deep, the resolution root, data files and routes read when the document is, transclusion chains. → `documents.json`, whose cases give a file tree (`files`) and the document to read (`main`)
 
 Step 0 plus 1–5 give a useful parser. 6 is what makes GEML *GEML*. 7–8 are the payoff.
 
@@ -56,7 +57,7 @@ Step 0 plus 1–5 give a useful parser. 6 is what makes GEML *GEML*. 7–8 are t
 for entry in load("manifest.json").files:
     if not entry.requires ⊆ your_capabilities: continue
     for case in load(entry.file):
-        doc = parse(case.geml or decode(base64(case.geml_base64)))
+        doc = parse_in(case.files, case.main) if case.files else parse(case.geml or decode(base64(case.geml_base64)))
         assert project(doc) == case.want
         # and ids / addresses / blocks / diagnostics, where you have them
 

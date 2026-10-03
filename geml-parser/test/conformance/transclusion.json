@@ -43,5 +43,80 @@
     "name": "a fence-like line with unbraced attributes is NOT a fence: it degrades to one paragraph (the reference parser warns fence-like-line; diagnostics are not projected, the degradation is)",
     "geml": "=== embed src=#a\n===\n",
     "want": "\"=== embed src=#a\\n===\""
+  },
+  {
+    "name": "a %% line beside the paragraph does not stop a projection",
+    "geml": "=== text {#t}\n%% c\nhello\n===\n\nSay ![[#t]].\n",
+    "want": "block:text \"Say \" project(\"#t\") \".\"",
+    "diagnostics": []
+  },
+  {
+    "name": "a stretch of prose is not a text block, so it is not inline content",
+    "geml": "=== note {#a}\nx\n===\n\none para\n\n=== note {#b}\ny\n===\n\nSay ![[#a-between-b]].\n",
+    "want": "block:note \"one para\" block:note \"Say \" project(\"#a-between-b\") \".\"",
+    "diagnostics": [
+      "inline-transclusion-not-inline:error"
+    ]
+  },
+  {
+    "name": "a projection that is an error expands nothing, so it is no cycle",
+    "geml": "# H {#h}\n\nSay ![[#h]].\n",
+    "want": "h1(\"H\") \"Say \" project(\"#h\") \".\"",
+    "diagnostics": [
+      "inline-transclusion-not-inline:error"
+    ]
+  },
+  {
+    "name": "a projection inside the paragraph it projects is a cycle",
+    "geml": "=== text {#t}\nSee ![[#t]].\n===\n",
+    "want": "block:text",
+    "diagnostics": [
+      "transclusion-cycle:error"
+    ]
+  },
+  {
+    "name": "two blocks that project each other are a cycle, reported on each line that starts one",
+    "geml": "=== text {#x}\nX has ![[#y]].\n===\n\n=== text {#y}\nY has ![[#x]].\n===\n",
+    "want": "block:text block:text",
+    "diagnostics": [
+      "transclusion-cycle:error",
+      "transclusion-cycle:error"
+    ]
+  },
+  {
+    "name": "an embed inside the section it selects is a cycle",
+    "geml": "## A {#a}\n\nprose\n\n=== embed {src=#a}\n===\n",
+    "want": "h2(\"A\") \"prose\" embed(\"#a\")",
+    "diagnostics": [
+      "transclusion-cycle:error"
+    ]
+  },
+  {
+    "name": "an embed of another local target is ordinary",
+    "geml": "=== note {#n}\nx\n===\n\n=== embed {src=#n}\n===\n",
+    "want": "block:note embed(\"#n\")",
+    "diagnostics": []
+  },
+  {
+    "name": "part=head selects the heading line alone, so an embed below it is no step",
+    "geml": "## A {#a}\n\n=== embed {src=#a part=head}\n===\n",
+    "want": "h2(\"A\") embed(\"#a\")",
+    "diagnostics": []
+  },
+  {
+    "name": "part=body selects what is under the heading, the embed included",
+    "geml": "## A {#a}\n\n=== embed {src=#a part=body}\n===\n",
+    "want": "h2(\"A\") embed(\"#a\")",
+    "diagnostics": [
+      "transclusion-cycle:error"
+    ]
+  },
+  {
+    "name": "two cycling transclusions on one line are one report",
+    "geml": "=== text {#t}\nSee ![[#t]] and ![[#t]].\n===\n",
+    "want": "block:text",
+    "diagnostics": [
+      "transclusion-cycle:error"
+    ]
   }
 ]

@@ -22,6 +22,27 @@ export function isStyleEntry(doc) {
   return profile.split(/\s+/).includes("geml-style/v1");
 }
 
+/** `a/b/../c` → `a/c`；越过起点的 `..` 留在开头（相对 `_index/` 的根就是 `..`）。 */
+function normalizePath(p) {
+  const out = [];
+  for (const seg of p.split("/")) {
+    if (seg === "" || seg === ".") continue;
+    if (seg === ".." && out.length > 0 && out[out.length - 1] !== "..") out.pop();
+    else out.push(seg);
+  }
+  return out.join("/");
+}
+const dirOf = (name) => (name.includes("/") ? name.slice(0, name.lastIndexOf("/")) : "");
+/** GEML §3.3：写在 `from` 里的 `path` 先对 `from` 的目录解析，再对根目录（`_index/` 的上一级）。 */
+function candidatesFor(path, from) {
+  // 带 scheme 的、以 `/` 开头的（含 `//host`）原样交给 URL 解析和 fetchText 的同源闸 ——
+  // 拼目录、规范化只对普通相对路径做，否则 `//evil.example/x` 会被压成一个同源的相对路径。
+  if (/^[a-z][a-z0-9+.-]*:/i.test(path) || path.startsWith("/")) return [path];
+  const near = normalizePath(dirOf(from) ? `${dirOf(from)}/${path}` : path);
+  const root = normalizePath(`../${path}`);
+  return near === root ? [near] : [near, root];
+}
+
 /** 一份样式表里点名的其它文件：meta 的 default-style、#sitemap 对 forDoc 的命中、每条 embed 的 src 文档部分。 */
 function referencedDocs(doc, forDoc) {
   const out = [];
@@ -82,26 +103,41 @@ export function producersOf(sheet) {
  * playground 走普通 fetch，两边的取法不同，**挑出哪些文档**这件事只有这一份实现。
  */
 export async function borrowedDocs(model, parse, fetchText, baseUrl) {
-  const srcs = new Set();
-  const walk = (nodes) => {
+  // profile §3：语料里的 `embed` 指到的每份 GEML 文档整份进语料，每份一次，按读语料时依次
+  // 遇到的顺序加入，加入的文档自己的 `embed` 也算。路径相对本页所在目录。
+  const embedsOf = (nodes, into) => {
     for (const b of nodes ?? []) {
       if (b.kind === "block" && b.type === "embed" && typeof b.attrs?.src === "string") {
         const src = b.attrs.src.trim();
         // `other.geml#id` 借的是一个块，文档还是那一份 —— 取文档那一半。
         const doc = src.includes("#") ? src.slice(0, src.indexOf("#")) : src;
-        if (doc) srcs.add(doc);
+        if (/\.geml$/i.test(doc)) into.push(doc);
       }
-      if (b.children) walk(b.children);
+      if (b.children) embedsOf(b.children, into);
     }
   };
-  walk(model.children);
+  const dir = new URL(".", baseUrl).href;
+  const seen = new Set([new URL(baseUrl).href.split("#")[0]]);
   const out = [];
-  for (const rel of srcs) {
-    try {
-      const text = await fetchText(new URL(rel, baseUrl).href);
-      if (text == null) continue;
-      out.push({ path: rel, doc: parse(text), text });
-    } catch { /* 取不到就算了 —— 少一份语料，不是错误 */ }
+  const queue = [{ doc: model, url: baseUrl }];
+  while (queue.length > 0) {
+    const { doc, url } = queue.shift();
+    const srcs = [];
+    embedsOf(doc.children, srcs);
+    for (const rel of srcs) {
+      const target = new URL(rel, url).href.split("#")[0];
+      if (seen.has(target)) continue;
+      seen.add(target);
+      if (out.length >= STYLE_PREFETCH_FILES) return out;
+      try {
+        const text = await fetchText(target);
+        if (text == null) continue;
+        const parsed = parse(text);
+        const path = target.startsWith(dir) ? decodeURIComponent(target.slice(dir.length)) : target;
+        out.push({ path, doc: parsed, text });
+        queue.push({ doc: parsed, url: target });
+      } catch { /* 取不到就算了 —— 少一份语料，不是错误 */ }
+    }
   }
   return out;
 }
@@ -120,34 +156,56 @@ export async function loadPageStyle({ docUrl, fetchText, parse, loadStylesheet, 
 
   const forDoc = decodeURIComponent(new URL(docUrl).pathname.split("/").pop() || "");
   // 相对路径 → 文本。键是**相对 _index/ 的原样路径**，loadStylesheet 就是拿它来查的。
+  // 名字都相对 `_index/`；入口自己叫 `index.geml`。每份文件按写它的那份文件的目录解析，
+  // 再按根目录（GEML §3.3），所以预取两处都试，按装载器会用的顺序。
   const cache = new Map();
-  const queue = referencedDocs(entryDoc, forDoc).map((rel) => ({ rel, depth: 1 }));
+  const SELF = "index.geml";
+  const queue = referencedDocs(entryDoc, forDoc).map((path) => ({ path, from: SELF, depth: 1 }));
   let files = 0;
-  while (queue.length > 0) {
-    const { rel, depth } = queue.shift();
-    if (cache.has(rel) || depth > STYLE_PREFETCH_DEPTH) continue;
-    if (++files > STYLE_PREFETCH_FILES) {
-      console.warn(`[geml-viewer] style entry references more than ${STYLE_PREFETCH_FILES} files; ignoring it`);
-      return null;
-    }
+  const fetchOne = async (rel) => {
+    if (cache.has(rel)) return cache.get(rel);
+    if (++files > STYLE_PREFETCH_FILES) return undefined;
     const text = await fetchText(new URL(rel, entryUrl).href);
-    if (text == null) { cache.set(rel, null); continue; } // 记下"读不到"，loadStylesheet 会报 style-embed-not-expanded
+    if (text == null) { cache.set(rel, null); return null; } // 记下"读不到"，loadStylesheet 会报 style-embed-not-expanded
     if (text.length > STYLE_DOC_BYTES_CAP) {
       console.warn(`[geml-viewer] stylesheet \`${rel}\` is larger than ${STYLE_DOC_BYTES_CAP} bytes; treated as unreadable`);
       cache.set(rel, null);
-      continue;
+      return null;
     }
     cache.set(rel, text);
+    return text;
+  };
+  while (queue.length > 0) {
+    const { path, from, depth } = queue.shift();
+    if (depth > STYLE_PREFETCH_DEPTH) continue;
+    let name = null;
+    let text = null;
+    for (const rel of candidatesFor(path, from)) {
+      const got = await fetchOne(rel);
+      if (got === undefined) {
+        console.warn(`[geml-viewer] style entry references more than ${STYLE_PREFETCH_FILES} files; ignoring it`);
+        return null;
+      }
+      if (got !== null) { name = rel; text = got; break; }
+    }
+    if (text === null) continue;
     let sub;
     try { sub = parse(text); } catch { continue; }
     // 被 embed 的可能也是一份清单 —— 只跟它的 default-style（解析器的规则），sitemap 不跟
-    for (const next of referencedDocs(sub, "")) queue.push({ rel: next, depth: depth + 1 });
+    for (const next of referencedDocs(sub, "")) queue.push({ path: next, from: name, depth: depth + 1 });
   }
 
   const sheet = loadStylesheet(entryDoc, {
-    loadDoc: (rel) => cache.get(rel) ?? null,
+    loadDoc: (path, from) => {
+      for (const rel of candidatesFor(path, from)) {
+        const text = cache.get(rel);
+        if (typeof text === "string") return { name: rel, text };
+      }
+      return null;
+    },
     parseDoc: (s) => parse(s),
     forDoc,
+    self: SELF,
   });
   // 宿主的组件注册表要往下传，否则 `unknown-component` 这条检查根本不跑 —— 写错组件名
   // 会静默退回默认渲染，一声不吭（GitHub 复刻里 `component=global-header` 就是这么没的）。

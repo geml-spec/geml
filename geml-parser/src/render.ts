@@ -750,9 +750,15 @@ export class RenderCtx {
         return `<figure${idAttr}${this.clsAttr(b.classes)}>${tail ? more + pre(shown) : pre(shown) + more}${cap}</figure>`;
       }
       case "table":
-        return b.table ? this.table(b.table, b.id, caption, b.classes) : `<p class="render-error">table failed to parse</p>`;
-      case "view":
-        return b.table ? this.table(b.table, b.id, caption, b.classes) : `<p class="render-error">view failed to resolve</p>`;
+      case "view": {
+        if (b.table) return this.table(b.table, b.id, caption, b.classes);
+        // §3.3: a remote source — or a view over one — has no model at build
+        // time; the page says where its rows come from instead.
+        const src = typeof b.attrs["src"] === "string" ? b.attrs["src"] : undefined;
+        if (src === undefined) return `<p class="render-error">${b.type} has no rows to show</p>`;
+        const cap0 = caption ? `<figcaption>${esc(caption)}</figcaption>` : "";
+        return `<figure${idAttr}${this.clsAttr(b.classes)}><p class="table-note">external data <code>${esc(src)}</code> — loaded at render time</p>${cap0}</figure>`;
+      }
       case "diagram":
         return this.diagram(b, raw, caption);
       default: {

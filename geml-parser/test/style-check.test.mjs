@@ -1161,7 +1161,13 @@ test("标题和散文是可放置节点：`geml list` 一直能寻址它们，�
   const vmOf = (slots) => resolveStyle(sheet(`=== style-screen {#p slots="${slots}"}\n===\n`), [{ path: "d.geml", doc }]);
   assert.deepEqual(vmOf(".doc").screens[0].slots[0].blocks.map((b) => b.block), ["#h1", "#kpi"], "class 现在也落在标题上");
   assert.deepEqual(vmOf("heading").screens[0].slots[0].blocks.map((b) => b.block), ["#h1"]);
-  assert.deepEqual(vmOf("prose").screens[0].slots[0].blocks.map((b) => b.block), ["[1]"], "段落没有 id，地址是文档序");
+  assert.deepEqual(vmOf("prose").screens[0].slots[0].blocks.map((b) => b.block), ["#h1-before-kpi"], "一段散文用它的 §4 地址");
+  // 一段是一个候选，不论几个段落、列表；`%%` 行不打断它。没有 §4 地址的一段用文档序 `[n]`。
+  const many = parse("one\n\n%% aside\n\n- a\n- b\n\ntwo\n\n=== table {#kpi format=csv}\na\n1\n===\n");
+  const manyVm = resolveStyle(sheet('=== style-screen {#p slots="*"}\n===\n'), [{ path: "d.geml", doc: many }]);
+  assert.deepEqual(manyVm.screens[0].slots[0].blocks.map((b) => b.block), ["[0]", "#kpi"], "开篇的一段没有锚，用 [0]");
+  // `prose#…` 用 §4 地址选中那一段
+  assert.deepEqual(vmOf("prose#h1-before-kpi").screens[0].slots[0].blocks.map((b) => b.block), ["#h1-before-kpi"]);
   assert.deepEqual(vmOf("heading[level=1]").screens[0].slots[0].blocks.map((b) => b.block), ["#h1"], "level 可选");
   // `level` 是结构事实（`###` 数出来的），作者写一个同名属性盖不掉它。
   const lied = parse("### L {#lied level=9}\n");
@@ -1178,7 +1184,7 @@ test("标题和散文是可放置节点：`geml list` 一直能寻址它们，�
 test("`*` 是整步才认的全选：一个槽位按文档顺序摆下整篇；半吊子写法照旧拒绝", () => {
   const doc = parse("# T {#h1}\n\nloose\n\n=== table {#kpi format=csv}\na\n1\n===\n");
   const vm = resolveStyle(sheet('=== style-screen {#p slots="*"}\n===\n'), [{ path: "d.geml", doc }]);
-  assert.deepEqual(vm.screens[0].slots[0].blocks.map((b) => b.block), ["#h1", "[1]", "#kpi"]);
+  assert.deepEqual(vm.screens[0].slots[0].blocks.map((b) => b.block), ["#h1", "#h1-before-kpi", "#kpi"]);
   assert.deepEqual(vm.diagnostics, []);
   for (const bad of ["*.kpi", "table.a*", "table > p", "p:first-child"]) {
     const r = resolveStyle(sheet(`=== style-rule {#r match="${bad}" color=red}\n===\n`), [{ path: "d.geml", doc }]);
@@ -1434,7 +1440,7 @@ test("记号：embed 进来的规则用它自己那份文件的 meta，不用宿
     parse('=== meta\nprofile = "geml-style/v1"\nline = "#ff0000"\n===\n\n' +
           '=== embed {#e src="other.geml"}\n===\n\n' +
           '=== style-rule {#mine match="table" color="{{line}}"}\n===\n'),
-    { loadDoc: (path) => (path === "other.geml" ? other : null), parseDoc: (src) => parse(src) });
+    { loadDoc: (path) => (path === "other.geml" ? { name: path, text: other } : null), parseDoc: (src) => parse(src) });
   assert.deepEqual(codes(s.diagnostics), []);
   const by = Object.fromEntries(s.rules.map((r) => [r.id, r.box.color]));
   assert.deepEqual(by, { theirs: "#00ff00", mine: "#ff0000" });

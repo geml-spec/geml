@@ -73,7 +73,18 @@ function readParen(s, i) {
   }
   return null;
 }
-const skipAttrs = (s, i) => (s[i] === "{" ? (s.indexOf("}", i) < 0 ? i : s.indexOf("}", i) + 1) : i);
+// §4: an attribute object after a link or an image closes at the first `}`
+// outside a quoted span; with none it is no object, and the `{` is text.
+const skipAttrs = (s, i) => {
+  if (s[i] !== "{") return i;
+  let quoted = false;
+  for (let k = i + 1; k < s.length; k++) {
+    if (quoted && s[k] === "\\" && (s[k + 1] === '"' || s[k + 1] === "\\")) { k++; continue; }
+    if (s[k] === '"') { quoted = !quoted; continue; }
+    if (!quoted && s[k] === "}") return k + 1;
+  }
+  return i;
+};
 
 function classify(dest) {
   const d = dest.trim();

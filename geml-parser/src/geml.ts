@@ -416,12 +416,62 @@ function matchHeading(line: string): HeadingMatch | null {
   const m = HEADING_HEAD.exec(line);
   if (!m) return null;
   const rest = trimSpaceTabEnd(line.slice(m[0].length));
-  if (rest.endsWith("}")) {
-    const lastClose = rest.lastIndexOf("}", rest.length - 2); // the final `}` is the group's own
-    const open = rest.indexOf("{", lastClose + 1);
-    if (open >= 0) return [line, m[1]!, trimSpaceTabEnd(rest.slice(0, open)), rest.slice(open)];
-  }
+  const open = headingObjectStart(rest);
+  if (open >= 0) return [line, m[1]!, trimSpaceTabEnd(rest.slice(0, open)), rest.slice(open)];
   return [line, m[1]!, rest, undefined];
+}
+
+// §4, reading an attribute object: a heading's object is its trailing group.
+// Read leftwards from the final `}` — a `"` toggles a quoted span unless an odd
+// run of `\` precedes it — the nearest `{` outside a span, a code span and
+// inline math opens the object when whitespace precedes it; a `}` met first, or
+// a `{` glued to the text, means there is none. Leftwards, because the text
+// before the object may hold braces and quotes of its own (`## Set {a, b} …`,
+// `## 5" pipe {#p}`) while the object's own `"…"` may hold a `}`. Linear: one
+// pass to mark the verbatim atoms, one back to the `{`.
+function headingObjectStart(text: string): number {
+  if (!text.endsWith("}")) return -1;
+  const verbatim = verbatimMask(text);
+  if (verbatim[text.length - 1] === 1) return -1;
+  let quoted = false;
+  for (let k = text.length - 2; k >= 0; k--) {
+    const c = text[k]!;
+    if (c === '"') {
+      let n = 0;
+      while (k - 1 - n >= 0 && text[k - 1 - n] === "\\") n++;
+      if (n % 2 === 0) quoted = !quoted;
+      continue;
+    }
+    if (quoted || (c !== "{" && c !== "}") || verbatim[k] === 1) continue;
+    if (c === "}") return -1;
+    return k === 0 || text[k - 1] === " " || text[k - 1] === "\t" ? k : -1;
+  }
+  return -1;
+}
+
+// The code spans and inline math of a line of inline text (§5.3(1)), as a mask:
+// 1 at every position inside one, delimiters included. Escapes are skipped the
+// way the inline parser skips them, so `\`` opens nothing.
+function verbatimMask(text: string): Uint8Array {
+  const mask = new Uint8Array(text.length);
+  let i = 0;
+  while (i < text.length) {
+    const c = text[i]!;
+    if (c === "\\") { i += 2; continue; }
+    if (c === "`") {
+      const n = backtickRun(text, i);
+      const close = findCodeSpanClose(text, i, n);
+      if (close >= 0) { mask.fill(1, i, close + n); i = close + n; } else i += n;
+      continue;
+    }
+    if (c === "$") {
+      const close = text.indexOf("$", i + 1);
+      if (close > i + 1) { mask.fill(1, i, close + 1); i = close + 1; } else i++;
+      continue;
+    }
+    i++;
+  }
+  return mask;
 }
 
 // Does the text inside a `{…}` group read as an ATTRIBUTE OBJECT (§4), or as
@@ -1074,14 +1124,14 @@ function recordEmbedSrc(
       diags.push({ severity: "error", code: "embed-target-not-geml", message: `embed: \`${docPath}\` is not a GEML document; \`src=\` names a \`.geml\` file (optionally with a #fragment)`, line: openLineNo });
     } else if (docPath === "") {
       // Recorded with an empty doc so the self-cycle pass can see it.
-      if (anchor !== undefined) (ctx.embeds ??= []).push({ doc: "", anchor, line: openLineNo });
+      if (anchor !== undefined) (ctx.embeds ??= []).push({ doc: "", anchor, ...partOf(block.attrs), line: openLineNo });
       // `src=#id`: a block of THIS document. Validated against local ids.
       if (anchor !== undefined) ctx.refs.push({ kind: "internal", anchor, line: openLineNo, embed: true });
     } else {
       ctx.refs.push({ kind: "cross", doc: docPath, anchor, line: openLineNo, embed: true });
       // Kept apart from refs: a transclusion can pull in a document that
       // transcludes further, so cycle detection has to walk the graph.
-      (ctx.embeds ??= []).push(anchor === undefined ? { doc: docPath, line: openLineNo } : { doc: docPath, anchor, line: openLineNo });
+      (ctx.embeds ??= []).push(anchor === undefined ? { doc: docPath, ...partOf(block.attrs), line: openLineNo } : { doc: docPath, anchor, ...partOf(block.attrs), line: openLineNo });
     }
   }
   if (body.some((l) => l.trim() !== "")) {
@@ -1809,50 +1859,126 @@ const inferDataFormat = (target: string): string => (/\.tsv$/i.test(target) ? "t
 // agree on which documents are reachable at all.
 export const EMBED_DEPTH_LIMIT = 16;
 
-function detectTransclusionCycles(ctx: Ctx, opts: ParseOptions): void {
-  if (!opts.resolveDoc || ctx.embeds === undefined || ctx.embeds.length === 0) return;
-  const resolve = opts.resolveDoc;
-  const embedsOf = new Map<string, { doc: string; anchor?: string }[]>(); // memoized per path
-  const reported = new Set<string>();
+const WHITE_CHAR = /^\p{White_Space}$/u;
+function trimWhiteSpaceEnd(s: string): string {
+  let b = s.length;
+  while (b > 0 && WHITE_CHAR.test(s[b - 1]!)) b--;
+  return s.slice(0, b);
+}
 
-  // A three-colour DFS over DOCUMENTS, not over paths. Enumerating every path
-  // through the graph is exponential in its fan-out: a chain of 21 tiny files,
-  // each embedding the next three times, took over two minutes — and `check` is
-  // the CI gate and the validator every MCP write runs twice. Grey means "on the
-  // current stack" and is the cycle; black means already fully explored, so each
-  // edge is walked once and the whole traversal is O(V+E).
-  const colour = new Map<string, "grey" | "black">();
+const EMBED_PARTS: ReadonlySet<string> = new Set(["whole", "head", "body", "intro"]);
+// An embed's `part=`, when it is one of the four; any other value is
+// `bad-embed-part` and the whole target stands.
+function partOf(attrs: Record<string, Value>): { part?: EmbedPart } {
+  const p = attrs["part"];
+  return typeof p === "string" && EMBED_PARTS.has(p) ? { part: p as EmbedPart } : {};
+}
 
-  const walk = (path: string, base: string, stack: string[], line: number): void => {
-    const rel = relJoinPath(base, path);
-    if (colour.get(rel) === "grey") {
-      const chain = [...stack, rel].join(" → ");
-      if (reported.has(chain)) return;
-      reported.add(chain);
-      ctx.diags.push({ severity: "error", code: "transclusion-cycle", message: `transclusion cycle: ${chain}`, line });
-      return;
+// What a projection may stand for (§5.2): a `text` block, or a prose type, whose
+// body is one non-empty paragraph, `%%` lines aside. The paragraph, or null.
+function soleParagraph(b: Block): Extract<Block, { kind: "paragraph" }> | null {
+  if (b.kind !== "block" || b.prose !== true) return null;
+  const kids = (b.children ?? []).filter((c) => c.kind !== "hidden" && !(c.kind === "paragraph" && c.text.trim() === ""));
+  const only = kids.length === 1 ? kids[0]! : undefined;
+  return only !== undefined && only.kind === "paragraph" ? only : null;
+}
+
+// --------------------------------------------------------------------------
+// §9.3's chains. Every `embed` and every inline projection of the document
+// starts one; a step expands the content its target selects — `selectEmbed`,
+// the selection the renderer and the viewer make — and the transclusions inside
+// THAT content are the next steps, so an embed elsewhere in the target's
+// document is never one. A coordinate selects a value and a projection that is
+// an error expands nothing, so neither is a step. A step is a cycle when its
+// target is in another document already on the chain (counted per document) or
+// is a target of its own document the chain is already expanding — which is
+// also how a projection inside its own paragraph, or an embed inside the
+// section it selects, is caught. One report per line of this document.
+//
+// Every chain is walked from its own start, because the report is per starting
+// line; a budget bounds the work for a document built to be expensive, the way
+// §9.2 bounds nesting.
+interface ChainSite { doc?: string; anchor?: string; part?: EmbedPart; inline: boolean }
+const CHAIN_BUDGET = 10_000;
+
+function chainSitesIn(blocks: Block[], out: ChainSite[]): void {
+  const inl = (nodes: Inline[]): void => {
+    for (const n of nodes) {
+      if (n.type === "project") out.push({ ...(n.doc !== undefined ? { doc: n.doc } : {}), anchor: n.anchor, inline: true });
+      else if (n.type === "emph" || n.type === "strong" || n.type === "strike" || n.type === "link") inl(n.children);
     }
-    if (colour.get(rel) === "black") return;
-    // Agree with the renderer about what is even reachable, instead of exploring
-    // eight times deeper than it will ever expand.
-    if (stack.length >= EMBED_DEPTH_LIMIT) return;
-
-    colour.set(rel, "grey");
-    let inner = embedsOf.get(rel);
-    if (inner === undefined) {
-      const src = resolve(rel);
-      inner = src === null ? [] : gatherEmbeds(src); // an unresolvable doc is already an error
-      embedsOf.set(rel, inner);
-    }
-    for (const e of inner) walk(e.doc, relDirPath(rel), [...stack, rel], line);
-    colour.set(rel, "black");
   };
+  const items = (its: ListItem[]): void => {
+    for (const it of its) { inl(it.inlines); if (it.children) chainSitesIn(it.children, out); }
+  };
+  for (const b of blocks) {
+    if (b.kind === "paragraph" || b.kind === "heading") inl(b.inlines);
+    else if (b.kind === "list") items(b.items);
+    else if (b.kind === "block") {
+      const src = b.type === "embed" && typeof b.attrs["src"] === "string" ? b.attrs["src"].trim() : "";
+      if (src !== "") {
+        const hash = src.indexOf("#");
+        const doc = hash < 0 ? src : src.slice(0, hash);
+        out.push({ ...(doc !== "" ? { doc } : {}), ...(hash < 0 ? {} : { anchor: src.slice(hash + 1) }), ...partOf(b.attrs), inline: false });
+      }
+      if (b.children) chainSitesIn(b.children, out);
+    }
+  }
+}
 
-  // The root is named so a chain can be seen returning to it. Falling back to ""
-  // only loses the A→…→A case, which is what happened before `self` existed.
+function detectTransclusionCycles(children: Block[], ctx: Ctx, opts: ParseOptions): void {
   const root = opts.self ?? "";
-  for (const e of ctx.embeds) walk(e.doc, relDirPath(root), [root], e.line);
-  reportBorrowedVocabularies(ctx, opts, root, resolve);
+  // Paths are relative to this document's directory — what `resolveDoc` takes.
+  const models = new Map<string, Block[] | null>([[root, children]]);
+  const load = (name: string): Block[] | null => {
+    if (!models.has(name)) {
+      const src = opts.resolveDoc ? opts.resolveDoc(name) : null;
+      // Parsed without a resolver: the chain is walked here, not inside it.
+      models.set(name, src === null ? null : parse(src).children);
+    }
+    return models.get(name)!;
+  };
+  const found = new Map<number, string>();
+  let budget = CHAIN_BUDGET;
+  const visit = (name: string, sites: ChainSite[], docs: string[], path: string[], origin: number): void => {
+    for (const s of sites) {
+      if (budget <= 0) return;
+      let target = name;
+      if (s.doc !== undefined) {
+        if (!/\.geml$/i.test(s.doc)) continue;
+        target = relJoinPath(relDirPath(name), s.doc);
+      }
+      if (s.anchor !== undefined && s.anchor.includes("[")) continue;
+      const model = load(target);
+      if (model === null) continue;
+      const sel = selectEmbed(model, s.anchor, s.part ?? "whole");
+      if (sel === null || (s.inline && !(sel.length === 1 && soleParagraph(sel[0]!) !== null))) continue;
+      const key = s.anchor === undefined ? target : `${target}#${nameKey(s.anchor)}`;
+      if (target !== name && docs.includes(target)) {
+        if (!found.has(origin)) found.set(origin, `transclusion cycle: \`${target}\` is already being expanded: ${[...docs, target].join(" → ")}`);
+        continue;
+      }
+      if (path.includes(key)) {
+        const shown = s.anchor === undefined ? target : `${target}#${s.anchor}`;
+        if (!found.has(origin)) found.set(origin, `transclusion cycle: \`${shown}\` is already being expanded`);
+        continue;
+      }
+      if (path.length >= EMBED_DEPTH_LIMIT) continue;
+      budget--;
+      const next: ChainSite[] = [];
+      chainSitesIn(sel, next);
+      visit(target, next, target !== name ? [...docs, target] : docs, [...path, key], origin);
+    }
+  };
+  const starts: { site: ChainSite; line: number }[] = [
+    ...(ctx.embeds ?? []).map((e) => ({ site: { ...(e.doc !== "" ? { doc: e.doc } : {}), ...(e.anchor !== undefined ? { anchor: e.anchor } : {}), ...(e.part !== undefined ? { part: e.part as EmbedPart } : {}), inline: false }, line: e.line })),
+    ...(ctx.projections ?? []).map((p) => ({ site: { ...(p.doc !== undefined ? { doc: p.doc } : {}), anchor: p.anchor, inline: true }, line: p.line })),
+  ];
+  for (const { site, line } of starts) visit(root, [site], [root], [], line);
+  for (const [line, message] of [...found].sort((a, b) => a[0] - b[0])) {
+    ctx.diags.push({ severity: "error", code: "transclusion-cycle", message, line });
+  }
+  if (opts.resolveDoc) reportBorrowedVocabularies(ctx, opts, root, opts.resolveDoc);
 }
 
 /**
@@ -1899,56 +2025,6 @@ function reportBorrowedVocabularies(
   }
 }
 
-// The smallest cycle of all, and the one the cross-document walk above cannot
-// see: `=== embed {src=#sec}` written INSIDE the section `#sec` selects the slice
-// that contains it. Decided on spans, so the boundary is exactly the one `geml
-// get` uses — a heading id spans its whole section, so an embed anywhere in that
-// section is inside its own target.
-function detectSelfEmbedCycles(source: string, ctx: Ctx): void {
-  const selfEmbeds = (ctx.embeds ?? []).filter((e) => e.doc === "" && e.anchor !== undefined);
-  if (selfEmbeds.length === 0) return;
-  const spans = blockSpans(source, { markdown: ctx.markdown });
-  for (const e of selfEmbeds) {
-    const span = spans.get(e.anchor!);
-    if (span === undefined) continue; // a missing id is already an unresolved reference
-    // Spans are 0-based and half-open — `end` is the first line AFTER the
-    // block, the same span `geml list` prints and `get` slices. Counting `end`
-    // as inside put an embed written on the very next line (no blank line
-    // between the fences) inside its own target.
-    const line = e.line - 1;
-    if (line >= span.start && line < span.end) {
-      ctx.diags.push({
-        severity: "error",
-        code: "transclusion-cycle",
-        message: `transclusion cycle: \`#${e.anchor}\` selects the content this embed is part of`,
-        line: e.line,
-      });
-    }
-  }
-}
-
-// A phrase that projects itself. The same shape as detectSelfEmbedCycles, and
-// deliberately the same machinery rather than a second parallel one: decided on
-// spans, so a projection written anywhere inside its own target is caught.
-function detectSelfProjectionCycles(source: string, ctx: Ctx): void {
-  const local = (ctx.projections ?? []).filter((p) => p.doc === undefined);
-  if (local.length === 0) return;
-  const spans = blockSpans(source, { markdown: ctx.markdown });
-  for (const p of local) {
-    const span = spans.get(p.anchor);
-    if (span === undefined) continue;
-    const line = p.line - 1; // half-open, as above
-    if (line >= span.start && line < span.end) {
-      ctx.diags.push({
-        severity: "error",
-        code: "transclusion-cycle",
-        message: `transclusion cycle: \`![[#${p.anchor}]]\` projects the content it is part of`,
-        line: p.line,
-      });
-    }
-  }
-}
-
 // Inline content that a projection may stand for: a `text` block whose body is a
 // single paragraph. Returned so the renderer and this validator agree on one
 // definition. Anything else — a heading (and so a whole section), a table, a
@@ -1963,11 +2039,13 @@ export function projectableInlines(blocks: Block[], id: string): { inlines: Inli
     }
     return undefined;
   })(blocks);
-  if (found === undefined) return null;
-  if (found.kind !== "block" || found.prose !== true) return "not-inline";
-  const kids = (found.children ?? []).filter((c) => !(c.kind === "paragraph" && c.text.trim() === ""));
-  if (kids.length !== 1 || kids[0]!.kind !== "paragraph") return "not-inline";
-  return { inlines: (kids[0] as Extract<Block, { kind: "paragraph" }>).inlines };
+  if (found === undefined) {
+    // §5.2: a stretch of prose is not a `text` block, so it is never inline
+    // content, however short — `embed` is the form for it.
+    return [...proseRunTargets(blocks).keys()].some((k) => nameKey(k) === key) ? "not-inline" : null;
+  }
+  const sole = soleParagraph(found);
+  return sole === null ? "not-inline" : { inlines: sole.inlines };
 }
 
 // A projection may only stand for inline content, and the target decides — the
@@ -2103,7 +2181,7 @@ function resolveTableSources(ctx: Ctx, opts: ParseOptions): void {
     // so a chart over it defers too. Passing it to resolveDoc treated a URL as a
     // filesystem path and failed a spec-conformant document.
     const scheme = schemeOf(target);
-    if (scheme === "http" || scheme === "https") continue;
+    if (scheme === "http" || scheme === "https") { deferBlock(block, ctx); continue; }
     if (scheme !== null) {
       err(line, "unresolvable-table-source", `table source \`${target}\` names a disallowed URL scheme`);
       continue;
@@ -2147,6 +2225,30 @@ function copyRelation(source: TableModel, target: string, caption?: string): Tab
   return model;
 }
 
+// §3.3: a block whose data is remote has no model at build time — not an empty
+// one — and a view, a chart or a coordinate reading it defers with it. The id
+// joins dataSrcPending, which is how a chart over it already learns to defer.
+function deferBlock(block: Extract<Block, { kind: "block" }>, ctx: Ctx): void {
+  if (block.id !== undefined) {
+    const key = nameKey(block.id);
+    if (ctx.tables?.get(key) === block.table) ctx.tables!.delete(key);
+    (ctx.dataSrcPending ??= new Set()).add(block.id);
+  }
+  delete block.table;
+}
+
+// Whether a block defers (§3.3). A table and a view always carry a model from the
+// scan, so one with none is one deferBlock emptied; a `data` block defers when
+// its `src=` is remote.
+function defers(block: Block): boolean {
+  if (block.kind !== "block") return false;
+  if (block.type === "table" || block.type === "view") return block.table === undefined;
+  if (block.type !== "data") return false;
+  const src = block.attrs["src"];
+  const scheme = typeof src === "string" ? schemeOf(src.trim()) : null;
+  return scheme === "http" || scheme === "https";
+}
+
 function relationBlock(blocks: Block[], id: string): Extract<Block, { kind: "block" }> | null {
   for (const block of blocks) {
     if (block.kind === "block" && block.id !== undefined && nameKey(block.id) === nameKey(id)) {
@@ -2161,7 +2263,7 @@ function relationBlock(blocks: Block[], id: string): Extract<Block, { kind: "blo
 }
 
 type RemoteUnresolved = { unresolved: string; code?: DiagnosticCode };
-function remoteRelation(source: string, id: string, opts: ParseOptions, path: string, canonical: string): TableModel | "not-a-relation" | RemoteUnresolved | null {
+function remoteRelation(source: string, id: string, opts: ParseOptions, path: string, canonical: string): TableModel | "not-a-relation" | "defer" | RemoteUnresolved | null {
   // Parse rather than merely scan: a remote view may itself consume a table or
   // another view, and the relation it publishes is the post-view relation.
   // Parsed ONCE per document: a fan-out of F views over an N-document chain
@@ -2197,7 +2299,9 @@ function remoteRelation(source: string, id: string, opts: ParseOptions, path: st
   // consumer a silently empty table — and the reason (a cycle caught one hop
   // down, a source that document lacked, the depth bound) sat in the remote
   // document's diagnostics, which this parse discards. Carry the reason up.
-  if (block.type === "view" && (block.table === undefined || block.table.columns.length === 0)) {
+  // §3.3: a relation that defers there defers here too.
+  if (block.table === undefined) return "defer";
+  if (block.type === "view" && block.table.columns.length === 0) {
     const why = document.diagnostics.find((d: Diagnostic) => d.severity === "error" && /^(view-source-|unresolved-cross-document-reference$|unresolvable-document$|unresolved-reference$)/.test(d.code));
     return { unresolved: why?.message ?? `\`#${id}\` did not resolve in that document`, ...(why ? { code: why.code } : {}) };
   }
@@ -2211,7 +2315,7 @@ function resolveViewSources(ctx: Ctx, opts: ParseOptions): void {
   const error = (line: number, code: DiagnosticCode, message: string): void => {
     ctx.diags.push({ severity: "error", code, message, line });
   };
-  const sourceOf = (target: string, line: number): TableModel | undefined | null => {
+  const sourceOf = (target: string, line: number): TableModel | "defer" | undefined | null => {
     const hash = target.indexOf("#");
     if (hash >= 0) {
       const path = target.slice(0, hash);
@@ -2225,7 +2329,8 @@ function resolveViewSources(ctx: Ctx, opts: ParseOptions): void {
         // A pending source is not ready yet.  The outer fixed-point loop either
         // gets it ready or reports the remaining closed chain below.
         if ([...unresolved].some((entry) => entry.block === source)) return undefined;
-        return source.table ?? null;
+        // §3.3: a source that defers takes its consumer with it.
+        return source.table ?? "defer";
       }
       if (!opts.resolveDoc) {
         ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `view source \`${target}\` not checked (no document resolver)`, line });
@@ -2263,7 +2368,7 @@ function resolveViewSources(ctx: Ctx, opts: ParseOptions): void {
     // to do — and not with `undefined`, which the loop below reads as `not ready
     // yet`: an entry that never becomes ready never leaves `unresolved`, and the
     // closing sweep then reports the view as a cycle it was never part of.
-    if (scheme === "http" || scheme === "https") return null;
+    if (scheme === "http" || scheme === "https") return "defer";
     if (scheme !== null) {
       error(line, "unresolvable-table-source", `view source \`${target}\` names a disallowed URL scheme`);
       return null;
@@ -2296,6 +2401,7 @@ function resolveViewSources(ctx: Ctx, opts: ParseOptions): void {
       if (source === undefined) continue;
       unresolved.delete(entry); progress = true;
       if (source === null) continue;
+      if (source === "defer") { deferBlock(entry.block, ctx); continue; }
       // A local `#id` source may itself be a view; anything else — a data file,
       // or a block in another document — is depth zero here, exactly as an
       // embed's cap counts the hops of THIS render.
@@ -2502,6 +2608,8 @@ function validateCoordRef(ref: Ctx["refs"][number], children: Block[], ctx: Ctx,
   const doc = ref.doc;
   const rebase = doc === undefined ? undefined
     : (src: string) => (src.startsWith("#") ? `${doc}${src}` : relJoinPath(relDirPath(doc), src));
+  // §3.3: a coordinate on a block whose data is remote defers with it.
+  if (defers(block)) return true;
   const hit = projectCoord(block, path, rebase);
   if (!hit.ok) return err("unresolved-reference", `\`${written}\`: ${hit.why}`);
   // §5.2: a projection — inline or an embed's `src=` — may stand for one value
@@ -3097,10 +3205,8 @@ export function parse(source: string, opts: ParseOptions = {}): Document {
     for (const a of htmlAnchorsOf(lines)) targets.add(a);
   }
   validateRefs(ctx, opts, children);
-  detectTransclusionCycles(ctx, opts);
-  detectSelfEmbedCycles(source, ctx);
+  detectTransclusionCycles(children, ctx, opts);
   validateProjections(children, ctx, opts);
-  detectSelfProjectionCycles(source, ctx);
   for (const m of ctx.mediaDocTargets ?? []) {
     ctx.diags.push({
       severity: "error",
@@ -3165,12 +3271,14 @@ function foldFence(lines: string[], i: number): { line: string; consumed: number
   if (!((first.startsWith("===") || first.startsWith("#")) && first.endsWith("\\"))) {
     return { line: first, consumed: 1 };
   }
-  let folded = first.slice(0, -1).trimEnd();
+  // §4: the backslash, the newline and the White_Space on either side of them
+  // become one space, so a continued line's indentation never reaches a value.
+  let folded = trimWhiteSpaceEnd(first.slice(0, -1));
   let consumed = 1;
   while (i + consumed < lines.length) {
-    const next = lines[i + consumed]!.trim();
+    const next = trimWhiteSpace(lines[i + consumed]!);
     consumed++;
-    if (next.endsWith("\\")) { folded += " " + next.slice(0, -1).trimEnd(); continue; }
+    if (next.endsWith("\\")) { folded += " " + trimWhiteSpaceEnd(next.slice(0, -1)); continue; }
     folded += " " + next;
     break;
   }
@@ -3460,23 +3568,29 @@ function findDeclaredTarget(blocks: Block[], id: string): Block[] | null {
 // walked with the block as the container their headings nest inside.
 export function proseRunTargets(blocks: Block[]): Map<string, Block[]> {
   const out = new Map<string, Block[]>();
-  collectRunTargets(blocks, null, out);
+  // §4 rule 1: an id-less `meta` block anchors as `meta` when it is the
+  // document's only one — `#meta` then names it.
+  const metaSolo = metaView(blocks).blocks.length === 1;
+  collectRunTargets(blocks, null, out, metaSolo);
   return out;
 }
 
-function collectRunTargets(blocks: Block[], root: { id?: string } | null, out: Map<string, Block[]>): void {
+function collectRunTargets(blocks: Block[], root: { id?: string } | null, out: Map<string, Block[]>, metaSolo: boolean): void {
   const stack: Extract<Block, { kind: "heading" }>[] = [];
   let prev: Block | null = null;   // last anchor INSIDE the current container
   let run: Block[] = [];
 
   const isAnchor = (b: Block): boolean => b.kind === "heading" || b.kind === "block";
+  const anchorId = (b: Block): string | undefined =>
+    (b as { id?: string }).id ?? (b.kind === "block" && b.type === "meta" && metaSolo ? "meta" : undefined);
   const flush = (next: Block | null): void => {
-    if (run.length > 0) {
+    // §4: a `%%` line is not content, so a run of nothing else is not prose.
+    if (run.some((b) => b.kind !== "hidden")) {
       const container = stack.length > 0 ? stack[stack.length - 1]! : root;
       const id = runAddress(
         container === null ? null : { id: container.id },
-        prev === null ? null : { id: (prev as { id?: string }).id },
-        next === null ? null : { id: (next as { id?: string }).id },
+        prev === null ? null : { id: anchorId(prev) },
+        next === null ? null : { id: anchorId(next) },
       );
       // First definition wins, matching how ids resolve everywhere else.
       if (id !== undefined && !out.has(id)) out.set(id, run);
@@ -3498,7 +3612,7 @@ function collectRunTargets(blocks: Block[], root: { id?: string } | null, out: M
     }
     flush(b);
     prev = b;
-    if (b.kind === "block" && b.mode === "flow" && b.children) collectRunTargets(b.children, { id: b.id }, out);
+    if (b.kind === "block" && b.mode === "flow" && b.children) collectRunTargets(b.children, { id: b.id }, out, metaSolo);
   }
   flush(null);
 }
@@ -3520,7 +3634,12 @@ function collectRunTargets(blocks: Block[], root: { id?: string } | null, out: M
 // An anchor without an id cannot be named, and neither can a run directly in the
 // document body (the root has no id). Those keep the content address `@<hex>` they
 // already had — the proposal's own fallback for anonymous neighbours.
-function proseRuns(units: Unit[], lineCount: number): Unit[] {
+function proseRuns(units: Unit[], lines: string[]): Unit[] {
+  const lineCount = lines.length;
+  // §4 rule 1: an id-less `meta` block is the anchor `meta` when it is the only one.
+  const metaSolo = units.filter((u) => u.type === "meta").length === 1;
+  const anchor = (u: Unit | null): { id?: string } | null =>
+    u === null ? null : { ...(u.id !== undefined ? { id: u.id } : u.type === "meta" && metaSolo ? { id: "meta" } : {}) };
   // Containers are HEADINGS and typed blocks with a FLOW body (§4). A heading's
   // region runs to the next heading of its own level or shallower, and a block's
   // is its body, so a stack over document order nests them correctly — a
@@ -3557,7 +3676,9 @@ function proseRuns(units: Unit[], lineCount: number): Unit[] {
 
     for (const g of gaps) {
       if (g.to <= g.from) continue;
-      const id = runAddress(container, g.prev, g.next);
+      // §4: `%%` lines are not content — a gap holding nothing else is no run.
+      if (lines.slice(g.from, g.to).every((l) => l.trim() === "" || /^[ \t]*%%/.test(l))) continue;
+      const id = runAddress(container, anchor(g.prev), anchor(g.next));
       runs.push({ span: { start: g.from, end: g.to }, kind: "prose", ...(id !== undefined ? { id } : {}) });
     }
   }
@@ -3593,7 +3714,7 @@ export function addressedUnits(source: string, o: WalkOptions = {}): Addressed[]
   // that is only blank lines is not a run at all. Merged in document order, so
   // the listing reads down the page.
   const declared = new Set(units.map((u) => u.id).filter((id): id is string => id !== undefined).map(nameKey));
-  for (const run of proseRuns(units, lines.length)) {
+  for (const run of proseRuns(units, lines)) {
     let { start, end } = run.span;
     while (start < end && lines[start]!.trim() === "") start++;
     while (end > start && lines[end - 1]!.trim() === "") end--;

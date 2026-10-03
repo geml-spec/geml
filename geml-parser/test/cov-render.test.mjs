@@ -193,7 +193,10 @@ test("hand-built models: id-less heading, blank paragraph, child-less note, tabl
   assert.match(out, /<h3>T<\/h3>/, "no id attribute emitted");
   assert.doesNotMatch(out, /<p>\s*<\/p>/, "whitespace-only paragraph dropped");
   assert.match(out, /<aside class="callout note">/, "empty note still renders its shell");
-  assert.match(out, /table failed to parse/);
+  assert.match(out, /table has no rows to show/);
+  // §3.3: a remote source has no model at build time, and the page names it.
+  const remote = renderHtml({ children: [{ kind: "block", type: "table", classes: [], attrs: { src: "https://example.com/a.csv" }, raw: [] }] }, {});
+  assert.match(remote, /external data <code>https:\/\/example\.com\/a\.csv<\/code> — loaded at render time/);
 });
 
 test("hand-built charts: missing number columns and category/value mismatches degrade, never throw", () => {

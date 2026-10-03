@@ -32,7 +32,7 @@
 
 `want` 是解析后模型的一个**投影**——一个紧凑的字符串。把*你的*模型按同样规则投影一遍，断言它等于 `want`。用例还可能带 `ids`、`addresses`、`blocks` 或 `diagnostics`，或者以字节形式（`geml_base64`）给出输入：你具备哪些能力，就检查哪些。
 
-[`_project.mjs`](../geml-parser/test/conformance/_project.mjs) 是参考投影实现——有任何说不清的地方，以它为准。[`impl2.mjs`](../geml-parser/test/conformance/impl2.mjs) 是一个**只照规范写成**、不 import 参考解析器的完整解析器 + 投影（几百行）——它就是你要做的东西的范例。
+[`_project.mjs`](../geml-parser/test/conformance/_project.mjs) 是参考投影实现——`want` 字符串就是用它的格式写的。文档**是什么意思**由规范决定：每条用例都从规范原文推出，用例与原文不一致时以原文为准。[`impl2.mjs`](../geml-parser/test/conformance/impl2.mjs) 是一个**只照规范写成**、不 import 参考解析器的完整解析器 + 投影（几百行）——它就是你要做的东西的范例。
 
 ## 建议的实现顺序
 
@@ -40,13 +40,14 @@
 
 0. **归一化输入**（§0.5）——解码 UTF-8、剥一个前导 BOM、把 CRLF/CR 折成 LF、替换 `U+0000`。先做这个，后面每一步都会变简单；而且每一步都保持行数不变，所以你仍然能按行索引回原始字节。→ `normalize.json`
 1. **围栏 + 块扫描器**（§2–§3）——一串 `=` 开块，等长的一串闭块，更长的围栏可嵌套；ATX 标题、列表、段落、`%%` 行。→ `fences.json`、`blocks.json`、dogfood
-2. **属性对象** `{#id .class key=val}`（§4）——值的类型判定；没有 `=` 的裸词是布尔开关。→ `blocks.json`、dogfood
+2. **属性对象** `{#id .class key=val}`（§4）——对象从哪里开始、到哪里结束（围栏行到最后一个 `}`；标题取行尾那一组），条目在引号区段之外按 White_Space 切分，值的类型判定；没有 `=` 的裸词是布尔开关。→ `blocks.json`、dogfood
 3. **`meta` + `{{key}}` 插值**（§3–§4）——在 flow 源文本里替换，跳过逐字保留的 atom（代码跨段、行内公式）和转义的 `\{{key}}`。→ `interp.json`
 4. **内联**（§5）——强调/加粗/删除线（三的规则）、代码、公式、链接、自动引用、脚注、图片、换行、转义。**这是最难的一块，靠 fixtures 撑。** → `inline.json`、`precedence.json`
 5. **列表**（§2.1）——序号、`start`、嵌套、紧凑/松散、`[ ]`/`[x]`。→ `lists.json`
 6. **引用与校验**（§8）——收集 id、解析引用、对重复和悬空报错。→ `ids.json`、`addresses.json`、dogfood
 7. **表格与视图**（§6、§6.1）——竖线网格与 `format=csv`/`tsv` 解析成同一个模型，它装的是事实；`view` 在其上派生，用 `compute=`、`summary=`、`where=`、`order=`、`limit=`、`select=`、`by=`/`aggregate=`。→ `coordinates.json`、`views.json`、dogfood
 8. **图形与图表**（§7）——图形正文永不被解释；`geml-chart data=#id` 按引用为一张表作图。→ dogfood
+9. **经宿主读文档**（§3.3、§5.2、§9.3、§9.4）——指向其他文档的引用只解析一层、解析根、构建时读的数据文件与路由、投射链条。→ `documents.json`，它的用例给一棵文件树（`files`）和要读的文档（`main`）
 
 第 0 步加 1–5 就得到一个可用的解析器。第 6 步是让 GEML 之所以为 *GEML* 的那一步。7–8 是回报。
 
@@ -56,7 +57,7 @@
 for entry in load("manifest.json").files:
     if not entry.requires ⊆ your_capabilities: continue
     for case in load(entry.file):
-        doc = parse(case.geml or decode(base64(case.geml_base64)))
+        doc = parse_in(case.files, case.main) if case.files else parse(case.geml or decode(base64(case.geml_base64)))
         assert project(doc) == case.want
         # 以及你具备的 ids / addresses / blocks / diagnostics
 

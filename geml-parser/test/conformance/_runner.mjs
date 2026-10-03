@@ -8,6 +8,10 @@
 //   blocks        blocksOf(doc) — the block tree (_project.mjs)
 //   diagnostics   the `code:severity` of each catalogued diagnostic, a multiset
 //
+// A case of a file that needs `host` gives `files` (root-relative path ->
+// content) and `main` instead of `geml`; the implementation parses `main`
+// through a host over that tree (README, "host").
+//
 // A case whose input is `geml_base64` (bytes, for §0.1's decoding) runs only
 // where the implementation has `bytes`. An implementation in another language
 // reads the same manifest and case files with a harness of its own; this file
@@ -25,6 +29,7 @@ export const manifest = JSON.parse(readFileSync(join(here, "manifest.json"), "ut
  *   label: string,                 // what the summary line calls this implementation
  *   has: Set<string>,              // its capabilities (manifest.capabilities)
  *   parse(text): Document,         // the document model _project.mjs reads
+ *   parseIn?(files, main): Document, // `host`: `main` read through a host over `files`
  *   decode?(bytes): string,        // `bytes`: its own UTF-8 reading of a file
  *   ids?(doc): string[],           // `ids`
  *   addresses?(text): string[],    // `addresses`
@@ -43,8 +48,8 @@ export function runConformance(impl) {
     let skippedHere = 0;
     for (const c of cases) {
       if (c.geml_base64 !== undefined && !can("geml_base64")) { skippedHere++; continue; }
-      const text = c.geml_base64 !== undefined ? impl.decode(Buffer.from(c.geml_base64, "base64")) : c.geml;
-      const doc = impl.parse(text);
+      const text = c.files !== undefined ? c.files[c.main] : c.geml_base64 !== undefined ? impl.decode(Buffer.from(c.geml_base64, "base64")) : c.geml;
+      const doc = c.files !== undefined ? impl.parseIn(c.files, c.main) : impl.parse(text);
       const wrong = [];
       const check = (what, want, got) => { if (want !== got) wrong.push([what, want, got]); };
       check("want", c.want, project(doc));

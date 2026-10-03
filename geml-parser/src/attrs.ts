@@ -96,10 +96,13 @@ export function coerce(raw: string): Value {
   return t; // bare word -> string
 }
 
-// Split on whitespace while keeping double-quoted spans intact. An escaped
+// §4, reading an attribute object: White_Space separates items, except inside a
+// quoted span — a `"` anywhere in an item opens one and the next unescaped `"`
+// closes it, so `src=#t[1]["Q 1"]` is one item. An escaped
 // quote (§4 `\"`) does not end the span — it used to, and `caption="a \"b\""`
 // then split into three tokens; the serializer, having no way to write a quote,
 // emitted one unescaped and the round trip changed the block's attributes.
+const WHITE_SPACE = /^\p{White_Space}$/u;
 export function tokenize(s: string): string[] {
   const out: string[] = [];
   let cur = "";
@@ -112,7 +115,7 @@ export function tokenize(s: string): string[] {
     } else if (ch === '"') {
       inQuote = !inQuote;
       cur += ch;
-    } else if (!inQuote && /\s/.test(ch)) {
+    } else if (!inQuote && WHITE_SPACE.test(ch)) {
       if (cur) { out.push(cur); cur = ""; }
     } else {
       cur += ch;
@@ -133,15 +136,15 @@ export function parseAttrs(src: string): Attrs {
   const count = (name: string): void => void written.set(name, (written.get(name) ?? 0) + 1);
   for (const tok of tokenize(inner)) {
     if (tok.startsWith("#")) {
-      out.id = tok.slice(1);
+      // §4: of two ids, or two items naming one key, the first is the one read.
+      if (out.id === undefined) out.id = tok.slice(1);
     } else if (tok.startsWith(".")) {
       out.classes.push(tok.slice(1));
       count(tok.slice(1));
     } else {
       const eq = tok.indexOf("=");
       const key = eq > 0 ? tok.slice(0, eq) : tok;
-      if (eq > 0) out.attrs[key] = coerce(tok.slice(eq + 1));
-      else out.attrs[key] = true; // bare word -> boolean flag (e.g. `hidden`)
+      if (!Object.hasOwn(out.attrs, key)) out.attrs[key] = eq > 0 ? coerce(tok.slice(eq + 1)) : true; // a bare word is a flag (`hidden`)
       count(key);
     }
   }

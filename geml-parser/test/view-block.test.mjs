@@ -418,16 +418,16 @@ const viewOn = (src, opts) => parse(`=== view {#v src=${src}}\n===\n`, opts).dia
 const codesOf = (ds) => ds.map((d) => d.code);
 
 test("a view reading http(s) is left to the renderer, exactly as a table is", () => {
-  // `sourceOf` answers `null` — settled, nothing to build — and not `undefined`,
+  // `sourceOf` answers `"defer"` — settled, nothing to build — and not `undefined`,
   // which the resolution loop reads as "not ready yet". It used to answer
   // `undefined`, so the entry never left `unresolved` and the closing sweep
   // reported the view as a cycle it had never been part of.
   const view = parse("=== view {#v src=https://example.com/fy.csv}\n===\n");
   const table = parse("=== table {#t src=https://example.com/fy.csv}\n===\n");
   assert.deepEqual(codesOf(view.diagnostics ?? []), []);
-  assert.equal(view.children[0].table.src, table.children[0].table.src,
-    "the view carries the same renderer-time source a table does");
-  assert.deepEqual(view.children[0].table.rows, [], "no rows at build time — the renderer fetches them");
+  // §3.3: both defer — no model at build time, not an empty one.
+  assert.equal(view.children[0].table, undefined, "the view has no model until the renderer fetches its rows");
+  assert.equal(table.children[0].table, undefined, "nor does the table");
 });
 
 test("the remote-source answer does not soften a real cycle", () => {

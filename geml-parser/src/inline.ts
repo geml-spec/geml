@@ -65,7 +65,7 @@ export interface RefSink {
   // recursive pass: a transclusion can pull in another document's
   // transclusions, so cycle detection has to walk the graph. Optional so a
   // caller that only wants ids (gatherIds) need not supply it.
-  embeds?: { doc: string; anchor?: string; line: number }[];
+  embeds?: { doc: string; anchor?: string; part?: string; line: number }[];
   // A media embed (`![](…)`) whose target is a GEML document. Reported by the
   // caller, not here: this module carries no diagnostic policy. Such a target
   // projected nothing, validated nothing and warned about nothing — the one shape
@@ -243,12 +243,19 @@ function readBracket(s: string, i: number, p: Pairs): { content: string; end: nu
   return j < 0 ? null : { content: s.slice(i + 1, j), end: j + 1 };
 }
 
-// Optional `{…}` attribute object immediately following a construct.
+// Optional `{…}` attribute object immediately following a construct. §4: it
+// closes at the first `}` outside a quoted span, so `{title="a}b"}` is one
+// object; with no such `}` there is none and the `{` stays text.
 function readAttrs(s: string, i: number): { attrs: ReturnType<typeof parseAttrs>; end: number } | null {
   if (s[i] !== "{") return null;
-  const close = s.indexOf("}", i);
-  if (close < 0) return null;
-  return { attrs: parseAttrs(s.slice(i, close + 1)), end: close + 1 };
+  let quoted = false;
+  for (let k = i + 1; k < s.length; k++) {
+    const c = s[k]!;
+    if (quoted && c === "\\" && (s[k + 1] === '"' || s[k + 1] === "\\")) { k++; continue; }
+    if (c === '"') { quoted = !quoted; continue; }
+    if (!quoted && c === "}") return { attrs: parseAttrs(s.slice(i, k + 1)), end: k + 1 };
+  }
+  return null;
 }
 
 // A phase-A atom in the phase-B sequence, carrying the first and last

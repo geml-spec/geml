@@ -7,7 +7,8 @@
     "blocks": "exposes the block tree: each block's type, id, classes, attributes and body",
     "diagnostics": "reports each diagnostic with the code and severity Appendix A assigns it",
     "bytes": "reads a document from bytes, decoding UTF-8 as §0.1 requires",
-    "yaml": "ships a yaml engine; §3.2 makes it optional and fixes the subset one must read"
+    "yaml": "ships a yaml engine; §3.2 makes it optional and fixes the subset one must read",
+    "host": "reads the files a document names through a host confined to a directory tree (§3.3, §9.3, §9.4)"
   },
   "fields": {
     "ids": "ids",
@@ -32,6 +33,7 @@
     { "file": "ids.json", "requires": ["ids"] },
     { "file": "blocks.json", "requires": ["blocks"] },
     { "file": "addresses.json", "requires": ["addresses"] },
-    { "file": "yaml.json", "requires": ["yaml"] }
+    { "file": "yaml.json", "requires": ["yaml"] },
+    { "file": "documents.json", "requires": ["host", "tables", "views"] }
   ]
 }

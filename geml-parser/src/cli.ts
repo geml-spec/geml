@@ -51,7 +51,7 @@ import { profileIoFor } from "./host-fs.js";
 // (it did three times in one day: node:os for homedir, pageAssets, renameSync).
 
 import { readFileSync, writeFileSync, realpathSync, statSync, existsSync, mkdirSync, readdirSync, copyFileSync, renameSync } from "node:fs";
-import { loadStylesheet, resolveStyle } from "./style-resolve.js";
+import { expandCorpus, loadStylesheet, resolveStyle, type StyleLoadOptions } from "./style-resolve.js";
 import { basename, dirname, join, relative, sep, resolve as resolvePath } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -1615,13 +1615,21 @@ function runStyle(args: string[]): void {
   // 一份文档**装载时才可能命中。语料恰好一份时它就是那一份；给了多份就只剩
   // `default-style` 那一层 —— 一份规则表服务整个语料，无法逐文档不同，所以这里
   // 说出来而不是悄悄取第一份。
-  const styleOpts: Parameters<typeof loadStylesheet>[1] = {
-    loadDoc: resolverFor(sheetPath, undefined),
+  //
+  // 每份文件按写它的那份文件的目录读（GEML §3.3），名字就是读到的路径。
+  const loadDoc: NonNullable<StyleLoadOptions["loadDoc"]> = (path, from) => {
+    const text = resolverFor(from, undefined)(path);
+    return text === null ? null : { name: join(dirname(from), path), text };
+  };
+  const styleOpts: StyleLoadOptions = {
+    loadDoc,
     parseDoc: (s) => parse(s, { ...docOpts(sheetPath, undefined) }),
+    self: join(sheetPath),
   };
   if (corpusPaths.length === 1) styleOpts.forDoc = basename(corpusPaths[0]!);
   const sheet = loadStylesheet(parse(readFileSync(sheetPath, "utf8")), styleOpts);
-  const corpus = corpusPaths.map((f) => ({ path: f, doc: parse(readFileSync(f, "utf8")) }));
+  // 语料里的 `embed` 把它指到的文档整份带进语料（profile §3）。
+  const corpus = expandCorpus(corpusPaths.map((f) => ({ path: f, doc: parse(readFileSync(f, "utf8")) })), { loadDoc, parseDoc: (s) => parse(s) });
   const vm = resolveStyle(sheet, corpus, opts);
 
   if (jsonMode) {

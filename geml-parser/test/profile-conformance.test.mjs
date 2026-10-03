@@ -27,6 +27,7 @@
 // drifts across that line fails below, whichever direction it drifts.
 import { PROFILES } from "../dist/profiles.js";
 import { parse, CATALOGUE_EXEMPT } from "../dist/geml.js";
+import { expandCorpus, loadStylesheet, resolveStyle } from "../dist/style-resolve.js";
 import { readFileSync, existsSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
@@ -63,6 +64,48 @@ const diagnosticsOf = (geml, own) =>
 const UNKNOWN = /^unknown-(block-type|attribute):/;
 // The same document with its declaration removed — §8.6.2 rule 3's other reading.
 const undeclare = (g) => g.replace(/^profile\s*=.*$/m, 'title = "undeclared"');
+
+// `views`：文件树经一个限定在树内的宿主读取，相对路径先对写它的文件的目录、再对根目录
+// （GEML §3.3）；只有一份语料文档时，样式入口的 `#sitemap` 为它查（profile §1.1）。
+const treePath = (p) => {
+  const out = [];
+  for (const s of p.split("/")) {
+    if (s === "" || s === ".") continue;
+    if (s === "..") { if (out.length === 0) return null; out.pop(); } else out.push(s);
+  }
+  return out.join("/");
+};
+function solveView(v) {
+  const has = (p) => (p !== null && Object.hasOwn(v.files, p) ? p : null);
+  const host = {
+    loadDoc: (path, from) => {
+      const dir = from.includes("/") ? from.slice(0, from.lastIndexOf("/")) : "";
+      const name = has(treePath(dir ? `${dir}/${path}` : path)) ?? has(treePath(path));
+      return name === null ? null : { name, text: v.files[name] };
+    },
+    parseDoc: (s) => parse(s),
+  };
+  const opts = { ...host, self: v.sheet };
+  if (v.corpus.length === 1) opts.forDoc = v.corpus[0];
+  const sheet = loadStylesheet(parse(v.files[v.sheet]), opts);
+  return resolveStyle(sheet, expandCorpus(v.corpus.map((p) => ({ path: p, doc: parse(v.files[p]) })), host));
+}
+
+test("视图模型用例（`views`）：一份样式表对一组语料解出的整个视图模型与诊断，逐条复现（geml-style §10）", () => {
+  let n = 0;
+  for (const name of Object.keys(PROFILES)) {
+    const f = JSON.parse(readFileSync(fileFor(name), "utf8"));
+    for (const v of f.views ?? []) {
+      const vm = solveView(v);
+      // As JSON, the form the view model is published in (`when` is a null-prototype map).
+      const got = JSON.parse(JSON.stringify({ states: vm.states, screens: vm.screens, frames: vm.frames, bindings: vm.bindings }));
+      assert.deepEqual(got, { states: v.states, screens: v.screens, frames: v.frames, bindings: v.bindings }, `${name}: ${v.name}`);
+      assert.deepEqual(vm.diagnostics.map((d) => `${d.code}:${d.severity}`).sort(), v.diagnostics, `${name}: ${v.name}`);
+      n++;
+    }
+  }
+  assert.ok(n > 0, "至少 geml-style 带着视图模型用例");
+});
 
 test("每份注册的 profile 都有一份一致性文件，反之亦然", () => {
   for (const name of Object.keys(PROFILES)) {

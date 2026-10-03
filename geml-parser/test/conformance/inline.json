@@ -328,5 +328,40 @@
     "name": "an over-long tilde run spends two per side and leaves the rest literal",
     "geml": "~~~~a~~~",
     "want": "\"~~\" s(\"a\") \"~\""
+  },
+  {
+    "name": "two dollar signs open no math",
+    "geml": "a $$ b",
+    "want": "\"a $$ b\""
+  },
+  {
+    "name": "a dollar sign directly followed by another is literal, and the second may open math",
+    "geml": "$$x$",
+    "want": "\"$\" math(\"x\")"
+  },
+  {
+    "name": "a dollar sign directly after math is literal",
+    "geml": "$x$$",
+    "want": "math(\"x\") \"$\""
+  },
+  {
+    "name": "a run of three dollar signs is text",
+    "geml": "$$$favorites",
+    "want": "\"$$$favorites\""
+  },
+  {
+    "name": "a dollar sign with no later one is literal",
+    "geml": "costs $5 or less",
+    "want": "\"costs $5 or less\""
+  },
+  {
+    "name": "a quoted brace inside a link's attribute object does not close it",
+    "geml": "See [t](https://x.test){title=\"a}b\"} tail.",
+    "want": "\"See \" link(\"https://x.test\" \"t\") \" tail.\""
+  },
+  {
+    "name": "a link's attribute object with no brace outside quotes to close it is text",
+    "geml": "See [t](https://x.test){title=\"a} tail.",
+    "want": "\"See \" link(\"https://x.test\" \"t\") \"{title=\\\"a} tail.\""
   }
 ]

@@ -117,7 +117,9 @@ The entry uses two keys to say which stylesheets load:
 `#sitemap` is an **exact match**: no globs, no cascade, and a document not listed
 simply gets the default layer only. That is the same stance §4 takes against
 specificity arithmetic — a lookup should be readable at a glance. Keys are
-root-relative document names.
+root-relative document names, and the row looked up is the document being
+rendered's; `geml style check` looks up its corpus's one document when it is
+handed exactly one, and no row when it is handed several.
 
 Both keys are **one implicit `embed`** each: declaring them is the same as writing
 the corresponding `=== embed {src=…}` at the top of the entry. They are therefore
@@ -133,9 +135,16 @@ stylesheet leaves such templates untouched.
 
 `embed` itself is GEML's include, not this profile's vocabulary; stylesheets use it
 to compose (one shared default layer plus local exceptions). The loader expands it
-through the **same** `selectEmbed` the renderer uses: a second matcher would
-eventually diverge from build-time semantics. Expansion happens at **load time**,
-so afterwards every rule lives in one table.
+at **load time**, so afterwards every rule lives in one table, and it selects
+exactly what the core's `embed` selects (GEML §9.3) — a second matcher would
+eventually diverge from build-time semantics: a whole file, or the block, heading
+section or stretch of prose its `#id` names, narrowed by `part=`. A bare `#id` names
+a target in the file the `embed` is written in, and a relative path resolves as
+GEML §3.3 resolves any path a document names: against that file's directory, then
+the root. A file is read in document order, and its style blocks and `embed`s
+count wherever they stand, inside another block's body included. A file an
+`embed` brings in counts as written, its own `default-style` included — one more
+implicit `embed` at its top, in the same layer — and its `#sitemap` not.
 
 An explicit `embed` does **not** open a new layer (§4.1): the rules it pulls in sit
 in the same layer as the file referencing it. Layers come only from the style
@@ -208,6 +217,7 @@ continuation when an attribute object gets long.
 | `filter=` | no | narrow a collection by a `$state` (`filter="confidence=$conf"`) |
 | `screen=` | no | **space-separated** screen ids; absent = every screen |
 | `when=` | no | `$state=value` terms and the built-in `@hover` / `@focus` / `@invalid` / `@disabled` / `@checked`, comma-separated, all must hold; equality only (§4) |
+| `caption=` `hidden` | no | the core's own (GEML §4), here and on every style block: neither a parameter, nor a built-in word, nor an unknown key, and no part of §4's merge |
 | *any other key* | no | passed through **verbatim** as a component parameter — except the built-in words below. A parameter that the *merged* binding (§4) has no `component=` or `handler=` to receive is `style-unknown-attribute` (warning) |
 
 **Built-in words.** A small closed set of attributes is the profile's own, not the
@@ -254,7 +264,16 @@ to point at is how a page ends up with content that is not content. A container 
 no `component=` has nothing to receive parameters, so an unrecognized key there is
 still `style-unknown-attribute` — that one is a typo.
 
-Closed domains are checked (`style-invalid-value`); open ones are handed to the host
+**A rule may dress a container.** A rule whose `match=` is one bare `#id` naming a
+`style-screen` or `style-frame` of this stylesheet applies to that container as well —
+a region changes with `when=` exactly as a block does, which is how a menu panel
+opens or a sidebar narrows. The rules naming one container are merged by §4 as a
+binding's are, `screen=` taking no part, and what the merge sets replaces the
+container's own words: base words join its `box` and `params`, conditional ones form
+its `variants`. A corpus block holding the same id is bound by the rule all the same.
+
+Closed domains are checked: a value outside its domain is `style-invalid-value`, and
+the word is dropped — the rule does not set it, so it takes no part in §4. Open ones are handed to the host
 verbatim — and the host must treat them as the untrusted text they are. A host that
 emits CSS may splice in only values shaped like a length, a colour or a keyword; a
 `width` of `0} body{display:none}` is a rule breakout, not a width, and is dropped
@@ -274,7 +293,8 @@ could say what a field that failed judgement looks like.
 **Parameters need a receiver.** `selectable`, `badge="leaf"`, `collapsed` are the
 component's own vocabulary, and the profile has no business ruling on it — so a rule
 carries no `style-unknown-attribute` check of its own. But §4 merges rules by attribute,
-and after the merge a block either has a `component=` (or `handler=`) or it does not. A
+and after the merge a binding — its base and its variants together — either has a
+`component=` (or `handler=`) or it does not. A
 binding whose merged parameters have nothing to receive them gets one
 `style-unknown-attribute` (warning) naming the keys and the rules that set them: those keys
 will never be read, which is what a typo looks like. The check is on the binding, not the
@@ -287,7 +307,7 @@ inside the matched blocks — `text#nav link` is every link in `#nav`. Only word
 something on a run of text are taken there: `color` `background` `padding` `margin`
 `border` (and its sides) `border-radius` `font-size` `line-height` `font-family` `width`
 `max-width` `visible` `underline`. Any other built-in word on a part rule is `style-unknown-attribute`
-(warning) and is dropped — `sticky` on a link is not a thing.
+(warning), reported once on the rule, and is dropped — `sticky` on a link is not a thing.
 
 ### 2.2 `style-state` — one cell of view state, and what feeds it
 
@@ -324,6 +344,11 @@ and the specific kind with `type=` follows §7.1's `diagram {type=bar}`.
 
 **Multiple producers are allowed.** Two blocks writing one state is assignment
 over time, not a static conflict, so it is not `style-ambiguous-rule`.
+
+**A container can be the producer.** A `match=` that is one bare `#id` naming a
+`style-screen` or `style-frame` of this stylesheet makes that region the producer —
+clicking a menu button's frame opens its panel — and such a state is not
+`style-unmatched-producer` for matching no corpus block.
 
 ### 2.3 `style-screen` — a page
 
@@ -411,7 +436,10 @@ block type already, so the span is `code-span`. A part step must be the last ste
 follow a block step, takes no `#id` / `.class` / `[attr]`, and a `match=` may not mix
 part branches with block branches — each is `style-selector-unsupported`. `*` and block
 selectors never match parts, and a slot never places one: a part goes wherever its block
-goes.
+goes. The step before the part matches the node whose part it is, not an ancestor of it:
+`note link` is the links a `note` holds, and binds on the note alone. A node has a part
+only when it holds at least one inline of that kind — in its own text, its lists, or the
+body of a typed block nested in it; a node without one gives a part step nothing to match.
 
 A part name in the **first** step is read as a block type — a part needs a block
 step before it, so there is nothing else it could be there — and the processor
@@ -425,11 +453,25 @@ in document order cannot name what it wants any other way: a paragraph between t
 blocks carries no class to select on.
 
 The nodes a selector can match are typed blocks, **headings** (`heading`, with the
-level as an attribute: `heading[level=1]`), and the **prose** between blocks
-(`prose`). Headings and prose are addressable in the core (`geml list` names them),
-so a layer that lays out documents has no business being unable to place them. A
-paragraph *inside* a block is that block's content, not a section of the document,
-and is not a candidate.
+level as an attribute — the line's own, which an author's `level=` does not override:
+`heading[level=1]`), and the **prose** between blocks
+(`prose`): a stretch of prose as GEML §4 defines it — its paragraphs and lists, a
+`%%` line not breaking it — one node however much it holds, whose id, for an `#id`
+step and for its address, is its §4 prose address when it has one that no declared
+id shadows. Headings and prose are addressable in the core (`geml list` names them),
+so a layer that lays out documents has no business being unable to place them.
+The prose *inside* a typed block's body is that block's content, not a section of
+the document, and is not a candidate; the typed blocks and headings inside the body
+are. A stylesheet's own screens and frames are not nodes of the corpus; a rule reaches
+one only by naming it (§2.1).
+
+**The corpus** is the documents a stylesheet is solved against, in the order given,
+followed by each GEML document an `embed` in the corpus names, read whole whatever
+block or section the `embed` selects — a binding names a node of a document, not a
+piece of a page — and each document once: they join in the order their `embed`s are
+met reading the corpus in order, a joined document's own `embed`s included. A
+same-document `embed` adds nothing, and a document the host cannot read joins
+nothing.
 
 The vocabulary is exactly §4's own — type, `#id`, `.class`, attribute presence,
 attribute equality — plus one combinator. The parts of a simple selector are
@@ -440,7 +482,9 @@ namespaces that never meet — a class is not an attribute of the same name, so
 `.x` matches `{#a .x}` and `[x]` matches the flag `{#a x}`, and neither matches
 the other. Sections are the containment relation:
 headings are not containers in the block model, so the relation is rebuilt from
-an open heading stack.
+an open heading stack. A heading an ancestor step matches is the same node as when it
+is matched itself — type `heading`, its level an attribute — so `heading[level=1] table`
+is every table in a level-1 section.
 
 Unsupported CSS is **named, not silently unmatched**:
 
@@ -461,23 +505,36 @@ one-pass regex misreads those as pseudo-classes.
 
 ## 4. Conflict arbitration
 
-Merging is **per attribute**. When two rules set the *same* attribute on the
-*same* block, the winner is decided by one relation: **strict superset of
+Merging is **per attribute**, and decided by one relation: **strict superset of
 conditions**. A selector's conditions are its type, classes, id, and attribute
 tests; `screen=` adds `screen:<id>`; each `when=` term adds `when:<state>=<value>`.
-If one rule's condition set strictly contains the other's, it wins. Otherwise →
-`style-ambiguous-rule`, a **warning** — and the rule written **first** keeps the
-attribute: its value enters the binding, the later rule's enters nothing (§10).
-The contest is reported so that order never decides silently; it is not an
-error, because a stylesheet with one open contest still renders, and renders
-the way its author can read off the file.
+"Written first" means first in stylesheet order. For one attribute on one block,
+the rules that set it are arbitrated in three steps:
 
-With `when=` in the condition set the arbitration applies unchanged: a conditional
-rule with the same selector is a strict superset of the unconditional one and wins —
-at runtime, when its state holds. Two conditional rules whose `when=` sets are
-**exclusive** (the same state, different values) can never both apply and are not a
-conflict; two that can both hold, are incomparable, and set one attribute are
-`style-ambiguous-rule`, exactly as before.
+1. **Layers** (§4.1). Within one `when=` set, only the rules of the highest layer
+   that sets the attribute take part.
+2. **One `when=` set.** A rule whose condition set another's strictly contains
+   loses. The rules left — the *maximal* ones — decide: one holds the attribute;
+   of several, identical or incomparable, the one written **first** holds it, and
+   each of the others is `style-ambiguous-rule`, a **warning** — one report per
+   rule that lost to order alone. The holder's value enters the binding; the
+   others' enter nothing (§10).
+3. **Across `when=` sets.** Two sets that can hold together — not **exclusive**,
+   which is the same state with different values — are compared through the rules
+   holding the attribute in each after step 2. A higher layer keeps it; in one
+   layer, a conditional rule whose condition set strictly contains the other's
+   overlays it at runtime, when its state holds, and when neither contains the
+   other the set whose holder was written later loses the attribute — one
+   `style-ambiguous-rule` for that set. Every pair is compared through the
+   holders of step 2 and the losses apply together, so the outcome does not
+   depend on which pair is looked at first.
+
+The maximal set is what makes the outcome independent of the order the rules are
+considered in: with `A ⊂ C` and `B` incomparable to both, `A` loses to `C` and
+the contest is between `B` and `C`, the earlier of which holds the attribute. The
+contest is reported so that order never decides silently; it is not an error,
+because a stylesheet with one open contest still renders, and renders the way
+its author can read off the file.
 
 There is no specificity arithmetic and no `!important`. Source order decides
 nothing **except a reported contest**: a stylesheet that resolved by order
@@ -495,8 +552,10 @@ emits last. A layer has no order, so that would make the rendered result depend 
 where the two rules happen to sit in the file, silently — precisely what `geml add
 --before` would change without a word. So two **different** rules in the same layer
 may not set `border` and one of `border-top` / `border-right` / `border-bottom` /
-`border-left` on the same block — that is `style-ambiguous-rule`, and the word
-written first stays while the later rule's word enters no binding. Writing both
+`border-left` on the same block. Within one `when=` set, when the rule holding
+`border` (step 2) and the rule holding a side are different rules of one layer,
+the word of the one written later enters no binding — decided for every side at
+once, one `style-ambiguous-rule` per word dropped. Writing both
 words in **one** rule is fine: there the order is one the author wrote, and
 `geml set` replaces whole blocks. Across layers is fine too —
 a layer is a declared order. Sides never conflict with one another, and
@@ -669,32 +728,42 @@ what a host consumes. It has four fields:
 
 | field | shape |
 |---|---|
-| `states` | `{id, type, on, valueFrom?, initValue?}[]` — `on` is `select` or `toggle` |
-| `screens` | `{id, axis, component?, slots, bindings}[]` — the roots |
-| `frames` | `{id, axis, component?, slots}[]` — flat, referenced by id; no bindings of their own |
+| `states` | `{id, type, on, valueFrom?, initValue?}[]` — `on` is `select` or `toggle`; `valueFrom` and `initValue` are the attributes' text |
+| `screens` | `{id, axis, component?, params, box, variants, slots, bindings}[]` — the roots |
+| `frames` | `{id, axis, component?, params, box, variants, slots}[]` — flat, referenced by id; no bindings of their own |
 | `bindings` | the screen-unqualified table |
 | `diagnostics` | `{severity, code, message, rule?}[]` |
 
 A **binding** is `{doc, block, part?, rules, params, box, variants}`. `part` is present on
 a binding a part rule made (§3) and names the inline kind — `link` `image` `code-span`
 `strong` `emphasis`; such a binding shares its block's address and is a separate target
-for §4's arbitration. `block` is the block's address: `#id` when it has one, otherwise
-`[n]`, `n` being the block's position in that document, counted from 0 in document order
-among the nodes a selector can match (§3) — headings, prose between blocks and typed
-blocks, nested ones included — so an id-less block is still named, and a host joins it to
-the corpus by position. An attribute under `style-ambiguous-rule` (§4) carries the
-**first-written** rule's value, base and variants alike; the later rule's value appears
-nowhere in the binding. In `variants[].when`, the built-in `@hover` / `@focus` / `@invalid` / `@disabled` / `@checked` appear as
+for §4's arbitration. `rules` names the rules that matched the node, in stylesheet order:
+`#id`, or `[n]` for a rule with no id, `n` its position among the stylesheet's
+`style-rule` blocks as loaded, counted from 0. `block` is the node's address: `#id` when it has one — a stretch of
+prose's §4 address included (§3) — otherwise `[n]`, `n` being its position in that
+document, counted from 0 in document order among the nodes a selector can match (§3):
+headings, stretches of prose and typed blocks, nested ones included, a stretch counted
+once where it begins. So an id-less node is still named, and a host joins it to the
+corpus by position. An attribute under `style-ambiguous-rule` (§4) carries the
+value of the rule §4 lets hold it, base and variants alike; a rule that lost to order
+contributes nothing to the binding. In `variants[].when`, the built-in `@hover` / `@focus` / `@invalid` / `@disabled` / `@checked` appear as
 keys with the value `"true"`. `params` are the
 component's words (including `component` / `handler` / `show` / `filter`); `box` the
 built-in words of §2.1, kept apart so a host applies them uniformly and a component
 never sees them. `variants` is `{when, box, params}[]` — the parts that apply only
-while every `when` entry (`{state: value}`) holds — ordered by number of conditions
-ascending, then stylesheet order, so a runtime overlays the matching ones in sequence
-and never re-arbitrates. `doc` is **not redundant**: §4
+while every `when` entry (`{state: value}`) holds — ordered by the number of `when`
+entries ascending, then by where the set's first-written rule stands in the stylesheet, so a runtime overlays the matching ones in sequence
+and never re-arbitrates; a `when=` set §4 leaves with no word is no variant. The
+bindings come in corpus order, each document's in the order of its nodes (§3), and
+a node gets a binding only when some rule matches it, a part's right after its
+node's. `doc` is **not redundant**: §4
 guarantees id uniqueness only *within a document*, and one stylesheet over a
 whole directory is the normal case, so two documents may each hold a `#budget`.
 Without `doc` a consumer cannot join a binding back to the right block.
+
+A screen's or a frame's `params` and `box` are its own words with what the rules
+dressing it set (§2.1) laid over them, and its `variants` are theirs, shaped and
+ordered as a binding's.
 
 **Inheritance is host-defined, and this profile does not describe it.** A `box` is
 flat: each binding carries exactly the words §4 arbitrated onto it, and nothing in the

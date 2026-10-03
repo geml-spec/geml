@@ -2,13 +2,14 @@
 
 Each case is `{ name, geml, want }`, where `want` is a **normalized projection**
 of `parse(geml)` — a compact, deterministic serialization of the document model
-(grammar in [`_project.mjs`](_project.mjs)). The suite is the **normative
-reference** for the rules the prose spec states algorithmically: inline emphasis
-(GEML-spec §5.3), list nesting (§2.1), metadata interpolation (§4), and the syntax
-and model shape of transclusion (§3, §5.3). What a transclusion *expands to* is not
-part of the document model, so that is pinned by the parser's own suites; what this
-suite fixes is how the two forms parse and what they carry. A second, independent
-GEML implementation **conforms** when it reproduces every `want`.
+(grammar in [`_project.mjs`](_project.mjs)). The [specification](../../../spec/GEML-spec.md)
+is where the rules live; every case is a check derived from its text, and adds no
+rule of its own. A case whose expected output the text does not determine is a gap
+in the specification, fixed there first; where a case and the text disagree, the
+text decides and the case is wrong. What the specification leaves to the
+implementation (§9.2's nesting bounds, the work a processor spends on §9.3's
+chains) is kept out of the cases. A second, independent GEML implementation
+**conforms** when it reproduces every case its capabilities reach.
 
 A case may also carry the fields below, and may give its input as `geml_base64` —
 bytes, for §0.1's decoding — instead of `geml`. [`manifest.json`](manifest.json)
@@ -22,6 +23,13 @@ field needs; a harness runs what its implementation's capabilities reach.
 | `addresses` | the `#…` addresses a listing of the document gives, in order: block and heading ids, §4 prose addresses, `#meta` |
 | `blocks` | the block tree — the grammar is below |
 | `diagnostics` | the `code:severity` of each diagnostic Appendix A catalogues, compared as a multiset |
+
+A case in a file that needs `host` gives, instead of `geml`, a directory tree:
+`files` maps root-relative paths to their content, and `main` names the document
+to parse. The tree's root is the resolution root. The document is read with a host
+that confines every read to the tree (§9.4) and resolves each relative path a
+document names against that document's directory first and the root second (§3.3);
+a path that leaves the tree reads nothing.
 
 | File | Covers |
 |------|--------|
@@ -41,6 +49,7 @@ field needs; a harness runs what its implementation's capabilities reach.
 | `blocks.json` | the block tree (§3, §4): nesting by fence length, raw vs. flow bodies, labeled and unterminated closes, `%%` lines, attribute typing and escapes |
 | `addresses.json` | what a listing gives (§4): `P-between-N`, `C-before-N`, `C-after-P`, what has none, a declared id shadowing a derived one, `#meta` |
 | `yaml.json` | the subset a `yaml` engine must read (§3.2), and what lies outside it |
+| `documents.json` | what a document reads through a host: references into other documents one level deep (§5.2, §9.3), confinement (§9.4), the resolution root (§3.3), data files read at build time (§6, §6.1) and remote ones deferred (§3.3), `code` and `data` routes (§3.2, §3.3), and transclusion chains across documents (§9.3) |
 
 Run via `npm test`. Two runners consume these cases: [`../conformance.test.mjs`](../conformance.test.mjs)
 checks the reference parser, and [`../second-impl.test.mjs`](../second-impl.test.mjs)

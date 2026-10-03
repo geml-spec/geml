@@ -537,25 +537,20 @@ test("a re-format keeps the id of the trailing-text shape stable", () => {
 });
 
 // KNOWN DEFECT — pre-existing, NOT introduced with the near-miss diagnostics.
-// serialize.ts pins a heading's id by appending `{#id}`, which "shields any
+// serialize.ts pins a heading's id by appending `{#id}`, which shields any
 // `{...}` inside the heading text from being read as a trailing attribute
-// object" — true only while those braces are CLOSED. With an unclosed one the
-// appended object is swallowed: `## B {#sec2` re-formats to
-// `## B {#sec2 {#b-sec2}`, whose attributes parse as `{#sec2 {#b-sec2}`, so the
-// section is re-anchored from `#b-sec2` to `#sec2` and every reference to it
-// becomes an unresolved-reference ERROR. Escaping the brace does not help:
-// matchHeading scans the RAW line and does not honour `\{` (§5.1 escapes are an
-// inline-level rule), so a real fix is a parser/spec change, not a serializer
-// one. This pins the CURRENT behaviour so that fixing it fails HERE and gets
-// updated deliberately. `heading-attrs-unclosed` is meanwhile the warning that
-// keeps the shape from reaching a re-format unnoticed.
-test("KNOWN DEFECT: a re-format re-anchors a heading whose attribute object is unclosed", () => {
+// object. With an UNCLOSED one in the text, `## B {#sec2` re-formats to
+// `## B {#sec2 {#b-sec2}`. §4 finds a heading's object leftwards from the final
+// `}` — the nearest `{` preceded by whitespace — so that line's object is
+// `{#b-sec2}` alone, and a re-format keeps the section where it was. (It used to
+// read `{#sec2 {#b-sec2}` and re-anchor the section to `#sec2`.)
+test("a re-format keeps the id of a heading whose text holds an unclosed `{`", () => {
   const drift = p("drift.geml");
   writeFileSync(drift, "## B {#sec2\n\npara\n");
   const r = run([drift, "--to", "geml"]);
   assert.equal(r.code, 0, r.err);
   assert.equal(parse("## B {#sec2\n\npara\n").children[0].id, "b-sec2", "before: the derived id");
-  assert.equal(parse(r.out).children[0].id, "sec2", "after: the drift this test exists to record");
+  assert.equal(parse(r.out).children[0].id, "b-sec2", "after: the same id");
 });
 
 rmSync(dir, { recursive: true, force: true });

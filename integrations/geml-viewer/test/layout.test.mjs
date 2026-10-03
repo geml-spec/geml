@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { parse } from "../../../geml-parser/dist/geml.js";
 import { loadStylesheet, resolveStyle } from "../src/parse-entry.js";
 import { renderBlock, collectLabels, renderDocument } from "../src/render.js";
-import { entryUrlFor, isStyleEntry, loadPageStyle, producersOf, STYLE_PREFETCH_FILES } from "../src/style-entry.js";
+import { borrowedDocs, entryUrlFor, isStyleEntry, loadPageStyle, producersOf, STYLE_PREFETCH_FILES } from "../src/style-entry.js";
 import { classFor, cssForPage, renderPage } from "../src/layout.js";
 import { createState, COMPONENTS } from "../src/components.js";
 import { loadPage, paintPage } from "../src/page.js";
@@ -87,6 +87,17 @@ test("isStyleEntry：靠 meta.profile 认，不靠路径", () => {
   assert.equal(isStyleEntry(parse(ENTRY)), true);
   assert.equal(isStyleEntry(parse('=== meta\ntitle = "not a style"\n===\n')), false);
   assert.equal(isStyleEntry(parse("# no meta at all\n")), false);
+});
+
+await atest("borrowedDocs：页面 embed 到的文档整份进语料，每份一次，按遇到的顺序，递归", async () => {
+  // profile §3：片段只是选了哪一块，进语料的是整份文档；自己、读不到的都不加。
+  const files = new Map([
+    [SITE + "article.geml", "=== table {#a format=csv}\nv\n1\n===\n\n=== embed {src=sub/notes.geml}\n===\n"],
+    [SITE + "sub/notes.geml", "=== note {#n}\nx\n===\n\n=== embed {src=../article.geml}\n===\n"],
+  ]);
+  const page = parse("=== embed {src=article.geml#a}\n===\n\n=== embed {src=page.geml#x}\n===\n\n=== embed {src=gone.geml}\n===\n\n=== text {#x}\nhi\n===\n");
+  const docs = await borrowedDocs(page, parse, fetchFrom(files), SITE + "page.geml");
+  assert.deepEqual(docs.map((d) => d.path), ["article.geml", "sub/notes.geml"]);
 });
 
 await atest("loadPageStyle：入口 → default-style + sitemap 命中 + 传递的 embed，全部预取后求解", async () => {
@@ -535,15 +546,18 @@ profile = "geml-style/v1"
 });
 
 test("标题和散文能摆：一个 `*` 槽位按文档顺序摆下整篇，容器带上自己的 class", () => {
-  const doc = "# Head {#h}\n\nloose prose\n\n=== table {#t format=csv}\na\n1\n===\n";
+  const doc = "# Head {#h}\n\nloose prose\n\n- one\n- two\n\n=== table {#t format=csv}\na\n1\n===\n";
   const { vm, model } = vmOf('=== meta\nprofile = "geml-style/v1"\n===\n=== style-screen {#p slots="*"}\n===\n', doc);
   const { document } = dom();
   const out = renderPage(vm, model, document, { renderBlock, labels: [], components: {}, state: null });
   assert.ok(out.root, out.error);
   assert.deepEqual([...out.root.querySelectorAll("[data-block]")].map((e) => e.getAttribute("data-block")),
-    ["#h", "[1]", "#t"], "标题、散文、表格，按文档顺序");
+    ["#h", "#h-before-t", "#t"], "标题、散文、表格，按文档顺序；一段散文用它的 §4 地址");
   assert.equal(out.root.querySelector('[data-block="#h"] h1').textContent, "Head");
-  assert.equal(out.root.querySelector('[data-block="[1]"] p').textContent, "loose prose");
+  // 一段散文是一个放置单元：段落和列表画在同一个包裹里
+  const run = out.root.querySelector('[data-block="#h-before-t"]');
+  assert.equal(run.querySelector("p").textContent, "loose prose");
+  assert.equal(run.querySelectorAll("li").length, 2, "列表属于同一段");
   assert.equal(out.unplaced, 0);
   assert.match(out.root.querySelector("section.geml-frame").className, /geml-f-p/);
 });

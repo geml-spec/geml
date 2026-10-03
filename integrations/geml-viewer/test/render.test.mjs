@@ -26,6 +26,13 @@ Hardware, 30, 40
 ===
 `;
 
+test("a remote table, and a view over it, have no rows yet and name their source (§3.3)", () => {
+  const root = render('=== table {#t src="https://example.com/a.csv"}\n===\n\n=== view {#v src=#t}\n===\n');
+  assert.equal(root.querySelectorAll("table").length, 0, "no grid without a model");
+  const notes = [...root.querySelectorAll("div.geml-block")].map((d) => [d.id, d.querySelector("p").textContent]);
+  assert.deepEqual(notes, [["t", "Data not loaded from https://example.com/a.csv"], ["v", "Data not loaded from #t"]]);
+});
+
 test("view: header, computed column, summary row", () => {
   const root = render(TABLE);
   // The document holds two relations now — the facts and the view over them —

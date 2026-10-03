@@ -1,0 +1,233 @@
+[
+  {
+    "name": "a reference into another document resolves against that document's ids",
+    "files": {
+      "a.geml": "See [[b.geml#x]].\n",
+      "b.geml": "=== note {#x}\nX.\n===\n"
+    },
+    "main": "a.geml",
+    "want": "\"See \" ref(\"b.geml#x\") \".\"",
+    "diagnostics": []
+  },
+  {
+    "name": "an id the other document does not declare is unresolved",
+    "files": {
+      "a.geml": "See [[b.geml#nope]].\n",
+      "b.geml": "=== note {#x}\nX.\n===\n"
+    },
+    "main": "a.geml",
+    "want": "\"See \" ref(\"b.geml#nope\") \".\"",
+    "diagnostics": [
+      "unresolved-cross-document-reference:error"
+    ]
+  },
+  {
+    "name": "a document that is not there cannot be resolved",
+    "files": {
+      "a.geml": "See [[gone.geml#x]].\n"
+    },
+    "main": "a.geml",
+    "want": "\"See \" ref(\"gone.geml#x\") \".\"",
+    "diagnostics": [
+      "unresolvable-document:error"
+    ]
+  },
+  {
+    "name": "a path that leaves the tree reads nothing",
+    "files": {
+      "sub/a.geml": "See [[../../out.geml#x]].\n",
+      "out.geml": "=== note {#x}\nX.\n===\n"
+    },
+    "main": "sub/a.geml",
+    "want": "\"See \" ref(\"../../out.geml#x\") \".\"",
+    "diagnostics": [
+      "unresolvable-document:error"
+    ]
+  },
+  {
+    "name": "the other document's own references are not followed",
+    "files": {
+      "a.geml": "See [[b.geml#x]].\n",
+      "b.geml": "=== note {#x}\nSee [[c.geml#nope]].\n===\n"
+    },
+    "main": "a.geml",
+    "want": "\"See \" ref(\"b.geml#x\") \".\"",
+    "diagnostics": []
+  },
+  {
+    "name": "a coordinate into another document says that document's value",
+    "files": {
+      "a.geml": "Total: [[b.geml#t[1][\"v\"]]].\n",
+      "b.geml": "=== table {#t format=csv}\nk, v\na, 42\n===\n"
+    },
+    "main": "a.geml",
+    "want": "\"Total: \" ref(\"b.geml#t[1][\\\"v\\\"]\" -> \"42\") \".\"",
+    "diagnostics": []
+  },
+  {
+    "name": "a relative path resolves against the naming document's directory first",
+    "files": {
+      "sub/e.geml": "=== table {#t src=rows.csv format=csv}\n===\n",
+      "rows.csv": "a,b\n1,2\n",
+      "sub/rows.csv": "a,b\n3,4\n"
+    },
+    "main": "sub/e.geml",
+    "want": "table([\"a\",\"b\"] [\"3\",\"4\"])",
+    "diagnostics": []
+  },
+  {
+    "name": "a relative path nothing answers beside the document resolves against the root",
+    "files": {
+      "sub/e.geml": "=== table {#t src=rows.csv format=csv}\n===\n",
+      "rows.csv": "a,b\n1,2\n"
+    },
+    "main": "sub/e.geml",
+    "want": "table([\"a\",\"b\"] [\"1\",\"2\"])",
+    "diagnostics": []
+  },
+  {
+    "name": "a table's data file is read when the document is read, and one that is not there is an error",
+    "files": {
+      "a.geml": "=== table {#t src=gone.csv format=csv}\n===\n"
+    },
+    "main": "a.geml",
+    "want": "table([])",
+    "diagnostics": [
+      "unresolvable-table-source:error"
+    ]
+  },
+  {
+    "name": "a table's data file is read under its format=, whatever its suffix",
+    "files": {
+      "a.geml": "=== table {#t src=rows.dat format=tsv}\n===\n",
+      "rows.dat": "a\tb\n1\t2\n"
+    },
+    "main": "a.geml",
+    "want": "table([\"a\",\"b\"] [\"1\",\"2\"])",
+    "diagnostics": []
+  },
+  {
+    "name": "a view's data file is tsv by suffix and csv otherwise",
+    "files": {
+      "a.geml": "=== view {#v src=rows.tsv select=b}\n===\n\n=== view {#w src=rows.txt select=a}\n===\n",
+      "rows.tsv": "a\tb\n1\t2\n",
+      "rows.txt": "a,b\n5,6\n"
+    },
+    "main": "a.geml",
+    "want": "view([\"b\"] [\"2\"]) view([\"a\"] [\"5\"])",
+    "diagnostics": []
+  },
+  {
+    "name": "a code route's range must lie inside its file",
+    "files": {
+      "a.geml": "=== code {src=lib.txt#L2-3}\n===\n",
+      "lib.txt": "one\n"
+    },
+    "main": "a.geml",
+    "want": "block:code",
+    "diagnostics": [
+      "bad-source-range:error"
+    ]
+  },
+  {
+    "name": "a code route that cannot be resolved is a warning",
+    "files": {
+      "a.geml": "=== code {src=gone.txt}\n===\n"
+    },
+    "main": "a.geml",
+    "want": "block:code",
+    "diagnostics": [
+      "unresolvable-code-source:warning"
+    ]
+  },
+  {
+    "name": "a data route is read into the block's value",
+    "files": {
+      "a.geml": "=== data {#d src=vals.json}\n===\n",
+      "vals.json": "{\"a\": 1}\n"
+    },
+    "main": "a.geml",
+    "want": "data({\"a\":1})",
+    "diagnostics": []
+  },
+  {
+    "name": "an embed of a whole document that embeds back is a cycle, counted per document",
+    "files": {
+      "a.geml": "=== note {#x}\nX.\n===\n\n=== embed {src=b.geml}\n===\n",
+      "b.geml": "=== embed {src=a.geml#x}\n===\n"
+    },
+    "main": "a.geml",
+    "want": "block:note embed(\"b.geml\")",
+    "diagnostics": [
+      "transclusion-cycle:error"
+    ]
+  },
+  {
+    "name": "an embed of part of a document takes no step into the rest of it",
+    "files": {
+      "a.geml": "=== embed {src=b.geml#p1}\n===\n\n=== text {#z}\nz\n===\n",
+      "b.geml": "=== text {#p1}\none\n===\n\n=== embed {#p2 src=a.geml#z}\n===\n"
+    },
+    "main": "a.geml",
+    "want": "embed(\"b.geml#p1\") block:text",
+    "diagnostics": []
+  },
+  {
+    "name": "projections across documents are steps of a chain too",
+    "files": {
+      "a.geml": "=== text {#q}\nQ says ![[b.geml#p]].\n===\n",
+      "b.geml": "=== text {#p}\nP says ![[a.geml#q]].\n===\n"
+    },
+    "main": "a.geml",
+    "want": "block:text",
+    "diagnostics": [
+      "transclusion-cycle:error"
+    ]
+  },
+  {
+    "name": "a chain through three documents back to the first is a cycle",
+    "files": {
+      "a.geml": "==== note {#a}\nA.\n\n=== embed {src=b.geml#b}\n===\n====\n",
+      "b.geml": "==== note {#b}\nB.\n\n=== embed {src=c.geml#c}\n===\n====\n",
+      "c.geml": "==== note {#c}\nC.\n\n=== embed {src=a.geml#a}\n===\n====\n"
+    },
+    "main": "a.geml",
+    "want": "block:note",
+    "diagnostics": [
+      "transclusion-cycle:error"
+    ]
+  },
+  {
+    "name": "a cycle met inside another document is reported where the chain starts",
+    "files": {
+      "u.geml": "Top ![[m.geml#x]].\n",
+      "m.geml": "=== text {#x}\nX has ![[#y]].\n===\n\n=== text {#y}\nY has ![[#x]].\n===\n"
+    },
+    "main": "u.geml",
+    "want": "\"Top \" project(\"m.geml#x\") \".\"",
+    "diagnostics": [
+      "transclusion-cycle:error"
+    ]
+  },
+  {
+    "name": "a remote data file leaves a table with no model, an unresolvable one an empty table; a view or a coordinate reading the remote one defers (§3.3, §6)",
+    "files": {
+      "d.geml": "=== table {#t src=\"https://example.com/a.csv\"}\n===\n\n=== table {#e src=missing.csv}\n===\n\nSee [[#t[1]]] and [[#t[\"x\"]]].\n\n=== view {#v src=#t select=x}\n===\n\n=== view {#w src=\"https://example.com/b.csv\" select=y}\n===\n\nAnd [[#v[1]]] and ![[#w[1][\"y\"]]].\n"
+    },
+    "main": "d.geml",
+    "want": "block:table table([]) \"See \" ref(\"#t[1]\") \" and \" ref(\"#t[\\\"x\\\"]\") \".\" block:view block:view \"And \" ref(\"#v[1]\") \" and \" project(\"#w[1][\\\"y\\\"]\") \".\"",
+    "diagnostics": [
+      "unresolvable-table-source:error"
+    ]
+  },
+  {
+    "name": "a block that defers in another document defers when this one reads it (§3.3)",
+    "files": {
+      "d.geml": "See [[o.geml#t[1]]] and [[o.geml#d[\"k\"]]].\n\n=== view {#v src=o.geml#t}\n===\n",
+      "o.geml": "=== table {#t src=\"https://example.com/a.csv\"}\n===\n\n=== data {#d src=\"https://example.com/a.json\"}\n===\n"
+    },
+    "main": "d.geml",
+    "want": "\"See \" ref(\"o.geml#t[1]\") \" and \" ref(\"o.geml#d[\\\"k\\\"]\") \".\" block:view",
+    "diagnostics": []
+  }
+]

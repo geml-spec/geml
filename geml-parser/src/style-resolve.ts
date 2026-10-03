@@ -4,7 +4,7 @@
 // 三个块类型对核心 parser 而言是未注册类型 —— 其 body 是 raw、不被解析，
 // 所以本 profile 的全部信息都写在属性对象里，由这里读取（设计 §3.2）。
 
-import type { Block, Document, Value } from "./geml.js";
+import type { Block, Document, EmbedPart, Value } from "./geml.js";
 import { selectEmbed } from "./geml.js";
 import { styleDiag, type StyleDiagnostic } from "./style-diagnostics.js";
 import {
@@ -13,12 +13,14 @@ import {
 } from "./style-selector.js";
 
 /** style-rule 上的保留键；其余键原样透传为组件参数（设计 §5.4）—— 内含词除外，见 BOX_WORDS。 */
-const RULE_RESERVED = new Set(["match", "component", "handler", "show", "filter", "screen", "when"]);
+/** The core's own attributes (GEML §4): on every style block, never a style word, a parameter or an unknown key. */
+const CORE_KEYS = new Set(["caption", "hidden"]);
+const RULE_RESERVED = new Set(["match", "component", "handler", "show", "filter", "screen", "when", ...CORE_KEYS]);
 /** 合并后仍留在 params 里、但由运行时而非组件消费的键（profile §5）。 */
 const RUNTIME_KEYS = new Set(["component", "handler", "show", "filter"]);
-const STATE_KNOWN = new Set(["type", "match", "on", "value-from", "init-value"]);
+const STATE_KNOWN = new Set(["type", "match", "on", "value-from", "init-value", ...CORE_KEYS]);
 /** style-screen / style-frame 上的保留键。`layout` 已改名 `component`（设计 §12.4）。 */
-const CONTAINER_RESERVED = new Set(["slots", "axis", "component"]);
+const CONTAINER_RESERVED = new Set(["slots", "axis", "component", ...CORE_KEYS]);
 /** `axis=` 的封闭值域：槽位横排还是竖排。默认 column。 */
 const AXES = new Set(["row", "column"]);
 
@@ -261,6 +263,12 @@ function parseWhen(raw: string, id: string, sheet: Stylesheet): WhenCond[] | nul
 
 export interface StyleRule {
   id: string;
+  /**
+   * How a binding's `rules` names it (profile §10): `#id`, or `[n]` for a rule
+   * with no id — `n` its position among the stylesheet's `style-rule` blocks as
+   * loaded, counted from 0, the same `[n]` a binding uses for an id-less node.
+   */
+  label: string;
   branches: Selector[];
   component?: string;
   handler?: string;
@@ -335,6 +343,8 @@ export type StyleFrame = StyleContainer;
 
 export interface Stylesheet {
   rules: StyleRule[];
+  /** How many `style-rule` blocks loading has met — what `[n]` in a rule's label counts. */
+  ruleBlocks?: number;
   states: StyleState[];
   screens: StyleScreen[];
   frames: StyleFrame[];
@@ -363,9 +373,15 @@ function str(v: Value | undefined): string | undefined {
  * 教训是「另写一份匹配器迟早和构建期语义分叉」，这里不再犯。
  */
 export interface StyleLoadOptions {
-  /** 按相对路径读一份文档；返回 null 表示读不到。与 RenderOptions.loadDoc 同形。 */
-  loadDoc?: (relPath: string) => string | null;
+  /**
+   * 读 `path` 指的那份文件，`path` 写在名为 `from` 的文件里（入口自己的名字是 `self`）。
+   * 宿主照 GEML §3.3 解析——先对 `from` 的目录，再对根目录——返回那份文件的名字和文本，
+   * 读不到返回 null。名字是宿主自己的叫法，装载器只拿它判环、再当下一层的 `from` 传回去。
+   */
+  loadDoc?: (path: string, from: string) => { name: string; text: string } | null;
   parseDoc?: (source: string) => Document;
+  /** 入口这份样式表在宿主那里的名字；它从一开始就在展开链上（§1.1：指回入口是环）。 */
+  self?: string;
   /**
    * 正在为**哪一份**内容文档装载（文件名，不含目录）。给了它，样式入口的 `#sitemap`
    * 表才有意义：那张表是「文档 → 额外样式表」，不指明文档就无从命中。
@@ -515,50 +531,64 @@ function withDefaultStyle(doc: Document): Block[] {
   return [...layers.map((l) => implicitEmbed(l.path, l.id)), ...doc.children];
 }
 
-/** 就地展开样式表里的 embed，返回展开后的顶层块序列。 */
+/** 正在展开的一份样式表文件：它的名字（同文件 `#id` 和判环用），和它的整份块序列。 */
+type SheetFile = { name: string; root: Block[] };
+
+const EMBED_PARTS = new Set<string>(["whole", "head", "body", "intro"]);
+
+/**
+ * 就地展开样式表里的 embed（profile §1.1）。选中的和核心 `embed` 一样（GEML §9.3）：整份
+ * 文件，或 `#id` 指的块、标题章节、散文段，再由 `part=` 收窄；只写 `#id` 时在 embed 所在的
+ * 那份文件里找。样式块和 embed 写在哪里都算，嵌在别的块正文里的也展开。
+ * 环：展开链上已有的文件，或这份文件里正在展开的同一个 `#id`。
+ */
 function expandEmbeds(
-  children: Block[], sheet: Stylesheet, opts: StyleLoadOptions, seen: Set<string>, depth: number,
+  nodes: Block[], file: SheetFile, sheet: Stylesheet, opts: StyleLoadOptions, seen: Set<string>, depth: number,
 ): Block[] {
   const out: Block[] = [];
-  for (const b of children) {
-    if (!(b.kind === "block" && b.type === "embed")) { out.push(b); continue; }
+  for (const b of nodes) {
+    if (b.kind !== "block") { out.push(b); continue; }
+    if (b.type !== "embed") {
+      out.push(b.children && b.children.length > 0 ? { ...b, children: expandEmbeds(b.children, file, sheet, opts, seen, depth) } : b);
+      continue;
+    }
     const id = b.id ?? "(anon)";
     const written = str(b.attrs["src"]) ?? "";
     const hash = written.indexOf("#");
     const docPath = hash < 0 ? written : written.slice(0, hash);
     const anchor = hash < 0 ? undefined : written.slice(hash + 1);
+    const partRaw = str(b.attrs["part"]);
+    const part = (partRaw !== undefined && EMBED_PARTS.has(partRaw) ? partRaw : "whole") as EmbedPart;
     const say = (why: string): void => void sheet.diagnostics.push(
       styleDiag("style-embed-not-expanded",
         `\`embed\`${written ? ` of \`${written}\`` : ""} contributed no rules: ${why}`, id));
 
     if (written === "") { say("no `src=`"); continue; }
     if (depth >= EMBED_DEPTH_CAP) { say(`nesting deeper than ${EMBED_DEPTH_CAP}`); continue; }
-    let target: Block[];
+    let next: SheetFile;
+    let key: string;
     if (docPath === "") {
-      // 同文档内的 `#id`。这里也要防环：一节里写着 `embed {src=#本节}` 会把自己无限展开，
-      // 之前只有深度上限兜着（实测出 9 份拷贝）。和跨文档一样用路径栈判，同一套消息。
-      const key = `#${anchor ?? ""}`;
-      if (seen.has(key)) { say(`\`${key}\` is already being expanded (cycle)`); continue; }
-      target = children;
-      seen = new Set([...seen, key]);
+      key = `${file.name}#${anchor ?? ""}`;
+      if (seen.has(key)) { say(`\`#${anchor ?? ""}\` is already being expanded (cycle)`); continue; }
+      next = file;
     } else {
       if (!opts.loadDoc || !opts.parseDoc) { say("this caller supplied no document resolver"); continue; }
-      if (seen.has(docPath)) { say(`\`${docPath}\` is already being expanded (cycle)`); continue; }
-      const src = opts.loadDoc(docPath);
-      if (src === null) { say(`cannot resolve \`${docPath}\``); continue; }
+      const got = opts.loadDoc(docPath, file.name);
+      if (got === null) { say(`cannot resolve \`${docPath}\``); continue; }
+      key = got.name;
+      if (seen.has(key)) { say(`\`${docPath}\` is already being expanded (cycle)`); continue; }
       // 被 embed 的可能就是一份**清单**（`embed {src=index.geml}` = "给我本站默认，
       // 不管它叫什么"）。所以这里也要跟 `default-style` —— 但**只跟它**，不跟
       // `#sitemap`：那张表是「为哪份文档」的，只有顶层的样式入口才有那个身份。
       // 跟来的规则和引用它的文件**同层**（显式 embed 不开新层），层内照 §4 决胜。
       // 记号按**文件**算：跟来的规则用它自己那份 meta，不用宿主的（设计 §13.13）。
-      target = sheetBlocks(opts.parseDoc(src), sheet);
-      seen = new Set([...seen, docPath]);
+      next = { name: got.name, root: sheetBlocks(opts.parseDoc(got.text), sheet) };
     }
-    const picked = selectEmbed(target, anchor);
+    const picked = selectEmbed(next.root, anchor, part);
     if (picked === null) { say(anchor === undefined ? "the target is empty" : `\`#${anchor}\` is not in it`); continue; }
     // 选中了、但一个块都没有（空文件、空的一节）：同样是"一条规则也没贡献"，该说出来。
     if (picked.length === 0) { say(anchor === undefined ? "the target is empty" : `\`#${anchor}\` holds no blocks`); continue; }
-    out.push(...expandEmbeds(picked, sheet, opts, seen, depth + 1));
+    out.push(...expandEmbeds(picked, next, sheet, opts, new Set([...seen, key]), depth + 1));
   }
   return out;
 }
@@ -566,16 +596,18 @@ function expandEmbeds(
 /** 样式表文档 → 结构化的规则/状态/屏幕，外加装载期诊断。 */
 export function loadStylesheet(doc: Document, opts: StyleLoadOptions = {}): Stylesheet {
   const sheet: Stylesheet = { rules: [], states: [], screens: [], frames: [], diagnostics: [] };
+  const self = opts.self ?? "";
+  const file: SheetFile = { name: self, root: expandTokens(doc.children, tokensOf(doc), sheet) };
   // 层要**分开展开**，一层一次 expandEmbeds、各自一份 seen。合在一次里做会有两个后果，
   // 都实测过：默认层被后一层的 `embed` 再次引用时误报 cycle（同一次展开共享 seen），
   // 而且所有规则挤进同一层，`match="note"` 和 `match="#hero"` 就成了 §4 眼里不可比的
-  // 两条 —— 首页那五份文档因此全报 ambiguous-rule。
+  // 两条 —— 首页那五份文档因此全报 ambiguous-rule。入口自己从一开始就在链上。
   let layer = 0;
   for (const src of entryLayers(doc, opts.forDoc)) {
-    collect(expandEmbeds([implicitEmbed(src.path, src.id)], sheet, opts, new Set(), 0), sheet, layer++);
+    collect(expandEmbeds([implicitEmbed(src.path, src.id)], file, sheet, opts, new Set([self]), 0), sheet, layer++);
   }
   // 被装载的这份文档自己写的规则是**最高层**：它最具体（它就是为这份产物/这个文档写的）。
-  collect(expandEmbeds(expandTokens(doc.children, tokensOf(doc), sheet), sheet, opts, new Set(), 0), sheet, layer);
+  collect(expandEmbeds(file.root, file, sheet, opts, new Set([self]), 0), sheet, layer);
   return sheet;
 }
 
@@ -587,6 +619,9 @@ function collect(nodes: Block[], sheet: Stylesheet, layer: number): void {
     const id = b.id ?? "(anon)";
     // embed 块到不了这里：expandEmbeds 要么把它展开成目标块，要么报诊断后丢弃。
     if (b.type === "style-rule") {
+      const position = sheet.ruleBlocks ?? 0;
+      sheet.ruleBlocks = position + 1;
+      const label = b.id !== undefined ? `#${b.id}` : `[${position}]`;
       const match = str(b.attrs["match"]);
       if (match === undefined) {
         sheet.diagnostics.push(styleDiag("style-missing-attribute", "`style-rule` requires `match=`", id));
@@ -623,7 +658,7 @@ function collect(nodes: Block[], sheet: Stylesheet, layer: number): void {
         when = parsed;
       }
       const rule: StyleRule = {
-        id, branches: r.branches, params, box, layer, when,
+        id, label, branches: r.branches, params, box, layer, when,
         screens: screensRaw.split(/\s+/).filter((x) => x.length > 0),
       };
       if (component !== undefined) rule.component = component;
@@ -709,6 +744,45 @@ export interface CorpusDoc {
   /** 文档路径，作为地址的限定前缀。语料内唯一即可。 */
   path: string;
   doc: Document;
+}
+
+/**
+ * 语料（profile §3）：给定的文档按序，后面跟着语料里 `embed` 指到的每份 GEML 文档——不论
+ * `embed` 选的是哪一块，都整份读（绑定指的是文档的节点，不是页面的一片）——每份只进一次，
+ * 按读语料时依次遇到它们的 `embed` 的顺序加入，加入的文档自己的 `embed` 也算。同文档的
+ * `embed` 不加任何东西，宿主读不到的文档不加入。`loadDoc` 与 StyleLoadOptions 的同形：
+ * `from` 是写着这条 `embed` 的那份文档的 `path`。
+ */
+export function expandCorpus(
+  corpus: CorpusDoc[],
+  opts: { loadDoc?: StyleLoadOptions["loadDoc"]; parseDoc?: (source: string) => Document },
+): CorpusDoc[] {
+  const out = [...corpus];
+  if (!opts.loadDoc || !opts.parseDoc) return out;
+  const have = new Set(out.map((d) => d.path));
+  const embedsOf = (nodes: Block[], into: string[]): void => {
+    for (const b of nodes) {
+      if (b.kind !== "block") continue;
+      if (b.type === "embed") {
+        const src = str(b.attrs["src"])?.trim() ?? "";
+        const path = src.includes("#") ? src.slice(0, src.indexOf("#")) : src;
+        if (/\.geml$/i.test(path)) into.push(path);
+      }
+      if (b.children) embedsOf(b.children, into);
+    }
+  };
+  for (let i = 0; i < out.length; i++) {
+    const from = out[i]!;
+    const paths: string[] = [];
+    embedsOf(from.doc.children, paths);
+    for (const p of paths) {
+      const got = opts.loadDoc(p, from.path);
+      if (got === null || have.has(got.name)) continue;
+      have.add(got.name);
+      out.push({ path: got.name, doc: opts.parseDoc(got.text) });
+    }
+  }
+  return out;
 }
 
 export interface Variant {
@@ -829,13 +903,9 @@ function ruleProps(r: StyleRule): Record<string, Value> {
 type Hit = { rule: StyleRule; conds: Set<string>; order: number };
 
 /**
- * 同一个 `when=` 集合下的一组命中。`owner` 记住每个属性名当前由谁持有，因为裁决要
- * 比较的是"上一个写它的规则"，不是"上一个值"。
+ * 同一个 `when=` 集合下的一组命中。`owner` 记住每个属性名由谁持有 —— 跨组比较的是
+ * 两组各自的持有者（§4 第 3 步），不是值。
  */
-// §4/§10: an attribute two rules contest (`style-ambiguous-rule`, a warning)
-// carries the value of the rule written FIRST — `owner` is never moved onto the
-// later rule, and the later rule's value is dropped where it sits in another
-// group — so the binding is one the author can read off the stylesheet.
 type Group = { when: WhenCond[]; order: number; params: Record<string, Value>; owner: Map<string, Hit> };
 
 /** 两条规则在同一个属性上撞车时怎么说。`identical` 区分"选择器相同"与"不可比"。 */
@@ -858,52 +928,59 @@ function hitsFor(active: StyleRule[], c: Candidate, screenId: string | null, use
       for (const cond of rule.when) conds.add(`when:${cond.state}=${cond.value}`);
       if (best === null || moreSpecific(conds, best)) best = conds;
     }
-    if (best !== null) { hits.push({ rule, conds: best, order }); used.add(rule.id); }
+    if (best !== null) { hits.push({ rule, conds: best, order }); used.add(rule.label); }
   });
   return hits;
 }
 
+const sameConds = (a: Set<string>, b: Set<string>): boolean => a.size === b.size && [...a].every((x) => b.has(x));
+
 /**
- * 1) 按 `when=` 集合分组，并在**组内**照 §4 仲裁。`""` 是基础组（无条件）。
- *
- * 组间不在这里裁：一个有条件的规则赢了，它的值进 variant，不进基础参数。
+ * §4 steps 1–2, per `when=` set and per attribute: only the highest layer setting
+ * it takes part; a rule whose condition set another's strictly contains loses;
+ * of those left — the maximal ones — the rule written first holds the attribute,
+ * and every other one lost to order alone and is reported. Computed from the
+ * whole set at once, so which rule holds it never depends on the order rules are
+ * looked at: rules A, B, C with A ⊂ C and B incomparable to both leave B and C,
+ * and the earlier of THOSE two holds it.
  */
 function arbitrateWithinGroups(hits: Hit[], clash: Clash): Map<string, Group> {
   const groups = new Map<string, Group>();
-  const groupOf = (h: Hit): Group => {
+  const members = new Map<string, Hit[]>();
+  for (const h of hits) {
     const key = whenKey(h.rule.when);
-    let g = groups.get(key);
-    if (g === undefined) { g = { when: h.rule.when, order: h.order, params: {}, owner: new Map() }; groups.set(key, g); }
-    return g;
-  };
-  for (const hit of hits) {
-    const g = groupOf(hit);
-    for (const [k, v] of Object.entries(ruleProps(hit.rule))) {
-      const prev = g.owner.get(k);
-      if (prev === undefined) { g.params[k] = v; g.owner.set(k, hit); continue; }
-      // **跨层先决胜**，再谈特异性。层是显式声明的顺序（CSS `@layer` 的模型），
-      // 所以「上层赢」不需要任何 specificity 算术 —— 它甚至不看两个条件集。
-      // 顺序很重要：先比特异性会让默认层里一条更具体的规则赢过上层的粗规则，
-      // 那正是 `@layer` 存在的理由 —— 层的意思就是"这一层整体压过下面那层"。
-      if (hit.rule.layer !== prev.rule.layer) {
-        if (hit.rule.layer > prev.rule.layer) { g.params[k] = v; g.owner.set(k, hit); }
-        continue;
-      }
-      if (moreSpecific(hit.conds, prev.conds)) { g.params[k] = v; g.owner.set(k, hit); continue; }
-      if (moreSpecific(prev.conds, hit.conds)) continue;
+    if (!groups.has(key)) {
+      groups.set(key, { when: h.rule.when, order: h.order, params: {}, owner: new Map() });
+      members.set(key, []);
+    }
+    members.get(key)!.push(h);
+  }
+  for (const [key, g] of groups) {
+    const hs = members.get(key)!;
+    const words: string[] = [];
+    for (const h of hs) for (const k of Object.keys(ruleProps(h.rule))) if (!words.includes(k)) words.push(k);
+    for (const k of words) {
+      const setting = hs.filter((h) => Object.hasOwn(ruleProps(h.rule), k));
+      const top = Math.max(...setting.map((h) => h.rule.layer));
+      const inLayer = setting.filter((h) => h.rule.layer === top);
+      const maximal = inLayer.filter((h) => !inLayer.some((o) => o !== h && moreSpecific(o.conds, h.conds)));
+      const holder = maximal.reduce((x, y) => (y.order < x.order ? y : x));
+      g.params[k] = ruleProps(holder.rule)[k]!;
+      g.owner.set(k, holder);
       // 情况 2（条件集相同）与情况 3（不可比）的**补救办法不同**，所以建议必须分开：
       // 对相同的选择器建议"写并集"是不可能执行的 —— 两个相同集合的并集就是它自己。
-      const identical = prev.conds.size === hit.conds.size && [...prev.conds].every((x) => hit.conds.has(x));
-      // `prev` keeps the attribute: it is the rule written first (§4).
-      clash(prev, hit, k, identical);
+      for (const m of maximal) if (m !== holder) clash(holder, m, k, sameConds(holder.conds, m.conds));
     }
   }
   return groups;
 }
 
 /**
- * 1b) 简写与它自己的某一边：见 BORDER_SIDES 上方。按属性名的仲裁看不见这一对，
- * 因为 `border` 和 `border-top` 是两个名字 —— 得单独查。
+ * §4, a shorthand and its sides: `border` and `border-top` are two names, so the
+ * steps above never meet them. Within one `when=` set and one layer, when one rule
+ * holds `border` and a different rule holds a side, the word of the rule written
+ * later is dropped, so the host never emits the pair. Decided between the holders
+ * of step 2, all pairs at once; one report per word dropped.
  */
 function reportBorderClashes(
   groups: Map<string, Group>,
@@ -912,28 +989,39 @@ function reportBorderClashes(
   for (const g of groups.values()) {
     const short = g.owner.get("border");
     if (short === undefined) continue;
+    const drop = new Map<string, [Hit, string, Hit, string]>();
     for (const side of BORDER_SIDES) {
       const one = g.owner.get(side);
-      if (one === undefined || one.rule.id === short.rule.id) continue;
-      if (one.rule.layer !== short.rule.layer) continue;
-      const first = short.order <= one.order;
-      const [a, b] = first ? [short, one] : [one, short];
-      // The word written first stays; the later rule's word is dropped, so the
-      // host never emits the pair and nothing depends on which lands last.
-      const dropped = first ? side : "border";
-      delete g.params[dropped]; g.owner.delete(dropped);
-      report(a, first ? "border" : side, b, first ? side : "border");
+      if (one === undefined || one.rule === short.rule || one.rule.layer !== short.rule.layer) continue;
+      if (short.order <= one.order) {
+        if (!drop.has(side)) drop.set(side, [short, "border", one, side]);
+      } else if (!drop.has("border")) {
+        drop.set("border", [one, side, short, "border"]);
+      }
+    }
+    for (const [word, [a, aWord, b, bWord]] of drop) {
+      delete g.params[word];
+      g.owner.delete(word);
+      report(a, aWord, b, bWord);
     }
   }
 }
 
 /**
- * 2) 组间：同一属性出现在两个组里时 —— 互斥的 `when` 集合永不同时生效，跳过；
- * 不同层，高层保留、低层丢掉该属性；同层要么一方是真超集（运行时按序叠加即可），
- * 要么不可比 → ambiguous-rule 警告，先写的规则保留、后写的丢掉该属性。
- * 相同的完整条件集在不同组里不可能出现。
+ * §4 step 3, across `when=` sets that can hold together (exclusive ones never
+ * do): the holders of step 2 are compared pair by pair. A higher layer keeps the
+ * attribute; in one layer, when neither condition set strictly contains the
+ * other, the set whose holder was written later loses it — reported once per set
+ * and attribute. Every comparison uses the holders of step 2 and the losses are
+ * applied together, so the outcome does not depend on which pair is looked at
+ * first.
  */
 function arbitrateAcrossGroups(gs: Group[], clash: Clash): void {
+  const losses = new Map<Group, Map<string, [Hit, Hit] | null>>();
+  const lose = (g: Group, k: string, byOrder: [Hit, Hit] | null): void => {
+    const m = losses.get(g) ?? losses.set(g, new Map()).get(g)!;
+    if (!m.has(k) || (m.get(k) === null && byOrder !== null)) m.set(k, byOrder);
+  };
   for (let i = 0; i < gs.length; i++) for (let j = i + 1; j < gs.length; j++) {
     const A = gs[i]!, B = gs[j]!;
     if (exclusive(A.when, B.when)) continue;
@@ -941,14 +1029,18 @@ function arbitrateAcrossGroups(gs: Group[], clash: Clash): void {
       if (!(k in B.params)) continue;
       const a = A.owner.get(k)!, b = B.owner.get(k)!;
       if (a.rule.layer !== b.rule.layer) {
-        const loser = a.rule.layer > b.rule.layer ? B : A;
-        delete loser.params[k]; loser.owner.delete(k);
+        lose(a.rule.layer > b.rule.layer ? B : A, k, null);
         continue;
       }
       if (moreSpecific(a.conds, b.conds) || moreSpecific(b.conds, a.conds)) continue;
-      const loser = a.order <= b.order ? B : A;
-      delete loser.params[k]; loser.owner.delete(k);
-      clash(a, b, k, false);
+      if (a.order <= b.order) lose(B, k, [a, b]); else lose(A, k, [b, a]);
+    }
+  }
+  for (const [g, words] of losses) {
+    for (const [k, byOrder] of words) {
+      delete g.params[k];
+      g.owner.delete(k);
+      if (byOrder !== null) clash(byOrder[0], byOrder[1], k, false);
     }
   }
 }
@@ -1064,7 +1156,7 @@ function resolveBindings(
     }
 
     const binding: Binding = {
-      doc: entry.path, block: address(entry.c), rules: hits.map((h) => h.rule.id),
+      doc: entry.path, block: address(entry.c), rules: hits.map((h) => h.rule.label),
       params: base.params, box: base.box, variants,
     };
     if (entry.c.part !== undefined) binding.part = entry.c.part;
@@ -1127,34 +1219,57 @@ export function resolveStyle(sheet: Stylesheet, corpus: CorpusDoc[], opts: Resol
   }
 
   /**
-   * 指向容器的规则。`match="#side"` 这种裸 id 命中一个 frame（或 screen）时，这条规则
-   * 说的是那一片区域，不是某个块 —— 于是「侧栏收起」「菜单弹出」和「块变宽」用的是
-   * 同一套 when= 变体，不必为容器另造条件语法。
-   *
-   * 语料里若也有同名的块，两边都会生效 —— 那是作者自己的重名，报一条给他看。
+   * 指向容器的规则（profile §2.1）。`match="#side"` 这种裸 id 指向一个 frame（或 screen）时，
+   * 这条规则也作用于那一片区域 —— 于是「侧栏收起」「菜单弹出」和「块变宽」用的是同一套
+   * when= 变体，不必为容器另造条件语法。指向同一容器的规则按 §4 像绑定那样合并，合并设下的
+   * 词替换容器自己的词。语料里持有同一 id 的块照样被这条规则绑定。
    */
   const containerIds = new Set([...sheet.screens.map((c) => c.id), ...sheet.frames.map((c) => c.id)]);
-  const forContainer = new Map<string, { box: Record<string, Value>; variants: Variant[] }>();
-  for (const rule of sheet.rules) {
-    // 只有单分支、且整条就是一个裸 #id 的规则才可能指向容器
-    const m = rule.branches.length === 1 ? /^#([A-Za-z0-9_-]+)$/.exec(rule.branches[0]!.source.trim()) : null;
-    if (!m || !containerIds.has(m[1]!)) continue;
-    const id = m[1]!;
-    const cur = forContainer.get(id) ?? { box: {}, variants: [] };
-    if (rule.when.length === 0) Object.assign(cur.box, rule.box);
-    else {
-      const when: Record<string, string> = Object.create(null);
-      for (const c of rule.when) when[c.state] = c.value;
-      cur.variants.push({ when, box: rule.box, params: rule.params });
+  const dressed = new Map<string, { box: Record<string, Value>; params: Record<string, Value>; variants: Variant[] }>();
+  for (const c of [...sheet.screens, ...sheet.frames]) {
+    // 只有单分支、且整条就是一个裸 #id 的规则才指向容器；`screen=` 不参与（一片区域不论
+    // 放在哪个屏幕里都是它自己）。
+    const hits: Hit[] = [];
+    sheet.rules.forEach((rule, order) => {
+      const m = rule.branches.length === 1 ? /^#([A-Za-z0-9_-]+)$/.exec(rule.branches[0]!.source.trim()) : null;
+      if (!m || m[1] !== c.id) return;
+      const conds = selectorConditions(rule.branches[0]!);
+      for (const w of rule.when) conds.add(`when:${w.state}=${w.value}`);
+      hits.push({ rule, conds, order });
+      used.add(rule.label);
+    });
+    if (hits.length === 0) continue;
+    const clash: Clash = (a, b, k, identical) => {
+      diagnostics.push(styleDiag("style-ambiguous-rule",
+        `\`${a.rule.label}\` and \`${b.rule.label}\` both set \`${k}\` on container \`#${c.id}\` — ` +
+        (identical ? "their selectors are identical; delete one, or tell them apart with `when=`" : "neither is more specific"),
+        b.rule.id));
+    };
+    const groups = arbitrateWithinGroups(hits, clash);
+    reportBorderClashes(groups, (a, aWord, b, bWord) => {
+      diagnostics.push(styleDiag("style-ambiguous-rule",
+        `\`${a.rule.label}\` sets \`${aWord}\` and \`${b.rule.label}\` sets \`${bWord}\` on container \`#${c.id}\` — a shorthand and one of its sides in the same layer`,
+        b.rule.id));
+    });
+    const gs = [...groups.values()];
+    arbitrateAcrossGroups(gs, clash);
+    const { base, variants } = assembleGroups(gs, groups);
+    // 参数要有接收方：容器自己的 component=，或合并里的 component= / handler=。
+    if (c.component === undefined) {
+      const stray = strayParams(gs);
+      if (stray.size > 0) {
+        diagnostics.push(styleDiag("style-unknown-attribute",
+          `\`${[...stray.keys()].join("\`, \`")}\` on container \`#${c.id}\` has no \`component=\` to receive it`,
+          [...stray.values()][0]!.rule.id));
+      }
     }
-    forContainer.set(id, cur);
-    used.add(rule.id);
+    dressed.set(c.id, { box: base.box, params: base.params, variants });
   }
 
   // unmatched-rule 在所有轮次跑完之后统一报一次：一条只在某屏幕生效的规则，
   // 在别的屏幕那轮里当然不会被用到，那不是"没选中任何块"。
   for (const rule of sheet.rules) {
-    if (!used.has(rule.id)) {
+    if (!used.has(rule.label)) {
       diagnostics.push(styleDiag("style-unmatched-rule", `rule \`#${rule.id}\` matched no block in the corpus`, rule.id));
     }
   }
@@ -1269,15 +1384,29 @@ export function resolveStyle(sheet: Stylesheet, corpus: CorpusDoc[], opts: Resol
   });
 
 
+  // 容器自己的词，再叠上给它加样式的规则合并出来的（profile §2.1、§10）。合并里的
+  // `component=` 换掉容器自己的那个，其余参数并进 params。
+  const dressUp = (c: StyleContainer): { box: Record<string, Value>; params: Record<string, Value>; variants: Variant[]; component?: string } => {
+    const d = dressed.get(c.id);
+    const params: Record<string, Value> = { ...c.params, ...(d?.params ?? {}) };
+    let component = c.component;
+    if (params["component"] !== undefined) { component = String(params["component"]); delete params["component"]; }
+    const out: { box: Record<string, Value>; params: Record<string, Value>; variants: Variant[]; component?: string } =
+      { box: { ...c.box, ...(d?.box ?? {}) }, params, variants: d?.variants ?? [] };
+    if (component !== undefined) out.component = component;
+    return out;
+  };
   const screens: ResolvedScreen[] = sheet.screens.map((scr) => {
     // perScreen 上面刚为每个 screen 各填了一张表，这里的查找不会落空。
-    const out: ResolvedScreen = { id: scr.id, axis: scr.axis, box: { ...scr.box, ...(forContainer.get(scr.id)?.box ?? {}) }, variants: forContainer.get(scr.id)?.variants ?? [], params: scr.params, slots: resolveSlots(scr, "screen"), bindings: perScreen.get(scr.id)! };
-    if (scr.component !== undefined) out.component = scr.component;
+    const d = dressUp(scr);
+    const out: ResolvedScreen = { id: scr.id, axis: scr.axis, box: d.box, variants: d.variants, params: d.params, slots: resolveSlots(scr, "screen"), bindings: perScreen.get(scr.id)! };
+    if (d.component !== undefined) out.component = d.component;
     return out;
   });
   const frames: ResolvedFrame[] = sheet.frames.map((f) => {
-    const out: ResolvedFrame = { id: f.id, axis: f.axis, box: { ...f.box, ...(forContainer.get(f.id)?.box ?? {}) }, variants: forContainer.get(f.id)?.variants ?? [], params: f.params, slots: resolveSlots(f, "frame") };
-    if (f.component !== undefined) out.component = f.component;
+    const d = dressUp(f);
+    const out: ResolvedFrame = { id: f.id, axis: f.axis, box: d.box, variants: d.variants, params: d.params, slots: resolveSlots(f, "frame") };
+    if (d.component !== undefined) out.component = d.component;
     return out;
   });
 

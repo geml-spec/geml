@@ -45,5 +45,1595 @@
         ]
       }
     }
+  ],
+  "views": [
+    {
+      "name": "the maximal rules decide, and of those the rule written first holds the attribute",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#a match=\"table\" color=red}\n===\n\n=== style-rule {#b match=\".kpi\" color=green}\n===\n\n=== style-rule {#c match=\"table#t\" color=blue}\n===\n",
+        "d.geml": "=== table {#t .kpi format=csv}\na\n1\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#t",
+          "rules": [
+            "#a",
+            "#b",
+            "#c"
+          ],
+          "params": {},
+          "box": {
+            "color": "green"
+          },
+          "variants": []
+        }
+      ],
+      "diagnostics": [
+        "style-ambiguous-rule:warning"
+      ]
+    },
+    {
+      "name": "two rules with one selector: the first written holds the attribute, the other is reported",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#a match=\"table.kpi\" component=x}\n===\n\n=== style-rule {#b match=\"table.kpi\" component=y}\n===\n",
+        "d.geml": "=== table {#t .kpi format=csv}\na\n1\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#t",
+          "rules": [
+            "#a",
+            "#b"
+          ],
+          "params": {
+            "component": "x"
+          },
+          "box": {},
+          "variants": []
+        }
+      ],
+      "diagnostics": [
+        "style-ambiguous-rule:warning"
+      ]
+    },
+    {
+      "name": "a conditional rule incomparable to an unconditional one, written later, loses the attribute",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-state {#open match=heading on=toggle init-value=true type=flag}\n===\n\n=== style-rule {#base match=\"table#t\" color=red}\n===\n\n=== style-rule {#cond match=\"table\" when=\"$open=1\" color=blue}\n===\n",
+        "d.geml": "# H\n\n=== table {#t .kpi format=csv}\na\n1\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [
+        {
+          "id": "open",
+          "type": "flag",
+          "on": "toggle",
+          "initValue": "true"
+        }
+      ],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#t",
+          "rules": [
+            "#base",
+            "#cond"
+          ],
+          "params": {},
+          "box": {
+            "color": "red"
+          },
+          "variants": []
+        }
+      ],
+      "diagnostics": [
+        "style-ambiguous-rule:warning"
+      ]
+    },
+    {
+      "name": "a conditional rule whose conditions contain the unconditional one's overlays it",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-state {#open match=heading on=toggle init-value=true type=flag}\n===\n\n=== style-rule {#base match=\"table\" color=red}\n===\n\n=== style-rule {#cond match=\"table#t\" when=\"$open=1\" color=blue}\n===\n",
+        "d.geml": "# H\n\n=== table {#t .kpi format=csv}\na\n1\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [
+        {
+          "id": "open",
+          "type": "flag",
+          "on": "toggle",
+          "initValue": "true"
+        }
+      ],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#t",
+          "rules": [
+            "#base",
+            "#cond"
+          ],
+          "params": {},
+          "box": {
+            "color": "red"
+          },
+          "variants": [
+            {
+              "when": {
+                "open": "1"
+              },
+              "box": {
+                "color": "blue"
+              },
+              "params": {}
+            }
+          ]
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "name": "conditional rules on exclusive values of one state never meet",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-state {#mode match=\"table\" on=select value-from=a}\n===\n\n=== style-rule {#x match=\"table\" when=\"$mode=x\" color=red}\n===\n\n=== style-rule {#y match=\"table\" when=\"$mode=y\" color=blue}\n===\n",
+        "d.geml": "=== table {#t .kpi format=csv}\na\n1\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [
+        {
+          "id": "mode",
+          "type": "block-ref",
+          "on": "select",
+          "valueFrom": "a"
+        }
+      ],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#t",
+          "rules": [
+            "#x",
+            "#y"
+          ],
+          "params": {},
+          "box": {},
+          "variants": [
+            {
+              "when": {
+                "mode": "x"
+              },
+              "box": {
+                "color": "red"
+              },
+              "params": {}
+            },
+            {
+              "when": {
+                "mode": "y"
+              },
+              "box": {
+                "color": "blue"
+              },
+              "params": {}
+            }
+          ]
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "name": "a shorthand and a side held by two rules: the word of the later rule is dropped",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#all match=\"table\" border=\"1px solid\"}\n===\n\n=== style-rule {#top match=\"table#t\" border-top=\"2px solid\"}\n===\n",
+        "d.geml": "=== table {#t .kpi format=csv}\na\n1\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#t",
+          "rules": [
+            "#all",
+            "#top"
+          ],
+          "params": {},
+          "box": {
+            "border": "1px solid"
+          },
+          "variants": []
+        }
+      ],
+      "diagnostics": [
+        "style-ambiguous-rule:warning"
+      ]
+    },
+    {
+      "name": "a stretch of prose is one node, named by its prose address",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#p match=\"prose\" color=gray}\n===\n",
+        "d.geml": "# H {#h}\n\nOne.\n\n- a\n- b\n\n=== table {#t .kpi format=csv}\na\n1\n===\n\nTail.\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#h-before-t",
+          "rules": [
+            "#p"
+          ],
+          "params": {},
+          "box": {
+            "color": "gray"
+          },
+          "variants": []
+        },
+        {
+          "doc": "d.geml",
+          "block": "#h-after-t",
+          "rules": [
+            "#p"
+          ],
+          "params": {},
+          "box": {
+            "color": "gray"
+          },
+          "variants": []
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "name": "a stretch with no prose address is named by its position among the nodes",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#p match=\"prose\" color=gray}\n===\n",
+        "d.geml": "Lead.\n\n# H {#h}\n\n=== table {#t .kpi format=csv}\na\n1\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "[0]",
+          "rules": [
+            "#p"
+          ],
+          "params": {},
+          "box": {
+            "color": "gray"
+          },
+          "variants": []
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "name": "prose inside a typed block's body is not a node a selector matches",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#p match=\"prose\" color=gray}\n===\n",
+        "d.geml": "=== text {#t}\none\n\ntwo\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [],
+      "diagnostics": [
+        "style-unmatched-rule:warning"
+      ]
+    },
+    {
+      "name": "a binding names an id-less rule by its position among the style-rule blocks",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {match=\"table\" color=red}\n===\n\n=== style-rule {#b match=\"table.kpi\" padding=4px}\n===\n",
+        "d.geml": "=== table {#t .kpi format=csv}\na\n1\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#t",
+          "rules": [
+            "[0]",
+            "#b"
+          ],
+          "params": {},
+          "box": {
+            "color": "red",
+            "padding": "4px"
+          },
+          "variants": []
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "name": "bindings come in corpus order, each document's in node order, a part right after its node",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#h match=\"heading\" color=red}\n===\n\n=== style-rule {#t match=\"table\" color=blue}\n===\n\n=== style-rule {#l match=\"text link\" color=green}\n===\n",
+        "a.geml": "=== table {#t1 format=csv}\na\n1\n===\n\n=== text {#x}\nSee [y](https://example.com/y).\n===\n\n# H {#h}\n",
+        "b.geml": "# B {#b}\n\n=== table {#t2 format=csv}\na\n1\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "a.geml",
+        "b.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "a.geml",
+          "block": "#t1",
+          "rules": [
+            "#t"
+          ],
+          "params": {},
+          "box": {
+            "color": "blue"
+          },
+          "variants": []
+        },
+        {
+          "doc": "a.geml",
+          "block": "#x",
+          "rules": [
+            "#l"
+          ],
+          "params": {},
+          "box": {
+            "color": "green"
+          },
+          "variants": [],
+          "part": "link"
+        },
+        {
+          "doc": "a.geml",
+          "block": "#h",
+          "rules": [
+            "#h"
+          ],
+          "params": {},
+          "box": {
+            "color": "red"
+          },
+          "variants": []
+        },
+        {
+          "doc": "b.geml",
+          "block": "#b",
+          "rules": [
+            "#h"
+          ],
+          "params": {},
+          "box": {
+            "color": "red"
+          },
+          "variants": []
+        },
+        {
+          "doc": "b.geml",
+          "block": "#t2",
+          "rules": [
+            "#t"
+          ],
+          "params": {},
+          "box": {
+            "color": "blue"
+          },
+          "variants": []
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "name": "variants: fewer when entries first, then where the set's first-written rule stands",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-state {#open match=heading on=toggle init-value=true type=flag}\n===\n\n=== style-state {#more match=heading on=toggle init-value=true type=flag}\n===\n\n=== style-rule {#two match=\"table\" when=\"$open=1, $more=1\" color=red}\n===\n\n=== style-rule {#one-b match=\"table#t.kpi\" when=\"$more=1\" padding=1px}\n===\n\n=== style-rule {#one-a match=\"table\" when=\"$open=1\" margin=1px}\n===\n",
+        "d.geml": "# H\n\n=== table {#t .kpi format=csv}\na\n1\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [
+        {
+          "id": "open",
+          "type": "flag",
+          "on": "toggle",
+          "initValue": "true"
+        },
+        {
+          "id": "more",
+          "type": "flag",
+          "on": "toggle",
+          "initValue": "true"
+        }
+      ],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#t",
+          "rules": [
+            "#two",
+            "#one-b",
+            "#one-a"
+          ],
+          "params": {},
+          "box": {},
+          "variants": [
+            {
+              "when": {
+                "more": "1"
+              },
+              "box": {
+                "padding": "1px"
+              },
+              "params": {}
+            },
+            {
+              "when": {
+                "open": "1"
+              },
+              "box": {
+                "margin": "1px"
+              },
+              "params": {}
+            },
+            {
+              "when": {
+                "open": "1",
+                "more": "1"
+              },
+              "box": {
+                "color": "red"
+              },
+              "params": {}
+            }
+          ]
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "name": "a part belongs to the node the step before it matches, which must hold an inline of that kind, nested bodies included",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#l match=\"text link\" color=green}\n===\n\n=== style-rule {#n match=\"note link\" color=red}\n===\n",
+        "d.geml": "=== text {#with}\nSee [y](https://example.com/y).\n===\n\n=== text {#without}\nPlain.\n===\n\n==== note {#nested}\n=== text\nA [z](https://example.com/z).\n===\n====\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#with",
+          "rules": [
+            "#l"
+          ],
+          "params": {},
+          "box": {
+            "color": "green"
+          },
+          "variants": [],
+          "part": "link"
+        },
+        {
+          "doc": "d.geml",
+          "block": "#nested",
+          "rules": [
+            "#n"
+          ],
+          "params": {},
+          "box": {
+            "color": "red"
+          },
+          "variants": [],
+          "part": "link"
+        },
+        {
+          "doc": "d.geml",
+          "block": "[3]",
+          "rules": [
+            "#l"
+          ],
+          "params": {},
+          "box": {
+            "color": "green"
+          },
+          "variants": [],
+          "part": "link"
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "name": "a heading an ancestor step matches is a heading node with its level",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#r match=\"heading[level=1] table\" color=red}\n===\n",
+        "d.geml": "## Pre {#pre}\n\n=== table {#c format=csv}\na\n1\n===\n\n# One {#one}\n\n=== table {#a format=csv}\na\n1\n===\n\n## Two {#two}\n\n=== table {#b format=csv}\na\n1\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#a",
+          "rules": [
+            "#r"
+          ],
+          "params": {},
+          "box": {
+            "color": "red"
+          },
+          "variants": []
+        },
+        {
+          "doc": "d.geml",
+          "block": "#b",
+          "rules": [
+            "#r"
+          ],
+          "params": {},
+          "box": {
+            "color": "red"
+          },
+          "variants": []
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "name": "caption and hidden are the core's own on every style block",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-state {#open match=heading on=toggle init-value=true type=flag caption=\"Open\"}\n===\n\n=== style-rule {#r match=\"table\" caption=\"Tables\" hidden color=red}\n===\n",
+        "d.geml": "# H\n\n=== table {#t format=csv}\na\n1\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [
+        {
+          "id": "open",
+          "type": "flag",
+          "on": "toggle",
+          "initValue": "true"
+        }
+      ],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#t",
+          "rules": [
+            "#r"
+          ],
+          "params": {},
+          "box": {
+            "color": "red"
+          },
+          "variants": []
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "name": "a value outside its closed domain is dropped, and takes no part in the merge",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#bad match=\"table#t\" visible=maybe}\n===\n\n=== style-rule {#ok match=\"table\" visible=no}\n===\n",
+        "d.geml": "=== table {#t format=csv}\na\n1\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#t",
+          "rules": [
+            "#bad",
+            "#ok"
+          ],
+          "params": {},
+          "box": {
+            "visible": "no"
+          },
+          "variants": []
+        }
+      ],
+      "diagnostics": [
+        "style-invalid-value:error"
+      ]
+    },
+    {
+      "name": "a block-only word on a part rule is reported once, on the rule",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#l match=\"text link\" color=green sticky=top}\n===\n",
+        "d.geml": "=== text {#a}\n[a](https://example.com/a)\n===\n\n=== text {#b}\n[b](https://example.com/b)\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#a",
+          "rules": [
+            "#l"
+          ],
+          "params": {},
+          "box": {
+            "color": "green"
+          },
+          "variants": [],
+          "part": "link"
+        },
+        {
+          "doc": "d.geml",
+          "block": "#b",
+          "rules": [
+            "#l"
+          ],
+          "params": {},
+          "box": {
+            "color": "green"
+          },
+          "variants": [],
+          "part": "link"
+        }
+      ],
+      "diagnostics": [
+        "style-unknown-attribute:warning"
+      ]
+    },
+    {
+      "name": "a parameter's receiver may be named by a variant",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-state {#open match=heading on=toggle init-value=true type=flag}\n===\n\n=== style-rule {#p match=\"table\" depth=2}\n===\n\n=== style-rule {#c match=\"table\" when=\"$open=1\" component=graph}\n===\n",
+        "d.geml": "# H\n\n=== table {#t format=csv}\na\n1\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [
+        {
+          "id": "open",
+          "type": "flag",
+          "on": "toggle",
+          "initValue": "true"
+        }
+      ],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#t",
+          "rules": [
+            "#p",
+            "#c"
+          ],
+          "params": {
+            "depth": 2
+          },
+          "box": {},
+          "variants": [
+            {
+              "when": {
+                "open": "1"
+              },
+              "box": {},
+              "params": {
+                "component": "graph"
+              }
+            }
+          ]
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "name": "parameters with no receiver anywhere in the binding: one report naming them",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#p match=\"table\" depth=2}\n===\n\n=== style-rule {#q match=\"table#t\" width2=3}\n===\n",
+        "d.geml": "=== table {#t format=csv}\na\n1\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#t",
+          "rules": [
+            "#p",
+            "#q"
+          ],
+          "params": {
+            "depth": 2,
+            "width2": 3
+          },
+          "box": {},
+          "variants": []
+        }
+      ],
+      "diagnostics": [
+        "style-unknown-attribute:warning"
+      ]
+    },
+    {
+      "name": "a heading's level is its line's, which an author's level= does not override",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#a match=\"heading[level=3]\" color=red}\n===\n\n=== style-rule {#b match=\"heading[level=9]\" padding=1px}\n===\n",
+        "d.geml": "### T {#t level=9}\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#t",
+          "rules": [
+            "#a"
+          ],
+          "params": {},
+          "box": {
+            "color": "red"
+          },
+          "variants": []
+        }
+      ],
+      "diagnostics": [
+        "style-unmatched-rule:warning"
+      ]
+    },
+    {
+      "name": "layers: the default stylesheet, under the sitemap's match for the one corpus document, under the entry's own rules",
+      "files": {
+        "_index/index.geml": "=== meta\nprofile = \"geml-style/v1\"\ndefault-style = \"base.style.geml\"\n===\n\n=== table {#sitemap format=csv}\ndocument, template\nd.geml, home.style.geml\n===\n\n=== style-rule {#own match=\"table#t\" padding=3px}\n===\n",
+        "_index/base.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#b-all match=\"table\" color=red padding=1px}\n===\n\n=== style-rule {#b-note match=\"note\" color=gray}\n===\n",
+        "_index/home.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#h match=\"table\" color=blue}\n===\n",
+        "d.geml": "=== table {#t format=csv}\na\n1\n===\n\n=== note {#n}\nhi\n===\n",
+        "e.geml": "=== table {#t format=csv}\na\n1\n===\n"
+      },
+      "sheet": "_index/index.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#t",
+          "rules": [
+            "#b-all",
+            "#h",
+            "#own"
+          ],
+          "params": {},
+          "box": {
+            "color": "blue",
+            "padding": "3px"
+          },
+          "variants": []
+        },
+        {
+          "doc": "d.geml",
+          "block": "#n",
+          "rules": [
+            "#b-note"
+          ],
+          "params": {},
+          "box": {
+            "color": "gray"
+          },
+          "variants": []
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "name": "with several corpus documents no sitemap row is looked up",
+      "files": {
+        "_index/index.geml": "=== meta\nprofile = \"geml-style/v1\"\ndefault-style = \"base.style.geml\"\n===\n\n=== table {#sitemap format=csv}\ndocument, template\nd.geml, home.style.geml\n===\n\n=== style-rule {#own match=\"table#t\" padding=3px}\n===\n",
+        "_index/base.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#b-all match=\"table\" color=red padding=1px}\n===\n\n=== style-rule {#b-note match=\"note\" color=gray}\n===\n",
+        "_index/home.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#h match=\"table\" color=blue}\n===\n",
+        "d.geml": "=== table {#t format=csv}\na\n1\n===\n\n=== note {#n}\nhi\n===\n",
+        "e.geml": "=== table {#t format=csv}\na\n1\n===\n"
+      },
+      "sheet": "_index/index.geml",
+      "corpus": [
+        "d.geml",
+        "e.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#t",
+          "rules": [
+            "#b-all",
+            "#own"
+          ],
+          "params": {},
+          "box": {
+            "color": "red",
+            "padding": "3px"
+          },
+          "variants": []
+        },
+        {
+          "doc": "d.geml",
+          "block": "#n",
+          "rules": [
+            "#b-note"
+          ],
+          "params": {},
+          "box": {
+            "color": "gray"
+          },
+          "variants": []
+        },
+        {
+          "doc": "e.geml",
+          "block": "#t",
+          "rules": [
+            "#b-all",
+            "#own"
+          ],
+          "params": {},
+          "box": {
+            "color": "red",
+            "padding": "3px"
+          },
+          "variants": []
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "name": "an embed selects what the core's embed selects: a heading's section, narrowed by part=",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== embed {src=lib.style.geml#dark part=intro}\n===\n",
+        "lib.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n## Dark {#dark}\n\n=== style-rule {#d1 match=\"table\" color=white}\n===\n\n### More {#more}\n\n=== style-rule {#d2 match=\"note\" color=silver}\n===\n\n## Light {#light}\n\n=== style-rule {#l1 match=\"table\" color=black}\n===\n",
+        "d.geml": "=== table {#t format=csv}\na\n1\n===\n\n=== note {#n}\nhi\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#t",
+          "rules": [
+            "#d1"
+          ],
+          "params": {},
+          "box": {
+            "color": "white"
+          },
+          "variants": []
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "name": "a style block inside another block's body counts, and so does an embed there",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n==== note {#group}\n=== style-rule {#g1 match=\"table\" color=green}\n===\n\n=== embed {src=more.style.geml}\n===\n====\n",
+        "more.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#m1 match=\"note\" color=gray}\n===\n",
+        "d.geml": "=== table {#t format=csv}\na\n1\n===\n\n=== note {#n}\nhi\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#t",
+          "rules": [
+            "#g1"
+          ],
+          "params": {},
+          "box": {
+            "color": "green"
+          },
+          "variants": []
+        },
+        {
+          "doc": "d.geml",
+          "block": "#n",
+          "rules": [
+            "#m1"
+          ],
+          "params": {},
+          "box": {
+            "color": "gray"
+          },
+          "variants": []
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "name": "a bare #id embed selects in the file it is written in",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== embed {src=#base part=body}\n===\n\n## Base {#base}\n\n=== style-rule {match=\"table\" color=red}\n===\n",
+        "d.geml": "=== table {#t format=csv}\na\n1\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#t",
+          "rules": [
+            "[0]",
+            "[1]"
+          ],
+          "params": {},
+          "box": {
+            "color": "red"
+          },
+          "variants": []
+        }
+      ],
+      "diagnostics": [
+        "style-ambiguous-rule:warning"
+      ]
+    },
+    {
+      "name": "an embed inside the target it names is a cycle",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n## Base {#base}\n\n=== style-rule {match=\"table\" color=red}\n===\n\n=== embed {src=#base}\n===\n",
+        "d.geml": "=== table {#t format=csv}\na\n1\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#t",
+          "rules": [
+            "[0]",
+            "[1]"
+          ],
+          "params": {},
+          "box": {
+            "color": "red"
+          },
+          "variants": []
+        }
+      ],
+      "diagnostics": [
+        "style-ambiguous-rule:warning",
+        "style-embed-not-expanded:warning"
+      ]
+    },
+    {
+      "name": "an embedded file's own default-style comes with it, in the same layer; its sitemap does not",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== embed {src=sub/entry.geml}\n===\n\n=== style-rule {#top match=\"note\" color=black}\n===\n",
+        "sub/entry.geml": "=== meta\nprofile = \"geml-style/v1\"\ndefault-style = \"base.style.geml\"\n===\n\n=== table {#sitemap format=csv}\ndocument, template\nd.geml, home.style.geml\n===\n\n=== style-rule {#e match=\"note\" color=gray}\n===\n",
+        "sub/base.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#sb match=\"table\" color=red}\n===\n",
+        "sub/home.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#sh match=\"table\" color=blue}\n===\n",
+        "d.geml": "=== table {#t format=csv}\na\n1\n===\n\n=== note {#n}\nhi\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#t",
+          "rules": [
+            "#sb"
+          ],
+          "params": {},
+          "box": {
+            "color": "red"
+          },
+          "variants": []
+        },
+        {
+          "doc": "d.geml",
+          "block": "#n",
+          "rules": [
+            "#e",
+            "#top"
+          ],
+          "params": {},
+          "box": {
+            "color": "gray"
+          },
+          "variants": []
+        }
+      ],
+      "diagnostics": [
+        "style-ambiguous-rule:warning"
+      ]
+    },
+    {
+      "name": "a path resolves against the naming file's directory, then the root",
+      "files": {
+        "styles/site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== embed {src=common.style.geml}\n===\n\n=== embed {src=local.style.geml}\n===\n",
+        "common.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#c match=\"note\" color=gray}\n===\n",
+        "styles/local.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#near match=\"table\" color=green}\n===\n",
+        "local.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#far match=\"table\" color=red}\n===\n",
+        "d.geml": "=== table {#t format=csv}\na\n1\n===\n\n=== note {#n}\nhi\n===\n"
+      },
+      "sheet": "styles/site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#t",
+          "rules": [
+            "#near"
+          ],
+          "params": {},
+          "box": {
+            "color": "green"
+          },
+          "variants": []
+        },
+        {
+          "doc": "d.geml",
+          "block": "#n",
+          "rules": [
+            "#c"
+          ],
+          "params": {},
+          "box": {
+            "color": "gray"
+          },
+          "variants": []
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "name": "a stylesheet that names itself as its default reports a cycle and is read once",
+      "files": {
+        "_index/index.geml": "=== meta\nprofile = \"geml-style/v1\"\ndefault-style = \"index.geml\"\n===\n\n=== style-rule {#r match=\"table\" color=red}\n===\n",
+        "d.geml": "=== table {#t format=csv}\na\n1\n===\n"
+      },
+      "sheet": "_index/index.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#t",
+          "rules": [
+            "#r"
+          ],
+          "params": {},
+          "box": {
+            "color": "red"
+          },
+          "variants": []
+        }
+      ],
+      "diagnostics": [
+        "style-embed-not-expanded:warning"
+      ]
+    },
+    {
+      "name": "a rule naming a container dresses it, merged by §4: base words into box and params, when= into variants; a corpus block with that id is bound too",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-state {#menu match=\"text#nav\" on=toggle type=flag init-value=1}\n===\n\n=== style-screen {#page component=shell title=\"Home\" background=white slots=\"#side, $menu, table#t\"}\n===\n\n=== style-frame {#side axis=column width=200px slots=\"text#nav\"}\n===\n\n=== style-rule {#narrow match=\"#side\" when=\"$menu=closed\" width=48px}\n===\n\n=== style-rule {#pad match=\"#side\" padding=8px}\n===\n\n=== style-rule {#pad2 match=\"#side\" padding=4px}\n===\n\n=== style-rule {#shell match=\"#page\" component=page-shell color=black}\n===\n",
+        "d.geml": "=== text {#nav}\n[a](https://example.com/a)\n===\n\n=== table {#t format=csv}\na\n1\n===\n\n=== note {#side}\nx\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [
+        {
+          "id": "menu",
+          "type": "flag",
+          "on": "toggle",
+          "initValue": "1"
+        }
+      ],
+      "screens": [
+        {
+          "id": "page",
+          "axis": "column",
+          "box": {
+            "background": "white",
+            "color": "black"
+          },
+          "variants": [],
+          "params": {
+            "title": "Home"
+          },
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "side"
+            },
+            {
+              "kind": "state",
+              "state": "menu"
+            },
+            {
+              "kind": "blocks",
+              "selector": "table#t",
+              "blocks": [
+                {
+                  "doc": "d.geml",
+                  "block": "#t"
+                }
+              ]
+            }
+          ],
+          "bindings": [
+            {
+              "doc": "d.geml",
+              "block": "#side",
+              "rules": [
+                "#narrow",
+                "#pad",
+                "#pad2"
+              ],
+              "params": {},
+              "box": {
+                "padding": "8px"
+              },
+              "variants": [
+                {
+                  "when": {
+                    "menu": "closed"
+                  },
+                  "box": {
+                    "width": "48px"
+                  },
+                  "params": {}
+                }
+              ]
+            }
+          ],
+          "component": "page-shell"
+        }
+      ],
+      "frames": [
+        {
+          "id": "side",
+          "axis": "column",
+          "box": {
+            "width": "200px",
+            "padding": "8px"
+          },
+          "variants": [
+            {
+              "when": {
+                "menu": "closed"
+              },
+              "box": {
+                "width": "48px"
+              },
+              "params": {}
+            }
+          ],
+          "params": {},
+          "slots": [
+            {
+              "kind": "blocks",
+              "selector": "text#nav",
+              "blocks": [
+                {
+                  "doc": "d.geml",
+                  "block": "#nav"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#side",
+          "rules": [
+            "#narrow",
+            "#pad",
+            "#pad2"
+          ],
+          "params": {},
+          "box": {
+            "padding": "8px"
+          },
+          "variants": [
+            {
+              "when": {
+                "menu": "closed"
+              },
+              "box": {
+                "width": "48px"
+              },
+              "params": {}
+            }
+          ]
+        }
+      ],
+      "diagnostics": [
+        "style-ambiguous-rule:warning",
+        "style-ambiguous-rule:warning"
+      ]
+    },
+    {
+      "name": "the corpus takes in each document an embed names, whole, once, in the order met",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#all match=\"table, note, text\" color=red}\n===\n",
+        "page.geml": "=== embed {src=article.geml#intro}\n===\n\n=== embed {src=article.geml}\n===\n\n=== embed {src=page.geml#x}\n===\n\n=== embed {src=gone.geml}\n===\n\n=== text {#x}\nhi\n===\n",
+        "article.geml": "# Intro {#intro}\n\nText.\n\n=== table {#a format=csv}\nv\n1\n===\n\n=== embed {src=sub/notes.geml}\n===\n",
+        "sub/notes.geml": "=== note {#n}\nhi\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "page.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "page.geml",
+          "block": "#x",
+          "rules": [
+            "#all"
+          ],
+          "params": {},
+          "box": {
+            "color": "red"
+          },
+          "variants": []
+        },
+        {
+          "doc": "article.geml",
+          "block": "#a",
+          "rules": [
+            "#all"
+          ],
+          "params": {},
+          "box": {
+            "color": "red"
+          },
+          "variants": []
+        },
+        {
+          "doc": "sub/notes.geml",
+          "block": "#n",
+          "rules": [
+            "#all"
+          ],
+          "params": {},
+          "box": {
+            "color": "red"
+          },
+          "variants": []
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "name": "a container's dressing reports what a binding's would: a shorthand and a side, and parameters with no receiver",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-screen {#s slots=\"#f\"}\n===\n\n=== style-frame {#f slots=\"text#nav\"}\n===\n\n=== style-rule {#all match=\"#f\" border=\"1px solid\"}\n===\n\n=== style-rule {#top match=\"#f\" border-top=\"2px solid\"}\n===\n\n=== style-rule {#p match=\"#f\" depth=2}\n===\n",
+        "d.geml": "=== text {#nav}\nhi\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [
+        {
+          "id": "s",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f"
+            }
+          ],
+          "bindings": []
+        }
+      ],
+      "frames": [
+        {
+          "id": "f",
+          "axis": "column",
+          "box": {
+            "border": "1px solid"
+          },
+          "variants": [],
+          "params": {
+            "depth": 2
+          },
+          "slots": [
+            {
+              "kind": "blocks",
+              "selector": "text#nav",
+              "blocks": [
+                {
+                  "doc": "d.geml",
+                  "block": "#nav"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [],
+      "diagnostics": [
+        "style-ambiguous-rule:warning",
+        "style-unknown-attribute:warning"
+      ]
+    },
+    {
+      "name": "across when= sets, the set whose holder was written later loses the word, whichever set's first rule comes first",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-state {#m match=\"table\" on=select value-from=a}\n===\n\n=== style-state {#o match=\"table\" on=toggle type=flag}\n===\n\n=== style-rule {#r0 match=\"table\" when=\"$m=a\" padding=1px}\n===\n\n=== style-rule {#r1 match=\"table#t\" when=\"$o=1\" color=blue}\n===\n\n=== style-rule {#r2 match=\".kpi\" when=\"$m=a\" color=red}\n===\n",
+        "d.geml": "=== table {#t .kpi format=csv}\na\n1\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [
+        {
+          "id": "m",
+          "type": "block-ref",
+          "on": "select",
+          "valueFrom": "a"
+        },
+        {
+          "id": "o",
+          "type": "flag",
+          "on": "toggle"
+        }
+      ],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#t",
+          "rules": [
+            "#r0",
+            "#r1",
+            "#r2"
+          ],
+          "params": {},
+          "box": {},
+          "variants": [
+            {
+              "when": {
+                "m": "a"
+              },
+              "box": {
+                "padding": "1px"
+              },
+              "params": {}
+            },
+            {
+              "when": {
+                "o": "1"
+              },
+              "box": {
+                "color": "blue"
+              },
+              "params": {}
+            }
+          ]
+        }
+      ],
+      "diagnostics": [
+        "style-ambiguous-rule:warning"
+      ]
+    },
+    {
+      "name": "a container can produce a state, which then needs no corpus block",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-state {#menu match=\"#button\" on=toggle type=flag}\n===\n\n=== style-state {#ghost match=\"#nowhere\" on=toggle type=flag}\n===\n\n=== style-screen {#s slots=\"#button, text#nav\"}\n===\n\n=== style-frame {#button slots=\"text#icon\"}\n===\n",
+        "d.geml": "=== text {#nav}\nhi\n===\n\n=== text {#icon}\nx\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [
+        {
+          "id": "menu",
+          "type": "flag",
+          "on": "toggle"
+        },
+        {
+          "id": "ghost",
+          "type": "flag",
+          "on": "toggle"
+        }
+      ],
+      "screens": [
+        {
+          "id": "s",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "button"
+            },
+            {
+              "kind": "blocks",
+              "selector": "text#nav",
+              "blocks": [
+                {
+                  "doc": "d.geml",
+                  "block": "#nav"
+                }
+              ]
+            }
+          ],
+          "bindings": []
+        }
+      ],
+      "frames": [
+        {
+          "id": "button",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "blocks",
+              "selector": "text#icon",
+              "blocks": [
+                {
+                  "doc": "d.geml",
+                  "block": "#icon"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [],
+      "diagnostics": [
+        "style-unmatched-producer:warning"
+      ]
+    }
   ]
 }

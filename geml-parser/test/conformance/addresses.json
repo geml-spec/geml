@@ -154,5 +154,42 @@
       "#c"
     ],
     "diagnostics": []
+  },
+  {
+    "name": "a document's only meta block anchors the prose after it as #meta",
+    "geml": "=== meta\nt = 1\n===\n\nIntro.\n\n## H {#h}\n",
+    "want": "\"Intro.\" h2(\"H\")",
+    "addresses": [
+      "#meta",
+      "#meta-between-h",
+      "#h"
+    ]
+  },
+  {
+    "name": "with two meta blocks an id-less meta block is an anonymous anchor",
+    "geml": "=== meta\nt = 1\n===\n\nIntro.\n\n=== meta\nu = 2\n===\n\nMore.\n\n## H {#h}\n",
+    "want": "\"Intro.\" \"More.\" h2(\"H\")",
+    "addresses": [
+      "#h"
+    ]
+  },
+  {
+    "name": "a gap holding only %% lines is not prose and has no address",
+    "geml": "=== note {#a}\nx\n===\n\n%% a note to the author\n\n=== note {#b}\ny\n===\n",
+    "want": "block:note hidden block:note",
+    "addresses": [
+      "#a",
+      "#b"
+    ]
+  },
+  {
+    "name": "a %% line does not break a stretch of prose",
+    "geml": "=== note {#a}\nx\n===\n\none\n%% aside\ntwo\n\n=== note {#b}\ny\n===\n",
+    "want": "block:note \"one\" hidden \"two\" block:note",
+    "addresses": [
+      "#a",
+      "#a-between-b",
+      "#b"
+    ]
   }
 ]

@@ -13,6 +13,11 @@ test("meta hoists to a single YAML frontmatter at the top", () => {
   assert.match(out, /# H/);
 });
 
+test("a remote table has no rows at build time, and the export names its source (§3.3)", () => {
+  const { md: out } = md('=== table {#t src="https://example.com/a.csv"}\n===\n');
+  assert.match(out, /\*External data `https:\/\/example\.com\/a\.csv` — loaded at render time\.\*/);
+});
+
 test("headings, emphasis, code, links project to Markdown", () => {
   const { md: out } = md("# Title\n\nA *em* **strong** `c` [x](#y).\n");
   assert.match(out, /^# Title/m);

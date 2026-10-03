@@ -219,8 +219,11 @@ test("transclusions nest: an embed inside transcluded content expands too (S5)",
 });
 
 test("two documents transcluding each other is a cycle error, and terminates (S5/S6)", () => {
+  // `a` takes the whole of `b`, and `b` holds an embed back into `a`: §9.3
+  // counts the return per document. (Taking only `b#b` would expand nothing
+  // that leads back, and is no cycle — see the next test.)
   const dir = workspace();
-  writeFileSync(join(dir, "a.geml"), "=== note {#a}\nA.\n===\n\n" + embed("b.geml#b"));
+  writeFileSync(join(dir, "a.geml"), "=== note {#a}\nA.\n===\n\n" + embed("b.geml"));
   writeFileSync(join(dir, "b.geml"), "=== note {#b}\nB.\n===\n\n" + embed("a.geml#a"));
   const check = cli(dir, "check", "a.geml");
   assert.equal(check.status, 1, "a cycle has to fail the build");
@@ -228,6 +231,17 @@ test("two documents transcluding each other is a cycle error, and terminates (S5
   const html = cli(dir, "a.geml", "--to", "html");
   assert.notEqual(html.status, null, "the renderer must not hang");
   assert.match(html.stdout + html.stderr, /cycle/i);
+});
+
+test("a step expands only what its target selects: an embed elsewhere in that document is no step (§9.3)", () => {
+  const dir = workspace();
+  writeFileSync(join(dir, "a.geml"), "=== note {#a}\nA.\n===\n\n" + embed("b.geml#b"));
+  writeFileSync(join(dir, "b.geml"), "=== note {#b}\nB.\n===\n\n" + embed("a.geml#a"));
+  const check = cli(dir, "check", "a.geml");
+  assert.equal(check.status, 0, check.stdout + check.stderr);
+  const html = cli(dir, "a.geml", "--to", "html");
+  assert.equal(html.status, 0, html.stderr);
+  assert.match(html.stdout, /B\./, "the note it selects is expanded");
 });
 
 test("a chain deeper than the cap degrades instead of expanding forever (S5)", () => {
@@ -292,19 +306,21 @@ test("an inline projection right after its target's closing fence is not a cycle
 test("an embed or a projection inside its own target is still a cycle", () => {
   const inSection = cycles("## A {#a}\n\nprose\n\n=== embed {src=#a}\n===\n");
   assert.equal(inSection.length, 1);
-  assert.match(inSection[0].message, /`#a` selects the content this embed is part of/);
+  assert.match(inSection[0].message, /`#a` is already being expanded/);
   const onLastLine = cycles("## A {#a}\n\nprose\n=== embed {src=#a}\n===");
   assert.equal(onLastLine.length, 1, "the embed on the section's last lines is still inside it");
   const projection = cycles("=== text {#t}\nSee ![[#t]].\n===\n");
   assert.equal(projection.length, 1);
-  assert.match(projection[0].message, /projects the content it is part of/);
+  assert.match(projection[0].message, /`#t` is already being expanded/);
 });
 
 test("an indirect cycle A -> B -> C -> A is caught (S5)", () => {
+  // Each note holds the next embed, so expanding the note it selects leads on.
   const dir = workspace();
-  writeFileSync(join(dir, "a.geml"), "=== note {#a}\nA.\n===\n\n" + embed("b.geml#b"));
-  writeFileSync(join(dir, "b.geml"), "=== note {#b}\nB.\n===\n\n" + embed("c.geml#c"));
-  writeFileSync(join(dir, "c.geml"), "=== note {#c}\nC.\n===\n\n" + embed("a.geml#a"));
+  const note = (id, next) => `==== note {#${id}}\n${id.toUpperCase()}.\n\n` + embed(next) + "====\n";
+  writeFileSync(join(dir, "a.geml"), note("a", "b.geml#b"));
+  writeFileSync(join(dir, "b.geml"), note("b", "c.geml#c"));
+  writeFileSync(join(dir, "c.geml"), note("c", "a.geml#a"));
   const chk = cli(dir, "check", "a.geml");
   assert.equal(chk.status, 1, "only the direct A<->B case was covered before");
   assert.match(chk.stdout + chk.stderr, /cycle/i);

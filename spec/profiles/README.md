@@ -259,6 +259,7 @@ Each profile carries `geml-<thing>/conformance.json` beside its document: the
 | `codes` | every diagnostic code and its default severity — the part a second implementation copies |
 | `cases[].addresses` | the `#…` addresses a document carries when the vocabulary is recognized, and when it is not |
 | `cases[].diagnostics` | each reading's diagnostics as `code:severity` multisets — what declaring the vocabulary stops being `unknown-*`, stated in codes rather than in message text |
+| `views[]` | `geml-style/v1` only: `files` maps root-relative paths to their text, `sheet` names the stylesheet among them and `corpus` the documents it is solved against, in order; `states`, `screens`, `frames` and `bindings` are the view model (§10), compared exactly and in order, and `diagnostics` its `code:severity` multiset. The files are read through a host confined to them, a relative path resolving against the naming file's directory and then the root (GEML §3.3); with exactly one corpus document the style entry's `#sitemap` is looked up for it |
 
 The addresses are the point. §8.6.2 rule 4 lets a vocabulary's **declared body
 mode** change the addressable set and lets nothing else do so, and these files

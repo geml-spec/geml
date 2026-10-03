@@ -375,6 +375,12 @@ is a warning, a choice is info.** Staleness must be a warning and not an error;
 otherwise one edit to a character card turns the whole pipeline red and people
 learn to ignore it.
 
+A check reports the diagnostics of the document it checks. The documents it
+reads to do so — a library of assets, a generation log in another file — carry
+diagnostics of their own, and whether a processor repeats those as well is its
+choice: they belong to that other document, and checking it reports them either
+way.
+
 | code | level | when |
 |---|---|---|
 | `media-src-unresolved` | error | a cut's `src` names no block |

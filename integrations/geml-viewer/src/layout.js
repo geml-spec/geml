@@ -249,14 +249,20 @@ function nodesByAddress(corpus) {
   for (const { path, doc } of corpus) {
     for (const c of candidates(doc)) {
       const a = address(c);
-      out.set(`${path}${a}`, c.block);
+      // 一段散文是一个候选（profile §3），不论它有几个段落：放置的是整段，包成一个 flow 节点。
+      const node = c.nodes ? proseRun(c.nodes) : c.block;
+      out.set(`${path}${a}`, node);
       // 只有一份文档时裸地址也建一个键：调用方（和一堆老测试）不一定知道视图模型
       // 把这份文档叫什么。多份文档时限定名是唯一的钥匙，不会撞。
-      if (corpus.length === 1) out.set(a, c.block);
+      if (corpus.length === 1) out.set(a, node);
     }
   }
   return out;
 }
+
+/** 一段散文作为一个可放置节点：一个只装着这些节点的 flow 块，组件拿到的也是它。 */
+const proseRun = (nodes) => ({ kind: "block", type: "prose", mode: "flow", classes: [], attrs: {}, children: nodes });
+const isProseRun = (node) => node?.kind === "block" && node.type === "prose" && node.id === undefined && Array.isArray(node.children);
 
 /** 语料里的地址：`page.geml#id`。槽位和绑定给的就是这两半，拼起来才是钥匙。 */
 const at = (doc, block) => `${doc}${block}`;
@@ -323,6 +329,7 @@ export function renderPage(vm, model, dom, opts) {
       const t = sources.get(path);
       if (typeof t === "string") return t;
     }
+    if (isProseRun(node)) return node.children.map((c) => c.text ?? "").filter((t) => t !== "").join("\n\n");
     const id = node.kind === "heading" || node.kind === "block" ? node.id : undefined;
     const span = id !== undefined && spans && docPath === hostPath ? spans.get(id) : undefined;
     if (span && typeof hostText === "string") {
@@ -390,22 +397,36 @@ export function renderPage(vm, model, dom, opts) {
     const addrOf = new Map();
     for (const c of candidates(entry.doc)) {
       placed.add(at(path, address(c)));
-      if (c.part === undefined) addrOf.set(c.block, address(c));
+      if (c.part === undefined) for (const n of c.nodes ?? [c.block]) addrOf.set(n, address(c));
     }
+    // 一段散文的节点挨着画进同一个包裹：它们是一个候选，样式落在整段上。
+    let open = null;
+    let openAddr;
     for (const child of entry.doc.children ?? []) {
       if (over()) throw new RangeError("placement cap");
       const el = renderBlock(child, dom, labels, ctx.byId);
       if (!el) continue;
       const addr = addrOf.get(child);
-      if (addr === undefined) { frag.appendChild(el); continue; }
+      if (addr === undefined) { frag.appendChild(el); open = null; continue; }
+      if (open !== null && openAddr === addr) { open.appendChild(el); continue; }
       const wrap = dom.createElement("div");
       wrap.className = `geml-placed ${classFor(addr)}`;
       wrap.setAttribute("data-block", addr);
       wrap.setAttribute("data-doc", path);
       wrap.appendChild(el);
       frag.appendChild(wrap);
+      open = wrap;
+      openAddr = addr;
     }
     return frag;
+  };
+
+  /** 一段散文画成一个 div：节点按序，`%%` 行照例不画。 */
+  const renderRun = (nodes) => {
+    const div = dom.createElement("div");
+    div.className = "geml-prose";
+    for (const n of nodes) { const k = renderBlock(n, dom, labels, ctx.byId); if (k) div.appendChild(k); }
+    return div;
   };
 
   const place = (doc, block) => {
@@ -419,7 +440,9 @@ export function renderPage(vm, model, dom, opts) {
     const name = typeof params.component === "string" ? params.component : "";
     // hasOwn，不是 `components[name]`：component= 来自样式表，`constructor` / `toString` /
     // `__proto__` 都是合法的名字，从原型链上取到的是 Object 的方法 —— 当渲染函数调用会抛，整页不画。
-    const render = Object.hasOwn(components, name) ? components[name] : ((blk) => renderBlock(blk, dom, labels, ctx.byId));
+    const render = Object.hasOwn(components, name) ? components[name]
+      : isProseRun(node) ? ((blk) => renderRun(blk.children))
+      : ((blk) => renderBlock(blk, dom, labels, ctx.byId));
     // 槽位摆的是一个 `embed`，而它借的文档就在语料里 —— 那就把那份文档画在这儿。
     // 样式说「这份文档放这个位置」，里面有什么由文档自己决定。
     // 有组件时**组件优先**：它可能要拿这份内容做别的事（编辑器就要预览 + 源码两副面孔），

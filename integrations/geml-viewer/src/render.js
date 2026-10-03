@@ -446,6 +446,9 @@ function renderTyped(b, dom, labels, byId) {
   // the block type it does not know falls through, and a view has no body to
   // fall back on, so a derived table was simply absent from the page.
   if ((type === "table" || type === "view") && b.table) return renderTable(b.table, dom, labels, b.id);
+  // §3.3: a remote source, or a view over one, has no model at build time —
+  // one this page could not fetch keeps the same placeholder an unloaded table does.
+  if (type === "table" || type === "view") return srcPlaceholder(dom, b.id, typeof b.attrs?.src === "string" ? b.attrs.src : "");
   if (type === "note") {
     const q = el(dom, "blockquote", { class: "geml-note", id: b.id });
     for (const c of b.children || []) { const n = renderBlock(c, dom, labels, byId); if (n) q.appendChild(n); }
@@ -592,6 +595,13 @@ function rawBlock(b, dom, tag) {
 // Tables (§6) — header, alignment, computed columns, summary row, spans.
 // ---------------------------------------------------------------------------
 
+function srcPlaceholder(dom, id, src) {
+  return el(dom, "div", { class: "geml-block", id }, [
+    el(dom, "span", { class: "geml-tag", text: "table · src" }),
+    el(dom, "p", { text: `Data not loaded from ${src}` }),
+  ]);
+}
+
 function renderTable(model, dom, labels, id) {
   // External data (src=) that was not inlined — render-time fetch failed or the
   // renderer didn't inline it. Show a placeholder rather than an empty table.
@@ -601,12 +611,7 @@ function renderTable(model, dom, labels, id) {
   // this document or another, and this placeholder swallowed every view in the
   // browser — the derived table simply was not on the page, while the parser's
   // own renderers drew it.
-  if (model.src !== undefined && model.columns.length === 0) {
-    return el(dom, "div", { class: "geml-block", id }, [
-      el(dom, "span", { class: "geml-tag", text: "table · src" }),
-      el(dom, "p", { text: `Data not loaded from ${model.src}` }),
-    ]);
-  }
+  if (model.src !== undefined && model.columns.length === 0) return srcPlaceholder(dom, id, model.src);
 
   const table = el(dom, "table", { id });
   if (model.caption) table.appendChild(el(dom, "caption", { text: model.caption }));

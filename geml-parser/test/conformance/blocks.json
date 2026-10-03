@@ -167,5 +167,130 @@
     "geml": "# Use `x` here\n\ntext\n",
     "want": "h1(\"Use \" code(\"x\") \" here\") \"text\"",
     "blocks": "h1#use-here(\"Use \" code(\"x\") \" here\") p(\"text\")"
+  },
+  {
+    "name": "a bare value may hold a quoted span: a coordinate in src= needs no outer quotes",
+    "geml": "=== data {#d}\n{\"a\": 1}\n===\n\n=== embed {src=#d[\"a\"]}\n===\n",
+    "want": "data({\"a\":1}) embed(\"#d[\\\"a\\\"]\")",
+    "blocks": "data#d(\"{\\\"a\\\": 1}\") embed{\"src\":\"#d[\\\"a\\\"]\"}(\"\")",
+    "diagnostics": []
+  },
+  {
+    "name": "whitespace inside a quoted span does not end a bare word, and the word keeps its quotes",
+    "geml": "=== note {#n caption=a\"b c\"d}\nx\n===\n",
+    "want": "block:note",
+    "blocks": "note#n{\"caption\":\"a\\\"b c\\\"d\"}[p(\"x\")]",
+    "diagnostics": []
+  },
+  {
+    "name": "a value is a quoted string only when it begins and ends with a quote; otherwise a bare word, verbatim",
+    "geml": "=== note {#n caption=\"a b\"c}\nx\n===\n",
+    "want": "block:note",
+    "blocks": "note#n{\"caption\":\"\\\"a b\\\"c\"}[p(\"x\")]",
+    "diagnostics": []
+  },
+  {
+    "name": "a quoted span left open runs to the end of the object",
+    "geml": "=== note {#n caption=\"a b}\nx\n===\n",
+    "want": "block:note",
+    "blocks": "note#n{\"caption\":\"\\\"a b\"}[p(\"x\")]",
+    "diagnostics": []
+  },
+  {
+    "name": "on a fence line the object runs to the last brace: a brace between is an ordinary character",
+    "geml": "=== note {#n caption=a}b}\nx\n===\n",
+    "want": "block:note",
+    "blocks": "note#n{\"caption\":\"a}b\"}[p(\"x\")]",
+    "diagnostics": []
+  },
+  {
+    "name": "a second brace group on a fence line belongs to the one object",
+    "geml": "=== note {#a} {x=1}\nx\n===\n",
+    "want": "block:note",
+    "blocks": "note#a}{\"{x\":1}[p(\"x\")]",
+    "diagnostics": [
+      "name-not-a-name:warning",
+      "name-not-a-name:warning",
+      "unknown-attribute:warning"
+    ]
+  },
+  {
+    "name": "any White_Space separates items, an ideographic space included",
+    "geml": "=== note {#a　.b}\nx\n===\n",
+    "want": "block:note",
+    "blocks": "note#a.b[p(\"x\")]",
+    "diagnostics": []
+  },
+  {
+    "name": "a fold turns the backslash, the newline and the whitespace around them into one space, inside a quoted value too",
+    "geml": "=== note {#n caption=\"p \\\n      q\"}\nx\n===\n",
+    "want": "block:note",
+    "blocks": "note#n{\"caption\":\"p q\"}[p(\"x\")]",
+    "diagnostics": []
+  },
+  {
+    "name": "a heading's object is the nearest group left of its final brace, preceded by whitespace",
+    "geml": "## T {x {#h}\n",
+    "want": "h2(\"T {x\")",
+    "blocks": "h2#h(\"T {x\")",
+    "diagnostics": []
+  },
+  {
+    "name": "a quoted brace inside a heading's object does not end it",
+    "geml": "## T {#h caption=\"a}b\"}\n",
+    "want": "h2(\"T\")",
+    "blocks": "h2#h(\"T\")",
+    "diagnostics": []
+  },
+  {
+    "name": "a group glued to the heading text is not an object",
+    "geml": "## Title{#a}\n",
+    "want": "h2(\"Title{#a}\")",
+    "blocks": "h2#titlea(\"Title{#a}\")",
+    "diagnostics": []
+  },
+  {
+    "name": "a brace met before the opening one leaves a heading without an object",
+    "geml": "## a {b}x}\n",
+    "want": "h2(\"a {b}x}\")",
+    "blocks": "h2#a-bx(\"a {b}x}\")",
+    "diagnostics": []
+  },
+  {
+    "name": "braces and quotes in a heading's text before its object stay text",
+    "geml": "## Set {a, b} of 5\" pipes {#sets}\n",
+    "want": "h2(\"Set {a, b} of 5\\\" pipes\")",
+    "blocks": "h2#sets(\"Set {a, b} of 5\\\" pipes\")",
+    "diagnostics": []
+  },
+  {
+    "name": "a brace inside a code span of a heading opens no object",
+    "geml": "## a `x {` y}\n",
+    "want": "h2(\"a \" code(\"x {\") \" y}\")",
+    "blocks": "h2#a-y(\"a \" code(\"x {\") \" y}\")",
+    "diagnostics": []
+  },
+  {
+    "name": "a heading whose whole text is an object has empty text",
+    "geml": "## {#a}\n",
+    "want": "h2()",
+    "blocks": "h2#a()",
+    "diagnostics": []
+  },
+  {
+    "name": "a key written twice is the duplicate-name error, and the first value is the one read",
+    "geml": "=== note {#n caption=a caption=b}\nx\n===\n",
+    "want": "block:note",
+    "blocks": "note#n{\"caption\":\"a\"}[p(\"x\")]",
+    "diagnostics": [
+      "duplicate-name:error"
+    ]
+  },
+  {
+    "name": "of two ids in one object the first is the id",
+    "geml": "=== note {#a #b}\nx\n===\n",
+    "want": "block:note",
+    "blocks": "note#a[p(\"x\")]",
+    "diagnostics": []
   }
 ]

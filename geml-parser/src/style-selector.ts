@@ -8,7 +8,7 @@
 // 部件步（link image code-span strong emphasis）只在最后一步合法，见 PARTS。
 
 import type { Block, Document, Inline, Value } from "./geml.js";
-import { nameKey } from "./geml.js";
+import { nameKey, proseRunTargets } from "./geml.js";
 import { styleDiag, type StyleDiagnostic } from "./style-diagnostics.js";
 
 export interface SimpleSelector {
@@ -253,8 +253,10 @@ export interface AncestorRef {
 }
 
 export interface Candidate {
-  /** 可放置的节点：类型块、标题、或块之间的散文段落。 */
+  /** 可放置的节点：类型块、标题，或块之间的一段散文（这时是这一段里第一个不是 `%%` 行的节点）。 */
   block: Block;
+  /** 散文候选：这一段的全部节点，按序 —— GEML §4 的一段散文，`%%` 行在内（它们不打断一段）。 */
+  nodes?: Block[];
   /**
    * 归一化后的匹配面。type 是：类型块的 `type`、标题的 `heading`、散文的 `prose`。
    * 标题和散文在 `geml list` 里一直可寻址（`#h1-before-t`），样式层没道理看不见它们；
@@ -279,14 +281,14 @@ export interface Candidate {
 export function candidates(doc: Document): Candidate[] {
   const blocks: Candidate[] = [];
   const counter = { n: 0 };
-  walk(doc.children, [], blocks, counter);
+  walk(doc.children, [], blocks, counter, false, runNamesOf(doc));
   // 部件候选紧跟它的块：块里出现过的每一类行内一个。地址、index 都沿用块的 —— 它不是新节点，
   // 是块的一个面；binding 用 `part` 区分。
   const out: Candidate[] = [];
   for (const c of blocks) {
     out.push(c);
     for (const [part, inlineType] of PARTS) {
-      if (!hasInline(c.block, inlineType)) continue;
+      if (!(c.nodes ?? [c.block]).some((n) => hasInline(n, inlineType))) continue;
       out.push({ block: c.block, self: { type: part, classes: [], attrs: {} }, ancestors: [...c.ancestors, c.self], index: c.index, part });
     }
   }
@@ -303,40 +305,69 @@ function hasInline(b: Block, type: string): boolean {
   return false;
 }
 
-function walk(nodes: Block[], inherited: AncestorRef[], out: Candidate[], counter: { n: number }, insideBlock = false): void {
+/**
+ * 每段散文的 GEML §4 地址，以这一段的第一个节点为键 —— 和 `geml list`、`embed` 用的是同一个
+ * 派生（proseRunTargets）。被声明 id 遮蔽的地址不算（§4 规则 2）：那时这段没有地址，用 `[n]`。
+ */
+function runNamesOf(doc: Document): Map<Block, string> {
+  const declared = new Set<string>();
+  const collect = (bs: Block[]): void => {
+    for (const b of bs) {
+      if ((b.kind === "block" || b.kind === "heading") && b.id !== undefined) declared.add(nameKey(b.id));
+      if (b.kind === "block" && b.children) collect(b.children);
+    }
+  };
+  collect(doc.children);
+  const out = new Map<Block, string>();
+  for (const [addr, run] of proseRunTargets(doc.children)) {
+    if (run.length > 0 && !declared.has(nameKey(addr))) out.set(run[0]!, addr);
+  }
+  return out;
+}
+
+function walk(
+  nodes: Block[], inherited: AncestorRef[], out: Candidate[], counter: { n: number },
+  insideBlock: boolean, runNames: Map<Block, string>,
+): void {
   const headings: { ref: AncestorRef; level: number }[] = [];
+  const chain = (): AncestorRef[] => [...inherited, ...headings.map((h) => h.ref)];
+  // 块**之间**的一段散文是文档的一节，可放置；块**内部**的散文是那个块的内容，不是（profile §3）。
+  // 一段是一个候选，不论它有几个段落、列表 —— 和 GEML §4 能引用、编辑、回退的单元是同一个。
+  let stretch: Block[] = [];
+  const flush = (): void => {
+    const content = stretch.filter((b) => b.kind !== "hidden");
+    if (!insideBlock && content.length > 0) {
+      const self: AncestorRef = { type: "prose", classes: [], attrs: {} };
+      const name = runNames.get(stretch[0]!);
+      if (name !== undefined) self.id = name;
+      out.push({ block: content[0]!, nodes: stretch, self, ancestors: chain(), index: counter.n++ });
+    }
+    stretch = [];
+  };
   for (const n of nodes) {
-    const chain = () => [...inherited, ...headings.map((h) => h.ref)];
+    if (n.kind === "paragraph" || n.kind === "list" || n.kind === "hidden") { stretch.push(n); continue; }
+    flush();
     if (n.kind === "heading") {
       while (headings.length > 0 && headings[headings.length - 1]!.level >= n.level) headings.pop();
-      // 祖先用的 ref 不带 type —— `#api table` 里的 `#api` 步骤要能匹配上它。
-      const ref: AncestorRef = { classes: n.classes, attrs: n.attrs };
-      if (n.id !== undefined) ref.id = n.id;
-      const outer = chain();
-      headings.push({ ref, level: n.level });
-      // 自身当候选时才带 type=heading，外加一个 `level` 属性：`heading[level=1]` 就能选一级标题。
+      // 标题自身与作为祖先是同一个节点（profile §3）：type=heading，外加一个 `level` 属性，
+      // `heading[level=1]` 选一级标题，`heading[level=1] table` 选一级章节里的表。
       // `level` 铺在作者属性**后面**：层级是这一行的结构事实（`###` 数出来的），不是作者能
       // 改写的值。反过来铺的话 `### T {#t level=9}` 会让一个三级标题对外自称九级，于是
       // `heading[level=3]` 选不到它 —— 结构被一个同名属性悄悄盖掉。
       const self: AncestorRef = { type: "heading", classes: n.classes, attrs: { ...n.attrs, level: n.level } };
       if (n.id !== undefined) self.id = n.id;
+      const outer = chain();
+      headings.push({ ref: self, level: n.level });
       out.push({ block: n, self, ancestors: outer, index: counter.n++ });
-      continue;
-    }
-    // 块**之间**的散文是文档的一节，可放置；块**内部**的段落是那个块的内容，不是。
-    if (n.kind === "paragraph" && !insideBlock) {
-      // 段落节点本身不带 id/class/attrs —— 它的地址是文档序（`[12]`），和 `geml list`
-      // 给散文派生地址是同一件事的两种写法。
-      const self: AncestorRef = { type: "prose", classes: [], attrs: {} };
-      out.push({ block: n, self, ancestors: chain(), index: counter.n++ });
       continue;
     }
     if (n.kind !== "block") continue;
     const self: AncestorRef = { type: n.type, classes: n.classes, attrs: n.attrs };
     if (n.id !== undefined) self.id = n.id;
     out.push({ block: n, self, ancestors: chain(), index: counter.n++ });
-    if (n.children && n.children.length > 0) walk(n.children, [...chain(), self], out, counter, true);
+    if (n.children && n.children.length > 0) walk(n.children, [...chain(), self], out, counter, true, runNames);
   }
+  flush();
 }
 
 function matchSimple(s: SimpleSelector, n: AncestorRef): boolean {
@@ -362,7 +393,14 @@ export function matches(sel: Selector, c: Candidate): boolean {
   if (wantsPart !== (c.part !== undefined)) return false;
   if (!matchSimple(target, c.self)) return false;
   let ai = c.ancestors.length - 1;
-  for (let si = sel.steps.length - 2; si >= 0; si--) {
+  let si = sel.steps.length - 2;
+  // Profile §3: the step before a part matches the node whose part it is — the
+  // part's owner, the last of its ancestors — not some ancestor of that node.
+  if (wantsPart) {
+    if (!matchSimple(sel.steps[si]!, c.ancestors[ai]!)) return false;
+    si--; ai--;
+  }
+  for (; si >= 0; si--) {
     const step = sel.steps[si]!;
     let found = false;
     while (ai >= 0) {
