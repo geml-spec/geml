@@ -48,7 +48,10 @@ Run an expensive suite ONCE and take output + exit code from that same run.
   FOUR vendor manifests — claude-plugin, codex-plugin, the root
   `gemini-extension.json`, and
   `integrations/grok-plugin/.grok-plugin/plugin.json` (the mcp suite guards all
-  four). `PARSER_VERSION` is read at runtime — never hand-bump it. Add the
+  four). The Rust crate follows at major 0 (parser 1.12.1 is
+  `geml-parser-rs` 0.12.1, in `Cargo.toml` and `Cargo.lock`; its
+  `tests/version.rs` guards it). `PARSER_VERSION` is read at runtime — never
+  hand-bump it. Add the
   release to `CHANGELOG.md` in the same commit. Three artifacts BUNDLE a copy
   of the parser: the two extensions, and the website's playground bundle,
   which the `website` workflow rebuilds and pushes to the site (with the

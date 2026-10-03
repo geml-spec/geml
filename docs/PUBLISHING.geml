@@ -77,6 +77,11 @@ path reads the tree, not your working copy.
   assertion reads *"installed plugins would never see this release"*, which is
   how the fifth and sixth were ever found; the seventh and eighth arrived with
   the agent-market manifests and this line trailed them until 1.10.0.
+- **The Rust implementation follows it.** `geml-parser-rs/Cargo.toml` and its
+  `Cargo.lock` carry the parser's version with the major at 0, so parser 1.12.1
+  is crate 0.12.1, and move in the same release commit. The crate is not
+  published (`publish = false`); `tests/version.rs` fails the Rust CI job when
+  it lags.
 - **How.** Actions -> *Publish to npm* -> Run workflow. Then Actions ->
   *Publish MCP Server*. Both are `workflow_dispatch`: publishing is a
   deliberate act, never a side effect of a push.

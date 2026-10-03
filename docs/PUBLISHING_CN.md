@@ -64,10 +64,15 @@ flowchart TD
 ## `@geml/geml` —— 解析器、CLI、MCP server
 
 - **落到** npmjs.com/package/@geml/geml，以及 Model Context Protocol registry。
-- **版本住在六个文件里**：`geml-parser/package.json`、`server.json`（两处）、
-  `package-lock.json`（两处），以及 `claude-plugin` 和 `codex-plugin` 的清单。
-  最后两处由 mcp 测试守着 —— 它的断言原话是
-  *"installed plugins would never see this release"*，第五、第六处就是这么被发现的。
+- **版本住在九个字段里**：`geml-parser/package.json`、`server.json`（两处）、
+  `package-lock.json`（两处），以及四个厂商清单：`claude-plugin`、`codex-plugin`、
+  根目录的 `gemini-extension.json`、`grok-plugin/.grok-plugin/plugin.json`。
+  这四个由 mcp 测试守着 —— 它的断言原话是
+  *"installed plugins would never see this release"*。
+- **Rust 实现跟着走。** `geml-parser-rs/Cargo.toml` 和它的 `Cargo.lock` 用解析器的
+  版本号，主版本换成 0：解析器 1.12.1 就是 crate 0.12.1，在同一个发布提交里一起改。
+  这个 crate 不发布（`publish = false`）；它落后时 `tests/version.rs` 会让 Rust 的
+  CI job 失败。
 - **怎么发。** Actions -> *Publish to npm* -> Run workflow；然后 Actions ->
   *Publish MCP Server*。两个都是 `workflow_dispatch`：发布是一个**刻意的动作**，
   绝不是 push 的副作用。
