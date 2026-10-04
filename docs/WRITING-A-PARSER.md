@@ -20,6 +20,8 @@ The suite pins what the spec states algorithmically — inline emphasis, list ne
 
 Two things you also owe an untrusted document, per §9: **bound your recursion depth** (block, list, and inline nesting — emit the `*-nesting-too-deep` error and keep going, never blow the stack), and **neutralize non-`http`/`https`/`mailto`/`tel` URL schemes when you build the model**, not at the rendering sink.
 
+The bounds the spec fixes — how far a chain is followed, how deep a value tree nests, how many cells a table holds — are in §9.2's table of fixed bounds, the one place their values are written. Take them from there; the suite's cases on their edges carry a `bound` field and fail if you miss one. The nesting bounds are yours to choose, at least the table's `nesting-floor`: the reference parser admits 256 levels of block and list nesting and 100 of inline nesting (`geml-parser/src/bounds.ts`). So is the bound §9.2 asks for on the cells one document reads from elsewhere — every view copies its source, so twenty views of a million-cell table are twenty million cells: the reference stops at 4,000,000.
+
 ## The conformance suite
 
 Plain JSON — copy it in and run it with your own harness. In [`geml-parser/test/conformance/`](../geml-parser/test/conformance/), [`manifest.json`](../geml-parser/test/conformance/manifest.json) lists every case file and the capabilities it needs — tables, block ids, the block tree, diagnostics, … — so run the files your parser's capabilities reach. The [README](../geml-parser/test/conformance/README.md) says what each file covers and defines the projection.

@@ -8,10 +8,11 @@
 // bypassable and does not gate execution.
 //
 // The fix content-addresses each recipe (a stable fingerprint of its steps)
-// and records which fingerprints the user has EXPLICITLY approved in a store
-// kept OUTSIDE any repo (so a repo can never pre-approve itself). refresh
-// refuses to execute a recipe whose fingerprint is not in the store; build
-// auto-trusts the recipe it just authored (the user ran it locally).
+// and records which recipes the user has EXPLICITLY approved, and for which
+// codemap directory, in a store kept OUTSIDE any repo (so a repo can never
+// pre-approve itself). refresh refuses to execute a recipe that is not
+// approved for its own directory; build auto-trusts the recipe it just
+// authored, for the directory it built (the user ran it there).
 //
 // Trust gates WHO may run a recipe. Security fix R2-1 additionally changed HOW
 // steps are stored: a step is now a STRUCTURED object { cwd?, env?, argv:[...] }
@@ -21,9 +22,13 @@
 import { createHash } from "node:crypto";
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, realpathSync } from "node:fs";
 
 export const RECIPE_VERSION = 1;   // on-disk step schema; bump ONLY on a real format change
+// The trust store's shape: approvals filed under the REAL path of a codemap
+// directory, then by recipe fingerprint. A store in any other shape trusts
+// nothing.
+export const TRUST_STORE_VERSION = 2;
 
 // Canonicalize ONE recipe step for fingerprinting. Since security fix R2-1 a
 // step is a STRUCTURED object { cwd?, env?, argv:[...] } (no shell string is
@@ -71,31 +76,47 @@ export function trustStorePath() {
   return join(cfgHome, "geml", "trusted-recipes.json");
 }
 
-// Read the store DEFENSIVELY: a missing, unreadable, or malformed store means
-// "nothing is trusted". A broken store must never silently trust a recipe.
+// Read the store DEFENSIVELY: a missing, unreadable, malformed or
+// other-version store means "nothing is trusted". A broken store must never
+// silently trust a recipe.
 export function readTrustStore() {
   try {
     const obj = JSON.parse(readFileSync(trustStorePath(), "utf8"));
-    if (obj && typeof obj === "object" && obj.recipes && typeof obj.recipes === "object") {
-      return { version: obj.version || 1, recipes: obj.recipes };
+    if (isMap(obj) && obj.version === TRUST_STORE_VERSION && isMap(obj.recipes)) {
+      return { version: TRUST_STORE_VERSION, recipes: obj.recipes };
     }
   } catch { /* missing / unreadable / malformed: treat as empty */ }
-  return { version: 1, recipes: {} };
+  return { version: TRUST_STORE_VERSION, recipes: {} };
 }
 
-// True only when this exact recipe fingerprint has been approved.
-export function isRecipeTrusted(fingerprint) {
-  const store = readTrustStore();
-  return Object.prototype.hasOwnProperty.call(store.recipes, fingerprint);
+const isMap = (v) => !!v && typeof v === "object" && !Array.isArray(v);
+const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+
+// True only when this exact recipe has been approved for this exact codemap
+// directory. The fingerprint alone is not enough: a recipe made of relative
+// paths is byte-identical in every project indexed the same way, so an
+// approval given in one checkout would run, unchanged, in a hostile clone. The
+// directory is compared by its real path, so a symlink or a `..` spelling of
+// it finds its approval and no other directory does; one that cannot be
+// resolved is trusted with nothing.
+export function isRecipeTrusted(fingerprint, graphDir) {
+  let dir;
+  try { dir = realpathSync(graphDir); } catch { return false; }
+  const { recipes } = readTrustStore();
+  return own(recipes, dir) && isMap(recipes[dir]) && own(recipes[dir], fingerprint);
 }
 
-// Record a fingerprint as trusted, MERGING into any existing store (never
-// clobbering other approvals). Creates parent dirs. Returns the store path.
-// THROWS on write failure: a caller that meant to trust must learn it did NOT,
+// Record a recipe as trusted for one codemap directory, MERGING into any
+// existing store (never clobbering other approvals). Creates parent dirs.
+// Returns the store path. THROWS when the directory cannot be resolved or the
+// store cannot be written: a caller that meant to trust must learn it did NOT,
 // rather than proceed on the false belief that the recipe is now safe.
 export function trustRecipe(fingerprint, graphDir) {
+  const dir = realpathSync(graphDir);
   const store = readTrustStore();
-  store.recipes[fingerprint] = { graphDir: graphDir ? String(graphDir) : undefined, addedAt: Date.now() };
+  const approved = own(store.recipes, dir) && isMap(store.recipes[dir]) ? store.recipes[dir] : {};
+  approved[fingerprint] = { addedAt: Date.now() };
+  store.recipes[dir] = approved;
   const p = trustStorePath();
   mkdirSync(dirname(p), { recursive: true });
   writeFileSync(p, JSON.stringify(store, null, 2) + "\n");

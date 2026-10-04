@@ -12,8 +12,9 @@
 // so a document of prose, tables and charts is fully self-contained with zero
 // network. Bundling those two engines offline is the next step (roadmap P0 #6).
 
-import { type Block, type Document, type EmbedPart, nameKey, projectableInlines, selectEmbed } from "./geml.js";
+import { type Block, type Document, EMBED_TOTAL_CAP, type EmbedPart, nameKey, projectableInlines, selectEmbed } from "./geml.js";
 import { type Inline, isSafeUrl } from "./inline.js";
+import { BLOCK_NESTING, CHAIN_DEPTH } from "./bounds.js";
 import { type Align, type TableCell, type TableModel } from "./table.js";
 import { type ChartModel } from "./chart.js";
 import { type Value } from "./attrs.js";
@@ -163,23 +164,22 @@ const authorClasses = (cs: readonly string[]): string[] => cs.filter((c) => !REN
 // a diagnostic instead of overflowing the call stack (block()↔list()↔typed() are
 // mutually recursive). 256 is far past any legitimate document yet well under the
 // few-thousand-frame native stack limit. Kept in step with the parser's cap.
-const MAX_NESTING = 256;
 
 // ---------------------------------------------------------------------------
 // Render context
 // ---------------------------------------------------------------------------
 
-// S5: how deep transclusions may nest before the renderer stops expanding and
-// degrades to the reference link instead.
-const EMBED_DEPTH_CAP = 16; // §9.3's fixed bound; geml.ts EMBED_DEPTH_LIMIT is the same number
+// S5: transclusions nest CHAIN_DEPTH deep (§9.3) before the renderer stops
+// expanding and degrades to the reference link instead — the bound the check
+// walks too, so both agree on which documents are reachable at all.
 
 // Depth and cycle detection bound the SHAPE of a transclusion graph, never its
 // total. A diamond is not a cycle, and the cycle key is `path#fragment`, so eight
 // sections each embedding the next N times is eight distinct keys and N^8
 // expansions: 1.5KB of input reached 402MB of output, and one step further died on
 // an uncaught RangeError from string concatenation. These are the global budgets
-// that actually bound it, checked before every expansion.
-const EMBED_TOTAL_CAP = 1000;              // expansions per render
+// that actually bound it, checked before every expansion, with geml.ts's
+// EMBED_TOTAL_CAP on the count.
 const EMBED_BYTES_CAP = 8 * 1024 * 1024;   // expanded bytes per render
 const EMBED_DOC_BYTES_CAP = 4 * 1024 * 1024; // a single loaded document
 
@@ -352,7 +352,10 @@ export class RenderCtx {
         // three others, only read them.
         if (n.value !== undefined && n.base === undefined) return esc(n.value); // no block to link to
         const anchor = n.base ?? n.anchor;
-        const href = n.doc ? `${relJoin(relDir(this.currentDocRel), n.doc).replace(/\.geml$/, ".html")}#${anchor}` : this.fragmentHref(anchor);
+        const joined = n.doc ? `${relJoin(relDir(this.currentDocRel), n.doc).replace(/\.geml$/, ".html")}#${anchor}` : this.fragmentHref(anchor);
+        // The parser refuses a scheme in a reference; a model built elsewhere
+        // gets the same gate links get, so no consumer emits `javascript:` here.
+        const href = isSafeUrl(joined) ? joined : "#";
         // §5.2: an auto-reference takes its text from the target's caption or
         // heading. Across documents that means reading the target — which the
         // build can do, since an embed pulls whole sections through the same hook.
@@ -401,8 +404,8 @@ export class RenderCtx {
     if (this.embedStack.includes(key)) {
       return `<div class="transclusion transclusion-error"${idAttr} data-src="${escAttr(written)}">transclusion cycle: ${esc([...this.embedStack, key].join(" → "))}</div>`;
     }
-    if (this.embedStack.length >= EMBED_DEPTH_CAP) {
-      return this.transclusionFallback(written, idAttr, "too-deep", `transclusion depth cap (${EMBED_DEPTH_CAP}) reached`, b.classes);
+    if (this.embedStack.length >= CHAIN_DEPTH) {
+      return this.transclusionFallback(written, idAttr, "too-deep", `transclusion depth cap (${CHAIN_DEPTH}) reached`, b.classes);
     }
     const spent = this.budgetExhausted();
     if (spent !== null) return this.transclusionFallback(written, idAttr, "too-large", spent, b.classes);
@@ -474,7 +477,7 @@ export class RenderCtx {
     const rel = n.doc === undefined ? this.currentDocRel : relJoin(relDir(this.currentDocRel), n.doc);
     const key = `${rel}#${n.anchor}`;
     if (this.embedStack.includes(key)) return this.projectFallback(written, "error", "transclusion cycle");
-    if (this.embedStack.length >= EMBED_DEPTH_CAP) return this.projectFallback(written, "too-deep", `depth cap (${EMBED_DEPTH_CAP})`);
+    if (this.embedStack.length >= CHAIN_DEPTH) return this.projectFallback(written, "too-deep", `depth cap (${CHAIN_DEPTH})`);
     const spentHere = this.budgetExhausted();
     if (spentHere !== null) return this.projectFallback(written, "too-large", spentHere);
 
@@ -638,8 +641,8 @@ export class RenderCtx {
   block(b: Block): string {
     // Guard the block()↔list()↔typed() mutual recursion so a pathologically
     // nested document degrades to a diagnostic rather than a RangeError.
-    if (this.renderDepth >= MAX_NESTING) {
-      return `<div class="render-error">block nesting too deep (max ${MAX_NESTING})</div>`;
+    if (this.renderDepth >= BLOCK_NESTING) {
+      return `<div class="render-error">block nesting too deep (max ${BLOCK_NESTING})</div>`;
     }
     this.renderDepth++;
     try {

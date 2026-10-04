@@ -20,15 +20,37 @@ import { docTitle, headingShift } from "./doc-title.js";
 
 // Escape the characters that could start a Markdown inline construct, so a
 // literal text run renders verbatim. Kept deliberately light — Markdown is
-// forgiving, and over-escaping produces noisy output.
+// forgiving, and over-escaping produces noisy output. `<` and `&` are among
+// them: GEML has no raw HTML (§1(5)), so `<img onerror=…>` in its prose is text,
+// and Markdown would hand it to the renderer as a live tag; an entity would
+// decode where GEML shows it as written.
 function escText(s: string): string {
-  return s.replace(/[\\`*_\[\]]/g, (c) => "\\" + c);
+  return s.replace(/[\\`*_\[\]<&]/g, (c) => "\\" + c);
 }
 
+// A code span's fence is one backtick longer than the longest run inside it,
+// padded when the value starts or ends with a backtick or is wrapped in spaces
+// (CommonMark §6.1). With a single backtick a value closed its own span, and
+// what followed it — a tag included — was live Markdown.
+function codeSpan(v: string): string {
+  const longest = Math.max(0, ...(v.match(/`+/g) ?? []).map((r) => r.length));
+  const fence = "`".repeat(longest + 1);
+  const pad = /^`|`$/.test(v) || (/^ .*\S.* $/s.test(v)) ? " " : "";
+  return fence + pad + v + pad + fence;
+}
+
+// TeX between `$` is not HTML, but a renderer without math support reads it as
+// Markdown, and `<` there opens a tag. `\lt` is the same glyph to KaTeX and MathJax.
+const mathText = (v: string): string => v.replace(/</g, "\\lt ");
+
+// A destination is written as GEML kept it, but Markdown ends one at a space and
+// reads `<` as its bracketed form, so those are percent-encoded.
+const mdDest = (d: string): string => d.replace(/[ <>]/g, (c) => encodeURIComponent(c));
+
 function linkDest(n: Extract<Inline, { type: "link" }>): string {
-  if (n.href !== undefined) return n.href;
-  if (n.doc !== undefined) return n.anchor !== undefined ? `${n.doc}#${n.anchor}` : n.doc;
-  if (n.anchor !== undefined) return `#${n.anchor}`;
+  if (n.href !== undefined) return mdDest(n.href);
+  if (n.doc !== undefined) return mdDest(n.anchor !== undefined ? `${n.doc}#${n.anchor}` : n.doc);
+  if (n.anchor !== undefined) return mdDest(`#${n.anchor}`);
   return "";
 }
 
@@ -38,25 +60,25 @@ function inline(n: Inline, ctx: MdCtx): string {
     case "emph": return `*${seq(n.children, ctx)}*`;
     case "strong": return `**${seq(n.children, ctx)}**`;
     case "strike": return `~~${seq(n.children, ctx)}~~`;
-    case "code": return "`" + n.value + "`";
-    case "math": return `$${n.value}$`;
+    case "code": return codeSpan(n.value);
+    case "math": return `$${mathText(n.value)}$`;
     case "break": return "  \n";
-    case "image": return `![${n.alt}](${n.src})`;
+    case "image": return `![${escText(n.alt)}](${mdDest(n.src)})`;
     case "link": return `[${seq(n.children, ctx)}](${linkDest(n)})`;
     // Markdown has no auto-reference; project to a plain link to the anchor.
     case "autoref": {
       // GEP 0011: a coordinate says its value and links to the block holding it.
-      if (n.value !== undefined && n.base === undefined) return n.value; // no block to link to
+      if (n.value !== undefined && n.base === undefined) return escText(n.value); // no block to link to
       const anchor = n.base ?? n.anchor;
       const target = n.doc !== undefined ? `${n.doc}#${anchor}` : `#${anchor}`;
-      return `[${n.value ?? target}](${target})`;
+      return `[${escText(n.value ?? target)}](${mdDest(target)})`;
     }
     // An inline projection is the inline sibling of `=== embed`, and gets the
     // same treatment: resolve it and let the CONTENT stand here, as `--to html`
     // does. Flattened to one line — it is standing inside a sentence.
     case "project": {
       // A resolved coordinate is its value, nothing to expand and nothing to link.
-      if (n.value !== undefined) return n.value;
+      if (n.value !== undefined) return escText(n.value);
       const src = n.doc !== undefined ? `${n.doc}#${n.anchor}` : `#${n.anchor}`;
       const got = ctx.resolveEmbed?.(src);
       if (got !== undefined && got.trim() !== "") {
@@ -64,7 +86,7 @@ function inline(n: Inline, ctx: MdCtx): string {
         return got.trim().replace(/\s*\n+\s*/g, " ");
       }
       ctx.notes.add("inline projection could not be resolved; emitted a link to the target instead");
-      return `[${src}](${src})`;
+      return `[${escText(src)}](${mdDest(src)})`;
     }
     case "footnote": return `[^${n.ref}]`;
   }
@@ -113,8 +135,8 @@ function tableToMd(t: TableModel, ctx: MdCtx): string {
   }
   const cols = t.columns;
   const lines: string[] = [];
-  if (t.caption) lines.push(`*${t.caption}*`, "");
-  lines.push(`| ${cols.map(escPipe).join(" | ")} |`);
+  if (t.caption) lines.push(`*${escText(t.caption)}*`, "");
+  lines.push(`| ${cols.map((c) => escPipe(escText(c))).join(" | ")} |`);
   lines.push(`| ${cols.map((_, i) => sep(t.align[i])).join(" | ")} |`);
   const pad = (cells: string[]) => {
     while (cells.length < cols.length) cells.push("");
@@ -155,7 +177,8 @@ function fence(lang: string, body: string[]): string {
   let max = 2;
   for (const ln of body) { const m = /^(`+)/.exec(ln.trim()); if (m) max = Math.max(max, m[1]!.length); }
   const f = "`".repeat(Math.max(3, max + 1));
-  return [f + lang, ...body, f].join("\n");
+  // An info string may not hold a backtick, or the line is no fence at all.
+  return [f + lang.replace(/[`\r\n]/g, ""), ...body, f].join("\n");
 }
 
 function attr(b: Extract<Block, { kind: "block" }>, key: string): string | undefined {
@@ -210,7 +233,7 @@ function typedToMd(b: Extract<Block, { kind: "block" }>, ctx: MdCtx): string {
     }
     return fence(fmt, raw);
   }
-  if (b.type === "math") return ["$$", ...raw, "$$"].join("\n");
+  if (b.type === "math") return ["$$", ...raw.map(mathText), "$$"].join("\n");
   // A `view` (GEP-0012) publishes a relation and nothing else, so it exports as
   // the grid it renders. Without this it fell through to the unknown-type path
   // and became an EMPTY ```view fence: `--to html` showed the rows and
@@ -218,7 +241,7 @@ function typedToMd(b: Extract<Block, { kind: "block" }>, ctx: MdCtx): string {
   // export-parity test was written for.
   if ((b.type === "table" || b.type === "view") && b.table) return tableToMd(b.table, ctx);
   // §3.3: a remote source, or a view over one, has no rows at build time.
-  if (b.type === "table" || b.type === "view") return `*External data \`${attr(b, "src") ?? ""}\` — loaded at render time.*`;
+  if (b.type === "table" || b.type === "view") return `*External data ${codeSpan(attr(b, "src") ?? "")} — loaded at render time.*`;
   if (b.type === "diagram") {
     const fmt = attr(b, "format") ?? "";
     if (fmt === "geml-chart") {
@@ -248,7 +271,7 @@ function typedToMd(b: Extract<Block, { kind: "block" }>, ctx: MdCtx): string {
     // Unresolvable: no resolver, an unreachable document, a cycle. What cannot
     // be read cannot be inlined, and a link keeps the target findable.
     ctx.notes.add("block transclusion could not be resolved; emitted a link to the target instead");
-    return target === "" ? "" : `[${target}](${target})`;
+    return target === "" ? "" : `[${escText(target)}](${mdDest(target)})`;
   }
   // Unknown raw type: preserve the body in a fenced block tagged with the type.
   ctx.notes.add(`unknown block type \`${b.type}\` emitted as a fenced code block`);

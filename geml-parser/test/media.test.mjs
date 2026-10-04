@@ -911,8 +911,8 @@ test("compose：filtergraph 由层决定 —— 裁、缩、翻、放，顺序�
   assert.deepEqual(plan.args, [
     "-y",
     "-f", "lavfi", "-i", "color=c=black@0.0:s=720x1280:d=1",
-    "-i", "assets/bg.png",
-    "-i", "assets/hero.png",
+    "-i", "file:assets/bg.png",
+    "-i", "file:assets/hero.png",
     "-filter_complex",
     "[0:v]format=rgba[b0];"
       + "[1:v]crop=720:1280:0:200,format=rgba[l0];[b0][l0]overlay=0:0[b1];"

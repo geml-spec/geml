@@ -77,9 +77,10 @@ flowchart TD
   *Publish MCP Server*。两个都是 `workflow_dispatch`：发布是一个**刻意的动作**，
   绝不是 push 的副作用。
 - **注意。** npm 对重复版本回 403，所以同一版本跑第二次会**大声失败**而不是覆盖，
-  MCP registry 给的是同样的保护。npm 那个 job 用 `npm install` 而不是 `npm ci`，
-  因为锁文件自身的版本字段历史上落后于 release；把锁文件一起升，两者就都成立。
-  `npm test` 作为发布前的门先跑，所以红着的测试发不出去。
+  MCP registry 给的是同样的保护。npm 的 workflow 用 `npm ci` 安装，所以锁文件里的
+  版本字段要和 package.json 在同一个发布提交里一起升。`npm test` 作为发布前的门先跑，
+  所以红着的测试发不出去。token 碰不到任何安装：一个 job 安装、测试、打包，另一个
+  job 只发布那个 tarball，别的什么都不跑；VS Code 的 workflow 也是这样拆的。
 - **发后确认。** `npm view @geml/geml version` · npm 页面上的 provenance 徽章
   （workflow 带 `--provenance` 发布）· `npx -y @geml/geml@<版本> --version --json`
   会同时打印解析器版本与规范版本。

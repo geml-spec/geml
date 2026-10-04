@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 
 use crate::diag::Diags;
-use crate::expr::{parse_arith, parse_entry, parse_where, split_entries, split_names, Agg, Expr};
+use crate::expr::{column_list, column_name, parse_arith, parse_entry, parse_where, split_entries, Agg, Expr};
 use crate::json::Value;
 use crate::model::{Block, Cell, Table};
 use crate::num::{display, format_printf};
@@ -85,12 +85,14 @@ fn row_value(
     expr.compute(&mut col, &mut agg)
 }
 
-/// Derive a view's relation from its source's (the source's summary row has
-/// already been left behind).
-pub fn derive(b: &Block, src: &Table, diags: &mut Diags) -> Table {
+/// Derive a view's relation from its source's, which it takes over: the
+/// source's summary row has already been left behind, and a source of a
+/// million cells is not copied again to be narrowed.
+pub fn derive(b: &Block, src: Table, diags: &mut Diags) -> Table {
     let line = b.line;
-    let mut cols: Vec<String> = src.columns.clone();
-    let mut rows: Vec<Vec<Cell>> = src.rows.clone();
+    let source_width = src.columns.len();
+    let mut cols: Vec<String> = src.columns;
+    let mut rows: Vec<Vec<Cell>> = src.rows;
     let mut visible: Vec<bool> = vec![true; cols.len()];
     let grouping = b.attr("by").is_some();
 
@@ -127,7 +129,7 @@ pub fn derive(b: &Block, src: &Table, diags: &mut Diags) -> Table {
             }
             let slot = match cols.iter().position(|x| *x == e.name) {
                 Some(i) => {
-                    if i < src.columns.len() {
+                    if i < source_width {
                         diags.push("shadowed-source-column", line, format!("`{}` is also a column of the source; the source's is unreachable here", e.name));
                     }
                     i
@@ -189,6 +191,11 @@ pub fn derive(b: &Block, src: &Table, diags: &mut Diags) -> Table {
     for f in formulas.iter().filter(|f| !f.agg_dep) {
         run(f, &mut rows, &cols, &mut visible, false, diags);
     }
+    // A source is within the bound; its computed columns can take a view past it.
+    if crate::table::too_large(visible.iter().filter(|v| **v).count(), rows.len(), line, diags) {
+        let columns = cols.into_iter().zip(&visible).filter(|(_, v)| **v).map(|(c, _)| c).collect();
+        return Table { columns, rows: vec![], summary: None };
+    }
 
     // where=
     if let Some(w) = b.attr_text("where") {
@@ -204,7 +211,7 @@ pub fn derive(b: &Block, src: &Table, diags: &mut Diags) -> Table {
                         ok = false;
                         continue;
                     }
-                    match col_index(&cols, name).filter(|i| visible[*i]) {
+                    match by_name(&cols, name).filter(|i| visible[*i]) {
                         None => {
                             diags.push("view-where-error", line, format!("`where=` names `{name}`, and no column carries it"));
                             ok = false;
@@ -223,7 +230,7 @@ pub fn derive(b: &Block, src: &Table, diags: &mut Diags) -> Table {
                 if ok {
                     rows.retain(|r| {
                         cond.holds(&|name: &str| {
-                            let i = col_index(&cols, name).expect("checked above");
+                            let i = by_name(&cols, name).expect("checked above");
                             (r[i].text.clone(), r[i].num)
                         })
                     });
@@ -239,10 +246,10 @@ pub fn derive(b: &Block, src: &Table, diags: &mut Diags) -> Table {
 
     // by= / aggregate=
     if let Some(by) = b.attr_text("by") {
-        let keys = split_names(&by);
+        let keys: Vec<String> = column_list(&by).iter().map(|e| column_name(e).0.to_string()).collect();
         let mut idx = Vec::new();
         for k in &keys {
-            match col_index(&cols, k) {
+            match by_name(&cols, k) {
                 Some(i) => idx.push(i),
                 None => diags.push("view-unknown-column", line, format!("`by=` names `{k}`, and the relation carries no such column")),
             }
@@ -258,6 +265,7 @@ pub fn derive(b: &Block, src: &Table, diags: &mut Diags) -> Table {
                     match parse_arith(&e.rhs) {
                         Err(m) => {
                             diags.push("bad-aggregate-entry", line, format!("`{raw}`: {m}"));
+                            aggs.push((e.name, e.fmt, None));
                         }
                         Ok(x) => {
                             let mut bare = Vec::new();
@@ -320,51 +328,33 @@ pub fn derive(b: &Block, src: &Table, diags: &mut Diags) -> Table {
         diags.push("aggregate-without-by", line, "`aggregate=` describes groups and this view has no `by=`; one row over every row is `summary=`");
     }
 
-    // order=
+    // order=: each key stands alone (§6.1); one in error contributes nothing.
     if let Some(o) = b.attr_text("order") {
         let mut keys: Vec<(usize, bool)> = Vec::new();
-        let mut ok = true;
-        for k in split_names_raw(&o) {
-            let (name, dir) = split_order_key(&k);
-            let desc = match dir.as_deref().map(str::to_ascii_lowercase).as_deref() {
-                None | Some("asc") => false,
-                Some("desc") => true,
-                Some(_) => {
-                    diags.push("view-order-error", line, format!("`{k}` is not `<column>[ asc|desc]`"));
-                    ok = false;
-                    continue;
-                }
-            };
+        for k in column_list(&o) {
+            let (head, desc) = split_order_key(&k);
+            let (name, _) = column_name(head);
             if name.is_empty() {
-                diags.push("view-order-error", line, format!("`{k}` is not `<column>[ asc|desc]`"));
-                ok = false;
+                diags.push("view-order-error", line, format!("`{k}` names no column"));
                 continue;
             }
-            match col_index(&cols, &name) {
+            match by_name(&cols, name) {
                 Some(i) => keys.push((i, desc)),
-                None => {
-                    diags.push("view-unknown-column", line, format!("`order=` names `{name}`, and the relation carries no such column"));
-                    ok = false;
-                }
+                None => diags.push("view-unknown-column", line, format!("`order=` names `{name}`, and the relation carries no such column")),
             }
         }
-        if ok {
-            let numeric: Vec<bool> = keys.iter().map(|(i, _)| !rows.is_empty() && rows.iter().all(|r| r[*i].num.is_some())).collect();
-            rows.sort_by(|a, b| {
-                for ((i, desc), num) in keys.iter().zip(&numeric) {
-                    let o = if *num {
-                        a[*i].num.partial_cmp(&b[*i].num).unwrap_or(std::cmp::Ordering::Equal)
-                    } else {
-                        crate::uni::cmp_utf16(&a[*i].text, &b[*i].text)
-                    };
-                    let o = if *desc { o.reverse() } else { o };
-                    if o != std::cmp::Ordering::Equal {
-                        return o;
-                    }
+        let numeric: Vec<bool> = keys.iter().map(|(i, _)| !rows.is_empty() && rows.iter().all(|r| r[*i].num.is_some())).collect();
+        rows.sort_by(|a, b| {
+            for ((i, desc), num) in keys.iter().zip(&numeric) {
+                let o =
+                    if *num { a[*i].num.partial_cmp(&b[*i].num).unwrap_or(std::cmp::Ordering::Equal) } else { crate::uni::cmp_utf16(&a[*i].text, &b[*i].text) };
+                let o = if *desc { o.reverse() } else { o };
+                if o != std::cmp::Ordering::Equal {
+                    return o;
                 }
-                std::cmp::Ordering::Equal
-            });
-        }
+            }
+            std::cmp::Ordering::Equal
+        });
     }
 
     // limit=
@@ -384,20 +374,22 @@ pub fn derive(b: &Block, src: &Table, diags: &mut Diags) -> Table {
     let pre_cols = cols.clone();
     let pre_rows = rows.clone();
     if let Some(s) = b.attr_text("select") {
-        let names = split_names(&s);
-        if names.iter().any(|n| n.contains('=')) {
-            diags.push("view-select-expression", line, "`select=` names columns; deriving one is `compute=`'s job");
-        } else {
-            let mut idx = Vec::new();
-            for n in &names {
-                match col_index(&cols, n) {
-                    Some(i) => idx.push(i),
-                    None => diags.push("view-unknown-column", line, format!("`select=` names `{n}`, and the relation carries no such column")),
-                }
+        // Each entry stands alone (§6.1): one in error contributes nothing, and
+        // a `select=` with no valid entry leaves the view no columns.
+        let mut idx = Vec::new();
+        for entry in column_list(&s) {
+            let (n, quoted) = column_name(&entry);
+            if !quoted && n.contains('=') {
+                diags.push("view-select-expression", line, format!("`select=` names columns, and `{n}` derives one; that is `compute=`'s job"));
+                continue;
             }
-            cols = idx.iter().map(|i| cols[*i].clone()).collect();
-            rows = rows.iter().map(|r| idx.iter().map(|i| r[*i].clone()).collect()).collect();
+            match by_name(&cols, n) {
+                Some(i) => idx.push(i),
+                None => diags.push("view-unknown-column", line, format!("`select=` names `{n}`, and the relation carries no such column")),
+            }
         }
+        cols = idx.iter().map(|i| cols[*i].clone()).collect();
+        rows = rows.iter().map(|r| idx.iter().map(|i| r[*i].clone()).collect()).collect();
     }
 
     // summary=
@@ -409,8 +401,8 @@ pub fn derive(b: &Block, src: &Table, diags: &mut Diags) -> Table {
                 diags.push("bad-summary-entry", line, format!("`{raw}` is not `Cell = value`"));
                 continue;
             };
-            let Some(target) = cols.iter().position(|c| *c == e.name).or_else(|| col_index(&cols, &e.name)) else {
-                if col_index(&pre_cols, &e.name).is_some() {
+            let Some(target) = by_name(&cols, &e.name) else {
+                if by_name(&pre_cols, &e.name).is_some() {
                     diags.push("summary-projected-away", line, format!("`summary=` targets `{}`, which `select=` dropped", e.name));
                 } else {
                     diags.push("summary-unknown-column", line, format!("`summary=` targets `{}`, and the table has no such column", e.name));
@@ -463,37 +455,22 @@ pub fn derive(b: &Block, src: &Table, diags: &mut Diags) -> Table {
 }
 
 /// Split `order=` on commas outside quotes, keeping each key's quotes.
-fn split_names_raw(s: &str) -> Vec<String> {
-    let mut out = Vec::new();
-    let mut cur = String::new();
-    let mut quoted = false;
-    for c in s.chars() {
-        match c {
-            '\'' => {
-                quoted = !quoted;
-                cur.push(c);
-            }
-            ',' if !quoted => out.push(std::mem::take(&mut cur)),
-            _ => cur.push(c),
-        }
-    }
-    out.push(cur);
-    out.into_iter().map(|x| x.trim().to_string()).filter(|x| !x.is_empty()).collect()
+/// A column a list, `where=` or an entry's left side names (§6.1): by its
+/// name, never by spreadsheet letter — letters are a §6 expression's references.
+fn by_name(cols: &[String], name: &str) -> Option<usize> {
+    cols.iter().position(|c| c == name)
 }
 
-/// `<column>[ asc|desc]`, the column possibly single-quoted.
-fn split_order_key(k: &str) -> (String, Option<String>) {
-    if let Some(rest) = k.strip_prefix('\'') {
-        if let Some(end) = rest.find('\'') {
-            let dir = rest[end + 1..].trim();
-            return (rest[..end].to_string(), if dir.is_empty() { None } else { Some(dir.to_string()) });
+/// `<column>[ asc|desc]` (§6.1): the direction is a last word `asc` or `desc`,
+/// in any case, set off by whitespace; the rest, trimmed, is the column.
+fn split_order_key(k: &str) -> (&str, bool) {
+    for (word, desc) in [("desc", true), ("asc", false)] {
+        let Some(cut) = k.len().checked_sub(word.len()) else { continue };
+        if k.is_char_boundary(cut) && k[cut..].eq_ignore_ascii_case(word) && k[..cut].ends_with(char::is_whitespace) {
+            return (k[..cut].trim_end(), desc);
         }
     }
-    let mut parts = k.split_whitespace();
-    let name = parts.next().unwrap_or("").to_string();
-    let rest: Vec<&str> = parts.collect();
-    let dir = if rest.is_empty() { None } else { Some(rest.join(" ")) };
-    (name, dir)
+    (k, false)
 }
 
 #[cfg(test)]
@@ -508,9 +485,11 @@ mod tests {
         assert_eq!(col_index(&cols, "C"), None);
         assert_eq!(col_index(&cols, ""), None);
         assert_eq!(col_index(&cols, "x"), None);
-        assert_eq!(split_order_key("'Unit Price' desc"), ("Unit Price".into(), Some("desc".into())));
-        assert_eq!(split_order_key("'Unit Price'"), ("Unit Price".into(), None));
-        assert_eq!(split_order_key("N"), ("N".into(), None));
-        assert_eq!(split_names_raw("'a, b' asc, c"), vec!["'a, b' asc", "c"]);
+        assert_eq!(split_order_key("'Unit Price' desc"), ("'Unit Price'", true));
+        assert_eq!(split_order_key("Unit Price ASC"), ("Unit Price", false));
+        assert_eq!(split_order_key("N sideways"), ("N sideways", false));
+        assert_eq!(split_order_key("desc"), ("desc", false));
+        assert_eq!(split_order_key("Ndesc"), ("Ndesc", false));
+        assert_eq!(by_name(&cols, "A"), None);
     }
 }

@@ -215,6 +215,32 @@ test("a downloading create() is not raced", async () => {
   clear();
 });
 
+// Round 6 (V-8). §4: a `{hidden}` block or heading stays in the model and never
+// reaches a reader — so it has nothing to be translated FOR, and the
+// translator, or the detector sampling the text, is no place to send it.
+test("round 6: hidden blocks and headings reach neither the translator nor the language detector", async () => {
+  const asked = installTranslator({});
+  const sampled = [];
+  globalThis.LanguageDetector = {
+    availability: async () => "available",
+    create: async () => ({ detect: async (s) => { sampled.push(s); return [{ detectedLanguage: "en" }]; }, destroy() {} }),
+  };
+  const src = [
+    "# Shown {#s}", "", "Visible text.", "", "## Secret heading {#h hidden}", "",
+    "=== note {#n hidden}", "HIDDEN-NOTE-TEXT", "===", "",
+    '=== table {#t caption="HIDDEN-CAPTION" hidden}', "| HIDDEN-COLUMN | b |", "|---|---|", "| HIDDEN-CELL | 1 |", "===", "",
+    "==== text {#x}", "Shown inside.", "", "=== note {#inner hidden}", "HIDDEN-NESTED", "===", "", "====", "",
+  ].join("\n");
+  const r = await translateSlice(parse(src).children, "fr");
+  assert.equal(r.ok, true);
+  const seen = [...asked, ...sampled].join("\n");
+  for (const secret of ["Secret heading", "HIDDEN-NOTE-TEXT", "HIDDEN-CAPTION", "HIDDEN-COLUMN", "HIDDEN-CELL", "HIDDEN-NESTED"]) {
+    assert.ok(!seen.includes(secret), `${secret} left the page: ${JSON.stringify(seen)}`);
+  }
+  assert.ok(asked.includes("Visible text.") && asked.includes("Shown inside."), "visible prose is still translated");
+  clear();
+});
+
 const run = async () => {
   for (const [name, fn] of tests) { await fn(); passed++; console.log("ok", name); }
   console.log(`\n${passed} translate-browser tests passed.`);

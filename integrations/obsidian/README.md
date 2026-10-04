@@ -71,6 +71,10 @@ that holds it, so the fix is a `geml set` on that address rather than a hunt
 through the page. Links inside code fences and inline code are not links;
 frontmatter wikilinks are. Exit 1 when there is a dead link.
 
+The parser runs on the same Node, never as a `geml` looked up on PATH:
+`GEML_CLI` (the path to `@geml/geml`'s `dist/cli.js`) when it is set, else this
+checkout's build, else an `@geml/geml` installed where the script can resolve it.
+
 ## Tests
 
 ```sh

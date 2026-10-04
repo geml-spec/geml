@@ -14,16 +14,17 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: '22' # Using Node 22 as required by geml-parser
+          persist-credentials: false
 
+      # The digest is the one registry_1.8.0_checksums.txt publishes for this
+      # archive. This job can mint an OIDC token the registry accepts as this
+      # repository, so a binary that is not byte-for-byte that release never runs.
       - name: Install mcp-publisher
         run: |
-          curl -sL https://github.com/modelcontextprotocol/registry/releases/download/v1.8.0/mcp-publisher_linux_amd64.tar.gz -o publisher.tar.gz
-          tar -xzf publisher.tar.gz
+          curl -fsSL https://github.com/modelcontextprotocol/registry/releases/download/v1.8.0/mcp-publisher_linux_amd64.tar.gz -o publisher.tar.gz
+          echo "1370446bbe74d562608e8005a6ccce02d146a661fbd78674e11cc70b9618d6cf  publisher.tar.gz" | sha256sum -c -
+          tar -xzf publisher.tar.gz mcp-publisher
           sudo mv mcp-publisher /usr/local/bin/
           rm publisher.tar.gz
 

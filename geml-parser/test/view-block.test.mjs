@@ -361,7 +361,12 @@ test("where：数字比较与文本比较的六个算子都能求值，结果与
 test("compute / aggregate：写坏了的声明各自点名", () => {
   assert.ok(has(view('by="Nope" aggregate="N = count(Id)"'), "view-unknown-column"));
   assert.ok(has(view('by="Area" aggregate="nonsense"'), "bad-aggregate-entry"));
-  assert.ok(has(view('by="Area" aggregate="S = sum(Age) +"'), "aggregate-error"));
+  // A formula that cannot be read is the entry's grammar, one `bad-aggregate-entry`;
+  // it still adds its column, empty (§6.1).
+  const unread = view('by="Area" aggregate="S = sum(Age) +"');
+  assert.deepEqual(errors(unread).map((d) => d.code), ["bad-aggregate-entry"]);
+  assert.deepEqual(byId(unread, "v").table.columns, ["Area", "S"]);
+  assert.ok(byId(unread, "v").table.rows.every((r) => r[1].text === ""));
 });
 
 test("aggregate：count 数非空格、sum 对无数字的列得 0、avg 求均值", () => {
@@ -373,7 +378,10 @@ test("aggregate：count 数非空格、sum 对无数字的列得 0、avg 求均�
 });
 
 test("order / select / limit / summary：其余诊断，以及文本键排序的三种比较结果", () => {
-  assert.ok(has(view(`order="' ' desc"`), "view-order-error"));
+  assert.ok(has(view(`order="'' desc"`), "view-order-error"));
+  // Quoted whole, a key names what is between its quotes: a column called ` `,
+  // which no header can be — its cells are trimmed (§6).
+  assert.ok(has(view(`order="' ' desc"`), "view-unknown-column"));
   assert.ok(has(view('order="Nope"'), "view-unknown-column"));
   const tie = view('order="Status, Id desc"');
   assert.deepEqual(errors(tie), []);

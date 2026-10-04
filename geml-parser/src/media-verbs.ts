@@ -479,6 +479,11 @@ const FG_SPECIAL = new Set([":", ",", "'", "[", "]", ";", String.fromCharCode(92
 const fgEsc = (s: string): string =>
   [...s].map((c) => (FG_SPECIAL.has(c) ? String.fromCharCode(92) + c : c)).join("");
 
+// 素材只经 ffmpeg 的 file 协议进来。裸的 `-i` 认协议语法：`src="concat:a.wav|secret.wav"`
+// 读到了时间线没声明的文件，一个 http(s) 的 src 会在出片时去取网络。路径限定在媒体根目录
+// 之内是宿主的事（cli.ts confineInputs）。
+const fileInput = (path: string): string => "file:" + path;
+
 export function buildPlan(entry: string, outFile: string, io: MediaIO, opts: BuildOpts = {}): BuildPlan {
   const p = loadProject(entry, io);
   const src = io.readDoc(entry) ?? "";
@@ -518,8 +523,12 @@ export function buildPlan(entry: string, outFile: string, io: MediaIO, opts: Bui
     // `volume` 直接收 dB，不必自己换算；`afade` 的时间是**片段内**的，所以裁剪之后、
     // 延迟之前施加。
     const steps = ["atrim=start=" + c.in.toFixed(3) + ":end=" + (c.in + c.duration).toFixed(3), "asetpts=PTS-STARTPTS"];
+    // 只收 dB 数值，和播放器读法一样（dbToGain）：这个值是拼进 filtergraph 的，
+    // `0dB[x];[x]volume=…` 就自己另起了一条链。
     const gain = c.attrs["gain"];
-    if (gain !== undefined && gain !== "0dB") steps.push("volume=" + gain);
+    const db = /^(-?\d+(?:\.\d+)?)\s*dB$/i.exec(String(gain ?? "").trim());
+    if (gain !== undefined && db === null) notes.push(`片段 #${c.id} 的 gain \`${String(gain)}\` 不是 dB 数值，按 0dB 处理`);
+    else if (db !== null && Number(db[1]) !== 0) steps.push("volume=" + db[1] + "dB");
     const fadeIn = Number(c.attrs["fade-in"]);
     if (Number.isFinite(fadeIn) && fadeIn > 0) steps.push("afade=t=in:st=0:d=" + fadeIn);
     const fadeOut = Number(c.attrs["fade-out"]);
@@ -554,7 +563,7 @@ export function buildPlan(entry: string, outFile: string, io: MediaIO, opts: Bui
   }
 
   const args: string[] = ["-y"];
-  for (const p2 of inputs) { args.push("-i", p2); }
+  for (const p2 of inputs) { args.push("-i", fileInput(p2)); }
   if (filters.length > 0) args.push("-filter_complex", filters.join(";"));
   if (vLabels.length > 0) args.push("-map", vFinal);
   if (aLabels.length > 0) args.push("-map", "[aout]");
@@ -625,7 +634,7 @@ export function composePlan(ref: string, outFile: string, io: MediaIO): ComposeP
   for (const pr of solved.problems) if (pr.code !== "apart") notes.push(pr.message);
   let n = 0;
   for (const { layer, asset, path, spec } of placed) {
-    inputs.push("-i", path);
+    inputs.push("-i", fileInput(path));
     const steps: string[] = [];
     if (spec.crop !== undefined) steps.push(`crop=${spec.crop.w}:${spec.crop.h}:${spec.crop.x}:${spec.crop.y}`);
     if (spec.w !== undefined) steps.push(`scale=${spec.w}:-1`);

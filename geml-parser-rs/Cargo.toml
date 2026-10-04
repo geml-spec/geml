@@ -1,6 +1,6 @@
 [package]
 name = "geml"
-version = "0.12.1"
+version = "0.12.2"
 edition = "2021"
 rust-version = "1.75"
 description = "A second, independent GEML 1.0 parser, written from the specification and its conformance suite"
@@ -10,6 +10,11 @@ publish = false
 
 [lib]
 crate-type = ["rlib", "cdylib"]
+
+# The example's own tests run with the crate's: it is a host other code copies.
+[[example]]
+name = "geml-rs"
+test = true
 
 [features]
 default = []

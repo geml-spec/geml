@@ -7,6 +7,7 @@ pub mod form;
 pub mod history;
 pub mod media;
 pub mod style;
+pub mod timeline;
 
 use crate::host::Host;
 use crate::model::{Block, Document};

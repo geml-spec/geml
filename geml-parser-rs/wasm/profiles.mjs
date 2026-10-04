@@ -1,5 +1,6 @@
 // The vocabularies through the WebAssembly build: each profile conformance
-// file's cases in both readings (spec/profiles/*/conformance.json), the
+// file's cases in both readings and, where a case gives them, its checks
+// (spec/profiles/*/conformance.json), the
 // specification's history sidecar, and one call of each profile function.
 //
 //   wasm-pack build --target nodejs --out-dir wasm/pkg --release -- --features wasm
@@ -16,6 +17,14 @@ const undeclared = (src) => src.split("\n").filter((l) => !l.trimStart().startsW
 const reading = (src) => {
   const d = JSON.parse(wasm.parse(src));
   return { addresses: d.addresses, diagnostics: d.diagnostics.map((x) => `${x.code}:${x.severity}`).sort() };
+};
+// The vocabulary's own checks: the document is `case.geml` beside the case's
+// `files` and nothing else, so a file it names that `files` does not give is
+// absent (spec/profiles/README.md).
+const checked = (src, files) => {
+  const host = JSON.stringify({ files: { ...files, "case.geml": src }, complete: true });
+  const d = JSON.parse(wasm.parseIn("case.geml", src, host));
+  return d.profileDiagnostics.map((x) => `${x.code}:${x.severity}`).sort();
 };
 
 let cases = 0;
@@ -35,6 +44,15 @@ for (const dir of readdirSync(new URL("profiles/", spec)).sort()) {
           fails++;
           console.error(`[${f.profile}] ${c.name}: ${k}, ${r}: want ${JSON.stringify(want)} got ${JSON.stringify(got[r][k])}`);
         }
+      }
+    }
+    if (c.checks !== undefined) {
+      const got = checked(c.geml, c.files);
+      try {
+        assert.deepEqual(got, [...c.checks].sort());
+      } catch {
+        fails++;
+        console.error(`[${f.profile}] ${c.name}: checks: want ${JSON.stringify([...c.checks].sort())} got ${JSON.stringify(got)}`);
       }
     }
     cases++;
@@ -59,6 +77,24 @@ for (const dir of readdirSync(new URL("profiles/", spec)).sort()) {
       console.error(`[views] ${c.name}: ${e.message.split("\n")[0]}`);
     }
     views++;
+  }
+}
+
+// The sidecar cases (`sidecars`): each verifies with no error, `verified`
+// revisions reconstructed to their hash.
+let sidecars = 0;
+for (const dir of readdirSync(new URL("profiles/", spec)).sort()) {
+  const file = new URL(`profiles/${dir}/conformance.json`, spec);
+  if (!existsSync(file)) continue;
+  for (const c of JSON.parse(readFileSync(file, "utf8")).sidecars ?? []) {
+    const r = JSON.parse(wasm.historyVerify(c.history, new TextEncoder().encode(c.geml)));
+    try {
+      assert.deepEqual([r.errors, r.verified], [[], c.verified]);
+    } catch (e) {
+      fails++;
+      console.error(`[sidecars] ${c.name}: ${e.message.split("\n")[0]}`);
+    }
+    sidecars++;
   }
 }
 
@@ -87,5 +123,5 @@ const files = JSON.stringify({ files: { "a.rs": "fn a() {}\n", "n.json": '{"k": 
 const routed = JSON.parse(wasm.parseIn("doc.geml", "=== code {src=a.rs#L1-2}\n===\n\n=== data {#n src=n.json}\n===\n\n[[#n[\"k\"]]]\n", files));
 assert.deepEqual(routed.diagnostics.map((d) => d.code), ["bad-source-range"]);
 
-console.log(`geml ${wasm.version()} (Rust, WebAssembly): ${cases} profile case(s), ${views} view-model case(s), ${fails} failing; ${v.verified} history revision(s) verified`);
+console.log(`geml ${wasm.version()} (Rust, WebAssembly): ${cases} profile case(s), ${views} view-model case(s), ${sidecars} sidecar case(s), ${fails} failing; ${v.verified} history revision(s) verified`);
 process.exit(fails ? 1 : 0);

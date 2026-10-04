@@ -1,0 +1,22 @@
+# Live in the mirror (geml-spec/logseq-plugin-sync-vault-with-geml), where this
+# directory is the root; inert here, where the repository-root dependabot.yml
+# covers integrations/logseq. The actions in publish.yml are pinned to commits,
+# so this is what moves them.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: monthly
+    groups:
+      dev-dependencies:
+        dependency-type: development
+        patterns: ["*"]

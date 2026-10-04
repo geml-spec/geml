@@ -44,6 +44,7 @@
 // Zero dependencies, like the rest of this parser: it is bundled into a browser
 // extension, where an EDN library would be both weight and supply chain.
 import { type DataValue } from "./geml.js";
+import { DATA_DEPTH } from "./bounds.js";
 
 export type EdnResult = { value: DataValue } | { error: string; line: number };
 
@@ -58,9 +59,15 @@ const isSpace = (c: string): boolean => c === " " || c === "\t" || c === "\n" ||
 // by the caller with a sentence about what it actually was.
 const isNameChar = (c: string): boolean => /[A-Za-z0-9*+!\-_?$%&=<>:#.'/]/.test(c);
 
+// §3.2: a sequence or map inside DATA_DEPTH others is outside the value tree,
+// in every engine. Past it a refusal, not a stack overflow thrown through
+// parse(): ten kilobytes of `[` were enough for that. A `#_` discard nests the
+// reader too, so it counts as a level on the same counter.
+
 class Reader {
   readonly text: string;
   i = 0;
+  depth = 0;
   constructor(text: string) { this.text = text; }
 
   /** 0-based line of the current position, for diagnostics. */
@@ -81,8 +88,8 @@ class Reader {
       // `#_` discards the NEXT datum entirely — read it and throw it away.
       if (this.text[this.i] === "#" && this.text[this.i + 1] === "_") {
         this.i += 2;
-        this.value(); // may throw Refusal, which is right: a discarded datum
-        continue;     // outside the subset is still outside it
+        this.nest(() => this.value()); // may throw Refusal, which is right: a discarded
+        continue;                      // datum outside the subset is still outside it
       }
       return;
     }
@@ -93,16 +100,22 @@ class Reader {
     throw new Refusal(what, this.line(at));
   }
 
+  // One level for each container being read, and for each `#_` discard.
+  nest<T>(read: () => T): T {
+    if (++this.depth > DATA_DEPTH) this.refuse(`nesting deeper than ${DATA_DEPTH} levels is outside the value tree`);
+    try { return read(); } finally { this.depth--; }
+  }
+
   value(): DataValue {
     this.skip();
     if (this.i >= this.text.length) this.refuse("the body ends where a value was expected");
     const c = this.text[this.i]!;
-    if (c === "{") return this.map();
-    if (c === "[") return this.vector();
+    if (c === "{") return this.nest(() => this.map());
+    if (c === "[") return this.nest(() => this.vector());
     if (c === "(") this.refuse("a list `(…)` — this reading has vectors and sets, not lists");
     if (c === '"') return this.string();
     if (c === "\\") this.refuse("a character literal `\\x`");
-    if (c === "#") return this.dispatch();
+    if (c === "#") return this.text[this.i + 1] === "{" ? this.nest(() => this.dispatch()) : this.dispatch();
     return this.atom();
   }
 

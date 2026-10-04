@@ -4,6 +4,13 @@
 # writes them into a checkout of the site and checks every demo document there
 # with this parser; the result is committed and pushed, which deploys the site.
 #
+# Two jobs, so the key that can push to the site never shares a runner with the
+# code that builds what it pushes. `build` installs and runs third-party packages
+# (npm install scripts, esbuild, scip-typescript) and holds no secret: its
+# checkouts keep no credentials, and it hands the files on as an artifact.
+# `push` runs no package at all: it checks the site out with the key, lays the
+# artifact over it, and pushes.
+#
 # The push needs SITE_DEPLOY_KEY: the private half of a deploy key with write
 # access on geml-spec/geml-spec.github.io. Without it the job says so and stops.
 name: website
@@ -31,9 +38,54 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  update:
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: geml-spec/geml-spec.github.io
+          path: site
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            geml-parser/package-lock.json
+            integrations/chrome-geml-viewer/package-lock.json
+
+      - name: Build the parser
+        working-directory: geml-parser
+        run: npm ci && npm run build
+
+      - name: Install the viewer (esbuild, KaTeX, Mermaid)
+        working-directory: integrations/chrome-geml-viewer
+        run: npm ci
+
+      - name: Write the site's files and check its demos
+        run: node integrations/website/update.mjs site
+
+      # Exactly what update.mjs writes, so the push job can replace those paths
+      # whole: a codemap page this build no longer makes must go from the site too.
+      - name: Pack the site's files
+        run: tar -czf site-files.tgz -C site public/playground/playground.js public/playground/fonts public/playground/codemap public/logo public/favicon.ico
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: site-files
+          path: site-files.tgz
+          retention-days: 1
+
+  push:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Is the deploy key configured?
         id: key
@@ -43,38 +95,23 @@ jobs:
           if [ -n "$KEY" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"
           else echo "::warning::SITE_DEPLOY_KEY is not set, so the website was not updated"; fi
 
-      - uses: actions/checkout@v7
-        if: steps.key.outputs.ok == 'true'
-
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: steps.key.outputs.ok == 'true'
         with:
           repository: geml-spec/geml-spec.github.io
           path: site
           ssh-key: ${{ secrets.SITE_DEPLOY_KEY }}
 
-      - uses: actions/setup-node@v7
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         if: steps.key.outputs.ok == 'true'
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: |
-            geml-parser/package-lock.json
-            integrations/chrome-geml-viewer/package-lock.json
+          name: site-files
 
-      - name: Build the parser
+      - name: Lay the files over the site
         if: steps.key.outputs.ok == 'true'
-        working-directory: geml-parser
-        run: npm ci && npm run build
-
-      - name: Install the viewer (esbuild, KaTeX, Mermaid)
-        if: steps.key.outputs.ok == 'true'
-        working-directory: integrations/chrome-geml-viewer
-        run: npm ci
-
-      - name: Write the site's files and check its demos
-        if: steps.key.outputs.ok == 'true'
-        run: node integrations/website/update.mjs site
+        run: |
+          rm -rf site/public/playground/fonts site/public/playground/codemap site/public/logo
+          tar -xzf site-files.tgz -C site
 
       - name: Commit and push to the site
         if: steps.key.outputs.ok == 'true'

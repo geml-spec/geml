@@ -1,6 +1,8 @@
 //! The addresses a listing gives (§4): block and heading ids, the prose
 //! addresses derived from the two blocks around a stretch of prose, `#meta`.
 
+use std::collections::{HashMap, HashSet};
+
 use crate::model::{Block, Item};
 use crate::uni::nfd;
 
@@ -22,10 +24,10 @@ struct Ctx<'a> {
     meta_blocks: usize,
     shadowed: &'a dyn Fn(&str) -> bool,
     out: Listing,
-    seen: Vec<String>,
-    /// A prose address to find, and the stretch it names once found.
-    want: Option<&'a str>,
-    hit: Option<Vec<Item>>,
+    /// The NFD key of every address listed so far.
+    seen: HashSet<String>,
+    /// When asked for, each prose address and the stretch it first names.
+    stretches: Option<HashMap<String, Vec<Item>>>,
 }
 
 impl Ctx<'_> {
@@ -33,11 +35,9 @@ impl Ctx<'_> {
         if id.is_empty() {
             return;
         }
-        let key = nfd(id);
-        if self.seen.contains(&key) {
+        if !self.seen.insert(nfd(id)) {
             return;
         }
-        self.seen.push(key);
         self.out.addresses.push(format!("#{id}"));
         if prose {
             self.out.prose.push(id.to_string());
@@ -54,18 +54,19 @@ impl Ctx<'_> {
 }
 
 pub fn list(items: &[Item], meta_blocks: usize, shadowed: &dyn Fn(&str) -> bool) -> Listing {
-    let mut cx = Ctx { meta_blocks, shadowed, out: Listing { addresses: vec![], prose: vec![] }, seen: vec![], want: None, hit: None };
+    let mut cx = Ctx { meta_blocks, shadowed, out: Listing { addresses: vec![], prose: vec![] }, seen: HashSet::new(), stretches: None };
     level(items, 0..items.len(), None, &mut cx);
     cx.out
 }
 
-/// The items of the stretch of prose a prose address names (§4): what an
-/// `embed` of it takes.
-pub fn prose_stretch(items: &[Item], meta_blocks: usize, address: &str) -> Option<Vec<Item>> {
+/// Every prose address of a tree and the items of the stretch it names (§4),
+/// the first stretch winning: what an `embed` of one takes. One walk answers
+/// every address, so a document is walked once however many embeds name it.
+pub fn prose_stretches(items: &[Item], meta_blocks: usize) -> HashMap<String, Vec<Item>> {
     let none = |_: &str| false;
-    let mut cx = Ctx { meta_blocks, shadowed: &none, out: Listing { addresses: vec![], prose: vec![] }, seen: vec![], want: Some(address), hit: None };
+    let mut cx = Ctx { meta_blocks, shadowed: &none, out: Listing { addresses: vec![], prose: vec![] }, seen: HashSet::new(), stretches: Some(HashMap::new()) };
     level(items, 0..items.len(), None, &mut cx);
-    cx.hit
+    cx.stretches.unwrap_or_default()
 }
 
 /// One container's direct content: anchors (typed blocks, headings with
@@ -140,8 +141,8 @@ fn level(items: &[Item], range: std::ops::Range<usize>, container: Option<&str>,
                     _ => None,
                 };
                 if let Some(a) = addr {
-                    if cx.want == Some(a.as_str()) && cx.hit.is_none() {
-                        cx.hit = Some(items[span.clone()].to_vec());
+                    if let Some(stretches) = &mut cx.stretches {
+                        stretches.entry(a.clone()).or_insert_with(|| items[span.clone()].to_vec());
                     }
                     if !(cx.shadowed)(&a) {
                         cx.push(&a, true);

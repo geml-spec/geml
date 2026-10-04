@@ -476,8 +476,10 @@ parses it into the block's **value**, and a body the engine rejects is a build
   holds the same key twice (keys compared after their escapes are read), no
   string or key holds a lone surrogate, and a number is its nearest IEEE 754
   binary64 value — so `1.0` and `1` are one value, and a number past
-  binary64's range has none. A body outside these limits is the same
-  `data-parse` error as one the engine cannot read.
+  binary64's range has none. And the tree is at most `data-depth` containers deep
+  (§9.2): a sequence or map inside `data-depth` others is outside it, whichever
+  engine read it. A body outside these limits is the same `data-parse` error as one the
+  engine cannot read.
 - `src=` names the block's content externally, under the same one-source
   discipline tables have (§6): exactly one of `src=` and an inline body —
   both is an **error**. The file MUST look like data (`.json`/`.jsonl`/`.yaml`/`.yml`,
@@ -1088,6 +1090,10 @@ fences and all — is a paragraph.* The example resolves to:
   that width and one with fewer is padded with empty cells; either is a
   `ragged-table-row` warning naming the row, so a cell the model drops is
   never dropped silently.
+- **Size** — a table or view holds at most `table-cells` cells (§9.2): its
+  columns times its body rows, padded cells included. One that would hold more
+  is a `table-too-large` error and keeps no rows — a header of a few thousand
+  columns over a few thousand one-cell rows is a few kilobytes of input.
 - **Data from elsewhere** — instead of an inline body, a table MAY name where its
   data comes from. For a `table` block that is the `src=` attribute (a `diagram`
   spells the same idea `data=`; see Appendix B.3), and it names a **data file**:
@@ -1123,7 +1129,7 @@ warning like any other misplaced key (§8.2).
   and unary `-` (with `*`/`/` binding tighter than `+`/`-`, left-associative).
   When encountering empty or non-numeric cells, row-level computation treats them as `0` to allow the formula to complete, and MUST report each substituted cell as a `compute-non-numeric-cell` warning: the total is still produced, but a reader is told which cell it rests on rather than being handed a silently wrong number. Conversely, when evaluating aggregate functions, `count` tallies all non-empty cells, while the others (like `sum` or `avg`) skip non-numeric cells (they do not count towards the total or denominator). Columns are referenced by header name — quoting
   names with spaces in single quotes, e.g. `'Unit Price'` — or by spreadsheet
-  letter (`A`, `B`, …). A formula MAY reference an earlier computed column (above,
+  letter (`A`, `B`, …, `AA` the 27th). A formula MAY reference an earlier computed column (above,
   `YoY` references `FY`); references MUST be acyclic. Computed columns are appended
   after the data columns in formula order and are NOT written in the body.
 - **Results a cell cannot hold** — division by zero yields ±∞ and `0 / 0` yields
@@ -1177,7 +1183,11 @@ file (`rows.csv`), a block in this document (`#tickets`), or a block in another
 file is read as a table's `src=` reads one (§6): a local file at build time —
 `tsv` when its suffix is `.tsv`, `csv` otherwise, its first row the header — a
 remote `http(s)` one at render time; one that cannot be resolved or names
-another scheme is `unresolvable-table-source`.
+another scheme is `unresolvable-table-source`. A view whose relation cannot be
+derived — it has no `src=`, its `src=` resolves to nothing or to no relation,
+or its chain of sources meets a cycle or runs past `chain-depth` (§9.3) — is
+**empty**: no columns and no rows, as a table whose source cannot be read is,
+and none of its other attributes is applied.
 
 - **Selection.** `where="<expr>"` keeps rows; `order="<key>[ asc|desc][, …]"`
   sorts, `asc` being the default; `limit=<n>` takes the first *n* after
@@ -1198,6 +1208,25 @@ another scheme is `unresolvable-table-source`.
   comparison, which is data rather than a diagnostic — but a numeric comparison
   against a column holding **no** numeric value at all is an error, because the
   filter could only ever match nothing.
+- **Column lists.** `select=`, `by=` and `order=` take column names separated
+  by `,`. A name may be single-quoted, as in `where=`: an entry that begins with
+  `'` runs to the next `'`, a `,` inside the quotes does not separate, and an
+  entry quoted whole names the column between the quotes. Any other entry names
+  the column its trimmed text spells, spaces and all, so `order="Unit Price
+  desc"` sorts `Unit Price`. An `order=` key's direction is a last word `asc` or
+  `desc`, in any case, set off by whitespace. A list takes names only: a
+  spreadsheet letter (§6) refers to a column inside a §6 expression — the right
+  side of a `compute=`, `aggregate=` or `summary=` entry — and nowhere else, so
+  neither a list, a `where=` nor an entry's left side reads one.
+- **An entry in error** is reported, and the rest of its attribute still
+  applies. A `select=` or `order=` entry in error contributes nothing, so a
+  `select=` with no valid entry leaves the view no columns. A `compute=` or
+  `aggregate=` formula that cannot be read or evaluated still adds its column,
+  every cell of it empty; an entry with no `Name =` adds nothing. A `summary=`
+  entry in error contributes nothing, and the summary row stands. `by=` and
+  `where=` are each one unit: a `by=` naming a column the relation does not
+  carry, or a `where=` that cannot be read or names such a column, is not
+  applied, and neither is the `aggregate=` of a `by=` that is not.
 
 **Evaluation order** is SQL's logical processing order:
 
@@ -1532,12 +1561,39 @@ each of: typed-block nesting (§3), list nesting (§2.2), and inline nesting
 `*-nesting-too-deep` error (Appendix A) and continue processing the remaining
 input. It MUST NOT overflow its call stack, abort, or fail to produce a model.
 
-The bounds are implementation-defined; a processor SHOULD admit at least 64
-levels of each, which is far past any document written to be read. *The
-reference implementation admits 256 levels of block and list nesting and 100 of
-inline nesting.* The depth of a transclusion or `view` chain (§9.3) is a
-different bound, and a fixed one — 16 — because two processors have to agree on
-where a chain stops.
+The nesting bounds are implementation-defined; a processor SHOULD admit at
+least `nesting-floor` levels of each, which is far past any document written to
+be read.
+
+Other bounds are **fixed**, because two processors have to stop at the same
+place: what they refuse is in the model, or decides how far a chain is
+expanded. Each stands where a small input could otherwise demand unbounded
+work — ten kilobytes of `[` exhaust a recursive reader's stack, a few kilobytes
+of table header pad out to millions of cells, and a chain of views or
+transclusions is as long as its author makes it.
+
+Every number this specification fixes is in this table, and only here: the
+rest of the text names it, and the conformance suite takes its boundary cases
+from it (§9.6).
+
+=== table {#fixed-bounds}
+| Name | Value | What it bounds | Past it |
+|---|---|---|---|
+| `chain-depth` | 16 | links in a chain of nested transclusions, or of `view` sources (§9.3) | the next link is not expanded; a `view` is `view-source-too-deep` |
+| `data-depth` | 200 | sequences and maps nested in a `data` body's value tree (§3.2) | `data-parse` |
+| `table-cells` | 1,000,000 | a table's or view's columns times its body rows, padded cells included (§6) | `table-too-large`, and the table keeps no rows |
+| `nesting-floor` | 64 | the typed-block, list and inline nesting a processor SHOULD admit at least | the processor's own bound decides, with `*-nesting-too-deep` |
+===
+
+`table-cells` bounds one relation, and a document can hold any number of them:
+twenty views of one million-cell table are twenty million cells from a few
+hundred bytes of input, and so are twenty tables naming one data file. A
+processor SHOULD therefore bound the cells it reads into one document's
+relations from anywhere but the document's own text — each `view`'s copy of its
+source, and each data file a block reads — summed over the document. The bound
+is implementation-defined, and a document that reaches it is not one two
+processors are required to agree on; a relation past it is `table-too-large`
+and keeps no rows.
 
 A processor MUST NOT construct a regular expression, a shell command, or any
 other executable form from document-controlled text without escaping that text
@@ -1576,12 +1632,13 @@ make it loop:
   total work it spends walking one document's chains, as §9.2 bounds nesting;
   the bound is implementation-defined, and a document that reaches it is not one
   two processors are required to agree on. **Depth:** a chain of nested expansions MUST NOT be followed
-  past **16**: the sixteenth nested `embed` or projection is expanded, the
-  seventeenth is not, and what stands in its place is the renderer's (§8.3). The
-  same bound holds for a `view`'s `src=` chain (§6.1), where a chain of more than
-  16 views is `view-source-too-deep`. The number is fixed rather than
-  implementation-defined like §9.2's because it is observable: two processors
-  MUST agree on whether the seventeenth link of a chain is expanded.
+  past `chain-depth` links (§9.2): the nested `embed` or projection at depth
+  `chain-depth` is expanded, the one inside it is not, and what stands in its
+  place is the renderer's (§8.3). The same bound holds for a `view`'s `src=`
+  chain (§6.1), where a chain of more than `chain-depth` views is
+  `view-source-too-deep`. The bound is fixed rather than implementation-defined
+  like the nesting bounds because it is observable: two processors MUST agree on
+  whether the link past it is expanded.
 - **Computed columns** (§6) are evaluated in declaration order, and a formula
   sees only data columns and *earlier* computed columns. A self-reference or a
   forward reference is therefore not a cycle but an unknown column, reported as
@@ -1605,6 +1662,12 @@ renderer SHOULD confine `src` to the document's own origin or directory and
 SHOULD require an explicit opt-in before performing `http(s)` fetches: a fetched
 URL discloses the reader's address, and the fact and time of reading, to whoever
 controls it.
+
+A renderer that confines `src` MUST judge it by the URL a user agent resolves
+it to, not by how it is spelled. A user agent drops C0 controls and spaces, and
+in an `http(s)` or `file` URL reads `\` as `/`: `/\host/x`, `\\host\x` and
+`\/host/x` are all the network path `//host/x`, another origin, however much
+they look like a path beside the document.
 
 Because external data is fetched at render time, its contents never enter the
 `.gemlhistory` hash — only the `src` text does (§6).
@@ -1639,10 +1702,15 @@ conformance suite's `safety.json` cases pin both which destinations disappear an
 which must survive, and §8's acceptance test runs them against a second
 implementation.
 
-The rest of this section is **equally normative and not covered there**. §9.2's
-limits and §9.3's cycle detection are reported as diagnostics and would require
-pinning a particular bound; §9.5's expansion budgets act at render time, and
-§9.4's confinement is a property of the host environment. An implementation
+The suite also pins each bound of §9.2's table that the model shows, and takes
+its value from that table: `data-depth` on both sides of its edge, `chain-depth`
+on both sides of a `view` chain's edge, and `table-cells` one column past it.
+Where a transclusion chain stops is the renderer's, and `nesting-floor` is a
+recommendation; neither is pinned. The rest of this section is **equally
+normative and not covered there**. §9.2's nesting bounds and its bound on cells
+read from elsewhere, and §9.3's work budget, are implementation-defined, so no case can pin them; §9.5's expansion budgets
+act at render time, and §9.4's confinement is a property of the host
+environment. An implementation
 claiming conformance MUST still satisfy them, and SHOULD carry its own tests for
 each — a suite pass is evidence about parsing, not a security certificate. The
 conformance suite's own README lists the failures these requirements have
@@ -1724,6 +1792,7 @@ original file.
 | `bad-table-delimiter` | error | A `delim=` value is not exactly one character (§6). The format's natural delimiter is used instead, so the table still reads. |
 | `bad-embed-part` | warning | An `embed` carries a `part=` that is not `whole`, `head`, `body` or `intro` (§3). The whole target stands: a projection that quietly selects nothing is the failure §8.2 exists to prevent. Not `unknown-attribute` — the key is defined, the value is not one it takes. |
 | `ignored-table-delimiter` | warning | A table carries `delim=` but no data `format=`, so no delimited body exists for it to apply to; the body is parsed as a visual pipe grid. |
+| `table-too-large` | error | A `table` or `view` would hold more than `table-cells` cells (§9.2) — its columns times its body rows, padded cells included (§6) — or would take its document past the processor's bound on cells read from elsewhere (§9.2). It keeps no rows. |
 | `ragged-table-row` | warning | A body row carries more or fewer cells than the table has columns — as many as the header row has cells, or a header-less table's widest row (§6). The row is cut, or padded with empty cells, to that width; the warning names the row. |
 | `bad-compute-formula` | error | A `compute` entry is not of the form `Name = expr`. |
 | `compute-error` | error | A `compute` expression failed to evaluate — most often because it names a column that does not exist, or one computed later (§9.3). |
@@ -1744,20 +1813,20 @@ holds facts and derives nothing.
 | `view-src-and-body` | error | A `view` carries a body. Its content is its source's, and a body alongside `src=` is the same error a table's is (§6). |
 | `table-source-is-block` | error | A `table`'s `src=` names a block rather than a data file. A block target is another block's output, and a table holding facts someone else derived is what `view` is for. |
 | `view-source-not-a-relation` | error | A view's `src=` names a block that is neither a `table` nor a `view`, so it publishes no relation to derive from. |
-| `view-source-cycle` | error | A chain of `src=` references returns to where it started. Every view in the cycle is named, because none of them can be resolved first (§9.3). |
-| `view-source-too-deep` | error | A chain of views is more than 16 long — §9.3's bound, the one a nested `embed` has. Each view past the bound is named and none of them publishes rows. |
+| `view-source-cycle` | error | A view's chain of `src=` references meets a cycle: it returns to a view already on it. Each such view is reported — the cycle's own and each whose chain runs into it — because none of them can be resolved (§9.3), and each is empty (§6.1). |
+| `view-source-too-deep` | error | A chain of views is more than `chain-depth` long (§9.2) — the bound a nested `embed` has (§9.3). Each view past the bound is reported and is empty (§6.1). |
 | `view-where-error` | error | A `where=` expression is not a comparison the grammar defines — an unclosed quote, a missing right-hand value, a column where an operator belongs, or a name no column carries. |
 | `view-numeric-column-required` | error | A `where=` compares a column against a number and no row of that column holds one. The filter could only ever match nothing, which is a typo rather than a state. |
-| `view-unknown-column` | error | A `by=`, `order=`, `select=` or `aggregate=` names a column the relation does not carry. |
-| `view-order-error` | error | An `order=` key is not `<column>[ asc\|desc]`. |
+| `view-unknown-column` | error | A `by=`, `order=`, `select=` or `aggregate=` names a column the relation does not carry. The `select=` or `order=` entry contributes nothing and the `aggregate=` column is empty; a `by=` is not applied, nor is its `aggregate=` (§6.1). |
+| `view-order-error` | error | An `order=` key names no column: what is left of it once its direction is read is empty, as in `order="''"`. |
 | `view-limit-error` | error | A `limit=` is not a non-negative integer. |
-| `view-select-expression` | error | A `select=` entry contains `=`. It names columns and nothing more; deriving a column is `compute=`'s job. |
+| `view-select-expression` | error | A `select=` entry that is not quoted contains `=`. It names columns and nothing more; deriving a column is `compute=`'s job. The entry contributes nothing (§6.1). |
 | `summary-projected-away` | error | A `summary=` targets a column `select=` dropped. Projection runs before the report row, so there is no cell left to render it in. |
 | `circular-view-filter` | error | A `where=` names a column an aggregate formula derives. That value depends on which rows the filter keeps, so the filter would decide its own input. The diagnostic names the formula, not the reference. |
 | `shadowed-source-column` | warning | A `compute=` defines a column its source already publishes. Legal — the left of the `=` names this block's output and the right reads the source's — but the column then renders a different number than the source publishes under that name, and the source's is unreachable in this block. |
 | `grouping-compute-aggregate` | error | A `compute=` on a view that carries `by=` uses an aggregate. On a grouping view `compute=` is per input row; the group's columns are `aggregate=`'s. |
-| `bad-aggregate-entry` | error | An `aggregate=` entry is not of the form `Name = fn(Column)`, or its expression carries a token the §6 grammar does not define. |
-| `aggregate-error` | error | An `aggregate=` expression failed to evaluate. |
+| `bad-aggregate-entry` | error | An `aggregate=` entry is not of the form `Name = fn(Column)`, or its expression cannot be read under the §6 grammar. Reported once for the entry; a named entry still adds its column, empty (§6.1). |
+| `aggregate-error` | error | An `aggregate=` expression failed to evaluate — including a column it reads without an aggregate, which a group has no single value for. A mistake in the formula is reported once for the entry, not once per group. |
 | `aggregate-without-by` | error | A view carries `aggregate=` and no `by=`. Aggregate columns describe groups; one aggregate row over every row is `summary=`. |
 ===
 
@@ -1792,7 +1861,7 @@ holds facts and derives nothing.
 === table
 | Code | Severity | Condition |
 |------|----------|-----------|
-| `data-parse` | error | The body does not parse under the declared `format=` — not one JSON value (`json`), or a non-blank line that is not one JSON value (`jsonl`) — or what it parses to breaks the value tree's limits (§3.2): a key twice in one map, a lone surrogate, a number past binary64's range. The diagnostic names the offending line. |
+| `data-parse` | error | The body does not parse under the declared `format=` — not one JSON value (`json`), or a non-blank line that is not one JSON value (`jsonl`) — or what it parses to breaks the value tree's limits (§3.2): a key twice in one map, a lone surrogate, a number past binary64's range, a sequence or map inside `data-depth` others (§9.2). The diagnostic names the offending line. |
 | `unknown-data-format` | warning | The `format=` value is not in the data format registry. The body is kept raw and not verified. |
 | `data-format-no-engine` | warning | The `format=` names a RESERVED format (`yaml`, `toml`, `edn`) this processor ships no engine for. The body is kept raw and not verified — never guessed at. |
 | `bad-data-schema` | error | `schema=` is not a block reference (`#id`) or a GEML document reference (`doc.geml[#id]`). |

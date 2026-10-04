@@ -9,6 +9,7 @@
 import { type DiagnosticCode } from "./diagnostics.js";
 import { type Value, coerce } from "./attrs.js";
 import { type Inline, type RefSink, parseInline } from "./inline.js";
+import { TABLE_CELLS } from "./bounds.js";
 
 export type Align = "left" | "right" | "center";
 
@@ -348,6 +349,18 @@ function evalExpr(toks: Tok[], row: number, col: ColResolve, agg: (fn: string, n
 // Public entry
 // ---------------------------------------------------------------------------
 
+// §6, §9.2: a table or view holds at most TABLE_CELLS cells — its columns
+// times its body rows, padded cells included — and one that would hold more
+// keeps no rows. Fixed, because what it refuses is in the model: a header of a few
+// thousand columns over a few thousand one-cell rows is a few kilobytes of
+// input and, padded, a few hundred megabytes of cells.
+
+function tooLarge(columns: number, rows: number): TableDiag | null {
+  return columns * rows > TABLE_CELLS
+    ? { severity: "error", code: "table-too-large", message: `${columns} columns × ${rows} rows is more than ${TABLE_CELLS} cells; no rows are kept` }
+    : null;
+}
+
 export function parseTable(
   body: string[],
   attrs: Record<string, Value>,
@@ -395,6 +408,13 @@ export function parseTable(
   const model: TableModel = { header: raw.header, columns, align: raw.align, rows: [], rowLines: raw.lines };
   const caption = attrs["caption"];
   if (typeof caption === "string") model.caption = caption;
+  // Judged before a cell is built or a row is said to be ragged: the rows are not kept.
+  const huge = tooLarge(columns.length, raw.cells.length);
+  if (huge !== null) {
+    diagnostics.push(huge);
+    model.rowLines = [];
+    return { model, diagnostics };
+  }
 
   // Build body cells with inline content and numeric values.
   for (const [ri, r] of raw.cells.entries()) {
@@ -422,6 +442,21 @@ export function parseTable(
   return { model, diagnostics };
 }
 
+// A column a §6 expression refers to: by header name, else by spreadsheet
+// letter (`A` the first, `AA` the 27th). Only an expression's references read
+// letters; a column list, `where=` and an entry's left side take names (§6.1).
+function columnRef(columns: string[], name: string): number {
+  const byName = columns.indexOf(name);
+  if (byName >= 0) return byName;
+  if (!/^[A-Z]+$/.test(name)) return -1;
+  let n = 0;
+  for (const c of name) {
+    n = n * 26 + c.charCodeAt(0) - 64;
+    if (n > columns.length) return -1;
+  }
+  return n - 1;
+}
+
 // The derivation stage (§6): the `compute=` columns and the `summary=` foot
 // row, applied to a grid that is already built. It lives apart from body
 // parsing because a table that borrows its rows through `src=#id` has no body
@@ -435,13 +470,7 @@ export function applyDerivations(
   diagnostics: TableDiag[],
 ): void {
   const columns = model.columns;
-  // Column lookup by header name or single letter (A=0).
-  const colIndex = (name: string): number => {
-    const byName = columns.indexOf(name);
-    if (byName >= 0) return byName;
-    if (/^[A-Z]$/.test(name)) return name.charCodeAt(0) - 65;
-    return -1;
-  };
+  const colIndex = (name: string): number => columnRef(columns, name);
   const cellNum = (ci: number, row: number): number | null => {
     const v = model.rows[row]?.[ci]?.value;
     return typeof v === "number" ? v : null;
@@ -483,8 +512,10 @@ export function applyDerivations(
     if (vals.length === 0) return 0;
     if (fn === "sum") return vals.reduce((a, b) => a + b, 0);
     if (fn === "avg") return vals.reduce((a, b) => a + b, 0) / vals.length;
-    if (fn === "min") return Math.min(...vals);
-    if (fn === "max") return Math.max(...vals);
+    // Folded, not spread: spread passes one argument per row, and past ~130k
+    // rows that is a stack overflow reported as the aggregate's error.
+    if (fn === "min") return vals.reduce((a, b) => Math.min(a, b), Infinity);
+    if (fn === "max") return vals.reduce((a, b) => Math.max(a, b), -Infinity);
     return null;
   };
   // A given aggregate over a given column is constant across rows, yet the
@@ -549,6 +580,8 @@ export function applyDerivations(
         failed = true;
       }
     }
+    // A formula in error still adds its column, every cell of it empty (§6.1).
+    if (failed) for (const row of model.rows) { ensureCell(row, ci); row[ci] = { text: "", inlines: [] }; }
   }
 
   // `summary="Cell = value; …"` — one foot row. Each value is a string/number
@@ -738,15 +771,15 @@ function filterPredicate(model: TableModel, source: string, diagnostics: TableDi
 }
 
 function aggregateValue(model: TableModel, rows: TableCell[][], fn: string, name: string): number | null {
-  const ci = model.columns.indexOf(name);
+  const ci = columnRef(model.columns, name);
   if (ci < 0) return null;
   if (fn === "count") return rows.reduce((n, row) => n + (row[ci]?.text !== "" && row[ci] !== undefined ? 1 : 0), 0);
   const values = rows.map((row) => row[ci]?.value).filter((v): v is number => typeof v === "number");
   if (values.length === 0) return 0;
   if (fn === "sum") return values.reduce((a, b) => a + b, 0);
   if (fn === "avg") return values.reduce((a, b) => a + b, 0) / values.length;
-  if (fn === "min") return Math.min(...values);
-  if (fn === "max") return Math.max(...values);
+  if (fn === "min") return values.reduce((a, b) => Math.min(a, b), Infinity);
+  if (fn === "max") return values.reduce((a, b) => Math.max(a, b), -Infinity);
   return null;
 }
 
@@ -756,27 +789,49 @@ function groupView(model: TableModel, by: string[], aggregate: string[], diagnos
     for (let i = 0; i < keyIndexes.length; i++) if (keyIndexes[i]! < 0) diagnostics.push({ severity: "error", code: "view-unknown-column", message: `by: unknown column \`${by[i]}\`` });
     return;
   }
-  const specs: { name: string; fmt?: string; toks: Tok[] }[] = [];
+  // A formula in error still adds its column, every cell of it empty (§6.1).
+  const specs: { name: string; fmt?: string; toks: Tok[]; broken: boolean }[] = [];
   for (const declaration of aggregate) {
     const eq = declaration.indexOf("=");
     if (eq <= 0) { diagnostics.push({ severity: "error", code: "bad-aggregate-entry", message: `bad aggregate \`${declaration}\` (want \`Name = sum(Column)\`)` }); continue; }
     const target = splitName(declaration.slice(0, eq));
-    specs.push({ ...target, toks: lexExpr(declaration.slice(eq + 1).trim()) });
+    const toks = lexExpr(declaration.slice(eq + 1).trim());
+    // Read once with every reference standing for 0: what fails now is the
+    // formula's grammar, one mistake, not an evaluation failing per group.
+    let broken = false;
+    try { evalExpr(toks, 0, () => 0, () => 0); } catch (e) {
+      diagnostics.push({ severity: "error", code: "bad-aggregate-entry", message: `aggregate \`${target.name}\`: ${(e as Error).message}` });
+      broken = true;
+    }
+    specs.push({ ...target, toks, broken });
   }
   // An aggregate over a column that is not there is ONE mistake, so it is one
   // error, reported before the fold. Left to `aggregateValue`'s null it became
   // an `aggregate-error` per GROUP — three rows, three identical messages, none
   // of which named the column — and every group grew an empty cell.
-  const missing = new Set<string>();
+  // Likewise a column a group has no value for: one read without an aggregate
+  // is one mistake, not an `aggregate-error` per group.
   for (const spec of specs) {
-    for (const tok of spec.toks) {
-      if (tok.t === "name" && model.columns.indexOf(tok.v) < 0 && !AGG_FNS.has(tok.v.toLowerCase())) missing.add(tok.v);
+    if (spec.broken) continue;
+    const refs: string[] = [];
+    const bare: string[] = [];
+    const toks = spec.toks;
+    for (let i = 0; i < toks.length; i++) {
+      const tok = toks[i]!;
+      if (tok.t !== "name") continue;
+      if (toks[i + 1]?.t === "lp" && AGG_FNS.has(tok.v.toLowerCase())) {
+        const arg = toks[i + 2];
+        if (arg?.t === "name") { refs.push(arg.v); i += 2; }
+        continue;
+      }
+      refs.push(tok.v);
+      bare.push(tok.v);
     }
+    const unknown = refs.find((name) => columnRef(model.columns, name) < 0);
+    if (unknown !== undefined) diagnostics.push({ severity: "error", code: "view-unknown-column", message: `aggregate: unknown column \`${unknown}\`` });
+    else if (bare.length > 0) diagnostics.push({ severity: "error", code: "aggregate-error", message: `aggregate \`${spec.name}\` reads \`${bare[0]}\` without an aggregate` });
+    spec.broken = unknown !== undefined || bare.length > 0;
   }
-  for (const name of missing) {
-    diagnostics.push({ severity: "error", code: "view-unknown-column", message: `aggregate: unknown column \`${name}\`` });
-  }
-  if (missing.size > 0) return;
 
   const groups = new Map<string, TableCell[][]>();
   for (const row of model.rows) {
@@ -790,6 +845,7 @@ function groupView(model: TableModel, by: string[], aggregate: string[], diagnos
     const first = rows[0]!;
     const out = keyIndexes.map((ci) => ({ ...first[ci]!, inlines: [...first[ci]!.inlines] }));
     for (const spec of specs) {
+      if (spec.broken) { out.push({ text: "", inlines: [] }); continue; }
       try {
         const value = evalExpr(spec.toks, 0, () => null, (fn, name) => aggregateValue({ ...model, columns: sourceColumns }, rows, fn, name));
         const text = spec.fmt ? applyFormat(spec.fmt, value) : defaultNum(value);
@@ -807,9 +863,36 @@ function groupView(model: TableModel, by: string[], aggregate: string[], diagnos
   delete model.rowLines;
 }
 
+// §6.1 column lists (`select=`, `by=`, `order=`): entries split on `,`, except
+// inside a quote that OPENS an entry — so `'Unit, Price'` is one name while the
+// apostrophe in `O'Brien` opens nothing. An unclosed quote runs to the end.
+function columnList(source: string): string[] {
+  const out: string[] = [];
+  let cur = "";
+  let blank = true; // `cur` is whitespace so far: a quote here opens the entry
+  let quoted = false;
+  for (const c of source) {
+    if (quoted) { cur += c; if (c === "'") quoted = false; continue; }
+    if (c === ",") { out.push(cur); cur = ""; blank = true; continue; }
+    if (c === "'" && blank) quoted = true;
+    if (!/\s/.test(c)) blank = false;
+    cur += c;
+  }
+  out.push(cur);
+  return out.map((e) => e.trim()).filter(Boolean);
+}
+
+// An entry quoted whole names the column between its quotes; any other entry
+// names the column its text spells, spaces and quotes included.
+function columnName(entry: string): { name: string; quoted: boolean } {
+  return entry.length >= 2 && entry.startsWith("'") && entry.indexOf("'", 1) === entry.length - 1
+    ? { name: entry.slice(1, -1), quoted: true }
+    : { name: entry, quoted: false };
+}
+
 function orderView(model: TableModel, source: string, diagnostics: TableDiag[]): void {
   const keys: { ci: number; desc: boolean }[] = [];
-  for (const part of source.split(",").map((s) => s.trim()).filter(Boolean)) {
+  for (const part of columnList(source)) {
     // Scanned, not matched: `(.+?)(?:\s+(asc|desc))?$` backtracked quadratically
     // over the key, and 128 KB of spaces in an `order=` held the parser for
     // eight seconds. The direction is a suffix, read first and without a regex
@@ -825,8 +908,7 @@ function orderView(model: TableModel, source: string, diagnostics: TableDiag[]):
         break;
       }
     }
-    const quotedWhole = head.length >= 3 && head.startsWith("'") && head.endsWith("'") && !head.slice(1, -1).includes("'");
-    const name = (quotedWhole ? head.slice(1, -1) : head).trim();
+    const { name } = columnName(head);
     if (name === "") { diagnostics.push({ severity: "error", code: "view-order-error", message: `order: bad key \`${part}\`` }); continue; }
     const ci = model.columns.indexOf(name);
     if (ci < 0) { diagnostics.push({ severity: "error", code: "view-unknown-column", message: `order: unknown column \`${name}\`` }); continue; }
@@ -864,15 +946,16 @@ function orderView(model: TableModel, source: string, diagnostics: TableDiag[]):
 }
 
 function selectView(model: TableModel, source: string, diagnostics: TableDiag[]): void {
-  const names = source.split(",").map((s) => s.trim()).filter(Boolean);
+  // Each entry stands alone (§6.1): one in error contributes nothing, and a
+  // `select=` with no valid entry leaves the view no columns.
   const indexes: number[] = [];
-  for (const name of names) {
-    if (name.includes("=")) { diagnostics.push({ severity: "error", code: "view-select-expression", message: `select: \`${name}\` is an expression; derive columns with \`compute=\`` }); continue; }
+  for (const entry of columnList(source)) {
+    const { name, quoted } = columnName(entry);
+    if (!quoted && name.includes("=")) { diagnostics.push({ severity: "error", code: "view-select-expression", message: `select: \`${name}\` is an expression; derive columns with \`compute=\`` }); continue; }
     const ci = model.columns.indexOf(name);
     if (ci < 0) { diagnostics.push({ severity: "error", code: "view-unknown-column", message: `select: unknown column \`${name}\`` }); continue; }
     indexes.push(ci);
   }
-  if (indexes.length !== names.length) return;
   model.columns = indexes.map((i) => model.columns[i]!);
   model.align = indexes.map((i) => model.align[i]);
   model.rows = model.rows.map((row) => indexes.map((i) => row[i] ?? { text: "", inlines: [] }));
@@ -891,7 +974,7 @@ export function deriveView(
   const rowFormulas = formulas.filter((formula) => !hasAggregate(formula));
   const aggregateFormulas = formulas.filter(hasAggregate);
   const byRaw = attrs["by"];
-  const by = typeof byRaw === "string" ? byRaw.split(",").map((s) => s.trim()).filter(Boolean) : [];
+  const by = typeof byRaw === "string" ? columnList(byRaw).map((e) => columnName(e).name) : [];
 
   for (const formula of formulas) {
     const name = formulaName(formula);
@@ -901,6 +984,13 @@ export function deriveView(
     for (const formula of aggregateFormulas) diagnostics.push({ severity: "error", code: "grouping-compute-aggregate", message: `compute \`${formulaName(formula) ?? formula}\` aggregates on a grouping view; use \`aggregate=\`` });
   }
   if (rowFormulas.length) applyDerivations(model, computedAttrs(rowFormulas), line, sink, diagnostics);
+  // A source is within the bound; its computed columns can take a view past it.
+  const huge = tooLarge(model.columns.length, model.rows.length);
+  if (huge !== null) {
+    diagnostics.push(huge);
+    model.rows = [];
+    return;
+  }
 
   const where = attrs["where"];
   if (typeof where === "string" && where.trim() !== "") {
@@ -966,7 +1056,9 @@ export function deriveView(
       summaryAttrs[kept === 0 ? "summary" : `summary${kept + 1}`] = summary;
       kept++;
     }
-    applyDerivations(model, summaryAttrs, line, sink, diagnostics);
+    // An entry in error contributes nothing, and the row stands (§6.1).
+    if (kept === 0) model.summary = model.columns.map(() => ({ text: "", inlines: [] }));
+    else applyDerivations(model, summaryAttrs, line, sink, diagnostics);
   }
 }
 

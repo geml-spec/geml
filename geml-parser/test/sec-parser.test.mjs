@@ -5,8 +5,11 @@
 // in-process against the compiled API — EXCEPT M2 (resolver confinement), whose
 // guard lives in the CLI-only `resolverFor()` (not exported), so that one drives
 // a single short-lived `geml check` (as test/cli.test.mjs does; no ports).
-import { parse, renderHtml, serialize, mdToGeml } from "../dist/geml.js";
+import { parse, renderHtml, serialize, mdToGeml, gemlToMd, translateBlocks } from "../dist/geml.js";
 import { save, verify } from "../dist/history.js";
+import { profileIoFor } from "../dist/host-fs.js";
+import { buildPlan } from "../dist/media-verbs.js";
+import { BORROWED_CELLS } from "../dist/bounds.js";
 import { strict as assert } from "node:assert";
 import { spawnSync } from "node:child_process";
 import { writeFileSync, readFileSync, mkdtempSync, mkdirSync, rmSync, existsSync, symlinkSync } from "node:fs";
@@ -1741,4 +1744,389 @@ test("R7-1: the user's --root is what widens the search, and it does", () => {
     const wide = spawnSync(process.execPath, ["dist/geml.js", "check", note, "--root", root], { encoding: "utf8", timeout: 60000 });
     assert.match(wide.stderr, /ok: no diagnostics/);
   } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// Round 6 (O-1). A Markdown wikilink's name went into the href as written, with
+// no scheme check: `[[javascript:alert(document.domain)//#x]]` rendered as a
+// live link labelled `x`, which the author chooses. A `.geml` kept it text all
+// along; a note name never carries a scheme, so a `.md` keeps it text too.
+test("round 6: a Markdown wikilink naming a scheme stays text, and a model that carries one still renders inert", () => {
+  const src = "See [[javascript:alert(document.domain)//#x]], ![[JavaScript:alert(1)#y]], [[data:text/html,<b>#z]] and [[ java\tscript:alert(1)#w]].\n\n[[Other Note#Part]] [[#Local]]\n\n# Local\n";
+  const doc = parse(src, { markdown: true });
+  const html = renderHtml(doc, { source: "w.md" });
+  for (const bad of [/href="\s*javascript:/i, /href="data:/i, /href="java\s*script:/i]) assert.doesNotMatch(html, bad);
+  assert.match(html, /\[\[javascript:alert\(document\.domain\)\/\/#x\]\]/, "the wikilink is shown as the text it was");
+  assert.match(html, /<a href="Other Note#Part">Part<\/a>/, "an ordinary wikilink still links");
+  assert.match(html, /<a href="#local">Local<\/a>/i, "and so does a local one");
+  // The renderer does not trust a model built elsewhere: an autoref whose doc
+  // carries a scheme gets the gate links get.
+  const forged = parse("x [[other.geml#a]] y\n");
+  const ref = forged.children[0].inlines.find((n) => n.type === "autoref");
+  ref.doc = "javascript:alert(1)//";
+  assert.doesNotMatch(renderHtml(forged, { source: "x.geml" }), /href="javascript:/i);
+});
+
+// Round 6 (O-3, O-4). `geml get --view`, the Markdown export's embed expansion
+// and the media profile's file reads confined a target by its SPELLING only, so
+// a `.geml` symlink committed inside the tree read whatever it pointed at —
+// `/etc/hosts` came back through `get --view`, `--to md` and MCP `geml_get`.
+// §9.4 asks for the real path; resolverFor and the codemap routes had it.
+test("round 6: view, export and media reads follow a symlink only while it stays inside the root", () => {
+  const top = mkdtempSync(join(tmpdir(), "geml-sec-round6-link-"));
+  try {
+    const root = join(top, "root");
+    const outside = join(top, "outside");
+    mkdirSync(root, { recursive: true });
+    mkdirSync(outside, { recursive: true });
+    writeFileSync(join(outside, "secret.geml"), "# Secret\n\nTOP-SECRET-LINE\n");
+    writeFileSync(join(outside, "secret.png"), "PNG-OUTSIDE");
+    writeFileSync(join(root, "inside.geml"), "# Inside\n\nINSIDE-LINE\n");
+    writeFileSync(join(root, "doc.geml"), "=== embed {#e src=\"leak.geml\"}\n===\n\n=== embed {#i src=\"inside.geml\"}\n===\n");
+    try {
+      symlinkSync(join(outside, "secret.geml"), join(root, "leak.geml"));
+      symlinkSync(join(outside, "secret.png"), join(root, "leak.png"));
+    } catch { console.log("ok   (symlink unsupported on this platform — skipped)"); return; }
+    const cli = (...args) => {
+      const r = spawnSync(process.execPath, [join(process.cwd(), "dist/geml.js"), ...args], { cwd: root, encoding: "utf8", timeout: 60000 });
+      return r.stdout + r.stderr;
+    };
+    const view = cli("get", "doc.geml", "#e", "--view");
+    assert.ok(!view.includes("TOP-SECRET-LINE"), `get --view read through the link:\n${view}`);
+    assert.match(view, /unresolvable-document/);
+    assert.match(cli("get", "doc.geml", "#i", "--view"), /INSIDE-LINE/, "a target really inside still resolves");
+    const md = cli("doc.geml", "--to", "md");
+    assert.ok(!md.includes("TOP-SECRET-LINE"), `--to md expanded the link:\n${md}`);
+    assert.match(md, /INSIDE-LINE/);
+    const io = profileIoFor(root);
+    assert.equal(io.readDoc("leak.geml"), null, "the media profile's readDoc stops at the link");
+    assert.equal(io.hashFile("leak.png"), null, "and so does its hashFile");
+    assert.match(io.readDoc("inside.geml") ?? "", /INSIDE-LINE/);
+  } finally { rmSync(top, { recursive: true, force: true }); }
+});
+
+// Round 6 (O-7). `--to md` escaped only \\ ` * _ [ ], so GEML prose — which has
+// no raw HTML (§1(5)) — carried `<img onerror=…>` into the export as a live tag
+// for whatever renders the Markdown next. A code span was one backtick wide
+// whatever it held, so a value with a backtick closed it and freed what followed;
+// math, an image's alt, a table's caption and column names went out as written.
+test("round 6: the Markdown export carries no live HTML out of GEML text", () => {
+  const src = [
+    "# T",
+    "",
+    "Prose <img src=x onerror=alert(1)> & &amp; stays text.",
+    "",
+    "Code ``x`<img src=x onerror=alert(2)>`y`` and math $a<img src=x onerror=alert(3)>$.",
+    "",
+    "![<img src=x onerror=alert(4)>](p.png)",
+    "",
+    "=== table {#t caption=\"<img src=x onerror=alert(5)>\"}",
+    "| <img src=x onerror=alert(6)> | b |",
+    "|---|---|",
+    "| <i>c</i> | d |",
+    "===",
+    "",
+  ].join("\n");
+  const { md } = gemlToMd(parse(src));
+  // Outside code spans, every `<` is escaped (or is `\\lt` in math): no tag.
+  const outsideCode = md.replace(/(`+)[^`]*?(?:`(?!\1)[^`]*?)*\1/g, "");
+  assert.doesNotMatch(outsideCode, /(^|[^\\])</m, `a live < survived the export:\n${md}`);
+  assert.match(md, /``x`<img src=x onerror=alert\(2\)>`y``/, "the code span outgrows the backtick inside it");
+  assert.match(md, /\$a\\lt img src=x onerror=alert\(3\)>\$/, "math keeps its glyph without opening a tag");
+  // And the text is the text: read back as Markdown, the prose says what GEML said.
+  const back = parse(md, { markdown: true });
+  const prose = back.children.find((b) => b.kind === "paragraph" && /Prose/.test(b.text));
+  assert.equal(prose.inlines.map((n) => n.value ?? "").join(""), "Prose <img src=x onerror=alert(1)> & &amp; stays text.");
+});
+
+// Round 6 (P-1). The walk that builds the model took `===#c` — a labeled close
+// with no space, which §3 and fences.json admit — while the walks behind `list`,
+// `get`, `set` and meta collection asked for a space. So they disagreed about
+// where a block ends, and the write guard, which checks the address index, let a
+// `--body` close `#c` early and plant an `embed` inside `#n` that the model read.
+test("round 6: every walk ends a block where the model does, so a glued labeled close cannot slip past the write guard", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-sec-round6-glued-"));
+  try {
+    const host = "Intro\n\n===== note {#n}\n==== code {#c}\nold\n====\n=====\n";
+    writeFileSync(join(dir, "host.geml"), host);
+    writeFileSync(join(dir, "secret.geml"), "TOP SECRET\n");
+    const set = spawnSync(process.execPath, [join(process.cwd(), "dist/geml.js"), "set", "host.geml", "#c", "--body", "--in", "-"],
+      { cwd: dir, input: "x\n===#c\n==== embed {src=secret.geml}\n", encoding: "utf8", timeout: 60000 });
+    assert.notEqual(set.status, 0, `the write went through:\n${set.stdout}${set.stderr}`);
+    assert.equal(readFileSync(join(dir, "host.geml"), "utf8"), host, "the file is unchanged");
+
+    const glued = "=== code {#a}\nx\n===#a\n=== meta\ntitle=t\n===\n\nTitle: {{title}}\n";
+    writeFileSync(join(dir, "glued.geml"), glued);
+    const get = spawnSync(process.execPath, [join(process.cwd(), "dist/geml.js"), "get", "glued.geml", "#a"], { cwd: dir, encoding: "utf8", timeout: 60000 });
+    assert.equal(get.stdout, "=== code {#a}\nx\n===#a\n", "`get` returns the block the model has, no more");
+    const html = renderHtml(parse(glued), { source: "glued.geml" });
+    assert.match(html, /Title: t/, "and the meta after it is the document's meta");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// Round 6 (P-8, P-9, P-10). Three data engines a small body could throw a
+// RangeError through: edn had no nesting bound (`[` or `#_` five thousand deep),
+// json had none past JSON.parse (fifty thousand levels, then the first recursive
+// reader overflowed), and a yaml block scalar took Math.min over one argument
+// per line. Each is now a `data-parse` diagnostic, or simply a value.
+test("round 6: deep or long data bodies are diagnostics, never a RangeError", () => {
+  const block = (fmt, body) => `=== data {#d format=${fmt}}\n${body}\n===\n`;
+  const deep = 5000;
+  for (const [what, src] of [
+    ["edn vectors", block("edn", "[".repeat(deep) + "]".repeat(deep))],
+    ["edn discards", block("edn", "#_".repeat(deep) + "1 2")],
+    ["json arrays", block("json", "[".repeat(50000) + "]".repeat(50000)) + "\nSee [[#d[0]]].\n"],
+    ["jsonl line", block("jsonl", "[".repeat(50000) + "]".repeat(50000))],
+  ]) {
+    const doc = parse(src);
+    assert.ok(doc.diagnostics.some((d) => d.code === "data-parse" && /nesting deeper than 200/.test(d.message)), `${what}: no nesting diagnostic\n${JSON.stringify(doc.diagnostics.slice(0, 2))}`);
+    assert.doesNotThrow(() => serialize(doc), `${what}: the serializer still walks the model`);
+  }
+  const ok = parse(block("edn", "[".repeat(150) + "]".repeat(150)));
+  assert.ok(!ok.diagnostics.some((d) => d.code === "data-parse"), "a body inside the bound reads");
+  const scalar = parse(block("yaml", "k: |\n" + "  x\n".repeat(140000)));
+  assert.ok(!scalar.diagnostics.some((d) => d.severity === "error"), JSON.stringify(scalar.diagnostics.slice(0, 2)));
+  assert.equal(scalar.children[0].value.k.length, 140000 * 2);
+});
+
+// Round 6 (P-2, P-10, P-11). Work that grew with the square of the input:
+// `{` after a link or image rescanned to the paragraph's end each time (280 KB:
+// 10 s), a yaml `- k: v` sequence spliced its lines one item at a time (700 KB:
+// 4.5 s), and `geml list` searched the whole tree once per row (20k headings:
+// 6.5 s, 40k anonymous blocks: 14 s). Each is a single pass now; the bounds
+// below are generous and still far under what the quadratic forms took.
+test("round 6: attribute braces, yaml sequences and listings stay linear", () => {
+  const timed = (fn) => { const t = Date.now(); fn(); return Date.now() - t; };
+  assert.ok(timed(() => parse("[a](b){".repeat(40000) + "\n")) < 3000, "an unclosed `{` after each link");
+  assert.ok(timed(() => parse("![a](b){".repeat(40000) + "\n")) < 3000, "and after each image");
+  const seq = parse("=== data {#d format=yaml}\n" + "- k: v\n".repeat(100000) + "===\n");
+  assert.equal(seq.children[0].value.length, 100000);
+  const dir = mkdtempSync(join(tmpdir(), "geml-sec-round6-list-"));
+  try {
+    writeFileSync(join(dir, "h.geml"), Array.from({ length: 20000 }, (_, i) => `# h${i}\n`).join("\n"));
+    writeFileSync(join(dir, "a.geml"), "=== note\nx\n===\n\n".repeat(20000).replace(/x/g, () => String(Math.random())));
+    for (const f of ["h.geml", "a.geml"]) {
+      const t = Date.now();
+      const r = spawnSync(process.execPath, [join(process.cwd(), "dist/geml.js"), "list", f], { cwd: dir, encoding: "utf8", timeout: 60000 });
+      assert.equal(r.status, 0, r.stderr);
+      assert.ok(Date.now() - t < 5000, `list ${f} took ${Date.now() - t} ms`);
+    }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// Round 6 (P-7). Three expanders bounded a transclusion chain's depth (16) and
+// not its total, so six embeds a file, nested, were 6^16 expansions: `style
+// check` passed twenty seconds at seven levels, `--to md` at eight, and a
+// `--view` chain fanned out the same way. Each now stops at the renderer's total
+// (EMBED_TOTAL_CAP) — and says so — where `check` and `--to html` always did.
+test("round 6: the stylesheet loader, the Markdown export and --view bound their total expansions", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-sec-round6-fan-"));
+  try {
+    for (let k = 0; k <= 10; k++) {
+      const next = k < 10 ? Array.from({ length: 6 }, () => `=== embed {src=e${k + 1}.geml}\n===\n`).join("\n") : "leaf text\n";
+      writeFileSync(join(dir, `e${k}.geml`), next);
+      const rule = k < 10 ? Array.from({ length: 6 }, () => `=== embed {src=s${k + 1}.geml}\n===\n`).join("\n") : '=== style-rule {match="p" emphasis=strong}\n===\n';
+      writeFileSync(join(dir, `s${k}.geml`), `=== meta\nprofile = "geml-style/v1"\n===\n\n${rule}`);
+    }
+    writeFileSync(join(dir, "doc.geml"), "hello\n");
+    const cli = (...args) => {
+      const t = Date.now();
+      const r = spawnSync(process.execPath, [join(process.cwd(), "dist/geml.js"), ...args], { cwd: dir, encoding: "utf8", timeout: 60000 });
+      return { ...r, ms: Date.now() - t };
+    };
+    const style = cli("style", "check", "s0.geml", "doc.geml");
+    assert.ok(style.ms < 10000, `style check took ${style.ms} ms`);
+    assert.equal((style.stdout + style.stderr).match(/expansion budget spent/g)?.length, 1, `said once:\n${(style.stdout + style.stderr).slice(0, 400)}`);
+    const md = cli("e0.geml", "--to", "md");
+    assert.equal(md.status, 0, md.stderr);
+    assert.ok(md.ms < 10000, `--to md took ${md.ms} ms`);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// Round 6 (O-9, O-10). `media build` spliced a clip's `gain` into the ffmpeg
+// filtergraph as written — `0dB[mid];[mid]volume=0.3` opened a chain of its own —
+// and handed each asset's `src` to `-i` as written, where ffmpeg reads protocol
+// syntax: `concat:a.wav|secret.wav` pulled in a file the timeline never declared.
+// A gain is a dB value or nothing; an input goes through the file protocol, and
+// the CLI refuses one that is not a regular file inside the media root.
+test("round 6: media build neither splices a gain into the filtergraph nor lets a src choose ffmpeg's protocol", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-sec-round6-media-"));
+  try {
+    const lib = (vo) => `=== meta\nprofile = "geml-media/v1"\n===\n\n=== media-asset {#clip src=clip.mp4 kind=video duration=4}\n===\n\n=== media-asset {#vo src="${vo}" kind=audio duration=2}\n===\n`;
+    const cut = (libName, gain) => `=== meta\nprofile = "geml-media/v1"\n===\n\n==== media {#tl tracks="v:video a:audio"}\n\n=== media-clip {#c1 track=v src=${libName}#clip in=0 out=4}\n===\n\n=== media-clip {#vo1 track=a src=${libName}#vo in=0 duration=2 over=#c1 offset=0 gain="${gain}"}\n===\n\n====\n`;
+    for (const f of ["clip.mp4", "a.wav", "secret.wav"]) writeFileSync(join(dir, f), "x");
+    writeFileSync(join(dir, "lib.geml"), lib("a.wav"));
+    writeFileSync(join(dir, "lib2.geml"), lib("concat:a.wav|secret.wav"));
+    writeFileSync(join(dir, "cut.geml"), cut("lib.geml", "0dB[mid];[mid]volume=0.3"));
+    writeFileSync(join(dir, "cut2.geml"), cut("lib2.geml", "-6dB"));
+    const io = profileIoFor(dir);
+    const plan = buildPlan("cut.geml", join(dir, "out.mp4"), io);
+    const graph = plan.args[plan.args.indexOf("-filter_complex") + 1];
+    assert.doesNotMatch(graph, /\[mid\]|volume=0\.3/, `the gain reached the filtergraph: ${graph}`);
+    assert.ok(plan.notes.some((n) => /不是 dB 数值/.test(n)), "and the build says why it was dropped");
+    const good = buildPlan("cut2.geml", join(dir, "out.mp4"), io);
+    assert.match(good.args[good.args.indexOf("-filter_complex") + 1], /volume=-6dB/, "a dB gain is still applied");
+    const inputs = good.args.filter((_, k) => good.args[k - 1] === "-i");
+    assert.ok(inputs.every((a) => a.startsWith("file:")), `every input goes through the file protocol: ${inputs}`);
+    // The CLI checks the inputs before it looks for ffmpeg, so this holds on a
+    // machine without one too.
+    const r = spawnSync(process.execPath, [join(process.cwd(), "dist/geml.js"), "media", "build", "cut2.geml", "--out", "out.mp4"],
+      { cwd: dir, encoding: "utf8", timeout: 60000, env: { ...process.env, PATH: "" } });
+    assert.notEqual(r.status, 0, r.stdout + r.stderr);
+    assert.match(r.stderr, /concat:a\.wav\|secret\.wav/, "the refusal names the src");
+    assert.doesNotMatch(r.stdout, /secret\.wav/, "and no command carrying it is printed");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// Round 6 (P-5, P-6, R-3, R-8, R-15). Five more places one document could make
+// the checker's work grow far past its size: a coordinate or projection per line
+// re-read and re-parsed its target (a document naming itself, 116 KB: 7 s); the
+// transclusion cycle walk re-selected a whole target at every step (3000 embeds
+// of 600 KB: 15 s); views written consumer-first resolved one link per sweep of
+// all of them (8000 views: minutes); a media prompt projecting itself three
+// times expanded 3^16 times (276 B: 20 s), and one projecting the next block
+// four times, sixteen deep, spelled out 4^16 characters; and every `=== x\` line
+// folded the rest of a run of them (40,000 lines: past 40 s).
+test("round 6: the checker's cross-document and fold work stays near the size of what it reads", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-sec-round6-work-"));
+  const check = (f) => {
+    const t = Date.now();
+    const r = spawnSync(process.execPath, [join(process.cwd(), "dist/geml.js"), "check", f], { cwd: dir, encoding: "utf8", timeout: 60000 });
+    return { ms: Date.now() - t, out: r.stdout + r.stderr, status: r.status };
+  };
+  try {
+    const rows = Array.from({ length: 200 }, (_, i) => `| r${i} | ${i} |`).join("\n");
+    writeFileSync(join(dir, "self.geml"), `=== table {#t}\n| k | v |\n|---|---|\n${rows}\n===\n\n` + Array.from({ length: 4000 }, (_, i) => `See [[self.geml#t[${i % 200}]["v"]]].\n`).join("\n"));
+    writeFileSync(join(dir, "big.geml"), Array.from({ length: 20000 }, (_, i) => `=== note {#n${i}}\nbody ${i}\n===\n`).join("\n"));
+    writeFileSync(join(dir, "wide.geml"), Array.from({ length: 3000 }, () => "=== embed {src=big.geml}\n===\n").join("\n"));
+    writeFileSync(join(dir, "views.geml"), Array.from({ length: 8000 }, (_, i) => `=== view {#v${i} src=#v${i + 1}}\n===\n`).join("\n") + "\n=== table {#v8000}\n| a |\n|---|\n| 1 |\n===\n");
+    writeFileSync(join(dir, "fold.geml"), "=== x\\\n".repeat(40000));
+    const prompt = (ref, blocks) => `=== meta\nprofile = "geml-media/v1"\n===\n\n=== media-asset {#a src=a.png sha256=abc}\n===\n\n${blocks}\n=== data {.gen-log}\n[{"output": "#a", "output-sha256": "abc", "model": "m", "mode": "m", "at": "2026", "prompt": "${ref}", "prompt-sha256": "x"}]\n===\n`;
+    writeFileSync(join(dir, "prompt.geml"), prompt("#p", "=== text {#p}\n![[#p]] ![[#p]] ![[#p]] ![[#p]]\n===\n"));
+    const diamond = Array.from({ length: 16 }, (_, i) => `=== text {#p${i}}\n${Array(4).fill(`![[#p${i + 1}]]`).join(" ")}\n===\n`).join("\n");
+    writeFileSync(join(dir, "diamond.geml"), prompt('#p0', `${diamond}\n=== text {#p16}\nx\n===\n`));
+    for (const f of ["self.geml", "wide.geml", "views.geml", "fold.geml", "prompt.geml", "diamond.geml"]) {
+      const r = check(f);
+      assert.ok(r.ms < 10000, `check ${f} took ${r.ms} ms`);
+      assert.doesNotMatch(r.out, /RangeError|Invalid string length/, f);
+    }
+    const views = check("views.geml");
+    assert.equal((views.out.match(/deep; the bound is 16/g) ?? []).length, 8000 - 16, "every view past the bound says so, and only those");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// Round 6 (V-8). §4: a `{hidden}` block or heading stays in the model and is
+// never rendered — so nothing in it is for a reader in any language, and a
+// translator is often somebody else's machine (VS Code asks the editor's
+// language model). translateBlocks walks once to collect what to send and once
+// to substitute; a hidden block, its table cells and its caption take neither.
+test("round 6: translateBlocks never hands a hidden block or heading to the translator", () => {
+  const src = [
+    "# Shown {#s}", "", "Visible text.", "", "## Secret heading {#h hidden}", "",
+    "=== note {#n hidden}", "HIDDEN-NOTE-TEXT", "===", "",
+    '=== table {#t caption="HIDDEN-CAPTION" hidden}', "| HIDDEN-COLUMN | b |", "|---|---|", "| HIDDEN-CELL | 1 |", "===", "",
+    "==== text {#x}", "Shown inside.", "", "=== note {#inner hidden}", "HIDDEN-NESTED", "===", "", "====", "",
+  ].join("\n");
+  const doc = parse(src);
+  assert.deepEqual(doc.diagnostics.filter((d) => d.severity === "error"), []);
+  const sent = [];
+  const out = translateBlocks(doc.children, "fr", (t) => { sent.push(t); return "FR:" + t; });
+  for (const secret of ["Secret heading", "HIDDEN-NOTE-TEXT", "HIDDEN-CAPTION", "HIDDEN-COLUMN", "HIDDEN-CELL", "HIDDEN-NESTED"]) {
+    assert.ok(!sent.some((t) => t.includes(secret)), `${secret} was sent: ${JSON.stringify(sent)}`);
+  }
+  assert.ok(sent.includes("Visible text.") && sent.includes("Shown inside."), "visible prose is still sent");
+  // A hidden block comes back as it was: in the model, untranslated.
+  const hidden = out.filter((b) => b.hidden === true);
+  assert.deepEqual(hidden, doc.children.filter((b) => b.hidden === true));
+});
+
+// Round 6 (R-19, on the reference side). Applying one reverse patch re-keyed the
+// live document after every move and insert, hashing every unit afresh each
+// time: a revision that reorders a few thousand paragraphs cost seconds to
+// verify. A unit's key is a hash of its text, so the hashes are remembered by
+// text. Re-tiling per op remains, and is cheap beside the hashing it carried:
+// 4000 paragraphs verify in about a second where they took three and a half.
+test("round 6: verifying a revision that reorders thousands of units stays fast", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-sec-round6-moves-"));
+  try {
+    const geml = join(dir, "doc.geml");
+    const hist = join(dir, "doc.gemlhistory");
+    const paras = Array.from({ length: 4000 }, (_, i) => `paragraph ${i} ${"x".repeat(40)}`);
+    writeFileSync(geml, paras.join("\n\n") + "\n");
+    save({ gemlPath: geml, historyPath: hist, summary: "first", author: "t", at: new Date(Date.UTC(2026, 0, 1)) });
+    // Every other paragraph moved to the end: a patch of moves, not of new text.
+    writeFileSync(geml, [...paras.filter((_, i) => i % 2 === 0), ...paras.filter((_, i) => i % 2 === 1)].join("\n\n") + "\n");
+    save({ gemlPath: geml, historyPath: hist, summary: "reordered", author: "t", at: new Date(Date.UTC(2026, 0, 2)) });
+    const t0 = Date.now();
+    const v = verify(hist, geml);
+    const ms = Date.now() - t0;
+    assert.equal(v.ok, true, v.errors.join("; "));
+    assert.ok(ms < 2500, `verify took ${ms} ms`);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// Round 6 (R-18; geml-history §8). A sidecar holding two revisions under one id,
+// each consistent with its own hash, verified clean — and reconstructed one text
+// where the first was taken and another where the last was. An id names one
+// revision, keyframe or blob, and a sidecar names one `current`: either sharing
+// is corruption now.
+test("round 6: history verify reports an id shared by two revisions, keyframes or blobs, and a second current", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-sec-round6-hist-"));
+  try {
+    const geml = join(dir, "doc.geml");
+    const hist = join(dir, "doc.gemlhistory");
+    writeFileSync(geml, "# Doc\n\nApproved wording.\n");
+    save({ gemlPath: geml, historyPath: hist, summary: "a", author: "t", at: new Date(Date.UTC(2026, 0, 1)) });
+    writeFileSync(geml, "# Doc\n\nNew wording.\n");
+    save({ gemlPath: geml, historyPath: hist, summary: "b", author: "t", at: new Date(Date.UTC(2026, 0, 2)) });
+    assert.equal(verify(hist, geml).ok, true, "the sidecar as written verifies");
+    const src = readFileSync(hist, "utf8");
+    const rev = /^(=+) history-revision \{[^\n]*\n[\s\S]*?^\1\n/m.exec(src);
+    assert.ok(rev, "the sidecar has a revision block to repeat");
+    writeFileSync(hist, src + "\n" + rev[0]);
+    const v = verify(hist, geml);
+    assert.equal(v.ok, false, "a repeated revision id is corruption");
+    assert.ok(v.errors.some((e) => /two revisions share the id/.test(e)), v.errors.join("; "));
+    writeFileSync(hist, src.replace(/^(current\s*=.*)$/m, "$1\ncurrent = \"other\""));
+    const c = verify(hist, geml);
+    assert.ok(c.errors.some((e) => /names `current` 2 times/.test(e)), c.errors.join("; "));
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// Round 6 (document-wide cells; §9.2). `table-cells` bounds one relation, and a
+// document can hold any number: twenty `=== view {src=#t limit=1}` lines over one
+// million-cell table held twenty copies of it — 2.6 GB from 2 MB of input — and
+// a `table {src=big.csv}` repeated read the file once per block. Every relation a
+// document reads from elsewhere now spends from one budget, refused before the
+// copy or the read once it is spent.
+test("round 6: views and data files share one document budget of borrowed cells", () => {
+  const width = 1000;
+  const header = Array.from({ length: width }, (_, i) => `c${i}`).join(",");
+  const row = Array(width).fill("v").join(",");
+  const csv = [header, ...Array(1000).fill(row)].join("\n");
+  const fit = Math.floor(BORROWED_CELLS / (width * 1000));
+  const n = fit + 6;
+  const refused = (doc) => doc.diagnostics.filter((d) => d.code === "table-too-large" && /read from elsewhere/.test(d.message));
+
+  const t0 = Date.now();
+  const views = parse(`=== table {#t format=csv header=1}\n${csv}\n===\n\n` + Array.from({ length: n }, (_, i) => `=== view {#v${i} src=#t limit=1}\n===\n`).join("\n"));
+  const vs = views.children.filter((b) => b.type === "view");
+  assert.equal(refused(views).length, n - fit, "every view past the budget is refused");
+  assert.deepEqual(vs.map((b) => b.table.rows.length), [...Array(fit).fill(1), ...Array(n - fit).fill(0)]);
+  assert.equal(vs.at(-1).table.columns.length, width, "a refused view keeps its source's columns");
+
+  const files = parse(Array.from({ length: n }, (_, i) => `=== table {#f${i} src=big.csv format=csv}\n===\n`).join("\n"), { resolveDoc: () => csv });
+  const fs = files.children.filter((b) => b.type === "table");
+  assert.equal(refused(files).length, n - fit, "every data file past the budget is refused");
+  assert.deepEqual(fs.map((b) => b.table.rows.length), [...Array(fit).fill(1000), ...Array(n - fit).fill(0)]);
+  assert.ok(Date.now() - t0 < 20000, `took ${Date.now() - t0} ms`);
+});
+
+// Round 6 (§6.1 column lists). A quote opens a name only at the start of an
+// entry, and the split says so with a flag — trimming the entry at every quote
+// to ask was quadratic in a `select=` of quotes.
+test("round 6: a column list of quotes splits in linear time", () => {
+  const t0 = Date.now();
+  const doc = parse(`=== table {#t format=csv header=1}\nN\n1\n===\n\n=== view {#v src=#t select="N${"'".repeat(200000)}" order="N${"'".repeat(200000)}"}\n===\n`);
+  assert.ok(doc.diagnostics.some((d) => d.code === "view-unknown-column"));
+  assert.ok(Date.now() - t0 < 2000, `took ${Date.now() - t0} ms`);
 });

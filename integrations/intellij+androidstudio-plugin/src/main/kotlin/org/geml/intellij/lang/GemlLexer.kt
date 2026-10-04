@@ -54,9 +54,20 @@ class GemlLexer : LexerBase() {
   override fun getBufferEnd(): Int = bufferEnd
 
   private companion object {
-    val FENCE_OPEN = Regex("^(={3,})([ \\t]+)([A-Za-z][A-Za-z0-9_-]*)([ \\t]*)(\\{[^}]*})?([ \\t]*)$")
+    // The blanks around the attribute list are possessive: giving them back
+    // never makes a match, and trying to costs a pass over the rest of the run
+    // per blank — quadratic on a fence line padded with spaces.
+    val FENCE_OPEN = Regex("^(={3,})([ \\t]+)([A-Za-z][A-Za-z0-9_-]*)([ \\t]*+)(\\{[^}]*})?([ \\t]*+)$")
     val FENCE_CLOSE = Regex("^(={3,})([ \\t]*)$")
-    val HEADING = Regex("^(#{1,6})([ \\t]+)(.*?)([ \\t]*)(\\{[^}]*})?([ \\t]*)$")
+
+    /**
+     * The mark, its blanks, and the rest of the line, which headingRest() then
+     * splits. Splitting it here, with a lazy text group ahead of optional blanks
+     * and an optional `{…}`, backtracks cubically on a long run of spaces —
+     * seconds for one line of two thousand, on every re-lex. Possessive
+     * throughout, so a line that is not a heading fails in one pass too.
+     */
+    val HEADING = Regex("^(#{1,6}+)([ \\t]++)(.*+)$")
 
     /**
      * Blocks whose body is not prose, so a `*` in it is a character and not
@@ -67,6 +78,8 @@ class GemlLexer : LexerBase() {
     val RAW_BODY_TYPES = setOf("code", "math", "data", "csv", "jsonl")
 
     fun isIdChar(c: Char) = c.isLetterOrDigit() || c == '_' || c == '-'
+
+    fun isBlank(c: Char) = c == ' ' || c == '\t'
   }
 
   // -------------------------------------------------------------------------
@@ -135,15 +148,39 @@ class GemlLexer : LexerBase() {
     if (heading != null) {
       group(out, heading, 1, start, GemlTokens.HEADING_MARK)
       group(out, heading, 2, start, TokenType.WHITE_SPACE)
-      group(out, heading, 3, start, GemlTokens.HEADING_TEXT)
-      group(out, heading, 4, start, TokenType.WHITE_SPACE)
-      heading.groups[5]?.let { attributes(out, text, start + it.range.first, start + it.range.last + 1) }
-      group(out, heading, 6, start, TokenType.WHITE_SPACE)
+      headingRest(out, text, start + heading.groups[2]!!.range.last + 1, end)
       return 0
     }
 
     inline(out, text, start, end)
     return 0
+  }
+
+  /**
+   * A heading's text, then the `{…}` attribute list when the line ends in one,
+   * with the blanks around each: the split `(.*?)([ \t]*)(\{[^}]*})?([ \t]*)$`
+   * makes, found in one pass from the end instead of by backtracking. The list
+   * is the `}` that ends the line, blanks aside, back to the FIRST `{` after
+   * the `}` before it — so `# a {b} {#c}` keeps `{b}` as text.
+   */
+  private fun headingRest(out: MutableList<Tok>, text: CharSequence, from: Int, to: Int) {
+    var end = to
+    while (end > from && isBlank(text[end - 1])) end--
+    var open = -1
+    if (end > from && text[end - 1] == '}') {
+      var p = end - 2
+      while (p >= from && text[p] != '}') {
+        if (text[p] == '{') open = p
+        p--
+      }
+    }
+    val braceStart = if (open >= 0) open else end
+    var textEnd = braceStart
+    while (textEnd > from && isBlank(text[textEnd - 1])) textEnd--
+    emit(out, GemlTokens.HEADING_TEXT, from, textEnd)
+    emit(out, TokenType.WHITE_SPACE, textEnd, braceStart)
+    if (open >= 0) attributes(out, text, open, end)
+    emit(out, TokenType.WHITE_SPACE, end, to)
   }
 
   /** The brace-delimited attribute list: `{#id .cls name=value}`. */

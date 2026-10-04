@@ -87,10 +87,11 @@ path reads the tree, not your working copy.
   deliberate act, never a side effect of a push.
 - **Watch for.** npm answers a duplicate version with a 403, so a second run on
   the same version fails loudly instead of clobbering — the MCP registry gives
-  the same safety. The npm job installs with `npm install`, not `npm ci`,
-  because the lockfile's own version field has historically trailed the release;
-  bump the lockfile too and both stay true. `npm test` runs as a pre-publish
-  gate, so a red suite cannot ship.
+  the same safety. The npm workflow installs with `npm ci`, so the lockfile's
+  version fields move in the release commit with package.json's. `npm test` runs
+  as a pre-publish gate, so a red suite cannot ship. The token never meets an
+  install: one job installs, tests and packs, and another publishes that tarball
+  and runs nothing else; the VS Code workflow is split the same way.
 - **Confirm.** `npm view @geml/geml version` · the provenance badge on the npm
   page (the workflow publishes with `--provenance`) ·
   `npx -y @geml/geml@<version> --version --json` prints both parser and spec.
@@ -370,7 +371,7 @@ listed here so the next reader does not read their absence as an omission.
 | Logseq is mirrored — not tagged in place | tagging first builds the zip from a stale checkout and names it with the OLD version | nothing — mirror; verify the mirror's plugin/package.json; then tag |
 | Lockfiles carry their own package's version | npm ci refuses and the CI lockfile job goes red | the per-package `npm ci --dry-run` job |
 | \_index/refresh.json can fall out of format | `geml codemap refresh` refuses an untrusted or out-of-date recipe — the version gate is a security fix: v1 steps are structured argv spawned without a shell | hand-write it; refresh.mjs calls it a recipe no tool rewrites. An AUTO-mode build re-records one but indexes a test fixture and bakes in an absolute path to the machine that ran it |
-| `codemap refresh` judges staleness by commit | it skips with *no source files changed since <sha>* while the source sits modified in the working tree — exactly when a developer needs it | nothing — pass `--force` whenever the change is not yet committed |
+| `codemap refresh` judges staleness by commit | it skips with *no source files changed since \<sha>* while the source sits modified in the working tree — exactly when a developer needs it | nothing — pass `--force` whenever the change is not yet committed |
 | Open VSX is the only listing, and it carries the parser | Cursor and Antigravity users sit on a package whose bundled parser is several releases old, because the extension version did not move | nothing — re-package and publish whenever the parser they should have changes, not only when the extension does |
 | A mirror release is not a marketplace listing | the plugin has releases up to v2.3.0 and is still undiscoverable in Logseq | nothing — `logseq/marketplace` PR #893 has to merge once |
 | The plugins have no publish gate | a broken skill is live the moment it merges | nothing — main IS the release for those two |

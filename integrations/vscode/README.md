@@ -96,15 +96,20 @@ The extension calls the GEML CLI; install it once:
 npm install -g @geml/geml
 ```
 
-If you'd rather not install it globally, set **`geml.check.path`** to
-`npx @geml/geml`.
+Or set **`geml.check.path`** to the CLI's absolute path. The extension looks
+the CLI up on PATH and never in the document's folder, and it refuses package
+runners such as `npx`, which would run whatever `@geml/geml` the opened
+folder's `node_modules` holds.
+
+In Restricted Mode only highlighting and the preview work; everything that runs
+the CLI starts once you trust the folder.
 
 ## Settings
 
 | Setting | Default | Description |
 |---|---|---|
 | `geml.check.enabled` | `true` | Run `geml check` and show diagnostics. |
-| `geml.check.path` | `geml` | How to invoke the CLI (a path, or `npx @geml/geml`). |
+| `geml.check.path` | `geml` | How to invoke the CLI: `geml` on PATH, or an absolute path. |
 
 ## Build from source
 

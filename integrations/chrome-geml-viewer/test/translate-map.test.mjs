@@ -103,6 +103,19 @@ test("a document with nothing translatable never calls the translator", async ()
   assert.equal(r.blocks, blocks, "and hands back exactly what it was given");
 });
 
+// Round 6 (V-9). The refusal bar links only a field the host set, never a URL
+// read out of the reason's text (which can carry what the document chose). So
+// the host's link has to travel as that field, or the reader loses it.
+test("round 6: a host refusal's link travels as its own field, apart from the reason", async () => {
+  const fix = "https://github.com/settings/copilot";
+  const r = await translateSliceWith(async () => ({ why: "Copilot Chat offers no model", link: fix }), blocksOf(DOC), "zh-cn");
+  assert.equal(r.ok, false);
+  assert.equal(r.why, "Copilot Chat offers no model");
+  assert.equal(r.link, fix);
+  const plain = await translateSliceWith(async () => ({ why: "no model" }), blocksOf(DOC), "zh-cn");
+  assert.equal("link" in plain, false, "no link unless the host gave one");
+});
+
 for (const [name, fn] of tests) {
   await fn();
   passed++;

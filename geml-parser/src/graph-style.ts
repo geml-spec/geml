@@ -84,7 +84,9 @@ function writtenKnobs(doc: { children: Block[] }): Partial<GraphStyle> {
   if (a["depth"] !== undefined) written.depth = num(a["depth"], defaultGraphStyle().depth);
   if (a["hide-accessors"] !== undefined) written.hideAccessors = bool(a["hide-accessors"], true);
   if (a["palette"] !== undefined) {
-    const list = String(a["palette"]).split(/\s+/).filter((x) => x.length > 0);
+    // 只收颜色：`#hex` 或一个颜色名。值会进 SVG 的 style 和 chip 的背景，
+    // 而这份文件是仓库内容 —— `url(https://…)` 能让公开的 codemap 页面替作者去取第三方资源。
+    const list = String(a["palette"]).split(/\s+/).filter((x) => /^#[0-9a-f]{3,8}$|^[a-z]+$/i.test(x));
     if (list.length > 0) written.palette = list;
   }
   return written;

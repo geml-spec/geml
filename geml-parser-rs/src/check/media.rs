@@ -13,7 +13,8 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use super::{addr, Out};
+use super::{addr, timeline, Out};
+use crate::bounds::{CHAIN_DEPTH, EMBED_TOTAL, MEDIA_APART_PX, MEDIA_MAX_TIME};
 use crate::host::{FileState, Host};
 use crate::json::Value;
 use crate::model::{Block, Document, Inline, Item};
@@ -138,22 +139,36 @@ fn block_text(s: &Snap, expand: &mut dyn FnMut(&Inline) -> Option<String>) -> St
 /// replaced by the projected block's text by the same rule, recursively to
 /// GEML §9.3's depth bound of 16.
 fn prompt_text(r: &Resolver, index: &Rc<Index>, s: &Snap) -> String {
-    prompt_text_at(r.host, index, &r.name, s, 0)
+    let path: Vec<String> = s.id.iter().map(|id| format!("{}#{id}", r.name)).collect();
+    prompt_text_at(r.host, index, &r.name, s, 0, &path, &mut 0)
 }
 
-fn prompt_text_at(host: Option<&dyn Host>, index: &Rc<Index>, name: &str, s: &Snap, depth: usize) -> String {
+/// Profile §6: the depth bound alone let a block projecting itself three
+/// times run 3^16 expansions, and one projecting the next block four times,
+/// sixteen deep, spell out 4^16 characters. A projection whose target is
+/// already on the path is a cycle — the core reports it — and gives nothing;
+/// and every expansion counts, `spent` against `EMBED_TOTAL` for the whole
+/// prompt, after which a projection gives nothing: cut depth-first, in order.
+fn prompt_text_at(host: Option<&dyn Host>, index: &Rc<Index>, name: &str, s: &Snap, depth: usize, path: &[String], spent: &mut usize) -> String {
     let mut expand = |n: &Inline| -> Option<String> {
         let Inline::Project { doc, anchor, .. } = n else { return None };
-        if depth >= 16 {
+        let next = match doc {
+            Some(d) => crate::host::join(name, d).unwrap_or_else(|| name.to_string()),
+            None => name.to_string(),
+        };
+        let key = format!("{next}#{anchor}");
+        if path.contains(&key) {
+            return None;
+        }
+        *spent += 1;
+        if *spent > EMBED_TOTAL {
             return None;
         }
         match Resolver::new(index.clone(), host, name).target(doc.as_deref(), anchor) {
-            Target::Hit { index: ix, found: Found::Block(i), .. } => {
-                let next = match doc {
-                    Some(d) => crate::host::join(name, d).unwrap_or_else(|| name.to_string()),
-                    None => name.to_string(),
-                };
-                Some(prompt_text_at(host, &ix, &next, &ix.snaps[i], depth + 1))
+            // A target past the depth bound is reached, and counted, but gives nothing.
+            Target::Hit { index: ix, found: Found::Block(i), .. } if depth < CHAIN_DEPTH => {
+                let deeper: Vec<String> = path.iter().cloned().chain([key]).collect();
+                Some(prompt_text_at(host, &ix, &next, &ix.snaps[i], depth + 1, &deeper, spent))
             }
             _ => None,
         }
@@ -161,8 +176,6 @@ fn prompt_text_at(host: Option<&dyn Host>, index: &Rc<Index>, name: &str, s: &Sn
     block_text(s, &mut expand)
 }
 
-/// One line of a comp's canonical text: the type, the `#id` when there is
-/// one, and the attributes sorted by key, separated by single spaces.
 fn canonical_line(type_name: &str, id: Option<&str>, attrs: &[(String, String)]) -> String {
     let mut a: Vec<&(String, String)> = attrs.iter().collect();
     a.sort();
@@ -252,6 +265,100 @@ pub fn check(doc: &Document, host: Option<&dyn Host>, out: &mut Out) {
         }
     }
     lineage(doc, &r, out);
+    gains_and_times(doc, &r, out);
+}
+
+/// A time as a cut or an asset writes one (§3.2): seconds, or a timecode at
+/// the timeline's `fps`.
+fn time_of(v: Option<&Value>, fps: Option<f64>) -> Option<f64> {
+    match v? {
+        Value::Number(n) => Some(*n),
+        Value::String(s) if s.contains(':') => timeline::timecode(s, fps),
+        Value::String(s) => {
+            let t = s.trim();
+            timeline::is_decimal(t.strip_prefix(['+', '-']).unwrap_or(t)).then(|| t.parse().ok()).flatten()
+        }
+        _ => None,
+    }
+}
+
+/// §4 and §3.2: a `gain` is decibels with the unit, since it is written into
+/// the player's graph and ffmpeg's filtergraph; every time is finite and at most
+/// `MEDIA_MAX_TIME`, and so is where a cut ends on its timeline — a timeline is
+/// drawn and built in proportion to its length.
+fn gains_and_times(doc: &Document, r: &Resolver, out: &mut Out) {
+    let name = doc.name.as_str();
+    let past = |t: Option<f64>| t.is_some_and(|t| !(t.is_finite() && t <= MEDIA_MAX_TIME));
+    let too_long = |out: &mut Out, a: String, what: &str, t: f64| {
+        let said = if t.is_finite() { format!("{t} s") } else { "not finite".into() };
+        out.push("media-time-out-of-range", E, a, format!("{what} is {said}; a time is at most {MEDIA_MAX_TIME} s"));
+    };
+    let mut blocks = Vec::new();
+    crate::resolve::walk(&doc.children, &mut blocks);
+    for it in &blocks {
+        if let Item::Block(b) = it {
+            if b.type_name == "media-asset" {
+                let d = time_of(b.attr("duration"), None);
+                if past(d) {
+                    too_long(out, addr(name, b), "`duration`", d.unwrap_or(f64::NAN));
+                }
+            }
+        }
+    }
+    let mut reported: std::collections::HashSet<String> = std::collections::HashSet::new();
+    fn visit(items: &[Item], fps: Option<f64>, f: &mut dyn FnMut(&Block, Option<f64>)) {
+        for it in items {
+            let Item::Block(b) = it else { continue };
+            let own = if b.type_name == "media" { time_of(b.attr("fps"), None) } else { fps };
+            f(b, own);
+            visit(&b.children, own, f);
+        }
+    }
+    visit(&doc.children, None, &mut |b, fps| {
+        if !(b.type_name == "media-clip" || (b.type_name == "media" && b.attr("src").is_some())) {
+            return;
+        }
+        if let Some(gain) = b.attr_text("gain") {
+            if !is_decibels(gain.trim()) {
+                out.push("media-gain-invalid", E, addr(name, b), format!("`gain={gain}` is not decibels (write `-14dB`)"));
+            }
+        }
+        for k in ["in", "out", "duration", "offset", "at"] {
+            let t = time_of(b.attr(k), fps);
+            if past(t) {
+                if let Some(id) = &b.id {
+                    if reported.insert(id.clone()) {
+                        too_long(out, addr(name, b), &format!("`{k}`"), t.unwrap_or(f64::NAN));
+                    }
+                }
+            }
+        }
+    });
+    let duration_of = |reference: &str| match hit(r, reference) {
+        Hit::Block(ix, i) if ix.snaps[i].type_name == "media-asset" => {
+            time_of(ix.snaps[i].attrs.iter().find(|(k, _)| k == "duration").map(|(_, v)| v), None).filter(|d| d.is_finite())
+        }
+        _ => None,
+    };
+    for tl in timeline::layouts(&doc.children, &duration_of) {
+        for c in tl {
+            let end = c.start + c.duration;
+            if past(Some(end)) && reported.insert(c.id.clone()) {
+                too_long(out, format!("{name}#{}", c.id), "where the cut ends on its timeline", end);
+            }
+        }
+    }
+}
+
+/// `-?\d+(\.\d+)?\s*dB`, the unit in any case.
+fn is_decibels(g: &str) -> bool {
+    let Some(n) = g.len().checked_sub(2).filter(|n| g.is_char_boundary(*n) && g[*n..].eq_ignore_ascii_case("db")).map(|n| g[..n].trim_end()) else {
+        return false;
+    };
+    let n = n.strip_prefix('-').unwrap_or(n);
+    let (int, frac) = n.split_once('.').map_or((n, None), |(a, b)| (a, Some(b)));
+    let digits = |x: &str| !x.is_empty() && x.bytes().all(|b| b.is_ascii_digit());
+    digits(int) && frac.map_or(true, digits)
 }
 
 fn collect_comps(name: &str, items: &[Item], out: &mut Vec<(String, f64, String)>) {
@@ -424,22 +531,73 @@ fn media_block(doc: &Document, r: &Resolver, m: &Block, meta_tracks: Option<&str
     }
 }
 
+/// Whether an asset's `src=` is a file this checker opens. The file goes to a
+/// player and to ffmpeg, which read a scheme (`concat:`, `http:`) as an
+/// instruction (§3), so it is judged as a user agent reads it, C0 controls and
+/// spaces removed (GEML §9.4): no scheme, no leading `/`, no backslash.
+fn relative(src: &str) -> bool {
+    let read: String = src.chars().filter(|c| *c > ' ').collect();
+    let scheme = read.split_once(':').is_some_and(|(s, _)| {
+        let mut cs = s.chars();
+        cs.next().is_some_and(|c| c.is_ascii_alphabetic()) && cs.all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '.' | '-'))
+    });
+    !(scheme || read.starts_with('/') || read.contains('\\'))
+}
+
+/// An asset's current value (§6): the SHA-256 of the bytes its file has now,
+/// in lowercase hex. `None` when the file cannot be read — it is not there, or
+/// its `src=` is not a relative path — and then its lineage is not checked.
+fn current_value(host: Option<&dyn Host>, home: &str, s: &Snap) -> Option<String> {
+    let src = s.attr_text("src").filter(|x| !x.is_empty())?;
+    if !relative(&src) {
+        return None;
+    }
+    match crate::host::file_from(host?, home, &src)? {
+        FileState::Present(h) => Some(h.to_ascii_lowercase()),
+        FileState::Missing => None,
+    }
+}
+
+/// A recorded hash as it compares: hex digits without regard to case (§6).
+fn hex(v: Option<String>) -> Option<String> {
+    v.map(|h| h.to_ascii_lowercase())
+}
+
 fn asset(r: &Resolver, b: &Block, a: &str, out: &mut Out) {
     let declared = b.attr_text("sha256");
-    if declared.is_none() {
-        out.push("media-asset-unhashed", W, a.to_string(), "the asset carries no `sha256`, so its lineage cannot be checked");
-    }
-    if let (Some(host), Some(src)) = (r.host, b.attr_text("src")) {
-        match crate::host::file_from(host, &r.name, &src) {
-            Some(FileState::Missing) => out.push("media-file-missing", W, a.to_string(), format!("`{src}` is not there")),
-            Some(FileState::Present(h)) => {
-                if let Some(d) = &declared {
-                    if !h.eq_ignore_ascii_case(d) {
-                        out.push("media-hash-mismatch", E, a.to_string(), format!("`{src}` hashes to {h}, and the asset declares {d}"));
+    let Some(src) = b.attr_text("src").filter(|s| !s.is_empty()) else {
+        out.push("media-src-unresolved", E, a.to_string(), "a `media-asset` carries no `src=`");
+        return;
+    };
+    // A file this checker would not open is neither found nor hashed.
+    if !relative(&src) {
+        out.push(
+            "media-src-not-relative",
+            E,
+            a.to_string(),
+            format!("`{src}` is not a relative path: a scheme, a leading `/` or a backslash is not handed to a player or to ffmpeg"),
+        );
+    } else {
+        if declared.is_none() {
+            out.push(
+                "media-asset-unhashed",
+                W,
+                a.to_string(),
+                "the asset carries no `sha256`, so whether its file is the one the library describes cannot be checked",
+            );
+        }
+        if let Some(host) = r.host {
+            match crate::host::file_from(host, &r.name, &src) {
+                Some(FileState::Missing) => out.push("media-file-missing", W, a.to_string(), format!("`{src}` is not there")),
+                Some(FileState::Present(h)) => {
+                    if let Some(d) = &declared {
+                        if !h.eq_ignore_ascii_case(d) {
+                            out.push("media-hash-mismatch", E, a.to_string(), format!("`{src}` hashes to {h}, and the asset declares {d}"));
+                        }
                     }
                 }
+                None => {}
             }
-            None => {}
         }
     }
     if let Some(of) = b.attr_text("of") {
@@ -612,7 +770,7 @@ fn interaction(x: &Block, name: &str, layers: &mut [Layer], out: &mut Out) {
         }
         Some(_) => {
             let d = if kind == "gaze" { (f.1 - m.1).abs() } else { ((f.0 - m.0).powi(2) + (f.1 - m.1).powi(2)).sqrt() };
-            if d > 2.0 {
+            if d > MEDIA_APART_PX {
                 out.push("media-interaction-apart", W, ia, format!("the two points end up {d:.1} px apart"));
             }
         }
@@ -723,7 +881,7 @@ fn log_of(index: &Index) -> Vec<Entry> {
                     Some(Value::String(o)) => Some(o.clone()),
                     _ => None,
                 },
-                output_sha: e.get("output-sha256").and_then(|v| v.scalar_text()),
+                output_sha: hex(e.get("output-sha256").and_then(|v| v.scalar_text())),
                 at: e.get("at").and_then(|v| v.scalar_text()).unwrap_or_default(),
                 value: e.clone(),
             });
@@ -757,15 +915,23 @@ impl<'a> Lineage<'a> {
         d
     }
 
-    /// The entry that made an asset's current bytes, in its home document.
-    fn current(&mut self, key: &str, r: &Resolver) -> Option<(Resolver<'a>, Rc<Vec<Entry>>, usize)> {
+    /// An asset's current value (§6), the asset named by its key.
+    fn value(&mut self, key: &str, r: &Resolver) -> Option<String> {
         let (home, id) = key.rsplit_once('#')?;
+        let (ix, _) = self.doc(home, r)?;
+        match ix.find(id) {
+            Some(Found::Block(i)) => current_value(self.host, home, &ix.snaps[i]),
+            _ => None,
+        }
+    }
+
+    /// The entry that made an asset's current bytes, in its home document:
+    /// none when the asset has no current value, or no entry matches it.
+    fn current(&mut self, key: &str, r: &Resolver) -> Option<(Resolver<'a>, Rc<Vec<Entry>>, usize)> {
+        let sha = self.value(key, r)?;
+        let (home, _) = key.rsplit_once('#')?;
         let (ix, entries) = self.doc(home, r)?;
         let rr = Resolver::new(ix.clone(), self.host, home);
-        let sha = match ix.find(id) {
-            Some(Found::Block(i)) => ix.snaps[i].attr_text("sha256")?,
-            _ => return None,
-        };
         let mut best: Option<&Entry> = None;
         for e in entries.iter() {
             let Some(o) = &e.output else { continue };
@@ -792,9 +958,12 @@ impl<'a> Lineage<'a> {
         let mut why: Option<String> = None;
         if let Some(Value::Array(inputs)) = e.value.get("inputs") {
             for inp in inputs {
-                let (Some(rf), rec) = (inp.get("ref").and_then(|v| v.scalar_text()), inp.get("sha256").and_then(|v| v.scalar_text())) else { continue };
-                let Some((ik, isnap)) = asset_key(&rr, &rf) else { continue };
-                if isnap.attr_text("sha256") != rec {
+                let (Some(rf), Some(rec)) = (inp.get("ref").and_then(|v| v.scalar_text()), hex(inp.get("sha256").and_then(|v| v.scalar_text()))) else {
+                    continue;
+                };
+                let Some((ik, _)) = asset_key(&rr, &rf) else { continue };
+                // An input with no current value does not count as changed (§6).
+                if self.value(&ik, &rr).is_some_and(|now| now != rec) {
                     why = Some(format!("input {rf} changed"));
                     break;
                 }
@@ -807,7 +976,8 @@ impl<'a> Lineage<'a> {
             }
         }
         if why.is_none() {
-            if let (Some(p), Some(rec)) = (e.value.get("prompt").and_then(|v| v.scalar_text()), e.value.get("prompt-sha256").and_then(|v| v.scalar_text())) {
+            if let (Some(p), Some(rec)) = (e.value.get("prompt").and_then(|v| v.scalar_text()), hex(e.value.get("prompt-sha256").and_then(|v| v.scalar_text())))
+            {
                 if prompt_hash(&rr, &p).is_some_and(|h| h != rec) {
                     why = Some(format!("the prompt {p} changed"));
                 }
@@ -816,7 +986,9 @@ impl<'a> Lineage<'a> {
         if why.is_none() {
             if let Some(Value::Array(refs)) = e.value.get("prompt-refs") {
                 for pr in refs {
-                    let (Some(rf), Some(rec)) = (pr.get("ref").and_then(|v| v.scalar_text()), pr.get("sha256").and_then(|v| v.scalar_text())) else { continue };
+                    let (Some(rf), Some(rec)) = (pr.get("ref").and_then(|v| v.scalar_text()), hex(pr.get("sha256").and_then(|v| v.scalar_text()))) else {
+                        continue;
+                    };
                     if prompt_hash(&rr, &rf).is_some_and(|h| h != rec) {
                         why = Some(format!("{rf}, which the prompt projects, changed"));
                         break;
@@ -888,9 +1060,10 @@ fn lineage(doc: &Document, r: &Resolver, out: &mut Out) {
     }
     produced.sort();
     for k in &produced {
-        let hashed = k.rsplit_once('#').and_then(|(_, id)| r.main.find(id)).and_then(|f| r.main.block(f)).is_some_and(|s| s.attr_text("sha256").is_some());
+        // An asset with no current value is no orphan: its lineage is not checked (§6).
+        let valued = lin.value(k, r).is_some();
         if lin.current(k, r).is_none() {
-            if hashed {
+            if valued {
                 out.push(
                     "media-orphan-record",
                     I,

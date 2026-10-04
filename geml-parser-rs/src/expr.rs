@@ -161,30 +161,31 @@ pub enum Expr {
     Num(f64),
     Col(String),
     Neg(Box<Expr>),
-    Bin(char, Box<Expr>, Box<Expr>),
+    /// A left-associative run of one precedence, `a + b - c` or `a * b / c`:
+    /// its first operand, then each operator and the operand after it. Flat,
+    /// so a long run is a list and not a tree as deep as the run is long.
+    Chain(Box<Expr>, Vec<(char, Expr)>),
     Agg(Agg, String),
 }
 
 impl Expr {
-    pub fn has_agg(&self) -> bool {
+    fn operands(&self) -> Vec<&Expr> {
         match self {
-            Expr::Agg(..) => true,
-            Expr::Neg(e) => e.has_agg(),
-            Expr::Bin(_, a, b) => a.has_agg() || b.has_agg(),
-            _ => false,
+            Expr::Neg(e) => vec![e],
+            Expr::Chain(a, rest) => std::iter::once(&**a).chain(rest.iter().map(|(_, e)| e)).collect(),
+            _ => vec![],
         }
+    }
+
+    pub fn has_agg(&self) -> bool {
+        matches!(self, Expr::Agg(..)) || self.operands().iter().any(|e| e.has_agg())
     }
 
     /// Column names read outside an aggregate.
     pub fn bare_cols(&self, out: &mut Vec<String>) {
         match self {
             Expr::Col(c) => out.push(c.clone()),
-            Expr::Neg(e) => e.bare_cols(out),
-            Expr::Bin(_, a, b) => {
-                a.bare_cols(out);
-                b.bare_cols(out);
-            }
-            _ => {}
+            e => e.operands().iter().for_each(|e| e.bare_cols(out)),
         }
     }
 
@@ -192,12 +193,7 @@ impl Expr {
     pub fn all_cols(&self, out: &mut Vec<String>) {
         match self {
             Expr::Col(c) | Expr::Agg(_, c) => out.push(c.clone()),
-            Expr::Neg(e) => e.all_cols(out),
-            Expr::Bin(_, a, b) => {
-                a.all_cols(out);
-                b.all_cols(out);
-            }
-            Expr::Num(_) => {}
+            e => e.operands().iter().for_each(|e| e.all_cols(out)),
         }
     }
 
@@ -209,26 +205,39 @@ impl Expr {
             Expr::Col(c) => col(c)?,
             Expr::Agg(a, c) => agg(*a, c)?,
             Expr::Neg(e) => -e.compute(col, agg)?,
-            Expr::Bin(op, a, b) => {
-                let x = a.compute(col, agg)?;
-                let y = b.compute(col, agg)?;
-                match op {
-                    '+' => x + y,
-                    '-' => x - y,
-                    '*' => x * y,
-                    _ => x / y,
+            Expr::Chain(a, rest) => {
+                let mut x = a.compute(col, agg)?;
+                for (op, b) in rest {
+                    let y = b.compute(col, agg)?;
+                    x = match op {
+                        '+' => x + y,
+                        '-' => x - y,
+                        '*' => x * y,
+                        _ => x / y,
+                    };
                 }
+                x
             }
         })
     }
 }
 
+/// How deep a formula or a condition nests — a parenthesis, a unary `-`, a
+/// `not` — before it is refused (§9.2): each level is a frame in the parser
+/// and in everything that reads the tree after it.
+pub const MAX_EXPR_DEPTH: usize = 256;
+
 struct Cursor {
     toks: Vec<Tok>,
     i: usize,
+    depth: usize,
 }
 
 impl Cursor {
+    fn new(s: &str) -> Result<Cursor, String> {
+        Ok(Cursor { toks: tokenize(s)?, i: 0, depth: 0 })
+    }
+
     fn peek(&self) -> Option<&Tok> {
         self.toks.get(self.i)
     }
@@ -238,11 +247,37 @@ impl Cursor {
         self.i += 1;
         t
     }
+
+    /// Read one level further in, refused past `MAX_EXPR_DEPTH`.
+    fn inner<T>(&mut self, read: impl FnOnce(&mut Self) -> Result<T, String>) -> Result<T, String> {
+        if self.depth >= MAX_EXPR_DEPTH {
+            return Err(format!("it nests deeper than {MAX_EXPR_DEPTH} levels"));
+        }
+        self.depth += 1;
+        let r = read(self);
+        self.depth -= 1;
+        r
+    }
+}
+
+/// Read a left-associative run: operands from `operand`, joined by the
+/// operators `ops` names.
+fn chain(c: &mut Cursor, ops: [&str; 2], operand: fn(&mut Cursor) -> Result<Expr, String>) -> Result<Expr, String> {
+    let first = operand(c)?;
+    let mut rest = Vec::new();
+    while let Some(Tok::Op(op)) = c.peek().cloned() {
+        if !ops.contains(&op) {
+            break;
+        }
+        c.take();
+        rest.push((op.chars().next().unwrap_or('+'), operand(c)?));
+    }
+    Ok(if rest.is_empty() { first } else { Expr::Chain(Box::new(first), rest) })
 }
 
 /// Parse an arithmetic expression; a single-quoted string is a column name.
 pub fn parse_arith(s: &str) -> Result<Expr, String> {
-    let mut c = Cursor { toks: tokenize(s)?, i: 0 };
+    let mut c = Cursor::new(s)?;
     let e = arith(&mut c)?;
     if c.i != c.toks.len() {
         return Err("unexpected text after the expression".into());
@@ -251,29 +286,17 @@ pub fn parse_arith(s: &str) -> Result<Expr, String> {
 }
 
 fn arith(c: &mut Cursor) -> Result<Expr, String> {
-    let mut e = term(c)?;
-    while let Some(Tok::Op(op @ ("+" | "-"))) = c.peek().cloned() {
-        c.take();
-        let r = term(c)?;
-        e = Expr::Bin(op.chars().next().unwrap_or('+'), Box::new(e), Box::new(r));
-    }
-    Ok(e)
+    chain(c, ["+", "-"], term)
 }
 
 fn term(c: &mut Cursor) -> Result<Expr, String> {
-    let mut e = unary(c)?;
-    while let Some(Tok::Op(op @ ("*" | "/"))) = c.peek().cloned() {
-        c.take();
-        let r = unary(c)?;
-        e = Expr::Bin(op.chars().next().unwrap_or('*'), Box::new(e), Box::new(r));
-    }
-    Ok(e)
+    chain(c, ["*", "/"], unary)
 }
 
 fn unary(c: &mut Cursor) -> Result<Expr, String> {
     if c.peek() == Some(&Tok::Op("-")) {
         c.take();
-        return Ok(Expr::Neg(Box::new(unary(c)?)));
+        return Ok(Expr::Neg(Box::new(c.inner(unary)?)));
     }
     primary(c)
 }
@@ -290,7 +313,7 @@ fn primary(c: &mut Cursor) -> Result<Expr, String> {
         Some(Tok::Num(n)) => Ok(Expr::Num(n)),
         Some(Tok::Str(s)) => Ok(Expr::Col(s)),
         Some(Tok::LParen) => {
-            let e = arith(c)?;
+            let e = c.inner(arith)?;
             if c.take() != Some(Tok::RParen) {
                 return Err("an unclosed parenthesis".into());
             }
@@ -318,12 +341,14 @@ pub enum Lit {
     Str(String),
 }
 
+/// A `where=` condition. `and` and `or` runs are flat, as an `Expr::Chain`
+/// is: each holds its operands in order.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Cond {
     Cmp(String, &'static str, Lit),
     Not(Box<Cond>),
-    And(Box<Cond>, Box<Cond>),
-    Or(Box<Cond>, Box<Cond>),
+    And(Vec<Cond>),
+    Or(Vec<Cond>),
 }
 
 impl Cond {
@@ -332,10 +357,7 @@ impl Cond {
         match self {
             Cond::Cmp(c, _, l) => out.push((c.clone(), matches!(l, Lit::Num(_)))),
             Cond::Not(x) => x.cols(out),
-            Cond::And(a, b) | Cond::Or(a, b) => {
-                a.cols(out);
-                b.cols(out);
-            }
+            Cond::And(all) | Cond::Or(all) => all.iter().for_each(|x| x.cols(out)),
         }
     }
 
@@ -364,8 +386,8 @@ impl Cond {
                 }
             }
             Cond::Not(x) => !x.holds(cell),
-            Cond::And(a, b) => a.holds(cell) && b.holds(cell),
-            Cond::Or(a, b) => a.holds(cell) || b.holds(cell),
+            Cond::And(all) => all.iter().all(|x| x.holds(cell)),
+            Cond::Or(all) => all.iter().any(|x| x.holds(cell)),
         }
     }
 }
@@ -376,7 +398,7 @@ fn kw(t: Option<&Tok>, w: &str) -> bool {
 
 /// Parse a `where=` expression.
 pub fn parse_where(s: &str) -> Result<Cond, String> {
-    let mut c = Cursor { toks: tokenize(s)?, i: 0 };
+    let mut c = Cursor::new(s)?;
     let e = or(&mut c)?;
     if c.i != c.toks.len() {
         return Err("unexpected text after the condition".into());
@@ -384,32 +406,33 @@ pub fn parse_where(s: &str) -> Result<Cond, String> {
     Ok(e)
 }
 
-fn or(c: &mut Cursor) -> Result<Cond, String> {
-    let mut e = and(c)?;
-    while kw(c.peek(), "or") {
+/// A run of conditions joined by the keyword `word`, made into one node by
+/// `make` when there are two or more.
+fn run(c: &mut Cursor, word: &str, operand: fn(&mut Cursor) -> Result<Cond, String>, make: fn(Vec<Cond>) -> Cond) -> Result<Cond, String> {
+    let mut all = vec![operand(c)?];
+    while kw(c.peek(), word) {
         c.take();
-        e = Cond::Or(Box::new(e), Box::new(and(c)?));
+        all.push(operand(c)?);
     }
-    Ok(e)
+    Ok(if all.len() == 1 { all.pop().expect("one") } else { make(all) })
+}
+
+fn or(c: &mut Cursor) -> Result<Cond, String> {
+    run(c, "or", and, Cond::Or)
 }
 
 fn and(c: &mut Cursor) -> Result<Cond, String> {
-    let mut e = not(c)?;
-    while kw(c.peek(), "and") {
-        c.take();
-        e = Cond::And(Box::new(e), Box::new(not(c)?));
-    }
-    Ok(e)
+    run(c, "and", not, Cond::And)
 }
 
 fn not(c: &mut Cursor) -> Result<Cond, String> {
     if kw(c.peek(), "not") {
         c.take();
-        return Ok(Cond::Not(Box::new(not(c)?)));
+        return Ok(Cond::Not(Box::new(c.inner(not)?)));
     }
     if c.peek() == Some(&Tok::LParen) {
         c.take();
-        let e = or(c)?;
+        let e = c.inner(or)?;
         if c.take() != Some(Tok::RParen) {
             return Err("an unclosed parenthesis".into());
         }
@@ -462,20 +485,41 @@ pub fn split_entries(s: &str) -> Vec<String> {
     out.into_iter().map(|x| x.trim().to_string()).filter(|x| !x.is_empty()).collect()
 }
 
-/// Split comma-separated column names, a name with spaces single-quoted.
-pub fn split_names(s: &str) -> Vec<String> {
+/// A §6.1 column list (`select=`, `by=`, `order=`): entries split on `,`,
+/// except inside a quote that OPENS an entry — `'Unit, Price'` is one entry,
+/// while the apostrophe in `O'Brien` opens nothing. An unclosed quote runs to
+/// the end. Entries come back trimmed, quotes kept; [`column_name`] reads one.
+pub fn column_list(s: &str) -> Vec<String> {
     let mut out = Vec::new();
     let mut cur = String::new();
+    let mut blank = true; // `cur` is whitespace so far: a quote here opens the entry
     let mut quoted = false;
     for c in s.chars() {
-        match c {
-            '\'' => quoted = !quoted,
-            ',' if !quoted => out.push(std::mem::take(&mut cur)),
-            _ => cur.push(c),
+        if quoted {
+            cur.push(c);
+            quoted = c != '\'';
+            continue;
         }
+        if c == ',' {
+            out.push(std::mem::take(&mut cur));
+            blank = true;
+            continue;
+        }
+        quoted = c == '\'' && blank;
+        blank &= c.is_whitespace();
+        cur.push(c);
     }
     out.push(cur);
     out.into_iter().map(|x| x.trim().to_string()).filter(|x| !x.is_empty()).collect()
+}
+
+/// The column a list entry names: the text between its quotes when it is
+/// quoted whole, else the entry as written. The flag says it was quoted.
+pub fn column_name(entry: &str) -> (&str, bool) {
+    match entry.strip_prefix('\'') {
+        Some(rest) if rest.ends_with('\'') && rest.find('\'') == Some(rest.len() - 1) => (&rest[..rest.len() - 1], true),
+        _ => (entry, false),
+    }
 }
 
 /// Read one entry: the left side (a name and an optional `[printf]` format —
@@ -582,7 +626,12 @@ mod tests {
     #[test]
     fn entries() {
         assert_eq!(split_entries("a = 1; b = 'x;y' ;; "), vec!["a = 1", "b = 'x;y'"]);
-        assert_eq!(split_names("S, 'Unit, Price' ,Id"), vec!["S", "Unit, Price", "Id"]);
+        assert_eq!(column_list("S, 'Unit, Price' ,Id, O'B, 'x"), vec!["S", "'Unit, Price'", "Id", "O'B", "'x"]);
+        assert_eq!(column_name("'Unit, Price'"), ("Unit, Price", true));
+        assert_eq!(column_name("''"), ("", true));
+        for literal in ["'", "'x", "'a'b'", "O'B", "Id"] {
+            assert_eq!(column_name(literal), (literal, false));
+        }
         let e = parse_entry("YoY [%.1f%%] = (FY - P) * 100").unwrap();
         assert_eq!((e.name.as_str(), e.fmt.as_deref(), e.rhs.as_str()), ("YoY", Some("%.1f%%"), "(FY - P) * 100"));
         let e = parse_entry("[Data] = A + B").unwrap();

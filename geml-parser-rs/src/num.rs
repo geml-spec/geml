@@ -325,7 +325,7 @@ fn fmt_general(x: f64, prec: usize) -> String {
         }
     };
     if (p as i64) > e && e >= -4 {
-        strip(fmt_fixed(x, (p as i64 - 1 - e) as usize))
+        strip(fmt_fixed(x, ((p as i64 - 1 - e) as usize).min(MAX_PRECISION)))
     } else {
         strip(fmt_exp(x, p - 1))
     }
@@ -345,6 +345,9 @@ pub fn display(x: f64) -> String {
     let v: f64 = s.parse().unwrap_or(x);
     es_string(v)
 }
+
+/// The most digits a `[printf]` precision asks for (§6).
+const MAX_PRECISION: usize = 100;
 
 /// A `[printf]` display format (§6): numeric conversions `%.Nf`, `%.Ne`, `%d`,
 /// `%.Ng`, and `%%` for a literal percent. Flags and width are read and
@@ -381,7 +384,10 @@ pub fn format_printf(fmt: &str, x: f64) -> String {
             while j < chars.len() && chars[j].is_ascii_digit() {
                 j += 1;
             }
-            prec = Some(chars[s..j].iter().collect::<String>().parse().unwrap_or(0));
+            // Clamped as the reference clamps it: toFixed and toExponential
+            // take at most 100 digits, and a precision past that is 100.
+            let digits: String = chars[s..j].iter().collect();
+            prec = Some(if digits.is_empty() { 0 } else { digits.parse::<usize>().map_or(MAX_PRECISION, |p| p.min(MAX_PRECISION)) });
         }
         if j >= chars.len() {
             // A dangling `%`: copied as written.

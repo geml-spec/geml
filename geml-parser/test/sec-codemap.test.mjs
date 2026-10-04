@@ -16,12 +16,12 @@
 // coverage flushes on clean exit) — never killed. No servers, no ports.
 import { strict as assert } from "node:assert";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync, rmSync, chmodSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync, rmSync, chmodSync, realpathSync, symlinkSync } from "node:fs";
 import { tmpdir, homedir } from "node:os";
-import { join, dirname, delimiter, isAbsolute } from "node:path";
+import { join, dirname, delimiter, isAbsolute, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  recipeFingerprint, trustStorePath, readTrustStore, isRecipeTrusted, trustRecipe,
+  recipeFingerprint, trustStorePath, readTrustStore, isRecipeTrusted, trustRecipe, TRUST_STORE_VERSION,
 } from "../codemap/recipe-trust.mjs";
 import { extract as scipExtract } from "../codemap/adapters/scip.mjs";
 import * as mcp from "../codemap/mcp-server.mjs";
@@ -127,6 +127,40 @@ test("C2(d) --hook with an untrusted recipe is a warn+no-op (exit 0, never block
   rmSync(dir, { recursive: true, force: true });
 });
 
+test("round 6: a recipe trusted in one codemap directory is refused, byte-identical, in another", () => {
+  // Two checkouts carrying the SAME relative-path recipe, as two projects indexed
+  // the same way do. What the step runs differs: each repo ships its own
+  // tools/index.mjs. Approving A's recipe must not run B's copy of it.
+  const recipe = { version: 1, root: "..", steps: [{ argv: ["node", "tools/index.mjs"] }] };
+  const a = recipeFixture(recipe);
+  const b = recipeFixture(recipe);
+  for (const [fx, tag] of [[a, "A"], [b, "B"]]) {
+    mkdirSync(join(fx.dir, "tools"));
+    writeFileSync(join(fx.dir, "tools", "index.mjs"),
+      `import { writeFileSync } from "node:fs"; writeFileSync("MARKER.txt", "${tag}");\n`);
+  }
+  const t = run("refresh.mjs", [a.cm, "--trust"]);
+  assert.equal(t.status, 0, t.all);
+  assert.equal(readFileSync(join(a.dir, "MARKER.txt"), "utf8"), "A", "the approved recipe ran in its own directory");
+
+  const r = run("refresh.mjs", [b.cm]);
+  assert.equal(r.status, 3, r.all);
+  assert.match(r.err, /REFUSING to run an untrusted recipe/);
+  assert.ok(!existsSync(join(b.dir, "MARKER.txt")), "the same recipe in another checkout did not run");
+
+  // The approval is filed under the directory's REAL path: a symlink to A is A,
+  // and B stays unapproved however it is spelled.
+  const fp = recipeFingerprint(recipe);
+  assert.ok(isRecipeTrusted(fp, a.cm));
+  assert.ok(!isRecipeTrusted(fp, b.cm));
+  const link = join(b.dir, "link-to-a");
+  symlinkSync(a.cm, link, "junction");
+  assert.ok(isRecipeTrusted(fp, link), "a symlink reaches the approval of the directory it names");
+  assert.ok(!isRecipeTrusted(fp, join(a.cm, "..", "..", basename(b.dir), "map")), "a `..` spelling of B is still B");
+  rmSync(a.dir, { recursive: true, force: true });
+  rmSync(b.dir, { recursive: true, force: true });
+});
+
 test("C2(e) recipe-trust units: store-path resolution, defensive reads, write failure, stable fingerprint", () => {
   const savedStore = process.env.GEML_TRUST_STORE; // == STORE
   const savedXdg = process.env.XDG_CONFIG_HOME;
@@ -146,20 +180,25 @@ test("C2(e) recipe-trust units: store-path resolution, defensive reads, write fa
   // --- readTrustStore is DEFENSIVE: broken store => nothing trusted ---
   const gdir = tmp();
   const garbage = join(gdir, "garbage.json");
+  const empty = { version: TRUST_STORE_VERSION, recipes: {} };
   try {
     process.env.GEML_TRUST_STORE = garbage;
     writeFileSync(garbage, "{ not json at all ");
-    assert.deepEqual(readTrustStore(), { version: 1, recipes: {} }, "malformed store trusts nothing");
-    assert.equal(isRecipeTrusted("anything"), false, "so nothing is trusted");
-    writeFileSync(garbage, JSON.stringify({ recipes: "not-an-object" }));
-    assert.deepEqual(readTrustStore(), { version: 1, recipes: {} }, "wrong-shape store trusts nothing");
+    assert.deepEqual(readTrustStore(), empty, "malformed store trusts nothing");
+    assert.equal(isRecipeTrusted("anything", gdir), false, "so nothing is trusted");
+    writeFileSync(garbage, JSON.stringify({ version: TRUST_STORE_VERSION, recipes: "not-an-object" }));
+    assert.deepEqual(readTrustStore(), empty, "wrong-shape store trusts nothing");
     writeFileSync(garbage, JSON.stringify([1, 2, 3]));
-    assert.deepEqual(readTrustStore(), { version: 1, recipes: {} }, "array store trusts nothing");
+    assert.deepEqual(readTrustStore(), empty, "array store trusts nothing");
+    // A store keyed by fingerprint alone (no version, or another one) is not
+    // this shape, and its approvals name no directory: nothing in it is trusted.
+    writeFileSync(garbage, JSON.stringify({ version: 1, recipes: { abc: { graphDir: gdir, addedAt: 1 } } }));
+    assert.deepEqual(readTrustStore(), empty, "another version's store trusts nothing");
+    assert.equal(isRecipeTrusted("abc", gdir), false);
     // sanity: a well-formed store IS read back
-    writeFileSync(garbage, JSON.stringify({ version: 2, recipes: { abc: { addedAt: 1 } } }));
-    const ok = readTrustStore();
-    assert.equal(ok.version, 2);
-    assert.equal(isRecipeTrusted("abc"), true);
+    writeFileSync(garbage, JSON.stringify({ version: TRUST_STORE_VERSION, recipes: { [realpathSync(gdir)]: { abc: { addedAt: 1 } } } }));
+    assert.equal(readTrustStore().version, TRUST_STORE_VERSION);
+    assert.equal(isRecipeTrusted("abc", gdir), true);
   } finally { process.env.GEML_TRUST_STORE = savedStore; }
   // --- trustRecipe THROWS when the store path is unwritable (parent is a FILE) ---
   const bdir = tmp();
@@ -167,8 +206,10 @@ test("C2(e) recipe-trust units: store-path resolution, defensive reads, write fa
   writeFileSync(fileNotDir, "x");
   try {
     process.env.GEML_TRUST_STORE = join(fileNotDir, "store.json"); // dirname is a file => mkdir throws
-    assert.throws(() => trustRecipe("deadbeef", "/graph"), "an unwritable store surfaces as a throw, not a false success");
+    assert.throws(() => trustRecipe("deadbeef", bdir), "an unwritable store surfaces as a throw, not a false success");
   } finally { process.env.GEML_TRUST_STORE = savedStore; }
+  // --- …and when the codemap directory does not exist: there is nothing to file it under ---
+  assert.throws(() => trustRecipe("deadbeef", join(bdir, "no-such-dir")), "no approval for a directory that is not there");
   // --- recipeFingerprint: deterministic, key-order independent, string-coerced ---
   const fpA = recipeFingerprint({ root: "..", steps: ["a", "b"] });
   assert.equal(recipeFingerprint({ steps: ["a", "b"], root: ".." }), fpA, "independent of object key order");
@@ -502,7 +543,13 @@ test("R2-1(c) a REAL build records STRUCTURED steps + auto-trusts them; refresh 
   assert.deepEqual(cfg.steps.at(-1).argv.slice(0, 3), ["geml", "codemap", "verify"], "structured verify step");
   // The build auto-trusted its own recipe — and NOTHING else is trusted (the
   // store started empty), so the round-trip below proves auto-trust, not a leak.
-  assert.ok(isRecipeTrusted(recipeFingerprint(cfg)), "build auto-trusted the recipe it authored");
+  assert.ok(isRecipeTrusted(recipeFingerprint(cfg), out), "build auto-trusted the recipe it authored");
+  // …for the directory it built, only. The recipe is relative paths, so the
+  // same bytes in another project's codemap are a different approval.
+  const elsewhere = join(base, "other", ".geml-code-graph");
+  mkdirSync(join(elsewhere, "_index"), { recursive: true });
+  writeFileSync(join(elsewhere, "_index", "refresh.json"), JSON.stringify(cfg));
+  assert.ok(!isRecipeTrusted(recipeFingerprint(cfg), elsewhere), "build's auto-trust covers only the directory it built");
   // Re-run the whole recipe. --force skips the up-to-date/no-source guards so the
   // steps actually execute; a trusted recipe runs with NO prompt and NO refusal.
   const f = run("refresh.mjs", [out, "--force"], { env: shimEnv(shim), cwd: fx });

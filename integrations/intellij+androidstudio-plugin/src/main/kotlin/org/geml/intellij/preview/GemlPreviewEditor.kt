@@ -2,6 +2,8 @@ package org.geml.intellij.preview
 
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import com.intellij.ide.BrowserUtil
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
@@ -19,8 +21,14 @@ import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.ui.jcef.JBCefJSQuery
 import com.intellij.util.Alarm
 import com.intellij.util.ui.JBUI
+import org.cef.browser.CefBrowser
+import org.cef.browser.CefFrame
+import org.cef.handler.CefLifeSpanHandlerAdapter
+import org.cef.handler.CefRequestHandlerAdapter
+import org.cef.network.CefRequest
 import java.awt.BorderLayout
 import java.beans.PropertyChangeListener
+import java.nio.file.Path
 import javax.swing.JComponent
 import javax.swing.JLabel
 import javax.swing.JPanel
@@ -43,6 +51,9 @@ class GemlPreviewEditor(private val project: Project, private val file: VirtualF
   private val alarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
   private var ready = false
 
+  /** The preview page; the only thing this pane loads, posts to, or listens to. */
+  private var page: Path? = null
+
   init {
     val browser = this.browser
     val query = this.query
@@ -54,12 +65,14 @@ class GemlPreviewEditor(private val project: Project, private val file: VirtualF
 
       // The theme is read once, when the pane is created: reopen the preview
       // after switching themes and it follows.
-      val url = GemlPreviewPage.write(query.inject("JSON.stringify(msg)"), dark = !JBColor.isBright())
-      if (url == null) {
+      val page = GemlPreviewPage.write(query.inject("JSON.stringify(msg)"), dark = !JBColor.isBright())
+      if (page == null) {
         panel.add(missingBundleNotice(), BorderLayout.CENTER)
       } else {
+        this.page = page
+        keepToPage(browser, page)
         panel.add(browser.component, BorderLayout.CENTER)
-        browser.loadURL(url)
+        browser.loadURL(page.toUri().toString())
       }
     }
 
@@ -71,6 +84,48 @@ class GemlPreviewEditor(private val project: Project, private val file: VirtualF
   // -------------------------------------------------------------------------
 
   private fun document(): Document? = FileDocumentManager.getInstance().getDocument(file)
+
+  /**
+   * Hold the pane to the preview page (see GemlPreviewPolicy). Any other
+   * navigation is cancelled — a link the user clicked to a web page opens in
+   * the system browser instead — and so is every new window, `target=_blank`
+   * and a middle click among them.
+   */
+  private fun keepToPage(browser: JBCefBrowser, page: Path) {
+    val client = browser.jbCefClient
+    client.addRequestHandler(object : CefRequestHandlerAdapter() {
+      override fun onBeforeBrowse(
+        cefBrowser: CefBrowser?, frame: CefFrame?, request: CefRequest?, userGesture: Boolean, isRedirect: Boolean,
+      ): Boolean {
+        val url = request?.url ?: return true
+        if (GemlPreviewPolicy.isPage(url, page)) return false
+        if (userGesture) openOutside(url)
+        return true
+      }
+
+      override fun onOpenURLFromTab(cefBrowser: CefBrowser?, frame: CefFrame?, targetUrl: String?, userGesture: Boolean): Boolean {
+        if (userGesture && targetUrl != null) openOutside(targetUrl)
+        return true
+      }
+    }, browser.cefBrowser)
+    client.addLifeSpanHandler(object : CefLifeSpanHandlerAdapter() {
+      override fun onBeforePopup(cefBrowser: CefBrowser?, frame: CefFrame?, targetUrl: String?, targetFrameName: String?): Boolean {
+        if (targetUrl != null) openOutside(targetUrl)
+        return true
+      }
+    }, browser.cefBrowser)
+  }
+
+  /** A web link, in the system browser; anything else goes nowhere. */
+  private fun openOutside(url: String) {
+    if (GemlPreviewPolicy.isWebLink(url)) ApplicationManager.getApplication().invokeLater { BrowserUtil.browse(url) }
+  }
+
+  /** Whether the pane is showing the preview page — the only page a message goes to or comes from. */
+  private fun showingPage(browser: JBCefBrowser): Boolean {
+    val page = this.page ?: return false
+    return GemlPreviewPolicy.isPage(browser.cefBrowser.url, page)
+  }
 
   /**
    * Debounced. The renderer is fast, but a held-down key should not queue one
@@ -97,11 +152,16 @@ class GemlPreviewEditor(private val project: Project, private val file: VirtualF
   }
 
   private fun post(browser: JBCefBrowser, json: String) {
+    // The message carries the document: into the preview page, or nowhere.
+    if (!showingPage(browser)) return
     browser.cefBrowser.executeJavaScript("window.postMessage($json, '*');", browser.cefBrowser.url, 0)
   }
 
   /** Page to host. The shapes are preview.js's, unchanged. */
   private fun onMessage(request: String?) {
+    // The message router answers whatever page the browser holds; only the
+    // preview page speaks for this pane.
+    if (!showingPage(this.browser ?: return)) return
     val root = runCatching { JsonParser.parseString(request ?: "") }.getOrNull() ?: return
     if (!root.isJsonObject) return
     val message = root.asJsonObject

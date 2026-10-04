@@ -20,6 +20,8 @@
 
 按 §9，你还欠一份不可信文档两件事：**给递归深度设上界**（块、列表、内联三种嵌套——产出 `*-nesting-too-deep` 错误并继续跑，绝不让栈炸掉），以及**在构建模型时就中和掉非 `http`/`https`/`mailto`/`tel` 的 URL scheme**，而不是留到渲染出口再处理。
 
+规范固定的上界——链跟进多远、值树嵌套多深、表格最多多少格——都在 §9.2 的固定上界表里，值只写在那一处。照着它取；套件里落在这些边界上的用例带 `bound` 字段，漏了哪个它们就会失败。嵌套上界由你自己定，至少是表里的 `nesting-floor`：参考解析器允许 256 层块嵌套与列表嵌套、100 层内联嵌套（`geml-parser/src/bounds.ts`）。§9.2 要求的、一个文档从别处读入的格子总上限也由你定——每个 view 都复制一份来源，一张百万格的表上开二十个 view 就是两千万格：参考实现到 4,000,000 为止。
+
 ## 一致性测试集
 
 就是普通 JSON——拷进去，用你自己的测试框架跑。位置在 [`geml-parser/test/conformance/`](../geml-parser/test/conformance/)，其中 [`manifest.json`](../geml-parser/test/conformance/manifest.json) 列出每个用例文件及它所需的能力——表格、块 id、块树、诊断……——你的解析器具备哪些能力，就跑能覆盖到的那些文件。每个文件覆盖什么、投影怎么定义，见 [README](../geml-parser/test/conformance/README.md)。

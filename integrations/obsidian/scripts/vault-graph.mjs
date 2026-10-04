@@ -21,6 +21,7 @@
 
 import { spawnSync } from "node:child_process";
 import { readdirSync, readFileSync, statSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -31,19 +32,25 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 // still wants them counted, and the caller chose which roots to name.
 const SKIP_DIRS = new Set(["node_modules", ".git", ".obsidian", ".trash", ".stfolder"]);
 
-// The CLI to drive: an explicit override first, then this checkout's build,
-// then whatever `geml` is on PATH.
-function cliArgv() {
-  if (process.env.GEML_CLI) return [process.env.GEML_CLI];
+// The CLI to drive, as a script for this same Node to run: an explicit
+// GEML_CLI first, then this checkout's build, then an installed @geml/geml.
+// Never a bare `geml` for PATH to find: on Windows that is a .cmd shim, which
+// only runs through cmd.exe, and there a vault page named `x&touch PWNED&.md`
+// is a second command. Finding none is a refusal that says what to set.
+function cliEntry() {
+  if (process.env.GEML_CLI) return process.env.GEML_CLI;
   const local = resolve(HERE, "..", "..", "..", "geml-parser", "dist", "geml.js");
-  try { statSync(local); return [local]; } catch { return null; }
+  try { statSync(local); return local; } catch { /* not run from a checkout */ }
+  try { return createRequire(import.meta.url).resolve("@geml/geml/dist/cli.js"); }
+  catch {
+    throw new Error("no GEML CLI to run: set GEML_CLI to @geml/geml's dist/cli.js " +
+      "(after `npm i -g @geml/geml` it is under `npm root -g`)");
+  }
 }
 
 function listBlocks(file) {
-  const cli = cliArgv();
-  const r = cli
-    ? spawnSync(process.execPath, [...cli, "list", file, "--json"], { encoding: "utf8" })
-    : spawnSync("geml", ["list", file, "--json"], { encoding: "utf8", shell: process.platform === "win32" });
+  // No shell, so the file name is one argument whatever characters it holds.
+  const r = spawnSync(process.execPath, [cliEntry(), "list", file, "--json"], { encoding: "utf8" });
   if (r.error || r.status !== 0) {
     throw new Error(`geml list failed on ${file}: ${(r.stderr || r.error?.message || "").trim()}`);
   }

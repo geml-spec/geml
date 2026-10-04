@@ -6,7 +6,9 @@
 // 和 src= 表、embed、code-graph 三条路径共用），这里再加深度与文件数上限 —— 样式表和文档一样
 // 是不可信输入，一份互相 embed 的样式表不能让 viewer 拉个没完。
 
-export const STYLE_PREFETCH_DEPTH = 8;   // 与解析器的 EMBED_DEPTH_CAP 同值
+import { CHAIN_DEPTH } from "./parse-entry.js";
+
+export const STYLE_PREFETCH_DEPTH = CHAIN_DEPTH; // 解析器的样式解析沿 embed 走到 chain-depth，预取也得取到这一层
 export const STYLE_PREFETCH_FILES = 32;  // 一页的样式表不该有这么多份
 export const STYLE_DOC_BYTES_CAP = 4 * 1024 * 1024; // 与 transclude 的 EMBED_DOC_BYTES_CAP 同值：一份样式表不该有 4 MB
 
@@ -101,6 +103,9 @@ export function producersOf(sheet) {
  * 取不到就少一份语料，页面照画 —— 借来的块指不到时样式表会报 unmatched-rule，不会静默。
  * 同源、无凭据、拒 HTML 那道闸在调用方给的 `fetchText` 里：扩展走后台读盘或同源 fetch，
  * playground 走普通 fetch，两边的取法不同，**挑出哪些文档**这件事只有这一份实现。
+ *
+ * 上限数的是**取的次数**，不是取到的份数：一份文档 embed 一千个不存在的路径，每一个都是
+ * 一次请求。超过 STYLE_DOC_BYTES_CAP 的一份当取不到，不解析 —— 和样式表本身同一个上限。
  */
 export async function borrowedDocs(model, parse, fetchText, baseUrl) {
   // profile §3：语料里的 `embed` 指到的每份 GEML 文档整份进语料，每份一次，按读语料时依次
@@ -120,6 +125,7 @@ export async function borrowedDocs(model, parse, fetchText, baseUrl) {
   const seen = new Set([new URL(baseUrl).href.split("#")[0]]);
   const out = [];
   const queue = [{ doc: model, url: baseUrl }];
+  let fetched = 0;
   while (queue.length > 0) {
     const { doc, url } = queue.shift();
     const srcs = [];
@@ -128,10 +134,11 @@ export async function borrowedDocs(model, parse, fetchText, baseUrl) {
       const target = new URL(rel, url).href.split("#")[0];
       if (seen.has(target)) continue;
       seen.add(target);
-      if (out.length >= STYLE_PREFETCH_FILES) return out;
+      if (fetched >= STYLE_PREFETCH_FILES) return out;
+      fetched++;
       try {
         const text = await fetchText(target);
-        if (text == null) continue;
+        if (text == null || text.length > STYLE_DOC_BYTES_CAP) continue;
         const parsed = parse(text);
         const path = target.startsWith(dir) ? decodeURIComponent(target.slice(dir.length)) : target;
         out.push({ path, doc: parsed, text });
@@ -144,9 +151,13 @@ export async function borrowedDocs(model, parse, fetchText, baseUrl) {
 
 /**
  * 找到并求解本页的样式。返回 null = 没有样式入口（或入口不认、或预取超限）；
- * 否则 { vm, forDoc, producers, errors }。errors 非空时 content.js 退回默认渲染并把它们画成横幅。
+ * 否则 { vm, forDoc, docUrl, corpus, producers, errors }。errors 非空时 content.js 退回默认渲染
+ * 并把它们画成横幅。
+ *
+ * `borrow()` 给出语料里宿主之外的那几份（page.js 传 borrowedDocs）。它在入口认下之后才调：
+ * 没有样式入口的页面用不上语料，不该为它把文档 embed 的每个路径都请求一遍。
  */
-export async function loadPageStyle({ docUrl, fetchText, parse, loadStylesheet, resolveStyle, model, components, docs = [] }) {
+export async function loadPageStyle({ docUrl, fetchText, parse, loadStylesheet, resolveStyle, model, components, borrow }) {
   const entryUrl = entryUrlFor(docUrl);
   const entryText = await fetchText(entryUrl);
   if (entryText == null) return null;
@@ -211,7 +222,8 @@ export async function loadPageStyle({ docUrl, fetchText, parse, loadStylesheet, 
   // 会静默退回默认渲染，一声不吭（GitHub 复刻里 `component=global-header` 就是这么没的）。
   // 宿主 + 它借来的文档一起进语料。地址天然按文档限定（`PUBLISHING.geml#topology`），
   // 所以不需要把借来的块并进宿主，也就不会撞 id。
+  const docs = borrow ? await borrow() : [];
   const corpus = [{ path: forDoc, doc: model }, ...docs];
   const vm = resolveStyle(sheet, corpus, components ? { components } : undefined);
-  return { vm, forDoc, corpus, producers: producersOf(sheet), errors: vm.diagnostics.filter((d) => d.severity === "error") };
+  return { vm, forDoc, docUrl, corpus, producers: producersOf(sheet), errors: vm.diagnostics.filter((d) => d.severity === "error") };
 }

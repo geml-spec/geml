@@ -23,5 +23,13 @@
         ]
       }
     }
+  ],
+  "sidecars": [
+    {
+      "name": "a unit's id is the one its attribute object declares — `{src=#foo}` declares none, and a quoted `#x` is no id (§4)",
+      "geml": "## Sales {title=\"see #x\" #h}\n\nFigures, revised.\n\n=== view {src=#foo limit=2}\n===\n\n=== table {#foo format=csv}\na\n2\n===\n",
+      "history": "# History of doc.geml\n\n=== meta\nprofile           = \"geml-history/v1\"\nhistory-of        = \"doc.geml\"\ngeml-version      = \"1.0\"\ncurrent           = \"20260103T000000Z-5f01b767\"\nkeyframe-interval = 10\n===\n\n# Committed-current mirror (always present):\n==== history-keyframe {id=\"20260103T000000Z-5f01b767\" hash=\"sha256:5f01b767941f5448e06122a28527adec1d27d073653d3df9a0bab5f235640142\"}\n## Sales {title=\"see #x\" #h}\n\nFigures, revised.\n\n=== view {src=#foo limit=2}\n===\n\n=== table {#foo format=csv}\na\n2\n===\n\n====\n\n=== history-revision {id=\"20260103T000000Z-5f01b767\" parent=\"20260102T000000Z-052c0858\" author=\"t\" summary=\"v3\" hash=\"sha256:5f01b767941f5448e06122a28527adec1d27d073653d3df9a0bab5f235640142\" newline=\"lf\"}\ndelete @933fa979\nreplace #foo <- blob:b3\ninsert <- blob:b4 after @620d4969\n===\n\n==== history-blob {#b3 lang=geml}\n=== table {#foo format=csv}\na\n1\n===\n\n====\n\n==== history-blob {#b4 lang=geml}\n=== view {src=#foo limit=1}\n===\n\n====\n\n=== history-revision {id=\"20260102T000000Z-052c0858\" parent=\"20260101T000000Z-d8942e68\" author=\"t\" summary=\"v2\" hash=\"sha256:052c0858df6e2060e4b850d70176562cdcfa830f60fb67eb6defce5d3ea202d4\" newline=\"lf\"}\ndelete @620d4969\ndelete @47aa7eca\ninsert <- blob:b1 after #h\ninsert <- blob:b2 after @8dd6f42d\n===\n\n=== history-blob {#b1 lang=geml}\nFigures.\n\n===\n\n==== history-blob {#b2 lang=geml}\n=== view {src=#foo}\n===\n\n====\n\n=== history-revision {id=\"20260101T000000Z-d8942e68\" author=\"t\" summary=\"v1\" hash=\"sha256:d8942e68a2885dfd746d14e544a4fe0c57edc7aacc1892c35e97794e83e87f82\" newline=\"lf\"}\n===\n",
+      "verified": 3
+    }
   ]
 }

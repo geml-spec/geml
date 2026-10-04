@@ -10,6 +10,7 @@
 
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { parseAttrs } from "./attrs.js";
 
 // ---------------------------------------------------------------------------
 // Bytes, newlines, hashing
@@ -162,7 +163,9 @@ function fenceFor(contentLf: string): string {
 // round-trip gate (correctly) aborts. Well-formed documents never emit it.
 const KEY = String.raw`(#[\p{L}\p{N}_-]+(?:~\d+)?|@[0-9a-f]+(?:~\d+)?)`;
 // Profile §4: an id is a NAME (GEML §4) — any Unicode letter or number, `-`, `_`.
-const ID_IN_ATTRS = /#([\p{L}\p{N}_-]+)/u;
+// A unit's id is the one its attribute object declares, read as GEML §4 reads
+// it — not the first `#name` in the text, which in `{src=#foo}` is a reference.
+const LABELED_CLOSE = /^={3,}[ \t]*#(\S+)[ \t]*$/u;
 // A heading line with a trailing attribute object: `## Title {#id}`. Its explicit
 // id keys the flow segment it opens; its derived id does not (profile §4).
 const HEADING_ATTRS = /^#{1,6}[ \t]+\S.*\{([^{}]*)\}[ \t]*$/u;
@@ -192,20 +195,19 @@ function tile(lines: string[]): Unit[] {
     let id: string | undefined;
     if (fo) {
       const fenceLen = fo[1]!.length;
-      id = ID_IN_ATTRS.exec(fo[3] ?? "")?.[1];
+      id = fo[3] === undefined ? undefined : parseAttrs(fo[3]).id;
       // Profile §4: a block runs to the line that closes it as GEML §3 says — an
       // equal-length bare run, or, when it has an id, its labeled fence `=== #id`.
-      const labeled = id === undefined ? null : new RegExp(String.raw`^={3,}[ \t]*#${id}[ \t]*$`, "u");
       i++;
       while (i < n) {
         const t = lines[i]!.trimEnd();
-        const close = (/^=+$/.test(t) && t.length === fenceLen) || (labeled !== null && labeled.test(t));
+        const close = (/^=+$/.test(t) && t.length === fenceLen) || (id !== undefined && LABELED_CLOSE.exec(t)?.[1] === id);
         i++;
         if (close) break;
       }
     } else { // flow segment: consecutive non-blank, non-fence lines
       const h = HEADING_ATTRS.exec(lines[i]!);
-      if (h) id = ID_IN_ATTRS.exec(h[1]!)?.[1];
+      if (h) id = parseAttrs(`{${h[1]!}}`).id;
       i++;
       while (i < n && lines[i]!.trim() !== "" && !FENCE_OPEN.test(lines[i]!)) i++;
     }
@@ -218,22 +220,31 @@ function tile(lines: string[]): Unit[] {
 
 interface KeyedUnit { u: Unit; key: string }
 
-function keyedUnits(lines: string[]): KeyedUnit[] {
+// A unit's content key is a hash of its text, so the same text keys the same
+// way wherever it stands: one reverse patch re-keys the live document after
+// every move and insert, and hashing every unit afresh each time made 4000 moves
+// over an 8000-line keyframe take eight seconds. `hashed` remembers the text.
+function keyedUnits(lines: string[], hashed?: Map<string, string>): KeyedUnit[] {
   const counts = new Map<string, number>();
+  const keyOf = (text: string): string => {
+    let h = hashed?.get(text);
+    if (h === undefined) { h = sha8(text); hashed?.set(text, h); }
+    return h;
+  };
   return tile(lines).map((u) => {
     // Both key kinds get the ~n occurrence suffix: content keys collide by
     // nature (equal blank runs, repeated paragraphs); #id keys only collide in
     // out-of-spec documents that repeat an id — but those exist in the wild,
     // and an ambiguous key sends reverse-patch ops to the wrong occurrence.
-    const base = u.id ? `#${u.id}` : `@${sha8(lines.slice(u.start, u.bodyEnd).join("\n"))}`;
+    const base = u.id ? `#${u.id}` : `@${keyOf(lines.slice(u.start, u.bodyEnd).join("\n"))}`;
     const n = counts.get(base) ?? 0;
     counts.set(base, n + 1);
     return { u, key: n === 0 ? base : `${base}~${n}` };
   });
 }
 
-function locateUnit(lines: string[], key: string): Unit {
-  const ku = keyedUnits(lines).find((x) => x.key === key);
+function locateUnit(lines: string[], key: string, hashed?: Map<string, string>): Unit {
+  const ku = keyedUnits(lines, hashed).find((x) => x.key === key);
   if (!ku) throw new Error(`history: unit ${key} not found while applying reverse patch`);
   return ku.u;
 }
@@ -275,10 +286,10 @@ function parseOps(body: string): Op[] {
 
 // Each blob carries a unit's full text (its lines plus the blank lines it owns),
 // so insert / replace are byte-exact without separate spacing bookkeeping.
-function insertAt(lines: string[], anchor: Anchor, payload: string[]): void {
+function insertAt(lines: string[], anchor: Anchor, payload: string[], hashed?: Map<string, string>): void {
   if (anchor === "at-start") { lines.splice(0, 0, ...payload); return; }
   if (anchor === "at-end") { lines.push(...payload); return; }
-  const a = locateUnit(lines, anchor.after);
+  const a = locateUnit(lines, anchor.after, hashed);
   lines.splice(a.endExcl, 0, ...payload);
 }
 
@@ -298,7 +309,8 @@ function applyReverse(textLf: string, ops: Op[], blobs: Map<string, string>): st
   // then delete @h~1 — after the first splice the survivor renumbers @h~1→@h
   // and the second op can no longer find it). Keys are unique within a single
   // keyedUnits() call, so the snapshot map is a bijection.
-  const snap = keyedUnits(lines);
+  const hashed = new Map<string, string>();
+  const snap = keyedUnits(lines, hashed);
   const byKey = new Map(snap.map((k) => [k.key, k.u]));
   const resolveSnap = (key: string): Unit => {
     const u = byKey.get(key);
@@ -334,12 +346,12 @@ function applyReverse(textLf: string, ops: Op[], blobs: Map<string, string>): st
   // occurrence keying is now stable (no more same-keyspace ops pending).
   for (const op of anchored) {
     if (op.kind === "insert") {
-      insertAt(lines, op.anchor!, blob(op.blob!));
+      insertAt(lines, op.anchor!, blob(op.blob!), hashed);
     } else { // move: cut the unit (with its owned blanks) and re-insert at anchor
-      const u = locateUnit(lines, op.key!);
+      const u = locateUnit(lines, op.key!, hashed);
       const cut = lines.slice(u.start, u.endExcl);
       lines.splice(u.start, u.endExcl - u.start);
-      insertAt(lines, op.anchor!, cut);
+      insertAt(lines, op.anchor!, cut, hashed);
     }
   }
   return lines.join("\n");
@@ -465,6 +477,9 @@ interface History {
   keyframes: Map<string, string>; // id -> snapshot content (LF)
   revisions: Map<string, Revision>;
   blobs: Map<string, string>;
+  // Profile §8: an id names one revision, keyframe or blob, and a sidecar has one
+  // `current`. Each sharing is said here once; verify reports it as corruption.
+  shared: string[];
 }
 
 function parseHistory(path: string): History {
@@ -474,16 +489,25 @@ function parseHistory(path: string): History {
   const keyframes = new Map<string, string>();
   const revisions = new Map<string, Revision>();
   const blobs = new Map<string, string>();
+  const shared: string[] = [];
   let current = "";
+  let currents = 0;
+  const once = <T>(m: Map<string, T>, what: string, id: string): void => {
+    if (m.has(id)) shared.push(`two ${what}s share the id ${id}`);
+  };
   for (const b of blocks) {
     const body = lines.slice(b.start + 1, b.end).join("\n");
     if (b.type === "meta") {
-      const m = /^\s*current\s*=\s*"?([^"\n]+?)"?\s*$/m.exec(body);
-      if (m) current = m[1]!;
+      for (const m of body.matchAll(/^\s*current\s*=\s*"?([^"\n]+?)"?\s*$/gm)) {
+        if (currents++ === 0) current = m[1]!;
+      }
     } else if (b.type === "history-keyframe") {
-      keyframes.set(attr(b.attrLine, "id")!, body);
+      const id = attr(b.attrLine, "id")!;
+      once(keyframes, "keyframe", id);
+      keyframes.set(id, body);
     } else if (b.type === "history-revision") {
       const id = attr(b.attrLine, "id")!;
+      once(revisions, "revision", id);
       revisions.set(id, {
         id,
         parent: attr(b.attrLine, "parent"),
@@ -494,10 +518,12 @@ function parseHistory(path: string): History {
         ops: parseOps(body),
       });
     } else if (b.type === "history-blob") {
+      once(blobs, "blob", b.id!);
       blobs.set(b.id!, body);
     }
   }
-  return { nl, current, keyframes, revisions, blobs };
+  if (currents > 1) shared.push(`the meta names \`current\` ${currents} times`);
+  return { nl, current, keyframes, revisions, blobs, shared };
 }
 
 function chainFrom(h: History): Revision[] {
@@ -639,6 +665,7 @@ export function save(o: SaveOpts): { id: string; hash: string } {
       keyframes: new Map([[id, working]]),
       revisions: new Map([[id, { id, author: o.author, summary: o.summary, hash, newline: nlNamed(nl), ops: [] }]]),
       blobs: new Map(),
+      shared: [],
     };
   }
   writeBytes(o.historyPath, renderHistory(h, baseName), nl);
@@ -651,6 +678,7 @@ export function verify(historyPath: string, gemlPath?: string): VerifyResult {
   const errors: string[] = [];
   const warnings: string[] = [];
   const h = parseHistory(historyPath);
+  errors.push(...h.shared);
   let checked = 0;
   let chain: Revision[] = [];
   try { chain = chainFrom(h); } catch (e) { errors.push(String((e as Error).message)); }

@@ -21,6 +21,7 @@
 export type MediaDiagnosticCode =
   | "media-src-unresolved"
   | "media-src-not-asset"
+  | "media-src-not-relative"
   | "media-file-missing"
   | "media-hash-mismatch"
   | "media-asset-unhashed"
@@ -29,6 +30,8 @@ export type MediaDiagnosticCode =
   | "media-shape-empty"
   | "media-clip-unassembled"
   | "media-duration-required"
+  | "media-gain-invalid"
+  | "media-time-out-of-range"
   | "media-track-missing"
   | "media-track-undeclared"
   | "media-track-kind-missing"
@@ -71,6 +74,10 @@ export const MEDIA_SEVERITY: Record<MediaDiagnosticCode, MediaSeverity> = {
   "media-shape-empty": "error",
   "media-clip-unassembled": "error",
   "media-duration-required": "error",
+  // 值要交给播放器、ffmpeg 与时间线绘制：认不出的写法、跑出 24 小时的时间，都是结构坏了。
+  "media-src-not-relative": "error",
+  "media-gain-invalid": "error",
+  "media-time-out-of-range": "error",
   "media-track-missing": "error",
   "media-track-kind-missing": "error",
   "media-track-kind-unknown": "error",

@@ -277,6 +277,24 @@ export function addressUnits(units: Unit[], textOf: (u: Unit) => string): Addres
   });
 }
 
+// What shortestAddress asks of the whole listing, counted once per listing:
+// asked per row, a pass over every unit made a listing of n blocks cost n².
+const TALLY = new WeakMap<Addressed[], { types: Map<string, number>; metaId: boolean }>();
+function tallyOf(all: Addressed[]): { types: Map<string, number>; metaId: boolean } {
+  let t = TALLY.get(all);
+  if (t === undefined) {
+    const types = new Map<string, number>();
+    let metaId = false;
+    for (const x of all) {
+      if (x.unit.type !== undefined) types.set(x.unit.type, (types.get(x.unit.type) ?? 0) + 1);
+      if (x.unit.id === "meta") metaId = true;
+    }
+    t = { types, metaId };
+    TALLY.set(all, t);
+  }
+  return t;
+}
+
 // §6.1 — the SHORTEST address that identifies this unit uniquely, which is what
 // the listing prints. `#id` when it has one; else the bare type when the
 // document holds exactly one block of it; else the content address. The three
@@ -285,13 +303,14 @@ export function shortestAddress(a: Addressed, all: Addressed[]): string {
   const u = a.unit;
   if (u.id !== undefined) return `#${u.id}`;
   if (u.type === undefined) return `@${a.hex}${a.nth ? `~${a.nth}` : ""}`;
-  const sameType = all.filter((x) => x.unit.type === u.type).length;
+  const { types, metaId } = tallyOf(all);
+  const sameType = types.get(u.type) ?? 0;
   // `#meta` is the reserved id for the merged metadata view, and with exactly
   // one `meta` block the view and the block are the same thing — so the
   // shortest address for that block is the id, not its type. With several the
   // id addresses the MERGE and no single block, and with another unit already
   // declaring `meta` it would be that unit's, so both fall through to the type.
-  if (u.type === "meta" && sameType === 1 && !all.some((x) => x.unit.id === "meta")) return "#meta";
+  if (u.type === "meta" && sameType === 1 && !metaId) return "#meta";
   if (sameType === 1) return `=== ${u.type}`;
   return `=== ${u.type}@${a.hex}${a.nth ? `~${a.nth}` : ""}`;
 }

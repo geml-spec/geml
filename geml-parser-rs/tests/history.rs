@@ -235,3 +235,51 @@ fn the_chain_is_checked_before_any_content() {
     assert_eq!((v.errors.len(), v.verified), (0, 1));
     assert_eq!(v.warnings, vec!["the sidecar does not declare `profile = \"geml-history/v1\"`"]);
 }
+
+/// Round 6 (geml-history §8): an id names one revision, keyframe or blob, and a
+/// sidecar names one `current`. A sidecar holding two revisions under one id,
+/// each consistent with its own hash, verified clean, and this reader took the
+/// first where the reference took the last: one sidecar, two texts.
+#[test]
+fn a_shared_id_or_a_second_current_is_corruption() {
+    let revs = chain();
+    let text = sidecar(Some("t2-bb22"), &revs[3..], &["t2-bb22"], &[("b1", NOTE_X)]);
+    assert!(read(&text).verify(None).errors.is_empty());
+    let block = |kind: &str| {
+        let at = text.find(&format!("history-{kind} ")).unwrap();
+        let start = text[..at].rfind("\n\n").map_or(0, |i| i + 2);
+        let end = start + text[start..].find("\n\n").unwrap() + 2;
+        text[start..end].to_string()
+    };
+    for (kind, what) in
+        [("revision", "two revisions share the id t2-bb22"), ("keyframe", "two keyframes share the id t2-bb22"), ("blob", "two blobs share the id b1")]
+    {
+        let v = read(&format!("{text}{}", block(kind))).verify(None);
+        assert!(v.errors.iter().any(|e| e == what), "{kind}: {:?}", v.errors);
+    }
+    let twice = text.replacen("current = \"t2-bb22\"\n", "current = \"t2-bb22\"\ncurrent = \"t1-aa11\"\n", 1);
+    assert!(read(&twice).verify(None).errors.iter().any(|e| e == "the meta names `current` 2 times"));
+}
+
+/// Round 6: a reverse patch re-keys the version after every operation, and a
+/// unit's key is the hash of its text — so the same text is hashed once, not
+/// once per operation. A thousand moves over a two-thousand-line keyframe
+/// took most of a minute when each re-keying hashed every unit afresh.
+#[test]
+fn rekeying_a_version_hashes_each_text_once() {
+    let n = 1000;
+    let p = content_hash(&own(&["p"]), "lf");
+    let key = &p["sha256:".len().."sha256:".len() + 8];
+    let body = vec!["p"; n].join("\n\n");
+    let hash = content_hash(&own(&[body.as_str()]), "lf");
+    let moves = vec![format!("move @{key} at-end"); n].join("\n");
+    // The root records no real hash: what is timed is the walk to it.
+    let text = format!(
+        "=== meta\nprofile = \"geml-history/v1\"\ncurrent = \"r1\"\n===\n\n==== history-keyframe {{id=\"r1\" hash=\"{hash}\"}}\n{body}\n====\n\n=== history-revision {{id=\"r1\" parent=\"r0\" hash=\"{hash}\"}}\n{moves}\n===\n\n=== history-revision {{id=\"r0\" hash=\"sha256:00\"}}\n===\n"
+    );
+    let t = std::time::Instant::now();
+    let v = read(&text).verify(None);
+    eprintln!("{n} moves: {:?}", t.elapsed());
+    assert_eq!(v.verified, 1, "{:?}", v.errors);
+    assert!(t.elapsed() < std::time::Duration::from_secs(6), "took {:?}", t.elapsed());
+}

@@ -32,10 +32,13 @@ export function collectTranslatable(blocks, targetLanguage, opts = {}) {
 
 /**
  * @param translate `(texts: string[], targetLanguage: string)` answering a Map
- *   or plain object of text → translation, or `{ why }` when it cannot.
+ *   or plain object of text → translation, or `{ why, link? }` when it cannot —
+ *   `link` being the one page that fixes it, which the refusal bar makes
+ *   clickable.
  * @returns the same shapes translateSlice returns: `{ ok: true, blocks }`, or
- *   `{ ok: false, why }`. Never a silent passthrough — a projection that quietly
- *   shows its source reads as a translation that happens to look like English.
+ *   `{ ok: false, why, link? }`. Never a silent passthrough — a projection that
+ *   quietly shows its source reads as a translation that happens to look like
+ *   English.
  */
 export async function translateSliceWith(translate, blocks, targetLanguage, opts = {}) {
   const wanted = collectTranslatable(blocks, targetLanguage, opts);
@@ -51,7 +54,10 @@ export async function translateSliceWith(translate, blocks, targetLanguage, opts
   // timeout can, "this browser has no Translator" cannot. It decides whether
   // the reader is offered a button or only told.
   if (!answer || answer.why) {
-    return { ok: false, why: answer?.why ?? "no translator", retryable: answer?.retryable === true };
+    return {
+      ok: false, why: answer?.why ?? "no translator", retryable: answer?.retryable === true,
+      ...(typeof answer?.link === "string" ? { link: answer.link } : {}),
+    };
   }
 
   const map = answer instanceof Map ? answer : new Map(Object.entries(answer));

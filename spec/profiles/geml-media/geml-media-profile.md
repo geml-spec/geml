@@ -100,8 +100,8 @@ timeline, and every real timeline here is mixed anyway.
 
 | key | required | meaning |
 |---|---|---|
-| `src` | yes | path to the file, resolved against the document, confined by §9.4's root |
-| `sha256` | recommended | the file's SHA-256, **full 64 hex digits, never truncated**. The key names the algorithm, so the value carries no prefix. Missing → `media-asset-unhashed`, and that asset's lineage cannot be checked |
+| `src` | yes | path to the file, resolved against the document, confined by §9.4's root. A **relative path**: no URL scheme, not starting with `/`, no `\` — judged as a user agent reads it, C0 controls and spaces removed (GEML §9.4). Anything else is `media-src-not-relative` — the file is handed to players and to `ffmpeg`, which reads a scheme (`concat:`, `http:`) as an instruction |
+| `sha256` | recommended | the file's SHA-256, **full 64 hex digits, never truncated**. The key names the algorithm, so the value carries no prefix. Missing → `media-asset-unhashed`, whether or not the file is there: nothing says which bytes the library expects, so a file replaced under it is caught only by its lineage (§6) |
 | `kind` | conditional | `image`, `video`, `audio`, `model`, `other` — inferable from the extension. There is no `text`: a subtitle file, a LUT or an external prompt file is `other` until a use case says what it really is |
 | `duration` | video/audio | seconds. Absent, and with no `ffprobe` on the machine, in/out points go unchecked (`media-duration-unknown`) |
 | `fps`, `size` | no | frame rate; `WxH` |
@@ -133,7 +133,8 @@ be (`media-hash-mismatch`) is worse than an absent one: it is the wrong file.
 | `at` | no | an absolute start. An escape hatch: it overrides anchoring |
 | `transition-in`, `transition-out` | no | `cut` (default), `dissolve`, `fade`, `crossfade`, or a host word |
 | `transition-duration` | no | seconds |
-| `gain`, `fade-in`, `fade-out` | audio | `-14dB`; seconds |
+| `gain` | audio | decibels, written with the unit: `-14dB` — an optional `-`, digits, an optional fraction, then `dB` in any case, spaces allowed before it. Anything else is `media-gain-invalid`: the value is spliced into a playback graph, and a reading that guessed would play at a level nobody wrote |
+| `fade-in`, `fade-out` | audio | seconds |
 | `speed` | no | rate multiplier, default 1 |
 | `xywh` | no | a crop of the source frame, in W3C Media Fragments syntax |
 
@@ -166,6 +167,11 @@ because names are the author's to choose.
   Insert a cut on the primary track and every anchored subtitle, voice-over and
   music cue moves with it. This is the same reason ids beat line numbers: the
   anchor is on content, not on a number.
+- **Every time is finite and at most `max-time`** (§8.1): `in`, `out`,
+  `duration`, `offset`, `at`, an asset's `duration`, and every cut's end on the
+  timeline. A time past it is `media-time-out-of-range`. A timeline is drawn and
+  built in proportion to its length, so the bound is what keeps a few bytes of
+  `out=` from asking for a ruler of a million ticks.
 
 ## 5. `media-text` — the script layer
 
@@ -293,7 +299,8 @@ interaction names, the **later one moves** toward the earlier; the order of `a`
 and `b` does not matter. `contact` moves it so the two points coincide; `gaze`
 aligns the vertical position of the two points and leaves `x` alone. A layer is
 placed by its **first** interaction; later interactions on it only verify, and
-report `media-interaction-apart` when the points end up more than 2 px apart. A
+report `media-interaction-apart` when the points end up more than
+`apart-tolerance` apart (§8.1). A
 layer placed by a contact must not write `x`/`y`; one placed by a gaze must not
 write `y` (`media-layer-position-conflict`) — adjust with `dx`/`dy` instead.
 A `flip=h` layer's points mirror with it. Scaling a point by `w`, or mirroring
@@ -336,9 +343,13 @@ SHA-256 of the UTF-8 bytes of the text below, which carries no trailing newline.
   inline math as its body; emphasis, strong, strikethrough and a link as the text
   they wrap; an inline projection `![[…]]` as the projected block's text by this
   same rule, recursively, to GEML §9.3's transclusion depth bound — a projection
-  that does not resolve contributes nothing; an auto-reference as the value it
-  carries when it names a coordinate, else nothing; an image embed, a hard break
-  and a footnote reference contribute nothing.
+  that does not resolve contributes nothing, and neither does one whose target
+  is already being expanded on the way to it, a cycle the core reports; an
+  auto-reference as the value it carries when it names a coordinate, else
+  nothing; an image embed, a hard break and a footnote reference contribute
+  nothing. A processor MAY bound the projections one prompt expands in all, as
+  GEML §9.3 lets it bound a chain's work; a prompt that reaches the bound is not
+  one two processors are required to hash alike.
 - For a `media-comp`, the text is its **canonical text**: one line for the comp,
   then one per `media-layer` in document order, then one per `media-interaction`
   in document order, joined by LF. A line is the block's type, its `#id` when it
@@ -348,10 +359,20 @@ SHA-256 of the UTF-8 bytes of the text below, which carries no trailing newline.
   value, `@`, then the point's `x,y` as the asset's `points=` gives them —
   `a=#s05-sister:hand@562,522` — or `@?` when the point does not resolve.
 
+**An asset's current value is the SHA-256 of the bytes its file has now** — not
+its declared `sha256`, which states what the library expects and is checked
+against the file on its own (`media-hash-mismatch`). An asset whose file cannot
+be read — it is not there, or its `src=` is not a relative path — has no current
+value: no entry matches it, it is not an orphan, and its lineage is not checked;
+an input with no current value does not count as changed. Hashes compare as hex
+digits, without regard to case.
+
 **Staleness is evaluated on the entry whose `output-sha256` matches the asset's
-current value**, and it propagates down the lineage graph: a stale voice-over
-makes the lip-sync that consumed it stale, which makes the cut that uses it
-stale. Superseded entries take no part; that is what `output-sha256` is for.
+current value**, and on no other: when none matches, the asset is
+`media-orphan-record` and nothing about it is stale. Staleness propagates down
+the lineage graph: a stale voice-over makes the lip-sync that consumed it stale,
+which makes the cut that uses it stale. Superseded entries take no part; that is
+what `output-sha256` is for.
 
 **Whoever appends an entry also updates the asset block** — its `sha256`, and
 `duration` where the tool knows it. An entry alone leaves the library claiming a
@@ -385,10 +406,13 @@ way.
 |---|---|---|
 | `media-src-unresolved` | error | a cut's `src` names no block |
 | `media-src-not-asset` | error | `src` disagrees with the track's kind |
+| `media-src-not-relative` | error | an asset's `src` carries a URL scheme, starts with `/`, or holds a `\` (§3) |
 | `media-file-missing` | warning | an asset's file is not there |
 | `media-hash-mismatch` | error | the file is there but its SHA-256 is not the one declared |
-| `media-asset-unhashed` | warning | an asset carries no `sha256`; its lineage cannot be checked |
+| `media-asset-unhashed` | warning | an asset carries no `sha256`, so whether its file is the one the library describes cannot be checked |
 | `media-duration-required` | error | a source with no intrinsic duration and no `duration` |
+| `media-gain-invalid` | error | a cut's `gain` is not a decibel value (§4) |
+| `media-time-out-of-range` | error | a time is not finite, or is past `max-time`, or a cut ends past it (§3.2, §8.1) |
 | `media-track-missing` | error | a cut with no `track=` |
 | `media-track-undeclared` | warning | a `track=` not in `meta.tracks` |
 | `media-track-kind-missing` | error | a `meta.tracks` entry with a name but no kind |
@@ -412,7 +436,7 @@ way.
 | `media-layer-position-conflict` | error | a layer placed by an interaction also writes the coordinate that interaction sets |
 | `media-asset-size-required` | error | a point must be scaled by `w` and neither `xywh` nor the asset's `size=` gives the source width |
 | `media-comp-at-duplicate` | error | two comps of one shot at the same `at` |
-| `media-interaction-apart` | warning | an interaction that only verifies finds its two points more than 2 px apart |
+| `media-interaction-apart` | warning | an interaction that only verifies finds its two points more than `apart-tolerance` apart (§5.2, §8.1) |
 
 **Deliberately not implemented in v1**, though the design record describes them:
 the editorial checks (`media-runtime-off-target`, `media-emotion-drift`,
@@ -421,6 +445,16 @@ the model-card checks, and the timeline-shape checks (`media-track-order`,
 `media-track-overlap`, `media-transition-too-long`, `media-absolute-anchor`,
 `media-subtitle-unmatched`). The first real use case came near none of them, and
 a diagnostic nobody has needed is a guess wearing a code.
+
+### 8.1 Fixed bounds
+
+Every number this profile fixes is in this table, and only here: the rest of the
+text names it, and the profile's conformance cases on its edges are made from it.
+
+| Name | Value | What it bounds | Past it |
+|---|---|---|---|
+| `max-time` | 86,400 s | every time — `in`, `out`, `duration`, `offset`, `at`, an asset's `duration` — and every cut's end on the timeline (§3.2) | `media-time-out-of-range` |
+| `apart-tolerance` | 2 px | how far apart the two points of an interaction that only verifies may end up (§5.2) | `media-interaction-apart` |
 
 ## 9. What this profile does not admit
 

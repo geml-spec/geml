@@ -13,11 +13,12 @@
 
 import { test } from "node:test";
 import { strict as assert } from "node:assert";
-import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import childProcess, { spawnSync } from "node:child_process";
+import { copyFileSync, existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CLI = resolve(HERE, "..", "..", "..", "geml-parser", "dist", "geml.js");
@@ -259,4 +260,59 @@ test("frontmatter wikilinks count as edges, and an attachment is not a dead page
       "[[Wiki Map]] resolves to Wiki Map.canvas — Obsidian matches any file type by stem");
     assert.ok(!g.dead.some((d) => d.target === "cover.png"), "and an embedded image is not a missing page");
   } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("round 6: a vault file name reaches the CLI as one argument, never through a shell", async () => {
+  // As on Windows, where a bare `geml` is a .cmd shim only cmd.exe can run, and
+  // `&` in a file name is a second command there. The script is copied out of
+  // the checkout so no local build sits beside it: what it may run is then
+  // GEML_CLI or an installed @geml/geml, and nothing found must be a refusal.
+  const root = mkdtempSync(join(tmpdir(), "geml-vault-shell-"));
+  const tool = join(root, "tool", "vault-graph.mjs");
+  mkdirSync(join(root, "tool"));
+  copyFileSync(GRAPH, tool);
+  const vault = join(root, "vault");
+  mkdirSync(vault);
+  const odd = "x&touch PWNED&.md";
+  writeFileSync(join(vault, odd), "# X\n");
+  writeFileSync(join(vault, "index.md"), "# Index\n\n[[x&touch PWNED&]]\n");
+
+  const calls = [];
+  const realSpawnSync = childProcess.spawnSync;
+  const realPlatform = Object.getOwnPropertyDescriptor(process, "platform");
+  const savedCli = process.env.GEML_CLI;
+  childProcess.spawnSync = (command, args, options) => {
+    calls.push({ command, args, shell: options?.shell });
+    return { status: 0, stdout: "[]", stderr: "" };
+  };
+  syncBuiltinESMExports();
+  Object.defineProperty(process, "platform", { value: "win32" });
+  try {
+    const { build } = await import(pathToFileURL(tool).href);
+
+    delete process.env.GEML_CLI;
+    let refusal;
+    try { build([vault]); } catch (e) { refusal = e; }
+    assert.ok(!calls.some((c) => c.shell), `nothing goes through a shell: ${JSON.stringify(calls[0])}`);
+    assert.deepEqual(calls, [], "nothing is started at all");
+    assert.match(String(refusal?.message), /GEML_CLI/, "no CLI found is a refusal, not a guess at PATH");
+
+    process.env.GEML_CLI = CLI;
+    const g = build([vault]);
+    assert.ok(g.pages.some((p) => p.path === odd), "the odd page is still read");
+    assert.ok(calls.length >= 2);
+    for (const c of calls) {
+      assert.equal(c.command, process.execPath, "the CLI runs on this Node, by absolute path");
+      assert.ok(!c.shell, "and with no shell");
+      assert.equal(c.args[0], CLI);
+    }
+    assert.ok(calls.some((c) => c.args.includes(join(vault, odd))), "the file name is one argument, verbatim");
+  } finally {
+    Object.defineProperty(process, "platform", realPlatform);
+    childProcess.spawnSync = realSpawnSync;
+    syncBuiltinESMExports();
+    if (savedCli === undefined) delete process.env.GEML_CLI; else process.env.GEML_CLI = savedCli;
+    assert.ok(!existsSync(join(root, "PWNED")) && !existsSync("PWNED"), "no command ran out of a file name");
+    rmSync(root, { recursive: true, force: true });
+  }
 });

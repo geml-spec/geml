@@ -2,7 +2,7 @@
   "name": "geml",
   "displayName": "GEML",
   "description": "Preview, outline, hover, go-to-definition, rename, per-block revert, workspace search and live reference checking for GEML (.geml) documents.",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "publisher": "geml",
   "license": "MIT",
   "icon": "icon.png",
@@ -175,7 +175,7 @@
           "type": "string",
           "default": "geml",
           "scope": "machine",
-          "description": "How to invoke the GEML CLI. Use a path, or e.g. `npx @geml/geml` if it isn't installed globally. Machine-scoped: cannot be overridden by workspace or folder settings."
+          "description": "How to invoke the GEML CLI: `geml` (found on PATH, never in the document's folder) or an absolute path, optionally followed by arguments, e.g. `node /abs/path/to/cli.js`. Package runners such as npx are refused: they would run whatever @geml/geml the opened folder's node_modules holds. Machine-scoped: cannot be overridden by workspace or folder settings."
         }
       }
     }
@@ -183,6 +183,7 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
+      "description": "In Restricted Mode only highlighting and the preview work. Everything that runs the GEML CLI is off until the folder is trusted: diagnostics, outline, folding, hover, go to definition, rename, workspace symbols, copy block address or reference, revert block and save a revision.",
       "restrictedConfigurations": [
         "geml.check.path"
       ]

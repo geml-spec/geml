@@ -184,6 +184,25 @@ export function obsidianVaultAbove(file: string, root?: string): string | null {
   }
 }
 
+// §9.4: the real path of `abs`, every symlink followed, when it is a regular
+// file inside the real `root` — or null, for a target that is missing, has left,
+// or is no file (a FIFO held `geml check` until it was killed). The lexical test
+// alone follows a link committed inside the tree to wherever it points. Missing
+// and outside answer alike, so nothing outside can be probed for.
+function realInside(root: string, abs: string): string | null {
+  try {
+    const realRoot = realpathSync(root);
+    const real = realpathSync(abs);
+    if (real !== realRoot && !real.startsWith(realRoot + sep)) return null;
+    return statSync(real).isFile() ? real : null;
+  } catch { return null; }
+}
+
+/** The real path of `rel` under `root` when it is a regular file inside it (§9.4), else null. */
+export function confinedFile(root: string, rel: string): string | null {
+  return realInside(root, resolvePath(root, rel));
+}
+
 // Walking a `--view` chain is DOCUMENT-DRIVEN file access: `src=` comes from
 // file content, so without a confinement root a document could name any path on
 // the machine. And never a URL — `geml get` is a read command that agents and
@@ -199,8 +218,9 @@ export function readConfined(rel: string, root: string): string {
     throw new ViewError("unresolvable-document",
       `unresolvable-document: \`${rel}\` lies outside the confinement root \`${root}\``);
   }
-  try { return readFileSync(abs, "utf8"); }
-  catch { throw new ViewError("unresolvable-document", `unresolvable-document: cannot resolve \`${rel}\``); }
+  const real = realInside(base, abs);
+  try { if (real !== null) return readFileSync(real, "utf8"); } catch { /* reported below */ }
+  throw new ViewError("unresolvable-document", `unresolvable-document: cannot resolve \`${rel}\``);
 }
 
 // Provenance is stated relative to the confinement root, not as the path the
@@ -215,13 +235,13 @@ export function shownPath(rel: string, root: string): string {
 /** The verbs' view of a disk: confined sibling reads for `--view` and the Markdown export. */
 export const fsFiles: FileAccess = { readConfined, shownPath };
 
-// The extensions a directory walk admits: the two input formats the parser
-// reads from a path. Compared case-insensitively because a vault written on a
-// case-insensitive filesystem can hand `readdir` back `NOTES.MD`, and a search
-// that skips a file the user can see is the same silent "no" this walk used to
-// answer for Markdown.
+// The two input formats the parser reads from a path: what a directory walk
+// admits, and all an MCP client may name. Compared case-insensitively because a
+// vault written on a case-insensitive filesystem can hand `readdir` back
+// `NOTES.MD`, and a search that skips a file the user can see is the same silent
+// "no" this walk used to answer for Markdown.
 const WALKED = [".geml", ".md"];
-const walkable = (path: string): boolean => {
+export const isDocumentPath = (path: string): boolean => {
   const lower = path.toLowerCase();
   return WALKED.some((ext) => lower.endsWith(ext));
 };
@@ -246,7 +266,7 @@ const walkable = (path: string): boolean => {
 export function gemlFilesUnder(path: string, out: string[], explicit = false): void {
   let dir = false;
   try { dir = statSync(path).isDirectory(); } catch { return; }
-  if (!dir) { if (explicit || walkable(path)) out.push(path); return; }
+  if (!dir) { if (explicit || isDocumentPath(path)) out.push(path); return; }
   for (const e of readdirSync(path, { withFileTypes: true }).sort((a, b) => a.name < b.name ? -1 : 1)) {
     if (e.name.startsWith(".") || e.name === "node_modules") continue;
     gemlFilesUnder(join(path, e.name), out);
@@ -275,7 +295,7 @@ export function profileIoFor(root: string): ProfileIO {
   const base = resolvePath(root);
   const confined = (rel: string): string | null => {
     const abs = resolvePath(base, rel);
-    return abs === base || abs.startsWith(base + sep) ? abs : null;
+    return abs === base || abs.startsWith(base + sep) ? realInside(base, abs) : null;
   };
   return {
     readDoc(rel: string): string | null {

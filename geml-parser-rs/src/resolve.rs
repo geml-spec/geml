@@ -5,20 +5,19 @@
 //! target is parsed for its ids and units, and its own references are not.
 
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
+use crate::bounds::CHAIN_DEPTH;
 use crate::diag::Diags;
 use crate::host::Host;
 use crate::ids::derive_id;
 use crate::inline::{parse_inline, scheme_of, split_anchor, InlineCtx, Step};
 use crate::json::Value;
 use crate::model::*;
+use crate::table::Borrowed;
 use crate::uni::nfd;
 use crate::vocab::Vocabulary;
-
-/// §9.3: the depth of a view chain, fixed at 16 — the bound a nested embed has.
-pub const MAX_VIEW_DEPTH: usize = 16;
 
 pub(crate) fn walk<'a>(items: &'a [Item], out: &mut Vec<&'a Item>) {
     for it in items {
@@ -214,7 +213,8 @@ pub struct Index {
     pub snaps: Vec<Snap>,
     pub heads: Vec<HeadSnap>,
     pub ids: HashMap<String, Found>,
-    pub prose: Vec<String>,
+    /// The prose addresses, each by its NFD key.
+    pub prose: HashSet<String>,
     pub meta: Vec<(String, Value)>,
     pub meta_blocks: usize,
 }
@@ -273,7 +273,7 @@ impl Index {
             snaps: snapshot(&doc.children),
             heads: heads(&doc.children),
             ids,
-            prose: doc.prose.clone(),
+            prose: doc.prose.iter().map(|p| nfd(p)).collect(),
             meta: doc.meta.clone(),
             meta_blocks: doc.meta_blocks,
         }
@@ -284,7 +284,7 @@ impl Index {
         if let Some(f) = self.ids.get(&key) {
             return Some(*f);
         }
-        if self.prose.iter().any(|p| nfd(p) == key) {
+        if self.prose.contains(&key) {
             return Some(Found::Prose);
         }
         if key == "meta" && self.meta_blocks > 0 {
@@ -445,11 +445,13 @@ pub struct Resolver<'a> {
     /// The name of the document references are resolved from.
     pub name: String,
     cache: RefCell<HashMap<String, Option<Rc<Index>>>>,
+    /// The cells the document has read into its relations from elsewhere (§9.2).
+    pub budget: Rc<Borrowed>,
 }
 
 impl<'a> Resolver<'a> {
     pub fn new(main: Rc<Index>, host: Option<&'a dyn Host>, name: &str) -> Self {
-        Resolver { main, host, name: name.to_string(), cache: RefCell::new(HashMap::new()) }
+        Resolver { main, host, name: name.to_string(), cache: RefCell::new(HashMap::new()), budget: Rc::default() }
     }
 
     /// The index of another document, parsed in its own right and without a
@@ -548,6 +550,7 @@ pub fn finish(mut children: Vec<Item>, mut diags: Diags, cx: &Ctx) -> Document {
     let mut meta: Vec<(String, Value)> = Vec::new();
     let mut meta_blocks = 0;
     {
+        let mut keys: HashSet<String> = HashSet::new();
         let mut all = Vec::new();
         walk(&children, &mut all);
         for it in all {
@@ -557,7 +560,7 @@ pub fn finish(mut children: Vec<Item>, mut diags: Diags, cx: &Ctx) -> Document {
                 }
                 meta_blocks += 1;
                 for (k, v) in &b.data {
-                    if meta.iter().any(|(x, _)| nfd(x) == nfd(k)) {
+                    if !keys.insert(nfd(k)) {
                         diags.push("duplicate-meta-key", b.line, format!("`{k}` is already defined by an earlier `meta` block; the first definition is kept"));
                     } else {
                         meta.push((k.clone(), v.clone()));
@@ -601,9 +604,11 @@ pub fn finish(mut children: Vec<Item>, mut diags: Diags, cx: &Ctx) -> Document {
     });
 
     // §3.2 and §6: data values and table models; an unsafe embed is blanked.
+    // §9.2: one budget for every relation the document reads from elsewhere.
+    let budget = Rc::new(Borrowed::default());
     blocks_mut(&mut children, &mut |b| match b.type_name.as_str() {
         "data" => b.value = crate::data::read_data(b, &mut diags, cx.host.map(|h| (h, cx.name))),
-        "table" => b.table = crate::table::read_table(b, &mut diags, cx.host.map(|h| (h, cx.name))),
+        "table" => b.table = crate::table::read_table(b, &mut diags, cx.host.map(|h| (h, cx.name)), &budget),
         "embed" => {
             if let Some(src) = b.attr_text("src") {
                 if !src.trim().is_empty() && crate::inline::safe_dest(&src, false).is_empty() {
@@ -639,13 +644,22 @@ pub fn finish(mut children: Vec<Item>, mut diags: Diags, cx: &Ctx) -> Document {
     // §6.1: views, evaluated through their sources.
     {
         let snaps = snapshot(&children);
-        let pre = Rc::new(Index { snaps: snaps.clone(), heads: heads(&children), ids: idmap.clone(), prose: vec![], meta: meta.clone(), meta_blocks });
-        let resolver = Resolver::new(pre, cx.host, cx.name);
+        let pre = Rc::new(Index { snaps: snaps.clone(), heads: heads(&children), ids: idmap.clone(), prose: HashSet::new(), meta: meta.clone(), meta_blocks });
+        let mut resolver = Resolver::new(pre, cx.host, cx.name);
+        resolver.budget = budget.clone();
         let n = snaps.len();
-        let mut v = Views { snaps: &snaps, resolver: &resolver, results: vec![None; n], state: vec![0; n], depth: vec![0; n], stack: Vec::new() };
+        let mut v = Views {
+            snaps: &snaps,
+            resolver: &resolver,
+            results: vec![None; n],
+            state: vec![0; n],
+            depth: vec![0; n],
+            cyclic: vec![false; n],
+            stack: Vec::new(),
+        };
         for (i, s) in snaps.iter().enumerate() {
             if s.type_name == "view" {
-                eval_view(i, &mut v, &mut diags);
+                eval_chain(i, &mut v, &mut diags);
             }
         }
         let mut results = v.results;
@@ -662,9 +676,10 @@ pub fn finish(mut children: Vec<Item>, mut diags: Diags, cx: &Ctx) -> Document {
     let listing = crate::addresses::list(&children, meta_blocks, &|a: &str| idmap.contains_key(&nfd(a)));
 
     // §5: references.
-    let index =
-        Rc::new(Index { snaps: snapshot(&children), heads: heads(&children), ids: idmap, prose: listing.prose.clone(), meta: meta.clone(), meta_blocks });
-    let resolver = Resolver::new(index.clone(), cx.host, cx.name);
+    let prose = listing.prose.iter().map(|p| nfd(p)).collect();
+    let index = Rc::new(Index { snaps: snapshot(&children), heads: heads(&children), ids: idmap, prose, meta: meta.clone(), meta_blocks });
+    let mut resolver = Resolver::new(index.clone(), cx.host, cx.name);
+    resolver.budget = budget;
     inlines_mut(&mut children, &mut |nodes, line| {
         nodes_mut(nodes, &mut |n| resolve_inline(n, line, &resolver, &mut diags));
     });
@@ -696,18 +711,166 @@ struct Views<'a, 'b> {
     state: Vec<u8>,
     /// How long the chain is that ends at each view (1 for a view over a table).
     depth: Vec<usize>,
+    /// Whether a view's chain of sources meets a cycle.
+    cyclic: Vec<bool>,
     stack: Vec<usize>,
 }
 
-fn eval_view(i: usize, v: &mut Views, diags: &mut Diags) -> Option<Table> {
-    let snaps = v.snaps;
-    if v.state[i] == 2 {
-        return v.results[i].clone();
+/// What a view's source gives it: a relation — none yet when the renderer
+/// reads a remote file — or an error, which leaves the view empty (§6.1).
+enum Source {
+    Relation(Option<Table>),
+    Failed,
+    /// Past the document's budget of borrowed cells (§9.2): the source's
+    /// columns, no rows, and none of the view's attributes applied.
+    Refused(Vec<String>),
+}
+
+/// A copy of `t` for the view on `line`, booked against the document's budget
+/// before anything is copied (§9.2).
+fn borrow_copy(t: Option<&Table>, line: usize, what: &str, budget: &Borrowed, diags: &mut Diags) -> Source {
+    match t {
+        None => Source::Relation(None),
+        Some(t) if budget.take(t.columns.len().saturating_mul(t.rows.len()), line, what, diags) => Source::Relation(Some(t.clone())),
+        Some(t) => Source::Refused(t.columns.clone()),
     }
+}
+
+/// What starting a view found: its source, or the view it sources from,
+/// which has to be evaluated first.
+enum Start {
+    Ready(Source),
+    Wait(usize),
+}
+
+/// Evaluate the view `first` and every view it waits on. A view whose source
+/// is another view not yet evaluated waits on a stack rather than in a nested
+/// call, so a chain of any length costs no call stack; §9.3's bound refuses
+/// each view past it, as it is finished.
+fn eval_chain(first: usize, v: &mut Views, diags: &mut Diags) {
+    if v.state[first] == 2 {
+        return;
+    }
+    let mut waiting: Vec<(usize, usize)> = Vec::new();
+    let mut next = Some(first);
+    loop {
+        if let Some(i) = next.take() {
+            match start_view(i, v, diags) {
+                Start::Wait(j) => {
+                    waiting.push((i, j));
+                    next = Some(j);
+                }
+                Start::Ready(source) => finish_view(i, source, v, diags),
+            }
+            continue;
+        }
+        let Some((i, j)) = waiting.pop() else { break };
+        let source = through(i, j, v, diags);
+        finish_view(i, source, v, diags);
+    }
+}
+
+/// The relation view `i` takes from the view `j` it sources, already
+/// evaluated. A chain that meets a cycle, or runs past `CHAIN_DEPTH`, gives
+/// none: each view on it is reported (§9.3).
+fn through(i: usize, j: usize, v: &mut Views, diags: &mut Diags) -> Source {
+    if v.cyclic[j] {
+        v.cyclic[i] = true;
+        diags.push("view-source-cycle", v.snaps[i].line, "this view's chain of sources meets a cycle");
+        return Source::Failed;
+    }
+    v.depth[i] = v.depth[j] + 1;
+    if v.depth[i] > CHAIN_DEPTH {
+        diags.push("view-source-too-deep", v.snaps[i].line, format!("this chain of views is more than {CHAIN_DEPTH} long; it publishes no rows"));
+        return Source::Failed;
+    }
+    borrow_copy(v.results[j].as_ref(), v.snaps[i].line, &format!("the view `{}`", v.snaps[i].id.clone().unwrap_or_default()), &v.resolver.budget, diags)
+}
+
+fn start_view(i: usize, v: &mut Views, diags: &mut Diags) -> Start {
+    let snaps = v.snaps;
     let s = &snaps[i];
     v.state[i] = 1;
     v.stack.push(i);
     v.depth[i] = 1;
+    let fail = |diags: &mut Diags, code: &'static str, message: String| {
+        diags.push(code, s.line, message);
+        Start::Ready(Source::Failed)
+    };
+    let mut source: Source = Source::Relation(None);
+    let resolver = v.resolver;
+    let budget = &resolver.budget;
+    match s.attr_text("src") {
+        None => return fail(diags, "view-missing-src", "a view carries no `src=`, so it has nothing to derive from".into()),
+        Some(src) => {
+            if s.has_body && !s.raw_blank {
+                diags.push("view-src-and-body", s.line, "a view takes no body; its content is its source's");
+            }
+            if let Some(local) = src.strip_prefix('#') {
+                match v.resolver.main.ids.get(&nfd(local)) {
+                    Some(Found::Block(j)) => {
+                        let j = *j;
+                        match snaps[j].type_name.as_str() {
+                            "table" => source = borrow_copy(snaps[j].table.as_ref(), s.line, &format!("`src={src}`"), budget, diags),
+                            "view" => match v.state[j] {
+                                1 => {
+                                    let at = v.stack.iter().position(|x| *x == j).unwrap_or(0);
+                                    let names: Vec<String> = v.stack[at..].iter().map(|k| format!("#{}", snaps[*k].id.clone().unwrap_or_default())).collect();
+                                    v.cyclic[i] = true;
+                                    return fail(diags, "view-source-cycle", format!("these views name each other as their source: {}", names.join(" → ")));
+                                }
+                                2 => return Start::Ready(through(i, j, v, diags)),
+                                _ => return Start::Wait(j),
+                            },
+                            t => return fail(diags, "view-source-not-a-relation", format!("`src={src}` names a `{t}` block, which publishes no relation")),
+                        }
+                    }
+                    Some(_) => return fail(diags, "view-source-not-a-relation", format!("`src={src}` names no table or view")),
+                    None => return fail(diags, "unresolved-reference", format!("`src={src}` names an id no block declares")),
+                }
+            } else if let Some((doc, anchor)) = src.split_once('#').filter(|(d, _)| is_geml_doc(d)) {
+                // A source in another document: its relation as that document
+                // publishes it. With no host to read it by, it is unchecked and
+                // the view has no relation yet; one that does not resolve is an error.
+                let target = v.resolver.target(Some(doc), anchor);
+                let unchecked = matches!(target, Target::NoHost);
+                match v.resolver.report(target, &format!("`src={src}`"), s.line, diags) {
+                    None if unchecked => {}
+                    None => return Start::Ready(Source::Failed),
+                    Some((index, found, _)) => match index.block(found) {
+                        Some(t) if t.type_name == "table" || t.type_name == "view" => {
+                            source = borrow_copy(t.table.as_ref(), s.line, &format!("`src={src}`"), budget, diags)
+                        }
+                        Some(t) => {
+                            return fail(
+                                diags,
+                                "view-source-not-a-relation",
+                                format!("`src={src}` names a `{}` block, which publishes no relation", t.type_name),
+                            )
+                        }
+                        None => return fail(diags, "view-source-not-a-relation", format!("`src={src}` names no table or view")),
+                    },
+                }
+            } else {
+                // §6.1: a data file is read as a table's is — a local one now,
+                // a remote one by the renderer.
+                let what = format!("`src={src}`");
+                if v.resolver.host.is_some() && budget.spent(s.line, &what, diags) {
+                    return Start::Ready(Source::Refused(vec![]));
+                }
+                source = match crate::table::table_from_file("src", &src, v.resolver.host.map(|h| (h, v.resolver.name.as_str())), s.line, diags) {
+                    Some(t) if !budget.take(t.columns.len().saturating_mul(t.rows.len()), s.line, &what, diags) => Source::Refused(t.columns),
+                    t => Source::Relation(t),
+                };
+            }
+        }
+    }
+    Start::Ready(source)
+}
+
+/// Derive view `i` from its source's relation, and record it.
+fn finish_view(i: usize, source: Source, v: &mut Views, diags: &mut Diags) {
+    let s = &v.snaps[i];
     let block = Block {
         type_name: s.type_name.clone(),
         id: s.id.clone(),
@@ -724,72 +887,14 @@ fn eval_view(i: usize, v: &mut Views, diags: &mut Diags) -> Option<Table> {
         body_end: s.line + 1,
         end: s.line,
     };
-    let mut source: Option<Table> = None;
-    match s.attr_text("src") {
-        None => diags.push("view-missing-src", s.line, "a view carries no `src=`, so it has nothing to derive from"),
-        Some(src) => {
-            if s.has_body && !s.raw_blank {
-                diags.push("view-src-and-body", s.line, "a view takes no body; its content is its source's");
-            }
-            if let Some(local) = src.strip_prefix('#') {
-                match v.resolver.main.ids.get(&nfd(local)) {
-                    Some(Found::Block(j)) => {
-                        let j = *j;
-                        match snaps[j].type_name.as_str() {
-                            "table" => source = snaps[j].table.clone(),
-                            "view" => {
-                                if v.state[j] == 1 {
-                                    let at = v.stack.iter().position(|x| *x == j).unwrap_or(0);
-                                    let names: Vec<String> = v.stack[at..].iter().map(|k| format!("#{}", snaps[*k].id.clone().unwrap_or_default())).collect();
-                                    diags.push("view-source-cycle", s.line, format!("these views name each other as their source: {}", names.join(" → ")));
-                                } else {
-                                    let t = eval_view(j, v, diags);
-                                    v.depth[i] = v.depth[j] + 1;
-                                    if v.depth[i] > MAX_VIEW_DEPTH {
-                                        diags.push(
-                                            "view-source-too-deep",
-                                            s.line,
-                                            "this chain of views is deeper than the processor admits; it publishes no rows",
-                                        );
-                                    } else {
-                                        source = t;
-                                    }
-                                }
-                            }
-                            t => diags.push("view-source-not-a-relation", s.line, format!("`src={src}` names a `{t}` block, which publishes no relation")),
-                        }
-                    }
-                    Some(_) => diags.push("view-source-not-a-relation", s.line, format!("`src={src}` names no table or view")),
-                    None => diags.push("unresolved-reference", s.line, format!("`src={src}` names an id no block declares")),
-                }
-            } else if let Some((doc, anchor)) = src.split_once('#').filter(|(d, _)| is_geml_doc(d)) {
-                // A source in another document: its relation as that document publishes it.
-                if let Some((index, found, _)) = v.resolver.report(v.resolver.target(Some(doc), anchor), &format!("`src={src}`"), s.line, diags) {
-                    match index.block(found) {
-                        Some(t) if t.type_name == "table" || t.type_name == "view" => source = t.table.clone(),
-                        Some(t) => diags.push(
-                            "view-source-not-a-relation",
-                            s.line,
-                            format!("`src={src}` names a `{}` block, which publishes no relation", t.type_name),
-                        ),
-                        None => diags.push("view-source-not-a-relation", s.line, format!("`src={src}` names no table or view")),
-                    }
-                }
-            } else {
-                // §6.1: a data file is read as a table's is — a local one now,
-                // a remote one by the renderer.
-                source = crate::table::table_from_file("src", &src, v.resolver.host.map(|h| (h, v.resolver.name.as_str())), s.line, diags);
-            }
-        }
-    }
-    let out = source.map(|t| {
-        let src = Table { columns: t.columns, rows: t.rows, summary: None };
-        crate::view::derive(&block, &src, diags)
-    });
+    let out = match source {
+        Source::Failed => Some(Table { columns: vec![], rows: vec![], summary: None }),
+        Source::Refused(columns) => Some(Table { columns, rows: vec![], summary: None }),
+        Source::Relation(t) => t.map(|t| crate::view::derive(&block, Table { columns: t.columns, rows: t.rows, summary: None }, diags)),
+    };
     v.stack.pop();
     v.state[i] = 2;
-    v.results[i] = out.clone();
-    out
+    v.results[i] = out;
 }
 
 /// Whether a resolved target may stand inside a sentence (§5.2): one paragraph
@@ -1104,7 +1209,11 @@ fn chart_file(data: &str, named: &[String], r: &Resolver, line: usize, diags: &m
         // Any other file stands for a table and is read as a table's `src=` is
         // (§7.1): `tsv` by suffix, `csv` otherwise — a local one now, a remote
         // one by the renderer, the rest `unresolvable-table-source`.
-        return crate::table::table_from_file("data", data, r.host.map(|h| (h, r.name.as_str())), line, diags);
+        let what = format!("`data={data}`");
+        if r.host.is_some() && r.budget.spent(line, &what, diags) {
+            return None;
+        }
+        return crate::table::table_from_file("data", data, r.host.map(|h| (h, r.name.as_str())), line, diags).map(|t| r.budget.book(t, line, &what, diags));
     }
     match scheme_of(data) {
         Some(sch) if sch == "http" || sch == "https" => {

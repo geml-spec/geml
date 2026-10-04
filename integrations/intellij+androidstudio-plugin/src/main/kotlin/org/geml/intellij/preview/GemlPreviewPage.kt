@@ -11,6 +11,8 @@ import java.awt.Color
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
+import java.security.SecureRandom
+import java.util.Base64
 
 /**
  * The preview page.
@@ -38,26 +40,28 @@ object GemlPreviewPage {
   }
 
   /**
-   * Write the page and return its URL. It lives in the IDE's temp directory and
-   * names every asset absolutely, rather than sitting next to them: a plugin
+   * Write the page and return where it is. It lives in the IDE's temp directory
+   * and names every asset absolutely, rather than sitting next to them: a plugin
    * directory under Program Files is not writable, and a preview that only
    * worked for some installations would be worse than none.
    */
-  fun write(postMessageJs: String, dark: Boolean): String? {
+  fun write(postMessageJs: String, dark: Boolean): Path? {
     val dir = assets ?: return null
     val page = Path.of(PathManager.getTempPath(), "geml-preview").also { Files.createDirectories(it) }
       .resolve("preview-${if (dark) "dark" else "light"}.html")
-    Files.write(page, html(dir, postMessageJs, dark).toByteArray(StandardCharsets.UTF_8))
-    return page.toUri().toString()
+    val nonce = Base64.getEncoder().encodeToString(ByteArray(16).also { SecureRandom().nextBytes(it) })
+    Files.write(page, html(dir, postMessageJs, dark, nonce).toByteArray(StandardCharsets.UTF_8))
+    return page
   }
 
   private fun url(dir: Path, name: String): String = dir.resolve(name).toUri().toString()
 
-  private fun html(dir: Path, postMessageJs: String, dark: Boolean): String = """
+  private fun html(dir: Path, postMessageJs: String, dark: Boolean, nonce: String): String = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="${GemlPreviewPolicy.csp(nonce)}">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GEML preview</title>
 <link rel="stylesheet" href="${url(dir, "geml.css")}">
@@ -68,7 +72,7 @@ object GemlPreviewPage {
 <body class="geml-body ${if (dark) "vscode-dark" else "vscode-light"}">
 <p id="note" class="geml-preview-note" hidden></p>
 <div id="doc" class="geml-doc"></div>
-<script>
+<script nonce="$nonce">
 // The host side of preview.js, over JCEF instead of a webview. Same three
 // calls, same message shapes — which is the whole reason preview.js itself can
 // be copied in unchanged.
@@ -83,8 +87,8 @@ object GemlPreviewPage {
   };
 })();
 </script>
-<script src="${url(dir, "geml-webview.js")}"></script>
-<script src="${url(dir, "preview.js")}"></script>
+<script nonce="$nonce" src="${url(dir, "geml-webview.js")}"></script>
+<script nonce="$nonce" src="${url(dir, "preview.js")}"></script>
 </body>
 </html>
 """.trimIndent()

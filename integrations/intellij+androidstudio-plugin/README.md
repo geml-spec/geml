@@ -33,7 +33,13 @@ disagree with what `geml check` says in CI.
    `build/distributions/`.
 
 If Node lives somewhere unusual, or you would rather the plugin answered from
-your own build of the CLI, both are in `Settings | Tools | GEML`.
+your own build of the CLI, both are in `Settings | Tools | GEML`. A command
+there is found on PATH or given as an absolute path, never in the project; a
+package runner such as `npx` is refused, since it would run whatever
+`@geml/geml` the opened project's `node_modules` holds.
+
+In a project you have not trusted, the plugin runs no CLI: highlighting and the
+preview work, and everything else starts once you trust the project.
 
 ## Building it
 

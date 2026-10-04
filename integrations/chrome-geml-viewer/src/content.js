@@ -108,7 +108,7 @@ async function main() {
   // with no reload. The model is parsed ONCE above; paint only re-renders and
   // re-upgrades the current DOM.
   const paint = async () => {
-    const focus = decodeURIComponent((location.hash || "").replace(/^#/, "")) || null;
+    const focus = decodedOr((location.hash || "").replace(/^#/, "")) || null;
     document.body.className = "geml-body";
     let usedLayout = false;
     if (page) {
@@ -188,8 +188,12 @@ async function main() {
     await upgradeCodeGraph(root, {
       waves: codeGraphWaves,
       parse,
-      runtime: codeGraphRuntime,
-      selfName: decodeURIComponent(location.pathname.split("/").pop() || ""),
+      // Documents are data, never code: this is a content script, and a
+      // <script> it appends runs in the page's main world, so the runtime must
+      // not load a static search index that way. A file:// page then has no
+      // search source, and the runtime leaves the search box out.
+      runtime: (r) => codeGraphRuntime(r, { noScriptIndex: true }),
+      selfName: decodedOr(location.pathname.split("/").pop() || ""),
       selfSource: raw,
       fetchDoc: async (rel) => {
         try {
@@ -219,6 +223,13 @@ async function main() {
   if (typeof globalThis.addEventListener === "function") {
     globalThis.addEventListener("hashchange", () => { void paint(); });
   }
+}
+
+// A `%` that starts no escape (`#%`, `50%.geml`) makes decodeURIComponent
+// throw, and a throw inside paint() leaves the page raw. The text as written is
+// the best reading of it left.
+function decodedOr(s) {
+  try { return decodeURIComponent(s); } catch { return s; }
 }
 
 // Same-origin (and, for file:// documents, same-directory) guard for `src=`

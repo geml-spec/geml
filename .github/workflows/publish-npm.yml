@@ -11,48 +11,82 @@ name: Publish to npm
 # One-time setup: add an npm **automation** token as the repo secret NPM_TOKEN
 # (npmjs.com → Access Tokens → Generate → Automation). It needs publish rights
 # on the @geml scope. Nothing else is stored in the repo.
+#
+# Two jobs, so the token never shares a runner with an install script. `build`
+# installs, tests and packs with nothing to steal; `publish` installs nothing and
+# runs no script — it hands npm the tarball `build` packed, and a tarball's
+# lifecycle scripts do not run on publish.
 on:
   workflow_dispatch:
 
 jobs:
-  publish:
-    name: Publish @geml/geml to npm
+  build:
+    name: Build, test and pack @geml/geml
     runs-on: ubuntu-latest
     permissions:
-      contents: read    # checkout the repo
-      id-token: write   # mint the OIDC token npm provenance attests with (--provenance)
+      contents: read
     defaults:
       run:
         working-directory: geml-parser # package.json / server.json live here, not at the repo root
+    outputs:
+      tarball: ${{ steps.pack.outputs.tarball }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22" # engines.node >= 22
-          # Writes an .npmrc that reads NODE_AUTH_TOKEN for the publish step below.
-          registry-url: "https://registry.npmjs.org"
 
-      # `npm install`, not `npm ci`: the committed lockfile lags package.json
-      # (its own version field trails the release), and `npm ci` aborts on that
-      # mismatch. ci.yml installs the same way for the same reason.
+      # From the lockfile, as ci.yml installs: the release commit bumps the
+      # lockfile's version fields with package.json's, and CI checks they agree.
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       # Pre-publish gate: never ship a tree that does not compile or pass. `npm
       # test` is `tsc && node test/all.mjs`, so it also produces the gitignored
-      # dist/ that the package files[] ship (prepublishOnly rebuilds it too — the
-      # second build is idempotent).
+      # dist/ that the package files[] ship.
       - name: Build + test
         run: npm test
+
+      - name: Pack
+        id: pack
+        run: echo "tarball=$(npm pack --silent)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: npm-tarball
+          path: geml-parser/${{ steps.pack.outputs.tarball }}
+          retention-days: 7
+
+  publish:
+    name: Publish @geml/geml to npm
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # mint the OIDC token npm provenance attests with (--provenance)
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          # Writes an .npmrc that reads NODE_AUTH_TOKEN for the publish step below.
+          registry-url: "https://registry.npmjs.org"
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: npm-tarball
 
       # `--provenance` attaches a signed link from the tarball back to this repo,
       # commit and workflow run (public repo + id-token: write make it possible).
       # `--access public` is explicit intent; publishConfig.access already sets it
       # for the scoped @geml/geml name.
       - name: Publish to npm
-        run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          TARBALL: ${{ needs.build.outputs.tarball }}
+        run: npm publish "./$TARBALL" --provenance --access public

@@ -4,6 +4,7 @@ import com.google.gson.JsonParser
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Document
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
 import java.nio.file.Path
@@ -89,7 +90,7 @@ object GemlIndex {
     wanted.add(file.url)
 
     if (!ApplicationManager.getApplication().isDispatchThread) {
-      val units = list(document?.text ?: psiFile.text, workDirOf(file))
+      val units = list(psiFile.project, document?.text ?: psiFile.text, workDirOf(file))
       if (units != null) {
         put(file, stamp, units)
         return units
@@ -112,7 +113,7 @@ object GemlIndex {
     val application = ApplicationManager.getApplication()
     application.executeOnPooledThread {
       try {
-        val units = list(text, workDirOf(file)) ?: return@executeOnPooledThread
+        val units = list(project, text, workDirOf(file)) ?: return@executeOnPooledThread
         put(file, stamp, units)
         application.invokeLater({
           if (!project.isDisposed && psiFile.isValid) {
@@ -150,14 +151,14 @@ object GemlIndex {
   // -------------------------------------------------------------------------
 
   /** `geml list - --json` over the buffer as it is now. */
-  fun list(text: String, workDir: Path?): List<GemlUnit>? {
-    val r = GemlCli.run(listOf("list", "-", "--json"), workDir, text) ?: return null
+  fun list(project: Project, text: String, workDir: Path?): List<GemlUnit>? {
+    val r = GemlCli.run(project, listOf("list", "-", "--json"), workDir, text) ?: return null
     return parseUnits(r.stdout)
   }
 
   /** `geml check --json -` over the buffer as it is now. */
-  fun check(text: String, workDir: Path?): List<GemlDiagnostic>? {
-    val r = GemlCli.run(listOf("check", "--json", "-"), workDir, text) ?: return null
+  fun check(project: Project, text: String, workDir: Path?): List<GemlDiagnostic>? {
+    val r = GemlCli.run(project, listOf("check", "--json", "-"), workDir, text) ?: return null
     return parseDiagnostics(r.stdout)
   }
 

@@ -8,6 +8,9 @@
     "media-shape-empty": "error",
     "media-clip-unassembled": "error",
     "media-duration-required": "error",
+    "media-src-not-relative": "error",
+    "media-gain-invalid": "error",
+    "media-time-out-of-range": "error",
     "media-track-missing": "error",
     "media-track-kind-missing": "error",
     "media-track-kind-unknown": "error",
@@ -16,13 +19,6 @@
     "media-line-no-speaker": "error",
     "media-gen-schema": "error",
     "media-gen-output-not-asset": "error",
-    "media-hash-mismatch": "error",
-    "media-file-missing": "warning",
-    "media-asset-unhashed": "warning",
-    "media-track-undeclared": "warning",
-    "media-stale-generation": "warning",
-    "media-stale-clip": "warning",
-    "media-orphan-record": "info",
     "media-layer-unassembled": "error",
     "media-comp-size-missing": "error",
     "media-comp-empty": "error",
@@ -34,7 +30,14 @@
     "media-layer-position-conflict": "error",
     "media-asset-size-required": "error",
     "media-comp-at-duplicate": "error",
-    "media-interaction-apart": "warning"
+    "media-interaction-apart": "warning",
+    "media-hash-mismatch": "error",
+    "media-file-missing": "warning",
+    "media-asset-unhashed": "warning",
+    "media-track-undeclared": "warning",
+    "media-stale-generation": "warning",
+    "media-stale-clip": "warning",
+    "media-orphan-record": "info"
   },
   "cases": [
     {
@@ -117,6 +120,338 @@
           "unknown-block-type:warning"
         ]
       }
+    },
+    {
+      "name": "an asset's src is a relative path — a scheme, a leading `/` or a `\\` is media-src-not-relative, and that file is not opened",
+      "geml": "=== meta\nprofile = \"geml-media/v1\"\n===\n\n=== media-asset {#a1 src=\"concat:a.wav|b.wav\" kind=audio sha256=0000000000000000000000000000000000000000000000000000000000000000}\n===\n\n=== media-asset {#a2 src=\"/etc/x.png\" kind=image sha256=0000000000000000000000000000000000000000000000000000000000000000}\n===\n\n=== media-asset {#a3 src=\"dir\\\\x.png\" kind=image sha256=0000000000000000000000000000000000000000000000000000000000000000}\n===\n\n=== media-asset {#a4 src=\" https://h/x.png\" kind=image sha256=0000000000000000000000000000000000000000000000000000000000000000}\n===\n\n=== media-asset {#a5 src=ok.png kind=image sha256=0000000000000000000000000000000000000000000000000000000000000000}\n===\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#a1",
+          "#a2",
+          "#a3",
+          "#a4",
+          "#a5"
+        ],
+        "undeclared": [
+          "#meta",
+          "#a1",
+          "#a2",
+          "#a3",
+          "#a4",
+          "#a5"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning"
+        ]
+      },
+      "checks": [
+        "media-file-missing:warning",
+        "media-src-not-relative:error",
+        "media-src-not-relative:error",
+        "media-src-not-relative:error",
+        "media-src-not-relative:error"
+      ]
+    },
+    {
+      "name": "a cut's gain is decibels with the unit — anything else is media-gain-invalid",
+      "geml": "=== meta\nprofile = \"geml-media/v1\"\n===\n\n=== media-asset {#v src=v.mp4 kind=video sha256=0000000000000000000000000000000000000000000000000000000000000000 duration=10}\n===\n\n=== media-asset {#a src=a.wav kind=audio sha256=0000000000000000000000000000000000000000000000000000000000000000 duration=10}\n===\n\n==== media {#tl tracks=\"v:video a:audio\"}\n\n=== media-clip {#c track=v src=#v in=0 out=4}\n===\n\n=== media-clip {#g1 track=a src=#a in=0 duration=1 over=#c gain=-14dB}\n===\n\n=== media-clip {#g2 track=a src=#a in=0 duration=1 over=#c gain=\"-3.5 db\"}\n===\n\n=== media-clip {#g3 track=a src=#a in=0 duration=1 over=#c gain=\"0dB[x];[x]volume=2\"}\n===\n\n=== media-clip {#g4 track=a src=#a in=0 duration=1 over=#c gain=6}\n===\n\n====\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#v",
+          "#a",
+          "#tl",
+          "#c",
+          "#g1",
+          "#g2",
+          "#g3",
+          "#g4"
+        ],
+        "undeclared": [
+          "#meta",
+          "#v",
+          "#a",
+          "#tl"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning"
+        ]
+      },
+      "checks": [
+        "media-file-missing:warning",
+        "media-file-missing:warning",
+        "media-gain-invalid:error",
+        "media-gain-invalid:error"
+      ]
+    },
+    {
+      "name": "a prompt's projection of a block already being expanded contributes nothing — the recorded hash is of `a  b`, so nothing is stale",
+      "geml": "=== meta\nprofile = \"geml-media/v1\"\n===\n\n=== media-asset {#a src=a.png kind=image sha256=\"0000000000000000000000000000000000000000000000000000000000000000\"}\n===\n\n=== text {#p}\na ![[#p]] b\n===\n\n=== data {.gen-log format=jsonl}\n{\"output\": \"#a\", \"output-sha256\": \"0000000000000000000000000000000000000000000000000000000000000000\", \"model\": \"m\", \"mode\": \"t2i\", \"at\": \"2026\", \"prompt\": \"#p\", \"prompt-sha256\": \"6e12db73209a66d147a67a15868bdb4b8ae57b884d4731310b62f82a7d67611e\"}\n===\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#a",
+          "#p"
+        ],
+        "undeclared": [
+          "#meta",
+          "#a",
+          "#p"
+        ]
+      },
+      "diagnostics": {
+        "declared": [
+          "transclusion-cycle:error"
+        ],
+        "undeclared": [
+          "unknown-block-type:warning",
+          "transclusion-cycle:error"
+        ]
+      },
+      "checks": [
+        "media-file-missing:warning"
+      ]
+    },
+    {
+      "name": "every time is at most max-time, and so is where a cut ends — media-time-out-of-range",
+      "bound": "max-time",
+      "geml": "=== meta\nprofile = \"geml-media/v1\"\n===\n\n=== media-asset {#v src=v.mp4 kind=video sha256=0000000000000000000000000000000000000000000000000000000000000000 duration=86400}\n===\n\n=== media-asset {#w src=w.mp4 kind=video sha256=0000000000000000000000000000000000000000000000000000000000000000 duration=86401}\n===\n\n==== media {#tl tracks=\"v:video\" fps=24}\n\n=== media-clip {#c1 track=v src=#v in=0 out=43201}\n===\n\n=== media-clip {#c2 track=v src=#v in=0 out=43201}\n===\n\n=== media-clip {#c3 track=v src=#v in=0 out=\"24:00:01:00\"}\n===\n\n====\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#v",
+          "#w",
+          "#tl",
+          "#c1",
+          "#c2",
+          "#c3"
+        ],
+        "undeclared": [
+          "#meta",
+          "#v",
+          "#w",
+          "#tl"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning"
+        ]
+      },
+      "checks": [
+        "media-file-missing:warning",
+        "media-file-missing:warning",
+        "media-time-out-of-range:error",
+        "media-time-out-of-range:error",
+        "media-time-out-of-range:error"
+      ]
+    },
+    {
+      "name": "an interaction that only verifies may end up apart-tolerance apart, and no further — media-interaction-apart",
+      "bound": "apart-tolerance",
+      "geml": "=== meta\nprofile = \"geml-media/v1\"\n===\n\n=== media-asset {#a src=a.png kind=image sha256=0000000000000000000000000000000000000000000000000000000000000000 points=\"p:0,0 q:10,0\"}\n===\n\n=== media-asset {#b src=b.png kind=image sha256=0000000000000000000000000000000000000000000000000000000000000000 points=\"p:0,0 q:12,0\"}\n===\n\n=== media-asset {#c src=c.png kind=image sha256=0000000000000000000000000000000000000000000000000000000000000000 points=\"p:0,0 q:13,0\"}\n===\n\n==== media-comp {#at size=100x100}\n\n=== media-layer {#at-a src=#a x=0 y=0}\n===\n\n=== media-layer {#at-b src=#b}\n===\n\n=== media-interaction {#at-place a=#at-a:p b=#at-b:p kind=contact}\n===\n\n=== media-interaction {#at-verify a=#at-a:q b=#at-b:q kind=contact}\n===\n\n====\n\n==== media-comp {#past size=100x100}\n\n=== media-layer {#past-a src=#a x=0 y=0}\n===\n\n=== media-layer {#past-c src=#c}\n===\n\n=== media-interaction {#past-place a=#past-a:p b=#past-c:p kind=contact}\n===\n\n=== media-interaction {#past-verify a=#past-a:q b=#past-c:q kind=contact}\n===\n\n====\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#a",
+          "#b",
+          "#c",
+          "#at",
+          "#at-a",
+          "#at-b",
+          "#at-place",
+          "#at-verify",
+          "#past",
+          "#past-a",
+          "#past-c",
+          "#past-place",
+          "#past-verify"
+        ],
+        "undeclared": [
+          "#meta",
+          "#a",
+          "#b",
+          "#c",
+          "#at",
+          "#past"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning"
+        ]
+      },
+      "checks": [
+        "media-file-missing:warning",
+        "media-file-missing:warning",
+        "media-file-missing:warning",
+        "media-interaction-apart:warning"
+      ]
+    },
+    {
+      "name": "an asset's current value is its file's SHA-256, not its declared `sha256` — the entry that made the bytes it has now is the one judged (§6)",
+      "geml": "=== meta\nprofile = \"geml-media/v1\"\n===\n\n=== media-asset {#a src=a.png kind=image sha256=\"b4dddecf813201f4a83f2ae71f6fa1a03ea961c3738e3da7fff94859c5ad1c17\"}\n===\n\n=== text {#p}\na red door\n===\n\n=== data {.gen-log format=jsonl}\n{\"output\":\"#a\",\"model\":\"m\",\"mode\":\"t2i\",\"at\":\"2026-01\",\"output-sha256\":\"b4dddecf813201f4a83f2ae71f6fa1a03ea961c3738e3da7fff94859c5ad1c17\",\"prompt\":\"#p\",\"prompt-sha256\":\"3278dbe576f925cc0daed1d3fb3aeb1870e7d0f466aafc3e6b0ebd446a04eab8\"}\n{\"output\":\"#a\",\"model\":\"m\",\"mode\":\"t2i\",\"at\":\"2026-02\",\"output-sha256\":\"11e2defd59f47c7f2aac84d6a5d6747e98e785afffb72c8bb7b05ec74e1d663c\",\"prompt\":\"#p\",\"prompt-sha256\":\"5dcf1cf98654669493064098027386149dfb349e1626f425e900c4728070476f\"}\n===\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#a",
+          "#p"
+        ],
+        "undeclared": [
+          "#meta",
+          "#a",
+          "#p"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning"
+        ]
+      },
+      "files": {
+        "a.png": "new bytes"
+      },
+      "checks": [
+        "media-hash-mismatch:error",
+        "media-stale-generation:warning"
+      ]
+    },
+    {
+      "name": "an asset whose file is not there has no current value: no entry is judged, and it is no orphan (§6)",
+      "geml": "=== meta\nprofile = \"geml-media/v1\"\n===\n\n=== media-asset {#a src=a.png kind=image sha256=\"b4dddecf813201f4a83f2ae71f6fa1a03ea961c3738e3da7fff94859c5ad1c17\"}\n===\n\n=== text {#p}\na red door\n===\n\n=== data {.gen-log format=jsonl}\n{\"output\":\"#a\",\"model\":\"m\",\"mode\":\"t2i\",\"at\":\"2026\",\"output-sha256\":\"b4dddecf813201f4a83f2ae71f6fa1a03ea961c3738e3da7fff94859c5ad1c17\",\"prompt\":\"#p\",\"prompt-sha256\":\"5dcf1cf98654669493064098027386149dfb349e1626f425e900c4728070476f\"}\n===\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#a",
+          "#p"
+        ],
+        "undeclared": [
+          "#meta",
+          "#a",
+          "#p"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning"
+        ]
+      },
+      "checks": [
+        "media-file-missing:warning"
+      ]
+    },
+    {
+      "name": "when no entry matches the current value the asset is an orphan, and nothing about it is stale (§6)",
+      "geml": "=== meta\nprofile = \"geml-media/v1\"\n===\n\n=== media-asset {#a src=a.png kind=image sha256=\"11e2defd59f47c7f2aac84d6a5d6747e98e785afffb72c8bb7b05ec74e1d663c\"}\n===\n\n=== text {#p}\na red door\n===\n\n=== data {.gen-log format=jsonl}\n{\"output\":\"#a\",\"model\":\"m\",\"mode\":\"t2i\",\"at\":\"2026\",\"output-sha256\":\"b4dddecf813201f4a83f2ae71f6fa1a03ea961c3738e3da7fff94859c5ad1c17\",\"prompt\":\"#p\",\"prompt-sha256\":\"5dcf1cf98654669493064098027386149dfb349e1626f425e900c4728070476f\"}\n===\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#a",
+          "#p"
+        ],
+        "undeclared": [
+          "#meta",
+          "#a",
+          "#p"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning"
+        ]
+      },
+      "files": {
+        "a.png": "new bytes"
+      },
+      "checks": [
+        "media-orphan-record:info"
+      ]
+    },
+    {
+      "name": "an input's current value is its file's SHA-256, and hashes compare without regard to case (§6)",
+      "geml": "=== meta\nprofile = \"geml-media/v1\"\n===\n\n=== media-asset {#a src=a.png kind=image sha256=\"11E2DEFD59F47C7F2AAC84D6A5D6747E98E785AFFFB72C8BB7B05EC74E1D663C\"}\n===\n\n=== media-asset {#b src=b.png kind=image sha256=\"b4dddecf813201f4a83f2ae71f6fa1a03ea961c3738e3da7fff94859c5ad1c17\"}\n===\n\n=== data {.gen-log format=jsonl}\n{\"output\":\"#a\",\"model\":\"m\",\"mode\":\"t2i\",\"at\":\"2026\",\"output-sha256\":\"11E2DEFD59F47C7F2AAC84D6A5D6747E98E785AFFFB72C8BB7B05EC74E1D663C\",\"inputs\":[{\"ref\":\"#b\",\"sha256\":\"b4dddecf813201f4a83f2ae71f6fa1a03ea961c3738e3da7fff94859c5ad1c17\"}]}\n===\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#a",
+          "#b"
+        ],
+        "undeclared": [
+          "#meta",
+          "#a",
+          "#b"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning",
+          "unknown-block-type:warning"
+        ]
+      },
+      "files": {
+        "a.png": "new bytes",
+        "b.png": "new bytes"
+      },
+      "checks": [
+        "media-hash-mismatch:error",
+        "media-stale-generation:warning"
+      ]
+    },
+    {
+      "name": "an asset with no `sha256` is `media-asset-unhashed` whether or not its file is there (§3)",
+      "geml": "=== meta\nprofile = \"geml-media/v1\"\n===\n\n=== media-asset {#a src=a.png kind=image}\n===\n\n=== media-asset {#b src=b.png kind=image}\n===\n\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#a",
+          "#b"
+        ],
+        "undeclared": [
+          "#meta",
+          "#a",
+          "#b"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning",
+          "unknown-block-type:warning"
+        ]
+      },
+      "files": {
+        "a.png": "new bytes"
+      },
+      "checks": [
+        "media-asset-unhashed:warning",
+        "media-asset-unhashed:warning",
+        "media-file-missing:warning"
+      ]
     }
   ]
 }

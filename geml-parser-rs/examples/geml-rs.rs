@@ -16,10 +16,12 @@ struct Fs {
 }
 
 impl Fs {
+    /// A path a document names, resolved (§9.4): inside the root once every
+    /// link on it is followed, and a regular file.
     fn path(&self, from: &str, rel: &str) -> Option<PathBuf> {
         let joined = geml::host::join(from, rel)?;
         let p = self.root.join(joined).canonicalize().ok()?;
-        p.starts_with(self.root.canonicalize().ok()?).then_some(p)
+        (p.starts_with(self.root.canonicalize().ok()?) && p.is_file()).then_some(p)
     }
 }
 
@@ -28,13 +30,13 @@ impl Host for Fs {
         std::fs::read(self.path(from, rel)?).ok().map(|b| geml::decode(&b))
     }
 
+    /// What is not a regular file inside the root is not there for this host:
+    /// its bytes are neither read nor hashed.
     fn file(&self, from: &str, rel: &str) -> Option<FileState> {
-        let joined = geml::host::join(from, rel)?;
-        let p = self.root.join(joined);
-        match std::fs::read(&p) {
-            Ok(b) => Some(FileState::Present(geml::sha256::hex(&b))),
-            Err(_) => Some(FileState::Missing),
-        }
+        Some(match self.path(from, rel).and_then(|p| std::fs::read(p).ok()) {
+            Some(b) => FileState::Present(geml::sha256::hex(&b)),
+            None => FileState::Missing,
+        })
     }
 }
 
@@ -104,4 +106,29 @@ fn main() {
         }
     }
     std::process::exit(i32::from(bad));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Round 6: a file's hash is read through the same confinement as its
+    /// text. A link out of the root, `..`, and a directory are not there.
+    #[test]
+    fn a_file_is_hashed_only_inside_the_root() {
+        let base = std::env::temp_dir().join(format!("geml-rs-example-{}", std::process::id()));
+        let root = base.join("root");
+        std::fs::create_dir_all(root.join("sub")).unwrap();
+        std::fs::write(base.join("secret.png"), b"outside").unwrap();
+        std::fs::write(root.join("in.png"), b"inside").unwrap();
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(base.join("secret.png"), root.join("link.png")).unwrap();
+        let fs = Fs { root: root.clone() };
+        assert_eq!(fs.file("doc.geml", "in.png"), Some(FileState::Present(geml::sha256::hex(b"inside"))));
+        for name in ["../secret.png", "sub", "missing.png", "link.png"] {
+            assert_eq!(fs.file("doc.geml", name), Some(FileState::Missing), "{name}");
+            assert_eq!(fs.read("doc.geml", name), None, "{name}");
+        }
+        std::fs::remove_dir_all(&base).unwrap();
+    }
 }

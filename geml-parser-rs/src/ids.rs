@@ -9,12 +9,16 @@ use crate::uni::{is_letter, is_number, is_ws, nfd};
 pub fn derive_id(text: &str) -> String {
     let lower = text.to_lowercase();
     let chars: Vec<char> = nfd(&lower).chars().collect();
-    let spans = verbatim_spans(&chars);
-    let in_code = |i: usize| spans.iter().any(|(s, e, k)| *k == SpanKind::Code && i >= *s && i < *e);
+    // Which characters a code span holds, marked once: asking every span at
+    // every character is the square of a heading made of code spans.
+    let mut in_code = vec![false; chars.len()];
+    for (s, e, _) in verbatim_spans(&chars).into_iter().filter(|(_, _, k)| *k == SpanKind::Code) {
+        in_code[s..e].fill(true);
+    }
     let kept: String = chars
         .iter()
         .enumerate()
-        .filter(|(i, c)| !in_code(*i) && (is_letter(**c) || is_number(**c) || is_ws(**c) || **c == '-' || **c == '_'))
+        .filter(|(i, c)| !in_code[*i] && (is_letter(**c) || is_number(**c) || is_ws(**c) || **c == '-' || **c == '_'))
         .map(|(_, c)| *c)
         .collect();
     let mut out = String::new();

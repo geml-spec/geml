@@ -19,12 +19,12 @@
 //   - borrowed content owns no anchors on the host page: ids are stripped and
 //     fragment links are rewritten to point back at the source document.
 
-import { renderBlock, renderInlines, collectLabels } from "./render.js";
+import { renderBlock, renderInlines, collectLabels, asBrowserReads } from "./render.js";
 import { hasSrcTable, inlineSrcTables, looksTabular } from "./inline-src.js";
-import { resolveTarget, selectEmbed, glossaryFrom, parseCoordPath, projectCoord, metaView, inlineProjection } from "./parse-entry.js";
+import { CHAIN_DEPTH, resolveTarget, selectEmbed, glossaryFrom, parseCoordPath, projectCoord, metaView, inlineProjection } from "./parse-entry.js";
 import { translateSlice } from "./translate-browser.js";
 
-export const EMBED_DEPTH_CAP = 8;
+export const EMBED_DEPTH_CAP = CHAIN_DEPTH; // §9.3: the nested embed at this depth is expanded, the next is not
 export const EMBED_TOTAL_CAP = 1000; // expansions per page
 export const EMBED_BYTES_CAP = 8 * 1024 * 1024; // rendered bytes per page
 export const EMBED_DOC_BYTES_CAP = 4 * 1024 * 1024; // a single fetched document
@@ -278,10 +278,20 @@ async function expandOne(el, curUrl, curChildren, stack, state) {
   state.bytes += el.innerHTML.length;   // count was reserved at entry
   await expandNested();
 
-  const want = resolveTarget(state.docMeta, {
+  const named = resolveTarget(state.docMeta, {
     ...(el.hasAttribute("data-translate-to") ? { "translate-to": el.getAttribute("data-translate-to") } : {}),
   });
-  if (want === null) return;
+  if (named === null) return;
+  // The tag is the document's to choose, and it goes on to the translator, the
+  // bars below and — in VS Code — a prompt to the editor's model. Only a real
+  // BCP 47 tag goes on; anything else is refused without being repeated.
+  const want = languageTag(named);
+  if (want === null) {
+    const why = "`translate-to` is not a language tag";
+    el.setAttribute("data-translation-note", why);
+    refusalNote(el, dom, null, why);
+    return;
+  }
 
   const pending = pendingBar(el, dom, want);
   // The host's translator when one was injected, Chrome's otherwise. The
@@ -306,7 +316,12 @@ async function expandOne(el, curUrl, curChildren, stack, state) {
   // gesture, which is also the moment the reader agrees to a download.
   if (r.needsGesture) offerTranslation(el, dom, want, picked, paint);
   else if (r.retryable === true) retryTranslation(el, dom, want, r.why, picked, paint, state);
-  else refusalNote(el, dom, want, r.why);
+  else refusalNote(el, dom, want, r.why, r.link);
+}
+
+// `tag` when Intl reads it as a BCP 47 language tag, else null.
+function languageTag(tag) {
+  try { return Intl.getCanonicalLocales(tag).length === 1 ? tag : null; } catch { return null; }
 }
 
 // One inline projection. Every guard above applies unchanged — depth, count,
@@ -435,25 +450,27 @@ async function expandOneInline(el, curUrl, curChildren, stack, state) {
 // its source silently is indistinguishable from a document that was always in
 // that language. Whatever the reason, the reader is told there was meant to be a
 // translation and why there is not.
-function refusalNote(el, dom, lang, why) {
+function refusalNote(el, dom, lang, why, link) {
   const bar = dom.createElement("div");
   bar.className = "geml-translate-offer geml-translate-refused";
-  // A reason may end in where to go about it — install this, sign in there —
-  // and a reason a reader cannot click is one they have to retype. Only a
-  // trailing https URL becomes a link: the browser translator's reasons name
-  // chrome://on-device-internals, which no page may navigate to anyway.
-  const at = why.lastIndexOf(" https://");
-  const url = at < 0 ? "" : why.slice(at + 1);
-  if (url === "" || url.includes(" ")) {
-    bar.textContent = `Not translated to ${lang}: ${why}`;
+  const head = lang === null ? "Not translated" : `Not translated to ${lang}`;
+  // A refusal may come with where to go about it — install this, sign in there
+  // — and a place a reader cannot click is one they have to retype. The link is
+  // its own field, set by the host's code: a reason's TEXT can carry what the
+  // document chose (the target language, a borrowed path), so nothing in it is
+  // ever made live. Only an https URL is linked.
+  let href = null;
+  try { const u = new URL(link); if (u.protocol === "https:") href = u.href; } catch { /* absent, or not a URL */ }
+  if (href === null) {
+    bar.textContent = `${head}: ${why}`;
     el.prepend(bar);
     return;
   }
-  bar.textContent = `Not translated to ${lang}: ${why.slice(0, at + 1)}`;
+  bar.textContent = `${head}: ${why}: `;
   const a = dom.createElement("a");
-  a.href = url;
+  a.href = href;
   a.rel = "noreferrer";
-  a.textContent = url;
+  a.textContent = href;
   bar.appendChild(a);
   el.prepend(bar);
 }
@@ -690,9 +707,13 @@ async function fetchChildren(absUrl, state) {
 
 // A path with no scheme, not protocol-relative, not a bare fragment. Only
 // these rebase — absolute http(s), data:, mailto: and `#…` keep their meaning.
+// Judged as the browser reads it, the way render.js judges it: `\\host` and
+// `/\host` are `//host`, and rebasing one would write out the foreign host as
+// an absolute URL.
 function isRelativeUrl(u) {
-  return typeof u === "string" && u !== "" && !u.startsWith("#") && !u.startsWith("//")
-    && !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(u);
+  if (typeof u !== "string") return false;
+  const r = asBrowserReads(u);
+  return r !== "" && !r.startsWith("#") && !r.startsWith("//") && !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(r);
 }
 function rebase(u, baseUrl) {
   try { return new URL(u, baseUrl).href; } catch { return u; }

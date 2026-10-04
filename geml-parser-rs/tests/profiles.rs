@@ -1,7 +1,8 @@
 //! Each vocabulary's conformance file (`spec/profiles/*/conformance.json`): its
 //! `codes` and `state` against this processor's registry, and each case's
 //! addresses and core diagnostics in both readings — with the vocabulary
-//! recognized ("declared"), and with the declaration absent ("undeclared").
+//! recognized ("declared"), and with the declaration absent ("undeclared") —
+//! and, where a case gives them, what the vocabulary's own checks report.
 
 use std::path::PathBuf;
 
@@ -24,6 +25,23 @@ fn reading(src: &str) -> (Vec<String>, Vec<String>) {
     let mut c = geml::diagnostic_codes(&d);
     c.sort();
     (d.addresses, c)
+}
+
+/// The vocabulary's own checks on the declared reading, as `code:severity`.
+/// The document is `case.geml` beside the case's `files` and nothing else, so
+/// a file it names that `files` does not give is absent (README).
+fn checked(src: &str, files: Option<&Value>) -> Vec<String> {
+    let mut host = geml::host::MapHost { complete: true, ..Default::default() };
+    host.files.insert("case.geml".into(), src.to_string());
+    if let Some(Value::Object(files)) = files {
+        for (path, text) in files {
+            host.files.insert(path.clone(), text.scalar_text().unwrap());
+        }
+    }
+    let d = geml::parse_with(src, &geml::Options { name: "case.geml".into(), host: Some(&host), ..Default::default() });
+    let mut c: Vec<String> = geml::check::run(&d, Some(&host)).iter().map(|p| format!("{}:{}", p.code, p.level.as_str())).collect();
+    c.sort();
+    c
 }
 
 #[test]
@@ -53,12 +71,17 @@ fn every_vocabulary_reproduces_its_conformance_file() {
             wd.sort();
             let mut wu = strs(c.get("diagnostics").and_then(|x| x.get("undeclared")));
             wu.sort();
-            let checks = [
+            let mut checks = vec![
                 ("addresses, declared", strs(c.get("addresses").and_then(|x| x.get("declared"))), a),
                 ("addresses, undeclared", strs(c.get("addresses").and_then(|x| x.get("undeclared"))), ua),
                 ("diagnostics, declared", wd, d),
                 ("diagnostics, undeclared", wu, ud),
             ];
+            if c.get("checks").is_some() {
+                let mut want = strs(c.get("checks"));
+                want.sort();
+                checks.push(("checks", want, checked(&src, c.get("files"))));
+            }
             for (what, want, got) in checks {
                 if want != got {
                     fails.push(format!("[{name}] {label}\n    {what}: want {want:?}\n    {what}: got  {got:?}"));
@@ -72,6 +95,28 @@ fn every_vocabulary_reproduces_its_conformance_file() {
     }
     eprintln!("profiles: {cases} case(s), {} failing reading(s)", fails.len());
     assert!(fails.is_empty());
+}
+
+/// `sidecars` (geml-history §8): a document beside its sidecar, which
+/// verifies with no error and reconstructs `verified` revisions to their hash.
+#[test]
+fn every_sidecar_case_verifies() {
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../spec/profiles");
+    let mut n = 0;
+    for entry in std::fs::read_dir(&dir).unwrap().flatten() {
+        let Ok(text) = std::fs::read_to_string(entry.path().join("conformance.json")) else { continue };
+        let f = json::parse(&text).unwrap();
+        let Some(Value::Array(cases)) = f.get("sidecars") else { continue };
+        for c in cases {
+            let name = c.get("name").and_then(|x| x.scalar_text()).unwrap_or_default();
+            let live = c.get("geml").and_then(|x| x.scalar_text()).unwrap();
+            let v = geml::check::history::read(&c.get("history").and_then(|x| x.scalar_text()).unwrap()).verify(Some(live.as_bytes()));
+            let want = c.get("verified").and_then(|x| x.scalar_text()).unwrap();
+            assert_eq!((v.errors, v.verified.to_string()), (vec![], want), "{name}");
+            n += 1;
+        }
+    }
+    assert!(n > 0, "no sidecar case: this test checked nothing");
 }
 
 /// `views` (geml-style §10): a stylesheet and a corpus, and the view model's

@@ -272,6 +272,7 @@ const at = (doc, block) => `${doc}${block}`;
  * opts.components：名字 → (block, params, ctx) => Element，缺省用 renderBlock。
  * opts.state：components.js 的状态存储（get/set/subscribe/toggleTarget）；null 表示不接交互。
  * opts.producers：state id → 喂它的块地址集合（style-entry 的 producersOf）。
+ * opts.docUrl：本页的地址。组件拿它把语料里的相对路径落成真 URL（播放器的素材）。
  */
 /**
  * 一页最多放多少个块 + frame 实例。frame 可以被放多处（§2.4），所以嵌套 + 复用是**乘法**：每层两个
@@ -320,7 +321,7 @@ export function renderPage(vm, model, dom, opts) {
   const hostText = sources.get(hostPath);
   let spans = null;
   if (typeof hostText === "string") { try { spans = blockSpans(hostText); } catch { spans = null; } }
-  const ctx = { dom, renderBlock, labels, state, model, vmStates, byId, corpus, sources, spans };
+  const ctx = { dom, renderBlock, labels, state, model, vmStates, byId, corpus, sources, spans, docUrl: opts.docUrl ?? null };
 
   const sourceOf = (node, docPath) => {
     if (node.kind === "block" && node.type === "embed") {

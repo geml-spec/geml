@@ -8,9 +8,11 @@
 //! block type and reported `style-reserved-name`; a corpus node without an
 //! address is named `[n]`, its position among the nodes a selector can match.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
 
 use super::Out;
+use crate::bounds::{CHAIN_DEPTH, EMBED_TOTAL};
 use crate::host::Host;
 use crate::json::{quote, to_json, Value};
 use crate::model::{Document, Item, Mode};
@@ -20,8 +22,6 @@ use crate::vocab::ProfileDiagnostic;
 const CONTROL_STATES: &[&str] = &["hover", "focus", "invalid", "disabled", "checked"];
 const PARTS: &[&str] = &["link", "image", "code-span", "strong", "emphasis"];
 const INTERACTIONS: &[&str] = &["select", "toggle"];
-const MAX_FRAME_DEPTH: usize = 16;
-const MAX_EMBED_DEPTH: usize = 16;
 
 /// The built-in words (§2.1): consumed by the profile, landing in `box`.
 const BUILTIN: &[&str] = &[
@@ -631,11 +631,23 @@ impl StyleBlock {
     }
 }
 
+/// What an `embed` takes in, by the document, the anchor and the part.
+type Pick = (String, Option<String>, Option<String>);
+
 struct Loader<'a> {
     host: Option<&'a dyn Host>,
     out: Vec<ProfileDiagnostic>,
     order: usize,
     rules: usize,
+    /// Expansions so far, against `EMBED_TOTAL`, and whether its running
+    /// out has been said.
+    spent: usize,
+    told: bool,
+    /// Each document an `embed` names, parsed once; the stretches of prose
+    /// each document's addresses name; and what each pick takes in.
+    parsed: HashMap<String, Rc<Document>>,
+    prose: HashMap<String, crate::transclude::Prose>,
+    picks: HashMap<Pick, Option<Rc<Vec<Item>>>>,
 }
 
 impl Loader<'_> {
@@ -717,30 +729,51 @@ impl Loader<'_> {
         if src.is_empty() {
             return say(self, "no `src=`".into());
         }
-        if chain.len() > MAX_EMBED_DEPTH {
-            return say(self, format!("nesting deeper than {MAX_EMBED_DEPTH}"));
+        if chain.len() > CHAIN_DEPTH {
+            return say(self, format!("nesting deeper than {CHAIN_DEPTH}"));
         }
+        // Said once: past the budget every remaining embed is skipped, and one
+        // line per skipped site would be thousands.
+        if self.spent >= EMBED_TOTAL {
+            if !self.told {
+                self.told = true;
+                say(self, format!("expansion budget spent ({EMBED_TOTAL} expansions); this and later embeds were not expanded"));
+            }
+            return;
+        }
+        self.spent += 1;
         let (path, anchor) = match src.split_once('#') {
             Some((p, a)) => (p, Some(a)),
             None => (src, None),
         };
-        let owned;
+        let parsed;
         let (key, doc): (String, &Document) = if path.is_empty() {
             (format!("{}#{}", from.name, anchor.unwrap_or("")), from)
         } else {
             let Some(host) = self.host else { return say(self, "the caller supplied no document resolver".into()) };
-            let (Some(name), Some(text)) = (crate::host::locate(host, &from.name, path), crate::host::read_from(host, &from.name, path)) else {
+            let Some(name) = crate::host::locate(host, &from.name, path) else {
                 return say(self, format!("cannot resolve `{path}`"));
             };
-            owned = crate::parse_with(&text, &crate::Options { name: name.clone(), recognize: true, host: None, checks: false });
-            (name, &owned)
+            parsed = match self.parsed.get(&name) {
+                Some(d) => d.clone(),
+                None => {
+                    let Some(text) = crate::host::read_from(host, &from.name, path) else {
+                        return say(self, format!("cannot resolve `{path}`"));
+                    };
+                    let d = Rc::new(crate::parse_with(&text, &crate::Options { name: name.clone(), recognize: true, host: None, checks: false }));
+                    self.parsed.insert(name.clone(), d.clone());
+                    d
+                }
+            };
+            (name, &*parsed)
         };
         if chain.contains(&key) {
             return say(self, format!("`{src}` is already being expanded (cycle)"));
         }
-        let Some(mut picked) = crate::transclude::content(doc, anchor, part) else {
+        let Some(picked) = self.pick(doc, anchor, part) else {
             return say(self, format!("`#{}` is not in it", anchor.unwrap_or("")));
         };
+        let mut picked = (*picked).clone();
         let whole = anchor.is_none() && !path.is_empty();
         let implicit = if whole { doc.meta.iter().find(|(k, _)| k == "default-style").and_then(|(_, v)| v.scalar_text()) } else { None };
         if anchor.is_none() {
@@ -755,6 +788,19 @@ impl Loader<'_> {
         }
         self.items(doc, &picked, layer, chain, blocks);
         chain.pop();
+    }
+
+    /// What an `embed` of `anchor` and `part` in `doc` takes in, worked out
+    /// once per document, anchor and part.
+    fn pick(&mut self, doc: &Document, anchor: Option<&str>, part: Option<&str>) -> Option<Rc<Vec<Item>>> {
+        let key = (doc.name.clone(), anchor.map(str::to_string), part.map(str::to_string));
+        if let Some(hit) = self.picks.get(&key) {
+            return hit.clone();
+        }
+        let prose = self.prose.entry(doc.name.clone()).or_default();
+        let hit = crate::transclude::content(doc, anchor, part, prose).map(Rc::new);
+        self.picks.insert(key, hit.clone());
+        hit
     }
 }
 
@@ -1292,7 +1338,8 @@ fn merge(target: (&str, &str, Option<&str>), cs: &[Contribution], receiver: bool
 
 /// Solve a stylesheet against a corpus (`geml style check`).
 pub fn check(sheet: &Document, corpus: &[&Document], reg: &Registries, host: Option<&dyn Host>) -> ViewModel {
-    let mut loader = Loader { host, out: Vec::new(), order: 0, rules: 0 };
+    let mut loader =
+        Loader { host, out: Vec::new(), order: 0, rules: 0, spent: 0, told: false, parsed: HashMap::new(), prose: HashMap::new(), picks: HashMap::new() };
     let single_doc = if corpus.len() == 1 { Some(corpus[0].name.as_str()) } else { None };
     let blocks = load(sheet, single_doc, &mut loader);
     let mut out = loader.out;
@@ -1384,6 +1431,8 @@ pub fn check(sheet: &Document, corpus: &[&Document], reg: &Registries, host: Opt
     }
 
     // Screens and frames (§2.3, §2.4).
+    let screen_set: HashSet<&str> = screens.iter().filter_map(|x| x.id.as_deref()).collect();
+    let frame_set: HashSet<&str> = frames.iter().filter_map(|x| x.id.as_deref()).collect();
     let resolve_slots = |c: &StyleBlock, d: &mut dyn FnMut(&'static str, Level, String, String)| -> Vec<Slot> {
         let mut slots = Vec::new();
         let Some(spec) = c.text("slots") else {
@@ -1398,9 +1447,9 @@ pub fn check(sheet: &Document, corpus: &[&Document], reg: &Registries, host: Opt
                 slots.push(Slot::State(st.to_string()));
             } else if s.starts_with('#') && s[1..].chars().all(is_word) {
                 let id = &s[1..];
-                if screens.iter().any(|x| x.id.as_deref() == Some(id)) {
+                if screen_set.contains(id) {
                     d("style-screen-nested", E, at(c), format!("slot `{s}` names a `style-screen`; a page cannot be placed inside another"));
-                } else if !frames.iter().any(|x| x.id.as_deref() == Some(id)) {
+                } else if !frame_set.contains(id) {
                     d("style-unknown-frame", E, at(c), format!("slot `{s}` names no `style-frame`"));
                 }
                 slots.push(Slot::Frame(id.to_string()));
@@ -1463,78 +1512,92 @@ pub fn check(sheet: &Document, corpus: &[&Document], reg: &Registries, host: Opt
         vm_frames.push(container(f, slots));
     }
     // The frame graph: cycles, depth, frames no slot places. An edge is a
-    // slot naming a frame; a slot naming a screen is already an error.
-    let is_frame = |id: &str| vm_frames.iter().any(|f| f.id == id);
-    let children = |id: &str| -> Vec<String> {
-        vm_frames
-            .iter()
-            .chain(vm_screens.iter())
-            .find(|c| c.id == id)
-            .map(|c| c.slots.iter().filter_map(|s| if let Slot::Frame(f) = s { is_frame(f).then(|| f.clone()) } else { None }).collect())
-            .unwrap_or_default()
+    // slot naming a frame; a slot naming a screen is already an error. Both
+    // walks are iterative and expand each frame once, so a chain of any length
+    // or a diamond many levels deep is linear work, not a deep stack (§9.2).
+    let frame_at: HashMap<&str, usize> = vm_frames.iter().enumerate().map(|(i, f)| (f.id.as_str(), i)).collect();
+    let refs = |c: &ContainerVm| -> Vec<usize> {
+        c.slots.iter().filter_map(|s| if let Slot::Frame(f) = s { frame_at.get(f.as_str()).copied() } else { None }).collect()
     };
-    let mut depth: HashMap<String, usize> = HashMap::new();
-    let mut state: HashMap<String, u8> = HashMap::new();
-    fn visit(
-        id: &str,
-        children: &dyn Fn(&str) -> Vec<String>,
-        depth: &mut HashMap<String, usize>,
-        state: &mut HashMap<String, u8>,
-        path: &mut Vec<String>,
-        cycles: &mut Vec<String>,
-    ) -> usize {
-        match state.get(id) {
-            Some(2) => return depth[id],
-            Some(1) => {
-                let at = path.iter().position(|p| p == id).unwrap_or(0);
-                let mut chain: Vec<String> = path[at..].iter().map(|p| format!("#{p}")).collect();
-                chain.push(format!("#{id}"));
-                cycles.push(chain.join(" → "));
-                return 0;
+    let edges: Vec<Vec<usize>> = vm_frames.iter().map(refs).collect();
+    let id_of = |i: usize| vm_frames[i].id.as_str();
+    // Cycles: each frame is expanded once, and a cycle is seen on the path
+    // that reaches it — said once, from its least id round.
+    let mut visited = vec![false; vm_frames.len()];
+    let mut cycles: Vec<(usize, String)> = Vec::new();
+    let drain = |stack: &mut Vec<(usize, Vec<usize>)>, visited: &mut [bool], cycles: &mut Vec<(usize, String)>| {
+        while let Some((i, path)) = stack.pop() {
+            if std::mem::replace(&mut visited[i], true) {
+                continue;
             }
-            _ => {}
-        }
-        state.insert(id.to_string(), 1);
-        path.push(id.to_string());
-        let mut d = 0;
-        for c in children(id) {
-            d = d.max(1 + visit(&c, children, depth, state, path, cycles));
-        }
-        path.pop();
-        state.insert(id.to_string(), 2);
-        depth.insert(id.to_string(), d);
-        d
-    }
-    let mut cycles = Vec::new();
-    let mut placed: Vec<String> = Vec::new();
-    for c in vm_screens.iter().chain(vm_frames.iter()) {
-        for s in &c.slots {
-            if let Slot::Frame(f) = s {
-                placed.push(f.clone());
+            for &n in &edges[i] {
+                if let Some(at) = path.iter().position(|p| *p == n) {
+                    let cyc = &path[at..];
+                    let first = (0..cyc.len()).min_by(|a, b| id_of(cyc[*a]).cmp(id_of(cyc[*b]))).unwrap_or(0);
+                    let rotated: Vec<usize> = cyc[first..].iter().chain(&cyc[..first]).copied().collect();
+                    let chain = rotated.iter().chain(rotated.first()).map(|k| format!("#{}", id_of(*k))).collect::<Vec<_>>().join(" → ");
+                    if !cycles.iter().any(|(_, c)| *c == chain) {
+                        cycles.push((rotated[0], chain));
+                    }
+                    continue;
+                }
+                let mut next = path.clone();
+                next.push(n);
+                stack.push((n, next));
             }
         }
-    }
-    for s in &vm_screens {
-        let dd = visit(&s.id, &children, &mut depth, &mut state, &mut Vec::new(), &mut cycles);
-        if dd > MAX_FRAME_DEPTH {
-            d(
-                "style-frame-too-deep",
-                E,
-                format!("{}#{}", sheet.name, s.id),
-                format!("frames nest {dd} deep under this screen; the bound is {MAX_FRAME_DEPTH}"),
-            );
+    };
+    // From each screen first — that is the real depth — then any frame no
+    // screen reaches, so a cycle hanging from nothing is still said.
+    let mut stack: Vec<(usize, Vec<usize>)> = vm_screens.iter().flat_map(refs).map(|r| (r, vec![r])).collect();
+    drain(&mut stack, &mut visited, &mut cycles);
+    for i in 0..vm_frames.len() {
+        if !visited[i] {
+            stack.push((i, vec![i]));
+            drain(&mut stack, &mut visited, &mut cycles);
         }
     }
+    for (i, c) in cycles {
+        d("style-frame-cycle", E, format!("{}#{}", sheet.name, id_of(i)), format!("frames nest in a cycle: {c}"));
+    }
+    // Depth, in one topological pass: a frame is one deeper than the deepest
+    // frame that places it, and one no frame places is 1. A frame on a cycle
+    // never comes free; the cycle is said above.
+    let mut indeg = vec![0usize; vm_frames.len()];
+    for e in &edges {
+        for &r in e {
+            indeg[r] += 1;
+        }
+    }
+    let mut depth = vec![1usize; vm_frames.len()];
+    let mut ready: Vec<usize> = (0..vm_frames.len()).filter(|i| indeg[*i] == 0).collect();
+    while let Some(i) = ready.pop() {
+        for &r in &edges[i] {
+            depth[r] = depth[r].max(depth[i] + 1);
+            indeg[r] -= 1;
+            if indeg[r] == 0 {
+                ready.push(r);
+            }
+        }
+    }
+    let deepest = (0..vm_frames.len()).filter(|i| depth[*i] > CHAIN_DEPTH).fold(None, |best: Option<usize>, i| match best {
+        Some(b) if depth[b] >= depth[i] => Some(b),
+        _ => Some(i),
+    });
+    if let Some(i) = deepest {
+        d(
+            "style-frame-too-deep",
+            E,
+            format!("{}#{}", sheet.name, id_of(i)),
+            format!("frames nest {} deep at `#{}`; the bound is {CHAIN_DEPTH}", depth[i], id_of(i)),
+        );
+    }
+    let placed: HashSet<&str> =
+        vm_screens.iter().chain(vm_frames.iter()).flat_map(|c| &c.slots).filter_map(|s| if let Slot::Frame(f) = s { Some(f.as_str()) } else { None }).collect();
     for f in &vm_frames {
-        visit(&f.id, &children, &mut depth, &mut state, &mut Vec::new(), &mut cycles);
-        if !placed.contains(&f.id) {
+        if !placed.contains(f.id.as_str()) {
             d("style-unused-frame", W, format!("{}#{}", sheet.name, f.id), "no slot places this frame".into());
         }
-    }
-    cycles.sort();
-    cycles.dedup();
-    for c in cycles {
-        d("style-frame-cycle", E, sheet.name.clone(), format!("frames nest in a cycle: {c}"));
     }
 
     // Rules (§2.1, §4).

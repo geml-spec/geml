@@ -64,7 +64,7 @@ abstract class GemlCopyAction : AnAction() {
     val text = document.text
     val workDir = GemlIndex.workDirOf(virtualFile)
     val units = ProgressManager.getInstance().runProcessWithProgressSynchronously<List<GemlUnit>?, RuntimeException>(
-      { GemlIndex.list(text, workDir) },
+      { GemlIndex.list(file.project, text, workDir) },
       "Reading GEML Block Index",
       true,
       file.project,

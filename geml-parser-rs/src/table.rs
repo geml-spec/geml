@@ -1,6 +1,9 @@
 //! `table` (§6): the visual pipe form and the delimited data form, read into
 //! one model.
 
+use std::cell::Cell as Counter;
+
+use crate::bounds::{BORROWED_CELLS, TABLE_CELLS};
 use crate::diag::Diags;
 use crate::host::Host;
 use crate::json::Value;
@@ -77,11 +80,44 @@ fn header_wanted(v: Option<&Value>) -> bool {
     }
 }
 
+/// §9.2: the cells one document reads into its relations from anywhere but
+/// its own text, summed against `BORROWED_CELLS`.
+#[derive(Default)]
+pub struct Borrowed(Counter<usize>);
+
+impl Borrowed {
+    /// Book `cells`, and say whether they fit. A relation that does not is
+    /// `table-too-large` and keeps no rows.
+    pub fn take(&self, cells: usize, line: usize, what: &str, diags: &mut Diags) -> bool {
+        let total = self.0.get().saturating_add(cells);
+        self.0.set(total);
+        if total <= BORROWED_CELLS {
+            return true;
+        }
+        diags.push("table-too-large", line, format!("{what} takes this document past {BORROWED_CELLS} cells read from elsewhere (§9.2); it keeps no rows"));
+        false
+    }
+
+    /// Whether the budget is spent, in which case the relation is refused
+    /// before its source is read or copied.
+    pub fn spent(&self, line: usize, what: &str, diags: &mut Diags) -> bool {
+        self.0.get() >= BORROWED_CELLS && !self.take(0, line, what, diags)
+    }
+
+    /// `t` booked: its rows kept when they fit, dropped when they do not.
+    pub fn book(&self, mut t: Table, line: usize, what: &str, diags: &mut Diags) -> Table {
+        if !self.take(t.columns.len().saturating_mul(t.rows.len()), line, what, diags) {
+            t.rows.clear();
+        }
+        t
+    }
+}
+
 /// Read a `table` block into its model. A local `src=` file is read through
 /// the host at build time and parsed as the body would be (§6); `None` when the
 /// data is remote (the renderer fetches it), when there is no host to read it
 /// through, or when it cannot be read.
-pub fn read_table(b: &Block, diags: &mut Diags, host: Option<(&dyn Host, &str)>) -> Option<Table> {
+pub fn read_table(b: &Block, diags: &mut Diags, host: Option<(&dyn Host, &str)>, budget: &Borrowed) -> Option<Table> {
     let line = b.line;
     if let Some(src) = b.attr_text("src") {
         if b.has_body() {
@@ -91,8 +127,12 @@ pub fn read_table(b: &Block, diags: &mut Diags, host: Option<(&dyn Host, &str)>)
             diags.push("table-source-is-block", line, format!("`src={src}` names a block; a relation derived from another block is a `view`"));
             return None;
         }
+        let what = format!("`src={src}`");
+        if host.is_some() && budget.spent(line, &what, diags) {
+            return Some(Table { columns: vec![], rows: vec![], summary: None });
+        }
         return match read_data_file("src", &src, host, line, diags) {
-            Some(text) => table_from_lines(b, &file_lines(&text), None, diags),
+            Some(text) => table_from_lines(b, &file_lines(&text), None, diags).map(|t| budget.book(t, line, &what, diags)),
             // §6: a file that cannot be read, or a disallowed scheme, leaves the
             // table empty; a remote file is the renderer's, and a parse with no
             // host reads nothing, so neither has a model yet.
@@ -161,6 +201,19 @@ pub fn table_from_file(attr: &str, src: &str, host: Option<(&dyn Host, &str)>, l
         end: line,
     };
     table_from_lines(&b, &file_lines(&text), None, diags)
+}
+
+/// §6, §9.2: a table or view holds at most `TABLE_CELLS` cells — its columns
+/// times its body rows, padded cells included. One that would hold more is
+/// `table-too-large` and keeps no rows: a header of a few thousand columns over
+/// a few thousand one-cell rows is a few kilobytes of input and, padded, a few
+/// hundred megabytes of cells.
+pub fn too_large(columns: usize, rows: usize, line: usize, diags: &mut Diags) -> bool {
+    let over = columns.saturating_mul(rows) > TABLE_CELLS;
+    if over {
+        diags.push("table-too-large", line, format!("{columns} columns × {rows} rows is more than {TABLE_CELLS} cells; no rows are kept"));
+    }
+    over
 }
 
 /// A table body — the block's own lines, or a data file's — read into the
@@ -236,6 +289,10 @@ fn table_from_lines(b: &Block, body_lines: &[String], rows_from: Option<usize>, 
         Some(h) => h,
         None => (0..width).map(letter).collect(),
     };
+    // Judged before a cell is padded or a row is said to be ragged: the rows are not kept.
+    if too_large(columns.len(), body.len(), line, diags) {
+        return Some(Table { columns, rows: vec![], summary: None });
+    }
     let mut out_rows = Vec::new();
     for (mut cells, at) in body {
         if cells.len() != width {

@@ -28,6 +28,7 @@
 // Zero dependencies, like the rest of this parser: it is bundled into a browser
 // extension, where a YAML library would be both weight and supply chain.
 import { type DataValue } from "./geml.js";
+import { DATA_DEPTH } from "./bounds.js";
 
 export type YamlResult = { value: DataValue } | { error: string; line: number };
 
@@ -106,10 +107,9 @@ function keyEnd(s: string): number {
 // grammar, and each level here is a JavaScript frame: six thousand of them, in a
 // twelve-kilobyte body, ran the stack out and threw a RangeError straight
 // through parse() — a crash, where every other malformed body earns a diagnostic
-// and where the parser's own lists (5000 deep) and blocks (1000 deep) already
-// answer with one. Generous for anything a person writes as config; far below
-// where V8 gives up.
-const MAX_DEPTH = 200;
+// and where the parser's own lists and blocks already answer with one.
+// DATA_DEPTH (§3.2) is generous for anything a person writes as config, and far
+// below where V8 gives up.
 
 class Refusal extends Error {
   constructor(message: string, readonly line: number) { super(message); }
@@ -156,8 +156,9 @@ export function parseYaml(body: string[]): YamlResult {
 
   // A scalar written on the same line as its key or dash, or a block scalar
   // whose lines follow at a deeper indent.
-  function inlineValue(text: string, at: number, parentIndent: number): DataValue {
+  function inlineValue(text: string, at: number, parentIndent: number, depth: number): DataValue {
     const t = text.trim();
+    if ((t === "[]" || t === "{}") && depth >= DATA_DEPTH) tooDeep(at);
     if (t === "[]") return [];
     if (t === "{}") return {};
     refuseExtras(t, at);
@@ -181,7 +182,10 @@ export function parseYaml(body: string[]): YamlResult {
       }
       if (first < 0) return chomp === "-" ? "" : "\n";
       const rawLines = body.slice(first, last + 1).map((r) => r.replace(/\r$/, ""));
-      const base = Math.min(...rawLines.filter((r) => r.trim() !== "").map((r) => r.length - r.replace(/^[ \t]+/, "").length));
+      // A loop, not Math.min(...): spread takes one argument per line, and a
+      // block scalar of 130k lines overflowed the call stack doing it.
+      let base = Infinity;
+      for (const r of rawLines) if (r.trim() !== "") base = Math.min(base, r.length - r.replace(/^[ \t]+/, "").length);
       const parts = rawLines.map((r) => (r.trim() === "" ? "" : r.slice(base)));
       let s = fold ? parts.join(" ") : parts.join("\n");
       if (chomp !== "-") s += "\n";
@@ -196,12 +200,18 @@ export function parseYaml(body: string[]): YamlResult {
     return v;
   }
 
+  // §3.2: a sequence or map inside 200 others is outside the value tree, in
+  // every engine. `depth` counts the containers around the one being read.
+  const tooDeep = (at: number): never => {
+    throw new Refusal(`nesting deeper than ${DATA_DEPTH} levels is outside the value tree`, at);
+  };
+
   // The block at `indent`: a mapping, or a sequence, decided by its first line.
   function parseBlock(indent: number, depth: number): DataValue {
     // Every caller has already checked there is a line here: the top level
     // returns early on an empty body, and the two nested calls guard on `p`.
     const first = peek()!;
-    if (depth > MAX_DEPTH) throw new Refusal(`nesting deeper than ${MAX_DEPTH} levels is outside this subset`, first.n);
+    if (depth >= DATA_DEPTH) tooDeep(first.n);
     if (first.text === "-" || first.text.startsWith("- ")) return parseSeq(indent, depth);
     return parseMap(indent, depth);
   }
@@ -229,11 +239,13 @@ export function parseYaml(body: string[]): YamlResult {
       if (rest === "-" || rest.startsWith("- ") || keyEnd(rest) >= 0) {
         const afterDash = l.text.slice(1);
         const inner = indent + 1 + (afterDash.length - afterDash.replace(/^ +/, "").length);
-        lines.splice(p, 0, { n: at, indent: inner, text: rest });
+        // In the slot the `- ` line held: inserting shifted every later line,
+        // once per item, and a long sequence went quadratic.
+        lines[--p] = { n: at, indent: inner, text: rest };
         out.push(parseBlock(inner, depth + 1));
         continue;
       }
-      out.push(inlineValue(rest, at, indent));
+      out.push(inlineValue(rest, at, indent, depth + 1));
     }
     return out;
   }
@@ -277,7 +289,7 @@ export function parseYaml(body: string[]): YamlResult {
         } else setKey(key, null);
         continue;
       }
-      setKey(key, inlineValue(rest, at, indent));
+      setKey(key, inlineValue(rest, at, indent, depth + 1));
     }
     return out;
   }

@@ -5,6 +5,8 @@
 //
 // 和 media-check / media-verbs 一样不碰 node:*（geml-viewer 会把它打进浏览器包）。
 
+import { MEDIA_APART_PX } from "./bounds.js";
+
 export interface Pt { x: number; y: number }
 
 export interface LayerSpec {
@@ -127,8 +129,6 @@ export function canvasPoint(l: LayerSpec, pos: Pt, p: Pt, s: number): Pt {
   return { x: pos.x + lp.x * s, y: pos.y + lp.y * s };
 }
 
-/** 两点合成后相距超过这个数就算分开了（像素）。 */
-export const APART_PX = 2;
 
 /**
  * 逐条连接放层。规矩只有三条（§16.8）：文档里排在后面的层是自由的；一个层只有第一条连接
@@ -188,7 +188,7 @@ export function solveLayout(layers: LayerSpec[], interactions: InteractionSpec[]
     const ca = canvasPoint(la, pos.get(la.id) as Pt, pa, scale(la));
     const cb = canvasPoint(lb, pos.get(lb.id) as Pt, pb, scale(lb));
     const d = it.kind === "contact" ? Math.hypot(ca.x - cb.x, ca.y - cb.y) : Math.abs(ca.y - cb.y);
-    if (d > APART_PX) {
+    if (d > MEDIA_APART_PX) {
       problems.push({ code: "apart", id: it.id, message: `#${it.id}：${it.a.layer}:${it.a.point} 与 ${it.b.layer}:${it.b.point} 合成后${it.kind === "gaze" ? "高度" : ""}差 ${Math.round(d)} 像素 —— 它们的位置由更早的连接或写死的 x y 定了，这一条只验不动` });
     }
   }

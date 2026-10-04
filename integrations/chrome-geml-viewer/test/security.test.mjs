@@ -182,7 +182,7 @@ function makeResp(text, url, { ok = true, ct = "text/csv" } = {}) {
 // `routes` values are the response text, or `{ text, url, ct }` to answer with a redirected
 // URL / another content-type. `files` answers the background worker's geml-read-file for
 // file:// documents; every URL it is asked for lands in `asked`.
-function install({ href, pathname, protocol, docRaw, bodyHtml, routes = {}, files = {}, contentType = "text/plain" }) {
+function install({ href, pathname, protocol, hash, docRaw, bodyHtml, routes = {}, files = {}, contentType = "text/plain" }) {
   const { document } = parseHTML(`<!doctype html><html><head></head><body>${bodyHtml || ""}</body></html>`);
   // content.js's activation guard requires contentType === "text/plain" (or a
   // file:// doc); linkedom doesn't set one, so pin it here. Raw .geml hosts and
@@ -190,7 +190,7 @@ function install({ href, pathname, protocol, docRaw, bodyHtml, routes = {}, file
   // be refused (see the activation test below).
   try { Object.defineProperty(document, "contentType", { value: contentType, configurable: true }); } catch { /* already fixed value */ }
   globalThis.document = document;
-  globalThis.location = { href, pathname, protocol };
+  globalThis.location = { href, pathname, protocol, hash };
   const asked = [];
   globalThis.chrome = {
     runtime: {
@@ -659,5 +659,145 @@ await test("F9 banner: stylesheet text that reaches the diagnostics banner is te
   assert.equal(ctx.document.querySelector("img"), null, "the payload is text in the banner, not an element");
 });
 
+
+// ==========================================================================
+// ROUND 6
+// ==========================================================================
+
+// V-1. For http(s) and file URLs a browser reads `\` as `/`, so `/\host`,
+// `\\host` and `\/host` are the protocol-relative `//host`: off the page's
+// origin, and on file:// a UNC host. The remote and open-redirect tests look
+// at the URL as the browser reads it, not at the spelling.
+await test("round 6: a backslash spelling of //host is remote — media is click-to-load, a link or embed gets no href", () => {
+  for (const src of ["/\\evil.example/a.png", "\\\\evil.example/a.png", "\\/evil.example/a.png", "\\\\evil.example/clip.mp4"]) {
+    const root = render(`![a](${src})\n`);
+    // assert.ok, not assert.equal: a failing equal would serialise a DOM node,
+    // which exhausts the heap under linkedom instead of naming the case.
+    assert.ok(root.querySelector("img,audio,video") === null, `${src}: no auto-loading media element`);
+    assert.ok(root.querySelector("a.geml-remote-media"), `${src}: a click-to-load link instead`);
+  }
+  for (const dest of ["/\\evil.example/x", "\\\\evil.example/x", "\\/evil.example/x"]) {
+    const root = render(`see [l](${dest}) and [[${dest}.geml#s]].\n\n=== embed {src=${dest}.geml}\n===\n`);
+    const live = [...root.querySelectorAll("a[href]")].map((a) => a.getAttribute("href"));
+    assert.deepEqual(live, [], `${dest}: no live href`);
+  }
+  // The parser keeps a control byte out of the model; a model built elsewhere
+  // can still carry one between the two slashes.
+  const { document } = parseHTML("<!doctype html><html><head></head><body></body></html>");
+  const TAB = String.fromCharCode(9);
+  const model = {
+    diagnostics: [],
+    children: [{
+      kind: "paragraph",
+      inlines: [
+        { type: "link", href: "/" + TAB + "\\evil.example/x", children: [{ type: "text", value: "a" }] },
+        { type: "image", src: " \\\\evil.example/a.png", alt: "b", attrs: {} },
+      ],
+    }],
+  };
+  const root = renderDocument(model, document);
+  assert.equal(root.querySelector("a:not(.geml-remote-media)").hasAttribute("href"), false, "TAB between the slashes: still no href");
+  assert.ok(root.querySelector("img") === null, "leading space before \\\\host: still click-to-load");
+  // A backslash inside a path is still a path on this page.
+  const local = render("![i](pics\\a.png)\n").querySelector("img");
+  assert.ok(local && local.getAttribute("src") === "pics\\a.png", "pics\\a.png loads inline");
+});
+
+// V-6. Any named target can open a new browsing context — `_new`, or a name no
+// window has yet — and hands the opened page window.opener and the referrer
+// unless rel says otherwise. An author's `opener` asks for exactly that.
+await test("round 6: every link with a target carries noopener noreferrer, and an author's opener token is dropped", () => {
+  const root = render(
+    "[t](https://e.com){target=_new} [u](https://e.com){target=foo rel=opener} " +
+    "[v](https://e.com){target=_blank rel=\"opener nofollow\"} [w](https://e.com){target=_self rel=OPENER}\n",
+  );
+  const anchors = [...root.querySelectorAll("a[target]")];
+  assert.equal(anchors.length, 4);
+  for (const a of anchors) {
+    const rel = (a.getAttribute("rel") || "").split(/\s+/);
+    assert.ok(rel.includes("noopener") && rel.includes("noreferrer"), `${a.getAttribute("target")}: rel=${a.getAttribute("rel")}`);
+    assert.ok(!rel.some((t) => t.toLowerCase() === "opener"), `${a.getAttribute("target")}: opener dropped`);
+  }
+  assert.ok(anchors[2].getAttribute("rel").split(/\s+/).includes("nofollow"), "the author's other tokens stay");
+});
+
+// A self-contained codemap document: one call edge, drawn from `@self`.
+const CG_SELF = '=== meta\nentry = "#a"\n===\n\n=== code {#a}\n===\n\n=== code {#b}\n===\n\n' +
+  "=== table {#calls format=csv header=1}\nfrom, to, kind\n#a, #b, call\n===\n\n" +
+  "=== diagram {#g format=geml-code-graph src=@self}\n===\n";
+
+// V-5. decodeURIComponent throws on a `%` that starts no escape. The fragment
+// is decoded before the first paint, where a throw leaves the page as raw text;
+// the file name is decoded for the code-graph upgrade, where it stops the graph.
+await test("round 6: a stray % in the fragment or the file name still renders the page and its code graph", async () => {
+  const escaped = [];
+  const onRejection = (e) => escaped.push(e);
+  process.on("unhandledRejection", onRejection);
+  try {
+    const hashed = await runMain({
+      href: "https://site.test/docs/report.geml#%", hash: "#%", pathname: "/docs/report.geml", protocol: "https:",
+      docRaw: "# Title\n\nbody text\n",
+    });
+    assert.equal(hashed.document.body.className, "geml-body", "the page rendered");
+    assert.match(hashed.document.querySelector(".geml-doc")?.textContent ?? "", /body text/, "the whole document: `%` names no block");
+
+    const named = await runMain({
+      href: "https://site.test/docs/100%.geml", pathname: "/docs/100%.geml", protocol: "https:",
+      docRaw: CG_SELF, waitCodeGraph: true,
+    });
+    const mount = named.document.querySelector(".cg-mount");
+    assert.ok(mount && mount.hasAttribute("data-graph"), `the @self graph was built: ${mount?.textContent}`);
+    await sleep(10);
+    assert.deepEqual(escaped.map(String), [], "nothing escaped the paint");
+  } finally {
+    process.off("unhandledRejection", onRejection);
+  }
+});
+
+// V-4. On a static file:// page the code-graph runtime loads its search index
+// by appending `<script src=_index/search-index.js>` when the reader types. A
+// script element a content script inserts runs in the PAGE's world, so a .js
+// beside a .geml would execute — documents are data, never code. The extension
+// tells the runtime not to; with no index and no /_search there is no box.
+await test("round 6: a file:// code graph draws no search box and never appends a <script>", async () => {
+  const ctx = await runMain({
+    href: "file:///C:/repo/map.geml", pathname: "/C:/repo/map.geml", protocol: "file:",
+    bodyHtml: `<pre>${CG_SELF.replace(/</g, "&lt;")}</pre>`, waitCodeGraph: true,
+  });
+  const mount = ctx.document.querySelector(".cg-mount");
+  assert.ok(mount && mount.hasAttribute("data-graph"), "the graph itself still draws");
+  assert.ok(ctx.document.querySelector("input.cg-search") === null, "no search box without a search source");
+  assert.equal(ctx.document.querySelectorAll("script").length, 0, "no script element anywhere in the page");
+});
+
+// V-2. A media-asset's `src=` is document data — an https beacon, a
+// `\\host\share` UNC path — and the player's <video> loads whatever it is given
+// on open. The player resolves the src against the document that holds the
+// asset and keeps it only on the page's origin (on file://, inside the page's
+// directory).
+await test("round 6: a file:// player loads only assets beside the page, and only their metadata on open", async () => {
+  const DIR = "file:///C:/ep/";
+  const cut = '=== meta\nprofile = "geml-media/v1"\n===\n\n==== media {#tl tracks="video:video" primary=video}\n\n' +
+    "=== media-clip {#c1 track=video src=#a1 in=0 out=2}\n===\n\n" +
+    "=== media-clip {#c2 track=video src=#a2 in=0 out=2}\n===\n\n" +
+    "=== media-clip {#c3 track=video src=#a3 in=0 out=2}\n===\n\n====\n\n" +
+    '=== media-asset {#a1 src="https://evil.example/opened?who=victim" kind=video duration=9}\n===\n\n' +
+    "=== media-asset {#a2 src=\\\\evil.example\\share\\v.mp4 kind=video duration=9}\n===\n\n" +
+    "=== media-asset {#a3 src=assets/ok.mp4 kind=video duration=9}\n===\n";
+  const entry = '=== meta\nprofile = "geml-style/v1"\n===\n\n=== style-screen {#page component=player axis=column slots="media#tl"}\n===\n';
+  const info = console.info; console.info = () => {};
+  let ctx;
+  try {
+    ctx = await runMain({
+      href: DIR + "cut.geml", pathname: "/C:/ep/cut.geml", protocol: "file:",
+      bodyHtml: `<pre>${cut.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</pre>`,
+      files: { [DIR + "_index/index.geml"]: entry },
+    });
+  } finally { console.info = info; }
+  assert.ok(ctx.document.querySelector(".geml-player"), "the player was drawn");
+  const layers = [...ctx.document.querySelectorAll("video,audio")];
+  assert.deepEqual(layers.map((v) => v.getAttribute("src")), [DIR + "assets/ok.mp4"], "only the asset beside the page");
+  assert.equal(layers[0].getAttribute("preload"), "metadata", "nothing but metadata until play");
+});
 
 console.log(`\n${passed} test(s) passed.`);

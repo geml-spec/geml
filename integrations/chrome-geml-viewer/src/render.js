@@ -191,17 +191,26 @@ function renderInline(n, dom, labels) {
 // no scheme prefix is a relative path or a bare `#anchor` — always safe; the
 // only allowed *schemes* are http, https, mailto, tel.
 const SAFE_HREF_SCHEME = /^(?:https?|mailto|tel):/i;
+// The URL as the browser reads it, which is what every test below decides on.
+// A browser drops C0 controls and spaces before acting, so `java\tscript:`
+// executes as javascript: (R2-2). For http(s) and file URLs it also reads `\`
+// as `/`, so `/\host`, `\\host` and `\/host` are the protocol-relative `//host`
+// in disguise and resolve off the page's origin. This is the URL parser's own
+// rule for a scheme-less reference — two leading slashes of either kind and the
+// next thing is a host — so it needs no page base, which a pure renderer has
+// not got. Exported for transclude.js, which rebases borrowed paths by it.
+export function asBrowserReads(url) {
+  return String(url).replace(/[\x00-\x20]/g, "").replace(/\\/g, "/");
+}
 function schemeOf(url) {
   // A leading "letter + [a-z0-9+.-]* :" before any / ? # is a scheme. `//host`
-  // (protocol-relative) and `#frag` / `path` have none. Strip every [\x00-\x20]
-  // first: browsers drop embedded C0 controls/spaces before acting, so
-  // `java\tscript:` would execute as javascript: unless we detect it here (R2-2).
-  const m = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(String(url).replace(/[\x00-\x20]/g, ""));
+  // (protocol-relative) and `#frag` / `path` have none.
+  const m = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(asBrowserReads(url));
   return m ? m[0] : null;
 }
 function isSafeHref(url) {
   if (typeof url !== "string") return false;
-  const u = url.replace(/[\x00-\x20]/g, ""); // strip control chars (match schemeOf)
+  const u = asBrowserReads(url);
   if (u === "") return false;
   // Protocol-relative `//host` is a CROSS-ORIGIN absolute (browser resolves it
   // to https://host), not a safe relative path — an open-redirect sink. Reject
@@ -216,7 +225,7 @@ function isSafeHref(url) {
 // remote-media gate below rather than auto-loading.
 function isSafeMediaSrc(url) {
   if (typeof url !== "string") return false;
-  const u = url.trim();
+  const u = asBrowserReads(url);
   if (u === "") return false;
   if (u.startsWith("//")) return true; // protocol-relative http(s)
   if (schemeOf(u) === null) return true; // relative path
@@ -227,17 +236,18 @@ function isSafeMediaSrc(url) {
 function isRemoteSrc(url) {
   // Remote by SCHEME, not by counting slashes: `https:/host` (single slash)
   // normalizes to https://host in the browser and would auto-connect, so
-  // slash-counting let it masquerade as local media (R2-6). schemeOf strips
-  // control chars, so `http\ts:` can't dodge this either.
-  const u = String(url).replace(/[\x00-\x20]/g, "");
+  // slash-counting let it masquerade as local media (R2-6).
+  const u = asBrowserReads(url);
   if (u.startsWith("//")) return true; // protocol-relative → remote
   const s = schemeOf(u);
   return s !== null && /^https?:$/i.test(s);
 }
-// Add rel tokens without dropping any the document already set.
-function mergeRel(existing, add) {
-  const set = new Set(String(existing || "").split(/\s+/).filter(Boolean));
-  for (const t of add.split(/\s+/)) if (t) set.add(t);
+// The rel a targeted link carries: the document's own tokens, plus noopener and
+// noreferrer, minus `opener` — which asks for exactly what noopener withholds.
+function targetRel(existing) {
+  const set = new Set(String(existing || "").split(/\s+/).filter((t) => t && t.toLowerCase() !== "opener"));
+  set.add("noopener");
+  set.add("noreferrer");
   return [...set].join(" ");
 }
 
@@ -251,9 +261,10 @@ function linkAttrs(n) {
   const at = n.attrs || {};
   if (at.target) {
     a.target = at.target;
-    // L2 + privacy: a _blank link must not expose window.opener or leak the
-    // referrer to the opened page.
-    a.rel = at.target === "_blank" ? mergeRel(at.rel, "noopener noreferrer") : at.rel;
+    // L2 + privacy: the opened page gets neither window.opener nor the referrer.
+    // Every target, not only `_blank`: `_new`, or any name no window has yet,
+    // opens a new browsing context just the same.
+    a.rel = targetRel(at.rel);
   } else if (at.rel) {
     a.rel = at.rel;
   }

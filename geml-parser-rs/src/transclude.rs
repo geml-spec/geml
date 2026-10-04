@@ -9,9 +9,11 @@
 //! no cycle; such a step that returns to a target already on the path is one,
 //! since following it would never end.
 
-use std::collections::HashMap;
+use std::cell::OnceCell;
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
+use crate::bounds::CHAIN_DEPTH;
 use crate::diag::Diags;
 use crate::host::{join, Host};
 use crate::model::{Document, Inline, Item, List};
@@ -20,7 +22,6 @@ use crate::resolve::is_geml_doc;
 /// How many steps one document's chains may take in all, and how deep one
 /// chain may go: §9.3 fixes the depth at 16.
 const BUDGET: usize = 10_000;
-const MAX_DEPTH: usize = 16;
 
 /// One transclusion written in a document: its line, what it names, and the
 /// part of a heading's section an `embed` takes.
@@ -77,16 +78,22 @@ fn steps(items: &[Item], out: &mut Vec<Step>) {
     }
 }
 
+/// The stretches of prose a document's addresses name, worked out the first
+/// time an expansion asks for one and kept for every later one.
+pub(crate) type Prose = OnceCell<HashMap<String, Vec<Item>>>;
+
 /// What a target expands to: the whole document, a block, a heading's
 /// section narrowed by `part=` (§3), or a stretch of prose. `None` for a
 /// coordinate, which names a value, and for an address nothing answers.
-pub(crate) fn content(doc: &Document, anchor: Option<&str>, part: Option<&str>) -> Option<Vec<Item>> {
+/// `prose` is the document's own.
+pub(crate) fn content(doc: &Document, anchor: Option<&str>, part: Option<&str>, prose: &Prose) -> Option<Vec<Item>> {
     let Some(a) = anchor else { return Some(doc.children.clone()) };
     let (id, path) = crate::inline::split_anchor(a)?;
     if !path.is_empty() {
         return None;
     }
-    let mut hit = find(&doc.children, &id).or_else(|| crate::addresses::prose_stretch(&doc.children, doc.meta_blocks, &id))?;
+    let stretch = || prose.get_or_init(|| crate::addresses::prose_stretches(&doc.children, doc.meta_blocks)).get(&id).cloned();
+    let mut hit = find(&doc.children, &id).or_else(stretch)?;
     if let (Some(Item::Heading(h)), Some(p)) = (hit.first(), part) {
         let sub = hit.iter().skip(1).position(|o| matches!(o, Item::Heading(x) if x.level > h.level)).map_or(hit.len(), |i| i + 1);
         hit = match p {
@@ -123,33 +130,62 @@ fn find(items: &[Item], id: &str) -> Option<Vec<Item>> {
     None
 }
 
+/// What a step expands to, by the target, its anchor, its part, and whether
+/// it is an inline projection.
+type Expansion = (String, Option<String>, Option<String>, bool);
+
 struct Walk<'a> {
     host: Option<&'a dyn Host>,
-    docs: HashMap<String, Option<Rc<Document>>>,
+    docs: HashMap<String, Option<Rc<(Document, Prose)>>>,
+    /// The transclusions inside what each expansion takes in, worked out once:
+    /// a chain revisits the same targets many times over. `None` when the
+    /// step expands nothing.
+    inside: HashMap<Expansion, Option<Rc<Vec<Step>>>>,
     budget: usize,
     found: Vec<(usize, String)>,
+    reported: HashSet<(usize, String)>,
 }
 
 impl Walk<'_> {
     /// A document by its root-relative name: the first document's own tree,
     /// or another read through the host and parsed once, host-free.
-    fn load(&mut self, name: &str) -> Option<Rc<Document>> {
+    fn load(&mut self, name: &str) -> Option<Rc<(Document, Prose)>> {
         if let Some(d) = self.docs.get(name) {
             return d.clone();
         }
-        let d = self
-            .host
-            .and_then(|h| h.read("", name))
-            .map(|text| Rc::new(crate::parse_with(&text, &crate::Options { name: name.to_string(), recognize: true, host: None, checks: false })));
+        let d = self.host.and_then(|h| h.read("", name)).map(|text| {
+            Rc::new((crate::parse_with(&text, &crate::Options { name: name.to_string(), recognize: true, host: None, checks: false }), Prose::new()))
+        });
         self.docs.insert(name.to_string(), d.clone());
         d
     }
 
-    /// Follow every transclusion in `items`, which belong to the document
+    /// The transclusions inside what `st`, made to `target`, takes in; `None`
+    /// when it takes in nothing.
+    fn expand(&mut self, target: &str, st: &Step) -> Option<Rc<Vec<Step>>> {
+        let key = (target.to_string(), st.anchor.clone(), st.part.clone(), st.inline);
+        if let Some(hit) = self.inside.get(&key) {
+            return hit.clone();
+        }
+        let items = self.load(target).and_then(|d| content(&d.0, st.anchor.as_deref(), st.part.as_deref(), &d.1));
+        let inner = items.filter(|it| !st.inline || sentence(it)).map(|it| {
+            let mut found = Vec::new();
+            steps(&it, &mut found);
+            Rc::new(found)
+        });
+        self.inside.insert(key, inner.clone());
+        inner
+    }
+
+    fn report(&mut self, at: usize, message: String) {
+        if self.reported.insert((at, message.clone())) {
+            self.found.push((at, message));
+        }
+    }
+
+    /// Follow every transclusion in `found`, which are written in the document
     /// `name`. `origin` is the line in the first document a chain started on.
-    fn visit(&mut self, name: &str, items: &[Item], chain: &mut Vec<String>, path: &mut Vec<(String, String)>, origin: Option<usize>) {
-        let mut found = Vec::new();
-        steps(items, &mut found);
+    fn visit(&mut self, name: &str, found: &[Step], chain: &mut Vec<String>, path: &mut Vec<(String, String)>, origin: Option<usize>) {
         for st in found {
             let at = origin.unwrap_or(st.line);
             let target = match &st.doc {
@@ -162,20 +198,19 @@ impl Walk<'_> {
                 Some(_) => continue,
             };
             // What the step expands; a step that expands nothing ends here.
-            let items = self.load(&target).and_then(|d| content(&d, st.anchor.as_deref(), st.part.as_deref()));
-            let Some(items) = items.filter(|it| !st.inline || sentence(it)) else { continue };
+            let Some(inner) = self.expand(&target, st) else { continue };
             let key = (target.clone(), st.anchor.clone().unwrap_or_default());
             let names = |chain: &[String]| chain.iter().chain(std::iter::once(&target)).cloned().collect::<Vec<_>>().join(" → ");
             if target != name && chain.contains(&target) {
-                self.found.push((at, format!("expanding returns to `{target}`, which is already being expanded: {}", names(chain))));
+                self.report(at, format!("expanding returns to `{target}`, which is already being expanded: {}", names(chain)));
                 continue;
             }
             if path.contains(&key) {
                 let shown = if key.1.is_empty() { target.clone() } else { format!("{target}#{}", key.1) };
-                self.found.push((at, format!("expanding returns to `{shown}`, which is already being expanded")));
+                self.report(at, format!("expanding returns to `{shown}`, which is already being expanded"));
                 continue;
             }
-            if self.budget == 0 || path.len() >= MAX_DEPTH {
+            if self.budget == 0 || path.len() >= CHAIN_DEPTH {
                 continue;
             }
             self.budget -= 1;
@@ -184,7 +219,7 @@ impl Walk<'_> {
                 chain.push(target.clone());
             }
             path.push(key);
-            self.visit(&target, &items, chain, path, Some(at));
+            self.visit(&target, &inner, chain, path, Some(at));
             path.pop();
             if entered {
                 chain.pop();
@@ -196,15 +231,13 @@ impl Walk<'_> {
 /// Report every chain that returns to a document already being expanded,
 /// once per line of the document it starts on.
 pub fn check(name: &str, children: &[Item], meta_blocks: usize, host: Option<&dyn Host>, diags: &mut Diags) {
-    let mut w = Walk { host, docs: HashMap::new(), budget: BUDGET, found: Vec::new() };
-    let root = Rc::new(Document { children: children.to_vec(), name: name.to_string(), meta_blocks, ..Default::default() });
-    w.docs.insert(name.to_string(), Some(root));
-    w.visit(name, children, &mut vec![name.to_string()], &mut Vec::new(), None);
-    let mut seen: Vec<(usize, String)> = Vec::new();
-    for f in w.found {
-        if !seen.contains(&f) {
-            diags.push("transclusion-cycle", f.0, f.1.clone());
-            seen.push(f);
-        }
+    let mut w = Walk { host, docs: HashMap::new(), inside: HashMap::new(), budget: BUDGET, found: Vec::new(), reported: HashSet::new() };
+    let root = Document { children: children.to_vec(), name: name.to_string(), meta_blocks, ..Default::default() };
+    w.docs.insert(name.to_string(), Some(Rc::new((root, Prose::new()))));
+    let mut found = Vec::new();
+    steps(children, &mut found);
+    w.visit(name, &found, &mut vec![name.to_string()], &mut Vec::new(), None);
+    for (at, message) in w.found {
+        diags.push("transclusion-cycle", at, message);
     }
 }

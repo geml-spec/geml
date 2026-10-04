@@ -8,6 +8,7 @@ import { expandTransclusions } from "../src/transclude.js";
 import { snapshot } from "../src/snapshot.js";
 import { parseHTML } from "linkedom";
 import { strict as assert } from "node:assert";
+import { readFileSync } from "node:fs";
 
 const BASE = "https://host.test/docs/main.geml";
 const SRC = `## Target section {#sec}
@@ -88,6 +89,32 @@ test("a document with nothing to expand snapshots as itself", async () => {
   const { md, untranslated } = snapshot(model, root);
   assert.match(md, /plain paragraph/);
   assert.equal(untranslated.length, 0);
+});
+
+// Round 6 (packaging). A snapshot is saved from the extension's own page,
+// src/export.html, which the service worker opens — so the store zip, built
+// from package.mjs's list, has to carry that page and its script. The same
+// list leaves out the parked offscreen relay, as the file's header says.
+test("round 6: the store zip ships every page bg.js opens and leaves the parked relay out", () => {
+  const root = new URL("../", import.meta.url);
+  const read = (p) => readFileSync(new URL(p, root), "utf8");
+  const files = JSON.parse(/const files = (\[[^\]]*\]);/.exec(read("package.mjs"))[1]);
+  const shipped = (p) => files.some((f) => p === f || p.startsWith(f + "/"));
+  const manifest = JSON.parse(read("manifest.json"));
+  const needed = [
+    manifest.background.service_worker,
+    ...manifest.content_scripts.flatMap((c) => c.js),
+    ...Object.values(manifest.icons),
+  ];
+  // Pages the worker opens, and the scripts those pages load.
+  for (const [, page] of read("src/bg.js").matchAll(/^(?!\s*\/\/).*getURL\(\s*[`"']([^`"'?$]+)/gm)) {
+    needed.push(page);
+    const dir = page.slice(0, page.lastIndexOf("/") + 1);
+    for (const [, src] of read(page).matchAll(/<script[^>]*\ssrc="([^"]+)"/g)) needed.push(dir + src);
+  }
+  assert.ok(needed.includes("src/export.html") && needed.includes("src/export.js"), needed.join(" "));
+  for (const p of needed) assert.ok(shipped(p), `${p} is not in the zip: ${files.join(" ")}`);
+  assert.deepEqual(files.filter((f) => /offscreen|sandbox/.test(f)), [], "the parked relay stays out");
 });
 
 for (const [name, fn] of tests) {

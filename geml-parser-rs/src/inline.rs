@@ -1,13 +1,13 @@
 //! Inline content (§5): phase 1 reads atoms left to right, phase 2 pairs
 //! emphasis delimiters over the whole sequence by delimiter-run flanking (§5.3).
 
+use std::collections::HashMap;
+
+use crate::bounds::INLINE_NESTING;
 use crate::diag::Diags;
 use crate::json::Value;
 use crate::model::Inline;
 use crate::uni::{is_name, is_name_char, is_punct_or_symbol, is_ws};
-
-/// §9.2: inline nesting this processor admits.
-pub const MAX_INLINE_DEPTH: usize = 100;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SpanKind {
@@ -204,11 +204,54 @@ pub fn parse_ref_target(s: &str) -> Option<RefTarget> {
     Some(RefTarget { doc: if doc.is_empty() { None } else { Some(doc.to_string()) }, anchor: anchor.to_string() })
 }
 
+/// Whether `t` has the shape of a reference target — `[doc]#id`, then steps
+/// each a quoted string or a run of NAME characters — read only as far as it
+/// keeps that shape. A target is built and parsed only once it has it, so
+/// text that merely opens like a reference costs no more than its first wrong
+/// character: a line of nested `[[` built a target as long as the line from
+/// every one of them.
+fn ref_shape(t: &[char]) -> bool {
+    let start = t.iter().position(|c| !c.is_whitespace()).unwrap_or(t.len());
+    let end = t.iter().rposition(|c| !c.is_whitespace()).map_or(start, |e| e + 1);
+    let t = &t[start..end];
+    let Some(hash) = t.iter().position(|c| matches!(c, '#' | '[' | ']') || c.is_whitespace()) else { return false };
+    let id = t[hash + 1..].iter().take_while(|c| is_name_char(**c)).count();
+    if t[hash] != '#' || id == 0 {
+        return false;
+    }
+    let mut i = hash + 1 + id;
+    while i < t.len() {
+        if t[i] != '[' {
+            return false;
+        }
+        i += 1;
+        if t.get(i) == Some(&'"') {
+            i += 1;
+            while i < t.len() && t[i] != '"' {
+                i += if t[i] == '\\' { 2 } else { 1 };
+            }
+            i += 1;
+        } else {
+            let n = t[i..].iter().take_while(|c| is_name_char(**c)).count();
+            if n == 0 {
+                return false;
+            }
+            i += n;
+        }
+        if t.get(i) != Some(&']') {
+            return false;
+        }
+        i += 1;
+    }
+    true
+}
+
 /// The pieces phase 1 produces: literal text, which phase 2 scans for
-/// delimiter runs, and atoms, which it never looks inside.
+/// delimiter runs, and atoms, which it never looks inside. An atom carries
+/// how deep its tree goes.
 enum Piece {
     Text(String),
-    Atom { node: Inline, first: char, last: char },
+    Atom { node: Inline, first: char, last: char, height: usize },
 }
 
 pub struct InlineCtx<'a> {
@@ -234,13 +277,16 @@ impl<'a> InlineCtx<'a> {
 /// Parse a run of inline source text.
 pub fn parse_inline(src: &str, ctx: &mut InlineCtx) -> Vec<Inline> {
     let chars: Vec<char> = src.chars().collect();
-    parse_chars(&chars, ctx, false, 0)
+    let ends = if chars.contains(&'[') { Ends::of(&chars) } else { Ends::default() };
+    parse_chars(&chars, ctx, false, 0, Window { ends: &ends, off: 0 }).0
 }
 
-fn parse_chars(chars: &[char], ctx: &mut InlineCtx, in_link: bool, depth: usize) -> Vec<Inline> {
-    let pieces = phase1(chars, ctx, in_link, depth);
-    let out = phase2(pieces, ctx);
-    merge_text(out)
+/// The nodes of one nesting level — `depth` links and images in — and how
+/// deep their trees go.
+fn parse_chars(chars: &[char], ctx: &mut InlineCtx, in_link: bool, depth: usize, w: Window) -> (Vec<Inline>, usize) {
+    let pieces = phase1(chars, ctx, in_link, depth, w);
+    let (out, height) = phase2(pieces, ctx, depth);
+    (merge_text(out), height)
 }
 
 fn merge_text(v: Vec<Inline>) -> Vec<Inline> {
@@ -260,119 +306,150 @@ fn merge_text(v: Vec<Inline>) -> Vec<Inline> {
     out
 }
 
-/// The end of a bracketed label starting at `chars[i] == '['`: the index of
-/// its matching `]`. Escapes and verbatim atoms are skipped, as phase 1 would
-/// read them.
-fn label_end(chars: &[char], i: usize) -> Option<usize> {
-    let mut depth = 0usize;
-    let mut k = i;
-    while k < chars.len() {
-        match chars[k] {
-            '\\' if k + 1 < chars.len() && chars[k + 1].is_ascii_punctuation() => k += 2,
-            '`' => {
-                let n = run_len(chars, k, '`');
-                k = match code_close(chars, k + n, n) {
-                    Some(c) => c + n,
-                    None => k + n,
-                };
-            }
-            // Inline math is opaque here as in phase 1: a `$` before another
-            // `$`, or with none after it, opens nothing (§5.3).
-            '$' => {
-                k = match chars[k + 1..].iter().position(|c| *c == '$') {
-                    Some(p) if p > 0 => k + p + 2,
-                    _ => k + 1,
-                };
-            }
-            '[' => {
-                depth += 1;
-                k += 1;
-            }
-            ']' => {
-                depth -= 1;
-                if depth == 0 {
-                    return Some(k);
-                }
-                k += 1;
-            }
-            _ => k += 1,
-        }
-    }
-    None
+const NONE: u32 = u32::MAX;
+
+/// Where each bracketed construct closes, for a scan starting at every index
+/// at once (§5.3): built right to left in one pass over the whole run of
+/// inline text, and read through an offset by every nesting level. Scanning
+/// forward from each opener cost a pass to the end of the text for each one
+/// whose closer exists but never pairs: a line of `[[`, `![` or `[a](b){`
+/// took the square of its length.
+#[derive(Default)]
+struct Ends {
+    /// The `]` a link's text or an image's alt closes at: the first `]` the
+    /// scan from here meets at depth zero, escapes, code spans and inline math
+    /// passed over as phase 1 reads them.
+    label: Vec<u32>,
+    /// The `]` a reference's target closes at: quoted strings opaque, a line
+    /// break outside them ending the scan.
+    wiki: Vec<u32>,
+    /// The `)` a destination closes at: a `\` passes over what follows it, a
+    /// line break ends the scan.
+    paren: Vec<u32>,
+    /// The `}` an attribute object closes at: the first outside a quoted span
+    /// (§4, step 1).
+    attr: Vec<u32>,
 }
 
-/// A parenthesized destination starting at `chars[i] == '('`: its text and the
-/// index after its `)`.
-fn dest_end(chars: &[char], i: usize) -> Option<(String, usize)> {
-    let mut depth = 0usize;
-    let mut k = i;
-    while k < chars.len() {
-        match chars[k] {
-            '\\' if k + 1 < chars.len() => k += 2,
-            '(' => {
-                depth += 1;
-                k += 1;
+impl Ends {
+    fn of(chars: &[char]) -> Ends {
+        let n = chars.len();
+        let mut e = Ends { label: vec![NONE; n + 2], wiki: vec![NONE; n + 2], paren: vec![NONE; n + 2], attr: vec![NONE; n + 2] };
+        // The same scans begun inside a quoted span.
+        let mut wiki_q = vec![NONE; n + 2];
+        let mut attr_q = vec![NONE; n + 2];
+        // Past the nearest index: the start of the nearest run of each length
+        // of backticks, the run itself whole, and the nearest `$`.
+        let mut runs: HashMap<usize, usize> = HashMap::new();
+        let mut run = 0usize;
+        let mut dollar: Option<usize> = None;
+        let then = |v: &[u32], j: u32| if j == NONE { NONE } else { v[j as usize + 1] };
+        for k in (0..n).rev() {
+            let c = chars[k];
+            let next = chars.get(k + 1).copied();
+            run = if c == '`' { run + 1 } else { 0 };
+            e.label[k] = match c {
+                '\\' if next.is_some_and(|x| x.is_ascii_punctuation()) => e.label[k + 2],
+                '`' => match runs.get(&run) {
+                    Some(close) => e.label[close + run],
+                    None => e.label[k + run],
+                },
+                '$' => match dollar {
+                    Some(m) if m > k + 1 => e.label[m + 1],
+                    _ => e.label[k + 1],
+                },
+                '[' => then(&e.label, e.label[k + 1]),
+                ']' => k as u32,
+                _ => e.label[k + 1],
+            };
+            if c == '`' && (k == 0 || chars[k - 1] != '`') {
+                runs.insert(run, k);
             }
-            ')' => {
-                depth -= 1;
-                if depth == 0 {
-                    let s: String = chars[i + 1..k].iter().collect();
-                    return Some((s.trim().to_string(), k + 1));
-                }
-                k += 1;
+            if c == '$' {
+                dollar = Some(k);
             }
-            '\n' => return None,
-            _ => k += 1,
+            wiki_q[k] = match c {
+                '\\' => wiki_q.get(k + 2).copied().unwrap_or(NONE),
+                '"' => k as u32,
+                _ => wiki_q[k + 1],
+            };
+            e.wiki[k] = match c {
+                '"' => then(&e.wiki, wiki_q[k + 1]),
+                '[' => then(&e.wiki, e.wiki[k + 1]),
+                ']' => k as u32,
+                '\n' => NONE,
+                _ => e.wiki[k + 1],
+            };
+            e.paren[k] = match c {
+                '\\' if next.is_some() => e.paren[k + 2],
+                '(' => then(&e.paren, e.paren[k + 1]),
+                ')' => k as u32,
+                '\n' => NONE,
+                _ => e.paren[k + 1],
+            };
+            attr_q[k] = match c {
+                '\\' if matches!(next, Some('"' | '\\')) => attr_q[k + 2],
+                '"' => e.attr[k + 1],
+                _ => attr_q[k + 1],
+            };
+            e.attr[k] = match c {
+                '"' => attr_q[k + 1],
+                '}' => k as u32,
+                _ => e.attr[k + 1],
+            };
         }
+        e
     }
-    None
 }
 
-/// `[[target]]` starting at `chars[i] == '['`: the target text and the index
-/// after the closing `]]`. Brackets nest and a quoted string is opaque, so a
-/// coordinate's own brackets stay inside the target.
-fn wiki_end(chars: &[char], i: usize) -> Option<(String, usize)> {
-    let mut depth = 0usize;
-    let mut k = i + 2;
-    let mut quoted = false;
-    while k < chars.len() {
-        let c = chars[k];
-        if quoted {
-            if c == '\\' {
-                k += 1;
-            } else if c == '"' {
-                quoted = false;
-            }
-            k += 1;
-            continue;
-        }
-        match c {
-            '"' => quoted = true,
-            '[' => depth += 1,
-            ']' => {
-                if depth == 0 {
-                    if chars.get(k + 1) == Some(&']') {
-                        return Some((chars[i + 2..k].iter().collect(), k + 2));
-                    }
-                    return None;
-                }
-                depth -= 1;
-            }
-            '\n' => return None,
-            _ => {}
-        }
-        k += 1;
-    }
-    None
+/// One nesting level's text: a window into the run the `Ends` were built
+/// over, starting `off` characters in.
+#[derive(Clone, Copy)]
+struct Window<'a> {
+    ends: &'a Ends,
+    off: usize,
 }
 
-/// An `{…}` attribute object directly after a link or an image: the index
-/// after it, when there is one.
-fn trailing_attrs(chars: &[char], k: usize) -> Option<usize> {
-    if chars.get(k) != Some(&'{') {
-        return None;
+impl Window<'_> {
+    /// Where the scan of `ends` from `from` (an index into `chars`, this
+    /// window) closes, when it closes inside the window.
+    fn close(&self, ends: &[u32], chars: &[char], from: usize) -> Option<usize> {
+        let j = *ends.get(self.off + from)?;
+        (j != NONE && (j as usize) < self.off + chars.len()).then(|| j as usize - self.off)
     }
-    crate::attrs::parse_attrs(chars, k).map(|(_, e)| e)
+
+    /// The `]` that closes the label opened at `chars[i] == '['`.
+    fn label_end(&self, chars: &[char], i: usize) -> Option<usize> {
+        self.close(&self.ends.label, chars, i + 1)
+    }
+
+    /// A parenthesized destination starting at `chars[i] == '('`: its text and
+    /// the index after its `)`.
+    fn dest_end(&self, chars: &[char], i: usize) -> Option<(String, usize)> {
+        let k = self.close(&self.ends.paren, chars, i + 1)?;
+        let s: String = chars[i + 1..k].iter().collect();
+        Some((s.trim().to_string(), k + 1))
+    }
+
+    /// `[[target]]` starting at `chars[i] == '['`: the reference it writes
+    /// and the index after the closing `]]`. Brackets nest and a quoted string
+    /// is opaque, so a coordinate's own brackets stay inside the target.
+    fn wiki_ref(&self, chars: &[char], i: usize) -> Option<(RefTarget, usize)> {
+        let k = self.close(&self.ends.wiki, chars, i + 2)?;
+        if chars.get(k + 1) != Some(&']') || !ref_shape(&chars[i + 2..k]) {
+            return None;
+        }
+        Some((parse_ref_target(&chars[i + 2..k].iter().collect::<String>())?, k + 2))
+    }
+
+    /// An `{…}` attribute object directly after a link or an image: the index
+    /// after it, when there is one.
+    fn trailing_attrs(&self, chars: &[char], k: usize) -> Option<usize> {
+        if chars.get(k) != Some(&'{') {
+            return None;
+        }
+        self.close(&self.ends.attr, chars, k + 1).map(|e| e + 1)
+    }
 }
 
 /// `{{ key }}` at `chars[i]`: the key and the length matched.
@@ -419,40 +496,31 @@ fn link_node(dest: String, children: Vec<Inline>) -> Inline {
     }
 }
 
-fn phase1(chars: &[char], ctx: &mut InlineCtx, in_link: bool, depth: usize) -> Vec<Piece> {
+fn phase1(chars: &[char], ctx: &mut InlineCtx, in_link: bool, depth: usize, w: Window) -> Vec<Piece> {
     let mut out: Vec<Piece> = Vec::new();
     let mut buf = String::new();
     let n = chars.len();
     let mut i = 0;
-    // Whether a `]]` lies at or after each index — built the first time a
-    // `[[` is met. Where none does, no `[[` can close, so it is text without a
-    // scan: a line of `[[`s would otherwise cost a scan to its end for each.
-    // The same for a link's or an image's label and a single `]`.
-    let mut ahead: Option<(Vec<bool>, Vec<bool>)> = None;
-    let mut scan = |at: usize, pair: bool| -> bool {
-        let (one, two) = ahead.get_or_insert_with(|| {
-            let mut one = vec![false; n + 1];
-            let mut two = vec![false; n + 1];
-            for k in (0..n).rev() {
-                one[k] = chars[k] == ']' || one[k + 1];
-                two[k] = (chars[k] == ']' && chars.get(k + 1) == Some(&']')) || two[k + 1];
-            }
-            (one, two)
-        });
-        if pair {
-            two[at.min(n)]
-        } else {
-            one[at.min(n)]
-        }
-    };
     macro_rules! atom {
-        ($node:expr, $first:expr, $last:expr) => {{
+        ($node:expr, $first:expr, $last:expr) => {
+            atom!($node, $first, $last, 0)
+        };
+        ($node:expr, $first:expr, $last:expr, $height:expr) => {{
             if !buf.is_empty() {
                 out.push(Piece::Text(std::mem::take(&mut buf)));
             }
-            out.push(Piece::Atom { node: $node, first: $first, last: $last });
+            out.push(Piece::Atom { node: $node, first: $first, last: $last, height: $height });
         }};
     }
+    // A link's text or an image's alt, one level further in: parsed, or text
+    // past the bound.
+    let label = |ctx: &mut InlineCtx, from: usize, to: usize, in_link: bool| -> (Vec<Inline>, usize) {
+        if depth + 1 > INLINE_NESTING {
+            ctx.too_deep();
+            return (vec![Inline::Text(chars[from..to].iter().collect())], 0);
+        }
+        parse_chars(&chars[from..to], ctx, in_link, depth + 1, Window { ends: w.ends, off: w.off + from })
+    };
     while i < n {
         let c = chars[i];
         match c {
@@ -516,29 +584,22 @@ fn phase1(chars: &[char], ctx: &mut InlineCtx, in_link: bool, depth: usize) -> V
                 }
             },
             '!' if chars.get(i + 1) == Some(&'[') => {
-                if chars.get(i + 2) == Some(&'[') && scan(i + 3, true) {
-                    if let Some((t, end)) = wiki_end(chars, i + 1) {
-                        if let Some(rt) = parse_ref_target(&t) {
-                            atom!(Inline::Project { doc: rt.doc, anchor: rt.anchor, value: None }, '!', ']');
-                            i = end;
-                            continue;
-                        }
+                if chars.get(i + 2) == Some(&'[') {
+                    if let Some((rt, end)) = w.wiki_ref(chars, i + 1) {
+                        atom!(Inline::Project { doc: rt.doc, anchor: rt.anchor, value: None }, '!', ']');
+                        i = end;
+                        continue;
                     }
                 }
-                if let Some(le) = if scan(i + 2, false) { label_end(chars, i + 1) } else { None } {
+                if let Some(le) = w.label_end(chars, i + 1) {
                     if chars.get(le + 1) == Some(&'(') {
-                        if let Some((dest, after)) = dest_end(chars, le + 1) {
-                            let alt = if depth + 1 > MAX_INLINE_DEPTH {
-                                ctx.too_deep();
-                                vec![Inline::Text(chars[i + 2..le].iter().collect())]
-                            } else {
-                                parse_chars(&chars[i + 2..le], ctx, in_link, depth + 1)
-                            };
-                            let (end, last) = match trailing_attrs(chars, after) {
+                        if let Some((dest, after)) = w.dest_end(chars, le + 1) {
+                            let (alt, height) = label(ctx, i + 2, le, in_link);
+                            let (end, last) = match w.trailing_attrs(chars, after) {
                                 Some(e) => (e, '}'),
                                 None => (after, ')'),
                             };
-                            atom!(Inline::Image { src: safe_dest(&dest, true), alt }, '!', last);
+                            atom!(Inline::Image { src: safe_dest(&dest, true), alt }, '!', last, height + 1);
                             i = end;
                             continue;
                         }
@@ -548,40 +609,33 @@ fn phase1(chars: &[char], ctx: &mut InlineCtx, in_link: bool, depth: usize) -> V
                 i += 1;
             }
             '[' => {
-                if !in_link && chars.get(i + 1) == Some(&'[') && scan(i + 2, true) {
-                    if let Some((t, end)) = wiki_end(chars, i) {
-                        if let Some(rt) = parse_ref_target(&t) {
-                            atom!(Inline::AutoRef { doc: rt.doc, anchor: rt.anchor, value: None }, '[', ']');
-                            i = end;
-                            continue;
-                        }
+                if !in_link && chars.get(i + 1) == Some(&'[') {
+                    if let Some((rt, end)) = w.wiki_ref(chars, i) {
+                        atom!(Inline::AutoRef { doc: rt.doc, anchor: rt.anchor, value: None }, '[', ']');
+                        i = end;
+                        continue;
                     }
                 }
                 if chars.get(i + 1) == Some(&'^') {
-                    if let Some(p) = chars[i + 2..].iter().position(|c| *c == ']') {
-                        let id: String = chars[i + 2..i + 2 + p].iter().collect();
-                        if is_name(&id) {
-                            atom!(Inline::Footnote(id), '[', ']');
-                            i = i + 3 + p;
-                            continue;
-                        }
+                    // A footnote's id is a NAME, so its `]` is the first
+                    // character past the run of NAME characters.
+                    let p = chars[i + 2..].iter().take_while(|c| is_name_char(**c)).count();
+                    if p > 0 && chars.get(i + 2 + p) == Some(&']') {
+                        atom!(Inline::Footnote(chars[i + 2..i + 2 + p].iter().collect()), '[', ']');
+                        i = i + 3 + p;
+                        continue;
                     }
                 }
-                if !in_link && scan(i + 1, false) {
-                    if let Some(le) = label_end(chars, i) {
+                if !in_link {
+                    if let Some(le) = w.label_end(chars, i) {
                         if chars.get(le + 1) == Some(&'(') {
-                            if let Some((dest, after)) = dest_end(chars, le + 1) {
-                                let label = if depth + 1 > MAX_INLINE_DEPTH {
-                                    ctx.too_deep();
-                                    vec![Inline::Text(chars[i + 1..le].iter().collect())]
-                                } else {
-                                    parse_chars(&chars[i + 1..le], ctx, true, depth + 1)
-                                };
-                                let (end, last) = match trailing_attrs(chars, after) {
+                            if let Some((dest, after)) = w.dest_end(chars, le + 1) {
+                                let (children, height) = label(ctx, i + 1, le, true);
+                                let (end, last) = match w.trailing_attrs(chars, after) {
                                     Some(e) => (e, '}'),
                                     None => (after, ')'),
                                 };
-                                atom!(link_node(safe_dest(&dest, false), label), '[', last);
+                                atom!(link_node(safe_dest(&dest, false), children), '[', last, height + 1);
                                 i = end;
                                 continue;
                             }
@@ -625,14 +679,9 @@ fn flanking(prev: char, next: char) -> (bool, bool) {
     (left, right)
 }
 
-fn depth_of(n: &Inline) -> usize {
-    match n {
-        Inline::Emph(c) | Inline::Strong(c) | Inline::Strike(c) => 1 + c.iter().map(depth_of).max().unwrap_or(0),
-        _ => 0,
-    }
-}
-
-fn phase2(pieces: Vec<Piece>, ctx: &mut InlineCtx) -> Vec<Inline> {
+/// Pair the delimiter runs of one nesting level, `depth` links and images in;
+/// the nodes, and how deep their trees go.
+fn phase2(pieces: Vec<Piece>, ctx: &mut InlineCtx, depth: usize) -> (Vec<Inline>, usize) {
     // Flatten into elements, finding delimiter runs in literal text.
     let mut els: Vec<El> = Vec::new();
     let edges: Vec<(char, char)> = pieces
@@ -645,10 +694,7 @@ fn phase2(pieces: Vec<Piece>, ctx: &mut InlineCtx) -> Vec<Inline> {
     let count = pieces.len();
     for (pi, p) in pieces.into_iter().enumerate() {
         match p {
-            Piece::Atom { node, .. } => {
-                let d = depth_of(&node);
-                els.push(El::Node(node, d));
-            }
+            Piece::Atom { node, height, .. } => els.push(El::Node(node, height)),
             Piece::Text(t) => {
                 let before = if pi == 0 { ' ' } else { edges[pi - 1].1 };
                 let after = if pi + 1 == count { ' ' } else { edges[pi + 1].0 };
@@ -683,10 +729,53 @@ fn phase2(pieces: Vec<Piece>, ctx: &mut InlineCtx) -> Vec<Inline> {
             }
         }
     }
-    process_emphasis(els, ctx)
+    process_emphasis(els, ctx, depth)
 }
 
-fn process_emphasis(els: Vec<El>, ctx: &mut InlineCtx) -> Vec<Inline> {
+/// The emphasis pass (§5.3). A node carries how deep its tree goes; a pair
+/// whose node would take the tree past `INLINE_NESTING`, counted from the
+/// top of the run — `level` links and images in — stays literal.
+/// The live entries of a delimiter stack, found below an index through links
+/// that pass over the dead ones. An entry leaves the stack for good, so a run
+/// of dead entries is walked once, not once by every closer searching across
+/// it: closers refused as too deep would otherwise make each search longer.
+struct Live {
+    /// For each index, an index at or below it with no live entry between the
+    /// two; `usize::MAX` when none lies at or below it.
+    link: Vec<usize>,
+}
+
+impl Live {
+    /// The highest stack index below `k` whose delimiter is still on the stack.
+    fn below(&mut self, k: usize, stack: &[usize], on_stack: &[bool]) -> Option<usize> {
+        let start = k.checked_sub(1)?;
+        let mut x = start;
+        let found = loop {
+            if x == usize::MAX {
+                break None;
+            }
+            let l = self.link[x];
+            if l != x {
+                x = l;
+            } else if on_stack[stack[x]] {
+                break Some(x);
+            } else {
+                self.link[x] = x.checked_sub(1).unwrap_or(usize::MAX);
+            }
+        };
+        // Point the path walked straight at what it found.
+        let to = found.unwrap_or(usize::MAX);
+        let mut y = start;
+        while y != to && y != usize::MAX {
+            let next = self.link[y];
+            self.link[y] = to;
+            y = next;
+        }
+        found
+    }
+}
+
+fn process_emphasis(els: Vec<El>, ctx: &mut InlineCtx, level: usize) -> (Vec<Inline>, usize) {
     let n = els.len();
     let mut cells: Vec<Cell> = els
         .into_iter()
@@ -700,7 +789,10 @@ fn process_emphasis(els: Vec<El>, ctx: &mut InlineCtx) -> Vec<Inline> {
     for i in &stack {
         on_stack[*i] = true;
     }
-    let mut bottoms: std::collections::HashMap<(char, bool, usize), usize> = std::collections::HashMap::new();
+    let mut bottoms: HashMap<(char, bool, usize), usize> = HashMap::new();
+    let mut live = Live { link: (0..stack.len()).collect() };
+    // The highest stack index of an opener whose pair was refused as too deep.
+    let mut too_deep: Option<usize> = None;
     let mut ci = 0usize;
     while ci < stack.len() {
         let c = stack[ci];
@@ -720,15 +812,12 @@ fn process_emphasis(els: Vec<El>, ctx: &mut InlineCtx) -> Vec<Inline> {
         let bottom = bottoms.get(&key).copied();
         let mut found: Option<usize> = None;
         let mut k = ci;
-        while k > 0 {
-            k -= 1;
+        while let Some(j) = live.below(k, &stack, &on_stack) {
+            k = j;
             if bottom.is_some_and(|b| k <= b) {
                 break;
             }
             let o = stack[k];
-            if !on_stack[o] {
-                continue;
-            }
             if let El::Delim { ch, orig, can_open, can_close, .. } = cells[o].el {
                 if ch != cch || !can_open {
                     continue;
@@ -752,6 +841,23 @@ fn process_emphasis(els: Vec<El>, ctx: &mut InlineCtx) -> Vec<Inline> {
             ci += 1;
             continue;
         };
+        if too_deep.is_some_and(|d| ok <= d) {
+            // Refused as the gather below would refuse it, without gathering:
+            // every delimiter still on the stack between turns literal, and
+            // so does this closer.
+            ctx.too_deep();
+            let mut k = ci;
+            while let Some(j) = live.below(k, &stack, &on_stack).filter(|j| *j > ok) {
+                if let El::Delim { ch, count, .. } = cells[stack[j]].el {
+                    cells[stack[j]].el = El::Node(Inline::Text(ch.to_string().repeat(count)), 0);
+                }
+                on_stack[stack[j]] = false;
+                k = j;
+            }
+            on_stack[c] = false;
+            ci += 1;
+            continue;
+        }
         let o = stack[ok];
         let ocount = match cells[o].el {
             El::Delim { count, .. } => count,
@@ -761,7 +867,7 @@ fn process_emphasis(els: Vec<El>, ctx: &mut InlineCtx) -> Vec<Inline> {
         let used = if cch == '~' || (ocount >= 2 && ccount >= 2) { 2 } else { 1 };
         // Gather the cells strictly between the opener and the closer.
         let mut children: Vec<Inline> = Vec::new();
-        let mut depth = 0;
+        let mut heights: Vec<usize> = Vec::new();
         let mut cur = cells[o].next;
         while let Some(x) = cur {
             if x == c {
@@ -770,25 +876,34 @@ fn process_emphasis(els: Vec<El>, ctx: &mut InlineCtx) -> Vec<Inline> {
             cells[x].live = false;
             match std::mem::replace(&mut cells[x].el, El::Node(Inline::Text(String::new()), 0)) {
                 El::Node(node, d) => {
-                    depth = depth.max(d);
+                    heights.push(d);
                     children.push(node);
                 }
-                El::Delim { ch, count, .. } => children.push(Inline::Text(ch.to_string().repeat(count))),
+                El::Delim { ch, count, .. } => {
+                    heights.push(0);
+                    children.push(Inline::Text(ch.to_string().repeat(count)))
+                }
             }
             on_stack[x] = false;
             cur = cells[x].next;
         }
-        if depth + 1 > MAX_INLINE_DEPTH {
-            // Too deep: put the cells back as they were and leave this closer literal.
+        let depth = heights.iter().copied().max().unwrap_or(0);
+        if level + depth + 1 > INLINE_NESTING {
+            // Too deep: put the cells back as they were, each with its height,
+            // and leave this closer literal. Every later closer that reaches
+            // this opener or one below it spans the same cells, and is refused
+            // above without gathering them again.
             ctx.too_deep();
+            too_deep = Some(too_deep.map_or(ok, |d| d.max(ok)));
             let mut cur = cells[o].next;
-            let mut kids = children.into_iter();
+            let mut kids = children.into_iter().zip(heights);
             while let Some(x) = cur {
                 if x == c {
                     break;
                 }
+                let (node, h) = kids.next().expect("as many as were taken");
                 cells[x].live = true;
-                cells[x].el = El::Node(kids.next().expect("as many as were taken"), 0);
+                cells[x].el = El::Node(node, h);
                 cur = cells[x].next;
             }
             on_stack[c] = false;
@@ -847,11 +962,15 @@ fn process_emphasis(els: Vec<El>, ctx: &mut InlineCtx) -> Vec<Inline> {
     }
     // Read the list out.
     let mut out = Vec::new();
+    let mut height = 0;
     let mut cur = head;
     while let Some(x) = cur {
         if cells[x].live {
             match std::mem::replace(&mut cells[x].el, El::Node(Inline::Text(String::new()), 0)) {
-                El::Node(node, _) => out.push(node),
+                El::Node(node, h) => {
+                    height = height.max(h);
+                    out.push(node)
+                }
                 El::Delim { ch, count, .. } => {
                     if count > 0 {
                         out.push(Inline::Text(ch.to_string().repeat(count)))
@@ -861,7 +980,7 @@ fn process_emphasis(els: Vec<El>, ctx: &mut InlineCtx) -> Vec<Inline> {
         }
         cur = cells[x].next;
     }
-    out
+    (out, height)
 }
 
 #[cfg(test)]

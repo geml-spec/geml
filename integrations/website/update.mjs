@@ -23,6 +23,9 @@ const site = resolve(process.argv[2] ?? join(repo, "..", "geml-spec.github.io"))
 const geml = join(repo, "geml-parser", "dist", "geml.js");
 const viewer = join(repo, "integrations", "chrome-geml-viewer");
 const playground = join(site, "public", "playground");
+// An exact version: npx fetches it at run time, and what it writes is published
+// on the site, so a new release must not reach the site unread. Raise it by hand.
+const SCIP_TS = "@sourcegraph/scip-typescript@0.4.0";
 
 for (const [what, p] of [
   ["a site checkout", join(site, "public", "playground", "index.html")],
@@ -47,8 +50,8 @@ run([process.execPath, join(viewer, "playground.build.mjs"), playground], viewer
 const codemap = join(playground, "codemap");
 const build = mkdtempSync(join(tmpdir(), "geml-site-codemap-"));
 rmSync(codemap, { recursive: true, force: true });
-run(["npx", "--yes", "@sourcegraph/scip-typescript", "index", "--output", join(build, "parser.scip")], join(repo, "geml-parser"));
-run(["npx", "--yes", "@sourcegraph/scip-typescript", "index", "--output", join(build, "viewer.scip")], viewer);
+run(["npx", "--yes", SCIP_TS, "index", "--output", join(build, "parser.scip")], join(repo, "geml-parser"));
+run(["npx", "--yes", SCIP_TS, "index", "--output", join(build, "viewer.scip")], viewer);
 run([process.execPath, geml, "codemap", "build",
   "--adapter", "scip", "--raw", join(build, "parser.scip"),
   "--adapter", "scip", "--raw", join(build, "viewer.scip"),

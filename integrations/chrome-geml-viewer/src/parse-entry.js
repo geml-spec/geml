@@ -16,6 +16,9 @@ export { gemlToMd } from "../../../geml-parser/dist/geml.js";
 // to hand-copy this ("mirror geml-parser/src/render.ts", said the comment) and
 // went on refusing prose addresses after the renderer learned them.
 export { selectEmbed } from "../../../geml-parser/dist/geml.js";
+// And how deep a chain is followed (§9.2's `chain-depth`): the renderer and the
+// check stop at it, so the browser does too.
+export { CHAIN_DEPTH } from "../../../geml-parser/dist/geml.js";
 
 // GEP 0011 coordinates. The parser answers one at PARSE time, but only when it
 // was given a `resolveDoc`; a browser fetches asynchronously and cannot supply

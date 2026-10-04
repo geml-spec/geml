@@ -401,9 +401,13 @@ Two conditions of differing severity are distinguished:
 
 - **Corruption → error.** A broken `parent` chain (a revision's `parent` is not
   the id of the revision before it, or the chain does not reach the root), an
-  unresolved `blob:` reference, or a reconstruction whose hash does not match the
-  recorded hash indicate that the history itself is damaged and **MUST** be
-  reported as errors.
+  unresolved `blob:` reference, a reconstruction whose hash does not match the
+  recorded hash, **two revisions, keyframes or blobs with one id, or more than
+  one `current`** indicate that the history itself is damaged and **MUST** be
+  reported as errors. An id names one thing: a sidecar holding two revisions
+  under one id, each consistent with its own hash, reconstructs one text in a
+  processor that takes the first and another in one that takes the last, and
+  verifies clean in both.
 - **Uncommitted changes → warning.** A difference between `hash(doc.geml)` and
   the `hash` recorded for `current` means only that the live file has been
   edited since the last commit. This is a normal editing state, **not**
@@ -433,7 +437,8 @@ A conforming history processor MUST:
    against the recorded hash, and do so even when the live file has uncommitted
    changes or is missing (§6, §8).
 5. Report **errors** for corruption: a broken `parent` chain, an unresolved
-   `blob:` reference, or a reconstruction whose hash does not match.
+   `blob:` reference, a reconstruction whose hash does not match, an id shared
+   by two revisions, keyframes or blobs, or more than one `current` (§8).
 6. Report a difference between `hash(doc.geml)` and `current` as an
    **uncommitted-changes warning**, and never block read-only operations on it.
 7. Perform rollback (§7) as a destructive, linear truncation, and **MUST NOT**

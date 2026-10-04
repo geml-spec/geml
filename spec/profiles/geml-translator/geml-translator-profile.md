@@ -98,6 +98,10 @@ these are requirements on any processor that acts on `translate-to`:
 - **Every id, class and attribute key**, and those attribute values that *name*
   things rather than *say* them: `format=`, `src=`, `translate-to=`.
 - **Block structure**: the same blocks, in the same order, with the same ids.
+- **Nothing the reader does not see is sent.** A `{hidden}` block or heading
+  (§4) and a `%%` line are in the model and not on the page, so a processor
+  MUST NOT give them to an engine — and an engine is often someone else's
+  machine, a host's language model. They stay in the source language.
 - **No partial output.** On failure, timeout or an unavailable engine, the block
   stands in the source language. Half a translated sentence is worse than none.
 

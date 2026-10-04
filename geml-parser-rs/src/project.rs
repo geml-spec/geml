@@ -6,25 +6,31 @@ use crate::json::{canonical, quote, Value};
 use crate::model::*;
 use crate::num::es_string;
 
-fn merged(ns: &[Inline]) -> Vec<Inline> {
-    let mut out: Vec<Inline> = Vec::new();
+/// A run's projection: its nodes space-separated, adjacent text joined into
+/// one string and empty text dropped. Joined as it is written out, so no
+/// node is copied: a run nested a hundred deep was cloned at every level.
+pub fn inl(ns: &[Inline]) -> String {
+    let mut parts: Vec<String> = Vec::new();
+    let mut text: Option<String> = None;
     for n in ns {
-        if let Inline::Text(t) = n {
-            if t.is_empty() {
-                continue;
+        match n {
+            Inline::Text(t) => {
+                if !t.is_empty() {
+                    text.get_or_insert_with(String::new).push_str(t);
+                }
             }
-            if let Some(Inline::Text(prev)) = out.last_mut() {
-                prev.push_str(t);
-                continue;
+            _ => {
+                if let Some(t) = text.take() {
+                    parts.push(quote(&t));
+                }
+                parts.push(node(n));
             }
         }
-        out.push(n.clone());
     }
-    out
-}
-
-pub fn inl(ns: &[Inline]) -> String {
-    merged(ns).iter().map(node).collect::<Vec<_>>().join(" ")
+    if let Some(t) = text {
+        parts.push(quote(&t));
+    }
+    parts.join(" ")
 }
 
 fn node(n: &Inline) -> String {

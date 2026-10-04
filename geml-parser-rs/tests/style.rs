@@ -238,7 +238,7 @@ fn states_declare_what_feeds_them() {
 #[test]
 fn screens_and_frames_form_a_graph() {
     let mut frames = String::new();
-    // A chain of seventeen frames under one screen is one too deep.
+    // A chain of eighteen frames under one screen: the deepest is past the bound.
     for i in 0..17 {
         frames += &format!("=== style-frame {{#f{i} slots=\"#f{}\"}}\n===\n\n", i + 1);
     }
@@ -257,12 +257,14 @@ fn screens_and_frames_form_a_graph() {
             "warning style-unmatched-rule site.style.geml#home",
             "warning style-unknown-attribute site.style.geml#home",
             "error style-missing-attribute site.style.geml#bare",
-            "error style-frame-too-deep site.style.geml#deep",
+            "error style-frame-cycle site.style.geml#loop-a",
+            "error style-frame-too-deep site.style.geml#f17",
             "warning style-unused-frame site.style.geml#spare",
-            "error style-frame-cycle site.style.geml",
         ]
     );
-    assert_eq!(vm.diagnostics.last().unwrap().message, "frames nest in a cycle: #loop-a → #loop-b → #loop-a");
+    let said = |code: &str| vm.diagnostics.iter().find(|d| d.code == code).unwrap().message.clone();
+    assert_eq!(said("style-frame-cycle"), "frames nest in a cycle: #loop-a → #loop-b → #loop-a");
+    assert_eq!(said("style-frame-too-deep"), "frames nest 18 deep at `#f17`; the bound is 16");
     let home = vm.screens.iter().find(|s| s.id == "home").unwrap();
     assert_eq!(home.axis, "row");
     assert_eq!(home.slots.len(), 6);
@@ -442,4 +444,42 @@ fn the_view_model_is_one_json_shape() {
             r##""diagnostics":[]}"##,
         )
     );
+}
+
+/// Round 6: one load expands at most 1000 `embed`s in all, and says so once.
+/// The depth bound alone allows K^16 expansions: three embeds of the next
+/// note, sixteen notes deep, ran for minutes.
+#[test]
+fn embed_expansion_has_a_budget() {
+    let notes: String = (0..17)
+        .map(|i| {
+            let body =
+                if i == 16 { "=== style-rule {match=heading color=red}\n===\n".to_string() } else { format!("=== embed {{src=#a{}}}\n===\n", i + 1).repeat(3) };
+            format!("==== note {{#a{i}}}\n{body}====\n\n")
+        })
+        .collect();
+    let t = std::time::Instant::now();
+    let vm = solve(&notes);
+    assert!(t.elapsed() < std::time::Duration::from_secs(20), "took {:?}", t.elapsed());
+    let spent: Vec<&str> = vm.diagnostics.iter().filter(|d| d.code == "style-embed-not-expanded").map(|d| d.message.as_str()).collect();
+    assert_eq!(spent, ["`embed` of `#a16` contributed no rules: expansion budget spent (1000 expansions); this and later embeds were not expanded"]);
+    // The rules the budget let in, as many as the reference loads.
+    assert_eq!(vm.bindings.iter().find(|b| b.block == "#guide").unwrap().rules.len(), 660);
+}
+
+/// Round 6: the frame graph is walked without recursion, each frame expanded
+/// once — a chain of twenty thousand frames is no deep stack, and a diamond
+/// forty levels deep, two slots per level naming one frame, is no 2^40 walk.
+#[test]
+fn a_frame_graph_of_any_shape_is_linear_work() {
+    let t = std::time::Instant::now();
+    let n = 20_000;
+    let mut chain: String = (0..n).map(|i| format!("=== style-frame {{#c{i} slots=\"#c{}\"}}\n===\n\n", i + 1)).collect();
+    chain += &format!("=== style-frame {{#c{n} slots=heading}}\n===\n\n=== style-screen {{#s slots=\"#c0\"}}\n===\n");
+    let vm = solve(&chain);
+    assert_eq!(diags(&vm), vec![format!("error style-frame-too-deep site.style.geml#c{n}")]);
+    let mut diamond: String = (0..40).map(|i| format!("=== style-frame {{#d{i} slots=\"#d{0}, #d{0}\"}}\n===\n\n", i + 1)).collect();
+    diamond += "=== style-frame {#d40 slots=heading}\n===\n\n=== style-screen {#s slots=\"#d0\"}\n===\n";
+    assert_eq!(diags(&solve(&diamond)), vec!["error style-frame-too-deep site.style.geml#d40"]);
+    assert!(t.elapsed() < std::time::Duration::from_secs(10), "took {:?}", t.elapsed());
 }

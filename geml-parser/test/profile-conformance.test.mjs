@@ -28,7 +28,8 @@
 import { PROFILES } from "../dist/profiles.js";
 import { parse, CATALOGUE_EXEMPT } from "../dist/geml.js";
 import { expandCorpus, loadStylesheet, resolveStyle } from "../dist/style-resolve.js";
-import { readFileSync, existsSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
+import { verify } from "../dist/history.js";
+import { readFileSync, existsSync, writeFileSync, mkdtempSync, mkdirSync, rmSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -164,6 +165,47 @@ test("放行：两种读法的诊断就是文件里记的那两组，且声明�
         `${name} / ${c.name}：不声明时的 unknown-* 不比声明时多 —— 那这份文档根本不需要这份词汇表放行什么`);
     }
   }
+});
+
+// `checks`：词汇表**自己的**检查（`geml check` 输出里的 `profile` 一组）对这份文档的
+// 声明读法报出的诊断，按 `code:severity` 当多重集比。根目录里只有 case.geml 和用例的
+// `files`：它指名而 `files` 没给的文件不存在（文件缺失本身就是一条要记下的诊断）。
+test("用例的 checks：词汇表自己的检查对单份文档报出的，就是文件里记的那一组", () => {
+  let n = 0;
+  for (const name of Object.keys(PROFILES)) {
+    const f = JSON.parse(readFileSync(fileFor(name), "utf8"));
+    for (const c of f.cases) {
+      if (c.checks === undefined) continue;
+      const dir = mkdtempSync(join(work, "checks-"));
+      writeFileSync(join(dir, "case.geml"), c.geml);
+      for (const [path, text] of Object.entries(c.files ?? {})) {
+        mkdirSync(dirname(join(dir, path)), { recursive: true });
+        writeFileSync(join(dir, path), text);
+      }
+      const r = spawnSync(process.execPath, [CLI, "check", "case.geml", "--json"], { cwd: dir, encoding: "utf8" });
+      const got = JSON.parse(r.stdout).profile.map((d) => `${d.code}:${d.severity}`).sort();
+      assert.deepEqual(got, [...c.checks].sort(), `${name} / ${c.name}`);
+      n++;
+    }
+  }
+  assert.ok(n > 0, "没有一条用例带 checks —— 这条测试什么也没测");
+});
+
+// `sidecars`（只有 geml-history/v1 有）：文档和它的 sidecar 并排放着，校验没有错误，
+// 重建到记录哈希的修订数就是 `verified`。
+test("用例的 sidecars：sidecar 校验无误，验过的修订数就是文件里记的", () => {
+  let n = 0;
+  for (const name of Object.keys(PROFILES)) {
+    for (const c of JSON.parse(readFileSync(fileFor(name), "utf8")).sidecars ?? []) {
+      const dir = mkdtempSync(join(work, "sidecar-"));
+      writeFileSync(join(dir, "doc.geml"), c.geml);
+      writeFileSync(join(dir, "doc.gemlhistory"), c.history);
+      const v = verify(join(dir, "doc.gemlhistory"), join(dir, "doc.geml"));
+      assert.deepEqual([v.errors, v.checked], [[], c.verified], `${name} / ${c.name}`);
+      n++;
+    }
+  }
+  assert.ok(n > 0, "没有一条 sidecars 用例 —— 这条测试什么也没测");
 });
 
 test("每份 profile 的码都带自己的前缀 —— 一致性文件是对外的那一份陈述", () => {

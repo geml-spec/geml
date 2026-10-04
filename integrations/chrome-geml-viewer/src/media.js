@@ -61,6 +61,18 @@ function timelineFor(ctx) {
 /** 秒 → 百分比。整条时间线的总长是 100%。 */
 const pct = (v, total) => (total > 0 ? (v / total) * 100 : 0);
 
+/** 一把尺子最多这么多格。总长来自文档（`out=` / `duration=`），没有上限，格数不能跟着它走。 */
+export const MAX_TICKS = 200;
+
+/** 刻度间隔（秒）：1、2、5 × 10ⁿ 里最小的那个，让格数不超过 MAX_TICKS。 */
+export function tickStep(duration) {
+  const raw = duration / MAX_TICKS;
+  if (!(raw > 1)) return 1;
+  const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+  for (const m of [1, 2, 5]) if (m * pow >= raw) return m * pow;
+  return 10 * pow;
+}
+
 /**
  * `component=clip`：一个片段。按它在时间线上的起点与时长绝对定位，宽度是它占总长的
  * 比例 —— 于是一条轨上的片段天然对齐，不需要任何算术写进样式表。
@@ -104,11 +116,14 @@ function trackEl(ctx, extraClass, params) {
   const tl = timelineFor(ctx);
   if (tl) {
     el.setAttribute("data-duration", tl.duration.toFixed(3));
-    // 刻度：每秒一格。格数由时间线决定，不由样式表猜。
+    // 刻度：短片每秒一格；长了按 tickStep 放宽，格数封顶 MAX_TICKS。格数由时间线决定，
+    // 不由样式表猜。总长不是有限数（几段巨大的 out= 相加会溢出）就不画尺子。
     const ruler = dom.createElement("div");
     ruler.className = "geml-track-ruler";
     ruler.setAttribute("aria-hidden", "true");
-    for (let s = 0; s <= Math.floor(tl.duration); s++) {
+    const step = Number.isFinite(tl.duration) ? tickStep(tl.duration) : 0;
+    for (let i = 0; step > 0 && i * step <= tl.duration; i++) {
+      const s = i * step;
       const tick = dom.createElement("span");
       tick.className = "geml-tick";
       tick.style.position = "absolute";

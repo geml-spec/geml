@@ -39,7 +39,7 @@ function knownProfileCode(code: string): boolean {
 }
 import { promptTextOf } from "./media-check.js";
 import { todo as mediaTodo, report as mediaReport, exportTimeline, lay as mediaLay, buildPlan, composePlan, appendLog, genLogSpan, importPlan, importKindOf, importSubtitles, assetBlockFor, idFromFile, idsTaken, loadProject, type ExportFormat, type ManifestItem } from "./media-verbs.js";
-import { profileIoFor } from "./host-fs.js";
+import { confinedFile, profileIoFor } from "./host-fs.js";
 // The GEML command line. Split out of geml.ts so that file can be what the
 // viewer imports: a parser LIBRARY. Everything CLI-side lives here — argv
 // dispatch, file and stdin I/O, stdout and the exit codes, spawning
@@ -514,6 +514,19 @@ function mediaFilesUnder(dir: string, out: string[]): void {
   }
 }
 
+// 媒体计划交给 ffmpeg 的每个 `-i file:<路径>` 都必须是媒体根目录里的普通文件，链接按实际
+// 指向判断（规范 §9.4）：这些路径来自文档。换成核对过的实际路径再交出去，核对和打开之间
+// 不留一个可以换掉链接的空当。
+function confineInputs(args: string[], root: string): void {
+  for (let k = 0; k + 1 < args.length; k++) {
+    if (args[k] !== "-i" || !args[k + 1]!.startsWith("file:")) continue;
+    const rel = args[k + 1]!.slice("file:".length);
+    const real = confinedFile(root, rel);
+    if (real === null) fail(`素材 \`${rel}\` 不是媒体根目录里的文件，不交给 ffmpeg`);
+    args[k + 1] = "file:" + real;
+  }
+}
+
 /**
  * 往素材库追加记录的三处 —— log、import 清单、compose --log —— 都要一个收了栏的
  * `.gen-log` 块。缺了就在动手之前一行拒绝：compose 在跑 ffmpeg 之前，import 在建素材块
@@ -629,6 +642,7 @@ function runMedia(args: string[]): void {
     } else if (burning) {
       console.error("note: 这条时间线没有字幕轨，--burn-subs 没有东西可烧");
     }
+    confineInputs(plan.args, mr);
     const ff = whichBin("ffmpeg");
     if (ff === null) {
       console.error("ffmpeg 不在 PATH 上；下面是本该跑的命令，装好后可直接执行：");
@@ -653,6 +667,7 @@ function runMedia(args: string[]): void {
     if (plan.args.length === 0) fail("compose 没有可执行的命令：" + plan.notes.join("；"));
     const logTarget = flag(rest, "--log");
     if (logTarget !== undefined) needGenLog(readInput(resolvePath(mr, logTarget)), logTarget);
+    confineInputs(plan.args, mr);
     const ff = whichBin("ffmpeg");
     if (ff === null) {
       console.error("ffmpeg 不在 PATH 上；下面是本该跑的命令，装好后可直接执行：");

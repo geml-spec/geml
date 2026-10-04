@@ -14,7 +14,7 @@ import { detectEntries } from "../codemap/entries.mjs";
 import { recipeFingerprint, trustRecipe, readTrustStore, isRecipeTrusted } from "../codemap/recipe-trust.mjs";
 import { parse } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync, statSync, existsSync, chmodSync, copyFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync, statSync, existsSync, chmodSync, copyFileSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname, basename, delimiter } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -254,23 +254,26 @@ test("emit prune: a directory wearing .geml and an unreadable candidate are left
   rmSync(dir, { recursive: true, force: true });
 });
 
-// C2 trust-store shape tolerance: a store written before the version field
-// existed must keep its approvals, and an approval recorded by a caller that
-// only knows the fingerprint must not invent a graphDir.
-test("recipe-trust: a version-less store reads as v1 with approvals intact; trusting without a graphDir records none", () => {
+// C2 trust-store shape: approvals are filed per codemap directory, a store of
+// any other shape trusts nothing, and recording one approval keeps the rest.
+test("recipe-trust: approvals are per directory, merged, and a store of another shape trusts nothing", () => {
   const saved = process.env.GEML_TRUST_STORE;
   const dir = tmp();
+  const one = join(dir, "one"), two = join(dir, "two");
+  mkdirSync(one); mkdirSync(two);
   try {
     process.env.GEML_TRUST_STORE = join(dir, "store.json");
     writeFileSync(join(dir, "store.json"), JSON.stringify({ recipes: { deadbeef: { addedAt: 1 } } }));
-    const store = readTrustStore();
-    assert.equal(store.version, 1, "missing version defaults to 1");
-    assert.ok(isRecipeTrusted("deadbeef"), "pre-versioning approvals survive");
-    trustRecipe("cafebabe"); // no graphDir argument
+    assert.deepEqual(readTrustStore().recipes, {}, "a store keyed by fingerprint alone is not read");
+    assert.ok(!isRecipeTrusted("deadbeef", one), "and approves nothing");
+    trustRecipe("cafebabe", one);
+    trustRecipe("f00d", two);
+    trustRecipe("beef", one);
     const onDisk = JSON.parse(readFileSync(join(dir, "store.json"), "utf8"));
-    assert.ok(onDisk.recipes.cafebabe, "fingerprint recorded");
-    assert.ok(!("graphDir" in onDisk.recipes.cafebabe), "no graphDir key invented for it");
-    assert.ok(onDisk.recipes.deadbeef, "existing approvals merged, never clobbered");
+    assert.deepEqual(Object.keys(onDisk.recipes).sort(), [realpathSync(one), realpathSync(two)].sort(), "filed under each directory's real path");
+    assert.deepEqual(Object.keys(onDisk.recipes[realpathSync(one)]).sort(), ["beef", "cafebabe"], "approvals merged, never clobbered");
+    assert.ok(isRecipeTrusted("f00d", two) && !isRecipeTrusted("f00d", one), "one directory's approval is not another's");
+    assert.throws(() => trustRecipe("cafebabe"), "an approval needs a directory");
   } finally {
     process.env.GEML_TRUST_STORE = saved;
     rmSync(dir, { recursive: true, force: true });

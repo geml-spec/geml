@@ -87,10 +87,11 @@ path reads the tree, not your working copy.
   deliberate act, never a side effect of a push.
 - **Watch for.** npm answers a duplicate version with a 403, so a second run on
   the same version fails loudly instead of clobbering — the MCP registry gives
-  the same safety. The npm job installs with `npm install`, not `npm ci`,
-  because the lockfile's own version field has historically trailed the release;
-  bump the lockfile too and both stay true. `npm test` runs as a pre-publish
-  gate, so a red suite cannot ship.
+  the same safety. The npm workflow installs with `npm ci`, so the lockfile's
+  version fields move in the release commit with package.json's. `npm test` runs
+  as a pre-publish gate, so a red suite cannot ship. The token never meets an
+  install: one job installs, tests and packs, and another publishes that tarball
+  and runs nothing else; the VS Code workflow is split the same way.
 - **Confirm.** `npm view @geml/geml version` · the provenance badge on the npm
   page (the workflow publishes with `--provenance`) ·
   `npx -y @geml/geml@<version> --version --json` prints both parser and spec.

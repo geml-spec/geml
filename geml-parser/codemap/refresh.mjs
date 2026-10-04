@@ -89,7 +89,9 @@ catch (e) {
 }
 const steps = cfg.steps ?? [];
 const fingerprint = recipeFingerprint(cfg);
-let trusted = isRecipeTrusted(fingerprint);
+// Trusted for THIS codemap directory: an approval given to the same steps in
+// another checkout does not carry over (see recipe-trust.mjs).
+let trusted = isRecipeTrusted(fingerprint, cmDir);
 
 // --- structured-step execution (security fix R2-1) --------------------------
 // A recipe step is a structured object { cwd?, env?, argv:[...] }. We run argv
@@ -155,8 +157,8 @@ const refuseUntrusted = () => {
   console.error(`  fingerprint: ${fingerprint}`);
   console.error("  steps that would run:");
   for (const s of steps) console.error(`    $ ${renderStep(s)}`);
-  console.error("this codemap recipe is not trusted; review the steps above and re-run with");
-  console.error("--trust to approve, or run `geml codemap build` to regenerate it.");
+  console.error("this codemap recipe is not trusted in this directory; review the steps above and");
+  console.error("re-run with --trust to approve, or run `geml codemap build` to regenerate it.");
 };
 
 if (hookMode) {

@@ -1902,4 +1902,82 @@ test("media dimensions: only a non-negative integer becomes a width/height attri
   assert.equal(tags.length, 3, tags.join(" "));
   for (const t of tags) assert.doesNotMatch(t, /width|height|onload/, t);
 });
+// Round 6 (V-4). A host whose own scripts must not load the static search
+// index as a <script> — a browser extension's content script, where the
+// element would run in the page's main world — passes `noScriptIndex`. On a
+// static page that leaves nothing to search, so there is no box and nothing is
+// appended to <head>; a served page still searches through /_search. With no
+// host option, the codemap's own pages keep the script-loaded index.
+await atest("round 6: noScriptIndex draws no search box on a static page and appends no <script>; a served page keeps /_search", async () => {
+  const prevDoc = globalThis.document, prevWin = globalThis.window, prevLoc = globalThis.location;
+  const boot = (host) => {
+    const mount = fakeEl("div");
+    mount.attrs["data-graph"] = JSON.stringify({
+      start: "s.geml", depth: 6, roots: ["s.geml#r"],
+      nodes: { "s.geml#r": { n: "r" }, "s.geml#h": { n: "run" } },
+      edges: [["s.geml#r", "s.geml#h", "call", ""]],
+    });
+    mount.attrs["data-src"] = "docs/index.geml";
+    codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) }, host);
+    return barOf(mount).children.find((c) => (c.attrs?.class || "") === "cg-search-wrap");
+  };
+  try {
+    globalThis.document = mkDocument();
+    globalThis.window = {};
+    globalThis.location = { protocol: "file:", href: "" };
+    assert.ok(boot({ noScriptIndex: true }) === undefined, "a static page with no script index has no search box");
+    assert.equal(globalThis.document.head.children.length, 0, "and nothing went into <head>");
+    // The codemap's own static pages: the box, and the index as a script.
+    const wrap = boot(undefined);
+    assert.ok(wrap, "no host option: the box is there");
+    wrap.children[0].value = "run";
+    wrap.children[0].listeners.input();
+    assert.equal(globalThis.document.head.children.at(-1)?.src, "docs/_index/search-index.js");
+    // A served page searches through /_search, which loads no script.
+    globalThis.document = mkDocument();
+    globalThis.location = { protocol: "http:", href: "" };
+    assert.ok(boot({ noScriptIndex: true }), "a served page keeps its box");
+  } finally {
+    globalThis.document = prevDoc; globalThis.window = prevWin;
+    if (prevLoc === undefined) delete globalThis.location; else globalThis.location = prevLoc;
+  }
+});
+
+// Round 6 (V-1). On http(s) and file pages the URL parser reads `\` as `/`, so
+// a data-src of `\\host/` or `/\host/` is the network path `//host/`: the index
+// script and a hit's navigation would leave the page's origin — on file://, for
+// a UNC host. relOnly refuses it the way it refuses `//host/`.
+await atest("round 6: a backslash network path in data-src reaches neither the script src nor a navigation", async () => {
+  const prevDoc = globalThis.document, prevWin = globalThis.window, prevLoc = globalThis.location;
+  const asRead = (u) => String(u ?? "").replace(/^[\x00-\x20]+/, "").replace(/[\t\n\r]/g, "").replace(/\\/g, "/");
+  const offPage = (u) => asRead(u).slice(0, 2) === "//";
+  try {
+    for (const payload of ["\\\\evil.example/", "/\\evil.example/", "\\/evil.example/", "\t\\\\evil.example/", " /\\evil.example/", "/\t\\evil.example/"]) {
+      globalThis.document = mkDocument();
+      globalThis.window = {};
+      globalThis.location = { protocol: "file:", href: "" };
+      const mount = fakeEl("div");
+      mount.attrs["data-graph"] = JSON.stringify({
+        start: "s.geml", depth: 6, roots: ["s.geml#r"],
+        nodes: { "s.geml#r": { n: "r" }, "s.geml#h": { n: "run" } },
+        edges: [["s.geml#r", "s.geml#h", "call", ""]],
+      });
+      mount.attrs["data-src"] = payload;
+      codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) });
+      const box = barOf(mount).children.find((c) => (c.attrs?.class || "") === "cg-search-wrap").children[0];
+      box.value = "run";
+      box.listeners.input();
+      const script = globalThis.document.head.children.at(-1);
+      assert.ok(!offPage(script?.src), `script src left the page for ${JSON.stringify(payload)}: ${JSON.stringify(script?.src)}`);
+      globalThis.window.__gemlSearch = [["run", "m.geml", "run"]];
+      box.listeners.input();
+      box.listeners.keydown({ key: "Enter", preventDefault() {}, altKey: false });
+      assert.ok(!offPage(globalThis.location.href), `navigation left the page for ${JSON.stringify(payload)}: ${JSON.stringify(globalThis.location.href)}`);
+    }
+  } finally {
+    globalThis.document = prevDoc; globalThis.window = prevWin;
+    if (prevLoc === undefined) delete globalThis.location; else globalThis.location = prevLoc;
+  }
+});
+
 console.log(`\n${passed} test(s) passed.`);

@@ -68,6 +68,7 @@ class GemlSearchEverywhereContributor(private val project: Project) : SearchEver
       if (indicator.isCanceled) return
       // `.` — the folder travels in the working directory, never in argv.
       val result = GemlCli.run(
+        project,
         listOf("find", query, ".", "--json"),
         runCatching { root.toNioPath() }.getOrNull() ?: continue,
         null,

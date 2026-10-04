@@ -242,8 +242,10 @@ fn view_sources() {
     assert_eq!(codes("# H {#h}\n\n=== view {src=#h}\n==="), vec!["view-source-not-a-relation:error"]);
     assert_eq!(codes("=== view {src=o.geml#t}\n==="), vec!["unchecked-cross-document-reference:warning"]);
     assert_eq!(proj("=== view {src=rows.csv}\n==="), "block:view");
+    // Each view in the cycle is reported (Appendix A), and is empty (§6.1).
     let cyc = geml::parse("=== view {#a src=#b}\n===\n\n=== view {#b src=#a}\n===\n");
-    assert_eq!(geml::diagnostic_codes(&cyc), vec!["view-source-cycle:error"]);
+    assert_eq!(geml::diagnostic_codes(&cyc), vec!["view-source-cycle:error", "view-source-cycle:error"]);
+    assert_eq!(geml::project(&cyc), "view([]) view([])");
     assert!(cyc.diagnostics[0].message.contains("#a") && cyc.diagnostics[0].message.contains("#b"));
     let mut deep = String::from(T);
     deep.push_str("=== view {#v0 src=#t}\n===\n\n");
@@ -288,7 +290,8 @@ fn view_where_order_limit_select() {
     assert_eq!(view("where=\"Q > 1\"").1, vec!["view-where-error:error"]);
     assert_eq!(view("where=\"S > 1\"").1, vec!["view-numeric-column-required:error"]);
     assert!(view("where=\"S = 'y' or S >= 'z'\"").0.contains(r##"["b","9","y"] ["c","5","z"]"##));
-    assert_eq!(view("order=\"N sideways\"").1, vec!["view-order-error:error"]);
+    // The direction is a last `asc` or `desc`; `N sideways` is a column name (§6.1).
+    assert_eq!(view("order=\"N sideways\"").1, vec!["view-unknown-column:error"]);
     assert_eq!(view("order=\"'' desc\"").1, vec!["view-order-error:error"]);
     assert_eq!(view("order=\"Q\"").1, vec!["view-unknown-column:error"]);
     assert!(view("order=\"N desc\"").0.starts_with(r##"view(["Id","N","S"] ["b","9","y"] ["c","5","z"]"##));
@@ -323,13 +326,15 @@ fn view_summary() {
     assert_eq!(view("summary=\"N = (sum(N)\"").1, vec!["summary-error:error"]);
     assert_eq!(view("summary=\"N = N + 1\"").1, vec!["summary-error:error"]);
     assert_eq!(view("summary=\"N = avg(S)\"").1, vec!["compute-not-a-number:warning"]);
-    let (p, c) = view("select=\"Id, S\" summary=\"Id = 'All'; S = 2024; B [%d] = sum(N) / 2\"");
+    let (p, c) = view("select=\"Id, S\" summary=\"Id = 'All'; S = 2024\"");
     assert!(c.is_empty(), "{c:?}");
-    // `B` is the second column by letter, so it is `S`'s cell the last entry writes.
-    assert!(p.ends_with(r##"summary ["All","8"])"##), "{p}");
-    assert!(view("summary=\"C = 7.5\"").0.ends_with(r##"summary ["","","7.5"])"##));
-    // A view's columns are read by letter too.
-    let (p, _) = view("summary=\"B = count(A)\"");
+    assert!(p.ends_with(r##"summary ["All","2024"])"##), "{p}");
+    // An entry's left side takes a name, never a letter, and the row stands (§6.1).
+    let (p, c) = view("summary=\"C = 7.5\"");
+    assert_eq!(c, vec!["summary-unknown-column:error"]);
+    assert!(p.ends_with(r##"summary ["","",""])"##), "{p}");
+    // Its right side reads a column by letter.
+    let (p, _) = view("summary=\"N = count(A)\"");
     assert!(p.ends_with(r##"summary ["","3",""])"##), "{p}");
     assert!(view("summary=\"AAAAAAAAAAAAAAAA = 1\"").1 == vec!["summary-unknown-column:error"]);
 }

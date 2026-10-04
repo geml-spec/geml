@@ -317,12 +317,18 @@ function inline(s) {
 // The data value domain — §3.2
 // ---------------------------------------------------------------------------
 
-// A `data` body is JSON read under I-JSON's limits (§3.2): a member name may
-// not occur twice in one object, a string may not hold a lone surrogate, and a
-// number must have a finite binary64 value. Read by a parser of its own, not
-// JSON.parse, which keeps the last of two equal names without a word.
+// §9.2's `data-depth`, from the specification's table of fixed bounds.
+export const DATA_DEPTH = 200;
+
+// A `data` body is JSON read under the value tree's limits (§3.2): a member
+// name may not occur twice in one object, a string may not hold a lone
+// surrogate, a number must have a finite binary64 value, and no array or object
+// sits inside DATA_DEPTH others. Read by a parser of its own, not JSON.parse,
+// which keeps the last of two equal names without a word.
 function readIJson(text) {
   let i = 0;
+  let depth = 0;
+  const enter = () => { if (++depth > DATA_DEPTH) fail(`a container inside ${DATA_DEPTH} others`); };
   const fail = (why) => { throw new Error(`${why} at offset ${i}`); };
   const ws = () => { while (i < text.length && " \t\n\r".includes(text[i])) i++; };
   const ESC = { '"': '"', "\\": "\\", "/": "/", b: "\b", f: "\f", n: "\n", r: "\r", t: "\t" };
@@ -360,10 +366,11 @@ function readIJson(text) {
     if (c === '"') return string();
     if (c === "{") {
       i++;
+      enter();
       const o = {};
       const names = new Set();
       ws();
-      if (text[i] === "}") { i++; return o; }
+      if (text[i] === "}") { i++; depth--; return o; }
       for (;;) {
         ws();
         if (text[i] !== '"') fail("expected a member name");
@@ -376,20 +383,21 @@ function readIJson(text) {
         Object.defineProperty(o, k, { value: value(), enumerable: true, writable: true, configurable: true });
         ws();
         if (text[i] === ",") { i++; continue; }
-        if (text[i] === "}") { i++; return o; }
+        if (text[i] === "}") { i++; depth--; return o; }
         fail("expected `,` or `}`");
       }
     }
     if (c === "[") {
       i++;
+      enter();
       const a = [];
       ws();
-      if (text[i] === "]") { i++; return a; }
+      if (text[i] === "]") { i++; depth--; return a; }
       for (;;) {
         a.push(value());
         ws();
         if (text[i] === ",") { i++; continue; }
-        if (text[i] === "]") { i++; return a; }
+        if (text[i] === "]") { i++; depth--; return a; }
         fail("expected `,` or `]`");
       }
     }

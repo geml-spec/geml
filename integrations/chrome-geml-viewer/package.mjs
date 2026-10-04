@@ -1,7 +1,8 @@
 // Package the extension into a Chrome Web Store upload: manifest.json at the
-// zip root, plus exactly what the manifest references — dist/ (bundles +
-// KaTeX fonts), the unbundled service worker (src/bg.js), and icons/. The
-// parked D2/Graphviz sandbox pages and offscreen relay (see build.mjs) are
+// zip root, plus exactly what the extension loads — dist/ (bundles + KaTeX
+// fonts), the unbundled service worker (src/bg.js), icons/, and the snapshot
+// export page bg.js opens (src/export.html + src/export.js). The parked
+// D2/Graphviz sandbox pages and offscreen relay (see build.mjs) are
 // deliberately left out until they ship.
 //
 // The archive is REPRODUCIBLE: the same commit packages to the same bytes, so a
@@ -46,7 +47,7 @@ rmSync(out, { force: true });
 const bsdtar = process.platform === "win32"
   ? `${process.env.SystemRoot ?? "C:\\Windows"}\\System32\\tar.exe`
   : "tar";
-const files = ["manifest.json", "dist", "src/bg.js", "icons", "offscreen.html", "src/offscreen.js"];
+const files = ["manifest.json", "dist", "src/bg.js", "src/export.html", "src/export.js", "icons"];
 
 // Stage a copy, stamp it, and archive a sorted list of plain files. Directory
 // entries are not stored: Chrome does not need them, and one fewer thing whose

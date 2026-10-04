@@ -30,7 +30,8 @@ import { type ChartModel, USES, buildChart } from "./chart.js";
 import { mdToGeml } from "./from-md.js";
 import { parseYaml } from "./yaml.js";
 import { parseEdn } from "./edn.js";
-import { iJsonFault, valueFault } from "./ijson.js";
+import { iJsonFault, tooDeep, valueFault } from "./ijson.js";
+import { BLOCK_NESTING, BORROWED_CELLS, CHAIN_DEPTH, DATA_DEPTH } from "./bounds.js";
 import { serialize } from "./serialize.js";
 import {
   type Addressed, type Selector, type Unit,
@@ -63,6 +64,15 @@ export function reLit(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+// §3's labeled fence: a `=` run of any length >= 3, then the block's id, the
+// space between them optional (`===#id` closes, as fences.json pins). Every walk
+// that decides where a block ends asks this one test: two spellings of it let
+// the model and the address index disagree about a block's extent, and a write
+// checked against one landed by the other.
+export function labeledClose(id: string): RegExp {
+  return new RegExp(`^={3,}[ \\t]*#${reLit(id)}[ \\t]*$`);
+}
+
 // ---------------------------------------------------------------------------
 // Model
 // ---------------------------------------------------------------------------
@@ -84,12 +94,20 @@ function parseDataBody(fmt: string, body: string[], openLineNo: number): { value
   const outside = (why: string, line: number): void => {
     diags.push({ severity: "error", code: "data-parse", message: `data: ${why}, which the value domain excludes (I-JSON)`, line });
   };
+  const tooDeepAt = (line: number): void => {
+    diags.push({ severity: "error", code: "data-parse", message: `data: nesting deeper than ${DATA_DEPTH} levels is outside what this processor reads`, line });
+  };
   if (fmt === "json") {
     const text = body.join("\n");
     let value: DataValue;
     try { value = JSON.parse(text) as DataValue; }
     catch (e) {
       diags.push({ severity: "error", code: "data-parse", message: `data: body is not valid JSON (${e instanceof Error ? e.message : String(e)})`, line: jsonErrorLine(e, text, openLineNo) });
+      return { diags };
+    }
+    const deep = tooDeep(text);
+    if (deep >= 0) {
+      tooDeepAt(openLineNo + text.slice(0, deep).split("\n").length);
       return { diags };
     }
     const fault = iJsonFault(text);
@@ -107,6 +125,7 @@ function parseDataBody(fmt: string, body: string[], openLineNo: number): { value
         ok = false;
         continue;
       }
+      if (tooDeep(t) >= 0) { tooDeepAt(openLineNo + 1 + li); ok = false; continue; }
       const fault = iJsonFault(t);
       if (fault) { outside(`body line ${li + 1}: ${fault.why}`, openLineNo + 1 + li); ok = false; }
     }
@@ -263,6 +282,8 @@ export interface ParseOptions {
 // (id -> defining line, for uniqueness), and discovered references.
 interface Ctx extends RefSink {
   diags: Diagnostic[];
+  // Cells this document has read into its relations from elsewhere (§9.2).
+  borrowed?: number;
   // The types of the flow blocks being scanned, outermost first — what a
   // `form-*` block is checked against (GEP-0008: meaningful only in a `form`).
   parentTypes?: string[];
@@ -579,7 +600,6 @@ const LIST_ITEM = /^[ \t]*(?:[-*]|\d+\.)[ \t]+(.*)$/;
 // before emitting a diagnostic instead of recursing further. Guards parse()
 // (scanBlocks / parseList) and, in step, the renderer against a deeply nested
 // document overflowing the call stack (DoS). 256 is far past any real document.
-const MAX_NESTING = 256;
 
 export function isCloseFence(line: string, openLen: number): boolean {
   // trimEnd(), not /\s+$/: the regex is polynomial on a whitespace run that
@@ -943,11 +963,11 @@ function parseList(lines: string[], i: number, base: number, ctx: Ctx): { block:
     if (mk.indent > top.indent) {
       const parent = top.list.items[top.list.items.length - 1];
       if (!parent) break; // deeper indent with no parent item: defensive stop
-      if (stack.length >= MAX_NESTING) {
+      if (stack.length >= BLOCK_NESTING) {
         // Refuse to nest deeper than the cap: keep the item at the current level
         // rather than building a model that overflows the renderer (DoS). One
         // diagnostic per over-deep list; content is preserved, just flattened.
-        if (!tooDeep) { ctx.diags.push({ severity: "error", code: "list-nesting-too-deep", message: `list nesting too deep (max ${MAX_NESTING})`, line: base + i + 1 }); tooDeep = true; }
+        if (!tooDeep) { ctx.diags.push({ severity: "error", code: "list-nesting-too-deep", message: `list nesting too deep (max ${BLOCK_NESTING})`, line: base + i + 1 }); tooDeep = true; }
         cur = top.list;
       } else {
         cur = mkList(mk);
@@ -996,7 +1016,7 @@ function scanFenceBody(
   lines: string[], start: number, base: number, openLen: number,
   id: string | undefined, type: string, openLineNo: number, ctx: Ctx,
 ): { body: string[]; end: number; closed: boolean } {
-  const labeled = id !== undefined ? new RegExp(`^={3,}[ \\t]*#${reLit(id)}[ \\t]*$`) : null;
+  const labeled = id !== undefined ? labeledClose(id) : null;
   const body: string[] = [];
   let j = start;
   let closed = false;
@@ -1442,11 +1462,11 @@ function readFencedBlock(
   if (mode === "prose") {
     block.children = scanProse(body, base + i + 1, ctx);
   } else if (mode === "flow") {
-    if (depth >= MAX_NESTING) {
+    if (depth >= BLOCK_NESTING) {
       // Refuse to recurse past the cap: emit a diagnostic and keep the body
       // as raw so the parser returns cleanly instead of overflowing the
       // call stack on a pathologically nested document (DoS).
-      ctx.diags.push({ severity: "error", code: "block-nesting-too-deep", message: `block nesting too deep (max ${MAX_NESTING}); body kept as raw`, line: openLineNo });
+      ctx.diags.push({ severity: "error", code: "block-nesting-too-deep", message: `block nesting too deep (max ${BLOCK_NESTING}); body kept as raw`, line: openLineNo });
       block.raw = body;
     } else {
       (ctx.parentTypes ??= []).push(type);
@@ -1832,6 +1852,7 @@ function chartSourceTable(
     ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `geml-chart: data source \`${target}\` not checked (no document resolver)`, line });
     return null;
   }
+  if (overBudget(ctx, line, `geml-chart data source \`${target}\``)) return null;
   const text = opts.resolveDoc(target);
   if (text === null) {
     ctx.diags.push({ severity: "error", code: "unresolvable-table-source", message: `geml-chart: cannot resolve data source \`${target}\``, line });
@@ -1847,17 +1868,21 @@ function chartSourceTable(
   if (delim !== undefined) attrs["delim"] = delim;
   const { model, diagnostics } = parseTable(normalizeSource(text).split("\n"), attrs, line, ctx);
   for (const d of diagnostics) ctx.diags.push({ ...d, line });
+  if (!borrow(ctx, model.columns.length * model.rows.length, line, `geml-chart data source \`${target}\``)) model.rows = [];
   model.src = target;
   return model;
 }
 
 const inferDataFormat = (target: string): string => (/\.tsv$/i.test(target) ? "tsv" : "csv");
 
-// §9.3's bound on a transclusion or view chain: 16, fixed by the specification
-// so that two processors agree on where a chain stops. The renderer's own cap
-// (render.ts EMBED_DEPTH_CAP) is the same number, so the check and the render
-// agree on which documents are reachable at all.
-export const EMBED_DEPTH_LIMIT = 16;
+// §9.2's fixed bounds, for callers that walk a document the way the parser does.
+export { CHAIN_DEPTH, DATA_DEPTH, TABLE_CELLS } from "./bounds.js";
+
+// §9.3 also lets a processor bound the total work its chains cost, and the depth
+// bound alone does not: K embeds a document, nested, are K^16 expansions. Every
+// expander — the renderer, the Markdown export, the stylesheet loader — stops at
+// this many expansions in one run.
+export const EMBED_TOTAL_CAP = 1000;
 
 const WHITE_CHAR = /^\p{White_Space}$/u;
 function trimWhiteSpaceEnd(s: string): string {
@@ -1940,6 +1965,20 @@ function detectTransclusionCycles(children: Block[], ctx: Ctx, opts: ParseOption
   };
   const found = new Map<number, string>();
   let budget = CHAIN_BUDGET;
+  // What a site selects, and the sites inside that, worked out once per
+  // (target, anchor, part): the budget counts steps, and a step that re-selected
+  // and re-walked a whole target cost the budget times the target's size —
+  // three thousand embeds of a 600 KB document took fifteen seconds.
+  const stepMemo = new Map<string, ChainSite[] | null>();
+  const stepFrom = (model: Block[], target: string, s: ChainSite): ChainSite[] | null => {
+    const k = `${target}\u0000${s.anchor ?? ""}\u0000${s.part ?? "whole"}\u0000${s.inline ? 1 : 0}`;
+    if (!stepMemo.has(k)) {
+      const sel = selectEmbed(model, s.anchor, s.part ?? "whole");
+      if (sel === null || (s.inline && !(sel.length === 1 && soleParagraph(sel[0]!) !== null))) stepMemo.set(k, null);
+      else { const next: ChainSite[] = []; chainSitesIn(sel, next); stepMemo.set(k, next); }
+    }
+    return stepMemo.get(k)!;
+  };
   const visit = (name: string, sites: ChainSite[], docs: string[], path: string[], origin: number): void => {
     for (const s of sites) {
       if (budget <= 0) return;
@@ -1951,8 +1990,8 @@ function detectTransclusionCycles(children: Block[], ctx: Ctx, opts: ParseOption
       if (s.anchor !== undefined && s.anchor.includes("[")) continue;
       const model = load(target);
       if (model === null) continue;
-      const sel = selectEmbed(model, s.anchor, s.part ?? "whole");
-      if (sel === null || (s.inline && !(sel.length === 1 && soleParagraph(sel[0]!) !== null))) continue;
+      const next = stepFrom(model, target, s);
+      if (next === null) continue;
       const key = s.anchor === undefined ? target : `${target}#${nameKey(s.anchor)}`;
       if (target !== name && docs.includes(target)) {
         if (!found.has(origin)) found.set(origin, `transclusion cycle: \`${target}\` is already being expanded: ${[...docs, target].join(" → ")}`);
@@ -1963,10 +2002,8 @@ function detectTransclusionCycles(children: Block[], ctx: Ctx, opts: ParseOption
         if (!found.has(origin)) found.set(origin, `transclusion cycle: \`${shown}\` is already being expanded`);
         continue;
       }
-      if (path.length >= EMBED_DEPTH_LIMIT) continue;
+      if (path.length >= CHAIN_DEPTH) continue;
       budget--;
-      const next: ChainSite[] = [];
-      chainSitesIn(sel, next);
       visit(target, next, target !== name ? [...docs, target] : docs, [...path, key], origin);
     }
   };
@@ -2051,14 +2088,35 @@ export function projectableInlines(blocks: Block[], id: string): { inlines: Inli
 // A projection may only stand for inline content, and the target decides — the
 // same shape of rule as `view-source-not-a-relation`, not a rule about where the
 // reference was written.
+// What one check reads of other documents, each read and parsed once: a
+// reference, a coordinate or a projection per line into a large target — or into
+// the document itself — re-read and re-parsed the target every time.
+interface DocReads { text(doc: string): string | null; parsed(doc: string): Block[] | null; scanned: Map<string, { blocks: Block[]; ctx: Ctx }> }
+function docReads(opts: ParseOptions): DocReads {
+  const texts = new Map<string, string | null>();
+  const models = new Map<string, Block[] | null>();
+  const text = (doc: string): string | null => {
+    if (!texts.has(doc)) texts.set(doc, opts.resolveDoc ? opts.resolveDoc(doc) : null);
+    return texts.get(doc)!;
+  };
+  return {
+    text,
+    parsed(doc) {
+      if (!models.has(doc)) { const src = text(doc); models.set(doc, src === null ? null : parse(src).children); }
+      return models.get(doc)!;
+    },
+    scanned: new Map(),
+  };
+}
+
 function validateProjections(children: Block[], ctx: Ctx, opts: ParseOptions): void {
+  const docs = docReads(opts);
   for (const p of ctx.projections ?? []) {
     let blocks: Block[] | null = null;
     if (p.doc === undefined) blocks = children;
     else if (opts.resolveDoc) {
-      const src = opts.resolveDoc(p.doc);
-      if (src === null) continue; // already an unresolvable-document error
-      blocks = parse(src).children;
+      blocks = docs.parsed(p.doc);
+      if (blocks === null) continue; // already an unresolvable-document error
     }
     if (blocks === null) continue; // unchecked without a resolver, like any cross-doc ref
     const got = projectableInlines(blocks, p.anchor);
@@ -2166,6 +2224,21 @@ function checkReservedMetaId(children: Block[], ctx: Ctx): void {
   }
 }
 
+// §9.2: a relation read from anywhere but the document's own text spends from
+// one budget per document. `borrow` books `cells` and says whether they fit; a
+// relation that does not keeps no rows, and once the budget is spent every later
+// one is refused before its source is read or copied (`overBudget`).
+function borrow(ctx: Ctx, cells: number, line: number, what: string): boolean {
+  ctx.borrowed = (ctx.borrowed ?? 0) + cells;
+  if (ctx.borrowed <= BORROWED_CELLS) return true;
+  ctx.diags.push({ severity: "error", code: "table-too-large", message: `${what} takes this document past ${BORROWED_CELLS} cells read from elsewhere (§9.2); it keeps no rows`, line });
+  return false;
+}
+
+function overBudget(ctx: Ctx, line: number, what: string): boolean {
+  return (ctx.borrowed ?? 0) >= BORROWED_CELLS && !borrow(ctx, 0, line, what);
+}
+
 function resolveTableSources(ctx: Ctx, opts: ParseOptions): void {
   const pending = ctx.tableSources ?? [];
   if (pending.length === 0) return;
@@ -2190,6 +2263,7 @@ function resolveTableSources(ctx: Ctx, opts: ParseOptions): void {
       ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `table source \`${target}\` not checked (no document resolver)`, line });
       continue;
     }
+    if (overBudget(ctx, line, `table source \`${target}\``)) continue;
     const text = opts.resolveDoc(target);
     if (text === null) { err(line, "unresolvable-table-source", `cannot resolve table source \`${target}\``); continue; }
     // Reuse the body parser: with `src` dropped, the file's lines are just
@@ -2203,6 +2277,7 @@ function resolveTableSources(ctx: Ctx, opts: ParseOptions): void {
     // would offer a coordinate write a line number in another file, which is
     // exactly the case GEP 0011's second write refusal exists for.
     delete model.rowLines;
+    if (!borrow(ctx, model.columns.length * model.rows.length, line, `table source \`${target}\``)) model.rows = [];
     block.table = model;
     for (const d of diagnostics) ctx.diags.push({ ...d, line });
     if (block.id !== undefined) (ctx.tables ??= new Map()).set(nameKey(block.id), model);
@@ -2312,10 +2387,12 @@ function resolveViewSources(ctx: Ctx, opts: ParseOptions): void {
   const pending = ctx.viewSources ?? [];
   if (pending.length === 0) return;
   const unresolved = new Set(pending);
+  const pendingBlocks = new Map(pending.map((entry) => [entry.block as Block, entry]));
   const error = (line: number, code: DiagnosticCode, message: string): void => {
     ctx.diags.push({ severity: "error", code, message, line });
   };
-  const sourceOf = (target: string, line: number): TableModel | "defer" | undefined | null => {
+  // `{ wait }`: the source is a view of this document not resolved yet.
+  const sourceOf = (target: string, line: number): TableModel | "defer" | { wait: Block } | null => {
     const hash = target.indexOf("#");
     if (hash >= 0) {
       const path = target.slice(0, hash);
@@ -2326,9 +2403,10 @@ function resolveViewSources(ctx: Ctx, opts: ParseOptions): void {
           error(line, ctx.ids.has(nameKey(id)) ? "view-source-not-a-relation" : "unresolved-reference", ctx.ids.has(nameKey(id)) ? `view source \`#${id}\` is not a table or view` : `unresolved reference \`#${id}\``);
           return null;
         }
-        // A pending source is not ready yet.  The outer fixed-point loop either
-        // gets it ready or reports the remaining closed chain below.
-        if ([...unresolved].some((entry) => entry.block === source)) return undefined;
+        // A pending source is not ready yet. The loop below takes this view up
+        // again once it is, or reports the remaining closed chain.
+        const waiting = pendingBlocks.get(source);
+        if (waiting !== undefined && unresolved.has(waiting)) return { wait: source };
         // §3.3: a source that defers takes its consumer with it.
         return source.table ?? "defer";
       }
@@ -2346,8 +2424,8 @@ function resolveViewSources(ctx: Ctx, opts: ParseOptions): void {
         error(line, "view-source-cycle", `view source \`${target}\` returns to a document already being resolved: ${[...stack, canonical].map((d) => (d === "" ? "(this document)" : d)).join(" → ")}`);
         return null;
       }
-      if (stack.length > EMBED_DEPTH_LIMIT) {
-        error(line, "view-source-too-deep", `view source \`${target}\` is ${stack.length} documents deep; the bound is ${EMBED_DEPTH_LIMIT} (§9.3)`);
+      if (stack.length > CHAIN_DEPTH) {
+        error(line, "view-source-too-deep", `view source \`${target}\` is ${stack.length} documents deep; the bound is ${CHAIN_DEPTH} (§9.3)`);
         return null;
       }
       const text = opts.resolveDoc(path);
@@ -2377,6 +2455,7 @@ function resolveViewSources(ctx: Ctx, opts: ParseOptions): void {
       ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `view source \`${target}\` not checked (no document resolver)`, line });
       return null;
     }
+    if (overBudget(ctx, line, `view source \`${target}\``)) return null;
     const text = opts.resolveDoc(target);
     if (text === null) { error(line, "unresolvable-table-source", `cannot resolve view source \`${target}\``); return null; }
     const attrs: Record<string, Value> = { format: /\.tsv$/i.test(target) ? "tsv" : "csv", header: 1 };
@@ -2392,37 +2471,55 @@ function resolveViewSources(ctx: Ctx, opts: ParseOptions): void {
   // to declare its views in dependency order a chain of any length collapses
   // into ONE pass — so pass-counting measured nothing. A source is always
   // resolved before the view that consumes it, so its depth is known by then.
+  //
+  // Each view is taken up once, and again only when the source it waits on is
+  // settled: sweeping every pending view until nothing changed resolved one link
+  // per sweep of a chain written consumer-first, and eight thousand views of
+  // 270 KB ran for minutes.
   const depthOf = new Map<string, number>();
-  let progress = true;
-  while (progress && unresolved.size > 0) {
-    progress = false;
-    for (const entry of [...unresolved]) {
-      const source = sourceOf(entry.target, entry.line);
-      if (source === undefined) continue;
-      unresolved.delete(entry); progress = true;
-      if (source === null) continue;
-      if (source === "defer") { deferBlock(entry.block, ctx); continue; }
-      // A local `#id` source may itself be a view; anything else — a data file,
-      // or a block in another document — is depth zero here, exactly as an
-      // embed's cap counts the hops of THIS render.
-      const local = /^#([^#]+)$/.exec(entry.target.trim());
-      const depth = (local ? depthOf.get(nameKey(local[1]!)) ?? 0 : 0) + 1;
-      // Recorded even when it is refused, or the chain would RESTART at every
-      // ninth link: a consumer that inherited no depth counted itself as the
-      // first, so a chain of any length cost one diagnostic and then carried on
-      // publishing rows. Past the bound, every view says so and none resolves.
-      if (entry.block.id !== undefined) depthOf.set(nameKey(entry.block.id), depth);
-      if (depth > EMBED_DEPTH_LIMIT) {
-        error(entry.line, "view-source-too-deep", `view source chain is ${depth} deep; the bound is ${EMBED_DEPTH_LIMIT} (§9.3)`);
-        continue;
-      }
-      const model = copyRelation(source, entry.target, blockCaption(entry.block));
-      const diagnostics: TableDiag[] = [];
-      deriveView(model, entry.block.attrs, entry.line, ctx, diagnostics);
-      entry.block.table = model;
-      for (const diag of diagnostics) ctx.diags.push({ ...diag, line: entry.line });
-      if (entry.block.id !== undefined) (ctx.tables ??= new Map()).set(nameKey(entry.block.id), model);
+  const waiters = new Map<Block, typeof pending>();
+  const queue = [...pending];
+  for (let q = 0; q < queue.length; q++) {
+    const entry = queue[q]!;
+    if (!unresolved.has(entry)) continue;
+    const source = sourceOf(entry.target, entry.line);
+    if (source !== null && typeof source === "object" && "wait" in source) {
+      const list = waiters.get(source.wait);
+      if (list) list.push(entry); else waiters.set(source.wait, [entry]);
+      continue;
     }
+    unresolved.delete(entry);
+    const released = waiters.get(entry.block);
+    if (released) { waiters.delete(entry.block); queue.push(...released); }
+    if (source === null) continue;
+    if (source === "defer") { deferBlock(entry.block, ctx); continue; }
+    // A local `#id` source may itself be a view; anything else — a data file,
+    // or a block in another document — is depth zero here, exactly as an
+    // embed's cap counts the hops of THIS render.
+    const local = /^#([^#]+)$/.exec(entry.target.trim());
+    const depth = (local ? depthOf.get(nameKey(local[1]!)) ?? 0 : 0) + 1;
+    // Recorded even when it is refused, or the chain would RESTART at every
+    // ninth link: a consumer that inherited no depth counted itself as the
+    // first, so a chain of any length cost one diagnostic and then carried on
+    // publishing rows. Past the bound, every view says so and none resolves.
+    if (entry.block.id !== undefined) depthOf.set(nameKey(entry.block.id), depth);
+    if (depth > CHAIN_DEPTH) {
+      error(entry.line, "view-source-too-deep", `view source chain is ${depth} deep; the bound is ${CHAIN_DEPTH} (§9.3)`);
+      continue;
+    }
+    // Booked before the copy, so a refused view never holds its source's rows.
+    if (!borrow(ctx, source.columns.length * source.rows.length, entry.line, `view source \`${entry.target}\``)) {
+      const model = copyRelation({ ...source, rows: [] }, entry.target, blockCaption(entry.block));
+      entry.block.table = model;
+      if (entry.block.id !== undefined) (ctx.tables ??= new Map()).set(nameKey(entry.block.id), model);
+      continue;
+    }
+    const model = copyRelation(source, entry.target, blockCaption(entry.block));
+    const diagnostics: TableDiag[] = [];
+    deriveView(model, entry.block.attrs, entry.line, ctx, diagnostics);
+    entry.block.table = model;
+    for (const diag of diagnostics) ctx.diags.push({ ...diag, line: entry.line });
+    if (entry.block.id !== undefined) (ctx.tables ??= new Map()).set(nameKey(entry.block.id), model);
   }
   for (const entry of unresolved) {
     error(entry.line, "view-source-cycle", `view source chain closes a cycle at \`${entry.target}\``);
@@ -2508,7 +2605,7 @@ function collectMeta(lines: string[], diags?: Ctx["diags"], definedAt?: Map<stri
             firstLine.set(k, line);
           }
         }
-      } else if ((REGISTRY.get(type) ?? "raw") === "flow" && depth < MAX_NESTING) {
+      } else if ((REGISTRY.get(type) ?? "raw") === "flow" && depth < BLOCK_NESTING) {
         walk(body, base + i + 1, depth + 1);
       }
       i = end - 1; // the loop's ++ lands on `end`
@@ -2525,22 +2622,15 @@ function collectMeta(lines: string[], diags?: Ctx["diags"], definedAt?: Map<stri
 // scan already builds the table models and value trees a coordinate projects
 // against, and a fresh context with no `resolveDoc` is what keeps two documents
 // that reference each other from resolving in circles (§9.3).
-function blockFromDocument(source: string, id: string): Block | null {
-  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map(), vocab: EMPTY_VOCABULARY };
-  const blocks = scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
-  // A scan leaves every `src=` block empty: the rows and value trees a coordinate
-  // projects against are filled by the resolve passes, not by the scanner. Without
-  // them a `view` in the borrowed document carries zero columns and every
-  // coordinate on it fails — the SAME document that checks clean when it is parsed
-  // on its own. These run with no `resolveDoc` on purpose: a same-document
-  // `src=#id` is what a coordinate needs, and refusing to descend again is what
-  // keeps two documents that reference each other from resolving in circles
-  // (§9.3). Their diagnostics die with this throwaway context — the borrowed
-  // document reports its own when it is checked.
-  const inner: ParseOptions = {};
-  resolveTableSources(ctx, inner);
-  resolveViewSources(ctx, inner);
-  resolveDataSources(ctx, inner);
+function blockFromDocument(source: string, id: string, scanned?: Map<string, { blocks: Block[]; ctx: Ctx }>): Block | null {
+  // One scan per document per check: a coordinate per line into a large target,
+  // or a document naming itself, rescanned the whole target for every reference.
+  let hit = scanned?.get(source);
+  if (hit === undefined) {
+    hit = scanForCoordinates(source);
+    scanned?.set(source, hit);
+  }
+  const { blocks, ctx } = hit;
   // `#meta` is the reserved id for the merged namespace (§4), not a block that
   // carries it — and GEP 0011 makes it addressable across documents in the same
   // breath as within one (`A.geml#meta["version"]`). Resolving it only in the
@@ -2561,13 +2651,33 @@ function blockFromDocument(source: string, id: string): Block | null {
   return find(blocks) ?? null;
 }
 
+// A borrowed document as a coordinate reads it. A scan leaves every `src=` block
+// empty: the rows and value trees a coordinate projects against are filled by the
+// resolve passes, not by the scanner. Without them a `view` in the borrowed
+// document carries zero columns and every coordinate on it fails — the SAME
+// document that checks clean when it is parsed on its own. These run with no
+// `resolveDoc` on purpose: a same-document `src=#id` is what a coordinate needs,
+// and refusing to descend again is what keeps two documents that reference each
+// other from resolving in circles (§9.3). Their diagnostics die with this
+// throwaway context — the borrowed document reports its own when it is checked.
+function scanForCoordinates(source: string): { blocks: Block[]; ctx: Ctx } {
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map(), vocab: EMPTY_VOCABULARY };
+  const blocks = scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
+  const inner: ParseOptions = {};
+  resolveTableSources(ctx, inner);
+  resolveViewSources(ctx, inner);
+  resolveDataSources(ctx, inner);
+  return { blocks, ctx };
+}
+
 // GEP 0011: a reference may carry a coordinate — `[[#fy[2]["Q1"]]]`, or the
 // same across documents. The base resolves like any id; the PATH is then
 // checked against the block it names, so a cell that is not there is a build
 // error rather than a reference into nothing. Returns true when it has taken
 // responsibility for this reference (resolved or reported), false when the
 // anchor is not a coordinate and the ordinary id checks should run.
-function validateCoordRef(ref: Ctx["refs"][number], children: Block[], ctx: Ctx, opts: ParseOptions): boolean {
+function validateCoordRef(ref: Ctx["refs"][number], children: Block[], ctx: Ctx, opts: ParseOptions,
+                          docs: DocReads): boolean {
   const anchor = ref.anchor;
   if (anchor === undefined) return false;
   const at = anchor.indexOf("[");
@@ -2587,9 +2697,9 @@ function validateCoordRef(ref: Ctx["refs"][number], children: Block[], ctx: Ctx,
       ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `\`${written}\` not checked (no document resolver)`, line: ref.line });
       return true;
     }
-    const text = opts.resolveDoc(ref.doc);
+    const text = docs.text(ref.doc);
     if (text === null) return err("unresolvable-document", `cannot resolve document \`${ref.doc}\``);
-    block = blockFromDocument(text, base);
+    block = blockFromDocument(text, base, docs.scanned);
     if (!block) return err("unresolved-cross-document-reference", `unresolved reference \`${ref.doc}#${base}\``);
   } else if (nameKey(base) === nameKey("meta") && !ctx.ids.has(nameKey("meta"))) {
     // The reserved id (§4): the merged view, not a block.
@@ -2760,9 +2870,10 @@ function validateWikilink(ref: Ref, ctx: Ctx, opts: ParseOptions): void {
 
 function validateRefs(ctx: Ctx, opts: ParseOptions, children: Block[]): void {
   const docIds = new Map<string, Set<string>>(); // memoized cross-doc id sets
+  const docs = docReads(opts);
   for (const ref of ctx.refs) {
     if (ref.kind === "wikilink") { validateWikilink(ref, ctx, opts); continue; }
-    if (validateCoordRef(ref, children, ctx, opts)) continue;
+    if (validateCoordRef(ref, children, ctx, opts, docs)) continue;
     if (ref.kind === "cross") {
       if (!ref.doc) continue;
       // WHAT `#frag` MEANS IS THE TARGET FORMAT'S BUSINESS, and GEML only
@@ -2785,7 +2896,7 @@ function validateRefs(ctx: Ctx, opts: ParseOptions, children: Block[]): void {
       if (!gemlTarget && ref.anchor !== undefined && opts.resolveDoc) {
         // The document still has to be there — a link to a missing file is
         // broken whatever its format — but nothing here reads its fragment.
-        if (opts.resolveDoc(ref.doc) === null && !opts.docExists?.(ref.doc)) {
+        if (docs.text(ref.doc) === null && !opts.docExists?.(ref.doc)) {
           ctx.diags.push({ severity: "error", code: "unresolvable-document", message: `cannot resolve document \`${ref.doc}\``, line: ref.line });
         }
         continue;
@@ -2796,7 +2907,7 @@ function validateRefs(ctx: Ctx, opts: ParseOptions, children: Block[]): void {
       }
       let ids = docIds.get(ref.doc);
       if (ids === undefined) {
-        const src = opts.resolveDoc(ref.doc);
+        const src = docs.text(ref.doc);
         if (src === null) {
           // A LINK may point at something that exists but has no text to read —
           // a directory, above all: `[the extension](integrations/vscode/)` is
@@ -3271,6 +3382,22 @@ function foldFence(lines: string[], i: number): { line: string; consumed: number
   if (!((first.startsWith("===") || first.startsWith("#")) && first.endsWith("\\"))) {
     return { line: first, consumed: 1 };
   }
+  // A `===` line folds into an open fence only when the folded line ends in the
+  // `}` of an attribute object, or holds nothing after the type at all. When
+  // neither can hold, the line is no fence, and the fold is not built: every
+  // scanner asks at every line, and folding a run of 40,000 `=== x\` lines from
+  // each of them took half a minute. Nothing but the fence test reads the folded
+  // text of a `===` line, and `first` fails that test as surely (its `\`).
+  if (first.startsWith("===")) {
+    const { reach, tail } = continuations(lines);
+    const k = i + 1 < lines.length ? reach[i + 1]! : i;
+    const rest = i + 1 < lines.length ? tail[i + 1]! : "";
+    const head = trimWhiteSpaceEnd(first.slice(0, -1));
+    const last = rest !== "" ? rest : head.slice(-1);
+    if (last !== "}" && !(rest === "" && /^={3,}[ \t]*[A-Za-z][A-Za-z0-9_-]*$/.test(head))) {
+      return { line: first, consumed: k - i + 1 };
+    }
+  }
   // §4: the backslash, the newline and the White_Space on either side of them
   // become one space, so a continued line's indentation never reaches a value.
   let folded = trimWhiteSpaceEnd(first.slice(0, -1));
@@ -3285,12 +3412,36 @@ function foldFence(lines: string[], i: number): { line: string; consumed: number
   return { line: folded, consumed };
 }
 
+// For every line of an array, as a continuation line of a fold that reached it:
+// `reach`, the last line the fold takes in from there, and `tail`, the last
+// non-whitespace character the fold gets from those lines ("" if none). Built
+// once per array, right to left, with foldFence's own segmenting.
+const CONTINUATIONS = new WeakMap<string[], { reach: Int32Array; tail: string[] }>();
+function continuations(lines: string[]): { reach: Int32Array; tail: string[] } {
+  let c = CONTINUATIONS.get(lines);
+  if (c === undefined) {
+    const reach = new Int32Array(lines.length);
+    const tail: string[] = new Array<string>(lines.length);
+    for (let j = lines.length - 1; j >= 0; j--) {
+      const t = trimWhiteSpace(lines[j]!);
+      const goesOn = t.endsWith("\\");
+      const seg = goesOn ? trimWhiteSpaceEnd(t.slice(0, -1)) : t;
+      const after = goesOn && j + 1 < lines.length ? tail[j + 1]! : "";
+      reach[j] = goesOn && j + 1 < lines.length ? reach[j + 1]! : j;
+      tail[j] = after !== "" ? after : seg.slice(-1);
+    }
+    c = { reach, tail };
+    CONTINUATIONS.set(lines, c);
+  }
+  return c;
+}
+
 /** `consumed` is how many physical lines the OPENING fence occupied (C-01): the
  *  body — and therefore the search for the close — starts after all of them. */
 function fenceClose(lines: string[], i: number, open: RegExpExecArray, consumed = 1): { end: number; closed: boolean } {
   const openLen = open[1]!.length;
   const id = open[3] ? parseAttrs(open[3]).id : undefined;
-  const labeled = id !== undefined ? new RegExp(`^={3,}[ \\t]+#${reLit(id)}[ \\t]*$`) : null;
+  const labeled = id !== undefined ? labeledClose(id) : null;
   for (let j = i + consumed; j < lines.length; j++) {
     if (isCloseFence(lines[j]!, openLen) || (labeled && labeled.test(lines[j]!))) return { end: j + 1, closed: true };
   }
@@ -3378,7 +3529,7 @@ function collectSpans(
       const flow = (REGISTRY.get(type) ?? ctx.vocab.bodies.get(type) ?? "raw") === "flow";
       const body = { start: base + i + consumed, end: base + (closed ? end - 1 : end) };
       units?.push({ span: { start: base + i, end: base + end }, kind: "block", type, ...(id !== undefined ? { id } : {}), ...keysOf(a), ...(flow ? { body } : {}) });
-      if (flow && depth < MAX_NESTING) {
+      if (flow && depth < BLOCK_NESTING) {
         collectSpans(lines.slice(i + consumed, closed ? end - 1 : end), base + i + consumed, out, ctx, depth + 1, units);
       }
       i = end;
@@ -3776,7 +3927,7 @@ export function closeFenceLine(lines: string[], span: Span): string | null {
   if (!open) return null;
   const lastText = trimSpaceTabEnd(stripEol(lines[span.end - 1] ?? ""));
   const bid = open[3] ? parseAttrs(open[3]).id : undefined;
-  const labeled = bid !== undefined && new RegExp(`^={3,}[ \\t]+#${reLit(bid)}[ \\t]*$`).test(lastText);
+  const labeled = bid !== undefined && labeledClose(bid).test(lastText);
   return isCloseFence(lastText, open[1]!.length) || labeled ? lines[span.end - 1] ?? "" : null;
 }
 

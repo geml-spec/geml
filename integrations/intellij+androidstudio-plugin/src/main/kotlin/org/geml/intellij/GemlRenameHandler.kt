@@ -70,7 +70,7 @@ class GemlRenameHandler : RenameHandler {
     val text = document.text
     val workDir = file.virtualFile?.let { GemlIndex.workDirOf(it) }
     val result = GemlTasks.underProgress(project, "Renaming #${site.id}") {
-      GemlCli.run(listOf("rename", "-", "#${site.id}", "#$wanted"), workDir, text)
+      GemlCli.run(project, listOf("rename", "-", "#${site.id}", "#$wanted"), workDir, text)
     } ?: return
 
     if (result.code != 0 || result.stdout.isEmpty()) {

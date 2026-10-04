@@ -43,7 +43,7 @@ import { pathToFileURL } from "node:url";
 import { createInterface } from "node:readline";
 import { save, listRevisions, isCurrent, resolveContent, firstChangedContent } from "./history.js";
 import { type VerbContext, type FindHit, findInSource } from "./verbs.js";
-import { docOptsFor, fsFiles, gemlFilesUnder, historyError } from "./host-fs.js";
+import { docOptsFor, fsFiles, gemlFilesUnder, historyError, isDocumentPath } from "./host-fs.js";
 import { isMarkdownPath, type ParseOptions } from "./geml.js";
 import {
   type McpHost, type OpenedDoc, type Tool, type WriteResult,
@@ -221,6 +221,12 @@ const fsHost: McpHost = {
     };
   },
   write(doc, text, summary) {
+    // A write lands only in a document. A client is a model whose arguments a
+    // page it read can steer, and `.git/config` takes an appended
+    // `[core] fsmonitor = "<command>"` as valid GEML; git runs that command on
+    // the next `git status`. Judged on the real path, so a `notes.geml` linked
+    // to it is refused too, and before the sidecar is touched.
+    if (!isDocumentPath(doc.label)) throw new Error(`this server writes only GEML and Markdown documents: ${doc.file}`);
     const revision = summary && OPTS.history ? snapshot(doc.label, summary) : undefined;
     writeFileSync(doc.label, text, "utf8");
     return { revision };

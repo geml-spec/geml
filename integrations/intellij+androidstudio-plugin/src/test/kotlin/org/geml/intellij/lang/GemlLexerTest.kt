@@ -171,4 +171,58 @@ class GemlLexerTest {
     }
     assertEquals(text.length, expected)
   }
+
+  /**
+   * The single pattern the heading split must agree with, token for token. It
+   * backtracks cubically on a long run of blanks, which is why the lexer does
+   * not use it — on lines this short it is exact, and makes a good oracle.
+   */
+  private val headingPattern = Regex("^(#{1,6})([ \\t]+)(.*?)([ \\t]*)(\\{[^}]*})?([ \\t]*)$")
+
+  @Test
+  fun `round 6 - a heading splits into the tokens the single pattern gave`() {
+    val headings = listOf(
+      "# Title", "## Title {#id}", "### Title {#id .cls key=val}", "# Title   {#id}   ", "# {#only}",
+      "#   spaced   ", "# a {b} c {#d}", "# t {a{b}", "# brace } inside", "# H {#x title=\"a{b\"}",
+      "###### six", "# ", "# Title{#tight}", "# x {#a} {#b}", "# tab\t{#t}\t", "# unterminated {#x",
+      "# }", "# **bold** heading",
+    )
+    for (line in headings) {
+      val m = requireNotNull(headingPattern.matchEntire(line)) { "the oracle reads `$line` as a heading" }
+      val tokens = lex(line)
+      fun at(group: Int): List<Triple<IElementType, Int, Int>> {
+        val g = m.groups[group] ?: return emptyList()
+        return tokens.filter { it.second >= g.range.first && it.third <= g.range.last + 1 }
+      }
+      fun span(group: Int, type: IElementType) =
+        m.groups[group]?.takeIf { !it.range.isEmpty() }?.let { listOf(Triple(type, it.range.first, it.range.last + 1)) }.orEmpty()
+      assertEquals(line, span(1, GemlTokens.HEADING_MARK), at(1))
+      assertEquals(line, span(2, TokenType.WHITE_SPACE), at(2))
+      assertEquals(line, span(3, GemlTokens.HEADING_TEXT), at(3))
+      assertEquals(line, span(4, TokenType.WHITE_SPACE), at(4))
+      val braces = tokens.filter { it.first == GemlTokens.BRACE }
+      val attrs = m.groups[5]
+      if (attrs == null) assertTrue(line, braces.isEmpty())
+      else assertEquals(line, listOf(attrs.range.first, attrs.range.last), listOf(braces.first().second, braces.last().second))
+      assertEquals(line, span(6, TokenType.WHITE_SPACE), at(6))
+      assertTiles(line)
+    }
+    // And what the pattern does not take, the lexer does not either.
+    for (line in listOf("#nospace", "####### seven", "#")) {
+      assertTrue(line, GemlTokens.HEADING_MARK !in lex(line).map { it.first })
+    }
+  }
+
+  @Test(timeout = 2000)
+  fun `round 6 - a long run of blanks lexes in linear time`() {
+    // A line of blanks inside a heading or a fence head took seconds per two
+    // thousand of them, and the lexer re-lexes the whole buffer on an edit.
+    val blanks = " ".repeat(50_000)
+    for (line in listOf("# a${blanks}x", "# a$blanks{", "# a$blanks{#id}", "#$blanks{", "=== note${blanks}x", "=== note$blanks{#id}")) {
+      assertTiles(line)
+    }
+    assertEquals(GemlTokens.HEADING_TEXT, lex("# a${blanks}x").map { it.first }[2])
+    assertTrue(GemlTokens.ATTR_ID in lex("# a$blanks{#id}").map { it.first })
+  }
 }
+

@@ -302,7 +302,7 @@ export class PreviewManager {
    * this editor — and is deliberately not attempted here.
    */
   private async translate(panel: vscode.WebviewPanel, req: TranslateRequest): Promise<void> {
-    const answer = async (result: Record<string, string> | { why: string }): Promise<void> => {
+    const answer = async (result: Record<string, string> | { why: string; link?: string }): Promise<void> => {
       void panel.webview.postMessage({ type: "translations", id: req.id, result });
     };
     const texts = Array.isArray(req.texts) ? req.texts.filter((t) => typeof t === "string") : [];
@@ -338,13 +338,17 @@ export class PreviewManager {
       // Distinguish the two, because the reader's next move differs: install a
       // provider, or sign in to the one already sitting there.
       const installed = PROVIDERS.some((id) => vscode.extensions.getExtension(id) !== undefined);
-      // Each reason ends in the one page that fixes it, because the note the
-      // reader sees renders a trailing https URL as a link they can click.
-      await answer({
-        why: installed
-          ? "Copilot Chat is installed but offers no model — sign in from the Accounts icon in the Activity Bar, or check that your account has Copilot: https://github.com/settings/copilot"
-          : "no language model provider is installed — install GitHub Copilot Chat, then reopen this preview: https://marketplace.visualstudio.com/items?itemName=GitHub.copilot-chat",
-      });
+      // Each reason comes with the one page that fixes it, in `link`: the note
+      // the reader sees makes that field, and only that field, a link.
+      await answer(installed
+        ? {
+          why: "Copilot Chat is installed but offers no model — sign in from the Accounts icon in the Activity Bar, or check that your account has Copilot",
+          link: "https://github.com/settings/copilot",
+        }
+        : {
+          why: "no language model provider is installed — install GitHub Copilot Chat, then reopen this preview",
+          link: "https://marketplace.visualstudio.com/items?itemName=GitHub.copilot-chat",
+        });
       return;
     }
 

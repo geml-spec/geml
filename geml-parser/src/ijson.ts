@@ -16,9 +16,28 @@
 // reader computes — so `1.0` and `1` are one value, and an integer past 2^53
 // is rounded rather than refused.
 
+import { DATA_DEPTH } from "./bounds.js";
+
 // Under the `u` flag a paired surrogate is one astral code point, so only a
 // lone one is in category Cs.
 const LONE_SURROGATE = /\p{Cs}/u;
+
+/**
+ * The offset of the bracket that opens level DATA_DEPTH + 1, or -1. Strings are skipped.
+ * JSON.parse takes fifty thousand levels in a hundred kilobytes, and the first
+ * recursive reader after it — a coordinate, the serializer — then overflows
+ * the stack; the yaml and edn readings stop at the same depth.
+ */
+export function tooDeep(text: string): number {
+  let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i]!;
+    if (c === '"') { i++; while (i < text.length && text[i] !== '"') i += text[i] === "\\" ? 2 : 1; continue; }
+    if (c === "{" || c === "[") { if (++depth > DATA_DEPTH) return i; continue; }
+    if (c === "}" || c === "]") depth--;
+  }
+  return -1;
+}
 
 /** What a JSON text the JSON grammar accepts breaks of I-JSON, and where. */
 export interface DomainFault { why: string; offset: number }

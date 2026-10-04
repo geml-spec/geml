@@ -16,6 +16,11 @@ name: Publish the VS Code extension
 #
 # Both listings exist and were uploaded by hand up to 1.0.1; this workflow is the
 # same two uploads, from a clean checkout, of one file that was built once.
+#
+# Two jobs, so neither token shares a runner with an install script. `package`
+# builds, tests and packages with no secret; `publish` checks nothing out and
+# installs nothing of this repository's — it runs the two publishing tools, at
+# exact versions, on the file `package` made.
 
 on:
   workflow_dispatch:
@@ -34,14 +39,19 @@ on:
         default: false
 
 jobs:
-  publish:
-    name: Package once, publish where asked
+  package:
+    name: Build, test and package once
     runs-on: ubuntu-latest
     permissions:
       contents: read # checkout only; nothing here writes to the repository
+    outputs:
+      vsix: ${{ steps.package.outputs.vsix }}
+      version: ${{ steps.package.outputs.version }}
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -74,7 +84,7 @@ jobs:
           name="$(node -p "require('./package.json').name")"
           version="$(node -p "require('./package.json').version")"
           vsix="${name}-${version}.vsix"
-          npx --yes @vscode/vsce package --no-dependencies --out "$vsix"
+          npx --yes @vscode/vsce@4.0.0 package --no-dependencies --out "$vsix"
           ls -l "$vsix"
           echo "vsix=$vsix" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
@@ -85,16 +95,35 @@ jobs:
           name: geml-vsix-${{ steps.package.outputs.version }}
           path: integrations/vscode/${{ steps.package.outputs.vsix }}
 
+  publish:
+    name: Publish where asked
+    needs: package
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    permissions: {}
+
+    steps:
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: geml-vsix-${{ needs.package.outputs.version }}
+
+      # Exact versions, fetched into a directory with no node_modules of ours: npx
+      # resolves a project's own copy first, and nothing here may choose the tool
+      # that holds the token.
       - name: Publish to the VS Code Marketplace
-        if: ${{ !inputs.dry_run && (inputs.targets == 'both' || inputs.targets == 'marketplace') }}
-        working-directory: integrations/vscode
+        if: ${{ inputs.targets == 'both' || inputs.targets == 'marketplace' }}
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }} # vsce reads this; never pass a token on the command line
-        run: npx --yes @vscode/vsce publish --no-dependencies --packagePath "${{ steps.package.outputs.vsix }}"
+          VSIX: ${{ needs.package.outputs.vsix }}
+        run: npx --yes @vscode/vsce@4.0.0 publish --no-dependencies --packagePath "$VSIX"
 
       - name: Publish to Open VSX
-        if: ${{ !inputs.dry_run && (inputs.targets == 'both' || inputs.targets == 'open-vsx') }}
-        working-directory: integrations/vscode
+        if: ${{ inputs.targets == 'both' || inputs.targets == 'open-vsx' }}
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }} # ovsx reads this, same reason
-        run: npx --yes ovsx publish "${{ steps.package.outputs.vsix }}"
+          VSIX: ${{ needs.package.outputs.vsix }}
+        run: npx --yes ovsx@1.2.0 publish "$VSIX"

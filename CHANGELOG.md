@@ -18,6 +18,179 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+## [1.12.2] — 2026-10-04
+
+- **Security audit, round 6 — what a document or a tool call could make run or
+  read.** The MCP write tools wrote any file under `--root`, and `.git/config`
+  takes an appended `[core] fsmonitor = "<command>"` as valid GEML: one
+  `geml_add` from a model a web page had steered answered `ok`, and git ran the
+  command on the next `git status`. Writes land only in `.geml` and `.md`
+  documents now, judged on the real path, before any sidecar is touched. `geml
+  get --view`, the `--to md` embed expansion, MCP `geml_get` and the media
+  profile's reads and hashes confined a target by its spelling, so a `.geml`
+  symlink committed inside the tree read `/etc/hosts`, and a media check
+  reported the SHA-256 of any file on the machine — or hung on a FIFO; §9.4's
+  real-path rule, which the check and `--to html` always followed, holds on every
+  read. `media build` spliced a clip's `gain` into the ffmpeg filtergraph as
+  written (`0dB[mid];[mid]volume=0.3` opened a chain of its own) and handed each
+  asset's `src` to `-i`, where `concat:a.wav|secret.wav` pulled in a file the
+  timeline never declared: a gain is a dB value or nothing, and every input goes
+  through ffmpeg's file protocol after the CLI confirms it is a regular file
+  inside the media root. A labeled close with no space, `===#c`, which §3 and
+  `fences.json` admit, ended a block for the model but not for `list`, `get`,
+  `set` or meta collection, so a `--body` could close `#c` early and plant an
+  `embed` the write guard never saw; every walk asks one test now. The VS Code
+  extension started the CLI in an untrusted workspace, by a name the document's
+  folder could answer — a configured `npx @geml/geml` ran the cloned repository's
+  own package, and on Windows cmd.exe found a committed `geml.cmd` first; it
+  starts nothing until the folder is trusted, resolves the program to an
+  absolute path from absolute PATH entries, and refuses package runners. The
+  IntelliJ plugin takes the same rules, and its preview no longer lets a
+  document link navigate the pane to a page that the editor's buffer is then
+  posted to. The Obsidian vault script ran `geml` through cmd.exe with vault
+  file names in the command line. A codemap recipe trusted in one repository ran
+  byte-identical in any other; trust is filed under the codemap directory's real
+  path now, so **existing approvals are dropped** and are given again with
+  `geml codemap refresh --trust` or a rebuild. And the browser extension's code
+  graph appended a `<script>` for its search index from the content script,
+  where it runs in the page's world: a `.js` beside a `.geml` executed; a file://
+  graph has no search box now.
+- **Security audit, round 6 — what reached a reader.** In a Markdown file,
+  `[[javascript:alert(document.domain)//#x]]` rendered as a live link labelled
+  `x`; a wikilink naming a scheme stays text, as it does in a `.geml`, and the
+  renderer gates every auto-reference href as it gates links. `--to md` escaped
+  only the backslash, the backtick, `*`, `_` and brackets, so GEML prose — which has no raw HTML — exported
+  `<img onerror=…>` as a live tag, and a code span holding a backtick closed
+  itself; `<` and `&` are escaped, code spans outgrow the backticks they hold,
+  `<` in math is `\lt`, and destinations percent-encode spaces and angle
+  brackets. (A Markdown file read and exported again now shows its raw HTML as
+  the text GEML reads it as.) A codemap palette accepted `url(…)`, which made a
+  published map fetch a third party; it keeps colours only. The browser
+  extension read `/\host`, `\\host` and `\/host` as local paths, which the
+  browser resolves to another host: such media loaded without the click-to-load
+  gate and such links went off-site. Its player gave a media asset's `src` to a
+  `<video preload=auto>` with no origin check; it loads only same-origin (or,
+  on file://, same-directory) assets, and only their metadata until play. A
+  link with any `target` gets `noopener noreferrer`. Hidden blocks and headings
+  went to the translator — in VS Code, the editor's language model; they stay
+  home. A refusal's text could carry the document's `translate-to` into a live
+  link in the extension's own bar; only a link the host sets is linked, and a
+  value that is not a language tag is refused unrepeated.
+- **Security audit, round 6 — work a small document could demand.** Each of
+  these held the parser for seconds to minutes, or threw a `RangeError` through
+  `parse()`, from kilobytes of input: an unclosed `{` after every link (quadratic
+  rescans); edn, json and yaml data nested thousands deep (bounded at 200, a
+  `data-parse` diagnostic); a yaml block scalar of 130k lines and a long `- k:
+  v` sequence; `geml list` and `find` over tens of thousands of blocks;
+  coordinates, projections and links that re-read and re-parsed their target
+  per reference, including a document naming itself; the transclusion cycle
+  walk re-selecting a whole target at every step; views written consumer-first,
+  resolved one link per sweep; every `=== x\` line folding the rest of a run of
+  them; a media prompt projecting itself, or projecting the next block four
+  times sixteen deep, which spelled out 4^16 characters; and the stylesheet
+  loader, `--to md` and `--view` expanding embeds to the depth bound with no
+  total, which is K^16. The three expanders stop at the renderer's 1000
+  expansions and say so, and a prompt counts every projection it expands
+  against the same 1000.
+  Twenty one-line views over one million-cell table held twenty copies of it —
+  2.6 GB from 2 MB of input — and a `table {src=big.csv}` written twenty times
+  read the file twenty times: every relation a document reads from elsewhere now
+  spends from one budget per document, 4,000,000 cells in both implementations,
+  and is refused before the read or the copy once it is spent (§9.2).
+  History verification remembers unit hashes by text while it replays a patch.
+  In the browser extension, a timeline ruler drew one tick per second of a
+  duration the document chose; it draws at most 200. The VS Code heading
+  grammar and the IntelliJ lexer backtracked cubically on a heading with a long
+  run of blanks.
+- **Security audit, round 6 — the Rust implementation.** The same audit read
+  `geml-parser-rs/`, which others may deploy. A JSON string escaping a
+  multibyte character panicked, and so did a `printf` precision near
+  `usize::MAX`; `\u+041` read as `A`. Views sourcing each other, `yaml`
+  sequences, expressions and inline nesting across links each recursed without
+  a bound until the stack overflowed, and so did a stylesheet's frame graph. A
+  media prompt, a stylesheet's embeds and a transclusion step re-expanded their
+  targets at every occurrence; prose addresses, unresolved references, `meta`
+  keys, unmatched link and wiki brackets, folded `===` lines, unmatched ```
+  openers and a heading's code spans were each the square of their input; a
+  history patch re-hashed every unit after every operation. Each is bounded or
+  linear now, with a regression test that fails without the fix. The example
+  host hashed a media file outside its root. The crate also follows every rule
+  above: its bounds come from `src/bounds.rs`, which `tests/bounds.rs` reads
+  against the specification's tables; data values nest 200 deep in `json` and
+  `yaml`; tables and views keep the million-cell bound; a view that cannot be
+  derived is empty; the media checks place cuts on the profile's time model;
+  a history sidecar's shared ids and second `current` are errors; and the
+  profile cases' `checks` are compared natively and as WebAssembly.
+- **Security audit, round 6 — CI and the supply chain.** The website workflow
+  checked the site out with its write deploy key and kept it on the runner
+  through `npm ci`, every install script and an unpinned `npx`
+  scip-typescript; the viewer release kept a `contents: write` token through
+  `npm install` and the test suite. Each publishing workflow — website, viewer
+  release, npm, VS Code, and the Logseq mirror's — is now a job that installs
+  and builds with no secret and keeps no credentials, and a job that holds the
+  secret and runs no package. scip-typescript, vsce and ovsx run at exact
+  versions; the `mcp-publisher` download is checked against its published
+  SHA-256; every action is pinned to a commit again.
+- **Security audit, round 6 — what the specification now says.** Where the
+  audit found two implementations free to differ, the rule is written down and
+  the suite pins it. Every number the specification fixes stands in one table in
+  §9.2 — `chain-depth` 16, `data-depth` 200, `table-cells` 1,000,000 and
+  `nesting-floor` 64 — and the text names it instead of restating it; the
+  reference implementation's own nesting bounds moved to the parser guide. A
+  `data` body's value tree is at most `data-depth` containers deep in every
+  engine, `data-parse` past it (§3.2); a `table` or `view` holds at most
+  `table-cells` cells, padded ones included, and one that would hold more is the
+  new `table-too-large` error and keeps no rows (§6). Both are fixed rather than
+  implementation-defined, because what they refuse is in the model. The suite's
+  cases on the edges of these bounds, two new ones on a `view` chain's
+  `chain-depth` among them, carry a `bound` field and are made from the table by
+  `test/conformance/_bounds.mjs`; `test/bounds.test.mjs` fails when a copy of the
+  specification, an implementation or a case drifts from it. The Chrome viewer
+  and the VS Code preview followed a transclusion chain, and prefetched a
+  stylesheet's, only 8 deep; they now follow `chain-depth`, as §9.3 requires.
+  A view whose relation cannot be derived — no `src=`, a source that resolves to
+  nothing or to no relation, a chain that meets a cycle or runs past
+  `chain-depth` — is empty, no columns and no rows, and each view whose chain
+  meets a cycle is reported, the cycle's own and those running into it (§6.1,
+  Appendix A). A renderer that confines `src` judges it by the URL a user agent resolves, so
+  `/\host` and `\\host` are another origin (§9.4). `geml-media/v1`: an
+  asset's `src` is a relative path (`media-src-not-relative`), a cut's `gain` is
+  decibels with the unit (`media-gain-invalid`), and every time, a cut's end
+  included, is at most `max-time` (`media-time-out-of-range`). The profile's two
+  numbers, `max-time` 86,400 s and `apart-tolerance` 2 px, stand in a table of
+  their own (§8.1); its conformance cases carry a new `checks` field for what its
+  own checks report, and `bound` on the two made from that table. A prompt's
+  projection of a block already being expanded contributes nothing to the text
+  `prompt-sha256` hashes, and a processor may bound the projections one prompt
+  expands (§6). An asset's current value is its file's SHA-256, not its
+  declared `sha256` — the reference compared the file and the Rust crate the
+  attribute; a file that cannot be read gives none, and its lineage is not
+  checked; staleness is judged only on the entry matching the current value,
+  where the reference fell back to the latest; and hashes compare without regard
+  to case (§6). A profile case may carry `files`, read beside the document.
+  `geml-style/v1`'s frame depth is the core's `chain-depth`, and its cases on
+  that edge are made from §9.2's table like the core's.
+  A view's column lists — `select=`, `by=`, `order=` — take names, single-quoted
+  when a name holds a comma, and an `order=` key's direction is only a last
+  `asc` or `desc`; a spreadsheet letter is a reference inside a §6 expression
+  and nowhere else, `AA` the 27th column. An entry in error is reported and the
+  rest of its attribute still applies: a `select=` or `order=` entry contributes
+  nothing, so a `select=` with none valid leaves the view no columns; a
+  `compute=` or `aggregate=` formula in error still adds its column, empty, and
+  is reported once rather than once per group; a `summary=` entry in error
+  leaves the row standing; `by=` and `where=` apply whole or not at all (§6.1).
+  The two implementations disagreed on most of these. §9.2 now asks a processor
+  to bound the cells one document reads into its relations from anywhere but
+  its own text; the bound is implementation-defined, and a relation past it is
+  `table-too-large`.
+  `geml-translator/v1`: nothing hidden is sent to an engine.
+  `geml-history/v1`: an id shared by two revisions, keyframes or blobs, or a
+  second `current`, is corruption — the same sidecar used to reconstruct one
+  text in a processor that took the first and another in one that took the
+  last, and verify clean in both. A unit's id is the one its attribute object
+  declares: the reference keyed `{src=#foo}` as `#foo`, where the Rust crate
+  read the block's own id. The profile's new `sidecars` cases pin it.
+
 ## [1.12.1] — 2026-10-03
 
 - **A link's text and its destination end where CommonMark's do.** A link's

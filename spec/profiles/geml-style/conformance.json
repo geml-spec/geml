@@ -1634,6 +1634,515 @@
       "diagnostics": [
         "style-unmatched-producer:warning"
       ]
+    },
+    {
+      "name": "frames may nest chain-depth (16) deep under a screen",
+      "bound": "chain-depth",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-screen {#page slots=\"#f1\"}\n===\n\n=== style-frame {#f1 slots=\"#f2\"}\n===\n\n=== style-frame {#f2 slots=\"#f3\"}\n===\n\n=== style-frame {#f3 slots=\"#f4\"}\n===\n\n=== style-frame {#f4 slots=\"#f5\"}\n===\n\n=== style-frame {#f5 slots=\"#f6\"}\n===\n\n=== style-frame {#f6 slots=\"#f7\"}\n===\n\n=== style-frame {#f7 slots=\"#f8\"}\n===\n\n=== style-frame {#f8 slots=\"#f9\"}\n===\n\n=== style-frame {#f9 slots=\"#f10\"}\n===\n\n=== style-frame {#f10 slots=\"#f11\"}\n===\n\n=== style-frame {#f11 slots=\"#f12\"}\n===\n\n=== style-frame {#f12 slots=\"#f13\"}\n===\n\n=== style-frame {#f13 slots=\"#f14\"}\n===\n\n=== style-frame {#f14 slots=\"#f15\"}\n===\n\n=== style-frame {#f15 slots=\"#f16\"}\n===\n\n=== style-frame {#f16 slots=\"heading\"}\n===\n",
+        "d.geml": "# Title {#t}\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [
+        {
+          "id": "page",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f1"
+            }
+          ],
+          "bindings": []
+        }
+      ],
+      "frames": [
+        {
+          "id": "f1",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f2"
+            }
+          ]
+        },
+        {
+          "id": "f2",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f3"
+            }
+          ]
+        },
+        {
+          "id": "f3",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f4"
+            }
+          ]
+        },
+        {
+          "id": "f4",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f5"
+            }
+          ]
+        },
+        {
+          "id": "f5",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f6"
+            }
+          ]
+        },
+        {
+          "id": "f6",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f7"
+            }
+          ]
+        },
+        {
+          "id": "f7",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f8"
+            }
+          ]
+        },
+        {
+          "id": "f8",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f9"
+            }
+          ]
+        },
+        {
+          "id": "f9",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f10"
+            }
+          ]
+        },
+        {
+          "id": "f10",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f11"
+            }
+          ]
+        },
+        {
+          "id": "f11",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f12"
+            }
+          ]
+        },
+        {
+          "id": "f12",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f13"
+            }
+          ]
+        },
+        {
+          "id": "f13",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f14"
+            }
+          ]
+        },
+        {
+          "id": "f14",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f15"
+            }
+          ]
+        },
+        {
+          "id": "f15",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f16"
+            }
+          ]
+        },
+        {
+          "id": "f16",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "blocks",
+              "selector": "heading",
+              "blocks": [
+                {
+                  "doc": "d.geml",
+                  "block": "#t"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [],
+      "diagnostics": []
+    },
+    {
+      "name": "a frame 17 deep is past chain-depth — style-frame-too-deep, and the frames are still the view model's",
+      "bound": "chain-depth",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-screen {#page slots=\"#f1\"}\n===\n\n=== style-frame {#f1 slots=\"#f2\"}\n===\n\n=== style-frame {#f2 slots=\"#f3\"}\n===\n\n=== style-frame {#f3 slots=\"#f4\"}\n===\n\n=== style-frame {#f4 slots=\"#f5\"}\n===\n\n=== style-frame {#f5 slots=\"#f6\"}\n===\n\n=== style-frame {#f6 slots=\"#f7\"}\n===\n\n=== style-frame {#f7 slots=\"#f8\"}\n===\n\n=== style-frame {#f8 slots=\"#f9\"}\n===\n\n=== style-frame {#f9 slots=\"#f10\"}\n===\n\n=== style-frame {#f10 slots=\"#f11\"}\n===\n\n=== style-frame {#f11 slots=\"#f12\"}\n===\n\n=== style-frame {#f12 slots=\"#f13\"}\n===\n\n=== style-frame {#f13 slots=\"#f14\"}\n===\n\n=== style-frame {#f14 slots=\"#f15\"}\n===\n\n=== style-frame {#f15 slots=\"#f16\"}\n===\n\n=== style-frame {#f16 slots=\"#f17\"}\n===\n\n=== style-frame {#f17 slots=\"heading\"}\n===\n",
+        "d.geml": "# Title {#t}\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [
+        {
+          "id": "page",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f1"
+            }
+          ],
+          "bindings": []
+        }
+      ],
+      "frames": [
+        {
+          "id": "f1",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f2"
+            }
+          ]
+        },
+        {
+          "id": "f2",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f3"
+            }
+          ]
+        },
+        {
+          "id": "f3",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f4"
+            }
+          ]
+        },
+        {
+          "id": "f4",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f5"
+            }
+          ]
+        },
+        {
+          "id": "f5",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f6"
+            }
+          ]
+        },
+        {
+          "id": "f6",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f7"
+            }
+          ]
+        },
+        {
+          "id": "f7",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f8"
+            }
+          ]
+        },
+        {
+          "id": "f8",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f9"
+            }
+          ]
+        },
+        {
+          "id": "f9",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f10"
+            }
+          ]
+        },
+        {
+          "id": "f10",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f11"
+            }
+          ]
+        },
+        {
+          "id": "f11",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f12"
+            }
+          ]
+        },
+        {
+          "id": "f12",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f13"
+            }
+          ]
+        },
+        {
+          "id": "f13",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f14"
+            }
+          ]
+        },
+        {
+          "id": "f14",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f15"
+            }
+          ]
+        },
+        {
+          "id": "f15",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f16"
+            }
+          ]
+        },
+        {
+          "id": "f16",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "frame",
+              "frame": "f17"
+            }
+          ]
+        },
+        {
+          "id": "f17",
+          "axis": "column",
+          "box": {},
+          "variants": [],
+          "params": {},
+          "slots": [
+            {
+              "kind": "blocks",
+              "selector": "heading",
+              "blocks": [
+                {
+                  "doc": "d.geml",
+                  "block": "#t"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [],
+      "diagnostics": [
+        "style-frame-too-deep:error"
+      ]
     }
   ]
 }

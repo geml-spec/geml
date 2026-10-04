@@ -2,7 +2,11 @@
 //! `%%` lines, and the ``` shield. Inline content is parsed later, once the
 //! document's merged `meta` is known (§4's interpolation reads it).
 
+use std::cell::OnceCell;
+use std::collections::{HashMap, HashSet};
+
 use crate::attrs::{parse_attrs, read_object, read_quoted, type_bare, Attrs};
+use crate::bounds::BLOCK_NESTING;
 use crate::diag::Diags;
 use crate::inline::verbatim_spans;
 use crate::json::Value;
@@ -10,10 +14,6 @@ use crate::model::*;
 use crate::registry;
 use crate::uni::nfd;
 use crate::vocab::Vocabulary;
-
-/// §9.2's bounds. A processor SHOULD admit at least 64 of each.
-pub const MAX_BLOCK_DEPTH: usize = 256;
-pub const MAX_LIST_DEPTH: usize = 256;
 
 pub fn is_blank(s: &str) -> bool {
     s.chars().all(|c| c == ' ' || c == '\t')
@@ -214,11 +214,16 @@ struct Shield {
     open: Option<usize>,
     close: usize,
     body_end: usize,
+    /// For each opener length, the close the last search found, or `None`
+    /// when none was left. The scan asks in line order, so a later opener of
+    /// that length reuses the answer while it still lies ahead: a body of
+    /// unmatched openers is one search per length, not one per line.
+    found: HashMap<usize, Option<usize>>,
 }
 
 impl Shield {
     fn new(body_end: usize) -> Shield {
-        Shield { open: None, close: 0, body_end }
+        Shield { open: None, close: 0, body_end, found: HashMap::new() }
     }
 
     fn shielded(&mut self, lines: &[String], j: usize) -> bool {
@@ -231,12 +236,44 @@ impl Shield {
             }
         }
         if let Some(n) = backtick_open(&lines[j]) {
-            if let Some(k) = (j + 1..self.body_end).find(|k| backtick_close(&lines[*k], n)) {
+            let close = match self.found.get(&n) {
+                Some(None) => None,
+                Some(Some(k)) if *k > j => Some(*k),
+                _ => {
+                    let k = (j + 1..self.body_end).find(|k| backtick_close(&lines[*k], n));
+                    self.found.insert(n, k);
+                    k
+                }
+            };
+            if let Some(k) = close {
                 self.open = Some(j);
                 self.close = k;
             }
         }
         false
+    }
+}
+
+/// For each line taken as a continuation line of a fold that reached it: the
+/// last line the fold takes in from there, and the last non-White_Space
+/// character the fold gets from those lines. Built once, right to left.
+struct Continuations {
+    reach: Vec<usize>,
+    tail: Vec<Option<char>>,
+}
+
+impl Continuations {
+    fn of(lines: &[String]) -> Continuations {
+        let n = lines.len();
+        let mut c = Continuations { reach: vec![0; n], tail: vec![None; n] };
+        for j in (0..n).rev() {
+            let t = lines[j].trim();
+            let goes_on = t.ends_with('\\') && j + 1 < n;
+            let seg = t.strip_suffix('\\').map_or(t, str::trim_end);
+            c.reach[j] = if goes_on { c.reach[j + 1] } else { j };
+            c.tail[j] = if goes_on { c.tail[j + 1].or(seg.chars().last()) } else { seg.chars().last() };
+        }
+        c
     }
 }
 
@@ -259,7 +296,11 @@ pub fn parse_heading(line: &str) -> Option<HeadingLine> {
         end -= 1;
     }
     let verbatim = verbatim_spans(&body[..end]);
-    let inside = |k: usize| verbatim.iter().any(|(s, e, _)| k >= *s && k < *e);
+    let mut held = vec![false; end];
+    for (s, e, _) in &verbatim {
+        held[*s..(*e).min(end)].fill(true);
+    }
+    let inside = |k: usize| held.get(k).copied().unwrap_or(false);
     let open = heading_object(&body[..end], &inside);
     let attrs = open.map(|k| read_object(&body[k + 1..end - 1]));
     let text_end = open.unwrap_or(end);
@@ -324,11 +365,12 @@ pub struct Scanner<'a> {
     pub diags: &'a mut Diags,
     /// The vocabularies the document declares that this processor recognizes.
     pub vocab: &'a Vocabulary,
+    continuations: OnceCell<Continuations>,
 }
 
 impl<'a> Scanner<'a> {
     pub fn new(lines: &'a [String], diags: &'a mut Diags, vocab: &'a Vocabulary) -> Self {
-        Scanner { lines, diags, vocab }
+        Scanner { lines, diags, vocab, continuations: OnceCell::new() }
     }
 
     /// Fold a fence or heading line ending in `\` with the lines after it
@@ -349,8 +391,25 @@ impl<'a> Scanner<'a> {
     }
 
     fn try_fence(&self, i: usize, end: usize) -> Option<(FenceOpen, usize)> {
-        if !self.lines[i].starts_with("===") {
+        let line = &self.lines[i];
+        if !line.starts_with("===") {
             return None;
+        }
+        // A `===` line folds into an opening fence only when the folded line
+        // ends in the `}` of an attribute object, or holds nothing after the
+        // type. When neither can hold the fold is not built: every line asks,
+        // and folding a run of 40,000 `=== x\` lines from each of them took
+        // seconds.
+        if line.ends_with('\\') && i + 1 < end {
+            let c = self.continuations.get_or_init(|| Continuations::of(self.lines));
+            if c.reach[i + 1] < end {
+                let head = line[..line.len() - 1].trim_end();
+                let rest = c.tail[i + 1];
+                let bare = rest.is_none() && parse_fence_open(head).is_some_and(|f| f.attrs == Attrs::default());
+                if rest.or(head.chars().last()) != Some('}') && !bare {
+                    return None;
+                }
+            }
         }
         let (logical, used) = self.fold(i, end);
         parse_fence_open(&logical).map(|f| (f, used))
@@ -477,7 +536,7 @@ impl<'a> Scanner<'a> {
             }
         }
         let mut mode = if admitted { self.vocab.mode_of(&t).unwrap_or(Mode::Raw) } else { registry::mode_of(&t) };
-        if mode == Mode::Flow && depth + 1 > MAX_BLOCK_DEPTH {
+        if mode == Mode::Flow && depth + 1 > BLOCK_NESTING {
             self.diags.push("block-nesting-too-deep", i + 1, "typed blocks nest deeper than this processor admits; the body is kept raw");
             mode = Mode::Raw;
         }
@@ -529,6 +588,7 @@ impl<'a> Scanner<'a> {
     /// A `meta` body: one `key = val` per line, typed as attribute values are.
     fn meta_body(&mut self, start: usize, end: usize) -> Vec<(String, Value)> {
         let mut out: Vec<(String, Value)> = Vec::new();
+        let mut keys: HashSet<String> = HashSet::new();
         for j in start..end {
             let line = self.lines[j].trim();
             let Some((k, v)) = line.split_once('=') else { continue };
@@ -545,7 +605,7 @@ impl<'a> Scanner<'a> {
             } else {
                 type_bare(v)
             };
-            if out.iter().any(|(x, _)| nfd(x) == nfd(&key)) {
+            if !keys.insert(nfd(&key)) {
                 self.diags.push("duplicate-meta-key", j + 1, format!("`{key}` is defined twice; the first definition is kept"));
                 continue;
             }
@@ -594,7 +654,7 @@ impl<'a> Scanner<'a> {
                     }
                     let top_col = stack.last().expect("open").col;
                     let top_ordered = stack.last().expect("open").list.ordered;
-                    if it.col > top_col && stack.len() < MAX_LIST_DEPTH {
+                    if it.col > top_col && stack.len() < BLOCK_NESTING {
                         stack.push(open(it, at));
                     } else if it.col > top_col || it.ordered == top_ordered {
                         if it.col > top_col && !too_deep_reported {

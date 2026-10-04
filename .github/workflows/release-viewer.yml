@@ -13,6 +13,11 @@ name: Release viewer
 # The tag must match the version in manifest.json — the job refuses to publish
 # otherwise, because the zip's name comes from the manifest and a mismatch
 # would attach `geml-viewer-1.1.0.zip` to a `viewer-v1.1.1` release.
+#
+# Two jobs. `build` installs, tests and packages with a read-only token that its
+# checkout does not keep, so no install script or test dependency holds anything
+# that writes to this repository. `release` alone may write, and it runs no
+# package: it takes the zip `build` made and attaches it.
 
 on:
   push:
@@ -24,40 +29,59 @@ on:
         required: true
 
 permissions:
-  contents: write # create the release and upload the asset
+  contents: read
 
 jobs:
-  release:
-    name: package + attach the extension zip
+  build:
+    name: test + package the extension
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+      zip: ${{ steps.version.outputs.zip }}
     steps:
+      # Judged before anything is checked out: a dispatched `tag` is typed text,
+      # and checking out what it names (`refs/pull/N/head`, a branch) would run
+      # that code's install scripts and tests first. Checked out as a TAG below.
+      - name: The ref must be a viewer tag
+        id: tag
+        env:
+          # Through env, not ${{ }} inside run: a workflow_dispatch input is
+          # attacker-typed text and must never be interpolated into the script.
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          if [[ ! "$TAG" =~ ^viewer-v[0-9]+\.[0-9]+\.[0-9]+(-[0-9]+)?$ ]]; then
+            echo "::error::$TAG is not a viewer-v<x.y.z> tag"; exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
+          ref: refs/tags/${{ steps.tag.outputs.tag }}
+          persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
 
       # The viewer imports the parser's dist/, so the parser is built first —
-      # same order as the `viewer` job in ci.yml.
+      # same order as the `viewer` job in ci.yml, and installed the same way:
+      # from the lockfile, nothing resolved afresh.
       - name: Build the reference parser
         working-directory: geml-parser
-        run: npm install && npm run build
+        run: npm ci && npm run build
 
       # Tests before packaging: a release is the one build that must not ship
       # a red suite, and the gate costs a minute.
       - name: Viewer build + tests + coverage gate
         working-directory: integrations/chrome-geml-viewer
-        run: npm install && npm run coverage:check
+        run: npm ci && npm run coverage:check
 
       - name: The tag must name the version the manifest declares
         id: version
         working-directory: integrations/chrome-geml-viewer
         env:
-          # Through env, not ${{ }} inside run: a workflow_dispatch input is
-          # attacker-typed text and must never be interpolated into the script.
-          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+          TAG: ${{ steps.tag.outputs.tag }}
         run: |
           version=$(node -p "require('./manifest.json').version")
           # Releases have been re-tagged before (viewer-v1.1.0-1), so a NUMERIC
@@ -92,19 +116,45 @@ jobs:
       # rebuilding the tag rather than by trusting this runner.
       - name: Checksum
         working-directory: integrations/chrome-geml-viewer
-        run: sha256sum "${{ steps.version.outputs.zip }}"
+        env:
+          ZIP: ${{ steps.version.outputs.zip }}
+        run: sha256sum "$ZIP"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: viewer-zip
+          path: integrations/chrome-geml-viewer/${{ steps.version.outputs.zip }}
+          retention-days: 7
+
+  release:
+    name: attach the zip to the release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # create the release and upload the asset
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: viewer-zip
+
+      # The digest again, on the file this job attaches: the two lines match.
+      - name: Checksum
+        env:
+          ZIP: ${{ needs.build.outputs.zip }}
+        run: sha256sum "$ZIP"
 
       # `gh` is preinstalled on the runner, so releasing needs no third-party
       # action — one less thing with write access to this repo's releases.
       # Re-runnable: an existing release keeps its hand-written notes and just
       # takes the new asset.
       - name: Create the release and attach the zip
-        working-directory: integrations/chrome-geml-viewer
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ github.event.inputs.tag || github.ref_name }}
-          ZIP: ${{ steps.version.outputs.zip }}
-          TITLE: geml-viewer-${{ steps.version.outputs.version }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.build.outputs.tag }}
+          ZIP: ${{ needs.build.outputs.zip }}
+          TITLE: geml-viewer-${{ needs.build.outputs.version }}
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$ZIP" --clobber

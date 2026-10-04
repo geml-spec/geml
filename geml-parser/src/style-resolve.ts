@@ -5,7 +5,8 @@
 // 所以本 profile 的全部信息都写在属性对象里，由这里读取（设计 §3.2）。
 
 import type { Block, Document, EmbedPart, Value } from "./geml.js";
-import { selectEmbed } from "./geml.js";
+import { EMBED_TOTAL_CAP, selectEmbed } from "./geml.js";
+import { CHAIN_DEPTH } from "./bounds.js";
 import { styleDiag, type StyleDiagnostic } from "./style-diagnostics.js";
 import {
   parseSelector, selectorDiag, candidates, matches, address,
@@ -391,12 +392,10 @@ export interface StyleLoadOptions {
   forDoc?: string;
 }
 
-const EMBED_DEPTH_CAP = 16; // GEML §9.3's fixed bound on a transclusion chain
-/**
- * frame 嵌套的上限。和 EMBED_DEPTH_CAP 同一个理由：样式表是不可信输入，一条一万个 frame 的链
- * 没有环、却不能让宿主去渲染一万层盒子。GitHub 的 blob 页是 4 层；16 是给设计留的余量，不是量出来的。
- */
-const FRAME_DEPTH_CAP = 16;
+/** One loadStylesheet's expansion: what it has spent, and each document parsed once. */
+type ExpandRun = { spent: number; told: boolean; parsed: Map<string, Document> };
+// frame 嵌套的上限就是 GEML 的 chain-depth（CHAIN_DEPTH），和投射链同一个理由：样式表是不可信
+// 输入，一条一万个 frame 的链没有环、却不能让宿主去渲染一万层盒子。GitHub 的 blob 页是 4 层。
 
 /**
  * 样式入口的两个键都是**隐式 embed**，层次和 CSS 一样：
@@ -543,13 +542,13 @@ const EMBED_PARTS = new Set<string>(["whole", "head", "body", "intro"]);
  * 环：展开链上已有的文件，或这份文件里正在展开的同一个 `#id`。
  */
 function expandEmbeds(
-  nodes: Block[], file: SheetFile, sheet: Stylesheet, opts: StyleLoadOptions, seen: Set<string>, depth: number,
+  nodes: Block[], file: SheetFile, sheet: Stylesheet, opts: StyleLoadOptions, seen: Set<string>, depth: number, run: ExpandRun,
 ): Block[] {
   const out: Block[] = [];
   for (const b of nodes) {
     if (b.kind !== "block") { out.push(b); continue; }
     if (b.type !== "embed") {
-      out.push(b.children && b.children.length > 0 ? { ...b, children: expandEmbeds(b.children, file, sheet, opts, seen, depth) } : b);
+      out.push(b.children && b.children.length > 0 ? { ...b, children: expandEmbeds(b.children, file, sheet, opts, seen, depth, run) } : b);
       continue;
     }
     const id = b.id ?? "(anon)";
@@ -564,7 +563,15 @@ function expandEmbeds(
         `\`embed\`${written ? ` of \`${written}\`` : ""} contributed no rules: ${why}`, id));
 
     if (written === "") { say("no `src=`"); continue; }
-    if (depth >= EMBED_DEPTH_CAP) { say(`nesting deeper than ${EMBED_DEPTH_CAP}`); continue; }
+    if (depth >= CHAIN_DEPTH) { say(`nesting deeper than ${CHAIN_DEPTH}`); continue; }
+    // Said once: past the budget every remaining embed is skipped, and one line
+    // per skipped site would be thousands.
+    if (run.spent >= EMBED_TOTAL_CAP) {
+      if (!run.told) say(`expansion budget spent (${EMBED_TOTAL_CAP} expansions); this and later embeds were not expanded`);
+      run.told = true;
+      continue;
+    }
+    run.spent++;
     let next: SheetFile;
     let key: string;
     if (docPath === "") {
@@ -582,13 +589,15 @@ function expandEmbeds(
       // `#sitemap`：那张表是「为哪份文档」的，只有顶层的样式入口才有那个身份。
       // 跟来的规则和引用它的文件**同层**（显式 embed 不开新层），层内照 §4 决胜。
       // 记号按**文件**算：跟来的规则用它自己那份 meta，不用宿主的（设计 §13.13）。
-      next = { name: got.name, root: sheetBlocks(opts.parseDoc(got.text), sheet) };
+      let parsed = run.parsed.get(got.name);
+      if (parsed === undefined) { parsed = opts.parseDoc(got.text); run.parsed.set(got.name, parsed); }
+      next = { name: got.name, root: sheetBlocks(parsed, sheet) };
     }
     const picked = selectEmbed(next.root, anchor, part);
     if (picked === null) { say(anchor === undefined ? "the target is empty" : `\`#${anchor}\` is not in it`); continue; }
     // 选中了、但一个块都没有（空文件、空的一节）：同样是"一条规则也没贡献"，该说出来。
     if (picked.length === 0) { say(anchor === undefined ? "the target is empty" : `\`#${anchor}\` holds no blocks`); continue; }
-    out.push(...expandEmbeds(picked, next, sheet, opts, new Set([...seen, key]), depth + 1));
+    out.push(...expandEmbeds(picked, next, sheet, opts, new Set([...seen, key]), depth + 1, run));
   }
   return out;
 }
@@ -602,12 +611,13 @@ export function loadStylesheet(doc: Document, opts: StyleLoadOptions = {}): Styl
   // 都实测过：默认层被后一层的 `embed` 再次引用时误报 cycle（同一次展开共享 seen），
   // 而且所有规则挤进同一层，`match="note"` 和 `match="#hero"` 就成了 §4 眼里不可比的
   // 两条 —— 首页那五份文档因此全报 ambiguous-rule。入口自己从一开始就在链上。
+  const run: ExpandRun = { spent: 0, told: false, parsed: new Map() };
   let layer = 0;
   for (const src of entryLayers(doc, opts.forDoc)) {
-    collect(expandEmbeds([implicitEmbed(src.path, src.id)], file, sheet, opts, new Set([self]), 0), sheet, layer++);
+    collect(expandEmbeds([implicitEmbed(src.path, src.id)], file, sheet, opts, new Set([self]), 0, run), sheet, layer++);
   }
   // 被装载的这份文档自己写的规则是**最高层**：它最具体（它就是为这份产物/这个文档写的）。
-  collect(expandEmbeds(file.root, file, sheet, opts, new Set([self]), 0), sheet, layer);
+  collect(expandEmbeds(file.root, file, sheet, opts, new Set([self]), 0, run), sheet, layer);
   return sheet;
 }
 
@@ -961,7 +971,7 @@ function arbitrateWithinGroups(hits: Hit[], clash: Clash): Map<string, Group> {
     for (const h of hs) for (const k of Object.keys(ruleProps(h.rule))) if (!words.includes(k)) words.push(k);
     for (const k of words) {
       const setting = hs.filter((h) => Object.hasOwn(ruleProps(h.rule), k));
-      const top = Math.max(...setting.map((h) => h.rule.layer));
+      const top = setting.reduce((t, h) => Math.max(t, h.rule.layer), -Infinity);
       const inLayer = setting.filter((h) => h.rule.layer === top);
       const maximal = inLayer.filter((h) => !inLayer.some((o) => o !== h && moreSpecific(o.conds, h.conds)));
       const holder = maximal.reduce((x, y) => (y.order < x.order ? y : x));
@@ -1416,7 +1426,7 @@ export function resolveStyle(sheet: Stylesheet, corpus: CorpusDoc[], opts: Resol
   // （每层两个槽位指向同一个子 frame）不能把检查器拖成 2^40。
   //   frame-cycle     引用回到祖先：消息带整条链，链旋转到字典序最小的 id 开头再去重，
   //                   否则同一个环从不同起点走会得到不同的串
-  //   frame-too-deep  最深的一条放置路径超过 FRAME_DEPTH_CAP：和 embed 的上限同一个理由
+  //   frame-too-deep  最深的一条放置路径超过 CHAIN_DEPTH：和 embed 的上限同一个理由
   const frameById = new Map(sheet.frames.map((f) => [f.id, f]));
   const frameRefs = (slots: string[]): string[] =>
     slots.map((s) => BARE_ID.exec(s)?.[1]).filter((r): r is string => r !== undefined && frameById.has(r));
@@ -1472,10 +1482,10 @@ export function resolveStyle(sheet: Stylesheet, corpus: CorpusDoc[], opts: Resol
     }
   }
   let deepest: { id: string; d: number } | null = null;
-  for (const [id, d] of depth) if (d > FRAME_DEPTH_CAP && (deepest === null || d > deepest.d)) deepest = { id, d };
+  for (const [id, d] of depth) if (d > CHAIN_DEPTH && (deepest === null || d > deepest.d)) deepest = { id, d };
   if (deepest !== null) {
     diagnostics.push(styleDiag("style-frame-too-deep",
-      `frames nest ${deepest.d} deep at \`#${deepest.id}\`; the cap is ${FRAME_DEPTH_CAP} — a page is not that deep`, deepest.id));
+      `frames nest ${deepest.d} deep at \`#${deepest.id}\`; the cap is ${CHAIN_DEPTH} — a page is not that deep`, deepest.id));
   }
 
   for (const f of sheet.frames) {

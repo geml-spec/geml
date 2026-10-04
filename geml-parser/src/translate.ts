@@ -267,6 +267,11 @@ export function translateBlocks(
   opts: TranslateOptions = {},
 ): Block[] {
   return blocks.map((b): Block => {
+    // §4: a `{hidden}` block or heading stays in the model and never reaches a
+    // reader, so it has nothing to translate — and a translator is somebody
+    // else's machine as often as not (a host's language model), which a hidden
+    // note's text must not be sent to. The `%%` line below is the same rule.
+    if ((b.kind === "block" || b.kind === "heading") && b.hidden === true) return b;
     switch (b.kind) {
       case "heading":
       case "paragraph": {

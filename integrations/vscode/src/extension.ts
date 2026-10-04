@@ -50,14 +50,6 @@ export function activate(context: vscode.ExtensionContext): void {
   };
 
   context.subscriptions.push(
-    vscode.languages.registerDocumentSymbolProvider(GEML, outline),
-    vscode.languages.registerFoldingRangeProvider(GEML, outline),
-    vscode.languages.registerHoverProvider(GEML, new GemlNavigation()),
-    vscode.languages.registerDefinitionProvider(GEML, new GemlNavigation()),
-    vscode.languages.registerRenameProvider(GEML, new GemlRename()),
-    // Not language-scoped: Ctrl+T asks every provider, and this one answers with
-    // blocks from every .geml in the workspace regardless of what is open.
-    vscode.languages.registerWorkspaceSymbolProvider(new GemlWorkspaceSymbols()),
     preview.register(),
 
     vscode.commands.registerCommand("geml.showPreview", () => {
@@ -83,15 +75,35 @@ export function activate(context: vscode.ExtensionContext): void {
       return preview.exportSnapshot(ed.document);
     }),
 
-    vscode.workspace.onDidOpenTextDocument(schedule),
     vscode.workspace.onDidChangeTextDocument((e) => {
-      schedule(e.document);
       if (e.document.languageId === "geml") preview.changed(e.document);
     }),
-    vscode.workspace.onDidSaveTextDocument(schedule),
-    vscode.workspace.onDidCloseTextDocument((d) => { diagnostics.delete(d.uri); forgetUnits(d); }),
   );
-  vscode.workspace.textDocuments.forEach(schedule);
+
+  // Everything below runs the CLI, and Restricted Mode runs nothing: a cloned
+  // folder decides what its documents are, and must not get to decide what
+  // program opening one starts. The preview above renders in the page and
+  // stays. These start once the user trusts the folder; spawnCli refuses on
+  // its own as well, for the commands.
+  const startCliFeatures = (): void => {
+    context.subscriptions.push(
+      vscode.languages.registerDocumentSymbolProvider(GEML, outline),
+      vscode.languages.registerFoldingRangeProvider(GEML, outline),
+      vscode.languages.registerHoverProvider(GEML, new GemlNavigation()),
+      vscode.languages.registerDefinitionProvider(GEML, new GemlNavigation()),
+      vscode.languages.registerRenameProvider(GEML, new GemlRename()),
+      // Not language-scoped: Ctrl+T asks every provider, and this one answers with
+      // blocks from every .geml in the workspace regardless of what is open.
+      vscode.languages.registerWorkspaceSymbolProvider(new GemlWorkspaceSymbols()),
+      vscode.workspace.onDidOpenTextDocument(schedule),
+      vscode.workspace.onDidChangeTextDocument((e) => schedule(e.document)),
+      vscode.workspace.onDidSaveTextDocument(schedule),
+      vscode.workspace.onDidCloseTextDocument((d) => { diagnostics.delete(d.uri); forgetUnits(d); }),
+    );
+    vscode.workspace.textDocuments.forEach(schedule);
+  };
+  if (vscode.workspace.isTrusted) startCliFeatures();
+  else context.subscriptions.push(vscode.workspace.onDidGrantWorkspaceTrust(startCliFeatures));
 }
 
 /**

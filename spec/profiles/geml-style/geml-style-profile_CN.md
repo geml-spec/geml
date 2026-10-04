@@ -333,7 +333,7 @@ screen 是**根**：一整页。一份样式表能有几个根是**宿主**的�
 | `slots=` 里的裸 `#x` 没有对应 frame | `style-unknown-frame` | error |
 | 裸 `#x` 指到了 `style-screen`——页不能装进页 | `style-screen-nested` | error |
 | frame 嵌套成环（`#a → #b → #a`；消息带整条链） | `style-frame-cycle` | error |
-| 某条放置路径上嵌套深过 16 层 | `style-frame-too-deep` | error |
+| 某条放置路径上嵌套深过核心的 `chain-depth` | `style-frame-too-deep` | error |
 | 没有任何槽位引用的 frame | `style-unused-frame` | warning |
 
 一个 frame **可以**被多个槽位放置：每放一处就再渲染一遍，等于同样的块出现两次——和把那些
@@ -341,13 +341,13 @@ screen 是**根**：一整页。一份样式表能有几个根是**宿主**的�
 DAG，不严格是树；深度取最长的那条放置路径。
 
 深度上限是**安全边界**，不只是形状规则。样式表和任何文档一样是不可信输入（§9）：一万个
-frame 串成一条链——哪儿都没有环——宿主就得渲染一万层盒子。上限取 16：GitHub 的 blob 页是
-四层，核心的投射链出于同一个理由也是这个上限，16（GEML §9.3）。校验器对每个 frame 只访问一次、深度用一遍
+frame 串成一条链——哪儿都没有环——宿主就得渲染一万层盒子。上限取核心的 `chain-depth`（GEML §9.2），投射链出于同一个理由也是这个上限（GEML §9.3）；
+GitHub 的 blob 页是四层。校验器对每个 frame 只访问一次、深度用一遍
 拓扑 DP 算出，所以恶意样式表——包括四十层的菱形链——都只花线性时间。
 
 校验器的线性不等于宿主的线性。一个 frame 可以放进多个槽位，所以嵌套 × 复用是乘法：每层两个
-槽位指向同一个子 frame、叠 16 层，就是 65 536 份叶子——校验器只访问一次、放行。因此宿主要
-给一页**放置**的块和 frame 数量设上限（浏览器 viewer：2 000），超了就不带样式表渲染，和
+槽位指向同一个子 frame，叶子每层翻一倍，一直叠到 `chain-depth` 层——校验器只访问一次、放行。
+因此宿主要给一页**放置**的块和 frame 数量设上限，超了就不带样式表渲染，和
 `embed` 总量上限同一个做法。
 
 ## 3. 选择器语法
@@ -565,7 +565,7 @@ warning。开放那侧必须降级而不能拒收，否则 §8.5 的前向兼容
 | `style-unknown-frame` | error | `slots=` 里的裸 `#x` 没有对应的 `style-frame` |
 | `style-screen-nested` | error | `slots=` 里的裸 `#x` 指到了 `style-screen` |
 | `style-frame-cycle` | error | frame 嵌套成环；消息带整条链 |
-| `style-frame-too-deep` | error | 某条放置路径上 frame 嵌套深过 16 层 |
+| `style-frame-too-deep` | error | 某条放置路径上 frame 嵌套深过核心的 `chain-depth`（GEML §9.2） |
 | `style-unused-frame` | warning | 没有任何槽位引用的 `style-frame` |
 | `style-reserved-name` | warning | 选择器的**第一步**用了行内部件名（`link`、`image`、`code-span`、`strong`、`emphasis`）；它按块类型读，因为部件前面要有块步，消息会说出部件还缺什么（§3） |
 | `style-invalid-value` | error | 封闭值域的内含词（`axis` / `anchor` / `place` / `scroll` / `sticky` / `hide-below` / `visible` / `grow` / `wrap` / `view` / `editable` / `fade-out` / `underline`）取了域外值，或 `when=` 的项既不是 `$state=value`，也不是 `@hover` / `@focus` / `@invalid` / `@disabled` / `@checked` 之一 |

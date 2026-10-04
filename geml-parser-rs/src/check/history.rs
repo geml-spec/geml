@@ -8,7 +8,8 @@
 //! it: `@` and the first eight hex digits of the SHA-256 of the block's lines
 //! joined by LF.
 
-use std::collections::HashMap;
+use std::cell::RefCell;
+use std::collections::{HashMap, HashSet};
 
 use crate::block::Scanner;
 use crate::diag::Diags;
@@ -42,6 +43,13 @@ pub struct Sidecar {
     pub revisions: Vec<Revision>,
     pub keyframes: Vec<Keyframe>,
     pub blobs: HashMap<String, Vec<String>>,
+    /// Each unit's content key by its text. A reverse patch re-keys the version
+    /// after every operation; the same text keys the same way wherever it stands.
+    keys: RefCell<HashMap<String, String>>,
+    /// Ids two revisions, keyframes or blobs share, and a second `current`:
+    /// corruption, said once each (§8). A processor that took the first of two
+    /// and one that took the last would reconstruct two texts from one sidecar.
+    pub shared: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -112,28 +120,50 @@ pub fn read(text: &str) -> Sidecar {
             _ => {}
         }
     }
+    let mut seen: [HashSet<String>; 3] = Default::default();
+    let mut once = |kind: usize, what: &str, id: &str, shared: &mut Vec<String>| {
+        if !seen[kind].insert(id.to_string()) {
+            shared.push(format!("two {what}s share the id {id}"));
+        }
+    };
+    let mut currents = 0;
     for it in &doc.children {
         let Item::Block(b) = it else { continue };
         match b.type_name.as_str() {
-            "history-revision" => s.revisions.push(Revision {
-                id: b.attr_text("id").unwrap_or_default(),
-                parent: b.attr_text("parent"),
-                author: b.attr_text("author"),
-                summary: b.attr_text("summary"),
-                hash: b.attr_text("hash").unwrap_or_default(),
-                newline: b.attr_text("newline").unwrap_or_else(|| "lf".into()),
-                ops: b.raw.iter().filter(|l| !l.trim().is_empty()).cloned().collect(),
-            }),
+            "meta" => {
+                // Counted in the text: the model keeps a key's first definition only.
+                let body = text.lines().skip(b.body_start.saturating_sub(1)).take(b.body_end.saturating_sub(b.body_start));
+                currents += body.filter(|l| l.trim_start().strip_prefix("current").is_some_and(|r| r.trim_start().starts_with('='))).count();
+            }
+            "history-revision" => {
+                let id = b.attr_text("id").unwrap_or_default();
+                once(0, "revision", &id, &mut s.shared);
+                s.revisions.push(Revision {
+                    id,
+                    parent: b.attr_text("parent"),
+                    author: b.attr_text("author"),
+                    summary: b.attr_text("summary"),
+                    hash: b.attr_text("hash").unwrap_or_default(),
+                    newline: b.attr_text("newline").unwrap_or_else(|| "lf".into()),
+                    ops: b.raw.iter().filter(|l| !l.trim().is_empty()).cloned().collect(),
+                });
+            }
             "history-keyframe" => {
-                s.keyframes.push(Keyframe { id: b.attr_text("id").unwrap_or_default(), hash: b.attr_text("hash").unwrap_or_default(), lines: b.raw.clone() })
+                let id = b.attr_text("id").unwrap_or_default();
+                once(1, "keyframe", &id, &mut s.shared);
+                s.keyframes.push(Keyframe { id, hash: b.attr_text("hash").unwrap_or_default(), lines: b.raw.clone() });
             }
             "history-blob" => {
                 if let Some(id) = &b.id {
+                    once(2, "blob", id, &mut s.shared);
                     s.blobs.insert(id.clone(), b.raw.clone());
                 }
             }
             _ => {}
         }
+    }
+    if currents > 1 {
+        s.shared.push(format!("the meta names `current` {currents} times"));
     }
     s
 }
@@ -157,7 +187,7 @@ struct Seg {
 /// other run of lines no blank line divides: a paragraph and the list it runs
 /// into are one unit, a list's blank-separated items several. A unit opened by
 /// a heading with an explicit `{#id}` is keyed by it; a derived id is not a key.
-fn segments(lines: &[String]) -> Vec<Seg> {
+fn segments(lines: &[String], keys: &RefCell<HashMap<String, String>>) -> Vec<Seg> {
     let none = Vocabulary::default();
     let mut d = Diags::default();
     let items = Scanner::new(lines, &mut d, &none).scan_body(0, lines.len(), 0);
@@ -171,7 +201,10 @@ fn segments(lines: &[String]) -> Vec<Seg> {
     let mut out = Vec::new();
     let mut fi = 0;
     let mut i = 0;
-    let seg = |s: usize, e: usize, id: Option<String>| Seg { start: s, end: e, id, key: sha256::hex(lines[s..=e].join("\n").as_bytes())[..8].to_string() };
+    let seg = |s: usize, e: usize, id: Option<String>| {
+        let key = keys.borrow_mut().entry(lines[s..=e].join("\n")).or_insert_with_key(|t| sha256::hex(t.as_bytes())[..8].to_string()).clone();
+        Seg { start: s, end: e, id, key }
+    };
     while i < lines.len() {
         if fi < fences.len() && fences[fi].0 == i {
             let (s, e, id) = fences[fi].clone();
@@ -232,8 +265,8 @@ fn take(lines: &mut Vec<String>, s: &Seg) -> Vec<String> {
     lines.drain(s.start..end).collect()
 }
 
-fn place(lines: &mut Vec<String>, a: &Anchor, unit: Vec<String>) -> Result<(), String> {
-    let segs = segments(lines);
+fn place(lines: &mut Vec<String>, a: &Anchor, unit: Vec<String>, keys: &RefCell<HashMap<String, String>>) -> Result<(), String> {
+    let segs = segments(lines, keys);
     let at = match a {
         Anchor::Start => 0,
         Anchor::End => lines.len(),
@@ -260,12 +293,12 @@ impl Sidecar {
         for raw in ops {
             match parse_op(raw)? {
                 Op::Delete(k) => {
-                    let segs = segments(&lines);
+                    let segs = segments(&lines, &self.keys);
                     let i = find(&segs, &k).ok_or_else(|| format!("`{raw}`: no such block"))?;
                     take(&mut lines, &segs[i]);
                 }
                 Op::Replace(k, b) => {
-                    let segs = segments(&lines);
+                    let segs = segments(&lines, &self.keys);
                     let i = find(&segs, &k).ok_or_else(|| format!("`{raw}`: no such block"))?;
                     let body = self.blob(&b)?.clone();
                     let end = unit_end(&lines, &segs[i]);
@@ -273,13 +306,13 @@ impl Sidecar {
                 }
                 Op::Insert(b, a) => {
                     let body = self.blob(&b)?.clone();
-                    place(&mut lines, &a, body).map_err(|m| format!("`{raw}`: {m}"))?;
+                    place(&mut lines, &a, body, &self.keys).map_err(|m| format!("`{raw}`: {m}"))?;
                 }
                 Op::Move(k, a) => {
-                    let segs = segments(&lines);
+                    let segs = segments(&lines, &self.keys);
                     let i = find(&segs, &k).ok_or_else(|| format!("`{raw}`: no such block"))?;
                     let unit = take(&mut lines, &segs[i]);
-                    place(&mut lines, &a, unit).map_err(|m| format!("`{raw}`: {m}"))?;
+                    place(&mut lines, &a, unit, &self.keys).map_err(|m| format!("`{raw}`: {m}"))?;
                 }
             }
         }
@@ -351,6 +384,7 @@ impl Sidecar {
     /// current revision is a warning (uncommitted changes).
     pub fn verify(&self, live: Option<&[u8]>) -> Verification {
         let mut v = Verification::default();
+        v.errors.extend(self.shared.iter().cloned());
         if !self.declared {
             v.warnings.push("the sidecar does not declare `profile = \"geml-history/v1\"`".into());
         }

@@ -3,6 +3,7 @@ package org.geml.intellij.cli
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.CapturingProcessHandler
 import com.intellij.execution.process.ProcessOutput
+import com.intellij.ide.impl.isTrusted
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
@@ -10,6 +11,10 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.SystemInfo
+import com.intellij.util.EnvironmentUtil
+import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
@@ -68,12 +73,15 @@ object GemlCli {
     if (cli != null && Files.isRegularFile(cli)) cli else null
   }
 
-  /** The command prefix every verb is appended to. */
+  /** The command prefix every verb is appended to, its program an absolute path. */
   private fun invocation(): List<String>? {
     val settings = GemlSettings.getInstance().state
 
     val override = settings.cliOverride.trim()
-    if (override.isNotEmpty()) return override.split(Regex("\\s+"))
+    if (override.isNotEmpty()) {
+      val parts = override.split(Regex("\\s+"))
+      return locate(parts[0])?.let { listOf(it) + parts.drop(1) }
+    }
 
     val cli = bundledCli
     if (cli == null) {
@@ -82,12 +90,30 @@ object GemlCli {
       // Node, so say which knob exists rather than guessing.
       complain(
         "The GEML plugin is missing its bundled parser. Set a command in " +
-          "Settings | Tools | GEML (for example `npx @geml/geml`)."
+          "Settings | Tools | GEML (for example the absolute path of an installed `geml`)."
       )
       return null
     }
-    val node = settings.nodePath.trim().ifEmpty { "node" }
+    val node = locate(settings.nodePath.trim().ifEmpty { "node" }) ?: return null
     return listOf(node, cli.toString())
+  }
+
+  /**
+   * A program's absolute path, found through the IDE's shell environment the
+   * way GeneralCommandLine would — but never in the working directory (see
+   * GemlProgram). Null, after saying why, when it cannot be run.
+   */
+  private fun locate(program: String): String? {
+    GemlProgram.refusal(program)?.let {
+      complain("Not running the command set in Settings | Tools | GEML: $it")
+      return null
+    }
+    val found = GemlProgram.resolve(program, EnvironmentUtil.getValue("PATH"), EnvironmentUtil.getValue("PATHEXT"), SystemInfo.isWindows)
+    if (found == null) {
+      complain("Could not find `$program` on PATH. Install it, or set its absolute path in Settings | Tools | GEML.")
+      return null
+    }
+    return found.toString()
   }
 
   /**
@@ -95,11 +121,13 @@ object GemlCli {
    * cross-document references resolve the way they do on the command line;
    * `stdin` is the buffer as it is NOW, which is what `-` in the args means.
    *
-   * Returns null when the CLI could not be run at all. Every caller has a
-   * sensible "then do nothing" behaviour: a missing Node must not turn into a
-   * wall of red in the editor.
+   * Returns null when the CLI could not be run at all, or may not run: nothing
+   * runs for a project the user has not trusted. Every caller has a sensible
+   * "then do nothing" behaviour: a missing Node must not turn into a wall of
+   * red in the editor.
    */
   fun run(
+    project: Project,
     args: List<String>,
     workDir: Path? = null,
     stdin: String? = null,
@@ -110,11 +138,21 @@ object GemlCli {
      */
     indicator: ProgressIndicator? = null,
   ): Result? {
+    // Safe mode runs nothing: a project opened without trust decides what its
+    // documents say, and must not get a say in what opening one starts. Every
+    // process starts here, so this is the one gate.
+    if (!project.isTrusted()) return null
     val prefix = invocation() ?: return null
 
     val command = GeneralCommandLine(prefix + args)
       .withCharset(StandardCharsets.UTF_8)
     if (workDir != null) command.withWorkingDirectory(workDir)
+    // The program is an absolute path already; what it starts in turn is not.
+    // A relative PATH entry would name the document's folder to a script's
+    // `#!/usr/bin/env node`, and on Windows cmd.exe tries the current directory
+    // before PATH for the `node` an npm .cmd shim calls unless told not to.
+    EnvironmentUtil.getValue("PATH")?.let { command.withEnvironment("PATH", GemlProgram.searchPath(it).joinToString(File.pathSeparator)) }
+    if (SystemInfo.isWindows) command.withEnvironment("NoDefaultCurrentDirectoryInExePath", "1")
 
     val output: ProcessOutput
     try {

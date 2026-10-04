@@ -16,8 +16,8 @@ export async function loadPage({ docUrl, raw, model, fetchText }) {
   const page = await loadPageStyle({
     docUrl, fetchText, parse, loadStylesheet, resolveStyle, model,
     // 文档 embed 进来的那些也进语料 —— 样式才指得到借来的块（地址是 `other.geml#id`）。
-    // 同一道同源闸；取不到就少一份语料，页面照画。
-    docs: await borrowedDocs(model, parse, fetchText, docUrl),
+    // 同一道同源闸；取不到就少一份语料，页面照画。入口认下之后才取。
+    borrow: () => borrowedDocs(model, parse, fetchText, docUrl),
     // 注册表往下传，unknown-component 才检查得起来（否则组件名写错静默退回默认渲染）。
     components: Object.keys(COMPONENTS),
   });
@@ -45,7 +45,7 @@ export function paintPage(page, model, dom, focus) {
   const state = createState(page.vm, dom);
   const out = renderPage(page.vm, model, dom, {
     renderBlock, labels: collectLabels(model.children), components: COMPONENTS, state, producers: page.producers,
-    corpus: page.corpus,
+    corpus: page.corpus, docUrl: page.docUrl,
   });
   if (out.error) {
     const root = renderDocument(model, dom, focus);

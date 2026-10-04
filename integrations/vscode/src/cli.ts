@@ -9,15 +9,115 @@
 
 import * as vscode from "vscode";
 import { spawn } from "node:child_process";
+import * as fs from "node:fs";
 import * as path from "node:path";
 
-let warnedMissing = false;
+const WIN = process.platform === "win32";
 
-/** How the user has told us to invoke the CLI, split into argv. */
-function invocation(): { bin: string; lead: string[] } {
+const warned = new Set<string>();
+
+/** Say it once per session: a missing CLI must not become a wall of popups. */
+function warnOnce(message: string): void {
+  if (warned.has(message)) return;
+  warned.add(message);
+  void vscode.window.showWarningMessage(message);
+}
+
+const MISSING =
+  "GEML: the `geml` CLI was not found. Install it with `npm i -g @geml/geml`, which puts it on PATH, " +
+  "or set `geml.check.path` to its absolute path.";
+
+/**
+ * Programs that run a PACKAGE rather than a file. Each looks for the package in
+ * the working directory's node_modules first, and the working directory here is
+ * the document's folder — so opening a cloned repository's README.geml would
+ * run that repository's own `@geml/geml`. Refused, with a message, not run.
+ */
+const PACKAGE_RUNNERS = new Set(["npx", "npm", "pnpm", "pnpx", "yarn", "bunx", "bun"]);
+
+/**
+ * How the user has told us to invoke the CLI, split into argv, with the program
+ * resolved to an absolute path. Null, after saying why, when it cannot be.
+ */
+function invocation(): { bin: string; lead: string[] } | null {
   const cfg = vscode.workspace.getConfiguration("geml");
   const parts = (cfg.get<string>("check.path", "geml") || "geml").trim().split(/\s+/);
-  return { bin: parts[0]!, lead: parts.slice(1) };
+  const name = parts[0]!;
+  const runner = path.basename(name).replace(/\.(cmd|bat|exe|ps1)$/i, "").toLowerCase();
+  if (PACKAGE_RUNNERS.has(runner)) {
+    warnOnce(
+      `GEML: \`geml.check.path\` starts ${runner}, which would run whatever @geml/geml the opened ` +
+      "folder's node_modules holds. Install the CLI with `npm i -g @geml/geml`, or set the setting " +
+      "to its absolute path.",
+    );
+    return null;
+  }
+  const bin = resolveProgram(name);
+  if (bin === null) {
+    warnOnce(MISSING);
+    return null;
+  }
+  return { bin, lead: parts.slice(1) };
+}
+
+/**
+ * The absolute path a program name stands for, looked up as a shell would but
+ * WITHOUT the current directory. The CLI runs in the document's folder, and a
+ * lookup that consulted it — cmd.exe's does, before PATH — would let a cloned
+ * repository's own `geml.cmd` answer for the CLI. So only absolute PATH entries
+ * are searched, and a relative path is refused outright.
+ */
+function resolveProgram(name: string, env: NodeJS.ProcessEnv = process.env): string | null {
+  if (path.isAbsolute(name)) return isProgram(name) ? name : null;
+  if (/[\\/]/.test(name)) return null;
+  const exts = WIN ? windowsExtensions(name, env) : [""];
+  for (const dir of searchPath(env)) {
+    for (const ext of exts) {
+      const candidate = path.join(dir, name + ext);
+      if (isProgram(candidate)) return candidate;
+    }
+  }
+  return null;
+}
+
+/** Windows spells PATH however it likes; everywhere else it is PATH. */
+function pathKey(env: NodeJS.ProcessEnv): string {
+  return (WIN && Object.keys(env).find((k) => k.toUpperCase() === "PATH")) || "PATH";
+}
+
+/** PATH's absolute entries. An empty or relative one means the current directory. */
+function searchPath(env: NodeJS.ProcessEnv): string[] {
+  return (env[pathKey(env)] ?? "").split(path.delimiter).filter((d) => d !== "" && path.isAbsolute(d));
+}
+
+/** What cmd.exe would append: nothing when the name already ends in one of them. */
+function windowsExtensions(name: string, env: NodeJS.ProcessEnv): string[] {
+  const exts = (env.PATHEXT || ".COM;.EXE;.BAT;.CMD").split(";").filter(Boolean);
+  return exts.some((e) => name.toLowerCase().endsWith(e.toLowerCase())) ? [""] : exts;
+}
+
+function isProgram(p: string): boolean {
+  try {
+    if (!fs.statSync(p).isFile()) return false;
+    if (!WIN) fs.accessSync(p, fs.constants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The CLI's environment. PATH loses its relative entries, which would name the
+ * document's folder to whatever the CLI starts in turn — `#!/usr/bin/env node`,
+ * or the `node` that npm's geml.cmd shim calls. On Windows,
+ * NoDefaultCurrentDirectoryInExePath stops cmd.exe looking in the current
+ * directory before PATH when that shim names `node`.
+ */
+function childEnv(): NodeJS.ProcessEnv {
+  const env = { ...process.env };
+  env[pathKey(env)] = searchPath(env).join(path.delimiter);
+  if (WIN) env.NoDefaultCurrentDirectoryInExePath = "1";
+  return env;
 }
 
 /**
@@ -37,8 +137,6 @@ const SAFE_ID = /^[\p{L}\p{N}_\-.:]+$/u;
 export function isSafeId(id: string): boolean {
   return id.length > 0 && id.length <= 200 && SAFE_ID.test(id);
 }
-
-const WIN = process.platform === "win32";
 
 /**
  * Characters that cannot appear in an argument, because on Windows the argument
@@ -66,12 +164,11 @@ export function shellSafe(arg: string): boolean {
 }
 
 /**
- * Quote an argument that contains spaces, for the Windows shell only. On POSIX
- * there is no shell (spawn passes argv straight through), so a quote character
- * added here would arrive as part of the value.
+ * Quote an argument that contains spaces, for cmd.exe. Only a .cmd or .bat goes
+ * through it; anything else gets argv passed straight through, where a quote
+ * character added here would arrive as part of the value.
  */
 function forShell(arg: string): string {
-  if (!WIN) return arg;
   return /[ \t]/.test(arg) ? `"${arg}"` : arg;
 }
 
@@ -95,7 +192,9 @@ export function spawnCli(
   args: string[],
   opts: { cwd?: string; input?: string; token?: vscode.CancellationToken },
 ): Promise<CliResult | null> {
-  const { bin, lead } = invocation();
+  // Restricted Mode runs nothing. Every CLI process starts here, so this is the
+  // one gate; extension.ts holds the features back until trust is granted.
+  if (!vscode.workspace.isTrusted) return Promise.resolve(null);
 
   const unsafe = args.find((a) => !shellSafe(a));
   if (unsafe !== undefined) {
@@ -105,6 +204,17 @@ export function spawnCli(
     return Promise.resolve(null);
   }
 
+  const how = invocation();
+  if (how === null) return Promise.resolve(null);
+  // npm's `geml.cmd` shim has no .exe behind it, and Node refuses a .cmd
+  // without a shell; anything else starts directly, with no shell to parse it.
+  const shell = WIN && /\.(cmd|bat)$/i.test(how.bin);
+  if (shell && !shellSafe(how.bin)) {
+    console.error(`[geml] refusing to run: the CLI's path is not safe for a command line: ${JSON.stringify(how.bin)}`);
+    return Promise.resolve(null);
+  }
+  const argv = [...how.lead, ...args];
+
   return new Promise((resolve) => {
     // Workspace symbols run this on every keystroke, so an abandoned search has
     // to actually stop rather than keep walking the tree until it finishes.
@@ -113,9 +223,9 @@ export function spawnCli(
 
     let proc;
     try {
-      // shell:true on Windows so the `geml.cmd` shim resolves on PATH — there is
-      // no .exe to spawn directly, and Node refuses a .cmd without a shell.
-      proc = spawn(bin, [...lead, ...args.map(forShell)], { cwd: opts.cwd, shell: WIN, signal: ac.signal });
+      proc = shell
+        ? spawn(forShell(how.bin), argv.map(forShell), { cwd: opts.cwd, shell, env: childEnv(), signal: ac.signal })
+        : spawn(how.bin, argv, { cwd: opts.cwd, env: childEnv(), signal: ac.signal });
     } catch {
       cancelled?.dispose();
       resolve(null);
@@ -131,13 +241,7 @@ export function spawnCli(
     proc.stderr.on("data", (d) => { stderr += d; });
     proc.on("error", (e: NodeJS.ErrnoException) => {
       // An abort is this extension's own doing, not a broken installation.
-      if (e.code === "ENOENT" && !ac.signal.aborted && !warnedMissing) {
-        warnedMissing = true;
-        void vscode.window.showWarningMessage(
-          "GEML: the `geml` CLI was not found. Install it with `npm i -g @geml/geml`, " +
-          "or set `geml.check.path` (for example `npx @geml/geml`).",
-        );
-      }
+      if (e.code === "ENOENT" && !ac.signal.aborted) warnOnce(MISSING);
       done(null);
     });
     proc.on("close", (code) => done(ac.signal.aborted ? null : { code, stdout, stderr }));
@@ -211,6 +315,9 @@ const listCache = new Map<string, { version: number; units: Promise<Unit[] | nul
 
 /** The document's block index, or null when the CLI could not produce one. */
 export function listUnits(doc: vscode.TextDocument): Promise<Unit[] | null> {
+  // Not cached: trust can be granted without the document changing, and this
+  // version's index must then be asked for, not served as "none".
+  if (!vscode.workspace.isTrusted) return Promise.resolve(null);
   const key = doc.uri.toString();
   const hit = listCache.get(key);
   if (hit && hit.version === doc.version) return hit.units;

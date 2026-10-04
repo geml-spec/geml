@@ -11,6 +11,7 @@
 pub mod addresses;
 pub mod attrs;
 pub mod block;
+pub mod bounds;
 pub mod check;
 pub mod data;
 pub mod diag;

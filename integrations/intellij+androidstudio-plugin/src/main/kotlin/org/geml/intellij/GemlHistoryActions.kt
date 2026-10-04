@@ -102,7 +102,7 @@ class GemlSaveRevisionAction : GemlFileAction() {
     // user can type is safe to pass on.
     val args = listOf("history", "save", ctx.base) + if (note.isBlank()) emptyList() else listOf("-m", note.trim())
     val result = GemlTasks.underProgress(ctx.project, "Saving a GEML Revision") {
-      GemlCli.run(args, ctx.workDir)
+      GemlCli.run(ctx.project, args, ctx.workDir)
     }
     if (result == null || result.code != 0) return fail(ctx.project, result, "could not save a revision")
 
@@ -133,7 +133,7 @@ class GemlRevertBlockAction : GemlFileAction() {
 
     val line = document.getLineNumber(ctx.editor.caretModel.offset) + 1
     val units = GemlTasks.underProgress(ctx.project, "Reading GEML Block Index") {
-      GemlIndex.list(document.text, ctx.workDir)
+      GemlIndex.list(ctx.project, document.text, ctx.workDir)
     } ?: return Messages.showWarningDialog(ctx.project, "Could not read this document's blocks.", "GEML")
 
     val unit = GemlIndex.unitAt(units, line)
@@ -167,7 +167,7 @@ class GemlRevertBlockAction : GemlFileAction() {
   /** The past revisions of this document, newest first. Offset 0 is the current text. */
   private fun revisions(ctx: Context): List<Revision>? {
     val result = GemlTasks.underProgress(ctx.project, "Reading GEML History") {
-      GemlCli.run(listOf("history", "get", ctx.base, "--json"), ctx.workDir)
+      GemlCli.run(ctx.project, listOf("history", "get", ctx.base, "--json"), ctx.workDir)
     }
     if (result == null) return null
     if (result.code != 0) {
@@ -216,7 +216,7 @@ class GemlRevertBlockAction : GemlFileAction() {
     if (go != Messages.YES) return
 
     val out = GemlTasks.underProgress(ctx.project, "Reverting ${unit.address}") {
-      GemlCli.run(listOf("revert", ctx.base, "#$id", "--rev", revision.id, "-o", "-"), ctx.workDir)
+      GemlCli.run(ctx.project, listOf("revert", ctx.base, "#$id", "--rev", revision.id, "-o", "-"), ctx.workDir)
     }
     if (out == null || out.code != 0 || out.stdout.isEmpty()) {
       return fail(ctx.project, out, "the CLI refused the revert")
@@ -233,12 +233,12 @@ class GemlRevertBlockAction : GemlFileAction() {
   private fun blockAt(ctx: Context, id: String, revision: String): String? {
     // `<rev>` is POSITIONAL for `history get` — `--rev` belongs to `revert`, and
     // `history` rejects it as an unknown flag.
-    val at = GemlCli.run(listOf("history", "get", ctx.base, revision), ctx.workDir)
+    val at = GemlCli.run(ctx.project, listOf("history", "get", ctx.base, revision), ctx.workDir)
     if (at == null || at.code != 0 || at.stdout.isEmpty()) return null
 
     // The revision's whole document, then one block out of it — on stdin, so the
     // revision text never becomes a temporary file or an argument.
-    val block = GemlCli.run(listOf("get", "-", "#$id"), ctx.workDir, at.stdout)
+    val block = GemlCli.run(ctx.project, listOf("get", "-", "#$id"), ctx.workDir, at.stdout)
     if (block == null || block.code != 0) return null
     return block.stdout.trim().ifEmpty { "(the block did not exist in this revision)" }
   }

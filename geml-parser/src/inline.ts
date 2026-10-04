@@ -8,6 +8,7 @@
 
 import { type Diagnostic } from "./diagnostics.js";
 import { type Value, parseAttrs } from "./attrs.js";
+import { INLINE_NESTING } from "./bounds.js";
 
 export type Inline =
   | { type: "text"; value: string }
@@ -75,7 +76,7 @@ export interface RefSink {
   projections?: { doc?: string; anchor: string; line: number }[];
 }
 
-const MAX_INLINE_NESTING = 100; // cap parseInline<->scanAtoms recursion (R2-7 DoS)
+// parseInline and scanAtoms recurse into each other; INLINE_NESTING caps it (R2-7 DoS).
 
 /** Length of the backtick run starting at `i`. */
 export function backtickRun(s: string, i: number): number {
@@ -199,6 +200,7 @@ interface Pairs {
   lb: Int32Array;   // partner of a link text's or an image alt's `[`, or -1
   pa: Int32Array;   // partner of a destination's `(`, or -1
   off: number;      // absolute index of the current window's first character
+  ab?: { s: string; end: Int32Array }; // attrEnds of the string readAttrs last read
 }
 
 // §5.3(3): a link's text and an image's alt balance only the brackets phase 1's
@@ -283,19 +285,31 @@ function readBracket(s: string, i: number, p: Pairs): { content: string; end: nu
   return j < 0 ? null : { content: s.slice(i + 1, j), end: j + 1 };
 }
 
+// Where a scan for the `}` that closes an attribute object ends, from every
+// index of `s` at once: `end[k]` is that `}` for a scan starting unquoted at k,
+// or -1. Built right to left in one pass, with `inq` the same answer for a scan
+// already inside quotes. Scanning afresh at every `{` made a paragraph of
+// `[a](b){`, none closed, cost the square of its length.
+function attrEnds(s: string): Int32Array {
+  const end = new Int32Array(s.length + 2).fill(-1);
+  const inq = new Int32Array(s.length + 2).fill(-1);
+  for (let k = s.length - 1; k >= 0; k--) {
+    const c = s[k];
+    if (c === "\\" && (s[k + 1] === '"' || s[k + 1] === "\\")) inq[k] = inq[k + 2]!;
+    else inq[k] = c === '"' ? end[k + 1]! : inq[k + 1]!;
+    end[k] = c === "}" ? k : c === '"' ? inq[k + 1]! : end[k + 1]!;
+  }
+  return end;
+}
+
 // Optional `{…}` attribute object immediately following a construct. §4: it
 // closes at the first `}` outside a quoted span, so `{title="a}b"}` is one
 // object; with no such `}` there is none and the `{` stays text.
-function readAttrs(s: string, i: number): { attrs: ReturnType<typeof parseAttrs>; end: number } | null {
+function readAttrs(s: string, i: number, p: Pairs): { attrs: ReturnType<typeof parseAttrs>; end: number } | null {
   if (s[i] !== "{") return null;
-  let quoted = false;
-  for (let k = i + 1; k < s.length; k++) {
-    const c = s[k]!;
-    if (quoted && c === "\\" && (s[k + 1] === '"' || s[k + 1] === "\\")) { k++; continue; }
-    if (c === '"') { quoted = !quoted; continue; }
-    if (!quoted && c === "}") return { attrs: parseAttrs(s.slice(i, k + 1)), end: k + 1 };
-  }
-  return null;
+  if (p.ab?.s !== s) p.ab = { s, end: attrEnds(s) };
+  const k = p.ab.end[i + 1]!;
+  return k < 0 ? null : { attrs: parseAttrs(s.slice(i, k + 1)), end: k + 1 };
 }
 
 // A phase-A atom in the phase-B sequence, carrying the first and last
@@ -406,7 +420,11 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth: number, p: Pai
         const hash = dest.indexOf("#");
         const name = (hash < 0 ? dest : dest.slice(0, hash)).trim();
         const frag = hash < 0 ? undefined : dest.slice(hash + 1).trim();
-        if (name !== "" || (frag !== undefined && frag !== "")) {
+        // A note name never carries a scheme (Obsidian refuses `:` in one), and
+        // the renderer joins the name into an href as written: `[[javascript:…#x]]`
+        // made a live `javascript:` link. Such a wikilink stays text, as it does
+        // in a `.geml`.
+        if ((name !== "" || (frag !== undefined && frag !== "")) && schemeOf(name) === null) {
           const node: Inline = frag !== undefined
             ? { type: "autoref", anchor: frag, ...(name !== "" ? { doc: name } : {}) }
             : { type: "text", value: s.slice(i, inner.end + 1) };
@@ -449,7 +467,7 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth: number, p: Pai
       const label = readLabel(s, i + 1, p);
       const paren = label ? readParen(s, label.end, p) : null;
       if (label && paren) {
-        const a = readAttrs(s, paren.end);
+        const a = readAttrs(s, paren.end, p);
         const attrObj = a ? a.attrs : { classes: [], attrs: {} };
         // Media src bypasses classifyDest, so guard the scheme here: a disallowed
         // scheme (javascript:, data:text/html, …) is neutralized to an empty src
@@ -506,7 +524,7 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth: number, p: Pai
       const label = readLabel(s, i, p);
       const paren = label ? readParen(s, label.end, p) : null;
       if (label && paren) {
-        const a = readAttrs(s, paren.end);
+        const a = readAttrs(s, paren.end, p);
         const attrObj = a ? a.attrs : { classes: [], attrs: {} };
         const dest = classifyDest(sink.markdown ? markdownDest(paren.content) : paren.content);
         const node: Extract<Inline, { type: "link" }> = {
@@ -753,13 +771,13 @@ function emphasize(parts: (string | AtomPart)[]): Inline[] {
 // the offset of this call's window into them. Only the recursive link-label call
 // supplies it; every external caller omits it and gets the maps built here.
 export function parseInline(s: string, line: number, sink: RefSink, depth = 0, pairs?: Pairs): Inline[] {
-  if (depth > MAX_INLINE_NESTING) {
+  if (depth > INLINE_NESTING) {
     // Pathological nesting (thousands of nested link labels) would overflow the
     // call stack (R2-7). Degrade the over-deep content to text — emphasis only,
     // no further link recursion — and flag it; never throw RangeError.
     const diags = (sink as unknown as { diags?: Diagnostic[] }).diags;
     if (Array.isArray(diags) && !diags.some((d) => d.code === "inline-nesting-too-deep"))
-      diags.push({ severity: "error", code: "inline-nesting-too-deep", message: `inline nesting too deep (max ${MAX_INLINE_NESTING})`, line });
+      diags.push({ severity: "error", code: "inline-nesting-too-deep", message: `inline nesting too deep (max ${INLINE_NESTING})`, line });
     return emphasize([s]);
   }
   return emphasize(scanAtoms(s, line, sink, depth, pairs ?? pairsOf(s)));

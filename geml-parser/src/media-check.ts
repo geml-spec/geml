@@ -8,9 +8,11 @@
 //
 // 它不 import node:fs：浏览器打包（geml-viewer）会把这个模块一起吃进去，一个 node:*
 // 依赖就能让整份扩展构建失败（node:os 那次）。文件访问走 MediaIO，由宿主给。
-import { parse, type Block, type Document, type Inline } from "./geml.js";
+import { EMBED_TOTAL_CAP, parse, type Block, type Document, type Inline } from "./geml.js";
+import { layoutsOf, timecodeToSeconds } from "./media-timeline.js";
 import { mediaDiag, type MediaDiagnostic } from "./media-diagnostics.js";
 import { type ProfileIO } from "./profiles.js";
+import { CHAIN_DEPTH, MEDIA_MAX_TIME } from "./bounds.js";
 import { layerSpec, parseEnd, parsePoints, parsePointNames, solveLayout, type End, type InteractionSpec, type LayerSpec } from "./media-compose.js";
 
 // 这份检查器读盘的方式，就是任何一份 profile 检查器读盘的方式（profiles.ts
@@ -72,19 +74,26 @@ export function metaOf(doc: Document): Map<string, string> {
 }
 
 const str = (v: unknown): string | undefined => (typeof v === "string" ? v : typeof v === "number" ? String(v) : undefined);
+/** 哈希按十六进制数字比较，不分大小写（§6）。 */
+const hex = (v: unknown): string | undefined => str(v)?.toLowerCase();
 
 /**
  * 一个散文块展开投射之后的纯文本 —— 模型看到的那串字，`prompt-sha256` 哈希的对象。
  * 核心今天没有按块展开的办法（`geml get` 返回原文，只有整篇 `--to md` 才展开），
  * 所以检查器自带一个。这正是设计记录 §9 第 2 条（`get --resolved`）的用例。
  */
+// 一次展开（一条 prompt）共用的账：花掉的展开次数。
+type ProseRun = { spent: number };
+
 function proseText(
   block: Extract<Block, { kind: "block" }>,
   from: string,
   load: (rel: string) => Loaded | null,
   depth = 0,
+  path: ReadonlySet<string> = new Set(block.id !== undefined ? [`${from}#${block.id}`] : []),
+  run: ProseRun = { spent: 0 },
 ): string | null {
-  if (depth > 16) return null; // GEML §9.3's bound on a projection chain
+  if (depth > CHAIN_DEPTH) return null; // GEML §9.3's bound on a projection chain
   const para = (block.children ?? []).find((c) => c.kind === "paragraph");
   if (para === undefined || para.kind !== "paragraph") return null;
   const render = (nodes: Inline[]): string => nodes.map((n): string => {
@@ -92,10 +101,17 @@ function proseText(
     if (n.type === "project") {
       const tgt = splitRef(n.doc !== undefined ? `${n.doc}#${n.anchor}` : `#${n.anchor}`, from);
       if (tgt === null) return "";
+      // 只有深度上限时，一块里投三次自己就是 3^16 次展开（276 字节跑了二十秒）；无环的
+      // 菱形也一样，每层投下一层四次，展开出的字就有 4^16 个。所以：已在展开路径上的是环
+      // （核心检查报 transclusion-cycle），这里贡献空串；每一次展开都记账，一条 prompt 最多
+      // 展开 EMBED_TOTAL_CAP 次，之后的贡献空串 —— 按文档顺序、深度优先截断。
+      const key = `${tgt.doc}#${tgt.id}`;
+      if (path.has(key)) return "";
+      if (++run.spent > EMBED_TOTAL_CAP) return "";
       const into = load(tgt.doc);
       if (into === null) return "";
       const b = blocksOf(into.doc).find((x) => x.id === tgt.id);
-      return b === undefined ? "" : (proseText(b, tgt.doc, load, depth + 1) ?? "");
+      return (b === undefined ? null : proseText(b, tgt.doc, load, depth + 1, new Set(path).add(key), run)) ?? "";
     }
     const kids = (n as { children?: Inline[] }).children;
     if (kids !== undefined) return render(kids);
@@ -261,25 +277,31 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
   const currentHash = new Map<string, string | null>();   // "doc#id" -> 文件现值
   for (const [key, { l, b }] of assets) {
     const src = str(b.attrs["src"]);
-    const declared = str(b.attrs["sha256"]);
+    const declared = hex(b.attrs["sha256"]);
     if (src === undefined || src === "") {
       out.push(mediaDiag("media-src-unresolved", "`media-asset` 没有 `src=`", l.rel, b.id));
       continue;
     }
-    const path = joinRel(dirOf(l.rel), src);
-    const now = io.hashFile(path);
-    currentHash.set(key, now);
-    if (now === null) {
-      out.push(mediaDiag("media-file-missing", `\`${src}\` 不存在（描述别处素材的库照样合法，只是未校验）`, l.rel, b.id));
-    } else if (declared === undefined) {
-      out.push(mediaDiag("media-asset-unhashed", "没有 `sha256=`，这份素材的血缘不可校验", l.rel, b.id));
-    } else if (declared !== now) {
-      out.push(mediaDiag("media-hash-mismatch",
-        `\`${src}\` 在，但它的 SHA-256 是 \`${now.slice(0, 12)}…\`，声明的是 \`${declared.slice(0, 12)}…\` —— 文件在、内容却不是它说的那个，比没有更糟`,
-        l.rel, b.id));
-    }
-    if (declared === undefined && now === null) {
-      out.push(mediaDiag("media-asset-unhashed", "没有 `sha256=`，这份素材的血缘不可校验", l.rel, b.id));
+    // 素材文件要交给播放器和 ffmpeg，它们把 scheme（`concat:`、`http:`）当指令读（§3）。
+    // 判断用用户代理读到的样子：去掉 C0 控制符与空格（GEML §9.4）。
+    const read = src.replace(/[\x00-\x20]/g, "");
+    if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(read) || read.startsWith("/") || read.includes("\\")) {
+      // 不是这个检查器会打开的文件：它在不在、哈希对不对都不问。
+      out.push(mediaDiag("media-src-not-relative", `\`${src}\` 不是相对路径：带 URL scheme、以 / 开头或含反斜杠的路径不交给播放器和 ffmpeg`, l.rel, b.id));
+      currentHash.set(key, null);
+    } else {
+      const path = joinRel(dirOf(l.rel), src);
+      const now = io.hashFile(path);
+      currentHash.set(key, now);
+      // 缺 `sha256=` 与文件在不在无关：库没说期望哪份字节（§3）。
+      if (declared === undefined) out.push(mediaDiag("media-asset-unhashed", "没有 `sha256=`，没法校验它的文件是不是库里描述的那一份", l.rel, b.id));
+      if (now === null) {
+        out.push(mediaDiag("media-file-missing", `\`${src}\` 不存在（描述别处素材的库照样合法，只是未校验）`, l.rel, b.id));
+      } else if (declared !== undefined && declared !== now) {
+        out.push(mediaDiag("media-hash-mismatch",
+          `\`${src}\` 在，但它的 SHA-256 是 \`${now.slice(0, 12)}…\`，声明的是 \`${declared.slice(0, 12)}…\` —— 文件在、内容却不是它说的那个，比没有更糟`,
+          l.rel, b.id));
+      }
     }
     const of = str(b.attrs["of"]);
     if (of !== undefined && of !== "") {
@@ -556,14 +578,14 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
   const current = new Map<string, Rec>();           // 素材 key -> 当前记录
   for (const [key, recs] of byOutput) {
     const now = currentHash.get(key) ?? null;
-    const match = recs.filter((x) => str(x.r["output-sha256"]) === now);
+    // 现值是文件此刻的哈希（§6）。读不到文件就没有现值：没有记录与它匹配，不算孤儿，
+    // 血缘也不查。没有记录匹配时只是孤儿 —— 过期只在匹配现值的那条记录上算。
+    if (now === null) continue;
+    const match = recs.filter((x) => hex(x.r["output-sha256"]) === now);
     const pick = (list: Rec[]): Rec => [...list].sort((a, b) => (str(a.r["at"]) ?? "") < (str(b.r["at"]) ?? "") ? 1 : -1)[0] as Rec;
     if (match.length === 0) {
-      if (now !== null && recs.length > 0) {
-        out.push(mediaDiag("media-orphan-record",
-          "没有任何记录的 `output-sha256` 等于它现在的哈希 —— 这份字节来历不明", recs[0]!.rel, recs[0]!.id));
-      }
-      current.set(key, pick(recs));
+      out.push(mediaDiag("media-orphan-record",
+        "没有任何记录的 `output-sha256` 等于它现在的哈希 —— 这份字节来历不明", recs[0]!.rel, recs[0]!.id));
       continue;
     }
     current.set(key, pick(match));
@@ -572,7 +594,7 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
   for (const [key, rec] of current) {
     const why: string[] = [];
     const prompt = str(rec.r["prompt"]);
-    const promptSha = str(rec.r["prompt-sha256"]);
+    const promptSha = hex(rec.r["prompt-sha256"]);
     if (prompt !== undefined && promptSha !== undefined) {
       const nowSha = nowHashOf(prompt, rec.rel);
       if (nowSha !== null && nowSha !== promptSha) why.push(`提示词 \`${prompt}\``);
@@ -580,7 +602,7 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
     const refs = rec.r["prompt-refs"];
     if (Array.isArray(refs)) {
       for (const it of refs as Record<string, unknown>[]) {
-        const ref = str(it["ref"]); const was = str(it["sha256"]);
+        const ref = str(it["ref"]); const was = hex(it["sha256"]);
         if (ref === undefined || was === undefined) continue;
         const nowSha = nowHashOf(ref, rec.rel);
         if (nowSha !== null && nowSha !== was) why.push(`投射源 \`${ref}\``);
@@ -589,7 +611,7 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
     const inputs = rec.r["inputs"];
     if (Array.isArray(inputs)) {
       for (const it of inputs as Record<string, unknown>[]) {
-        const ref = str(it["ref"]); const was = str(it["sha256"]);
+        const ref = str(it["ref"]); const was = hex(it["sha256"]);
         if (ref === undefined || was === undefined) continue;
         const nowSha = nowHashOf(ref, rec.rel);
         if (nowSha !== null && nowSha !== was) why.push(`输入 \`${ref}\``);
@@ -634,6 +656,60 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
       if (why !== undefined) {
         out.push(mediaDiag("media-stale-clip",
           `它用的 \`${src}\` 已过期：${why.join("；")}`, rel, b.id));
+      }
+    }
+  }
+
+  // ---- 电平与时间（§4、§3.2） -----------------------------------------------
+  // gain 要拼进播放图与 ffmpeg 的滤镜图，只认带单位的分贝值；每个时间都是有限数且不超过
+  // max-time（MEDIA_MAX_TIME），片段在时间线上的终点也一样 —— 时间线按长度绘制、按长度出片。
+  const timeOf = (v: unknown, fps: number | undefined): number | undefined => {
+    if (typeof v === "number") return v;
+    if (typeof v !== "string") return undefined;
+    const t = v.trim();
+    if (t.includes(":")) return timecodeToSeconds(t, fps);
+    return /^[+-]?(\d+(\.\d*)?|\.\d+)(e[+-]?\d+)?$/i.test(t) ? Number(t) : undefined;
+  };
+  const pastMax = (t: number | undefined): boolean => t !== undefined && !(Number.isFinite(t) && t <= MEDIA_MAX_TIME);
+  const tooLong = (rel: string, id: string | undefined, what: string, t: number): void => {
+    out.push(mediaDiag("media-time-out-of-range", `${what} 是 ${Number.isFinite(t) ? `${t} 秒` : "非有限数"}：时间不超过 24 小时（86400 秒）`, rel, id));
+  };
+  for (const [, { l, b }] of assets) {
+    const d = timeOf(b.attrs["duration"], undefined);
+    if (pastMax(d)) tooLong(l.rel, b.id, "`duration`", d!);
+  }
+  for (const rel of seen) {
+    const l = docs.get(rel);
+    if (l === null || l === undefined) continue;
+    const reported = new Set<string>();
+    const walk = (bs: Block[], fps: number | undefined): void => {
+      for (const b of bs) {
+        if (b.kind !== "block") continue;
+        const own = b.type === "media" ? timeOf(b.attrs["fps"], undefined) : fps;
+        if (b.type === "media-clip" || (b.type === "media" && b.attrs["src"] !== undefined)) {
+          const gain = b.attrs["gain"];
+          if (gain !== undefined && !/^-?\d+(\.\d+)?\s*dB$/i.test(String(gain).trim())) {
+            out.push(mediaDiag("media-gain-invalid", `\`gain=${String(gain)}\` 不是分贝值（写成 \`-14dB\`）`, rel, b.id));
+          }
+          for (const k of ["in", "out", "duration", "offset", "at"]) {
+            const t = timeOf(b.attrs[k], own);
+            if (pastMax(t) && b.id !== undefined && !reported.has(b.id)) { reported.add(b.id); tooLong(rel, b.id, `\`${k}\``, t!); }
+          }
+        }
+        if (b.children) walk(b.children, own);
+      }
+    };
+    walk(l.doc.children, undefined);
+    const durationOf = (ref: string): number | undefined => {
+      const t = splitRef(ref, rel);
+      const a = t === null ? undefined : assets.get(`${t.doc}#${t.id}`);
+      const d = a === undefined ? undefined : timeOf(a.b.attrs["duration"], undefined);
+      return d !== undefined && Number.isFinite(d) ? d : undefined;
+    };
+    for (const tl of layoutsOf(l.doc, { durationOf })) {
+      for (const c of tl.clips) {
+        const end = c.start + c.duration;
+        if (pastMax(end) && !reported.has(c.id)) { reported.add(c.id); tooLong(rel, c.id, "片段在时间线上的终点", end); }
       }
     }
   }

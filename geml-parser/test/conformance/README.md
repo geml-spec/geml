@@ -6,9 +6,9 @@ of `parse(geml)` — a compact, deterministic serialization of the document mode
 is where the rules live; every case is a check derived from its text, and adds no
 rule of its own. A case whose expected output the text does not determine is a gap
 in the specification, fixed there first; where a case and the text disagree, the
-text decides and the case is wrong. What the specification leaves to the
-implementation (§9.2's nesting bounds, the work a processor spends on §9.3's
-chains) is kept out of the cases. A second, independent GEML implementation
+text decides and the case is wrong. What the specification leaves to the implementation (§9.2's bounds on block, list and inline nesting, the work a
+processor spends on §9.3's chains) is kept out of the cases. The bounds §9.2 fixes are in them, made from its
+table — see [Boundary cases](#boundary-cases). A second, independent GEML implementation
 **conforms** when it reproduces every case its capabilities reach.
 
 A case may also carry the fields below, and may give its input as `geml_base64` —
@@ -23,6 +23,7 @@ field needs; a harness runs what its implementation's capabilities reach.
 | `addresses` | the `#…` addresses a listing of the document gives, in order: block and heading ids, §4 prose addresses, `#meta` |
 | `blocks` | the block tree — the grammar is below |
 | `diagnostics` | the `code:severity` of each diagnostic Appendix A catalogues, compared as a multiset |
+| `bound` | the name of the §9.2 fixed bound the case sits on; it is compared with nothing, and marks a case [`_bounds.mjs`](_bounds.mjs) makes |
 
 A case in a file that needs `host` gives, instead of `geml`, a directory tree:
 `files` maps root-relative paths to their content, and `main` names the document
@@ -39,11 +40,11 @@ a path that leaves the tree reads nothing.
 | `interp.json` | `{{key}}` metadata interpolation: substitution in paragraphs/headings/list items, the verbatim-atom skips (code span, inline math), the `\{{key}}` escape, unknown keys kept literal |
 | `transclusion.json` | the `embed` block and its target (a document, a fragment, a local id), and inline projection `![[…]]` in and out of a sentence |
 | `safety.json` | the URL-scheme rule of [GEML-spec §9](../../../spec/GEML-spec.md#9-security-and-resource-limits): which destinations are neutralized in the MODEL, and — just as important — which must survive |
-| `data.json` | the `data` block's value tree (§3.2): `json` and `jsonl` parsed and projected, the bodies that carry no value, and I-JSON's limits — a repeated name, a lone surrogate, a number past binary64 |
+| `data.json` | the `data` block's value tree (§3.2): `json` and `jsonl` parsed and projected, the bodies that carry no value, and the value tree's limits — a repeated name, a lone surrogate, a number past binary64, a container past `data-depth` |
 | `fences.json` | typed-block fences (§3): glued and spaced spellings, labeled closes, what is not a type name, the ` ``` ` shield |
 | `vocabulary.json` | a `profile` declaration does not change the document model (§8.6) |
 | `coordinates.json` | coordinate references (§5.2): rows, cells, columns, `[summary]`, `#meta`, value trees, header-less letters, out-of-range; a table's row width (§6) |
-| `views.json` | the `view` block (§6.1): `where=`, `order=`, `limit=`, `select=`, `compute=`, `summary=`, `by=` / `aggregate=` |
+| `views.json` | the `view` block (§6.1): `where=`, `order=`, `limit=`, `select=`, `compute=`, `summary=`, `by=` / `aggregate=`; and the edges of `table-cells` (§6) and of a view chain's `chain-depth` (§9.3) |
 | `ids.json` | heading-id derivation (§4): code spans, diacritics, Unicode letters, numbers and whitespace, collisions |
 | `normalize.json` | §0.5: one leading U+FEFF removed, every line ending one U+000A, U+0000 and ill-formed UTF-8 as U+FFFD |
 | `blocks.json` | the block tree (§3, §4): nesting by fence length, raw vs. flow bodies, labeled and unterminated closes, `%%` lines, attribute typing and escapes |
@@ -64,6 +65,19 @@ A third, in another language, reads the same manifest:
 the spec and this suite alone. It declares every capability, and runs the suite
 natively and as WebAssembly through `_runner.mjs`, so its model is read by
 `_project.mjs` itself.
+
+## Boundary cases
+
+The cases with a `bound` stand on the edges of §9.2's fixed bounds, and
+[`_bounds.mjs`](_bounds.mjs) makes them from the specification's table of those
+bounds: `data-depth` on both sides of its edge in `json`, `jsonl` and `yaml`,
+`table-cells` one column past it, and `chain-depth` on both sides of a `view`
+chain's edge. It makes the profiles' boundary cases the same way: geml-media's
+from its own table, and geml-style's frame nesting from `chain-depth`, the bound
+that profile takes from the core. A value is stated in that table and nowhere else; when it changes,
+`node _bounds.mjs --write` remakes the cases. [`../bounds.test.mjs`](../bounds.test.mjs)
+fails until it has, and holds every implementation in this repository to the
+table's values.
 
 ## Security requirements: what this suite can and cannot certify
 

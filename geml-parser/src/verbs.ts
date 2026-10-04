@@ -25,10 +25,10 @@
 // agents reading these messages have learned.
 import {
   type Document, type Block, type Diagnostic, type Value, type Span, type UnitPart,
-  EMBED_DEPTH_LIMIT, FENCE_OPEN,
+  CHAIN_DEPTH, EMBED_TOTAL_CAP, FENCE_OPEN,
   parse, blockSpans, sliceUnit, addressedUnits, relJoinPath, relDirPath,
   closeFenceLine, findBlockSite, isCloseFence, narrowToHead, newlineOf,
-  narrowToIntro, reLit, sectionEndIndex, splitLines, stripEol, toLf, toNewline, trimSpaceTabEnd,
+  labeledClose, narrowToIntro, reLit, sectionEndIndex, splitLines, stripEol, toLf, toNewline, trimSpaceTabEnd,
   nameKey, resolveTarget, selectEmbed, vocabularyOf, isMarkdownPath, type WalkOptions } from "./geml.js";
 import { type Unit, type Addressed, type Selector } from "./selector.js";
 import { schemeOf, backtickRun, findCodeSpanClose } from "./inline.js";
@@ -195,16 +195,22 @@ function oneHop(file: string, src: string, root: string, ctx: VerbContext):
 }
 
 function viewResolve(source: string, file: string, unit: Unit, root: string, ctx: VerbContext,
-                     depth = 0, seen: ReadonlySet<string> = new Set()): ViewResult[] {
+                     depth = 0, seen: ReadonlySet<string> = new Set(), run: { hops: number } = { hops: 0 }): ViewResult[] {
   const src = unit.kind === "block" && unit.type === "embed" ? embedSrcOf(source, unit) : undefined;
   if (src === undefined) return [{ doc: file, text: source, unit, all: [], from: "" }];
-  // The renderer expands no deeper either (EMBED_DEPTH_LIMIT), but where the
+  // The renderer expands no deeper either (CHAIN_DEPTH), but where the
   // cycle detector may stop SILENTLY — a 9-deep chain is legal and simply is
   // not expanded — `--view` may not: stopping here means what we are holding is
   // still a frame, and returning it would break the contract silently.
-  if (depth >= EMBED_DEPTH_LIMIT) {
+  if (depth >= CHAIN_DEPTH) {
     throw new ViewError("depth",
-      `chain still not on an entity block after ${EMBED_DEPTH_LIMIT} hops (the renderer expands no deeper either)`);
+      `chain still not on an entity block after ${CHAIN_DEPTH} hops (the renderer expands no deeper either)`);
+  }
+  // The depth bound alone lets a chain fan out: K frames a document, sixteen
+  // deep, is K^16 hops. Past the renderer's total the answer would be partial,
+  // and a partial `--view` is the silent stop the depth bound refuses too.
+  if (++run.hops > EMBED_TOTAL_CAP) {
+    throw new ViewError("budget", `resolving this view took more than ${EMBED_TOTAL_CAP} hops (the renderer expands no more either)`);
   }
   const hop = oneHop(file, src, root, ctx);
   // Same key shape as the check's cycle detector: a document plus what was
@@ -217,7 +223,7 @@ function viewResolve(source: string, file: string, unit: Unit, root: string, ctx
   const nextSeen = new Set(seen).add(key);
   // Per-unit application, recursively: what a frame looks onto may itself be a
   // frame, and a section may hold a mix (§4.3).
-  return hop.units.flatMap((u) => viewResolve(hop.text, hop.doc, u, root, ctx, depth + 1, nextSeen)
+  return hop.units.flatMap((u) => viewResolve(hop.text, hop.doc, u, root, ctx, depth + 1, nextSeen, run)
     // An inner identity step has no provenance of its own, so carry this hop's:
     // `from` must always name where the bytes actually came from.
     .map((r) => (r.from === "" ? { ...r, from: hop.from } : r)));
@@ -367,6 +373,20 @@ export function list(source: string, file: string, json: boolean, ctx: VerbConte
   const unregistered = new Set(
     doc.diagnostics.filter((d) => d.code === "unknown-block-type").map((d) => d.line),
   );
+  // The ids of `.footnote` blocks, from one walk of the model: searching the
+  // tree once per row made a listing of n blocks cost n².
+  const footnotes = new Set<string>();
+  const walk = (bs: Block[]): void => {
+    for (const b of bs) {
+      if (b.kind === "block") {
+        if (b.id !== undefined && b.classes.includes("footnote")) footnotes.add(nameKey(b.id));
+        if (b.children) walk(b.children);
+      } else if (b.kind === "list") {
+        for (const it of b.items) if (it.children) walk(it.children);
+      }
+    }
+  };
+  walk(doc.children);
   const rows: Row[] = all.filter((a) => scopes === undefined || insideAny(a.unit, scopes)).map((a) => {
     const u = a.unit;
     const row: Row = {
@@ -382,11 +402,7 @@ export function list(source: string, file: string, json: boolean, ctx: VerbConte
     if (u.kind === "heading") { row.level = u.level; row.text = u.text; }
     // `.footnote` is authored, not synthesized (the `[^id]: text` definition
     // line was withdrawn) — but it still marks a block meant as a footnote.
-    if (u.id !== undefined) {
-      const site = findBlockSite(doc.children, u.id);
-      const b = site?.siblings[site.index];
-      if (b?.kind === "block" && b.classes.includes("footnote")) row.footnote = true;
-    }
+    if (u.id !== undefined && footnotes.has(nameKey(u.id))) row.footnote = true;
     return row;
   });
 
@@ -396,14 +412,16 @@ export function list(source: string, file: string, json: boolean, ctx: VerbConte
     return "";
   }
 
-  const addrW = Math.max(...rows.map((r) => columns(r.address)));
-  const kindW = Math.max(...rows.map((r) => columns(r.kind)));
+  // Folded, not spread: one argument per row overflows the stack on a long listing.
+  const widest = (f: (r: typeof rows[number]) => number): number => rows.reduce((w, r) => Math.max(w, f(r)), -Infinity);
+  const addrW = widest((r) => columns(r.address));
+  const kindW = widest((r) => columns(r.kind));
   // The line range belongs on EVERY row, headings included. It used to be the
   // alternative to a heading's text, so the one kind of block whose range you
   // most want — a whole section — was the one kind that did not print it, and
   // `L11-493` is itself an address you can paste back into `get`. The heading's
   // text follows it rather than replacing it.
-  const lineW = Math.max(...rows.map((r) => `L${r.lines[0]}-${r.lines[1]}`.length));
+  const lineW = widest((r) => `L${r.lines[0]}-${r.lines[1]}`.length);
   const out: string[] = [];
   for (const r of rows) {
     const mark = r.kind === "heading" ? `h${r.level}` : r.anon ? "anon" : "";
@@ -913,9 +931,18 @@ export function transform(src: string, file: string, o: TransformOptions, ctx: V
       // browser's built-in Translator); this path has none, so it inlines the
       // source and says so rather than shipping a stand-in that would make an
       // export look translated when nothing translated it.
+      // Counted over the whole export (geml.ts EMBED_TOTAL_CAP), the expansions
+      // and the view hops under them alike.
+      let spent = 0;
+      const hops = { hops: 0 };
       const expand = (at: string, atText: string, depth: number) =>
         (target: string, embedAttrs?: Record<string, Value>, host?: EmbedHost): string | undefined => {
-        if (depth >= EMBED_DEPTH_LIMIT) return undefined;
+        if (depth >= CHAIN_DEPTH) return undefined;
+        if (spent >= EMBED_TOTAL_CAP) {
+          if (spent++ === EMBED_TOTAL_CAP) inner.push(`expansion budget spent (${EMBED_TOTAL_CAP} expansions); later embeds are links`);
+          return undefined;
+        }
+        spent++;
         // GEP 0010 — `part=` narrows a heading's section, and the span layer has
         // drawn exactly these three lines since `geml get --head` existed. So the
         // export honours a document address the same way the CLI honours a flag.
@@ -985,7 +1012,7 @@ export function transform(src: string, file: string, o: TransformOptions, ctx: V
             return render(at, atText, units);
           }
           const hop = oneHop(at, target, mdRoot, ctx);
-          const ends = hop.units.flatMap((u) => viewResolve(hop.text, hop.doc, u, mdRoot, ctx));
+          const ends = hop.units.flatMap((u) => viewResolve(hop.text, hop.doc, u, mdRoot, ctx, 0, new Set(), hops));
           const out: string[] = [];
           for (const res of ends) {
             const one = render(res.doc, res.text, [res.unit]);
@@ -1834,7 +1861,7 @@ function bodyRange(text: string, span: Span): Span {
   if (open) {
     const lastText = trimSpaceTabEnd(stripEol(lines[span.end - 1] ?? ""));
     const bid = open[3] ? parseAttrs(open[3]).id : undefined;
-    const labeled = bid !== undefined && new RegExp(`^={3,}[ \\t]+#${reLit(bid)}[ \\t]*$`).test(lastText);
+    const labeled = bid !== undefined && labeledClose(bid).test(lastText);
     const closed = isCloseFence(lastText, open[1]!.length) || labeled;
     return { start: span.start + 1, end: closed ? span.end - 1 : span.end };
   }

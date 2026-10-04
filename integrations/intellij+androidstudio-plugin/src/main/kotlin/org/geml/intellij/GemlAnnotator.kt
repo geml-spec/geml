@@ -4,6 +4,7 @@ import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.ExternalAnnotator
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
@@ -25,23 +26,23 @@ import java.nio.file.Path
  */
 class GemlAnnotator : ExternalAnnotator<GemlAnnotator.Request, GemlAnnotator.Answer>() {
 
-  class Request(val text: String, val workDir: Path?, val file: VirtualFile, val stamp: Long)
+  class Request(val project: Project, val text: String, val workDir: Path?, val file: VirtualFile, val stamp: Long)
   class Answer(val diagnostics: List<GemlDiagnostic>)
 
   override fun collectInformation(file: PsiFile, editor: Editor, hasErrors: Boolean): Request? {
     if (!GemlSettings.getInstance().state.checkEnabled) return null
     val virtualFile = file.virtualFile ?: return null
     val document = editor.document
-    return Request(document.text, GemlIndex.workDirOf(virtualFile), virtualFile, document.modificationStamp)
+    return Request(file.project, document.text, GemlIndex.workDirOf(virtualFile), virtualFile, document.modificationStamp)
   }
 
   override fun doAnnotate(request: Request): Answer? {
     // Piggy-backed on the pass that was happening anyway, for the consumers that
     // cannot afford a process of their own (see GemlIndex).
     if (GemlIndex.isWanted(request.file)) {
-      GemlIndex.list(request.text, request.workDir)?.let { GemlIndex.put(request.file, request.stamp, it) }
+      GemlIndex.list(request.project, request.text, request.workDir)?.let { GemlIndex.put(request.file, request.stamp, it) }
     }
-    val diagnostics = GemlIndex.check(request.text, request.workDir) ?: return null
+    val diagnostics = GemlIndex.check(request.project, request.text, request.workDir) ?: return null
     return Answer(diagnostics)
   }
 

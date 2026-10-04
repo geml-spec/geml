@@ -23,12 +23,26 @@
       "name": "punctuation.definition.fence.end.geml"
     },
     "heading": {
-      "match": "^(#{1,6})\\s+(.*?)\\s*(\\{[^}]*\\})?\\s*$",
+      "comment": "begin/end, not one match: a lazy text group followed by optional blanks and an optional {…} backtracks cubically on a long run of spaces, on every line as it is typed. The attributes are the {…} that ends the line; the rest is text.",
+      "begin": "^(#{1,6})\\s+",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.heading.geml" }
+      },
+      "end": "$",
+      "patterns": [
+        { "include": "#heading-attributes" },
+        { "include": "#heading-text" }
+      ]
+    },
+    "heading-attributes": {
+      "match": "\\{[^}]*\\}(?=\\s*$)",
       "captures": {
-        "1": { "name": "punctuation.definition.heading.geml" },
-        "2": { "name": "markup.heading.geml" },
-        "3": { "name": "meta.attributes.geml", "patterns": [{ "include": "#attributes" }] }
+        "0": { "name": "meta.attributes.geml", "patterns": [{ "include": "#attributes" }] }
       }
+    },
+    "heading-text": {
+      "match": "(?:[^{\\n]++|\\{[^}\\n]*+(?:\\}(?!\\s*$)|$))+",
+      "name": "markup.heading.geml"
     },
     "comment": {
       "match": "^%%.*$",

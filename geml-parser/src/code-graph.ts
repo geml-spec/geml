@@ -448,7 +448,14 @@ export function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { d
 // browser extension / playground import it and call it after their async
 // upgrade step has attached data-graph payloads. Browser-only code — it must
 // stay self-contained (no captured module-scope identifiers).
-export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLike<Element> }): void {
+//
+// `host.noScriptIndex`: this host must not load the static search index as a
+// <script>. A browser extension's content script is such a host — a script
+// element it inserts runs in the PAGE's world, so a .js file sitting next to a
+// .geml would execute as page script, and whatever it set would stay invisible
+// to the isolated world that asked. Without the served /_search either, there
+// is nothing to search, so the box is not drawn.
+export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLike<Element> }, host?: { noScriptIndex?: boolean }): void {
   // 显示期旋钮（计划 D）：随 data-graph 一起送来，来源是 `_index/style.geml`。
   // 每个回退值逐一等于反转之前写死在这里的那个，所以**没有 style.geml 的旧页面
   // 行为不变** —— 这是不替换渲染器、只反转控制权的全部要点。
@@ -1014,6 +1021,8 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       // test as written and then executes once the browser normalises it.
       // Normalise first, judge second, and return the NORMALISED value: handing
       // the sink the raw string would give it bytes that were never checked.
+      // A `\` is a `/` to the URL parser on http(s) and file pages, so `\\host/`
+      // and `/\host/` are the `//host/` network path too.
       function relOnly(u: any): string {
         var raw = String(u == null ? "" : u).replace(/[\t\n\r]/g, "");
         // Trim C0-and-space by scan, not by /^[\x00-\x20]+|[\x00-\x20]+$/ — an
@@ -1024,7 +1033,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         while (b > a && raw.charCodeAt(b - 1) <= 0x20) b--;
         var s = raw.slice(a, b);
         if (!s) return "";
-        return /^[a-zA-Z][a-zA-Z0-9+.\-]*:/.test(s) || s.slice(0, 2) === "//" ? "" : s;
+        return /^[a-zA-Z][a-zA-Z0-9+.\-]*:/.test(s) || /^[\/\\]{2}/.test(s) ? "" : s;
       }
       var navBase = relOnly(String(mount.getAttribute("data-src") || data.start || "").replace(/[^\/]*$/, ""));
       // A live mount (viewer/playground/served page) navigates IN PLACE over
@@ -1278,7 +1287,9 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       // a script tag is not). Picking a hit opens its FOCUSED call graph (B)
       // in place on a served page; on a static page (no live loader) it
       // navigates to the node's document (A). Alt-click always just locates.
-      if (typeof location !== "undefined") { // browser only — skipped in the fake-DOM runtime test
+      var srvSearch = typeof location !== "undefined" && /^https?:$/.test(location.protocol);
+      // browser only — skipped in the fake-DOM runtime test
+      if (typeof location !== "undefined" && (srvSearch || !(host && host.noScriptIndex))) {
       var searchWrap = document.createElement("span");
       searchWrap.className = "cg-search-wrap";
       var searchBox = document.createElement("input");
@@ -1289,7 +1300,6 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       searchMenu.className = "cg-search-menu"; searchMenu.hidden = true;
       searchWrap.appendChild(searchBox); searchWrap.appendChild(searchMenu);
       bar.appendChild(searchWrap);
-      var srvSearch = /^https?:$/.test(location.protocol);
       function withIndex(cb: any) {
         if ((window as any).__gemlSearch) return cb((window as any).__gemlSearch);
         if (!cgSameOrigin(navBase + "_index/search-index.js")) { cb([]); return; }

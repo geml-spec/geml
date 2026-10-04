@@ -655,9 +655,12 @@ if (recordRecipe) {
     // Auto-trust the recipe we just authored (security fix C2). The user ran
     // build locally, so their own recipe is trusted by construction and the
     // normal build -> refresh flow needs no prompt. Uses the SAME fingerprint
-    // fn as refresh, so the two agree exactly. Best-effort: a trust-store write
-    // failure must not fail an otherwise-successful build — the user can still
-    // approve later with `geml codemap refresh --trust`.
+    // fn as refresh, so the two agree exactly. The approval is for THIS
+    // codemap directory only: the recipe is relative paths, byte-identical in
+    // any other project indexed the same way, and must not run there on the
+    // strength of a build done here. Best-effort: a trust-store write failure
+    // must not fail an otherwise-successful build — the user can still approve
+    // later with `geml codemap refresh --trust`.
     try {
       trustRecipe(recipeFingerprint(cfg), outDir);
     } catch (e) {

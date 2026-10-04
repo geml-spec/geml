@@ -84,8 +84,8 @@ aspect=9:16`）。**种类**从被引的 `media-asset` 的 `kind=` 读，不在�
 
 | 键 | 必需 | 含义 |
 |---|---|---|
-| `src` | 是 | 文件路径，相对文档解析，受 §9.4 的根目录限定 |
-| `sha256` | 推荐 | 文件的 SHA-256，**全长 64 位十六进制，不截短**。键名已点明算法，所以值不带前缀。缺失 → `media-asset-unhashed`，该素材的血缘无法校验 |
+| `src` | 是 | 文件路径，相对文档解析，受 §9.4 的根目录限定。必须是**相对路径**：不带 URL scheme，不以 `/` 开头，不含 `\`——按用户代理读到的样子判断，去掉 C0 控制符与空格（GEML §9.4）。否则是 `media-src-not-relative`——文件要交给播放器和 `ffmpeg`，而它们把 scheme（`concat:`、`http:`）当成指令 |
+| `sha256` | 推荐 | 文件的 SHA-256，**全长 64 位十六进制，不截短**。键名已点明算法，所以值不带前缀。缺失 → `media-asset-unhashed`，不管文件在不在：没有东西说库期望哪份字节，文件被换掉只能靠血缘发现（§6） |
 | `kind` | 条件 | `image`、`video`、`audio`、`model`、`other`，可由扩展名推断。**没有 `text`**：字幕文件、LUT、外部提示词文件先归 `other`，等真有用例再按它是什么命名 |
 | `duration` | 视频/音频 | 秒。缺失且本机没有 `ffprobe` 时，入出点不校验（`media-duration-unknown`） |
 | `fps`、`size` | 否 | 帧率；`宽x高` |
@@ -115,7 +115,8 @@ body 是 raw，放作者自己的备注。备注是文档事实，进历史；�
 | `at` | 否 | 绝对起点。逃生口：写了它，锚定被忽略 |
 | `transition-in`、`transition-out` | 否 | `cut`（默认）、`dissolve`、`fade`、`crossfade`，或宿主词 |
 | `transition-duration` | 否 | 秒 |
-| `gain`、`fade-in`、`fade-out` | 音频 | `-14dB`；秒 |
+| `gain` | 音频 | 分贝，带单位写：`-14dB`——可选的 `-`、数字、可选的小数部分，然后是 `dB`（大小写不限，前面可以有空格）。否则是 `media-gain-invalid`：这个值要拼进播放图，猜着读就会按一个没人写过的电平播放 |
+| `fade-in`、`fade-out` | 音频 | 秒 |
 | `speed` | 否 | 倍速，默认 1 |
 | `xywh` | 否 | 源画面的裁切，W3C Media Fragments 语法 |
 
@@ -140,6 +141,10 @@ body 是 raw，放作者自己的备注。备注是文档事实，进历史；�
 - 一个片段的时长 = `out - in`，无固有时长的源则是 `duration`，再除以 `speed`。
 - **其余轨是锚定的**：起点 = 锚点片段的起点 + `offset`。在主轨插一个片段，后面所有锚定的
   字幕、配音、音乐跟着走。这和"id 优于行号"是同一个道理：锚在内容上，不锚在数字上。
+- **每个时间都是有限数，且不超过 `max-time`**（§8.1）：`in`、`out`、`duration`、
+  `offset`、`at`、素材的 `duration`，以及时间线上每个片段的终点。超过的是
+  `media-time-out-of-range`。时间线按长度绘制、按长度出片，这个上界让几个字节的 `out=`
+  要不来一把一百万格的尺子。
 
 ## 5. `media-text` —— 剧本层
 
@@ -246,7 +251,7 @@ body 是 raw，放作者自己的备注。备注是文档事实，进历史；�
 
 **摆放。** 层按文档顺序放。一条互动指的两层里，**靠后的那层动**，向前面那层靠；`a` `b`
 的先后无关。`contact` 让两点重合；`gaze` 只把两点的高度对齐，`x` 不动。一个层由它的
-**第一条**互动定位置，之后的互动只验：两点合成后相距超过 2 像素报 `media-interaction-apart`。
+**第一条**互动定位置，之后的互动只验：两点合成后相距超过 `apart-tolerance`（§8.1）报 `media-interaction-apart`。
 由 contact 定位的层不能再写 `x`/`y`，由 gaze 定位的不能写 `y`（`media-layer-position-conflict`），
 微调用 `dx`/`dy`。`flip=h` 的层，点跟着镜像。点随 `w` 缩放、或镜像，都要知道源图多宽：
 有 `xywh` 用裁切宽，否则用素材的 `size=`（`media-asset-size-required`）。互动只在关键帧上成立：两个 `at` 之间是视频模型或补间器的事。
@@ -280,15 +285,23 @@ UTF-8 字节取 SHA-256，文本末尾不带换行。
 - `media-text` 的台词，或任何别的**散文**提示词：取块的第一个段落渲染成的纯文本——字面
   文字照写；代码段、内联数学取其正文；强调、加粗、删除线、链接取它们包住的文字；内联投射
   `![[…]]` 按同一规则取被投射块的文本，递归，到 GEML §9.3 的投射深度上限为止——解析不到的
-  投射什么也不贡献；自动引用指向坐标时取它携带的值，否则什么也不贡献；图片嵌入、硬换行、
-  脚注引用什么也不贡献。
+  投射什么也不贡献，目标已在展开路径上的投射（一个环，核心会报）也什么都不贡献；自动引用指向
+  坐标时取它携带的值，否则什么也不贡献；图片嵌入、硬换行、脚注引用什么也不贡献。处理器可以
+  （MAY）给一条提示词总共展开的投射数设上限，正如 GEML §9.3 允许给链的工作量设上限；触到
+  上限的提示词，不要求两个处理器算出同一个哈希。
 - `media-comp`：取它的**规范化文本**——comp 一行，然后按文档顺序每个 `media-layer` 一行，
   再按文档顺序每个 `media-interaction` 一行，用 LF 连接。一行是该块的类型、有 id 时的
   `#id`、按键排序的属性 `key=value`，全部用一个空格隔开，值写成它的文本（裸标志写 `true`）。
   互动那一行的 `a=` 与 `b=` 带上解析到的点：原写法、`@`、再是素材 `points=` 给出的 `x,y`——
   `a=#s05-sister:hand@562,522`——点解析不到时写 `@?`。
 
-**过期只在 `output-sha256` 等于素材现值的那条记录上算**，并沿血缘图向下传播：配音过期 →
+**素材的现值是它的文件此刻这份字节的 SHA-256**——不是它声明的 `sha256`；声明值说的是库期望
+的那份，由它自己去和文件比（`media-hash-mismatch`）。文件读不到的素材——文件不在，或 `src=`
+不是相对路径——没有现值：没有记录与它匹配，它不算孤儿，它的血缘也不检查；没有现值的输入不算
+变了。哈希按十六进制数字比较，不分大小写。
+
+**过期只在 `output-sha256` 等于素材现值的那条记录上算**，别的记录一概不算：没有记录匹配时，
+素材报 `media-orphan-record`，它身上也没有任何东西算过期。过期沿血缘图向下传播：配音过期 →
 吃它的口型合成过期 → 用它的片段过期。被取代的记录不参与，这正是 `output-sha256` 的用处。
 
 **追加记录的人同时要更新素材块**——它的 `sha256`，以及工具知道时的 `duration`。只追加记录
@@ -318,10 +331,13 @@ warning 而不是 error——否则改一次角色卡整条流水线红掉，人
 |---|---|---|
 | `media-src-unresolved` | error | 片段的 `src` 指不到任何块 |
 | `media-src-not-asset` | error | `src` 与该轨的种类不符 |
+| `media-src-not-relative` | error | 素材的 `src` 带 URL scheme、以 `/` 开头或含 `\`（§3） |
 | `media-file-missing` | warning | 素材的文件不存在 |
 | `media-hash-mismatch` | error | 文件在，但 SHA-256 不是声明的那个 |
-| `media-asset-unhashed` | warning | 素材没有 `sha256`，血缘无法校验 |
+| `media-asset-unhashed` | warning | 素材没有 `sha256`，所以没法校验它的文件是不是库里描述的那一份 |
 | `media-duration-required` | error | 源无固有时长且未写 `duration` |
+| `media-gain-invalid` | error | 片段的 `gain` 不是分贝值（§4） |
+| `media-time-out-of-range` | error | 某个时间不是有限数、超过 `max-time`，或片段终点超过它（§3.2、§8.1） |
 | `media-track-missing` | error | 片段没有 `track=` |
 | `media-track-undeclared` | warning | `track=` 不在 `meta.tracks` 里 |
 | `media-track-kind-missing` | error | `meta.tracks` 里某条只写了名字没写种类 |
@@ -345,7 +361,7 @@ warning 而不是 error——否则改一次角色卡整条流水线红掉，人
 | `media-layer-position-conflict` | error | 由互动定位的层又写了那条互动要定的坐标 |
 | `media-asset-size-required` | error | 点要随 `w` 缩放，而 `xywh` 和素材的 `size=` 都没给源图宽 |
 | `media-comp-at-duplicate` | error | 同一镜两个 comp 的 `at` 相同 |
-| `media-interaction-apart` | warning | 只验不动的那条互动，两点合成后相距超过 2 像素 |
+| `media-interaction-apart` | warning | 只验不动的那条互动，两点合成后相距超过 `apart-tolerance`（§5.2、§8.1） |
 
 **v1 刻意不实现**（设计记录里描述过的）：编导口味的几条（`media-runtime-off-target`、
 `media-emotion-drift`、`media-look-outdated`、`media-episode-mismatch`、
@@ -353,6 +369,16 @@ warning 而不是 error——否则改一次角色卡整条流水线红掉，人
 （`media-track-order`、`media-track-overlap`、`media-transition-too-long`、
 `media-absolute-anchor`、`media-subtitle-unmatched`）。第一个真实用例一条都没接近，
 而一条没人需要过的诊断，只是披着码的猜测。
+
+### 8.1 固定上界
+
+这份 profile 固定的每一个数都在下表里，也只在这里：正文其余地方按名字引用它，profile 的
+一致性用例里落在边界上的那些也从这张表生成。
+
+| 名字 | 值 | 约束的对象 | 越过之后 |
+|---|---|---|---|
+| `max-time` | 86,400 s | 每个时间——`in`、`out`、`duration`、`offset`、`at`、素材的 `duration`——以及时间线上每个片段的终点（§3.2） | `media-time-out-of-range` |
+| `apart-tolerance` | 2 px | 只验不动的那条互动，两点合成后最多能相距多远（§5.2） | `media-interaction-apart` |
 
 ## 9. 这份 profile 不放行什么
 

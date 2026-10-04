@@ -9,16 +9,27 @@
 import { layoutDoc } from "../../../geml-parser/dist/media-timeline.js";
 import { drivePlayer } from "../../../geml-parser/dist/media-player-runtime.js";
 
-const dirOf = (p) => { const i = p.lastIndexOf("/"); return i < 0 ? "" : p.slice(0, i); };
-
-/** `a/b` + `../c/d.mp4` → `a/c/d.mp4`。语料里的 path 相对根，拼出来的也相对根。 */
-function joinRel(dir, rel) {
-  const out = [];
-  for (const s of (dir ? dir.split("/") : []).concat(String(rel).split("/"))) {
-    if (s === "" || s === ".") continue;
-    if (s === "..") out.pop(); else out.push(s);
+/**
+ * 素材 `src=` 在浏览器里真正要取的地址；不该取就是 null。
+ *
+ * src 是写它的那份文档旁边的一条路径。带 scheme 的、`//host` 的、含 `\` 的都指到别处 ——
+ * http(s) 与 file 的 URL 把 `\` 读成 `/`，`\\host\share\v.mp4` 就是 `//host/share/v.mp4`。
+ * 剩下的按**素材所在文档**的 URL 解析（语料里的 path 相对本页目录），再过 viewer 各处共用的
+ * 同源规则（content.js 的 isSameOriginSrc）：http(s) 要同源，file:// 要在本页所在目录之内。
+ * 判断用的和交给元素的是同一个绝对 URL。没有本页地址就无从判断，一律不取。
+ */
+function assetUrl(file, docPath, pageUrl) {
+  const s = String(file).replace(/[\x00-\x20]/g, "");
+  if (s === "" || s.includes("\\") || s.startsWith("//") || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(s)) return null;
+  let page, url;
+  try {
+    page = new URL(pageUrl);
+    url = new URL(String(file), new URL(docPath, page));
+  } catch {
+    return null;
   }
-  return out.join("/");
+  if (page.protocol === "file:") return url.href.startsWith(new URL(".", page).href) ? url.href : null;
+  return (page.protocol === "http:" || page.protocol === "https:") && url.origin === page.origin ? url.href : null;
 }
 
 function blockById(doc, id) {
@@ -132,10 +143,14 @@ export function player(block, params, ctx) {
     if (hit === null) continue;
     const file = hit.block.attrs ? hit.block.attrs.src : undefined;
     if (typeof file !== "string") continue;
+    const url = assetUrl(file, hit.path, ctx.docUrl);
+    if (url === null) continue;
     const media = dom.createElement(c.kind === "audio" ? "audio" : "video");
     media.className = "geml-layer geml-layer-" + c.kind;
-    media.setAttribute("src", joinRel(dirOf(hit.path), file));
-    media.setAttribute("preload", "auto");
+    media.setAttribute("src", url);
+    // 打开页面只取元数据（时长、首帧要跳到的位置）；整段数据等第一次播放 —— 时钟在那次
+    // 手势里把每个元素都 play() 一遍解锁，取数据从那时开始。
+    media.setAttribute("preload", "metadata");
     media.setAttribute("playsinline", "");
     media.setAttribute("data-clip", c.id);
     media.setAttribute("data-start", c.start.toFixed(3));

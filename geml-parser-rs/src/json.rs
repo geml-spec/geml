@@ -5,6 +5,7 @@
 //! Maps keep the order their keys were written in; the conformance projection
 //! sorts them by UTF-16 code unit when it prints them.
 
+use crate::bounds::DATA_DEPTH;
 use crate::num::es_string;
 use crate::uni::cmp_utf16;
 
@@ -124,8 +125,6 @@ pub struct JsonError {
     pub message: String,
 }
 
-const MAX_DEPTH: usize = 512;
-
 /// Parse exactly one I-JSON value from `text` (RFC 8259 grammar, RFC 7493
 /// limits).
 pub fn parse(text: &str) -> Result<Value, JsonError> {
@@ -148,7 +147,9 @@ struct Parser<'a> {
 
 impl<'a> Parser<'a> {
     fn err(&self, msg: &str) -> JsonError {
-        let line = self.text[..self.i.min(self.text.len())].matches('\n').count();
+        // Counted over bytes, so the count holds wherever `i` stands; a `str`
+        // slice panics off a character boundary.
+        let line = self.s[..self.i.min(self.s.len())].iter().filter(|b| **b == b'\n').count();
         JsonError { line, message: msg.to_string() }
     }
 
@@ -183,8 +184,8 @@ impl<'a> Parser<'a> {
 
     fn enter(&mut self) -> Result<(), JsonError> {
         self.depth += 1;
-        if self.depth > MAX_DEPTH {
-            return Err(self.err("nested too deeply"));
+        if self.depth > DATA_DEPTH {
+            return Err(self.err(&format!("a sequence or map inside {DATA_DEPTH} others is outside the value tree")));
         }
         Ok(())
     }
@@ -256,11 +257,10 @@ impl<'a> Parser<'a> {
     }
 
     fn hex4(&mut self) -> Result<u32, JsonError> {
-        if self.i + 4 > self.s.len() {
-            return Err(self.err("a \\u escape needs four hex digits"));
-        }
-        let h = std::str::from_utf8(&self.s[self.i..self.i + 4]).map_err(|_| self.err("bad \\u escape"))?;
-        let v = u32::from_str_radix(h, 16).map_err(|_| self.err("a \\u escape needs four hex digits"))?;
+        // Four hex digits, each one read on its own: `from_str_radix` on the
+        // run also takes a leading `+`.
+        let v = self.s.get(self.i..self.i + 4).and_then(|h| h.iter().try_fold(0, |v, d| (*d as char).to_digit(16).map(|d| v * 16 + d)));
+        let Some(v) = v else { return Err(self.err("a \\u escape needs four hex digits")) };
         self.i += 4;
         Ok(v)
     }
@@ -282,6 +282,11 @@ impl<'a> Parser<'a> {
                     let Some(&e) = self.s.get(self.i) else {
                         return Err(self.err("unterminated string"));
                     };
+                    // Every escape is one ASCII character; anything else is
+                    // refused where it stands, never stepped into.
+                    if !e.is_ascii() {
+                        return Err(self.err("unknown escape"));
+                    }
                     self.i += 1;
                     match e {
                         b'"' => out.push('"'),

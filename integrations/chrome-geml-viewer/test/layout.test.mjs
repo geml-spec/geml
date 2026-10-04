@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { parse } from "../../../geml-parser/dist/geml.js";
 import { loadStylesheet, resolveStyle } from "../src/parse-entry.js";
 import { renderBlock, collectLabels, renderDocument } from "../src/render.js";
-import { borrowedDocs, entryUrlFor, isStyleEntry, loadPageStyle, producersOf, STYLE_PREFETCH_FILES } from "../src/style-entry.js";
+import { borrowedDocs, entryUrlFor, isStyleEntry, loadPageStyle, producersOf, STYLE_PREFETCH_FILES, STYLE_DOC_BYTES_CAP } from "../src/style-entry.js";
 import { classFor, cssForPage, renderPage } from "../src/layout.js";
 import { createState, COMPONENTS } from "../src/components.js";
 import { loadPage, paintPage } from "../src/page.js";
@@ -1166,6 +1166,37 @@ await atest("page.js：样式表有错就退回默认渲染，横幅说清楚，
   assert.equal(out.usedLayout, false);
   assert.equal(out.css, null);
   assert.match(out.root.querySelector(".geml-diag-error").textContent, /stylesheet has \d+ error/);
+});
+
+// Round 6 (V-7). borrowedDocs fetches every document a page embeds, for the
+// stylesheet's corpus. A page with no style entry has no use for that corpus,
+// so nothing is fetched for it; a page that has one spends the file cap on
+// ATTEMPTS — a thousand embeds of paths that do not exist are a thousand
+// requests — and a document over the byte cap is dropped unparsed, the cap a
+// stylesheet gets.
+await atest("round 6: borrowed documents are fetched only for a styled page, every attempt counts, and an oversize one is dropped", async () => {
+  let page = "";
+  for (let i = 0; i < STYLE_PREFETCH_FILES + 8; i++) page += `=== embed {src=gone${i}.geml}\n===\n\n`;
+  const asked = [];
+  const none = await loadPage({ docUrl: SITE + "page.geml", raw: page, model: parse(page), fetchText: async (u) => { asked.push(u); return null; } });
+  assert.equal(none, null);
+  assert.deepEqual(asked, [SITE + "_index/index.geml"], "no entry: only the entry itself was asked for");
+
+  const tried = [];
+  const docs = await borrowedDocs(parse(page), parse, async (u) => { tried.push(u); return null; }, SITE + "page.geml");
+  assert.deepEqual(docs, []);
+  assert.equal(tried.length, STYLE_PREFETCH_FILES, "failed fetches count toward the cap");
+
+  const files = new Map([
+    [SITE + "big.geml", "=== embed {src=next.geml}\n===\n\n" + "x".repeat(STYLE_DOC_BYTES_CAP)],
+    [SITE + "next.geml", "# next\n"],
+    [SITE + "small.geml", "# small\n"],
+  ]);
+  const seen = [];
+  const got = await borrowedDocs(parse("=== embed {src=big.geml}\n===\n\n=== embed {src=small.geml}\n===\n"), parse,
+    async (u) => { seen.push(u); return files.get(u) ?? null; }, SITE + "page.geml");
+  assert.deepEqual(got.map((d) => d.path), ["small.geml"], "the oversize document is not in the corpus");
+  assert.ok(!seen.includes(SITE + "next.geml"), "nor parsed, so its own embeds are not followed");
 });
 
 console.log(`\n${passed} layout tests passed.`);

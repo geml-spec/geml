@@ -6,9 +6,13 @@
 //! anchors, aliases, tags, other flow collections, `.inf`/`.nan`, a second
 //! document, a tab in indentation — is a parse error, never a guess.
 
+use crate::bounds::DATA_DEPTH;
 use crate::json::Value;
 
 type R<T> = Result<T, (usize, String)>;
+
+/// How deep collections nest, as the reference bounds them: each level is a
+/// frame here, and `- - - …` on one line nests without limit in the grammar.
 
 #[derive(Clone, Debug)]
 struct Line {
@@ -20,6 +24,8 @@ struct Line {
 struct P {
     lines: Vec<Line>,
     pos: usize,
+    /// How many collections enclose the block being read.
+    depth: usize,
 }
 
 fn err<T>(line: usize, msg: &str) -> R<T> {
@@ -43,7 +49,7 @@ pub fn parse(text: &str) -> R<Value> {
         let content = if content.trim_start_matches('\t').is_empty() { String::new() } else { content };
         lines.push(Line { indent: spaces, content, raw: raw.to_string() });
     }
-    let mut p = P { lines, pos: 0 };
+    let mut p = P { lines, pos: 0, depth: 0 };
     p.document()
 }
 
@@ -93,6 +99,10 @@ impl P {
 
     fn block(&mut self, ind: usize) -> R<Value> {
         let c = self.lines[self.pos].content.clone();
+        let collection = is_seq_item(&c) || split_entry(&c).is_some();
+        if collection && self.depth >= DATA_DEPTH {
+            return self.too_deep(self.pos);
+        }
         if is_seq_item(&c) {
             self.seq(ind)
         } else if split_entry(&c).is_some() {
@@ -100,10 +110,25 @@ impl P {
         } else {
             let no = self.pos;
             let v = scalar(&c, no)?;
+            self.flow_inside(&v, 0, no)?;
             self.pos += 1;
             self.no_deeper(ind, no)?;
             Ok(v)
         }
+    }
+
+    /// §3.2: a sequence or map inside `DATA_DEPTH` others is outside the value tree.
+    fn too_deep<T>(&self, no: usize) -> R<T> {
+        err(no, &format!("a sequence or map inside {DATA_DEPTH} others is outside the value tree"))
+    }
+
+    /// A `[]` or `{}` is a container like any other: `extra` more of them
+    /// enclose it than the collections being read.
+    fn flow_inside(&self, v: &Value, extra: usize, no: usize) -> R<()> {
+        if matches!(v, Value::Array(_) | Value::Object(_)) && self.depth + extra >= DATA_DEPTH {
+            return self.too_deep(no);
+        }
+        Ok(())
     }
 
     /// After a value written on one line, nothing may be indented under it.
@@ -114,16 +139,24 @@ impl P {
         }
     }
 
+    /// Read what lies one level in, the enclosing collection counted.
+    fn inner(&mut self, read: impl FnOnce(&mut Self) -> R<Value>) -> R<Value> {
+        self.depth += 1;
+        let v = read(self);
+        self.depth -= 1;
+        v
+    }
+
     fn nested(&mut self, ind: usize, allow_same_seq: bool) -> R<Value> {
         match self.next_sig(self.pos) {
             Some(n) if self.lines[n].indent > ind => {
                 self.pos = n;
                 let i = self.lines[n].indent;
-                self.block(i)
+                self.inner(|p| p.block(i))
             }
             Some(n) if allow_same_seq && self.lines[n].indent == ind && is_seq_item(&self.lines[n].content) => {
                 self.pos = n;
-                self.seq(ind)
+                self.inner(|p| p.seq(ind))
             }
             _ => Ok(Value::Null),
         }
@@ -155,7 +188,7 @@ impl P {
             } else {
                 let col = ind + 1 + gap;
                 self.lines[self.pos] = Line { indent: col, content: rest, raw: l.raw.clone() };
-                items.push(self.block(col)?);
+                items.push(self.inner(|p| p.block(col))?);
             }
         }
         Ok(Value::Array(items))
@@ -194,6 +227,7 @@ impl P {
                 self.block_scalar(&rest, ind, no)?
             } else {
                 let v = scalar(&rest, no)?;
+                self.flow_inside(&v, 1, no)?;
                 self.no_deeper(ind, no)?;
                 v
             };
@@ -464,9 +498,11 @@ fn double_quoted(s: &str, no: usize) -> R<(String, String)> {
     let chars: Vec<char> = s.chars().collect();
     let mut out = String::new();
     let mut i = 1;
+    // Exactly `n` hex digits, each one read on its own: `from_str_radix` on
+    // the run also takes a leading `+`.
     let hex = |chars: &[char], i: usize, n: usize| -> R<u32> {
-        let h: String = chars.get(i..i + n).ok_or((no, "a short escape".to_string()))?.iter().collect();
-        u32::from_str_radix(&h, 16).map_err(|_| (no, "a bad hex escape".to_string()))
+        let h = chars.get(i..i + n).ok_or((no, "a short escape".to_string()))?;
+        h.iter().try_fold(0, |v, c| c.to_digit(16).map(|d| v * 16 + d)).ok_or((no, "a bad hex escape".to_string()))
     };
     loop {
         let Some(&c) = chars.get(i) else { return err(no, "unterminated double-quoted scalar") };

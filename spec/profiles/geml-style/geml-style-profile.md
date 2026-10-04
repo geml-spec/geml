@@ -396,7 +396,7 @@ its own slots may name further frames — a page is a tree of frames. Unlike an
 | a bare `#x` in `slots=` names no frame | `style-unknown-frame` | error |
 | a bare `#x` names a `style-screen` — a page cannot be placed inside another | `style-screen-nested` | error |
 | frames nest in a cycle (`#a → #b → #a`; the message carries the chain) | `style-frame-cycle` | error |
-| frames nest deeper than 16 along some placement path | `style-frame-too-deep` | error |
+| frames nest deeper than the core's `chain-depth` along some placement path | `style-frame-too-deep` | error |
 | a frame no slot references | `style-unused-frame` | warning |
 
 A frame **may** be placed by more than one slot: each placement renders it again,
@@ -407,16 +407,16 @@ at the screens, not strictly a tree, and depth is the longest placement path.
 The depth cap is a security boundary as much as a shape rule. A stylesheet is
 untrusted input like any document (§9): a chain of ten thousand frames — no cycle
 anywhere — would otherwise have to be rendered ten thousand boxes deep. The cap is
-16: the GitHub blob page is four levels, and the core's transclusion chain has the
-same bound, 16, for the same reason (GEML §9.3). The checker visits each frame once and computes depth in one
+the core's `chain-depth` (GEML §9.2), the bound a transclusion chain has for the
+same reason (GEML §9.3); the GitHub blob page is four levels. The checker visits each frame once and computes depth in one
 topological pass, so a hostile sheet — a diamond chain forty levels deep included —
 costs it linear time.
 
 Linear for the checker is not linear for the host. A frame may be placed in more
 than one slot, so nesting and reuse multiply: two slots per level naming the same
-child frame, sixteen levels deep, is 65 536 leaf placements — a shape the checker
-visits once and passes. A host therefore caps the number of blocks and frames it
-places on one page (the browser viewer: 2 000) and renders without the stylesheet
+child frame double the leaf placements at every level, `chain-depth` levels deep —
+a shape the checker visits once and passes. A host therefore caps the number of
+blocks and frames it places on one page and renders without the stylesheet
 past it, the way it does past the `embed` total.
 
 ## 3. Selector grammar
@@ -694,7 +694,7 @@ fallback**, which is what preserves §8.5.
 | `style-unknown-frame` | error | a bare `#x` in `slots=` names no `style-frame` |
 | `style-screen-nested` | error | a bare `#x` in `slots=` names a `style-screen` |
 | `style-frame-cycle` | error | frames nest in a cycle; the message carries the chain |
-| `style-frame-too-deep` | error | frames nest deeper than 16 along some placement path |
+| `style-frame-too-deep` | error | frames nest deeper than the core's `chain-depth` (GEML §9.2) along some placement path |
 | `style-unused-frame` | warning | a `style-frame` no slot references |
 | `style-reserved-name` | warning | a selector's **first** step names an inline part (`link`, `image`, `code-span`, `strong`, `emphasis`); it is read as a block type, since a part needs a block step before it, and the message says what a part would need (§3) |
 | `style-invalid-value` | error | a closed-domain built-in word (`axis` / `anchor` / `place` / `scroll` / `sticky` / `hide-below` / `visible` / `grow` / `wrap` / `view` / `editable` / `fade-out` / `underline`) took a value outside its domain, or a `when=` term is neither `$state=value` nor one of `@hover` / `@focus` / `@invalid` / `@disabled` / `@checked` |

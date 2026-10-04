@@ -38,6 +38,8 @@ const vscode = {
   // Present so a module-level reference does not throw on load; no test calls it.
   window: { showWarningMessage() {}, showErrorMessage() {}, showInformationMessage() {} },
   workspace: {
+    // Trusted unless a test says otherwise: nothing runs the CLI in Restricted Mode.
+    isTrusted: true,
     // Settings the test can steer — `geml.check.path` in particular, so a CLI
     // test can point at the repo's freshly built parser instead of needing one
     // installed globally.

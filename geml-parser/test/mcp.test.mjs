@@ -462,6 +462,32 @@ test("a SYMLINK planted inside the workspace cannot smuggle a path out", () => {
   rmSync(outside, { recursive: true, force: true });
 });
 
+test("a write lands only in a GEML or Markdown document, even inside the workspace", () => {
+  // Round 6: `.git/config` took an appended `[core] fsmonitor = "<command>"` as
+  // valid GEML, `geml_add` answered ok, and git ran the command on the next
+  // `git status`. A tool argument is something a page the model read can steer.
+  const dir = ws();
+  mkdirSync(join(dir, ".git"));
+  const config = join(dir, ".git", "config");
+  const before = "[core]\n\tbare = false\n";
+  writeFileSync(config, before);
+  const planted = "[core]\n\tfsmonitor = \"touch pwned; false\"\n";
+  const r = call("geml_add", { file: ".git/config", position: "append", content: planted });
+  assert.equal(r.isError, true, "geml_add wrote .git/config");
+  assert.match(r.text, /writes only GEML and Markdown documents: \.git\/config/);
+  let linked = true;
+  try { symlinkSync(config, join(dir, "notes.geml")); } catch { linked = false; }
+  if (linked) {
+    const viaLink = call("geml_add", { file: "notes.geml", position: "append", content: planted });
+    assert.equal(viaLink.isError, true, "a .geml name linked to it is judged by where it leads");
+    assert.match(viaLink.text, /writes only GEML and Markdown documents: notes\.geml/);
+  }
+  assert.equal(readFileSync(config, "utf8"), before, "the config is byte-for-byte unchanged");
+  assert.ok(!existsSync(join(dir, ".git", "config.gemlhistory")), "and no sidecar appeared beside it");
+  writeFileSync(join(dir, "README.md"), "# Readme\n\nhi\n");
+  assert.ok(!call("geml_add", { file: "README.md", position: "append", content: "more\n" }).isError, "a Markdown document still takes a write");
+});
+
 test("geml_check's `root` may narrow inside the workspace but never escape it", () => {
   const dir = ws();
   mkdirSync(join(dir, "sub"));

@@ -312,4 +312,14 @@ test("装载：播种写不进去时仍然返回默认值继续渲染", () => {
   assert.deepEqual(r.config, defaultGraphStyle());
 });
 
+// Round 6 (O-6). A palette entry goes into an SVG `style` and a chip's
+// background on pages the codemap publishes, and the style file is repository
+// content: `url(https://…)` made every reader's browser fetch a third party.
+test("round 6: the palette keeps colours only — no url(), no other CSS", () => {
+  const style = parseGraphStyle('=== style-rule {match="geml-code-graph" palette="#fff url(https://beacon.example/x) red rgb(1,2,3) #12345678 expression(x)"}\n===\n');
+  assert.deepEqual(style.palette, ["#fff", "red", "#12345678"]);
+  const none = parseGraphStyle('=== style-rule {match="geml-code-graph" palette="url(https://beacon.example/x)"}\n===\n');
+  assert.deepEqual(none.palette, defaultGraphStyle().palette, "with nothing left, the default stands");
+});
+
 console.log(`\n${passed} passed`);

@@ -19,6 +19,21 @@ fn sha(s: &str) -> String {
     geml::sha256::hex(s.as_bytes())
 }
 
+/// Each asset file of the library, and the text it holds. An asset's current
+/// value is its file's hash (profile §6), so the library's hashes are the
+/// hashes of these texts: `C2` in the fixture is `sha("C2")`, `card.png`'s.
+const FILES: [(&str, &str); 9] = [
+    ("card.png", "C2"),
+    ("take.mp4", "T1"),
+    ("plate.png", "P1"),
+    ("key.png", "K1"),
+    ("o.png", "O9"),
+    ("n.png", "N1"),
+    ("lr.png", "R1"),
+    ("la.png", "LA"),
+    ("lb.png", "LB"),
+];
+
 #[test]
 fn timelines_and_their_tracks() {
     let src = r##"=== media-asset {#bg src=bg.png sha256=a1}
@@ -384,6 +399,18 @@ fn a_comp_and_its_layers_are_assembled() {
 /// A library whose log records how each asset was made, and an episode in
 /// another directory that cuts from it.
 fn library(look: &str, w: u32) -> String {
+    let mut text = library_with_tokens(look, w);
+    // Every hash token, as an attribute value and as a JSON string.
+    for t in ["C1", "C2", "T1", "P1", "K0", "K1", "O1", "O9", "N1", "R1", "LA", "LB"] {
+        text = text
+            .replace(&format!("sha256={t} "), &format!("sha256={} ", sha(t)))
+            .replace(&format!("sha256={t}}}"), &format!("sha256={}}}", sha(t)))
+            .replace(&format!("\"{t}\""), &format!("\"{}\"", sha(t)));
+    }
+    text
+}
+
+fn library_with_tokens(look: &str, w: u32) -> String {
     let look_hash = sha("Silver bob.");
     let prompt_hash = sha("Hero: Silver bob.");
     // The comp as the log recorded it: #l2 at w=5 is a quarter of the card's
@@ -484,6 +511,9 @@ profile = "geml-media/v1"
 fn run(look: &str, w: u32) -> (Vec<String>, Vec<String>) {
     let mut h = MapHost::default();
     h.files.insert("lib/library.geml".into(), library(look, w));
+    for (name, text) in FILES {
+        h.files.insert(format!("lib/{name}"), text.into());
+    }
     let lib = parse_with(&library(look, w), &Options { name: "lib/library.geml".into(), host: Some(&h), ..Default::default() });
     let ep = parse_with(EPISODE, &Options { name: "ep/cut.geml".into(), host: Some(&h), ..Default::default() });
     (report(&lib), ep.profile_diagnostics.iter().map(|x| format!("{} {} {}: {}", x.level.as_str(), x.code, x.address, x.message)).collect())
@@ -643,4 +673,27 @@ A bare id is read as `#hero`.
     let d = parse_with(&src, &Options { host: Some(&h), ..Default::default() });
     let got: Vec<String> = d.profile_diagnostics.iter().map(|x| format!("{} {}: {}", x.code, x.address, x.message)).collect();
     assert_eq!(got, vec!["media-src-unresolved document.geml#m: `src=#meta` names no block"]);
+}
+
+/// Round 6 (profile §6): a projection whose target is already being expanded
+/// gives nothing, and every expansion counts against one budget for the whole
+/// prompt. A block projecting itself three times was 3^16 expansions, and a
+/// block projecting the next one four times, sixteen deep, spelled out 4^16
+/// characters; both are now a few hundred expansions.
+#[test]
+fn a_prompt_expands_within_a_budget() {
+    let t = std::time::Instant::now();
+    // The asset's file is there, so it has a current value to judge (profile §6).
+    let mut h = MapHost::default();
+    h.files.insert("a.png".into(), "abc".into());
+    let found = |src: &str| report(&parse_with(&format!("{META}{src}"), &Options { host: Some(&h), ..Default::default() }));
+    let gen = |prompt: &str, blocks: &str| {
+        let a = sha("abc");
+        format!("{blocks}\n=== media-asset {{#a src=a.png sha256={a}}}\n===\n\n=== data {{.gen-log}}\n[{{\"output\": \"#a\", \"output-sha256\": \"{a}\", \"model\": \"m\", \"mode\": \"m\", \"at\": \"2026\", \"prompt\": \"{prompt}\", \"prompt-sha256\": \"{}\"}}]\n===\n", sha("a  b"))
+    };
+    assert!(!found(&gen("#p", "=== text {#p}\na ![[#p]] b\n===\n")).iter().any(|d| d.contains("stale")));
+    let diamond: String = (0..16).map(|i| format!("=== text {{#p{i}}}\n{}\n===\n\n", vec![format!("![[#p{}]]", i + 1); 4].join(" "))).collect();
+    let d = found(&gen("#p0", &format!("{diamond}=== text {{#p16}}\nx\n===\n")));
+    assert!(d.iter().any(|d| d.contains("media-stale-generation")), "{d:?}");
+    assert!(t.elapsed() < std::time::Duration::from_secs(10), "took {:?}", t.elapsed());
 }

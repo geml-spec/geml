@@ -21,9 +21,10 @@ class GemlSettings : PersistentStateComponent<GemlSettings.State> {
 
     /**
      * A complete command to run INSTEAD of the bundled parser, split on spaces —
-     * for example `geml`, or `npx @geml/geml`. Empty means use the copy that
-     * shipped with the plugin, which is the case this plugin is built around:
-     * one install, one version, nothing to keep in step.
+     * for example `geml` (found on PATH) or an absolute path; never a package
+     * runner (see GemlProgram). Empty means use the copy that shipped with the
+     * plugin, which is the case this plugin is built around: one install, one
+     * version, nothing to keep in step.
      */
     @JvmField var cliOverride: String = ""
 
