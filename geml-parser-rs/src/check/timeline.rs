@@ -122,13 +122,14 @@ pub fn layouts(items: &[Item], duration_of: &dyn Fn(&str) -> Option<f64>) -> Vec
     out
 }
 
+/// A timeline's cuts: the direct children of its body (profile §4). A cut inside
+/// another block within the body is on no timeline.
 fn cuts<'a>(items: &'a [Item], out: &mut Vec<&'a Block>) {
     for it in items {
         if let Item::Block(b) = it {
             if b.type_name == "media-clip" && b.id.is_some() {
                 out.push(b);
             }
-            cuts(&b.children, out);
         }
     }
 }
@@ -143,7 +144,8 @@ fn layout_one(media: &Block, duration_of: &dyn Fn(&str) -> Option<f64>) -> Vec<P
     cuts(&media.children, &mut own);
     let text = |b: &Block, k: &str| b.attr_text(k);
 
-    if own.is_empty() {
+    // No body and a `src=`: a single source. A body is anything but `%%` lines (§2).
+    if !media.children.iter().any(|it| !matches!(it, Item::Hidden(_))) {
         if let Some(src) = text(media, "src") {
             let in_pt = time(media.attr("in"), fps).unwrap_or(0.0);
             let len = match (time(media.attr("out"), fps), number(media.attr("duration"), None), duration_of(&src)) {
@@ -256,5 +258,15 @@ mod tests {
             placed(src),
             [("c1".into(), 0.0, 10.0), ("c2".into(), 8.0, 29.0), ("c3".into(), 37.0, 4.0), ("s1".into(), 9.0, 3.0), ("s2".into(), 40.0, 1.0)]
         );
+    }
+
+    #[test]
+    fn a_timeline_is_its_body_and_its_cuts_are_direct_children() {
+        // A cut inside another block within the body is on no timeline (profile §4).
+        let nested = "===== media {#tl tracks=\"v:video\"}\n=== media-clip {#c1 track=v src=#x duration=2}\n===\n==== note {#n}\n=== media-clip {#c2 track=v src=#x duration=5}\n===\n====\n=====\n";
+        assert_eq!(placed(nested), [("c1".into(), 0.0, 2.0)]);
+        // A body with no cut is an assembly, `src=` or not; a `%%` line is no body (§2).
+        assert_eq!(placed("==== media {#m src=#long}\nA note.\n====\n"), []);
+        assert_eq!(placed("=== media {#m src=#long}\n%% a comment\n===\n"), [("m".into(), 0.0, 30.0)]);
     }
 }

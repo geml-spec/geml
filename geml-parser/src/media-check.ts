@@ -60,6 +60,10 @@ export function splitRef(ref: string, from: string): { doc: string; id: string }
   return { doc: docPart === "" ? from : joinRel(dirOf(from), docPart), id };
 }
 
+type B = Extract<Block, { kind: "block" }>;
+/** 一个块体里的直接子块。 */
+const childBlocks = (b: B): B[] => (b.children ?? []).filter((c): c is B => c.kind === "block");
+
 export function blocksOf(doc: Document): Extract<Block, { kind: "block" }>[] {
   const out: Extract<Block, { kind: "block" }>[] = [];
   const walk = (bs: Block[]): void => {
@@ -141,7 +145,6 @@ function compText(
   from: string,
   load: (rel: string) => Loaded | null,
 ): string {
-  type B = Extract<Block, { kind: "block" }>;
   const head = (b: B, attrs: Record<string, unknown> = b.attrs): string => [
     b.type,
     ...(b.id === undefined ? [] : [`#${b.id}`]),
@@ -328,23 +331,25 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
     // 轨道表属于**所属的 `media` 块**，不属于文档：一份文档能装好几条时间线，各有
     // 各的轨。每块只验一次并记下来 —— 轨道表自己的毛病（少种类、种类不认得）跟有没有
     // 片段用它无关，而逐片段重算会把同一条诊断报很多遍。
-    const byOwner = new Map<string, Map<string, string>>();
+    // 片段只属于**直接**装着它的 `media`（§4）：中间夹一层块，它算不进任何时间线。
+    const byOwner = new Map<B, Map<string, string>>();
     for (const m of blocksOf(l.doc)) {
       if (m.type !== "media") continue;
       const cfg = new Map(Object.entries(m.attrs).map(([k, v]) => [k, String(v)]));
-      const inner = blocksOf({ children: m.children ?? [] } as never).filter((c) => c.type === "media-clip");
-      // 形状：有体＝装配，无体加 `src=`＝单源。两样都占，就说不清该按哪种算；两样
-      // 都没有，它什么也不是 —— 与其让它默默摆出一条空时间线，不如当场说。
-      if (inner.length > 0 && cfg.has("src")) {
+      const inner = childBlocks(m).filter((c) => c.type === "media-clip");
+      // 形状看有没有体，不看有没有片段（§2）：体是围栏之间除 `%%` 行以外的一切。两样都占，
+      // 就说不清该按哪种算；两样都没有，它什么也不是。体里只有一段说明，是还没有片段的装配。
+      const body = (m.children ?? []).some((c) => c.kind !== "hidden");
+      if (body && cfg.has("src")) {
         out.push(mediaDiag("media-shape-ambiguous",
-          "`media` 既有体又有 `src=`：有体是装配（片段说了算），无体加 `src=` 是单源，二选一", rel, m.id));
-      } else if (inner.length === 0 && !cfg.has("src")) {
+          "`media` 既有体又有 `src=`：有体是装配，无体加 `src=` 是单源，二选一", rel, m.id));
+      } else if (!body && !cfg.has("src")) {
         out.push(mediaDiag("media-shape-empty",
-          "`media` 既没有片段也没有 `src=`，它不指向任何可播的东西", rel, m.id));
+          "`media` 既没有体也没有 `src=`，它不指向任何可播的东西", rel, m.id));
       }
       // 单源按它就是的那一个片段来查（profile §2）：`src` 要指能播的素材（视频、音频、静图），
       // 指静图就得写明占多久。
-      if (inner.length === 0 && cfg.has("src")) {
+      if (!body && cfg.has("src")) {
         const one = str(m.attrs["src"]) ?? "";
         const t = one === "" ? null : splitRef(one, rel);
         const target = t === null ? undefined : blockAt(t.doc, t.id);
@@ -358,28 +363,25 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
         }
       }
       const kinds = trackKinds(cfg, rel, out);
-      for (const c of inner) if (c.id !== undefined) byOwner.set(c.id, kinds);
+      for (const c of inner) byOwner.set(c, kinds);
     }
-    // 不在任何 `media` 体内的片段：没有轨道表可依，也不属于任何一条时间线。
     for (const b of clips) {
-      if (b.id === undefined || !byOwner.has(b.id)) {
+      const kinds = byOwner.get(b);
+      // 不是哪个 `media` 体的直接子块：不属于任何时间线，`track` 与 `src` 离了时间线说不出
+      // 意思，只报这一条（§4）。
+      if (kinds === undefined) {
         out.push(mediaDiag("media-clip-unassembled",
-          "`media-clip` 不在任何 `media` 块里 —— 它不属于任何一条时间线", rel, b.id));
+          "`media-clip` 不是任何 `media` 体的直接子块 —— 它不属于任何一条时间线", rel, b.id));
+        continue;
       }
-    }
-    if (clips.length === 0) continue;
-    const EMPTY = new Map<string, string>();
-    const kindsFor = (id: string | undefined): Map<string, string> =>
-      (id === undefined ? undefined : byOwner.get(id)) ?? EMPTY;
-    for (const b of clips) {
       const track = str(b.attrs["track"]);
       let kind: string | undefined;
       if (track === undefined || track === "") {
         out.push(mediaDiag("media-track-missing", "`media-clip` 没有 `track=`", rel, b.id));
-      } else if (!kindsFor(b.id).has(track)) {
+      } else if (!kinds.has(track)) {
         out.push(mediaDiag("media-track-undeclared", `\`track=${track}\` 不在这条时间线的 \`tracks=\` 里`, rel, b.id));
       } else {
-        kind = kindsFor(b.id).get(track);
+        kind = kinds.get(track);
       }
       const src = str(b.attrs["src"]);
       if (src === undefined || src === "") { out.push(mediaDiag("media-src-unresolved", "`media-clip` 没有 `src=`", rel, b.id)); continue; }
@@ -413,10 +415,11 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
     const l = docs.get(rel);
     if (l === null || l === undefined) continue;
     const layers = blocksOf(l.doc).filter((b) => b.type === "media-layer");
-    const owned = new Set<Extract<Block, { kind: "block" }>>();
+    // 层只属于**直接**装着它的 comp（§5.1）。
+    const owned = new Set<B>();
     for (const m of blocksOf(l.doc)) {
       if (m.type !== "media-comp") continue;
-      const inner = blocksOf({ children: m.children ?? [] } as never).filter((c) => c.type === "media-layer");
+      const inner = childBlocks(m).filter((c) => c.type === "media-layer");
       for (const c of inner) owned.add(c);
       const size = str(m.attrs["size"]);
       if (size === undefined || !/^\d+x\d+$/.test(size)) {
@@ -428,7 +431,8 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
     }
     for (const b of layers) {
       if (!owned.has(b)) {
-        out.push(mediaDiag("media-layer-unassembled", "`media-layer` 不在任何 `media-comp` 里 —— 它不属于任何一张合成", rel, b.id));
+        out.push(mediaDiag("media-layer-unassembled", "`media-layer` 不是任何 `media-comp` 体的直接子块 —— 它不属于任何一张合成", rel, b.id));
+        continue;
       }
       const src = str(b.attrs["src"]);
       if (src === undefined || src === "") { out.push(mediaDiag("media-src-unresolved", "`media-layer` 没有 `src=`", rel, b.id)); continue; }
@@ -454,7 +458,6 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
   for (const rel of seen) {
     const l = docs.get(rel);
     if (l === null || l === undefined) continue;
-    type B = Extract<Block, { kind: "block" }>;
     const owned = new Set<B>();
     const byShot = new Map<string, Map<string, string>>();
     for (const m of blocksOf(l.doc)) {
@@ -520,8 +523,7 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
     }
     for (const b of blocksOf(l.doc)) {
       if (b.type !== "media-interaction" || owned.has(b)) continue;
-      out.push(mediaDiag("media-interaction-unassembled", "`media-interaction` 不在任何 `media-comp` 里 —— 它连的层无从解析", rel, b.id));
-      out.push(mediaDiag("media-interaction-unresolved", "不在 comp 里，`a=` `b=` 指的层无从解析", rel, b.id));
+      out.push(mediaDiag("media-interaction-unassembled", "`media-interaction` 不是任何 `media-comp` 体的直接子块 —— 它连的层无从解析", rel, b.id));
     }
   }
 

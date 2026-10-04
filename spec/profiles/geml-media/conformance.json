@@ -628,6 +628,135 @@
         "media-track-undeclared:warning",
         "media-track-undeclared:warning"
       ]
+    },
+    {
+      "name": "a media's shape is read from its body, not from its cuts: a body is anything between the fences but %% lines; with a src= it is media-shape-ambiguous, with neither it is media-shape-empty, and a body with no cut yet is an assembly (§2)",
+      "geml": "=== meta\nprofile = \"geml-media/v1\"\n===\n\n=== media-asset {#take src=take.mp4 sha256=\"520cebbede192a61721ab4afecb30da7ae7d73c2b00b80afe540cfab0a96e6e2\"}\n===\n\n==== media {#both src=#take tracks=\"v:video\"}\n\n=== media-clip {#c1 track=v src=#take}\n===\n\n====\n\n==== media {#noted src=#take}\n\nA note on which take to use.\n\n====\n\n==== media {#draft tracks=\"v:video\"}\n\nCuts to come.\n\n====\n\n=== media {#none}\n===\n\n=== media {#commented src=#take}\n%% the second take is better\n===\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#take",
+          "#both",
+          "#c1",
+          "#noted",
+          "#draft",
+          "#none",
+          "#commented"
+        ],
+        "undeclared": [
+          "#meta",
+          "#take",
+          "#both",
+          "#noted",
+          "#draft",
+          "#none",
+          "#commented"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning"
+        ]
+      },
+      "files": {
+        "take.mp4": "take bytes"
+      },
+      "checks": [
+        "media-shape-ambiguous:error",
+        "media-shape-ambiguous:error",
+        "media-shape-empty:error"
+      ]
+    },
+    {
+      "name": "a cut belongs to the media whose body holds it directly, a layer and an interaction to the comp that does; one anywhere else is unassembled and reported for that alone (§4, §5.1)",
+      "geml": "=== meta\nprofile = \"geml-media/v1\"\n===\n\n=== media-asset {#still src=still.png sha256=\"205f0b0445f7ce061b6260babbc2721bdfe50affba94743bd9a3b6307ba6787c\"}\n===\n\n=== media-asset {#take src=take.mp4 sha256=\"520cebbede192a61721ab4afecb30da7ae7d73c2b00b80afe540cfab0a96e6e2\"}\n===\n\n===== media {#tl tracks=\"v:video\"}\n\n=== media-clip {#c1 track=v src=#take}\n===\n\n==== note {#sc1}\n\n=== media-clip {#c2 track=v src=#nowhere}\n===\n\n====\n\n=====\n\n=== media-clip {#c3 track=nope src=#nowhere}\n===\n\n===== media-comp {#k size=100x100}\n\n=== media-layer {#l1 src=#still}\n===\n\n==== note {#sc2}\n\n=== media-layer {#l2 src=#take}\n===\n\n====\n\n=====\n\n=== media-layer {#l3 src=#take}\n===\n\n=== media-interaction {#x a=#l1:hand b=#l2:hand kind=contact}\n===\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#still",
+          "#take",
+          "#tl",
+          "#c1",
+          "#sc1",
+          "#c2",
+          "#c3",
+          "#k",
+          "#l1",
+          "#sc2",
+          "#l2",
+          "#l3",
+          "#x"
+        ],
+        "undeclared": [
+          "#meta",
+          "#still",
+          "#take",
+          "#tl",
+          "#c3",
+          "#k",
+          "#l3",
+          "#x"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning"
+        ]
+      },
+      "files": {
+        "still.png": "still bytes",
+        "take.mp4": "take bytes"
+      },
+      "checks": [
+        "media-clip-unassembled:error",
+        "media-clip-unassembled:error",
+        "media-interaction-unassembled:error",
+        "media-layer-unassembled:error",
+        "media-layer-unassembled:error"
+      ]
+    },
+    {
+      "name": "a timeline's tracks are its own tracks=: the document's meta is never read for them (§2)",
+      "geml": "=== meta\nprofile = \"geml-media/v1\"\ntracks = \"v:video\"\n===\n\n=== media-asset {#take src=take.mp4 sha256=\"520cebbede192a61721ab4afecb30da7ae7d73c2b00b80afe540cfab0a96e6e2\"}\n===\n\n==== media {#tl}\n\n=== media-clip {#c1 track=v src=#take}\n===\n\n====\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#take",
+          "#tl",
+          "#c1"
+        ],
+        "undeclared": [
+          "#meta",
+          "#take",
+          "#tl"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning",
+          "unknown-block-type:warning"
+        ]
+      },
+      "files": {
+        "take.mp4": "take bytes"
+      },
+      "checks": [
+        "media-track-undeclared:warning"
+      ]
     }
   ]
 }

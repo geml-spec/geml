@@ -244,7 +244,7 @@ export const PROFILES: Record<string, ProfileDef> = {
     state: "draft", since: "1.10.3",
     // 六个 meta 键都不带 `media-` 前缀，违反命名约定；`fps` 和 `aspect` 尤其是
     // 第二份 profile 会想要的通用词。登记以让测试拦得住新增的同类。
-    metaKeys: ["tracks", "primary", "fps", "aspect", "target-duration", "episode"],
+    metaKeys: ["aspect", "target-duration", "episode"],
     diagnostics: MEDIA_SEVERITY,
     types: ["media", "media-asset", "media-clip", "media-text", "media-comp", "media-layer", "media-interaction"],
     // `media-interaction` 也是散文：头行是几何（谁的哪个点碰谁的哪个点），body 是这一步发生了

@@ -130,14 +130,13 @@ function layoutOne(
   const problems: string[] = [];
 
   // 无体 + `src=` = **一个可播的单源**：不是时间线，是一刀。下游（播放器、出片、导出）
-  // 因此一条代码都不用分叉 —— 它就是"只有一个片段的时间线"。
-  const own: Extract<Block, { kind: "block" }>[] = [];
-  const walk = (bs: Block[]): void => {
-    for (const b of bs) if (b.kind === "block") { if (b.type === "media-clip" && b.id !== undefined) own.push(b); if (b.children) walk(b.children); }
-  };
-  if (media.children) walk(media.children);
+  // 因此一条代码都不用分叉 —— 它就是"只有一个片段的时间线"。体是围栏之间除 `%%` 行以外
+  // 的一切；片段是体的**直接**子块，中间夹一层块的不在这条时间线上（profile §2、§4）。
+  const own = (media.children ?? []).filter((b): b is Extract<Block, { kind: "block" }> =>
+    b.kind === "block" && b.type === "media-clip" && b.id !== undefined);
+  const body = (media.children ?? []).some((b) => b.kind !== "hidden");
 
-  if (own.length === 0 && cfg["src"] !== undefined) {
+  if (!body && cfg["src"] !== undefined) {
     // 种类从被引的素材读，不在这儿重说一遍：`media-asset` 上已经有 `kind=`。
     const kind = opts.kindOf?.(cfg["src"]) ?? "video";
     const inPt = time(cfg["in"], fps) ?? 0;

@@ -286,6 +286,17 @@ test("每个 media 块各是一条时间线，嵌在别的块里也找得到", (
   assert.equal(all[1].duration, 3);
 });
 
+test("时间线就是它的体：片段是体的直接子块，体里没有片段也是装配，`%%` 行不算体（profile §2、§4）", () => {
+  const nested = layoutsOf(parse(META
+    + "===== media {#tl tracks=\"v:video\"}\n=== media-clip {#c1 track=v src=#x duration=2}\n===\n"
+    + "==== note {#n}\n=== media-clip {#c2 track=v src=#x duration=5}\n===\n====\n=====\n"), opts());
+  assert.deepEqual(nested[0].clips.map((c) => c.id), ["c1"], "夹在 note 里的片段不在这条时间线上");
+  const noted = layoutsOf(parse(META + "==== media {#m src=#x out=4}\nA note.\n====\n"), opts());
+  assert.deepEqual(noted[0].clips, [], "有体就是装配，`src=` 不让它变成单源");
+  const commented = layoutsOf(parse(META + "=== media {#m src=#x out=4}\n%% a comment\n===\n"), opts());
+  assert.equal(commented[0].duration, 4, "只有 `%%` 行的仍是单源");
+});
+
 test("一个 media 块都没有的文档给出一条空时间线", () => {
   const t = tl("=== note {#n}\n没有片子\n===\n");
   assert.deepEqual(t, { id: "", fps: 0, primary: "", tracks: [], clips: [], duration: 0, problems: [] });

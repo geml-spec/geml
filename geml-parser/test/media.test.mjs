@@ -1054,7 +1054,8 @@ test("互动：引不到层、层上没那个点、点名不在角色声明里�
   const ds = checkMedia("script.geml", profileIoFor(root));
   const by = (code) => ds.filter((d) => d.code === code).map((d) => d.id).sort();
   assert.deepEqual(by("media-interaction-unassembled"), ["loose"], JSON.stringify(ds));
-  assert.deepEqual(by("media-interaction-unresolved"), ["badkind", "loose", "nolayer", "nopoint"], JSON.stringify(ds));
+  // 不在 comp 里的只报 unassembled：它的两端离了 comp 无从查起（profile §8）。
+  assert.deepEqual(by("media-interaction-unresolved"), ["badkind", "nolayer", "nopoint"], JSON.stringify(ds));
   assert.deepEqual(by("media-interaction-point-undeclared"), ["undeclared"], JSON.stringify(ds));
   assert.deepEqual(by("media-interaction-same-layer"), ["same"], JSON.stringify(ds));
   assert.deepEqual(by("media-layer-position-conflict"), ["h"], "h 写了 x y 又被 #conflict 定位：" + JSON.stringify(ds));

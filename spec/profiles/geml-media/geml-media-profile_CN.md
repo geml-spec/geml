@@ -65,10 +65,14 @@ raw 块，而它们本来就是。
 东西（`media-src-unresolved`、`media-src-not-asset`）；指静图时要写明占多久
 （`media-duration-required`，§4）。
 
+体是两道围栏之间除 `%%` 行以外的一切。既有体又有 `src=` 的 `media` 是
+`media-shape-ambiguous`；两样都没有的是 `media-shape-empty`。体里还没有片段——比如只有
+一段说明——是一条还没有片段的装配，不是空形状。
+
 | 键 | 形态 | 含义 |
 |---|---|---|
-| `tracks` | 装配 | 空格分隔的 **`名字:种类`** 列表。种类只有 `video` / `audio` / `prose`，说的是内容是什么。声明的顺序就是轨道的顺序 |
-| `primary` | 装配 | 主轨的名字。**缺省是声明的第一条轨**——那是其余轨都锚上去的脊梁 |
+| `tracks` | 装配 | 空格分隔的 **`名字:种类`** 列表。种类只有 `video` / `audio` / `prose`，说的是内容是什么。声明的顺序就是轨道的顺序。没写，这条时间线就没有轨：从不去文档的 `meta` 里找 |
+| `primary` | 装配 | 主轨的名字。**缺省是声明的第一条轨**——那是其余轨都锚上去的脊梁。不限定种类：纯音频剪辑是合法用例 |
 | `fps` | 都可 | 这条时间线的帧率。只有写了 `hh:mm:ss:ff` 时码才用得上 |
 | `src` | 单源 | 指向一个 `media-asset`。有体时不该出现 |
 | `in` | 都可 | **源内的入点**：从被引文件的第几秒开始取。剪辑软件与 W3C Media Fragments 用的都是这个词 |
@@ -110,9 +114,9 @@ body 是 raw，放作者自己的备注。备注是文档事实，进历史；�
 
 | 键 | 必需 | 含义 |
 |---|---|---|
-| `track` | 是 | 轨道名，须在 `meta.tracks` 里声明过。下面哪几条规则适用，由轨道的**种类**决定，不由轨道的名字决定 |
+| `track` | 是 | 轨道名，须在所属时间线的 `tracks=` 里声明过（§2）。下面哪几条规则适用，由轨道的**种类**决定，不由轨道的名字决定 |
 | `src` | 是 | 块引用，须合轨道的种类：`video` 轨收 `video` 或 `image` 素材，`audio` 轨收 `audio` 素材，`prose` 轨收 `media-text`。素材的种类看它的 `kind=`，没写就看扩展名（§3）。不合就是 `media-src-not-asset` |
-| `in`、`out` | `video`/`audio` | 素材内的起止，秒**或** `hh:mm:ss:ff` 时码（按 `meta.fps` 换算） |
+| `in`、`out` | `video`/`audio` | 素材内的起止，秒**或** `hh:mm:ss:ff` 时码（按所属时间线的 `fps` 换算） |
 | `duration` | 静图或散文 | 静图或一段散文在时间线上占多久。`video`、`audio` 素材有固有时长——文件自己的长度，不管 `duration=` 写没写——用不着它 |
 | `over` | 非主轨 | 锚到**主轨**上的某个片段 |
 | `offset` | 否 | 相对锚点起点的秒数，默认 0 |
@@ -124,9 +128,13 @@ body 是 raw，放作者自己的备注。备注是文档事实，进历史；�
 | `speed` | 否 | 倍速，默认 1 |
 | `xywh` | 否 | 源画面的裁切，W3C Media Fragments 语法 |
 
+片段是 `media` 体的直接子块，属于那条时间线。别处的 `media-clip`——在所有 `media` 之外，
+或在某个 `media` 里又套了一层块——不属于任何时间线：它是 `media-clip-unassembled`，它的
+`track` 和 `src` 不查，因为离了时间线它们说不出意思。
+
 ### 3.1 轨道种类
 
-`meta.tracks` 是空白分隔的 **`名字:种类`** 列表，种类只有三个：`video`、`audio`、`prose`。
+时间线的 `tracks=` 是空白分隔的 **`名字:种类`** 列表，种类只有三个：`video`、`audio`、`prose`。
 种类说的是**内容是什么、住在哪**——一个视频文件、一个音频文件、一个文档里的散文块——
 不是画在哪。overlay 轨的种类是 `video`；它叠在画面之上是样式表的决定，不是内容的。
 
@@ -139,7 +147,7 @@ body 是 raw，放作者自己的备注。备注是文档事实，进历史；�
 
 ### 3.2 时间模型
 
-- **主轨**（`meta.primary`，缺省 `video`）是**顺序的**：文档顺序就是播放顺序。第 *i* 个
+- **主轨**（`primary=`，缺省是声明的第一条轨）是**顺序的**：文档顺序就是播放顺序。第 *i* 个
   片段的起点 = 第 *i-1* 个的终点减去它 `transition-in` 声明的重叠量（`cut` 为 0，
   `dissolve` 与 `crossfade` 为 `transition-duration`，`fade` 不重叠）。第一个片段从 0 开始。
 - 一个片段的时长 = `out - in`，无固有时长的源则是 `duration`，再除以 `speed`。`video`、`audio` 素材上没写 `out` 的片段放到源的末尾：素材的 `duration`，没写就是文件自己的长度，由排时间线的一方从文件里读——读不到就排不了这一刀，并且要说出来。只按顺序放片段的播放器（歌单）根本用不着长度。
@@ -189,6 +197,9 @@ body 是 raw，放作者自己的备注。备注是文档事实，进历史；�
 
 ====
 ```
+
+层是 comp 体的直接子块，`media-interaction` 也是（§5.2）：comp 就是它们摆在上面的那块画布，
+中间夹一层块，这一点就说不清了。
 
 | 类型 | 键 | 必需 | 含义 |
 |---|---|---|---|
@@ -315,9 +326,6 @@ UTF-8 字节取 SHA-256，文本末尾不带换行。
 
 | 键 | 文档 | 含义 |
 |---|---|---|
-| `tracks` | 时间线 | `名字:种类` 列表；种类是 `video`、`audio`、`prose` |
-| `primary` | 时间线 | 主轨名，缺省 `video`。不限定种类：纯音频剪辑是合法用例 |
-| `fps` | 时间线 | 时码换算的基准 |
 | `aspect` | 剧本、时间线 | `9:16`、`16:9` —— 渲染参数，不影响时间 |
 | `target-duration` | 剧本 | 目标时长，秒 |
 | `episode` | 剧本 | 集号 |
@@ -335,6 +343,9 @@ warning 而不是 error——否则改一次角色卡整条流水线红掉，人
 |---|---|---|
 | `media-src-unresolved` | error | 片段或单源的 `src` 指不到任何块 |
 | `media-src-not-asset` | error | 片段的 `src` 不合该轨的种类（§4），或单源的 `src` 指的不是 `video`、`audio` 或 `image` 素材（§2）。不合轨的片段只报这一条 |
+| `media-shape-ambiguous` | error | `media` 既有体又有 `src=`（§2） |
+| `media-shape-empty` | error | `media` 既没有体也没有 `src=`（§2） |
+| `media-clip-unassembled` | error | `media-clip` 不是某个 `media` 体的直接子块；它的 `track` 和 `src` 不查（§4） |
 | `media-src-not-relative` | error | 素材的 `src` 带 URL scheme、以 `/` 开头或含 `\`（§3） |
 | `media-file-missing` | warning | 素材的文件不存在 |
 | `media-hash-mismatch` | error | 文件在，但 SHA-256 不是声明的那个 |
@@ -343,8 +354,8 @@ warning 而不是 error——否则改一次角色卡整条流水线红掉，人
 | `media-gain-invalid` | error | 片段的 `gain` 不是分贝值（§4） |
 | `media-time-out-of-range` | error | 某个时间不是有限数、超过 `max-time`，或片段终点超过它（§3.2、§8.1） |
 | `media-track-missing` | error | 片段没有 `track=` |
-| `media-track-undeclared` | warning | `track=` 不在 `meta.tracks` 里 |
-| `media-track-kind-missing` | error | `meta.tracks` 里某条只写了名字没写种类 |
+| `media-track-undeclared` | warning | `track=` 不在所属时间线的 `tracks=` 里 |
+| `media-track-kind-missing` | error | `tracks=` 里某条只写了名字没写种类 |
 | `media-track-kind-unknown` | error | 种类不在 `video`、`audio`、`prose` 之内 |
 | `media-of-unresolved` | error | 素材的 `of=` 指不到任何块 |
 | `media-speaker-unresolved` | error | 台词的 `speaker=` 或 `to=` 指不到任何块 |
@@ -354,11 +365,11 @@ warning 而不是 error——否则改一次角色卡整条流水线红掉，人
 | `media-orphan-record` | info | 没有任何记录的 `output-sha256` 等于素材现值：它现在这份字节来历不明 |
 | `media-stale-generation` | warning | 与素材现值匹配的那条记录里，某个输入的哈希、`prompt-sha256` 或某条 `prompt-refs[]` 与现值不符；消息点名变了的那个 |
 | `media-stale-clip` | warning | 片段的 `src` 是过期记录的产出，或其祖先过期；消息带整条链 |
-| `media-layer-unassembled` | error | `media-layer` 不在任何 `media-comp` 里 |
+| `media-layer-unassembled` | error | `media-layer` 不是某个 `media-comp` 体的直接子块；它的 `src` 不查 |
 | `media-comp-size-missing` | error | `media-comp` 没有 `size=宽x高` |
 | `media-comp-empty` | error | `media-comp` 的体里一层都没有 |
 | `media-layer-not-image` | error | 层的 `src` 解析到的不是图片素材。悬空的 `src` 是 `media-src-unresolved` |
-| `media-interaction-unassembled` | error | `media-interaction` 不在任何 `media-comp` 里 |
+| `media-interaction-unassembled` | error | `media-interaction` 不是某个 `media-comp` 体的直接子块；它的两端不查 |
 | `media-interaction-unresolved` | error | `a`/`b` 不是 `#层:点`、指的层不在这个 comp 里、层的素材没有那个点，或 `kind` 不是 `contact` / `gaze` |
 | `media-interaction-point-undeclared` | error | 点名不在素材所画的角色 / 场景声明的名字里 |
 | `media-interaction-same-layer` | error | 一条互动的两端在同一层上 |

@@ -260,8 +260,7 @@ pub fn check(doc: &Document, host: Option<&dyn Host>, out: &mut Out) {
     let index = Rc::new(Index::of(doc));
     let r = Resolver::new(index.clone(), host, &doc.name);
     let name = doc.name.as_str();
-    let meta_tracks = doc.meta.iter().find(|(k, _)| k == "tracks").and_then(|(_, v)| v.scalar_text());
-    walk(doc, &r, &doc.children, None, meta_tracks.as_deref(), out);
+    walk(doc, &r, &doc.children, None, out);
     let mut comps: Vec<(String, f64, String)> = Vec::new();
     collect_comps(name, &doc.children, &mut comps);
     for (i, (shot, at, a)) in comps.iter().enumerate() {
@@ -383,13 +382,13 @@ fn collect_comps(name: &str, items: &[Item], out: &mut Vec<(String, f64, String)
     }
 }
 
-fn walk(doc: &Document, r: &Resolver, items: &[Item], parent: Option<&Block>, meta_tracks: Option<&str>, out: &mut Out) {
+fn walk(doc: &Document, r: &Resolver, items: &[Item], parent: Option<&Block>, out: &mut Out) {
     let name = doc.name.as_str();
     for it in items {
         let Item::Block(b) = it else { continue };
         let a = addr(name, b);
         match b.type_name.as_str() {
-            "media" => media_block(doc, r, b, meta_tracks, out),
+            "media" => media_block(doc, r, b, out),
             "media-clip" if !matches!(parent, Some(p) if p.type_name == "media") => {
                 out.push("media-clip-unassembled", E, a.clone(), "a `media-clip` sits outside any `media` timeline")
             }
@@ -418,7 +417,7 @@ fn walk(doc: &Document, r: &Resolver, items: &[Item], parent: Option<&Block>, me
             }
             _ => {}
         }
-        walk(doc, r, &b.children, Some(b), meta_tracks, out);
+        walk(doc, r, &b.children, Some(b), out);
     }
 }
 
@@ -457,9 +456,11 @@ fn duration_missing(target: &Snap, cut: &Block) -> bool {
     }
 }
 
-fn media_block(doc: &Document, r: &Resolver, m: &Block, meta_tracks: Option<&str>, out: &mut Out) {
+fn media_block(doc: &Document, r: &Resolver, m: &Block, out: &mut Out) {
     let a = addr(&doc.name, m);
-    let body = m.has_body();
+    // A body is anything between the fences but `%%` lines (§2): a note alone is an
+    // assembly with no cuts yet, and a comment is not a body.
+    let body = m.children.iter().any(|it| !matches!(it, Item::Hidden(_)));
     let src = m.attr_text("src");
     match (body, &src) {
         (true, Some(_)) => out.push("media-shape-ambiguous", E, a.clone(), "a `media` block has both a body and a `src=`; it is one shape or the other"),
@@ -484,8 +485,8 @@ fn media_block(doc: &Document, r: &Resolver, m: &Block, meta_tracks: Option<&str
             Hit::Unknown => {}
         }
     }
-    let spec = m.attr_text("tracks").or_else(|| meta_tracks.map(str::to_string));
-    let table = spec.as_deref().map(|t| tracks(t, &a, out)).unwrap_or_default();
+    // The track table rides on the block; the document's `meta` is never read for it (§2).
+    let table = m.attr_text("tracks").map(|t| tracks(&t, &a, out)).unwrap_or_default();
     for it in &m.children {
         let Item::Block(c) = it else { continue };
         if c.type_name != "media-clip" {
@@ -661,8 +662,7 @@ fn comp(r: &Resolver, k: &Block, name: &str, out: &mut Out) {
                 Hit::Unknown => {}
                 Hit::Block(ix, i) => {
                     let t = &ix.snaps[i];
-                    let image = t.type_name == "media-asset"
-                        && asset_kind(t) == "image";
+                    let image = t.type_name == "media-asset" && asset_kind(t) == "image";
                     if !image {
                         out.push("media-layer-not-image", E, la.clone(), format!("`src={s}` is not an image asset"));
                     } else {

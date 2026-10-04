@@ -39,6 +39,20 @@ and is released under `viewer-v*` tags.
   single source's `src`, and skipped a cut on an undeclared track — and the
   Rust crate took a model or an `other` file as a single source; two profile
   cases pin the rules.
+- **`geml-media/v1`: a timeline is its body.** A `media` with a body is an
+  assembly and one without, given a `src=`, a single source; a body is
+  anything between the fences but `%%` lines, so a note with no cut yet is an
+  assembly, and a comment beside a `src=` is not a body. A cut is a direct
+  child of a `media` body, a layer and an interaction of a `media-comp` body;
+  one anywhere else is `*-unassembled`, reported for that alone, and the
+  timeline layout under `geml media`, the viewer's player and export leaves it
+  out. A timeline's tracks are its own `tracks=`: `tracks`, `primary` and
+  `fps` are no longer `=== meta` keys of the profile. The reference read the
+  shape from the cuts, owned a cut, a layer or an interaction at any depth and
+  checked a stray one's references too; the Rust crate counted a `%%` line as
+  a body and read `tracks` from the document's `meta`. The three shape and
+  assembly codes join the profile's diagnostics table; three profile cases pin
+  the rules.
 
 ## [1.12.2] — 2026-10-04
 

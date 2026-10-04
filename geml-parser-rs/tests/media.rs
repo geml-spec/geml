@@ -132,7 +132,7 @@ Hello.
 #[test]
 fn a_timeline_is_a_body_or_a_source() {
     let src = r##"=== meta
-tracks = "v:video"
+title = "shapes"
 ===
 
 === media-asset {#take src=take.mp4 sha256=a2}
@@ -147,7 +147,7 @@ Words.
 
 # Heading {#h}
 
-==== media {#both src=#take}
+==== media {#both src=#take tracks="v:video"}
 === media-clip {track=v src=#take duration=1}
 ===
 ====

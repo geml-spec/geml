@@ -185,7 +185,7 @@ pub const PROFILES: &[Profile] = &[
             ("media-interaction", &["a", "b", "kind"]),
         ],
         open_attrs: &[],
-        meta_keys: Some(&["tracks", "primary", "fps", "aspect", "target-duration", "episode"]),
+        meta_keys: Some(&["aspect", "target-duration", "episode"]),
         codes: &[
             ("media-src-unresolved", E),
             ("media-src-not-asset", E),

@@ -571,10 +571,7 @@ test("GEP-0013：诊断带结构化的 subject —— 渲染器不必从散文�
 const NAMING_EXCEPTIONS = {
   "geml-form/v1:type:form": "GEP-0008 正把 form-* 家族送进 §3 的核心注册表，届时这个不带连字符的名字归规范所有。GEP 落地即解除；若 GEP 被否，改名。",
   "geml-media/v1:type:media": "没有 GEP 认领它。media 设计稿 §9.7 明说裸 media 类型「现在不提」进核心，所以它今天就占着 §8.5 为规范未来版本保留的位置。这是真违规，解除办法是改名 media-timeline 或提 GEP。",
-  "geml-media/v1:meta:tracks": "六个 meta 键早于本约定；fps 与 aspect 尤其是第二份 profile 会想要的通用词。geml-media 仍是 draft，可在 /v1 内改名。",
-  "geml-media/v1:meta:primary": "同上。",
-  "geml-media/v1:meta:fps": "同上。",
-  "geml-media/v1:meta:aspect": "同上。",
+  "geml-media/v1:meta:aspect": "三个 meta 键早于本约定；aspect 尤其是第二份 profile 会想要的通用词。geml-media 仍是 draft，可在 /v1 内改名。",
   "geml-media/v1:meta:target-duration": "同上。",
   "geml-media/v1:meta:episode": "同上。",
 };
