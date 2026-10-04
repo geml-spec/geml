@@ -574,7 +574,7 @@ test("compose：没有 ffmpeg 就把本该执行的命令打出来，退出 0", 
     assert.match(r.err, /ffmpeg 不在 PATH 上/);
     // Each input through the file protocol, at the real path the CLI checked
     // lies inside the media root.
-    assert.match(r.out, /^ffmpeg -y -f lavfi -i color=c=black@0\.0:s=720x1280:d=1 -i file:\S*assets\/bg\.png -i file:\S*assets\/hero\.png -filter_complex /);
+    assert.match(r.out, /^ffmpeg -y -f lavfi -i color=c=black@0\.0:s=720x1280:d=1 -i file:\S*assets[\\/]bg\.png -i file:\S*assets[\\/]hero\.png -filter_complex /);
     assert.match(r.out, /overlay=300:340\[b2\]/);
     assert.match(r.out, /-update 1 .*s05-key\.png/);
     assert.ok(!existsSync(p.at("assets/s05-key.png")), "没跑 ffmpeg 就没有文件");

@@ -756,6 +756,24 @@ test("--to md: borrowed content sits under the host's title — shifted, without
   rmSync(d, { recursive: true, force: true });
 });
 
+// A verb ends with process.exit, and a piped stderr behind a slow reader lost
+// what it had not written yet: `geml check` on a document with eight thousand
+// diagnostics delivered under nine hundred of them. The reader here waits before
+// it reads, as a busy CI runner did.
+test("check delivers every diagnostic through a pipe whose reader is slow", () => {
+  const doc = Array.from({ length: 8000 }, (_, i) => `=== view {#v${i} src=#v${i + 1}}\n===\n`).join("\n") + "\n=== table {#v8000}\n| a |\n|---|\n| 1 |\n===\n";
+  const reader = `
+    const { spawn } = require("node:child_process");
+    const c = spawn(process.execPath, ["dist/geml.js", "check", "-"], { stdio: ["pipe", "ignore", "pipe"] });
+    c.stdin.end(${JSON.stringify(doc)});
+    c.stderr.pause();
+    let text = "";
+    setTimeout(() => { c.stderr.on("data", (d) => { text += d; }); c.stderr.resume(); }, 1500);
+    c.on("close", () => console.log((text.match(/deep; the bound is 16/g) ?? []).length));`;
+  const r = spawnSync(process.execPath, ["-e", reader], { encoding: "utf8", timeout: 60_000 });
+  assert.equal(r.stdout.trim(), String(8000 - 16), r.stderr);
+});
+
 console.log(`\n${passed} test(s) passed.`);
 // Exit explicitly: every assertion above has run, and on Linux this file's
 // server/fetch traffic can leave a live handle that keeps the process — and

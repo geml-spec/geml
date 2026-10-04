@@ -190,6 +190,11 @@ and is released under `viewer-v*` tags.
   last, and verify clean in both. A unit's id is the one its attribute object
   declares: the reference keyed `{src=#foo}` as `#foo`, where the Rust crate
   read the block's own id. The profile's new `sidecars` cases pin it.
+- **The CLI's output through a pipe is complete.** Every verb ends with
+  `process.exit`, which dropped whatever a piped stdout or stderr had not yet
+  written: `geml check` behind a slow reader delivered under nine hundred of
+  eight thousand diagnostics. The CLI writes blocking now; `geml mcp`, a
+  long-running stdio server, keeps Node's queued writes.
 
 ## [1.12.1] — 2026-10-03
 

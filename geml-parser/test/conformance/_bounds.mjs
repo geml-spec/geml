@@ -169,7 +169,8 @@ export function expected(core = readBounds(readFileSync(SPEC, "utf8")), media = 
     { path: STYLE_CASES, made: styleCases(core), key: "views" },
   ];
   return files.map(({ path, made, key = "cases" }) => {
-    const text = readFileSync(path, "utf8");
+    // A Windows checkout may hold the file with CRLF; the cases are the same.
+    const text = readFileSync(path, "utf8").replace(/\r\n/g, "\n");
     const json = JSON.parse(text);
     const out = Array.isArray(json) ? placed(json, made) : { ...json, [key]: placed(json[key], made) };
     return { path, text, want: JSON.stringify(out, null, 2) + "\n" };

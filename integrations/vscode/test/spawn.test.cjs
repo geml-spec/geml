@@ -168,7 +168,9 @@ await test("round 6: the CLI is started by absolute path, never found in the doc
 
 await test("round 6: on Windows a .cmd shim runs by absolute path, and cmd.exe does not search the document's folder", async () => {
   const dir = repo("win", ["geml.cmd"]);
-  const bin = installed("bin-win", ["geml.cmd"]);
+  // Windows matches PATHEXT's `.CMD` to npm's `geml.cmd` in any case; a Linux
+  // test host does not, so the shim here is spelled the way PATHEXT spells it.
+  const bin = installed("bin-win", ["geml.CMD"]);
   process.env.PATH = bin;
   process.env.PATHEXT = ".COM;.EXE;.BAT;.CMD";
   // WIN is read when the module loads, so load a second copy as Windows sees it.

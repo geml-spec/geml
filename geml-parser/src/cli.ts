@@ -1888,6 +1888,17 @@ const entry = (() => {
   // The on-disk artifact is `.geml-code-graph/`, so people reconstruct the
   // command from the directory name — accept those spellings as `codemap`.
   const cmd = argv[0] === "codegraph" || argv[0] === "code-graph" ? "codemap" : argv[0];
+  // A verb ends with process.exit, which drops whatever a piped stdout or stderr
+  // has not written yet: a pipe write that does not fit is queued, and `geml
+  // check` behind a slow reader lost seven thousand of its eight thousand
+  // diagnostics. Blocking writes are done before the exit. `mcp` is a
+  // long-running stdio server and keeps queued writes, so a client slow to read
+  // its answers cannot stall the requests it sends.
+  if (cmd !== "mcp") {
+    for (const s of [process.stdout, process.stderr]) {
+      (s as unknown as { _handle?: { setBlocking?: (on: boolean) => void } })._handle?.setBlocking?.(true);
+    }
+  }
   jsonMode = optionArgs(cmd, argv).includes("--json");
   const rest = argv.slice(1);
   const restOpts = optionArgs(cmd, rest);
