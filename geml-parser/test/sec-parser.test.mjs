@@ -15,6 +15,9 @@ import { spawnSync } from "node:child_process";
 import { writeFileSync, readFileSync, mkdtempSync, mkdirSync, rmSync, existsSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createRequire, syncBuiltinESMExports } from "node:module";
+
+const require = createRequire(import.meta.url);
 
 let passed = 0;
 function test(name, fn) { fn(); passed++; console.log("ok", name); }
@@ -2043,9 +2046,11 @@ test("round 6: translateBlocks never hands a hidden block or heading to the tran
 // live document after every move and insert, hashing every unit afresh each
 // time: a revision that reorders a few thousand paragraphs cost seconds to
 // verify. A unit's key is a hash of its text, so the hashes are remembered by
-// text. Re-tiling per op remains, and is cheap beside the hashing it carried:
-// 4000 paragraphs verify in about a second where they took three and a half.
-test("round 6: verifying a revision that reorders thousands of units stays fast", () => {
+// text. Re-tiling per op remains, and is cheap beside the hashing it carried.
+// The test counts the hashes rather than timing them: a CI runner under
+// coverage is three times slower than a laptop, which is the whole gap between
+// the fixed and the unfixed time, while the counts are 4003 and six million.
+test("round 6: verifying a revision that reorders thousands of units hashes each unit text once", () => {
   const dir = mkdtempSync(join(tmpdir(), "geml-sec-round6-moves-"));
   try {
     const geml = join(dir, "doc.geml");
@@ -2056,11 +2061,17 @@ test("round 6: verifying a revision that reorders thousands of units stays fast"
     // Every other paragraph moved to the end: a patch of moves, not of new text.
     writeFileSync(geml, [...paras.filter((_, i) => i % 2 === 0), ...paras.filter((_, i) => i % 2 === 1)].join("\n\n") + "\n");
     save({ gemlPath: geml, historyPath: hist, summary: "reordered", author: "t", at: new Date(Date.UTC(2026, 0, 2)) });
-    const t0 = Date.now();
-    const v = verify(hist, geml);
-    const ms = Date.now() - t0;
+    // history.js imports createHash from node:crypto; syncBuiltinESMExports
+    // carries a wrapper on the module object to that live binding.
+    const crypto = require("node:crypto");
+    const real = crypto.createHash;
+    let hashes = 0;
+    crypto.createHash = (...a) => { hashes++; return real(...a); };
+    syncBuiltinESMExports();
+    let v;
+    try { v = verify(hist, geml); } finally { crypto.createHash = real; syncBuiltinESMExports(); }
     assert.equal(v.ok, true, v.errors.join("; "));
-    assert.ok(ms < 2500, `verify took ${ms} ms`);
+    assert.ok(hashes < 2 * paras.length, `verify hashed ${hashes} times for ${paras.length} units`);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
