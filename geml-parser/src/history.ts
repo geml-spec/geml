@@ -195,7 +195,8 @@ function tile(lines: string[]): Unit[] {
     let id: string | undefined;
     if (fo) {
       const fenceLen = fo[1]!.length;
-      id = fo[3] === undefined ? undefined : parseAttrs(fo[3]).id;
+      // `|| undefined`: the empty id is none (GEML §4).
+      id = (fo[3] === undefined ? undefined : parseAttrs(fo[3]).id) || undefined;
       // Profile §4: a block runs to the line that closes it as GEML §3 says — an
       // equal-length bare run, or, when it has an id, its labeled fence `=== #id`.
       i++;
@@ -207,7 +208,7 @@ function tile(lines: string[]): Unit[] {
       }
     } else { // flow segment: consecutive non-blank, non-fence lines
       const h = HEADING_ATTRS.exec(lines[i]!);
-      if (h) id = parseAttrs(`{${h[1]!}}`).id;
+      if (h) id = parseAttrs(`{${h[1]!}}`).id || undefined;
       i++;
       while (i < n && lines[i]!.trim() !== "" && !FENCE_OPEN.test(lines[i]!)) i++;
     }

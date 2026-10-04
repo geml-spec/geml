@@ -191,5 +191,37 @@
       "#a-between-b",
       "#b"
     ]
+  },
+  {
+    "name": "a heading with no id is no container to name prose by, and no address of its own",
+    "geml": "## !!!\n\nintro\n\n=== note {#b}\ny\n===\n",
+    "want": "h2(\"!!!\") \"intro\" block:note",
+    "addresses": [
+      "#b"
+    ]
+  },
+  {
+    "name": "a repeated id is one address: it names the first holder",
+    "geml": "## Dup\n\none\n\n## Dup\n\ntwo\n",
+    "want": "h2(\"Dup\") \"one\" h2(\"Dup\") \"two\"",
+    "addresses": [
+      "#dup"
+    ],
+    "diagnostics": ["duplicate-id:error"]
+  },
+  {
+    "name": "a `[^a]:` line is prose in GEML: it defines no footnote and is no address",
+    "geml": "# T {#t}\n\nText[^a].\n\n[^a]: the note\n",
+    "want": "h1(\"T\") \"Text\" fn(\"a\") \".\" fn(\"a\") \": the note\"",
+    "addresses": [
+      "#t"
+    ],
+    "diagnostics": ["unresolved-footnote:error", "unresolved-footnote:error"]
+  },
+  {
+    "name": "a document of prose alone has no address: the body has no id to name it by",
+    "geml": "Just a note.\n\nNo headings here.\n",
+    "want": "\"Just a note.\" \"No headings here.\"",
+    "addresses": []
   }
 ]

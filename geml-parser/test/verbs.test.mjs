@@ -230,10 +230,10 @@ test("list pads by terminal columns, flags footnotes and unknown types, and says
   const lCol = lines.map((l) => cells(l.slice(0, l.search(/L\d+-\d+/))));
   assert.ok(lCol.every((c) => c === lCol[0]), `columns drifted: ${JSON.stringify(lCol)} in ${JSON.stringify(lines)}`);
   assert.ok(lines[1].search(/L\d+-\d+/) < lines[0].search(/L\d+-\d+/), "the CJK row uses fewer code units to reach the same cell");
-  // A paragraph under no heading has no address (a prose run is addressed
-  // relative to its heading), so both these documents are empty answers.
+  // A `%%` line is not content, so a document of nothing else, like an empty
+  // one, is an empty answer. (Prose alone is listed, by its content address.)
   const ctx = ctxOf();
-  assert.equal(list("just prose\n", "p.geml", false, ctx), "");
+  assert.equal(list("%% just a comment\n", "p.geml", false, ctx), "");
   assert.equal(list("", "e.geml", false, ctx), "");
   assert.deepEqual(ctx.notes, ["no addressable blocks in p.geml", "no addressable blocks in e.geml"]);
   assert.equal(list("", "-", true, ctxOf()), "[]\n");

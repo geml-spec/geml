@@ -49,8 +49,10 @@ function trimSpaceTabEnd(s: string): string {
 // never inside a quoted value, so the anchored match can't disturb a value like
 // `caption="#x"`.
 function rewriteBraces(braces: string, newId: string): string {
-  if (parseAttrs(braces).id !== undefined) {
-    return braces.replace(/([{\s])#[^\s}]+/, `$1#${newId}`);
+  const id = parseAttrs(braces).id;
+  if (id !== undefined) {
+    // `{#}` writes the empty id, which is none (§4), and its token is `#` alone.
+    return braces.replace(id === "" ? /([{\s])#(?=[\s}])/ : /([{\s])#[^\s}]+/, `$1#${newId}`);
   }
   const inner = braces.slice(1, -1).replace(/^[ \t]*/, "");
   return `{#${newId}${inner.length ? " " + inner : ""}}`;
@@ -110,7 +112,8 @@ export function normalizeBlockId(blockSrc: string, newId: string): string {
   // (plain equal-length OR labeled), matching geml.ts's fenceClose scan; a
   // plain close needs no rewrite.
   const f = FENCE_HEAD.exec(headText);
-  const oldId = f && f[3] ? parseAttrs(f[3]).id : undefined;
+  // `|| undefined`: the empty id is none (§4), so it labels no close.
+  const oldId = (f && f[3] ? parseAttrs(f[3]).id : undefined) || undefined;
   if (f && oldId !== undefined) {
     const openLen = /^=+/.exec(f[1]!)![0].length;
     for (let j = hi + 1; j < lines.length; j++) {

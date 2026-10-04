@@ -250,6 +250,11 @@ fn id_map(children: &[Item]) -> IdMap {
             }
             Item::Heading(h) => {
                 hi += 1;
+                // §4: the empty string is no id, so a heading that derives
+                // nothing has none and collides with nothing.
+                if h.id.is_empty() {
+                    continue;
+                }
                 (h.id.clone(), Found::Heading(hi - 1), h.line, false)
             }
             _ => continue,

@@ -3047,7 +3047,7 @@ profile itself consumes.
 
 把 §2.3 整节（从 `### 2.3 \`style-screen\`` 到 `## 3. Selector grammar` 之前）替换为：
 
-```markdown
+````markdown
 ### 2.3 `style-screen` — a page
 
 ```
@@ -3095,7 +3095,7 @@ its own slots may name further frames — a page is a tree of frames. Unlike an
 
 There is deliberately **no depth cap**: without a cycle the tree cannot be unbounded,
 and a second gate would only ever fire on cycles the first already caught.
-```
+````
 
 - [ ] **Step 5: §4 条件集一句**
 
@@ -3255,7 +3255,7 @@ git commit -m "docs(style-profile): frames, built-in words, when= and toggle —
 
 替换 §2.3 整节为：
 
-```markdown
+````markdown
 ### 2.3 `style-screen` —— 一页
 
 ```
@@ -3299,7 +3299,7 @@ screen 是**根**：一整页。一份样式表能有几个根是**宿主**的�
 | 没有任何槽位引用的 frame | `unused-frame` | warning |
 
 刻意**不设深度上限**：没有环树就不可能无限深，第二道闸只会在第一道已经抓住的环上响。
-```
+````
 
 - [ ] **Step 5: §4 条件集**
 

@@ -148,6 +148,22 @@ try {
     assert.deepEqual(codes(md("# T\n\nmatch [^0-9] and [^abc] here.\n")), []);
   });
 
+  test("a footnote definition holds its continuation: lazy lines, and indented ones past a blank line", () => {
+    const spans = (s) => addressedUnits(s, { markdown: true }).filter((a) => a.unit.kind === "footnote").map((a) => [a.unit.id, a.unit.span.start, a.unit.span.end]);
+    // GFM reads the definition as a container, so `get #n` is the whole note and
+    // the prose after it starts after it.
+    assert.deepEqual(spans("Text[^n].\n\n[^n]: one\n    two\n\n    three\n\nAfter.\n"), [["n", 2, 6]]);
+    assert.deepEqual(spans("Text[^n].\n\n[^n]: one\nlazy two\n\nAfter.\n"), [["n", 2, 4]]);
+    // A line that opens something of its own ends it: a heading, another definition.
+    assert.deepEqual(spans("[^a]: one\n[^b]: two\n## Next\n"), [["a", 0, 1], ["b", 1, 2]]);
+  });
+
+  test("a .geml has no `[^label]:` definition line, so the listing has no footnote unit either", () => {
+    // The parser reads it as prose (unresolved-footnote, below); the listing
+    // walked it as a definition and printed `#a`, with prose named after it.
+    assert.deepEqual(addressedUnits("# T\n\nText[^a].\n\n[^a]: the note\n").filter((a) => a.unit.kind === "footnote"), []);
+  });
+
   test("a .geml keeps GEML's footnote: a block with the id, or unresolved-footnote", () => {
     assert.ok(codes(parse("# T\n\nText[^a].\n\n[^a]: the note\n")).includes("unresolved-footnote"));
   });
@@ -801,6 +817,60 @@ try {
     assert.equal(r.code, 0, r.err);
     assert.match(read(f), /A lone ` tick, then \[r\]\(#hazards\)\./);
     assert.match(r.err, /1 link to it updated/);
+  });
+  // -------------------------------------------------------------------------
+  // The outline GitHub shows: math, HTML blocks, `=== word`, setext headings
+  // -------------------------------------------------------------------------
+
+  const headings = (doc) => doc.children.filter((b) => b.kind === "heading").map((b) => [b.level, b.text, b.id]);
+
+  test("`$$` display math holds no heading", () => {
+    assert.deepEqual(headings(md("# Doc\n\n$$\n# not a heading\n$$\n\nAfter.\n")), [[1, "Doc", "doc"]]);
+  });
+
+  test("an HTML block holds no heading: a comment, `<pre>`, a block-level tag to the blank line", () => {
+    const doc = md("# Doc\n\n<!--\n# commented out\n-->\n\n<pre>\n# in pre\n</pre>\n\n<div>\n# in div\n</div>\n\n## End\n");
+    assert.deepEqual(headings(doc).map((h) => h[2]), ["doc", "end"]);
+    // `<details>` ends at the blank line, and GitHub reads the Markdown after it.
+    assert.deepEqual(headings(md("<details>\n\n# Inside\n\n</details>\n")).map((h) => h[2]), ["inside"]);
+    // An unclosed comment shields nothing, as an unclosed fence does.
+    assert.deepEqual(headings(md("<!--\n# Still a heading\n")).map((h) => h[2]), ["still-a-heading"]);
+  });
+
+  test("a `=== word` of no type this reader knows is text in a .md: it opens nothing and swallows nothing", () => {
+    const doc = md("# Notes\n\n=== Summary\n\nSome text.\n\n## Next\n\nMore.\n");
+    assert.deepEqual(headings(doc).map((h) => h[2]), ["notes", "next"]);
+    assert.deepEqual(codes(doc), []);
+    // A known type is still GEML's block.
+    assert.deepEqual(md("# T\n\n=== note {#n}\nx\n===\n").ids, ["t", "n"]);
+  });
+
+  test("a setext heading: a paragraph over `===` is level 1, over `---` level 2, its lines joined", () => {
+    const doc = md("Title\n=====\n\nPara.\n\nTwo\nlines\n---\n\nText.\n");
+    assert.deepEqual(headings(doc), [[1, "Title", "title"], [2, "Two lines", "two-lines"]]);
+  });
+
+  test("not a setext heading: YAML frontmatter, a list item's lazy line, a rule after a blank line", () => {
+    assert.deepEqual(headings(md("---\ntitle: x\n---\n\n- item\nlazy\n---\n\nText\n\n---\n")), []);
+    // GEML itself has ATX headings only (§1), so a .geml reads the same lines as prose.
+    assert.deepEqual(headings(parse("Title\n=====\n")), []);
+  });
+
+  test("every addressing walk agrees with the parse on setext headings", () => {
+    const SET = "Intro\n=====\n\nText.\n\nPart\n----\n\n$$\n# no\n$$\n\n## Last\n";
+    const parsed = md(SET).ids;
+    assert.deepEqual(parsed, ["intro", "part", "last"]);
+    assert.deepEqual(addressedUnits(SET, { markdown: true }).filter((a) => a.unit.kind !== "prose").map((a) => a.unit.id).filter((x) => x !== undefined), parsed);
+    assert.deepEqual([...blockSpans(SET, { markdown: true }).keys()].sort(), [...parsed].sort());
+    assert.deepEqual(unitSpans(SET, { markdown: true }).map((u) => u.id).filter((x) => x !== undefined), parsed);
+  });
+
+  test("a setext heading's head is both its lines: --head, --body, and the prose after it", () => {
+    const f = write("setext.md", "Title\n=====\n\nBody.\n\n## Next\n\nx\n");
+    assert.equal(run(["get", f, "#title", "--head"]).out, "Title\n=====\n");
+    assert.match(run(["get", f, "#title", "--body"]).out, /^\nBody\./);
+    const rows = JSON.parse(run(["list", f, "--json"]).out);
+    assert.deepEqual(rows.find((r) => r.address === "#title-before-next").lines, [4, 4]);
   });
 } finally {
   rmSync(dir, { recursive: true, force: true });

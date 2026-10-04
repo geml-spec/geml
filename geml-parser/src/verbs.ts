@@ -2041,7 +2041,7 @@ function spliceSpan(
   // re-declare `{#id}` and, for a typed block, keep the fence pairing intact
   // (an opening line that no longer matches the untouched close fence breaks
   // the re-parse), or the splice is refused.
-  const span = headOnly ? narrowToHead(found) : found;
+  const span = headOnly ? narrowToHead(found, source, walkOf(file)) : found;
   const before = orig.slice(0, span.start);
   const after = orig.slice(span.end);
   const nl = newlineOf(source);           // adopt the document's style, not LF
@@ -2172,7 +2172,7 @@ export function revert(source: string, file: string, rawId: string, o: RevertOpt
   const toFileNl = (s: string) => toNewline(s, newlineOf(source));
   const curFull = blockSpans(source, walkOf(file)).get(id);            // undefined => absent now
   const curBlock = curFull === undefined ? undefined : ((): string => {
-    const span = headOnly ? narrowToHead(curFull) : curFull;
+    const span = headOnly ? narrowToHead(curFull, source, walkOf(file)) : curFull;
     return splitLines(source).slice(span.start, span.end).join("");
   })();
 
@@ -2181,7 +2181,7 @@ export function revert(source: string, file: string, rawId: string, o: RevertOpt
   const pick = (text: string): string | undefined => {
     const s = blockSpans(text, walkOf(file)).get(id);
     if (!s) return undefined;
-    const span = headOnly ? narrowToHead(s) : s;
+    const span = headOnly ? narrowToHead(s, text, walkOf(file)) : s;
     return splitLines(text).slice(span.start, span.end).join("");
   };
 

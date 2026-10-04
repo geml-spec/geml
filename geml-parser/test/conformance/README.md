@@ -48,7 +48,7 @@ a path that leaves the tree reads nothing.
 | `ids.json` | heading-id derivation (§4): code spans, diacritics, Unicode letters, numbers and whitespace, collisions |
 | `normalize.json` | §0.5: one leading U+FEFF removed, every line ending one U+000A, U+0000 and ill-formed UTF-8 as U+FFFD |
 | `blocks.json` | the block tree (§3, §4): nesting by fence length, raw vs. flow bodies, labeled and unterminated closes, `%%` lines, attribute typing and escapes |
-| `addresses.json` | what a listing gives (§4): `P-between-N`, `C-before-N`, `C-after-P`, what has none, a declared id shadowing a derived one, `#meta` |
+| `addresses.json` | what a listing gives (§4): `P-between-N`, `C-before-N`, `C-after-P`, what has none, a declared id shadowing a derived one, `#meta`, a repeated id, a heading with no id |
 | `yaml.json` | the subset a `yaml` engine must read (§3.2), and what lies outside it |
 | `documents.json` | what a document reads through a host: references into other documents one level deep (§5.2, §9.3), confinement (§9.4), the resolution root (§3.3), data files read at build time (§6, §6.1) and remote ones deferred (§3.3), `code` and `data` routes (§3.2, §3.3), and transclusion chains across documents (§9.3) |
 

@@ -18,6 +18,37 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **A `.md` has the outline GitHub shows.** A setext heading — a paragraph
+  over a `===` or `---` underline — is a heading, its head both lines, so
+  `get --head` and `--body` split it where GitHub does; it was prose. A line
+  inside `$$` display math, an HTML comment, `<pre>`, or a block-level HTML tag
+  up to its blank line no longer starts a heading, a fence or a footnote
+  definition: a `# …` there was a section. A `=== word` line whose type this
+  reader does not know is text, as GitHub prints it; it opened an unknown block
+  that ran unclosed to the end of the file, taking every heading after it.
+  GEML's own typed blocks of known types are still blocks in a `.md`, and a
+  `.geml` reads nothing differently.
+- **The empty string is never an id (spec §4).** `#` alone is a URL's empty
+  fragment, the top of a document, so it names no block: a heading whose text
+  derives nothing — `## !!!`, a heading that is only a code span — has no id,
+  no address, anchors no prose and collides with nothing, where it derived the
+  empty id and a second one was a `duplicate-id` error. `{#}` reads as if no id
+  were written: a typed block has none, a heading derives one, and the
+  `name-not-a-name` warning stands. The reference listed `#` and named prose
+  after it (`#-before-x`) while the Rust crate listed neither; both now read the
+  rule the same way, and the conformance cases that pinned the old one are
+  turned round, with one each for `{#}` and for prose beside such a heading.
+- **`geml list` leaves no content out.** A document of prose alone — a note
+  with no heading and no block — listed nothing, so no address reached its
+  text; it is one run now, listed by its content address like any run in the
+  body. A Markdown footnote definition holds what GFM gives it, its lazy
+  continuation and the lines indented under it, so `get #n` is the whole note;
+  it was its first line, and the rest opened the next run. In a `.geml` a
+  `[^n]:` line is prose, as the parser has read it since the definition line
+  was withdrawn; the listing still walked it as a footnote and listed `#n`
+  beside an `unresolved-footnote` error. And a repeated id is listed once: a
+  later holder gets its content address, where it printed `#id`, which pastes
+  back to the first.
 - **`geml-media/v1`: a video or audio asset has its file's duration, written
   or not.** `media-duration-required` is for a cut on a still image or on
   prose; a song or a take with no `duration=` no longer makes every cut on it

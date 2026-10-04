@@ -230,22 +230,20 @@ test("§4: a literal hyphen is content, and whitespace around it still separates
 });
 
 // Step 2 deletes a code span "its backticks and its content alike", so a heading
-// that is ONLY a code span derives the empty id. §4 addresses this directly: such
-// an id "is a derived id like any other and therefore collides with a second such
-// heading; give either one an explicit `{#id}`". Deriving a name from the code span
-// instead — `#geml-dsh-plugin` — also suppresses the duplicate-id error below,
-// which is a specified diagnostic, so the empty id is load-bearing.
-test("§4: a code-span-only heading derives the empty id, and two of them collide", () => {
+// that is ONLY a code span derives the empty string — and §4 makes that no id:
+// `#` alone is a URL's empty fragment, the top of a document, not a name. Such a
+// heading has no address and no collision; an explicit `{#id}` names it.
+test("§4: a code-span-only heading derives nothing, so it has no id and two of them do not collide", () => {
   const id = (heading) => parse("# " + heading).children[0].id;
-  assert.equal(id("`@geml/dsh-plugin`"), "");
-  assert.equal(id("`npm`"), "");
+  assert.equal(id("`@geml/dsh-plugin`"), undefined);
+  assert.equal(id("`npm`"), undefined);
   assert.equal(id("Use `npm` here"), "use-here", "a code span inside prose just vanishes");
+  assert.equal(id("`npm` {#npm}"), "npm", "an explicit id names it");
 
   const d = parse("## `npm`\n\na\n\n## `yarn`\n\nb");
-  assert.deepEqual([d.children[0].id, d.children[2].id], ["", ""]);
-  const dup = d.diagnostics.filter((x) => x.code === "duplicate-id");
-  assert.equal(dup.length, 1);
-  assert.equal(dup[0].severity, "error");
+  assert.deepEqual([d.children[0].id, d.children[2].id], [undefined, undefined]);
+  assert.deepEqual(d.diagnostics.filter((x) => x.code === "duplicate-id"), []);
+  assert.deepEqual(d.ids, []);
 });
 
 // §4 step 2 normalises to NFD, so every diacritic becomes a combining mark of

@@ -209,6 +209,29 @@ test("duplicate heading slugs: get still addresses the FIRST section (first wins
   assert.match(r.err, /duplicate id/);
 });
 
+test("list gives a repeated id once: a later holder is listed by content, which pastes back to it", () => {
+  // `#intro` resolves to the first section (above), so listing the second as
+  // `#intro` too printed an address that fetched a different block.
+  const f = write("sec14b.geml", "# Intro\nfirst body\n\n# Intro\nsecond body\n");
+  const rows = JSON.parse(run(["list", f, "--json"]).out);
+  assert.deepEqual(rows.map((r) => r.address.startsWith("@")), [false, true]);
+  assert.equal(rows[0].address, "#intro");
+  assert.match(run(["get", f, rows[1].address]).out, /second body/);
+});
+
+test("list names a document of prose alone, by content, like any run in the body", () => {
+  // The body was walked for runs only when it held a unit, so a note with no
+  // heading and no block listed nothing and no address reached its text.
+  for (const name of ["prose-only.geml", "prose-only.md"]) {
+    const f = write(name, "Just a note.\n\nNo headings here.\n");
+    const rows = JSON.parse(run(["list", f, "--json"]).out);
+    assert.deepEqual(rows.map((r) => [r.kind, r.lines]), [["prose", [1, 3]]], name);
+    assert.equal(run(["get", f, rows[0].address]).out, "Just a note.\n\nNo headings here.\n", name);
+  }
+  // `%%` lines are not content, so a document of nothing else still lists nothing.
+  assert.deepEqual(JSON.parse(run(["list", write("comment-only.geml", "%% a note to self\n"), "--json"]).out), []);
+});
+
 test("set NORMALIZES the content's heading id to the target (#zzz → #a), keeping the address", () => {
   const f = write("sec16.geml", SECDOC);
   const r = run(["set", f, "#a", "-o", f], "# Renamed {#zzz}\n\nintro prose\n\n=== code {#c}\nx = 1\n===\n\ntail\n\n");
@@ -377,7 +400,8 @@ test("set --head NORMALIZES an anonymous head back to the target id (never drops
 });
 
 test("get --head on a footnote definition is a no-op narrowing", () => {
-  const f = write("hd6.geml", "see it[^fn]\n\n[^fn]: the source note\n");
+  // A `[^fn]:` definition line is Markdown's; a .geml reads it as prose.
+  const f = write("hd6.md", "see it[^fn]\n\n[^fn]: the source note\n");
   assert.equal(run(["get", "--head", f, "#fn"]).out, "[^fn]: the source note\n");
   assert.equal(run(["get", f, "#fn"]).out, "[^fn]: the source note\n"); // already one line
 });
@@ -458,7 +482,8 @@ test("get with no id lists every addressable id (text), exit 0", () => {
 });
 
 test("get with no id on a document that has no ids says so on stderr, exit 0", () => {
-  const f = write("g8e.geml", "just a paragraph, nothing addressable\n");
+  // Prose alone is addressable (by content); `%%` lines are not content at all.
+  const f = write("g8e.geml", "%% a note to self, nothing addressable\n");
   const r = run(["get", f]);
   assert.equal(r.code, 0);
   assert.equal(r.out, "");
@@ -1210,17 +1235,20 @@ test("`find` exits 1 on no match so a shell `if` works, and --json still prints 
   assert.deepEqual(JSON.parse(j.out), [], "a JSON consumer sees an empty array, not empty output");
 });
 
-test("`find` walks a directory for *.geml and skips node_modules", () => {
+test("`find` walks a directory for *.geml and *.md, and skips node_modules and other files", () => {
   const sub = join(dir, "walk");
   mkdirSync(join(sub, "node_modules"), { recursive: true });
   writeFileSync(join(sub, "a.geml"), "=== note {#wa}\nfindme\n===\n");
-  writeFileSync(join(sub, "skip.md"), "findme\n");
+  writeFileSync(join(sub, "notes.md"), "findme\n");
+  writeFileSync(join(sub, "skip.txt"), "findme\n");
   writeFileSync(join(sub, "node_modules", "v.geml"), "=== note {#vendored}\nfindme\n===\n");
   const r = run(["find", "findme", sub]);
   assert.equal(r.code, 0, r.err);
   assert.match(r.out, /#wa/);
+  // A Markdown page of prose alone is found by its content address.
+  assert.match(r.out, /notes\.md\t@[0-9a-f]{8}/);
   assert.doesNotMatch(r.out, /vendored/, "a vendored copy is not an answer");
-  assert.doesNotMatch(r.out, /skip\.md/, "only .geml is searched");
+  assert.doesNotMatch(r.out, /skip\.txt/, "only the formats the parser reads are walked");
 });
 
 // -- the size line: what a read or a write touched, on stderr ---------------

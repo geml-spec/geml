@@ -242,6 +242,9 @@ export interface ParseOptions {
    *  - `[^label]: …` defines a footnote, and a `[^x]` nothing defines is text;
    *  - `{{…}}` is text — a template engine's, not a `=== meta` reference;
    *  - `~~~` fences and indented code blocks are code, as ``` already is;
+   *  - `$$` math and HTML blocks hold no heading, fence or definition, and a
+   *    `=== word` of a type this reader does not know is text (structureFor);
+   *  - a paragraph over a `===` or `---` underline is a setext heading;
    *  - `[[name]]` / `![[name]]` are wikilinks, resolved by name (see findNote);
    *  - a `[text](#frag)` may target an `<a id>`, `<a name>` or `<span id>`
    *    anchor, or GitHub's anchor for a heading — link targets, never addresses.
@@ -661,11 +664,15 @@ export function isMarkdownPath(path: string): boolean {
 // walks visit the same headings in the same order — so they agree by
 // construction. An explicit id is never renamed; a duplicate one is still an
 // error.
-function headingId(explicit: string | undefined, rawText: string, ctx: Ctx): string {
-  let id = explicit ?? slug(rawText);
+function headingId(explicit: string | undefined, rawText: string, ctx: Ctx): string | undefined {
+  // §4: the empty string is never an id. `{#}` reads as if no id were written,
+  // and a heading whose text derives nothing has none.
+  const written = explicit === "" ? undefined : explicit;
+  let id = written ?? slug(rawText);
+  if (id === "") return undefined;
   if (!ctx.markdown) return id;
   const s = (ctx.headingSlugs ??= { used: new Set(), next: new Map() });
-  if (explicit === undefined && s.used.has(nameKey(id))) {
+  if (written === undefined && s.used.has(nameKey(id))) {
     const base = id;
     let n = s.next.get(nameKey(base)) ?? 0;
     do { n++; id = `${base}-${n}`; } while (s.used.has(nameKey(id)));
@@ -877,6 +884,11 @@ function interpolate(text: string, line: number, ctx: Ctx): string {
 }
 
 // Register a block id, flagging duplicates as errors (§4: ids unique per doc).
+// §4: the empty string is never an id — `{#}` reads as if no id were written.
+function idOf(a: { id?: string } | undefined): string | undefined {
+  return a?.id === "" ? undefined : a?.id;
+}
+
 function registerId(ctx: Ctx, id: string, line: number): void {
   const key = nameKey(id);
   const first = ctx.ids.get(key);
@@ -1440,8 +1452,9 @@ function readFencedBlock(
   const openLineNo = base + i + 1;
   reportOddNames(attrs, openLineNo, ctx.diags);
   reportDuplicateNames(attrs, openLineNo, ctx.diags);
+  const id = idOf(attrs);
 
-  const { body, end, closed } = scanFenceBody(lines, i + consumed, base, openLen, attrs.id, type, openLineNo, ctx);
+  const { body, end, closed } = scanFenceBody(lines, i + consumed, base, openLen, id, type, openLineNo, ctx);
   const mode = bodyModeFor(type, attrs, openLineNo, ctx);
 
   const block: Extract<Block, { kind: "block" }> = {
@@ -1450,7 +1463,7 @@ function readFencedBlock(
   // 散文类型：核心 `text`，加上声明了 `prose` 的 profile 类型。标在块上而不是让
   // 每个消费点各自去查 meta —— 投射、`--to md`、`--to html` 三处共用同一个判断。
   if (type === "text" || ctx.vocab.prose.has(type)) block.prose = true;
-  if (attrs.id !== undefined) { block.id = attrs.id; registerId(ctx, attrs.id, openLineNo); }
+  if (id !== undefined) { block.id = id; registerId(ctx, id, openLineNo); }
   if (attrs.attrs["hidden"] === true) block.hidden = true; // §4: not rendered, still in model
 
   if (type === "embed") recordEmbedSrc(block, attrs, body, openLineNo, ctx);
@@ -1584,6 +1597,28 @@ function markdownCodeRuns(lines: string[]): CodeRun[] {
   return runs;
 }
 
+const FOOTNOTE_DEF = /^\[\^([^\]]+)\]:[ \t]?(.*)$/;
+// A line that opens a construct of its own, so it cannot continue a paragraph.
+function opensBlock(l: string): boolean {
+  return matchHeading(l) !== null || MD_FENCE_OPEN.test(l) || FOOTNOTE_DEF.test(l) || /^={3,}/.test(l)
+    || /^ {0,3}>/.test(l) || LIST_ITEM.test(l) || /^ {0,3}([-*_])([ \t]*\1){2,}[ \t]*$/.test(l)
+    || /^[ \t]*%%/.test(l) || /^ {0,3}</.test(l);
+}
+// Where a Markdown footnote definition opened at `i` ends (exclusive). GFM reads
+// one as a container: it holds the lazy continuation of its first lines and,
+// past a blank line, whatever is indented four columns. Its span is all of that,
+// so `get #n` is the whole note and the prose after it starts after it.
+function footnoteEnd(lines: string[], i: number): number {
+  let end = i + 1;
+  for (let j = i + 1; j < lines.length; j++) {
+    const l = lines[j]!;
+    if (l.trim() === "") continue;
+    if (/^(?: {4}| {0,3}\t)/.test(l) || (j === end && !opensBlock(l))) { end = j + 1; continue; }
+    break;
+  }
+  return end;
+}
+
 // The shield a pass uses: GEML's ``` pairs, or — reading Markdown — every line
 // of every Markdown code run. One function so no pass can pick the other rule.
 function shieldFor(lines: string[], markdown: boolean | undefined): Set<number> {
@@ -1592,6 +1627,113 @@ function shieldFor(lines: string[], markdown: boolean | undefined): Set<number> 
   for (const r of markdownCodeRuns(lines)) for (let k = r.start; k < r.end; k++) out.add(k);
   return out;
 }
+
+/**
+ * Markdown reading, the passes that find STRUCTURE — the parser, the listing's
+ * walk, a section's end, the meta walk: where a heading, a fence or a footnote
+ * definition may start, and which paragraphs are setext headings. Each rule is
+ * CommonMark's or GitHub's, so a `.md` has the outline GitHub shows. On top of
+ * the code runs (shieldFor), no construct starts
+ *  - inside `$$` display math: a `$$` line opens, the next closes; unclosed, it
+ *    shields nothing, as an unclosed fence does;
+ *  - inside an HTML block, CommonMark's seven kinds: `<pre>`, `<script>`,
+ *    `<style>`, `<textarea>` to their end tag, `<!--` to `-->`, `<?` to `?>`,
+ *    `<!X` to `>`, `<![CDATA[` to `]]>`, and a block-level tag — or, after a
+ *    blank line, any tag alone on its line — to the next blank line;
+ *  - on a `=== word` line whose type this reader does not know: GitHub prints it
+ *    as text, so it opens no block (and runs to no end of the document unclosed).
+ * GEML's typed blocks of a known type are still blocks in a `.md`.
+ *
+ * A setext heading is a paragraph whose next line is a run of `=` (level 1) or
+ * `-` (level 2): its text is the paragraph's lines joined, keyed by the line it
+ * starts on. Not inside a list item's or a quote's lazy continuation, and not in
+ * YAML frontmatter. The text structure (`htmlAnchorsOf`, block markers) keeps
+ * the code-only shield: an anchor in an HTML block is still an anchor.
+ */
+interface Setext { match: HeadingMatch; end: number }
+interface Structure { shield: Set<number>; setext: Map<number, Setext> }
+const NO_SETEXT = new Map<number, Setext>();
+const MATH_FENCE = /^ {0,3}\$\$[ \t]*$/;
+const HTML_RAW_OPEN = /^ {0,3}<(?:script|pre|style|textarea)(?:[ \t>]|$)/i;
+const HTML_RAW_CLOSE = /<\/(?:script|pre|style|textarea)>/i;
+const HTML_BLOCK_TAG = /^ {0,3}<\/?(?:address|article|aside|base|basefont|blockquote|body|caption|center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|h[1-6]|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|nav|noframes|ol|optgroup|option|p|param|search|section|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul)(?:[ \t]|\/?>|$)/i;
+const HTML_LONE_TAG = /^ {0,3}(?:<[A-Za-z][A-Za-z0-9-]*(?:[ \t]+[A-Za-z_:][\w.:-]*(?:[ \t]*=[ \t]*(?:[^\s"'=<>`]+|'[^']*'|"[^"]*"))?)*[ \t]*\/?>|<\/[A-Za-z][A-Za-z0-9-]*[ \t]*>)[ \t]*$/;
+const SETEXT_UNDERLINE = /^ {0,3}(=+|-+)[ \t]*$/;
+const THEMATIC_BREAK = /^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$/;
+
+function markdownBlockRuns(lines: string[]): CodeRun[] {
+  const runs: CodeRun[] = [];
+  const blank = (l: string | undefined): boolean => l === undefined || l.trim() === "";
+  const until = (from: number, test: (l: string) => boolean): number => {
+    for (let j = from; j < lines.length; j++) if (test(lines[j]!)) return j + 1;
+    return -1;
+  };
+  const toBlank = (from: number): number => {
+    let j = from + 1;
+    while (j < lines.length && !blank(lines[j])) j++;
+    return j;
+  };
+  let i = 0;
+  while (i < lines.length) {
+    const l = lines[i]!;
+    let end = -1;
+    if (MATH_FENCE.test(l)) end = until(i + 1, (x) => MATH_FENCE.test(x));
+    else if (HTML_RAW_OPEN.test(l)) end = until(i, (x) => HTML_RAW_CLOSE.test(x));
+    else if (/^ {0,3}<!--/.test(l)) end = until(i, (x) => x.includes("-->"));
+    else if (/^ {0,3}<\?/.test(l)) end = until(i, (x) => x.includes("?>"));
+    else if (/^ {0,3}<!\[CDATA\[/.test(l)) end = until(i, (x) => x.includes("]]>"));
+    else if (/^ {0,3}<![A-Za-z]/.test(l)) end = until(i, (x) => x.includes(">"));
+    else if (HTML_BLOCK_TAG.test(l) || (HTML_LONE_TAG.test(l) && blank(lines[i - 1]))) end = toBlank(i);
+    // An unclosed raw kind shields nothing: one stray `<!--` emptying the
+    // outline would be worse than the fault it fixes (as with fences).
+    if (end > i) { runs.push({ start: i, end }); i = end; continue; }
+    i++;
+  }
+  return runs;
+}
+
+function structureFor(lines: string[], markdown: boolean | undefined, known: (type: string) => boolean): Structure {
+  if (!markdown) return { shield: backtickShield(lines), setext: NO_SETEXT };
+  const code = shieldFor(lines, true);
+  const shield = new Set(code);
+  for (const r of markdownBlockRuns(lines)) for (let k = r.start; k < r.end; k++) if (!code.has(k)) shield.add(k);
+  const textual = new Set<number>();   // `=== word` of a type nobody knows: text
+  lines.forEach((l, k) => {
+    if (shield.has(k)) return;
+    const open = FENCE_OPEN.exec(l);
+    if (open && !known(open[2]!)) { shield.add(k); textual.add(k); }
+  });
+  // Setext headings. `start` is the first line of the paragraph open now.
+  const setext = new Map<number, Setext>();
+  let start = -1;
+  let lazy = false;   // a list item's or a quote's lazy continuation
+  let k = 0;
+  if (/^---[ \t]*$/.test(lines[0] ?? "")) {
+    const close = lines.findIndex((l, j) => j > 0 && /^(---|\.\.\.)[ \t]*$/.test(l));
+    if (close > 0) k = close + 1;
+  }
+  for (; k < lines.length; k++) {
+    const l = lines[k]!;
+    if (l.trim() === "") { start = -1; lazy = false; continue; }
+    const u = shield.has(k) ? null : SETEXT_UNDERLINE.exec(l);
+    if (u && start >= 0) {
+      const text = lines.slice(start, k).map((x) => x.trim()).join(" ");
+      const match = matchHeading(`${u[1]![0] === "=" ? "#" : "##"} ${text}`);
+      if (match) setext.set(start, { match, end: k + 1 });
+      start = -1;
+      continue;
+    }
+    const plain = textual.has(k) || (!shield.has(k) && matchHeading(l) === null && !/^={3,}/.test(l)
+      && !MD_FENCE_OPEN.test(l) && !FOOTNOTE_DEF.test(l) && !/^[ \t]*%%/.test(l) && !THEMATIC_BREAK.test(l));
+    if (!plain) { start = -1; lazy = false; continue; }
+    if (LIST_ITEM.test(l) || /^ {0,3}>/.test(l)) { start = -1; lazy = true; continue; }
+    if (start < 0 && !lazy) start = k;
+  }
+  return { shield, setext };
+}
+// The type test structureFor needs: a type §3 registers or the document's
+// vocabulary admits, exactly what keeps `unknown-block-type` quiet.
+const knownTo = (ctx: Ctx) => (type: string): boolean => REGISTRY.has(type) || ctx.vocab.types.has(type);
 
 /**
  * A prose body (GEP-0013): paragraphs and inline content, and nothing else.
@@ -1629,7 +1771,7 @@ function scanProse(lines: string[], base: number, ctx: Ctx): Block[] {
 function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[] {
   const blocks: Block[] = [];
   const diags = ctx.diags;
-  const shielded = shieldFor(lines, ctx.markdown);
+  const { shield: shielded, setext } = structureFor(lines, ctx.markdown, knownTo(ctx));
   // Markdown reading: each code run by the line it starts on (markdownCodeRuns).
   const codeRunAt = new Map<number, number>();
   if (ctx.markdown) for (const r of markdownCodeRuns(lines)) codeRunAt.set(r.start, r.end);
@@ -1666,7 +1808,8 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       continue;
     }
 
-    const h = shielded.has(i) ? null : matchHeading(line);
+    const st = setext.get(i);
+    const h = st?.match ?? (shielded.has(i) ? null : matchHeading(line));
     if (h) {
       const lineNo = base + i + 1;
       const level = h[1]!.length;
@@ -1676,7 +1819,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       reportDuplicateNames(a, lineNo, diags);
       const text = interpolate(rawText, lineNo, ctx);
       const id = headingId(a.id, rawText, ctx);
-      registerId(ctx, id, lineNo);
+      if (id !== undefined) registerId(ctx, id, lineNo);
       // Sibling trap to fence-like-line: an attribute object that does not END
       // the heading line is not an attribute object at all — matchHeading
       // requires the `}` to be last (§4) — so `# T {#top}aaa` keeps the DERIVED
@@ -1711,7 +1854,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       if (a.attrs["hidden"] === true) block.hidden = true;
       if (ctx.markdown) registerGithubAnchor(ctx, h, block.inlines, lineNo);
       blocks.push(block);
-      i += consumed;
+      i = st !== undefined ? st.end : i + consumed;
       continue;
     }
 
@@ -1732,6 +1875,8 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       // A Markdown code run is handed over whole at the top of the loop, so a
       // paragraph stops at one (a fence interrupts a paragraph in CommonMark).
       !codeRunAt.has(i) &&
+      // So does a setext heading, which the top of the loop reads whole.
+      !setext.has(i) &&
       // 遮蔽区内一律当正文吃下去。漏掉这一条，被遮的栅栏行没有任何构造消费它，
       // i 不前进 —— 死循环。
       (shielded.has(i) || (
@@ -2584,7 +2729,9 @@ function collectMeta(lines: string[], diags?: Ctx["diags"], definedAt?: Map<stri
     // scanner and a DEFINITION to this walk, so a document that merely shows
     // the syntax silently acquired its keys. This specification's own §8.6
     // example set `profile` on the whole specification that way.
-    const shielded = shieldFor(ls, markdown);
+    // Under Markdown reading the structure shield (structureFor); the types are
+    // the registry's, since the vocabulary is what this walk is finding out.
+    const shielded = structureFor(ls, markdown, (t) => REGISTRY.has(t)).shield;
     for (let i = 0; i < ls.length; i++) {
       if (shielded.has(i)) continue;
       const { line, consumed } = foldFence(ls, i);
@@ -3356,7 +3503,7 @@ export interface WalkOptions { markdown?: boolean }
 // The slug MUST come from the RAW text, before interpolation, so that changing
 // a meta variable does not silently change the block's addressable id.
 // `ctx` is passed just in case future features need context.
-function idOfHeading(braces: string | undefined, text: string, line: number, ctx: Ctx): string {
+function idOfHeading(braces: string | undefined, text: string, line: number, ctx: Ctx): string | undefined {
   return headingId(braces ? parseAttrs(braces).id : undefined, text, ctx);
 }
 
@@ -3440,7 +3587,7 @@ function continuations(lines: string[]): { reach: Int32Array; tail: string[] } {
  *  body — and therefore the search for the close — starts after all of them. */
 function fenceClose(lines: string[], i: number, open: RegExpExecArray, consumed = 1): { end: number; closed: boolean } {
   const openLen = open[1]!.length;
-  const id = open[3] ? parseAttrs(open[3]).id : undefined;
+  const id = idOf(open[3] ? parseAttrs(open[3]) : undefined);
   const labeled = id !== undefined ? labeledClose(id) : null;
   for (let j = i + consumed; j < lines.length; j++) {
     if (isCloseFence(lines[j]!, openLen) || (labeled && labeled.test(lines[j]!))) return { end: j + 1, closed: true };
@@ -3454,12 +3601,18 @@ function fenceClose(lines: string[], i: number, open: RegExpExecArray, consumed 
 // line inside a `=== code` body is content, never a boundary. So is a line the
 // backtick shield covers: scanBlocks never reads a heading or a fence there, so
 // a `# comment` inside a ``` example must not end the section around it.
-function sectionEnd(lines: string[], i: number, level: number, consumed: number, shielded: Set<number>): number {
+function sectionEnd(lines: string[], i: number, level: number, consumed: number, shielded: Set<number>, setext: Map<number, Setext> = NO_SETEXT): number {
   let j = i + consumed;
   while (j < lines.length) {
     // Folded here too: a continued fence must be SKIPPED WHOLE, and a continued
     // heading must still be recognised as the boundary it is.
     const { line, consumed: c } = foldFence(lines, j);
+    const st = setext.get(j);
+    if (st !== undefined) {
+      if (st.match[1]!.length <= level) return j;
+      j = st.end;
+      continue;
+    }
     const open = shielded.has(j) ? null : FENCE_OPEN.exec(line);
     if (open) { j = fenceClose(lines, j, open, c).end; continue; }
     const h = shielded.has(j) ? null : matchHeading(line);
@@ -3499,7 +3652,7 @@ function collectSpans(
   };
   // 同一道遮蔽。这一趟的契约就是"exactly as scanBlocks does"——漏掉它，模型里没有的块
   // 在 list/get/set 里还寻得到址，比不改更糟。
-  const shielded = shieldFor(lines, ctx.markdown);
+  const { shield: shielded, setext } = structureFor(lines, ctx.markdown, knownTo(ctx));
   let i = 0;
   while (i < lines.length) {
     // Fold FIRST, exactly as `parse` does: a fence whose attribute object is
@@ -3507,11 +3660,14 @@ function collectSpans(
     const { line, consumed } = foldFence(lines, i);
     if (line.trim() === "") { i++; continue; }
 
-    const fndef = shielded.has(i) ? null : /^\[\^([^\]]+)\]:[ \t]?(.*)$/.exec(line);
+    // `[^label]: …` is a definition only under Markdown reading (the register on
+    // ParseOptions.markdown); in a .geml it is prose, as the parser reads it.
+    const fndef = !ctx.markdown || shielded.has(i) ? null : FOOTNOTE_DEF.exec(line);
     if (fndef) {
-      add(fndef[1]!.trim(), base + i, base + i + 1);
-      units?.push({ span: { start: base + i, end: base + i + 1 }, kind: "footnote", id: fndef[1]!.trim() });
-      i++; continue;
+      const end = footnoteEnd(lines, i);
+      add(fndef[1]!.trim(), base + i, base + end);
+      units?.push({ span: { start: base + i, end: base + end }, kind: "footnote", id: fndef[1]!.trim() });
+      i = end; continue;
     }
 
     if (/^[ \t]*%%/.test(line)) { i++; continue; } // hidden line: no id
@@ -3520,7 +3676,7 @@ function collectSpans(
     if (open) {
       const type = open[2]!;
       const a = open[3] ? parseAttrs(open[3]) : undefined;
-      const id = a?.id;
+      const id = idOf(a);
       const { end, closed } = fenceClose(lines, i, open, consumed);
       if (id !== undefined) add(id, base + i, base + end);
       // Only a flow body is scanned for nested blocks (raw/data bodies are
@@ -3536,17 +3692,19 @@ function collectSpans(
       continue;
     }
 
-    const h = shielded.has(i) ? null : matchHeading(line);
+    const st = setext.get(i);
+    const h = st?.match ?? (shielded.has(i) ? null : matchHeading(line));
     if (h) {
       // Section span (heading through its prose and nested blocks). The walk
       // still advances one line at a time so every nested id inside the
       // section registers its own span — spans intentionally OVERLAP: #sec
       // contains #code, and each remains addressable on its own.
+      const used = st !== undefined ? st.end - i : consumed;
       const hid = idOfHeading(h[3], h[2]!, base + i + 1, ctx);
-      const hend = base + sectionEnd(lines, i, h[1]!.length, consumed, shielded);
-      add(hid, base + i, hend);
-      units?.push({ span: { start: base + i, end: hend }, kind: "heading", id: hid, level: h[1]!.length, text: h[2]!, ...keysOf(h[3] ? parseAttrs(h[3]) : undefined) });
-      i += consumed;
+      const hend = base + sectionEnd(lines, i, h[1]!.length, used, shielded, setext);
+      if (hid !== undefined) add(hid, base + i, hend);
+      units?.push({ span: { start: base + i, end: hend }, kind: "heading", ...(hid !== undefined ? { id: hid } : {}), level: h[1]!.length, text: h[2]!, ...keysOf(h[3] ? parseAttrs(h[3]) : undefined), ...(used > 1 && st !== undefined ? { head: used } : {}) });
+      i += used;
       continue;
     }
 
@@ -3795,7 +3953,10 @@ function proseRuns(units: Unit[], lines: string[]): Unit[] {
   // region runs to the next heading of its own level or shallower, and a block's
   // is its body, so a stack over document order nests them correctly — a
   // heading inside a note is the innermost container of the prose under it.
-  const children = new Map<Unit | null, Unit[]>();
+  // The document body is always a container, even with no unit in it: a document
+  // of prose alone is one run, kept by its content address like any run in the
+  // body (the body has no id to name it by).
+  const children = new Map<Unit | null, Unit[]>([[null, []]]);
   const stack: Unit[] = [];
   for (const u of units) {
     while (stack.length > 0 && u.span.start >= stack[stack.length - 1]!.span.end) stack.pop();
@@ -3809,7 +3970,7 @@ function proseRuns(units: Unit[], lines: string[]): Unit[] {
     // A heading's body starts the line AFTER its own line and a block's after
     // its opening fence; the document's starts at the top. It ends at the
     // heading's region end, the block's closing fence, or the last line.
-    const bodyStart = container === null ? 0 : container.body?.start ?? container.span.start + 1;
+    const bodyStart = container === null ? 0 : container.body?.start ?? container.span.start + (container.head ?? 1);
     const bodyEnd = container === null ? lineCount : container.body?.end ?? container.span.end;
 
     // Every unit nested inside a sibling belongs to that sibling's container —
@@ -3913,8 +4074,21 @@ export function toNewline(text: string, nl: string): string {
 // the narrowing is parse-free and needs no type check. Main use: `set --head`
 // edits a block's attributes (caption/compute/lang/…) without re-sending its
 // body, or renames a heading without rewriting its section.
-export function narrowToHead(span: Span): Span {
-  return { start: span.start, end: span.start + 1 };
+export function narrowToHead(span: Span, source?: string, o: WalkOptions = {}): Span {
+  return { start: span.start, end: span.start + headLines(source, span.start, o) };
+}
+
+// How many lines the head at `start` takes: one, save a Markdown setext heading,
+// which is its paragraph and its underline (structureFor). Remembered for the
+// last document asked about, since a listing narrows every unit of one source.
+let lastHeads: { source: string; setext: Map<number, Setext> } | null = null;
+function headLines(source: string | undefined, start: number, o: WalkOptions): number {
+  if (source === undefined || o.markdown !== true) return 1;
+  if (lastHeads?.source !== source) {
+    lastHeads = { source, setext: structureFor(normalizeSource(source).split("\n"), true, (t) => REGISTRY.has(t)).setext };
+  }
+  const st = lastHeads.setext.get(start);
+  return st === undefined ? 1 : st.end - start;
 }
 
 // The unit's CLOSING fence line, or null when it has none — a heading section,
@@ -3926,7 +4100,7 @@ export function closeFenceLine(lines: string[], span: Span): string | null {
   const open = FENCE_OPEN.exec(stripEol(lines[span.start] ?? ""));
   if (!open) return null;
   const lastText = trimSpaceTabEnd(stripEol(lines[span.end - 1] ?? ""));
-  const bid = open[3] ? parseAttrs(open[3]).id : undefined;
+  const bid = idOf(open[3] ? parseAttrs(open[3]) : undefined);
   const labeled = bid !== undefined && labeledClose(bid).test(lastText);
   return isCloseFence(lastText, open[1]!.length) || labeled ? lines[span.end - 1] ?? "" : null;
 }
@@ -3934,8 +4108,8 @@ export function closeFenceLine(lines: string[], span: Span): string | null {
 // BODY span: a fenced block's lines BETWEEN the fences; a heading's lines after
 // the heading through the section boundary — trailing blank lines included,
 // because that is the span `set --body` replaces (§4's table).
-function narrowToBody(lines: string[], span: Span): Span {
-  return { start: span.start + 1, end: closeFenceLine(lines, span) !== null ? span.end - 1 : span.end };
+function narrowToBody(lines: string[], span: Span, source?: string, o: WalkOptions = {}): Span {
+  return { start: span.start + headLines(source, span.start, o), end: closeFenceLine(lines, span) !== null ? span.end - 1 : span.end };
 }
 
 // The INTRO sub-range of a heading's section: what the heading says before it
@@ -3948,7 +4122,7 @@ function narrowToBody(lines: string[], span: Span): Span {
 // inside a fenced block is body text, and a line scan would cut the section in
 // half there.
 export function narrowToIntro(source: string, span: Span, o: WalkOptions = {}): Span {
-  const body = narrowToBody(splitLines(source), span);
+  const body = narrowToBody(splitLines(source), span, source, o);
   let end = body.end;
   for (const a of addressedUnits(source, o)) {
     const u = a.unit;
@@ -3964,8 +4138,8 @@ export type UnitPart = "whole" | "head" | "body" | "intro";
 // Slice one unit's output bytes, honouring --head / --body / --intro.
 export function sliceUnit(source: string, span: Span, part: UnitPart = "whole", o: WalkOptions = {}): string {
   const lines = splitLines(source);
-  const s = part === "head" ? narrowToHead(span)
-    : part === "body" ? narrowToBody(lines, span)
+  const s = part === "head" ? narrowToHead(span, source, o)
+    : part === "body" ? narrowToBody(lines, span, source, o)
     : part === "intro" ? narrowToIntro(source, span, o)
     : span;
   return lines.slice(s.start, s.end).join("");

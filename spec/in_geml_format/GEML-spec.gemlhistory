@@ -4,12 +4,12 @@
 profile           = "geml-history/v1"
 history-of        = "GEML-spec.geml"
 geml-version      = "1.0"
-current           = "20261004T003414Z-629b032d"
+current           = "20261004T154924Z-9d0c877b"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== history-keyframe {id="20261004T003414Z-629b032d" hash="sha256:629b032d59d80af10aeba8b4fff07478c8717132ffd58d36c270c8fc94c31241"}
+===== history-keyframe {id="20261004T154924Z-9d0c877b" hash="sha256:9d0c877b6d015c402c6ae87d091be3cabf596a81f69a5df09b7b0d9a2b955b19"}
 # GEML — General Expressive Markup Language
 
 *English | [中文](../GEML-spec_CN.md)*
@@ -600,7 +600,12 @@ exactly when the slice is itself a value.
 
 ## 4. Attributes and identifiers
 
-- `{#budget}` sets block id `budget`. Ids MUST be unique per document.
+- `{#budget}` sets block id `budget`. Ids MUST be unique per document. **The empty
+  string is never an id**: `#` alone is a URL's empty fragment, which names the top
+  of a document, not a block. So `{#}` reads as if no id were written — a typed
+  block has none, a heading derives one — and a heading that derives nothing
+  (below) has none: no address of its own, no anchor for the prose beside it
+  (rule 1 below), and nothing to collide with.
 - **Two NAMEs are the same name when they are equal after Unicode NFD
   normalization.** A NAME may contain any Unicode letter, and a letter carrying a
   diacritic has more than one encoding: `Café` written with U+00E9 and `Café`
@@ -673,9 +678,8 @@ exactly when the slice is itself a value.
   second MUST declare an explicit `{#id}`. Derived ids preserve underscores:
   `foo_bar` derives `#foo_bar` while `foobar` derives `#foobar` — they are
   distinct. A heading
-  whose text carries no letter and no digit derives the empty id, which is a
-  derived id like any other and therefore collides with a second such heading;
-  give either one an explicit `{#id}`.
+  whose text carries no letter and no digit derives the empty string, which is no
+  id (above); to name such a heading, give it an explicit `{#id}`.
 - **Prose between two blocks has an address, derived from the two of them.** The text
   between two blocks bears no `id`, so nothing can name it and a document
   assembled out of references silently loses it. The derivation below closes that,
@@ -753,7 +757,8 @@ exactly when the slice is itself a value.
      value is a bare word, taken verbatim with any quotes it holds, so
      `src=#t[1]["Net revenue"]` needs no outer quotes; a value needs them only to
      hold whitespace outside a span. An id, class or key that is not a NAME is
-     still read, and is a `name-not-a-name` warning.
+     still read, and is a `name-not-a-name` warning; an empty id is read as none
+     (above).
 - Attribute value typing: a quoted `"…"` is always a string; `true`/`false` is a
   boolean; a bare word matching integer/float syntax is a number; any other bare
   word is a string. Arrays, dates and nested tables are not supported.
@@ -2003,6 +2008,169 @@ for a block or a section, the three granularities are a scalar, a phrase, and
 a block.
 
 =====
+
+=== history-revision {id="20261004T154924Z-9d0c877b" parent="20261004T003414Z-629b032d" hash="sha256:9d0c877b6d015c402c6ae87d091be3cabf596a81f69a5df09b7b0d9a2b955b19" newline="lf"}
+delete @8f8248eb
+delete @eb829f68
+delete @886ca377
+insert <- blob:b193 after @66af3922
+insert <- blob:b194 after @2c736434
+insert <- blob:b195 after @05e5d9bc
+===
+
+=== history-blob {#b193 lang=geml}
+- `{#budget}` sets block id `budget`. Ids MUST be unique per document.
+- **Two NAMEs are the same name when they are equal after Unicode NFD
+  normalization.** A NAME may contain any Unicode letter, and a letter carrying a
+  diacritic has more than one encoding: `Café` written with U+00E9 and `Café`
+  written as `e` + U+0301 look identical, and an author who writes the heading in
+  one form and the reference in the other means one name, not two. So a processor
+  MUST compare NAMEs — ids, classes and attribute keys alike — under NFD, which
+  governs id uniqueness (`duplicate-id`) and reference resolution (`[[#id]]`,
+  `other.geml#id`, a URL fragment) together. NFD rather than NFC only because
+  decomposition is the cheaper operation; the choice is not observable, since a
+  processor MUST NOT rewrite the document's own bytes to achieve this and MUST
+  report an id in the form the document wrote it. Normalizing the character
+  stream instead would be the obvious alternative, and §0.5 deliberately does not:
+  that would move byte offsets inside a line and break the byte-faithful
+  block-level editing §0.5 exists to guarantee.
+- **`meta` merges, and `#meta` names the merge.** A document may carry several
+  `meta` blocks; their keys merge, a later definition of a key being a
+  `duplicate-meta-key` warning while the FIRST definition is kept. That merged
+  view — not any one of the blocks — is what `#meta` names, and it is the one
+  reserved id in this specification. A block MAY still declare `{#meta}` when
+  the document has a single `meta` block, because the block and the merge are
+  then the same thing; with two or more it is a `reserved-id` **error**, since
+  the address would otherwise mean one block to a reader and every block to a
+  processor. `#meta` names values rather than a span of the file, which is why
+  a processor reading it answers with the merged keys and not with bytes.
+- `{.warning}` adds a semantic class (no styling implied).
+- `{caption="Annual cost"}` and other `key=val` pairs are type-defined
+  parameters. Two are not type-specific and are valid on **every** typed block:
+  `caption`, a short label a renderer shows with the block and §5.2 uses as
+  auto-reference text, and the `hidden` flag below. A key a type does not define
+  is an `unknown-attribute` warning, never an error — it is preserved.
+- A heading auto-derives an id from its text; an explicit id is written as a
+  trailing attribute object on the heading line, e.g. `## Title {#sec}`. The
+  derivation is **normative**: a reference (`[[#id]]`, `other.geml#id`, a URL
+  fragment) has to name the same block in every implementation, so the id a
+  heading yields cannot be left to one. From the heading's text — taken **before**
+  `{{key}}` interpolation (meaning the literal braces and variable name form the slug),
+  to ensure the id remains stable when meta values change — a processor MUST
+  apply these rules in order:
+  1. lower-case it;
+  2. normalize it to NFD — this puts every diacritic into a combining mark of its
+     own, so step 4 below deletes all of them and **a derived id carries no
+     diacritics**. Without this step the outcome would depend on a Unicode lookup
+     table rather than on a rule: a mark that has a precomposed form (`e` + U+0301
+     is `é`, a letter) would survive step 4, while one that has none (`İ`
+     lower-cases to `i` + U+0307, and no single codepoint spells that) would be
+     deleted — the same kind of input, two fates. It also makes the derivation
+     independent of which normalization form the author's editor produced;
+  3. delete every code span, its backticks and its content alike — so the
+     punctuation inside `` `foo()` `` cannot leak into the id. A code span is
+     recognized exactly as §5.3 phase 1 recognizes one: by backtick-run length,
+     never opened by an escaped backtick or by one inside inline math;
+  4. delete every character that is neither a letter (Unicode General Category
+     L), a number (General Category N), whitespace (the Unicode `White_Space`
+     property, as in steps 5 and 6), `-`, nor `_`;
+  5. trim leading and trailing whitespace;
+  6. replace each run of whitespace with a single `-`.
+
+===
+
+=== history-blob {#b194 lang=geml}
+  So `## Use \`foo()\` in 2024 Design` derives `#use-in-2024-design`, and — since
+  step 2 decomposes and step 4 then drops the marks — `## Ubytovací zařízení`
+  derives `#ubytovaci-zarizeni`. Step 4 keeps every Unicode letter, and a
+  diacritic is not one, so a script that writes no combining marks is untouched:
+  `## 设计说明` derives `#设计说明`. **Two headings that differ only in their
+  diacritics therefore derive one id and collide** — `duplicate-id`, an error, and
+  the second heading MUST declare an explicit `{#id}`. In a language where
+  diacritics distinguish words rather than decorate them, that is the normal case
+  and not an edge one, so such a document is expected to carry explicit ids. A
+  derived id
+  collides like any other: two headings that derive the SAME id are a
+  `duplicate-id` **error** (Appendix A) — the id addresses the first, and the
+  second MUST declare an explicit `{#id}`. Derived ids preserve underscores:
+  `foo_bar` derives `#foo_bar` while `foobar` derives `#foobar` — they are
+  distinct. A heading
+  whose text carries no letter and no digit derives the empty id, which is a
+  derived id like any other and therefore collides with a second such heading;
+  give either one an explicit `{#id}`.
+- **Prose between two blocks has an address, derived from the two of them.** The text
+  between two blocks bears no `id`, so nothing can name it and a document
+  assembled out of references silently loses it. The derivation below closes that,
+  and is **normative** for the same reason the heading derivation above is: a
+  reference has to name the same content in every implementation.
+
+===
+
+=== history-blob {#b195 lang=geml}
+- Style note (non-normative): keep the document title in `=== meta`
+  (`title = "…"`), not in a top-level heading — every heading then denotes a
+  genuine section of the document.
+- **Reading an attribute object.** Every processor MUST read an object the same
+  way, because what it yields is the block's model. §3.1's grammar states the
+  shapes; these three steps decide every input:
+  1. *Where it is.* On a fence line the object opens at the `{` after the type
+     name and runs to the **last** `}` of the logical line, which only whitespace
+     may follow; a brace between them is an ordinary character. On a heading
+     line it is the trailing group: the heading's text, trailing spaces and tabs
+     removed, ends in `}`, and reading leftwards from that `}` — a `"` toggles a
+     quoted span unless an odd run of `\` precedes it — the nearest `{` outside a
+     span, a code span and inline math (§5.3) opens the object when whitespace,
+     or the start of the heading's text, precedes it. A `}` met outside a span
+     before that `{`, or a `{` with no whitespace before it, leaves the heading
+     without an object: `## Title{#a}` and `## a {b}x}` keep all their text.
+     After a link or an image (§5.1) the object opens at the `{` directly after
+     it and closes at the first `}` outside a quoted span; with no such `}`
+     there is none, and the `{` is text.
+  2. *Items.* Inside the braces White_Space separates items, except inside a
+     quoted span: a `"` anywhere in an item opens one, and the next `"` that `\`
+     does not escape closes it. Inside a span `\"` and `\\` are escapes and
+     nothing else is; a span left open runs to the end of the object. An item
+     that begins with `#` is the id and one that begins with `.` a class; an
+     item with `=` after its first character is `key=value`, split at its first
+     `=`; any other item is a flag. Of two ids, or two items naming one key, the
+     first is the one read.
+  3. *Values.* A value that begins and ends with `"` is a quoted string: its
+     text is what lies between, `\"` read as `"` and `\\` as `\`. Any other
+     value is a bare word, taken verbatim with any quotes it holds, so
+     `src=#t[1]["Net revenue"]` needs no outer quotes; a value needs them only to
+     hold whitespace outside a span. An id, class or key that is not a NAME is
+     still read, and is a `name-not-a-name` warning.
+- Attribute value typing: a quoted `"…"` is always a string; `true`/`false` is a
+  boolean; a bare word matching integer/float syntax is a number; any other bare
+  word is a string. Arrays, dates and nested tables are not supported.
+- A bare attribute word with no `=` is a boolean flag set to `true` (e.g.
+  `hidden`).
+- A `=== meta` block holds document metadata as one `key=val` per line: the key
+  is the text before the first `=` and the value everything after it, each
+  trimmed of surrounding whitespace, and the value is typed as above. A value
+  that is neither quoted, a boolean nor a number is a string however it is
+  spelled — `title = hello world` is the string `hello world`, with no quotes
+  needed, because a `meta` line is not an attribute object and nothing in it
+  ends at whitespace. If a document contains multiple `=== meta` blocks,
+  their keys are merged; the **first** definition of a key takes precedence —
+  a later definition of the same key is a `duplicate-meta-key` **warning** and
+  is ignored. Which blocks count is the ordinary nesting rule of §3: a `=== meta`
+  at the top level or inside a `flow` body is a block and its keys are the
+  document's, while one appearing inside a `raw` or `data` body is that body's
+  content and defines nothing — so a document may show `=== meta` as an example
+  inside a longer-fenced `code` block without those keys becoming real.
+  `profile` is a **reserved** meta key: it declares the application-layer
+  vocabularies this document uses (§8.6), and a processor MUST NOT read it as
+  anything else.
+  In flow text, `{{key}}` is replaced with the matching
+  `meta` value; an unknown key is a build **error**. Interpolation reads the
+  flow source text and honors the verbatim atoms of §5.3 phase 1(1): a
+  `{{key}}` inside a code span or inline math is left untouched (so a GEML
+  document can quote this very syntax), raw block bodies are never
+  interpolated, and a backslash-escaped `\{{key}}` renders as the literal text
+  `{{key}}`.
+
+===
 
 === history-revision {id="20261004T003414Z-629b032d" parent="20261004T003402Z-570d27dd" summary="auto: Edit" hash="sha256:629b032d59d80af10aeba8b4fff07478c8717132ffd58d36c270c8fc94c31241" newline="lf"}
 delete @fad3c92f

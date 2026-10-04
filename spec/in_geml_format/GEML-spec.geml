@@ -588,7 +588,12 @@ exactly when the slice is itself a value.
 
 ## 4. Attributes and identifiers
 
-- `{#budget}` sets block id `budget`. Ids MUST be unique per document.
+- `{#budget}` sets block id `budget`. Ids MUST be unique per document. **The empty
+  string is never an id**: `#` alone is a URL's empty fragment, which names the top
+  of a document, not a block. So `{#}` reads as if no id were written — a typed
+  block has none, a heading derives one — and a heading that derives nothing
+  (below) has none: no address of its own, no anchor for the prose beside it
+  (rule 1 below), and nothing to collide with.
 - **Two NAMEs are the same name when they are equal after Unicode NFD
   normalization.** A NAME may contain any Unicode letter, and a letter carrying a
   diacritic has more than one encoding: `Café` written with U+00E9 and `Café`
@@ -661,9 +666,8 @@ exactly when the slice is itself a value.
   second MUST declare an explicit `{#id}`. Derived ids preserve underscores:
   `foo_bar` derives `#foo_bar` while `foobar` derives `#foobar` — they are
   distinct. A heading
-  whose text carries no letter and no digit derives the empty id, which is a
-  derived id like any other and therefore collides with a second such heading;
-  give either one an explicit `{#id}`.
+  whose text carries no letter and no digit derives the empty string, which is no
+  id (above); to name such a heading, give it an explicit `{#id}`.
 - **Prose between two blocks has an address, derived from the two of them.** The text
   between two blocks bears no `id`, so nothing can name it and a document
   assembled out of references silently loses it. The derivation below closes that,
@@ -741,7 +745,8 @@ exactly when the slice is itself a value.
      value is a bare word, taken verbatim with any quotes it holds, so
      `src=#t[1]["Net revenue"]` needs no outer quotes; a value needs them only to
      hold whitespace outside a span. An id, class or key that is not a NAME is
-     still read, and is a `name-not-a-name` warning.
+     still read, and is a `name-not-a-name` warning; an empty id is read as none
+     (above).
 - Attribute value typing: a quoted `"…"` is always a string; `true`/`false` is a
   boolean; a bare word matching integer/float syntax is a number; any other bare
   word is a string. Arrays, dates and nested tables are not supported.

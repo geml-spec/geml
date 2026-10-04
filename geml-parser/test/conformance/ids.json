@@ -104,17 +104,23 @@
     "ids": ["设计-说明"]
   },
   {
-    "name": "a heading with no letter and no number derives the empty id",
+    "name": "a heading with no letter and no number derives the empty string, which is no id",
     "geml": "## !!!",
     "want": "h2(\"!!!\")",
-    "ids": [""]
+    "ids": []
   },
   {
-    "name": "the empty id collides like any other",
+    "name": "two headings that derive nothing do not collide: neither has an id",
     "geml": "## !!!\n\n## ???",
     "want": "h2(\"!!!\") h2(\"???\")",
-    "ids": [""],
-    "diagnostics": ["duplicate-id:error"]
+    "ids": []
+  },
+  {
+    "name": "an attribute object writing `#` alone reads as if no id were written: a block has none, a heading derives one",
+    "geml": "=== note {#}\nx\n===\n\n## Title {#}",
+    "want": "block:note h2(\"Title\")",
+    "ids": ["title"],
+    "diagnostics": ["name-not-a-name:warning", "name-not-a-name:warning"]
   },
   {
     "name": "the id is derived before interpolation, so a meta value cannot move it",

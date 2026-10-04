@@ -714,7 +714,7 @@ test("the write guards say what they REFUSED to write, and leave the file alone"
   assert.match(same.err, /#h is unchanged at .*nothing to revert/);
 
   // `list` on a document with nothing addressable says which nothing it is.
-  wf(pjoin(d, "p.geml"), "plain prose, no blocks and no headings\n");
+  wf(pjoin(d, "p.geml"), "%% a comment line, which is not content\n");
   wf(pjoin(d, "e.geml"), "");
   // (the note goes to stderr — stdout stays the machine-readable listing)
   assert.match(run(["list", pjoin(d, "p.geml")]).err, /no addressable blocks/);

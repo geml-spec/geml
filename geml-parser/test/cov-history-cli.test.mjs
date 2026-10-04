@@ -345,7 +345,7 @@ test("blockSpans: heading slugs, footnote defs, hidden lines, attr-less/unknown/
     "",
     "# Braced {.wide}",         // braces without id -> slug id
     "",
-    "[^fn]: a footnote target", // footnote definition span
+    "[^fn]: a footnote target", // a definition under Markdown reading, prose in a .geml
     "",
     "%% scratch note",          // hidden: never an id
     "",
@@ -364,7 +364,8 @@ test("blockSpans: heading slugs, footnote defs, hidden lines, attr-less/unknown/
   const spans = blockSpans(src);
   assert.ok(spans.has("plain-heading"), "slug from an unbraced heading");
   assert.ok(spans.has("braced"), "slug when braces carry no id");
-  assert.ok(spans.has("fn"), "footnote definition is addressable");
+  assert.ok(!spans.has("fn"), "a `[^fn]:` line is prose in a .geml");
+  assert.ok(blockSpans(src, { markdown: true }).has("fn"), "and a footnote definition under Markdown reading");
   assert.ok(spans.has("c"), "unknown-type block id");
   assert.ok(spans.has("open"), "unclosed block still has a span");
   assert.ok(spans.has("inner"), "unclosed flow body is recursed");

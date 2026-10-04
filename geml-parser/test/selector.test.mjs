@@ -144,7 +144,7 @@ test("a type nothing admits is SAID so on its row, and a profile's type is not",
 test("a prose-only document lists nothing and still exits 0", () => {
   // §6.6: "give me everything" has the empty set as a legitimate answer, so
   // `get f --json | jq length` must not blow up on a prose document.
-  const f = write("l3.geml", "just prose, nothing addressable\n");
+  const f = write("l3.geml", "%% only a comment, nothing addressable\n");
   const r = run(["get", f, "--json"]);
   assert.equal(r.code, 0);
   assert.deepEqual(JSON.parse(r.out), []);

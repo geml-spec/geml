@@ -42,6 +42,9 @@ export interface Unit {
   // A typed block's FLOW body: the lines between its fences. Present only for a
   // flow body, which is what makes the block a prose container (§4).
   body?: Span;
+  // How many lines a heading's own line takes when it is more than one: a
+  // Markdown setext heading is its paragraph and its underline.
+  head?: number;
 }
 
 export type Selector =
@@ -279,17 +282,22 @@ export function addressUnits(units: Unit[], textOf: (u: Unit) => string): Addres
 
 // What shortestAddress asks of the whole listing, counted once per listing:
 // asked per row, a pass over every unit made a listing of n blocks cost n².
-const TALLY = new WeakMap<Addressed[], { types: Map<string, number>; metaId: boolean }>();
-function tallyOf(all: Addressed[]): { types: Map<string, number>; metaId: boolean } {
+// geml.ts's nameKey (NFD), restated: geml.ts imports this module, not the reverse.
+const nameKey = (name: string): string => name.normalize("NFD");
+interface Tally { types: Map<string, number>; metaId: boolean; firstById: Map<string, Addressed> }
+const TALLY = new WeakMap<Addressed[], Tally>();
+function tallyOf(all: Addressed[]): Tally {
   let t = TALLY.get(all);
   if (t === undefined) {
     const types = new Map<string, number>();
+    const firstById = new Map<string, Addressed>();
     let metaId = false;
     for (const x of all) {
       if (x.unit.type !== undefined) types.set(x.unit.type, (types.get(x.unit.type) ?? 0) + 1);
       if (x.unit.id === "meta") metaId = true;
+      if (x.unit.id !== undefined && !firstById.has(nameKey(x.unit.id))) firstById.set(nameKey(x.unit.id), x);
     }
-    t = { types, metaId };
+    t = { types, metaId, firstById };
     TALLY.set(all, t);
   }
   return t;
@@ -301,9 +309,15 @@ function tallyOf(all: Addressed[]): { types: Map<string, number>; metaId: boolea
 // cases are one rule ("shortest unique"), not three rules.
 export function shortestAddress(a: Addressed, all: Addressed[]): string {
   const u = a.unit;
-  if (u.id !== undefined) return `#${u.id}`;
+  const { types, metaId, firstById } = tallyOf(all);
+  // A duplicate id names the first unit that declares it (§4), so a later one
+  // falls through to its content address, as a unit with no id does: `#id`
+  // would paste back to a different block.
+  // Compared by place, not by object: a caller may pass a unit from another
+  // listing of the same document.
+  const first = u.id === undefined ? undefined : firstById.get(nameKey(u.id))?.unit;
+  if (first !== undefined && first.span.start === u.span.start && first.span.end === u.span.end && first.kind === u.kind) return `#${u.id}`;
   if (u.type === undefined) return `@${a.hex}${a.nth ? `~${a.nth}` : ""}`;
-  const { types, metaId } = tallyOf(all);
   const sameType = types.get(u.type) ?? 0;
   // `#meta` is the reserved id for the merged metadata view, and with exactly
   // one `meta` block the view and the block are the same thing — so the

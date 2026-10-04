@@ -151,6 +151,11 @@ pub fn read_object(inner: &[char]) -> Attrs {
             }
         }
     }
+    // §4: the empty string is never an id. `{#}` reads as if no id were written
+    // (its `name-not-a-name` warning stands: what was written is not a NAME).
+    if a.id.as_deref() == Some("") {
+        a.id = None;
+    }
     a
 }
 
