@@ -39,7 +39,7 @@ packaged source — regenerate the zip after any release, never edit it.
 | Brand color | `#E00A1E` |
 | Website | <https://geml-spec.github.io/> |
 | Support | <https://github.com/geml-spec/geml/issues> |
-| Privacy / Terms | <https://geml-spec.github.io/privacy/> · <https://geml-spec.github.io/terms/> |
+| Privacy / Terms | <https://geml-spec.github.io/privacy> · <https://geml-spec.github.io/terms> |
 
 Long description — same text as `interface.longDescription` in
 [.codex-plugin/plugin.json](.codex-plugin/plugin.json).
@@ -122,9 +122,10 @@ the npm registry.
 
 ## Privacy / terms URLs
 
-Both pages now exist under `site/` (`privacy.md`, `terms.md`) and are linked
-from the site footer. Put these in the Info tab once the Pages build has
-deployed them:
+Both pages are on the website (`privacy.md` and `terms.md` in the
+geml-spec.github.io repository) and linked from its footer. The site serves
+clean URLs, so neither takes a trailing slash — `/privacy/` is a 404. Put
+these in the Info tab:
 
-- <https://geml-spec.github.io/privacy/>
-- <https://geml-spec.github.io/terms/>
+- <https://geml-spec.github.io/privacy>
+- <https://geml-spec.github.io/terms>
