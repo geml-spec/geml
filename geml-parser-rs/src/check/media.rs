@@ -36,6 +36,11 @@ fn kind_of_path(src: &str) -> &'static str {
     }
 }
 
+/// An asset's kind: its `kind=`, or its extension's (§3).
+fn asset_kind(s: &Snap) -> String {
+    s.attr_text("kind").unwrap_or_else(|| kind_of_path(&s.attr_text("src").unwrap_or_default()).to_string())
+}
+
 fn num(s: &Snap, k: &str) -> Option<f64> {
     s.attrs.iter().find(|(x, _)| x == k).and_then(|(_, v)| match v {
         Value::Number(n) => Some(*n),
@@ -445,7 +450,7 @@ fn duration_missing(target: &Snap, cut: &Block) -> bool {
     match target.type_name.as_str() {
         "media-text" => cut.attr("duration").is_none(),
         "media-asset" => {
-            let kind = target.attr_text("kind").unwrap_or_else(|| kind_of_path(&target.attr_text("src").unwrap_or_default()).to_string());
+            let kind = asset_kind(target);
             kind == "image" && cut.attr("duration").is_none()
         }
         _ => false,
@@ -466,6 +471,10 @@ fn media_block(doc: &Document, r: &Resolver, m: &Block, meta_tracks: Option<&str
             Hit::Missing | Hit::Other | Hit::Heading(..) => out.push("media-src-unresolved", E, a.clone(), format!("`src={s}` names no block")),
             Hit::Block(ix, i) if ix.snaps[i].type_name != "media-asset" => {
                 out.push("media-src-not-asset", E, a.clone(), format!("`src={s}` names a `{}`, not a `media-asset`", ix.snaps[i].type_name))
+            }
+            // A single source plays (§2): a video, an audio or a still, not a model or an `other`.
+            Hit::Block(ix, i) if !matches!(asset_kind(&ix.snaps[i]).as_str(), "video" | "audio" | "image") => {
+                out.push("media-src-not-asset", E, a.clone(), format!("`src={s}` names a `{}` asset, which does not play", asset_kind(&ix.snaps[i])))
             }
             Hit::Block(ix, i) => {
                 if duration_missing(&ix.snaps[i], m) {
@@ -509,7 +518,7 @@ fn media_block(doc: &Document, r: &Resolver, m: &Block, meta_tracks: Option<&str
                     Some("prose") => t.type_name == "media-text",
                     Some(k @ ("video" | "audio")) => {
                         t.type_name == "media-asset" && {
-                            let ak = t.attr_text("kind").unwrap_or_else(|| kind_of_path(&t.attr_text("src").unwrap_or_default()).to_string());
+                            let ak = asset_kind(t);
                             if k == "audio" {
                                 ak == "audio"
                             } else {
@@ -653,7 +662,7 @@ fn comp(r: &Resolver, k: &Block, name: &str, out: &mut Out) {
                 Hit::Block(ix, i) => {
                     let t = &ix.snaps[i];
                     let image = t.type_name == "media-asset"
-                        && t.attr_text("kind").unwrap_or_else(|| kind_of_path(&t.attr_text("src").unwrap_or_default()).to_string()) == "image";
+                        && asset_kind(t) == "image";
                     if !image {
                         out.push("media-layer-not-image", E, la.clone(), format!("`src={s}` is not an image asset"));
                     } else {

@@ -29,6 +29,16 @@ and is released under `viewer-v*` tags.
   the rule. An asset with no `kind` takes it from its extension, in any case,
   by a table the profile now spells out — the reference read only image
   extensions there, and `media import` a shorter list than the crate.
+- **`geml-media/v1`: a cut fits its track, and a single source is a cut.** A
+  `video` track takes a `video` or `image` asset, an `audio` track an `audio`
+  asset, a `prose` track a `media-text`; anything else is `media-src-not-asset`,
+  and reported alone. A `media {src=}` must name a `video`, `audio` or `image`
+  asset, and on a still says how long it lasts. A still or prose needs a cut's `duration=`
+  whether or not the cut's track is declared. The reference checked none of
+  this — it took any asset on a `video` or `audio` track, never looked at a
+  single source's `src`, and skipped a cut on an undeclared track — and the
+  Rust crate took a model or an `other` file as a single source; two profile
+  cases pin the rules.
 
 ## [1.12.2] — 2026-10-04
 

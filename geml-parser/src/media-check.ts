@@ -31,6 +31,8 @@ for (const [kind, exts] of [
 ]) for (const e of exts!.split(" ")) KIND_BY_EXT.set(e, kind!);
 export const kindOfFile = (f: string): string => KIND_BY_EXT.get((f.split(".").pop() ?? "").toLowerCase()) ?? "other";
 const kindOfAsset = (b: Block & { kind: "block" }): string => str(b.attrs["kind"]) ?? kindOfFile(str(b.attrs["src"]) ?? "");
+/** 能播的素材种类：单源只收这几种（profile §2）。 */
+const PLAYABLE = new Set(["video", "audio", "image"]);
 
 export interface Loaded { rel: string; doc: Document; meta: Map<string, string> }
 
@@ -340,6 +342,21 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
         out.push(mediaDiag("media-shape-empty",
           "`media` 既没有片段也没有 `src=`，它不指向任何可播的东西", rel, m.id));
       }
+      // 单源按它就是的那一个片段来查（profile §2）：`src` 要指能播的素材（视频、音频、静图），
+      // 指静图就得写明占多久。
+      if (inner.length === 0 && cfg.has("src")) {
+        const one = str(m.attrs["src"]) ?? "";
+        const t = one === "" ? null : splitRef(one, rel);
+        const target = t === null ? undefined : blockAt(t.doc, t.id);
+        if (target === undefined) {
+          out.push(mediaDiag("media-src-unresolved", `\`src=${one}\` 指不到任何块`, rel, m.id));
+        } else if (target.type !== "media-asset" || !PLAYABLE.has(kindOfAsset(target))) {
+          const got = target.type === "media-asset" ? `${kindOfAsset(target)} 素材` : `\`${target.type}\``;
+          out.push(mediaDiag("media-src-not-asset", `单源的 \`src\` 要指视频、音频或静图素材，实际是${got}`, rel, m.id));
+        } else if (kindOfAsset(target) === "image" && str(m.attrs["duration"]) === undefined) {
+          out.push(mediaDiag("media-duration-required", "静图没有固有时长，单源要写 `duration=`", rel, m.id));
+        }
+      }
       const kinds = trackKinds(cfg, rel, out);
       for (const c of inner) if (c.id !== undefined) byOwner.set(c.id, kinds);
     }
@@ -369,22 +386,24 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
       const t = splitRef(src, rel);
       const target = t === null ? undefined : blockAt(t.doc, t.id);
       if (target === undefined) { out.push(mediaDiag("media-src-unresolved", `\`src=${src}\` 指不到任何块`, rel, b.id)); continue; }
-      if (kind === "prose") {
-        if (target.type !== "media-text") {
-          out.push(mediaDiag("media-src-not-asset", `轨道 \`${track}\` 的种类是 prose，\`src\` 必须指 \`media-text\`，实际是 \`${target.type}\``, rel, b.id));
-        } else if (str(b.attrs["duration"]) === undefined) {
-          out.push(mediaDiag("media-duration-required", "散文没有固有时长，这一刀要写 `duration=`", rel, b.id));
-        }
-      } else if (kind !== undefined) {
-        if (target.type !== "media-asset") {
-          out.push(mediaDiag("media-src-not-asset", `轨道 \`${track}\` 的种类是 ${kind}，\`src\` 必须指 \`media-asset\`，实际是 \`${target.type}\``, rel, b.id));
-        } else {
-          // 音视频总有固有时长：文件自己的，`duration=` 写没写都算（profile §4）。
-          // 静图没有，它在时间线上占多久得由这一刀说。
-          if (kindOfAsset(target) === "image" && str(b.attrs["duration"]) === undefined) {
-            out.push(mediaDiag("media-duration-required", "静图没有固有时长，这一刀要写 `duration=`", rel, b.id));
-          }
-        }
+      // 合不合轨看轨的种类（profile §4）：视频轨收视频或静图素材，音频轨收音频素材，散文轨
+      // 收 `media-text`；素材的种类看 `kind=`，没写看扩展名。不合轨的只报这一条。
+      const ak = target.type === "media-asset" ? kindOfAsset(target) : undefined;
+      const fits = kind === "prose" ? target.type === "media-text"
+        : kind === "video" ? ak === "video" || ak === "image"
+        : kind === "audio" ? ak === "audio"
+        : true;
+      if (!fits) {
+        const want = kind === "prose" ? "`media-text`" : kind === "video" ? "视频或静图素材" : "音频素材";
+        const got = ak === undefined ? `\`${target.type}\`` : `${ak} 素材`;
+        out.push(mediaDiag("media-src-not-asset", `轨道 \`${track}\` 的种类是 ${kind}，\`src\` 要指${want}，实际是${got}`, rel, b.id));
+        continue;
+      }
+      // 有没有长度是来源的事，不是轨的事（§8）：静图和散文没有固有时长，这一刀得写
+      // `duration=`，轨声明没声明都一样。音视频总有固有时长：文件自己的，`duration=` 写没写都算。
+      if (str(b.attrs["duration"]) === undefined && (target.type === "media-text" || ak === "image")) {
+        out.push(mediaDiag("media-duration-required",
+          target.type === "media-text" ? "散文没有固有时长，这一刀要写 `duration=`" : "静图没有固有时长，这一刀要写 `duration=`", rel, b.id));
       }
     }
   }

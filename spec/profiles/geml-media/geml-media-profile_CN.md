@@ -61,6 +61,10 @@ raw 块，而它们本来就是。
 代码都不用分叉。没有 `type=` 或 `format=` 去重说一遍形状：同一件事两个说法，总有一天
 互相矛盾。
 
+单源按它就是的那一个片段来查：`src` 必须指一个 `video`、`audio` 或 `image` 素材，即能播的
+东西（`media-src-unresolved`、`media-src-not-asset`）；指静图时要写明占多久
+（`media-duration-required`，§4）。
+
 | 键 | 形态 | 含义 |
 |---|---|---|
 | `tracks` | 装配 | 空格分隔的 **`名字:种类`** 列表。种类只有 `video` / `audio` / `prose`，说的是内容是什么。声明的顺序就是轨道的顺序 |
@@ -107,7 +111,7 @@ body 是 raw，放作者自己的备注。备注是文档事实，进历史；�
 | 键 | 必需 | 含义 |
 |---|---|---|
 | `track` | 是 | 轨道名，须在 `meta.tracks` 里声明过。下面哪几条规则适用，由轨道的**种类**决定，不由轨道的名字决定 |
-| `src` | 是 | 块引用。`video`/`audio` 种类的轨必须指 `media-asset`；`prose` 种类的轨必须指 `media-text` |
+| `src` | 是 | 块引用，须合轨道的种类：`video` 轨收 `video` 或 `image` 素材，`audio` 轨收 `audio` 素材，`prose` 轨收 `media-text`。素材的种类看它的 `kind=`，没写就看扩展名（§3）。不合就是 `media-src-not-asset` |
 | `in`、`out` | `video`/`audio` | 素材内的起止，秒**或** `hh:mm:ss:ff` 时码（按 `meta.fps` 换算） |
 | `duration` | 静图或散文 | 静图或一段散文在时间线上占多久。`video`、`audio` 素材有固有时长——文件自己的长度，不管 `duration=` 写没写——用不着它 |
 | `over` | 非主轨 | 锚到**主轨**上的某个片段 |
@@ -329,13 +333,13 @@ warning 而不是 error——否则改一次角色卡整条流水线红掉，人
 
 | 码 | 级别 | 何时 |
 |---|---|---|
-| `media-src-unresolved` | error | 片段的 `src` 指不到任何块 |
-| `media-src-not-asset` | error | `src` 与该轨的种类不符 |
+| `media-src-unresolved` | error | 片段或单源的 `src` 指不到任何块 |
+| `media-src-not-asset` | error | 片段的 `src` 不合该轨的种类（§4），或单源的 `src` 指的不是 `video`、`audio` 或 `image` 素材（§2）。不合轨的片段只报这一条 |
 | `media-src-not-relative` | error | 素材的 `src` 带 URL scheme、以 `/` 开头或含 `\`（§3） |
 | `media-file-missing` | warning | 素材的文件不存在 |
 | `media-hash-mismatch` | error | 文件在，但 SHA-256 不是声明的那个 |
 | `media-asset-unhashed` | warning | 素材没有 `sha256`，所以没法校验它的文件是不是库里描述的那一份 |
-| `media-duration-required` | error | 静图或一段散文上的片段没写 `duration`。`video`、`audio` 素材总有固有时长——文件自己的长度，不管 `duration=` 写没写 |
+| `media-duration-required` | error | 静图上的片段或单源、一段散文上的片段，没写 `duration`——片段的轨声明没声明都一样：有没有长度是来源的事，不是轨的事。`video`、`audio` 素材总有固有时长——文件自己的长度，不管 `duration=` 写没写 |
 | `media-gain-invalid` | error | 片段的 `gain` 不是分贝值（§4） |
 | `media-time-out-of-range` | error | 某个时间不是有限数、超过 `max-time`，或片段终点超过它（§3.2、§8.1） |
 | `media-track-missing` | error | 片段没有 `track=` |

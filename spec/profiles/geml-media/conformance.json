@@ -493,6 +493,141 @@
       "checks": [
         "media-duration-required:error"
       ]
+    },
+    {
+      "name": "a cut fits its track's kind: a video track takes a video or image asset, an audio track an audio asset, a prose track a media-text — kind from kind= or the extension — and a cut that does not fit is reported for that alone (§4)",
+      "geml": "=== meta\nprofile = \"geml-media/v1\"\n===\n\n=== media-asset {#song src=song.mp3 sha256=\"c9a4dec7982f3b65bc206814c5a892f7eccd9ef364f75df8fe95d45ffb61aed1\"}\n===\n\n=== media-asset {#still src=still.png sha256=\"205f0b0445f7ce061b6260babbc2721bdfe50affba94743bd9a3b6307ba6787c\"}\n===\n\n=== media-asset {#take src=take.mp4 sha256=\"520cebbede192a61721ab4afecb30da7ae7d73c2b00b80afe540cfab0a96e6e2\"}\n===\n\n=== media-asset {#weights src=look.safetensors sha256=\"09448063cc786651132795b34e752a3d1e60b603722ca7ed97d4f386bcb47639\"}\n===\n\n=== media-text {#line}\nA line of narration.\n===\n\n==== media {#tl tracks=\"v:video music:audio sub:prose\"}\n\n=== media-clip {#c1 track=v src=#take}\n===\n\n=== media-clip {#c2 track=v src=#still duration=2}\n===\n\n=== media-clip {#c3 track=music src=#song}\n===\n\n=== media-clip {#c4 track=sub src=#line duration=2}\n===\n\n=== media-clip {#c5 track=v src=#song}\n===\n\n=== media-clip {#c6 track=v src=#weights}\n===\n\n=== media-clip {#c7 track=music src=#take}\n===\n\n=== media-clip {#c8 track=music src=#still}\n===\n\n=== media-clip {#c9 track=sub src=#take}\n===\n\n=== media-clip {#c10 track=v src=#line duration=2}\n===\n\n====\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#song",
+          "#still",
+          "#take",
+          "#weights",
+          "#line",
+          "#tl",
+          "#c1",
+          "#c2",
+          "#c3",
+          "#c4",
+          "#c5",
+          "#c6",
+          "#c7",
+          "#c8",
+          "#c9",
+          "#c10"
+        ],
+        "undeclared": [
+          "#meta",
+          "#song",
+          "#still",
+          "#take",
+          "#weights",
+          "#line",
+          "#tl"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning"
+        ]
+      },
+      "files": {
+        "song.mp3": "song bytes",
+        "still.png": "still bytes",
+        "take.mp4": "take bytes",
+        "look.safetensors": "weights bytes"
+      },
+      "checks": [
+        "media-src-not-asset:error",
+        "media-src-not-asset:error",
+        "media-src-not-asset:error",
+        "media-src-not-asset:error",
+        "media-src-not-asset:error",
+        "media-src-not-asset:error"
+      ]
+    },
+    {
+      "name": "a single source is checked as the one cut it is: its src names a video, audio or image asset, and a still says how long it lasts (§2); a cut's length is its source's business, so a cut on an undeclared track still needs a duration on a still or prose (§8)",
+      "geml": "=== meta\nprofile = \"geml-media/v1\"\n===\n\n=== media-asset {#song src=song.mp3 sha256=\"c9a4dec7982f3b65bc206814c5a892f7eccd9ef364f75df8fe95d45ffb61aed1\"}\n===\n\n=== media-asset {#still src=still.png sha256=\"205f0b0445f7ce061b6260babbc2721bdfe50affba94743bd9a3b6307ba6787c\"}\n===\n\n=== media-asset {#take src=take.mp4 sha256=\"520cebbede192a61721ab4afecb30da7ae7d73c2b00b80afe540cfab0a96e6e2\"}\n===\n\n=== media-asset {#weights src=look.safetensors sha256=\"09448063cc786651132795b34e752a3d1e60b603722ca7ed97d4f386bcb47639\"}\n===\n\n=== media-text {#line}\nA line of narration.\n===\n\n=== media {#s1 src=#nowhere}\n===\n\n=== media {#s2 src=#line}\n===\n\n=== media {#s3 src=#still}\n===\n\n=== media {#s4 src=#still duration=3}\n===\n\n=== media {#s5 src=#song}\n===\n\n=== media {#s6 src=#weights}\n===\n\n=== media {#s7 src=#take}\n===\n\n==== media {#tl tracks=\"v:video\"}\n\n=== media-clip {#c1 track=x src=#still}\n===\n\n=== media-clip {#c2 track=x src=#line}\n===\n\n=== media-clip {#c3 track=x src=#take}\n===\n\n====\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#song",
+          "#still",
+          "#take",
+          "#weights",
+          "#line",
+          "#s1",
+          "#s2",
+          "#s3",
+          "#s4",
+          "#s5",
+          "#s6",
+          "#s7",
+          "#tl",
+          "#c1",
+          "#c2",
+          "#c3"
+        ],
+        "undeclared": [
+          "#meta",
+          "#song",
+          "#still",
+          "#take",
+          "#weights",
+          "#line",
+          "#s1",
+          "#s2",
+          "#s3",
+          "#s4",
+          "#s5",
+          "#s6",
+          "#s7",
+          "#tl"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning"
+        ]
+      },
+      "files": {
+        "song.mp3": "song bytes",
+        "still.png": "still bytes",
+        "take.mp4": "take bytes",
+        "look.safetensors": "weights bytes"
+      },
+      "checks": [
+        "media-duration-required:error",
+        "media-duration-required:error",
+        "media-duration-required:error",
+        "media-src-not-asset:error",
+        "media-src-not-asset:error",
+        "media-src-unresolved:error",
+        "media-track-undeclared:warning",
+        "media-track-undeclared:warning",
+        "media-track-undeclared:warning"
+      ]
     }
   ]
 }

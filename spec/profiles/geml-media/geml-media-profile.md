@@ -74,6 +74,11 @@ and a `src=` it is a single playable source** (`<video src>`). A single source i
 code path. There is no `type=` or `format=` restating the shape: one fact with
 two spellings eventually disagrees with itself.
 
+A single source is checked as the one cut it is: its `src` must name a `video`,
+`audio` or `image` asset, something that plays (`media-src-unresolved`,
+`media-src-not-asset`), and on a still image it must say how long it lasts
+(`media-duration-required`, §4).
+
 | key | shape | meaning |
 |---|---|---|
 | `tracks` | assembly | space-separated **`name:kind`** list. The kinds are `video`, `audio` and `prose` — what the content *is*. Declaration order is track order |
@@ -125,7 +130,7 @@ be (`media-hash-mismatch`) is worse than an absent one: it is the wrong file.
 | key | required | meaning |
 |---|---|---|
 | `track` | yes | the track's name, declared in `meta.tracks`. The track's **kind** decides which rules below apply, never the track's name |
-| `src` | yes | a block reference. `video`/`audio` tracks must point at a `media-asset`; a `prose` track must point at a `media-text` |
+| `src` | yes | a block reference that fits the track's kind: a `video` track takes a `video` or `image` asset, an `audio` track an `audio` asset, a `prose` track a `media-text`. An asset's kind is its `kind=`, or its extension's (§3). Anything else is `media-src-not-asset` |
 | `in`, `out` | `video`/`audio` | start and end inside the source, in seconds **or** `hh:mm:ss:ff` timecode converted by `meta.fps` |
 | `duration` | a still, or prose | how long a still image, or a piece of prose, occupies the timeline. A `video` or `audio` asset has an intrinsic duration, its file's, whether or not its `duration=` states it, and needs none |
 | `over` | non-primary tracks | anchor to a cut on the **primary** track |
@@ -409,13 +414,13 @@ way.
 
 | code | level | when |
 |---|---|---|
-| `media-src-unresolved` | error | a cut's `src` names no block |
-| `media-src-not-asset` | error | `src` disagrees with the track's kind |
+| `media-src-unresolved` | error | a cut's or a single source's `src` names no block |
+| `media-src-not-asset` | error | a cut's `src` does not fit its track's kind (§4), or a single source's `src` names something other than a `video`, `audio` or `image` asset (§2). A cut that does not fit is reported for that alone |
 | `media-src-not-relative` | error | an asset's `src` carries a URL scheme, starts with `/`, or holds a `\` (§3) |
 | `media-file-missing` | warning | an asset's file is not there |
 | `media-hash-mismatch` | error | the file is there but its SHA-256 is not the one declared |
 | `media-asset-unhashed` | warning | an asset carries no `sha256`, so whether its file is the one the library describes cannot be checked |
-| `media-duration-required` | error | a cut on a still image, or on a piece of prose, with no `duration`. A `video` or `audio` asset always has an intrinsic duration — its file's, whether its `duration=` states it or not |
+| `media-duration-required` | error | a cut or a single source on a still image, or a cut on a piece of prose, with no `duration` — whether or not the cut's track is declared: having a length is the source's business, not the track's. A `video` or `audio` asset always has an intrinsic duration — its file's, whether its `duration=` states it or not |
 | `media-gain-invalid` | error | a cut's `gain` is not a decibel value (§4) |
 | `media-time-out-of-range` | error | a time is not finite, or is past `max-time`, or a cut ends past it (§3.2, §8.1) |
 | `media-track-missing` | error | a cut with no `track=` |
