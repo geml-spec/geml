@@ -107,6 +107,9 @@ Hello.
 === media-clip {#loose track=v src=#bg}
 ===
 "##;
+    // `#c9` cuts `take.mp4` whole with no `duration=` anywhere: a video asset has
+    // its file's duration, stated or not (profile §4), so only stills and prose
+    // must say how long they are.
     assert_eq!(
         found(src),
         vec![
@@ -119,7 +122,6 @@ Hello.
             "warning media-track-undeclared document.geml#c6",
             "error media-src-unresolved document.geml#c7",
             "error media-src-unresolved document.geml#c8",
-            "error media-duration-required document.geml#c9",
             "error media-src-not-asset document.geml#c11",
             "error media-src-unresolved document.geml#c13",
             "error media-clip-unassembled document.geml#loose",
@@ -171,12 +173,12 @@ Words.
 === media {#head src=#h}
 ===
 "##;
+    // `#short` plays `take.mp4` whole: a video asset has its file's duration (profile §4).
     assert_eq!(
         found(src),
         vec![
             "error media-shape-ambiguous document.geml#both",
             "error media-shape-empty document.geml#empty",
-            "error media-duration-required document.geml#short",
             "error media-duration-required document.geml#image",
             "error media-src-not-asset document.geml#text",
             "error media-src-unresolved document.geml#gone",

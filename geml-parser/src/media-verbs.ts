@@ -7,7 +7,7 @@
 // 和 media-check 一样，这个模块不碰 node:fs —— 文件、哈希、以及**外部程序**
 // （ffmpeg/ffprobe）全部走 MediaIO/MediaHost，由宿主给。
 import { parse, type Block } from "./geml.js";
-import { blocksOf, metaOf, splitRef, promptTextOf, checkMedia, type MediaIO, type Loaded } from "./media-check.js";
+import { blocksOf, metaOf, splitRef, promptTextOf, checkMedia, kindOfFile, type MediaIO, type Loaded } from "./media-check.js";
 import { layout, type Timeline } from "./media-timeline.js";
 import { drivePlayer } from "./media-player-runtime.js";
 import { layerSpec, parseEnd, solveLayout, type End, type InteractionSpec, type LayerSpec } from "./media-compose.js";
@@ -766,14 +766,6 @@ export interface ImportPlan {
   notes: string[];
 }
 
-const kindFromExt = (f: string): string => {
-  const e = (f.split(".").pop() ?? "").toLowerCase();
-  if (["png", "jpg", "jpeg", "webp", "gif"].includes(e)) return "image";
-  if (["mp4", "mov", "webm", "mkv"].includes(e)) return "video";
-  if (["wav", "mp3", "m4a", "flac", "ogg"].includes(e)) return "audio";
-  if (["safetensors", "ckpt", "pt"].includes(e)) return "model";
-  return "other";
-};
 
 export function importPlan(entry: string, items: ManifestItem[], io: MediaIO): ImportPlan {
   const p = loadProject(entry, io);
@@ -793,7 +785,7 @@ export function importPlan(entry: string, items: ManifestItem[], io: MediaIO): I
     let id = byHash.get(sha);
     if (id === undefined) {
       id = (it.file.split("/").pop() ?? it.file).replace(/\.[^.]+$/, "").replace(/[^A-Za-z0-9_-]/g, "-");
-      newAssets.push({ id, src: it.file, sha256: sha, kind: kindFromExt(it.file) });
+      newAssets.push({ id, src: it.file, sha256: sha, kind: kindOfFile(it.file) });
       byHash.set(sha, id);
     } else {
       notes.push(`${it.file} 的哈希与既有的 #${id} 相同，复用它而不新建`);
@@ -956,7 +948,7 @@ export function assetBlockFor(src: string, id: string, sha256: string | null, du
   const d = duration === undefined || !Number.isFinite(duration) ? "" : " duration=" + String(Math.round(duration * 1000) / 1000);
   return "=== media-asset {#" + id + " src=" + src
     + (sha256 === null ? "" : " sha256=" + sha256)
-    + " kind=" + kindFromExt(src) + d + " origin=generated}\n===\n";
+    + " kind=" + kindOfFile(src) + d + " origin=generated}\n===\n";
 }
 
 /** 文件名 → 一个能当 id 用的名字。与 importPlan 用的是同一条规则。 */

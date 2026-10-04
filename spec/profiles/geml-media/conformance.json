@@ -452,6 +452,47 @@
         "media-asset-unhashed:warning",
         "media-file-missing:warning"
       ]
+    },
+    {
+      "name": "a video or audio asset has an intrinsic duration, its file's, whether or not duration= states it; a still needs the cut's duration — and kind, unwritten, is read from the extension in any case (§3, §4)",
+      "geml": "=== meta\nprofile = \"geml-media/v1\"\n===\n\n=== media-asset {#song src=song.MP3 sha256=\"c9a4dec7982f3b65bc206814c5a892f7eccd9ef364f75df8fe95d45ffb61aed1\"}\n===\n\n=== media-asset {#still src=still.png sha256=\"205f0b0445f7ce061b6260babbc2721bdfe50affba94743bd9a3b6307ba6787c\"}\n===\n\n=== media-asset {#take src=take.mp4 kind=video sha256=\"520cebbede192a61721ab4afecb30da7ae7d73c2b00b80afe540cfab0a96e6e2\"}\n===\n\n==== media {#tl tracks=\"v:video music:audio\"}\n\n=== media-clip {#c1 track=v src=#still}\n===\n\n=== media-clip {#c2 track=v src=#still duration=2}\n===\n\n=== media-clip {#c3 track=v src=#take in=1}\n===\n\n=== media-clip {#c4 track=music src=#song over=#c2}\n===\n\n====\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#song",
+          "#still",
+          "#take",
+          "#tl",
+          "#c1",
+          "#c2",
+          "#c3",
+          "#c4"
+        ],
+        "undeclared": [
+          "#meta",
+          "#song",
+          "#still",
+          "#take",
+          "#tl"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning"
+        ]
+      },
+      "files": {
+        "song.MP3": "song bytes",
+        "still.png": "still bytes",
+        "take.mp4": "take bytes"
+      },
+      "checks": [
+        "media-duration-required:error"
+      ]
     }
   ]
 }

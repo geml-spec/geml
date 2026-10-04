@@ -102,8 +102,8 @@ timeline, and every real timeline here is mixed anyway.
 |---|---|---|
 | `src` | yes | path to the file, resolved against the document, confined by §9.4's root. A **relative path**: no URL scheme, not starting with `/`, no `\` — judged as a user agent reads it, C0 controls and spaces removed (GEML §9.4). Anything else is `media-src-not-relative` — the file is handed to players and to `ffmpeg`, which reads a scheme (`concat:`, `http:`) as an instruction |
 | `sha256` | recommended | the file's SHA-256, **full 64 hex digits, never truncated**. The key names the algorithm, so the value carries no prefix. Missing → `media-asset-unhashed`, whether or not the file is there: nothing says which bytes the library expects, so a file replaced under it is caught only by its lineage (§6) |
-| `kind` | conditional | `image`, `video`, `audio`, `model`, `other` — inferable from the extension. There is no `text`: a subtitle file, a LUT or an external prompt file is `other` until a use case says what it really is |
-| `duration` | video/audio | seconds. Absent, and with no `ffprobe` on the machine, in/out points go unchecked (`media-duration-unknown`) |
+| `kind` | conditional | `image`, `video`, `audio`, `model`, `other`. Absent, it is read from the file's extension, in any case: `png jpg jpeg webp gif bmp tif tiff avif svg` are `image`; `mp4 mov webm mkv avi m4v` `video`; `wav mp3 m4a aac flac ogg opus` `audio`; `safetensors ckpt pt onnx gguf` `model`; any other `other`. There is no `text`: a subtitle file, a LUT or an external prompt file is `other` until a use case says what it really is |
+| `duration` | video/audio | seconds: the file's length, written down so that nothing has to open the file to learn it. Absent, the asset still has an intrinsic duration — its file's (§3.2) |
 | `fps`, `size` | no | frame rate; `WxH` |
 | `origin` | recommended | `generated`, `captured`, `licensed` — the first question a compliance review asks |
 | `license` | conditional | the grant. Missing on `captured`/`licensed` → `media-license-missing` |
@@ -127,7 +127,7 @@ be (`media-hash-mismatch`) is worse than an absent one: it is the wrong file.
 | `track` | yes | the track's name, declared in `meta.tracks`. The track's **kind** decides which rules below apply, never the track's name |
 | `src` | yes | a block reference. `video`/`audio` tracks must point at a `media-asset`; a `prose` track must point at a `media-text` |
 | `in`, `out` | `video`/`audio` | start and end inside the source, in seconds **or** `hh:mm:ss:ff` timecode converted by `meta.fps` |
-| `duration` | sources with no intrinsic duration | how long a still, or a piece of prose, occupies the timeline |
+| `duration` | a still, or prose | how long a still image, or a piece of prose, occupies the timeline. A `video` or `audio` asset has an intrinsic duration, its file's, whether or not its `duration=` states it, and needs none |
 | `over` | non-primary tracks | anchor to a cut on the **primary** track |
 | `offset` | no | seconds from the anchor's start, default 0 |
 | `at` | no | an absolute start. An escape hatch: it overrides anchoring |
@@ -162,7 +162,12 @@ because names are the author's to choose.
   `crossfade` are `transition-duration`, `fade` does not overlap). The first cut
   starts at 0.
 - A cut's length is `out - in`, or `duration` for a source with no intrinsic
-  duration, divided by `speed`.
+  duration, divided by `speed`. A cut with no `out` on a `video` or `audio`
+  asset runs to the end of its source: the asset's `duration`, or, when that is
+  not written, the file's own length, which whatever lays the timeline out reads
+  from the file — and if it cannot, it cannot place the cut and says so. A
+  player that only plays the cuts in order, a playlist, never needs the length
+  at all.
 - **Other tracks are anchored**: start is the anchor cut's start plus `offset`.
   Insert a cut on the primary track and every anchored subtitle, voice-over and
   music cue moves with it. This is the same reason ids beat line numbers: the
@@ -410,7 +415,7 @@ way.
 | `media-file-missing` | warning | an asset's file is not there |
 | `media-hash-mismatch` | error | the file is there but its SHA-256 is not the one declared |
 | `media-asset-unhashed` | warning | an asset carries no `sha256`, so whether its file is the one the library describes cannot be checked |
-| `media-duration-required` | error | a source with no intrinsic duration and no `duration` |
+| `media-duration-required` | error | a cut on a still image, or on a piece of prose, with no `duration`. A `video` or `audio` asset always has an intrinsic duration — its file's, whether its `duration=` states it or not |
 | `media-gain-invalid` | error | a cut's `gain` is not a decibel value (§4) |
 | `media-time-out-of-range` | error | a time is not finite, or is past `max-time`, or a cut ends past it (§3.2, §8.1) |
 | `media-track-missing` | error | a cut with no `track=` |

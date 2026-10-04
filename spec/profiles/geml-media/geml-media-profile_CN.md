@@ -86,8 +86,8 @@ aspect=9:16`）。**种类**从被引的 `media-asset` 的 `kind=` 读，不在�
 |---|---|---|
 | `src` | 是 | 文件路径，相对文档解析，受 §9.4 的根目录限定。必须是**相对路径**：不带 URL scheme，不以 `/` 开头，不含 `\`——按用户代理读到的样子判断，去掉 C0 控制符与空格（GEML §9.4）。否则是 `media-src-not-relative`——文件要交给播放器和 `ffmpeg`，而它们把 scheme（`concat:`、`http:`）当成指令 |
 | `sha256` | 推荐 | 文件的 SHA-256，**全长 64 位十六进制，不截短**。键名已点明算法，所以值不带前缀。缺失 → `media-asset-unhashed`，不管文件在不在：没有东西说库期望哪份字节，文件被换掉只能靠血缘发现（§6） |
-| `kind` | 条件 | `image`、`video`、`audio`、`model`、`other`，可由扩展名推断。**没有 `text`**：字幕文件、LUT、外部提示词文件先归 `other`，等真有用例再按它是什么命名 |
-| `duration` | 视频/音频 | 秒。缺失且本机没有 `ffprobe` 时，入出点不校验（`media-duration-unknown`） |
+| `kind` | 条件 | `image`、`video`、`audio`、`model`、`other`。缺失时按文件扩展名定，不分大小写：`png jpg jpeg webp gif bmp tif tiff avif svg` 是 `image`；`mp4 mov webm mkv avi m4v` 是 `video`；`wav mp3 m4a aac flac ogg opus` 是 `audio`；`safetensors ckpt pt onnx gguf` 是 `model`；其余都是 `other`。**没有 `text`**：字幕文件、LUT、外部提示词文件先归 `other`，等真有用例再按它是什么命名 |
+| `duration` | 视频/音频 | 秒：文件的长度，写下来是为了不必打开文件才知道。缺失时素材照样有固有时长——就是文件自己的长度（§3.2） |
 | `fps`、`size` | 否 | 帧率；`宽x高` |
 | `origin` | 推荐 | `generated`、`captured`、`licensed` —— 合规审核问的第一个问题 |
 | `license` | 条件 | 授权依据。`captured`/`licensed` 而缺失 → `media-license-missing` |
@@ -109,7 +109,7 @@ body 是 raw，放作者自己的备注。备注是文档事实，进历史；�
 | `track` | 是 | 轨道名，须在 `meta.tracks` 里声明过。下面哪几条规则适用，由轨道的**种类**决定，不由轨道的名字决定 |
 | `src` | 是 | 块引用。`video`/`audio` 种类的轨必须指 `media-asset`；`prose` 种类的轨必须指 `media-text` |
 | `in`、`out` | `video`/`audio` | 素材内的起止，秒**或** `hh:mm:ss:ff` 时码（按 `meta.fps` 换算） |
-| `duration` | 无固有时长的源 | 静图或一段散文在时间线上占多久 |
+| `duration` | 静图或散文 | 静图或一段散文在时间线上占多久。`video`、`audio` 素材有固有时长——文件自己的长度，不管 `duration=` 写没写——用不着它 |
 | `over` | 非主轨 | 锚到**主轨**上的某个片段 |
 | `offset` | 否 | 相对锚点起点的秒数，默认 0 |
 | `at` | 否 | 绝对起点。逃生口：写了它，锚定被忽略 |
@@ -138,7 +138,7 @@ body 是 raw，放作者自己的备注。备注是文档事实，进历史；�
 - **主轨**（`meta.primary`，缺省 `video`）是**顺序的**：文档顺序就是播放顺序。第 *i* 个
   片段的起点 = 第 *i-1* 个的终点减去它 `transition-in` 声明的重叠量（`cut` 为 0，
   `dissolve` 与 `crossfade` 为 `transition-duration`，`fade` 不重叠）。第一个片段从 0 开始。
-- 一个片段的时长 = `out - in`，无固有时长的源则是 `duration`，再除以 `speed`。
+- 一个片段的时长 = `out - in`，无固有时长的源则是 `duration`，再除以 `speed`。`video`、`audio` 素材上没写 `out` 的片段放到源的末尾：素材的 `duration`，没写就是文件自己的长度，由排时间线的一方从文件里读——读不到就排不了这一刀，并且要说出来。只按顺序放片段的播放器（歌单）根本用不着长度。
 - **其余轨是锚定的**：起点 = 锚点片段的起点 + `offset`。在主轨插一个片段，后面所有锚定的
   字幕、配音、音乐跟着走。这和"id 优于行号"是同一个道理：锚在内容上，不锚在数字上。
 - **每个时间都是有限数，且不超过 `max-time`**（§8.1）：`in`、`out`、`duration`、
@@ -335,7 +335,7 @@ warning 而不是 error——否则改一次角色卡整条流水线红掉，人
 | `media-file-missing` | warning | 素材的文件不存在 |
 | `media-hash-mismatch` | error | 文件在，但 SHA-256 不是声明的那个 |
 | `media-asset-unhashed` | warning | 素材没有 `sha256`，所以没法校验它的文件是不是库里描述的那一份 |
-| `media-duration-required` | error | 源无固有时长且未写 `duration` |
+| `media-duration-required` | error | 静图或一段散文上的片段没写 `duration`。`video`、`audio` 素材总有固有时长——文件自己的长度，不管 `duration=` 写没写 |
 | `media-gain-invalid` | error | 片段的 `gain` 不是分贝值（§4） |
 | `media-time-out-of-range` | error | 某个时间不是有限数、超过 `max-time`，或片段终点超过它（§3.2、§8.1） |
 | `media-track-missing` | error | 片段没有 `track=` |

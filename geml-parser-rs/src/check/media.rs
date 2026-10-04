@@ -24,7 +24,7 @@ use crate::vocab::Level::{Error as E, Info as I, Warning as W};
 
 const TRACK_KINDS: &[&str] = &["video", "audio", "prose"];
 
-/// The kind a file's extension implies (§3: inferable from the extension).
+/// The kind a file's extension implies, read when an asset writes no `kind` (§3).
 fn kind_of_path(src: &str) -> &'static str {
     let ext = src.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
     match ext.as_str() {
@@ -438,17 +438,15 @@ fn tracks(s: &str, a: &str, out: &mut Out) -> Vec<(String, String)> {
 }
 
 /// Whether a cut over `src` needs a `duration=` it does not have.
+/// Whether a cut on `target` must say how long it is (profile §4): prose and a
+/// still image have no intrinsic duration. A `video` or `audio` asset always
+/// has one — its file's, whether its `duration=` states it or not.
 fn duration_missing(target: &Snap, cut: &Block) -> bool {
-    let given = cut.attr("duration").is_some() || cut.attr("out").is_some();
     match target.type_name.as_str() {
         "media-text" => cut.attr("duration").is_none(),
         "media-asset" => {
             let kind = target.attr_text("kind").unwrap_or_else(|| kind_of_path(&target.attr_text("src").unwrap_or_default()).to_string());
-            match kind.as_str() {
-                "image" => cut.attr("duration").is_none(),
-                "video" | "audio" => !given && target.attr_text("duration").is_none(),
-                _ => false,
-            }
+            kind == "image" && cut.attr("duration").is_none()
         }
         _ => false,
     }

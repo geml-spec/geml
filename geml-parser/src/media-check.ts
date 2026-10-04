@@ -21,10 +21,16 @@ export type MediaIO = ProfileIO;
 
 /** 轨道的种类（profile §3.1）。说的是内容是什么、住在哪，不是画在哪。 */
 const TRACK_KINDS = new Set(["video", "audio", "prose"]);
-/** 有固有时长的素材种类；其余（静图、模型、其它）在时间线上要 `duration`。 */
-const TIMED_KINDS = new Set(["video", "audio"]);
-/** 没写 `kind=` 时按后缀认图片 —— 与 media-verbs 的 kindFromExt 同一份名单。 */
-const IMAGE_EXT = new Set(["png", "jpg", "jpeg", "webp", "gif"]);
+/** 没写 `kind=` 时按扩展名定种类，不分大小写（profile §3）。检查与导入用同一份。 */
+const KIND_BY_EXT = new Map<string, string>();
+for (const [kind, exts] of [
+  ["image", "png jpg jpeg webp gif bmp tif tiff avif svg"],
+  ["video", "mp4 mov webm mkv avi m4v"],
+  ["audio", "wav mp3 m4a aac flac ogg opus"],
+  ["model", "safetensors ckpt pt onnx gguf"],
+]) for (const e of exts!.split(" ")) KIND_BY_EXT.set(e, kind!);
+export const kindOfFile = (f: string): string => KIND_BY_EXT.get((f.split(".").pop() ?? "").toLowerCase()) ?? "other";
+const kindOfAsset = (b: Block & { kind: "block" }): string => str(b.attrs["kind"]) ?? kindOfFile(str(b.attrs["src"]) ?? "");
 
 export interface Loaded { rel: string; doc: Document; meta: Map<string, string> }
 
@@ -373,10 +379,10 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
         if (target.type !== "media-asset") {
           out.push(mediaDiag("media-src-not-asset", `轨道 \`${track}\` 的种类是 ${kind}，\`src\` 必须指 \`media-asset\`，实际是 \`${target.type}\``, rel, b.id));
         } else {
-          const akind = str(target.attrs["kind"]);
-          const timed = akind !== undefined && TIMED_KINDS.has(akind) && str(target.attrs["duration"]) !== undefined;
-          if (!timed && str(b.attrs["duration"]) === undefined) {
-            out.push(mediaDiag("media-duration-required", "源没有固有时长（静图，或没写 `duration=` 的音视频），这一刀要写 `duration=`", rel, b.id));
+          // 音视频总有固有时长：文件自己的，`duration=` 写没写都算（profile §4）。
+          // 静图没有，它在时间线上占多久得由这一刀说。
+          if (kindOfAsset(target) === "image" && str(b.attrs["duration"]) === undefined) {
+            out.push(mediaDiag("media-duration-required", "静图没有固有时长，这一刀要写 `duration=`", rel, b.id));
           }
         }
       }
@@ -410,8 +416,7 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
       const t = splitRef(src, rel);
       const target = t === null ? undefined : blockAt(t.doc, t.id);
       if (target === undefined) { out.push(mediaDiag("media-src-unresolved", `\`src=${src}\` 指不到任何块`, rel, b.id)); continue; }
-      const kind = target.type !== "media-asset" ? target.type
-        : str(target.attrs["kind"]) ?? (IMAGE_EXT.has((str(target.attrs["src"]) ?? "").split(".").pop()?.toLowerCase() ?? "") ? "image" : "other");
+      const kind = target.type !== "media-asset" ? target.type : kindOfAsset(target);
       if (kind !== "image") {
         out.push(mediaDiag("media-layer-not-image", `\`src=${src}\` 不是一张图片（是 ${kind}）：层只能是立绘或母版`, rel, b.id));
       }

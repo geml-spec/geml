@@ -18,6 +18,18 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **`geml-media/v1`: a video or audio asset has its file's duration, written
+  or not.** `media-duration-required` is for a cut on a still image or on
+  prose; a song or a take with no `duration=` no longer makes every cut on it
+  an error, so a timeline that only plays its cuts in order — a playlist —
+  needs no lengths. A cut with no `out` runs to the end of its source, and
+  whatever lays the timeline out reads that from the file. The reference
+  required `duration=` on the asset and ignored a cut's `out`, where the Rust
+  crate took `out` but also required one or the other; the profile's case pins
+  the rule. An asset with no `kind` takes it from its extension, in any case,
+  by a table the profile now spells out — the reference read only image
+  extensions there, and `media import` a shorter list than the crate.
+
 ## [1.12.2] — 2026-10-04
 
 - **Security audit, round 6 — what a document or a tool call could make run or
