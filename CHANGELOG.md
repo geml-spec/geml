@@ -53,6 +53,15 @@ and is released under `viewer-v*` tags.
   a body and read `tracks` from the document's `meta`. The three shape and
   assembly codes join the profile's diagnostics table; three profile cases pin
   the rules.
+- **The browser extension plays an audio timeline as a playlist.** A
+  stylesheet rule `component=playlist` turns a `geml-media` timeline into a
+  track list with one player, previous and next, shuffle and repeat (off, all,
+  one). It reads no lengths and fetches nothing until a track plays. Shuffle
+  and repeat are how one listens, not what the document says: the rule sets
+  where they start (`shuffle=on repeat=all`) and the panel's buttons change
+  them. `tools/media-page.mjs` writes the same panel as one static page, with
+  asset URLs relative to it. *(Browser extension, on its own track; not yet
+  released.)*
 
 ## [1.12.2] — 2026-10-04
 

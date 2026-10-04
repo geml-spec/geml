@@ -373,3 +373,29 @@ select.geml-form-control { cursor: pointer; }
   min-width: 9ch;
   text-align: right;
 }
+
+/* geml-media/v1 · 歌单（media-playlist.js）。只出结构：一个媒体元素、上一首/下一首、
+   曲目列表；正在放的那首由 aria-current 标出。颜色字号归样式表。 */
+.geml-playlist { display: flex; flex-direction: column; gap: 8px; }
+.geml-playlist-empty { opacity: .7; font-style: italic; }
+.geml-playlist-media { width: 100%; }
+video.geml-playlist-media { background: #000; border-radius: 6px; }
+.geml-playlist-transport { display: flex; gap: 8px; }
+.geml-playlist-transport button,
+.geml-playlist-item {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+/* 随机、重复：没按下是半透明；单曲重复在按钮上标一个 1 */
+.geml-shuffle, .geml-repeat { opacity: .45; }
+.geml-shuffle[aria-pressed="true"], .geml-repeat[aria-pressed="true"] { opacity: 1; }
+.geml-repeat[data-mode="one"]::after { content: "1"; font-size: .7em; vertical-align: super; }
+.geml-playlist-items { margin: 0; padding-left: 2em; }
+.geml-playlist-items > li { padding: 2px 0; }
+.geml-playlist-item { width: 100%; padding: 4px 6px; text-align: left; border-radius: 4px; }
+.geml-playlist-item:hover { background: rgba(127, 127, 127, .15); }
+.geml-playlist-items > li[aria-current="true"] { font-weight: 600; }
+.geml-playlist-items > li[aria-current="true"] .geml-playlist-item { background: rgba(127, 127, 127, .22); }

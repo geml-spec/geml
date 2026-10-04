@@ -12,6 +12,7 @@
 //
 // 一行色值都没有：这里只出结构与相对位置，颜色尺寸归样式表（设计 2026-09-10 §5）。
 import { playerLive } from "./media-player.js";
+import { playlistLive } from "./media-playlist.js";
 import { layoutDoc } from "../../../geml-parser/dist/media-timeline.js";
 
 /** 一份文档的时间线只算一次。key 是 Document 对象本身。 */
@@ -148,6 +149,7 @@ export function overlayTrack(block, params, ctx) { return trackEl(ctx, "geml-tra
 export const MEDIA_COMPONENTS = {
   clip,
   player: playerLive,
+  playlist: playlistLive,
   "timeline-track": timelineTrack,
   "overlay-track": overlayTrack,
 };

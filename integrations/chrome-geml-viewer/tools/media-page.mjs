@@ -5,6 +5,7 @@
 // 一份源码，两个宿主；改了行为不会只改到一边。
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { parse } from "../../../geml-parser/dist/geml.js";
 import { loadStylesheet, resolveStyle } from "../src/parse-entry.js";
 import { renderBlock, collectLabels } from "../src/render.js";
@@ -13,11 +14,12 @@ import { createState, COMPONENTS } from "../src/components.js";
 import { producersOf } from "../src/style-entry.js";
 import { MEDIA_COMPONENTS } from "../src/media.js";
 import { drivePlayer } from "../src/media-player.js";
+import { drivePlaylist } from "../src/media-playlist.js";
 import { parseHTML } from "linkedom";
 
-const [, , rootArg, cutArg, sheetArg, outArg] = process.argv;
+const [, , rootArg, cutArg, sheetArg, outArg, urlArg] = process.argv;
 if (!rootArg || !cutArg) {
-  console.error("usage: node tools/media-page.mjs <root> <cut.geml 相对根> [style.geml] [out.html]");
+  console.error("usage: node tools/media-page.mjs <root> <cut.geml 相对根> [style.geml] [out.html] [页面网址，缺省是 out.html 的 file:// 地址]");
   process.exit(2);
 }
 const root = resolve(rootArg);
@@ -87,14 +89,18 @@ profile = "geml-style/v1"
 ===
 `;
 
+// 页面写在哪，素材就按哪儿解析：组件按本页地址过同源闸（file:// 下要在本页所在目录之内）。
+const dest = outArg ? resolve(outArg) : join(root, "play.html");
+
 const sheet = loadStylesheet(parse(SHEET));
 const vm = resolveStyle(sheet, corpus);
 const { document } = parseHTML("<!doctype html><html><head></head><body></body></html>");
 const state = createState(vm, document);
+const pageUrl = urlArg ?? pathToFileURL(dest).href;
 const out = renderPage(vm, cutDoc, document, {
   renderBlock, labels: collectLabels(cutDoc.children),
   components: { ...COMPONENTS, ...MEDIA_COMPONENTS },
-  state, producers: producersOf(sheet), corpus, docPath: corpus[0].path,
+  state, producers: producersOf(sheet), corpus, docPath: corpus[0].path, docUrl: pageUrl,
 });
 if (out.error) { console.error("renderPage 失败: " + out.error); process.exit(1); }
 
@@ -108,15 +114,20 @@ const shell = [
   ".geml-track-ruler{position:absolute;inset:0 0 auto 0;height:18px;font:10px/18px ui-monospace,monospace;color:#64748b}",
   ".geml-tick{padding-left:3px;border-left:1px solid #334155}",
 ].join("\n");
+// 素材地址按页面地址解析成了绝对地址；页面所在目录下的改回相对路径，页面连同素材搬到哪
+// 都能放（网站上、别人的磁盘上），不会指回生成它的那台机器。
+const here = new URL(".", pageUrl).href;
+const body = out.root.outerHTML.split(here).join("");
 const title = (cutDoc.children.find((b) => b.kind === "block" && b.type === "meta")?.data?.title) ?? cutArg;
 const html = [
   "<!doctype html>", "<meta charset=\"utf-8\">",
   "<title>" + String(title) + " · 成片</title>",
   "<style>", shell, css, "</style>",
-  out.root.outerHTML,
+  body,
   "<script>(" + drivePlayer.toString() + ")(document.querySelector('.geml-player'))<" + "/script>",
+  // 样式表要的是歌单（component=playlist）时，驱动它的是这一段；两段都是空操作安全的。
+  "<script>(" + drivePlaylist.toString() + ")(document.querySelector('.geml-playlist'))<" + "/script>",
 ].join("\n");
-const dest = outArg ? resolve(outArg) : join(root, "play.html");
 writeFileSync(dest, html, "utf8");
-const n = (out.root.outerHTML.match(/geml-layer-/g) || []).length;
+const n = (out.root.outerHTML.match(/geml-layer-|geml-playlist-media/g) || []).length;
 console.log("写好 " + dest + "（" + n + " 个媒体元素，" + out.unplaced + " 个块没被摆）");

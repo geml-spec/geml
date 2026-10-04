@@ -18,7 +18,7 @@ import { drivePlayer } from "../../../geml-parser/dist/media-player-runtime.js";
  * 同源规则（content.js 的 isSameOriginSrc）：http(s) 要同源，file:// 要在本页所在目录之内。
  * 判断用的和交给元素的是同一个绝对 URL。没有本页地址就无从判断，一律不取。
  */
-function assetUrl(file, docPath, pageUrl) {
+export function assetUrl(file, docPath, pageUrl) {
   const s = String(file).replace(/[\x00-\x20]/g, "");
   if (s === "" || s.includes("\\") || s.startsWith("//") || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(s)) return null;
   let page, url;
@@ -48,7 +48,7 @@ function blockById(doc, id) {
  * `lib.geml#s01-take3` → 语料里的那个块，连同它所在文档的路径。
  * 先按文档名对，对不上再全局找 id —— 跨文档引用写的是相对路径，语料里的是相对根的。
  */
-function findRef(entries, ref) {
+export function findRef(entries, ref) {
   const i = String(ref).indexOf("#");
   const id = i < 0 ? String(ref) : String(ref).slice(i + 1);
   const docPart = i < 0 ? "" : String(ref).slice(0, i).replace(/^(?:\.\.?\/)+/, "");
@@ -72,7 +72,7 @@ const dbToGain = (v) => {
 };
 
 /** 块的可读文字。散文块是若干段落，`raw` 体就是它的正文行 —— 两种都取字面。 */
-function textOf(block, ctx) {
+export function textOf(block, ctx) {
   const out = [];
   (function walk(nodes) {
     for (const n of nodes || []) {
