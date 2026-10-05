@@ -68,7 +68,7 @@ assert no "error" diagnostic in doc.diagnostics
 
 # §0.5 — the same document, four ways, must give the same model
 base = "# T\n\n- a\n- b\n"
-assert parse(base) == parse("﻿" + base) == parse(base.replace("\n", "\r\n"))
+assert parse(base) == parse("﻿" + base) == parse(base.replace("\n", "\r\n")) == parse(base.replace("\n", "\r"))
 
 # Appendix A — every code you emit is in the catalogue, at its declared severity
 for d in parse(read("spec/in_geml_format/GEML-spec.geml")).diagnostics + your_error_fixtures():
@@ -79,6 +79,6 @@ Suite green + dogfood clean + §0.5 + Appendix A = an independent, conformant GE
 
 ## Reference
 
-- Spec: [`GEML-spec.md`](../spec/GEML-spec.md) (§0–§9 + Appendices A/B) + [`GEML-history-spec.md`](../spec/profiles/geml-history/geml-history-profile.md).
+- Spec: [`GEML-spec.md`](../spec/GEML-spec.md) (§0–§9 + Appendices A/B) + [`geml-history-profile.md`](../spec/profiles/geml-history/geml-history-profile.md).
 - [`GEML-spec.geml`](../spec/in_geml_format/GEML-spec.geml) — the spec in GEML; your end-to-end test.
 - [`geml-parser/`](../geml-parser/) — the reference implementation (a guide; the spec is the definition).

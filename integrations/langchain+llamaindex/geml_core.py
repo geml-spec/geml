@@ -4,7 +4,7 @@ Both the LangChain and LlamaIndex adapters sit on top of this, so the behaviour
 they expose is identical and there is exactly one place where the CLI contract
 lives. Requires `npm install -g @geml/geml` (Node 22+) on PATH.
 
-Verified against @geml/geml 1.8.4 (history commit/log became save/get in 1.6.0; the no-selector listing gained anonymous rows in 1.7.3). If the CLI's JSON shapes change, this file
+Verified against @geml/geml 1.12.3 (history commit/log became save/get in 1.6.0; the no-selector listing gained anonymous rows in 1.7.3). If the CLI's JSON shapes change, this file
 is what needs updating; test_geml_core.py (41 checks, no framework deps) is the
 contract test — run it against a new CLI before trusting the adapters.
 """

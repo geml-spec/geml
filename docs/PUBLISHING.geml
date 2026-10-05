@@ -32,9 +32,6 @@ flowchart TD
 
   NPM -.-> LOGSEQ["@geml/logseq-sync<br/>depends by range ^1.x"]
   NPM -.-> PLUGINS["claude / codex / grok / gemini / kimi<br/>run the MCP server via npx"]
-
-  BUNDLE --> G1{"built in CI every run<br/>so it cannot go stale"}
-  MAP --> G2{"no gate<br/>check only notices<br/>if attributes stop resolving"}
 ===
 
 Only the dashed edges look after themselves. Every solid edge is a copy someone

@@ -4,12 +4,12 @@
 profile           = "geml-history/v1"
 history-of        = "GEML-spec.geml"
 geml-version      = "1.0"
-current           = "20261005T040311Z-d915c125"
+current           = "20261005T072602Z-3606df5d"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== history-keyframe {id="20261005T040311Z-d915c125" hash="sha256:d915c125df0dd08ef8885b5eacaaa5fd1cc804b941d49c984f63a9affdedca1a"}
+===== history-keyframe {id="20261005T072602Z-3606df5d" hash="sha256:3606df5db10447b87c7f52bc1680eaa2d09d714ff1f616af00b9cfa5a3724753"}
 # GEML — General Expressive Markup Language
 
 *English | [中文](../GEML-spec_CN.md)*
@@ -590,7 +590,7 @@ route names the whole file. A range MUST NOT be empty or start before line 1.
   (`code-src-and-body` error, Appendix A).
 - **No extension gate.** Code is written in any language, so a route to code is
   not restricted by suffix; the safety boundary is confinement (§9.4) alone. A
-  `data` route keeps its `.json`/`.jsonl`/`.yaml` gate (§3.2), whose purpose is to name
+  `data` route keeps its `.json`/`.jsonl`/`.yaml`/`.yml` gate (§3.2), whose purpose is to name
   a *format*, not to bound the filesystem.
 
 For `data`, a range narrows the file to lines and the format then reads them as
@@ -663,7 +663,7 @@ exactly when the slice is itself a value.
   5. trim leading and trailing whitespace;
   6. replace each run of whitespace with a single `-`.
 
-  So `## Use \`foo()\` in 2024 Design` derives `#use-in-2024-design`, and — since
+  So ``## Use `foo()` in 2024 Design`` derives `#use-in-2024-design`, and — since
   step 2 decomposes and step 4 then drops the marks — `## Ubytovací zařízení`
   derives `#ubytovaci-zarizeni`. Step 4 keeps every Unicode letter, and a
   diacritic is not one, so a script that writes no combining marks is untouched:
@@ -1251,9 +1251,11 @@ and none of its other attributes is applied.
 
 **Evaluation order** is SQL's logical processing order:
 
-> `src` loads → `compute`'s per-row formulas → `where` filters →
-> `compute`'s aggregate formulas → `by`/`aggregate` folds → `order` sorts →
-> `limit` truncates → `select` narrows → `summary` aggregates.
+=== note {#note-view-evaluation-order}
+`src` loads → `compute`'s per-row formulas → `where` filters →
+`compute`'s aggregate formulas → `by`/`aggregate` folds → `order` sorts →
+`limit` truncates → `select` narrows → `summary` aggregates.
+===
 
 `compute=` therefore runs in **two passes**, and `where=` MAY name a column a
 per-row formula produces. It MUST NOT name one an **aggregate** formula
@@ -1485,10 +1487,10 @@ property of its body but a question of ownership: a construct every reader of
 GEML should be able to read is this specification's, and one that serves a single
 application is a vocabulary's.
 
-Diagram `format` names are **not** admissible in this version, though §8.5
-recommends the same hyphen for them. An unknown format already degrades to a
-warning with its body preserved (§8.2(6)), so a vocabulary that names one is not
-wrong; it simply cannot silence `unknown-diagram-format` the way it silences
+Diagram `format` names follow §8.5's hyphen convention as well. A format no
+declared vocabulary admits degrades to a warning with its body preserved
+(§8.2(6)); one that a recognized vocabulary admits is not reported as
+`unknown-diagram-format`, just as an admitted type is not reported as
 `unknown-block-type`.
 
 #### 8.6.2 Rules for a conforming processor
@@ -1729,8 +1731,8 @@ on both sides of a `view` chain's edge, and `table-cells` one column past it.
 Where a transclusion chain stops is the renderer's, and `nesting-floor` is a
 recommendation; neither is pinned. The rest of this section is **equally
 normative and not covered there**. §9.2's nesting bounds and its bound on cells
-read from elsewhere, and §9.3's work budget, are implementation-defined, so no case can pin them; §9.5's expansion budgets
-act at render time, and §9.4's confinement is a property of the host
+read from elsewhere, and §9.3's work budget, are implementation-defined, so no case can pin them; §9.3's bound on transclusion
+expansion acts at render time, and §9.4's confinement is a property of the host
 environment. An implementation
 claiming conformance MUST still satisfy them, and SHOULD carry its own tests for
 each — a suite pass is evidence about parsing, not a security certificate. The
@@ -1931,10 +1933,9 @@ GEML has three syntactic positions:
 | `=== note` | typed | flow | §3 |
 | `=== text` | typed | flow | §3 |
 | `=== meta` | typed | key–value | §3, §4 |
-===
-
 | `%%` comment line | line | raw, never rendered | §4 |
 | `` ``` `` run, matched pair | line pair | shield: everything between stays flow text | §3.1 |
+===
 
 *Shape* is one of: **unfenced** (§2), **typed** (fenced, §3), and **line** — a
 single-line construct recognized during block parsing.
@@ -1966,7 +1967,7 @@ Eight attribute keys carry references; all of them are validated (Appendix A):
 | `src=` | `view` | the relation it derives from, in three forms: a data file (`csv`/`tsv`), `#id` naming a `table` or `view` in this document, or `doc.geml#id` naming one in another. | §6.1 |
 | `data=` | `diagram` (`geml-chart`) | where the data comes from, in the same three forms a table's `src=` takes: a data file (`csv`/`tsv` standing for the anonymous table it describes; a local `.json`/`.jsonl` for the anonymous record source), `#id` in this document, or `doc.geml#id` in another — naming a `table`, or a record-array `data` block (§3.2). | §6, §7.1 |
 | `schema=` | `data` | a block (`#id`) or a GEML document (`doc.geml[#id]`) holding a schema; reference-checked only | §3.2 |
-| `src=` | `data` | the block's external content: a `.json`/`.jsonl`/`.yaml` file, taking the same route syntax as a code source (a line range MAY narrow it, which is how a window of a jsonl log is addressed); document-relative or `http(s)` (render-time) | §3.2 |
+| `src=` | `data` | the block's external content: a `.json`/`.jsonl`/`.yaml`/`.yml` file, taking the same route syntax as a code source (a line range MAY narrow it, which is how a window of a jsonl log is addressed); document-relative or `http(s)` (render-time) | §3.2 |
 | `src=` | `code` | the code the block shows: a source file, optionally narrowed to a line range — `<path>[#L<start>[-<end>]]`, 1-based and inclusive. Document-relative, or relative to the resolution root (`--root`); an `http(s)` route is fetched at render time. A range the file no longer has is an error. | §3.3 |
 | `src=` | `embed` | the content the block stands for: a document, optionally with a fragment | §3 |
 | `src=` | `diagram` (`geml-code-graph`) | a GEML document | §7 |
@@ -2012,6 +2013,163 @@ for a block or a section, the three granularities are a scalar, a phrase, and
 a block.
 
 =====
+
+=== history-revision {id="20261005T072602Z-3606df5d" parent="20261005T070933Z-467ca944" summary="Fix the §4 code-span example: a backslash does not escape inside a span" hash="sha256:3606df5db10447b87c7f52bc1680eaa2d09d714ff1f616af00b9cfa5a3724753" newline="crlf"}
+delete @84cf56d7
+insert <- blob:b207 after @8f8248eb
+===
+
+=== history-blob {#b207 lang=geml}
+  So `## Use \`foo()\` in 2024 Design` derives `#use-in-2024-design`, and — since
+  step 2 decomposes and step 4 then drops the marks — `## Ubytovací zařízení`
+  derives `#ubytovaci-zarizeni`. Step 4 keeps every Unicode letter, and a
+  diacritic is not one, so a script that writes no combining marks is untouched:
+  `## 设计说明` derives `#设计说明`. **Two headings that differ only in their
+  diacritics therefore derive one id and collide** — `duplicate-id`, an error, and
+  the second heading MUST declare an explicit `{#id}`. In a language where
+  diacritics distinguish words rather than decorate them, that is the normal case
+  and not an edge one, so such a document is expected to carry explicit ids. A
+  derived id
+  collides like any other: two headings that derive the SAME id are a
+  `duplicate-id` **error** (Appendix A) — the id addresses the first, and the
+  second MUST declare an explicit `{#id}`. Derived ids preserve underscores:
+  `foo_bar` derives `#foo_bar` while `foobar` derives `#foobar` — they are
+  distinct. A heading
+  whose text carries no letter and no digit derives the empty string, which is no
+  id (above); to name such a heading, give it an explicit `{#id}`.
+- **Prose between two blocks has an address, derived from the two of them.** The text
+  between two blocks bears no `id`, so nothing can name it and a document
+  assembled out of references silently loses it. The derivation below closes that,
+  and is **normative** for the same reason the heading derivation above is: a
+  reference has to name the same content in every implementation.
+
+===
+
+=== history-revision {id="20261005T070933Z-467ca944" parent="20261005T040311Z-d915c125" summary="Appendix B.1 table rejoined; §8.6.1 diagram formats; §9.6 reference; .yml data gate" hash="sha256:467ca9440549ad38c330cffeb32b716e3100d6535c667d5a609a9f1b0ac7b6d3" newline="crlf"}
+delete @fb65f445
+delete #note-view-evaluation-order
+delete @2540f67c
+delete @5299714e
+replace #table-10 <- blob:b200
+replace #table-12 <- blob:b201
+insert <- blob:b202 after @75a28a48
+insert <- blob:b203 after @63b107bf
+insert <- blob:b204 after @aea0c89a
+insert <- blob:b205 after @064b167a
+insert <- blob:b206 after #table-10
+===
+
+==== history-blob {#b200 lang=geml}
+=== table {#table-10}
+| Construct | Shape | Body | Defined in |
+|-----------|-------|------|------------|
+| Paragraph | unfenced | inline | §2, §3.1 |
+| Heading `#`…`######` | unfenced | inline | §1(6), §3.1, §4 |
+| List — `-`/`*`, `1.`; task marker `[ ]`/`[x]` | unfenced | inline items | §2.2 |
+| `=== code` | typed | raw | §3 |
+| `=== math` | typed | raw | §3 |
+| `=== table` | typed | raw: pipe grid or `format=` data | §6 |
+| `=== view` | typed | no body; `src=` names the relation it derives from | §6.1 |
+| `=== data` | typed | raw: `format=` value tree (`json` default, `jsonl`; `yaml`/`toml`/`edn` reserved) | §3.2 |
+| `=== diagram` | typed | raw: external DSL | §7 |
+| `=== embed` | typed | raw (body unused); `src=` names the content | §3, §6 |
+| `=== note` | typed | flow | §3 |
+| `=== text` | typed | flow | §3 |
+| `=== meta` | typed | key–value | §3, §4 |
+===
+
+====
+
+==== history-blob {#b201 lang=geml}
+=== table {#table-12}
+| Key | Host block | Target | Defined in |
+|-----|------------|--------|------------|
+| `src=` | `table` | where the data comes from: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL). A block target is an error naming `view`. | §6 |
+| `src=` | `view` | the relation it derives from, in three forms: a data file (`csv`/`tsv`), `#id` naming a `table` or `view` in this document, or `doc.geml#id` naming one in another. | §6.1 |
+| `data=` | `diagram` (`geml-chart`) | where the data comes from, in the same three forms a table's `src=` takes: a data file (`csv`/`tsv` standing for the anonymous table it describes; a local `.json`/`.jsonl` for the anonymous record source), `#id` in this document, or `doc.geml#id` in another — naming a `table`, or a record-array `data` block (§3.2). | §6, §7.1 |
+| `schema=` | `data` | a block (`#id`) or a GEML document (`doc.geml[#id]`) holding a schema; reference-checked only | §3.2 |
+| `src=` | `data` | the block's external content: a `.json`/`.jsonl`/`.yaml` file, taking the same route syntax as a code source (a line range MAY narrow it, which is how a window of a jsonl log is addressed); document-relative or `http(s)` (render-time) | §3.2 |
+| `src=` | `code` | the code the block shows: a source file, optionally narrowed to a line range — `<path>[#L<start>[-<end>]]`, 1-based and inclusive. Document-relative, or relative to the resolution root (`--root`); an `http(s)` route is fetched at render time. A range the file no longer has is an error. | §3.3 |
+| `src=` | `embed` | the content the block stands for: a document, optionally with a fragment | §3 |
+| `src=` | `diagram` (`geml-code-graph`) | a GEML document | §7 |
+===
+
+====
+
+=== history-blob {#b202 lang=geml}
+- **Resolution.** A route resolves relative to the document. When a resolution
+  root is configured (`--root`) and nothing exists at that path, the route
+  resolves relative to the root — how a generated code graph writes routes from
+  documents nested below the sources they describe. The same two steps resolve
+  every relative path a document names: a reference to another document, an
+  `embed`'s or a `view`'s source, a `data` route, and the data file of a table,
+  a view or a chart. Both resolutions stay inside the confinement boundary of
+  §9.4.
+- **Remote.** An `http(s)` route is fetched by the **renderer**, not the parser
+  (§9.4); the block, and anything reading it, defers: at build time the block
+  has no model — not an empty one — and a `view`, a chart or a coordinate
+  reading it is neither resolved nor checked, and is no error, until the
+  renderer has the data. Any other URL scheme MUST be refused.
+- **A route that cannot be resolved is a warning, not an error.** A `code` block
+  names a region of code at a location whether or not that file is reachable, so
+  a document describing sources that are absent — a generated code graph
+  published on its own, or describing another checkout — stays valid and is
+  merely unchecked. A `data` route is the opposite case: its value is what the
+  document promised, so failing to load it is an error (§3.2). A disallowed URL
+  scheme is an authoring mistake either way, and MUST be refused.
+- **A stale range is an error.** If the file no longer has the named lines, a
+  processor MUST report `bad-source-range`. This is the point of checking a
+  route: a reference that has drifted fails the build instead of rendering an
+  empty region.
+- **A body alongside `src=` is an error.** A `code` block MUST NOT carry both
+  `src=` and an inline body; exactly one is permitted
+  (`code-src-and-body` error, Appendix A).
+- **No extension gate.** Code is written in any language, so a route to code is
+  not restricted by suffix; the safety boundary is confinement (§9.4) alone. A
+  `data` route keeps its `.json`/`.jsonl`/`.yaml` gate (§3.2), whose purpose is to name
+  a *format*, not to bound the filesystem.
+
+===
+
+=== history-blob {#b203 lang=geml}
+> `src` loads → `compute`'s per-row formulas → `where` filters →
+> `compute`'s aggregate formulas → `by`/`aggregate` folds → `order` sorts →
+> `limit` truncates → `select` narrows → `summary` aggregates.
+
+===
+
+=== history-blob {#b204 lang=geml}
+Diagram `format` names are **not** admissible in this version, though §8.5
+recommends the same hyphen for them. An unknown format already degrades to a
+warning with its body preserved (§8.2(6)), so a vocabulary that names one is not
+wrong; it simply cannot silence `unknown-diagram-format` the way it silences
+`unknown-block-type`.
+
+===
+
+=== history-blob {#b205 lang=geml}
+The suite also pins each bound of §9.2's table that the model shows, and takes
+its value from that table: `data-depth` on both sides of its edge, `chain-depth`
+on both sides of a `view` chain's edge, and `table-cells` one column past it.
+Where a transclusion chain stops is the renderer's, and `nesting-floor` is a
+recommendation; neither is pinned. The rest of this section is **equally
+normative and not covered there**. §9.2's nesting bounds and its bound on cells
+read from elsewhere, and §9.3's work budget, are implementation-defined, so no case can pin them; §9.5's expansion budgets
+act at render time, and §9.4's confinement is a property of the host
+environment. An implementation
+claiming conformance MUST still satisfy them, and SHOULD carry its own tests for
+each — a suite pass is evidence about parsing, not a security certificate. The
+conformance suite's own README lists the failures these requirements have
+actually prevented.
+
+
+===
+
+=== history-blob {#b206 lang=geml}
+| `%%` comment line | line | raw, never rendered | §4 |
+| `` ``` `` run, matched pair | line pair | shield: everything between stays flow text | §3.1 |
+
+===
 
 === history-revision {id="20261005T040311Z-d915c125" parent="20261005T040304Z-aafb61e9" summary="auto: Edit" hash="sha256:d915c125df0dd08ef8885b5eacaaa5fd1cc804b941d49c984f63a9affdedca1a" newline="crlf"}
 delete #table-coordinate-forms

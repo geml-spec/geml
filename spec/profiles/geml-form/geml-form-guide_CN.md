@@ -36,8 +36,8 @@ geml check signup.geml
 输出 `ok: no diagnostics`。去掉 `meta` 块，它会警告 `form` 是未知的块类型。
 
 要看效果，把文档贴进 [Playground](https://geml-spec.github.io/playground/)。也可以在
-Chrome 里装上[浏览器扩展](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)，
-在扩展详情里打开 **Allow access to file URLs**，再打开 `signup.geml`。你会看到一个
+Chrome 里装上 [GEML Viewer 浏览器扩展](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)，
+在扩展详情里打开**允许访问文件网址**，再打开 `signup.geml`。你会看到一个
 标了必填的文本框和一个数字框。`geml signup.geml --to html` 目前还画不出表单。
 
 ## 常用

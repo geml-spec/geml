@@ -4,7 +4,7 @@ title: A vocabulary may declare a body mode; an unrecognized one is announced
 state: accepted
 author: GEML (maintainer)
 created: 2026-09-17
-issue: (pending)
+issue: (maintainer decision)
 ---
 
 ## Summary

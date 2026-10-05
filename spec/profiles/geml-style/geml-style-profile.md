@@ -2,9 +2,9 @@
 
 *English | [中文](geml-style-profile_CN.md)*
 
-- Status: v1, landed 2026-08-30 — but **EXPERIMENTAL**, and `geml style check`
-  says so. Stable today: the subset codemap's display knobs use — `style-rule`,
-  `match=`, and attribute pass-through. Everything else in this vocabulary moves
+- Status: draft — v1, landed 2026-08-30, and **EXPERIMENTAL**, as `geml style check`
+  says. Stable today: the subset codemap's display knobs use — `style-rule`,
+  `match=`, attribute pass-through and the rest of §0.1's *held* column. Everything else in this vocabulary moves
   with the first real use case outside this repository. Design rationale:
   [`docs/design/specs/2026-08-29-geml-style-design.md`](../../../docs/design/specs/2026-08-29-geml-style-design.md).
 - Nature: **an application-layer profile, not part of the GEML standard.** The

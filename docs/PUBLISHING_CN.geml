@@ -7,8 +7,9 @@ source       = "PUBLISHING.geml"
 glossary     = "#not-translated-terms"
 ===
 
-%% 定译取自这份文档被投影取代前的手写中文（产物 10 处、市场 4 处、
-%% 版本轨道 1 处），不是新造的译名。
+%% 本文件是 PUBLISHING.geml 经 geml-translator 生成的中文投射，译文随英文原文产生；
+%% 手工维护的中文手册是同目录的 PUBLISHING_CN.md（PUBLISHING.md 的「中文」链接指向它）。
+%% 定译取自 PUBLISHING_CN.md 的实际用词，不是新造的译名。
 === table {#not-translated-terms hidden}
 | term | zh-cn |
 |---|---|

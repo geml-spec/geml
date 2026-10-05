@@ -5,7 +5,7 @@ state: final
 author: GEML (maintainer)
 created: 2026-08-07
 accepted: 2026-08-14
-issue: (pending)
+issue: (maintainer decision)
 ---
 
 > **Outcome.** Accepted and implemented in the reference parser (1.8.0) and the

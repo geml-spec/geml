@@ -1,6 +1,6 @@
 # geml-style guide
 
-> **Status** draft · **Declare** `profile = "geml-style/v1"` · **Limits** experimental: `geml style check` calls only `style-rule`, `match=` and attribute pass-through stable
+> **Status** draft · **Declare** `profile = "geml-style/v1"` · **Limits** experimental: only the subset codemap's display knobs use is stable — the *held* column of reference §0.1
 
 ## What it does
 
@@ -50,7 +50,7 @@ It prints `0 error(s), 0 warning(s)`.
 To see the page, install the [GEML Viewer](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)
 in Chrome, turn on **Allow access to file URLs** in its details, and open
 `page.geml`. Without a `style-screen` the viewer draws the document plain and
-says why (reference §2.3). `geml page.geml --to html` ignores the stylesheet.
+says why in a banner at the top (reference §2.3). `geml page.geml --to html` ignores the stylesheet.
 
 ## Everyday use
 

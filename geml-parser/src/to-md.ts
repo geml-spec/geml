@@ -93,7 +93,34 @@ function inline(n: Inline, ctx: MdCtx): string {
 }
 
 function seq(ns: Inline[], ctx: MdCtx): string {
-  return ns.map((n) => inline(n, ctx)).join("");
+  let out = "";
+  ns.forEach((n, k) => { out += n.type === "code" && fencedSpan(n.value, out, ns[k + 1]) ? codeFence(n.value) : inline(n, ctx); });
+  return out;
+}
+
+// A code span whose delimiters stand alone on their lines — the ``` pair of
+// §3.1, which GEML reads as ONE span of flow text. Markdown has the same shape
+// as a fenced code block, and that is the only faithful way to write it there:
+// a single-backtick span (all codeSpan would pick for content without
+// backticks) is inline code, whose lines GitHub runs together, and each line of
+// it is re-read for block structure first — a `- x` or `# x` inside became a
+// list item or a heading. So: the opening delimiter at the start of its line,
+// the closing one ending its line, and the content opening and closing with a
+// line break.
+function fencedSpan(v: string, before: string, next: Inline | undefined): boolean {
+  return /^[ \t]*\n/.test(v) && /\n[ \t]*$/.test(v)
+    && /(?:^|\n)[ \t]*$/.test(before)
+    && (next === undefined || (next.type === "text" && /^[ \t]*(?:\n|$)/.test(next.value)));
+}
+
+// Written back between the delimiters it came with, so indentation (a list
+// item's included) and every line are exactly the source's. Longer than any
+// backtick run inside, so no line of the content can close it — in Markdown,
+// and in GEML, whose span closes on the next run of the same length.
+function codeFence(v: string): string {
+  const longest = Math.max(0, ...(v.match(/`+/g) ?? []).map((r) => r.length));
+  const f = "`".repeat(Math.max(3, longest + 1));
+  return f + v + f;
 }
 
 // Escape a `|` so GFM keeps it inside the cell instead of splitting the row.

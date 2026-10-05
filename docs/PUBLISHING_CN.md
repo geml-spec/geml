@@ -9,6 +9,8 @@ audience: "任何要切一次发布的人，包括 agent"
 
 *[English](PUBLISHING.md) | 中文*
 
+*本文件是手工维护的中文发布手册；[`PUBLISHING_CN.geml`](PUBLISHING_CN.geml) 是英文 `PUBLISHING.geml` 经 geml-translator 生成的投射，译文随英文原文产生，不在那里维护。*
+
 这个仓库对外发八样东西，走六条版本轨道，其中**三样把解析器打包了一份拷贝进去**，
 而不是运行时依赖它。所以解析器发版并不在 npm 接受的那一刻结束：每一个携带拷贝的
 产物，在被重新构建并重新发布之前，交付给用户的仍是旧的那份。
@@ -32,9 +34,6 @@ flowchart TD
 
   NPM -.-> LOGSEQ["@geml/logseq-sync<br/>按范围依赖 ^1.x"]
   NPM -.-> PLUGINS["claude / codex / grok / gemini / kimi<br/>经 npx 运行 MCP server"]
-
-  BUNDLE --> G1{"每次 CI 都重新构建<br/>所以不可能过期"}
-  MAP --> G2{"没有门<br/>只有属性解析不了时<br/>check 才会发现"}
 ```
 
 只有虚线那两条会自己照顾自己。每一条实线都是一份需要有人记得的拷贝。
@@ -131,7 +130,7 @@ flowchart TD
   - webview bundle **刻意不提交**在这里（约 8 MB），所以没有陈旧问题要 CI 去守 ——
     但这也意味着打包前必须先构建解析器，workflow 会做这件事，而手工跑会忘。
   - 两个登记处都会拒绝重复版本。
-- **真正要紧的版本是包**里**那个。** 扩展通过 `build:webview` 把解析器打了进去，
+- **真正要紧的是包里面那个版本。** 扩展通过 `build:webview` 把解析器打了进去，
   所以**重新打包才是解析器的修复抵达 Cursor 与 Antigravity 的途径** —— 扩展版本
   号没动，不代表它的用户是新的。1.0.0 在 Open VSX 上挂着的那阵，里面的解析器已经落后
   好几个版本，而仓库早已是 1.9.1。

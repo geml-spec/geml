@@ -1,6 +1,6 @@
 # geml-style 使用指南
 
-> **状态** draft · **声明** `profile = "geml-style/v1"` · **限制** 实验性：`geml style check` 只承认 `style-rule`、`match=` 和属性透传是稳定的
+> **状态** draft · **声明** `profile = "geml-style/v1"` · **限制** 实验性：稳定的只有 codemap 显示旋钮用到的那一子集——参考文档 §0.1「守住的」一列
 
 ## 它做什么
 
@@ -45,8 +45,8 @@ geml style check _index/index.geml page.geml
 
 输出 `0 error(s), 0 warning(s)`。
 
-要看效果，在 Chrome 里装上[浏览器扩展](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)，
-在扩展详情里打开 **Allow access to file URLs**，再打开 `page.geml`。样式表里没有
+要看效果，在 Chrome 里装上 [GEML Viewer 浏览器扩展](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)，
+在扩展详情里打开**允许访问文件网址**，再打开 `page.geml`。样式表里没有
 `style-screen` 时，viewer 按普通文档显示，并在页面顶上说明原因（参考文档 §2.3）。
 `geml page.geml --to html` 不会套用样式表。
 

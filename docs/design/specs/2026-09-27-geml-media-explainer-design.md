@@ -14,7 +14,7 @@
 - 前两版的教训：第一版满屏哈希卡片，作者看不懂在讲什么；第二版讲给个人创作者，只讲「改需求时一条命令
   告诉你哪些要重做」——作者看完指出它不是一个完整出片的过程，而且不确定这个痛点够不够疼。调研证实了
   这个怀疑。
-- 与现有 demo 的关系：[`playground/geml-media-demo/`](../../../playground/geml-media-demo/README.md)
+- 与现有 demo 的关系：[`public/examples/geml-media-demo/`](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/examples/geml-media-demo/README.md)（已移到主页仓库）
   是一条 10 秒的**漫剧样片**（素材是 ffmpeg 测试图）；本片是**讲解片**，放在新目录
   `playground/geml-media-explainer/`，共用词汇，不互相依赖。S10 的证据镜头会对那份 demo
   跑真实命令。

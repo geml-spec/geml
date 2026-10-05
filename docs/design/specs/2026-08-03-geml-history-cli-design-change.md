@@ -113,7 +113,7 @@ geml history save <file.geml> [-m <msg>]
 
 这是全稿唯一一处**行为**改动,其余都是命名与分组。
 
-**`--author` / `--at` 已从 CLI 撤下(已裁定,§9-Q4)**。撤之前量过:本仓库 81 条真实修订里带 author 的是 **0** 条(仅有的 12 处 `author="alice"/"george"` 在 `spec/in_geml_format/GEML-history-spec*.gemlhistory` 里,是规范自己的示例被 dogfood 进去的);三个自动写入方——PostToolUse 钩子、`geml mcp`、`codemap build --history`——**一个都不传**。CLI 层面 `--at` 只有 4 处调用、`--author` 只有 1 处,全在测试里。
+**`--author` / `--at` 已从 CLI 撤下(已裁定,§9-Q4)**。撤之前量过:本仓库 81 条真实修订里带 author 的是 **0** 条(仅有的 12 处 `author=`(示例人名)在 `spec/in_geml_format/GEML-history-spec*.gemlhistory` 里,是规范自己的示例被 dogfood 进去的);三个自动写入方——PostToolUse 钩子、`geml mcp`、`codemap build --history`——**一个都不传**。CLI 层面 `--at` 只有 4 处调用、`--author` 只有 1 处,全在测试里。
 
 两者**保留在库 API 上**(`save({ author, at })`,库层各 49 / 85 处调用):`.gemlhistory` 的格式仍然定义 `author` 字段,嵌入方要写得进去;而确定性时间戳是测试能钉住修订 id 的前提(修订 id = 时间戳 + 内容哈希)。撤掉的只是**命令行上没人拉过的那根杆**。
 

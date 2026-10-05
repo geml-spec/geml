@@ -132,7 +132,7 @@ def GemlAgentToolkit(
     If your agent speaks MCP, prefer the official server instead — same
     operations, no Python glue:
 
-        claude mcp add geml-docs -- geml mcp --workspace /path/to/docs
+        claude mcp add geml -- geml mcp --root /path/to/docs
     """
     geml = Geml(binary)
 

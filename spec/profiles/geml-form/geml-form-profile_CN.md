@@ -58,7 +58,7 @@ GEP 的结构规则也这样随行，对声明了这份 profile 的文档生效�
 ## 2. 六个键
 
 都只用于 `form-field`。值都是字符串，下表说 handler 应当怎么读。键落在不匹配的 `type=`
-上不是错误——文档是数据——handler 可以忽略，检查器可以 warning。
+上不是错误——文档是数据——handler 可以（MAY）忽略，检查器可以（MAY）warning。
 
 | 键 | 适用 `type=` | 值 | handler 执行什么 |
 |---|---|---|---|
@@ -119,8 +119,8 @@ GEP 的结构规则也这样随行，对声明了这份 profile 的文档生效�
   检查器尚未实现（它不看 `type=` 的取值）；
 - `duplicate-id`——核心的。
 
-检查器可以在值按键自身的规则读不通时额外 warning——`number` 上的 `min=abc`、不是合法
-正则的 `pattern=`——但不得当作 error：文档仍是数据。
+检查器可以（MAY）在值按键自身的规则读不通时额外 warning——`number` 上的 `min=abc`、不是合法
+正则的 `pattern=`——但不得（MUST NOT）当作 error：文档仍是数据。
 
 ## 6. 完整示例
 

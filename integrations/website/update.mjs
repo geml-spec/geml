@@ -69,21 +69,23 @@ for (const f of ["geml-favicon.svg", "geml-mark.svg", "geml-mark-mono.svg", "gem
 // A page that names no icon makes the browser ask for /favicon.ico; so do crawlers.
 copyFileSync(join(repo, "docs", "assets", "logo", "geml.ico"), join(site, "public", "favicon.ico"));
 
-// 4. Every demo document the site ships must pass this parser's check. The
-//    codemap is checked by its own verify above.
+// 4. Every GEML document in the site must pass this parser's check — the
+//    demos under public/ and the pages' own twins at the root and in compare/
+//    alike (a dangling embed there broke unnoticed while only public/ was
+//    walked). The codemap is checked by its own verify above.
 const docs = [];
 (function walk(dir) {
   for (const d of readdirSync(dir, { withFileTypes: true })) {
     const p = join(dir, d.name);
-    if (d.isDirectory()) { if (!["codemap", "node_modules", "fonts", "_build"].includes(d.name)) walk(p); }
+    if (d.isDirectory()) { if (!d.name.startsWith(".") && !["codemap", "node_modules", "fonts", "_build", "dist"].includes(d.name)) walk(p); }
     else if (d.name.endsWith(".geml")) docs.push(p);
   }
-})(join(site, "public"));
+})(site);
 let failed = 0;
 for (const f of docs) {
-  const r = spawnSync(process.execPath, [geml, "check", f, "--root", join(site, "public")], { encoding: "utf8" });
+  const r = spawnSync(process.execPath, [geml, "check", f, "--root", site], { encoding: "utf8" });
   if (r.status !== 0) { failed++; process.stdout.write(`✗ ${relative(site, f)}\n${r.stdout}${r.stderr}`); }
 }
-console.log(`website: ${docs.length - failed} of ${docs.length} demo documents check clean`);
+console.log(`website: ${docs.length - failed} of ${docs.length} documents check clean`);
 if (failed) process.exit(1);
 console.log(`website: ${relative(process.cwd(), site) || "."} is up to date with this checkout`);

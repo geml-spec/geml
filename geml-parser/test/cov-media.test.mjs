@@ -604,4 +604,210 @@ test("solveLayout：只验的连接里点缺了就跳过；缺 size 的层被两
   assert.match(apart[0].message, /差 14 像素/);
 });
 
+// ---------------------------------------------------------------------------
+// 检查器与提示词文本：引用的每一种「指不到」，投射展开的两道上限
+// ---------------------------------------------------------------------------
+
+import { checkMedia, promptTextOf } from "../dist/media-check.js";
+import { profileIoFor } from "../dist/host-fs.js";
+import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, dirname } from "node:path";
+
+test("promptTextOf：引用写不成「文档#id」、文档或块不存在，答 null 而不是空串", () => {
+  const io = memIo({ "lib.geml": META + "=== media-text {#p}\nwords\n===\n" });
+  for (const ref of ["", "lib.geml", "lib.geml#", "nowhere.geml#x", "lib.geml#nope"]) {
+    assert.equal(promptTextOf(ref, "lib.geml", io), null, JSON.stringify(ref));
+  }
+  assert.equal(promptTextOf("#p", "lib.geml", io), "words", "本文档的 #id 也认");
+});
+
+test("promptTextOf：投射指不到的、指向自己的，都贡献空串；没有段落的散文块没有文本", () => {
+  const io = memIo({
+    "lib.geml": META
+      + "=== media-text {#gone}\nA ![[nowhere.geml#x]] B\n===\n\n"
+      + "=== media-text {#miss}\nA ![[#nope]] B\n===\n\n"
+      + "=== media-text {#self}\nA ![[#self]] B\n===\n\n"
+      + "=== media-text {#brk}\nline one\\\nline two\n===\n\n"
+      + "=== media-text {#empty}\n===\n",
+  });
+  assert.equal(promptTextOf("lib.geml#gone", "lib.geml", io), "A  B", "别的文档读不到");
+  assert.equal(promptTextOf("lib.geml#miss", "lib.geml", io), "A  B", "块不存在");
+  assert.equal(promptTextOf("lib.geml#self", "lib.geml", io), "A  B", "环：已在展开路径上的贡献空串，不递归");
+  assert.equal(promptTextOf("lib.geml#brk", "lib.geml", io), "line oneline two", "硬换行没有字面值，贡献空串");
+  assert.equal(promptTextOf("lib.geml#empty", "lib.geml", io), null);
+});
+
+test("promptTextOf：投射链按 GEML §9.3 的深度上限截断，菱形按总展开次数截断", () => {
+  let chain = META;
+  for (let i = 0; i < 20; i++) chain += `=== media-text {#c${i}}\nc${i} ![[#c${i + 1}]]\n===\n\n`;
+  chain += "=== media-text {#c20}\nend\n===\n";
+  const t = promptTextOf("d.geml#c0", "d.geml", memIo({ "d.geml": chain }));
+  assert.match(t, /c16 $/, "第 16 层之后不再展开");
+  assert.doesNotMatch(t, /c17|end/);
+  // 每层投下一层四次：不截断就是 4^8 = 65,536 次展开。
+  let dia = META;
+  for (let i = 0; i < 8; i++) dia += `=== media-text {#d${i}}\nx${" ![[#d" + (i + 1) + "]]".repeat(4)}\n===\n\n`;
+  dia += "=== media-text {#d8}\nZ\n===\n";
+  const z = (promptTextOf("d.geml#d0", "d.geml", memIo({ "d.geml": dia })).match(/Z/g) ?? []).length;
+  assert.ok(z > 0 && z < 1000, `展开在总次数上限处停下：${z} 个 Z`);
+});
+
+test("comp 的规范化文本：连接端点解析不出坐标的每一种，都写成 @? 而不是猜", () => {
+  const comp = META
+    + "==== media-comp {#c size=10x10}\n\n"
+    + "=== media-layer {#nosrc}\n===\n\n"
+    + "=== media-layer {#nohash src=lib.geml}\n===\n\n"
+    + "=== media-layer {#gonedoc src=nowhere.geml#a}\n===\n\n"
+    + "=== media-layer {#goneblk src=#zz}\n===\n\n"
+    + "=== media-interaction {#i1 a=bad b=#nosrc:p kind=contact}\n===\n\n"
+    + "=== media-interaction {#i2 a=#nohash:p b=#gonedoc:p kind=contact}\n===\n\n"
+    + "=== media-interaction {#i3 a=#goneblk:p b=#unknown:p kind=contact}\n===\n\n"
+    + "====\n";
+  const text = promptTextOf("s.geml#c", "s.geml", memIo({ "s.geml": comp }));
+  assert.match(text, /^media-interaction #i1 a=bad@\? b=#nosrc:p@\? kind=contact$/m, "端点写坏了 / 层没有 src");
+  assert.match(text, /^media-interaction #i2 a=#nohash:p@\? b=#gonedoc:p@\? kind=contact$/m, "src 没有 # / 文档不存在");
+  assert.match(text, /^media-interaction #i3 a=#goneblk:p@\? b=#unknown:p@\? kind=contact$/m, "块不存在 / 层不在 comp 里");
+});
+
+test("检查器：src 为空、src 不带 #、层指向非素材块、层或连接缺 id 与键 —— 各自点名", () => {
+  const PNG = "PNGBYTES";
+  const files = {
+    "a.png": PNG,
+    "lib.geml": META
+      + `=== media-asset {#img src=a.png sha256=${sha(PNG)} kind=image size=10x10 points="p:1,1" of=chars}\n===\n\n`
+      + `=== media-asset {#img2 src=a.png sha256=${sha(PNG)} kind=image size=10x10 points="p:2,2" of=#nochar}\n===\n\n`
+      + "=== media-text {#txt}\nwords\n===\n",
+    "s.geml": META
+      + '=== media {#emptysrc src=""}\n===\n\n'
+      + "=== media {#nohash src=lib.geml}\n===\n\n"
+      + '==== media {#m tracks="v:video"}\n\n=== media-clip {#cl track=v src=lib.geml duration=1}\n===\n\n====\n\n'
+      // 没有 id 的 comp 也按 shot/at 登记 —— 撞时刻时它就是那个「已经有」的
+      + "==== media-comp {shot=s1 at=0 size=10x10}\n\n=== media-layer {#lnh src=lib.geml}\n===\n\n=== media-layer {#ltxt src=lib.geml#txt}\n===\n\n====\n\n"
+      + "==== media-comp {#k shot=s2 at=0 size=10x10}\n\n"
+      + "=== media-layer {src=lib.geml#img}\n===\n\n"
+      + "=== media-layer {#L0}\n===\n\n"
+      + "=== media-layer {#L1 src=lib.geml#img}\n===\n\n"
+      + "=== media-layer {#L2 src=lib.geml#img2}\n===\n\n"
+      + "=== media-interaction {#noa b=#L1:p kind=contact}\n===\n\n"
+      + "=== media-interaction {#nokind a=#L1:p b=#L2:p}\n===\n\n"
+      + "=== media-interaction {a=#L1:p b=#L2:p kind=contact}\n===\n\n"
+      + "====\n",
+  };
+  const root = mkdtempSync(join(tmpdir(), "geml-cov-media-"));
+  for (const [rel, body] of Object.entries(files)) {
+    mkdirSync(dirname(join(root, rel)), { recursive: true });
+    writeFileSync(join(root, rel), body);
+  }
+  try {
+    const ds = checkMedia("s.geml", profileIoFor(root));
+    const by = (code) => ds.filter((d) => d.code === code).map((d) => d.id).sort();
+    assert.deepEqual(by("media-src-unresolved"), ["L0", "cl", "emptysrc", "lnh", "nohash"], JSON.stringify(ds));
+    assert.deepEqual(by("media-layer-not-image"), ["ltxt"]);
+    assert.match(ds.find((d) => d.id === "ltxt").message, /是 media-text/, "非素材块按它的类型报");
+    assert.deepEqual(by("media-of-unresolved"), ["img", "img2"]);
+    assert.deepEqual(by("media-interaction-unresolved"), ["noa", "nokind"]);
+    assert.match(ds.find((d) => d.id === "noa").message, /`a=` 要写成/, "缺的键按空值报");
+    assert.match(ds.find((d) => d.id === "nokind").message, /`kind=` 不是 contact/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("血缘：记录缺 output、output 不带 #、比不出现值的提示词与输入 —— 报该报的，其余不当成过期", () => {
+  const TAKE = "TAKE-BYTES";
+  const recs = [
+    { model: "m", mode: "t2v", at: "2026-09-01T00:00:00Z" },
+    { output: "lib.geml", "output-sha256": sha(TAKE), model: "m", mode: "t2v", at: "2026-09-02T00:00:00Z" },
+    { output: "#take", "output-sha256": sha(TAKE), model: "m", mode: "t2v" },
+    {
+      output: "#take", "output-sha256": sha(TAKE), model: "m", mode: "t2v", at: "2026-09-03T00:00:00Z",
+      prompt: "nohash", "prompt-sha256": "aa",
+      "prompt-refs": [{ ref: "#txt" }, { ref: "#empty", sha256: "aa" }],
+      inputs: [{ sha256: "aa" }, { ref: "#nowhere", sha256: "aa" }],
+    },
+  ];
+  const files = {
+    "a.mp4": TAKE,
+    "lib.geml": META
+      + `=== media-asset {#take src=a.mp4 sha256=${sha(TAKE)} kind=video duration=5}\n===\n\n`
+      + "=== media-text {#txt}\nwords\n===\n\n=== media-text {#empty}\n===\n\n"
+      + "=== data {#gen-log .gen-log format=jsonl}\n" + recs.map((r) => JSON.stringify(r)).join("\n") + "\n===\n",
+  };
+  const ds = checkMedia("lib.geml", memIo(files));
+  assert.deepEqual(ds.map((d) => [d.code, d.message.match(/\[\d\]/)?.[0], d.message.match(/`(\w+)`$/)?.[1]]),
+    [["media-gen-schema", "[0]", "output"], ["media-gen-schema", "[2]", "at"]], JSON.stringify(ds));
+  // 两条记录的 output-sha256 都对得上现值；没写 at 的那条排在后面，说了算的是有 at 的那条。
+  // 它的提示词引用不带 #、一个投射源没写 sha256、一个空散文块没有文本、输入缺 ref 或指不到 ——
+  // 哪一样都比不出现值，所以不判过期。
+  assert.ok(!ds.some((d) => d.code === "media-stale-generation" || d.code === "media-orphan-record"));
+});
+
+test("时间：写不成数的 duration 不报，非有限数与超过 24 小时的时码各自报", () => {
+  const B = "BYTES";
+  const asset = (id, dur) => `=== media-asset {#${id} src=a.mp4 sha256=${sha(B)} kind=video duration=${dur}}\n===\n\n`;
+  const ds = checkMedia("lib.geml", memIo({
+    "a.mp4": B,
+    "lib.geml": META + asset("inf", "1e400") + asset("word", "abc") + asset("tc", "25:00:00:00"),
+  }));
+  assert.deepEqual(ds.map((d) => [d.code, d.id]), [["media-time-out-of-range", "inf"], ["media-time-out-of-range", "tc"]], JSON.stringify(ds));
+  assert.match(ds[0].message, /非有限数/);
+  assert.match(ds[1].message, /90000 秒/);
+});
+
+import { report, composePlan, appendLog } from "../dist/media-verbs.js";
+
+test("report：cast 里说话人带逗号和引号要按 CSV 转义，没写的留空；stats 里没写 model 的记成 ?", () => {
+  const io = memIo({
+    "s.geml": META
+      + '=== media-text {#l1 .line speaker="a, \\"b\\""}\nhi\n===\n\n'
+      + "=== media-text {.line}\nno id\n===\n\n"
+      + "=== data {#gen-log .gen-log format=jsonl}\n"
+      + JSON.stringify({ prompt: "nohash", mode: "t2i", at: "z" }) + "\n"
+      + JSON.stringify({ prompt: "#l1", model: "m", mode: "t2i", at: "z" }) + "\n===\n",
+  });
+  assert.equal(report("s.geml", "cast", io), '角色,文档,台词\n"a, ""b""",s.geml,#l1\n,s.geml,#\n');
+  assert.equal(report("s.geml", "stats", io), "提示词,生成次数,按模型\nnohash,1,?×1\ns.geml#l1,1,m×1\n",
+    "不带 # 的提示词按原样归组");
+});
+
+test("export --to player：meta 的 aspect 写成「宽:高」才用，否则 16 / 9", () => {
+  const files = (aspect) => ({
+    ...SOLO_FILES,
+    "cut.geml": `=== meta\nprofile = "geml-media/v1"\naspect = "${aspect}"\n===\n\n=== media {#solo src=lib.geml#clip out=3}\n===\n`,
+  });
+  assert.match(exportTimeline("cut.geml", "player", memIo(files("4:3"))), /aspect-ratio:\s*4 \/ 3/);
+  assert.match(exportTimeline("cut.geml", "player", memIo(files("wide"))), /aspect-ratio:\s*16 \/ 9/);
+});
+
+test("build --burn-subs：给了字体目录就接在 subtitles 的参数里", () => {
+  const plan = buildPlan("cut.geml", "out.mp4", memIo(SOLO_FILES), { burn: { file: "out.srt", fontsdir: "fonts" } });
+  assert.ok(plan.args.some((a) => a.includes("subtitles=filename=out.srt:fontsdir=fonts")), JSON.stringify(plan.args));
+});
+
+test("importSubtitles：时间线读不到、主轨上还没有片段，都说出来", () => {
+  const srt = "1\n00:00:00,000 --> 00:00:01,000\nhi\n";
+  const gone = importSubtitles(srt, { idPrefix: "l", srcDoc: "", cutEntry: "nope.geml" }, memIo({}));
+  assert.equal(gone.clips, null);
+  assert.ok(gone.notes.includes("读不到 nope.geml"), JSON.stringify(gone.notes));
+  const empty = memIo({ "cut.geml": META + '==== media {#m tracks="v:video"}\n\nnothing yet\n\n====\n' });
+  const r = importSubtitles(srt, { idPrefix: "l", srcDoc: "", cutEntry: "cut.geml" }, empty);
+  assert.ok(r.notes.some((n) => /主轨上没有片段/.test(n)), JSON.stringify(r.notes));
+});
+
+test("compose：引用不是「文档#id」的形状就不出命令", () => {
+  const p = composePlan("nohash", "o.png", memIo({}));
+  assert.deepEqual(p.args, []);
+  assert.match(p.notes.join(" "), /不是「文档#id」的形状/);
+});
+
+test("log：CRLF 的素材库追加记录后仍然全是 CRLF", () => {
+  const src = (META + "=== media-asset {#a src=a.mp4 sha256=OLD kind=video}\n===\n\n"
+    + "=== data {#gen-log .gen-log format=jsonl}\n===\n").replace(/\n/g, "\r\n");
+  const out = appendLog(src, { output: "#a", "output-sha256": "NEW", model: "m", mode: "t2v", at: "z" }, { id: "a", sha256: "NEW" });
+  assert.match(out, /sha256=NEW/);
+  assert.ok(!/[^\r]\n/.test(out), "没有混进裸 LF");
+  assert.ok(out.endsWith('"at":"z"}\r\n===\r\n'), JSON.stringify(out.slice(-40)));
+});
+
 console.log(`\n${passed} test(s) passed.`);

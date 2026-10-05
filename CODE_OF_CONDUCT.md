@@ -13,8 +13,7 @@ technical disagreement is the point of the place. Hostility toward people is not
 - Assume the other person read the argument in good faith and reached a different
   conclusion.
 - Accept that a decision can go against you and still be legitimate.
-  [`GOVERNANCE.md`](GOVERNANCE.md) says how decisions are made and how to reopen
-  one.
+  [`GOVERNANCE.md`](GOVERNANCE.md) says how decisions are made.
 
 **Not acceptable:**
 

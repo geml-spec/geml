@@ -49,6 +49,11 @@ body:
         - VS Code extension
         - Logseq sync
         - Rust crate (`geml-parser-rs`)
+        - Code graph (`geml codemap`)
+        - GitHub Action (`geml-check-action`)
+        - Agent host plugin (Claude Code, Codex, DSH, Grok)
+        - Obsidian plugin
+        - IntelliJ / Android Studio plugin
         - Other
     validations:
       required: true

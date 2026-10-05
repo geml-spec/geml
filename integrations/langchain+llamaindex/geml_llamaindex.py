@@ -78,7 +78,7 @@ def geml_tools(*, binary: str = "geml", commit_before_write: bool = True) -> lis
 
     If your agent speaks MCP, prefer the official server:
 
-        claude mcp add geml-docs -- geml mcp --workspace /path/to/docs
+        claude mcp add geml -- geml mcp --root /path/to/docs
     """
     geml = Geml(binary)
 

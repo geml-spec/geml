@@ -314,12 +314,13 @@ function derivationsFromSpec(relPath, sectionHeading, verb) {
   assert.ok(from >= 0, `${relPath} has ${sectionHeading}`);
   const until = text.indexOf("\n## ", from + sectionHeading.length);
   const section = text.slice(from, until < 0 ? undefined : until).replace(/\s+/g, " ");
-  // Inner backticks are written `\`` inside the outer span, so the heading token
-  // is "any run of non-backtick or escaped-backtick characters".
-  const re = new RegExp("`((?:\\\\`|[^`])+)`\\s*" + verb + "\\s*`#([^`]*)`", "g");
+  // A heading holding backticks is written in a double-backtick span —
+  // ``## Use `foo()` …`` — since a backslash does not escape inside a code span
+  // (CommonMark, and §5.3 alike); every other heading is a plain single-backtick span.
+  const re = new RegExp("(?:``\\s?(.+?)\\s?``|`([^`]+)`)\\s*" + verb + "\\s*`#([^`]*)`", "g");
   const out = [];
   for (let m = re.exec(section); m; m = re.exec(section)) {
-    out.push([m[1].replace(/\\`/g, "`").replace(/^#{1,6}\s+/, ""), m[2]]);
+    out.push([(m[1] ?? m[2]).replace(/^#{1,6}\s+/, ""), m[3]]);
   }
   return out;
 }

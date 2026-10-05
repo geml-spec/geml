@@ -357,7 +357,7 @@ test("set --intro: only a heading has one; the opening is padded with blank line
 test("set --body on a heading section at the end of a document without a trailing newline", () => {
   const src = "# A {#a}\n\nold\n\n## B {#b}\nlast line no newline";
   const r = set(src, "d.geml", "#b", { part: "body", named: ["--body"], content: raw("new body\n") }, ctxOf());
-  assert.equal(r.text, "# A {#a}\n\nold\n\n## B {#b}\nnew body\n");
+  assert.equal(r.text, "# A {#a}\n\nold\n\n## B {#b}\n\nnew body\n");
   assert.equal(refused(() => set(src, "d.geml", "#b", { part: "body", named: ["--body"], content: raw("") }, ctxOf()), 1).message, NO_CONTENT);
 });
 

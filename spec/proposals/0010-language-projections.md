@@ -4,7 +4,7 @@ title: Projections along the language axis — a translated document is a view, 
 state: draft
 author: GEML (maintainer)
 created: 2026-08-31
-issue: (pending)
+issue: (maintainer decision)
 ---
 
 ## Summary
@@ -806,7 +806,7 @@ it translates the `code` bodies — the exact failure the per-type rule above
 exists to prevent, arriving through a different door.
 
 Who that serves is not who the rest of this section serves. `geml mcp` already
-exposes twelve tools and the Claude plugin registers it automatically, so a
+exposes eleven tools (four more when a code graph is present) and the Claude plugin registers it automatically, so a
 `geml_translate` alongside `geml_get` and `geml_set` is nearly free, and an
 **agent** is already an MCP client. A **renderer** is not: the parser has no MCP
 client in it, so for `--to html` and the viewer this changes nothing, and a

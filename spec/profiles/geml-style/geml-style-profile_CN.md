@@ -2,9 +2,9 @@
 
 *[English](geml-style-profile.md) | 中文*
 
-- 状态：v1，2026-08-30 落地，但仍属 **EXPERIMENTAL**，`geml style check` 自己也这么写。
-  现在稳定的只有 codemap 显示旋钮用到的那一子集——`style-rule`、`match=`，
-  以及属性透传；其余词汇会随本仓库之外的第一个真实用例而变。设计论证见
+- 状态：draft——v1，2026-08-30 落地，仍属 **EXPERIMENTAL**，`geml style check` 自己也这么写。
+  现在稳定的只有 codemap 显示旋钮用到的那一子集——`style-rule`、`match=`、
+  属性透传，以及 §0.1「守住的」一列里的其余各项；其余词汇会随本仓库之外的第一个真实用例而变。设计论证见
   [`docs/design/specs/2026-08-29-geml-style-design.md`](../../../docs/design/specs/2026-08-29-geml-style-design.md)。
 - 性质：**应用层 profile，不是 GEML 标准的一部分**。GEML 标准保持不动；本文档定义
   样式表把块映射到宿主 UI 组件所用的类型与属性——如同 schema.org 之于 HTML，和

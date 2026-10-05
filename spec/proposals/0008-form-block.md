@@ -4,7 +4,7 @@ title: Register a `form` typed block — addressable fields, an inert destinatio
 state: draft
 author: GEML (maintainer)
 created: 2026-08-30
-issue: (pending)
+issue: (maintainer decision)
 ---
 
 ## Summary

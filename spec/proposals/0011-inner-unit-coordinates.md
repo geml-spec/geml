@@ -4,7 +4,7 @@ title: Coordinates for units inside a block — a table's rows and cells, a valu
 state: final
 author: GEML (maintainer)
 created: 2026-09-03
-issue: (pending)
+issue: (maintainer decision)
 ---
 
 ## Summary

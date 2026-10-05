@@ -1,5 +1,7 @@
 # geml-parser-rs
 
+*[English](README.md) | 中文*
+
 GEML 1.0 的第二个独立实现，用 Rust 编写，编译为 WebAssembly。它只依据
 [规范](../spec/GEML-spec.md)和[一致性测试集](../geml-parser/test/conformance/)写成，
 没有读过参考解析器的任何代码。它的用途就是 §8.4 赋予第二实现的那个：证明决定文档含义的是规范，而不是某一个程序。
@@ -131,7 +133,7 @@ error、warning、info。
 | `geml-codemap/v1` | `check::codemap::verify` 经 host 跨文档解析边表的每个单元格和每个 `entry`，报告悬空的引用 |
 | `geml-translator/v1` | 它的属性键和 `meta` 键；这个词汇表没有定义检查 |
 
-本仓库自己的数据都能对上：规范的 history sidecar 65 个版本全部校验通过（`tests/history.rs`），
+本仓库自己的数据都能对上：规范的 history sidecar 里的每个版本都校验通过（`tests/history.rs`），
 网站上的 style 示例解出的视图模型和参考解析器的一样。
 
 ## 没有实现什么

@@ -68,7 +68,7 @@ assert no "error" diagnostic in doc.diagnostics
 
 # §0.5 —— 同一份文档，四种写法，必须得到同一个模型
 base = "# T\n\n- a\n- b\n"
-assert parse(base) == parse("﻿" + base) == parse(base.replace("\n", "\r\n"))
+assert parse(base) == parse("﻿" + base) == parse(base.replace("\n", "\r\n")) == parse(base.replace("\n", "\r"))
 
 # 附录 A —— 你产出的每个代码都在目录里，且严重级别与目录一致
 for d in parse(read("spec/in_geml_format/GEML-spec.geml")).diagnostics + your_error_fixtures():
@@ -79,6 +79,6 @@ for d in parse(read("spec/in_geml_format/GEML-spec.geml")).diagnostics + your_er
 
 ## 参考
 
-- 规范：[`GEML-spec_CN.md`](../spec/GEML-spec_CN.md)（§0–§9 + 附录 A/B）+ [`GEML-history-spec_CN.md`](../spec/profiles/geml-history/geml-history-profile_CN.md)。附录 A 的完整诊断表只在[英文版](../spec/GEML-spec.md#appendix-a-diagnostic-catalogue)——它是规范性的，不作翻译以免漂移。
+- 规范：[`GEML-spec_CN.md`](../spec/GEML-spec_CN.md)（§0–§9 + 附录 A/B）+ [`geml-history-profile_CN.md`](../spec/profiles/geml-history/geml-history-profile_CN.md)。附录 A 的完整诊断表只在[英文版](../spec/GEML-spec.md#appendix-a-diagnostic-catalogue)——它是规范性的，不作翻译以免漂移。
 - [`GEML-spec.geml`](../spec/in_geml_format/GEML-spec.geml)——用 GEML 写成的规范本身；你的端到端测试。
 - [`geml-parser/`](../geml-parser/)——参考实现（它是指南；**规范才是定义**）。

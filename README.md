@@ -398,7 +398,7 @@ The goal is one thing: your model **edits a block at a time, and verifies** —
 never re-reads and re-emits a whole file to change one paragraph. Getting there
 takes one step, and which step depends on what you use.
 
-### Using Claude Code — run this
+### Using Claude Code, Gemini or Qwen — run this
 
 ```sh
 npx -y @geml/geml skill install
@@ -587,7 +587,7 @@ Every profile this project publishes: [`spec/profiles/`](spec/profiles/README.md
    Markdown's ethos is "never fail, render something"—the primary breeding ground for agent hallucinations and silent documentation decay. GEML enforces strict build-time static validation. Broken `#id`s, invalid attributes, and cyclic references fail the build with a non-zero exit code. Catch errors before they pollute downstream systems.
 
 6. **Local-First History, Not Cloud Lock-in or Git Overhead**
-   Data belongs on the local filesystem, and versioning belongs at block granularity. GEML refuses to lock version history behind proprietary cloud platforms (like Notion or Google Docs), while avoiding the heavy whole-repo commit overhead of Git for micro-edits. The companion `.gemlhistory` gives plain text **local-first atomic snapshots and surgical rollback** (`geml revert #id`), ensuring true data sovereignty and safety.
+   Data belongs on the local filesystem, and versioning belongs at block granularity. GEML refuses to lock version history behind proprietary cloud platforms (like Notion or Google Docs), while avoiding the heavy whole-repo commit overhead of Git for micro-edits. The companion `.gemlhistory` gives plain text **local-first atomic snapshots and surgical rollback** (`geml revert doc.geml '#id'`), ensuring true data sovereignty and safety.
 
 ### What it therefore refuses
 
@@ -694,8 +694,9 @@ integrations/          Everywhere GEML plugs in: chrome-geml-viewer (browser ext
 docs/                  Guides (MCP, writing a parser), design records, the release
                        runbook, assets (logos)
 .claude/skills/        Claude skills: GEML authoring, and the code graph
-.github/               CI + geml-check workflows, MCP registry publish, and issue
-                       templates (bug, GEP, new implementation)
+.github/               CI, security-scan, release and site workflows (npm, MCP
+                       registry, VS Code, viewer, website), issue templates (bug,
+                       GEP, new implementation) and the PR template
 (website)              The homepage, playground, demos, blog, comparisons,
                        benchmarks, manifesto and illustrated pages live in their
                        own repository, geml-spec/geml-spec.github.io, which links

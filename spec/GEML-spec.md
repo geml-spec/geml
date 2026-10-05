@@ -578,7 +578,7 @@ route names the whole file. A range MUST NOT be empty or start before line 1.
   (`code-src-and-body` error, Appendix A).
 - **No extension gate.** Code is written in any language, so a route to code is
   not restricted by suffix; the safety boundary is confinement (§9.4) alone. A
-  `data` route keeps its `.json`/`.jsonl`/`.yaml` gate (§3.2), whose purpose is to name
+  `data` route keeps its `.json`/`.jsonl`/`.yaml`/`.yml` gate (§3.2), whose purpose is to name
   a *format*, not to bound the filesystem.
 
 For `data`, a range narrows the file to lines and the format then reads them as
@@ -652,7 +652,7 @@ exactly when the slice is itself a value.
   5. trim leading and trailing whitespace;
   6. replace each run of whitespace with a single `-`.
 
-  So `## Use \`foo()\` in 2024 Design` derives `#use-in-2024-design`, and — since
+  So ``## Use `foo()` in 2024 Design`` derives `#use-in-2024-design`, and — since
   step 2 decomposes and step 4 then drops the marks — `## Ubytovací zařízení`
   derives `#ubytovaci-zarizeni`. Step 4 keeps every Unicode letter, and a
   diacritic is not one, so a script that writes no combining marks is untouched:
@@ -1468,10 +1468,10 @@ property of its body but a question of ownership: a construct every reader of
 GEML should be able to read is this specification's, and one that serves a single
 application is a vocabulary's.
 
-Diagram `format` names are **not** admissible in this version, though §8.5
-recommends the same hyphen for them. An unknown format already degrades to a
-warning with its body preserved (§8.2(6)), so a vocabulary that names one is not
-wrong; it simply cannot silence `unknown-diagram-format` the way it silences
+Diagram `format` names follow §8.5's hyphen convention as well. A format no
+declared vocabulary admits degrades to a warning with its body preserved
+(§8.2(6)); one that a recognized vocabulary admits is not reported as
+`unknown-diagram-format`, just as an admitted type is not reported as
 `unknown-block-type`.
 
 #### 8.6.2 Rules for a conforming processor
@@ -1710,8 +1710,8 @@ on both sides of a `view` chain's edge, and `table-cells` one column past it.
 Where a transclusion chain stops is the renderer's, and `nesting-floor` is a
 recommendation; neither is pinned. The rest of this section is **equally
 normative and not covered there**. §9.2's nesting bounds and its bound on cells
-read from elsewhere, and §9.3's work budget, are implementation-defined, so no case can pin them; §9.5's expansion budgets
-act at render time, and §9.4's confinement is a property of the host
+read from elsewhere, and §9.3's work budget, are implementation-defined, so no case can pin them; §9.3's bound on transclusion
+expansion acts at render time, and §9.4's confinement is a property of the host
 environment. An implementation
 claiming conformance MUST still satisfy them, and SHOULD carry its own tests for
 each — a suite pass is evidence about parsing, not a security certificate. The
@@ -1901,7 +1901,6 @@ GEML has three syntactic positions:
 | `=== note` | typed | flow | §3 |
 | `=== text` | typed | flow | §3 |
 | `=== meta` | typed | key–value | §3, §4 |
-
 | `%%` comment line | line | raw, never rendered | §4 |
 | `` ``` `` run, matched pair | line pair | shield: everything between stays flow text | §3.1 |
 
@@ -1932,7 +1931,7 @@ Eight attribute keys carry references; all of them are validated (Appendix A):
 | `src=` | `view` | the relation it derives from, in three forms: a data file (`csv`/`tsv`), `#id` naming a `table` or `view` in this document, or `doc.geml#id` naming one in another. | §6.1 |
 | `data=` | `diagram` (`geml-chart`) | where the data comes from, in the same three forms a table's `src=` takes: a data file (`csv`/`tsv` standing for the anonymous table it describes; a local `.json`/`.jsonl` for the anonymous record source), `#id` in this document, or `doc.geml#id` in another — naming a `table`, or a record-array `data` block (§3.2). | §6, §7.1 |
 | `schema=` | `data` | a block (`#id`) or a GEML document (`doc.geml[#id]`) holding a schema; reference-checked only | §3.2 |
-| `src=` | `data` | the block's external content: a `.json`/`.jsonl`/`.yaml` file, taking the same route syntax as a code source (a line range MAY narrow it, which is how a window of a jsonl log is addressed); document-relative or `http(s)` (render-time) | §3.2 |
+| `src=` | `data` | the block's external content: a `.json`/`.jsonl`/`.yaml`/`.yml` file, taking the same route syntax as a code source (a line range MAY narrow it, which is how a window of a jsonl log is addressed); document-relative or `http(s)` (render-time) | §3.2 |
 | `src=` | `code` | the code the block shows: a source file, optionally narrowed to a line range — `<path>[#L<start>[-<end>]]`, 1-based and inclusive. Document-relative, or relative to the resolution root (`--root`); an `http(s)` route is fetched at render time. A range the file no longer has is an error. | §3.3 |
 | `src=` | `embed` | the content the block stands for: a document, optionally with a fragment | §3 |
 | `src=` | `diagram` (`geml-code-graph`) | a GEML document | §7 |

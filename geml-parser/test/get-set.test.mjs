@@ -957,10 +957,12 @@ test("both document and content from stdin is a usage error", () => {
 });
 
 test("--body on a heading section replaces everything under the heading line", () => {
+  // Hand-typed text gets the blank line that separates it from the heading back;
+  // the section is the document's last, so nothing is added after it.
   const f = write("exbh.geml", "# Title {#t}\n\nold prose\n\nmore old\n");
   const r = run(["set", f, "#t", "--body", "-o", "-"], "fresh prose\n");
   assert.equal(r.code, 0, r.err);
-  assert.equal(r.out, "# Title {#t}\nfresh prose\n");
+  assert.equal(r.out, "# Title {#t}\n\nfresh prose\n");
 });
 
 // -- heading-line selectors --------------------------------------------------

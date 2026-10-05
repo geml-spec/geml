@@ -6,7 +6,8 @@ Reports are accepted for **`1.3.2` and above**; the fix itself ships on the
 latest release of `@geml/geml`, so an upgrade is how you receive it. `1.3.2` is
 the floor because it is the oldest release **on npm** that carries the hardening
 work described under *Scope notes*: `1.2.1`–`1.2.3`, where that work first
-landed, were never published, so those fixes first reached users in `1.3.2`.
+landed, were published on 2026-07-21 and later unpublished from npm, as were
+`1.3.0` and `1.3.1`, so `1.3.2` is where those fixes are on npm today.
 Anything below it predates the hardening and is not supported — please upgrade
 rather than report against it.
 
@@ -51,8 +52,8 @@ passed to external renderers verbatim. Reports about untrusted-document
 handling (path traversal via cross-document references, resource loading in
 rendered HTML, ReDoS in the parser, recipe/CLI injection) are very much in
 scope — this project has shipped dedicated hardening releases for exactly that
-class of issue, starting with the two audit rounds that reached npm as
-1.3.2, and continuing through further rounds since. [`CHANGELOG.md`](CHANGELOG.md)
+class of issue, starting with the two audit rounds of `1.2.1` and `1.2.2` (on
+npm today from `1.3.2`), and continuing through further rounds since. [`CHANGELOG.md`](CHANGELOG.md)
 records each one: the first two rounds under a *Security* subsection of `1.2.1`
 and `1.2.2`, every later round as a bullet beginning **Security audit, round N**
 under the version that shipped it. A round sitting under `[Unreleased]` there

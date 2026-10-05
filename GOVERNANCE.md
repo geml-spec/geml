@@ -29,8 +29,11 @@ over time, so that depending on GEML need not mean depending on one person.
   specification; the profiles under `spec/profiles/` are application layers and
   are MIT). Anyone may build
   a conformant parser without permission.
-- The **reference implementation** (`geml-parser/`, `integrations/chrome-geml-viewer/`) is MIT. It
-  is the *first* conformant implementation, not the definition of GEML.
+- The **reference implementation** (`geml-parser/`) is MIT. It is the *first*
+  conformant implementation, not the definition of GEML; a second,
+  `geml-parser-rs/` (Rust, compiled to WASM), passes the same conformance
+  suite. The tools built on them — the browser viewer
+  (`integrations/chrome-geml-viewer/`) and the other integrations — are MIT too.
 
 ## Succession & growth
 
@@ -47,3 +50,8 @@ over time, so that depending on GEML need not mean depending on one person.
 
 The spec is versioned independently of the reference implementation. Breaking
 spec changes bump the spec version and ship with updated conformance cases.
+One change has so far landed under 1.0 without a version bump:
+[GEP-0012](spec/proposals/0012-view-block.md) moved `compute=`/`summary=` and
+block-target `src=` off `table` onto the new `view` block. Its
+*Compatibility & migration* section records the break and the migration
+surface, and [`CHANGELOG.md`](CHANGELOG.md) records it under `1.10.0`.

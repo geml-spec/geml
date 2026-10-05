@@ -13,18 +13,36 @@ headings; versions follow [Semantic Versioning](https://semver.org/). Up to
 `1.9.0` a version's bullets sit under *Added* / *Changed* / *Fixed* /
 *Security* subsections; from `1.10.0` on each bullet carries its own bold lead
 instead, and a security-audit round is a bullet that begins **Security audit,
-round N**. The headings are not compare links — the parser is not tagged in
-git — so the record of what is on npm is the
+round N**. The headings are not compare links — the parser's releases are not
+tagged in git (the lone `parserv1.3.2` tag, annotated "old cli commands", is not
+a release marker) — so the record of what is on npm is the
 [npm version list](https://www.npmjs.com/package/@geml/geml?activeTab=versions);
 a heading marked *(never published to npm)* names the release its changes
-reached users in. Entries for `1.0.0` through `1.7.2` were reconstructed from
-the release commits, so they record what each version shipped rather than a
-contemporaneous editorial note.
+reached users in, and one marked *(unpublished from npm)* — published, then
+withdrawn — names the oldest release on npm that carries its changes. Entries
+for `1.0.0` through `1.7.2` were reconstructed from the release commits, so they
+record what each version shipped rather than a contemporaneous editorial note.
 
 The browser extension (`integrations/chrome-geml-viewer/`) versions on its own track
 and is released under `viewer-v*` tags.
 
 ## [Unreleased]
+
+- **`--to md` writes a stand-alone ``` pair as a fenced block.** A code span
+  whose delimiters stand alone on their lines — §3.1's shield, as a list item's
+  example carries it — was written back with single backticks, which Markdown
+  reads as inline code: the lines ran together, and inside a list item the
+  example became one long string. It is now a fence, at the item's
+  indentation, longer than any backtick run inside it.
+- **`set --body` on a heading keeps the blank lines around the text.** A
+  heading's body includes the blank lines that separate it, so text typed by
+  hand landed the heading, the text and the next heading on consecutive lines.
+  The separators are given back, as `--intro` and `add` already did; a
+  `get --body` → `set --body` round trip still changes nothing.
+- **A `../` reference that fails without `--root` says so.** `check` and a
+  transform print a note that resolution stops at the file's own directory
+  unless `--root` widens it, rather than leaving "cannot resolve document" to
+  read as "no such file".
 
 ## [1.12.3] — 2026-10-05
 
@@ -1535,7 +1553,7 @@ and is released under `viewer-v*` tags.
 - The browser extension carries this parser, so the same diagnostics reach the
   checks it runs on a page. *(`viewer-v1.2.3`, on its own track.)*
 
-## [1.8.7] — 2026-08-26
+## [1.8.7] — 2026-08-26 *(never published to npm — these changes reached users in 1.8.8)*
 
 ### Added
 - `unitSpans(source)` — the block scan without the content addresses. It is the
@@ -1693,6 +1711,14 @@ and is released under `viewer-v*` tags.
   affected, which is the surface agents actually use.
 
 ## [1.8.1] — 2026-08-15
+
+### Security
+- **Security audit, round 4** — an audit of 1.8.0's emphasis-across-atoms
+  rework. Its four fixes are the first four bullets under *Fixed* below (the
+  `~`-run hang and crash, quadratic emphasis pairing, quadratic bracket/paren
+  scanning, prototype-chain block types). The same round's probes of
+  `__proto__`-style keys, the `data:` image gate, escaping under emphasis and
+  scheme-allowlist evasions are pinned as regression tests.
 
 ### Fixed
 - **Inline parsing no longer hangs or crashes on crafted delimiter input.** A
@@ -1903,7 +1929,7 @@ and it is listed here only so the npm version list has no unexplained gap.
   `yaml`/`toml` reserved. A malformed body fails the build, `geml get --json`
   returns the value itself, and a chart can bind to it directly.
 
-## [1.6.1] — 2026-08-04
+## [1.6.1] — 2026-08-04 *(never published to npm — these changes reached users in 1.7.0)*
 
 ### Added
 - **`geml skill install`** — one command sets up the authoring skill, the CLI
@@ -1962,13 +1988,30 @@ and it is listed here only so the npm version list has no unexplained gap.
 - Maintenance release.
 
 ## [1.4.2] — 2026-07-24
-## [1.4.1] — 2026-07-24
-## [1.4.0] — 2026-07-23
+
+### Changed
+- Version bump only: git records no source change over `1.4.1`. It is the
+  oldest `1.4.x` on npm.
+
+## [1.4.1] — 2026-07-24 *(unpublished from npm — these changes are on npm from 1.4.2)*
+
+### Security
+- **Security audit, round 3** — crafted document ids are escaped before they
+  reach a `RegExp`, so they can no longer crash or stall the parser;
+  `set --body` refuses a body whose fence would plant a sibling block, and
+  `rename` refuses to also rewrite a different id sharing the prefix (`#foo`
+  vs `#foo.bar`); the codemap's `pom.xml` `<module>` parse is linear and the
+  cross-stack detector's cost is bounded on hostile source; the code-graph
+  page confines its runtime fetches and loads to the page origin; and, outside
+  the package, the repository's autocommit hook never shell-joins the edited
+  filename. The findings are pinned as regression cases.
+
+## [1.4.0] — 2026-07-23 *(unpublished from npm — these changes are on npm from 1.4.2)*
 
 ### Added
-- Block-mutation CLI work landing across these releases: `get` / `set` / `add` /
-  `delete` / `rename` / `revert` over addressed blocks, each write re-parsed and
-  refused before it reaches disk.
+- Block-mutation CLI work: `get` / `set` / `add` / `delete` / `rename` /
+  `revert` over addressed blocks, each write re-parsed and refused before it
+  reaches disk.
 
 ## [1.3.2] — 2026-07-23
 
@@ -1979,12 +2022,12 @@ and it is listed here only so the npm version list has no unexplained gap.
 - `geml codemap refresh` pathspec handling.
 - `render-html` split into its own module (no API change).
 
-## [1.3.1] — 2026-07-22
+## [1.3.1] — 2026-07-22 *(unpublished from npm — these changes are on npm from 1.3.2)*
 
 ### Changed
 - Refreshed npm README and package metadata.
 
-## [1.3.0] — 2026-07-22
+## [1.3.0] — 2026-07-22 *(unpublished from npm — these changes are on npm from 1.3.2)*
 
 ### Added
 - **`=== text` blocks** ([GEP-0004](spec/proposals/0004-text-block.md)) — a run
@@ -1994,14 +2037,14 @@ and it is listed here only so the npm version list has no unexplained gap.
 - `{{key}}` interpolation now skips code spans and math, and `\{{key}}` escapes
   it.
 
-## [1.2.3] — 2026-07-21 *(never published to npm — these changes reached users in 1.3.2)*
+## [1.2.3] — 2026-07-21 *(unpublished from npm — these changes are on npm from 1.3.2)*
 
 ### Added
 - **`geml check --root <dir>`** — widens cross-document reference resolution to
   a directory, so sibling directories can reference each other. Escapes past the
   root are still refused.
 
-## [1.2.2] — 2026-07-21 *(never published to npm — these changes reached users in 1.3.2)*
+## [1.2.2] — 2026-07-21 *(unpublished from npm — these changes are on npm from 1.3.2)*
 
 ### Security
 - Round-two security-audit fixes. Codemap recipes became structured
@@ -2009,23 +2052,23 @@ and it is listed here only so the npm version list has no unexplained gap.
   upgraded rather than executed as-is. Plus fixes for scheme control characters,
   same-origin `fetchDoc`, `vscode:`/`action:` schemes, recursion and DoS limits.
 
-## [1.2.1] — 2026-07-21 *(never published to npm — these changes reached users in 1.3.2)*
+## [1.2.1] — 2026-07-21 *(unpublished from npm — these changes are on npm from 1.3.2)*
 
 ### Security
 - Round-one security-audit fixes: a trust gate closing a remote-code-execution
   path in the codemap recipe runner.
 
-## [1.2.0] — 2026-07-17
+## [1.2.0] — 2026-07-17 *(unpublished from npm — these changes are on npm from 1.3.2)*
 
 ### Added
-- Published to npm as `@geml/geml`.
+- Published to npm as `@geml/geml`; this version was later unpublished.
 
 ## [1.1.1] — 2026-07-13
 
 ### Fixed
 - Maintenance release.
 
-## [1.1.0] — 2026-07-06
+## [1.1.0] — 2026-07-06 *(unpublished from npm — these changes are on npm from 1.1.1)*
 
 ### Added
 - **The codemap toolkit ships in the package** — `geml codemap
@@ -2039,5 +2082,3 @@ and it is listed here only so the npm version list has no unexplained gap.
 ### Added
 - First npm release of the reference parser, validator, renderer and CLI,
   against **GEML specification 1.0**.
-
-[Unreleased]: https://github.com/geml-spec/geml/compare/main...HEAD

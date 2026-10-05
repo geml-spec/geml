@@ -34,9 +34,6 @@ flowchart TD
 
   NPM -.-> LOGSEQ["@geml/logseq-sync<br/>depends by range ^1.x"]
   NPM -.-> PLUGINS["claude / codex / grok / gemini / kimi<br/>run the MCP server via npx"]
-
-  BUNDLE --> G1{"built in CI every run<br/>so it cannot go stale"}
-  MAP --> G2{"no gate<br/>check only notices<br/>if attributes stop resolving"}
 ```
 
 Only the dashed edges look after themselves. Every solid edge is a copy someone
@@ -241,12 +238,12 @@ the listings do not.
   Refreshing that pin is a release of its own, and it can only happen after the
   parser is on npm, because an unpublished version does not resolve:
 
-  `
+  ```
   npm publish @geml/geml            # first
   cd integrations/logseq && npm install @geml/geml@<version>
   git commit integrations/logseq/package-lock.json
   npm publish                       # then the watcher
-  `
+  ```
 
 - **Confirm.** `npm view @geml/logseq-sync version` · and read the lock's
   `node_modules/@geml/geml` entry to see which parser it actually ships.

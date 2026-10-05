@@ -4,7 +4,7 @@ title: Register a `view` typed block — selection, derivation and aggregation o
 state: final
 author: GEML (maintainer)
 created: 2026-09-03
-issue: (pending)
+issue: (maintainer decision)
 ---
 
 ## Summary
@@ -418,9 +418,9 @@ the values become bytes: diffable, readable with no processor, writable by
 coordinate (a table cell always is, a view never), and still there when the
 source is not. But an attribute would mean rendering rewrites the document: a
 side effect at render time, no longer idempotent, and against both §9.1 and a
-renderer that must not modify its input. So it is a tool verb —
-`geml materialize <file> '#view'` replacing the block with a `table` and its
-computed rows — and if the result should keep saying where it came from, that
+renderer that must not modify its input. So it would be a tool verb —
+`geml materialize <file> '#view'` (not implemented) replacing the block with a
+`table` and its computed rows — and if the result should keep saying where it came from, that
 needs a way for a document to declare what it was derived from, which GEML
 does not have.
 

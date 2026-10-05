@@ -1,13 +1,15 @@
 === meta
-title        = "GEML — 通用表达性标记语言"
+title        = "GEML — 通用表达型标记语言"
 profile      = "geml-translator/v1"
 translate-to = "zh-cn"
 source       = "GEML-spec.geml"
 glossary     = "#not-translated-terms"
 ===
 
-%% 定译取自 spec/GEML-spec_CN.md 的实际用词（类型块 29 处、围栏 25 处、
-%% 属性对象 10 处、边车 7 处、散文段 7 处），不是新造的译名。
+%% 本文件是 GEML-spec.geml 经 geml-translator 生成的中文投射，译文随英文原文经翻译层产生；
+%% 手工维护的中文规范文本在 ../GEML-spec_CN.md。
+
+%% 定译取自 spec/GEML-spec_CN.md 的实际用词，不是新造的译名。
 %% "block" 单独一词故意不在表内：一条平表分不清 block / blocks / blockquote。
 === table {#not-translated-terms hidden}
 | term | zh-cn |

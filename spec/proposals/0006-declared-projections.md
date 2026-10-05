@@ -4,7 +4,7 @@ title: Declared projections — a document names the files derived from it
 state: withdrawn
 author: GEML (maintainer)
 created: 2026-08-07
-issue: (pending)
+issue: (maintainer decision)
 ---
 
 > **Withdrawn (2026-10-02).** GEML reads Markdown directly (a `.md` is read as

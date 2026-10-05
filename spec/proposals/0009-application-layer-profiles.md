@@ -4,7 +4,7 @@ title: The profile mechanism is how GEML is extended
 state: final
 author: GEML (maintainer)
 created: 2026-08-31
-issue: (pending)
+issue: (maintainer decision)
 ---
 
 ## Summary
@@ -207,7 +207,7 @@ warnings, and only for documents that opt in by declaring.
   revision either way (verified on all seven sidecars in this repository).
 - **`codemap/v1` is renamed `geml-codemap/v1`**, so every published vocabulary
   name now begins `geml-`. Free at this moment and not later: the profile
-  mechanism landed after 1.8.8 shipped and 1.9.0 is unpublished, so no released
+  mechanism landed after 1.8.8 shipped and 1.9.0 was not yet published, so no released
   artifact declares the old name. A document declaring it gets no vocabulary
   and warns; the fix is the new name, or a rebuild for generated documents.
 - **The specification license list shrinks.** `GEML-history-spec*` and its GEML

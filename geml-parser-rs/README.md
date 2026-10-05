@@ -1,5 +1,7 @@
 # geml-parser-rs
 
+*English | [中文](README_CN.md)*
+
 A second, independent GEML 1.0 parser in Rust, compiled to WebAssembly. It was
 written from [the specification](../spec/GEML-spec.md) and
 [its conformance suite](../geml-parser/test/conformance/) alone: no code of the
@@ -159,7 +161,7 @@ and info:
 | `geml-translator/v1` | its attribute and `meta` keys; the profile defines no checks |
 
 The repository's own data agrees: the specification's history sidecar verifies
-all 65 revisions (`tests/history.rs`), and the site's style demo solves to the
+every revision it holds (`tests/history.rs`), and the site's style demo solves to the
 same view model as the reference parser's.
 
 ## What it does not

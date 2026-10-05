@@ -34,7 +34,7 @@ inputs:
       references between sibling directories; escapes past this root are still
       refused. Default: unset — each file's references resolve only within its
       own directory subtree. Requires a @geml/geml version that supports
-      `--root` (> 1.2.2).
+      `--root` (≥ 1.3.2).
     required: false
     default: ""
 

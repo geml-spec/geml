@@ -31,8 +31,9 @@ The scanner must:
   `block_open` token (capturing the type name + optional `{…}` attributes);
 - emit a `block_close` token only when a line is a bare `=` run whose length
   **equals** the top of the stack, then **pop**;
-- respect body mode: `code`/`diagram`/`math`/`table` bodies are **raw** (don't
-  scan inline structure inside them); `note` are flow; `meta` is data.
+- respect body mode (spec Appendix B.1): `code`/`math`/`table`/`data`/`diagram`/`embed`
+  bodies are **raw** (don't scan inline structure inside them); `note` and
+  `text` are flow; `meta` is key–value; `view` has no body.
 
 Everything else (ATX headings, lists by indentation, `%%` comment lines, the
 attribute object, inline emphasis/code/math/`[[#id]]`/links/footnotes) is

@@ -129,6 +129,55 @@ test("an ordered wrapped item aligns its continuation under the content column",
   assert.match(out, /3\. third, wrapped\n   over here/, "three-space continuation for a `3. ` marker");
 });
 
+// A ``` pair in GEML flow text is one code span whose delimiters stand alone on
+// their lines (§3.1's shield). Written back as a single-backtick span, Markdown
+// read it as INLINE code: the lines ran together, and inside a list item the
+// example a reader was meant to copy became one long string.
+test("a code span whose delimiters stand alone on their lines exports as a fence", () => {
+  const { md: out } = md("Run:\n\n```\nnpm publish   # first\n- not an item\n```\n\nthen go.\n");
+  assert.match(out, /\n```\nnpm publish   # first\n- not an item\n```\n/, out);
+  assert.doesNotMatch(out, /(^|\n)`\n/, "no single-backtick delimiter alone on a line");
+});
+
+test("inside a list item the fence keeps the item's indentation (docs/PUBLISHING.geml)", () => {
+  const src = "- **Watch for.** it resolves:\n\n  ```\n  npm publish @geml/geml            # first\n  cd integrations/logseq && npm install @geml/geml@<version>\n  ```\n- **Confirm.** done\n";
+  const { md: out } = md(src);
+  assert.match(out,
+    /- \*\*Watch for\.\*\* it resolves:\n\n  ```\n  npm publish @geml\/geml            # first\n  cd integrations\/logseq && npm install @geml\/geml@<version>\n  ```\n\n- \*\*Confirm\.\*\* done\n/,
+    out);
+});
+
+test("the fence is longer than any backtick run inside, so the content cannot close it", () => {
+  const { md: out } = md("````\n```\ninner\n```\n````\n");
+  assert.match(out, /^````\n```\ninner\n```\n````\n$/, out);
+});
+
+test("a code span that does not stand on its own lines stays an inline span", () => {
+  // `see ```` mid-line opens no fence in Markdown, and a fence line after
+  // `see` would open one that runs to the end of the document.
+  const { md: out } = md("see ```\nfoo\n``` here\n");
+  assert.equal(out, "see `\nfoo\n` here\n");
+  assert.equal(md("a `x` b\n").md, "a `x` b\n");
+});
+
+// GEML keeps a code span's content verbatim (§5.3(1): "no space is trimmed");
+// CommonMark strips one space from each end of a span wrapped in spaces. So a
+// span GEML reads as ` x ` is written with one more space a side, and renders
+// as ` x ` in both — the double spaces are the faithful form, not a bug.
+test("a code span wrapped in spaces is padded so CommonMark's one-space strip gives it back", () => {
+  assert.equal(md("a `` `code` `` b\n").md, "a ``  `code`  `` b\n");
+});
+
+test("a backslash inside a code span is content, so the export pairs backticks as GEML did", () => {
+  // `\`` does not escape inside a span — in GEML or in CommonMark — so this
+  // line (the shape GEML-spec.geml §4 carries) holds the spans `## Use \` and
+  // ` derives `, the text `foo()` in 2024`, and a lone backtick after `#x`.
+  // The export writes exactly that: the escaped backticks are GEML's literal
+  // ones, and CommonMark reads the line back into the same four atoms.
+  const { md: out } = md("So `## Use \\`foo()\\` in 2024` derives `#x`.\n");
+  assert.equal(out, "So `## Use \\`foo()\\` in 2024`  derives  `#x\\`.\n");
+});
+
 // ---------------------------------------------------------------- 覆盖率补位
 
 test("a src= table the parser could not read emits its header, caption and a note", () => {

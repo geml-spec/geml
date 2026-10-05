@@ -45,7 +45,7 @@ read it as plain text.
 
 ## Conventions
 
-The key words **MUST**, **MUST NOT**, **MAY**, and **SHOULD** carry the
+The key words **MUST**, **MUST NOT**, **MAY**, **SHOULD** and **SHOULD NOT** carry the
 requirement levels defined in the core specification. A **revision** is one
 recorded state of the document, identified by a commit **id** (§8); **current**
 denotes the latest revision. The **live file** is the working copy `doc.geml`;
@@ -441,7 +441,7 @@ A conforming history processor MUST:
    changes or is missing (§6, §8).
 5. Report **errors** for corruption: a broken `parent` chain, an unresolved
    `blob:` reference, a reconstruction whose hash does not match, an id shared
-   by two revisions, by two keyframes or by two blobs, or more than one
+   (within one type) by two revisions, by two keyframes or by two blobs, or more than one
    `current` (§8).
 6. Report a difference between `hash(doc.geml)` and `current` as an
    **uncommitted-changes warning**, and never block read-only operations on it.

@@ -105,8 +105,8 @@ geml get doc.geml '#hello'   # 按名字，只取这一块
 * 解析器具备严格的验证机制，提供明确的语法错误定位与修复反馈。
 
 #### 5. 基于 Profile 的无感领域扩展
-* 终结方言割裂：通过 `=== meta` 中的 `profile` 声明扩展特定领域词汇（如设计令牌、交互表单、代码图谱、音视频轨），绝不发明私有语法，不破坏解析器稳定性。
-* 具备编译器级静态类型与约束检查，在未知工具环境中自动安全降级，保障 100% 互通性。
+* 终结方言割裂：通过 `=== meta` 中的 `profile` 声明扩展特定领域词汇（如设计样式、交互表单、代码图谱、音视频轨），不发明新语法，也不破坏解析器。
+* 静态类型与约束检查；在不认识该词汇表的环境中安全降级为标准块。
 
 ### 特性对比 (Comparison)
 
@@ -116,7 +116,7 @@ geml get doc.geml '#hello'   # 按名字，只取这一块
 | **AST 精准操作** | 弱（缺乏严格语义节点） | 强 | **强（专为 Agent 读写优化）** |
 | **人类可读性** | 高 | 中 | **高** |
 | **单一数据源引用** | 不支持 | 需扩展协议 | **原生支持（模块化嵌入）** |
-| **领域扩展机制** | 严重割裂（各家私造方言/语法补丁） | 依赖 Schema / 命名空间 | **原生 Profile（零新语法 + 静态强校验）** |
+| **领域扩展机制** | 严重割裂（各家私造方言/语法补丁） | 依赖 Schema | **原生 Profile（零新语法 + 静态强校验）** |
 | **写入安全** | 弱 | 中 | **强（坏写入落盘前被拒 + 单块回退）** |
 
 ---
@@ -398,7 +398,7 @@ profile = "geml-style/v1 geml-form/v1"
 npx -y @geml/geml skill install
 ```
 
-它把写作技能、`geml` CLI、MCP server 一次装到用户全局，所有项目通用。升级后重跑一次geml skill install即可。*（如偏好插件：`claude plugin
+它把写作技能、`geml` CLI、MCP server 一次装到用户全局，所有项目通用。不改 `settings.json`，不装 hook；升级后重跑一次 `geml skill install` 即可。*（如偏好插件：`claude plugin
 marketplace add geml-spec/geml`，再 `/plugin install geml@geml`，同一份技能、MCP
 server 随包带上。）*
 
@@ -562,7 +562,7 @@ GEML 是一份小而年轻的规范，但已经**稳定**：已发布 **`1.0`**�
    Markdown 的信条是“永不报错，凑合渲染”，这是 Agent 幻觉失控与知识腐化的温床；GEML 奉行严格的构建期静态强检。断掉的 `#id`、非法属性、隐式循环在构建期直接拦截（Non-zero exit），宁可构建报错，绝不把坏数据留给下游。
 
 6. **以伴生历史捍卫 Local-First，而非云端锁定 (Local-First History over Cloud Lock-in)**
-   数据的归宿在本地，版本的粒度在区块。GEML 拒绝将历史追溯绑架在中心化云端服务（如 Notion / Google Docs），也不强依赖笨重的全库 Git 提交。通过紧邻文档的伴生 `.gemlhistory`，让纯文本天然具备**本地优先（Local-First）的块级原子快照与秒级回退能力**（`geml revert #id`），把数据主权与版本安全网牢牢留在本地。
+   数据的归宿在本地，版本的粒度在区块。GEML 拒绝将历史追溯绑架在中心化云端服务（如 Notion / Google Docs），也不强依赖笨重的全库 Git 提交。通过紧邻文档的伴生 `.gemlhistory`，让纯文本天然具备**本地优先（Local-First）的块级原子快照与秒级回退能力**（`geml revert doc.geml '#id'`），把数据主权与版本安全网牢牢留在本地。
 
 ### 于是拒绝了这些
 
@@ -665,8 +665,8 @@ integrations/          GEML 接入的所有地方：chrome-geml-viewer（浏览�
 docs/                  指南（MCP、写一个解析器）、设计记录、发版手册、
                        图片资产（logo）
 .claude/skills/        Claude 技能：GEML 写作，以及代码图
-.github/               CI 与 geml-check 工作流、MCP 注册表发布，以及 issue 模板
-                       （bug、GEP、新实现）
+.github/               CI、安全扫描、发布与站点工作流（npm、MCP 注册表、VS Code、
+                       viewer、网站），issue 模板（bug、GEP、新实现）与 PR 模板
 （网站）               主页、playground、演示、博客、格式对比、基准测试、
                        宣言和图解页在它们自己的仓库 geml-spec/geml-spec.github.io
                        里；规范和各篇指南链接回本仓库，playground 的 bundle、代码图

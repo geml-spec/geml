@@ -1503,6 +1503,17 @@ function setBody(source: string, file: string, target: SetTarget, content: Conte
   if (head !== "" && !/(\r\n|\r|\n)$/.test(head)) head += "\n";
   let b = toLf(body);   // spliceBlock converts the result to the document's style
   if (closeLine !== null && b !== "" && !b.endsWith("\n")) b += "\n";
+  // A heading's body is everything under its line, blank separators included,
+  // so `get --body` hands those over and round-tripping them adds nothing here.
+  // Text typed by hand has none, and without them the heading, the new text and
+  // the next heading land on consecutive lines — the same padding `--intro`
+  // and `add` give back.
+  if (closeLine === null && target.unit.kind === "heading" && b !== "") {
+    const blankLine = (s: string | undefined) => s === undefined || s.trim() === "";
+    if (!b.endsWith("\n")) b += "\n";
+    if (!blankLine(b.split("\n")[0])) b = "\n" + b;
+    if (found.end < lines.length && !blankLine(b.split("\n").slice(-2)[0])) b += "\n";
+  }
   const replacement = closeLine !== null ? head + b + closeLine : head + b;
 
   // A typed block (closeLine !== null) must stay ONE block: enforce the

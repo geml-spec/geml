@@ -124,7 +124,8 @@ Usage:
                                              (EXPERIMENTAL. An application-layer profile, not part of the
                                               GEML spec: rules select into documents they never modify.
                                               Only the subset codemap's display knobs use — style-rule,
-                                              match=, attribute pass-through — is stable; the rest of the
+                                              match=, attribute pass-through and the rest of the profile's
+                                              §0.1 "held" column — is stable; the rest of the
                                               vocabulary moves with the first real use case. --json prints
                                               the view model — bindings, states, screens — which is the
                                               profile's conformance surface.
@@ -906,6 +907,7 @@ function runCheck(args: string[]): void {
     console.log(JSON.stringify(shown.length === 0 ? doc.diagnostics : { core: doc.diagnostics, profile: shown }, null, 2));
   } else {
     for (const d of doc.diagnostics) console.error(`${d.severity}: ${d.message} (line ${d.line})`);
+    rootHint(doc.diagnostics, root);
     // profile 的诊断按**地址**报，不按行号：它们跨文档，没有单一行号可言。
     for (const d of shown) console.error(`${d.severity}: ${d.code}: ${d.message} (${d.doc}${d.id === undefined ? "" : "#" + d.id})`);
     const all = [...doc.diagnostics, ...shown];
@@ -1164,7 +1166,18 @@ function runTransform(argv: string[]): void {
   // md -> geml is a direct projection: no document, no diagnostics to raise.
   if (!r.doc) return;
   for (const d of r.doc.diagnostics) console.error(`${d.severity}: ${d.message} (line ${d.line})`);
+  rootHint(r.doc.diagnostics, root);
   if (r.doc.diagnostics.some((d) => d.severity === "error")) process.exit(1);
+}
+
+// A `../` reference that fails without --root most often names a file that is
+// there, one directory up: resolution stops at the file's own directory unless
+// --root widens it. Say so once, instead of leaving "cannot resolve" to read as
+// "no such file".
+function rootHint(diags: readonly { code: string; message: string }[], root: string | undefined): void {
+  if (root !== undefined) return;
+  if (!diags.some((d) => d.code === "unresolvable-document" && /`\.\.\//.test(d.message))) return;
+  console.error("note: a ../ reference resolves only inside the file's own directory; --root <dir> widens it (e.g. --root .)");
 }
 
 // Write to `-o out` (with a `wrote` note on stderr) or to stdout.

@@ -872,6 +872,77 @@ try {
     const rows = JSON.parse(run(["list", f, "--json"]).out);
     assert.deepEqual(rows.find((r) => r.address === "#title-before-next").lines, [4, 4]);
   });
+
+  // `set --body` on a heading: the body is everything under its line, blank
+  // separators included. Text typed by hand has none, and it used to land the
+  // heading, the text and the next heading on consecutive lines.
+  for (const ext of ["md", "geml"]) {
+    test(`set --body on a heading keeps the blank lines around hand-typed text (.${ext})`, () => {
+      const f = write(`body-pad.${ext}`, "# A {#a}\n\nold\n\n# B {#b}\n\nkeep\n");
+      const r = run(["set", f, "#a", "--body"], "new body\n");
+      assert.equal(r.code, 0, r.err);
+      assert.equal(read(f), "# A {#a}\n\nnew body\n\n# B {#b}\n\nkeep\n");
+    });
+
+    test(`set --body on the last heading adds no trailing blank line (.${ext})`, () => {
+      const f = write(`body-pad-end.${ext}`, "# A {#a}\n\nx\n\n# B {#b}\n\nold\n");
+      const r = run(["set", f, "#b", "--body"], "new");
+      assert.equal(r.code, 0, r.err);
+      assert.equal(read(f), "# A {#a}\n\nx\n\n# B {#b}\n\nnew\n");
+    });
+
+    test(`get --body piped into set --body changes nothing (.${ext})`, () => {
+      const src = "# A {#a}\n\nold\n\n# B {#b}\n\nkeep\n";
+      const f = write(`body-rt.${ext}`, src);
+      const got = run(["get", f, "#a", "--body"]).out;
+      const r = run(["set", f, "#a", "--body"], got);
+      assert.equal(r.code, 0, r.err);
+      assert.equal(read(f), src);
+    });
+  }
+
+  // check and a transform resolve a `../` reference the same way: inside the
+  // file's own directory unless --root widens it. Both say so when it bites.
+  test("a ../ reference that fails without --root gets a note pointing at --root", () => {
+    write("hint/other.geml", "# Other {#other}\n");
+    const f = write("hint/sub/doc.geml", "See [other](../other.geml#other).\n");
+    const c = run(["check", f]);
+    assert.equal(c.code, 1);
+    assert.match(c.err, /cannot resolve document `\.\.\/other\.geml`/);
+    assert.match(c.err, /note: a \.\.\/ reference resolves only inside the file's own directory; --root <dir> widens it/);
+    const t = run([f, "--to", "md"]);
+    assert.equal(t.code, 1);
+    assert.match(t.err, /note: a \.\.\/ reference resolves only inside/);
+    const ok = run(["check", f, "--root", join(dir, "hint")]);
+    assert.equal(ok.code, 0, ok.err);
+    assert.doesNotMatch(ok.err, /note: a \.\.\//);
+  });
+
+  // `geml list` pads its address column in terminal cells, not UTF-16 units: a
+  // character in a wide or fullwidth block of UAX #11 (or an emoji plane) is two
+  // cells, a combining mark or zero-width space none. One id from each range.
+  test("list pads the address column in cells: every wide range is two, combining and zero-width marks none", () => {
+    const wide = ["ᄀ", "⺀", "ぁ", "㐀", "一", "ꀀ", "가", "豈",
+      "︐", "︰", "Ａ", "￠", "\u{1f300}", "\u{1f900}", "\u{20000}"];
+    const ids = [...wide.map((c) => c + "a"), "é", "a​b", "plain"];
+    const cells = [...wide.map(() => 4), 2, 3, 6];   // "#" + the id, in cells
+    const f = write("wide-ids.geml", ids.map((id, i) => `# H${i} {#${id}}\n\nx\n`).join("\n"));
+    const rows = run(["list", f]).out.trimEnd().split("\n");
+    assert.equal(rows.length, ids.length, rows.join("\n"));
+    rows.forEach((row, i) => {
+      const addr = "#" + ids[i];
+      assert.ok(row.startsWith(addr), row);
+      // the widest address is #plain (6 cells); the column is that plus two spaces
+      assert.equal(row.slice(addr.length).match(/^ */)[0].length, 8 - cells[i], `${JSON.stringify(ids[i])}: ${row}`);
+    });
+  });
+
+  test("set --body padding follows a CRLF document's line endings", () => {
+    const f = write("body-pad-crlf.md", "# A {#a}\r\n\r\nold\r\n\r\n# B {#b}\r\n\r\nkeep\r\n");
+    const r = run(["set", f, "#a", "--body"], "new body\n");
+    assert.equal(r.code, 0, r.err);
+    assert.equal(read(f), "# A {#a}\r\n\r\nnew body\r\n\r\n# B {#b}\r\n\r\nkeep\r\n");
+  });
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
