@@ -42,7 +42,7 @@ geml check hello.geml
 geml media export hello.geml --to player -o play.html
 ```
 
-`check` 输出 `ok: no diagnostics`。用浏览器打开 `play.html`，点播放：「你好。」显示两秒，接着第二句一直显示到 0:05。第二句为什么从 0:02 开始，见[参考文档](geml-media-profile_CN.md) §3.2「时间模型」。`geml hello.geml --to html` 不画时间轴，要看效果请用 `geml media export`。
+`check` 输出 `ok: no diagnostics`。用浏览器打开 `play.html`，点播放：「你好。」显示两秒，接着第二句一直显示到 0:05。第二句为什么从 0:02 开始，见[参考文档](geml-media-profile_CN.md) §4.2「时间模型」。`geml hello.geml --to html` 不画时间轴，要看效果请用 `geml media export`。
 
 ## 常用
 
@@ -52,7 +52,7 @@ geml media export hello.geml --to player -o play.html
 geml media import shot.mp4 --into library.geml
 ```
 
-**放上时间轴。** 把 `hello.geml` 里的 `media` 块换成下面这段。第一条轨换成了视频，字幕用 `over=` 锚在这一刀上（同样见 §3.2）。
+**放上时间轴。** 把 `hello.geml` 里的 `media` 块换成下面这段。第一条轨换成了视频，字幕用 `over=` 锚在这一刀上（同样见 §4.2）。
 
 ```geml
 ==== media {#cut tracks="video:video subtitle:prose"}

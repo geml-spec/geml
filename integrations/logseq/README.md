@@ -130,7 +130,8 @@ printf 'done' | geml set …/pages/foo.geml \
 ```
 
 A page's own properties are `#page-meta`, the graph's definitions `#properties`
-in `ontology.geml`. Needs `@geml/geml` 1.10.2 or newer.
+in `ontology.geml`. Needs `@geml/geml` 1.12.1 or newer — the `^1.12.1` in
+`package.json`.
 
 **In bulk** it is whatever your shell already does — the result is re-imported
 by uuid, so identity survives the edit. `geml check <file> --root <vault>` after

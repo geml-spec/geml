@@ -34,7 +34,7 @@ Each case is `{ name, geml, want }`:
 
 `want` is a **projection** of the parsed model — a compact string. Project *your* model the same way and assert it equals `want`. A case may also carry `ids`, `addresses`, `blocks` or `diagnostics`, or give its input as bytes (`geml_base64`): check the ones your capabilities cover.
 
-[`_project.mjs`](../geml-parser/test/conformance/_project.mjs) is the reference projection — what the `want` strings are written in. What a document *means* is the specification's: every case is derived from its text, and where a case and the text disagree, the text decides. [`impl2.mjs`](../geml-parser/test/conformance/impl2.mjs) is a full parser + projection written only from the spec (a few hundred lines) — a worked example of what you're building.
+[`_project.mjs`](../geml-parser/test/conformance/_project.mjs) is the reference projection — what the `want` strings are written in. What a document *means* is the specification's: every case is derived from its text, and where a case and the text disagree, the text decides. [`impl2.mjs`](../geml-parser/test/conformance/impl2.mjs) is a full parser + projection written only from the spec (a few hundred lines) — a worked example of what you're building. [`geml-parser-rs/`](../geml-parser-rs/) is the full-size one: a second implementation written by this document from the spec and the suite alone, in Rust and compiled to WebAssembly, with every capability declared — compare your model against it when a case disagrees.
 
 ## Build order
 

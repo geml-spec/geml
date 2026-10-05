@@ -4,12 +4,12 @@
 profile           = "geml-history/v1"
 history-of        = "GEML-spec.geml"
 geml-version      = "1.0"
-current           = "20261004T154924Z-9d0c877b"
+current           = "20261005T040311Z-d915c125"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== history-keyframe {id="20261004T154924Z-9d0c877b" hash="sha256:9d0c877b6d015c402c6ae87d091be3cabf596a81f69a5df09b7b0d9a2b955b19"}
+===== history-keyframe {id="20261005T040311Z-d915c125" hash="sha256:d915c125df0dd08ef8885b5eacaaa5fd1cc804b941d49c984f63a9affdedca1a"}
 # GEML — General Expressive Markup Language
 
 *English | [中文](../GEML-spec_CN.md)*
@@ -31,11 +31,11 @@ keyframe-interval = 10
 GEML is a plain-text markup language for structured, expressive documents.
 A GEML file remains fully legible as plain text, expresses every kind of
 structured content (code, diagrams, tables, mathematics, callouts) through a
-single typed-block primitive, supports stable identifiers with build-time
-reference checking, and hosts external diagram DSLs without defining a diagram
-language of its own. This document specifies the document model, the syntax of
-blocks, attributes, inline content and references, and the requirements a
-conforming processor must satisfy.
+single typed-block primitive, makes each block addressable by a stable id with
+build-time reference checking, and hosts external diagram DSLs without defining
+a diagram language of its own. This document specifies the document model, the
+syntax of blocks, attributes, inline content and references, and the
+requirements a conforming processor must satisfy.
 
 ## Contents
 
@@ -459,7 +459,7 @@ code, use `=== code` with a fence one longer than the example’s own (§3); to
 keep a single line literal, use §5.1’s `\`.
 
 
-### 3.2 The `data` block
+### 3.2 The `data` block {#32-the-data-block}
 
 A `data` block carries the **value tree** — scalars, sequences and maps,
 JSON's value domain within the limits of I-JSON (RFC 7493) — as *verified
@@ -693,12 +693,14 @@ exactly when the slice is itself a value.
   the nearest typed block or heading before it inside that container, *N* the
   nearest one after it, and *C* the container:
 
-  | | address |
-  |---|---|
-  | *P* and *N* both present | `P-between-N` |
-  | no *P* — the prose opens the container | `C-before-N` |
-  | no *N* — the prose closes the container | `C-after-P` |
-  | neither | none: the container holds nothing else, so `C` already names it |
+=== table {#table-list-item-addresses}
+| | address |
+|---|---|
+| *P* and *N* both present | `P-between-N` |
+| no *P* — the prose opens the container | `C-before-N` |
+| no *N* — the prose closes the container | `C-after-P` |
+| neither | none: the container holds nothing else, so `C` already names it |
+===
 
   Written with the ids themselves, so `#pub-before-cmd` is the prose between the
   heading `#pub` and the block `#cmd`. The relation word is **determined by the
@@ -890,6 +892,7 @@ Internal and cross-document references are validated at build time.
 more bracket steps naming a unit INSIDE that block — a table's rows and cells, a
 node of a `data` block's value tree (§3.2), or a key of the merged `#meta` (§4):
 
+=== table {#table-coordinate-forms}
 | Form | Meaning |
 |------|---------|
 | `#fy[2]` | the second BODY row of block `fy`; a header is not a row |
@@ -898,6 +901,7 @@ node of a `data` block's value tree (§3.2), or a key of the merged `#meta` (§4
 | `#fy[summary]` | the `summary=` foot row (§6), and `#fy[summary]["FY"]` one of its cells |
 | `#intake["fields"][1]["name"]` | a node of a `data` block's value tree |
 | `#meta["version"]` | a value from this document's merged meta |
+===
 
 - Three token species occur inside the brackets and no two can be confused: a
   bare **integer** is a row or sequence index, a **quoted string** is a column
@@ -2008,6 +2012,65 @@ for a block or a section, the three granularities are a scalar, a phrase, and
 a block.
 
 =====
+
+=== history-revision {id="20261005T040311Z-d915c125" parent="20261005T040304Z-aafb61e9" summary="auto: Edit" hash="sha256:d915c125df0dd08ef8885b5eacaaa5fd1cc804b941d49c984f63a9affdedca1a" newline="crlf"}
+delete #table-coordinate-forms
+insert <- blob:b199 after @96c0e59f
+===
+
+=== history-blob {#b199 lang=geml}
+| Form | Meaning |
+|------|---------|
+| `#fy[2]` | the second BODY row of block `fy`; a header is not a row |
+| `#fy[2]["Q1"]` | one cell, the column named by its header |
+| `#fy["Q1"]` | one column, header excluded, in row order |
+| `#fy[summary]` | the `summary=` foot row (§6), and `#fy[summary]["FY"]` one of its cells |
+| `#intake["fields"][1]["name"]` | a node of a `data` block's value tree |
+| `#meta["version"]` | a value from this document's merged meta |
+
+===
+
+=== history-revision {id="20261005T040304Z-aafb61e9" parent="20261005T040256Z-527c8f04" summary="auto: Edit" hash="sha256:aafb61e983b936242d50d7372a502a7b889393ac5bc00f4e04b726496bb7dc8e" newline="crlf"}
+delete #table-list-item-addresses
+insert <- blob:b198 after @1b3347fd
+===
+
+=== history-blob {#b198 lang=geml}
+  | | address |
+  |---|---|
+  | *P* and *N* both present | `P-between-N` |
+  | no *P* — the prose opens the container | `C-before-N` |
+  | no *N* — the prose closes the container | `C-after-P` |
+  | neither | none: the container holds nothing else, so `C` already names it |
+
+===
+
+=== history-revision {id="20261005T040256Z-527c8f04" parent="20261005T040241Z-07f5506e" summary="auto: Edit" hash="sha256:527c8f04aabb2b7c289fc64dafb6038ceec5102698dcd547464127e8c3132b5b" newline="crlf"}
+delete #32-the-data-block
+insert <- blob:b197 after @e1f1a575
+===
+
+=== history-blob {#b197 lang=geml}
+### 3.2 The `data` block
+
+===
+
+=== history-revision {id="20261005T040241Z-07f5506e" parent="20261004T154924Z-9d0c877b" summary="auto: Edit" hash="sha256:07f5506e56209cee7b603313e45355dec1c9002095d438182c19b6e40f15c703" newline="crlf"}
+delete @e984a18c
+insert <- blob:b196 after @266c21b8
+===
+
+=== history-blob {#b196 lang=geml}
+GEML is a plain-text markup language for structured, expressive documents.
+A GEML file remains fully legible as plain text, expresses every kind of
+structured content (code, diagrams, tables, mathematics, callouts) through a
+single typed-block primitive, supports stable identifiers with build-time
+reference checking, and hosts external diagram DSLs without defining a diagram
+language of its own. This document specifies the document model, the syntax of
+blocks, attributes, inline content and references, and the requirements a
+conforming processor must satisfy.
+
+===
 
 === history-revision {id="20261004T154924Z-9d0c877b" parent="20261004T003414Z-629b032d" hash="sha256:9d0c877b6d015c402c6ae87d091be3cabf596a81f69a5df09b7b0d9a2b955b19" newline="lf"}
 delete @8f8248eb

@@ -22,6 +22,33 @@ body:
     id: version
     attributes:
       label: Version
-      placeholder: "output of `geml --version`"
+      description: Parser and spec version together, so the report pins both.
+      placeholder: "output of `geml --version --json`"
     validations:
-      required: false
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Linux
+        - macOS
+        - Windows
+        - Other / several
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      description: Where the wrong behaviour shows. Pick the closest one; mention others in the description.
+      options:
+        - Reference parser / CLI (`@geml/geml`)
+        - MCP server (`geml mcp`)
+        - Chrome viewer extension
+        - VS Code extension
+        - Logseq sync
+        - Rust crate (`geml-parser-rs`)
+        - Other
+    validations:
+      required: true

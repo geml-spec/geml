@@ -4,7 +4,8 @@ title: <short descriptive title>
 state: draft        # draft | accepted | final | withdrawn | rejected
 author: <name / handle>
 created: <YYYY-MM-DD>
-issue: <link to the discussion issue>
+accepted: <YYYY-MM-DD>   # optional — the date the state became accepted; omit while draft
+issue: <link to the discussion issue, or (maintainer decision)>
 ---
 
 ## Summary

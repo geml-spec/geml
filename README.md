@@ -13,7 +13,7 @@
 
 *English | [中文](README_CN.md)*
 
-GEML is **a lightweight, Agent-Native markup language**, designed for people and AI agents to read and write the same document.<br>
+GEML is **a lightweight markup language for people and AI agents to read and write the same document**.<br>
 **One format, two readers.**
 In agent-driven development and knowledge work, plain text and Markdown have no deterministic block boundaries: a program and a model trade the whole file in and the whole file back out — at best probing for it with line windows, and restating the original verbatim to rewrite it. Token cost grows with the length of the document, and the operation turns bloated. After a few rounds of rewriting, the copies excerpted elsewhere start to drift.
 
@@ -24,9 +24,12 @@ geml list    README.md                          # every section, as an address
 geml get     README.md '#key-features'          # read ONE section, not the file
 geml set     README.md '#key-features' --body   # write one section back
 geml replace README.md 'old text' 'new text'    # swap a string, told which block held it
+geml history save README.md -m 'tighten intro'  # a revision into README.md.gemlhistory, beside the file
 ```
 
-Only that section enters the agent’s context — a couple of KB, not the whole ~48 KB file.
+Only that section enters the agent’s context — a couple of KB, not the whole file, however long it grows. And every save is a revision you can read back or roll back, one block or the whole file.
+
+▶ **[Try it in the Playground](https://geml-spec.github.io/playground/)** — no install, nothing to read first.
 
 Need finer than a section — one block, one chart, one table? Let `.geml` stand in the middle ground: edit at that grain, and the `--to md` you ship never drifts from it.
 
@@ -365,7 +368,7 @@ Extend capabilities without breaking interoperability. In any third-party or unf
 | [`geml-codemap/v1`](spec/profiles/geml-codemap/geml-codemap-guide.md) | stable | Generates your codebase's call graph as GEML documents: one block per method, so you can see who calls it and what it calls; front-end and back-end merge into one graph | `code` blocks: `anchor`, `name`, `entry-via` | `geml codemap build\|verify\|serve` | [Interactive Call Graph](https://geml-spec.github.io/playground/) · [`sample.geml`](https://geml-spec.github.io/playground/#ch=visual) |
 | [`geml-media/v1`](spec/profiles/geml-media/geml-media-guide.md) | draft | Describes a video timeline in one document: assets, clips, subtitle and voice tracks; export it as a web player, or render an MP4 with ffmpeg | `media`, `media-asset`, `media-clip`, `media-text` | `geml media build\|export\|lay\|todo` | [Doc-to-Video (Doc to MP4 via ffmpeg)](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/examples/geml-media-demo/README.md) |
 | [`geml-style/v1`](spec/profiles/geml-style/geml-style-guide.md) | draft | Colours, spacing and layout live in a separate stylesheet document whose rules apply to your content; the content document itself stays unchanged | `style-rule`, `style-state`, `style-screen`, `style-frame` | `geml style check` | [GitHub Blob Page 1:1 Replica](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/examples/style-demo/) |
-| [`geml-history/v1`](spec/profiles/geml-history/geml-history-guide.md) | stable | Keeps past versions in a `.gemlhistory` file beside the document: read any old version, put back a single block, or roll back the whole file | `history-revision`, `history-keyframe`, `history-blob` | `geml history save\|get\|restore` | [Atomic Block Rollback Workflow](spec/profiles/geml-history/geml-history-profile.md#4-the-history-workflow) |
+| [`geml-history/v1`](spec/profiles/geml-history/geml-history-guide.md) | stable | Keeps past versions in a `.gemlhistory` file beside the document: read any old version, put back a single block, or roll back the whole file | `history-revision`, `history-keyframe`, `history-blob` | `geml history save\|get\|restore` | [Atomic Block Rollback Workflow](spec/profiles/geml-history/geml-history-guide.md#everyday-use) |
 | [`geml-form/v1`](spec/profiles/geml-form/geml-form-guide.md) | draft | Describes a form in a document: its fields, their types, which are required, allowed ranges; the browser extension and the playground draw a preview | `form`, `form-field`, `form-group`, `form-options`, `form-note`; constraint attributes `pattern`, `min`, `max`… on `form-field` | — | [Interactive Complex Form Example](spec/proposals/0008-form-block-example/) |
 | [`geml-translator/v1`](spec/profiles/geml-translator/geml-translator-guide.md) | draft | A translation document holds no translated text: it embeds the source and names the target language, and the browser extension machine-translates it on open, so it follows every change to the source | `embed` and `meta` attribute `translate-to` | — | — |
 
@@ -605,7 +608,8 @@ Every profile this project publishes: [`spec/profiles/`](spec/profiles/README.md
 - [x] The VS Code extension published on the Visual Studio Marketplace (publisher `geml`)
 - [x] Ecosystem integrations: VS Code highlighting and reference checking, tree-sitter, Obsidian, Logseq (two-way sync against a live DB graph), the browser viewer, a GitHub Action, LangChain / LlamaIndex, and the agent-harness plugins — Claude Code, Codex, Grok, DeepSeek Harness, plus root manifests for Gemini CLI and Kimi Code
 - [ ] The Logseq plugin listed in the Logseq marketplace ([PR #893](https://github.com/logseq/marketplace/pull/893)) and the Grok plugin listed in `xai-org/plugin-marketplace`
-- [ ] Parsers in other languages (Rust / Python) — the spec and the conformance suite are public, so community implementations are welcome; we are glad to help line them up
+- [x] A second implementation, [`geml-parser-rs/`](geml-parser-rs/) — Rust, compiled to WebAssembly, written from the spec and the conformance suite alone, without reading the reference parser
+- [ ] Implementations by other hands — Python, or whatever you write in; the spec and the conformance suite are public, and we are glad to help line them up
 
 ---
 
@@ -613,8 +617,8 @@ Every profile this project publishes: [`spec/profiles/`](spec/profiles/README.md
 ## Take part
 
 GEML is `1.0`, but "stable" means **the rules already there won't shift under you**,
-not that the design is settled. There is exactly **one implementation** so far, and
-**one set of opinions** behind the spec. Your thinking can still change the spec itself.
+not that the design is settled. There are two implementations so far, but **one author**
+behind both — so there is still **one set of opinions** behind the spec. Your thinking can still change the spec itself.
 If you want a hand in it:
 
 **Come argue about these**, the proposals still in draft:
@@ -635,7 +639,7 @@ Or **claim a piece**:
 | **The viewer on other browsers** | Chrome works | Firefox / Safari ports. |
 | **Packaging the RAG integrations** | LangChain / LlamaIndex are reference implementations | Publishing to PyPI; and wiring up other frameworks (Haystack, DSPy, …). |
 
-- **Write a second implementation of the spec** — a new GEML parser in whatever language you like ([how to write a parser](docs/WRITING-A-PARSER.md))
+- **Write an implementation of the spec in your language** — a new GEML parser, from the spec alone ([how to write a parser](docs/WRITING-A-PARSER.md)); [`geml-parser-rs/`](geml-parser-rs/) was written that way and is the worked example to compare against
 - **Finding the places where the spec is ambiguous is itself the contribution**, whether or not that parser ever ships.
 
 Or **propose something new**:
@@ -655,6 +659,7 @@ Or **put it to use**:
 | **Sync a Logseq graph to plain text** — a Logseq 2.0 DB graph as continuously synced GEML files, addressable and git-friendly, with `restore` as the way back | [`@geml/logseq-sync`](https://www.npmjs.com/package/@geml/logseq-sync) · [source](integrations/logseq/) | Watcher on npm; the plugin installs from a release zip — the marketplace listing ([PR #893](https://github.com/logseq/marketplace/pull/893)) is not merged yet |
 | **Turn a codebase into a document** — the whole call graph as a tree of GEML documents, browsable | `geml codemap build` ([guide](spec/profiles/geml-codemap/geml-codemap-guide.md) · [design](docs/design/specs/geml-codemap/DESIGN-geml-code-graph.md)) | Available |
 | **Write it in your editor** — syntax highlighting + build-time reference checking | [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=geml.geml) · [source](integrations/vscode/) | Available |
+| **Write it in Android Studio / IntelliJ** — highlighting, diagnostics as you type, preview, structure view, block revert from `.gemlhistory` | [`integrations/intellij+androidstudio-plugin/`](integrations/intellij+androidstudio-plugin/) | Built; installs from a zip you build (Install Plugin from Disk), not on the JetBrains Marketplace |
 | **Render it in Obsidian** — the reference parser + the viewer's renderer, the same code path as the web | [`integrations/obsidian/`](integrations/obsidian/) | Built, not in the community store |
 | **Feed a RAG / agent framework** — block-level loaders (one chunk per block, carrying `block_id`) + agent editing tools | [`integrations/langchain+llamaindex/`](integrations/langchain+llamaindex/) | Reference implementation |
 | **Try it without installing anything** — edit on the left, live render on the right | [Playground](https://geml-spec.github.io/playground/) | Available |
@@ -675,9 +680,11 @@ spec/                  The specification as .md (EN / 中文) and the CC-BY spec
 spec/in_geml_format/   The dogfood: the specification written in GEML, with its
                        .gemlhistory sidecar
 geml-parser/           Reference parser, renderer, CLI + codemap toolkit (TypeScript, Node 22)
+geml-parser-rs/        The second implementation: the same spec in Rust, compiled to
+                       WebAssembly, written from the spec and the conformance suite alone
 integrations/          Everywhere GEML plugs in: chrome-geml-viewer (browser extension),
-                       geml-check-action (CI), vscode, obsidian, logseq (two-way
-                       vault sync + the watcher), tree-sitter (brief),
+                       geml-check-action (CI), vscode, intellij+androidstudio-plugin,
+                       obsidian, logseq (two-way vault sync + the watcher), tree-sitter (brief),
                        langchain+llamaindex (RAG loaders), windows-icon
                        (Explorer file icons), the agent-harness plugins —
                        claude-plugin, codex-plugin, grok-plugin, dsh-plugin — and
@@ -702,8 +709,8 @@ docs/                  Guides (MCP, writing a parser), design records, the relea
 ## License & governance
 
 **Code is MIT** ([`LICENSE`](LICENSE)): everything in this repository —
-`geml-parser/`, all of `integrations/`, `.claude/skills/`, the GEPs
-in `spec/proposals/` — except the specification documents.
+`geml-parser/`, `geml-parser-rs/`, all of `integrations/`, `.claude/skills/`, `docs/`,
+the profiles in `spec/profiles/`, the GEPs in `spec/proposals/` — except the specification documents.
 
 **The specification documents are CC-BY-4.0** ([`LICENSE-spec.md`](spec/LICENSE-spec.md),
 which lists them exactly): `spec/GEML-spec*` and `spec/in_geml_format/*`. There is one

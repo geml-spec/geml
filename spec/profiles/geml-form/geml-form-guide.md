@@ -67,15 +67,19 @@ does not know. With `minlength=5` on `#email` it prints:
 warning: unknown attribute `minlength` for block type `form-field` (line 6)
 ```
 
-It does not look at values: `type=email` and `min=abc` both pass. The six
-constraint keys and how to read them are in reference §2.
+It does not look at values: `type=email` (not one of the seven types GEP-0008
+defines) and `min=abc` both pass; the `unknown-field-type` warning the GEP
+describes is not implemented. The six constraint keys and how to read them are
+in reference §2.
 
-**Edit one field, or let an agent do it.** Each field is a block with an id, so
-you can read or replace one without touching the rest. Put the new `#seats`
-block in `seats.geml`, then:
+**Edit one field, or let an agent do it.** Reading a field goes by its
+coordinate and needs no id. Replacing one with `geml set` does need an id:
+`set` writes a block of its own, and a coordinate writes only inside a table or
+a `data` block. So give the field an id — `{#seats name=seats …}` — put the new
+`#seats` block in `seats.geml`, then:
 
 ```
-geml get signup.geml "#email"
+geml get signup.geml '#signup["email"]'
 geml set signup.geml "#seats" --in seats.geml
 ```
 

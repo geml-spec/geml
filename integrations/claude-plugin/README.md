@@ -1,7 +1,8 @@
 # geml — Claude Code plugin
 
 Author, validate, and blockwise-edit [GEML](https://github.com/geml-spec/geml)
-documents from Claude Code. The plugin ships three things:
+documents — and address any Markdown file by block — from Claude Code. The
+plugin ships three things:
 
 - **The authoring skill** (`skills/geml/`) — golden rules, validation loop,
   and a sectioned reference (`references/authoring.geml`) Claude pulls one

@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-本插件为 harness 提供 **Agent-Native** 的文档处理能力。多轮交互最容易被 Token
+本插件为 harness 提供**按块寻址**的文档处理能力。多轮交互最容易被 Token
 膨胀拖垮——整篇读进来、整篇写回去，内容越滚越臃肿，也越来越偏离事实。
 [GEML](https://github.com/geml-spec/geml) 把文档呈现为**可寻址的块**，让 LLM
 能精准理解与改写：取一个小节、写回一个小节，Token 只需零头，宝贵的上下文窗口

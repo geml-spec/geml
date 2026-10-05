@@ -4,8 +4,8 @@ GEML 1.0 的第二个独立实现，用 Rust 编写，编译为 WebAssembly。�
 [规范](../spec/GEML-spec.md)和[一致性测试集](../geml-parser/test/conformance/)写成，
 没有读过参考解析器的任何代码。它的用途就是 §8.4 赋予第二实现的那个：证明决定文档含义的是规范，而不是某一个程序。
 
-**状态：符合规范。** 315 个一致性用例全部通过。测试集 manifest 列出的能力全部声明了，
-包括 `tables`、`views`、`ids`、`addresses`、`blocks`、`diagnostics`、`bytes` 和 `yaml`，
+**状态：符合规范。** 429 个一致性用例全部通过。测试集 manifest 列出的能力全部声明了，
+包括 `tables`、`views`、`ids`、`addresses`、`blocks`、`diagnostics`、`bytes`、`yaml` 和 `host`，
 所以没有跳过任何用例。测试集跑两遍：
 
 - 原生方式，用本 crate 自己的测试框架（`tests/conformance.rs`）；
@@ -125,14 +125,14 @@ error、warning、info。
 | 词汇表 | 检查内容 |
 |---|---|
 | `geml-form/v1` | GEP-0008 规定的诊断：表单族的块放在表单外面、字段没有 `name=` 或和同一表单里另一个字段同名、字段带正文、字段类型未知、`options=` 和 `#note` 属性指向了错的块、没有字段使用的 `form-options` 或 `form-note`；`form` 或 `form-group` 上的坐标按 name 指向字段（`#signup["email"]`），指向它的引用显示字段的 label |
-| `geml-media/v1` | 全部 33 个诊断码：时间线和轨道表、每条轨道能接受的片段来源、素材本身的时长、经 host 核对素材文件的 SHA-256、台词和说话人、合成画面和图层、按几何关系（裁切、缩放、镜像、偏移）解析的交互，以及跨文档的生成日志溯源，包括过期的生成结果、过期的剪辑片段、没有来源记录的素材 |
-| `geml-style/v1` | `check::style::check` 把样式表对一组语料求解，得到 §10 的 view model：选择器、层内按条件集合仲裁、样式入口的三个层、`when=` 变体、box 和 params 的划分、token、embed、语料里的 `embed` 带进来的文档、状态、屏幕和 frame 以及给它们加样式的规则、frame 图，覆盖全部 21 个诊断码。对样式表运行 `geml check` 时，只跑不需要语料的检查 |
+| `geml-media/v1` | 该 profile §8 表里的每一个诊断码，共 36 个：时间线和轨道表、每条轨道能接受的片段来源、素材本身的时长、经 host 核对素材文件的 SHA-256、台词和说话人、合成画面和图层、按几何关系（裁切、缩放、镜像、偏移）解析的交互，以及跨文档的生成日志溯源，包括过期的生成结果、过期的剪辑片段、没有来源记录的素材 |
+| `geml-style/v1` | `check::style::check` 把样式表对一组语料求解，得到 §10 的 view model：选择器、层内按条件集合仲裁、样式入口的三个层、`when=` 变体、box 和 params 的划分、token、embed、语料里的 `embed` 带进来的文档、状态、屏幕和 frame 以及给它们加样式的规则、frame 图，覆盖该 profile §8 表里的每一个诊断码，共 21 个。对样式表运行 `geml check` 时，只跑不需要语料的检查 |
 | `geml-history/v1` | `check::history` 读取 sidecar，沿 parent 链一次走完，把每个版本和记录的哈希核对，可以重建任意版本；工作文件和当前版本不一致时给出警告 |
 | `geml-codemap/v1` | `check::codemap::verify` 经 host 跨文档解析边表的每个单元格和每个 `entry`，报告悬空的引用 |
 | `geml-translator/v1` | 它的属性键和 `meta` 键；这个词汇表没有定义检查 |
 
-本仓库自己的数据都能对上：规范的 history sidecar 57 个版本全部校验通过（`tests/history.rs`），
-playground 的 57 份 codemap 文档没有悬空引用，网站上的 style 示例解出的视图模型和参考解析器的一样。
+本仓库自己的数据都能对上：规范的 history sidecar 65 个版本全部校验通过（`tests/history.rs`），
+网站上的 style 示例解出的视图模型和参考解析器的一样。
 
 ## 没有实现什么
 

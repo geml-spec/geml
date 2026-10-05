@@ -8,10 +8,18 @@ has been `1.0` (Stable) since the first npm release; see
 
 `geml --version --json` prints both: `{"parser":"…","spec":"…"}`.
 
-The format follows [Keep a Changelog](https://keepachangelog.com/1.1.0/); this
-project follows [Semantic Versioning](https://semver.org/). Entries for `1.0.0`
-through `1.7.2` were reconstructed from the release commits, so they record what
-each version shipped rather than a contemporaneous editorial note.
+Entries are grouped by version, newest first, under `## [x.y.z] — date`
+headings; versions follow [Semantic Versioning](https://semver.org/). Up to
+`1.9.0` a version's bullets sit under *Added* / *Changed* / *Fixed* /
+*Security* subsections; from `1.10.0` on each bullet carries its own bold lead
+instead, and a security-audit round is a bullet that begins **Security audit,
+round N**. The headings are not compare links — the parser is not tagged in
+git — so the record of what is on npm is the
+[npm version list](https://www.npmjs.com/package/@geml/geml?activeTab=versions);
+a heading marked *(never published to npm)* names the release its changes
+reached users in. Entries for `1.0.0` through `1.7.2` were reconstructed from
+the release commits, so they record what each version shipped rather than a
+contemporaneous editorial note.
 
 The browser extension (`integrations/chrome-geml-viewer/`) versions on its own track
 and is released under `viewer-v*` tags.
@@ -1986,14 +1994,14 @@ and it is listed here only so the npm version list has no unexplained gap.
 - `{{key}}` interpolation now skips code spans and math, and `\{{key}}` escapes
   it.
 
-## [1.2.3] — 2026-07-21
+## [1.2.3] — 2026-07-21 *(never published to npm — these changes reached users in 1.3.2)*
 
 ### Added
 - **`geml check --root <dir>`** — widens cross-document reference resolution to
   a directory, so sibling directories can reference each other. Escapes past the
   root are still refused.
 
-## [1.2.2] — 2026-07-21
+## [1.2.2] — 2026-07-21 *(never published to npm — these changes reached users in 1.3.2)*
 
 ### Security
 - Round-two security-audit fixes. Codemap recipes became structured
@@ -2001,7 +2009,7 @@ and it is listed here only so the npm version list has no unexplained gap.
   upgraded rather than executed as-is. Plus fixes for scheme control characters,
   same-origin `fetchDoc`, `vscode:`/`action:` schemes, recursion and DoS limits.
 
-## [1.2.1] — 2026-07-21
+## [1.2.1] — 2026-07-21 *(never published to npm — these changes reached users in 1.3.2)*
 
 ### Security
 - Round-one security-audit fixes: a trust gate closing a remote-code-execution

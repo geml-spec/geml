@@ -23,6 +23,9 @@ test("--help exits 0 and lists the commands", () => {
   const r = run(["--help"]);
   assert.equal(r.code, 0);
   for (const c of ["--to", "get", "set", "add", "delete", "rename", "revert", "check", "history", "codemap"]) assert.match(r.out, new RegExp(c));
+  // Every command family has a line here — `geml media` used to be reachable
+  // only through `geml media --help` and the docs that cite it.
+  assert.match(r.out, /geml media\b/, "the media family is missing from the top-level help");
   // the reclaimed verbs are gone from the usage block
   assert.doesNotMatch(r.out, /geml (render|export|convert|fmt) /);
 });
@@ -303,6 +306,16 @@ test("codemap --help exits 0; unknown subcommand exits 2 with the usage", () => 
   const bad = run(["codemap", "nope"]);
   assert.equal(bad.code, 2);
   assert.match(bad.err, /unknown codemap subcommand 'nope'/);
+});
+
+test("style --help/-h is a help request: usage to stdout, exit 0 (as history/codemap)", () => {
+  // `geml style --help` used to fall into `unknown style subcommand ''` and exit 2.
+  for (const f of ["--help", "-h"]) {
+    const h = run(["style", f]);
+    assert.equal(h.code, 0, `style ${f}: ${h.err}`);
+    assert.match(h.out, /geml style check <stylesheet\.geml>/, `style ${f}`);
+    assert.equal(h.err, "", `style ${f} wrote to stderr`);
+  }
 });
 
 test("codegraph / code-graph alias to codemap (people reconstruct the command from the .geml-code-graph dir name)", () => {

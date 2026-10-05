@@ -1,9 +1,11 @@
 # GEML check — GitHub Action
 
 Fail the build when a `.geml` document has an error: a dangling `[[#id]]`, a
-broken cross-document link, a duplicate id, or any parse error. It is `geml
-check` wired into CI — the check that keeps **AI-edited docs from silently
-rotting**.
+broken cross-document link, a duplicate id, or any parse error. The `geml
+get`/`geml set` write path already refuses a bad edit; this Action catches what
+slipped past it — a file edited by hand, a reference whose target moved in
+another commit. It is `geml check` wired into CI — the check that keeps
+**AI-edited docs from silently rotting**.
 
 ## Usage
 
@@ -16,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: geml-spec/geml/integrations/geml-check-action@main
+      - uses: geml-spec/geml/integrations/geml-check-action@main   # or pin: @<commit sha>
         # with:
         #   files: "docs/**/*.geml README.geml"   # default: all tracked *.geml
         #   version: "latest"                       # default: latest (or pin, e.g. "1.8.2")
@@ -27,8 +29,9 @@ By default it checks every `.geml` file tracked in the repo and fails the job
 (non-zero exit) the moment any file has an `error` diagnostic. Warnings do not
 fail the build.
 
-> Once this action gets its own repository (planned), the reference shortens to
-> `uses: geml-spec/geml-check-action@v1`.
+The action lives in this repository, so the reference is the subdirectory
+path above. `@main` follows the latest commit; to pin it, replace `main` with
+a commit SHA from this repository.
 
 ## Inputs
 

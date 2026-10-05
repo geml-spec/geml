@@ -18,6 +18,9 @@
   <container>.geml           one per container (module|dir|file granularity, --container)
   _index/name-lookup.json    name → {anchor, doc, id} (F4)
   _index/cross-stack.json    cross-stack API-link audit (endpoints, method divergences, uncalled routes, unmatched calls)
+  _index/foldings.geml       BUILD-time tuning: module roots and the ceremony prefixes folded out of display paths (seeded on first build, never rewritten)
+  _index/style.geml          DISPLAY tuning: a geml-style/v1 stylesheet for the graph view (seeded on first build, never rewritten)
+  _index/index.geml          the style entry (geml-style §1.1): `default-style` → style.geml, plus an optional `#sitemap` (seeded with style.geml)
   _build/                    raw indexer output + symbols/edges.jsonl (intermediates; regenerable / gitignore-able; agents don't read them)
 ```
 
@@ -49,6 +52,8 @@ dangling references are left behind.
   | `module` | container docs | the container's **display path**: the real directory with the ceremony stripped. Module root = the directory holding the build manifest (pom.xml/package.json/tsconfig.json/go.mod/Cargo.toml, …); first strip the build source root (`src/main\|test/<lang>`, bare `src`), then strip the longest common segment prefix shared within the module: `magic-api/src/main/java/org/ssssssss/magicapi/core/config` → `magic-api/core/config`. Test code (`src/test/*`, top-level `test`/`tests`/`__tests__`/`spec`) folds into a top-level `test/` branch; a single-module repo uses the repo name as the module segment; file granularity normalizes the same way but keeps the file name (no whole-segment folding). Affects display and document naming only |
   | `src` | container docs | the **real** relative path of the source dir/file (not normalized — used to locate source) |
   | `entry` | when entries exist | space-separated reference list: methods **called from outside the container**, or app entry points (main); **checked by verify** |
+  | `app-entry` | when the container holds a program start | the subset of `entry` **where the program starts**: each reference followed by the convention that identified it in parentheses, `#main (main) #handler (worker-fetch)` — the same value the block carries as `entry-via=` (§3). Index documents carry the whole graph's list as `doc.geml#id` references |
+  | `app-entry-file` | when a start is file-level | a source file whose entry is top-level code with no function symbol (an SPA bootstrap, a Nuxt app shell): the path, plain text, then the convention in parentheses. The index lists the documents that carry one as `app-entry-docs` |
   | `resolution-default` | all | `cpg` / `heuristic` (the default resolution source for this document's edges) |
   | `repo` / `commit` / `container` | index | repo name / git short hash / container granularity |
   | `graph-depth` | optional | render-depth override (renderer default: 6) |
@@ -70,6 +75,15 @@ dangling references are left behind.
 - `name=` (optional) = display name, written only when id sanitization changed
   it (e.g. `RenderCtx.block` → id `RenderCtx-block`); renderers use it for node
   labels, references still go by id.
+- `entry-via=` (only on an `.app-entry` block) = the **convention that identified
+  this method as a program start**: `main` (a function literally named `main`,
+  flagged by the indexer), or a manifest / source marker the build detected —
+  `cargo-bin`, `pkg-bin`, `spring-boot`, `django-manage`, `py-main`, `wsgi-app`,
+  `worker-fetch`, `server-listen`, `vue-mount`, `react-mount`, `svelte-mount`,
+  `nuxt-app`, `nuxt-page`, `next-page`, `kit-route`. The same value appears in
+  parentheses after the method's reference in meta `app-entry` (§2); the method
+  is also one of meta `entry`'s references. The codemap never claims an entry
+  without saying what identified it.
 - **id rules**: the method's short name (sanitized into a legal id); same-name
   collisions within a document → every member appends
   `-<first 6 hex chars of sha256(anchor)>`; if the first 6 still collide within
@@ -80,9 +94,12 @@ dangling references are left behind.
   is called), `.accessor` (bean-style get/set/is leaves — hidden by renderers
   by default, with a visible count and a toggle; table data unaffected),
   `.test` (test-territory path convention), `.flow-entry` (engine-provided key
-  execution-flow entry, optional).
-- **`entry` never sits on a block** — it is a module-level fact and appears
-  only in meta (§2).
+  execution-flow entry, optional), `.app-entry` (a program start — `main`, or a
+  detected entry; the block then carries `entry-via=`).
+- **`entry` itself never sits on a block** — the container's inbound call
+  surface is a module-level fact and appears only in meta (§2). What a block
+  carries is the app-entry mark, `.app-entry` plus `entry-via=`: it says *why*
+  this one method is a program start, not which methods the container exposes.
 
 ## 4. Edge tables (empty tables are not emitted)
 
@@ -135,7 +152,7 @@ through an HTTP string across a network boundary. The profile joins them on
 - `geml check` (the standard): document structure, id uniqueness, native
   references. **CSV cells and meta values are opaque to the standard — by
   design; the standard grows no codemap-shaped holes.**
-- `verify.mjs` (the profile): parses `#calls`/`#called-by`/`#ref-by` from/to
+- `geml codemap verify` (the profile): parses `#calls`/`#called-by`/`#ref-by` from/to
   cell by cell, plus meta `entry` values; dangling = build failure (exit 1).
   Run it after every build; red = the graph is stale or partially updated —
   rebuild before trusting navigation. The cross-stack link tables
@@ -162,7 +179,7 @@ through an HTTP string across a network boundary. The profile joins them on
 
 ## 7. Versioning
 
-`build.mjs --history [-m msg]`: changed documents are committed into their own
+`geml codemap build --history [-m msg]`: changed documents are committed into their own
 `.gemlhistory`; `geml history get` shows how the graph evolved, and
 `geml revert doc '#method' --rev -1` rolls a single method back.
 

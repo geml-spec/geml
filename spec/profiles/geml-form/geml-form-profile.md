@@ -34,11 +34,14 @@ profile = "geml-form/v1"
 ===
 ```
 
-Without the declaration the same document parses to the same model — §8.6
-rule 4 — and the six keys are `unknown-attribute` warnings. With it, and with a
-processor that recognizes the name, they are admitted. A processor that does
-not recognize the name treats the declaration as absent (§8.6 rule 3) and is
-still conformant.
+Without the declaration the six constraint keys are `unknown-attribute`
+warnings, and as far as they are concerned the model is unchanged: an attribute
+value is stored either way. The `form-*` types are another matter. For the
+transition they are profile-admitted (§1.1), so without the declaration they are
+`unknown-block-type` with raw bodies, and a `form`'s fields become addresses
+only once the profile is declared and recognized (§8.6.2 rule 4). A processor
+that does not recognize the name admits nothing and reports
+`unrecognized-vocabulary` (§8.6.2 rule 3); it is still conformant.
 
 ## 1.1 What the reference registry holds, and why it is more than six
 
@@ -112,9 +115,12 @@ to one attribute at a time. A processor that evaluated `pattern` against a
 
 ## 4. What this profile does not admit
 
-- **No type names.** `form`, `form-field`, `form-group`, `form-options` and
-  `form-note` are the specification's (GEP-0008); a profile cannot give a type
-  a body mode or an id scope.
+- **No type names, once the GEP is accepted.** `form`, `form-field`,
+  `form-group`, `form-options` and `form-note` are the specification's
+  (GEP-0008): a body mode and an id scope are §3's registry's to give. For the
+  transition the reference registry admits the five `form-*` types and their
+  body modes (`form` and `form-group` are `flow`) through this profile (§1.1;
+  GEML §8.6.1), so that a document declaring it checks clean today.
 - **No `type=` values.** The seven value shapes are closed in the GEP; an
   unknown one is `unknown-field-type`, a warning, and renders as `text`.
 - **No conditional or cross-field keys** — `requiredIf`, `showIf`, `excludes`.
@@ -125,15 +131,23 @@ to one attribute at a time. A processor that evaluated `pattern` against a
 
 ## 5. Diagnostics
 
-This profile adds no diagnostics of its own. The ones a document using it
-meets are the core's and GEP-0008's:
+The conformance file lists the codes a document declaring this profile meets
+through it:
+
+- `form-child-outside-form`, `form-field-missing-name`, `form-duplicate-name` —
+  **error**; GEP-0008's structural rules, carried by the profile for the
+  transition (§1.1);
+- `unrecognized-vocabulary` — **warning**; the core's report from a processor
+  that does not recognize the name (§8.6.2 rule 3).
+
+The rest are the core's and GEP-0008's:
 
 - `unknown-attribute` — a constraint key without the profile declared;
-- `unknown-field-type` — a `type=` value outside the seven;
-- `form-child-outside-form`, `form-field-missing-name`, `form-duplicate-name`,
-  `form-field-has-body`, `options-not-form-options`, `note-not-form-note`,
-  `unused-form-block`, `duplicate-id` — GEP-0008's family diagnostics,
-  unaffected by this profile.
+- `unknown-field-type`, `form-field-has-body`, `options-not-form-options`,
+  `note-not-form-note`, `unused-form-block` — GEP-0008's family diagnostics,
+  defined by the GEP and not implemented by the reference checker, which does
+  not look at `type=` values;
+- `duplicate-id` — the core's.
 
 A checker MAY additionally warn when a value is unreadable in the key's own
 terms — `min=abc` on a `number`, `pattern=` that is not a valid regular

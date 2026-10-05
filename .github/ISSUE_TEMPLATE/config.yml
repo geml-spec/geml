@@ -9,3 +9,9 @@ contact_links:
   - name: Try GEML in the browser
     url: https://geml-spec.github.io/playground/
     about: The playground — edit GEML and watch a broken reference fail the build.
+  - name: Report a security vulnerability
+    url: https://github.com/geml-spec/geml/security/advisories/new
+    about: Private report via GitHub Security Advisories — not a public issue. See SECURITY.md.
+  - name: Ask a question or discuss an idea
+    url: https://github.com/geml-spec/geml/discussions
+    about: Questions, usage help and open-ended design talk belong in Discussions.

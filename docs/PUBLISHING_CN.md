@@ -3,7 +3,9 @@ title: "发布 —— 发什么、发到哪、怎么确认发成了"
 audience: "任何要切一次发布的人，包括 agent"
 ---
 
-# 发布
+# 发布 —— 发什么、发到哪、怎么确认发成了
+
+## 发布
 
 *[English](PUBLISHING.md) | 中文*
 
@@ -15,7 +17,7 @@ audience: "任何要切一次发布的人，包括 agent"
 正是 Show HN 指向的那个页面；一份已提交的代码图，是在 `geml check` 对它红了好几周
 之后才被重新生成的。两次都是**偶然**发现的，不是被某道门拦住的。
 
-# 谁携带了谁的拷贝
+## 谁携带了谁的拷贝
 
 ```mermaid
 flowchart TD
@@ -29,7 +31,7 @@ flowchart TD
   VIEWER --> SITE
 
   NPM -.-> LOGSEQ["@geml/logseq-sync<br/>按范围依赖 ^1.x"]
-  NPM -.-> PLUGINS["claude / codex 插件<br/>经 npx 运行 MCP server"]
+  NPM -.-> PLUGINS["claude / codex / grok / gemini / kimi<br/>经 npx 运行 MCP server"]
 
   BUNDLE --> G1{"每次 CI 都重新构建<br/>所以不可能过期"}
   MAP --> G2{"没有门<br/>只有属性解析不了时<br/>check 才会发现"}
@@ -37,7 +39,7 @@ flowchart TD
 
 只有虚线那两条会自己照顾自己。每一条实线都是一份需要有人记得的拷贝。
 
-# 发布之前
+## 发布之前
 
 | 东西 | 用于 | 一次性设置 |
 | --- | --- | --- |
@@ -59,20 +61,21 @@ flowchart TD
 以及在这一切之前：**先把版本号落到 `main` 上**。每一条发布路径读的都是那棵树，不是
 你的工作副本。
 
-# 逐个产物
+## 逐个产物
 
-## `@geml/geml` —— 解析器、CLI、MCP server
+### `@geml/geml` —— 解析器、CLI、MCP server
 
 - **落到** npmjs.com/package/@geml/geml，以及 Model Context Protocol registry。
 - **版本住在九个字段里**：`geml-parser/package.json`、`server.json`（两处）、
   `package-lock.json`（两处），以及四个厂商清单：`claude-plugin`、`codex-plugin`、
   根目录的 `gemini-extension.json`、`grok-plugin/.grok-plugin/plugin.json`。
   这四个由 mcp 测试守着 —— 它的断言原话是
-  *"installed plugins would never see this release"*。
+  *"installed plugins would never see this release"*，第五、第六份就是这么被发现的；
+  第七、第八份随 agent 市场的清单而来，这一行直到 1.10.0 才补上它们。
 - **Rust 实现跟着走。** `geml-parser-rs/Cargo.toml` 和它的 `Cargo.lock` 用解析器的
-  版本号，主版本换成 0：解析器 1.12.1 就是 crate 0.12.1，在同一个发布提交里一起改。
-  这个 crate 不发布（`publish = false`）；它落后时 `tests/version.rs` 会让 Rust 的
-  CI job 失败。
+  版本号，主版本换成 0：解析器 1.x.y 就是 crate 0.x.y（例：1.12.3 → 0.12.3），
+  在同一个发布提交里一起改。这个 crate 不发布（`publish = false`）；它落后时
+  `tests/version.rs` 会让 Rust 的 CI job 失败。
 - **怎么发。** Actions -> *Publish to npm* -> Run workflow；然后 Actions ->
   *Publish MCP Server*。两个都是 `workflow_dispatch`：发布是一个**刻意的动作**，
   绝不是 push 的副作用。
@@ -85,7 +88,7 @@ flowchart TD
   （workflow 带 `--provenance` 发布）· `npx -y @geml/geml@<版本> --version --json`
   会同时打印解析器版本与规范版本。
 
-## `geml-viewer` —— Chrome 扩展
+### `geml-viewer` —— Chrome 扩展
 
 - **先落到** GitHub release 的资产，**再**上 Chrome 应用商店。
 - **版本**在 `manifest.json`、`package.json` 与 `package-lock.json`（两处）。
@@ -100,42 +103,44 @@ flowchart TD
 - **发后确认。** release 上有 `geml-viewer-<x.y.z>.zip` · 把 zip 以未打包扩展加载
   并打开一个 raw `.geml` · 商店列表页的版本是另一件事，单独确认。
 
-## `vscode` —— 编辑器扩展
+### `vscode` —— 编辑器扩展
 
-- **今天只落到一个市场，而且不是想当然的那个。**
-  [**Open VSX**](https://open-vsx.org/extension/geml/geml) —— namespace `geml`、
-  扩展名 `geml` —— 已上架，而且是**唯一**的渠道：Cursor、Windsurf、VSCodium 与
-  Antigravity 都从那里解析扩展。**VS Code Marketplace 的账号还没申请**，所以纯 VS
-  Code 用户根本没有可安装的列表页。设计上仍是「同一个 `.vsix` 发两边、两个账号两个
-  token」，只是两个里现在只存在一个。
+- **落到两个市场，用的是同一个文件。**
+  [Open VSX](https://open-vsx.org/extension/geml/geml)（namespace `geml`）是
+  Cursor、Windsurf、VSCodium 与 Antigravity 解析扩展的地方；
+  [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=geml.geml)
+  （publisher `geml`）是纯 VS Code 安装的地方。两个列表页都已存在。两边可以停在不同
+  的版本上 —— 一次发布在一边成功、在另一边失败，两边就会错开，直到下一次运行为止；
+  这是正常现象，不是损坏。
 - **版本**在 `package.json` 与 `package-lock.json`（两处）。
-- **怎么发。** **只打一次包**，然后把那**同一个文件**发两次 —— 两个 CLI 都接受
-  `-i, --packagePath`（对着 `vsce` 与 `ovsx` 的 help 核实过）：
+- **怎么发。** Actions -> **Publish the VS Code extension** -> Run workflow。输入：
+  `targets`（`both` | `marketplace` | `open-vsx`）与 `dry_run`。它按顺序构建三个
+  部分（解析器 dist -> viewer 的 webview bundle -> 编译并测试扩展），打**一个**
+  `.vsix`，把它留作 run artifact，再把那**同一个文件**发到被要求的目标。token 来自
+  `VSCE_PAT` / `OVSX_PAT`，经环境变量传入，绝不出现在命令行上。第一次运行勾上
+  `dry_run`：只构建、打包，什么都不发。
+- **注意。**
 
-  `sh
-  cd integrations/vscode
-  npx --yes @vscode/vsce package                 # -> geml-<x.y.z>.vsix
-  npx --yes @vscode/vsce publish -i geml-<x.y.z>.vsix
-  npx --yes ovsx publish        -i geml-<x.y.z>.vsix -p <OPEN_VSX_TOKEN>
-  `
-
-  `vscode:prepublish` 会跑 `compile` 和 `build:webview`，而后者是
-  `npm --prefix ../chrome-geml-viewer run build:vscode` —— 解析器就是在这一步被打包进去的。
-
-- **注意。** **不要**不带包路径去跑 `vsce publish` 和 `ovsx publish`：那样每个都会
-  自己构建一个 `.vsix`，于是同一个版本号下两个市场装的是**不同的字节**。打包前必须
-  先构建解析器，否则 webview 构建会因为找不到 `dist/` 而失败。这里的 bundle
-  **刻意不提交**（约 8 MB），所以没有陈旧问题，CI 也没有什么要守。两个登记处都会
-  拒绝重复版本。
+  - **第一个目标失败会跳过第二个。** 这些步骤没带 `always()`，所以 Marketplace 的
+    401 会让 job 失败，Open VSX 根本不会跑。如果 Marketplace 成功而 Open VSX 失败，
+    用 `targets=open-vsx` 重跑 —— 重跑 `both` 会在第一步撞上重复版本而死掉，永远到
+    不了第二步。
+  - **Marketplace 回 401 是 PAT 的问题，不是列表页的问题。** publisher 已存在；先查
+    token 的组织范围（见「发布之前」）。
+  - 不要从工作副本手工发布：字节不可复现。workflow 从被推送提交的干净检出打包。
+  - webview bundle **刻意不提交**在这里（约 8 MB），所以没有陈旧问题要 CI 去守 ——
+    但这也意味着打包前必须先构建解析器，workflow 会做这件事，而手工跑会忘。
+  - 两个登记处都会拒绝重复版本。
 - **真正要紧的版本是包**里**那个。** 扩展通过 `build:webview` 把解析器打了进去，
-  所以**重新打包才是解析器的修复抵达 Cursor 与 Antigravity 的唯一途径** —— 扩展版本
+  所以**重新打包才是解析器的修复抵达 Cursor 与 Antigravity 的途径** —— 扩展版本
   号没动，不代表它的用户是新的。1.0.0 在 Open VSX 上挂着的那阵，里面的解析器已经落后
   好几个版本，而仓库早已是 1.9.1。
-- **发后确认。** `curl -s https://open-vsx.org/api/geml/geml` 会给出版本号与下载量 ·
+- **发后确认。** `npx @vscode/vsce show geml.geml` 给出 Marketplace 上的版本 ·
+  `curl -s https://open-vsx.org/api/geml/geml` 给出 Open VSX 上的版本与下载量 ·
   装上并打开一个 `.geml` 文件。Open VSX 索引提交有延迟，所以发布成功后的几分钟内
-  API 仍可能回答上一个版本。VS Code Marketplace 在账号建立之前没有什么可确认的。
+  API 仍可能回答上一个版本。
 
-## Claude 与 Codex 插件
+### Claude 与 Codex 插件
 
 - **落到**——哪也不落。**这个仓库自己就是 marketplace**：
   `.claude-plugin/marketplace.json` 与 `.agents/plugins/marketplace.json` 分别指向
@@ -147,9 +152,12 @@ flowchart TD
 - **发后确认。** 取 raw 清单读它的版本 · 在一个全新会话里安装该插件，确认某个 skill
   能被解析到。
 
-## `@geml/dsh-plugin`
+### `@geml/dsh-plugin`
 
-- **落到** npmjs.com/package/@geml/dsh-plugin。
+- **落到** npmjs.com/package/@geml/dsh-plugin，以及 —— 另算一处 ——
+  **awesome-dsh-plugin** 列表（`data/plugins`，条目已在 PR #1310 中被接受），
+  dshmarket 读的就是它。npm 发布是 release；列表条目是 listing，只有描述或分类变了
+  才需要新的 PR：市场自己跟踪 GitHub 与 npm。
 - **版本**在它自己的 `package.json`，走**自己的轨道** —— 与另外两个插件不同，它
   **不**跟随解析器。
 - **怎么发。** 在 `integrations/dsh-plugin` 手工 `npm publish`。它发出去的是
@@ -159,7 +167,7 @@ flowchart TD
   等于顺带就发了。
 - **发后确认。** `npm view @geml/dsh-plugin version`。
 
-## Agent 市场 —— 每个厂商一份清单
+### Agent 市场 —— 每个厂商一份清单
 
 同样的两个技能、同样的 stdio MCP server，列进别人的目录里。这里没有任何东西需要构建
 或发布：每个厂商只读一个文件，要做的活是**提交上架请求**。文件今天都在本仓库里；大部分
@@ -192,17 +200,29 @@ flowchart TD
 - **确认。** 凡是自动索引的，确认的标准是**条目出现**，不是文件存在：去画廊或市场里
   搜 `geml`，并把看到的记下来。仓库里有一份清单，什么都不能证明。
 
-## `@geml/logseq-sync` —— watcher
+### `@geml/logseq-sync` —— watcher
 
 - **落到** npmjs.com/package/@geml/logseq-sync。这是真正干活的那一半：它监视 vault
   并执行同步。当前 2.3.0。
-- **版本**在 `integrations/logseq/package.json` 与 `package-lock.json`。
+- **版本**在 `integrations/logseq/package.json` 与 `package-lock.json`（锁文件里是
+  三个字段：根、`packages[""]`，以及 `plugin` workspace —— watcher 与插件一起动）。
 - **怎么发。** 在 `integrations/logseq` 跑 `npm publish`。
-- **注意。** 它按**范围**依赖解析器（`^1.x`），所以解析器发版不用它自己发版就能到达
-  —— 这也是它成为**唯一不随每次解析器发版而移动**的产物的原因。
-- **发后确认。** `npm view @geml/logseq-sync version`。
+- **注意。** 它按**范围**依赖解析器（`^1.x`），但**锁文件**钉死了一个版本，还带着
+  integrity 哈希 —— 而 CI 和每一次干净安装用的 `npm ci`，装的是锁文件所写的那个。
+  所以解析器发版**到不了**它：在 1.10.0 上实测，锁文件解析到的仍是 1.9.1。刷新这个
+  钉死本身就是一次发布，而且只能在解析器已经上了 npm 之后进行，因为未发布的版本
+  解析不到：
 
-## Logseq 插件 —— 一个镜像 release 加一次性的市场 PR
+  ```
+  npm publish @geml/geml            # 先发解析器
+  cd integrations/logseq && npm install @geml/geml@<version>
+  git commit integrations/logseq/package-lock.json
+  npm publish                       # 再发 watcher
+  ```
+- **发后确认。** `npm view @geml/logseq-sync version` · 并读锁文件里
+  `node_modules/@geml/geml` 那一条，看它实际带的是哪个解析器。
+
+### Logseq 插件 —— 一个镜像 release 加一次性的市场 PR
 
 两道独立的门，而**第二道还没过**。
 
@@ -230,7 +250,7 @@ flowchart TD
   `plugin/package.json` 已是新版本 · 上架状态看
   `gh pr view 893 -R logseq/marketplace`。
 
-## `geml-check-action` —— GitHub Action
+### `geml-check-action` —— GitHub Action
 
 - **落到** [GitHub Marketplace](https://github.com/marketplace?type=actions)，
   而今天落到**哪儿都没有**：**它没有上架**。用户已经可以按路径引用它
@@ -247,7 +267,7 @@ flowchart TD
   而它已发布的 tag 与这里其他 release 一样不可变。
 - **发后确认。** 上架之前没什么可确认的。
 
-## `obsidian` —— 未提交
+### `obsidian` —— 未提交
 
 - **落到** 将来的 Obsidian 社区插件商店；**今天落到哪儿都没有**，这是决定而不是疏漏。
   它的 README 说了，理由在 manifest 里：商店收录的插件来自**它们自己的**仓库、有自己
@@ -260,7 +280,7 @@ flowchart TD
 - **确认。** 手工：把 `main.js` 与 `manifest.json` 拷进 `.obsidian/plugins/geml/`
   然后启用它。
 
-## 有意不发布的部分
+### 有意不发布的部分
 
 `integrations/` 下有三个目录**故意**没有渠道。列在这里，是为了让下一个读者不要把它们
 的缺席读成遗漏。
@@ -273,9 +293,9 @@ flowchart TD
 - **`windows-icon`** —— 一个 `install.ps1`，人在自己机器上跑。没有商店，也没有什么
   可版本化的。
 
-# 顺序
+## 顺序
 
-1. **升版本**：解析器的六个文件、`CHANGELOG.md` 条目、构建。
+1. **升版本**：解析器的九个字段、`CHANGELOG.md` 条目、构建。
 2. **本仓库里没有携带拷贝、需要重新生成的产物。** playground 的 bundle 和解析器的
    codemap 由 `website` 工作流重建：只要 `main` 上解析器或 viewer 有改动，它就重建并推到
    `geml-spec/geml-spec.github.io`，所以升版本不需要 `codemap build`，它们也不在这里提交。
@@ -288,25 +308,26 @@ flowchart TD
 6. **升并发布携带它的产物**，各走各的轨道：viewer 打 tag、vscode 用**一个 `.vsix`**
    同时发 `vsce` 与 `ovsx`、dsh 用 `npm publish`。claude 与 codex 插件**已经上线了**
    —— 合并落地的那一刻就是发布。
-7. **Logseq 只在它自己的代码变了时才发** —— 而且它是**两个**产物不是一个：watcher 用
-   `npm publish`，插件用"先镜像后打 tag"。两者都按范围依赖解析器，新解析器不用它们
-   发版就能到。
+7. **Logseq 是它自己的一次发布** —— 而且它是**两个**产物不是一个：watcher 用
+   `npm publish`，插件用"先镜像后打 tag"。两者都按范围依赖解析器，但共用的锁文件
+   钉死了一个版本，所以新解析器**不会**自己到达它们：先刷新钉死、再重新发版，步骤
+   见上面 `@geml/logseq-sync` 一节。
 
 > **这里已发布的 GitHub release 是不可变的。** 绝不要为了修一个 release 而删除它 ——
 > 删除会**永久烧掉它的 tag**。改为切一个**新** tag 并 `gh release create --latest`。
 > tag 列表里已有的 `-1` 后缀（`viewer-v1.2.2-1`、`v2.0.7-1`）就是这件事发生过的样子。
 
-# 陷阱，每一条都已经付过代价
+## 陷阱，每一条都已经付过代价
 
 | 陷阱 | 表现成什么样 | 什么能拦住 |
 | --- | --- | --- |
-| "解析器的版本有六个家" | "npm 上已是 1.9.0，而已安装的插件仍自报 1.8.8" | "mcp 测试逐个比对插件清单与 package.json" |
-| "站点留着自己的一份 playground bundle" | "geml-spec.github.io 提供的是 `website` 工作流最后一次推过去的东西；没配 `SITE_DEPLOY_KEY` 这个 secret 就不再更新" | "缺密钥时工作流会给出警告；也可以用 `workflow_dispatch` 手动跑一次" |
-| "viewer 的 tag 必须等于 manifest.json" | "一个 viewer-v1.2.4 的 release 挂着 geml-viewer-1.2.3.zip" | "release-viewer.yml 会拒绝这种不一致" |
-| "Logseq 是镜像发布，不是就地打 tag" | "先打 tag 会用陈旧的 checkout 构建，zip 带上旧版本号" | "没有 —— 先镜像、核对镜像的 plugin/package.json、再打 tag" |
-| "锁文件带着自身包的版本" | "npm ci 拒绝，CI 的锁文件 job 变红" | "逐包的 `npm ci --dry-run` job" |
-| "\_index/refresh.json 可能不再符合当前格式" | "`geml codemap refresh` 拒绝一个不受信任或过期的配方 —— 版本闸是安全修复：v1 的步骤是结构化 argv，不经过 shell 直接 spawn" | "手写它；refresh.mjs 称它为没有工具会重写的配方。自动模式的 build 确实会重录一份，但它会索引测试夹具，并把运行它那台机器的绝对路径写进去" |
-| "`codemap refresh` 按 commit 判断新旧" | "源码已改但未提交时它会以 *no source files changed since <sha>* 直接跳过 —— 而那正是开发者最需要它的时刻" | "没有 —— 改动尚未提交时一律加 `--force`" |
-| "Open VSX 是唯一的列表页，而它装着解析器" | "Cursor 与 Antigravity 用户拿到的包里，解析器已落后好几个版本 —— 只因为扩展的版本号没动" | "没有 —— 只要他们该拿到的解析器变了就重新打包发布，不要只在扩展自己改动时才发" |
-| "镜像 release 不等于上架" | "插件的 release 已经到 v2.3.0，在 Logseq 里却依然搜不到" | "没有 —— `logseq/marketplace` 的 PR #893 必须合并一次" |
-| "两个插件没有发布门" | "一个坏掉的 skill 在合并的那一刻就上线了" | "没有 —— 对那两个来说 main 就是 release" |
+| 解析器的版本有九个字段 | npm 上已是 1.9.0，而已安装的插件仍自报 1.8.8 | mcp 测试逐个比对厂商清单与 package.json |
+| 站点留着自己的一份 playground bundle | geml-spec.github.io 提供的是 `website` 工作流最后一次推过去的东西；没配 `SITE_DEPLOY_KEY` 这个 secret 就不再更新 | 缺密钥时工作流会给出警告；也可以用 `workflow_dispatch` 手动跑一次 |
+| viewer 的 tag 必须等于 manifest.json | 一个 viewer-v1.2.4 的 release 挂着 geml-viewer-1.2.3.zip | release-viewer.yml 会拒绝这种不一致 |
+| Logseq 是镜像发布，不是就地打 tag | 先打 tag 会用陈旧的 checkout 构建，zip 带上旧版本号 | 没有 —— 先镜像、核对镜像的 plugin/package.json、再打 tag |
+| 锁文件带着自身包的版本 | npm ci 拒绝，CI 的锁文件 job 变红 | 逐包的 `npm ci --dry-run` job |
+| \_index/refresh.json 可能不再符合当前格式 | `geml codemap refresh` 拒绝一个不受信任或过期的配方 —— 版本闸是安全修复：v1 的步骤是结构化 argv，不经过 shell 直接 spawn | 手写它；refresh.mjs 称它为没有工具会重写的配方。自动模式的 build 确实会重录一份，但它会索引测试夹具，并把运行它那台机器的绝对路径写进去 |
+| `codemap refresh` 按 commit 判断新旧 | 源码已改但未提交时它会以 *no source files changed since <sha>* 直接跳过 —— 而那正是开发者最需要它的时刻 | 没有 —— 改动尚未提交时一律加 `--force` |
+| 两个市场的列表页都装着解析器 | Open VSX 与 VS Code Marketplace 的用户拿到的包里，解析器已落后好几个版本 —— 只因为扩展的版本号没动 | 没有 —— 只要他们该拿到的解析器变了就重跑发布工作流，不要只在扩展自己改动时才发 |
+| 镜像 release 不等于上架 | 插件的 release 已经到 v2.3.0，在 Logseq 里却依然搜不到 | 没有 —— `logseq/marketplace` 的 PR #893 必须合并一次 |
+| 两个插件没有发布门 | 一个坏掉的 skill 在合并的那一刻就上线了 | 没有 —— 对那两个来说 main 就是 release |

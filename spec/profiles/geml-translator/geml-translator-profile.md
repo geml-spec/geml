@@ -17,7 +17,8 @@
 A translation is the source document projected along the **language axis**, the
 same shape a `.md` exported from it has along the format axis:
 the translated file holds nothing but `embed` blocks, each naming a unit of the
-source and saying which language it wants. A document that declares
+source and saying which language it wants — and, optionally, the glossary
+table §6 describes. A document that declares
 `profile = "geml-translator/v1"` may write `translate-to` on those embeds — and
 on `=== meta`, as the document's default — without `geml check` reporting it as
 `unknown-attribute`. Because ids, block order and every non-prose byte stay in
@@ -30,7 +31,6 @@ translates: there is nothing in it to drift.
   === meta
   title        = "发布"
   profile      = "geml-translator/v1"
-  source       = "PUBLISHING.geml"
   translate-to = "zh-cn"
   ===
   === embed {src=PUBLISHING.geml#topology}
@@ -42,7 +42,7 @@ translates: there is nothing in it to drift.
 `profile` is a space-separated list, so a document may declare this alongside
 another vocabulary. Admission licenses the **name** only: it does not change a
 body mode, and the same bytes parse to the same document model whether or not
-the profile is recognized (§8.6 rule 4).
+the profile is recognized (§8.6.2 rule 4).
 
 ## 2. One key, two positions
 
@@ -142,6 +142,16 @@ an ordinary block. The glossary is applied by the projection layer, not asked
 of the engine — and it lives in the **translation**, because a settled
 rendering is a property of the translation and not of the source.
 
+The key, formally:
+
+| `=== meta` key | value | read as |
+|---|---|---|
+| `glossary` | a reference to a table: `#id` names one in this document | two columns, positional: the source term, then the rendering to use; the header row's names are the author's. A row missing either side is skipped, not half-applied. A document that names no glossary, or names a table with no usable row, has none |
+
+The reference implementation reads only the `#id` form; a cross-document
+reference (`doc.geml#id`) is left to the host, which is the half that knows how
+to load a document.
+
 ## 7. What this profile does not admit
 
 - **`translator=`** — reserved, not shipped. With one engine available, a key
@@ -154,7 +164,7 @@ rendering is a property of the translation and not of the source.
   of one embed per unit costs almost nothing to write and an exception is then
   `translate-to=none` on the one embed that means it. A second spelling would
   also have needed a core diagnostic of its own: a typo inside such a list
-  draws only `unknown attribute` and never an unresolved reference — silence,
+  draws only `unknown-attribute` and never an unresolved reference — silence,
   in a vocabulary whose whole purpose is to remove it.
 - **`lang=`** — see §3. It is `code`'s key, and it says something else.
 
@@ -165,9 +175,11 @@ already reported by the core:
 
 | Situation | What you get |
 |---|---|
-| `translate-to` without declaring the profile | `unknown-attribute` **warning** (§Appendix A) |
-| a `src=` that names nothing | `unresolved-reference` / `unresolvable-document` **error** |
-| a translated reference whose target no longer resolves | the same error, in the translation |
+| `translate-to` without declaring the profile | `unknown-attribute` **warning** (Appendix A) |
+| a `src=` that names a document nothing can load | `unresolvable-document` **error** |
+| a `src=` whose document loads but holds no such unit | `unresolved-cross-document-reference` **error** |
+| a `src=` into another document, checked by a processor given no document resolver | `unchecked-cross-document-reference` **warning** — the reference was not followed, not found wanting |
+| a translated reference whose target no longer resolves | the same errors, in the translation |
 
 A processor that recognizes the key but cannot translate must not pretend it
 did. The reference CLI's `--to md` and `--to html` carry no translator, so they
@@ -176,9 +188,10 @@ this export has no translator`.
 
 ## 9. Versioning and scope
 
-`v1` is one key. If the GEP is accepted unchanged, this document becomes its
-normative statement of the vocabulary; if the GEP changes the key's name or its
-positions, the profile name gains a `v2` and this file keeps describing `v1`
+`v1` is one attribute key, `translate-to`, and one `meta` key, `glossary`. If
+the GEP is accepted unchanged, this document becomes its normative statement of
+the vocabulary; if the GEP changes a key's name or its positions, the profile
+name gains a `v2` and this file keeps describing `v1`
 for documents already written against it. Nothing here changes a document
 model, so a `v2` can never make an existing document parse differently — only
 translate differently.

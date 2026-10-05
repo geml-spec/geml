@@ -17,7 +17,7 @@
 ## 0. What it is in one paragraph
 
 A **stylesheet** is an ordinary `.geml` document that declares
-`profile = "geml-style/v1"` and contains three kinds of block. It never modifies
+`profile = "geml-style/v1"` and contains four kinds of block. It never modifies
 the content document — rules **select into** a document rather than a template
 **wrapping** one, because the content is usually machine-generated and
 unmodifiable (codemap output being the case in hand). It contains **no script**:
@@ -492,7 +492,6 @@ Unsupported CSS is **named, not silently unmatched**:
 |---|---|
 | `>` `+` `~` | child/sibling combinators — the block model has containment, not order-adjacency |
 | `:hover` `:nth-child(…)` | state/position pseudo-classes — a selector picks content; the pointer's state is `when="@hover"` (§2.1) |
-| `*` | universal selector |
 | `^=` `$=` `*=` `\|=` | substring matching — §9.2 keeps document text out of pattern languages |
 
 Each raises `style-selector-unsupported` (error) naming the construct. CSS similarity
@@ -697,7 +696,7 @@ fallback**, which is what preserves §8.5.
 | `style-frame-too-deep` | error | frames nest deeper than the core's `chain-depth` (GEML §9.2) along some placement path |
 | `style-unused-frame` | warning | a `style-frame` no slot references |
 | `style-reserved-name` | warning | a selector's **first** step names an inline part (`link`, `image`, `code-span`, `strong`, `emphasis`); it is read as a block type, since a part needs a block step before it, and the message says what a part would need (§3) |
-| `style-invalid-value` | error | a closed-domain built-in word (`axis` / `anchor` / `place` / `scroll` / `sticky` / `hide-below` / `visible` / `grow` / `wrap` / `view` / `editable` / `fade-out` / `underline`) took a value outside its domain, or a `when=` term is neither `$state=value` nor one of `@hover` / `@focus` / `@invalid` / `@disabled` / `@checked` |
+| `style-invalid-value` | error | a closed-domain built-in word (`axis` / `anchor` / `place` / `scroll` / `sticky` / `hide-below` / `visible` / `grow` / `wrap` / `view` / `editable` / `fade-out` / `fade-in` / `underline` / `text-align` / `item-align` / `item-justify`) took a value outside its domain, or a `when=` term is neither `$state=value` nor one of `@hover` / `@focus` / `@invalid` / `@disabled` / `@checked` |
 
 `style-unknown-value-source` is checkable because §6 gives tables a real schema. When
 the producer is not a table the check is **skipped**, not guessed at.
@@ -724,7 +723,7 @@ the view model.
 ## 10. The view model — the conformance surface
 
 `--json` is what a second implementation must agree on (§8.4's shape), and it is
-what a host consumes. It has four fields:
+what a host consumes. It has five fields:
 
 | field | shape |
 |---|---|
@@ -773,7 +772,7 @@ inherits, `border` does not); a host that paints to a canvas or lays out a PDF g
 whatever it implements. **Two conforming hosts may therefore render one stylesheet
 differently**, and the surface above cannot catch it. This is stated rather than fixed:
 pinning inheritance down would mean re-deciding CSS's inherited / non-inherited split
-for all 28 words, and no consumer has needed it yet. A stylesheet that must render the
+for all 38 words, and no consumer has needed it yet. A stylesheet that must render the
 same everywhere should set the word on the block it means.
 
 **Bindings are per screen.** `screen=` gives one block different presentations on
@@ -849,7 +848,7 @@ the compatibility unit, and unknown members degrade per §7.
 **v1 deliberately does not have**: script of any kind, URLs (dev/staging/prod
 differ — a written-in address binds the stylesheet to an environment), routing,
 theming beyond §1.2's tokens, or any body
-content in its three block types.
+content in its four block types.
 
 **Not in v1, with its slot named**: an `override` attribute on a `style-rule`, for
 the author who means a contested attribute to be that rule's without widening its

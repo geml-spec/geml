@@ -6,8 +6,10 @@ howto = "edit one section: geml set <file> '#id' --body --in - ; raw text needs 
 
 # Repo map {#repo-map}
 - `spec/` — the ONE normative specification: `GEML-spec.md` (EN),
-  `GEML-spec_CN.md` (中文), with `spec/in_geml_format/` holding its GEML dogfood
-  copies. `spec/profiles/` holds the application-layer vocabularies (MIT, not
+  `GEML-spec_CN.md` (中文), with `spec/in_geml_format/` holding the GEML dogfood
+  copies: `GEML-spec.geml` (EN) is `GEML-spec.md` converted plus hand fixes, and
+  `GEML-spec_CN.geml` is a geml-translator projection of it (see Conventions).
+  `spec/profiles/` holds the application-layer vocabularies (MIT, not
   the spec; see `spec/profiles/README.md`): each `geml-<p>/` directory carries
   the reference (`geml-<p>-profile.md`), `conformance.json`, and a one-page
   usage guide (`geml-<p>-guide.md`, informative). `spec/proposals/` holds the
@@ -70,13 +72,17 @@ Run an expensive suite ONCE and take output + exit code from that same run.
   (PostToolUse hook) — `geml revert <file> '#id'` rolls back one block.
   Config docs under `.claude/` are excluded: git is their history; no
   `.gemlhistory` is generated or committed there.
-- `spec/in_geml_format/*.geml` are NOT pure `--to geml` output: they carry
-  hand-applied fixes that regeneration would silently destroy — `../`-prefixed
-  relative links (the `.geml` sits one directory below its `.md` source),
-  hand-named block ids (`#code-embed-base`, `#code-source-route-cn`) in place of
-  auto `#code-N`, and widened fences. Never overwrite one with a bare
-  regeneration; diff against it and re-apply those fixes, or edit the block in
-  place with `geml set`.
+- `spec/in_geml_format/` is NOT pure `--to geml` output. `GEML-spec.geml` (EN)
+  is `GEML-spec.md` converted and then hand-patched with fixes that
+  regeneration would silently destroy — `../`-prefixed relative links (the
+  `.geml` sits one directory below its `.md` source), hand-named block ids
+  (`#code-embed-base`, `#code-source-route`, `#table-coordinate-forms`) in place
+  of auto `#code-N`/`#table-N`, and widened fences. `GEML-spec_CN.geml` is not a
+  conversion at all: it is a geml-translator projection
+  (`profile = "geml-translator/v1"`; 17 `=== embed` blocks pointing at the EN
+  `.geml`), so its content follows the EN document through the translation
+  layer. Never overwrite the EN one with a bare regeneration; diff against it
+  and re-apply those fixes, or edit the block in place with `geml set`.
 - Cross-platform: code and tests must hold on Windows (dev) AND Linux (CI) —
   path separators, CRLF, cmd.exe quoting, git identity, `fs.watch` quirks.
 - Any change to `geml-parser/src/geml.ts` top-level imports or re-exports must

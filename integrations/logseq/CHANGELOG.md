@@ -5,6 +5,13 @@ The plugin (`logseq-plugin-sync-vault-with-geml`) and the watcher
 Logseq major this speaks to — 2.x means Logseq 2.x DB graphs, and nothing
 older.
 
+## Unreleased
+
+- **The parser floor is `@geml/geml` ^1.12.1**, and the lockfile pin with it
+  (raised 2026-10-03, from the ^1.10.2 that v2.3.0 set). No plugin or watcher
+  code changed; a fresh `npm ci` simply installs a parser that carries every
+  release since, including the security-audit rounds under it.
+
 ## v2.3.0
 
 - **A block's uuid has ONE home.** It used to appear twice — as `{#uuid}`, the

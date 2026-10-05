@@ -7,9 +7,9 @@ reference parser was read. Its purpose is the one §8.4 gives a second
 implementation — to show that the specification, not one program, decides what
 a document means.
 
-**Status: conforms.** All 315 conformance cases pass, with every capability the
+**Status: conforms.** All 429 conformance cases pass, with every capability the
 suite's manifest names declared (`tables`, `views`, `ids`, `addresses`,
-`blocks`, `diagnostics`, `bytes`, `yaml`), so no case is skipped. The suite runs
+`blocks`, `diagnostics`, `bytes`, `yaml`, `host`), so no case is skipped. The suite runs
 twice:
 
 - natively, through this crate's harness (`tests/conformance.rs`);
@@ -152,16 +152,15 @@ and info:
 | vocabulary | what is checked |
 |---|---|
 | `geml-form/v1` | GEP-0008's family diagnostics: a family block outside its form, a field without `name=` or sharing one with another field of its form, a field with a body, an unknown field type, `options=` and `#note` attributes naming the wrong block, a `form-options` or `form-note` no field uses; a coordinate on a `form` or a `form-group` names a field by its name (`#signup["email"]`), and a reference to it says the field's label |
-| `geml-media/v1` | all 33 codes: timelines and their track tables, cuts and the kind of source each track takes, intrinsic durations, assets against their files' SHA-256 through the host, lines and speakers, comps and layers, interactions resolved by geometry (crop, scale, mirror, offset), and the generation log's lineage across documents — stale generations, stale cuts, records with no provenance |
-| `geml-style/v1` | `check::style::check` solves a stylesheet against a corpus into the §10 view model: selectors, arbitration by condition sets within a layer, the three layers of a style entry, `when=` variants, the box/params split, tokens, embeds, the documents a corpus's `embed`s bring in, states, screens and frames with the rules that dress them, and the frame graph, with all 21 codes; `geml check` on a stylesheet runs the checks that need no corpus |
+| `geml-media/v1` | every code in the profile's §8 table, 36 of them: timelines and their track tables, cuts and the kind of source each track takes, intrinsic durations, assets against their files' SHA-256 through the host, lines and speakers, comps and layers, interactions resolved by geometry (crop, scale, mirror, offset), and the generation log's lineage across documents — stale generations, stale cuts, records with no provenance |
+| `geml-style/v1` | `check::style::check` solves a stylesheet against a corpus into the §10 view model: selectors, arbitration by condition sets within a layer, the three layers of a style entry, `when=` variants, the box/params split, tokens, embeds, the documents a corpus's `embed`s bring in, states, screens and frames with the rules that dress them, and the frame graph, with every code in the profile's §8 table, 21 of them; `geml check` on a stylesheet runs the checks that need no corpus |
 | `geml-history/v1` | `check::history` reads a sidecar, verifies every revision on the parent chain against its recorded hash in one walk, reconstructs any revision, and warns when the live file differs from the current one |
 | `geml-codemap/v1` | `check::codemap::verify` resolves every cell of the edge tables and every `entry`, across documents through the host, and reports what dangles |
 | `geml-translator/v1` | its attribute and `meta` keys; the profile defines no checks |
 
 The repository's own data agrees: the specification's history sidecar verifies
-all 57 revisions (`tests/history.rs`), the playground's 57 codemap documents
-have no dangling reference, and the site's style demo solves to the same view
-model as the reference parser's.
+all 65 revisions (`tests/history.rs`), and the site's style demo solves to the
+same view model as the reference parser's.
 
 ## What it does not
 

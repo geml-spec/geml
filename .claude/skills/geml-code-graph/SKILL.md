@@ -13,6 +13,8 @@ description: >-
 
 # Code-graph navigation (codemap profile)
 
+This is the in-repo variant of `integrations/*/skills/geml-code-graph/SKILL.md`: paths are repository-relative and it adds the local `node geml-parser/dist/geml.js codemap …` form; the plugin copies are byte-identical to each other and are what `geml skill install` ships.
+
 The call graph lives as **text documents, not a database** (profile:
 `spec/profiles/geml-codemap/geml-codemap-profile.md`): one GEML document per container (module / dir /
 file), each with ONE meta (`module`, `src`, `entry`, `resolution-default`),

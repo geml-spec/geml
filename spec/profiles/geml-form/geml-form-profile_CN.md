@@ -27,9 +27,11 @@ profile = "geml-form/v1"
 ===
 ```
 
-不声明，同一份文档解析出同一个模型（§8.6 规则 4），六个键是 `unknown-attribute`
-warning。声明了，且处理器认识这个名字，它们被放行。处理器不认识这个名字时视同未声明
-（§8.6 规则 3），仍然合规。
+不声明，六个约束键是 `unknown-attribute` warning，而就它们而言模型不变：属性值反正都
+会被存下来。`form-*` 类型是另一回事。过渡期里它们由 profile 放行（§1.1），所以不声明时
+它们是 `unknown-block-type`、正文是 raw，一张 `form` 的字段要等 profile 被声明且被认识
+之后才成为地址（§8.6.2 规则 4）。处理器不认识这个名字时什么也不放行，并报出
+`unrecognized-vocabulary`（§8.6.2 规则 3），仍然合规。
 
 ## 1.1 参考实现的注册表里为什么不止六个
 
@@ -89,8 +91,10 @@ GEP 的结构规则也这样随行，对声明了这份 profile 的文档生效�
 
 ## 4. 本 profile 不放行的
 
-- **不放行类型名。** `form`、`form-field`、`form-group`、`form-options`、`form-note` 是规范
-  的（GEP-0008）；profile 不能给类型 body 模式或 id 作用域。
+- **GEP 接受后不再放行类型名。** `form`、`form-field`、`form-group`、`form-options`、
+  `form-note` 是规范的（GEP-0008）：body 模式和 id 作用域由 §3 的注册表给。过渡期里，
+  参考实现的注册表经由这份 profile 暂放行这五个 `form-*` 类型及其 body 模式（`form` 与
+  `form-group` 是 `flow`）（§1.1；GEML §8.6.1），好让今天声明了它的文档能校验干净。
 - **不放行 `type=` 取值。** 七种值形状在 GEP 里是封闭的；未知值是 `unknown-field-type`
   warning，按 `text` 渲染。
 - **不放行条件或跨字段键**——`requiredIf`、`showIf`、`excludes`。见 §2 和 GEP-0008
@@ -100,13 +104,20 @@ GEP 的结构规则也这样随行，对声明了这份 profile 的文档生效�
 
 ## 5. 诊断
 
-本 profile 不新增诊断。使用它的文档会遇到的都是核心和 GEP-0008 的：
+一致性文件列出了声明本 profile 的文档会经由它遇到的码：
+
+- `form-child-outside-form`、`form-field-missing-name`、`form-duplicate-name`——
+  **error**；GEP-0008 的结构规则，过渡期由 profile 随行（§1.1）；
+- `unrecognized-vocabulary`——**warning**；处理器不认识这个名字时核心报出的那条
+  （§8.6.2 规则 3）。
+
+其余都是核心和 GEP-0008 的：
 
 - `unknown-attribute`——未声明 profile 时的约束键；
-- `unknown-field-type`——七个之外的 `type=` 值；
-- `form-child-outside-form`、`form-field-missing-name`、`form-duplicate-name`、
-  `form-field-has-body`、`options-not-form-options`、`note-not-form-note`、
-  `unused-form-block`、`duplicate-id`——GEP-0008 的家族诊断，不受本 profile 影响。
+- `unknown-field-type`、`form-field-has-body`、`options-not-form-options`、
+  `note-not-form-note`、`unused-form-block`——GEP-0008 的家族诊断，由 GEP 定义，参考
+  检查器尚未实现（它不看 `type=` 的取值）；
+- `duplicate-id`——核心的。
 
 检查器可以在值按键自身的规则读不通时额外 warning——`number` 上的 `min=abc`、不是合法
 正则的 `pattern=`——但不得当作 error：文档仍是数据。

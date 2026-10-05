@@ -6,9 +6,10 @@
   （[geml-media 演示](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/examples/geml-media-demo/README.md)）；
   设计记录在
   [`2026-09-15-geml-media-design.md`](../../../docs/design/specs/2026-09-15-geml-media-design.md)。
-- 性质：**应用层 profile，不是 GEML 标准的一部分。** 它放行三个块类型名、这些类型上的
-  属性键，以及一个说明 `data` 块怎么读的 class（`.gen-log`）。§8.6 允许一份词汇表放行的
-  正是这些。规范一个字不动。
+- 性质：**应用层 profile，不是 GEML 标准的一部分。** 它放行七个块类型名（`media`、
+  `media-asset`、`media-clip`、`media-text`、`media-comp`、`media-layer`、
+  `media-interaction`）、这些类型上的属性键，以及一个说明 `data` 块怎么读的 class
+  （`.gen-log`）。§8.6 允许一份词汇表放行的正是这些。规范一个字不动。
 
 ## 0. 一段话说清
 
@@ -29,9 +30,7 @@ profile = "geml-media/v1"
 ===
 ```
 
-不声明时，三个类型名是 `unknown-block-type`，正文是 raw。不认识这个 profile 名的处理器什么也不放行并报出 `unrecognized-vocabulary`（§8.6 规则 3）；它依然合规，只是把 `media-text` 读作 raw 块而不是散文——这是认识这份词汇表所改变的唯一一件事。文档携带的每一个地址两边相同（§8.6 规则 4）。
-不认识这个 profile 名的处理器把声明当作不存在（§8.6 规则 3），依然合规：它看到的是散文和
-raw 块，而它们本来就是。
+不声明时，七个类型名是 `unknown-block-type`，正文是 raw。不认识这个 profile 名的处理器什么也不放行并报出 `unrecognized-vocabulary`（§8.6.2 规则 3）；它依然合规。认识这份词汇表改变了什么，由 §8.6.2 规则 4 划界：散文体类型（`media-text`、`media-interaction`）声明与否地址相同，因为散文体不增加可寻址单元；flow 容器（`media`、`media-comp`）体里的子块（`media-clip`、`media-layer`）要等 profile 被声明且被认识之后才是地址——不被认识的类型正文是 raw，raw 正文里没有块。
 
 ## 2. `media` —— 一段可播的东西
 
@@ -95,10 +94,10 @@ aspect=9:16`）。**种类**从被引的 `media-asset` 的 `kind=` 读，不在�
 | `src` | 是 | 文件路径，相对文档解析，受 §9.4 的根目录限定。必须是**相对路径**：不带 URL scheme，不以 `/` 开头，不含 `\`——按用户代理读到的样子判断，去掉 C0 控制符与空格（GEML §9.4）。否则是 `media-src-not-relative`——文件要交给播放器和 `ffmpeg`，而它们把 scheme（`concat:`、`http:`）当成指令 |
 | `sha256` | 推荐 | 文件的 SHA-256，**全长 64 位十六进制，不截短**。键名已点明算法，所以值不带前缀。缺失 → `media-asset-unhashed`，不管文件在不在：没有东西说库期望哪份字节，文件被换掉只能靠血缘发现（§6） |
 | `kind` | 条件 | `image`、`video`、`audio`、`model`、`other`。缺失时按文件扩展名定，不分大小写：`png jpg jpeg webp gif bmp tif tiff avif svg` 是 `image`；`mp4 mov webm mkv avi m4v` 是 `video`；`wav mp3 m4a aac flac ogg opus` 是 `audio`；`safetensors ckpt pt onnx gguf` 是 `model`；其余都是 `other`。**没有 `text`**：字幕文件、LUT、外部提示词文件先归 `other`，等真有用例再按它是什么命名 |
-| `duration` | 视频/音频 | 秒：文件的长度，写下来是为了不必打开文件才知道。缺失时素材照样有固有时长——就是文件自己的长度（§3.2） |
+| `duration` | 视频/音频 | 秒：文件的长度，写下来是为了不必打开文件才知道。缺失时素材照样有固有时长——就是文件自己的长度（§4.2） |
 | `fps`、`size` | 否 | 帧率；`宽x高` |
 | `origin` | 推荐 | `generated`、`captured`、`licensed` —— 合规审核问的第一个问题 |
-| `license` | 条件 | 授权依据。`captured`/`licensed` 而缺失 → `media-license-missing` |
+| `license` | 条件 | 授权依据，`captured`/`licensed` 时应当有。不检查：缺了它是审核要问的问题，不是一条诊断（§8） |
 | `mime` | 否 | 显式媒体类型，覆盖扩展名推断 |
 | `of` | 推荐 | 这份素材**画的是谁**：指向它所属的角色、场景或道具块 |
 | `role` | 推荐 | 它在生成里当什么用：`sheet`、`master`、`stand`（抠好的角色立绘，§5.1）、`lora`、`voice`、`first-frame`、`last-frame`、`style-ref`、`workflow`、`take`，或宿主词。开放集 |
@@ -132,7 +131,7 @@ body 是 raw，放作者自己的备注。备注是文档事实，进历史；�
 或在某个 `media` 里又套了一层块——不属于任何时间线：它是 `media-clip-unassembled`，它的
 `track` 和 `src` 不查，因为离了时间线它们说不出意思。
 
-### 3.1 轨道种类
+### 4.1 轨道种类
 
 时间线的 `tracks=` 是空白分隔的 **`名字:种类`** 列表，种类只有三个：`video`、`audio`、`prose`。
 种类说的是**内容是什么、住在哪**——一个视频文件、一个音频文件、一个文档里的散文块——
@@ -145,7 +144,7 @@ body 是 raw，放作者自己的备注。备注是文档事实，进历史；�
 只写名字不写种类是 error，种类不在这三个里也是 error。不做回退：一条要从名字猜种类的
 规则根本说不出口，因为名字是作者自由取的。
 
-### 3.2 时间模型
+### 4.2 时间模型
 
 - **主轨**（`primary=`，缺省是声明的第一条轨）是**顺序的**：文档顺序就是播放顺序。第 *i* 个
   片段的起点 = 第 *i-1* 个的终点减去它 `transition-in` 声明的重叠量（`cut` 为 0，
@@ -160,7 +159,7 @@ body 是 raw，放作者自己的备注。备注是文档事实，进历史；�
 
 ## 5. `media-text` —— 剧本层
 
-带剧本语义的散文：外貌、提示词、台词。它就是 **`text` 加五个键**——同样的 flow 体、同样
+带剧本语义的散文：外貌、提示词、台词。它就是 **`text` 加六个键**——同样的 flow 体、同样
 可被行内投射、同样投成 Markdown 段落——所以参考实现把它声明为**散文类型**。
 
 | 键 | 在哪 | 含义 |
@@ -170,6 +169,7 @@ body 是 raw，放作者自己的备注。备注是文档事实，进历史；�
 | `to` | `.line` | 说给谁 |
 | `emotion` | `.line` | 情绪标注：剧本的**意图**。TTS 记录的 `params.emotion` 是实际发出的 |
 | `since` | `.look` | 这版外貌从第几集起生效 |
+| `points` | `.look` | 这个角色的立绘必须带的点的**名字**——`points="hand eyes feet"`；是 schema，不是坐标（§5.2） |
 
 约定 class（不放行、不查拼写；样式表和检查器靠它们识别）：`.prompt`、`.line`、`.inner`
 （内心独白或旁白）、`.look`。
@@ -352,7 +352,7 @@ warning 而不是 error——否则改一次角色卡整条流水线红掉，人
 | `media-asset-unhashed` | warning | 素材没有 `sha256`，所以没法校验它的文件是不是库里描述的那一份 |
 | `media-duration-required` | error | 静图上的片段或单源、一段散文上的片段，没写 `duration`——片段的轨声明没声明都一样：有没有长度是来源的事，不是轨的事。`video`、`audio` 素材总有固有时长——文件自己的长度，不管 `duration=` 写没写 |
 | `media-gain-invalid` | error | 片段的 `gain` 不是分贝值（§4） |
-| `media-time-out-of-range` | error | 某个时间不是有限数、超过 `max-time`，或片段终点超过它（§3.2、§8.1） |
+| `media-time-out-of-range` | error | 某个时间不是有限数、超过 `max-time`，或片段终点超过它（§4.2、§8.1） |
 | `media-track-missing` | error | 片段没有 `track=` |
 | `media-track-undeclared` | warning | `track=` 不在所属时间线的 `tracks=` 里 |
 | `media-track-kind-missing` | error | `tracks=` 里某条只写了名字没写种类 |
@@ -382,8 +382,9 @@ warning 而不是 error——否则改一次角色卡整条流水线红掉，人
 `media-emotion-drift`、`media-look-outdated`、`media-episode-mismatch`、
 `media-gen-before-approval`）、模型卡相关的几条，以及时间线形状的几条
 （`media-track-order`、`media-track-overlap`、`media-transition-too-long`、
-`media-absolute-anchor`、`media-subtitle-unmatched`）。第一个真实用例一条都没接近，
-而一条没人需要过的诊断，只是披着码的猜测。
+`media-absolute-anchor`、`media-subtitle-unmatched`），以及合规那条
+`media-license-missing`（`captured`/`licensed` 的素材没写 `license=`，§3）。第一个真实用例
+一条都没接近，而一条没人需要过的诊断，只是披着码的猜测。
 
 ### 8.1 固定上界
 
@@ -392,7 +393,7 @@ warning 而不是 error——否则改一次角色卡整条流水线红掉，人
 
 | 名字 | 值 | 约束的对象 | 越过之后 |
 |---|---|---|---|
-| `max-time` | 86,400 s | 每个时间——`in`、`out`、`duration`、`offset`、`at`、素材的 `duration`——以及时间线上每个片段的终点（§3.2） | `media-time-out-of-range` |
+| `max-time` | 86,400 s | 每个时间——`in`、`out`、`duration`、`offset`、`at`、素材的 `duration`——以及时间线上每个片段的终点（§4.2） | `media-time-out-of-range` |
 | `apart-tolerance` | 2 px | 只验不动的那条互动，两点合成后最多能相距多远（§5.2） | `media-interaction-apart` |
 
 ## 9. 这份 profile 不放行什么

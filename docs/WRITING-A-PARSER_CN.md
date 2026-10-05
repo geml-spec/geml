@@ -34,7 +34,7 @@
 
 `want` 是解析后模型的一个**投影**——一个紧凑的字符串。把*你的*模型按同样规则投影一遍，断言它等于 `want`。用例还可能带 `ids`、`addresses`、`blocks` 或 `diagnostics`，或者以字节形式（`geml_base64`）给出输入：你具备哪些能力，就检查哪些。
 
-[`_project.mjs`](../geml-parser/test/conformance/_project.mjs) 是参考投影实现——`want` 字符串就是用它的格式写的。文档**是什么意思**由规范决定：每条用例都从规范原文推出，用例与原文不一致时以原文为准。[`impl2.mjs`](../geml-parser/test/conformance/impl2.mjs) 是一个**只照规范写成**、不 import 参考解析器的完整解析器 + 投影（几百行）——它就是你要做的东西的范例。
+[`_project.mjs`](../geml-parser/test/conformance/_project.mjs) 是参考投影实现——`want` 字符串就是用它的格式写的。文档**是什么意思**由规范决定：每条用例都从规范原文推出，用例与原文不一致时以原文为准。[`impl2.mjs`](../geml-parser/test/conformance/impl2.mjs) 是一个**只照规范写成**、不 import 参考解析器的完整解析器 + 投影（几百行）——它就是你要做的东西的范例。[`geml-parser-rs/`](../geml-parser-rs/) 则是完整尺寸的那个：按本文、只依据规范与测试集写出的第二个实现，Rust 编写、编译为 WebAssembly，声明了全部能力——某条用例对不上时，可以拿它对照你的模型。
 
 ## 建议的实现顺序
 

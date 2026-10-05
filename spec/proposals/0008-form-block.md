@@ -163,8 +163,8 @@ specification a hyphen, and a child type named after its parent is the
 natural use of one. What it must now also say is the converse: an extension
 type name SHOULD NOT begin with a registered type name followed by `-`,
 because `form-` is now this specification's. Published profile names
-(`style-rule`, `revision`, `keyframe`) are unaffected; none starts with a
-registered type.
+(`style-rule`, `history-revision`, `history-keyframe`) are unaffected; none
+starts with a registered type.
 
 ### The field vocabulary, as the trial forms and one review decided it
 
@@ -614,12 +614,10 @@ Additive. The `form-*` names are unknown types today, so existing processors
 degrade per §8.2(6) with the body preserved. No existing conforming document
 changes meaning, because no conforming id can contain `#`, and no published
 profile name begins with a registered type. The constraint keys arrive through
-a profile, so a document that omits the declaration is warned, not broken. The
-one document written to this proposal's earlier drafts —
-`0008-form-block-example/complex-form.geml`, with `field` blocks carrying help
-text in their bodies and option tables inside them — is rewritten to the
-family when this GEP is accepted; `form-field-has-body` is the diagnostic that
-would have caught it.
+a profile, so a document that omits the declaration is warned, not broken.
+`0008-form-block-example/complex-form.geml` is written in the `form-*` family
+(its second version) and declares `geml-form/v1`; `geml check` reports nothing
+on it.
 
 ## Drawbacks & open questions
 

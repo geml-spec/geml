@@ -13,7 +13,7 @@
 
 *[English](README.md) | 中文*
 
-GEML 是一种**轻量级、Agent-Native 的标记语言**，专为人类与 AI agent（智能体，下文统称 agent）共同读写同一份文档而设计。<br>
+GEML 是一种**轻量级标记语言，让人类与 AI agent（智能体，下文统称 agent）读写同一份文档**。<br>
 **一种格式，两类读者。**
 在 agent 驱动的软件开发与知识协作中，纯文本与 Markdown 缺乏确定性的区块边界：程序与模型交互时往往整篇读进来、整篇写回去，稍微好点的就定位靠行窗口反复试探，改写要把原文逐字复述一遍，Token 消耗随文档长度线性膨胀，操作变得臃肿。多轮改写之后，其他摘抄它的副本也开始失真。
 
@@ -24,9 +24,12 @@ geml list    README_CN.md                              # 每一节，都是一�
 geml get     README_CN.md '#核心特性-key-features'        # 只读一节，而不是整个文件
 geml set     README_CN.md '#核心特性-key-features' --body # 写回一节
 geml replace README_CN.md '旧文本' '新文本'              # 替换字面串，并告知落在哪一块
+geml history save README_CN.md -m '收紧开头'            # 存一个版本到文件旁的 README_CN.md.gemlhistory
 ```
 
-进入 agent 上下文的只有那一节——一两 KB，而不是整个 ~45 KB 的文件。
+进入 agent 上下文的只有那一节——一两 KB，而不是整个文件，不管它长到多大。而每次保存都是一个版本，可以读回来，也可以退回去——退一个块，或整份文件。
+
+▶ **[到 Playground 试一下](https://geml-spec.github.io/playground/)**——无需安装，也不用先读任何东西。
 
 要比“一节”更细——单个块、单张图、单张表——就让 `.geml` 站在中间层：在那个粒度上编辑，你`--to md` 交付出来的永远不会与它漂移。
 
@@ -355,16 +358,19 @@ profile = "geml-style/v1 geml-form/v1"
 
 ### 官方已落地的 Profile 矩阵
 
-| Profile（使用指南） | 状态 | 用来做什么 | 赋予文档的专属能力 | 专属 CLI |
-| :--- | :--- | :--- | :--- | :--- |
-| [`geml-codemap/v1`](spec/profiles/geml-codemap/geml-codemap-guide_CN.md) | stable | 把代码库的调用图生成为一组 GEML 文档：每个方法一个块，能查谁调用它、它又调用了谁；前后端合成同一张图 | `code` 块上的 `anchor`、`name`、`entry-via` | `geml codemap build\|verify\|serve` |
-| [`geml-history/v1`](spec/profiles/geml-history/geml-history-guide_CN.md) | stable | 在文档旁边的 `.gemlhistory` 里保存历史版本：能查看任意旧版、只退回某一个块，或整份回滚 | `history-revision`、`history-keyframe`、`history-blob` | `geml history save\|get\|restore` |
-| [`geml-style/v1`](spec/profiles/geml-style/geml-style-guide_CN.md) | draft | 颜色、间距、布局写在单独的样式文档里，按规则作用到内容文档上，内容文档本身不用改 | `style-rule`、`style-state`、`style-screen`、`style-frame` | `geml style check` |
-| [`geml-form/v1`](spec/profiles/geml-form/geml-form-guide_CN.md) | draft | 在文档里描述表单：有哪些字段、什么类型、是否必填、取值范围；浏览器扩展和 playground 会画出表单预览 | `form`、`form-field`、`form-group`、`form-options`、`form-note`，以及 `form-field` 上的 `pattern`、`min`、`max` 等约束属性 | — |
-| [`geml-media/v1`](spec/profiles/geml-media/geml-media-guide_CN.md) | draft | 用一份文档描述一条视频时间轴：素材、片段、字幕和配音轨道；可导出成网页播放，或用 ffmpeg 出成片 | `media`、`media-asset`、`media-clip`、`media-text` | `geml media build\|export\|lay\|todo` |
-| [`geml-translator/v1`](spec/profiles/geml-translator/geml-translator-guide_CN.md) | draft | 译文文档里不放译文，只引用原文并写明目标语言，打开时由浏览器扩展现场机翻；原文改了，译文跟着变 | `embed` 与 `meta` 上的 `translate-to` 属性 | — |
+| Profile（使用指南） | 状态 | 用来做什么 | 赋予文档的专属能力 | 专属 CLI | 在线演示 / 示例 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| [`geml-codemap/v1`](spec/profiles/geml-codemap/geml-codemap-guide_CN.md) | stable | 把代码库的调用图生成为一组 GEML 文档：每个方法一个块，能查谁调用它、它又调用了谁；前后端合成同一张图 | `code` 块上的 `anchor`、`name`、`entry-via` | `geml codemap build\|verify\|serve` | [可交互的调用图](https://geml-spec.github.io/playground/) · [`sample.geml`](https://geml-spec.github.io/playground/#ch=visual) |
+| [`geml-media/v1`](spec/profiles/geml-media/geml-media-guide_CN.md) | draft | 用一份文档描述一条视频时间轴：素材、片段、字幕和配音轨道；可导出成网页播放，或用 ffmpeg 出成片 | `media`、`media-asset`、`media-clip`、`media-text` | `geml media build\|export\|lay\|todo` | [文档出视频（经 ffmpeg 出 MP4）](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/examples/geml-media-demo/README.md) |
+| [`geml-style/v1`](spec/profiles/geml-style/geml-style-guide_CN.md) | draft | 颜色、间距、布局写在单独的样式文档里，按规则作用到内容文档上，内容文档本身不用改 | `style-rule`、`style-state`、`style-screen`、`style-frame` | `geml style check` | [GitHub blob 页 1:1 复刻](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/examples/style-demo/) |
+| [`geml-history/v1`](spec/profiles/geml-history/geml-history-guide_CN.md) | stable | 在文档旁边的 `.gemlhistory` 里保存历史版本：能查看任意旧版、只退回某一个块，或整份回滚 | `history-revision`、`history-keyframe`、`history-blob` | `geml history save\|get\|restore` | [单块回退的常用操作](spec/profiles/geml-history/geml-history-guide_CN.md#常用) |
+| [`geml-form/v1`](spec/profiles/geml-form/geml-form-guide_CN.md) | draft | 在文档里描述表单：有哪些字段、什么类型、是否必填、取值范围；浏览器扩展和 playground 会画出表单预览 | `form`、`form-field`、`form-group`、`form-options`、`form-note`，以及 `form-field` 上的 `pattern`、`min`、`max` 等约束属性 | — | [可交互的复杂表单示例](spec/proposals/0008-form-block-example/) |
+| [`geml-translator/v1`](spec/profiles/geml-translator/geml-translator-guide_CN.md) | draft | 译文文档里不放译文，只引用原文并写明目标语言，打开时由浏览器扩展现场机翻；原文改了，译文跟着变 | `embed` 与 `meta` 上的 `translate-to` 属性 | — | — |
 
-> 💡 **表里每个 profile 名都链接到它的一页使用指南**：它做什么、第一条命令、常用操作。写代码的话，从 `geml-codemap` 开始。开发者也可以按规范轻松[定制自己的专属业务 Profile](spec/profiles/README.md)。
+> 💡 **想看 Profile 实际跑起来？**
+> • **`geml-media` 在线演示**：一份剪辑文档加一条命令（`geml media build ep01-cut.geml --out ep01.mp4 --burn-subs`），由 ffmpeg 对齐音视频、混音、烧录字幕，直接出成片（[去看](https://geml-spec.github.io/demos/media-cut)）。
+> • **`geml-style` 在线演示**：内容留在 `page.geml` 里的纯文本，样式和布局放在 `github.style.geml`——渲染出 GitHub blob 页像素级 1:1 的复刻，不被任何 CSS 锁死（[去看](https://geml-spec.github.io/demos/style)）。
+> • **表里每个 profile 名都链接到它的一页使用指南**：它做什么、第一条命令、常用操作。写代码的话，从 `geml-codemap` 开始。开发者也可以按规范轻松[定制自己的专属业务 Profile](spec/profiles/README.md)。
 
 <a id="hands-on"></a>
 ## 下一步——即刻上手试试
@@ -577,7 +583,8 @@ GEML 是一份小而年轻的规范，但已经**稳定**：已发布 **`1.0`**�
 - [x] VS Code 插件已上架 Visual Studio Marketplace（publisher `geml`）
 - [x] 生态集成：VS Code 语法高亮与引用检查、tree-sitter、Obsidian、Logseq（对活的 DB graph 双向同步）、浏览器 viewer、GitHub Action、LangChain / LlamaIndex，以及 agent 宿主插件——Claude Code、Codex、Grok、DeepSeek Harness，外加 Gemini CLI 与 Kimi Code 两份根清单
 - [ ] Logseq 插件上架 Logseq 市场（[PR #893](https://github.com/logseq/marketplace/pull/893)）、Grok 插件上架 `xai-org/plugin-marketplace`
-- [ ] 其他语言的 parser（Rust / Python）——规范与一致性测试集都是公开的，欢迎社区来做，我们乐意帮着对齐
+- [x] 第二个实现 [`geml-parser-rs/`](geml-parser-rs/)——Rust 编写、编译为 WebAssembly，只依据规范与一致性测试集写成，没有读过参考解析器的代码
+- [ ] 他人写的实现——Python，或任何你顺手的语言；规范与一致性测试集都是公开的，我们乐意帮着对齐
 
 ---
 
@@ -585,7 +592,7 @@ GEML 是一份小而年轻的规范，但已经**稳定**：已发布 **`1.0`**�
 ## 参与我们
 
 GEML 已是 `1.0`，但「稳定」是指**已有规则不会在你脚下变动**，不是设计已经定死。
-目前只有**一个实现**，规范背后也只有**一套意见**。你的想法可以改动规范本身。
+目前有两个实现，但出自**同一位作者**，所以规范背后仍然只有**一套意见**。你的想法可以改动规范本身。
 如果有兴趣参与，可以：
 
 **一起来讨论**这几份还在草案阶段的提案：
@@ -606,7 +613,7 @@ GEML 已是 `1.0`，但「稳定」是指**已有规则不会在你脚下变动*
 | **viewer 的其它浏览器** | Chrome 可用 | Firefox / Safari 移植。 |
 | **RAG 集成打包** | LangChain / LlamaIndex 是参考实现 | 发到 PyPI；以及接其它框架（Haystack、DSPy…）。 |
 
-- **写规范的第二个实现**——用你喜欢的语言为 GEML 写一个新的解析器实现（[怎么写一个解析器](docs/WRITING-A-PARSER_CN.md)）
+- **用你的语言写一个规范的实现**——只照规范写一个新的 GEML 解析器（[怎么写一个解析器](docs/WRITING-A-PARSER_CN.md)）；[`geml-parser-rs/`](geml-parser-rs/) 就是这么写出来的，可以拿来对照
 - **找出规范里有歧义的地方，这件事本身就是贡献**，不管那个解析器最后有没有发布。
 
 或者**提个新建议**：
@@ -628,6 +635,7 @@ GEML 已是 `1.0`，但「稳定」是指**已有规则不会在你脚下变动*
 | **把 Logseq graph 同步成纯文本** —— Logseq 2.0 的 DB graph 持续同步成 GEML 文件，可寻址、对 git 友好，`restore` 是回去的路 | [`@geml/logseq-sync`](https://www.npmjs.com/package/@geml/logseq-sync) · [源码](integrations/logseq/) | watcher 已在 npm；插件目前装 release zip —— 市场上架（[PR #893](https://github.com/logseq/marketplace/pull/893)）尚未合并 |
 | **喂给 RAG / agent 框架** —— 按块切分的加载器（每块一个 chunk，带 `block_id`）+ agent 编辑工具 | [`integrations/langchain+llamaindex/`](integrations/langchain+llamaindex/) | 参考实现 |
 | **在编辑器里写 GEML** —— 语法高亮 + 构建期引用校验 | [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=geml.geml) · [源码](integrations/vscode/) | 可用 |
+| **在 Android Studio / IntelliJ 里写 GEML** —— 高亮、边写边报诊断、预览、结构视图、从 `.gemlhistory` 退回一个块 | [`integrations/intellij+androidstudio-plugin/`](integrations/intellij+androidstudio-plugin/) | 已构建；装自己打出来的 zip（Install Plugin from Disk），未上 JetBrains Marketplace |
 | **在 Obsidian 里用上 GEML** —— 用参考解析器 + viewer 的渲染器，与网页同一条代码路径 | [`integrations/obsidian/`](integrations/obsidian/) | 已构建，未上架社区商店 |
 
 上手前的三份文件：决策方式见 [`GOVERNANCE.md`](GOVERNANCE.md)，参与方式见 [`CONTRIBUTING.md`](CONTRIBUTING.md)，
@@ -643,9 +651,11 @@ spec/                  规范的 .md 版（英 / 中）与 CC-BY 规范许可证
                        两者均为 MIT
 spec/in_geml_format/   dogfood：用 GEML 写成的规范本身，连带 .gemlhistory 伴生文件
 geml-parser/           参考实现、渲染器、CLI + codemap 工具集（TypeScript, Node 22）
+geml-parser-rs/        第二个实现：同一份规范的 Rust 实现，编译为 WebAssembly，
+                       只依据规范与一致性测试集写成
 integrations/          GEML 接入的所有地方：chrome-geml-viewer（浏览器扩展）、
-                       geml-check-action（CI）、vscode、obsidian、logseq（双向
-                       vault 同步 + watcher）、tree-sitter（简报）、
+                       geml-check-action（CI）、vscode、intellij+androidstudio-plugin、
+                       obsidian、logseq（双向 vault 同步 + watcher）、tree-sitter（简报）、
                        langchain+llamaindex（RAG 加载器）、
                        windows-icon（资源管理器文件图标），以及四个 agent
                        宿主插件——claude-plugin、codex-plugin、grok-plugin、
@@ -667,8 +677,8 @@ docs/                  指南（MCP、写一个解析器）、设计记录、发
 <a id="license"></a>
 ## 许可与治理
 
-**代码为 MIT**（[`LICENSE`](LICENSE)）：本仓库除规范文档之外的一切，包括 `geml-parser/`、
-`integrations/` 全部、`.claude/skills/`，以及 `spec/proposals/` 里的 GEP。
+**代码为 MIT**（[`LICENSE`](LICENSE)）：本仓库除规范文档之外的一切，包括 `geml-parser/`、`geml-parser-rs/`、
+`integrations/` 全部、`.claude/skills/`、`docs/`、`spec/profiles/` 下的 profile，以及 `spec/proposals/` 里的 GEP。
 
 **规范文档为 CC-BY-4.0**（[`LICENSE-spec.md`](spec/LICENSE-spec.md) 里逐份列明）：
 `spec/GEML-spec*` 与 `spec/in_geml_format/*`。主规范只有一份；`spec/profiles/` 下的 profile 属于应用层，为 MIT。规范不是软件，所以任何人

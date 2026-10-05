@@ -61,13 +61,15 @@ pro,   专业版
 warning: unknown attribute `minlength` for block type `form-field` (line 6)
 ```
 
-它不看取值：`type=email`、`min=abc` 都能通过。六个约束键各怎么读，见参考文档 §2。
+它不看取值：`type=email`（不在 GEP-0008 定义的七种类型里）、`min=abc` 都能通过；GEP
+描述的 `unknown-field-type` warning 没有实现。六个约束键各怎么读，见参考文档 §2。
 
-**只改一个字段，或交给 agent 改。** 每个字段都是带 id 的块，读一个、换一个都不碰
-其余部分。把新的 `#seats` 块写进 `seats.geml`，然后：
+**只改一个字段，或交给 agent 改。** 读一个字段走它的坐标，不需要 id。用 `geml set`
+换一个字段则需要 id：`set` 写的是一个独立的块，坐标只能写进表格或 `data` 块的内部。所以
+给字段加上 id——`{#seats name=seats …}`——把新的 `#seats` 块写进 `seats.geml`，然后：
 
 ```
-geml get signup.geml "#email"
+geml get signup.geml '#signup["email"]'
 geml set signup.geml "#seats" --in seats.geml
 ```
 

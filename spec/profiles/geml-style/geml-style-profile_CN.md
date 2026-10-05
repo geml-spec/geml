@@ -14,7 +14,7 @@
 ## 0. 一段话说清
 
 **样式表**是一份普通的 `.geml` 文档，`meta` 里声明 `profile = "geml-style/v1"`，
-内含三种块。它**不修改内容文档**——规则用选择器*选中*文档，而不是模板*包裹*文档，
+内含四种块。它**不修改内容文档**——规则用选择器*选中*文档，而不是模板*包裹*文档，
 因为内容通常是机器生成、作者改不动的（codemap 输出就是眼前的例子）。它**不含
 script**：组件和处理器**只报名字**，实现由宿主提供，与 `diagram {format=…}` 完全
 同构的注册表模式。**歧义是构建错误**，不是静默兜底。
@@ -271,7 +271,7 @@ profile **不定义**一个控件什么时候处在其中——合不合法是 h
 | `init-value=` | 否 | 任何交互发生之前的值 |
 
 `form-field`（geml-form/v1）可以当产生者：`on=select` 下状态就是控件自己的值——选中哪一项，
-状态就是那一项。不写 `init-value=` 时状态从字段的 `value=` 起。一选多本来就是表单字段，
+状态就是那一项。不写 `init-value=` 时状态从字段的 `value=` 起。N 选一本来就是表单字段，
 profile 不为 tab 另造词。
 
 `match=` 和 `style-rule` 上是同一个词，因为装的是同一种东西——选择器，白拿 §4 的
@@ -404,7 +404,6 @@ GEML 文档——不论 `embed` 选的是哪一块、哪一节，都整份读进
 |---|---|
 | `>` `+` `~` | 子/兄弟组合子——块模型有包含关系，没有次序邻接 |
 | `:hover` `:nth-child(…)` | 状态/位置伪类——选择器选内容；指针的状态写在 `when="@hover"`（§2.1） |
-| `*` | 通配符 |
 | `^=` `$=` `*=` `\|=` | 模糊匹配——§9.2 不让文档文本进模式语言 |
 
 各报一条 `style-selector-unsupported`（error）并点出构造名。CSS 相似性要当**坡道**，
@@ -568,7 +567,7 @@ warning。开放那侧必须降级而不能拒收，否则 §8.5 的前向兼容
 | `style-frame-too-deep` | error | 某条放置路径上 frame 嵌套深过核心的 `chain-depth`（GEML §9.2） |
 | `style-unused-frame` | warning | 没有任何槽位引用的 `style-frame` |
 | `style-reserved-name` | warning | 选择器的**第一步**用了行内部件名（`link`、`image`、`code-span`、`strong`、`emphasis`）；它按块类型读，因为部件前面要有块步，消息会说出部件还缺什么（§3） |
-| `style-invalid-value` | error | 封闭值域的内含词（`axis` / `anchor` / `place` / `scroll` / `sticky` / `hide-below` / `visible` / `grow` / `wrap` / `view` / `editable` / `fade-out` / `underline`）取了域外值，或 `when=` 的项既不是 `$state=value`，也不是 `@hover` / `@focus` / `@invalid` / `@disabled` / `@checked` 之一 |
+| `style-invalid-value` | error | 封闭值域的内含词（`axis` / `anchor` / `place` / `scroll` / `sticky` / `hide-below` / `visible` / `grow` / `wrap` / `view` / `editable` / `fade-out` / `fade-in` / `underline` / `text-align` / `item-align` / `item-justify`）取了域外值，或 `when=` 的项既不是 `$state=value`，也不是 `@hover` / `@focus` / `@invalid` / `@disabled` / `@checked` 之一 |
 
 `style-unknown-value-source` 之所以能真查，是因为 §6 给了表真正的 schema。产生者不是表时
 这项检查**跳过**，不猜。
@@ -591,7 +590,7 @@ geml style check <stylesheet.geml> <corpus…> [--json] [--components=a,b] [--ha
 
 ## 10. 视图模型 —— 本 profile 的一致性面
 
-`--json` 就是第二实现必须对齐的东西（§8.4 的形状），也是宿主消费的东西。四个字段：
+`--json` 就是第二实现必须对齐的东西（§8.4 的形状），也是宿主消费的东西。五个字段：
 
 | 字段 | 形状 |
 |---|---|
@@ -626,7 +625,7 @@ screen 或 frame 的 `params` 和 `box` 是它自己的词，再叠上给它加�
 那套媒介的行为——发 CSS 的宿主白拿 CSS 的继承（`color` 继承、`border` 不继承），画到
 canvas 或排成 PDF 的宿主则是它自己实现的那一套。**因此两个都合规的宿主可能把同一份样式表
 渲染成两样**，而上面这张一致性面抓不到。这里是**写明**而不是**补齐**：把继承钉死等于为
-28 个词重新裁一遍 CSS 的"继承/不继承"，而目前没有消费者需要它。要求到哪都渲染一致的
+38 个词重新裁一遍 CSS 的"继承/不继承"，而目前没有消费者需要它。要求到哪都渲染一致的
 样式表，应该把那个词写在它真正想要的块上。
 
 **绑定按屏幕分表。** `screen=` 让同一个块在不同屏幕里有不同展示，所以全局一张表不
@@ -690,7 +689,7 @@ style.geml"的回落，因为那等于永久留着第二条发现路径、两套
 
 **v1 刻意没有的东西**：任何形式的 script；URL（dev/staging/prod 地址不同，写死会让
 样式表绑定环境）；路由；§1.2 的记号之外的主题化；
-三种块的 body 内容。
+四种块的 body 内容。
 
 **v1 没有、但位置已经留好的**：`style-rule` 上的 `override` 属性，给那种明确要让被争的属性归
 自己、又不想把选择器写宽的作者。§4 的"警告 + 先写的生效"是现行规则，直到某份真实样式表证明

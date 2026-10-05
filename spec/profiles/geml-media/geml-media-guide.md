@@ -42,7 +42,7 @@ geml check hello.geml
 geml media export hello.geml --to player -o play.html
 ```
 
-`check` prints `ok: no diagnostics`. Open `play.html` in a browser and press play: "Hello." shows for two seconds, then the second line until 0:05. Why the second line starts at 0:02 is the time model, §3.2 of the [reference](geml-media-profile.md). `geml hello.geml --to html` does not draw the timeline; use `geml media export`.
+`check` prints `ok: no diagnostics`. Open `play.html` in a browser and press play: "Hello." shows for two seconds, then the second line until 0:05. Why the second line starts at 0:02 is the time model, §4.2 of the [reference](geml-media-profile.md). `geml hello.geml --to html` does not draw the timeline; use `geml media export`.
 
 ## Everyday use
 
@@ -52,7 +52,7 @@ geml media export hello.geml --to player -o play.html
 geml media import shot.mp4 --into library.geml
 ```
 
-**Put it on the timeline.** Replace the `media` block in `hello.geml` with this. The first track is now video, and the subtitle is anchored to the shot with `over=` (§3.2 again).
+**Put it on the timeline.** Replace the `media` block in `hello.geml` with this. The first track is now video, and the subtitle is anchored to the shot with `over=` (§4.2 again).
 
 ```geml
 ==== media {#cut tracks="video:video subtitle:prose"}

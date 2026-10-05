@@ -9,7 +9,13 @@
 #                             .claude/hooks/inject-instructions.mjs)
 #   integrations/geml-check-action/action.yml
 #                             the composite action other repositories run
+#   .agents/plugins/marketplace.json
+#   .claude-plugin/marketplace.json
+#                             the plugin marketplace manifests agent hosts
+#                             install from
 
 /.github/workflows/                          @xiongjy2104
 /.claude/                                    @xiongjy2104
 /integrations/geml-check-action/action.yml   @xiongjy2104
+/.agents/plugins/marketplace.json            @xiongjy2104
+/.claude-plugin/marketplace.json             @xiongjy2104

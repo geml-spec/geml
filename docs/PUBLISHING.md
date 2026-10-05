@@ -78,10 +78,10 @@ path reads the tree, not your working copy.
   how the fifth and sixth were ever found; the seventh and eighth arrived with
   the agent-market manifests and this line trailed them until 1.10.0.
 - **The Rust implementation follows it.** `geml-parser-rs/Cargo.toml` and its
-  `Cargo.lock` carry the parser's version with the major at 0, so parser 1.12.1
-  is crate 0.12.1, and move in the same release commit. The crate is not
-  published (`publish = false`); `tests/version.rs` fails the Rust CI job when
-  it lags.
+  `Cargo.lock` carry the parser's version with the major at 0 — parser 1.x.y is
+  crate 0.x.y (1.12.3 is 0.12.3) — and move in the same release commit. The
+  crate is not published (`publish = false`); `tests/version.rs` fails the Rust
+  CI job when it lags.
 - **How.** Actions -> *Publish to npm* -> Run workflow. Then Actions ->
   *Publish MCP Server*. Both are `workflow_dispatch`: publishing is a
   deliberate act, never a side effect of a push.
@@ -336,7 +336,7 @@ listed here so the next reader does not read their absence as an omission.
 
 ## Order
 
-1. **Bump** the parser in all six files, write the `CHANGELOG.md` entry, build.
+1. **Bump** the parser in all nine fields, write the `CHANGELOG.md` entry, build.
 2. **Nothing here carries a copy to regenerate.** The playground bundle and the
    parser's codemap are rebuilt by the `website` workflow and pushed to
    `geml-spec/geml-spec.github.io` whenever `main` changes the parser or the
@@ -352,9 +352,11 @@ listed here so the next reader does not read their absence as an omission.
 6. **Bump and ship what bundles it**, each on its own track: viewer by tag,
    vscode by `vsce` AND `ovsx` from one `.vsix`, dsh by `npm publish`. The claude
    and codex plugins are already live — they shipped when the merge landed.
-7. **Logseq only if its own code changed** — and it is two artifacts, not one: the
+7. **Logseq is a release of its own** — and it is two artifacts, not one: the
    watcher by `npm publish`, the plugin by mirror-then-tag. Both depend on the
-   parser by range, so a new parser reaches them without a release of their own.
+   parser by range, but their shared lockfile pins one version, so a new parser
+   does NOT reach them until the pin is refreshed and they are re-released — the
+   steps are in the `@geml/logseq-sync` section above.
 
 > **A published GitHub release here is immutable.** Never delete one to fix it —
 > deleting permanently burns its tag. Cut a NEW tag and
@@ -365,13 +367,13 @@ listed here so the next reader does not read their absence as an omission.
 
 | Trap | What it looks like | What catches it |
 | --- | --- | --- |
-| The parser version has six homes | npm ships 1.9.0 while installed plugins still advertise 1.8.8 | the mcp suite compares each plugin manifest to package.json |
+| The parser version has nine fields | npm ships 1.9.0 while installed plugins still advertise 1.8.8 | the mcp suite compares each vendor manifest to package.json |
 | The site keeps its own copy of the playground bundle | geml-spec.github.io serves whatever the `website` workflow last pushed; without the `SITE_DEPLOY_KEY` secret it stops updating | the workflow's warning when the key is missing; run it by hand with `workflow_dispatch` |
 | The viewer tag must equal manifest.json | a viewer-v1.2.4 release carrying geml-viewer-1.2.3.zip | release-viewer.yml refuses the mismatch |
 | Logseq is mirrored — not tagged in place | tagging first builds the zip from a stale checkout and names it with the OLD version | nothing — mirror; verify the mirror's plugin/package.json; then tag |
 | Lockfiles carry their own package's version | npm ci refuses and the CI lockfile job goes red | the per-package `npm ci --dry-run` job |
 | \_index/refresh.json can fall out of format | `geml codemap refresh` refuses an untrusted or out-of-date recipe — the version gate is a security fix: v1 steps are structured argv spawned without a shell | hand-write it; refresh.mjs calls it a recipe no tool rewrites. An AUTO-mode build re-records one but indexes a test fixture and bakes in an absolute path to the machine that ran it |
 | `codemap refresh` judges staleness by commit | it skips with *no source files changed since \<sha>* while the source sits modified in the working tree — exactly when a developer needs it | nothing — pass `--force` whenever the change is not yet committed |
-| Open VSX is the only listing, and it carries the parser | Cursor and Antigravity users sit on a package whose bundled parser is several releases old, because the extension version did not move | nothing — re-package and publish whenever the parser they should have changes, not only when the extension does |
+| Both marketplace listings carry the parser | Open VSX and VS Code Marketplace users sit on a package whose bundled parser is several releases old, because the extension version did not move | nothing — re-run the publish workflow whenever the parser they should have changes, not only when the extension does |
 | A mirror release is not a marketplace listing | the plugin has releases up to v2.3.0 and is still undiscoverable in Logseq | nothing — `logseq/marketplace` PR #893 has to merge once |
 | The plugins have no publish gate | a broken skill is live the moment it merges | nothing — main IS the release for those two |

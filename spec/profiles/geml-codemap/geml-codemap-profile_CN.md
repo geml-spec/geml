@@ -13,6 +13,9 @@
   <container>.geml           每容器一份(module|dir|file 粒度,--container)
   _index/name-lookup.json    名称 → {anchor, doc, id}(F4)
   _index/cross-stack.json    跨栈 API 连接审计(端点、方法分歧、无人调用的路由、未匹配调用)
+  _index/foldings.geml       构建期调节面:模块根与从展示路径里折掉的 ceremony 前缀(首次 build 播种,之后永不重写)
+  _index/style.geml          显示期调节面:图视图的 geml-style/v1 样式表(首次 build 播种,之后永不重写)
+  _index/index.geml          样式入口(geml-style §1.1):`default-style` → style.geml,外加可选的 `#sitemap`(随 style.geml 一起播种)
   _build/                    原始索引产物 + symbols/edges.jsonl(中间物,可重生成/gitignore,agent 不读)
 ```
 
@@ -39,6 +42,8 @@
   | `module` | 容器文档 | 容器**展示路径**:真实目录剥去 ceremony 后的短路径。以构建清单(pom.xml/package.json/tsconfig.json/go.mod/Cargo.toml 等)所在目录为模块根,先剥掉构建源码根(`src/main\|test/<lang>`、裸 `src`),再剥掉该模块内共享的最长公共段前缀:`magic-api/src/main/java/org/ssssssss/magicapi/core/config` → `magic-api/core/config`。测试代码(`src/test/*`、顶层 `test`/`tests`/`__tests__`/`spec`)归入顶层 `test/` 分支;单模块仓库以仓库名作模块段;file 粒度同样归一,但保留文件名(不整段收拢)。只影响展示与文档名 |
   | `src` | 容器文档 | 源目录/文件**真实**相对路径(不归一——定位源码用) |
   | `entry` | 有入口时 | 空格分隔的引用列表:**被容器外调用**的方法,或 app 入口(main);**受 verify 校验** |
+  | `app-entry` | 容器里有程序起点时 | `entry` 中**程序从这里启动**的那个子集:每个引用后面用括号带上识别出它的约定,`#main (main) #handler (worker-fetch)`——与块上 `entry-via=` 的值相同(§3)。index 文档以 `doc.geml#id` 引用列出全图的清单 |
+  | `app-entry-file` | 起点在文件级时 | 入口是顶层代码、没有函数符号的源文件(SPA 的 bootstrap、Nuxt 的 app shell):路径(纯文本),再括号带上约定。index 以 `app-entry-docs` 列出带有它的文档 |
   | `resolution-default` | 均 | `cpg` / `heuristic`(本文档边的默认解析来源) |
   | `repo` / `commit` / `container` | index | 仓库名 / git 短哈希 / 容器粒度 |
   | `graph-depth` | 可选 | 渲染深度覆写(渲染器默认 6) |
@@ -53,11 +58,12 @@
 ```
 
 - **空体**;`src=` 为普通属性(`路径[#L起-止]`),agent 直接读取后自行打开源码;渲染器 MAY 据此显示源码(归 `geml-code-graph` format,阶段 B)。
-- `anchor=` = 引擎级稳定身份(语言:文件#名称(签名))。
+- `anchor=` = 引擎级稳定身份(`语言:文件#名称(签名)`)。
 - `name=`(可选)= 展示名,仅当 id 净化改变了它时写入(如 `RenderCtx.block` → id `RenderCtx-block`);渲染器用它做节点标签,引用仍走 id。
+- `entry-via=`(只出现在 `.app-entry` 块上)= **把这个方法识别为程序起点的约定**:`main`(字面上叫 `main` 的函数,由索引器标出),或 build 探测到的清单/源码标记——`cargo-bin`、`pkg-bin`、`spring-boot`、`django-manage`、`py-main`、`wsgi-app`、`worker-fetch`、`server-listen`、`vue-mount`、`react-mount`、`svelte-mount`、`nuxt-app`、`nuxt-page`、`next-page`、`kit-route`。同一个值出现在 meta `app-entry` 里该方法引用后面的括号中(§2);该方法同时也是 meta `entry` 的引用之一。codemap 从不在说不出依据的情况下宣称一个入口。
 - **id 规则**:方法短名(净化为合法 id);同文档内重名 → 全部追加 `-<sha256(anchor) 前 6 位>`;若前 6 位在该重名组内仍碰撞,该组统一升到 8、10……位(按需升级,不全局加长)。改名 = id 变 = 引用悬空 = verify 报错(特性,不是缺陷)。
-- 符号级 class:`.leaf`(零出边**含未解析**且被调)、`.accessor`(bean 型 get/set/is 叶子——渲染器默认隐藏,带可见计数与开关;表数据不受影响)、`.test`(测试领地路径约定)、`.flow-entry`(引擎给出的关键执行流入口,可选)。
-- **entry 不在块上**——它是模块级事实,只出现在 meta(§2)。
+- 符号级 class:`.leaf`(零出边**含未解析**且被调)、`.accessor`(bean 型 get/set/is 叶子——渲染器默认隐藏,带可见计数与开关;表数据不受影响)、`.test`(测试领地路径约定)、`.flow-entry`(引擎给出的关键执行流入口,可选)、`.app-entry`(程序起点——`main` 或探测到的入口;块随之带 `entry-via=`)。
+- **`entry` 本身不在块上**——容器的对外调用面是模块级事实,只出现在 meta(§2)。块上带的是 app-entry 标记,即 `.app-entry` 加 `entry-via=`:它说的是这一个方法*为什么*是程序起点,不是容器暴露了哪些方法。
 
 ## 4. 边表(空表不生成)
 
@@ -85,7 +91,7 @@
 ## 5. 校验(职责分工)
 
 - `geml check`(标准):文档结构、id 唯一、原生引用。**CSV 单元格与 meta 值对标准不透明——设计使然,标准不为 codemap 开洞。**
-- `verify.mjs`(profile):`#calls`/`#called-by`/`#ref-by` 的 from/to 逐格解析 + meta `entry` 值解析;悬空 = 构建失败(exit 1)。构建后必跑;红了 = 图过期或漏更新,先重建再信导航。跨栈链接表(`#api-calls`/`#api-served-by`)以宽松方式校验——`#id` 引用必须像其他一样能解析,但未解析的 `文件:行` 端点被容忍(它指向图外的一个位置,而非断链)。
+- `geml codemap verify`(profile):`#calls`/`#called-by`/`#ref-by` 的 from/to 逐格解析 + meta `entry` 值解析;悬空 = 构建失败(exit 1)。构建后必跑;红了 = 图过期或漏更新,先重建再信导航。跨栈链接表(`#api-calls`/`#api-served-by`)以宽松方式校验——`#id` 引用必须像其他一样能解析,但未解析的 `文件:行` 端点被容忍(它指向图外的一个位置,而非断链)。
 
 ## 6. 渲染(阶段 B,唯一 GEP:`geml-code-graph` diagram format)
 
@@ -94,7 +100,7 @@
 
 ## 7. 版本化
 
-`build.mjs --history [-m msg]`:变更文档提交进各自 `.gemlhistory`;`geml history get` 看图的演变、`geml revert doc '#方法' --rev -1` 单方法回滚。
+`geml codemap build --history [-m msg]`:变更文档提交进各自 `.gemlhistory`;`geml history get` 看图的演变、`geml revert doc '#方法' --rev -1` 单方法回滚。
 
 ## 8. 消费速查(agent)
 

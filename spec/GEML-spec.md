@@ -18,11 +18,11 @@
 GEML is a plain-text markup language for structured, expressive documents.
 A GEML file remains fully legible as plain text, expresses every kind of
 structured content (code, diagrams, tables, mathematics, callouts) through a
-single typed-block primitive, supports stable identifiers with build-time
-reference checking, and hosts external diagram DSLs without defining a diagram
-language of its own. This document specifies the document model, the syntax of
-blocks, attributes, inline content and references, and the requirements a
-conforming processor must satisfy.
+single typed-block primitive, makes each block addressable by a stable id with
+build-time reference checking, and hosts external diagram DSLs without defining
+a diagram language of its own. This document specifies the document model, the
+syntax of blocks, attributes, inline content and references, and the
+requirements a conforming processor must satisfy.
 
 ## Contents
 

@@ -134,6 +134,7 @@ Usage:
                                               print one · restore = overwrite the file with one · verify = rebuild
                                               and re-hash the whole chain)
   geml codemap <build|verify|render|serve|refresh|find> [...]       code-graph toolkit (alias: codegraph)
+  geml media  <todo|report|export|build|lay|compose|log|import> [...]   geml-media profile verbs (see 'geml media --help')
   geml mcp    --root <dir> [--graph <dir>] [--no-history]   serve documents (and the code graph) over MCP (stdio)
                                              (11 tools, each geml_ + its CLI command path: list/find/get/check/history/to +
                                               set/add/delete/rename/revert; every write is validated before it
@@ -207,6 +208,7 @@ const SUBHELP = {
 
   Register with a client:
     claude mcp add geml -- geml mcp --root /abs/path/to/repo`,
+  style: "usage: geml style check <stylesheet.geml> <corpus…> [--json] [--components=a,b] [--handlers=x,y]  (EXPERIMENTAL: resolve a geml-style sheet against content documents it never modifies; exit codes as `check` — error 1, warning 0, usage 2; --json prints the view model — bindings, states, screens; --components/--handlers declare the host's registry so style-unknown-component / style-unknown-handler can fire. See spec/profiles/geml-style/)",
   skill: `usage: geml skill install [--dest <skillsDir>] [--no-global] [--no-mcp] [--dry-run]
 
   One command, three things, all user-global — so any Claude Code session can
@@ -1604,12 +1606,14 @@ function runChild(mod: string, args: string[], what: string): void {
 // 退出码沿用 check 的约定：error → 1，warning → 0，用法错误 → 2。
 function runStyle(args: string[]): void {
   const sub = args[0];
-  if (sub !== "check") fail(`unknown style subcommand '${sub ?? ""}'. Run 'geml style check <stylesheet.geml> <corpus…>'.`, 2);
+  // `geml style --help` never reaches here: the dispatcher answers it from
+  // SUBHELP.style (stdout, exit 0), as it does for history and codemap.
+  if (sub !== "check") fail(`unknown style subcommand '${sub ?? ""}'.\n${SUBHELP.style}`, 2);
   const files = args.slice(1).filter((a) => !a.startsWith("--"));
   const sheetPath = files[0];
   const corpusPaths = files.slice(1);
-  if (sheetPath === undefined) fail("geml style check needs a stylesheet", 2);
-  if (corpusPaths.length === 0) fail("geml style check needs at least one content document to resolve against", 2);
+  if (sheetPath === undefined) fail(`geml style check needs a stylesheet.\n${SUBHELP.style}`, 2);
+  if (corpusPaths.length === 0) fail(`geml style check needs at least one content document to resolve against.\n${SUBHELP.style}`, 2);
 
   // 宿主的注册表只有宿主知道，CLI 不知道 —— 所以 `style-unknown-component` /
   // `style-unknown-handler` 在命令行上必须由调用方声明才可能触发。不声明就不检查，

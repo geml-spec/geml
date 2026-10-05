@@ -2,15 +2,17 @@
 
 *English | [中文](geml-media-profile_CN.md)*
 
-- Status: **draft**. Its `media-text` type declares a prose body, which [GEP-0013](../../proposals/0013-prose-body-for-vocabularies.md) both licenses a vocabulary to do and defines. The vocabulary below is registered in the reference
+- Status: **draft**. Its `media-text` type declares a prose body, which [GEP-0013](../../proposals/0013-prose-body-for-vocabularies.md) both licenses a vocabulary to do and defines — it says what a `prose` body is. The vocabulary below is registered in the reference
   implementation and exercised by one real use case
   ([the geml-media demo](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/examples/geml-media-demo/README.md));
   the design record is
   [`2026-09-15-geml-media-design.md`](../../../docs/design/specs/2026-09-15-geml-media-design.md).
 - Nature: **an application-layer profile, not part of the GEML standard.** It
-  admits three block type names, attribute keys on those types, and one class
-  (`.gen-log`) that says how a `data` block is read. §8.6 lets a vocabulary
-  admit exactly this much. The specification is unchanged.
+  admits seven block type names (`media`, `media-asset`, `media-clip`,
+  `media-text`, `media-comp`, `media-layer`, `media-interaction`), attribute
+  keys on those types, and one class (`.gen-log`) that says how a `data` block
+  is read. §8.6 lets a vocabulary admit exactly this much. The specification is
+  unchanged.
 
 ## 0. What it is in one paragraph
 
@@ -36,12 +38,15 @@ profile = "geml-media/v1"
 ===
 ```
 
-Without the declaration the three type names are `unknown-block-type` and their
+Without the declaration the seven type names are `unknown-block-type` and their
 bodies are raw. A processor that does not recognize the profile name admits
-nothing and reports `unrecognized-vocabulary` (§8.6 rule 3); it is still
-conformant, and it reads `media-text` as a raw block rather than as prose, which
-is the one thing recognizing this vocabulary changes about the model. Every
-address the document carries is the same either way (§8.6 rule 4).
+nothing and reports `unrecognized-vocabulary` (§8.6.2 rule 3); it is still
+conformant. What recognition changes is bounded by §8.6.2 rule 4: the prose
+types (`media-text`, `media-interaction`) carry the same address declared or
+not, since a prose body adds no addressable unit; the flow containers (`media`,
+`media-comp`) hold child blocks (`media-clip`, `media-layer`) that become
+addresses only once the profile is declared and recognized — an unrecognized
+type's body is raw, and a raw body has no blocks in it.
 
 ## 2. `media` — one playable thing
 
@@ -113,10 +118,10 @@ timeline, and every real timeline here is mixed anyway.
 | `src` | yes | path to the file, resolved against the document, confined by §9.4's root. A **relative path**: no URL scheme, not starting with `/`, no `\` — judged as a user agent reads it, C0 controls and spaces removed (GEML §9.4). Anything else is `media-src-not-relative` — the file is handed to players and to `ffmpeg`, which reads a scheme (`concat:`, `http:`) as an instruction |
 | `sha256` | recommended | the file's SHA-256, **full 64 hex digits, never truncated**. The key names the algorithm, so the value carries no prefix. Missing → `media-asset-unhashed`, whether or not the file is there: nothing says which bytes the library expects, so a file replaced under it is caught only by its lineage (§6) |
 | `kind` | conditional | `image`, `video`, `audio`, `model`, `other`. Absent, it is read from the file's extension, in any case: `png jpg jpeg webp gif bmp tif tiff avif svg` are `image`; `mp4 mov webm mkv avi m4v` `video`; `wav mp3 m4a aac flac ogg opus` `audio`; `safetensors ckpt pt onnx gguf` `model`; any other `other`. There is no `text`: a subtitle file, a LUT or an external prompt file is `other` until a use case says what it really is |
-| `duration` | video/audio | seconds: the file's length, written down so that nothing has to open the file to learn it. Absent, the asset still has an intrinsic duration — its file's (§3.2) |
+| `duration` | video/audio | seconds: the file's length, written down so that nothing has to open the file to learn it. Absent, the asset still has an intrinsic duration — its file's (§4.2) |
 | `fps`, `size` | no | frame rate; `WxH` |
 | `origin` | recommended | `generated`, `captured`, `licensed` — the first question a compliance review asks |
-| `license` | conditional | the grant. Missing on `captured`/`licensed` → `media-license-missing` |
+| `license` | conditional | the grant, expected on `captured`/`licensed`. Not checked: its absence is a review question, not a diagnostic (§8) |
 | `mime` | no | explicit media type, overriding the extension |
 | `of` | recommended | **what this asset depicts**: a reference to the character, scene or prop block it belongs to |
 | `role` | recommended | what it does in a generation: `sheet`, `master`, `stand` (a matted character cut-out, §5.1), `lora`, `voice`, `first-frame`, `last-frame`, `style-ref`, `workflow`, `take`, or a host word. Open set |
@@ -153,7 +158,7 @@ A cut is a direct child of a `media` body and belongs to that timeline. A
 within one — belongs to none: it is `media-clip-unassembled`, and its `track`
 and `src` are not checked, since they mean something only on a timeline.
 
-### 3.1 Track kinds
+### 4.1 Track kinds
 
 A timeline's `tracks=` is a whitespace-separated list of **`name:kind`**, and the kind is
 one of three: `video`, `audio`, `prose`. The kind says **what the content is and
@@ -169,7 +174,7 @@ A bare name without a kind is an error, and so is a kind outside the three. Ther
 is no fallback: a rule that has to guess the kind from the name cannot be stated,
 because names are the author's to choose.
 
-### 3.2 The time model
+### 4.2 The time model
 
 - The **primary track** (`primary=`, default the first declared track) is **sequential**:
   document order is playback order. Cut *i* starts where cut *i-1* ended, less
@@ -196,7 +201,7 @@ because names are the author's to choose.
 ## 5. `media-text` — the script layer
 
 Prose that carries script meaning: a look, a prompt, a line. It is **`text` plus
-five keys** — same flow body, same inline projection, same Markdown paragraph
+six keys** — same flow body, same inline projection, same Markdown paragraph
 projection — so the reference implementation declares it a *prose type*.
 
 | key | on | meaning |
@@ -206,6 +211,7 @@ projection — so the reference implementation declares it a *prose type*.
 | `to` | `.line` | who it is said to |
 | `emotion` | `.line` | an emotion note: the script's *intent*. A TTS entry's `params.emotion` is what was actually asked for |
 | `since` | `.look` | the episode from which this version of the look applies |
+| `points` | `.look` | the **names** of the points this character's stands must carry — `points="hand eyes feet"`; a schema, not coordinates (§5.2) |
 
 Conventional classes, admitted by nobody and checked as spelling by nobody — the
 stylesheet and the checker recognize them: `.prompt`, `.line`, `.inner` (inner
@@ -436,7 +442,7 @@ way.
 | `media-asset-unhashed` | warning | an asset carries no `sha256`, so whether its file is the one the library describes cannot be checked |
 | `media-duration-required` | error | a cut or a single source on a still image, or a cut on a piece of prose, with no `duration` — whether or not the cut's track is declared: having a length is the source's business, not the track's. A `video` or `audio` asset always has an intrinsic duration — its file's, whether its `duration=` states it or not |
 | `media-gain-invalid` | error | a cut's `gain` is not a decibel value (§4) |
-| `media-time-out-of-range` | error | a time is not finite, or is past `max-time`, or a cut ends past it (§3.2, §8.1) |
+| `media-time-out-of-range` | error | a time is not finite, or is past `max-time`, or a cut ends past it (§4.2, §8.1) |
 | `media-track-missing` | error | a cut with no `track=` |
 | `media-track-undeclared` | warning | a `track=` not in its timeline's `tracks=` |
 | `media-track-kind-missing` | error | a `tracks=` entry with a name but no kind |
@@ -467,8 +473,10 @@ the editorial checks (`media-runtime-off-target`, `media-emotion-drift`,
 `media-look-outdated`, `media-episode-mismatch`, `media-gen-before-approval`),
 the model-card checks, and the timeline-shape checks (`media-track-order`,
 `media-track-overlap`, `media-transition-too-long`, `media-absolute-anchor`,
-`media-subtitle-unmatched`). The first real use case came near none of them, and
-a diagnostic nobody has needed is a guess wearing a code.
+`media-subtitle-unmatched`), and the compliance check `media-license-missing`
+(a `captured`/`licensed` asset with no `license=`, §3). The first real use case
+came near none of them, and a diagnostic nobody has needed is a guess wearing a
+code.
 
 ### 8.1 Fixed bounds
 
@@ -477,7 +485,7 @@ text names it, and the profile's conformance cases on its edges are made from it
 
 | Name | Value | What it bounds | Past it |
 |---|---|---|---|
-| `max-time` | 86,400 s | every time — `in`, `out`, `duration`, `offset`, `at`, an asset's `duration` — and every cut's end on the timeline (§3.2) | `media-time-out-of-range` |
+| `max-time` | 86,400 s | every time — `in`, `out`, `duration`, `offset`, `at`, an asset's `duration` — and every cut's end on the timeline (§4.2) | `media-time-out-of-range` |
 | `apart-tolerance` | 2 px | how far apart the two points of an interaction that only verifies may end up (§5.2) | `media-interaction-apart` |
 
 ## 9. What this profile does not admit

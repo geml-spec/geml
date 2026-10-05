@@ -138,5 +138,6 @@ replacement for it.
   add a workflow if you want one.
 - Not published to PyPI; this is a reference integration living in the repo.
 - `geml_core.py` is the only file encoding the CLI contract. Last verified
-  against `@geml/geml` 1.4.3 (2026-07-28); re-run the tests against the current
-  release before relying on it.
+  against `@geml/geml` 1.12.3 (2026-10-05, `python test_geml_core.py`: 41
+  passed, 0 failed); re-run the tests against the current release before
+  relying on it.

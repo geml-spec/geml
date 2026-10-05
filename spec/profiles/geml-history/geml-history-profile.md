@@ -89,7 +89,7 @@ attribute keys; without it a conforming GEML processor reports each of them as
 
 | Block type | Attribute keys | Defined in |
 |---|---|---|
-| `history-revision` | `id`, `parent`, `author`, `summary`, `hash`, `newline` | §3, §7 |
+| `history-revision` | `id`, `parent`, `author`, `summary`, `hash`, `newline` | §3, §8 |
 | `history-keyframe` | `id`, `hash` | §3, §6 |
 | `history-blob` | `lang` | §3, §5 |
 
@@ -97,7 +97,7 @@ attribute keys; without it a conforming GEML processor reports each of them as
 spec §4, not profile vocabulary.
 
 There is **no implicit detection** — not from the `.gemlhistory` extension, not
-from the presence of `history-of`. Core spec §8.6 rule 2 forbids it, because an
+from the presence of `history-of`. Core spec §8.6.2 rule 2 forbids it, because an
 inference is implementation-specific knowledge a second implementation would
 have to reproduce exactly to agree about diagnostics. A sidecar written before
 this profile existed is fixed by its next save, or by adding the one line: the
@@ -105,7 +105,7 @@ revision chain does not notice a meta key, and `geml history verify` passes
 either way.
 
 Admission licenses **names only**. It does not change body mode: all three types
-are `raw`, exactly as an unadmitted unknown type would be (§8.6 rule 4). That is
+are `raw`, exactly as an unadmitted unknown type would be (§8.6.2 rule 4). That is
 why a document may be edited across a profile boundary without changing meaning
 — block extraction, block replacement and `=== embed` behave identically on a
 document that declares this profile and one that does not, and the only
@@ -148,7 +148,7 @@ Two consequences follow:
 ## 3. The `.gemlhistory` document
 
 A `.gemlhistory` file is itself a GEML document. The history extension registers
-four block types:
+three block types of its own and uses the core's `meta`:
 
 | Type | Body mode | Role |
 |------|-----------|------|
@@ -168,6 +168,7 @@ spec §3); a payload that uses `===` is wrapped in `====`, and so on.
 
 | Key | Meaning |
 |-----|---------|
+| `profile` | `"geml-history/v1"` — the vocabulary declaration (§1.1); a tool writes it into every sidecar it generates (§9, item 8) |
 | `history-of` | base name of the live file, e.g. `"doc.geml"` |
 | `geml-version` | GEML language version the history conforms to |
 | `current` | the id of the current revision (§8) |
@@ -179,6 +180,7 @@ spec §3); a payload that uses `===` is wrapped in `====`, and so on.
 # History of budget.geml
 
 === meta
+profile           = "geml-history/v1"
 history-of        = "budget.geml"
 geml-version      = "1.0"
 current           = "20260617T103012Z-33ab12cd"
@@ -359,7 +361,7 @@ target revision does not depend on the current state of the live file.
 implicitly: it **MUST** refuse the rollback unless the caller explicitly
 consents to discarding them — an interactive confirmation, or an explicit force
 option in non-interactive (scripted or agent) use. The processor **SHOULD**
-point to `commit` as the way to preserve the current edits instead.
+point to `save` as the way to preserve the current edits instead.
 
 To roll back to a revision *R*:
 
@@ -402,9 +404,10 @@ Two conditions of differing severity are distinguished:
 - **Corruption → error.** A broken `parent` chain (a revision's `parent` is not
   the id of the revision before it, or the chain does not reach the root), an
   unresolved `blob:` reference, a reconstruction whose hash does not match the
-  recorded hash, **two revisions, keyframes or blobs with one id, or more than
-  one `current`** indicate that the history itself is damaged and **MUST** be
-  reported as errors. An id names one thing: a sidecar holding two revisions
+  recorded hash, **one id on two revisions, on two keyframes or on two blobs
+  (within one type — a revision and its keyframe share an id by design), or
+  more than one `current`** indicate that the history itself is damaged and
+  **MUST** be reported as errors. An id names one thing: a sidecar holding two revisions
   under one id, each consistent with its own hash, reconstructs one text in a
   processor that takes the first and another in one that takes the last, and
   verifies clean in both.
@@ -438,7 +441,8 @@ A conforming history processor MUST:
    changes or is missing (§6, §8).
 5. Report **errors** for corruption: a broken `parent` chain, an unresolved
    `blob:` reference, a reconstruction whose hash does not match, an id shared
-   by two revisions, keyframes or blobs, or more than one `current` (§8).
+   by two revisions, by two keyframes or by two blobs, or more than one
+   `current` (§8).
 6. Report a difference between `hash(doc.geml)` and `current` as an
    **uncommitted-changes warning**, and never block read-only operations on it.
 7. Perform rollback (§7) as a destructive, linear truncation, and **MUST NOT**
@@ -454,7 +458,7 @@ A conforming history processor MUST:
 ## 10. Tooling and AI usage (informative)
 
 The history file is **generated and verified by tooling**, not hand-authored.
-Recording a revision (`commit`) refreshes the committed-current keyframe, writes
+Recording a revision (`save`) refreshes the committed-current keyframe, writes
 the reverse patch and any blobs, and records the new hash and id. Reverse
 patches require exact block-content extraction, fence-length bookkeeping, and
 hashing — operations that are error-prone to produce by hand (including for AI
@@ -465,9 +469,9 @@ agents). The recommended division of labour:
   carries a human-readable `summary` per revision) to understand how and why the
   document evolved — without git and without any online service.
 - An AI agent **SHOULD NOT** hand-write reverse patches, blobs, ids, or hashes.
-  Instead it invokes the history tool to record a revision (`commit`),
-  reconstruct a revision (`show`/`view`), verify integrity (`verify`), or roll
-  back (`restore`).
+  Instead it invokes the history tool to record a revision (`save`),
+  reconstruct a revision (`get`), verify integrity (`verify`), or roll back
+  (`restore`).
 
 Because the history travels with the document as a sibling plain-text file, this
 information is available offline, survives copying and forwarding, and is

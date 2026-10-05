@@ -20,7 +20,7 @@ glossary     = "#not-translated-terms"
 | Open VSX | Open VSX |
 ===
 
-%% 一节一个 embed，六节平铺 L6-L261 零间隙；标题和语言切换行在 #publishing
+%% 一节一个 embed，六节平铺 L6-L384 零间隙；标题和语言切换行在 #publishing
 %% 那一节里，跟着源文走。
 
 === embed {src=PUBLISHING.geml#publishing}

@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-This plugin brings **Agent-Native** document handling to the harness. Multi-turn
+This plugin brings **block-addressed** document handling to the harness. Multi-turn
 work drowns in token bloat — whole files read in, whole files written back,
 content growing verbose and drifting from the truth.
 [GEML](https://github.com/geml-spec/geml) exposes a document as **addressable

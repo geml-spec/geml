@@ -19,11 +19,11 @@
 GEML is a plain-text markup language for structured, expressive documents.
 A GEML file remains fully legible as plain text, expresses every kind of
 structured content (code, diagrams, tables, mathematics, callouts) through a
-single typed-block primitive, supports stable identifiers with build-time
-reference checking, and hosts external diagram DSLs without defining a diagram
-language of its own. This document specifies the document model, the syntax of
-blocks, attributes, inline content and references, and the requirements a
-conforming processor must satisfy.
+single typed-block primitive, makes each block addressable by a stable id with
+build-time reference checking, and hosts external diagram DSLs without defining
+a diagram language of its own. This document specifies the document model, the
+syntax of blocks, attributes, inline content and references, and the
+requirements a conforming processor must satisfy.
 
 ## Contents
 
@@ -447,7 +447,7 @@ code, use `=== code` with a fence one longer than the example’s own (§3); to
 keep a single line literal, use §5.1’s `\`.
 
 
-### 3.2 The `data` block
+### 3.2 The `data` block {#32-the-data-block}
 
 A `data` block carries the **value tree** — scalars, sequences and maps,
 JSON's value domain within the limits of I-JSON (RFC 7493) — as *verified
@@ -681,12 +681,14 @@ exactly when the slice is itself a value.
   the nearest typed block or heading before it inside that container, *N* the
   nearest one after it, and *C* the container:
 
-  | | address |
-  |---|---|
-  | *P* and *N* both present | `P-between-N` |
-  | no *P* — the prose opens the container | `C-before-N` |
-  | no *N* — the prose closes the container | `C-after-P` |
-  | neither | none: the container holds nothing else, so `C` already names it |
+=== table {#table-list-item-addresses}
+| | address |
+|---|---|
+| *P* and *N* both present | `P-between-N` |
+| no *P* — the prose opens the container | `C-before-N` |
+| no *N* — the prose closes the container | `C-after-P` |
+| neither | none: the container holds nothing else, so `C` already names it |
+===
 
   Written with the ids themselves, so `#pub-before-cmd` is the prose between the
   heading `#pub` and the block `#cmd`. The relation word is **determined by the
@@ -878,6 +880,7 @@ Internal and cross-document references are validated at build time.
 more bracket steps naming a unit INSIDE that block — a table's rows and cells, a
 node of a `data` block's value tree (§3.2), or a key of the merged `#meta` (§4):
 
+=== table {#table-coordinate-forms}
 | Form | Meaning |
 |------|---------|
 | `#fy[2]` | the second BODY row of block `fy`; a header is not a row |
@@ -886,6 +889,7 @@ node of a `data` block's value tree (§3.2), or a key of the merged `#meta` (§4
 | `#fy[summary]` | the `summary=` foot row (§6), and `#fy[summary]["FY"]` one of its cells |
 | `#intake["fields"][1]["name"]` | a node of a `data` block's value tree |
 | `#meta["version"]` | a value from this document's merged meta |
+===
 
 - Three token species occur inside the brackets and no two can be confused: a
   bare **integer** is a row or sequence index, a **quoted string** is a column
@@ -1235,9 +1239,11 @@ and none of its other attributes is applied.
 
 **Evaluation order** is SQL's logical processing order:
 
-> `src` loads → `compute`'s per-row formulas → `where` filters →
-> `compute`'s aggregate formulas → `by`/`aggregate` folds → `order` sorts →
-> `limit` truncates → `select` narrows → `summary` aggregates.
+=== note {#note-view-evaluation-order}
+`src` loads → `compute`'s per-row formulas → `where` filters →
+`compute`'s aggregate formulas → `by`/`aggregate` folds → `order` sorts →
+`limit` truncates → `select` narrows → `summary` aggregates.
+===
 
 `compute=` therefore runs in **two passes**, and `where=` MAY name a column a
 per-row formula produces. It MUST NOT name one an **aggregate** formula

@@ -5,8 +5,8 @@
 Reports are accepted for **`1.3.2` and above**; the fix itself ships on the
 latest release of `@geml/geml`, so an upgrade is how you receive it. `1.3.2` is
 the floor because it is the oldest release **on npm** that carries the hardening
-work described under *Scope notes*: the `1.2.x` builds where that work first
-landed were never published, so those fixes first reached users in `1.3.2`.
+work described under *Scope notes*: `1.2.1`–`1.2.3`, where that work first
+landed, were never published, so those fixes first reached users in `1.3.2`.
 Anything below it predates the hardening and is not supported — please upgrade
 rather than report against it.
 
@@ -26,9 +26,13 @@ Report privately via **GitHub Security Advisories**: on the repository page,
 *Security → Report a vulnerability*. This reaches the maintainer directly and
 keeps the report confidential until a fix is released.
 
-What to include: the affected component (parser, CLI, viewer extension, GitHub
-Action, editor integrations), a minimal reproducing input (a `.geml` /
-`.gemlhistory` snippet or CLI invocation), and the impact you believe it has.
+What to include: the affected component — the reference parser and CLI
+(`@geml/geml`), the Rust crate (`geml-parser-rs/`), the MCP server (`geml mcp`),
+the Chrome viewer extension, the VS Code extension, the GitHub Action, the
+Logseq sync (`@geml/logseq-sync` and its plugin), or one of the agent host
+plugins (Claude Code, Codex, DSH, Grok) — a minimal reproducing input (a
+`.geml` / `.gemlhistory` snippet, CLI invocation or tool call), and the impact
+you believe it has.
 
 ## What to expect
 
@@ -48,6 +52,9 @@ handling (path traversal via cross-document references, resource loading in
 rendered HTML, ReDoS in the parser, recipe/CLI injection) are very much in
 scope — this project has shipped dedicated hardening releases for exactly that
 class of issue, starting with the two audit rounds that reached npm as
-1.3.2, and continuing through further rounds since. [`CHANGELOG.md`](CHANGELOG.md) records each one under
-*Security*; a round sitting under `[Unreleased]` there has landed on `main` but
-is not on npm yet, so check both before concluding a fix has reached you.
+1.3.2, and continuing through further rounds since. [`CHANGELOG.md`](CHANGELOG.md)
+records each one: the first two rounds under a *Security* subsection of `1.2.1`
+and `1.2.2`, every later round as a bullet beginning **Security audit, round N**
+under the version that shipped it. A round sitting under `[Unreleased]` there
+has landed on `main` but is not on npm yet, so check both before concluding a
+fix has reached you.

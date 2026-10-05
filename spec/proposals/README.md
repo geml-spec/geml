@@ -79,8 +79,10 @@ is spelled `form`, while the same idea at the application layer is spelled
    [`../../GOVERNANCE.md`](../../GOVERNANCE.md): the spec is defined by its conformance
    suite, so a change is only real once it has conformance cases.
 3. **Write the GEP.** Copy [`0000-template.md`](0000-template.md) to
-   `NNNN-short-title.md` (use the issue number for `NNNN`) and open a PR that
-   adds it under `spec/proposals/`, together with:
+   `NNNN-short-title.md` — `NNNN` is the next sequence number after the index
+   below; the discussion issue's link goes in the front matter's `issue:`
+   field, or `(maintainer decision)` when the maintainer decided it directly —
+   and open a PR that adds it under `spec/proposals/`, together with:
    - the spec edit (`GEML-spec.md` / `_CN.md`), and
    - new or updated conformance cases (`geml-parser/test/conformance/`).
 4. **Merge.** A GEP lands when the spec edit, the conformance cases, and the

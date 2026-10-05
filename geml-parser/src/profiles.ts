@@ -150,9 +150,10 @@ export const PROFILES: Record<string, ProfileDef> = {
   },
   // spec/profiles/geml-translator/geml-translator-profile.md — GEP 0010.
   // A translated document is a projection: `=== embed` blocks carrying the axis
-  // (`lang=`), a hint at who should do the work (`translator=`), and the blocks
-  // held back from it (`except=`). §8.6.1 lists attribute keys among the three
-  // things a vocabulary may admit, so this needs no specification change.
+  // (`translate-to=`, on the embed or as the document default on `=== meta`,
+  // with `none` holding one block back), plus an optional `glossary` meta key
+  // naming a hidden table. §8.6.1 lists attribute keys among the three things a
+  // vocabulary may admit, so this needs no specification change.
   //
   // `translate-to` and not `lang`: on `code`, `lang=` names a PROGRAMMING language
   // and is a statement about what the body is. Here it would name a natural

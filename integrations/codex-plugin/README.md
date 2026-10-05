@@ -1,7 +1,8 @@
 # geml — Codex plugin
 
 Author, validate, and blockwise-edit [GEML](https://github.com/geml-spec/geml)
-documents from Codex. The plugin ships four things:
+documents — and address any Markdown file by block — from Codex. The plugin
+ships four things:
 
 - **The authoring skill** (`skills/geml/`) — golden rules, validation loop,
   and a sectioned reference (`references/authoring.geml`) the agent pulls one
@@ -21,8 +22,10 @@ documents from Codex. The plugin ships four things:
 
 ## Install
 
-Inside Codex, `/plugins` opens the plugin browser: pick the marketplace tab,
-open **GEML**, install.
+The plugin is served from this repository's own marketplace, not from a public
+plugin directory, so Codex has to know about that marketplace first (either
+route below). Then, inside Codex, `/plugins` opens the plugin browser: pick
+the marketplace tab, open **GEML**, install.
 
 To reach this plugin from a checkout of the repo, the marketplace source is
 already committed at `.agents/plugins/marketplace.json` — start Codex in the

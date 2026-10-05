@@ -1,5 +1,7 @@
 # Application-layer profiles
 
+Licensed MIT (see [../../LICENSE](../../LICENSE)); the specification itself is CC BY 4.0.
+
 A **profile** is a named vocabulary that a document declares in `=== meta`:
 
 ```geml
@@ -91,9 +93,17 @@ The registry declares all three (`types`, `diagnostics`, `metaKeys`), and a test
 in `geml-parser/test/profiles.test.mjs` enforces the rule against a table of
 **recorded exceptions** — each carrying why it is there and what clears it. A
 second test fails when an exception goes stale, so the table cannot quietly
-become permanent. The exceptions today are `form` and `media` (bare type names),
-`geml-style`'s seven unprefixed codes, and `geml-media`'s six meta keys; all
-predate this convention.
+become permanent. The exceptions today are `form` and `media` (bare type names)
+and `geml-media`'s three meta keys (`aspect`, `target-duration`, `episode`); all
+predate this convention. Two more unprefixed keys are read from `=== meta` and
+belong on the same list, though the table never sees them: `geml-translator`'s
+`translate-to` and `glossary`. That vocabulary declares no `metaKeys`, so the
+test has nothing to check — and the core raises no `unknown-attribute` for an
+unprefixed `=== meta` key in any case, because `=== meta` is the document's own
+namespace (below). The keys are recorded here so that leaving them unprefixed
+is a choice on the record, not an oversight; `translate-to` is also the one
+attribute the vocabulary admits on `embed`, and one spelling for the document
+default and the per-block override is the point of the design.
 
 `metaKeys` is what makes a vocabulary's `=== meta` namespace checkable. Only
 that namespace: `=== meta` carries the **document's own** metadata too — a
@@ -196,12 +206,17 @@ looked up **first**, so a host may add formats and may not quietly redefine one
 the specification defines — otherwise the same document draws two different
 things on two conformant processors.
 
-`geml-code-graph` is the worked example. It belongs to `geml-codemap/v1`
-(GEP-0003) and used to sit in the same `if` chain as the two above, so the core
-renderer knew one vocabulary by name. It is registered now — by `--to html`, by
-codemap's own `serve` and `render-all`, and by the browser extension — and a
-build that does not register it leaves such a block to §7's fallback, which is
-the correct degradation rather than an error.
+`geml-code-graph` is the worked example of where the line falls. `diagram` is a
+core type, so the two `src=` codes such a block can raise —
+`code-graph-missing-src` and `code-graph-unresolvable-document` — stay in the
+specification's Appendix A.4 beside `ignored-diagram-body`, which names the
+format too: they are conditions on a core block's attributes, and the core
+reports them whether or not a renderer is registered. What `geml-codemap/v1`
+(GEP-0003) adds is the vocabulary around that block — the class and the
+attributes its documents carry — and the renderer itself, registered by
+`--to html`, by codemap's own `serve` and `render-all`, and by the browser
+extension. A build that does not register it leaves such a block to §7's
+fallback, which is the correct degradation rather than an error.
 
 One residual is worth naming rather than leaving to be found: the core table
 renderer still asks `isCodemapDoc` whether to fold a long table, which is one

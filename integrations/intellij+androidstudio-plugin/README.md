@@ -8,6 +8,12 @@ GEML.** Highlighting is a lexer, and every structural answer — the block index
 the diagnostics — comes from the reference parser, so the editor can never
 disagree with what `geml check` says in CI.
 
+## Status
+
+**Not on the JetBrains Marketplace.** The plugin installs only from a zip you
+build yourself, through `Install Plugin from Disk…` (see *Installing it* and
+*Building it* below); the IDE will not find it by name or update it.
+
 ## What it does
 
 | | |
