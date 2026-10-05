@@ -56,7 +56,7 @@ sz    ; South China / Shenzhen
 ===
 
 %% 没有 url / email / tel 类型：都是字符串，格式用 pattern 声明，handler 校验。
-=== form-field {#website name=website label="Website" type=text pattern="^https?://"}
+=== form-field {#website name=website label="Website" type=text pattern="https?://.+"}
 ===
 
 === form-field {#profile name=profile label="Company profile" type=textarea required maxlength=2000 \
