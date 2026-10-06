@@ -13,8 +13,8 @@
 
 *English | [中文](README_CN.md)*
 
-GEML is **a lightweight markup language for people and AI agents to read and write the same document**.<br>
-**One format, two readers.**
+GEML is **a lightweight markup language with uniform, addressable blocks and standard verbs**.<br>
+**Easy for humans to read, safe for agents to mutate.**
 In agent-driven development and knowledge work, plain text and Markdown have no deterministic block boundaries: a program and a model trade the whole file in and the whole file back out — at best probing for it with line windows, and restating the original verbatim to rewrite it. Token cost grows with the length of the document, and the operation turns bloated. After a few rounds of rewriting, the copies excerpted elsewhere start to drift.
 
 **You can start without changing a thing.** `geml list`, `geml find` and `geml get` address the Markdown you already have — nothing is converted, no new files, your `.md` stays `.md`:
