@@ -115,7 +115,7 @@ read those four from the table below rather than from a CLI verb.
 | `geml_to` | Convert a whole document — `json` / `md` / `geml` / `html`; nothing is written |
 | `geml_set` | Replace one block (whole / head / intro / body) |
 | `geml_add` | Insert blocks or prose (append / before / after) |
-| `geml_delete` | Remove blocks by id |
+| `geml_delete` | Remove blocks by address |
 | `geml_rename` | Rename an id **and every reference to it** |
 | `geml_revert` | Undo **one block** — its last change, or a named revision |
 
@@ -129,9 +129,11 @@ block holding those lines; a block really named `L27` is `#L27`). A content addr
 re-read it from `geml_list` before a second edit, and note that `geml_set`
 refuses an address matching several blocks rather than choosing one.
 
-`geml_add`, `geml_delete`, `geml_rename` and `geml_revert` still take ids only —
-their CLI counterparts do too, so accepting an address here would promise
-something the command behind it would refuse.
+`geml_delete`'s `ids` and `geml_add`'s `anchor` take the same forms — their CLI
+counterparts do now. An anchor, like `geml_set`'s address, must name one
+block; `geml_delete` removes every block a filter matches. `geml_rename` and
+`geml_revert` take an id: that is what gets renamed, and what the history is
+keyed by.
 
 Each tool also declares MCP annotations, so a client can tell what a call does
 without reading its description: the six reads are `readOnlyHint`; `geml_add`
@@ -183,6 +185,7 @@ diagnostics that refused it:
 
 ```json
 { "ok": false,
+  "reason": "broken-result",
   "diagnostics": [
     { "severity": "error", "code": "unresolved-reference",
       "message": "unresolved reference `#ghost`", "line": 12 }
@@ -191,7 +194,9 @@ diagnostics that refused it:
 ```
 
 The `hint` is there for the model: without being told the file is unchanged, a
-model reads "error" and carries on as though its edit landed.
+model reads "error" and carries on as though its edit landed. `reason` is the
+spec's Appendix A.6 code for why — one of eight — so a client can branch on it
+without parsing the hint.
 
 **Every write is preceded by a saved history revision,** so `geml_revert` always
 has a revision to undo to. Pass `--no-history` to turn that off; the default is

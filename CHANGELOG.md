@@ -28,6 +28,91 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+## [1.12.4] — 2026-10-08
+
+- **Every refusal now says why with a code.** A verb that writes nothing
+  carries one of spec Appendix A.6's eight reasons — `no-such-unit`,
+  `ambiguous-address`, `bad-address`, `bad-content`, `would-drop-unit`,
+  `broken-result`, `rename-refused`, `revert-refused` — on the `--json`
+  refusal frame (`reason`) and on the MCP write result. Messages are unchanged.
+- **The conformance suite pins the eleven editing operations.** `edits-<verb>.json`
+  pairs an input with an operation and the exact outcome — rewritten text,
+  output, or refusal code — so a second implementation is held to the same
+  effect, not only the same parse (spec §8.2(10), §8.4). The model `to json`
+  prints is compared through the suite's projection, as a parse case is.
+  Markdown documents, which the specification does not define, have cases of
+  their own in `edits-markdown.json`, behind an optional `markdown` capability.
+- **The Rust crate performs the eleven editing operations.** `geml-parser-rs`
+  passes every `edits` case, natively and as WebAssembly (`edit(case)`),
+  Markdown documents included: it reads a `.md` as the reference parser does.
+  A link into a document of another format is now checked as §5.2 asks — the
+  document must exist — and a missing document is reported once.
+- **`delete`, `add --before/--after` and `revert --before/--after` take every
+  address a listing gives** — a content address, a line range, a heading line,
+  a type or attribute filter — not only an id. An anchor that matches several
+  blocks is refused; `delete` removes every block its filter matches. The MCP
+  tools `geml_delete` and `geml_add` take the same forms.
+- **Fixed: a heading line two headings share resolved to the first.** `get '## Same'`
+  with two same-level `Same` headings now refuses as ambiguous, as the
+  text-only form already did.
+- **Fixed: `revert` trusted a sidecar it never checked.** A revision read for
+  `revert` or `--rev changed` is compared with its recorded hash; a sidecar
+  altered by hand is refused instead of spliced in.
+- **Fixed: `--to geml` dropped a prose block's body.** A block a vocabulary
+  reads as prose (GEP-0013, `media-text` among them) keeps no raw lines, and
+  the serializer wrote only those: the block came out empty. It is written
+  from its paragraphs now.
+- **Fixed: a view filtered to no rows was reported unreadable.** `--to md`
+  said its source "could not be read", and GEML written into a `.md` with such
+  a view was refused. A source that was read has columns; only a missing one
+  is reported now.
+- **Fixed: `set --body` on a setext heading dropped its underline.** The
+  heading became a paragraph and the write was refused; its head is both
+  lines, as `get --head` already said.
+- **Fixed: `--to geml` from Markdown broke a GEML block the file already
+  carried.** The block's last line and closing fence read as a setext heading;
+  the block now passes through as written.
+- **Fixed: `data-parse` named the wrong line.** A json body that breaks on a
+  stray character or ends too soon was reported on its fence, other mistakes
+  on their own line; every json error now names the line the body breaks on.
+  A `src=` file's errors are reported on the block that names it, not on lines
+  of the document past it.
+- **Fixed: the yaml engine read an unclosed `[` or `{` as text.** `a: [1` is a
+  flow collection, outside the subset, and is refused as §3.2 requires.
+- **A coordinate write moves no other byte.** `set` into a `json` or `jsonl`
+  body replaces the value's own text and keeps the rest: before, the whole
+  body was re-serialized, so a neighbouring integer past 2^53 came back
+  rounded (`12345678901234567890` as `12345678901234567000`), `1.50` as
+  `1.5`, and the layout was redone. The new value is written as given; a
+  `jsonl` write changes its record's line only.
+- **Value trees take appends, insertions and removals.** `set '#d["tags"][N]'`
+  with N the sequence's length appends; `add --before/--after
+  '#d["tags"][i]'` inserts a value beside an element; `delete '#d["key"]'`
+  removes a member, an element or a `meta` key. Each splices the text the way
+  a write does; with `get` and `set` this covers what JSON Pointer and JSON
+  Patch's add/remove/replace do.
+- **`inexact-number` warning.** A number in a `json`/`jsonl`/`yaml`/`edn`
+  body or a `meta` value that binary64 cannot read back as written is said at
+  `check`, so a long identifier can be made a string before anything rounds
+  it.
+- **`#meta` is the document's one `meta` block.** `geml list` printed `#meta`
+  for it; now `add --before/--after`, `delete`, a whole `set` and `get
+  --head/--body` take it too. With several `meta` blocks `#meta` names their
+  merge, and those operations refuse it as `ambiguous-address`, listing each
+  block's address.
+- **Fixed: a coordinate write of JSON outside the value domain.** `1e400` was
+  written as `null`, a repeated key kept its last value, and a value nested a
+  few thousand levels deep crashed the CLI; each is refused as
+  `broken-result` now. A map or sequence written into `meta` came out as
+  `"[object Object]"` or `"1,2"`; it is refused.
+- **Fixed: `delete '#meta'` reported success and deleted nothing.**
+- **Rust implementation:** `to md` expands embeds and inline projections and
+  keeps a table's alignment and its cells' inline formatting; a reference
+  inside a table cell is checked; a list item's marker may be followed by
+  several spaces or a tab, and a continuation is measured from the item's own
+  marker; a pipe grid's header is the row above its separator. It reads an
+  `edn` body as the reference parser does, reports every `jsonl` line that
+  is not JSON, and names the line a body breaks on.
 - **`--to md` writes a stand-alone ``` pair as a fenced block.** A code span
   whose delimiters stand alone on their lines — §3.1's shield, as a list item's
   example carries it — was written back with single backticks, which Markdown

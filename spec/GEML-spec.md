@@ -211,7 +211,8 @@ Any line that does not match these interrupting constructs is a `text-line` and 
 ### 2.2 Lists
 
 A **list** is a run of one or more **item lines**. An item line is leading
-indentation, a **marker**, a single space, and the item's inline content (§5):
+indentation, a **marker**, spaces or tabs — at least one, none of them
+content — and the item's inline content (§5):
 
 - an **unordered** marker is `-` or `*`;
 - an **ordered** marker is one or more digits followed by `.`; the first item's
@@ -223,8 +224,9 @@ is not an item line, not a `%%` comment line, and whose indentation is
 *greater* than the item's marker column continues the item's inline content,
 joined by a newline — the same soft wrap a paragraph gives its lines, so
 emphasis and every other inline element pair across the wrap (§5.3). A list
-item MAY begin with a **task marker** — `[ ]`, `[x]`, or `[X]` followed by a
-space — which is stripped and recorded as a checked/unchecked state; it is
+item MAY begin with a **task marker** — `[ ]`, `[x]`, or `[X]`, alone or
+followed by spaces or tabs — which is stripped and recorded as a
+checked/unchecked state; it is
 read on the item's first line only, so the same characters on a continuation
 line are content.
 
@@ -360,12 +362,13 @@ text-line      = LINE ;                       (* non-empty line not matching an 
 comment-line   = indent , "%%" , [ SP , text ] , NL ; (* §4: kept, never rendered *)
 
 list           = item , { item | blank-line } ;
-item           = indent , marker , SP , [ task ] , text , NL , { continuation } ;
+item           = indent , marker , gap , [ task ] , text , NL , { continuation } ;
 continuation   = indent , text , NL ;  (* §2.2: non-blank, not an item line, not a
                                           comment-line; indent > the item's marker
                                           column; joined to the item as a soft wrap *)
 marker         = "-" | "*" | DIGIT , { DIGIT } , "." ;
-task           = "[" , ( " " | "x" | "X" ) , "]" , SP ;
+gap            = ( " " | TAB ) , { " " | TAB } ;
+task           = "[" , ( " " | "x" | "X" ) , "]" , [ gap ] ;
 indent         = { " " | TAB } ;              (* nesting depth, by column *)
 
 attrs          = "{" , { attr-item | WS } , "}" ;
@@ -476,7 +479,13 @@ parses it into the block's **value**, and a body the engine rejects is a build
   holds the same key twice (keys compared after their escapes are read), no
   string or key holds a lone surrogate, and a number is its nearest IEEE 754
   binary64 value — so `1.0` and `1` are one value, and a number past
-  binary64's range has none. And the tree is at most `data-depth` containers deep
+  binary64's range has none. A number whose nearest binary64 value, written
+  back the shortest way, is not the number its literal wrote — an integer past
+  2^53, more significant digits than binary64 holds, a magnitude below its
+  smallest — keeps that value and is an `inexact-number` **warning**; a value
+  that must keep every digit, a 19-digit identifier say, belongs in a string. A
+  number in a `meta` value (§4) is held to the same rule. And the tree is at
+  most `data-depth` containers deep
   (§9.2): a sequence or map inside `data-depth` others is outside it, whichever
   engine read it. A body outside these limits is the same `data-parse` error as one the
   engine cannot read.
@@ -618,7 +627,11 @@ exactly when the slice is itself a value.
   then the same thing; with two or more it is a `reserved-id` **error**, since
   the address would otherwise mean one block to a reader and every block to a
   processor. `#meta` names values rather than a span of the file, which is why
-  a processor reading it answers with the merged keys and not with bytes.
+  a processor reading it answers with the merged keys and not with bytes. A
+  document with one `meta` block also addresses that block as `#meta`, for
+  every operation (§8.2(10)); with several, `#meta` names only their merge,
+  and an operation on one block through it is `ambiguous-address` (Appendix
+  A.6).
 - `{.warning}` adds a semantic class (no styling implied).
 - `{caption="Annual cost"}` and other `key=val` pairs are type-defined
   parameters. Two are not type-specific and are valid on **every** typed block:
@@ -834,7 +847,8 @@ Inline elements appear only inside unfenced blocks.
   link `[…]` navigates. `as ∈ {image, audio, video}`, inferred from the source
   extension when omitted.
 - A list item MAY begin with a **task marker** — `[ ]` (open) or `[x]`/`[X]`
-  (done) followed by a space. The marker is stripped from the item text and
+  (done), alone or followed by spaces or tabs. The marker is stripped from the
+  item text and
   recorded as a checked/unchecked state; the remaining text is parsed as inline.
 
 ### 5.2 Links and references
@@ -1072,7 +1086,10 @@ fences and all — is a paragraph.* The example resolves to:
   (or `header=0`) says otherwise. `header` is a boolean (§4): `true`/`1` is the
   default and need not be written, and any other value reads as the default. A
   headerless body carries spreadsheet letter column names (`A`…`Z`, `AA`…;
-  §5.2) and is as wide as its widest row.
+  §5.2) and is as wide as its widest row. A visual body's header is the row
+  just above its first separator row — the row of `---` cells, which also sets
+  each column's alignment — and every row below the separator is a body row; a
+  visual body with no separator row, or one that opens with it, has no header.
 - **Delimiter** — a data body splits on its format's natural delimiter: `,` for
   `format=csv`, a tab for `format=tsv`. `delim=` overrides it with any single
   character, so a European `;`-separated CSV or a `|`-delimited export is
@@ -1381,6 +1398,33 @@ A conforming parser MUST:
 8. Observe the resource limits of §9.2, degrading to a diagnostic rather than
    failing.
 9. NOT require any specific editor, and NOT depend on raw HTML.
+10. Provide the eleven **editing operations** below, to the effect the `edits`
+    cases of the conformance suite (§8.4) pin. Each takes the addresses a
+    listing gives (§4; a heading's address denotes its section, through the
+    last line of its last subsection). Each one that rewrites the document
+    changes only the lines of the unit it names and leaves every other byte as
+    it was (§0.5), parses the result before it is written, and — when that
+    result would carry an **error** — writes nothing and refuses with a code
+    from Appendix A.6. An edit through a coordinate (GEP 0011) changes only the
+    text of the value it names, or puts a new one beside its neighbours,
+    separated as they are. `delete` is the one exception on both counts: it is
+    idempotent — an address that names nothing is reported, not refused — and
+    it may leave a reference dangling, reporting each one, since that
+    reference is the next thing to edit.
+
+    | Operation | Takes | Effect |
+    |-----------|-------|--------|
+    | `list` | the document | every addressable unit: address, kind, lines |
+    | `find` | text | the units whose source contains it, as addresses |
+    | `get` | an address, optionally a part (`head`, `intro`, `body`) | the unit's source, byte for byte |
+    | `check` | the document | its diagnostics (Appendix A) |
+    | `to` | a format (`geml`, `md`, `json`) | the document projected into it |
+    | `replace` | old text, new text, optionally an address to stay inside | the occurrences swapped; an id is not text and is never changed |
+    | `set` | an address, optionally a part, content | that unit — or that part — replaced by the content; through a coordinate, that value, appended one past a sequence's last element, added under a key a map lacks |
+    | `add` | content, and where: `append`, or `before`/`after` an address | the content inserted as new units; before/after a sequence element a coordinate names, as one new element |
+    | `delete` | addresses | those units removed; a coordinate, given alone, removes that member, element or `meta` key |
+    | `rename` | an id and a new id | the id and every reference to it rewritten, nothing else |
+    | `revert` | an id and a revision selector | the unit restored from the document's `.gemlhistory` (geml-history/v1): spliced back, resurrected, or removed |
 
 ### 8.3 Conforming renderer
 
@@ -1404,6 +1448,11 @@ reference for the rules this document states algorithmically — inline emphasis
 second, independent implementation conforms when it reproduces every case. In the
 reference repository it lives under
 [`geml-parser/test/conformance/`](https://github.com/geml-spec/geml/tree/main/geml-parser/test/conformance).
+
+The suite's `edits-*.json` files pair an input with one of §8.2(10)'s
+operations and the outcome: the rewritten document, the operation's output, or
+the refusal's code. They are where "the same effect" is decided — an
+implementation reproduces them, or it does not provide the operation.
 
 ### 8.5 Versioning
 
@@ -1854,6 +1903,7 @@ holds facts and derives nothing.
 | Code | Severity | Condition |
 |------|----------|-----------|
 | `data-parse` | error | The body does not parse under the declared `format=` — not one JSON value (`json`), or a non-blank line that is not one JSON value (`jsonl`) — or what it parses to breaks the value tree's limits (§3.2): a key twice in one map, a lone surrogate, a number past binary64's range, a sequence or map inside `data-depth` others (§9.2). The diagnostic names the offending line. |
+| `inexact-number` | warning | A number in a `data` body or a `meta` value does not read back as written: its nearest binary64 value, written the shortest way, is another number — an integer past 2^53, more significant digits than binary64 holds, a magnitude below its smallest (§3.2). The value is that binary64; one that must keep every digit belongs in a string. |
 | `unknown-data-format` | warning | The `format=` value is not in the data format registry. The body is kept raw and not verified. |
 | `data-format-no-engine` | warning | The `format=` names a RESERVED format (`yaml`, `toml`, `edn`) this processor ships no engine for. The body is kept raw and not verified — never guessed at. |
 | `bad-data-schema` | error | `schema=` is not a block reference (`#id`) or a GEML document reference (`doc.geml[#id]`). |
@@ -1864,6 +1914,23 @@ holds facts and derives nothing.
 | `bad-code-source` | error | A `code` block route names a disallowed URL scheme (§3.3). |
 | `bad-source-range` | error | A source route's fragment is not `#L<start>[-<end>]`, names an empty range, or names lines the file no longer has — a drifted reference (§3.3). |
 | `code-src-and-body` | error | A `code` block carries both `src=` and an inline body; exactly one is permitted. The body is kept and the route is not fetched (§3.3). |
+
+### A.6 Editing refusals (§8.2(10))
+
+An editing operation that writes nothing says why with one of these codes, at
+severity **error**. `broken-result` carries the result's own diagnostics with
+it; the rest describe the request.
+
+| Code | Condition |
+|------|-----------|
+| `no-such-unit` | The address names nothing: no unit carries the id or content address, has the type, contains the line range, or lies inside the narrowing address; `replace`'s old text does not occur; a `#meta` write finds no `meta` block. |
+| `ambiguous-address` | The address names several units where the operation takes one: a heading text several headings share, a filter with several matches given to `set` or `replace`, or `#meta` given to an operation on one block in a document with several `meta` blocks. |
+| `bad-address` | The address is empty or ill-formed for the operation: no address at all, an attribute filter with no key, a type prefix that is not the unit's type, a coordinate where a block address is taken, a part the unit has not (`intro` of a block, a part of a coordinate, `head` for a `revert` whose unit is not on both sides), a `#meta` write naming anything but one quoted key, a coordinate edit the unit's shape does not admit (an insertion beside a map's member, an index past the one that appends), or a coordinate given to `delete` with other addresses. |
+| `bad-content` | The content is not what the operation takes: empty; prose where a whole unit is set; more than one block, or one that does not stay one block in place; content that drops or changes the target's id, or a `replace` that would rename one; JSON that is not a document model. |
+| `would-drop-unit` | The content added, or the unit removed, would make another unit disappear. |
+| `broken-result` | The rewritten document would carry an error-level diagnostic; those diagnostics are reported with the refusal. |
+| `rename-refused` | The two ids are equal; the new id is already declared; or ids that extend the old id would change too. |
+| `revert-refused` | No earlier revision changes the unit; the unit exists in neither the document nor the revision; it appears under another id on the other side (a rename undoes that); or the `.gemlhistory` sidecar is missing, tampered or malformed. |
 
 ---
 

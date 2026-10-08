@@ -201,8 +201,17 @@ offered by the tool.
 
 ### Writing, and the four refusals
 
-`geml set` on a coordinate replaces that unit and nothing else. It is REFUSED,
-naming the reason, when:
+`geml set` on a coordinate replaces that unit and nothing else. Only the
+value's own text changes: the new value goes where the old one stood — as
+written, when it is JSON — and every other byte of the body stays, so a
+neighbouring integer past 2^53 is not rounded and the author's layout is kept.
+One past a sequence's last element appends, and a key the map lacks is added
+after its last member, separated the way its members are. `add --before`/
+`--after` a sequence element inserts a value beside it, and `delete` removes a
+member, an element or a `meta` key; a `jsonl` record is added and removed as
+its line.
+
+A write is REFUSED, naming the reason, when:
 
 1. **The target is derived.** A `compute=` column has no bytes in the source —
    the model marks the cell computed and the serializer never writes one.

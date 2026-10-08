@@ -6,7 +6,7 @@ The highest-impact thing you can do for GEML: implement it from the spec in anot
 
 It's a weekend project, and you can self-certify: reproduce a set of JSON conformance cases, then parse the spec's own `.geml` file cleanly. Building one? **Open an [implementation issue](https://github.com/geml-spec/geml/issues/new?template=implementation.yml)** — we'll help and link it. No need to finish it all at once.
 
-## Conformant means five things
+## Conformant means six things
 
 Your parser turns GEML source into a **document model** (blocks and inline nodes). It's a conforming *parser* (§8.2) when:
 
@@ -15,6 +15,7 @@ Your parser turns GEML source into a **document model** (blocks and inline nodes
 3. References resolve (§8): every `#id` is unique, and every `[[#id]]`, `[[doc.geml#id]]`, `[text](#id)`, `[^id]`, a table's or chart's `src=`/`data=`, and an `embed`'s `src=` points at something real.
 4. It normalizes its input exactly as **§0.5** says: UTF-8, strip one leading BOM, line endings → LF, `U+0000` → `U+FFFD`. Four lines of code, and skipping them is the most common way a second implementation silently disagrees with the reference on real-world files.
 5. Every diagnostic carries the **code and severity** from [Appendix A](../spec/GEML-spec.md#appendix-a-diagnostic-catalogue). The message text is yours to word (or translate); the code is the contract, and it's what makes your error paths testable against ours.
+6. It provides the eleven **editing operations** of §8.2(10) — `list`, `find`, `get`, `check`, `to`, `replace`, `set`, `add`, `delete`, `rename`, `revert` — and reproduces the `edits-*.json` cases: the same rewritten text, output, or refusal code (Appendix A.6) as the reference, byte for byte. A parser that only reads is a useful first milestone; it is not a conforming one until the operations are there.
 
 The suite pins what the spec states algorithmically — inline emphasis, list nesting, ids, block structure, normalization, tables, views and the value tree; the dogfood covers the rest.
 
@@ -35,6 +36,8 @@ Each case is `{ name, geml, want }`:
 `want` is a **projection** of the parsed model — a compact string. Project *your* model the same way and assert it equals `want`. A case may also carry `ids`, `addresses`, `blocks` or `diagnostics`, or give its input as bytes (`geml_base64`): check the ones your capabilities cover.
 
 [`_project.mjs`](../geml-parser/test/conformance/_project.mjs) is the reference projection — what the `want` strings are written in. What a document *means* is the specification's: every case is derived from its text, and where a case and the text disagree, the text decides. [`impl2.mjs`](../geml-parser/test/conformance/impl2.mjs) is a full parser + projection written only from the spec (a few hundred lines) — a worked example of what you're building. [`geml-parser-rs/`](../geml-parser-rs/) is the full-size one: a second implementation written by this document from the spec and the suite alone, in Rust and compiled to WebAssembly, with every capability declared — compare your model against it when a case disagrees.
+
+The manifest's `edits` list is the other half: `edits-<verb>.json` pairs a document with one operation and the outcome — `text`, `output`, `rows`, `hits`, `diagnostics`, `projection` and `blocks` for the model `to json` prints (read through `_project.mjs`, as a parse case), or `refused` with its code. The suite's [README](../geml-parser/test/conformance/README.md#the-edits-cases) gives the case shape, and [`_edits.mjs`](../geml-parser/test/conformance/_edits.mjs) is the loop a harness runs. `edits-markdown.json` needs the optional `markdown` capability: Markdown is not GEML, and only an implementation that reads `.md` documents runs it.
 
 ## Build order
 
@@ -62,6 +65,10 @@ for entry in load("manifest.json").files:
         doc = parse_in(case.files, case.main) if case.files else parse(case.geml or decode(base64(case.geml_base64)))
         assert project(doc) == case.want
         # and ids / addresses / blocks / diagnostics, where you have them
+
+for entry in load("manifest.json").edits:
+    for case in load(entry.file):
+        assert run(case.op, case.geml, case.files, case.history) == case.want
 
 doc = parse(read("spec/in_geml_format/GEML-spec.geml"))
 assert no "error" diagnostic in doc.diagnostics

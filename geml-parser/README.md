@@ -105,8 +105,8 @@ geml get    doc.geml ['<selector>'] # list addressable blocks, or print what the
 geml get    doc.geml '#sec' --intro # a section cuts three ways: --head | --intro | --body
 geml set    doc.geml '<selector>' [--head|--intro|--body] [--in F[#src]]   # replace ONE block's content
 geml replace doc.geml OLD NEW [--within '<selector>']   # EXPERIMENTAL: literal swap, checked and reported
-geml add    doc.geml (--append|--before #id|--after #id) [--in F[#src]]   # insert a fragment
-geml delete doc.geml '#id' ['#id2' …]     # remove one or more blocks
+geml add    doc.geml (--append|--before '<sel>'|--after '<sel>') [--in F[#src]]   # insert a fragment
+geml delete doc.geml '<sel>' ['<sel2>' …]  # remove every block the selectors name
 geml rename doc.geml '#old' '#new'        # rename an id + every reference to it
 geml revert doc.geml '#id' [--rev -1]     # undo a block: splice / resurrect / remove
 geml check  doc.geml [--root <dir>]       # validate only: diagnostics + exit code (--json for the array)
@@ -183,9 +183,11 @@ target), `--in F#src` (F's block `#src`), or stdin (raw bytes). `set` **replaces
 a whole block** and normalizes the content's id to the target — so you can fork
 any block into this slot without hand-editing its id (`--head` swaps just the
 head line, `--body` just the body). `add` **inserts a fragment** (one or more
-blocks, or bare prose) at `--append` / `--before #id` / `--after #id`, keeping
-the content's own ids (a collision is refused). `delete` removes one or more
-ids; `rename` rewrites an id's declaration and every reference to it.
+blocks, or bare prose) at `--append`, or `--before`/`--after` a selector naming
+one block, keeping the content's own ids (a collision is refused). `delete`
+removes every block its selectors name — an id, a content address, a line
+range, a heading line or a filter; a selector naming nothing is skipped with a
+note. `rename` rewrites an id's declaration and every reference to it.
 
 Mutations (`set`/`add`/`delete`/`rename`) write the **whole updated document**:
 in place when the input is a file, or to **stdout** when the input is `-`; `-o`

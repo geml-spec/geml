@@ -93,13 +93,13 @@ claude mcp add geml -- geml mcp --root /abs/path/to/repo
 | `geml_to` | 转换整篇文档——`json` / `md` / `geml` / `html`；不写任何文件 |
 | `geml_set` | 替换一个块（整块 / head / intro / body） |
 | `geml_add` | 插入块或散文（append / before / after） |
-| `geml_delete` | 按 id 删除块 |
+| `geml_delete` | 按地址删除块 |
 | `geml_rename` | 重命名一个 id，**以及指向它的每一处引用** |
 | `geml_revert` | 撤回**一个块**——它最近一次改动，或指定的某个修订 |
 
 `geml_list` 报告**每一个**块，包括作者从未给过 `#id` 的那些，每个都带一个 `address`——而这个地址可以直接喂回 `geml_get` 和 `geml_set`，所以没有 id 的块在这里也能读能写，不只在 CLI 里能。参数名仍然叫 `id`，仍然接受一个裸 id；它只是同时也接受清单里打印出来的其他形式（`## Heading`、`=== type`、`@<hex>`，以及 `L27-58` 行号范围——指包含这些行的最小块；真叫 `L27` 的块写 `#L27`）。内容地址在你写入该块之后会变，所以第二次编辑前请从 `geml_list` 重新取一次；另外注意 `geml_set` 遇到匹配多个块的地址会拒绝，而不是替你挑一个。
 
-`geml_add`、`geml_delete`、`geml_rename` 和 `geml_revert` 仍然只接受 id——它们对应的 CLI 命令也是如此，在这里接受地址就等于承诺了背后那条命令会拒绝的事。
+`geml_delete` 的 `ids` 和 `geml_add` 的 `anchor` 也接受这些形式——它们对应的 CLI 命令现在也接受。锚点和 `geml_set` 的地址一样，必须只指一个块；`geml_delete` 则删除过滤器匹配到的每一个块。`geml_rename` 和 `geml_revert` 只接受 id：改名改的就是 id，历史也按 id 记。
 
 每个工具还声明了 MCP annotations，客户端不读描述也能知道一次调用会做什么：六个读工具是 `readOnlyHint`；`geml_add` 和 `geml_rename` 会写但不破坏内容；`geml_set`、`geml_delete` 和 `geml_revert` 是 `destructiveHint`，客户端该让人确认。它们只碰 `--root` 下的文档（`openWorldHint: false`）。
 
@@ -126,6 +126,7 @@ claude mcp add geml -- geml mcp --root /abs/path/to/repo
 
 ```json
 { "ok": false,
+  "reason": "broken-result",
   "diagnostics": [
     { "severity": "error", "code": "unresolved-reference",
       "message": "unresolved reference `#ghost`", "line": 12 }
@@ -133,7 +134,7 @@ claude mcp add geml -- geml mcp --root /abs/path/to/repo
   "hint": "… The write was refused; the file on disk is unchanged." }
 ```
 
-那个 `hint` 是给模型看的：不明确告诉它文件没变，模型读到「error」就会当作自己的编辑已经生效然后继续往下走。
+那个 `hint` 是给模型看的：不明确告诉它文件没变，模型读到「error」就会当作自己的编辑已经生效然后继续往下走。`reason` 是规范附录 A.6 的拒绝码（共八个），说明为什么被拒，客户端不用解析 hint 就能按它分支。
 
 **每次写入之前都先存一条历史修订**，所以 `geml_revert` 总有一个可回退的目标。用 `--no-history` 可以关掉；默认是开的，因为没有它，这套工具里最强的那个就无处可回退。
 

@@ -5,14 +5,16 @@
 A second, independent GEML 1.0 parser in Rust, compiled to WebAssembly. It was
 written from [the specification](../spec/GEML-spec.md) and
 [its conformance suite](../geml-parser/test/conformance/) alone: no code of the
-reference parser was read. Its purpose is the one §8.4 gives a second
+reference parser was read. Markdown reading is the exception — the
+specification does not define it, so it follows the reference implementation's
+rules. Its purpose is the one §8.4 gives a second
 implementation — to show that the specification, not one program, decides what
 a document means.
 
-**Status: conforms.** All 429 conformance cases pass, with every capability the
+**Status: conforms.** All 453 parse cases pass, with every capability the
 suite's manifest names declared (`tables`, `views`, `ids`, `addresses`,
-`blocks`, `diagnostics`, `bytes`, `yaml`, `host`), so no case is skipped. The suite runs
-twice:
+`blocks`, `diagnostics`, `bytes`, `yaml`, `host`, `edits`, `markdown`), so no
+case is skipped. The suite runs twice:
 
 - natively, through this crate's harness (`tests/conformance.rs`);
 - as WebAssembly, through the suite's own `_runner.mjs` and `_project.mjs`, so
@@ -23,6 +25,11 @@ It recognizes all six vocabularies under [`spec/profiles/`](../spec/profiles/)
 and runs each one's checks (see *Vocabularies* below). Every profile
 conformance file passes in both of its readings, declared and undeclared,
 natively (`tests/profiles.rs`) and as WebAssembly (`wasm/profiles.mjs`).
+
+The eleven editing operations of §8.2(10) pass all 343 of the suite's
+`edits-*.json` cases — the 53 of `edits-markdown.json`, which need the
+optional `markdown` capability, among them — natively (`tests/edits.rs`) and
+as WebAssembly through the suite's own `_edits.mjs` (`wasm/edits.mjs`).
 
 ## Build and test
 
@@ -46,8 +53,12 @@ node wasm/conformance.mjs
 node wasm/profiles.mjs
 ```
 
+```bash
+node wasm/edits.mjs
+```
+
 The coverage gate holds lines, regions and functions at 95% or more; branch
-coverage needs a nightly compiler and is not measured. CI runs all five in the
+coverage needs a nightly compiler and is not measured. CI runs all six in the
 `parser-rs` job.
 
 `examples/geml-rs.rs` is a small command line over the crate that reads from a
@@ -102,6 +113,14 @@ bytes; `hashes` holds the files given by hash alone (images, video, audio); and
 | `historyReconstruct(sidecar, revision)` | one revision's content, checked against its hash |
 | `codemapVerify(name, host)` | `{ok, dangling, unchecked, problems}` |
 
+`edit(case)` runs one editing operation of §8.2(10), given as an
+`edits-*.json` case — `{geml, file?, files?, history?, op}` — and returns its
+outcome as JSON: `{text}`, `{output}`, `{rows}`, `{hits}`, `{diagnostics}`,
+`{unchanged: true}`, `{refused, message, diagnostics}`, or `{unsupported}`
+for what the crate does not do yet. In Rust, `geml::edit::run_json` is the same
+call, and `geml::edit::run` takes a parsed `Case` and returns the outcome or
+the refusal.
+
 ## What it implements
 
 - §0 normalization; §2 paragraphs and lists; §3 typed blocks, fences, labeled
@@ -136,6 +155,14 @@ bytes; `hashes` holds the files given by hash alone (images, video, audio); and
   checked by `tests/behaviour.rs`. `tests/robustness.rs` parses every prefix
   of every case and a set of hostile inputs (a 20 000-deep label, 100 000
   stars, a 5 000-key attribute object, …).
+- §8.2(10)'s editing operations on a GEML document's text — `list`, `find`,
+  `get`, `check`, `to` (`geml`, `md` and `json`), `replace`, `set`, `add`,
+  `delete`, `rename`, `revert` — with §4's addresses, GEP 0011's coordinates
+  read and written, and Appendix A.6's refusal codes. A write changes only the
+  lines of the unit it names and is parsed before it is returned. A `.md`
+  document is read and edited as Markdown (the suite README's *Markdown
+  documents*); `to` reads Markdown and this crate's model JSON, and does not
+  write HTML.
 
 ## Vocabularies
 

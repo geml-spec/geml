@@ -4,12 +4,12 @@
 profile           = "geml-history/v1"
 history-of        = "GEML-spec.geml"
 geml-version      = "1.0"
-current           = "20261005T072602Z-3606df5d"
+current           = "20261008T081031Z-4e5c86ee"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== history-keyframe {id="20261005T072602Z-3606df5d" hash="sha256:3606df5db10447b87c7f52bc1680eaa2d09d714ff1f616af00b9cfa5a3724753"}
+===== history-keyframe {id="20261008T081031Z-4e5c86ee" hash="sha256:4e5c86ee503003cb2547a74c959e5069d18b9d5d174399ad8f63c2fcd83c2e8b"}
 # GEML — General Expressive Markup Language
 
 *English | [中文](../GEML-spec_CN.md)*
@@ -223,7 +223,8 @@ Any line that does not match these interrupting constructs is a `text-line` and 
 ### 2.2 Lists
 
 A **list** is a run of one or more **item lines**. An item line is leading
-indentation, a **marker**, a single space, and the item's inline content (§5):
+indentation, a **marker**, spaces or tabs — at least one, none of them
+content — and the item's inline content (§5):
 
 - an **unordered** marker is `-` or `*`;
 - an **ordered** marker is one or more digits followed by `.`; the first item's
@@ -235,8 +236,9 @@ is not an item line, not a `%%` comment line, and whose indentation is
 *greater* than the item's marker column continues the item's inline content,
 joined by a newline — the same soft wrap a paragraph gives its lines, so
 emphasis and every other inline element pair across the wrap (§5.3). A list
-item MAY begin with a **task marker** — `[ ]`, `[x]`, or `[X]` followed by a
-space — which is stripped and recorded as a checked/unchecked state; it is
+item MAY begin with a **task marker** — `[ ]`, `[x]`, or `[X]`, alone or
+followed by spaces or tabs — which is stripped and recorded as a
+checked/unchecked state; it is
 read on the item's first line only, so the same characters on a continuation
 line are content.
 
@@ -371,12 +373,13 @@ text-line      = LINE ;                       (* non-empty line not matching an 
 comment-line   = indent , "%%" , [ SP , text ] , NL ; (* §4: kept, never rendered *)
 
 list           = item , { item | blank-line } ;
-item           = indent , marker , SP , [ task ] , text , NL , { continuation } ;
+item           = indent , marker , gap , [ task ] , text , NL , { continuation } ;
 continuation   = indent , text , NL ;  (* §2.2: non-blank, not an item line, not a
                                           comment-line; indent > the item's marker
                                           column; joined to the item as a soft wrap *)
 marker         = "-" | "*" | DIGIT , { DIGIT } , "." ;
-task           = "[" , ( " " | "x" | "X" ) , "]" , SP ;
+gap            = ( " " | TAB ) , { " " | TAB } ;
+task           = "[" , ( " " | "x" | "X" ) , "]" , [ gap ] ;
 indent         = { " " | TAB } ;              (* nesting depth, by column *)
 
 attrs          = "{" , { attr-item | WS } , "}" ;
@@ -488,7 +491,13 @@ parses it into the block's **value**, and a body the engine rejects is a build
   holds the same key twice (keys compared after their escapes are read), no
   string or key holds a lone surrogate, and a number is its nearest IEEE 754
   binary64 value — so `1.0` and `1` are one value, and a number past
-  binary64's range has none. And the tree is at most `data-depth` containers deep
+  binary64's range has none. A number whose nearest binary64 value, written
+  back the shortest way, is not the number its literal wrote — an integer past
+  2^53, more significant digits than binary64 holds, a magnitude below its
+  smallest — keeps that value and is an `inexact-number` **warning**; a value
+  that must keep every digit, a 19-digit identifier say, belongs in a string. A
+  number in a `meta` value (§4) is held to the same rule. And the tree is at
+  most `data-depth` containers deep
   (§9.2): a sequence or map inside `data-depth` others is outside it, whichever
   engine read it. A body outside these limits is the same `data-parse` error as one the
   engine cannot read.
@@ -629,7 +638,11 @@ exactly when the slice is itself a value.
   then the same thing; with two or more it is a `reserved-id` **error**, since
   the address would otherwise mean one block to a reader and every block to a
   processor. `#meta` names values rather than a span of the file, which is why
-  a processor reading it answers with the merged keys and not with bytes.
+  a processor reading it answers with the merged keys and not with bytes. A
+  document with one `meta` block also addresses that block as `#meta`, for
+  every operation (§8.2(10)); with several, `#meta` names only their merge,
+  and an operation on one block through it is `ambiguous-address` (Appendix
+  A.6).
 - `{.warning}` adds a semantic class (no styling implied).
 - `{caption="Annual cost"}` and other `key=val` pairs are type-defined
   parameters. Two are not type-specific and are valid on **every** typed block:
@@ -848,7 +861,8 @@ Inline elements appear only inside unfenced blocks.
   link `[…]` navigates. `as ∈ {image, audio, video}`, inferred from the source
   extension when omitted.
 - A list item MAY begin with a **task marker** — `[ ]` (open) or `[x]`/`[X]`
-  (done) followed by a space. The marker is stripped from the item text and
+  (done), alone or followed by spaces or tabs. The marker is stripped from the
+  item text and
   recorded as a checked/unchecked state; the remaining text is parsed as inline.
 
 ### 5.2 Links and references
@@ -1091,7 +1105,10 @@ fences and all — is a paragraph.* The example resolves to:
   (or `header=0`) says otherwise. `header` is a boolean (§4): `true`/`1` is the
   default and need not be written, and any other value reads as the default. A
   headerless body carries spreadsheet letter column names (`A`…`Z`, `AA`…;
-  §5.2) and is as wide as its widest row.
+  §5.2) and is as wide as its widest row. A visual body's header is the row
+  just above its first separator row — the row of `---` cells, which also sets
+  each column's alignment — and every row below the separator is a body row; a
+  visual body with no separator row, or one that opens with it, has no header.
 - **Delimiter** — a data body splits on its format's natural delimiter: `,` for
   `format=csv`, a tab for `format=tsv`. `delim=` overrides it with any single
   character, so a European `;`-separated CSV or a `|`-delimited export is
@@ -1400,6 +1417,35 @@ A conforming parser MUST:
 8. Observe the resource limits of §9.2, degrading to a diagnostic rather than
    failing.
 9. NOT require any specific editor, and NOT depend on raw HTML.
+10. Provide the eleven **editing operations** below, to the effect the `edits`
+    cases of the conformance suite (§8.4) pin. Each takes the addresses a
+    listing gives (§4; a heading's address denotes its section, through the
+    last line of its last subsection). Each one that rewrites the document
+    changes only the lines of the unit it names and leaves every other byte as
+    it was (§0.5), parses the result before it is written, and — when that
+    result would carry an **error** — writes nothing and refuses with a code
+    from Appendix A.6. An edit through a coordinate (GEP 0011) changes only the
+    text of the value it names, or puts a new one beside its neighbours,
+    separated as they are. `delete` is the one exception on both counts: it is
+    idempotent — an address that names nothing is reported, not refused — and
+    it may leave a reference dangling, reporting each one, since that
+    reference is the next thing to edit.
+
+=== table
+| Operation | Takes | Effect |
+|-----------|-------|--------|
+| `list` | the document | every addressable unit: address, kind, lines |
+| `find` | text | the units whose source contains it, as addresses |
+| `get` | an address, optionally a part (`head`, `intro`, `body`) | the unit's source, byte for byte |
+| `check` | the document | its diagnostics (Appendix A) |
+| `to` | a format (`geml`, `md`, `json`) | the document projected into it |
+| `replace` | old text, new text, optionally an address to stay inside | the occurrences swapped; an id is not text and is never changed |
+| `set` | an address, optionally a part, content | that unit — or that part — replaced by the content; through a coordinate, that value, appended one past a sequence's last element, added under a key a map lacks |
+| `add` | content, and where: `append`, or `before`/`after` an address | the content inserted as new units; before/after a sequence element a coordinate names, as one new element |
+| `delete` | addresses | those units removed; a coordinate, given alone, removes that member, element or `meta` key |
+| `rename` | an id and a new id | the id and every reference to it rewritten, nothing else |
+| `revert` | an id and a revision selector | the unit restored from the document's `.gemlhistory` (geml-history/v1): spliced back, resurrected, or removed |
+===
 
 ### 8.3 Conforming renderer
 
@@ -1424,6 +1470,10 @@ second, independent implementation conforms when it reproduces every case. In th
 reference repository it lives under
 [`geml-parser/test/conformance/`](https://github.com/geml-spec/geml/tree/main/geml-parser/test/conformance).
 
+The suite's `edits-*.json` files pair an input with one of §8.2(10)'s
+operations and the outcome: the rewritten document, the operation's output, or
+the refusal's code. They are where "the same effect" is decided — an
+implementation reproduces them, or it does not provide the operation.
 ### 8.5 Versioning
 
 The specification is versioned independently of any implementation. This
@@ -1885,6 +1935,7 @@ holds facts and derives nothing.
 | Code | Severity | Condition |
 |------|----------|-----------|
 | `data-parse` | error | The body does not parse under the declared `format=` — not one JSON value (`json`), or a non-blank line that is not one JSON value (`jsonl`) — or what it parses to breaks the value tree's limits (§3.2): a key twice in one map, a lone surrogate, a number past binary64's range, a sequence or map inside `data-depth` others (§9.2). The diagnostic names the offending line. |
+| `inexact-number` | warning | A number in a `data` body or a `meta` value does not read back as written: its nearest binary64 value, written the shortest way, is another number — an integer past 2^53, more significant digits than binary64 holds, a magnitude below its smallest (§3.2). The value is that binary64; one that must keep every digit belongs in a string. |
 | `unknown-data-format` | warning | The `format=` value is not in the data format registry. The body is kept raw and not verified. |
 | `data-format-no-engine` | warning | The `format=` names a RESERVED format (`yaml`, `toml`, `edn`) this processor ships no engine for. The body is kept raw and not verified — never guessed at. |
 | `bad-data-schema` | error | `schema=` is not a block reference (`#id`) or a GEML document reference (`doc.geml[#id]`). |
@@ -1897,6 +1948,25 @@ holds facts and derives nothing.
 | `code-src-and-body` | error | A `code` block carries both `src=` and an inline body; exactly one is permitted. The body is kept and the route is not fetched (§3.3). |
 ===
 
+
+### A.6 Editing refusals (§8.2(10))
+
+An editing operation that writes nothing says why with one of these codes, at
+severity **error**. `broken-result` carries the result's own diagnostics with
+it; the rest describe the request.
+
+=== table
+| Code | Condition |
+|------|-----------|
+| `no-such-unit` | The address names nothing: no unit carries the id or content address, has the type, contains the line range, or lies inside the narrowing address; `replace`'s old text does not occur; a `#meta` write finds no `meta` block. |
+| `ambiguous-address` | The address names several units where the operation takes one: a heading text several headings share, a filter with several matches given to `set` or `replace`, or `#meta` given to an operation on one block in a document with several `meta` blocks. |
+| `bad-address` | The address is empty or ill-formed for the operation: no address at all, an attribute filter with no key, a type prefix that is not the unit's type, a coordinate where a block address is taken, a part the unit has not (`intro` of a block, a part of a coordinate, `head` for a `revert` whose unit is not on both sides), a `#meta` write naming anything but one quoted key, a coordinate edit the unit's shape does not admit (an insertion beside a map's member, an index past the one that appends), or a coordinate given to `delete` with other addresses. |
+| `bad-content` | The content is not what the operation takes: empty; prose where a whole unit is set; more than one block, or one that does not stay one block in place; content that drops or changes the target's id, or a `replace` that would rename one; JSON that is not a document model. |
+| `would-drop-unit` | The content added, or the unit removed, would make another unit disappear. |
+| `broken-result` | The rewritten document would carry an error-level diagnostic; those diagnostics are reported with the refusal. |
+| `rename-refused` | The two ids are equal; the new id is already declared; or ids that extend the old id would change too. |
+| `revert-refused` | No earlier revision changes the unit; the unit exists in neither the document nor the revision; it appears under another id on the other side (a rename undoes that); or the `.gemlhistory` sidecar is missing, tampered or malformed. |
+===
 
 ## Appendix B: Syntax inventory (non-normative)
 
@@ -2013,6 +2083,546 @@ for a block or a section, the three granularities are a scalar, a phrase, and
 a block.
 
 =====
+
+=== history-revision {id="20261008T081031Z-4e5c86ee" parent="20261008T041649Z-8dbd39d2" summary="§2.2 spaces or tabs after a marker; §3.2 inexact-number; §4 #meta as the one meta block; §6 a visual body's header; §8.2(10) and A.6 coordinate edits" hash="sha256:4e5c86ee503003cb2547a74c959e5069d18b9d5d174399ad8f63c2fcd83c2e8b" newline="crlf"}
+delete @04f9878a
+delete @84aa3b93
+delete @461b08b2
+delete @d9d7bb95
+delete @93cbf1dc
+delete @38972323
+delete @0eaa18c2
+delete @35c0ad38
+delete @108bd458
+delete @1951bc11
+replace #code-2 <- blob:b213
+insert <- blob:b214 after @9d0cbdf3
+insert <- blob:b215 after @a43a9d11
+insert <- blob:b216 after @65af6a2b
+insert <- blob:b217 after @66af3922
+insert <- blob:b218 after #table-3
+insert <- blob:b219 after #table-5
+insert <- blob:b220 after @895ee505
+insert <- blob:b221 after @419d6259
+insert <- blob:b222 after @c8e02e0e
+insert <- blob:b223 after @9b1949a8
+===
+
+==== history-blob {#b213 lang=geml}
+=== code {#code-2 lang=ebnf}
+(* The grammar is stated over LOGICAL lines. Before it applies, a fence or
+   heading line ending with `\` is folded with the line(s) that follow it —
+   the backslash, the newline and the whitespace around them become one space
+   (§4, line continuation) — so NL below
+   is the end of a folded logical line, and an attribute object may occupy more
+   than one physical line. *)
+
+document       = { block } ;
+block          = unfenced-block | typed-block ;
+
+typed-block    = fence , [ SP ] , type , [ SP , attrs ] , NL , body , close-fence ;
+                 (* the SP after the fence is OPTIONAL: `===note {#a}` and
+                    `=== note {#a}` are the same block, as are `===#a` and
+                    `=== #a` as labeled closes. A fence-like line is kept
+                    literal by the `\` block escape of §5.1, or by sitting between a
+                    matched pair of ``` lines (below); never by the
+                    absence of that space. *)
+fence          = "===" , { "=" } ;            (* open: N equals signs, N >= 3 *)
+close-fence    = fence ;                      (* exactly equal to the opening length *)
+type           = TYPE-NAME ;                  (* narrower than NAME; see below *)
+body           = { LINE } ;                    (* raw, flow or data per the registry *)
+
+unfenced-block = heading | list | paragraph | comment-line ;
+heading        = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ; (* 1 to 6 #s *)
+paragraph      = text-line , { text-line } ;
+text-line      = LINE ;                       (* non-empty line not matching an interruption rule *)
+comment-line   = indent , "%%" , [ SP , text ] , NL ; (* §4: kept, never rendered *)
+
+list           = item , { item | blank-line } ;
+item           = indent , marker , SP , [ task ] , text , NL , { continuation } ;
+continuation   = indent , text , NL ;  (* §2.2: non-blank, not an item line, not a
+                                          comment-line; indent > the item's marker
+                                          column; joined to the item as a soft wrap *)
+marker         = "-" | "*" | DIGIT , { DIGIT } , "." ;
+task           = "[" , ( " " | "x" | "X" ) , "]" , SP ;
+indent         = { " " | TAB } ;              (* nesting depth, by column *)
+
+attrs          = "{" , { attr-item | WS } , "}" ;
+                 (* where an object begins and ends is decided before it is
+                    read (§4, reading an attribute object): on a fence line it
+                    runs to the LAST "}" of the line, so a brace between is an
+                    ordinary character *)
+attr-item      = id-attr | class-attr | kv-attr | flag-attr ;
+id-attr        = "#" , NAME ;
+class-attr     = "." , NAME ;
+kv-attr        = NAME , "=" , value ;
+flag-attr      = NAME ;                       (* boolean true flag *)
+value          = quoted-string | bare-word ;
+
+quoted-string  = '"' , { quoted-char } , '"' ;
+                 (* only as a WHOLE value: one that begins and ends with `"` *)
+quoted-char    = escape-seq | ( CHAR - '"' - "\" ) | "\" ;
+                 (* a `\` before anything but `"` or `\` is itself *)
+escape-seq     = "\" , ( '"' | "\" ) ;         (* only " and \ are escapes *)
+bare-word      = bare-piece , { bare-piece } ;
+bare-piece     = BARE-CHAR | quoted-span ;
+quoted-span    = '"' , { quoted-char } , [ '"' ] ;
+                 (* a `"` inside a bare word opens a span that the next
+                    unescaped `"` closes, or the end of the object when none
+                    does; whitespace inside a span does not end the word *)
+BARE-CHAR      = CHAR - WS - '"' ;
+                 (* a value needs quotes only to hold whitespace outside a
+                    span: `data=#fy25`, `src=b.geml#tbl`, `src=#t[1]["Q 1"]`
+                    and `x=a{b}` are bare words, taken verbatim, quotes
+                    included. NAME and `number` below are the two shapes §4
+                    gives a meaning — a flag name, a typed number; every other
+                    bare word is a string. *)
+WS             = ? a character with the Unicode White_Space property ? ;
+number         = [ "+" | "-" ] , ( DIGITS , [ "." , [ DIGITS ] ]
+                                 | "." , DIGITS ) , [ exp ] ;
+                 (* the bare-word shapes §4 types as a number: `42`, `-1`,
+                    `+1`, `1.5`, `1.`, `.5`, `1e3`, `1.5e-2`. Every other bare
+                    word stays a string — `0x10`, `1e`, `1_000`, `Infinity` — as
+                    does every quoted value. *)
+exp            = ( "e" | "E" ) , [ "+" | "-" ] , DIGITS ;
+DIGITS         = DIGIT , { DIGIT } ;
+                 (* leading zeros are allowed: `007` is 7 *)
+
+NAME           = NAME-CHAR , { NAME-CHAR } ;
+NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
+
+TYPE-NAME      = ASCII-LETTER , { ASCII-LETTER | DIGIT | "-" | "_" } ;
+                 (* the block type is the ONE name a document does not derive
+                    but chooses: it keys the type registry, is typed into
+                    commands, and reaches generated output as an identifier. So
+                    it is ASCII and starts with a letter, where NAME — which
+                    ids, classes and attribute keys use — is deliberately
+                    wider. Unicode here would buy two encodings of one name
+                    (NFC/NFD) and invisible confusables in a registry key, with
+                    no matching need: nothing forces a type name the way a
+                    non-Latin heading forces a non-Latin id. *)
+===
+
+====
+
+=== history-blob {#b214 lang=geml}
+A **list** is a run of one or more **item lines**. An item line is leading
+indentation, a **marker**, a single space, and the item's inline content (§5):
+
+===
+
+=== history-blob {#b215 lang=geml}
+An item's content starts on the marker line and MAY continue on **continuation
+lines**: a non-blank line directly below the item (no blank line between) that
+is not an item line, not a `%%` comment line, and whose indentation is
+*greater* than the item's marker column continues the item's inline content,
+joined by a newline — the same soft wrap a paragraph gives its lines, so
+emphasis and every other inline element pair across the wrap (§5.3). A list
+item MAY begin with a **task marker** — `[ ]`, `[x]`, or `[X]` followed by a
+space — which is stripped and recorded as a checked/unchecked state; it is
+read on the item's first line only, so the same characters on a continuation
+line are content.
+
+===
+
+=== history-blob {#b216 lang=geml}
+- `format=` selects a surface syntax *within* this one model. Admission to
+  the registry requires the syntax to be **self-describing** — the bytes
+  alone determine the value, with no dialect parameters. Delimited text fails
+  this (delimiter, header presence and quoting are parameters, and they are
+  only meaningful against a column model), which is why `csv`/`tsv` are
+  `table` formats (§6), not `data` formats.
+- `json` — the default — the body MUST parse as one JSON value. The default
+  follows a registry-wide rule: when a model has an isomorphic canonical
+  syntax, that syntax is the default (`table` → the pipe form). JSON is the
+  value tree's own serialization, and the one syntax a zero-dependency
+  processor can always verify.
+- `jsonl` — every non-blank body line MUST parse as one JSON value; blank
+  lines are ignored; the block's value is the sequence of line values. This
+  is the record-stream form: because a document is a flat sequence of blocks,
+  a complete `data` block appended at end-of-file is a valid continuation of
+  any document — jsonl's blind-append ergonomics, with ids and verification.
+- The value tree keeps I-JSON's limits whichever engine reads the body: no map
+  holds the same key twice (keys compared after their escapes are read), no
+  string or key holds a lone surrogate, and a number is its nearest IEEE 754
+  binary64 value — so `1.0` and `1` are one value, and a number past
+  binary64's range has none. And the tree is at most `data-depth` containers deep
+  (§9.2): a sequence or map inside `data-depth` others is outside it, whichever
+  engine read it. A body outside these limits is the same `data-parse` error as one the
+  engine cannot read.
+- `src=` names the block's content externally, under the same one-source
+  discipline tables have (§6): exactly one of `src=` and an inline body —
+  both is an **error**. The file MUST look like data (`.json`/`.jsonl`/`.yaml`/`.yml`,
+  the extension naming the format; an explicit `format=` still wins over
+  it). An `http(s)` source is
+  fetched by the RENDERER, never the parser (§9.4) — the block, and any
+  chart over it, defers; any other URL scheme is refused. This is the log
+  arrangement: the records stay a plain `.jsonl` file every existing tool
+  can append to and tail, and the GEML document is its verified,
+  addressable, chartable view.
+- `yaml`, `toml` and `edn` are RESERVED format names (the value-tree readings
+  of those syntaxes). A processor without an engine for them MUST keep the body
+  raw and emit a **warning**, and MUST NOT guess — the same degradation as an
+  unknown `diagram` format (§7). An unknown `format=` value degrades
+  identically.
+- A processor MAY ship an engine for a reserved name. Because full YAML is a
+  far larger language than this value domain, a `yaml` engine MUST read at
+  least the following subset, and MUST read it this way — so that a body
+  inside the subset means the same thing in every processor that has one:
+  - block mappings and block sequences, nested by indentation, including
+    `- key: value` and `- - item`; plain, single-quoted and double-quoted
+    scalars; the `|`, `|-`, `>` and `>-` block scalars; comments; a leading
+    `---` and a trailing `...`; and `[]` / `{}` as the empty sequence and the
+    empty map.
+  - the **core schema** of YAML 1.2 for plain scalars: `null`, `~` and an
+    empty value are null; `true`/`false` are booleans; its integer and float
+    forms (including `+80`, `0x1f`, `0o17`, `.5`) are numbers; everything
+    else is a string. So `yes`, `no`, `on` and `off` are STRINGS — the 1.1
+    readings MUST NOT be applied.
+  - anything else — anchors, aliases, tags, merge keys, a second document,
+    flow collections other than `[]` and `{}`, `.inf` and `.nan` (this value
+    domain has no infinity and no NaN), and a tab used for indentation — is
+    outside the subset. A processor MAY read further into YAML, but a
+    document that relies on more than the subset is NOT portable, and a
+    processor that does not read it MUST report a parse **error** rather than
+    guess at a value.
+- **Portability.** `json` and `jsonl` read the same in every conforming
+  processor, and the `yaml` subset in every processor that has a `yaml` engine.
+  `toml` and `edn` have no reading this specification defines: a processor
+  that ships an engine for one reads it its own way, and another processor
+  finds a raw body and a warning, or a different value. A document whose value
+  must read the same in every processor keeps it in `json` or `jsonl`.
+- `schema=` is RESERVED: it names a block (`#id`) or a GEML document
+  (`doc.geml`, optionally `doc.geml#id`) holding a schema, and is
+  reference-checked like any other reference (§5); any other shape is an
+  error. Validating the value against the schema is not defined by this
+  version of the specification.
+- A successfully parsed body is exposed in the document model as the block's
+  `value`. Canonical serialization is defined for `json` and `jsonl` only —
+  pretty-printed at two-space indent, and one compact value per line,
+  respectively. A body in any other format is byte-preserved like any raw
+  body, **including one the processor parsed**: re-emitting a `yaml` body
+  from its value would rewrite the document's bytes into JSON.
+- A `data` block whose value is a **record array** may feed a chart — §7.1.
+
+===
+
+=== history-blob {#b217 lang=geml}
+- `{#budget}` sets block id `budget`. Ids MUST be unique per document. **The empty
+  string is never an id**: `#` alone is a URL's empty fragment, which names the top
+  of a document, not a block. So `{#}` reads as if no id were written — a typed
+  block has none, a heading derives one — and a heading that derives nothing
+  (below) has none: no address of its own, no anchor for the prose beside it
+  (rule 1 below), and nothing to collide with.
+- **Two NAMEs are the same name when they are equal after Unicode NFD
+  normalization.** A NAME may contain any Unicode letter, and a letter carrying a
+  diacritic has more than one encoding: `Café` written with U+00E9 and `Café`
+  written as `e` + U+0301 look identical, and an author who writes the heading in
+  one form and the reference in the other means one name, not two. So a processor
+  MUST compare NAMEs — ids, classes and attribute keys alike — under NFD, which
+  governs id uniqueness (`duplicate-id`) and reference resolution (`[[#id]]`,
+  `other.geml#id`, a URL fragment) together. NFD rather than NFC only because
+  decomposition is the cheaper operation; the choice is not observable, since a
+  processor MUST NOT rewrite the document's own bytes to achieve this and MUST
+  report an id in the form the document wrote it. Normalizing the character
+  stream instead would be the obvious alternative, and §0.5 deliberately does not:
+  that would move byte offsets inside a line and break the byte-faithful
+  block-level editing §0.5 exists to guarantee.
+- **`meta` merges, and `#meta` names the merge.** A document may carry several
+  `meta` blocks; their keys merge, a later definition of a key being a
+  `duplicate-meta-key` warning while the FIRST definition is kept. That merged
+  view — not any one of the blocks — is what `#meta` names, and it is the one
+  reserved id in this specification. A block MAY still declare `{#meta}` when
+  the document has a single `meta` block, because the block and the merge are
+  then the same thing; with two or more it is a `reserved-id` **error**, since
+  the address would otherwise mean one block to a reader and every block to a
+  processor. `#meta` names values rather than a span of the file, which is why
+  a processor reading it answers with the merged keys and not with bytes.
+- `{.warning}` adds a semantic class (no styling implied).
+- `{caption="Annual cost"}` and other `key=val` pairs are type-defined
+  parameters. Two are not type-specific and are valid on **every** typed block:
+  `caption`, a short label a renderer shows with the block and §5.2 uses as
+  auto-reference text, and the `hidden` flag below. A key a type does not define
+  is an `unknown-attribute` warning, never an error — it is preserved.
+- A heading auto-derives an id from its text; an explicit id is written as a
+  trailing attribute object on the heading line, e.g. `## Title {#sec}`. The
+  derivation is **normative**: a reference (`[[#id]]`, `other.geml#id`, a URL
+  fragment) has to name the same block in every implementation, so the id a
+  heading yields cannot be left to one. From the heading's text — taken **before**
+  `{{key}}` interpolation (meaning the literal braces and variable name form the slug),
+  to ensure the id remains stable when meta values change — a processor MUST
+  apply these rules in order:
+  1. lower-case it;
+  2. normalize it to NFD — this puts every diacritic into a combining mark of its
+     own, so step 4 below deletes all of them and **a derived id carries no
+     diacritics**. Without this step the outcome would depend on a Unicode lookup
+     table rather than on a rule: a mark that has a precomposed form (`e` + U+0301
+     is `é`, a letter) would survive step 4, while one that has none (`İ`
+     lower-cases to `i` + U+0307, and no single codepoint spells that) would be
+     deleted — the same kind of input, two fates. It also makes the derivation
+     independent of which normalization form the author's editor produced;
+  3. delete every code span, its backticks and its content alike — so the
+     punctuation inside `` `foo()` `` cannot leak into the id. A code span is
+     recognized exactly as §5.3 phase 1 recognizes one: by backtick-run length,
+     never opened by an escaped backtick or by one inside inline math;
+  4. delete every character that is neither a letter (Unicode General Category
+     L), a number (General Category N), whitespace (the Unicode `White_Space`
+     property, as in steps 5 and 6), `-`, nor `_`;
+  5. trim leading and trailing whitespace;
+  6. replace each run of whitespace with a single `-`.
+
+===
+
+=== history-blob {#b218 lang=geml}
+- Emphasis/strong delimiters MUST attach to a non-space character and MUST NOT
+  span block boundaries.
+- **Block escapes:** Because block syntax (like `===` fences, `#` headings, and `-` lists) must match at the start of a line, prepending a backslash (e.g., `\===` or `\#`) prevents the line from being parsed as a block. The inline parser then turns the `\`+punctuation into a literal character, effectively escaping block syntax in flow text.
+- Block-level math uses the `=== math` typed block (§3).
+- An embed `![…]` renders/plays its source in place (never navigates), while a
+  link `[…]` navigates. `as ∈ {image, audio, video}`, inferred from the source
+  extension when omitted.
+- A list item MAY begin with a **task marker** — `[ ]` (open) or `[x]`/`[X]`
+  (done) followed by a space. The marker is stripped from the item text and
+  recorded as a checked/unchecked state; the remaining text is parsed as inline.
+
+===
+
+=== history-blob {#b219 lang=geml}
+- **Header** — a data body's first row is its header unless `header=false`
+  (or `header=0`) says otherwise. `header` is a boolean (§4): `true`/`1` is the
+  default and need not be written, and any other value reads as the default. A
+  headerless body carries spreadsheet letter column names (`A`…`Z`, `AA`…;
+  §5.2) and is as wide as its widest row.
+- **Delimiter** — a data body splits on its format's natural delimiter: `,` for
+  `format=csv`, a tab for `format=tsv`. `delim=` overrides it with any single
+  character, so a European `;`-separated CSV or a `|`-delimited export is
+  readable as it stands. The value MUST be exactly one character; anything else is
+  a `bad-table-delimiter` error, and the natural delimiter is used so the rest of
+  the table still reads. Attribute values carry no escape syntax (§4), so a tab
+  delimiter is spelled `format=tsv`, never `delim="\t"`. A data body splits on the
+  delimiter and on nothing else: with `delim="|"` the outer pipes of `| a | b |`
+  are cells of their own — stripping them is the visual form's rule (a), not this
+  one. `delim` refines the data form, it does not select it: on a table with no
+  data `format` it is ignored, with an `ignored-table-delimiter` warning.
+- **Cell text** — a cell's text is what lies between its delimiters, with leading
+  and trailing whitespace — the Unicode `White_Space` property, as in §4 —
+  removed.
+- **Row width** — a table has as many columns as its header row has cells, or,
+  with no header, as its widest row has. A body row with more cells is cut to
+  that width and one with fewer is padded with empty cells; either is a
+  `ragged-table-row` warning naming the row, so a cell the model drops is
+  never dropped silently.
+- **Size** — a table or view holds at most `table-cells` cells (§9.2): its
+  columns times its body rows, padded cells included. One that would hold more
+  is a `table-too-large` error and keeps no rows — a header of a few thousand
+  columns over a few thousand one-cell rows is a few kilobytes of input.
+- **Data from elsewhere** — instead of an inline body, a table MAY name where its
+  data comes from. For a `table` block that is the `src=` attribute (a `diagram`
+  spells the same idea `data=`; see Appendix B.3), and it names a **data file**:
+  a path relative to the document, or an `http(s)` URL, read under the block's
+  `format=csv`/`tsv` — the file's suffix does not matter. A `src=` that names a **block** — `#id`,
+  or `doc.geml#id` — is an **error** naming `view` (§6.1): a block's output is
+  something another block derived, and a table holding facts someone else
+  derived would be neither. A **local** file is read at **build time**: a
+  processor MUST resolve it, read it, and parse its lines exactly as it would
+  parse them written in the body — under the block's own `format=`, `header=`
+  and `delim=` — so its rows are the table's model, and a column name a `view`
+  or a `geml-chart` reads from it is checked then, like any other. A file that
+  cannot be resolved, and a URL in any scheme other than `http(s)`, are each
+  `unresolvable-table-source` (Appendix A), and leave the table empty — no
+  columns and no rows. A **remote** `http(s)` file is the exception: it is fetched by
+  the renderer, never the parser (§9.4), so at build time the table has no
+  model at all — not an empty one, since its columns are not known either — and
+  the column names a `view` or a chart reads from it are validated when the
+  data is — by the renderer. Only the `src` text — never the resolved contents —
+  enters the `.gemlhistory` hash. A table MUST NOT carry both `src` and an
+  inline body (an error). Inlining stays the default; `src` is an explicit
+  choice.
+
+===
+
+=== history-blob {#b220 lang=geml}
+1. Normalize its input exactly as §0.5 requires.
+2. Parse the typed-block primitive (§3) and the attribute object (§4).
+3. Build a document model in which every block id is unique and resolvable.
+4. Resolve inline emphasis (§5.3) and list nesting (§2.2) so that every input has
+   exactly one parse.
+5. Emit an **error** on any unresolved internal or cross-document reference (§5).
+6. Treat an unknown block `type` and an unknown diagram `format` as
+   **warnings**, never errors, preserving the body verbatim.
+7. Report every diagnostic with the **code and severity** Appendix A assigns it.
+8. Observe the resource limits of §9.2, degrading to a diagnostic rather than
+   failing.
+9. NOT require any specific editor, and NOT depend on raw HTML.
+10. Provide the eleven **editing operations** below, to the effect the `edits`
+    cases of the conformance suite (§8.4) pin. Each takes the addresses a
+    listing gives (§4; a heading's address denotes its section, through the
+    last line of its last subsection). Each one that rewrites the document
+    changes only the lines of the unit it names and leaves every other byte as
+    it was (§0.5), parses the result before it is written, and — when that
+    result would carry an **error** — writes nothing and refuses with a code
+    from Appendix A.6. `delete` is the one exception on both counts: it is
+    idempotent — an address that names nothing is reported, not refused — and
+    it may leave a reference dangling, reporting each one, since that
+    reference is the next thing to edit.
+
+===
+
+==== history-blob {#b221 lang=geml}
+=== table
+| Operation | Takes | Effect |
+|-----------|-------|--------|
+| `list` | the document | every addressable unit: address, kind, lines |
+| `find` | text | the units whose source contains it, as addresses |
+| `get` | an address, optionally a part (`head`, `intro`, `body`) | the unit's source, byte for byte |
+| `check` | the document | its diagnostics (Appendix A) |
+| `to` | a format (`geml`, `md`, `json`) | the document projected into it |
+| `replace` | old text, new text, optionally an address to stay inside | the occurrences swapped; an id is not text and is never changed |
+| `set` | an address, optionally a part, content | that unit — or that part — replaced by the content |
+| `add` | content, and where: `append`, or `before`/`after` an address | the content inserted as new units |
+| `delete` | addresses | those units removed |
+| `rename` | an id and a new id | the id and every reference to it rewritten, nothing else |
+| `revert` | an id and a revision selector | the unit restored from the document's `.gemlhistory` (geml-history/v1): spliced back, resurrected, or removed |
+===
+
+====
+
+==== history-blob {#b222 lang=geml}
+=== table
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `data-parse` | error | The body does not parse under the declared `format=` — not one JSON value (`json`), or a non-blank line that is not one JSON value (`jsonl`) — or what it parses to breaks the value tree's limits (§3.2): a key twice in one map, a lone surrogate, a number past binary64's range, a sequence or map inside `data-depth` others (§9.2). The diagnostic names the offending line. |
+| `unknown-data-format` | warning | The `format=` value is not in the data format registry. The body is kept raw and not verified. |
+| `data-format-no-engine` | warning | The `format=` names a RESERVED format (`yaml`, `toml`, `edn`) this processor ships no engine for. The body is kept raw and not verified — never guessed at. |
+| `bad-data-schema` | error | `schema=` is not a block reference (`#id`) or a GEML document reference (`doc.geml[#id]`). |
+| `data-src-and-body` | error | A `data` block carries both `src=` and an inline body; exactly one is permitted (§3.2). The body wins. |
+| `bad-data-source` | error | A data source does not name a data file its target admits (a `data` block's `src=`: `.json`/`.jsonl`/`.yaml`/`.yml`) — or a remote json/jsonl chart source was named without a `data` block to defer on. |
+| `unresolvable-data-source` | error | A data source could not be resolved, or names a disallowed URL scheme. |
+| `unresolvable-code-source` | warning | A `code` block route could not be resolved, so it was not checked. A warning, not an error: the block still names a region of code, so a graph read away from its sources stays valid (§3.3). |
+| `bad-code-source` | error | A `code` block route names a disallowed URL scheme (§3.3). |
+| `bad-source-range` | error | A source route's fragment is not `#L<start>[-<end>]`, names an empty range, or names lines the file no longer has — a drifted reference (§3.3). |
+| `code-src-and-body` | error | A `code` block carries both `src=` and an inline body; exactly one is permitted. The body is kept and the route is not fetched (§3.3). |
+===
+
+
+====
+
+==== history-blob {#b223 lang=geml}
+=== table
+| Code | Condition |
+|------|-----------|
+| `no-such-unit` | The address names nothing: no unit carries the id or content address, has the type, contains the line range, or lies inside the narrowing address; `replace`'s old text does not occur; a `#meta` write finds no `meta` block. |
+| `ambiguous-address` | The address names several units where the operation takes one: a heading text several headings share, or a filter with several matches given to `set` or `replace`. |
+| `bad-address` | The address is empty or ill-formed for the operation: no address at all, an attribute filter with no key, a type prefix that is not the unit's type, a coordinate where a block address is taken, a part the unit has not (`intro` of a block, a part of `#meta`, `head` for a `revert` whose unit is not on both sides), a `#meta` write naming anything but one quoted key, or a coordinate write the unit's shape does not admit. |
+| `bad-content` | The content is not what the operation takes: empty; prose where a whole unit is set; more than one block, or one that does not stay one block in place; content that drops or changes the target's id, or a `replace` that would rename one; JSON that is not a document model. |
+| `would-drop-unit` | The content added, or the unit removed, would make another unit disappear. |
+| `broken-result` | The rewritten document would carry an error-level diagnostic; those diagnostics are reported with the refusal. |
+| `rename-refused` | The two ids are equal; the new id is already declared; or ids that extend the old id would change too. |
+| `revert-refused` | No earlier revision changes the unit; the unit exists in neither the document nor the revision; it appears under another id on the other side (a rename undoes that); or the `.gemlhistory` sidecar is missing, tampered or malformed. |
+===
+
+====
+
+=== history-revision {id="20261008T041649Z-8dbd39d2" parent="20261007T102058Z-8731a336" hash="sha256:8dbd39d274a073da9ec179edd260ac05df8fe69b499ebb0751f4919c47ba5952" newline="crlf"}
+delete @4aaa46c5
+insert <- blob:b212 after @9b1949a8
+===
+
+==== history-blob {#b212 lang=geml}
+=== table
+| Code | Condition |
+|------|-----------|
+| `no-such-unit` | The address names nothing: no unit carries the id or content address, has the type, contains the line range, or lies inside the narrowing address; `replace`'s old text does not occur; a `#meta` write finds no `meta` block. |
+| `ambiguous-address` | The address names several units where the operation takes one: a heading text several headings share, or a filter with several matches given to `set` or `replace`. |
+| `bad-address` | The address is empty or ill-formed for the operation: no address at all, an attribute filter with no key, a type prefix that is not the unit's type, a coordinate where a block address is taken, a part the unit has not (`intro` of a block, a part of `#meta`, `head` for a `revert` whose unit is not on both sides), a `#meta` write naming anything but one quoted key, or a coordinate write the unit's shape does not admit. |
+| `bad-content` | The content is not what the operation takes: empty; prose where a whole unit is set; more than one block, or one that does not stay one block in place; content that drops or changes the target's id, or a `replace` that would rename one; GEML a Markdown document cannot carry; JSON that is not a document model. |
+| `would-drop-unit` | The content added, or the unit removed, would make another unit disappear. |
+| `broken-result` | The rewritten document would carry an error-level diagnostic; those diagnostics are reported with the refusal. |
+| `rename-refused` | The two ids are equal; the new id is already declared; a Markdown heading's anchor is its text and cannot be renamed apart from it; or ids that extend the old id would change too. |
+| `revert-refused` | No earlier revision changes the unit; the unit exists in neither the document nor the revision; it appears under another id on the other side (a rename undoes that); or the `.gemlhistory` sidecar is missing, tampered or malformed. |
+===
+
+====
+
+=== history-revision {id="20261007T102058Z-8731a336" parent="20261007T094055Z-2747ef23" summary="§8.2(10): delete's two exceptions" hash="sha256:8731a3368fc5d1128bda46f13c8b752102778cb293b63c4466064bbe45bb3745" newline="crlf"}
+delete @419d6259
+replace @e3c31c2d <- blob:b210
+insert <- blob:b211 after @895ee505
+===
+
+==== history-blob {#b210 lang=geml}
+=== table
+| Operation | Takes | Effect |
+|-----------|-------|--------|
+| `list` | the document | every addressable unit: address, kind, lines |
+| `find` | text | the units whose source contains it, as addresses |
+| `get` | an address, optionally a part (`head`, `intro`, `body`) | the unit's source, byte for byte |
+| `check` | the document | its diagnostics (Appendix A) |
+| `to` | a format (`geml`, `md`, `json`) | the document projected into it |
+| `replace` | old text, new text, optionally an address to stay inside | the occurrences swapped; an id is not text and is never changed |
+| `set` | an address, optionally a part, content | that unit — or that part — replaced by the content |
+| `add` | content, and where: `append`, or `before`/`after` an address | the content inserted as new units |
+| `delete` | addresses | those units removed |
+| `rename` | an id and a new id | the id and every reference to it rewritten, nothing else |
+| `revert` | an id and a revision selector | the unit restored from the document's `.gemlhistory` (geml-history/v1): spliced back, resurrected, or removed |
+===
+====
+
+=== history-blob {#b211 lang=geml}
+1. Normalize its input exactly as §0.5 requires.
+2. Parse the typed-block primitive (§3) and the attribute object (§4).
+3. Build a document model in which every block id is unique and resolvable.
+4. Resolve inline emphasis (§5.3) and list nesting (§2.2) so that every input has
+   exactly one parse.
+5. Emit an **error** on any unresolved internal or cross-document reference (§5).
+6. Treat an unknown block `type` and an unknown diagram `format` as
+   **warnings**, never errors, preserving the body verbatim.
+7. Report every diagnostic with the **code and severity** Appendix A assigns it.
+8. Observe the resource limits of §9.2, degrading to a diagnostic rather than
+   failing.
+9. NOT require any specific editor, and NOT depend on raw HTML.
+10. Provide the eleven **editing operations** below, to the effect the `edits`
+    cases of the conformance suite (§8.4) pin. Each takes the addresses a
+    listing gives (§4; a heading's address denotes its section, through the
+    last line of its last subsection). Each one that rewrites the document
+    changes only the lines of the unit it names and leaves every other byte as
+    it was (§0.5), parses the result before it is written, and — when that
+    result would carry an **error** — writes nothing and refuses with a code
+    from Appendix A.6.
+
+===
+
+=== history-revision {id="20261007T094055Z-2747ef23" parent="20261005T072602Z-3606df5d" summary="§8.2(10) editing operations, §8.4 edits cases, Appendix A.6 refusal codes" hash="sha256:2747ef23610ac4b32a0f74a08e2640a9e7a8d9ca1027d9ebfefa0f2911314856" newline="crlf"}
+delete @7c97e378
+delete @e3c31c2d
+delete @9c93147a
+delete @351ee830
+delete @9b1949a8
+delete @1ce6d988
+insert <- blob:b208 after @895ee505
+insert <- blob:b209 after @247b5965
+===
+
+=== history-blob {#b208 lang=geml}
+1. Normalize its input exactly as §0.5 requires.
+2. Parse the typed-block primitive (§3) and the attribute object (§4).
+3. Build a document model in which every block id is unique and resolvable.
+4. Resolve inline emphasis (§5.3) and list nesting (§2.2) so that every input has
+   exactly one parse.
+5. Emit an **error** on any unresolved internal or cross-document reference (§5).
+6. Treat an unknown block `type` and an unknown diagram `format` as
+   **warnings**, never errors, preserving the body verbatim.
+7. Report every diagnostic with the **code and severity** Appendix A assigns it.
+8. Observe the resource limits of §9.2, degrading to a diagnostic rather than
+   failing.
+9. NOT require any specific editor, and NOT depend on raw HTML.
+
+===
+
+=== history-blob {#b209 lang=geml}
+### 8.5 Versioning
+
+===
 
 === history-revision {id="20261005T072602Z-3606df5d" parent="20261005T070933Z-467ca944" summary="Fix the §4 code-span example: a backslash does not escape inside a span" hash="sha256:3606df5db10447b87c7f52bc1680eaa2d09d714ff1f616af00b9cfa5a3724753" newline="crlf"}
 delete @84cf56d7

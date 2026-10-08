@@ -6,15 +6,16 @@
 
 这是个周末项目，而且你可以自证：复现一组 JSON 一致性用例，然后把规范自己那份 `.geml` 干净地解析出来。打算动手？**开一个 [实现 issue](https://github.com/geml-spec/geml/issues/new?template=implementation.yml)**——我们会帮忙，并把它链到 README 上。不需要一次做完。
 
-## 「合规」是五件事
+## 「合规」是六件事
 
-你的解析器把 GEML 源码变成一个**文档模型**（块与内联节点）。当以下五条成立时，它是一个合规*解析器*（§8.2）：
+你的解析器把 GEML 源码变成一个**文档模型**（块与内联节点）。当以下六条成立时，它是一个合规*解析器*（§8.2）：
 
 1. 它复现一致性测试集里的每一个用例（见下）。
 2. 它解析 dogfood 规范 [`GEML-spec.geml`](../spec/in_geml_format/GEML-spec.geml) 时**零 `error` 级诊断**——这一份就把围栏、属性、引用、表格、图表和元数据都跑过了。
 3. 引用能解析（§8）：每个 `#id` 唯一，且每一个 `[[#id]]`、`[[doc.geml#id]]`、`[text](#id)`、`[^id]`、表格或图表的 `src=`/`data=`、以及 `embed` 的 `src=` 都指向真实存在的东西。
 4. 它严格按 **§0.5** 归一化输入：UTF-8、剥掉一个前导 BOM、行尾统一成 LF、`U+0000` → `U+FFFD`。四行代码而已，而跳过它正是第二个实现在真实文件上悄悄与参考实现分道扬镳的最常见原因。
 5. 每条诊断都携带 [附录 A](../spec/GEML-spec.md#appendix-a-diagnostic-catalogue) 规定的**代码与严重级别**。消息文字随你怎么写（或翻译）；**代码才是契约**，也正是它让你的错误路径能和我们的对测。
+6. 它提供 §8.2(10) 的十一个**编辑操作**——`list`、`find`、`get`、`check`、`to`、`replace`、`set`、`add`、`delete`、`rename`、`revert`——并复现 `edits-*.json` 用例：改写后的文本、输出或拒绝码（附录 A.6）都与参考实现逐字节一致。只会读的解析器是一个有用的第一个里程碑，但在这些操作齐备之前，它还不算合规。
 
 测试集钉住的是规范以算法陈述的部分——内联强调、列表嵌套、id、块结构、归一化、表格、视图和值树；其余交给 dogfood 覆盖。
 
@@ -35,6 +36,8 @@
 `want` 是解析后模型的一个**投影**——一个紧凑的字符串。把*你的*模型按同样规则投影一遍，断言它等于 `want`。用例还可能带 `ids`、`addresses`、`blocks` 或 `diagnostics`，或者以字节形式（`geml_base64`）给出输入：你具备哪些能力，就检查哪些。
 
 [`_project.mjs`](../geml-parser/test/conformance/_project.mjs) 是参考投影实现——`want` 字符串就是用它的格式写的。文档**是什么意思**由规范决定：每条用例都从规范原文推出，用例与原文不一致时以原文为准。[`impl2.mjs`](../geml-parser/test/conformance/impl2.mjs) 是一个**只照规范写成**、不 import 参考解析器的完整解析器 + 投影（几百行）——它就是你要做的东西的范例。[`geml-parser-rs/`](../geml-parser-rs/) 则是完整尺寸的那个：按本文、只依据规范与测试集写出的第二个实现，Rust 编写、编译为 WebAssembly，声明了全部能力——某条用例对不上时，可以拿它对照你的模型。
+
+manifest 里的 `edits` 列表是另一半：`edits-<verb>.json` 把一份文档和一个操作配成对，再给出结果——`text`、`output`、`rows`、`hits`、`diagnostics`，`to json` 打印的模型用 `projection` 和 `blocks`（像解析用例一样经 `_project.mjs` 读取），或者带拒绝码的 `refused`。用例的形状见测试集的 [README](../geml-parser/test/conformance/README.md#the-edits-cases)，[`_edits.mjs`](../geml-parser/test/conformance/_edits.mjs) 是测试框架要跑的那个循环。`edits-markdown.json` 需要可选能力 `markdown`：Markdown 不是 GEML，只有读 `.md` 文档的实现才跑它。
 
 ## 建议的实现顺序
 
@@ -62,6 +65,10 @@ for entry in load("manifest.json").files:
         doc = parse_in(case.files, case.main) if case.files else parse(case.geml or decode(base64(case.geml_base64)))
         assert project(doc) == case.want
         # 以及你具备的 ids / addresses / blocks / diagnostics
+
+for entry in load("manifest.json").edits:
+    for case in load(entry.file):
+        assert run(case.op, case.geml, case.files, case.history) == case.want
 
 doc = parse(read("spec/in_geml_format/GEML-spec.geml"))
 assert no "error" diagnostic in doc.diagnostics

@@ -4,11 +4,11 @@
 
 GEML 1.0 的第二个独立实现，用 Rust 编写，编译为 WebAssembly。它只依据
 [规范](../spec/GEML-spec.md)和[一致性测试集](../geml-parser/test/conformance/)写成，
-没有读过参考解析器的任何代码。它的用途就是 §8.4 赋予第二实现的那个：证明决定文档含义的是规范，而不是某一个程序。
+没有读过参考解析器的任何代码。Markdown 读法是例外：规范不定义 Markdown，所以这部分按参考实现的规则写。它的用途就是 §8.4 赋予第二实现的那个：证明决定文档含义的是规范，而不是某一个程序。
 
-**状态：符合规范。** 429 个一致性用例全部通过。测试集 manifest 列出的能力全部声明了，
-包括 `tables`、`views`、`ids`、`addresses`、`blocks`、`diagnostics`、`bytes`、`yaml` 和 `host`，
-所以没有跳过任何用例。测试集跑两遍：
+**状态：符合规范。** 453 个解析用例全部通过。测试集 manifest 列出的能力全部声明了，
+包括 `tables`、`views`、`ids`、`addresses`、`blocks`、`diagnostics`、`bytes`、`yaml`、`host`、
+`edits` 和 `markdown`，所以没有跳过任何用例。测试集跑两遍：
 
 - 原生方式，用本 crate 自己的测试框架（`tests/conformance.rs`）；
 - WebAssembly 方式，用测试集自带的 `_runner.mjs` 和 `_project.mjs`。这样读取 wasm
@@ -17,6 +17,10 @@ GEML 1.0 的第二个独立实现，用 Rust 编写，编译为 WebAssembly。�
 [`spec/profiles/`](../spec/profiles/) 下的六个词汇表全部认识，各自的检查也都实现了，
 见下文“词汇表”一节。每个词汇表的一致性文件在两种读法下都通过，即声明了词汇表和没有声明两种，
 原生方式（`tests/profiles.rs`）和 WebAssembly 方式（`wasm/profiles.mjs`）都跑。
+
+§8.2(10) 的十一个编辑操作通过了测试集全部 343 条 `edits-*.json` 用例，其中 53 条在
+`edits-markdown.json` 里，需要可选能力 `markdown`。原生方式（`tests/edits.rs`）和 WebAssembly
+方式（`wasm/edits.mjs`，走测试集自带的 `_edits.mjs`）都跑。
 
 ## 构建和测试
 
@@ -40,8 +44,12 @@ node wasm/conformance.mjs
 node wasm/profiles.mjs
 ```
 
+```bash
+node wasm/edits.mjs
+```
+
 覆盖率门禁要求行、区域、函数三项都不低于 95%。分支覆盖率需要 nightly 编译器，没有统计。
-CI 的 `parser-rs` 任务会跑这五条命令。
+CI 的 `parser-rs` 任务会跑这六条命令。
 
 `examples/geml-rs.rs` 是基于本 crate 的一个小命令行，从一个目录读文件，有 `check`、`style`、
 `history` 和 `codemap` 四个子命令。
@@ -91,6 +99,12 @@ WebAssembly（`wasm/pkg`）：`parse(text)` 和 `parseBytes(bytes)` 以 JSON 返
 | `historyReconstruct(sidecar, revision)` | 某个版本的内容，已和记录的哈希核对 |
 | `codemapVerify(name, host)` | `{ok, dangling, unchecked, problems}` |
 
+`edit(case)` 执行 §8.2(10) 的一个编辑操作，参数是 `edits-*.json` 里的一条用例：
+`{geml, file?, files?, history?, op}`。结果以 JSON 返回：`{text}`、`{output}`、`{rows}`、
+`{hits}`、`{diagnostics}`、`{unchanged: true}`、`{refused, message, diagnostics}`，
+本 crate 还做不到的返回 `{unsupported}`。Rust 里 `geml::edit::run_json` 是同一个调用，
+`geml::edit::run` 则接收解析好的 `Case`，返回结果或拒绝。
+
 ## 实现了什么
 
 - §0 输入规范化；§2 段落和列表；§3 类型块、围栏、带标签的关闭行、``` 屏蔽区、续行折叠；
@@ -113,6 +127,11 @@ WebAssembly（`wasm/pkg`）：`parse(text)` 和 `parseBytes(bytes)` 以 JSON 返
 - 上述内容涉及的附录 A 诊断码，严重级别与目录一致，由 `tests/behaviour.rs` 检查。
   `tests/robustness.rs` 把每个用例在每个字符位置截断后解析，还解析一组恶意输入，
   例如 2 万层深的标签、10 万个星号、5000 个键的属性对象。
+- §8.2(10) 的编辑操作，作用于 GEML 文档的文本：`list`、`find`、`get`、`check`、
+  `to`（`geml`、`md` 和 `json`）、`replace`、`set`、`add`、`delete`、`rename`、`revert`。
+  支持 §4 的地址，GEP 0011 的坐标可读可写，拒绝时给出附录 A.6 的拒绝码。写入只改所指单元的那几行，
+  返回前先解析一遍结果。`.md` 文档按 Markdown 读写（见测试集 README 的“Markdown documents”一节）；
+  `to` 能读 Markdown 和本 crate 自己的模型 JSON，还不能输出 HTML。
 
 ## 词汇表
 

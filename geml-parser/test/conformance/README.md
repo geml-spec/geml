@@ -66,6 +66,76 @@ the spec and this suite alone. It declares every capability, and runs the suite
 natively and as WebAssembly through `_runner.mjs`, so its model is read by
 `_project.mjs` itself.
 
+## The `edits` cases
+
+`edits-<verb>.json`, one file per operation of §8.2(10), listed under
+`edits` in the manifest — not under `files`: these cases pair an input with
+an OPERATION, and the parse loop above does not read them. Each case gives the
+document as `geml` (named by `file`, default `doc.geml`; a `.md` one is
+read as Markdown — see *Markdown documents* below), the other documents a cross-document reference may reach as
+`files`, a revert's sidecar as `history`, the operation as `op`, and what
+must come back as `want`:
+
+| `want` | Compared |
+|--------|----------|
+| `text` | the rewritten document, byte for byte — CRLF stays CRLF, untouched lines stay untouched |
+| `output` | what `get` or `to` printed |
+| `projection` / `blocks` | `to json`: the output read as the document model, through [`_project.mjs`](_project.mjs)'s `project` / `blocksOf` — what a parse case's `want` / `blocks` hold, since the model's JSON layout is each implementation's own |
+| `rows` / `hits` | what `list` / `find` reported, as JSON |
+| `diagnostics` | `check`: each `code:severity`, as a multiset |
+| `refused` | nothing was written, and the Appendix A.6 code says why; a `broken-result` also carries the result's own `diagnostics` |
+| `unchanged` | `revert`: the unit already matches the revision |
+
+The message a refusal carries is not compared — wording is each
+implementation's — the code and the outcome are. [`_edits.mjs`](_edits.mjs) is
+the loop; [`_edits-impl.mjs`](_edits-impl.mjs) adapts the reference verbs to
+it and [`../edits.test.mjs`](../edits.test.mjs) runs them. The `want` values
+were generated from the reference and reviewed, so this suite is what keeps
+the two from drifting apart.
+
+## Markdown documents
+
+The specification does not define Markdown, and a conforming implementation
+need not read it. `edits-markdown.json` holds the cases for one that does: it
+needs the optional `markdown` capability, and `_edits.mjs` lists it as skipped
+for an implementation that does not declare it. Each `want` was generated from
+the reference implementation; the rules below are its rules.
+
+A document whose name ends in `.md` is read as Markdown wherever the two
+grammars disagree, and as GEML everywhere else:
+
+- `~~~` fences and indented code are code, as ``` is, and a code run is one
+  code span, never inline-parsed; an unclosed fence is not code.
+- `$$` math and HTML blocks hold no heading, fence or definition; a `=== word`
+  of a type the reader does not know is text.
+- A paragraph over a `===` or `---` underline is a setext heading; its head is
+  both lines.
+- `[^label]: …` defines a footnote and is a unit of its own (kind `footnote`,
+  address `#label`); a `[^x]` nothing defines is text, never an error.
+- A heading whose derived id is taken gets GitHub's suffix: the second
+  `## Notes` is `#notes-1`.
+- `{{…}}` is text.
+- `[[name]]` and `![[name]]` are wikilinks: `[[#x]]` names an id, a heading by
+  its text, a prose run or a `^marker`; a link to another note is not checked.
+- `[text](#x)` may also name GitHub's anchor for a heading or an HTML anchor
+  (`<a id>`, `<a name>`, `<span id>`), and a destination may carry a title.
+
+Editing one keeps it Markdown:
+
+- GEML content set or added into a `.md` lands as Markdown, converted as
+  `to md` converts it; content the conversion cannot carry — a table whose
+  rows are not in it — is refused with `bad-content`.
+- A heading's anchor is its text: a heading whose text changes takes the
+  anchor of its new text, and the links to it follow; renaming one apart from
+  its text is refused with `rename-refused`. A heading that declares `{#id}`
+  keeps GEML's rules.
+- An error the document already had blocks no unrelated edit; one the edit
+  introduces still does.
+- `to geml` converts it: front matter to `=== meta`, fences to `code` (a
+  diagram language to `diagram`), `$$` to `math`, quotes and footnote
+  definitions to `note`, pipe tables to `table`, setext headings to ATX; a
+  thematic break is dropped.
+
 ## Boundary cases
 
 The cases with a `bound` stand on the edges of §9.2's fixed bounds, and
