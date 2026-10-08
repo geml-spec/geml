@@ -7,12 +7,8 @@ new text — for the caller to save. Nothing is stored, nothing needs an account
 to call.
 
 ```
-https://geml-mcp.<subdomain>.workers.dev/mcp
+https://geml-mcp.supermarket.workers.dev/mcp
 ```
-
-The `<subdomain>` placeholder is filled in at first deploy (below). Until then
-this README, `wrangler.jsonc` and `geml-parser/server.json` all carry the
-placeholder on purpose.
 
 ## Two kinds of client, one endpoint
 
@@ -28,17 +24,17 @@ The endpoint speaks both shapes of MCP and decides per request:
 
 ```sh
 # legacy
-curl -s -X POST https://geml-mcp.<subdomain>.workers.dev/mcp \
+curl -s -X POST https://geml-mcp.supermarket.workers.dev/mcp \
   -H 'content-type: application/json' \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}'
 
 # modern
-curl -s -X POST https://geml-mcp.<subdomain>.workers.dev/mcp \
+curl -s -X POST https://geml-mcp.supermarket.workers.dev/mcp \
   -H 'content-type: application/json' -H 'MCP-Protocol-Version: 2026-07-28' -H 'Mcp-Method: server/discover' \
   -d '{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}}}}'
 
 # a write: the new document comes back in the result
-curl -s -X POST https://geml-mcp.<subdomain>.workers.dev/mcp \
+curl -s -X POST https://geml-mcp.supermarket.workers.dev/mcp \
   -H 'content-type: application/json' \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"geml_set","arguments":{"source":"# T {#t}\n\n=== note {#a}\nfirst\n===\n","id":"a","body":"=== note {#a}\nsecond\n===\n"}}}'
 ```
@@ -54,13 +50,14 @@ curl -s -X POST https://geml-mcp.<subdomain>.workers.dev/mcp \
 
 `name` (default `document.geml`) decides how the text is read — a `.md` name
 reads Markdown — and is how the document is called in messages. The write
-guard is the same code as the stdio server's: a document's pre-existing errors
-do not block an edit, a new error refuses it with the diagnostics, and a
-refused write returns no `document`, so what you sent is still the document.
+guard is the same code as the stdio server's: a new error refuses a write
+with the diagnostics, a document that already has errors takes no write until
+they are repaired (`geml_check` lists them), and a refused write returns no
+`document`, so what you sent is still the document.
 
 A cross-document reference such as `[[other.geml#id]]` cannot be resolved here
-— there is no other document — and `geml_check` reports it as
-`unresolvable-document`.
+— there is no other document — so `geml_check` reports it as
+`unresolvable-document`, and a document that carries one takes no write.
 
 ## Configuration
 
@@ -73,10 +70,11 @@ Both are Worker variables (`wrangler.jsonc` → `vars`, or the dashboard):
 
 ## Limits
 
-Cloudflare's free plan allows 10 ms of CPU per request, fixed. The reference
-parser takes about 12 ms (Node, warm) on the specification itself, a 106 KB
-document, so a document that size is at the edge on the free plan and needs
-the paid plan (30 s default). Ordinary documents are far below it.
+Cloudflare's free plan allows 10 ms of CPU per request and enforces it
+loosely: on it, this deployment took writes to documents of up to about
+100 KB, and refused writes at about 130 KB with Cloudflare error 1102
+(*Worker exceeded resource limits*). Reads cost less than writes. The paid
+plan allows 30 s by default.
 
 ## Deploy
 
@@ -90,9 +88,9 @@ npx wrangler login
 npm run deploy          # prints https://geml-mcp.<your-subdomain>.workers.dev
 ```
 
-Then replace `<subdomain>` here and in `geml-parser/server.json` (`remotes`),
-and publish the registry entry (Actions → *Publish MCP Server*; it is a manual
-workflow, so the placeholder can never be published by accident).
+The registry entry (`remotes` in `geml-parser/server.json`) names the
+deployment above; it goes out with a parser release (Actions → *Publish MCP
+Server*, a manual workflow).
 
 ## Develop
 
