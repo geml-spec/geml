@@ -452,13 +452,7 @@ fn decimal_of(s: &str) -> Option<(bool, String, i128)> {
 /// The binary digits of a YAML hexadecimal or octal literal, leading zeros
 /// dropped; `None` for any other text.
 fn radix_bits(s: &str) -> Option<String> {
-    let (bits, digits) = if let Some(h) = s.strip_prefix("0x") {
-        (4, h)
-    } else if let Some(o) = s.strip_prefix("0o") {
-        (3, o)
-    } else {
-        return None;
-    };
+    let (bits, digits) = if let Some(h) = s.strip_prefix("0x") { (4, h) } else { (3, s.strip_prefix("0o")?) };
     if digits.is_empty() {
         return None;
     }
