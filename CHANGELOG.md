@@ -28,6 +28,13 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **Fixed: parsing a long document had become about twice as slow** (1.11.6
+  and 1.12.0). The inline scanner read text as one-character strings, three
+  times over for a link's brackets, and on a document that mixes one- and
+  two-byte text every such read took the engine's slow path. It reads
+  character codes now, in one pass: the 133 KB specification parses in about
+  9 ms again, down from 16.5. Output is unchanged.
+
 ## [1.12.4] — 2026-10-08
 
 - **Every refusal now says why with a code.** A verb that writes nothing
