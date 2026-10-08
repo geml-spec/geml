@@ -1,0 +1,212 @@
+[
+  {
+    "name": "restore a block from the tip",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nthird\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "history": "# History of doc.geml\n\n=== meta\nprofile           = \"geml-history/v1\"\nhistory-of        = \"doc.geml\"\ngeml-version      = \"1.0\"\ncurrent           = \"20260101T000001Z-eb0c34a4\"\nkeyframe-interval = 10\n===\n\n# Committed-current mirror (always present):\n==== history-keyframe {id=\"20260101T000001Z-eb0c34a4\" hash=\"sha256:eb0c34a459d72ac2ece5c518bd1c847a45c385ee7276ca0a9453a8680f774d9e\"}\n=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nsecond\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n\n====\n\n=== history-revision {id=\"20260101T000001Z-eb0c34a4\" parent=\"20260101T000000Z-5b3ca2ab\" author=\"suite\" summary=\"v2\" hash=\"sha256:eb0c34a459d72ac2ece5c518bd1c847a45c385ee7276ca0a9453a8680f774d9e\" newline=\"lf\"}\nreplace #alpha <- blob:b1\n===\n\n==== history-blob {#b1 lang=geml}\n=== note {#alpha}\nfirst\n===\n\n====\n\n=== history-revision {id=\"20260101T000000Z-5b3ca2ab\" author=\"suite\" summary=\"v1\" hash=\"sha256:5b3ca2abb8f796509cc2b39048eac27745aeb78cf79f6646991a2194ebcd1a03\" newline=\"lf\"}\n===\n",
+    "op": {
+      "verb": "revert",
+      "address": "#alpha",
+      "rev": "0"
+    },
+    "want": {
+      "text": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nsecond\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n"
+    }
+  },
+  {
+    "name": "one revision back",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nthird\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "history": "# History of doc.geml\n\n=== meta\nprofile           = \"geml-history/v1\"\nhistory-of        = \"doc.geml\"\ngeml-version      = \"1.0\"\ncurrent           = \"20260101T000001Z-eb0c34a4\"\nkeyframe-interval = 10\n===\n\n# Committed-current mirror (always present):\n==== history-keyframe {id=\"20260101T000001Z-eb0c34a4\" hash=\"sha256:eb0c34a459d72ac2ece5c518bd1c847a45c385ee7276ca0a9453a8680f774d9e\"}\n=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nsecond\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n\n====\n\n=== history-revision {id=\"20260101T000001Z-eb0c34a4\" parent=\"20260101T000000Z-5b3ca2ab\" author=\"suite\" summary=\"v2\" hash=\"sha256:eb0c34a459d72ac2ece5c518bd1c847a45c385ee7276ca0a9453a8680f774d9e\" newline=\"lf\"}\nreplace #alpha <- blob:b1\n===\n\n==== history-blob {#b1 lang=geml}\n=== note {#alpha}\nfirst\n===\n\n====\n\n=== history-revision {id=\"20260101T000000Z-5b3ca2ab\" author=\"suite\" summary=\"v1\" hash=\"sha256:5b3ca2abb8f796509cc2b39048eac27745aeb78cf79f6646991a2194ebcd1a03\" newline=\"lf\"}\n===\n",
+    "op": {
+      "verb": "revert",
+      "address": "#alpha",
+      "rev": "-1"
+    },
+    "want": {
+      "text": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n"
+    }
+  },
+  {
+    "name": "changed skips revisions that did not touch the unit",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nsecond\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "history": "# History of doc.geml\n\n=== meta\nprofile           = \"geml-history/v1\"\nhistory-of        = \"doc.geml\"\ngeml-version      = \"1.0\"\ncurrent           = \"20260101T000002Z-eb0c34a4\"\nkeyframe-interval = 10\n===\n\n# Committed-current mirror (always present):\n==== history-keyframe {id=\"20260101T000002Z-eb0c34a4\" hash=\"sha256:eb0c34a459d72ac2ece5c518bd1c847a45c385ee7276ca0a9453a8680f774d9e\"}\n=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nsecond\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n\n====\n\n=== history-revision {id=\"20260101T000002Z-eb0c34a4\" parent=\"20260101T000001Z-7ccfb170\" author=\"suite\" summary=\"v3\" hash=\"sha256:eb0c34a459d72ac2ece5c518bd1c847a45c385ee7276ca0a9453a8680f774d9e\" newline=\"lf\"}\ndelete @0c62f876\nreplace #alpha <- blob:b2\ninsert <- blob:b3 after #other\n===\n\n==== history-blob {#b2 lang=geml}\n=== note {#alpha}\nfirst\n===\n\n====\n\n=== history-blob {#b3 lang=geml}\ntail!\n\n===\n\n=== history-revision {id=\"20260101T000001Z-7ccfb170\" parent=\"20260101T000000Z-5b3ca2ab\" author=\"suite\" summary=\"v2\" hash=\"sha256:7ccfb170104d4358722a177a509f4cd2c9b4c85167d55e47f80883f9145e6def\" newline=\"lf\"}\ndelete @b1debe5a\ninsert <- blob:b1 after #other\n===\n\n=== history-blob {#b1 lang=geml}\ntail\n\n===\n\n=== history-revision {id=\"20260101T000000Z-5b3ca2ab\" author=\"suite\" summary=\"v1\" hash=\"sha256:5b3ca2abb8f796509cc2b39048eac27745aeb78cf79f6646991a2194ebcd1a03\" newline=\"lf\"}\n===\n",
+    "op": {
+      "verb": "revert",
+      "address": "#alpha",
+      "rev": "changed"
+    },
+    "want": {
+      "text": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n"
+    }
+  },
+  {
+    "name": "resurrect a deleted block",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "history": "# History of doc.geml\n\n=== meta\nprofile           = \"geml-history/v1\"\nhistory-of        = \"doc.geml\"\ngeml-version      = \"1.0\"\ncurrent           = \"20260101T000000Z-5b3ca2ab\"\nkeyframe-interval = 10\n===\n\n# Committed-current mirror (always present):\n==== history-keyframe {id=\"20260101T000000Z-5b3ca2ab\" hash=\"sha256:5b3ca2abb8f796509cc2b39048eac27745aeb78cf79f6646991a2194ebcd1a03\"}\n=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n\n====\n\n=== history-revision {id=\"20260101T000000Z-5b3ca2ab\" author=\"suite\" summary=\"v1\" hash=\"sha256:5b3ca2abb8f796509cc2b39048eac27745aeb78cf79f6646991a2194ebcd1a03\" newline=\"lf\"}\n===\n",
+    "op": {
+      "verb": "revert",
+      "address": "#beta",
+      "rev": "0"
+    },
+    "want": {
+      "text": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\nBetween alpha and beta.\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n"
+    }
+  },
+  {
+    "name": "resurrect before a heading line",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "history": "# History of doc.geml\n\n=== meta\nprofile           = \"geml-history/v1\"\nhistory-of        = \"doc.geml\"\ngeml-version      = \"1.0\"\ncurrent           = \"20260101T000000Z-5b3ca2ab\"\nkeyframe-interval = 10\n===\n\n# Committed-current mirror (always present):\n==== history-keyframe {id=\"20260101T000000Z-5b3ca2ab\" hash=\"sha256:5b3ca2abb8f796509cc2b39048eac27745aeb78cf79f6646991a2194ebcd1a03\"}\n=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n\n====\n\n=== history-revision {id=\"20260101T000000Z-5b3ca2ab\" author=\"suite\" summary=\"v1\" hash=\"sha256:5b3ca2abb8f796509cc2b39048eac27745aeb78cf79f6646991a2194ebcd1a03\" newline=\"lf\"}\n===\n",
+    "op": {
+      "verb": "revert",
+      "address": "#beta",
+      "rev": "0",
+      "before": "## Sub"
+    },
+    "want": {
+      "text": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n"
+    }
+  },
+  {
+    "name": "remove a block the revision did not have",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n=== note {#gamma}\nnew\n===\n",
+    "history": "# History of doc.geml\n\n=== meta\nprofile           = \"geml-history/v1\"\nhistory-of        = \"doc.geml\"\ngeml-version      = \"1.0\"\ncurrent           = \"20260101T000000Z-5b3ca2ab\"\nkeyframe-interval = 10\n===\n\n# Committed-current mirror (always present):\n==== history-keyframe {id=\"20260101T000000Z-5b3ca2ab\" hash=\"sha256:5b3ca2abb8f796509cc2b39048eac27745aeb78cf79f6646991a2194ebcd1a03\"}\n=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n\n====\n\n=== history-revision {id=\"20260101T000000Z-5b3ca2ab\" author=\"suite\" summary=\"v1\" hash=\"sha256:5b3ca2abb8f796509cc2b39048eac27745aeb78cf79f6646991a2194ebcd1a03\" newline=\"lf\"}\n===\n",
+    "op": {
+      "verb": "revert",
+      "address": "#gamma",
+      "rev": "0"
+    },
+    "want": {
+      "text": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n"
+    }
+  },
+  {
+    "name": "unchanged: nothing to write",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "history": "# History of doc.geml\n\n=== meta\nprofile           = \"geml-history/v1\"\nhistory-of        = \"doc.geml\"\ngeml-version      = \"1.0\"\ncurrent           = \"20260101T000000Z-5b3ca2ab\"\nkeyframe-interval = 10\n===\n\n# Committed-current mirror (always present):\n==== history-keyframe {id=\"20260101T000000Z-5b3ca2ab\" hash=\"sha256:5b3ca2abb8f796509cc2b39048eac27745aeb78cf79f6646991a2194ebcd1a03\"}\n=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n\n====\n\n=== history-revision {id=\"20260101T000000Z-5b3ca2ab\" author=\"suite\" summary=\"v1\" hash=\"sha256:5b3ca2abb8f796509cc2b39048eac27745aeb78cf79f6646991a2194ebcd1a03\" newline=\"lf\"}\n===\n",
+    "op": {
+      "verb": "revert",
+      "address": "#alpha",
+      "rev": "0"
+    },
+    "want": {
+      "unchanged": true
+    }
+  },
+  {
+    "name": "head restores the heading line only",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub renamed {#sub}\n\nunder sub, changed\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "history": "# History of doc.geml\n\n=== meta\nprofile           = \"geml-history/v1\"\nhistory-of        = \"doc.geml\"\ngeml-version      = \"1.0\"\ncurrent           = \"20260101T000000Z-5b3ca2ab\"\nkeyframe-interval = 10\n===\n\n# Committed-current mirror (always present):\n==== history-keyframe {id=\"20260101T000000Z-5b3ca2ab\" hash=\"sha256:5b3ca2abb8f796509cc2b39048eac27745aeb78cf79f6646991a2194ebcd1a03\"}\n=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n\n====\n\n=== history-revision {id=\"20260101T000000Z-5b3ca2ab\" author=\"suite\" summary=\"v1\" hash=\"sha256:5b3ca2abb8f796509cc2b39048eac27745aeb78cf79f6646991a2194ebcd1a03\" newline=\"lf\"}\n===\n",
+    "op": {
+      "verb": "revert",
+      "address": "#sub",
+      "rev": "0",
+      "head": true
+    },
+    "want": {
+      "text": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub, changed\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n"
+    }
+  },
+  {
+    "name": "refused: in neither the document nor the revision",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "history": "# History of doc.geml\n\n=== meta\nprofile           = \"geml-history/v1\"\nhistory-of        = \"doc.geml\"\ngeml-version      = \"1.0\"\ncurrent           = \"20260101T000000Z-5b3ca2ab\"\nkeyframe-interval = 10\n===\n\n# Committed-current mirror (always present):\n==== history-keyframe {id=\"20260101T000000Z-5b3ca2ab\" hash=\"sha256:5b3ca2abb8f796509cc2b39048eac27745aeb78cf79f6646991a2194ebcd1a03\"}\n=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n\n====\n\n=== history-revision {id=\"20260101T000000Z-5b3ca2ab\" author=\"suite\" summary=\"v1\" hash=\"sha256:5b3ca2abb8f796509cc2b39048eac27745aeb78cf79f6646991a2194ebcd1a03\" newline=\"lf\"}\n===\n",
+    "op": {
+      "verb": "revert",
+      "address": "#nope",
+      "rev": "0"
+    },
+    "want": {
+      "refused": "revert-refused"
+    }
+  },
+  {
+    "name": "refused: no earlier revision changes it",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "history": "# History of doc.geml\n\n=== meta\nprofile           = \"geml-history/v1\"\nhistory-of        = \"doc.geml\"\ngeml-version      = \"1.0\"\ncurrent           = \"20260101T000001Z-7ccfb170\"\nkeyframe-interval = 10\n===\n\n# Committed-current mirror (always present):\n==== history-keyframe {id=\"20260101T000001Z-7ccfb170\" hash=\"sha256:7ccfb170104d4358722a177a509f4cd2c9b4c85167d55e47f80883f9145e6def\"}\n=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail!\n\n====\n\n=== history-revision {id=\"20260101T000001Z-7ccfb170\" parent=\"20260101T000000Z-5b3ca2ab\" author=\"suite\" summary=\"v2\" hash=\"sha256:7ccfb170104d4358722a177a509f4cd2c9b4c85167d55e47f80883f9145e6def\" newline=\"lf\"}\ndelete @b1debe5a\ninsert <- blob:b1 after #other\n===\n\n=== history-blob {#b1 lang=geml}\ntail\n\n===\n\n=== history-revision {id=\"20260101T000000Z-5b3ca2ab\" author=\"suite\" summary=\"v1\" hash=\"sha256:5b3ca2abb8f796509cc2b39048eac27745aeb78cf79f6646991a2194ebcd1a03\" newline=\"lf\"}\n===\n",
+    "op": {
+      "verb": "revert",
+      "address": "#alpha",
+      "rev": "changed"
+    },
+    "want": {
+      "refused": "revert-refused"
+    }
+  },
+  {
+    "name": "refused: head when the unit is on one side only",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "history": "# History of doc.geml\n\n=== meta\nprofile           = \"geml-history/v1\"\nhistory-of        = \"doc.geml\"\ngeml-version      = \"1.0\"\ncurrent           = \"20260101T000000Z-5b3ca2ab\"\nkeyframe-interval = 10\n===\n\n# Committed-current mirror (always present):\n==== history-keyframe {id=\"20260101T000000Z-5b3ca2ab\" hash=\"sha256:5b3ca2abb8f796509cc2b39048eac27745aeb78cf79f6646991a2194ebcd1a03\"}\n=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n\n====\n\n=== history-revision {id=\"20260101T000000Z-5b3ca2ab\" author=\"suite\" summary=\"v1\" hash=\"sha256:5b3ca2abb8f796509cc2b39048eac27745aeb78cf79f6646991a2194ebcd1a03\" newline=\"lf\"}\n===\n",
+    "op": {
+      "verb": "revert",
+      "address": "#beta",
+      "rev": "0",
+      "head": true
+    },
+    "want": {
+      "refused": "bad-address"
+    }
+  },
+  {
+    "name": "refused: no sidecar",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "revert",
+      "address": "#alpha",
+      "rev": "0"
+    },
+    "want": {
+      "refused": "revert-refused"
+    }
+  },
+  {
+    "name": "refused: a tampered sidecar",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nthird\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "history": "# History of doc.geml\n\n=== meta\nprofile           = \"geml-history/v1\"\nhistory-of        = \"doc.geml\"\ngeml-version      = \"1.0\"\ncurrent           = \"20260101T000001Z-eb0c34a4\"\nkeyframe-interval = 10\n===\n\n# Committed-current mirror (always present):\n==== history-keyframe {id=\"20260101T000001Z-eb0c34a4\" hash=\"sha256:eb0c34a459d72ac2ece5c518bd1c847a45c385ee7276ca0a9453a8680f774d9e\"}\n=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nsecond\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n\n====\n\n=== history-revision {id=\"20260101T000001Z-eb0c34a4\" parent=\"20260101T000000Z-5b3ca2ab\" author=\"suite\" summary=\"v2\" hash=\"sha256:eb0c34a459d72ac2ece5c518bd1c847a45c385ee7276ca0a9453a8680f774d9e\" newline=\"lf\"}\nreplace #alpha <- blob:b1\n===\n\n==== history-blob {#b1 lang=geml}\n=== note {#alpha}\nfIrst\n===\n\n====\n\n=== history-revision {id=\"20260101T000000Z-5b3ca2ab\" author=\"suite\" summary=\"v1\" hash=\"sha256:5b3ca2abb8f796509cc2b39048eac27745aeb78cf79f6646991a2194ebcd1a03\" newline=\"lf\"}\n===\n",
+    "op": {
+      "verb": "revert",
+      "address": "#alpha",
+      "rev": "-1"
+    },
+    "want": {
+      "refused": "revert-refused"
+    }
+  },
+  {
+    "name": "refused: a malformed sidecar",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "history": "this is not a sidecar\n",
+    "op": {
+      "verb": "revert",
+      "address": "#alpha",
+      "rev": "0"
+    },
+    "want": {
+      "refused": "revert-refused"
+    }
+  },
+  {
+    "name": "refused: removing a block would drop the one it nests",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n=== note {#outer}\n=== note {#inner}\nx\n===\n===\n",
+    "history": "# History of doc.geml\n\n=== meta\nprofile           = \"geml-history/v1\"\nhistory-of        = \"doc.geml\"\ngeml-version      = \"1.0\"\ncurrent           = \"20260101T000000Z-5b3ca2ab\"\nkeyframe-interval = 10\n===\n\n# Committed-current mirror (always present):\n==== history-keyframe {id=\"20260101T000000Z-5b3ca2ab\" hash=\"sha256:5b3ca2abb8f796509cc2b39048eac27745aeb78cf79f6646991a2194ebcd1a03\"}\n=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n\n====\n\n=== history-revision {id=\"20260101T000000Z-5b3ca2ab\" author=\"suite\" summary=\"v1\" hash=\"sha256:5b3ca2abb8f796509cc2b39048eac27745aeb78cf79f6646991a2194ebcd1a03\" newline=\"lf\"}\n===\n",
+    "op": {
+      "verb": "revert",
+      "address": "#outer",
+      "rev": "0"
+    },
+    "want": {
+      "refused": "would-drop-unit"
+    }
+  },
+  {
+    "name": "refused: looks renamed",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha2}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha2]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "history": "# History of doc.geml\n\n=== meta\nprofile           = \"geml-history/v1\"\nhistory-of        = \"doc.geml\"\ngeml-version      = \"1.0\"\ncurrent           = \"20260101T000000Z-5b3ca2ab\"\nkeyframe-interval = 10\n===\n\n# Committed-current mirror (always present):\n==== history-keyframe {id=\"20260101T000000Z-5b3ca2ab\" hash=\"sha256:5b3ca2abb8f796509cc2b39048eac27745aeb78cf79f6646991a2194ebcd1a03\"}\n=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n\n====\n\n=== history-revision {id=\"20260101T000000Z-5b3ca2ab\" author=\"suite\" summary=\"v1\" hash=\"sha256:5b3ca2abb8f796509cc2b39048eac27745aeb78cf79f6646991a2194ebcd1a03\" newline=\"lf\"}\n===\n",
+    "op": {
+      "verb": "revert",
+      "address": "#alpha",
+      "rev": "0"
+    },
+    "want": {
+      "refused": "revert-refused"
+    }
+  }
+]

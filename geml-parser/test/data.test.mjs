@@ -35,6 +35,35 @@ test("a malformed json body is data-parse, naming the body line", () => {
   assert.equal(e[0].line, 5);
 });
 
+test("data-parse names the line a body stops parsing on, whatever the engine's message says", () => {
+  // V8 gives no position for an unexpected token or an early end: those used
+  // to fall back to the fence line. The open fence here is doc line 3.
+  const at = (body, fmt = "") => errs(parse(`# T\n\n=== data {#d${fmt}}\n${body}\n===\n`)).map((e) => [e.code, e.line]);
+  assert.deepEqual(at("not json"), [["data-parse", 4]]);
+  assert.deepEqual(at('{\n"a":'), [["data-parse", 5]]);
+  assert.deepEqual(at("[1,\n 2,\n x]"), [["data-parse", 6]]);
+  assert.deepEqual(at('["a\\q"]'), [["data-parse", 4]]);
+  // jsonl: every line that is not one JSON value, each on its own line.
+  assert.deepEqual(at('{"a":1}\nnot json\n\nnor this', " format=jsonl"), [["data-parse", 5], ["data-parse", 7]]);
+  // A source FILE's faults are the block's: counted from the block, a file's
+  // line pointed into this document at whatever followed it.
+  const files = { "r.jsonl": '{"a":1}\nbad\nworse\n' };
+  const ext = parse("# T\n\n=== data {#d src=r.jsonl}\n===\n\nAfter.\n", { resolveDoc: (p) => files[p] ?? null, docExists: (p) => p in files });
+  assert.deepEqual(errs(ext).map((e) => [e.code, e.line]), [["data-parse", 3], ["data-parse", 3]]);
+});
+
+test("every way a json body breaks names the line it breaks on", () => {
+  // The scan behind the line, path by path; the Rust crate asserts the same table.
+  const at = (body) => errs(parse(`# T\n\n=== data {#d}\n${body}\n===\n`)).map((e) => e.line);
+  const table = [
+    ['"unterminated', 4], ['"tab\there"', 4], ['["\\u12x4"]', 4], ['["\\u00e9", "\\n",\n "\\x"]', 5],
+    ["-", 4], ["-x", 4], ["01", 4], ["1.", 4], ["1.x", 4], ["1e", 4], ["1e+", 4], ["1E-2 3", 4], ["[0.5e3, -1,\n 1.0x]", 5],
+    ["{1: 2}", 4], ['{"a" 1}', 4], ['{"a": 1 "b": 2}', 4], ['{"a": 1,\n}', 5], ["{}\n{}", 5], ["[]\n]", 5],
+    ["[true, false, null,\n nul]", 5], ["[\n\n", 6], ['{"a": [1, {"b": tru}]}', 4], ["[".repeat(201), 4],
+  ];
+  for (const [body, line] of table) assert.deepEqual(at(body), [line], JSON.stringify(body));
+});
+
 test("valid json outside I-JSON's limits is data-parse, naming the line of the offending token (§3.2)", () => {
   // open fence is doc line 3; the second "a" sits on body line 3 -> doc line 6
   const dup = errs(parse('# T\n\n=== data {#d}\n{\n  "a": 1,\n  "a": 2\n}\n===\n'));

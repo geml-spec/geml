@@ -1,0 +1,314 @@
+[
+  {
+    "name": "append a block",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "add",
+      "append": true,
+      "content": "=== note {#gamma}\nnew\n==="
+    },
+    "want": {
+      "text": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n\n=== note {#gamma}\nnew\n===\n"
+    }
+  },
+  {
+    "name": "before a block",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "add",
+      "before": "#alpha",
+      "content": "=== note {#gamma}\nnew\n==="
+    },
+    "want": {
+      "text": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#gamma}\nnew\n===\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n"
+    }
+  },
+  {
+    "name": "after a block",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "add",
+      "after": "#beta",
+      "content": "=== note {#gamma}\nnew\n==="
+    },
+    "want": {
+      "text": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n=== note {#gamma}\nnew\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n"
+    }
+  },
+  {
+    "name": "after a heading lands after its section",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "add",
+      "after": "#sub",
+      "content": "=== note {#gamma}\nnew\n==="
+    },
+    "want": {
+      "text": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n=== note {#gamma}\nnew\n===\n\n## Other {#other}\n\ntail\n"
+    }
+  },
+  {
+    "name": "a fragment of several blocks",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "add",
+      "append": true,
+      "content": "=== note {#gamma}\none\n===\n\n=== note {#delta}\ntwo\n==="
+    },
+    "want": {
+      "text": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n\n=== note {#gamma}\none\n===\n\n=== note {#delta}\ntwo\n===\n"
+    }
+  },
+  {
+    "name": "before a content address",
+    "geml": "# T {#t}\n\n=== note\nno id here\n===\n\n=== note\nsecond anonymous\n===\n",
+    "op": {
+      "verb": "add",
+      "before": "=== note@acfe5998",
+      "content": "=== note {#gamma}\nnew\n==="
+    },
+    "want": {
+      "text": "# T {#t}\n\n=== note\nno id here\n===\n\n=== note {#gamma}\nnew\n===\n\n=== note\nsecond anonymous\n===\n"
+    }
+  },
+  {
+    "name": "after a heading line",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "add",
+      "after": "## Sub",
+      "content": "=== note {#gamma}\nnew\n==="
+    },
+    "want": {
+      "text": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n=== note {#gamma}\nnew\n===\n\n## Other {#other}\n\ntail\n"
+    }
+  },
+  {
+    "name": "refused: an anchor filter matching two blocks",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "add",
+      "after": "=== note",
+      "content": "=== note {#gamma}\nnew\n==="
+    },
+    "want": {
+      "refused": "ambiguous-address"
+    }
+  },
+  {
+    "name": "CRLF is kept",
+    "geml": "=== meta\r\ntitle = \"Doc\"\r\n===\r\n\r\n# Intro {#intro}\r\n\r\nOpening words.\r\n\r\n=== note {#alpha}\r\nfirst\r\n===\r\n\r\nBetween alpha and beta.\r\n\r\n=== note {#beta}\r\nsee [[#alpha]]\r\n===\r\n\r\n## Sub {#sub}\r\n\r\nunder sub\r\n\r\n=== code {#snippet lang=py}\r\nprint(1)\r\n===\r\n\r\n### Deep {#deep}\r\n\r\ndeepest\r\n\r\n## Other {#other}\r\n\r\ntail\r\n",
+    "op": {
+      "verb": "add",
+      "append": true,
+      "content": "=== note {#gamma}\nnew\n==="
+    },
+    "want": {
+      "text": "=== meta\r\ntitle = \"Doc\"\r\n===\r\n\r\n# Intro {#intro}\r\n\r\nOpening words.\r\n\r\n=== note {#alpha}\r\nfirst\r\n===\r\n\r\nBetween alpha and beta.\r\n\r\n=== note {#beta}\r\nsee [[#alpha]]\r\n===\r\n\r\n## Sub {#sub}\r\n\r\nunder sub\r\n\r\n=== code {#snippet lang=py}\r\nprint(1)\r\n===\r\n\r\n### Deep {#deep}\r\n\r\ndeepest\r\n\r\n## Other {#other}\r\n\r\ntail\r\n\r\n=== note {#gamma}\r\nnew\r\n===\r\n"
+    }
+  },
+  {
+    "name": "refused: empty content",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "add",
+      "append": true,
+      "content": ""
+    },
+    "want": {
+      "refused": "bad-content"
+    }
+  },
+  {
+    "name": "refused: the anchor does not exist",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "add",
+      "after": "#nope",
+      "content": "=== note {#gamma}\nnew\n==="
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "refused: a duplicate id",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "add",
+      "append": true,
+      "content": "=== note {#alpha}\nagain\n==="
+    },
+    "want": {
+      "refused": "broken-result",
+      "diagnostics": [
+        "duplicate-id:error"
+      ]
+    }
+  },
+  {
+    "name": "refused: a dangling reference",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "add",
+      "append": true,
+      "content": "=== note {#gamma}\nsee [[#nope]]\n==="
+    },
+    "want": {
+      "refused": "broken-result",
+      "diagnostics": [
+        "unresolved-reference:error"
+      ]
+    }
+  },
+  {
+    "name": "refused: an unterminated fragment breaks the document",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "add",
+      "before": "#beta",
+      "content": "=== note {#gamma}\nopen"
+    },
+    "want": {
+      "refused": "broken-result",
+      "diagnostics": [
+        "unterminated-block:error"
+      ]
+    }
+  },
+  {
+    "name": "#meta: before the document's one meta block",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# A {#a}\n\nText.\n",
+    "op": {
+      "verb": "add",
+      "before": "#meta",
+      "content": "Before.\n"
+    },
+    "want": {
+      "text": "Before.\n\n=== meta\ntitle = \"Doc\"\n===\n\n# A {#a}\n\nText.\n"
+    }
+  },
+  {
+    "name": "#meta: after the document's one meta block",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# A {#a}\n\nText.\n",
+    "op": {
+      "verb": "add",
+      "after": "#meta",
+      "content": "After.\n"
+    },
+    "want": {
+      "text": "=== meta\ntitle = \"Doc\"\n===\n\nAfter.\n\n# A {#a}\n\nText.\n"
+    }
+  },
+  {
+    "name": "refused: an anchor #meta that names several meta blocks",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# A {#a}\n\nText.\n\n=== meta\nn = 1\n===\n",
+    "op": {
+      "verb": "add",
+      "after": "#meta",
+      "content": "After.\n"
+    },
+    "want": {
+      "refused": "ambiguous-address"
+    }
+  },
+  {
+    "name": "coordinate: a value inserted before an element",
+    "geml": "=== data {#d}\n{\n  \"id\": 12345678901234567890,\n  \"tags\": [\n    \"a\",\n    \"b\"\n  ],\n  \"n\": 1\n}\n===\n",
+    "op": {
+      "verb": "add",
+      "before": "#d[\"tags\"][0]",
+      "content": "\"z\""
+    },
+    "want": {
+      "text": "=== data {#d}\n{\n  \"id\": 12345678901234567890,\n  \"tags\": [\n    \"z\",\n    \"a\",\n    \"b\"\n  ],\n  \"n\": 1\n}\n===\n"
+    }
+  },
+  {
+    "name": "coordinate: a value inserted after the last element",
+    "geml": "=== data {#d}\n{\"a\": 1, \"arr\": [1, 2, 3], \"one\": [7], \"none\": []}\n===\n",
+    "op": {
+      "verb": "add",
+      "after": "#d[\"arr\"][2]",
+      "content": "4"
+    },
+    "want": {
+      "text": "=== data {#d}\n{\"a\": 1, \"arr\": [1, 2, 3, 4], \"one\": [7], \"none\": []}\n===\n"
+    }
+  },
+  {
+    "name": "coordinate: a value inserted beside a sole element",
+    "geml": "=== data {#d}\n{\"a\": 1, \"arr\": [1, 2, 3], \"one\": [7], \"none\": []}\n===\n",
+    "op": {
+      "verb": "add",
+      "before": "#d[\"one\"][0]",
+      "content": "6"
+    },
+    "want": {
+      "text": "=== data {#d}\n{\"a\": 1, \"arr\": [1, 2, 3], \"one\": [6, 7], \"none\": []}\n===\n"
+    }
+  },
+  {
+    "name": "coordinate: a jsonl record inserted as a line before another",
+    "geml": "=== data {#d format=jsonl}\n{\"n\": 1}\n{\"n\": 2, \"x\": [1, 2]}\n\n===\n",
+    "op": {
+      "verb": "add",
+      "before": "#d[1]",
+      "content": "{\"n\": 1.5}"
+    },
+    "want": {
+      "text": "=== data {#d format=jsonl}\n{\"n\": 1}\n{\"n\": 1.5}\n{\"n\": 2, \"x\": [1, 2]}\n\n===\n"
+    }
+  },
+  {
+    "name": "coordinate: a value inserted inside a jsonl record",
+    "geml": "=== data {#d format=jsonl}\n{\"n\": 1}\n{\"n\": 2, \"x\": [1, 2]}\n\n===\n",
+    "op": {
+      "verb": "add",
+      "after": "#d[1][\"x\"][0]",
+      "content": "9"
+    },
+    "want": {
+      "text": "=== data {#d format=jsonl}\n{\"n\": 1}\n{\"n\": 2, \"x\": [1, 9, 2]}\n\n===\n"
+    }
+  },
+  {
+    "name": "refused: an insertion beside a map's member",
+    "geml": "=== data {#d}\n{\"a\": 1, \"arr\": [1, 2, 3], \"one\": [7], \"none\": []}\n===\n",
+    "op": {
+      "verb": "add",
+      "after": "#d[\"a\"]",
+      "content": "1"
+    },
+    "want": {
+      "refused": "bad-address"
+    }
+  },
+  {
+    "name": "refused: an insertion beside an element that is not there",
+    "geml": "=== data {#d}\n{\"a\": 1, \"arr\": [1, 2, 3], \"one\": [7], \"none\": []}\n===\n",
+    "op": {
+      "verb": "add",
+      "after": "#d[\"arr\"][3]",
+      "content": "1"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "refused: an inserted value outside the value domain",
+    "geml": "=== data {#d}\n{\"a\": 1, \"arr\": [1, 2, 3], \"one\": [7], \"none\": []}\n===\n",
+    "op": {
+      "verb": "add",
+      "after": "#d[\"arr\"][0]",
+      "content": "1e400"
+    },
+    "want": {
+      "refused": "broken-result",
+      "diagnostics": [
+        "data-parse:error"
+      ]
+    }
+  }
+]

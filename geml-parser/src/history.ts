@@ -819,7 +819,20 @@ export function resolveRevision(h: History, selector: string): string {
 export function resolveContent(historyPath: string, selector: string): { id: string; text: string } {
   const h = parseHistory(historyPath);
   const id = resolveRevision(h, selector);
-  return { id, text: reconstruct(h, id) };
+  return { id, text: checkedReconstruct(h, id) };
+}
+
+// A revision handed to a caller as CONTENT — what `revert` splices into the
+// document — must match the hash recorded for it. `verify` has always checked
+// this over the whole chain; a read that skips it would let a sidecar edited
+// by hand put altered text into the file under the name of a real revision.
+function checkedReconstruct(h: History, id: string): string {
+  const text = reconstruct(h, id);
+  const r = h.revisions.get(id);
+  if (r && !hashMatchesRecorded(text, r, h.nl)) {
+    throw new Error(`history: revision ${id} does not match its recorded hash — the sidecar was changed by something other than \`geml history\`; run \`geml history verify\``);
+  }
+  return text;
 }
 
 /** Walk the chain newest→oldest; return the first revision whose block (as
@@ -833,7 +846,7 @@ export function firstChangedContent(
 ): { id: string; text: string } | undefined {
   const h = parseHistory(historyPath);
   for (const r of chainFrom(h)) {
-    const text = reconstruct(h, r.id);
+    const text = checkedReconstruct(h, r.id);
     const b = pick(text);
     if (b !== undefined && b !== currentBlock) return { id: r.id, text };
   }

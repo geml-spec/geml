@@ -1,0 +1,70 @@
+[
+  {
+    "name": "geml to json is the document model",
+    "geml": "# Tiny {#tiny}\n\nA *word* here.\n\n=== note {#n}\nbody\n===\n",
+    "op": {
+      "verb": "to",
+      "to": "json"
+    },
+    "want": {
+      "projection": "h1(\"Tiny\") \"A \" em(\"word\") \" here.\" block:note",
+      "blocks": "h1#tiny(\"Tiny\") p(\"A \" em(\"word\") \" here.\") note#n[p(\"body\")]"
+    }
+  },
+  {
+    "name": "geml to md",
+    "geml": "# Tiny {#tiny}\n\nA *word* here.\n\n=== note {#n}\nbody\n===\n",
+    "op": {
+      "verb": "to",
+      "to": "md"
+    },
+    "want": {
+      "output": "# Tiny\n\nA *word* here.\n\n> body\n"
+    }
+  },
+  {
+    "name": "geml to geml is the serialization",
+    "geml": "# Tiny {#tiny}\n\nA *word* here.\n\n=== note {#n}\nbody\n===\n",
+    "op": {
+      "verb": "to",
+      "to": "geml"
+    },
+    "want": {
+      "output": "# Tiny {#tiny}\n\nA *word* here.\n\n=== note {#n}\nbody\n===\n"
+    }
+  },
+  {
+    "name": "refused: json input that is not a document model",
+    "geml": "{}",
+    "file": "doc.json",
+    "op": {
+      "verb": "to",
+      "to": "geml"
+    },
+    "want": {
+      "refused": "bad-content"
+    }
+  },
+  {
+    "name": "geml to geml keeps a prose body",
+    "geml": "=== meta\nprofile = geml-media/v1\n===\n\n=== media-text {#t .look}\nA *look*, in prose.\n\nSecond paragraph.\n===\n",
+    "op": {
+      "verb": "to",
+      "to": "geml"
+    },
+    "want": {
+      "output": "=== meta\nprofile = geml-media/v1\n===\n\n=== media-text {#t .look}\nA *look*, in prose.\n\nSecond paragraph.\n===\n"
+    }
+  },
+  {
+    "name": "geml to md: a view filtered to no rows keeps its header",
+    "geml": "=== table {#t}\n| a |\n|---|\n| 1 |\n===\n\n=== view {src=#t where=\"a > 5\"}\n===\n",
+    "op": {
+      "verb": "to",
+      "to": "md"
+    },
+    "want": {
+      "output": "| a |\n| --- |\n| 1 |\n\n| a |\n| --- |\n"
+    }
+  }
+]

@@ -112,5 +112,22 @@
     "diagnostics": [
       "data-parse:error"
     ]
+  },
+  {
+    "name": "yaml: an unclosed flow collection is outside the subset as well",
+    "geml": "=== data {#y format=yaml}\na: [1\n===\n",
+    "want": "block:data",
+    "diagnostics": [
+      "data-parse:error"
+    ]
+  },
+  {
+    "name": "yaml: a yaml body's numbers, decimal and hexadecimal, are checked",
+    "geml": "=== data {#n format=yaml}\na: 9007199254740993\nb: 0x20000000000001\nc: 0x1F\nd: \"12345678901234567890\"\n===\n",
+    "want": "data({\"a\":9007199254740992,\"b\":9007199254740992,\"c\":31,\"d\":\"12345678901234567890\"})",
+    "diagnostics": [
+      "inexact-number:warning",
+      "inexact-number:warning"
+    ]
   }
 ]

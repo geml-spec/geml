@@ -104,6 +104,7 @@ export type DiagnosticCode =
   | "chart-data-not-records"
   // --- Data blocks (GEP-0005) ---
   | "data-parse"
+  | "inexact-number"
   | "unknown-data-format"
   | "data-format-no-engine"
   | "bad-data-schema"
@@ -242,6 +243,7 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   "chart-non-numeric-value": "error",
   "chart-data-not-records": "error",
   "data-parse": "error",
+  "inexact-number": "warning",
   "unknown-data-format": "warning",
   "data-format-no-engine": "warning",
   "bad-data-schema": "error",

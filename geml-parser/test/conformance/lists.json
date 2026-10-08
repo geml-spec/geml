@@ -148,5 +148,45 @@
   "name": "ordered items wrap the same way",
   "geml": "3. third, wrapped\n   over here",
   "want": "ol@3[li(\"third, wrapped\\nover here\")]"
+ },
+ {
+  "name": "the space after a marker may be several; none of it is content",
+  "geml": "-   a\n*  b\n10.  c",
+  "want": "ul[li(\"a\") li(\"b\")] ol@10[li(\"c\")]"
+ },
+ {
+  "name": "a tab after a marker separates it too",
+  "geml": "-\ta\n1.\tb",
+  "want": "ul[li(\"a\")] ol[li(\"b\")]"
+ },
+ {
+  "name": "a marker with nothing after its space is an empty item",
+  "geml": "- \n- b",
+  "want": "ul[li() li(\"b\")]"
+ },
+ {
+  "name": "a marker with no space after it is no item",
+  "geml": "-a\n*b*",
+  "want": "\"-a\\n\" em(\"b\")"
+ },
+ {
+  "name": "a task marker may stand alone, or be followed by several spaces",
+  "geml": "- [x]\n- [ ]   open\n- [X]\tdone",
+  "want": "ul[li[x]() li[ ](\"open\") li[x](\"done\")]"
+ },
+ {
+  "name": "a task marker without a space after it is content",
+  "geml": "- [x]done",
+  "want": "ul[li(\"[x]done\")]"
+ },
+ {
+  "name": "a continuation is indented past its own item's marker, not the list's first",
+  "geml": "  - a\n- b\n  c",
+  "want": "ul[li(\"a\") li(\"b\\nc\")]"
+ },
+ {
+  "name": "a continuation line is trimmed at both ends",
+  "geml": "- a\n    b   \n- c",
+  "want": "ul[li(\"a\\nb\") li(\"c\")]"
  }
 ]

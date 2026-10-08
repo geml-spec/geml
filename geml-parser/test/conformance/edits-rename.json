@@ -1,0 +1,86 @@
+[
+  {
+    "name": "an id and its references",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "rename",
+      "old": "#alpha",
+      "new": "#first"
+    },
+    "want": {
+      "text": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#first}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#first]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n"
+    }
+  },
+  {
+    "name": "a heading id",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "rename",
+      "old": "#sub",
+      "new": "#section"
+    },
+    "want": {
+      "text": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#section}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n"
+    }
+  },
+  {
+    "name": "the id boundary: #ab is not #a",
+    "geml": "=== note {#a}\nsee [[#ab]]\n===\n\n=== note {#ab}\nx\n===\n",
+    "op": {
+      "verb": "rename",
+      "old": "#a",
+      "new": "#z"
+    },
+    "want": {
+      "text": "=== note {#z}\nsee [[#ab]]\n===\n\n=== note {#ab}\nx\n===\n"
+    }
+  },
+  {
+    "name": "CRLF is kept",
+    "geml": "=== meta\r\ntitle = \"Doc\"\r\n===\r\n\r\n# Intro {#intro}\r\n\r\nOpening words.\r\n\r\n=== note {#alpha}\r\nfirst\r\n===\r\n\r\nBetween alpha and beta.\r\n\r\n=== note {#beta}\r\nsee [[#alpha]]\r\n===\r\n\r\n## Sub {#sub}\r\n\r\nunder sub\r\n\r\n=== code {#snippet lang=py}\r\nprint(1)\r\n===\r\n\r\n### Deep {#deep}\r\n\r\ndeepest\r\n\r\n## Other {#other}\r\n\r\ntail\r\n",
+    "op": {
+      "verb": "rename",
+      "old": "#alpha",
+      "new": "#first"
+    },
+    "want": {
+      "text": "=== meta\r\ntitle = \"Doc\"\r\n===\r\n\r\n# Intro {#intro}\r\n\r\nOpening words.\r\n\r\n=== note {#first}\r\nfirst\r\n===\r\n\r\nBetween alpha and beta.\r\n\r\n=== note {#beta}\r\nsee [[#first]]\r\n===\r\n\r\n## Sub {#sub}\r\n\r\nunder sub\r\n\r\n=== code {#snippet lang=py}\r\nprint(1)\r\n===\r\n\r\n### Deep {#deep}\r\n\r\ndeepest\r\n\r\n## Other {#other}\r\n\r\ntail\r\n"
+    }
+  },
+  {
+    "name": "refused: the same id",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "rename",
+      "old": "#alpha",
+      "new": "#alpha"
+    },
+    "want": {
+      "refused": "rename-refused"
+    }
+  },
+  {
+    "name": "refused: the new id exists",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "rename",
+      "old": "#alpha",
+      "new": "#beta"
+    },
+    "want": {
+      "refused": "rename-refused"
+    }
+  },
+  {
+    "name": "refused: no such id",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "rename",
+      "old": "#nope",
+      "new": "#x"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  }
+]

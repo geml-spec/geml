@@ -1,0 +1,799 @@
+[
+  {
+    "name": "list: a Markdown document lists its headings and prose",
+    "geml": "# Title\n\nIntro para.\n\n## Section\n\nBody text with [a link](#section).\n",
+    "file": "doc.md",
+    "op": {
+      "verb": "list"
+    },
+    "want": {
+      "rows": [
+        {
+          "address": "#title",
+          "kind": "heading",
+          "lines": [
+            1,
+            8
+          ],
+          "id": "title",
+          "level": 1,
+          "text": "Title"
+        },
+        {
+          "address": "#title-before-section",
+          "kind": "prose",
+          "lines": [
+            3,
+            3
+          ],
+          "id": "title-before-section"
+        },
+        {
+          "address": "#section",
+          "kind": "heading",
+          "lines": [
+            5,
+            8
+          ],
+          "id": "section",
+          "level": 2,
+          "text": "Section"
+        }
+      ]
+    }
+  },
+  {
+    "name": "get: a Markdown section",
+    "geml": "# Title\n\nIntro para.\n\n## Section\n\nBody text with [a link](#section).\n",
+    "file": "doc.md",
+    "op": {
+      "verb": "get",
+      "address": "#section"
+    },
+    "want": {
+      "output": "## Section\n\nBody text with [a link](#section).\n"
+    }
+  },
+  {
+    "name": "to: md to geml",
+    "geml": "# Title\n\nIntro para.\n\n## Section\n\nBody text with [a link](#section).\n",
+    "file": "doc.md",
+    "op": {
+      "verb": "to",
+      "to": "geml"
+    },
+    "want": {
+      "output": "# Title\n\nIntro para.\n\n## Section\n\nBody text with [a link](#section).\n"
+    }
+  },
+  {
+    "name": "set: a Markdown section",
+    "geml": "# Title\n\nIntro para.\n\n## Section\n\nBody text with [a link](#section).\n",
+    "file": "doc.md",
+    "op": {
+      "verb": "set",
+      "address": "#section",
+      "content": "## Section\n\nNew body.\n"
+    },
+    "want": {
+      "text": "# Title\n\nIntro para.\n\n## Section\n\nNew body.\n"
+    }
+  },
+  {
+    "name": "set: a note in a Markdown document becomes a blockquote",
+    "geml": "# Title\n\nIntro para.\n\n## Section\n\nBody text with [a link](#section).\n",
+    "file": "doc.md",
+    "op": {
+      "verb": "set",
+      "address": "#section",
+      "content": "## Section\n\n=== note {#n}\nx\n===\n"
+    },
+    "want": {
+      "text": "# Title\n\nIntro para.\n\n## Section\n\n> x\n"
+    }
+  },
+  {
+    "name": "set: refused: GEML content a Markdown document cannot carry",
+    "geml": "# Title\n\nIntro para.\n\n## Section\n\nBody text with [a link](#section).\n",
+    "file": "doc.md",
+    "op": {
+      "verb": "set",
+      "address": "#section",
+      "content": "## Section\n\n=== view {src=#t}\n===\n"
+    },
+    "want": {
+      "refused": "bad-content"
+    }
+  },
+  {
+    "name": "rename: refused: a Markdown heading's anchor is its text",
+    "geml": "# Title\n\nIntro para.\n\n## Section\n\nBody text with [a link](#section).\n",
+    "file": "doc.md",
+    "op": {
+      "verb": "rename",
+      "old": "#section",
+      "new": "#sec"
+    },
+    "want": {
+      "refused": "rename-refused"
+    }
+  },
+  {
+    "name": "list: setext headings, footnotes, repeated headings",
+    "file": "guide.md",
+    "geml": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n",
+    "op": {
+      "verb": "list"
+    },
+    "want": {
+      "rows": [
+        {
+          "address": "#guide",
+          "kind": "heading",
+          "lines": [
+            1,
+            47
+          ],
+          "id": "guide",
+          "level": 1,
+          "text": "Guide"
+        },
+        {
+          "address": "#guide-before-install",
+          "kind": "prose",
+          "lines": [
+            3,
+            3
+          ],
+          "id": "guide-before-install"
+        },
+        {
+          "address": "#install",
+          "kind": "heading",
+          "lines": [
+            5,
+            13
+          ],
+          "id": "install",
+          "level": 2,
+          "text": "Install"
+        },
+        {
+          "address": "#install-before-n",
+          "kind": "prose",
+          "lines": [
+            7,
+            7
+          ],
+          "id": "install-before-n"
+        },
+        {
+          "address": "#n",
+          "kind": "footnote",
+          "lines": [
+            9,
+            12
+          ],
+          "id": "n"
+        },
+        {
+          "address": "#usage",
+          "kind": "heading",
+          "lines": [
+            14,
+            35
+          ],
+          "id": "usage",
+          "level": 2,
+          "text": "Usage"
+        },
+        {
+          "address": "#notes",
+          "kind": "heading",
+          "lines": [
+            36,
+            39
+          ],
+          "id": "notes",
+          "level": 2,
+          "text": "Notes"
+        },
+        {
+          "address": "#notes-1",
+          "kind": "heading",
+          "lines": [
+            40,
+            43
+          ],
+          "id": "notes-1",
+          "level": 2,
+          "text": "Notes"
+        },
+        {
+          "address": "#c-rust",
+          "kind": "heading",
+          "lines": [
+            44,
+            47
+          ],
+          "id": "c-rust",
+          "level": 2,
+          "text": "C++ & Rust"
+        }
+      ]
+    }
+  },
+  {
+    "name": "check: anchors, wikilinks, footnotes, code",
+    "file": "guide.md",
+    "geml": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n",
+    "op": {
+      "verb": "check"
+    },
+    "want": {
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "check: a missing anchor, a missing wikilink, a missing marker",
+    "file": "guide.md",
+    "geml": "# T\n\n[x](#nope) [[#gone]] [[#^none]] [y](#t)\n",
+    "op": {
+      "verb": "check"
+    },
+    "want": {
+      "diagnostics": [
+        "unresolved-reference:error",
+        "unresolved-reference:error",
+        "unresolved-reference:error"
+      ]
+    }
+  },
+  {
+    "name": "check: links into other files",
+    "file": "guide.md",
+    "geml": "# T\n\n[a](there.md) [b](missing.md) [c](missing.md#x) [d](missing.md) [e](there.md#any)\n",
+    "files": {
+      "there.md": "# There\n"
+    },
+    "op": {
+      "verb": "check"
+    },
+    "want": {
+      "diagnostics": [
+        "unresolvable-document:error",
+        "unresolvable-document:error"
+      ]
+    }
+  },
+  {
+    "name": "get: a setext heading's head is both lines",
+    "file": "guide.md",
+    "geml": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n",
+    "op": {
+      "verb": "get",
+      "address": "#usage",
+      "part": "head"
+    },
+    "want": {
+      "output": "Usage\n-----\n"
+    }
+  },
+  {
+    "name": "get: a setext heading's body",
+    "file": "guide.md",
+    "geml": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n",
+    "op": {
+      "verb": "get",
+      "address": "#usage",
+      "part": "body"
+    },
+    "want": {
+      "output": "\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n"
+    }
+  },
+  {
+    "name": "get: a setext heading's intro",
+    "file": "guide.md",
+    "geml": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n",
+    "op": {
+      "verb": "get",
+      "address": "#usage",
+      "part": "intro"
+    },
+    "want": {
+      "output": "\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n"
+    }
+  },
+  {
+    "name": "get: a footnote definition",
+    "file": "guide.md",
+    "geml": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n",
+    "op": {
+      "verb": "get",
+      "address": "#n"
+    },
+    "want": {
+      "output": "[^n]: The note,\nlazily continued.\n\n    still the note\n"
+    }
+  },
+  {
+    "name": "get: the second repeated heading",
+    "file": "guide.md",
+    "geml": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n",
+    "op": {
+      "verb": "get",
+      "address": "#notes-1"
+    },
+    "want": {
+      "output": "## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n"
+    }
+  },
+  {
+    "name": "find: across the document",
+    "file": "guide.md",
+    "geml": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n",
+    "op": {
+      "verb": "find",
+      "pattern": "heading"
+    },
+    "want": {
+      "hits": [
+        {
+          "file": "guide.md",
+          "address": "#usage",
+          "kind": "heading",
+          "lines": [
+            14,
+            35
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "set --head: a new text takes its anchor, and the links follow",
+    "file": "guide.md",
+    "geml": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n",
+    "op": {
+      "verb": "set",
+      "address": "#install",
+      "part": "head",
+      "content": "## Installing\n"
+    },
+    "want": {
+      "text": "# Guide\n\nIntro with a [link](#installing) and a [titled one](#installing \"Install it\") and [angled](<#usage>).\n\n## Installing\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n"
+    }
+  },
+  {
+    "name": "set: a whole section renamed by its text",
+    "file": "guide.md",
+    "geml": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n",
+    "op": {
+      "verb": "set",
+      "address": "#install",
+      "content": "## Setup\n\nRun it.\n"
+    },
+    "want": {
+      "text": "# Guide\n\nIntro with a [link](#setup) and a [titled one](#setup \"Install it\") and [angled](<#usage>).\n\n## Setup\n\nRun it.\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n"
+    }
+  },
+  {
+    "name": "set --head: renamed onto another heading's text takes -1",
+    "file": "guide.md",
+    "geml": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n",
+    "op": {
+      "verb": "set",
+      "address": "#install",
+      "part": "head",
+      "content": "## Notes\n"
+    },
+    "want": {
+      "text": "# Guide\n\nIntro with a [link](#notes) and a [titled one](#notes \"Install it\") and [angled](<#usage>).\n\n## Notes\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n"
+    }
+  },
+  {
+    "name": "set --head: a declared id stays",
+    "file": "guide.md",
+    "geml": "# T\n\n## A {#a}\n\nSee [a](#a).\n",
+    "op": {
+      "verb": "set",
+      "address": "#a",
+      "part": "head",
+      "content": "## Other {#a}\n"
+    },
+    "want": {
+      "text": "# T\n\n## Other {#a}\n\nSee [a](#a).\n"
+    }
+  },
+  {
+    "name": "set --body: GEML lands as Markdown",
+    "file": "guide.md",
+    "geml": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n",
+    "op": {
+      "verb": "set",
+      "address": "#install",
+      "part": "body",
+      "content": "=== note\nA tip.\n===\n"
+    },
+    "want": {
+      "text": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\n> A tip.\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n"
+    }
+  },
+  {
+    "name": "set --body: Markdown lands verbatim",
+    "file": "guide.md",
+    "geml": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n",
+    "op": {
+      "verb": "set",
+      "address": "#install",
+      "part": "body",
+      "content": "New *body* with [[Note]] and {{x}}.\n"
+    },
+    "want": {
+      "text": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nNew *body* with [[Note]] and {{x}}.\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n"
+    }
+  },
+  {
+    "name": "set --intro: GEML lands as Markdown",
+    "file": "guide.md",
+    "geml": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n",
+    "op": {
+      "verb": "set",
+      "address": "#guide",
+      "part": "intro",
+      "content": "=== note\nOpening.\n===\n"
+    },
+    "want": {
+      "text": "# Guide\n\n> Opening.\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n"
+    }
+  },
+  {
+    "name": "set: a prose run",
+    "file": "guide.md",
+    "geml": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n",
+    "op": {
+      "verb": "set",
+      "address": "#guide-before-install",
+      "content": "New intro.\n"
+    },
+    "want": {
+      "text": "# Guide\n\nNew intro.\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n"
+    }
+  },
+  {
+    "name": "add: GEML after a section",
+    "file": "guide.md",
+    "geml": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n",
+    "op": {
+      "verb": "add",
+      "after": "#install",
+      "content": "=== note\nAdded.\n===\n"
+    },
+    "want": {
+      "text": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\n> Added.\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n"
+    }
+  },
+  {
+    "name": "add: a table whose rows are elsewhere is refused",
+    "file": "guide.md",
+    "geml": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n",
+    "op": {
+      "verb": "add",
+      "append": true,
+      "content": "=== table {src=data.csv}\n===\n"
+    },
+    "want": {
+      "refused": "bad-content"
+    }
+  },
+  {
+    "name": "add: a heading with attributes converts",
+    "file": "guide.md",
+    "geml": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n",
+    "op": {
+      "verb": "add",
+      "append": true,
+      "content": "## Extra {#extra}\n\nText.\n"
+    },
+    "want": {
+      "text": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n\n## Extra\n\nText.\n"
+    }
+  },
+  {
+    "name": "rename: a declared Markdown heading id renames",
+    "file": "guide.md",
+    "geml": "# T\n\n## A {#a}\n\nSee [a](#a).\n",
+    "op": {
+      "verb": "rename",
+      "old": "#a",
+      "new": "#b"
+    },
+    "want": {
+      "text": "# T\n\n## A {#b}\n\nSee [a](#b).\n"
+    }
+  },
+  {
+    "name": "rename: a derived Markdown heading id is refused",
+    "file": "guide.md",
+    "geml": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n",
+    "op": {
+      "verb": "rename",
+      "old": "#notes",
+      "new": "#n2"
+    },
+    "want": {
+      "refused": "rename-refused"
+    }
+  },
+  {
+    "name": "delete: a footnote definition",
+    "file": "guide.md",
+    "geml": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n",
+    "op": {
+      "verb": "delete",
+      "addresses": [
+        "#n"
+      ]
+    },
+    "want": {
+      "text": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n"
+    }
+  },
+  {
+    "name": "replace: inside a Markdown section",
+    "file": "guide.md",
+    "geml": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n",
+    "op": {
+      "verb": "replace",
+      "old": "Tail.",
+      "new": "End."
+    },
+    "want": {
+      "text": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nEnd.\n"
+    }
+  },
+  {
+    "name": "to geml: Markdown converts",
+    "file": "guide.md",
+    "geml": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n[^n]: The note,\nlazily continued.\n\n    still the note\n\nUsage\n-----\n\nA setext heading above. {{not-meta}} stays text. ^marker\n\n~~~\n[^0-9]: not a footnote, and [[#nowhere]] is code\n~~~\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n$$\n## not a heading either\n$$\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n",
+    "op": {
+      "verb": "to",
+      "to": "geml"
+    },
+    "want": {
+      "output": "# Guide\n\nIntro with a [link](#install) and a [titled one](#install \"Install it\") and [angled](<#usage>).\n\n## Install\n\nRun it.[^n] And [[#Usage]] and [[#^marker]] and [[Other Note#Part]] and [[Note]].\n\n=== note {#n}\nThe note,\n===\nlazily continued.\n\n    still the note\n\n## Usage\n\nA setext heading above. \\{{not-meta}} stays text. ^marker\n\n=== code {#code-1}\n[^0-9]: not a footnote, and [[#nowhere]] is code\n===\n\n    indented code after a blank line\n\n<div>\n## not a heading\n</div>\n\n=== math {#math-1}\n## not a heading either\n===\n\n=== wonder\nplain text under an unknown fence\n\n## Notes\n\nFirst.\n\n## Notes\n\nSecond, `#notes-1`. See [C++](#c--rust) and <a id=\"why-now\"></a>[why](#why-now).\n\n## C++ & Rust\n\nTail.\n"
+    }
+  },
+  {
+    "name": "to md: Markdown through GEML and back",
+    "file": "guide.md",
+    "geml": "---\ntitle: Doc\n---\n\n# Doc\n\n## Part\n\n> quoted\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+    "op": {
+      "verb": "to",
+      "to": "md"
+    },
+    "want": {
+      "output": "---\ntitle: Doc\n---\n\n# Doc\n\n## Part\n\n> quoted\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n"
+    }
+  },
+  {
+    "name": "to geml: front matter, code, math, quotes, tables",
+    "file": "guide.md",
+    "geml": "---\ntitle: \"Doc\"\nauthor: me\n---\n\n# Doc\n\n```mermaid\ngraph\n```\n\n```py\nx = 1\n```\n\n$$\nx^2\n$$\n\n> a {{v}}\n\n| a | b |\n|---|:-:|\n| 1 | 2 |\n\n[^f]: foot\n  more\n\n***\n\n## The `x` part\n\nsee <https://a.b/c> <div>raw</div>\n",
+    "op": {
+      "verb": "to",
+      "to": "geml"
+    },
+    "want": {
+      "output": "=== meta\ntitle=Doc\nauthor=me\n===\n\n\n=== diagram {#diagram-1 format=mermaid}\ngraph\n===\n\n=== code {#code-1 lang=py}\nx = 1\n===\n\n=== math {#math-1}\nx^2\n===\n\n=== note {#note-1}\na \\{{v}}\n===\n\n=== table {#table-1}\n| a | b |\n|---|:-:|\n| 1 | 2 |\n===\n\n=== note {#f}\nfoot\nmore\n===\n\n\n# The `x` part {#the-x-part}\n\nsee [https://a.b/c](https://a.b/c) <div>raw</div>\n"
+    }
+  },
+  {
+    "name": "to geml: from a model's JSON",
+    "file": "doc.json",
+    "geml": "{\"kind\":\"document\",\"children\":[]}",
+    "op": {
+      "verb": "to",
+      "to": "geml"
+    },
+    "want": {
+      "output": "\n"
+    }
+  },
+  {
+    "name": "to geml: JSON that is not JSON",
+    "file": "doc.json",
+    "geml": "{nope",
+    "op": {
+      "verb": "to",
+      "to": "geml"
+    },
+    "want": {
+      "refused": "bad-content"
+    }
+  },
+  {
+    "name": "set --body: a setext heading keeps its underline",
+    "file": "guide.md",
+    "geml": "Title\n=====\n\nBody.\n\n## Next\n\nMore.\n",
+    "op": {
+      "verb": "set",
+      "address": "#title",
+      "part": "body",
+      "content": "New body.\n"
+    },
+    "want": {
+      "text": "Title\n=====\n\nNew body.\n"
+    }
+  },
+  {
+    "name": "to geml: a GEML block the Markdown carries passes through",
+    "file": "guide.md",
+    "geml": "Intro\n\n=== note {#n}\nlast line\n===\n\n=== meta\nbrand = \"X\"\n===\n",
+    "op": {
+      "verb": "to",
+      "to": "geml"
+    },
+    "want": {
+      "output": "Intro\n\n=== note {#n}\nlast line\n===\n\n=== meta\nbrand = \"X\"\n===\n"
+    }
+  },
+  {
+    "name": "to md: headings, hidden ones, attributes",
+    "geml": "# Top {#top .c k=v}\n\n## Sub\n\n### Hidden {hidden}\n\n#### Deep\n\n##### Deeper\n\n###### Deepest\n",
+    "op": {
+      "verb": "to",
+      "to": "md"
+    },
+    "want": {
+      "output": "# Top\n\n## Sub\n\n#### Deep\n\n##### Deeper\n\n###### Deepest\n"
+    }
+  },
+  {
+    "name": "to md: a meta title that is echoed, front matter",
+    "geml": "=== meta\ntitle = \"Doc\"\nversion = 2\nflag = true\nnote = \"a: b\"\n===\n\n# Doc\n\nBody.\n",
+    "op": {
+      "verb": "to",
+      "to": "md"
+    },
+    "want": {
+      "output": "---\ntitle: Doc\nversion: 2\nflag: true\nnote: \"a: b\"\n---\n\n# Doc\n\nBody.\n"
+    }
+  },
+  {
+    "name": "to md: a meta title not echoed shifts the headings",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Part\n\n###### Six\n",
+    "op": {
+      "verb": "to",
+      "to": "md"
+    },
+    "want": {
+      "output": "---\ntitle: Doc\n---\n\n# Doc\n\n## Part\n\n###### Six\n"
+    }
+  },
+  {
+    "name": "to md: inline: emphasis, code, math, links, images, breaks, escapes",
+    "geml": "A *b* **c** ~~d~~ `e` ``f`g`` $x^2$ [h](https://x.test) [i](#top) [j](other.geml#k) ![k](p.png) \\* \\# line\\\nnext.\n\n# Top {#top}\n",
+    "op": {
+      "verb": "to",
+      "to": "md"
+    },
+    "want": {
+      "output": "A *b* **c** ~~d~~ `e` ``f`g`` $x^2$ [h](https://x.test) [i](#top) [j](other.geml#k) ![k](p.png) \\* # line  \nnext.\n\n# Top\n"
+    }
+  },
+  {
+    "name": "to md: references and projections",
+    "geml": "=== text {#p}\nOne phrase.\n===\n\nSee [[#p]] and ![[#p]] and [[#gone]] and ![[#gone]] and [[#t[1][\"a\"]]] and ![[#t[1][\"a\"]]].\n\n=== table {#t}\n| a |\n|---|\n| 7 |\n===\n",
+    "op": {
+      "verb": "to",
+      "to": "md"
+    },
+    "want": {
+      "output": "One phrase.\n\nSee [#p](#p) and One phrase. and [#gone](#gone) and [#gone](#gone) and [7](#t) and 7.\n\n| a |\n| --- |\n| 7 |\n"
+    }
+  },
+  {
+    "name": "to md: footnotes",
+    "geml": "A claim[^n].\n\n=== note {#n .footnote}\nThe source.\n===\n",
+    "op": {
+      "verb": "to",
+      "to": "md"
+    },
+    "want": {
+      "output": "A claim[^n].\n\n[^n]: The source.\n"
+    }
+  },
+  {
+    "name": "to md: lists: ordered, nested, tasks, loose",
+    "geml": "3. three\n4. four\n   - nested\n   - [x] done\n   - [ ] open\n\n- loose\n\n- items\n",
+    "op": {
+      "verb": "to",
+      "to": "md"
+    },
+    "want": {
+      "output": "3. three\n4. four\n  - nested\n  - [x] done\n  - [ ] open\n\n- loose\n\n- items\n"
+    }
+  },
+  {
+    "name": "to md: code, math, diagrams",
+    "geml": "=== code {lang=py}\nx = 1\n```\n===\n\n=== math\nE = mc^2\n===\n\n=== diagram {format=mermaid}\ngraph TD\n===\n\n=== diagram {format=geml-chart type=bar data=#t x=a y=b}\n===\n\n=== diagram {format=dot}\ndigraph{}\n===\n\n=== table {#t}\n| a | b |\n|---|---|\n| x | 1 |\n===\n",
+    "op": {
+      "verb": "to",
+      "to": "md"
+    },
+    "want": {
+      "output": "````py\nx = 1\n```\n````\n\n$$\nE = mc^2\n$$\n\n```mermaid\ngraph TD\n```\n\n```geml-chart\ntype=bar data=#t x=a y=b\n```\n\n```dot\ndigraph{}\n```\n\n| a | b |\n| --- | --- |\n| x | 1 |\n"
+    }
+  },
+  {
+    "name": "to md: tables: alignment, caption, pipes, csv, summary",
+    "geml": "=== table {#t caption=\"Costs\"}\n| a | b | c |\n|:--|:-:|--:|\n| x\\|y | 1 | 2 |\n===\n\n=== table {format=csv header=1}\nn, v\none, 1\n===\n\n=== view {src=#t select=\"a, c\"}\n===\n",
+    "op": {
+      "verb": "to",
+      "to": "md"
+    },
+    "want": {
+      "output": "*Costs*\n\n| a | b | c |\n| :--- | :--: | ---: |\n| x\\|y | 1 | 2 |\n\n| n | v |\n| --- | --- |\n| one | 1 |\n\n| a | c |\n| :--- | ---: |\n| x\\|y | 2 |\n"
+    }
+  },
+  {
+    "name": "to md: notes, text, unknown and hidden blocks",
+    "geml": "=== note\nA tip with *emphasis*.\n\n- and a list\n===\n\n=== text {#x}\nPlain text.\n===\n\n=== wonder {#w}\nraw stuff\n===\n\n=== note {hidden}\ngone\n===\n\n%% a hidden line\n",
+    "op": {
+      "verb": "to",
+      "to": "md"
+    },
+    "want": {
+      "output": "> A tip with *emphasis*.\n>\n> - and a list\n\nPlain text.\n\n```wonder\nraw stuff\n```\n"
+    }
+  },
+  {
+    "name": "to md: data blocks",
+    "geml": "=== data {#d}\n{\"a\": [1, 2]}\n===\n\n=== data {format=jsonl}\n{\"n\": 1}\n===\n\n=== data {format=yaml}\na: 1\n===\n\n=== data {src=\"https://x.test/a.json\"}\n===\n",
+    "op": {
+      "verb": "to",
+      "to": "md"
+    },
+    "want": {
+      "output": "```json\n{\"a\": [1, 2]}\n```\n\n```jsonl\n{\"n\": 1}\n```\n\n```yaml\na: 1\n```\n\n```json\n```\n"
+    }
+  },
+  {
+    "name": "to md: embeds: whole, part, missing, cross-document",
+    "geml": "# A {#a}\n\nIntro.\n\n## B {#b}\n\nInside.\n\n# C\n\n=== embed {src=#b}\n===\n\n=== embed {src=#a part=intro}\n===\n\n=== embed {src=#gone}\n===\n\n=== embed {src=other.geml#x}\n===\n\nSay ![[#p]] and ![[other.geml#y]].\n\n=== text {#p}\nOne phrase.\n===\n",
+    "files": {
+      "other.geml": "# X {#x}\n\nThere.\n\n=== text {#y}\nFar phrase.\n===\n"
+    },
+    "op": {
+      "verb": "to",
+      "to": "md"
+    },
+    "want": {
+      "output": "# A\n\nIntro.\n\n## B\n\nInside.\n\n# C\n\n## B\n\nInside.\n\nIntro.\n\n[#gone](#gone)\n\n# X\n\nThere.\n\nFar phrase.\n\nSay One phrase. and Far phrase..\n\nOne phrase.\n"
+    }
+  },
+  {
+    "name": "to md: a remote table and a view over it",
+    "geml": "=== table {#r src=\"https://x.test/r.csv\"}\n===\n\n=== view {src=#r}\n===\n",
+    "op": {
+      "verb": "to",
+      "to": "md"
+    },
+    "want": {
+      "output": "*External data `https://x.test/r.csv` — loaded at render time.*\n\n*External data `#r` — loaded at render time.*\n"
+    }
+  },
+  {
+    "name": "to md: paragraph text that would read as Markdown structure",
+    "geml": "\\# not a heading\n\n\\- not a list\n\n1\\. not a list either\n\n\\> not a quote\n\nA line with * stars * and _under_ and <tag>.\n",
+    "op": {
+      "verb": "to",
+      "to": "md"
+    },
+    "want": {
+      "output": "# not a heading\n\n- not a list\n\n1. not a list either\n\n> not a quote\n\nA line with \\* stars \\* and \\_under\\_ and \\<tag>.\n"
+    }
+  }
+]

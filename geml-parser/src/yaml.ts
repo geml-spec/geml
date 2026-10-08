@@ -115,7 +115,10 @@ class Refusal extends Error {
   constructor(message: string, readonly line: number) { super(message); }
 }
 
-export function parseYaml(body: string[]): YamlResult {
+/** A number literal an engine read, and its 0-based body line (§3.2's exactness check). */
+export interface NumberRead { literal: string; line: number }
+
+export function parseYaml(body: string[], numbers?: NumberRead[]): YamlResult {
   const lines: Line[] = [];
   let sawDocStart = false;
   for (let i = 0; i < body.length; i++) {
@@ -149,7 +152,9 @@ export function parseYaml(body: string[]): YamlResult {
     if (NON_FINITE.test(t)) {
       throw new Refusal("`.inf` and `.nan` are outside this subset — the value domain here has no infinity and no NaN", n);
     }
-    if (/^\{.+\}$|^\[.+\]$/.test(t)) {
+    // `[` and `{` open a flow collection whether or not it is closed: a plain
+    // scalar cannot begin with either, so `[x` is not the string `[x`.
+    if (/^[[{]/.test(t)) {
       throw new Refusal("a flow collection is outside this subset — write it in block form (only `[]` and `{}` are read, as the empty sequence and map)", n);
     }
   };
@@ -193,6 +198,7 @@ export function parseYaml(body: string[]): YamlResult {
     }
     const q = quotedScalar(t);
     const v = q === null ? plainScalar(t) : q;
+    if (typeof v === "number") numbers?.push({ literal: t, line: at });
     // `.inf` is refused by name above; `1e999` reached the same value through
     // Number() and came out as Infinity, which JSON then wrote as null. The
     // value domain here is JSON's (§3.2), and JSON has no infinity by any spelling.

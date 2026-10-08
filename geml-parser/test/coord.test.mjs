@@ -606,7 +606,7 @@ test("a sequence element is written by position, and out of range is refused", (
   const bad = cli(["set", g, '#cfg["tags"][7]', "-o", g], "x");
   assert.equal(bad.code, 1);
   assert.match(bad.err, /out of range: that sequence has 2 elements/);
-  assert.match(bad.err, /`set` replaces a unit, it does not append/);
+  assert.match(bad.err, /`\[2\]` appends one, and `set` writes no further/);
   assert.equal(readFileSync(g, "utf8"), doc);
 });
 
@@ -889,7 +889,8 @@ test("every wrong turn a WRITE can take refuses BEFORE touching the body", () =>
   const plain = block('=== data {#d}\n{"a": 1}\n===');
   const ok = planCoordWrite(plain, parseCoordPath('["a"]'), "2", ['{"a": 1}']);
   assert.equal(ok.ok, true, "and with no format= at all, json is the default it writes back");
-  assert.deepEqual(ok.body, ["{", '  "a": 2', "}"]);
+  // The value is written where it stood; the rest of the body keeps its bytes.
+  assert.deepEqual(ok.body, ['{"a": 2}']);
 });
 
 // ---------------------------------------------------------------- 键的展开形

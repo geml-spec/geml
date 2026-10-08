@@ -292,5 +292,40 @@
     "want": "block:note",
     "blocks": "note#a[p(\"x\")]",
     "diagnostics": []
+  },
+  {
+    "name": "table: a header-less data form",
+    "geml": "=== table {#t format=csv header=0}\nx, y\n1, 2\n===\n",
+    "want": "table([\"A\",\"B\"] [\"x\",\"y\"] [\"1\",\"2\"])"
+  },
+  {
+    "name": "table: a pipe grid with no separator row",
+    "geml": "=== table {#t}\n| x | y |\n| 1 | 2 |\n===\n",
+    "want": "table([\"A\",\"B\"] [\"x\",\"y\"] [\"1\",\"2\"])"
+  },
+  {
+    "name": "table: a pipe grid without its outer pipes",
+    "geml": "=== table {#t}\nx | y\n--|--\n1 | 2\n===\n",
+    "want": "table([\"x\",\"y\"] [\"1\",\"2\"])"
+  },
+  {
+    "name": "table: a separator row first: no header",
+    "geml": "=== table {#t}\n|---|:-:|\n| 1 | 2 |\n===\n",
+    "want": "table([\"A\",\"B\"] [\"1\",\"2\"])"
+  },
+  {
+    "name": "table: the header is the row just above the separator",
+    "geml": "=== table {#t}\n| a | b |\n| x | y |\n|---|---|\n| 1 | 2 |\n===\n",
+    "want": "table([\"x\",\"y\"] [\"1\",\"2\"])"
+  },
+  {
+    "name": "table: a second separator-like row is a body row",
+    "geml": "=== table {#t}\n| x | y |\n|---|---|\n| 1 | 2 |\n|---|---|\n| 3 | 4 |\n===\n",
+    "want": "table([\"x\",\"y\"] [\"1\",\"2\"] [\"---\",\"---\"] [\"3\",\"4\"])"
+  },
+  {
+    "name": "table: a separator row over no rows",
+    "geml": "=== table {#t}\n|---|:-:|---:|\n===\n",
+    "want": "table([\"A\",\"B\",\"C\"])"
   }
 ]

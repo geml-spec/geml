@@ -8,7 +8,9 @@
     "diagnostics": "reports each diagnostic with the code and severity Appendix A assigns it",
     "bytes": "reads a document from bytes, decoding UTF-8 as §0.1 requires",
     "yaml": "ships a yaml engine; §3.2 makes it optional and fixes the subset one must read",
-    "host": "reads the files a document names through a host confined to a directory tree (§3.3, §9.3, §9.4)"
+    "host": "reads the files a document names through a host confined to a directory tree (§3.3, §9.3, §9.4)",
+    "edits": "performs the eleven editing operations of §8.2(10) on a document's text, refusing with an Appendix A.6 code",
+    "markdown": "reads a `.md` document as Markdown where the two grammars disagree, and edits it as Markdown (README, Markdown documents); the specification does not define Markdown, so this is optional"
   },
   "fields": {
     "ids": "ids",
@@ -18,22 +20,165 @@
     "geml_base64": "bytes"
   },
   "files": [
-    { "file": "inline.json", "requires": [] },
-    { "file": "precedence.json", "requires": [] },
-    { "file": "lists.json", "requires": [] },
-    { "file": "interp.json", "requires": [] },
-    { "file": "transclusion.json", "requires": [] },
-    { "file": "safety.json", "requires": [] },
-    { "file": "data.json", "requires": [] },
-    { "file": "fences.json", "requires": [] },
-    { "file": "vocabulary.json", "requires": [] },
-    { "file": "normalize.json", "requires": [] },
-    { "file": "coordinates.json", "requires": ["tables"] },
-    { "file": "views.json", "requires": ["tables", "views"] },
-    { "file": "ids.json", "requires": ["ids"] },
-    { "file": "blocks.json", "requires": ["blocks"] },
-    { "file": "addresses.json", "requires": ["addresses"] },
-    { "file": "yaml.json", "requires": ["yaml"] },
-    { "file": "documents.json", "requires": ["host", "tables", "views"] }
+    {
+      "file": "inline.json",
+      "requires": []
+    },
+    {
+      "file": "precedence.json",
+      "requires": []
+    },
+    {
+      "file": "lists.json",
+      "requires": []
+    },
+    {
+      "file": "interp.json",
+      "requires": []
+    },
+    {
+      "file": "transclusion.json",
+      "requires": []
+    },
+    {
+      "file": "safety.json",
+      "requires": []
+    },
+    {
+      "file": "data.json",
+      "requires": []
+    },
+    {
+      "file": "fences.json",
+      "requires": []
+    },
+    {
+      "file": "vocabulary.json",
+      "requires": []
+    },
+    {
+      "file": "normalize.json",
+      "requires": []
+    },
+    {
+      "file": "coordinates.json",
+      "requires": [
+        "tables"
+      ]
+    },
+    {
+      "file": "views.json",
+      "requires": [
+        "tables",
+        "views"
+      ]
+    },
+    {
+      "file": "ids.json",
+      "requires": [
+        "ids"
+      ]
+    },
+    {
+      "file": "blocks.json",
+      "requires": [
+        "blocks"
+      ]
+    },
+    {
+      "file": "addresses.json",
+      "requires": [
+        "addresses"
+      ]
+    },
+    {
+      "file": "yaml.json",
+      "requires": [
+        "yaml"
+      ]
+    },
+    {
+      "file": "documents.json",
+      "requires": [
+        "host",
+        "tables",
+        "views"
+      ]
+    }
+  ],
+  "edits": [
+    {
+      "file": "edits-list.json",
+      "requires": [
+        "edits"
+      ]
+    },
+    {
+      "file": "edits-find.json",
+      "requires": [
+        "edits"
+      ]
+    },
+    {
+      "file": "edits-get.json",
+      "requires": [
+        "edits"
+      ]
+    },
+    {
+      "file": "edits-check.json",
+      "requires": [
+        "edits"
+      ]
+    },
+    {
+      "file": "edits-to.json",
+      "requires": [
+        "edits"
+      ]
+    },
+    {
+      "file": "edits-replace.json",
+      "requires": [
+        "edits"
+      ]
+    },
+    {
+      "file": "edits-set.json",
+      "requires": [
+        "edits"
+      ]
+    },
+    {
+      "file": "edits-add.json",
+      "requires": [
+        "edits"
+      ]
+    },
+    {
+      "file": "edits-delete.json",
+      "requires": [
+        "edits"
+      ]
+    },
+    {
+      "file": "edits-rename.json",
+      "requires": [
+        "edits"
+      ]
+    },
+    {
+      "file": "edits-revert.json",
+      "requires": [
+        "edits"
+      ]
+    },
+    {
+      "file": "edits-markdown.json",
+      "requires": [
+        "edits",
+        "markdown"
+      ]
+    }
   ]
 }

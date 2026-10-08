@@ -714,6 +714,38 @@ test("a write that would EMPTY the document is refused, not allowed to destroy i
   assert.ok(readFileSync(join(dir, "solo.geml"), "utf8").includes("the whole document"), "the file was NOT destroyed");
 });
 
+test("geml_delete and geml_add's anchor take every address geml_list prints, as the CLI does", () => {
+  const dir = ws(DOC + "\n=== note\nunnamed\n===\n");
+  const rows = () => call("geml_list", { file: "d.geml" }).json;
+  const anon = rows().find((b) => b.anon && b.kind === "note").address;
+  // A content address names a block the author never gave an id.
+  assert.equal(call("geml_add", { file: "d.geml", content: "=== note {#pre}\npre\n===\n", position: "before", anchor: anon }).json.ok, true);
+  const order = rows().filter((b) => b.kind === "note").map((b) => b.id ?? "(anon)");
+  assert.equal(order.indexOf("pre") + 1, order.indexOf("(anon)"), order.join(","));
+  // A type filter names every note; an anchor must name one, so it is refused, with its code.
+  const ambiguous = call("geml_add", { file: "d.geml", content: "=== note {#x}\nx\n===\n", position: "after", anchor: "=== note" });
+  assert.equal(ambiguous.json.ok, false);
+  assert.equal(ambiguous.json.reason, "ambiguous-address");
+  // A line range and a content address in one call; a selector naming nothing is skipped.
+  const [from, to] = rows().find((b) => b.id === "pre").lines;
+  const r = call("geml_delete", { file: "d.geml", ids: [`L${from}-${to}`, anon, "ghost"] });
+  assert.equal(r.json.ok, true, JSON.stringify(r.json));
+  assert.deepEqual(rows().filter((b) => b.kind === "note").map((b) => b.id), ["alpha", "beta", "gamma"]);
+  // A filter removes every block it matches.
+  writeFileSync(join(dir, "f.geml"), "=== note {#a1 tag=x}\none\n===\n\n=== note {#a2 tag=x}\ntwo\n===\n\n=== note {#keep}\nthree\n===\n");
+  assert.equal(call("geml_delete", { file: "f.geml", ids: ["{tag=x}"] }).json.ok, true);
+  assert.deepEqual(call("geml_list", { file: "f.geml" }).json.map((b) => b.id), ["keep"]);
+});
+
+test("a refused write names its Appendix A.6 code", () => {
+  ws();
+  const broken = call("geml_set", { file: "d.geml", id: "gamma", body: "=== note {#gamma}\nsee [[#nowhere]]\n===\n" });
+  assert.equal(broken.json.ok, false);
+  assert.equal(broken.json.reason, "broken-result");
+  assert.ok(broken.json.diagnostics.some((d) => d.code === "unresolved-reference"));
+  assert.equal(call("geml_rename", { file: "d.geml", old: "alpha", new: "beta" }).json.reason, "rename-refused");
+});
+
 test("geml_delete requires at least one id", () => {
   ws();
   assert.match(call("geml_delete", { file: "d.geml", ids: [] }).text, /at least one block/);

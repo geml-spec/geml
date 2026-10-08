@@ -89,6 +89,8 @@ export interface WriteResult {
   ok: boolean;
   file: string;
   diagnostics: Diagnostic[];
+  /** Why a refused write was refused: a spec Appendix A.6 code. Absent when the write went through. */
+  reason?: string;
   hint?: string;
   revision?: string;
   document?: string;
@@ -96,8 +98,8 @@ export interface WriteResult {
   notes?: string[];
 }
 
-function refuse(file: string, diagnostics: Diagnostic[], hint: string): WriteResult {
-  return { ok: false, file, diagnostics, hint };
+function refuse(file: string, diagnostics: Diagnostic[], hint: string, reason?: string): WriteResult {
+  return { ok: false, file, diagnostics, ...(reason === undefined ? {} : { reason }), hint };
 }
 
 export const asText = (v: unknown) => (typeof v === "string" ? v : JSON.stringify(v, null, 1));
@@ -145,7 +147,7 @@ function applyWrite(host: McpHost, spec: WriteSpec): WriteResult {
     const why = stale
       ? "These errors were ALREADY in the document before this edit — your content did not cause them. Repair them first (geml_check lists them); until then no write to this document can be validated."
       : host.unchangedHint;
-    return refuse(doc.file, diagnostics, `${e.message}. ${why}`);
+    return refuse(doc.file, diagnostics, `${e.message}. ${why}`, e.reason);
   }
 
   // A verb that produced nothing must never be read as "the new document is
@@ -164,7 +166,7 @@ function applyWrite(host: McpHost, spec: WriteSpec): WriteResult {
       (d) => d.code !== "unresolved-reference" && d.code !== "unresolved-footnote",
     );
   }
-  if (blocking.length) return refuse(doc.file, blocking, host.unchangedHint);
+  if (blocking.length) return refuse(doc.file, blocking, host.unchangedHint, "broken-result");
 
   if (after === before) {
     return { ok: true, file: doc.file, diagnostics: diags, hint: "No change: the document already had this content." };
@@ -220,9 +222,10 @@ const hashId = (id: string) => (id.startsWith("#") ? id : `#${id}`);
 //
 // The parameter is still NAMED `id`: renaming it to `selector` would break
 // every registered client for a cosmetic gain, and both design docs park that
-// rename as a follow-up. The other verbs keep hashId — their CLI counterparts
-// (add/delete/rename/revert) take ids only, so accepting a selector here would
-// promise something the CLI would then refuse.
+// rename as a follow-up. `geml_delete`'s ids and `geml_add`'s anchor take a
+// selector too, as `delete` and `add --before/--after` do. `geml_rename` and
+// `geml_revert` keep hashId: an id is what gets renamed, and what the history
+// is keyed by.
 // A selector starts with `#` (id or heading line), `@` (content address), or a
 // `=` fence run (type filter), or is a position `L27` / `L27-58` — the range
 // `geml_list` prints on every row. Anything else is a bare id. The position is
@@ -510,7 +513,7 @@ export function toolsFor(host: McpHost): Tool[] {
       inputSchema: schema({
         content: { type: "string", description: "The GEML fragment to insert" },
         position: { type: "string", enum: ["append", "before", "after"], description: "Where to insert" },
-        anchor: { type: "string", description: "Block id the insertion is relative to; required for before/after" },
+        anchor: { type: "string", description: "The block the insertion is relative to — an id, or any address geml_list prints; it must name one block. Required for before/after" },
       }, ["content", "position"]),
       annotations: writes("Insert new content", { destructive: false, idempotent: false }),
       run: (args) => {
@@ -518,22 +521,22 @@ export function toolsFor(host: McpHost): Tool[] {
         let where: { append: boolean; before?: string; after?: string };
         if (args.position === "append") where = { append: true };
         else if (args.position === "before" || args.position === "after") {
-          if (!args.anchor) throw new Error(`position \`${args.position}\` needs an \`anchor\` block id`);
-          where = { append: false, [args.position]: hashId(args.anchor) };
+          if (!args.anchor) throw new Error(`position \`${args.position}\` needs an \`anchor\` block`);
+          where = { append: false, [args.position]: selectorArg(args.anchor) };
         } else throw new Error(`position must be append|before|after, got \`${args.position}\``);
         return applyWrite(host, {
           doc,
           produce: () => add(doc.text, doc.label, { content: raw(args.content), ...where }, doc.ctx).text,
-          summary: `mcp: before insert (${args.position}${args.anchor ? " " + hashId(args.anchor) : ""})`,
+          summary: `mcp: before insert (${args.position}${args.anchor ? " " + selectorArg(args.anchor) : ""})`,
         });
       },
     },
     {
       name: "geml_delete",
       description:
-        "Remove one or more blocks by id. Each block takes the blank line that separated it from its neighbours, so deleting what geml_add inserted leaves the file as it was. To undo a deletion, geml_revert the removed id; to change a block rather than remove it, use geml_set. References left pointing at a removed block come back as diagnostics but do NOT block the deletion — read them, then repair the references or revert. An id that matches nothing is skipped, so repeating a call changes nothing." + WRITE_RESULT + note,
+        "Remove one or more blocks, each named by an id or any address geml_list prints; a filter (`=== type`, `{key=value}`) removes every block it matches. Each block takes the blank line that separated it from its neighbours, so deleting what geml_add inserted leaves the file as it was. To undo a deletion, geml_revert the removed id; to change a block rather than remove it, use geml_set. References left pointing at a removed block come back as diagnostics but do NOT block the deletion — read them, then repair the references or revert. A selector that names nothing is skipped, so repeating a call changes nothing." + WRITE_RESULT + note,
       inputSchema: schema({
-        ids: { type: "array", items: { type: "string" }, description: "Block ids to remove" },
+        ids: { type: "array", items: { type: "string" }, description: "The blocks to remove: ids or addresses" },
       }, ["ids"]),
       annotations: writes("Delete blocks", { destructive: true, idempotent: true }),
       run: (args) => {
@@ -542,8 +545,8 @@ export function toolsFor(host: McpHost): Tool[] {
         if (!ids.length) throw new Error("`ids` must name at least one block");
         return applyWrite(host, {
           doc,
-          produce: () => del(doc.text, doc.label, ids.map((i) => hashId(i)), doc.ctx).text,
-          summary: `mcp: before delete ${ids.map((i) => hashId(i)).join(" ")}`,
+          produce: () => del(doc.text, doc.label, ids.map((i) => selectorArg(i)), doc.ctx).text,
+          summary: `mcp: before delete ${ids.map((i) => selectorArg(i)).join(" ")}`,
           danglingIsWarning: true,
         });
       },

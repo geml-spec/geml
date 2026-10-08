@@ -1,0 +1,879 @@
+[
+  {
+    "name": "a block by id, byte for byte",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "get",
+      "address": "#alpha"
+    },
+    "want": {
+      "output": "=== note {#alpha}\nfirst\n===\n"
+    }
+  },
+  {
+    "name": "the id without its hash",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "get",
+      "address": "alpha"
+    },
+    "want": {
+      "output": "=== note {#alpha}\nfirst\n===\n"
+    }
+  },
+  {
+    "name": "a heading is its whole section",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "get",
+      "address": "#sub"
+    },
+    "want": {
+      "output": "## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n"
+    }
+  },
+  {
+    "name": "the heading line alone",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "get",
+      "address": "#sub",
+      "part": "head"
+    },
+    "want": {
+      "output": "## Sub {#sub}\n"
+    }
+  },
+  {
+    "name": "a section's intro stops at its first subheading",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "get",
+      "address": "#sub",
+      "part": "intro"
+    },
+    "want": {
+      "output": "\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n"
+    }
+  },
+  {
+    "name": "a block's body",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "get",
+      "address": "#beta",
+      "part": "body"
+    },
+    "want": {
+      "output": "see [[#alpha]]\n"
+    }
+  },
+  {
+    "name": "a heading by its text",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "get",
+      "address": "## Sub"
+    },
+    "want": {
+      "output": "## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n"
+    }
+  },
+  {
+    "name": "a content address",
+    "geml": "# T {#t}\n\n=== note\nno id here\n===\n\n=== note\nsecond anonymous\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "=== note@0b986bdb"
+    },
+    "want": {
+      "output": "=== note\nno id here\n===\n"
+    }
+  },
+  {
+    "name": "a line range names the smallest unit containing it",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "get",
+      "address": "L9-11"
+    },
+    "want": {
+      "output": "=== note {#alpha}\nfirst\n===\n"
+    }
+  },
+  {
+    "name": "an attribute filter",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "get",
+      "address": "=== code {lang=py}"
+    },
+    "want": {
+      "output": "=== code {#snippet lang=py}\nprint(1)\n===\n"
+    }
+  },
+  {
+    "name": "#meta is the merged metadata",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "get",
+      "address": "#meta"
+    },
+    "want": {
+      "output": "title = \"Doc\"\n"
+    }
+  },
+  {
+    "name": "a meta key",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "get",
+      "address": "#meta[\"title\"]"
+    },
+    "want": {
+      "output": "Doc\n"
+    }
+  },
+  {
+    "name": "a table cell by coordinate",
+    "geml": "# Figures {#figs}\n\n=== table {#fy}\n| q | rev |\n|---|-----|\n| Q1 | 10 |\n| Q2 | 20 |\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#fy[1][\"rev\"]"
+    },
+    "want": {
+      "output": "10\n"
+    }
+  },
+  {
+    "name": "prose between two blocks",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "get",
+      "address": "#alpha-between-beta"
+    },
+    "want": {
+      "output": "Between alpha and beta.\n"
+    }
+  },
+  {
+    "name": "CRLF: the slice keeps its line endings",
+    "geml": "=== meta\r\ntitle = \"Doc\"\r\n===\r\n\r\n# Intro {#intro}\r\n\r\nOpening words.\r\n\r\n=== note {#alpha}\r\nfirst\r\n===\r\n\r\nBetween alpha and beta.\r\n\r\n=== note {#beta}\r\nsee [[#alpha]]\r\n===\r\n\r\n## Sub {#sub}\r\n\r\nunder sub\r\n\r\n=== code {#snippet lang=py}\r\nprint(1)\r\n===\r\n\r\n### Deep {#deep}\r\n\r\ndeepest\r\n\r\n## Other {#other}\r\n\r\ntail\r\n",
+    "op": {
+      "verb": "get",
+      "address": "#alpha"
+    },
+    "want": {
+      "output": "=== note {#alpha}\r\nfirst\r\n===\r\n"
+    }
+  },
+  {
+    "name": "refused: no such id",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "get",
+      "address": "#nope"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "refused: a type prefix that is not the block's type",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "get",
+      "address": "=== code {#alpha}"
+    },
+    "want": {
+      "refused": "bad-address"
+    }
+  },
+  {
+    "name": "refused: a heading text two headings share",
+    "geml": "# Top {#top}\n\n## Same {#s1}\n\none\n\n## Same {#s2}\n\ntwo\n",
+    "op": {
+      "verb": "get",
+      "address": "## Same"
+    },
+    "want": {
+      "refused": "ambiguous-address"
+    }
+  },
+  {
+    "name": "refused: intro of a block",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "get",
+      "address": "#alpha",
+      "part": "intro"
+    },
+    "want": {
+      "refused": "bad-address"
+    }
+  },
+  {
+    "name": "refused: no address",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "get",
+      "address": ""
+    },
+    "want": {
+      "refused": "bad-address"
+    }
+  },
+  {
+    "name": "refused: a stale content address",
+    "geml": "# T {#t}\n\n=== note\nno id here\n===\n\n=== note\nsecond anonymous\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "@deadbeef"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "a line range spanning two blocks names the section holding both",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "get",
+      "address": "L9-16"
+    },
+    "want": {
+      "output": "# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n"
+    }
+  },
+  {
+    "name": "refused: within names nothing",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "get",
+      "address": "#alpha",
+      "within": "#nope"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get a null value",
+    "geml": "=== data {#d}\n{\"a\": null, \"b\": \"\", \"c\": [], \"d\": {}}\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#d[\"a\"]"
+    },
+    "want": {
+      "output": "null\n"
+    }
+  },
+  {
+    "name": "coordinate: get an empty string",
+    "geml": "=== data {#d}\n{\"a\": null, \"b\": \"\", \"c\": [], \"d\": {}}\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#d[\"b\"]"
+    },
+    "want": {
+      "output": "\n"
+    }
+  },
+  {
+    "name": "coordinate: get an empty sequence",
+    "geml": "=== data {#d}\n{\"a\": null, \"b\": \"\", \"c\": [], \"d\": {}}\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#d[\"c\"]"
+    },
+    "want": {
+      "output": "[]\n"
+    }
+  },
+  {
+    "name": "#meta: a part of the document's one meta block",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# A {#a}\n\nText.\n",
+    "op": {
+      "verb": "get",
+      "address": "#meta",
+      "part": "body"
+    },
+    "want": {
+      "output": "title = \"Doc\"\n"
+    }
+  },
+  {
+    "name": "refused: a part of #meta, when it names several meta blocks",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# A {#a}\n\nText.\n\n=== meta\nn = 1\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#meta",
+      "part": "body"
+    },
+    "want": {
+      "refused": "ambiguous-address"
+    }
+  },
+  {
+    "name": "refused: a part of a #meta coordinate",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# A {#a}\n\nText.\n",
+    "op": {
+      "verb": "get",
+      "address": "#meta[\"title\"]",
+      "part": "head"
+    },
+    "want": {
+      "refused": "bad-address"
+    }
+  },
+  {
+    "name": "coordinate: get #t[1]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#t[1]"
+    },
+    "want": {
+      "output": "| a | 1 | 2.5 |\n"
+    }
+  },
+  {
+    "name": "coordinate: get #t[1][\"qty\"]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#t[1][\"qty\"]"
+    },
+    "want": {
+      "output": "1\n"
+    }
+  },
+  {
+    "name": "coordinate: get #t[\"qty\"]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#t[\"qty\"]"
+    },
+    "want": {
+      "output": "1\n2\n"
+    }
+  },
+  {
+    "name": "coordinate: get #t[2][\"price\"]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#t[2][\"price\"]"
+    },
+    "want": {
+      "output": "3\n"
+    }
+  },
+  {
+    "name": "coordinate: get #t[0]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#t[0]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #t[9]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#t[9]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #t[\"nope\"]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#t[\"nope\"]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #t[1][\"nope\"]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#t[1][\"nope\"]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #t[1][2]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#t[1][2]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #t[x]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#t[x]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #t[A]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#t[A]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #t[1][A]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#t[1][A]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #t[summary]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#t[summary]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #t[1][\"qty\"][1]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#t[1][\"qty\"][1]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #t[\"qty\"][1]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#t[\"qty\"][1]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #c[2][\"qty\"]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#c[2][\"qty\"]"
+    },
+    "want": {
+      "output": "2\n"
+    }
+  },
+  {
+    "name": "coordinate: get #c[\"name\"]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#c[\"name\"]"
+    },
+    "want": {
+      "output": "a\nb\n"
+    }
+  },
+  {
+    "name": "coordinate: get #tsv[1][\"qty\"]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#tsv[1][\"qty\"]"
+    },
+    "want": {
+      "output": "1\n"
+    }
+  },
+  {
+    "name": "coordinate: get #tsv[1]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#tsv[1]"
+    },
+    "want": {
+      "output": "a\t1\n"
+    }
+  },
+  {
+    "name": "coordinate: get #nh[1][\"A\"]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#nh[1][\"A\"]"
+    },
+    "want": {
+      "output": "x\n"
+    }
+  },
+  {
+    "name": "coordinate: get #nh[1]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#nh[1]"
+    },
+    "want": {
+      "output": "x, y\n"
+    }
+  },
+  {
+    "name": "coordinate: get #nh[B]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#nh[B]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #d[1][\"b\"]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#d[1][\"b\"]"
+    },
+    "want": {
+      "output": "2\n"
+    }
+  },
+  {
+    "name": "coordinate: get #d[1]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#d[1]"
+    },
+    "want": {
+      "output": "1; 2\n"
+    }
+  },
+  {
+    "name": "coordinate: get #v[1]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#v[1]"
+    },
+    "want": {
+      "output": "| b | 2 | 3 |\n"
+    }
+  },
+  {
+    "name": "coordinate: get #v[\"qty\"]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#v[\"qty\"]"
+    },
+    "want": {
+      "output": "2\n"
+    }
+  },
+  {
+    "name": "coordinate: get #v[1][\"name\"]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#v[1][\"name\"]"
+    },
+    "want": {
+      "output": "b\n"
+    }
+  },
+  {
+    "name": "coordinate: get #v[5]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#v[5]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #j[\"a\"]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#j[\"a\"]"
+    },
+    "want": {
+      "output": "1\n"
+    }
+  },
+  {
+    "name": "coordinate: get #j[\"b\"]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#j[\"b\"]"
+    },
+    "want": {
+      "output": "[1,2,{\"c\":null}]\n"
+    }
+  },
+  {
+    "name": "coordinate: get #j[\"b\"][2][\"c\"]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#j[\"b\"][2][\"c\"]"
+    },
+    "want": {
+      "output": "null\n"
+    }
+  },
+  {
+    "name": "coordinate: get #j[\"b\"][5]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#j[\"b\"][5]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #j[\"s\"][\"x\"]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#j[\"s\"][\"x\"]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #j[0]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#j[0]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #j[\"a\"][\"x\"]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#j[\"a\"][\"x\"]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #j[\"t\"][0]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#j[\"t\"][0]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #j[\"b\"][2][\"c\"][0]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#j[\"b\"][2][\"c\"][0]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #j[x]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#j[x]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #jl[1][\"n\"]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#jl[1][\"n\"]"
+    },
+    "want": {
+      "output": "2\n"
+    }
+  },
+  {
+    "name": "coordinate: get #jl[0][\"n\"]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#jl[0][\"n\"]"
+    },
+    "want": {
+      "output": "1\n"
+    }
+  },
+  {
+    "name": "coordinate: get #jl[0]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#jl[0]"
+    },
+    "want": {
+      "output": "{\"n\":1}\n"
+    }
+  },
+  {
+    "name": "coordinate: get #bad[\"a\"]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#bad[\"a\"]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #raw[\"a\"]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#raw[\"a\"]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #meta[\"title\"]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#meta[\"title\"]"
+    },
+    "want": {
+      "output": "Doc\n"
+    }
+  },
+  {
+    "name": "coordinate: get #meta[\"nope\"]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#meta[\"nope\"]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #meta[\"title\"][\"x\"]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#meta[\"title\"][\"x\"]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #meta[1]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#meta[1]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #n[1]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#n[1]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #nope[1]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#nope[1]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "coordinate: get #t[]",
+    "geml": "=== meta\ntitle = \"Doc\"\nn = 1\n===\n\n=== table {#t}\n| name | qty | price |\n|------|----:|:-----:|\n| a    | 1   | 2.5   |\n| b    | 2   | 3     |\n===\n\n=== table {#c format=csv header=1}\nname, qty\na, 1\nb, 2\n===\n\n=== table {#tsv format=tsv}\nname\tqty\na\t1\n===\n\n=== table {#nh format=csv header=0}\nx, y\n1, 2\n===\n\n=== table {#d format=csv delim=\";\" header=1}\na; b\n1; 2\n===\n\n=== view {#v src=#t where=\"qty > 1\"}\n===\n\n=== data {#j}\n{\"a\": 1, \"b\": [1, 2, {\"c\": null}], \"s\": \"str\", \"t\": true}\n===\n\n=== data {#jl format=jsonl}\n{\"n\": 1}\n{\"n\": 2}\n===\n\n=== data {#y format=yaml}\na: 1\nb:\n  - x\n===\n\n=== data {#bad}\nnot json\n===\n\n=== data {#raw format=toml}\na = 1\n===\n\n=== note {#n}\ntext\n===\n",
+    "op": {
+      "verb": "get",
+      "address": "#t[]"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  }
+]

@@ -156,7 +156,8 @@ test("find --within over a directory skips files the scope names nothing in, and
 });
 
 test("--within narrows blocks: with a coordinate or `#meta` it is a usage error", () => {
-  const m = write("meta.geml", '=== meta\ntitle = "T"\n===\n\n=== table {#fy format=csv header=1}\na\n1\n===\n');
+  // Two `meta` blocks: `#meta` is then their merge, which no narrowing applies to.
+  const m = write("meta.geml", '=== meta\ntitle = "T"\n===\n\n=== table {#fy format=csv header=1}\na\n1\n===\n\n=== meta\nn = 1\n===\n');
   const coord = run(["get", m, '#fy[1]["a"]', "--within", "#fy"]);
   assert.equal(coord.code, 2);
   assert.match(coord.err, /is a coordinate naming one unit inside a block/);

@@ -67,6 +67,15 @@ test("setext headings -> ATX", () => {
   assert.match(g, /^## Sub$/m);
 });
 
+test("a GEML block the Markdown carries passes through to its close, bare or labeled", () => {
+  // Read line by line, a block's last line over its close was a setext heading.
+  const r = mdToGeml("Intro\n\n=== note {#n}\nlast line\n=== #n\n\n==== note\n=== code\nx\n===\n====\n");
+  assert.equal(r.geml, "Intro\n\n=== note {#n}\nlast line\n=== #n\n\n==== note\n=== code\nx\n===\n====\n");
+  assert.equal(r.notes.length, 2);
+  // Never closed, it is not a block: the lines are read as they always were.
+  assert.equal(mdToGeml("=== note {#n}\nnever closed\nTitle\n---\n").geml, "=== note {#n}\nnever closed\n## Title\n");
+});
+
 test("display math -> === math", () => {
   assert.match(conv("$$\nE=mc^2\n$$\n"), /=== math \{#math-1\}\nE=mc\^2\n===/);
 });

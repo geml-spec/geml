@@ -45,6 +45,7 @@
 // extension, where an EDN library would be both weight and supply chain.
 import { type DataValue } from "./geml.js";
 import { DATA_DEPTH } from "./bounds.js";
+import { type NumberRead } from "./yaml.js";
 
 export type EdnResult = { value: DataValue } | { error: string; line: number };
 
@@ -68,7 +69,8 @@ class Reader {
   readonly text: string;
   i = 0;
   depth = 0;
-  constructor(text: string) { this.text = text; }
+  readonly numbers: NumberRead[] | undefined;
+  constructor(text: string, numbers?: NumberRead[]) { this.text = text; this.numbers = numbers; }
 
   /** 0-based line of the current position, for diagnostics. */
   line(at = this.i): number {
@@ -266,7 +268,10 @@ class Reader {
     if (/^[+-]?\d+\/\d+$/.test(t)) this.refuse(`the ratio \`${t}\` — a JSON number cannot hold it`, at);
     if (/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(t)) {
       const n = Number(t);
-      if (Number.isFinite(n)) return n;
+      if (Number.isFinite(n)) {
+        this.numbers?.push({ literal: t, line: this.line(at) });
+        return n;
+      }
       this.refuse(`the number \`${t}\` is not finite`, at);
     }
     this.refuse(`the symbol \`${t}\` — this reading has keywords, not symbols`, at);
@@ -289,8 +294,8 @@ function describe(v: DataValue): string {
  * the first is refused: `data` holds ONE value, and `jsonl` is the shape for a
  * sequence of them.
  */
-export function parseEdn(body: string[]): EdnResult {
-  const r = new Reader(body.join("\n"));
+export function parseEdn(body: string[], numbers?: NumberRead[]): EdnResult {
+  const r = new Reader(body.join("\n"), numbers);
   try {
     const value = r.value();
     r.skip();

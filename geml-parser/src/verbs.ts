@@ -34,7 +34,7 @@ import { type Unit, type Addressed, type Selector } from "./selector.js";
 import { schemeOf, backtickRun, findCodeSpanClose } from "./inline.js";
 import { parseAttrs } from "./attrs.js";
 import { addressUnits, discoveryHint, matchAttr, matchContent, matchLine, matchType, parseSelector, shortestAddress } from "./selector.js";
-import { type MetaView, metaText, metaView, planCoordWrite, planMetaWrite, projectCoord } from "./coord.js";
+import { type MetaView, type TreeEdit, type WritePlan, metaText, metaView, planCoordEdit, planCoordWrite, planMetaRemove, planMetaWrite, projectCoord } from "./coord.js";
 import { mdToGeml } from "./from-md.js";
 import { serialize } from "./serialize.js";
 import { gemlToMd, type EmbedHost } from "./to-md.js";
@@ -54,8 +54,18 @@ void addressUnits;
  * a guarded write was refused by the re-parse of its result, so a programmatic
  * host can hand the codes of Appendix A to its caller instead of the prose.
  */
+/**
+ * Why a verb refused, as spec Appendix A.6 names it: one of eight codes a
+ * conformance case can compare, where the message is wording this
+ * implementation chose. `broken-result` is the one that also carries the
+ * result's own diagnostics.
+ */
+export type Reason =
+  | "no-such-unit" | "ambiguous-address" | "bad-address" | "bad-content"
+  | "would-drop-unit" | "broken-result" | "rename-refused" | "revert-refused";
+
 export class VerbError extends Error {
-  constructor(message: string, public readonly exit: 1 | 2 = 2, public readonly diagnostics?: Diagnostic[]) {
+  constructor(message: string, public readonly exit: 1 | 2 = 2, public readonly reason: string = "bad-content", public readonly diagnostics?: Diagnostic[]) {
     super(message);
   }
 }
@@ -65,7 +75,7 @@ export class VerbError extends Error {
 // new one. A failed READ, reported the way `get` reports a selector that
 // matches nothing: one line, exit 1.
 export class ViewError extends VerbError {
-  constructor(public readonly code: string, message: string) { super(message, 1); }
+  constructor(public readonly code: string, message: string) { super(message, 1, code); }
 }
 
 /** The two halves of cross-document resolution a parse takes. */
@@ -114,8 +124,8 @@ export interface HistoryReader {
   firstChanged(current: string, pick: (text: string) => string | undefined): { id: string; text: string } | undefined;
 }
 
-function fail(msg: string, code: 1 | 2 = 2): never { throw new VerbError(msg, code); }
-function refuseBroken(prose: string, errs: Diagnostic[]): never { throw new VerbError(prose, 1, errs); }
+function fail(msg: string, code: 1 | 2, reason: Reason): never { throw new VerbError(msg, code, reason); }
+function refuseBroken(prose: string, errs: Diagnostic[]): never { throw new VerbError(prose, 1, "broken-result", errs); }
 
 // The last path segment, on either separator. A host label may be a POSIX
 // path, a Windows path or `-`; `self` (the document's own name for §5.2
@@ -279,9 +289,15 @@ function resolveSelector(source: string, file: string, raw: string, ctx: VerbCon
     const b = site?.siblings[site.index];
     return b?.kind === "heading" ? [{ id, level: b.level, text: b.text.trim() }] : [];
   });
-  // 2. exact line — what the caller actually typed.
-  const line = heads.find((h) => h.level === level && h.text === want);
-  if (line) return line.id;
+  // 2. exact line — what the caller actually typed. Two headings can share a
+  //    line (same level, same text, ids apart): that is as ambiguous as shared
+  //    text below, and is refused the same way rather than resolved to the first.
+  const lines = heads.filter((h) => h.level === level && h.text === want);
+  if (lines.length === 1) return lines[0]!.id;
+  if (lines.length > 1) {
+    const list = lines.map((h) => `  #${h.id}  (h${h.level})`).join("\n");
+    fail(`\`${raw}\` matches ${lines.length} headings — address one by its id:\n${list}`, 1, "ambiguous-address");
+  }
   // 3. the text alone (exact, then case-insensitive).
   let byText = heads.filter((h) => h.text === want);
   if (!byText.length) {
@@ -294,14 +310,14 @@ function resolveSelector(source: string, file: string, raw: string, ctx: VerbCon
     const atLevel = byText.filter((h) => h.level === level);
     if (atLevel.length === 1) return atLevel[0]!.id;
     const list = byText.map((h) => `  #${h.id}  (h${h.level})`).join("\n");
-    fail(`\`${want}\` matches ${byText.length} headings — address one by its id:\n${list}`, 1);
+    fail(`\`${want}\` matches ${byText.length} headings — address one by its id:\n${list}`, 1, "ambiguous-address");
   }
   // Nothing matched. A lone `#` with no whitespace was almost certainly meant as
   // an id, so hand it back and let the caller's own `no block with id` error
   // stand — the precise diagnosis for a typo'd id. Only a heading-SHAPED
   // selector gets the heading-flavoured message.
   if (level === 1 && !/\s/.test(bare)) return bare;
-  return fail(`no id or heading matches \`${raw}\` — run \`geml get ${file === "-" ? "-" : file}\` to list every addressable id`, 1);
+  return fail(`no id or heading matches \`${raw}\` — run \`geml get ${file === "-" ? "-" : file}\` to list every addressable id`, 1, "no-such-unit");
 }
 
 // Terminal columns a string occupies, which is not its length: an East Asian
@@ -472,17 +488,17 @@ export function selectUnits(source: string, file: string, rawSel: string, where:
   const sel: Selector = parseSelector(rawSel, (braces) => parseAttrs(braces).id);
   // Callers handle the empty selector themselves (list for `get`, usage error
   // for `set`); reaching here with one is a caller bug surfaced as usage.
-  if (sel.form === "list") fail(`no selector given — run \`geml get ${where}\` to list addressable blocks`, 2);
+  if (sel.form === "list") fail(`no selector given — run \`geml get ${where}\` to list addressable blocks`, 2, "bad-address");
   // A coordinate (GEP 0011) names a unit inside a block, and every command but
   // `get` here acts on a block's SPAN. Resolving the base and proceeding would
   // have been the worst of both: `set '#fy[2]["Q1"]'` would have replaced the
   // whole table, silently and byte-exactly. Refused in one place so no call
   // site can forget, and the message names the address that does work.
   if (sel.form === "coord" && !allowCoord) {
-    fail(`\`${rawSel.trim()}\` addresses a unit INSIDE a block (GEP 0011), and this command takes a block address — write \`${sel.base}\` for the whole block`, 2);
+    fail(`\`${rawSel.trim()}\` addresses a unit INSIDE a block (GEP 0011), and this command takes a block address — write \`${sel.base}\` for the whole block`, 2, "bad-address");
   }
   if (sel.form === "attr" && sel.keys.length === 0) {
-    fail(`\`${rawSel.trim()}\` names no key — write one inside the braces, such as \`{#id}\`, \`{.warn}\` or \`{lang=py}\`, or drop them`, 2);
+    fail(`\`${rawSel.trim()}\` names no key — write one inside the braces, such as \`{#id}\`, \`{.warn}\` or \`{lang=py}\`, or drop them`, 2, "bad-address");
   }
   const all = addressedUnits(source, walkOf(file));
 
@@ -493,10 +509,10 @@ export function selectUnits(source: string, file: string, rawSel: string, where:
         // §3.3: the type prefix is a CHECK. Ignoring a wrong one would make it
         // a decoration that is allowed to lie, and would silently accept a
         // hand-edited address.
-        fail(`\`@${sel.hex}\` addresses a \`${hit.found}\` block, not \`${sel.type}\` — drop the type prefix to address it by content alone`, 1);
+        fail(`\`@${sel.hex}\` addresses a \`${hit.found}\` block, not \`${sel.type}\` — drop the type prefix to address it by content alone`, 1, "bad-address");
       }
       const suffix = sel.nth ? `~${sel.nth}` : "";
-      fail(`no block matching \`@${sel.hex}${suffix}\` in ${where} — a content address goes stale when the block's content changes (that is the point: §3.2); run \`geml get ${where}\` for current addresses`, 1);
+      fail(`no block matching \`@${sel.hex}${suffix}\` in ${where} — a content address goes stale when the block's content changes (that is the point: §3.2); run \`geml get ${where}\` for current addresses`, 1, "no-such-unit");
     }
     return { units: [hit.unit], all, sel };
   }
@@ -508,21 +524,21 @@ export function selectUnits(source: string, file: string, rawSel: string, where:
     // when the real answer is "that range is not one block".
     if (!hit) {
       const span = sel.from === sel.to ? `L${sel.from}` : `L${sel.from}-${sel.to}`;
-      fail(`no block contains ${span} in ${where} — a position selector names ONE block, so a range spanning two of them (or a line past the end) has no answer${discoveryHint(where)}`, 1);
+      fail(`no block contains ${span} in ${where} — a position selector names ONE block, so a range spanning two of them (or a line past the end) has no answer${discoveryHint(where)}`, 1, "no-such-unit");
     }
     return { units: [hit], all, sel };
   }
 
   if (sel.form === "type") {
     const hits = matchType(sel.type, all);
-    if (!hits.length) fail(`no \`${sel.type}\` block in ${where}${discoveryHint(where)}`, 1);
+    if (!hits.length) fail(`no \`${sel.type}\` block in ${where}${discoveryHint(where)}`, 1, "no-such-unit");
     return { units: hits, all, sel };
   }
 
   if (sel.form === "attr") {
     // §2's attribute filter: every key given must be on the unit, 0..N matches.
     const hits = matchAttr(sel, all, (a, b) => nameKey(a) === nameKey(b));
-    if (!hits.length) fail(`no block matching \`${rawSel.trim()}\` in ${where}${discoveryHint(where)}`, 1);
+    if (!hits.length) fail(`no block matching \`${rawSel.trim()}\` in ${where}${discoveryHint(where)}`, 1, "no-such-unit");
     return { units: hits, all, sel };
   }
 
@@ -535,19 +551,30 @@ export function selectUnits(source: string, file: string, rawSel: string, where:
   // sliced out of one the way every other form is.
   const id = resolveSelector(source, file, sel.form === "coord" ? sel.base : sel.raw, ctx);
   const hits = all.filter((a) => a.unit.id !== undefined && nameKey(a.unit.id) === nameKey(id));
+  // `#meta`, claimed by no block, is the document's `meta` block when it has
+  // one — the address the listing prints for it — and, when it has several,
+  // their merge, which no block operation can act on.
+  if (hits.length === 0 && nameKey(id) === nameKey("meta")) {
+    const metas = all.filter((a) => a.unit.kind === "block" && a.unit.type === "meta");
+    if (metas.length === 1) return { units: [metas[0]!.unit], all, sel };
+    if (metas.length > 1) {
+      const list = metas.map((a) => `  ${shortestAddress(a, all)}`).join("\n");
+      fail(`\`#meta\` names the merge of this document's ${metas.length} \`meta\` blocks, and this names ONE block — address one of them:\n${list}`, 1, "ambiguous-address");
+    }
+  }
   const unit = hits[0]?.unit;
   // Bare `no block with id \`x\`` — the phrasing every caller of a missing id
   // has always seen, and which `set`'s own tests pin. `where` is appended only
   // when it is NOT the file the caller already named (a revision), so the
   // common case reads the same as before this selector grammar existed.
-  if (!unit) fail(`no block with id \`${id}\`${where.startsWith("revision ") ? ` in ${where}` : ""}`, 1);
+  if (!unit) fail(`no block with id \`${id}\`${where.startsWith("revision ") ? ` in ${where}` : ""}`, 1, "no-such-unit");
   // `=== note {#warn}`: the type is a check, as on `=== note@<hex>` (§3.3), so
   // `=== code {#warn}` does not answer a note.
   if (sel.form === "id" && sel.type !== undefined && unit!.type !== sel.type) {
     const why = unit!.kind === "block"
       ? `addresses a \`${unit!.type}\` block, not \`${sel.type}\``
       : `addresses a ${unit!.kind}, and \`=== ${sel.type}\` names a typed block`;
-    fail(`\`#${id}\` ${why} — drop the type prefix to address it by id alone`, 1);
+    fail(`\`#${id}\` ${why} — drop the type prefix to address it by id alone`, 1, "bad-address");
   }
   // A duplicate id is a build error, so this address names more than one block
   // and the first is a guess at which was meant. A WRITE through it is refused
@@ -585,14 +612,14 @@ export function unitNode(source: string, file: string, unit: Unit, all: Addresse
   const doc = parse(source, { ...ctx.docOpts(file), self: selfOf(file) });
   if (unit.id !== undefined) {
     const site = findBlockSite(doc.children, unit.id);
-    if (!site) fail(`no block with id \`${unit.id}\``, 1);
+    if (!site) fail(`no block with id \`${unit.id}\``, 1, "no-such-unit");
     const block = site!.siblings[site!.index]!;
     if (block.kind !== "heading") return block;
     const end = sectionEndIndex(site!.siblings, site!.index);
     return { kind: "section", id: block.id, level: block.level, blocks: site!.siblings.slice(site!.index, end) };
   }
   const node = blocksOfType(doc.children, unit.type ?? "")[typeIndex(all, unit)];
-  if (!node) fail(`could not locate the \`${unit.type}\` block in the document model`, 1);
+  if (!node) fail(`could not locate the \`${unit.type}\` block in the document model`, 1, "no-such-unit");
   return node;
 }
 
@@ -629,27 +656,33 @@ export function get(source: string, file: string, rawSel: string, o: GetOptions,
   const { json, view, part, partFlag } = o;
   const where = whereOf(file);
   const sel: Selector = parseSelector(rawSel, (braces) => parseAttrs(braces).id);
-  if (sel.form === "list") fail(`no selector given — run \`geml get ${where}\` to list addressable blocks`, 2);
+  if (sel.form === "list") fail(`no selector given — run \`geml get ${where}\` to list addressable blocks`, 2, "bad-address");
   if (o.within !== undefined && sel.form === "coord") {
-    fail(`--within narrows the blocks a selector matches, and \`${rawSel.trim()}\` is a coordinate naming one unit inside a block`, 2);
+    fail(`--within narrows the blocks a selector matches, and \`${rawSel.trim()}\` is a coordinate naming one unit inside a block`, 2, "bad-address");
   }
   // `#meta` answers the VIEW rather than a span: there may be no block with
   // that id at all, and when there are several `meta` blocks there is no one
   // span that means what the reader asked for.
   const metaBase = sel.form === "coord" ? sel.base : sel.form === "id" ? sel.raw : "";
   const reserved = metaBase === "" ? null : reservedMeta(source, file, metaBase, ctx);
-  if (reserved) {
-    if (partFlag) fail(`${partFlag} names part of a block, and \`#meta\` names a merged view rather than one block`, 2);
-    if (o.within !== undefined) fail("--within narrows the blocks a selector matches, and `#meta` names a merged view rather than a block", 2);
+  // With one `meta` block, `#meta` is that block, and a part of it or a
+  // `--within` narrowing is read from it like any block's.
+  const single = reserved !== null && reserved.view.blocks.length === 1 && sel.form === "id";
+  if (reserved && !(single && (partFlag || o.within !== undefined))) {
+    if (partFlag && sel.form === "id") {
+      fail(`${partFlag} names part of ONE block, and \`#meta\` names the merge of this document's ${reserved.view.blocks.length} \`meta\` blocks — address one of them as \`geml list\` prints it`, 1, "ambiguous-address");
+    }
+    if (partFlag) fail(`${partFlag} names part of a BLOCK, and a coordinate already names a unit inside one`, 2, "bad-address");
+    if (o.within !== undefined) fail("--within narrows the blocks a selector matches, and `#meta` names a merged view rather than a block", 2, "bad-address");
     if (sel.form === "id" && sel.type !== undefined && sel.type !== "meta") {
-      fail(`\`#meta\` addresses the merged \`meta\` view, not \`${sel.type}\` — drop the type prefix`, 1);
+      fail(`\`#meta\` addresses the merged \`meta\` view, not \`${sel.type}\` — drop the type prefix`, 1, "bad-address");
     }
     if (sel.form === "id") {
       return { output: json ? `${JSON.stringify(reserved.view.value, null, 2)}\n` : `${metaText(reserved.view)}\n`, from: [] };
     }
     const node: Block = { kind: "block", type: "meta", mode: "data", classes: [], attrs: {}, data: reserved.view.value as Record<string, Value> };
     const hit = projectCoord(node, (sel as Extract<Selector, { form: "coord" }>).path);
-    if (!hit.ok) fail(`\`${rawSel.trim()}\`: ${hit.why}`, 1);
+    if (!hit.ok) fail(`\`${rawSel.trim()}\`: ${hit.why}`, 1, "no-such-unit");
     return { output: json ? `${JSON.stringify(hit.json, null, 2)}\n` : `${hit.text}\n`, from: [] };
   }
 
@@ -659,7 +692,7 @@ export function get(source: string, file: string, rawSel: string, o: GetOptions,
   if (o.within !== undefined) {
     const scopes = scopesOf(source, file, o.within, where, ctx);
     units = units.filter((u) => insideAny(u, scopes));
-    if (!units.length) fail(`no block matching \`${rawSel.trim()}\` inside \`${o.within}\` in ${where}`, 1);
+    if (!units.length) fail(`no block matching \`${rawSel.trim()}\` inside \`${o.within}\` in ${where}`, 1, "no-such-unit");
   }
   // The chain is composed with `/` — relJoinPath's rule, and `src=` values are
   // always `/`-separated — so normalize the PLATFORM path at this boundary. On
@@ -675,13 +708,13 @@ export function get(source: string, file: string, rawSel: string, o: GetOptions,
   // about blocks and does not apply.
   if (sel.form === "coord") {
     if (partFlag) {
-      fail(`${partFlag} names part of a BLOCK, and a coordinate already names a unit inside one`, 2);
+      fail(`${partFlag} names part of a BLOCK, and a coordinate already names a unit inside one`, 2, "bad-address");
     }
     if (view) {
-      fail("--view reads THROUGH an embed to a block; a coordinate addresses a unit inside the block it names", 2);
+      fail("--view reads THROUGH an embed to a block; a coordinate addresses a unit inside the block it names", 2, "bad-address");
     }
     const hit = projectCoord(unitNode(source, file, units[0]!, all, ctx) as Block, sel.path);
-    if (!hit.ok) fail(`\`${rawSel.trim()}\`: ${hit.why}`, 1);
+    if (!hit.ok) fail(`\`${rawSel.trim()}\`: ${hit.why}`, 1, "no-such-unit");
     return { output: json ? `${JSON.stringify(hit.json, null, 2)}\n` : `${hit.text}\n`, from: [] };
   }
   if (json) {
@@ -726,7 +759,7 @@ export function get(source: string, file: string, rawSel: string, o: GetOptions,
   // back the body instead would answer a question that was not asked.
   for (const u of units) {
     if (part === "intro" && u.kind !== "heading") {
-      fail(`--intro names a heading's opening region, and \`${rawSel}\` is a \`${u.type ?? u.kind}\` block — use --body for a block's content`, 2);
+      fail(`--intro names a heading's opening region, and \`${rawSel}\` is a \`${u.type ?? u.kind}\` block — use --body for a block's content`, 2, "bad-address");
     }
   }
   return { output: units.map((u) => sliceUnit(source, u.span, part, walkOf(file))).join(""), from: [] };
@@ -853,11 +886,11 @@ function loadModelJson(src: string, file: string): Document {
   try {
     obj = JSON.parse(src);
   } catch (e) {
-    fail(`--from json: ${file === "-" ? "stdin" : file} is not valid JSON (${(e as Error).message})`, 1);
+    fail(`--from json: ${file === "-" ? "stdin" : file} is not valid JSON (${(e as Error).message})`, 1, "bad-content");
   }
   const d = obj as Partial<Document> | null;
   if (!d || typeof d !== "object" || d.kind !== "document" || !Array.isArray(d.children)) {
-    fail(`--from json: not a GEML document-model JSON (expected {"kind":"document","children":[…]})`, 1);
+    fail(`--from json: not a GEML document-model JSON (expected {"kind":"document","children":[…]})`, 1, "bad-content");
   }
   const doc = d as Document;
   if (!Array.isArray(doc.diagnostics)) doc.diagnostics = [];
@@ -1078,7 +1111,7 @@ export function replace(source: string, file: string, oldText: string, newText: 
   hits.sort((a, b) => a - b);
   if (hits.length === 0) {
     // Exit 1 like `find`, so `if geml replace …` means what it looks like.
-    fail(`\`${oldText}\` does not occur in ${within === undefined ? where : `\`${within}\` of ${where}`} — nothing written`, 1);
+    fail(`\`${oldText}\` does not occur in ${within === undefined ? where : `\`${within}\` of ${where}`} — nothing written`, 1, "no-such-unit");
   }
 
   let updated = source;
@@ -1112,7 +1145,7 @@ export function replace(source: string, file: string, oldText: string, newText: 
   const goneIds = before.ids.filter((x) => !new Set(after.ids).has(x));
   const newIds = after.ids.filter((x) => !new Set(before.ids).has(x));
   if (goneIds.length && newIds.length) {
-    fail(`that would rename \`#${goneIds[0]}\` to \`#${newIds[0]}\` — an id is not text: use \`geml rename ${where} '#${goneIds[0]}' '#${newIds[0]}'\`, which fixes every reference too. Nothing written`, 2);
+    fail(`that would rename \`#${goneIds[0]}\` to \`#${newIds[0]}\` — an id is not text: use \`geml rename ${where} '#${goneIds[0]}' '#${newIds[0]}'\`, which fixes every reference too. Nothing written`, 2, "bad-content");
   }
 
   const errs = errorsAdded(before, after, file);
@@ -1162,7 +1195,7 @@ function extractBlock(content: Extract<Content, { kind: "file" }>, targetId: str
   // form that gets written expecting the other one. Say which channel does.
   if (!span) {
     fail(`no block with id \`${fragId}\` in ${fragFile}` + (hash >= 0 ? "" :
-      ` — \`--in F\` takes the block of that id FROM F; to write F's text as the content, use \`--in - < ${fragFile}\``), 1);
+      ` — \`--in F\` takes the block of that id FROM F; to write F's text as the content, use \`--in - < ${fragFile}\``), 1, "no-such-unit");
   }
   const lines = splitLines(text);
   if (part === "head") return lines.slice(span!.start, span!.start + 1).join("");
@@ -1186,7 +1219,7 @@ interface SetTarget { unit: Unit; label: string; byContent: boolean }
 function resolveSetTarget(source: string, file: string, rawSel: string, ctx: VerbContext): SetTarget {
   const where = file === "-" ? "<file>" : file;
   const sel: Selector = parseSelector(rawSel, (braces) => parseAttrs(braces).id);
-  if (sel.form === "list") fail(`no selector given — run 'geml get ${where}' to list addressable blocks`, 2);
+  if (sel.form === "list") fail(`no selector given — run 'geml get ${where}' to list addressable blocks`, 2, "bad-address");
   const { units, all } = selectUnits(source, file, rawSel, where, ctx);
 
   if (units.length > 1) {
@@ -1198,7 +1231,7 @@ function resolveSetTarget(source: string, file: string, rawSel: string, ctx: Ver
       const a = all.find((x) => x.unit === u)!;
       return `  ${shortestAddress(a, all)}  L${u.span.start + 1}-${u.span.end}`;
     }).join("\n");
-    fail(`\`${rawSel.trim()}\` matches ${units.length} blocks — set writes ONE; address it uniquely:\n${opts}`, 2);
+    fail(`\`${rawSel.trim()}\` matches ${units.length} blocks — set writes ONE; address it uniquely:\n${opts}`, 2, "ambiguous-address");
   }
   const unit = units[0]!;
   const label = unit.id !== undefined && sel.form === "id" ? `#${unit.id}` : `\`${rawSel.trim()}\``;
@@ -1261,7 +1294,7 @@ function asMarkdown(text: string, file: string, ctx: VerbContext): string {
   if (!isMarkdownPath(file) || !gemlSyntaxIn(text)) return text;
   const { md, notes } = gemlToMd(parse(text), { embedded: true });
   const lost = notes.find((n) => /could not be read/.test(n));
-  if (lost) fail(`the content is GEML, and converting it to Markdown for ${file} would lose data (${lost}) — write that part in Markdown`, 1);
+  if (lost) fail(`the content is GEML, and converting it to Markdown for ${file} would lose data (${lost}) — write that part in Markdown`, 1, "bad-content");
   ctx.note(`the content was GEML and was converted to Markdown, as --to md converts it${notes.length ? `: ${notes.join("; ")}` : ""}`);
   // The conversion normalises whitespace; the blank lines the caller put around
   // the content are what separate it from its neighbours, so they go back on.
@@ -1372,7 +1405,7 @@ export function set(source: string, file: string, rawSel: string, o: SetOptions,
   let text: string;
   if (rawChannel) {
     text = content.text;
-    if (text === "") fail(NO_CONTENT, 1);
+    if (text === "") fail(NO_CONTENT, 1, "bad-content");
     // Default mode wants exactly ONE block. Pure prose has no head to carry the
     // id (steer to --body); multiple blocks are `add`'s job. --head takes a
     // lone head line, so it skips the whole-block shape check.
@@ -1384,9 +1417,9 @@ export function set(source: string, file: string, rawSel: string, o: SetOptions,
     const targetIsProse = target.unit.kind === "prose";
     if (!headOnly) {
       const shape = contentShape(text);
-      if (shape === "empty") fail(NO_CONTENT, 1);
-      if (shape === "prose" && !targetIsProse) fail(`content is prose, not a block — use --body to set the body of ${target.label}`, 1);
-      if (shape === "multi") fail("set replaces ONE block, but the content has multiple blocks (use add)", 1);
+      if (shape === "empty") fail(NO_CONTENT, 1, "bad-content");
+      if (shape === "prose" && !targetIsProse) fail(`content is prose, not a block — use --body to set the body of ${target.label}`, 1, "bad-content");
+      if (shape === "multi") fail("set replaces ONE block, but the content has multiple blocks (use add)", 1, "bad-content");
     }
   } else {
     text = extractBlock(content, target.unit.id ?? "", headOnly ? "head" : "whole");
@@ -1452,11 +1485,11 @@ export function set(source: string, file: string, rawSel: string, o: SetOptions,
 // none is the same operation as replacing one that did.
 function setIntro(source: string, file: string, target: SetTarget, content: Content, ctx: VerbContext): { text: string } {
   if (target.unit.kind !== "heading") {
-    fail(`--intro names a heading's opening region, and \`${target.label}\` is a \`${target.unit.type ?? target.unit.kind}\` block — use --body for a block's content`, 2);
+    fail(`--intro names a heading's opening region, and \`${target.label}\` is a \`${target.unit.type ?? target.unit.kind}\` block — use --body for a block's content`, 2, "bad-address");
   }
   const region = narrowToIntro(source, target.unit.span, walkOf(file));
   let body = content.kind === "raw" ? content.text : extractBlock(content, target.unit.id ?? "", "body");
-  if (content.kind === "raw" && body === "") fail(NO_CONTENT, 1);
+  if (content.kind === "raw" && body === "") fail(NO_CONTENT, 1, "bad-content");
   body = toLf(asMarkdown(body, file, ctx));
   if (body !== "" && !body.endsWith("\n")) body += "\n";
 
@@ -1483,7 +1516,8 @@ function setIntro(source: string, file: string, target: SetTarget, content: Cont
 function setBody(source: string, file: string, target: SetTarget, content: Content, ctx: VerbContext): { text: string } {
   const found = target.unit.span;
   const lines = splitLines(source);
-  const headLine = lines[found.start] ?? "";
+  // A setext heading's head is its text AND its underline (narrowToHead).
+  const headLine = lines.slice(found.start, narrowToHead(found, source, walkOf(file)).end).join("");
 
   // A typed block keeps its closing fence; a heading section has none. Decided
   // by the same helper `get --body` uses, so the two agree on the span and the
@@ -1493,7 +1527,7 @@ function setBody(source: string, file: string, target: SetTarget, content: Conte
   let body: string;
   if (content.kind === "raw") {
     body = content.text;
-    if (body === "") fail(NO_CONTENT, 1);
+    if (body === "") fail(NO_CONTENT, 1, "bad-content");
   } else {
     body = extractBlock(content, target.unit.id ?? "", "body");
   }
@@ -1544,20 +1578,20 @@ function setMeta(
   ctx: VerbContext,
 ): { text: string } {
   if (named.length > 0) {
-    fail(`${named.join(" and ")} names part of a block, and \`#meta\` names a merged view rather than one block`, 2);
+    fail(`${named.join(" and ")} names part of a block, and \`#meta\` names a merged view rather than one block`, 2, "bad-address");
   }
   if (sel.path.length !== 1 || sel.path[0]!.kind !== "key") {
-    fail(`\`${rawSel.trim()}\`: a meta key is written as \`#meta["<key>"]\` — one quoted key, and nothing deeper`, 1);
+    fail(`\`${rawSel.trim()}\`: a meta key is written as \`#meta["<key>"]\` — one quoted key, and nothing deeper`, 1, "bad-address");
   }
   const key = (sel.path[0] as { kind: "key"; name: string }).name;
   const value = contentText(content).replace(/\r?\n$/, "");
-  if (value === "") fail(NO_CONTENT, 1);
+  if (value === "") fail(NO_CONTENT, 1, "bad-content");
 
   const ownerIdx = view.owner.get(key) ?? 0;
   const all = addressedUnits(source, walkOf(file));
   const metaUnits = all.filter((a) => a.unit.type === "meta").map((a) => a.unit);
   const unit = metaUnits[ownerIdx];
-  if (!unit) fail(`\`${rawSel.trim()}\`: this document has no \`meta\` block to write into`, 1);
+  if (!unit) fail(`\`${rawSel.trim()}\`: this document has no \`meta\` block to write into`, 1, "no-such-unit");
 
   const lines = splitLines(source);
   const closeLine = closeFenceLine(lines, unit!.span);
@@ -1565,7 +1599,7 @@ function setMeta(
   const bodyLines = lines.slice(unit!.span.start + 1, bodyEnd).map((l) => toLf(l).replace(/\n$/, ""));
 
   const plan = planMetaWrite(key, value, bodyLines);
-  if (!plan.ok) fail(`\`${rawSel.trim()}\`: ${plan.why}`, 1);
+  if (!plan.ok) fail(`\`${rawSel.trim()}\`: ${plan.why}`, 1, "bad-address");
 
   let head = lines[unit!.span.start] ?? "";
   if (head !== "" && !/(\r\n|\r|\n)$/.test(head)) head += "\n";
@@ -1593,7 +1627,7 @@ function setCoord(
   ctx: VerbContext,
 ): { text: string } {
   if (named.length > 0) {
-    fail(`${named.join(" and ")} names part of a BLOCK, and a coordinate already names a unit inside one`, 2);
+    fail(`${named.join(" and ")} names part of a BLOCK, and a coordinate already names a unit inside one`, 2, "bad-address");
   }
   const where = file === "-" ? "<file>" : file;
   const { units, all } = selectUnits(source, file, rawSel, where, ctx, true);
@@ -1601,28 +1635,67 @@ function setCoord(
   const node = unitNode(source, file, unit, all, ctx) as Block;
 
   const value = contentText(content).replace(/\r?\n$/, "");
-  if (value === "") fail(NO_CONTENT, 1);
+  if (value === "") fail(NO_CONTENT, 1, "bad-content");
+  return { text: rewriteBody(source, file, unit, rawSel, (body) => planCoordWrite(node, sel.path, value, body), ctx) };
+}
 
-  // The same slicing `--body` uses, so the lines handed to the planner are the
-  // lines the parser numbered its rows against.
+// A coordinate edit changes a block's BODY: the planner gets the body lines the
+// parser numbered its rows against, and the new body goes through the same span
+// splice `set --body` uses — re-parsed and block-count guarded, so a value
+// carrying a fence cannot inject siblings. An `absent` plan writes nothing.
+function rewriteBody(source: string, file: string, unit: Unit, rawSel: string, plan: (body: string[]) => WritePlan, ctx: VerbContext): string {
   const lines = splitLines(source);
   const closeLine = closeFenceLine(lines, unit.span);
   const bodyEnd = closeLine !== null ? unit.span.end - 1 : unit.span.end;
   const bodyLines = lines.slice(unit.span.start + 1, bodyEnd).map((l) => toLf(l).replace(/\n$/, ""));
-
-  const plan = planCoordWrite(node, sel.path, value, bodyLines);
-  if (!plan.ok) fail(`\`${rawSel.trim()}\`: ${plan.why}`, 1);
+  const planned = plan(bodyLines);
+  if (!planned.ok && planned.broken) {
+    const line = unit.span.start + 1;
+    refuseBroken(`replacement would break the document: ${planned.why} (line ${line}); not written`, [{ severity: "error", code: "data-parse", message: planned.why, line }]);
+  }
+  if (!planned.ok) fail(`\`${rawSel.trim()}\`: ${planned.why}`, 1, planned.missing ? "no-such-unit" : "bad-address");
+  if (planned.absent) {
+    ctx.note(`skipped ${rawSel.trim()}: nothing there to delete`);
+    return source;
+  }
 
   let head = lines[unit.span.start] ?? "";
   if (head !== "" && !/(\r\n|\r|\n)$/.test(head)) head += "\n";
   // Every line carries its own terminator: `join("\n")` would collapse a body
   // whose last line is empty — ["a", ""] is `a\n\n` in the file and joins back
-  // to `a\n` — and a coordinate write may not move a byte it was not asked to.
+  // to `a\n` — and a coordinate edit may not move a byte it was not asked to.
   const bodyEndsInNewline = /(\r\n|\r|\n)$/.test(lines[bodyEnd - 1] ?? "");
-  let body = plan.body.map((l) => `${l}\n`).join("");
+  let body = planned.body.map((l) => `${l}\n`).join("");
   if (!bodyEndsInNewline) body = body.replace(/\n$/, "");
   const replacement = closeLine !== null ? head + body + closeLine : head + body;
-  return { text: spliceSpan(source, unit.span, replacement, file, ctx, false, closeLine !== null, unit.id) };
+  return spliceSpan(source, unit.span, replacement, file, ctx, false, closeLine !== null, unit.id);
+}
+
+// An edit beside or of the unit a coordinate names (GEP 0011): `add` inserts
+// an element beside a sequence's element, `delete` removes a member, an
+// element or a meta key. `#meta["k"]` is the key in the block that defines it.
+function editCoord(source: string, file: string, rawSel: string, edit: TreeEdit, ctx: VerbContext): string {
+  const sel = parseSelector(rawSel, (braces) => parseAttrs(braces).id) as Extract<Selector, { form: "coord" }>;
+  const reserved = reservedMeta(source, file, sel.base, ctx);
+  if (reserved) {
+    if (edit.op !== "remove") fail(`\`${rawSel.trim()}\`: a meta key has no order to insert beside — write a new key with \`set '#meta["<key>"]'\``, 1, "bad-address");
+    if (sel.path.length !== 1 || sel.path[0]!.kind !== "key") {
+      fail(`\`${rawSel.trim()}\`: a meta key is removed as \`#meta["<key>"]\` — one quoted key, and nothing deeper`, 1, "bad-address");
+    }
+    const key = (sel.path[0] as { kind: "key"; name: string }).name;
+    const owner = reserved.view.owner.get(key);
+    if (owner === undefined) {
+      ctx.note(`skipped ${rawSel.trim()}: nothing there to delete`);
+      return source;
+    }
+    const metaUnits = addressedUnits(source, walkOf(file)).filter((a) => a.unit.type === "meta").map((a) => a.unit);
+    return rewriteBody(source, file, metaUnits[owner]!, rawSel, (body) => planMetaRemove(key, body), ctx);
+  }
+  const where = file === "-" ? "<file>" : file;
+  const { units, all } = selectUnits(source, file, rawSel, where, ctx, true);
+  const unit = units[0]!;
+  const node = unitNode(source, file, unit, all, ctx) as Block;
+  return rewriteBody(source, file, unit, rawSel, (body) => planCoordEdit(node, sel.path, edit, body), ctx);
 }
 
 // ---------------------------------------------------------------------------
@@ -1643,6 +1716,34 @@ export interface AddOptions {
  * id colliding with the document (or duplicated within the fragment) makes the
  * re-parse fail and nothing is written. Bare prose is a valid fragment.
  */
+// One block address resolved to the ONE unit it names, for the verbs that
+// anchor on a unit — `add --before/--after`, `revert --before/--after`. Every
+// form a listing prints is accepted (§8.2(10)): an id, a heading line, a
+// content address, a line range, a type or attribute filter. A filter that
+// matches several units is one match too many for an anchor.
+function anchorSpan(source: string, file: string, rawSel: string, ctx: VerbContext): Span {
+  let units: Unit[];
+  try { units = selectUnits(source, file, rawSel, whereOf(file), ctx).units; }
+  catch (e) {
+    // The resolver names the file only for a revision; an anchor miss always
+    // did, so the long-standing wording stays.
+    const where = ` in ${whereOf(file)}`;
+    if (e instanceof VerbError && e.reason === "no-such-unit" && !e.message.includes(where)) {
+      throw new VerbError(e.message + where, e.exit, e.reason, e.diagnostics);
+    }
+    throw e;
+  }
+  if (units.length > 1) {
+    const list = units.map((u) => `  ${u.id !== undefined ? `#${u.id}` : `${u.type ?? u.kind} L${u.span.start + 1}-${u.span.end}`}`).join("\n");
+    fail(`\`${rawSel.trim()}\` matches ${units.length} blocks — an anchor names ONE; address it uniquely:\n${list}`, 1, "ambiguous-address");
+  }
+  return units[0]!.span;
+}
+
+// How `delete` names an address in its notes: ids as `#id`, anything else as typed.
+const addressLabel = (rawSel: string): string =>
+  /^#?[A-Za-z0-9_][A-Za-z0-9_-]*$/.test(rawSel.trim()) ? `#${rawSel.trim().replace(/^#/, "")}` : rawSel.trim();
+
 export function add(source: string, file: string, o: AddOptions, ctx: VerbContext): { text: string } {
   const { content, append, before, after } = o;
   // Content: --in F#src -> block #src; --in F -> all of F (a multi-block
@@ -1656,7 +1757,14 @@ export function add(source: string, file: string, o: AddOptions, ctx: VerbContex
     try { text = content.read(content.spec); }
     catch (e) { throw e instanceof VerbError ? new VerbError(e.message, 2) : e; }
   }
-  if (text.trim() === "") fail("no content to add (use --in FILE or pipe it on stdin)", 1);
+  if (text.trim() === "") fail("no content to add (use --in FILE or pipe it on stdin)", 1, "bad-content");
+  // GEP 0011: an anchor inside a block puts a VALUE beside an element of a
+  // sequence — the block's body changes, and nothing is added to the document.
+  const anchor = append ? undefined : (before ?? after)!;
+  if (anchor !== undefined && parseSelector(anchor, (braces) => parseAttrs(braces).id).form === "coord") {
+    const value = text.replace(/\r?\n$/, "");
+    return { text: editCoord(source, file, anchor, { op: "insert", value, before: before !== undefined }, ctx) };
+  }
   text = asMarkdown(text, file, ctx);
 
   // Resolve the physical-line insertion point.
@@ -1665,10 +1773,8 @@ export function add(source: string, file: string, o: AddOptions, ctx: VerbContex
   if (append) {
     at = lines.length;
   } else {
-    const anchorId = (before ?? after)!.replace(/^#/, "");
-    const span = blockSpans(source, walkOf(file)).get(anchorId);
-    if (!span) fail(`no block with id \`${anchorId}\` in ${whereOf(file)}`, 1);
-    at = before !== undefined ? span!.start : span!.end;
+    const span = anchorSpan(source, file, (before ?? after)!, ctx);
+    at = before !== undefined ? span.start : span.end;
   }
 
   return { text: insertFragment(source, lines, at, text, file, ctx) };
@@ -1706,7 +1812,7 @@ function insertFragment(source: string, lines: string[], at: number, fragment: s
   if (errs.length) refuseWrite(beforeDoc, errs, "adding the content would break the document");
   const now = new Set(reparsed.ids);
   const dropped = beforeIds.find((x) => !now.has(x));
-  if (dropped !== undefined) fail(`adding the content would drop block \`#${dropped}\`; not written`, 1);
+  if (dropped !== undefined) fail(`adding the content would drop block \`#${dropped}\`; not written`, 1, "would-drop-unit");
   return updated;
 }
 
@@ -1729,15 +1835,28 @@ function insertFragment(source: string, lines: string[], at: number, fragment: s
  * nothing to remove, the text comes back unchanged.
  */
 export function del(source: string, file: string, ids: string[], ctx: VerbContext): { text: string } {
-  const spans = blockSpans(source, walkOf(file));
+  // GEP 0011: a coordinate removes a unit inside a block. It goes alone: two in
+  // one sequence would each be counted against the other's removal.
+  const coords = ids.filter((raw) => parseSelector(raw, (braces) => parseAttrs(braces).id).form === "coord");
+  if (coords.length > 0) {
+    if (ids.length > 1) fail(`\`${coords[0]!.trim()}\` removes a unit inside a block, and is deleted on its own — give it to \`delete\` alone`, 2, "bad-address");
+    return { text: editCoord(source, file, coords[0]!, { op: "remove" }, ctx) };
+  }
   const toDelete = new Set<number>();
   let found = 0;
   for (const raw of ids) {
-    const id = raw.replace(/^#/, "");
-    const span = spans.get(id);
-    if (!span) { ctx.note(`skipped #${id}: no such block`); continue; }
-    found++;
-    for (let i = span.start; i < span.end; i++) toDelete.add(i);
+    // Any address a listing prints (§8.2(10)); a filter names every unit it
+    // matches. An address naming nothing is reported, not refused: delete is
+    // idempotent, so running it again — or with an id already gone — is a
+    // no-op, not an error.
+    let units: Unit[];
+    try { units = selectUnits(source, file, raw, whereOf(file), ctx).units; }
+    catch (e) {
+      if (e instanceof VerbError && e.reason === "no-such-unit") { ctx.note(`skipped ${addressLabel(raw)}: no such block`); continue; }
+      throw e;
+    }
+    found += units.length;
+    for (const u of units) for (let i = u.span.start; i < u.span.end; i++) toDelete.add(i);
   }
   if (found === 0) return { text: source }; // nothing to remove
 
@@ -1791,19 +1910,19 @@ export interface RenameOptions {
 export function rename(source: string, file: string, rawOld: string, rawNew: string, o: RenameOptions, ctx: VerbContext): { text: string } {
   const oldId = rawOld.replace(/^#/, "");
   const newId = rawNew.replace(/^#/, "");
-  if (oldId === newId) fail("#old and #new are the same id — nothing to rename", 2);
+  if (oldId === newId) fail("#old and #new are the same id — nothing to rename", 2, "rename-refused");
 
   const before = parse(source, { ...ctx.docOpts(file), self: selfOf(file) });
   const hasName = (ids: string[], n: string) => ids.some((x) => nameKey(x) === nameKey(n));
-  if (!hasName(before.ids, oldId)) fail(`no block with id \`${oldId}\``, 1);
-  if (hasName(before.ids, newId)) fail(`id \`${newId}\` already exists; not written`, 1);
+  if (!hasName(before.ids, oldId)) fail(`no block with id \`${oldId}\``, 1, "no-such-unit");
+  if (hasName(before.ids, newId)) fail(`id \`${newId}\` already exists; not written`, 1, "rename-refused");
   // Markdown has no way to name a heading apart from its text, so its id cannot
   // be renamed on its own: rewriting the links would leave the heading behind.
   if (isMarkdownPath(file)) {
     const heading = addressedUnits(source, walkOf(file))
       .find((a) => a.unit.kind === "heading" && a.unit.id !== undefined && nameKey(a.unit.id) === nameKey(oldId));
     if (heading && !declaresId(splitLines(source)[heading.unit.span.start] ?? "")) {
-      fail(`in Markdown a heading's anchor is its text, so \`#${oldId}\` cannot be renamed apart from it — change the heading's text instead (geml set <file> '#${oldId}' --head), and the links to it follow`, 1);
+      fail(`in Markdown a heading's anchor is its text, so \`#${oldId}\` cannot be renamed apart from it — change the heading's text instead (geml set <file> '#${oldId}' --head), and the links to it follow`, 1, "rename-refused");
     }
   }
 
@@ -1815,8 +1934,8 @@ export function rename(source: string, file: string, rawOld: string, rawNew: str
   const reparsed = parse(updated, { ...ctx.docOpts(file), self: selfOf(file) });
   const errs = errorsAdded(before, reparsed, file);
   if (errs.length) refuseWrite(before, errs, "rename would break the document");
-  if (!hasName(reparsed.ids, newId)) fail(`rename did not produce #${newId}; not written`, 1);
-  if (hasName(reparsed.ids, oldId)) fail(`#${oldId} still present after rename; not written`, 1);
+  if (!hasName(reparsed.ids, newId)) fail(`rename did not produce #${newId}; not written`, 1, "broken-result");
+  if (hasName(reparsed.ids, oldId)) fail(`#${oldId} still present after rename; not written`, 1, "broken-result");
   // Every OTHER id must be untouched. The `#old` match boundary treats a char
   // outside [A-Za-z0-9_-] as an id terminator, but ids may contain e.g. `.`
   // (`#foo.bar`), so renaming `#foo` could silently rewrite the *different* id
@@ -1825,7 +1944,7 @@ export function rename(source: string, file: string, rawOld: string, rawNew: str
   const othersBefore = before.ids.filter((id) => id !== oldId).sort().join("\n");
   const othersAfter = reparsed.ids.filter((id) => id !== newId).sort().join("\n");
   if (othersBefore !== othersAfter) {
-    fail(`rename would also change other ids sharing the \`${oldId}\` prefix (e.g. \`#${oldId}…\`); not written`, 1);
+    fail(`rename would also change other ids sharing the \`${oldId}\` prefix (e.g. \`#${oldId}…\`); not written`, 1, "rename-refused");
   }
   return { text: updated };
 }
@@ -1904,7 +2023,7 @@ function contentShape(content: string): "empty" | "prose" | "single" | "multi" {
 // `revert`.
 function spliceBlock(source: string, id: string, replacement: string, file: string, ctx: VerbContext, headOnly = false, guardCount = false): string {
   const found = blockSpans(source, walkOf(file)).get(id);
-  if (!found) fail(`no block with id \`${id}\``, 1);
+  if (!found) fail(`no block with id \`${id}\``, 1, "no-such-unit");
   return spliceSpan(source, found!, replacement, file, ctx, headOnly, guardCount, id);
 }
 
@@ -2082,7 +2201,7 @@ function spliceSpan(
   // 没了"——而位置根本没动，那个地址一个字都不会变。`ids` 里没有时再问一次散文地址。
   const survives = (name: string): boolean =>
     now.has(name) || addressedUnits(updated, walkOf(file)).some((a) => a.unit.id === name);
-  if (id !== undefined && !survives(id)) fail(`replacement removes id \`${id}\`; not written`, 1);
+  if (id !== undefined && !survives(id)) fail(`replacement removes id \`${id}\`; not written`, 1, "bad-content");
   const droppedIds = beforeIds.filter((x) => x !== id && x !== renamedFrom && !now.has(x));
   const droppedAnon = Math.max(0, countBlockUnits(source, walkOf(file)) - countBlockUnits(updated, walkOf(file)) - droppedIds.length);
 
@@ -2114,7 +2233,7 @@ function spliceSpan(
   // (Not enforced for heading sections / whole-block set, whose replacement may
   // legitimately span several top-level blocks.)
   if (guardCount && reparsed.children.length !== beforeDoc.children.length) {
-    fail(`replacement changes the block count (a fence in the body closed ${id !== undefined ? `#${id}` : "the target"} early and injected sibling block(s)?); not written`, 1);
+    fail(`replacement changes the block count (a fence in the body closed ${id !== undefined ? `#${id}` : "the target"} early and injected sibling block(s)?); not written`, 1, "bad-content");
   }
   // The count above sees only TOP-LEVEL children. A block nested in a note is
   // not one of them, so a body fence that closed it early and planted an
@@ -2128,7 +2247,7 @@ function spliceSpan(
     const target = addressedUnits(updated, walkOf(file)).find((a) =>
       a.unit.kind === "block" && a.unit.span.start === span.start && (id === undefined || a.unit.id === undefined || nameKey(a.unit.id) === nameKey(id)));
     if (!target || target.unit.span.end !== expectedEnd) {
-      fail(`replacement does not stay one block (a fence in the body closed ${id !== undefined ? `#${id}` : "the target"} early and injected sibling block(s)?); not written`, 1);
+      fail(`replacement does not stay one block (a fence in the body closed ${id !== undefined ? `#${id}` : "the target"} early and injected sibling block(s)?); not written`, 1, "bad-content");
     }
   }
   return updated;
@@ -2202,13 +2321,13 @@ export function revert(source: string, file: string, rawId: string, o: RevertOpt
       if (changed) {
         // `pick` reads normalized revision text, so normalize this side too.
         const found = o.history.firstChanged(curBlock === undefined ? "" : norm(curBlock), pick);
-        if (!found) fail(`no earlier revision changes \`${id}\``, 1);
+        if (!found) fail(`no earlier revision changes \`${id}\``, 1, "revert-refused");
         return found!;
       }
       return o.history.resolve(to);
     } catch (e) {
       if (e instanceof VerbError) throw e;
-      return fail(o.historyError(e), 1);
+      return fail(o.historyError(e), 1, "revert-refused");
     }
   })();
 
@@ -2216,7 +2335,7 @@ export function revert(source: string, file: string, rawId: string, o: RevertOpt
 
   // Reconcile #id between now and revision R across the four presence cells.
   if (curBlock === undefined && oldBlock === undefined) {
-    fail(`\`${id}\` exists in neither the document nor ${target.id} (try --rev changed)`, 1);
+    fail(`\`${id}\` exists in neither the document nor ${target.id} (try --rev changed)`, 1, "revert-refused");
   }
 
   // both present -> SPLICE (undo set)
@@ -2233,7 +2352,7 @@ export function revert(source: string, file: string, rawId: string, o: RevertOpt
 
   // --head is only meaningful for the splice cell (it can't resurrect or remove).
   if (headOnly) {
-    fail("--head only applies when the block exists in both the document and the target revision", 2);
+    fail("--head only applies when the block exists in both the document and the target revision", 2, "bad-address");
   }
 
   // absent now, present at R -> RESURRECT (undo delete)
@@ -2246,10 +2365,10 @@ export function revert(source: string, file: string, rawId: string, o: RevertOpt
       if (cid === id) continue;
       const csrc = splitLines(source).slice(cs.start, cs.end).join("");
       if (normalizeBlockId(norm(csrc), "__cmp__") === cmpKey) {
-        fail(`#${id} looks renamed to #${cid}; use 'rename #${cid} #${id}' to undo the rename`, 1);
+        fail(`#${id} looks renamed to #${cid}; use 'rename #${cid} #${id}' to undo the rename`, 1, "revert-refused");
       }
     }
-    const { at, where, warn } = resurrectPosition(source, target.text, id, before, after, append, file);
+    const { at, where, warn } = resurrectPosition(source, target.text, id, before, after, append, file, ctx);
     const fragment = toFileNl(oldBlock);      // keep the file's newline style
     if (dryRun) {
       return { kind: "dry-run", message: `would resurrect #${id} from ${target.id} at ${where}:`, preview: fragment.endsWith("\n") ? fragment : fragment + "\n" };
@@ -2272,7 +2391,7 @@ export function revert(source: string, file: string, rawId: string, o: RevertOpt
       if (rid === id) continue;
       const rsrc = splitLines(target.text).slice(rs.start, rs.end).join("");
       if (normalizeBlockId(rsrc, "__cmp__") === cmpKey) {
-        fail(`#${id} looks renamed from #${rid}; revert would delete it — use 'rename #${id} #${rid}'`, 1);
+        fail(`#${id} looks renamed from #${rid}; revert would delete it — use 'rename #${id} #${rid}'`, 1, "revert-refused");
       }
     }
   }
@@ -2288,7 +2407,7 @@ export function revert(source: string, file: string, rawId: string, o: RevertOpt
   if (errs.length) refuseWrite(beforeDoc, errs, `removing #${id} would break the document`);
   const now = new Set(reparsed.ids);
   const dropped = beforeIds.find((x) => x !== id && !now.has(x));
-  if (dropped !== undefined) fail(`removing #${id} would drop block \`#${dropped}\`; not written`, 1);
+  if (dropped !== undefined) fail(`removing #${id} would drop block \`#${dropped}\`; not written`, 1, "would-drop-unit");
   return { kind: "write", text: updated, verb: `removed #${id} (absent at ${target.id})` };
 }
 
@@ -2300,22 +2419,16 @@ export function revert(source: string, file: string, rawId: string, o: RevertOpt
 // too, so they are naturally skipped as anchors.
 function resurrectPosition(
   source: string, revText: string, id: string,
-  before: string | undefined, after: string | undefined, append: boolean, file: string,
+  before: string | undefined, after: string | undefined, append: boolean, file: string, ctx: VerbContext,
 ): { at: number; where: string; warn: boolean } {
   const lines = splitLines(source);
   const here = blockSpans(source, walkOf(file));
   if (append) return { at: lines.length, where: "end", warn: false };
   if (before !== undefined) {
-    const a = before.replace(/^#/, "");
-    const s = here.get(a);
-    if (!s) fail(`no block with id \`${a}\` in ${file}`, 1);
-    return { at: s!.start, where: `before #${a}`, warn: false };
+    return { at: anchorSpan(source, file, before, ctx).start, where: `before ${addressLabel(before)}`, warn: false };
   }
   if (after !== undefined) {
-    const a = after.replace(/^#/, "");
-    const s = here.get(a);
-    if (!s) fail(`no block with id \`${a}\` in ${file}`, 1);
-    return { at: s!.end, where: `after #${a}`, warn: false };
+    return { at: anchorSpan(source, file, after, ctx).end, where: `after ${addressLabel(after)}`, warn: false };
   }
   const revIds = [...blockSpans(revText, walkOf(file)).keys()];
   const idx = revIds.indexOf(id);

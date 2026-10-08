@@ -178,6 +178,20 @@ function hasLevelOneHeading(lines: readonly string[], from: number): boolean {
 }
 const TABLE_SEP = /^\s*\|?\s*:?-{1,}:?\s*(\|\s*:?-{1,}:?\s*)*\|?\s*$/;
 
+// A GEML typed block the Markdown already carries (§3's open fence, as the
+// parser reads one) and the line that closes it: a bare `=` run of the same
+// length, or a labeled close naming its id. -1 when it never closes.
+const GEML_OPEN = /^(={3,})[ \t]*([A-Za-z][A-Za-z0-9_-]*)[ \t]*(?:(\{.*\})[ \t]*)?$/;
+function gemlClose(lines: readonly string[], i: number, len: number, attrs: string | undefined): number {
+  const id = /(?:^|[{\s])#([^\s}]+)/.exec(attrs ?? "")?.[1];
+  for (let j = i + 1; j < lines.length; j++) {
+    const l = lines[j]!.replace(/[ \t]+$/, "");
+    if (l === "=".repeat(len)) return j;
+    if (id !== undefined && /^={3,}[ \t]*#/.test(l) && l.replace(/^={3,}[ \t]*#/, "") === id) return j;
+  }
+  return -1;
+}
+
 export function mdToGeml(source: string): ConvertResult {
   const lines = source.replace(/\r\n?/g, "\n").split("\n");
   const out: string[] = [];
@@ -235,6 +249,20 @@ export function mdToGeml(source: string): ConvertResult {
 
   while (i < lines.length) {
     const line = lines[i]!;
+
+    // A GEML block already here is GEML: copied through to its close, as it
+    // stands. Read line by line, its last line over its close was a setext
+    // heading, and the close was gone.
+    const g = GEML_OPEN.exec(line);
+    if (g) {
+      const close = gemlClose(lines, i, g[1]!.length, g[3]);
+      if (close > i) {
+        notes.push(`line ${i + 1} opens a GEML fence and was kept as one (escape it as \\=== to keep it prose): ${line.trim().slice(0, 40)}`);
+        for (let k = i; k <= close; k++) out.push(lines[k]!);
+        i = close + 1;
+        continue;
+      }
+    }
 
     // Fenced code block.
     const f = FENCE.exec(line);

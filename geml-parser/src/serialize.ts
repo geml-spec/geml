@@ -185,7 +185,9 @@ function serList(list: ListBlock, indent: string): string {
 
 function serTypedBlock(b: TypedBlock): string {
   let body: string[];
-  if (b.mode === "flow") {
+  // A prose body (GEP-0013) is parsed into paragraphs as a flow body is, and
+  // keeps no raw lines: written from its children, or it would come out empty.
+  if (b.mode === "flow" || b.mode === "prose") {
     body = (b.children ?? []).map(serBlock).join("\n\n").split("\n");
   } else if (b.mode === "data") {
     body = Object.entries(b.data ?? {}).map(([k, v]) => `${k} = ${serDataValue(v)}`);

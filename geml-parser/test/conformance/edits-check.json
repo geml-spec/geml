@@ -1,0 +1,73 @@
+[
+  {
+    "name": "a clean document",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "check"
+    },
+    "want": {
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "a dangling reference is an error",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nsee [[#nope]]\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "check"
+    },
+    "want": {
+      "diagnostics": [
+        "unresolved-reference:error"
+      ]
+    }
+  },
+  {
+    "name": "a cross-document reference resolves through the host",
+    "geml": "# A {#a}\n\nsee [[other.geml#x]]\n",
+    "files": {
+      "other.geml": "# X {#x}\n\nthere\n"
+    },
+    "op": {
+      "verb": "check"
+    },
+    "want": {
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "a cross-document reference to a missing document",
+    "geml": "# A {#a}\n\nsee [[gone.geml#x]]\n",
+    "op": {
+      "verb": "check"
+    },
+    "want": {
+      "diagnostics": [
+        "unresolvable-document:error"
+      ]
+    }
+  },
+  {
+    "name": "an unknown block type is a warning",
+    "geml": "# A {#a}\n\n=== widget {#w}\nx\n===\n",
+    "op": {
+      "verb": "check"
+    },
+    "want": {
+      "diagnostics": [
+        "unknown-block-type:warning"
+      ]
+    }
+  },
+  {
+    "name": "a duplicate id is an error",
+    "geml": "=== note {#a}\nx\n===\n\n=== note {#a}\ny\n===\n",
+    "op": {
+      "verb": "check"
+    },
+    "want": {
+      "diagnostics": [
+        "duplicate-id:error"
+      ]
+    }
+  }
+]

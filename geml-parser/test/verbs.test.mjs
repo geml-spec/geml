@@ -120,7 +120,9 @@ test("`#meta` answers the merged view unless a block claims the id or there is n
   assert.deepEqual(JSON.parse(get(meta, "d.geml", "#meta", { ...o, json: true }, ctxOf()).output), { title: "T", author: "A" });
   const bad = refused(() => get(meta, "d.geml", "#meta[\"nope\"]", o, ctxOf()), 1);
   assert.match(bad.message, /no key `nope`/);
-  refused(() => get(meta, "d.geml", "#meta", { ...o, part: "head", partFlag: "--head" }, ctxOf()), 2);
+  // Two `meta` blocks: a part names ONE of them, and `#meta` names their merge.
+  const part = refused(() => get(meta, "d.geml", "#meta", { ...o, part: "head", partFlag: "--head" }, ctxOf()), 1);
+  assert.equal(part.reason, "ambiguous-address");
   // A block that claims `{#meta}` IS the view: the ordinary id path answers.
   const claimed = "=== meta {#meta}\ntitle = \"T\"\n===\n";
   assert.match(get(claimed, "d.geml", "#meta", o, ctxOf()).output, /^=== meta \{#meta\}/);

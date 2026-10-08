@@ -529,8 +529,10 @@ function makeItem(m, meta) {
 }
 
 // Recursive-by-indent list reader (a different shape from the reference's stack,
-// same indentation rule).
-function readList(lines, i, indent, meta) {
+// same indentation rule). §2.2: a list goes on through item lines at or below
+// its indentation, so the OUTERMOST list keeps an item indented less than its
+// first as a sibling — there is no enclosing list for it to close back to.
+function readList(lines, i, indent, meta, outermost = false) {
   const first = marker(lines[i]);
   const list = { kind: "list", ordered: first.ordered, items: [] };
   if (first.ordered) list.start = first.start;
@@ -538,7 +540,7 @@ function readList(lines, i, indent, meta) {
   while (i < lines.length) {
     if (lines[i].trim() === "") { prevBlank = true; i++; continue; }
     const m = marker(lines[i]);
-    if (!m || m.indent < indent) break;
+    if (!m || (m.indent < indent && !outermost)) break;
     if (m.indent > indent) {
       const parent = list.items[list.items.length - 1];
       if (!parent) break;
@@ -644,7 +646,7 @@ function blocks(lines, meta) {
       i++;
       continue;
     }
-    if (!hid.has(i) && marker(line)) { const r = readList(lines, i, marker(line).indent, meta); out.push(r.block); i = r.next; continue; }
+    if (!hid.has(i) && marker(line)) { const r = readList(lines, i, marker(line).indent, meta, true); out.push(r.block); i = r.next; continue; }
     const para = [];
     while (i < lines.length && lines[i].trim() !== "" && (hid.has(i) ||
            (!HEADING.test(lines[i]) && !FENCE.test(lines[i]) && !marker(lines[i])

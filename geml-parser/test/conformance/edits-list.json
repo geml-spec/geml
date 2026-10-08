@@ -1,0 +1,352 @@
+[
+  {
+    "name": "every unit in document order",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "list"
+    },
+    "want": {
+      "rows": [
+        {
+          "address": "#meta",
+          "kind": "meta",
+          "lines": [
+            1,
+            3
+          ],
+          "anon": true
+        },
+        {
+          "address": "#intro",
+          "kind": "heading",
+          "lines": [
+            5,
+            34
+          ],
+          "id": "intro",
+          "level": 1,
+          "text": "Intro"
+        },
+        {
+          "address": "#intro-before-alpha",
+          "kind": "prose",
+          "lines": [
+            7,
+            7
+          ],
+          "id": "intro-before-alpha"
+        },
+        {
+          "address": "#alpha",
+          "kind": "note",
+          "lines": [
+            9,
+            11
+          ],
+          "id": "alpha"
+        },
+        {
+          "address": "#alpha-between-beta",
+          "kind": "prose",
+          "lines": [
+            13,
+            13
+          ],
+          "id": "alpha-between-beta"
+        },
+        {
+          "address": "#beta",
+          "kind": "note",
+          "lines": [
+            15,
+            17
+          ],
+          "id": "beta"
+        },
+        {
+          "address": "#sub",
+          "kind": "heading",
+          "lines": [
+            19,
+            30
+          ],
+          "id": "sub",
+          "level": 2,
+          "text": "Sub"
+        },
+        {
+          "address": "#sub-before-snippet",
+          "kind": "prose",
+          "lines": [
+            21,
+            21
+          ],
+          "id": "sub-before-snippet"
+        },
+        {
+          "address": "#snippet",
+          "kind": "code",
+          "lines": [
+            23,
+            25
+          ],
+          "id": "snippet"
+        },
+        {
+          "address": "#deep",
+          "kind": "heading",
+          "lines": [
+            27,
+            30
+          ],
+          "id": "deep",
+          "level": 3,
+          "text": "Deep"
+        },
+        {
+          "address": "#other",
+          "kind": "heading",
+          "lines": [
+            31,
+            34
+          ],
+          "id": "other",
+          "level": 2,
+          "text": "Other"
+        }
+      ]
+    }
+  },
+  {
+    "name": "an id-less block is addressed by its content",
+    "geml": "# T {#t}\n\n=== note\nno id here\n===\n\n=== note\nsecond anonymous\n===\n",
+    "op": {
+      "verb": "list"
+    },
+    "want": {
+      "rows": [
+        {
+          "address": "#t",
+          "kind": "heading",
+          "lines": [
+            1,
+            10
+          ],
+          "id": "t",
+          "level": 1,
+          "text": "T"
+        },
+        {
+          "address": "=== note@0b986bdb",
+          "kind": "note",
+          "lines": [
+            3,
+            5
+          ],
+          "anon": true
+        },
+        {
+          "address": "=== note@acfe5998",
+          "kind": "note",
+          "lines": [
+            7,
+            9
+          ],
+          "anon": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "within narrows the rows to one section",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "list",
+      "within": "#sub"
+    },
+    "want": {
+      "rows": [
+        {
+          "address": "#sub-before-snippet",
+          "kind": "prose",
+          "lines": [
+            21,
+            21
+          ],
+          "id": "sub-before-snippet"
+        },
+        {
+          "address": "#snippet",
+          "kind": "code",
+          "lines": [
+            23,
+            25
+          ],
+          "id": "snippet"
+        },
+        {
+          "address": "#deep",
+          "kind": "heading",
+          "lines": [
+            27,
+            30
+          ],
+          "id": "deep",
+          "level": 3,
+          "text": "Deep"
+        }
+      ]
+    }
+  },
+  {
+    "name": "a footnote definition is a unit",
+    "geml": "# N {#n}\n\nText with a note[^1].\n\n[^1]: The footnote.\n",
+    "op": {
+      "verb": "list"
+    },
+    "want": {
+      "rows": [
+        {
+          "address": "#n",
+          "kind": "heading",
+          "lines": [
+            1,
+            6
+          ],
+          "id": "n",
+          "level": 1,
+          "text": "N"
+        }
+      ]
+    }
+  },
+  {
+    "name": "CRLF: the same rows",
+    "geml": "=== meta\r\ntitle = \"Doc\"\r\n===\r\n\r\n# Intro {#intro}\r\n\r\nOpening words.\r\n\r\n=== note {#alpha}\r\nfirst\r\n===\r\n\r\nBetween alpha and beta.\r\n\r\n=== note {#beta}\r\nsee [[#alpha]]\r\n===\r\n\r\n## Sub {#sub}\r\n\r\nunder sub\r\n\r\n=== code {#snippet lang=py}\r\nprint(1)\r\n===\r\n\r\n### Deep {#deep}\r\n\r\ndeepest\r\n\r\n## Other {#other}\r\n\r\ntail\r\n",
+    "op": {
+      "verb": "list"
+    },
+    "want": {
+      "rows": [
+        {
+          "address": "#meta",
+          "kind": "meta",
+          "lines": [
+            1,
+            3
+          ],
+          "anon": true
+        },
+        {
+          "address": "#intro",
+          "kind": "heading",
+          "lines": [
+            5,
+            34
+          ],
+          "id": "intro",
+          "level": 1,
+          "text": "Intro"
+        },
+        {
+          "address": "#intro-before-alpha",
+          "kind": "prose",
+          "lines": [
+            7,
+            7
+          ],
+          "id": "intro-before-alpha"
+        },
+        {
+          "address": "#alpha",
+          "kind": "note",
+          "lines": [
+            9,
+            11
+          ],
+          "id": "alpha"
+        },
+        {
+          "address": "#alpha-between-beta",
+          "kind": "prose",
+          "lines": [
+            13,
+            13
+          ],
+          "id": "alpha-between-beta"
+        },
+        {
+          "address": "#beta",
+          "kind": "note",
+          "lines": [
+            15,
+            17
+          ],
+          "id": "beta"
+        },
+        {
+          "address": "#sub",
+          "kind": "heading",
+          "lines": [
+            19,
+            30
+          ],
+          "id": "sub",
+          "level": 2,
+          "text": "Sub"
+        },
+        {
+          "address": "#sub-before-snippet",
+          "kind": "prose",
+          "lines": [
+            21,
+            21
+          ],
+          "id": "sub-before-snippet"
+        },
+        {
+          "address": "#snippet",
+          "kind": "code",
+          "lines": [
+            23,
+            25
+          ],
+          "id": "snippet"
+        },
+        {
+          "address": "#deep",
+          "kind": "heading",
+          "lines": [
+            27,
+            30
+          ],
+          "id": "deep",
+          "level": 3,
+          "text": "Deep"
+        },
+        {
+          "address": "#other",
+          "kind": "heading",
+          "lines": [
+            31,
+            34
+          ],
+          "id": "other",
+          "level": 2,
+          "text": "Other"
+        }
+      ]
+    }
+  },
+  {
+    "name": "within a block that does not exist",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "list",
+      "within": "#nope"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  }
+]

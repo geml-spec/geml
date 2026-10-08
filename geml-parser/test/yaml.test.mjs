@@ -103,6 +103,9 @@ test("every construct outside the subset is refused BY NAME, never guessed at", 
   assert.match(refusal("a: 1\n---\nb: 2"), /second document/);
   assert.match(refusal("a: {x: 1}"), /flow collection/);
   assert.match(refusal("a: [1, 2]"), /flow collection/);
+  // Unclosed it is still one: a plain scalar cannot begin with `[` or `{`.
+  assert.match(refusal("a: [1"), /flow collection/);
+  assert.match(refusal("a: {x"), /flow collection/);
   assert.match(refusal("a: .inf"), /no infinity/, "the value domain here is JSON's");
   assert.match(refusal("a: -.NaN"), /no infinity/);
   assert.match(refusal("a:\n\tb: 1"), /tab/, "YAML forbids tabs in indentation");

@@ -84,6 +84,65 @@ export function iJsonFault(text: string): DomainFault | null {
 }
 
 /**
+ * The decimal number a literal writes — sign, significant digits, exponent — so
+ * that `0.10` and `0.1` compare equal, and `1e2` and `100`. `null` for text
+ * that is not a decimal literal.
+ */
+function decimalOf(literal: string): string | null {
+  const m = /^([+-]?)(\d*)(?:\.(\d*))?(?:[eE]([+-]?\d+))?$/.exec(literal);
+  if (!m || (m[2]! + (m[3] ?? "")) === "") return null;
+  const all = m[2]! + (m[3] ?? "");
+  const lead = all.replace(/^0+/, "");
+  if (lead === "") return "0";
+  const digits = lead.replace(/0+$/, "");
+  const exp = BigInt(m[4] ?? "0") - BigInt((m[3] ?? "").length) + BigInt(lead.length - digits.length);
+  return `${m[1] === "-" ? "-" : ""}${digits}e${exp}`;
+}
+
+/**
+ * §3.2: a number is its nearest binary64 value. When that value, written back
+ * the shortest way, is not the number the literal wrote — an integer past
+ * 2^53, more significant digits than binary64 holds, a magnitude below its
+ * smallest — the text it reads back as; `null` when the literal is exact. A
+ * hexadecimal or octal literal (YAML's core schema) compares as an integer.
+ */
+export function inexactNumber(literal: string, value: number): string | null {
+  if (!Number.isFinite(value)) return null; // past the range: refused elsewhere
+  const shown = String(value);
+  const radix = /^([+-]?)(0[xo][0-9a-fA-F]+)$/.exec(literal);
+  if (radix) {
+    const exact = Number.isInteger(value) && BigInt(radix[2]!) * (radix[1] === "-" ? -1n : 1n) === BigInt(value);
+    return exact ? null : shown;
+  }
+  const written = decimalOf(literal);
+  return written === null || written === decimalOf(shown) ? null : shown;
+}
+
+/** The number literals of a JSON text, with their offsets; strings are skipped. */
+export function numberLiterals(text: string): { literal: string; offset: number }[] {
+  const out: { literal: string; offset: number }[] = [];
+  const NUM = /-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/y;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i]!;
+    if (c === '"') {
+      let j = i + 1;
+      while (j < text.length && text[j] !== '"') j += text[j] === "\\" ? 2 : 1;
+      i = j;
+      continue;
+    }
+    if (c === "-" || (c >= "0" && c <= "9")) {
+      NUM.lastIndex = i;
+      const m = NUM.exec(text);
+      if (m) {
+        out.push({ literal: m[0], offset: i });
+        i += m[0].length - 1;
+      }
+    }
+  }
+  return out;
+}
+
+/**
  * The same limits over a tree another engine built (yaml, edn), where there
  * is no JSON text to point into. A repeated key never reaches a tree — the
  * engine refuses it while building — so this checks the other two.

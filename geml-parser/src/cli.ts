@@ -106,10 +106,11 @@ Usage:
   geml replace <file.geml|-> <old> <new> [--within <selector>] [-o f]   EXPERIMENTAL: swap a literal string, checked and reported
                                              (--in F takes F's block #id, F#src takes #src, else stdin raw;
                                               default = whole block · --head = head line · --body = body)
-  geml add    <file.geml|-> (--append | --before #id | --after #id) [--in f[#src]|-] [-o f]   insert a fragment
+  geml add    <file.geml|-> (--append | --before <sel> | --after <sel>) [--in f[#src]|-] [-o f]   insert a fragment
                                              (1+ blocks and/or prose; content keeps its own ids, a clash is refused)
-  geml delete <file.geml|-> #id [#id2 …] [-o f]   remove one or more blocks
-                                             (a missing id is skipped; a dangling reference is a warning, not a refusal)
+  geml delete <file.geml|-> <sel> [<sel2> …] [-o f]   remove every block the selectors name
+                                             (a selector naming nothing is skipped; a filter removes every block it matches;
+                                              a dangling reference is a warning, not a refusal)
   geml rename <file.geml|-> #old #new [-o f]   rename an id and every reference to it (id-boundary safe)
   geml revert <file.geml> #id [--rev <sel>] [--head]   undo one block to a past revision (splice / resurrect / remove)
                                              (sel: 0 | -N | id-prefix | changed; default -1)
@@ -163,14 +164,14 @@ Exit codes:
 const SUBHELP = {
   get: "usage: geml get <file.geml|-> [<selector>] [--within <selector>] [--head|--intro|--body] [--view [--root <dir>]] [--json]  (selector = a filter over blocks: #id | '## Heading' (its whole section) | '=== type' (every block of that type — N matches print N contents, count on stderr) | '=== type@<hex>[~n]' or '@<hex>[~n]' (content address, for blocks with no #id) | L<n> or L<n>-<m> (position — the smallest block that fully contains those lines, so the `L27-58` the listing prints pastes straight back, and a line number from an editor, a linter or a diff hunk becomes a block) | <block>[2][\"name\"] (a unit INSIDE a block, GEP 0011: a table's rows, cells and columns, a `data` block's value tree, and `meta`'s keys as `#meta[\"title\"]` — answered from the model, so it names no span and `--head`/`--body` do not apply); `#id` and `@<hex>` are the short spellings of the brace keys `{#id}` and `{@<hex>}`, which are equally legal with or without a `=== type` in front — the type is then a check, and a wrong one is refused; any OTHER keys in braces filter by attributes — '=== code {lang=py}', '{.warn}', '{#id .warn}': a block or heading matches when its attribute object carries every key given with the same value, 0..N matches, and a `@<hex>` beside other keys is one more condition, so '=== note@<hex> {#id}' names #id only while its content is unchanged; --within <selector> = keep only the matches inside the blocks that selector names (a heading names its whole section); a section cuts three ways — --head = the heading line, --intro = its opening region: everything under it up to its FIRST SUBHEADING (empty when one follows immediately, the whole body when none does; a block has no intro and is refused), --body = everything under it; --view = read THROUGH an `embed` to the entity block it stands for, following a chain to its end (the identity on any other block, and on a section selector — it never splices two documents' bytes together); provenance goes to stderr as `view: <sel> -> <doc>[#<id>]`; read-only, `set` refuses it; chain reads are confined to --root (default: the document's own directory) and never fetched over the network; without a selector: list every addressable block with its shortest unique address, --json = array; a read ends with `read <n> of <file size> (<pct>)` on stderr, in UTF-8 bytes — not for the listing, --json or --view)",
   set: "usage: geml set <file.geml|-> <selector> [--head|--intro|--body] [--in F | --in F#src | --in -] [-o out.geml] [--root d]  (selector as in `get`, but it must match exactly ONE block — '=== type' matching several is refused; content: --in F takes F's block #id, --in F#src takes #src, else stdin raw; default = whole block, --head = head line — both normalize the id when the target has one — --body = body, --intro = a heading's opening region up to its first subheading (an empty region INSERTS there); guarded splice, refused if it breaks the doc — but a replacement that REMOVES blocks is carried out and reported on stderr, named ones and unnamed alike, with `geml revert` as the way back (the same stance `delete` takes; the ordinary read-edit-write cycle removes nothing, since `get` handed those blocks over); writing through an @<hex> address prints the new address on stderr; the `wrote` line says how many bytes changed and how many of the file's were left untouched, and stands alone on stderr when the document goes to stdout)",
-  add: "usage: geml add <file.geml|-> (--append | --before #id | --after #id) [--in F | --in F#src | --in -] [-o out.geml] [--root d]  (insert a GEML fragment — 1+ blocks and/or prose — at a position; --in F takes all of F, --in F#src takes #src, else stdin raw; content keeps its own ids, a collision is refused)",
-  delete: "usage: geml delete <file.geml|-> #id [#id2 …] [-o out.geml] [--root d]  (remove one or more blocks, each with the blank line that separated it, so a delete undoes an add byte for byte; a missing id is skipped with a note, not an error; a reference left dangling is a warning, not a refusal — delete never fails on a live reference)",
+  add: "usage: geml add <file.geml|-> (--append | --before <sel> | --after <sel>) [--in F | --in F#src | --in -] [-o out.geml] [--root d]  (insert a GEML fragment — 1+ blocks and/or prose — at a position; --in F takes all of F, --in F#src takes #src, else stdin raw; content keeps its own ids, a collision is refused)",
+  delete: "usage: geml delete <file.geml|-> <sel> [<sel2> …] [-o out.geml] [--root d]  (remove every block the selectors name, each with the blank line that separated it, so a delete undoes an add byte for byte; a selector naming nothing is skipped with a note, not an error; a filter removes every block it matches; a reference left dangling is a warning, not a refusal — delete never fails on a live reference)",
   rename: "usage: geml rename <file.geml|-> #old #new [-o out.geml] [--root d]  (rewrite an id's declaration AND every reference — [[#id]], [text](#id), chart data=#id, footnote [^id] — id-boundary safe, skipping raw block bodies; #new must be free; refused if it breaks the doc)",
   list: "usage: geml list <file.geml|-> [--within <selector>] [--json]  (list every addressable block with its shortest unique address, its kind and its line range; --within lists only what is inside the blocks that selector names — the same listing `geml get <file>` prints with no selector, under the name the MCP surface already uses. Call it FIRST: the addresses it prints are what get/set/add/delete/rename/revert all take)",
   find: "usage: geml find <pattern> [<file|dir> …] [--within <selector>] [--json] [--case] [--head]  (search block CONTENT; --within searches only the lines inside the blocks that selector names, and skips a file where it names none and print `<file>TAB<address>` per hit — an address, never a line number, so a hit is `geml get <file> '<address>'` with no editing. The address is the INNERMOST block holding the match, never its enclosing section, and a block is reported once however many lines in it matched. Substring, case-insensitive unless --case; a file you NAME is searched whatever its extension, including Markdown, while a directory is walked for the two formats the parser reads from a path, *.geml and *.md (a `.gemlhistory` sidecar is neither, and stays out); no path = the current directory; --head adds the matching line as a third column; a pattern or path that starts with `-` goes after `--` (`geml find -- '- list item' notes.md`), and everything after `--` is taken as text, flags included. Exit 1 when nothing matched, so `if geml find …` works in a script)",
   replace: "usage: geml replace <file.geml|-> <old> <new> [--within <selector>] [-o out.geml] [--root d]  (EXPERIMENTAL — this verb MAY BE WITHDRAWN in a later release; it is here to find out whether an addressed, checked replacement earns its place beside `sed`, and if it does not, it goes. Build nothing on it you cannot change, and say so in a discussion if it is doing real work for you. Swaps a LITERAL string — never a pattern, that is what `sed` is for and where the footguns are. Without --within the whole document; with it, only inside the blocks that selector matches, and unlike `set` it may match several: `--within '=== table'` means every table. What this buys over `sed -i`, at the same cost of two short strings and nothing read: the result is re-parsed and refused if it would break the document, the blocks it touched are NAMED on stderr, and the write lands in .gemlhistory where `revert` can undo it. An id is not text — a replacement that would rename one is refused and points at `geml rename`, which fixes every reference too. Exit 1 when nothing matched, so `if geml replace …` works in a script)",
   check: "usage: geml check <file.geml|-> [--root <dir>] [--json] [--severity <code>=<level>]… [--only <pattern>]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory. A document whose `=== meta` declares a vocabulary this processor recognizes also gets that vocabulary's own checks, reported by ADDRESS rather than by line — they are cross-document, so there is no one line to name. --severity re-levels ONE such code: error | warning | info, and info is the floor, because a level that silences is what --only is for. It takes profile codes only; the core catalogue's severities are fixed by Appendix A and a processor that moved one would not conform. --only keeps just the profile codes matching a `*` pattern, as in --only 'media-stale-*')",
-  revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--append|--before #x|--after #x] [--head] [--dry-run] [-o out] [--root d]  (reconcile #id to a revision: splice / resurrect / remove; sel: 0 | -N | id-prefix | changed; default -1)",
+  revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--append|--before <sel>|--after <sel>] [--head] [--dry-run] [-o out] [--root d]  (reconcile #id to a revision: splice / resurrect / remove; sel: 0 | -N | id-prefix | changed; default -1)",
   history: `usage: geml history save    <file.geml> [-m <msg>]      append the working file as a new revision (identical to the tip = no-op)
        geml history get     <file.geml> [<rev>] [--json]   NO <rev>: every revision, newest first, first column = the selector; WITH <rev>: that revision's full text
        geml history restore <file.geml> <rev> [--force]    overwrite the working file with a revision (--force discards unsaved changes)
@@ -333,8 +334,8 @@ function optionArgs(verb: string | undefined, args: string[]): string[] {
   return at < 0 ? args : args.slice(0, at);
 }
 
-function fail(msg: string, code = 2): never {
-  if (jsonMode) console.error(JSON.stringify({ error: msg, code }));
+function fail(msg: string, code = 2, reason?: string): never {
+  if (jsonMode) console.error(JSON.stringify({ error: msg, code, ...(reason === undefined ? {} : { reason }) }));
   else console.error(`error: ${msg}`);
   process.exit(code);
 }
@@ -347,7 +348,7 @@ function fail(msg: string, code = 2): never {
 // English out of stderr.
 function refuseBroken(prose: string, errs: Diagnostic[]): never {
   if (jsonMode) {
-    console.error(JSON.stringify({ error: prose, code: 1, diagnostics: errs }));
+    console.error(JSON.stringify({ error: prose, code: 1, reason: "broken-result", diagnostics: errs }));
     process.exit(1);
   }
   fail(prose, 1);
@@ -407,7 +408,7 @@ function verb<T>(run: () => T): T {
   } catch (e) {
     if (e instanceof VerbError) {
       if (e.diagnostics) refuseBroken(e.message, e.diagnostics);
-      fail(e.message, e.exit);
+      fail(e.message, e.exit, e.reason);
     }
     throw e;
   }
@@ -423,7 +424,7 @@ function contentFrom(from: string | undefined): Content {
     spec: from,
     read: (path) => {
       try { return readFileSync(path, "utf8"); }
-      catch { throw new VerbError(`cannot read ${path}`, 1); }
+      catch { throw new VerbError(`cannot read ${path}`, 1, "bad-content"); }
     },
   };
 }
@@ -1435,7 +1436,7 @@ function runSet(args: string[]): void {
   resolveOutTarget(file, out).write(r.text, writeNote(source, r.text));
 }
 
-// `geml add <file|-> (--append | --before #x | --after #x) [--in F|F#src|-] [-o]`
+// `geml add <file|-> (--append | --before <sel> | --after <sel>) [--in F|F#src|-] [-o]`
 // — insert a GEML fragment (1+ blocks and/or prose) at a position; see the verb.
 function runAdd(args: string[]): void {
   const out = flag(args, "-o") ?? flag(args, "--out");
@@ -1444,7 +1445,7 @@ function runAdd(args: string[]): void {
   const after = flag(args, "--after");
   const append = args.includes("--append");
   const posCount = (append ? 1 : 0) + (before !== undefined ? 1 : 0) + (after !== undefined ? 1 : 0);
-  if (posCount !== 1) fail("add needs exactly one position: --append | --before #id | --after #id", 2);
+  if (posCount !== 1) fail("add needs exactly one position: --append | --before <sel> | --after <sel>", 2);
   const [file] = positionals(args, ["-o", "--out", "--in", "--before", "--after", "--root"]);
   useRoot(args);
   if (!file) fail(SUBHELP.add);
@@ -1457,7 +1458,7 @@ function runAdd(args: string[]): void {
   resolveOutTarget(file, out).write(r.text);
 }
 
-// `geml delete <file|-> #id [#id2 …] [-o]` — remove one or more blocks; see the
+// `geml delete <file|-> <sel> [<sel2> …] [-o]` — remove every block the selectors name; see the
 // verb for the lenient guard (a dangling reference is a warning, not a refusal).
 function runDelete(args: string[]): void {
   const out = flag(args, "-o") ?? flag(args, "--out");
@@ -1521,7 +1522,7 @@ function runRevert(args: string[]): void {
   const after = flag(args, "--after");
   const append = args.includes("--append");
   if ((append ? 1 : 0) + (before !== undefined ? 1 : 0) + (after !== undefined ? 1 : 0) > 1) {
-    fail("revert takes at most one position: --append | --before #id | --after #id", 2);
+    fail("revert takes at most one position: --append | --before <sel> | --after <sel>", 2);
   }
   const [file, rawId] = positionals(args, ["--rev", "--history", "-o", "--out", "--before", "--after", "--root"]);
   useRoot(args);

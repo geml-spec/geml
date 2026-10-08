@@ -1,0 +1,151 @@
+[
+  {
+    "name": "a hit names the unit and its lines",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "find",
+      "pattern": "alpha"
+    },
+    "want": {
+      "hits": [
+        {
+          "file": "doc.geml",
+          "address": "#alpha",
+          "kind": "note",
+          "lines": [
+            9,
+            11
+          ]
+        },
+        {
+          "file": "doc.geml",
+          "address": "#alpha-between-beta",
+          "kind": "prose",
+          "lines": [
+            13,
+            13
+          ]
+        },
+        {
+          "file": "doc.geml",
+          "address": "#beta",
+          "kind": "note",
+          "lines": [
+            15,
+            17
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "case-insensitive by default",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "find",
+      "pattern": "OPENING"
+    },
+    "want": {
+      "hits": [
+        {
+          "file": "doc.geml",
+          "address": "#intro-before-alpha",
+          "kind": "prose",
+          "lines": [
+            7,
+            7
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "case makes it exact",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "find",
+      "pattern": "OPENING",
+      "case": true
+    },
+    "want": {
+      "hits": []
+    }
+  },
+  {
+    "name": "head adds the matching line",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "find",
+      "pattern": "under",
+      "head": true
+    },
+    "want": {
+      "hits": [
+        {
+          "file": "doc.geml",
+          "address": "#sub-before-snippet",
+          "kind": "prose",
+          "lines": [
+            21,
+            21
+          ],
+          "line": "under sub"
+        }
+      ]
+    }
+  },
+  {
+    "name": "within limits the search",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "find",
+      "pattern": "e",
+      "within": "#other"
+    },
+    "want": {
+      "hits": [
+        {
+          "file": "doc.geml",
+          "address": "#other",
+          "kind": "heading",
+          "lines": [
+            31,
+            34
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "prose between two blocks is addressable",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "find",
+      "pattern": "Between"
+    },
+    "want": {
+      "hits": [
+        {
+          "file": "doc.geml",
+          "address": "#alpha-between-beta",
+          "kind": "prose",
+          "lines": [
+            13,
+            13
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "no hit is an empty list, not a refusal",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "find",
+      "pattern": "zzz"
+    },
+    "want": {
+      "hits": []
+    }
+  }
+]

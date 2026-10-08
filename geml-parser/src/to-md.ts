@@ -156,8 +156,11 @@ function tableToMd(t: TableModel, ctx: MdCtx): string {
   // A `src=` table IS inlined when the parser could read it — the rows are in
   // the model. The note used to fire on `src` alone and claim "emitted header
   // only" over a table that had every row, which is worse than saying nothing:
-  // a reader told the data is missing goes and adds it back.
-  if (t.src !== undefined && (t.rows ?? []).length === 0) {
+  // a reader told the data is missing goes and adds it back. And a source that
+  // WAS read has columns even when no row survives — a view filtered to nothing,
+  // a file holding only its header — so it is the missing columns that say the
+  // source could not be read, not the missing rows.
+  if (t.src !== undefined && t.columns.length === 0) {
     ctx.notes.add(`table from external source \`${t.src}\` could not be read; emitted header only`);
   }
   const cols = t.columns;

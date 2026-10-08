@@ -77,7 +77,9 @@
     "name": "data: a number is its nearest binary64 value, so 1.0 is 1 and a long integer rounds",
     "geml": "=== data {#n}\n[1.0, 1e2, 12345678901234567890, 0.1]\n===\n",
     "want": "data([1,100,12345678901234567000,0.1])",
-    "diagnostics": []
+    "diagnostics": [
+      "inexact-number:warning"
+    ]
   },
   {
     "name": "data: in jsonl the limits hold line by line",
@@ -133,6 +135,61 @@
     "want": "block:data",
     "diagnostics": [
       "data-parse:error"
+    ]
+  },
+  {
+    "name": "data: in jsonl every line that is not one JSON value is reported",
+    "geml": "=== data {#log format=jsonl}\n{\"v\": 1}\nnot json\n\nnor this\n===\n",
+    "want": "block:data",
+    "diagnostics": [
+      "data-parse:error",
+      "data-parse:error"
+    ]
+  },
+  {
+    "name": "data: an integer past 2^53 is read as its nearest binary64, and said to be",
+    "geml": "=== data {#n}\n{\"id\": 12345678901234567890, \"safe\": 9007199254740991}\n===\n",
+    "want": "data({\"id\":12345678901234567000,\"safe\":9007199254740991})",
+    "diagnostics": [
+      "inexact-number:warning"
+    ]
+  },
+  {
+    "name": "data: more significant digits than binary64 holds are said to be lost",
+    "geml": "=== data {#n}\n[3.14159265358979323846, 0.30000000000000004]\n===\n",
+    "want": "data([3.141592653589793,0.30000000000000004])",
+    "diagnostics": [
+      "inexact-number:warning"
+    ]
+  },
+  {
+    "name": "data: a number below binary64's smallest reads as 0, and is said to",
+    "geml": "=== data {#n}\n[1e-400, 5e-324, -0]\n===\n",
+    "want": "data([0,5e-324,0])",
+    "diagnostics": [
+      "inexact-number:warning"
+    ]
+  },
+  {
+    "name": "data: trailing zeros and an exponent write the same number, so nothing is said",
+    "geml": "=== data {#n}\n[0.10, 1.0, 1E+2, 100e-2]\n===\n",
+    "want": "data([0.1,1,100,1])",
+    "diagnostics": []
+  },
+  {
+    "name": "data: a jsonl line's numbers are checked on that line",
+    "geml": "=== data {#n format=jsonl}\n{\"id\": 1}\n{\"id\": 12345678901234567891}\n===\n",
+    "want": "data([{\"id\":1},{\"id\":12345678901234567000}])",
+    "diagnostics": [
+      "inexact-number:warning"
+    ]
+  },
+  {
+    "name": "data: a meta value's number is checked too",
+    "geml": "=== meta\nbig = 12345678901234567890\nok = 2.50\nquoted = \"12345678901234567890\"\n===\n",
+    "want": "",
+    "diagnostics": [
+      "inexact-number:warning"
     ]
   }
 ]

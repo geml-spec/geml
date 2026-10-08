@@ -649,7 +649,7 @@ test("the refusals an agent actually walks into each say what to do instead", ()
   const f = pjoin(d, "f.geml");
   const m = pjoin(d, "m.geml");
   wf(f, "=== note {#n}\nhello\n===\n\n# Head {#h}\n\nprose\n");
-  wf(m, '=== meta\ntitle = "t"\n===\n\n=== note {#n}\nx\n===\n');
+  wf(m, '=== meta\ntitle = "t"\n===\n\n=== note {#n}\nx\n===\n\n=== meta\nn = 1\n===\n');
 
   for (const [args, code, message, input] of [
     // a selector that names nothing, on each verb that takes one
@@ -659,7 +659,7 @@ test("the refusals an agent actually walks into each say what to do instead", ()
     // a part flag that does not fit what the selector names
     [["get", f, "#n", "--intro"], 2, /--intro names a heading's opening region/],
     [["get", f, "#n", "--head", "--body"], 2, /mutually exclusive/],
-    [["get", m, "#meta", "--body"], 2, /`#meta` names a merged view rather than one block/],
+    [["get", m, "#meta", "--body"], 1, /`#meta` names the merge of this document's 2 `meta` blocks/],
     [["get", f, "#h[0]"], 1, /a coordinate addresses a unit inside a table or a `data` block/],
     // the write channel left out entirely
     [["set", f, "#n"], 1, /use --in FILE or pipe it on stdin/],
@@ -753,6 +753,7 @@ test("--json turns a refusal into a machine-readable frame: diagnostics with cod
   assert.equal(refused.out, "", "nothing is written");
   const frame = JSON.parse(refused.err.trim().split(/\r?\n/).pop());
   assert.equal(frame.code, 1);
+  assert.equal(frame.reason, "broken-result", "the Appendix A.6 reason rides on the frame");
   assert.match(frame.error, /would break the document/);
   assert.ok(Array.isArray(frame.diagnostics) && frame.diagnostics.some((x) => x.code === "unresolved-reference"), refused.err);
   rmSync(d, { recursive: true, force: true });

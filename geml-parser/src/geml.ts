@@ -28,9 +28,9 @@ import { type Inline, type Ref, type RefSink, META_REF_SRC, parseInline , isSafe
 import { type TableCell, type TableDiag, type TableModel, deriveView, parseTable, trimWhiteSpace } from "./table.js";
 import { type ChartModel, USES, buildChart } from "./chart.js";
 import { mdToGeml } from "./from-md.js";
-import { parseYaml } from "./yaml.js";
+import { type NumberRead, parseYaml } from "./yaml.js";
 import { parseEdn } from "./edn.js";
-import { iJsonFault, tooDeep, valueFault } from "./ijson.js";
+import { iJsonFault, inexactNumber, numberLiterals, tooDeep, valueFault } from "./ijson.js";
 import { BLOCK_NESTING, BORROWED_CELLS, CHAIN_DEPTH, DATA_DEPTH } from "./bounds.js";
 import { serialize } from "./serialize.js";
 import {
@@ -97,6 +97,15 @@ function parseDataBody(fmt: string, body: string[], openLineNo: number): { value
   const tooDeepAt = (line: number): void => {
     diags.push({ severity: "error", code: "data-parse", message: `data: nesting deeper than ${DATA_DEPTH} levels is outside what this processor reads`, line });
   };
+  // §3.2: each number is its nearest binary64 value; one that does not read
+  // back as written is said, so the author can make it a string first.
+  const exactness = (literal: string, value: number, line: number): void => {
+    const shown = inexactNumber(literal, value);
+    if (shown !== null) diags.push({ severity: "warning", code: "inexact-number", message: inexactMessage(literal, shown), line });
+  };
+  const numbersRead = (read: NumberRead[]): void => {
+    for (const n of read) exactness(n.literal, Number(n.literal), openLineNo + 1 + n.line);
+  };
   if (fmt === "json") {
     const text = body.join("\n");
     let value: DataValue;
@@ -111,7 +120,10 @@ function parseDataBody(fmt: string, body: string[], openLineNo: number): { value
       return { diags };
     }
     const fault = iJsonFault(text);
-    if (!fault) return { value, diags };
+    if (!fault) {
+      for (const n of numberLiterals(text)) exactness(n.literal, Number(n.literal), openLineNo + text.slice(0, n.offset).split("\n").length);
+      return { value, diags };
+    }
     outside(fault.why, openLineNo + text.slice(0, fault.offset).split("\n").length);
   } else if (fmt === "jsonl") {
     const values: DataValue[] = [];
@@ -127,7 +139,8 @@ function parseDataBody(fmt: string, body: string[], openLineNo: number): { value
       }
       if (tooDeep(t) >= 0) { tooDeepAt(openLineNo + 1 + li); ok = false; continue; }
       const fault = iJsonFault(t);
-      if (fault) { outside(`body line ${li + 1}: ${fault.why}`, openLineNo + 1 + li); ok = false; }
+      if (fault) { outside(`body line ${li + 1}: ${fault.why}`, openLineNo + 1 + li); ok = false; continue; }
+      for (const n of numberLiterals(t)) exactness(n.literal, Number(n.literal), openLineNo + 1 + li);
     }
     if (ok) return { value: values, diags };
   } else if (fmt === "yaml") {
@@ -135,19 +148,27 @@ function parseDataBody(fmt: string, body: string[], openLineNo: number): { value
     // §3.2 reserves the name and leaves the engine optional, so a processor
     // without one still keeps the body raw and warns. Reading a construct
     // outside the subset is a parse failure, not a guess.
-    const r = parseYaml(body);
+    const read: NumberRead[] = [];
+    const r = parseYaml(body, read);
     if ("value" in r) {
       const fault = valueFault(r.value);
-      if (!fault) return { value: r.value, diags };
+      if (!fault) {
+        numbersRead(read);
+        return { value: r.value, diags };
+      }
       outside(fault, openLineNo);
     } else diags.push({ severity: "error", code: "data-parse", message: `data: body is not YAML this processor reads (${r.error})`, line: openLineNo + 1 + r.line });
   } else if (fmt === "edn") {
     // §3.2 reserves the name; this processor ships an engine for it (edn.ts),
     // whose reading is deliberately NOT specified — see that file's header.
-    const r = parseEdn(body);
+    const read: NumberRead[] = [];
+    const r = parseEdn(body, read);
     if ("value" in r) {
       const fault = valueFault(r.value);
-      if (!fault) return { value: r.value, diags };
+      if (!fault) {
+        numbersRead(read);
+        return { value: r.value, diags };
+      }
       outside(fault, openLineNo);
     } else diags.push({ severity: "error", code: "data-parse", message: `data: body is not EDN this processor reads (${r.error})`, line: openLineNo + 1 + r.line });
   } else if (fmt === "toml") {
@@ -162,10 +183,98 @@ function parseDataBody(fmt: string, body: string[], openLineNo: number): { value
 // carry "at position N" (newer Nodes add line/column, but position is the
 // stable token); counting newlines up to it gives the 1-based body line, and
 // the open fence line offsets it into the document. No position -> the fence.
-function jsonErrorLine(e: unknown, text: string, openLineNo: number): number {
-  const m = /position (\d+)/.exec(e instanceof Error ? e.message : "");
-  if (!m) return openLineNo;
-  return openLineNo + text.slice(0, Number(m[1])).split("\n").length;
+// The line a body stops being JSON on. The engine's message is no help: V8
+// names a position for some failures and not for others ("Unexpected token",
+// "Unexpected end"), which put the same kind of mistake on the fence line one
+// time and on its own line the next. So the text is scanned again here, only
+// once JSON.parse has refused it, for the first character no JSON value can
+// continue with — or its end, when it ends too soon.
+function jsonErrorLine(_e: unknown, text: string, openLineNo: number): number {
+  return openLineNo + text.slice(0, jsonErrorOffset(text)).split("\n").length;
+}
+
+function jsonErrorOffset(text: string): number {
+  const n = text.length;
+  let i = 0;
+  let depth = 0;
+  const stop = (): never => { throw new RangeError(String(i)); };
+  const digit = (): boolean => (text[i] ?? "") >= "0" && (text[i] ?? "") <= "9";
+  const ws = (): void => { while (i < n && (text[i] === " " || text[i] === "\t" || text[i] === "\n" || text[i] === "\r")) i++; };
+  const str = (): void => {
+    i++;
+    while (i < n) {
+      const c = text[i]!;
+      if (c === "\"") { i++; return; }
+      if (c < " ") stop();
+      if (c === "\\") {
+        const e = text[i + 1];
+        if (e === "u") {
+          for (let k = 2; k < 6; k++) if (!/[0-9a-fA-F]/.test(text[i + k] ?? "")) { i += k; stop(); }
+          i += 6;
+          continue;
+        }
+        if (e === undefined || !"\"\\/bfnrt".includes(e)) { i++; stop(); }
+        i += 2;
+        continue;
+      }
+      i++;
+    }
+    stop();
+  };
+  const num = (): void => {
+    if (text[i] === "-") i++;
+    if (text[i] === "0") i++;
+    else if (digit()) while (digit()) i++;
+    else stop();
+    if (text[i] === ".") { i++; if (!digit()) stop(); while (digit()) i++; }
+    if (text[i] === "e" || text[i] === "E") {
+      i++;
+      if (text[i] === "+" || text[i] === "-") i++;
+      if (!digit()) stop();
+      while (digit()) i++;
+    }
+  };
+  const value = (): void => {
+    ws();
+    const c = text[i];
+    if (c === "{" || c === "[") {
+      // Bounded as the value tree is (§3.2), so a body of ten thousand `[`
+      // cannot take the stack down with it.
+      if (++depth > DATA_DEPTH) stop();
+      const close = c === "{" ? "}" : "]";
+      i++;
+      ws();
+      if (text[i] === close) { i++; depth--; return; }
+      for (;;) {
+        if (c === "{") {
+          ws();
+          if (text[i] !== "\"") stop();
+          str();
+          ws();
+          if (text[i] !== ":") stop();
+          i++;
+        }
+        value();
+        ws();
+        if (text[i] === ",") { i++; continue; }
+        if (text[i] === close) { i++; depth--; return; }
+        stop();
+      }
+    }
+    if (c === "\"") return str();
+    if (c === "-" || digit()) return num();
+    for (const w of ["true", "false", "null"]) if (text.startsWith(w, i)) { i += w.length; return; }
+    stop();
+  };
+  // `stop` is the only thing that throws here: the depth bound keeps the
+  // recursion short of the stack.
+  try {
+    value();
+    ws();
+    return Math.min(i, n);
+  } catch (e) {
+    return Math.min(Number((e as RangeError).message), n);
+  }
 }
 
 export interface ListItem {
@@ -1490,6 +1599,16 @@ function readFencedBlock(
     }
   } else if (mode === "data") {
     block.data = parseData(body);
+    // A `key = value` body reads numbers too, and keeps §3.2's exactness rule.
+    body.forEach((raw, k) => {
+      const eq = raw.indexOf("=");
+      if (eq <= 0 || raw.trim() === "") return;
+      const literal = raw.slice(eq + 1).trim();
+      const v = coerce(literal);
+      if (typeof v !== "number") return;
+      const shown = inexactNumber(literal, v);
+      if (shown !== null) ctx.diags.push({ severity: "warning", code: "inexact-number", message: inexactMessage(literal, shown), line: openLineNo + consumed + k });
+    });
   } else {
     block.raw = body;
     readTypedRawBody(block, type, attrs, body, openLineNo, ctx);
@@ -1953,6 +2072,11 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
 }
 
 // Parse `key = val` lines of a `data`-mode block (e.g. meta), §4 value typing.
+/** What an inexact number reads as, and what to do about it. */
+function inexactMessage(literal: string, shown: string): string {
+  return `the number \`${literal}\` reads as \`${shown}\`: binary64 holds 15 to 17 significant digits, so a value this long belongs in a string`;
+}
+
 function parseData(lines: string[]): Record<string, Value> {
   const out: Record<string, Value> = {};
   for (const raw of lines) {
@@ -3238,8 +3362,11 @@ function resolveDataSources(ctx: Ctx, opts: ParseOptions): void {
     }
     const lines = sliceSourceRange(text, route, target, "data", line, ctx);
     if (lines === null) continue;
+    // What the FILE fails on is reported on the block that names it: a line
+    // number counted from the block would point into this document at
+    // whatever follows it.
     const parsed = parseDataBody(fmt, lines, line);
-    for (const d of parsed.diags) ctx.diags.push(d);
+    for (const d of parsed.diags) ctx.diags.push({ ...d, line });
     if (parsed.value !== undefined) {
       block.value = parsed.value;
       if (block.id !== undefined && !ctx.dataValues?.has(nameKey(block.id))) {
@@ -3351,7 +3478,7 @@ function resolveCharts(ctx: Ctx, opts: ParseOptions): void {
           const text = opts.resolveDoc(id);
           if (text === null) { ctx.diags.push({ severity: "error", code: "unresolvable-data-source", message: `geml-chart: cannot resolve data source \`${id}\``, line }); continue; }
           const parsed = parseDataBody(/\.jsonl$/i.test(id) ? "jsonl" : "json", normalizeSource(text).split("\n"), line);
-          for (const d of parsed.diags) ctx.diags.push(d);
+          for (const d of parsed.diags) ctx.diags.push({ ...d, line });
           if (parsed.value === undefined) continue;
           const projected = recordsToTable(parsed.value, block.attrs, line, ctx);
           if (projected === null) continue; // reported by the projection

@@ -1,0 +1,91 @@
+[
+  {
+    "name": "a literal swap inside one block",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "replace",
+      "old": "first",
+      "new": "FIRST",
+      "within": "#alpha"
+    },
+    "want": {
+      "text": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nFIRST\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n"
+    }
+  },
+  {
+    "name": "every occurrence across the document",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "replace",
+      "old": "words",
+      "new": "WORDS"
+    },
+    "want": {
+      "text": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening WORDS.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n"
+    }
+  },
+  {
+    "name": "CRLF is kept",
+    "geml": "=== meta\r\ntitle = \"Doc\"\r\n===\r\n\r\n# Intro {#intro}\r\n\r\nOpening words.\r\n\r\n=== note {#alpha}\r\nfirst\r\n===\r\n\r\nBetween alpha and beta.\r\n\r\n=== note {#beta}\r\nsee [[#alpha]]\r\n===\r\n\r\n## Sub {#sub}\r\n\r\nunder sub\r\n\r\n=== code {#snippet lang=py}\r\nprint(1)\r\n===\r\n\r\n### Deep {#deep}\r\n\r\ndeepest\r\n\r\n## Other {#other}\r\n\r\ntail\r\n",
+    "op": {
+      "verb": "replace",
+      "old": "first",
+      "new": "FIRST"
+    },
+    "want": {
+      "text": "=== meta\r\ntitle = \"Doc\"\r\n===\r\n\r\n# Intro {#intro}\r\n\r\nOpening words.\r\n\r\n=== note {#alpha}\r\nFIRST\r\n===\r\n\r\nBetween alpha and beta.\r\n\r\n=== note {#beta}\r\nsee [[#alpha]]\r\n===\r\n\r\n## Sub {#sub}\r\n\r\nunder sub\r\n\r\n=== code {#snippet lang=py}\r\nprint(1)\r\n===\r\n\r\n### Deep {#deep}\r\n\r\ndeepest\r\n\r\n## Other {#other}\r\n\r\ntail\r\n"
+    }
+  },
+  {
+    "name": "refused: an id is not text",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "replace",
+      "old": "sub",
+      "new": "sec"
+    },
+    "want": {
+      "refused": "bad-content"
+    }
+  },
+  {
+    "name": "refused: the old text does not occur",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "replace",
+      "old": "zzz",
+      "new": "y"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  },
+  {
+    "name": "refused: a swap that breaks a reference",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "replace",
+      "old": "[[#alpha]]",
+      "new": "[[#gamma]]"
+    },
+    "want": {
+      "refused": "broken-result",
+      "diagnostics": [
+        "unresolved-reference:error"
+      ]
+    }
+  },
+  {
+    "name": "refused: within names nothing",
+    "geml": "=== meta\ntitle = \"Doc\"\n===\n\n# Intro {#intro}\n\nOpening words.\n\n=== note {#alpha}\nfirst\n===\n\nBetween alpha and beta.\n\n=== note {#beta}\nsee [[#alpha]]\n===\n\n## Sub {#sub}\n\nunder sub\n\n=== code {#snippet lang=py}\nprint(1)\n===\n\n### Deep {#deep}\n\ndeepest\n\n## Other {#other}\n\ntail\n",
+    "op": {
+      "verb": "replace",
+      "old": "first",
+      "new": "x",
+      "within": "#nope"
+    },
+    "want": {
+      "refused": "no-such-unit"
+    }
+  }
+]

@@ -10,9 +10,11 @@
 //
 // The three token species (§0011: integer, "quoted string", bare word) are the
 // selector's business; this module only interprets them against a block.
+import { DATA_DEPTH } from "./bounds.js";
 import { serializeEdn } from "./edn.js";
 import { type Block, type DataValue, type Value } from "./geml.js";
 import { serialize } from "./serialize.js";
+import { iJsonFault, tooDeep } from "./ijson.js";
 import { type CoordStep } from "./selector.js";
 import { escapeCellPipes, whiteSpaceBounds, type TableCell, type TableModel } from "./table.js";
 
@@ -206,7 +208,31 @@ function describe(v: DataValue): string {
 // in a delimited body means re-splitting the row.
 // --------------------------------------------------------------------------
 
-export type WritePlan = { ok: true; body: string[] } | { ok: false; why: string };
+// `broken`: the content is JSON the value domain excludes, so the block it
+// would be written into would carry `data-parse` — the caller refuses it as
+// `broken-result`, not as an address the unit does not admit.
+// `absent`: a removal whose target is not there — `delete` ensures absence, so
+// there is nothing to do. `missing`: an insertion's anchor is not there, which
+// is the anchor's `no-such-unit` rather than an address the unit does not admit.
+export type WritePlan = { ok: true; body: string[]; absent?: true } | { ok: false; why: string; broken?: true; missing?: true };
+
+// What the text a write puts into a value tree stands for: JSON when it parses
+// as JSON, a string when it does not — so `1.3.0` stays a string while `42` and
+// `{"a":1}` arrive as themselves. JSON the value domain excludes (§3.2) is no
+// value at all: a key twice in one map, a lone surrogate, a number past
+// binary64's range, a tree past `data-depth`. Taking it anyway rewrote it —
+// `1e400` as `null`, a repeated key as its last value — and a tree a few
+// thousand levels deep overflowed the serializer. Depth is judged on the text,
+// before any tree is built, for the same reason.
+// `json` is the content's own JSON text, around which nothing but JSON's
+// white space stood — what a write puts in as written.
+export function readContent(value: string): { ok: true; value: DataValue; json?: string } | { ok: false; why: string } {
+  if (tooDeep(value) >= 0) return { ok: false, why: `nesting deeper than ${DATA_DEPTH} levels is outside what this processor reads` };
+  let parsed: DataValue;
+  try { parsed = JSON.parse(value) as DataValue; } catch { return { ok: true, value }; }
+  const fault = iJsonFault(value);
+  return fault ? { ok: false, why: `${fault.why}, which the value domain excludes (I-JSON)` } : { ok: true, value: parsed, json: value.replace(/^[ \t\n\r]+|[ \t\n\r]+$/g, "") };
+}
 
 const oneLine = (v: string): boolean => !/[\r\n]/.test(v);
 
@@ -296,21 +322,28 @@ function writeTable(block: Block & { kind: "block" }, model: TableModel, path: C
   return { ok: true, body: out };
 }
 
-// A value-tree write rewrites the node and re-serializes the body, which
-// GEP-0005 already makes canonical for a JSON body. The new text is read as
-// JSON when it parses as JSON and as a string when it does not, so `1.3.0`
-// stays a string while `42` and `{"a":1}` arrive as themselves.
-// The caller has already established there IS a value tree — a block without
-// one never reaches here, it is refused by name above.
-function writeValue(block: Block & { kind: "block" }, path: CoordStep[], value: string, root: DataValue): WritePlan {
-  let parsed: DataValue;
-  try { parsed = JSON.parse(value) as DataValue; } catch { parsed = value; }
+// What a coordinate's edit does at the end of its path:
+//   put    — `set`: the value there replaced; one past a sequence's last
+//            element, appended; under a key a map does not have, added.
+//   insert — `add --before/--after`: a new element beside a sequence's element.
+//   remove — `delete`: the member or element taken out.
+export type TreeEdit = { op: "put"; value: string } | { op: "insert"; value: string; before: boolean } | { op: "remove" };
 
-  // Walk to the PARENT of the target with the READ projection, so the two
-  // paths cannot disagree about what a wrong turn is called. It hands back the
-  // node itself, and the node is a reference into `root`, so the write below
-  // lands in the tree this function re-serializes. Writing the walk a second
-  // time here duplicated every message — and every message's branch.
+// A value-tree edit. New text is read by readContent; the target is found by
+// the READ projection, so the two cannot disagree about a wrong turn; and a
+// json or jsonl body is edited by splicing its own text — the new value goes
+// where the old one stood, or beside its neighbours, and every other byte
+// stays: the neighbour a re-serialization would have rounded (an integer past
+// 2^53) and the author's layout alike. The caller has already established
+// there IS a value tree: a block without one never reaches here.
+function editValue(block: Block & { kind: "block" }, path: CoordStep[], edit: TreeEdit, root: DataValue, body: string[]): WritePlan {
+  let content: { value: DataValue; json?: string } | undefined;
+  if (edit.op !== "remove") {
+    const read = readContent(edit.value);
+    if (!read.ok) return { ok: false, why: `data: ${read.why}`, broken: true };
+    content = read;
+  }
+
   const parent = projectValue(root, path.slice(0, -1));
   if (!parent.ok) return { ok: false, why: parent.why };
   const cur = parent.json as DataValue;
@@ -319,41 +352,166 @@ function writeValue(block: Block & { kind: "block" }, path: CoordStep[], value: 
   if (last.kind === "word") return { ok: false, why: `a value tree has no reserved names, so \`${stepText(last)}\` addresses nothing` };
   if (last.kind === "key") {
     if (cur === null || typeof cur !== "object" || Array.isArray(cur)) return { ok: false, why: `\`${pathText(path)}\` names a key, but what it steps into is ${describe(cur)}` };
-    // A key that does not exist yet is CREATED: a write that only ever
-    // overwrites cannot fill in a document's own configuration.
-    (cur as { [k: string]: DataValue })[last.name] = parsed;
+    if (edit.op === "insert") return { ok: false, why: `\`${pathText(path)}\` names a map's member, and a map has no order to insert into — add a member by writing its key with \`set\`` };
+    if (edit.op === "remove" && !Object.prototype.hasOwnProperty.call(cur, last.name)) return { ok: true, body, absent: true };
   } else {
     if (!Array.isArray(cur)) return { ok: false, why: `\`${pathText(path)}\` names a position, but what it steps into is ${describe(cur)}` };
-    if (last.n < 0 || last.n >= cur.length) return { ok: false, why: `\`${pathText(path)}\` is out of range: that sequence has ${cur.length} element${cur.length === 1 ? "" : "s"} — \`set\` replaces a unit, it does not append` };
-    cur[last.n] = parsed;
+    const len = cur.length;
+    const shown = `${len} element${len === 1 ? "" : "s"}`;
+    if (edit.op === "remove" && last.n >= len) return { ok: true, body, absent: true };
+    if (edit.op === "insert" && last.n >= len) return { ok: false, why: `\`${pathText(path)}\` is out of range: that sequence has ${shown}, so there is no element to insert beside`, missing: true };
+    if (edit.op === "put" && last.n > len) return { ok: false, why: `\`${pathText(path)}\` is out of range: that sequence has ${shown} — \`[${len}]\` appends one, and \`set\` writes no further` };
   }
 
   const fmt = attrStr(block.attrs, "format") ?? "json";
-  if (fmt === "jsonl") {
-    // One compact record per line, which is what the format is. A jsonl body
-    // always parses to a sequence — the engine builds it — so this asserts the
-    // shape rather than branching on it: a fallback arm would be a branch no
-    // document could reach.
-    return { ok: true, body: (root as DataValue[]).map((r) => JSON.stringify(r)) };
-  }
   if (fmt === "edn") {
-    // Written back AS EDN. Without this arm the fall-through below would have
-    // rewritten an EDN body as JSON — a coordinate write silently changing the
-    // block's format, which is the sort of thing `set` exists not to do.
+    // Written back AS EDN, the whole tree: the node changes in the tree, and
+    // the tree is re-emitted. Without this arm an edit would have rewritten an
+    // EDN body as JSON — silently changing the block's format.
+    if (last.kind === "key") {
+      const map = cur as { [k: string]: DataValue };
+      if (edit.op === "remove") delete map[last.name];
+      else map[last.name] = content!.value;
+    } else {
+      const seq = cur as DataValue[];
+      if (edit.op === "remove") seq.splice(last.n, 1);
+      else if (edit.op === "insert") seq.splice(edit.before ? last.n : last.n + 1, 0, content!.value);
+      else seq[last.n] = content!.value;
+    }
     return { ok: true, body: serializeEdn(root) };
   }
   // Any other `format=` leaves the body raw with no value tree at all, so this
-  // function is never entered for one: `planCoordWrite` reaches it only when
-  // `block.value` is set, and only the engines above set it. `yaml` was the
-  // exception — it HAS a reader, so a coordinate write landed here and the line
-  // below re-emitted it as JSON, changing the block's format on a write that
-  // asked for one key. `serialize` already refuses exactly that, for exactly
-  // this reason: a yaml body's authored bytes ARE its canonical form. Two copies
-  // of one judgement, and this was the copy that had it wrong.
-  if (fmt !== "json") {
-    return { ok: false, why: `this processor reads \`${fmt}\` but does not write it, so a coordinate write here would rewrite the body as JSON — edit the block's body instead` };
+  // function is never entered for one — save `yaml`, which HAS a reader. Its
+  // authored bytes are its canonical form (`serialize` refuses to rewrite one
+  // for the same reason), so an edit would have re-emitted it as JSON.
+  if (fmt !== "json" && fmt !== "jsonl") {
+    return { ok: false, why: `this processor reads \`${fmt}\` but does not write it, so a coordinate edit here would rewrite the body as JSON — edit the block's body instead` };
   }
-  return { ok: true, body: JSON.stringify(root, null, 2).split("\n") };
+  // The new value's text: the content as written when it is JSON, a string
+  // literal when it is not.
+  const text = content === undefined ? "" : content.json ?? JSON.stringify((edit as { value: string }).value);
+  const json: TreeEdit = edit.op === "remove" ? edit : { ...edit, value: text };
+  if (fmt === "json") return { ok: true, body: editJson(body.join("\n"), path, json).split("\n") };
+
+  // One record per line: a record is added or removed as its line, and an edit
+  // inside one changes that line only, the new value folded onto it.
+  const folded: TreeEdit = json.op === "remove" ? json : { ...json, value: json.value.replace(/\s*\n\s*/g, " ") };
+  const out = [...body];
+  const n = (path[0] as { n: number }).n;
+  if (path.length === 1) {
+    if (folded.op === "remove") { out.splice(recordLine(body, n), 1); return { ok: true, body: out }; }
+    if (folded.op === "insert") { const at = recordLine(body, n); out.splice(folded.before ? at : at + 1, 0, folded.value); return { ok: true, body: out }; }
+    const count = (root as DataValue[]).length;
+    if (n === count) { out.splice(count === 0 ? out.length : recordLine(body, count - 1) + 1, 0, folded.value); return { ok: true, body: out }; }
+  }
+  const at = recordLine(body, n);
+  const line = out[at]!;
+  const from = line.length - line.trimStart().length;
+  const to = line.trimEnd().length;
+  const record = path.length === 1 ? (folded as { value: string }).value : editJson(line.slice(from, to), path.slice(1), folded);
+  out[at] = line.slice(0, from) + record + line.slice(to);
+  return { ok: true, body: out };
+}
+
+/** The body line holding a jsonl body's record `n`: its `n`th non-blank line. */
+function recordLine(body: string[], n: number): number {
+  let seen = -1;
+  for (let i = 0; i < body.length; i++) {
+    if (body[i]!.trim() !== "" && ++seen === n) return i;
+  }
+  return -1; // unreachable: the record was found in the tree first
+}
+
+// Where each value of a JSON text starts and ends, and for a map where each
+// member's key does — read off a text JSON.parse already accepted, inside
+// data-depth, so the recursion is bounded.
+interface Spot { start: number; end: number; items?: Spot[]; members?: { key: string; keyStart: number; keyEnd: number; value: Spot }[] }
+
+function spot(text: string, i: number): Spot {
+  const ws = (k: number): number => {
+    while (k < text.length && (text[k] === " " || text[k] === "\t" || text[k] === "\n" || text[k] === "\r")) k++;
+    return k;
+  };
+  const stringEnd = (k: number): number => {
+    let j = k + 1;
+    while (text[j] !== '"') j += text[j] === "\\" ? 2 : 1;
+    return j + 1;
+  };
+  const c = text[i];
+  if (c === "{") {
+    const members: NonNullable<Spot["members"]> = [];
+    let k = ws(i + 1);
+    while (text[k] !== "}") {
+      const keyEnd = stringEnd(k);
+      const value = spot(text, ws(ws(keyEnd) + 1));
+      members.push({ key: JSON.parse(text.slice(k, keyEnd)) as string, keyStart: k, keyEnd, value });
+      k = ws(value.end);
+      if (text[k] === ",") k = ws(k + 1);
+    }
+    return { start: i, end: k + 1, members };
+  }
+  if (c === "[") {
+    const items: Spot[] = [];
+    let k = ws(i + 1);
+    while (text[k] !== "]") {
+      const item = spot(text, k);
+      items.push(item);
+      k = ws(item.end);
+      if (text[k] === ",") k = ws(k + 1);
+    }
+    return { start: i, end: k + 1, items };
+  }
+  if (c === '"') return { start: i, end: stringEnd(i) };
+  let k = i;
+  while (k < text.length && !" \t\n\r,]}".includes(text[k]!)) k++;
+  return { start: i, end: k };
+}
+
+/**
+ * `text` with one edit at `path`. A new member or element goes after the
+ * container's last one, or beside its anchor, separated the way its neighbours
+ * are separated from each other — a sole one: on a line of its own when it
+ * stands on one, else after `, `. A removed one takes the separator after it
+ * (the one before it, when it is the last), and a container left empty is `{}`
+ * or `[]`.
+ */
+function editJson(text: string, path: CoordStep[], edit: TreeEdit): string {
+  let lead = 0;
+  while (lead < text.length && " \t\n\r".includes(text[lead]!)) lead++;
+  let at = spot(text, lead);
+  for (const step of path.slice(0, -1)) {
+    at = step.kind === "key" ? at.members!.find((m) => m.key === step.name)!.value : at.items![(step as { n: number }).n]!;
+  }
+  const last = path[path.length - 1]!;
+  const isMap = at.members !== undefined;
+  const entries = isMap ? at.members!.map((m) => ({ start: m.keyStart, end: m.value.end })) : at.items!.map((s) => ({ start: s.start, end: s.end }));
+  const i = last.kind === "index" ? last.n : at.members!.findIndex((m) => m.key === (last as { name: string }).name);
+  const sep = (k: number): string => {
+    if (k > 0) return text.slice(entries[k - 1]!.end, entries[k]!.start);
+    if (entries.length > 1) return text.slice(entries[0]!.end, entries[1]!.start);
+    const before = text.slice(at.start + 1, entries[0]!.start);
+    const nl = before.lastIndexOf("\n");
+    return nl < 0 ? ", " : "," + before.slice(nl);
+  };
+  if (edit.op === "remove") {
+    if (entries.length === 1) return text.slice(0, at.start) + (isMap ? "{}" : "[]") + text.slice(at.end);
+    if (i + 1 < entries.length) return text.slice(0, entries[i]!.start) + text.slice(entries[i + 1]!.start);
+    return text.slice(0, entries[i - 1]!.end) + text.slice(entries[i]!.end);
+  }
+  if (edit.op === "insert") {
+    const e = entries[i]!;
+    return edit.before ? text.slice(0, e.start) + edit.value + sep(i) + text.slice(e.start) : text.slice(0, e.end) + sep(i) + edit.value + text.slice(e.end);
+  }
+  if (i >= 0 && i < entries.length) {
+    const target = isMap ? at.members![i]!.value : at.items![i]!;
+    return text.slice(0, target.start) + edit.value + text.slice(target.end);
+  }
+  // Appended: an element past the last, or a member under a new key.
+  const colon = isMap && at.members!.length > 0 ? text.slice(at.members!.at(-1)!.keyEnd, at.members!.at(-1)!.value.start) : ": ";
+  const entry = isMap ? JSON.stringify((last as { name: string }).name) + colon + edit.value : edit.value;
+  if (entries.length === 0) return text.slice(0, at.start) + (isMap ? `{${entry}}` : `[${entry}]`) + text.slice(at.end);
+  const tail = entries.at(-1)!;
+  return text.slice(0, tail.end) + sep(entries.length - 1) + entry + text.slice(tail.end);
 }
 
 // --------------------------------------------------------------------------
@@ -421,8 +579,14 @@ function metaLiteral(v: DataValue): string {
  */
 export function planMetaWrite(key: string, value: string, body: string[]): WritePlan {
   if (!oneLine(value)) return { ok: false, why: "a meta value is one line; the replacement spans several" };
-  let parsed: DataValue;
-  try { parsed = JSON.parse(value) as DataValue; } catch { parsed = value; }
+  const content = readContent(value);
+  if (!content.ok) return { ok: false, why: `a meta value is a string, a number or a boolean; this content is JSON with ${content.why}` };
+  const parsed = content.value;
+  // §4: a meta value is a scalar. A map or a sequence has no meta literal — it
+  // was written as `[object Object]`, or a sequence as its items run together.
+  if (parsed !== null && typeof parsed === "object") {
+    return { ok: false, why: `a meta value is a string, a number or a boolean; this content is a JSON ${Array.isArray(parsed) ? "sequence" : "map"}` };
+  }
   const literal = metaLiteral(parsed);
 
   const out = [...body];
@@ -454,7 +618,7 @@ export function planCoordWrite(block: Block, path: CoordStep[], value: string, b
     return { ok: false, why: "a form's field is a block of its own — give it an `{#id}` and edit it with `geml set '#<id>'`; a coordinate writes a unit inside a table or a `data` block" };
   }
   if (block.table) return writeTable(block, block.table, path, value, body);
-  if (block.value !== undefined) return writeValue(block, path, value, block.value);
+  if (block.value !== undefined) return editValue(block, path, { op: "put", value }, block.value, body);
   if (block.type === "meta") {
     // A `meta` block that carries an id of its own is written exactly as the
     // merged `#meta` is: by key, into the body that declares it. Refusing here
@@ -465,6 +629,32 @@ export function planCoordWrite(block: Block, path: CoordStep[], value: string, b
   }
   if (block.type === "data") return { ok: false, why: noValueTree(block) };
   return { ok: false, why: noUnits(block, path) };
+}
+
+/**
+ * Plan an insertion beside, or the removal of, the unit a coordinate names, as
+ * the block's new body. Only a value tree's sequence takes an insertion; a
+ * value tree's member or element, and a `meta` block's key, take a removal.
+ */
+export function planCoordEdit(block: Block, path: CoordStep[], edit: TreeEdit, body: string[]): WritePlan {
+  if (edit.op === "put") return planCoordWrite(block, path, edit.value, body);
+  if (path.length === 0) return { ok: false, why: "a coordinate needs at least one `[…]` step" };
+  const what = edit.op === "insert" ? "an element is inserted into a `data` block's sequence" : "a member or an element is removed from a `data` block's value tree, or a key from a `meta` block";
+  if (block.kind !== "block") return { ok: false, why: `${what}; \`${block.kind}\` has none` };
+  if (block.type === "data" && block.value !== undefined) return editValue(block, path, edit, block.value, body);
+  if (block.type === "meta" && edit.op === "remove") {
+    if (path.length === 1 && path[0]!.kind === "key") return planMetaRemove(path[0]!.name, body);
+    return { ok: false, why: `a meta key is removed as \`["<key>"]\` — one quoted key, and nothing deeper` };
+  }
+  if (block.type === "data") return { ok: false, why: noValueTree(block) };
+  return { ok: false, why: `${what}, and this is a \`${block.type}\` block — edit its body instead` };
+}
+
+/** The removal of one meta key's line from the body that defines it. */
+export function planMetaRemove(key: string, body: string[]): WritePlan {
+  const at = body.findIndex((l) => new RegExp(`^\\s*${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*=`).test(l));
+  if (at < 0) return { ok: true, body, absent: true };
+  return { ok: true, body: body.filter((_, i) => i !== at) };
 }
 
 /**
