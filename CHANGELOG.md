@@ -28,6 +28,22 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+## [1.12.5] — 2026-10-09
+
+- **GEML's MCP server runs on Cloudflare, with nothing to install.**
+  `https://geml-mcp.supermarket.workers.dev/mcp` serves the nine document tools
+  over Streamable HTTP: the document travels in each call as `source`, and a
+  write comes back as `document`, the whole new text, for the caller to save.
+  Nothing is stored and nothing needs an account. `geml_history` and
+  `geml_revert` are not served, since nothing is kept, and a document with a
+  cross-document reference takes no write there, since the other document
+  cannot be read. The registry entry lists it under `remotes`; the Worker is
+  `integrations/geml-mcp-worker/`.
+- **`geml mcp` speaks the 2026-07-28 revision of MCP as well.** A request that
+  carries its protocol version in `_meta` is answered without a handshake, and
+  `server/discover` is served; every other request is answered as before.
+  `initialize` now replies with a version the server speaks — the one asked
+  for, or the newest it knows — instead of echoing whatever it was sent.
 - **Fixed: parsing a long document had become about twice as slow** (1.11.6
   and 1.12.0). The inline scanner read text as one-character strings, three
   times over for a link's brackets, and on a document that mixes one- and

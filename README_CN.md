@@ -460,6 +460,10 @@ geml check  doc.geml                                     # 只校验：诊断 + 
 重写整个文件——对 Markdown 与 GEML 同样生效。本地运行，支持 Windows、macOS、Linux；
 `--root` 是服务器被限定的根目录（用 `.` 或 `${workspaceFolder}` 自动绑定当前工作区）。
 
+**无需安装** —— 同一套工具也运行在 Cloudflare 上：
+`https://geml-mcp.supermarket.workers.dev/mcp`。在那里文档随每次调用传入，写入的结果以
+文本返回；详见 [Worker 的 README](integrations/geml-mcp-worker/README.md)。
+
 **Claude Code** —— 一键安装（自动配置 skill、全局 CLI 与 MCP 注册）：
 
 ```sh
