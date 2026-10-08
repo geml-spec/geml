@@ -81,7 +81,7 @@ export interface RefSink {
 /** Length of the backtick run starting at `i`. */
 export function backtickRun(s: string, i: number): number {
   let n = 0;
-  while (s[i + n] === "`") n++;
+  while (s.charCodeAt(i + n) === 96) n++;
   return n;
 }
 
@@ -208,40 +208,42 @@ interface Pairs {
 // CommonMark's rule, those atoms binding tighter than link text. A
 // destination's parentheses skip a `\` and the character after it. A
 // reference's or a footnote's brackets are an address's, and are counted raw.
-const ESCAPABLE = /[!-/:-@[-`{-~]/;
+//
+// One pass builds all three maps, reading char codes. A document's inline
+// strings come in several representations (one- and two-byte, sliced,
+// concatenated), and reading them as one-character strings made every read a
+// polymorphic load: three passes of that doubled the parse of a long document.
+const isEscapable = (c: number): boolean => (c >= 33 && c <= 47) || (c >= 58 && c <= 64) || (c >= 91 && c <= 96) || (c >= 123 && c <= 126);
 function pairsOf(s: string): Pairs {
-  const br = new Int32Array(s.length).fill(-1);
-  const lb = new Int32Array(s.length).fill(-1);
-  const pa = new Int32Array(s.length).fill(-1);
+  const n = s.length;
+  const br = new Int32Array(n).fill(-1);
+  const lb = new Int32Array(n).fill(-1);
+  const pa = new Int32Array(n).fill(-1);
   const bs: number[] = [], ls: number[] = [], ps: number[] = [];
-  for (let i = 0; i < s.length; i++) {
-    const c = s[i];
-    if (c === "[") bs.push(i);
-    else if (c === "]") { const j = bs.pop(); if (j !== undefined) br[j] = i; }
-  }
-  for (let i = 0; i < s.length;) {
-    const c = s[i]!;
-    if (c === "\\" && ESCAPABLE.test(s[i + 1] ?? "")) { i += 2; continue; }
-    if (c === "`") {
-      const n = backtickRun(s, i);
-      const close = findCodeSpanClose(s, i, n);
-      i = close >= 0 ? close + n : i + n;
-      continue;
+  // Link text resumes at lbFrom past an escape, a code span or inline math; a
+  // destination's parentheses resume at paFrom past a backslash's character.
+  let lbFrom = 0, paFrom = 0;
+  for (let i = 0; i < n; i++) {
+    const c = s.charCodeAt(i);
+    if (c === 91) bs.push(i);
+    else if (c === 93) { const j = bs.pop(); if (j !== undefined) br[j] = i; }
+    if (i >= lbFrom) {
+      if (c === 92 && isEscapable(s.charCodeAt(i + 1))) lbFrom = i + 2;
+      else if (c === 96) {
+        const k = backtickRun(s, i);
+        const close = findCodeSpanClose(s, i, k);
+        lbFrom = close >= 0 ? close + k : i + k;
+      } else if (c === 36) {
+        const close = s.indexOf("$", i + 1);
+        lbFrom = close > i + 1 ? close + 1 : i + 1;
+      } else if (c === 91) ls.push(i);
+      else if (c === 93) { const j = ls.pop(); if (j !== undefined) lb[j] = i; }
     }
-    if (c === "$") {
-      const close = s.indexOf("$", i + 1);
-      i = close > i + 1 ? close + 1 : i + 1;
-      continue;
+    if (i >= paFrom) {
+      if (c === 92) paFrom = i + 2;
+      else if (c === 40) ps.push(i);
+      else if (c === 41) { const j = ps.pop(); if (j !== undefined) pa[j] = i; }
     }
-    if (c === "[") ls.push(i);
-    else if (c === "]") { const j = ls.pop(); if (j !== undefined) lb[j] = i; }
-    i++;
-  }
-  for (let i = 0; i < s.length; i++) {
-    const c = s[i];
-    if (c === "\\") { i++; continue; }
-    if (c === "(") ps.push(i);
-    else if (c === ")") { const j = ps.pop(); if (j !== undefined) pa[j] = i; }
   }
   return { br, lb, pa, off: 0 };
 }
@@ -343,16 +345,23 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth: number, p: Pai
   // reporting `line` for everything in it sent a reference on a paragraph's
   // third line to its first — and an author looking there found nothing wrong.
   const at = lineOf(s, line);
-  let buf = "";
-  const flush = () => { if (buf) { out.push(buf); buf = ""; } };
+  // Literal text is the source between atoms, so it is cut out once, at the
+  // next atom or the end, from where the last atom ended.
+  let textFrom = 0;
+  const flush = (to: number) => { if (to > textFrom) out.push(s.slice(textFrom, to)); };
   // Emit `node` as the atom occupying source span [start, end).
   const atom = (node: Inline, start: number, end: number) => {
-    flush();
+    flush(start);
     out.push({ node, first: s[start]!, last: s[end - 1]! });
+    textFrom = end;
   };
   let i = 0;
 
   while (i < s.length) {
+    // Only `\`, a backtick, `$`, `[` and `!` can start an atom; anything else is
+    // text, passed over by its char code (see pairsOf on why not `s[i]`).
+    const code = s.charCodeAt(i);
+    if (code !== 92 && code !== 96 && code !== 36 && code !== 91 && code !== 33) { i++; continue; }
     const c = s[i]!;
 
     // §5.3(1): backslash escape / hard break.
@@ -371,7 +380,6 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth: number, p: Pai
         i += 2;
         continue;
       }
-      buf += c;
       i++;
       continue;
     }
@@ -386,7 +394,6 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth: number, p: Pai
         i = close + n;
         continue;
       }
-      buf += "`".repeat(n);
       i += n;
       continue;
     }
@@ -399,7 +406,6 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth: number, p: Pai
         i = close + 1;
         continue;
       }
-      buf += c;
       i++;
       continue;
     }
@@ -546,10 +552,9 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth: number, p: Pai
       }
     }
 
-    buf += c;
     i++;
   }
-  flush();
+  flush(s.length);
   return out;
 }
 
@@ -646,7 +651,8 @@ function tokenizeRuns(parts: (string | AtomPart)[]): { head: ENode | null; first
         }
         i = j;
       } else {
-        let j = i; while (j < s.length && s[j] !== "*" && s[j] !== "~") j++;
+        let j = i;
+        while (j < s.length) { const d = s.charCodeAt(j); if (d === 42 || d === 126) break; j++; } // `*`, `~`
         push({ t: "text", v: s.slice(i, j), prev: null, next: null });
         i = j;
       }
