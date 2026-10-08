@@ -89,7 +89,9 @@ pub fn verify(doc: &Document, host: Option<&dyn Host>) -> Report {
         match resolver.target(d, id) {
             Target::Hit { .. } => {}
             Target::NoHost => r.unchecked.push(reference.to_string()),
-            Target::Unreadable => r.dangling.push(Dangling { at, reference: reference.to_string(), why: "the document could not be read".into() }),
+            Target::Unreadable | Target::Reported => {
+                r.dangling.push(Dangling { at, reference: reference.to_string(), why: "the document could not be read".into() })
+            }
             Target::Unresolved { message, .. } => r.dangling.push(Dangling { at, reference: reference.to_string(), why: message }),
         }
     };

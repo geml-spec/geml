@@ -128,7 +128,95 @@ pub struct JsonError {
 /// Parse exactly one I-JSON value from `text` (RFC 8259 grammar, RFC 7493
 /// limits).
 pub fn parse(text: &str) -> Result<Value, JsonError> {
-    let mut p = Parser { s: text.as_bytes(), text, i: 0, depth: 0 };
+    parse_as(text, true)
+}
+
+/// Whether `text` is one JSON value by RFC 8259's grammar, whatever I-JSON's
+/// limits say of it: what tells a value the domain excludes from text that is
+/// not JSON at all. The depth bound still holds, so a caller judges depth
+/// first (`too_deep`).
+pub fn is_json(text: &str) -> bool {
+    parse_as(text, false).is_ok()
+}
+
+/// The byte offset of the bracket that opens level `DATA_DEPTH` + 1, read
+/// off the text alone — strings skipped — so a tree too deep to keep is
+/// refused before one is built.
+pub fn too_deep(text: &str) -> Option<usize> {
+    let s = text.as_bytes();
+    let mut depth: i64 = 0;
+    let mut i = 0;
+    while i < s.len() {
+        match s[i] {
+            b'"' => {
+                i += 1;
+                while i < s.len() && s[i] != b'"' {
+                    i += if s[i] == b'\\' { 2 } else { 1 };
+                }
+            }
+            b'{' | b'[' => {
+                depth += 1;
+                if depth > DATA_DEPTH as i64 {
+                    return Some(i);
+                }
+            }
+            b'}' | b']' => depth -= 1,
+            _ => {}
+        }
+        i += 1;
+    }
+    None
+}
+
+/// The number literals of a JSON text, with their byte offsets; strings are
+/// skipped.
+pub fn number_literals(text: &str) -> Vec<(usize, &str)> {
+    let s = text.as_bytes();
+    let digits = |mut k: usize| {
+        let from = k;
+        while k < s.len() && s[k].is_ascii_digit() {
+            k += 1;
+        }
+        (k > from).then_some(k)
+    };
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < s.len() {
+        match s[i] {
+            b'"' => {
+                i += 1;
+                while i < s.len() && s[i] != b'"' {
+                    i += if s[i] == b'\\' { 2 } else { 1 };
+                }
+                i += 1;
+            }
+            b'-' | b'0'..=b'9' => {
+                let Some(mut k) = digits(if s[i] == b'-' { i + 1 } else { i }) else {
+                    i += 1;
+                    continue;
+                };
+                if s.get(k) == Some(&b'.') {
+                    if let Some(f) = digits(k + 1) {
+                        k = f;
+                    }
+                }
+                if matches!(s.get(k), Some(b'e' | b'E')) {
+                    let sign = usize::from(matches!(s.get(k + 1), Some(b'+' | b'-')));
+                    if let Some(e) = digits(k + 1 + sign) {
+                        k = e;
+                    }
+                }
+                out.push((i, &text[i..k]));
+                i = k;
+            }
+            _ => i += 1,
+        }
+    }
+    out
+}
+
+fn parse_as(text: &str, strict: bool) -> Result<Value, JsonError> {
+    let mut p = Parser { s: text.as_bytes(), text, i: 0, depth: 0, strict };
     p.ws();
     let v = p.value()?;
     p.ws();
@@ -143,6 +231,9 @@ struct Parser<'a> {
     text: &'a str,
     i: usize,
     depth: usize,
+    /// I-JSON's limits apply: no name twice in one object, no lone
+    /// surrogate, no number past binary64's range.
+    strict: bool,
 }
 
 impl<'a> Parser<'a> {
@@ -206,7 +297,7 @@ impl<'a> Parser<'a> {
                 return Err(self.err("expected a member name"));
             }
             let k = self.string()?;
-            if m.iter().any(|(x, _)| *x == k) {
+            if self.strict && m.iter().any(|(x, _)| *x == k) {
                 return Err(self.err(&format!("the name {} occurs twice in one object", quote(&k))));
             }
             self.ws();
@@ -309,10 +400,18 @@ impl<'a> Parser<'a> {
                                         continue;
                                     }
                                 }
-                                return Err(self.err("a lone surrogate is not a character"));
+                                if self.strict {
+                                    return Err(self.err("a lone surrogate is not a character"));
+                                }
+                                out.push(char::REPLACEMENT_CHARACTER);
+                                continue;
                             }
                             if (0xDC00..0xE000).contains(&hi) {
-                                return Err(self.err("a lone surrogate is not a character"));
+                                if self.strict {
+                                    return Err(self.err("a lone surrogate is not a character"));
+                                }
+                                out.push(char::REPLACEMENT_CHARACTER);
+                                continue;
                             }
                             out.push(char::from_u32(hi).expect("a BMP scalar"));
                         }
@@ -369,7 +468,7 @@ impl<'a> Parser<'a> {
             }
         }
         let v: f64 = self.text[start..self.i].parse().map_err(|_| self.err("bad number"))?;
-        if !v.is_finite() {
+        if self.strict && !v.is_finite() {
             return Err(self.err("a number past the range of binary64 has no value"));
         }
         Ok(Value::Number(v))

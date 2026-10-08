@@ -43,7 +43,7 @@ pub fn inline(n: &Inline) -> String {
             f.push(("children", inlines(children)));
             obj(f)
         }
-        Inline::AutoRef { doc, anchor, value } | Inline::Project { doc, anchor, value } => {
+        Inline::AutoRef { doc, anchor, value, base } | Inline::Project { doc, anchor, value, base } => {
             let ty = if matches!(n, Inline::AutoRef { .. }) { "autoref" } else { "project" };
             let mut f = vec![("type", quote(ty))];
             if let Some(d) = doc {
@@ -52,6 +52,9 @@ pub fn inline(n: &Inline) -> String {
             f.push(("anchor", quote(anchor)));
             if let Some(v) = value {
                 f.push(("value", quote(v)));
+            }
+            if let Some(b) = base {
+                f.push(("base", quote(b)));
             }
             obj(f)
         }
@@ -108,6 +111,8 @@ pub fn item(it: &Item) -> String {
             ("kind", quote("heading")),
             ("level", h.level.to_string()),
             ("id", quote(&h.id)),
+            ("classes", arr(h.classes.iter().map(|c| quote(c)))),
+            ("attrs", map(&h.attrs)),
             ("inlines", inlines(&h.inlines)),
             ("line", h.line.to_string()),
         ]),
@@ -150,6 +155,7 @@ pub fn item(it: &Item) -> String {
 /// addresses.
 pub fn document(d: &Document) -> String {
     obj(vec![
+        ("kind", quote("document")),
         ("children", arr(d.children.iter().map(item))),
         (
             "diagnostics",

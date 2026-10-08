@@ -62,9 +62,14 @@ fn references_resolve_or_say_why() {
     assert_eq!(codes("See [x](#nope)."), vec!["unresolved-reference:error"]);
     assert_eq!(codes("See [x](#a b)."), vec!["unresolved-reference:error"]);
     assert_eq!(codes(&format!("{T}See [x](#t[9]).")), vec!["unresolved-reference:error"]);
-    clean(&format!("{T}See [x](#t[1]) and [y](#t) and [z](page.html) and [w](https://x.test)."));
+    // A link into another format's document leaves its fragment alone, but
+    // the document must exist (§5.2): with no resolver that goes unchecked.
+    assert_eq!(
+        codes(&format!("{T}See [x](#t[1]) and [y](#t) and [z](page.html) and [w](https://x.test).")),
+        vec!["unchecked-cross-document-reference:warning"]
+    );
     assert_eq!(codes("See [x](other.geml#a) and [[other.geml#b]] and ![[other.geml#c]]."), vec!["unchecked-cross-document-reference:warning"; 3]);
-    clean("See [[notes.md#a]] and [x](notes.md#a).");
+    assert_eq!(codes("See [[notes.md#a]] and [x](notes.md#a) and ![[notes.md#a]]."), vec!["unchecked-cross-document-reference:warning"; 3]);
     assert_eq!(codes("A note[^n] and[^gone].\n\n=== note {#n}\nN\n==="), vec!["unresolved-footnote:error"]);
     assert_eq!(codes("![x](other.geml#a)"), vec!["media-target-is-document:error"]);
     assert_eq!(codes("{{nope}}"), vec!["unknown-metadata-reference:error"]);
@@ -144,7 +149,50 @@ fn data_blocks() {
     assert_eq!(codes("=== data {src=a.txt}\n==="), vec!["bad-data-source:error"]);
     assert_eq!(codes("=== data {src=\"ftp://x/a.json\"}\n==="), vec!["unresolvable-data-source:error"]);
     clean("=== data {src=\"https://x/a.json\"}\n===\n\n=== data {src=log.jsonl#L2-9}\n===");
-    assert_eq!(codes("=== data {format=edn}\n{}\n==="), vec!["data-format-no-engine:warning"]);
+    // `edn` has the reference implementation's reading (crate::edn); `toml` none.
+    clean("=== data {format=edn}\n{:a [1 #{2}]}\n===");
+    assert_eq!(codes("=== data {format=edn}\n(1)\n==="), vec!["data-parse:error"]);
+    assert_eq!(codes("=== data {format=toml}\na = 1\n==="), vec!["data-format-no-engine:warning"]);
+    // data-parse names the line a body stops parsing on (the fence is line 3),
+    // and every jsonl line that is not one JSON value.
+    let at = |body: &str, fmt: &str| -> Vec<(String, usize)> {
+        geml::parse(&format!("# T\n\n=== data {{#d{fmt}}}\n{body}\n===\n")).diagnostics.iter().map(|d| (d.code.to_string(), d.line)).collect()
+    };
+    let dp = |lines: &[usize]| -> Vec<(String, usize)> { lines.iter().map(|l| ("data-parse".to_string(), *l)).collect() };
+    assert_eq!(at("not json", ""), dp(&[4]));
+    assert_eq!(at("{\n\"a\":", ""), dp(&[5]));
+    assert_eq!(at("[1,\n 2,\n x]", ""), dp(&[6]));
+    assert_eq!(at("[\"a\\q\"]", ""), dp(&[4]));
+    assert_eq!(at("{\"a\":1}\nnot json\n\nnor this", " format=jsonl"), dp(&[5, 7]));
+    // The reference parser's table, path by path.
+    let deep = "[".repeat(201);
+    for (body, line) in [
+        ("\"unterminated", 4),
+        ("\"tab\there\"", 4),
+        ("[\"\\u12x4\"]", 4),
+        ("[\"\\u00e9\", \"\\n\",\n \"\\x\"]", 5),
+        ("-", 4),
+        ("-x", 4),
+        ("01", 4),
+        ("1.", 4),
+        ("1.x", 4),
+        ("1e", 4),
+        ("1e+", 4),
+        ("1E-2 3", 4),
+        ("[0.5e3, -1,\n 1.0x]", 5),
+        ("{1: 2}", 4),
+        ("{\"a\" 1}", 4),
+        ("{\"a\": 1 \"b\": 2}", 4),
+        ("{\"a\": 1,\n}", 5),
+        ("{}\n{}", 5),
+        ("[]\n]", 5),
+        ("[true, false, null,\n nul]", 5),
+        ("[\n\n", 6),
+        ("{\"a\": [1, {\"b\": tru}]}", 4),
+        (deep.as_str(), 4),
+    ] {
+        assert_eq!(at(body, ""), dp(&[line]), "{body:?}");
+    }
     assert_eq!(codes("=== data {format=xml}\n<a/>\n==="), vec!["unknown-data-format:warning"]);
     assert_eq!(codes("=== data {format=jsonl}\n1\nnope\n==="), vec!["data-parse:error"]);
     assert_eq!(codes("=== data\n==="), vec!["data-parse:error"]);
@@ -216,7 +264,8 @@ fn table_forms_and_their_errors() {
     assert_eq!(proj("=== table {format=csv}\nA,B\n1,2\n==="), r##"table(["A","B"] ["1","2"])"##);
     assert_eq!(proj("=== table {format=csv header=0}\n1,2\n==="), r##"table(["A","B"] ["1","2"])"##);
     assert_eq!(proj("=== table\n| a | b |\n| c | d |\n==="), r##"table(["A","B"] ["a","b"] ["c","d"])"##);
-    assert_eq!(proj("=== table\n| H |\n| x |\n|---|\n| y |\n|---|\n==="), r##"table(["H"] ["x"] ["y"])"##);
+    // The header is the row just above the separator, and every row below it is a body row.
+    assert_eq!(proj("=== table\n| H |\n| x |\n|---|\n| y |\n|---|\n==="), r##"table(["x"] ["y"] ["---"])"##);
     assert_eq!(proj("=== table\n===\n"), "table([])");
     assert_eq!(proj("=== table {src=rows.csv}\n==="), "block:table");
 }

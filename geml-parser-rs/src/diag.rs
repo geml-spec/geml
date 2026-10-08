@@ -41,6 +41,7 @@ pub fn severity_of(code: &str) -> Severity {
         "unrecognized-vocabulary",
         "unknown-meta-key",
         "duplicate-meta-key",
+        "inexact-number",
         "unknown-table-format",
         "bad-embed-part",
         "ignored-table-delimiter",

@@ -77,14 +77,13 @@ fn references_across_documents_resolve_through_the_host() {
     assert!(codes_of(&d).is_empty(), "{:?}", d.diagnostics);
     assert!(geml::project(&d).starts_with(r##"ref("lib.geml#t[1][\"B\"]" -> "2") " " ref("lib.geml#meta[\"version\"]" -> "2") " " project("lib.geml#p") " " project("lib.geml#d[\"k\"][0]" -> "7")"##));
     let bad = with(&h, "doc.geml", "[[lib.geml#nope]] [[gone.geml#x]] ![[lib.geml#sec]] [z](gone.geml)\n\n=== embed {src=\"lib.geml#t[\\\"A\\\"]\"}\n===\n\n=== embed {src=gone.geml}\n===\n\n=== data {schema=gone.geml}\n1\n===\n\n=== data {schema=lib.geml#nope}\n1\n===\n");
+    // `gone.geml` is named four times and says it is missing once, as the
+    // reference parser reports it.
     assert_eq!(
         codes_of(&bad),
         vec![
             "embed-target-not-projectable:error",
             "inline-transclusion-not-inline:error",
-            "unresolvable-document:error",
-            "unresolvable-document:error",
-            "unresolvable-document:error",
             "unresolvable-document:error",
             "unresolved-cross-document-reference:error",
             "unresolved-cross-document-reference:error",

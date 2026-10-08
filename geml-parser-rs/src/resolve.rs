@@ -430,6 +430,8 @@ pub enum Target {
     NoHost,
     /// Another document the host could not read.
     Unreadable,
+    /// The same, already reported: a missing document says so once.
+    Reported,
     /// Nothing answers the anchor; `cross` when it was in another document.
     Unresolved {
         message: String,
@@ -452,11 +454,25 @@ pub struct Resolver<'a> {
     cache: RefCell<HashMap<String, Option<Rc<Index>>>>,
     /// The cells the document has read into its relations from elsewhere (§9.2).
     pub budget: Rc<Borrowed>,
+    /// The document is Markdown: a data file's cells are read as Markdown's
+    /// inline content too.
+    pub markdown: bool,
+    /// Documents of another format already reported missing: a link with no
+    /// fragment says so once per document.
+    missing: RefCell<HashSet<String>>,
 }
 
 impl<'a> Resolver<'a> {
     pub fn new(main: Rc<Index>, host: Option<&'a dyn Host>, name: &str) -> Self {
-        Resolver { main, host, name: name.to_string(), cache: RefCell::new(HashMap::new()), budget: Rc::default() }
+        Resolver {
+            main,
+            host,
+            name: name.to_string(),
+            cache: RefCell::new(HashMap::new()),
+            budget: Rc::default(),
+            markdown: false,
+            missing: RefCell::new(HashSet::new()),
+        }
     }
 
     /// The index of another document, parsed in its own right and without a
@@ -465,11 +481,13 @@ impl<'a> Resolver<'a> {
         let Some(host) = self.host else { return Err(Target::NoHost) };
         // §3.3: against this document's directory, then against the root.
         let key = crate::host::locate(host, &self.name, doc).or_else(|| crate::host::join(&self.name, doc)).unwrap_or_else(|| doc.to_string());
+        // A document that could not be read says so once (`Target::Reported`
+        // after that), however many references name it.
         if let Some(hit) = self.cache.borrow().get(&key) {
-            return hit.clone().ok_or(Target::Unreadable);
+            return hit.clone().ok_or(Target::Reported);
         }
         let parsed = crate::host::read_from(host, &self.name, doc).map(|text| {
-            let d = crate::parse_with(&text, &crate::Options { name: key.clone(), recognize: true, host: None, checks: false });
+            let d = crate::parse_with(&text, &crate::Options { name: key.clone(), recognize: true, host: None, checks: false, markdown: false });
             Rc::new(Index::of(&d))
         });
         self.cache.borrow_mut().insert(key, parsed.clone());
@@ -489,6 +507,7 @@ impl<'a> Resolver<'a> {
             None => (self.main.clone(), false),
             Some(d) => match self.document(d) {
                 Ok(i) => (i, true),
+                Err(Target::Reported) => return Target::Unresolved { message: format!("`{d}#{anchor}` is in a document that could not be read"), cross: true },
                 Err(t) => return t,
             },
         };
@@ -516,6 +535,7 @@ impl<'a> Resolver<'a> {
                 diags.push("unresolvable-document", line, format!("{what} names a document that could not be read"));
                 None
             }
+            Target::Reported => None,
             Target::Unresolved { message, cross } => {
                 diags.push(if cross { "unresolved-cross-document-reference" } else { "unresolved-reference" }, line, message);
                 None
@@ -531,6 +551,18 @@ pub struct Ctx<'a> {
     pub declared: &'a [String],
     pub name: &'a str,
     pub host: Option<&'a dyn Host>,
+    /// The text is Markdown (`Options::markdown`).
+    pub markdown: bool,
+    /// The document's lines, for what Markdown finds in the text itself.
+    pub lines: &'a [String],
+}
+
+/// What a Markdown document's links may target besides its ids: GitHub's
+/// heading anchors and its HTML anchors (NFD keys), and the block markers a
+/// `[[#^id]]` names.
+pub struct MdRefs {
+    pub targets: HashSet<String>,
+    pub markers: HashSet<String>,
 }
 
 /// The `profile` names the first `meta` definition declares (§4, §8.6).
@@ -591,21 +623,58 @@ pub fn finish(mut children: Vec<Item>, mut diags: Diags, cx: &Ctx) -> Document {
         }
     }
 
-    // §4: a heading without a declared id derives one from its text.
+    // §4: a heading without a declared id derives one from its text. In
+    // Markdown a derived id already taken gets GitHub's suffix — the second
+    // `## Notes` is `#notes-1` — since a Markdown author has no `{#id}` to
+    // write; only headings take part, and a declared id is never renamed.
+    let mut used: HashSet<String> = HashSet::new();
+    let mut next: HashMap<String, usize> = HashMap::new();
     walk_mut(&mut children, &mut |it| {
         if let Item::Heading(h) = it {
             if !h.declared {
                 h.id = derive_id(&h.text);
             }
+            if cx.markdown && !h.id.is_empty() {
+                if !h.declared && used.contains(&nfd(&h.id)) {
+                    let base = h.id.clone();
+                    let mut n = next.get(&nfd(&base)).copied().unwrap_or(0);
+                    loop {
+                        n += 1;
+                        h.id = format!("{base}-{n}");
+                        if !used.contains(&nfd(&h.id)) {
+                            break;
+                        }
+                    }
+                    next.insert(nfd(&base), n);
+                }
+                used.insert(nfd(&h.id));
+            }
         }
     });
 
     // §5: inline content, with the merged meta for interpolation.
+    // A Markdown code run is one code span, never parsed.
+    let md = cx.markdown;
     walk_mut(&mut children, &mut |it| match it {
-        Item::Paragraph(p) => p.inlines = parse_inline(&p.source, &mut InlineCtx::new(&meta, &mut diags, p.line)),
-        Item::Heading(h) => h.inlines = parse_inline(&h.text, &mut InlineCtx::new(&meta, &mut diags, h.line)),
-        Item::List(l) => list_items_mut(l, &mut |li| li.inlines = parse_inline(&li.source, &mut InlineCtx::new(&meta, &mut diags, li.line))),
+        Item::Paragraph(p) if p.code => p.inlines = vec![Inline::Code(p.source.clone())],
+        Item::Paragraph(p) => p.inlines = parse_inline(&p.source, &mut InlineCtx::new(&meta, &mut diags, p.line).with_markdown(md)),
+        Item::Heading(h) => h.inlines = parse_inline(&h.text, &mut InlineCtx::new(&meta, &mut diags, h.line).with_markdown(md)),
+        Item::List(l) => list_items_mut(l, &mut |li| li.inlines = parse_inline(&li.source, &mut InlineCtx::new(&meta, &mut diags, li.line).with_markdown(md))),
         _ => {}
+    });
+    let md_refs = md.then(|| {
+        let mut all = Vec::new();
+        walk(&children, &mut all);
+        let heads: Vec<(String, String, Vec<Inline>)> = all
+            .into_iter()
+            .filter_map(|it| match it {
+                Item::Heading(h) => Some((h.source.clone(), h.text.clone(), h.inlines.clone())),
+                _ => None,
+            })
+            .collect();
+        let mut targets = crate::markdown::github_anchors(&heads);
+        targets.extend(crate::markdown::html_anchors(cx.lines));
+        MdRefs { targets, markers: crate::markdown::block_markers(cx.lines) }
     });
 
     // §3.2 and §6: data values and table models; an unsafe embed is blanked.
@@ -613,7 +682,7 @@ pub fn finish(mut children: Vec<Item>, mut diags: Diags, cx: &Ctx) -> Document {
     let budget = Rc::new(Borrowed::default());
     blocks_mut(&mut children, &mut |b| match b.type_name.as_str() {
         "data" => b.value = crate::data::read_data(b, &mut diags, cx.host.map(|h| (h, cx.name))),
-        "table" => b.table = crate::table::read_table(b, &mut diags, cx.host.map(|h| (h, cx.name)), &budget),
+        "table" => b.table = crate::table::read_table(b, &mut diags, cx.host.map(|h| (h, cx.name)), &budget, cx.markdown),
         "embed" => {
             if let Some(src) = b.attr_text("src") {
                 if !src.trim().is_empty() && crate::inline::safe_dest(&src, false).is_empty() {
@@ -652,6 +721,7 @@ pub fn finish(mut children: Vec<Item>, mut diags: Diags, cx: &Ctx) -> Document {
         let pre = Rc::new(Index { snaps: snaps.clone(), heads: heads(&children), ids: idmap.clone(), prose: HashSet::new(), meta: meta.clone(), meta_blocks });
         let mut resolver = Resolver::new(pre, cx.host, cx.name);
         resolver.budget = budget.clone();
+        resolver.markdown = cx.markdown;
         let n = snaps.len();
         let mut v = Views {
             snaps: &snaps,
@@ -685,8 +755,24 @@ pub fn finish(mut children: Vec<Item>, mut diags: Diags, cx: &Ctx) -> Document {
     let index = Rc::new(Index { snaps: snapshot(&children), heads: heads(&children), ids: idmap, prose, meta: meta.clone(), meta_blocks });
     let mut resolver = Resolver::new(index.clone(), cx.host, cx.name);
     resolver.budget = budget;
+    resolver.markdown = cx.markdown;
     inlines_mut(&mut children, &mut |nodes, line| {
-        nodes_mut(nodes, &mut |n| resolve_inline(n, line, &resolver, &mut diags));
+        nodes_mut(nodes, &mut |n| resolve_inline(n, line, &resolver, &mut diags, md_refs.as_ref()));
+    });
+    // A table's cells are inline content, resolved at the table's line. A
+    // view's are copies of its source's, and say what those say; whatever they
+    // fail on was reported on the source.
+    blocks_mut(&mut children, &mut |b| {
+        let line = b.line;
+        let own = b.type_name == "table";
+        let Some(t) = b.table.as_mut() else { return };
+        let mut quiet = Diags::default();
+        let out = if own { &mut diags } else { &mut quiet };
+        for cell in t.rows.iter_mut().flatten() {
+            if let Some(nodes) = cell.inlines.as_mut() {
+                nodes_mut(nodes, &mut |n| resolve_inline(n, line, &resolver, out, md_refs.as_ref()));
+            }
+        }
     });
     for s in &index.snaps {
         check_block(s, &resolver, &mut diags);
@@ -706,6 +792,7 @@ pub fn finish(mut children: Vec<Item>, mut diags: Diags, cx: &Ctx) -> Document {
         declared: cx.declared.to_vec(),
         profiles: cx.vocab.profiles.iter().map(|p| p.name.to_string()).collect(),
         profile_diagnostics: Vec::new(),
+        markdown: cx.markdown,
     }
 }
 
@@ -863,7 +950,14 @@ fn start_view(i: usize, v: &mut Views, diags: &mut Diags) -> Start {
                 if v.resolver.host.is_some() && budget.spent(s.line, &what, diags) {
                     return Start::Ready(Source::Refused(vec![]));
                 }
-                source = match crate::table::table_from_file("src", &src, v.resolver.host.map(|h| (h, v.resolver.name.as_str())), s.line, diags) {
+                source = match crate::table::table_from_file(
+                    "src",
+                    &src,
+                    v.resolver.host.map(|h| (h, v.resolver.name.as_str())),
+                    s.line,
+                    v.resolver.markdown,
+                    diags,
+                ) {
                     Some(t) if !budget.take(t.columns.len().saturating_mul(t.rows.len()), s.line, &what, diags) => Source::Refused(t.columns),
                     t => Source::Relation(t),
                 };
@@ -893,9 +987,9 @@ fn finish_view(i: usize, source: Source, v: &mut Views, diags: &mut Diags) {
         end: s.line,
     };
     let out = match source {
-        Source::Failed => Some(Table { columns: vec![], rows: vec![], summary: None }),
-        Source::Refused(columns) => Some(Table { columns, rows: vec![], summary: None }),
-        Source::Relation(t) => t.map(|t| crate::view::derive(&block, Table { columns: t.columns, rows: t.rows, summary: None }, diags)),
+        Source::Failed => Some(Table::default()),
+        Source::Refused(columns) => Some(Table::new(columns, vec![], None)),
+        Source::Relation(t) => t.map(|t| crate::view::derive(&block, Table { summary: None, ..t }, diags)),
     };
     v.stack.pop();
     v.state[i] = 2;
@@ -911,20 +1005,72 @@ fn inline_ok(index: &Index, found: Found, coord: &Option<Coord>) -> bool {
     }
 }
 
-fn resolve_inline(n: &mut Inline, line: usize, r: &Resolver, diags: &mut Diags) {
+/// A reference into a document of another format (§5.2): its fragment is
+/// that format's to read, but the document must still be there — checked
+/// through the host, or reported unchecked without one.
+fn other_document(doc: &str, fragment: bool, line: usize, r: &Resolver, diags: &mut Diags) {
+    match r.host {
+        None => diags.push("unchecked-cross-document-reference", line, format!("`{doc}` is another document, and no document resolver was given")),
+        Some(host) => {
+            let there = crate::host::read_from(host, &r.name, doc).is_some()
+                || matches!(crate::host::file_from(host, &r.name, doc), Some(crate::host::FileState::Present(_)));
+            if !there && (fragment || r.missing.borrow_mut().insert(doc.to_string())) {
+                diags.push("unresolvable-document", line, format!("`{doc}` names a document that could not be read"));
+            }
+        }
+    }
+}
+
+fn resolve_inline(n: &mut Inline, line: usize, r: &Resolver, diags: &mut Diags, md: Option<&MdRefs>) {
+    // Markdown: `[[…]]` is a wikilink — a same-page one names an id, a heading
+    // by its text, a stretch of prose or a `^marker`; one to another note is
+    // Obsidian's to find, a `.geml` one keeps GEML's check. A footnote GFM
+    // never reports, and a `[t](#x)` may name GitHub's anchor or an HTML one.
+    if let Some(md) = md {
+        match &*n {
+            Inline::AutoRef { doc: Some(d), .. } if !is_geml_doc(d) => return,
+            Inline::AutoRef { doc: None, anchor, .. } => {
+                let found = match anchor.strip_prefix('^') {
+                    Some(m) => md.markers.contains(m),
+                    None => r.main.ids.contains_key(&nfd(anchor)) || r.main.ids.contains_key(&nfd(&derive_id(anchor))) || r.main.prose.contains(&nfd(anchor)),
+                };
+                if !found {
+                    diags.push("unresolved-reference", line, format!("`[[#{anchor}]]` names nothing in this document"));
+                }
+                return;
+            }
+            Inline::Footnote(_) => return,
+            Inline::Link { href: None, doc: None, anchor: Some(a), .. } if md.targets.contains(&nfd(a)) => return,
+            _ => {}
+        }
+    }
     let projecting = matches!(n, Inline::Project { .. });
     match n {
-        Inline::AutoRef { doc, anchor, value } | Inline::Project { doc, anchor, value } => {
-            if doc.as_deref().is_some_and(|d| !is_geml_doc(d)) {
+        Inline::AutoRef { doc, anchor, value, base } | Inline::Project { doc, anchor, value, base } => {
+            if let Some(d) = doc.as_deref().filter(|d| !is_geml_doc(d)) {
+                other_document(d, true, line, r, diags);
                 return;
             }
             let what = format!("`{}#{anchor}`", doc.clone().unwrap_or_default());
-            match r.report(r.target(doc.as_deref(), anchor), &what, line, diags) {
-                Some((_, _, Some(Coord::Leaf(t) | Coord::Row(t)))) => *value = Some(t),
-                // A field has no inline projection; a reference to it still
-                // says its label (GEP-0008).
-                Some((_, _, Some(Coord::Field(t)))) if !projecting => *value = Some(t),
-                _ => {}
+            if let Some((_, found, Some(coord))) = r.report(r.target(doc.as_deref(), anchor), &what, line, diags) {
+                // What a projection may stand for is one value or one row; a
+                // reference to anything else resolves too and links to its block.
+                let stands = match &coord {
+                    Coord::Leaf(_) | Coord::Row(_) => true,
+                    Coord::Deferred => false,
+                    _ => !projecting,
+                };
+                // `#meta` is the merged view rather than a block: nothing to link to.
+                if stands && !matches!(found, Found::Meta) {
+                    *base = split_anchor(anchor).map(|(id, _)| id);
+                }
+                match coord {
+                    Coord::Leaf(t) | Coord::Row(t) => *value = Some(t),
+                    // A field has no inline projection; a reference to it still
+                    // says its label (GEP-0008).
+                    Coord::Field(t) if !projecting => *value = Some(t),
+                    _ => {}
+                }
             }
         }
         _ => {}
@@ -960,6 +1106,14 @@ fn resolve_inline(n: &mut Inline, line: usize, r: &Resolver, diags: &mut Diags) 
             }
             _ => {}
         },
+        // §5.2: a link into a document of another format leaves the fragment
+        // to that format, but the document must still be there.
+        Inline::Link { href: Some(h), .. } if !h.is_empty() && crate::inline::scheme_of(h).is_none() => {
+            let doc = h.split('#').next().unwrap_or_default();
+            if !doc.is_empty() {
+                other_document(doc, h.contains("#"), line, r, diags);
+            }
+        }
         Inline::Footnote(id) if !r.main.ids.contains_key(&nfd(id)) => {
             diags.push("unresolved-footnote", line, format!("`[^{id}]` names an id no block declares"));
         }
@@ -1096,7 +1250,7 @@ fn records_table(recs: &[Value]) -> Table {
         }
     }
     let rows = recs.iter().map(|r| cols.iter().map(|c| Cell::text(r.get(c).and_then(|v| v.scalar_text()).unwrap_or_default())).collect()).collect();
-    Table { columns: cols, rows, summary: None }
+    Table::new(cols, rows, None)
 }
 
 fn check_diagram(s: &Snap, r: &Resolver, diags: &mut Diags) {
@@ -1218,7 +1372,8 @@ fn chart_file(data: &str, named: &[String], r: &Resolver, line: usize, diags: &m
         if r.host.is_some() && r.budget.spent(line, &what, diags) {
             return None;
         }
-        return crate::table::table_from_file("data", data, r.host.map(|h| (h, r.name.as_str())), line, diags).map(|t| r.budget.book(t, line, &what, diags));
+        return crate::table::table_from_file("data", data, r.host.map(|h| (h, r.name.as_str())), line, r.markdown, diags)
+            .map(|t| r.budget.book(t, line, &what, diags));
     }
     match scheme_of(data) {
         Some(sch) if sch == "http" || sch == "https" => {
@@ -1240,13 +1395,19 @@ fn chart_file(data: &str, named: &[String], r: &Resolver, line: usize, diags: &m
                 return None;
             };
             let format = if lower.ends_with(".jsonl") { "jsonl" } else { "json" };
-            match crate::data::engine(format, &text) {
+            for (_, lit, shown) in crate::data::inexact_numbers(format, &text) {
+                diags.push("inexact-number", line, crate::num::inexact_message(&lit, &shown));
+            }
+            match crate::data::engine_each(format, &text) {
                 Ok(v) => records(Some(&v), named, &format!("`data={data}`"), line, diags).ok().flatten(),
-                Err(crate::data::Fail::Parse(l, m)) => {
-                    diags.push("data-parse", line, format!("`{data}` does not parse at line {}: {m}", l + 1));
+                Err(fails) => {
+                    for f in fails {
+                        if let crate::data::Fail::Parse(l, m) = f {
+                            diags.push("data-parse", line, format!("`{data}` does not parse at line {}: {m}", l + 1));
+                        }
+                    }
                     None
                 }
-                Err(_) => None,
             }
         }
     }

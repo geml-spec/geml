@@ -406,6 +406,110 @@ pub fn format_printf(fmt: &str, x: f64) -> String {
     out
 }
 
+/// The decimal number a literal writes — sign, significant digits, exponent —
+/// so that `0.10` and `0.1` compare equal, and `1e2` and `100`; `None`
+/// for text that is not a decimal literal.
+fn decimal_of(s: &str) -> Option<(bool, String, i128)> {
+    let (neg, rest) = match s.as_bytes().first() {
+        Some(b'-') => (true, &s[1..]),
+        Some(b'+') => (false, &s[1..]),
+        _ => (false, s),
+    };
+    let (mant, exp) = match rest.find(['e', 'E']) {
+        Some(i) => (&rest[..i], Some(&rest[i + 1..])),
+        None => (rest, None),
+    };
+    let (int, frac) = mant.split_once('.').unwrap_or((mant, ""));
+    let is_digits = |t: &str| t.bytes().all(|b| b.is_ascii_digit());
+    if !is_digits(int) || !is_digits(frac) || int.len() + frac.len() == 0 {
+        return None;
+    }
+    let e: i128 = match exp {
+        None => 0,
+        Some(e) => {
+            let (sign, d) = match e.as_bytes().first() {
+                Some(b'-') => (-1, &e[1..]),
+                Some(b'+') => (1, &e[1..]),
+                _ => (1, e),
+            };
+            if d.is_empty() || !is_digits(d) {
+                return None;
+            }
+            // Past any exponent a binary64 can be read back at, a value is no
+            // longer told apart: saturate rather than overflow.
+            sign * d.bytes().fold(0i128, |a, b| (a * 10 + i128::from(b - b'0')).min(1_000_000_000_000_000_000))
+        }
+    };
+    let all = format!("{int}{frac}");
+    let lead = all.trim_start_matches('0');
+    if lead.is_empty() {
+        return Some((false, "0".to_string(), 0));
+    }
+    let digits = lead.trim_end_matches('0');
+    Some((neg, digits.to_string(), e - frac.len() as i128 + (lead.len() - digits.len()) as i128))
+}
+
+/// The binary digits of a YAML hexadecimal or octal literal, leading zeros
+/// dropped; `None` for any other text.
+fn radix_bits(s: &str) -> Option<String> {
+    let (bits, digits) = if let Some(h) = s.strip_prefix("0x") {
+        (4, h)
+    } else if let Some(o) = s.strip_prefix("0o") {
+        (3, o)
+    } else {
+        return None;
+    };
+    if digits.is_empty() {
+        return None;
+    }
+    let mut out = String::new();
+    for c in digits.chars() {
+        let v = c.to_digit(if bits == 4 { 16 } else { 8 })?;
+        out.push_str(&format!("{v:0bits$b}"));
+    }
+    Some(out.trim_start_matches('0').to_string())
+}
+
+/// The binary digits of an integral binary64, leading zeros dropped.
+fn integer_bits(v: f64) -> Option<String> {
+    if v.fract() != 0.0 || v < 0.0 {
+        return None;
+    }
+    let b = v.to_bits();
+    let exp = ((b >> 52) & 0x7ff) as i64;
+    if exp == 0 {
+        return Some(String::new()); // zero: an integral subnormal is zero
+    }
+    let mant = (b & ((1u64 << 52) - 1)) | (1u64 << 52);
+    let shift = exp - 1075;
+    let bits = if shift >= 0 { format!("{mant:b}{}", "0".repeat(shift as usize)) } else { format!("{:b}", mant >> (-shift)) };
+    Some(bits.trim_start_matches('0').to_string())
+}
+
+/// §3.2: a number is its nearest binary64 value. When that value, written back
+/// the shortest way, is not the number the literal wrote — an integer past
+/// 2^53, more significant digits than binary64 holds, a magnitude below its
+/// smallest — the text it reads back as; `None` when the literal is exact.
+pub fn inexact_number(literal: &str, value: f64) -> Option<String> {
+    if !value.is_finite() {
+        return None;
+    }
+    let shown = es_string(value);
+    if let Some(bits) = radix_bits(literal) {
+        return (integer_bits(value) != Some(bits)).then_some(shown);
+    }
+    let written = decimal_of(literal)?;
+    (Some(written) != decimal_of(&shown)).then_some(shown)
+}
+
+/// A number an engine read: its 0-based line, its literal and its value.
+pub type NumberRead = (usize, String, f64);
+
+/// What an inexact number reads as, and what to do about it.
+pub fn inexact_message(literal: &str, shown: &str) -> String {
+    format!("the number `{literal}` reads as `{shown}`: binary64 holds 15 to 17 significant digits, so a value this long belongs in a string")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

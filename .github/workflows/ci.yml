@@ -121,6 +121,7 @@ jobs:
         run: |
           wasm-pack build --target nodejs --out-dir wasm/pkg --release -- --features wasm
           node wasm/conformance.mjs
+          node wasm/edits.mjs
           node wasm/profiles.mjs
 
   viewer:

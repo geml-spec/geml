@@ -32,11 +32,11 @@ fn shown(v: f64, fmt: Option<&str>) -> Cell {
         Some(f) => format_printf(f, v),
         None => display(v),
     };
-    Cell { text, num: Some(v) }
+    Cell { text, num: Some(v), inlines: None }
 }
 
 fn no_value(text: &str) -> Cell {
-    Cell { text: text.to_string(), num: None }
+    Cell { text: text.to_string(), num: None, inlines: None }
 }
 
 struct Formula {
@@ -93,6 +93,8 @@ pub fn derive(b: &Block, src: Table, diags: &mut Diags) -> Table {
     let source_width = src.columns.len();
     let mut cols: Vec<String> = src.columns;
     let mut rows: Vec<Vec<Cell>> = src.rows;
+    // Indexed as the source's columns are: a column derived here has none.
+    let mut align = src.align;
     let mut visible: Vec<bool> = vec![true; cols.len()];
     let grouping = b.attr("by").is_some();
 
@@ -194,7 +196,7 @@ pub fn derive(b: &Block, src: Table, diags: &mut Diags) -> Table {
     // A source is within the bound; its computed columns can take a view past it.
     if crate::table::too_large(visible.iter().filter(|v| **v).count(), rows.len(), line, diags) {
         let columns = cols.into_iter().zip(&visible).filter(|(_, v)| **v).map(|(c, _)| c).collect();
-        return Table { columns, rows: vec![], summary: None };
+        return Table { columns, rows: vec![], summary: None, align };
     }
 
     // where=
@@ -321,6 +323,7 @@ pub fn derive(b: &Block, src: Table, diags: &mut Diags) -> Table {
             }
             let mut new_cols: Vec<String> = keys.clone();
             new_cols.extend(aggs.iter().map(|(n, _, _)| n.clone()));
+            align = (0..new_cols.len()).map(|i| idx.get(i).and_then(|k| align.get(*k).copied().flatten())).collect();
             cols = new_cols;
             rows = new_rows;
         }
@@ -389,6 +392,7 @@ pub fn derive(b: &Block, src: Table, diags: &mut Diags) -> Table {
             }
         }
         cols = idx.iter().map(|i| cols[*i].clone()).collect();
+        align = idx.iter().map(|i| align.get(*i).copied().flatten()).collect();
         rows = rows.iter().map(|r| idx.iter().map(|i| r[*i].clone()).collect()).collect();
     }
 
@@ -451,7 +455,7 @@ pub fn derive(b: &Block, src: Table, diags: &mut Diags) -> Table {
         }
         summary = Some(cells);
     }
-    Table { columns: cols, rows, summary }
+    Table { columns: cols, rows, summary, align }
 }
 
 /// Split `order=` on commas outside quotes, keeping each key's quotes.

@@ -25,6 +25,8 @@ pub struct Document {
     pub profiles: Vec<String>,
     /// What those vocabularies' checks report, by address.
     pub profile_diagnostics: Vec<crate::vocab::ProfileDiagnostic>,
+    /// The text was read as Markdown (`Options::markdown`).
+    pub markdown: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -53,6 +55,9 @@ pub struct Paragraph {
     pub source: String,
     pub inlines: Vec<Inline>,
     pub line: usize,
+    /// A Markdown code run (`Options::markdown`): one code span, never
+    /// inline-parsed.
+    pub code: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -67,6 +72,12 @@ pub struct Heading {
     pub classes: Vec<String>,
     pub attrs: Vec<(String, Value)>,
     pub line: usize,
+    /// The heading line after its `#` run, as written — a trailing attribute
+    /// object included; a setext heading's joined text.
+    pub source: String,
+    /// How many lines the head takes: one, or a setext heading's text lines
+    /// and underline.
+    pub head: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -152,14 +163,26 @@ impl Block {
 pub struct Cell {
     pub text: String,
     pub num: Option<f64>,
+    /// A cell of a table's body, or of its data file, read as inline content
+    /// (§5); `None` when that content is the cell's text — a plain cell, or
+    /// one a view or a summary computed.
+    pub inlines: Option<Vec<Inline>>,
 }
 
 impl Cell {
     pub fn text(s: impl Into<String>) -> Cell {
         let text = s.into();
         let num = crate::num::parse_bare_number(&text);
-        Cell { text, num }
+        Cell { text, num, inlines: None }
     }
+}
+
+/// A visual table's column alignment, from its separator row (§6).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Align {
+    Left,
+    Center,
+    Right,
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -167,6 +190,21 @@ pub struct Table {
     pub columns: Vec<String>,
     pub rows: Vec<Vec<Cell>>,
     pub summary: Option<Vec<Cell>>,
+    /// One entry per cell of the separator row, which need not be as wide
+    /// as the header: a column past its end has none.
+    pub align: Vec<Option<Align>>,
+}
+
+impl Table {
+    /// The relation with no alignment of its own.
+    pub fn new(columns: Vec<String>, rows: Vec<Vec<Cell>>, summary: Option<Vec<Cell>>) -> Table {
+        Table { columns, rows, summary, align: Vec::new() }
+    }
+
+    /// Column `i`'s alignment, when the separator row gave it one.
+    pub fn align_of(&self, i: usize) -> Option<Align> {
+        self.align.get(i).copied().flatten()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -178,9 +216,30 @@ pub enum Inline {
     Code(String),
     Math(String),
     Break,
-    Image { src: String, alt: Vec<Inline> },
-    Link { href: Option<String>, doc: Option<String>, anchor: Option<String>, children: Vec<Inline> },
-    AutoRef { doc: Option<String>, anchor: String, value: Option<String> },
-    Project { doc: Option<String>, anchor: String, value: Option<String> },
+    Image {
+        src: String,
+        alt: Vec<Inline>,
+    },
+    Link {
+        href: Option<String>,
+        doc: Option<String>,
+        anchor: Option<String>,
+        children: Vec<Inline>,
+    },
+    /// `value` and `base` are set when the anchor is a GEP 0011 coordinate
+    /// that resolved: what the reference says, and the id of the block that
+    /// holds it, where a link can point. `#meta` is no block, so it has none.
+    AutoRef {
+        doc: Option<String>,
+        anchor: String,
+        value: Option<String>,
+        base: Option<String>,
+    },
+    Project {
+        doc: Option<String>,
+        anchor: String,
+        value: Option<String>,
+        base: Option<String>,
+    },
     Footnote(String),
 }

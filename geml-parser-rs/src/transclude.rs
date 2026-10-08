@@ -154,7 +154,10 @@ impl Walk<'_> {
             return d.clone();
         }
         let d = self.host.and_then(|h| h.read("", name)).map(|text| {
-            Rc::new((crate::parse_with(&text, &crate::Options { name: name.to_string(), recognize: true, host: None, checks: false }), Prose::new()))
+            Rc::new((
+                crate::parse_with(&text, &crate::Options { name: name.to_string(), recognize: true, host: None, checks: false, markdown: false }),
+                Prose::new(),
+            ))
         });
         self.docs.insert(name.to_string(), d.clone());
         d

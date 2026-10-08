@@ -258,12 +258,30 @@ pub struct InlineCtx<'a> {
     pub meta: &'a [(String, Value)],
     pub diags: &'a mut Diags,
     pub line: usize,
+    /// The text is Markdown (`crate::markdown`): `{{…}}` is text, `[[…]]` is
+    /// a wikilink, and a link's destination may carry a title.
+    pub markdown: bool,
+    /// `{{key}}` reads the merged `meta` (§4). A table cell is read
+    /// without it: there `{{key}}` is text.
+    pub interpolate: bool,
     reported_depth: bool,
 }
 
 impl<'a> InlineCtx<'a> {
     pub fn new(meta: &'a [(String, Value)], diags: &'a mut Diags, line: usize) -> Self {
-        InlineCtx { meta, diags, line, reported_depth: false }
+        InlineCtx { meta, diags, line, markdown: false, interpolate: true, reported_depth: false }
+    }
+
+    /// The same context, with `{{key}}` read as text.
+    pub fn without_interpolation(mut self) -> Self {
+        self.interpolate = false;
+        self
+    }
+
+    /// The same context, reading Markdown or not.
+    pub fn with_markdown(mut self, on: bool) -> Self {
+        self.markdown = on;
+        self
     }
 
     fn too_deep(&mut self) {
@@ -442,6 +460,20 @@ impl Window<'_> {
         Some((parse_ref_target(&chars[i + 2..k].iter().collect::<String>())?, k + 2))
     }
 
+    /// Markdown's `[[…]]` starting at `chars[i] == '['`: what is between the
+    /// brackets and the index after the closing `]]`, when it is a wikilink
+    /// (`wikilink_node` says what it reads as).
+    fn wikilink(&self, chars: &[char], i: usize) -> Option<(String, usize)> {
+        let k = self.close(&self.ends.wiki, chars, i + 2)?;
+        if chars.get(k + 1) != Some(&']') {
+            return None;
+        }
+        let content: String = chars[i + 2..k].iter().collect();
+        let (name, frag) = wikilink_parts(&content);
+        let usable = (!name.is_empty() || frag.as_deref().is_some_and(|f| !f.is_empty())) && scheme_of(&name).is_none();
+        usable.then_some((content, k + 2))
+    }
+
     /// An `{…}` attribute object directly after a link or an image: the index
     /// after it, when there is one.
     fn trailing_attrs(&self, chars: &[char], k: usize) -> Option<usize> {
@@ -449,6 +481,27 @@ impl Window<'_> {
             return None;
         }
         self.close(&self.ends.attr, chars, k + 1).map(|e| e + 1)
+    }
+}
+
+/// A wikilink's note name and heading fragment: `name#frag|alias`, the alias
+/// being display text only.
+pub fn wikilink_parts(content: &str) -> (String, Option<String>) {
+    let dest = content.split('|').next().unwrap_or("").trim();
+    match dest.find('#') {
+        Some(h) => (dest[..h].trim().to_string(), Some(dest[h + 1..].trim().to_string())),
+        None => (dest.to_string(), None),
+    }
+}
+
+/// What a wikilink reads as: a reference when it names a heading or a
+/// block marker — Obsidian resolves a bare note name, which is no anchor —
+/// and otherwise its own text. `![[…]]` is a link that previews, never a
+/// projection.
+fn wikilink_node(content: &str, source: &[char]) -> Inline {
+    match wikilink_parts(content) {
+        (name, Some(frag)) => Inline::AutoRef { doc: (!name.is_empty()).then_some(name), anchor: frag, value: None, base: None },
+        _ => Inline::Text(source.iter().collect()),
     }
 }
 
@@ -564,6 +617,10 @@ fn phase1(chars: &[char], ctx: &mut InlineCtx, in_link: bool, depth: usize, w: W
                     i += 1;
                 }
             },
+            '{' if ctx.markdown || !ctx.interpolate => {
+                buf.push('{');
+                i += 1;
+            }
             '{' => match interp_at(chars, i) {
                 Some((key, len)) => {
                     match ctx.meta.iter().find(|(k, _)| *k == key) {
@@ -583,10 +640,20 @@ fn phase1(chars: &[char], ctx: &mut InlineCtx, in_link: bool, depth: usize, w: W
                     i += 1;
                 }
             },
+            '!' | '['
+                if ctx.markdown
+                    && (if c == '[' { chars.get(i + 1) == Some(&'[') } else { chars.get(i + 1) == Some(&'[') && chars.get(i + 2) == Some(&'[') })
+                    && w.wikilink(chars, if c == '!' { i + 1 } else { i }).is_some() =>
+            {
+                let (node, end) =
+                    w.wikilink(chars, if c == '!' { i + 1 } else { i }).map(|(text, end)| (wikilink_node(&text, &chars[i..end]), end)).expect("checked above");
+                atom!(node, c, ']');
+                i = end;
+            }
             '!' if chars.get(i + 1) == Some(&'[') => {
                 if chars.get(i + 2) == Some(&'[') {
                     if let Some((rt, end)) = w.wiki_ref(chars, i + 1) {
-                        atom!(Inline::Project { doc: rt.doc, anchor: rt.anchor, value: None }, '!', ']');
+                        atom!(Inline::Project { doc: rt.doc, anchor: rt.anchor, value: None, base: None }, '!', ']');
                         i = end;
                         continue;
                     }
@@ -611,7 +678,7 @@ fn phase1(chars: &[char], ctx: &mut InlineCtx, in_link: bool, depth: usize, w: W
             '[' => {
                 if !in_link && chars.get(i + 1) == Some(&'[') {
                     if let Some((rt, end)) = w.wiki_ref(chars, i) {
-                        atom!(Inline::AutoRef { doc: rt.doc, anchor: rt.anchor, value: None }, '[', ']');
+                        atom!(Inline::AutoRef { doc: rt.doc, anchor: rt.anchor, value: None, base: None }, '[', ']');
                         i = end;
                         continue;
                     }
@@ -635,6 +702,7 @@ fn phase1(chars: &[char], ctx: &mut InlineCtx, in_link: bool, depth: usize, w: W
                                     Some(e) => (e, '}'),
                                     None => (after, ')'),
                                 };
+                                let dest = if ctx.markdown { crate::markdown::link_destination(&dest) } else { dest };
                                 atom!(link_node(safe_dest(&dest, false), children), '[', last, height + 1);
                                 i = end;
                                 continue;

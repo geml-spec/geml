@@ -134,7 +134,12 @@ pub fn comment_line(line: &str) -> Option<String> {
     rest.strip_prefix(' ').map(|s| s.to_string())
 }
 
-fn heading_level(line: &str) -> Option<usize> {
+/// A heading line after its `#` run and the spaces that follow it.
+pub fn heading_source(line: &str) -> String {
+    line.trim_start_matches('#').trim_start_matches([' ', '\t']).to_string()
+}
+
+pub fn heading_level(line: &str) -> Option<usize> {
     let n = leading(line, '#');
     if !(1..=6).contains(&n) {
         return None;
@@ -166,28 +171,41 @@ pub fn indent_cols(line: &str) -> usize {
     col
 }
 
-/// An item line (§2.2): indentation, a marker, one space, the content.
+/// An item line (§2.2): indentation, a marker, a space, the content. The
+/// separating space may be several, or a tab; none of it is content.
 pub fn list_item(line: &str) -> Option<ItemLine> {
     let col = indent_cols(line);
     let t = line.trim_start_matches([' ', '\t']);
-    let (ordered, start, rest) = if let Some(r) = t.strip_prefix("- ").or_else(|| t.strip_prefix("* ")) {
-        (false, 1.0, r)
-    } else {
-        let d = t.bytes().take_while(|b| b.is_ascii_digit()).count();
-        if d == 0 {
-            return None;
+    let (ordered, start, after) = match t.as_bytes().first() {
+        Some(b'-' | b'*') => (false, 1.0, &t[1..]),
+        _ => {
+            let d = t.bytes().take_while(|b| b.is_ascii_digit()).count();
+            if d == 0 {
+                return None;
+            }
+            (true, t[..d].parse::<f64>().unwrap_or(1.0), t[d..].strip_prefix('.')?)
         }
-        let r = t[d..].strip_prefix(". ")?;
-        (true, t[..d].parse::<f64>().unwrap_or(1.0), r)
     };
-    let (checked, content) = if let Some(c) = rest.strip_prefix("[ ] ") {
-        (Some(false), c)
-    } else if let Some(c) = rest.strip_prefix("[x] ").or_else(|| rest.strip_prefix("[X] ")) {
-        (Some(true), c)
-    } else {
-        (None, rest)
-    };
+    let rest = after.trim_start_matches([' ', '\t']);
+    if rest.len() == after.len() {
+        return None;
+    }
+    let (checked, content) = task_marker(rest);
     Some(ItemLine { col, ordered, start, checked, content: content.to_string() })
+}
+
+/// A task marker opening an item's first line — `[ ]`, `[x]` or `[X]`, alone
+/// or followed by space — and the content after it.
+fn task_marker(rest: &str) -> (Option<bool>, &str) {
+    let b = rest.as_bytes();
+    if b.len() >= 3 && b[0] == b'[' && b[2] == b']' && matches!(b[1], b' ' | b'x' | b'X') {
+        let after = &rest[3..];
+        let text = after.trim_start_matches([' ', '\t']);
+        if after.is_empty() || text.len() < after.len() {
+            return (Some(b[1] != b' '), text);
+        }
+    }
+    (None, rest)
 }
 
 /// A ``` line that may open a shield: three or more backticks, then text with
@@ -365,12 +383,20 @@ pub struct Scanner<'a> {
     pub diags: &'a mut Diags,
     /// The vocabularies the document declares that this processor recognizes.
     pub vocab: &'a Vocabulary,
+    /// Read the lines as Markdown (`Options::markdown`).
+    pub markdown: bool,
     continuations: OnceCell<Continuations>,
 }
 
 impl<'a> Scanner<'a> {
     pub fn new(lines: &'a [String], diags: &'a mut Diags, vocab: &'a Vocabulary) -> Self {
-        Scanner { lines, diags, vocab, continuations: OnceCell::new() }
+        Scanner { lines, diags, vocab, markdown: false, continuations: OnceCell::new() }
+    }
+
+    /// Read the lines as Markdown.
+    pub fn markdown(mut self, on: bool) -> Self {
+        self.markdown = on;
+        self
     }
 
     /// Fold a fence or heading line ending in `\` with the lines after it
@@ -416,17 +442,111 @@ impl<'a> Scanner<'a> {
     }
 
     pub fn scan_body(&mut self, start: usize, end: usize, depth: usize) -> Vec<Item> {
+        if self.markdown {
+            return self.scan_markdown(start, end, depth);
+        }
+        // This loop recurses once per nested block (through typed_block), so it
+        // holds only what that needs; every other construct is read by
+        // scan_line, whose frame is gone before the recursion starts.
         let mut items = Vec::new();
         let mut sh = Shield::new(end);
         let mut i = start;
         while i < end {
-            let line = &self.lines[i];
             let shielded = sh.shielded(self.lines, i);
-            if is_blank(line) {
+            if is_blank(&self.lines[i]) {
                 i += 1;
                 continue;
             }
             if !shielded {
+                if let Some((fence, used)) = self.try_fence(i, end) {
+                    let (block, next) = self.typed_block(i, used, fence, end, depth);
+                    items.push(Item::Block(block));
+                    i = next;
+                    continue;
+                }
+            }
+            i = self.scan_line(i, end, shielded, &mut sh, &mut items);
+        }
+        items
+    }
+
+    /// One construct that is not a typed block, at line `i`: a `%%` line, a
+    /// heading, a list or a paragraph. The line after it.
+    #[inline(never)]
+    fn scan_line(&mut self, i: usize, end: usize, shielded: bool, sh: &mut Shield, items: &mut Vec<Item>) -> usize {
+        let line = &self.lines[i];
+        if !shielded {
+            if let Some(text) = comment_line(line) {
+                items.push(Item::Hidden(Hidden { text, line: i + 1 }));
+                return i + 1;
+            }
+            if heading_level(line).is_some() {
+                let (item, used) = self.heading_at(i, end);
+                items.push(item);
+                return i + used;
+            }
+            if list_item(line).is_some() {
+                let (list, next) = self.list(i, end, sh);
+                items.push(Item::List(list));
+                return next;
+            }
+        }
+        let (p, next) = self.paragraph(i, end, sh);
+        items.push(Item::Paragraph(p));
+        next
+    }
+
+    /// The ATX heading at 0-based line `i`, folded, and how many lines it
+    /// took. Kept out of the scan loop's own frame: the loop recurses once per
+    /// nested block, and what a heading needs is not needed on that stack.
+    #[inline(never)]
+    fn heading_at(&mut self, i: usize, end: usize) -> (Item, usize) {
+        let (logical, used) = self.fold(i, end);
+        let h = parse_heading(&logical).expect("a heading line");
+        (self.heading_item(h, i, heading_source(&logical), 1), used)
+    }
+
+    /// A heading item from a heading line already read, at 0-based line `i`.
+    fn heading_item(&mut self, h: HeadingLine, i: usize, source: String, head: usize) -> Item {
+        if let Some((code, msg)) = h.issue.clone() {
+            self.diags.push(code, i + 1, msg);
+        }
+        let (id, declared, classes, attrs) = match h.attrs {
+            Some(a) => {
+                for (code, msg) in &a.issues {
+                    self.diags.push(code, i + 1, msg.clone());
+                }
+                let declared = a.id.is_some();
+                (a.id.unwrap_or_default(), declared, a.classes, a.kv)
+            }
+            None => (String::new(), false, vec![], vec![]),
+        };
+        Item::Heading(Heading { level: h.level, text: h.text, inlines: vec![], id, declared, classes, attrs, line: i + 1, source, head })
+    }
+
+    /// One body read as Markdown (`crate::markdown`): the structure is worked
+    /// out over the body's own lines first — code runs, the lines no construct
+    /// starts on, setext headings — and the scan follows it.
+    fn scan_markdown(&mut self, start: usize, end: usize, depth: usize) -> Vec<Item> {
+        let vocab = self.vocab;
+        let known = |t: &str| registry::is_known(t) || vocab.admits_type(t);
+        let st = crate::markdown::structure(&self.lines[start..end], &known);
+        let shielded = |j: usize| st.shield.contains(&(j - start));
+        let mut items = Vec::new();
+        let mut i = start;
+        while i < end {
+            let line = &self.lines[i];
+            if is_blank(line) {
+                i += 1;
+                continue;
+            }
+            if let Some(run_end) = st.code_at.get(&(i - start)) {
+                let run_end = start + run_end;
+                items.push(Item::Paragraph(Paragraph { source: self.lines[i..run_end].join("\n"), inlines: vec![], line: i + 1, code: true }));
+                i = run_end;
+                continue;
+            }
+            if !shielded(i) {
                 if let Some(text) = comment_line(line) {
                     items.push(Item::Hidden(Hidden { text, line: i + 1 }));
                     i += 1;
@@ -438,36 +558,47 @@ impl<'a> Scanner<'a> {
                     i = next;
                     continue;
                 }
+            }
+            if let Some(s) = st.setext.get(&(i - start)) {
+                let item = self.heading_item(s.heading.clone(), i, s.source.clone(), s.end - (i - start));
+                items.push(item);
+                i = start + s.end;
+                continue;
+            }
+            if !shielded(i) {
                 if heading_level(line).is_some() {
-                    let (logical, used) = self.fold(i, end);
-                    let h = parse_heading(&logical).expect("a heading line");
-                    if let Some((code, msg)) = h.issue.clone() {
-                        self.diags.push(code, i + 1, msg);
-                    }
-                    let (id, declared, classes, attrs) = match h.attrs {
-                        Some(a) => {
-                            for (code, msg) in &a.issues {
-                                self.diags.push(code, i + 1, msg.clone());
-                            }
-                            let declared = a.id.is_some();
-                            (a.id.unwrap_or_default(), declared, a.classes, a.kv)
-                        }
-                        None => (String::new(), false, vec![], vec![]),
-                    };
-                    items.push(Item::Heading(Heading { level: h.level, text: h.text, inlines: vec![], id, declared, classes, attrs, line: i + 1 }));
+                    let (item, used) = self.heading_at(i, end);
+                    items.push(item);
                     i += used;
                     continue;
                 }
                 if list_item(line).is_some() {
+                    let mut sh = Shield::new(end);
                     let (list, next) = self.list(i, end, &mut sh);
                     items.push(Item::List(list));
                     i = next;
                     continue;
                 }
             }
-            let (p, next) = self.paragraph(i, end, &mut sh);
-            items.push(Item::Paragraph(p));
-            i = next;
+            let mut j = i;
+            while j < end {
+                let l = &self.lines[j];
+                if is_blank(l) || (j > i && (st.code_at.contains_key(&(j - start)) || st.setext.contains_key(&(j - start)))) {
+                    break;
+                }
+                if j > i
+                    && !shielded(j)
+                    && (comment_line(l).is_some() || heading_level(l).is_some() || list_item(l).is_some() || self.try_fence(j, end).is_some())
+                {
+                    break;
+                }
+                if !shielded(j) {
+                    self.note_text_line(j);
+                }
+                j += 1;
+            }
+            items.push(Item::Paragraph(Paragraph { source: self.lines[i..j].join("\n"), inlines: vec![], line: i + 1, code: false }));
+            i = j;
         }
         items
     }
@@ -502,10 +633,27 @@ impl<'a> Scanner<'a> {
             text.push(line);
             j += 1;
         }
-        (Paragraph { source: text.join("\n"), inlines: vec![], line: i + 1 }, j)
+        (Paragraph { source: text.join("\n"), inlines: vec![], line: i + 1, code: false }, j)
     }
 
     fn typed_block(&mut self, i: usize, used: usize, fence: FenceOpen, end: usize, depth: usize) -> (Block, usize) {
+        // The recursion runs through here: the block's head is read by
+        // block_shell, and only the block and its body's range stay on the stack.
+        let (mut block, next) = self.block_shell(i, used, fence, end, depth);
+        let (body_start, body_end) = (block.body_start - 1, block.body_end - 1);
+        match block.mode {
+            Mode::Raw => block.raw = self.lines[body_start..body_end].to_vec(),
+            Mode::Flow => block.children = self.scan_body(body_start, body_end, depth + 1),
+            Mode::Data => block.data = self.meta_body(body_start, body_end),
+            Mode::Prose => block.children = self.prose_body(body_start, body_end),
+        }
+        (block, next)
+    }
+
+    /// A typed block without its body: where it closes, its mode, its
+    /// attributes checked against its type, and the line after it.
+    #[inline(never)]
+    fn block_shell(&mut self, i: usize, used: usize, fence: FenceOpen, end: usize, depth: usize) -> (Block, usize) {
         let body_start = i + used;
         let id = fence.attrs.id.clone();
         let close = (body_start..end).find(|j| is_close(&self.lines[*j], fence.len, id.as_deref()));
@@ -540,7 +688,7 @@ impl<'a> Scanner<'a> {
             self.diags.push("block-nesting-too-deep", i + 1, "typed blocks nest deeper than this processor admits; the body is kept raw");
             mode = Mode::Raw;
         }
-        let mut block = Block {
+        let block = Block {
             type_name: t,
             id,
             classes: fence.attrs.classes,
@@ -556,12 +704,6 @@ impl<'a> Scanner<'a> {
             body_end: body_end + 1,
             end: last,
         };
-        match mode {
-            Mode::Raw => block.raw = self.lines[body_start..body_end].to_vec(),
-            Mode::Flow => block.children = self.scan_body(body_start, body_end, depth + 1),
-            Mode::Data => block.data = self.meta_body(body_start, body_end),
-            Mode::Prose => block.children = self.prose_body(body_start, body_end),
-        }
         (block, next)
     }
 
@@ -580,7 +722,7 @@ impl<'a> Scanner<'a> {
             while j < end && !is_blank(&self.lines[j]) {
                 j += 1;
             }
-            items.push(Item::Paragraph(Paragraph { source: self.lines[s..j].join("\n"), inlines: vec![], line: s + 1 }));
+            items.push(Item::Paragraph(Paragraph { source: self.lines[s..j].join("\n"), inlines: vec![], line: s + 1, code: false }));
         }
         items
     }
@@ -605,6 +747,12 @@ impl<'a> Scanner<'a> {
             } else {
                 type_bare(v)
             };
+            // A `key = value` body reads numbers too, and keeps §3.2's exactness rule.
+            if let Value::Number(n) = value {
+                if let Some(shown) = crate::num::inexact_number(v, n) {
+                    self.diags.push("inexact-number", j + 1, crate::num::inexact_message(v, &shown));
+                }
+            }
             if !keys.insert(nfd(&key)) {
                 self.diags.push("duplicate-meta-key", j + 1, format!("`{key}` is defined twice; the first definition is kept"));
                 continue;
@@ -633,6 +781,9 @@ impl<'a> Scanner<'a> {
         let mut j = i;
         let mut pending_blank = false;
         let mut can_continue = false;
+        // A continuation line is indented past its OWN item's marker, which
+        // need not stand where the list's first item does.
+        let mut item_col = 0;
         let mut too_deep_reported = false;
         while j < end {
             let line = &self.lines[j];
@@ -646,6 +797,7 @@ impl<'a> Scanner<'a> {
             let item = if shielded { None } else { list_item(line) };
             if let Some(it) = item {
                 let at = j + 1;
+                item_col = it.col;
                 if stack.is_empty() {
                     stack.push(open(it, at));
                 } else {
@@ -684,10 +836,10 @@ impl<'a> Scanner<'a> {
                 break;
             }
             let top = stack.last_mut().expect("open");
-            if can_continue && indent_cols(line) > top.col {
+            if can_continue && indent_cols(line) > item_col {
                 let item = top.list.items.last_mut().expect("an item");
                 item.source.push('\n');
-                item.source.push_str(line.trim_start_matches([' ', '\t']));
+                item.source.push_str(crate::uni::trim_js(line));
                 j += 1;
                 continue;
             }

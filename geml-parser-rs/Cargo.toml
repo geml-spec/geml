@@ -1,6 +1,6 @@
 [package]
 name = "geml"
-version = "0.12.3"
+version = "0.12.4"
 edition = "2021"
 rust-version = "1.75"
 description = "A second, independent GEML 1.0 parser, written from the specification and its conformance suite"

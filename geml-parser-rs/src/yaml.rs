@@ -8,6 +8,7 @@
 
 use crate::bounds::DATA_DEPTH;
 use crate::json::Value;
+use crate::num::NumberRead;
 
 type R<T> = Result<T, (usize, String)>;
 
@@ -26,6 +27,8 @@ struct P {
     pos: usize,
     /// How many collections enclose the block being read.
     depth: usize,
+    /// Each number a value scalar was read as: its line, literal and value.
+    numbers: Vec<NumberRead>,
 }
 
 fn err<T>(line: usize, msg: &str) -> R<T> {
@@ -38,6 +41,12 @@ fn significant(l: &Line) -> bool {
 
 /// Parse a `yaml` body into a value.
 pub fn parse(text: &str) -> R<Value> {
+    parse_numbers(text).map(|(v, _)| v)
+}
+
+/// Parse a `yaml` body, with each number its scalars were read as — the
+/// 0-based line, the literal and the value.
+pub fn parse_numbers(text: &str) -> R<(Value, Vec<NumberRead>)> {
     let mut lines = Vec::new();
     for (no, raw) in text.split('\n').enumerate() {
         let spaces = raw.chars().take_while(|c| *c == ' ').count();
@@ -49,11 +58,19 @@ pub fn parse(text: &str) -> R<Value> {
         let content = if content.trim_start_matches('\t').is_empty() { String::new() } else { content };
         lines.push(Line { indent: spaces, content, raw: raw.to_string() });
     }
-    let mut p = P { lines, pos: 0, depth: 0 };
-    p.document()
+    let mut p = P { lines, pos: 0, depth: 0, numbers: Vec::new() };
+    let v = p.document()?;
+    Ok((v, p.numbers))
 }
 
 impl P {
+    /// A value scalar that read as a number, kept for §3.2's exactness check.
+    fn note_number(&mut self, written: &str, no: usize, v: &Value) {
+        if let Value::Number(n) = v {
+            self.numbers.push((no, strip_comment(written.trim()).trim().to_string(), *n));
+        }
+    }
+
     fn skip(&mut self) {
         while self.pos < self.lines.len() && !significant(&self.lines[self.pos]) {
             self.pos += 1;
@@ -110,6 +127,7 @@ impl P {
         } else {
             let no = self.pos;
             let v = scalar(&c, no)?;
+            self.note_number(&c, no, &v);
             self.flow_inside(&v, 0, no)?;
             self.pos += 1;
             self.no_deeper(ind, no)?;
@@ -227,6 +245,7 @@ impl P {
                 self.block_scalar(&rest, ind, no)?
             } else {
                 let v = scalar(&rest, no)?;
+                self.note_number(&rest, no, &v);
                 self.flow_inside(&v, 1, no)?;
                 self.no_deeper(ind, no)?;
                 v

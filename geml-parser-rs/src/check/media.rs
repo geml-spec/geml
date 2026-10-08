@@ -102,7 +102,7 @@ fn hit(r: &Resolver, reference: &str) -> Hit {
     let (d, id) = split_ref(reference.trim());
     match r.target(d, id) {
         Target::NoHost => Hit::Unknown,
-        Target::Unreadable | Target::Unresolved { .. } => Hit::Missing,
+        Target::Unreadable | Target::Reported | Target::Unresolved { .. } => Hit::Missing,
         Target::Hit { index, found: Found::Block(i), .. } => Hit::Block(index, i),
         Target::Hit { index, found: Found::Heading(h), .. } => Hit::Heading(index, h),
         Target::Hit { .. } => Hit::Other,

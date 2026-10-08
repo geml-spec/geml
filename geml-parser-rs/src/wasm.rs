@@ -96,6 +96,16 @@ pub fn codemap_verify(name: &str, host: &str) -> Result<String, JsError> {
     Ok(crate::check::codemap::verify(&d, Some(&h)).to_json())
 }
 
+/// One editing operation of §8.2(10), as the suite's `edits-*.json` cases
+/// state it — `{geml, file?, files?, history?, op}` — and its outcome:
+/// `{text}`, `{output}`, `{rows}`, `{hits}`, `{diagnostics}`,
+/// `{unchanged: true}`, `{refused, message, diagnostics}`, or
+/// `{unsupported}` for what this crate does not provide yet.
+#[wasm_bindgen]
+pub fn edit(case: &str) -> String {
+    crate::edit::run_json(case)
+}
+
 /// The crate's version.
 #[wasm_bindgen]
 pub fn version() -> String {

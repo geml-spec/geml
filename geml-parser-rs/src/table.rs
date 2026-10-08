@@ -6,8 +6,9 @@ use std::cell::Cell as Counter;
 use crate::bounds::{BORROWED_CELLS, TABLE_CELLS};
 use crate::diag::Diags;
 use crate::host::Host;
+use crate::inline::{parse_inline, InlineCtx};
 use crate::json::Value;
-use crate::model::{Block, Cell, Mode, Table};
+use crate::model::{Align, Block, Cell, Mode, Table};
 use crate::uni::trim_ws;
 
 /// Spreadsheet column letters: A … Z, AA, AB, ….
@@ -25,7 +26,7 @@ pub fn letter(mut i: usize) -> String {
 
 /// Split one visual row: outer pipes stripped, `\|` a literal pipe, every
 /// other pipe a separator; each cell trimmed of `White_Space`.
-fn split_visual(line: &str) -> Vec<String> {
+pub(crate) fn split_visual(line: &str) -> Vec<String> {
     let t = trim_ws(line);
     let chars: Vec<char> = t.chars().collect();
     let mut cells = Vec::new();
@@ -54,13 +55,35 @@ fn split_visual(line: &str) -> Vec<String> {
     cells.iter().map(|c| trim_ws(c).to_string()).collect()
 }
 
-fn is_separator(cells: &[String]) -> bool {
+/// A separator cell's alignment: a colon on the left, the right, or both.
+fn align_of(cell: &str) -> Option<Align> {
+    match (cell.starts_with(':'), cell.ends_with(':')) {
+        (true, true) => Some(Align::Center),
+        (false, true) => Some(Align::Right),
+        (true, false) => Some(Align::Left),
+        (false, false) => None,
+    }
+}
+
+pub(crate) fn is_separator(cells: &[String]) -> bool {
     !cells.is_empty()
         && cells.iter().all(|c| {
             let c = c.strip_prefix(':').unwrap_or(c);
             let c = c.strip_suffix(':').unwrap_or(c);
             !c.is_empty() && c.bytes().all(|b| b == b'-')
         })
+}
+
+/// A cell's inline content, or `None` when it is the cell's text. Most cells
+/// are plain — a number, a word — and a cell holds no line break, so one with
+/// no character that opens an inline construct is its text: a relation of a
+/// million cells is neither run through the inline parser nor copied a second
+/// time.
+fn cell_inlines(text: &str, cx: &mut InlineCtx) -> Option<Vec<crate::model::Inline>> {
+    if !text.contains(['`', '$', '{', '!', '[', '\\', '*', '_', '~']) {
+        return None;
+    }
+    Some(parse_inline(text, cx))
 }
 
 /// Whether a `src=` names a block (`#id`, `doc.geml#id`) rather than a file.
@@ -71,7 +94,7 @@ pub fn names_block(src: &str) -> bool {
 /// Whether a data-form body's first row is its header (§6): `header=` is a
 /// boolean, on by default; `false` and `0` turn it off, and any other value
 /// reads as the default.
-fn header_wanted(v: Option<&Value>) -> bool {
+pub(crate) fn header_wanted(v: Option<&Value>) -> bool {
     match v {
         Some(Value::Bool(false)) => false,
         Some(Value::Number(n)) if *n == 0.0 => false,
@@ -116,8 +139,9 @@ impl Borrowed {
 /// Read a `table` block into its model. A local `src=` file is read through
 /// the host at build time and parsed as the body would be (§6); `None` when the
 /// data is remote (the renderer fetches it), when there is no host to read it
-/// through, or when it cannot be read.
-pub fn read_table(b: &Block, diags: &mut Diags, host: Option<(&dyn Host, &str)>, budget: &Borrowed) -> Option<Table> {
+/// through, or when it cannot be read. `markdown`: the document is Markdown,
+/// and its cells are read as Markdown's inline content.
+pub fn read_table(b: &Block, diags: &mut Diags, host: Option<(&dyn Host, &str)>, budget: &Borrowed, markdown: bool) -> Option<Table> {
     let line = b.line;
     if let Some(src) = b.attr_text("src") {
         if b.has_body() {
@@ -129,17 +153,17 @@ pub fn read_table(b: &Block, diags: &mut Diags, host: Option<(&dyn Host, &str)>,
         }
         let what = format!("`src={src}`");
         if host.is_some() && budget.spent(line, &what, diags) {
-            return Some(Table { columns: vec![], rows: vec![], summary: None });
+            return Some(Table::default());
         }
         return match read_data_file("src", &src, host, line, diags) {
-            Some(text) => table_from_lines(b, &file_lines(&text), None, diags).map(|t| budget.book(t, line, &what, diags)),
+            Some(text) => table_from_lines(b, &file_lines(&text), None, markdown, diags).map(|t| budget.book(t, line, &what, diags)),
             // §6: a file that cannot be read, or a disallowed scheme, leaves the
             // table empty; a remote file is the renderer's, and a parse with no
             // host reads nothing, so neither has a model yet.
             None => unread(&src, host),
         };
     }
-    table_from_lines(b, &b.raw, Some(b.body_start), diags)
+    table_from_lines(b, &b.raw, Some(b.body_start), markdown, diags)
 }
 
 /// The model of a table whose data file was not read: empty when it was
@@ -147,7 +171,7 @@ pub fn read_table(b: &Block, diags: &mut Diags, host: Option<(&dyn Host, &str)>,
 /// host to read it through.
 fn unread(src: &str, host: Option<(&dyn Host, &str)>) -> Option<Table> {
     let remote = matches!(crate::inline::scheme_of(src).as_deref(), Some("http") | Some("https"));
-    (!remote && host.is_some()).then(|| Table { columns: vec![], rows: vec![], summary: None })
+    (!remote && host.is_some()).then(Table::default)
 }
 
 fn file_lines(text: &str) -> Vec<String> {
@@ -181,7 +205,7 @@ pub fn read_data_file(attr: &str, src: &str, host: Option<(&dyn Host, &str)>, li
 
 /// A delimited file read as a relation (§6.1, §7.1): its format from its
 /// suffix, its first row the header, parsed as a table body would be.
-pub fn table_from_file(attr: &str, src: &str, host: Option<(&dyn Host, &str)>, line: usize, diags: &mut Diags) -> Option<Table> {
+pub fn table_from_file(attr: &str, src: &str, host: Option<(&dyn Host, &str)>, line: usize, markdown: bool, diags: &mut Diags) -> Option<Table> {
     let text = read_data_file(attr, src, host, line, diags)?;
     let format = if src.to_ascii_lowercase().ends_with(".tsv") { "tsv" } else { "csv" };
     let b = Block {
@@ -200,7 +224,7 @@ pub fn table_from_file(attr: &str, src: &str, host: Option<(&dyn Host, &str)>, l
         body_end: line,
         end: line,
     };
-    table_from_lines(&b, &file_lines(&text), None, diags)
+    table_from_lines(&b, &file_lines(&text), None, markdown, diags)
 }
 
 /// §6, §9.2: a table or view holds at most `TABLE_CELLS` cells — its columns
@@ -219,8 +243,10 @@ pub fn too_large(columns: usize, rows: usize, line: usize, diags: &mut Diags) ->
 /// A table body — the block's own lines, or a data file's — read into the
 /// model under the block's `format=`, `header=` and `delim=`. `rows_from` is
 /// the 1-based line of the first body line, or `None` when the lines come from
-/// a file and every row diagnostic points at the block.
-fn table_from_lines(b: &Block, body_lines: &[String], rows_from: Option<usize>, diags: &mut Diags) -> Option<Table> {
+/// a file and every row diagnostic points at the block. Each cell is read as
+/// inline content (§5), without `{{key}}`; what it references is resolved
+/// with the document's, at the block's line.
+fn table_from_lines(b: &Block, body_lines: &[String], rows_from: Option<usize>, markdown: bool, diags: &mut Diags) -> Option<Table> {
     let line = b.line;
     let format = b.attr_text("format");
     let natural = match format.as_deref() {
@@ -263,6 +289,7 @@ fn table_from_lines(b: &Block, body_lines: &[String], rows_from: Option<usize>, 
         rows.push((cells, rows_from.map_or(line, |s| s + k)));
     }
     type Rows = Vec<(Vec<String>, usize)>;
+    let mut align: Vec<Option<Align>> = Vec::new();
     let (header, body): (Option<Vec<String>>, Rows) = if delim.is_some() {
         if header_wanted(b.attr("header")) && !rows.is_empty() {
             let h = rows.remove(0).0;
@@ -271,18 +298,22 @@ fn table_from_lines(b: &Block, body_lines: &[String], rows_from: Option<usize>, 
             (None, rows)
         }
     } else {
+        // The header is the row just above the first separator row, and every
+        // row below it is a body row; with no separator row there is no header.
         match rows.iter().position(|(c, _)| is_separator(c)) {
             None => (None, rows),
-            Some(0) => (None, rows.into_iter().skip(1).filter(|(c, _)| !is_separator(c)).collect()),
-            Some(_) => {
-                let mut it = rows.into_iter();
-                let h = it.next().expect("a header row").0;
-                (Some(h), it.filter(|(c, _)| !is_separator(c)).collect())
+            Some(s) => {
+                align = rows[s].0.iter().map(|c| align_of(c)).collect();
+                let body = rows.split_off(s + 1);
+                (if s > 0 { Some(rows.swap_remove(s - 1).0) } else { None }, body)
             }
         }
     };
     let width = match &header {
         Some(h) => h.len(),
+        // A header-less grid whose separator row stands over no rows takes
+        // its width from the separator.
+        None if body.is_empty() => align.len(),
         None => body.iter().map(|(c, _)| c.len()).max().unwrap_or(0),
     };
     let columns: Vec<String> = match header {
@@ -291,22 +322,47 @@ fn table_from_lines(b: &Block, body_lines: &[String], rows_from: Option<usize>, 
     };
     // Judged before a cell is padded or a row is said to be ragged: the rows are not kept.
     if too_large(columns.len(), body.len(), line, diags) {
-        return Some(Table { columns, rows: vec![], summary: None });
+        return Some(Table { columns, rows: vec![], summary: None, align });
     }
-    let mut out_rows = Vec::new();
+    let mut rows_out: Vec<(Vec<String>, usize)> = Vec::with_capacity(body.len());
     for (mut cells, at) in body {
         if cells.len() != width {
             diags.push("ragged-table-row", at, format!("this row has {} cells and the table has {} columns", cells.len(), width));
             cells.resize(width, String::new());
         }
-        out_rows.push(cells.into_iter().map(Cell::text).collect());
+        rows_out.push((cells, at));
     }
-    Some(Table { columns, rows: out_rows, summary: None })
+    let mut cx = InlineCtx::new(&[], diags, line).with_markdown(markdown).without_interpolation();
+    let out_rows = rows_out
+        .into_iter()
+        .map(|(cells, _)| {
+            cells
+                .into_iter()
+                .map(|c| {
+                    let inlines = cell_inlines(&c, &mut cx);
+                    Cell { inlines, ..Cell::text(c) }
+                })
+                .collect()
+        })
+        .collect();
+    Some(Table { columns, rows: out_rows, summary: None, align })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_plain_cell_is_its_text() {
+        let meta = Vec::new();
+        let mut diags = Diags::default();
+        for t in ["", "1", "-2.5e3", "plain words", "a: b; c, d", "x < y & z > w", "50%", "#hash", "a|b", "=sum", "\u{3000}全角"] {
+            let mut cx = InlineCtx::new(&meta, &mut diags, 1).without_interpolation();
+            assert_eq!(cell_inlines(t, &mut cx), None, "{t:?}");
+            let text = if t.is_empty() { vec![] } else { vec![crate::model::Inline::Text(t.to_string())] };
+            assert_eq!(parse_inline(t, &mut cx), text, "{t:?}");
+        }
+    }
 
     #[test]
     fn letters_and_rows() {

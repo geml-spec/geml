@@ -50,7 +50,7 @@ fn node(n: &Inline) -> String {
             };
             format!("link({} {})", quote(&target), inl(children))
         }
-        Inline::AutoRef { doc, anchor, value } | Inline::Project { doc, anchor, value } => {
+        Inline::AutoRef { doc, anchor, value, .. } | Inline::Project { doc, anchor, value, .. } => {
             let name = if matches!(n, Inline::AutoRef { .. }) { "ref" } else { "project" };
             let t = quote(&format!("{}#{}", doc.clone().unwrap_or_default(), anchor));
             match value {

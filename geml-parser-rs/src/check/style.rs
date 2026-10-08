@@ -451,7 +451,7 @@ fn corpus_docs(corpus: &[&Document], host: Option<&dyn Host>) -> Vec<Document> {
                 continue;
             }
             names.push(name.clone());
-            extra.push(crate::parse_with(&text, &crate::Options { name, recognize: true, host: None, checks: false }));
+            extra.push(crate::parse_with(&text, &crate::Options { name, recognize: true, host: None, checks: false, markdown: false }));
         }
         i += 1;
     }
@@ -760,7 +760,8 @@ impl Loader<'_> {
                     let Some(text) = crate::host::read_from(host, &from.name, path) else {
                         return say(self, format!("cannot resolve `{path}`"));
                     };
-                    let d = Rc::new(crate::parse_with(&text, &crate::Options { name: name.clone(), recognize: true, host: None, checks: false }));
+                    let d =
+                        Rc::new(crate::parse_with(&text, &crate::Options { name: name.clone(), recognize: true, host: None, markdown: false, checks: false }));
                     self.parsed.insert(name.clone(), d.clone());
                     d
                 }

@@ -53,6 +53,13 @@ pub fn trim_ws(s: &str) -> &str {
     s.trim_matches(is_ws)
 }
 
+/// Trim what ECMAScript's `String.prototype.trim` removes — `White_Space`
+/// with U+FEFF and without U+0085 — where the reference parser's reading
+/// depends on it.
+pub fn trim_js(s: &str) -> &str {
+    s.trim_matches(|c: char| c == '\u{feff}' || (c.is_whitespace() && c != '\u{85}'))
+}
+
 /// A NAME character (§3.1): a letter, a digit, `-` or `_`. Numbers and marks
 /// are admitted beside letters: a derived id keeps every General Category N
 /// character (§4), and a name written in NFD carries its marks.

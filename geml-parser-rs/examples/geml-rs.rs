@@ -42,7 +42,7 @@ impl Host for Fs {
 
 fn parse(fs: &Fs, name: &str) -> geml::Document {
     let text = geml::decode(&std::fs::read(fs.root.join(name)).unwrap_or_else(|e| panic!("{name}: {e}")));
-    geml::parse_with(&text, &geml::Options { name: name.to_string(), recognize: true, host: Some(fs), checks: true })
+    geml::parse_with(&text, &geml::Options { name: name.to_string(), recognize: true, host: Some(fs), checks: true, markdown: geml::is_markdown_path(name) })
 }
 
 fn main() {

@@ -77,6 +77,10 @@ fn a_data_route_is_the_blocks_value() {
     // A broken body names its own line in the document.
     let body = geml::parse("=== data {format=jsonl}\n{}\nnope\n===\n");
     assert_eq!((body.diagnostics[0].code, body.diagnostics[0].line), ("data-parse", 3));
+    // A file's faults are the block's, every bad jsonl line of it.
+    let h = host(&[("r.jsonl", "{\"a\":1}\nbad\nworse\n")]);
+    let ext = read(&h, "doc.geml", "# T\n\n=== data {#d src=r.jsonl}\n===\n\nAfter.\n");
+    assert_eq!(ext.diagnostics.iter().map(|d| (d.code, d.line)).collect::<Vec<_>>(), vec![("data-parse", 3), ("data-parse", 3)]);
 }
 
 #[test]
