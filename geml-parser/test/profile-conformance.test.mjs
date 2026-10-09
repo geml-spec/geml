@@ -28,7 +28,7 @@
 import { PROFILES } from "../dist/profiles.js";
 import { parse, CATALOGUE_EXEMPT } from "../dist/geml.js";
 import { expandCorpus, loadStylesheet, resolveStyle } from "../dist/style-resolve.js";
-import { verify } from "../dist/history.js";
+import { verify, lostEdits } from "../dist/history.js";
 import { readFileSync, existsSync, writeFileSync, mkdtempSync, mkdirSync, rmSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
@@ -202,7 +202,8 @@ test("用例的 sidecars：sidecar 校验无误，验过的修订数就是文件
       writeFileSync(join(dir, "doc.gemlhistory"), c.history);
       const v = verify(join(dir, "doc.gemlhistory"), join(dir, "doc.geml"));
       assert.deepEqual([v.errors, v.checked], [[], c.verified], `${name} / ${c.name}`);
-      assert.deepEqual(v.warnings, c.warnings ?? [], `${name} / ${c.name}: warnings`);
+      assert.deepEqual(lostEdits(join(dir, "doc.gemlhistory")), c.lost ?? [], `${name} / ${c.name}: lost edits`);
+      assert.equal(v.warnings.length, (c.lost ?? []).length, `${name} / ${c.name}: one warning per lost edit`);
       n++;
     }
   }

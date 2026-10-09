@@ -36,8 +36,13 @@
       "geml": "# Plan {#plan}\n\nScope paragraph, from the phone.\n\n=== note {#risk}\nVendor lock-in; keep an export path.\n===\n\nA closing line.\n",
       "history": "# History of doc.geml\n\n=== meta\nprofile      = \"geml-history/v1\"\nhistory-of   = \"doc.geml\"\ngeml-version = \"1.0\"\n===\n\n==== history-snapshot {heads=\"20260201T090800Z-8144f43ac933\" hash=\"sha256:d171799268e8598ae2c2339c58fffe11ca665502f0252405704c8608c4aed298\" newline=lf}\n# Plan {#plan}\n\nScope paragraph, from the phone.\n\n=== note {#risk}\nVendor lock-in; keep an export path.\n===\n\nA closing line.\n\n====\n\n=== history-units\n#plan 2\n~4f7db76e 2\n#risk 4\n~f5a03d0c 2\n===\n\n=== history-change {id=\"20260201T090800Z-8144f43ac933\" parents=\"20260201T090500Z-aef979b00b0c 20260201T090700Z-7c6a44b97a56\" summary=\"Merge\" newline=lf state=\"sha256:d171799268e8598ae2c2339c58fffe11ca665502f0252405704c8608c4aed298\"}\n===\n\n=== history-change {id=\"20260201T090700Z-7c6a44b97a56\" parents=\"20260201T090000Z-8349e3e2d3f7\" author=\"anytype\" summary=\"pulled from Anytype\" newline=lf state=\"sha256:d7786f64854c7d7d15f0c013089c16a54da41e3310f4c373f72dd8449747e5ef\"}\nupdate ~4f7db76e <- blob:b-042dd63363c4\ncreate ~f5a03d0c after #risk <- blob:b-d10320005f29\n===\n\n=== history-blob {#b-042dd63363c4 lang=geml}\nScope paragraph, from the phone.\n\n===\n\n=== history-blob {#b-d10320005f29 lang=geml}\nA closing line.\n\n===\n\n=== history-change {id=\"20260201T090500Z-aef979b00b0c\" parents=\"20260201T090000Z-8349e3e2d3f7\" author=\"alice\" summary=\"alice edits\" newline=lf state=\"sha256:e506ddf977da6aee273728b24a793b9e572cc3332856631165f7b01cb257e38e\"}\nupdate ~4f7db76e <- blob:b-db593f3dfb60\nupdate #risk <- blob:b-305ca57ee976\n===\n\n=== history-blob {#b-db593f3dfb60 lang=geml}\nScope paragraph, by alice.\n\n===\n\n==== history-blob {#b-305ca57ee976 lang=geml}\n=== note {#risk}\nVendor lock-in; keep an export path.\n===\n\n====\n\n=== history-change {id=\"20260201T090000Z-8349e3e2d3f7\" author=\"alice\" summary=\"base\" newline=lf state=\"sha256:5226e558f833ca6f83ace8c7b74d532dd1eef892328d907a6d1ac6b96b0b573e\"}\ncreate #plan at-start <- blob:b-cdceb720171a\ncreate ~4f7db76e after #plan <- blob:b-60838ea0b0cc\ncreate #risk after ~4f7db76e <- blob:b-5196504098b2\n===\n\n=== history-blob {#b-cdceb720171a lang=geml}\n# Plan {#plan}\n\n===\n\n=== history-blob {#b-60838ea0b0cc lang=geml}\nScope paragraph.\n\n===\n\n==== history-blob {#b-5196504098b2 lang=geml}\n=== note {#risk}\nVendor lock-in.\n===\n\n====\n",
       "verified": 4,
-      "warnings": [
-        "concurrent edits to ~4f7db76e: kept 20260201T090700Z-7c6a44b97a56 (anytype), superseded 20260201T090500Z-aef979b00b0c (alice)"
+      "lost": [
+        {
+          "key": "~4f7db76e",
+          "kept": "20260201T090700Z-7c6a44b97a56",
+          "lost": "20260201T090500Z-aef979b00b0c",
+          "how": "overwritten"
+        }
       ]
     }
   ]

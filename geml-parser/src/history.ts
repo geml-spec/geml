@@ -684,6 +684,13 @@ export function save(o: SaveOpts): { id: string; hash: string } {
 
 export interface VerifyResult { ok: boolean; errors: string[]; warnings: string[]; checked: number; }
 
+/** Every edit that lost to a concurrent change, in replay order. */
+export function lostEdits(historyPath: string): LostEdit[] {
+  const h = loadHistory(historyPath);
+  const order = replayOrder(h.changes);
+  return replay(order, h.blobs, new Ancestry(order)).lost;
+}
+
 function lostWarning(l: LostEdit, h: History): string {
   const who = (id: string): string => { const a = h.changes.get(id)?.author; return a ? `${id} (${a})` : id; };
   if (l.how === "overwritten") return `concurrent edits to ${l.key}: kept ${who(l.kept)}, superseded ${who(l.lost)}`;
