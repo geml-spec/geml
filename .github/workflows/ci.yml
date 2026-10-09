@@ -196,10 +196,16 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
 
-  logseq:
-    name: logseq integration — tests
-    runs-on: ubuntu-latest
+  logseq-any-sync:
+    # It writes files, runs git and talks HTTP to a local stand-in for the
+    # Anytype API — the three places platforms differ — so it runs on all three.
+    name: logseq-any-sync — tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -208,8 +214,8 @@ jobs:
       - name: Build reference parser
         working-directory: geml-parser
         run: npm ci && npm run build
-      - name: Logseq integration tests
-        working-directory: integrations/logseq
+      - name: logseq-any-sync tests
+        working-directory: integrations/logseq-any-sync
         run: npm ci && npm test
 
   obsidian:

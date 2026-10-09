@@ -14,7 +14,7 @@
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { join } from "node:path";
+import { join as joinPath } from "node:path";
 import {
   FENCE_OPEN, GEML_LANGUAGE_VERSION, attrs, fenceFor, fullHash, loadBytes, locate,
   nlNamed, nlOf, quoteAttr, sha256Hex, stampUTC, textOf, tile, writeBytes,
@@ -832,6 +832,70 @@ export function merge(o: MergeOpts): MergeResult {
   return { id, added, lost };
 }
 
+// ---------------------------------------------------------------------------
+// Replicas — for a sync engine that keeps a document in step with an app
+// ---------------------------------------------------------------------------
+
+export interface ReplicaOpts {
+  historyPath: string;
+  /** The live file's name, for the sidecar's header. */
+  docName: string;
+  /** The change this replica last held; absent for its first state. */
+  base?: string;
+  /** The document as the replica holds it now. */
+  text: string;
+  newline?: "lf" | "crlf";
+  author: string;
+  summary?: string;
+  at?: Date;
+}
+
+/** Record the document another replica holds as a change following `base`,
+ *  the change that replica last had. The live file is not touched; when the
+ *  replica moved alongside local edits this leaves two heads, which `join`
+ *  merges. Returns no id when the replica holds exactly what `base` held. */
+export function recordReplica(o: ReplicaOpts): { id?: string; heads: string[] } {
+  if (/[\r\n]/.test(o.author) || /[\r\n]/.test(o.summary ?? "")) throw new Error("author and summary must be single lines");
+  const lf = o.text.replace(/\r\n/g, "\n");
+  const nl = o.newline === "crlf" ? "\r\n" : "\n";
+  const h = existsSync(o.historyPath) ? loadHistory(o.historyPath) : emptyHistory(nl);
+  if (o.base && !h.changes.has(o.base)) throw new Error(`history: base change ${o.base} is not in ${baseNameOf(o.historyPath)}`);
+  const base = o.base ? replay(replayOrder(h.changes, closure(h.changes, o.base)), h.blobs).model : new Model();
+  const stamp = stampUTC(o.at ?? new Date());
+  const d = diff(base, lf, `${stamp}\n${o.author}`);
+  if (d.ops.length === 0 && o.base) return { heads: headsOf(h.changes) };
+  const check = new Model(base.entries);
+  for (const [k, v] of d.blobs) h.blobs.set(k, v);
+  for (const op of d.ops) check.apply(op, h.blobs);
+  check.settle();
+  if (check.text() !== lf) throw new Error("history: the recorded operations do NOT reproduce the replica's document; nothing was saved");
+  const body: Omit<Change, "id"> = {
+    parents: o.base ? [o.base] : [], author: o.author, summary: o.summary,
+    newline: nlNamed(nl), state: fullHash(lf, nl), ops: d.ops,
+  };
+  const id = changeId(stamp, body, h.blobs);
+  h.changes.set(id, { id, ...body });
+  const heads = headsOf(h.changes);
+  const r = replay(replayOrder(h.changes), h.blobs);
+  const newest = h.changes.get(heads[heads.length - 1]!)!;
+  h.snapshot = { heads, hash: fullHash(r.text, nlOf(newest.newline)!), newline: newest.newline, text: r.text, entries: r.model.entries };
+  writeHistory(o.historyPath, h, o.docName);
+  return { id, heads };
+}
+
+/** Join the heads with a merge change (nothing to join: nothing written) and
+ *  return the document they replay to, with the edits that lost. */
+export function mergeHeads(o: { historyPath: string; docName: string; author?: string; at?: Date }): { id?: string; head: string; text: string; newline: "lf" | "crlf"; lost: string[] } {
+  const h = loadHistory(o.historyPath);
+  const before = headsOf(h.changes);
+  const id = joinHeads(h, stampUTC(o.at ?? new Date()), o.author);
+  const order = replayOrder(h.changes);
+  const lost = replay(order, h.blobs, new Ancestry(order)).lost.map((l) => lostWarning(l, h));
+  if (id) writeHistory(o.historyPath, h, o.docName);
+  const s = h.snapshot!;
+  return { id, head: id ?? before[0]!, text: s.text, newline: s.newline, lost };
+}
+
 /** git merge driver: union `theirs` into `ours` (written in place). The live
  *  `.geml` is merged by git itself; the next save records whatever it holds. */
 export function mergeDriver(oursPath: string, theirsPath: string, at?: Date): void {
@@ -847,7 +911,7 @@ export function mergeDriver(oursPath: string, theirsPath: string, at?: Date): vo
  *  `.git/config` defines it (git keeps driver commands out of the tree). */
 export function setupGit(dir: string): string[] {
   const done: string[] = [];
-  const attrPath = join(dir, ".gitattributes");
+  const attrPath = joinPath(dir, ".gitattributes");
   const line = "*.gemlhistory merge=geml-history";
   const cur = existsSync(attrPath) ? readFileSync(attrPath, "utf8") : "";
   if (!cur.split(/\r?\n/).includes(line)) {

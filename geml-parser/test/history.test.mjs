@@ -2,7 +2,7 @@
 // restore, tamper detection, concurrent changes and how they merge, the git
 // merge driver, and conversion of a sidecar written in the earlier format.
 // Runs in throwaway temp dirs so it never touches the repo.
-import { save, verify, restore, merge, mergeDriver, listRevisions, resolveContent, isCurrent, loadHistory } from "../dist/history.js";
+import { save, verify, restore, merge, mergeDriver, listRevisions, resolveContent, isCurrent, loadHistory, recordReplica, mergeHeads } from "../dist/history.js";
 import { writeFileSync, readFileSync, rmSync, mkdtempSync, existsSync, copyFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
@@ -387,6 +387,43 @@ test("a hand-made union with two heads: reads, warns, and the next save joins th
   save({ gemlPath: a.g, historyPath: a.h, summary: "join", at: at(8) });
   assert.equal(listRevisions(a.h)[0].parents.length, 2);
   assert.equal(verify(a.h, a.g).ok, true);
+});
+
+// ---------------------------------------------------------------------------
+// Replicas (the sync engine's side)
+// ---------------------------------------------------------------------------
+
+test("a replica's state recorded against its last change, local edits alongside, joined", () => {
+  const { d, g, h } = fresh();
+  writeFileSync(g, BASE);
+  const base = save({ gemlPath: g, historyPath: h, summary: "base", at: at(1) }).id;
+  assert.equal(recordReplica({ historyPath: h, docName: "doc.geml", base, text: BASE, author: "anytype", at: at(2) }).id, undefined, "nothing new on the replica");
+  writeFileSync(g, BASE.replace("Para one.", "Para one, local."));
+  save({ gemlPath: g, historyPath: h, summary: "local", at: at(3) });
+  const r = recordReplica({ historyPath: h, docName: "doc.geml", base, text: BASE.replace("Risk A.", "Risk from the app."), author: "anytype", summary: "pulled", at: at(4) });
+  assert.ok(r.id);
+  assert.equal(r.heads.length, 2);
+  const j = mergeHeads({ historyPath: h, docName: "doc.geml", author: "sync", at: at(5) });
+  assert.ok(j.id);
+  assert.equal(j.text, BASE.replace("Para one.", "Para one, local.").replace("Risk A.", "Risk from the app."));
+  assert.deepEqual(j.lost, []);
+  writeFileSync(g, j.text);
+  assert.equal(verify(h, g).ok, true);
+  assert.equal(isCurrent(h, g), true);
+  assert.equal(mergeHeads({ historyPath: h, docName: "doc.geml", at: at(6) }).id, undefined, "one head: nothing to join");
+  assert.throws(() => recordReplica({ historyPath: h, docName: "doc.geml", base: "nope", text: "x", author: "a" }), /base change nope/);
+  assert.throws(() => recordReplica({ historyPath: h, docName: "doc.geml", text: "x", author: "a\nb" }), /single lines/);
+  rmSync(d, { recursive: true, force: true });
+});
+
+test("a replica's first state starts a sidecar that does not exist yet", () => {
+  const { d, g, h } = fresh();
+  const r = recordReplica({ historyPath: h, docName: "doc.geml", text: "From the app.\r\n", newline: "crlf", author: "anytype", at: at(1) });
+  assert.ok(r.id);
+  writeFileSync(g, "From the app.\r\n");
+  assert.equal(isCurrent(h, g), true);
+  assert.equal(verify(h, g).ok, true);
+  rmSync(d, { recursive: true, force: true });
 });
 
 // ---------------------------------------------------------------------------

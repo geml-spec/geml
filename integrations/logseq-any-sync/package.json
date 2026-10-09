@@ -1,0 +1,42 @@
+{
+  "name": "@geml/logseq-any-sync",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Keep an Anytype space in two-way sync with a git-friendly folder of readable GEML files, every block addressable by its id and every document carrying a mergeable change graph; optionally mirror it one way as Markdown for Logseq.",
+  "type": "module",
+  "bin": {
+    "logseq-any-sync": "watcher/bin/logseq-any-sync.mjs"
+  },
+  "files": [
+    "core/src",
+    "adapters",
+    "watcher/bin",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "anytype",
+    "logseq",
+    "sync",
+    "crdt",
+    "git",
+    "plain-text",
+    "geml"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/geml-spec/geml.git",
+    "directory": "integrations/logseq-any-sync"
+  },
+  "license": "MIT",
+  "scripts": {
+    "test": "node test/all.mjs",
+    "sync": "node watcher/bin/logseq-any-sync.mjs"
+  },
+  "dependencies": {
+    "@geml/geml": "file:../../geml-parser"
+  }
+}

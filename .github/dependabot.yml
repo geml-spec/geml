@@ -17,7 +17,7 @@ updates:
       - "/integrations/chrome-geml-viewer"
       - "/integrations/vscode"
       - "/integrations/obsidian"
-      - "/integrations/logseq"
+      - "/integrations/logseq-any-sync"
       - "/integrations/dsh-plugin"
     schedule:
       interval: monthly
