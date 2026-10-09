@@ -35,7 +35,10 @@ function escText(s: string): string {
 function codeSpan(v: string): string {
   const longest = Math.max(0, ...(v.match(/`+/g) ?? []).map((r) => r.length));
   const fence = "`".repeat(longest + 1);
-  const pad = /^`|`$/.test(v) || (/^ .*\S.* $/s.test(v)) ? " " : "";
+  // Wrapped in spaces with something else inside. Both ends being spaces, "a
+  // non-space anywhere" is "a non-space inside": no backtracking pattern needed.
+  const wrapped = v.startsWith(" ") && v.endsWith(" ") && /\S/.test(v);
+  const pad = /^`|`$/.test(v) || wrapped ? " " : "";
   return fence + pad + v + pad + fence;
 }
 
