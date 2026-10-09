@@ -480,6 +480,11 @@ GEML alike. It runs locally on Windows, macOS, and Linux; `--root` is the
 directory the server is confined to (use `.` or `${workspaceFolder}` to bind to
 the active project).
 
+**Nothing to install** — the same tools run on Cloudflare at
+`https://geml-mcp.supermarket.workers.dev/mcp`. There the document travels in
+each call and a write comes back as text; see
+[the Worker's README](integrations/geml-mcp-worker/README.md).
+
 **Claude Code** — one-command setup (installs skill, CLI, and MCP server):
 
 ```sh

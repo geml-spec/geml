@@ -1,0 +1,30 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "geml-mcp",
+  "main": "src/worker.js",
+  // The ceiling is the workerd the local wrangler ships (1.20260504); a later
+  // date is refused at dev time, an earlier one only forgoes newer runtime fixes.
+  "compatibility_date": "2026-05-01",
+  // node:crypto (a REAL sha256 — `@hex` content addresses are hashes) comes
+  // from here; every other node:* the parser mentions is aliased to a stub.
+  "compatibility_flags": ["nodejs_compat"],
+  "alias": {
+    "node:fs": "./src/node-stub.js",
+    "node:path": "./src/node-stub.js",
+    "node:url": "./src/node-stub.js",
+    "node:os": "./src/node-stub.js",
+    "node:child_process": "./src/node-stub.js",
+    "node:readline": "./src/node-stub.js"
+  },
+  // The parser's CLI hand-off guard reads process.argv[1]; a Worker has no argv.
+  "define": { "process.argv": "[]" },
+  "vars": {
+    // Browser origins allowed to call the endpoint (MCP requires Origin
+    // validation). Non-browser clients send no Origin and always pass.
+    // `scheme://host:*` matches any port; `*` allows every origin.
+    "ALLOWED_ORIGINS": "http://localhost:*,http://127.0.0.1:*",
+    // Request body cap in bytes; a larger document is refused with 413.
+    "MAX_BODY_BYTES": "2097152"
+  },
+  "observability": { "enabled": true }
+}

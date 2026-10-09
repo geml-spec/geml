@@ -14,3 +14,6 @@ integrations/langchain+llamaindex/__pycache__
 #node generated
 **/node_modules/
 **/dist/
+
+# wrangler local cache (a `wrangler dev`/`deploy --dry-run` run from the repo root leaves one here)
+.wrangler/
