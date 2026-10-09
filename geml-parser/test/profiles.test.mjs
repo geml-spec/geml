@@ -111,8 +111,9 @@ test("端到端：codemap 内容文档与 geml-style 样式表各自声明，各
 test("geml-history/v1 放行 .gemlhistory 自己的词汇，未声明时照旧报未知类型", () => {
   const doc = (declared) =>
     "=== meta\n" + (declared ? 'profile = "geml-history/v1"\n' : "") + 'history-of = "a.geml"\n===\n\n'
-    + '====== history-keyframe {id="20260101T000000Z-aaaaaaaa" hash="sha256:aa"}\nx\n======\n\n'
-    + '=== history-revision {id="20260101T000000Z-aaaaaaaa" author="a" summary="s" hash="sha256:aa" newline=lf}\n'
+    + '====== history-snapshot {heads="20260101T000000Z-aaaaaaaaaaaa" hash="sha256:aa" newline=lf}\nx\n======\n\n'
+    + '=== history-units\n~aaaaaaaa 1\n===\n\n'
+    + '=== history-change {id="20260101T000000Z-aaaaaaaaaaaa" parents="" author="a" summary="s" newline=lf state="sha256:aa" was="x"}\n'
     + '==== history-blob {#b-1 lang=geml}\ny\n====\n===\n';
   // 声明之前，这个项目自己的工具写出的文件报自己的类型为未知。
   const bare = parse(doc(false)).diagnostics.map((x) => x.code);
@@ -140,10 +141,10 @@ test("跨 profile 边界：声明与否只改诊断，不改解析结果（v1 �
   // 字节在两份文档里就会解析成不同的树，这条测试会先红。
   const doc = (declared) =>
     "=== meta\n" + (declared ? 'profile = "geml-history/v1"\n' : "") + 'title = "t"\n===\n\n'
-    + '=== history-revision {#r1 id="20260101T000000Z-aaaaaaaa" author="a" summary="s" hash="sha256:aa" newline=lf}\n'
+    + '=== history-change {#r1 id="20260101T000000Z-aaaaaaaaaaaa" author="a" summary="s" state="sha256:aa" newline=lf}\n'
     + "raw *not* emphasised\n===\n";
   const a = parse(doc(true)), b = parse(doc(false));
-  const blk = (d) => d.children.find((c) => c.kind === "block" && c.type === "history-revision");
+  const blk = (d) => d.children.find((c) => c.kind === "block" && c.type === "history-change");
   assert.equal(blk(a).mode, blk(b).mode, "body 模式必须与 profile 无关");
   assert.equal(blk(a).mode, "raw");
   assert.deepEqual(blk(a).body, blk(b).body, "body 必须逐字相同");

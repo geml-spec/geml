@@ -409,23 +409,22 @@ test(`R2-9: verifying a ${R2_9_N}-revision history is fast (linear) and passes`,
   assert.equal(v.errors.length, 0, "an intact history reports no errors");
 });
 
-test("R2-9: the fast verify still catches a tampered revision at exactly that revision", () => {
+test("R2-9: the fast verify still catches a tampered change at exactly that change", () => {
   const src = readFileSync(r2_9_hist, "utf8");
-  const ids = [...src.matchAll(/=== history-revision \{id="([^"]+)"/g)].map((m) => m[1]);
-  assert.ok(ids.length >= R2_9_N, "all revision blocks present in the sidecar");
-  const victim = ids[Math.floor(ids.length / 2)]; // a mid-chain revision
-  // Strip ONLY that revision's recorded hash -> its reconstructed bytes no longer
-  // match, every other revision is untouched.
-  const tampered = src.replace(new RegExp(`(=== history-revision \\{id="${victim}"[^}]*?) hash="[^"]+"`), "$1");
-  assert.notEqual(tampered, src, "the victim revision's hash attribute was stripped");
+  const ids = [...src.matchAll(/=== history-change \{id="([^"]+)"/g)].map((m) => m[1]);
+  assert.ok(ids.length >= R2_9_N, "all change blocks present in the sidecar");
+  const victim = ids[Math.floor(ids.length / 2)]; // a mid-graph change
+  // Strip ONLY that change's recorded state -> its id and its state both stop
+  // matching; every other change is untouched.
+  const tampered = src.replace(new RegExp(`(=== history-change \\{id="${victim}"[^}]*?) state="[^"]+"`), "$1");
+  assert.notEqual(tampered, src, "the victim change's state attribute was stripped");
   const tamperedPath = r2_9_hist + ".tampered";
   writeFileSync(tamperedPath, tampered);
   const v = verify(tamperedPath);
   assert.equal(v.ok, false, "verify rejects the tampered sidecar");
-  const hashErrs = v.errors.filter((e) => /reconstructed hash/.test(e));
-  assert.equal(hashErrs.length, 1, "exactly one revision is flagged");
-  assert.ok(hashErrs[0].includes(victim), "the flagged revision is precisely the tampered one");
-  assert.equal(v.checked, R2_9_N, "verify still walks the whole chain");
+  assert.ok(v.errors.length >= 1);
+  assert.ok(v.errors.every((e) => e.includes(victim)), `only the tampered change is flagged: ${v.errors.join("; ")}`);
+  assert.equal(v.checked, R2_9_N, "verify still walks the whole graph");
   rmSync(r2_9_dir, { recursive: true, force: true });
 });
 
@@ -1393,7 +1392,8 @@ test("R5-4: a summary carrying quotes and a `hash=` round-trips whole and the si
     const summary = 'x" hash="sha256:0000" \\ tail';
     save({ gemlPath: f, historyPath: h, summary });
     const side = readFileSync(h, "utf8");
-    assert.equal((side.match(/ hash="/g) ?? []).length, 2, "one hash per keyframe and revision — the planted one is inside the summary's quotes");
+    assert.equal((side.match(/ hash="/g) ?? []).length, 1, "one hash, the snapshot's — the planted one is inside the summary's quotes");
+    assert.equal((side.match(/ state="/g) ?? []).length, 1, "one state, the change's");
     const v = spawnSync(process.execPath, ["dist/geml.js", "history", "verify", f], { encoding: "utf8", timeout: 60_000 });
     assert.equal(v.status, 0, v.stderr + v.stdout);
     const got = spawnSync(process.execPath, ["dist/geml.js", "history", "get", f], { encoding: "utf8", timeout: 60_000 });
@@ -2075,12 +2075,11 @@ test("round 6: verifying a revision that reorders thousands of units hashes each
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-// Round 6 (R-18; geml-history §8). A sidecar holding two revisions under one id,
-// each consistent with its own hash, verified clean — and reconstructed one text
-// where the first was taken and another where the last was. An id names one
-// revision, keyframe or blob, and a sidecar names one `current`: either sharing
-// is corruption now.
-test("round 6: history verify reports an id shared by two revisions, keyframes or blobs, and a second current", () => {
+// Round 6 (R-18; geml-history). A sidecar holding two changes under one id would
+// replay one text where the first was taken and another where the last was. An
+// id names one change, and a sidecar holds one snapshot: either repeated is
+// corruption.
+test("round 6: history verify reports an id shared by two changes, and a second snapshot", () => {
   const dir = mkdtempSync(join(tmpdir(), "geml-sec-round6-hist-"));
   try {
     const geml = join(dir, "doc.geml");
@@ -2091,15 +2090,16 @@ test("round 6: history verify reports an id shared by two revisions, keyframes o
     save({ gemlPath: geml, historyPath: hist, summary: "b", author: "t", at: new Date(Date.UTC(2026, 0, 2)) });
     assert.equal(verify(hist, geml).ok, true, "the sidecar as written verifies");
     const src = readFileSync(hist, "utf8");
-    const rev = /^(=+) history-revision \{[^\n]*\n[\s\S]*?^\1\n/m.exec(src);
-    assert.ok(rev, "the sidecar has a revision block to repeat");
+    const rev = /^(=+) history-change \{[^\n]*\n[\s\S]*?^\1\n/m.exec(src);
+    assert.ok(rev, "the sidecar has a change block to repeat");
     writeFileSync(hist, src + "\n" + rev[0]);
     const v = verify(hist, geml);
-    assert.equal(v.ok, false, "a repeated revision id is corruption");
-    assert.ok(v.errors.some((e) => /two revisions share the id/.test(e)), v.errors.join("; "));
-    writeFileSync(hist, src.replace(/^(current\s*=.*)$/m, "$1\ncurrent = \"other\""));
+    assert.equal(v.ok, false, "a repeated change id is corruption");
+    assert.ok(v.errors.some((e) => /two changes share the id/.test(e)), v.errors.join("; "));
+    const snap = /^(=+) history-snapshot \{[^\n]*\n[\s\S]*?^\1\n/m.exec(src);
+    writeFileSync(hist, src + "\n" + snap[0]);
     const c = verify(hist, geml);
-    assert.ok(c.errors.some((e) => /names `current` 2 times/.test(e)), c.errors.join("; "));
+    assert.ok(c.errors.some((e) => /more than one snapshot/.test(e)), c.errors.join("; "));
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

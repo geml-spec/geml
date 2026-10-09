@@ -62,7 +62,7 @@ import {
   PARSER_VERSION, VERSION, parse, historyPathFor, sliceUnit, metaOf, isMarkdownPath } from "./geml.js";
 import { parseSelector } from "./selector.js";
 import { parseAttrs } from "./attrs.js";
-import { save, restore, verify, isCurrent, listRevisions, resolveContent, firstChangedContent } from "./history.js";
+import { save, restore, verify, merge, mergeDriver, setupGit, isCurrent, listRevisions, resolveContent, firstChangedContent } from "./history.js";
 import {
   type Content, type DocOpts, type FindHit, type HistoryReader, type InFmt, type OutFmt, type VerbContext,
   VerbError, add, check, del, findInSource, formatFindRows, get, list, rename, replace, reportMatches,
@@ -172,12 +172,15 @@ const SUBHELP = {
   replace: "usage: geml replace <file.geml|-> <old> <new> [--within <selector>] [-o out.geml] [--root d]  (EXPERIMENTAL — this verb MAY BE WITHDRAWN in a later release; it is here to find out whether an addressed, checked replacement earns its place beside `sed`, and if it does not, it goes. Build nothing on it you cannot change, and say so in a discussion if it is doing real work for you. Swaps a LITERAL string — never a pattern, that is what `sed` is for and where the footguns are. Without --within the whole document; with it, only inside the blocks that selector matches, and unlike `set` it may match several: `--within '=== table'` means every table. What this buys over `sed -i`, at the same cost of two short strings and nothing read: the result is re-parsed and refused if it would break the document, the blocks it touched are NAMED on stderr, and the write lands in .gemlhistory where `revert` can undo it. An id is not text — a replacement that would rename one is refused and points at `geml rename`, which fixes every reference too. Exit 1 when nothing matched, so `if geml replace …` works in a script)",
   check: "usage: geml check <file.geml|-> [--root <dir>] [--json] [--severity <code>=<level>]… [--only <pattern>]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory. A document whose `=== meta` declares a vocabulary this processor recognizes also gets that vocabulary's own checks, reported by ADDRESS rather than by line — they are cross-document, so there is no one line to name. --severity re-levels ONE such code: error | warning | info, and info is the floor, because a level that silences is what --only is for. It takes profile codes only; the core catalogue's severities are fixed by Appendix A and a processor that moved one would not conform. --only keeps just the profile codes matching a `*` pattern, as in --only 'media-stale-*')",
   revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--append|--before <sel>|--after <sel>] [--head] [--dry-run] [-o out] [--root d]  (reconcile #id to a revision: splice / resurrect / remove; sel: 0 | -N | id-prefix | changed; default -1)",
-  history: `usage: geml history save    <file.geml> [-m <msg>]      append the working file as a new revision (identical to the tip = no-op)
-       geml history get     <file.geml> [<rev>] [--json]   NO <rev>: every revision, newest first, first column = the selector; WITH <rev>: that revision's full text
-       geml history restore <file.geml> <rev> [--force]    overwrite the working file with a revision (--force discards unsaved changes)
-       geml history verify  <file.geml>                    rebuild and re-hash every revision in the chain
-       (<rev>: 0 = the tip | -N = N revisions back | an unambiguous revision id — the strings 'get' prints.
-        All four take --history <path> to point at a sidecar other than <file>.gemlhistory.)`,
+  history: `usage: geml history save    <file.geml> [-m <msg>]      record the working file as a new change (nothing changed = no-op)
+       geml history get     <file.geml> [<rev>] [--json]   NO <rev>: every change, latest first, first column = the selector; WITH <rev>: the document at that change
+       geml history restore <file.geml> <rev> [--force]    make the working file that change's document, recorded as a new change (--force discards unsaved changes)
+       geml history verify  <file.geml>                    replay every change; check its id, the document it replays to, and the snapshot
+       geml history merge   <file.geml> <other.gemlhistory> [--force]   add another copy's changes, join the heads, write the merged document
+       geml history setup-git [<dir>]                      register the merge driver for *.gemlhistory in this git repository
+       (<rev>: 0 = the current head | -N = N changes back | an unambiguous change id — the strings 'get' prints.
+        save/get/restore/verify/merge take --history <path> to point at a sidecar other than <file>.gemlhistory.
+        git calls 'geml history merge-driver %O %A %B' itself once setup-git has run.)`,
   codemap: `usage: geml codemap build  [--root <repo>] [--exclude <glob>]… [--no-gitignore]   # auto-detect languages, run the indexer(s), and merge into one codemap (--root defaults to the current directory)
        geml codemap build  (--db <graph.db> | --adapter joern|scip --raw <in> [--remap <virtual-dir>])+ [--root <repo>] [--repo-name <name>] [--out .geml-code-graph] [--build <out>/_build] [--container module|dir|file] [--lang <JAVASRC|NEWC|…>] [--joern <path>] [--exclude <glob>]… [--no-gitignore] [--history [-m msg]]
        geml codemap verify [dir]                 geml check + profile reference checks
@@ -987,7 +990,20 @@ function historyPositionals(args: string[]): string[] {
 }
 
 function runHistory(args: string[]): void {
-  const [sub, file, rev, ...extra] = historyPositionals(args);
+  const positionals = historyPositionals(args);
+  // The two verbs that name no document: git's merge driver (`%O %A %B`) and
+  // the one-time registration of it.
+  if (positionals[0] === "merge-driver") {
+    const [, , ours, theirs] = positionals;
+    if (!ours || !theirs) fail("usage: geml history merge-driver <base> <ours> <theirs>", 2);
+    try { mergeDriver(ours, theirs); } catch (e) { console.error(`geml history merge-driver: ${(e as Error).message}`); process.exit(1); }
+    return;
+  }
+  if (positionals[0] === "setup-git") {
+    try { for (const line of setupGit(positionals[1] ?? ".")) console.log(line); } catch (e) { fail((e as Error).message); }
+    return;
+  }
+  const [sub, file, rev, ...extra] = positionals;
   if (!sub || !file) fail(SUBHELP.history);
   const historyPath = flag(args, "--history") ?? historyPathFor(file);
   const json = args.includes("--json");
@@ -1083,8 +1099,13 @@ function runHistory(args: string[]): void {
       const res = verify(historyPath, file);
       for (const e of res.errors) console.error(`error: ${e}`);
       for (const w of res.warnings) console.error(`warning: ${w}`);
-      console.log(`verify: ${res.ok ? "OK" : "FAILED"} (${res.checked} revisions reconstructed & hashed)`);
+      console.log(`verify: ${res.ok ? "OK" : "FAILED"} (${res.checked} changes replayed & hashed)`);
       if (!res.ok) process.exit(1);
+    } else if (sub === "merge") {
+      if (!rev) fail("usage: geml history merge <file.geml> <other.gemlhistory> [--force]");
+      const r = merge({ historyPath, otherPath: rev, gemlPath: file, force: args.includes("--force") });
+      for (const l of r.lost) console.error(`warning: ${l}`);
+      console.log(r.id ? `merged ${r.added} change(s); joined the heads as ${r.id}` : `merged ${r.added} change(s)`);
     } else {
       fail(`unknown history subcommand: ${sub}. Run 'geml --help'.`);
     }

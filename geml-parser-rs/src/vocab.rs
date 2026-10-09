@@ -133,10 +133,11 @@ pub const PROFILES: &[Profile] = &[
     Profile {
         name: "geml-history/v1",
         state: State::Stable,
-        types: &[("history-revision", Raw), ("history-keyframe", Raw), ("history-blob", Raw)],
+        types: &[("history-change", Raw), ("history-snapshot", Raw), ("history-units", Raw), ("history-blob", Raw)],
         attrs: &[
-            ("history-revision", &["id", "parent", "author", "summary", "hash", "newline"]),
-            ("history-keyframe", &["id", "hash"]),
+            ("history-change", &["id", "parents", "author", "summary", "newline", "state", "was"]),
+            ("history-snapshot", &["heads", "hash", "newline"]),
+            ("history-units", &[]),
             ("history-blob", &["lang"]),
         ],
         open_attrs: &[],

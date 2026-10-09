@@ -130,11 +130,11 @@ test("a type nothing admits is SAID so on its row, and a profile's type is not",
   // listing cannot disagree with `check` about the same document.
   const f = write("l-unk.geml", '=== meta\nprofile = "geml-history/v1"\n===\n\n'
     + "=== field {#f1}\nraw\n===\n\n"
-    + '=== history-revision {id="x" hash="sha256:0" newline="lf"}\n===\n\n'
+    + '=== history-change {id="x" state="sha256:0" newline=lf}\n===\n\n'
     + "=== note {#n}\nok\n===\n");
   const out = run(["list", f]).out;
   assert.match(out, /#f1 .*field .*unknown type/, out);
-  assert.doesNotMatch(out, /history-revision.*unknown type/, "the profile admits it");
+  assert.doesNotMatch(out, /history-change.*unknown type/, "the profile admits it");
   assert.doesNotMatch(out, /#n .*unknown type/, out);
   const rows = JSON.parse(run(["list", f, "--json"]).out);
   assert.equal(rows.find((r) => r.address === "#f1").unknownType, true);

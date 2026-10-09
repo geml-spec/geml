@@ -299,10 +299,11 @@ export const PROFILES: Record<string, ProfileDef> = {
     // / `keyframe` / `blob` they replace are not read: an unhyphenated name this
     // specification does not define squats space reserved for future versions of
     // it, and keeping a second spelling alive would have been the squatting.
-    types: ["history-revision", "history-keyframe", "history-blob"],
+    types: ["history-change", "history-snapshot", "history-units", "history-blob"],
     attrs: {
-      "history-revision": ["id", "parent", "author", "summary", "hash", "newline"],
-      "history-keyframe": ["id", "hash"],
+      "history-change": ["id", "parents", "author", "summary", "newline", "state", "was"],
+      "history-snapshot": ["heads", "hash", "newline"],
+      "history-units": [],
       "history-blob": ["lang"],
     },
   },

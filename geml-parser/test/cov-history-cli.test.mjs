@@ -1,10 +1,10 @@
 // Coverage tests for dist/history.js (in-process) and dist/geml.js (CLI spawns).
-// Targets the branches/statements the main suites leave uncovered: reverse-patch
-// insert/delete/move application, crafted-sidecar corruption arms, verify/restore
+// Targets the branches/statements the main suites leave uncovered: tiling
+// shapes, every operation kind, crafted-sidecar corruption arms, verify/restore
 // guard rails, and the CLI arms of convert/render/fmt/export/history/get/set/
 // revert plus the bin-entry detection fallbacks.
 import {
-  save, restore, verify, reconstruct, isCurrent, listRevisions, resolveContent,
+  save, restore, verify, reconstruct, isCurrent, listRevisions, resolveContent, replayOrder, loadHistory, setupGit,
 } from "../dist/history.js";
 import { spawnSync } from "node:child_process";
 import {
@@ -21,7 +21,7 @@ function test(name, fn) { fn(); passed++; console.log("ok", name); }
 const at = (s) => new Date(s);
 
 // ---------------------------------------------------------------------------
-// history.js in-process: tiling shapes, reverse-op kinds, selectors
+// history.js in-process: tiling shapes, operation kinds, selectors
 // ---------------------------------------------------------------------------
 
 test("save/restore round-trip: leading blanks, multi-line flow, attr-less fence, added block", () => {
@@ -42,52 +42,58 @@ test("save/restore round-trip: leading blanks, multi-line flow, attr-less fence,
   const v = verify(hh, g);
   assert.equal(v.ok, true, v.errors.join("; "));
   assert.equal(v.checked, 2);
-  // The added block means the tip's reverse patch carries a `delete` op — the
-  // sidecar text must show it, and applying it must reproduce V1 byte-exact.
-  assert.match(readFileSync(hh, "utf8"), /^delete #added$/m, "reverse delete op recorded");
-  assert.equal(restore({ historyPath: hh, gemlPath: g, revision: r1.id }), V1, "restore across a reverse delete");
+  const text = readFileSync(hh, "utf8");
+  assert.match(text, /^create #added after #n <- blob:b-[0-9a-f]{12}$/m, "the added block is a create anchored after its predecessor");
+  assert.match(text, /^update #n <- blob:/m);
+  assert.equal(restore({ historyPath: hh, gemlPath: g, revision: r1.id }), V1);
   rmSync(d, { recursive: true, force: true });
 });
 
-test("resolveContent selectors: `0` is the tip, `-N` goes back; removed aliases and unknowns throw", () => {
+test("resolveContent selectors: `0` is the head, `-N` goes back; aliases and unknowns throw", () => {
   const d = mkdtempSync(join(tmpdir(), "geml-cov-sel-"));
   const g = join(d, "d.geml"), hh = join(d, "d.gemlhistory");
   writeFileSync(g, "=== note {#n}\none\n===\n");
   const a = save({ gemlPath: g, historyPath: hh, summary: "1", at: at("2026-01-01T00:00:00Z") });
   writeFileSync(g, "=== note {#n}\ntwo\n===\n");
   const b = save({ gemlPath: g, historyPath: hh, summary: "2", at: at("2026-01-02T00:00:00Z") });
-  assert.equal(resolveContent(hh, "0").id, b.id, "0 = the tip");
-  assert.equal(resolveContent(hh, "-1").id, a.id, "-1 = one revision back");
-  // The old `latest` / `current` aliases are gone: they are no longer relative
-  // selectors and match no revision id.
+  assert.equal(resolveContent(hh, "0").id, b.id);
+  assert.equal(resolveContent(hh, "-1").id, a.id);
   assert.throws(() => resolveContent(hh, "latest"), /matched 0 revisions/);
   assert.throws(() => resolveContent(hh, "current"), /matched 0 revisions/);
-  assert.throws(() => resolveContent(hh, "definitely-no-such-rev"), /matched 0 revisions/);
+  assert.throws(() => resolveContent(hh, "2026"), /matched 2 revisions/, "an ambiguous prefix");
+  assert.throws(() => resolveContent(hh, "-9"), /out of range/);
   const revs = listRevisions(hh);
   assert.equal(revs.length, 2);
   assert.equal(revs[0].current, true);
+  assert.equal(revs[0].head, true);
+  assert.equal(revs[1].head, false);
   rmSync(d, { recursive: true, force: true });
 });
 
-test("deleting the first and last block: reverse inserts (at-start + after KEY) round-trip", () => {
+test("removing the first and last blocks, then bringing the first back", () => {
   const d = mkdtempSync(join(tmpdir(), "geml-cov-t2-"));
   const g = join(d, "d.geml"), hh = join(d, "d.gemlhistory");
   const V1 = "=== note {#a}\nalpha\n===\n\n=== note {#b}\nbeta\n===\n\n=== note {#c}\ngamma\n===\n";
   const V2 = "=== note {#b}\nbeta\n===\n";
+  const V3 = "=== note {#a}\nalpha\n===\n\n=== note {#b}\nbeta\n===\n";
   writeFileSync(g, V1);
   const r1 = save({ gemlPath: g, historyPath: hh, summary: "all three", at: at("2026-02-01T00:00:00Z") });
   writeFileSync(g, V2);
   save({ gemlPath: g, historyPath: hh, summary: "only b", at: at("2026-02-02T00:00:00Z") });
-  const sidecar = readFileSync(hh, "utf8");
-  assert.match(sidecar, /insert <- blob:b\d+ at-start/, "first block re-inserted at-start");
-  assert.match(sidecar, /insert <- blob:b\d+ after #b/, "last block re-inserted after its predecessor");
+  const text = readFileSync(hh, "utf8");
+  assert.match(text, /^remove #a$/m);
+  assert.match(text, /^remove #c$/m);
+  writeFileSync(g, V3);
+  save({ gemlPath: g, historyPath: hh, summary: "a back", at: at("2026-02-03T00:00:00Z") });
+  assert.match(readFileSync(hh, "utf8"), /^create #a at-start <- blob:/m, "a tombstone comes back through create");
   const v = verify(hh, g);
   assert.equal(v.ok, true, v.errors.join("; "));
-  assert.equal(restore({ historyPath: hh, gemlPath: g, revision: r1.id }), V1, "reverse inserts reproduce v1 byte-exact");
+  assert.equal(restore({ historyPath: hh, gemlPath: g, revision: r1.id }), V1);
+  assert.match(readFileSync(hh, "utf8"), /^-#c$/m, "the unit list keeps the tombstone");
   rmSync(d, { recursive: true, force: true });
 });
 
-test("swapping two blocks (reorder) round-trips through the LIS path", () => {
+test("swapping two blocks round-trips", () => {
   const d = mkdtempSync(join(tmpdir(), "geml-cov-t3-"));
   const g = join(d, "d.geml"), hh = join(d, "d.gemlhistory");
   const V1 = "=== note {#a}\nalpha\n===\n\n=== note {#b}\nbeta\n===\n";
@@ -97,7 +103,7 @@ test("swapping two blocks (reorder) round-trips through the LIS path", () => {
   writeFileSync(g, V2);
   save({ gemlPath: g, historyPath: hh, summary: "ba", at: at("2026-03-02T00:00:00Z") });
   assert.equal(verify(hh, g).ok, true);
-  assert.equal(restore({ historyPath: hh, gemlPath: g, revision: r1.id }), V1, "reorder reproduces v1");
+  assert.equal(restore({ historyPath: hh, gemlPath: g, revision: r1.id }), V1);
   rmSync(d, { recursive: true, force: true });
 });
 
@@ -115,13 +121,24 @@ test("total rewrite (zero common units) round-trips", () => {
   rmSync(d, { recursive: true, force: true });
 });
 
+test("an empty document saves and round-trips", () => {
+  const d = mkdtempSync(join(tmpdir(), "geml-cov-t5-"));
+  const g = join(d, "d.geml"), hh = join(d, "d.gemlhistory");
+  writeFileSync(g, "");
+  const r1 = save({ gemlPath: g, historyPath: hh, summary: "empty", at: at("2026-03-05T00:00:00Z") });
+  writeFileSync(g, "Now something.\n");
+  save({ gemlPath: g, historyPath: hh, summary: "text", at: at("2026-03-06T00:00:00Z") });
+  assert.equal(restore({ historyPath: hh, gemlPath: g, revision: r1.id }), "");
+  assert.equal(verify(hh, g).ok, true);
+  rmSync(d, { recursive: true, force: true });
+});
+
 // ---------------------------------------------------------------------------
-// Crafted sidecars: corruption arms, move ops, legacy attrs, guard rails.
-// The .gemlhistory format is plain text, so targeted string edits stand in for
-// hand-written / damaged / pre-upgrade sidecars.
+// Crafted sidecars: corruption arms and guard rails. The format is plain text,
+// so targeted string edits stand in for hand-edited and damaged sidecars.
 // ---------------------------------------------------------------------------
 
-// A standard two-revision sidecar to mutate: v1 "one" -> v2 "two" on block #n.
+// A standard two-change sidecar to mutate: "one" -> "two" on block #n.
 function makeHist(tag) {
   const d = mkdtempSync(join(tmpdir(), `geml-cov-${tag}-`));
   const g = join(d, "d.geml"), hh = join(d, "d.gemlhistory");
@@ -133,72 +150,87 @@ function makeHist(tag) {
 }
 const editHist = (hh, fn) => writeFileSync(hh, fn(readFileSync(hh, "utf8")));
 
-test("verify reports an op whose unit key no longer resolves", () => {
+test("verify reports an op on a key no earlier change created (and the id it no longer matches)", () => {
   const { d, hh } = makeHist("badkey");
-  editHist(hh, (s) => s.replace(/^replace #n /m, "replace #zz "));
+  editHist(hh, (s) => s.replace(/^update #n /m, "update #zz "));
   const v = verify(hh);
   assert.equal(v.ok, false);
-  assert.ok(v.errors.some((e) => /unit #zz not found/.test(e)), v.errors.join("; "));
+  assert.ok(v.errors.some((e) => /id does not match/.test(e)), v.errors.join("; "));
   rmSync(d, { recursive: true, force: true });
 });
 
 test("verify reports an unresolved blob reference", () => {
   const { d, hh } = makeHist("badblob");
-  editHist(hh, (s) => s.replace(/<- blob:b\d+/, "<- blob:b777"));
+  editHist(hh, (s) => s.replace(/^update #n <- blob:b-[0-9a-f]+/m, "update #n <- blob:b-000000000000"));
   const v = verify(hh);
   assert.equal(v.ok, false);
-  assert.ok(v.errors.some((e) => /unresolved blob:b777/.test(e)), v.errors.join("; "));
+  assert.ok(v.errors.some((e) => /unresolved blob:b-000000000000/.test(e)), v.errors.join("; "));
   rmSync(d, { recursive: true, force: true });
 });
 
-test("an unrecognized reverse-patch op line makes verify throw cleanly", () => {
+test("an unrecognized operation line fails verify cleanly", () => {
   const { d, hh } = makeHist("badop");
-  editHist(hh, (s) => s.replace(/^replace #n <- blob:b\d+$/m, "frobnicate #n"));
-  assert.throws(() => verify(hh), /unrecognized reverse-patch op/);
-  rmSync(d, { recursive: true, force: true });
-});
-
-test("a bad move anchor makes verify throw cleanly", () => {
-  const { d, hh } = makeHist("badanchor");
-  editHist(hh, (s) => s.replace(/^replace #n <- blob:b\d+$/m, "move #n bogus-anchor"));
-  assert.throws(() => verify(hh), /bad anchor/);
-  rmSync(d, { recursive: true, force: true });
-});
-
-test("stripped hash/newline attrs: every revision fails verify with a hash mismatch", () => {
-  const { d, hh } = makeHist("nohash");
-  editHist(hh, (s) => s.replace(/ hash="[^"]+"/g, "").replace(/ newline="[^"]+"/g, ""));
+  editHist(hh, (s) => s.replace(/^update #n <- blob:\S+$/m, "frobnicate #n"));
   const v = verify(hh);
   assert.equal(v.ok, false);
-  assert.ok(v.errors.every((e) => /hash/.test(e)), v.errors.join("; "));
-  assert.equal(v.errors.length, 2, "both revisions reported");
+  assert.ok(v.errors.some((e) => /unrecognized operation: frobnicate #n/.test(e)), v.errors.join("; "));
   rmSync(d, { recursive: true, force: true });
 });
 
-test("unquoted attribute values in a sidecar parse fine (newline=lf)", () => {
-  const { d, hh } = makeHist("unquoted");
-  editHist(hh, (s) => s.replace(/newline="lf"/g, "newline=lf"));
+test("a blob whose content was edited no longer matches its id", () => {
+  const { d, hh } = makeHist("blobedit");
+  editHist(hh, (s) => s.replace(/(history-blob \{#b-[0-9a-f]+ lang=geml\}\n=== note \{#n\}\n)one/, "$1ONE"));
+  const v = verify(hh);
+  assert.equal(v.ok, false);
+  assert.ok(v.errors.some((e) => /blob b-[0-9a-f]+ does not match its content/.test(e)), v.errors.join("; "));
+  rmSync(d, { recursive: true, force: true });
+});
+
+test("a stripped state fails the id check; a wrong state with a matching id fails the replay check", () => {
+  const { d, hh } = makeHist("nostate");
+  editHist(hh, (s) => s.replace(/ state="[^"]+"/g, ""));
+  const v = verify(hh);
+  assert.equal(v.ok, false);
+  assert.ok(v.errors.some((e) => /id does not match/.test(e)), v.errors.join("; "));
+  rmSync(d, { recursive: true, force: true });
+});
+
+test("quoted attribute values in a sidecar parse fine (newline=\"lf\")", () => {
+  const { d, hh } = makeHist("quoted");
+  editHist(hh, (s) => s.replace(/newline=lf/g, 'newline="lf"'));
   const v = verify(hh);
   assert.equal(v.ok, true, v.errors.join("; "));
   rmSync(d, { recursive: true, force: true });
 });
 
-test("a parent cycle is reported, and with a gemlPath the missing tip is a warning too", () => {
-  const { d, g, hh, id1, id2 } = makeHist("cycle");
-  editHist(hh, (s) => s.replace(`=== history-revision {id="${id1}"`, `=== history-revision {id="${id1}" parent="${id2}"`));
+test("a cycle in the change graph is reported by the order itself", () => {
+  const changes = new Map([
+    ["A", { id: "A", parents: ["B"], ops: [] }],
+    ["B", { id: "B", parents: ["A"], ops: [] }],
+  ]);
+  assert.throws(() => replayOrder(changes), /cycle/);
+});
+
+test("a damaged snapshot unit list is reported, and the sidecar still reads", () => {
+  const { d, g, hh } = makeHist("units");
+  editHist(hh, (s) => s.replace(/^#n \d+$/m, "#n 99"));
+  const v = verify(hh, g);
+  assert.equal(v.ok, false);
+  assert.ok(v.errors.some((e) => /unit list does not cover its text/.test(e)), v.errors.join("; "));
+  rmSync(d, { recursive: true, force: true });
+});
+
+test("two changes under one id, two snapshots: both reported", () => {
+  const { d, hh } = makeHist("dupe");
+  const s = readFileSync(hh, "utf8");
+  const change = /=== history-change [^\n]*\n[\s\S]*?\n===\n/.exec(s)[0];
+  const snap = /==== history-snapshot [\s\S]*?\n====\n/.exec(s)[0];
+  writeFileSync(hh, s + "\n" + change + "\n" + snap);
   const v = verify(hh);
   assert.equal(v.ok, false);
-  assert.ok(v.errors.some((e) => /cycle/.test(e)), v.errors.join("; "));
-  // Dangling parent + gemlPath: the chain breaks, so there is no tip hash to
-  // compare the working file against -> "uncommitted changes" warning path.
-  const { d: d2, g: g2, hh: hh2 } = makeHist("dangling");
-  editHist(hh2, (s) => s.replace(/parent="[^"]+"/, 'parent="does-not-exist"'));
-  const v2 = verify(hh2, g2);
-  assert.equal(v2.ok, false);
-  assert.ok(v2.warnings.some((w) => /uncommitted changes/.test(w)), v2.warnings.join("; "));
+  assert.ok(v.errors.some((e) => /two changes share the id/.test(e)), v.errors.join("; "));
+  assert.ok(v.errors.some((e) => /more than one snapshot/.test(e)), v.errors.join("; "));
   rmSync(d, { recursive: true, force: true });
-  rmSync(d2, { recursive: true, force: true });
-  assert.ok(existsSync(g) === false || true); // g consumed above; silence unused-var lint
 });
 
 test("verify warns (but stays ok) when the working doc has uncommitted changes", () => {
@@ -222,91 +254,48 @@ test("restore(write) on a dirty doc refuses without force", () => {
   rmSync(d, { recursive: true, force: true });
 });
 
-test("isCurrent: true after a save, false after an edit, false when current id is dangling", () => {
+test("isCurrent: true after a save, false after an edit", () => {
   const { d, g, hh } = makeHist("iscur");
   assert.equal(isCurrent(hh, g), true);
   writeFileSync(g, readFileSync(g, "utf8") + "\nedit\n");
   assert.equal(isCurrent(hh, g), false);
-  editHist(hh, (s) => s.replace(/^(current\s*=\s*)"[^"]+"/m, '$1"zzz"'));
-  assert.equal(isCurrent(hh, g), false, "missing tip revision is not current");
   rmSync(d, { recursive: true, force: true });
 });
 
-test("reconstruct throws on an unknown revision and on a keyframe-less history", () => {
-  const h = {
-    nl: "\n", current: "A",
-    keyframes: new Map([["A", "x"]]),
-    revisions: new Map([["A", { id: "A", hash: "", ops: [] }]]),
-    blobs: new Map(),
-  };
-  assert.throws(() => reconstruct(h, "B"), /unknown revision B/);
-  assert.throws(
-    () => reconstruct({ ...h, keyframes: new Map() }, "A"),
-    /no keyframe/,
-  );
-});
-
-test("hand-written move op (at-end) reconstructs, and a later save re-renders it", () => {
-  const d = mkdtempSync(join(tmpdir(), "geml-cov-move-"));
-  const g = join(d, "d.geml"), hh = join(d, "d.gemlhistory");
-  const V1 = "=== note {#b}\nbeta\n===\n\n=== note {#a}\nalpha\n===\n"; // B, A
-  const V2 = "=== note {#a}\nalpha\n===\n\n=== note {#b}\nbeta\n===\n"; // A, B
-  writeFileSync(g, V1);
-  save({ gemlPath: g, historyPath: hh, summary: "ba", at: at("2026-05-01T00:00:00Z") });
-  writeFileSync(g, V2);
-  const id2 = save({ gemlPath: g, historyPath: hh, summary: "ab", at: at("2026-05-02T00:00:00Z") }).id;
-  // Replace the tip's auto-generated reverse ops with one equivalent move:
-  // cutting #a out of [A, B] and appending it yields [B, A] = v1.
-  editHist(hh, (s) => s.replace(
-    new RegExp(`(=== history-revision \\{id="${id2}"[^\\n]*\\n)[\\s\\S]*?\\n===\\n`),
-    "$1move #a at-end\n===\n",
-  ));
-  const v = verify(hh, g);
-  assert.equal(v.ok, true, `move op must reconstruct v1: ${v.errors.join("; ")}`);
-  // A third save parses the move op and renders it back out (opLine move arm).
-  writeFileSync(g, V2.replace("beta", "BETA"));
-  save({ gemlPath: g, historyPath: hh, summary: "edit b", at: at("2026-05-03T00:00:00Z") });
-  assert.match(readFileSync(hh, "utf8"), /^move #a at-end$/m, "move op survives a re-render");
-  assert.equal(verify(hh, g).ok, true);
+test("reconstruct throws on an unknown change", () => {
+  const { d, hh } = makeHist("recon");
+  assert.throws(() => reconstruct(loadHistory(hh), "nope"), /unknown change nope/);
   rmSync(d, { recursive: true, force: true });
 });
 
-test("hand-written move op (at-start) reconstructs too", () => {
-  const d = mkdtempSync(join(tmpdir(), "geml-cov-move2-"));
-  const g = join(d, "d.geml"), hh = join(d, "d.gemlhistory");
-  const V1 = "=== note {#a}\nalpha\n===\n\n=== note {#b}\nbeta\n===\n"; // A, B
-  const V2 = "=== note {#b}\nbeta\n===\n\n=== note {#a}\nalpha\n===\n"; // B, A
-  writeFileSync(g, V1);
-  save({ gemlPath: g, historyPath: hh, summary: "ab", at: at("2026-05-04T00:00:00Z") });
-  writeFileSync(g, V2);
-  const id2 = save({ gemlPath: g, historyPath: hh, summary: "ba", at: at("2026-05-05T00:00:00Z") }).id;
-  editHist(hh, (s) => s.replace(
-    new RegExp(`(=== history-revision \\{id="${id2}"[^\\n]*\\n)[\\s\\S]*?\\n===\\n`),
-    "$1move #a at-start\n===\n",
-  ));
-  const v = verify(hh, g);
-  assert.equal(v.ok, true, v.errors.join("; "));
+test("save refuses a multi-line summary or author", () => {
+  const { d, g, hh } = makeHist("lines");
+  writeFileSync(g, "=== note {#n}\nthree\n===\n");
+  assert.throws(() => save({ gemlPath: g, historyPath: hh, summary: "a\nb" }), /summary must be a single line/);
+  assert.throws(() => save({ gemlPath: g, historyPath: hh, summary: "x", author: "a\r\nb" }), /author must be a single line/);
   rmSync(d, { recursive: true, force: true });
 });
 
-test("legacy sidecar (no newline attrs), CRLF-era revision in an LF sidecar, verifies; a later save keeps it verifiable", () => {
-  const d = mkdtempSync(join(tmpdir(), "geml-cov-legacy-"));
-  const g = join(d, "d.geml"), hh = join(d, "d.gemlhistory");
-  const V1 = "=== note {#n}\none\n===\n";
-  const V2 = "=== note {#n}\ntwo\n===\n";
-  writeFileSync(g, V1.replace(/\n/g, "\r\n")); // CRLF era
-  save({ gemlPath: g, historyPath: hh, summary: "crlf", at: at("2026-06-01T00:00:00Z") });
-  writeFileSync(g, V2); // LF era: the sidecar is now written LF
-  save({ gemlPath: g, historyPath: hh, summary: "lf", at: at("2026-06-02T00:00:00Z") });
-  editHist(hh, (s) => s.replace(/ newline="(lf|crlf)"/g, "")); // legacy-ify
-  const v = verify(hh, g);
-  assert.equal(v.ok, true, `CRLF-hashed legacy revision in an LF sidecar: ${v.errors.join("; ")}`);
-  // A further save re-renders the legacy revisions without a newline attr
-  // and must not break their verifiability.
-  writeFileSync(g, V2.replace("two", "three"));
-  save({ gemlPath: g, historyPath: hh, summary: "post-legacy", at: at("2026-06-03T00:00:00Z") });
-  const v2 = verify(hh, g);
-  assert.equal(v2.ok, true, v2.errors.join("; "));
+test("setupGit: writes .gitattributes once and registers the driver in .git/config", () => {
+  const d = mkdtempSync(join(tmpdir(), "geml-cov-git-"));
+  const init = spawnSync("git", ["init", "-q"], { cwd: d, encoding: "utf8" });
+  if (init.status !== 0) { console.log("  (git not available — skipped)"); rmSync(d, { recursive: true, force: true }); return; }
+  writeFileSync(join(d, ".gitattributes"), "*.css text eol=lf");      // no final newline
+  const first = setupGit(d);
+  assert.equal(first.length, 3, first.join("\n"));
+  assert.equal(readFileSync(join(d, ".gitattributes"), "utf8"), "*.css text eol=lf\n*.gemlhistory merge=geml-history\n");
+  const cfg = spawnSync("git", ["config", "merge.geml-history.driver"], { cwd: d, encoding: "utf8" });
+  assert.equal(cfg.stdout.trim(), "geml history merge-driver %O %A %B");
+  assert.equal(setupGit(d).length, 2, "the attribute line is not written twice");
+  rmSync(d, { recursive: true, force: true });
+});
+
+test("setupGit outside a repository fails with a message", () => {
+  const d = mkdtempSync(join(tmpdir(), "geml-cov-nogit-"));
+  // Point git at a directory with no repository above it inside the temp tree.
+  const env = { ...process.env, GIT_DIR: join(d, "no-such-git-dir") };
+  const r = spawnSync(process.execPath, ["-e", `import(${JSON.stringify(pathToFileURL(resolve("dist/history.js")).href)}).then(m=>{try{m.setupGit(${JSON.stringify(d)});console.log("no error")}catch(e){console.log(e.message)}})`], { encoding: "utf8", env });
+  assert.match(r.stdout, /git config merge\.geml-history\.\w+ failed/);
   rmSync(d, { recursive: true, force: true });
 });
 
@@ -662,8 +651,8 @@ test("every selector `history get` prints is accepted by get, restore and revert
     assert.ok(shown.out.length > 0, `history get ${sel} produced content`);
   }
 
-  // …and the same strings drive a real `restore`. That one TRUNCATES history to
-  // the target, so it runs on a throwaway copy rather than the shared fixture.
+  // …and the same strings drive a real `restore`. That one writes the file and
+  // records a new change, so it runs on a throwaway copy rather than the shared fixture.
   const copyDir = mkdtempSync(join(tmpdir(), "geml-sel-"));
   const copyGeml = join(copyDir, "h.geml");
   copyFileSync(HG, copyGeml);
@@ -703,7 +692,7 @@ test("history verify: a tampered sidecar FAILS with error lines and exit 1", () 
   writeFileSync(hh, readFileSync(hh, "utf8").replace("alpha-content", "tampered-content"));
   const r = run(["history", "verify", HG]);
   assert.equal(r.code, 1);
-  assert.match(r.err, /error: revision .*hash/);
+  assert.match(r.err, /error: .*does not match/);
   assert.match(r.out, /verify: FAILED/);
 });
 

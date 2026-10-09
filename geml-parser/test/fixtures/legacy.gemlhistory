@@ -1,0 +1,48 @@
+# History of doc.geml
+
+=== meta
+profile           = "geml-history/v1"
+history-of        = "doc.geml"
+geml-version      = "1.0"
+current           = "20260103T000000Z-1462d77e"
+keyframe-interval = 10
+===
+
+# Committed-current mirror (always present):
+==== history-keyframe {id="20260103T000000Z-1462d77e" hash="sha256:1462d77e548837f716d15e76fc5207d3aff4abeb26d84d3b7248b18329a5a165"}
+# Plan
+
+Intro text, revised.
+
+=== note {#n}
+beta
+===
+
+Closing line.
+
+====
+
+=== history-revision {id="20260103T000000Z-1462d77e" parent="20260102T000000Z-b2911159" author="old" summary="v3" hash="sha256:1462d77e548837f716d15e76fc5207d3aff4abeb26d84d3b7248b18329a5a165" newline="lf"}
+delete @12541ad9
+replace #n <- blob:b2
+===
+
+==== history-blob {#b2 lang=geml}
+=== note {#n}
+alpha
+===
+
+====
+
+=== history-revision {id="20260102T000000Z-b2911159" parent="20260101T000000Z-7bc51eb4" author="old" summary="v2" hash="sha256:b291115960f9f732e306255498e3a796f6a8bbd09fd6f886109727e4e4e5251e" newline="lf"}
+delete @b0d450e9
+insert <- blob:b1 after @1ee55b7a
+===
+
+=== history-blob {#b1 lang=geml}
+Intro text.
+
+===
+
+=== history-revision {id="20260101T000000Z-7bc51eb4" author="old" summary="v1" hash="sha256:7bc51eb4230d7af1a63394113161458eb2be3856f1c15aa6757a690ba669eaae" newline="lf"}
+===

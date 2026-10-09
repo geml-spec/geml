@@ -202,6 +202,7 @@ test("用例的 sidecars：sidecar 校验无误，验过的修订数就是文件
       writeFileSync(join(dir, "doc.gemlhistory"), c.history);
       const v = verify(join(dir, "doc.gemlhistory"), join(dir, "doc.geml"));
       assert.deepEqual([v.errors, v.checked], [[], c.verified], `${name} / ${c.name}`);
+      assert.deepEqual(v.warnings, c.warnings ?? [], `${name} / ${c.name}: warnings`);
       n++;
     }
   }
