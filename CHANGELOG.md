@@ -28,6 +28,24 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **The VS Code extension offers GEML's MCP server to chat.** It contributes an
+  `mcpServerDefinitionProviders` provider, so Copilot Chat and anything else
+  reading the editor's server list is offered two servers that differ only in
+  where the document is: **GEML (hosted)**, the Cloudflare Worker, with nothing
+  to install and nothing kept; and **GEML (local)**, `geml mcp --root .` on the
+  CLI the extension already runs, one per workspace folder, which is the only
+  one of the two that serves block history and the code graph. Neither starts
+  until the editor asks. `geml.mcp.servers` picks which are offered and
+  `geml.mcp.url` points the hosted one at another deployment; both are
+  machine-scoped, so an opened folder cannot decide where its documents go. The
+  local server is off in Restricted Mode, like every other CLI feature, and its
+  folder reaches the process as `cwd` rather than argv — `--root .` resolves
+  against it — which is what keeps a checkout at `C:\work\a&b` away from
+  cmd.exe. It starts with the PATH every other CLI run gets, stripped of its
+  relative entries. The extension's floor rises to VS Code 1.101, where that API
+  landed.
+  *(VS Code extension, on its own track.)*
+
 ## [1.12.5] — 2026-10-09
 
 - **GEML's MCP server runs on Cloudflare, with nothing to install.**

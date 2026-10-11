@@ -44,6 +44,15 @@ claude mcp add --scope user geml -- npx -y @geml/geml mcp --root .
 - **Type**：`command`
 - **Command**：`npx -y @geml/geml mcp --root .`
 
+### VS Code
+
+安装 [GEML 扩展](../integrations/vscode/)，不需要任何配置：它会把两个服务器都交给
+chat —— 托管的那个，以及对每个工作区文件夹的 `geml mcp --root .` —— 启动前编辑器会
+询问。`geml.mcp.servers` 决定提供哪些；`geml.mcp.url` 可指向你自己部署的 Worker。
+需要 VS Code 1.101 或更新版本。
+
+若想手工注册，按上面 Cursor 那一节的写法放进 `.vscode/mcp.json` 即可。
+
 ### Claude Desktop
 
 在 `claude_desktop_config.json` 中配置：

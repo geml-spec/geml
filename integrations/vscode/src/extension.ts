@@ -10,6 +10,7 @@
 //   • save a revision        — `geml history save`, same file
 //   • workspace symbols      — `geml find --json`, see symbols.ts
 //   • copy a block's address — the index again, see below
+//   • the MCP server         — offered to chat, hosted or local, see mcp.ts
 //
 // The CLI is the single source of truth, so the editor can never disagree with
 // `geml check` in CI, and the pane can never disagree with what a reader sees.
@@ -23,6 +24,7 @@ import { GemlRename } from "./rename.js";
 import { GemlWorkspaceSymbols } from "./symbols.js";
 import { revertBlock, saveRevision } from "./revert.js";
 import { forgetUnits, listUnits, runCli, unitAt } from "./cli.js";
+import { register as registerMcp } from "./mcp.js";
 
 let diagnostics: vscode.DiagnosticCollection;
 
@@ -79,6 +81,12 @@ export function activate(context: vscode.ExtensionContext): void {
       if (e.document.languageId === "geml") preview.changed(e.document);
     }),
   );
+
+  // Offered, not started: the editor asks before it runs either server. This sits
+  // outside the trust gate below because the hosted one runs no program at all —
+  // mcp.ts holds the local one back until the folder is trusted, and re-offers it
+  // the moment trust is granted.
+  context.subscriptions.push(...registerMcp(context));
 
   // Everything below runs the CLI, and Restricted Mode runs nothing: a cloned
   // folder decides what its documents are, and must not get to decide what

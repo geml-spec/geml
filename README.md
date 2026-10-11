@@ -508,6 +508,11 @@ npx -y @geml/geml skill install
 
 *(Or in Cursor Settings → Features → MCP: name `geml`, command `npx -y @geml/geml mcp --root .`)*
 
+**VS Code** — nothing to configure: the
+[GEML extension](integrations/vscode/) offers both servers to chat, the hosted
+one and `geml mcp --root .` for each workspace folder. Accept whichever you want
+when the editor asks.
+
 **Claude Desktop** — add to `claude_desktop_config.json`:
 
 ```json

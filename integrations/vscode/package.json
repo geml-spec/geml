@@ -7,16 +7,19 @@
   "license": "MIT",
   "icon": "icon.png",
   "engines": {
-    "vscode": "^1.90.0"
+    "vscode": "^1.101.0"
   },
   "categories": [
     "Programming Languages",
-    "Linters"
+    "Linters",
+    "AI"
   ],
   "keywords": [
     "geml",
     "markup",
-    "documentation"
+    "documentation",
+    "mcp",
+    "mcp-server"
   ],
   "repository": {
     "type": "git",
@@ -163,6 +166,12 @@
         "path": "./syntaxes/geml.tmLanguage.json"
       }
     ],
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "geml",
+        "label": "GEML"
+      }
+    ],
     "configuration": {
       "title": "GEML",
       "properties": {
@@ -176,6 +185,31 @@
           "default": "geml",
           "scope": "machine",
           "description": "How to invoke the GEML CLI: `geml` (found on PATH, never in the document's folder) or an absolute path, optionally followed by arguments, e.g. `node /abs/path/to/cli.js`. Package runners such as npx are refused: they would run whatever @geml/geml the opened folder's node_modules holds. Machine-scoped: cannot be overridden by workspace or folder settings."
+        },
+        "geml.mcp.servers": {
+          "type": "string",
+          "enum": [
+            "both",
+            "hosted",
+            "local",
+            "none"
+          ],
+          "enumDescriptions": [
+            "Offer both.",
+            "Only the hosted server: the document's text is sent to `geml.mcp.url` with each call. Nothing is installed and nothing is stored there.",
+            "Only the local server: `geml mcp --root .`, one per workspace folder, reading and writing that folder and sending nothing anywhere. Needs the CLI and a trusted folder.",
+            "Offer neither."
+          ],
+          "default": "both",
+          "scope": "machine",
+          "description": "Which GEML MCP servers to offer chat. Offering one does not start it — the editor asks first. Machine-scoped: an opened folder cannot decide which server its documents would go to.",
+          "markdownDescription": "Which GEML MCP servers to offer chat. Offering one does not start it — the editor asks first.\n\nThe two differ in where the document is: the **hosted** server keeps no files, so the text travels in every call and a write comes back as the new text; the **local** server reads and writes one folder, and is the only one that serves block history and the code graph.\n\nMachine-scoped: an opened folder cannot decide which server its documents would go to."
+        },
+        "geml.mcp.url": {
+          "type": "string",
+          "default": "https://geml-mcp.supermarket.workers.dev/mcp",
+          "scope": "machine",
+          "description": "The hosted MCP server's endpoint — change it to your own deployment of integrations/geml-mcp-worker. Must be https: every call carries the whole document, and workers.dev answers plain http with a 200 rather than a redirect. http is accepted only for localhost, which is `wrangler dev`. Machine-scoped, for the same reason as geml.check.path: an opened folder must not get to redirect your documents."
         }
       }
     }
@@ -183,9 +217,11 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
-      "description": "In Restricted Mode only highlighting and the preview work. Everything that runs the GEML CLI is off until the folder is trusted: diagnostics, outline, folding, hover, go to definition, rename, workspace symbols, copy block address or reference, revert block and save a revision.",
+      "description": "In Restricted Mode only highlighting, the preview and the hosted MCP server work. Everything that runs the GEML CLI is off until the folder is trusted: diagnostics, outline, folding, hover, go to definition, rename, workspace symbols, copy block address or reference, revert block, save a revision, and the local MCP server.",
       "restrictedConfigurations": [
-        "geml.check.path"
+        "geml.check.path",
+        "geml.mcp.servers",
+        "geml.mcp.url"
       ]
     }
   },
@@ -198,7 +234,7 @@
   },
   "devDependencies": {
     "@types/node": "^26.6.3",
-    "@types/vscode": "^1.90.0",
+    "@types/vscode": "^1.101.0",
     "typescript": "^7.0.2"
   }
 }

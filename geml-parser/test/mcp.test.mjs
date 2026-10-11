@@ -1323,8 +1323,13 @@ test("server.json declares the version and package this build actually publishes
   // the Claude manifest, in a separate .mcp.json for Codex, because that is
   // what each harness reads. Drop `--root .` from one and that harness's users
   // get a server confined to the wrong directory, with nothing failing.
+  // Codex's plugin loader (codex-rs/codex-mcp/src/plugin_config.rs) reads
+  // `mcpServers` or a bare server map; snake_case `mcp_servers` is its
+  // config.toml spelling, and in .mcp.json it parses as one invalid server.
   const claudeLaunch = JSON.parse(readFileSync(at("..", "integrations", "claude-plugin", ".claude-plugin", "plugin.json"), "utf8")).mcpServers.geml;
-  const codexLaunch = JSON.parse(readFileSync(at("..", "integrations", "codex-plugin", ".mcp.json"), "utf8")).mcp_servers.geml;
+  const codexMcp = JSON.parse(readFileSync(at("..", "integrations", "codex-plugin", ".mcp.json"), "utf8"));
+  assert.deepEqual(Object.keys(codexMcp), ["mcpServers"], "codex-plugin/.mcp.json must key its servers as mcpServers — Codex never registers anything else");
+  const codexLaunch = codexMcp.mcpServers.geml;
   assert.deepEqual(codexLaunch, claudeLaunch, "the two plugins start the geml server differently — one harness is misconfigured");
   assert.deepEqual(codexLaunch.args.slice(-2), ["--root", "."], "the bundled server must stay confined to the session's project directory");
 

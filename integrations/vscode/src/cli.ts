@@ -38,23 +38,30 @@ const PACKAGE_RUNNERS = new Set(["npx", "npm", "pnpm", "pnpx", "yarn", "bunx", "
 /**
  * How the user has told us to invoke the CLI, split into argv, with the program
  * resolved to an absolute path. Null, after saying why, when it cannot be.
+ *
+ * `quiet` leaves the saying-why out. The editor polls for MCP servers on its own
+ * schedule, and a popup the user did not ask for — about a CLI they may have no
+ * use for — is not how they should learn the extension is installed. There the
+ * absent server IS the message.
  */
-function invocation(): { bin: string; lead: string[] } | null {
+export function invocation(quiet = false): { bin: string; lead: string[] } | null {
   const cfg = vscode.workspace.getConfiguration("geml");
   const parts = (cfg.get<string>("check.path", "geml") || "geml").trim().split(/\s+/);
   const name = parts[0]!;
   const runner = path.basename(name).replace(/\.(cmd|bat|exe|ps1)$/i, "").toLowerCase();
   if (PACKAGE_RUNNERS.has(runner)) {
-    warnOnce(
-      `GEML: \`geml.check.path\` starts ${runner}, which would run whatever @geml/geml the opened ` +
-      "folder's node_modules holds. Install the CLI with `npm i -g @geml/geml`, or set the setting " +
-      "to its absolute path.",
-    );
+    if (!quiet) {
+      warnOnce(
+        `GEML: \`geml.check.path\` starts ${runner}, which would run whatever @geml/geml the opened ` +
+        "folder's node_modules holds. Install the CLI with `npm i -g @geml/geml`, or set the setting " +
+        "to its absolute path.",
+      );
+    }
     return null;
   }
   const bin = resolveProgram(name);
   if (bin === null) {
-    warnOnce(MISSING);
+    if (!quiet) warnOnce(MISSING);
     return null;
   }
   return { bin, lead: parts.slice(1) };
@@ -114,10 +121,19 @@ function isProgram(p: string): boolean {
  * directory before PATH when that shim names `node`.
  */
 function childEnv(): NodeJS.ProcessEnv {
-  const env = { ...process.env };
-  env[pathKey(env)] = searchPath(env).join(path.delimiter);
-  if (WIN) env.NoDefaultCurrentDirectoryInExePath = "1";
-  return env;
+  return { ...process.env, ...childEnvOverrides() };
+}
+
+/**
+ * Just the variables childEnv() changes, for a caller that hands the editor an
+ * environment to overlay rather than spawning the process itself — the MCP server
+ * definition does. The rule has to be the same in both places: a server started in
+ * a cloned folder is as exposed to a relative PATH entry as `geml check` is.
+ */
+export function childEnvOverrides(env: NodeJS.ProcessEnv = process.env): Record<string, string> {
+  const overrides: Record<string, string> = { [pathKey(env)]: searchPath(env).join(path.delimiter) };
+  if (WIN) overrides.NoDefaultCurrentDirectoryInExePath = "1";
+  return overrides;
 }
 
 /**
@@ -168,7 +184,7 @@ export function shellSafe(arg: string): boolean {
  * through it; anything else gets argv passed straight through, where a quote
  * character added here would arrive as part of the value.
  */
-function forShell(arg: string): string {
+export function forShell(arg: string): string {
   return /[ \t]/.test(arg) ? `"${arg}"` : arg;
 }
 

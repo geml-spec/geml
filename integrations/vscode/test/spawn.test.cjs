@@ -214,6 +214,19 @@ await test("round 6: a package runner in geml.check.path is refused, not started
   }
 });
 
+// The MCP server definition does not spawn anything itself — it hands the editor
+// an environment to overlay — so the rule above only holds there if both halves
+// read it from the same place. This is that place.
+await test("the environment an MCP server definition carries strips PATH the same way", () => {
+  const key = process.platform === "win32" ? "Path" : "PATH";
+  const dirs = [".", "", "/abs/one", "rel/two", "/abs/three"];
+  const got = cli.childEnvOverrides({ [key]: dirs.join(path.delimiter) });
+  assert.equal(got[key], ["/abs/one", "/abs/three"].join(path.delimiter));
+  if (process.platform === "win32") {
+    assert.equal(got.NoDefaultCurrentDirectoryInExePath, "1");
+  }
+});
+
   console.log(`\n${passed} test(s) passed.`);
 }
 

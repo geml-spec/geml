@@ -56,6 +56,17 @@ the preview work without it; everything else asks the CLI.
 - **Diagnostics** — a dangling `[[#id]]`, a broken cross-reference, a duplicate
   id, or any parse error shows up in the Problems panel **as you type**. The same
   signal `geml check` gives in CI, so your editor never disagrees with the build.
+- **An MCP server for chat** — the extension offers GEML's own MCP server to
+  Copilot Chat and anything else that reads VS Code's server list, so an agent
+  edits **one block at a time** instead of rewriting whole files. Two of them,
+  and the difference is where the document is. **GEML (hosted)** is the project's
+  Cloudflare Worker: nothing to install and nothing kept, the text travels in
+  each call and a write comes back as the new text. **GEML (local)** is
+  `geml mcp --root .` on the CLI you already have, one per workspace folder,
+  reading and writing that folder and sending nothing anywhere — and the only one
+  of the two that serves block history and the code graph. Neither starts until
+  you say so; the editor asks. `geml.mcp.servers` picks which are offered, and
+  `geml.mcp.url` points the hosted one at your own deployment.
 
 Nothing in this extension parses GEML. The outline, the navigation and the
 diagnostics come from `geml list --json` and `geml check --json`; renaming is
@@ -101,8 +112,11 @@ the CLI up on PATH and never in the document's folder, and it refuses package
 runners such as `npx`, which would run whatever `@geml/geml` the opened
 folder's `node_modules` holds.
 
-In Restricted Mode only highlighting and the preview work; everything that runs
-the CLI starts once you trust the folder.
+In Restricted Mode only highlighting, the preview and the hosted MCP server
+work; everything that runs the CLI starts once you trust the folder.
+
+VS Code **1.101** or newer, which is where the API that offers an MCP server
+landed.
 
 ## Settings
 
@@ -110,6 +124,11 @@ the CLI starts once you trust the folder.
 |---|---|---|
 | `geml.check.enabled` | `true` | Run `geml check` and show diagnostics. |
 | `geml.check.path` | `geml` | How to invoke the CLI: `geml` on PATH, or an absolute path. |
+| `geml.mcp.servers` | `both` | Which MCP servers to offer chat: `both`, `hosted`, `local` or `none`. |
+| `geml.mcp.url` | the project's Worker | The hosted server's endpoint. Must be `https`, except on localhost. |
+
+The last two are machine-scoped, like `geml.check.path`: an opened folder does
+not get to decide what program its documents start, nor where they are sent.
 
 ## Build from source
 

@@ -49,6 +49,17 @@ claude mcp add --scope user geml -- npx -y @geml/geml mcp --root .
 - **Type**: `command`
 - **Command**: `npx -y @geml/geml mcp --root .`
 
+### VS Code
+
+Install the [GEML extension](../integrations/vscode/) and configure nothing: it
+offers both servers to chat — the hosted one, and `geml mcp --root .` for each
+workspace folder — and the editor asks before starting either. `geml.mcp.servers`
+picks which are offered; `geml.mcp.url` points the hosted one at your own
+deployment of the Worker. Needs VS Code 1.101 or newer.
+
+To register the server by hand instead, put it in `.vscode/mcp.json` the way the
+Cursor entry above does.
+
 ### Claude Desktop
 
 In `claude_desktop_config.json`:

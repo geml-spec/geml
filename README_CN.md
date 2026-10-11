@@ -487,6 +487,10 @@ npx -y @geml/geml skill install
 
 *（或在 Cursor Settings → Features → MCP 中添加：名称 `geml`，命令 `npx -y @geml/geml mcp --root .`）*
 
+**VS Code** —— 无需配置：[GEML 扩展](integrations/vscode/)
+会把两个服务器都交给 chat —— 托管的那个，以及对每个工作区文件夹的
+`geml mcp --root .`。编辑器询问时选你要的那个即可。
+
 **Claude Desktop** —— 加到 `claude_desktop_config.json`：
 
 ```json

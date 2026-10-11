@@ -1,5 +1,5 @@
 {
-  "mcp_servers": {
+  "mcpServers": {
     "geml": {
       "command": "npx",
       "args": ["-y", "@geml/geml", "mcp", "--root", "."]
