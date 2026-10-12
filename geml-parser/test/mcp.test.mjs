@@ -599,7 +599,14 @@ test("geml_history's offsets are the selectors geml_revert takes", () => {
   assert.ok(revs.length >= 2);
   assert.equal(revs[0].offset, 0);
   assert.equal(revs[0].current, true);
-  const r = call("geml_revert", { file: "d.geml", id: "alpha", rev: "-1" });
+  // Pass the listed offset back as it is, the way the description tells a
+  // model to. A hard-coded "-1" here once hid that the list said `1`.
+  assert.equal(revs[1].offset, -1, "the CLI's `-N` form, not a positive count");
+  for (const { id, offset } of revs) {
+    assert.equal(call("geml_history", { file: "d.geml", rev: String(offset) }).json.id, id,
+      `offset ${offset} selects its own revision`);
+  }
+  const r = call("geml_revert", { file: "d.geml", id: "alpha", rev: String(revs[1].offset) });
   assert.equal(r.json.ok, true, JSON.stringify(r.json));
 });
 

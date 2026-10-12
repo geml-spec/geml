@@ -23,6 +23,7 @@ import {
   VerbError, add, del, findInSource, formatFindRows, get, list, rename, revert, set, transform,
 } from "./verbs.js";
 import { BARE_LINE } from "./selector.js";
+import type { RevisionInfo } from "./history.js";
 
 // One version for the whole package: `geml --version` and the MCP handshake
 // must not disagree. This used to be its own literal and had drifted to 0.1.0
@@ -55,7 +56,7 @@ export interface OpenedDoc {
 /** The `.gemlhistory` side of one document, for hosts that keep one. */
 export interface HistoryAccess {
   exists(): boolean;
-  list(): unknown[];
+  list(): RevisionInfo[];
   resolve(rev: string): { id: string; text: string };
   reader: HistoryReader;
   /** Word a history-layer failure without a stack or an absolute path. */
@@ -423,7 +424,13 @@ export function toolsFor(host: McpHost): Tool[] {
           if (rev !== undefined) throw new Error(`no .gemlhistory sidecar for ${doc.file} yet, so revision ${rev} does not exist — the first write through this server creates one`);
           return { file: doc.file, revisions: [], note: "no .gemlhistory sidecar yet — the first write through this server creates one" };
         }
-        if (rev === undefined) return { file: doc.file, revisions: h.list() };
+        // The list carries `offset` as a count back (0, 1, 2, …), which is what
+        // `geml history get --json` prints and the editor integrations read.
+        // Here it is handed out as the selector itself (0, -1, -2, …), the
+        // form the CLI's text listing prints, so it can be passed back as `rev`.
+        if (rev === undefined) {
+          return { file: doc.file, revisions: h.list().map((r) => ({ ...r, offset: r.current ? 0 : -r.offset })) };
+        }
         // resolve() is the CLI's own path for `geml history get <file> <rev>`,
         // so one selector grammar answers on both surfaces.
         const { id, text } = h.resolve(rev);
