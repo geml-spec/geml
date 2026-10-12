@@ -28,6 +28,24 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **`.gemlhistory` is a change graph that merges.** geml-history/v1 now
+  records a document the way any-sync records an object: each change names
+  the changes it follows, carries `create` / `update` / `remove` / `move`
+  operations addressed by block, and is identified by its time and a hash over
+  its parents and content. Two copies merge by union — `geml history merge
+  <file> <other.gemlhistory>`, or git itself after `geml history setup-git` —
+  and where both changed one block, the later change wins and the other is
+  reported and kept. A paragraph without an id keeps a key of its own across
+  edits, so edits to different paragraphs both survive a merge. `restore` no
+  longer deletes anything: it records the old document as a new change. A
+  sidecar in the earlier format is read as before and rewritten on the next
+  save; its revision ids still select. `recordReplica`, `mergeHeads` and
+  `lostEdits` are the library calls a sync engine needs.
+- **`integrations/logseq` becomes `integrations/logseq-any-sync`**, a bridge
+  between an Anytype space and a folder of GEML pages through the Anytype
+  desktop app's local API. Not published yet. The Logseq DB bridge it replaces
+  stays in the history and in `@geml/logseq-sync` 2.3.0 on npm.
+
 ## [1.12.5] — 2026-10-09
 
 - **GEML's MCP server runs on Cloudflare, with nothing to install.**

@@ -154,7 +154,7 @@ not its format. A `.gemlhistory` sidecar is a complete, valid GEML document: it
 declares its vocabulary in `=== meta` like any other
 (`profile = "geml-history/v1"`) and validates with no diagnostics. The separate
 name exists so tools can route the two apart — a directory walk that collects
-documents takes `.geml` and leaves the sidecar, whose keyframe mirrors the live
+documents takes `.geml` and leaves the sidecar, whose snapshot mirrors the live
 file and whose blobs hold superseded text, so sweeping it in answers every
 search twice and with content that is no longer there. Tooling that recognizes
 `.geml` for highlighting, rendering or parsing can treat `.gemlhistory`

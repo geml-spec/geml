@@ -60,7 +60,7 @@ your change touches before you push:
 | parser (ubuntu, windows, macos) | `npm test` in `geml-parser/` on all three; on Linux also `npm run coverage:check` — lines, statements, functions and branches each at 95% or more |
 | parser-rs | in `geml-parser-rs/`: `cargo fmt --check`, `cargo clippy --all-targets --features wasm -- -D warnings`, `cargo llvm-cov --fail-under-lines 95 --fail-under-regions 95 --fail-under-functions 95`, then `wasm-pack build --target nodejs --out-dir wasm/pkg --release -- --features wasm`, `node wasm/conformance.mjs` and `node wasm/profiles.mjs` |
 | viewer | `npm run coverage:check` in `integrations/chrome-geml-viewer/`, the VS Code preview bundle (`npm run build:vscode`), and `npm test` in `integrations/vscode/` |
-| logseq, obsidian | `npm test` in `integrations/logseq/` and `integrations/obsidian/` |
+| logseq-any-sync (ubuntu, windows, macos), obsidian | `npm test` in `integrations/logseq-any-sync/` and `integrations/obsidian/` |
 
 [`geml-check.yml`](.github/workflows/geml-check.yml) runs beside it: every
 tracked `.geml` document in the repository has to pass `geml check`.

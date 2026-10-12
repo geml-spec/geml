@@ -1,4 +1,4 @@
-# geml-history profile v1 — versioning & reconstruction
+# geml-history profile v1 — a mergeable change graph
 
 *English | [中文](geml-history-profile_CN.md)*
 
@@ -10,109 +10,96 @@
 | Nature | An application layer over GEML 1.0 (see [`GEML-spec.md`](../../GEML-spec.md)), not part of it |
 | Status | Stable |
 | File extension | `.gemlhistory` |
-| Tooling | `geml history save\|get\|restore\|verify` |
+| Tooling | `geml history save\|get\|restore\|verify\|merge\|setup-git` |
 
 ---
 
 ## Abstract
 
-This profile defines a self-contained versioning layer for GEML.
-A document keeps its **current** version, and only that version, in its `.geml`
-file. A sibling file with the same base name and the extension `.gemlhistory`
-records the document's history as **reverse deltas from the current version**,
-together with full **keyframe** snapshots. The history file is *self-contained*:
-it always carries a tool-maintained keyframe mirroring the committed current
-version, so any past revision can be reconstructed — and the live file rolled
-back to any past revision — without depending on the live `.geml`, on an
-external version-control system, or on any online service. The two files
-deliberately separate the **hot path** (the current version, read and edited
-constantly) from the **cold path** (history, loaded only when needed). The
-history file is produced and verified by tooling; consumers (including AI agents)
-read it as plain text.
+This profile defines a versioning layer for GEML that merges. A document keeps
+its current version in its `.geml` file. A sibling file with the same base name
+and the extension `.gemlhistory` records the document's history as a **change
+graph**: every change names the changes it follows, carries forward operations
+addressed by block, and is identified by a hash over its parents and its
+content. Two copies of a history merge by taking the union of their changes,
+and replaying a set of changes in one deterministic order gives every
+implementation the same document. When two changes that did not know about each
+other touch one block, the change later in that order wins and the other is
+reported; it stays in the history.
+
+The model is the object tree of any-sync, the protocol Anytype synchronizes
+with: changes with several parents, heads, snapshots, content-derived ids. The
+payload is GEML's own: plain-text block operations a person or an agent can
+read. The file is self-contained, needs no version-control system and no online
+service, and is produced and verified by tooling.
 
 ## Contents
 
 1. [Scope and relationship to GEML](#1-scope-and-relationship-to-geml)
 2. [File roles](#2-file-roles)
 3. [The `.gemlhistory` document](#3-the-gemlhistory-document)
-4. [Block identity and ids](#4-block-identity-and-ids)
-5. [Reverse-patch operations](#5-reverse-patch-operations)
-6. [Reconstruction](#6-reconstruction)
-7. [Rollback](#7-rollback)
-8. [Revision ids, integrity and hashing](#8-revision-ids-integrity-and-hashing)
-9. [Conformance](#9-conformance)
-10. [Tooling and AI usage (informative)](#10-tooling-and-ai-usage-informative)
+4. [Block keys](#4-block-keys)
+5. [Operations](#5-operations)
+6. [Ids and hashes](#6-ids-and-hashes)
+7. [Replay](#7-replay)
+8. [The snapshot](#8-the-snapshot)
+9. [Recording a change](#9-recording-a-change)
+10. [Merging](#10-merging)
+11. [Restore and revert](#11-restore-and-revert)
+12. [A sidecar in the earlier format](#12-a-sidecar-in-the-earlier-format)
+13. [Conformance](#13-conformance)
+14. [Tooling and AI usage (informative)](#14-tooling-and-ai-usage-informative)
 
 ## Conventions
 
 The key words **MUST**, **MUST NOT**, **MAY**, **SHOULD** and **SHOULD NOT** carry the
-requirement levels defined in the core specification. A **revision** is one
-recorded state of the document, identified by a commit **id** (§8); **current**
-denotes the latest revision. The **live file** is the working copy `doc.geml`;
-**committed current** denotes the content recorded for the current revision in
-the history file.
+requirement levels defined in the core specification. A **change** is one
+recorded edit of the document, identified by its **id** (§6). A change's
+**parents** are the changes it follows; a change no other change names as a
+parent is a **head**. The **live file** is the working copy `doc.geml`.
 
 ---
 
 ## 1. Scope and relationship to GEML
 
-This extension adds no new grammar to GEML. Versioning rides entirely on the
-existing typed-block primitive (§3 of the core spec), the attribute object (§4),
-and stable ids and references (§5). A processor that does not implement this
-extension is unaffected: the `.geml` file remains a complete, valid GEML
-document on its own, renderable by any ordinary GEML tool.
+This profile adds no grammar to GEML. It rides on the typed-block primitive
+(core §3), the attribute object (§4) and ids (§5). A processor that does not
+implement it is unaffected: the `.geml` file remains a complete, valid GEML
+document on its own.
 
-The history layer is **optional** in the strongest sense core spec §8.6 gives
-that word: a GEML processor that has never heard of `geml-history/v1` is fully
-conformant, and this document binds only tools that choose to implement it. Its
-presence is signalled by a sibling `.gemlhistory` file, and its vocabulary by
-that file's own declaration (§1.1).
+The history layer is **optional** in the sense core §8.6 gives that word: a
+processor that has never heard of `geml-history/v1` is fully conformant, and
+this document binds only tools that choose to implement it.
 
 ### 1.1 Declaring the vocabulary
 
-The history layer is an **application-layer profile** in the sense of core spec
-§8.6, and `.gemlhistory` declares it like any other:
+`.gemlhistory` declares its vocabulary like any other document:
 
 ```geml
 === meta
-profile           = "geml-history/v1"
-history-of        = "COMPARISON.geml"
-geml-version      = "1.0"
-current           = "20260824T040044Z-ccc088b2"
-keyframe-interval = 10
+profile      = "geml-history/v1"
+history-of   = "budget.geml"
+geml-version = "1.0"
 ===
 ```
 
-The declaration is what admits this profile's three block types and their
-attribute keys; without it a conforming GEML processor reports each of them as
-`unknown-block-type` (§8.2(6)), which is correct behaviour and not a defect.
+The declaration admits this profile's four block types and their attribute keys;
+without it a conforming processor reports each of them as `unknown-block-type`
+(core §8.2(6)), which is correct behaviour, not a defect.
 
 | Block type | Attribute keys | Defined in |
 |---|---|---|
-| `history-revision` | `id`, `parent`, `author`, `summary`, `hash`, `newline` | §3, §8 |
-| `history-keyframe` | `id`, `hash` | §3, §6 |
+| `history-change` | `id`, `parents`, `author`, `summary`, `newline`, `state`, `was` | §3, §6, §12 |
+| `history-snapshot` | `heads`, `hash`, `newline` | §8 |
+| `history-units` | — | §8 |
 | `history-blob` | `lang` | §3, §5 |
 
-`history-blob` also carries an ordinary `{#id}`, which needs no admitting: an id is core
-spec §4, not profile vocabulary.
+`history-blob` also carries an ordinary `{#id}`, which needs no admitting.
 
 There is **no implicit detection** — not from the `.gemlhistory` extension, not
-from the presence of `history-of`. Core spec §8.6.2 rule 2 forbids it, because an
-inference is implementation-specific knowledge a second implementation would
-have to reproduce exactly to agree about diagnostics. A sidecar written before
-this profile existed is fixed by its next save, or by adding the one line: the
-revision chain does not notice a meta key, and `geml history verify` passes
-either way.
-
-Admission licenses **names only**. It does not change body mode: all three types
-are `raw`, exactly as an unadmitted unknown type would be (§8.6.2 rule 4). That is
-why a document may be edited across a profile boundary without changing meaning
-— block extraction, block replacement and `=== embed` behave identically on a
-document that declares this profile and one that does not, and the only
-difference a declaration makes is whether a warning is emitted.
-
-The version rides in the profile name, so a future vocabulary is
-`geml-history/v2` and a document says which one it means.
+from `history-of` (core §8.6.2 rule 2). Admission licenses names only: all four
+types are `raw` (§8.6.2 rule 4), so a document reads the same whether or not it
+declares the profile.
 
 ---
 
@@ -120,360 +107,334 @@ The version rides in the profile name, so a future vocabulary is
 
 For a document `doc.geml`:
 
-- **`doc.geml`** — the **canonical current version** and the hot path. It is the
-  file read, edited, and rendered by ordinary GEML tools that know nothing of
-  this extension; it is the **source of truth** for the current version. It
-  stays small and clean regardless of how long history grows.
-- **`doc.gemlhistory`** — the **self-contained history**. It records the
-  committed current version as a tool-maintained **keyframe** (a mirror of
-  `doc.geml`, refreshed on every commit), plus reverse deltas and periodic
-  keyframes for earlier revisions.
+- **`doc.geml`** is the **current version** and the hot path: read, edited and
+  rendered by ordinary GEML tools. It is the source of truth for the current
+  version.
+- **`doc.gemlhistory`** is the **history**: the change graph, the blobs its
+  operations name, and a snapshot of the document its heads replay to (§8),
+  which mirrors the live file after every recorded change.
 
-Ownership is unambiguous: the live `doc.geml` is the source of truth for the
-current version; the committed-current keyframe inside `doc.gemlhistory` is a
-tool-maintained mirror, never hand-edited, and the two are reconciled by the
-hash check (§8).
-
-Two consequences follow:
-
-- **Self-containment.** Because the history file carries the committed current
-  version, reconstruction of any revision does **not** depend on the live file
-  and works even when the live file has uncommitted changes or is absent.
-- **Graceful degradation.** Conversely, if `doc.gemlhistory` is lost or damaged,
-  the current document is still fully intact in `doc.geml`; only the recoverable
-  history is affected.
+Because the snapshot is in the history file, reading the current state needs no
+replay, and every past state can be rebuilt without the live file. If the
+history file is lost, the document is still intact in `doc.geml`.
 
 ---
 
 ## 3. The `.gemlhistory` document
 
-A `.gemlhistory` file is itself a GEML document. The history extension registers
-three block types of its own and uses the core's `meta`:
+A `.gemlhistory` file is itself a GEML document:
 
-| Type | Body mode | Role |
-|------|-----------|------|
-| `meta` | data | history-file header (one `key=val` per line) |
-| `history-revision` | raw | one entry per revision: metadata in attributes, reverse-patch operations in the body |
-| `history-blob` | raw | a verbatim payload (a block's content at some revision), referenced by id from patch operations |
-| `history-keyframe` | raw | a verbatim full snapshot of a revision's complete `.geml` content |
+| Type | Role |
+|------|------|
+| `meta` | header: `profile`, `history-of` (the live file's base name), `geml-version` |
+| `history-snapshot` | the document the current heads replay to, verbatim (§8) |
+| `history-units` | how the snapshot's text divides into blocks, with their keys (§8) |
+| `history-change` | one change: metadata in attributes, operations in the body (§5) |
+| `history-blob` | a block's text, named by operations |
 
-A keyframe for the **current** revision is always present (the committed-current
-mirror); further keyframes appear periodically (see `keyframe-interval`).
-
-Because `history-keyframe` and `history-blob` bodies embed whole GEML fragments verbatim, their
-opening fence MUST be longer than the longest fence inside the payload (core
-spec §3); a payload that uses `===` is wrapped in `====`, and so on.
-
-### 3.1 Header (`=== meta`)
-
-| Key | Meaning |
-|-----|---------|
-| `profile` | `"geml-history/v1"` — the vocabulary declaration (§1.1); a tool writes it into every sidecar it generates (§9, item 8) |
-| `history-of` | base name of the live file, e.g. `"doc.geml"` |
-| `geml-version` | GEML language version the history conforms to |
-| `current` | the id of the current revision (§8) |
-| `keyframe-interval` | recommended number of revisions between keyframe snapshots |
-
-### 3.2 Example
+`history-snapshot` and `history-blob` bodies hold GEML verbatim, so their
+opening fence MUST be longer than the longest fence inside (core §3).
 
 ```
 # History of budget.geml
 
 === meta
-profile           = "geml-history/v1"
-history-of        = "budget.geml"
-geml-version      = "1.0"
-current           = "20260617T103012Z-33ab12cd"
-keyframe-interval = 10
+profile      = "geml-history/v1"
+history-of   = "budget.geml"
+geml-version = "1.0"
 ===
 
-# Committed-current mirror (always present):
-
-==== history-keyframe {id="20260617T103012Z-33ab12cd" hash="sha256:33ab12cd…"}
+==== history-snapshot {heads="20261009T100800Z-7e41c0a9d2b3" hash="sha256:…" newline=lf}
 # Budget plan
 
-=== meta
-title = "Budget plan"
-===
-
-=== table {#budget caption="Annual cost"}
-| Plan  | Months | Rate |
-|-------|-------:|-----:|
-| Basic |      1 |   25 |
-===
-
-=== note {#risks}
-Vendor lock-in is the main risk.
-===
-====
-
-=== history-revision {id="20260617T103012Z-33ab12cd" parent="20260501T140000Z-22cd34de" author="alice" summary="Add risk note; revise budget rate" hash="sha256:33ab12cd…" newline=lf}
-delete #risks
-replace #budget <- blob:b-22cd34de-budget
-===
-
-==== history-blob {#b-22cd34de-budget lang=geml}
 === table {#budget caption="Annual cost"}
 | Plan  | Months | Rate |
 |-------|-------:|-----:|
 | Basic |      1 |   30 |
 ===
+
+Vendor lock-in is the main risk.
 ====
 
-=== history-revision {id="20260501T140000Z-22cd34de" parent="20260410T091500Z-11ef56ab" author="alice" summary="Remove legacy rate note" hash="sha256:22cd34de…" newline=lf}
-insert <- blob:b-11ef56ab-legacy after #budget
+=== history-units
+~3f9a1c2e 2
+#budget 6
+~7d02b4e1 1
+-~0b7d55e1
 ===
 
-==== history-blob {#b-11ef56ab-legacy lang=geml}
-=== note {#legacy}
-Legacy rate basis, retained for reference.
+=== history-change {id="20261009T100800Z-7e41c0a9d2b3" parents="20261009T100500Z-3f9a11e0b7c4 20261009T100700Z-9c8d22f1a6e5" summary="Merge" newline=lf state="sha256:…"}
 ===
+
+=== history-change {id="20261009T100700Z-9c8d22f1a6e5" parents="20261009T100000Z-1a2b44c0e9f7" author="anytype" summary="Rate from the app" newline=lf state="sha256:…"}
+update #budget <- blob:b-90e1d7a3c2f0
+===
+
+==== history-blob {#b-90e1d7a3c2f0 lang=geml}
+=== table {#budget caption="Annual cost"}
+…
+===
+
 ====
-
-=== history-revision {id="20260410T091500Z-11ef56ab" author="alice" summary="Initial draft" hash="sha256:11ef56ab…" newline=lf}
-===
 ```
 
-The root revision is a `history-revision` with **no** reverse-patch body and no
-`parent`: it has no predecessor. A `history-revision` whose payload would otherwise
-require deep fence nesting MUST carry that payload as a separate top-level
-`history-blob`, referenced as `blob:<id>`. (Inline payload wrapped in a longer fence is
-permitted but discouraged, because correct fence-length nesting is error-prone.)
-
-**Block ordering (recommended).** Physical order does not affect correctness —
-a processor indexes blocks by type and by revision id regardless of position.
-For readability and streaming efficiency, however, a `.gemlhistory` file
-**SHOULD** be laid out **newest-first**: `meta`, then the committed-current
-`history-keyframe`, then `history-revision` blocks from current back to the root, with each
-`history-blob` placed immediately after the `history-revision` that references it. This aligns
-the file's top-to-bottom order with the reverse-patch walk (§6), puts the
-most-read entries (the current mirror and the most recent changes) first, and
-lets a reader that needs only recent revisions stop early. `meta` **MAY** carry
-an index of interval-keyframe ids so that older entry points can be sought
-without scanning.
+**Layout (recommended).** Physical order does not affect meaning. A tool
+SHOULD write `meta`, the snapshot and its unit list, then the changes newest
+first (the reverse of replay order, §7), each followed by the blobs it is the
+newest change to name.
 
 ---
 
-## 4. Block identity and ids
+## 4. Block keys
 
-Reverse patches address blocks by **block identity** (distinct from a *revision*
-id, §8). Identity is a **unit key**, derived by one rule, so that a sidecar one
-tool wrote is one every tool can verify, reconstruct and extend:
+Operations address blocks by **key**.
 
 - A document is tiled into **units** that together reproduce it byte for byte.
-  A unit is a typed block — from its opening fence to the line that closes it
-  as GEML §3 says, an equal-length `=` run or, when the block has an id, its
+  A unit is a typed block — from its opening fence to the line that closes it as
+  core §3 says, an equal-length `=` run or, when the block has an id, its
   labeled fence `=== #id` — or a **flow segment**: a maximal run of consecutive
-  non-blank lines that open no fence (a heading, a paragraph, a list, or a
-  heading and the paragraph directly under it). Each unit also owns the blank
-  lines that follow it; blank lines before the first unit are a unit of their
-  own.
-- A unit's key is `#<id>` when the unit declares one — a typed block's `#id`, or
-  the explicit `{#id}` on the heading that opens a flow segment — and otherwise
-  `@` followed by the first 8 hexadecimal digits of the SHA-256 of the unit's
-  lines, trailing blank lines excluded, joined by LF and encoded as UTF-8. A
-  heading's *derived* id (GEML §4) is not a key: it changes with the heading's
-  text exactly as the content hash does, and only the explicit id is stable.
-- Keys repeat — two identical paragraphs, two blank runs, an out-of-spec
-  document that writes one id twice — and the second and later occurrences in
-  document order take a `~n` suffix, `n` counting from 1 (`@3f9a1c2e`,
-  `@3f9a1c2e~1`). The keys a revision's `delete` and `replace` name are resolved
-  against the newer version as a whole, before any op is applied; `insert` and
-  `move` anchors are resolved as the ops run.
+  non-blank lines that open no fence. Each unit owns the blank lines that follow
+  it; blank lines before the first unit are a unit of their own.
+- A unit with an id — a typed block's `#id`, or the explicit `{#id}` on the
+  heading that opens a flow segment — has the key `#<id>`. The first unit in
+  document order to carry an id has that key; a later unit repeating it is
+  treated as a unit without one.
+- A unit without an id has a tool-assigned key: `~` followed by eight lowercase
+  hexadecimal digits, unique among every key the history has used. These keys
+  live only in the history file and are **never written into the live
+  document**.
 
-Identity bookkeeping for id-less units lives in the `.gemlhistory` file and is
-**never written back** into the live `.geml`.
-
-Block ids remain **optional** in the language; this extension does NOT mandate
-ids on any block. Two properties make mandatory ids unnecessary:
-
-1. **Keyframes are full snapshots**, so block matching is used only to make the
-   delta between adjacent revisions compact — never to guarantee the correctness
-   of a reconstruction. When a unit changes, the delta is a whole-unit
-   replacement, and the nearest keyframe remains an exact fallback.
-2. **Flow segments are units too**, so a reverse patch anchors to prose — a
-   paragraph, a list, a heading — by its content key, not only to fenced blocks.
-
-Tools **SHOULD** record an explicit `#id` on blocks that are likely to be
-referenced or revised and that need stable cross-version identity (tables,
-diagrams, notes, significant sections). *Caveat:* a heading's auto-derived id is
-a function of its text, so renaming a heading changes its id and a differ will
-see the change as a delete-plus-add rather than a rename. Stable tracking across
-renames requires an explicit id.
+Ids remain optional in the language; this profile mandates none. A tool
+SHOULD encourage an explicit `#id` on blocks that need a stable identity across
+edits and renames.
 
 ---
 
-## 5. Reverse-patch operations
+## 5. Operations
 
-A `history-revision` body is a line-oriented list of operations that transform the
-content of a revision into the content of its `parent`. A **block-key** is a
-unit key as §4 derives it — `#<id>`, or `@` and eight hex digits, either with a
-`~n` occurrence suffix. An **anchor** is one of `at-start`, `at-end`, `after <block-key>`, or
-`before <block-key>`.
+A `history-change` body is a list of operations, one per line, applied in the
+order written. An **anchor** is `at-start` or `after <key>`.
 
-| Operation | Undoes (in the newer revision) | Effect (toward the parent) |
-|-----------|--------------------------------|----------------------------|
-| `delete <block-key>` | an added block | remove the block |
-| `replace <block-key> <- blob:<id>` | a modified block | set the block's content to the parent's payload |
-| `insert <- blob:<id> <anchor>` | a removed block | re-insert the block with its parent-revision content at the anchor |
-| `move <block-key> <anchor>` | a moved block | reposition the block |
+| Operation | Effect |
+|---|---|
+| `create <key> <anchor> <- blob:<id>` | a block with this key and text, placed at the anchor |
+| `update <key> <- blob:<id>` | the block's text becomes the blob's |
+| `remove <key>` | the block is removed (it stays as a tombstone, §7) |
+| `move <key> <anchor>` | the block moves to the anchor |
 
-Operations within a revision are applied in the order written. Every `blob:<id>`
-reference MUST resolve to a `history-blob` block in the same `.gemlhistory` file; an
-unresolved reference is a build **error**, consistent with the core spec's
-reference-validation rule (§5).
+A blob's text is the unit's whole text: its lines and the blank lines it owns.
+Every `blob:<id>` MUST name a `history-blob` in the same file.
 
 ---
 
-## 6. Reconstruction
+## 6. Ids and hashes
 
-To reconstruct (view) the document at a target revision *R* (read-only; the
-files are not modified):
+- A **state hash** is `sha256:` followed by the lowercase hexadecimal SHA-256 of
+  a document's exact UTF-8 bytes, in the newline style its change records
+  (`newline=lf` or `crlf`).
+- A change's `state` is the state hash of the document the change and all of its
+  ancestors replay to (§7).
+- A **blob id** is `b-` followed by the first 12 hexadecimal digits of the
+  SHA-256 of its text. Equal texts share one blob, and the union of two
+  histories cannot assign one id to two texts.
+- A **change id** is `<timestamp>-<hash12>`. `<timestamp>` is the time of the
+  change in UTC basic ISO-8601 (`YYYYMMDDTHHMMSSZ`). `<hash12>` is the first 12
+  hexadecimal digits of the SHA-256 of these lines, joined with LF:
 
-1. Select the nearest keyframe at *R* or newer on the chain. The history file
-   always contains a keyframe for the current revision (the committed-current
-   mirror); additional `history-keyframe` blocks provide earlier entry points.
-   Reconstruction therefore does **not** depend on the live `doc.geml` and works
-   even when the live file has uncommitted changes or is absent.
-2. Apply reverse patches backward along the `parent` chain, one revision at a
-   time, until *R* is reached.
-3. Verify the result: the hash of the reconstructed content MUST equal the
-   `hash` recorded for *R* (§8).
+  ```
+  parents <the parent ids, sorted, joined with one space>
+  author <author, or nothing>
+  summary <summary, or nothing>
+  newline <lf|crlf>
+  state <state>
+  was <was>            (only when the change carries one, §12)
+  <each operation line, in order>
+  --
+  <for each operation that names a blob, in order: the blob id, then its text>
+  ```
 
-Keyframes bound the number of reverse steps for any target revision and confine
-the impact of a corrupted patch to a single inter-keyframe segment. Reverse
-patches for every consecutive revision pair are retained so that any step is
-available; keyframes are additional and serve as bounded, verifiable entry
-points.
+  A change's id therefore covers its parents' ids: altering any change alters
+  the id every later change depends on.
 
----
-
-## 7. Rollback
-
-Rollback rewrites the live file to a past revision and continues from there.
-History is **linear**: there is no branching and no merge.
-
-Because the history file is self-contained (§2), the reconstruction of the
-target revision does not depend on the current state of the live file.
-
-**Uncommitted-changes policy.** Rollback overwrites the live file. If
-`doc.geml` has uncommitted changes (§8), a processor **MUST NOT** discard them
-implicitly: it **MUST** refuse the rollback unless the caller explicitly
-consents to discarding them — an interactive confirmation, or an explicit force
-option in non-interactive (scripted or agent) use. The processor **SHOULD**
-point to `save` as the way to preserve the current edits instead.
-
-To roll back to a revision *R*:
-
-1. Reconstruct revision *R* (§6).
-2. Write the reconstructed content to the live `doc.geml`.
-3. Truncate the history so that *R* becomes `current`: discard every `history-revision`
-   and `history-keyframe` newer than *R* on the chain, and the `history-blob` blocks referenced
-   only by those discarded revisions; refresh the committed-current keyframe to
-   *R*; set `meta.current` to *R*'s id.
-
-Rollback is **destructive**: the revisions after *R* (including the former
-current revision) are permanently discarded and are not recoverable. A
-subsequent edit is committed as a new revision with a fresh id (a new
-timestamp); ids are never reused, so a post-rollback revision can never be
-confused with the discarded tip. (A tool MAY, as an optional safeguard, snapshot
-the discarded tip before truncation; this is not required.)
+`parents` is absent on a root change. Tools accept, as a **selector**, an id or
+an unambiguous prefix or suffix of one, `0` for the current head, and `-N` for
+the change N places before it in replay order.
 
 ---
 
-## 8. Revision ids, integrity and hashing
+## 7. Replay
 
-- Each version's content `hash` is **SHA-256** over the exact UTF-8 bytes of
-  that version's complete `.geml` content, written in hexadecimal and prefixed
-  `sha256:`. Every `history-revision` records the `hash` of the version it represents;
-  the committed-current keyframe records the `hash` of the current revision.
-- Content bytes include the newline style: each `history-revision` records the style
-  its version was hashed with as `newline` (`lf` | `crlf`), and verification
-  reconstructs the version's bytes in that encoding.
-- A revision's **id** is `<timestamp>-<short>`, where `<timestamp>` is the commit
-  time in UTC basic ISO-8601 (`YYYYMMDDTHHMMSSZ`) and `<short>` is the first 8
-  hexadecimal characters of that version's content `hash` (the eight after the
-  `sha256:` prefix). Ids therefore sort chronologically and are unique in
-  practice. The full `hash` — never the 8-character short form — is what
-  reconstruction is verified against. A `parent` is the id of the preceding
-  revision; the root revision has no `parent`. Tools accept any unambiguous id
-  prefix (e.g. the short hash, or the timestamp) as a selector.
+**Order.** A set of changes closed under ancestry replays in one order: a change
+comes after all of its parents; among changes whose parents have all been
+replayed, the one with the smaller id (compared as strings) comes first. Ids
+begin with their time, so changes that did not know about each other replay
+oldest first.
 
-Two conditions of differing severity are distinguished:
+**Model.** Replay keeps an ordered list of **entries**, each a key, a text and a
+flag saying whether the block is alive. It starts empty. Each change's
+operations apply in order:
 
-- **Corruption → error.** A broken `parent` chain (a revision's `parent` is not
-  the id of the revision before it, or the chain does not reach the root), an
-  unresolved `blob:` reference, a reconstruction whose hash does not match the
-  recorded hash, **one id on two revisions, on two keyframes or on two blobs
-  (within one type — a revision and its keyframe share an id by design), or
-  more than one `current`** indicate that the history itself is damaged and
-  **MUST** be reported as errors. An id names one thing: a sidecar holding two revisions
-  under one id, each consistent with its own hash, reconstructs one text in a
-  processor that takes the first and another in one that takes the last, and
-  verifies clean in both.
-- **Uncommitted changes → warning.** A difference between `hash(doc.geml)` and
-  the `hash` recorded for `current` means only that the live file has been
-  edited since the last commit. This is a normal editing state, **not**
-  corruption: it **MUST** be reported as a warning and **MUST NOT** block
-  read-only operations (view, verify) or the reconstruction of any revision.
+| Operation | The key is alive | The key is a tombstone | The key is unknown |
+|---|---|---|---|
+| `create` | its text is set; it stays where it is | its text is set and it comes back alive at the anchor | a new entry at the anchor |
+| `update` | its text is set | no effect | error |
+| `remove` | it becomes a tombstone | no effect | error |
+| `move` | it moves to the anchor | it moves to the anchor | error |
 
-*Note (non-normative):* because the short id is derived from the version's
-content hash rather than from a parent-binding commit hash, the id chain is not
-cryptographically tamper-evident. For document history this is acceptable; an
-implementation that needs tamper-evidence can keep the same `timestamp-<short>`
-id format and derive `<short>` from `sha256(parent ‖ content ‖ metadata)`
-instead, without any other change.
+`at-start` places an entry first; `after <key>` places it directly after that
+entry, alive or not. An anchor naming an unknown key, or the entry being placed,
+is an error. Tombstones keep their place, so an anchor a concurrent change
+removed still resolves.
+
+**Settling.** After each change's operations, for every two consecutive alive
+entries *a* and *b*: when *a* does not begin with a typed-block opening line,
+*a*'s last line is not blank, and *b*'s first line is neither blank nor a
+typed-block opening line, a blank line is appended to *a*. Two paragraphs a
+merge leaves side by side would otherwise read as one. A change recorded from a
+document (§9) never needs this; it applies only where concurrent changes
+interleave.
+
+**The document** is the text of the alive entries, in order, joined.
+
+**Lost edits.** Where changes that did not know about each other meet one block,
+the order decides, and a processor MUST report the loser:
+
+- an `update` or `create` that replaces text a non-ancestor change set: the later
+  change is kept, the earlier one lost;
+- a `remove` of a block whose text a non-ancestor change set: the removal is
+  kept, the edit lost;
+- an `update` of a block a non-ancestor change removed: the removal is kept, the
+  edit lost.
+
+A replacement by identical text is not a loss. The losing change stays in the
+history; its document can be rebuilt and its block restored (§11).
 
 ---
 
-## 9. Conformance
+## 8. The snapshot
+
+`history-snapshot` holds the document the current heads replay to, verbatim. Its
+`heads` lists the heads it was made for, sorted; `hash` is its state hash in
+`newline`'s style. The `history-units` block that follows lists the model's
+entries in order, one per line: an alive entry as `<key> <number of lines>`, a
+tombstone as `-<key>`. The alive entries' line counts MUST sum to the snapshot's
+line count; reading the snapshot's text in those counts gives each entry its
+text.
+
+The snapshot is a cache: replaying every change from the start is the
+definition, and a snapshot whose `heads` are not the current heads is stale and
+is not used. A tool MUST rewrite the snapshot whenever it records a change.
+
+---
+
+## 9. Recording a change
+
+Saving the live file records one change whose parents are the current heads and
+whose operations take the current state to the live file. A tool:
+
+- pairs units by key, first the ones with ids;
+- SHOULD pair units without ids whose text is identical, keeping their keys; a
+  pair out of order is a `move`;
+- SHOULD treat an unpaired old unit and an unpaired new unit standing at the same
+  place between paired neighbours as the same block edited (`update`), so that a
+  paragraph edited in place keeps its key;
+- records the rest as `create` and `remove`;
+- MUST verify, before writing, that applying the operations to the current state
+  reproduces the live file byte for byte, and write nothing when it does not;
+- records nothing when the live file is the current state and there is one head.
+
+A `summary` or `author` containing a line break MUST be refused: an attribute has
+no escape for one.
+
+---
+
+## 10. Merging
+
+Two histories of one document merge by **union**: every change and every blob of
+either. A change id names one change and a blob id one text; the same id with
+different content is corruption. After a union with several heads, a tool joins
+them with a change whose parents are all the heads and which has no operations;
+its `state` is the document the union replays to. Merging is commutative: either
+copy merging the other reaches the same document, and — given the same time and
+author for the joining change — the same change.
+
+A history may hold several heads; reading it replays all of them. The next
+recorded change joins them.
+
+**Replicas.** A tool keeping a document in step with another holder of it — an
+app, another device — records that holder's state as a change whose parent is
+the change the holder last had, then joins the heads. The live file need not be
+involved until the merge is written to it.
+
+**git.** A `.gemlhistory` is a single file, which git's line merge would treat
+as conflicting text. `geml history setup-git` registers a merge driver that
+merges the two sides by union; the live `.geml` is merged by git as usual, and
+the next save records whatever git produced.
+
+---
+
+## 11. Restore and revert
+
+Nothing is removed from a history. Restoring the document to a change writes
+that change's document to the live file and records it as a new change;
+reverting one block does the same for that block. A processor MUST NOT discard
+uncommitted changes in the live file without the caller's explicit consent — an
+interactive confirmation, or a force option in scripted or agent use — and
+SHOULD point to `save` as the way to keep them.
+
+---
+
+## 12. A sidecar in the earlier format
+
+A sidecar whose blocks are `history-revision` and `history-keyframe` is in the
+format this profile used before the change graph: a linear chain of reverse
+patches. A processor MAY read such a sidecar by rebuilding every revision,
+checking each against the hash it recorded, and recording the revisions in order
+as changes; the first save then writes the change graph. Each converted change
+carries the revision's id as `was`, and selectors match it.
+
+---
+
+## 13. Conformance
 
 A conforming history processor MUST:
 
-1. Treat `doc.geml` as the sole source of truth for the current version and
-   render it without requiring `doc.gemlhistory`.
-2. Parse `doc.gemlhistory` as a conforming GEML document (core spec §3–§5).
-3. Maintain a committed-current keyframe in the history file so that
-   reconstruction is independent of the live file's state.
-4. Reconstruct any revision (selected by its id) from the nearest keyframe at or
-   newer than it on the chain by applying reverse patches, verify the result
-   against the recorded hash, and do so even when the live file has uncommitted
-   changes or is missing (§6, §8).
-5. Report **errors** for corruption: a broken `parent` chain, an unresolved
-   `blob:` reference, a reconstruction whose hash does not match, an id shared
-   (within one type) by two revisions, by two keyframes or by two blobs, or more than one
-   `current` (§8).
-6. Report a difference between `hash(doc.geml)` and `current` as an
-   **uncommitted-changes warning**, and never block read-only operations on it.
-7. Perform rollback (§7) as a destructive, linear truncation, and **MUST NOT**
-   discard uncommitted changes without the caller's explicit consent
-   (confirmation or force).
-8. Write `profile = "geml-history/v1"` into the meta of every `.gemlhistory` it
-   generates (§1.1), so the file declares its own vocabulary rather than relying
-   on a reader that special-cases the extension.
+1. treat `doc.geml` as the source of truth for the current version and render it
+   without requiring `doc.gemlhistory`;
+2. parse `doc.gemlhistory` as a conforming GEML document;
+3. replay changes in the order and with the operation semantics of §7, including
+   settling, so that any set of changes gives the same document in every
+   implementation;
+4. compute state hashes, blob ids and change ids as §6 defines them;
+5. report as **errors**: an id that does not match its content; a blob whose id
+   does not match its text; a parent, blob or anchor that does not resolve; an
+   operation on an unknown key; a change whose replayed document does not match
+   its `state`; a cycle; two changes or two snapshots under one id or in one file;
+   a snapshot whose units do not cover its text, or that does not match the
+   document its heads replay to;
+6. report as **warnings**, never blocking a read: every lost edit (§7); several
+   heads; a live file that differs from the current state;
+7. never discard a change, and never discard uncommitted live edits without
+   consent (§11);
+8. write `profile = "geml-history/v1"` into every `.gemlhistory` it writes;
 9. NOT mandate ids on any block, and NOT depend on git or any online service.
+
+The profile's [`conformance.json`](conformance.json) holds sidecars a processor
+must verify with no error, the number of changes it must replay, and the edits
+it must report as lost.
 
 ---
 
-## 10. Tooling and AI usage (informative)
+## 14. Tooling and AI usage (informative)
 
-The history file is **generated and verified by tooling**, not hand-authored.
-Recording a revision (`save`) refreshes the committed-current keyframe, writes
-the reverse patch and any blobs, and records the new hash and id. Reverse
-patches require exact block-content extraction, fence-length bookkeeping, and
-hashing — operations that are error-prone to produce by hand (including for AI
-agents). The recommended division of labour:
+The history file is generated and verified by tooling. Recording a change needs
+exact unit extraction, key bookkeeping, fence-length handling and hashing —
+error-prone by hand, for agents as for people. An agent reads and edits the live
+`doc.geml` freely; it MAY read `doc.gemlhistory` to see how and why the document
+changed (every change carries a summary and an author); it SHOULD NOT write
+changes, blobs, keys or ids by hand, and calls the tool instead (`save`, `get`,
+`restore`, `verify`, `merge`).
 
-- An AI agent reads and edits the live `doc.geml` freely.
-- An AI agent **MAY read** `doc.gemlhistory` (it is plain text, block-keyed, and
-  carries a human-readable `summary` per revision) to understand how and why the
-  document evolved — without git and without any online service.
-- An AI agent **SHOULD NOT** hand-write reverse patches, blobs, ids, or hashes.
-  Instead it invokes the history tool to record a revision (`save`),
-  reconstruct a revision (`get`), verify integrity (`verify`), or roll back
-  (`restore`).
-
-Because the history travels with the document as a sibling plain-text file, this
-information is available offline, survives copying and forwarding, and is
-self-describing — properties that out-of-band version control and online
-document histories do not provide.
+Because the history travels with the document as a plain-text sibling, it is
+available offline, survives copying, and can be merged with another copy of
+itself without a server.

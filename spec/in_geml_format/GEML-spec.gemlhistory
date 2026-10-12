@@ -6,7 +6,7 @@ history-of   = "GEML-spec.geml"
 geml-version = "1.0"
 ===
 
-===== history-snapshot {heads="20261008T081031Z-eff677256295" hash="sha256:4e5c86ee503003cb2547a74c959e5069d18b9d5d174399ad8f63c2fcd83c2e8b" newline=crlf}
+===== history-snapshot {heads="20261012T012912Z-1ea66e6ff9a7" hash="sha256:6a08255f27244443b138c5359e1eb39bee33cc949ceeca90a866112700f21a2f" newline=crlf}
 # GEML — General Expressive Markup Language
 
 *English | [中文](../GEML-spec_CN.md)*
@@ -165,7 +165,7 @@ not its format. A `.gemlhistory` sidecar is a complete, valid GEML document: it
 declares its vocabulary in `=== meta` like any other
 (`profile = "geml-history/v1"`) and validates with no diagnostics. The separate
 name exists so tools can route the two apart — a directory walk that collects
-documents takes `.geml` and leaves the sidecar, whose keyframe mirrors the live
+documents takes `.geml` and leaves the sidecar, whose snapshot mirrors the live
 file and whose blobs hold superseded text, so sweeping it in answers every
 search twice and with content that is no longer there. Tooling that recognizes
 `.geml` for highlighting, rendering or parsing can treat `.gemlhistory`
@@ -2333,6 +2333,26 @@ a block.
 #table-13 14
 ~24771407 8
 ~1cf13380 9
+===
+
+=== history-change {id="20261012T012912Z-1ea66e6ff9a7" parents="20261008T081031Z-eff677256295" summary="§0.6: the history sidecar keeps snapshots, not keyframes" newline=crlf state="sha256:6a08255f27244443b138c5359e1eb39bee33cc949ceeca90a866112700f21a2f"}
+update ~371a9ebd <- blob:b-1f9ebd94f780
+===
+
+=== history-blob {#b-1f9ebd94f780 lang=geml}
+*Note (non-normative):* the two extensions distinguish a document's **role**,
+not its format. A `.gemlhistory` sidecar is a complete, valid GEML document: it
+declares its vocabulary in `=== meta` like any other
+(`profile = "geml-history/v1"`) and validates with no diagnostics. The separate
+name exists so tools can route the two apart — a directory walk that collects
+documents takes `.geml` and leaves the sidecar, whose snapshot mirrors the live
+file and whose blobs hold superseded text, so sweeping it in answers every
+search twice and with content that is no longer there. Tooling that recognizes
+`.geml` for highlighting, rendering or parsing can treat `.gemlhistory`
+identically; neither name is a vocabulary declaration, which §8.6.2(2) rules out
+and the sidecar's own `profile` line makes unnecessary.
+
+
 ===
 
 === history-change {id="20261008T081031Z-eff677256295" parents="20261008T041649Z-8a306e89194b" summary="§2.2 spaces or tabs after a marker; §3.2 inexact-number; §4 #meta as the one meta block; §6 a visual body's header; §8.2(10) and A.6 coordinate edits" newline=crlf state="sha256:4e5c86ee503003cb2547a74c959e5069d18b9d5d174399ad8f63c2fcd83c2e8b" was="20261008T081031Z-4e5c86ee"}
