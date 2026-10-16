@@ -2,6 +2,7 @@
 .claude/launch.json
 .code-review-graph/
 .geml-code-graph/
+.geml/codemap/
 
 integrations/langchain+llamaindex/__pycache__
 

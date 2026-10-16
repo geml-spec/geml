@@ -6,7 +6,7 @@
 
 It writes a codebase's call graph as GEML documents. Every method is a block with an id,
 and the `#calls` / `#called-by` tables link it both ways: what it calls, and who calls it.
-The tool is called codemap (`geml codemap`). The name geml-code-graph appears only where it is literal: the output directory `.geml-code-graph/`, the diagram format, and the Claude skill.
+The tool is called codemap (`geml codemap`) and writes to `.geml/codemap/`. The name geml-code-graph appears only where it is literal: the diagram format and the Claude skill.
 
 ![The method graph of geml-parser/render.ts: hovering RenderCtx.inline lights up its whole caller chain while everything else dims; clicking a node opens its source right beside the graph](../../../docs/assets/codemap-render-ts.gif)
 
@@ -16,7 +16,7 @@ Install the CLI (Node 22+), then run the other two at the root of your repositor
 
 ```sh
 npm i -g @geml/geml
-geml codemap build    # detects the languages, indexes them, writes .geml-code-graph/
+geml codemap build    # detects the languages, indexes them, writes .geml/codemap/
 geml codemap serve    # serves the graph at http://localhost:8140/ and opens your browser
 ```
 
@@ -39,7 +39,7 @@ $ geml codemap find add
 add	demo.geml#add	src/math.ts#L1-3
 
 1 match(es) for "add" across 1 name(s).
-$ geml get .geml-code-graph/demo.geml '#called-by'
+$ geml get .geml/codemap/demo.geml '#called-by'
 === table {#called-by format=csv}
 from,         to,           kind, site
 #main,        #formatTotal, call, src/main.ts:4
@@ -63,7 +63,7 @@ The Claude skill has an optional hook that runs it after every commit.
 Put the graph inside any GEML document with one block:
 
 ```geml
-=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml}
+=== diagram {format=geml-code-graph src=.geml/codemap/index.geml}
 ===
 ```
 

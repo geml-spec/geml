@@ -28,6 +28,8 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **codemap**: `geml codemap build` writes `.geml/codemap/` by default (was `.geml-code-graph/`), next to a project's other GEML files; the guides, skills and `.dockerignore` follow.
+
 - **The VS Code extension offers GEML's MCP server to chat.** It contributes an
   `mcpServerDefinitionProviders` provider, so Copilot Chat and anything else
   reading the editor's server list is offered two servers that differ only in
