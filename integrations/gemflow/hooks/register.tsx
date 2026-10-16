@@ -34,8 +34,8 @@ import type { VerbName } from '../dist/core/verb-specs.js'
 import type { BoardAction, BoardTab, Dialog, JournalFilter, Pressable, ShareHow, ShareWhat } from '../dist/hosts/claude-code/actions.js'
 import { bandView, BRAND_RED, cellWidth, MARK, MARK_SVG, SEP, toneProps, truncate } from '../dist/hosts/claude-code/band.js'
 import type { BandView, Segment, Tone } from '../dist/hosts/claude-code/band.js'
-import { BOARD_ID, ciSuggestions, DIALOG_ID, HOME_TAB, ICON_CHAR, ICON_SVG, ICON_TONE, inputAction, paneRows, TAB_IDS, tabs, toolSuggestions } from '../dist/hosts/claude-code/board.js'
-import type { BoardRow, FlowEdgeRow, Icon } from '../dist/hosts/claude-code/board.js'
+import { BOARD_ID, ciSuggestions, DIALOG_ID, glyphSvg, HOME_TAB, ICON_CHAR, ICON_SVG, ICON_TONE, inputAction, paneRows, TAB_IDS, tabs, toolSuggestions } from '../dist/hosts/claude-code/board.js'
+import type { BoardRow, FlowEdgeRow, Glyph, Icon } from '../dist/hosts/claude-code/board.js'
 import { boardFailure, boardText, COMMAND_HINT, commandText, parseCommand } from '../dist/hosts/claude-code/command.js'
 import { afterNeeded, beforeDecision, checkoutProbe, isOwnTool, matchesUnit, paramsToFill } from '../dist/hosts/claude-code/fastpath.js'
 import type { BeforeDecision, CallFacts } from '../dist/hosts/claude-code/fastpath.js'
@@ -914,12 +914,71 @@ function drawIcon(els: Els, k: Icon): unknown {
   return Svg !== undefined ? <Svg source={ICON_SVG[k]} alt={k} width={14} height={14} /> : <Text {...toneProps(ICON_TONE[k])}>{ICON_CHAR[k]}</Text>
 }
 
+/** A glyph where the surface draws pictures; nothing elsewhere, where the words beside it say what it would. */
+function drawGlyph(els: Els, g: Glyph, tone: Tone | 'active' = 'dim', size = 15): unknown {
+  const { Svg } = els
+  return Svg !== undefined ? <Svg source={glyphSvg(g, tone)} alt={g} width={size} height={size} /> : null
+}
+
+/**
+ * An icon that is a press by itself (the dialogs): a Button holds only words, so a blank one is laid over the icon,
+ * named by the label; the label shows under the pointer. Where the surface draws no pictures, the label as a button.
+ */
+function iconButton($: EngineInterface, els: Els, b: Pressable, g: Glyph, o: { tone?: Tone | 'active'; from?: 'left' | 'right'; size?: number } = {}): unknown {
+  const { Box, Button, Text, Svg } = els
+  if (Svg === undefined) return <Button key={b.key} plain dimColor label={b.label} onPress={press($, b.action)} />
+  const edge = o.from === 'left' ? { left: 0 } : { right: 0 }
+  return (
+    <Box key={`${b.key}-icon`} flexShrink={0} alignItems="center">
+      {drawGlyph(els, g, o.tone ?? 'dim', o.size ?? 18)}
+      <Box position="absolute" top={0} left={0} right={0} bottom={0}>
+        <Button key={b.key} plain label={'  '} onPress={press($, b.action)} />
+      </Box>
+      <Box position="absolute" top={1} {...edge} width={cellWidth(b.label) + 2} paddingX={1} display="none" hover={{ display: 'flex' }} backgroundColor="inverseText">
+        <Text wrap="truncate-end">{b.label}</Text>
+      </Box>
+    </Box>
+  )
+}
+
+/** The prototype's greys, with alpha so they read on a light and a dark ground: a rule, a heading, a band behind a row. */
+const RULE = '#8a898666'
+const HEADING = '#8a8986'
+const SHADE = '#8a89861a'
+function hairline(els: Els, key: string, columns: number): unknown {
+  const { Text, Svg } = els
+  return Svg !== undefined ? <Text key={key} color={RULE} wrap="truncate">{'─'.repeat(Math.max(1, columns - 2))}</Text> : null
+}
+
+/**
+ * The rows in the prototype's grouping: a run of work items sits in one rounded box, a rule between them; any other
+ * row as it is. Only where the surface draws pictures; the terminal's rows stand alone.
+ */
+function drawRows($: EngineInterface, els: Els, rows: BoardRow[], columns: number): unknown[] {
+  if (els.Svg === undefined) return rows.map((r, i) => drawRow($, els, r, i))
+  const { Box, Text } = els
+  const out: unknown[] = []
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i] as BoardRow
+    if (r.kind !== 'entry') { out.push(drawRow($, els, r, i)); continue }
+    const run: BoardRow[] = []
+    while (i < rows.length && (rows[i] as BoardRow).kind === 'entry') run.push(rows[i++] as BoardRow)
+    i--
+    out.push(
+      <Box key={`list-${r.key}`} flexDirection="column" borderStyle="round" borderColor={RULE} paddingX={1}>
+        {run.flatMap((x, n) => n === 0 ? [drawRow($, els, x, n)] : [<Text key={`sep-${x.key}`} color={RULE} wrap="truncate">{'─'.repeat(Math.max(1, columns - 6))}</Text>, drawRow($, els, x, n)])}
+      </Box>,
+    )
+  }
+  return out
+}
+
 function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknown {
   const { Box, Text, Button, Link, Input } = els
   switch (row.kind) {
     case 'section': return (
       <Box key={row.key} gap={1} marginTop={i > 0 ? 1 : 0}>
-        <Text dimColor bold>{row.text}</Text>
+        {els.Svg !== undefined ? <Text color={HEADING} bold>{row.text}</Text> : <Text dimColor bold>{row.text}</Text>}
         {row.count !== undefined && <Text dimColor>{String(row.count)}</Text>}
         {row.fold !== undefined && <Box flexGrow={1} />}
         {row.fold !== undefined && <Button key={row.fold.key} plain label={row.fold.label} onPress={press($, row.fold.action)} />}
@@ -942,7 +1001,7 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
       </Box>
     )
     case 'entry': return (
-      <Box key={row.key} gap={2} paddingX={1}>
+      <Box key={row.key} gap={2} paddingX={els.Svg !== undefined ? 0 : 1}>
         {row.action !== undefined
           ? <Button key="go" plain label={row.title} onPress={press($, row.action)} />
           : <Text {...toneProps(row.tone)} wrap="truncate-end">{row.title}</Text>}
@@ -999,6 +1058,7 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
     case 'event': return (
       <Box key={row.key} flexDirection="column">
         <Box gap={1}>
+          {drawGlyph(els, row.glyph, row.tone === 'normal' ? 'dim' : row.tone, 14)}
           <Text dimColor>{row.at}</Text>
           <Text {...toneProps(row.tone === 'normal' ? 'dim' : row.tone)}>{row.label}</Text>
           <Button key={`open-${row.key}`} plain label={row.text} onPress={press($, row.action)} />
@@ -1393,14 +1453,28 @@ export const register: Register = (on) => {
         <Text wrap="truncate-end">{text}</Text>
       </Box>
     )
-    const pressable = (b: Pressable, i: number) => <Button key={b.key} plain hotkey={String(i + 1)} label={b.label} {...(b.primary ? { variant: 'primary' } : {})} onPress={press($, b.action)} />
+    // Where the surface draws pictures, a native button as the design has it (a hotkey there draws a number badge);
+    // the terminal's rows read "1: label", a survey's way.
+    const pressable = (b: Pressable, i: number) => Svg !== undefined
+      ? (b.key === 'board'
+        ? (
+          <Box key="band-board" gap={1} alignItems="center" flexShrink={0}>
+            <Svg source={glyphSvg('board', 'dim')} alt="" width={14} height={14} />
+            <Text>{b.label}</Text>
+            <Box position="absolute" top={0} left={0} right={0} bottom={0}>
+              <Button key={b.key} plain label={' '.repeat(cellWidth(b.label) + 3)} onPress={press($, b.action)} />
+            </Box>
+          </Box>
+        )
+        : <Button key={b.key} label={b.label} {...(b.primary ? { variant: 'primary' } : {})} onPress={press($, b.action)} />)
+      : <Button key={b.key} plain hotkey={String(i + 1)} label={b.label} {...(b.primary ? { variant: 'primary' } : {})} onPress={press($, b.action)} />
     return (
-      <Box gap={1}>
+      <Box gap={1} alignItems="center">
         {Svg !== undefined ? <Svg source={MARK_SVG} alt="Gemflow" width={13} height={13} /> : <Text {...toneProps(MARK.tone)}>{MARK.text}</Text>}
         {view.verb !== '' && <Text dimColor>{view.verb}</Text>}
         <Box key="band-title">
           {workflow
-            ? <Button key="title" plain label={view.title} onPress={press($, { op: 'open-board', tab: 'items' })}><Text {...toneProps(view.tone)} underline={view.tone === 'normal'}>{title}</Text></Button>
+            ? <Button key="title" plain label={view.title} onPress={press($, { op: 'open-board', tab: 'items' })}><Text {...(Svg !== undefined && view.tone === 'normal' ? { color: 'suggestion' } : toneProps(view.tone))} underline={view.tone === 'normal'}>{title}</Text></Button>
             : <Text {...toneProps(view.tone)}>{title}</Text>}
           {card(view.detail !== '' ? `${view.verb !== '' ? `${view.verb} ` : ''}${view.title}${SEP}${view.detail}` : '', { left: 0 }, columns - lead)}
         </Box>
@@ -1444,32 +1518,50 @@ export const register: Register = (on) => {
     return (
       <Box flexDirection="column">
         {head !== undefined && (
-          <Box gap={1}>
+          <Box gap={1} alignItems="center">
             {els.Svg !== undefined ? <els.Svg source={MARK_SVG} alt="Gemflow" width={16} height={16} /> : <Text {...toneProps(MARK.tone)}>{MARK.text}</Text>}
             <Text bold>Gemflow</Text>
-            {head.version !== '' && <Text dimColor>{head.version}</Text>}
+            {head.version !== '' && (els.Svg !== undefined
+              ? <Box key="version" borderStyle="round" borderColor={RULE} paddingX={1}><Text dimColor>{head.version}</Text></Box>
+              : <Text dimColor>{head.version}</Text>)}
             {head.newer !== undefined && <Button key="newer" plain label={t('● 可更新 {0}', head.newer)} onPress={press($, { op: 'dialog', dialog: 'upgrade' })} />}
             <Box flexGrow={1} />
-            {head.dialogs.map((d) => <Button key={d.key} plain dimColor label={d.label} onPress={press($, d.action)} />)}
+            <Box key="dialogs" gap={els.Svg !== undefined ? 2 : 1} alignItems="center">
+              {head.dialogs.map((d) => iconButton($, els, d, d.key.replace(/^dialog-/, '') as Glyph))}
+            </Box>
           </Box>
         )}
-        {head?.name !== undefined && (
-          <Box gap={1}>
-            <Text bold>{head.name}</Text>
-            {head.stage !== undefined && <Text {...toneProps('brand')} bold>{head.stage}</Text>}
-            {head.flow !== undefined && <Text dimColor>{head.flow}</Text>}
-            <Box flexGrow={1} />
-            {head.hold !== undefined && <Button key={head.hold.key} plain dimColor label={head.hold.label} onPress={press($, head.hold.action)} />}
-          </Box>
-        )}
+        {head !== undefined && hairline(els, 'rule-top', columns)}
+        {head?.name !== undefined && (els.Svg !== undefined
+          ? (
+            <Box key="item-row" gap={1} alignItems="center" backgroundColor={SHADE} paddingX={1}>
+              <Text bold>{head.name}</Text>
+              {head.stage !== undefined && <Text bold color="inverseText" backgroundColor="text">{` ${head.stage} `}</Text>}
+              {head.flow !== undefined && <Text dimColor>{head.flow}</Text>}
+              <Box flexGrow={1} />
+              {head.hold !== undefined && <Button key={head.hold.key} label={head.hold.label} onPress={press($, head.hold.action)} />}
+            </Box>
+          )
+          : (
+            <Box gap={1}>
+              <Text bold>{head.name}</Text>
+              {head.stage !== undefined && <Text {...toneProps('brand')} bold>{head.stage}</Text>}
+              {head.flow !== undefined && <Text dimColor>{head.flow}</Text>}
+              <Box flexGrow={1} />
+              {head.hold !== undefined && <Button key={head.hold.key} plain dimColor label={head.hold.label} onPress={press($, head.hold.action)} />}
+            </Box>
+          ))}
         {head?.reason !== undefined && <Text dimColor>{head.reason}</Text>}
-        <Box gap={2} flexWrap="wrap">
-          {tabs(t).map((x) => x.id === tab
-            ? <Button key={`tab-${x.id}`} plain onPress={press($, { op: 'tab', tab: x.id })}><Text bold underline>{x.label}</Text></Button>
-            : <Button key={`tab-${x.id}`} plain dimColor label={x.label} onPress={press($, { op: 'tab', tab: x.id })} />)}
-          <Button key="refresh" plain dimColor label={t('刷新')} onPress={press($, { op: 'refresh' })} />
+        {hairline(els, 'rule-head', columns)}
+        <Box gap={els.Svg !== undefined ? 3 : 2} flexWrap="wrap" alignItems="center">
+          {tabs(t).map((x) => els.Svg !== undefined
+            ? iconButton($, els, { key: `tab-${x.id}`, label: x.label, action: { op: 'tab', tab: x.id } }, x.id, { tone: x.id === tab ? 'active' : 'dim', from: 'left' })
+            : x.id === tab
+              ? <Button key={`tab-${x.id}`} plain onPress={press($, { op: 'tab', tab: x.id })}><Text bold underline>{x.label}</Text></Button>
+              : <Button key={`tab-${x.id}`} plain dimColor label={x.label} onPress={press($, { op: 'tab', tab: x.id })} />)}
         </Box>
-        {rows.map((r, i) => drawRow($, els, r, i))}
+        {hairline(els, 'rule-tabs', columns)}
+        {drawRows($, els, rows, columns)}
       </Box>
     )
   })

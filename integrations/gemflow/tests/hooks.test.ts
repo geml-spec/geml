@@ -388,7 +388,7 @@ test('the band and /gemflow, on terminal and desktop', async ($, on) => {
   await start($, on)
   // The mark is a character on the terminal, a picture on a desktop; the rest reads the same.
   expect(await bandText($)).toBe('» 我在做 feat/x · build [看板]')
-  expect(await bandText($, 'desktop')).toBe('我在做 feat/x · build [看板]')
+  expect(await bandText($, 'desktop')).toBe('我在做 feat/x · build 看板 [       ]')
   const desktop = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
   expect(await desktop.find({ type: 'Svg' })).toBeDefined()
   await desktop.unmount()
@@ -415,7 +415,7 @@ test('the board draws its header and its five tabs on every surface, opening on 
   await $.command.run({ command: 'gemflow', args: 'board', origin: COMPOSER, presentation: PRESENTATION })
   for (const surface of ['terminal', 'desktop', 'vscode', 'mobile'] as const) {
     const pane = await $.ui.mount({ plugin: 'gemflow', surface, component: 'Pane', requestId: 'gemflow-board', props: PANE })
-    for (const key of ['tab-sessions', 'tab-flow', 'tab-items', 'tab-journal', 'tab-tools', 'refresh', 'dialog-share', 'dialog-settings', 'dialog-upgrade', 'dialog-about', 'pause']) {
+    for (const key of ['tab-sessions', 'tab-flow', 'tab-items', 'tab-journal', 'tab-tools', 'dialog-share', 'dialog-settings', 'dialog-upgrade', 'dialog-about', 'pause']) {
       expect(await pane.find({ type: 'Button', key })).toBeDefined()
     }
     expect(await pane.find({ type: 'Button', key: 'tab-pending' }), 'what waits is on the work items tab, not a tab of its own').toBeUndefined()
@@ -700,7 +700,7 @@ test('an approval edge that holds: the band offers the approval, the inbox lists
   expect(w.notified).toEqual(['等你验收：feat/x\nreview'])
   const band = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
   expect(await band.find({ type: 'Svg' })).toBeDefined()
-  expect(await bandText($, 'desktop')).toBe('验收 feat/x [通过] [看板]')
+  expect(await bandText($, 'desktop')).toBe('验收 feat/x [通过] 看板 [       ]')
   expect((await band.findAll({ type: 'Button' })).map((b) => b.key)).toEqual(['title', 'approve-done', 'board'])
   await band.press({ key: 'approve-done' })
   expect(w.sent.filter((r) => r.op === 'advance').at(-1)).toMatchObject({ to: 'done' })

@@ -71,7 +71,7 @@ export type BoardRow =
    * kind (产物, 凭据, 阶段变更, 被拦, 开始), what, why, which turn caused it, and
    * the press that opens its menu; `detail` is its evidence, shown when `open`.
    */
-  | { kind: "event"; key: string; at: string; label: string; text: string; why: string; turn: string; tone: Tone; detail: string[]; open: boolean; action: BoardAction }
+  | { kind: "event"; key: string; at: string; glyph: Glyph; label: string; text: string; why: string; turn: string; tone: Tone; detail: string[]; open: boolean; action: BoardAction }
   /** A tool of the dictionary or one that ran (the tools tab): its name, its use, what it looks like when it has none, how often it ran, and the press that opens its menu. */
   | { kind: "tool"; key: string; name: string; use: string; guess: string; count: string; tone: Tone; action?: BoardAction }
   /** A work item's way through its flow: each state in order, passed or not, the current one marked. */
@@ -90,6 +90,50 @@ const iconSvg = (k: Icon): string =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${ICON_COLOR[k]}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="${ICON_MARK[k]}"/></svg>`;
 /** The icons as line drawings: a circle and its mark, in a colour that reads on a light and a dark ground alike. */
 export const ICON_SVG: Readonly<Record<Icon, string>> = { ask: iconSvg("ask"), done: iconSvg("done"), warn: iconSvg("warn") };
+
+/**
+ * The pane's line icons, drawn as the design draws them (docs/design/ui/2026-10-13-gemflow-ui): a tab's, a dialog's,
+ * and each kind of journal entry's. Only where the surface draws pictures; elsewhere the words stand alone.
+ */
+export type Glyph = BoardTab | "share" | "settings" | "upgrade" | "about" | "product" | "evidence" | "move" | "refused" | "start" | "waits" | "done" | "board";
+const GLYPH_PATH: Readonly<Record<Glyph, string>> = {
+  sessions: '<path d="M4 5h16v11H9l-5 4z"/>',
+  flow: '<rect x="3" y="3" width="7" height="5" rx="1"/><rect x="14" y="16" width="7" height="5" rx="1"/><path d="M6.5 8v5h11v3"/>',
+  items: '<path d="M10 6h10M10 12h10M10 18h10M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5L7.5 11M3.5 18l1.5 1.5L7.5 17"/>',
+  journal: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  tools: '<path d="M14.5 5.5a4 4 0 0 0-5 5L4 16l4 4 5.5-5.5a4 4 0 0 0 5-5l-2.5 2.5-2.5-.5-.5-2.5z"/>',
+  share: '<path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M12 15V3M8 7l4-4 4 4"/>',
+  settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  upgrade: '<circle cx="12" cy="12" r="9"/><path d="M12 16V8M8.5 11.5 12 8l3.5 3.5"/>',
+  about: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+  product: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/>',
+  evidence: '<path d="M6 3h8l4 4v14H6z"/><path d="M9.5 14l2 2 3.5-4"/>',
+  move: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  refused: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5.5M12 16.5h.01"/>',
+  start: '<circle cx="12" cy="12" r="8.5"/><path d="M10.5 9l4 3-4 3z"/>',
+  waits: '<circle cx="12" cy="12" r="8.5"/><path d="M10 9v6M14 9v6"/>',
+  done: '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.2l2.4 2.4 4.6-5"/>',
+  board: '<rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="11" rx="1"/><rect x="17" y="4" width="4" height="7" rx="1"/>',
+};
+/** A glyph's stroke by its tone: one grey that reads on a light and a dark ground, the accent for what is chosen, the tone's own colour otherwise. */
+const GLYPH_COLOR: Readonly<Record<Tone | "active", string>> = {
+  normal: "#8a8986", dim: "#8a8986", active: "#0077be", success: "#2e9e5b", warning: "#c98a1b", error: "#d6453d", brand: "#ef3b3f",
+};
+/** A glyph as a line drawing in its tone's colour. */
+export function glyphSvg(g: Glyph, tone: Tone | "active" = "dim"): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${GLYPH_COLOR[tone]}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${GLYPH_PATH[g]}</svg>`;
+}
+/** The glyph of a journal entry, by what made it. */
+export function entryGlyph(e: TimelineEntry): Glyph {
+  if (e.kind === "refused") return "refused";
+  switch (e.cause) {
+    case "enter": return "start";
+    case "patch":
+    case "expire": return "evidence";
+    case "pause": return "waits";
+    default: return "move";
+  }
+}
 
 export interface FlowStateRow {
   id: string;
@@ -765,7 +809,7 @@ export function journalRows(o: JournalInput): BoardRow[] {
       const files = [...new Set(g.commits.flatMap((c) => c.files))];
       lines.push({
         at: last.at, ...(g.turn !== undefined ? { turn: g.turn } : {}),
-        row: { kind: "event", key: `product-${last.sha.slice(0, 12)}`, label: t("产物"), text: `${g.commits.map((c) => c.sha.slice(0, 8)).join(" ")} ${last.subject.replace(/^[a-z]+(\([^)]*\))?!?:\s*/, "")}`, why: files.length > 0 ? t("{0} 个文件", files.length) : "", turn: turnWords(g.turn), tone: "normal" },
+        row: { kind: "event", key: `product-${last.sha.slice(0, 12)}`, glyph: "product", label: t("产物"), text: `${g.commits.map((c) => c.sha.slice(0, 8)).join(" ")} ${last.subject.replace(/^[a-z]+(\([^)]*\))?!?:\s*/, "")}`, why: files.length > 0 ? t("{0} 个文件", files.length) : "", turn: turnWords(g.turn), tone: "normal" },
         detail: files.slice(0, 12),
       });
     }
@@ -777,15 +821,15 @@ export function journalRows(o: JournalInput): BoardRow[] {
       const other = d.title ?? d.id;
       if (d.since !== undefined) {
         const turn = turnOf(d.since);
-        lines.push({ at: d.since, ...(turn !== undefined ? { turn } : {}), row: { kind: "event", key: `waits-${d.id}`, label: t("挂起"), text: t("{0}，等「{1}」", name, other), why: d.flow !== undefined ? t("另开{0}，工作项 {1}", d.flow, other) : "", turn: turnWords(turn), tone: "normal" }, detail: [] });
+        lines.push({ at: d.since, ...(turn !== undefined ? { turn } : {}), row: { kind: "event", key: `waits-${d.id}`, glyph: "waits", label: t("挂起"), text: t("{0}，等「{1}」", name, other), why: d.flow !== undefined ? t("另开{0}，工作项 {1}", d.flow, other) : "", turn: turnWords(turn), tone: "normal" }, detail: [] });
       }
       if (d.done && d.at !== undefined) {
         const names = d.wrote.slice(0, 6).map((p) => p.replace(/^.*\//, ""));
-        lines.push({ at: d.at, row: { kind: "event", key: `done-${d.id}`, label: t("依赖完成"), text: `${d.flow !== undefined ? `${d.flow}` : ""}「${other}」${t("完成")}`, why: names.length > 0 ? t("带回来：{0}", names.join(" · ")) : "", turn: "", tone: "success" }, detail: d.wrote });
+        lines.push({ at: d.at, row: { kind: "event", key: `done-${d.id}`, glyph: "done", label: t("依赖完成"), text: `${d.flow !== undefined ? `${d.flow}` : ""}「${other}」${t("完成")}`, why: names.length > 0 ? t("带回来：{0}", names.join(" · ")) : "", turn: "", tone: "success" }, detail: d.wrote });
         const back = board.timeline.find((e) => e.kind === "snapshot" && Date.parse(e.at) > Date.parse(d.at as string));
         if (back !== undefined) {
           const turn = turnOf(back.at);
-          lines.push({ at: back.at, ...(turn !== undefined ? { turn } : {}), row: { kind: "event", key: `back-${d.id}`, label: t("恢复"), text: name, why: "", turn: turnWords(turn), tone: "normal" }, detail: [] });
+          lines.push({ at: back.at, ...(turn !== undefined ? { turn } : {}), row: { kind: "event", key: `back-${d.id}`, glyph: "move", label: t("恢复"), text: name, why: "", turn: turnWords(turn), tone: "normal" }, detail: [] });
         }
       }
     }
@@ -796,7 +840,7 @@ export function journalRows(o: JournalInput): BoardRow[] {
     const turn = e.kind === "snapshot" && (e.by === "signal" || e.cause === "enter") && e.call === undefined ? undefined : turnOf(e.at);
     lines.push({
       at: e.at, ...(e.kind === "snapshot" ? { rev: e.rev } : {}), ...(turn !== undefined ? { turn } : {}),
-      row: { kind: "event", key: rowKey(e), ...words, turn: turnWords(turn) }, detail: entryDetail(e, board, t),
+      row: { kind: "event", key: rowKey(e), glyph: entryGlyph(e), ...words, turn: turnWords(turn) }, detail: entryDetail(e, board, t),
     });
   }
   if (lines.length === 0) return [...rows, text(board.timeline.length === 0 ? t("这个工作项还没有记录") : t("没有这一类的记录"), columns, "dim")];
