@@ -1,0 +1,8 @@
+*.tgz
+.nyc_output/
+.pack/
+/agent.geml
+coverage/
+dist/
+geml-agent-runtime-pkg/
+node_modules/

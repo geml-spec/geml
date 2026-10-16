@@ -42,7 +42,7 @@ flowchart TD
 
 | 东西 | 用于 | 一次性设置 |
 | --- | --- | --- |
-| 仓库 secret `NPM_TOKEN` | 从 CI 发布 @geml/geml 与 @geml/dsh-plugin | npmjs.com -> Access Tokens -> Generate -> **Automation**；需要 @geml scope 的发布权限。仓库里不存别的东西。 |
+| 仓库 secret `NPM_TOKEN` | 从 CI 发布 @geml/geml、@geml/dsh-plugin 与 @geml/agent-runtime | npmjs.com -> Access Tokens -> Generate -> **Automation**；需要 @geml scope 的发布权限。仓库里不存别的东西。 |
 | GitHub OIDC | MCP registry | 无 —— workflow 里的 `id-token: write` 就是全部，不需要任何 secret |
 | `contents: write` | 把 viewer 的 zip 挂到它的 release 上 | 无 —— 默认的 GITHUB\_TOKEN |
 | Chrome 应用商店开发者账号 | 让 viewer 真正到达用户 | 已完成（`opmhfphgoidpnipphfgkhhjhmnmaenie`）。workflow 只把 zip 挂到 GitHub release；上架商店仍是手工的。 |
@@ -165,6 +165,28 @@ flowchart TD
   拷贝 —— 那些文件一被刷新，它就需要一次发布，而另外两个因为跟着解析器的版本走，
   等于顺带就发了。
 - **发后确认。** `npm view @geml/dsh-plugin version`。
+
+### `@geml/agent-runtime`
+
+- **落到** npmjs.com/package/@geml/agent-runtime。它还没有自己的市场上架：
+  awesome-dsh-plugin 的条目（PR #1310）属于 `@geml/dsh-plugin`，那是另一个独立的包。
+- **版本**在它自己的 `package.json`，走**自己的轨道** —— 与另外两个插件不同，它
+  **不**跟随解析器。
+- **卡在解析器上。** 它依赖 `@geml/geml` 提供 `geml-agent/v1` profile，开发期这条
+  依赖写的是 `file:../../geml-parser`。所以发布它意味着按这个顺序来：先发一版登记了
+  该 profile 的解析器，把依赖改成对应的版本范围，`npm test`，再发布。一条 `file:`
+  依赖如果发上了 npm，装下来什么都没有。
+- **怎么发。** 在 `integrations/geml-agent-runtime` 手工 `npm publish`。它发出去的是
+  `dist/`、`skills/`、`examples/`、`cordis.patch.yml` 和 `LICENSE` —— 这是这里唯一
+  **带代码**的 bundle，所以必须先 `npm run build`，并且测试要跑在构建产物上而不是
+  源码上。
+- **注意。** 它 vendored 的 skill 文件与 claude、codex 两个插件是**逐字节相同**的
+  拷贝 —— 那些文件一被刷新，它就需要一次发布，而另外两个因为跟着解析器的版本走，
+  等于顺带就发了。它的 `peerDependencies` 把 harness 钉在 `^0.1.5-rc.1`；harness
+  的大版本如果挪动了 `ctx.tools.restrict`、`guard`、`agent/session-start` 或
+  `systemPrompt.section`，这里也要发一版，而 `test/dsh-parity.test.mjs` 是会先叫
+  出来的那个测试。
+- **发后确认。** `npm view @geml/agent-runtime version`。
 
 ### Agent 市场 —— 每个厂商一份清单
 
