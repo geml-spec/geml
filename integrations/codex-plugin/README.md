@@ -47,7 +47,7 @@ To add it to your own marketplace without cloning, put this in
         "path": "./integrations/codex-plugin",
         "ref": "main"
       },
-      "policy": { "installation": "AVAILABLE", "authentication": "ON_FIRST_USE" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_USE" },
       "category": "Productivity"
     }
   ]

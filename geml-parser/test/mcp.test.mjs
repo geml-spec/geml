@@ -1343,6 +1343,14 @@ test("server.json declares the version and package this build actually publishes
   assert.deepEqual(codexLaunch, claudeLaunch, "the two plugins start the geml server differently — one harness is misconfigured");
   assert.deepEqual(codexLaunch.args.slice(-2), ["--root", "."], "the bundled server must stay confined to the session's project directory");
 
+  // The Codex marketplace file: the CLI rejects the whole file on an
+  // authentication policy it does not know (`codex plugin marketplace add`
+  // fails), so every entry must use one of the two it accepts.
+  const codexMarket = JSON.parse(readFileSync(at("..", ".agents", "plugins", "marketplace.json"), "utf8"));
+  for (const entry of codexMarket.plugins) {
+    assert.ok(["ON_INSTALL", "ON_USE"].includes(entry.policy?.authentication), `.agents/plugins/marketplace.json: ${entry.name} has authentication ${entry.policy?.authentication} — Codex accepts only ON_INSTALL or ON_USE`);
+  }
+
   // Three more manifests carry that same launch command, two of them a version,
   // and nothing in this build reads any of them either — the same silent-lag
   // failure mode, once per vendor. gemini-extension.json and kimi.plugin.json
