@@ -13,7 +13,7 @@
 // published, the dependency becomes a version range and this script is no
 // longer the way in — see docs/design/plans/…-release-handoff.md for the order
 // that has to be followed then.
-import { execSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,15 +22,26 @@ const pkgDir = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
 const parserDir = resolve(pkgDir, "../../geml-parser");
 const outDir = process.argv[2] ? resolve(process.argv[2]) : pkgDir;
 // `npm` is a .cmd on Windows, which Node will not spawn without a shell, so
-// this goes through one. The command strings below are fixed literals - no
-// interpolation reaches the shell.
-const npm = (command, cwd) =>
-  execSync(`npm ${command}`, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] });
+// there it goes through one. The arguments travel as argv rather than as one
+// command string, and every one of them below is a fixed literal, so on neither
+// platform does this script interpolate anything into a command line.
+const npm = (args, cwd) => {
+  const r = spawnSync("npm", args, {
+    cwd,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "inherit"],
+    shell: process.platform === "win32",
+  });
+  if (r.error) throw r.error;
+  // spawnSync reports a failed command in its result; execSync threw. Keep the
+  // throw, or a broken build would be packed as if it had worked.
+  if (r.status !== 0) throw new Error("npm " + args.join(" ") + " failed in " + cwd + ", exit " + r.status);
+};
 
 console.log("building the parser");
-npm("run build", parserDir);
+npm(["run", "build"], parserDir);
 console.log("building the runtime");
-npm("run build", pkgDir);
+npm(["run", "build"], pkgDir);
 
 const pkg = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf8"));
 const parser = JSON.parse(readFileSync(join(parserDir, "package.json"), "utf8"));
@@ -61,7 +72,7 @@ staged.bundledDependencies = ["@geml/geml"];
 writeFileSync(join(staging, "package.json"), `${JSON.stringify(staged, null, 2)}\n`, "utf8");
 
 console.log(`packing ${staged.name}@${staged.version} with @geml/geml@${parser.version} inside`);
-npm("pack --silent", staging);
+npm(["pack", "--silent"], staging);
 
 const tarball = readdirSync(staging).find((n) => n.endsWith(".tgz"));
 if (!tarball) throw new Error("npm pack produced no tarball");

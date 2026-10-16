@@ -24,7 +24,10 @@ export default function scriptedModel(pi) {
   pi.registerProvider("stub", {
     name: "scripted stub",
     baseUrl: "http://127.0.0.1:1",
-    apiKey: "not-used",
+    // The provider shape wants both, and neither is ever read: streamSimple
+    // below replays the script instead of making a request. The port is 1 so
+    // that a future code path which did make one would fail loudly.
+    apiKey: "none",
     api: "anthropic-messages",
     models: [{
       id: "script",
