@@ -253,6 +253,75 @@ test("todo：交一个目录就是交整个项目 —— 引用是有方向的",
   } finally { p.drop(); }
 });
 
+test("todo --check：清单照常打印，有待办时以 1 退出、没有时以 0 退出 —— 流程的命令信号读这个退出码", () => {
+  const p = project();
+  try {
+    const plain = run(["todo", p.at("lib.geml")]);
+    const t = run(["todo", p.at("lib.geml"), "--check"]);
+    assert.equal(t.code, 1, t.err);
+    assert.equal(t.out, plain.out, "清单和不带 --check 时一字不差");
+    const j = run(["todo", "--check", p.at("lib.geml"), "--json"]);
+    assert.equal(j.code, 1, j.err);
+    assert.ok(JSON.parse(j.out).some((i) => i.kind === "generate"), j.out);
+
+    writeFileSync(p.at("bare.geml"), META
+      + `=== media-asset {#only src=clip.mp4 sha256=${sha(CLIP)} kind=video duration=6}\n===\n`);
+    const none = run(["todo", p.at("bare.geml"), "--check"]);
+    assert.equal(none.code, 0, none.err);
+    assert.match(none.err, /没有待办/);
+    const noneJson = run(["todo", p.at("bare.geml"), "--check", "--json"]);
+    assert.deepEqual([noneJson.code, JSON.parse(noneJson.out)], [0, []]);
+  } finally { p.drop(); }
+});
+
+test("todo --check：入口读不了、在 --root 之外、或不是 geml-media 文档，以 2 退出 —— 拼错的路径不能读成「没有待办」放行", () => {
+  const p = project();
+  try {
+    const typo = run(["todo", p.at("lbi.geml"), "--check"]);
+    assert.equal(typo.code, 2, typo.err);
+    assert.match(typo.err, /lbi\.geml 读不了/);
+    assert.equal(typo.out, "");
+
+    const outside = run(["todo", p.at("lib.geml"), "--root", p.at("assets"), "--check"]);
+    assert.equal(outside.code, 2, outside.err);
+    assert.match(outside.err, /在 --root .* 之外/);
+
+    writeFileSync(p.at("flow.geml"), '=== meta\nprofile = "geml-statechart/v1"\n===\n\n=== media-text {#p .prompt}\n雾\n===\n');
+    writeFileSync(p.at("notes.geml"), "# 笔记\n\n随手记。\n");
+    for (const name of ["flow.geml", "notes.geml"]) {
+      const r = run(["todo", p.at(name), "--check"]);
+      assert.equal(r.code, 2, name + "：" + r.err);
+      assert.match(r.err, /不是 geml-media 文档/, name);
+    }
+    const json = run(["todo", p.at("lbi.geml"), "--check", "--json"]);
+    assert.equal(json.code, 2, json.err);
+    assert.equal(json.out, "", "--json 也不打印空清单");
+
+    mkdirSync(p.at("empty"));
+    writeFileSync(p.at("empty/notes.geml"), "# 笔记\n");
+    const emptyDir = run(["todo", p.at("empty"), "--check"]);
+    assert.equal(emptyDir.code, 2, emptyDir.err);
+    assert.match(emptyDir.err, /下没有 geml-media 文档/);
+    const dir = run(["todo", p.root, "--check"]);
+    assert.equal(dir.code, 1, "目录里有 geml-media 文档，别的 .geml 不挡路：" + dir.err);
+
+    const plain = run(["todo", p.at("lbi.geml")]);
+    assert.equal(plain.code, 0, "不带 --check 时照旧：" + plain.err);
+  } finally { p.drop(); }
+});
+
+test("--check 只给 todo：别的动词拒绝它，写成 --check=… 同样拒绝", () => {
+  const p = project();
+  try {
+    const r = run(["report", p.at("lib.geml"), "--check"]);
+    assert.equal(r.code, 2, r.out);
+    assert.match(r.err, /--check 只给 todo 用/);
+    const eq = run(["todo", p.at("lib.geml"), "--check=yes"]);
+    assert.equal(eq.code, 2, eq.out);
+    assert.match(eq.err, /--check 不带值：写成 --check/);
+  } finally { p.drop(); }
+});
+
 test("report：cast 与 stats 都出 CSV，别的 --kind 拒绝", () => {
   const p = project();
   try {

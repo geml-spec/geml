@@ -7,7 +7,7 @@
 // 和 media-check 一样，这个模块不碰 node:fs —— 文件、哈希、以及**外部程序**
 // （ffmpeg/ffprobe）全部走 MediaIO/MediaHost，由宿主给。
 import { parse, type Block } from "./geml.js";
-import { blocksOf, metaOf, splitRef, promptTextOf, checkMedia, kindOfFile, type MediaIO, type Loaded } from "./media-check.js";
+import { blockIn, blocksOf, metaOf, splitRef, promptTextOf, checkMedia, kindOfFile, type MediaIO, type Loaded } from "./media-check.js";
 import { layout, type Timeline } from "./media-timeline.js";
 import { drivePlayer } from "./media-player-runtime.js";
 import { layerSpec, parseEnd, solveLayout, type End, type InteractionSpec, type LayerSpec } from "./media-compose.js";
@@ -95,7 +95,7 @@ export function loadProject(entry: string | string[], io: MediaIO): Project {
     if (t === null) return null;
     const l = docs.get(t.doc);
     if (l === undefined) return null;
-    const b = blocksOf(l.doc).find((x) => x.id === t.id);
+    const b = blockIn(l, t.id);
     return b === undefined ? null : { rel: t.doc, b };
   };
   return { docs, block, assets, records, prompts, lines, clips, comps };
@@ -141,34 +141,38 @@ export function todo(entry: string | string[], io: MediaIO): TodoItem[] {
   }
   const askedFor = (rel: string, b: Extract<Block, { kind: "block" }>): boolean =>
     b.id !== undefined && !produced.has(`${rel}#${b.id}`);
+  // 每条待办都要展开文本、找参考素材。装载过的文档与按角色分好的素材只算一次：逐条重读
+  // 重解析、逐条扫一遍素材库，条目一多就是平方（两千条十几秒）。
+  const loaded = new Map<string, Loaded | null>(p.docs);
+  const textOf = (address: string): string | null => promptTextOf(address, "", io, loaded);
+  // 参考图：库里 role 是 sheet/lora/master 的素材，每个镜头都是这一份。
+  const sheets: { ref: string; role?: string }[] = [];
+  // 配音参考：role=voice 的素材按 of= 指向的角色分组，组内保持素材的先后。
+  const voicesOf = new Map<string, string[]>();
+  for (const [key, a] of p.assets) {
+    const role = str(a.b.attrs["role"]);
+    if (role === "sheet" || role === "lora" || role === "master") sheets.push({ ref: key, role });
+    if (role !== "voice") continue;
+    const of = str(a.b.attrs["of"]);
+    const ot = of === undefined ? null : splitRef(of, a.rel);
+    if (ot === null) continue;
+    const who = `${ot.doc}#${ot.id}`;
+    const group = voicesOf.get(who);
+    if (group === undefined) voicesOf.set(who, [key]); else group.push(key);
+  }
 
   for (const { rel, b } of p.prompts) {
     if (!askedFor(rel, b)) continue;
     const address = `${rel}#${b.id as string}`;
-    // 参考图：库里 of= 指向本镜头角色、role 是 sheet/lora 的素材。镜号从 shot= 来。
-    const refs: { ref: string; role?: string }[] = [];
-    for (const [key, a] of p.assets) {
-      const role = str(a.b.attrs["role"]);
-      if (role === "sheet" || role === "lora" || role === "master") refs.push(role === undefined ? { ref: key } : { ref: key, role });
-    }
-    out.push({ kind: "generate", address, mode: "t2i", prompt: promptTextOf(address, "", io), refs });
+    out.push({ kind: "generate", address, mode: "t2i", prompt: textOf(address), refs: sheets.map((r) => ({ ...r })) });
   }
   for (const { rel, b } of p.lines) {
     if (!askedFor(rel, b)) continue;
     const address = `${rel}#${b.id as string}`;
     const speaker = str(b.attrs["speaker"]);
-    const refs: { ref: string; role?: string }[] = [];
-    if (speaker !== undefined) {
-      const t = splitRef(speaker, rel);
-      for (const [key, a] of p.assets) {
-        if (str(a.b.attrs["role"]) !== "voice") continue;
-        const of = str(a.b.attrs["of"]);
-        if (of === undefined || t === null) continue;
-        const ot = splitRef(of, a.rel);
-        if (ot !== null && ot.doc === t.doc && ot.id === t.id) refs.push({ ref: key, role: "voice" });
-      }
-    }
-    out.push({ kind: "voice", address, mode: "tts", prompt: promptTextOf(address, "", io), refs });
+    const t = speaker === undefined ? null : splitRef(speaker, rel);
+    const refs = t === null ? [] : (voicesOf.get(`${t.doc}#${t.id}`) ?? []).map((ref) => ({ ref, role: "voice" }));
+    out.push({ kind: "voice", address, mode: "tts", prompt: textOf(address), refs });
   }
   // 合成：没有记录认领的 comp。没有要发给模型的文字，refs 是各层的素材。
   const compRefs = (rel: string, b: Extract<Block, { kind: "block" }>): { ref: string; role?: string }[] => {
@@ -211,9 +215,9 @@ export function todo(entry: string | string[], io: MediaIO): TodoItem[] {
     if (b.type === "media-comp") {
       out.push({ kind: "composite", address, mode: "composite", prompt: null, refs: compRefs(hit.rel, b), stale: true });
     } else if (b.type === "media-text" && b.classes.includes("line")) {
-      out.push({ kind: "voice", address, mode: "tts", prompt: promptTextOf(address, "", io), refs: [], stale: true });
+      out.push({ kind: "voice", address, mode: "tts", prompt: textOf(address), refs: [], stale: true });
     } else if (b.type === "media-text" && b.classes.includes("prompt")) {
-      out.push({ kind: "generate", address, mode: "t2i", prompt: promptTextOf(address, "", io), refs: [], stale: true });
+      out.push({ kind: "generate", address, mode: "t2i", prompt: textOf(address), refs: [], stale: true });
     }
   }
   return out;

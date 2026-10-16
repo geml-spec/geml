@@ -1082,4 +1082,35 @@ test("互动：comp 的规范化文本带上解析后用到的点坐标 —— �
   rmSync(root, { recursive: true, force: true });
 });
 
+test("todo 随条目线性增长：两千件待办，每份文档只读两遍（装载一遍、检查一遍），几秒内列完", () => {
+  const N = 1000;
+  const shots = [];
+  for (let i = 0; i < N; i++) {
+    shots.push(`=== media-text {#s${i} .prompt shot=${i}}\n![[chars.geml#look]] 第 ${i} 镜，码头起雾。\n===\n`);
+    shots.push(`=== media-text {#l${i} .line speaker=chars.geml#hero}\n第 ${i} 句台词。\n===\n`);
+  }
+  const assets = [];
+  for (let i = 0; i < 40; i++) {
+    assets.push(`=== media-asset {#sheet${i} src=missing${i}.png kind=image role=sheet of=chars.geml#hero}\n===\n`);
+    assets.push(`=== media-asset {#voice${i} src=missing${i}.wav kind=audio role=voice of=chars.geml#hero}\n===\n`);
+  }
+  const root = project({
+    "chars.geml": META + "# 林夏 {#hero}\n\n=== media-text {#look}\n2D 手绘赛璐璐风，冷色调。\n===\n",
+    "ep.geml": META + assets.join("\n") + "\n" + shots.join("\n") + "\n=== data {#gen-log .gen-log format=jsonl}\n===\n",
+  });
+  const io = profileIoFor(root);
+  const reads = new Map();
+  const counting = { ...io, readDoc: (rel) => { reads.set(rel, (reads.get(rel) ?? 0) + 1); return io.readDoc(rel); } };
+  const t0 = Date.now();
+  const items = todo("ep.geml", counting);
+  const ms = Date.now() - t0;
+  assert.equal(items.length, 2 * N);
+  assert.equal(items[0].prompt, "2D 手绘赛璐璐风，冷色调。 第 0 镜，码头起雾。", "投射照样展开");
+  assert.equal(items[0].refs.length, 40, "参考图照旧：库里每份 sheet");
+  assert.equal(items[N].refs.length, 40, "配音参考照旧：of= 指向这个角色的每份 voice");
+  assert.deepEqual(Object.fromEntries(reads), { "ep.geml": 2, "chars.geml": 2 }, "读盘次数与条目数无关");
+  assert.ok(ms < 4000, `两千件待办用了 ${ms}ms`);
+  rmSync(root, { recursive: true, force: true });
+});
+
 console.log(String.fromCharCode(10) + passed + " passed");

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { checkMedia } from "./media-check.js";
-import { PROFILES, declaredVocabularies, type ProfileCheck, type ProfileDiagnostic } from "./profiles.js";
+import { PROFILES, declaredVocabularies, type ProfileCheck, type ProfileDiagnostic, type ProfileIO } from "./profiles.js";
 
 /**
  * 哪份 profile 有自己的检查器。住在 CLI 侧而不是注册表里，理由是打包：注册表被
@@ -52,7 +52,7 @@ import { confinedFile, profileIoFor } from "./host-fs.js";
 
 import { readFileSync, writeFileSync, realpathSync, statSync, existsSync, mkdirSync, readdirSync, copyFileSync, renameSync } from "node:fs";
 import { expandCorpus, loadStylesheet, resolveStyle, type StyleLoadOptions } from "./style-resolve.js";
-import { basename, dirname, join, relative, sep, resolve as resolvePath } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, sep, resolve as resolvePath } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { spawn, spawnSync } from "node:child_process";
@@ -434,7 +434,9 @@ function contentFrom(from: string | undefined): Content {
 const MEDIA_HELP = [
   "usage: geml media <verb>",
   "",
-  "  todo   <entry.geml> [--root d] [--json]        待办：没产出的提示词、没配音的台词",
+  "  todo   <entry.geml> [--root d] [--json] [--check]",
+  "                                                 待办：没产出的提示词、没配音的台词；--check：有待办时以 1 退出，",
+  "                                                 入口读不了、在根外或不是 geml-media 文档时以 2 退出",
   "  report <entry.geml> --kind cast|stats [-o f]   跨文档聚合成 CSV",
   "  export <cut.geml> --to player|preview|srt|edl|otio|json [-o f]",
   "                     player=整条时间线合成一个能播的面（不编码，双击就看）· preview=一刀一个小播放器",
@@ -455,7 +457,7 @@ const MEDIA_HELP = [
 // `geml media` 这一族自己的 flag 表。入口文档的定位和未知 flag 的拒绝都从这**一张**
 // 表来：各写各的一份，正是「schema 提供了一个值、检查却不认」那一类 bug 的温床。
 const MEDIA_FLAGS: FlagTable = {
-  bool: ["--burn-subs", "--json"],
+  bool: ["--burn-subs", "--check", "--json"],
   valued: [
     "--as", "--cut", "--font", "--fontsdir", "--gap", "--input", "--into", "--kind", "--log", "--mode",
     "--model", "-o", "--out", "--output", "--over", "--params", "--prefix", "--prompt", "--root",
@@ -543,6 +545,24 @@ function needGenLog(source: string, shown: string): void {
   }
 }
 
+/**
+ * 为什么 `todo --check` 不能照入口去数：它是流程的闸，读不到的入口数出零件待办、
+ * 以 0 退出 —— 拼错一个字母就过了闸。所以入口读不了、在 --root 之外、或不是
+ * geml-media 文档（meta 的 profile 没有声明它），都说清楚并以 2 退出；目录要在根里，
+ * 下面至少有一份 geml-media 文档（别的 .geml 不挡路）。没有问题返回 undefined。
+ */
+function todoSeedProblem(shown: string, rel: string, root: string, isDir: boolean, seeds: string | string[], io: ProfileIO): string | undefined {
+  if (rel === ".." || rel.startsWith("../") || isAbsolute(rel)) return `${shown} 在 --root ${root} 之外`;
+  const declaresMedia = (src: string): boolean => declaredVocabularies(metaOf(src)).includes("geml-media/v1");
+  if (isDir) {
+    const found = (Array.isArray(seeds) ? seeds : [seeds]).some((seed) => { const src = io.readDoc(seed); return src !== null && declaresMedia(src); });
+    return found ? undefined : `目录 ${shown} 下没有 geml-media 文档`;
+  }
+  const src = io.readDoc(rel);
+  if (src === null) return `${shown} 读不了：不存在、不是文件，或链接到 --root ${root} 之外`;
+  return declaresMedia(src) ? undefined : `${shown} 不是 geml-media 文档：它的 meta 没有声明 profile = "geml-media/v1"`;
+}
+
 function mediaRootOf(file: string, root: string | undefined): { root: string; rel: string } {
   const r = root ?? dirname(resolvePath(file));
   return { root: r, rel: relative(r, resolvePath(file)).split(sep).join("/") };
@@ -572,6 +592,8 @@ function runMedia(args: string[]): void {
       fail(`${a.slice(0, eq)} 不带值：写成 ${a.slice(0, eq)}`);
     }
   }
+  // --check 只属于 todo：别的动词收下它却不照做，就是「该拒绝的时候静默成功」。
+  if (verb !== "todo" && rest.includes("--check")) fail("--check 只给 todo 用：有待办时以 1 退出");
   const root = flag(rest, "--root");
   const out = flag(rest, "-o") ?? flag(rest, "--out");
   const into = flag(rest, "--into");
@@ -597,11 +619,18 @@ function runMedia(args: string[]): void {
   };
 
   if (verb === "todo") {
+    if (rest.includes("--check")) {
+      const problem = todoSeedProblem(entryArg, rel, mr, isDir, seeds, io);
+      if (problem !== undefined) fail("todo --check：" + problem);
+    }
     const items = mediaTodo(seeds, io);
-    if (rest.includes("--json")) { console.log(JSON.stringify(items, null, 2)); return; }
+    // --check：清单照常打印，有待办时以 1 退出，和 `geml check` 有错误时一样 —— 流程的命令信号读的就是这个退出码。
+    const failing = rest.includes("--check") && items.length > 0;
+    if (rest.includes("--json")) { console.log(JSON.stringify(items, null, 2)); if (failing) process.exit(1); return; }
     if (items.length === 0) { console.error("todo: 没有待办"); return; }
     const word = { voice: "配音", composite: "合成", generate: "生成" };
     for (const it of items) console.log(word[it.kind] + "  " + it.address + "  (" + it.mode + ")");
+    if (failing) process.exit(1);
     return;
   }
   if (verb === "report") {

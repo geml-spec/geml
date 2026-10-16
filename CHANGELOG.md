@@ -28,6 +28,19 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **`geml media todo` grows linearly with the episode.** It read and parsed
+  the episode again for every item it listed and scanned every asset for each
+  one; it now loads each document once and finds blocks by id. Two thousand
+  items take tens of milliseconds where they took about fourteen seconds.
+
+- **`geml media todo --check`** exits 1 while to-do items remain and 0 when
+  there are none — the way `geml check` exits on errors — and prints the list
+  exactly as it does without the flag, `--json` included. An entry it cannot read, one
+  outside `--root`, or one whose meta declares no `geml-media/v1` exits 2 with
+  the reason instead, so a mistyped path cannot pass as an empty list; a
+  directory needs at least one geml-media document under it. Any other
+  `geml media` verb refuses `--check`, and `--check=…` is refused as `--json=…` is.
+
 - **Fixed: a reference into a block nested in a profile's container in
   another document resolved as unresolved.** The other document was scanned
   with an empty vocabulary when its ids were gathered for a cross-document
