@@ -1,4 +1,4 @@
-//! Application-layer vocabularies (§8.6, `spec/profiles/`): the seven this
+//! Application-layer vocabularies (§8.6, `spec/profiles/`): the eight this
 //! processor recognizes, what each admits — block types with their body modes,
 //! attribute keys per type, `=== meta` keys — and the diagnostic codes its
 //! checks emit, with their default severities. A document is read under the
@@ -298,6 +298,21 @@ pub const PROFILES: &[Profile] = &[
             ("statechart-unreachable", W),
         ],
         formats: &["geml-statechart"],
+    },
+    Profile {
+        name: "geml-agent/v1",
+        state: State::Draft,
+        types: &[("agent-vars", Raw), ("agent-state", Flow), ("agent-transition", Flow), ("agent-snapshot", Raw), ("agent-refused", Raw)],
+        attrs: &[
+            ("agent-state", &["initial", "final", "pause", "tools", "vars", "rollback-on-error"]),
+            ("agent-transition", &["from", "to", "requires", "approval"]),
+            ("agent-snapshot", &["rev", "state", "cause", "parent", "hash", "at", "call", "from", "restores"]),
+            ("agent-refused", &["rev", "at", "tool", "call"]),
+        ],
+        open_attrs: &[],
+        meta_keys: Some(&[]),
+        codes: &[],
+        formats: &[],
     },
 ];
 
