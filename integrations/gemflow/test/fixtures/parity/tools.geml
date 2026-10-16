@@ -1,0 +1,21 @@
+=== meta
+title   = "parity tools"
+profile = "geml-statechart/v1"
+===
+
+=== table {#tools}
+| tool                  | for         | allow | deny | default | params      |
+|-----------------------|-------------|-------|------|---------|-------------|
+| Read                  |             | *     |      |         |             |
+| Grep                  |             | *     |      |         |             |
+| Glob                  |             | *     |      |         |             |
+| Edit                  | edit        |       |      | yes     |             |
+| Write                 | edit        |       |      |         |             |
+| Bash(npm test)        | test        |       |      | yes     |             |
+| Bash(pnpm test)       | test        |       |      |         |             |
+| Bash(wrangler deploy) | deploy-prod |       |      | yes     |             |
+| WebFetch              |             | build | lock |         |             |
+| TodoWrite             |             | build |      |         |             |
+| Bash(ls)              |             | *     |      |         |             |
+| mcp__img__*           | image       |       |      | yes     | `{"ratio": "9:16"}` |
+===

@@ -1,0 +1,11 @@
+=== meta
+title   = "Refund approval tool dictionary"
+===
+
+=== table {#tools}
+| tool       | for    | allow | deny | default | params |
+|------------|--------|-------|------|---------|--------|
+| read       |        | *     |      |         |        |
+| grep       |        | *     |      |         |        |
+| pay_refund | refund |       |      | yes     |        |
+===

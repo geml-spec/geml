@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>桌面全景：状态带与看板</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;font-family:-apple-system,"PingFang SC","Helvetica Neue","Noto Sans SC",sans-serif;color:#1f1e1d}
+a{color:#2a6fdb}a:hover{color:#1f56ad}
+</style>
+</helmet>
+<div style="width: 1280px; height: 820px; box-sizing: border-box; background: #e4e2dc; padding: 20px; display: flex;">
+  <div style="flex: 1 1 auto; display: flex; flex-direction: column; background: #f7f7f5; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 28px rgba(0,0,0,0.14); border: 1px solid #d6d3cc;">
+    <div style="height: 36px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #6b6a66; border-bottom: 1px solid #e6e4de; background: #f0eee9;">Claude Code — geml-agent-runtime · feat/geml-agent-runtime</div>
+    <div style="flex: 1 1 auto; display: flex; min-height: 0;">
+
+      <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; padding: 24px 32px 20px 32px; gap: 16px;">
+        <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 18px; font-size: 14px; line-height: 1.55; color: #3d3c38; overflow: hidden;">
+          <div style="align-self: flex-end; max-width: 520px; background: #eeede9; border-radius: 12px; padding: 10px 14px;">ok，看产物按 A +C +B，没想好，先这么处理吧</div>
+          <div style="max-width: 640px;">先做 B：日志记下工作项写过的文件，同一阶段里同一个文件只记一次。</div>
+          <div style="display: flex; align-items: center; gap: 10px; font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; color: #6b6a66;"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #8a8986;"></span>Bash · npm test · 598 条，1 条已知失败（Windows 符号链接）</div>
+          <div style="display: flex; align-items: center; gap: 10px; font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; color: #6b6a66;"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #1a7f4b;"></span>Bash · git push · feat/geml-agent-runtime → 053f317c</div>
+          <div style="max-width: 640px;">B 已推。接着做 A 和 C：看板上列出这段时间的提交和事项的结果一节。</div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: #3d3c38; white-space: nowrap; overflow: hidden;">
+          <svg viewBox="17.5 17 66 66" width="13" height="13" role="img" aria-label="Gemflow" style="flex: 0 0 13px;"><polygon points="27,20 55,20 79,50 67,50 48,30 35,30 51,50 39,50 22,30 22,25" fill="#0077be"/><polygon points="27,80 55,80 79,50 67,50 48,70 35,70 51,50 39,50 22,70 22,75" fill="#ef3b3f"/></svg>
+          <span style="color: #6b6a66;">定</span>
+          <a href="Items.dc.html" style="color: #2a6fdb; text-decoration: underline; text-underline-offset: 3px; overflow: hidden; text-overflow: ellipsis;">今天的样稿：状态带和各页签</a>
+          <span style="flex: 1 1 auto;"></span>
+          <button style="height: 20px; padding: 0 8px; border: 0; border-radius: 5px; background: #1f1e1d; color: #fff; font-size: 11px; cursor: pointer;">通过，开始做</button>
+          <button style="height: 20px; padding: 0 8px; border: 1px solid #d6d3cc; border-radius: 5px; background: #fff; font-size: 11px; cursor: pointer;">要改</button>
+          <button style="height: 20px; padding: 0 8px; border: 1px solid #d6d3cc; border-radius: 5px; background: #fff; font-size: 11px; cursor: pointer;">还有 4 件</button>
+          <button style="height: 20px; padding: 0 8px; border: 1px solid #d6d3cc; border-radius: 5px; background: #fff; font-size: 11px; cursor: pointer;">看板</button>
+        </div>
+        <div style="height: 44px; border: 1px solid #d6d3cc; border-radius: 10px; background: #fff; display: flex; align-items: center; padding: 0 14px; font-size: 14px; color: #8a8986;">› 输入下一步…</div>
+      </div>
+
+      <div style="width: 440px; flex: 0 0 440px; display: flex; flex-direction: column; background: #fff; border-left: 1px solid #e6e4de;">
+        <div style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid #e6e4de;">
+          <svg viewBox="17.5 17 66 66" width="22" height="22" role="img" aria-label="Gemflow"><polygon points="27,20 55,20 79,50 67,50 48,30 35,30 51,50 39,50 22,30 22,25" fill="#0077be"/><polygon points="27,80 55,80 79,50 67,50 48,70 35,70 51,50 39,50 22,70 22,75" fill="#ef3b3f"/></svg>
+          <span style="font-weight: 700; font-size: 15px;">Gemflow</span>
+          <span style="font-size: 11px; color: #6b6a66; border: 1px solid #d6d3cc; border-radius: 10px; padding: 1px 7px;">0.1.0</span>
+          <span style="flex: 1 1 auto;"></span>
+          <button aria-label="分享" style="width: 32px; height: 32px; border: 0; background: transparent; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #3d3c38;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M12 15V3M8 7l4-4 4 4"/></svg></button>
+          <button aria-label="设置" style="width: 32px; height: 32px; border: 0; background: transparent; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #3d3c38;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+          <button aria-label="升级" style="width: 32px; height: 32px; border: 0; background: transparent; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #3d3c38;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16V8M8.5 11.5 12 8l3.5 3.5"/></svg></button>
+          <button aria-label="关于" style="width: 32px; height: 32px; border: 0; background: transparent; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #3d3c38;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 8px; padding: 10px 16px; font-size: 13px; border-bottom: 1px solid #e6e4de; background: #f5f5f4;">
+          <span style="font-weight: 600;">工程 gemflow 插件</span>
+          <span style="background: #1f1e1d; color: #fff; border-radius: 6px; padding: 2px 8px; font-size: 12px;">构建</span>
+          <span style="color: #6b6a66;">开发流程</span>
+          <span style="flex: 1 1 auto;"></span>
+          <button style="height: 28px; padding: 0 10px; border: 1px solid #d6d3cc; border-radius: 6px; background: #fff; font-size: 12px; color: #1f1e1d; cursor: pointer;">⏸ 暂停</button>
+        </div>
+
+        <div style="display: flex; gap: 2px; padding: 0 12px; border-bottom: 1px solid #e6e4de; font-size: 13px;">
+          <a href="Sessions.dc.html" style="height: 40px; padding: 0 10px; display: flex; align-items: center; gap: 6px; color: #6b6a66; text-decoration: none;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>会话</a>
+          <a href="Flow.dc.html" style="height: 40px; padding: 0 10px; display: flex; align-items: center; gap: 6px; color: #6b6a66; text-decoration: none;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="5" rx="1"/><rect x="14" y="16" width="7" height="5" rx="1"/><path d="M6.5 8v5h11v3"/></svg>流程</a>
+          <a href="Items.dc.html" style="height: 40px; box-sizing: border-box; padding: 0 10px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid #1f1e1d; font-weight: 600; color: #1f1e1d; text-decoration: none;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5L7.5 11M3.5 18l1.5 1.5L7.5 17"/></svg>工作项</a>
+          <a href="Journal.dc.html" style="height: 40px; padding: 0 10px; display: flex; align-items: center; gap: 6px; color: #6b6a66; text-decoration: none;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>记录</a>
+          <a href="Tools.dc.html" style="height: 40px; padding: 0 10px; display: flex; align-items: center; gap: 6px; color: #6b6a66; text-decoration: none;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5a4 4 0 0 0-5 5L4 16l4 4 5.5-5.5a4 4 0 0 0 5-5l-2.5 2.5-2.5-.5-.5-2.5z"/></svg>工具</a>
+        </div>
+
+        <div style="flex: 1 1 auto; overflow: hidden; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
+          <div style="font-size: 11px; font-weight: 600; color: #8a8986; letter-spacing: 0.04em;">待处理</div>
+          <div style="border: 1px solid #e6e4de; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; align-items: center; gap: 8px;"><span style="color: #9a6100; display: flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.4c-.6.3-1 .8-1 1.5V14M12 17h.01"/></svg></span><span style="font-weight: 600;">今天的样稿：状态带和各页签</span></div>
+            <div style="color: #6b6a66; font-size: 12px;">13:06 起一页页看过的那些。通过了我就照着改插件，做完回这里对照。</div>
+            <div style="display: flex; gap: 8px;"><button style="height: 28px; padding: 0 12px; border: 0; border-radius: 6px; background: #1f1e1d; color: #fff; font-size: 12px; cursor: pointer;">通过，开始做</button><button style="height: 28px; padding: 0 12px; border: 1px solid #d6d3cc; border-radius: 6px; background: #fff; font-size: 12px; cursor: pointer;">要改</button></div>
+          </div>
+          <div style="border: 1px solid #e6e4de; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; align-items: center; gap: 8px;"><span style="color: #9a6100; display: flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.4c-.6.3-1 .8-1 1.5V14M12 17h.01"/></svg></span><span style="font-weight: 600;">开发流程在构建前加一格「样稿」</span><span style="font-size: 11px; color: #6b6a66; border: 1px solid #d6d3cc; border-radius: 4px; padding: 0 5px;">建议 · 流程</span></div>
+            <div style="color: #6b6a66; font-size: 12px;">按你 12:20 说的习惯：先给你看样子，点头再实现。</div>
+            <div style="display: flex; gap: 8px;"><button style="height: 28px; padding: 0 12px; border: 1px solid #d6d3cc; border-radius: 6px; background: #fff; font-size: 12px; cursor: pointer;">采用</button><button style="height: 28px; padding: 0 12px; border: 1px solid #d6d3cc; border-radius: 6px; background: #fff; font-size: 12px; cursor: pointer;">不用</button></div>
+          </div>
+          <div style="border: 1px solid #e6e4de; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; align-items: center; gap: 8px;"><span style="color: #9a6100; display: flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.4c-.6.3-1 .8-1 1.5V14M12 17h.01"/></svg></span><span style="font-weight: 600;">node --test 算作跑测试</span><span style="font-size: 11px; color: #6b6a66; border: 1px solid #d6d3cc; border-radius: 4px; padding: 0 5px;">建议 · 工具</span></div>
+            <div style="color: #6b6a66; font-size: 12px;">这两天跑了 46 次，一次都没记成测试通过。</div>
+            <div style="display: flex; gap: 8px;"><button style="height: 28px; padding: 0 12px; border: 1px solid #d6d3cc; border-radius: 6px; background: #fff; font-size: 12px; cursor: pointer;">算</button><button style="height: 28px; padding: 0 12px; border: 1px solid #d6d3cc; border-radius: 6px; background: #fff; font-size: 12px; cursor: pointer;">不算</button></div>
+          </div>
+          <div style="border: 1px solid #e6e4de; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; align-items: center; gap: 8px;"><span style="color: #9a6100; display: flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.4c-.6.3-1 .8-1 1.5V14M12 17h.01"/></svg></span><span style="font-weight: 600;">上线改成同步插件目录和 npm 发布</span></div>
+            <div style="color: #6b6a66; font-size: 12px;">这个项目没用过 wrangler。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

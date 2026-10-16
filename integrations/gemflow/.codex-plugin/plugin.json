@@ -1,0 +1,29 @@
+{
+  "name": "gemflow",
+  "version": "0.1.0",
+  "description": "Workflow stages for Codex: a GEML statechart says what each stage uses, a tool dictionary binds those uses to the project's tools, evidence is written from test, PR, CI and deploy results, the stage's text reaches the model as it changes, and a tool is refused only where the workflow does not declare its use. Three tools over MCP: status, move, set.",
+  "author": {
+    "name": "geml-spec",
+    "url": "https://github.com/geml-spec"
+  },
+  "homepage": "https://github.com/geml-spec/geml",
+  "repository": "https://github.com/geml-spec/geml",
+  "license": "MIT",
+  "keywords": ["geml", "workflow", "statechart", "journal", "hooks"],
+  "skills": "./skills/",
+  "mcpServers": "./codex/mcp.json",
+  "hooks": "./codex/hooks.json",
+  "interface": {
+    "displayName": "Gemflow",
+    "shortDescription": "Run a coding agent through the stages of a GEML workflow.",
+    "longDescription": "A project's workflow is one GEML statechart: each stage says which uses it declares, a tool dictionary binds those uses to the project's own tools, and evidence from test, PR, CI and deploy results moves the workflow along its transitions. With this plugin's hooks trusted (/hooks), Codex's tool calls are judged by the dictionary and the stage's fences, a command's exit status is recorded as evidence, and the stage's text reaches the model whenever it changes. The model moves the workflow with three MCP tools: status, move, set. A transition that needs a person's approval waits for `gemflow advance` in a terminal.",
+    "developerName": "geml-spec",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://geml-spec.github.io/",
+    "defaultPrompt": [
+      "Read the current stage with status, then do what it asks.",
+      "Run the tests, then call status: did the workflow move on?"
+    ]
+  }
+}

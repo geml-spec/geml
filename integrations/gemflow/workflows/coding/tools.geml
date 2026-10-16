@@ -1,0 +1,27 @@
+=== meta
+title   = "Coding workflow tool dictionary"
+===
+
+%% The coding workflow's starting dictionary (spec §5.3): the read-only tools
+%% are allowed in every state; editing is the use `edit`, which only #implement
+%% declares; the common test commands are the use `test`, which only #verify
+%% declares. Any other tool runs as usual; write a row here to deny one or bind
+%% it to a use.
+
+=== table {#tools}
+| tool             | for  | allow | deny | default | params |
+|------------------|------|-------|------|---------|--------|
+| Read             |      | *     |      |         |        |
+| Grep             |      | *     |      |         |        |
+| Glob             |      | *     |      |         |        |
+| Edit             | edit |       |      | yes     |        |
+| Write            | edit |       |      |         |        |
+| NotebookEdit     | edit |       |      |         |        |
+| apply_patch      | edit |       |      |         |        |
+| Bash(npm test)   | test |       |      | yes     |        |
+| Bash(pnpm test)  | test |       |      |         |        |
+| Bash(yarn test)  | test |       |      |         |        |
+| Bash(cargo test) | test |       |      |         |        |
+| Bash(pytest)     | test |       |      |         |        |
+| Bash(go test)    | test |       |      |         |        |
+===

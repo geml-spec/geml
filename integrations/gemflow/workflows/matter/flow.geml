@@ -1,0 +1,86 @@
+=== meta
+title     = "事项流程"
+profile   = "geml-statechart/v1"
+flow-unit = "file:.geml/matters/*.geml"
+flow-state-key = "state"
+===
+
+%% 一件事项一个工作项：修个 bug、改个界面、写一条文案都是一件。事项文件
+%% （.geml/matters/<名字>.geml）是记录：现象、原因、方案、结果。流程只写用途——
+%% note（写事项文件本身）、edit（改别的文件）、check（检查，退出码就是证据）；
+%% 同目录的 tools.geml 把它们绑到工具。改东西只在 #doing 能做，进入 #doing 要
+%% 一个人按下按钮；推送、发布这类事不放进任何状态，模型在哪一步都做不了。
+
+=== diagram {#flow format=geml-statechart caption="事项流程"}
+{
+  "initial": "noted",
+
+  "states": {
+    "noted": {
+      "title": "记下",
+      "description": "把现象和证据写进事项；查明原因后写出方案，交给人定。",
+      "prompt": "./guide.geml#noted",
+      "tools": ["note"]
+    },
+    "deciding": {
+      "title": "待你定",
+      "description": "方案在事项里，等人选。这时只回答问题、补事项，不改别的文件。",
+      "prompt": "./guide.geml#deciding",
+      "tools": ["note"]
+    },
+    "doing": {
+      "title": "实施",
+      "description": "按人选的方案改，改完跑一次检查。",
+      "prompt": "./guide.geml#doing",
+      "tools": ["note", "edit", "check"]
+    },
+    "checking": {
+      "title": "待验收",
+      "description": "结果在事项的 #result 一节，等人验收；不再改别的文件。",
+      "prompt": "./guide.geml#checking",
+      "tools": ["note"]
+    },
+    "parked": {
+      "title": "搁置",
+      "description": "先放着；人随时可以重新打开。",
+      "prompt": "./guide.geml#parked",
+      "tools": ["note"]
+    },
+    "done": { "title": "完成", "final": true }
+  },
+
+  "vars": {
+    "check-pass": { "default": false, "source": { "tool": "check" } },
+    "accept-now": { "default": false, "source": "human", "note": "直接验收：不等检查，由人勾选" }
+  },
+
+  "transitions": [
+    { "from": "noted", "to": "deciding",
+      "guard": "原因和方案已经写进事项",
+      "note": "查明之后由模型推过去，事项出现在「待你定」。" },
+    { "from": "noted", "to": "doing", "approval": true, "label": "直接做",
+      "actions": [ { "reset": ["check-pass", "accept-now"] } ],
+      "note": "小事：人按「直接做」，不用先出方案。" },
+    { "from": "noted", "to": "parked", "approval": true, "label": "先放着", "note": "先放着。" },
+
+    { "from": "deciding", "to": "doing", "approval": true, "label": "按方案做",
+      "actions": [ { "reset": ["check-pass", "accept-now"] } ],
+      "note": "人选定了方案。" },
+    { "from": "deciding", "to": "noted", "approval": true, "label": "换个方向", "note": "换个方向：回去再查。" },
+    { "from": "deciding", "to": "parked", "approval": true, "label": "先放着", "note": "先放着。" },
+
+    { "from": "doing", "to": "checking",
+      "guard": { "anyOf": [
+        { "properties": { "check-pass": { "const": true } } },
+        { "properties": { "accept-now": { "const": true } } } ] },
+      "note": "检查通过就交给人看；没有检查可跑，或人不想等它，人勾上「直接验收」。" },
+
+    { "from": "checking", "to": "done", "approval": true, "label": "通过", "note": "人验收通过。" },
+    { "from": "checking", "to": "doing", "approval": true, "label": "要改",
+      "actions": [ { "reset": ["check-pass", "accept-now"] } ],
+      "note": "打回：再改，检查要重新通过。" },
+
+    { "from": "parked", "to": "noted", "approval": true, "label": "重新打开", "note": "重新打开。" }
+  ]
+}
+===

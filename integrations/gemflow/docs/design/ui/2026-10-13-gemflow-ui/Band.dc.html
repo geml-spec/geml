@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>状态带的几种时候与桌面提醒</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;font-family:-apple-system,"PingFang SC","Helvetica Neue","Noto Sans SC",sans-serif;color:#1f1e1d}
+a{color:#2a6fdb}a:hover{color:#1f56ad}
+</style>
+</helmet>
+<div style="width: 1000px; height: 760px; box-sizing: border-box; display: flex; gap: 24px;">
+  <div style="flex: 1 1 auto; min-width: 0; background: #f7f7f5; border: 1px solid #d6d3cc; border-radius: 10px; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; font-size: 11.5px; color: #3d3c38;">
+    <div style="font-size: 11px; font-weight: 600; color: #8a8986; letter-spacing: 0.04em;">输入框上方那一行：只放该你做的那一件事，选项就在旁边</div>
+    <div style="display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 12px 12px; align-items: start;">
+
+      <span style="font-size: 11px; color: #8a8986; padding-top: 4px;">有事等你</span>
+      <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap;"><svg viewBox="17.5 17 66 66" width="13" height="13" role="img" aria-label="Gemflow"><polygon points="27,20 55,20 79,50 67,50 48,30 35,30 51,50 39,50 22,30 22,25" fill="#0077be"/><polygon points="27,80 55,80 79,50 67,50 48,70 35,70 51,50 39,50 22,70 22,75" fill="#ef3b3f"/></svg><span style="color: #6b6a66;">定</span><a href="Items.dc.html" style="color: #2a6fdb; text-decoration: underline; text-underline-offset: 3px;">今天的样稿：状态带和各页签</a><span style="flex: 1 1 auto;"></span><button style="height: 20px; padding: 0 8px; border: 0; border-radius: 5px; background: #1f1e1d; color: #fff; font-size: 11px; cursor: pointer;">通过，开始做</button><button style="height: 20px; padding: 0 8px; border: 1px solid #d6d3cc; border-radius: 5px; background: #fff; font-size: 11px; cursor: pointer;">要改</button><button style="height: 20px; padding: 0 8px; border: 1px solid #d6d3cc; border-radius: 5px; background: #fff; font-size: 11px; cursor: pointer;">还有 4 件</button><button style="height: 20px; padding: 0 8px; border: 1px solid #d6d3cc; border-radius: 5px; background: #fff; font-size: 11px; cursor: pointer;">看板</button></div>
+
+      <span style="font-size: 11px; color: #8a8986; padding-top: 4px;">停在名字上</span>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="width: 340px; background: #fff; border: 1px solid #d6d3cc; border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,0.10); padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; font-size: 11.5px;">
+          <span style="font-weight: 600;">今天的样稿：状态带和各页签</span>
+          <span style="color: #6b6a66; font-size: 12px;">13:06 起一页页看过的：状态带、会话、流程、工作项、记录、工具。</span>
+          <span style="color: #6b6a66; font-size: 12px;">通过了我就照着改插件，做完回这里对照；要改就说改哪一页。</span>
+          <span style="color: #8a8986; font-size: 12px;">选项：通过，开始做 · 要改</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap;"><svg viewBox="17.5 17 66 66" width="13" height="13" role="img" aria-label="Gemflow"><polygon points="27,20 55,20 79,50 67,50 48,30 35,30 51,50 39,50 22,30 22,25" fill="#0077be"/><polygon points="27,80 55,80 79,50 67,50 48,70 35,70 51,50 39,50 22,70 22,75" fill="#ef3b3f"/></svg><span style="color: #6b6a66;">定</span><a href="Items.dc.html" style="color: #2a6fdb; text-decoration: underline; text-underline-offset: 3px;">今天的样稿：状态带和各页签</a><span style="flex: 1 1 auto;"></span><button style="height: 20px; padding: 0 8px; border: 0; border-radius: 5px; background: #1f1e1d; color: #fff; font-size: 11px; cursor: pointer;">通过，开始做</button><button style="height: 20px; padding: 0 8px; border: 1px solid #d6d3cc; border-radius: 5px; background: #fff; font-size: 11px; cursor: pointer;">要改</button><button style="height: 20px; padding: 0 8px; border: 1px solid #d6d3cc; border-radius: 5px; background: #fff; font-size: 11px; cursor: pointer;">还有 4 件</button><button style="height: 20px; padding: 0 8px; border: 1px solid #d6d3cc; border-radius: 5px; background: #fff; font-size: 11px; cursor: pointer;">看板</button></div>
+      </div>
+
+      <span style="font-size: 11px; color: #8a8986; padding-top: 4px;">停在「还有 4 件」上</span>
+      <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-end;">
+        <div style="width: 340px; background: #fff; border: 1px solid #d6d3cc; border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,0.10); padding: 10px 12px; display: flex; flex-direction: column; gap: 0; font-size: 11.5px;">
+          <div style="display: flex; flex-direction: column; gap: 2px; padding-bottom: 6px; border-bottom: 1px solid #f0eee9;"><span style="font-weight: 600;">开发流程在构建前加一格「样稿」</span><span style="color: #6b6a66; font-size: 12px;">按你 12:20 说的习惯：先给你看样子，点头再实现。</span><span style="color: #8a8986; font-size: 12px;">采用 · 不用</span></div>
+          <div style="display: flex; flex-direction: column; gap: 2px; padding: 6px 0; border-bottom: 1px solid #f0eee9;"><span style="font-weight: 600;">node --test 算作跑测试</span><span style="color: #6b6a66; font-size: 12px;">这两天跑了 46 次，一次都没记成测试通过。</span><span style="color: #8a8986; font-size: 12px;">算 · 不算</span></div>
+          <div style="display: flex; flex-direction: column; gap: 2px; padding: 6px 0; border-bottom: 1px solid #f0eee9;"><span style="font-weight: 600;">上线改成同步插件目录和 npm 发布</span><span style="color: #6b6a66; font-size: 12px;">这个项目没用过 wrangler。</span><span style="color: #8a8986; font-size: 12px;">改 · 不改</span></div>
+          <div style="display: flex; flex-direction: column; gap: 2px; padding-top: 6px;"><span style="font-weight: 600;">pi 和 DSH 也记下写过的文件吗</span><span style="color: #6b6a66; font-size: 12px;">现在只有 Claude Code 和 Codex 记。</span><span style="color: #8a8986; font-size: 12px;">要 · 先不</span></div>
+        </div>
+        <div style="align-self: stretch; display: flex; align-items: center; gap: 8px; white-space: nowrap;"><svg viewBox="17.5 17 66 66" width="13" height="13" role="img" aria-label="Gemflow"><polygon points="27,20 55,20 79,50 67,50 48,30 35,30 51,50 39,50 22,30 22,25" fill="#0077be"/><polygon points="27,80 55,80 79,50 67,50 48,70 35,70 51,50 39,50 22,70 22,75" fill="#ef3b3f"/></svg><span style="color: #6b6a66;">定</span><a href="Items.dc.html" style="color: #2a6fdb; text-decoration: underline; text-underline-offset: 3px;">今天的样稿：状态带和各页签</a><span style="flex: 1 1 auto;"></span><button style="height: 20px; padding: 0 8px; border: 0; border-radius: 5px; background: #1f1e1d; color: #fff; font-size: 11px; cursor: pointer;">通过，开始做</button><button style="height: 20px; padding: 0 8px; border: 1px solid #d6d3cc; border-radius: 5px; background: #fff; font-size: 11px; cursor: pointer;">要改</button><button style="height: 20px; padding: 0 8px; border: 1px solid #2a6fdb; border-radius: 5px; background: #fff; font-size: 11px; cursor: pointer;">还有 4 件</button><button style="height: 20px; padding: 0 8px; border: 1px solid #d6d3cc; border-radius: 5px; background: #fff; font-size: 11px; cursor: pointer;">看板</button></div>
+      </div>
+
+      <span style="font-size: 11px; color: #8a8986; padding-top: 4px;">点了「通过，开始做」</span>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="align-self: flex-end; background: #eeede9; border-radius: 12px 12px 4px 12px; padding: 6px 12px; font-size: 13px;">通过，开始做：今天的样稿</div>
+        <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap;"><svg viewBox="17.5 17 66 66" width="13" height="13" role="img" aria-label="Gemflow"><polygon points="27,20 55,20 79,50 67,50 48,30 35,30 51,50 39,50 22,30 22,25" fill="#0077be"/><polygon points="27,80 55,80 79,50 67,50 48,70 35,70 51,50 39,50 22,70 22,75" fill="#ef3b3f"/></svg><span style="color: #6b6a66;">定</span><a href="Items.dc.html" style="color: #2a6fdb; text-decoration: underline; text-underline-offset: 3px;">开发流程在构建前加一格「样稿」</a><span style="flex: 1 1 auto;"></span><button style="height: 20px; padding: 0 8px; border: 0; border-radius: 5px; background: #1f1e1d; color: #fff; font-size: 11px; cursor: pointer;">采用</button><button style="height: 20px; padding: 0 8px; border: 1px solid #d6d3cc; border-radius: 5px; background: #fff; font-size: 11px; cursor: pointer;">不用</button><button style="height: 20px; padding: 0 8px; border: 1px solid #d6d3cc; border-radius: 5px; background: #fff; font-size: 11px; cursor: pointer;">还有 3 件</button><button style="height: 20px; padding: 0 8px; border: 1px solid #d6d3cc; border-radius: 5px; background: #fff; font-size: 11px; cursor: pointer;">看板</button></div>
+      </div>
+
+      <span style="font-size: 11px; color: #8a8986; padding-top: 4px;">要你验收</span>
+      <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap;"><svg viewBox="17.5 17 66 66" width="13" height="13" role="img" aria-label="Gemflow"><polygon points="27,20 55,20 79,50 67,50 48,30 35,30 51,50 39,50 22,30 22,25" fill="#0077be"/><polygon points="27,80 55,80 79,50 67,50 48,70 35,70 51,50 39,50 22,70 22,75" fill="#ef3b3f"/></svg><span style="color: #6b6a66;">验收</span><a href="Items.dc.html" style="color: #2a6fdb; text-decoration: underline; text-underline-offset: 3px;">看板显示每件事做出来的东西</a><span style="flex: 1 1 auto;"></span><button style="height: 20px; padding: 0 8px; border: 0; border-radius: 5px; background: #1f1e1d; color: #fff; font-size: 11px; cursor: pointer;">通过</button><button style="height: 20px; padding: 0 8px; border: 1px solid #d6d3cc; border-radius: 5px; background: #fff; font-size: 11px; cursor: pointer;">要改</button><button style="height: 20px; padding: 0 8px; border: 1px solid #d6d3cc; border-radius: 5px; background: #fff; font-size: 11px; cursor: pointer;">不通过</button><button style="height: 20px; padding: 0 8px; border: 1px solid #d6d3cc; border-radius: 5px; background: #fff; font-size: 11px; cursor: pointer;">看板</button></div>
+
+      <span style="font-size: 11px; color: #8a8986; padding-top: 4px;">没有你的事</span>
+      <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap;"><svg viewBox="17.5 17 66 66" width="13" height="13" role="img" aria-label="Gemflow"><polygon points="27,20 55,20 79,50 67,50 48,30 35,30 51,50 39,50 22,30 22,25" fill="#0077be"/><polygon points="27,80 55,80 79,50 67,50 48,70 35,70 51,50 39,50 22,70 22,75" fill="#ef3b3f"/></svg><span style="color: #6b6a66;">我在做</span><a href="Items.dc.html" style="color: #2a6fdb; text-decoration: underline; text-underline-offset: 3px;">照样稿改状态带</a><span style="color: #8a8986;">· 第 1 件，共 7 件</span><span style="flex: 1 1 auto;"></span><button style="height: 20px; padding: 0 8px; border: 1px solid #d6d3cc; border-radius: 5px; background: #fff; font-size: 11px; cursor: pointer;">看板</button></div>
+
+      <span style="font-size: 11px; color: #8a8986; padding-top: 4px;">gemflow 有问题</span>
+      <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap;"><svg viewBox="17.5 17 66 66" width="13" height="13" role="img" aria-label="Gemflow"><polygon points="27,20 55,20 79,50 67,50 48,30 35,30 51,50 39,50 22,30 22,25" fill="#0077be"/><polygon points="27,80 55,80 79,50 67,50 48,70 35,70 51,50 39,50 22,70 22,75" fill="#ef3b3f"/></svg><span style="color: #8a8986;">gemflow 记录有问题，我在查</span><span style="flex: 1 1 auto;"></span><button style="height: 20px; padding: 0 8px; border: 1px solid #d6d3cc; border-radius: 5px; background: #fff; font-size: 11px; cursor: pointer;">看板</button></div>
+    </div>
+  </div>
+
+  <div style="width: 300px; flex: 0 0 300px; display: flex; flex-direction: column; gap: 12px;">
+    <div style="font-size: 11px; font-weight: 600; color: #8a8986; letter-spacing: 0.04em;">桌面提醒（可在设置里关）</div>
+    <div style="background: #fff; border: 1px solid #d6d3cc; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.14); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+      <div style="display: flex; align-items: center; gap: 8px;"><svg viewBox="17.5 17 66 66" width="16" height="16" role="img" aria-label="Gemflow"><polygon points="27,20 55,20 79,50 67,50 48,30 35,30 51,50 39,50 22,30 22,25" fill="#0077be"/><polygon points="27,80 55,80 79,50 67,50 48,70 35,70 51,50 39,50 22,70 22,75" fill="#ef3b3f"/></svg><span style="font-weight: 600;">Gemflow</span><span style="flex: 1 1 auto;"></span><span style="color: #8a8986; font-size: 11px;">刚刚</span></div>
+      <div>等你定：今天的样稿：状态带和各页签</div>
+      <div style="color: #6b6a66; font-size: 12px;">13:06 起一页页看过的那些</div>
+      <div style="display: flex; gap: 8px;"><button style="height: 28px; padding: 0 12px; border: 0; border-radius: 6px; background: #1f1e1d; color: #fff; font-size: 12px; cursor: pointer;">通过，开始做</button><button style="height: 28px; padding: 0 12px; border: 1px solid #d6d3cc; border-radius: 6px; background: #fff; font-size: 12px; cursor: pointer;">打开看板</button></div>
+    </div>
+    <div style="background: #fff; border: 1px solid #d6d3cc; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.14); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+      <div style="display: flex; align-items: center; gap: 8px;"><svg viewBox="17.5 17 66 66" width="16" height="16" role="img" aria-label="Gemflow"><polygon points="27,20 55,20 79,50 67,50 48,30 35,30 51,50 39,50 22,30 22,25" fill="#0077be"/><polygon points="27,80 55,80 79,50 67,50 48,70 35,70 51,50 39,50 22,70 22,75" fill="#ef3b3f"/></svg><span style="font-weight: 600;">Gemflow</span><span style="flex: 1 1 auto;"></span><span style="color: #8a8986; font-size: 11px;">3 分钟前</span></div>
+      <div>等你验收：看板显示每件事做出来的东西</div>
+      <div style="color: #6b6a66; font-size: 12px;">开新会话后才能看到</div>
+      <div style="display: flex; gap: 8px;"><button style="height: 28px; padding: 0 12px; border: 1px solid #d6d3cc; border-radius: 6px; background: #fff; font-size: 12px; cursor: pointer;">打开看板</button></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1000,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

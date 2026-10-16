@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>分享</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;font-family:-apple-system,"PingFang SC","Helvetica Neue","Noto Sans SC",sans-serif;color:#1f1e1d}
+a{color:#2a6fdb}a:hover{color:#1f56ad}
+</style>
+</helmet>
+<div style="width: 440px; height: 520px; box-sizing: border-box; background: #fff; border: 1px solid #d6d3cc; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.10); display: flex; flex-direction: column; overflow: hidden;">
+  <div style="display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid #e6e4de;"><span style="font-weight: 700; font-size: 15px;">分享</span><span style="color: #6b6a66; font-size: 12px;">工程 gemflow 插件</span><span style="flex: 1 1 auto;"></span><button aria-label="关闭" style="width: 28px; height: 28px; border: 0; background: transparent; cursor: pointer; font-size: 16px; color: #6b6a66;">×</button></div>
+  <div style="padding: 14px 18px; display: flex; flex-direction: column; gap: 14px; font-size: 13px; flex: 1 1 auto;">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-size: 11px; font-weight: 600; color: #8a8986; letter-spacing: 0.04em;">分享什么</div>
+      <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;"><input type="radio" name="what" checked style="margin: 3px 0 0 0;"><span style="display: flex; flex-direction: column; gap: 2px;"><span>现在在哪</span><span style="color: #6b6a66; font-size: 12px;">工程走到哪、等你定和验收的事、最近的产物</span></span></label>
+      <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;"><input type="radio" name="what" style="margin: 3px 0 0 0;"><span style="display: flex; flex-direction: column; gap: 2px;"><span>这个工程的记录</span><span style="color: #6b6a66; font-size: 12px;">每次阶段变更、凭据、产物、被拦，带哈希链，对方能校验</span></span></label>
+      <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;"><input type="radio" name="what" style="margin: 3px 0 0 0;"><span style="display: flex; flex-direction: column; gap: 2px;"><span>本会话</span><span style="color: #6b6a66; font-size: 12px;">提示词和那一轮做了什么，可以只选几条；工具调用的输出不带</span></span></label>
+      <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;"><input type="radio" name="what" style="margin: 3px 0 0 0;"><span style="display: flex; flex-direction: column; gap: 2px;"><span>流程与工具词典</span><span style="color: #6b6a66; font-size: 12px;">flow.geml、tools.geml、guide.geml，给别的项目用</span></span></label>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-size: 11px; font-weight: 600; color: #8a8986; letter-spacing: 0.04em;">怎么给</div>
+      <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+        <button style="height: 28px; padding: 0 10px; border: 1px solid #1f1e1d; border-radius: 14px; background: #1f1e1d; color: #fff; font-size: 12px; cursor: pointer;">复制文字</button>
+        <button style="height: 28px; padding: 0 10px; border: 1px solid #d6d3cc; border-radius: 14px; background: #fff; font-size: 12px; cursor: pointer;">存成文件</button>
+        <button style="height: 28px; padding: 0 10px; border: 1px solid #d6d3cc; border-radius: 14px; background: #fff; font-size: 12px; cursor: pointer;">PR 评论</button>
+      </div>
+    </div>
+    <div style="background: #f5f5f4; border: 1px solid #e6e4de; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #3d3c38; line-height: 1.6; font-family: 'SF Mono', Menlo, Consolas, monospace; white-space: pre-line;">工程 gemflow 插件 · 开发流程 · 构建
+等你定：今天的样稿：状态带和各页签（还有 4 件）
+等你验收：看板显示每件事做出来的东西
+最近产物：e18b116d · 02c959fc · e1f56bcd</div>
+    <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #6b6a66;">
+      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #1f1e1d;"><input type="checkbox" checked style="margin: 0; width: 16px; height: 16px;">去掉命令行里的绝对路径</label>
+    </div>
+    <div style="margin-top: auto; display: flex; gap: 8px; align-items: center;"><span style="flex: 1 1 auto;"></span><button style="height: 32px; padding: 0 14px; border: 1px solid #d6d3cc; border-radius: 6px; background: #fff; font-size: 13px; cursor: pointer;">取消</button><button style="height: 32px; padding: 0 14px; border: 0; border-radius: 6px; background: #1f1e1d; color: #fff; font-size: 13px; cursor: pointer;">复制</button></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":440,"height":520}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

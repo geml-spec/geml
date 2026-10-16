@@ -1,0 +1,126 @@
+=== meta
+title   = "Coding workflow"
+profile = "geml-statechart/v1"
+===
+
+%% A workflow for writing code, not for approving refunds. Read it as four
+%% claims about what an agent may do while it works on your repository:
+%%
+%%   1. it cannot edit a file before it has written down a plan;
+%%   2. it cannot run the command while it is editing;
+%%   3. it cannot say it is done without a recorded test result;
+%%   4. the last step is a person's, not the model's.
+%%
+%% The states name uses (edit, test); tools.geml beside this file binds them to
+%% this project's tools, so the same workflow runs on every host.
+
+=== diagram {#flow format=geml-statechart caption="Coding workflow"}
+{
+  "initial": "explore",
+
+  "states": {
+    "explore": {
+      "title": "Explore",
+      "description": "Read the code before proposing anything; record goal and touched, then move to plan.",
+      "prompt": "#explore"
+    },
+    "plan": {
+      "title": "Plan",
+      "description": "Write the plan down before touching a file: plan is the steps, command the one command that decides whether the change works.",
+      "prompt": "#plan"
+    },
+    "implement": {
+      "title": "Implement",
+      "description": "Make the change. Editing is possible here and nowhere else; to run the command, move to verify.",
+      "prompt": "#implement",
+      "tools": ["edit"]
+    },
+    "verify": {
+      "title": "Verify",
+      "description": "Run the command; its exit status is the evidence. If it failed, go back and fix it.",
+      "prompt": "#verify",
+      "tools": ["test"]
+    },
+    "review": {
+      "title": "Review",
+      "description": "Hand back to the person: what changed, what the command said, what you are unsure about.",
+      "prompt": "#review"
+    },
+    "done": { "title": "Done", "description": "Finished. Say in one line what shipped.", "final": true }
+  },
+
+  "vars": {
+    "goal":       { "default": "", "note": "What this change is supposed to achieve, in one sentence" },
+    "touched":    { "default": "", "note": "The files this change edits, space separated" },
+    "plan":       { "default": "", "note": "The steps, written before any file is touched" },
+    "command":    { "default": "", "note": "The command that decides whether this works, e.g. npm test" },
+    "tests-pass": { "default": false, "source": { "tool": "test" } }
+  },
+
+  "transitions": [
+    { "from": "explore", "to": "plan", "guard": "goal and touched are recorded" },
+    { "from": "plan", "to": "implement", "guard": "plan and command are recorded" },
+    { "from": "implement", "to": "verify", "note": "The edit is made; go run the command." },
+    { "from": "verify", "to": "implement",
+      "guard": "the command failed, or the change is not finished",
+      "actions": [ { "reset": ["tests-pass"] } ],
+      "note": "Go back and edit; the last run's evidence is cleared." },
+    { "from": "verify", "to": "review",
+      "guard": { "properties": { "tests-pass": { "const": true } } },
+      "note": "The command passed. Hand it to a person." },
+    { "from": "review", "to": "done", "approval": true,
+      "note": "The person approved it: a human says yes at the moment it is taken, not a flag recorded earlier." },
+    { "from": "review", "to": "implement",
+      "guard": "the person asked for changes",
+      "actions": [ { "reset": ["tests-pass"] } ] }
+  ]
+}
+===
+
+## Explore {#explore}
+
+Read the code before proposing anything. You can read, grep, find and list —
+nothing here edits the repository, so there is no way to change it while you
+are still working out what is in it.
+
+Record `goal` in one sentence, and `touched` with the files you expect to
+change. When both are recorded you may move to #plan.
+
+## Plan {#plan}
+
+Write the plan down before touching a file. `plan` is the steps; `command` is
+the one command that will decide whether the change works — the project's test
+command, not a guess.
+
+You still cannot edit anything from here. That is the point: the plan exists
+before the diff does.
+
+## Implement {#implement}
+
+Make the change. Editing exists here and nowhere else in this workflow, and
+the test command is not yours to run here — if you want to run it, move to
+#verify, which is a recorded transition rather than a quiet decision.
+
+## Verify {#verify}
+
+Run `command`. Its exit status is the evidence: `tests-pass` is written from
+the real exit code, never from optimism, and the journal shows every run.
+
+If it failed, go back to #implement and fix it. The round trip is recorded
+either way, so "we tried three times" is a fact rather than a memory.
+
+## Review {#review}
+
+Hand back to the person. Summarise what changed, what the command said, and
+what you are unsure about. Nothing else happens until they answer.
+
+## Why these four states {#why}
+
+The gates are worth the ceremony only where a wrong action is expensive and the
+right order is knowable in advance. Editing before planning, and declaring
+victory without running anything, are both cheap to prevent and expensive to
+discover later — so they are worth a state each.
+
+Anything finer than this — a state per file, a state per function — is the
+failure mode, not the goal: it spends the model's judgement on paperwork. If a
+step's order does not matter, it does not deserve a state.

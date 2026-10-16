@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "gemflow": {
+      "command": "node",
+      "args": ["${PLUGIN_ROOT}/dist/gemflow.mjs", "mcp", "--host", "codex", "--root", "."]
+    }
+  }
+}

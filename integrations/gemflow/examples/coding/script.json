@@ -1,0 +1,56 @@
+[
+  { "why": "read the test before proposing anything — read is allowed in every state",
+    "call": ["read", { "path": "test.mjs" }] },
+
+  { "why": "try to edit while still exploring — write is the use edit, which only #implement declares",
+    "expect": "refused",
+    "call": ["write", { "path": "sum.mjs", "content": "whatever" }] },
+
+  { "why": "record what this change is for",
+    "call": ["gemflow_set", { "goal": "sum(a, b) should add, and the test should pass", "touched": "sum.mjs" }] },
+
+  { "why": "explore→plan is the model's to judge: goal and touched are recorded",
+    "call": ["gemflow_move", { "to": "plan" }] },
+
+  { "why": "write the plan down before any file is touched",
+    "call": ["gemflow_set", { "plan": "1. fix sum.mjs to add. 2. run the test. 3. hand back.", "command": "node test.mjs" }] },
+
+  { "why": "now editing is allowed",
+    "call": ["gemflow_move", { "to": "implement" }] },
+
+  { "why": "make the change — but get it wrong the first time",
+    "call": ["write", { "path": "sum.mjs", "content": "export const sum = (a, b) => a - b;\n" }] },
+
+  { "why": "try to run the test from #implement — node test.mjs is the use test, which only #verify declares",
+    "expect": "refused",
+    "call": ["bash", { "command": "node test.mjs" }] },
+
+  { "why": "move to the state that declares test",
+    "call": ["gemflow_move", { "to": "verify" }] },
+
+  { "why": "run it for real — this fails, and its exit status is the evidence",
+    "call": ["bash", { "command": "node test.mjs" }] },
+
+  { "why": "try to write the evidence by hand — tests-pass has a source, so set refuses it",
+    "expect": "refused",
+    "call": ["gemflow_set", { "tests-pass": true }] },
+
+  { "why": "try to hand over anyway — verify→review is the machine's, taken on its own once tests-pass is true",
+    "expect": "refused",
+    "call": ["gemflow_move", { "to": "review" }] },
+
+  { "why": "go back and fix it; this resets tests-pass",
+    "call": ["gemflow_move", { "to": "implement" }] },
+
+  { "why": "the actual fix",
+    "call": ["write", { "path": "sum.mjs", "content": "export const sum = (a, b) => a + b;\n" }] },
+
+  { "why": "back to the state that declares test",
+    "call": ["gemflow_move", { "to": "verify" }] },
+
+  { "why": "run it again — exit 0 writes tests-pass, and verify→review is taken on its own",
+    "call": ["bash", { "command": "node test.mjs" }] },
+
+  { "why": "final answer, from #review",
+    "text": "sum.mjs adds now; node test.mjs passes. Over to you." }
+]

@@ -1,0 +1,108 @@
+=== meta
+title     = "视频流程"
+profile   = "geml-statechart/v1"
+flow-unit = "file:episodes/*.geml"
+===
+
+%% 一集是一个工作项：episodes/ 下的每个 .geml 文件，一份 geml-media 文档。
+%% script → assets → cut → render → review → publish → done。封路点只有一个：
+%% 用途 render（geml media build）只有 #render 声明，而进入 #render 要求 geml check
+%% 没有过期片段。三个 human 来源的变量只能由人勾选；三个 tool 来源的证据随这一集
+%% 文件的内容过期：文件改了，待办检查、过期检查与出片都要重新过。
+%%
+%% 审片要返工时走 review→assets（重出镜头）或 review→cut（改剪辑）；出片失败、要改
+%% 剪辑时走 render→cut。这三条转换用 reset 把上一轮的证据清回默认值。#review 里
+%% approved 总是 false（勾上它流程就离开了 #review），不必复位。
+
+=== diagram {#flow format=geml-statechart caption="视频流程"}
+{
+  "initial": "script",
+
+  "states": {
+    "script": {
+      "title": "剧本",
+      "description": "写这一集的剧本：分镜提示词与台词。剧本定稿由人在看板上勾选。",
+      "prompt": "./guide.geml#script"
+    },
+    "assets": {
+      "title": "素材",
+      "description": "按待办清单生成素材、配音，每一次生成都登记进生成日志。待办检查的结果是证据，不需要你报告。",
+      "prompt": "./guide.geml#assets",
+      "tools": ["image", "video", "voice", "import", "log", "todo-check"]
+    },
+    "cut": {
+      "title": "剪辑",
+      "description": "把素材排上时间线，对齐配音与字幕。过期检查的结果是证据。",
+      "prompt": "./guide.geml#cut",
+      "tools": ["lay", "stale-check"]
+    },
+    "render": {
+      "title": "出片",
+      "description": "出片。这一阶段只运行出片命令，不改剧本和剪辑。",
+      "prompt": "./guide.geml#render",
+      "tools": ["render"]
+    },
+    "review": {
+      "title": "审片",
+      "description": "成片等人审片。",
+      "prompt": "./guide.geml#review"
+    },
+    "publish": {
+      "title": "发布",
+      "description": "审片通过。发布这一集。",
+      "prompt": "./guide.geml#publish"
+    },
+    "done": { "title": "完成", "final": true }
+  },
+
+  "vars": {
+    "script-final": { "default": false, "source": "human", "note": "剧本定稿" },
+    "assets-done":  { "default": false, "source": { "tool": "todo-check" } },
+    "no-stale":     { "default": false, "source": { "tool": "stale-check" } },
+    "rendered":     { "default": false, "source": { "tool": "render" } },
+    "approved":     { "default": false, "source": "human", "note": "审片通过" },
+    "published":    { "default": false, "source": "human", "note": "已发布" }
+  },
+
+  "transitions": [
+    { "from": "script", "to": "assets",
+      "guard": { "properties": { "script-final": { "const": true } } },
+      "note": "剧本定稿。" },
+
+    { "from": "assets", "to": "cut",
+      "guard": { "properties": { "assets-done": { "const": true } } },
+      "note": "没有待办：提示词都有产出，台词都配了音，过期的都重做了。" },
+
+    { "from": "cut", "to": "render",
+      "guard": { "properties": { "no-stale": { "const": true } } },
+      "note": "geml check 没有过期片段。" },
+
+    { "from": "render", "to": "review",
+      "guard": { "properties": { "rendered": { "const": true } } },
+      "note": "出片成功。" },
+
+    { "from": "render", "to": "cut",
+      "guard": "出片失败，要回去改剪辑",
+      "actions": [ { "reset": ["no-stale"] } ],
+      "note": "过期检查的结果随之清掉，改完要重新检查。" },
+
+    { "from": "review", "to": "assets",
+      "guard": "要重出镜头",
+      "actions": [ { "reset": ["assets-done", "no-stale", "rendered"] } ],
+      "note": "待办检查、过期检查与出片的结果随之清掉，都要重新过一遍。" },
+
+    { "from": "review", "to": "cut",
+      "guard": "要改剪辑",
+      "actions": [ { "reset": ["no-stale", "rendered"] } ],
+      "note": "过期检查与出片的结果随之清掉，都要重新过一遍。" },
+
+    { "from": "review", "to": "publish",
+      "guard": { "properties": { "approved": { "const": true } } },
+      "note": "审片通过。" },
+
+    { "from": "publish", "to": "done",
+      "guard": { "properties": { "published": { "const": true } } },
+      "note": "已发布。" }
+  ]
+}
+===

@@ -1,0 +1,38 @@
+=== meta
+title   = "开发流程的工具词典"
+profile = "geml-statechart/v1"
+===
+
+%% 开发流程的起步词典（spec §5.3）：流程声明的用途预先绑好常见的命令，只读工具
+%% 在所有阶段放行；其余工具照常放行，要拒绝或绑到某个用途，在这里写一行。`Bash(…)` 的键匹配以它开头
+%% 的命令，`*` 匹配任意一段文字，字面部分最长的键优先：`wrangler deploy*--env staging`
+%% 赢过 `wrangler deploy`，所以不带 --env 的部署按 production 算。
+
+=== table {#tools}
+| tool                                     | for            | allow | deny | default | params |
+|------------------------------------------|----------------|-------|------|---------|--------|
+| Read                                     |                | *     |      |         |        |
+| Grep                                     |                | *     |      |         |        |
+| Glob                                     |                | *     |      |         |        |
+| Edit                                     | edit           |       |      | yes     |        |
+| Write                                    | edit           |       |      |         |        |
+| NotebookEdit                             | edit           |       |      |         |        |
+| apply_patch                              | edit           |       |      |         |        |
+| Bash(npm test)                           | test           |       |      | yes     |        |
+| Bash(pnpm test)                          | test           |       |      |         |        |
+| Bash(yarn test)                          | test           |       |      |         |        |
+| Bash(cargo test)                         | test           |       |      |         |        |
+| Bash(pytest)                             | test           |       |      |         |        |
+| Bash(go test)                            | test           |       |      |         |        |
+| Bash(gh pr create)                       | pr             |       |      | yes     |        |
+| Bash(wrangler deploy*--env staging)      | deploy-staging |       |      | yes     |        |
+| Bash(wrangler deploy*--env=staging)      | deploy-staging |       |      |         |        |
+| Bash(wrangler deploy*-e staging)         | deploy-staging |       |      |         |        |
+| Bash(npx wrangler deploy*--env staging)  | deploy-staging |       |      |         |        |
+| Bash(pnpm wrangler deploy*--env staging) | deploy-staging |       |      |         |        |
+| Bash(bunx wrangler deploy*--env staging) | deploy-staging |       |      |         |        |
+| Bash(wrangler deploy)                    | deploy-prod    |       |      | yes     |        |
+| Bash(npx wrangler deploy)                | deploy-prod    |       |      |         |        |
+| Bash(pnpm wrangler deploy)               | deploy-prod    |       |      |         |        |
+| Bash(bunx wrangler deploy)               | deploy-prod    |       |      |         |        |
+===

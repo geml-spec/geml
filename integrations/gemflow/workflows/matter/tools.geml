@@ -1,0 +1,32 @@
+=== meta
+title   = "事项流程的工具词典"
+===
+
+%% 事项流程的起步词典（spec §3.7）：写事项文件本身是 note，每个状态都能做；改别的
+%% 文件是 edit，只在 #doing 能做；常见的测试命令是 check。带路径的行按路径结尾匹配，
+%% 字面部分最长的优先，所以 Edit(.geml/matters/*) 赢过 Edit。Claude Code 与 pi 的
+%% 工具名都列了。其余工具照常放行；要拒绝或绑到某个用途，在这里写一行。
+
+=== table {#tools}
+| tool                   | for   | allow | deny | default | params |
+|------------------------|-------|-------|------|---------|--------|
+| Read                   |       | *     |      |         |        |
+| Grep                   |       | *     |      |         |        |
+| Glob                   |       | *     |      |         |        |
+| Edit(.geml/matters/*)  | note  |       |      | yes     |        |
+| Write(.geml/matters/*) | note  |       |      |         |        |
+| edit(.geml/matters/*)  | note  |       |      |         |        |
+| write(.geml/matters/*) | note  |       |      |         |        |
+| Edit                   | edit  |       |      | yes     |        |
+| Write                  | edit  |       |      |         |        |
+| NotebookEdit           | edit  |       |      |         |        |
+| apply_patch            | edit  |       |      |         |        |
+| edit                   | edit  |       |      |         |        |
+| write                  | edit  |       |      |         |        |
+| Bash(npm test)         | check |       |      | yes     |        |
+| Bash(pnpm test)        | check |       |      |         |        |
+| Bash(yarn test)        | check |       |      |         |        |
+| Bash(cargo test)       | check |       |      |         |        |
+| Bash(pytest)           | check |       |      |         |        |
+| Bash(go test)          | check |       |      |         |        |
+===

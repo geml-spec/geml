@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>样式：字体、颜色、图标</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;font-family:-apple-system,"PingFang SC","Helvetica Neue","Noto Sans SC",sans-serif;color:#1b1b1b}
+a{color:#0b5fa5}a:hover{color:#083f6e}
+</style>
+</helmet>
+<div style="width: 1280px; height: 780px; box-sizing: border-box; background: #fff; border: 1px solid #c9c6bf; border-radius: 10px; padding: 32px 36px; display: grid; grid-template-columns: 300px minmax(0, 1fr) 360px; gap: 40px;">
+
+  <div style="display: flex; flex-direction: column; gap: 14px;">
+    <div style="font-size: 18px; font-weight: 700;">字体</div>
+    <div style="font-size: 12px; color: #5f5f5f;">跟着 Claude Code 走，插件改不了。只定字号、粗细和哪里用等宽。</div>
+    <div style="display: flex; flex-direction: column; gap: 12px; border-top: 1px solid #e2e0db; padding-top: 14px;">
+      <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 11px; color: #8a877f;">15 · 粗 · 标题</span><span style="font-size: 15px; font-weight: 700;">开发流程</span></div>
+      <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 11px; color: #8a877f;">13 · 常规 · 正文、事项名</span><span style="font-size: 13px;">今天的样稿：状态带和各页签</span></div>
+      <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 11px; color: #8a877f;">12 · 次要色 · 说明、那一轮</span><span style="font-size: 12px; color: #5f5f5f;">13:06 起一页页看过的那些</span></div>
+      <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 11px; color: #8a877f;">11 · 粗 · 分组名</span><span style="font-size: 11px; font-weight: 600; color: #8a877f; letter-spacing: 0.04em;">待处理</span></div>
+      <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 11px; color: #8a877f;">12 · 等宽 · 只给命令、提交号、分支名、时间</span><span style="font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 12px;">npm test · e18b116d · 12:23</span></div>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 14px;">
+    <div style="font-size: 18px; font-weight: 700;">颜色</div>
+    <div style="font-size: 12px; color: #5f5f5f;">每种用途在 A、B 两个方向、浅色深色下各一个颜色。标志固定用海蓝和鲜红。</div>
+    <div style="display: grid; grid-template-columns: 120px repeat(4, minmax(0, 1fr)); gap: 8px 10px; align-items: center; font-size: 12px; border-top: 1px solid #e2e0db; padding-top: 14px;">
+      <span></span><span style="color: #8a877f; font-size: 11px;">A 浅色</span><span style="color: #8a877f; font-size: 11px;">A 深色</span><span style="color: #8a877f; font-size: 11px;">B 浅色</span><span style="color: #8a877f; font-size: 11px;">B 深色</span>
+      <span>底色</span><span style="height: 22px; border-radius: 5px; background: #ffffff; border: 1px solid #d6d3cc;"></span><span style="height: 22px; border-radius: 5px; background: #262624;"></span><span style="height: 22px; border-radius: 5px; background: #faf9f6; border: 1px solid #d6d3cc;"></span><span style="height: 22px; border-radius: 5px; background: #1e1d1b;"></span>
+      <span>正文 · 主按钮</span><span style="height: 22px; border-radius: 5px; background: #1f1e1d;"></span><span style="height: 22px; border-radius: 5px; background: #f5f4ef; border: 1px solid #d6d3cc;"></span><span style="height: 22px; border-radius: 5px; background: #1b1b1b;"></span><span style="height: 22px; border-radius: 5px; background: #ece9e2; border: 1px solid #d6d3cc;"></span>
+      <span>次要文字</span><span style="height: 22px; border-radius: 5px; background: #6b6a66;"></span><span style="height: 22px; border-radius: 5px; background: #a8a69d;"></span><span style="height: 22px; border-radius: 5px; background: #5f5f5f;"></span><span style="height: 22px; border-radius: 5px; background: #a3a09a;"></span>
+      <span>分隔线</span><span style="height: 22px; border-radius: 5px; background: #e6e4de;"></span><span style="height: 22px; border-radius: 5px; background: #3b3a37;"></span><span style="height: 22px; border-radius: 5px; background: #e2e0db;"></span><span style="height: 22px; border-radius: 5px; background: #3a3835;"></span>
+      <span>标志</span><span style="height: 22px; border-radius: 5px; background: linear-gradient(to bottom, #0077be 50%, #ef3b3f 50%);"></span><span style="height: 22px; border-radius: 5px; background: linear-gradient(to bottom, #0077be 50%, #ef3b3f 50%);"></span><span style="height: 22px; border-radius: 5px; background: linear-gradient(to bottom, #0077be 50%, #ef3b3f 50%);"></span><span style="height: 22px; border-radius: 5px; background: linear-gradient(to bottom, #0077be 50%, #ef3b3f 50%);"></span>
+      <span>定</span><span style="height: 22px; border-radius: 5px; background: #9a6100;"></span><span style="height: 22px; border-radius: 5px; background: #e2b04a;"></span><span style="height: 22px; border-radius: 5px; background: #9a6700;"></span><span style="height: 22px; border-radius: 5px; background: #d9a441;"></span>
+      <span>验收 · 凭据</span><span style="height: 22px; border-radius: 5px; background: #1a7f4b;"></span><span style="height: 22px; border-radius: 5px; background: #5cc28a;"></span><span style="height: 22px; border-radius: 5px; background: #1f7a3a;"></span><span style="height: 22px; border-radius: 5px; background: #6cbf84;"></span>
+      <span>产物 · 链接 · 建议</span><span style="height: 22px; border-radius: 5px; background: #2a6fdb;"></span><span style="height: 22px; border-radius: 5px; background: #6aa8ff;"></span><span style="height: 22px; border-radius: 5px; background: #0b5fa5;"></span><span style="height: 22px; border-radius: 5px; background: #6aa6e0;"></span>
+      <span>被拦 · 删除</span><span style="height: 22px; border-radius: 5px; background: #c4372c;"></span><span style="height: 22px; border-radius: 5px; background: #ff8a7a;"></span><span style="height: 22px; border-radius: 5px; background: #9b1c2a;"></span><span style="height: 22px; border-radius: 5px; background: #e8737f;"></span>
+    </div>
+    <div style="font-size: 12px; color: #5f5f5f; line-height: 1.6; border-top: 1px solid #e2e0db; padding-top: 12px;">A 的定、验收、被拦用的是 Claude Code 主题里的警告、成功、错误色，深浅色自动跟着变，插件现在就能用。B 是自定义色值，深色下不会自己变，得另给一套。</div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 14px;">
+    <div style="font-size: 18px; font-weight: 700;">图标</div>
+    <div style="font-size: 12px; color: #5f5f5f;">字符现在就能用；线条图标要 Claude Code 允许插件画图标，没确认前只是样稿。</div>
+    <div style="display: grid; grid-template-columns: 80px 64px minmax(0, 1fr); gap: 7px 10px; align-items: center; font-size: 13px; border-top: 1px solid #e2e0db; padding-top: 14px;">
+      <span style="color: #8a877f; font-size: 11px;">用在</span><span style="color: #8a877f; font-size: 11px;">B 字符</span><span style="color: #8a877f; font-size: 11px;">A 线条</span>
+      <span>会话</span><span style="color: #8a877f;">—</span><span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg></span>
+      <span>流程</span><span style="color: #8a877f;">—</span><span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="5" rx="1"/><rect x="14" y="16" width="7" height="5" rx="1"/><path d="M6.5 8v5h11v3"/></svg></span>
+      <span>工作项</span><span style="color: #8a877f;">—</span><span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5L7.5 11M3.5 18l1.5 1.5L7.5 17"/></svg></span>
+      <span>记录</span><span style="color: #8a877f;">—</span><span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span>
+      <span>工具</span><span style="color: #8a877f;">—</span><span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5a4 4 0 0 0-5 5L4 16l4 4 5.5-5.5a4 4 0 0 0 5-5l-2.5 2.5-2.5-.5-.5-2.5z"/></svg></span>
+      <span>定</span><span style="font-weight: 700; color: #9a6700;">?</span><span style="color: #9a6100;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.4c-.6.3-1 .8-1 1.5V14M12 17h.01"/></svg></span>
+      <span>验收</span><span style="color: #1f7a3a;">✓</span><span style="color: #1a7f4b;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.2l2.4 2.4 4.6-5"/></svg></span>
+      <span>产物</span><span style="color: #0b5fa5;">◆</span><span style="color: #2a6fdb;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg></span>
+      <span>凭据</span><span style="color: #1f7a3a;">●</span><span style="color: #1a7f4b;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M9.5 14l2 2 3.5-4"/></svg></span>
+      <span>阶段变更</span><span>→</span><span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      <span>被拦</span><span style="color: #9b1c2a;">✕</span><span style="color: #c4372c;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></svg></span>
+      <span>暂停</span><span>‖</span><span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5v14M15 5v14"/></svg></span>
+      <span>看板</span><span>▸</span><span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M14.5 4.5v15"/></svg></span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":780}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

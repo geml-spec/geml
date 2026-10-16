@@ -1,0 +1,66 @@
+=== meta
+title   = "视频流程 · 各阶段说明"
+===
+
+# 剧本 {#script}
+
+一集一个文件：`episodes/epNN.geml`，它的 `=== meta` 声明 `profile = "geml-media/v1"`。
+分镜提示词写成 `media-text {#s01 .prompt shot=1}` 块，台词写成
+`media-text {#l01 .line speaker=cast.geml#hero}` 块；几集共用的角色卡与配音样本放在
+`cast.geml` 这类文档里，用 `speaker=`、`of=` 引用。本集生成的素材块和生成日志（一个
+`data {#gen-log .gen-log format=jsonl}` 块）都写在本集文件里：引用是有方向的，写在
+一处，从本集出发才看得见每一次生成。
+
+下面每条命令都在项目根目录运行，写本集的文件，并带 `--root .`：工具词典读的是
+命令行，一条命令的证据记到它命令行写到的那一集名下。`geml check episodes/epNN.geml --root .`
+没有错误之后，请人在看板上勾选"剧本定稿"（或者在他自己的终端运行
+`gemflow mark script-final`）——这一项只能由人勾选。勾选后流程自动进入 #assets。
+# 素材 {#assets}
+
+`geml media todo episodes/epNN.geml --root . --json` 列出这一集的待办：没有产出的
+提示词、没有配音的台词、没有合成的分层镜头，以及输入改过、要重做的（标 `stale`）。
+每一项的 `prompt` 是展开之后发给模型的那串字。
+
+每做好一件，登记两样东西：`geml media import <文件> --into episodes/epNN.geml --root .`
+加一个带 `sha256` 的素材块；
+`geml media log episodes/epNN.geml --root . --output '#素材id' --model <模型> --mode t2i --prompt '#提示词id'`
+记下这次生成（配音用 `--mode tts`，`--prompt` 指向那句台词）。一批生成可以先写成
+清单 JSON，再用 `geml media import <清单.json> --into episodes/epNN.geml --root .` 一次
+登记素材与记录。
+
+都做完之后运行 `geml media todo episodes/epNN.geml --root . --check`：还有待办时它把
+清单打出来并以 1 退出；没有待办时以 0 退出，流程自动进入 #cut。
+
+# 剪辑 {#cut}
+
+在本集文件里写时间线：一个 `media {#cut tracks="v:video a:audio s:prose"}` 块，每一刀
+是其中的一个 `media-clip`，`src=` 指向素材块，静帧要写 `duration=`。
+`geml media lay episodes/epNN.geml --root . --over '#c03'` 按配音时长给出 `offset` 与
+`duration` 的初值；`geml media export episodes/epNN.geml --root . --to player -o play.html`
+出一个浏览器能放的预览。
+
+剪好之后运行 `geml check episodes/epNN.geml --root . --severity media-stale-clip=error`：
+有片段用到过期的素材（提示词或输入改过，却没有重新生成）时报错，有别的错误时同样
+以 1 退出；以 0 退出时流程自动进入 #render。
+
+# 出片 {#render}
+
+运行 `geml media build episodes/epNN.geml --root . --out renders/epNN.mp4`（要装 ffmpeg；
+字幕默认另出一个 `.srt`，加 `--burn-subs` 才烧进画面）。出片命令是用途 `render`，只有
+这一阶段声明了它，在别的阶段会被拒绝；这一阶段不改剧本和剪辑，要改就回 #cut。以 0
+退出时流程自动进入 #review。
+
+出片失败、要回去改剪辑时，用 `move` 回到 #cut：这条转换把 `no-stale` 清回 false，
+改完要重新跑过期检查，才再进入 #render。
+# 审片 {#review}
+
+成片等人看。人看完在看板上勾选"审片通过"，流程进入 #publish——这一项只能由人勾选。
+
+要返工时，重出镜头回到 #assets，改剪辑回到 #cut：模型用 `move`，人在看板上点这条
+转换。回到 #assets 把 `assets-done`、`no-stale` 与 `rendered` 清回 false，回到 #cut
+清掉 `no-stale` 与 `rendered`，所以待办检查、过期检查与出片都要重新过一遍，新出的片
+也要人重新审。
+# 发布 {#publish}
+
+把这一集发布出去，发到哪里由项目决定。发布之后请人在看板上勾选"已发布"，流程
+进入 #done。

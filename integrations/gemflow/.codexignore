@@ -1,0 +1,15 @@
+# What a Codex install of this directory does not need: the plugin runs from
+# dist/gemflow.mjs (built by `npm run build`), skills/, workflows/ and codex/.
+node_modules/
+src/
+test/
+tests/
+examples/
+scripts/
+docs/
+hooks/
+.claude-plugin/
+*.tsbuildinfo
+.gemlhistory
+.DS_Store
+*.log

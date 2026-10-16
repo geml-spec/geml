@@ -1,0 +1,214 @@
+{
+  "about": "Static checks of the Gemflow runtime (gemflow check), workflow.md §4. Each case: a workflow document, optionally the tool dictionary beside it (`tools`), and the sorted severity:code list the loader must report — loadStatechart's diagnostics, then readDictionary's against the loaded statechart.",
+  "cases": [
+    {
+      "name": "a clean workflow: a use, a tool variable, a machine-judged edge",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"tool\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    }\n  ]\n}\n===\n",
+      "codes": []
+    },
+    {
+      "name": "no statechart block",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== data {#x format=json}\n{}\n===\n",
+      "codes": [
+        "error:flow-statechart"
+      ]
+    },
+    {
+      "name": "two statechart blocks",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"tool\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    }\n  ]\n}\n===\n\n=== diagram {#second format=geml-statechart}\n{\"initial\":\"a\",\"states\":{\"a\":{\"tools\":[\"test\"]},\"b\":{ \"final\": true }},\"vars\":{\"t\":{\"default\":false,\"source\":{\"tool\":\"test\"}}},\"transitions\":[{\"from\":\"a\",\"to\":\"b\",\"guard\":{\"properties\":{\"t\":{\"const\":true}}}}]}\n===\n",
+      "codes": [
+        "error:flow-statechart"
+      ]
+    },
+    {
+      "name": "prompt is not a reference",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ],\n      \"prompt\": 3\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"tool\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    }\n  ]\n}\n===\n",
+      "codes": [
+        "error:flow-attr"
+      ]
+    },
+    {
+      "name": "skills is not an array of strings",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ],\n      \"skills\": \"geml\"\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"tool\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    }\n  ]\n}\n===\n",
+      "codes": [
+        "error:flow-attr"
+      ]
+    },
+    {
+      "name": "tools is not an array of use names",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"a b\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"tool\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    }\n  ]\n}\n===\n",
+      "codes": [
+        "error:flow-attr",
+        "warning:flow-source"
+      ]
+    },
+    {
+      "name": "source is a string that is neither human nor a git fact",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": \"nope\"\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    }\n  ]\n}\n===\n",
+      "codes": [
+        "error:flow-attr"
+      ]
+    },
+    {
+      "name": "source is an object of another shape",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"use\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    }\n  ]\n}\n===\n",
+      "codes": [
+        "error:flow-attr"
+      ]
+    },
+    {
+      "name": "a variable with a source has a default other than false",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": true,\n      \"source\": {\n        \"tool\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    }\n  ]\n}\n===\n",
+      "codes": [
+        "error:flow-attr"
+      ]
+    },
+    {
+      "name": "approval is not true",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"tool\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"approval\": \"yes\"\n    }\n  ]\n}\n===\n",
+      "codes": [
+        "error:flow-attr"
+      ]
+    },
+    {
+      "name": "a note is not a string",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"tool\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"note\": 7\n    }\n  ]\n}\n===\n",
+      "codes": [
+        "error:flow-attr"
+      ]
+    },
+    {
+      "name": "a variable's source names a use no state declares",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {},\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"tool\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    }\n  ]\n}\n===\n",
+      "codes": [
+        "warning:flow-source"
+      ]
+    },
+    {
+      "name": "two transitions between the same two states",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"tool\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": \"first\"\n    },\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": \"second\"\n    }\n  ]\n}\n===\n",
+      "codes": [
+        "error:flow-dup-edge"
+      ]
+    },
+    {
+      "name": "two machine-judged edges out of one state",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    },\n    \"c\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"tool\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    },\n    {\n      \"from\": \"a\",\n      \"to\": \"c\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": false\n          }\n        }\n      }\n    }\n  ]\n}\n===\n",
+      "codes": [
+        "error:flow-auto-ambiguous"
+      ]
+    },
+    {
+      "name": "a machine-judged edge with approval beside another is not ambiguous",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    },\n    \"c\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"tool\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    },\n    {\n      \"from\": \"a\",\n      \"to\": \"c\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": false\n          }\n        }\n      },\n      \"approval\": true\n    }\n  ]\n}\n===\n",
+      "codes": []
+    },
+    {
+      "name": "machine-judged edges form a cycle",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {}\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"tool\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    },\n    {\n      \"from\": \"b\",\n      \"to\": \"a\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    }\n  ]\n}\n===\n",
+      "codes": [
+        "warning:flow-auto-cycle"
+      ]
+    },
+    {
+      "name": "flow-unit is neither branch nor file:<glob>",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\nflow-unit = \"episode\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"tool\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    }\n  ]\n}\n===\n",
+      "codes": [
+        "error:flow-unit"
+      ]
+    },
+    {
+      "name": "flow-unit = file: with an empty glob",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\nflow-unit = \"file:\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"tool\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    }\n  ]\n}\n===\n",
+      "codes": [
+        "error:flow-unit"
+      ]
+    },
+    {
+      "name": "flow-unit = branch and file:<glob> are the two forms",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\nflow-unit = \"file:episodes/*.geml\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"tool\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    }\n  ]\n}\n===\n",
+      "codes": []
+    },
+    {
+      "name": "a clean dictionary",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"tool\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    }\n  ]\n}\n===\n",
+      "tools": "=== meta\ntitle = \"tools\"\n===\n\n=== table {#tools}\n| tool | for | allow | deny | default | params |\n|---|---|---|---|---|---|\n| Read |  | * |  |  |  |\n| Bash(npm test) | test |  |  | yes |  |\n===\n",
+      "codes": []
+    },
+    {
+      "name": "the dictionary lacks a column",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"tool\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    }\n  ]\n}\n===\n",
+      "tools": "=== table {#tools}\n| tool | for |\n|---|---|\n| Read | |\n===\n",
+      "codes": [
+        "error:flow-tools"
+      ]
+    },
+    {
+      "name": "the dictionary has no #tools table",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"tool\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    }\n  ]\n}\n===\n",
+      "tools": "=== meta\ntitle = \"x\"\n===\n",
+      "codes": [
+        "error:flow-tools"
+      ]
+    },
+    {
+      "name": "allow names a state the workflow does not have",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"tool\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    }\n  ]\n}\n===\n",
+      "tools": "=== meta\ntitle = \"tools\"\n===\n\n=== table {#tools}\n| tool | for | allow | deny | default | params |\n|---|---|---|---|---|---|\n| Read |  | zz |  |  |  |\n===\n",
+      "codes": [
+        "error:flow-tools"
+      ]
+    },
+    {
+      "name": "params is not a JSON object",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"tool\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    }\n  ]\n}\n===\n",
+      "tools": "=== meta\ntitle = \"tools\"\n===\n\n=== table {#tools}\n| tool | for | allow | deny | default | params |\n|---|---|---|---|---|---|\n| mcp__img__* | test |  |  |  | `[1]` |\n===\n",
+      "codes": [
+        "error:flow-tools"
+      ]
+    },
+    {
+      "name": "a use has two defaults",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"tool\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    }\n  ]\n}\n===\n",
+      "tools": "=== meta\ntitle = \"tools\"\n===\n\n=== table {#tools}\n| tool | for | allow | deny | default | params |\n|---|---|---|---|---|---|\n| Bash(npm test) | test |  |  | yes |  |\n| Bash(pnpm test) | test |  |  | yes |  |\n===\n",
+      "codes": [
+        "error:flow-tools"
+      ]
+    },
+    {
+      "name": "default without a use",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"tool\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    }\n  ]\n}\n===\n",
+      "tools": "=== meta\ntitle = \"tools\"\n===\n\n=== table {#tools}\n| tool | for | allow | deny | default | params |\n|---|---|---|---|---|---|\n| Read |  | * |  | yes |  |\n===\n",
+      "codes": [
+        "error:flow-tools"
+      ]
+    },
+    {
+      "name": "the dictionary binds a tool to a use no state declares",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"tool\": \"test\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    }\n  ]\n}\n===\n",
+      "tools": "=== meta\ntitle = \"tools\"\n===\n\n=== table {#tools}\n| tool | for | allow | deny | default | params |\n|---|---|---|---|---|---|\n| Bash(wrangler deploy) | deploy |  |  |  |  |\n===\n",
+      "codes": [
+        "warning:flow-source"
+      ]
+    },
+    {
+      "name": "an elapsed source: an ISO 8601 duration of days, hours, minutes and seconds",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"elapsed\": \"P1DT2H30M\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    }\n  ]\n}\n===\n",
+      "codes": []
+    },
+    {
+      "name": "an elapsed source that is not an ISO 8601 duration",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"elapsed\": \"2h\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    }\n  ]\n}\n===\n",
+      "codes": [
+        "error:flow-attr"
+      ]
+    },
+    {
+      "name": "an elapsed source of zero",
+      "doc": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#flow format=geml-statechart}\n{\n  \"initial\": \"a\",\n  \"states\": {\n    \"a\": {\n      \"tools\": [\n        \"test\"\n      ]\n    },\n    \"b\": {\n      \"final\": true\n    }\n  },\n  \"vars\": {\n    \"t\": {\n      \"default\": false,\n      \"source\": {\n        \"elapsed\": \"PT0S\"\n      }\n    }\n  },\n  \"transitions\": [\n    {\n      \"from\": \"a\",\n      \"to\": \"b\",\n      \"guard\": {\n        \"properties\": {\n          \"t\": {\n            \"const\": true\n          }\n        }\n      }\n    }\n  ]\n}\n===\n",
+      "codes": [
+        "error:flow-attr"
+      ]
+    }
+  ]
+}

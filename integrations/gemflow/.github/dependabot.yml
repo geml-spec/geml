@@ -1,0 +1,13 @@
+# Scoped to this plugin, for the day it is consumed as its own package.
+# GitHub itself only reads the repository-root .github/dependabot.yml, so the
+# updates that actually run for this directory are configured there.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: monthly
+    groups:
+      dev-dependencies:
+        dependency-type: development
+        patterns: ["*"]

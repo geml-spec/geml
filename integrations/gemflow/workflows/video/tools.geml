@@ -1,0 +1,41 @@
+=== meta
+title   = "视频流程的工具词典"
+===
+
+%% 视频流程的起步词典（spec §5.3、§7.2）：三个 tool 来源的用途绑到 geml media 的
+%% 命令（npx、bunx、pnpm dlx、yarn dlx、npm exec 启动器各一行）；读写文件的工具在所有
+%% 阶段放行；生图、生视频、配音的工具照常放行，把它们绑到用途、写上默认参数，在这里加一行。
+%% `*` 匹配任意一段文字：`geml media build*--out` 读到的是带 --out 的出片命令。
+
+=== table {#tools}
+| tool                                                            | for         | allow | deny | default | params |
+|-----------------------------------------------------------------|-------------|-------|------|---------|--------|
+| Read                                                            |             | *     |      |         |        |
+| Grep                                                            |             | *     |      |         |        |
+| Glob                                                            |             | *     |      |         |        |
+| Edit                                                            |             | *     |      |         |        |
+| Write                                                           |             | *     |      |         |        |
+| apply_patch                                                     |             | *     |      |         |        |
+| Bash(geml media todo*--check)                                   | todo-check  |       |      | yes     |        |
+| Bash(npx*geml media todo*--check)                               | todo-check  |       |      |         |        |
+| Bash(bunx*geml media todo*--check)                              | todo-check  |       |      |         |        |
+| Bash(pnpm dlx*geml media todo*--check)                          | todo-check  |       |      |         |        |
+| Bash(yarn dlx*geml media todo*--check)                          | todo-check  |       |      |         |        |
+| Bash(npm exec*geml media todo*--check)                          | todo-check  |       |      |         |        |
+| Bash(geml check*--severity media-stale-clip=error)              | stale-check |       |      | yes     |        |
+| Bash(npx*geml check*--severity media-stale-clip=error)          | stale-check |       |      |         |        |
+| Bash(bunx*geml check*--severity media-stale-clip=error)         | stale-check |       |      |         |        |
+| Bash(pnpm dlx*geml check*--severity media-stale-clip=error)     | stale-check |       |      |         |        |
+| Bash(yarn dlx*geml check*--severity media-stale-clip=error)     | stale-check |       |      |         |        |
+| Bash(npm exec*geml check*--severity media-stale-clip=error)     | stale-check |       |      |         |        |
+| Bash(geml media build*--out)                                    | render      |       |      | yes     |        |
+| Bash(geml media build*-o )                                      | render      |       |      |         |        |
+| Bash(npx*geml media build*--out)                                | render      |       |      |         |        |
+| Bash(bunx*geml media build*--out)                               | render      |       |      |         |        |
+| Bash(pnpm dlx*geml media build*--out)                           | render      |       |      |         |        |
+| Bash(yarn dlx*geml media build*--out)                           | render      |       |      |         |        |
+| Bash(npm exec*geml media build*--out)                           | render      |       |      |         |        |
+| Bash(geml media import)                                         | import      |       |      | yes     |        |
+| Bash(geml media log)                                            | log         |       |      | yes     |        |
+| Bash(geml media lay)                                            | lay         |       |      | yes     |        |
+===

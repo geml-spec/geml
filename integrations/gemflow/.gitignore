@@ -1,0 +1,8 @@
+*.tgz
+.nyc_output/
+.pack/
+coverage/
+dist/
+gemflow-pkg/
+node_modules/
+.claude-plugin/types/

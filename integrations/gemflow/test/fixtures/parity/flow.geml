@@ -1,0 +1,31 @@
+=== meta
+title   = "parity"
+profile = "geml-statechart/v1"
+===
+
+%% The fast-path parity fixture: every kind of use, source and guard in one
+%% small workflow, so test/fastpath-parity.test.mjs can walk a matrix of calls.
+
+=== diagram {#flow format=geml-statechart}
+{
+  "initial": "build",
+  "states": {
+    "build":   { "description": "Edit and test.", "tools": ["edit", "test", "image"] },
+    "lock":    { "description": "Nothing declared: every tool is the dictionary's to decide." },
+    "release": { "description": "Deploy to production.", "tools": ["deploy-prod"] },
+    "done":    { "description": "Finished.", "final": true }
+  },
+  "vars": {
+    "tests-pass": { "default": false, "source": { "tool": "test" } },
+    "deployed":   { "default": false, "source": { "tool": "deploy-prod" } },
+    "ready":      { "default": false, "source": "human" },
+    "out":        { "default": false, "source": { "file": "out/*.txt" } },
+    "pr":         { "default": false, "source": "pr-open" }
+  },
+  "transitions": [
+    { "from": "build", "to": "lock", "guard": "the change is made" },
+    { "from": "lock", "to": "release", "guard": { "properties": { "ready": { "const": true } } }, "approval": true },
+    { "from": "release", "to": "done", "guard": { "properties": { "deployed": { "const": true } } } }
+  ]
+}
+===

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>记录：工程的经过</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;font-family:-apple-system,"PingFang SC","Helvetica Neue","Noto Sans SC",sans-serif;color:#1f1e1d}
+a{color:#2a6fdb}a:hover{color:#1f56ad}
+</style>
+</helmet>
+<div style="width: 440px; height: 860px; box-sizing: border-box; background: #fff; border: 1px solid #d6d3cc; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden;">
+  <div style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid #e6e4de;">
+    <svg viewBox="17.5 17 66 66" width="22" height="22" role="img" aria-label="Gemflow"><polygon points="27,20 55,20 79,50 67,50 48,30 35,30 51,50 39,50 22,30 22,25" fill="#0077be"/><polygon points="27,80 55,80 79,50 67,50 48,70 35,70 51,50 39,50 22,70 22,75" fill="#ef3b3f"/></svg>
+    <span style="font-weight: 700; font-size: 15px;">Gemflow</span>
+    <span style="flex: 1 1 auto;"></span>
+    <span style="font-size: 12px; color: #6b6a66;">工程 gemflow 插件 · 构建</span>
+  </div>
+  <div style="display: flex; gap: 2px; padding: 0 12px; border-bottom: 1px solid #e6e4de; font-size: 13px;">
+    <a href="Sessions.dc.html" style="height: 40px; padding: 0 10px; display: flex; align-items: center; gap: 6px; color: #6b6a66; text-decoration: none;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>会话</a>
+    <a href="Flow.dc.html" style="height: 40px; padding: 0 10px; display: flex; align-items: center; gap: 6px; color: #6b6a66; text-decoration: none;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="5" rx="1"/><rect x="14" y="16" width="7" height="5" rx="1"/><path d="M6.5 8v5h11v3"/></svg>流程</a>
+    <a href="Items.dc.html" style="height: 40px; padding: 0 10px; display: flex; align-items: center; gap: 6px; color: #6b6a66; text-decoration: none;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5L7.5 11M3.5 18l1.5 1.5L7.5 17"/></svg>工作项</a>
+    <a href="Journal.dc.html" style="height: 40px; box-sizing: border-box; padding: 0 10px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid #1f1e1d; font-weight: 600; color: #1f1e1d; text-decoration: none;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>记录</a>
+    <a href="Tools.dc.html" style="height: 40px; padding: 0 10px; display: flex; align-items: center; gap: 6px; color: #6b6a66; text-decoration: none;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5a4 4 0 0 0-5 5L4 16l4 4 5.5-5.5a4 4 0 0 0 5-5l-2.5 2.5-2.5-.5-.5-2.5z"/></svg>工具</a>
+  </div>
+
+  <div style="flex: 1 1 auto; overflow: hidden; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
+    <div style="display: flex; gap: 6px; font-size: 12px; align-items: center;">
+      <button style="height: 26px; padding: 0 10px; border: 1px solid #1f1e1d; border-radius: 13px; background: #1f1e1d; color: #fff; cursor: pointer;">全部</button>
+      <button style="height: 26px; padding: 0 10px; border: 1px solid #d6d3cc; border-radius: 13px; background: #fff; cursor: pointer;">产物</button>
+      <button style="height: 26px; padding: 0 10px; border: 1px solid #d6d3cc; border-radius: 13px; background: #fff; cursor: pointer;">凭据</button>
+      <button style="height: 26px; padding: 0 10px; border: 1px solid #d6d3cc; border-radius: 13px; background: #fff; cursor: pointer;">阶段变更</button>
+      <button style="height: 26px; padding: 0 10px; border: 1px solid #d6d3cc; border-radius: 13px; background: #fff; cursor: pointer;">被拦</button>
+      <span style="flex: 1 1 auto;"></span>
+      <a href="#export" style="font-size: 12px;">导出</a>
+    </div>
+    <div style="font-size: 12px; color: #8a8986;">工程「gemflow 插件」· 开发流程</div>
+
+    <div style="display: flex; flex-direction: column; overflow: hidden;">
+      <div style="font-size: 11px; font-weight: 600; color: #8a8986; letter-spacing: 0.04em; padding: 4px 0;">今天</div>
+      <div style="display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0eee9;"><span style="font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 11px; color: #8a8986; width: 38px; flex: 0 0 38px;">12:23</span><span style="color: #2a6fdb; display: flex; flex: 0 0 15px; margin-top: 1px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg></span><div style="display: flex; flex-direction: column; gap: 2px; min-width: 0;"><span><span style="color: #6b6a66;">产物 ·</span> <span style="font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; color: #6b6a66;">e18b116d</span> 事项「待验收」的说明指向结果一节</span><span style="font-size: 12px; color: #6b6a66;">那一轮 12:20「你先写，但我有个担心…」</span></div></div>
+      <div style="display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0eee9;"><span style="font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 11px; color: #8a8986; width: 38px; flex: 0 0 38px;">12:16</span><span style="color: #2a6fdb; display: flex; flex: 0 0 15px; margin-top: 1px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg></span><div style="display: flex; flex-direction: column; gap: 2px; min-width: 0;"><span><span style="color: #6b6a66;">产物 ·</span> <span style="font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; color: #6b6a66;">02c959fc e1f56bcd</span> 文档、副标题按单位</span><span style="font-size: 12px; color: #6b6a66;">那一轮 12:06「ok，文字按你说的改…」</span></div></div>
+      <div style="display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0eee9;"><span style="font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 11px; color: #8a8986; width: 38px; flex: 0 0 38px;">11:52</span><span style="color: #2a6fdb; display: flex; flex: 0 0 15px; margin-top: 1px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg></span><div style="display: flex; flex-direction: column; gap: 2px; min-width: 0;"><span><span style="color: #6b6a66;">产物 ·</span> <span style="font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; color: #6b6a66;">7a38c1fd 053f317c</span> 看板显示每件事做出来的东西</span><span style="font-size: 12px; color: #6b6a66;">那一轮 10:58「ok，看产物按 A…」</span></div></div>
+      <div style="padding: 6px 0 6px 56px; border-bottom: 1px solid #f0eee9;"><a href="#more" style="font-size: 12px;">还有 3 个提交 ▸</a></div>
+      <div style="display: flex; gap: 10px; padding: 8px 16px; margin: 0 -16px; border-bottom: 1px solid #f0eee9; background: #eef3fc;"><span style="font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 11px; color: #8a8986; width: 38px; flex: 0 0 38px;">09:55</span><span style="color: #1f1e1d; display: flex; flex: 0 0 15px; margin-top: 1px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;"><span><span style="color: #6b6a66;">阶段变更 ·</span> 构建 → 评审 · 自动</span><span style="font-size: 12px; color: #6b6a66;">凭：review-ready 被勾上</span><span style="font-size: 12px; color: #9a6100;">实际一直在构建，这一步记错了</span><div style="display: flex; flex-direction: column; width: 200px; border: 1px solid #d6d3cc; border-radius: 8px; background: #fff; box-shadow: 0 6px 18px rgba(0,0,0,0.10); overflow: hidden; margin-top: 4px;"><button style="height: 32px; padding: 0 12px; border: 0; background: #fff; text-align: left; font-size: 13px; cursor: pointer;">看是哪一轮</button><button style="height: 32px; padding: 0 12px; border: 0; background: #fff; text-align: left; font-size: 13px; cursor: pointer;">看凭据</button><button style="height: 32px; padding: 0 12px; border: 0; background: #fff; text-align: left; font-size: 13px; color: #c4372c; cursor: pointer;">回到这一步之前</button><button style="height: 32px; padding: 0 12px; border: 0; border-top: 1px solid #f0eee9; background: #fff; text-align: left; font-size: 13px; color: #8a8986; cursor: pointer;">取消</button></div></div></div>
+
+      <div style="font-size: 11px; font-weight: 600; color: #8a8986; letter-spacing: 0.04em; padding: 12px 0 4px 0;">昨天</div>
+      <div style="display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0eee9;"><span style="font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 11px; color: #8a8986; width: 38px; flex: 0 0 38px;">19:33</span><span style="color: #1f1e1d; display: flex; flex: 0 0 15px; margin-top: 1px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><div style="display: flex; flex-direction: column; gap: 2px; min-width: 0;"><span><span style="color: #6b6a66;">阶段变更 ·</span> 评审 → 构建 · 模型判「review 要求改动」</span><span style="font-size: 12px; color: #6b6a66;">那一轮 19:32「开始开发，每步完成都推到分支上去」</span></div></div>
+      <div style="display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0eee9;"><span style="font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 11px; color: #8a8986; width: 38px; flex: 0 0 38px;">14:20</span><span style="color: #1f1e1d; display: flex; flex: 0 0 15px; margin-top: 1px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><div style="display: flex; flex-direction: column; gap: 2px; min-width: 0;"><span><span style="color: #6b6a66;">阶段变更 ·</span> 构建 → 评审 · 自动</span><span style="font-size: 12px; color: #6b6a66;">凭：review-ready 被勾上</span></div></div>
+      <div style="display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0eee9;"><span style="font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 11px; color: #8a8986; width: 38px; flex: 0 0 38px;">13:16</span><span style="color: #1a7f4b; display: flex; flex: 0 0 15px; margin-top: 1px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M9.5 14l2 2 3.5-4"/></svg></span><div style="display: flex; flex-direction: column; gap: 2px; min-width: 0;"><span><span style="color: #6b6a66;">凭据 ·</span> PR 已开</span><span style="font-size: 12px; color: #6b6a66;">gh 查到的</span></div></div>
+      <div style="display: flex; gap: 10px; padding: 8px 0;"><span style="font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 11px; color: #8a8986; width: 38px; flex: 0 0 38px;">12:20</span><span style="width: 8px; height: 8px; border-radius: 50%; background: #8a8986; margin-top: 5px; flex: 0 0 8px;"></span><div><span style="color: #6b6a66;">开始 ·</span> 进入构建</div></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":440,"height":860}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

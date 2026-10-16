@@ -1,0 +1,233 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Band.dc.html": {
+      "h": 760,
+      "title": "状态带的几种时候 · 桌面提醒",
+      "w": 1000,
+      "x": 0,
+      "y": 3760
+    },
+    "Dialogs.dc.html": {
+      "h": 640,
+      "title": "设置 · 升级 · 关于",
+      "w": 1200,
+      "x": 0,
+      "y": 2660
+    },
+    "Flow.dc.html": {
+      "h": 1160,
+      "title": "流程：开发流程状态图，选中状态看能用的工具",
+      "w": 440,
+      "x": 520,
+      "y": 1160
+    },
+    "Items.dc.html": {
+      "h": 960,
+      "title": "工作项：待处理在最上面",
+      "w": 440,
+      "x": 1040,
+      "y": 1160
+    },
+    "Journal.dc.html": {
+      "h": 860,
+      "title": "记录：工程的经过",
+      "w": 440,
+      "x": 1560,
+      "y": 1160
+    },
+    "Main.dc.html": {
+      "h": 820,
+      "title": "桌面全景：状态带 + 看板（工作项）",
+      "w": 1280,
+      "x": 0,
+      "y": 0
+    },
+    "Sessions.dc.html": {
+      "h": 800,
+      "title": "会话：每条提示词，点一下弹菜单",
+      "w": 440,
+      "x": 0,
+      "y": 1160
+    },
+    "Share.dc.html": {
+      "h": 520,
+      "title": "分享",
+      "w": 440,
+      "x": 1280,
+      "y": 2660
+    },
+    "StyleDirections.dc.html": {
+      "h": 1040,
+      "title": "样式：A 跟着 Claude Code / B 暖灰纸感，浅色与深色",
+      "w": 1280,
+      "x": 1360,
+      "y": 4880
+    },
+    "StyleTokens.dc.html": {
+      "h": 780,
+      "title": "样式：字体 · 颜色 · 图标",
+      "w": 1280,
+      "x": 0,
+      "y": 4880
+    },
+    "Tools.dc.html": {
+      "h": 1120,
+      "title": "工具：工具词典",
+      "w": 440,
+      "x": 2080,
+      "y": 1160
+    },
+    "LogoConcepts.dc.html": {
+      "x": 0,
+      "y": 6300,
+      "w": 1280,
+      "h": 940,
+      "title": "Logo 候选：自己画的六个方向（单色）"
+    },
+    "BrandPalettes.dc.html": {
+      "x": 0,
+      "y": 7620,
+      "w": 1440,
+      "h": 1020,
+      "title": "设计稿 Prism Chevron：原稿与三套配色"
+    },
+    "BrandWordmarks.dc.html": {
+      "x": 1520,
+      "y": 7620,
+      "w": 1440,
+      "h": 960,
+      "title": "设计稿 Prism Chevron：三种字标"
+    },
+    "SwitchBand.dc.html": {
+      "x": 0,
+      "y": 9020,
+      "w": 1000,
+      "h": 700,
+      "title": "切换流程时的状态带：17:30 跳进 → 19:27 跳回"
+    },
+    "SwitchItems.dc.html": {
+      "x": 1080,
+      "y": 9020,
+      "w": 440,
+      "h": 900,
+      "title": "工作项：两条流程在走（19:03）"
+    },
+    "SwitchFlow.dc.html": {
+      "x": 1600,
+      "y": 9020,
+      "w": 440,
+      "h": 900,
+      "title": "流程：两条流程切着看，标志设计在配色"
+    },
+    "SwitchJournal.dc.html": {
+      "x": 2120,
+      "y": 9020,
+      "w": 440,
+      "h": 760,
+      "title": "记录：开发这边的挂起、依赖完成、恢复"
+    },
+    "SwitchSessions.dc.html": {
+      "x": 2640,
+      "y": 9020,
+      "w": 440,
+      "h": 800,
+      "title": "会话：标志设计那段归到它自己的会话"
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-13T02:40:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "row1": {
+      "kind": "title1",
+      "maxW": 1280,
+      "text": "桌面全景",
+      "w": 240,
+      "x": 0,
+      "y": -260
+    },
+    "row2": {
+      "kind": "title1",
+      "maxW": 2520,
+      "text": "看板的标签页：会话 · 流程 · 工作项 · 记录 · 工具",
+      "w": 240,
+      "x": 0,
+      "y": 900
+    },
+    "row3": {
+      "kind": "title1",
+      "maxW": 1720,
+      "text": "对话框 · 分享",
+      "w": 240,
+      "x": 0,
+      "y": 2400
+    },
+    "row4": {
+      "kind": "title1",
+      "maxW": 1000,
+      "text": "状态带与提醒",
+      "w": 240,
+      "x": 0,
+      "y": 3500
+    },
+    "row5": {
+      "kind": "title1",
+      "maxW": 2640,
+      "text": "样式：字体 · 颜色 · 图标",
+      "w": 240,
+      "x": 0,
+      "y": 4620
+    },
+    "row6": {
+      "kind": "title1",
+      "maxW": 1280,
+      "text": "Logo 候选",
+      "x": 0,
+      "y": 6040
+    },
+    "row7": {
+      "kind": "title1",
+      "maxW": 2960,
+      "text": "设计稿：配色与字标",
+      "x": 0,
+      "y": 7360
+    },
+    "row8": {
+      "kind": "title1",
+      "maxW": 3080,
+      "text": "第二期样稿：从开发流程跳进标志设计，再跳回来",
+      "x": 0,
+      "y": 8760
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Sessions.dc.html",
+    "Flow.dc.html",
+    "Items.dc.html",
+    "Journal.dc.html",
+    "Tools.dc.html",
+    "Dialogs.dc.html",
+    "Share.dc.html",
+    "Band.dc.html",
+    "StyleTokens.dc.html",
+    "StyleDirections.dc.html",
+    "LogoConcepts.dc.html",
+    "BrandPalettes.dc.html",
+    "BrandWordmarks.dc.html",
+    "SwitchBand.dc.html",
+    "SwitchItems.dc.html",
+    "SwitchFlow.dc.html",
+    "SwitchJournal.dc.html",
+    "SwitchSessions.dc.html"
+  ],
+  "pages": [],
+  "title": "Gemflow 界面示意"
+}

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>设置、升级与关于</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;font-family:-apple-system,"PingFang SC","Helvetica Neue","Noto Sans SC",sans-serif;color:#1f1e1d}
+a{color:#2a6fdb}a:hover{color:#1f56ad}
+</style>
+</helmet>
+<div style="width: 1200px; height: 640px; box-sizing: border-box; display: flex; gap: 24px; align-items: flex-start;">
+
+  <div style="width: 384px; flex: 0 0 384px; box-sizing: border-box; background: #fff; border: 1px solid #d6d3cc; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.10); display: flex; flex-direction: column; overflow: hidden;">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid #e6e4de;"><span style="font-weight: 700; font-size: 15px;">设置</span><span style="flex: 1 1 auto;"></span><button aria-label="关闭" style="width: 28px; height: 28px; border: 0; background: transparent; cursor: pointer; font-size: 16px; color: #6b6a66;">×</button></div>
+    <div style="padding: 14px 18px; display: flex; flex-direction: column; gap: 16px; font-size: 13px;">
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 11px; font-weight: 600; color: #8a8986; letter-spacing: 0.04em;">桌面提醒</div>
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;"><input type="checkbox" checked style="margin: 0; width: 16px; height: 16px;"><span style="flex: 1 1 auto;">有事等你定或验收时</span></label>
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;"><input type="checkbox" checked style="margin: 0; width: 16px; height: 16px;"><span style="flex: 1 1 auto;">模型被拦时</span><span style="color: #8a8986; font-size: 12px;">同一原因 3 分钟内只提一次</span></label>
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;"><input type="checkbox" style="margin: 0; width: 16px; height: 16px;"><span style="flex: 1 1 auto;">阶段变更时</span></label>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 11px; font-weight: 600; color: #8a8986; letter-spacing: 0.04em;">语言</div>
+        <div style="display: flex; align-items: center; gap: 10px;"><label for="lang" style="width: 72px; color: #6b6a66;">偏好语言</label><select id="lang" style="flex: 1 1 auto; height: 30px; border: 1px solid #d6d3cc; border-radius: 6px; background: #fff; font-size: 12px; padding: 0 8px;"><option>跟随系统（中文）</option><option>中文</option><option>English</option><option>日本語</option></select></div>
+        <div style="font-size: 12px; color: #8a8986;">状态带、看板、提醒的文字跟着换；流程自己的标题和说明保持作者写的语言。</div>
+      </div>
+      <div style="font-size: 12px; color: #8a8986; border-top: 1px solid #e6e4de; padding-top: 12px;">流程在「流程」页换和调整，工具在「工具」页归类，都写回仓库里的文件。</div>
+    </div>
+  </div>
+
+  <div style="width: 384px; flex: 0 0 384px; box-sizing: border-box; background: #fff; border: 1px solid #d6d3cc; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.10); display: flex; flex-direction: column; overflow: hidden;">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid #e6e4de;"><span style="font-weight: 700; font-size: 15px;">升级</span><span style="flex: 1 1 auto;"></span><button aria-label="关闭" style="width: 28px; height: 28px; border: 0; background: transparent; cursor: pointer; font-size: 16px; color: #6b6a66;">×</button></div>
+    <div style="padding: 14px 18px; display: flex; flex-direction: column; gap: 14px; font-size: 13px;">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: #f5f5f4; border: 1px solid #e6e4de; border-radius: 8px;">
+        <div style="display: flex; flex-direction: column; gap: 2px;"><span style="color: #6b6a66; font-size: 12px;">当前</span><span style="font-family: 'SF Mono', Menlo, Consolas, monospace; font-weight: 600;">0.1.0</span></div>
+        <span style="flex: 1 1 auto;"></span>
+        <span style="color: #1a7f4b; font-size: 12px;">已是最新</span>
+        <button style="height: 30px; padding: 0 12px; border: 1px solid #d6d3cc; border-radius: 6px; background: #fff; font-size: 12px; cursor: pointer;">检查更新</button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-size: 11px; font-weight: 600; color: #8a8986; letter-spacing: 0.04em;">这一版有什么</div>
+        <div style="display: flex; gap: 8px;"><span style="color: #8a8986;">·</span><span>事项流程：记下 → 待你定 → 实施 → 待验收 → 完成</span></div>
+        <div style="display: flex; gap: 8px;"><span style="color: #8a8986;">·</span><span>看板显示每件事做出来的东西：结果、改过的文件、提交</span></div>
+        <div style="display: flex; gap: 8px;"><span style="color: #8a8986;">·</span><span>写文件的工具按文件分开记</span></div>
+        <div style="display: flex; gap: 8px;"><span style="color: #8a8986;">·</span><span>不再问「这个命令能不能用」，安全交给 Claude Code 的权限</span></div>
+        <div style="display: flex; gap: 8px;"><span style="color: #8a8986;">·</span><span>状态带随时能打开看板</span></div>
+        <a href="#changelog" style="font-size: 12px;">完整 CHANGELOG</a>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #6b6a66; padding-top: 10px; border-top: 1px solid #e6e4de;">
+        <div>装在本机插件目录 geml-dev（开发版）</div>
+        <div>更新后下一个会话生效；本会话不受影响</div>
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #1f1e1d; padding-top: 4px;"><input type="checkbox" checked style="margin: 0; width: 16px; height: 16px;">有新版本时在看板上提示</label>
+      </div>
+    </div>
+  </div>
+
+  <div style="width: 384px; flex: 0 0 384px; box-sizing: border-box; background: #fff; border: 1px solid #d6d3cc; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.10); display: flex; flex-direction: column; overflow: hidden;">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid #e6e4de;"><span style="font-weight: 700; font-size: 15px;">关于</span><span style="flex: 1 1 auto;"></span><button aria-label="关闭" style="width: 28px; height: 28px; border: 0; background: transparent; cursor: pointer; font-size: 16px; color: #6b6a66;">×</button></div>
+    <div style="padding: 20px 18px; display: flex; flex-direction: column; gap: 14px; font-size: 13px; align-items: flex-start;">
+      <svg viewBox="0 0 615.50 137.76" width="220" height="49" role="img" aria-label="Gemflow"><path fill="#0077be" fill-rule="nonzero" d="M21.48 12.00L74.57 12.00L120.07 68.88L97.32 68.88L61.30 30.96L36.65 30.96L66.98 68.88L44.23 68.88L12.00 30.96L12.00 21.48Z"/><path fill="#ef3b3f" fill-rule="nonzero" d="M21.48 125.76L74.57 125.76L120.07 68.88L97.32 68.88L61.30 106.80L36.65 106.80L66.98 68.88L44.23 68.88L12.00 106.80L12.00 116.28Z"/><path fill="#0077be" fill-rule="nonzero" d="M170.90 125.76Q161.66 125.76 154.58 122.46Q147.50 119.16 143.30 113.16L153.26 103.20Q156.62 107.16 160.76 109.26Q164.90 111.36 170.78 111.36Q178.10 111.36 182.36 107.64Q186.62 103.92 186.62 97.32L186.62 82.80L189.26 70.08L186.74 57.36L186.74 42.12L202.34 42.12L202.34 97.08Q202.34 105.72 198.32 112.14Q194.30 118.56 187.22 122.16Q180.14 125.76 170.90 125.76ZM170.18 98.52Q162.38 98.52 156.14 94.74Q149.90 90.96 146.36 84.36Q142.82 77.76 142.82 69.60Q142.82 61.44 146.36 54.96Q149.90 48.48 156.14 44.70Q162.38 40.92 170.18 40.92Q176.66 40.92 181.64 43.44Q186.62 45.96 189.50 50.34Q192.38 54.72 192.62 60.60L192.62 78.84Q192.38 84.60 189.44 89.10Q186.50 93.60 181.52 96.06Q176.54 98.52 170.18 98.52ZM173.30 84.24Q177.62 84.24 180.80 82.38Q183.98 80.52 185.78 77.22Q187.58 73.92 187.58 69.72Q187.58 65.40 185.78 62.16Q183.98 58.92 180.80 57.06Q177.62 55.20 173.30 55.20Q168.98 55.20 165.74 57.06Q162.50 58.92 160.70 62.22Q158.90 65.52 158.90 69.72Q158.90 73.80 160.70 77.10Q162.50 80.40 165.74 82.32Q168.98 84.24 173.30 84.24Z"/><path fill="#0077be" fill-rule="nonzero" d="M241.46 101.28Q232.34 101.28 225.26 97.38Q218.18 93.48 214.04 86.64Q209.90 79.80 209.90 71.04Q209.90 62.40 213.92 55.62Q217.94 48.84 224.90 44.82Q231.86 40.80 240.38 40.80Q248.78 40.80 255.20 44.58Q261.62 48.36 265.28 54.90Q268.94 61.44 268.94 69.72Q268.94 71.28 268.76 72.90Q268.58 74.52 268.10 76.56L219.38 76.68L219.38 64.92L260.78 64.80L254.42 69.72Q254.18 64.56 252.56 61.08Q250.94 57.60 247.88 55.74Q244.82 53.88 240.38 53.88Q235.70 53.88 232.22 55.98Q228.74 58.08 226.88 61.86Q225.02 65.64 225.02 70.80Q225.02 76.08 227.00 79.98Q228.98 83.88 232.70 85.98Q236.42 88.08 241.34 88.08Q245.78 88.08 249.38 86.58Q252.98 85.08 255.62 82.08L264.86 91.32Q260.66 96.24 254.60 98.76Q248.54 101.28 241.46 101.28Z"/><path fill="#0077be" fill-rule="nonzero" d="M276.26 100.08L276.26 42.12L291.98 42.12L291.98 100.08L276.26 100.08ZM314.06 100.08L314.06 65.88Q314.06 60.84 310.88 58.02Q307.70 55.20 303.02 55.20Q299.90 55.20 297.38 56.46Q294.86 57.72 293.42 60.12Q291.98 62.52 291.98 65.88L285.86 62.88Q285.86 56.16 288.80 51.24Q291.74 46.32 296.78 43.62Q301.82 40.92 308.18 40.92Q314.18 40.92 319.10 43.62Q324.02 46.32 326.90 51.18Q329.78 56.04 329.78 62.88L329.78 100.08L314.06 100.08ZM351.86 100.08L351.86 65.88Q351.86 60.84 348.68 58.02Q345.50 55.20 340.82 55.20Q337.82 55.20 335.24 56.46Q332.66 57.72 331.22 60.12Q329.78 62.52 329.78 65.88L320.78 63.72Q321.26 56.76 324.50 51.66Q327.74 46.56 333.02 43.74Q338.30 40.92 344.78 40.92Q351.26 40.92 356.42 43.62Q361.58 46.32 364.58 51.36Q367.58 56.40 367.58 63.36L367.58 100.08L351.86 100.08Z"/><path fill="#ef3b3f" fill-rule="nonzero" d="M385.58 100.08L385.58 35.88Q385.58 28.92 388.58 23.58Q391.58 18.24 397.10 15.12Q402.62 12.00 410.06 12.00Q415.70 12.00 419.78 13.92Q423.86 15.84 427.10 19.20L417.14 29.28Q415.82 27.96 414.26 27.24Q412.70 26.52 410.30 26.52Q405.98 26.52 403.64 28.86Q401.30 31.20 401.30 35.52L401.30 100.08L385.58 100.08ZM372.14 55.92L372.14 42.12L418.46 42.12L418.46 55.92L372.14 55.92Z"/><path fill="#ef3b3f" fill-rule="nonzero" d="M425.78 100.08L425.78 13.32L441.50 13.32L441.50 100.08L425.78 100.08Z"/><path fill="#ef3b3f" fill-rule="nonzero" d="M480.26 101.28Q471.50 101.28 464.48 97.26Q457.46 93.24 453.32 86.34Q449.18 79.44 449.18 70.92Q449.18 62.40 453.26 55.62Q457.34 48.84 464.42 44.82Q471.50 40.80 480.14 40.80Q489.02 40.80 496.04 44.82Q503.06 48.84 507.14 55.62Q511.22 62.40 511.22 70.92Q511.22 79.44 507.14 86.34Q503.06 93.24 496.04 97.26Q489.02 101.28 480.26 101.28ZM480.14 86.64Q484.58 86.64 488.00 84.66Q491.42 82.68 493.28 79.14Q495.14 75.60 495.14 71.04Q495.14 66.48 493.22 63.00Q491.30 59.52 487.94 57.54Q484.58 55.56 480.14 55.56Q475.82 55.56 472.46 57.54Q469.10 59.52 467.18 63.00Q465.26 66.48 465.26 71.04Q465.26 75.60 467.18 79.14Q469.10 82.68 472.46 84.66Q475.82 86.64 480.14 86.64Z"/><path fill="#ef3b3f" fill-rule="nonzero" d="M534.38 100.08L512.66 42.12L528.50 42.12L542.66 84.24L537.86 84.36L552.38 42.12L563.78 42.12L578.30 84.36L573.50 84.24L587.66 42.12L603.50 42.12L581.90 100.08L570.50 100.08L555.86 60.00L560.30 60.00L545.66 100.08L534.38 100.08Z"/></svg>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-weight: 700; font-size: 16px;">Gemflow</div>
+        <div style="color: #6b6a66;">写下一条提示词之前，要看的都在一处：在做什么、等你定什么、做出了什么。流程用 GEML 写，可以换、可以调，也可以导入自己的。</div>
+      </div>
+      <div style="display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 4px 10px; font-size: 12px; width: 100%;">
+        <span style="color: #8a8986;">插件</span><span style="font-family: 'SF Mono', Menlo, Consolas, monospace;">@geml/gemflow 0.1.0</span>
+        <span style="color: #8a8986;">解析器</span><span style="font-family: 'SF Mono', Menlo, Consolas, monospace;">@geml/geml 1.12.5</span>
+        <span style="color: #8a8986;">流程格式</span><span style="font-family: 'SF Mono', Menlo, Consolas, monospace;">geml-statechart/v1</span>
+        <span style="color: #8a8986;">许可</span><span>MIT</span>
+      </div>
+      <div style="display: flex; gap: 14px; font-size: 12px; padding-top: 6px; border-top: 1px solid #e6e4de; width: 100%;"><a href="https://geml-spec.github.io">规范与文档</a><a href="https://github.com/geml-spec/geml">仓库</a><a href="https://github.com/geml-spec/geml/issues">反馈</a></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1200,"height":640}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

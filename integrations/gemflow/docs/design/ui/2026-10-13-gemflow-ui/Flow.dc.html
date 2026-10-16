@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>流程：开发流程</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;font-family:-apple-system,"PingFang SC","Helvetica Neue","Noto Sans SC",sans-serif;color:#1f1e1d}
+a{color:#2a6fdb}a:hover{color:#1f56ad}
+</style>
+</helmet>
+<div style="width: 440px; height: 1160px; box-sizing: border-box; background: #fff; border: 1px solid #d6d3cc; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden;">
+  <div style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid #e6e4de;">
+    <svg viewBox="17.5 17 66 66" width="22" height="22" role="img" aria-label="Gemflow"><polygon points="27,20 55,20 79,50 67,50 48,30 35,30 51,50 39,50 22,30 22,25" fill="#0077be"/><polygon points="27,80 55,80 79,50 67,50 48,70 35,70 51,50 39,50 22,70 22,75" fill="#ef3b3f"/></svg>
+    <span style="font-weight: 700; font-size: 15px;">Gemflow</span>
+    <span style="flex: 1 1 auto;"></span>
+    <span style="font-size: 12px; color: #6b6a66;">工程 gemflow 插件 · 构建</span>
+  </div>
+  <div style="display: flex; gap: 2px; padding: 0 12px; border-bottom: 1px solid #e6e4de; font-size: 13px;">
+    <a href="Sessions.dc.html" style="height: 40px; padding: 0 10px; display: flex; align-items: center; gap: 6px; color: #6b6a66; text-decoration: none;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>会话</a>
+    <a href="Flow.dc.html" style="height: 40px; box-sizing: border-box; padding: 0 10px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid #1f1e1d; font-weight: 600; color: #1f1e1d; text-decoration: none;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="5" rx="1"/><rect x="14" y="16" width="7" height="5" rx="1"/><path d="M6.5 8v5h11v3"/></svg>流程</a>
+    <a href="Items.dc.html" style="height: 40px; padding: 0 10px; display: flex; align-items: center; gap: 6px; color: #6b6a66; text-decoration: none;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5L7.5 11M3.5 18l1.5 1.5L7.5 17"/></svg>工作项</a>
+    <a href="Journal.dc.html" style="height: 40px; padding: 0 10px; display: flex; align-items: center; gap: 6px; color: #6b6a66; text-decoration: none;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>记录</a>
+    <a href="Tools.dc.html" style="height: 40px; padding: 0 10px; display: flex; align-items: center; gap: 6px; color: #6b6a66; text-decoration: none;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5a4 4 0 0 0-5 5L4 16l4 4 5.5-5.5a4 4 0 0 0 5-5l-2.5 2.5-2.5-.5-.5-2.5z"/></svg>工具</a>
+  </div>
+
+  <div style="flex: 1 1 auto; overflow: hidden; padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+    <div style="display: flex; align-items: center; gap: 8px;"><span style="font-weight: 700; font-size: 15px;">开发流程</span><span style="font-size: 12px; color: #8a8986;">软件工程</span><span style="flex: 1 1 auto;"></span><button style="height: 28px; padding: 0 10px; border: 1px solid #d6d3cc; border-radius: 6px; background: #fff; font-size: 12px; cursor: pointer;">换一个 ▾</button></div>
+
+    <div style="border: 1.5px dashed #2a6fdb; border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; background: #f5f8fe;">
+      <div><span style="color: #2a6fdb; font-weight: 600;">建议加一格「样稿」</span></div>
+      <div style="font-size: 12px; color: #3d3c38;">按你 12:20 说的习惯：先把界面和交互改出来、填上你期望的内容给你看，你点头了再进构建。</div>
+      <div style="display: flex; gap: 8px;"><button style="height: 28px; padding: 0 12px; border: 0; border-radius: 6px; background: #1f1e1d; color: #fff; font-size: 12px; cursor: pointer;">采用</button><button style="height: 28px; padding: 0 12px; border: 1px solid #d6d3cc; border-radius: 6px; background: #fff; font-size: 12px; cursor: pointer;">不用</button></div>
+    </div>
+
+    <div style="position: relative; width: 408px; height: 580px; flex: 0 0 580px;">
+<svg width="8" height="51" viewBox="0 0 8 51" preserveAspectRatio="none" style="position: absolute; left: 111px; top: 64px; width: 8px; height: 51px; overflow: visible; fill: none; stroke: #2a6fdb; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 6 6"><defs><marker id="dc-arrow-head-filled-1" orient="auto" markerWidth="5" markerHeight="5" refX="2" refY="2" overflow="visible"><path d="M0 0 L4 2 L0 4 Z" fill="#2a6fdb" stroke="none" style="stroke: none; fill: #2a6fdb; fill: context-stroke"/></marker></defs><path d="M 4 0 L 4 47" marker-end="url(#dc-arrow-head-filled-1)"></path></svg>
+<svg width="8" height="51" viewBox="0 0 8 51" preserveAspectRatio="none" style="position: absolute; left: 111px; top: 164px; width: 8px; height: 51px; overflow: visible; fill: none; stroke: #8a8986; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><defs><marker id="dc-arrow-head-filled-2" orient="auto" markerWidth="5" markerHeight="5" refX="2" refY="2" overflow="visible"><path d="M0 0 L4 2 L0 4 Z" fill="#8a8986" stroke="none" style="stroke: none; fill: #8a8986; fill: context-stroke"/></marker></defs><path d="M 4 0 L 4 47" marker-end="url(#dc-arrow-head-filled-2)"></path></svg>
+<svg width="8" height="51" viewBox="0 0 8 51" preserveAspectRatio="none" style="position: absolute; left: 111px; top: 264px; width: 8px; height: 51px; overflow: visible; fill: none; stroke: #8a8986; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><defs><marker id="dc-arrow-head-filled-3" orient="auto" markerWidth="5" markerHeight="5" refX="2" refY="2" overflow="visible"><path d="M0 0 L4 2 L0 4 Z" fill="#8a8986" stroke="none" style="stroke: none; fill: #8a8986; fill: context-stroke"/></marker></defs><path d="M 4 0 L 4 47" marker-end="url(#dc-arrow-head-filled-3)"></path></svg>
+<svg width="8" height="51" viewBox="0 0 8 51" preserveAspectRatio="none" style="position: absolute; left: 111px; top: 364px; width: 8px; height: 51px; overflow: visible; fill: none; stroke: #8a8986; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><defs><marker id="dc-arrow-head-filled-4" orient="auto" markerWidth="5" markerHeight="5" refX="2" refY="2" overflow="visible"><path d="M0 0 L4 2 L0 4 Z" fill="#8a8986" stroke="none" style="stroke: none; fill: #8a8986; fill: context-stroke"/></marker></defs><path d="M 4 0 L 4 47" marker-end="url(#dc-arrow-head-filled-4)"></path></svg>
+<svg width="8" height="51" viewBox="0 0 8 51" preserveAspectRatio="none" style="position: absolute; left: 111px; top: 464px; width: 8px; height: 51px; overflow: visible; fill: none; stroke: #8a8986; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><defs><marker id="dc-arrow-head-filled-5" orient="auto" markerWidth="5" markerHeight="5" refX="2" refY="2" overflow="visible"><path d="M0 0 L4 2 L0 4 Z" fill="#8a8986" stroke="none" style="stroke: none; fill: #8a8986; fill: context-stroke"/></marker></defs><path d="M 4 0 L 4 47" marker-end="url(#dc-arrow-head-filled-5)"></path></svg>
+<svg width="110" height="8" viewBox="0 0 110 8" preserveAspectRatio="none" style="position: absolute; left: 190px; top: 236px; width: 110px; height: 8px; overflow: visible; fill: none; stroke: #8a8986; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M 0 4 L 110 4"></path></svg>
+<svg width="8" height="92" viewBox="0 0 8 92" preserveAspectRatio="none" style="position: absolute; left: 296px; top: 148px; width: 8px; height: 92px; overflow: visible; fill: none; stroke: #8a8986; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M 4 0 L 4 92"></path></svg>
+<svg width="109" height="8" viewBox="0 0 109 8" preserveAspectRatio="none" style="position: absolute; left: 191px; top: 144px; width: 109px; height: 8px; overflow: visible; fill: none; stroke: #8a8986; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><defs><marker id="dc-arrow-head-filled-6" orient="auto" markerWidth="5" markerHeight="5" refX="2" refY="2" overflow="visible"><path d="M0 0 L4 2 L0 4 Z" fill="#8a8986" stroke="none" style="stroke: none; fill: #8a8986; fill: context-stroke"/></marker></defs><path d="M 109 4 L 4 4" marker-end="url(#dc-arrow-head-filled-6)"></path></svg>
+<svg width="60" height="8" viewBox="0 0 60 8" preserveAspectRatio="none" style="position: absolute; left: 190px; top: 128px; width: 60px; height: 8px; overflow: visible; fill: none; stroke: #2a6fdb; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 6 6"><path d="M 0 4 L 60 4"></path></svg>
+<svg width="8" height="92" viewBox="0 0 8 92" preserveAspectRatio="none" style="position: absolute; left: 246px; top: 40px; width: 8px; height: 92px; overflow: visible; fill: none; stroke: #2a6fdb; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 6 6"><path d="M 4 0 L 4 92"></path></svg>
+<svg width="59" height="8" viewBox="0 0 59 8" preserveAspectRatio="none" style="position: absolute; left: 191px; top: 36px; width: 59px; height: 8px; overflow: visible; fill: none; stroke: #2a6fdb; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 6 6"><defs><marker id="dc-arrow-head-filled-7" orient="auto" markerWidth="5" markerHeight="5" refX="2" refY="2" overflow="visible"><path d="M0 0 L4 2 L0 4 Z" fill="#2a6fdb" stroke="none" style="stroke: none; fill: #2a6fdb; fill: context-stroke"/></marker></defs><path d="M 59 4 L 4 4" marker-end="url(#dc-arrow-head-filled-7)"></path></svg>
+<div style="position: absolute; left: 40px; top: 16px; width: 150px; height: 48px; box-sizing: border-box; padding: 4px; display: flex; align-items: center; justify-content: center; text-align: center; background: #f2f6fd; border: 1.5px dashed #2a6fdb; border-radius: 10px; color: #2a6fdb; font-size: 13px;"><span><b>样稿</b><br>建议加上</span></div>
+<div style="position: absolute; left: 40px; top: 116px; width: 150px; height: 48px; box-sizing: border-box; padding: 4px; display: flex; align-items: center; justify-content: center; text-align: center; background: #f5f5f4; border: 2px solid #1f1e1d; border-radius: 10px; font-size: 13px;"><span><b>构建</b><br>此刻在这里</span></div>
+<div style="position: absolute; left: 40px; top: 216px; width: 150px; height: 48px; box-sizing: border-box; padding: 4px; display: flex; align-items: center; justify-content: center; text-align: center; background: #fff; border: 1px solid #d6d3cc; border-radius: 10px; font-size: 13px;"><b>评审</b></div>
+<div style="position: absolute; left: 40px; top: 316px; width: 150px; height: 48px; box-sizing: border-box; padding: 4px; display: flex; align-items: center; justify-content: center; text-align: center; background: #fff; border: 1px solid #d6d3cc; border-radius: 10px; font-size: 13px;"><b>部署</b></div>
+<div style="position: absolute; left: 40px; top: 416px; width: 150px; height: 48px; box-sizing: border-box; padding: 4px; display: flex; align-items: center; justify-content: center; text-align: center; background: #fff; border: 1px solid #d6d3cc; border-radius: 10px; font-size: 13px;"><b>上线</b></div>
+<div style="position: absolute; left: 40px; top: 516px; width: 150px; height: 48px; box-sizing: border-box; padding: 4px; display: flex; align-items: center; justify-content: center; text-align: center; background: #fff; border: 3px double #d6d3cc; border-radius: 10px; font-size: 13px;"><b>完成</b></div>
+<div style="position: absolute; left: 127px; top: 82px; width: 110px; font-size: 12px; line-height: 16px; color: #2a6fdb;">你看了样稿，点头</div>
+<div style="position: absolute; left: 127px; top: 182px; width: 110px; font-size: 12px; line-height: 16px; color: #6b6a66;">测试过且 PR 开了</div>
+<div style="position: absolute; left: 127px; top: 282px; width: 84px; font-size: 12px; line-height: 16px; color: #6b6a66;">合并且 CI 过</div>
+<div style="position: absolute; left: 127px; top: 382px; width: 150px; font-size: 12px; line-height: 16px; color: #6b6a66;">staging 已部署 · 你点头</div>
+<div style="position: absolute; left: 127px; top: 482px; width: 116px; font-size: 12px; line-height: 16px; color: #6b6a66;">production 已部署</div>
+<div style="position: absolute; left: 312px; top: 186px; width: 96px; font-size: 12px; line-height: 16px; color: #6b6a66;">review 要求改动</div>
+<div style="position: absolute; left: 262px; top: 78px; width: 140px; font-size: 12px; line-height: 16px; color: #2a6fdb;">界面要重来 · 你点头</div>
+    </div>
+
+    <div style="border-top: 1px solid #e6e4de; padding-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: baseline; gap: 8px;"><span style="font-weight: 600; font-size: 14px;">构建</span><span style="font-size: 12px; color: #6b6a66;">选中 · 此刻在这里</span></div>
+      <div style="font-size: 12px; color: #6b6a66;">写代码和测试，直到测试通过、PR 开出来。</div>
+      <div style="font-size: 11px; font-weight: 600; color: #8a8986; letter-spacing: 0.04em;">这里能用</div>
+      <div style="display: flex; flex-direction: column; border: 1px solid #e6e4de; border-radius: 8px;">
+        <div style="display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 8px; padding: 7px 12px; border-bottom: 1px solid #f0eee9;"><span style="color: #1a7f4b;">改文件</span><span style="font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; color: #6b6a66;">Edit · Write · NotebookEdit · apply_patch</span></div>
+        <div style="display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 8px; padding: 7px 12px; border-bottom: 1px solid #f0eee9;"><span style="color: #1a7f4b;">跑测试</span><span style="font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; color: #6b6a66;">npm test · pnpm test · yarn test · cargo test · pytest · go test</span></div>
+        <div style="display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 8px; padding: 7px 12px; border-bottom: 1px solid #f0eee9;"><span style="color: #1a7f4b;">开 PR</span><span style="font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; color: #6b6a66;">gh pr create</span></div>
+        <div style="display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 8px; padding: 7px 12px;"><span style="color: #1a7f4b;">读文件</span><span style="font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; color: #6b6a66;">Read · Grep · Glob（哪里都能用）</span></div>
+      </div>
+      <div style="font-size: 11px; font-weight: 600; color: #8a8986; letter-spacing: 0.04em;">这里不能用</div>
+      <div style="display: flex; flex-direction: column; border: 1px solid #e6e4de; border-radius: 8px;">
+        <div style="display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 8px; padding: 7px 12px; border-bottom: 1px solid #f0eee9;"><span style="color: #8a8986;">部署</span><span style="font-size: 12px; color: #6b6a66;">只在部署</span></div>
+        <div style="display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 8px; padding: 7px 12px;"><span style="color: #8a8986;">上线</span><span style="font-size: 12px; color: #6b6a66;">只在上线</span></div>
+      </div>
+      <div style="font-size: 12px; color: #8a8986;">没归类的工具（node --test、git、npm run build…）哪里都照常能用。</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":440,"height":1160}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
