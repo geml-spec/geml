@@ -1,0 +1,67 @@
+=== meta
+title   = "订单流程"
+profile = "geml-statechart/v1"
+===
+
+=== diagram {#flow format=geml-statechart caption="订单流程"}
+{
+  "initial": "order",
+
+  "states": {
+    "order": {
+      "title": "下单",
+      "description": "买家下单，备货、付款，等风控放行。",
+      "owner": "sales",
+      "teams": ["sales", "billing", "stock"]
+    },
+    "verify": {
+      "title": "审核",
+      "description": "核对订单，等风控通过、称重完成。",
+      "teams": ["risk", "billing"]
+    },
+    "packed": {
+      "title": "打包",
+      "description": "打包并分配承运商。",
+      "teams": ["warehouse"]
+    },
+    "shipped": {
+      "title": "发货",
+      "description": "交给承运商。",
+      "teams": ["logistics"]
+    },
+    "done": { "title": "签收", "final": true }
+  },
+
+  "vars": {
+    "stock-held":       { "default": false, "feed": { "system": "warehouse" } },
+    "paid-ok":          { "default": false, "feed": "payment" },
+    "risk-pass":        { "default": false, "feed": "risk" },
+    "weighed":          { "default": false, "feed": "scale" },
+    "manual-check":     { "default": false, "feed": "human", "note": "大额订单由人勾选" },
+    "carrier-assigned": { "default": false, "feed": { "system": "carrier" } },
+    "parcel-handed":    { "default": false, "feed": { "system": "carrier" } }
+  },
+
+  "transitions": [
+    { "from": "order", "to": "verify",
+      "guard": { "anyOf": [
+        { "properties": { "stock-held": { "const": true }, "paid-ok": { "const": true } } },
+        { "properties": { "risk-pass": { "const": true } } },
+        { "properties": { "manual-check": { "const": true } } } ] } },
+
+    { "from": "verify", "to": "order",
+      "guard": "verify 要求改单",
+      "actions": [ { "reset": ["stock-held", "manual-check"] } ] },
+
+    { "from": "verify", "to": "packed",
+      "guard": { "properties": { "risk-pass": { "const": true }, "weighed": { "const": true } } } },
+
+    { "from": "packed", "to": "shipped",
+      "guard": { "properties": { "carrier-assigned": { "const": true } } },
+      "approval": true },
+
+    { "from": "shipped", "to": "done",
+      "guard": { "properties": { "parcel-handed": { "const": true } } } }
+  ]
+}
+===

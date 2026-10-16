@@ -306,6 +306,28 @@ export const PROFILES: Record<string, ProfileDef> = {
       "history-blob": ["lang"],
     },
   },
+  // spec/profiles/geml-statechart/geml-statechart-profile.md — a statechart in
+  // one `diagram` block. The vocabulary admits the format name and the
+  // `current=` attribute on that block, nothing else: the body is raw to the
+  // core either way (§8.6.1), and the renderer that reads the JSON, the
+  // `statechart-*` checks and the Markdown projection are the format's own.
+  "geml-statechart/v1": {
+    // `since` 留空：还没随任何解析器版本发出去。
+    state: "draft",
+    attrs: { diagram: ["current"] },
+    formats: ["geml-statechart"],
+    diagnostics: {
+      "statechart-body": "error",
+      "statechart-initial": "error",
+      "statechart-state": "error",
+      "statechart-transition": "error",
+      "statechart-guard": "error",
+      "statechart-actions": "error",
+      "statechart-vars": "error",
+      "statechart-current": "error",
+      "statechart-unreachable": "warning",
+    },
+  },
 };
 
 // ---------------------------------------------------------------------------

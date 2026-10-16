@@ -41,14 +41,20 @@ that declare different profiles.
 | `geml-form/v1` | draft | `form`, `form-field`, `form-group`, `form-options`, `form-note` blocks (`form` and `form-group` nest); `pattern`, `min`, `max`, `step`, `maxlength`, `accept` on `form-field` — GEP-0008 | [geml-form-profile.md](geml-form/geml-form-profile.md) · [中文](geml-form/geml-form-profile_CN.md) · guide: [EN](geml-form/geml-form-guide.md) · [中文](geml-form/geml-form-guide_CN.md) | — |
 | `geml-media/v1` | draft | types `media` (a timeline, or one playable source), `media-asset`, `media-clip`, `media-text`, `media-comp` (a picture composed from layers), `media-layer` and `media-interaction` (where two layers' points meet; `media` and `media-comp` hold blocks, `media-text` and `media-interaction` are prose) and their attribute keys; `.gen-log` on a `data` block | [geml-media-profile.md](geml-media/geml-media-profile.md) · [中文](geml-media/geml-media-profile_CN.md) · guide: [EN](geml-media/geml-media-guide.md) · [中文](geml-media/geml-media-guide_CN.md) | `geml media todo|report|export|build|lay|log|import` |
 | `geml-translator/v1` | draft | `translate-to` on `embed` blocks, and on `=== meta` as the document default — GEP-0010 | [geml-translator-profile.md](geml-translator/geml-translator-profile.md) · [中文](geml-translator/geml-translator-profile_CN.md) · guide: [EN](geml-translator/geml-translator-guide.md) · [中文](geml-translator/geml-translator-guide_CN.md) | — |
+| `geml-statechart/v1` | draft | the `diagram` format `geml-statechart` (a state machine as a JSON body: `initial`, `states`, `vars`, `transitions`), and the attribute key `current` on `diagram` blocks | [geml-statechart-profile.md](geml-statechart/geml-statechart-profile.md) · [中文](geml-statechart/geml-statechart-profile_CN.md) | — |
 
 The reference implementation's registry is
 [`geml-parser/src/profiles.ts`](../../geml-parser/src/profiles.ts); this table
 and that file are the same list stated twice, and a test pins the naming
 convention (`^geml-[a-z-]+/vN$`).
 
+A program built on one of these formats needs no profile of its own when it
+adds no names to GEML: its documents declare the format's profile alone, its
+keys are that format's attributes, and what they mean is defined with the
+program, not here.
+
 A profile may carry its own CLI verbs, as four of these do (`geml style check`
-is EXPERIMENTAL and `geml media` moves with its draft profile; the other two are
+is EXPERIMENTAL, `geml media` moves with its draft profile; the other two are
 settled). That is the shape of
 this layer: a vocabulary, a document that defines what the names mean, and
 whatever tooling reads and writes it. Core verbs — `check`, `list`, `get`,
@@ -61,6 +67,9 @@ geml-<thing>/
   geml-<thing>-profile.md  (+ _CN)   the reference: what the vocabulary admits
                                      and what the names mean
   conformance.json                   the cases a second implementation must reproduce
+  checks.json                        optional, for a vocabulary whose runtime has
+                                     static checks: their cases, replayed by the
+                                     runtime's suite
   geml-<thing>-guide.md    (+ _CN)   a one-page usage guide: what it does, the
                                      first command, everyday use
 ```

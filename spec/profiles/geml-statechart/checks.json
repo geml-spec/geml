@@ -1,0 +1,217 @@
+{
+  "profile": "geml-statechart/v1",
+  "about": "The checks of profile §3 (statechart-*), replayed by geml-parser/test/statechart.test.mjs through checkStatechart. Each case: the document (`geml`), the files beside it (`files`, none when absent) and the sorted severity:code list the checker must report for it.",
+  "cases": [
+    {
+      "name": "a clean chart: a schema guard, a reference guard, a sentence guard, a reset",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{\n  \"initial\": \"build\",\n  \"states\": { \"build\": { \"title\": \"构建\", \"owner\": \"dev\" }, \"review\": {}, \"done\": { \"final\": true } },\n  \"vars\": { \"tests-pass\": { \"default\": false }, \"approved\": { \"default\": false } },\n  \"transitions\": [\n    { \"from\": \"build\", \"to\": \"review\", \"guard\": { \"properties\": { \"tests-pass\": { \"const\": true } } } },\n    { \"from\": \"review\", \"to\": \"build\", \"guard\": \"review asks for changes\", \"actions\": [ { \"reset\": [\"tests-pass\"] }, \"notify the author\" ] },\n    { \"from\": \"review\", \"to\": \"done\", \"guard\": \"#approved\" }\n  ]\n}\n===\n\n=== data {#approved format=json}\n{ \"properties\": { \"approved\": { \"const\": true } } }\n===\n",
+      "codes": []
+    },
+    {
+      "name": "the body is not JSON",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"build\", \n===\n",
+      "codes": [
+        "error:statechart-body"
+      ]
+    },
+    {
+      "name": "the body is a JSON array, not an object",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n[1, 2]\n===\n",
+      "codes": [
+        "error:statechart-body"
+      ]
+    },
+    {
+      "name": "the body and data= at once",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== data {#def format=json}\n{ \"initial\": \"build\", \"states\": { \"build\": {}, \"done\": { \"final\": true } }, \"transitions\": [ { \"from\": \"build\", \"to\": \"done\" } ] }\n===\n\n=== diagram {#m format=geml-statechart data=#def}\n{ \"initial\": \"build\", \"states\": { \"build\": {}, \"done\": { \"final\": true } }, \"transitions\": [ { \"from\": \"build\", \"to\": \"done\" } ] }\n===\n",
+      "codes": [
+        "error:statechart-body"
+      ]
+    },
+    {
+      "name": "data= names a data block whose value is an array",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== data {#def format=json}\n[1]\n===\n\n=== diagram {#m format=geml-statechart data=#def}\n===\n",
+      "codes": [
+        "error:statechart-body"
+      ]
+    },
+    {
+      "name": "data= names nothing",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart data=#nope}\n===\n",
+      "codes": [
+        "error:statechart-body"
+      ]
+    },
+    {
+      "name": "data= names a data block whose value is the definition",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== data {#def format=json}\n{ \"initial\": \"build\", \"states\": { \"build\": {}, \"done\": { \"final\": true } }, \"transitions\": [ { \"from\": \"build\", \"to\": \"done\" } ] }\n===\n\n=== diagram {#m format=geml-statechart data=#def}\n===\n",
+      "codes": []
+    },
+    {
+      "name": "no initial",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"states\": { \"a\": { \"final\": true } }, \"transitions\": [] }\n===\n",
+      "codes": [
+        "error:statechart-initial"
+      ]
+    },
+    {
+      "name": "initial is not a state",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"x\", \"states\": { \"a\": { \"final\": true } }, \"transitions\": [] }\n===\n",
+      "codes": [
+        "error:statechart-initial"
+      ]
+    },
+    {
+      "name": "states is missing",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"transitions\": [] }\n===\n",
+      "codes": [
+        "error:statechart-state"
+      ]
+    },
+    {
+      "name": "a state id with a space, a state that is a string, a nested states, a title that is not a string; with errors, reachability is not reported",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": { \"final\": true }, \"a b\": { \"final\": true }, \"x\": \"str\", \"y\": { \"states\": {} }, \"z\": { \"title\": 3, \"final\": true } }, \"transitions\": [] }\n===\n",
+      "codes": [
+        "error:statechart-state",
+        "error:statechart-state",
+        "error:statechart-state",
+        "error:statechart-state"
+      ]
+    },
+    {
+      "name": "transitions is not an array",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {} }, \"transitions\": {} }\n===\n",
+      "codes": [
+        "error:statechart-transition"
+      ]
+    },
+    {
+      "name": "a transition without from, one whose to is not a state, one carrying event",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {}, \"b\": { \"final\": true } }, \"transitions\": [ { \"to\": \"b\" }, { \"from\": \"a\", \"to\": \"c\" }, { \"from\": \"a\", \"to\": \"b\", \"event\": \"go\" } ] }\n===\n",
+      "codes": [
+        "error:statechart-transition",
+        "error:statechart-transition",
+        "error:statechart-transition"
+      ]
+    },
+    {
+      "name": "a guard that is a number, a schema outside the subset, a guard reading a variable not in vars",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {}, \"b\": { \"final\": true } }, \"vars\": { \"ok\": { \"default\": false } }, \"transitions\": [ { \"from\": \"a\", \"to\": \"b\", \"guard\": 1 }, { \"from\": \"a\", \"to\": \"b\", \"guard\": { \"properties\": { \"ok\": { \"minimum\": 1 } } } }, { \"from\": \"a\", \"to\": \"b\", \"guard\": { \"properties\": { \"nope\": { \"const\": true } } } } ] }\n===\n",
+      "codes": [
+        "error:statechart-guard",
+        "error:statechart-guard",
+        "error:statechart-guard"
+      ]
+    },
+    {
+      "name": "a reference guard that resolves to nothing, and one to a data block whose value is not an object",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {}, \"b\": { \"final\": true } }, \"transitions\": [ { \"from\": \"a\", \"to\": \"b\", \"guard\": \"#nope\" }, { \"from\": \"a\", \"to\": \"b\", \"guard\": \"#list\" } ] }\n===\n\n=== data {#list format=json}\n[1]\n===\n",
+      "codes": [
+        "error:statechart-guard",
+        "error:statechart-guard"
+      ]
+    },
+    {
+      "name": "a reference guard into another document resolves, and reads its variables",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {}, \"b\": { \"final\": true } }, \"vars\": { \"ok\": { \"default\": false } }, \"transitions\": [ { \"from\": \"a\", \"to\": \"b\", \"guard\": \"guards.geml#ready\" } ] }\n===\n",
+      "codes": [],
+      "files": {
+        "guards.geml": "=== data {#ready format=json}\n{ \"properties\": { \"ok\": { \"const\": true } } }\n===\n"
+      }
+    },
+    {
+      "name": "a reference guard into a document that is not there",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {}, \"b\": { \"final\": true } }, \"transitions\": [ { \"from\": \"a\", \"to\": \"b\", \"guard\": \"missing.geml#ready\" } ] }\n===\n",
+      "codes": [
+        "error:statechart-guard"
+      ]
+    },
+    {
+      "name": "actions that are not an array, a reset naming a variable not in vars, an action with set",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {}, \"b\": { \"final\": true } }, \"vars\": { \"ok\": { \"default\": false } }, \"transitions\": [ { \"from\": \"a\", \"to\": \"b\", \"actions\": \"x\" }, { \"from\": \"a\", \"to\": \"b\", \"actions\": [ { \"reset\": [\"nope\"] } ] }, { \"from\": \"a\", \"to\": \"b\", \"actions\": [ { \"set\": { \"ok\": true } } ] } ] }\n===\n",
+      "codes": [
+        "error:statechart-actions",
+        "error:statechart-actions",
+        "error:statechart-actions"
+      ]
+    },
+    {
+      "name": "vars is not an object",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": { \"final\": true } }, \"vars\": [], \"transitions\": [] }\n===\n",
+      "codes": [
+        "error:statechart-vars"
+      ]
+    },
+    {
+      "name": "a variable name with a dot, a variable that is a string, a variable without default",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": { \"final\": true } }, \"vars\": { \"a.b\": { \"default\": 0 }, \"x\": \"str\", \"y\": {} }, \"transitions\": [] }\n===\n",
+      "codes": [
+        "error:statechart-vars",
+        "error:statechart-vars",
+        "error:statechart-vars"
+      ]
+    },
+    {
+      "name": "current= is not a state",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart current=nope}\n{ \"initial\": \"build\", \"states\": { \"build\": {}, \"done\": { \"final\": true } }, \"transitions\": [ { \"from\": \"build\", \"to\": \"done\" } ] }\n===\n",
+      "codes": [
+        "error:statechart-current"
+      ]
+    },
+    {
+      "name": "current= is a state",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart current=done}\n{ \"initial\": \"build\", \"states\": { \"build\": {}, \"done\": { \"final\": true } }, \"transitions\": [ { \"from\": \"build\", \"to\": \"done\" } ] }\n===\n",
+      "codes": []
+    },
+    {
+      "name": "a state nobody reaches is a warning; the chart still loads",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {}, \"b\": { \"final\": true }, \"c\": { \"final\": true } }, \"transitions\": [ { \"from\": \"a\", \"to\": \"b\" } ] }\n===\n",
+      "codes": [
+        "warning:statechart-unreachable"
+      ]
+    },
+    {
+      "name": "a self-loop and a repeated pair are allowed; an anyOf guard is read through every branch",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {}, \"b\": { \"final\": true } }, \"vars\": { \"x\": { \"default\": false }, \"y\": { \"default\": 0 } }, \"transitions\": [ { \"from\": \"a\", \"to\": \"a\" }, { \"from\": \"a\", \"to\": \"b\", \"guard\": { \"anyOf\": [ { \"properties\": { \"x\": { \"const\": true } } }, { \"required\": [\"y\"] } ] } }, { \"from\": \"a\", \"to\": \"b\", \"guard\": \"the second of the pair\" } ] }\n===\n",
+      "codes": []
+    },
+    {
+      "name": "an anyOf branch reading an undeclared variable",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {}, \"b\": { \"final\": true } }, \"vars\": { \"x\": { \"default\": false } }, \"transitions\": [ { \"from\": \"a\", \"to\": \"b\", \"guard\": { \"anyOf\": [ { \"properties\": { \"x\": { \"const\": true } } }, { \"required\": [\"zz\"] } ] } } ] }\n===\n",
+      "codes": [
+        "error:statechart-guard"
+      ]
+    },
+    {
+      "name": "a single state and no transition: valid, and the state is final",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"only\", \"states\": { \"only\": { \"final\": true } }, \"transitions\": [] }\n===\n",
+      "codes": []
+    },
+    {
+      "name": "a document without a statechart block has nothing to check",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== data {#d format=json}\n{}\n===\n",
+      "codes": []
+    },
+    {
+      "name": "a final state with a way out is an error",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {}, \"b\": { \"final\": true } }, \"transitions\": [ { \"from\": \"a\", \"to\": \"b\" }, { \"from\": \"b\", \"to\": \"a\" } ] }\n===\n",
+      "codes": [
+        "error:statechart-final"
+      ]
+    },
+    {
+      "name": "a state with no way out that is not marked final is a warning; the chart still loads",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {}, \"b\": {} }, \"transitions\": [ { \"from\": \"a\", \"to\": \"b\" } ] }\n===\n",
+      "codes": [
+        "warning:statechart-dead-end"
+      ]
+    },
+    {
+      "name": "final that is not a boolean",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {}, \"b\": { \"final\": \"yes\" } }, \"transitions\": [ { \"from\": \"a\", \"to\": \"b\" } ] }\n===\n",
+      "codes": [
+        "error:statechart-state"
+      ]
+    }
+  ]
+}

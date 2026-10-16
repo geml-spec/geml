@@ -21,7 +21,7 @@ case is skipped. The suite runs twice:
   the model the module returns is read by the suite's projection rather than by
   code of this crate (`wasm/conformance.mjs`).
 
-It recognizes all six vocabularies under [`spec/profiles/`](../spec/profiles/)
+It recognizes all seven vocabularies under [`spec/profiles/`](../spec/profiles/)
 and runs each one's checks (see *Vocabularies* below). Every profile
 conformance file passes in both of its readings, declared and undeclared,
 natively (`tests/profiles.rs`) and as WebAssembly (`wasm/profiles.mjs`).

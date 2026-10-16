@@ -29,7 +29,8 @@ function page(title: string, body: string, ctx: RenderCtx, source?: string): str
       `<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>\n` +
       `<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\\\[',right:'\\\\]',display:true},{left:'\\\\(',right:'\\\\)',display:false}]})"></script>\n`
     : "";
-  const mermaidHead = ctx.usedMermaid
+  // A registered renderer may draw with Mermaid too (`ctx.use("mermaid")`).
+  const mermaidHead = ctx.usedMermaid || ctx.usedAssets.has("mermaid")
     ? `<script type="module">import m from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";m.initialize({startOnLoad:true});</script>\n`
     : "";
   const footer = source
@@ -111,7 +112,7 @@ export function renderHtml(doc: Document, opts: RenderOptions = {}): string {
       body = draw(synthetic, {
         raw: "", idAttr: "", cap: `<figcaption>${cap}</figcaption>`, classes: [],
         clsAttr: (cs, own) => ` class="${[...cs, ...(own === undefined ? [] : [own])].join(" ")}"`,
-        opts, use: (asset) => { ctx.usedAssets.add(asset); },
+        opts, use: (asset) => { ctx.usedAssets.add(asset); }, doc,
       }) + "\n" + body;
     }
   }

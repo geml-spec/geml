@@ -773,4 +773,24 @@ test("动词槽位：没被任何词汇表声明的词仍然是「unknown comman
   assert.match((r.stderr ?? ""), /unknown command/);
 });
 
+test("geml-statechart/v1：放行一个 diagram 格式和它上面的 current 属性；声明与否只差诊断，地址不变", () => {
+  const body = '=== diagram {#flow format=geml-statechart current=build}\n{ "initial": "build", "states": { "build": {}, "done": {} }, "transitions": [ { "from": "build", "to": "done" } ] }\n===\n';
+  for (const name of ["geml-statechart/v1"]) {
+    const declared = parse(`=== meta\nprofile = "${name}"\n===\n\n` + body);
+    assert.deepEqual(declared.diagnostics, [], `${name}: declared, no diagnostics`);
+    const v = vocabularyFor(meta({ profile: name }));
+    assert.equal(v.formats.has("geml-statechart"), true, name);
+    assert.equal(v.attrs.get("diagram")?.has("current"), true, name);
+    assert.equal(v.types.size, 0, `${name} admits no block type`);
+    // 放行一个 format 不改变文档模型（§8.6.1）：正文无论如何都是 raw
+    const d = declared.children.find((b) => b.kind === "block" && b.type === "diagram");
+    assert.equal(d.mode, "raw", name);
+  }
+  const undeclared = parse('=== meta\ntitle = "t"\n===\n\n' + body).diagnostics.map((d) => d.code).sort();
+  assert.deepEqual(undeclared, ["unknown-attribute", "unknown-diagram-format"]);
+});
+
+test("一个程序自己的 meta 键在只声明 geml-statechart/v1 的文档里不报：没有词汇表认领它，它是作者的", () => {
+  assert.deepEqual(parse('=== meta\nprofile = "geml-statechart/v1"\norder-unit = "file:orders/*.geml"\n===\n').diagnostics, []);
+});
 console.log(`\n${passed} passed`);

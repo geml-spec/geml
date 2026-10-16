@@ -1,0 +1,60 @@
+{
+  "profile": "geml-statechart/v1",
+  "state": "draft",
+  "codes": {
+    "statechart-body": "error",
+    "statechart-initial": "error",
+    "statechart-state": "error",
+    "statechart-transition": "error",
+    "statechart-guard": "error",
+    "statechart-actions": "error",
+    "statechart-vars": "error",
+    "statechart-current": "error",
+    "statechart-unreachable": "warning"
+  },
+  "cases": [
+    {
+      "name": "a statechart in one diagram block: the format and `current=` are admitted by the declaration, the body is raw either way, so no address moves",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#order format=geml-statechart current=unpaid}\n{ \"initial\": \"unpaid\", \"states\": { \"unpaid\": { \"owner\": \"买家\" }, \"paid\": {} }, \"transitions\": [ { \"from\": \"unpaid\", \"to\": \"paid\", \"guard\": \"支付成功\" } ] }\n===\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#order"
+        ],
+        "undeclared": [
+          "#meta",
+          "#order"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-attribute:warning",
+          "unknown-diagram-format:warning"
+        ]
+      }
+    },
+    {
+      "name": "the definition in a data block the diagram names with `data=`: the data block is addressable in both readings, the empty-bodied diagram admitted only in one",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== data {#def format=json}\n{ \"initial\": \"a\", \"states\": { \"a\": {} }, \"transitions\": [] }\n===\n\n=== diagram {#g format=geml-statechart data=#def}\n===\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#def",
+          "#g"
+        ],
+        "undeclared": [
+          "#meta",
+          "#def",
+          "#g"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-diagram-format:warning"
+        ]
+      }
+    }
+  ]
+}

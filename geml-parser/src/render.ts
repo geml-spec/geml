@@ -54,6 +54,8 @@ export interface DiagramCtx {
   opts: RenderOptions;
   /** Declare that this page needs a named asset (the shell reads the set). */
   use(asset: string): void;
+  /** The document the block is in (an embedded one while inside an embed). */
+  doc: Document;
 }
 /** The block is always a TYPED block here — `diagram` is one. */
 export type DiagramBlock = Extract<Block, { kind: "block" }>;
@@ -811,6 +813,7 @@ export class RenderCtx {
         clsAttr: (cs, own) => (own === undefined ? this.clsAttr(cs) : this.clsAttr(cs, own)),
         opts: this.opts,
         use: (asset) => { this.usedAssets.add(asset); },
+        doc: this.embedDocs.length === 0 ? this.doc : { ...this.doc, children: this.embedDocs[this.embedDocs.length - 1]!.children },
       });
     }
     // graphviz / d2 / plantuml / vega-lite / unknown: no bundled engine yet.
@@ -1088,6 +1091,15 @@ table.geml-table tfoot td { background:var(--code-bg); font-weight:600; border-t
 .table-figure details > summary { cursor:pointer; color:var(--muted); font-size:.86em; padding:4px 0; }
 .table-note { color:var(--muted); font-size:.82em; margin:6px 0 0; }
 .geml-chart { width:100%; height:auto; background:var(--bg); border:1px solid var(--bd); border-radius:8px; }
+figure.statechart { margin:1.4em 0; }
+figure.statechart svg.geml-statechart { background:var(--bg); border:1px solid var(--bd); border-radius:12px; }
+.statechart-tools { margin:6px 0 10px; text-align:right; font-size:.82em; }
+.statechart-tools a { color:var(--muted); }
+.statechart-states, .statechart-transitions { margin:4px 0; }
+.statechart-state > summary, .statechart-transition > summary { cursor:pointer; padding:4px 0; }
+.statechart-state small { color:var(--muted); }
+.statechart-state dl, .statechart-transition dl { margin:4px 0 4px 1em; font-size:.9em; }
+.statechart-state dt, .statechart-transition dt { float:left; clear:left; min-width:8em; color:var(--muted); }
 .c-title { font-size:15px; font-weight:600; fill:var(--fg); }
 .c-grid { stroke:#eaecef; } .c-axis { stroke:#aab1b8; } .c-tick { font-size:11px; fill:var(--muted); } .c-legend { font-size:12px; fill:var(--fg); }
 .media { max-width:100%; border-radius:8px; }

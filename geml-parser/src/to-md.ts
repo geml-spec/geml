@@ -13,6 +13,7 @@ import type { Inline } from "./inline.js";
 import type { TableModel, TableCell, Align } from "./table.js";
 import type { Value } from "./attrs.js";
 import { docTitle, headingShift } from "./doc-title.js";
+import { buildStatechart, mermaidOf } from "./statechart.js";
 
 // ---------------------------------------------------------------------------
 // Inline
@@ -282,6 +283,19 @@ function typedToMd(b: Extract<Block, { kind: "block" }>, ctx: MdCtx): string {
       ctx.notes.add("`geml-chart` block(s) cannot render in Markdown; emitted a descriptor");
       const desc = ["type", "data", "x", "y", "series"].map((k) => { const v = attr(b, k); return v ? `${k}=${v}` : ""; }).filter(Boolean).join(" ");
       return fence("geml-chart", [desc]);
+    }
+    if (fmt === "geml-statechart") {
+      // geml-statechart §2.7: the picture, as Mermaid GitHub draws; the attributes
+      // stay in the source. A definition held in `data=` is a reference this
+      // single-block projection cannot follow: it degrades to a descriptor.
+      if (attr(b, "data") !== undefined) {
+        ctx.notes.add("`geml-statechart` block(s) defined in a `data=` block cannot render in Markdown; emitted a descriptor");
+        return fence("geml-statechart", [`data=${attr(b, "data")}`]);
+      }
+      const { model } = buildStatechart({ body: raw.join("\n"), attrs: b.attrs });
+      if (model !== null) return fence("mermaid", mermaidOf(model).split("\n"));
+      ctx.notes.add("`geml-statechart` block(s) with errors cannot render in Markdown; emitted the body");
+      return fence("json", raw);
     }
     return fence(fmt, raw); // mermaid renders on GitHub; others stay as a code block
   }

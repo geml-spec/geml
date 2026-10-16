@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { checkMedia } from "./media-check.js";
+import { checkStatechart } from "./statechart-check.js";
 import { PROFILES, declaredVocabularies, type ProfileCheck, type ProfileDiagnostic, type ProfileIO } from "./profiles.js";
 
 /**
@@ -12,6 +13,7 @@ import { PROFILES, declaredVocabularies, type ProfileCheck, type ProfileDiagnost
  */
 const PROFILE_CHECKS: Record<string, ProfileCheck> = {
   "geml-media/v1": checkMedia,
+  "geml-statechart/v1": checkStatechart,
 };
 
 /**

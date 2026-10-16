@@ -49,6 +49,8 @@ const suites = [
   "cov-adapters", "cov-serve", "cov-mcp", "cov-media",
   // GEP 0011 coordinates: the addresses that reach inside a block
   "coord",
+  // geml-statechart/v1：一个 diagram 块里的状态机——模型、§3 的检查（checks.json 逐例重放）、Mermaid 投影
+  "statechart",
   // geml-media/v1 的检查器：素材哈希、轨道种类、片段与轨道的种类是否相符、
   // 生成日志的 schema，以及血缘过期与它沿 DAG 的传播
   "media",
