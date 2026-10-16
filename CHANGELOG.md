@@ -28,6 +28,19 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **Fixed: a reference into a block nested in a profile's container in
+  another document resolved as unresolved.** The other document was scanned
+  with an empty vocabulary when its ids were gathered for a cross-document
+  reference, so a `form` or `form-group` (geml-form) was an unknown type, its
+  body raw, and every id inside it out of view: `[[target.geml#email]]` and
+  `=== embed {src=target.geml#email}` were errors while `[[#email]]` in the
+  target itself and the renderer's embed worked. §3 says the other document
+  is read as its own meta says, so each foreign-document scan now takes that
+  document's vocabulary (`vocabularyOf`): the id gathering, the embed listing,
+  a `view`'s `src=` into a block there, and a coordinate into one. The naming
+  document's own profile still does not reach into it. Three conformance cases
+  in `documents.json` pin the rule.
+
 - **codemap**: `geml codemap build` writes `.geml/codemap/` by default (was `.geml-code-graph/`), next to a project's other GEML files; the guides, skills and `.dockerignore` follow.
 
 - **The VS Code extension offers GEML's MCP server to chat.** It contributes an

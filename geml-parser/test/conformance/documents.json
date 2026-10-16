@@ -22,6 +22,38 @@
     ]
   },
   {
+    "name": "the other document is read as its own meta says: an id inside a container a profile it declares makes flow is in view (§3)",
+    "files": {
+      "a.geml": "See [[b.geml#email]].\n\n=== embed {src=b.geml#email}\n===\n",
+      "b.geml": "=== meta\nprofile = \"geml-form/v1\"\n===\n\n==== form {#f}\n=== form-field {#email name=email}\nEmail\n===\n====\n"
+    },
+    "main": "a.geml",
+    "want": "\"See \" ref(\"b.geml#email\") \".\" embed(\"b.geml#email\")",
+    "diagnostics": []
+  },
+  {
+    "name": "a profile the naming document declares does not reach into the other document: without its own declaration the container is raw, and the id inside is not in view",
+    "files": {
+      "a.geml": "=== meta\nprofile = \"geml-form/v1\"\n===\n\nSee [[b.geml#email]].\n",
+      "b.geml": "==== form {#f}\n=== form-field {#email name=email}\nEmail\n===\n====\n"
+    },
+    "main": "a.geml",
+    "want": "\"See \" ref(\"b.geml#email\") \".\"",
+    "diagnostics": [
+      "unresolved-cross-document-reference:error"
+    ]
+  },
+  {
+    "name": "a coordinate and a view into a table inside such a container read it as the other document's own meta places it",
+    "files": {
+      "a.geml": "Total: [[b.geml#t[1][\"v\"]]].\n\n=== view {#u src=b.geml#t}\n===\n",
+      "b.geml": "=== meta\nprofile = \"geml-form/v1\"\n===\n\n==== form {#f}\n=== table {#t format=csv}\nk, v\na, 42\n===\n====\n"
+    },
+    "main": "a.geml",
+    "want": "\"Total: \" ref(\"b.geml#t[1][\\\"v\\\"]\" -> \"42\") \".\" view([\"k\",\"v\"] [\"a\",\"42\"])",
+    "diagnostics": []
+  },
+  {
     "name": "a document that is not there cannot be resolved",
     "files": {
       "a.geml": "See [[gone.geml#x]].\n"

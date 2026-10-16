@@ -2427,7 +2427,7 @@ export function relDirPath(p: string): string {
 
 
 export function gatherEmbeds(source: string): { doc: string; anchor?: string }[] {
-  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map(), vocab: EMPTY_VOCABULARY, embeds: [] };
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map(), vocab: vocabularyOf(source), embeds: [] };
   scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
   return (ctx.embeds ?? []).map((e) => (e.anchor === undefined ? { doc: e.doc } : { doc: e.doc, anchor: e.anchor }));
 }
@@ -2438,7 +2438,7 @@ export function gatherEmbeds(source: string): { doc: string; anchor?: string }[]
 // unresolvable target is an error — a table whose source silently produced no
 // rows used to render as an empty table with no diagnostic at all.
 function tableFromDocument(source: string, id: string): TableModel | { records: DataValue } | "not-a-table" | null {
-  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map(), vocab: EMPTY_VOCABULARY };
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map(), vocab: vocabularyOf(source) };
   const blocks = scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
   const found = ctx.tables?.get(nameKey(id));
   if (found !== undefined) return found;
@@ -2800,8 +2800,12 @@ function blockCaption(block: Extract<Block, { kind: "block" }>): string | undefi
   return typeof caption === "string" ? caption : undefined;
 }
 
+// The other document is read as its own `=== meta` says (§3): its vocabulary
+// decides which of its bodies are flow, so an id inside a container a profile
+// defines (a `form-field` in a `form`) is in view exactly as one inside a
+// `note` is. The naming document's vocabulary does not reach into it.
 function gatherIds(source: string): Set<string> {
-  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map(), vocab: EMPTY_VOCABULARY };
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map(), vocab: vocabularyOf(source) };
   const blocks = scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
   // Already NFD keys — compare with nameKey(). Prose-run addresses join them, so
   // a cross-document `src=other.geml#a-before-b` resolves exactly as an in-document
@@ -2932,7 +2936,7 @@ function blockFromDocument(source: string, id: string, scanned?: Map<string, { b
 // other from resolving in circles (§9.3). Their diagnostics die with this
 // throwaway context — the borrowed document reports its own when it is checked.
 function scanForCoordinates(source: string): { blocks: Block[]; ctx: Ctx } {
-  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map(), vocab: EMPTY_VOCABULARY };
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map(), vocab: vocabularyOf(source) };
   const blocks = scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
   const inner: ParseOptions = {};
   resolveTableSources(ctx, inner);
