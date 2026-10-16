@@ -3,7 +3,7 @@
 
 /** The version the notes are for, and its lines. */
 export const RELEASE_NOTES: { version: string; lines: readonly string[] } = {
-  version: "0.1.0",
+  version: "0.2.1",
   lines: [
     "状态带只放该你做的一件事和它的选项",
     "看板五个页签：会话、流程、工作项、记录、工具；待处理在工作项最上面",

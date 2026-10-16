@@ -7,7 +7,7 @@ const pkg = JSON.parse(readFileSync(new URL("../package.json", here), "utf8"));
 
 test("package identity: the renamed bundle", () => {
   assert.equal(pkg.name, "@geml/gemflow");
-  assert.equal(pkg.version, "0.1.0");
+  assert.equal(pkg.version, "0.2.1");
   assert.equal(pkg.bin["gemflow"], "dist/cli.js");
   assert.equal(pkg.dsh.bundle.patch, "./cordis.patch.yml");
   assert.deepEqual([...pkg.files].sort(), [".claude-plugin/plugin.json", ".codex-plugin/plugin.json", ".codexignore", "LICENSE", "client.js", "codex", "cordis.patch.yml", "dist", "examples", "hooks", "skills", "spec", "types", "workflows"]);

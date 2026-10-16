@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.2.1] — 2026-10-16
 
 - **gemflow**: the board shows what a work item's work made. The files its
   work writes go into its journal as `#wrote-N` blocks, once per file per
