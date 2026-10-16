@@ -20,6 +20,7 @@ updates:
       - "/integrations/logseq"
       - "/integrations/dsh-plugin"
       - "/integrations/geml-agent-runtime"
+      - "/integrations/gemflow"
     schedule:
       interval: monthly
     groups:

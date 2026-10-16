@@ -1,0 +1,81 @@
+=== meta
+title   = "开发流程"
+profile = "geml-statechart/v1"
+===
+
+%% 一个分支是一个工作项：build → review → deploy → release → done。状态只写用途
+%% （edit、test、pr、deploy-staging、deploy-prod）；同目录的 tools.geml 把用途绑到
+%% 本项目的命令，在使用中由你的选择长出来。两处封路：staging 部署只在 #deploy 能
+%% 跑（进入 #deploy 要求已合并且 CI 通过），production 部署只在 #release 能跑
+%% （进入 #release 要一个人批准）。测试证据随工作内容过期：测完又改了代码就要重跑。
+
+=== diagram {#flow format=geml-statechart caption="开发流程"}
+{
+  "initial": "build",
+
+  "states": {
+    "build": {
+      "title": "构建",
+      "description": "写代码和测试，直到测试通过、PR 开出来。",
+      "prompt": "./guide.geml#build",
+      "tools": ["edit", "test", "pr"]
+    },
+    "review": {
+      "title": "评审",
+      "description": "处理 review 意见，等 CI 绿、PR 合并。",
+      "prompt": "./guide.geml#review",
+      "tools": ["edit", "test"]
+    },
+    "deploy": {
+      "title": "部署",
+      "description": "部署到 staging 并验证。",
+      "prompt": "./guide.geml#deploy",
+      "tools": ["deploy-staging"]
+    },
+    "release": {
+      "title": "上线",
+      "description": "部署到 production。",
+      "prompt": "./guide.geml#release",
+      "tools": ["deploy-prod"]
+    },
+    "done": { "title": "完成", "final": true }
+  },
+
+  "vars": {
+    "tests-pass":       { "default": false, "source": { "tool": "test" } },
+    "pr-open":          { "default": false, "source": "pr-open" },
+    "pr-merged":        { "default": false, "source": "pr-merged" },
+    "ci-pass":          { "default": false, "source": "ci-success" },
+    "review-ready":     { "default": false, "source": "human", "note": "测试只在 CI 里跑时，由人勾选" },
+    "deployed-staging": { "default": false, "source": { "tool": "deploy-staging" } },
+    "deployed-prod":    { "default": false, "source": { "tool": "deploy-prod" } }
+  },
+
+  "transitions": [
+    { "from": "build", "to": "review",
+      "guard": { "anyOf": [
+        { "properties": { "tests-pass": { "const": true }, "pr-open": { "const": true } } },
+        { "properties": { "pr-merged": { "const": true } } },
+        { "properties": { "review-ready": { "const": true } } } ] },
+      "note": "测试通过且 PR 已开；或 PR 已合并；或有人勾选了 review-ready。" },
+
+    { "from": "review", "to": "build",
+      "guard": "review 要求改动",
+      "actions": [ { "reset": ["tests-pass", "review-ready"] } ],
+      "note": "测试结果和 review-ready 随之清掉：测试要重新跑绿，或者由人重新勾选。" },
+
+    { "from": "review", "to": "deploy",
+      "guard": { "properties": { "pr-merged": { "const": true }, "ci-pass": { "const": true } } },
+      "note": "已合并，CI 通过。" },
+
+    { "from": "deploy", "to": "release",
+      "guard": { "properties": { "deployed-staging": { "const": true } } },
+      "approval": true,
+      "note": "staging 已部署；上线 production 需要一个人此刻同意。" },
+
+    { "from": "release", "to": "done",
+      "guard": { "properties": { "deployed-prod": { "const": true } } },
+      "note": "production 已部署。" }
+  ]
+}
+===

@@ -4,12 +4,18 @@
     "name": "geml-spec",
     "url": "https://github.com/geml-spec"
   },
-  "description": "The official GEML marketplace — install the geml plugin to author, validate, and blockwise-edit GEML documents in Claude Code.",
+  "description": "The official GEML marketplace — two plugins for Claude Code: geml authors, validates and blockwise-edits GEML documents, and gemflow runs a coding agent through the stages of a GEML workflow.",
   "plugins": [
     {
       "name": "geml",
       "source": "./integrations/claude-plugin",
       "description": "Author, validate, and blockwise-edit GEML documents, and navigate a project's call graph as GEML codemaps: two skills plus the geml MCP server (runs via npx @geml/geml, no separate install).",
+      "strict": true
+    },
+    {
+      "name": "gemflow",
+      "source": { "source": "npm", "package": "@geml/gemflow" },
+      "description": "Workflow stages for Claude Code: a line above the prompt, a board, /gemflow and three tools (status, move, set) over a GEML statechart; a tool dictionary binds each stage's uses to the project's tools; evidence is written from test, PR, CI and deploy results; a tool is refused only where its use is not declared.",
       "strict": true
     }
   ]

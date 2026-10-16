@@ -58,7 +58,7 @@ const posix = file.replace(/\\/g, "/");
 // tests and demos, not maintained records: no fixture in the repository carries
 // a sidecar, and one grown here was committed by accident once (Task 4 of the
 // agent-runtime plan) before this rule existed.
-if (/(^|\/)test\/fixtures\//.test(posix) || /(^|\/)integrations\/geml-agent-runtime\/examples\//.test(posix)) process.exit(0);
+if (/(^|\/)test\/fixtures\//.test(posix) || /(^|\/)integrations\/(geml-agent-runtime|gemflow)\/examples\//.test(posix)) process.exit(0);
 if (NO_HISTORY.some((p) => posix === p || posix.endsWith("/" + p))) process.exit(0);
 try {
   // Only the head is read: `=== meta` is the first block a projection carries.
