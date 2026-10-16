@@ -28,6 +28,68 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **New profile `geml-statechart/v1`**: a state machine in one core `diagram`
+  block, `format=geml-statechart`, whose body is a JSON object: `initial`,
+  `states`, `transitions`, and the `vars` the guards read. The format fixes
+  the skeleton only — a state's `title` and `description`; a transition's
+  `from`, `to`, `guard` (an object over the variables in a JSON
+  Schema subset, a `#id` reference to a `data {format=json}` block holding
+  one, or a sentence) and `actions`, of which `{ "reset": [...] }` returns
+  variables to their defaults; a variable's `default`, which fixes its type —
+  and every other key on a state, a variable or a transition is an attribute
+  it shows as it is and leaves to the program reading the chart. The
+  definition may sit in a `data` block the diagram names by `data=`, so a
+  coordinate reaches each value. With the profile declared, `geml check` reports
+  `statechart-body`, `-initial`, `-state`, `-transition`, `-guard`,
+  `-actions`, `-vars`, `-current` (the one admitted attribute,
+  `current=<state id>`, highlights a state), `-final` and `-unreachable`
+  and `-dead-end`; `--to html` and the viewer draw it, and `--to md`
+  projects it to a Mermaid `stateDiagram-v2`. A state marked `final: true`
+  is one the chart ends in, and a chart may have several: `-final` refuses a
+  transition out of one, `-dead-end` warns of a state with no way out that is
+  not marked (a forgotten transition, or an end that should say so), and the
+  drawings mark final states by the flag rather than by the absence of edges. Nested states, regions, events and `set` actions are
+  v2's, and errors in v1. Spec: `spec/profiles/geml-statechart/`.
+
+- **geml-statechart draws its own picture.** `--to html`, the viewer and the
+  playground render a `geml-statechart` block as inline SVG built from the
+  model, with no diagram runtime: states left to right by longest path from
+  the start, an edge back or over a column in a lane below, each guard on a
+  pill over its edge (a sentence guard amber, as prose whose judge the program names), a transition's true
+  flags and numbers as pills after it, the `current=` state filled and ringed,
+  the start dot, a final state's double border, and dashes travelling along
+  every edge in the arrow's direction (still under `prefers-reduced-motion`).
+  A "Download SVG" link under the figure hands the same file over. The page
+  no longer loads Mermaid for it; `--to md` still projects to Mermaid.
+
+- **`geml media todo` grows linearly with the episode.** It read and parsed
+  the episode again for every item it listed and scanned every asset for each
+  one; it now loads each document once and finds blocks by id. Two thousand
+  items take tens of milliseconds where they took about fourteen seconds.
+
+- **`geml media todo --check`** exits 1 while to-do items remain and 0 when
+  there are none — the way `geml check` exits on errors — and prints the list
+  exactly as it does without the flag, `--json` included. An entry it cannot read, one
+  outside `--root`, or one whose meta declares no `geml-media/v1` exits 2 with
+  the reason instead, so a mistyped path cannot pass as an empty list; a
+  directory needs at least one geml-media document under it. Any other
+  `geml media` verb refuses `--check`, and `--check=…` is refused as `--json=…` is.
+
+- **Fixed: a reference into a block nested in a profile's container in
+  another document resolved as unresolved.** The other document was scanned
+  with an empty vocabulary when its ids were gathered for a cross-document
+  reference, so a `form` or `form-group` (geml-form) was an unknown type, its
+  body raw, and every id inside it out of view: `[[target.geml#email]]` and
+  `=== embed {src=target.geml#email}` were errors while `[[#email]]` in the
+  target itself and the renderer's embed worked. §3 says the other document
+  is read as its own meta says, so each foreign-document scan now takes that
+  document's vocabulary (`vocabularyOf`): the id gathering, the embed listing,
+  a `view`'s `src=` into a block there, and a coordinate into one. The naming
+  document's own profile still does not reach into it. Three conformance cases
+  in `documents.json` pin the rule.
+
+- **codemap**: `geml codemap build` writes `.geml/codemap/` by default (was `.geml-code-graph/`), next to a project's other GEML files; the guides, skills and `.dockerignore` follow.
+
 - **The VS Code extension offers GEML's MCP server to chat.** It contributes an
   `mcpServerDefinitionProviders` provider, so Copilot Chat and anything else
   reading the editor's server list is offered two servers that differ only in

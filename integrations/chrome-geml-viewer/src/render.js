@@ -4,6 +4,10 @@
 // injection, so this module stays testable under linkedom.
 
 import { renderChart } from "./chart.js";
+// geml-statechart/v1 (spec/profiles/geml-statechart): the same model the
+// reference renderer and `geml check` read, so the viewer draws what they draw.
+import { buildStatechart, edgeLabel, guardText } from "../../../geml-parser/dist/statechart.js";
+import { statechartSvg, statechartSvgDataUrl } from "../../../geml-parser/dist/statechart-svg.js";
 
 // `focus` (from the URL `#id`) narrows what is DISPLAYED to one block — a typed
 // block/footnote is shown alone, a heading shows its whole section (same as
@@ -491,6 +495,59 @@ function renderTyped(b, dom, labels, byId) {
         return wrap;
       }
       wrap.appendChild(el(dom, "div", { class: "cg-mount", "data-src": src, text: "loading code graph …" }));
+      return wrap;
+    }
+    if (fmt === "geml-statechart") {
+      // profile §2.6: the picture is the parser's own SVG (statechart-svg.js),
+      // inline and standalone — the link under it hands the same file over;
+      // under that, a <details> per state and per transition. A definition
+      // held in `data=` is not followed here (the labelled source below shows
+      // it); the body form is the common one.
+      const wrap = el(dom, "figure", { class: "geml-block geml-diagram statechart", id: b.id });
+      const hasData = b.attrs && b.attrs.data !== undefined;
+      const { model, diagnostics } = hasData ? { model: null, diagnostics: [] } : buildStatechart({ body: (b.raw || []).join("\n"), attrs: b.attrs || {} });
+      if (!model) {
+        const why = hasData ? `definition in data=${b.attrs.data}` : diagnostics.map((d) => d.message).join("; ");
+        wrap.appendChild(el(dom, "pre", { class: "geml-diagram-src", text: (b.raw || []).join("\n") }));
+        wrap.appendChild(el(dom, "figcaption", { text: `geml-statechart (${why})` }));
+        return wrap;
+      }
+      const caption = b.attrs && typeof b.attrs.caption === "string" ? b.attrs.caption : undefined;
+      const svg = statechartSvg(model, { key: b.id || "sc", ...(caption !== undefined ? { title: caption } : {}) });
+      // Our own markup, built from escaped text — the one innerHTML this file allows itself.
+      const picture = el(dom, "div", { class: "statechart-picture" });
+      picture.innerHTML = svg;
+      wrap.appendChild(picture);
+      wrap.appendChild(el(dom, "p", { class: "statechart-tools" }, [el(dom, "a", { download: `${b.id || "statechart"}.svg`, href: statechartSvgDataUrl(svg), text: "Download SVG" })]));
+      const show = (v) => (typeof v === "string" ? v : JSON.stringify(v));
+      const attrRows = (attrs) => {
+        const keys = Object.keys(attrs);
+        return keys.length === 0 ? null : el(dom, "dl", null, keys.flatMap((k) => [el(dom, "dt", { text: k }), el(dom, "dd", { text: show(attrs[k]) })]));
+      };
+      const edge = (t, arrow) => { const l = edgeLabel(t); return el(dom, "li", { text: `${arrow} ${t.name}${l === "" ? "" : ` — ${l}`}` }); };
+      const states = el(dom, "div", { class: "statechart-states" });
+      for (const s of model.states) {
+        const marks = [s.id === model.initial ? "initial" : "", model.finals.includes(s.id) ? "final" : "", s.id === model.current ? "current" : ""].filter(Boolean).join(", ");
+        const edges = [...model.transitions.filter((t) => t.from === s.id).map((t) => edge(t, "→")), ...model.transitions.filter((t) => t.to === s.id).map((t) => edge(t, "←"))];
+        const d = el(dom, "details", { class: "statechart-state", open: s.id === model.current ? "" : undefined }, [
+          el(dom, "summary", { text: `${s.title}${s.title === s.id ? "" : ` (${s.id})`}${marks ? ` — ${marks}` : ""}` }),
+          s.description === undefined ? null : el(dom, "p", { text: s.description }),
+          attrRows(s.attrs),
+          edges.length === 0 ? null : el(dom, "ul", null, edges),
+        ]);
+        states.appendChild(d);
+      }
+      wrap.appendChild(states);
+      const transitions = el(dom, "div", { class: "statechart-transitions" });
+      for (const t of model.transitions) {
+        transitions.appendChild(el(dom, "details", { class: "statechart-transition" }, [
+          el(dom, "summary", { text: t.name }),
+          t.guard === undefined ? null : el(dom, "p", { text: `guard: ${guardText(t.guard)}` }),
+          t.actions.length === 0 ? null : el(dom, "p", { text: `actions: ${t.actions.map(show).join("; ")}` }),
+          attrRows(t.attrs),
+        ]));
+      }
+      wrap.appendChild(transitions);
       return wrap;
     }
     if (fmt === "mermaid") {

@@ -7,7 +7,7 @@ title = "geml codemap build — options"
 === table {#fields .form format=csv delim=|}
 field      | kind    | label            | required | default          | options              | help
 root       | path    | Repo root        | false    | .                |                      | `--root` — defaults to the current directory
-out        | path    | Output dir       | false    | .geml-code-graph |                      | `--out`
+out        | path    | Output dir       | false    | .geml/codemap |                      | `--out`
 container  | select  | Granularity      | false    | module           | module dir file      | `--container`
 adapter    | select  | Adapter          | false    |                  | joern scip           | pairs with `--raw`; mutually exclusive with `--db`
 db         | path    | Graph DB         | false    |                  |                      | `--db`; mutually exclusive with `--adapter`

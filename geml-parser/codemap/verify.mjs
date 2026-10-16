@@ -20,10 +20,10 @@ import { spawnSync } from "node:child_process";
 const args = process.argv.slice(2);
 const flagI = args.indexOf("--geml");
 if (args.includes("--help") || args.includes("-h")) {
-  console.error("usage: geml codemap verify [dir] [--geml <path>]   (dir defaults to ./.geml-code-graph)");
+  console.error("usage: geml codemap verify [dir] [--geml <path>]   (dir defaults to ./.geml/codemap)");
   process.exit(2);
 }
-const dir = args.find((a, i) => !a.startsWith("-") && (flagI < 0 || i !== flagI + 1)) || ".geml-code-graph";
+const dir = args.find((a, i) => !a.startsWith("-") && (flagI < 0 || i !== flagI + 1)) || ".geml/codemap";
 const rootDir = resolve(dir);
 
 // Resolve the geml CLI (pass 1) and the parser API (pass 2).

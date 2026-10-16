@@ -40,6 +40,7 @@ import { serialize } from "./serialize.js";
 import { gemlToMd, type EmbedHost } from "./to-md.js";
 import { renderHtml } from "./render-html.js";
 import { codeGraphDiagram } from "./codemap-render.js";
+import { statechartDiagram } from "./statechart-render.js";
 import { normalizeBlockId } from "./block-edit.js";
 
 void addressUnits;
@@ -942,8 +943,8 @@ export function transform(src: string, file: string, o: TransformOptions, ctx: V
         // geml-code-graph embeds load + parse sibling codemap docs on demand.
         loadDoc: opts().resolveDoc,
         parseDoc: (s) => parse(s, { ...opts() }),
-        // `geml-codemap/v1`'s diagram format, registered rather than built in.
-        diagrams: { "geml-code-graph": codeGraphDiagram },
+        // The vocabularies' diagram formats, registered rather than built in.
+        diagrams: { "geml-code-graph": codeGraphDiagram, "geml-statechart": statechartDiagram },
       });
       break;
     case "md": {

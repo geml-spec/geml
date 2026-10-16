@@ -460,6 +460,9 @@ pub struct Resolver<'a> {
     /// Documents of another format already reported missing: a link with no
     /// fragment says so once per document.
     missing: RefCell<HashSet<String>>,
+    /// The declared vocabularies, for what they admit on core blocks (§8.6.1);
+    /// the checks that build a resolver of their own leave it unset.
+    pub vocab: Option<&'a Vocabulary>,
 }
 
 impl<'a> Resolver<'a> {
@@ -472,6 +475,7 @@ impl<'a> Resolver<'a> {
             budget: Rc::default(),
             markdown: false,
             missing: RefCell::new(HashSet::new()),
+            vocab: None,
         }
     }
 
@@ -722,6 +726,7 @@ pub fn finish(mut children: Vec<Item>, mut diags: Diags, cx: &Ctx) -> Document {
         let mut resolver = Resolver::new(pre, cx.host, cx.name);
         resolver.budget = budget.clone();
         resolver.markdown = cx.markdown;
+        resolver.vocab = Some(cx.vocab);
         let n = snaps.len();
         let mut v = Views {
             snaps: &snaps,
@@ -756,6 +761,7 @@ pub fn finish(mut children: Vec<Item>, mut diags: Diags, cx: &Ctx) -> Document {
     let mut resolver = Resolver::new(index.clone(), cx.host, cx.name);
     resolver.budget = budget;
     resolver.markdown = cx.markdown;
+    resolver.vocab = Some(cx.vocab);
     inlines_mut(&mut children, &mut |nodes, line| {
         nodes_mut(nodes, &mut |n| resolve_inline(n, line, &resolver, &mut diags, md_refs.as_ref()));
     });
@@ -1257,7 +1263,11 @@ fn check_diagram(s: &Snap, r: &Resolver, diags: &mut Diags) {
     let line = s.line;
     let format = s.attr_text("format").unwrap_or_default();
     if !crate::registry::DIAGRAM_FORMATS.contains(&format.as_str()) {
-        diags.push("unknown-diagram-format", line, format!("no renderer is registered for `format={format}`; the body is kept"));
+        // A format a declared vocabulary admits is a renderer the processor may
+        // lack, not an unknown name (§8.6.1).
+        if !r.vocab.is_some_and(|v| v.admits_format(&format)) {
+            diags.push("unknown-diagram-format", line, format!("no renderer is registered for `format={format}`; the body is kept"));
+        }
         return;
     }
     if (format == "geml-chart" || format == "geml-code-graph") && s.has_body && !s.raw_blank {

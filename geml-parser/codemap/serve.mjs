@@ -39,7 +39,7 @@ import { isSourcePath, SKIP_DIRS } from "./detect.mjs";
 // import the parser in the browser (live in-place navigation).
 const DIST_DIR = resolve(join(dirname(fileURLToPath(import.meta.url)), "..", "dist"));
 
-const USAGE = "usage: geml codemap serve [codemap-dir] [--port 8140] [--cache-mb 256] [--no-warm] [--no-open] [--watch] [--background|--stop]   (dir defaults to ./.geml-code-graph)";
+const USAGE = "usage: geml codemap serve [codemap-dir] [--port 8140] [--cache-mb 256] [--no-warm] [--no-open] [--watch] [--background|--stop]   (dir defaults to ./.geml/codemap)";
 
 // argv -> options, or null on a usage error (--help included: the caller
 // prints the usage line and exits 2 either way).
@@ -54,7 +54,7 @@ export function parseServeArgs(args) {
   const cacheIdx = args.indexOf("--cache-mb");
   const cacheMb = cacheIdx >= 0 ? Number(args[cacheIdx + 1]) : 256;
   if (args.includes("--help") || args.includes("-h") || !Number.isInteger(port) || port <= 0 || !(cacheMb > 0)) return null;
-  const dir = args.find((a, i) => !a.startsWith("--") && (portIdx < 0 || i !== portIdx + 1) && (cacheIdx < 0 || i !== cacheIdx + 1)) || ".geml-code-graph";
+  const dir = args.find((a, i) => !a.startsWith("--") && (portIdx < 0 || i !== portIdx + 1) && (cacheIdx < 0 || i !== cacheIdx + 1)) || ".geml/codemap";
   return { dir, port, background, stop, noWarm, noOpen, watchMode, cacheMb };
 }
 
@@ -71,7 +71,10 @@ export function projectBound(root) {
   for (;;) {
     if (existsSync(join(dir, ".git"))) return dir;
     const up = dirname(dir);
-    if (up === dir) return resolve(root, "..");
+    // No .git anywhere above: the convention decides, and it has to agree with
+    // `defaultSrcRoot` — a bound one level shallower than the source root would
+    // clamp every read back into `.geml/`.
+    if (up === dir) return defaultSrcRoot(root);
     dir = up;
   }
 }
@@ -94,9 +97,28 @@ function realDeep(p) {
 }
 const within = (child, parent) => child === parent || child.startsWith(parent + sep);
 
+/**
+ * Where the sources sit, for a graph with no recipe to say so.
+ *
+ * The graph's parent, except that the conventional home is `.geml/codemap/`,
+ * two levels down — a graph there would otherwise take `.geml/` itself for the
+ * repository and find no sources at all. A graph anywhere else (`--out`
+ * somewhere of your choosing) keeps the one-level rule.
+ */
+export function defaultSrcRoot(root) {
+  const resolved = resolve(root);
+  return basename(dirname(resolved)) === ".geml"
+    ? resolve(resolved, "../..")
+    : resolve(resolved, "..");
+}
+
 export function resolveSrcRoot(root) {
-  let srcRoot = resolve(root, "..");
-  try { srcRoot = resolve(root, JSON.parse(readFileSync(join(root, "_index", "refresh.json"), "utf8")).root ?? ".."); } catch { /* no recipe: parent */ }
+  const fallback = defaultSrcRoot(root);
+  let srcRoot = fallback;
+  try {
+    const recorded = JSON.parse(readFileSync(join(root, "_index", "refresh.json"), "utf8")).root;
+    srcRoot = recorded === undefined ? fallback : resolve(root, recorded);
+  } catch { /* no recipe: the convention above */ }
   // The recipe is REPOSITORY CONTENT. Left alone, its `root` chose the very
   // directory the source route confines itself to — so a cloned map naming `~`
   // or `/` was "confined" to exactly the tree an attacker picked. The MCP side

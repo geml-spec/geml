@@ -1,4 +1,4 @@
-//! Application-layer vocabularies (§8.6, `spec/profiles/`): the six this
+//! Application-layer vocabularies (§8.6, `spec/profiles/`): the seven this
 //! processor recognizes, what each admits — block types with their body modes,
 //! attribute keys per type, `=== meta` keys — and the diagnostic codes its
 //! checks emit, with their default severities. A document is read under the
@@ -70,6 +70,9 @@ pub struct Profile {
     pub meta_keys: Option<&'static [&'static str]>,
     /// Every code its checks emit, with the default severity.
     pub codes: &'static [(&'static str, Level)],
+    /// The `diagram` format names it admits (§8.6.1): a renderer choice, so
+    /// admitting one moves nothing in the document model.
+    pub formats: &'static [&'static str],
 }
 
 impl Profile {
@@ -92,6 +95,7 @@ pub const PROFILES: &[Profile] = &[
         open_attrs: &[],
         meta_keys: Some(&["module", "src", "entry", "resolution-default", "repo", "commit", "container", "graph-depth", "consts"]),
         codes: &[],
+        formats: &[],
     },
     Profile {
         name: "geml-form/v1",
@@ -129,6 +133,7 @@ pub const PROFILES: &[Profile] = &[
         // inside a `form`, and a field carries a `name=` no other field of its
         // form carries.
         codes: &[("form-child-outside-form", E), ("form-field-missing-name", E), ("form-duplicate-name", E)],
+        formats: &[],
     },
     Profile {
         name: "geml-history/v1",
@@ -142,6 +147,7 @@ pub const PROFILES: &[Profile] = &[
         open_attrs: &[],
         meta_keys: Some(&["history-of", "geml-version", "current", "keyframe-interval"]),
         codes: &[],
+        formats: &[],
     },
     Profile {
         name: "geml-media/v1",
@@ -224,6 +230,7 @@ pub const PROFILES: &[Profile] = &[
             ("media-stale-clip", W),
             ("media-orphan-record", I),
         ],
+        formats: &[],
     },
     Profile {
         name: "geml-style/v1",
@@ -255,6 +262,7 @@ pub const PROFILES: &[Profile] = &[
             ("style-unused-frame", W),
             ("style-invalid-value", E),
         ],
+        formats: &[],
     },
     Profile {
         name: "geml-translator/v1",
@@ -264,6 +272,32 @@ pub const PROFILES: &[Profile] = &[
         open_attrs: &[],
         meta_keys: Some(&["translate-to", "glossary", "source"]),
         codes: &[],
+        formats: &[],
+    },
+    // spec/profiles/geml-statechart/geml-statechart-profile.md — a statechart in
+    // one `diagram` block: the vocabulary admits the format name and `current=`
+    // on that block, nothing else. The body stays raw to the core either way
+    // (§8.6.1); the renderer, the `statechart-*` checks and the Markdown
+    // projection are the format's own and are not registered here yet.
+    Profile {
+        name: "geml-statechart/v1",
+        state: State::Draft,
+        types: &[],
+        attrs: &[("diagram", &["current"])],
+        open_attrs: &[],
+        meta_keys: Some(&[]),
+        codes: &[
+            ("statechart-body", E),
+            ("statechart-initial", E),
+            ("statechart-state", E),
+            ("statechart-transition", E),
+            ("statechart-guard", E),
+            ("statechart-actions", E),
+            ("statechart-vars", E),
+            ("statechart-current", E),
+            ("statechart-unreachable", W),
+        ],
+        formats: &["geml-statechart"],
     },
 ];
 
@@ -310,6 +344,11 @@ impl Vocabulary {
         self.profiles.iter().any(|p| p.open_attrs.contains(&t) || p.attrs.iter().any(|(ty, keys)| *ty == t && keys.contains(&key)))
     }
 
+    /// Whether a `diagram` format name is admitted by a recognized vocabulary.
+    pub fn admits_format(&self, f: &str) -> bool {
+        self.profiles.iter().any(|p| p.formats.contains(&f))
+    }
+
     /// Whether a type is a prose type: an inline-projection target like `text`.
     pub fn is_prose(&self, t: &str) -> bool {
         self.mode_of(t) == Some(Mode::Prose)
@@ -335,6 +374,9 @@ mod tests {
         assert!(v.admits_type("media-comp") && !v.admits_type("form"));
         assert!(v.admits_attr("media-layer", "dx") && v.admits_attr("style-rule", "anything") && !v.admits_attr("media-layer", "z"));
         assert!(Vocabulary::of(&["geml-media/v1".into()], false).profiles.is_empty());
+        let sc = Vocabulary::of(&["geml-statechart/v1".into()], true);
+        assert!(sc.admits_format("geml-statechart") && sc.admits_attr("diagram", "current") && !sc.admits_type("flow-state"));
+        assert!(builtin("geml-statechart/v1").unwrap().formats.contains(&"geml-statechart") && !v.admits_format("geml-statechart"));
         assert_eq!((State::Draft.as_str(), State::Stable.as_str()), ("draft", "stable"));
         assert_eq!((Level::Error.as_str(), Level::Warning.as_str(), Level::Info.as_str()), ("error", "warning", "info"));
         // Every profile code carries the vocabulary's prefix (README, *Naming*).

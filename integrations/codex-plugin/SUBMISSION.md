@@ -83,7 +83,7 @@ Markdown file, and the CLI installs itself on first use via `npx -y @geml/geml`.
    parser entry point." (in a clone of the geml repo)
    **Expected behavior:** the `geml-code-graph` skill triggers;
    `npx -y @geml/geml codemap build`, then a who-calls query over the generated
-   `.geml-code-graph/` documents.
+   `.geml/codemap/` documents.
    **Result shape:** a caller list sourced from the graph documents, each hit
    naming its container document and node.
 

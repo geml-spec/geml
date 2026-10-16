@@ -96,6 +96,14 @@
 /* Charts (geml-chart) and diagrams */
 .geml-chart, .geml-diagram { margin: 0 0 1.4em; text-align: center; }
 .geml-chart svg { max-width: 100%; height: auto; }
+/* geml-statechart: the parser's own SVG, a download link, then the state / transition lists */
+.geml-diagram.statechart { text-align: left; }
+.statechart-picture svg.geml-statechart { background: #fff; border: 1px solid #d0d7de; border-radius: 12px; }
+.statechart-tools { margin: 6px 0 10px; text-align: right; font-size: .82em; }
+.statechart-tools a { color: #656d76; }
+.statechart-state > summary, .statechart-transition > summary { cursor: pointer; padding: 4px 0; }
+.statechart-state dl, .statechart-transition dl { margin: 4px 0 4px 1em; font-size: .9em; }
+.statechart-state dt, .statechart-transition dt { float: left; clear: left; min-width: 8em; color: #656d76; }
 .geml-d2 svg { max-width: 100%; height: auto; }
 .geml-d2-error { color: #82071e; font-size: 0.85em; margin: 6px 0 0; }
 .geml-graphviz svg { max-width: 100%; height: auto; }

@@ -34,7 +34,25 @@ const kindOfAsset = (b: Block & { kind: "block" }): string => str(b.attrs["kind"
 /** 能播的素材种类：单源只收这几种（profile §2）。 */
 const PLAYABLE = new Set(["video", "audio", "image"]);
 
-export interface Loaded { rel: string; doc: Document; meta: Map<string, string> }
+export interface Loaded {
+  rel: string; doc: Document; meta: Map<string, string>;
+  /** 块 id → 块，`blockIn` 第一次问时建 */
+  byId?: Map<string, Extract<Block, { kind: "block" }>>;
+}
+
+/**
+ * 一份已装载文档里 id 是 `id` 的块：与 `blocksOf(doc).find` 是同一个（文档顺序的第一个），
+ * 只是索引建一次。逐条待办、逐个投射都要按 id 找块，每次从头扫一遍，条目一多就是平方。
+ */
+export function blockIn(l: Loaded, id: string): Extract<Block, { kind: "block" }> | undefined {
+  let index = l.byId;
+  if (index === undefined) {
+    index = new Map();
+    for (const b of blocksOf(l.doc)) if (b.id !== undefined && !index.has(b.id)) index.set(b.id, b);
+    l.byId = index;
+  }
+  return index.get(id);
+}
 
 const dirOf = (rel: string): string => { const i = rel.lastIndexOf("/"); return i < 0 ? "" : rel.slice(0, i); };
 const joinRel = (base: string, rel: string): string => {
@@ -122,7 +140,7 @@ function proseText(
       if (++run.spent > EMBED_TOTAL_CAP) return "";
       const into = load(tgt.doc);
       if (into === null) return "";
-      const b = blocksOf(into.doc).find((x) => x.id === tgt.id);
+      const b = blockIn(into, tgt.id);
       return (b === undefined ? null : proseText(b, tgt.doc, load, depth + 1, new Set(path).add(key), run)) ?? "";
     }
     const kids = (n as { children?: Inline[] }).children;
@@ -160,7 +178,7 @@ function compText(
     const src = e === null ? undefined : str(layers.get(e.layer)?.attrs["src"]);
     const t = src === undefined ? null : splitRef(src, from);
     const into = t === null ? null : load(t.doc);
-    const asset = into === null || t === null ? undefined : blocksOf(into.doc).find((x) => x.id === t.id);
+    const asset = into === null || t === null ? undefined : blockIn(into, t.id);
     const p = asset === undefined || e === null ? undefined : parsePoints(asset.attrs["points"]).get(e.point);
     return p === undefined ? `${String(v)}@?` : `${String(v)}@${p.x},${p.y}`;
   };
@@ -263,12 +281,12 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
   const assets = new Map<string, AssetRef>();          // "doc#id" -> 素材
   const blockAt = (doc: string, id: string): Extract<Block, { kind: "block" }> | undefined => {
     const l = docs.get(doc);
-    return l === null || l === undefined ? undefined : blocksOf(l.doc).find((x) => x.id === id);
+    return l === null || l === undefined ? undefined : blockIn(l, id);
   };
   const anyBlockExists = (doc: string, id: string): boolean => {
     const l = docs.get(doc);
     if (l === null || l === undefined) return false;
-    if (blocksOf(l.doc).some((x) => x.id === id)) return true;
+    if (blockIn(l, id) !== undefined) return true;
     return l.doc.ids.includes(id);
   };
   // 角色是标题节：`# 林夏 {#hero points="hand eyes"}`。标题不在 blocksOf 里，单独找。
@@ -750,9 +768,11 @@ export function checkMedia(entry: string, io: MediaIO): MediaDiagnostic[] {
  * 角色卡里的 `**银灰短发齐耳**` 展开后是纯文本，没有星号，而拼接的人会把标记
  * 一起算进去。夹具生成器、将来的 `geml media prompt`、检查器，走的都是这一个实现。
  * 核心有了 `get --resolved` 之后，这里改成它的薄封装。
+ *
+ * `cache` 是装载过的文档：一次要展开很多条的调用（todo）传同一个进来，每份文档就只读
+ * 一遍、只解析一遍。不传就是这一条自己的。
  */
-export function promptTextOf(ref: string, from: string, io: MediaIO): string | null {
-  const cache = new Map<string, Loaded | null>();
+export function promptTextOf(ref: string, from: string, io: MediaIO, cache: Map<string, Loaded | null> = new Map()): string | null {
   const load = (rel: string): Loaded | null => {
     if (cache.has(rel)) return cache.get(rel) ?? null;
     const src = io.readDoc(rel);
@@ -766,6 +786,6 @@ export function promptTextOf(ref: string, from: string, io: MediaIO): string | n
   if (t === null) return null;
   const l = load(t.doc);
   if (l === null) return null;
-  const b = blocksOf(l.doc).find((x) => x.id === t.id);
+  const b = blockIn(l, t.id);
   return b === undefined ? null : blockText(b, t.doc, load);
 }

@@ -62,7 +62,9 @@ function addresses(geml) {
 // exempt from the catalogue and IS what this file pins.
 const diagnosticsOf = (geml, own) =>
   parse(geml).diagnostics.filter((d) => !CATALOGUE_EXEMPT.some((p) => p !== own && d.code.startsWith(p))).map((d) => `${d.code}:${d.severity}`).sort();
-const UNKNOWN = /^unknown-(block-type|attribute):/;
+// The three things a vocabulary may admit (§8.6.1): a type, an attribute key, a
+// diagram format — so a format-only vocabulary counts as admitting something.
+const UNKNOWN = /^unknown-(block-type|attribute|diagram-format):/;
 // The same document with its declaration removed — §8.6.2 rule 3's other reading.
 const undeclare = (g) => g.replace(/^profile\s*=.*$/m, 'title = "undeclared"');
 

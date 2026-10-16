@@ -4,7 +4,7 @@
 // Locate a function/class by (substring, case-insensitive) name in a built
 // codemap. Prints each candidate as  <name> \t <doc>#<id> \t <src>  — the
 // document + block id to open, and the true source location. NO browser: pure
-// stdout, so it pipes/greps. `dir` defaults to ./.geml-code-graph.
+// stdout, so it pipes/greps. `dir` defaults to ./.geml/codemap.
 //
 // Same index the MCP `geml_codemap_search` tool and the viewer search box use
 // (_index/name-lookup.json); a name with several rows is real ambiguity
@@ -25,11 +25,11 @@ process.stdout.on("error", (e) => { if (e.code === "EPIPE") process.exit(0); thr
 
 const args = process.argv.slice(2);
 if (!args.length || args[0] === "--help" || args[0] === "-h") {
-  console.error("usage: geml codemap find <name> [codemap-dir]   # locate a symbol by substring name (dir defaults to ./.geml-code-graph)");
+  console.error("usage: geml codemap find <name> [codemap-dir]   # locate a symbol by substring name (dir defaults to ./.geml/codemap)");
   process.exit(args.length ? 0 : 2);
 }
 const query = args[0];
-const dir = args[1] || ".geml-code-graph";
+const dir = args[1] || ".geml/codemap";
 const lookupPath = join(dir, "_index", "name-lookup.json");
 if (!existsSync(lookupPath)) {
   console.error(`no name-lookup at ${lookupPath} — build the codemap first (geml codemap build)`);

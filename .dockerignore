@@ -4,4 +4,4 @@
 geml-parser/node_modules/
 geml-parser/dist/
 geml-parser/coverage/
-geml-parser/.geml-code-graph/
+geml-parser/.geml/

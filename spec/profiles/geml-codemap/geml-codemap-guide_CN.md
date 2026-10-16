@@ -5,7 +5,7 @@
 ## 它做什么
 
 把代码库的调用图写成 GEML 文档。每个方法是一个带 id 的块，`#calls` / `#called-by` 两张表把调用关系双向连起来：它调用了谁，谁调用了它。
-这个工具叫 codemap（命令是 `geml codemap`），只有三处字面上叫 geml-code-graph：输出目录 `.geml-code-graph/`、diagram 格式名和 Claude 技能名。
+这个工具叫 codemap（命令是 `geml codemap`），写到 `.geml/codemap/`；只有两处字面上叫 geml-code-graph：diagram 格式名和 Claude 技能名。
 
 ![geml-parser/render.ts 的方法图：悬停 RenderCtx.inline，整条调用链高亮、其余变暗；点击节点，该方法源码就显示在图旁边](../../../docs/assets/codemap-render-ts.gif)
 
@@ -15,7 +15,7 @@
 
 ```sh
 npm i -g @geml/geml
-geml codemap build    # 识别语言、建索引，写进 .geml-code-graph/
+geml codemap build    # 识别语言、建索引，写进 .geml/codemap/
 geml codemap serve    # 启动本地服务（http://localhost:8140/），自动打开浏览器看图
 ```
 
@@ -38,7 +38,7 @@ $ geml codemap find add
 add	demo.geml#add	src/math.ts#L1-3
 
 1 match(es) for "add" across 1 name(s).
-$ geml get .geml-code-graph/demo.geml '#called-by'
+$ geml get .geml/codemap/demo.geml '#called-by'
 === table {#called-by format=csv}
 from,         to,           kind, site
 #main,        #formatTotal, call, src/main.ts:4
@@ -62,7 +62,7 @@ Claude 技能里带一个可选的提交钩子，每次提交后自动跑它。
 在任何 GEML 文档里加一个块，就能把这张图嵌进去：
 
 ```geml
-=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml}
+=== diagram {format=geml-code-graph src=.geml/codemap/index.geml}
 ===
 ```
 
