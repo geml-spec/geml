@@ -21,6 +21,7 @@
           "#meta",
           "#vars",
           "#plan",
+          "#plan-before-notes",
           "#notes",
           "#plan-done",
           "#done"
@@ -31,6 +32,15 @@
           "#plan",
           "#plan-done",
           "#done"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning",
+          "unknown-block-type:warning"
         ]
       }
     },
@@ -57,6 +67,13 @@
           "#meta",
           "#rev-0",
           "#refused-1"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning",
+          "unknown-block-type:warning"
         ]
       }
     }
