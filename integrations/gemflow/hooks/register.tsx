@@ -961,8 +961,8 @@ function drawRows($: EngineInterface, els: Els, rows: BoardRow[], columns: numbe
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i] as BoardRow
     if (r.kind !== 'entry') { out.push(drawRow($, els, r, i)); continue }
-    const run: BoardRow[] = []
-    while (i < rows.length && (rows[i] as BoardRow).kind === 'entry') run.push(rows[i++] as BoardRow)
+    const run: Extract<BoardRow, { kind: 'entry' }>[] = []
+    while (i < rows.length && (rows[i] as BoardRow).kind === 'entry') run.push(rows[i++] as Extract<BoardRow, { kind: 'entry' }>)
     i--
     out.push(
       <Box key={`list-${r.key}`} flexDirection="column" borderStyle="round" borderColor={RULE} paddingX={1}>
