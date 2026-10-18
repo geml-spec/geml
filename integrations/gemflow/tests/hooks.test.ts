@@ -388,7 +388,7 @@ test('the band and /gemflow, on terminal and desktop', async ($, on) => {
   await start($, on)
   // The mark is a character on the terminal, a picture on a desktop; the rest reads the same.
   expect(await bandText($)).toBe('» 我在做 feat/x · build [看板]')
-  expect(await bandText($, 'desktop')).toBe('[  ] 我在做 feat/x · build 看板 [       ]')
+  expect(await bandText($, 'desktop')).toBe('[    ] 我在做 feat/x · build 看板 [       ]')
   const desktop = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
   expect(await desktop.find({ type: 'Svg' })).toBeDefined()
   await desktop.unmount()
@@ -700,7 +700,7 @@ test('an approval edge that holds: the band offers the approval, the inbox lists
   expect(w.notified).toEqual(['等你验收：feat/x\nreview'])
   const band = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
   expect(await band.find({ type: 'Svg' })).toBeDefined()
-  expect(await bandText($, 'desktop')).toBe('[  ] 验收 feat/x [通过] 看板 [       ]')
+  expect(await bandText($, 'desktop')).toBe('[    ] 验收 feat/x [通过] 看板 [       ]')
   expect((await band.findAll({ type: 'Button' })).map((b) => b.key)).toEqual(['band-mark-open', 'title', 'approve-done', 'board'])
   await band.press({ key: 'approve-done' })
   expect(w.sent.filter((r) => r.op === 'advance').at(-1)).toMatchObject({ to: 'done' })

@@ -983,6 +983,9 @@ function drawIcon(els: Els, k: Icon): unknown {
   return Svg !== undefined ? <Svg source={ICON_SVG[k]} alt={k} width={14} height={14} /> : <Text {...toneProps(ICON_TONE[k])}>{ICON_CHAR[k]}</Text>
 }
 
+/** The blank label of a button laid over an icon: wide enough that the press lands on the icon and the room around it. */
+const HIT = '    '
+
 /** A glyph where the surface draws pictures; nothing elsewhere, where the words beside it say what it would. */
 function drawGlyph(els: Els, g: Glyph, tone: Tone | 'active' = 'dim', size = 15): unknown {
   const { Svg } = els
@@ -998,10 +1001,10 @@ function iconButton($: EngineInterface, els: Els, b: Pressable, g: Glyph, o: { t
   if (Svg === undefined) return <Button key={b.key} plain dimColor label={b.label} onPress={press($, b.action)} />
   const edge = o.from === 'left' ? { left: 0 } : { right: 0 }
   return (
-    <Box key={`${b.key}-icon`} flexShrink={0} alignItems="center">
+    <Box key={`${b.key}-icon`} flexShrink={0} alignItems="center" paddingX={1}>
       {drawGlyph(els, g, o.tone ?? 'dim', o.size ?? 18)}
       <Box position="absolute" top={0} left={0} right={0} bottom={0}>
-        <Button key={b.key} plain label={'  '} onPress={press($, b.action)} />
+        <Button key={b.key} plain label={HIT} onPress={press($, b.action)} />
       </Box>
       <Box position="absolute" top={1} {...edge} width={cellWidth(b.label) + 2} paddingX={1} display="none" hover={{ display: 'flex' }} backgroundColor="inverseText">
         <Text wrap="truncate-end">{b.label}</Text>
@@ -1589,10 +1592,10 @@ export const register: Register = (on) => {
         {/* The mark opens the board: a blank button laid over the picture (a Button holds only words), the mark itself as the button on the terminal. */}
         {Svg !== undefined
           ? (
-            <Box key="band-mark" flexShrink={0} alignItems="center">
+            <Box key="band-mark" flexShrink={0} alignItems="center" paddingX={1}>
               <Svg source={MARK_SVG} alt="Gemflow" width={13} height={13} />
               <Box position="absolute" top={0} left={0} right={0} bottom={0}>
-                <Button key="band-mark-open" plain label={'  '} onPress={press($, { op: 'open-board' })} />
+                <Button key="band-mark-open" plain label={HIT} onPress={press($, { op: 'open-board' })} />
               </Box>
             </Box>
           )
