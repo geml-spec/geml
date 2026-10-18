@@ -76,6 +76,12 @@ declare module 'claude-code' {
       factsAtReply: GemflowJson
       /** A command changed the plugin's own folder since it was loaded: a reload shows it. */
       reload: boolean
+      /** The machine and checkout the session runs on ({ name, platform, user, branch }), as the bridge read them. */
+      host: GemflowJson
+      /** The clients attached to the session (session.attach): [{ clientId, surface }]. */
+      clients: GemflowJson
+      /** Where the last prompt came from: composer (this machine), bridge (Remote Control), sdk. */
+      origin: string | null
     }
   }
 }

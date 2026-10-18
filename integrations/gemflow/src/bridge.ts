@@ -14,7 +14,7 @@
 // `before`, `after` and `learn` start where the request's `cwd` says, and the
 // shell they answer with is always the session's.
 import { cpSync, mkdirSync, readdirSync } from "node:fs";
-import { homedir } from "node:os";
+import { homedir, hostname, userInfo } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { globToRegExp } from "./core/unit.js";
 import { Attribution } from "./attribution.js";
@@ -33,7 +33,8 @@ import { outgoing, sourceLabel, varsBySource } from "./core/statechart.js";
 import { waitsOnPerson } from "./core/turn.js";
 import { readContextDoc } from "./core/stagehand.js";
 import { exists, readText, withLock, writeAtomic } from "./host-fs.js";
-import { branchesAhead, commitsOf, ghOncePerBranch, openPullRequests, type GhFacts } from "./host-git.js";
+import { branchesAhead, commitsOf, ghOncePerBranch, openPullRequests, repoFacts, type GhFacts } from "./host-git.js";
+import type { HostInfo } from "./hosts/claude-code/env.js";
 import { mediaTodoCount } from "./media-todo.js";
 import { addWorkflow, bundledWorkflows, importWorkflow, projectWorkflows, suggestWorkflow, useWorkflow } from "./project.js";
 import { timelineOf } from "./timeline.js";
@@ -389,6 +390,14 @@ function todoOf(ws: Workspace, root: string, view: ShellView): TodoCount | null 
  * the one the context document holds. Otherwise the request's own stage text,
  * when it changed the stage.
  */
+/** The machine and checkout the session runs on: what a person driving it from a phone needs to know. */
+function hostOf(root: string): HostInfo {
+  let user: string | undefined;
+  try { user = userInfo().username; } catch { /* an account with no name */ }
+  const branch = repoFacts(root).branch;
+  return { name: hostname(), platform: process.platform, ...(user !== undefined && user !== "" ? { user } : {}), ...(branch !== undefined ? { branch } : {}) };
+}
+
 function handoffOf(delivered: string | undefined, ws: Workspace, view: ShellView, context: string | undefined): { handoff?: string; context?: string } {
   const own = context !== undefined ? { context } : {};
   const s = view.status;
@@ -514,7 +523,7 @@ function answer(req: BridgeRequest): BridgeResponse {
     }
     // The repository as the band reads it: what is not pushed, which pull requests are green or failing.
     case "attention":
-      return ok(ws.view(), { attention: { ahead: branchesAhead(root), prs: openPullRequests(root) } });
+      return ok(ws.view(), { attention: { ahead: branchesAhead(root), prs: openPullRequests(root) }, host: hostOf(root) });
     case "board": {
       const change = ws.refresh();
       const view = ws.view();

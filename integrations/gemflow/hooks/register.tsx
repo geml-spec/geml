@@ -34,6 +34,8 @@ import type { VerbName } from '../dist/core/verb-specs.js'
 import type { BoardAction, BoardTab, Dialog, JournalFilter, Pressable, ShareHow, ShareWhat } from '../dist/hosts/claude-code/actions.js'
 import { answered, bandLine, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, pressablesFor, remember, standingOf } from '../dist/hosts/claude-code/attention.js'
 import type { AttentionFacts, AttentionMemory } from '../dist/hosts/claude-code/attention.js'
+import { envParts, remoteInPlay } from '../dist/hosts/claude-code/env.js'
+import type { AttachedClient, HostInfo } from '../dist/hosts/claude-code/env.js'
 import { bandView, BRAND_RED, cellWidth, MARK, MARK_SVG, SEP, toneProps, truncate } from '../dist/hosts/claude-code/band.js'
 import type { BandView, Segment, Tone } from '../dist/hosts/claude-code/band.js'
 import { BOARD_ID, ciSuggestions, DIALOG_ID, glyphSvg, HOME_TAB, ICON_CHAR, ICON_SVG, ICON_TONE, inputAction, paneRows, TAB_IDS, tabs, toolSuggestions } from '../dist/hosts/claude-code/board.js'
@@ -116,6 +118,12 @@ const factsAtom = atom({ plugin: 'gemflow', key: 'facts' } as const, null as Gem
 const factsAtReplyAtom = atom({ plugin: 'gemflow', key: 'factsAtReply' } as const, null as GemflowJson)
 /** A command changed the plugin's own folder since it was loaded. */
 const reloadAtom = atom({ plugin: 'gemflow', key: 'reload' } as const, false)
+/** The machine and checkout the session runs on, as the bridge read them ({ name, platform, user, branch }). */
+const hostAtom = atom({ plugin: 'gemflow', key: 'host' } as const, null as GemflowJson)
+/** The clients attached to the session (session.attach): [{ clientId, surface }]. */
+const clientsAtom = atom({ plugin: 'gemflow', key: 'clients' } as const, [] as GemflowJson)
+/** Where the last prompt came from: composer (this machine), bridge (Remote Control), sdk. */
+const originAtom = atom({ plugin: 'gemflow', key: 'origin' } as const, null as string | null)
 
 /** A start that got no answer is tried again on a tool call or a prompt, at most this often. */
 const START_RETRY_MS = 60_000
@@ -398,10 +406,26 @@ async function attentionOnPrompt($: EngineInterface, said: string): Promise<stri
   }
 }
 
+/** Where the session runs and who drives it (env.ts): the parts of one line, and whether a person may be away from the machine. */
+async function envNow($: EngineInterface, t: T, surface?: string): Promise<{ parts: string[]; host: HostInfo | null; remote: boolean }> {
+  const host = (await read($, hostAtom)) as unknown as HostInfo | null
+  const clients = ((await read($, clientsAtom)) as unknown as AttachedClient[] | null) ?? []
+  const origin = (await read($, originAtom)) ?? undefined
+  let session: string | undefined
+  try { session = await $.session.id() } catch { /* no id */ }
+  const parts = envParts({ host, root: await read($, rootAtom), ...(session !== undefined ? { session } : {}), clients, ...(origin !== undefined ? { origin } : {}), t })
+  return { parts, host, remote: remoteInPlay({ ...(surface !== undefined ? { surface } : {}), clients, ...(origin !== undefined ? { origin } : {}) }) }
+}
+
 /** Ask the bridge what the repository says (pushed or not, pull requests green or failing); the band redraws when it changed. */
 async function loadFacts($: EngineInterface): Promise<void> {
   const res = await bridge($, { op: 'attention' }, SLOW_TIMEOUT_MS)
   if (res === undefined || !res.ok || res.attention === undefined) return
+  const host = res.host
+  if (host !== undefined && JSON.stringify(host) !== JSON.stringify(await read($, hostAtom))) {
+    await update($, hostAtom, () => host as unknown as GemflowJson)
+    $.ui.invalidate('ui.render')
+  }
   const facts = res.attention
   if (JSON.stringify(facts) === JSON.stringify(await read($, factsAtom))) return
   await update($, factsAtom, () => facts as unknown as GemflowJson)
@@ -1330,6 +1354,24 @@ export const register: Register = (on) => {
     return next(e)
   }).catch(($, e, next) => next(e))
 
+  // The clients driving the session (the desktop app, a phone over Remote Control): kept for the environment line.
+  on('session.attach', async ($, e, next) => {
+    const done = await next(e)
+    try {
+      await update($, clientsAtom, (was) => [...(((was as unknown) as AttachedClient[] | null) ?? []).filter((c) => c.clientId !== e.clientId), { clientId: e.clientId, surface: e.surface }] as unknown as GemflowJson)
+      $.ui.invalidate('ui.render')
+    } catch { /* the roster stays */ }
+    return done
+  }).catch(($, e, next) => next(e))
+  on('session.detach', async ($, e, next) => {
+    const done = await next(e)
+    try {
+      await update($, clientsAtom, (was) => (((was as unknown) as AttachedClient[] | null) ?? []).filter((c) => c.clientId !== e.clientId) as unknown as GemflowJson)
+      $.ui.invalidate('ui.render')
+    } catch { /* the roster stays */ }
+    return done
+  }).catch(($, e, next) => next(e))
+
   // A /clear ends the conversation the model read the stage in: the next prompt delivers it again. What ran is stored.
   on('session.end', async ($, e, next) => {
     await update($, deliveredAtom, () => null)
@@ -1441,6 +1483,8 @@ export const register: Register = (on) => {
 
   // The person's prompt is recorded for the sessions tab; the stage changed between prompts (a person moved it, session start caught up git): the model hears of it now.
   on('prompt.submit', async ($, e, next) => {
+    // Where it came from: this machine's prompt box, or Remote Control (a plugin's own prompt keeps the last).
+    if (e.origin.kind !== 'plugin') { try { await update($, originAtom, () => e.origin.kind) } catch { /* unknown */ } }
     const news = e.origin.kind === 'plugin' && e.origin.asUser !== true ? [] : await attentionOnPrompt($, e.text)
     const go = (ev: typeof e) => next(news.length > 0 ? { ...ev, context: [...(ev.context ?? []), ...news] } : ev)
     // Between turns, where the person may have moved the session: the root follows. Within a turn it stays, so a call in another checkout stays elsewhere.
@@ -1560,7 +1604,9 @@ export const register: Register = (on) => {
     ]
     if (view.title === '' && options.length === 0 && tail.length === 0) return next(e)
     const columns: number = e.props.bodyColumns
-    const reserve = [...options, ...tail].reduce((w, b) => w + cellWidth(b.label) + 5, 0)
+    const env = await envNow($, t, e.surface).catch(() => ({ parts: [] as string[], host: null as HostInfo | null, remote: false }))
+    const at = env.remote && env.host !== null ? `@${env.host.name}` : ''
+    const reserve = [...options, ...tail].reduce((w, b) => w + cellWidth(b.label) + 5, 0) + (at !== '' ? cellWidth(at) + 1 : 0)
     const lead = 2 + (view.verb !== '' ? cellWidth(view.verb) + 1 : 0)
     const room = Math.max(8, columns - reserve - lead)
     const noteRoom = view.note !== '' ? Math.min(cellWidth(view.note) + 3, Math.floor(room / 3)) : 0
@@ -1605,10 +1651,11 @@ export const register: Register = (on) => {
           {workflow
             ? <Button key="title" plain label={view.title} onPress={press($, { op: 'open-board', tab: 'items' })}><Text {...(Svg !== undefined && view.tone === 'normal' ? { color: 'suggestion' } : toneProps(view.tone))} underline={view.tone === 'normal'}>{title}</Text></Button>
             : <Text {...toneProps(view.tone)}>{title}</Text>}
-          {card(view.detail !== '' ? `${view.verb !== '' ? `${view.verb} ` : ''}${view.title}${SEP}${view.detail}` : '', { left: 0 }, columns - lead)}
+          {card([view.detail !== '' ? `${view.verb !== '' ? `${view.verb} ` : ''}${view.title}${SEP}${view.detail}` : '', env.parts.join(SEP)].filter((x) => x !== '').join(`${SEP}`), { left: 0 }, columns - lead)}
         </Box>
         {note !== '' && <Text dimColor>{note}</Text>}
         {options.map(pressable)}
+        {at !== '' && <Text dimColor>{at}</Text>}
         {tail.map((b, i) => b.key === 'more'
           ? <Box key="band-more">{pressable(b, options.length + i)}{card(view.more.detail, { right: 0 }, columns - 4)}</Box>
           : pressable(b, options.length + i))}
@@ -1644,6 +1691,7 @@ export const register: Register = (on) => {
     } catch (err) {
       rows = [{ kind: 'text', text: truncate(`gemflow：看板画不出来（${reasonOf(err)}）`, columns), tone: 'error' }]
     }
+    const envLine = (await envNow($, t, e.surface).catch(() => ({ parts: [] as string[] }))).parts
     // The work items open on 此刻: everything the band has room for one of.
     if (tab === 'items') {
       try {
@@ -1688,6 +1736,7 @@ export const register: Register = (on) => {
             </Box>
           ))}
         {head?.reason !== undefined && <Text dimColor>{head.reason}</Text>}
+        {envLine.length > 0 && <Text key="env" dimColor wrap="truncate-end">{envLine.join(SEP)}</Text>}
         {hairline(els, 'rule-head', columns)}
         <Box gap={els.Svg !== undefined ? 3 : 2} flexWrap="wrap" alignItems="center">
           {tabs(t).map((x) => els.Svg !== undefined

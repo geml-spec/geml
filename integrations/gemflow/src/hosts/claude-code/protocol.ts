@@ -10,6 +10,7 @@ import type { VerbName } from "../../core/verb-specs.js";
 import type { Status } from "../../workspace.js";
 import type { Suggestion } from "../../project.js";
 import type { AttentionFacts } from "./attention.js";
+import type { HostInfo } from "./env.js";
 
 export type { VerbName } from "../../core/verb-specs.js";
 
@@ -218,6 +219,8 @@ export type BridgeResponse =
       exported?: { path: string; text: string };
       /** attention: the repository's facts for the band. */
       attention?: AttentionFacts;
+      /** attention: the machine and checkout the session runs on. */
+      host?: HostInfo;
     }
   /** No shell only when the request itself failed — it threw, or did not decode: the hooks module keeps the last shell and shows the error. */
   | { v: 1; ok: false; error: string; shell?: ShellStatus };

@@ -420,6 +420,14 @@ export const WORDS: Readonly<Record<string, Entry>> = {
   "只差你": { en: "Your step", ja: "あなたの番" },
   "还等你": { en: "Still waiting", ja: "まだ待っている" },
   "此刻": { en: "Right now", ja: "いま" },
+  // --- where the session runs (env.ts) ---
+  "桌面端": { en: "desktop", ja: "デスクトップ" },
+  "手机": { en: "phone", ja: "スマホ" },
+  "终端": { en: "terminal", ja: "ターミナル" },
+  "远程控制": { en: "Remote Control", ja: "リモートコントロール" },
+  "本机输入框": { en: "this machine's prompt", ja: "このマシンの入力欄" },
+  "连着 {0}": { en: "attached: {0}", ja: "接続中：{0}" },
+  "上一句来自 {0}": { en: "last prompt from {0}", ja: "直前の入力：{0}" },
 };
 
 const EMPTY: Entry = { en: "", ja: "" };

@@ -178,6 +178,7 @@ function world(on: On) {
     if (req.op === 'verb') return { v: 1, ok: true, shell: shell(), text: `[gemflow] work item feat/x · state #${w.state}` }
     if (req.op === 'board') return { v: 1, ok: true, shell: shell(), board: board(), todo: w.todo }
     if (req.op === 'refresh') return { v: 1, ok: true, shell: shell(), todo: w.todo }
+    if (req.op === 'attention') return { v: 1, ok: true, shell: shell(), attention: { ahead: [], prs: [] }, host: { name: 'build-box', platform: 'linux', user: 'dev', branch: 'feat/x' } }
     return { v: 1, ok: true, shell: shell(), ...(req.op === 'before' ? { recorded: false } : {}), ...(req.op === 'after' ? handoff(req) : {}) }
   }
   const ran = (stdout: string, exitCode = 0) => ({ exitCode, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false })
@@ -392,7 +393,7 @@ test('the band and /gemflow, on terminal and desktop', async ($, on) => {
   const desktop = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
   expect(await desktop.find({ type: 'Svg' })).toBeDefined()
   await desktop.unmount()
-  expect(await bandCard($), 'the pointer on the title shows the one thing whole').toBe('我在做 feat/x · build · 下一步「review」 · 自动')
+  expect(await bandCard($), 'the pointer on the title shows the one thing whole, and where it runs').toBe('我在做 feat/x · build · 下一步「review」 · 自动 · build-box · Linux · dev · /work/app · feat/x · 会话 sess-123')
   const out = await $.command.run({ command: 'gemflow', args: '', origin: COMPOSER, presentation: PRESENTATION })
   expect(out.text).toContain('工作项 feat/x · 阶段 #build')
   expect(out.text).toContain('工具：edit test')
@@ -945,4 +946,28 @@ test('a reply that ends asking: the band puts the question first with its answer
   expect(await pane.find({ type: 'Text', text: '新分支要不要开 PR' })).toBeDefined()
   expect(await pane.find({ type: 'Text', text: '#32 关不关' })).toBeDefined()
   await pane.unmount()
+})
+
+test('where the session runs: the board says the machine, the checkout, the session, who is attached and where the last prompt came from; with a phone in play the band names the machine', async ($, on) => {
+  world(on)
+  on('prompt.submit', ($, e) => ({ text: e.text }))
+  on('session.attach', ($, e) => ({ clientId: e.clientId }))
+  on('session.detach', ($, e) => ({ clientId: e.clientId }))
+  const clock = await start($, on)
+  await clock.advance(1)
+  await $.command.run({ command: 'gemflow', args: 'board', origin: COMPOSER, presentation: PRESENTATION })
+  const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  expect(await pane.find({ type: 'Text', text: /build-box · Linux · dev · .* · feat\/x · 会话 / })).toBeDefined()
+  await pane.unmount()
+  expect(await bandText($), 'no phone, no Remote Control: the band does not name the machine').not.toMatch(/@build-box/)
+  await $.session.attach({ surface: 'mobile', clientId: 'phone-1' })
+  await $.prompt.submit({ text: '推', wait: false, origin: { kind: 'bridge' } })
+  expect(await bandText($), 'a phone attached: the band names the machine').toMatch(/@build-box/)
+  const again = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  expect(await again.find({ type: 'Text', text: /连着 手机 · 上一句来自 远程控制/ })).toBeDefined()
+  await again.unmount()
+  await $.session.detach({ surface: 'mobile', clientId: 'phone-1', reason: 'detach' })
+  const last = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  expect(await last.find({ type: 'Text', text: /连着 手机/ }), 'the phone left').toBeUndefined()
+  await last.unmount()
 })
