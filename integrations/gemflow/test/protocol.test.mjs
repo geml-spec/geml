@@ -1,5 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { PROTOCOL_VERSION, decodeRequest, decodeResponse, encodeRequest, unreadableText } from "../dist/hosts/claude-code/protocol.js";
 
 test("requests: one JSON line; the CLI refuses what it cannot run", () => {
@@ -47,4 +49,12 @@ test("an answer that did not parse: stderr's error line, and the build to run wh
     "gemflow：桥接的应答无法解析（退出码 1：TypeError: x is not a function）");
   assert.equal(unreadableText(134, "Aborted\n", "/plugin"), "gemflow：桥接的应答无法解析（退出码 134：Aborted）", "no error line: the first line");
   assert.equal(unreadableText(0, "", "/plugin"), "gemflow：桥接的应答无法解析（退出码 0）");
+});
+
+test("every op the hooks module may send is one the CLI runs: none is refused as unknown", () => {
+  const src = readFileSync(fileURLToPath(new URL("../src/hosts/claude-code/protocol.ts", import.meta.url)), "utf8").replace(/\r\n/g, "\n");
+  const union = src.slice(src.indexOf("export type BridgeOp"), src.indexOf(";\n\n", src.indexOf("export type BridgeOp")));
+  const ops = [...union.matchAll(/op: "([\w-]+)"/g)].map((m) => m[1]);
+  assert.ok(ops.includes("attention") && ops.length > 15, `read the union: ${ops.join(", ")}`);
+  for (const op of ops) assert.notEqual(decodeRequest(JSON.stringify({ v: 1, root: "/r", op })).error, `unknown op ${op}`, op);
 });

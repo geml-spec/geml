@@ -256,7 +256,7 @@ export function unreadableText(exitCode: number, stderr: string, pluginRoot: str
   return `gemflow：桥接的应答无法解析（退出码 ${exitCode}${said ? `：${said}` : ""}）`;
 }
 
-const OPS = new Set(["status", "refresh", "before", "after", "verb", "learn", "mark", "advance", "pause", "resume", "rollback", "new-item", "bind", "use", "add", "import", "board", "export"]);
+const OPS = new Set(["status", "refresh", "before", "after", "verb", "learn", "mark", "advance", "pause", "resume", "rollback", "new-item", "bind", "use", "add", "import", "board", "attention", "export"]);
 const EXPORT_KINDS = new Set(["journal", "workflow", "text"]);
 const EXPORT_FORMATS = new Set(["geml", "md", "json"]);
 const VERBS = new Set(["status", "move", "set"]);

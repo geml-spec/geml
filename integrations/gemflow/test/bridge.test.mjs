@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { hostname } from "node:os";
 import { fileURLToPath } from "node:url";
 import { readContextDoc } from "../dist/core/stagehand.js";
 import { fakeGh, gitRepo, hook, withWorkflow } from "./helpers/repo.mjs";
@@ -251,4 +252,14 @@ test("export: the journal as GEML, Markdown or JSON, the workflow directory copi
   assert.match(readFileSync(join(root, wf.exported.path, "flow.geml"), "utf8"), /geml-statechart/);
   assert.equal(wf.exported.text, readFileSync(join(root, ".geml", "workflows", "dev", "flow.geml"), "utf8"));
   assert.deepEqual(hook(root, { op: "export", kind: "text", format: "md" }), { v: 1, ok: false, error: "op export: missing or mistyped fields" }, "a text export needs its text");
+});
+
+test("attention: the real bridge answers the repository's facts and the machine the session runs on", () => {
+  const root = project();
+  const r = hook(root, { op: "attention" }, NO_GH);
+  assert.equal(r.ok, true, r.error);
+  assert.ok(Array.isArray(r.attention.ahead) && Array.isArray(r.attention.prs));
+  assert.equal(r.host.name, hostname());
+  assert.equal(r.host.platform, process.platform);
+  assert.equal(typeof r.host.branch, "string");
 });
