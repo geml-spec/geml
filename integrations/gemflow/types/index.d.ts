@@ -68,6 +68,14 @@ declare module 'claude-code' {
       /** The share dialog's choice ({ what, how, strip }). */
       share: GemflowJson
       version: string | null
+      /** The band's attention (attention.ts): the last reply ({ reply, replyAt, asked, memory, consumed }). */
+      attention: GemflowJson
+      /** The repository's facts for the band ({ ahead, prs }), as the bridge last read them. */
+      facts: GemflowJson
+      /** The facts as they stood when the last reply ended: what changed since is news for the model. */
+      factsAtReply: GemflowJson
+      /** A command changed the plugin's own folder since it was loaded: a reload shows it. */
+      reload: boolean
     }
   }
 }

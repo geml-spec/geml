@@ -9,6 +9,7 @@ import type { Judge } from "../../core/statechart.js";
 import type { VerbName } from "../../core/verb-specs.js";
 import type { Status } from "../../workspace.js";
 import type { Suggestion } from "../../project.js";
+import type { AttentionFacts } from "./attention.js";
 
 export type { VerbName } from "../../core/verb-specs.js";
 
@@ -55,6 +56,8 @@ export type BridgeOp =
   /** Copy a workflow from a path (a directory with flow.geml, or a .geml file) into .geml/workflows/; answers `added`. */
   | { op: "import"; path: string }
   | { op: "board" }
+  /** What the repository says for the band (attention.ts): branches ahead of their upstream, open pull requests and their checks. */
+  | { op: "attention" }
   /**
    * Write a file under `.geml/exports/` and answer its path and text: the work
    * item's journal (as GEML, a Markdown revision table, or JSON), a copy of the
@@ -213,6 +216,8 @@ export type BridgeResponse =
       workflows?: string[]; installed?: string[]; added?: { name: string; activated: boolean };
       /** export: where the file went (project-relative, `/`-separated) and what it holds. */
       exported?: { path: string; text: string };
+      /** attention: the repository's facts for the band. */
+      attention?: AttentionFacts;
     }
   /** No shell only when the request itself failed — it threw, or did not decode: the hooks module keeps the last shell and shows the error. */
   | { v: 1; ok: false; error: string; shell?: ShellStatus };

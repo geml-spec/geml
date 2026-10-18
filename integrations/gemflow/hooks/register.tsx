@@ -32,6 +32,8 @@ import { CLAUDE_CODE_TOOLS } from '../dist/core/host-tools.js'
 import { FLOW_TOOLS } from '../dist/core/verb-specs.js'
 import type { VerbName } from '../dist/core/verb-specs.js'
 import type { BoardAction, BoardTab, Dialog, JournalFilter, Pressable, ShareHow, ShareWhat } from '../dist/hosts/claude-code/actions.js'
+import { answered, bandLine, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, pressablesFor, remember, standingOf } from '../dist/hosts/claude-code/attention.js'
+import type { AttentionFacts, AttentionMemory } from '../dist/hosts/claude-code/attention.js'
 import { bandView, BRAND_RED, cellWidth, MARK, MARK_SVG, SEP, toneProps, truncate } from '../dist/hosts/claude-code/band.js'
 import type { BandView, Segment, Tone } from '../dist/hosts/claude-code/band.js'
 import { BOARD_ID, ciSuggestions, DIALOG_ID, glyphSvg, HOME_TAB, ICON_CHAR, ICON_SVG, ICON_TONE, inputAction, paneRows, TAB_IDS, tabs, toolSuggestions } from '../dist/hosts/claude-code/board.js'
@@ -106,6 +108,14 @@ const localeAtom = atom({ plugin: 'gemflow', key: 'locale' } as const, null as s
 const workflowsAtom = atom({ plugin: 'gemflow', key: 'workflows' } as const, null as GemflowJson)
 const shareAtom = atom({ plugin: 'gemflow', key: 'share' } as const, { what: 'status', how: 'copy', strip: true } as GemflowJson)
 const versionAtom = atom({ plugin: 'gemflow', key: 'version' } as const, null as string | null)
+/** The band's attention (attention.ts): the last reply, when it came, the prompt it answered, and what the band remembers. */
+const attentionAtom = atom({ plugin: 'gemflow', key: 'attention' } as const, null as GemflowJson)
+/** The repository as the bridge last read it for the band: branches ahead of their upstream, open pull requests. */
+const factsAtom = atom({ plugin: 'gemflow', key: 'facts' } as const, null as GemflowJson)
+/** The facts when the last reply ended: what changed since is news for the model. */
+const factsAtReplyAtom = atom({ plugin: 'gemflow', key: 'factsAtReply' } as const, null as GemflowJson)
+/** A command changed the plugin's own folder since it was loaded. */
+const reloadAtom = atom({ plugin: 'gemflow', key: 'reload' } as const, false)
 
 /** A start that got no answer is tried again on a tool call or a prompt, at most this often. */
 const START_RETRY_MS = 60_000
@@ -339,6 +349,63 @@ async function loadBoard($: EngineInterface): Promise<string | null> {
   }
   await notifyInbox($)
   return failure
+}
+
+// ---- what needs the person now (attention.ts) ---------------------------------------------
+
+/** The last reply as the band keeps it. `consumed`: the person has answered it; its asks no longer lead. */
+interface Attention { reply: string; replyAt: number; asked: string; memory: AttentionMemory; consumed: boolean }
+const readAttention = async ($: EngineInterface): Promise<Attention | null> => (await read($, attentionAtom)) as unknown as Attention | null
+
+/** The repository's facts for the band, with the reload a command made due. */
+async function factsNow($: EngineInterface): Promise<AttentionFacts> {
+  const f = ((await read($, factsAtom)) as unknown as AttentionFacts | null) ?? NO_FACTS
+  return (await read($, reloadAtom)) ? { ...f, reload: true } : f
+}
+
+/** What the band and the board's 此刻 show now: the lead, the standing steps, the memory, the line. Reads only. */
+async function attentionNow($: EngineInterface, t: T) {
+  const a = await readAttention($)
+  const facts = await factsNow($)
+  const now = await $.clock.now()
+  const reply = a !== null && !a.consumed ? a.reply : ''
+  const memory = a?.memory ?? NO_MEMORY
+  const standing = standingOf(reply, facts, now, t)
+  const lead = a === null || a.consumed ? null : leadOf({ reply, standing, memory, t })
+  const line = bandLine({ lead, standing, memory, reply, awayMs: a === null ? null : now - a.replyAt, ...(a !== null ? { asked: a.asked } : {}), t })
+  return { attention: a, reply, standing, memory, lead, line }
+}
+
+/**
+ * The person's prompt ends the band's moment: its memory moves on (what led, how long each step has waited, the asks
+ * the prompt answers), and what changed in the repository since the reply is news for the model, so the person need
+ * not say it. Answers the context lines to add.
+ */
+async function attentionOnPrompt($: EngineInterface, said: string): Promise<string[]> {
+  try {
+    const t = await words($)
+    const now = await attentionNow($, t)
+    const a = now.attention
+    if (a === null) return []
+    if (!a.consumed) {
+      const memory = answered(remember(a.memory, { reply: a.reply, standing: now.standing, lead: now.lead }), said)
+      await update($, attentionAtom, () => ({ ...a, memory, consumed: true }) as unknown as GemflowJson)
+    }
+    const news = newsOf((await read($, factsAtReplyAtom)) as unknown as AttentionFacts | null, await factsNow($), t)
+    return news.length > 0 ? [`[gemflow] since your last reply: ${news.join('; ')}`] : []
+  } catch {
+    return []
+  }
+}
+
+/** Ask the bridge what the repository says (pushed or not, pull requests green or failing); the band redraws when it changed. */
+async function loadFacts($: EngineInterface): Promise<void> {
+  const res = await bridge($, { op: 'attention' }, SLOW_TIMEOUT_MS)
+  if (res === undefined || !res.ok || res.attention === undefined) return
+  const facts = res.attention
+  if (JSON.stringify(facts) === JSON.stringify(await read($, factsAtom))) return
+  await update($, factsAtom, () => facts as unknown as GemflowJson)
+  $.ui.invalidate('ui.render')
 }
 
 /** Node, then the first status; the time is kept so a start that got no answer is tried again, at most once a minute. */
@@ -835,6 +902,8 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       try { await $.store.set(STORE_SETTINGS, next) } catch { /* read-only store */ }
       return
     }
+    // The plugin's own prompt does not pass its own prompt.submit hook: the band's moment ends here.
+    case 'say': await attentionOnPrompt($, action.text); await $.prompt.submit({ text: action.text, asUser: true }); return
     case 'copy': {
       const r = await $.ui.copy({ text: action.text, ...(surface !== undefined ? { surface: surface as never } : {}) })
       $.ui.toast(r.isCopied ? t('已复制') : `gemflow：${r.reason}`)
@@ -1249,6 +1318,12 @@ export const register: Register = (on) => {
       if (typeof manifest.version === 'string') { const v = manifest.version; await update($, versionAtom, () => v) }
     } catch { /* no manifest */ }
     await startBridge($)
+    // A load is a reload: nothing is due. The repository's facts now and every two minutes; the band every minute, so a
+    // person away from the keyboard comes back to "你离开了 …" without having to type first.
+    await update($, reloadAtom, () => false)
+    $.clock.after(0, () => { void loadFacts($) })
+    $.clock.every(120_000, () => { void loadFacts($) })
+    $.clock.every(60_000, () => { $.ui.invalidate('ui.render') })
     return next(e)
   }).catch(($, e, next) => next(e))
 
@@ -1346,16 +1421,29 @@ export const register: Register = (on) => {
         const did = answerGist(e.answer)
         if (did !== undefined) await notePrompt($, (p) => (p.did === undefined ? { ...p, did } : p))
       } catch { /* the row stays without it */ }
+      if (!e.isAborted) {
+        try {
+          const prompts = await readPrompts($)
+          const was = await readAttention($)
+          const kept: Attention = { reply: e.answer, replyAt: await $.clock.now(), asked: prompts[prompts.length - 1]?.text ?? '', memory: was?.memory ?? NO_MEMORY, consumed: false }
+          await update($, attentionAtom, () => kept as unknown as GemflowJson)
+          const facts = await read($, factsAtom)
+          await update($, factsAtReplyAtom, () => facts)
+          $.clock.after(0, () => { void loadFacts($) })
+        } catch { /* the band keeps the last reply */ }
+      }
     }
     return done
   })
 
   // The person's prompt is recorded for the sessions tab; the stage changed between prompts (a person moved it, session start caught up git): the model hears of it now.
   on('prompt.submit', async ($, e, next) => {
+    const news = e.origin.kind === 'plugin' && e.origin.asUser !== true ? [] : await attentionOnPrompt($, e.text)
+    const go = (ev: typeof e) => next(news.length > 0 ? { ...ev, context: [...(ev.context ?? []), ...news] } : ev)
     // Between turns, where the person may have moved the session: the root follows. Within a turn it stays, so a call in another checkout stays elsewhere.
     await followCwd($)
     const root = await read($, rootAtom)
-    if (root === null) return next(e)
+    if (root === null) return go(e)
     await retryStart($)
     if (e.origin.kind !== 'plugin' || e.origin.asUser === true) {
       const s = (await readShell($))?.status
@@ -1378,14 +1466,25 @@ export const register: Register = (on) => {
     try {
       doc = String(await $.fs.read(`${root}/.geml/context.geml`))
     } catch {
-      return next(e)
+      return go(e)
     }
     const seen = contextOf(doc)
-    if (seen === undefined || seen.key === (await read($, deliveredAtom))) return next(e)
+    if (seen === undefined || seen.key === (await read($, deliveredAtom))) return go(e)
     const item = (await readShell($))?.status?.item
-    if (item === undefined || item.kind !== 'item' || item.id !== seen.item) return next(e)
+    if (item === undefined || item.kind !== 'item' || item.id !== seen.item) return go(e)
     await update($, deliveredAtom, () => seen.key)
-    return next({ ...e, context: [...(e.context ?? []), seen.text] })
+    return go({ ...e, context: [...(e.context ?? []), seen.text] })
+  }).catch(($, e, next) => next(e))
+
+  // A command that writes into the plugin's own folder (a developer copying a new build in): a reload is due.
+  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
+    const done = await next(e)
+    try {
+      const command = String(e.command ?? '').replace(/\\/g, '/')
+      const root = $.plugin.root.replace(/\\/g, '/')
+      if (command.includes(root) || /local-marketplaces/.test(command)) await update($, reloadAtom, () => true)
+    } catch { /* nothing due */ }
+    return done
   }).catch(($, e, next) => next(e))
 
   // The host stores the person's prompt as a row with an id, the same the transcript file holds: the sessions tab's newest record without one learns it, so a press can scroll to the row.
@@ -1414,6 +1513,7 @@ export const register: Register = (on) => {
     let view: BandView
     // The board is a press away whenever there is a workflow, not only when something waits in it.
     let workflow = false
+    let waitingOnPerson = 0
     try {
       const shell = await readShell($)
       const board = await readBoard($)
@@ -1421,6 +1521,7 @@ export const register: Register = (on) => {
       // What waits on the person, the same list the board's 待处理 shows: the current work item's things, then the others'.
       const inbox = pendingList(await inboxOf($, t), [...othersWaiting(board, item?.kind === 'item' ? item.id : undefined, t), ...(board !== null ? [...toolSuggestions(board, await usageNow($), await dismissedOf($), t), ...ciSuggestions(board, shell?.units ?? [], await dismissedOf($), t)] : [])])
       workflow = shell?.status != null
+      waitingOnPerson = inbox.length
       view = bandView({
         shell, problem: await read($, problemAtom), setup: await read($, setupAtom), todo: (await read($, todoAtom)) as unknown as TodoCount | null,
         inbox, timeline: board?.timeline ?? [], now: await nowIso($), t,
@@ -1434,7 +1535,22 @@ export const register: Register = (on) => {
       const line = judgementLine(judged, t)
       view = { ...view, verb: t('判定'), title: line.title, tone: 'normal', note: line.note, detail: `${judged.said}${SEP}${line.title}${line.note !== '' ? `${SEP}${line.note}` : ''}`, actions: line.actions }
     }
-    const options: Pressable[] = view.actions
+    // What needs the person now (attention.ts): the reply's asks and the steps only they can take lead, after a broken
+    // bridge and a fresh judgement; the workflow's own waiting items and a pause come next; a line of steps still owed
+    // stands in for "我在做" only when nothing else does.
+    let attentionPresses: Pressable[] | null = null
+    const judgedFresh = judged !== null && Date.parse(await nowIso($)) - Date.parse(judged.at) < JUDGEMENT_MS
+    if (view.tone !== 'error' && !judgedFresh) {
+      try {
+        const at = await attentionNow($, t)
+        const workflowWaits = waitingOnPerson > 0 || view.verb === t('已暂停')
+        if (at.line !== null && (at.line.lead !== null || !workflowWaits)) {
+          view = { verb: '', title: at.line.text, tone: at.line.lead === 'broken' ? 'error' : 'normal', note: '', detail: at.line.text, actions: [], more: { count: 0, detail: '' } }
+          attentionPresses = pressablesFor(at.lead, at.line.options, t)
+        }
+      } catch { /* the workflow's line stands */ }
+    }
+    const options: Pressable[] = attentionPresses ?? view.actions
     const tail: Pressable[] = [
       ...(view.more.count > 0 ? [{ key: 'more', label: t('还有 {0} 件', view.more.count), action: { op: 'open-board', tab: 'items' } as BoardAction }] : []),
       ...(workflow ? [{ key: 'board', label: t('看板'), action: { op: 'open-board' } as BoardAction }] : []),
@@ -1470,7 +1586,17 @@ export const register: Register = (on) => {
       : <Button key={b.key} plain hotkey={String(i + 1)} label={b.label} {...(b.primary ? { variant: 'primary' } : {})} onPress={press($, b.action)} />
     return (
       <Box gap={1} alignItems="center">
-        {Svg !== undefined ? <Svg source={MARK_SVG} alt="Gemflow" width={13} height={13} /> : <Text {...toneProps(MARK.tone)}>{MARK.text}</Text>}
+        {/* The mark opens the board: a blank button laid over the picture (a Button holds only words), the mark itself as the button on the terminal. */}
+        {Svg !== undefined
+          ? (
+            <Box key="band-mark" flexShrink={0} alignItems="center">
+              <Svg source={MARK_SVG} alt="Gemflow" width={13} height={13} />
+              <Box position="absolute" top={0} left={0} right={0} bottom={0}>
+                <Button key="band-mark-open" plain label={'  '} onPress={press($, { op: 'open-board' })} />
+              </Box>
+            </Box>
+          )
+          : <Button key="band-mark-open" plain label={t('看板')} onPress={press($, { op: 'open-board' })}><Text {...toneProps(MARK.tone)}>{MARK.text}</Text></Button>}
         {view.verb !== '' && <Text dimColor>{view.verb}</Text>}
         <Box key="band-title">
           {workflow
@@ -1514,6 +1640,13 @@ export const register: Register = (on) => {
       })
     } catch (err) {
       rows = [{ kind: 'text', text: truncate(`gemflow：看板画不出来（${reasonOf(err)}）`, columns), tone: 'error' }]
+    }
+    // The work items open on 此刻: everything the band has room for one of.
+    if (tab === 'items') {
+      try {
+        const at = await attentionNow($, t)
+        rows = [...nowRows({ reply: at.reply, standing: at.standing, memory: at.memory, t }), ...rows]
+      } catch { /* the work items alone */ }
     }
     return (
       <Box flexDirection="column">

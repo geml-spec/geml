@@ -316,6 +316,56 @@ export function ghFacts(root: string, branch: string, o: { gh?: string } = {}): 
   return facts;
 }
 
+/**
+ * Local branches with commits their upstream does not have, across the
+ * repository — a worktree's branch too, since worktrees share it. `newestAt`
+ * is the branch tip's commit time. A branch with no upstream is not listed: it
+ * was never pushed, so nothing is "not pushed yet" about it.
+ */
+export function branchesAhead(root: string): { branch: string; ahead: number; newestAt?: string }[] {
+  const r = run("git", ["for-each-ref", "refs/heads", "--format=%(refname:short)%09%(upstream:track)%09%(committerdate:iso-strict)"], root);
+  if (!r.ok) return [];
+  const out: { branch: string; ahead: number; newestAt?: string }[] = [];
+  for (const line of r.out.split(/\r?\n/)) {
+    const [branch, track, at] = line.split("\t");
+    const m = /ahead (\d+)/.exec(track ?? "");
+    if (branch !== undefined && branch !== "" && m) out.push({ branch, ahead: Number(m[1]), ...(at !== undefined && at !== "" ? { newestAt: at } : {}) });
+  }
+  return out;
+}
+
+/** The conclusions of a check that finished and failed, as gh's statusCheckRollup spells them (a check run's, or a status's state). */
+const ROLLUP_FAILED = new Set(["FAILURE", "TIMED_OUT", "CANCELLED", "ACTION_REQUIRED", "STARTUP_FAILURE", "ERROR"]);
+const ROLLUP_PASSED = new Set(["SUCCESS", "NEUTRAL", "SKIPPED"]);
+
+/**
+ * The open pull requests the person opened, with their checks: `green` when
+ * every check finished and passed, `failing` the checks that finished and
+ * failed. None when gh cannot be asked — the band then just says nothing of
+ * pull requests. The binary is chosen as ghFacts chooses it.
+ */
+export function openPullRequests(root: string, o: { gh?: string } = {}): { number: number; branch: string; green: boolean; failing: string[] }[] {
+  const bin = o.gh || process.env["GEMFLOW_GH"] || "gh";
+  const script = /\.[cm]?js$/i.test(bin);
+  const args = ["pr", "list", "--state", "open", "--author", "@me", "--limit", "30", "--json", "number,headRefName,statusCheckRollup"];
+  const r = script ? run(process.execPath, [bin, ...args], root) : run(bin, args, root);
+  if (!r.ok) return [];
+  const list = parseJson(r.out);
+  if (!Array.isArray(list)) return [];
+  const out: { number: number; branch: string; green: boolean; failing: string[] }[] = [];
+  for (const pr of list as { number?: unknown; headRefName?: unknown; statusCheckRollup?: unknown }[]) {
+    if (pr === null || typeof pr !== "object" || typeof pr.number !== "number" || typeof pr.headRefName !== "string") continue;
+    const checks = Array.isArray(pr.statusCheckRollup) ? (pr.statusCheckRollup as Record<string, unknown>[]) : [];
+    const read = checks.filter((c) => c !== null && typeof c === "object").map((c) => {
+      const conclusion = String(c["conclusion"] ?? c["state"] ?? "").toUpperCase();
+      const done = c["status"] === undefined || String(c["status"]).toUpperCase() === "COMPLETED";
+      return { name: String(c["name"] ?? c["context"] ?? "check"), passed: done && ROLLUP_PASSED.has(conclusion), failed: done && ROLLUP_FAILED.has(conclusion) };
+    });
+    out.push({ number: pr.number, branch: pr.headRefName, green: read.length > 0 && read.every((c) => c.passed), failing: [...new Set(read.filter((c) => c.failed).map((c) => c.name))] });
+  }
+  return out;
+}
+
 /** ghFacts, asked at most once per branch by the function this returns: one request or tool call may read gh's facts twice (a refresh, then the status). */
 export function ghOncePerBranch(): (root: string, branch: string) => GhFacts {
   const asked = new Map<string, GhFacts>();

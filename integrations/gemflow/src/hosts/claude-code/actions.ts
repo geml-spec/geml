@@ -74,6 +74,8 @@ export type BoardAction =
   | { op: "import"; path: string }
   | { op: "setting"; key: string; value: string | boolean }
   | { op: "copy"; text: string }
+  /** Words sent into the conversation as the person's own, as if typed: an answer on the band, a step it offers. */
+  | { op: "say"; text: string }
   /** Show the session's prompts of one flow (its title), or all. */
   | { op: "session-flow"; flow: string | null }
   /** Unfold a run of turns in another flow (its first prompt's id), or fold it. */

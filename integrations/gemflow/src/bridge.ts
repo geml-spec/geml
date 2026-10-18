@@ -33,7 +33,7 @@ import { outgoing, sourceLabel, varsBySource } from "./core/statechart.js";
 import { waitsOnPerson } from "./core/turn.js";
 import { readContextDoc } from "./core/stagehand.js";
 import { exists, readText, withLock, writeAtomic } from "./host-fs.js";
-import { commitsOf, ghOncePerBranch, type GhFacts } from "./host-git.js";
+import { branchesAhead, commitsOf, ghOncePerBranch, openPullRequests, type GhFacts } from "./host-git.js";
 import { mediaTodoCount } from "./media-todo.js";
 import { addWorkflow, bundledWorkflows, importWorkflow, projectWorkflows, suggestWorkflow, useWorkflow } from "./project.js";
 import { timelineOf } from "./timeline.js";
@@ -512,6 +512,9 @@ function answer(req: BridgeRequest): BridgeResponse {
       const r = bindHere(ws, root, req.id);
       return r.ok ? ok(ws.view()) : failed(r.reason);
     }
+    // The repository as the band reads it: what is not pushed, which pull requests are green or failing.
+    case "attention":
+      return ok(ws.view(), { attention: { ahead: branchesAhead(root), prs: openPullRequests(root) } });
     case "board": {
       const change = ws.refresh();
       const view = ws.view();

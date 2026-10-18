@@ -278,7 +278,7 @@ test('real event order: session start, a test run moves the stage, the board mov
     return { text: e.text, ...(e.context !== undefined ? { context: e.context } : {}) }
   })
   await start($, on)
-  expect(w.sent.map((r) => r.op), 'the board the inbox is built from is read at the start').toEqual(['status', 'refresh', 'board'])
+  expect(w.sent.map((r) => r.op), 'the board the inbox is built from is read at the start').toEqual(['status', 'refresh', 'board', 'attention'])
   expect(w.sent[0]).toMatchObject({ v: 1, root: ROOT })
   expect(w.registered).toEqual(['status', 'move', 'set'])
 
@@ -388,7 +388,7 @@ test('the band and /gemflow, on terminal and desktop', async ($, on) => {
   await start($, on)
   // The mark is a character on the terminal, a picture on a desktop; the rest reads the same.
   expect(await bandText($)).toBe('» 我在做 feat/x · build [看板]')
-  expect(await bandText($, 'desktop')).toBe('我在做 feat/x · build 看板 [       ]')
+  expect(await bandText($, 'desktop')).toBe('[  ] 我在做 feat/x · build 看板 [       ]')
   const desktop = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
   expect(await desktop.find({ type: 'Svg' })).toBeDefined()
   await desktop.unmount()
@@ -482,7 +482,7 @@ test('a registration the engine refuses: the start goes on, and the band says wh
   const w = world(on)
   w.refuse = { set: 'a tool named set is already registered' }
   await start($, on)
-  expect(w.sent.map((r) => r.op)).toEqual(['status', 'refresh', 'board'])
+  expect(w.sent.map((r) => r.op)).toEqual(['status', 'refresh', 'board', 'attention'])
   expect(w.registered).toEqual(['status', 'move'])
   expect(await bandText($, 'terminal', 400)).toMatch(/^» gemflow：没有注册上 set（[^（]*already registered[^）]*） \[看板\]$/)
 })
@@ -700,8 +700,8 @@ test('an approval edge that holds: the band offers the approval, the inbox lists
   expect(w.notified).toEqual(['等你验收：feat/x\nreview'])
   const band = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
   expect(await band.find({ type: 'Svg' })).toBeDefined()
-  expect(await bandText($, 'desktop')).toBe('验收 feat/x [通过] 看板 [       ]')
-  expect((await band.findAll({ type: 'Button' })).map((b) => b.key)).toEqual(['title', 'approve-done', 'board'])
+  expect(await bandText($, 'desktop')).toBe('[  ] 验收 feat/x [通过] 看板 [       ]')
+  expect((await band.findAll({ type: 'Button' })).map((b) => b.key)).toEqual(['band-mark-open', 'title', 'approve-done', 'board'])
   await band.press({ key: 'approve-done' })
   expect(w.sent.filter((r) => r.op === 'advance').at(-1)).toMatchObject({ to: 'done' })
   expect(w.state).toBe('done')
@@ -762,11 +762,19 @@ test('the band offers the board whenever there is a workflow, nothing waiting or
   const w = world(on)
   await start($, on)
   const band = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'AbovePrompt', props: BAND })
-  expect((await band.findAll({ type: 'Button' })).map((b) => b.key), 'the title is a press too: it opens the work items').toEqual(['title', 'board'])
+  expect((await band.findAll({ type: 'Button' })).map((b) => b.key), 'the mark and the title are presses too: the board, the work items').toEqual(['band-mark-open', 'title', 'board'])
   const opened = w.opened
   await band.press({ key: 'board' })
   expect(w.opened).toBe(opened + 1)
   await band.unmount()
+  // The mark opens it too, on every surface.
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const again = await $.ui.mount({ plugin: 'gemflow', surface, component: 'AbovePrompt', props: BAND })
+    const before = w.opened
+    await again.press({ key: 'band-mark-open' })
+    expect(w.opened, surface).toBe(before + 1)
+    await again.unmount()
+  }
 })
 
 test('pause and resume from the board header; the band says so and offers only resume', async ($, on) => {
@@ -781,7 +789,7 @@ test('pause and resume from the board header; the band says so and offers only r
   expect(await pane.find({ type: 'Button', key: 'pause' })).toBeUndefined()
   expect(await bandText($)).toBe('» 已暂停 feat/x · 模型推不动，证据照记 [继续] [看板]')
   const band = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'AbovePrompt', props: BAND })
-  expect((await band.findAll({ type: 'Button' })).map((b) => b.key)).toEqual(['title', 'resume', 'board'])
+  expect((await band.findAll({ type: 'Button' })).map((b) => b.key)).toEqual(['band-mark-open', 'title', 'resume', 'board'])
   await band.press({ key: 'resume' })
   expect(w.sent.filter((r) => r.op === 'resume')).toHaveLength(1)
   expect(await band.find({ type: 'Text', text: /已暂停/ })).toBeUndefined()
@@ -908,4 +916,33 @@ test('share: where it stands is copied as text; the journal goes as a file', asy
   await dialog.press({ key: 'share-go' })
   expect(w.sent.filter((r) => r.op === 'export').at(-1)).toMatchObject({ kind: 'journal', format: 'geml', strip: true })
   await dialog.unmount()
+})
+
+test('a reply that ends asking: the band puts the question first with its answers on every surface, a press answers as the person, and the board opens on 此刻', async ($, on) => {
+  world(on)
+  const said: string[] = []
+  on('prompt.submit', ($, e) => { said.push(e.text); return { text: e.text } })
+  on('turn.complete', ($, e) => ({ text: e.answer }))
+  await start($, on)
+  await $.prompt.submit({ text: '把版本改成 1.2.3', wait: false, origin: COMPOSER })
+  await $.turn.complete({ answer: '改好了，提交在本地。\n\n要强推覆盖 origin 上的 feat/x。推吗？', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' })
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const band = await $.ui.mount({ plugin: 'gemflow', surface, component: 'AbovePrompt', props: BAND })
+    expect(shown((await band.drawn()) as unknown as Drawn).join(' '), surface).toMatch(/定 要强推覆盖 origin 上的 feat\/x。 推吗？/)
+    expect(await band.find({ type: 'Button', key: 'attention-0-推' }), surface).toBeDefined()
+    await band.unmount()
+  }
+  const band = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+  await band.press({ key: 'attention-0-推' })
+  await band.unmount()
+  expect(said.at(-1), 'the press said it as the person').toBe('推')
+  // Answered: the question no longer leads.
+  expect(await bandText($)).not.toMatch(/推吗/)
+  await $.turn.complete({ answer: '还要你定两件事：\n1. 新分支要不要开 PR\n2. #32 关不关', durationMs: 5, isAborted: false, turnId: 't2', reason: 'answer' })
+  await $.command.run({ command: 'gemflow', args: 'board', origin: COMPOSER, presentation: PRESENTATION })
+  const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  expect(await pane.find({ type: 'Text', text: '此刻' })).toBeDefined()
+  expect(await pane.find({ type: 'Text', text: '新分支要不要开 PR' })).toBeDefined()
+  expect(await pane.find({ type: 'Text', text: '#32 关不关' })).toBeDefined()
+  await pane.unmount()
 })
