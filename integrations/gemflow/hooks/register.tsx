@@ -32,7 +32,8 @@ import { CLAUDE_CODE_TOOLS } from '../dist/core/host-tools.js'
 import { FLOW_TOOLS } from '../dist/core/verb-specs.js'
 import type { VerbName } from '../dist/core/verb-specs.js'
 import type { BoardAction, BoardTab, Dialog, JournalFilter, Pressable, ShareHow, ShareWhat } from '../dist/hosts/claude-code/actions.js'
-import { answered, bandLine, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, pressablesFor, remember, standingOf } from '../dist/hosts/claude-code/attention.js'
+import { answered, bandLine, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, pendingNote, pressablesFor, pressedOf, remember, standingOf } from '../dist/hosts/claude-code/attention.js'
+import type { Queued } from '../dist/hosts/claude-code/attention.js'
 import type { AttentionFacts, AttentionMemory } from '../dist/hosts/claude-code/attention.js'
 import { envParts, remoteInPlay } from '../dist/hosts/claude-code/env.js'
 import type { AttachedClient, HostInfo } from '../dist/hosts/claude-code/env.js'
@@ -57,7 +58,7 @@ import { DEFAULT_SETTINGS, settingsFrom, withSetting } from '../dist/hosts/claud
 import type { Settings } from '../dist/hosts/claude-code/settings.js'
 import { statusShareText } from '../dist/hosts/claude-code/share.js'
 import { LOCKUP_SVG } from '../dist/hosts/claude-code/brand.js'
-import { RELEASE_NOTES } from '../dist/hosts/claude-code/release-notes.js'
+import { RELEASE_NOTES, isNewer } from '../dist/hosts/claude-code/release-notes.js'
 import { judgementLine, judgeOptions, judgeRequest, JUDGEMENT_MS, readJudgement } from '../dist/hosts/claude-code/judge.js'
 import type { Judgement, JudgeOption } from '../dist/hosts/claude-code/judge.js'
 import { langOf, wordsFor } from '../dist/hosts/claude-code/text.js'
@@ -124,6 +125,13 @@ const hostAtom = atom({ plugin: 'gemflow', key: 'host' } as const, null as Gemfl
 const clientsAtom = atom({ plugin: 'gemflow', key: 'clients' } as const, [] as GemflowJson)
 /** Where the last prompt came from: composer (this machine), bridge (Remote Control), sdk. */
 const originAtom = atom({ plugin: 'gemflow', key: 'origin' } as const, null as string | null)
+/** The steps the person pressed that went into the session: queued until it is idle, then entered and being done until that turn ends. */
+const queuedAtom = atom({ plugin: 'gemflow', key: 'queued' } as const, [] as GemflowJson)
+const readQueued = async ($: EngineInterface): Promise<Queued[]> => ((await read($, queuedAtom)) as unknown as Queued[] | null) ?? []
+const setQueued = async ($: EngineInterface, f: (was: Queued[]) => Queued[]): Promise<void> => {
+  await update($, queuedAtom, (was) => f(((was as unknown) as Queued[] | null) ?? []) as unknown as GemflowJson)
+  $.ui.invalidate('ui.render')
+}
 
 /** A start that got no answer is tried again on a tool call or a prompt, at most this often. */
 const START_RETRY_MS = 60_000
@@ -231,9 +239,11 @@ async function bridge($: EngineInterface, op: BridgeOp, timeoutMs: number = BRID
   // An answer without a shell is a request that failed (it threw, or the CLI could not read it): it says
   // nothing about the workflow, so the last shell and its policy stay and the band shows the error.
   const failed = !res.ok && res.shell === undefined ? res.error.replace(/^gemflow: /, '') : null
-  await update($, problemAtom, () => (failed !== null ? `gemflow：${failed}` : null))
+  // Each written only when it changed: every tool call asks the bridge, and a write redraws whatever read the value.
+  const problem = failed !== null ? `gemflow：${failed}` : null
+  if ((await read($, problemAtom)) !== problem) await update($, problemAtom, () => problem)
   const shell = res.shell
-  if (shell !== undefined) await update($, shellAtom, () => shell as unknown as GemflowJson)
+  if (shell !== undefined && JSON.stringify(shell) !== JSON.stringify(await read($, shellAtom))) await update($, shellAtom, () => shell as unknown as GemflowJson)
   // Refresh and board answers carry the to-do count; every other answer leaves the last one standing.
   if (res.ok && res.todo !== undefined) {
     const todo = res.todo
@@ -411,10 +421,8 @@ async function envNow($: EngineInterface, t: T, surface?: string): Promise<{ par
   const host = (await read($, hostAtom)) as unknown as HostInfo | null
   const clients = ((await read($, clientsAtom)) as unknown as AttachedClient[] | null) ?? []
   const origin = (await read($, originAtom)) ?? undefined
-  let session: string | undefined
-  try { session = await $.session.id() } catch { /* no id */ }
-  const parts = envParts({ host, root: await read($, rootAtom), ...(session !== undefined ? { session } : {}), clients, ...(origin !== undefined ? { origin } : {}), t })
-  return { parts, host, remote: remoteInPlay({ ...(surface !== undefined ? { surface } : {}), clients, ...(origin !== undefined ? { origin } : {}) }) }
+  const remote = remoteInPlay({ ...(surface !== undefined ? { surface } : {}), clients, ...(origin !== undefined ? { origin } : {}) })
+  return { parts: envParts({ host, root: await read($, rootAtom), remote, t }), host, remote }
 }
 
 /** Ask the bridge what the repository says (pushed or not, pull requests green or failing); the band redraws when it changed. */
@@ -563,6 +571,14 @@ async function usageNow($: EngineInterface): Promise<Record<string, number>> {
   return usesSince(await usageBook($), await nowIso($), USAGE_DAYS_SHOWN)
 }
 
+/**
+ * The usage a drawing shows: the stored book alone. What this session's calls add joins it when the turn ends
+ * (storeUsage), so a tool call, which notes its use, redraws neither the band nor the board.
+ */
+async function usageDrawn($: EngineInterface): Promise<Record<string, number>> {
+  return usesSince(((await read($, usageBookAtom)) as unknown as UsageBook | null) ?? {}, await nowIso($), USAGE_DAYS_SHOWN)
+}
+
 /** What this session added goes into the store, merged with what other sessions stored meanwhile. */
 async function storeUsage($: EngineInterface): Promise<void> {
   const pending = ((await read($, usagePendingAtom)) as unknown as UsageBook | null) ?? {}
@@ -590,7 +606,7 @@ async function pendingNow($: EngineInterface, t: T): Promise<InboxItem[]> {
   const shell = await readShell($)
   const board = await readBoard($)
   const item = shell?.status?.item
-  return pendingList(await inboxOf($, t), [...othersWaiting(board, item?.kind === 'item' ? item.id : undefined, t), ...(board !== null ? [...toolSuggestions(board, await usageNow($), await dismissedOf($), t), ...ciSuggestions(board, shell?.units ?? [], await dismissedOf($), t)] : [])])
+  return pendingList(await inboxOf($, t), [...othersWaiting(board, item?.kind === 'item' ? item.id : undefined, t), ...(board !== null ? [...toolSuggestions(board, await usageDrawn($), await dismissedOf($), t), ...ciSuggestions(board, shell?.units ?? [], await dismissedOf($), t)] : [])])
 }
 
 /** Take a judged option: a way out (and how to take it back: the revision before), or a work item to come back to. Nothing is said: the person's prompt said it. */
@@ -927,7 +943,31 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       return
     }
     // The plugin's own prompt does not pass its own prompt.submit hook: the band's moment ends here.
-    case 'say': await attentionOnPrompt($, action.text); await $.prompt.submit({ text: action.text, asUser: true }); return
+    case 'say': {
+      await setQueued($, (q) => [...q.filter((x) => x.text !== action.text), { text: action.text, entered: false }])
+      await attentionOnPrompt($, action.text)
+      try {
+        await $.prompt.submit({ text: action.text, asUser: true })
+      } catch (err) {
+        await setQueued($, (q) => q.filter((x) => x.text !== action.text))
+        throw err
+      }
+      await setQueued($, (q) => q.map((x) => (x.text === action.text ? { ...x, entered: true } : x)))
+      return
+    }
+    // A slash command, run as typed once the session is idle; where the engine will not run it, it waits in the prompt box for Enter.
+    case 'command': {
+      const typed = `/${action.command}`
+      await setQueued($, (q) => [...q.filter((x) => x.text !== typed), { text: typed, entered: false }])
+      try {
+        await $.command.run({ command: action.command })
+      } catch {
+        const filled = await $.prompt.fill({ text: typed }).catch(() => undefined)
+        $.ui.toast(filled?.isFilled === true ? t('回车执行 {0}', typed) : `gemflow：${typed}`)
+      }
+      await setQueued($, (q) => q.filter((x) => x.text !== typed))
+      return
+    }
     case 'copy': {
       const r = await $.ui.copy({ text: action.text, ...(surface !== undefined ? { surface: surface as never } : {}) })
       $.ui.toast(r.isCopied ? t('已复制') : `gemflow：${r.reason}`)
@@ -1007,8 +1047,17 @@ function drawIcon(els: Els, k: Icon): unknown {
   return Svg !== undefined ? <Svg source={ICON_SVG[k]} alt={k} width={14} height={14} /> : <Text {...toneProps(ICON_TONE[k])}>{ICON_CHAR[k]}</Text>
 }
 
-/** The blank label of a button laid over an icon: wide enough that the press lands on the icon and the room around it. */
-const HIT = '    '
+/**
+ * The blank label of a button laid over an icon: two ideographic spaces, the icon's width and the room around it. A
+ * desktop draws the label as HTML, where a run of plain spaces collapses to nothing: the button shrank to its padding
+ * at the box's left edge, in front of the icon, and a press on the icon itself missed.
+ */
+const HIT = '　　'
+
+/** A blank label as wide as `cells` columns, in ideographic spaces (two columns each), which HTML does not collapse. */
+function blankOf(cells: number): string {
+  return '　'.repeat(Math.max(1, Math.ceil(cells / 2)))
+}
 
 /** A glyph where the surface draws pictures; nothing elsewhere, where the words beside it say what it would. */
 function drawGlyph(els: Els, g: Glyph, tone: Tone | 'active' = 'dim', size = 15): unknown {
@@ -1027,7 +1076,7 @@ function iconButton($: EngineInterface, els: Els, b: Pressable, g: Glyph, o: { t
   return (
     <Box key={`${b.key}-icon`} flexShrink={0} alignItems="center" paddingX={1}>
       {drawGlyph(els, g, o.tone ?? 'dim', o.size ?? 18)}
-      <Box position="absolute" top={0} left={0} right={0} bottom={0}>
+      <Box position="absolute" top={0} left={0} right={0} bottom={0} justifyContent="center" alignItems="center">
         <Button key={b.key} plain label={HIT} onPress={press($, b.action)} />
       </Box>
       <Box position="absolute" top={1} {...edge} width={cellWidth(b.label) + 2} paddingX={1} display="none" hover={{ display: 'flex' }} backgroundColor="inverseText">
@@ -1234,7 +1283,7 @@ async function headerRows($: EngineInterface, t: T): Promise<Header> {
   const s = shell?.status ?? null
   const version = shell?.versions?.gemflow ?? (await read($, versionAtom)) ?? ''
   const latest = (await read($, latestAtom)) as unknown as { version?: string } | null
-  const newer = (await readSettings($)).notify.update && latest?.version !== undefined && version !== '' && latest.version !== version ? latest.version : undefined
+  const newer = (await readSettings($)).notify.update && latest?.version !== undefined && version !== '' && isNewer(latest.version, version) ? latest.version : undefined
   const dialogs: Pressable[] = (['share', 'settings', 'upgrade', 'about'] as const).map((d) => ({ key: `dialog-${d}`, label: d === 'share' ? t('分享') : d === 'settings' ? t('设置') : d === 'upgrade' ? t('升级') : t('关于'), action: { op: 'dialog', dialog: d } }))
   const head: Header = { version, dialogs, ...(newer !== undefined ? { newer } : {}) }
   if (s !== null && s.item.kind === 'item') {
@@ -1269,13 +1318,13 @@ async function dialogRows($: EngineInterface, t: T, dialog: Dialog, columns: num
     const latest = (await read($, latestAtom)) as unknown as { version?: string; error?: string } | null
     rows.push({ kind: 'heading', key: 'version', text: t('当前 {0}', version), sub: '' })
     if (latest === null) rows.push(text('…', 'dim'))
-    else if (latest.version !== undefined) rows.push(text(latest.version !== version ? t('● 可更新 {0}', latest.version) : t('已是最新'), latest.version !== version ? 'warning' : 'success'))
+    else if (latest.version !== undefined) rows.push(isNewer(latest.version, version) ? text(t('● 可更新 {0}', latest.version), 'warning') : latest.version === version ? text(t('已是最新'), 'success') : text(t('已发布 {0}', latest.version), 'dim'))
     else rows.push(text(t('无法检查更新：{0}', latest.error ?? '?'), 'dim'))
     const market = marketplaceOf($.plugin.root)
     const command = `claude plugin update gemflow${market !== undefined ? `@${market}` : ''}`
     rows.push({ kind: 'buttons', items: [
       { key: 'check-update', label: t('检查更新'), action: { op: 'check-update' } },
-      ...(latest?.version !== undefined && latest.version !== version ? [{ key: 'copy-update', label: `${t('更新')}: ${command}`, primary: true, action: { op: 'copy', text: command } } as Pressable] : []),
+      ...(latest?.version !== undefined && isNewer(latest.version, version) ? [{ key: 'copy-update', label: `${t('更新')}: ${command}`, primary: true, action: { op: 'copy', text: command } } as Pressable] : []),
     ] })
     if (RELEASE_NOTES.version === version) {
       rows.push(section('notes', t('这一版有什么')))
@@ -1348,6 +1397,7 @@ export const register: Register = (on) => {
     // A load is a reload: nothing is due. The repository's facts now and every two minutes; the band every minute, so a
     // person away from the keyboard comes back to "你离开了 …" without having to type first.
     await update($, reloadAtom, () => false)
+    await update($, queuedAtom, () => [])
     $.clock.after(0, () => { void loadFacts($) })
     $.clock.every(120_000, () => { void loadFacts($) })
     $.clock.every(60_000, () => { $.ui.invalidate('ui.render') })
@@ -1461,6 +1511,7 @@ export const register: Register = (on) => {
   on('turn.complete', async ($, e, next) => {
     const done = await next(e)
     if (e.agentId === undefined) {
+      try { await setQueued($, (q) => q.filter((x) => !x.entered)) } catch { /* shown till the next */ }
       try { await storeUsage($) } catch { /* kept for the next turn */ }
       try {
         const did = answerGist(e.answer)
@@ -1566,7 +1617,7 @@ export const register: Register = (on) => {
       const board = await readBoard($)
       const item = shell?.status?.item
       // What waits on the person, the same list the board's 待处理 shows: the current work item's things, then the others'.
-      const inbox = pendingList(await inboxOf($, t), [...othersWaiting(board, item?.kind === 'item' ? item.id : undefined, t), ...(board !== null ? [...toolSuggestions(board, await usageNow($), await dismissedOf($), t), ...ciSuggestions(board, shell?.units ?? [], await dismissedOf($), t)] : [])])
+      const inbox = pendingList(await inboxOf($, t), [...othersWaiting(board, item?.kind === 'item' ? item.id : undefined, t), ...(board !== null ? [...toolSuggestions(board, await usageDrawn($), await dismissedOf($), t), ...ciSuggestions(board, shell?.units ?? [], await dismissedOf($), t)] : [])])
       workflow = shell?.status != null
       waitingOnPerson = inbox.length
       view = bandView({
@@ -1594,6 +1645,8 @@ export const register: Register = (on) => {
         if (at.line !== null && (at.line.lead !== null || !workflowWaits)) {
           view = { verb: '', title: at.line.text, tone: at.line.lead === 'broken' ? 'error' : 'normal', note: '', detail: at.line.text, actions: [], more: { count: 0, detail: '' } }
           attentionPresses = pressablesFor(at.lead, at.line.options, t)
+          const pressed = pressedOf(attentionPresses, await readQueued($))
+          if (pressed !== undefined) { view = { ...view, note: pendingNote(pressed, t) }; attentionPresses = [] }
         }
       } catch { /* the workflow's line stands */ }
     }
@@ -1626,8 +1679,8 @@ export const register: Register = (on) => {
           <Box key="band-board" gap={1} alignItems="center" flexShrink={0}>
             <Svg source={glyphSvg('board', 'dim')} alt="" width={14} height={14} />
             <Text>{b.label}</Text>
-            <Box position="absolute" top={0} left={0} right={0} bottom={0}>
-              <Button key={b.key} plain label={' '.repeat(cellWidth(b.label) + 3)} onPress={press($, b.action)} />
+            <Box position="absolute" top={0} left={0} right={0} bottom={0} justifyContent="center" alignItems="center">
+              <Button key={b.key} plain label={blankOf(cellWidth(b.label) + 3)} onPress={press($, b.action)} />
             </Box>
           </Box>
         )
@@ -1640,7 +1693,7 @@ export const register: Register = (on) => {
           ? (
             <Box key="band-mark" flexShrink={0} alignItems="center" paddingX={1}>
               <Svg source={MARK_SVG} alt="Gemflow" width={13} height={13} />
-              <Box position="absolute" top={0} left={0} right={0} bottom={0}>
+              <Box position="absolute" top={0} left={0} right={0} bottom={0} justifyContent="center" alignItems="center">
                 <Button key="band-mark-open" plain label={HIT} onPress={press($, { op: 'open-board' })} />
               </Box>
             </Box>
@@ -1681,11 +1734,13 @@ export const register: Register = (on) => {
       rows = paneRows({
         board: await readBoard($), problem: await read($, boardProblemAtom), shell: await readShell($), tab, columns, maxRows: Math.max(4, e.props.scroll.bodyRows - 4), t,
         now: await nowIso($), root: (await read($, rootAtom)) ?? '', inbox,
-        filter: (await read($, filterAtom)) as JournalFilter, expanded: await read($, expandedAtom), evidence: await read($, evidenceAtom), prompts: await readPrompts($),
+        filter: (await read($, filterAtom)) as JournalFilter, expanded: await read($, expandedAtom), evidence: await read($, evidenceAtom),
+        // Written on every tool call: read only on the tabs that show them, so a call redraws no other tab.
+        prompts: tab === 'sessions' || tab === 'journal' ? await readPrompts($) : [],
         menu: await read($, turnMenuAtom), doneOpen: await read($, doneOpenAtom),
         sessionFlow: await read($, sessionFlowAtom), sessionRuns: ((await read($, sessionRunsAtom)) as unknown as string[] | null) ?? [],
         flowState: await read($, flowStateAtom), switching: await read($, flowSwitchAtom), workflows: (await read($, workflowsAtom)) as unknown as { bundled: string[]; installed: string[] } | null,
-        usage: await usageNow($), dismissed: await dismissedOf($), toolQuery: await read($, toolQueryAtom), toolMenu: await read($, toolMenuAtom), toolNaming: await read($, toolNamingAtom),
+        usage: await usageDrawn($), dismissed: await dismissedOf($), toolQuery: await read($, toolQueryAtom), toolMenu: await read($, toolMenuAtom), toolNaming: await read($, toolNamingAtom),
         toolsOpen: ((await read($, toolsOpenAtom)) as unknown as string[] | null) ?? [],
       })
     } catch (err) {
@@ -1696,7 +1751,7 @@ export const register: Register = (on) => {
     if (tab === 'items') {
       try {
         const at = await attentionNow($, t)
-        rows = [...nowRows({ reply: at.reply, standing: at.standing, memory: at.memory, t }), ...rows]
+        rows = [...nowRows({ reply: at.reply, standing: at.standing, memory: at.memory, queued: await readQueued($), t }), ...rows]
       } catch { /* the work items alone */ }
     }
     return (

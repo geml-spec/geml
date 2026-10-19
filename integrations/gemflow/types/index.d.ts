@@ -80,8 +80,10 @@ declare module 'claude-code' {
       host: GemflowJson
       /** The clients attached to the session (session.attach): [{ clientId, surface }]. */
       clients: GemflowJson
-      /** Where the last prompt came from: composer (this machine), bridge (Remote Control), sdk. */
+      /** Where the last prompt came from: composer (the session's own prompt box), bridge (Remote Control), sdk. */
       origin: string | null
+      /** The steps the person pressed that went into the session, queued or being done ([{ text, entered }]). */
+      queued: GemflowJson
     }
   }
 }

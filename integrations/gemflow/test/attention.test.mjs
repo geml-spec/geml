@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { answered, asksOf, bandLine, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, optionsFor, outcomeOf, pressablesFor, remember, standingOf, WIDTH } from "../dist/hosts/claude-code/attention.js";
+import { answered, asksOf, bandLine, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, optionsFor, outcomeOf, pressablesFor, remember, spokenOf, standingOf, WIDTH } from "../dist/hosts/claude-code/attention.js";
 
 const NOW = Date.parse("2026-10-18T10:00:00Z");
 const cells = (s) => [...s].reduce((w, c) => w + (/[ᄀ-￿]/.test(c) ? 2 : 1), 0);
@@ -93,7 +93,7 @@ test("presses: an answer or a step goes as the person's own words, whole; 看看
   assert.deepEqual(p({ key: "unpushed:feat/x", kind: "you", text: "", options: [] }, ["推送", "先不"]), [["推送", { op: "say", text: "推送 feat/x" }, true], ["先不", { op: "say", text: "先不" }, false]]);
   assert.deepEqual(p({ key: "fail:32:scan,CI", kind: "broken", text: "", options: [] }, ["看日志"])[0][1], { op: "say", text: "看下 #32 失败的 scan、CI 日志" });
   assert.deepEqual(p(null, ["看看"])[0][1], { op: "open-board", tab: "items" });
-  assert.deepEqual(p({ key: "reload", kind: "you", text: "", options: [] }, ["重载插件"])[0][1], { op: "copy", text: "/reload-plugins" });
+  assert.deepEqual(p({ key: "reload", kind: "you", text: "", options: [] }, ["重载插件"])[0][1], { op: "command", command: "reload-plugins" });
 });
 
 test("此刻 on the board: every ask with its answers, every step, every older ask", () => {
@@ -114,4 +114,17 @@ test("news for the model: a check that started failing, a pull request gone gree
 test("what became of a request: the reply's first whole sentence, past a line cut from the front", () => {
   assert.equal(outcomeOf("已提交到 feat/gemflow：2f501ff5。\n\n细节如下。"), "已提交到 feat/gemflow：2f501ff5。");
   assert.equal(outcomeOf("个码，每个后面是它\n25 个码全部归并好了。", true), "25 个码全部归并好了。");
+});
+
+test("a step already pressed shows what became of it, not its buttons; 重载插件 runs the command", () => {
+  const standing = [{ key: "green:32", kind: "you", short: "合并 #32", text: "只差你 #32 全绿，可以合并", options: ["合并"] }];
+  const fresh = nowRows({ reply: "", standing, memory: NO_MEMORY });
+  assert.deepEqual(fresh[1].actions.map((a) => a.action), [{ op: "say", text: "合并 #32" }]);
+  const queued = nowRows({ reply: "", standing, memory: NO_MEMORY, queued: [{ text: "合并 #32", entered: false }] });
+  assert.deepEqual([queued[1].actions, queued[1].detail], [[], ["排队中 合并 #32"]]);
+  const doing = nowRows({ reply: "", standing, memory: NO_MEMORY, queued: [{ text: "合并 #32", entered: true }] });
+  assert.deepEqual(doing[1].detail, ["进行中 合并 #32"]);
+  const reload = pressablesFor({ key: "reload", kind: "you", text: "重载插件", options: ["重载插件"] }, ["重载插件"]);
+  assert.deepEqual(reload[0].action, { op: "command", command: "reload-plugins" });
+  assert.equal(spokenOf(reload[0].action), "/reload-plugins");
 });

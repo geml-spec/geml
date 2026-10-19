@@ -421,13 +421,12 @@ export const WORDS: Readonly<Record<string, Entry>> = {
   "还等你": { en: "Still waiting", ja: "まだ待っている" },
   "此刻": { en: "Right now", ja: "いま" },
   // --- where the session runs (env.ts) ---
-  "桌面端": { en: "desktop", ja: "デスクトップ" },
-  "手机": { en: "phone", ja: "スマホ" },
-  "终端": { en: "terminal", ja: "ターミナル" },
   "远程控制": { en: "Remote Control", ja: "リモートコントロール" },
-  "本机输入框": { en: "this machine's prompt", ja: "このマシンの入力欄" },
-  "连着 {0}": { en: "attached: {0}", ja: "接続中：{0}" },
-  "上一句来自 {0}": { en: "last prompt from {0}", ja: "直前の入力：{0}" },
+  "运行于 {0}": { en: "on {0}", ja: "実行先 {0}" },
+  "排队中 {0}": { en: "queued: {0}", ja: "待機中 {0}" },
+  "进行中 {0}": { en: "doing: {0}", ja: "実行中 {0}" },
+  "回车执行 {0}": { en: "Enter runs {0}", ja: "Enter で {0}" },
+  "已发布 {0}": { en: "published: {0}", ja: "公開版 {0}" },
 };
 
 const EMPTY: Entry = { en: "", ja: "" };

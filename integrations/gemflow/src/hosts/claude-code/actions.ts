@@ -76,6 +76,8 @@ export type BoardAction =
   | { op: "copy"; text: string }
   /** Words sent into the conversation as the person's own, as if typed: an answer on the band, a step it offers. */
   | { op: "say"; text: string }
+  /** A slash command run as if the person typed it (`/reload-plugins`), once the session is idle. */
+  | { op: "command"; command: string }
   /** Show the session's prompts of one flow (its title), or all. */
   | { op: "session-flow"; flow: string | null }
   /** Unfold a run of turns in another flow (its first prompt's id), or fold it. */

@@ -13,3 +13,12 @@ export const RELEASE_NOTES: { version: string; lines: readonly string[] } = {
     "不再问「这个命令能不能用」，安全交给 Claude Code 的权限",
   ],
 };
+
+/** Whether `candidate` is a later version than `current`: major, minor, patch, each by number (a pre-release tag is not weighed). */
+export function isNewer(candidate: string, current: string): boolean {
+  const parts = (v: string): number[] => v.split(/[.+-]/).slice(0, 3).map((n) => Number.parseInt(n, 10) || 0);
+  const a = parts(candidate);
+  const b = parts(current);
+  for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return (a[i] ?? 0) > (b[i] ?? 0);
+  return false;
+}

@@ -68,6 +68,8 @@ function world(on: On) {
     routed: null as { item: string; context: string } | null,
     /** The session's current work item, as git would say after a branch switch. */
     item: 'feat/x',
+    /** The open pull requests the attention answer carries. */
+    prs: [] as { number: number; branch: string; green: boolean; failing: string[] }[],
     /** The work items that have a journal: a handoff to one of them is a return, to any other a new item. */
     journals: new Set(['feat/x']),
     /** When set, review → done needs a person (APPROVAL). */
@@ -178,7 +180,7 @@ function world(on: On) {
     if (req.op === 'verb') return { v: 1, ok: true, shell: shell(), text: `[gemflow] work item feat/x · state #${w.state}` }
     if (req.op === 'board') return { v: 1, ok: true, shell: shell(), board: board(), todo: w.todo }
     if (req.op === 'refresh') return { v: 1, ok: true, shell: shell(), todo: w.todo }
-    if (req.op === 'attention') return { v: 1, ok: true, shell: shell(), attention: { ahead: [], prs: [] }, host: { name: 'build-box', platform: 'linux', user: 'dev', branch: 'feat/x' } }
+    if (req.op === 'attention') return { v: 1, ok: true, shell: shell(), attention: { ahead: [], prs: w.prs }, host: { name: 'build-box', platform: 'linux', user: 'dev', branch: 'feat/x' } }
     return { v: 1, ok: true, shell: shell(), ...(req.op === 'before' ? { recorded: false } : {}), ...(req.op === 'after' ? handoff(req) : {}) }
   }
   const ran = (stdout: string, exitCode = 0) => ({ exitCode, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false })
@@ -389,11 +391,11 @@ test('the band and /gemflow, on terminal and desktop', async ($, on) => {
   await start($, on)
   // The mark is a character on the terminal, a picture on a desktop; the rest reads the same.
   expect(await bandText($)).toBe('» 我在做 feat/x · build [看板]')
-  expect(await bandText($, 'desktop')).toBe('[    ] 我在做 feat/x · build 看板 [       ]')
+  expect(await bandText($, 'desktop')).toBe('[　　] 我在做 feat/x · build 看板 [　　　　]')
   const desktop = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
   expect(await desktop.find({ type: 'Svg' })).toBeDefined()
   await desktop.unmount()
-  expect(await bandCard($), 'the pointer on the title shows the one thing whole, and where it runs').toBe('我在做 feat/x · build · 下一步「review」 · 自动 · build-box · Linux · dev · /work/app · feat/x · 会话 sess-123')
+  expect(await bandCard($), 'the pointer on the title shows the one thing whole, and where it runs').toBe('我在做 feat/x · build · 下一步「review」 · 自动 · 运行于 build-box · app · feat/x')
   const out = await $.command.run({ command: 'gemflow', args: '', origin: COMPOSER, presentation: PRESENTATION })
   expect(out.text).toContain('工作项 feat/x · 阶段 #build')
   expect(out.text).toContain('工具：edit test')
@@ -701,7 +703,7 @@ test('an approval edge that holds: the band offers the approval, the inbox lists
   expect(w.notified).toEqual(['等你验收：feat/x\nreview'])
   const band = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
   expect(await band.find({ type: 'Svg' })).toBeDefined()
-  expect(await bandText($, 'desktop')).toBe('[    ] 验收 feat/x [通过] 看板 [       ]')
+  expect(await bandText($, 'desktop')).toBe('[　　] 验收 feat/x [通过] 看板 [　　　　]')
   expect((await band.findAll({ type: 'Button' })).map((b) => b.key)).toEqual(['band-mark-open', 'title', 'approve-done', 'board'])
   await band.press({ key: 'approve-done' })
   expect(w.sent.filter((r) => r.op === 'advance').at(-1)).toMatchObject({ to: 'done' })
@@ -948,7 +950,7 @@ test('a reply that ends asking: the band puts the question first with its answer
   await pane.unmount()
 })
 
-test('where the session runs: the board says the machine, the checkout, the session, who is attached and where the last prompt came from; with a phone in play the band names the machine', async ($, on) => {
+test('where the session runs: the board says the machine, the checkout and the branch; with Remote Control in play it says so, and the band names the machine', async ($, on) => {
   world(on)
   on('prompt.submit', ($, e) => ({ text: e.text }))
   on('session.attach', ($, e) => ({ clientId: e.clientId }))
@@ -956,18 +958,78 @@ test('where the session runs: the board says the machine, the checkout, the sess
   const clock = await start($, on)
   await clock.advance(1)
   await $.command.run({ command: 'gemflow', args: 'board', origin: COMPOSER, presentation: PRESENTATION })
-  const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
-  expect(await pane.find({ type: 'Text', text: /build-box · Linux · dev · .* · feat\/x · 会话 / })).toBeDefined()
-  await pane.unmount()
-  expect(await bandText($), 'no phone, no Remote Control: the band does not name the machine').not.toMatch(/@build-box/)
+  const head = async (): Promise<string> => {
+    const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+    const line = shown((await pane.drawn()) as unknown as Drawn).find((x) => x.startsWith('运行于')) ?? ''
+    await pane.unmount()
+    return line
+  }
+  expect(await head()).toBe('运行于 build-box · app · feat/x')
+  expect(await bandText($), 'at the machine: the band does not name it').not.toMatch(/@build-box/)
   await $.session.attach({ surface: 'mobile', clientId: 'phone-1' })
-  await $.prompt.submit({ text: '推', wait: false, origin: { kind: 'bridge' } })
-  expect(await bandText($), 'a phone attached: the band names the machine').toMatch(/@build-box/)
-  const again = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
-  expect(await again.find({ type: 'Text', text: /连着 手机 · 上一句来自 远程控制/ })).toBeDefined()
-  await again.unmount()
+  expect(await head(), 'a phone attached').toBe('运行于 build-box · app · feat/x · 远程控制')
+  expect(await bandText($)).toMatch(/@build-box/)
   await $.session.detach({ surface: 'mobile', clientId: 'phone-1', reason: 'detach' })
-  const last = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
-  expect(await last.find({ type: 'Text', text: /连着 手机/ }), 'the phone left').toBeUndefined()
-  await last.unmount()
+  expect(await head(), 'the phone left').toBe('运行于 build-box · app · feat/x')
+  await $.prompt.submit({ text: '推', wait: false, origin: { kind: 'bridge' } })
+  expect(await head(), 'a prompt over Remote Control').toBe('运行于 build-box · app · feat/x · 远程控制')
+  await $.prompt.submit({ text: '好', wait: false, origin: COMPOSER })
+  expect(await head(), 'the next one typed at the machine').toBe('运行于 build-box · app · feat/x')
+})
+
+test('a step pressed on the board says what became of it: being done once it goes in, not offered again until that turn ends; 重载插件 runs the command itself', async ($, on) => {
+  const w = world(on)
+  w.prs = [{ number: 32, branch: 'feat/y', green: true, failing: [] }]
+  const said: string[] = []
+  const ran: string[] = []
+  on('prompt.submit', ($, e) => { said.push(e.text); return { text: e.text } })
+  on('turn.complete', ($, e) => ({ text: e.answer }))
+  on('command.run', ($, e) => { ran.push(e.command); return {} })
+  on('tool.call', { tool: 'Bash' }, () => ({ result: { stdout: '', stderr: '', interrupted: false }, text: '' }))
+  const clock = await start($, on)
+  await clock.advance(1)
+  await $.tool.call({ tool: 'Bash', tool_use_id: 'b9', command: 'cp -r dist ~/.claude/local-marketplaces/geml-dev/gemflow/' })
+  await $.command.run({ command: 'gemflow', args: 'board', origin: COMPOSER, presentation: PRESENTATION })
+  const board = () => $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  let pane = await board()
+  expect(await pane.find({ type: 'Button', key: 'attention-0-合并' })).toBeDefined()
+  await pane.press({ key: 'attention-0-合并' })
+  await pane.unmount()
+  expect(said.at(-1), 'the press said it as the person').toBe('合并 #32')
+  pane = await board()
+  expect(await pane.find({ type: 'Text', text: '进行中 合并 #32' }), 'the card says what became of the press').toBeDefined()
+  expect(await pane.find({ type: 'Button', key: 'attention-0-合并' }), 'and does not offer it again meanwhile').toBeUndefined()
+  await pane.unmount()
+  await $.turn.complete({ answer: '合并好了。', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' })
+  pane = await board()
+  expect(await pane.find({ type: 'Text', text: '进行中 合并 #32' }), 'its turn ended').toBeUndefined()
+  await pane.press({ key: 'attention-0-重载插件' })
+  await pane.unmount()
+  expect(ran, '重载插件 runs /reload-plugins, nothing to copy and paste').toEqual(['reload-plugins'])
+})
+
+test('a tool call redraws neither the band nor the board: with both drawn, the reads it sets off are only its own, so a press is not lost to a redraw while the model works', async ($, on) => {
+  world(on)
+  on('prompt.submit', ($, e) => ({ text: e.text }))
+  on('tool.call', { tool: 'Bash' }, () => ({ result: { stdout: '', stderr: '', interrupted: false }, text: '' }))
+  let reads = 0
+  on('state.get', ($, e, next) => { reads++; return next(e) })
+  const clock = await start($, on)
+  await clock.advance(1)
+  await $.prompt.submit({ text: 'go', wait: false, origin: COMPOSER })
+  await $.command.run({ command: 'gemflow', args: 'board', origin: COMPOSER, presentation: PRESENTATION })
+  const calls = async (from: number): Promise<number> => {
+    await clock.advance(1)
+    reads = 0
+    for (let i = from; i < from + 5; i++) await $.tool.call({ tool: 'Bash', tool_use_id: `c${i}`, command: 'ls' })
+    await clock.advance(1)
+    return reads
+  }
+  const alone = await calls(0)
+  const band = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+  const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  const drawn = await calls(5)
+  await band.unmount()
+  await pane.unmount()
+  expect(drawn, 'the same reads as with nothing drawn: no redraw').toBe(alone)
 })

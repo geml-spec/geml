@@ -305,10 +305,33 @@ export function pressablesFor(lead: Lead | null, options: readonly string[], t: 
   };
   return options.map((label, i): Pressable => {
     const action = label === t("看看") ? { op: "open-board" as const, tab: "items" as const }
-      : label === t("重载插件") ? { op: "copy" as const, text: "/reload-plugins" }
+      : label === t("重载插件") ? { op: "command" as const, command: "reload-plugins" }
       : { op: "say" as const, text: said(label) };
     return { key: `attention-${i}-${label}`, label, ...(i === 0 && label !== t("先不") && label !== t("看看") ? { primary: true } : {}), action };
   });
+}
+
+/** A step the person pressed, by what it says (`合并 #32`, `/reload-plugins`): queued until the session is idle, then entered and being done. */
+export interface Queued { text: string; entered: boolean }
+
+/** What a press says into the session: the words of a `say`, the typed form of a `command`; nothing for a press that acts on the board. */
+export function spokenOf(action: Pressable["action"]): string | undefined {
+  return action.op === "say" ? action.text : action.op === "command" ? `/${action.command}` : undefined;
+}
+
+/** The press among these that was already made, if one was: its queue entry. */
+export function pressedOf(actions: readonly Pressable[], queued: readonly Queued[]): Queued | undefined {
+  for (const a of actions) {
+    const said = spokenOf(a.action);
+    const q = said === undefined ? undefined : queued.find((x) => x.text === said);
+    if (q !== undefined) return q;
+  }
+  return undefined;
+}
+
+/** What a pressed step shows in place of its buttons. */
+export function pendingNote(q: Queued, t: T = ZH): string {
+  return q.entered ? t("进行中 {0}", q.text) : t("排队中 {0}", q.text);
 }
 
 /**
@@ -316,17 +339,22 @@ export function pressablesFor(lead: Lead | null, options: readonly string[], t: 
  * room for one of — the reply's asks with their answers, every step only the
  * person can take, the older asks still waiting.
  */
-export function nowRows(o: { reply: string; standing: readonly Standing[]; memory: AttentionMemory; t?: T }): BoardRow[] {
+export function nowRows(o: { reply: string; standing: readonly Standing[]; memory: AttentionMemory; queued?: readonly Queued[]; t?: T }): BoardRow[] {
   const t = o.t ?? ZH;
   const rows: BoardRow[] = [];
+  // A step already pressed says what became of it instead of offering its buttons again.
+  const settle = (actions: Pressable[]): { actions: Pressable[]; detail: string[] } => {
+    const q = pressedOf(actions, o.queued ?? []);
+    return q === undefined ? { actions, detail: [] } : { actions: [], detail: [pendingNote(q, t)] };
+  };
   const asks = asksOf(o.reply);
   asks.forEach((a, i) => {
     const lead: Lead = { key: `ask:${a}`, kind: "ask", text: a, options: optionsFor(a, t) };
-    rows.push({ kind: "card", key: `now-ask-${i}`, icon: "ask", verb: t("定"), title: clip(a, 80), detail: [], actions: pressablesFor(lead, lead.options, t) });
+    rows.push({ kind: "card", key: `now-ask-${i}`, icon: "ask", verb: t("定"), title: clip(a, 80), ...settle(pressablesFor(lead, lead.options, t)) });
   });
   for (const s of o.standing) {
     const lead: Lead = { key: s.key, kind: s.kind, text: s.text, options: s.options };
-    rows.push({ kind: "card", key: `now-${s.key}`, icon: s.kind === "broken" ? "warn" : s.key.startsWith("green:") ? "done" : "ask", verb: s.kind === "broken" ? t("坏了") : t("只差你"), title: s.text.replace(/^(只差你|✗)\s*/, ""), detail: [], actions: pressablesFor(lead, s.options, t) });
+    rows.push({ kind: "card", key: `now-${s.key}`, icon: s.kind === "broken" ? "warn" : s.key.startsWith("green:") ? "done" : "ask", verb: s.kind === "broken" ? t("坏了") : t("只差你"), title: s.text.replace(/^(只差你|✗)\s*/, ""), ...settle(pressablesFor(lead, s.options, t)) });
   }
   o.memory.backlog.forEach((b, i) => rows.push({ kind: "card", key: `now-backlog-${i}`, icon: "ask", verb: t("还等你"), title: clip(b.replace(/^(上一个问题|上一条里的事)?(还|仍|都)?(在)?等你(定|批)?[：:，,]?/, ""), 80), detail: [], actions: [] }));
   return rows.length === 0 ? [] : [{ kind: "section", key: "now", text: t("此刻") }, ...rows];
