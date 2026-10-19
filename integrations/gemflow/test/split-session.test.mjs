@@ -62,3 +62,24 @@ test("split-session's error names what --session said, and only that", () => {
   const given = run(h, ["list", "--session", "bbbbbbbb-0000-4000-8000-000000000000"]);
   assert.equal(given.stderr.trim(), "错误：找不到会话 bbbbbbbb-0000-4000-8000-000000000000 的记录文件。");
 });
+
+test("split-session remove: the turn is gone from the session, the next one joined to the one before, the backup keeps it, and no new session is made", async () => {
+  const { readFileSync } = await import("node:fs");
+  const h = home();
+  const before = readdirSync(h.project).sort();
+  const r = run(h, ["remove", "--turns", "2", "--session", ID]);
+  assert.equal(r.status, 0, r.stderr);
+  const out = JSON.parse(r.stdout);
+  assert.equal(out.removed, true);
+  assert.equal(out.created, undefined, "no new session");
+  assert.deepEqual(readdirSync(h.project).sort(), before, "no new record beside the session's");
+  const recs = readFileSync(join(h.project, `${ID}.jsonl`), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+  assert.deepEqual(recs.map((x) => x.uuid), ["u0", "a0", "u2", "a2"], "turn 2 is gone");
+  assert.equal(recs.find((x) => x.uuid === "u2").parentUuid, "a0", "the next turn joined to the one before");
+  const backups = readdirSync(join(h.dir, "session-split-backups"));
+  assert.equal(backups.length, 1);
+  const manifest = JSON.parse(readFileSync(join(h.dir, "session-split-backups", backups[0], "manifest.json"), "utf8"));
+  assert.deepEqual([manifest.removed, manifest.files.newJsonl, manifest.files.newDir], [true, null, null]);
+  assert.ok(readFileSync(join(h.dir, "session-split-backups", backups[0], `${ID}.jsonl`), "utf8").includes("顺手部署一下"), "the backup keeps the turn");
+  assert.equal(run(h, ["remove", "--turns", "2", "--session", ID, "--dry-run"]).status, 0, "a dry run writes nothing");
+});

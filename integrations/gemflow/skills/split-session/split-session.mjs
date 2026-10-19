@@ -38,6 +38,7 @@ if (!cmd || args.help) {
   console.log(`用法：
   node split-session.mjs list  [--session <id>]
   node split-session.mjs split --turns <N|N-M|N,M,...> --title <标题> [--session <id>] [--dry-run]
+  node split-session.mjs remove --turns <N|N-M|N,M,...> [--session <id>] [--dry-run]
 
 <id>：CLI 会话 uuid、桌面端 id（local_…）或 .jsonl 路径；省略时取当前会话。
 测试用：--projects-dir / --desktop-dir / --backup-dir 覆盖默认位置。`);
@@ -308,19 +309,21 @@ function stamp() {
   return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
 }
 
-function cmdSplit() {
+// `remove` takes the turns out the way `split` does — backed up first, the next turn joined to the one before — and
+// makes no new session: the turns are gone from the session, kept only in the backup.
+function cmdSplit(removing = false) {
   const s = resolveSession(args.session);
   const title = (args.title || '').trim();
-  if (!title) die('缺少 --title（新会话的标题）。');
+  if (!title && !removing) die('缺少 --title（新会话的标题）。');
 
   const first = readLines(s.jsonl);
   const { recs } = first;
   const { byId, onChain, turns } = analyze(recs);
   if (!turns.length) die('这个会话里没有可拆的轮次。');
   const picked = parseTurns(args.turns, turns.length).map((n) => turns[n - 1]);
-  if (s.live && picked.includes(turns[turns.length - 1])) die('最后一轮是正在进行的这一轮，不能拆。');
+  if (s.live && picked.includes(turns[turns.length - 1])) die(removing ? '最后一轮是正在进行的这一轮，不能删。' : '最后一轮是正在进行的这一轮，不能拆。');
   const blocked = picked.filter((t) => t.blocked);
-  if (blocked.length) die(`第 ${blocked.map((t) => t.n).join('、')} 轮跨着上下文压缩的边界，拆了会话就续不上，不能拆。`);
+  if (blocked.length) die(removing ? `第 ${blocked.map((t) => t.n).join('、')} 轮跨着上下文压缩的边界，删了会话就续不上，不能删。` : `第 ${blocked.map((t) => t.n).join('、')} 轮跨着上下文压缩的边界，拆了会话就续不上，不能拆。`);
 
   // S: the picked turns, plus side branches hanging off them (abandoned retries).
   const S = new Set(picked.flatMap((t) => t.lines.map((o) => o.uuid)));
@@ -403,7 +406,7 @@ function cmdSplit() {
   // Desktop sidebar entry, cloned from the source's so the new session opens
   // with the same folder, model and tools.
   let newMeta = null;
-  if (s.desktop) {
+  if (s.desktop && !removing) {
     newMeta = structuredClone(s.desktop);
     for (const k of ['postTurnSummary', 'postTurnSummaryFor', 'parentSessionId', 'detached', 'startedBy',
       'name', 'prNumber', 'prState', 'prUrl', 'scheduledTaskId']) delete newMeta[k];
@@ -433,7 +436,7 @@ function cmdSplit() {
     turns: picked.map((t) => ({ n: t.n, prompt: short(promptText(t.prompt), 80) })),
     records: moved.length,
     subagents: subagents.length,
-    created: { cliId: newCli, desktopId: newMeta ? newDesktopId : null, title },
+    ...(removing ? { removed: true } : { created: { cliId: newCli, desktopId: newMeta ? newDesktopId : null, title } }),
   };
 
   if (args['dry-run']) {
@@ -449,10 +452,10 @@ function cmdSplit() {
   fs.copyFileSync(s.jsonl, path.join(backupDir, path.basename(s.jsonl)));
   if (s.desktopFile) fs.copyFileSync(s.desktopFile, path.join(backupDir, path.basename(s.desktopFile)));
 
-  // 1. The new session, complete, before the original is touched.
-  const newJsonl = path.join(path.dirname(s.jsonl), newCli + '.jsonl');
-  fs.writeFileSync(newJsonl, toJsonl(moved));
-  if (subagents.length) {
+  // 1. The new session, complete, before the original is touched (none when removing: the backup keeps the turns).
+  const newJsonl = removing ? null : path.join(path.dirname(s.jsonl), newCli + '.jsonl');
+  if (newJsonl) fs.writeFileSync(newJsonl, toJsonl(moved));
+  if (subagents.length && !removing) {
     fs.mkdirSync(dstAux, { recursive: true });
     for (const base of subagents) {
       const jl = path.join(srcAux, base + '.jsonl');
@@ -460,8 +463,10 @@ function cmdSplit() {
       fs.copyFileSync(path.join(srcAux, base + '.meta.json'), path.join(dstAux, base + '.meta.json'));
     }
   }
-  fs.mkdirSync(path.join(path.dirname(s.jsonl), newCli), { recursive: true });
-  fs.writeFileSync(path.join(path.dirname(s.jsonl), newCli, 'custom-title.json'), JSON.stringify({ customTitle: title }));
+  if (!removing) {
+    fs.mkdirSync(path.join(path.dirname(s.jsonl), newCli), { recursive: true });
+    fs.writeFileSync(path.join(path.dirname(s.jsonl), newCli, 'custom-title.json'), JSON.stringify({ customTitle: title }));
+  }
   let newMetaFile = null;
   if (newMeta) {
     newMetaFile = path.join(path.dirname(s.desktopFile), newDesktopId + '.json');
@@ -493,7 +498,7 @@ function cmdSplit() {
     }
   }
   if (!written) {
-    die(`原会话一直在写入，没能改动它。新会话已经建好（${newCli}），原会话保持原样；备份在 ${backupShown}。`);
+    die(removing ? `原会话一直在写入，没能改动它，原会话保持原样；备份在 ${backupShown}。` : `原会话一直在写入，没能改动它。新会话已经建好（${newCli}），原会话保持原样；备份在 ${backupShown}。`);
   }
 
   // When the moved turns were the last ones, the sidebar entry's pointer to the
@@ -516,7 +521,7 @@ function cmdSplit() {
   fs.writeFileSync(path.join(backupDir, 'manifest.json'), JSON.stringify({
     ...summary, at: new Date().toISOString(),
     files: { original: s.jsonl, originalDesktop: s.desktopFile, newJsonl, newDesktop: newMetaFile,
-      newDir: path.join(path.dirname(s.jsonl), newCli), subagentsBackedUp: subagents, subagentsHome: srcAux },
+      newDir: removing ? null : path.join(path.dirname(s.jsonl), newCli), subagentsBackedUp: subagents, subagentsHome: srcAux },
   }, null, 2));
 
   console.log(JSON.stringify({ ...summary, backup: backupShown, live: s.live }, null, 2));
@@ -526,4 +531,5 @@ function cmdSplit() {
 
 if (cmd === 'list') cmdList();
 else if (cmd === 'split') cmdSplit();
+else if (cmd === 'remove') cmdSplit(true);
 else die(`未知命令 ${cmd}`);
