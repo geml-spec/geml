@@ -16,6 +16,7 @@ import { canonical } from "./core/snapshot.js";
 import { addWorkflow, useWorkflow, type Added } from "./project.js";
 import { handleRequest } from "./bridge.js";
 import { runCodex } from "./codex.js";
+import { installAntigravity, runAntigravity } from "./antigravity.js";
 import { serveMcp } from "./mcp.js";
 import { decodeRequest, type BridgeResponse } from "./hosts/claude-code/protocol.js";
 import { docReader, openWorkspace, resolvePromptRef, resolveWorkflow, type Workspace } from "./workspace.js";
@@ -36,6 +37,7 @@ const USAGE = [
   "  run [--profile name] <task>             add the bundle to a dsh profile and run the task there",
   "  hook                                    the Claude Code bridge: one JSON request on stdin, one answer on stdout",
   "  codex                                   the Codex hook: one event on stdin, its answer on stdout (exit 0 always)",
+  "  antigravity <Event> | install           the Antigravity editor's hook (one event on stdin), or put its hooks and MCP server in place",
   "  mcp [--host h] [--root dir]             the three model tools over stdio MCP (host default: mcp)",
 ].join("\n");
 
@@ -160,6 +162,23 @@ async function runCodexHook(): Promise<number> {
     process.stderr.write(`gemflow codex: ${e instanceof Error ? e.message : String(e)}\n`);
     return 0;
   }
+}
+
+/** `gemflow antigravity <Event>`: one Antigravity hook event in, its answer out; exit 0 whatever happened. `install` puts the hooks and the MCP server in place. */
+async function runAntigravityHook(event: string | undefined): Promise<number> {
+  if (event === "install") {
+    for (const f of installAntigravity(resolve(process.argv[1] ?? "gemflow.mjs"))) process.stdout.write(`${f}\n`);
+    return 0;
+  }
+  process.stdin.setEncoding("utf8");
+  let text = "";
+  for await (const chunk of process.stdin) text += chunk;
+  try {
+    process.stdout.write(runAntigravity(event ?? "", text).stdout);
+  } catch (e) {
+    process.stderr.write(`gemflow antigravity: ${e instanceof Error ? e.message : String(e)}\n`);
+  }
+  return 0;
 }
 
 function main(argv: string[]): number {
@@ -336,6 +355,7 @@ const argv = process.argv.slice(2);
 // write to a pipe can cut the answer short on macOS.
 if (argv[0] === "hook") void runHook().then((code) => { process.exitCode = code; });
 else if (argv[0] === "codex") void runCodexHook().then((code) => { process.exitCode = code; });
+else if (argv[0] === "antigravity") void runAntigravityHook(argv[1]).then((code) => { process.exitCode = code; });
 else if (argv[0] === "mcp") {
   const rest = argv.slice(1);
   if (positionals("mcp", rest, [], ["--host", "--root"]).length > 0) fail(USAGE, 2);

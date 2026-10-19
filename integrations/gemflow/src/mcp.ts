@@ -14,6 +14,7 @@ import { HOST_TOOLS, NO_TOOLS } from "./core/host-tools.js";
 import { FLOW_TOOLS } from "./core/verb-specs.js";
 import { NOTE_TOOL } from "./core/session-log.js";
 import { latestSessionOf, recordDecisions } from "./session-store.js";
+import { activeOf, ANTIGRAVITY_HOST } from "./antigravity.js";
 import { ghOncePerBranch } from "./host-git.js";
 import { runVerb } from "./verbs.js";
 import { openWorkspace } from "./workspace.js";
@@ -56,12 +57,15 @@ export async function answer(msg: unknown, o: McpOptions): Promise<Reply | undef
   if (method !== "tools/call") return failure(id, -32601, `method not found: ${method}`);
   const name = m?.params?.["name"];
   // The note: this host's session that asked last (an MCP server is told no session; a host with hooks names it in the record), else one of the server's own.
+  // Antigravity starts the server outside the project: the project and the conversation are the ones its hooks last saw.
+  const active = o.host === ANTIGRAVITY_HOST ? activeOf() : undefined;
+  const root = active?.root ?? o.root;
   if (name === NOTE_TOOL.name) {
     const given = (m?.params?.["arguments"] as { decisions?: unknown } | undefined)?.decisions;
     const decisions = Array.isArray(given) ? given.filter((d): d is string => typeof d === "string") : [];
     try {
-      const session = latestSessionOf(o.root, o.host) ?? `mcp-${process.pid}`;
-      const n = recordDecisions(o.root, o.host, session, decisions);
+      const session = active?.conversationId ?? latestSessionOf(root, o.host) ?? `mcp-${process.pid}`;
+      const n = recordDecisions(root, o.host, session, decisions);
       return text(id, n === 0 ? "Nothing recorded: decisions is a list of short sentences." : `Recorded ${n} decision${n === 1 ? "" : "s"}; the project's other sessions will see ${n === 1 ? "it" : "them"}.`, n === 0);
     } catch (e) {
       return text(id, `gemflow: ${e instanceof Error ? e.message : String(e)}`, true);
@@ -73,7 +77,7 @@ export async function answer(msg: unknown, o: McpOptions): Promise<Reply | undef
   const args = raw !== null && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
   try {
     // A host name is looked up as a key of its own, never as a property every object has (`constructor`).
-    const opened = openWorkspace({ root: o.root, tools: Object.hasOwn(HOST_TOOLS, o.host) ? HOST_TOOLS[o.host]! : NO_TOOLS, gh: ghOncePerBranch() });
+    const opened = openWorkspace({ root, tools: Object.hasOwn(HOST_TOOLS, o.host) ? HOST_TOOLS[o.host]! : NO_TOOLS, gh: ghOncePerBranch() });
     if (!opened.ok) return text(id, `gemflow: ${opened.reason}`, true);
     // The one moment an MCP-only host lets Gemflow look: a merged PR or a file written since the last call may move the stage now; `status` then reports the stage it moved to.
     if (spec.name === "status") opened.ws.refresh();
