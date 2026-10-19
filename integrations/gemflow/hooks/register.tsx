@@ -428,11 +428,12 @@ async function attentionOnPrompt($: EngineInterface, said: string): Promise<stri
 
 /** Where the session runs and who drives it (env.ts): the parts of one line, and whether a person may be away from the machine. */
 async function envNow($: EngineInterface, t: T, surface?: string): Promise<{ parts: string[]; host: HostInfo | null; remote: boolean }> {
-  const host = (await read($, hostAtom)) as unknown as HostInfo | null
-  const clients = ((await read($, clientsAtom)) as unknown as AttachedClient[] | null) ?? []
-  const origin = (await read($, originAtom)) ?? undefined
+  const [h, c, o, root] = await Promise.all([read($, hostAtom), read($, clientsAtom), read($, originAtom), read($, rootAtom)])
+  const host = h as unknown as HostInfo | null
+  const clients = (c as unknown as AttachedClient[] | null) ?? []
+  const origin = o ?? undefined
   const remote = remoteInPlay({ ...(surface !== undefined ? { surface } : {}), clients, ...(origin !== undefined ? { origin } : {}) })
-  return { parts: envParts({ host, root: await read($, rootAtom), remote, t }), host, remote }
+  return { parts: envParts({ host, root, remote, t }), host, remote }
 }
 
 // ---- the project's shared session record (session-log.ts) -------------------------------
@@ -837,11 +838,8 @@ async function judgeTurn($: EngineInterface, said: string, lastAnswer: string): 
 
 /** The inbox as it stands: the shell, the board's timeline, the questions nobody answered, the bridge's problem. */
 async function inboxOf($: EngineInterface, t?: T): Promise<InboxItem[]> {
-  const board = await readBoard($)
-  return inboxItems({
-    shell: await readShell($), timeline: board?.timeline ?? [],
-    problem: await read($, problemAtom), now: await nowIso($), t: t ?? (await words($)),
-  })
+  const [board, shell, problem, now, said] = await Promise.all([readBoard($), readShell($), read($, problemAtom), nowIso($), t !== undefined ? Promise.resolve(t) : words($)])
+  return inboxItems({ shell, timeline: board?.timeline ?? [], problem, now, t: said })
 }
 
 /** Tell the desktop of inbox items it has not seen, when the settings say so; a bridge problem is not news. */
@@ -991,6 +989,33 @@ async function share($: EngineInterface, what: ShareWhat, how: ShareHow, strip: 
 
 /** A press on the band or the board: what it does. */
 async function act($: EngineInterface, action: BoardAction, surface?: string): Promise<void> {
+  // A view change first, before anything is read: a tab, a filter, a fold or a menu shows at once.
+  switch (action.op) {
+    case 'tab': await update($, tabAtom, () => action.tab); return
+    case 'filter': await update($, filterAtom, () => action.filter); return
+    case 'expand': await update($, expandedAtom, () => action.entry); return
+    case 'evidence': await update($, evidenceAtom, () => action.entry); return
+    case 'fold': await update($, doneOpenAtom, () => action.open); return
+    case 'tool-menu': await update($, toolMenuAtom, () => action.key); await update($, toolNamingAtom, () => null); return
+    case 'tool-name': await update($, toolNamingAtom, () => action.key); return
+    case 'tool-search': await update($, toolQueryAtom, () => action.query); return
+    case 'tool-fold': await update($, toolsOpenAtom, (was) => {
+      const list = new Set((((was as unknown) as string[] | null) ?? []))
+      if (action.open) list.add(action.group); else list.delete(action.group)
+      return [...list] as unknown as GemflowJson
+    }); return
+    case 'flow-state': await update($, flowStateAtom, () => action.id); return
+    case 'turn-menu': await update($, turnMenuAtom, () => action.id); return
+    case 'session-open': await update($, openSessionAtom, () => action.id); return
+    case 'session-flow': await update($, sessionFlowAtom, () => action.flow); return
+    case 'session-run': await update($, sessionRunsAtom, (was) => {
+      const list = new Set((((was as unknown) as string[] | null) ?? []))
+      if (action.open) list.add(action.id); else list.delete(action.id)
+      return [...list] as unknown as GemflowJson
+    }); return
+    case 'expand-turn': await update($, turnMenuAtom, () => null); await update($, expandedTurnAtom, () => (action.id === null ? null : { id: action.id, answer: null }) as unknown as GemflowJson); return
+    default: break
+  }
   const t = await words($)
   const root = await read($, rootAtom)
   const through = async (op: BridgeOp, timeout = BRIDGE_TIMEOUT_MS): Promise<BridgeResponse | undefined> => {
@@ -1023,10 +1048,6 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       $.ui.toast(t('放行一次'))
       return
     case 'retry': await startBridge($); await loadBoard($); return
-    case 'tab': await update($, tabAtom, () => action.tab); return
-    case 'filter': await update($, filterAtom, () => action.filter); return
-    case 'expand': await update($, expandedAtom, () => action.entry); return
-    case 'evidence': await update($, evidenceAtom, () => action.entry); return
     // Going back is the person's, asked once more: the recorded state changes, nothing that was done is undone.
     case 'rollback': {
       const state = (await readBoard($))?.timeline.find((e) => e.kind === 'snapshot' && e.rev === action.rev)
@@ -1039,15 +1060,6 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       await loadBoard($)
       return
     }
-    case 'fold': await update($, doneOpenAtom, () => action.open); return
-    case 'tool-menu': await update($, toolMenuAtom, () => action.key); await update($, toolNamingAtom, () => null); return
-    case 'tool-name': await update($, toolNamingAtom, () => action.key); return
-    case 'tool-search': await update($, toolQueryAtom, () => action.query); return
-    case 'tool-fold': await update($, toolsOpenAtom, (was) => {
-      const list = new Set((((was as unknown) as string[] | null) ?? []))
-      if (action.open) list.add(action.group); else list.delete(action.group)
-      return [...list] as unknown as GemflowJson
-    }); return
     case 'check-update': await update($, latestAtom, () => null); await checkLatest($); return
     case 'new-item': {
       const res = await through({ op: 'new-item', path: action.path, title: action.title, text: action.text })
@@ -1089,7 +1101,6 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       try { await $.store.set(`dismissed:${root ?? ''}`, next as unknown as GemflowJson) } catch { /* the session keeps its own */ }
       return
     }
-    case 'flow-state': await update($, flowStateAtom, () => action.id); return
     case 'flow-switch': {
       await update($, flowSwitchAtom, () => action.open)
       if (action.open && (await read($, workflowsAtom)) === null) await loadWorkflows($)
@@ -1167,21 +1178,12 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       if (res?.ok === true && action.say !== undefined) await $.prompt.submit({ text: action.say, asUser: true })
       return
     }
-    case 'turn-menu': await update($, turnMenuAtom, () => action.id); return
-    case 'session-open': await update($, openSessionAtom, () => action.id); return
     case 'use-decision': {
       const filled = await $.prompt.fill({ text: `${t('参照 {0}：{1}', action.from, action.text)}\n`, mode: 'insert' }).catch(() => undefined)
       if (filled?.isFilled !== true) $.ui.toast(t('放不进输入框'))
       return
     }
-    case 'session-flow': await update($, sessionFlowAtom, () => action.flow); return
-    case 'session-run': await update($, sessionRunsAtom, (was) => {
-      const list = new Set((((was as unknown) as string[] | null) ?? []))
-      if (action.open) list.add(action.id); else list.delete(action.id)
-      return [...list] as unknown as GemflowJson
-    }); return
     // The conversation scrolls to the prompt's row, by the id the host gave it (session.append); a press is the person's own input, which is when a transcript row may move.
-    case 'expand-turn': await update($, turnMenuAtom, () => null); await update($, expandedTurnAtom, () => (action.id === null ? null : { id: action.id, answer: null }) as unknown as GemflowJson); return
     case 'locate': {
       await update($, turnMenuAtom, () => null)
       const p = (await readPrompts($)).find((x) => x.id === action.id)
@@ -1560,11 +1562,11 @@ interface Header {
 }
 
 async function headerRows($: EngineInterface, t: T): Promise<Header> {
-  const shell = await readShell($)
+  const [shell, stored, known, settings] = await Promise.all([readShell($), read($, versionAtom), read($, latestAtom), readSettings($)])
   const s = shell?.status ?? null
-  const version = shell?.versions?.gemflow ?? (await read($, versionAtom)) ?? ''
-  const latest = (await read($, latestAtom)) as unknown as { version?: string } | null
-  const newer = (await readSettings($)).notify.update && latest?.version !== undefined && version !== '' && isNewer(latest.version, version) ? latest.version : undefined
+  const version = shell?.versions?.gemflow ?? stored ?? ''
+  const latest = known as unknown as { version?: string } | null
+  const newer = settings.notify.update && latest?.version !== undefined && version !== '' && isNewer(latest.version, version) ? latest.version : undefined
   const dialogs: Pressable[] = (['share', 'settings', 'upgrade', 'about'] as const).map((d) => ({ key: `dialog-${d}`, label: d === 'share' ? t('分享') : d === 'settings' ? t('设置') : d === 'upgrade' ? t('升级') : t('关于'), action: { op: 'dialog', dialog: d } }))
   const head: Header = { version, dialogs, ...(newer !== undefined ? { newer } : {}) }
   if (s !== null && s.item.kind === 'item') {
@@ -2033,40 +2035,47 @@ export const register: Register = (on) => {
   on('ui.render', { component: 'Pane', requestId: 'gemflow-board' }, async ($, e) => {
     const els = elementsOf($, e)
     const { Box, Text, Button } = els
-    const t = await words($)
+    const [t, kept] = await Promise.all([words($), read($, tabAtom)])
     // A tab this version no longer has (one kept from before an update) opens the work items.
-    const kept = await read($, tabAtom)
     const tab: BoardTab = (TAB_IDS as readonly string[]).includes(kept) ? kept : HOME_TAB
     const columns = e.props.bodyColumns
     let rows: BoardRow[]
     let head: Awaited<ReturnType<typeof headerRows>> | undefined
+    // Every value the board draws from, read at once: each read is a trip to the host, and forty of them in a row
+    // made a press feel slow. The ones written on every tool call are read only where the tab shows them.
+    const shows = (visible: boolean) => <V,>(get: () => Promise<V>, otherwise: V): Promise<V> => (visible ? get() : Promise.resolve(otherwise))
+    const env = envNow($, t, e.surface).catch(() => ({ parts: [] as string[] }))
+    const attention = shows(tab === 'items')(() => Promise.all([attentionNow($, t), readQueued($)]).catch(() => null), null)
     try {
-      const inbox = await inboxOf($, t)
-      head = await headerRows($, t)
+      const [inbox, header, board, problem, shell, now, root, filter, expanded, evidence, prompts, project, unfolded, menu, doneOpen, sessionFlow, sessionRuns, flowState, switching, workflows, usage, dismissed, toolQuery, toolMenu, toolNaming, toolsOpen] = await Promise.all([
+        inboxOf($, t), headerRows($, t), readBoard($), read($, boardProblemAtom), readShell($), nowIso($), read($, rootAtom),
+        read($, filterAtom), read($, expandedAtom), read($, evidenceAtom),
+        shows(tab === 'sessions' || tab === 'journal')(() => readPrompts($), [] as PromptRecord[]),
+        shows(tab === 'sessions')(async () => {
+          const [sessions, own, open] = await Promise.all([read($, projectSessionsAtom), $.session.id().catch(() => ''), read($, openSessionAtom)])
+          return { sessions: (sessions as unknown as SessionSummary[] | null) ?? [], own, open }
+        }, null),
+        shows(tab === 'sessions')(() => read($, expandedTurnAtom), null as GemflowJson),
+        read($, turnMenuAtom), read($, doneOpenAtom), read($, sessionFlowAtom), read($, sessionRunsAtom),
+        read($, flowStateAtom), read($, flowSwitchAtom), read($, workflowsAtom),
+        usageDrawn($), dismissedOf($), read($, toolQueryAtom), read($, toolMenuAtom), read($, toolNamingAtom), read($, toolsOpenAtom),
+      ])
+      head = header
       rows = paneRows({
-        board: await readBoard($), problem: await read($, boardProblemAtom), shell: await readShell($), tab, columns, maxRows: Math.max(4, e.props.scroll.bodyRows - 4), t,
-        now: await nowIso($), root: (await read($, rootAtom)) ?? '', inbox,
-        filter: (await read($, filterAtom)) as JournalFilter, expanded: await read($, expandedAtom), evidence: await read($, evidenceAtom),
-        // Written on every tool call: read only on the tabs that show them, so a call redraws no other tab.
-        prompts: tab === 'sessions' || tab === 'journal' ? await readPrompts($) : [],
-        ...(tab === 'sessions' ? { project: { sessions: ((await read($, projectSessionsAtom)) as unknown as SessionSummary[] | null) ?? [], own: await $.session.id().catch(() => ''), open: await read($, openSessionAtom) }, scrolls: e.surface === 'terminal', unfolded: (await read($, expandedTurnAtom)) as unknown as { id: string; answer: string | null } | null } : {}),
-        menu: await read($, turnMenuAtom), doneOpen: await read($, doneOpenAtom),
-        sessionFlow: await read($, sessionFlowAtom), sessionRuns: ((await read($, sessionRunsAtom)) as unknown as string[] | null) ?? [],
-        flowState: await read($, flowStateAtom), switching: await read($, flowSwitchAtom), workflows: (await read($, workflowsAtom)) as unknown as { bundled: string[]; installed: string[] } | null,
-        usage: await usageDrawn($), dismissed: await dismissedOf($), toolQuery: await read($, toolQueryAtom), toolMenu: await read($, toolMenuAtom), toolNaming: await read($, toolNamingAtom),
-        toolsOpen: ((await read($, toolsOpenAtom)) as unknown as string[] | null) ?? [],
+        board, problem, shell, tab, columns, maxRows: Math.max(4, e.props.scroll.bodyRows - 4), t, now, root: root ?? '', inbox,
+        filter: filter as JournalFilter, expanded, evidence, prompts,
+        ...(project !== null ? { project, scrolls: e.surface === 'terminal', unfolded: unfolded as unknown as { id: string; answer: string | null } | null } : {}),
+        menu, doneOpen, sessionFlow, sessionRuns: (sessionRuns as unknown as string[] | null) ?? [],
+        flowState, switching, workflows: workflows as unknown as { bundled: string[]; installed: string[] } | null,
+        usage, dismissed, toolQuery, toolMenu, toolNaming, toolsOpen: (toolsOpen as unknown as string[] | null) ?? [],
       })
     } catch (err) {
       rows = [{ kind: 'text', text: truncate(`gemflow：看板画不出来（${reasonOf(err)}）`, columns), tone: 'error' }]
     }
-    const envLine = (await envNow($, t, e.surface).catch(() => ({ parts: [] as string[] }))).parts
+    const envLine = (await env).parts
     // The work items open on 此刻: everything the band has room for one of.
-    if (tab === 'items') {
-      try {
-        const at = await attentionNow($, t)
-        rows = [...nowRows({ reply: at.reply, standing: at.standing, memory: at.memory, queued: await readQueued($), t }), ...rows]
-      } catch { /* the work items alone */ }
-    }
+    const now = await attention
+    if (now !== null) rows = [...nowRows({ reply: now[0].reply, standing: now[0].standing, memory: now[0].memory, queued: now[1], t }), ...rows]
     return (
       <Box flexDirection="column">
         {head !== undefined && (
