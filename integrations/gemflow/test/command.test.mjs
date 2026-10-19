@@ -62,9 +62,9 @@ test("/gemflow prints where the work stands: the stage with its uses, each varia
 });
 
 test("the + menu lists, then copies; use names the active workflow", () => {
-  assert.equal(addText({ v: 1, ok: true, shell, workflows: ["coding", "dev", "refund"], installed: ["dev"] }), "内置流程：coding、dev（已在本项目）、refund\n用 /gemflow add <流程> 把一个复制到 .geml/workflows/。");
-  assert.equal(addText({ v: 1, ok: true, shell, added: { name: "dev", activated: true } }), "已把内置流程 dev 复制到 .geml/workflows/dev/，并设为当前流程。");
-  assert.equal(addText({ v: 1, ok: true, shell, added: { name: "refund", activated: false } }), "已把内置流程 refund 复制到 .geml/workflows/refund/。用 /gemflow use refund 让它成为当前流程。");
+  assert.equal(addText({ v: 1, ok: true, shell, workflows: ["coding", "dev", "refund"], installed: ["dev"] }), "内置流程：coding、dev（已在本项目）、refund\n用 /gemflow add <流程> 把一个写入 .geml/workflows/。");
+  assert.equal(addText({ v: 1, ok: true, shell, added: { name: "dev", activated: true } }), "已把内置流程 dev 写入 .geml/workflows/dev.geml，并设为当前流程。");
+  assert.equal(addText({ v: 1, ok: true, shell, added: { name: "refund", activated: false } }), "已把内置流程 refund 写入 .geml/workflows/refund.geml。用 /gemflow use refund 让它成为当前流程。");
   assert.match(commandText({ kind: "use", workflow: "dev" }, { v: 1, ok: true, shell }, null), /^默认流程：dev\n流程 dev/);
 });
 

@@ -32,18 +32,18 @@ test("suggestWorkflow reads the project's top level: a media project is video, a
   for (const s of [suggestWorkflow(root), suggestWorkflow(tmp())]) assert.ok(bundledWorkflows().includes(s.workflow), "every suggestion is a bundled workflow");
 });
 
-test("addWorkflow copies the workflow with its dictionary, ignores journals and context, and activates only when asked", () => {
+test("addWorkflow writes the workflow as one file and its rows into the project's dictionary, keeps gemflow's files out of git, and activates only when asked", () => {
   const root = tmp();
-  assert.deepEqual(addWorkflow(root, "coding", { activate: true }), { ok: true, name: "coding", target: join(root, ".geml", "workflows", "coding"), activated: true });
-  assert.ok(existsSync(join(root, ".geml", "workflows", "coding", "flow.geml")));
-  assert.ok(existsSync(join(root, ".geml", "workflows", "coding", "tools.geml")), "the dictionary comes with the workflow");
+  assert.deepEqual(addWorkflow(root, "coding", { activate: true }), { ok: true, name: "coding", target: join(root, ".geml", "workflows", "coding.geml"), activated: true });
+  assert.ok(existsSync(join(root, ".geml", "workflows", "coding.geml")));
+  assert.ok(existsSync(join(root, ".geml", "tools.geml")), "the dictionary's rows come with the workflow");
   assert.equal(readFileSync(join(root, ".geml", ".gitignore"), "utf8"), GITIGNORE);
-  assert.equal(readFileSync(join(root, ".geml", "gemflow.geml"), "utf8"), configText("coding"));
+  assert.equal(readFileSync(join(root, ".geml", "project.geml"), "utf8"), configText("coding"));
   assert.equal(addWorkflow(root, "refund", { activate: false }).activated, false);
-  assert.equal(readFileSync(join(root, ".geml", "gemflow.geml"), "utf8"), configText("coding"));
+  assert.equal(readFileSync(join(root, ".geml", "project.geml"), "utf8"), configText("coding"));
   assert.deepEqual(projectWorkflows(root), ["coding", "refund"]);
   const again = addWorkflow(root, "coding", { activate: true });
-  assert.deepEqual([again.ok, again.code, again.reason], [false, 1, ".geml/workflows/coding already exists; not overwriting"]);
+  assert.deepEqual([again.ok, again.code, again.reason], [false, 1, ".geml/workflows/coding.geml already exists; not overwriting"]);
   const unknown = addWorkflow(root, "nope", { activate: true });
   assert.deepEqual([unknown.ok, unknown.code], [false, 2]);
   assert.match(unknown.reason, /^unknown template "nope"; expected coding or /);
@@ -53,7 +53,7 @@ test("useWorkflow names an installed workflow and refuses any other", () => {
   const root = tmp();
   addWorkflow(root, "refund", { activate: false });
   assert.deepEqual(useWorkflow(root, "refund"), { ok: true });
-  assert.match(readFileSync(join(root, ".geml", "gemflow.geml"), "utf8"), /flow-workflow = "refund"/);
+  assert.match(readFileSync(join(root, ".geml", "project.geml"), "utf8"), /flow-workflow = "refund"/);
   assert.deepEqual(useWorkflow(root, "coding"), { ok: false, reason: 'no workflow "coding" in .geml/workflows (have: refund)' });
   assert.equal(useWorkflow(root, "../x").ok, false);
 });

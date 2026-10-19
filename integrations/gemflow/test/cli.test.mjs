@@ -9,6 +9,7 @@ import { loadStatechart } from "../dist/core/statechart.js";
 import { initialSnapshot, applyPatch, applyTransition } from "../dist/core/snapshot.js";
 import { readJournal, renderJournalHead, renderSnapshotBlock } from "../dist/core/journal.js";
 import { flowDoc } from "./helpers/flow.mjs";
+import { GITIGNORE } from "../dist/project-home.js";
 
 const CLI = fileURLToPath(new URL("../dist/cli.js", import.meta.url));
 const FIX = fileURLToPath(new URL("./fixtures/refund.geml", import.meta.url));
@@ -19,7 +20,7 @@ function run(args, cwd) {
   return { code: r.status ?? 1, out: r.stdout ?? "", err: r.stderr ?? "" };
 }
 const ws = () => mkdtempSync(join(tmpdir(), "gemflow-"));
-const USAGE = /usage: gemflow <check\|snapshot\|verify\|export\|init\|use\|status\|mark\|unmark\|advance\|pause\|resume\|rollback\|run\|hook\|mcp>/;
+const USAGE = /usage: gemflow <check\|snapshot\|verify\|export\|init\|use\|migrate\|status\|mark\|unmark\|advance\|pause\|resume\|rollback\|run\|hook\|mcp>/;
 
 test("no verb prints usage and exits 2", () => {
   const r = run([]);
@@ -143,22 +144,22 @@ const ABC = flowDoc({
   transitions: [{ from: "a", to: "b", note: "Begin." }, { from: "b", to: "c", guard: { properties: { ok: { const: true } } }, note: "Checked." }],
 });
 
-test("init copies a workflow with its dictionary, records it as active, and ignores journals, context and locks", () => {
+test("init writes a workflow as one file, its tools into the project's dictionary, records it as active, and keeps gemflow's own files out of git", () => {
   const d = repo();
   const r = run(["init", "--template", "coding"], d);
   assert.equal(r.code, 0, r.err);
-  assert.equal(r.out.trim(), "wrote .geml/workflows/coding/ (active)");
+  assert.equal(r.out.trim(), "wrote .geml/workflows/coding.geml (active)");
   // Under .geml/, not at the repo root: a project root is contested space.
   assert.equal(existsSync(join(d, "agent.geml")), false, "nothing lands at the root");
-  const written = readFileSync(join(d, ".geml", "workflows", "coding", "flow.geml"), "utf8");
-  assert.equal(written, lf(readFileSync(shipped("coding"), "utf8")));
-  assert.ok(existsSync(join(d, ".geml", "workflows", "coding", "tools.geml")), "the dictionary comes along");
+  const written = readFileSync(join(d, ".geml", "workflows", "coding.geml"), "utf8");
+  assert.equal(written, lf(readFileSync(shipped("coding"), "utf8")), "a workflow with no guide is its flow file as it is");
+  assert.ok(existsSync(join(d, ".geml", "tools.geml")), "the dictionary's rows are the project's");
   // What a repository gets: the claims the workflow is there to make.
   assert.match(written, /"explore"/);
   assert.match(written, /"implement"/);
-  assert.match(readFileSync(join(d, ".geml", "gemflow.geml"), "utf8"), /flow-workflow = "coding"/);
-  assert.equal(readFileSync(join(d, ".geml", ".gitignore"), "utf8"), "journals/\ncontext.geml\n*.lock\n");
-  assert.equal(run(["check", ".geml/workflows/coding/flow.geml"], d).code, 0);
+  assert.match(readFileSync(join(d, ".geml", "project.geml"), "utf8"), /flow-workflow = "coding"/);
+  assert.equal(readFileSync(join(d, ".geml", ".gitignore"), "utf8"), GITIGNORE);
+  assert.equal(run(["check", ".geml/workflows/coding.geml"], d).code, 0);
   const again = run(["init", "--template", "coding"], d);
   assert.equal(again.code, 1, "refuses to overwrite");
   assert.match(again.err, /already exists/);
@@ -170,11 +171,11 @@ test("init is coding by default, activates the workflow it writes, and leaves an
   mkdirSync(join(d, ".geml"));
   writeFileSync(join(d, ".geml", ".gitignore"), "mine\n");
   assert.equal(run(["init"], d).code, 0);
-  assert.ok(existsSync(join(d, ".geml", "workflows", "coding", "flow.geml")));
+  assert.ok(existsSync(join(d, ".geml", "workflows", "coding.geml")));
   assert.equal(readFileSync(join(d, ".geml", ".gitignore"), "utf8"), "mine\n");
   // A second workflow becomes the active one unless --no-activate says otherwise.
   assert.equal(run(["init", "--template", "refund"], d).code, 0);
-  assert.match(readFileSync(join(d, ".geml", "gemflow.geml"), "utf8"), /flow-workflow = "refund"/);
+  assert.match(readFileSync(join(d, ".geml", "project.geml"), "utf8"), /flow-workflow = "refund"/);
   rmSync(d, { recursive: true, force: true });
 });
 
@@ -182,10 +183,10 @@ test("init --no-activate writes the workflow and no config; init [dir] and an un
   const d = ws();
   const r = run(["init", "sub", "--template", "refund", "--no-activate"], d);
   assert.equal(r.code, 0, r.err);
-  assert.equal(r.out.trim(), "wrote sub/.geml/workflows/refund/");
-  assert.equal(lf(readFileSync(join(d, "sub", ".geml", "workflows", "refund", "flow.geml"), "utf8")), lf(readFileSync(shipped("refund"), "utf8")));
-  assert.equal(existsSync(join(d, "sub", ".geml", "gemflow.geml")), false);
-  assert.equal(readFileSync(join(d, "sub", ".geml", ".gitignore"), "utf8"), "journals/\ncontext.geml\n*.lock\n");
+  assert.equal(r.out.trim(), "wrote sub/.geml/workflows/refund.geml");
+  assert.equal(lf(readFileSync(join(d, "sub", ".geml", "workflows", "refund.geml"), "utf8")), lf(readFileSync(shipped("refund"), "utf8")));
+  assert.equal(existsSync(join(d, "sub", ".geml", "project.geml")), false);
+  assert.equal(readFileSync(join(d, "sub", ".geml", ".gitignore"), "utf8"), GITIGNORE);
 
   const bad = run(["init", "--template", "nonsense"], ws());
   assert.equal(bad.code, 2);
@@ -302,18 +303,18 @@ test("use switches the active workflow", () => {
   const d = repo();
   run(["init", "--template", "coding"], d);
   run(["init", "--template", "refund", "--no-activate"], d);
-  assert.match(readFileSync(join(d, ".geml", "gemflow.geml"), "utf8"), /flow-workflow = "coding"/);
+  assert.match(readFileSync(join(d, ".geml", "project.geml"), "utf8"), /flow-workflow = "coding"/);
   const u = run(["use", "refund"], d);
   assert.equal(u.code, 0, u.err);
-  assert.match(readFileSync(join(d, ".geml", "gemflow.geml"), "utf8"), /flow-workflow = "refund"/);
+  assert.match(readFileSync(join(d, ".geml", "project.geml"), "utf8"), /flow-workflow = "refund"/);
   assert.match(run(["status"], d).out, /feat\/x · #intake/);
   const nope = run(["use", "nope"], d);
   assert.equal(nope.code, 1);
   assert.match(nope.err, /^gemflow: no workflow "nope" in \.geml\/workflows \(have: coding, refund\)$/m);
-  // A name is a directory in .geml/workflows, not a path out of it.
+  // A name is a workflow in .geml/workflows, not a path out of it.
   assert.equal(run(["use", "../workflows/coding"], d).code, 1);
   assert.equal(run(["use"], d).code, 2);
-  assert.match(readFileSync(join(d, ".geml", "gemflow.geml"), "utf8"), /flow-workflow = "refund"/);
+  assert.match(readFileSync(join(d, ".geml", "project.geml"), "utf8"), /flow-workflow = "refund"/);
   rmSync(d, { recursive: true, force: true });
 });
 

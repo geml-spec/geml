@@ -20,6 +20,7 @@ import { dirname, join, resolve } from "node:path";
 import { handleRequest } from "./bridge.js";
 import { commandOf } from "./core/command-line.js";
 import { bindingOf, evidenceKeys, TOOLS_FILE, type Dictionary } from "./core/dictionary.js";
+import { dictionaryPathOf } from "./project-home.js";
 import { CODEX_TOOLS, HOST_TOOLS } from "./core/host-tools.js";
 import { CONTEXT_DOC } from "./core/layout.js";
 import type { FlowPolicy } from "./core/policy.js";
@@ -141,7 +142,7 @@ export async function runCodex(text: string, env: NodeJS.ProcessEnv, platform: s
       const res = await ask({ op: "status" });
       if (!res.ok || res.shell.policy === null) return NOTHING;
       const { policy, status } = res.shell;
-      const dictionary = status !== null ? join(dirname(status.workflow.path), TOOLS_FILE).split("\\").join("/") : TOOLS_FILE;
+      const dictionary = status !== null ? dictionaryPathOf(status.workflow.path).split("\\").join("/") : TOOLS_FILE;
       let context: string | undefined;
       const decision = beforeDecision(policy, call);
       // A preference between two hosts' file-writing tools is no preference: the dictionary's default editor is Claude Code's, apply_patch is Codex's.

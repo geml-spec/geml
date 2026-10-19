@@ -776,9 +776,9 @@ test("resolveWorkflow: the environment, then the config document, then the only 
   w.config('=== meta\nprofile = "geml-statechart/v1"\nflow-workflow = "film"\n===\n');
   assert.deepEqual(resolveWorkflow(w.root, {}), { name: "film", path: join(w.root, ".geml", "workflows", "film", "flow.geml") });
   w.config('=== meta\nprofile = "geml-statechart/v1"\nflow-workflow = "gone"\n===\n');
-  assert.deepEqual(resolveWorkflow(w.root, {}), { error: ".geml/gemflow.geml names workflow \"gone\", but .geml/workflows/gone/flow.geml does not exist", kind: "invalid" });
+  assert.deepEqual(resolveWorkflow(w.root, {}), { error: ".geml/gemflow.geml names workflow \"gone\", but .geml/workflows has no gone.geml", kind: "invalid" });
   w.config('=== meta\nprofile = "geml-statechart/v1"\nflow-workflow = "../dev"\n===\n');
-  assert.deepEqual(resolveWorkflow(w.root, {}), { error: ".geml/gemflow.geml names workflow \"../dev\", which is not the name of a directory in .geml/workflows", kind: "invalid" });
+  assert.deepEqual(resolveWorkflow(w.root, {}), { error: ".geml/gemflow.geml names workflow \"../dev\", which is not the name of a workflow in .geml/workflows", kind: "invalid" });
   const env = { GEMFLOW_STATECHART: ".geml/workflows/dev/flow.geml" };
   assert.deepEqual(resolveWorkflow(w.root, env), { name: ".geml/workflows/dev", path: join(w.root, ".geml", "workflows", "dev", "flow.geml") });
   assert.deepEqual(resolveWorkflow(w.root, { GEMFLOW_STATECHART: "nope.geml" }), { error: "GEMFLOW_STATECHART names nope.geml, which does not exist", kind: "invalid" });

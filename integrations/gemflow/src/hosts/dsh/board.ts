@@ -185,11 +185,11 @@ export function boardReply(s: Supervision, q: BoardQuery, now: string, locale?: 
   };
 }
 
-/** What a press needs: the session's Supervisor, its statechart, and the workflow directory a lesson is written into. */
+/** What a press needs: the session's Supervisor, its statechart, and the workflow file whose dictionary a lesson is written into. */
 export interface Acting {
   sup: Supervisor;
   sc: Statechart;
-  workflowDir: string;
+  workflowFile: string;
 }
 
 /**
@@ -205,7 +205,7 @@ export function actOnSession(s: Acting, action: DshAction, now: string): { ok: t
     case "mark": { const r = s.sup.mark(action.variable, action.checked, meta); return r.ok ? { ok: true } : { ok: false, error: r.reason }; }
     case "pause": { const r = s.sup.pause(meta); return r.ok ? { ok: true } : { ok: false, error: r.reason }; }
     case "resume": { const r = s.sup.resume(meta); return r.ok ? { ok: true } : { ok: false, error: r.reason }; }
-    case "learn": { learnInFile(s.workflowDir, action.lessons, s.sc); return { ok: true }; }
+    case "learn": { learnInFile(s.workflowFile, action.lessons, s.sc); return { ok: true }; }
     case "input": {
       if (action.field !== "add-tool") return { ok: false, error: `${action.field} is not on this host` };
       const a = inputAction(action.field, action.value);

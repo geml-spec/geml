@@ -23,7 +23,10 @@ import { commandOf } from "./core/command-line.js";
 import { bindingOf, normalizedCommand, type Dictionary, type Lesson } from "./core/dictionary.js";
 import type { HostTools } from "./core/host-tools.js";
 import { readJournal } from "./core/journal.js";
-import { CONFIG_DOC, CONTEXT_DOC, FLOW_FILE, JOURNALS_DIR, WORKFLOWS_DIR } from "./core/layout.js";
+import { CONTEXT_DOC, GEML_DIR, JOURNALS_DIR, LEGACY_CONFIG_DOC, PROJECT_DOC, WORKFLOWS_DIR } from "./core/layout.js";
+import { ensureGitignore, homeOf, installedWorkflows, projectDocOf, recordedPath, workflowAt, workflowNameOf } from "./project-home.js";
+
+export { workflowNameOf };
 import type { JsonValue } from "./core/schema.js";
 import { fileSignals, gitSignals, readsGit, runsGitOrGh, type GitFacts, type SignalValue } from "./core/signals.js";
 import { policyOf, type FlowPolicy } from "./core/policy.js";
@@ -187,11 +190,7 @@ function metaValue(source: string, key: string): unknown {
   return meta && meta.kind === "block" && meta.data ? meta.data[key] : undefined;
 }
 
-function listDirs(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort();
-}
-
-/** Which workflow is active: GEMFLOW_STATECHART, else the config document, else the only workflow. */
+/** Which workflow is active: GEMFLOW_STATECHART, else the one the project document names, else the only workflow (the home's files, then the earlier layout's directories). */
 export function resolveWorkflow(root: string, env: Record<string, string | undefined> = process.env): ResolvedWorkflow {
   const named = env["GEMFLOW_STATECHART"];
   if (named) {
@@ -199,22 +198,24 @@ export function resolveWorkflow(root: string, env: Record<string, string | undef
     if (!exists(path)) return { error: `GEMFLOW_STATECHART names ${named}, which does not exist`, kind: "invalid" };
     return { name: slashed(relative(root, dirname(path))) || ".", path };
   }
-  const configPath = join(root, CONFIG_DOC);
-  if (exists(configPath)) {
-    const name = metaValue(readText(configPath), "flow-workflow");
+  const home = homeOf(root);
+  const installed = installedWorkflows(root, home);
+  const doc = projectDocOf(root, home);
+  if (doc !== undefined) {
+    const name = metaValue(readText(doc), "flow-workflow");
+    const docName = basename(doc) === basename(PROJECT_DOC) ? PROJECT_DOC : LEGACY_CONFIG_DOC;
     if (typeof name === "string" && name !== "") {
-      // A workflow is one directory under WORKFLOWS_DIR: the name may not reach anywhere else.
-      if (name.includes("/") || !isSafeItemId(name)) return { error: `${CONFIG_DOC} names workflow "${name}", which is not the name of a directory in ${WORKFLOWS_DIR}`, kind: "invalid" };
-      const path = join(root, WORKFLOWS_DIR, name, FLOW_FILE);
-      return exists(path) ? { name, path } : { error: `${CONFIG_DOC} names workflow "${name}", but ${WORKFLOWS_DIR}/${name}/${FLOW_FILE} does not exist`, kind: "invalid" };
+      // A workflow is one of the project's: the name may not reach anywhere else.
+      if (name.includes("/") || !isSafeItemId(name)) return { error: `${docName} names workflow "${name}", which is not the name of a workflow in ${WORKFLOWS_DIR}`, kind: "invalid" };
+      const named = installed.find((w) => w.name === name);
+      return named !== undefined ? { name, path: named.path } : { error: `${docName} names workflow "${name}", but ${WORKFLOWS_DIR} has no ${name}.geml`, kind: "invalid" };
     }
   }
-  const dir = join(root, WORKFLOWS_DIR);
-  const names = exists(dir) ? listDirs(dir).filter((n) => exists(join(dir, n, FLOW_FILE))) : [];
-  if (names.length === 1) return { name: names[0]!, path: join(dir, names[0]!, FLOW_FILE) };
+  const names = installed.map((w) => w.name);
+  if (installed.length === 1) return installed[0]!;
   // Several: the one whose work item is not a file is the default, when it is the only one; the others run beside it.
-  const whole = names.filter((n) => fileUnitOf(join(dir, n, FLOW_FILE)) === undefined);
-  if (names.length > 1 && whole.length === 1) return { name: whole[0]!, path: join(dir, whole[0]!, FLOW_FILE) };
+  const whole = installed.filter((w) => fileUnitOf(w.path) === undefined);
+  if (installed.length > 1 && whole.length === 1) return whole[0]!;
   return names.length === 0
     ? { error: "no workflow here: run `gemflow init`", kind: "none" }
     : { error: `several workflows (${names.join(", ")}): choose one with \`gemflow use <name>\``, kind: "ambiguous" };
@@ -234,12 +235,9 @@ export function fileUnitOf(path: string): string | undefined {
  * glob. A file one of them takes is that workflow's work item.
  */
 export function sideFlows(root: string, defaultPath: string): { name: string; path: string; glob: string }[] {
-  const dir = join(root, WORKFLOWS_DIR);
-  if (!exists(dir)) return [];
   const def = resolve(defaultPath);
-  return listDirs(dir).flatMap((name) => {
-    const path = join(dir, name, FLOW_FILE);
-    if (resolve(path) === def || !exists(path)) return [];
+  return installedWorkflows(root).flatMap(({ name, path }) => {
+    if (resolve(path) === def) return [];
     const glob = fileUnitOf(path);
     return glob === undefined ? [] : [{ name, path, glob }];
   });
@@ -263,7 +261,8 @@ export function itemProgress(root: string, journalBase: string, id: string, flow
   const wf = journal.meta.workflow !== "" ? journal.meta.workflow : defaultFile;
   let flow = flows.get(wf);
   if (flow === undefined) {
-    const loaded = wf !== "" && exists(resolve(root, wf)) ? loadFlow(root, resolve(root, wf)) : { error: "no workflow" };
+    const at = workflowAt(root, journalBase, wf);
+    const loaded = at !== undefined ? loadFlow(root, at) : { error: "no workflow" };
     flow = "error" in loaded ? null : { sc: loaded.sc, title: loaded.title ?? workflowNameOf(root, wf) };
     flows.set(wf, flow);
   }
@@ -296,12 +295,6 @@ function loadFlow(root: string, path: string): { sc: Statechart; title?: string 
   return { sc: loaded.statechart, ...(typeof title === "string" ? { title } : {}) };
 }
 
-/** A workflow's name as the project calls it: its directory under .geml/workflows, else that directory relative to the root. */
-export function workflowNameOf(root: string, path: string): string {
-  const dir = dirname(resolve(root, path));
-  return dirname(dir) === resolve(root, WORKFLOWS_DIR) ? basename(dir) : slashed(relative(root, dir)) || ".";
-}
-
 /**
  * A workspace that has started nothing: the item's journal is neither created
  * nor appended to, and the context document is left as it is — for looking
@@ -332,8 +325,8 @@ export function loadWorkspace(o: WorkspaceOptions): Opened {
   const under = ws.journalWorkflow();
   if (under === undefined || ws.item.kind !== "item") return { ok: true, ws };
   const item = ws.item.id;
-  const path = resolve(o.root, under);
-  if (!exists(path)) {
+  const path = workflowAt(o.root, ws.journalBase, under);
+  if (path === undefined) {
     return { ok: false, kind: "journal", reason: `${slashed(journalPathFor(item))} was started under ${under}, which is not there: restore that file, or move the journal aside (rename or delete it) to start ${item} over under ${wf.name}.` };
   }
   const own = loadFlow(o.root, path);
@@ -388,7 +381,7 @@ export class Workspace {
   private readonly realRoot: string;
   /** git's facts once read; see `repo`. */
   private repoFacts: RepoInfo | undefined;
-  /** The workflow file as the journal head names it: project-relative, `/`-separated. */
+  /** The workflow file as the journal head names it: relative to the home when it lies there (else to the root), `/`-separated. */
   private readonly workflowFile: string;
   /** See `journalBase`. */
   private base: string | undefined;
@@ -409,7 +402,7 @@ export class Workspace {
   ) {
     this.now = o.now ?? (() => new Date().toISOString());
     this.workflowDir = dirname(workflowPath);
-    this.workflowFile = slashed(relative(o.root, workflowPath));
+    this.workflowFile = recordedPath(o.root, this.journalBase, workflowPath);
     this.realRoot = realPath(o.root);
     const resolved = given ?? this.resolveItem();
     this.item = resolved.item;
@@ -520,12 +513,12 @@ export class Workspace {
 
   /** The workflow's tool dictionary as it stands on disk (spec §5.3), read afresh: another process may have learned since. */
   dictionary(): Dictionary {
-    return readDictionaryFile(this.workflowDir, this.sc);
+    return readDictionaryFile(this.workflowPath, this.sc);
   }
 
   /** A person answered (spec §5.3 step 6): write the lessons into the dictionary, under its lock. */
   learn(lessons: readonly Lesson[]): void {
-    learnInFile(this.workflowDir, lessons, this.sc);
+    learnInFile(this.workflowPath, lessons, this.sc);
   }
 
   /** Whether one simple command, as a key, is bound to a use some `tool` variable reads: its exit status is evidence somewhere in the workflow. */
@@ -734,7 +727,11 @@ export class Workspace {
       const current = exists(path) ? readText(path) : undefined;
       const was = current === undefined ? undefined : readContextDoc(current);
       if (!fresh && was !== undefined && was.item === item && was.rev > snap.rev) return was.text;
-      if (current === undefined || lf(current) !== lf(doc)) writeAtomic(path, doc);
+      if (current === undefined || lf(current) !== lf(doc)) {
+        // A checkout's .geml/ holds the stage document; git leaves it alone.
+        if (current === undefined) ensureGitignore(join(this.o.root, GEML_DIR));
+        writeAtomic(path, doc);
+      }
       return ctx.text;
     });
   }
@@ -963,7 +960,10 @@ export class Workspace {
     const at = text.indexOf("{#journal");
     const end = at < 0 ? -1 : text.indexOf("\n===", at);
     const under = readJournal(end < 0 ? text : text.slice(0, end + 4)).meta.workflow;
-    return under !== "" && under !== this.workflowFile ? under : undefined;
+    if (under === "" || under === this.workflowFile) return undefined;
+    // The earlier layout's name of this very workflow, since moved into the home, is this one.
+    const file = workflowAt(this.o.root, this.journalBase, under);
+    return file !== undefined && resolve(file) === resolve(this.workflowPath) ? undefined : under;
   }
 
   /** The file variables' values, from a walk of the project. */

@@ -62,7 +62,7 @@ test("end to end through the bridge: evidence advances it, deploys wait for thei
   const root = gitRepo();
   const init = spawnSync(process.execPath, [BUNDLE, "init", "--template", "dev"], { cwd: root, encoding: "utf8" });
   assert.equal(init.status, 0, init.stderr);
-  assert.match(init.stdout, /^wrote \.geml\/workflows\/dev\/ \(active\)$/m);
+  assert.match(init.stdout, /^wrote \.geml\/workflows\/dev\.geml \(active\)$/m);
   const gh = fakeGh();
   const before = (command, callId) => hook(root, { op: "before", tool: "Bash", callId, input: { command } });
   const ran = (command, callId, extra = {}, env = {}) => hook(root, { op: "after", tool: "Bash", callId, input: { command }, isError: false, exitCode: 0, gitOperation: false, ...extra }, env);
@@ -74,7 +74,7 @@ test("end to end through the bridge: evidence advances it, deploys wait for thei
   const review = hook(root, { op: "refresh" }, gh.env);
   assert.deepEqual(review.entered, ["review"]);
   assert.match(review.context, /PR 已开。逐条处理 review 意见/);
-  assert.match(review.context, /--- \.\/guide\.geml#review ---\n# 评审 \{#review\}/, "the guide's block, read in process by the bundle");
+  assert.match(review.context, /--- #review ---\n# 评审 \{#review\}/, "the guide's section, taken into the workflow's file, read in process by the bundle");
 
   gh.set({ pr: "MERGED", runs: [{ name: "ci", conclusion: "success" }] });
   const merged = ran("gh pr merge 7 --squash", "g1", { gitOperation: true }, gh.env);

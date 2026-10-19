@@ -318,7 +318,7 @@ export function flowRows(o: FlowInput): BoardRow[] {
       ]));
       rows.push(text(t("换了以后，新的工作项走它；已经开始的照旧。"), columns, "dim"));
     }
-    rows.push({ kind: "input", key: "import-workflow", placeholder: t("导入：流程目录或 flow.geml 的路径"), field: "import-workflow" });
+    rows.push({ kind: "input", key: "import-workflow", placeholder: t("导入：流程文件或目录的路径"), field: "import-workflow" });
   }
   // Who waits on the current work item: their flow, their stage, and that they come back after it.
   const me = status?.item.kind === "item" ? status.item.id : undefined;

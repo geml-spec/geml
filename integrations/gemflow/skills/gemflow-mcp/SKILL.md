@@ -3,16 +3,18 @@ name: gemflow-mcp
 description: >-
   Work inside a project's Gemflow workflow through the gemflow MCP server
   (tools status, move, set). Use when those tools are connected or the
-  project has .geml/gemflow.geml: read the current stage before acting, let
+  project has a .geml/workflows/ directory: read the current stage before acting, let
   status read PR, CI and file evidence, and move the workflow only along its
   transitions.
 ---
 
 # Gemflow over MCP
 
-A project's workflow lives in `.geml/workflows/<name>/flow.geml`: one
-`diagram {format=geml-statechart}` block. The stage it is in, and what that
-stage asks of you, is in `.geml/context.geml` — the `text {#current}` block.
+A project's workflow is one file, `.geml/workflows/<name>.geml` in the
+project's main checkout (a worktree shares it): a
+`diagram {format=geml-statechart}` block and the texts of its stages. The
+stage it is in, and what that stage asks of you, is in the checkout's own
+`.geml/context.geml` — the `text {#current}` block.
 
 **Every turn, before anything else, read the stage** — call `status`, or run
 `geml get .geml/context.geml '#current'`. Your host has no channel that hands
@@ -25,7 +27,7 @@ need not read it.)
 - `move` takes a transition whose guard is a sentence you judge, or one with no guard. A machine-judged transition is taken on its own when its guard holds; one that needs a person is theirs — ask them to approve it on the Gemflow board or with `gemflow advance <state>` in their own terminal. A guard holds for a person's `gemflow advance` just as it does for you.
 - `set` records the variables without a source, by name; a value of the wrong type writes nothing.
 - `gemflow mark`, `gemflow unmark` and `gemflow advance` are a person's commands. Never run them yourself: over MCP nothing refuses them, and the journal would credit a person with it.
-- The tool dictionary `tools.geml` beside the workflow binds each use a state declares to this project's tools, and a use is usable only in the states that declare it. Over MCP nothing refuses a tool for you: check the stage with `status` before you run one the stage does not list.
+- The tool dictionary `.geml/tools.geml`, one for the project's workflows, binds each use a state declares to this project's tools, and a use is usable only in the states that declare it. Over MCP nothing refuses a tool for you: check the stage with `status` before you run one the stage does not list.
 
 Registering the server (stdio), in the host's MCP configuration:
 

@@ -5,7 +5,7 @@
 // "not established", never as false.
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFileSync, existsSync, mkdtempSync, rmSync, statSync } from "node:fs";
+import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { realPath } from "./host-fs.js";
@@ -219,10 +219,40 @@ export function journalBaseOf(root: string): string {
     let gitDir: boolean | undefined;
     try { gitDir = statSync(join(d, ".git")).isDirectory(); } catch { gitDir = undefined; }
     if (gitDir === true) return root;
-    if (gitDir === false) return sharedBase(checkoutOf(real), real, root);
+    // The `.git` file says where the main working tree is; git is asked only when it cannot be read. A git that
+    // failed once (a timeout while a plugin reloads) once made a worktree start a journal of its own.
+    if (gitDir === false) return sharedBase(linkedCheckout(d) ?? checkoutOf(real), real, root);
     const up = dirname(d);
     if (up === d) return root;
     d = up;
+  }
+}
+
+/** The files git tracks under `dir`, absolute; none where `dir` is in no repository; undefined when git cannot say. */
+export function trackedUnder(dir: string): Set<string> | undefined {
+  if (!existsSync(dir)) return new Set();
+  const r = run("git", ["-C", dir, "ls-files", "-z"], dir, false);
+  if (!r.ok) return /not a git repository/i.test(r.err) ? new Set() : undefined;
+  return new Set(r.out.split("\0").filter((p) => p !== "").map((p) => resolve(dir, p)));
+}
+
+/**
+ * A linked working tree's checkout, read from its `.git` file (`gitdir: <dir>`)
+ * and that directory's `commondir`, with no git run; undefined when either
+ * cannot be read, or the `.git` file is a submodule's (no `commondir`).
+ */
+function linkedCheckout(top: string): Checkout | undefined {
+  try {
+    const m = /^gitdir:\s*(.+?)\s*$/m.exec(readFileSync(join(top, ".git"), "utf8"));
+    if (m === null) return undefined;
+    const gitDir = resolve(top, m[1]!);
+    const commonDir = join(gitDir, "commondir");
+    if (!existsSync(commonDir)) return undefined;
+    const common = realPath(resolve(gitDir, readFileSync(commonDir, "utf8").trim()));
+    const out: Checkout = { top: realPath(top), common };
+    return basename(common) === ".git" ? { ...out, main: dirname(common) } : out;
+  } catch {
+    return undefined;
   }
 }
 

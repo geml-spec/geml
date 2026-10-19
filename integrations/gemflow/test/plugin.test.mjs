@@ -295,7 +295,7 @@ test("a workflow the configuration names wrongly is a warning; no workflow at al
   writeFileSync(join(w.dir, ".geml", "gemflow.geml"), '=== meta\nflow-workflow = "gone"\n===\n');
   const lines = captureLog(w);
   assert.equal(attach(w.ctx, w.agent, "startup", { journalDir: join(w.dir, "journals"), onMissing: "skip" }), null);
-  assert.deepEqual(lines, ['warn: .geml/gemflow.geml names workflow "gone", but .geml/workflows/gone/flow.geml does not exist; leaving this agent unsupervised']);
+  assert.deepEqual(lines, ['warn: .geml/gemflow.geml names workflow "gone", but .geml/workflows has no gone.geml; leaving this agent unsupervised']);
   await w.dispose();
 });
 

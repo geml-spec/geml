@@ -34,7 +34,7 @@ import type { Run } from "../../core/run.js";
 import { metaFor, openRun, Supervisor, type Gate } from "../../core/supervisor.js";
 import type { ToolSpec } from "../../core/tools.js";
 import type { JsonValue } from "../../core/schema.js";
-import { docReader, resolveWorkflow } from "../../workspace.js";
+import { docReader, resolveWorkflow, workflowNameOf } from "../../workspace.js";
 
 /** Cordis plugin name, used by loader diagnostics. */
 export const name = "gemflow";
@@ -46,8 +46,9 @@ export interface Config {
   /**
    * A workflow file to use as it is; relative paths resolve against the
    * session's working directory. Left unset, the workflow is resolved as
-   * `gemflow` resolves it: `GEMFLOW_STATECHART`, else the workflow
-   * `.geml/gemflow.geml` names, else the only `.geml/workflows/<name>/flow.geml`.
+   * `gemflow` resolves it: `GEMFLOW_STATECHART`, else the workflow the
+   * project's `.geml/project.geml` names, else its only workflow
+   * (`.geml/workflows/<name>.geml` in the project's home).
    */
   statechart?: string;
   /** Where each session's journal is written, as `<journalDir>/<sessionId>.geml`. */
@@ -221,9 +222,9 @@ async function bodyOf(req: IncomingMessage): Promise<string> {
 
 /** A supervision as the board reads it: the journal read afresh, the dictionary as it stands. */
 function supervisionOf(id: string, a: Attached): Supervision {
-  const name = basename(a.workflowDir);
+  const name = workflowNameOf(a.cwd, a.workflowFile);
   return {
-    sc: a.sc, sup: a.sup, dictionary: readDictionaryFile(a.workflowDir, a.sc), item: `session:${id}`,
+    sc: a.sc, sup: a.sup, dictionary: readDictionaryFile(a.workflowFile, a.sc), item: `session:${id}`,
     // Root-relative, as the Claude Code board's workspace reports it: the rows' file links are made from the root.
     workflow: { name, path: relative(a.cwd, a.workflowFile), title: name },
     journal: exists(a.journalPath) ? readJournal(readText(a.journalPath)) : null,
@@ -261,7 +262,7 @@ export function boardApi(sessions: ReadonlyMap<string, Attached>): (req: Incomin
         const a = sessions.get(String(b["session"] ?? ""));
         if (a === undefined) return json(404, { ok: false, error: `no supervision for session ${String(b["session"] ?? "")}` });
         if (!isRecord(b["action"]) || typeof b["action"]["op"] !== "string") return json(400, { ok: false, error: "action is not a board action" });
-        const r = actOnSession({ sup: a.sup, sc: a.sc, workflowDir: a.workflowDir }, b["action"] as unknown as DshAction, nowIso());
+        const r = actOnSession({ sup: a.sup, sc: a.sc, workflowFile: a.workflowFile }, b["action"] as unknown as DshAction, nowIso());
         return json(r.ok ? 200 : 400, r);
       }
       return json(404, { ok: false, error: "no such route" });
@@ -351,7 +352,7 @@ export function attach(ctx: Context, agent: Agent, source: string, config: Confi
     tools: DSH_TOOLS,
     // Read afresh for every decision: a person may have answered in another session, or edited the file.
     get dictionary() {
-      return readDictionaryFile(workflowDir, sc);
+      return readDictionaryFile(file, sc);
     },
   });
   sup.setNotice(opened.notice);

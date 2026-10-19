@@ -70,7 +70,7 @@ export type BoardAction =
   | { op: "open-board"; tab?: BoardTab }
   | { op: "use"; workflow: string }
   | { op: "add"; workflow: string }
-  /** Copy a workflow directory or file from a path into .geml/workflows/. */
+  /** Write a workflow directory or file from a path into the project's .geml/workflows/. */
   | { op: "import"; path: string }
   | { op: "setting"; key: string; value: string | boolean }
   | { op: "copy"; text: string }

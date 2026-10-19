@@ -25,7 +25,10 @@ import { guardText } from "@geml/geml/dist/statechart.js";
 import { readFileSync } from "node:fs";
 import { readJournal, renderJournalMarkdown, type Journal, type Wrote } from "./core/journal.js";
 import { blockText } from "./core/blocks.js";
-import { BACKLOG_DOC, CONFIG_DOC, CONTEXT_DOC, EXPORTS_DIR, FLOW_FILE, GEML_DIR } from "./core/layout.js";
+import { BACKLOG_DOC, CONTEXT_DOC, EXPORTS_DIR, FLOW_FILE, GEML_DIR } from "./core/layout.js";
+import { TOOLS_FILE } from "./core/dictionary.js";
+import { renderDictionary } from "./core/dictionary-file.js";
+import { migrateLayout, projectDocOf, recordedPath, workflowAt } from "./project-home.js";
 import { itemState } from "./core/item-state.js";
 import { canonical, guardHolds, isPaused, type Snapshot } from "./core/snapshot.js";
 import type { JsonValue } from "./core/schema.js";
@@ -163,8 +166,9 @@ type ExportReq = Extract<BridgeRequest, { op: "export" }>;
 
 /**
  * The board's export (spec §8.2): a file under `.geml/exports/`. A journal as
- * it is, as a Markdown table or as JSON; the workflow directory copied whole;
- * or text the shell built. Answers the project-relative path and the text.
+ * it is, as a Markdown table or as JSON; the workflow, as a directory another
+ * project imports (its file as `flow.geml`, the documents it keeps, the rows
+ * of the dictionary it uses as `tools.geml`); or text the shell built. Answers the project-relative path and the text.
  */
 function exportOf(ws: Workspace, root: string, req: ExportReq, now: string): { ok: true; path: string; text: string } | { ok: false; reason: string } {
   const dir = join(root, EXPORTS_DIR);
@@ -194,8 +198,19 @@ function exportOf(ws: Workspace, root: string, req: ExportReq, now: string): { o
   const name = given ?? `workflow-${fileSafe(ws.workflowName)}-${stamp}`;
   const target = join(dir, name);
   mkdirSync(dir, { recursive: true });
-  cpSync(ws.workflowDir, target, { recursive: true, filter: (src) => !/[\\/]\.gemlhistory([\\/]|$)/.test(src) });
-  return { ok: true, path: shown(target), text: readText(join(ws.workflowDir, FLOW_FILE)) };
+  const noHistory = (src: string): boolean => !/[\\/]\.gemlhistory([\\/]|$)/.test(src);
+  const text = readText(ws.workflowPath);
+  // A directory of the earlier layout goes as it is.
+  if (basename(ws.workflowPath).toLowerCase() === FLOW_FILE) {
+    cpSync(ws.workflowDir, target, { recursive: true, filter: noHistory });
+    return { ok: true, path: shown(target), text };
+  }
+  writeAtomic(join(target, FLOW_FILE), text);
+  const kept = join(ws.workflowDir, ws.workflowName);
+  if (exists(kept)) cpSync(kept, join(target, ws.workflowName), { recursive: true, filter: noHistory });
+  const uses = new Set([...ws.sc.states.values()].flatMap((st) => st.uses));
+  writeAtomic(join(target, TOOLS_FILE), renderDictionary(ws.dictionary().rows.filter((r) => r.for === undefined || uses.has(r.for))));
+  return { ok: true, path: shown(target), text };
 }
 
 /**
@@ -209,7 +224,14 @@ function listItems(ws: Workspace, root: string, workflowFile: string): BoardItem
   const dir = ws.journalsDir;
   if (!exists(dir)) return [];
   const wf = resolveWorkflow(root);
-  const defaultFile = "error" in wf ? undefined : relative(root, wf.path).split("\\").join("/");
+  const home = ws.journalBase;
+  const defaultFile = "error" in wf ? undefined : recordedPath(root, home, wf.path);
+  // A name a journal gives a workflow, as the file it is: the earlier layout's name of a workflow since moved is the same file.
+  const fileOf = (recorded: string): string | undefined => (recorded === "" ? undefined : workflowAt(root, home, recorded));
+  const same = (recorded: string, file: string | undefined): boolean => {
+    const at = fileOf(recorded);
+    return file !== undefined && at !== undefined && resolve(at) === resolve(file);
+  };
   const out: BoardItem[] = [];
   const flows: FlowCache = new Map([[workflowFile, { sc: ws.sc, title: ws.title }]]);
   for (const e of readdirSync(dir, { withFileTypes: true, recursive: true })) {
@@ -219,11 +241,13 @@ function listItems(ws: Workspace, root: string, workflowFile: string): BoardItem
     const last = journal.snapshots.at(-1);
     if (!last) continue;
     const under = journal.meta.workflow;
-    const workflow = under !== "" && under !== defaultFile ? workflowNameOf(root, under) : undefined;
+    const workflow = under !== "" && under !== defaultFile && !same(under, "error" in wf ? undefined : wf.path) ? workflowNameOf(root, fileOf(under) ?? under) : undefined;
     const id = relative(dir, full).split("\\").join("/").replace(/\.geml$/, "");
     // Its own flow: the one at hand, or the one its journal names — a matter beside a branch finds its file by the matter flow's glob.
-    const own = (under === "" ? defaultFile : under) ?? "";
-    const glob = own === workflowFile ? (ws.sc.unit.kind === "file" ? ws.sc.unit.glob : "") : own !== "" ? fileUnitOf(join(root, own)) ?? "" : "";
+    const recorded = (under === "" ? defaultFile : under) ?? "";
+    const own = same(recorded, ws.workflowPath) ? workflowFile : recorded;
+    const ownFile = own === workflowFile ? undefined : fileOf(own);
+    const glob = own === workflowFile ? (ws.sc.unit.kind === "file" ? ws.sc.unit.glob : "") : ownFile !== undefined ? fileUnitOf(ownFile) ?? "" : "";
     const file = ws.fileOfItem(id, glob);
     const paused = isPaused(journal.snapshots);
     let title: string | undefined;
@@ -415,6 +439,12 @@ function handoffOf(delivered: string | undefined, ws: Workspace, view: ShellView
   return { handoff: `[gemflow] back on ${s.item.id} · ${state} · rev ${s.state?.rev ?? 0}${vars}`, context: text };
 }
 
+/** Move the earlier layout into the project's home (migrateLayout), what moved kept in the trash under one stamp; a move that fails leaves the earlier layout, which is still read. */
+function moveEarlierLayout(root: string): void {
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "");
+  try { migrateLayout(root, join(homedir(), ".gemflow", "trash", `${stamp}-layout`)); } catch { /* still read where it is */ }
+}
+
 /** One request, answered. A throw — from opening the workspace or from the op — becomes an error answer with no shell: the last good one stays. */
 export async function handleRequest(req: BridgeRequest): Promise<BridgeResponse> {
   try {
@@ -436,7 +466,7 @@ function answer(req: BridgeRequest): BridgeResponse {
     const workflows = bundledWorkflows();
     const installed = projectWorkflows(root);
     if (req.workflow === undefined) return { v: 1, ok: true, shell: shellAt(req), workflows, installed };
-    const activate = installed.length === 0 && !exists(join(root, CONFIG_DOC));
+    const activate = installed.length === 0 && projectDocOf(root) === undefined;
     const r = addWorkflow(root, req.workflow, { activate });
     if (!r.ok) return { v: 1, ok: false, error: r.reason, shell: shellAt(req) };
     return { v: 1, ok: true, shell: shellAt(req), workflows, installed: projectWorkflows(root), added: { name: r.name, activated: r.activated } };
@@ -446,6 +476,7 @@ function answer(req: BridgeRequest): BridgeResponse {
     if (!r.ok) return { v: 1, ok: false, error: r.reason, shell: shellAt(req) };
     return { v: 1, ok: true, shell: shellAt(req), workflows: bundledWorkflows(), installed: projectWorkflows(root), added: { name: r.name, activated: r.activated } };
   }
+  if (req.op === "status" && req.migrate === true) moveEarlierLayout(root);
   const opened = openFor(req);
   if (!opened.ok) {
     const shell = notOpened(opened, req.root);

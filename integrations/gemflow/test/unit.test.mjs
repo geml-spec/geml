@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { globToRegExp, hiddenDir, resolveItem, journalPathFor, isSafeItemId, IGNORED_DIRS } from "../dist/core/unit.js";
-import { JOURNALS_DIR, CONTEXT_DOC, CONFIG_DOC, BACKLOG_DOC, WORKFLOWS_DIR, FLOW_FILE } from "../dist/core/layout.js";
+import { JOURNALS_DIR, CONTEXT_DOC, PROJECT_DOC, LEGACY_CONFIG_DOC, TOOLS_DOC, BACKLOG_DOC, WORKFLOWS_DIR, FLOW_FILE } from "../dist/core/layout.js";
 
 test("globs: * stays in a segment, ** crosses them, ? is one character", () => {
   assert.ok(globToRegExp("episodes/*.geml").test("episodes/ep02.geml"));
@@ -46,8 +46,8 @@ test("file unit: a Windows path (backslashes) names the same item as its POSIX s
 
 test("paths", () => {
   assert.equal(journalPathFor("feat/x"), ".geml/journals/feat/x.geml");
-  assert.deepEqual([JOURNALS_DIR, CONTEXT_DOC, CONFIG_DOC, BACKLOG_DOC, WORKFLOWS_DIR, FLOW_FILE],
-    [".geml/journals", ".geml/context.geml", ".geml/gemflow.geml", ".geml/backlog.geml", ".geml/workflows", "flow.geml"]);
+  assert.deepEqual([JOURNALS_DIR, CONTEXT_DOC, PROJECT_DOC, LEGACY_CONFIG_DOC, TOOLS_DOC, BACKLOG_DOC, WORKFLOWS_DIR, FLOW_FILE],
+    [".geml/journals", ".geml/context.geml", ".geml/project.geml", ".geml/gemflow.geml", ".geml/tools.geml", ".geml/backlog.geml", ".geml/workflows", "flow.geml"]);
 });
 
 // An item id comes from a branch name or a matched file name: not something

@@ -34,7 +34,8 @@ export type GhSeen = NonNullable<Status["gh"]>;
  * (`handoff`).
  */
 export type BridgeOp =
-  | { op: "status" }
+  /** `migrate`: a session's first status, which moves the earlier layout into the project's home first. */
+  | { op: "status"; migrate?: boolean }
   | { op: "refresh" }
   /** `waived`: keys (dictionary keys, command patterns) a person let through for this one call (the board's "allow once"); nothing is learned. */
   | { op: "before"; tool: string; callId: string; input: Record<string, unknown>; cwd: string; waived?: string[] }
@@ -54,7 +55,7 @@ export type BridgeOp =
   | { op: "bind"; id: string }
   | { op: "use"; workflow: string }
   | { op: "add"; workflow?: string }
-  /** Copy a workflow from a path (a directory with flow.geml, or a .geml file) into .geml/workflows/; answers `added`. */
+  /** Write a workflow from a path (a directory with flow.geml, or a .geml file) into the project's .geml/workflows/; answers `added`. */
   | { op: "import"; path: string }
   | { op: "board" }
   /** What the repository says for the band (attention.ts): branches ahead of their upstream, open pull requests and their checks. */

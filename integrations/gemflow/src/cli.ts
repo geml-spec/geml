@@ -3,13 +3,15 @@
 // person uses beside an agent (init, use, status, mark, unmark, advance,
 // rollback), and `run`, which is the one verb that reaches outside this
 // package (it starts dsh).
+import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
-import { exists, readText } from "./host-fs.js";
-import { WORKFLOWS_DIR } from "./core/layout.js";
+import { exists, readText, realPath } from "./host-fs.js";
+import { FLOW_FILE, GEML_DIR, WORKFLOWS_DIR } from "./core/layout.js";
 import { run as runTask } from "./hosts/dsh/launch.js";
 import { loadStatechart, hasErrors, type FlowDiagnostic } from "./core/statechart.js";
 import { TOOLS_FILE } from "./core/dictionary.js";
 import { readDictionary } from "./core/dictionary-file.js";
+import { dictionaryPathOf, homeOf, installedWorkflows, migrateLayout } from "./project-home.js";
 import { NO_TOOLS } from "./core/host-tools.js";
 import { readJournal, renderJournalMarkdown, verifyJournal } from "./core/journal.js";
 import { canonical } from "./core/snapshot.js";
@@ -22,13 +24,14 @@ import { decodeRequest, type BridgeResponse } from "./hosts/claude-code/protocol
 import { docReader, openWorkspace, resolvePromptRef, resolveWorkflow, type Workspace } from "./workspace.js";
 
 const USAGE = [
-  "usage: gemflow <check|snapshot|verify|export|init|use|status|mark|unmark|advance|pause|resume|rollback|run|hook|mcp> ...",
-  "  check <flow.geml>                       static checks of the workflow and its tools.geml (exit 1 on errors)",
+  "usage: gemflow <check|snapshot|verify|export|init|use|migrate|status|mark|unmark|advance|pause|resume|rollback|run|hook|mcp> ...",
+  "  check <workflow.geml>                   static checks of the workflow and its tool dictionary (exit 1 on errors)",
   "  snapshot <journal.geml> [--json]        the last revision",
   "  verify <journal.geml> [--workflow f]    hash chain and consistency",
   "  export <journal.geml> --to md           revision table with per-step diffs",
-  "  init [dir] [--template coding|dev|matter|refund|video] [--no-activate]  copy a bundled workflow into .geml/workflows/",
+  "  init [dir] [--template coding|dev|matter|refund|video] [--no-activate]  write a bundled workflow into .geml/workflows/",
   "  use <workflow>                          make a workflow the default for new work items",
+  "  migrate                                 move the earlier layout (a workflow directory in the checkout) into the project's home",
   "  status [--json]                         the work item, the stage, its variables and next steps",
   "  mark <variable> | unmark <variable>     a person ticks or clears a variable whose source is a person",
   "  advance <state>                         a person moves the workflow",
@@ -96,12 +99,18 @@ const slashed = (p: string): string => p.split(sep).join("/");
 const shown = (p: string): string => slashed(relative(process.cwd(), p) || ".");
 
 /**
- * The project a workflow file belongs to: where `.geml/workflows/<name>/`
- * says it is, wherever the shell stands; a workflow file anywhere else is
- * checked against the working directory.
+ * The project a workflow file belongs to: the home whose
+ * `.geml/workflows/<name>.geml` it is — the checkout the shell stands in when
+ * that is one of the home's — or where `.geml/workflows/<name>/` (the earlier
+ * layout) says it is; a workflow file anywhere else is checked against the
+ * working directory.
  */
 function projectOf(flowPath: string): string {
   const workflowDir = dirname(flowPath);
+  if (basename(flowPath).toLowerCase() !== FLOW_FILE && basename(workflowDir) === "workflows" && basename(dirname(workflowDir)) === GEML_DIR) {
+    const home = dirname(dirname(workflowDir));
+    return realPath(homeOf(process.cwd())) === realPath(home) ? process.cwd() : home;
+  }
   const above = resolve(workflowDir, "..", "..", "..");
   return resolve(above, WORKFLOWS_DIR, basename(workflowDir)) === workflowDir ? above : process.cwd();
 }
@@ -193,10 +202,13 @@ function main(argv: string[]): number {
       const root = projectOf(path);
       const r = loadStatechart(readOrFail(path), file, { resolveRef: promptResolver(path, root), readDoc: docReader(dirname(path), root) });
       const ds = [...r.diagnostics];
-      // The dictionary beside the workflow is checked against it: its states must be the workflow's, its uses declared.
-      const dict = join(dirname(path), TOOLS_FILE);
+      // The workflow's dictionary is checked against it — the project's one against all its workflows: its states must be theirs, its uses declared.
+      const dict = dictionaryPathOf(path);
       if (r.statechart !== undefined && exists(dict)) {
-        for (const d of readDictionary(readOrFail(dict), r.statechart).diagnostics) ds.push({ ...d, message: `${TOOLS_FILE}: ${d.message}` });
+        const own = dict === join(dirname(path), TOOLS_FILE);
+        const others = own ? [] : installedWorkflows(root).filter((w) => realPath(w.path) !== realPath(path))
+          .flatMap((w) => { try { return [loadStatechart(readText(w.path), w.path).statechart].filter((c) => c !== undefined); } catch { return []; } });
+        for (const d of readDictionary(readOrFail(dict), [r.statechart, ...others]).diagnostics) ds.push({ ...d, message: `${TOOLS_FILE}: ${d.message}` });
       }
       printDiagnostics(ds);
       return hasErrors(ds) ? 1 : 0;
@@ -245,7 +257,7 @@ function main(argv: string[]): number {
       try { r = addWorkflow(resolve(pos[0] ?? "."), template, { activate: !has(rest, "--no-activate") }); }
       catch (e) { return fail(String(e), 1); }
       if (!r.ok) return fail(r.code === 1 ? `${shown(r.target)} already exists; not overwriting` : r.reason, r.code);
-      console.log(`wrote ${shown(r.target)}/${r.activated ? " (active)" : ""}`);
+      console.log(`wrote ${shown(r.target)}${r.activated ? " (active)" : ""}`);
       return 0;
     }
     case "use": {
@@ -329,6 +341,14 @@ function main(argv: string[]): number {
         console.log(`rev ${r.rev} restores rev ${r.restores} · state #${r.state}${r.entered.length ? ` · entered ${chain(r.entered)}` : ""}`);
         return 0;
       });
+    }
+    case "migrate": {
+      if (positionals("migrate", rest, [], []).length > 0) fail(USAGE, 2);
+      const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "");
+      const moved = migrateLayout(process.cwd(), join(homedir(), ".gemflow", "trash", `${stamp}-layout`));
+      if (moved.length === 0) { console.log("nothing to move: no workflow directory or .geml/gemflow.geml here"); return 0; }
+      for (const m of moved) console.log(`${shown(m.from)} → ${shown(m.to)}${m.kept ? " (git tracks it: left where it is; remove it with git rm)" : ` (moved to ${m.trashed})`}`);
+      return 0;
     }
     case "run": {
       const profile = has(rest, "--profile") ? (flag(rest, "--profile") as string) : "headless";

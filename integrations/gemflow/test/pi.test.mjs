@@ -137,7 +137,7 @@ test("the gate: a tool no row takes goes through, unasked, with a UI or without"
 test("a deny written into the dictionary refuses the call from then on, read afresh", async () => {
   const w = await loaded({ tools: ["read", "grep", "web_fetch"], select: async () => { throw new Error("nothing is asked"); } });
   assert.equal((await w.callGlobal("web_fetch")).isError, false);
-  learnInFile(join(w.dir, ".geml", "workflows", "refund"), [{ kind: "deny", key: "web_fetch", where: "intake" }]);
+  learnInFile(join(w.dir, ".geml", "workflows", "refund", "flow.geml"), [{ kind: "deny", key: "web_fetch", where: "intake" }]);
   const r = await w.callGlobal("web_fetch");
   assert.equal(r.isError, true);
   assert.match(r.text, /you denied web_fetch in #intake/);

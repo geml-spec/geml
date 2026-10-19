@@ -8,8 +8,13 @@ import type { FlowDiagnostic, Statechart } from "./statechart.js";
 
 type Typed = Extract<Block, { kind: "block" }>;
 
-/** The `#tools` table of `source`, checked (`flow-tools`); against `sc`, its states must be the workflow's and its uses declared somewhere (`flow-source`). */
-export function readDictionary(source: string, sc?: Statechart): Dictionary {
+/**
+ * The `#tools` table of `source`, checked (`flow-tools`); against `sc`, its
+ * states must be the workflow's and its uses declared somewhere
+ * (`flow-source`) — against several (a project's one dictionary), a state or
+ * use of any of them.
+ */
+export function readDictionary(source: string, sc?: Statechart | readonly Statechart[]): Dictionary {
   const doc = parse(source);
   const diagnostics: FlowDiagnostic[] = doc.diagnostics.filter((d) => d.severity === "error").map((d) => ({ severity: "error", code: d.code, message: d.message, line: d.line }));
   const err = (message: string, line = 1) => diagnostics.push({ severity: "error", code: "flow-tools", message, line });
@@ -29,7 +34,9 @@ export function readDictionary(source: string, sc?: Statechart): Dictionary {
     const only = c.inlines.length === 1 ? c.inlines[0] : undefined;
     return (only?.type === "code" ? only.value : c.text).trim();
   };
-  const declared = sc === undefined ? undefined : new Set([...sc.states.values()].flatMap((s) => s.uses));
+  const charts = sc === undefined ? undefined : Array.isArray(sc) ? sc : [sc as Statechart];
+  const declared = charts === undefined ? undefined : new Set(charts.flatMap((c) => [...c.states.values()].flatMap((s) => s.uses)));
+  const states = charts === undefined ? undefined : new Set(charts.flatMap((c) => [...c.states.keys()]));
   const out: DictRow[] = [];
   const defaults = new Map<string, number>();
   rows.forEach((row, i) => {
@@ -46,7 +53,7 @@ export function readDictionary(source: string, sc?: Statechart): Dictionary {
     for (const col of ["allow", "deny"] as const) {
       const names = cell(row, col).match(/\S+/g) ?? [];
       for (const s of names) {
-        if (s !== "*" && sc !== undefined && !sc.states.has(s)) err(`#${TOOLS_TABLE} row ${n}: ${col} names ${s}, which is not a state of the workflow`);
+        if (s !== "*" && states !== undefined && !states.has(s)) err(`#${TOOLS_TABLE} row ${n}: ${col} names ${s}, which is not a state of the workflow`);
       }
       entry[col] = names;
     }

@@ -105,7 +105,8 @@ test("a press: a hold and its release, a tick a person may not make, a transitio
   const workflowDir = mkdtempSync(join(tmpdir(), "gemflow-dsh-board-"));
   try {
     writeFileSync(join(workflowDir, "tools.geml"), TOOLS);
-    const s = { sup, sc, workflowDir };
+    const workflowFile = join(workflowDir, "flow.geml");
+    const s = { sup, sc, workflowFile };
     assert.deepEqual(actOnSession(s, { op: "pause" }, NOW), { ok: true });
     assert.equal(sup.paused, true);
     assert.equal(fresh().journal.snapshots.at(-1).cause, "pause", "journaled");
@@ -116,9 +117,9 @@ test("a press: a hold and its release, a tick a person may not make, a transitio
     const move = actOnSession(s, { op: "advance", to: "nowhere" }, NOW);
     assert.equal(move.ok, false);
     assert.deepEqual(actOnSession(s, { op: "learn", lessons: [{ kind: "default", key: "pay_refund", use: "refund" }] }, NOW), { ok: true });
-    assert.equal(readDictionaryFile(workflowDir, sc).rows.find((r) => r.tool === "pay_refund").default, true, "the lesson is in the file the Supervisor reads afresh");
+    assert.equal(readDictionaryFile(workflowFile, sc).rows.find((r) => r.tool === "pay_refund").default, true, "the lesson is in the file the Supervisor reads afresh");
     assert.deepEqual(actOnSession(s, { op: "input", field: "add-tool", value: " Bash(make) | refund " }, NOW), { ok: true });
-    assert.equal(readDictionaryFile(workflowDir, sc).rows.find((r) => r.tool === "Bash(make)").for, "refund", "a typed line is a lesson");
+    assert.equal(readDictionaryFile(workflowFile, sc).rows.find((r) => r.tool === "Bash(make)").for, "refund", "a typed line is a lesson");
     assert.equal(actOnSession(s, { op: "input", field: "add-tool", value: "   " }, NOW).ok, false, "an empty line adds nothing");
     assert.deepEqual(actOnSession(s, { op: "input", field: "import-workflow", value: "/x" }, NOW), { ok: false, error: "import-workflow is not on this host" });
     assert.deepEqual(actOnSession(s, { op: "export", kind: "journal", format: "geml" }, NOW), { ok: false, error: "export is not on this host" });

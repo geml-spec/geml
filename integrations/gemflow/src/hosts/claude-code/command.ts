@@ -26,7 +26,7 @@ export function usageText(t: T = ZH): string {
     `/gemflow pause           ${t("暂停当前工作项：证据照记，什么都不推进")}`,
     `/gemflow resume          ${t("继续")}`,
     `/gemflow use <流程>      ${t("设定新工作项的默认流程（已开始的工作项沿用自己的）")}`,
-    `/gemflow add [流程]      ${t("列出内置流程；带名字时复制到 .geml/workflows/")}`,
+    `/gemflow add [流程]      ${t("列出内置流程；带名字时写入 .geml/workflows/")}`,
   ].join("\n");
 }
 
@@ -86,12 +86,12 @@ export function addText(res: Extract<BridgeResponse, { ok: true }>, t: T = ZH): 
   if (res.added !== undefined) {
     const { name, activated } = res.added;
     return activated
-      ? t("已把内置流程 {0} 复制到 .geml/workflows/{0}/，并设为当前流程。", name)
-      : t("已把内置流程 {0} 复制到 .geml/workflows/{0}/。用 /gemflow use {0} 让它成为当前流程。", name);
+      ? t("已把内置流程 {0} 写入 .geml/workflows/{0}.geml，并设为当前流程。", name)
+      : t("已把内置流程 {0} 写入 .geml/workflows/{0}.geml。用 /gemflow use {0} 让它成为当前流程。", name);
   }
   const installed = new Set(res.installed ?? []);
   const list = (res.workflows ?? []).map((n) => (installed.has(n) ? t("{0}（已在本项目）", n) : n));
-  return `${t("内置流程：{0}", list.length > 0 ? list.join("、") : t("无"))}\n${t("用 /gemflow add <流程> 把一个复制到 .geml/workflows/。")}`;
+  return `${t("内置流程：{0}", list.length > 0 ? list.join("、") : t("无"))}\n${t("用 /gemflow add <流程> 把一个写入 .geml/workflows/。")}`;
 }
 
 /** What `/gemflow board` says: opened, opened but waiting for room, or why the board could not be read (then nothing opens). */

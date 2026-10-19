@@ -174,7 +174,7 @@ test("add lists the bundled workflows and copies one; use switches", () => {
   assert.deepEqual(added.shell.status.item, { kind: "inactive", reason: "main · not tracked (work items are branches)" });
   assert.deepEqual(hook(root, { op: "add", workflow: "refund" }).added, { name: "refund", activated: false });
   assert.equal(hook(root, { op: "use", workflow: "refund" }).ok, true);
-  assert.match(readFileSync(join(root, ".geml", "gemflow.geml"), "utf8"), /flow-workflow = "refund"/);
+  assert.match(readFileSync(join(root, ".geml", "project.geml"), "utf8"), /flow-workflow = "refund"/);
   const nope = hook(root, { op: "use", workflow: "nope" });
   assert.equal(nope.ok, false);
   assert.match(nope.shell.status.workflow.name, /^refund$/, "a refused use answers with the shell as it stands");

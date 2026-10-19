@@ -35,9 +35,9 @@ import { docReader, resolveWorkflow } from "../../workspace.js";
 export interface PiSettings {
   /**
    * The active workflow, resolved at load time as `gemflow` resolves it
-   * (`GEMFLOW_STATECHART`, else the workflow `.geml/gemflow.geml` names, else
-   * the only `.geml/workflows/<name>/flow.geml`): its `flow.geml`, absolute, or
-   * why there is none.
+   * (`GEMFLOW_STATECHART`, else the workflow the project's `.geml/project.geml`
+   * names, else its only workflow, `.geml/workflows/<name>.geml` in the
+   * project's home): its file, absolute, or why there is none.
    */
   workflow: ReturnType<typeof resolveWorkflow>;
   /** Where journals go; when absent, next to the session files. */
@@ -236,7 +236,7 @@ export default function gemflow(pi: ExtensionAPI): void {
       tools: PI_TOOLS,
       // Read afresh for every decision: the person's answers go into the file.
       get dictionary() {
-        return readDictionaryFile(workflowDir, sc);
+        return readDictionaryFile(file, sc);
       },
     });
     sup.setNotice(opened.notice);

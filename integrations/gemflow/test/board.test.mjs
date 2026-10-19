@@ -142,11 +142,11 @@ test("流程: the flow by its title, the picture, a row of its states, and the o
 test("流程: switching — the installed workflows to use, the bundled ones to add, a path to import; the suggestions about the flow on top; a person's ticks on the current state", () => {
   const look = (rs) => rs.map((r) => r.kind === "buttons" ? r.items.map((b) => `${b.label}${b.primary ? "*" : ""}`).join(" ") : r.kind === "text" ? r.text : r.kind === "input" ? `[${r.placeholder}]` : r.kind === "heading" ? `# ${r.text} [${r.action?.label}]` : r.kind);
   assert.deepEqual(look(flow({ switching: true, workflows: { bundled: ["dev", "matter", "video"], installed: ["dev", "matter"] } })).slice(0, 4), [
-    "# 开发流程 [收起]", "dev* matter 添加 video", "换了以后，新的工作项走它；已经开始的照旧。", "[导入：流程目录或 flow.geml 的路径]",
+    "# 开发流程 [收起]", "dev* matter 添加 video", "换了以后，新的工作项走它；已经开始的照旧。", "[导入：流程文件或目录的路径]",
   ]);
   const opened = flow({ switching: true, workflows: { bundled: ["dev", "matter"], installed: ["dev"] } })[1].items.map((b) => b.action);
   assert.deepEqual(opened, [{ op: "use", workflow: "dev" }, { op: "add", workflow: "matter" }]);
-  assert.deepEqual(look(flow({ switching: true })).slice(1, 3), ["正在读取…", "[导入：流程目录或 flow.geml 的路径]"], "the workflows not read yet");
+  assert.deepEqual(look(flow({ switching: true })).slice(1, 3), ["正在读取…", "[导入：流程文件或目录的路径]"], "the workflows not read yet");
   const board = { ...BOARD, items: [...BOARD.items, { id: ".geml/matters/mock", state: "deciding", rev: 2, at: NOW, paused: false, file: ".geml/matters/mock.geml", title: "开发流程在构建前加一格「样稿」", about: "flow", gist: "先给你看样子，点头再实现。", asks: [{ to: "doing", label: "按方案做", note: "", final: false }] }] };
   const card = flow({ board }).find((r) => r.kind === "card");
   assert.deepEqual([card.verb, card.title, card.tag, card.detail, card.actions.map((a) => a.label)], ["定", "开发流程在构建前加一格「样稿」", "建议 · 流程", ["先给你看样子，点头再实现。"], ["按方案做"]]);

@@ -116,7 +116,7 @@ function episodeProject() {
   const root = mkdtempSync(join(tmpdir(), "gemflow-video-"));
   const init = spawnSync(process.execPath, [BUNDLE, "init", "--template", "video"], { cwd: root, encoding: "utf8" });
   assert.equal(init.status, 0, init.stderr);
-  assert.match(init.stdout, /^wrote \.geml\/workflows\/video\/ \(active\)$/m);
+  assert.match(init.stdout, /^wrote \.geml\/workflows\/video\.geml \(active\)$/m);
   mkdirSync(join(root, "episodes"));
   mkdirSync(join(root, "assets"));
   writeFileSync(join(root, "episodes", "ep01.geml"), EPISODE);
@@ -148,7 +148,7 @@ test("end to end: the parser's own todo and check move an episode to #render; th
 
   const assets = mark(root, "script-final");
   assert.deepEqual(assets.entered, ["assets"]);
-  assert.match(assets.context, /--- \.\/guide\.geml#assets ---\n# 素材 \{#assets\}/, "the guide's block, read in process by the bundle");
+  assert.match(assets.context, /--- #assets ---\n# 素材 \{#assets\}/, "the guide's section, taken into the workflow's file, read in process by the bundle");
 
   const pending = ran(root, "t1", TODO);
   assert.deepEqual([pending.status, pending.answer.entered, pending.answer.shell.status.vars["assets-done"]], [1, [], false]);
@@ -185,7 +185,7 @@ test("rework over review→cut and review→assets clears the last pass's eviden
   const recut = hook(root, { op: "verb", name: "move", args: { to: "cut" }, callId: "v1" });
   assert.deepEqual([JSON.parse(recut.text).entered, recut.shell.status.state.id], [[], "cut"], "no machine-judged transition carries it on: no-stale was cleared");
   assert.deepEqual(recut.shell.status.vars, { "script-final": true, "assets-done": true, "no-stale": false, rendered: false, approved: false, published: false });
-  assert.match(recut.context, /--- \.\/guide\.geml#cut ---/);
+  assert.match(recut.context, /--- #cut ---/);
   assert.match(before(root, "b2", BUILD).refusal, /is render, which is used only in #render/);
   assert.deepEqual(report(root, "f2", FRESH, 0).entered, ["render"]);
   assert.deepEqual(report(root, "b3", BUILD, 0).entered, ["review"], "rendered was cleared, so a clean build writes it again");

@@ -1,4 +1,4 @@
-// The tool dictionary (spec §5.3): `tools.geml` beside the workflow, a `#tools`
+// The tool dictionary (spec §5.3): the project's `.geml/tools.geml`, a `#tools`
 // table with one row per tool — which use it is bound to (`for`), the states
 // it is allowed or denied in, whether it is the use's preferred tool, and the
 // parameters filled in when the model leaves them out. The workflow names

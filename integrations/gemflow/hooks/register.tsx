@@ -615,7 +615,8 @@ async function startBridge($: EngineInterface): Promise<void> {
     }
     await update($, nodeAtom, () => found.node)
   }
-  const res = await bridge($, { op: 'status' })
+  // The first status of a session also moves the earlier layout (a workflow directory in the checkout) into the project's home.
+  const res = await bridge($, { op: 'status', migrate: true })
   if (res === undefined) return
   const dir = res.ok ? res.sessions : undefined
   if (dir !== undefined && dir !== (await read($, sessionsDirAtom))) await update($, sessionsDirAtom, () => dir)
@@ -1644,7 +1645,7 @@ async function dialogRows($: EngineInterface, t: T, dialog: Dialog, columns: num
       ['status', t('现在在哪'), t('工作项走到哪、等你定和验收的事、最近的产物')],
       ['journal', t('这个工作项的记录'), t('每次阶段变更、凭据、产物、被拦，带哈希链，对方能校验')],
       ['session', t('本会话'), t('提示词和那一轮做了什么；工具调用的输出不带')],
-      ['workflow', t('流程与工具词典'), t('flow.geml、tools.geml、guide.geml，给别的项目用')],
+      ['workflow', t('流程与工具词典'), t('流程文件和它用的工具，给别的项目用')],
     ]
     rows.push(section('what', t('分享什么')))
     for (const [what, label, note] of whats) rows.push({ kind: 'button', key: `what-${what}`, label: `${choice.what === what ? '(•)' : '( )'} ${label}  ${note}`, action: { op: 'share-pick', what } as unknown as BoardAction })

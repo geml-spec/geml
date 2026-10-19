@@ -1,20 +1,24 @@
-// The workflows a project holds and which one is the default: copying a
-// bundled workflow into .geml/workflows/ and naming the default in
-// .geml/gemflow.geml — the workflow a new work item starts under; an item with
-// a journal keeps the one its journal names. Shared by the CLI's init and use
-// and the Claude Code bridge's add and use.
-import { constants, copyFileSync, mkdirSync, readdirSync, statSync } from "node:fs";
+// The workflows a project holds and which one is the default: a workflow is
+// one file in the project's home, `.geml/workflows/<name>.geml` — a bundled or
+// imported workflow's statechart and stage texts taken into one — its tools
+// joining the project's one dictionary, `.geml/tools.geml`; `.geml/project.geml`
+// names the default, the workflow a new work item starts under (an item with a
+// journal keeps the one its journal names). Shared by the CLI's init and use
+// and the Claude Code bridge's add, import and use.
+import { readdirSync, statSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
-import { loadStatechart } from "./core/statechart.js";
+import { loadStatechart, type Statechart } from "./core/statechart.js";
 import { fileURLToPath } from "node:url";
-import { exists, readText, writeAtomic, writeNew } from "./host-fs.js";
-import { CONFIG_DOC, FLOW_FILE, GEML_DIR, WORKFLOWS_DIR } from "./core/layout.js";
+import { exists, readText, writeAtomic } from "./host-fs.js";
+import { FLOW_FILE, GEML_DIR, PROJECT_DOC, WORKFLOWS_DIR } from "./core/layout.js";
+import { TOOLS_FILE } from "./core/dictionary.js";
+import { withItemState } from "./core/item-state.js";
+import { dictionaryPathOf, ensureGitignore, GITIGNORE, homeOf, installedWorkflows, mergedWorkflow, mergeTools, projectDocOf, readIn, writeWorkflow } from "./project-home.js";
+
+export { GITIGNORE };
 
 /** The package's own workflows, beside dist/ — the same path from dist/project.js and from the bundle. */
 const BUNDLED = fileURLToPath(new URL("../workflows/", import.meta.url));
-
-/** What a project keeps out of git: the journals, the generated stage document and the lock files. */
-export const GITIGNORE = "journals/\ncontext.geml\n*.lock\n";
 
 /** The workflows this package ships: the directories under its `workflows/`. */
 export function bundledWorkflows(): string[] {
@@ -51,24 +55,9 @@ export function suggestWorkflow(root: string): Suggestion {
   return { workflow: "dev", by: "default" };
 }
 
-/** The workflows a project has: the directories of `.geml/workflows/` that hold a flow file. */
+/** The workflows a project has, by name: its home's files, and the earlier layout's directories. */
 export function projectWorkflows(root: string): string[] {
-  const dir = join(root, WORKFLOWS_DIR);
-  if (!exists(dir)) return [];
-  return readdirSync(dir, { withFileTypes: true })
-    .filter((e) => e.isDirectory() && exists(join(dir, e.name, FLOW_FILE))).map((e) => e.name).sort();
-}
-
-/** Copy a workflow's directory tree; a file that exists is an error. Text is written with LF line ends whatever the checkout used. `.gemlhistory` and lock files stay behind. */
-function copyTree(from: string, to: string): void {
-  for (const e of readdirSync(from, { withFileTypes: true })) {
-    if (e.name === ".gemlhistory" || e.name.endsWith(".lock")) continue;
-    const src = join(from, e.name);
-    const dest = join(to, e.name);
-    if (e.isDirectory()) copyTree(src, dest);
-    else if (/\.(geml|md)$/i.test(e.name)) writeNew(dest, readText(src).replace(/\r\n/g, "\n"));
-    else { mkdirSync(to, { recursive: true }); copyFileSync(src, dest, constants.COPYFILE_EXCL); }
-  }
+  return installedWorkflows(root).map((w) => w.name);
 }
 
 /** The project's config document naming `name` as the active workflow. */
@@ -76,40 +65,47 @@ export function configText(name: string): string {
   return ["=== meta", 'title         = "Gemflow"', `flow-workflow = ${JSON.stringify(name)}`, "===", ""].join("\n");
 }
 
-/** A workflow copied (`target` is its directory), or why not: 2 for a name the package does not ship, 1 for a directory that is already there. */
+/** Make `name` the default in the home's project document: only its `flow-workflow` changes; the earlier document's text is where a new one starts. */
+function setDefault(root: string, home: string, name: string): void {
+  const doc = projectDocOf(root, home);
+  const text = doc === undefined ? undefined : withItemState(readText(doc), "flow-workflow", name);
+  writeAtomic(join(home, PROJECT_DOC), text ?? configText(name));
+}
+
+/** The uses a workflow's states declare. */
+const usesOf = (sc: Statechart): Set<string> => new Set([...sc.states.values()].flatMap((s) => s.uses));
+
+/** A workflow written (`target` is its file), or why not: 2 for a name the package does not ship, 1 for a workflow of that name the project has. */
 export type Added =
   | { ok: true; name: string; target: string; activated: boolean }
   | { ok: false; code: 1; reason: string; target: string }
   | { ok: false; code: 2; reason: string };
 
-/** Copy the bundled workflow `name` into the project, add .geml/.gitignore when there is none, and make it active when asked. */
+/** Write the bundled workflow `name` into the project's home as one file, add its tools to the project's dictionary, and make it active when asked. */
 export function addWorkflow(root: string, name: string, o: { activate: boolean }): Added {
   const names = bundledWorkflows();
   if (!names.includes(name)) return { ok: false, code: 2, reason: `unknown template "${name}"; expected ${names.join(" or ")}` };
-  const target = join(root, WORKFLOWS_DIR, name);
-  const there = { ok: false as const, code: 1 as const, reason: `${WORKFLOWS_DIR}/${name} already exists; not overwriting`, target };
-  if (exists(target)) return there;
-  try {
-    copyTree(join(BUNDLED, name), target);
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === "EEXIST") return there;
-    throw e;
-  }
-  if (o.activate) writeAtomic(join(root, CONFIG_DOC), configText(name));
-  const ignore = join(root, GEML_DIR, ".gitignore");
-  if (!exists(ignore)) writeNew(ignore, GITIGNORE);
+  const home = homeOf(root);
+  const target = join(home, WORKFLOWS_DIR, `${name}.geml`);
+  if (installedWorkflows(root, home).some((w) => w.name === name)) return { ok: false, code: 1, reason: `${WORKFLOWS_DIR}/${name}.geml already exists; not overwriting`, target };
+  const dir = join(BUNDLED, name);
+  writeWorkflow(home, name, mergedWorkflow(name, readText(join(dir, FLOW_FILE)), (f) => readIn(dir, f)));
+  const tools = readIn(dir, TOOLS_FILE);
+  if (tools !== undefined) mergeTools(home, tools);
+  if (o.activate) setDefault(root, home, name);
+  ensureGitignore(join(home, GEML_DIR));
   return { ok: true, name, target, activated: o.activate };
 }
 
 export type Imported = { ok: true; name: string; target: string; activated: boolean } | { ok: false; reason: string };
 
 /**
- * Copy a workflow from a path into the project (spec §8.7): a directory
- * holding a `flow.geml` (its dictionary and guides come along), a `flow.geml`
- * (its directory), or any other `.geml` file (it becomes `flow.geml` under a
- * directory named after it). The flow must load without errors; a name
- * already in `.geml/workflows/` is refused. The first workflow of a project
- * becomes its default.
+ * Write a workflow from a path into the project's home (spec §8.7): a
+ * directory holding a `flow.geml` (its guide taken in, its dictionary's rows
+ * added to the project's), a `flow.geml` (its directory), or any other
+ * `.geml` file (its dictionary's rows bound to the workflow's uses added).
+ * The flow must load without errors; a name the project has a workflow of is
+ * refused. The first workflow of a project becomes its default.
  */
 export function importWorkflow(root: string, path: string): Imported {
   const given = resolve(root, path);
@@ -121,25 +117,28 @@ export function importWorkflow(root: string, path: string): Imported {
     name = basename(given).toLowerCase() === FLOW_FILE ? basename(dir) : basename(given).replace(/\.geml$/i, "");
   } else return { ok: false, reason: `${path} is neither a workflow directory nor a .geml file` };
   if (!exists(flow)) return { ok: false, reason: `${path} has no ${FLOW_FILE}` };
-  if (!/^[\p{L}\p{N}._-]+$/u.test(name) || name.startsWith(".")) return { ok: false, reason: `"${name}" cannot name a workflow directory` };
+  if (!/^[\p{L}\p{N}._-]+$/u.test(name) || name.startsWith(".")) return { ok: false, reason: `"${name}" cannot name a workflow` };
   const loaded = loadStatechart(readText(flow), flow);
   const errors = loaded.diagnostics.filter((d) => d.severity === "error");
   if (loaded.statechart === undefined || errors.length > 0) return { ok: false, reason: `${path} does not load: ${errors.map((d) => d.message).join("; ") || "no statechart"}` };
-  const target = join(root, WORKFLOWS_DIR, name);
-  if (exists(target)) return { ok: false, reason: `${WORKFLOWS_DIR}/${name} already exists; not overwriting` };
-  const activate = projectWorkflows(root).length === 0 && !exists(join(root, CONFIG_DOC));
-  if (basename(flow).toLowerCase() === FLOW_FILE) copyTree(dir, target);
-  else writeNew(join(target, FLOW_FILE), readText(flow).replace(/\r\n/g, "\n"));
-  if (activate) writeAtomic(join(root, CONFIG_DOC), configText(name));
-  const ignore = join(root, GEML_DIR, ".gitignore");
-  if (!exists(ignore)) writeNew(ignore, GITIGNORE);
+  const home = homeOf(root);
+  const installed = installedWorkflows(root, home);
+  const target = join(home, WORKFLOWS_DIR, `${name}.geml`);
+  if (installed.some((w) => w.name === name)) return { ok: false, reason: `${WORKFLOWS_DIR}/${name}.geml already exists; not overwriting` };
+  const activate = installed.length === 0 && projectDocOf(root, home) === undefined;
+  writeWorkflow(home, name, mergedWorkflow(name, readText(flow), (f) => readIn(dir, f)));
+  // A directory's dictionary is the workflow's own; any other is a project's, of which only the rows this workflow uses come along.
+  const dict = dictionaryPathOf(flow);
+  if (exists(dict)) mergeTools(home, readText(dict), basename(flow).toLowerCase() === FLOW_FILE ? undefined : usesOf(loaded.statechart));
+  if (activate) setDefault(root, home, name);
+  ensureGitignore(join(home, GEML_DIR));
   return { ok: true, name, target, activated: activate };
 }
 
-/** Make an installed workflow the default for new work items. Only a directory that is there is a workflow: a name is not a path out of .geml/workflows. */
+/** Make an installed workflow the default for new work items. Only a workflow the project has is one: a name is not a path out of .geml/workflows. */
 export function useWorkflow(root: string, name: string): { ok: true } | { ok: false; reason: string } {
   const have = projectWorkflows(root);
   if (!have.includes(name)) return { ok: false, reason: `no workflow "${name}" in ${WORKFLOWS_DIR} (have: ${have.join(", ") || "none"})` };
-  writeAtomic(join(root, CONFIG_DOC), configText(name));
+  setDefault(root, homeOf(root), name);
   return { ok: true };
 }
