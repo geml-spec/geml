@@ -237,6 +237,19 @@ test("person-only: `<<` in arithmetic is a shift, so the lines after it are neve
   assert.equal(runsGitOrGh("echo $((1 << 2))\ngit push\n2"), true, "a git after it is still seen");
 });
 
+test("person-only: a `((` inside a here-document's body is code, not arithmetic — the line is still read exactly, so a body naming gemflow and a verb runs neither", () => {
+  for (const c of [
+    "cat >> t.ts <<'EOF'\nawait $.command.run({ command: 'gemflow', args: 'board' })\nconst ys = xs.map((x) => x)\nawait clock.advance(1)\nEOF",
+    "node -e \"x\" && cat >> a.ts <<'EOF'\nf((1))\nEOF\ncat >> b.mjs <<'EOF'\n'gemflow' mark\nEOF\nhead -5 a.ts",
+    "cat <<EOF\nys = xs.map((x) => x)\ngemflow pause\nEOF",
+  ]) assert.equal(personOnlyRefusal(c), undefined, JSON.stringify(c));
+  for (const c of [
+    "cat <<'EOF'\nxs.map((x) => x)\nEOF\ngemflow advance x",
+    "cat <<'EOF'\nxs.map((x) => x)\nEOF\necho $((1 << 2))\ngemflow mark x\n2",
+    'echo "$(cat <<\'EOF\'\nf((1))\nEOF\n)"; gemflow advance y',
+  ]) assert.match(personOnlyRefusal(c) ?? "", REFUSED, JSON.stringify(c));
+});
+
 test("runsGitOrGh: git or gh at any command position, at any path; merely naming either is not running it", () => {
   for (const line of [
     "git push", "gh pr create --fill", "cd app && git push -u origin HEAD", "npm test; git commit -m x", "(gh pr view)",

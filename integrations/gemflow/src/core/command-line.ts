@@ -247,11 +247,24 @@ function hereDocAt(line: string, at: number): HereDoc | undefined {
 
 /**
  * An arithmetic context — `((…))`, `$((…))`, `$[…]` — where `<<` is a
- * shift, not a here-document. A line that has one and an opener is not
- * scanned: skipping the lines after it as a body could hide a command, so the
- * caller reads the line loosely instead.
+ * shift, not a here-document. An opener with one before it is not scanned:
+ * skipping the lines after it as a body could hide a command, so the caller
+ * reads the line loosely instead. Only shell text counts: a body already
+ * skipped is data, and code in it (`xs.map((x) => x)`) opens no arithmetic.
  */
 const ARITHMETIC = /\(\(|\$\[/;
+
+/** The line's text from `from` up to `upto` without the here-document bodies skipped so far (start and end, in order): what an arithmetic context before an opener could stand in. */
+function shellTextBefore(line: string, from: number, upto: number, skipped: readonly (readonly [number, number])[]): string {
+  let out = "";
+  let at = from;
+  for (const [start, end] of skipped) {
+    if (start >= upto) break;
+    if (start > at) out += line.slice(at, start);
+    at = Math.max(at, end);
+  }
+  return upto > at ? out + line.slice(at, upto) : out;
+}
 
 /** The body of a here-document whose opener's line ends at the newline `nl`, and the index of the newline that ends its terminator line (the line's length when no line ends it: the rest is body). */
 function hereDocBody(line: string, nl: number, doc: HereDoc): { body: string; end: number } {
@@ -271,12 +284,15 @@ function substitutionEnd(line: string, from: number, depth = 0): number {
   if (depth > MAX_NESTING) return -1;
   let open = 1;
   const docs: HereDoc[] = [];
+  const skipped: [number, number][] = [];
   for (let i = from; i < line.length; i++) {
     const c = line.charAt(i);
     const doc = c === "<" ? hereDocAt(line, i) : undefined;
-    if (doc !== undefined && ARITHMETIC.test(line)) return -1;
+    if (doc !== undefined && ARITHMETIC.test(shellTextBefore(line, from, i, skipped))) return -1;
     if (doc !== undefined) { docs.push(doc); i = doc.end - 1; }
-    else if (c === "\n" && docs.length > 0) { for (const d of docs.splice(0)) i = hereDocBody(line, i, d).end; }
+    else if (c === "\n" && docs.length > 0) {
+      for (const d of docs.splice(0)) { const end = hereDocBody(line, i, d).end; skipped.push([i + 1, end]); i = end; }
+    }
     else if (c === "\\") i++;
     else if (c === "'") { i = line.indexOf("'", i + 1); if (i < 0) return -1; }
     else if (c === '"') {
@@ -346,11 +362,12 @@ function commandSegments(line: string, depth = 0): string[] | null {
     return true;
   };
   const docs: HereDoc[] = [];
+  const skipped: [number, number][] = [];
   for (let i = 0; i < line.length; i++) {
     const c = line.charAt(i);
     const next = line.charAt(i + 1);
     const doc = quote === null && c === "<" ? hereDocAt(line, i) : undefined;
-    if (doc !== undefined && ARITHMETIC.test(line)) return null;
+    if (doc !== undefined && ARITHMETIC.test(shellTextBefore(line, 0, i, skipped))) return null;
     if (doc !== undefined) {
       docs.push(doc); cur += line.slice(i, doc.end); i = doc.end - 1; prev = "";
     } else if (quote === null && c === "\n" && docs.length > 0) {
@@ -358,6 +375,7 @@ function commandSegments(line: string, depth = 0): string[] | null {
       for (const d of docs.splice(0)) {
         const { body, end } = hereDocBody(line, i, d);
         if (!d.literal && !expanded(body)) return null;
+        skipped.push([i + 1, end]);
         i = end;
       }
     } else if (quote === "'") {
