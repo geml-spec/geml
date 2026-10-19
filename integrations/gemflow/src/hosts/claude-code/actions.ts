@@ -82,6 +82,8 @@ export type BoardAction =
   | { op: "use-decision"; text: string; from: string }
   /** Unfold another session's turns on the session tab (its id), or fold them. */
   | { op: "session-open"; id: string | null }
+  /** Show a turn's whole prompt and answer on the session tab (its prompt's id), or fold it. */
+  | { op: "expand-turn"; id: string | null }
   /** Show the session's prompts of one flow (its title), or all. */
   | { op: "session-flow"; flow: string | null }
   /** Unfold a run of turns in another flow (its first prompt's id), or fold it. */

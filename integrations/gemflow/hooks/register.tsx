@@ -135,6 +135,8 @@ const projectSessionsAtom = atom({ plugin: 'gemflow', key: 'projectSessions' } a
 const openSessionAtom = atom({ plugin: 'gemflow', key: 'openSession' } as const, null as string | null)
 const decisionsSeenAtom = atom({ plugin: 'gemflow', key: 'decisionsSeen' } as const, null as string | null)
 const committedAtom = atom({ plugin: 'gemflow', key: 'committed' } as const, false)
+/** The turn unfolded on the session tab (where the conversation cannot be scrolled): its prompt's id and its answer. */
+const expandedTurnAtom = atom({ plugin: 'gemflow', key: 'expandedTurn' } as const, null as GemflowJson)
 const readQueued = async ($: EngineInterface): Promise<Queued[]> => ((await read($, queuedAtom)) as unknown as Queued[] | null) ?? []
 const setQueued = async ($: EngineInterface, f: (was: Queued[]) => Queued[]): Promise<void> => {
   await update($, queuedAtom, (was) => f(((was as unknown) as Queued[] | null) ?? []) as unknown as GemflowJson)
@@ -536,6 +538,21 @@ async function sessionsOnAnswer($: EngineInterface, answer: string): Promise<voi
     await appendOwn($, (so) => commits.filter((c) => !so.some((x) => x.t === 'commit' && x.sha === c.sha)).map((c): SessionEvent => ({ t: 'commit', turn: currentTurn(so), at: c.at, sha: c.sha, subject: c.subject, ...(branch !== undefined ? { branch } : {}) })))
   }
   await loadProjectSessions($)
+}
+
+/** The answer of the turn a prompt opened, as this session's log holds it; null when it has none. */
+async function answerOf($: EngineInterface, p: PromptRecord): Promise<string | null> {
+  try {
+    const dir = await read($, sessionsDirAtom)
+    if (dir === null) return null
+    const events = parseLog(String(await $.fs.read(`${dir}/${logName(OWN_HOST, await $.session.id())}`)))
+    const at = Date.parse(p.at)
+    const asked = events.filter((x): x is Extract<SessionEvent, { t: 'prompt' }> => x.t === 'prompt' && x.text === p.text)
+      .sort((a, b) => Math.abs(Date.parse(a.at) - at) - Math.abs(Date.parse(b.at) - at))[0]
+    if (asked === undefined) return null
+    const answered = events.find((x): x is Extract<SessionEvent, { t: 'answer' }> => x.t === 'answer' && x.turn === asked.turn)
+    return answered?.text ?? null
+  } catch { return null }
 }
 
 /** A file this session wrote: into its log once. */
@@ -1146,9 +1163,18 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       return [...list] as unknown as GemflowJson
     }); return
     // The conversation scrolls to the prompt's row, by the id the host gave it (session.append); a press is the person's own input, which is when a transcript row may move.
+    case 'expand-turn': await update($, turnMenuAtom, () => null); await update($, expandedTurnAtom, () => (action.id === null ? null : { id: action.id, answer: null }) as unknown as GemflowJson); return
     case 'locate': {
       await update($, turnMenuAtom, () => null)
       const p = (await readPrompts($)).find((x) => x.id === action.id)
+      // The desktop app draws the conversation itself and no plugin scrolls it: the turn unfolds on the session tab instead.
+      if (surface !== undefined && surface !== 'terminal') {
+        if (p === undefined) return
+        const answer = await answerOf($, p)
+        await update($, expandedTurnAtom, () => ({ id: p.id, answer }) as unknown as GemflowJson)
+        await update($, tabAtom, () => 'sessions')
+        return
+      }
       if (p?.uuid === undefined) { $.ui.toast(t('这条 prompt 在对话里的位置还不知道')); return }
       let deny: string | undefined
       try { deny = (await $.ui.scroll({ to: { requestId: p.uuid }, block: 'start' })).deny } catch (err) { deny = reasonOf(err) }
@@ -1185,7 +1211,7 @@ function press($: EngineInterface, action: BoardAction): (e: { surface: string }
   return (e) => {
     // A transcript row moves only while the plugin answers the person's own input: 跳转 asks for the scroll first,
     // before anything is awaited, the prompt's row at the top of the window.
-    if (action.op === 'locate' && action.uuid !== undefined) {
+    if (action.op === 'locate' && action.uuid !== undefined && e.surface === 'terminal') {
       const moving = $.ui.scroll({ to: { requestId: action.uuid }, block: 'start' })
       void moving.then(async (r) => { if (r.deny !== undefined) $.ui.toast((await words($))('对话没有滚到那一处：{0}', r.deny)) }).catch(async (err: unknown) => $.ui.toast((await words($))('对话没有滚到那一处：{0}', reasonOf(err))))
       void update($, turnMenuAtom, () => null).catch(() => undefined)
@@ -1198,7 +1224,7 @@ function press($: EngineInterface, action: BoardAction): (e: { surface: string }
 // ---- the drawings ---------------------------------------------------------------------
 
 /** The elements, loosely typed: the pane is drawn on every surface, and only some have Input or Link. */
-type Els = { Box: any; Text: any; Button: any; Link?: any; Input?: any; Svg?: any }
+type Els = { Box: any; Text: any; Button: any; Link?: any; Input?: any; Svg?: any; Markdown?: any }
 
 /** The surface's elements, with no Svg on the terminal: its table answers one, drawn as an empty box, where a character reads better. */
 function elementsOf($: EngineInterface, e: Parameters<EngineInterface['ui']['resolve']>[0]): Els {
@@ -1271,13 +1297,21 @@ function drawRows($: EngineInterface, els: Els, rows: BoardRow[], columns: numbe
   const out: unknown[] = []
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i] as BoardRow
+    if (r.kind === 'tool') {
+      const run: Extract<BoardRow, { kind: 'tool' }>[] = []
+      while (i < rows.length && (rows[i] as BoardRow).kind === 'tool') run.push(rows[i++] as Extract<BoardRow, { kind: 'tool' }>)
+      i--
+      const width = Math.min(Math.max(...run.map((x) => cellWidth(x.name))) + 2, Math.floor(columns * 0.45))
+      out.push(<Box key={`tools-${r.key}`} flexDirection="column">{run.map((x) => drawTool($, els, x, width))}</Box>)
+      continue
+    }
     if (r.kind === 'turn' || r.kind === 'menu') {
-      const run: Extract<BoardRow, { kind: 'turn' | 'menu' }>[] = []
-      while (i < rows.length && ((rows[i] as BoardRow).kind === 'turn' || (rows[i] as BoardRow).kind === 'menu')) run.push(rows[i++] as Extract<BoardRow, { kind: 'turn' | 'menu' }>)
+      const run: Extract<BoardRow, { kind: 'turn' | 'menu' | 'prose' }>[] = []
+      while (i < rows.length && ((rows[i] as BoardRow).kind === 'turn' || (rows[i] as BoardRow).kind === 'menu' || (rows[i] as BoardRow).kind === 'prose')) run.push(rows[i++] as Extract<BoardRow, { kind: 'turn' | 'menu' | 'prose' }>)
       i--
       out.push(
         <Box key={`turns-${r.key}`} flexDirection="column">
-          {run.flatMap((x, n) => n === 0 || x.kind === 'menu' ? [drawRow($, els, x, n)] : [<Text key={`sep-${x.key}`} color={RULE} wrap="truncate">{'─'.repeat(Math.max(1, columns - 2))}</Text>, drawRow($, els, x, n)])}
+          {run.flatMap((x, n) => n === 0 || x.kind !== 'turn' ? [drawRow($, els, x, n)] : [<Text key={`sep-${x.key}`} color={RULE} wrap="truncate">{'─'.repeat(Math.max(1, columns - 2))}</Text>, drawRow($, els, x, n)])}
         </Box>,
       )
       continue
@@ -1293,6 +1327,30 @@ function drawRows($: EngineInterface, els: Els, rows: BoardRow[], columns: numbe
     )
   }
   return out
+}
+
+/**
+ * A tool's row where the surface draws pictures: the name as words in a column of the run's width (a press laid
+ * over it when it opens a menu), so every name starts at the same edge and the uses line up after them.
+ */
+function drawTool($: EngineInterface, els: Els, row: Extract<BoardRow, { kind: 'tool' }>, width: number): unknown {
+  const { Box, Text, Button } = els
+  return (
+    <Box key={row.key} gap={2} paddingX={1} hover={{ backgroundColor: SHADE }}>
+      <Box width={width} flexShrink={0} overflow="hidden">
+        <Text {...toneProps(row.tone)} wrap="truncate-end">{row.name}</Text>
+        {row.action !== undefined && (
+          <Box position="absolute" top={0} left={0} right={0} bottom={0}>
+            <Button key={`open-${row.key}`} plain label={blankOf(cellWidth(row.name))} onPress={press($, row.action)} />
+          </Box>
+        )}
+      </Box>
+      <Text dimColor wrap="truncate-end">{row.use}</Text>
+      {row.guess !== '' && <Text {...toneProps('warning')}>{row.guess}</Text>}
+      <Box flexGrow={1} />
+      <Text {...toneProps(row.tone === 'normal' ? 'dim' : row.tone)}>{row.count}</Text>
+    </Box>
+  )
 }
 
 function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknown {
@@ -1395,8 +1453,13 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
       <Box key={row.key} gap={2} paddingX={1} {...(row.open ? { backgroundColor: SELECTED } : { hover: { backgroundColor: SHADE } })}>
         <Box width={Math.max(5, cellWidth(row.at))} flexShrink={0}><Text dimColor>{row.at}</Text></Box>
         <Box flexDirection="column" flexGrow={1} minWidth={0}>
-          <Button key={`open-${row.key}`} plain label={row.text} onPress={press($, row.action)} />
+          <Text wrap="truncate-end">{row.text}</Text>
           {row.did !== '' && <Text dimColor wrap="truncate-end">{row.did}</Text>}
+        </Box>
+        {/* The whole row takes the press, each of its lines: a blank button laid over every line (a button is one line high). */}
+        <Box position="absolute" top={0} left={0} right={0} bottom={0} flexDirection="column" overflow="hidden">
+          <Button key={`open-${row.key}`} plain label={blankOf(Math.max(cellWidth(row.text), cellWidth(row.did)) + 12)} onPress={press($, row.action)} />
+          {row.did !== '' && <Button key={`open-2-${row.key}`} plain label={blankOf(Math.max(cellWidth(row.text), cellWidth(row.did)) + 12)} onPress={press($, row.action)} />}
         </Box>
       </Box>
     ) : (
@@ -1406,6 +1469,11 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
           <Button key={`open-${row.key}`} plain label={row.text} onPress={press($, row.action)} />
         </Box>
         {row.did !== '' && <Text dimColor wrap="truncate-end">{`      ${row.did}`}</Text>}
+      </Box>
+    )
+    case 'prose': return (
+      <Box key={row.key} paddingX={1} marginLeft={els.Svg !== undefined ? 8 : 2} backgroundColor={els.Svg !== undefined ? SHADE : undefined}>
+        {row.markdown === true && els.Markdown !== undefined ? <els.Markdown key={`md-${row.key}`} text={row.text} /> : <Text wrap="wrap">{row.text}</Text>}
       </Box>
     )
     // A row's menu: a small card under the row, the entry that destroys in the error colour, the one that closes dim.
@@ -1963,7 +2031,7 @@ export const register: Register = (on) => {
         filter: (await read($, filterAtom)) as JournalFilter, expanded: await read($, expandedAtom), evidence: await read($, evidenceAtom),
         // Written on every tool call: read only on the tabs that show them, so a call redraws no other tab.
         prompts: tab === 'sessions' || tab === 'journal' ? await readPrompts($) : [],
-        ...(tab === 'sessions' ? { project: { sessions: ((await read($, projectSessionsAtom)) as unknown as SessionSummary[] | null) ?? [], own: await $.session.id().catch(() => ''), open: await read($, openSessionAtom) } } : {}),
+        ...(tab === 'sessions' ? { project: { sessions: ((await read($, projectSessionsAtom)) as unknown as SessionSummary[] | null) ?? [], own: await $.session.id().catch(() => ''), open: await read($, openSessionAtom) }, scrolls: e.surface === 'terminal', unfolded: (await read($, expandedTurnAtom)) as unknown as { id: string; answer: string | null } | null } : {}),
         menu: await read($, turnMenuAtom), doneOpen: await read($, doneOpenAtom),
         sessionFlow: await read($, sessionFlowAtom), sessionRuns: ((await read($, sessionRunsAtom)) as unknown as string[] | null) ?? [],
         flowState: await read($, flowStateAtom), switching: await read($, flowSwitchAtom), workflows: (await read($, workflowsAtom)) as unknown as { bundled: string[]; installed: string[] } | null,

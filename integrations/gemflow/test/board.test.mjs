@@ -237,7 +237,7 @@ test("the icons: a line drawing each in its own colour, and a character for a su
   assert.deepEqual(ICON_CHAR, { ask: "?", done: "✓", warn: "!" });
 });
 
-test("工具: every tool by kind, with its use and how often it ran — the ones that ran first, the others folded; a press opens its menu", () => {
+test("工具: every tool by kind, with its use and how often it ran — the ones that ran first, nothing folded; a press opens its menu", () => {
   const usage = { "Bash(node --test)": 46, "Bash(git commit)": 18, "Bash(npm test)": 7, Edit: 139, "mcp__gemflow__*": 3, "mcp__visualize__*": 11 };
   const tools = (over = {}) => toolRows({ board: BOARD, columns: 100, t: wordsFor("zh"), usage, suggestions: [], query: "", menu: null, naming: null, open: [], ...over });
   const look = (rows) => rows.map((r) => r.kind === "tool" ? [r.name, r.use, r.guess, r.count].filter((x) => x !== "").join(" | ")
@@ -251,17 +251,19 @@ test("工具: every tool by kind, with its use and how often it ran — the ones
     "wrangler deploy | 部署到 production（首选） | 0",
     "§ 文件",
     "Edit | 改文件（首选） | 139 次",
-    "[另有 Read 等 1 条没用过 ▸]",
+    "Read | 哪里都能用 | 0",
     "§ MCP",
     "visualize | 没归类 | 11 次",
     "gemflow | gemflow 自己的 | 3 次",
     "img | 出图（首选） | 0",
+    "§ 网页请求",
+    "WebFetch | 没归类 | 0",
     "§ 其他",
-    "[另有 TodoWrite 等 1 条没用过 ▸]",
-    "§ Skill · 网页请求 · 模型服务",
+    "TodoWrite | 没归类 | 0",
+    "§ Skill · 模型服务",
     "这两天都没用过",
     "次数是这两天真实用过的。没归类的工具在每个阶段都照常能用；点一行可以给它归类。",
-  ], "what ran first, by how often; a use's preferred tool that did not run next; the rest folded");
+  ], "what ran first, by how often; a use's preferred tool that did not run next; every other one after, nothing folded");
   const rows = tools();
   assert.deepEqual(rows.find((r) => r.name === "node --test").action, { op: "tool-menu", key: "Bash(node --test)" });
   assert.equal(rows.find((r) => r.name === "gemflow").action, undefined, "gemflow's own tools take no classifying");
@@ -279,10 +281,9 @@ test("工具: every tool by kind, with its use and how often it ran — the ones
   assert.deepEqual(inputAction("add-tool", " Bash(cargo test) | test "), { op: "learn", lessons: [{ kind: "use", key: "Bash(cargo test)", use: "test" }] });
   assert.deepEqual(inputAction("add-tool", "Read"), { op: "learn", lessons: [{ kind: "allow", key: "Read", where: "*" }] });
   assert.equal(inputAction("add-tool", "  "), undefined);
-  assert.deepEqual(look(tools({ open: ["file"] })).slice(7, 10), ["Edit | 改文件（首选） | 139 次", "Read | 哪里都能用 | 0", "[收起 ▴]"]);
   const busy = Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`Bash(tool${i})`, 20 - i]));
   const many = look(toolRows({ board: { ...BOARD, tools: [] }, columns: 100, t: wordsFor("zh"), usage: busy, suggestions: [], query: "", menu: null, naming: null, open: [] }));
-  assert.deepEqual(many.slice(2, 11), ["tool0 | 没归类 | 20 次", "tool1 | 没归类 | 19 次", "tool2 | 没归类 | 18 次", "tool3 | 没归类 | 17 次", "tool4 | 没归类 | 16 次", "tool5 | 没归类 | 15 次", "tool6 | 没归类 | 14 次", "tool7 | 没归类 | 13 次", "[另有 tool8 / tool9 等 2 条 ▸]"], "eight of the most run, the rest folded");
+  assert.deepEqual(many.slice(2, 11), ["tool0 | 没归类 | 20 次", "tool1 | 没归类 | 19 次", "tool2 | 没归类 | 18 次", "tool3 | 没归类 | 17 次", "tool4 | 没归类 | 16 次", "tool5 | 没归类 | 15 次", "tool6 | 没归类 | 14 次", "tool7 | 没归类 | 13 次", "tool8 | 没归类 | 12 次"], "all of them, the most run first: none folded");
   assert.deepEqual(look(tools({ query: "GIT" })).slice(1, 3), ["§ 命令行", "git commit | 没归类 | 18 次"], "the search narrows to what matches, folded ones too");
   assert.equal(look(tools({ query: "nothing-like-this" })).at(-2), "没有对得上的工具");
 });
@@ -511,4 +512,18 @@ test("会话 across the project: the decisions, the files before merging (one tw
   assert.deepEqual(projectRows({ sessions: [sessions[0]].map((x) => ({ ...x, decisions: [] })), own: "me", open: null }, wordsFor("zh"), 100, NOW), [], "alone and nothing decided: the tab is this session's");
   assert.equal(sessionLabel({ ...sessions[1], branch: undefined, checkout: ["C:", "w", "geml-agent-runtime"].join(String.fromCharCode(92)) }, "me"), "Codex · geml-agent-runtime", "a Windows checkout: its folder");
   assert.equal(sessionLabel({ ...sessions[1], branch: undefined, checkout: "/home/g/geml-agent-runtime" }, "me"), "Codex · geml-agent-runtime", "a POSIX one too");
+});
+
+test("会话 where the conversation cannot be scrolled: the menu offers 展开, and the unfolded turn shows its whole prompt and answer", () => {
+  const p = { id: "p1", at: "2026-10-12T08:00:00Z", text: "把会话页改成整行可点\n第二行", tools: 1, refusals: 0, entered: [], signals: [], did: "改好了" };
+  const menuOf = (rows) => rows.find((r) => r.kind === "menu");
+  const desk = sessionRows([p], "p1", [], wordsFor("zh"), 100, NOW, { flow: null, runs: [], scrolls: false });
+  assert.deepEqual([menuOf(desk).items[0].label, menuOf(desk).items[0].action], ["展开", { op: "locate", id: "p1" }]);
+  const term = sessionRows([p], "p1", [], wordsFor("zh"), 100, NOW, { flow: null, runs: [] });
+  assert.equal(menuOf(term).items[0].label, "跳转", "the terminal scrolls");
+  const open = sessionRows([p], "p1", [], wordsFor("zh"), 100, NOW, { flow: null, runs: [], scrolls: false, expanded: { id: "p1", answer: "**改好了**，整行都能点。" } });
+  assert.deepEqual([menuOf(open).items[0].label, menuOf(open).items[0].action], ["收起", { op: "expand-turn", id: null }]);
+  assert.deepEqual(open.filter((r) => r.kind === "prose").map((r) => [r.text, r.markdown === true]), [["把会话页改成整行可点\n第二行", false], ["**改好了**，整行都能点。", true]]);
+  const none = sessionRows([p], null, [], wordsFor("zh"), 100, NOW, { flow: null, runs: [], scrolls: false, expanded: { id: "p1", answer: null } });
+  assert.equal(none.filter((r) => r.kind === "prose").at(-1).text, "没有记下回答");
 });

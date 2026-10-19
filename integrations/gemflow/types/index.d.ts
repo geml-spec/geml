@@ -94,6 +94,8 @@ declare module 'claude-code' {
       decisionsSeen: string | null
       /** A command in this turn made a commit: the turn's end records the commits. */
       committed: boolean
+      /** The turn unfolded on the session tab where the conversation cannot be scrolled: { id, answer }. */
+      expandedTurn: GemflowJson
     }
   }
 }

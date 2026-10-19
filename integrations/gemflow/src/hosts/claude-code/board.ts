@@ -80,7 +80,9 @@ export type BoardRow =
   /** A prompt of the session (the sessions tab): its time, its first line, what its turn did, and the press that opens or closes its menu. */
   | { kind: "turn"; key: string; at: string; text: string; did: string; open: boolean; action: BoardAction }
   /** A row's menu, opened by a press on it: a short column of entries under it. */
-  | { kind: "menu"; key: string; items: Pressable[] };
+  | { kind: "menu"; key: string; items: Pressable[] }
+  /** Running text shown whole: a turn's prompt, its answer (Markdown, where the surface draws it). */
+  | { kind: "prose"; key: string; text: string; markdown?: boolean };
 
 /** What a card asks of the person: to decide, to accept the work, or to see why something is blocked. */
 export type Icon = "ask" | "done" | "warn";
@@ -209,6 +211,10 @@ export interface PaneInput {
   prompts: readonly PromptRecord[];
   /** The project's sessions as their shared logs hold them (session-log.ts), this one's id, and the other one unfolded (its id). */
   project?: { sessions: readonly SessionSummary[]; own: string; open: string | null };
+  /** Whether the surface can scroll the conversation to a prompt (the terminal); elsewhere a turn unfolds in place. */
+  scrolls?: boolean;
+  /** The turn unfolded on the session tab: its prompt's id and its answer as the log holds it. */
+  unfolded?: { id: string; answer: string | null } | null;
   /** The prompt whose menu is open (its id), or null. */
   menu: string | null;
   /** The flow the sessions tab shows (its title), or null for all; the runs of another flow's turns unfolded (their first prompt's id). */
@@ -243,7 +249,7 @@ export function paneRows(o: PaneInput): BoardRow[] {
   const status = o.shell?.status ?? null;
   const wait = o.board === null && head.length === 0 ? [text(t("正在读取看板…"), columns, "dim")] : [];
   if (o.tab === "sessions") {
-    const own = sessionRows(o.prompts, o.menu, o.board?.products?.commits ?? [], t, columns, o.now, { flow: o.sessionFlow, runs: o.sessionRuns, current: status?.workflow.title });
+    const own = sessionRows(o.prompts, o.menu, o.board?.products?.commits ?? [], t, columns, o.now, { flow: o.sessionFlow, runs: o.sessionRuns, current: status?.workflow.title, ...(o.scrolls !== undefined ? { scrolls: o.scrolls } : {}), ...(o.unfolded !== undefined ? { expanded: o.unfolded } : {}) });
     return [...head, ...projectRows(o.project, t, columns, o.now), ...own];
   }
   const suggestions = o.board !== null ? [...toolSuggestions(o.board, o.usage, o.dismissed, t), ...ciSuggestions(o.board, o.shell?.units ?? [], o.dismissed, t)] : [];
@@ -596,8 +602,6 @@ export function toolSuggestions(board: BoardData, usage: Readonly<Record<string,
   }).sort((a, b) => a.key.localeCompare(b.key));
 }
 
-/** The most run tools a group lists before it folds the rest. */
-const TOOLS_SHOWN = 8;
 
 const GROUPS: readonly { id: ToolGroup; label: string }[] = [
   { id: "cli", label: "命令行" }, { id: "file", label: "文件" }, { id: "mcp", label: "MCP" }, { id: "skill", label: "Skill" }, { id: "web", label: "网页请求" }, { id: "model", label: "模型服务" }, { id: "other", label: "其他" },
@@ -647,15 +651,11 @@ export function toolRows(o: ToolsInput): BoardRow[] {
     if (keys.length === 0) { if (query === "" && (g.id === "skill" || g.id === "web" || g.id === "model")) quiet.push(t(g.label)); continue; }
     const row = (k: string): DictRow | undefined => board.tools.find((r) => r.tool === k);
     const byRuns = keys.filter((k) => (counts.get(k) ?? 0) > 0).sort((a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0) || a.localeCompare(b));
-    const open = o.open.includes(g.id) || query !== "";
-    // The most run first: every classified one, and a handful of the others; the rest of them fold with the ones that did not run.
-    const loose = byRuns.filter((k) => row(k)?.for === undefined).slice(0, TOOLS_SHOWN);
-    const ran = open ? byRuns : byRuns.filter((k) => row(k)?.for !== undefined || loose.includes(k));
+    // Every tool shows, nothing folded: the ones that ran, the most first; then a use's preferred one that did not; then the rest.
     const preferred = keys.filter((k) => (counts.get(k) ?? 0) === 0 && row(k)?.default === true);
-    const idle = [...byRuns.slice(ran.length), ...keys.filter((k) => (counts.get(k) ?? 0) === 0 && row(k)?.default !== true)];
-    if (ran.length === 0 && preferred.length === 0 && !open) { if (g.id === "skill" || g.id === "web" || g.id === "model") { quiet.push(t(g.label)); continue; } }
+    const idle = keys.filter((k) => (counts.get(k) ?? 0) === 0 && row(k)?.default !== true);
     rows.push({ kind: "section", key: `group-${g.id}`, text: t(g.label) });
-    for (const k of [...ran, ...preferred, ...(open ? idle : [])]) {
+    for (const k of [...byRuns, ...preferred, ...idle]) {
       const r = row(k);
       const own = k.startsWith("mcp__gemflow__");
       const n = counts.get(k) ?? 0;
@@ -680,13 +680,6 @@ export function toolRows(o: ToolsInput): BoardRow[] {
           { key: `close-${k}`, label: t("取消"), action: { op: "tool-menu", key: null } },
         ]));
       }
-    }
-    if (!open && idle.length > 0) {
-      const names = idle.slice(0, 5).map((k) => keyWords(k)).join(" / ");
-      const label = idle.some((k) => (counts.get(k) ?? 0) > 0) ? t("另有 {0} 等 {1} 条 ▸", names, idle.length) : t("另有 {0} 等 {1} 条没用过 ▸", names, idle.length);
-      rows.push({ kind: "button", key: `unfold-${g.id}`, label, action: { op: "tool-fold", group: g.id, open: true } });
-    } else if (o.open.includes(g.id) && (idle.length > 0 || byRuns.length > TOOLS_SHOWN)) {
-      rows.push({ kind: "button", key: `fold-${g.id}`, label: t("收起 ▴"), action: { op: "tool-fold", group: g.id, open: false } });
     }
   }
   if (quiet.length > 0) rows.push({ kind: "section", key: "group-quiet", text: quiet.join(" · ") }, text(t("这两天都没用过"), columns, "dim"));
@@ -892,7 +885,8 @@ export function journalRows(o: JournalInput): BoardRow[] {
 /** How many turns in a row in another flow fold into one line. */
 const RUN_FOLDS = 3;
 
-export function sessionRows(prompts: readonly PromptRecord[], menu: string | null, commits: readonly { sha: string; at: string }[], t: T = ZH, columns: number, now?: string, by: { flow: string | null; runs: readonly string[]; current?: string } = { flow: null, runs: [] }): BoardRow[] {
+export function sessionRows(prompts: readonly PromptRecord[], menu: string | null, commits: readonly { sha: string; at: string }[], t: T = ZH, columns: number, now?: string, by: { flow: string | null; runs: readonly string[]; current?: string; scrolls?: boolean; expanded?: { id: string; answer: string | null } | null } = { flow: null, runs: [] }): BoardRow[] {
+  const unfold = { scrolls: by.scrolls !== false, expanded: by.expanded ?? null };
   if (prompts.length === 0) return [text(t("还没有 prompt"), columns, "dim")];
   const rows: BoardRow[] = [];
   // With turns in more than one flow: a filter by flow.
@@ -924,12 +918,12 @@ export function sessionRows(prompts: readonly PromptRecord[], menu: string | nul
           text: t("{0} · {1} · {2} 条提示词", p.flow, p.itemTitle ?? p.item ?? "", run.length), did: "", open,
           action: { op: "session-run", id: key, open: !open },
         });
-        if (open) for (let k = run.length - 1; k >= 0; k--) rows.push(...turnRows(run[k] as PromptRecord, shown[j + k + 1]?.at, commits, menu, t, columns));
+        if (open) for (let k = run.length - 1; k >= 0; k--) rows.push(...turnRows(run[k] as PromptRecord, shown[j + k + 1]?.at, commits, menu, t, columns, unfold));
         i = j;
         continue;
       }
     }
-    rows.push(...turnRows(p, shown[i + 1]?.at ?? prompts[prompts.indexOf(p) + 1]?.at, commits, menu, t, columns));
+    rows.push(...turnRows(p, shown[i + 1]?.at ?? prompts[prompts.indexOf(p) + 1]?.at, commits, menu, t, columns, unfold));
   }
   rows.push({ kind: "section", key: "export", text: t("导出本会话") });
   rows.push(buttons([
@@ -941,17 +935,22 @@ export function sessionRows(prompts: readonly PromptRecord[], menu: string | nul
 }
 
 /** One prompt's line, what its turn did (the commits made while it ran, its answer's first sentence), and its menu when open. */
-function turnRows(p: PromptRecord, until: string | undefined, commits: readonly { sha: string; at: string }[], menu: string | null, t: T, columns: number): BoardRow[] {
+function turnRows(p: PromptRecord, until: string | undefined, commits: readonly { sha: string; at: string }[], menu: string | null, t: T, columns: number, unfold: { scrolls: boolean; expanded: { id: string; answer: string | null } | null } = { scrolls: true, expanded: null }): BoardRow[] {
+  const shownWhole = unfold.expanded?.id === p.id;
   const made = commits.filter((c) => Date.parse(c.at) >= Date.parse(p.at) && (until === undefined || Date.parse(c.at) < Date.parse(until))).map((c) => c.sha.slice(0, 8)).reverse();
   const did = [...made, p.did ?? (promptTail(p, t) || (until === undefined ? t("进行中…") : ""))].filter((x) => x !== "").join(" ");
   const open = menu === p.id;
   const rows: BoardRow[] = [{ kind: "turn", key: `prompt-${p.id}`, at: hhmm(p.at), text: promptLine(p.text, Math.max(12, columns - 8)), did, open, action: { op: "turn-menu", id: open ? null : p.id } }];
   if (open) rows.push({ kind: "menu", key: `menu-${p.id}`, items: [
-    { key: `locate-${p.id}`, label: t("跳转"), action: { op: "locate", id: p.id, ...(p.uuid !== undefined ? { uuid: p.uuid } : {}) } },
+    unfold.scrolls
+      ? { key: `locate-${p.id}`, label: t("跳转"), action: { op: "locate", id: p.id, ...(p.uuid !== undefined ? { uuid: p.uuid } : {}) } }
+      : shownWhole ? { key: `locate-${p.id}`, label: t("收起"), action: { op: "expand-turn", id: null } } : { key: `locate-${p.id}`, label: t("展开"), action: { op: "locate", id: p.id } },
     { key: `split-${p.id}`, label: t("拆成新会话"), action: { op: "split", id: p.id } },
     { key: `remove-${p.id}`, label: t("删除本轮会话"), tone: "danger", action: { op: "remove", id: p.id } },
     { key: `close-${p.id}`, label: t("取消"), tone: "quiet", action: { op: "turn-menu", id: null } },
   ] });
+  // Unfolded: the whole prompt, then the whole answer.
+  if (shownWhole) rows.push({ kind: "prose", key: `full-${p.id}`, text: p.text }, { kind: "prose", key: `answer-${p.id}`, text: unfold.expanded?.answer ?? t("没有记下回答"), markdown: true });
   return rows;
 }
 

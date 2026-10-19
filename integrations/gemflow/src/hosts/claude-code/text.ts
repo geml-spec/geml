@@ -425,6 +425,7 @@ export const WORDS: Readonly<Record<string, Entry>> = {
   "决定": { en: "Decisions", ja: "決定" },
   "合并前": { en: "Before merging", ja: "マージ前" },
   "其他会话": { en: "Other sessions", ja: "他のセッション" },
+  "没有记下回答": { en: "No answer recorded", ja: "回答の記録なし" },
   "参照 {0}：{1}": { en: "Per {0}: {1}", ja: "{0} より：{1}" },
   "放不进输入框": { en: "Could not fill the prompt box", ja: "入力欄に入れられません" },
   "运行于 {0}": { en: "on {0}", ja: "実行先 {0}" },
