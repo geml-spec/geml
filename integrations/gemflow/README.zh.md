@@ -128,7 +128,7 @@ profile = "geml-statechart/v1"
 Read the code before proposing anything. …
 ```
 
-旁边是 `tools.geml`——把用途绑到本项目工具上的那本词典：
+还有项目的 `.geml/tools.geml`——把用途绑到本项目工具上的那本词典，项目的所有流程共用一份：
 
 ```geml
 === table {#tools}
@@ -160,11 +160,11 @@ workflow is in #explore`）；`#verify` 声明了 `test`，所以 `npm test` 只
 写在提示词里、模型可能忘掉或者跟你争的规矩：调用在执行前被拒，拒绝记进 journal。
 
 `geml check` 像验任何 GEML 一样验这份文档；`gemflow check` 再加上状态机自己的检查和
-流程的检查（`flow-*`），并对照流程读词典。`geml get .geml/workflows/coding/flow.geml '#flow'`
+流程的检查（`flow-*`），并对照流程读词典。`geml get .geml/workflows/coding.geml '#flow'`
 读这个块；`geml … --to md` 把它投影成 GitHub 能画的 Mermaid 状态图，HTML 渲染器和
 viewer 直接画它；`.gemlhistory` 给它记版本。
 
-`gemflow init` 把完整的那份写进 `.geml/workflows/coding/` 并设为当前流程；
+`gemflow init` 把完整的那份写进 `.geml/workflows/coding.geml` 并设为当前流程；
 `--template refund` 写一份审批流程，`--template dev` 写[开发流程](#开发流程)那份从
 分支到 production 的流程，`--template video` 写[视频流程](#视频流程)那份一集一集的
 流程。
@@ -198,17 +198,27 @@ viewer 直接画它；`.gemlhistory` 给它记版本。
 ## 项目布局
 
 ```
-.geml/
-  workflows/<name>/flow.geml    一份流程：一个状态机块，旁边放它的 ./ prompt 引用所指的文档
-  workflows/<name>/tools.geml   它的工具词典：哪个工具是哪个用途，哪里允许、哪里拒绝
-  gemflow.geml                  项目配置：meta flow-workflow 指定默认流程
+.geml/                          在主检出里：仓库的每个 worktree 读的都是这一份
+  workflows/<name>.geml         一份流程：一个状态机块，后面跟着各阶段的提示词
+  tools.geml                    所有流程共用的工具词典：哪个工具是哪个用途，哪里允许、哪里拒绝
+  project.geml                  项目文档：meta flow-workflow 指定默认流程
   journals/<item>.geml          每个工作项一本 journal：一个分支，或一组文件中的一个
+  sessions/                     项目的会话记录，各家宿主的会话都在这里
+  exports/                      看板导出的文件
+  .gitignore                    gemflow 自己的文件，由 gemflow init 写出：它们都不进 git
+.geml/                          在每个检出里
   context.geml                  当前阶段的文字与变量，每次换阶段重写
   backlog.geml                  backlog 表
-  .gitignore                    journals/、context.geml 与 *.lock，由 gemflow init 写出
 ```
 
-`gemflow init` 写出的配置文档：
+旧布局——检出里每个流程一个目录（`flow.geml`、`guide.geml`、`tools.geml`）加
+`.geml/gemflow.geml`——照样能读。Claude Code 会话的第一次 status，或者
+`gemflow migrate`，会把它搬进主检出：每个目录合成一个文件、guide 的各节并进去，
+词典的行并进 `.geml/tools.geml`，`gemflow.geml` 改名 `project.geml`。git 跟踪着的
+只复制、留在原处，由你 `git rm`；其余的挪进 `~/.gemflow/trash/`。在旧 `flow.geml`
+下开始的 journal，接着在它搬去的那个文件下走。
+
+`gemflow init` 写出的项目文档：
 
 ```geml
 === meta
@@ -217,22 +227,22 @@ flow-workflow = "coding"
 ===
 ```
 
-默认流程是 `GEMFLOW_STATECHART` 指定的流程文件（相对项目根的路径），否则是
-`flow-workflow` 指定的那个，否则是 `.geml/workflows/` 下唯一一个含 `flow.geml` 的目录。
-CLI、Claude Code 插件、`gemflow mcp`、DeepSeek Harness 适配器与 pi agent 适配器都这样找。
-流程连同它的词典、`gemflow.geml` 和 backlog 提交进仓库；journal、上下文文档和锁文件
-不进 git。
+默认流程是 `GEMFLOW_STATECHART` 指定的文件（相对项目根的路径），否则是
+`flow-workflow` 指定的那个，否则是项目唯一的那个流程。CLI、Claude Code 插件、
+`gemflow mcp`、DeepSeek Harness 适配器与 pi agent 适配器都这样找。backlog 提交进仓库；
+gemflow 自己的文件不进 git。
 
 ## CLI
 
 ```
-usage: gemflow <check|snapshot|verify|export|init|use|status|mark|unmark|advance|pause|resume|rollback|run|hook|mcp> ...
-  check <flow.geml>                       static checks of the workflow and its tools.geml (exit 1 on errors)
+usage: gemflow <check|snapshot|verify|export|init|use|migrate|status|mark|unmark|advance|pause|resume|rollback|run|hook|mcp> ...
+  check <workflow.geml>                   static checks of the workflow and its tool dictionary (exit 1 on errors)
   snapshot <journal.geml> [--json]        the last revision
   verify <journal.geml> [--workflow f]    hash chain and consistency
   export <journal.geml> --to md           revision table with per-step diffs
-  init [dir] [--template coding|dev|refund|video] [--no-activate]  copy a bundled workflow into .geml/workflows/
+  init [dir] [--template coding|dev|matter|refund|video] [--no-activate]  write a bundled workflow into .geml/workflows/
   use <workflow>                          make a workflow the default for new work items
+  migrate                                 move the earlier layout (a workflow directory in the checkout) into the project's home
   status [--json]                         the work item, the stage, its variables and next steps
   mark <variable> | unmark <variable>     a person ticks or clears a variable whose source is a person
   advance <state>                         a person moves the workflow
@@ -246,18 +256,20 @@ usage: gemflow <check|snapshot|verify|export|init|use|status|mark|unmark|advance
 - `check` 先跑 `geml check`，再跑状态机的检查（`statechart-*`：没有初始状态、转换指向
   不存在的状态、标了 `final` 的状态有出边、通行要求读了 `vars` 里没声明的变量……），再跑流程的检查（`flow-*`：
   `prompt` 解析不到、`source` 不是已知的任何形式、同两个状态之间有两条转换、一个状态
-  有两条机器判的出边、机器判的边成环……），并对照流程读旁边的 `tools.geml`
-  （`flow-tools`：流程里没有的状态、一个用途有两个首选……）。`prompt` 对照项目解析——
-  流程放在 `.geml/workflows/<name>/` 里时项目是它之上那一层，否则是当前目录——绝不
-  解析到项目之外。
+  有两条机器判的出边、机器判的边成环……），并对照流程读词典——项目的
+  `.geml/tools.geml` 对照它的所有流程读（`flow-tools`：哪个流程都没有的状态、一个用途
+  有两个首选……）。`prompt` 对照项目解析——就是 `.geml/workflows/` 里放着这个流程的
+  那个项目，当前目录是这个项目的检出时就用当前目录——绝不解析到项目之外。
 - `snapshot`、`verify`、`export` 读一本 journal。`verify` 重算整条链：修订号连续、每个
   `parent` 等于前一块的哈希、每个哈希按内容重算、并且——给了流程时——每次记录的转换
   都对应一条声明过的边。删掉**末尾**一段块是这条链唯一检测不出的改动。
-- `init` 把一份内置流程连同词典复制到 `<dir>/.geml/workflows/<template>/`（默认
-  `coding`，`--template dev`、`refund` 或 `video` 则是那一份），除非给了 `--no-activate`
-  就设为默认流程，并在没有 `.geml/.gitignore` 时写一份。已存在的流程目录绝不覆盖。
-- `use` 在 `.geml/gemflow.geml` 里改指 `.geml/workflows/` 下的另一个流程（见
+- `init` 把一份内置流程写成一个文件 `<dir>/.geml/workflows/<template>.geml`（默认
+  `coding`，`--template dev`、`matter`、`refund` 或 `video` 则是那一份），把它的词典行
+  并进 `.geml/tools.geml`，除非给了 `--no-activate` 就设为默认流程，并在没有
+  `.geml/.gitignore` 时写一份。项目已有的流程绝不覆盖。
+- `use` 在 `.geml/project.geml` 里改指 `.geml/workflows/` 下的另一个流程（见
   [切换流程](#切换流程)）。
+- `migrate` 把旧布局搬进主检出（见[项目布局](#项目布局)），并说明什么搬到了哪里。
 - `status` 打开项目——工作项还没有 journal 和 `.geml/context.geml` 时就开一本、写一份——
   然后打印工作项、当前阶段、每个变量和它从哪读，以及每条出边、由谁走、通行要求是否
   成立。`--json` 打印完整的状态。
@@ -284,7 +296,7 @@ usage: gemflow <check|snapshot|verify|export|init|use|status|mark|unmark|advance
 
 ```
 $ gemflow init
-wrote .geml/workflows/coding/ (active)
+wrote .geml/workflows/coding.geml (active)
 $ gemflow status
 feat/rate-limit · #explore
   command = ""
@@ -344,7 +356,7 @@ journal：`gemflow verify` 拿它开始时的流程来验它。
 ```sh
 mv .geml/journals/feat/rate-limit.geml .geml/journals/feat/rate-limit.coding.geml
 gemflow status
-gemflow verify .geml/journals/feat/rate-limit.coding.geml --workflow .geml/workflows/coding/flow.geml
+gemflow verify .geml/journals/feat/rate-limit.coding.geml --workflow .geml/workflows/coding.geml
 ```
 
 ### 出错时
@@ -352,7 +364,7 @@ gemflow verify .geml/journals/feat/rate-limit.coding.geml --workflow .geml/workf
 - 退出码：`0` 完成；`1` 操作失败，stderr 上一行以 `gemflow:` 开头的话，绝不是堆栈；
   `2` 用法错误——未知的动词、缺参数、动词没有的选项（`status --jsno`）。
 - 没有流程：``no workflow here: run `gemflow init` ``。有好几个却没选：
-  ``choose one with `gemflow use <name>` ``。`.geml/gemflow.geml` 里的名字或
+  ``choose one with `gemflow use <name>` ``。`.geml/project.geml` 里的名字或
   `GEMFLOW_STATECHART` 找不到文件时照实说。流程有 error 时把它们打出来：
   `<file>: <code>: <message>`。
 - 没有工作项：`status` 打印原因并以 0 退出；`mark`、`unmark`、`advance`、`rollback`
@@ -388,8 +400,8 @@ pi install /绝对路径/gemflow-pkg          # pi agent：要一个目录
 # 3. 到你要干活的仓库里，开一个自己的分支
 cd ~/code/my-project
 git switch -c feat/my-change
-gemflow init                                     # .geml/workflows/coding/，设为默认流程
-gemflow check .geml/workflows/coding/flow.geml   # 0 表示它能载入
+gemflow init                                     # .geml/workflows/coding.geml，设为默认流程
+gemflow check .geml/workflows/coding.geml        # 0 表示它能载入
 gemflow status                                   # feat/my-change · #explore
 
 # 4. 干活
@@ -408,7 +420,7 @@ pi agent 按会话写这本 journal，落在 `<会话目录>/gemflow/<session>.g
 `gemflow status`、`mark`、`advance` 作用于分支自己的 journal，
 `.geml/journals/<branch>.geml`。
 
-**`.geml/workflows/coding/flow.geml` 与 `tools.geml` 就是全部配置，按你的项目改它们。**
+**`.geml/workflows/coding.geml` 与 `.geml/tools.geml` 就是全部配置，按你的项目改它们。**
 状态和每个状态声明的用途、变量和每个变量从哪读、通行要求；以及你的哪个工具是哪个
 用途——全在里面。自带这份做了四个约束：没计划不许改文件、改文件时不许执行命令、
 没有真实测试结果不许说完成、最后一步交给人。四条都是强制的：前两条是因为 `edit` 是
@@ -476,7 +488,7 @@ npm run walkthrough
   照样生效。
 - **词典里没有行的工具照常放行，不问人**：它安不安全，由宿主自己的权限系统按实际参数判断。
   词典只回答"这是哪个用途"，从而决定它在哪些阶段能用；要拒绝或绑定，在看板或
-  `tools.geml` 里写一行。绑到某个用途、但该用途的首选是另一个工具（`default` = `yes`）
+  `.geml/tools.geml` 里写一行。绑到某个用途、但该用途的首选是另一个工具（`default` = `yes`）
   的工具会问一次——只这一次，或者改成首选——一行的 `params` 补上调用没写的参数。
 - **把阶段的上下文交给模型。** 一次调用让阶段变了，新的 `#current` 随这次调用的结果交给
   模型；两次提交之间变了（人在看板上推进了、会话开始时补齐了 git 的事实），随下一次
@@ -485,7 +497,7 @@ npm run walkthrough
   阶段交给在那里干活的子 agent。`/clear` 之后的下一次提交重新带上。
 
 在仓库里开始用：`/gemflow add dev`（或 `npx -y @geml/gemflow init --template dev`），
-再把它的 `tools.geml` 改成项目的测试与部署命令、把 guide 改成项目自己的约定——
+再把 `.geml/tools.geml` 改成项目的测试与部署命令、把 `.geml/workflows/dev.geml` 里各阶段的文字改成项目自己的约定——
 [开发流程](#开发流程)一节把它走一遍。
 
 **需要 Node ≥ 22。** hooks 模块在 Claude Code 里运行，没有 Node；凡是碰项目文件的
@@ -604,7 +616,7 @@ split-session（只用于 Claude Code 的会话，它自己写明了）。
 web GUI（`dsh --profile web`）里，**看板**是右侧栏的一个标签页：引导页列出「Gemflow」，
 点开画的就是 Claude Code 看板的那些行——六个标签页里的五个（待处理、工作项、记录、
 流程、工具；会话页是人的 prompt 列表与 Claude Code 记录文件上的动作，dsh 的会话是它
-自己的）。按键在宿主上跑：人的转换、勾变量、暂停与继续，以及写进 `tools.geml` 的学习——
+自己的）。按键在宿主上跑：人的转换、勾变量、暂停与继续，以及写进 `.geml/tools.geml` 的学习——
 「设为首选」「在这个阶段也允许」与「加一行」输入框——监督器下一次判定就重读到。这个宿主
 做不了的（导出、对话框、切换流程）不画按钮。文件链接经 dsh 自己的会话接口打开文件，
 没有应用认领的就在文件管理器里显示。流程页的图在这里是同一份数据画成的 SVG：现在能走的转换用强调色画，点一下就走。两半分别是 `src/hosts/dsh/board.ts`（路由在
@@ -625,7 +637,7 @@ pi install npm:@geml/gemflow
 变量说——那个时刻命令行 flag 还没解析：
 
 ```sh
-GEMFLOW_STATECHART=path/to/flow.geml pi   # 用这个流程，而不是项目的默认流程
+GEMFLOW_STATECHART=path/to/workflow.geml pi   # 用这个流程，而不是项目的默认流程
 GEMFLOW_JOURNAL_DIR=/var/journals pi      # 默认 <会话目录>/gemflow
 ```
 
@@ -641,15 +653,15 @@ pi agent 这边有一件事只读过它发布的类型与随包文档、没有�
 
 ```sh
 gemflow init
-gemflow check .geml/workflows/coding/flow.geml
+gemflow check .geml/workflows/coding.geml
 ```
 
 git 变量询问 pull request 与 CI 时用的 `gh` 若不是 PATH 上那个，用 `GEMFLOW_GH` 指定。
 
 ## 开发流程
 
-`/gemflow add dev`（或 `gemflow init --template dev`）写出 `.geml/workflows/dev/`：
-`flow.geml`、`tools.geml`，以及放各阶段提示词的 `guide.geml`。它的工作项是分支
+`/gemflow add dev`（或 `gemflow init --template dev`）写出 `.geml/workflows/dev.geml`：
+状态机后面跟着各阶段的提示词，词典行并进 `.geml/tools.geml`。它的工作项是分支
 （`flow-unit = "branch"`），所以在默认分支上什么都不记。五个状态：
 
 ```
@@ -709,7 +721,7 @@ git 变量询问 pull request 与 CI 时用的 `gh` 若不是 PATH 上那个，�
 ## 事项流程
 
 `/gemflow add matter`（或 `gemflow init --template matter`）写出
-`.geml/workflows/matter/`。一件事项一个工作项：`.geml/matters/` 下的一个文件
+`.geml/workflows/matter.geml`。一件事项一个工作项：`.geml/matters/` 下的一个文件
 （`flow-unit = "file:.geml/matters/*.geml"`），记一件事的现象、原因、方案和结果——修个
 bug、改个界面、写一条文案。它在自己的 meta 里记着现在的阶段（`flow-state-key = "state"`），
 状态跟着文件走。
@@ -735,8 +747,8 @@ bug、改个界面、写一条文案。它在自己的 meta 里记着现在的�
 ## 视频流程
 
 `/gemflow add video`（或 `gemflow init --template video`）写出
-`.geml/workflows/video/`：`flow.geml`、`tools.geml`，以及放各阶段提示词的
-`guide.geml`。它的工作项是一集：`episodes/` 下的每份 geml-media 文档
+`.geml/workflows/video.geml`：状态机后面跟着各阶段的提示词，词典行并进
+`.geml/tools.geml`。它的工作项是一集：`episodes/` 下的每份 geml-media 文档
 （`flow-unit = "file:episodes/*.geml"`），当前工作项是写入调用最近一次改动的那一集；
 它不需要 git。七个状态：
 

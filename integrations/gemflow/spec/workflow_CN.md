@@ -8,7 +8,7 @@
 
 ## 0. 一段话说清楚
 
-流程是一份声明了 `profile = "geml-statechart/v1"` 的 GEML 文档，里面有一个 `format=geml-statechart` 的 `diagram` 块：一台状态机，状态是阶段，转换是阶段之间的边，条件变量是通行要求读的东西。Gemflow 在每个状态上挂模型在这里拿到什么——要载入的 `prompt`、要启用的 `skills`、能用的 `tools`，后者按**用途**写（`edit`、`test`、`pr`……）；在每个变量上挂它的值从哪来（`source`：绑到某个用途的一次工具调用、文件、git 与 CI、人的勾选；或者什么都不写，由模型自己写）；在每条转换上挂此刻要不要人点头（`approval`）。通行要求（`guard`）是对条件变量的一个对象时由机器判，成立就自动走，所以流程凭观测到的事实推进，不凭模型自己说；通行要求是一句话时由模型判；批准由人判。一个用途在这个项目里指哪个具体工具、同类工具里首选哪个、参数默认取什么，都不写进流程，而是记在流程的**工具词典** `tools.geml` 里，在使用中由人的选择长出来。每个工作项——一个分支，或者一个文件，比如一集——有一本 **journal**：一串哈希链起来的 `data` 块，记下每条修订和每次拒绝。这些文档都是普通 GEML：`geml check` 验它们，`geml get journal.geml '#rev-7'` 读一条修订，`geml --to md` 把状态机画成 Mermaid 图。
+流程是一份声明了 `profile = "geml-statechart/v1"` 的 GEML 文档，里面有一个 `format=geml-statechart` 的 `diagram` 块：一台状态机，状态是阶段，转换是阶段之间的边，条件变量是通行要求读的东西。Gemflow 在每个状态上挂模型在这里拿到什么——要载入的 `prompt`、要启用的 `skills`、能用的 `tools`，后者按**用途**写（`edit`、`test`、`pr`……）；在每个变量上挂它的值从哪来（`source`：绑到某个用途的一次工具调用、文件、git 与 CI、人的勾选；或者什么都不写，由模型自己写）；在每条转换上挂此刻要不要人点头（`approval`）。通行要求（`guard`）是对条件变量的一个对象时由机器判，成立就自动走，所以流程凭观测到的事实推进，不凭模型自己说；通行要求是一句话时由模型判；批准由人判。一个用途在这个项目里指哪个具体工具、同类工具里首选哪个、参数默认取什么，都不写进流程，而是记在项目的**工具词典** `.geml/tools.geml` 里——项目的所有流程共用一份——在使用中由人的选择长出来。每个工作项——一个分支，或者一个文件，比如一集——有一本 **journal**：一串哈希链起来的 `data` 块，记下每条修订和每次拒绝。这些文档都是普通 GEML：`geml check` 验它们，`geml get journal.geml '#rev-7'` 读一条修订，`geml --to md` 把状态机画成 Mermaid 图。
 
 ## 1. meta 块
 
@@ -27,7 +27,7 @@ flow-unit = "file:episodes/*.geml"
 
 `flow-unit` 和 `flow-state-key` 是 Gemflow 在流程里读的两个 `=== meta` 键，只有单位是 `file:<glob>` 的流程才写它们。没有任何已声明词汇表认领的 meta 键，GEML 留给作者，所以 `geml check` 对它不置一词；它的值由 `gemflow check` 检查（§4）。
 
-这样分正是要点：状态机的结构属于 GEML，任何 GEML 处理器都能检查它——没装 Gemflow 时 `geml check flow.geml` 照样报 `statechart-*` 码；Gemflow 那几个键是什么意思属于 Gemflow，由 `gemflow check` 检查，它先报 `statechart-*` 码，再报自己的（§4）。
+这样分正是要点：状态机的结构属于 GEML，任何 GEML 处理器都能检查它——没装 Gemflow 时 `geml check .geml/workflows/dev.geml` 照样报 `statechart-*` 码；Gemflow 那几个键是什么意思属于 Gemflow，由 `gemflow check` 检查，它先报 `statechart-*` 码，再报自己的（§4）。
 
 journal（§2.4）、上下文文档（§2.5）、工具词典（§2.3）、backlog（§3.12）与项目配置（§3.1）都不声明 profile。
 
@@ -51,14 +51,14 @@ profile = "geml-statechart/v1"
     "build": {
       "title": "构建",
       "description": "写代码和测试，直到测试通过、PR 开出来。",
-      "prompt": "./guide.geml#build",
+      "prompt": "#build",
       "skills": ["test-driven-development"],
       "tools": ["edit", "test", "pr"]
     },
     "review": {
       "title": "评审",
       "description": "处理 review 意见，等 CI 绿、PR 合并。",
-      "prompt": "./guide.geml#review",
+      "prompt": "#review",
       "tools": ["edit", "test"]
     },
     "deploy": {
@@ -111,9 +111,9 @@ profile = "geml-statechart/v1"
 
 链条是 **状态 → 工具 → 变量 → 转换 → 状态**：`build` 声明了用途 `test`，词典把它绑到本项目的 `npm test`；那条命令以 0 退出，`tests-pass` 变成 true；`build→review` 的通行要求读它，成立就自动走；进入 `review`，模型换一套提示词和用途。流程里只写用途不写命令，所以同一份流程搬到 Rust 项目一字不改：那里的词典把 `test` 绑到 `cargo test`。
 
-`build` 不会卡住：PR 在 Gemflow 看到它开着之前就合并了，或者测试只在 CI 里跑、本地从不出现测试证据，通行要求的另外两个分支（PR 已合并、人勾选了 `review-ready`）都能放行。`./guide.geml` 是流程目录里给模型的提示词文档，`prompt` 指向它的章节，进入状态时由 Stagehand 展开（§3.10）。
+`build` 不会卡住：PR 在 Gemflow 看到它开着之前就合并了，或者测试只在 CI 里跑、本地从不出现测试证据，通行要求的另外两个分支（PR 已合并、人勾选了 `review-ready`）都能放行。各阶段给模型的提示词是同一个文件里、状态机之后的章节，`prompt` 指向它们，进入状态时由 Stagehand 展开（§3.10）。
 
-旁边的起步词典 `tools.geml` 把流程的用途绑到本项目的工具上（§2.3）：
+起步词典的行由 `gemflow init` 并进项目的 `.geml/tools.geml`，把流程的用途绑到本项目的工具上（§2.3）：
 
 ```geml
 === table {#tools}
@@ -171,7 +171,7 @@ profile = "geml-statechart/v1"
 
 ### 2.3 工具词典
 
-每个状态能用哪些工具、同一用途里首选哪个、参数默认取什么，都不写进流程，记在流程的工具词典里：`flow.geml` 旁边的 `tools.geml`，一张 `#tools` 表，随流程提交进仓库，在使用中由人的选择长出来（§3.7）：
+每个状态能用哪些工具、同一用途里首选哪个、参数默认取什么，都不写进流程，记在项目的工具词典里：`.geml/tools.geml`，所有流程共用的一张 `#tools` 表，和流程一起放在项目的主目录（§3.1），在使用中由人的选择长出来（§3.7）：
 
 ```geml
 === table {#tools}
@@ -202,7 +202,7 @@ journal 是一份普通的 GEML 文档，由追加写的 `data` 块组成：
 
 ```geml
 === data {#journal}
-{ "item": "feat/rate-limit", "workflow": ".geml/workflows/dev/flow.geml", "workflow-hash": "sha256:…", "created": "2026-10-12T09:00:00Z" }
+{ "item": "feat/rate-limit", "workflow": ".geml/workflows/dev.geml", "workflow-hash": "sha256:…", "created": "2026-10-12T09:00:00Z" }
 ===
 
 === data {#rev-0}
@@ -270,23 +270,28 @@ journal 在某个工作项第一次有 Gemflow 事件时创建，第 0 条修订
 ### 3.1 项目
 
 ```
-.geml/
-  workflows/<name>/flow.geml   流程定义；同目录放它的提示词文档与工具词典 tools.geml；提交进仓库
-  journals/<item>.geml         每个工作项一本 journal；branch 单位的放在主工作树里（§2.4）；默认 gitignore
+.geml/                         项目的主目录：在主工作树里，所有检出共用；默认 gitignore
+  workflows/<name>.geml        一份流程：状态机，后面跟着各阶段的提示词；它另带的文档放在 <name>/ 里
+  tools.geml                   所有流程共用的工具词典（§2.3）
+  project.geml                 项目文档
+  journals/<item>.geml         每个工作项一本 journal（§2.4）
+.geml/                         每个检出各一份
+  context.geml                 当前阶段（§2.5）；默认 gitignore
   backlog.geml                 backlog（§3.12）；提交进仓库
-  gemflow.geml                 项目配置；提交进仓库
-  context.geml                 当前阶段（§2.5）；按检出各一份；默认 gitignore
 ```
 
-项目配置是一个 `data` 块 `#gemflow`，它的 `default` 指定新工作项用的流程：
+项目文档的 meta `flow-workflow` 指定新工作项用的流程：
 
 ```geml
-=== data {#gemflow}
-{ "default": "dev" }
+=== meta
+title         = "Gemflow"
+flow-workflow = "dev"
 ===
 ```
 
-默认流程按下面的顺序确定：环境变量 `GEMFLOW_STATECHART` 指定的流程文件（它指定的是会话的流程，另一个检出里的项目不理会它，§3.3）；否则是 `.geml/gemflow.geml` 的 `default`；否则是唯一的 `.geml/workflows/<name>/flow.geml`。`gemflow init --template <name>` 把一个内置流程整目录复制到 `.geml/workflows/<name>/` 并设为默认流程；`gemflow use <name>` 与 `/gemflow use` 换一个默认流程，已经开始的工作项仍按各自的流程（§3.2）。
+默认流程按下面的顺序确定：环境变量 `GEMFLOW_STATECHART` 指定的流程文件（它指定的是会话的流程，另一个检出里的项目不理会它，§3.3）；否则是 `flow-workflow` 指定的那个；否则是项目唯一的那个流程。`gemflow init --template <name>` 把一个内置流程写成 `.geml/workflows/<name>.geml`——guide 的各节接在状态机后面——把它的词典行并进 `.geml/tools.geml`，并设为默认流程；`gemflow use <name>` 与 `/gemflow use` 换一个默认流程，已经开始的工作项仍按各自的流程（§3.2）。
+
+检出里的旧布局——`.geml/workflows/<name>/` 目录里放 `flow.geml`、它的提示词文档和 `tools.geml`，加上 `.geml/gemflow.geml`——照样能读，同名时主目录的文件优先。`gemflow migrate` 和 Claude Code 会话的第一次 status 把它搬进主目录；git 跟踪着的只复制、留在原处。名字是这种 `flow.geml` 的 journal，接着在它搬去的那个文件下走。
 
 ### 3.2 工作项
 
@@ -419,14 +424,14 @@ journal 在某个工作项第一次有 Gemflow 事件时创建，第 0 条修订
 3. 每个键各判一次：绑着用途（`for`）的键，S 声明了这个用途就放行，S 没声明就拒绝（理由写明"`deploy-prod` 只在 #release 里用"）；没绑用途的键，在 S 或 `*` 上被拒过就拒绝（理由写明"你在 #S 拒绝过它"），允许过就放行，没有哪一行管它就是未归类。
 4. 有一个键被拒绝：整次调用拒绝，理由列出每个被拒的键，记一条 `refused`。
 5. 其余（每个键都放行或未归类）：放行，宿主自己的权限规则照常生效——一条没归类的命令能不能跑、安不安全，由它按命令的实际参数判断，不归 Gemflow 管；调用结束时，绑着用途的键按变量的 `source` 写证据。
-6. Gemflow 不问人"没归类的键能不能用"。把它绑到某个用途、或者拒绝它，是人在看板上或在 `tools.geml` 里写的一行。
+6. Gemflow 不问人"没归类的键能不能用"。把它绑到某个用途、或者拒绝它，是人在看板上或在 `.geml/tools.geml` 里写的一行。
 
 **偏好。**
 
 - 阶段说明列出本阶段的工具：每个用途的首选和它的默认参数，以及本阶段拒绝的工具（§3.10）。模型一般照着用。
 - 调用带 `params` 的工具时，模型没给的参数由 Gemflow 补上（改写这次调用的输入），模型给了的不覆盖。只对输入是结构化数据的工具做（MCP 工具、内置工具），命令行不改写。
 - 模型用了一个有用途却不是首选的工具时问人：这次允许 / 以后默认用它 / 拒绝（让模型改用首选）。选择写回词典。
-- 用途在看板上绑定或解绑，或者在 `tools.geml` 里写一行；默认参数在看板上编辑，或在一次调用上"设为默认"，把那次的参数存下来。
+- 用途在看板上绑定或解绑，或者在 `.geml/tools.geml` 里写一行；默认参数在看板上编辑，或在一次调用上"设为默认"，把那次的参数存下来。
 
 ### 3.8 只许人做的事
 
@@ -486,7 +491,7 @@ Claude Code 里列为 `mcp__gemflow__status`、`mcp__gemflow__move`、`mcp__gemf
 
 ## 4. 静态检查
 
-`gemflow check <flow.geml>` 先跑 `geml check`——那里有 error 就拒绝这份文档；声明了 `geml-statechart/v1` 时它包括状态机自己的检查 `statechart-body`、`statechart-initial`、`statechart-state`、`statechart-transition`、`statechart-guard`、`statechart-actions`、`statechart-vars`、`statechart-current` 与 `statechart-unreachable`，定义在 [geml-statechart §3](../../../spec/profiles/geml-statechart/geml-statechart-profile_CN.md)——再读流程旁边的工具词典，然后报 Gemflow 自己的：
+`gemflow check <workflow.geml>` 先跑 `geml check`——那里有 error 就拒绝这份文档；声明了 `geml-statechart/v1` 时它包括状态机自己的检查 `statechart-body`、`statechart-initial`、`statechart-state`、`statechart-transition`、`statechart-guard`、`statechart-actions`、`statechart-vars`、`statechart-current` 与 `statechart-unreachable`，定义在 [geml-statechart §3](../../../spec/profiles/geml-statechart/geml-statechart-profile_CN.md)——再读流程的工具词典（项目的那份对照它的所有流程读），然后报 Gemflow 自己的：
 
 | 码 | 级别 | 何时 |
 |---|---|---|

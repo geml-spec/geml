@@ -43,9 +43,9 @@ machine and taken on its own as soon as it holds, so the workflow moves on
 observed facts, not on what the model says; a guard that is a sentence is
 judged by the model; an approval is judged by a person. Which concrete tool a
 use means in this project, which of them comes first and what arguments it
-takes by default are not written in the workflow: they live in its **tool
-dictionary**, `tools.geml`, which grows from the choices a person makes while
-working. Each work item — a branch, or one file such as an episode — has a
+takes by default are not written in the workflow: they live in the project's
+**tool dictionary**, `.geml/tools.geml`, one for all its workflows, which grows
+from the choices a person makes while working. Each work item — a branch, or one file such as an episode — has a
 **journal**: a hash-chained run of `data` blocks recording every revision and
 every refusal. Every one of these documents is ordinary GEML: `geml check`
 validates them, `geml get journal.geml '#rev-7'` reads one revision, and
@@ -72,7 +72,7 @@ no declared vocabulary owns to the author, so `geml check` says nothing about
 it; `gemflow check` checks its value (§4).
 
 The split is the point: the statechart's structure is GEML's, so any GEML
-processor checks it — `geml check flow.geml` reports the `statechart-*` codes
+processor checks it — `geml check .geml/workflows/dev.geml` reports the `statechart-*` codes
 with no Gemflow installed — while what Gemflow's keys mean is Gemflow's,
 checked by `gemflow check`, which reports the `statechart-*` codes before its
 own (§4).
@@ -100,14 +100,14 @@ profile = "geml-statechart/v1"
     "build": {
       "title": "Build",
       "description": "Write the code and its tests, until the tests pass and a pull request is open.",
-      "prompt": "./guide.geml#build",
+      "prompt": "#build",
       "skills": ["test-driven-development"],
       "tools": ["edit", "test", "pr"]
     },
     "review": {
       "title": "Review",
       "description": "Address the review comments; wait for CI to go green and the pull request to merge.",
-      "prompt": "./guide.geml#review",
+      "prompt": "#review",
       "tools": ["edit", "test"]
     },
     "deploy": {
@@ -170,12 +170,12 @@ Rust project changes not a character: there the dictionary binds `test` to
 `build` never gets stuck: when the pull request is merged before Gemflow sees
 it open, or the tests run only in CI and no test evidence ever appears locally,
 the guard's other two branches — merged, or a person checked
-`review-ready` — let the workflow on. `./guide.geml` is the prompt document in
-the workflow's directory; `prompt` names its sections, and Stagehand expands
-the one of the state entered (§3.10).
+`review-ready` — let the workflow on. The stages' prompts are sections of the
+same file, after the statechart; `prompt` names them, and Stagehand expands the
+one of the state entered (§3.10).
 
-The starter dictionary beside it, `tools.geml`, binds the workflow's uses to
-this project's tools (§2.3):
+The starter dictionary, whose rows `gemflow init` adds to the project's
+`.geml/tools.geml`, binds the workflow's uses to this project's tools (§2.3):
 
 ```geml
 === table {#tools}
@@ -254,9 +254,9 @@ what the dictionary has learned (§3.7).
 
 Which tools each state may use, which tool of a use comes first, and what
 arguments a tool takes by default are not written in the workflow. They live in
-the workflow's tool dictionary, `tools.geml` beside `flow.geml`, a `#tools`
-table committed with the workflow, which grows from the choices a person makes
-while working (§3.7):
+the project's tool dictionary, `.geml/tools.geml`, one `#tools` table for all
+its workflows, kept with them in the project's home (§3.1), which grows from
+the choices a person makes while working (§3.7):
 
 ```geml
 === table {#tools}
@@ -300,7 +300,7 @@ A journal is an ordinary GEML document of appended `data` blocks:
 
 ```geml
 === data {#journal}
-{ "item": "feat/rate-limit", "workflow": ".geml/workflows/dev/flow.geml", "workflow-hash": "sha256:…", "created": "2026-10-12T09:00:00Z" }
+{ "item": "feat/rate-limit", "workflow": ".geml/workflows/dev.geml", "workflow-hash": "sha256:…", "created": "2026-10-12T09:00:00Z" }
 ===
 
 === data {#rev-0}
@@ -369,31 +369,42 @@ Write the code and its tests, until the tests pass and a pull request is open.
 ### 3.1 The project
 
 ```
-.geml/
-  workflows/<name>/flow.geml   the workflow; beside it, its prompt documents and its tool dictionary tools.geml; committed
-  journals/<item>.geml         one journal per work item; a branch unit's in the main working tree (§2.4); ignored by git
+.geml/                         the project's home: in the main working tree, every checkout's; ignored by git
+  workflows/<name>.geml        a workflow: its statechart, its stages' prompts after it; a document it keeps beside it, in <name>/
+  tools.geml                   the tool dictionary of all the workflows (§2.3)
+  project.geml                 the project document
+  journals/<item>.geml         one journal per work item (§2.4)
+.geml/                         in each checkout
+  context.geml                 the current stage (§2.5); ignored by git
   backlog.geml                 the backlog (§3.12); committed
-  gemflow.geml                 the project configuration; committed
-  context.geml                 the current stage (§2.5); one per checkout; ignored by git
 ```
 
-The project configuration is one `data` block, `#gemflow`, whose `default`
-names the workflow a new work item starts under:
+The project document's meta `flow-workflow` names the workflow a new work item
+starts under:
 
 ```geml
-=== data {#gemflow}
-{ "default": "dev" }
+=== meta
+title         = "Gemflow"
+flow-workflow = "dev"
 ===
 ```
 
-The default workflow is, in this order: the flow file the environment variable
-`GEMFLOW_STATECHART` names (it names the session's workflow, and a project in
-another checkout ignores it, §3.3); else the `default` of `.geml/gemflow.geml`;
-else the only `.geml/workflows/<name>/flow.geml`. `gemflow init --template
-<name>` copies a bundled workflow's whole directory into
-`.geml/workflows/<name>/` and makes it the default; `gemflow use <name>` and
+The default workflow is, in this order: the workflow file the environment
+variable `GEMFLOW_STATECHART` names (it names the session's workflow, and a
+project in another checkout ignores it, §3.3); else the one `flow-workflow`
+names; else the project's only workflow. `gemflow init --template <name>`
+writes a bundled workflow into `.geml/workflows/<name>.geml`, its guide's
+sections after the statechart, adds its dictionary's rows to
+`.geml/tools.geml`, and makes it the default; `gemflow use <name>` and
 `/gemflow use` change the default and leave every work item already started on
 its own workflow (§3.2).
+
+A checkout laid out the earlier way — a directory `.geml/workflows/<name>/`
+holding `flow.geml`, its prompt documents and its `tools.geml`, and
+`.geml/gemflow.geml` — is still read, the home's file of a name coming first.
+`gemflow migrate`, and a Claude Code session's first status, move it into the
+home; what git tracks there is copied and left in place. A journal that names
+such a `flow.geml` goes on under the file it moved to.
 
 ### 3.2 Work items
 
@@ -673,14 +684,14 @@ belongs to (§3.3):
 3. Each key is judged on its own: a key bound to a use (`for`) is admitted when S declares the use and refused when it does not (the reason says "`deploy-prod` is used only in #release"); a key bound to no use is refused when it was denied in S or in `*` (the reason says "you denied it in #S"), admitted when it was allowed, and unknown when no row takes it.
 4. Any key refused: the call is refused, its reason naming every refused key, and a `refused` is recorded.
 5. Otherwise — every key admitted or unknown — the call runs, and the host's own permission rules apply as usual: whether a command no row takes may run, and whether it is safe, is theirs to judge from its actual arguments, not Gemflow's. When it ends, evidence is written for the keys bound to a use, as the variables' `source` says.
-6. Gemflow asks nobody whether an unknown key may run. Binding it to a use, or denying it, is a row a person writes, on the board or in `tools.geml`.
+6. Gemflow asks nobody whether an unknown key may run. Binding it to a use, or denying it, is a row a person writes, on the board or in `.geml/tools.geml`.
 
 **Preferences.**
 
 - The stage text lists the stage's tools: each use's first choice with its default arguments, and the tools denied in this stage (§3.10). The model usually follows it.
 - When a tool with `params` is called, Gemflow fills in the arguments the model did not give, rewriting the call's input; an argument the model gave is never overridden. This applies only to tools whose input is structured data (MCP tools, built-in tools); a command line is never rewritten.
 - When the model uses a tool that has a use but is not its first choice, the person is asked: allow this time / make it the default from now on / deny (so the model uses the first choice). The choice is written back to the dictionary.
-- A use is bound or unbound on the board, or by a row written into `tools.geml`. Default arguments are edited on the board, or saved from one call with "set as default".
+- A use is bound or unbound on the board, or by a row written into `.geml/tools.geml`. Default arguments are edited on the board, or saved from one call with "set as default".
 
 ### 3.8 What only a person does
 
@@ -780,13 +791,14 @@ item's progress is read from its journal, never stored in the table.
 
 ## 4. Static checks
 
-`gemflow check <flow.geml>` runs `geml check` first — an error there refuses
+`gemflow check <workflow.geml>` runs `geml check` first — an error there refuses
 the document, and with `geml-statechart/v1` declared that includes the statechart's
 own checks, `statechart-body`, `statechart-initial`, `statechart-state`,
 `statechart-transition`, `statechart-guard`, `statechart-actions`,
 `statechart-vars`, `statechart-current` and `statechart-unreachable`, defined
 in [geml-statechart §3](../../../spec/profiles/geml-statechart/geml-statechart-profile.md) — then
-reads the tool dictionary beside the workflow, and reports Gemflow's own:
+reads the workflow's tool dictionary — the project's, against all its
+workflows — and reports Gemflow's own:
 
 | code | severity | when |
 |---|---|---|

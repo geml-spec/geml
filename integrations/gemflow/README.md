@@ -136,8 +136,8 @@ profile = "geml-statechart/v1"
 Read the code before proposing anything. …
 ```
 
-and, beside it, `tools.geml` — the dictionary that binds the uses to this
-project's tools:
+and the project's `.geml/tools.geml` — the dictionary that binds the uses to
+this project's tools, one for all its workflows:
 
 ```geml
 === table {#tools}
@@ -178,12 +178,12 @@ refusal is in the journal.
 
 `geml check` validates the document like any other GEML; `gemflow check` adds
 the statechart's own checks and the workflow's (`flow-*`), and reads the
-dictionary against it. `geml get .geml/workflows/coding/flow.geml '#flow'`
+dictionary against it. `geml get .geml/workflows/coding.geml '#flow'`
 reads the block; `geml … --to md` projects it to a Mermaid state diagram that
 GitHub renders, and the HTML renderer and the viewer draw it; `.gemlhistory`
 versions it.
 
-`gemflow init` writes the full version into `.geml/workflows/coding/` and makes
+`gemflow init` writes the full version into `.geml/workflows/coding.geml` and makes
 it the active workflow; `--template refund` writes an approval workflow,
 `--template dev` the branch-to-production workflow of
 [The dev workflow](#the-dev-workflow), `--template video` the episode workflow
@@ -229,17 +229,29 @@ a state.
 ## Project layout
 
 ```
-.geml/
-  workflows/<name>/flow.geml    a workflow: one statechart block, beside the prompts its ./ references name
-  workflows/<name>/tools.geml   its tool dictionary: which tool is which use, where a tool is allowed or denied
-  gemflow.geml                  the project configuration: meta flow-workflow names the default workflow
+.geml/                          in the main checkout: every worktree of the repository reads the same
+  workflows/<name>.geml         a workflow: one statechart block, each stage's prompt after it
+  tools.geml                    the tool dictionary of all the workflows: which tool is which use, where a tool is allowed or denied
+  project.geml                  the project document: meta flow-workflow names the default workflow
   journals/<item>.geml          one journal per work item: a branch, or one file of a set
+  sessions/                     the project's session record, every host's sessions
+  exports/                      what the board exports
+  .gitignore                    gemflow's own files, written by gemflow init: none of them goes into git
+.geml/                          in each checkout
   context.geml                  the current stage's text and the variables, written again on each change of stage
   backlog.geml                  the backlog table
-  .gitignore                    journals/, context.geml and *.lock, written by gemflow init
 ```
 
-`gemflow init` writes the configuration document:
+A project laid out the earlier way — a directory per workflow (`flow.geml`,
+`guide.geml`, `tools.geml`) and `.geml/gemflow.geml`, in the checkout — is
+still read. A Claude Code session's first status, or `gemflow migrate`, moves
+it into the main checkout: each directory becomes one file with its guide's
+sections in it, its rows join `.geml/tools.geml`, and `gemflow.geml` becomes
+`project.geml`. What git tracks is copied and left where it is, for you to
+`git rm`; the rest goes to `~/.gemflow/trash/`. A journal started under an
+earlier `flow.geml` goes on under the file it moved to.
+
+`gemflow init` writes the project document:
 
 ```geml
 === meta
@@ -248,24 +260,23 @@ flow-workflow = "coding"
 ===
 ```
 
-The default workflow is the flow file `GEMFLOW_STATECHART` names (a path
-relative to the project root), else the one `flow-workflow` names, else the
-only directory of `.geml/workflows/` that holds a `flow.geml`. The CLI, the
-Claude Code plugin, `gemflow mcp`, the DeepSeek Harness adapter and the pi
-agent adapter resolve it the same way. Commit the workflows with their
-dictionaries, `gemflow.geml` and the backlog; the journals, the context
-document and the lock files stay out of git.
+The default workflow is the file `GEMFLOW_STATECHART` names (a path relative
+to the project root), else the one `flow-workflow` names, else the project's
+only workflow. The CLI, the Claude Code plugin, `gemflow mcp`, the DeepSeek
+Harness adapter and the pi agent adapter resolve it the same way. Commit the
+backlog; gemflow's own files stay out of git.
 
 ## CLI
 
 ```
-usage: gemflow <check|snapshot|verify|export|init|use|status|mark|unmark|advance|pause|resume|rollback|run|hook|mcp> ...
-  check <flow.geml>                       static checks of the workflow and its tools.geml (exit 1 on errors)
+usage: gemflow <check|snapshot|verify|export|init|use|migrate|status|mark|unmark|advance|pause|resume|rollback|run|hook|mcp> ...
+  check <workflow.geml>                   static checks of the workflow and its tool dictionary (exit 1 on errors)
   snapshot <journal.geml> [--json]        the last revision
   verify <journal.geml> [--workflow f]    hash chain and consistency
   export <journal.geml> --to md           revision table with per-step diffs
-  init [dir] [--template coding|dev|refund|video] [--no-activate]  copy a bundled workflow into .geml/workflows/
+  init [dir] [--template coding|dev|matter|refund|video] [--no-activate]  write a bundled workflow into .geml/workflows/
   use <workflow>                          make a workflow the default for new work items
+  migrate                                 move the earlier layout (a workflow directory in the checkout) into the project's home
   status [--json]                         the work item, the stage, its variables and next steps
   mark <variable> | unmark <variable>     a person ticks or clears a variable whose source is a person
   advance <state>                         a person moves the workflow
@@ -281,23 +292,26 @@ usage: gemflow <check|snapshot|verify|export|init|use|status|mark|unmark|advance
   a way out, a guard that reads a variable `vars` does not declare, …), then the workflow's (`flow-*`: a
   `prompt` that does not resolve, a `source` of no known form, two transitions
   between the same two states, two machine-judged transitions out of one
-  state, a cycle of them, …), and reads `tools.geml` beside the workflow
-  against it (`flow-tools`: a state the workflow does not have, two defaults
-  for one use, …). A `prompt` is resolved against the project — the directory
-  above `.geml/workflows/<name>/` when the workflow sits there, else the
-  working directory — and never outside it.
+  state, a cycle of them, …), and reads the dictionary against it — the
+  project's `.geml/tools.geml` against all its workflows (`flow-tools`: a
+  state none of them has, two defaults for one use, …). A `prompt` is
+  resolved against the project — the one whose `.geml/workflows/` holds the
+  workflow, or the checkout the shell stands in when that is one of its — and
+  never outside it.
 - `snapshot`, `verify` and `export` read a journal. `verify` recomputes the
   whole chain: contiguous revisions, every `parent` equal to the previous hash,
   every hash recomputed from its content, and — given the workflow — every
   recorded transition matching a declared one. Deleting a **trailing** run of
   blocks is the one edit the chain cannot detect.
-- `init` copies a bundled workflow, dictionary included, into
-  `<dir>/.geml/workflows/<template>/` (`coding` unless `--template` says `dev`,
-  `refund` or `video`), makes it the default unless `--no-activate`, and writes
-  `.geml/.gitignore` when there is none. A workflow directory that exists is
-  never overwritten.
-- `use` names another workflow of `.geml/workflows/` in `.geml/gemflow.geml`
+- `init` writes a bundled workflow as one file,
+  `<dir>/.geml/workflows/<template>.geml` (`coding` unless `--template` says
+  `dev`, `matter`, `refund` or `video`), adds its rows to `.geml/tools.geml`,
+  makes it the default unless `--no-activate`, and writes `.geml/.gitignore`
+  when there is none. A workflow the project has is never overwritten.
+- `use` names another workflow of `.geml/workflows/` in `.geml/project.geml`
   (see [Switching workflows](#switching-workflows)).
+- `migrate` moves the earlier layout into the main checkout (see
+  [Project layout](#project-layout)) and says what moved where.
 - `status` opens the project — starting the work item's journal and
   `.geml/context.geml` when there are none — and prints the work item, the
   stage, every variable with where it reads from, and each transition out with
@@ -333,7 +347,7 @@ On a feature branch of a repository:
 
 ```
 $ gemflow init
-wrote .geml/workflows/coding/ (active)
+wrote .geml/workflows/coding.geml (active)
 $ gemflow status
 feat/rate-limit · #explore
   command = ""
@@ -401,7 +415,7 @@ under.
 ```sh
 mv .geml/journals/feat/rate-limit.geml .geml/journals/feat/rate-limit.coding.geml
 gemflow status
-gemflow verify .geml/journals/feat/rate-limit.coding.geml --workflow .geml/workflows/coding/flow.geml
+gemflow verify .geml/journals/feat/rate-limit.coding.geml --workflow .geml/workflows/coding.geml
 ```
 
 ### When something fails
@@ -411,7 +425,7 @@ gemflow verify .geml/journals/feat/rate-limit.coding.geml --workflow .geml/workf
   verb, a missing argument, an option the verb does not have (`status --jsno`).
 - No workflow: ``no workflow here: run `gemflow init` ``. Several and none
   chosen: ``choose one with `gemflow use <name>` ``. A name in
-  `.geml/gemflow.geml` or a `GEMFLOW_STATECHART` that finds no file says so.
+  `.geml/project.geml` or a `GEMFLOW_STATECHART` that finds no file says so.
   A workflow with errors prints them: `<file>: <code>: <message>`.
 - No work item: `status` prints why and exits 0; `mark`, `unmark`, `advance`
   and `rollback` exit 1 with the same reason.
@@ -454,8 +468,8 @@ pi install /absolute/path/to/gemflow-pkg    # pi agent: a DIRECTORY
 # 3. in the repository you want to work on, on a branch of its own
 cd ~/code/my-project
 git switch -c feat/my-change
-gemflow init                                     # .geml/workflows/coding/, the default workflow
-gemflow check .geml/workflows/coding/flow.geml   # 0 = it will load
+gemflow init                                     # .geml/workflows/coding.geml, the default workflow
+gemflow check .geml/workflows/coding.geml        # 0 = it will load
 gemflow status                                   # feat/my-change · #explore
 
 # 4. work
@@ -476,7 +490,7 @@ Read it with `gemflow export <journal> --to md`, check it with `gemflow verify`.
 `gemflow status`, `mark` and `advance` in a terminal work on the branch's own
 journal, `.geml/journals/<branch>.geml`.
 
-**Edit `.geml/workflows/coding/flow.geml` and `tools.geml` to fit your
+**Edit `.geml/workflows/coding.geml` and `.geml/tools.geml` to fit your
 project.** They are the whole configuration: the states and the uses each one
 declares, the variables with where each reads from, the guards; and which of
 your tools is which use. The shipped workflow makes four claims: no edit before
@@ -574,7 +588,7 @@ What you get:
 - **A tool the dictionary has no row for runs as usual, unasked.** Whether it is
   safe is the host's permission system's call, from the command's actual
   arguments. The dictionary says which use a tool is, and so where it may run;
-  to deny or bind one, write a row on the board or in `tools.geml`. A tool bound
+  to deny or bind one, write a row on the board or in `.geml/tools.geml`. A tool bound
   to a use whose preferred tool is another (`default` = `yes`) is asked about
   once — this once, or make it the default — and a row's `params` fill in what
   the call left out.
@@ -588,8 +602,9 @@ What you get:
   next prompt carries the stage again.
 
 Start a repository with `/gemflow add dev` (or
-`npx -y @geml/gemflow init --template dev`), then set its `tools.geml` to your
-test and deploy commands and the guide to your conventions —
+`npx -y @geml/gemflow init --template dev`), then set `.geml/tools.geml` to
+your test and deploy commands and the stages' texts in
+`.geml/workflows/dev.geml` to your conventions —
 [The dev workflow](#the-dev-workflow) walks through it.
 
 **Node ≥ 22 is required.** The hooks module runs inside Claude Code with no
@@ -746,7 +761,7 @@ Code board draws — five of its six tabs (pending, items, journal, flow, tools;
 the sessions tab is a person's prompts with row actions over Claude Code's
 transcript, and dsh keeps its own sessions). A press runs on the host: a
 person's transition, a tick, pause and resume, and the lessons that go into
-`tools.geml` — "set as preferred", "allow in this state too" and the add-a-row
+`.geml/tools.geml` — "set as preferred", "allow in this state too" and the add-a-row
 field — which the supervisor reads afresh for its next decision. Buttons for
 what this host cannot do (an export, a dialog, switching workflows) are not
 drawn. A file link opens the file through dsh's own session API, or shows it
@@ -775,7 +790,7 @@ and the environment is how to say otherwise — flags are not parsed yet at that
 point:
 
 ```sh
-GEMFLOW_STATECHART=path/to/flow.geml pi   # this workflow, not the project's default
+GEMFLOW_STATECHART=path/to/workflow.geml pi   # this workflow, not the project's default
 GEMFLOW_JOURNAL_DIR=/var/journals pi      # default: <session dir>/gemflow
 ```
 
@@ -794,7 +809,7 @@ The CLI alone, without a harness, is the `gemflow` command step 2 of
 
 ```sh
 gemflow init
-gemflow check .geml/workflows/coding/flow.geml
+gemflow check .geml/workflows/coding.geml
 ```
 
 `GEMFLOW_GH` names the `gh` program the git variables ask about pull requests
@@ -803,8 +818,8 @@ and CI, when it is not the one on PATH.
 ## The dev workflow
 
 `/gemflow add dev` (or `gemflow init --template dev`) writes
-`.geml/workflows/dev/`: `flow.geml`, `tools.geml` and `guide.geml` with each
-stage's prompt. Its work item is the branch (`flow-unit = "branch"`), so
+`.geml/workflows/dev.geml`, its statechart with each stage's prompt after it,
+and adds its rows to `.geml/tools.geml`. Its work item is the branch (`flow-unit = "branch"`), so
 nothing is recorded on the default branch. Five states:
 
 ```
@@ -878,7 +893,7 @@ point the guide at your own conventions.
 ## The matter workflow
 
 `/gemflow add matter` (or `gemflow init --template matter`) writes
-`.geml/workflows/matter/`. One matter is one work item: a file under
+`.geml/workflows/matter.geml`. One matter is one work item: a file under
 `.geml/matters/` (`flow-unit = "file:.geml/matters/*.geml"`) that records the
 symptom, the cause, the options and the result of one thing — a bug fixed, a
 screen changed, a line of copy written. It keeps its own state in its meta
@@ -907,8 +922,8 @@ and names pi's `edit` and `write` too, so the fence holds there as well.
 ## The video workflow
 
 `/gemflow add video` (or `gemflow init --template video`) writes
-`.geml/workflows/video/`: `flow.geml`, `tools.geml` and `guide.geml` with each
-stage's prompt. Its work item is an episode, each geml-media document under
+`.geml/workflows/video.geml`, its statechart with each stage's prompt after it,
+and adds its rows to `.geml/tools.geml`. Its work item is an episode, each geml-media document under
 `episodes/` (`flow-unit = "file:episodes/*.geml"`), the current one being the
 episode a write call touched last; it needs no git. Seven states:
 
