@@ -223,7 +223,7 @@ test("apply(): mounted as a Cordis plugin, an agent is supervised the moment it 
   const agent = await harness.create(SessionId("apply-1"), {}, { cwd: dir });
   assert.deepEqual(
     ctx.tools.schemas(agent).map((s) => s.name).sort(),
-    [...VERBS, "grep", "pay_refund", "read"],
+    [...VERBS, "gemflow_note", "grep", "pay_refund", "read"].sort(),
     "supervised with no await in between",
   );
 
@@ -410,5 +410,25 @@ test("pwsh: a command that holds gemflow and a person's verb as words is refused
   for (const command of ["gemflow status", "Get-Content mark.txt", "Get-GemflowStatus -advance"]) {
     assert.equal((await w.call("pwsh", { command })).isError, false, command);
   }
+  await w.dispose();
+});
+
+test("the project's session record on DeepSeek Harness: the agent opens a log, gemflow_note writes the decisions, the other sessions' recent decisions are in its context", async () => {
+  const { recordSession } = await import("../dist/hosts/dsh/plugin.js");
+  const { logName, parseLog } = await import("../dist/core/session-log.js");
+  const { recordDecisions, recordPrompt, sessionsDirOf } = await import("../dist/session-store.js");
+  const w = await world();
+  recordSession(w.agent);
+  const file = join(sessionsDirOf(w.dir), logName("dsh", String(w.agent.id)));
+  assert.deepEqual(parseLog(readFileSync(file, "utf8")).map((e) => [e.t, e.host]), [["session", "dsh"]]);
+  assert.ok(w.visible().includes("gemflow_note"), "the note tool is the agent's");
+  await w.call("gemflow_note", { decisions: ["每会话一个文件"] });
+  assert.deepEqual(parseLog(readFileSync(file, "utf8")).filter((e) => e.t === "decision").map((e) => e.text), ["每会话一个文件"]);
+  recordPrompt(w.dir, "codex", "cx1", "问一句");
+  recordDecisions(w.dir, "codex", "cx1", ["合并前先跑三平台 CI"]);
+  const assembly = await w.ctx.systemPrompt.assemble({ scope: w.agent });
+  assert.match(assembly.contexts.find((c) => c.name === "gemflow:shared-decisions").text, /- 合并前先跑三平台 CI（Codex，\d\d:\d\d）/);
+  assert.doesNotMatch(assembly.contexts.find((c) => c.name === "gemflow:shared-decisions").text, /每会话一个文件/, "never its own");
+  assert.match(assembly.sections.find((s) => s.name === "gemflow:sessions").text, /`gemflow_note` tool/);
   await w.dispose();
 });

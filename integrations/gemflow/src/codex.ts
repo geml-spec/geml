@@ -30,6 +30,8 @@ import type { BridgeOp, BridgeResponse } from "./hosts/claude-code/protocol.js";
 import { contextOf, normalised } from "./hosts/claude-code/readers.js";
 import { allowCall, callOf, contextFor, denyCall, exitCodeIn, isWrapped, patchPaths, readEvent, unwrapCommand, wrapCommand, type HookOutput } from "./hosts/codex/hook.js";
 import type { Status } from "./workspace.js";
+import { decisionsContext } from "./core/session-log.js";
+import { appendSession, commits, decisionsFor, hostLabel, recordAnswer, recordFile, recordPrompt } from "./session-store.js";
 
 export interface CodexRun { stdout: string; code: number }
 const NOTHING: CodexRun = { stdout: "", code: 0 };
@@ -37,8 +39,8 @@ const NOTHING: CodexRun = { stdout: "", code: 0 };
 /** Every host's file-writing tools: one capability under several names. */
 const WRITE_TOOLS: ReadonlySet<string> = new Set(Object.values(HOST_TOOLS).flatMap((h) => h.write));
 
-/** What the model has already read, kept per Codex session. */
-interface SessionState { delivered: string | null }
+/** What the model has already read, kept per Codex session: the stage text, the other sessions' decisions up to a time; and whether a command in this turn committed. */
+interface SessionState { delivered: string | null; decisionsSeen: string | null; committed: boolean }
 
 function stateFileFor(env: NodeJS.ProcessEnv, session: string): string {
   const dir = env["PLUGIN_DATA"] !== undefined && env["PLUGIN_DATA"] !== "" ? env["PLUGIN_DATA"] : join(tmpdir(), "gemflow-codex");
@@ -47,10 +49,10 @@ function stateFileFor(env: NodeJS.ProcessEnv, session: string): string {
 
 function readState(file: string): SessionState {
   try {
-    const v = JSON.parse(readFileSync(file, "utf8")) as { delivered?: unknown };
-    return { delivered: typeof v.delivered === "string" ? v.delivered : null };
+    const v = JSON.parse(readFileSync(file, "utf8")) as { delivered?: unknown; decisionsSeen?: unknown; committed?: unknown };
+    return { delivered: typeof v.delivered === "string" ? v.delivered : null, decisionsSeen: typeof v.decisionsSeen === "string" ? v.decisionsSeen : null, committed: v.committed === true };
   } catch {
-    return { delivered: null };
+    return { delivered: null, decisionsSeen: null, committed: false };
   }
 }
 
@@ -88,6 +90,9 @@ export async function runCodex(text: string, env: NodeJS.ProcessEnv, platform: s
   const file = stateFileFor(env, ev.session_id ?? "codex");
   const state = readState(file);
   const ask = (op: BridgeOp): Promise<BridgeResponse> => handleRequest({ v: 1, root, ...op });
+  // The project's shared session record (session-store.ts): what fails to be written there is missed, never a broken hook.
+  const sid = ev.session_id ?? "codex";
+  const record = (f: () => void): void => { try { f(); } catch { /* the record misses this one */ } };
 
   /** The stage text, when the model has not read this `item@rev` yet and the item is the session's current one. */
   const deliver = (event: "SessionStart" | "UserPromptSubmit" | "PostToolUse", status: Status | null, always = false): HookOutput | undefined => {
@@ -104,6 +109,7 @@ export async function runCodex(text: string, env: NodeJS.ProcessEnv, platform: s
 
   switch (ev.hook_event_name) {
     case "SessionStart": {
+      record(() => { appendSession(root, "codex", sid, () => []); });
       const res = await ask({ op: "status" });
       if (!res.ok || res.shell.status === null) return NOTHING;
       // The git facts first: a PR merged or CI finished since the last session may move the stage now.
@@ -111,9 +117,21 @@ export async function runCodex(text: string, env: NodeJS.ProcessEnv, platform: s
       return out(deliver("SessionStart", (fresh.ok ? fresh.shell.status : null) ?? res.shell.status, true));
     }
     case "UserPromptSubmit": {
+      // The prompt into the record; the other sessions' decisions not yet read beside it.
+      let shared: string | undefined;
+      record(() => {
+        const now = new Date().toISOString();
+        if (ev.prompt !== undefined && ev.prompt.trim() !== "") recordPrompt(root, "codex", sid, ev.prompt, now);
+        const fresh = decisionsFor(root, sid, state.decisionsSeen, now);
+        state.decisionsSeen = now;
+        writeState(file, state);
+        if (fresh.length > 0) shared = decisionsContext(fresh, (d) => `${hostLabel(d.host)}${d.branch !== undefined ? ` · ${d.branch}` : ""}，${new Date(d.at).toTimeString().slice(0, 5)}`);
+      });
       const res = await ask({ op: "status" });
-      if (!res.ok || res.shell.status === null) return NOTHING;
-      return out(deliver("UserPromptSubmit", res.shell.status));
+      const stage = res.ok && res.shell.status !== null ? deliver("UserPromptSubmit", res.shell.status) : undefined;
+      if (shared === undefined) return out(stage);
+      const before = stage?.hookSpecificOutput.additionalContext;
+      return out(contextFor("UserPromptSubmit", before !== undefined ? `${before}\n\n${shared}` : shared));
     }
     case "PreToolUse": {
       const tool = ev.tool_name;
@@ -148,6 +166,12 @@ export async function runCodex(text: string, env: NodeJS.ProcessEnv, platform: s
       const raw = CODEX_TOOLS.run.includes(tool) ? commandOf(given) : undefined;
       const input = raw !== undefined && isWrapped(raw) ? { ...given, command: unwrapCommand(raw) } : given;
       const call = callOf(tool, input);
+      // What the call made, into the record: the files a patch wrote; a commit, read at the turn's end.
+      record(() => {
+        if (CODEX_TOOLS.write.includes(tool)) for (const p of patchPaths(typeof input["command"] === "string" ? input["command"] : "")) { const path = projectPath(root, p); if (path !== undefined) recordFile(root, "codex", sid, path); }
+        const command = CODEX_TOOLS.run.includes(tool) ? commandOf(input) : undefined;
+        if (command !== undefined && commits(command) && !state.committed) { state.committed = true; writeState(file, state); }
+      });
       const res = await ask({ op: "status" });
       if (!res.ok || res.shell.policy === null) return NOTHING;
       const exitCode = CODEX_TOOLS.run.includes(tool) ? exitCodeIn(ev.tool_response) : undefined;
@@ -161,6 +185,14 @@ export async function runCodex(text: string, env: NodeJS.ProcessEnv, platform: s
       if (!after.ok || after.context === undefined) return NOTHING;
       if (after.shell.contextKey !== null) { state.delivered = after.shell.contextKey; writeState(file, state); }
       return out(contextFor("PostToolUse", after.handoff !== undefined ? `${after.handoff}\n${after.context}` : after.context));
+    }
+    // The turn's end: its answer, and the commits a command in it made, into the record. Nothing is said back.
+    case "Stop": {
+      record(() => {
+        recordAnswer(root, "codex", sid, ev.last_assistant_message ?? "", state.committed);
+        if (state.committed) { state.committed = false; writeState(file, state); }
+      });
+      return NOTHING;
     }
     default:
       return NOTHING;

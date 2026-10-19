@@ -48,7 +48,7 @@ test("gemflow mcp: the handshake, the three tools, verbs over the project's work
   assert.equal(out.size, 7, "a notification gets no answer");
   assert.equal(out.get(1).result.serverInfo.name, "gemflow");
   assert.equal(out.get(1).result.protocolVersion, "2025-06-18");
-  assert.deepEqual(out.get(2).result.tools.map((t) => t.name), ["status", "move", "set"]);
+  assert.deepEqual(out.get(2).result.tools.map((t) => t.name), ["status", "move", "set", "note"]);
   const status = out.get(3).result.content[0].text;
   assert.match(status, /work item feat\/x · state build/);
   assert.match(status, /\n\n\[gemflow\] stage build/, "the stage text follows the status");
@@ -247,4 +247,21 @@ test("status on an MCP-only host reads a file variable written since the last ca
   mkdirSync(join(root, "docs"));
   writeFileSync(join(root, "docs", "a.md"), "# A\n");
   assert.match(mcp(root, [call(1, "status")]).get(1).result.content[0].text, /state done/);
+});
+
+test("note: the decisions go into the log of this host's session that asked last; a list with nothing in it records nothing", async () => {
+  const { logName, parseLog } = await import("../dist/core/session-log.js");
+  const { recordPrompt, sessionsDirOf } = await import("../dist/session-store.js");
+  const root = gitRepo();
+  recordPrompt(root, "codex", "cx1", "问一句", "2026-10-19T08:00:00.000Z");
+  const out = mcp(root, [
+    { jsonrpc: "2.0", id: 1, method: "tools/list" },
+    { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "note", arguments: { decisions: ["每会话一个文件"] } } },
+    { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "note", arguments: { decisions: [] } } },
+  ], ["--host", "codex"]);
+  assert.ok(out.get(1).result.tools.some((t) => t.name === "note"));
+  assert.match(out.get(2).result.content[0].text, /^Recorded 1 decision/);
+  assert.equal(out.get(3).result.isError, true);
+  const e = parseLog(readFileSync(join(sessionsDirOf(root), logName("codex", "cx1")), "utf8"));
+  assert.deepEqual(e.filter((x) => x.t === "decision").map((x) => [x.turn, x.text]), [[1, "每会话一个文件"]]);
 });

@@ -25,6 +25,8 @@ import { readDictionaryFile } from "../../dictionary-io.js";
 import { commandOf } from "../../core/command-line.js";
 import { DSH_TOOLS } from "../../core/host-tools.js";
 import { writtenProjectPath } from "../../core/written.js";
+import { decisionsContext, NOTE_TOOL, SESSIONS_PROMPT } from "../../core/session-log.js";
+import { appendSession, commits, decisionsFor, hostLabel, recordAnswer, recordDecisions, recordFile, recordPrompt } from "../../session-store.js";
 import { readJournal } from "../../core/journal.js";
 import { actOnSession, boardReply, readQuery, type DshAction, type Supervision } from "./board.js";
 import { hasErrors, loadStatechart, type Statechart } from "../../core/statechart.js";
@@ -101,6 +103,8 @@ export function apply(ctx: Context, config: Config): void {
     // first step of the first turn running against the unrestricted tool set.
     // Nothing in `attach` needs to await - the reads, the parse and the first
     // journal append are all synchronous - so the window simply does not exist.
+    // The project's shared session record, workflow or none.
+    try { recordSession(agent); } catch (error: unknown) { ctx.logger(name).warn(error); }
     try {
       const attached = attach(ctx, agent, source, config);
       if (attached === null) return;
@@ -118,6 +122,73 @@ export function apply(ctx: Context, config: Config): void {
   // nothing even in the web composition, where plugins load before it is up.
   (ctx as unknown as Injecting).inject(["webServer"], (scoped) => {
     scoped.effect(() => scoped.webServer.register({ kind: "prefix", path: "/api/gemflow", handler: boardApi(sessions) }));
+  });
+}
+
+/**
+ * One agent in the project's shared session record (session-store.ts): its
+ * prompts as each turn opens, its answer as the turn closes (the text the
+ * stream carried), the files its write tools wrote and the commits its
+ * commands made, the decisions the model notes with `gemflow_note`; and the
+ * other sessions' decisions of the last three days in its context. What fails
+ * to be written is missed, never the agent's.
+ */
+export function recordSession(agent: Agent): void {
+  const cwd = resolve(agent.session.header.cwd ?? process.cwd());
+  const id = String(agent.id);
+  const host = "dsh";
+  const safe = (f: () => void): void => { try { f(); } catch { /* the record misses this one */ } };
+  safe(() => { appendSession(cwd, host, id, () => []); });
+  let turn: number | undefined;
+  let answer = "";
+  let committed = false;
+  agent.ctx.on("agent/pre-step", async (payload, next) => {
+    if (payload.turn !== turn) {
+      turn = payload.turn;
+      answer = "";
+      const said = payload.messages.filter((m) => m.source.kind === "user").flatMap((m) => m.content.flatMap((b) => (b.type === "text" ? [b.text] : []))).join("\n").trim();
+      if (said !== "") safe(() => recordPrompt(cwd, host, id, said));
+    }
+    return next();
+  });
+  agent.ctx.on("agent/assistant-stream", (({ frame }: { frame: { type: string; chunk?: { type: string; text?: string } } }) => {
+    if (frame.type === "chunk" && frame.chunk?.type === "text-delta" && typeof frame.chunk.text === "string") answer += frame.chunk.text;
+  }) as never);
+  agent.ctx.on("agent/turn-stopping", () => {
+    const said = answer;
+    const made = committed;
+    answer = "";
+    committed = false;
+    if (said !== "" || made) safe(() => recordAnswer(cwd, host, id, said, made));
+  });
+  agent.ctx.on("tools/result", (exec, result) => {
+    const input = isRecord(exec.arguments) ? exec.arguments : undefined;
+    if (DSH_TOOLS.run.includes(exec.name)) { const command = commandOf(input); if (command !== undefined && commits(command)) committed = true; }
+    const written = DSH_TOOLS.write.includes(exec.name) && !result.isError ? writtenProjectPath(input, cwd, realPath) : undefined;
+    if (written !== undefined) safe(() => recordFile(cwd, host, id, written));
+  });
+  agent.ctx.tools.register(defineTool({
+    name: `gemflow_${NOTE_TOOL.name}`,
+    description: NOTE_TOOL.description,
+    parameters: { decisions: { type: "array", items: { type: "string" }, required: true, description: "The conclusions and decisions, one short sentence each." } },
+    output: { schema: { type: "object", additionalProperties: false, properties: { text: { type: "string" } } }, render: (_args: unknown, value: unknown) => [{ type: "text", text: JSON.stringify(value) }] },
+    execute: (async (args: Record<string, unknown>) => {
+      const given = Array.isArray(args["decisions"]) ? (args["decisions"] as unknown[]).filter((d): d is string => typeof d === "string") : [];
+      const n = recordDecisions(cwd, host, id, given);
+      if (n === 0) throw new Error("Nothing recorded: decisions is a list of short sentences.");
+      return { text: `Recorded ${n} decision${n === 1 ? "" : "s"}; the project's other sessions will see ${n === 1 ? "it" : "them"}.` };
+    }) as never,
+  } as never));
+  agent.ctx.systemPrompt.section({ name: "gemflow:sessions", order: 401, text: () => SESSIONS_PROMPT.replace("gemflow `note` tool", "`gemflow_note` tool") });
+  agent.ctx.systemPrompt.context({
+    name: "gemflow:shared-decisions",
+    order: 131,
+    text: () => {
+      try {
+        const fresh = decisionsFor(cwd, id, null);
+        return fresh.length === 0 ? "" : decisionsContext(fresh, (d) => `${hostLabel(d.host)}${d.branch !== undefined ? ` · ${d.branch}` : ""}，${new Date(d.at).toTimeString().slice(0, 5)}`);
+      } catch { return ""; }
+    },
   });
 }
 

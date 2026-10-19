@@ -79,7 +79,7 @@ test("the plugin's Codex files: the manifest keeps the package's version and poi
   assert.equal(manifest.version, pkg.version);
   assert.deepEqual([manifest.skills, manifest.mcpServers, manifest.hooks], ["./skills/", "./codex/mcp.json", "./codex/hooks.json"]);
   const hooks = JSON.parse(readFileSync(new URL("../codex/hooks.json", here), "utf8")).hooks;
-  assert.deepEqual(Object.keys(hooks), ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse"]);
+  assert.deepEqual(Object.keys(hooks), ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "Stop"]);
   for (const [event, groups] of Object.entries(hooks)) for (const g of groups) for (const h of g.hooks) assert.equal(h.command, 'node "${PLUGIN_ROOT}/dist/gemflow.mjs" codex', event);
   const mcp = JSON.parse(readFileSync(new URL("../codex/mcp.json", here), "utf8"));
   assert.deepEqual(mcp.mcpServers.gemflow.args, ["${PLUGIN_ROOT}/dist/gemflow.mjs", "mcp", "--host", "codex", "--root", "."]);
@@ -145,4 +145,25 @@ test("gemflow codex says nothing, and exits 0, where there is nothing to say: no
   assert.equal(r.status, 0);
   assert.equal(r.stdout, "");
   assert.ok(!existsSync(join(env.PLUGIN_DATA, "sess-1.json")), "nothing delivered, nothing kept");
+});
+
+test("the project's session record through Codex's hooks: the session opens a log, a prompt is a turn with the other sessions' new decisions beside it, a patch's file and the turn's answer go in", async () => {
+  const { logName, parseLog } = await import("../dist/core/session-log.js");
+  const { recordDecisions, recordPrompt, sessionsDirOf } = await import("../dist/session-store.js");
+  const root = project();
+  const env = data();
+  const log = () => parseLog(readFileSync(join(sessionsDirOf(root), logName("codex", "sess-1")), "utf8"));
+  codex(root, { hook_event_name: "SessionStart", source: "startup" }, env);
+  assert.deepEqual(log().map((e) => [e.t, e.host]), [["session", "codex"]]);
+  recordPrompt(root, "claude-code", "cc1", "另一个会话问的");
+  recordDecisions(root, "claude-code", "cc1", ["合并前先跑三平台 CI"]);
+  const first = codex(root, { hook_event_name: "UserPromptSubmit", prompt: "接着做 Codex 接法" }, env).out;
+  assert.match(first.hookSpecificOutput.additionalContext, /\[gemflow\] 本项目其他会话记下的决定：\n- 合并前先跑三平台 CI（Claude · feat\/x，\d\d:\d\d）/);
+  const again = codex(root, { hook_event_name: "UserPromptSubmit", prompt: "再来一句" }, env).out;
+  assert.doesNotMatch(again?.hookSpecificOutput?.additionalContext ?? "", /本项目其他会话/, "heard once");
+  codex(root, { hook_event_name: "PostToolUse", tool_name: "apply_patch", tool_use_id: "p1", tool_input: { command: "*** Begin Patch\n*** Add File: src/codex-made.ts\n+x\n*** End Patch" }, tool_response: "Done" }, env);
+  codex(root, { hook_event_name: "Stop", last_assistant_message: "接好了。", stop_hook_active: false }, env);
+  assert.deepEqual(log().map((e) => [e.t, e.turn ?? null, e.text ?? e.path ?? e.host]), [
+    ["session", null, "codex"], ["prompt", 1, "接着做 Codex 接法"], ["prompt", 2, "再来一句"], ["file", 2, "src/codex-made.ts"], ["answer", 2, "接好了。"],
+  ]);
 });

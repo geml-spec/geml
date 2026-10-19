@@ -12,6 +12,8 @@ import { readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { HOST_TOOLS, NO_TOOLS } from "./core/host-tools.js";
 import { FLOW_TOOLS } from "./core/verb-specs.js";
+import { NOTE_TOOL } from "./core/session-log.js";
+import { latestSessionOf, recordDecisions } from "./session-store.js";
 import { ghOncePerBranch } from "./host-git.js";
 import { runVerb } from "./verbs.js";
 import { openWorkspace } from "./workspace.js";
@@ -50,9 +52,21 @@ export async function answer(msg: unknown, o: McpOptions): Promise<Reply | undef
     return result(id, { protocolVersion: version, capabilities: { tools: {} }, serverInfo: { name: "gemflow", version: packageVersion() } });
   }
   if (method === "ping") return result(id, {});
-  if (method === "tools/list") return result(id, { tools: FLOW_TOOLS.map(({ name, description, inputSchema }) => ({ name, description, inputSchema })) });
+  if (method === "tools/list") return result(id, { tools: [...FLOW_TOOLS.map(({ name, description, inputSchema }) => ({ name, description, inputSchema })), { name: NOTE_TOOL.name, description: NOTE_TOOL.description, inputSchema: NOTE_TOOL.inputSchema }] });
   if (method !== "tools/call") return failure(id, -32601, `method not found: ${method}`);
   const name = m?.params?.["name"];
+  // The note: this host's session that asked last (an MCP server is told no session; a host with hooks names it in the record), else one of the server's own.
+  if (name === NOTE_TOOL.name) {
+    const given = (m?.params?.["arguments"] as { decisions?: unknown } | undefined)?.decisions;
+    const decisions = Array.isArray(given) ? given.filter((d): d is string => typeof d === "string") : [];
+    try {
+      const session = latestSessionOf(o.root, o.host) ?? `mcp-${process.pid}`;
+      const n = recordDecisions(o.root, o.host, session, decisions);
+      return text(id, n === 0 ? "Nothing recorded: decisions is a list of short sentences." : `Recorded ${n} decision${n === 1 ? "" : "s"}; the project's other sessions will see ${n === 1 ? "it" : "them"}.`, n === 0);
+    } catch (e) {
+      return text(id, `gemflow: ${e instanceof Error ? e.message : String(e)}`, true);
+    }
+  }
   const spec = FLOW_TOOLS.find((t) => t.name === name);
   if (spec === undefined) return failure(id, -32602, `unknown tool: ${String(name)}`);
   const raw = m?.params?.["arguments"];

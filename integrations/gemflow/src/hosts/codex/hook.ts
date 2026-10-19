@@ -21,6 +21,8 @@ export interface CodexEvent {
   tool_input?: Record<string, unknown>;
   tool_response?: unknown;
   prompt?: string;
+  /** Stop: the turn's last answer. */
+  last_assistant_message?: string;
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -40,6 +42,7 @@ export function readEvent(text: string): CodexEvent | undefined {
     ...(isObject(v["tool_input"]) ? { tool_input: v["tool_input"] } : {}),
     ...("tool_response" in v ? { tool_response: v["tool_response"] } : {}),
     ...(str("prompt") !== undefined ? { prompt: str("prompt") } : {}),
+    ...(str("last_assistant_message") !== undefined ? { last_assistant_message: str("last_assistant_message") } : {}),
   };
 }
 
