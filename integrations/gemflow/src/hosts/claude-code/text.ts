@@ -422,6 +422,11 @@ export const WORDS: Readonly<Record<string, Entry>> = {
   "此刻": { en: "Right now", ja: "いま" },
   // --- where the session runs (env.ts) ---
   "远程控制": { en: "Remote Control", ja: "リモートコントロール" },
+  "决定": { en: "Decisions", ja: "決定" },
+  "合并前": { en: "Before merging", ja: "マージ前" },
+  "其他会话": { en: "Other sessions", ja: "他のセッション" },
+  "参照 {0}：{1}": { en: "Per {0}: {1}", ja: "{0} より：{1}" },
+  "放不进输入框": { en: "Could not fill the prompt box", ja: "入力欄に入れられません" },
   "运行于 {0}": { en: "on {0}", ja: "実行先 {0}" },
   "排队中 {0}": { en: "queued: {0}", ja: "待機中 {0}" },
   "进行中 {0}": { en: "doing: {0}", ja: "実行中 {0}" },

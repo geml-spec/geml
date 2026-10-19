@@ -25,7 +25,7 @@ import { guardText } from "@geml/geml/dist/statechart.js";
 import { readFileSync } from "node:fs";
 import { readJournal, renderJournalMarkdown, type Journal, type Wrote } from "./core/journal.js";
 import { blockText } from "./core/blocks.js";
-import { BACKLOG_DOC, CONFIG_DOC, CONTEXT_DOC, EXPORTS_DIR, FLOW_FILE } from "./core/layout.js";
+import { BACKLOG_DOC, CONFIG_DOC, CONTEXT_DOC, EXPORTS_DIR, FLOW_FILE, GEML_DIR } from "./core/layout.js";
 import { itemState } from "./core/item-state.js";
 import { canonical, guardHolds, isPaused, type Snapshot } from "./core/snapshot.js";
 import type { JsonValue } from "./core/schema.js";
@@ -33,7 +33,8 @@ import { outgoing, sourceLabel, varsBySource } from "./core/statechart.js";
 import { waitsOnPerson } from "./core/turn.js";
 import { readContextDoc } from "./core/stagehand.js";
 import { exists, readText, withLock, writeAtomic } from "./host-fs.js";
-import { branchesAhead, commitsOf, ghOncePerBranch, openPullRequests, repoFacts, type GhFacts } from "./host-git.js";
+import { branchesAhead, commitsOf, ghOncePerBranch, journalBaseOf, openPullRequests, repoFacts, type GhFacts } from "./host-git.js";
+import { SESSIONS_DIR } from "./core/session-log.js";
 import type { HostInfo } from "./hosts/claude-code/env.js";
 import { mediaTodoCount } from "./media-todo.js";
 import { addWorkflow, bundledWorkflows, importWorkflow, projectWorkflows, suggestWorkflow, useWorkflow } from "./project.js";
@@ -523,7 +524,8 @@ function answer(req: BridgeRequest): BridgeResponse {
     }
     // The repository as the band reads it: what is not pushed, which pull requests are green or failing.
     case "attention":
-      return ok(ws.view(), { attention: { ahead: branchesAhead(root), prs: openPullRequests(root) }, host: hostOf(root) });
+      // The shared session logs: the main working tree's .geml/sessions/, whichever worktree this checkout is.
+      return ok(ws.view(), { attention: { ahead: branchesAhead(root), prs: openPullRequests(root) }, host: hostOf(root), sessions: join(journalBaseOf(root), GEML_DIR, SESSIONS_DIR) });
     case "board": {
       const change = ws.refresh();
       const view = ws.view();

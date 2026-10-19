@@ -221,6 +221,8 @@ export type BridgeResponse =
       attention?: AttentionFacts;
       /** attention: the machine and checkout the session runs on. */
       host?: HostInfo;
+      /** The directory of the project's shared session logs (session-log.ts): the main working tree's .geml/sessions/. */
+      sessions?: string;
     }
   /** No shell only when the request itself failed — it threw, or did not decode: the hooks module keeps the last shell and shows the error. */
   | { v: 1; ok: false; error: string; shell?: ShellStatus };

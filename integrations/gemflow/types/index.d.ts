@@ -84,6 +84,16 @@ declare module 'claude-code' {
       origin: string | null
       /** The steps the person pressed that went into the session, queued or being done ([{ text, entered }]). */
       queued: GemflowJson
+      /** The directory of the project's shared session logs (the main working tree's .geml/sessions/), as the bridge said. */
+      sessionsDir: string | null
+      /** The project's sessions as their logs hold them (SessionSummary[], answers left out). */
+      projectSessions: GemflowJson
+      /** The other session unfolded on the session tab (its id). */
+      openSession: string | null
+      /** The time of the newest other session's decision already put beside a prompt. */
+      decisionsSeen: string | null
+      /** A command in this turn made a commit: the turn's end records the commits. */
+      committed: boolean
     }
   }
 }

@@ -78,6 +78,10 @@ export type BoardAction =
   | { op: "say"; text: string }
   /** A slash command run as if the person typed it (`/reload-plugins`), once the session is idle. */
   | { op: "command"; command: string }
+  /** Another session's decision put in the prompt box, so the next prompt names it. */
+  | { op: "use-decision"; text: string; from: string }
+  /** Unfold another session's turns on the session tab (its id), or fold them. */
+  | { op: "session-open"; id: string | null }
   /** Show the session's prompts of one flow (its title), or all. */
   | { op: "session-flow"; flow: string | null }
   /** Unfold a run of turns in another flow (its first prompt's id), or fold it. */
@@ -85,7 +89,7 @@ export type BoardAction =
   /** Open a prompt row's menu (its id), or close it. */
   | { op: "turn-menu"; id: string | null }
   /** Scroll the conversation to this prompt's row. */
-  | { op: "locate"; id: string }
+  | { op: "locate"; id: string; uuid?: string }
   /** Ask the model to move this prompt's turn and every turn after it (the last one stays) into a new session, with the split-session skill; a person says yes first. */
   | { op: "split"; id: string }
   /** Ask the model to move this prompt's one turn into a session of its own, with the split-session skill; a person says yes first. */
@@ -95,4 +99,4 @@ export type BoardAction =
   | { op: "share"; what: ShareWhat; how: ShareHow; strip: boolean };
 
 /** A button as the pure modules describe it: its address, its label, whether it is the main one, and what it does. */
-export interface Pressable { key: string; label: string; primary?: boolean; action: BoardAction }
+export interface Pressable { key: string; label: string; primary?: boolean; action: BoardAction; /** A menu entry's weight: one that destroys, one that only closes. */ tone?: "danger" | "quiet" }

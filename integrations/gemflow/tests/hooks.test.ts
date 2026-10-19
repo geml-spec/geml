@@ -68,6 +68,10 @@ function world(on: On) {
     routed: null as { item: string; context: string } | null,
     /** The session's current work item, as git would say after a branch switch. */
     item: 'feat/x',
+    /** The directory of the project's session logs the attention answer names; null, none. */
+    sessionsDir: null as string | null,
+    /** Files the module wrote or a test laid down, by path. */
+    files: new Map<string, string>(),
     /** The open pull requests the attention answer carries. */
     prs: [] as { number: number; branch: string; green: boolean; failing: string[] }[],
     /** The work items that have a journal: a handoff to one of them is a return, to any other a new item. */
@@ -180,7 +184,7 @@ function world(on: On) {
     if (req.op === 'verb') return { v: 1, ok: true, shell: shell(), text: `[gemflow] work item feat/x · state #${w.state}` }
     if (req.op === 'board') return { v: 1, ok: true, shell: shell(), board: board(), todo: w.todo }
     if (req.op === 'refresh') return { v: 1, ok: true, shell: shell(), todo: w.todo }
-    if (req.op === 'attention') return { v: 1, ok: true, shell: shell(), attention: { ahead: [], prs: w.prs }, host: { name: 'build-box', platform: 'linux', user: 'dev', branch: 'feat/x' } }
+    if (req.op === 'attention') return { v: 1, ok: true, shell: shell(), attention: { ahead: [], prs: w.prs }, ...(w.sessionsDir !== null ? { sessions: w.sessionsDir } : {}), host: { name: 'build-box', platform: 'linux', user: 'dev', branch: 'feat/x' } }
     return { v: 1, ok: true, shell: shell(), ...(req.op === 'before' ? { recorded: false } : {}), ...(req.op === 'after' ? handoff(req) : {}) }
   }
   const ran = (stdout: string, exitCode = 0) => ({ exitCode, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false })
@@ -203,7 +207,13 @@ function world(on: On) {
     return { deny: `unexpected ${e.argv.join(' ')}` }
   })
   // .geml/context.geml as the CLI writes it: the stage's text in `text {#current}`, the item, state and rev in `data {#stage}`.
-  on('fs.read', ($, e) => (posix(e.path) === `${ROOT}/.geml/context.geml`
+  on('fs.write', ($, e) => { w.files.set(posix(e.path), e.text); return { value: undefined } })
+  on('fs.exists', ($, e) => ({ value: w.files.has(posix(e.path)) }))
+  on('fs.list', ($, e) => {
+    const dir = posix(e.path ?? '').replace(/\/$/, '')
+    return { value: [...w.files.entries()].filter(([p]) => p.startsWith(`${dir}/`) && !p.slice(dir.length + 1).includes('/')).map(([p, text]) => ({ name: p.slice(dir.length + 1), kind: 'file' as const, size: text.length, mtimeMs: 0, isLink: false })) }
+  })
+  on('fs.read', ($, e) => (w.files.has(posix(e.path)) ? { value: w.files.get(posix(e.path)) as string } : posix(e.path) === `${ROOT}/.geml/context.geml`
     ? { value: `=== meta\nprofile = "geml-statechart/v1"\n===\n\n=== data {#stage format=json}\n${JSON.stringify({ item: w.item, state: w.state, rev: w.rev })}\n===\n\n=== text {#current}\n${stage()}\n===\n` }
     : { deny: 'ENOENT' }))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
@@ -283,7 +293,7 @@ test('real event order: session start, a test run moves the stage, the board mov
   await start($, on)
   expect(w.sent.map((r) => r.op), 'the board the inbox is built from is read at the start').toEqual(['status', 'refresh', 'board', 'attention'])
   expect(w.sent[0]).toMatchObject({ v: 1, root: ROOT })
-  expect(w.registered).toEqual(['status', 'move', 'set'])
+  expect(w.registered).toEqual(['status', 'move', 'set', 'note'])
 
   const tests = await $.tool.call({ tool: 'Bash', tool_use_id: 'b1', command: 'npm test' })
   expect(w.sent.at(-1)).toMatchObject({ op: 'after', tool: 'Bash', callId: 'b1', exitCode: 0, isError: false, gitOperation: false, input: { command: 'npm test' } })
@@ -391,7 +401,7 @@ test('the band and /gemflow, on terminal and desktop', async ($, on) => {
   await start($, on)
   // The mark is a character on the terminal, a picture on a desktop; the rest reads the same.
   expect(await bandText($)).toBe('» 我在做 feat/x · build [看板]')
-  expect(await bandText($, 'desktop')).toBe('[　　] 我在做 feat/x · build 看板 [　　　　]')
+  expect(await bandText($, 'desktop')).toBe('[　　] 我在做 feat/x · build [　　]')
   const desktop = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
   expect(await desktop.find({ type: 'Svg' })).toBeDefined()
   await desktop.unmount()
@@ -486,7 +496,7 @@ test('a registration the engine refuses: the start goes on, and the band says wh
   w.refuse = { set: 'a tool named set is already registered' }
   await start($, on)
   expect(w.sent.map((r) => r.op)).toEqual(['status', 'refresh', 'board', 'attention'])
-  expect(w.registered).toEqual(['status', 'move'])
+  expect(w.registered).toEqual(['status', 'move', 'note'])
   expect(await bandText($, 'terminal', 400)).toMatch(/^» gemflow：没有注册上 set（[^（]*already registered[^）]*） \[看板\]$/)
 })
 
@@ -703,7 +713,7 @@ test('an approval edge that holds: the band offers the approval, the inbox lists
   expect(w.notified).toEqual(['等你验收：feat/x\nreview'])
   const band = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
   expect(await band.find({ type: 'Svg' })).toBeDefined()
-  expect(await bandText($, 'desktop')).toBe('[　　] 验收 feat/x [通过] 看板 [　　　　]')
+  expect(await bandText($, 'desktop')).toBe('[　　] 验收 feat/x [通过] [　　]')
   expect((await band.findAll({ type: 'Button' })).map((b) => b.key)).toEqual(['band-mark-open', 'title', 'approve-done', 'board'])
   await band.press({ key: 'approve-done' })
   expect(w.sent.filter((r) => r.op === 'advance').at(-1)).toMatchObject({ to: 'done' })
@@ -1032,4 +1042,117 @@ test('a tool call redraws neither the band nor the board: with both drawn, the r
   await band.unmount()
   await pane.unmount()
   expect(drawn, 'the same reads as with nothing drawn: no redraw').toBe(alone)
+})
+
+test('the session tab keeps its history past a restart: the prompts go into the store under the session, and a load with none held reads them back', async ($, on) => {
+  const w = world(on)
+  on('prompt.submit', ($, e) => ({ text: e.text }))
+  on('turn.complete', ($, e) => ({ text: e.answer }))
+  const clock = await start($, on)
+  await $.prompt.submit({ text: '先把会话的历史存住。', wait: false, origin: COMPOSER })
+  await $.turn.complete({ answer: '存好了。', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' })
+  await clock.advance(1)
+  const kept = w.store.get('prompts:sess-1234567890') as { text: string }[] | undefined
+  expect(kept?.map((p) => p.text), 'kept under the session').toEqual(['先把会话的历史存住。'])
+  expect(w.store.get('prompts:sessions')).toEqual(['sess-1234567890'])
+})
+
+test('a session resumed after the app restarted shows the prompts the store kept for it, on the session tab drawn as the prototype has it', async ($, on) => {
+  const w = world(on)
+  w.store.set('prompts:sess-1234567890', [
+    { id: 'p1-a', at: '2026-10-16T09:00:00.000Z', text: '三天前的那句', uuid: 'row-a', tools: 3, refusals: 0, entered: [], signals: [], did: '做完了。' },
+    { id: 'p2-b', at: '2026-10-19T09:00:00.000Z', text: '今天的这句', uuid: 'row-b', tools: 1, refusals: 0, entered: [], signals: [] },
+  ])
+  on('prompt.submit', ($, e) => ({ text: e.text }))
+  await start($, on)
+  await $.command.run({ command: 'gemflow', args: 'board sessions', origin: COMPOSER, presentation: PRESENTATION })
+  const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  expect(await pane.find({ type: 'Button', key: 'open-prompt-p1-a' }), 'the older prompt is back').toBeDefined()
+  expect(await pane.find({ type: 'Button', key: 'open-prompt-p2-b' })).toBeDefined()
+  await pane.press({ key: 'open-prompt-p1-a' })
+  expect(await pane.find({ type: 'Text', text: '删除本轮会话' }), 'the menu: a card of entries').toBeDefined()
+  expect(await pane.find({ type: 'Button', key: 'locate-p1-a' })).toBeDefined()
+  await pane.unmount()
+})
+
+const LOGS = `${ROOT}/.geml/sessions`
+const OWN_LOG = `${LOGS}/claude-code-sess-1234567890.jsonl`
+const events = (text: string | undefined) => (text ?? '').split('\n').filter((l) => l !== '').map((l) => JSON.parse(l) as Record<string, unknown>)
+
+test('the project record: a prompt opens a turn in this session\'s log, the model notes its decisions, the answer closes it; the directory keeps itself out of git', async ($, on) => {
+  const w = world(on)
+  w.sessionsDir = LOGS
+  on('prompt.submit', ($, e) => ({ text: e.text }))
+  on('turn.complete', ($, e) => ({ text: e.answer }))
+  const clock = await start($, on)
+  await clock.advance(1)
+  await $.prompt.submit({ text: '按项目组织会话', wait: false, origin: COMPOSER })
+  expect(w.files.get(`${LOGS}/.gitignore`)).toBe('*\n')
+  const noted = await $.tool.call({ tool: 'mcp__gemflow__note', tool_use_id: 'n1', decisions: ['每会话一个文件', ' '] })
+  expect(String(noted.text ?? noted.result)).toMatch(/^Recorded 1 decision; the project's other sessions will see it\./)
+  await $.turn.complete({ answer: '好了，按项目记。', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' })
+  await clock.advance(1)
+  expect(events(w.files.get(OWN_LOG)).map((x) => [x.t, x.turn ?? null, x.text ?? x.host])).toEqual([
+    ['session', null, 'claude-code'], ['prompt', 1, '按项目组织会话'], ['decision', 1, '每会话一个文件'], ['answer', 1, '好了，按项目记。'],
+  ])
+})
+
+test('the other sessions\' decisions come beside the person\'s prompt, once each; this session\'s own never', async ($, on) => {
+  const w = world(on)
+  w.sessionsDir = LOGS
+  const contexts: (readonly string[] | undefined)[] = []
+  on('prompt.submit', ($, e) => { contexts.push(e.context); return { text: e.text } })
+  const clock = await start($, on)
+  await clock.advance(1)
+  const at = new Date(clock.now()).toISOString()
+  w.files.set(`${LOGS}/codex-cx1.jsonl`, [
+    { t: 'session', id: 'cx1', host: 'codex', at, branch: 'feat/y' },
+    { t: 'prompt', turn: 1, at, text: 'runtime 的 PR 能合吗' },
+    { t: 'decision', turn: 1, at, text: '合并前先跑三平台 CI' },
+  ].map((x) => JSON.stringify(x)).join('\n') + '\n')
+  await clock.advance(1000)
+  await $.prompt.submit({ text: '接着做会话页', wait: false, origin: COMPOSER })
+  const first = (contexts.at(-1) ?? []).join('\n')
+  expect(first).toContain('[gemflow] 本项目其他会话记下的决定：')
+  expect(first).toMatch(/- 合并前先跑三平台 CI（Codex · feat\/y，\d\d:\d\d）/)
+  await $.tool.call({ tool: 'mcp__gemflow__note', tool_use_id: 'n1', decisions: ['我自己的决定'] })
+  await clock.advance(1000)
+  await $.prompt.submit({ text: '再来一句', wait: false, origin: COMPOSER })
+  expect((contexts.at(-1) ?? []).join('\n'), 'heard once; its own never').not.toContain('[gemflow] 本项目其他会话')
+})
+
+test('the session tab across the project: the decisions, a file two sessions changed in the error colour, another session unfolding; a decision pressed goes into the prompt box', async ($, on) => {
+  const w = world(on)
+  w.sessionsDir = LOGS
+  const filled: string[] = []
+  on('prompt.submit', ($, e) => ({ text: e.text }))
+  on('prompt.fill', ($, e) => { filled.push(e.text); return { isFilled: true, box: { text: e.text, cursor: e.text.length } } })
+  on('tool.call', { tool: 'Edit' }, () => ({ result: { filePath: `${ROOT}/hooks/register.tsx` }, text: 'edited' }))
+  const clock = await start($, on)
+  await clock.advance(1)
+  const at = new Date(clock.now()).toISOString()
+  w.files.set(`${LOGS}/codex-cx1.jsonl`, [
+    { t: 'session', id: 'cx1', host: 'codex', at, branch: 'feat/y' },
+    { t: 'prompt', turn: 1, at, text: 'runtime 的 PR 能合吗' },
+    { t: 'decision', turn: 1, at, text: '合并前先跑三平台 CI' },
+    { t: 'file', turn: 1, at, path: 'hooks/register.tsx', branch: 'feat/y' },
+  ].map((x) => JSON.stringify(x)).join('\n') + '\n')
+  await $.prompt.submit({ text: '改状态带', wait: false, origin: COMPOSER })
+  await $.tool.call({ tool: 'Edit', tool_use_id: 'e1', file_path: `${ROOT}/hooks/register.tsx`, old_string: 'a', new_string: 'b' })
+  await clock.advance(1)
+  await $.command.run({ command: 'gemflow', args: 'board sessions', origin: COMPOSER, presentation: PRESENTATION })
+  await clock.advance(60_000)
+  const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  for (const heading of ['决定', '合并前', '其他会话', '本会话']) expect(await pane.find({ type: 'Text', text: heading }), heading).toBeDefined()
+  const clash = await pane.find({ type: 'Text', text: 'hooks/register.tsx' })
+  expect(clash?.props.color, 'changed by two sessions: settle before merging').toBe('error')
+  await pane.press({ key: 'go-session-cx1' })
+  await pane.unmount()
+  const again = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  expect(await again.find({ type: 'Button', key: 'open-other-cx1-1' }), 'the other session unfolds to its turns').toBeDefined()
+  const decision = (await again.findAll({ type: 'Button' })).find((b) => String(b.key).startsWith('go-decision-cx1-'))
+  expect(decision).toBeDefined()
+  await again.press({ key: String(decision!.key) })
+  await again.unmount()
+  expect(filled.at(-1)).toBe('参照 Codex · feat/y：合并前先跑三平台 CI\n')
 })

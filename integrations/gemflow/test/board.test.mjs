@@ -382,7 +382,7 @@ test("会话: every prompt newest first under its day, with what its turn did; a
   ];
   const commits = [{ sha: "e18b116d00000000", at: "2026-10-12T09:04:00Z" }, { sha: "7a38c1fd00000000", at: "2026-10-12T09:02:00Z" }, { sha: "053f317c9d0e1f2a", at: "2026-10-12T09:01:00Z" }];
   const rows = sessionRows(prompts, "p2", commits, wordsFor("zh"), 100, NOW);
-  const look = rows.map((r) => r.kind === "section" ? `§ ${r.text}` : r.kind === "turn" ? `${r.text} | ${r.did}${r.open ? " ▾" : ""}` : r.kind === "buttons" ? r.items.map((b) => b.label).join(" ") : r.kind);
+  const look = rows.map((r) => r.kind === "section" ? `§ ${r.text}` : r.kind === "turn" ? `${r.text} | ${r.did}${r.open ? " ▾" : ""}` : r.kind === "buttons" || r.kind === "menu" ? r.items.map((b) => b.label).join(" ") : r.kind);
   assert.deepEqual(look, [
     "§ 今天",
     "顺手部署一下。 | 进行中…",
@@ -397,9 +397,12 @@ test("会话: every prompt newest first under its day, with what its turn did; a
   const turns = rows.filter((r) => r.kind === "turn");
   assert.deepEqual(turns.map((r) => r.action), [{ op: "turn-menu", id: "p3" }, { op: "turn-menu", id: null }, { op: "turn-menu", id: "p1" }, { op: "turn-menu", id: "p0" }], "a press opens a row's menu, or closes the open one");
   assert.match(turns[0].at, /^\d\d:\d\d$/);
-  assert.deepEqual(rows[3].items.map((b) => [b.key, b.action]), [
-    ["locate-p2", { op: "locate", id: "p2" }], ["split-p2", { op: "split", id: "p2" }], ["remove-p2", { op: "remove", id: "p2" }], ["close-p2", { op: "turn-menu", id: null }],
+  assert.equal(rows[3].kind, "menu", "the open row's menu: a card under it");
+  assert.deepEqual(rows[3].items.map((b) => [b.key, b.action, b.tone]), [
+    ["locate-p2", { op: "locate", id: "p2" }, undefined], ["split-p2", { op: "split", id: "p2" }, undefined], ["remove-p2", { op: "remove", id: "p2" }, "danger"], ["close-p2", { op: "turn-menu", id: null }, "quiet"],
   ]);
+  const located = sessionRows(prompts.map((p) => ({ ...p, uuid: `row-${p.id}` })), "p2", commits, wordsFor("zh"), 100, NOW).find((r) => r.kind === "menu");
+  assert.deepEqual(located.items[0].action, { op: "locate", id: "p2", uuid: "row-p2" }, "跳转 carries the row, so the press scrolls before it awaits anything");
   assert.deepEqual(rows.at(-1).items.map((b) => b.action), [
     { op: "export", kind: "session", format: "geml" }, { op: "export", kind: "session", format: "md" }, { op: "export", kind: "session", format: "json" },
   ], "the whole session, no picking");
@@ -480,4 +483,32 @@ test("会话: with turns in more than one flow, a filter by flow; a run of three
   assert.deepEqual(look(open).slice(3, 7), ["标志设计 · gemflow 标志 · 3 条提示词", "d 的提示词 | d 做了", "c 的提示词 | c 做了", "b 的提示词 | b 做了"]);
   const only = sessionRows(prompts, null, [], wordsFor("zh"), 100, NOW, { flow: "标志设计", runs: [], current: "开发流程" });
   assert.deepEqual(look(only).slice(0, 5), ["全部 开发流程 标志设计*", "§ 今天", "d 的提示词 | d 做了", "c 的提示词 | c 做了", "b 的提示词 | b 做了"]);
+  const stale = sessionRows(prompts, null, [], wordsFor("zh"), 100, NOW, { flow: "早就改名的流程", runs: [], current: "开发流程" });
+  assert.deepEqual(look(stale).slice(0, 3), ["全部* 开发流程 标志设计", "§ 今天", "e 的提示词 | e 做了"], "a filter by a flow no prompt carries shows them all, never only the export");
+  const one = sessionRows(prompts.filter((x) => x.flow === "开发流程"), null, [], wordsFor("zh"), 100, NOW, { flow: "标志设计", runs: [], current: "开发流程" });
+  assert.deepEqual(look(one).slice(0, 2), ["§ 今天", "e 的提示词 | e 做了"], "with one flow left there is no filter to clear: every prompt shows");
+});
+
+test("会话 across the project: the decisions, the files before merging (one two sessions changed in the error colour), the other sessions, then this one", async () => {
+  const { projectRows, sessionLabel } = await import("../dist/hosts/claude-code/board.js");
+  const s = (id, host, branch, decisions, files, last) => ({ id, host, branch, started: "2026-10-12T07:00:00Z", last, turns: [{ turn: 1, at: "2026-10-12T08:00:00Z", prompt: `${id} 问的`, decisions: decisions.map(([, text]) => text) }], decisions: decisions.map(([at, text]) => ({ turn: 1, at, text })), files: files.map((path) => ({ path, at: "2026-10-12T08:30:00Z" })), commits: [] });
+  const sessions = [
+    s("me", "claude-code", "feat/x", [["2026-10-12T08:05:00Z", "每会话一个文件"]], ["hooks/register.tsx", "src/board.ts"], "2026-10-12T09:00:00Z"),
+    s("cx", "codex", "feat/y", [["2026-10-12T08:10:00Z", "合并前先跑三平台 CI"]], ["hooks/register.tsx"], "2026-10-12T08:40:00Z"),
+  ];
+  const look = (rows) => rows.map((r) => r.kind === "section" ? `§ ${r.text}` : r.kind === "entry" ? `${r.title} | ${r.tag}${r.tone === "error" ? " !" : ""}` : r.kind === "turn" ? `> ${r.text} | ${r.did}` : r.kind);
+  const rows = projectRows({ sessions, own: "me", open: null }, wordsFor("zh"), 100, NOW);
+  assert.deepEqual(look(rows).map((x) => x.replace(/\d\d:\d\d/, "hh:mm")), [
+    "§ 决定", "合并前先跑三平台 CI | Codex · feat/y hh:mm", "每会话一个文件 | 本会话 hh:mm",
+    "§ 合并前", "hooks/register.tsx | 本会话 · Codex · feat/y !", "src/board.ts | 本会话",
+    "§ 其他会话", "Codex · feat/y | hh:mm",
+    "§ 本会话",
+  ]);
+  assert.deepEqual(rows[1].action, { op: "use-decision", text: "合并前先跑三平台 CI", from: "Codex · feat/y" }, "a press puts the decision in the prompt box");
+  assert.deepEqual(rows.find((r) => r.key === "session-cx").action, { op: "session-open", id: "cx" });
+  const open = projectRows({ sessions, own: "me", open: "cx" }, wordsFor("zh"), 100, NOW);
+  assert.deepEqual(look(open).slice(7, 9).map((x) => x.replace(/\d\d:\d\d/, "hh:mm")), ["Codex · feat/y | hh:mm", "> cx 问的 | 合并前先跑三平台 CI"], "unfolded: its turns, each with what it decided");
+  assert.deepEqual(projectRows({ sessions: [sessions[0]].map((x) => ({ ...x, decisions: [] })), own: "me", open: null }, wordsFor("zh"), 100, NOW), [], "alone and nothing decided: the tab is this session's");
+  assert.equal(sessionLabel({ ...sessions[1], branch: undefined, checkout: ["C:", "w", "geml-agent-runtime"].join(String.fromCharCode(92)) }, "me"), "Codex · geml-agent-runtime", "a Windows checkout: its folder");
+  assert.equal(sessionLabel({ ...sessions[1], branch: undefined, checkout: "/home/g/geml-agent-runtime" }, "me"), "Codex · geml-agent-runtime", "a POSIX one too");
 });

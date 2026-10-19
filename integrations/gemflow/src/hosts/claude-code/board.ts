@@ -8,6 +8,7 @@ import { howText, truncate, varSegment, type Tone } from "./band.js";
 import { othersWaiting, pendingList, shortReason, type InboxItem } from "./inbox.js";
 import type { BoardData, BoardItem, Products, ShellStatus, TimelineEntry } from "./protocol.js";
 import { promptLine, promptTail, type PromptRecord } from "./sessions.js";
+import { filesBySession, type SessionSummary } from "../../core/session-log.js";
 import { ZH, type T } from "./text.js";
 import { agoText, between, dayText, durationText, hhmm, waitedText } from "./time.js";
 import { groupOf, guessUse, keyWords, type ToolGroup } from "./usage.js";
@@ -77,7 +78,9 @@ export type BoardRow =
   /** A work item's way through its flow: each state in order, passed or not, the current one marked. */
   | { kind: "steps"; key: string; steps: { title: string; passed: boolean; current: boolean }[] }
   /** A prompt of the session (the sessions tab): its time, its first line, what its turn did, and the press that opens or closes its menu. */
-  | { kind: "turn"; key: string; at: string; text: string; did: string; open: boolean; action: BoardAction };
+  | { kind: "turn"; key: string; at: string; text: string; did: string; open: boolean; action: BoardAction }
+  /** A row's menu, opened by a press on it: a short column of entries under it. */
+  | { kind: "menu"; key: string; items: Pressable[] };
 
 /** What a card asks of the person: to decide, to accept the work, or to see why something is blocked. */
 export type Icon = "ask" | "done" | "warn";
@@ -204,6 +207,8 @@ export interface PaneInput {
   /** The journal entry whose evidence shows (its row key), or null. */
   evidence: string | null;
   prompts: readonly PromptRecord[];
+  /** The project's sessions as their shared logs hold them (session-log.ts), this one's id, and the other one unfolded (its id). */
+  project?: { sessions: readonly SessionSummary[]; own: string; open: string | null };
   /** The prompt whose menu is open (its id), or null. */
   menu: string | null;
   /** The flow the sessions tab shows (its title), or null for all; the runs of another flow's turns unfolded (their first prompt's id). */
@@ -237,7 +242,10 @@ export function paneRows(o: PaneInput): BoardRow[] {
   const head = o.problem !== null ? [text(o.problem, columns, "error")] : [];
   const status = o.shell?.status ?? null;
   const wait = o.board === null && head.length === 0 ? [text(t("正在读取看板…"), columns, "dim")] : [];
-  if (o.tab === "sessions") return [...head, ...sessionRows(o.prompts, o.menu, o.board?.products?.commits ?? [], t, columns, o.now, { flow: o.sessionFlow, runs: o.sessionRuns, current: status?.workflow.title })];
+  if (o.tab === "sessions") {
+    const own = sessionRows(o.prompts, o.menu, o.board?.products?.commits ?? [], t, columns, o.now, { flow: o.sessionFlow, runs: o.sessionRuns, current: status?.workflow.title });
+    return [...head, ...projectRows(o.project, t, columns, o.now), ...own];
+  }
   const suggestions = o.board !== null ? [...toolSuggestions(o.board, o.usage, o.dismissed, t), ...ciSuggestions(o.board, o.shell?.units ?? [], o.dismissed, t)] : [];
   if (o.tab === "items") return [...head, ...itemRows({ board: o.board, status, inbox: o.inbox, columns, t, now: o.now, doneOpen: o.doneOpen, suggestions }), ...wait];
   if (o.board === null) return head.length > 0 ? head : wait;
@@ -858,7 +866,7 @@ export function journalRows(o: JournalInput): BoardRow[] {
     room--;
     if (open) {
       const menu: Pressable[] = [];
-      if (l.turn !== undefined) menu.push({ key: `turn-${l.row.key}`, label: t("看是哪一轮"), action: { op: "locate", id: l.turn.id } });
+      if (l.turn !== undefined) menu.push({ key: `turn-${l.row.key}`, label: t("看是哪一轮"), action: { op: "locate", id: l.turn.id, ...(l.turn.uuid !== undefined ? { uuid: l.turn.uuid } : {}) } });
       if (l.detail.length > 0) menu.push({ key: `evidence-${l.row.key}`, label: shown ? t("收起凭据") : t("看凭据"), action: { op: "evidence", entry: shown ? null : l.row.key } });
       if (l.rev !== undefined && l.rev > 0) menu.push({ key: `rollback-${l.row.key}`, label: t("回到这一步之前"), action: { op: "rollback", rev: l.rev - 1 } });
       menu.push({ key: `close-${l.row.key}`, label: t("取消"), action: { op: "expand", entry: null } });
@@ -891,18 +899,19 @@ export function sessionRows(prompts: readonly PromptRecord[], menu: string | nul
   const flows = [...new Set(prompts.flatMap((p) => (p.flow !== undefined ? [p.flow] : [])))];
   if (flows.length > 1) {
     rows.push(buttons([
-      { key: "flow-all", label: t("全部"), ...(by.flow === null ? { primary: true } : {}), action: { op: "session-flow", flow: null } },
+      { key: "flow-all", label: t("全部"), ...(by.flow === null || !flows.includes(by.flow) ? { primary: true } : {}), action: { op: "session-flow", flow: null } },
       ...flows.map((f): Pressable => ({ key: `flow-${f}`, label: f, ...(by.flow === f ? { primary: true } : {}), action: { op: "session-flow", flow: f } })),
     ]));
   }
-  const shown = by.flow === null ? prompts : prompts.filter((p) => p.flow === by.flow);
+  const flow = by.flow !== null && flows.length > 1 && flows.includes(by.flow) ? by.flow : null;
+  const shown = flow === null ? prompts : prompts.filter((p) => p.flow === flow);
   let day = "";
   for (let i = shown.length - 1; i >= 0; i--) {
     const p = shown[i] as PromptRecord;
     const heading = now !== undefined ? dayText(p.at, now, t) : "";
     if (heading !== day) { rows.push({ kind: "section", key: `day-${p.id}`, text: heading }); day = heading; }
     // A run of turns in a flow other than the current one folds into one line, unfolded on a press.
-    if (by.flow === null && by.current !== undefined && p.flow !== undefined && p.flow !== by.current) {
+    if (flow === null && by.current !== undefined && p.flow !== undefined && p.flow !== by.current) {
       let j = i;
       while (j > 0 && (shown[j - 1] as PromptRecord).flow === p.flow) j--;
       const run = shown.slice(j, i + 1);
@@ -937,11 +946,87 @@ function turnRows(p: PromptRecord, until: string | undefined, commits: readonly 
   const did = [...made, p.did ?? (promptTail(p, t) || (until === undefined ? t("进行中…") : ""))].filter((x) => x !== "").join(" ");
   const open = menu === p.id;
   const rows: BoardRow[] = [{ kind: "turn", key: `prompt-${p.id}`, at: hhmm(p.at), text: promptLine(p.text, Math.max(12, columns - 8)), did, open, action: { op: "turn-menu", id: open ? null : p.id } }];
-  if (open) rows.push(buttons([
-    { key: `locate-${p.id}`, label: t("跳转"), action: { op: "locate", id: p.id } },
+  if (open) rows.push({ kind: "menu", key: `menu-${p.id}`, items: [
+    { key: `locate-${p.id}`, label: t("跳转"), action: { op: "locate", id: p.id, ...(p.uuid !== undefined ? { uuid: p.uuid } : {}) } },
     { key: `split-${p.id}`, label: t("拆成新会话"), action: { op: "split", id: p.id } },
-    { key: `remove-${p.id}`, label: t("删除本轮会话"), action: { op: "remove", id: p.id } },
-    { key: `close-${p.id}`, label: t("取消"), action: { op: "turn-menu", id: null } },
-  ]));
+    { key: `remove-${p.id}`, label: t("删除本轮会话"), tone: "danger", action: { op: "remove", id: p.id } },
+    { key: `close-${p.id}`, label: t("取消"), tone: "quiet", action: { op: "turn-menu", id: null } },
+  ] });
+  return rows;
+}
+
+/** A host's name for people. */
+export function hostName(host: string): string {
+  switch (host) {
+    case "claude-code": return "Claude";
+    case "codex": return "Codex";
+    case "gemini": return "Gemini";
+    case "dsh": return "DeepSeek";
+    case "pi": return "pi";
+    default: return host;
+  }
+}
+
+/** A session as the session tab names it: this one, or the tool and where it works. */
+export function sessionLabel(s: SessionSummary, own: string, t: T = ZH): string {
+  if (s.id === own) return t("本会话");
+  const where = s.branch ?? (s.checkout !== undefined ? s.checkout.split(/[\\/]/).filter((x) => x !== "").pop() : undefined);
+  return where !== undefined ? `${hostName(s.host)} · ${where}` : hostName(s.host);
+}
+
+/** When, as a tag: the time today, else the day. */
+function whenTag(at: string, now: string | undefined, t: T): string {
+  if (now === undefined) return hhmm(at);
+  const day = dayText(at, now, t);
+  return day === t("今天") ? hhmm(at) : day;
+}
+
+const DECISIONS_SHOWN = 8;
+const FILES_SHOWN = 8;
+
+/**
+ * The session tab's head across the project's sessions (sample C): every
+ * session's decisions, newest first, a press putting one in the prompt box;
+ * the files the sessions changed, one changed by two of them in the error
+ * colour (the clash to settle before merging); the other sessions, each
+ * unfolding to its turns. This session's own turns follow, as before. With no
+ * other session and nothing decided, nothing: the tab is this session's alone.
+ */
+export function projectRows(p: { sessions: readonly SessionSummary[]; own: string; open: string | null } | undefined, t: T = ZH, columns: number, now?: string): BoardRow[] {
+  if (p === undefined) return [];
+  const others = p.sessions.filter((s) => s.id !== p.own).sort((a, b) => (a.last < b.last ? 1 : a.last > b.last ? -1 : 0));
+  const label = (id: string): string => {
+    const s = p.sessions.find((x) => x.id === id);
+    return s === undefined ? id : sessionLabel(s, p.own, t);
+  };
+  const decisions = p.sessions.flatMap((s) => s.decisions.map((d) => ({ ...d, session: s.id }))).sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0));
+  if (others.length === 0 && decisions.length === 0) return [];
+  const rows: BoardRow[] = [];
+  if (decisions.length > 0) {
+    rows.push({ kind: "section", key: "decisions", text: t("决定") });
+    for (const d of decisions.slice(0, DECISIONS_SHOWN)) {
+      rows.push({ kind: "entry", key: `decision-${d.session}-${d.at}`, title: d.text, tag: `${label(d.session)} ${whenTag(d.at, now, t)}`, tone: "normal", action: { op: "use-decision", text: d.text, from: label(d.session) } });
+    }
+  }
+  const files = filesBySession(p.sessions);
+  if (files.length > 0 && others.length > 0) {
+    rows.push({ kind: "section", key: "before-merge", text: t("合并前") });
+    for (const f of files.slice(0, FILES_SHOWN)) {
+      rows.push({ kind: "entry", key: `file-${f.path}`, title: f.path, tag: f.sessions.map(label).join(" · "), tone: f.sessions.length > 1 ? "error" : "normal" });
+    }
+  }
+  if (others.length > 0) {
+    rows.push({ kind: "section", key: "others", text: t("其他会话") });
+    for (const s of others) {
+      const open = p.open === s.id;
+      rows.push({ kind: "entry", key: `session-${s.id}`, title: sessionLabel(s, p.own, t), tag: whenTag(s.last, now, t), tone: "normal", action: { op: "session-open", id: open ? null : s.id } });
+      if (open) {
+        for (const turn of [...s.turns].reverse()) {
+          rows.push({ kind: "turn", key: `other-${s.id}-${turn.turn}`, at: hhmm(turn.at), text: promptLine(turn.prompt, Math.max(12, columns - 8)), did: turn.decisions.join("；"), open: false, action: { op: "session-open", id: null } });
+        }
+      }
+    }
+    rows.push({ kind: "section", key: "own", text: t("本会话") });
+  }
   return rows;
 }

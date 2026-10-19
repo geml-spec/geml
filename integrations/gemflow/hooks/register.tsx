@@ -36,10 +36,12 @@ import { answered, bandLine, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, pendi
 import type { Queued } from '../dist/hosts/claude-code/attention.js'
 import type { AttentionFacts, AttentionMemory } from '../dist/hosts/claude-code/attention.js'
 import { envParts, remoteInPlay } from '../dist/hosts/claude-code/env.js'
+import { appendEvents, currentTurn, decisionsContext, decisionsSince, logName, nextTurn, NOTE_TOOL, parseLog, SESSIONS_GITIGNORE, SESSIONS_PROMPT, summarize } from '../dist/core/session-log.js'
+import type { SessionEvent, SessionSummary } from '../dist/core/session-log.js'
 import type { AttachedClient, HostInfo } from '../dist/hosts/claude-code/env.js'
 import { bandView, BRAND_RED, cellWidth, MARK, MARK_SVG, SEP, toneProps, truncate } from '../dist/hosts/claude-code/band.js'
 import type { BandView, Segment, Tone } from '../dist/hosts/claude-code/band.js'
-import { BOARD_ID, ciSuggestions, DIALOG_ID, glyphSvg, HOME_TAB, ICON_CHAR, ICON_SVG, ICON_TONE, inputAction, paneRows, TAB_IDS, tabs, toolSuggestions } from '../dist/hosts/claude-code/board.js'
+import { BOARD_ID, ciSuggestions, DIALOG_ID, glyphSvg, HOME_TAB, hostName, ICON_CHAR, ICON_SVG, ICON_TONE, inputAction, paneRows, TAB_IDS, tabs, toolSuggestions } from '../dist/hosts/claude-code/board.js'
 import type { BoardRow, FlowEdgeRow, Glyph, Icon } from '../dist/hosts/claude-code/board.js'
 import { boardFailure, boardText, COMMAND_HINT, commandText, parseCommand } from '../dist/hosts/claude-code/command.js'
 import { afterNeeded, beforeDecision, checkoutProbe, isOwnTool, matchesUnit, paramsToFill } from '../dist/hosts/claude-code/fastpath.js'
@@ -127,6 +129,12 @@ const clientsAtom = atom({ plugin: 'gemflow', key: 'clients' } as const, [] as G
 const originAtom = atom({ plugin: 'gemflow', key: 'origin' } as const, null as string | null)
 /** The steps the person pressed that went into the session: queued until it is idle, then entered and being done until that turn ends. */
 const queuedAtom = atom({ plugin: 'gemflow', key: 'queued' } as const, [] as GemflowJson)
+/** The project's shared session logs: where they are, what they hold, the other session unfolded, the decisions already passed on, a commit in this turn. */
+const sessionsDirAtom = atom({ plugin: 'gemflow', key: 'sessionsDir' } as const, null as string | null)
+const projectSessionsAtom = atom({ plugin: 'gemflow', key: 'projectSessions' } as const, [] as GemflowJson)
+const openSessionAtom = atom({ plugin: 'gemflow', key: 'openSession' } as const, null as string | null)
+const decisionsSeenAtom = atom({ plugin: 'gemflow', key: 'decisionsSeen' } as const, null as string | null)
+const committedAtom = atom({ plugin: 'gemflow', key: 'committed' } as const, false)
 const readQueued = async ($: EngineInterface): Promise<Queued[]> => ((await read($, queuedAtom)) as unknown as Queued[] | null) ?? []
 const setQueued = async ($: EngineInterface, f: (was: Queued[]) => Queued[]): Promise<void> => {
   await update($, queuedAtom, (was) => f(((was as unknown) as Queued[] | null) ?? []) as unknown as GemflowJson)
@@ -425,10 +433,127 @@ async function envNow($: EngineInterface, t: T, surface?: string): Promise<{ par
   return { parts: envParts({ host, root: await read($, rootAtom), remote, t }), host, remote }
 }
 
+// ---- the project's shared session record (session-log.ts) -------------------------------
+
+/** How this host names its logs. */
+const OWN_HOST = 'claude-code'
+/** How far back a session's first prompt hears the other sessions' decisions. */
+const DECISIONS_BACK_MS = 3 * 24 * 60 * 60 * 1000
+
+/** This session's log, the events `make` adds at its end (given the events so far, a session line first when there was none); nothing when the project has no record. */
+async function appendOwn($: EngineInterface, make: (events: SessionEvent[]) => SessionEvent[]): Promise<SessionEvent[]> {
+  try {
+    const dir = await read($, sessionsDirAtom)
+    if (dir === null) return []
+    const id = await $.session.id()
+    const path = `${dir}/${logName(OWN_HOST, id)}`
+    let text = ''
+    try { text = String(await $.fs.read(path)) } catch { text = '' }
+    const events = parseLog(text)
+    const head: SessionEvent[] = []
+    if (!events.some((x) => x.t === 'session')) {
+      const host = (await read($, hostAtom)) as unknown as HostInfo | null
+      const root = await read($, rootAtom)
+      head.push({ t: 'session', id, host: OWN_HOST, at: await nowIso($), ...(host?.branch !== undefined ? { branch: host.branch } : {}), ...(root !== null ? { checkout: root } : {}) })
+      // The directory keeps itself out of git, whichever branch the main working tree is on.
+      if (!(await $.fs.exists(`${dir}/.gitignore`))) await $.fs.write(`${dir}/.gitignore`, SESSIONS_GITIGNORE)
+    }
+    const added = [...head, ...make([...events, ...head])]
+    if (added.length > 0) await $.fs.write(path, appendEvents(text, added))
+    return [...events, ...added]
+  } catch { return [] }
+}
+
+/** Logs read again only when they changed: by name, the size and time they were read at. */
+const logsRead = new Map<string, { size: number; mtimeMs: number; summary: SessionSummary | undefined }>()
+
+/** Every session's log in the project's record, read into the session tab's state (answers left out: the tab shows the decisions). */
+async function loadProjectSessions($: EngineInterface): Promise<SessionSummary[]> {
+  const dir = await read($, sessionsDirAtom)
+  if (dir === null) return []
+  let entries: { name: string; kind: string; size: number; mtimeMs: number }[]
+  try { entries = [...(await $.fs.list(dir))] } catch { return [] }
+  const sessions: SessionSummary[] = []
+  for (const en of entries) {
+    if (en.kind !== 'file' || !en.name.endsWith('.jsonl')) continue
+    const known = logsRead.get(en.name)
+    let summary = known !== undefined && known.size === en.size && known.mtimeMs === en.mtimeMs ? known.summary : undefined
+    if (summary === undefined) {
+      try { summary = summarize(parseLog(String(await $.fs.read(`${dir}/${en.name}`)))) } catch { summary = undefined }
+      if (summary !== undefined) summary = { ...summary, turns: summary.turns.map(({ answer: _answer, ...turn }) => turn) }
+      logsRead.set(en.name, { size: en.size, mtimeMs: en.mtimeMs, summary })
+    }
+    if (summary !== undefined) sessions.push(summary)
+  }
+  if (JSON.stringify(sessions) !== JSON.stringify(await read($, projectSessionsAtom))) await update($, projectSessionsAtom, () => sessions as unknown as GemflowJson)
+  return sessions
+}
+
+/** A person's prompt: into this session's log as the next turn; the other sessions' decisions it has not heard come back as the line beside it. */
+async function sessionsOnPrompt($: EngineInterface, text: string): Promise<string[]> {
+  const at = await nowIso($)
+  await appendOwn($, (events) => [{ t: 'prompt', turn: nextTurn(events), at, text }])
+  const sessions = await loadProjectSessions($)
+  if (sessions.length === 0) return []
+  const seen = await read($, decisionsSeenAtom)
+  const since = seen ?? new Date(Date.parse(at) - DECISIONS_BACK_MS).toISOString()
+  const fresh = decisionsSince(sessions, await $.session.id(), since)
+  await update($, decisionsSeenAtom, () => at)
+  if (fresh.length === 0) return []
+  return [decisionsContext(fresh, (d) => `${hostName(d.host)}${d.branch !== undefined ? ` · ${d.branch}` : ''}，${hhmm(d.at)}`)]
+}
+
+/** The model's note: the decisions into this session's log, under the turn under way. */
+async function noteDecisions($: EngineInterface, event: unknown): Promise<ToolCallResult> {
+  const args = toolArgs(event as Record<string, unknown>)
+  const given = Array.isArray(args['decisions']) ? (args['decisions'] as unknown[]).filter((x): x is string => typeof x === 'string' && x.trim() !== '').map((x) => x.trim()) : []
+  if (given.length === 0) return { result: 'Nothing recorded: decisions is a list of short sentences.' }
+  if ((await read($, sessionsDirAtom)) === null) return { result: 'Nothing recorded: this project has no shared session record yet (gemflow has not read the repository).' }
+  const at = await nowIso($)
+  const events = await appendOwn($, (so) => given.map((text): SessionEvent => ({ t: 'decision', turn: currentTurn(so), at, text })))
+  if (events.length === 0) return { result: 'Nothing recorded: the session record could not be written.' }
+  await loadProjectSessions($)
+  return { result: `Recorded ${given.length} decision${given.length === 1 ? '' : 's'}; the project's other sessions will see ${given.length === 1 ? 'it' : 'them'}.` }
+}
+
+/** A turn's end: its answer into this session's log, and the commits a command in it made. */
+async function sessionsOnAnswer($: EngineInterface, answer: string): Promise<void> {
+  const at = await nowIso($)
+  const committed = await read($, committedAtom)
+  if (committed) await update($, committedAtom, () => false)
+  let commits: { sha: string; at: string; subject: string }[] = []
+  const root = await read($, rootAtom)
+  const events = await appendOwn($, (so) => [{ t: 'answer', turn: currentTurn(so), at, text: answer }])
+  const asked = [...events].reverse().find((x): x is Extract<SessionEvent, { t: 'prompt' }> => x.t === 'prompt')
+  if (committed && root !== null && asked !== undefined) {
+    try {
+      const r = await $.process.run(['git', '-C', root, 'log', `--since=${asked.at}`, '--format=%H%x09%cI%x09%s', 'HEAD'], { timeoutMs: BRIDGE_TIMEOUT_MS })
+      if (r.exitCode === 0) commits = r.stdout.split(/\r?\n/).filter((l) => l !== '').map((l) => { const [sha = '', when = at, ...rest] = l.split('\t'); return { sha, at: when, subject: rest.join('\t') } })
+    } catch { commits = [] }
+  }
+  if (commits.length > 0) {
+    const branch = ((await read($, hostAtom)) as unknown as HostInfo | null)?.branch
+    await appendOwn($, (so) => commits.filter((c) => !so.some((x) => x.t === 'commit' && x.sha === c.sha)).map((c): SessionEvent => ({ t: 'commit', turn: currentTurn(so), at: c.at, sha: c.sha, subject: c.subject, ...(branch !== undefined ? { branch } : {}) })))
+  }
+  await loadProjectSessions($)
+}
+
+/** A file this session wrote: into its log once. */
+async function sessionsOnFile($: EngineInterface, path: string): Promise<void> {
+  const at = await nowIso($)
+  const branch = ((await read($, hostAtom)) as unknown as HostInfo | null)?.branch
+  await appendOwn($, (so) => (so.some((x) => x.t === 'file' && x.path === path) ? [] : [{ t: 'file', turn: currentTurn(so), at, path, ...(branch !== undefined ? { branch } : {}) }]))
+}
+
 /** Ask the bridge what the repository says (pushed or not, pull requests green or failing); the band redraws when it changed. */
 async function loadFacts($: EngineInterface): Promise<void> {
   const res = await bridge($, { op: 'attention' }, SLOW_TIMEOUT_MS)
   if (res === undefined || !res.ok || res.attention === undefined) return
+  const dir = res.sessions
+  if (dir !== undefined && dir !== (await read($, sessionsDirAtom))) {
+    await update($, sessionsDirAtom, () => dir)
+    await loadProjectSessions($)
+  }
   const host = res.host
   if (host !== undefined && JSON.stringify(host) !== JSON.stringify(await read($, hostAtom))) {
     await update($, hostAtom, () => host as unknown as GemflowJson)
@@ -555,6 +680,32 @@ async function loadStored($: EngineInterface): Promise<void> {
   try { dismissed = ((await $.store.get(`dismissed:${root}`)) as unknown as string[] | null) ?? [] } catch { dismissed = [] }
   await update($, usageBookAtom, () => book as unknown as GemflowJson)
   await update($, dismissedAtom, () => dismissed as unknown as GemflowJson)
+}
+
+/** How many sessions' prompts the store keeps, and how much of each prompt's text. */
+const PROMPT_SESSIONS_KEPT = 8
+const PROMPT_TEXT_KEPT = 2000
+
+/** This session's prompts into the store (under its id), the oldest sessions' let go; a store that refuses leaves the session's own. */
+async function storePrompts($: EngineInterface): Promise<void> {
+  try {
+    const id = await $.session.id()
+    const prompts = (await readPrompts($)).map((p) => (p.text.length > PROMPT_TEXT_KEPT ? { ...p, text: p.text.slice(0, PROMPT_TEXT_KEPT) } : p))
+    await $.store.set(`prompts:${id}`, prompts)
+    const was = await $.store.get('prompts:sessions')
+    const order = [...(Array.isArray(was) ? (was as string[]).filter((x) => x !== id) : []), id]
+    for (const old of order.slice(0, -PROMPT_SESSIONS_KEPT)) await $.store.delete(`prompts:${old}`)
+    await $.store.set('prompts:sessions', order.slice(-PROMPT_SESSIONS_KEPT))
+  } catch { /* the session's own state still holds them */ }
+}
+
+/** At a load with no prompts held (the app restarted under a resumed session), the ones the store kept for it. */
+async function restorePrompts($: EngineInterface): Promise<void> {
+  if ((await readPrompts($)).length > 0) return
+  try {
+    const kept = await $.store.get(`prompts:${await $.session.id()}`)
+    if (Array.isArray(kept) && kept.length > 0) await update($, promptsAtom, () => kept as unknown as GemflowJson)
+  } catch { /* none kept */ }
 }
 
 /** One call noted in this session's book; a failure to count never stands in the call's way. */
@@ -982,6 +1133,12 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       return
     }
     case 'turn-menu': await update($, turnMenuAtom, () => action.id); return
+    case 'session-open': await update($, openSessionAtom, () => action.id); return
+    case 'use-decision': {
+      const filled = await $.prompt.fill({ text: `${t('参照 {0}：{1}', action.from, action.text)}\n`, mode: 'insert' }).catch(() => undefined)
+      if (filled?.isFilled !== true) $.ui.toast(t('放不进输入框'))
+      return
+    }
     case 'session-flow': await update($, sessionFlowAtom, () => action.flow); return
     case 'session-run': await update($, sessionRunsAtom, (was) => {
       const list = new Set((((was as unknown) as string[] | null) ?? []))
@@ -994,7 +1151,7 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       const p = (await readPrompts($)).find((x) => x.id === action.id)
       if (p?.uuid === undefined) { $.ui.toast(t('这条 prompt 在对话里的位置还不知道')); return }
       let deny: string | undefined
-      try { deny = (await $.ui.scroll({ to: { requestId: p.uuid } })).deny } catch (err) { deny = reasonOf(err) }
+      try { deny = (await $.ui.scroll({ to: { requestId: p.uuid }, block: 'start' })).deny } catch (err) { deny = reasonOf(err) }
       if (deny !== undefined) $.ui.toast(t('对话没有滚到那一处：{0}', deny))
       return
     }
@@ -1026,6 +1183,14 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
 /** A press runs its action; a failure is one toast, never a crash of the drawing. */
 function press($: EngineInterface, action: BoardAction): (e: { surface: string }) => void {
   return (e) => {
+    // A transcript row moves only while the plugin answers the person's own input: 跳转 asks for the scroll first,
+    // before anything is awaited, the prompt's row at the top of the window.
+    if (action.op === 'locate' && action.uuid !== undefined) {
+      const moving = $.ui.scroll({ to: { requestId: action.uuid }, block: 'start' })
+      void moving.then(async (r) => { if (r.deny !== undefined) $.ui.toast((await words($))('对话没有滚到那一处：{0}', r.deny)) }).catch(async (err: unknown) => $.ui.toast((await words($))('对话没有滚到那一处：{0}', reasonOf(err))))
+      void update($, turnMenuAtom, () => null).catch(() => undefined)
+      return
+    }
     void act($, action, e.surface).catch((err: unknown) => $.ui.toast(`gemflow：${reasonOf(err)}`))
   }
 }
@@ -1090,6 +1255,7 @@ function iconButton($: EngineInterface, els: Els, b: Pressable, g: Glyph, o: { t
 const RULE = '#8a898666'
 const HEADING = '#8a8986'
 const SHADE = '#8a89861a'
+const SELECTED = '#2a6fdb24'
 function hairline(els: Els, key: string, columns: number): unknown {
   const { Text, Svg } = els
   return Svg !== undefined ? <Text key={key} color={RULE} wrap="truncate">{'─'.repeat(Math.max(1, columns - 2))}</Text> : null
@@ -1105,6 +1271,17 @@ function drawRows($: EngineInterface, els: Els, rows: BoardRow[], columns: numbe
   const out: unknown[] = []
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i] as BoardRow
+    if (r.kind === 'turn' || r.kind === 'menu') {
+      const run: Extract<BoardRow, { kind: 'turn' | 'menu' }>[] = []
+      while (i < rows.length && ((rows[i] as BoardRow).kind === 'turn' || (rows[i] as BoardRow).kind === 'menu')) run.push(rows[i++] as Extract<BoardRow, { kind: 'turn' | 'menu' }>)
+      i--
+      out.push(
+        <Box key={`turns-${r.key}`} flexDirection="column">
+          {run.flatMap((x, n) => n === 0 || x.kind === 'menu' ? [drawRow($, els, x, n)] : [<Text key={`sep-${x.key}`} color={RULE} wrap="truncate">{'─'.repeat(Math.max(1, columns - 2))}</Text>, drawRow($, els, x, n)])}
+        </Box>,
+      )
+      continue
+    }
     if (r.kind !== 'entry') { out.push(drawRow($, els, r, i)); continue }
     const run: Extract<BoardRow, { kind: 'entry' }>[] = []
     while (i < rows.length && (rows[i] as BoardRow).kind === 'entry') run.push(rows[i++] as Extract<BoardRow, { kind: 'entry' }>)
@@ -1148,7 +1325,7 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
     case 'entry': return (
       <Box key={row.key} gap={2} paddingX={els.Svg !== undefined ? 0 : 1}>
         {row.action !== undefined
-          ? <Button key="go" plain label={row.title} onPress={press($, row.action)} />
+          ? <Button key={`go-${row.key}`} plain label={row.title} onPress={press($, row.action)} />
           : <Text {...toneProps(row.tone)} wrap="truncate-end">{row.title}</Text>}
         <Box flexGrow={1} />
         {row.tag !== '' && <Text dimColor>{row.tag}</Text>}
@@ -1214,13 +1391,31 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
       </Box>
     )
     // A prompt in one line: its time, its first line as the press that opens its menu, what its turn did.
-    case 'turn': return (
+    case 'turn': return els.Svg !== undefined ? (
+      <Box key={row.key} gap={2} paddingX={1} {...(row.open ? { backgroundColor: SELECTED } : { hover: { backgroundColor: SHADE } })}>
+        <Box width={Math.max(5, cellWidth(row.at))} flexShrink={0}><Text dimColor>{row.at}</Text></Box>
+        <Box flexDirection="column" flexGrow={1} minWidth={0}>
+          <Button key={`open-${row.key}`} plain label={row.text} onPress={press($, row.action)} />
+          {row.did !== '' && <Text dimColor wrap="truncate-end">{row.did}</Text>}
+        </Box>
+      </Box>
+    ) : (
       <Box key={row.key} flexDirection="column">
         <Box gap={1}>
           <Text dimColor>{row.at}</Text>
           <Button key={`open-${row.key}`} plain label={row.text} onPress={press($, row.action)} />
         </Box>
         {row.did !== '' && <Text dimColor wrap="truncate-end">{`      ${row.did}`}</Text>}
+      </Box>
+    )
+    // A row's menu: a small card under the row, the entry that destroys in the error colour, the one that closes dim.
+    case 'menu': return els.Svg !== undefined ? (
+      <Box key={row.key} flexDirection="column" borderStyle="round" borderColor={RULE} marginLeft={8} width={20} paddingX={1}>
+        {row.items.map((b) => <Button key={b.key} plain onPress={press($, b.action)}><Text {...(b.tone === 'danger' ? { color: 'error' } : b.tone === 'quiet' ? { dimColor: true } : {})}>{b.label}</Text></Button>)}
+      </Box>
+    ) : (
+      <Box key={row.key} gap={2}>
+        {row.items.map((b) => <Button key={b.key} label={b.label} onPress={press($, b.action)} />)}
       </Box>
     )
   }
@@ -1379,9 +1574,11 @@ export const register: Register = (on) => {
     await update($, rootAtom, () => e.cwd)
     await update($, setupAtom, () => null)
     await loadStored($)
+    await restorePrompts($)
     for (const t of FLOW_TOOLS) {
       await registerOne($, t.name, () => $.tool.register({ name: t.name, description: t.description, inputSchema: t.inputSchema, isDeferred: false }))
     }
+    await registerOne($, NOTE_TOOL.name, () => $.tool.register({ name: NOTE_TOOL.name, description: NOTE_TOOL.description, inputSchema: NOTE_TOOL.inputSchema as unknown as Record<string, unknown>, isDeferred: false }))
     await registerOne($, '/gemflow', () => $.command.register({ name: 'gemflow', description: 'Gemflow：当前阶段、看板、暂停与继续、切换或添加流程', argumentHint: COMMAND_HINT }))
     // The settings, from the store; the host's language; the plugin's version.
     try {
@@ -1400,7 +1597,7 @@ export const register: Register = (on) => {
     await update($, queuedAtom, () => [])
     $.clock.after(0, () => { void loadFacts($) })
     $.clock.every(120_000, () => { void loadFacts($) })
-    $.clock.every(60_000, () => { $.ui.invalidate('ui.render') })
+    $.clock.every(60_000, () => { $.ui.invalidate('ui.render'); void loadProjectSessions($) })
     return next(e)
   }).catch(($, e, next) => next(e))
 
@@ -1434,7 +1631,7 @@ export const register: Register = (on) => {
     const tool = String(e.tool)
     // How often each tool is used: every call is noted under its day as it starts, by the key the dictionary would give it, gemflow's own too.
     await noteUsage($, tool, toolArgs(e as unknown as Record<string, unknown>))
-    if (isOwnTool(tool)) return next(e)
+    if (isOwnTool(tool) || tool === `mcp__gemflow__${NOTE_TOOL.name}`) return next(e)
     await retryStart($)
     if (e.agentId === undefined) await notePrompt($, (p) => ({ ...p, tools: p.tools + 1 }))
     const input = toolArgs(e as unknown as Record<string, unknown>)
@@ -1482,6 +1679,7 @@ export const register: Register = (on) => {
     const wrotePath = touchedPath(tool, input, root ?? '')
     // A file written in another checkout is that checkout's work item, never the session's current one.
     if (!elsewhere && wrotePath !== undefined && matchesUnit(policy, wrotePath, (await readShell($))?.units ?? [])) await update($, lastFileAtom, () => wrotePath)
+    if (wrotePath !== undefined && ran.isError !== true) { const path = wrotePath; $.clock.after(0, () => { void sessionsOnFile($, path) }) }
     const exitCode = CLAUDE_CODE_TOOLS.run.includes(tool) ? bashExitCode(ran) : undefined
     const outcome = {
       isError: ran.isError === true,
@@ -1506,12 +1704,21 @@ export const register: Register = (on) => {
   on('tool.call', { tool: 'mcp__gemflow__status' }, ($, e) => serveVerb($, 'status', e)).catch(() => VERB_FAILED)
   on('tool.call', { tool: 'mcp__gemflow__move' }, ($, e) => serveVerb($, 'move', e)).catch(() => VERB_FAILED)
   on('tool.call', { tool: 'mcp__gemflow__set' }, ($, e) => serveVerb($, 'set', e)).catch(() => VERB_FAILED)
+  on('tool.call', { tool: 'mcp__gemflow__note' }, ($, e) => noteDecisions($, e)).catch(() => ({ result: 'gemflow could not record that' }))
+
+  // The model is told once about the project's other sessions and the note tool.
+  on('prompt.compose', async ($, e, next) => {
+    const done = await next(e)
+    return { ...done, sections: [...done.sections, { id: 'gemflow:sessions', text: SESSIONS_PROMPT, scope: 'session' as const }] }
+  }).catch(($, e, next) => next(e))
 
   // A main-loop turn's end: the first sentence of its answer goes on its prompt's row, as what the turn did.
   on('turn.complete', async ($, e, next) => {
     const done = await next(e)
     if (e.agentId === undefined) {
       try { await setQueued($, (q) => q.filter((x) => !x.entered)) } catch { /* shown till the next */ }
+      $.clock.after(0, () => { void storePrompts($) })
+      if (!e.isAborted) { const answer = e.answer; $.clock.after(0, () => { void sessionsOnAnswer($, answer) }) }
       try { await storeUsage($) } catch { /* kept for the next turn */ }
       try {
         const did = answerGist(e.answer)
@@ -1536,7 +1743,8 @@ export const register: Register = (on) => {
   on('prompt.submit', async ($, e, next) => {
     // Where it came from: this machine's prompt box, or Remote Control (a plugin's own prompt keeps the last).
     if (e.origin.kind !== 'plugin') { try { await update($, originAtom, () => e.origin.kind) } catch { /* unknown */ } }
-    const news = e.origin.kind === 'plugin' && e.origin.asUser !== true ? [] : await attentionOnPrompt($, e.text)
+    const person = e.origin.kind !== 'plugin' || e.origin.asUser === true
+    const news = person ? [...(await attentionOnPrompt($, e.text)), ...(await sessionsOnPrompt($, e.text).catch(() => [] as string[]))] : []
     const go = (ev: typeof e) => next(news.length > 0 ? { ...ev, context: [...(ev.context ?? []), ...news] } : ev)
     // Between turns, where the person may have moved the session: the root follows. Within a turn it stays, so a call in another checkout stays elsewhere.
     await followCwd($)
@@ -1553,6 +1761,7 @@ export const register: Register = (on) => {
       }
       const before = await readPrompts($)
       await update($, promptsAtom, (was) => [...((((was as unknown) as PromptRecord[] | null) ?? [])), record].slice(-PROMPTS_KEPT) as unknown as GemflowJson)
+      $.clock.after(0, () => { void storePrompts($) })
       // A typed prompt is judged (an option pressed said what it chose already), after it is on its way.
       if (e.origin.kind !== 'plugin' && (await readSettings($)).judge.enabled) {
         const lastAnswer = before[before.length - 1]?.did ?? ''
@@ -1581,6 +1790,7 @@ export const register: Register = (on) => {
       const command = String(e.command ?? '').replace(/\\/g, '/')
       const root = $.plugin.root.replace(/\\/g, '/')
       if (command.includes(root) || /local-marketplaces/.test(command)) await update($, reloadAtom, () => true)
+      if (/\bgit\b[^\n|;&]*\bcommit\b/.test(command) && !(await read($, committedAtom))) await update($, committedAtom, () => true)
     } catch { /* nothing due */ }
     return done
   }).catch(($, e, next) => next(e))
@@ -1606,7 +1816,8 @@ export const register: Register = (on) => {
   // A render that throws (a shell this module cannot read) draws one line saying so, never the engine's blank.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey) return next(e)
-    const { Box, Text, Button, Svg } = elementsOf($, e)
+    const els = elementsOf($, e)
+    const { Box, Text, Button, Svg } = els
     const t = await words($)
     let view: BandView
     // The board is a press away whenever there is a workflow, not only when something waits in it.
@@ -1659,7 +1870,7 @@ export const register: Register = (on) => {
     const columns: number = e.props.bodyColumns
     const env = await envNow($, t, e.surface).catch(() => ({ parts: [] as string[], host: null as HostInfo | null, remote: false }))
     const at = env.remote && env.host !== null ? `@${env.host.name}` : ''
-    const reserve = [...options, ...tail].reduce((w, b) => w + cellWidth(b.label) + 5, 0) + (at !== '' ? cellWidth(at) + 1 : 0)
+    const reserve = [...options, ...tail].reduce((w, b) => w + (b.key === 'board' && Svg !== undefined ? 4 : cellWidth(b.label) + 5), 0) + (at !== '' ? cellWidth(at) + 1 : 0)
     const lead = 2 + (view.verb !== '' ? cellWidth(view.verb) + 1 : 0)
     const room = Math.max(8, columns - reserve - lead)
     const noteRoom = view.note !== '' ? Math.min(cellWidth(view.note) + 3, Math.floor(room / 3)) : 0
@@ -1675,19 +1886,12 @@ export const register: Register = (on) => {
     // the terminal's rows read "1: label", a survey's way.
     const pressable = (b: Pressable, i: number) => Svg !== undefined
       ? (b.key === 'board'
-        ? (
-          <Box key="band-board" gap={1} alignItems="center" flexShrink={0}>
-            <Svg source={glyphSvg('board', 'dim')} alt="" width={14} height={14} />
-            <Text>{b.label}</Text>
-            <Box position="absolute" top={0} left={0} right={0} bottom={0} justifyContent="center" alignItems="center">
-              <Button key={b.key} plain label={blankOf(cellWidth(b.label) + 3)} onPress={press($, b.action)} />
-            </Box>
-          </Box>
-        )
+        ? iconButton($, els, b, 'board', { from: 'right', size: 15 })
         : <Button key={b.key} label={b.label} {...(b.primary ? { variant: 'primary' } : {})} onPress={press($, b.action)} />)
       : <Button key={b.key} plain hotkey={String(i + 1)} label={b.label} {...(b.primary ? { variant: 'primary' } : {})} onPress={press($, b.action)} />
+    const board = tail.find((b) => b.key === 'board')
     return (
-      <Box gap={1} alignItems="center">
+      <Box gap={1} alignItems="center" flexGrow={1}>
         {/* The mark opens the board: a blank button laid over the picture (a Button holds only words), the mark itself as the button on the terminal. */}
         {Svg !== undefined
           ? (
@@ -1711,7 +1915,9 @@ export const register: Register = (on) => {
         {at !== '' && <Text dimColor>{at}</Text>}
         {tail.map((b, i) => b.key === 'more'
           ? <Box key="band-more">{pressable(b, options.length + i)}{card(view.more.detail, { right: 0 }, columns - 4)}</Box>
-          : pressable(b, options.length + i))}
+          : null)}
+        {board !== undefined && <Box key="band-push" flexGrow={1} />}
+        {board !== undefined && pressable(board, options.length + tail.indexOf(board))}
       </Box>
     )
   })
@@ -1737,6 +1943,7 @@ export const register: Register = (on) => {
         filter: (await read($, filterAtom)) as JournalFilter, expanded: await read($, expandedAtom), evidence: await read($, evidenceAtom),
         // Written on every tool call: read only on the tabs that show them, so a call redraws no other tab.
         prompts: tab === 'sessions' || tab === 'journal' ? await readPrompts($) : [],
+        ...(tab === 'sessions' ? { project: { sessions: ((await read($, projectSessionsAtom)) as unknown as SessionSummary[] | null) ?? [], own: await $.session.id().catch(() => ''), open: await read($, openSessionAtom) } } : {}),
         menu: await read($, turnMenuAtom), doneOpen: await read($, doneOpenAtom),
         sessionFlow: await read($, sessionFlowAtom), sessionRuns: ((await read($, sessionRunsAtom)) as unknown as string[] | null) ?? [],
         flowState: await read($, flowStateAtom), switching: await read($, flowSwitchAtom), workflows: (await read($, workflowsAtom)) as unknown as { bundled: string[]; installed: string[] } | null,
