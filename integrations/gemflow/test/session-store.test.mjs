@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { logName, parseLog } from "../dist/core/session-log.js";
@@ -18,7 +18,7 @@ test("one directory for every checkout: a session in a worktree writes into the 
   const wt = join(mkdtempSync(join(tmpdir(), "gemflow-wt-")), "wt");
   assert.equal(git(main, "worktree", "add", "-q", "-b", "feat/y", wt).status, 0);
   recordPrompt(wt, "codex", "cx1", "在 worktree 里问的", "2026-10-19T08:00:00.000Z");
-  assert.ok(existsSync(join(main, ".geml", "sessions", "codex-cx1.jsonl")), "the log is the main working tree's");
+  assert.ok(existsSync(join(main, ".geml", "sessions", "codex-cx1.geml")), "the log is the main working tree's");
   assert.equal(readFileSync(join(main, ".geml", "sessions", ".gitignore"), "utf8"), "*\n");
   assert.equal(git(main, "status", "--porcelain").stdout.includes(".geml/sessions"), false, "git sees none of it");
   const [head, prompt] = events(wt, "codex", "cx1");
@@ -69,4 +69,15 @@ test("appendSession: a session line first, once; a log cut short mid-line still 
   writeFileSync(file, `${readFileSync(file, "utf8")}{"t":"prompt","tu`);
   recordPrompt(root, "codex", "s", "继续");
   assert.deepEqual(parseLog(readFileSync(file, "utf8")).map((e) => e.t), ["session", "prompt"]);
+});
+
+test("an earlier log of plain JSON lines: read as it is, carried into the GEML one when the session writes next, and never read twice", () => {
+  const root = gitRepo();
+  const dir = sessionsDirOf(root);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "codex-old.jsonl"), `${JSON.stringify({ t: "session", id: "old", host: "codex", at: "2026-10-18T08:00:00.000Z" })}\n${JSON.stringify({ t: "prompt", turn: 1, at: "2026-10-18T08:01:00.000Z", text: "旧的一句" })}\n`);
+  assert.deepEqual(readSessions(root).map((x) => [x.id, x.turns.length]), [["old", 1]]);
+  recordPrompt(root, "codex", "old", "新的一句", "2026-10-19T08:00:00.000Z");
+  assert.deepEqual(events(root, "codex", "old").map((e) => [e.t, e.turn ?? null]), [["session", null], ["prompt", 1], ["prompt", 2]]);
+  assert.deepEqual(readSessions(root).map((x) => [x.id, x.turns.length]), [["old", 2]], "the GEML one stands for both");
 });

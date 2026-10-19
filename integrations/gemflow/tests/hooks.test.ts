@@ -184,6 +184,7 @@ function world(on: On) {
     if (req.op === 'verb') return { v: 1, ok: true, shell: shell(), text: `[gemflow] work item feat/x · state #${w.state}` }
     if (req.op === 'board') return { v: 1, ok: true, shell: shell(), board: board(), todo: w.todo }
     if (req.op === 'refresh') return { v: 1, ok: true, shell: shell(), todo: w.todo }
+    if (req.op === 'status' && w.sessionsDir !== null) return { v: 1, ok: true, shell: shell(), sessions: w.sessionsDir }
     if (req.op === 'attention') return { v: 1, ok: true, shell: shell(), attention: { ahead: [], prs: w.prs }, ...(w.sessionsDir !== null ? { sessions: w.sessionsDir } : {}), host: { name: 'build-box', platform: 'linux', user: 'dev', branch: 'feat/x' } }
     return { v: 1, ok: true, shell: shell(), ...(req.op === 'before' ? { recorded: false } : {}), ...(req.op === 'after' ? handoff(req) : {}) }
   }
@@ -1077,8 +1078,8 @@ test('a session resumed after the app restarted shows the prompts the store kept
 })
 
 const LOGS = `${ROOT}/.geml/sessions`
-const OWN_LOG = `${LOGS}/claude-code-sess-1234567890.jsonl`
-const events = (text: string | undefined) => (text ?? '').split('\n').filter((l) => l !== '').map((l) => JSON.parse(l) as Record<string, unknown>)
+const OWN_LOG = `${LOGS}/claude-code-sess-1234567890.geml`
+const events = (text: string | undefined) => (text ?? '').split('\n').filter((l) => l.startsWith('{')).map((l) => JSON.parse(l) as Record<string, unknown>)
 
 test('the project record: a prompt opens a turn in this session\'s log, the model notes its decisions, the answer closes it; the directory keeps itself out of git', async ($, on) => {
   const w = world(on)
@@ -1183,5 +1184,19 @@ test('on the desktop, where the conversation cannot be scrolled, 展开 shows th
   await pane.unmount()
   pane = await board()
   expect(JSON.stringify(await pane.drawn()), 'the answer, from the log').toContain('**改好了**，整行都能点。')
+  await pane.unmount()
+})
+
+test('a session\'s first prompt is in its log though the slower facts have not come; a background task\'s notification is no prompt', async ($, on) => {
+  const w = world(on)
+  w.sessionsDir = LOGS
+  on('prompt.submit', ($, e) => ({ text: e.text }))
+  await start($, on)
+  await $.prompt.submit({ text: '给我看下 sessions 下的内容', wait: false, origin: COMPOSER })
+  await $.prompt.submit({ text: '<task-notification>后台任务完成</task-notification>', wait: false, origin: { kind: 'task-notification' } })
+  expect(events(w.files.get(OWN_LOG)).filter((x) => x.t === 'prompt').map((x) => x.text)).toEqual(['给我看下 sessions 下的内容'])
+  await $.command.run({ command: 'gemflow', args: 'board sessions', origin: COMPOSER, presentation: PRESENTATION })
+  const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  expect(JSON.stringify(await pane.drawn()), 'the session tab lists no notification').not.toContain('task-notification')
   await pane.unmount()
 })

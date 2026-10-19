@@ -7,7 +7,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { GEML_DIR } from "./core/layout.js";
-import { appendEvents, currentTurn, decisionsSince, logName, nextTurn, parseLog, SESSIONS_DIR, SESSIONS_GITIGNORE, summarize, type SessionEvent, type SessionSummary, type SharedDecision } from "./core/session-log.js";
+import { appendEvents, currentTurn, decisionsSince, isLogName, legacyLogName, logName, nextTurn, parseLog, SESSIONS_DIR, SESSIONS_GITIGNORE, summarize, type SessionEvent, type SessionSummary, type SharedDecision } from "./core/session-log.js";
 import { commitsOf, journalBaseOf, repoFacts } from "./host-git.js";
 
 /** The directory of a project's session logs, for any of its checkouts. */
@@ -24,7 +24,10 @@ export function appendSession(root: string, host: string, id: string, make: (eve
   const dir = sessionsDirOf(root);
   const path = join(dir, logName(host, id));
   let text = "";
-  try { text = readFileSync(path, "utf8"); } catch { text = ""; }
+  try { text = readFileSync(path, "utf8"); } catch {
+    // An earlier log of this session, plain JSON lines: its events come along into the GEML one.
+    try { text = readFileSync(join(dir, legacyLogName(host, id)), "utf8"); } catch { text = ""; }
+  }
   const events = parseLog(text);
   const head: SessionEvent[] = [];
   if (!events.some((e) => e.t === "session")) {
@@ -43,7 +46,7 @@ export function appendSession(root: string, host: string, id: string, make: (eve
 export function readSessions(root: string): SessionSummary[] {
   const dir = sessionsDirOf(root);
   let names: string[];
-  try { names = readdirSync(dir).filter((n) => n.endsWith(".jsonl")); } catch { return []; }
+  try { const all = readdirSync(dir); names = all.filter((n) => isLogName(n, all)); } catch { return []; }
   const out: SessionSummary[] = [];
   for (const n of names) {
     try {

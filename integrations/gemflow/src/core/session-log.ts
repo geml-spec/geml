@@ -1,8 +1,10 @@
 // The project's shared session record: every session working on a project —
 // Claude Code, Codex, Gemini CLI, DeepSeek Harness, on whichever branch or
 // worktree — keeps one log in the main working tree's `.geml/sessions/`, which
-// no branch tracks. Each log is one JSON event per line, written by its own
-// session alone and read by all of them: what was asked, what was answered,
+// no branch tracks. Each log is a GEML document whose `=== data {#events
+// format=jsonl}` block holds one JSON event a line, written by its own session
+// alone and read by all of them (an earlier log, plain JSON lines in a .jsonl
+// file, still reads): what was asked, what was answered,
 // the conclusions and decisions the model recorded, the files and commits the
 // session made. Pure: the hosts read and write the files.
 
@@ -18,11 +20,26 @@ export type SessionEvent =
   | { t: "file"; turn: number; at: string; path: string; branch?: string }
   | { t: "commit"; turn: number; at: string; sha: string; subject: string; branch?: string };
 
+const safe = (s: string) => s.replace(/[^A-Za-z0-9._-]+/g, "-");
+
 /** A log's file name: the host and the session's id, neither able to leave the directory. */
 export function logName(host: string, id: string): string {
-  const safe = (s: string) => s.replace(/[^A-Za-z0-9._-]+/g, "-");
+  return `${safe(host)}-${safe(id)}.geml`;
+}
+
+/** The name an earlier log had (plain JSON lines): read, and carried into the GEML one when the session writes next. */
+export function legacyLogName(host: string, id: string): string {
   return `${safe(host)}-${safe(id)}.jsonl`;
 }
+
+/** Whether a directory entry is a log: a GEML one, or an earlier .jsonl one with no GEML one beside it. */
+export function isLogName(name: string, names: readonly string[]): boolean {
+  if (name.endsWith(".geml")) return true;
+  return name.endsWith(".jsonl") && !names.includes(`${name.slice(0, -".jsonl".length)}.geml`);
+}
+
+/** The fence that opens a log's events. */
+const EVENTS_OPEN = "=== data {#events format=jsonl}";
 
 function isEvent(v: unknown): v is SessionEvent {
   if (typeof v !== "object" || v === null) return false;
@@ -37,10 +54,16 @@ function isEvent(v: unknown): v is SessionEvent {
   }
 }
 
-/** The events of a log; a line that is no event (one cut short while its session wrote it) is left out. */
+/** The events of a log (its events block, or every line of an earlier log); a line that is no event (one cut short while its session wrote it) is left out. */
 export function parseLog(text: string): SessionEvent[] {
   const out: SessionEvent[] = [];
-  for (const line of text.split(/\r?\n/)) {
+  let lines = text.split(/\r?\n/);
+  const open = lines.findIndex((l) => l.trim() === EVENTS_OPEN);
+  if (open >= 0) {
+    const close = lines.findIndex((l, i) => i > open && l.trim() === "===");
+    lines = lines.slice(open + 1, close < 0 ? undefined : close);
+  }
+  for (const line of lines) {
     if (line.trim() === "") continue;
     try {
       const v: unknown = JSON.parse(line);
@@ -50,10 +73,14 @@ export function parseLog(text: string): SessionEvent[] {
   return out;
 }
 
-/** The log with `events` added at its end. */
+/** A log document holding `events`, one JSON event a line in its events block. */
+export function formatLog(events: readonly SessionEvent[]): string {
+  return `${EVENTS_OPEN}\n${events.map((e) => `${JSON.stringify(e)}\n`).join("")}===\n`;
+}
+
+/** The log with `events` added at the end of its events (an earlier log comes out as a GEML one). */
 export function appendEvents(text: string, events: readonly SessionEvent[]): string {
-  const head = text === "" || text.endsWith("\n") ? text : `${text}\n`;
-  return head + events.map((e) => `${JSON.stringify(e)}\n`).join("");
+  return formatLog([...parseLog(text), ...events]);
 }
 
 /** The turn the next prompt opens: one past the last one the log holds. */

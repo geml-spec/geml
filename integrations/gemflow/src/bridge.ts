@@ -459,7 +459,8 @@ function answer(req: BridgeRequest): BridgeResponse {
   const failed = (reason: string): BridgeResponse => ({ v: 1, ok: false, error: reason, shell: shellOf(ws.view(), root) });
   switch (req.op) {
     case "status":
-      return ok(ws.view());
+      // The shared session logs' directory too: a session's first prompt is written before the slower facts come.
+      return ok(ws.view(), { sessions: join(journalBaseOf(root), GEML_DIR, SESSIONS_DIR) });
     case "refresh": {
       const change = ws.refresh();
       const view = ws.view();

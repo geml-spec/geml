@@ -1,20 +1,28 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { appendEvents, currentTurn, decisionsSince, filesBySession, logName, nextTurn, parseLog, summarize } from "../dist/core/session-log.js";
+import { parse } from "@geml/geml";
+import { appendEvents, currentTurn, decisionsSince, filesBySession, isLogName, legacyLogName, logName, nextTurn, parseLog, summarize } from "../dist/core/session-log.js";
 
 const log = (events) => appendEvents("", events);
 
-test("a log: one event a line, appended at its end; a line cut short is left out", () => {
-  const text = log([{ t: "session", id: "s1", host: "claude-code", at: "2026-10-19T08:00:00Z", branch: "feat/x" }, { t: "prompt", turn: 1, at: "2026-10-19T08:01:00Z", text: "按项目组织会话" }]);
-  assert.equal(text.split("\n").length, 3, "two lines and the final newline");
-  const more = appendEvents(text.trimEnd(), [{ t: "decision", turn: 1, at: "2026-10-19T08:02:00Z", text: "每会话一个文件" }]);
-  assert.deepEqual(parseLog(`${more}{"t":"decision","turn":1,"at":"2026-10-19T0`).map((e) => e.t), ["session", "prompt", "decision"]);
+test("a log is a GEML document: one event a line in its events block, added at the block's end; the parser reads it with no diagnostic", () => {
+  const text = log([{ t: "session", id: "s1", host: "claude-code", at: "2026-10-19T08:00:00Z", branch: "feat/x" }, { t: "prompt", turn: 1, at: "2026-10-19T08:01:00Z", text: "按项目组织会话\n=== 不是围栏" }]);
+  assert.equal(text, `=== data {#events format=jsonl}\n${JSON.stringify({ t: "session", id: "s1", host: "claude-code", at: "2026-10-19T08:00:00Z", branch: "feat/x" })}\n${JSON.stringify({ t: "prompt", turn: 1, at: "2026-10-19T08:01:00Z", text: "按项目组织会话\n=== 不是围栏" })}\n===\n`);
+  const more = appendEvents(text, [{ t: "decision", turn: 1, at: "2026-10-19T08:02:00Z", text: "每会话一个文件" }]);
+  assert.deepEqual(parseLog(more).map((e) => e.t), ["session", "prompt", "decision"]);
+  assert.deepEqual(parse(more).diagnostics, [], "a well-formed GEML document");
+  assert.deepEqual(parseLog(more.replace("\n===\n", '\n{"t":"decision","turn":1,"at":"2026-10-19T0\n===\n')).map((e) => e.t), ["session", "prompt", "decision"], "a line cut short is left out");
+  const earlier = `${JSON.stringify({ t: "session", id: "s0", host: "codex", at: "2026-10-18T08:00:00Z" })}\n${JSON.stringify({ t: "prompt", turn: 1, at: "2026-10-18T08:01:00Z", text: "旧的" })}\n`;
+  assert.deepEqual(parseLog(earlier).map((e) => e.t), ["session", "prompt"], "an earlier log of plain JSON lines still reads");
+  assert.match(appendEvents(earlier, []), /^=== data \{#events format=jsonl\}\n/, "and comes out as a GEML one when written");
   assert.deepEqual(parseLog('{"t":"prompt","turn":"x","at":"a","text":"t"}\nnot json\n{"t":"other","at":"a"}'), [], "only well-formed events count");
 });
 
 test("a log's name keeps the host and the id, and nothing that leaves the directory", () => {
-  assert.equal(logName("claude-code", "3f70c07c-a125"), "claude-code-3f70c07c-a125.jsonl");
-  assert.equal(logName("codex", "../../etc/x"), "codex-..-..-etc-x.jsonl", "no separator left: it stays a name in the directory");
+  assert.equal(logName("claude-code", "3f70c07c-a125"), "claude-code-3f70c07c-a125.geml");
+  assert.equal(legacyLogName("claude-code", "3f70c07c-a125"), "claude-code-3f70c07c-a125.jsonl");
+  assert.equal(logName("codex", "../../etc/x"), "codex-..-..-etc-x.geml", "no separator left: it stays a name in the directory");
+  assert.deepEqual(["a.geml", "a.jsonl", "b.jsonl", ".gitignore"].filter((n, _, all) => isLogName(n, all)), ["a.geml", "b.jsonl"], "an earlier log with a GEML one beside it is that one's past");
 });
 
 test("turns: the next prompt opens one past the last; the current one is the last prompt's", () => {

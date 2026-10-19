@@ -36,7 +36,7 @@ import { answered, bandLine, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, pendi
 import type { Queued } from '../dist/hosts/claude-code/attention.js'
 import type { AttentionFacts, AttentionMemory } from '../dist/hosts/claude-code/attention.js'
 import { envParts, remoteInPlay } from '../dist/hosts/claude-code/env.js'
-import { appendEvents, currentTurn, decisionsContext, decisionsSince, logName, nextTurn, NOTE_TOOL, parseLog, SESSIONS_GITIGNORE, SESSIONS_PROMPT, summarize } from '../dist/core/session-log.js'
+import { appendEvents, currentTurn, decisionsContext, decisionsSince, isLogName, legacyLogName, logName, nextTurn, NOTE_TOOL, parseLog, SESSIONS_GITIGNORE, SESSIONS_PROMPT, summarize } from '../dist/core/session-log.js'
 import type { SessionEvent, SessionSummary } from '../dist/core/session-log.js'
 import type { AttachedClient, HostInfo } from '../dist/hosts/claude-code/env.js'
 import { bandView, BRAND_RED, cellWidth, MARK, MARK_SVG, SEP, toneProps, truncate } from '../dist/hosts/claude-code/band.js'
@@ -437,10 +437,26 @@ async function envNow($: EngineInterface, t: T, surface?: string): Promise<{ par
 
 // ---- the project's shared session record (session-log.ts) -------------------------------
 
+/**
+ * Whether a prompt is the person's: typed here, sent over Remote Control or by
+ * an SDK host, or an option they pressed on the board (the module's own prompt
+ * as theirs); not a background task's notification, a scheduled trigger or
+ * another session's message.
+ */
+const fromPerson = (o: { kind: string; asUser?: boolean }): boolean => o.kind === 'composer' || o.kind === 'bridge' || o.kind === 'sdk' || (o.kind === 'plugin' && o.asUser === true)
+
 /** How this host names its logs. */
 const OWN_HOST = 'claude-code'
 /** How far back a session's first prompt hears the other sessions' decisions. */
 const DECISIONS_BACK_MS = 3 * 24 * 60 * 60 * 1000
+
+/** This session's log as it stands: the GEML one, else an earlier .jsonl one (carried into the GEML one at the next write), else nothing. */
+async function ownLogText($: EngineInterface, dir: string, id: string): Promise<string> {
+  for (const name of [logName(OWN_HOST, id), legacyLogName(OWN_HOST, id)]) {
+    try { return String(await $.fs.read(`${dir}/${name}`)) } catch { /* the next */ }
+  }
+  return ''
+}
 
 /** This session's log, the events `make` adds at its end (given the events so far, a session line first when there was none); nothing when the project has no record. */
 async function appendOwn($: EngineInterface, make: (events: SessionEvent[]) => SessionEvent[]): Promise<SessionEvent[]> {
@@ -449,8 +465,7 @@ async function appendOwn($: EngineInterface, make: (events: SessionEvent[]) => S
     if (dir === null) return []
     const id = await $.session.id()
     const path = `${dir}/${logName(OWN_HOST, id)}`
-    let text = ''
-    try { text = String(await $.fs.read(path)) } catch { text = '' }
+    const text = await ownLogText($, dir, id)
     const events = parseLog(text)
     const head: SessionEvent[] = []
     if (!events.some((x) => x.t === 'session')) {
@@ -476,8 +491,9 @@ async function loadProjectSessions($: EngineInterface): Promise<SessionSummary[]
   let entries: { name: string; kind: string; size: number; mtimeMs: number }[]
   try { entries = [...(await $.fs.list(dir))] } catch { return [] }
   const sessions: SessionSummary[] = []
+  const names = entries.map((en) => en.name)
   for (const en of entries) {
-    if (en.kind !== 'file' || !en.name.endsWith('.jsonl')) continue
+    if (en.kind !== 'file' || !isLogName(en.name, names)) continue
     const known = logsRead.get(en.name)
     let summary = known !== undefined && known.size === en.size && known.mtimeMs === en.mtimeMs ? known.summary : undefined
     if (summary === undefined) {
@@ -545,7 +561,7 @@ async function answerOf($: EngineInterface, p: PromptRecord): Promise<string | n
   try {
     const dir = await read($, sessionsDirAtom)
     if (dir === null) return null
-    const events = parseLog(String(await $.fs.read(`${dir}/${logName(OWN_HOST, await $.session.id())}`)))
+    const events = parseLog(await ownLogText($, dir, await $.session.id()))
     const at = Date.parse(p.at)
     const asked = events.filter((x): x is Extract<SessionEvent, { t: 'prompt' }> => x.t === 'prompt' && x.text === p.text)
       .sort((a, b) => Math.abs(Date.parse(a.at) - at) - Math.abs(Date.parse(b.at) - at))[0]
@@ -596,6 +612,8 @@ async function startBridge($: EngineInterface): Promise<void> {
   }
   const res = await bridge($, { op: 'status' })
   if (res === undefined) return
+  const dir = res.ok ? res.sessions : undefined
+  if (dir !== undefined && dir !== (await read($, sessionsDirAtom))) await update($, sessionsDirAtom, () => dir)
   // git and gh can take seconds: catch up outside the start the first prompt waits on, and read the board the inbox is built from.
   $.clock.after(0, () => {
     void bridge($, { op: 'refresh' }, SLOW_TIMEOUT_MS).then(() => loadBoard($))
@@ -1810,8 +1828,8 @@ export const register: Register = (on) => {
   // The person's prompt is recorded for the sessions tab; the stage changed between prompts (a person moved it, session start caught up git): the model hears of it now.
   on('prompt.submit', async ($, e, next) => {
     // Where it came from: this machine's prompt box, or Remote Control (a plugin's own prompt keeps the last).
-    if (e.origin.kind !== 'plugin') { try { await update($, originAtom, () => e.origin.kind) } catch { /* unknown */ } }
-    const person = e.origin.kind !== 'plugin' || e.origin.asUser === true
+    const person = fromPerson(e.origin as { kind: string; asUser?: boolean })
+    if (person && e.origin.kind !== 'plugin') { try { await update($, originAtom, () => e.origin.kind) } catch { /* unknown */ } }
     const news = person ? [...(await attentionOnPrompt($, e.text)), ...(await sessionsOnPrompt($, e.text).catch(() => [] as string[]))] : []
     const go = (ev: typeof e) => next(news.length > 0 ? { ...ev, context: [...(ev.context ?? []), ...news] } : ev)
     // Between turns, where the person may have moved the session: the root follows. Within a turn it stays, so a call in another checkout stays elsewhere.
@@ -1819,7 +1837,7 @@ export const register: Register = (on) => {
     const root = await read($, rootAtom)
     if (root === null) return go(e)
     await retryStart($)
-    if (e.origin.kind !== 'plugin' || e.origin.asUser === true) {
+    if (person) {
       const s = (await readShell($))?.status
       const record: PromptRecord = {
         id: `p${(await readPrompts($)).length + 1}-${Date.now().toString(36)}`, at: await nowIso($), text: e.text,
@@ -1865,7 +1883,7 @@ export const register: Register = (on) => {
 
   // The host stores the person's prompt as a row with an id, the same the transcript file holds: the sessions tab's newest record without one learns it, so a press can scroll to the row.
   on('session.append', { door: 'prompt' }, async ($, e, next) => {
-    if (e.agentId === undefined && e.message.role === 'user' && e.message.isMeta !== true && e.origin.kind !== 'plugin') {
+    if (e.agentId === undefined && e.message.role === 'user' && e.message.isMeta !== true && e.origin.kind !== 'plugin' && fromPerson(e.origin as { kind: string; asUser?: boolean })) {
       const uuid = e.uuid
       await update($, promptsAtom, (was) => {
         const list = [...(((was as unknown) as PromptRecord[] | null) ?? [])]
