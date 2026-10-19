@@ -215,6 +215,8 @@ export interface PaneInput {
   scrolls?: boolean;
   /** The turn unfolded on the session tab: its prompt's id and its answer as the log holds it. */
   unfolded?: { id: string; answer: string | null } | null;
+  /** The file the last export wrote: a link to it under the export buttons. */
+  exported?: string | null;
   /** The prompt whose menu is open (its id), or null. */
   menu: string | null;
   /** The flow the sessions tab shows (its title), or null for all; the runs of another flow's turns unfolded (their first prompt's id). */
@@ -250,14 +252,19 @@ export function paneRows(o: PaneInput): BoardRow[] {
   const wait = o.board === null && head.length === 0 ? [text(t("正在读取看板…"), columns, "dim")] : [];
   if (o.tab === "sessions") {
     const own = sessionRows(o.prompts, o.menu, o.board?.products?.commits ?? [], t, columns, o.now, { flow: o.sessionFlow, runs: o.sessionRuns, current: status?.workflow.title, ...(o.scrolls !== undefined ? { scrolls: o.scrolls } : {}), ...(o.unfolded !== undefined ? { expanded: o.unfolded } : {}) });
-    return [...head, ...projectRows(o.project, t, columns, o.now), ...own];
+    return [...head, ...projectRows(o.project, t, columns, o.now), ...own, ...exportedRows(o.exported, o.root, t)];
   }
   const suggestions = o.board !== null ? [...toolSuggestions(o.board, o.usage, o.dismissed, t), ...ciSuggestions(o.board, o.shell?.units ?? [], o.dismissed, t)] : [];
   if (o.tab === "items") return [...head, ...itemRows({ board: o.board, status, inbox: o.inbox, columns, t, now: o.now, doneOpen: o.doneOpen, suggestions }), ...wait];
   if (o.board === null) return head.length > 0 ? head : wait;
   if (o.tab === "flow") return [...head, ...flowRows({ board: o.board, status, columns, t, ...(o.now !== undefined ? { now: o.now } : {}), selected: o.flowState, switching: o.switching, workflows: o.workflows })];
   if (o.tab === "tools") return [...head, ...toolRows({ board: o.board, columns, t, usage: o.usage, suggestions, query: o.toolQuery, menu: o.toolMenu, naming: o.toolNaming, open: o.toolsOpen })];
-  return [...head, ...journalRows({ board: o.board, status, filter: o.filter, menu: o.expanded, evidence: o.evidence, prompts: o.prompts, columns, maxRows: Math.max(1, o.maxRows - head.length), t, now: o.now })];
+  return [...head, ...journalRows({ board: o.board, status, filter: o.filter, menu: o.expanded, evidence: o.evidence, prompts: o.prompts, columns, maxRows: Math.max(1, o.maxRows - head.length), t, now: o.now }), ...exportedRows(o.exported, o.root, t)];
+}
+
+/** Where the last export wrote its file, a link that opens it. */
+function exportedRows(path: string | null | undefined, root: string, t: T): BoardRow[] {
+  return path === null || path === undefined || path === "" ? [] : [{ kind: "link", key: "exported", href: fileHref(root, path), label: t("已导出 {0}", path) }];
 }
 
 // ---- flow -----------------------------------------------------------------------

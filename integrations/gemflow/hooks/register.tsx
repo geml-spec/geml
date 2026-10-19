@@ -137,6 +137,10 @@ const decisionsSeenAtom = atom({ plugin: 'gemflow', key: 'decisionsSeen' } as co
 const committedAtom = atom({ plugin: 'gemflow', key: 'committed' } as const, false)
 /** The turn unfolded on the session tab (where the conversation cannot be scrolled): its prompt's id and its answer. */
 const expandedTurnAtom = atom({ plugin: 'gemflow', key: 'expandedTurn' } as const, null as GemflowJson)
+/** The file the last export wrote: the board links to it. */
+const exportedAtom = atom({ plugin: 'gemflow', key: 'exported' } as const, null as string | null)
+/** The share dialog's text, shown to select where nothing can be copied (the desktop has no clipboard for a plugin). */
+const sharedTextAtom = atom({ plugin: 'gemflow', key: 'sharedText' } as const, null as string | null)
 const readQueued = async ($: EngineInterface): Promise<Queued[]> => ((await read($, queuedAtom)) as unknown as Queued[] | null) ?? []
 const setQueued = async ($: EngineInterface, f: (was: Queued[]) => Queued[]): Promise<void> => {
   await update($, queuedAtom, (was) => f(((was as unknown) as Queued[] | null) ?? []) as unknown as GemflowJson)
@@ -931,6 +935,7 @@ async function loadWorkflows($: EngineInterface): Promise<void> {
 
 async function openDialog($: EngineInterface, dialog: Dialog | null): Promise<void> {
   await update($, dialogAtom, () => dialog)
+  await update($, sharedTextAtom, () => null)
   if (dialog === null) {
     await $.ui.close({ id: DIALOG_ID })
     return
@@ -948,7 +953,11 @@ async function exportText($: EngineInterface, kind: 'journal' | 'workflow' | 'te
   const res = await bridge($, { op: 'export', kind, format, ...extra }, SLOW_TIMEOUT_MS)
   if (res === undefined) return undefined
   if (!res.ok) { $.ui.toast(`gemflow：${res.error.replace(/^gemflow: /, '')}`); return undefined }
-  if (res.exported !== undefined) $.ui.toast(t('已写入 {0}', res.exported.path))
+  if (res.exported !== undefined) {
+    const path = res.exported.path
+    $.ui.toast(t('已写入 {0}', path))
+    await update($, exportedAtom, () => path)
+  }
   return res.exported?.text
 }
 
@@ -977,6 +986,7 @@ async function share($: EngineInterface, what: ShareWhat, how: ShareHow, strip: 
     text = how === 'copy' ? s.text : await exportText($, 'text', 'geml', { name: s.name, text: s.text, strip })
   } else text = await exportText($, what, what === 'journal' ? (how === 'copy' ? 'md' : 'geml') : 'geml', { strip })
   if (text === undefined || text === '') { if (text === '') $.ui.toast(t('没有可导出的内容')); return }
+  if (how === 'copy' && surface !== undefined && surface !== 'terminal') { await update($, sharedTextAtom, () => text as string); return }
   if (how === 'copy') await copy(text)
   else if (how === 'pr') {
     const root = await read($, rootAtom)
@@ -1207,7 +1217,7 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       await update($, turnMenuAtom, () => null)
       const p = (await readPrompts($)).find((x) => x.id === action.id)
       if (p === undefined) return
-      const question = action.op === 'split' ? t('原会话先备份再改写，由模型按 split-session skill 做。把这条和它之后的轮次拆到新会话（最后一轮留下）？') : t('原会话先备份再改写，由模型按 split-session skill 做。把这一轮拆到一个单独的新会话（内容不丢）？')
+      const question = action.op === 'split' ? t('把这一轮及之后的轮次拆到新会话？最后一轮留下，原会话先备份。') : t('删除这一轮？原会话先备份，可以恢复。')
       const yes = action.op === 'split' ? t('拆分') : t('删除')
       let answer: string
       try { answer = await $.ui.ask(question, [yes, t('取消')]) } catch { return }
@@ -1216,7 +1226,7 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       const line = promptLine(p.text, 60)
       const text = action.op === 'split'
         ? t('用 gemflow:split-session skill（脚本 {0}）：先 list，找到 {1} 发的「{2}」那一轮，把它和之后的轮次（最后一轮除外）拆到新会话，标题概括这些轮的内容；拆完再 list 核对，然后汇报。', script, hhmm(p.at), line)
-        : t('用 gemflow:split-session skill（脚本 {0}）：先 list，找到 {1} 发的「{2}」那一轮，只把这一轮拆到新会话，标题概括它的内容；拆完再 list 核对，然后汇报。', script, hhmm(p.at), line)
+        : t('用 gemflow:split-session skill（脚本 {0}）：先 list，找到 {1} 发的「{2}」那一轮，用 remove 只删掉这一轮（不建新会话）；删完再 list 核对，然后汇报。', script, hhmm(p.at), line)
       await $.prompt.submit({ text })
       $.ui.toast(t('已交给模型，结果看对话'))
       return
@@ -1578,7 +1588,9 @@ async function headerRows($: EngineInterface, t: T): Promise<Header> {
 }
 
 /** The settings, upgrade, about and share dialogs as rows. */
-async function dialogRows($: EngineInterface, t: T, dialog: Dialog, columns: number): Promise<BoardRow[]> {
+async function dialogRows($: EngineInterface, t: T, dialog: Dialog, columns: number, surface: string): Promise<BoardRow[]> {
+  // The terminal has a clipboard and desktop notifications; the desktop app gives a plugin neither.
+  const terminal = surface === 'terminal'
   const text = (s: string, tone: Tone = 'normal'): BoardRow => ({ kind: 'text', text: truncate(s, columns), tone })
   const section = (key: string, s: string): BoardRow => ({ kind: 'section', key, text: s })
   const toggle = (label: string, key: string, on: boolean): Pressable => ({ key: `set-${key}`, label: `${on ? '[x]' : '[ ]'} ${label}`, action: { op: 'setting', key, value: !on } })
@@ -1587,7 +1599,7 @@ async function dialogRows($: EngineInterface, t: T, dialog: Dialog, columns: num
   const version = shell?.versions?.gemflow ?? (await read($, versionAtom)) ?? '?'
   if (dialog === 'settings') {
     const s = await readSettings($)
-    rows.push(section('notify', t('桌面提醒')),
+    if (terminal) rows.push(section('notify', t('桌面提醒')),
       { kind: 'buttons', items: [toggle(t('有事等你定或验收时'), 'notify.inbox', s.notify.inbox)] },
       { kind: 'buttons', items: [toggle(t('模型被拦时'), 'notify.refusal', s.notify.refusal)] }, text(`    ${t('同一原因 3 分钟内只提一次')}`, 'dim'),
       { kind: 'buttons', items: [toggle(t('阶段变更时'), 'notify.stage', s.notify.stage)] })
@@ -1607,8 +1619,9 @@ async function dialogRows($: EngineInterface, t: T, dialog: Dialog, columns: num
     const command = `claude plugin update gemflow${market !== undefined ? `@${market}` : ''}`
     rows.push({ kind: 'buttons', items: [
       { key: 'check-update', label: t('检查更新'), action: { op: 'check-update' } },
-      ...(latest?.version !== undefined && isNewer(latest.version, version) ? [{ key: 'copy-update', label: `${t('更新')}: ${command}`, primary: true, action: { op: 'copy', text: command } } as Pressable] : []),
+      ...(terminal && latest?.version !== undefined && isNewer(latest.version, version) ? [{ key: 'copy-update', label: `${t('更新')}: ${command}`, primary: true, action: { op: 'copy', text: command } } as Pressable] : []),
     ] })
+    if (!terminal && latest?.version !== undefined && isNewer(latest.version, version)) rows.push(text(t('更新命令（在终端里运行）'), 'dim'), { kind: 'prose', key: 'update-command', text: command })
     if (RELEASE_NOTES.version === version) {
       rows.push(section('notes', t('这一版有什么')))
       for (const line of RELEASE_NOTES.lines) rows.push(text(`· ${t(line)}`))
@@ -1635,15 +1648,17 @@ async function dialogRows($: EngineInterface, t: T, dialog: Dialog, columns: num
     ]
     rows.push(section('what', t('分享什么')))
     for (const [what, label, note] of whats) rows.push({ kind: 'button', key: `what-${what}`, label: `${choice.what === what ? '(•)' : '( )'} ${label}  ${note}`, action: { op: 'share-pick', what } as unknown as BoardAction })
-    rows.push(section('how', t('怎么给')), { kind: 'buttons', items: ([['copy', t('复制文字')], ['file', t('存成文件')], ['pr', t('PR 评论')]] as const).map(([how, label]): Pressable => ({ key: `how-${how}`, label, ...(choice.how === how ? { primary: true } : {}), action: { op: 'share-pick', how } as unknown as BoardAction })) })
+    rows.push(section('how', t('怎么给')), { kind: 'buttons', items: ([['copy', terminal ? t('复制文字') : t('显示文字')], ['file', t('存成文件')], ['pr', t('PR 评论')]] as const).map(([how, label]): Pressable => ({ key: `how-${how}`, label, ...(choice.how === how ? { primary: true } : {}), action: { op: 'share-pick', how } as unknown as BoardAction })) })
     if (choice.what === 'status') {
       for (const line of (await shareStatus($, t)).split('\n')) if (line !== '') rows.push(text(`  ${line}`, 'dim'))
     }
     rows.push({ kind: 'buttons', items: [{ key: 'strip', label: `${choice.strip ? '[x]' : '[ ]'} ${t('去掉命令行里的绝对路径')}`, action: { op: 'share-pick', strip: !choice.strip } as unknown as BoardAction }] })
     rows.push({ kind: 'buttons', items: [
       { key: 'share-cancel', label: t('取消'), action: { op: 'dialog', dialog: null } },
-      { key: 'share-go', label: choice.how === 'copy' ? t('复制') : choice.how === 'file' ? t('存成文件') : t('发 PR 评论'), primary: true, action: { op: 'share', what: choice.what, how: choice.how, strip: choice.strip } },
+      { key: 'share-go', label: choice.how === 'copy' ? (terminal ? t('复制') : t('显示')) : choice.how === 'file' ? t('存成文件') : t('发 PR 评论'), primary: true, action: { op: 'share', what: choice.what, how: choice.how, strip: choice.strip } },
     ] })
+    const shown = await read($, sharedTextAtom)
+    if (shown !== null && shown !== '') rows.push(text(t('选中后复制'), 'dim'), { kind: 'prose', key: 'shared-text', text: shown })
   }
   return rows
 }
@@ -2047,7 +2062,7 @@ export const register: Register = (on) => {
     const env = envNow($, t, e.surface).catch(() => ({ parts: [] as string[] }))
     const attention = shows(tab === 'items')(() => Promise.all([attentionNow($, t), readQueued($)]).catch(() => null), null)
     try {
-      const [inbox, header, board, problem, shell, now, root, filter, expanded, evidence, prompts, project, unfolded, menu, doneOpen, sessionFlow, sessionRuns, flowState, switching, workflows, usage, dismissed, toolQuery, toolMenu, toolNaming, toolsOpen] = await Promise.all([
+      const [inbox, header, board, problem, shell, now, root, filter, expanded, evidence, prompts, project, unfolded, menu, doneOpen, sessionFlow, sessionRuns, flowState, switching, workflows, usage, dismissed, toolQuery, toolMenu, toolNaming, toolsOpen, exported] = await Promise.all([
         inboxOf($, t), headerRows($, t), readBoard($), read($, boardProblemAtom), readShell($), nowIso($), read($, rootAtom),
         read($, filterAtom), read($, expandedAtom), read($, evidenceAtom),
         shows(tab === 'sessions' || tab === 'journal')(() => readPrompts($), [] as PromptRecord[]),
@@ -2059,6 +2074,7 @@ export const register: Register = (on) => {
         read($, turnMenuAtom), read($, doneOpenAtom), read($, sessionFlowAtom), read($, sessionRunsAtom),
         read($, flowStateAtom), read($, flowSwitchAtom), read($, workflowsAtom),
         usageDrawn($), dismissedOf($), read($, toolQueryAtom), read($, toolMenuAtom), read($, toolNamingAtom), read($, toolsOpenAtom),
+        shows(tab === 'sessions' || tab === 'journal')(() => read($, exportedAtom), null),
       ])
       head = header
       rows = paneRows({
@@ -2068,6 +2084,7 @@ export const register: Register = (on) => {
         menu, doneOpen, sessionFlow, sessionRuns: (sessionRuns as unknown as string[] | null) ?? [],
         flowState, switching, workflows: workflows as unknown as { bundled: string[]; installed: string[] } | null,
         usage, dismissed, toolQuery, toolMenu, toolNaming, toolsOpen: (toolsOpen as unknown as string[] | null) ?? [],
+        exported,
       })
     } catch (err) {
       rows = [{ kind: 'text', text: truncate(`gemflow：看板画不出来（${reasonOf(err)}）`, columns), tone: 'error' }]
@@ -2136,7 +2153,7 @@ export const register: Register = (on) => {
     const dialog = (await read($, dialogAtom)) as Dialog | null
     let rows: BoardRow[]
     try {
-      rows = dialog === null ? [] : await dialogRows($, t, dialog, e.props.bodyColumns)
+      rows = dialog === null ? [] : await dialogRows($, t, dialog, e.props.bodyColumns, e.surface)
     } catch (err) {
       rows = [{ kind: 'text', text: `gemflow：${reasonOf(err)}`, tone: 'error' }]
     }

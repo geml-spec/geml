@@ -96,6 +96,10 @@ declare module 'claude-code' {
       committed: boolean
       /** The turn unfolded on the session tab where the conversation cannot be scrolled: { id, answer }. */
       expandedTurn: GemflowJson
+      /** The file the last export wrote. */
+      exported: string | null
+      /** The share dialog's text, shown where it cannot be copied (the desktop). */
+      sharedText: string | null
     }
   }
 }
