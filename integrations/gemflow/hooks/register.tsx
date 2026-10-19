@@ -1904,15 +1904,35 @@ export const register: Register = (on) => {
           )
           : <Button key="band-mark-open" plain label={t('看板')} onPress={press($, { op: 'open-board' })}><Text {...toneProps(MARK.tone)}>{MARK.text}</Text></Button>}
         {view.verb !== '' && <Text dimColor>{view.verb}</Text>}
-        <Box key="band-title">
-          {workflow
-            ? <Button key="title" plain label={view.title} onPress={press($, { op: 'open-board', tab: 'items' })}><Text {...(Svg !== undefined && view.tone === 'normal' ? { color: 'suggestion' } : toneProps(view.tone))} underline={view.tone === 'normal'}>{title}</Text></Button>
-            : <Text {...toneProps(view.tone)}>{title}</Text>}
-          {card([view.detail !== '' ? `${view.verb !== '' ? `${view.verb} ` : ''}${view.title}${SEP}${view.detail}` : '', env.parts.join(SEP)].filter((x) => x !== '').join(`${SEP}`), { left: 0 }, columns - lead)}
-        </Box>
-        {note !== '' && <Text dimColor>{note}</Text>}
-        {options.map(pressable)}
-        {at !== '' && <Text dimColor>{at}</Text>}
+        {Svg !== undefined
+          ? (
+            <Box key="band-title" flexShrink={1} minWidth={0}>
+              <Box flexShrink={1} minWidth={0} overflow="hidden">
+                <Text wrap="truncate-end"><Text {...(view.tone === 'normal' ? { color: 'suggestion' } : toneProps(view.tone))} underline={workflow && view.tone === 'normal'}>{view.title}</Text>{view.note !== '' && <Text dimColor>{`${SEP}${view.note}`}</Text>}</Text>
+                {workflow && (
+                  <Box position="absolute" top={0} left={0} right={0} bottom={0}>
+                    <Button key="title" plain label={blankOf(cellWidth(view.title))} onPress={press($, { op: 'open-board', tab: 'items' })} />
+                  </Box>
+                )}
+              </Box>
+              {card([view.detail !== '' ? `${view.verb !== '' ? `${view.verb} ` : ''}${view.title}${SEP}${view.detail}` : view.title, env.parts.join(SEP)].filter((x) => x !== '').join(`${SEP}`), { left: 0 }, columns - lead)}
+            </Box>
+          )
+          : (
+            <Box key="band-title">
+              {workflow
+                ? <Button key="title" plain label={view.title} onPress={press($, { op: 'open-board', tab: 'items' })}><Text {...toneProps(view.tone)} underline={view.tone === 'normal'}>{title}</Text></Button>
+                : <Text {...toneProps(view.tone)}>{title}</Text>}
+              {card([view.detail !== '' ? `${view.verb !== '' ? `${view.verb} ` : ''}${view.title}${SEP}${view.detail}` : '', env.parts.join(SEP)].filter((x) => x !== '').join(`${SEP}`), { left: 0 }, columns - lead)}
+            </Box>
+          )}
+        {Svg === undefined && note !== '' && <Text dimColor>{note}</Text>}
+        {(options.length > 0 || at !== '') && (
+          <Box key="band-options" gap={1} flexShrink={0} alignItems="center">
+            {options.map(pressable)}
+            {at !== '' && <Text dimColor>{at}</Text>}
+          </Box>
+        )}
         {tail.map((b, i) => b.key === 'more'
           ? <Box key="band-more">{pressable(b, options.length + i)}{card(view.more.detail, { right: 0 }, columns - 4)}</Box>
           : null)}
