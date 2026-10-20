@@ -1025,6 +1025,15 @@ test('a reply that ends asking: the band puts the question first with its answer
   expect(await pane.find({ type: 'Text', text: '新分支要不要开 PR' })).toBeDefined()
   expect(await pane.find({ type: 'Text', text: '#32 关不关' })).toBeDefined()
   await pane.unmount()
+  // Two to settle: the band asks the first with its own answers, then the second; the last answer says both.
+  const two = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+  expect(shown((await two.drawn()) as unknown as Drawn).join(' ')).toMatch(/定 1\/2：新分支要不要开 PR/)
+  await two.press({ key: 'attention-0-0-要' })
+  expect(said.at(-1), 'one answer of two: kept, not said yet').toBe('推')
+  expect(shown((await two.drawn()) as unknown as Drawn).join(' ')).toMatch(/定 2\/2：#32 关不关/)
+  await two.press({ key: 'attention-1-0-关' })
+  await two.unmount()
+  expect(said.at(-1), 'the last answer says them all').toBe('新分支要不要开 PR：要\n#32 关不关：关')
 })
 
 test('where the session runs: the board says the machine, the checkout and the branch; with Remote Control in play it says so, and the band names the machine', async ($, on) => {

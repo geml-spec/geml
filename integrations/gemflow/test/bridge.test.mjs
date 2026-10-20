@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { hostname } from "node:os";
 import { fileURLToPath } from "node:url";
 import { readContextDoc } from "../dist/core/stagehand.js";
-import { fakeGh, gitRepo, hook, withWorkflow } from "./helpers/repo.mjs";
+import { fakeGh, gitRepo, hook, hookProcess, withWorkflow } from "./helpers/repo.mjs";
 
 const WS_DEV = fileURLToPath(new URL("./fixtures/ws-dev/", import.meta.url));
 const NO_GH = { GEMFLOW_GH: "gh-definitely-not-installed" };
@@ -51,6 +51,13 @@ test("before: a key no row takes goes through, unasked; a person's word is learn
   const fenced = hook(root, { op: "before", tool: "Bash", callId: "c4", input: { command: "npx wrangler deploy --env production" } });
   assert.match(fenced.refusal, /is deploy-prod, which is used only in #release; the workflow is in #build/);
   assert.equal(hook(root, { op: "status" }).shell.status.refusals, 3, "the deny, the person's command and the fence");
+});
+
+test("through the bundled CLI, as the hooks module runs it: one request in, the same answer out as in process", () => {
+  const root = project();
+  const spawned = hookProcess(root, { op: "status" });
+  assert.deepEqual([spawned.ok, spawned.shell.status.item, spawned.shell.status.state.id], [true, { kind: "item", id: "feat/x" }, "build"]);
+  assert.deepEqual(hook(root, { op: "status" }).shell.status, spawned.shell.status);
 });
 
 test("after, refresh, advance: a test run and an open PR move the workflow; the new stage text comes back", () => {

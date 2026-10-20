@@ -45,7 +45,8 @@ export interface AttentionMemory {
 export const NO_MEMORY: AttentionMemory = { shown: [], age: {}, lastLead: "", backlog: [] };
 
 export type LeadKind = "ask" | "broken" | "you" | "back";
-export interface Lead { key: string; kind: LeadKind; text: string; options: string[] }
+/** `step`: one of several asks in one reply, settled one by one — which, of how many. */
+export interface Lead { key: string; kind: LeadKind; text: string; options: string[]; step?: { index: number; of: number } }
 export interface Standing { key: string; kind: "broken" | "you"; short: string; text: string; options: string[]; quiet?: boolean }
 export interface BandLine { text: string; options: string[]; lead: LeadKind | null }
 
@@ -108,9 +109,12 @@ export function asksOf(reply: string): string[] {
 /** The answers an ask likely takes, as buttons: the first is the one it leans to. */
 export function optionsFor(ask: string, t: T = ZH): string[] {
   if (/要不要/.test(ask)) return [t("要"), t("不要")];
+  const either2 = /(\p{Script=Han})不\1/u.exec(ask);
+  if (either2 && either2[1] !== "批") return [either2[1] as string, `不${either2[1]}`];
   if (/批不批|批吗|批了我/.test(ask)) return [t("批"), t("先不")];
-  const either = /([^，,：:。]{1,12})还是([^？?，,。]{1,12})[？?]/.exec(ask);
-  if (either) return [clip((either[1] as string).replace(/^(是|要|你|往后的改动|提交到)/, ""), 12), clip(either[2] as string, 12)];
+  // "A 还是 B？", the A half ending where 还是 starts or at a comma before it ("先做这个，还是先做第三步？").
+  const either = /([^，,：:。？?]{1,16})[，,]?\s*还是\s*([^？?，,。]{1,16})[？?]/.exec(ask);
+  if (either) return [clip((either[1] as string).trim().replace(/^(是|要|你|往后的改动|提交到)/, ""), 12), clip((either[2] as string).trim(), 12)];
   // The action nearest the question mark, in the last clause: "…已合并，要我清掉吗？" asks about 清掉.
   const clause = ask.split(/[，,。；;：:]/).filter((c) => /[吗么][？?]/.test(c)).at(-1) ?? "";
   const verbs = [...clause.matchAll(/推送|推|合并|提交|清掉|删掉|删|发布|发|打开|开|改|修|做|同步|重写/g)];
@@ -173,7 +177,7 @@ export function standingOf(reply: string, facts: AttentionFacts, now: number, t:
 // ---- what leads
 
 /** This turn's lead: the reply's asks, then a failure new to the person, then a new step only they can take. */
-export function leadOf(o: { reply: string; standing: readonly Standing[]; memory: AttentionMemory; t?: T }): Lead | null {
+export function leadOf(o: { reply: string; standing: readonly Standing[]; memory: AttentionMemory; picks?: readonly (string | null)[]; t?: T }): Lead | null {
   const t = o.t ?? ZH;
   const asks = asksOf(o.reply);
   let ask = asks;
@@ -184,7 +188,11 @@ export function leadOf(o: { reply: string; standing: readonly Standing[]; memory
     if (again !== undefined) ask = [again.replace(/^(上一个问题|上一条里的事)?(还|仍|都)?(在)?等你(定|批)?[：:，,]?/, "")];
   }
   let lead: Lead | null = null;
-  if (ask.length >= 2) lead = { key: `ask:${ask.join("|")}`, kind: "ask", text: t("定 {0} 件：{1}", ask.length, ask.map((a) => clip(a, 18)).join(" · ")), options: [t("按推荐"), t("逐个定")] };
+  // Several things to settle are settled one by one: the first not answered yet, with its own answers; then the next.
+  if (ask.length >= 2) {
+    const i = ask.findIndex((_, n) => (o.picks?.[n] ?? null) === null);
+    if (i >= 0) lead = { key: `ask:${ask.join("|")}#${i}`, kind: "ask", text: t("定 {0}/{1}：{2}", i + 1, ask.length, clip(ask[i] as string, 50)), options: optionsFor(ask[i] as string, t), step: { index: i, of: ask.length } };
+  }
   else if (ask.length === 1) lead = { key: `ask:${ask[0]}`, kind: "ask", text: t("定 {0}", clip(ask[0] as string, 60)), options: optionsFor(ask[0] as string, t) };
   if (lead === null) {
     const fresh = o.standing.filter((s) => !o.memory.shown.includes(s.key) && s.quiet !== true);
@@ -310,6 +318,9 @@ export function pressablesFor(lead: Lead | null, options: readonly string[], t: 
     if ((m = /^推送 (.+)$/.exec(text)) || (m = /^Push (.+)$/.exec(text))) return { question: t("推送 {0}？推上去的提交别人就看得到。", m[1] as string), yes: t("推送") };
     return undefined;
   };
+  // One of several asks: the answer is kept, not said yet.
+  const step = lead?.step;
+  if (step !== undefined) return options.map((label, i): Pressable => ({ key: `attention-${step.index}-${i}-${label}`, label, ...(i === 0 ? { primary: true } : {}), action: { op: "pick", index: step.index, answer: label } }));
   return options.map((label, i): Pressable => {
     const text = said(label);
     const confirm = confirmOf(text);
@@ -318,6 +329,11 @@ export function pressablesFor(lead: Lead | null, options: readonly string[], t: 
       : { op: "say" as const, text, ...(confirm !== undefined ? { confirm } : {}) };
     return { key: `attention-${i}-${label}`, label, ...(i === 0 && label !== t("先不") && label !== t("看看") ? { primary: true } : {}), action };
   });
+}
+
+/** Several asks' answers as one prompt, one line each: the ask, then what was picked. */
+export function picksText(asks: readonly string[], picks: readonly (string | null)[]): string {
+  return asks.map((a, i) => `${a}：${picks[i] ?? ""}`).join("\n");
 }
 
 /** A step the person pressed, by what it says (`合并 #32`, `/reload-plugins`): queued until the session is idle, then entered and being done. */
@@ -348,7 +364,7 @@ export function pendingNote(q: Queued, t: T = ZH): string {
  * room for one of — the reply's asks with their answers, every step only the
  * person can take, the older asks still waiting.
  */
-export function nowRows(o: { reply: string; standing: readonly Standing[]; memory: AttentionMemory; queued?: readonly Queued[]; t?: T }): BoardRow[] {
+export function nowRows(o: { reply: string; standing: readonly Standing[]; memory: AttentionMemory; queued?: readonly Queued[]; picks?: readonly (string | null)[]; t?: T }): BoardRow[] {
   const t = o.t ?? ZH;
   const rows: BoardRow[] = [];
   // A step already pressed says what became of it instead of offering its buttons again.
@@ -358,8 +374,11 @@ export function nowRows(o: { reply: string; standing: readonly Standing[]; memor
   };
   const asks = asksOf(o.reply);
   asks.forEach((a, i) => {
-    const lead: Lead = { key: `ask:${a}`, kind: "ask", text: a, options: optionsFor(a, t) };
-    rows.push({ kind: "card", key: `now-ask-${i}`, icon: "ask", verb: t("定"), title: clip(a, 80), ...settle(pressablesFor(lead, lead.options, t)) });
+    // Of several, each is answered on its own card and kept; the last answer says them all.
+    const step = asks.length >= 2 ? { index: i, of: asks.length } : undefined;
+    const lead: Lead = { key: `ask:${a}`, kind: "ask", text: a, options: optionsFor(a, t), ...(step !== undefined ? { step } : {}) };
+    const picked = step !== undefined ? o.picks?.[i] ?? null : null;
+    rows.push({ kind: "card", key: `now-ask-${i}`, icon: "ask", verb: t("定"), title: clip(a, 80), ...(picked !== null ? { actions: [], detail: [t("已选：{0}", picked)] } : settle(pressablesFor(lead, lead.options, t))) });
   });
   for (const s of o.standing) {
     const lead: Lead = { key: s.key, kind: s.kind, text: s.text, options: s.options };

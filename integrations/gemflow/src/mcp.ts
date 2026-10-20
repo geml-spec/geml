@@ -80,7 +80,7 @@ export async function answer(msg: unknown, o: McpOptions): Promise<Reply | undef
     const opened = openWorkspace({ root, tools: Object.hasOwn(HOST_TOOLS, o.host) ? HOST_TOOLS[o.host]! : NO_TOOLS, gh: ghOncePerBranch() });
     if (!opened.ok) return text(id, `gemflow: ${opened.reason}`, true);
     // The one moment an MCP-only host lets Gemflow look: a merged PR or a file written since the last call may move the stage now; `status` then reports the stage it moved to.
-    if (spec.name === "status") opened.ws.refresh();
+    if (spec.name === "status") opened.ws.refresh({ reread: false });
     const a = runVerb(opened.ws, spec.name, args);
     return text(id, spec.name === "status" ? withNote(a.text) : a.context !== undefined ? `${a.text}\n\n${withNote(a.context)}` : a.text, !a.ok);
   } catch (e) {

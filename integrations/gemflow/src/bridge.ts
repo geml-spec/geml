@@ -463,6 +463,11 @@ function moveEarlierLayout(root: string): void {
 
 /** One request, answered. A throw — from opening the workspace or from the op — becomes an error answer with no shell: the last good one stays. */
 export async function handleRequest(req: BridgeRequest): Promise<BridgeResponse> {
+  return answerRequest(req);
+}
+
+/** handleRequest, answered at once: every op is answered without waiting on anything but the files and git. */
+export function answerRequest(req: BridgeRequest): BridgeResponse {
   try {
     return answer(req);
   } catch (e) {
@@ -509,7 +514,8 @@ function answer(req: BridgeRequest): BridgeResponse {
       // The shared session logs' directory too: a session's first prompt is written before the slower facts come.
       return ok(ws.view(), { sessions: join(journalBaseOf(root), GEML_DIR, SESSIONS_DIR) });
     case "refresh": {
-      const change = ws.refresh();
+      // The workspace opened for this request: git's facts it read are this moment's.
+      const change = ws.refresh({ reread: false });
       const view = ws.view();
       return ok(view, { entered: change.entered, todo: todoOf(ws, root, view) }, change.context);
     }
@@ -580,7 +586,8 @@ function answer(req: BridgeRequest): BridgeResponse {
       return ok(view, { attention: { ahead: branchesAhead(root), prs: openPullRequests(root) }, host: hostOf(root), sessions: join(journalBaseOf(root), GEML_DIR, SESSIONS_DIR) });
     }
     case "board": {
-      const change = ws.refresh();
+      // The workspace opened for this request: git's facts it read are this moment's.
+      const change = ws.refresh({ reread: false });
       const view = ws.view();
       return ok(view, { entered: change.entered, board: boardOf(ws, root, view), todo: todoOf(ws, root, view) }, change.context);
     }

@@ -7,7 +7,7 @@
 import type { JsonValue } from "./schema.js";
 import { outgoing, type State, type Statechart, type Transition } from "./statechart.js";
 import { scopeIn } from "./policy.js";
-import { guardHolds, type Meta, type Refusal, type Snapshot } from "./snapshot.js";
+import { guardHolds, hasExpirable, type Meta, type Refusal, type Snapshot } from "./snapshot.js";
 import { resumeRun, startRun, type Run } from "./run.js";
 import type { JournalMeta } from "./journal.js";
 import { commandOf, personOnlyRefusal, switchesWorkItemOnly } from "./command-line.js";
@@ -33,8 +33,8 @@ export interface SupervisorHost {
   tools: HostTools;
   /** The workflow's tool dictionary as it stands. */
   dictionary: Dictionary;
-  /** The work item's content fingerprint for this operation, when it could be read: `tool` evidence expires on a change. */
-  tree?: string;
+  /** The work item's content fingerprint for this operation, when it could be read: `tool` evidence expires on a change. Read only when evidence is written or may expire: a host may make it a getter that reads it then. */
+  readonly tree?: string;
   /** Whether a name is an existing local branch, for `git checkout <branch>` as a way out (switchesWorkItemOnly); absent, that form never is one. */
   isBranch?(name: string): boolean;
 }
@@ -273,6 +273,8 @@ export class Supervisor {
   expire(meta: Meta): { expired: boolean; entered: string[] } {
     // A work item in a final state is closed: what it bore when it got there stays.
     if (this.sc.states.get(this.run.snapshot.state)?.final === true) return { expired: false, entered: [] };
+    // Nothing written on some content: nothing a change of it could expire, and the content is not read.
+    if (!hasExpirable(this.sc, this.run.history)) return { expired: false, entered: [] };
     const tree = this.host.tree;
     const done = tree === undefined ? null : this.run.expire(tree, meta);
     if (done === null) return { expired: false, entered: [] };

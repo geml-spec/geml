@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { answered, asksOf, bandLine, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, optionsFor, outcomeOf, pressablesFor, remember, spokenOf, standingOf, WIDTH } from "../dist/hosts/claude-code/attention.js";
+import { answered, asksOf, bandLine, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, optionsFor, outcomeOf, picksText, pressablesFor, remember, spokenOf, standingOf, WIDTH } from "../dist/hosts/claude-code/attention.js";
 
 const NOW = Date.parse("2026-10-18T10:00:00Z");
 const cells = (s) => [...s].reduce((w, c) => w + (/[ᄀ-￿]/.test(c) ? 2 : 1), 0);
@@ -19,6 +19,24 @@ test("answers: the ones an ask leans to, the action nearest its question mark", 
   assert.deepEqual(optionsFor("文档稿批不批？"), ["批", "先不"]);
   assert.deepEqual(optionsFor("这样可以吗？"), ["可以", "先不"]);
   assert.deepEqual(optionsFor("下一段讲什么？"), ["好", "先不"]);
+  assert.deepEqual(optionsFor("先做这个，还是先做第三步「产物」？"), ["先做这个", "先做第三步「产物」"], "A, 还是 B: the two choices, never yes or no");
+  // Several things to settle: asked one by one, each with its own answers; the answers kept, then said together.
+  const reply = "做完了。\n还有两处要你定：\n- 副标题要不要改\n- 图标换不换";
+  const first = leadOf({ reply, standing: [], memory: NO_MEMORY });
+  assert.deepEqual([first.text, first.options, first.step], ["定 1/2：副标题要不要改", ["要", "不要"], { index: 0, of: 2 }]);
+  assert.deepEqual(pressablesFor(first, first.options).map((p) => [p.label, p.action, p.primary ?? false]), [["要", { op: "pick", index: 0, answer: "要" }, true], ["不要", { op: "pick", index: 0, answer: "不要" }, false]]);
+  const second = leadOf({ reply, standing: [], memory: NO_MEMORY, picks: ["要", null] });
+  assert.deepEqual([second.text, second.options], ["定 2/2：图标换不换", ["换", "不换"]]);
+  assert.equal(leadOf({ reply, standing: [], memory: NO_MEMORY, picks: ["要", "不换"] }), null, "all answered: nothing leads");
+  assert.equal(picksText(["副标题要不要改", "图标换不换"], ["要", "不换"]), "副标题要不要改：要\n图标换不换：不换");
+  const cards = nowRows({ reply, standing: [], memory: NO_MEMORY, picks: ["要", null] }).filter((r) => r.kind === "card");
+  assert.deepEqual(cards.map((c) => [c.title, c.detail, c.actions.map((a) => a.action)]), [
+    ["副标题要不要改", ["已选：要"], []],
+    ["图标换不换", [], [{ op: "pick", index: 1, answer: "换" }, { op: "pick", index: 1, answer: "不换" }]],
+  ], "the board's cards answer each on its own, the one picked says so");
+  assert.deepEqual(optionsFor("文档稿批不批？"), ["批", "先不"], "批不批 keeps its own words");
+  assert.deepEqual(optionsFor("用 jsonl 还是 json 块？"), ["用 jsonl", "json 块"], "the blanks around 还是 are not part of either");
+  assert.deepEqual(optionsFor("提交到 main 还是新开分支？"), ["main", "新开分支"]);
 });
 
 test("standing: a failing check, a green pull request, commits not pushed (quiet while minutes old), a step the reply leaves, work not committed", () => {

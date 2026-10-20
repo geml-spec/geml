@@ -81,6 +81,8 @@ export type BoardAction =
   | { op: "copy"; text: string }
   /** Words sent into the conversation as the person's own, as if typed: an answer on the band, a step it offers. */
   | { op: "say"; text: string; confirm?: Confirm }
+  /** One answer of several asked in one reply, the `index`-th: kept until every one is answered, then all said in one prompt. */
+  | { op: "pick"; index: number; answer: string }
   /** A slash command run as if the person typed it (`/reload-plugins`), once the session is idle. */
   | { op: "command"; command: string }
   /** Another session's decision put in the prompt box, so the next prompt names it. */

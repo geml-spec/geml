@@ -142,6 +142,16 @@ function treeOfValue(history: readonly Snapshot[], name: string): string | undef
  * returns to its default, all in one revision (`cause=expire by=signal
  * signal=<the first such variable>`). Null when none has expired.
  */
+/** Whether any `tool` variable holds a value written on some content: only then can a change of content expire it, and only then is the content read. */
+export function hasExpirable(sc: Statechart, history: readonly Snapshot[]): boolean {
+  const snap = history[history.length - 1];
+  if (!snap) return false;
+  return varsBySource(sc, "tool").some((v) => {
+    const value = snap.vars[v.name];
+    return value !== undefined && canonical(value) !== canonical(v.default) && treeOfValue(history, v.name) !== undefined;
+  });
+}
+
 export function applyExpiry(sc: Statechart, history: readonly Snapshot[], tree: string, meta: Meta): Snapshot | null {
   const snap = history[history.length - 1];
   if (!snap || !sc.states.has(snap.state)) return null;

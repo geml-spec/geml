@@ -32,7 +32,7 @@ import { CLAUDE_CODE_TOOLS } from '../dist/core/host-tools.js'
 import { FLOW_TOOLS } from '../dist/core/verb-specs.js'
 import type { VerbName } from '../dist/core/verb-specs.js'
 import type { BoardAction, BoardTab, Dialog, JournalFilter, Pressable, ShareHow, ShareWhat } from '../dist/hosts/claude-code/actions.js'
-import { answered, bandLine, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, pendingNote, pressablesFor, pressedOf, remember, standingOf } from '../dist/hosts/claude-code/attention.js'
+import { answered, asksOf, bandLine, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, pendingNote, picksText, pressablesFor, pressedOf, remember, standingOf } from '../dist/hosts/claude-code/attention.js'
 import type { Queued } from '../dist/hosts/claude-code/attention.js'
 import type { AttentionFacts, AttentionMemory } from '../dist/hosts/claude-code/attention.js'
 import { envParts, remoteInPlay } from '../dist/hosts/claude-code/env.js'
@@ -398,7 +398,8 @@ async function loadBoard($: EngineInterface): Promise<string | null> {
 // ---- what needs the person now (attention.ts) ---------------------------------------------
 
 /** The last reply as the band keeps it. `consumed`: the person has answered it; its asks no longer lead. */
-interface Attention { reply: string; replyAt: number; asked: string; memory: AttentionMemory; consumed: boolean }
+/** `picks`: the answers given so far to the reply's several asks, by their place; said together once all are given. */
+interface Attention { reply: string; replyAt: number; asked: string; memory: AttentionMemory; consumed: boolean; picks?: (string | null)[] }
 const readAttention = async ($: EngineInterface): Promise<Attention | null> => (await read($, attentionAtom)) as unknown as Attention | null
 
 /** The repository's facts for the band, with the reload a command made due. */
@@ -415,7 +416,7 @@ async function attentionNow($: EngineInterface, t: T) {
   const reply = a !== null && !a.consumed ? a.reply : ''
   const memory = a?.memory ?? NO_MEMORY
   const standing = standingOf(reply, facts, now, t)
-  const lead = a === null || a.consumed ? null : leadOf({ reply, standing, memory, t })
+  const lead = a === null || a.consumed ? null : leadOf({ reply, standing, memory, picks: a.picks ?? [], t })
   const line = bandLine({ lead, standing, memory, reply, awayMs: a === null ? null : now - a.replyAt, ...(a !== null ? { asked: a.asked } : {}), t })
   return { attention: a, reply, standing, memory, lead, line }
 }
@@ -1183,6 +1184,17 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
         throw err
       }
       await setQueued($, (q) => q.map((x) => (x.text === action.text ? { ...x, entered: true } : x)))
+      return
+    }
+    // One of several asks answered: kept, the band moves to the next; the last answer says them all as the person's prompt.
+    case 'pick': {
+      const a = await readAttention($)
+      if (a === null || a.consumed) return
+      const asks = asksOf(a.reply)
+      const picks = asks.map((_, i) => (i === action.index ? action.answer : a.picks?.[i] ?? null))
+      if (picks.some((p) => p === null)) { await update($, attentionAtom, () => ({ ...a, picks }) as unknown as GemflowJson); return }
+      await update($, attentionAtom, () => ({ ...a, picks }) as unknown as GemflowJson)
+      await act($, { op: 'say', text: picksText(asks, picks) }, surface)
       return
     }
     // A slash command, run as typed once the session is idle; where the engine will not run it, it waits in the prompt box for Enter.
@@ -2154,7 +2166,7 @@ export const register: Register = (on) => {
     const envLine = (await env).parts
     // The work items open on 此刻: everything the band has room for one of.
     const now = await attention
-    if (now !== null) rows = [...nowRows({ reply: now[0].reply, standing: now[0].standing, memory: now[0].memory, queued: now[1], t }), ...rows]
+    if (now !== null) rows = [...nowRows({ reply: now[0].reply, standing: now[0].standing, memory: now[0].memory, queued: now[1], picks: now[0].attention?.picks ?? [], t }), ...rows]
     return (
       <Box flexDirection="column">
         {head !== undefined && (

@@ -381,6 +381,8 @@ export class Workspace {
   private readonly realRoot: string;
   /** git's facts once read; see `repo`. */
   private repoFacts: RepoInfo | undefined;
+  /** The branch's content fingerprint, once read. */
+  private tree: { value: string | undefined } | undefined;
   /** The workflow file as the journal head names it: relative to the home when it lies there (else to the root), `/`-separated. */
   private readonly workflowFile: string;
   /** See `journalBase`. */
@@ -568,7 +570,8 @@ export class Workspace {
    */
   private fingerprint(): string | undefined {
     if (this.item.kind !== "item" || varsBySource(this.sc, "tool").length === 0) return undefined;
-    if (this.sc.unit.kind === "branch") return (this.o.tree ?? treeFingerprint)(this.o.root);
+    // A branch's tree costs four git runs: read once per workspace, which lives for one request.
+    if (this.sc.unit.kind === "branch") return (this.tree ??= { value: (this.o.tree ?? treeFingerprint)(this.o.root) }).value;
     if (this.itemFile === undefined) return undefined;
     // Where the item stands is kept in its own meta; writing it back is no change of what the item holds.
     const key = this.sc.unit.stateKey;
@@ -583,7 +586,7 @@ export class Workspace {
    * are collected, not written. A journal that goes on first expires the
    * evidence its work item's content no longer bears (`tree`, Supervisor.expire).
    */
-  private begin(path: string, item: string, tree?: string): Begun {
+  private begin(path: string, item: string): Begun {
     const text = exists(path) ? readText(path) : null;
     const startAt = text === null ? this.itemStateOnDisk() : undefined;
     const opened = openRun({ sc: this.sc, item, workflowFile: this.workflowFile, journalText: text, source: "resume", now: this.now(), ...(startAt !== undefined ? { startAt } : {}) });
@@ -591,12 +594,14 @@ export class Workspace {
       throw new Unresumable(`${this.shown(path)} cannot be resumed: ${opened.reason.replace(/\.$/, "")}. Move it aside (rename or delete it) to start ${item} over.`);
     }
     const out = text === null ? [opened.head, ...opened.blocks] : [...opened.blocks];
+    // The content's fingerprint costs git runs: read when evidence is written or may expire, once for the workspace.
+    const fingerprint = (): string | undefined => this.fingerprint();
     const sup = new Supervisor(this.sc, opened.run, {
       append: (b) => out.push(b),
       now: () => this.now(),
       tools: this.o.tools,
       dictionary: this.dictionary(),
-      ...(tree !== undefined ? { tree } : {}),
+      get tree() { return fingerprint(); },
       isBranch: (name) => isLocalBranch(this.o.root, name),
     });
     const begun: Begun = { text, sup, out, ...(text === null ? {} : { stateBefore: opened.run.snapshot.state }), historyLength: opened.run.history.length };
@@ -675,9 +680,8 @@ export class Workspace {
     const path = this.journalPath;
     if (path === undefined || this.item.kind !== "item") return undefined;
     const item = this.item.id;
-    const tree = this.fingerprint();
     const done = withLock(path, () => {
-      const b = this.begin(path, item, tree);
+      const b = this.begin(path, item);
       const opening = b.out.length;
       const value = fn(b.sup);
       const idle = this.o.lazy === true && b.text === null && b.out.length === opening;
@@ -880,9 +884,10 @@ export class Workspace {
   }
 
   /** Read git's facts again, as they are now, then gh's and the file variables' (session start, board refresh, after a git operation). */
-  refresh(): StageChange {
+  /** Read git's and the files' facts again and take what they say. `reread: false`, for a workspace that has just opened: git's facts it read then are this moment's. */
+  refresh(o: { reread?: boolean } = {}): StageChange {
     if (this.item.kind !== "item") return { entered: [] };
-    if (readsGit(this.sc).git) this.repoFacts = (this.o.git ?? realRepo)(this.o.root);
+    if (readsGit(this.sc).git && (this.repoFacts === undefined || o.reread !== false)) this.repoFacts = (this.o.git ?? realRepo)(this.o.root);
     const values = [...this.gitValues(), ...this.fileValues()];
     return this.act((sup) => { sup.applySignals(values, metaFor(this.now())); })?.change ?? { entered: [] };
   }

@@ -4,6 +4,9 @@ import { chmodSync, cpSync, mkdirSync, mkdtempSync, writeFileSync } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { answerRequest } from "../../dist/bridge.js";
+import { forgetGitFacts } from "../../dist/host-git.js";
+import { decodeRequest } from "../../dist/hosts/claude-code/protocol.js";
 
 export const BUNDLE = fileURLToPath(new URL("../../dist/gemflow.mjs", import.meta.url));
 
@@ -55,8 +58,31 @@ export function fakeGh() {
   return { env: { GEMFLOW_GH: bin, FAKE_GH_STATE: state }, set };
 }
 
-/** One bridge request through the bundled CLI: exactly one answer line, parsed. */
+/**
+ * One bridge request, answered in this process as `gemflow hook` answers it:
+ * the request read the way the CLI reads it, the environment and working
+ * directory set for it, nothing remembered from the request before, the answer
+ * as the JSON line the CLI writes. A process per request costs a second or two
+ * on Windows; `hookProcess` is the bundle itself, for the tests that are about it.
+ */
 export function hook(root, req, env = {}) {
+  const decoded = decodeRequest(JSON.stringify({ v: 1, root, ...req }));
+  if ("error" in decoded) return { v: 1, ok: false, error: decoded.error };
+  const saved = Object.fromEntries(Object.keys(env).map((k) => [k, process.env[k]]));
+  const cwd = process.cwd();
+  Object.assign(process.env, env);
+  process.chdir(root);
+  forgetGitFacts();
+  try {
+    return JSON.parse(JSON.stringify(answerRequest(decoded)));
+  } finally {
+    process.chdir(cwd);
+    for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+  }
+}
+
+/** One bridge request through the bundled CLI: exactly one answer line, parsed. */
+export function hookProcess(root, req, env = {}) {
   const r = spawnSync(process.execPath, [BUNDLE, "hook"], {
     cwd: root, input: JSON.stringify({ v: 1, root, ...req }), encoding: "utf8", env: { ...process.env, ...env }, timeout: 60_000,
   });

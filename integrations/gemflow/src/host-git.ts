@@ -58,8 +58,43 @@ function runIn(cmd: string, args: string[], cwd: string, env: Record<string, str
   return { ok: r.status === 0 && !r.error, out: (r.stdout ?? "").trim(), err: (r.stderr ?? "").trim(), missing: false };
 }
 
+/**
+ * What hardly changes for a checkout — its top, its index's path, its default
+ * branch and that branch's ref — read once and read again after MEMO_MS: one
+ * request asks it several times (a git run costs 100–200 ms on Windows), and a
+ * long-lived server (gemflow mcp) reads it afresh soon enough.
+ */
+const MEMO_MS = 5_000;
+const memo = new Map<string, { at: number; value: unknown }>();
+
+/** Forget what was remembered: the next question goes to git (a test that answers several requests in one process, as several processes would). */
+export function forgetGitFacts(): void {
+  memo.clear();
+}
+function remembered<T>(key: string, read: () => T): T {
+  const now = Date.now();
+  const hit = memo.get(key);
+  if (hit !== undefined && now - hit.at < MEMO_MS) return hit.value as T;
+  const value = read();
+  memo.set(key, { at: now, value });
+  return value;
+}
+
+/** The default branch's ref: the local branch, else the remote's; undefined when there is neither. */
+function baseRefOf(root: string): string | undefined {
+  return remembered(`base\0${root}`, () => {
+    const name = defaultBranchOf(root);
+    return name === undefined ? undefined
+      : [`refs/heads/${name}`, `refs/remotes/origin/${name}`].find((ref) => run("git", ["rev-parse", "--verify", "--quiet", ref], root).ok);
+  });
+}
+
 /** The remote's default branch, else a local `main` or `master`. */
 function defaultBranchOf(root: string): string | undefined {
+  return remembered(`default\0${root}`, () => readDefaultBranch(root));
+}
+
+function readDefaultBranch(root: string): string | undefined {
   const origin = run("git", ["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], root);
   if (origin.ok && origin.out !== "") return origin.out.replace(/^origin\//, "");
   for (const name of ["main", "master"]) {
@@ -111,9 +146,9 @@ export function repoFacts(root: string): RepoFacts {
  * change nothing. Undefined when git cannot say (no repository, git missing).
  */
 export function treeFingerprint(root: string): string | undefined {
-  const top = run("git", ["rev-parse", "--show-toplevel"], root);
+  const top = remembered(`top\0${root}`, () => run("git", ["rev-parse", "--show-toplevel"], root));
   if (!top.ok || top.out === "") return undefined;
-  const index = run("git", ["rev-parse", "--path-format=absolute", "--git-path", "index"], top.out);
+  const index = remembered(`index\0${top.out}`, () => run("git", ["rev-parse", "--path-format=absolute", "--git-path", "index"], top.out));
   if (!index.ok || index.out === "") return undefined;
   const dir = mkdtempSync(join(tmpdir(), "gemflow-tree-"));
   try {
@@ -150,9 +185,7 @@ const gitDate = (iso: string): string | undefined => {
 export function commitsOf(root: string, w: { ownBranch?: boolean; since?: string; until?: string; paths?: readonly string[] }, limit = 20): CommitFacts[] {
   const args = ["-c", "core.quotePath=false", "log", `--max-count=${limit}`, "--relative", "--name-only", "--format=%x1e%H%x1f%cI%x1f%s"];
   if (w.ownBranch === true) {
-    const name = defaultBranchOf(root);
-    const base = name === undefined ? undefined
-      : [`refs/heads/${name}`, `refs/remotes/origin/${name}`].find((ref) => run("git", ["rev-parse", "--verify", "--quiet", ref], root).ok);
+    const base = baseRefOf(root);
     if (base === undefined) return [];
     args.push(`${base}..HEAD`);
   } else {
@@ -410,9 +443,7 @@ export interface BranchFact { tip: string; ahead?: number; inDefault: boolean; w
  */
 export function branchesFacts(root: string): { ok: boolean; base?: string; branches: Map<string, BranchFact> } {
   const branches = new Map<string, BranchFact>();
-  const name = defaultBranchOf(root);
-  const base = name === undefined ? undefined
-    : [`refs/heads/${name}`, `refs/remotes/origin/${name}`].find((ref) => run("git", ["rev-parse", "--verify", "--quiet", ref], root).ok);
+  const base = baseRefOf(root);
   // `%(ahead-behind:…)` is git 2.41's; before it, one count per branch.
   let refs = base === undefined ? undefined : run("git", ["for-each-ref", "refs/heads", `--format=%(refname:short)%09%(objectname)%09%(ahead-behind:${base})`], root);
   const counted = refs?.ok === true;
