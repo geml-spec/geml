@@ -48,7 +48,8 @@ export type LeadKind = "ask" | "broken" | "you" | "back";
 /** `step`: one of several asks in one reply, settled one by one — which, of how many. */
 export interface Lead { key: string; kind: LeadKind; text: string; options: string[]; step?: { index: number; of: number } }
 export interface Standing { key: string; kind: "broken" | "you"; short: string; text: string; options: string[]; quiet?: boolean }
-export interface BandLine { text: string; options: string[]; lead: LeadKind | null }
+/** `steps`: the other steps only the person can take now, each a button of its own beside the lead's options. */
+export interface BandLine { text: string; options: string[]; lead: LeadKind | null; steps: Standing[] }
 
 /** A standing condition rides at the end of the line for this many turns, then only the board shows it. */
 export const FADE = 3;
@@ -147,7 +148,7 @@ export function outcomeOf(reply: string, cutFromFront = false): string | undefin
 // ---- the standing conditions
 
 /** The steps only the person can take now: from the repository, and from what the reply leaves to them. */
-export function standingOf(reply: string, facts: AttentionFacts, now: number, t: T = ZH): Standing[] {
+export function standingOf(reply: string, facts: AttentionFacts, now: number, t: T = ZH, o: { reloadHere?: boolean } = {}): Standing[] {
   const out: Standing[] = [];
   for (const p of facts.prs) {
     if (p.failing.length > 0) {
@@ -155,7 +156,11 @@ export function standingOf(reply: string, facts: AttentionFacts, now: number, t:
       out.push({ key: `fail:${p.number}:${p.failing.join(",")}`, kind: "broken", short: t("#{0} {1}失败", p.number, checks), text: t("✗ #{0} 的 {1} 失败", p.number, checks), options: [t("看日志"), t("修")] });
     }
   }
-  if (facts.reload === true) out.push({ key: "reload", kind: "you", short: t("重载插件"), text: t("只差你 插件改过了，重载才看得到"), options: [t("重载插件")] });
+  if (facts.reload === true) {
+    out.push(o.reloadHere === false
+      ? { key: "reload", kind: "you", short: t("本机重载插件"), text: t("只差你 插件改过了，要在本机重载"), options: [] }
+      : { key: "reload", kind: "you", short: t("重载插件"), text: t("只差你 插件改过了，重载才看得到"), options: [t("重载插件")] });
+  }
   for (const p of facts.prs) {
     if (p.green) out.push({ key: `green:${p.number}`, kind: "you", short: t("合并 #{0}", p.number), text: t("只差你 #{0} 全绿，可以合并", p.number), options: [t("合并")] });
   }
@@ -258,24 +263,30 @@ export function bandLine(o: {
   // A standing condition rides along for its first turns; back after a while, the ones about the work itself come
   // back once (a pull request left green for days stays faded: it was seen, and left on purpose).
   const workItself = (s: Standing): boolean => s.kind === "broken" || /^(unpushed|uncommitted):/.test(s.key);
-  const owed = o.standing.filter((s) => s.key !== lead?.key && ((o.memory.age[s.key] ?? 0) <= FADE || (back && workItself(s)))).map((s) => s.short);
+  const riding = o.standing.filter((s) => s.key !== lead?.key && ((o.memory.age[s.key] ?? 0) <= FADE || (back && workItself(s))));
+  const steps = riding.filter(isStepButton).slice(0, 3);
+  const owed = riding.filter((s) => !steps.includes(s)).map((s) => s.short);
   const waiting = o.memory.backlog.length;
-  const options = lead !== null && lead.options.length > 0 ? lead.options : owed.length + waiting > 0 ? [t("看看")] : [];
+  const options = lead !== null && lead.options.length > 0 ? lead.options : steps.length === 0 && owed.length + waiting > 0 ? [t("看看")] : [];
   const awayNote = back && (lead !== null || waiting > 0 || owed.length > 0) && o.awayMs !== null ? t("你离开了 {0}", awayWords(o.awayMs, t)) : "";
   const tail = (named: boolean): string[] => [
     owed.length === 0 ? "" : named ? t("还差你：{0}", owed.join("、")) : t("还差你 {0} 步", owed.length),
     waiting > 0 ? t("还有 {0} 件待定", waiting) : "",
   ];
-  const build = (a: string, named: boolean, l: string): string => [a, l, ...tail(named)].filter((x) => x !== "").join(" · ");
-  const room = width - cells(options.map((x) => `[${x}]`).join(" ")) - 1;
+  // Nothing leads and nothing else is named: the line says what its buttons are.
+  const build = (a: string, named: boolean, l: string): string => {
+    const parts = [a, l, ...tail(named)].filter((x) => x !== "");
+    return (parts.length === 0 || (parts.length === 1 && parts[0] === a)) && steps.length > 0 ? [...parts, t("只差你这几步")].join(" · ") : parts.join(" · ");
+  };
+  const room = width - cells([...options, ...steps.map((x) => x.short)].map((x) => `[${x}]`).join(" ")) - 1;
   const kind = lead?.kind ?? null;
   for (const [a, named] of [[awayNote, true], ["", true], ["", false]] as const) {
     const line = build(a, named, lead?.text ?? "");
-    if (cells(line) <= room) return line === "" ? null : { text: line, options, lead: kind };
+    if (cells(line) <= room) return line === "" && steps.length === 0 ? null : { text: line, options, lead: kind, steps };
   }
   const leadRoom = Math.max(12, room - cells(build("", false, "")) - 3);
   const line = build("", false, cut(lead?.text ?? "", leadRoom));
-  return line === "" ? null : { text: cells(line) <= room ? line : cut(line, room), options, lead: kind };
+  return line === "" && steps.length === 0 ? null : { text: cells(line) <= room ? line : cut(line, room), options, lead: kind, steps };
 }
 
 /** What happened since the last reply that the model should hear of, so the person need not say it. */
@@ -328,6 +339,23 @@ export function pressablesFor(lead: Lead | null, options: readonly string[], t: 
       : label === t("重载插件") ? { op: "command" as const, command: "reload-plugins" }
       : { op: "say" as const, text, ...(confirm !== undefined ? { confirm } : {}) };
     return { key: `attention-${i}-${label}`, label, ...(i === 0 && label !== t("先不") && label !== t("看看") ? { primary: true } : {}), action };
+  });
+}
+
+/** A step that is a button beside the lead: one the person takes in a press — merge, push, commit, reload. */
+function isStepButton(s: Standing): boolean {
+  return s.options.length > 0 && /^(green|unpushed|uncommitted):|^reload$/.test(s.key);
+}
+
+/** The steps beside the lead as presses: said as the person's words (merging and pushing ask first), a reload run as the command. */
+export function stepPressables(steps: readonly Standing[], t: T = ZH): Pressable[] {
+  return steps.map((s): Pressable => {
+    if (s.key === "reload") return { key: "step-reload", label: s.short, action: { op: "command", command: "reload-plugins" } };
+    const m = /^green:(\d+)$/.exec(s.key);
+    const confirm = m !== null ? { question: t("合并 #{0}？合进去就撤不回。", m[1] as string), yes: t("合并") }
+      : s.key.startsWith("unpushed:") ? { question: t("推送 {0}？推上去的提交别人就看得到。", s.key.slice("unpushed:".length)), yes: t("推送") }
+      : undefined;
+    return { key: `step-${s.key}`, label: s.short, action: { op: "say", text: s.short, ...(confirm !== undefined ? { confirm } : {}) } };
   });
 }
 

@@ -78,6 +78,8 @@ declare module 'claude-code' {
       factsAtReply: GemflowJson
       /** A command changed the plugin's own folder since it was loaded: a reload shows it. */
       reload: boolean
+      /** The engine said a reload cannot run here (a remote connection): the band names it with no button. */
+      reloadUnavailable: boolean
       /** The machine and checkout the session runs on ({ name, platform, user, branch }), as the bridge read them. */
       host: GemflowJson
       /** The clients attached to the session (session.attach): [{ clientId, surface }]. */

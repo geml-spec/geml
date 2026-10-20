@@ -32,7 +32,7 @@ import { CLAUDE_CODE_TOOLS } from '../dist/core/host-tools.js'
 import { FLOW_TOOLS } from '../dist/core/verb-specs.js'
 import type { VerbName } from '../dist/core/verb-specs.js'
 import type { BoardAction, BoardTab, Dialog, JournalFilter, Pressable, ShareHow, ShareWhat } from '../dist/hosts/claude-code/actions.js'
-import { answered, asksOf, bandLine, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, pendingNote, picksText, pressablesFor, pressedOf, remember, standingOf } from '../dist/hosts/claude-code/attention.js'
+import { answered, asksOf, bandLine, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, pendingNote, picksText, pressablesFor, pressedOf, remember, standingOf, stepPressables } from '../dist/hosts/claude-code/attention.js'
 import type { Queued } from '../dist/hosts/claude-code/attention.js'
 import type { AttentionFacts, AttentionMemory } from '../dist/hosts/claude-code/attention.js'
 import { envParts, remoteInPlay } from '../dist/hosts/claude-code/env.js'
@@ -123,6 +123,8 @@ const factsAtom = atom({ plugin: 'gemflow', key: 'facts' } as const, null as Gem
 const factsAtReplyAtom = atom({ plugin: 'gemflow', key: 'factsAtReply' } as const, null as GemflowJson)
 /** A command changed the plugin's own folder since it was loaded. */
 const reloadAtom = atom({ plugin: 'gemflow', key: 'reload' } as const, false)
+/** The engine said `/reload-plugins` cannot run in this session (a remote connection): no button offers it. */
+const reloadUnavailableAtom = atom({ plugin: 'gemflow', key: 'reloadUnavailable' } as const, false)
 /** The machine and checkout the session runs on, as the bridge read them ({ name, platform, user, branch }). */
 const hostAtom = atom({ plugin: 'gemflow', key: 'host' } as const, null as GemflowJson)
 /** The clients attached to the session (session.attach): [{ clientId, surface }]. */
@@ -415,7 +417,10 @@ async function attentionNow($: EngineInterface, t: T) {
   const now = await $.clock.now()
   const reply = a !== null && !a.consumed ? a.reply : ''
   const memory = a?.memory ?? NO_MEMORY
-  const standing = standingOf(reply, facts, now, t)
+  // A reload is the machine's: over a remote connection, or once the engine said it cannot run here, it is named with no button.
+  const [clients, origin, unavailable] = await Promise.all([read($, clientsAtom), read($, originAtom), read($, reloadUnavailableAtom)])
+  const remote = remoteInPlay({ clients: (clients as unknown as AttachedClient[] | null) ?? [], ...(origin !== null ? { origin } : {}) })
+  const standing = standingOf(reply, facts, now, t, { reloadHere: !remote && !unavailable })
   const lead = a === null || a.consumed ? null : leadOf({ reply, standing, memory, picks: a.picks ?? [], t })
   const line = bandLine({ lead, standing, memory, reply, awayMs: a === null ? null : now - a.replyAt, ...(a !== null ? { asked: a.asked } : {}), t })
   return { attention: a, reply, standing, memory, lead, line }
@@ -1202,7 +1207,12 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       const typed = `/${action.command}`
       await setQueued($, (q) => [...q.filter((x) => x.text !== typed), { text: typed, entered: false }])
       try {
-        await $.command.run({ command: action.command })
+        const ran = await $.command.run({ command: action.command })
+        // The engine runs it, and may say it cannot here (a remote connection): not offered again this session.
+        if (action.command === 'reload-plugins' && /not available|isn't available|unavailable/i.test((ran as { text?: string } | undefined)?.text ?? '')) {
+          await update($, reloadUnavailableAtom, () => true)
+          $.ui.toast(t('要在本机重载插件'))
+        }
       } catch {
         const filled = await $.prompt.fill({ text: typed }).catch(() => undefined)
         $.ui.toast(filled?.isFilled === true ? t('回车执行 {0}', typed) : `gemflow：${typed}`)
@@ -2031,7 +2041,7 @@ export const register: Register = (on) => {
         const workflowWaits = waitingOnPerson > 0 || view.verb === t('已暂停')
         if (at.line !== null && (at.line.lead !== null || !workflowWaits)) {
           view = { verb: '', title: at.line.text, tone: at.line.lead === 'broken' ? 'error' : 'normal', note: '', detail: at.line.text, actions: [], more: { count: 0, detail: '' } }
-          attentionPresses = pressablesFor(at.lead, at.line.options, t)
+          attentionPresses = [...pressablesFor(at.lead, at.line.options, t), ...stepPressables(at.line.steps, t)]
           const pressed = pressedOf(attentionPresses, await readQueued($))
           if (pressed !== undefined) { view = { ...view, note: pendingNote(pressed, t) }; attentionPresses = [] }
         }

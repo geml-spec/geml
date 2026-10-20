@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { answered, asksOf, bandLine, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, optionsFor, outcomeOf, picksText, pressablesFor, remember, spokenOf, standingOf, WIDTH } from "../dist/hosts/claude-code/attention.js";
+import { answered, asksOf, bandLine, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, optionsFor, outcomeOf, picksText, pressablesFor, remember, spokenOf, standingOf, stepPressables, WIDTH } from "../dist/hosts/claude-code/attention.js";
 
 const NOW = Date.parse("2026-10-18T10:00:00Z");
 const cells = (s) => [...s].reduce((w, c) => w + (/[ᄀ-￿]/.test(c) ? 2 : 1), 0);
@@ -84,10 +84,24 @@ test("the line: lead, steps still owed, asks still waiting, in one row; back aft
   assert.match(roomy.text, /^你离开了 3 小时 · 定 .*要推到 origin 吗/, "room for it: the away note leads");
   const line = bandLine({ lead, standing, memory: { ...NO_MEMORY, backlog: ["a"] }, reply, awayMs: 3 * 3_600_000, asked: "提交" });
   assert.match(line.text, /^定 .*要推到 origin 吗/, "crowded: the away note goes first");
-  assert.match(line.text, /还差你：.*推送 feat\/gemflow/);
   assert.match(line.text, /还有 1 件待定$/);
   assert.deepEqual(line.options, ["推", "先不"]);
-  assert.ok(cells(line.text) + cells(line.options.map((o) => `[${o}]`).join(" ")) + 1 <= WIDTH, "one row");
+  assert.deepEqual(line.steps.map((x) => x.short), ["合并 #32", "推送 feat/gemflow"], "the other steps only the person takes: buttons of their own beside the answers");
+  assert.doesNotMatch(line.text, /还差你/, "a step with a button is not named twice");
+  assert.ok(cells(line.text) + cells([...line.options, ...line.steps.map((x) => x.short)].map((o) => `[${o}]`).join(" ")) + 1 <= WIDTH, "one row");
+  assert.deepEqual(stepPressables(line.steps).map((p) => [p.label, p.action]), [
+    ["合并 #32", { op: "say", text: "合并 #32", confirm: { question: "合并 #32？合进去就撤不回。", yes: "合并" } }],
+    ["推送 feat/gemflow", { op: "say", text: "推送 feat/gemflow", confirm: { question: "推送 feat/gemflow？推上去的提交别人就看得到。", yes: "推送" } }],
+  ]);
+  // A commit just made: its push is a button at once, though it does not lead.
+  const fresh = standingOf("", { ahead: [{ branch: "feat/x", ahead: 1, newestAt: new Date(NOW - 60_000).toISOString() }], prs: [] }, NOW);
+  assert.equal(leadOf({ reply: "", standing: fresh, memory: NO_MEMORY }), null, "young: it does not lead");
+  assert.deepEqual(bandLine({ lead: null, standing: fresh, memory: NO_MEMORY, reply: "", awayMs: 0 }), { text: "只差你这几步", options: [], lead: null, steps: fresh });
+  // Over a remote connection a reload is named, with no button that cannot work.
+  const remote = standingOf("", { ahead: [], prs: [], reload: true }, NOW, undefined, { reloadHere: false });
+  assert.deepEqual([remote[0].short, remote[0].options], ["本机重载插件", []]);
+  assert.deepEqual(bandLine({ lead: leadOf({ reply: "", standing: remote, memory: NO_MEMORY }), standing: remote, memory: NO_MEMORY, reply: "", awayMs: 0 }).options, []);
+  assert.deepEqual(stepPressables(standingOf("", { ahead: [], prs: [], reload: true }, NOW)).map((p) => p.action), [{ op: "command", command: "reload-plugins" }]);
   const back = bandLine({ lead: null, standing: [], memory: NO_MEMORY, reply: "做完了，分三个提交留在本地，没有推送。\n\n细节如下。", awayMs: 2 * 3_600_000, asked: "一起改完再跑全测吧" });
   assert.match(back.text, /你走前让我「一起改完再跑全测吧」：做完了，分三个提交留在本地，没有推送/, "what became of the request leads (the away note gives way to it in one row)");
   assert.equal(back.lead, "back");
@@ -102,7 +116,7 @@ test("the line fades: a condition rides along for its first turns, then only the
   assert.equal(bandLine({ lead: null, standing, memory: aged, reply: "", awayMs: 5 * 3_600_000 }), null, "a green pull request left for days stays faded, back or not");
   const unpushed = standingOf("", { ahead: [{ branch: "main", ahead: 1, newestAt: "2026-10-18T01:00:00Z" }], prs: [] }, NOW);
   const back = bandLine({ lead: null, standing: unpushed, memory: { ...NO_MEMORY, shown: ["unpushed:main"], age: { "unpushed:main": 9 } }, reply: "", awayMs: 5 * 3_600_000 });
-  assert.match(back.text, /还差你：推送 main/, "work not pushed comes back once on return");
+  assert.deepEqual([back.text, back.steps.map((x) => x.short)], ["只差你这几步", ["推送 main"]], "work not pushed comes back once on return, a button");
 });
 
 test("presses: an answer or a step goes as the person's own words, whole; 看看 opens the board; a reload is copied", () => {

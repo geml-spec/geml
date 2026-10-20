@@ -1106,6 +1106,28 @@ test('a step pressed on the board says what became of it: being done once it goe
   expect(ran, '重载插件 runs /reload-plugins, nothing to copy and paste').toEqual(['reload-plugins'])
 })
 
+test('a reload the engine cannot run here (a remote connection) is not offered again: the band names it, with no button', async ($, on) => {
+  const w = world(on)
+  on('prompt.submit', ($, e) => ({ text: e.text }))
+  on('turn.complete', ($, e) => ({ text: e.answer }))
+  on('command.run', () => ({ text: "/reload-plugins isn't available over a remote connection in this session." }))
+  on('tool.call', { tool: 'Bash' }, () => ({ result: { stdout: '', stderr: '', interrupted: false }, text: '' }))
+  const clock = await start($, on)
+  await clock.advance(1)
+  await $.tool.call({ tool: 'Bash', tool_use_id: 'b9', command: 'cp -r dist ~/.claude/local-marketplaces/geml-dev/gemflow/' })
+  await $.turn.complete({ answer: '同步好了。', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' })
+  const band = () => $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+  let b = await band()
+  expect(await b.find({ type: 'Button', key: 'attention-0-重载插件' })).toBeDefined()
+  await b.press({ key: 'attention-0-重载插件' })
+  await b.unmount()
+  expect(w.toasts.at(-1)).toBe('要在本机重载插件')
+  b = await band()
+  expect(await b.find({ type: 'Button', key: 'attention-0-重载插件' }), 'no button that cannot work').toBeUndefined()
+  expect(shown((await b.drawn()) as unknown as Drawn).join(' ')).toMatch(/要在本机重载/)
+  await b.unmount()
+})
+
 test('a tool call redraws neither the band nor the board: with both drawn, the reads it sets off are only its own, so a press is not lost to a redraw while the model works', async ($, on) => {
   world(on)
   on('prompt.submit', ($, e) => ({ text: e.text }))
