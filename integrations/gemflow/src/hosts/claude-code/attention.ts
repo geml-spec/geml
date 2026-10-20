@@ -303,10 +303,19 @@ export function pressablesFor(lead: Lead | null, options: readonly string[], t: 
     if (key.startsWith("uncommitted:") && label === t("提交")) return t("提交改动");
     return label;
   };
+  // Merging and pushing cannot be taken back: the press asks first.
+  const confirmOf = (text: string): { question: string; yes: string } | undefined => {
+    let m: RegExpExecArray | null;
+    if ((m = /^合并 #(\d+)$/.exec(text)) || (m = /^Merge #(\d+)$/.exec(text))) return { question: t("合并 #{0}？合进去就撤不回。", m[1] as string), yes: t("合并") };
+    if ((m = /^推送 (.+)$/.exec(text)) || (m = /^Push (.+)$/.exec(text))) return { question: t("推送 {0}？推上去的提交别人就看得到。", m[1] as string), yes: t("推送") };
+    return undefined;
+  };
   return options.map((label, i): Pressable => {
+    const text = said(label);
+    const confirm = confirmOf(text);
     const action = label === t("看看") ? { op: "open-board" as const, tab: "items" as const }
       : label === t("重载插件") ? { op: "command" as const, command: "reload-plugins" }
-      : { op: "say" as const, text: said(label) };
+      : { op: "say" as const, text, ...(confirm !== undefined ? { confirm } : {}) };
     return { key: `attention-${i}-${label}`, label, ...(i === 0 && label !== t("先不") && label !== t("看看") ? { primary: true } : {}), action };
   });
 }

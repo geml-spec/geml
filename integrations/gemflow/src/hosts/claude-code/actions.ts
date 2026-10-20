@@ -12,6 +12,9 @@ export type ExportFormat = "geml" | "md" | "json";
 export type ShareWhat = "status" | "journal" | "session" | "workflow";
 export type ShareHow = "copy" | "file" | "pr";
 
+/** The question a press that cannot be taken back asks before it acts, and the word that says yes. */
+export interface Confirm { question: string; yes: string }
+
 export type BoardAction =
   /**
    * A person's way out. `file`: the work item it is taken on, under a `file:`
@@ -26,7 +29,7 @@ export type BoardAction =
   | { op: "pause" }
   | { op: "resume" }
   /** A person's word about keys, into the dictionary. */
-  | { op: "learn"; lessons: Lesson[] }
+  | { op: "learn"; lessons: Lesson[]; confirm?: Confirm }
   /** Let the next call judged on these keys through, once; nothing is learned. */
   | { op: "pass-once"; keys: string[] }
   /** Start the bridge again after a failure. */
@@ -63,8 +66,10 @@ export type BoardAction =
   | { op: "judge-undo" }
   /** Put a suggestion away: it is not asked again. */
   | { op: "dismiss"; key: string }
-  /** List the finished work items, or only count them. */
-  | { op: "fold"; what: "done"; open: boolean }
+  /** List the closed (or the dropped) work items, or only count them. */
+  | { op: "fold"; what: "done" | "dropped"; open: boolean }
+  /** Close a merged work item: its worktree and its local branch removed, by the model, once the person said yes. */
+  | { op: "close-item"; id: string; worktree?: string }
   | { op: "export"; kind: ExportKind; format: ExportFormat }
   | { op: "dialog"; dialog: Dialog | null }
   | { op: "open-board"; tab?: BoardTab }
@@ -75,7 +80,7 @@ export type BoardAction =
   | { op: "setting"; key: string; value: string | boolean }
   | { op: "copy"; text: string }
   /** Words sent into the conversation as the person's own, as if typed: an answer on the band, a step it offers. */
-  | { op: "say"; text: string }
+  | { op: "say"; text: string; confirm?: Confirm }
   /** A slash command run as if the person typed it (`/reload-plugins`), once the session is idle. */
   | { op: "command"; command: string }
   /** Another session's decision put in the prompt box, so the next prompt names it. */

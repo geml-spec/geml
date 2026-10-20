@@ -74,6 +74,10 @@ function world(on: On) {
     files: new Map<string, string>(),
     /** The open pull requests the attention answer carries. */
     prs: [] as { number: number; branch: string; green: boolean; failing: string[] }[],
+    /** The other work items the board lists, beside the current one. */
+    items: [] as Record<string, unknown>[],
+    /** While set, an `after` request is held until it settles: a bridge slow to answer. */
+    hold: null as Promise<void> | null,
     /** The work items that have a journal: a handoff to one of them is a return, to any other a new item. */
     journals: new Set(['feat/x']),
     /** When set, review → done needs a person (APPROVAL). */
@@ -128,7 +132,7 @@ function world(on: On) {
       { name: 'review→done', from: 'review', to: 'done', judge: 'model', approval: false, note: '' },
     ],
     fences: [{ use: 'edit', states: ['build'] }, { use: 'test', states: ['build'] }],
-    tools: ROWS, backlog: null, items: [{ id: 'feat/x', state: w.state, rev: w.rev, at: '2026-10-12T09:00:00Z', paused: w.paused }], timeline: w.timeline, clocks: [], tree: 'tree:1',
+    tools: ROWS, backlog: null, items: [{ id: 'feat/x', state: w.state, rev: w.rev, at: '2026-10-12T09:00:00Z', paused: w.paused }, ...w.items], timeline: w.timeline, clocks: [], tree: 'tree:1',
     // The flow picture as the CLI sends it: the parser's topology, the overlay, and the SVG a web surface inlines.
     picture: {
       flow: {
@@ -189,7 +193,8 @@ function world(on: On) {
     return { v: 1, ok: true, shell: shell(), ...(req.op === 'before' ? { recorded: false } : {}), ...(req.op === 'after' ? handoff(req) : {}) }
   }
   const ran = (stdout: string, exitCode = 0) => ({ exitCode, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false })
-  on('process.run', ($, e) => {
+  on('process.run', async ($, e) => {
+    if (e.argv[2] === 'hook' && w.hold !== null && (JSON.parse(e.init?.stdin ?? '{}') as Req).op === 'after') await w.hold
     if (e.argv[1] === '--version') return w.node ? { value: ran('v24.1.0\n') } : { deny: 'spawn node ENOENT' }
     if (e.argv[0] === '/bin/sh') return { value: ran('', 1) }
     // git's answer for the checkout a directory is in: the deepest `.git` entry at or above it.
@@ -369,8 +374,12 @@ test('a use fenced to another state refuses through the bridge; a broken bridge 
   w.bridge = false
   const passed = await $.tool.call({ tool: 'Edit', tool_use_id: 'e2', file_path: `${ROOT}/a.ts`, old_string: 'a', new_string: 'b' })
   expect(passed.text).toBe('edited')
-  const band = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'AbovePrompt', props: BAND })
-  expect(await band.find({ type: 'Text', text: /桥接没有应答/ })).toBeDefined()
+  let band = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+  expect(await band.find({ type: 'Text', text: /暂时没应答/ }), 'one request that did not come back is a busy machine, not news').toBeUndefined()
+  await band.unmount()
+  expect((await $.tool.call({ tool: 'Edit', tool_use_id: 'e3', file_path: `${ROOT}/a.ts`, old_string: 'a', new_string: 'b' })).text).toBe('edited')
+  band = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+  expect(await band.find({ type: 'Text', text: /暂时没应答，不拦操作/ }), 'two in a row: said, and that nothing is held up').toBeDefined()
   await band.unmount()
 
   // An answer with no shell (the CLI's request threw) says nothing about the workflow: the call goes through, the band
@@ -441,7 +450,7 @@ test('the board draws its header and its five tabs on every surface, opening on 
     // Under it: the work item, its stage, its flow.
     for (const said of ['feat/x', 'build', '开发流程']) expect(await pane.find({ type: 'Text', text: said }), await texts()).toBeDefined()
     expect(await pane.find({ type: 'Text', text: '没有要你做的事' }), `the work items first, nothing waiting: ${await texts()}`).toBeDefined()
-    expect(await pane.find({ type: 'Text', text: '在做 · build' }), await texts()).toBeDefined()
+    expect(await pane.find({ type: 'Text', text: '当前 · build' }), await texts()).toBeDefined()
     await pane.press({ key: 'tab-flow' })
     // #build's transition waits on its guard: drawn, not offered, since a person's advance would be refused.
     expect(await pane.find({ type: 'Button', key: 'advance-build→review' })).toBeUndefined()
@@ -550,10 +559,10 @@ test('the board in a project with no workflow, or with the bridge down, says why
   expect((await $.command.run({ command: 'gemflow', args: 'board', origin: COMPOSER, presentation: PRESENTATION })).text).toBe('已打开 Gemflow 看板。')
   w.bridge = false
   const down = await $.command.run({ command: 'gemflow', args: 'board', origin: COMPOSER, presentation: PRESENTATION })
-  expect(down.text).toMatch(/^看板打不开：桥接没有应答（[^）]*timed out after 15000 ms）$/)
+  expect(down.text).toMatch(/^看板打不开：暂时没应答，不拦操作（[^）]*timed out after 15000 ms）$/, 'the person asked for the board: told at once')
   const stale = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
   await stale.press({ key: 'tab-flow' })
-  expect(await stale.find({ type: 'Text', text: /^gemflow：桥接没有应答/ })).toBeDefined()
+  expect(await stale.find({ type: 'Text', text: /^gemflow：暂时没应答/ })).toBeDefined()
   expect(await stale.find({ type: 'Text', text: /▶ build/ }), 'the last board stays under the reason').toBeDefined()
 })
 
@@ -919,6 +928,52 @@ test('the session tab: a prompt learns its row once the host stored it, a press 
   await pane.unmount()
 })
 
+test('a finished call does not wait on a slow bridge: its result goes on after two seconds, and the evidence is still recorded', async ($, on) => {
+  const w = world(on)
+  let release = (): void => undefined
+  w.hold = new Promise<void>((r) => { release = r })
+  on('tool.call', { tool: 'Bash' }, () => ({ result: { stdout: 'all green', stderr: '', interrupted: false }, text: 'all green' }))
+  const clock = await start($, on)
+  const call = $.tool.call({ tool: 'Bash', tool_use_id: 'slow-1', command: 'npm test' })
+  await clock.advance(2_000)
+  const done = await call
+  expect(done.text, 'the result as it was, nothing waited for').toBe('all green')
+  expect(w.sent.some((r) => r.op === 'after' && r.callId === 'slow-1'), 'not answered yet').toBe(false)
+  release()
+  await clock.advance(1)
+  expect(w.sent.some((r) => r.op === 'after' && r.callId === 'slow-1'), 'the evidence still went in').toBe(true)
+})
+
+test('a merged work item still checked out is a card on the items tab: 收尾 asks first, then hands the model the steps with git\'s own checks; 先留着 puts it away', async ($, on) => {
+  const w = world(on)
+  w.items = [{ id: 'feat/runtime', state: 'build', rev: 2, at: '2026-10-09T09:00:00Z', paused: false, end: 'merged', worktree: '../geml-agent-runtime', commits: 13, pr: { number: 32, state: 'merged' } }]
+  const prompted: string[] = []
+  const asked: string[] = []
+  let reply = '取消'
+  on('prompt.submit', ($, e) => { if (e.origin.kind === 'plugin') prompted.push(e.text); return { text: e.text } })
+  on('tool.call', { tool: 'AskUserQuestion' }, ($, e) => {
+    const q = (e.questions as { question: string }[])[0]!
+    asked.push(q.question)
+    return { result: { questions: e.questions, answers: { [q.question]: reply } }, text: reply }
+  })
+  await start($, on)
+  await $.command.run({ command: 'gemflow', args: 'board items', origin: COMPOSER, presentation: PRESENTATION })
+  const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  expect(await pane.find({ type: 'Text', text: 'feat/runtime 已合并' })).toBeDefined()
+  await pane.press({ key: 'close-go-feat/runtime' })
+  expect(asked.at(-1)).toBe('删掉 worktree ../geml-agent-runtime 和分支 feat/runtime？提交都在 main 里才删，远端分支不动。')
+  expect(prompted, 'cancelled: nothing handed over').toEqual([])
+  reply = '收尾'
+  await pane.press({ key: 'close-go-feat/runtime' })
+  expect(prompted).toHaveLength(1)
+  expect(prompted[0]).toContain('git branch --merged')
+  expect(prompted[0]).toContain('git worktree remove ../geml-agent-runtime（不加 --force')
+  expect(prompted[0]).toContain('git branch -d feat/runtime（用 -d，不用 -D）')
+  await pane.press({ key: 'close-keep-feat/runtime' })
+  expect(await pane.find({ type: 'Text', text: 'feat/runtime 已合并' }), 'left as it is: the card is gone').toBeUndefined()
+  await pane.unmount()
+})
+
 test('share: where it stands is shown to select on the desktop (no clipboard there) and copied on the terminal; the journal goes as a file, its place a link on the board', async ($, on) => {
   const w = world(on)
   await start($, on)
@@ -1008,6 +1063,13 @@ test('a step pressed on the board says what became of it: being done once it goe
   on('turn.complete', ($, e) => ({ text: e.answer }))
   on('command.run', ($, e) => { ran.push(e.command); return {} })
   on('tool.call', { tool: 'Bash' }, () => ({ result: { stdout: '', stderr: '', interrupted: false }, text: '' }))
+  const asked: string[] = []
+  let reply = '取消'
+  on('tool.call', { tool: 'AskUserQuestion' }, ($, e) => {
+    const q = (e.questions as { question: string }[])[0]!
+    asked.push(q.question)
+    return { result: { questions: e.questions, answers: { [q.question]: reply } }, text: reply }
+  })
   const clock = await start($, on)
   await clock.advance(1)
   await $.tool.call({ tool: 'Bash', tool_use_id: 'b9', command: 'cp -r dist ~/.claude/local-marketplaces/geml-dev/gemflow/' })
@@ -1015,6 +1077,11 @@ test('a step pressed on the board says what became of it: being done once it goe
   const board = () => $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
   let pane = await board()
   expect(await pane.find({ type: 'Button', key: 'attention-0-合并' })).toBeDefined()
+  // A merge cannot be taken back: the press asks first, and 取消 says nothing.
+  await pane.press({ key: 'attention-0-合并' })
+  expect(asked.at(-1)).toBe('合并 #32？合进去就撤不回。')
+  expect(said.includes('合并 #32'), 'cancelled: nothing said').toBe(false)
+  reply = '合并'
   await pane.press({ key: 'attention-0-合并' })
   await pane.unmount()
   expect(said.at(-1), 'the press said it as the person').toBe('合并 #32')

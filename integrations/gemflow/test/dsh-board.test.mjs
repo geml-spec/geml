@@ -83,7 +83,7 @@ test("the reply: five tabs in the browser's language, the header, one tab's rows
   const en = boardReply(s, readQuery(new URLSearchParams("session=s1&tab=items&lang=en")), NOW);
   assert.equal(en.tabs[1].label, "Items");
   assert.ok(en.rows.some((r) => r.kind === "text" && r.text.includes("session:s1")), "the items tab lists the session");
-  assert.deepEqual(en.rows.filter((r) => r.kind === "text" && r.tone === "dim" && /^(Pending|Queued|Done)/.test(r.text)).map((r) => r.text), ["Pending", "Queued", "Done · 0"], "the work items tab's headings, as lines the browser half draws");
+  assert.deepEqual(en.rows.filter((r) => r.kind === "text" && r.tone === "dim" && /^(Pending|In progress|Merged|Closed|Dropped)/.test(r.text)).map((r) => r.text), ["Pending", "In progress · 0", "Merged · 0", "Closed · 0", "Dropped · 0"], "the work items tab's headings, as lines the browser half draws");
   assert.ok(en.rows.every((r) => ["text", "button", "buttons", "link", "input", "flow"].includes(r.kind)), "no row of a kind the browser half has no drawing of");
   assert.ok(!zh.rows.some((r) => r.kind === "link"), "the flow is not a file to open from the board");
   assert.equal(typeof zh.pending, "number");

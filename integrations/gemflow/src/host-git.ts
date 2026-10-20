@@ -16,7 +16,8 @@ import type { GitFacts } from "./core/signals.js";
  * commit yet, so there is no history to compare and no work to track; `branch`
  * is still that branch's name.
  */
-export interface RepoFacts { branch?: string; defaultBranch?: string; committed?: boolean; noCommits?: boolean }
+/** What git says of the checkout; `unanswered` when git did not answer at all (a busy machine): nothing is known then, not even that there is no branch. */
+export interface RepoFacts { branch?: string; defaultBranch?: string; committed?: boolean; noCommits?: boolean; unanswered?: boolean }
 export type GhFacts = ({ available: true } & GitFacts) | { available: false; reason: string };
 
 const TIMEOUT_MS = 10_000;
@@ -31,9 +32,9 @@ interface Ran {
   error?: string;
 }
 
-function run(cmd: string, args: string[], cwd: string, trim = true): Ran {
+function run(cmd: string, args: string[], cwd: string, trim = true, timeout = TIMEOUT_MS): Ran {
   const r = spawnSync(cmd, args, {
-    cwd, encoding: "utf8", timeout: TIMEOUT_MS, stdio: ["ignore", "pipe", "pipe"], windowsHide: true,
+    cwd, encoding: "utf8", timeout, stdio: ["ignore", "pipe", "pipe"], windowsHide: true,
     // Never wait for a person: a prompt would hold the hook until the timeout.
     env: { ...process.env, GIT_TERMINAL_PROMPT: "0", GH_PROMPT_DISABLED: "1", GH_NO_UPDATE_NOTIFIER: "1" },
   });
@@ -77,7 +78,11 @@ function commitsAhead(root: string, defaultBranch: string): number | undefined {
 }
 
 export function repoFacts(root: string): RepoFacts {
-  const head = run("git", ["rev-parse", "--abbrev-ref", "HEAD"], root);
+  let head = run("git", ["rev-parse", "--abbrev-ref", "HEAD"], root);
+  // A git that did not answer (a busy machine) is asked once more, given longer; still silent, it says nothing of the branch —
+  // never that the branch has no commits, which would take the work item away and refuse what is done on it.
+  if (!head.ok && head.error !== undefined) head = run("git", ["rev-parse", "--abbrev-ref", "HEAD"], root, true, 3 * TIMEOUT_MS);
+  if (!head.ok && head.error !== undefined) return { unanswered: true };
   if (!head.ok || head.out === "") {
     // A repository whose branch has no commit yet: rev-parse has no HEAD to resolve, but symbolic-ref still reads the branch's name.
     const unborn = run("git", ["symbolic-ref", "--short", "-q", "HEAD"], root);
@@ -392,6 +397,73 @@ export function openPullRequests(root: string, o: { gh?: string } = {}): { numbe
       return { name: String(c["name"] ?? c["context"] ?? "check"), passed: done && ROLLUP_PASSED.has(conclusion), failed: done && ROLLUP_FAILED.has(conclusion) };
     });
     out.push({ number: pr.number, branch: pr.headRefName, green: read.length > 0 && read.every((c) => c.passed), failing: [...new Set(read.filter((c) => c.failed).map((c) => c.name))] });
+  }
+  return out;
+}
+
+/** A local branch as the outline reads it: its tip, how far ahead of the default branch, whether the default branch holds it, where it is checked out. */
+export interface BranchFact { tip: string; ahead?: number; inDefault: boolean; worktree?: string }
+
+/**
+ * Every local branch at once — a few git runs for all of them, not one per
+ * work item — and the default branch's ref they are measured against.
+ */
+export function branchesFacts(root: string): { ok: boolean; base?: string; branches: Map<string, BranchFact> } {
+  const branches = new Map<string, BranchFact>();
+  const name = defaultBranchOf(root);
+  const base = name === undefined ? undefined
+    : [`refs/heads/${name}`, `refs/remotes/origin/${name}`].find((ref) => run("git", ["rev-parse", "--verify", "--quiet", ref], root).ok);
+  // `%(ahead-behind:…)` is git 2.41's; before it, one count per branch.
+  let refs = base === undefined ? undefined : run("git", ["for-each-ref", "refs/heads", `--format=%(refname:short)%09%(objectname)%09%(ahead-behind:${base})`], root);
+  const counted = refs?.ok === true;
+  if (!counted) refs = run("git", ["for-each-ref", "refs/heads", "--format=%(refname:short)%09%(objectname)"], root);
+  if (refs === undefined || !refs.ok) return { ok: false, branches };
+  const merged = new Set(base === undefined ? [] : run("git", ["branch", "--merged", base, "--format=%(refname:short)"], root).out.split(/\r?\n/).filter((b) => b !== ""));
+  for (const line of refs.out.split(/\r?\n/)) {
+    const [branch, tip, aheadBehind] = line.split("\t");
+    if (branch === undefined || branch === "" || tip === undefined) continue;
+    let ahead: number | undefined = counted ? Number((aheadBehind ?? "").split(" ")[0]) : undefined;
+    if (!counted && base !== undefined) {
+      const c = run("git", ["rev-list", "--count", `${base}..refs/heads/${branch}`], root);
+      ahead = c.ok ? Number(c.out) : undefined;
+    }
+    branches.set(branch, { tip, ...(ahead !== undefined && Number.isFinite(ahead) ? { ahead } : {}), inDefault: merged.has(branch) });
+  }
+  // The linked worktrees: the main working tree comes first in the list, and a branch checked out there is in no worktree of its own.
+  const wt = run("git", ["worktree", "list", "--porcelain"], root);
+  let at: string | undefined;
+  let seen = 0;
+  for (const line of wt.ok ? wt.out.split(/\r?\n/) : []) {
+    if (line.startsWith("worktree ")) at = seen++ === 0 ? undefined : line.slice("worktree ".length);
+    const m = /^branch refs\/heads\/(.+)$/.exec(line);
+    const b = m === null ? undefined : branches.get(m[1]!);
+    if (b !== undefined && at !== undefined) b.worktree = at;
+  }
+  return { ok: true, ...(base !== undefined ? { base } : {}), branches };
+}
+
+/** Whether the default branch `base` holds commit `sha`; undefined when git cannot say (a commit it no longer has). */
+export function holdsCommit(root: string, base: string, sha: string): boolean | undefined {
+  const r = run("git", ["merge-base", "--is-ancestor", sha, base], root);
+  if (r.ok) return true;
+  // Not an ancestor is a quiet exit 1; a commit git does not have says so on stderr.
+  return r.error === undefined && r.err === "" ? false : undefined;
+}
+
+/** The project's pull requests by the branch each was opened from, the newest of a branch's; none when gh cannot be asked. */
+export function pullRequestsByBranch(root: string, o: { gh?: string } = {}): Map<string, { number: number; state: "open" | "merged" | "closed" }> {
+  const bin = o.gh || process.env["GEMFLOW_GH"] || "gh";
+  const args = ["pr", "list", "--state", "all", "--limit", "100", "--json", "number,state,headRefName"];
+  const r = /\.[cm]?js$/i.test(bin) ? run(process.execPath, [bin, ...args], root) : run(bin, args, root);
+  const out = new Map<string, { number: number; state: "open" | "merged" | "closed" }>();
+  const list = r.ok ? parseJson(r.out) : undefined;
+  if (!Array.isArray(list)) return out;
+  for (const pr of list as { number?: unknown; state?: unknown; headRefName?: unknown }[]) {
+    if (pr === null || typeof pr !== "object" || typeof pr.number !== "number" || typeof pr.headRefName !== "string") continue;
+    const state = String(pr.state ?? "").toLowerCase();
+    if (state !== "open" && state !== "merged" && state !== "closed") continue;
+    const had = out.get(pr.headRefName);
+    if (had === undefined || had.number < pr.number) out.set(pr.headRefName, { number: pr.number, state });
   }
   return out;
 }

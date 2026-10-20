@@ -47,10 +47,15 @@ test("the dictionary decides (spec §5.3): a use the state declares passes, a us
   assert.deepEqual(beforeDecision(policy({ uses: [] }), T("Edit")), CONSULT, "a use fenced to other states");
 });
 
-test("a tool bound to a use whose preferred tool is another is asked about (spec §5.3, preferences)", () => {
-  assert.deepEqual(beforeDecision(policy(), T("Write")), { kind: "prefer", key: "Write", use: "edit", preferred: "Edit" });
-  assert.deepEqual(beforeDecision(policy({ rows: policy().rows.filter((r) => r.tool !== "Edit") }), T("Write")), PASS, "the only tool of a use is its preferred one");
-  assert.deepEqual(beforeDecision(policy(), T("Write", { file_path: "/w/app/src/a.ts" })), { kind: "prefer", key: "Write", use: "edit", preferred: "Edit" }, "asked by the row that binds the call, not by the call's file");
+test("a tool bound to a use whose preferred tool is another is asked about (spec §5.3, preferences); the tools that write files are no choice between one another", () => {
+  const pnpm = policy({ rows: [...policy().rows, row("Bash(pnpm test)", { for: "test" })] });
+  assert.deepEqual(beforeDecision(pnpm, bash("pnpm test")), { kind: "prefer", key: "Bash(pnpm test)", use: "test", preferred: "Bash(npm test)" });
+  assert.deepEqual(beforeDecision(policy({ rows: pnpm.rows.filter((r) => r.tool !== "Bash(npm test)") }), bash("pnpm test")), PASS, "the only tool of a use is its preferred one");
+  assert.deepEqual(beforeDecision(policy(), T("Write")), PASS, "Edit changes a file, Write makes one: neither is asked about");
+  assert.deepEqual(beforeDecision(policy(), T("Write", { file_path: "/w/app/src/a.ts" })), PASS);
+  assert.deepEqual(beforeDecision(policy({ rows: policy().rows.map((r) => (r.tool === "Write" ? { ...r, default: true } : r.tool === "Edit" ? { ...r, default: false } : r)) }), T("Edit")), PASS, "nor the other way round");
+  const matter = policy({ rows: [...policy().rows, row("Edit(.geml/matters/*)", { for: "edit", default: true })].map((r) => (r.tool === "Edit" ? { ...r, default: false } : r)) });
+  assert.deepEqual(beforeDecision(matter, T("Write", { file_path: "/w/app/src/a.ts" })), PASS, "a write tool's row with a path is a write tool too");
 });
 
 test("a person's command and a fenced command pattern anywhere in the line are consulted; switching the work item passes", () => {

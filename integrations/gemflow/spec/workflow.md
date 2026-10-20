@@ -372,7 +372,7 @@ Write the code and its tests, until the tests pass and a pull request is open.
 .geml/                         the project's home: in the main working tree, every checkout's; ignored by git
   workflows/<name>.geml        a workflow: its statechart, its stages' prompts after it; a document it keeps beside it, in <name>/
   tools.geml                   the tool dictionary of all the workflows (§2.3)
-  project.geml                 the project document
+  project.geml                 the project document, and the outline #items
   journals/<item>.geml         one journal per work item (§2.4)
 .geml/                         in each checkout
   context.geml                 the current stage (§2.5); ignored by git
@@ -388,6 +388,19 @@ title         = "Gemflow"
 flow-workflow = "dev"
 ===
 ```
+
+Below its meta the project document holds the outline, a `table {#items}`
+with the columns `item`, `state`, `flow`, `stage`, `worktree`, `commits`, `pr`,
+`tip`, `since` and `last`: every work item the project has had, and where it
+ended up. Gemflow writes it, rewriting that table alone, each time it lists the
+work items; nobody types its `state`. A branch item is `doing` while its branch
+exists and is not merged; `merged` once its pull request is merged, or its
+branch had commits of its own and the default branch holds its tip, while the
+branch is still there; `closed` once a merged branch is gone; `dropped` once a
+branch is gone unmerged, or had no commit. A file item is `closed` at its
+flow's final state and `dropped` in a state named `parked`. The row keeps what
+git forgets — the tip a deleted branch had, its count of commits, its pull
+request until gh is asked again — and a row whose journal is gone stays.
 
 The default workflow is, in this order: the workflow file the environment
 variable `GEMFLOW_STATECHART` names (it names the session's workflow, and a

@@ -417,6 +417,8 @@ export class Workspace {
   private resolveItem(): { item: Item; file?: string } {
     const unit = this.sc.unit;
     if (unit.kind === "branch") {
+      // A git that did not answer says which branch this is no more than that it has none: the reason says so, and nothing is judged on it.
+      if (this.repo.unanswered === true) return { item: { kind: "inactive", reason: "git did not answer (a busy machine?); nothing is judged until it does" } };
       if (this.repo.noCommits) return { item: { kind: "inactive", reason: "no commits yet" } };
       return { item: resolveItem(unit, this.repo) };
     }

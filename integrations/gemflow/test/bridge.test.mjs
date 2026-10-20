@@ -143,7 +143,7 @@ test("board: the graph with its judges, the uses and their states, the dictionar
   assert.deepEqual(r.board.fences.map((f) => f.use), ["edit", "test", "pr", "deploy-staging", "deploy-prod"]);
   assert.equal(r.board.tools.length, 24);
   assert.equal(r.board.backlog, null);
-  assert.deepEqual(r.board.items, [{ id: "feat/x", state: "build", rev: 0, at: r.board.items[0].at, paused: false, flow: "开发流程", stateTitle: "构建", since: r.board.items[0].since, wrote: [] }]);
+  assert.deepEqual(r.board.items, [{ id: "feat/x", state: "build", rev: 0, at: r.board.items[0].at, paused: false, flow: "开发流程", stateTitle: "构建", since: r.board.items[0].since, wrote: [], end: "doing", commits: 0 }], "where it ended up, by git: being worked on, no commit of its own yet, checked out in the main tree");
   const first = r.board.timeline[0];
   assert.deepEqual(first, { kind: "snapshot", rev: 0, at: first.at, state: "build", cause: "enter", changed: first.changed });
   assert.equal(first.changed["tests-pass"], false, "revision 0 sets every variable to its default");

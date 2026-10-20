@@ -82,7 +82,8 @@ function inRowsOfThisHost(row: BoardRow): BoardRow[] {
     case "heading": return [{ kind: "text", text: [row.text, row.sub].filter((x) => x !== "").join("  "), tone: "normal" }];
     case "entry": return [row.action !== undefined
       ? { kind: "button", key: row.key, label: `${row.title}  ${row.tag}`, action: row.action }
-      : { kind: "text", text: `  ${row.title}  ${row.tag}`, tone: row.tone }];
+      : { kind: "text", text: `  ${row.title}  ${row.tag}`, tone: row.tone },
+      ...(row.detail !== undefined ? [{ kind: "text", text: `    ${row.detail}`, tone: "dim" } as BoardRow] : [])];
     default: return [row];
   }
 }

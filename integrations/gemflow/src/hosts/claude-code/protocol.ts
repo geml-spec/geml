@@ -157,6 +157,12 @@ export interface BoardItem {
   /** The work items it waits for (its file's meta `depends`), each done or not, and when it last moved. */
   depends?: { id: string; title?: string; done: boolean; at?: string }[];
   asks?: { to: string; label: string; note: string; final: boolean }[];
+  /** Where it ended up, by git (the outline): being worked on, merged with its branch still there, closed, dropped. */
+  end?: "doing" | "merged" | "closed" | "dropped";
+  /** The worktree its branch is checked out in, relative to the main checkout; the commits its branch has of its own; its pull request. */
+  worktree?: string;
+  commits?: number;
+  pr?: { number: number; state: "open" | "merged" | "closed" };
 }
 
 /**

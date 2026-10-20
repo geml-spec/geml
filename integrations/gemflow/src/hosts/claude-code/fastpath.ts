@@ -17,7 +17,7 @@
 import type { FlowPolicy } from "../../core/policy.js";
 import { changesDirectory, commandOf, personOnlyRefusal, runsGitOrGh, switchesWorkItemOnly } from "../../core/command-line.js";
 import { bindingOf, decide, evidenceKeys, fencedRow, keysOf, preferred, type Dictionary, type Scope } from "../../core/dictionary.js";
-import { CLAUDE_CODE_TOOLS } from "../../core/host-tools.js";
+import { CLAUDE_CODE_TOOLS, HOST_TOOLS } from "../../core/host-tools.js";
 import { globToRegExp } from "../../core/unit.js";
 import { isOwnTool, OWN_TOOL_PREFIX } from "../../core/verb-specs.js";
 import { normalised, writtenPath } from "./readers.js";
@@ -115,15 +115,23 @@ export function beforeDecision(p: FlowPolicy | null, call: CallFacts, elsewhere 
     return waived.length === d.keys.length ? { kind: "consult", waived } : CONSULT;
   }
   // Allowed; a tool bound to a use whose preferred tool is another is asked about — by the row that binds it, so an
-  // answer is a lesson about that row (`Write`), never about one call's key (`Write(src/a.ts)`).
+  // answer is a lesson about that row (`Write`), never about one call's key (`Write(src/a.ts)`). The tools that write
+  // files are no choice between one another: Edit changes a file, Write makes one, so either is taken unasked.
   for (const key of keys) {
     const row = bindingOf(dict, key);
     if (row?.for === undefined) continue;
     const pref = preferred(dict, row.for);
-    if (pref !== undefined && pref.tool !== row.tool) return { kind: "prefer", key: row.tool, use: row.for, preferred: pref.tool };
+    if (pref !== undefined && pref.tool !== row.tool && !(FILE_WRITERS.has(toolOf(row.tool)) && FILE_WRITERS.has(toolOf(pref.tool)))) {
+      return { kind: "prefer", key: row.tool, use: row.for, preferred: pref.tool };
+    }
   }
   return PASS;
 }
+
+/** Every host's tools that write files (Edit, Write, apply_patch, …). */
+const FILE_WRITERS: ReadonlySet<string> = new Set(Object.values(HOST_TOOLS).flatMap((h) => h.write));
+/** A row's tool name, without the path a write tool's key may carry (`Write(.geml/matters/*)`). */
+const toolOf = (pattern: string): string => /^[^()\s]+/.exec(pattern)?.[0] ?? pattern;
 
 export function afterNeeded(p: FlowPolicy | null, call: CallFacts, o: CallOutcome, elsewhere = false): boolean {
   if (p === null || isOwnTool(call.tool)) return false;

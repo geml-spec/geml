@@ -75,6 +75,8 @@ const lastFileAtom = atom({ plugin: 'gemflow', key: 'lastFile' } as const, null 
 const boardAtom = atom({ plugin: 'gemflow', key: 'board' } as const, null as GemflowJson)
 const tabAtom = atom({ plugin: 'gemflow', key: 'tab' } as const, HOME_TAB as GemflowTab)
 const doneOpenAtom = atom({ plugin: 'gemflow', key: 'doneOpen' } as const, false)
+/** Whether the work items tab lists the dropped work items, or only counts them. */
+const droppedOpenAtom = atom({ plugin: 'gemflow', key: 'droppedOpen' } as const, false)
 const flowStateAtom = atom({ plugin: 'gemflow', key: 'flowState' } as const, null as string | null)
 const flowSwitchAtom = atom({ plugin: 'gemflow', key: 'flowSwitch' } as const, false)
 const toolQueryAtom = atom({ plugin: 'gemflow', key: 'toolQuery' } as const, '')
@@ -229,6 +231,14 @@ async function findNode($: EngineInterface): Promise<{ node: string } | { proble
   return { problem: seen !== undefined ? `gemflow：Node ${seen} 太旧，需要 Node ≥ 22` : 'gemflow：找不到 node — 请安装 Node ≥ 22' }
 }
 
+/** The requests in a row that did not come back, one per tool call (its before and its after are one): the band says so from the second. */
+const missed = new Set<string>()
+let requests = 0
+/** How long a finished tool call waits for its evidence to be recorded before its result goes on regardless. */
+const AFTER_WAIT_MS = 2_000
+/** What a race with `$.clock.sleep` gives when the sleep ends first. */
+const LATE = Symbol('late')
+
 /** One request to the CLI. Undefined when the bridge is unavailable; the band then says why. */
 async function bridge($: EngineInterface, op: BridgeOp, timeoutMs: number = BRIDGE_TIMEOUT_MS, onFile?: string): Promise<BridgeResponse | undefined> {
   const node = await read($, nodeAtom)
@@ -242,9 +252,11 @@ async function bridge($: EngineInterface, op: BridgeOp, timeoutMs: number = BRID
   try {
     out = await $.process.run([node, `${$.plugin.root}/dist/gemflow.mjs`, 'hook'], { cwd: root, stdin: encodeRequest(request), timeoutMs })
   } catch (err) {
-    await update($, problemAtom, () => `gemflow：桥接没有应答（${reasonOf(err)}）`)
+    missed.add('callId' in op && typeof op.callId === 'string' ? op.callId : `request-${++requests}`)
+    if (missed.size >= 2 || op.op === 'board' || op.op === 'export') await update($, problemAtom, () => `gemflow：暂时没应答，不拦操作（${reasonOf(err)}）`)
     return undefined
   }
+  missed.clear()
   const res = decodeResponse(out.stdout)
   if (res === undefined) {
     await update($, problemAtom, () => unreadableText(out.exitCode, out.stderr, $.plugin.root))
@@ -991,6 +1003,9 @@ async function share($: EngineInterface, what: ShareWhat, how: ShareHow, strip: 
   if (how === 'copy') await copy(text)
   else if (how === 'pr') {
     const root = await read($, rootAtom)
+    let answer: string
+    try { answer = await $.ui.ask(t('发到当前分支的 PR 评论？发出去别人就看得到。'), [t('发出去'), t('取消')]) } catch { return }
+    if (answer !== t('发出去')) return
     try {
       const r = await $.process.run(['gh', 'pr', 'comment', '--body', text], { cwd: root ?? undefined, timeoutMs: SLOW_TIMEOUT_MS })
       $.ui.toast(r.exitCode === 0 ? r.stdout.trim() || 'gh: ok' : `gh: ${r.stderr.trim() || r.stdout.trim()}`)
@@ -1006,7 +1021,7 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
     case 'filter': await update($, filterAtom, () => action.filter); return
     case 'expand': await update($, expandedAtom, () => action.entry); return
     case 'evidence': await update($, evidenceAtom, () => action.entry); return
-    case 'fold': await update($, doneOpenAtom, () => action.open); return
+    case 'fold': if (action.what === 'dropped') await update($, droppedOpenAtom, () => action.open); else await update($, doneOpenAtom, () => action.open); return
     case 'tool-menu': await update($, toolMenuAtom, () => action.key); await update($, toolNamingAtom, () => null); return
     case 'tool-name': await update($, toolNamingAtom, () => action.key); return
     case 'tool-search': await update($, toolQueryAtom, () => action.query); return
@@ -1028,6 +1043,13 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
     default: break
   }
   const t = await words($)
+  // A press that cannot be taken back asks first, with its own words.
+  const confirm = 'confirm' in action ? action.confirm : undefined
+  if (confirm !== undefined) {
+    let answer: string
+    try { answer = await $.ui.ask(confirm.question, [confirm.yes, t('取消')]) } catch { return }
+    if (answer !== confirm.yes) return
+  }
   const root = await read($, rootAtom)
   const through = async (op: BridgeOp, timeout = BRIDGE_TIMEOUT_MS): Promise<BridgeResponse | undefined> => {
     const res = await bridge($, op, timeout)
@@ -1232,6 +1254,18 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       $.ui.toast(t('已交给模型，结果看对话'))
       return
     }
+    case 'close-item': {
+      const where = action.worktree !== undefined ? t('worktree {0} 和分支 {1}', action.worktree, action.id) : t('分支 {0}', action.id)
+      let answer: string
+      try { answer = await $.ui.ask(t('删掉 {0}？提交都在 main 里才删，远端分支不动。', where), [t('收尾'), t('取消')]) } catch { return }
+      if (answer !== t('收尾')) return
+      const steps = action.worktree !== undefined
+        ? t('收尾工作项 {0}：先用 git branch --merged 确认它的提交都在 main 里；再 git worktree remove {1}（不加 --force，有没提交的改动就停下告诉我）；然后 git branch -d {0}（用 -d，不用 -D）；远端分支不动。做完汇报。', action.id, action.worktree)
+        : t('收尾工作项 {0}：先用 git branch --merged 确认它的提交都在 main 里；然后 git branch -d {0}（用 -d，不用 -D）；远端分支不动。做完汇报。', action.id)
+      await $.prompt.submit({ text: steps })
+      $.ui.toast(t('已交给模型，结果看对话'))
+      return
+    }
     case 'share': await share($, action.what, action.how, action.strip, surface); return
     default: return
   }
@@ -1411,13 +1445,29 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
         )}
       </Box>
     )
-    case 'entry': return (
+    case 'entry': return row.detail === undefined ? (
       <Box key={row.key} gap={2} paddingX={els.Svg !== undefined ? 0 : 1}>
         {row.action !== undefined
           ? <Button key={`go-${row.key}`} plain label={row.title} onPress={press($, row.action)} />
           : <Text {...toneProps(row.tone)} wrap="truncate-end">{row.title}</Text>}
         <Box flexGrow={1} />
         {row.tag !== '' && <Text dimColor>{row.tag}</Text>}
+      </Box>
+    ) : (
+      // Two lines: the name and its tags, then where it is and what it has; the whole row takes the press.
+      <Box key={row.key} flexDirection="column" paddingX={1} {...(row.current === true && els.Svg !== undefined ? { backgroundColor: SELECTED } : row.action !== undefined ? { hover: { backgroundColor: SHADE } } : {})}>
+        <Box gap={2}>
+          <Text {...toneProps(row.tone)} {...(row.current === true ? { bold: true } : {})} wrap="truncate-end">{row.title}</Text>
+          <Box flexGrow={1} />
+          {row.tag !== '' && <Text dimColor>{row.tag}</Text>}
+        </Box>
+        <Text dimColor wrap="truncate-end">{row.detail}</Text>
+        {row.action !== undefined && (
+          <Box position="absolute" top={0} left={0} right={0} bottom={0} flexDirection="column" overflow="hidden">
+            <Button key={`go-${row.key}`} plain label={blankOf(Math.max(cellWidth(row.title), cellWidth(row.detail)) + 12)} onPress={press($, row.action)} />
+            <Button key={`go-2-${row.key}`} plain label={blankOf(Math.max(cellWidth(row.title), cellWidth(row.detail)) + 12)} onPress={press($, row.action)} />
+          </Box>
+        )}
       </Box>
     )
     case 'text': return <Text key={`r${i}`} {...toneProps(row.tone)}>{row.text}</Text>
@@ -1794,13 +1844,23 @@ export const register: Register = (on) => {
     if (!afterNeeded(policy, call, { ...outcome, consulted }, elsewhere)) return ran
     const delivered = await deliveredFor($, e.agentId)
     const before = (await readShell($))?.status?.vars ?? {}
-    const res = await bridge($, { op: 'after', tool, callId: e.tool_use_id, input: bridgeInput(input), ...outcome, cwd: from, ...(delivered !== null ? { delivered } : {}) })
-    if (res !== undefined && res.ok && e.agentId === undefined) {
+    const agentId = e.agentId
+    const settled = async (res: BridgeResponse | undefined): Promise<void> => {
+      if (res === undefined || !res.ok || agentId !== undefined) return
       const after = res.shell.status?.vars ?? {}
       const signals = Object.keys(after).filter((k) => after[k] === true && before[k] !== true)
       const entered = res.entered ?? []
       if (signals.length > 0 || entered.length > 0) await notePrompt($, (p) => ({ ...p, signals: [...p.signals, ...signals], entered: [...p.entered, ...entered] }))
     }
+    // The call's result does not wait on gemflow: AFTER_WAIT_MS at most. The evidence is recorded meanwhile; a stage it
+    // moved reaches the model with the next prompt, as a stage moved between prompts does.
+    const pending = bridge($, { op: 'after', tool, callId: e.tool_use_id, input: bridgeInput(input), ...outcome, cwd: from, ...(delivered !== null ? { delivered } : {}) })
+    const res = await Promise.race([pending, $.clock.sleep(AFTER_WAIT_MS).then(() => LATE)])
+    if (res === LATE) {
+      void pending.then(settled).catch(() => undefined)
+      return ran
+    }
+    await settled(res)
     return withStage($, ran, res, e.agentId)
   }).catch(($, e, next) => next(e))
 
@@ -2063,7 +2123,7 @@ export const register: Register = (on) => {
     const env = envNow($, t, e.surface).catch(() => ({ parts: [] as string[] }))
     const attention = shows(tab === 'items')(() => Promise.all([attentionNow($, t), readQueued($)]).catch(() => null), null)
     try {
-      const [inbox, header, board, problem, shell, now, root, filter, expanded, evidence, prompts, project, unfolded, menu, doneOpen, sessionFlow, sessionRuns, flowState, switching, workflows, usage, dismissed, toolQuery, toolMenu, toolNaming, toolsOpen, exported] = await Promise.all([
+      const [inbox, header, board, problem, shell, now, root, filter, expanded, evidence, prompts, project, unfolded, menu, doneOpen, sessionFlow, sessionRuns, flowState, switching, workflows, usage, dismissed, toolQuery, toolMenu, toolNaming, toolsOpen, exported, droppedOpen] = await Promise.all([
         inboxOf($, t), headerRows($, t), readBoard($), read($, boardProblemAtom), readShell($), nowIso($), read($, rootAtom),
         read($, filterAtom), read($, expandedAtom), read($, evidenceAtom),
         shows(tab === 'sessions' || tab === 'journal')(() => readPrompts($), [] as PromptRecord[]),
@@ -2076,13 +2136,14 @@ export const register: Register = (on) => {
         read($, flowStateAtom), read($, flowSwitchAtom), read($, workflowsAtom),
         usageDrawn($), dismissedOf($), read($, toolQueryAtom), read($, toolMenuAtom), read($, toolNamingAtom), read($, toolsOpenAtom),
         shows(tab === 'sessions' || tab === 'journal')(() => read($, exportedAtom), null),
+        shows(tab === 'items')(() => read($, droppedOpenAtom), false),
       ])
       head = header
       rows = paneRows({
         board, problem, shell, tab, columns, maxRows: Math.max(4, e.props.scroll.bodyRows - 4), t, now, root: root ?? '', inbox,
         filter: filter as JournalFilter, expanded, evidence, prompts,
         ...(project !== null ? { project, scrolls: e.surface === 'terminal', unfolded: unfolded as unknown as { id: string; answer: string | null } | null } : {}),
-        menu, doneOpen, sessionFlow, sessionRuns: (sessionRuns as unknown as string[] | null) ?? [],
+        menu, doneOpen, droppedOpen, sessionFlow, sessionRuns: (sessionRuns as unknown as string[] | null) ?? [],
         flowState, switching, workflows: workflows as unknown as { bundled: string[]; installed: string[] } | null,
         usage, dismissed, toolQuery, toolMenu, toolNaming, toolsOpen: (toolsOpen as unknown as string[] | null) ?? [],
         exported,

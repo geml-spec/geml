@@ -21,7 +21,7 @@ import { handleRequest } from "./bridge.js";
 import { commandOf } from "./core/command-line.js";
 import { bindingOf, evidenceKeys, TOOLS_FILE, type Dictionary } from "./core/dictionary.js";
 import { dictionaryPathOf } from "./project-home.js";
-import { CODEX_TOOLS, HOST_TOOLS } from "./core/host-tools.js";
+import { CODEX_TOOLS } from "./core/host-tools.js";
 import { CONTEXT_DOC } from "./core/layout.js";
 import type { FlowPolicy } from "./core/policy.js";
 import { isOwnTool } from "./core/verb-specs.js";
@@ -37,8 +37,6 @@ import { appendSession, commits, decisionsFor, hostLabel, recordAnswer, recordFi
 export interface CodexRun { stdout: string; code: number }
 const NOTHING: CodexRun = { stdout: "", code: 0 };
 
-/** Every host's file-writing tools: one capability under several names. */
-const WRITE_TOOLS: ReadonlySet<string> = new Set(Object.values(HOST_TOOLS).flatMap((h) => h.write));
 
 /** What the model has already read, kept per Codex session: the stage text, the other sessions' decisions up to a time; and whether a command in this turn committed. */
 interface SessionState { delivered: string | null; decisionsSeen: string | null; committed: boolean }
@@ -145,8 +143,8 @@ export async function runCodex(text: string, env: NodeJS.ProcessEnv, platform: s
       const dictionary = status !== null ? dictionaryPathOf(status.workflow.path).split("\\").join("/") : TOOLS_FILE;
       let context: string | undefined;
       const decision = beforeDecision(policy, call);
-      // A preference between two hosts' file-writing tools is no preference: the dictionary's default editor is Claude Code's, apply_patch is Codex's.
-      if (decision.kind === "prefer" && !(CODEX_TOOLS.write.includes(tool) && WRITE_TOOLS.has(decision.preferred))) context = `[gemflow] ${decision.use}'s preferred tool is ${decision.preferred}; this call uses ${decision.key}.`;
+      // The file-writing tools are no preference over one another (beforeDecision): apply_patch is taken as Edit is.
+      if (decision.kind === "prefer") context = `[gemflow] ${decision.use}'s preferred tool is ${decision.preferred}; this call uses ${decision.key}.`;
       else if (decision.kind === "consult") {
         const before = await ask({ op: "before", tool, callId: ev.tool_use_id ?? "codex", input: call.input, cwd: root, ...(decision.waived !== undefined ? { waived: decision.waived } : {}) });
         if (before.ok && before.refusal !== undefined) return out(denyCall(before.refusal));

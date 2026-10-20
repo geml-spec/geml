@@ -29,6 +29,8 @@ import { BACKLOG_DOC, CONTEXT_DOC, EXPORTS_DIR, FLOW_FILE, GEML_DIR } from "./co
 import { TOOLS_FILE } from "./core/dictionary.js";
 import { renderDictionary } from "./core/dictionary-file.js";
 import { migrateLayout, projectDocOf, recordedPath, workflowAt } from "./project-home.js";
+import { updateOutline, type OutlineEntry } from "./outline-store.js";
+import { prOf, type PrFact } from "./core/outline.js";
 import { itemState } from "./core/item-state.js";
 import { canonical, guardHolds, isPaused, type Snapshot } from "./core/snapshot.js";
 import type { JsonValue } from "./core/schema.js";
@@ -36,7 +38,7 @@ import { outgoing, sourceLabel, varsBySource } from "./core/statechart.js";
 import { waitsOnPerson } from "./core/turn.js";
 import { readContextDoc } from "./core/stagehand.js";
 import { exists, readText, withLock, writeAtomic } from "./host-fs.js";
-import { branchesAhead, commitsOf, ghOncePerBranch, journalBaseOf, openPullRequests, repoFacts, type GhFacts } from "./host-git.js";
+import { branchesAhead, commitsOf, ghOncePerBranch, journalBaseOf, openPullRequests, pullRequestsByBranch, repoFacts, type GhFacts } from "./host-git.js";
 import { SESSIONS_DIR } from "./core/session-log.js";
 import type { HostInfo } from "./hosts/claude-code/env.js";
 import { mediaTodoCount } from "./media-todo.js";
@@ -220,7 +222,7 @@ function exportOf(ws: Workspace, root: string, req: ExportReq, now: string): { o
  * read off the journal's last revision, for the items under the current work
  * item's workflow (the statechart at hand).
  */
-function listItems(ws: Workspace, root: string, workflowFile: string): BoardItem[] {
+function listItems(ws: Workspace, root: string, workflowFile: string, prs?: ReadonlyMap<string, PrFact>): BoardItem[] {
   const dir = ws.journalsDir;
   if (!exists(dir)) return [];
   const wf = resolveWorkflow(root);
@@ -233,6 +235,7 @@ function listItems(ws: Workspace, root: string, workflowFile: string): BoardItem
     return file !== undefined && at !== undefined && resolve(at) === resolve(file);
   };
   const out: BoardItem[] = [];
+  const entries: OutlineEntry[] = [];
   const flows: FlowCache = new Map([[workflowFile, { sc: ws.sc, title: ws.title }]]);
   for (const e of readdirSync(dir, { withFileTypes: true, recursive: true })) {
     if (!e.isFile() || !e.name.endsWith(".geml")) continue;
@@ -275,6 +278,11 @@ function listItems(ws: Workspace, root: string, workflowFile: string): BoardItem
     const asks = sc !== undefined && waitsOnPerson(ways, sources(sc)) ? ways.filter((w) => w.approval && w.holds).map(({ t }) => ({
       to: t.to, label: t.label ?? sc.states.get(t.to)?.title ?? t.to, note: t.note, final: sc.states.get(t.to)?.final === true,
     })) : [];
+    entries.push({
+      id, kind: glob !== "" ? "file" : "branch", state: last.state, final: progress?.final === true || sc?.states.get(last.state)?.final === true,
+      flow: own === workflowFile ? ws.workflowName : ownFile !== undefined ? workflowNameOf(root, ownFile) : "", stage: last.state,
+      since: (progress?.since ?? journal.meta.created).slice(0, 10), last: last.at.slice(0, 10),
+    });
     out.push({
       id, state: last.state, rev: last.rev, at: last.at, paused, ...(workflow !== undefined ? { workflow } : {}), ...(file !== undefined ? { file } : {}),
       ...(title !== undefined && title !== "" ? { title } : {}), ...(gist !== undefined ? { gist } : {}), ...(about ? { about } : {}), ...(by ? { by } : {}), ...(asks.length > 0 ? { asks } : {}),
@@ -282,6 +290,14 @@ function listItems(ws: Workspace, root: string, workflowFile: string): BoardItem
       ...(progress !== undefined ? { since: progress.since, wrote: progress.wrote.slice(0, 12) } : {}),
       ...(progress?.final === true ? { final: true as const } : {}), ...(depends.length > 0 ? { dependsOn: depends } : {}),
     });
+  }
+  // Where each ended up, by git: the outline in project.geml, brought in line.
+  const outline = updateOutline(root, home, entries, prs);
+  for (const i of out) {
+    const row = outline.get(i.id);
+    if (row === undefined) continue;
+    const pr = prOf(row.pr);
+    Object.assign(i, { end: row.state }, row.worktree !== "" ? { worktree: row.worktree } : {}, row.commits !== null ? { commits: row.commits } : {}, pr !== undefined ? { pr } : {});
   }
   // What each waits for, from the others' progress: one not done keeps it waiting — no way out is the person's meanwhile.
   const byId = new Map(out.map((i) => [i.id, i]));
@@ -555,9 +571,14 @@ function answer(req: BridgeRequest): BridgeResponse {
       return r.ok ? ok(ws.view()) : failed(r.reason);
     }
     // The repository as the band reads it: what is not pushed, which pull requests are green or failing.
-    case "attention":
+    case "attention": {
+      // gh is asked here, off the board's path: the outline learns which branches' pull requests were merged.
+      const view = ws.view();
+      const prs = pullRequestsByBranch(root);
+      if (prs.size > 0) listItems(ws, root, view.status.workflow.path, prs);
       // The shared session logs: the main working tree's .geml/sessions/, whichever worktree this checkout is.
-      return ok(ws.view(), { attention: { ahead: branchesAhead(root), prs: openPullRequests(root) }, host: hostOf(root), sessions: join(journalBaseOf(root), GEML_DIR, SESSIONS_DIR) });
+      return ok(view, { attention: { ahead: branchesAhead(root), prs: openPullRequests(root) }, host: hostOf(root), sessions: join(journalBaseOf(root), GEML_DIR, SESSIONS_DIR) });
+    }
     case "board": {
       const change = ws.refresh();
       const view = ws.view();

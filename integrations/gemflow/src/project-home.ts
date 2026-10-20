@@ -7,7 +7,7 @@
 // default. The earlier layout — a directory per workflow (flow.geml, guide.geml,
 // tools.geml) and `.geml/gemflow.geml`, in the checkout, often in git — is
 // still read, and `migrateLayout` moves it into the home.
-import { cpSync, mkdirSync, readdirSync, renameSync, rmSync } from "node:fs";
+import { cpSync, mkdirSync, readdirSync, renameSync, rmSync, statSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { unitSpans } from "@geml/geml";
 import { exists, readText, withLock, writeAtomic } from "./host-fs.js";
@@ -251,6 +251,7 @@ export interface Moved { from: string; to: string; kept: boolean; trashed?: stri
  */
 export function migrateLayout(root: string, trash: string, home = homeOf(root)): Moved[] {
   const out: Moved[] = [];
+  const dictionaries: { text: string; at: number }[] = [];
   for (const base of home === root ? [root] : [root, home]) {
     const geml = join(base, GEML_DIR);
     if (!exists(geml)) continue;
@@ -269,7 +270,7 @@ export function migrateLayout(root: string, trash: string, home = homeOf(root)):
       const to = join(home, WORKFLOWS_DIR, `${w.name}.geml`);
       if (!exists(to)) writeWorkflow(home, w.name, mergedWorkflow(w.name, readText(w.path), (f) => readIn(from, f)));
       const tools = readIn(from, TOOLS_FILE);
-      if (tools !== undefined) mergeTools(home, tools);
+      if (tools !== undefined) dictionaries.push({ text: tools, at: statSync(join(from, TOOLS_FILE)).mtimeMs });
       const keep = kept(from);
       out.push({ from, to, kept: keep, ...(keep ? {} : { trashed: toTrash(from, trash, label(from)) }) });
     }
@@ -283,6 +284,8 @@ export function migrateLayout(root: string, trash: string, home = homeOf(root)):
     const ignore = join(geml, ".gitignore");
     if (exists(ignore) && lf(readText(ignore)) === OLD_GITIGNORE && !kept(ignore)) writeAtomic(ignore, GITIGNORE);
   }
+  // The dictionaries the person taught last come first: where two say otherwise (which tool a use prefers), theirs stands.
+  for (const d of dictionaries.sort((a, b) => b.at - a.at)) mergeTools(home, d.text);
   if (exists(join(home, GEML_DIR))) ensureGitignore(join(home, GEML_DIR));
   return out;
 }

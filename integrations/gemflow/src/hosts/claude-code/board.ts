@@ -66,7 +66,7 @@ export type BoardRow =
   /** A page's own heading: its words, a dim word beside them, and a press at its end. */
   | { kind: "heading"; key: string; text: string; sub: string; action?: Pressable }
   /** A work item in a list: its name, a tag, and the press that makes it the current one, when it can be. */
-  | { kind: "entry"; key: string; title: string; tag: string; tone: Tone; action?: BoardAction }
+  | { kind: "entry"; key: string; title: string; tag: string; tone: Tone; action?: BoardAction; detail?: string; current?: boolean }
   /**
    * Something that happened to the work item (the journal tab): its time, what
    * kind (产物, 凭据, 阶段变更, 被拦, 开始), what, why, which turn caused it, and
@@ -222,8 +222,9 @@ export interface PaneInput {
   /** The flow the sessions tab shows (its title), or null for all; the runs of another flow's turns unfolded (their first prompt's id). */
   sessionFlow: string | null;
   sessionRuns: readonly string[];
-  /** Whether the work items tab lists the finished work items, or only counts them. */
+  /** Whether the work items tab lists the closed work items, or only counts them; the same for the dropped ones. */
   doneOpen: boolean;
+  droppedOpen?: boolean;
   /** The state the flow tab shows below its picture, or null for the current one. */
   flowState: string | null;
   /** Whether the flow tab lists the workflows to switch to; and those workflows, once read. */
@@ -255,7 +256,7 @@ export function paneRows(o: PaneInput): BoardRow[] {
     return [...head, ...projectRows(o.project, t, columns, o.now), ...own, ...exportedRows(o.exported, o.root, t)];
   }
   const suggestions = o.board !== null ? [...toolSuggestions(o.board, o.usage, o.dismissed, t), ...ciSuggestions(o.board, o.shell?.units ?? [], o.dismissed, t)] : [];
-  if (o.tab === "items") return [...head, ...itemRows({ board: o.board, status, inbox: o.inbox, columns, t, now: o.now, doneOpen: o.doneOpen, suggestions }), ...wait];
+  if (o.tab === "items") return [...head, ...itemRows({ board: o.board, status, inbox: o.inbox, columns, t, now: o.now, doneOpen: o.doneOpen, droppedOpen: o.droppedOpen === true, dismissed: o.dismissed, suggestions }), ...wait];
   if (o.board === null) return head.length > 0 ? head : wait;
   if (o.tab === "flow") return [...head, ...flowRows({ board: o.board, status, columns, t, ...(o.now !== undefined ? { now: o.now } : {}), selected: o.flowState, switching: o.switching, workflows: o.workflows })];
   if (o.tab === "tools") return [...head, ...toolRows({ board: o.board, columns, t, usage: o.usage, suggestions, query: o.toolQuery, menu: o.toolMenu, naming: o.toolNaming, open: o.toolsOpen })];
@@ -454,6 +455,9 @@ export interface ItemsInput {
   t: T;
   now?: string;
   doneOpen: boolean;
+  droppedOpen?: boolean;
+  /** The cards put away (`close-<id>` for a merged work item left as it is). */
+  dismissed?: readonly string[];
   /** The suggestions about the tools waiting on the person (toolSuggestions). */
   suggestions?: readonly InboxItem[];
 }
@@ -461,9 +465,11 @@ export interface ItemsInput {
 /**
  * The work items tab: what waits on the person on top, one card each with its
  * options — the current work item's things as the inbox has them, then every
- * other work item whose way out is theirs to take; then the work items queued,
- * the current one first; then the finished ones, counted, listed on a press;
- * then the backlog when the project keeps one.
+ * other work item whose way out is theirs to take, then each merged one whose
+ * worktree and branch are still there, to close; then the work items by where
+ * they ended up (the outline): being worked on, the current one first; merged;
+ * closed and dropped, counted, listed on a press; then the backlog when the
+ * project keeps one.
  */
 export function itemRows(o: ItemsInput): BoardRow[] {
   const { board, status, t, columns } = o;
@@ -483,16 +489,41 @@ export function itemRows(o: ItemsInput): BoardRow[] {
       ...(tag !== undefined ? { tag } : {}), detail: mine && gist !== undefined ? [gist] : i.detail, actions: i.actions,
     });
   }
+  const items = board?.items ?? [];
+  // A merged work item whose branch is still there: the person closes it, or leaves it as it is.
+  for (const i of items.filter((x) => x.end === "merged" && x.id !== current && !(o.dismissed ?? []).includes(`close-${x.id}`)).sort((a, b) => b.at.localeCompare(a.at))) {
+    rows.push({
+      kind: "card", key: `close-${i.id}`, icon: "done", verb: "", title: t("{0} 已合并", nameOf(i)),
+      detail: [
+        i.pr?.state === "merged" ? t("PR #{0} 合进了 main。", i.pr.number) : t("提交都进了 main。"),
+        i.worktree !== undefined ? t("收尾就删掉 worktree {0} 和这条本地分支；提交都在 main 里才删。", lastSegment(i.worktree)) : t("收尾就删掉这条本地分支；提交都在 main 里才删。"),
+      ],
+      actions: [
+        { key: `close-go-${i.id}`, label: t("收尾"), primary: true, action: { op: "close-item", id: i.id, ...(i.worktree !== undefined ? { worktree: i.worktree } : {}) } },
+        { key: `close-keep-${i.id}`, label: t("先留着"), action: { op: "dismiss", key: `close-${i.id}` } },
+      ],
+    });
+  }
   if (rows.length === 1) rows.push(text(t("没有要你做的事"), columns, "dim"));
   if (board === null) return rows;
-  const items = board.items;
   const waiting = new Set([...items.filter((i) => i.id !== current && (i.asks?.length ?? 0) > 0).map((i) => i.id), ...(current !== undefined && o.inbox.some((i) => i.kind === "approve") ? [current] : [])]);
   const recent = (a: BoardItem, b: BoardItem): number => b.at.localeCompare(a.at);
-  // Done by its own flow when the board knows it, else by the current flow's states.
+  // Where it ended up by the outline; an item it has no row for yet, by its own flow (closed at a final state).
   const isDone = (i: BoardItem): boolean => i.final === true || (i.since === undefined && states.get(i.state)?.final === true);
+  const endOf = (i: BoardItem): "doing" | "merged" | "closed" | "dropped" => i.end ?? (isDone(i) ? "closed" : "doing");
   const stageOf = (i: BoardItem): string => i.stateTitle ?? stateTitle(i.state);
-  const queued = items.filter((i) => !isDone(i) && !waiting.has(i.id)).sort((a, b) => Number(b.id === current) - Number(a.id === current) || recent(a, b));
-  const done = items.filter(isDone).sort(recent);
+  const queued = items.filter((i) => endOf(i) === "doing" && !waiting.has(i.id)).sort((a, b) => Number(b.id === current) - Number(a.id === current) || recent(a, b));
+  const merged = items.filter((i) => endOf(i) === "merged").sort(recent);
+  const done = items.filter((i) => endOf(i) === "closed").sort(recent);
+  const dropped = items.filter((i) => endOf(i) === "dropped").sort(recent);
+  /** The line under a work item: where its branch is checked out, its commits, its pull request, when it last moved. */
+  const detailOf = (i: BoardItem): string => {
+    const end = endOf(i);
+    const commits = i.commits === undefined ? "" : i.commits === 0 ? (end === "dropped" ? t("一个提交都没有") : t("还没有提交")) : t("{0} 个提交", i.commits);
+    const pr = i.pr === undefined ? "" : i.pr.state === "open" ? t("PR #{0} 开着", i.pr.number) : i.pr.state === "merged" ? t("PR #{0} 已合并", i.pr.number) : t("PR #{0} 已关闭", i.pr.number);
+    const where = end === "dropped" && i.file === undefined ? t("分支删了") : i.worktree !== undefined ? lastSegment(i.worktree) : "";
+    return [where, commits, pr, o.now !== undefined ? agoText(i.at, o.now, t) : ""].filter((x) => x !== "").join(" · ");
+  };
   // The current work item another waits for: where it came from, and its steps so far.
   const me = items.find((i) => i.id === current);
   const waitingOnMe = items.filter((i) => (i.depends ?? []).some((d) => d.id === current && !d.done));
@@ -508,20 +539,28 @@ export function itemRows(o: ItemsInput): BoardRow[] {
     : [""];
   for (const f of byFlow) {
     const group = flowsInPlay.length > 1 ? queued.filter((i) => (i.flow ?? "") === f) : queued;
-    rows.push({ kind: "section", key: `queued-${f}`, text: flowsInPlay.length > 1 && f !== "" ? t("排着 · {0}", f) : t("排着") });
+    rows.push({ kind: "section", key: `queued-${f}`, text: flowsInPlay.length > 1 && f !== "" ? t("在做 · {0}", f) : t("在做"), count: group.length });
     if (group.length === 0) rows.push(text(`  ${t("没有")}`, columns, "dim"));
     for (const i of group) {
       const here = i.id === current;
       const waits = (i.depends ?? []).filter((d) => !d.done).map((d) => d.title ?? d.id);
-      const tag = [i.by === "model" ? t("我的") : i.by === "gemflow" ? t("gemflow 记的") : "", here ? t("在做") : "", stageOf(i), i.paused ? t("已暂停") : "", waits.length > 0 ? t("⏳ 等「{0}」完成", waits.join("」「")) : "", here ? made ?? "" : ""].filter((x) => x !== "").join(" · ");
-      rows.push({ kind: "entry", key: `item-${i.id}`, title: nameOf(i), tag, tone: i.paused ? "warning" : "normal", ...(!here && i.file !== undefined ? { action: { op: "switch-file", file: i.file } } : {}) });
+      const tag = [i.by === "model" ? t("我的") : i.by === "gemflow" ? t("gemflow 记的") : "", here ? t("当前") : "", stageOf(i), i.paused ? t("已暂停") : "", waits.length > 0 ? t("⏳ 等「{0}」完成", waits.join("」「")) : "", here ? made ?? "" : ""].filter((x) => x !== "").join(" · ");
+      const detail = detailOf(i);
+      rows.push({ kind: "entry", key: `item-${i.id}`, title: nameOf(i), tag, tone: i.paused ? "warning" : "normal", ...(detail !== "" ? { detail } : {}), ...(here ? { current: true } : {}), ...(!here && i.file !== undefined ? { action: { op: "switch-file", file: i.file } } : {}) });
     }
   }
-  rows.push({
-    kind: "section", key: "done", text: t("做完了"), count: done.length,
-    ...(done.length > 0 ? { fold: { key: "fold-done", label: o.doneOpen ? t("收起") : t("展开"), action: { op: "fold", what: "done", open: !o.doneOpen } } } : {}),
-  });
-  if (o.doneOpen) for (const i of done) rows.push({ kind: "entry", key: `item-${i.id}`, title: nameOf(i), tag: o.now !== undefined ? agoText(i.at, o.now, t) : stateTitle(i.state), tone: "dim" });
+  rows.push({ kind: "section", key: "merged", text: t("已合并"), count: merged.length });
+  for (const i of merged) {
+    const detail = detailOf(i);
+    rows.push({ kind: "entry", key: `item-${i.id}`, title: nameOf(i), tag: i.id === current ? t("当前") : "", tone: "normal", ...(detail !== "" ? { detail } : {}), ...(i.id === current ? { current: true } : {}) });
+  }
+  // Closed and dropped are counted, and listed on a press.
+  const folded = (key: "done" | "dropped", label: string, list: readonly BoardItem[], open: boolean): void => {
+    rows.push({ kind: "section", key, text: label, count: list.length, ...(list.length > 0 ? { fold: { key: `fold-${key}`, label: open ? t("收起") : t("展开"), action: { op: "fold", what: key, open: !open } } } : {}) });
+    if (open) for (const i of list) { const detail = detailOf(i); rows.push({ kind: "entry", key: `item-${i.id}`, title: nameOf(i), tag: stageOf(i), tone: "dim", ...(detail !== "" ? { detail } : {}) }); }
+  };
+  folded("done", t("已收尾"), done, o.doneOpen);
+  folded("dropped", t("放下"), dropped, o.droppedOpen === true);
   const backlog = board.backlog;
   if (backlog !== null) {
     const loose = backlog.items.filter((i) => i.target === "");
@@ -549,6 +588,9 @@ export function itemRows(o: ItemsInput): BoardRow[] {
 // ---- tools ----------------------------------------------------------------------
 
 /** The row that takes a key: of exactly that key, else the one whose pattern (`*` any text) matches it whole, the longest literal first. */
+/** The last segment of a path, `/`-separated (a worktree's directory name). */
+export const lastSegment = (path: string): string => path.split("/").filter((x) => x !== "" && x !== ".").at(-1) ?? path;
+
 export function rowFor(key: string, rows: readonly DictRow[]): DictRow | undefined {
   return bindingOf({ rows: [...rows], diagnostics: [] }, key);
 }
@@ -683,7 +725,7 @@ export function toolRows(o: ToolsInput): BoardRow[] {
         if (o.naming === k) rows.push({ kind: "input", key: `new-use-${k}`, placeholder: t("{0} 的新用途", keyWords(k)), field: "new-use", target: k });
         rows.push(buttons([
           ...(r?.for !== undefined && !r.default ? [{ key: `prefer-${k}`, label: t("设为同类首选"), action: { op: "learn", lessons: [{ kind: "default", key: k, use: r.for }] } } as Pressable] : []),
-          ...(r !== undefined ? [{ key: `forget-${k}`, label: t("删掉这一行"), action: { op: "learn", lessons: [{ kind: "forget", key: k }] } } as Pressable] : []),
+          ...(r !== undefined ? [{ key: `forget-${k}`, label: t("删掉这一行"), tone: "danger", action: { op: "learn", lessons: [{ kind: "forget", key: k }], confirm: { question: t("删掉 {0} 这一行？之后它按没归类的工具处理。", k), yes: t("删掉") } } } as Pressable] : []),
           { key: `close-${k}`, label: t("取消"), action: { op: "tool-menu", key: null } },
         ]));
       }

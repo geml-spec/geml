@@ -201,7 +201,7 @@ viewer 直接画它；`.gemlhistory` 给它记版本。
 .geml/                          在主检出里：仓库的每个 worktree 读的都是这一份
   workflows/<name>.geml         一份流程：一个状态机块，后面跟着各阶段的提示词
   tools.geml                    所有流程共用的工具词典：哪个工具是哪个用途，哪里允许、哪里拒绝
-  project.geml                  项目文档：meta flow-workflow 指定默认流程
+  project.geml                  项目文档：meta flow-workflow 指定默认流程；#items 列着每个工作项和它的结局
   journals/<item>.geml          每个工作项一本 journal：一个分支，或一组文件中的一个
   sessions/                     项目的会话记录，各家宿主的会话都在这里
   exports/                      看板导出的文件
@@ -226,6 +226,13 @@ title         = "Gemflow"
 flow-workflow = "coding"
 ===
 ```
+
+它下面 gemflow 维护一张表 `#items`：项目有过的每个工作项和它的结局，看板每次列工作项时
+从 git 读——分支还在、没合并是 `doing`；main 收进了它的提交、或者 PR 已合并，而分支或
+worktree 还在，是 `merged`；那些也删了是 `closed`；分支没合并就删了、或者一个提交都
+没有，是 `dropped`。文件类的工作项走到流程终点算 `closed`，停在 `parked` 算 `dropped`。
+表里记着 git 记不住的——删掉的分支最后的提交、有过几个提交；只重写这张表，你写在它
+周围的不动。
 
 默认流程是 `GEMFLOW_STATECHART` 指定的文件（相对项目根的路径），否则是
 `flow-workflow` 指定的那个，否则是项目唯一的那个流程。CLI、Claude Code 插件、
@@ -394,7 +401,7 @@ tarball，它会照单收下、写进 `settings.json`，然后此后每次启动
 cd integrations/gemflow && npm install && npm run pack:local
 
 # 2. 装：两个安装器要的东西不一样，pack:local 跑完会把两个路径都打出来
-npm install -g ./geml-gemflow-0.2.18.tgz   # CLI：要 tarball
+npm install -g ./geml-gemflow-0.2.19.tgz   # CLI：要 tarball
 pi install /绝对路径/gemflow-pkg          # pi agent：要一个目录
 
 # 3. 到你要干活的仓库里，开一个自己的分支
@@ -472,8 +479,10 @@ npm run walkthrough
   时同时设为默认流程，否则提示用 `/gemflow use`。
 - **看板**，六个标签页，打开停在待处理：待处理（只有你能做的事——通行要求已满足的
   批准、要勾的变量、模型在同一个键上反复被拒、桥接坏了——每项带按钮）、
-  工作项（先是当前工作项的产物——`#result` 一节、写过的文件、提交——再是每个工作项
-  在它的阶段下，可暂停、继续；backlog）、记录（顶部"自上次之后"的
+  工作项（先是当前工作项的产物——`#result` 一节、写过的文件、提交——再是按结局分组的
+  工作项：在做、已合并、已收尾、放下，各带 worktree、提交数和 PR；已合并但 worktree
+  或分支还在的，出一张收尾卡片，确认后由模型在提交都进了 main 时删掉两者；然后是
+  backlog）、记录（顶部"自上次之后"的
   摘要，然后是最新在前的 journal，可筛选；一条展开能看凭什么、哪次调用、在哪份内容上、
   还算不算数）、流程（从模型画出的流程图，叠着运行时：一层一行状态盒子，当前阶段强调色，阶段里的工作项数做角标；每层下面一行一条出边，标着条件成不成立，现在能走的边是带数字热键的按钮——桌面、编辑器、手机、终端都一样；然后是时钟、人勾选的变量）、工具（词典每一行
   在当前状态的处境，能就地改的都有按钮，输入框加一行）、会话（你发过的 prompt 按当时阶段

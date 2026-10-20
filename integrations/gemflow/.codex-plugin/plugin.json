@@ -1,6 +1,6 @@
 {
   "name": "gemflow",
-  "version": "0.2.18",
+  "version": "0.2.19",
   "description": "Workflow stages for Codex: a GEML statechart says what each stage uses, a tool dictionary binds those uses to the project's tools, evidence is written from test, PR, CI and deploy results, the stage's text reaches the model as it changes, and a tool is refused only where the workflow does not declare its use. Three tools over MCP: status, move, set.",
   "author": {
     "name": "geml-spec",

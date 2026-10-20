@@ -172,7 +172,7 @@ test("the flow picture: held, or no item, nothing is pressable; the words follow
   assert.deepEqual(flow({ board: stray }).find((r) => r.kind === "buttons").items.map((b) => b.label), ["构建", "review", "deploy", "done"], "a state the board does not know has no button");
 });
 
-test("工作项: what waits on the person on top, one card each with its options; then the queued work items; then the finished ones counted, listed on a press; then the backlog", () => {
+test("工作项: what waits on the person on top, one card each with its options; then the work items by where they ended up — being worked on, merged, closed and dropped counted and listed on a press; then the backlog", () => {
   const approve = { kind: "approve", key: "approve-review", verb: "定", title: "feat/x", detail: ["review · pr-merged ✓"], since: "2026-10-12T08:58:00Z", actions: [{ key: "approve-deploy", label: "部署", primary: true, action: { op: "advance", to: "deploy", say: "部署：feat/x" } }] };
   const stuck = { kind: "stuck", key: "stuck-wrangler", verb: "被拦", title: "Bash(wrangler deploy)", detail: ["x"], actions: [] };
   const board = { ...BOARD, items: [
@@ -191,10 +191,12 @@ test("工作项: what waits on the person on top, one card each with its options
     "ask 定 pi 和 DSH 也记下写过的文件吗 (构建) | 直接做：小事 | 直接做 先放着",
     "done 验收 feat/other (deploy) | 通过：人验收通过。 | ",
     "warn 被拦 Bash(wrangler deploy) | x | ",
-    "§ 排着",
+    "§ 在做 2",
     "feat/rate-limit (review)",
     "→ .geml/matters/old (我的 · 构建 · 已暂停)",
-    "§ 做完了 1 [展开]",
+    "§ 已合并 0",
+    "§ 已收尾 1 [展开]",
+    "§ 放下 0",
     "§ 待办与进行中",
     "  rate-limit  登录接口加限流 → feat/rate-limit · #review",
     "backlog 还没绑到工作项的 1 项",
@@ -208,14 +210,14 @@ test("工作项: what waits on the person on top, one card each with its options
   assert.equal(rows.find((r) => r.key === "item-.geml/matters/old").action.op, "switch-file");
   assert.equal(rows.find((r) => r.key === "item-.geml/matters/old").tone, "warning");
   const open = items({ board, inbox: [approve, stuck], doneOpen: true });
-  assert.deepEqual(look(open).slice(8, 10), ["§ 做完了 1 [收起]", "feat/shipped (1 小时前)"]);
+  assert.deepEqual(look(open).slice(9, 11), ["§ 已收尾 1 [收起]", "feat/shipped (done)"]);
   assert.deepEqual(open.find((r) => r.kind === "section" && r.key === "done").fold.action, { op: "fold", what: "done", open: false });
   const working = look(items({ board, inbox: [stuck] }));
-  assert.deepEqual(working.slice(4, 6), ["§ 排着", "feat/x (在做 · review)"], "nothing of the current work item waits on the person: it heads the queue, being worked on");
+  assert.deepEqual(working.slice(4, 6), ["§ 在做 3", "feat/x (当前 · review)"], "nothing of the current work item waits on the person: it heads the queue, being worked on");
   const made = { ...board, products: { item: "feat/x", written: [], commits: [{ sha: "053f317c9d0e1f2a", at: NOW, subject: "feat: band", files: [], ours: true }] } };
   assert.equal(look(items({ board: made, inbox: [approve] }))[1], "ask 定 feat/x (053f317c) | review · pr-merged ✓ | 部署", "the work the current item made, as the tag of its card");
-  assert.equal(look(items({ board: made, inbox: [] })).find((x) => x.startsWith("feat/x")), "feat/x (在做 · review · 053f317c)");
-  assert.deepEqual(look(items({ board: { ...board, items: [], backlog: null }, status: null })), ["§ 待处理", "没有要你做的事", "§ 排着", "  没有", "§ 做完了 0"]);
+  assert.equal(look(items({ board: made, inbox: [] })).find((x) => x.startsWith("feat/x")), "feat/x (当前 · review · 053f317c)");
+  assert.deepEqual(look(items({ board: { ...board, items: [], backlog: null }, status: null })), ["§ 待处理", "没有要你做的事", "§ 在做 0", "  没有", "§ 已合并 0", "§ 已收尾 0", "§ 放下 0"]);
   assert.deepEqual(look(items({ board: null, inbox: [stuck] })), ["§ 待处理", "warn 被拦 Bash(wrangler deploy) | x | "], "before the board is read, what waits on the person still shows");
   const accept = { ...approve, verb: "验收", closes: true };
   assert.equal(items({ board, inbox: [accept] })[1].icon, "done", "accepting the work has its own icon");
@@ -271,7 +273,7 @@ test("工具: every tool by kind, with its use and how often it ran — the ones
   const at = menu.findIndex((r) => r.name === "npm test");
   assert.deepEqual(look(menu.slice(at + 1, at + 4)), ["  归类为", "改文件 跑测试* 部署到 production 出图 新用途…", "删掉这一行 取消"], "classify as any of the flow's uses or a new one; a preferred row is not made preferred again");
   assert.deepEqual(menu[at + 2].items[0].action, { op: "learn", lessons: [{ kind: "use", key: "Bash(npm test)", use: "edit" }] });
-  assert.deepEqual(menu[at + 3].items[0].action, { op: "learn", lessons: [{ kind: "forget", key: "Bash(npm test)" }] });
+  assert.deepEqual(menu[at + 3].items[0].action, { op: "learn", lessons: [{ kind: "forget", key: "Bash(npm test)" }], confirm: { question: "删掉 Bash(npm test) 这一行？之后它按没归类的工具处理。", yes: "删掉" } }, "deleting a row asks first");
   const loose = tools({ menu: "Bash(git commit)", naming: "Bash(git commit)" });
   const lat = loose.findIndex((r) => r.name === "git commit");
   assert.deepEqual(loose[lat + 3], { kind: "input", key: "new-use-Bash(git commit)", placeholder: "git commit 的新用途", field: "new-use", target: "Bash(git commit)" });
@@ -302,6 +304,36 @@ test("工具: a command that ran with no row to take it, looking like the flow's
   assert.equal(rowFor("Bash(npm run build)", BOARD.tools), undefined);
 });
 const look2 = (rows) => { const c = rows.find((r) => r.kind === "card"); return `${c.verb} ${c.title}`; };
+
+test("工作项 by the outline: each with where it is and what it has; a merged one still checked out is a card to close, which asks first and can be left; the dropped listed on a press", () => {
+  const board = { ...BOARD, backlog: null, items: [
+    { id: "feat/x", state: "review", rev: 3, at: "2026-10-12T09:04:00Z", paused: false, end: "doing", worktree: "../geml-gemflow", commits: 36 },
+    { id: "feat/runtime", state: "build", rev: 2, at: "2026-10-09T09:00:00Z", paused: false, end: "merged", worktree: "../geml-agent-runtime", commits: 13, pr: { number: 32, state: "merged" } },
+    { id: "claude/try", state: "build", rev: 0, at: "2026-10-12T01:42:00Z", paused: false, end: "dropped", commits: 0 },
+    { id: "feat/old", state: "deploy", rev: 9, at: "2026-10-01T08:00:00Z", paused: false, end: "closed", commits: 4 },
+  ] };
+  const rows = items({ board, dismissed: [] });
+  assert.deepEqual(look(rows), [
+    "§ 待处理",
+    "done  feat/runtime 已合并 | PR #32 合进了 main。 / 收尾就删掉 worktree geml-agent-runtime 和这条本地分支；提交都在 main 里才删。 | 收尾 先留着",
+    "§ 在做 1",
+    "feat/x (当前 · review)",
+    "§ 已合并 1",
+    "feat/runtime ()",
+    "§ 已收尾 1 [展开]",
+    "§ 放下 1 [展开]",
+  ]);
+  const card = rows.find((r) => r.key === "close-feat/runtime");
+  assert.deepEqual(card.actions.map((a) => a.action), [{ op: "close-item", id: "feat/runtime", worktree: "../geml-agent-runtime" }, { op: "dismiss", key: "close-feat/runtime" }]);
+  assert.deepEqual(rows.filter((r) => r.kind === "entry").map((r) => [r.title, r.detail, r.current ?? false]), [
+    ["feat/x", "geml-gemflow · 36 个提交 · 6 分钟前", true],
+    ["feat/runtime", "geml-agent-runtime · 13 个提交 · PR #32 已合并 · 3 天前", false],
+  ]);
+  assert.equal(look(items({ board, dismissed: ["close-feat/runtime"] }))[1], "没有要你做的事", "left as it is: not asked again");
+  const open = items({ board, droppedOpen: true, dismissed: [] });
+  assert.deepEqual(open.filter((r) => r.kind === "entry").at(-1), { kind: "entry", key: "item-claude/try", title: "claude/try", tag: "构建", tone: "dim", detail: "分支删了 · 一个提交都没有 · 7 小时前" });
+  assert.deepEqual(open.find((r) => r.key === "dropped").fold.action, { op: "fold", what: "dropped", open: false });
+});
 
 test("记录: the filters and the export, the work item and its flow, then what happened newest first under its day — what, why, and which turn", () => {
   const st = status(undefined, { sources: { "tests-pass": "tool:test", "pr-open": "git:pr-open", "review-done": "human" } });
@@ -447,12 +479,14 @@ test("two flows in play: the jumped-into work item's steps and where it came fro
     "§ 标志设计 · gemflow 标志",
     "构建 ✓ → review ● → deploy → done",
     rows[4].text,
-    "§ 排着 · 标志设计",
-    "gemflow 标志 (在做 · review)",
-    "§ 排着 · 开发流程",
+    "§ 在做 · 标志设计",
+    "gemflow 标志 (当前 · review)",
+    "§ 在做 · 开发流程",
     "样式：画布换上新标志 (记下 · ⏳ 等「gemflow 标志」完成)",
     "几条流程并排与依赖 (记下)",
-    "§ 做完了",
+    "§ 已合并",
+    "§ 已收尾",
+    "§ 放下",
   ]);
   assert.match(rows[4].text, /^\d\d:\d\d 从开发流程「样式：画布换上新标志」跳进来，做完回去。$/);
   assert.deepEqual(stepsOf(BOARD, "review").map((s) => [s.title, s.passed, s.current]), [["构建", true, false], ["review", false, true], ["deploy", false, false], ["done", false, false]], "a state the journal entered is passed, the current one marked");

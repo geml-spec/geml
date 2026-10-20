@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -139,6 +139,21 @@ test("migrateLayout: each workflow directory becomes one file in the home, its d
   const wf = resolveWorkflow(root, {});
   assert.deepEqual(wf, { name: "dev", path: join(root, ".geml", "workflows", "dev.geml") });
   assert.deepEqual(migrateLayout(root, trash, root), []);
+});
+
+test("migrateLayout merges the dictionary the person taught last first: where two disagree on a use's preferred tool, theirs stands", () => {
+  const root = tmp();
+  withWorkflow(root, DEV, "coding");
+  withWorkflow(root, DEV, "dev");
+  const taught = join(root, ".geml", "workflows", "dev", "tools.geml");
+  // The person said "make Write the default" there.
+  writeFileSync(taught, read(taught).split("\n").map((l) => l.startsWith("| Edit ") ? l.replace("| yes     |        |", "|         |        |")
+    : l.startsWith("| Write ") ? l.replace("|         |        |", "| yes     |        |") : l).join("\n"));
+  const old = new Date("2026-01-01T00:00:00Z");
+  utimesSync(join(root, ".geml", "workflows", "coding", "tools.geml"), old, old);
+  migrateLayout(root, tmp(), root);
+  const rows = readDictionary(read(join(root, ".geml", "tools.geml"))).rows;
+  assert.deepEqual(rows.filter((r) => r.for === "edit" && r.default).map((r) => r.tool), ["Write"], "the newer dictionary's default for edit");
 });
 
 test("migrateLayout leaves what git tracks where it is: copied into the home, removed by the person's commit", () => {

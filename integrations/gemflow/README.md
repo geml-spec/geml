@@ -232,7 +232,7 @@ a state.
 .geml/                          in the main checkout: every worktree of the repository reads the same
   workflows/<name>.geml         a workflow: one statechart block, each stage's prompt after it
   tools.geml                    the tool dictionary of all the workflows: which tool is which use, where a tool is allowed or denied
-  project.geml                  the project document: meta flow-workflow names the default workflow
+  project.geml                  the project document: meta flow-workflow names the default workflow; #items, every work item and where it ended up
   journals/<item>.geml          one journal per work item: a branch, or one file of a set
   sessions/                     the project's session record, every host's sessions
   exports/                      what the board exports
@@ -259,6 +259,16 @@ title         = "Gemflow"
 flow-workflow = "coding"
 ===
 ```
+
+Below it gemflow keeps a table, `#items`: every work item the project has had
+and where it ended up, read off git each time the board lists them —
+`doing` while its branch is there and not merged; `merged` once main holds
+its commits or its pull request is merged, the branch or its worktree still
+there; `closed` once that is gone; `dropped` for a branch deleted unmerged, or
+with no commit at all. A work item that is a file is closed at its flow's
+final state and dropped at `parked`. The table remembers what git forgets — a
+deleted branch's last tip and how many commits it had — and only it is
+rewritten: what you write around it stays.
 
 The default workflow is the file `GEMFLOW_STATECHART` names (a path relative
 to the project root), else the one `flow-workflow` names, else the project's
@@ -462,7 +472,7 @@ cd integrations/gemflow && npm install && npm run pack:local
 
 # 2. install it — the two installers take different things, and pack:local
 #    prints both paths when it finishes
-npm install -g ./geml-gemflow-0.2.18.tgz     # the CLI: a tarball
+npm install -g ./geml-gemflow-0.2.19.tgz     # the CLI: a tarball
 pi install /absolute/path/to/gemflow-pkg    # pi agent: a DIRECTORY
 
 # 3. in the repository you want to work on, on a branch of its own
@@ -558,8 +568,11 @@ What you get:
   person can do — approvals whose guard holds, variables to tick, a model
   stuck on one refused key, a bridge that is down — each with its buttons),
   工作项 (first what the current work item's work made — its `#result`
-  section, the files it wrote, its commits — then every work item under its
-  stage, with pause and resume, and the backlog), 记录 (a "since you left" digest, then
+  section, the files it wrote, its commits — then every work item by where it
+  ended up: 在做, 已合并, 已收尾 and 放下, each with its worktree, its commits
+  and its pull request; a merged one whose worktree or branch is still there is
+  a card to close it, which has the model remove both once its commits are in
+  main; then the backlog), 记录 (a "since you left" digest, then
   the journal newest first with filters; an entry expands to its evidence:
   what changed, which call, on which content, whether it still counts), 流程
   (the flow drawn from its model with the runtime laid over it — each rank a

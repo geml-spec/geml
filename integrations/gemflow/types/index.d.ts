@@ -18,6 +18,8 @@ declare module 'claude-code' {
       tab: GemflowTab
       /** Whether the work items tab lists the finished work items. */
       doneOpen: boolean
+      /** Whether the work items tab lists the dropped work items, or only counts them. */
+      droppedOpen: boolean
       /** The state the flow tab shows below its picture (its id). */
       flowState: string | null
       /** Whether the flow tab lists the workflows to switch to. */
