@@ -39,10 +39,15 @@ export function readDictionary(source: string, sc?: Statechart | readonly Statec
   const states = charts === undefined ? undefined : new Set(charts.flatMap((c) => [...c.states.keys()]));
   const out: DictRow[] = [];
   const defaults = new Map<string, number>();
+  // A tool's name is its address: one row each, exactly as spelled (Claude Code's `Edit` and pi's `edit` are two tools).
+  const seen = new Map<string, number>();
   rows.forEach((row, i) => {
     const n = i + 1;
     const tool = cell(row, "tool");
     if (tool === "") { err(`#${TOOLS_TABLE} row ${n}: no tool`); return; }
+    const first = seen.get(tool);
+    if (first !== undefined) { diagnostics.push({ severity: "warning", code: "flow-tools", message: `#${TOOLS_TABLE} row ${n}: ${tool} has a row already (row ${first}); that one counts and this one is left out`, line: 1 }); return; }
+    seen.set(tool, n);
     const entry: DictRow = { tool, allow: [], deny: [], default: false, row: n };
     const use = cell(row, "for");
     if (use !== "") {

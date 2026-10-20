@@ -132,7 +132,7 @@ test("gemflow's own tools are its three, bare, as Claude Code lists them or as d
 test("after a write: a file variable's glob, the file unit's glob even before there is a work item, or a file the stage has not recorded yet", () => {
   assert.equal(afterNeeded(policy(), T("Write"), outcome({ wrotePath: "out/ep01.mp4" })), true);
   assert.equal(afterNeeded(policy(), T("Write"), outcome({ wrotePath: "src/a.ts" })), false, "recorded since the stage was entered");
-  assert.equal(afterNeeded(policy(), T("Write"), outcome({ wrotePath: "src/b.ts" })), true, "a new product");
+  assert.equal(afterNeeded(policy(), T("Write"), outcome({ wrotePath: "src/b.ts" })), true, "a new artifact");
   assert.equal(afterNeeded(policy(), T("Write"), outcome({ wrotePath: "src/b.ts", isError: true })), false, "a failed write made nothing");
   assert.equal(afterNeeded(policy({ written: undefined }), T("Write"), outcome({ wrotePath: "src/a.ts" })), true, "a policy from before the field");
   const film = policy({ active: false, unit: { kind: "file", glob: "episodes/*.geml" } });

@@ -48,7 +48,7 @@ export interface BoardQuery {
   lang?: string;
 }
 
-const FILTERS: readonly JournalFilter[] = ["all", "products", "evidence", "moves", "refusals", "depends"];
+const FILTERS: readonly JournalFilter[] = ["all", "artifacts", "evidence", "moves", "refusals", "depends"];
 
 /** The tabs on this host: every tab but the sessions tab. */
 export const DSH_TABS: readonly BoardTab[] = TAB_IDS.filter((id) => id !== "sessions");

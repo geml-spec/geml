@@ -156,7 +156,7 @@ test("board: the graph with its judges, the uses and their states, the dictionar
   assert.equal(first.changed["tests-pass"], false, "revision 0 sets every variable to its default");
   assert.deepEqual(r.board.clocks, []);
   assert.equal(typeof r.board.tree, "string", "the content fingerprint, for the evidence that expires");
-  assert.deepEqual(r.board.products, { item: "feat/x", written: [], commits: [] }, "the branch's own commits: none yet");
+  assert.deepEqual(r.board.artifacts, { item: "feat/x", written: [], commits: [] }, "the branch's own commits: none yet");
   assert.equal(r.board.unit, "branch");
 });
 

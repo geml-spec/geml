@@ -5,10 +5,10 @@
 - **gemflow**: the board shows what a work item's work made. The files its
   work writes go into its journal as `#wrote-N` blocks, once per file per
   stage, outside the hash chain; the item file itself is not one of them.
-  The items tab opens on the current work item's products — under a file
+  The items tab opens on the current work item's artifacts — under a file
   unit the item file's `#result` section, then the files written and the
   commits of its window — and names its unit; an approval card has a button
-  to the products. The matter workflow asks for a `# 结果 {#result}`
+  to the artifacts. The matter workflow asks for a `# 结果 {#result}`
   section.
 
 - **gemflow**: the matter workflow, a fifth bundled template. One matter is

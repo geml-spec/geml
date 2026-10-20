@@ -6,7 +6,7 @@ import type { Status } from "../../workspace.js";
 import type { BoardAction, BoardTab, JournalFilter, Pressable } from "./actions.js";
 import { howText, truncate, varSegment, type Tone } from "./band.js";
 import { othersWaiting, pendingList, shortReason, type InboxItem } from "./inbox.js";
-import type { BoardData, BoardItem, Products, ShellStatus, TimelineEntry } from "./protocol.js";
+import type { BoardData, BoardItem, MadeEntry, Artifacts, ShellStatus, TimelineEntry } from "./protocol.js";
 import { promptLine, promptTail, type PromptRecord } from "./sessions.js";
 import { filesBySession, type SessionSummary } from "../../core/session-log.js";
 import { ZH, type T } from "./text.js";
@@ -65,8 +65,10 @@ export type BoardRow =
   | { kind: "image"; key: string; svg: string; alt: string; width?: number }
   /** A page's own heading: its words, a dim word beside them, and a press at its end. */
   | { kind: "heading"; key: string; text: string; sub: string; action?: Pressable }
-  /** A work item in a list: its name, a tag, and the press that makes it the current one, when it can be. */
-  | { kind: "entry"; key: string; title: string; tag: string; tone: Tone; action?: BoardAction; detail?: string; current?: boolean }
+  /** A work item in a list: its name, a tag, and the press that makes it the current one, when it can be; `link` what it opens, at its end in place of the tag. */
+  | { kind: "entry"; key: string; title: string; tag: string; tone: Tone; action?: BoardAction; detail?: string; current?: boolean; link?: { href: string; label: string } }
+  /** A artifact's menu (the work items tab): what it opens — the file, a version's copy, its history, the copies' folder — and what it shows. */
+  | { kind: "links"; key: string; items: { key: string; label: string; href?: string; action?: BoardAction }[] }
   /**
    * Something that happened to the work item (the journal tab): its time, what
    * kind (产物, 凭据, 阶段变更, 被拦, 开始), what, why, which turn caused it, and
@@ -100,7 +102,7 @@ export const ICON_SVG: Readonly<Record<Icon, string>> = { ask: iconSvg("ask"), d
  * The pane's line icons, drawn as the design draws them (docs/design/ui/2026-10-13-gemflow-ui): a tab's, a dialog's,
  * and each kind of journal entry's. Only where the surface draws pictures; elsewhere the words stand alone.
  */
-export type Glyph = BoardTab | "share" | "settings" | "upgrade" | "about" | "product" | "evidence" | "move" | "refused" | "start" | "waits" | "done" | "board";
+export type Glyph = BoardTab | "share" | "settings" | "upgrade" | "about" | "artifact" | "evidence" | "move" | "refused" | "start" | "waits" | "done" | "board";
 const GLYPH_PATH: Readonly<Record<Glyph, string>> = {
   sessions: '<path d="M4 5h16v11H9l-5 4z"/>',
   flow: '<rect x="3" y="3" width="7" height="5" rx="1"/><rect x="14" y="16" width="7" height="5" rx="1"/><path d="M6.5 8v5h11v3"/>',
@@ -111,7 +113,7 @@ const GLYPH_PATH: Readonly<Record<Glyph, string>> = {
   settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
   upgrade: '<circle cx="12" cy="12" r="9"/><path d="M12 16V8M8.5 11.5 12 8l3.5 3.5"/>',
   about: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
-  product: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/>',
+  artifact: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/>',
   evidence: '<path d="M6 3h8l4 4v14H6z"/><path d="M9.5 14l2 2 3.5-4"/>',
   move: '<path d="M5 12h14M13 6l6 6-6 6"/>',
   refused: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5.5M12 16.5h.01"/>',
@@ -225,6 +227,9 @@ export interface PaneInput {
   /** Whether the work items tab lists the closed work items, or only counts them; the same for the dropped ones. */
   doneOpen: boolean;
   droppedOpen?: boolean;
+  /** The artifact whose menu is open on the work items tab, or null; whether every document it changed is listed. */
+  artifactMenu?: string | null;
+  docsOpen?: boolean;
   /** The state the flow tab shows below its picture, or null for the current one. */
   flowState: string | null;
   /** Whether the flow tab lists the workflows to switch to; and those workflows, once read. */
@@ -252,11 +257,11 @@ export function paneRows(o: PaneInput): BoardRow[] {
   const status = o.shell?.status ?? null;
   const wait = o.board === null && head.length === 0 ? [text(t("正在读取看板…"), columns, "dim")] : [];
   if (o.tab === "sessions") {
-    const own = sessionRows(o.prompts, o.menu, o.board?.products?.commits ?? [], t, columns, o.now, { flow: o.sessionFlow, runs: o.sessionRuns, current: status?.workflow.title, ...(o.scrolls !== undefined ? { scrolls: o.scrolls } : {}), ...(o.unfolded !== undefined ? { expanded: o.unfolded } : {}) });
+    const own = sessionRows(o.prompts, o.menu, o.board?.artifacts?.commits ?? [], t, columns, o.now, { flow: o.sessionFlow, runs: o.sessionRuns, current: status?.workflow.title, ...(o.scrolls !== undefined ? { scrolls: o.scrolls } : {}), ...(o.unfolded !== undefined ? { expanded: o.unfolded } : {}) });
     return [...head, ...projectRows(o.project, t, columns, o.now), ...own, ...exportedRows(o.exported, o.root, t)];
   }
   const suggestions = o.board !== null ? [...toolSuggestions(o.board, o.usage, o.dismissed, t), ...ciSuggestions(o.board, o.shell?.units ?? [], o.dismissed, t)] : [];
-  if (o.tab === "items") return [...head, ...itemRows({ board: o.board, status, inbox: o.inbox, columns, t, now: o.now, doneOpen: o.doneOpen, droppedOpen: o.droppedOpen === true, dismissed: o.dismissed, suggestions }), ...wait];
+  if (o.tab === "items") return [...head, ...itemRows({ board: o.board, status, inbox: o.inbox, columns, t, now: o.now, doneOpen: o.doneOpen, droppedOpen: o.droppedOpen === true, dismissed: o.dismissed, suggestions, artifactMenu: o.artifactMenu ?? null, docsOpen: o.docsOpen === true }), ...wait];
   if (o.board === null) return head.length > 0 ? head : wait;
   if (o.tab === "flow") return [...head, ...flowRows({ board: o.board, status, columns, t, ...(o.now !== undefined ? { now: o.now } : {}), selected: o.flowState, switching: o.switching, workflows: o.workflows })];
   if (o.tab === "tools") return [...head, ...toolRows({ board: o.board, columns, t, usage: o.usage, suggestions, query: o.toolQuery, menu: o.toolMenu, naming: o.toolNaming, open: o.toolsOpen })];
@@ -439,10 +444,10 @@ export function stepsOf(board: BoardData, current: string): { title: string; pas
 }
 
 /** What the work made, in a word: its one commit, how many commits, or how many files it wrote; nothing when it made none yet. */
-export function productsTag(p: Products | undefined, t: T = ZH): string | undefined {
+export function artifactsTag(p: Artifacts | undefined, t: T = ZH): string | undefined {
   if (p === undefined) return undefined;
   const ours = p.commits.filter((c) => c.ours);
-  if (ours.length === 1) return (ours[0] as Products["commits"][number]).sha.slice(0, 8);
+  if (ours.length === 1) return (ours[0] as Artifacts["commits"][number]).sha.slice(0, 8);
   if (ours.length > 1) return t("{0} 个提交", ours.length);
   return p.written.length > 0 ? t("{0} 个文件", p.written.length) : undefined;
 }
@@ -460,6 +465,9 @@ export interface ItemsInput {
   dismissed?: readonly string[];
   /** The suggestions about the tools waiting on the person (toolSuggestions). */
   suggestions?: readonly InboxItem[];
+  /** The artifact whose menu is open (`<kind>:<name>`), or null; whether every document the work item changed is listed. */
+  artifactMenu?: string | null;
+  docsOpen?: boolean;
 }
 
 /**
@@ -477,7 +485,7 @@ export function itemRows(o: ItemsInput): BoardRow[] {
   const states = new Map((board?.states ?? []).map((s) => [s.id, s]));
   const nameOf = (i: BoardItem): string => i.title ?? i.id;
   const stateTitle = (id: string): string => states.get(id)?.title ?? id;
-  const made = board?.products !== undefined && board.products.item === current ? productsTag(board.products, t) : undefined;
+  const made = board?.artifacts !== undefined && board.artifacts.item === current ? artifactsTag(board.artifacts, t) : undefined;
   const rows: BoardRow[] = [{ kind: "section", key: "waiting", text: t("待处理") }];
   const others = othersWaiting(board, current, t);
   const gist = board?.items.find((i) => i.id === current)?.gist;
@@ -506,6 +514,7 @@ export function itemRows(o: ItemsInput): BoardRow[] {
   }
   if (rows.length === 1) rows.push(text(t("没有要你做的事"), columns, "dim"));
   if (board === null) return rows;
+  rows.push(...artifactRows(board.artifacts, current, { t, columns, ...(o.now !== undefined ? { now: o.now } : {}), menu: o.artifactMenu ?? null, docsOpen: o.docsOpen === true }));
   const waiting = new Set([...items.filter((i) => i.id !== current && (i.asks?.length ?? 0) > 0).map((i) => i.id), ...(current !== undefined && o.inbox.some((i) => i.kind === "approve") ? [current] : [])]);
   const recent = (a: BoardItem, b: BoardItem): number => b.at.localeCompare(a.at);
   // Where it ended up by the outline; an item it has no row for yet, by its own flow (closed at a final state).
@@ -582,6 +591,81 @@ export function itemRows(o: ItemsInput): BoardRow[] {
       }
     }
   }
+  return rows;
+}
+
+/** A size in words: bytes, KB, MB. */
+export function sizeText(bytes: number | null): string {
+  if (bytes === null) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** An absolute path as a link that opens it. */
+export function fileUrl(abs: string): string {
+  const p = abs.split("\\").join("/");
+  const cut = p.lastIndexOf("/");
+  return cut <= 0 ? fileHref("", p) : fileHref(p.slice(0, cut), p.slice(cut + 1));
+}
+
+/** The documents the artifacts section lists before a press lists the rest. */
+const DOCS_SHOWN = 2;
+/** The copies a file's menu offers, newest first. */
+const COPIES_SHOWN = 3;
+
+/**
+ * The current work item's artifacts (the work items tab, under what waits on
+ * the person): its links, each opened at a press; the documents its commits
+ * changed in git, the newest two listed; the files git does not keep and the
+ * pictures, each with a menu of its copies; and what its commits changed in
+ * all, one line that shows them. Nothing when it made nothing yet.
+ */
+export function artifactRows(p: Artifacts | undefined, current: string | undefined, o: { t: T; columns: number; now?: string; menu: string | null; docsOpen: boolean }): BoardRow[] {
+  const { t, columns } = o;
+  const m = p?.made;
+  if (m === undefined || current === undefined || p?.item !== current) return [];
+  if (m.links.length + m.files.length + m.images.length + m.docs.length + m.code.commits === 0) return [];
+  const when = (at: string): string => (o.now !== undefined ? dayText(at, o.now, t) : "");
+  const line = (...parts: string[]): string => parts.filter((x) => x !== "").join(" · ");
+  const rows: BoardRow[] = [{ kind: "section", key: "artifacts", text: t("产物 · {0}", current) }];
+  const label = (s: string): void => { rows.push(text(s, columns, "dim")); };
+  if (m.links.length > 0) {
+    label(t("链接 · {0}", m.links.length));
+    for (const l of m.links) {
+      const v = l.versions[0];
+      rows.push({ kind: "entry", key: `artifact-link:${l.open}`, title: l.name, tag: "", tone: "normal", detail: line(v !== undefined && v.version !== "" ? t("第 {0} 版", v.version) : "", v !== undefined ? when(v.at) : ""), link: { href: l.open, label: t("打开 ↗") } });
+    }
+  }
+  if (m.docs.length > 0) {
+    label(t("文档 · {0} · 在 git 里", m.docs.length));
+    for (const d of o.docsOpen ? m.docs : m.docs.slice(0, DOCS_SHOWN)) {
+      const key = `doc:${d.path}`;
+      rows.push({ kind: "entry", key: `artifact-${key}`, title: d.path, tag: "", tone: "normal", detail: line(t("{0} 次提交", d.commits), when(d.at)), action: { op: "artifact-menu", key: o.menu === key ? null : key } });
+      if (o.menu === key) rows.push({ kind: "links", key: `menu-${key}`, items: [{ key: `open-${key}`, label: t("打开"), href: fileUrl(d.open) }, { key: `commits-${key}`, label: t("看改它的提交"), action: { op: "tab", tab: "journal", filter: "artifacts" } }] });
+    }
+    if (m.docs.length > DOCS_SHOWN) rows.push(button("fold-docs", o.docsOpen ? t("收起") : t("其余 {0} 份", m.docs.length - DOCS_SHOWN), columns, { op: "fold", what: "docs", open: !o.docsOpen }));
+  }
+  const kept = (list: readonly MadeEntry[], kind: "file" | "image", heading: string): void => {
+    if (list.length === 0) return;
+    label(heading);
+    for (const f of list) {
+      const key = `${kind}:${f.name}`;
+      const v = f.versions[0];
+      rows.push({ kind: "entry", key: `artifact-${key}`, title: f.name, tag: "", tone: "normal", detail: line(sizeText(v?.size ?? null), t("{0} 版", f.versions.length), v !== undefined ? when(v.at) : ""), action: { op: "artifact-menu", key: o.menu === key ? null : key } });
+      if (o.menu !== key) continue;
+      const copies = f.versions.filter((x) => x.copy !== undefined).slice(0, COPIES_SHOWN);
+      rows.push({ kind: "links", key: `menu-${key}`, items: [
+        { key: `open-${key}`, label: t("打开"), href: fileUrl(f.open) },
+        ...copies.map((c) => ({ key: `copy-${key}-${c.version}`, label: t("打开第 {0} 版副本", c.version), href: fileUrl(c.copy as string) })),
+        ...(f.history !== undefined ? [{ key: `history-${key}`, label: t("看它的历史"), href: fileUrl(f.history) }] : []),
+        { key: `folder-${key}`, label: t("在文件夹里显示"), href: fileUrl(m.folder) },
+      ] });
+    }
+  };
+  kept(m.files, "file", t("文件 · {0} · 不在 git 里，存了副本", m.files.length));
+  kept(m.images, "image", t("图片 · {0}", m.images.length));
+  if (m.code.commits > 0) rows.push({ kind: "entry", key: "artifact-code", title: t("代码"), tag: t("{0} 个提交 · 改了 {1} 个文件", m.code.commits, m.code.files), tone: "normal", action: { op: "tab", tab: "journal", filter: "artifacts" } });
   return rows;
 }
 
@@ -817,9 +901,9 @@ export interface JournalInput {
 }
 
 /**
- * The journal tab: the filters (all, products, evidence, stage changes,
+ * The journal tab: the filters (all, artifacts, evidence, stage changes,
  * blocks) and the export; the work item and its flow; then what happened,
- * newest first under its day — each commit of the work (a product, grouped by
+ * newest first under its day — each commit of the work (a artifact, grouped by
  * the turn that made it), each revision and each refusal — saying what, why,
  * and which turn caused it. A press opens an entry's menu: go to its turn, see
  * its evidence, go back to before it.
@@ -828,7 +912,7 @@ export function journalRows(o: JournalInput): BoardRow[] {
   const { board, t, columns } = o;
   const rows: BoardRow[] = [];
   const filters: { id: JournalFilter; label: string }[] = [
-    { id: "all", label: t("全部") }, { id: "products", label: t("产物") }, { id: "evidence", label: t("凭据") }, { id: "moves", label: t("阶段变更") }, { id: "refusals", label: t("被拦") },
+    { id: "all", label: t("全部") }, { id: "artifacts", label: t("产物") }, { id: "evidence", label: t("凭据") }, { id: "moves", label: t("阶段变更") }, { id: "refusals", label: t("被拦") },
     // Dependencies appear once the work item has any.
     ...((o.status?.depends ?? []).length > 0 ? [{ id: "depends" as const, label: t("依赖") }] : []),
   ];
@@ -844,10 +928,10 @@ export function journalRows(o: JournalInput): BoardRow[] {
   type Line = { at: string; row: Omit<Extract<BoardRow, { kind: "event" }>, "at" | "open" | "action" | "detail">; detail: string[]; rev?: number; turn?: PromptRecord };
   const lines: Line[] = [];
   const wanted = (kind: JournalFilter): boolean => o.filter === "all" || o.filter === kind;
-  if (wanted("products") && board.products !== undefined) {
-    // A turn's commits are one product; without the session's prompts, each commit is.
-    const groups = new Map<string, { turn?: PromptRecord; commits: Products["commits"] }>();
-    for (const c of [...board.products.commits].filter((c) => c.ours).reverse()) {
+  if (wanted("artifacts") && board.artifacts !== undefined) {
+    // A turn's commits are one artifact; without the session's prompts, each commit is.
+    const groups = new Map<string, { turn?: PromptRecord; commits: Artifacts["commits"] }>();
+    for (const c of [...board.artifacts.commits].filter((c) => c.ours).reverse()) {
       const turn = turnOf(c.at);
       const id = turn?.id ?? c.sha;
       const g = groups.get(id) ?? { ...(turn !== undefined ? { turn } : {}), commits: [] };
@@ -855,11 +939,11 @@ export function journalRows(o: JournalInput): BoardRow[] {
       groups.set(id, g);
     }
     for (const g of groups.values()) {
-      const last = g.commits[g.commits.length - 1] as Products["commits"][number];
+      const last = g.commits[g.commits.length - 1] as Artifacts["commits"][number];
       const files = [...new Set(g.commits.flatMap((c) => c.files))];
       lines.push({
         at: last.at, ...(g.turn !== undefined ? { turn: g.turn } : {}),
-        row: { kind: "event", key: `product-${last.sha.slice(0, 12)}`, glyph: "product", label: t("产物"), text: `${g.commits.map((c) => c.sha.slice(0, 8)).join(" ")} ${last.subject.replace(/^[a-z]+(\([^)]*\))?!?:\s*/, "")}`, why: files.length > 0 ? t("{0} 个文件", files.length) : "", turn: turnWords(g.turn), tone: "normal" },
+        row: { kind: "event", key: `artifact-${last.sha.slice(0, 12)}`, glyph: "artifact", label: t("产物"), text: `${g.commits.map((c) => c.sha.slice(0, 8)).join(" ")} ${last.subject.replace(/^[a-z]+(\([^)]*\))?!?:\s*/, "")}`, why: files.length > 0 ? t("{0} 个文件", files.length) : "", turn: turnWords(g.turn), tone: "normal" },
         detail: files.slice(0, 12),
       });
     }
@@ -916,7 +1000,7 @@ export function journalRows(o: JournalInput): BoardRow[] {
       room--;
     }
   }
-  const others = board.products !== undefined && wanted("products") ? board.products.commits.filter((c) => !c.ours).length : 0;
+  const others = board.artifacts !== undefined && wanted("artifacts") ? board.artifacts.commits.filter((c) => !c.ours).length : 0;
   if (others > 0) rows.push(text(t("同期另有 {0} 个提交没碰这些文件", others), columns, "dim"));
   return rows;
 }

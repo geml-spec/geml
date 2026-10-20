@@ -20,6 +20,10 @@ declare module 'claude-code' {
       doneOpen: boolean
       /** Whether the work items tab lists the dropped work items, or only counts them. */
       droppedOpen: boolean
+      /** The artifact whose menu is open on the work items tab (`<kind>:<name>`). */
+      artifactMenu: string | null
+      /** Whether the work items tab lists every document the work item changed, or the newest two. */
+      docsOpen: boolean
       /** The state the flow tab shows below its picture (its id). */
       flowState: string | null
       /** Whether the flow tab lists the workflows to switch to. */

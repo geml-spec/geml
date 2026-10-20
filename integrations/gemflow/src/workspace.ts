@@ -859,9 +859,9 @@ export class Workspace {
     const touched = whole && (run || (write && (ev.wrotePath === undefined || this.projectPath(ev.wrotePath) !== undefined)));
     const files = touched ? this.fileValues() : [];
     const git = whole && run && command !== undefined && runsGitOrGh(command) ? this.gitValues() : [];
-    // What the work made: a file it wrote, by its project path. The item file is the item's record, not one of its products.
+    // What the work made: a file it wrote, by its project path. The item file is the item's record, not one of its artifacts.
     const written = write && ev.wrotePath !== undefined ? this.projectPath(ev.wrotePath) : undefined;
-    const product = written !== undefined && written !== this.itemFile ? written : undefined;
+    const artifact = written !== undefined && written !== this.itemFile ? written : undefined;
     const r = this.act((sup) => {
       const meta = metaFor(this.now(), ev.callId);
       // `before` ran as another operation, so this Supervisor never saw its
@@ -875,7 +875,7 @@ export class Workspace {
         if (run && command !== undefined) {
           if (ev.exitCode !== undefined) sup.observeCommand({ command, exitCode: ev.exitCode, ...(ev.commands !== undefined ? { commands: ev.commands } : {}) }, meta);
         } else if (whole) sup.observeCall(ev.tool, ev.input, !ev.isError, meta);
-        if (product !== undefined && !ev.isError) sup.recordWrite(ev.tool, product, ev.callId);
+        if (artifact !== undefined && !ev.isError) sup.recordWrite(ev.tool, artifact, ev.callId);
       }
       if (files.length > 0) sup.applySignals(files, meta);
       if (git.length > 0) sup.applySignals(git, meta);

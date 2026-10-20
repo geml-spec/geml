@@ -155,7 +155,7 @@ export function afterNeeded(p: FlowPolicy | null, call: CallFacts, o: CallOutcom
   if (signalled && p.unit.kind === "file") return true;
   if (!p.active) return false;
   if (o.consulted) return true;
-  // A file the work wrote is one of its products, recorded once per stage entry; a policy from before the field records every one.
+  // A file the work wrote is one of its artifacts, recorded once per stage entry; a policy from before the field records every one.
   if (!o.isError && o.wrotePath !== undefined && !(p.written ?? []).includes(o.wrotePath)) return true;
   // The workspace reads the file variables again after every run tool: a render makes files as a write does.
   if (run && p.files.length > 0) return true;

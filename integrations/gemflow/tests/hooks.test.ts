@@ -187,6 +187,7 @@ function world(on: On) {
     }
     if (req.op === 'verb') return { v: 1, ok: true, shell: shell(), text: `[gemflow] work item feat/x · state #${w.state}` }
     if (req.op === 'board') return { v: 1, ok: true, shell: shell(), board: board(), todo: w.todo }
+    if (req.op === 'artifact') return { v: 1, ok: true, shell: shell(), text: `Recorded the link under feat/x's artifacts.` }
     if (req.op === 'refresh') return { v: 1, ok: true, shell: shell(), todo: w.todo }
     if (req.op === 'status' && w.sessionsDir !== null) return { v: 1, ok: true, shell: shell(), sessions: w.sessionsDir }
     if (req.op === 'attention') return { v: 1, ok: true, shell: shell(), attention: { ahead: [], prs: w.prs }, ...(w.sessionsDir !== null ? { sessions: w.sessionsDir } : {}), host: { name: 'build-box', platform: 'linux', user: 'dev', branch: 'feat/x' } }
@@ -299,7 +300,7 @@ test('real event order: session start, a test run moves the stage, the board mov
   await start($, on)
   expect(w.sent.map((r) => r.op), 'the board the inbox is built from is read at the start').toEqual(['status', 'refresh', 'board', 'attention'])
   expect(w.sent[0]).toMatchObject({ v: 1, root: ROOT })
-  expect(w.registered).toEqual(['status', 'move', 'set', 'note'])
+  expect(w.registered).toEqual(['status', 'move', 'set', 'note', 'artifact'])
 
   const tests = await $.tool.call({ tool: 'Bash', tool_use_id: 'b1', command: 'npm test' })
   expect(w.sent.at(-1)).toMatchObject({ op: 'after', tool: 'Bash', callId: 'b1', exitCode: 0, isError: false, gitOperation: false, input: { command: 'npm test' } })
@@ -507,7 +508,7 @@ test('a registration the engine refuses: the start goes on, and the band says wh
   w.refuse = { set: 'a tool named set is already registered' }
   await start($, on)
   expect(w.sent.map((r) => r.op)).toEqual(['status', 'refresh', 'board', 'attention'])
-  expect(w.registered).toEqual(['status', 'move', 'note'])
+  expect(w.registered).toEqual(['status', 'move', 'note', 'artifact'])
   expect(await bandText($, 'terminal', 400)).toMatch(/^» gemflow：没有注册上 set（[^（]*already registered[^）]*） \[看板\]$/)
 })
 
@@ -1205,6 +1206,23 @@ test('the project record: a prompt opens a turn in this session\'s log, the mode
   expect(events(w.files.get(OWN_LOG)).map((x) => [x.t, x.turn ?? null, x.text ?? x.host])).toEqual([
     ['session', null, 'claude-code'], ['prompt', 1, '按项目组织会话'], ['decision', 1, '每会话一个文件'], ['answer', 1, '好了，按项目记。'],
   ])
+})
+
+test('a page the Artifact tool published is a artifact of the work item, named by its title; the model records a link of its own with the artifact tool', async ($, on) => {
+  const w = world(on)
+  const said = 'Published C:/s/page.html at https://claude.ai/artifact/AbC123 (Version 2, version id 1792086025-315b) Icon: "layout".'
+  on('tool.call', { tool: 'Artifact' }, () => ({ result: said, text: said }))
+  const clock = await start($, on)
+  await clock.advance(1)
+  await $.tool.call({ tool: 'Artifact', tool_use_id: 'a1', file_path: 'C:/s/page.html', title: '界面示意' })
+  await $.tool.call({ tool: 'Artifact', tool_use_id: 'a2', action: 'read', url: 'https://claude.ai/artifact/AbC123' })
+  await clock.advance(1)
+  expect(w.sent.filter((r) => r.op === 'artifact').map((r) => [r.kind, r.where, r.version, r.name, r.page])).toEqual([['link', 'https://claude.ai/artifact/AbC123', '2', '界面示意', 'C:/s/page.html']])
+  const recorded = await $.tool.call({ tool: 'mcp__gemflow__artifact', tool_use_id: 'p1', kind: 'link', where: 'https://docs.example.com/d/1', name: '方案' })
+  expect(String(recorded.text ?? recorded.result)).toMatch(/^Recorded the link/)
+  const refused = await $.tool.call({ tool: 'mcp__gemflow__artifact', tool_use_id: 'p2', kind: 'video', where: 'x' })
+  expect(String(refused.text ?? refused.result)).toMatch(/^Nothing recorded/)
+  expect(w.sent.filter((r) => r.op === 'artifact').length).toBe(2)
 })
 
 test('the other sessions\' decisions come beside the person\'s prompt, once each; this session\'s own never', async ($, on) => {

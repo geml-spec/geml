@@ -271,7 +271,7 @@ the choices a person makes while working (§3.7):
 ===
 ```
 
-- `tool` — a tool name, which may hold a `*` wildcard (`mcp__geml__*`). A tool that runs commands is recorded by command: `Bash(npm test)` matches a command that starts with it and ends the match at a word boundary (`npm test -- --watch`, not `npm tests`); `*` matches any run of text (`Bash(geml media todo * --check)`); the key with the longest literal part wins (§3.6); `Bash()` stands for every command.
+- `tool` — a tool name, which may hold a `*` wildcard (`mcp__geml__*`). One row a tool, its name case-sensitive; a second row for the same name does not count, and a warning says so. A tool that runs commands is recorded by command: `Bash(npm test)` matches a command that starts with it and ends the match at a word boundary (`npm test -- --watch`, not `npm tests`); `*` matches any run of text (`Bash(geml media todo * --check)`); the key with the longest literal part wins (§3.6); `Bash()` stands for every command.
 - `for` — the use: a word the workflow declares in a state's `tools` (`edit`, `test`, `image`, …). Tools of the same use stand in for each other. A tool bound to a use is usable only in the states that declare the use (§2.2).
 - `allow`, `deny` — lists of state ids; `*` stands for every state.
 - `default` — `yes` makes the tool the first choice of its use. A use has at most one; the first tool registered for a use becomes its first choice on its own.
@@ -373,6 +373,7 @@ Write the code and its tests, until the tests pass and a pull request is open.
   workflows/<name>.geml        a workflow: its statechart, its stages' prompts after it; a document it keeps beside it, in <name>/
   tools.geml                   the tool dictionary of all the workflows (§2.3)
   project.geml                 the project document, and the outline #items
+  artifacts.geml               the artifacts table #artifacts; its copies in artifacts/
   journals/<item>.geml         one journal per work item (§2.4)
 .geml/                         in each checkout
   context.geml                 the current stage (§2.5); ignored by git
@@ -401,6 +402,21 @@ branch is gone unmerged, or had no commit. A file item is `closed` at its
 flow's final state and `dropped` in a state named `parked`. The row keeps what
 git forgets — the tip a deleted branch had, its count of commits, its pull
 request until gh is asked again — and a row whose journal is gone stays.
+
+What each work item made is kept in the home's `artifacts.geml`, a
+`table {#artifacts}` with the columns `item`, `kind`, `name`, `where`,
+`version`, `size`, `at` and `sha256`, one row a version; `kind` is `link`,
+`doc`, `file` or `image`. Of the files the work item wrote, the ones git does
+not keep (ignored, or in no repository) are looked at once at the end of each
+turn and once when the board opens: when the content changed, a copy goes into
+`artifacts/`, named by the content's SHA-256 and the original's extension,
+and `where` reads `artifacts/<sha256>.<ext>`; a file over 20 MB is not copied,
+and `where` is its own path. A GEML document keeps one copy, its later
+versions in that copy's `.gemlhistory`. A document git keeps (`.md`, `.geml`)
+has one row, `where` `git` and `version` the last commit that changed it. A
+page the Artifact tool published is recorded as a link on its own, `version`
+the one its result names; other links and generated pictures the model records
+with the `artifact` tool.
 
 The default workflow is, in this order: the workflow file the environment
 variable `GEMFLOW_STATECHART` names (it names the session's workflow, and a

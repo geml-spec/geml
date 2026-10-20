@@ -30,6 +30,9 @@ import { TOOLS_FILE } from "./core/dictionary.js";
 import { renderDictionary } from "./core/dictionary-file.js";
 import { migrateLayout, projectDocOf, recordedPath, workflowAt } from "./project-home.js";
 import { updateOutline, type OutlineEntry } from "./outline-store.js";
+import { copyPath, artifactsDir, recordFile, recordLink, syncDocs, syncWritten } from "./artifacts-store.js";
+import { isDocPath, isGemlPath, pageTitle, artifactsOfItem, type Artifact } from "./core/artifacts.js";
+import { historyPathFor } from "@geml/geml";
 import { prOf, type PrFact } from "./core/outline.js";
 import { itemState } from "./core/item-state.js";
 import { canonical, guardHolds, isPaused, type Snapshot } from "./core/snapshot.js";
@@ -47,7 +50,7 @@ import { timelineOf } from "./timeline.js";
 import { flowPicture } from "./core/picture.js";
 import { runVerb } from "./verbs.js";
 import { dependsOf, fileUnitOf, itemProgress, loadWorkspace, openWorkspace, resolveWorkflow, sideFlows, workflowNameOf, type FlowCache, type Opened, type ShellView, type Workspace } from "./workspace.js";
-import type { BoardData, BoardItem, BridgeRequest, BridgeResponse, Products, ShellStatus, TimelineEntry, TodoCount } from "./hosts/claude-code/protocol.js";
+import type { BoardData, BoardItem, BridgeRequest, BridgeResponse, Made, MadeEntry, Artifacts, ShellStatus, TimelineEntry, TodoCount } from "./hosts/claude-code/protocol.js";
 
 type Answered = Extract<BridgeResponse, { ok: true }>;
 
@@ -344,39 +347,120 @@ function sources(sc: Workspace["sc"]): Record<string, string> {
   return out;
 }
 
-/** The most commits the board lists for a work item. */
+/** The most commits the board lists for a work item; the most read to count what its work changed. */
 const COMMITS_SHOWN = 20;
+const COMMITS_READ = 2000;
 
-/** What the current work item's work made (protocol.ts, Products): from its journal, git, and its item file. */
-function productsOf(ws: Workspace, root: string, journal: Journal): Products | undefined {
-  if (ws.item.kind !== "item") return undefined;
+/** The files a journal says its work item wrote, the newest write of each, newest first. */
+function writtenOf(journal: Journal): { path: string; rev: number; at: string; tool: string }[] {
   const latest = new Map<string, Wrote>();
   for (const w of journal.writes) { latest.delete(w.path); latest.set(w.path, w); }
-  const written = [...latest.values()].reverse().map((w) => ({ path: w.path, rev: w.rev, at: w.at, tool: w.tool }));
+  return [...latest.values()].reverse().map((w) => ({ path: w.path, rev: w.rev, at: w.at, tool: w.tool }));
+}
+
+/**
+ * What the work item made, by kind (protocol.ts, Made): a version of each
+ * file it wrote that git does not keep is copied first, and its documents in
+ * git are written into the table; then the table's links, files and
+ * pictures, the documents, and what its commits changed. Undefined when the
+ * table cannot be read or written.
+ */
+function madeOf(home: string, root: string, item: string, written: readonly string[], ours: readonly { sha: string; at: string; files: string[] }[]): Made | undefined {
+  try {
+    syncWritten(root, home, item, written);
+    const docs = new Map<string, { path: string; open: string; commits: number; at: string; sha: string }>();
+    for (const c of ours) {
+      for (const f of c.files) {
+        if (!isDocPath(f)) continue;
+        const d = docs.get(f);
+        if (d !== undefined) d.commits += 1;
+        else docs.set(f, { path: f, open: join(root, f), commits: 1, at: c.at, sha: c.sha });
+      }
+    }
+    const rows = syncDocs(home, item, [...docs.values()].map((d) => ({ path: d.path, sha: d.sha, at: d.at })));
+    const entry = (p: Artifact): MadeEntry => {
+      const newest = p.versions[p.versions.length - 1] as Artifact["versions"][number];
+      const own = p.kind === "link" ? newest.where : resolve(root, p.name);
+      const copied = (where: string): boolean => where.startsWith("artifacts/");
+      // A GEML document's versions share one copy, which holds the newest: the older are in its .gemlhistory.
+      const versions = [...p.versions].reverse().map((v, i) => ({
+        version: v.version, at: v.at, size: v.size,
+        ...(copied(v.where) && (i === 0 || !isGemlPath(v.where)) ? { copy: copyPath(home, v.where) } : {}),
+      }));
+      const history = p.kind !== "link" && copied(newest.where) && isGemlPath(newest.where) ? historyPathFor(copyPath(home, newest.where)) : undefined;
+      const open = p.kind === "link" || exists(own) ? own : versions[0]?.copy ?? own;
+      return { kind: p.kind === "image" ? "image" : p.kind === "link" ? "link" : "file", name: p.name, open, versions, ...(history !== undefined && exists(history) ? { history } : {}) };
+    };
+    const made = artifactsOfItem(rows, item).filter((p) => p.kind !== "doc").map(entry);
+    if (made.length === 0 && docs.size === 0 && ours.length === 0) return undefined;
+    return {
+      links: made.filter((p) => p.kind === "link"), files: made.filter((p) => p.kind === "file"), images: made.filter((p) => p.kind === "image"),
+      docs: [...docs.values()].map(({ path, open, commits, at }) => ({ path, open, commits, at })),
+      code: { commits: ours.length, files: new Set(ours.flatMap((c) => c.files)).size },
+      folder: artifactsDir(home),
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+/** What the current work item's work made (protocol.ts, Artifacts): from its journal, git, and its item file. */
+function artifactsOf(ws: Workspace, root: string, journal: Journal): Artifacts | undefined {
+  if (ws.item.kind !== "item") return undefined;
+  const written = writtenOf(journal);
+  const latest = new Set(written.map((w) => w.path));
   const file = ws.itemFile;
   const last = journal.snapshots.at(-1);
   const since = journal.snapshots[0]?.at ?? journal.meta.created;
   const until = last !== undefined && ws.sc.states.get(last.state)?.final === true ? last.at : undefined;
   const found = ws.sc.unit.kind === "branch"
-    ? commitsOf(root, { ownBranch: true }, COMMITS_SHOWN)
+    ? commitsOf(root, { ownBranch: true }, COMMITS_READ)
     : [
-        ...commitsOf(root, { since, ...(until !== undefined ? { until } : {}) }, COMMITS_SHOWN),
+        ...commitsOf(root, { since, ...(until !== undefined ? { until } : {}) }, COMMITS_READ),
         ...(file !== undefined ? commitsOf(root, { since, paths: [file] }, COMMITS_SHOWN) : []),
       ];
-  const touched = new Set([...latest.keys(), ...(file !== undefined ? [file] : [])]);
+  const touched = new Set([...latest, ...(file !== undefined ? [file] : [])]);
   const seen = new Set<string>();
-  const commits = found
+  const all = found
     .filter((c) => { if (seen.has(c.sha)) return false; seen.add(c.sha); return true; })
     .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
-    .slice(0, COMMITS_SHOWN)
     .map((c) => ({ ...c, ours: ws.sc.unit.kind === "branch" || c.files.some((f) => touched.has(f)) }));
+  const commits = all.slice(0, COMMITS_SHOWN);
+  const made = madeOf(ws.journalBase, root, ws.item.id, [...latest].filter((p) => p !== file), all.filter((c) => c.ours));
   const source = file !== undefined && exists(join(root, file)) ? readText(join(root, file)) : undefined;
   const section = source !== undefined ? blockText(source, "result") : undefined;
   const result = section?.replace(/^#[^\n]*\n*/, "").trim();
   return {
     item: ws.item.id, ...(file !== undefined ? { file } : {}), ...(result !== undefined && result !== "" ? { result } : {}),
-    written, commits,
+    written, commits, ...(made !== undefined ? { made } : {}),
   };
+}
+
+/** A turn's end: a version of each file the current work item wrote that git does not keep, when its content changed. */
+function syncArtifacts(ws: Workspace, root: string): void {
+  if (ws.item.kind !== "item" || ws.journalPath === undefined || !exists(ws.journalPath)) return;
+  const file = ws.itemFile;
+  try { syncWritten(root, ws.journalBase, ws.item.id, writtenOf(readJournal(readText(ws.journalPath))).map((w) => w.path).filter((p) => p !== file)); } catch { /* the next look copies it */ }
+}
+
+/** A artifact the model or a publish tool names, under the current work item: a link, or a file's version. Answers what was recorded, in words for the model. */
+function recordArtifact(ws: Workspace, root: string, req: Extract<BridgeRequest, { op: "artifact" }>): { ok: true; text: string } | { ok: false; reason: string } {
+  if (ws.item.kind !== "item") return { ok: false, reason: "there is no current work item to record it under" };
+  const item = ws.item.id;
+  const where = req.where.trim();
+  if (where === "") return { ok: false, reason: "where is empty: give the link's address or the file's path" };
+  if (req.kind === "link") {
+    if (!/^https?:\/\//i.test(where)) return { ok: false, reason: "a link's where is its http(s) address" };
+    let name = req.name?.trim() ?? "";
+    if (name === "" && req.page !== undefined) { try { name = pageTitle(readText(resolve(root, req.page))) ?? ""; } catch { /* named by its address */ } }
+    if (name === "" && req.page !== undefined) name = basename(req.page).replace(/\.[^.]*$/, "");
+    recordLink(ws.journalBase, item, { name, url: where, ...(req.version !== undefined && req.version !== "" ? { version: req.version } : {}), at: new Date().toISOString() });
+    return { ok: true, text: `Recorded the link under ${item}'s artifacts.` };
+  }
+  const row = recordFile(root, ws.journalBase, item, where, req.kind);
+  return row !== undefined
+    ? { ok: true, text: `Recorded ${row.name} (version ${row.version}) under ${item}'s artifacts.` }
+    : { ok: true, text: "Nothing new to record: no file there, or this version is recorded already." };
 }
 
 function boardOf(ws: Workspace, root: string, view: ShellView): BoardData {
@@ -388,7 +472,7 @@ function boardOf(ws: Workspace, root: string, view: ShellView): BoardData {
   const items = listItems(ws, root, view.status.workflow.path);
   const journal = ws.journalPath !== undefined && exists(ws.journalPath) ? readJournal(readText(ws.journalPath)) : undefined;
   const timeline = journal !== undefined ? timelineOf(journal) : [];
-  const products = journal !== undefined ? productsOf(ws, root, journal) : undefined;
+  const artifacts = journal !== undefined ? artifactsOf(ws, root, journal) : undefined;
   const ci = ws.ciFailures();
   return {
     unit: sc.unit.kind,
@@ -405,7 +489,7 @@ function boardOf(ws: Workspace, root: string, view: ShellView): BoardData {
     clocks: varsBySource(sc, "elapsed").map((v) => ({ name: v.name, iso: v.source.iso, ms: v.source.ms })),
     ...(tree !== undefined ? { tree } : {}),
     picture: flowPicture({ sc, status: view.status, items, timeline }),
-    ...(products !== undefined ? { products } : {}),
+    ...(artifacts !== undefined ? { artifacts } : {}),
     ...(ci !== undefined ? { ci: { head: ci.head, failed: ci.workflows } } : {}),
   };
 }
@@ -584,6 +668,14 @@ function answer(req: BridgeRequest): BridgeResponse {
       if (prs.size > 0) listItems(ws, root, view.status.workflow.path, prs);
       // The shared session logs: the main working tree's .geml/sessions/, whichever worktree this checkout is.
       return ok(view, { attention: { ahead: branchesAhead(root), prs: openPullRequests(root) }, host: hostOf(root), sessions: join(journalBaseOf(root), GEML_DIR, SESSIONS_DIR) });
+    }
+    case "artifacts": {
+      syncArtifacts(ws, root);
+      return ok(ws.view());
+    }
+    case "artifact": {
+      const r = recordArtifact(ws, root, req);
+      return r.ok ? ok(ws.view(), { text: r.text }) : failed(r.reason);
     }
     case "board": {
       // The workspace opened for this request: git's facts it read are this moment's.

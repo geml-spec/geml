@@ -233,6 +233,8 @@ a state.
   workflows/<name>.geml         a workflow: one statechart block, each stage's prompt after it
   tools.geml                    the tool dictionary of all the workflows: which tool is which use, where a tool is allowed or denied
   project.geml                  the project document: meta flow-workflow names the default workflow; #items, every work item and where it ended up
+  artifacts.geml                what each work item made: links, documents it changed in git, files git does not keep — where each is, which version
+  artifacts/                    copies of the files git does not keep, named by their content's hash
   journals/<item>.geml          one journal per work item: a branch, or one file of a set
   sessions/                     the project's session record, every host's sessions
   exports/                      what the board exports
@@ -269,6 +271,16 @@ with no commit at all. A work item that is a file is closed at its flow's
 final state and dropped at `parked`. The table remembers what git forgets — a
 deleted branch's last tip and how many commits it had — and only it is
 rewritten: what you write around it stays.
+
+What a work item made goes into the `#artifacts` table of `artifacts.geml`,
+one row a version. Of the files the work item wrote, the ones git does not keep
+are looked at once at the end of each turn and once when the board opens: when
+the content changed, a copy goes into `artifacts/`; a file over 20 MB is kept
+by where it is and its hash. A GEML document keeps one copy, its later versions
+in that copy's `.gemlhistory`. A document git keeps is recorded by its path
+and the last commit that changed it. A page the Artifact tool published is
+recorded as a link on its own; other links and generated pictures the model
+records with the `artifact` tool.
 
 The default workflow is the file `GEMFLOW_STATECHART` names (a path relative
 to the project root), else the one `flow-workflow` names, else the project's
@@ -472,7 +484,7 @@ cd integrations/gemflow && npm install && npm run pack:local
 
 # 2. install it — the two installers take different things, and pack:local
 #    prints both paths when it finishes
-npm install -g ./geml-gemflow-0.2.23.tgz     # the CLI: a tarball
+npm install -g ./geml-gemflow-0.2.24.tgz     # the CLI: a tarball
 pi install /absolute/path/to/gemflow-pkg    # pi agent: a DIRECTORY
 
 # 3. in the repository you want to work on, on a branch of its own

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { cellWidth } from "../dist/hosts/claude-code/band.js";
-import { stepsOf, BOARD_ID, DIALOG_ID, HOME_TAB, ICON_CHAR, ICON_SVG, TAB_IDS, entryDetail, entryWords, fileHref, flowRows, inputAction, itemRows, journalRows, paneRows, productsTag, rowFor, sessionRows, sourceWords, tabs, toolRows, toolSuggestions } from "../dist/hosts/claude-code/board.js";
+import { stepsOf, BOARD_ID, DIALOG_ID, HOME_TAB, ICON_CHAR, ICON_SVG, TAB_IDS, entryDetail, entryWords, fileHref, flowRows, inputAction, itemRows, journalRows, paneRows, artifactsTag, rowFor, sessionRows, sourceWords, tabs, toolRows, toolSuggestions } from "../dist/hosts/claude-code/board.js";
 import { wordsFor } from "../dist/hosts/claude-code/text.js";
 
 const row = (tool, over = {}) => ({ tool, allow: [], deny: [], default: false, row: 0, ...over });
@@ -214,7 +214,7 @@ test("工作项: what waits on the person on top, one card each with its options
   assert.deepEqual(open.find((r) => r.kind === "section" && r.key === "done").fold.action, { op: "fold", what: "done", open: false });
   const working = look(items({ board, inbox: [stuck] }));
   assert.deepEqual(working.slice(4, 6), ["§ 在做 3", "feat/x (当前 · review)"], "nothing of the current work item waits on the person: it heads the queue, being worked on");
-  const made = { ...board, products: { item: "feat/x", written: [], commits: [{ sha: "053f317c9d0e1f2a", at: NOW, subject: "feat: band", files: [], ours: true }] } };
+  const made = { ...board, artifacts: { item: "feat/x", written: [], commits: [{ sha: "053f317c9d0e1f2a", at: NOW, subject: "feat: band", files: [], ours: true }] } };
   assert.equal(look(items({ board: made, inbox: [approve] }))[1], "ask 定 feat/x (053f317c) | review · pr-merged ✓ | 部署", "the work the current item made, as the tag of its card");
   assert.equal(look(items({ board: made, inbox: [] })).find((x) => x.startsWith("feat/x")), "feat/x (当前 · review · 053f317c)");
   assert.deepEqual(look(items({ board: { ...board, items: [], backlog: null }, status: null })), ["§ 待处理", "没有要你做的事", "§ 在做 0", "  没有", "§ 已合并 0", "§ 已收尾 0", "§ 放下 0"]);
@@ -227,11 +227,11 @@ test("工作项: what waits on the person on top, one card each with its options
 
 test("what the work made, in a word: its one commit, how many, or how many files it wrote", () => {
   const commit = (sha, ours = true) => ({ sha, at: NOW, subject: "s", files: [], ours });
-  assert.equal(productsTag({ item: "x", written: [], commits: [commit("053f317c9d0e"), commit("1111111122", false)] }), "053f317c");
-  assert.equal(productsTag({ item: "x", written: [], commits: [commit("a"), commit("b")] }, wordsFor("en")), "2 commits");
-  assert.equal(productsTag({ item: "x", written: [{ path: "a", rev: 1, at: NOW, tool: "Edit" }], commits: [] }), "1 个文件");
-  assert.equal(productsTag({ item: "x", written: [], commits: [] }), undefined);
-  assert.equal(productsTag(undefined), undefined);
+  assert.equal(artifactsTag({ item: "x", written: [], commits: [commit("053f317c9d0e"), commit("1111111122", false)] }), "053f317c");
+  assert.equal(artifactsTag({ item: "x", written: [], commits: [commit("a"), commit("b")] }, wordsFor("en")), "2 commits");
+  assert.equal(artifactsTag({ item: "x", written: [{ path: "a", rev: 1, at: NOW, tool: "Edit" }], commits: [] }), "1 个文件");
+  assert.equal(artifactsTag({ item: "x", written: [], commits: [] }), undefined);
+  assert.equal(artifactsTag(undefined), undefined);
 });
 
 test("the icons: a line drawing each in its own colour, and a character for a surface without pictures", () => {
@@ -369,27 +369,27 @@ test("记录: the filters and the export, the work item and its flow, then what 
   assert.deepEqual(journal({ menu: "rev-0" }).find((r) => r.kind === "buttons" && r.items[0].key.endsWith("rev-0")).items.map((b) => b.label), ["看凭据", "取消"], "the first revision has nothing before it");
   assert.deepEqual(look(journal({ filter: "moves" })).slice(3), ["阶段变更 | 构建 → review · 自动 | 凭：pr-open ✓", "开始 | 进入构建"]);
   assert.deepEqual(look(journal({ filter: "refusals" })).slice(3).length, 1);
-  assert.equal(look(journal({ filter: "products" })).at(-1), "没有这一类的记录");
+  assert.equal(look(journal({ filter: "artifacts" })).at(-1), "没有这一类的记录");
   assert.deepEqual(journalRows({ board: { ...BOARD, timeline: [] }, status: st, filter: "all", menu: null, evidence: null, prompts: [], columns: 80, maxRows: 10, t: wordsFor("zh") }).at(-1), { kind: "text", text: "这个工作项还没有记录", tone: "dim" });
   assert.ok(journal({ maxRows: 4 }).length <= 4, "the entries fit the rows");
 });
 
-test("记录: what the work made — a turn's commits are one product, with how many files and which turn; the other commits of the window counted", () => {
-  const products = {
+test("记录: what the work made — a turn's commits are one artifact, with how many files and which turn; the other commits of the window counted", () => {
+  const artifacts = {
     item: "feat/x", written: [],
     commits: [
-      { sha: "7a38c1fd00000000", at: "2026-10-12T17:02:40+08:00", subject: "feat(gemflow): products on the board", files: ["src/board.ts"], ours: true },
+      { sha: "7a38c1fd00000000", at: "2026-10-12T17:02:40+08:00", subject: "feat(gemflow): artifacts on the board", files: ["src/board.ts"], ours: true },
       { sha: "053f317c9d0e1f2a", at: "2026-10-12T09:02:00Z", subject: "feat: band entry", files: ["src/band.ts", "src/board.ts"], ours: true },
       { sha: "1111111122222222", at: "2026-10-12T09:02:20Z", subject: "docs: other", files: ["README.md"], ours: false },
     ],
   };
   const prompts = [{ id: "p1", at: "2026-10-12T09:00:30Z", text: "看产物按 A+C+B", tools: 3, refusals: 0, entered: [], signals: [] }, { id: "p2", at: "2026-10-12T09:03:00Z", text: "下一件", tools: 0, refusals: 0, entered: [], signals: [] }];
-  const rows = journalRows({ board: { ...BOARD, products }, status: status(), filter: "products", menu: null, evidence: "product-7a38c1fd0000", prompts, columns: 100, maxRows: 40, t: wordsFor("zh"), now: NOW });
-  const product = rows.find((r) => r.kind === "event");
-  assert.deepEqual([product.label, product.text, product.why, product.turn.replace(/\d\d:\d\d/, "HH:MM"), product.open, product.detail], ["产物", "053f317c 7a38c1fd products on the board", "2 个文件", "那一轮 HH:MM「看产物按 A+C+B」", true, ["src/band.ts", "src/board.ts"]]);
+  const rows = journalRows({ board: { ...BOARD, artifacts }, status: status(), filter: "artifacts", menu: null, evidence: "artifact-7a38c1fd0000", prompts, columns: 100, maxRows: 40, t: wordsFor("zh"), now: NOW });
+  const artifact = rows.find((r) => r.kind === "event");
+  assert.deepEqual([artifact.label, artifact.text, artifact.why, artifact.turn.replace(/\d\d:\d\d/, "HH:MM"), artifact.open, artifact.detail], ["产物", "053f317c 7a38c1fd artifacts on the board", "2 个文件", "那一轮 HH:MM「看产物按 A+C+B」", true, ["src/band.ts", "src/board.ts"]]);
   assert.deepEqual(rows.at(-1), { kind: "text", text: "同期另有 1 个提交没碰这些文件", tone: "dim" });
-  const apart = journalRows({ board: { ...BOARD, products }, status: status(), filter: "products", menu: null, evidence: null, prompts: [], columns: 100, maxRows: 40, t: wordsFor("zh"), now: NOW });
-  assert.equal(apart.filter((r) => r.kind === "event").length, 2, "without the session's prompts, each commit is a product");
+  const apart = journalRows({ board: { ...BOARD, artifacts }, status: status(), filter: "artifacts", menu: null, evidence: null, prompts: [], columns: 100, maxRows: 40, t: wordsFor("zh"), now: NOW });
+  assert.equal(apart.filter((r) => r.kind === "event").length, 2, "without the session's prompts, each commit is a artifact");
 });
 
 test("记录: where a value came from, and what an entry says, in the flow's words", () => {

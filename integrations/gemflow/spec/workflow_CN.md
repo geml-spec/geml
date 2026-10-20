@@ -186,7 +186,7 @@ profile = "geml-statechart/v1"
 ===
 ```
 
-- `tool` —— 工具名，可带 `*` 通配（`mcp__geml__*`）。运行命令的工具按命令记：`Bash(npm test)` 匹配以它开头、且在词边界结束的命令（`npm test -- --watch` 算，`npm tests` 不算）；`*` 匹配任意一段（`Bash(geml media todo * --check)`）；字面部分最长的键优先（§3.6）；`Bash()` 表示所有命令。
+- `tool` —— 工具名，可带 `*` 通配（`mcp__geml__*`）。一个工具一行，名字区分大小写；同名的第二行不算数，报警告。运行命令的工具按命令记：`Bash(npm test)` 匹配以它开头、且在词边界结束的命令（`npm test -- --watch` 算，`npm tests` 不算）；`*` 匹配任意一段（`Bash(geml media todo * --check)`）；字面部分最长的键优先（§3.6）；`Bash()` 表示所有命令。
 - `for` —— 用途：流程在状态的 `tools` 里声明的词（`edit`、`test`、`image`……）。同一用途的工具互为替代。绑了用途的工具只在声明了这个用途的状态里能用（§2.2）。
 - `allow`、`deny` —— 状态 id 的列表，`*` 表示所有状态。
 - `default` —— `yes` 表示同一用途里的首选，每个用途至多一个；一个用途登记的第一个工具自动成为首选。
@@ -274,6 +274,7 @@ journal 在某个工作项第一次有 Gemflow 事件时创建，第 0 条修订
   workflows/<name>.geml        一份流程：状态机，后面跟着各阶段的提示词；它另带的文档放在 <name>/ 里
   tools.geml                   所有流程共用的工具词典（§2.3）
   project.geml                 项目文档，以及大纲 #items
+  artifacts.geml               产物表 #artifacts；副本在 artifacts/
   journals/<item>.geml         每个工作项一本 journal（§2.4）
 .geml/                         每个检出各一份
   context.geml                 当前阶段（§2.5）；默认 gitignore
@@ -290,6 +291,8 @@ flow-workflow = "dev"
 ```
 
 项目文档的 meta 下面是大纲，一个 `table {#items}`，列为 `item`、`state`、`flow`、`stage`、`worktree`、`commits`、`pr`、`tip`、`since`、`last`：项目有过的每个工作项和它的结局。Gemflow 每次列工作项时写它，只重写这张表；`state` 没有人填。分支类工作项：分支还在、没合并是 `doing`；PR 已合并，或者分支有过自己的提交、默认分支收进了它的最后一个提交，而分支还在，是 `merged`；合并过的分支删了是 `closed`；没合并就删了、或者一个提交都没有，是 `dropped`。文件类工作项走到流程终点是 `closed`，停在名为 `parked` 的状态是 `dropped`。一行记着 git 记不住的——删掉的分支最后的提交、有过几个提交、gh 下次被问到之前的 PR——journal 没了的那行也留着。
+
+每个工作项的产物记在主目录的 `artifacts.geml` 里，一个 `table {#artifacts}`，列为 `item`、`kind`、`name`、`where`、`version`、`size`、`at`、`sha256`，一行一版。`kind` 是 `link`、`doc`、`file` 或 `image`。工作项写过的文件里 git 不留的（被忽略的，或者根本不在仓库里），每回合结束和打开看板时各看一次，内容变了就在 `artifacts/` 存一份副本，以内容的 SHA-256 加原扩展名命名，`where` 记 `artifacts/<sha256>.<ext>`；单个超过 20 MB 不复制，`where` 记它自己的路径。GEML 文档只存一份副本，之后的版本记进这份副本的 `.gemlhistory`。git 留着的文档（`.md`、`.geml`）每个一行，`where` 为 `git`，`version` 是最后改它的提交。Artifact 工具发布的页面自动记成链接，`version` 是发布结果里的版本号；别的链接和生成的图片，模型用 `artifact` 工具记。
 
 默认流程按下面的顺序确定：环境变量 `GEMFLOW_STATECHART` 指定的流程文件（它指定的是会话的流程，另一个检出里的项目不理会它，§3.3）；否则是 `flow-workflow` 指定的那个；否则是项目唯一的那个流程。`gemflow init --template <name>` 把一个内置流程写成 `.geml/workflows/<name>.geml`——guide 的各节接在状态机后面——把它的词典行并进 `.geml/tools.geml`，并设为默认流程；`gemflow use <name>` 与 `/gemflow use` 换一个默认流程，已经开始的工作项仍按各自的流程（§3.2）。
 

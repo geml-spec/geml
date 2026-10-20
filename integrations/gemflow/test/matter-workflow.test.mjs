@@ -161,7 +161,7 @@ test("the board shows what a matter's work made: its result section, the files i
   const board = hook(root, { op: "board", ...at }).board;
   assert.equal(board.unit, "file");
   assert.equal(board.items[0].gist, "状态带加了看板按钮。", "the gist is the result's first line");
-  const p = board.products;
+  const p = board.artifacts;
   assert.deepEqual([p.item, p.file, p.result], [".geml/matters/band", ".geml/matters/band.geml", "状态带加了看板按钮。\n\n- 检查通过"]);
   assert.deepEqual(p.written.map((w) => [w.path, w.tool]), [["src/band.ts", "Write"]]);
   // git keeps whole seconds: the repository's first commit may share the journal's first second.

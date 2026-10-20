@@ -21,6 +21,10 @@ export const EXPORTS_DIR = `${GEML_DIR}/exports`;
 export const PROJECT_DOC = `${GEML_DIR}/project.geml`;
 /** The project document's earlier name, still read. */
 export const LEGACY_CONFIG_DOC = `${GEML_DIR}/gemflow.geml`;
+/** What each work item made (core/artifacts.ts): the `#artifacts` table. */
+export const ARTIFACTS_DOC = `${GEML_DIR}/artifacts.geml`;
+/** The copies of the files git does not keep, by content hash; a table row's `where` is relative to GEML_DIR. */
+export const ARTIFACTS_DIR = `${GEML_DIR}/artifacts`;
 /** The project's tool dictionary: one for all its workflows. */
 export const TOOLS_DOC = `${GEML_DIR}/tools.geml`;
 /** Where `geml codemap build` writes this project's code graph. */

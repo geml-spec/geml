@@ -38,6 +38,7 @@ import type { AttentionFacts, AttentionMemory } from '../dist/hosts/claude-code/
 import { envParts, remoteInPlay } from '../dist/hosts/claude-code/env.js'
 import { appendEvents, currentTurn, decisionsContext, decisionsSince, isLogName, legacyLogName, logName, nextTurn, NOTE_TOOL, parseLog, SESSIONS_GITIGNORE, SESSIONS_PROMPT, summarize } from '../dist/core/session-log.js'
 import type { SessionEvent, SessionSummary } from '../dist/core/session-log.js'
+import { ARTIFACT_TOOL, publishedLink } from '../dist/core/artifact-tool.js'
 import type { AttachedClient, HostInfo } from '../dist/hosts/claude-code/env.js'
 import { bandView, BRAND_RED, cellWidth, MARK, MARK_SVG, SEP, toneProps, truncate } from '../dist/hosts/claude-code/band.js'
 import type { BandView, Segment, Tone } from '../dist/hosts/claude-code/band.js'
@@ -77,6 +78,8 @@ const tabAtom = atom({ plugin: 'gemflow', key: 'tab' } as const, HOME_TAB as Gem
 const doneOpenAtom = atom({ plugin: 'gemflow', key: 'doneOpen' } as const, false)
 /** Whether the work items tab lists the dropped work items, or only counts them. */
 const droppedOpenAtom = atom({ plugin: 'gemflow', key: 'droppedOpen' } as const, false)
+const artifactMenuAtom = atom({ plugin: 'gemflow', key: 'artifactMenu' } as const, null as string | null)
+const docsOpenAtom = atom({ plugin: 'gemflow', key: 'docsOpen' } as const, false)
 const flowStateAtom = atom({ plugin: 'gemflow', key: 'flowState' } as const, null as string | null)
 const flowSwitchAtom = atom({ plugin: 'gemflow', key: 'flowSwitch' } as const, false)
 const toolQueryAtom = atom({ plugin: 'gemflow', key: 'toolQuery' } as const, '')
@@ -557,6 +560,38 @@ async function noteDecisions($: EngineInterface, event: unknown): Promise<ToolCa
   return { result: `Recorded ${given.length} decision${given.length === 1 ? '' : 's'}; the project's other sessions will see ${given.length === 1 ? 'it' : 'them'}.` }
 }
 
+/** A turn's end, on a work item: the files it wrote that git does not keep get a version where their content changed. */
+async function artifactsOnTurn($: EngineInterface): Promise<void> {
+  if ((await readShell($))?.status?.item.kind !== 'item') return
+  await bridge($, { op: 'artifacts' }, SLOW_TIMEOUT_MS).catch(() => undefined)
+}
+
+/** What the model says the work item made that gemflow did not see: a link, a picture, a file — under the current work item's artifacts. */
+async function recordArtifact($: EngineInterface, event: unknown): Promise<ToolCallResult> {
+  const args = toolArgs(event as Record<string, unknown>)
+  const kind = args['kind']
+  const where = typeof args['where'] === 'string' ? args['where'].trim() : ''
+  if ((kind !== 'link' && kind !== 'image' && kind !== 'file') || where === '') return { result: 'Nothing recorded: kind is link, image or file, and where is the address or the path.' }
+  const name = typeof args['name'] === 'string' ? args['name'] : undefined
+  const version = typeof args['version'] === 'string' ? args['version'] : undefined
+  const res = await bridge($, { op: 'artifact', kind, where, ...(name !== undefined ? { name } : {}), ...(version !== undefined ? { version } : {}) })
+  if (res === undefined) return { result: 'Nothing recorded: gemflow did not answer.' }
+  if (!res.ok) return { result: `Nothing recorded: ${res.error.replace(/^gemflow: /, '')}` }
+  await reloadBoardLater($)
+  return { result: res.text ?? 'Recorded.' }
+}
+
+/** A page the Artifact tool published: its link among the current work item's artifacts, named by its title. */
+async function publishedArtifact($: EngineInterface, said: string | undefined, input: Record<string, unknown>): Promise<void> {
+  if ((input['action'] !== undefined && input['action'] !== 'publish') || input['asset'] === true) return
+  const link = publishedLink(said ?? '')
+  if (link === undefined) return
+  const title = typeof input['title'] === 'string' && input['title'] !== '' ? input['title'] : undefined
+  const page = typeof input['file_path'] === 'string' && input['file_path'] !== '' ? input['file_path'] : undefined
+  const res = await bridge($, { op: 'artifact', kind: 'link', where: link.url, ...(link.version !== undefined ? { version: link.version } : {}), ...(title !== undefined ? { name: title } : {}), ...(page !== undefined ? { page } : {}) })
+  if (res !== undefined && res.ok) await reloadBoardLater($)
+}
+
 /** A turn's end: its answer into this session's log, and the commits a command in it made. */
 async function sessionsOnAnswer($: EngineInterface, answer: string): Promise<void> {
   const at = await nowIso($)
@@ -1023,11 +1058,21 @@ async function share($: EngineInterface, what: ShareWhat, how: ShareHow, strip: 
 async function act($: EngineInterface, action: BoardAction, surface?: string): Promise<void> {
   // A view change first, before anything is read: a tab, a filter, a fold or a menu shows at once.
   switch (action.op) {
-    case 'tab': await update($, tabAtom, () => action.tab); return
+    case 'tab': {
+      await update($, tabAtom, () => action.tab)
+      const filter = action.filter
+      if (filter !== undefined) await update($, filterAtom, () => filter)
+      return
+    }
+    case 'artifact-menu': await update($, artifactMenuAtom, () => action.key); return
     case 'filter': await update($, filterAtom, () => action.filter); return
     case 'expand': await update($, expandedAtom, () => action.entry); return
     case 'evidence': await update($, evidenceAtom, () => action.entry); return
-    case 'fold': if (action.what === 'dropped') await update($, droppedOpenAtom, () => action.open); else await update($, doneOpenAtom, () => action.open); return
+    case 'fold':
+      if (action.what === 'dropped') await update($, droppedOpenAtom, () => action.open)
+      else if (action.what === 'docs') await update($, docsOpenAtom, () => action.open)
+      else await update($, doneOpenAtom, () => action.open)
+      return
     case 'tool-menu': await update($, toolMenuAtom, () => action.key); await update($, toolNamingAtom, () => null); return
     case 'tool-name': await update($, toolNamingAtom, () => action.key); return
     case 'tool-search': await update($, toolQueryAtom, () => action.query); return
@@ -1313,6 +1358,12 @@ function press($: EngineInterface, action: BoardAction): (e: { surface: string }
 /** The elements, loosely typed: the pane is drawn on every surface, and only some have Input or Link. */
 type Els = { Box: any; Text: any; Button: any; Link?: any; Input?: any; Svg?: any; Markdown?: any }
 
+/** A link that opens `href`; its words and the address where the surface draws no links. */
+function drawLink(els: Els, key: string, href: string, label: string): unknown {
+  const { Link, Text } = els
+  return Link !== undefined ? <Link key={key} href={href} label={label} /> : <Text key={key} dimColor>{label}: {href}</Text>
+}
+
 /** The surface's elements, with no Svg on the terminal: its table answers one, drawn as an empty box, where a character reads better. */
 function elementsOf($: EngineInterface, e: Parameters<EngineInterface['ui']['resolve']>[0]): Els {
   const els = $.ui.resolve(e) as unknown as Els
@@ -1474,6 +1525,7 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
           : <Text {...toneProps(row.tone)} wrap="truncate-end">{row.title}</Text>}
         <Box flexGrow={1} />
         {row.tag !== '' && <Text dimColor>{row.tag}</Text>}
+        {row.link !== undefined && drawLink(els, `open-${row.key}`, row.link.href, row.link.label)}
       </Box>
     ) : (
       // Two lines: the name and its tags, then where it is and what it has; the whole row takes the press.
@@ -1482,6 +1534,7 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
           <Text {...toneProps(row.tone)} {...(row.current === true ? { bold: true } : {})} wrap="truncate-end">{row.title}</Text>
           <Box flexGrow={1} />
           {row.tag !== '' && <Text dimColor>{row.tag}</Text>}
+          {row.link !== undefined && drawLink(els, `open-${row.key}`, row.link.href, row.link.label)}
         </Box>
         <Text dimColor wrap="truncate-end">{row.detail}</Text>
         {row.action !== undefined && (
@@ -1500,6 +1553,14 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
       </Box>
     )
     case 'link': return Link !== undefined ? <Link key={row.key} href={row.href} label={row.label} /> : <Text key={row.key} dimColor>{row.label}: {row.href}</Text>
+    case 'links': {
+      const items = row.items.map((x) => x.href !== undefined
+        ? drawLink(els, x.key, x.href, x.label)
+        : x.action !== undefined ? <Button key={x.key} plain label={x.label} onPress={press($, x.action)} /> : null)
+      return els.Svg !== undefined
+        ? <Box key={row.key} flexDirection="column" borderStyle="round" borderColor={RULE} marginLeft={2} paddingX={1}>{items}</Box>
+        : <Box key={row.key} gap={2} paddingX={1}>{items}</Box>
+    }
     // A search is read as typed; any other field when submitted.
     case 'input': {
       const run = (value: string): void => { const a = inputAction(row.field, value, row.target); if (a !== undefined) void act($, a).catch((err: unknown) => $.ui.toast(`gemflow：${reasonOf(err)}`)) }
@@ -1742,7 +1803,7 @@ async function shareStatus($: EngineInterface, t: T): Promise<string> {
   const board = await readBoard($)
   const item = shell?.status?.item
   const pending = pendingList(await inboxOf($, t), [...othersWaiting(board, item?.kind === 'item' ? item.id : undefined, t), ...(board !== null ? toolSuggestions(board, await usageNow($), await dismissedOf($), t) : [])])
-  return statusShareText(shell, pending, board?.products, t)
+  return statusShareText(shell, pending, board?.artifacts, t)
 }
 
 export const register: Register = (on) => {
@@ -1755,6 +1816,7 @@ export const register: Register = (on) => {
       await registerOne($, t.name, () => $.tool.register({ name: t.name, description: t.description, inputSchema: t.inputSchema, isDeferred: false }))
     }
     await registerOne($, NOTE_TOOL.name, () => $.tool.register({ name: NOTE_TOOL.name, description: NOTE_TOOL.description, inputSchema: NOTE_TOOL.inputSchema as unknown as Record<string, unknown>, isDeferred: false }))
+    await registerOne($, ARTIFACT_TOOL.name, () => $.tool.register({ name: ARTIFACT_TOOL.name, description: ARTIFACT_TOOL.description, inputSchema: ARTIFACT_TOOL.inputSchema as unknown as Record<string, unknown>, isDeferred: false }))
     await registerOne($, '/gemflow', () => $.command.register({ name: 'gemflow', description: 'Gemflow：当前阶段、看板、暂停与继续、切换或添加流程', argumentHint: COMMAND_HINT }))
     // The settings, from the store; the host's language; the plugin's version.
     try {
@@ -1807,7 +1869,7 @@ export const register: Register = (on) => {
     const tool = String(e.tool)
     // How often each tool is used: every call is noted under its day as it starts, by the key the dictionary would give it, gemflow's own too.
     await noteUsage($, tool, toolArgs(e as unknown as Record<string, unknown>))
-    if (isOwnTool(tool) || tool === `mcp__gemflow__${NOTE_TOOL.name}`) return next(e)
+    if (isOwnTool(tool) || tool === `mcp__gemflow__${NOTE_TOOL.name}` || tool === `mcp__gemflow__${ARTIFACT_TOOL.name}`) return next(e)
     await retryStart($)
     if (e.agentId === undefined) await notePrompt($, (p) => ({ ...p, tools: p.tools + 1 }))
     const input = toolArgs(e as unknown as Record<string, unknown>)
@@ -1852,6 +1914,8 @@ export const register: Register = (on) => {
     const fill = paramsToFill(policy, call)
     const ran = await next(fill === undefined ? e : { ...e, ...fill })
     if (ran.deny !== undefined) return ran
+    // A page the Artifact tool published is one of the work item's artifacts: recorded once the call is answered.
+    if (tool === 'Artifact' && ran.isError !== true) { const said = ran.text ?? (typeof ran.result === 'string' ? ran.result : undefined); $.clock.after(0, () => { void publishedArtifact($, said, input).catch(() => undefined) }) }
     const wrotePath = touchedPath(tool, input, root ?? '')
     // A file written in another checkout is that checkout's work item, never the session's current one.
     if (!elsewhere && wrotePath !== undefined && matchesUnit(policy, wrotePath, (await readShell($))?.units ?? [])) await update($, lastFileAtom, () => wrotePath)
@@ -1891,6 +1955,7 @@ export const register: Register = (on) => {
   on('tool.call', { tool: 'mcp__gemflow__move' }, ($, e) => serveVerb($, 'move', e)).catch(() => VERB_FAILED)
   on('tool.call', { tool: 'mcp__gemflow__set' }, ($, e) => serveVerb($, 'set', e)).catch(() => VERB_FAILED)
   on('tool.call', { tool: 'mcp__gemflow__note' }, ($, e) => noteDecisions($, e)).catch(() => ({ result: 'gemflow could not record that' }))
+  on('tool.call', { tool: 'mcp__gemflow__artifact' }, ($, e) => recordArtifact($, e)).catch(() => ({ result: 'gemflow could not record that' }))
 
   // The model is told once about the project's other sessions and the note tool.
   on('prompt.compose', async ($, e, next) => {
@@ -1905,6 +1970,7 @@ export const register: Register = (on) => {
       try { await setQueued($, (q) => q.filter((x) => !x.entered)) } catch { /* shown till the next */ }
       $.clock.after(0, () => { void storePrompts($) })
       if (!e.isAborted) { const answer = e.answer; $.clock.after(0, () => { void sessionsOnAnswer($, answer) }) }
+      $.clock.after(0, () => { void artifactsOnTurn($) })
       try { await storeUsage($) } catch { /* kept for the next turn */ }
       try {
         const did = answerGist(e.answer)
@@ -2145,7 +2211,7 @@ export const register: Register = (on) => {
     const env = envNow($, t, e.surface).catch(() => ({ parts: [] as string[] }))
     const attention = shows(tab === 'items')(() => Promise.all([attentionNow($, t), readQueued($)]).catch(() => null), null)
     try {
-      const [inbox, header, board, problem, shell, now, root, filter, expanded, evidence, prompts, project, unfolded, menu, doneOpen, sessionFlow, sessionRuns, flowState, switching, workflows, usage, dismissed, toolQuery, toolMenu, toolNaming, toolsOpen, exported, droppedOpen] = await Promise.all([
+      const [inbox, header, board, problem, shell, now, root, filter, expanded, evidence, prompts, project, unfolded, menu, doneOpen, sessionFlow, sessionRuns, flowState, switching, workflows, usage, dismissed, toolQuery, toolMenu, toolNaming, toolsOpen, exported, droppedOpen, artifactMenu, docsOpen] = await Promise.all([
         inboxOf($, t), headerRows($, t), readBoard($), read($, boardProblemAtom), readShell($), nowIso($), read($, rootAtom),
         read($, filterAtom), read($, expandedAtom), read($, evidenceAtom),
         shows(tab === 'sessions' || tab === 'journal')(() => readPrompts($), [] as PromptRecord[]),
@@ -2159,6 +2225,8 @@ export const register: Register = (on) => {
         usageDrawn($), dismissedOf($), read($, toolQueryAtom), read($, toolMenuAtom), read($, toolNamingAtom), read($, toolsOpenAtom),
         shows(tab === 'sessions' || tab === 'journal')(() => read($, exportedAtom), null),
         shows(tab === 'items')(() => read($, droppedOpenAtom), false),
+        shows(tab === 'items')(() => read($, artifactMenuAtom), null),
+        shows(tab === 'items')(() => read($, docsOpenAtom), false),
       ])
       head = header
       rows = paneRows({
@@ -2168,7 +2236,7 @@ export const register: Register = (on) => {
         menu, doneOpen, droppedOpen, sessionFlow, sessionRuns: (sessionRuns as unknown as string[] | null) ?? [],
         flowState, switching, workflows: workflows as unknown as { bundled: string[]; installed: string[] } | null,
         usage, dismissed, toolQuery, toolMenu, toolNaming, toolsOpen: (toolsOpen as unknown as string[] | null) ?? [],
-        exported,
+        exported, artifactMenu, docsOpen,
       })
     } catch (err) {
       rows = [{ kind: 'text', text: truncate(`gemflow：看板画不出来（${reasonOf(err)}）`, columns), tone: 'error' }]

@@ -222,6 +222,12 @@ test("flow-tools: a missing table, a wrong header, an unknown state, a bad defau
   assert.deepEqual(errs("=== table {#tools}\n| tool | for | allow | deny | default | params |\n|---|---|---|---|---|---|\n| X | a b | | | | |\n===\n"), ['#tools row 1: for = "a b" is not a name']);
 });
 
+test("a tool's name is its address: a second row for it is left out with a warning, the first counts; names differing only in case are two tools", () => {
+  const d = readDictionary(dictDoc([{ tool: "Edit", for: "edit" }, { tool: "edit", for: "edit" }, { tool: "Edit", for: "note", default: true }]));
+  assert.deepEqual(d.rows.map((r) => [r.tool, r.for]), [["Edit", "edit"], ["edit", "edit"]], "Claude Code's Edit and pi's edit both stay");
+  assert.deepEqual(d.diagnostics.map((x) => [x.severity, x.message]), [["warning", "#tools row 3: Edit has a row already (row 1); that one counts and this one is left out"]]);
+});
+
 test("withToolsTable rewrites only the #tools block; prose around it stays; a document without one gets it appended; none at all is made whole", () => {
   const rows = [{ tool: "Read", allow: ["*"], deny: [], default: false, row: 1 }];
   const source = "=== meta\ntitle = \"mine\"\n===\n\n%% my note\n\n" + renderToolsTable([]) + "\n\n## After {#after}\n\nKept.\n";

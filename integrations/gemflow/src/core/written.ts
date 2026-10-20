@@ -1,5 +1,5 @@
 // The file a write tool's call names, as a project path: what every host
-// records as written (the journal's `#wrote-N`, the board's products). Pure.
+// records as written (the journal's `#wrote-N`, the board's artifacts). Pure.
 
 /** The keys write tools name their file under, across the hosts. */
 const PATH_KEYS = ["file_path", "path", "filePath", "notebook_path"] as const;

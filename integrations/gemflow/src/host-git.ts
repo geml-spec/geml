@@ -28,6 +28,8 @@ interface Ran {
   err: string;
   /** The program is not there. */
   missing: boolean;
+  /** Its exit status; null when it did not finish. */
+  status?: number | null;
   /** Why it could not be run or did not finish (`ETIMEDOUT`, `EACCES`, `EINVAL` for a Windows script spawned without a shell, ...). */
   error?: string;
 }
@@ -45,6 +47,7 @@ function run(cmd: string, args: string[], cwd: string, trim = true, timeout = TI
     err: (r.stderr ?? "").trim(),
     // ENOENT is also what a working directory that is not there looks like.
     missing: error === "ENOENT" && existsSync(cwd),
+    status: r.status,
     ...(r.error ? { error: error ?? r.error.message } : {}),
   };
 }
@@ -272,6 +275,27 @@ export function trackedUnder(dir: string): Set<string> | undefined {
   const r = run("git", ["-C", dir, "ls-files", "-z"], dir, false);
   if (!r.ok) return /not a git repository/i.test(r.err) ? new Set() : undefined;
   return new Set(r.out.split("\0").filter((p) => p !== "").map((p) => resolve(dir, p)));
+}
+
+/**
+ * Which of `paths` (relative to `root`) git does not keep: the ones it
+ * ignores and does not track, every one where `root` is in no repository;
+ * undefined when git cannot say.
+ */
+export function unkeptOf(root: string, paths: readonly string[]): Set<string> | undefined {
+  const out = new Set<string>();
+  for (let i = 0; i < paths.length; i += 200) {
+    const chunk = paths.slice(i, i + 200);
+    const r = run("git", ["-c", "core.quotePath=false", "check-ignore", "--", ...chunk], root, false);
+    // 0: some are ignored; 1: none is.
+    if (r.status === 1) continue;
+    if (r.status !== 0) {
+      if (/not a git repository/i.test(r.err)) return new Set(paths);
+      return undefined;
+    }
+    for (const p of r.out.split(/\r?\n/)) if (p !== "") out.add(p.replace(/\\/g, "/"));
+  }
+  return out;
 }
 
 /**

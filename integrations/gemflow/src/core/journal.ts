@@ -9,7 +9,7 @@ import type { JsonValue } from "./schema.js";
 
 export interface JournalMeta { item: string; workflow: string; workflowHash: string; created: string }
 export interface Refused { n: number; rev: number; at: string; tool: string; call?: string; reason: string; diagnostics: string[]; key?: string }
-/** A file the work item's work wrote, by its project path: what it made, for the board's products. Outside the hash chain, as refusals are. */
+/** A file the work item's work wrote, by its project path: what it made, for the board's artifacts. Outside the hash chain, as refusals are. */
 export interface Wrote { n: number; rev: number; at: string; tool: string; call?: string; path: string }
 export interface Journal { meta: JournalMeta; snapshots: Snapshot[]; refusals: Refused[]; writes: Wrote[]; diagnostics: string[] }
 

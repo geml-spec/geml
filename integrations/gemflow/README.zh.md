@@ -202,6 +202,8 @@ viewer 直接画它；`.gemlhistory` 给它记版本。
   workflows/<name>.geml         一份流程：一个状态机块，后面跟着各阶段的提示词
   tools.geml                    所有流程共用的工具词典：哪个工具是哪个用途，哪里允许、哪里拒绝
   project.geml                  项目文档：meta flow-workflow 指定默认流程；#items 列着每个工作项和它的结局
+  artifacts.geml                每个工作项的产物：链接、在 git 里改过的文档、git 不留的文件，各在哪、第几版
+  artifacts/                    git 不留的文件的副本，按内容哈希命名
   journals/<item>.geml          每个工作项一本 journal：一个分支，或一组文件中的一个
   sessions/                     项目的会话记录，各家宿主的会话都在这里
   exports/                      看板导出的文件
@@ -233,6 +235,12 @@ worktree 还在，是 `merged`；那些也删了是 `closed`；分支没合并�
 没有，是 `dropped`。文件类的工作项走到流程终点算 `closed`，停在 `parked` 算 `dropped`。
 表里记着 git 记不住的——删掉的分支最后的提交、有过几个提交；只重写这张表，你写在它
 周围的不动。
+
+产物记在 `artifacts.geml` 的 `#artifacts` 表里，一行一版。工作项写过的文件里 git 不留的，
+每回合结束和打开看板时各看一次，内容变了就在 `artifacts/` 存一份副本；单个超过 20 MB
+只记位置和哈希。GEML 文档只存一份副本，之后的版本记进它的 `.gemlhistory`。在 git 里的
+文档只记路径和最后改它的提交。Artifact 工具发布的页面自动记成链接；别的链接和生成的
+图片，模型用 `artifact` 工具记。
 
 默认流程是 `GEMFLOW_STATECHART` 指定的文件（相对项目根的路径），否则是
 `flow-workflow` 指定的那个，否则是项目唯一的那个流程。CLI、Claude Code 插件、
@@ -401,7 +409,7 @@ tarball，它会照单收下、写进 `settings.json`，然后此后每次启动
 cd integrations/gemflow && npm install && npm run pack:local
 
 # 2. 装：两个安装器要的东西不一样，pack:local 跑完会把两个路径都打出来
-npm install -g ./geml-gemflow-0.2.23.tgz   # CLI：要 tarball
+npm install -g ./geml-gemflow-0.2.24.tgz   # CLI：要 tarball
 pi install /绝对路径/gemflow-pkg          # pi agent：要一个目录
 
 # 3. 到你要干活的仓库里，开一个自己的分支

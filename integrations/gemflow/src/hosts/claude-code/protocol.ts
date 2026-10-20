@@ -60,6 +60,14 @@ export type BridgeOp =
   | { op: "board" }
   /** What the repository says for the band (attention.ts): branches ahead of their upstream, open pull requests and their checks. */
   | { op: "attention" }
+  /** A turn's end: a version of each file the current work item wrote that git does not keep, when its content changed (artifacts-store.ts). */
+  | { op: "artifacts" }
+  /**
+   * A artifact of the current work item gemflow did not see made: a link (a
+   * publish tool's result; `page` the published file, whose title names it)
+   * or a file's version (a generated picture). Answers `text`.
+   */
+  | { op: "artifact"; kind: "link" | "image" | "file"; where: string; name?: string; version?: string; page?: string }
   /**
    * Write a file under `.geml/exports/` and answer its path and text: the work
    * item's journal (as GEML, a Markdown revision table, or JSON), a copy of the
@@ -134,7 +142,7 @@ export interface BoardData {
   /** The flow picture (spec §8.2): what every host draws the flow tab from. */
   picture: FlowPicture;
   /** What the current work item's work made; absent when there is no work item or it has no journal yet. */
-  products?: Products;
+  artifacts?: Artifacts;
   /** The CI workflows that finished failing on the branch's head, and the head; absent when none did, or gh is not read. */
   ci?: { head: string; failed: string[] };
 }
@@ -171,7 +179,7 @@ export interface BoardItem {
  * marked when it touched one of those files or the item file; and, under a
  * `file:` unit, the item file and its `#result` section.
  */
-export interface Products {
+export interface Artifacts {
   item: string;
   /** Under a `file:` unit: the item file, a project path. */
   file?: string;
@@ -184,6 +192,25 @@ export interface Products {
    * touched the item file. Newest first.
    */
   commits: { sha: string; at: string; subject: string; files: string[]; ours: boolean }[];
+  /** What it made, by kind (core/artifacts.ts); absent when the artifacts table could not be read. */
+  made?: Made;
+}
+
+/**
+ * A artifact the board lists: a link, a file git does not keep, a picture.
+ * `open`: the link, or the file where it is (its newest copy once it is
+ * gone). `versions` newest first, each with its copy where there is one; a
+ * GEML document's older versions are in `history`, its copy's .gemlhistory.
+ * Paths are absolute.
+ */
+export interface MadeEntry { kind: "link" | "file" | "image"; name: string; open: string; versions: { version: string; at: string; size: number | null; copy?: string }[]; history?: string }
+
+/** A work item's artifacts: links, files, pictures; the documents its commits changed (each with how many and when last); what its commits changed in all; the copies' directory. */
+export interface Made {
+  links: MadeEntry[]; files: MadeEntry[]; images: MadeEntry[];
+  docs: { path: string; open: string; commits: number; at: string }[];
+  code: { commits: number; files: number };
+  folder: string;
 }
 
 /**
@@ -265,7 +292,7 @@ export function unreadableText(exitCode: number, stderr: string, pluginRoot: str
   return `gemflow：桥接的应答无法解析（退出码 ${exitCode}${said ? `：${said}` : ""}）`;
 }
 
-const OPS = new Set(["status", "refresh", "before", "after", "verb", "learn", "mark", "advance", "pause", "resume", "rollback", "new-item", "bind", "use", "add", "import", "board", "attention", "export"]);
+const OPS = new Set(["status", "refresh", "before", "after", "verb", "learn", "mark", "advance", "pause", "resume", "rollback", "new-item", "bind", "use", "add", "import", "board", "attention", "export", "artifacts", "artifact"]);
 const EXPORT_KINDS = new Set(["journal", "workflow", "text"]);
 const EXPORT_FORMATS = new Set(["geml", "md", "json"]);
 const VERBS = new Set(["status", "move", "set"]);
@@ -315,6 +342,8 @@ export function decodeRequest(text: string): BridgeRequest | { error: string } {
     export: () => EXPORT_KINDS.has(v["kind"] as string) && EXPORT_FORMATS.has(v["format"] as string)
       && (v["name"] === undefined || str("name")) && (v["text"] === undefined || str("text")) && (v["strip"] === undefined || typeof v["strip"] === "boolean")
       && (v["kind"] !== "text" || str("text")),
+    artifact: () => (v["kind"] === "link" || v["kind"] === "image" || v["kind"] === "file") && str("where")
+      && (v["name"] === undefined || str("name")) && (v["version"] === undefined || str("version")) && (v["page"] === undefined || str("page")),
   };
   const check = fields[op];
   if (check !== undefined && !check()) return { error: `op ${op}: missing or mistyped fields` };

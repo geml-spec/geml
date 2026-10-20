@@ -4,7 +4,7 @@
 import type { Lesson } from "../../core/dictionary.js";
 
 export type BoardTab = "sessions" | "flow" | "items" | "journal" | "tools";
-export type JournalFilter = "all" | "products" | "evidence" | "moves" | "refusals" | "depends";
+export type JournalFilter = "all" | "artifacts" | "evidence" | "moves" | "refusals" | "depends";
 export type Dialog = "settings" | "upgrade" | "about" | "share";
 export type ExportKind = "journal" | "workflow" | "session";
 export type ExportFormat = "geml" | "md" | "json";
@@ -34,7 +34,8 @@ export type BoardAction =
   | { op: "pass-once"; keys: string[] }
   /** Start the bridge again after a failure. */
   | { op: "retry" }
-  | { op: "tab"; tab: BoardTab }
+  /** Show a tab; the journal's with `filter`. */
+  | { op: "tab"; tab: BoardTab; filter?: JournalFilter }
   | { op: "filter"; filter: JournalFilter }
   /** Open one journal entry's menu (its key), or close it. */
   | { op: "expand"; entry: string | null }
@@ -66,8 +67,10 @@ export type BoardAction =
   | { op: "judge-undo" }
   /** Put a suggestion away: it is not asked again. */
   | { op: "dismiss"; key: string }
-  /** List the closed (or the dropped) work items, or only count them. */
-  | { op: "fold"; what: "done" | "dropped"; open: boolean }
+  /** List the closed (or the dropped) work items, or only count them; list every document the work item changed, or the newest two. */
+  | { op: "fold"; what: "done" | "dropped" | "docs"; open: boolean }
+  /** Open the menu under a artifact (`<kind>:<name>`), or close it. */
+  | { op: "artifact-menu"; key: string | null }
   /** Close a merged work item: its worktree and its local branch removed, by the model, once the person said yes. */
   | { op: "close-item"; id: string; worktree?: string }
   | { op: "export"; kind: ExportKind; format: ExportFormat }
