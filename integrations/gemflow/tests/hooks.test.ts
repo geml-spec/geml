@@ -811,6 +811,15 @@ test('the band offers the board whenever there is a workflow, nothing waiting or
   }
 })
 
+test('a session started (or reloaded) in a subdirectory of the checkout works from the checkout\'s top', async ($, on) => {
+  const w = world(on)
+  w.gitEntries.add(`${ROOT}/.git`)
+  const clock = mock.clock(on)
+  await $.session.start({ cwd: `${ROOT}/integrations/gemflow`, surface: 'terminal', isInteractive: true })
+  await clock.settle()
+  expect([...new Set(w.sent.map((r) => r.root))], 'every request from the top, where .geml/ is').toEqual([ROOT])
+})
+
 test('the board opens on its press: a board not read yet is read behind the open pane, which says so meanwhile', async ($, on) => {
   const w = world(on)
   w.boardless = true

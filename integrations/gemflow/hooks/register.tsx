@@ -1837,7 +1837,9 @@ async function shareStatus($: EngineInterface, t: T): Promise<string> {
 
 export const register: Register = (on) => {
   on('session.start', async ($, e, next) => {
-    await update($, rootAtom, () => e.cwd)
+    // The root is the checkout's top, where .geml/ is: a session started (or reloaded) in a subdirectory moves up to it.
+    const top = await checkoutOf($, e.cwd).catch(() => undefined)
+    await update($, rootAtom, () => top ?? e.cwd)
     await update($, setupAtom, () => null)
     await loadStored($)
     await restorePrompts($)
