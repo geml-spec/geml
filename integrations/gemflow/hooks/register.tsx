@@ -38,7 +38,7 @@ import type { AttentionFacts, AttentionMemory } from '../dist/hosts/claude-code/
 import { envParts, remoteInPlay } from '../dist/hosts/claude-code/env.js'
 import { appendEvents, currentTurn, decisionsContext, decisionsSince, isLogName, legacyLogName, logName, nextTurn, NOTE_TOOL, parseLog, SESSIONS_GITIGNORE, SESSIONS_PROMPT, summarize } from '../dist/core/session-log.js'
 import type { SessionEvent, SessionSummary } from '../dist/core/session-log.js'
-import { ARTIFACT_TOOL, publishedLink } from '../dist/core/artifact-tool.js'
+import { ARTIFACT_TOOL, isMadeForPeople, publishedLink } from '../dist/core/artifact-tool.js'
 import type { AttachedClient, HostInfo } from '../dist/hosts/claude-code/env.js'
 import { bandView, BRAND_RED, cellWidth, MARK, MARK_SVG, SEP, toneProps, truncate } from '../dist/hosts/claude-code/band.js'
 import type { BandView, Segment, Tone } from '../dist/hosts/claude-code/band.js'
@@ -51,7 +51,7 @@ import { inboxItems, othersWaiting, pendingList, shortReason } from '../dist/hos
 import type { InboxItem } from '../dist/hosts/claude-code/inbox.js'
 import { BRIDGE_TIMEOUT_MS, decodeResponse, encodeRequest, SLOW_TIMEOUT_MS, unreadableText } from '../dist/hosts/claude-code/protocol.js'
 import type { BoardData, BridgeOp, BridgeRequest, BridgeResponse, ShellStatus, TimelineEntry, TodoCount } from '../dist/hosts/claude-code/protocol.js'
-import { bashExitCode, bridgeInput, contextOf, hasGitOperation, nodeMajor, toolArgs, touchedPath } from '../dist/hosts/claude-code/readers.js'
+import { bashExitCode, bridgeInput, contextOf, hasGitOperation, nodeMajor, toolArgs, touchedPath, writtenPath } from '../dist/hosts/claude-code/readers.js'
 import { answerGist, promptLine, sessionExport } from '../dist/hosts/claude-code/sessions.js'
 import type { PromptRecord } from '../dist/hosts/claude-code/sessions.js'
 import { hhmm } from '../dist/hosts/claude-code/time.js'
@@ -80,6 +80,7 @@ const doneOpenAtom = atom({ plugin: 'gemflow', key: 'doneOpen' } as const, false
 const droppedOpenAtom = atom({ plugin: 'gemflow', key: 'droppedOpen' } as const, false)
 const artifactMenuAtom = atom({ plugin: 'gemflow', key: 'artifactMenu' } as const, null as string | null)
 const docsOpenAtom = atom({ plugin: 'gemflow', key: 'docsOpen' } as const, false)
+const madeElsewhereAtom = atom({ plugin: 'gemflow', key: 'madeElsewhere' } as const, [] as string[])
 const flowStateAtom = atom({ plugin: 'gemflow', key: 'flowState' } as const, null as string | null)
 const flowSwitchAtom = atom({ plugin: 'gemflow', key: 'flowSwitch' } as const, false)
 const toolQueryAtom = atom({ plugin: 'gemflow', key: 'toolQuery' } as const, '')
@@ -404,7 +405,7 @@ async function loadBoard($: EngineInterface): Promise<string | null> {
 
 /** The last reply as the band keeps it. `consumed`: the person has answered it; its asks no longer lead. */
 /** `picks`: the answers given so far to the reply's several asks, by their place; said together once all are given. */
-interface Attention { reply: string; replyAt: number; asked: string; memory: AttentionMemory; consumed: boolean; picks?: (string | null)[] }
+interface Attention { reply: string; replyAt: number; memory: AttentionMemory; consumed: boolean; picks?: (string | null)[] }
 const readAttention = async ($: EngineInterface): Promise<Attention | null> => (await read($, attentionAtom)) as unknown as Attention | null
 
 /** The repository's facts for the band, with the reload a command made due. */
@@ -424,7 +425,7 @@ async function attentionNow($: EngineInterface, t: T) {
   const remote = remoteInPlay({ clients: (clients as unknown as AttachedClient[] | null) ?? [], ...(origin !== null ? { origin } : {}) })
   const standing = standingOf(reply, facts, now, t, { reloadHere: !remote && !unavailable })
   const lead = a === null || a.consumed ? null : leadOf({ reply, standing, memory, picks: a.picks ?? [], t })
-  const line = bandLine({ lead, standing, memory, reply, awayMs: a === null ? null : now - a.replyAt, ...(a !== null ? { asked: a.asked } : {}), t })
+  const line = bandLine({ lead, standing, memory, reply, awayMs: a === null ? null : now - a.replyAt, t })
   return { attention: a, reply, standing, memory, lead, line }
 }
 
@@ -561,8 +562,29 @@ async function noteDecisions($: EngineInterface, event: unknown): Promise<ToolCa
 
 /** A turn's end, on a work item: the files it wrote that git does not keep get a version where their content changed. */
 async function artifactsOnTurn($: EngineInterface): Promise<void> {
+  const [shell, made] = await Promise.all([readShell($), read($, madeElsewhereAtom)])
+  if (shell?.status?.item.kind !== 'item') return
+  const elsewhere = ((made as unknown) as string[] | null) ?? []
+  if (elsewhere.length > 0) await update($, madeElsewhereAtom, () => [] as unknown as GemflowJson)
+  await bridge($, { op: 'artifacts', ...(elsewhere.length > 0 ? { elsewhere } : {}) }, SLOW_TIMEOUT_MS).catch(() => undefined)
+}
+
+/** What the person gave with a prompt (images, documents): their bytes, as the conversation holds them, among the work item's artifacts. */
+async function uploadsOnPrompt($: EngineInterface, named: readonly { type: string; mediaType?: string; filename?: string }[]): Promise<void> {
   if ((await readShell($))?.status?.item.kind !== 'item') return
-  await bridge($, { op: 'artifacts' }, SLOW_TIMEOUT_MS).catch(() => undefined)
+  const messages = await $.session.messages({ as: 'api' })
+  if (!Array.isArray(messages)) return
+  const last = [...messages].reverse().find((m) => m.role === 'user' && m.content.some((b) => b.type === 'image' || b.type === 'document'))
+  if (last === undefined) return
+  const media = last.content.filter((b) => b.type === 'image' || b.type === 'document')
+  for (const [i, b] of media.entries()) {
+    const source = b['source'] as { type?: string; media_type?: string; data?: string } | undefined
+    if (source?.type !== 'base64' || typeof source.data !== 'string' || source.data === '') continue
+    const name = named[i]?.filename
+    const mediaType = source.media_type ?? named[i]?.mediaType
+    await bridge($, { op: 'artifact', kind: b.type === 'image' ? 'image' : 'file', where: 'upload', data: source.data, ...(name !== undefined ? { name } : {}), ...(mediaType !== undefined ? { mediaType } : {}) }, SLOW_TIMEOUT_MS)
+  }
+  await reloadBoardLater($)
 }
 
 /** What the model says the work item made that gemflow did not see: a link, a picture, a file — under the current work item's artifacts. */
@@ -1705,7 +1727,6 @@ interface Header {
   flow?: string;
   /** Why there is no work item, when there is none. */
   reason?: string;
-  hold?: Pressable;
 }
 
 async function headerRows($: EngineInterface, t: T): Promise<Header> {
@@ -1717,8 +1738,7 @@ async function headerRows($: EngineInterface, t: T): Promise<Header> {
   const dialogs: Pressable[] = (['share', 'settings', 'upgrade', 'about'] as const).map((d) => ({ key: `dialog-${d}`, label: d === 'share' ? t('分享') : d === 'settings' ? t('设置') : d === 'upgrade' ? t('升级') : t('关于'), action: { op: 'dialog', dialog: d } }))
   const head: Header = { version, dialogs, ...(newer !== undefined ? { newer } : {}) }
   if (s !== null && s.item.kind === 'item') {
-    const hold: Pressable = s.paused ? { key: 'resume', label: t('继续'), primary: true, action: { op: 'resume' } } : { key: 'pause', label: t('⏸ 暂停'), action: { op: 'pause' } }
-    return { ...head, name: s.title ?? s.item.id, ...(s.state !== undefined ? { stage: s.paused ? `${s.state.title} · ${t('已暂停')}` : s.state.title } : {}), flow: s.workflow.title, hold }
+    return { ...head, name: s.title ?? s.item.id, ...(s.state !== undefined ? { stage: s.paused ? `${s.state.title} · ${t('已暂停')}` : s.state.title } : {}), flow: s.workflow.title }
   }
   if (s !== null && s.item.kind === 'inactive') return { ...head, reason: s.item.reason }
   return head
@@ -1833,7 +1853,7 @@ export const register: Register = (on) => {
     } catch { /* no manifest */ }
     await startBridge($)
     // A load is a reload: nothing is due. The repository's facts now and every two minutes; the band every minute, so a
-    // person away from the keyboard comes back to "你离开了 …" without having to type first.
+    // person away from the keyboard comes back to the steps still waiting on them without having to type first.
     await update($, reloadAtom, () => false)
     await update($, queuedAtom, () => [])
     $.clock.after(0, () => { void loadFacts($) })
@@ -1923,6 +1943,9 @@ export const register: Register = (on) => {
     // A file written in another checkout is that checkout's work item, never the session's current one.
     if (!elsewhere && wrotePath !== undefined && matchesUnit(policy, wrotePath, (await readShell($))?.units ?? [])) await update($, lastFileAtom, () => wrotePath)
     if (wrotePath !== undefined && ran.isError !== true) { const path = wrotePath; $.clock.after(0, () => { void sessionsOnFile($, path) }) }
+    // A page, a picture, a draft made for the person outside the project (a scratchpad): one of the work item's artifacts at the turn's end.
+    const outside = wrotePath === undefined && ran.isError !== true && CLAUDE_CODE_TOOLS.write.includes(tool) ? writtenPath(tool, input) : undefined
+    if (outside !== undefined && isMadeForPeople(outside)) $.clock.after(0, () => { void update($, madeElsewhereAtom, (was) => [...new Set([...(((was as unknown) as string[] | null) ?? []), outside])] as unknown as GemflowJson).catch(() => undefined) })
     const exitCode = CLAUDE_CODE_TOOLS.run.includes(tool) ? bashExitCode(ran) : undefined
     const outcome = {
       isError: ran.isError === true,
@@ -1981,9 +2004,8 @@ export const register: Register = (on) => {
       } catch { /* the row stays without it */ }
       if (!e.isAborted) {
         try {
-          const prompts = await readPrompts($)
-          const was = await readAttention($)
-          const kept: Attention = { reply: e.answer, replyAt: await $.clock.now(), asked: prompts[prompts.length - 1]?.text ?? '', memory: was?.memory ?? NO_MEMORY, consumed: false }
+          const [was, at] = await Promise.all([readAttention($), $.clock.now()])
+          const kept: Attention = { reply: e.answer, replyAt: at, memory: was?.memory ?? NO_MEMORY, consumed: false }
           await update($, attentionAtom, () => kept as unknown as GemflowJson)
           const facts = await read($, factsAtom)
           await update($, factsAtReplyAtom, () => facts)
@@ -2000,7 +2022,12 @@ export const register: Register = (on) => {
     const person = fromPerson(e.origin as { kind: string; asUser?: boolean })
     if (person && e.origin.kind !== 'plugin') { try { await update($, originAtom, () => e.origin.kind) } catch { /* unknown */ } }
     const news = person ? [...(await attentionOnPrompt($, e.text)), ...(await sessionsOnPrompt($, e.text).catch(() => [] as string[]))] : []
-    const go = (ev: typeof e) => next(news.length > 0 ? { ...ev, context: [...(ev.context ?? []), ...news] } : ev)
+    // What the person gave with it (images, documents) is one of the work item's artifacts: copied once the prompt entered, behind it.
+    const given = person ? e.attachments ?? [] : []
+    const go = (ev: typeof e) => next(news.length > 0 ? { ...ev, context: [...(ev.context ?? []), ...news] } : ev).then((done) => {
+      if (given.length > 0) $.clock.after(0, () => { void uploadsOnPrompt($, given).catch(() => undefined) })
+      return done
+    })
     // Between turns, where the person may have moved the session: the root follows. Within a turn it stays, so a call in another checkout stays elsewhere.
     await followCwd($)
     const root = await read($, rootAtom)
@@ -2272,7 +2299,6 @@ export const register: Register = (on) => {
               {head.stage !== undefined && <Text bold color="inverseText" backgroundColor="text">{` ${head.stage} `}</Text>}
               {head.flow !== undefined && <Text dimColor>{head.flow}</Text>}
               <Box flexGrow={1} />
-              {head.hold !== undefined && <Button key={head.hold.key} label={head.hold.label} onPress={press($, head.hold.action)} />}
             </Box>
           )
           : (
@@ -2281,7 +2307,6 @@ export const register: Register = (on) => {
               {head.stage !== undefined && <Text {...toneProps('brand')} bold>{head.stage}</Text>}
               {head.flow !== undefined && <Text dimColor>{head.flow}</Text>}
               <Box flexGrow={1} />
-              {head.hold !== undefined && <Button key={head.hold.key} plain dimColor label={head.hold.label} onPress={press($, head.hold.action)} />}
             </Box>
           ))}
         {head?.reason !== undefined && <Text dimColor>{head.reason}</Text>}

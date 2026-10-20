@@ -335,7 +335,7 @@ test("工作项 by the outline: each with where it is and what it has; a merged 
   assert.deepEqual(open.find((r) => r.key === "dropped").fold.action, { op: "fold", what: "dropped", open: false });
 });
 
-test("记录: the filters and the export, the work item and its flow, then what happened newest first under its day — what, why, and which turn", () => {
+test("记录: the filters, the work item and its flow, then what happened newest first under its day — no evidence, no stage changes, no export", () => {
   const st = status(undefined, { sources: { "tests-pass": "tool:test", "pr-open": "git:pr-open", "review-done": "human" } });
   const prompts = [
     { id: "p1", at: "2026-10-12T09:00:30Z", text: "把测试补上", tools: 3, refusals: 1, entered: [], signals: [] },
@@ -345,33 +345,26 @@ test("记录: the filters and the export, the work item and its flow, then what 
   const look = (rows) => rows.map((r) => r.kind === "event" ? [r.label, r.text, r.why, r.turn.replace(/\d\d:\d\d/, "HH:MM")].filter((x) => x !== "").join(" | ")
     : r.kind === "section" ? `§ ${r.text}` : r.kind === "buttons" ? r.items.map((b) => `${b.label}${b.primary ? "*" : ""}`).join(" ") : r.kind === "text" ? r.text : r.kind);
   assert.deepEqual(look(journal()), [
-    "全部* 产物 凭据 阶段变更 被拦 导出",
+    "全部* 产物 被拦",
     "feat/x · 开发流程",
     "§ 今天",
-    "阶段变更 | 构建 → review · 自动 | 凭：pr-open ✓",
     "被拦 | Bash | `gemflow mark reviewed` is for a person | 那一轮 HH:MM「把测试补上」",
-    "凭据 | tests-pass ✓ | 跑 test 得来 | 那一轮 HH:MM「把测试补上」",
-    "开始 | 进入构建",
-  ], "evidence the machine read with no call is no turn's; the start is no turn's");
-  assert.deepEqual(journal().filter((r) => r.kind === "event").map((r) => [r.key, r.action]), [
-    ["rev-3", { op: "expand", entry: "rev-3" }], ["refused-1", { op: "expand", entry: "refused-1" }], ["rev-1", { op: "expand", entry: "rev-1" }], ["rev-0", { op: "expand", entry: "rev-0" }],
-  ]);
-  const menu = journal({ menu: "rev-1" });
-  const at = menu.findIndex((r) => r.key === "rev-1");
+  ], "the stage's own revisions (evidence, stage changes, the start) are the journal file's, not the tab's");
+  const menu = journal({ menu: "refused-1" });
+  const at = menu.findIndex((r) => r.key === "refused-1");
   assert.deepEqual(menu[at + 1].items.map((b) => [b.label, b.action]), [
-    ["看是哪一轮", { op: "locate", id: "p1" }], ["看凭据", { op: "evidence", entry: "rev-1" }], ["回到这一步之前", { op: "rollback", rev: 0 }], ["取消", { op: "expand", entry: null }],
-  ], "a press opens the entry's menu under it");
+    ["看是哪一轮", { op: "locate", id: "p1" }], ["看详情", { op: "evidence", entry: "refused-1" }], ["取消", { op: "expand", entry: null }],
+  ], "a press opens the entry's menu under it; nothing to go back to");
   assert.deepEqual(menu[at].action, { op: "expand", entry: null });
-  const shown = journal({ menu: "rev-1", evidence: "rev-1" });
-  const row = shown.find((r) => r.key === "rev-1");
-  assert.deepEqual([row.open, row.detail], [true, ["凭什么：tests-pass=true", "哪次调用：c7", "在哪份内容上：tree:a1b2c3f", "之后没改过，还算数"]]);
-  assert.equal(shown[shown.indexOf(row) + 1].items[1].label, "收起凭据");
-  assert.deepEqual(journal({ menu: "rev-0" }).find((r) => r.kind === "buttons" && r.items[0].key.endsWith("rev-0")).items.map((b) => b.label), ["看凭据", "取消"], "the first revision has nothing before it");
-  assert.deepEqual(look(journal({ filter: "moves" })).slice(3), ["阶段变更 | 构建 → review · 自动 | 凭：pr-open ✓", "开始 | 进入构建"]);
-  assert.deepEqual(look(journal({ filter: "refusals" })).slice(3).length, 1);
+  const shown = journal({ menu: "refused-1", evidence: "refused-1" });
+  const row = shown.find((r) => r.key === "refused-1");
+  assert.deepEqual([row.open, row.detail], [true, ["`gemflow mark reviewed` is for a person", "哪次调用：c8"]]);
+  assert.equal(shown[shown.indexOf(row) + 1].items[1].label, "收起详情");
+  assert.deepEqual(look(journal({ filter: "moves" })).slice(0, 1), ["全部* 产物 被拦"], "a filter the tab no longer has shows everything");
   assert.equal(look(journal({ filter: "artifacts" })).at(-1), "没有这一类的记录");
   assert.deepEqual(journalRows({ board: { ...BOARD, timeline: [] }, status: st, filter: "all", menu: null, evidence: null, prompts: [], columns: 80, maxRows: 10, t: wordsFor("zh") }).at(-1), { kind: "text", text: "这个工作项还没有记录", tone: "dim" });
   assert.ok(journal({ maxRows: 4 }).length <= 4, "the entries fit the rows");
+  assert.ok(!journal().some((r) => r.kind === "buttons" && r.items.some((b) => b.action.op === "export")), "no export here");
 });
 
 test("记录: what the work made — a turn's commits are one artifact, with how many files and which turn; the other commits of the window counted", () => {
@@ -389,7 +382,7 @@ test("记录: what the work made — a turn's commits are one artifact, with how
   assert.deepEqual([artifact.label, artifact.text, artifact.why, artifact.turn.replace(/\d\d:\d\d/, "HH:MM"), artifact.open, artifact.detail], ["产物", "053f317c 7a38c1fd artifacts on the board", "2 个文件", "那一轮 HH:MM「看产物按 A+C+B」", true, ["src/band.ts", "src/board.ts"]]);
   assert.deepEqual(rows.at(-1), { kind: "text", text: "同期另有 1 个提交没碰这些文件", tone: "dim" });
   const apart = journalRows({ board: { ...BOARD, artifacts }, status: status(), filter: "artifacts", menu: null, evidence: null, prompts: [], columns: 100, maxRows: 40, t: wordsFor("zh"), now: NOW });
-  assert.equal(apart.filter((r) => r.kind === "event").length, 2, "without the session's prompts, each commit is a artifact");
+  assert.equal(apart.filter((r) => r.kind === "event").length, 2, "without the session's prompts, each commit is an artifact");
 });
 
 test("记录: where a value came from, and what an entry says, in the flow's words", () => {
@@ -498,7 +491,7 @@ test("记录: what the current work item waits for — put aside, the other done
   const st = status(undefined, { title: "样式：画布换上新标志", depends: [{ id: "m/logo", title: "gemflow 标志", flow: "标志设计", done: true, since: "2026-10-12T09:01:30Z", at: "2026-10-12T09:03:30Z", wrote: ["brand/gemflow_mark.svg", "brand/banner.png"] }] });
   const prompts = [{ id: "p1", at: "2026-10-12T09:01:00Z", text: "这个 logo 可能不能直接用 geml 的", tools: 1, refusals: 0, entered: [], signals: [] }];
   const rows = journalRows({ board: BOARD, status: st, filter: "depends", menu: null, evidence: null, prompts, columns: 100, maxRows: 40, t: wordsFor("zh"), now: NOW });
-  assert.deepEqual(rows[0].items.map((b) => b.label), ["全部", "产物", "凭据", "阶段变更", "被拦", "依赖", "导出"], "the filter shows once there is a dependency");
+  assert.deepEqual(rows[0].items.map((b) => b.label), ["全部", "产物", "被拦", "依赖"], "the filter shows once there is a dependency");
   assert.deepEqual(rows.filter((r) => r.kind === "event").map((r) => [r.label, r.text, r.why, r.turn.replace(/\d\d:\d\d/, "HH:MM")]), [
     ["恢复", "样式：画布换上新标志", "", "那一轮 HH:MM「这个 logo 可…」"],
     ["依赖完成", "标志设计「gemflow 标志」完成", "带回来：gemflow_mark.svg · banner.png", ""],

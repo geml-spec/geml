@@ -24,6 +24,8 @@ declare module 'claude-code' {
       artifactMenu: string | null
       /** Whether the work items tab lists every document the work item changed, or the newest two. */
       docsOpen: boolean
+      /** Files made for a person written outside the project this turn (absolute paths): artifacts at the turn's end. */
+      madeElsewhere: string[]
       /** The state the flow tab shows below its picture (its id). */
       flowState: string | null
       /** Whether the flow tab lists the workflows to switch to. */

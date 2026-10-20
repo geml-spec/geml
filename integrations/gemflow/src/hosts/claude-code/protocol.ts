@@ -61,13 +61,13 @@ export type BridgeOp =
   /** What the repository says for the band (attention.ts): branches ahead of their upstream, open pull requests and their checks. */
   | { op: "attention" }
   /** A turn's end: a version of each file the current work item wrote that git does not keep, when its content changed (artifacts-store.ts). */
-  | { op: "artifacts" }
+  | { op: "artifacts"; elsewhere?: string[] }
   /**
-   * A artifact of the current work item gemflow did not see made: a link (a
+   * An artifact of the current work item gemflow did not see made: a link (a
    * publish tool's result; `page` the published file, whose title names it)
    * or a file's version (a generated picture). Answers `text`.
    */
-  | { op: "artifact"; kind: "link" | "image" | "file"; where: string; name?: string; version?: string; page?: string }
+  | { op: "artifact"; kind: "link" | "image" | "file"; where: string; name?: string; version?: string; page?: string; data?: string; mediaType?: string }
   /**
    * Write a file under `.geml/exports/` and answer its path and text: the work
    * item's journal (as GEML, a Markdown revision table, or JSON), a copy of the
@@ -197,13 +197,13 @@ export interface Artifacts {
 }
 
 /**
- * A artifact the board lists: a link, a file git does not keep, a picture.
+ * An artifact the board lists: a link, a file git does not keep, a picture.
  * `open`: the link, or the file where it is (its newest copy once it is
  * gone). `versions` newest first, each with its copy where there is one; a
  * GEML document's older versions are in `history`, its copy's .gemlhistory.
  * Paths are absolute.
  */
-export interface MadeEntry { kind: "link" | "file" | "image"; name: string; open: string; versions: { version: string; at: string; size: number | null; copy?: string }[]; history?: string }
+export interface MadeEntry { kind: "link" | "file" | "image"; name: string; open: string; versions: { version: string; at: string; size: number | null; copy?: string }[]; history?: string; /** The person gave it (an upload); `name` is its file's name. */ given?: true }
 
 /** A work item's artifacts: links, files, pictures; the documents its commits changed (each with how many and when last); what its commits changed in all; the copies' directory. */
 export interface Made {
@@ -343,7 +343,9 @@ export function decodeRequest(text: string): BridgeRequest | { error: string } {
       && (v["name"] === undefined || str("name")) && (v["text"] === undefined || str("text")) && (v["strip"] === undefined || typeof v["strip"] === "boolean")
       && (v["kind"] !== "text" || str("text")),
     artifact: () => (v["kind"] === "link" || v["kind"] === "image" || v["kind"] === "file") && str("where")
-      && (v["name"] === undefined || str("name")) && (v["version"] === undefined || str("version")) && (v["page"] === undefined || str("page")),
+      && (v["name"] === undefined || str("name")) && (v["version"] === undefined || str("version")) && (v["page"] === undefined || str("page"))
+      && (v["data"] === undefined || str("data")) && (v["mediaType"] === undefined || str("mediaType")),
+    artifacts: () => v["elsewhere"] === undefined || (Array.isArray(v["elsewhere"]) && (v["elsewhere"] as unknown[]).every((p) => typeof p === "string")),
   };
   const check = fields[op];
   if (check !== undefined && !check()) return { error: `op ${op}: missing or mistyped fields` };

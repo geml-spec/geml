@@ -75,15 +75,15 @@ test("memory: what led is shown, each condition ages, reminders wait; a short an
   assert.equal(answered({ ...m, backlog: ["x"] }, "这是一段很长的新任务说明，跟上一个问题没有关系，需要你把整个模块重写一遍再跑完整测试，然后整理提交并写清楚说明").backlog.length, 1);
 });
 
-test("the line: lead, steps still owed, asks still waiting, in one row; back after a while, what became of the last request", () => {
+test("the line: lead, steps still owed, asks still waiting, in one row; how long the person was away and a recap of the reply are never said", () => {
   const facts = { ahead: [{ branch: "feat/gemflow", ahead: 2, newestAt: "2026-10-18T08:00:00Z" }], prs: [{ number: 32, branch: "x", green: true, failing: [] }] };
   const reply = "定了，图标那批已提交 2f501ff5，还没推送。\n\n要推到 origin 吗？";
   const standing = standingOf(reply, facts, NOW);
   const lead = leadOf({ reply, standing, memory: NO_MEMORY });
-  const roomy = bandLine({ lead, standing: [], memory: NO_MEMORY, reply, awayMs: 3 * 3_600_000, asked: "提交" });
-  assert.match(roomy.text, /^你离开了 3 小时 · 定 .*要推到 origin 吗/, "room for it: the away note leads");
-  const line = bandLine({ lead, standing, memory: { ...NO_MEMORY, backlog: ["a"] }, reply, awayMs: 3 * 3_600_000, asked: "提交" });
-  assert.match(line.text, /^定 .*要推到 origin 吗/, "crowded: the away note goes first");
+  const roomy = bandLine({ lead, standing: [], memory: NO_MEMORY, reply, awayMs: 3 * 3_600_000 });
+  assert.match(roomy.text, /^定 .*要推到 origin 吗/, "back after hours: the question, nothing about the time away");
+  const line = bandLine({ lead, standing, memory: { ...NO_MEMORY, backlog: ["a"] }, reply, awayMs: 3 * 3_600_000 });
+  assert.match(line.text, /^定 .*要推到 origin 吗/);
   assert.match(line.text, /还有 1 件待定$/);
   assert.deepEqual(line.options, ["推", "先不"]);
   assert.deepEqual(line.steps.map((x) => x.short), ["合并 #32", "推送 feat/gemflow"], "the other steps only the person takes: buttons of their own beside the answers");
@@ -102,9 +102,7 @@ test("the line: lead, steps still owed, asks still waiting, in one row; back aft
   assert.deepEqual([remote[0].short, remote[0].options], ["本机重载插件", []]);
   assert.deepEqual(bandLine({ lead: leadOf({ reply: "", standing: remote, memory: NO_MEMORY }), standing: remote, memory: NO_MEMORY, reply: "", awayMs: 0 }).options, []);
   assert.deepEqual(stepPressables(standingOf("", { ahead: [], prs: [], reload: true }, NOW)).map((p) => p.action), [{ op: "command", command: "reload-plugins" }]);
-  const back = bandLine({ lead: null, standing: [], memory: NO_MEMORY, reply: "做完了，分三个提交留在本地，没有推送。\n\n细节如下。", awayMs: 2 * 3_600_000, asked: "一起改完再跑全测吧" });
-  assert.match(back.text, /你走前让我「一起改完再跑全测吧」：做完了，分三个提交留在本地，没有推送/, "what became of the request leads (the away note gives way to it in one row)");
-  assert.equal(back.lead, "back");
+  assert.equal(bandLine({ lead: null, standing: [], memory: NO_MEMORY, reply: "做完了，分三个提交留在本地，没有推送。\n\n细节如下。", awayMs: 2 * 3_600_000 }), null, "back after hours with nothing to do: no line, no recap of the reply");
   assert.equal(bandLine({ lead: null, standing: [], memory: NO_MEMORY, reply: "", awayMs: 0 }), null, "nothing to say, no line");
 });
 

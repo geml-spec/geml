@@ -5,14 +5,14 @@
 // .gemlhistory. The table is rewritten under its lock, read again there, so
 // sessions syncing at once each add their own rows.
 import { createHash } from "node:crypto";
-import { closeSync, copyFileSync, mkdirSync, openSync, readSync, statSync } from "node:fs";
+import { closeSync, copyFileSync, mkdirSync, openSync, readSync, statSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, sep } from "node:path";
 import { historyPathFor } from "@geml/geml";
 import { save as saveHistory } from "@geml/geml/dist/history.js";
 import { exists, readText, withLock, writeAtomic } from "./host-fs.js";
 import { unkeptOf } from "./host-git.js";
 import { GEML_DIR, ARTIFACTS_DOC } from "./core/layout.js";
-import { COPY_LIMIT, copyName, isGemlPath, isImagePath, readArtifacts, withArtifacts, type ArtifactKind, type ArtifactRow } from "./core/artifacts.js";
+import { COPY_LIMIT, copyName, isGemlPath, isImagePath, isMadeForPeople, readArtifacts, withArtifacts, type ArtifactKind, type ArtifactRow } from "./core/artifacts.js";
 
 const lf = (s: string): string => s.replace(/\r\n?/g, "\n");
 const slashed = (p: string): string => p.split(sep).join("/");
@@ -52,7 +52,7 @@ function hashFile(path: string): string {
   return h.digest("hex");
 }
 
-/** The newest version the table has of a artifact. */
+/** The newest version the table has of an artifact. */
 function latest(rows: readonly ArtifactRow[], item: string, kind: ArtifactKind, name: string): ArtifactRow | undefined {
   return rows.filter((r) => r.item === item && r.kind === kind && r.name === name).at(-1);
 }
@@ -101,7 +101,9 @@ function versionOf(home: string, rows: readonly ArtifactRow[], item: string, abs
  * Answers the table's rows; nothing changes where git cannot say which it
  * keeps.
  */
-export function syncWritten(root: string, home: string, item: string, written: readonly string[]): ArtifactRow[] {
+export function syncWritten(root: string, home: string, item: string, everything: readonly string[]): ArtifactRow[] {
+  // Only what is made for a person: a script or a config the work wrote for itself is no artifact.
+  const written = everything.filter(isMadeForPeople);
   const unkept = written.length === 0 ? new Set<string>() : unkeptOf(root, written);
   if (unkept === undefined || unkept.size === 0) return readArtifactRows(home);
   return changeRows(home, (rows) => {
@@ -125,11 +127,15 @@ export function syncDocs(home: string, item: string, docs: readonly GitDoc[]): A
   return changeRows(home, (rows) => [...rows.filter((r) => !(r.item === item && r.kind === "doc")), ...wanted]);
 }
 
-/** A link the work item published or shared: a new row when it is not the table's last version of that link. Without a name it keeps the one it had, else goes by its address. */
-export function recordLink(home: string, item: string, link: { name?: string; url: string; version?: string; at: string }): ArtifactRow[] {
+/**
+ * A link the work item published or shared: a new row when it is not the
+ * table's last version of that link. Without a name it keeps the one it had,
+ * else goes by `fallback` (its published file's name), else its address.
+ */
+export function recordLink(home: string, item: string, link: { name?: string; fallback?: string; url: string; version?: string; at: string }): ArtifactRow[] {
   return changeRows(home, (rows) => {
     const prev = rows.filter((r) => r.item === item && r.kind === "link" && r.where === link.url).at(-1);
-    const name = link.name !== undefined && link.name !== "" ? link.name : prev?.name ?? link.url;
+    const name = link.name !== undefined && link.name !== "" ? link.name : prev?.name ?? (link.fallback !== undefined && link.fallback !== "" ? link.fallback : link.url);
     if (prev !== undefined && prev.version === (link.version ?? "") && prev.name === name) return rows;
     rows.push({ item, kind: "link", name, where: link.url, version: link.version ?? "", size: null, at: link.at, sha256: "" });
     return rows;
@@ -149,6 +155,28 @@ export function recordFile(root: string, home: string, item: string, path: strin
   changeRows(home, (rows) => {
     made = versionOf(home, rows, item, abs, name, kind);
     if (made !== undefined) rows.push(made);
+    return rows;
+  });
+  return made;
+}
+
+/**
+ * Bytes the person gave (an upload), copied under their hash and known to the
+ * table by `name`; nothing new when this item has these bytes already.
+ * Answers the row recorded, or undefined.
+ */
+export function recordBytes(home: string, item: string, given: { name: string; bytes: Buffer; kind: "image" | "file"; at: string }): ArtifactRow | undefined {
+  const sha256 = createHash("sha256").update(given.bytes).digest("hex");
+  let made: ArtifactRow | undefined;
+  changeRows(home, (rows) => {
+    if (rows.some((r) => r.item === item && r.sha256 === sha256)) return rows;
+    const where = `artifacts/${copyName(sha256, given.name)}`;
+    const target = join(home, GEML_DIR, where);
+    mkdirSync(dirname(target), { recursive: true });
+    if (!exists(target)) writeFileSync(target, given.bytes);
+    const version = String(rows.filter((r) => r.item === item && r.kind === given.kind && r.name === given.name).length + 1);
+    made = { item, kind: given.kind, name: given.name, where, version, size: given.bytes.length, at: given.at, sha256 };
+    rows.push(made);
     return rows;
   });
   return made;

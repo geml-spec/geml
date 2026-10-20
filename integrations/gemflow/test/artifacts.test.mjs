@@ -7,7 +7,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { copyName, COPY_LIMIT, pageTitle, artifactsOfItem, readArtifacts, renderArtifacts, withArtifacts } from "../dist/core/artifacts.js";
+import { copyName, COPY_LIMIT, isMadeForPeople, pageTitle, artifactsOfItem, readArtifacts, renderArtifacts, withArtifacts } from "../dist/core/artifacts.js";
 import { publishedLink } from "../dist/core/artifact-tool.js";
 import { readArtifactRows, recordFile, recordLink, syncDocs, syncWritten } from "../dist/artifacts-store.js";
 import { listRevisions } from "@geml/geml/dist/history.js";
@@ -62,6 +62,7 @@ test("the Artifact tool's result names the link it published and its version; a 
   assert.deepEqual(publishedLink(said), { url: "https://claude.ai/artifact/MHHivk8Ef5NQSRjSeubrYZ", version: "3" });
   assert.deepEqual(publishedLink("Published x at https://claude.ai/code/artifact/0b1c-22"), { url: "https://claude.ai/code/artifact/0b1c-22" });
   assert.equal(publishedLink("[Artifact a43c (version 1) — owned by you] https://claude.ai/artifact/MHH"), undefined, "a read is no publish");
+  assert.deepEqual(publishedLink("Updated the Artifact at https://claude.ai/artifact/Aw9u6PXPAaXpFZYWppafY8 (Version 61, version id 1792479469-84e3) with C:\\s\\canvas.json"), { url: "https://claude.ai/artifact/Aw9u6PXPAaXpFZYWppafY8", version: "61" }, "published again: an update names its link too");
   assert.equal(pageTitle("<title>Gemflow 界面\n 示意</title><style>"), "Gemflow 界面 示意");
   assert.equal(pageTitle("<p>no title</p>"), undefined);
 });
@@ -87,6 +88,14 @@ test("a file git does not keep: copied under its hash when first seen and again 
   assert.match(readFileSync(join(root, ".geml", "artifacts.geml"), "utf8"), /=== table \{#artifacts\}/);
 });
 
+test("only what is made for a person is an artifact on its own: a script, code or a config the work wrote for itself is not", () => {
+  const root = repo();
+  for (const f of ["run.mjs", "needs.json", "report.html", "chart.png", "notes.md"]) writeFileSync(join(root, "out", f), f);
+  const rows = syncWritten(root, root, "feat/x", ["out/run.mjs", "out/needs.json", "out/report.html", "out/chart.png", "out/notes.md"]);
+  assert.deepEqual(rows.map((r) => [r.kind, r.name]), [["file", "out/report.html"], ["image", "out/chart.png"], ["file", "out/notes.md"]]);
+  assert.deepEqual([isMadeForPeople("a/b.MP4"), isMadeForPeople("x.ts"), isMadeForPeople("Makefile")], [true, false, false]);
+});
+
 test("a GEML document git does not keep: one copy; its later versions go into the copy's .gemlhistory", () => {
   const root = repo();
   const doc = join(root, "out", "n.geml");
@@ -104,13 +113,13 @@ test("a GEML document git does not keep: one copy; its later versions go into th
 
 test("a file bigger than the copy limit is kept by where it is and its hash; a root in no repository has every file copied", () => {
   const root = repo();
-  const big = join(root, "out", "big.bin");
+  const big = join(root, "out", "big.mp4");
   writeFileSync(big, Buffer.alloc(COPY_LIMIT + 1, 1));
-  const [r] = syncWritten(root, root, "feat/x", ["out/big.bin"]);
+  const [r] = syncWritten(root, root, "feat/x", ["out/big.mp4"]);
   assert.equal(r.where, big.split("\\").join("/"));
   assert.equal(r.size, COPY_LIMIT + 1);
   assert.equal(r.sha256.length, 64);
-  assert.equal(existsSync(join(root, ".geml", "artifacts", `${r.sha256}.bin`)), false);
+  assert.equal(existsSync(join(root, ".geml", "artifacts", `${r.sha256}.mp4`)), false);
   const bare = mkdtempSync(join(tmpdir(), "gemflow-nogit-"));
   writeFileSync(join(bare, "notes.md"), "x");
   assert.deepEqual(syncWritten(bare, bare, "notes", ["notes.md"]).map((x) => x.name), ["notes.md"]);
@@ -187,5 +196,35 @@ test("bridge: the board's artifacts — a file the work wrote that git ignores i
   assert.equal(said.ok, true, JSON.stringify(said.error));
   assert.match(said.text, /Recorded the link under feat\/x/);
   assert.deepEqual(hook(root, { op: "board" }).board.artifacts.made.links.map((l) => [l.name, l.versions[0].version]), [["nope", "4"]], "a page that cannot be read: named by its file");
+  // A design published again through its data file: named by the file's "title", kept on the next update.
+  writeFileSync(join(root, "out", "canvas.json"), JSON.stringify({ v: 3, title: "Gemflow 界面示意" }));
+  hook(root, { op: "artifact", kind: "link", where: "https://claude.ai/artifact/C", version: "60", page: join(root, "out", "canvas.json") });
+  writeFileSync(join(root, "out", "canvas.json"), "{}");
+  hook(root, { op: "artifact", kind: "link", where: "https://claude.ai/artifact/C", version: "61", page: join(root, "out", "canvas.json") });
+  const canvas = hook(root, { op: "board" }).board.artifacts.made.links.find((l) => l.open === "https://claude.ai/artifact/C");
+  assert.deepEqual([canvas.name, canvas.versions.map((v) => v.version)], ["Gemflow 界面示意", ["61", "60"]], "an update with no title keeps the name it had, not its file's");
   assert.equal(hook(root, { op: "artifact", kind: "link", where: "ftp://x" }).ok, false);
+});
+
+test("what the person gave and what was made for them outside the project: an upload by its file's name, a draft by its path; a script outside is still none", () => {
+  const root = gitRepo();
+  withWorkflow(root, WS_DEV, "dev");
+  hook(root, { op: "status" });
+  const png = Buffer.from("89504e470d0a1a0a", "hex").toString("base64");
+  const up = hook(root, { op: "artifact", kind: "image", where: "upload", data: png, mediaType: "image/png", name: "C:\\Users\\me\\Desktop\\logo.png" });
+  assert.match(up.text, /Recorded upload\/logo\.png under feat\/x/);
+  assert.match(hook(root, { op: "artifact", kind: "image", where: "upload", data: png, mediaType: "image/png" }).text, /Nothing new/, "the same bytes again: recorded already");
+  const anon = hook(root, { op: "artifact", kind: "image", where: "upload", data: Buffer.from("other").toString("base64"), mediaType: "image/png" });
+  assert.match(anon.text, /upload\/upload-[0-9a-f]{8}\.png/, "a paste with no file name: named by its hash");
+  const scratch = mkdtempSync(join(tmpdir(), "gemflow-scratch-"));
+  writeFileSync(join(scratch, "icon-a.svg"), "<svg/>");
+  writeFileSync(join(scratch, "tool.mjs"), "export {}");
+  hook(root, { op: "artifacts", elsewhere: [join(scratch, "icon-a.svg"), join(scratch, "tool.mjs")] });
+  const made = hook(root, { op: "board" }).board.artifacts.made;
+  const images = made.images.map((i) => [i.name.split("\\").join("/").replace(/^.*\//, ""), i.given === true]).sort();
+  assert.deepEqual(images, [["icon-a.svg", false], ["logo.png", true], ["upload-" + images.find(([n]) => n.startsWith("upload-"))[0].slice(7), true]], "the draft (not adopted, still counted), the uploads; no script");
+  const logo = made.images.find((i) => i.name === "logo.png");
+  assert.ok(logo.open.split("\\").join("/").includes("/.geml/artifacts/"), "an upload opens as its copy: there is no file of its own");
+  assert.deepEqual(artifactRows({ item: "feat/x", written: [], commits: [], made: { ...made, docs: [], code: { commits: 0, files: 0 } } }, "feat/x", { t: wordsFor("zh"), columns: 80, menu: null, docsOpen: false })
+    .filter((r) => r.kind === "entry" && r.title === "logo.png").map((r) => r.detail.split(" · ")[0]), ["你给的"]);
 });

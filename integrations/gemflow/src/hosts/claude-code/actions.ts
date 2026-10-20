@@ -69,7 +69,7 @@ export type BoardAction =
   | { op: "dismiss"; key: string }
   /** List the closed (or the dropped) work items, or only count them; list every document the work item changed, or the newest two. */
   | { op: "fold"; what: "done" | "dropped" | "docs"; open: boolean }
-  /** Open the menu under a artifact (`<kind>:<name>`), or close it. */
+  /** Open the menu under an artifact (`<kind>:<name>`), or close it. */
   | { op: "artifact-menu"; key: string | null }
   /** Close a merged work item: its worktree and its local branch removed, by the model, once the person said yes. */
   | { op: "close-item"; id: string; worktree?: string }

@@ -3,19 +3,19 @@
 // not keep, each with where it is and which version. A file git does not keep
 // is copied into .geml/artifacts/ under its content's hash, one copy a version;
 // a GEML document's later versions go into its copy's .gemlhistory instead. A
-// row is one version: a artifact's versions are its rows, oldest first. Pure:
+// row is one version: an artifact's versions are its rows, oldest first. Pure:
 // rows in, text out; artifacts-store.ts reads the files and git and writes.
 import { parse, unitSpans, type Block } from "@geml/geml";
 
 export const ARTIFACTS_TABLE = "artifacts";
 export const ARTIFACT_COLUMNS = ["item", "kind", "name", "where", "version", "size", "at", "sha256"] as const;
 
-/** What a artifact is: a link (a published page, a canvas), a document in git, a file git does not keep, a picture. */
+/** What an artifact is: a link (a published page, a canvas), a document in git, a file git does not keep, a picture. */
 export type ArtifactKind = "link" | "doc" | "file" | "image";
 export const ARTIFACT_KINDS: readonly ArtifactKind[] = ["link", "doc", "file", "image"];
 
 /**
- * One version of a artifact. `name`: the link's title, or the file's project
+ * One version of an artifact. `name`: the link's title, or the file's project
  * path. `where`: the link's address; `git` for a document git keeps; the copy
  * under the home (`artifacts/<sha256>.<ext>`), or the file's own path when it
  * is too big to copy. `version`: a link's version number as its publisher
@@ -27,12 +27,12 @@ export interface ArtifactRow { item: string; kind: ArtifactKind; name: string; w
 /** The biggest file copied; a bigger one is kept by where it is and its hash. */
 export const COPY_LIMIT = 20 * 1024 * 1024;
 
-/** The extensions a picture has. */
-const IMAGE = /\.(png|jpe?g|gif|webp|avif|bmp|svg|ico|tiff?)$/i;
 /** The extensions a document has, of those git keeps: listed apart from the code. */
 const DOC = /\.(md|markdown|mdx|geml)$/i;
 
-export const isImagePath = (path: string): boolean => IMAGE.test(path);
+export { isImagePath, isMadeForPeople } from "./artifact-tool.js";
+/** The name an upload goes by in the table: `upload/<its file's name>`. */
+export const UPLOAD_PREFIX = "upload/";
 export const isDocPath = (path: string): boolean => DOC.test(path);
 export const isGemlPath = (path: string): boolean => /\.geml$/i.test(path);
 
@@ -89,7 +89,7 @@ export function withArtifacts(source: string | null, rows: readonly ArtifactRow[
   return [...lines.slice(0, unit.span.start), ...table.split("\n"), ...lines.slice(unit.span.end)].join("\n");
 }
 
-/** A artifact: its kind and name, its versions oldest first (its rows). */
+/** An artifact: its kind and name, its versions oldest first (its rows). */
 export interface Artifact { kind: ArtifactKind; name: string; versions: ArtifactRow[] }
 
 /** A work item's artifacts from the table's rows, by kind and name; the newest version last within each; the most recently changed first. */

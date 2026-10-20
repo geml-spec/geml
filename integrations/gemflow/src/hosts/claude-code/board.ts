@@ -67,7 +67,7 @@ export type BoardRow =
   | { kind: "heading"; key: string; text: string; sub: string; action?: Pressable }
   /** A work item in a list: its name, a tag, and the press that makes it the current one, when it can be; `link` what it opens, at its end in place of the tag. */
   | { kind: "entry"; key: string; title: string; tag: string; tone: Tone; action?: BoardAction; detail?: string; current?: boolean; link?: { href: string; label: string } }
-  /** A artifact's menu (the work items tab): what it opens — the file, a version's copy, its history, the copies' folder — and what it shows. */
+  /** An artifact's menu (the work items tab): what it opens — the file, a version's copy, its history, the copies' folder — and what it shows. */
   | { kind: "links"; key: string; items: { key: string; label: string; href?: string; action?: BoardAction }[] }
   /**
    * Something that happened to the work item (the journal tab): its time, what
@@ -265,7 +265,7 @@ export function paneRows(o: PaneInput): BoardRow[] {
   if (o.board === null) return head.length > 0 ? head : wait;
   if (o.tab === "flow") return [...head, ...flowRows({ board: o.board, status, columns, t, ...(o.now !== undefined ? { now: o.now } : {}), selected: o.flowState, switching: o.switching, workflows: o.workflows })];
   if (o.tab === "tools") return [...head, ...toolRows({ board: o.board, columns, t, usage: o.usage, suggestions, query: o.toolQuery, menu: o.toolMenu, naming: o.toolNaming, open: o.toolsOpen })];
-  return [...head, ...journalRows({ board: o.board, status, filter: o.filter, menu: o.expanded, evidence: o.evidence, prompts: o.prompts, columns, maxRows: Math.max(1, o.maxRows - head.length), t, now: o.now }), ...exportedRows(o.exported, o.root, t)];
+  return [...head, ...journalRows({ board: o.board, status, filter: o.filter, menu: o.expanded, evidence: o.evidence, prompts: o.prompts, columns, maxRows: Math.max(1, o.maxRows - head.length), t, now: o.now })];
 }
 
 /** Where the last export wrote its file, a link that opens it. */
@@ -652,7 +652,7 @@ export function artifactRows(p: Artifacts | undefined, current: string | undefin
     for (const f of list) {
       const key = `${kind}:${f.name}`;
       const v = f.versions[0];
-      rows.push({ kind: "entry", key: `artifact-${key}`, title: f.name, tag: "", tone: "normal", detail: line(sizeText(v?.size ?? null), t("{0} 版", f.versions.length), v !== undefined ? when(v.at) : ""), action: { op: "artifact-menu", key: o.menu === key ? null : key } });
+      rows.push({ kind: "entry", key: `artifact-${key}`, title: f.name, tag: "", tone: "normal", detail: line(f.given === true ? t("你给的") : "", sizeText(v?.size ?? null), t("{0} 版", f.versions.length), v !== undefined ? when(v.at) : ""), action: { op: "artifact-menu", key: o.menu === key ? null : key } });
       if (o.menu !== key) continue;
       const copies = f.versions.filter((x) => x.copy !== undefined).slice(0, COPIES_SHOWN);
       rows.push({ kind: "links", key: `menu-${key}`, items: [
@@ -884,8 +884,6 @@ export function entryWords(e: TimelineEntry, board: BoardData, sources: Readonly
   }
 }
 
-const KIND_OF: Readonly<Record<string, JournalFilter>> = { enter: "moves", transition: "moves", rollback: "moves", pause: "moves", resume: "moves", patch: "evidence", expire: "evidence" };
-
 export interface JournalInput {
   board: BoardData;
   status: Status | null;
@@ -901,33 +899,33 @@ export interface JournalInput {
 }
 
 /**
- * The journal tab: the filters (all, artifacts, evidence, stage changes,
- * blocks) and the export; the work item and its flow; then what happened,
- * newest first under its day — each commit of the work (a artifact, grouped by
- * the turn that made it), each revision and each refusal — saying what, why,
- * and which turn caused it. A press opens an entry's menu: go to its turn, see
- * its evidence, go back to before it.
+ * The journal tab: the filters (all, artifacts, blocks, and what it waits for
+ * once it waits for anything); the work item and its flow; then what
+ * happened, newest first under its day — each commit of the work (an
+ * artifact, grouped by the turn that made it), each refusal, each wait —
+ * saying what, why, and which turn caused it. A press opens an entry's menu:
+ * go to its turn, see its details. The stage's own revisions (evidence, stage
+ * changes) are the journal file's, not the tab's.
  */
 export function journalRows(o: JournalInput): BoardRow[] {
   const { board, t, columns } = o;
   const rows: BoardRow[] = [];
   const filters: { id: JournalFilter; label: string }[] = [
-    { id: "all", label: t("全部") }, { id: "artifacts", label: t("产物") }, { id: "evidence", label: t("凭据") }, { id: "moves", label: t("阶段变更") }, { id: "refusals", label: t("被拦") },
+    { id: "all", label: t("全部") }, { id: "artifacts", label: t("产物") }, { id: "refusals", label: t("被拦") },
     // Dependencies appear once the work item has any.
     ...((o.status?.depends ?? []).length > 0 ? [{ id: "depends" as const, label: t("依赖") }] : []),
   ];
-  rows.push(buttons([
-    ...filters.map((f): Pressable => ({ key: `filter-${f.id}`, label: f.label, ...(f.id === o.filter ? { primary: true } : {}), action: { op: "filter", filter: f.id } })),
-    { key: "export-journal", label: t("导出"), action: { op: "export", kind: "journal", format: "geml" } },
-  ]));
+  // A filter the tab no longer has (one kept from before) shows everything.
+  const filter: JournalFilter = filters.some((f) => f.id === o.filter) ? o.filter : "all";
+  rows.push(buttons(filters.map((f): Pressable => ({ key: `filter-${f.id}`, label: f.label, ...(f.id === filter ? { primary: true } : {}), action: { op: "filter", filter: f.id } }))));
   const s = o.status;
   if (s !== null && s.item.kind === "item") rows.push(text(`${s.title ?? s.item.id} · ${s.workflow.title}`, columns, "dim"));
   // The turn something happened in: the last prompt sent before it.
   const turnOf = (at: string): PromptRecord | undefined => [...o.prompts].reverse().find((p) => Date.parse(p.at) <= Date.parse(at));
   const turnWords = (p: PromptRecord | undefined): string => (p === undefined ? "" : t("那一轮 {0}「{1}」", hhmm(p.at), promptLine(p.text, 14)));
-  type Line = { at: string; row: Omit<Extract<BoardRow, { kind: "event" }>, "at" | "open" | "action" | "detail">; detail: string[]; rev?: number; turn?: PromptRecord };
+  type Line = { at: string; row: Omit<Extract<BoardRow, { kind: "event" }>, "at" | "open" | "action" | "detail">; detail: string[]; turn?: PromptRecord };
   const lines: Line[] = [];
-  const wanted = (kind: JournalFilter): boolean => o.filter === "all" || o.filter === kind;
+  const wanted = (kind: JournalFilter): boolean => filter === "all" || filter === kind;
   if (wanted("artifacts") && board.artifacts !== undefined) {
     // A turn's commits are one artifact; without the session's prompts, each commit is.
     const groups = new Map<string, { turn?: PromptRecord; commits: Artifacts["commits"] }>();
@@ -969,15 +967,15 @@ export function journalRows(o: JournalInput): BoardRow[] {
     }
   }
   for (const e of board.timeline) {
-    if (!wanted(e.kind === "refused" ? "refusals" : KIND_OF[e.cause] ?? "moves")) continue;
+    if (e.kind !== "refused" || !wanted("refusals")) continue;
     const words = entryWords(e, board, s?.sources ?? {}, t);
-    const turn = e.kind === "snapshot" && (e.by === "signal" || e.cause === "enter") && e.call === undefined ? undefined : turnOf(e.at);
+    const turn = turnOf(e.at);
     lines.push({
-      at: e.at, ...(e.kind === "snapshot" ? { rev: e.rev } : {}), ...(turn !== undefined ? { turn } : {}),
+      at: e.at, ...(turn !== undefined ? { turn } : {}),
       row: { kind: "event", key: rowKey(e), glyph: entryGlyph(e), ...words, turn: turnWords(turn) }, detail: entryDetail(e, board, t),
     });
   }
-  if (lines.length === 0) return [...rows, text(board.timeline.length === 0 ? t("这个工作项还没有记录") : t("没有这一类的记录"), columns, "dim")];
+  if (lines.length === 0) return [...rows, text(filter === "all" ? t("这个工作项还没有记录") : t("没有这一类的记录"), columns, "dim")];
   lines.sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
   let day = "";
   let room = Math.max(1, o.maxRows - rows.length);
@@ -993,8 +991,7 @@ export function journalRows(o: JournalInput): BoardRow[] {
     if (open) {
       const menu: Pressable[] = [];
       if (l.turn !== undefined) menu.push({ key: `turn-${l.row.key}`, label: t("看是哪一轮"), action: { op: "locate", id: l.turn.id, ...(l.turn.uuid !== undefined ? { uuid: l.turn.uuid } : {}) } });
-      if (l.detail.length > 0) menu.push({ key: `evidence-${l.row.key}`, label: shown ? t("收起凭据") : t("看凭据"), action: { op: "evidence", entry: shown ? null : l.row.key } });
-      if (l.rev !== undefined && l.rev > 0) menu.push({ key: `rollback-${l.row.key}`, label: t("回到这一步之前"), action: { op: "rollback", rev: l.rev - 1 } });
+      if (l.detail.length > 0) menu.push({ key: `evidence-${l.row.key}`, label: shown ? t("收起详情") : t("看详情"), action: { op: "evidence", entry: shown ? null : l.row.key } });
       menu.push({ key: `close-${l.row.key}`, label: t("取消"), action: { op: "expand", entry: null } });
       rows.push(buttons(menu));
       room--;

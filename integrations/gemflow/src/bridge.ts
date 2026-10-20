@@ -13,6 +13,7 @@
 // attributed to the checkout and work item it acts in (attribution.ts):
 // `before`, `after` and `learn` start where the request's `cwd` says, and the
 // shell they answer with is always the session's.
+import { createHash } from "node:crypto";
 import { cpSync, mkdirSync, readdirSync } from "node:fs";
 import { homedir, hostname, userInfo } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
@@ -30,8 +31,8 @@ import { TOOLS_FILE } from "./core/dictionary.js";
 import { renderDictionary } from "./core/dictionary-file.js";
 import { migrateLayout, projectDocOf, recordedPath, workflowAt } from "./project-home.js";
 import { updateOutline, type OutlineEntry } from "./outline-store.js";
-import { copyPath, artifactsDir, recordFile, recordLink, syncDocs, syncWritten } from "./artifacts-store.js";
-import { isDocPath, isGemlPath, pageTitle, artifactsOfItem, type Artifact } from "./core/artifacts.js";
+import { copyPath, artifactsDir, recordBytes, recordFile, recordLink, syncDocs, syncWritten } from "./artifacts-store.js";
+import { isDocPath, isGemlPath, isImagePath, isMadeForPeople, pageTitle, artifactsOfItem, UPLOAD_PREFIX, type Artifact } from "./core/artifacts.js";
 import { historyPathFor } from "@geml/geml";
 import { prOf, type PrFact } from "./core/outline.js";
 import { itemState } from "./core/item-state.js";
@@ -388,8 +389,12 @@ function madeOf(home: string, root: string, item: string, written: readonly stri
         ...(copied(v.where) && (i === 0 || !isGemlPath(v.where)) ? { copy: copyPath(home, v.where) } : {}),
       }));
       const history = p.kind !== "link" && copied(newest.where) && isGemlPath(newest.where) ? historyPathFor(copyPath(home, newest.where)) : undefined;
-      const open = p.kind === "link" || exists(own) ? own : versions[0]?.copy ?? own;
-      return { kind: p.kind === "image" ? "image" : p.kind === "link" ? "link" : "file", name: p.name, open, versions, ...(history !== undefined && exists(history) ? { history } : {}) };
+      const given = p.name.startsWith(UPLOAD_PREFIX);
+      const open = p.kind === "link" || (!given && exists(own)) ? own : versions[0]?.copy ?? own;
+      return {
+        kind: p.kind === "image" ? "image" : p.kind === "link" ? "link" : "file", name: given ? p.name.slice(UPLOAD_PREFIX.length) : p.name, open, versions,
+        ...(history !== undefined && exists(history) ? { history } : {}), ...(given ? { given: true as const } : {}),
+      };
     };
     const made = artifactsOfItem(rows, item).filter((p) => p.kind !== "doc").map(entry);
     if (made.length === 0 && docs.size === 0 && ours.length === 0) return undefined;
@@ -436,14 +441,37 @@ function artifactsOf(ws: Workspace, root: string, journal: Journal): Artifacts |
   };
 }
 
-/** A turn's end: a version of each file the current work item wrote that git does not keep, when its content changed. */
-function syncArtifacts(ws: Workspace, root: string): void {
-  if (ws.item.kind !== "item" || ws.journalPath === undefined || !exists(ws.journalPath)) return;
+/**
+ * A turn's end: a version of each file the current work item wrote that git
+ * does not keep, when its content changed; and of each made for a person it
+ * wrote outside the project (`elsewhere`, absolute paths).
+ */
+function syncArtifacts(ws: Workspace, root: string, elsewhere: readonly string[] = []): void {
+  if (ws.item.kind !== "item") return;
+  const item = ws.item.id;
   const file = ws.itemFile;
-  try { syncWritten(root, ws.journalBase, ws.item.id, writtenOf(readJournal(readText(ws.journalPath))).map((w) => w.path).filter((p) => p !== file)); } catch { /* the next look copies it */ }
+  if (ws.journalPath !== undefined && exists(ws.journalPath)) {
+    try { syncWritten(root, ws.journalBase, item, writtenOf(readJournal(readText(ws.journalPath))).map((w) => w.path).filter((p) => p !== file)); } catch { /* the next look copies it */ }
+  }
+  for (const path of elsewhere.filter(isMadeForPeople)) {
+    try { recordFile(root, ws.journalBase, item, path, isImagePath(path) ? "image" : "file"); } catch { /* not there any more */ }
+  }
 }
 
-/** A artifact the model or a publish tool names, under the current work item: a link, or a file's version. Answers what was recorded, in words for the model. */
+/** The extension a media type names, for an upload without a file name. */
+const EXT_OF: Readonly<Record<string, string>> = { "image/png": ".png", "image/jpeg": ".jpg", "image/gif": ".gif", "image/webp": ".webp", "image/svg+xml": ".svg", "application/pdf": ".pdf", "text/plain": ".txt", "text/csv": ".csv", "text/markdown": ".md" };
+
+/** A published file's title: an HTML page's <title>, or a JSON data file's top-level "title" (a design's canvas.json). */
+function titleOf(text: string): string | undefined {
+  const page = pageTitle(text);
+  if (page !== undefined) return page;
+  try {
+    const v = JSON.parse(text) as { title?: unknown };
+    return typeof v.title === "string" && v.title.trim() !== "" ? v.title.trim() : undefined;
+  } catch { return undefined; }
+}
+
+/** An artifact the model or a publish tool names, under the current work item: a link, or a file's version. Answers what was recorded, in words for the model. */
 function recordArtifact(ws: Workspace, root: string, req: Extract<BridgeRequest, { op: "artifact" }>): { ok: true; text: string } | { ok: false; reason: string } {
   if (ws.item.kind !== "item") return { ok: false, reason: "there is no current work item to record it under" };
   const item = ws.item.id;
@@ -451,11 +479,21 @@ function recordArtifact(ws: Workspace, root: string, req: Extract<BridgeRequest,
   if (where === "") return { ok: false, reason: "where is empty: give the link's address or the file's path" };
   if (req.kind === "link") {
     if (!/^https?:\/\//i.test(where)) return { ok: false, reason: "a link's where is its http(s) address" };
+    // Its name: the one given; else the published page's title (a page's <title>, a data file's "title"); else the one the table has; else its file's name.
     let name = req.name?.trim() ?? "";
-    if (name === "" && req.page !== undefined) { try { name = pageTitle(readText(resolve(root, req.page))) ?? ""; } catch { /* named by its address */ } }
-    if (name === "" && req.page !== undefined) name = basename(req.page).replace(/\.[^.]*$/, "");
-    recordLink(ws.journalBase, item, { name, url: where, ...(req.version !== undefined && req.version !== "" ? { version: req.version } : {}), at: new Date().toISOString() });
+    if (name === "" && req.page !== undefined) { try { name = titleOf(readText(resolve(root, req.page))) ?? ""; } catch { /* named otherwise */ } }
+    const fallback = req.page !== undefined ? basename(req.page).replace(/\.[^.]*$/, "") : undefined;
+    recordLink(ws.journalBase, item, { name, ...(fallback !== undefined ? { fallback } : {}), url: where, ...(req.version !== undefined && req.version !== "" ? { version: req.version } : {}), at: new Date().toISOString() });
     return { ok: true, text: `Recorded the link under ${item}'s artifacts.` };
+  }
+  // An upload: its bytes, named by its file's name under upload/.
+  if (req.data !== undefined) {
+    const bytes = Buffer.from(req.data, "base64");
+    if (bytes.length === 0) return { ok: false, reason: "data is empty" };
+    const own = req.name?.trim().split(/[\\/]/).at(-1) ?? "";
+    const name = `${UPLOAD_PREFIX}${own !== "" ? own : `upload-${createHash("sha256").update(bytes).digest("hex").slice(0, 8)}${EXT_OF[req.mediaType ?? ""] ?? ""}`}`;
+    const given = recordBytes(ws.journalBase, item, { name, bytes, kind: req.kind, at: new Date().toISOString() });
+    return { ok: true, text: given !== undefined ? `Recorded ${name} under ${item}'s artifacts.` : "Nothing new to record: these bytes are recorded already." };
   }
   const row = recordFile(root, ws.journalBase, item, where, req.kind);
   return row !== undefined
@@ -670,7 +708,7 @@ function answer(req: BridgeRequest): BridgeResponse {
       return ok(view, { attention: { ahead: branchesAhead(root), prs: openPullRequests(root) }, host: hostOf(root), sessions: join(journalBaseOf(root), GEML_DIR, SESSIONS_DIR) });
     }
     case "artifacts": {
-      syncArtifacts(ws, root);
+      syncArtifacts(ws, root, req.elsewhere);
       return ok(ws.view());
     }
     case "artifact": {

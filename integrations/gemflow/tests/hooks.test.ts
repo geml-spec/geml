@@ -443,7 +443,7 @@ test('the board draws its header and its five tabs on every surface, opening on 
   await $.command.run({ command: 'gemflow', args: 'board', origin: COMPOSER, presentation: PRESENTATION })
   for (const surface of ['terminal', 'desktop', 'vscode', 'mobile'] as const) {
     const pane = await $.ui.mount({ plugin: 'gemflow', surface, component: 'Pane', requestId: 'gemflow-board', props: PANE })
-    for (const key of ['tab-sessions', 'tab-flow', 'tab-items', 'tab-journal', 'tab-tools', 'dialog-share', 'dialog-settings', 'dialog-upgrade', 'dialog-about', 'pause']) {
+    for (const key of ['tab-sessions', 'tab-flow', 'tab-items', 'tab-journal', 'tab-tools', 'dialog-share', 'dialog-settings', 'dialog-upgrade', 'dialog-about']) {
       expect(await pane.find({ type: 'Button', key })).toBeDefined()
     }
     expect(await pane.find({ type: 'Button', key: 'tab-pending' }), 'what waits is on the work items tab, not a tab of its own').toBeUndefined()
@@ -831,16 +831,16 @@ test('the board opens on its press: a board not read yet is read behind the open
   await band.unmount()
 })
 
-test('pause and resume from the board header; the band says so and offers only resume', async ($, on) => {
+test('pause and resume: no button on the board header; /gemflow pause holds it, the band says so and offers only resume', async ($, on) => {
   const w = world(on)
   await start($, on)
   await $.command.run({ command: 'gemflow', args: 'board', origin: COMPOSER, presentation: PRESENTATION })
   const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
-  await pane.press({ key: 'pause' })
+  expect(await pane.find({ type: 'Button', key: 'pause' }), 'no pause on the header').toBeUndefined()
+  expect((await $.command.run({ command: 'gemflow', args: 'pause', origin: COMPOSER, presentation: PRESENTATION })).text).toMatch(/^已暂停。\n/)
   expect(w.sent.filter((r) => r.op === 'pause')).toHaveLength(1)
   expect(await pane.find({ type: 'Text', text: 'build · 已暂停' })).toBeDefined()
-  expect(await pane.find({ type: 'Button', key: 'resume' })).toBeDefined()
-  expect(await pane.find({ type: 'Button', key: 'pause' })).toBeUndefined()
+  expect(await pane.find({ type: 'Button', key: 'resume' }), 'no resume on the header either: the band has it').toBeUndefined()
   expect(await bandText($)).toBe('» 已暂停 feat/x · 模型推不动，证据照记 [继续] [看板]')
   const band = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'AbovePrompt', props: BAND })
   expect((await band.findAll({ type: 'Button' })).map((b) => b.key)).toEqual(['band-mark-open', 'title', 'resume', 'board'])
@@ -1237,7 +1237,7 @@ test('the project record: a prompt opens a turn in this session\'s log, the mode
   ])
 })
 
-test('a page the Artifact tool published is a artifact of the work item, named by its title; the model records a link of its own with the artifact tool', async ($, on) => {
+test('a page the Artifact tool published is an artifact of the work item, named by its title; the model records a link of its own with the artifact tool', async ($, on) => {
   const w = world(on)
   const said = 'Published C:/s/page.html at https://claude.ai/artifact/AbC123 (Version 2, version id 1792086025-315b) Icon: "layout".'
   on('tool.call', { tool: 'Artifact' }, () => ({ result: said, text: said }))
@@ -1252,6 +1252,24 @@ test('a page the Artifact tool published is a artifact of the work item, named b
   const refused = await $.tool.call({ tool: 'mcp__gemflow__artifact', tool_use_id: 'p2', kind: 'video', where: 'x' })
   expect(String(refused.text ?? refused.result)).toMatch(/^Nothing recorded/)
   expect(w.sent.filter((r) => r.op === 'artifact').length).toBe(2)
+})
+
+test('a page or a picture written outside the project is an artifact at the turn\'s end; a script there is not', async ($, on) => {
+  const w = world(on)
+  on('tool.call', { tool: 'Write' }, () => ({ result: { type: 'create' }, text: 'written' }))
+  on('turn.complete', ($, e) => ({ text: e.answer }))
+  const clock = await start($, on)
+  await clock.advance(1)
+  await $.tool.call({ tool: 'Write', tool_use_id: 'w1', file_path: '/tmp/scratch/icon-a.svg', content: '<svg/>' })
+  await $.tool.call({ tool: 'Write', tool_use_id: 'w2', file_path: '/tmp/scratch/tool.mjs', content: 'export {}' })
+  await $.tool.call({ tool: 'Write', tool_use_id: 'w3', file_path: '/tmp/scratch/icon-a.svg', content: '<svg></svg>' })
+  await clock.advance(1)
+  await $.turn.complete({ answer: '画了一版图标。', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' })
+  await clock.advance(1)
+  expect(w.sent.filter((r) => r.op === 'artifacts').map((r) => r.elsewhere ?? null)).toEqual([['/tmp/scratch/icon-a.svg']])
+  await $.turn.complete({ answer: '没再写。', durationMs: 5, isAborted: false, turnId: 't2', reason: 'answer' })
+  await clock.advance(1)
+  expect(w.sent.filter((r) => r.op === 'artifacts').map((r) => r.elsewhere ?? null), 'each turn its own').toEqual([['/tmp/scratch/icon-a.svg'], null])
 })
 
 test('the other sessions\' decisions come beside the person\'s prompt, once each; this session\'s own never', async ($, on) => {

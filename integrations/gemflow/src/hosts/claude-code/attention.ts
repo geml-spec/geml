@@ -44,7 +44,7 @@ export interface AttentionMemory {
 }
 export const NO_MEMORY: AttentionMemory = { shown: [], age: {}, lastLead: "", backlog: [] };
 
-export type LeadKind = "ask" | "broken" | "you" | "back";
+export type LeadKind = "ask" | "broken" | "you";
 /** `step`: one of several asks in one reply, settled one by one — which, of how many. */
 export interface Lead { key: string; kind: LeadKind; text: string; options: string[]; step?: { index: number; of: number } }
 export interface Standing { key: string; kind: "broken" | "you"; short: string; text: string; options: string[]; quiet?: boolean }
@@ -212,7 +212,7 @@ export function leadOf(o: { reply: string; standing: readonly Standing[]; memory
 export function remember(memory: AttentionMemory, o: { reply: string; standing: readonly Standing[]; lead: Lead | null }): AttentionMemory {
   const keys = new Set(o.standing.map((s) => s.key));
   const shown = memory.shown.filter((k) => keys.has(k));
-  if (o.lead !== null && o.lead.kind !== "ask" && o.lead.kind !== "back" && !shown.includes(o.lead.key)) shown.push(o.lead.key);
+  if (o.lead !== null && o.lead.kind !== "ask" && !shown.includes(o.lead.key)) shown.push(o.lead.key);
   const age: Record<string, number> = {};
   for (const k of keys) age[k] = (memory.age[k] ?? 0) + 1;
   const backlog = [...memory.backlog];
@@ -233,7 +233,6 @@ const cut = (s: string, w: number): string => {
   for (const c of s) { if (cells(out + c) > w - 1) return `${out}…`; out += c; }
   return out;
 };
-const awayWords = (ms: number, t: T): string => (ms >= 3_600_000 ? t("{0} 小时", Math.round(ms / 3_600_000)) : t("{0} 分钟", Math.round(ms / 60_000)));
 
 /**
  * The band's line: the lead (or, back after a while, what became of the last
@@ -245,21 +244,13 @@ export function bandLine(o: {
   lead: Lead | null; standing: readonly Standing[]; memory: AttentionMemory; reply: string;
   /** Milliseconds since the reply; null when unknown. */
   awayMs: number | null;
-  /** The prompt the reply answered. */
-  asked?: string;
-  /** The reply was cut from the front (a replay keeping only its end). */
-  cutFromFront?: boolean;
   t?: T; width?: number;
 }): BandLine | null {
   const t = o.t ?? ZH;
   const width = o.width ?? WIDTH;
-  let lead = o.lead;
+  const lead = o.lead;
+  // How long the person was away is not news, nor a recap of the reply they can read: back after a while, only the steps about the work itself come back.
   const back = o.awayMs !== null && o.awayMs >= AWAY_MS;
-  const outcome = outcomeOf(o.reply, o.cutFromFront === true);
-  if (back && (lead === null || lead.kind !== "ask") && o.asked !== undefined && o.asked.trim() !== "" && outcome !== undefined) {
-    // What became of it is news, not a question: no button of its own.
-    lead = { key: "back", kind: "back", text: t("你走前让我「{0}」：{1}", clip(o.asked.replace(/<!--[^>]*-->|>[^\n]*\n?/g, ""), 10), clip(outcome, 40)), options: [] };
-  }
   // A standing condition rides along for its first turns; back after a while, the ones about the work itself come
   // back once (a pull request left green for days stays faded: it was seen, and left on purpose).
   const workItself = (s: Standing): boolean => s.kind === "broken" || /^(unpushed|uncommitted):/.test(s.key);
@@ -268,24 +259,23 @@ export function bandLine(o: {
   const owed = riding.filter((s) => !steps.includes(s)).map((s) => s.short);
   const waiting = o.memory.backlog.length;
   const options = lead !== null && lead.options.length > 0 ? lead.options : steps.length === 0 && owed.length + waiting > 0 ? [t("看看")] : [];
-  const awayNote = back && (lead !== null || waiting > 0 || owed.length > 0) && o.awayMs !== null ? t("你离开了 {0}", awayWords(o.awayMs, t)) : "";
   const tail = (named: boolean): string[] => [
     owed.length === 0 ? "" : named ? t("还差你：{0}", owed.join("、")) : t("还差你 {0} 步", owed.length),
     waiting > 0 ? t("还有 {0} 件待定", waiting) : "",
   ];
   // Nothing leads and nothing else is named: the line says what its buttons are.
-  const build = (a: string, named: boolean, l: string): string => {
-    const parts = [a, l, ...tail(named)].filter((x) => x !== "");
-    return (parts.length === 0 || (parts.length === 1 && parts[0] === a)) && steps.length > 0 ? [...parts, t("只差你这几步")].join(" · ") : parts.join(" · ");
+  const build = (named: boolean, l: string): string => {
+    const parts = [l, ...tail(named)].filter((x) => x !== "");
+    return parts.length === 0 && steps.length > 0 ? t("只差你这几步") : parts.join(" · ");
   };
   const room = width - cells([...options, ...steps.map((x) => x.short)].map((x) => `[${x}]`).join(" ")) - 1;
   const kind = lead?.kind ?? null;
-  for (const [a, named] of [[awayNote, true], ["", true], ["", false]] as const) {
-    const line = build(a, named, lead?.text ?? "");
+  for (const named of [true, false]) {
+    const line = build(named, lead?.text ?? "");
     if (cells(line) <= room) return line === "" && steps.length === 0 ? null : { text: line, options, lead: kind, steps };
   }
-  const leadRoom = Math.max(12, room - cells(build("", false, "")) - 3);
-  const line = build("", false, cut(lead?.text ?? "", leadRoom));
+  const leadRoom = Math.max(12, room - cells(build(false, "")) - 3);
+  const line = build(false, cut(lead?.text ?? "", leadRoom));
   return line === "" && steps.length === 0 ? null : { text: cells(line) <= room ? line : cut(line, room), options, lead: kind, steps };
 }
 
