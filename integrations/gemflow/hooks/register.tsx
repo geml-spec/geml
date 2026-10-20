@@ -1953,7 +1953,7 @@ export const register: Register = (on) => {
     if (wrotePath !== undefined && ran.isError !== true) { const path = wrotePath; $.clock.after(0, () => { void sessionsOnFile($, path) }) }
     // A page, a picture, a draft made for the person outside the project (a scratchpad): one of the work item's artifacts at the turn's end.
     const outside = wrotePath === undefined && ran.isError !== true && CLAUDE_CODE_TOOLS.write.includes(tool) ? writtenPath(tool, input) : undefined
-    if (outside !== undefined && isMadeForPeople(outside)) $.clock.after(0, () => { void update($, madeElsewhereAtom, (was) => [...new Set([...(((was as unknown) as string[] | null) ?? []), outside])] as unknown as GemflowJson).catch(() => undefined) })
+    if (outside !== undefined && isMadeForPeople(outside)) $.clock.after(0, () => { void update($, madeElsewhereAtom, (was) => [...new Set([...(was ?? []), outside])]).catch(() => undefined) })
     const exitCode = CLAUDE_CODE_TOOLS.run.includes(tool) ? bashExitCode(ran) : undefined
     const outcome = {
       isError: ran.isError === true,
@@ -1975,7 +1975,7 @@ export const register: Register = (on) => {
     // The call's result does not wait on gemflow: AFTER_WAIT_MS at most. The evidence is recorded meanwhile; a stage it
     // moved reaches the model with the next prompt, as a stage moved between prompts does.
     const pending = bridge($, { op: 'after', tool, callId: e.tool_use_id, input: bridgeInput(input), ...outcome, cwd: from, ...(delivered !== null ? { delivered } : {}) })
-    const res = await Promise.race([pending, $.clock.sleep(AFTER_WAIT_MS).then(() => LATE)])
+    const res = await Promise.race([pending, $.clock.sleep(AFTER_WAIT_MS).then((): typeof LATE => LATE)])
     if (res === LATE) {
       void pending.then(settled).catch(() => undefined)
       return ran
