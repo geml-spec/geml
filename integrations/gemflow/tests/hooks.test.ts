@@ -372,7 +372,7 @@ test('a use fenced to another state refuses through the bridge; a broken bridge 
   const w = world(on)
   w.state = 'review'
   on('tool.call', { tool: 'Edit' }, () => ({ result: { filePath: `${ROOT}/a.ts` }, text: 'edited' }))
-  await start($, on)
+  const clock = await start($, on)
   const refused = await $.tool.call({ tool: 'Edit', tool_use_id: 'e1', file_path: `${ROOT}/a.ts`, old_string: 'a', new_string: 'b' })
   expect(refused.deny ?? refused.text ?? '').toMatch(/Edit is edit, which is used only in #build; the workflow is in #review/)
   expect(w.sent.at(-1)).toMatchObject({ op: 'before', tool: 'Edit', input: { file_path: `${ROOT}/a.ts` } })
@@ -384,7 +384,12 @@ test('a use fenced to another state refuses through the bridge; a broken bridge 
   await band.unmount()
   expect((await $.tool.call({ tool: 'Edit', tool_use_id: 'e3', file_path: `${ROOT}/a.ts`, old_string: 'a', new_string: 'b' })).text).toBe('edited')
   band = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'AbovePrompt', props: BAND })
-  expect(await band.find({ type: 'Text', text: /暂时没应答，不拦操作/ }), 'two in a row: said, and that nothing is held up').toBeDefined()
+  expect(await band.find({ type: 'Text', text: /暂时没应答/ }), 'two in a row on a busy machine: still no news').toBeUndefined()
+  await band.unmount()
+  await clock.advance(120_000)
+  expect((await $.tool.call({ tool: 'Edit', tool_use_id: 'e3b', file_path: `${ROOT}/a.ts`, old_string: 'a', new_string: 'b' })).text).toBe('edited')
+  band = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+  expect(await band.find({ type: 'Text', text: /暂时没应答，不拦操作/ }), 'none back for two minutes: said, and that nothing is held up').toBeDefined()
   await band.unmount()
 
   // An answer with no shell (the CLI's request threw) says nothing about the workflow: the call goes through, the band

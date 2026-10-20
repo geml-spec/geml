@@ -237,9 +237,14 @@ async function findNode($: EngineInterface): Promise<{ node: string } | { proble
   return { problem: seen !== undefined ? `gemflow：Node ${seen} 太旧，需要 Node ≥ 22` : 'gemflow：找不到 node — 请安装 Node ≥ 22' }
 }
 
-/** The requests in a row that did not come back, one per tool call (its before and its after are one): the band says so from the second. */
-const missed = new Set<string>()
-let requests = 0
+/**
+ * Since when the bridge has not answered (the first request of the run that
+ * did not come back), or undefined while it answers. A busy machine is no
+ * news: the band says so only once none has come back for QUIET_MS; a board
+ * or an export the person asked for says so at once.
+ */
+let missedSince: number | undefined
+const QUIET_MS = 120_000
 /** How long a finished tool call waits for its evidence to be recorded before its result goes on regardless. */
 const AFTER_WAIT_MS = 2_000
 /** What a race with `$.clock.sleep` gives when the sleep ends first. */
@@ -258,11 +263,12 @@ async function bridge($: EngineInterface, op: BridgeOp, timeoutMs: number = BRID
   try {
     out = await $.process.run([node, `${$.plugin.root}/dist/gemflow.mjs`, 'hook'], { cwd: root, stdin: encodeRequest(request), timeoutMs })
   } catch (err) {
-    missed.add('callId' in op && typeof op.callId === 'string' ? op.callId : `request-${++requests}`)
-    if (missed.size >= 2 || op.op === 'board' || op.op === 'export') await update($, problemAtom, () => `gemflow：暂时没应答，不拦操作（${reasonOf(err)}）`)
+    const now = await $.clock.now()
+    missedSince ??= now
+    if (now - missedSince >= QUIET_MS || op.op === 'board' || op.op === 'export') await update($, problemAtom, () => `gemflow：暂时没应答，不拦操作（${reasonOf(err)}）`)
     return undefined
   }
-  missed.clear()
+  missedSince = undefined
   const res = decodeResponse(out.stdout)
   if (res === undefined) {
     await update($, problemAtom, () => unreadableText(out.exitCode, out.stderr, $.plugin.root))
