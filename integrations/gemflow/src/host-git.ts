@@ -81,8 +81,8 @@ export function repoFacts(root: string): RepoFacts {
   let head = run("git", ["rev-parse", "--abbrev-ref", "HEAD"], root);
   // A git that did not answer (a busy machine) is asked once more, given longer; still silent, it says nothing of the branch —
   // never that the branch has no commits, which would take the work item away and refuse what is done on it.
-  if (!head.ok && head.error !== undefined) head = run("git", ["rev-parse", "--abbrev-ref", "HEAD"], root, true, 3 * TIMEOUT_MS);
-  if (!head.ok && head.error !== undefined) return { unanswered: true };
+  if (!head.ok && head.error === "ETIMEDOUT") head = run("git", ["rev-parse", "--abbrev-ref", "HEAD"], root, true, 3 * TIMEOUT_MS);
+  if (!head.ok && head.error === "ETIMEDOUT") return { unanswered: true };
   if (!head.ok || head.out === "") {
     // A repository whose branch has no commit yet: rev-parse has no HEAD to resolve, but symbolic-ref still reads the branch's name.
     const unborn = run("git", ["symbolic-ref", "--short", "-q", "HEAD"], root);
