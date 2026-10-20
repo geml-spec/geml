@@ -191,9 +191,9 @@ const readSettings = async ($: EngineInterface): Promise<Settings> => settingsFr
 
 /** The words in the language chosen: the setting, else the CLI's locale, else the host's LANG. */
 async function words($: EngineInterface): Promise<T> {
-  const s = await readSettings($)
-  const shell = await readShell($)
-  return wordsFor(langOf(s.language, shell?.locale ?? (await read($, localeAtom)) ?? undefined))
+  // Read at once: every drawing starts here, and each read is a trip to the host.
+  const [s, shell, locale] = await Promise.all([readSettings($), readShell($), read($, localeAtom)])
+  return wordsFor(langOf(s.language, shell?.locale ?? locale ?? undefined))
 }
 
 /**
@@ -409,19 +409,18 @@ const readAttention = async ($: EngineInterface): Promise<Attention | null> => (
 
 /** The repository's facts for the band, with the reload a command made due. */
 async function factsNow($: EngineInterface): Promise<AttentionFacts> {
-  const f = ((await read($, factsAtom)) as unknown as AttentionFacts | null) ?? NO_FACTS
-  return (await read($, reloadAtom)) ? { ...f, reload: true } : f
+  const [kept, reload] = await Promise.all([read($, factsAtom), read($, reloadAtom)])
+  const f = (kept as unknown as AttentionFacts | null) ?? NO_FACTS
+  return reload ? { ...f, reload: true } : f
 }
 
 /** What the band and the board's 此刻 show now: the lead, the standing steps, the memory, the line. Reads only. */
 async function attentionNow($: EngineInterface, t: T) {
-  const a = await readAttention($)
-  const facts = await factsNow($)
-  const now = await $.clock.now()
+  // Everything at once: the band and the board's 此刻 wait on the slowest read, not on the sum of them.
+  const [a, facts, now, clients, origin, unavailable] = await Promise.all([readAttention($), factsNow($), $.clock.now(), read($, clientsAtom), read($, originAtom), read($, reloadUnavailableAtom)])
   const reply = a !== null && !a.consumed ? a.reply : ''
   const memory = a?.memory ?? NO_MEMORY
   // A reload is the machine's: over a remote connection, or once the engine said it cannot run here, it is named with no button.
-  const [clients, origin, unavailable] = await Promise.all([read($, clientsAtom), read($, originAtom), read($, reloadUnavailableAtom)])
   const remote = remoteInPlay({ clients: (clients as unknown as AttachedClient[] | null) ?? [], ...(origin !== null ? { origin } : {}) })
   const standing = standingOf(reply, facts, now, t, { reloadHere: !remote && !unavailable })
   const lead = a === null || a.consumed ? null : leadOf({ reply, standing, memory, picks: a.picks ?? [], t })
@@ -821,7 +820,8 @@ async function usageNow($: EngineInterface): Promise<Record<string, number>> {
  * (storeUsage), so a tool call, which notes its use, redraws neither the band nor the board.
  */
 async function usageDrawn($: EngineInterface): Promise<Record<string, number>> {
-  return usesSince(((await read($, usageBookAtom)) as unknown as UsageBook | null) ?? {}, await nowIso($), USAGE_DAYS_SHOWN)
+  const [book, now] = await Promise.all([read($, usageBookAtom), nowIso($)])
+  return usesSince((book as unknown as UsageBook | null) ?? {}, now, USAGE_DAYS_SHOWN)
 }
 
 /** What this session added goes into the store, merged with what other sessions stored meanwhile. */
@@ -961,8 +961,13 @@ function marketplaceOf(root: string): string | undefined {
 
 async function openBoard($: EngineInterface, tab?: BoardTab): Promise<{ isPlaced: boolean; reason?: string }> {
   if (tab !== undefined) await update($, tabAtom, () => tab)
-  if ((await readBoard($)) === null) await loadBoard($)
-  return $.ui.open({ id: BOARD_ID, title: PANE_TITLE })
+  const opened = await $.ui.open({ id: BOARD_ID, title: PANE_TITLE })
+  // Open first: a board not read yet is read behind it, the pane saying 正在读取看板… meanwhile (a read that fails says why again).
+  if ((await readBoard($)) === null) {
+    await update($, boardProblemAtom, () => null)
+    $.clock.after(0, () => { void loadBoard($) })
+  }
+  return opened
 }
 
 /** The newest published version, asked once per session. */
@@ -988,13 +993,11 @@ async function loadWorkflows($: EngineInterface): Promise<void> {
 }
 
 async function openDialog($: EngineInterface, dialog: Dialog | null): Promise<void> {
-  await update($, dialogAtom, () => dialog)
-  await update($, sharedTextAtom, () => null)
+  const [, , t] = await Promise.all([update($, dialogAtom, () => dialog), update($, sharedTextAtom, () => null), words($)])
   if (dialog === null) {
     await $.ui.close({ id: DIALOG_ID })
     return
   }
-  const t = await words($)
   const title = dialog === 'settings' ? t('设置') : dialog === 'upgrade' ? t('升级') : dialog === 'about' ? t('关于') : t('分享')
   await $.ui.open({ id: DIALOG_ID, title, focus: true, closeOnEscape: true, holdToasts: true })
   if (dialog === 'settings') void loadWorkflows($)
@@ -1729,22 +1732,24 @@ async function dialogRows($: EngineInterface, t: T, dialog: Dialog, columns: num
   const section = (key: string, s: string): BoardRow => ({ kind: 'section', key, text: s })
   const toggle = (label: string, key: string, on: boolean): Pressable => ({ key: `set-${key}`, label: `${on ? '[x]' : '[ ]'} ${label}`, action: { op: 'setting', key, value: !on } })
   const rows: BoardRow[] = []
-  const shell = await readShell($)
-  const version = shell?.versions?.gemflow ?? (await read($, versionAtom)) ?? '?'
+  const [shell, stored, s, locale, known, picked, shown, status] = await Promise.all([
+    readShell($), read($, versionAtom), readSettings($), read($, localeAtom), read($, latestAtom), read($, shareAtom), read($, sharedTextAtom),
+    dialog === 'share' ? shareStatus($, t) : Promise.resolve(''),
+  ])
+  const version = shell?.versions?.gemflow ?? stored ?? '?'
   if (dialog === 'settings') {
-    const s = await readSettings($)
     if (terminal) rows.push(section('notify', t('桌面提醒')),
       { kind: 'buttons', items: [toggle(t('有事等你定或验收时'), 'notify.inbox', s.notify.inbox)] },
       { kind: 'buttons', items: [toggle(t('模型被拦时'), 'notify.refusal', s.notify.refusal)] }, text(`    ${t('同一原因 3 分钟内只提一次')}`, 'dim'),
       { kind: 'buttons', items: [toggle(t('阶段变更时'), 'notify.stage', s.notify.stage)] })
     rows.push(section('judge', t('判定')), { kind: 'buttons', items: [toggle(t('每一轮判定：打字就是按按钮'), 'judge.enabled', s.judge.enabled)] }, text(t('你发的话像是在选待处理里的某一项时，替你按下（有把握）或先问一句（没把握）；用一个小模型判断。'), 'dim'))
-    const system = langOf('system', shell?.locale ?? (await read($, localeAtom)) ?? undefined)
+    const system = langOf('system', shell?.locale ?? locale ?? undefined)
     const names: Record<string, string> = { zh: '中文', en: 'English', ja: '日本語' }
     rows.push(section('language', t('语言')), { kind: 'buttons', items: ([['system', t('跟随系统（{0}）', names[system] ?? system)], ['zh', '中文'], ['en', 'English'], ['ja', '日本語']] as const).map(([v, label]): Pressable => ({ key: `lang-${v}`, label, ...(s.language === v ? { primary: true } : {}), action: { op: 'setting', key: 'language', value: v } })) })
     rows.push(text(t('状态带、看板、提醒的文字跟着换；流程自己的标题和说明保持作者写的语言。'), 'dim'))
     rows.push(text(t('流程在「流程」页换和调整，工具在「工具」页归类，都写回仓库里的文件。'), 'dim'))
   } else if (dialog === 'upgrade') {
-    const latest = (await read($, latestAtom)) as unknown as { version?: string; error?: string } | null
+    const latest = known as unknown as { version?: string; error?: string } | null
     rows.push({ kind: 'heading', key: 'version', text: t('当前 {0}', version), sub: '' })
     if (latest === null) rows.push(text('…', 'dim'))
     else if (latest.version !== undefined) rows.push(isNewer(latest.version, version) ? text(t('● 可更新 {0}', latest.version), 'warning') : latest.version === version ? text(t('已是最新'), 'success') : text(t('已发布 {0}', latest.version), 'dim'))
@@ -1763,7 +1768,7 @@ async function dialogRows($: EngineInterface, t: T, dialog: Dialog, columns: num
     rows.push({ kind: 'link', key: 'link-changelog', href: LINKS.changelog, label: t('完整 CHANGELOG') })
     if (market !== undefined) rows.push(text(t('装在 marketplace {0}', market), 'dim'))
     rows.push(text(t('更新后下一个会话生效；本会话不受影响'), 'dim'))
-    rows.push({ kind: 'buttons', items: [toggle(t('有新版本时在看板上提示'), 'notify.update', (await readSettings($)).notify.update)] })
+    rows.push({ kind: 'buttons', items: [toggle(t('有新版本时在看板上提示'), 'notify.update', s.notify.update)] })
   } else if (dialog === 'about') {
     rows.push({ kind: 'image', key: 'lockup', svg: LOCKUP_SVG, alt: 'Gemflow', width: 180 })
     rows.push(text(t('写下一条提示词之前，要看的都在一处：在做什么、等你定什么、做出了什么。流程用 GEML 写，可以换、可以调，也可以导入自己的。')))
@@ -1771,9 +1776,9 @@ async function dialogRows($: EngineInterface, t: T, dialog: Dialog, columns: num
     rows.push(text(t('流程格式 geml-statechart/v1'), 'dim'), text(t('许可 MIT'), 'dim'))
     rows.push({ kind: 'link', key: 'link-spec', href: LINKS.spec, label: t('规范与文档') }, { kind: 'link', key: 'link-repo', href: LINKS.repo, label: t('仓库') }, { kind: 'link', key: 'link-feedback', href: LINKS.feedback, label: t('反馈') })
   } else {
-    const choice = ((await read($, shareAtom)) as unknown as { what: ShareWhat; how: ShareHow; strip: boolean } | null) ?? { what: 'status', how: 'copy', strip: true }
-    const s = shell?.status
-    if (s?.item.kind === 'item') rows.push({ kind: 'heading', key: 'share-title', text: t('分享 {0}', s.title ?? s.item.id), sub: '' })
+    const choice = (picked as unknown as { what: ShareWhat; how: ShareHow; strip: boolean } | null) ?? { what: 'status', how: 'copy', strip: true }
+    const here = shell?.status
+    if (here?.item.kind === 'item') rows.push({ kind: 'heading', key: 'share-title', text: t('分享 {0}', here.title ?? here.item.id), sub: '' })
     const whats: [ShareWhat, string, string][] = [
       ['status', t('现在在哪'), t('工作项走到哪、等你定和验收的事、最近的产物')],
       ['journal', t('这个工作项的记录'), t('每次阶段变更、凭据、产物、被拦，带哈希链，对方能校验')],
@@ -1784,14 +1789,13 @@ async function dialogRows($: EngineInterface, t: T, dialog: Dialog, columns: num
     for (const [what, label, note] of whats) rows.push({ kind: 'button', key: `what-${what}`, label: `${choice.what === what ? '(•)' : '( )'} ${label}  ${note}`, action: { op: 'share-pick', what } as unknown as BoardAction })
     rows.push(section('how', t('怎么给')), { kind: 'buttons', items: ([['copy', terminal ? t('复制文字') : t('显示文字')], ['file', t('存成文件')], ['pr', t('PR 评论')]] as const).map(([how, label]): Pressable => ({ key: `how-${how}`, label, ...(choice.how === how ? { primary: true } : {}), action: { op: 'share-pick', how } as unknown as BoardAction })) })
     if (choice.what === 'status') {
-      for (const line of (await shareStatus($, t)).split('\n')) if (line !== '') rows.push(text(`  ${line}`, 'dim'))
+      for (const line of status.split('\n')) if (line !== '') rows.push(text(`  ${line}`, 'dim'))
     }
     rows.push({ kind: 'buttons', items: [{ key: 'strip', label: `${choice.strip ? '[x]' : '[ ]'} ${t('去掉命令行里的绝对路径')}`, action: { op: 'share-pick', strip: !choice.strip } as unknown as BoardAction }] })
     rows.push({ kind: 'buttons', items: [
       { key: 'share-cancel', label: t('取消'), action: { op: 'dialog', dialog: null } },
       { key: 'share-go', label: choice.how === 'copy' ? (terminal ? t('复制') : t('显示')) : choice.how === 'file' ? t('存成文件') : t('发 PR 评论'), primary: true, action: { op: 'share', what: choice.what, how: choice.how, strip: choice.strip } },
     ] })
-    const shown = await read($, sharedTextAtom)
     if (shown !== null && shown !== '') rows.push(text(t('选中后复制'), 'dim'), { kind: 'prose', key: 'shared-text', text: shown })
   }
   return rows
@@ -1799,10 +1803,9 @@ async function dialogRows($: EngineInterface, t: T, dialog: Dialog, columns: num
 
 /** Where the work stands, as the share dialog says it: the same pending list as the band's, and what the work made. */
 async function shareStatus($: EngineInterface, t: T): Promise<string> {
-  const shell = await readShell($)
-  const board = await readBoard($)
+  const [shell, board, inbox, usage, dismissed] = await Promise.all([readShell($), readBoard($), inboxOf($, t), usageNow($), dismissedOf($)])
   const item = shell?.status?.item
-  const pending = pendingList(await inboxOf($, t), [...othersWaiting(board, item?.kind === 'item' ? item.id : undefined, t), ...(board !== null ? toolSuggestions(board, await usageNow($), await dismissedOf($), t) : [])])
+  const pending = pendingList(inbox, [...othersWaiting(board, item?.kind === 'item' ? item.id : undefined, t), ...(board !== null ? toolSuggestions(board, usage, dismissed, t) : [])])
   return statusShareText(shell, pending, board?.artifacts, t)
 }
 

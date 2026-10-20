@@ -78,6 +78,9 @@ function world(on: On) {
     items: [] as Record<string, unknown>[],
     /** While set, an `after` request is held until it settles: a bridge slow to answer. */
     hold: null as Promise<void> | null,
+    /** A board op held until it resolves; `boardless`: the board op answers with no board. */
+    holdBoard: null as Promise<void> | null,
+    boardless: false,
     /** The work items that have a journal: a handoff to one of them is a return, to any other a new item. */
     journals: new Set(['feat/x']),
     /** When set, review → done needs a person (APPROVAL). */
@@ -186,7 +189,7 @@ function world(on: On) {
       return { v: 1, ok: true, shell: shell(), text: '{"to":"review"}', context: stage() }
     }
     if (req.op === 'verb') return { v: 1, ok: true, shell: shell(), text: `[gemflow] work item feat/x · state #${w.state}` }
-    if (req.op === 'board') return { v: 1, ok: true, shell: shell(), board: board(), todo: w.todo }
+    if (req.op === 'board') return w.boardless ? { v: 1, ok: true, shell: shell() } : { v: 1, ok: true, shell: shell(), board: board(), todo: w.todo }
     if (req.op === 'artifact') return { v: 1, ok: true, shell: shell(), text: `Recorded the link under feat/x's artifacts.` }
     if (req.op === 'refresh') return { v: 1, ok: true, shell: shell(), todo: w.todo }
     if (req.op === 'status' && w.sessionsDir !== null) return { v: 1, ok: true, shell: shell(), sessions: w.sessionsDir }
@@ -196,6 +199,7 @@ function world(on: On) {
   const ran = (stdout: string, exitCode = 0) => ({ exitCode, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false })
   on('process.run', async ($, e) => {
     if (e.argv[2] === 'hook' && w.hold !== null && (JSON.parse(e.init?.stdin ?? '{}') as Req).op === 'after') await w.hold
+    if (e.argv[2] === 'hook' && w.holdBoard !== null && (JSON.parse(e.init?.stdin ?? '{}') as Req).op === 'board') await w.holdBoard
     if (e.argv[1] === '--version') return w.node ? { value: ran('v24.1.0\n') } : { deny: 'spawn node ENOENT' }
     if (e.argv[0] === '/bin/sh') return { value: ran('', 1) }
     // git's answer for the checkout a directory is in: the deepest `.git` entry at or above it.
@@ -800,6 +804,31 @@ test('the band offers the board whenever there is a workflow, nothing waiting or
     expect(w.opened, surface).toBe(before + 1)
     await again.unmount()
   }
+})
+
+test('the board opens on its press: a board not read yet is read behind the open pane, which says so meanwhile', async ($, on) => {
+  const w = world(on)
+  w.boardless = true
+  const clock = await start($, on)
+  w.boardless = false
+  let release = (): void => undefined
+  w.holdBoard = new Promise<void>((r) => { release = r })
+  const band = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+  const before = w.opened
+  const boards = w.sent.filter((r) => r.op === 'board').length
+  const pressing = band.press({ key: 'board' })
+  await clock.advance(1)
+  expect(w.opened, 'open at once, the board still being read').toBe(before + 1)
+  expect(w.sent.filter((r) => r.op === 'board').length, 'its read not answered yet').toBe(boards)
+  const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  expect(shown((await pane.drawn()) as unknown as Drawn).join(' ')).toMatch(/正在读取看板…/)
+  release()
+  await pressing
+  await clock.advance(1)
+  expect(w.sent.filter((r) => r.op === 'board').length).toBe(boards + 1)
+  expect(shown((await pane.drawn()) as unknown as Drawn).join(' ')).not.toMatch(/正在读取看板…/)
+  await pane.unmount()
+  await band.unmount()
 })
 
 test('pause and resume from the board header; the band says so and offers only resume', async ($, on) => {
