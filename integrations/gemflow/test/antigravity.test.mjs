@@ -27,6 +27,11 @@ test("the transcript: the prompt inside <USER_REQUEST>, the prompts after a step
 test("the hooks into the project's record: a session's log and its note tool told; a prompt as a turn with the other sessions' decisions beside it; a file, a commit and the answer", () => {
   const home = mkdtempSync(join(tmpdir(), "gemflow-agy-home-"));
   const root = gitRepo();
+  // `git log --since` counts whole seconds, and the repository's init commit is made in the same second as the
+  // prompt: dated a minute back, on both branches, it is not the turn's commit.
+  const minuteAgo = new Date(Date.now() - 60_000).toISOString();
+  spawnSync("git", ["-C", root, "commit", "-q", "--amend", "--allow-empty", "--no-edit"], { env: { ...process.env, GIT_AUTHOR_DATE: minuteAgo, GIT_COMMITTER_DATE: minuteAgo } });
+  spawnSync("git", ["-C", root, "branch", "-f", "main", "HEAD"]);
   const transcript = join(home, "transcript_full.jsonl");
   const ev = (extra = {}) => JSON.stringify({ conversationId: "conv-1", workspacePaths: [root.split("\\").join("/")], transcriptPath: transcript, modelName: "m", ...extra });
   const log = () => parseLog(readFileSync(join(sessionsDirOf(root), logName("antigravity", "conv-1")), "utf8"));
