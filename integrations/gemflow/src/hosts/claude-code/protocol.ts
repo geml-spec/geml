@@ -11,6 +11,7 @@ import type { Status } from "../../workspace.js";
 import type { Suggestion } from "../../project.js";
 import type { AttentionFacts } from "./attention.js";
 import type { HostInfo } from "./env.js";
+import type { Transcript } from "../../core/transcript.js";
 
 export type { VerbName } from "../../core/verb-specs.js";
 
@@ -75,7 +76,26 @@ export type BridgeOp =
    * dialog, a session export). `strip` takes the project's and the home
    * directory's absolute paths out of the text first.
    */
-  | { op: "export"; kind: "journal" | "workflow" | "text"; format: "geml" | "md" | "json"; name?: string; text?: string; strip?: boolean };
+  | { op: "export"; kind: "journal" | "workflow" | "text"; format: "geml" | "md" | "json"; name?: string; text?: string; strip?: boolean }
+  /** The host's transcripts of this project's checkouts (transcript.ts), newest first; `transcripts` is the folder they are under (a test's), else ~/.claude/projects. */
+  | { op: "backfill-list"; transcripts?: string }
+  /**
+   * One transcript into the shared session record and the work items'
+   * artifacts. `own`: the session asking, whose log the hooks module alone
+   * writes — the turns come back for it to put before the log's own.
+   */
+  | { op: "backfill-one"; file: string; own?: boolean; transcripts?: string }
+  /** The prompt rows the host's transcript of `session` still holds, by uuid: what the sessions tab and the record keep after turns were removed or split away. */
+  | { op: "turn-ids"; session: string; transcripts?: string };
+
+/** A transcript the host keeps: its file, the session's id (the file's name), its size. */
+export interface TranscriptFile { file: string; id: string; size: number }
+
+/** backfill-list: the transcripts; backfill-one: what one added (`skipped`: a session still writing its own log); turn-ids: the prompt rows a transcript holds. */
+export type Backfill =
+  | { sessions: TranscriptFile[] }
+  | { uuids: string[] }
+  | { id: string; turns: number; files: number; links: number; skipped?: boolean; transcript?: Transcript };
 
 export type BridgeRequest = { v: 1; root: string; lastFile?: string; gh?: GhSeen } & BridgeOp;
 
@@ -257,6 +277,8 @@ export type BridgeResponse =
       host?: HostInfo;
       /** The directory of the project's shared session logs (session-log.ts): the main working tree's .geml/sessions/. */
       sessions?: string;
+      /** backfill-list and backfill-one: the transcripts, or what one added. */
+      backfill?: Backfill;
     }
   /** No shell only when the request itself failed — it threw, or did not decode: the hooks module keeps the last shell and shows the error. */
   | { v: 1; ok: false; error: string; shell?: ShellStatus };
@@ -292,7 +314,7 @@ export function unreadableText(exitCode: number, stderr: string, pluginRoot: str
   return `gemflow：桥接的应答无法解析（退出码 ${exitCode}${said ? `：${said}` : ""}）`;
 }
 
-const OPS = new Set(["status", "refresh", "before", "after", "verb", "learn", "mark", "advance", "pause", "resume", "rollback", "new-item", "bind", "use", "add", "import", "board", "attention", "export", "artifacts", "artifact"]);
+const OPS = new Set(["status", "refresh", "before", "after", "verb", "learn", "mark", "advance", "pause", "resume", "rollback", "new-item", "bind", "use", "add", "import", "board", "attention", "export", "artifacts", "artifact", "backfill-list", "backfill-one", "turn-ids"]);
 const EXPORT_KINDS = new Set(["journal", "workflow", "text"]);
 const EXPORT_FORMATS = new Set(["geml", "md", "json"]);
 const VERBS = new Set(["status", "move", "set"]);
@@ -346,6 +368,9 @@ export function decodeRequest(text: string): BridgeRequest | { error: string } {
       && (v["name"] === undefined || str("name")) && (v["version"] === undefined || str("version")) && (v["page"] === undefined || str("page"))
       && (v["data"] === undefined || str("data")) && (v["mediaType"] === undefined || str("mediaType")),
     artifacts: () => v["elsewhere"] === undefined || (Array.isArray(v["elsewhere"]) && (v["elsewhere"] as unknown[]).every((p) => typeof p === "string")),
+    "backfill-list": () => v["transcripts"] === undefined || str("transcripts"),
+    "backfill-one": () => str("file") && v["file"] !== "" && (v["own"] === undefined || typeof v["own"] === "boolean") && (v["transcripts"] === undefined || str("transcripts")),
+    "turn-ids": () => str("session") && v["session"] !== "" && (v["transcripts"] === undefined || str("transcripts")),
   };
   const check = fields[op];
   if (check !== undefined && !check()) return { error: `op ${op}: missing or mistyped fields` };

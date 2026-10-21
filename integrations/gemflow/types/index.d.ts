@@ -20,6 +20,10 @@ declare module 'claude-code' {
       composed: boolean
       /** Whether a plugin above gemflow keeps prompt.compose from it (probed once a session; null until known). */
       composeCut: boolean | null
+      /** The initialization (the host's transcripts read into the shared record): its count while it runs, its outcome until the next prompt. */
+      init: { state: "running" | "done"; done: number; total: number; failed: number } | null
+      /** Whether the sessions tab lists every other session, or folds the rest after the first few. */
+      sessionsAll: boolean
       lastFile: string | null
       tab: GemflowTab
       /** Whether the work items tab lists the finished work items. */

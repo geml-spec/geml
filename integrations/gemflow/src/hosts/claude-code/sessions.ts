@@ -23,6 +23,8 @@ export interface PromptRecord {
   refusals: number;
   entered: string[];
   signals: string[];
+  /** Read back from the host's transcript (a turn before gemflow loaded), not recorded as it happened. */
+  backfilled?: boolean;
 }
 
 export interface PromptGroup { state?: string; from: string; to?: string; prompts: PromptRecord[] }

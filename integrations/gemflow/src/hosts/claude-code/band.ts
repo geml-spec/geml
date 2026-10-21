@@ -157,6 +157,8 @@ export interface BandInput {
   shell: ShellStatus | null;
   problem: string | null;
   setup: string | null;
+  /** A line of gemflow's own that stands in for the stage for a while: the initialization's count, then its outcome. */
+  notice?: { text: string; tone: Tone } | null;
   todo: TodoCount | null;
   /** The inbox, broken bridge first: its first item's actions are the band's. */
   inbox: readonly InboxItem[];
@@ -199,6 +201,7 @@ export function bandView(o: BandInput): BandView {
   // A bridge problem the inbox has not taken up yet: its words, nothing to press into it.
   if (o.problem !== null) return { ...none, title: o.problem, tone: "error", more };
   if (o.setup !== null) return { ...none, title: o.setup, tone: "error", more };
+  if (o.notice != null) return { ...none, title: o.notice.text, tone: o.notice.tone, more };
   const shell = o.shell;
   if (shell === null) return { ...none, title: t("启动中…"), tone: "dim" };
   const s = shell.status;

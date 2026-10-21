@@ -13,8 +13,10 @@ export const SESSIONS_DIR = "sessions";
 export const SESSIONS_GITIGNORE = "*\n";
 
 export type SessionEvent =
-  | { t: "session"; id: string; host: string; at: string; branch?: string; checkout?: string }
-  | { t: "prompt"; turn: number; at: string; text: string }
+  /** `backfilled`: read from the host's own transcript after the fact (transcript.ts), not recorded as it happened; `scheduled`: a scheduled task's session, by name. */
+  | { t: "session"; id: string; host: string; at: string; branch?: string; checkout?: string; backfilled?: boolean; scheduled?: string }
+  /** `uuid`: the prompt's row in the host's transcript, where known; `kind`: whose the prompt was when not the person's. */
+  | { t: "prompt"; turn: number; at: string; text: string; uuid?: string; backfilled?: boolean; kind?: "scheduled" | "peer" }
   | { t: "answer"; turn: number; at: string; text: string }
   | { t: "decision"; turn: number; at: string; text: string }
   | { t: "file"; turn: number; at: string; path: string; branch?: string }
@@ -97,7 +99,8 @@ export function currentTurn(events: readonly SessionEvent[]): number {
   return 0;
 }
 
-export interface SessionTurn { turn: number; at: string; prompt: string; answer?: string; decisions: string[] }
+/** `gist`: the answer's first sentence, kept by a reader that lets the answer itself go. */
+export interface SessionTurn { turn: number; at: string; prompt: string; answer?: string; gist?: string; decisions: string[]; uuid?: string; backfilled?: boolean; kind?: "scheduled" | "peer" }
 
 /** One session as the record holds it: who, where, when, and what it asked, decided and made. */
 export interface SessionSummary {
@@ -105,6 +108,9 @@ export interface SessionSummary {
   host: string;
   branch?: string;
   checkout?: string;
+  /** Read from the host's transcript after the fact; `scheduled` names the task whose session it was. */
+  backfilled?: boolean;
+  scheduled?: string;
   started: string;
   last: string;
   turns: SessionTurn[];
@@ -119,6 +125,7 @@ export function summarize(events: readonly SessionEvent[]): SessionSummary | und
   if (head === undefined) return undefined;
   const s: SessionSummary = {
     id: head.id, host: head.host, ...(head.branch !== undefined ? { branch: head.branch } : {}), ...(head.checkout !== undefined ? { checkout: head.checkout } : {}),
+    ...(head.backfilled === true ? { backfilled: true } : {}), ...(head.scheduled !== undefined ? { scheduled: head.scheduled } : {}),
     started: head.at, last: head.at, turns: [], decisions: [], files: [], commits: [],
   };
   const turn = (n: number, at: string): SessionTurn => {
@@ -130,7 +137,14 @@ export function summarize(events: readonly SessionEvent[]): SessionSummary | und
     if (e.at > s.last) s.last = e.at;
     switch (e.t) {
       case "session": break;
-      case "prompt": turn(e.turn, e.at).prompt = e.text; break;
+      case "prompt": {
+        const tn = turn(e.turn, e.at);
+        tn.prompt = e.text;
+        if (e.uuid !== undefined) tn.uuid = e.uuid;
+        if (e.backfilled === true) tn.backfilled = true;
+        if (e.kind !== undefined) tn.kind = e.kind;
+        break;
+      }
       case "answer": turn(e.turn, e.at).answer = e.text; break;
       case "decision": turn(e.turn, e.at).decisions.push(e.text); s.decisions.push({ turn: e.turn, at: e.at, text: e.text }); break;
       case "file": if (!s.files.some((f) => f.path === e.path)) s.files.push({ path: e.path, at: e.at, ...(e.branch !== undefined ? { branch: e.branch } : {}) }); break;
@@ -139,6 +153,30 @@ export function summarize(events: readonly SessionEvent[]): SessionSummary | und
   }
   s.turns.sort((a, b) => a.turn - b.turn);
   return s;
+}
+
+/** How close in time two prompts with the same words are one prompt recorded twice (live, and read back from the transcript): the same moment, seconds apart; a person repeats a sentence minutes apart. */
+export const SAME_PROMPT_MS = 30_000;
+
+/**
+ * A session's events with turns read from its transcript put before the ones
+ * it recorded live: the earlier turns, numbered from 1, go after the session
+ * line, and every turn recorded live moves up by as many. An earlier turn
+ * whose prompt is already there (the same words within five minutes) is left
+ * out, so reading the transcript again adds nothing.
+ */
+export function withEarlierTurns(events: readonly SessionEvent[], earlier: readonly SessionEvent[]): SessionEvent[] {
+  const prompts = events.filter((e): e is Extract<SessionEvent, { t: "prompt" }> => e.t === "prompt");
+  const there = (p: Extract<SessionEvent, { t: "prompt" }>): boolean =>
+    prompts.some((x) => x.text === p.text && Math.abs(Date.parse(x.at) - Date.parse(p.at)) < SAME_PROMPT_MS);
+  const renumbered = new Map<number, number>();
+  for (const e of earlier) if (e.t === "prompt" && !there(e)) renumbered.set(e.turn, renumbered.size + 1);
+  const k = renumbered.size;
+  if (k === 0) return [...events];
+  const kept = earlier.flatMap((e): SessionEvent[] => ("turn" in e && renumbered.has(e.turn) ? [{ ...e, turn: renumbered.get(e.turn) as number }] : []));
+  const shifted = events.map((e): SessionEvent => ("turn" in e ? { ...e, turn: e.turn + k } : e));
+  const head = shifted.findIndex((e) => e.t === "session");
+  return head < 0 ? [...kept, ...shifted] : [...shifted.slice(0, head + 1), ...kept, ...shifted.slice(head + 1)];
 }
 
 export interface SharedDecision { text: string; at: string; session: string; host: string; branch?: string }

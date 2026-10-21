@@ -212,7 +212,7 @@ export interface PaneInput {
   evidence: string | null;
   prompts: readonly PromptRecord[];
   /** The project's sessions as their shared logs hold them (session-log.ts), this one's id, and the other one unfolded (its id). */
-  project?: { sessions: readonly SessionSummary[]; own: string; open: string | null };
+  project?: { sessions: readonly SessionSummary[]; own: string; open: string | null; all?: boolean };
   /** Whether the surface can scroll the conversation to a prompt (the terminal); elsewhere a turn unfolds in place. */
   scrolls?: boolean;
   /** The turn unfolded on the session tab: its prompt's id and its answer as the log holds it. */
@@ -1068,7 +1068,9 @@ export function sessionRows(prompts: readonly PromptRecord[], menu: string | nul
 function turnRows(p: PromptRecord, until: string | undefined, commits: readonly { sha: string; at: string }[], menu: string | null, t: T, columns: number, unfold: { scrolls: boolean; expanded: { id: string; answer: string | null } | null } = { scrolls: true, expanded: null }): BoardRow[] {
   const shownWhole = unfold.expanded?.id === p.id;
   const made = commits.filter((c) => Date.parse(c.at) >= Date.parse(p.at) && (until === undefined || Date.parse(c.at) < Date.parse(until))).map((c) => c.sha.slice(0, 8)).reverse();
-  const did = [...made, p.did ?? (promptTail(p, t) || (until === undefined ? t("进行中…") : ""))].filter((x) => x !== "").join(" ");
+  const words = [...made, p.did ?? (promptTail(p, t) || (until === undefined && p.backfilled !== true ? t("进行中…") : ""))].filter((x) => x !== "").join(" ");
+  // A turn read back from the transcript (one before gemflow loaded) is marked so.
+  const did = p.backfilled === true ? [t("补录"), words].filter((x) => x !== "").join(" · ") : words;
   const open = menu === p.id;
   const rows: BoardRow[] = [{ kind: "turn", key: `prompt-${p.id}`, at: hhmm(p.at), text: promptLine(p.text, Math.max(12, columns - 8)), did, open, action: { op: "turn-menu", id: open ? null : p.id } }];
   if (open) rows.push({ kind: "menu", key: `menu-${p.id}`, items: [
@@ -1121,7 +1123,10 @@ const FILES_SHOWN = 8;
  * unfolding to its turns. This session's own turns follow, as before. With no
  * other session and nothing decided, nothing: the tab is this session's alone.
  */
-export function projectRows(p: { sessions: readonly SessionSummary[]; own: string; open: string | null } | undefined, t: T = ZH, columns: number, now?: string): BoardRow[] {
+/** How many of the other sessions the tab lists before the rest fold. */
+const SESSIONS_SHOWN = 8;
+
+export function projectRows(p: { sessions: readonly SessionSummary[]; own: string; open: string | null; all?: boolean } | undefined, t: T = ZH, columns: number, now?: string): BoardRow[] {
   if (p === undefined) return [];
   const others = p.sessions.filter((s) => s.id !== p.own).sort((a, b) => (a.last < b.last ? 1 : a.last > b.last ? -1 : 0));
   const label = (id: string): string => {
@@ -1145,15 +1150,27 @@ export function projectRows(p: { sessions: readonly SessionSummary[]; own: strin
     }
   }
   if (others.length > 0) {
-    rows.push({ kind: "section", key: "others", text: t("其他会话") });
-    for (const s of others) {
+    // Beyond the first few, the rest fold behind a count.
+    const folded = p.all !== true && others.length > SESSIONS_SHOWN;
+    rows.push({ kind: "section", key: "others", text: t("其他会话"), ...(others.length > SESSIONS_SHOWN ? { count: others.length } : {}) });
+    for (const s of folded ? others.slice(0, SESSIONS_SHOWN) : others) {
       const open = p.open === s.id;
-      rows.push({ kind: "entry", key: `session-${s.id}`, title: sessionLabel(s, p.own, t), tag: whenTag(s.last, now, t), tone: "normal", action: { op: "session-open", id: open ? null : s.id } });
+      // A session read back from its transcript is tagged so; a scheduled task's names the task.
+      const title = s.scheduled !== undefined ? `${sessionLabel(s, p.own, t)} · ${t("定时任务 {0}", s.scheduled)}` : sessionLabel(s, p.own, t);
+      const tag = s.backfilled === true ? `${t("补录")} · ${whenTag(s.last, now, t)}` : whenTag(s.last, now, t);
+      rows.push({ kind: "entry", key: `session-${s.id}`, title, tag, tone: "normal", action: { op: "session-open", id: open ? null : s.id } });
       if (open) {
         for (const turn of [...s.turns].reverse()) {
-          rows.push({ kind: "turn", key: `other-${s.id}-${turn.turn}`, at: hhmm(turn.at), text: promptLine(turn.prompt, Math.max(12, columns - 8)), did: turn.decisions.join("；"), open: false, action: { op: "session-open", id: null } });
+          // What the turn did: its decisions; without any, the first sentence of its answer, where the record kept it.
+          const did = turn.decisions.length > 0 ? turn.decisions.join("；") : turn.gist ?? "";
+          rows.push({ kind: "turn", key: `other-${s.id}-${turn.turn}`, at: hhmm(turn.at), text: promptLine(turn.prompt, Math.max(12, columns - 8)), did, open: false, action: { op: "session-open", id: null } });
         }
       }
+    }
+    if (others.length > SESSIONS_SHOWN) {
+      rows.push(buttons([folded
+        ? { key: "sessions-more", label: t("还有 {0} 个会话", others.length - SESSIONS_SHOWN), action: { op: "sessions-more", all: true } }
+        : { key: "sessions-more", label: t("收起"), action: { op: "sessions-more", all: false } }]));
     }
     rows.push({ kind: "section", key: "own", text: t("本会话") });
   }

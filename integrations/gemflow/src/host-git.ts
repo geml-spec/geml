@@ -497,6 +497,13 @@ export function branchesFacts(root: string): { ok: boolean; base?: string; branc
   return { ok: true, ...(base !== undefined ? { base } : {}), branches };
 }
 
+/** Every working tree of the repository `root` is in, the main one first, as git names them; none when git cannot say. */
+export function worktreesOf(root: string): string[] {
+  const wt = run("git", ["worktree", "list", "--porcelain"], root);
+  if (!wt.ok) return [];
+  return wt.out.split(/\r?\n/).filter((l) => l.startsWith("worktree ")).map((l) => l.slice("worktree ".length));
+}
+
 /** Whether the default branch `base` holds commit `sha`; undefined when git cannot say (a commit it no longer has). */
 export function holdsCommit(root: string, base: string, sha: string): boolean | undefined {
   const r = run("git", ["merge-base", "--is-ancestor", sha, base], root);

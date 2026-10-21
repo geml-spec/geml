@@ -92,6 +92,13 @@ function world(on: On) {
     /** The version the plugin's folder holds, as the CLI reports it; `manifest`, the one the module reads at its start. */
     synced: null as string | null,
     manifest: null as string | null,
+    /** The transcripts backfill-list names, and what backfill-one answers for each file (a string fails it). */
+    transcripts: [] as { file: string; id: string; size: number }[],
+    /** The prompt rows this session's transcript holds (turn-ids); null, no transcript. */
+    turnIds: null as string[] | null,
+    /** Answers for the next turn-ids calls, one each, before `turnIds` stands in: a transcript that changes between two reads. */
+    turnIdsQueue: [] as (string[] | null)[],
+    backfills: new Map<string, Record<string, unknown> | string>(),
     boardless: false,
     /** The work items that have a journal: a handoff to one of them is a return, to any other a new item. */
     journals: new Set(['feat/x']),
@@ -204,6 +211,15 @@ function world(on: On) {
     if (req.op === 'verb') return { v: 1, ok: true, shell: shell(), text: `[gemflow] work item feat/x · state #${w.state}` }
     if (req.op === 'board') return w.boardless ? { v: 1, ok: true, shell: shell() } : { v: 1, ok: true, shell: shell(), board: board(), todo: w.todo }
     if (req.op === 'artifact') return { v: 1, ok: true, shell: shell(), text: `Recorded the link under feat/x's artifacts.` }
+    if (req.op === 'backfill-list') return { v: 1, ok: true, shell: shell(), backfill: { sessions: w.transcripts } }
+    if (req.op === 'turn-ids') {
+      const ids = w.turnIdsQueue.length > 0 ? (w.turnIdsQueue.shift() as string[] | null) : w.turnIds
+      return ids === null ? { v: 1, ok: false, error: 'gemflow: no transcript', shell: shell() } : { v: 1, ok: true, shell: shell(), backfill: { uuids: ids } }
+    }
+    if (req.op === 'backfill-one') {
+      const b = w.backfills.get(String(req.file))
+      return typeof b === 'string' ? { v: 1, ok: false, error: `gemflow: ${b}`, shell: shell() } : { v: 1, ok: true, shell: shell(), backfill: b ?? { id: String(req.id), turns: 0, files: 0, links: 0 } }
+    }
     if (req.op === 'refresh') return { v: 1, ok: true, shell: shell(), todo: w.todo }
     if (req.op === 'status' && w.sessionsDir !== null) return { v: 1, ok: true, shell: shell(), sessions: w.sessionsDir }
     if (req.op === 'attention') return { v: 1, ok: true, shell: shell(), attention: { ahead: [], prs: w.prs }, ...(w.sessionsDir !== null ? { sessions: w.sessionsDir } : {}), host: { name: 'build-box', platform: 'linux', user: 'dev', branch: 'feat/x' } }
@@ -1061,14 +1077,14 @@ test('the session tab: a prompt learns its row once the host stored it, a press 
   expect(w.toasts.at(-1)).toBe('对话没有滚到那一处：no implementation for ui.scroll')
   await pane.press({ key: `open-prompt-${id}` })
   await pane.press({ key: `split-${id}` })
-  expect(asked.at(-1)).toBe('把这一轮及之后的轮次拆到新会话？最后一轮留下，原会话先备份。')
+  expect(asked.at(-1)).toBe('把这一轮及之后的轮次拆到新会话？最后一轮留下，会先备份；重启应用后生效。')
   expect(prompted).toHaveLength(1)
   expect(prompted[0]).toContain('/skills/split-session/split-session.mjs')
   expect(prompted[0]).toContain('「把测试补上，然后开 PR。」')
   expect(prompted[0]).toContain('最后一轮除外')
   await pane.press({ key: `open-prompt-${id}` })
   await pane.press({ key: `remove-${id}` })
-  expect(asked.at(-1), '删除 deletes: it says so').toBe('删除这一轮？原会话先备份，可以恢复。')
+  expect(asked.at(-1), '删除 deletes: it says so').toBe('删除这一轮？会先备份，可恢复；重启应用后才看不到。')
   expect(prompted[1]).toContain('用 remove 只删掉这一轮（不建新会话）')
   expect(w.toasts.filter((x) => x === '已交给模型，结果看对话')).toHaveLength(2)
   await pane.press({ key: 'export-session-json' })
@@ -1419,6 +1435,103 @@ test('a page or a picture written outside the project is an artifact at the turn
   await $.turn.complete({ answer: '没再写。', durationMs: 5, isAborted: false, turnId: 't2', reason: 'answer' })
   await clock.advance(1)
   expect(w.sent.filter((r) => r.op === 'artifacts').map((r) => r.elsewhere ?? null), 'each turn its own').toEqual([['/tmp/scratch/icon-a.svg'], null])
+})
+
+test("the first start with a shared record reads the host's transcripts into it, one by one; the session's own turns go before its log and onto its tab, marked; the band says the outcome once; done once", async ($, on) => {
+  const w = world(on)
+  w.sessionsDir = LOGS
+  w.transcripts = [{ file: '/t/own.jsonl', id: 'sess-1234567890', size: 10 }, { file: '/t/old.jsonl', id: 'old', size: 20 }, { file: '/t/bad.jsonl', id: 'bad', size: 5 }]
+  w.backfills.set('/t/own.jsonl', { id: 'sess-1234567890', turns: 1, files: 0, links: 0, transcript: { id: 'sess-1234567890', started: '2026-10-20T01:00:00Z', last: '2026-10-20T01:00:12Z', turns: [{ uuid: 'u1', at: '2026-10-20T01:00:00Z', text: '产物不是产品，叫artifacts', kind: 'person', answer: '改好了：products 改名 artifacts。\n细节。', answerAt: '2026-10-20T01:00:12Z', files: [], links: [], uploads: [] }] } })
+  w.backfills.set('/t/old.jsonl', { id: 'old', turns: 1, files: 1, links: 0 })
+  w.backfills.set('/t/bad.jsonl', 'cannot read bad.jsonl')
+  // The old session's log, as the bridge wrote it.
+  w.files.set(`${LOGS}/claude-code-old.jsonl`, [
+    { t: 'session', id: 'old', host: 'claude-code', at: '2026-10-19T08:12:00Z', branch: 'main', backfilled: true, scheduled: 'weekly-geml-docs-review' },
+    { t: 'prompt', turn: 1, at: '2026-10-19T08:12:00Z', text: '<scheduled-task name="weekly-geml-docs-review">审文档</scheduled-task>', uuid: 'x1', backfilled: true, kind: 'scheduled' },
+    { t: 'answer', turn: 1, at: '2026-10-19T08:20:00Z', text: '审完了。没问题。' },
+  ].map((x) => JSON.stringify(x)).join('\n') + '\n')
+  on('prompt.submit', ($, e) => ({ text: e.text }))
+  const clock = await start($, on)
+  await clock.advance(10_000)
+  expect(w.sent.filter((r) => r.op === 'backfill-one').map((r) => [r.file, r.own ?? false])).toEqual([['/t/own.jsonl', true], ['/t/old.jsonl', false], ['/t/bad.jsonl', false]])
+  expect(await bandText($)).toMatch(/初始化完毕。欢迎使用。（1 个会话读不了）/)
+  expect(w.store.get(`init:${LOGS}`)).toBe(true)
+  const ownLog = w.files.get(`${LOGS}/claude-code-sess-1234567890.geml`) ?? ''
+  expect(ownLog).toContain('"uuid":"u1"')
+  expect(ownLog).toContain('"backfilled":true')
+  expect(ownLog).toContain('改好了：products 改名 artifacts。')
+  // The next prompt takes the outcome down; it is recorded after the backfilled turn, which keeps its place.
+  await $.prompt.submit({ text: '继续', wait: false, origin: COMPOSER })
+  expect(await bandText($)).not.toMatch(/初始化/)
+  const after = w.files.get(`${LOGS}/claude-code-sess-1234567890.geml`) ?? ''
+  expect(after.indexOf('产物不是产品')).toBeLessThan(after.indexOf('"text":"继续"'))
+  // Done once: another start reads nothing again.
+  const before = w.sent.filter((r) => r.op === 'backfill-list').length
+  await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+  expect(w.sent.filter((r) => r.op === 'backfill-list').length).toBe(before)
+})
+
+test("turns removed or split away with the split-session skill leave the sessions tab and this session's log; split ones go into the new session's log; a prompt from the last two minutes stays", async ($, on) => {
+  const w = world(on)
+  w.sessionsDir = LOGS
+  w.store.set(`init:${LOGS}`, true)
+  on('tool.call', { tool: 'Bash' }, ($, e) => {
+    const command = String((e as { command?: string }).command)
+    const stdout = command.includes('--turns 2') ? '{\n  "created": { "cliId": "new-1", "title": "x" }\n}\n' : 'backing up…\n{\n  "turns": [{ "n": 1 }],\n  "removed": true\n}\n'
+    return { result: { stdout, stderr: '', interrupted: false }, text: stdout }
+  })
+  on('prompt.submit', ($, e) => ({ text: e.text }))
+  on('turn.complete', ($, e) => ({ text: e.answer }))
+  const clock = await start($, on)
+  for (const [text, uuid] of [['产物不是产品', 'u1'], ['提交改动', 'u2'], ['推', 'u3']] as const) {
+    await $.prompt.submit({ text, wait: false, origin: COMPOSER })
+    await $.session.append({ message: { type: 'user', role: 'user', content: [{ type: 'text', text }] }, door: 'prompt', origin: COMPOSER, uuid })
+    await $.turn.complete({ answer: `${text}：做了。`, durationMs: 5, isAborted: false, turnId: `t-${uuid}`, reason: 'answer' })
+    await clock.advance(60_000)
+  }
+  await clock.advance(3 * 60_000)
+  expect(w.files.get(OWN_LOG) ?? '').toContain('"text":"产物不是产品"')
+  // The transcript now holds only the second and third rows: the first turn was removed.
+  w.turnIds = ['u2', 'u3']
+  await $.tool.call({ tool: 'Bash', tool_use_id: 'b1', command: 'node /p/skills/split-session/split-session.mjs remove --turns 1' })
+  await clock.advance(2_000)
+  const log1 = w.files.get(OWN_LOG) ?? ''
+  expect(log1).not.toContain('产物不是产品')
+  expect(log1).toContain('"text":"提交改动"')
+  await $.command.run({ command: 'gemflow', args: 'board sessions', origin: COMPOSER, presentation: PRESENTATION })
+  const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  const words = shown((await pane.drawn()) as unknown as Drawn).join(' ')
+  expect(words).toContain('提交改动')
+  expect(words, 'the removed turn left the tab').not.toContain('产物不是产品')
+  await pane.unmount()
+  // Split: the second turn goes to a new session (the last turn stays).
+  w.turnIds = ['u3']
+  await $.tool.call({ tool: 'Bash', tool_use_id: 'b2', command: 'node /p/skills/split-session/split-session.mjs split --turns 2 --title "x"' })
+  await clock.advance(2_000)
+  const log2 = w.files.get(OWN_LOG) ?? ''
+  expect(log2).not.toContain('提交改动')
+  expect(log2).toContain('"text":"推"')
+  const moved = w.files.get(`${LOGS}/claude-code-new-1.geml`) ?? ''
+  expect(moved).toContain('"id":"new-1"')
+  expect(moved).toContain('"turn":1,"at":')
+  expect(moved).toContain('"text":"提交改动"')
+  expect(moved).toContain('提交改动：做了。')
+  // A prompt the transcript lacks but which is only seconds old stays: its row may not be written yet.
+  await $.prompt.submit({ text: '最新', wait: false, origin: COMPOSER })
+  await $.session.append({ message: { type: 'user', role: 'user', content: [{ type: 'text', text: '最新' }] }, door: 'prompt', origin: COMPOSER, uuid: 'u4' })
+  await $.tool.call({ tool: 'Bash', tool_use_id: 'b3', command: 'node /p/skills/split-session/split-session.mjs remove --turns 9' })
+  await clock.advance(2_000)
+  expect(w.files.get(OWN_LOG) ?? '').toContain('"text":"最新"')
+  // Two reads that disagree (the file was changing): nothing moves.
+  w.turnIdsQueue = [[], ['u3']]
+  await $.tool.call({ tool: 'Bash', tool_use_id: 'b5', command: 'node /p/skills/split-session/split-session.mjs remove --turns 9' })
+  await clock.advance(2_000)
+  expect(w.files.get(OWN_LOG) ?? '', 'a changing transcript is no fact').toContain('"text":"推"')
+  // A dry run changes nothing.
+  w.turnIds = []
+  await $.tool.call({ tool: 'Bash', tool_use_id: 'b4', command: 'node /p/skills/split-session/split-session.mjs remove --turns 3 --dry-run' })
+  await clock.advance(2_000)
+  expect(w.files.get(OWN_LOG) ?? '').toContain('"text":"推"')
 })
 
 test('the other sessions\' decisions come beside the person\'s prompt, once each; this session\'s own never', async ($, on) => {

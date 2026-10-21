@@ -36,10 +36,11 @@ import { answered, asksOf, bandLine, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRow
 import type { Queued } from '../dist/hosts/claude-code/attention.js'
 import type { AttentionFacts, AttentionMemory } from '../dist/hosts/claude-code/attention.js'
 import { envParts, remoteInPlay } from '../dist/hosts/claude-code/env.js'
-import { appendEvents, currentTurn, decisionsContext, decisionsSince, isLogName, legacyLogName, logName, nextTurn, NOTE_TOOL, parseLog, SESSIONS_GITIGNORE, SESSIONS_PROMPT, summarize } from '../dist/core/session-log.js'
+import { appendEvents, currentTurn, decisionsContext, decisionsSince, formatLog, isLogName, legacyLogName, logName, nextTurn, NOTE_TOOL, parseLog, SAME_PROMPT_MS, SESSIONS_GITIGNORE, SESSIONS_PROMPT, summarize, withEarlierTurns } from '../dist/core/session-log.js'
 import type { SessionEvent, SessionSummary } from '../dist/core/session-log.js'
 import { ARTIFACT_TOOL, isMadeForPeople, publishedLink } from '../dist/core/artifact-tool.js'
 import { ASK_PROMPT, ASK_TOOL, askedOf } from '../dist/core/ask-tool.js'
+import { transcriptEvents, type Transcript } from '../dist/core/transcript.js'
 import type { Asked } from '../dist/core/ask-tool.js'
 import type { AttachedClient, HostInfo } from '../dist/hosts/claude-code/env.js'
 import { bandView, BRAND_RED, cellWidth, MARK, MARK_SVG, SEP, toneProps, truncate } from '../dist/hosts/claude-code/band.js'
@@ -151,6 +152,10 @@ const queuedAtom = atom({ plugin: 'gemflow', key: 'queued' } as const, [] as Gem
 const sessionsDirAtom = atom({ plugin: 'gemflow', key: 'sessionsDir' } as const, null as string | null)
 const projectSessionsAtom = atom({ plugin: 'gemflow', key: 'projectSessions' } as const, [] as GemflowJson)
 const openSessionAtom = atom({ plugin: 'gemflow', key: 'openSession' } as const, null as string | null)
+/** The initialization (the host's transcripts read into the record, once): its count while it runs, its outcome until the next prompt. */
+const initAtom = atom({ plugin: 'gemflow', key: 'init' } as const, null as GemflowJson)
+/** Whether the sessions tab lists every other session. */
+const sessionsAllAtom = atom({ plugin: 'gemflow', key: 'sessionsAll' } as const, false as boolean)
 const decisionsSeenAtom = atom({ plugin: 'gemflow', key: 'decisionsSeen' } as const, null as string | null)
 const committedAtom = atom({ plugin: 'gemflow', key: 'committed' } as const, false)
 /** The turn unfolded on the session tab (where the conversation cannot be scrolled): its prompt's id and its answer. */
@@ -254,6 +259,8 @@ async function findNode($: EngineInterface): Promise<{ node: string } | { proble
  * or an export the person asked for says so at once.
  */
 let missedSince: number | undefined
+/** Whether a turn of the main loop is under way: background reading waits for it to end. */
+let turnBusy = false
 const QUIET_MS = 120_000
 /** How long a finished tool call waits for its evidence to be recorded before its result goes on regardless. */
 const AFTER_WAIT_MS = 2_000
@@ -579,7 +586,7 @@ async function loadProjectSessions($: EngineInterface): Promise<SessionSummary[]
     let summary = known !== undefined && known.size === en.size && known.mtimeMs === en.mtimeMs ? known.summary : undefined
     if (summary === undefined) {
       try { summary = summarize(parseLog(String(await $.fs.read(`${dir}/${en.name}`)))) } catch { summary = undefined }
-      if (summary !== undefined) summary = { ...summary, turns: summary.turns.map(({ answer: _answer, ...turn }) => turn) }
+      if (summary !== undefined) summary = { ...summary, turns: summary.turns.map(({ answer, ...turn }) => { const gist = answer !== undefined ? answerGist(answer) : undefined; return gist !== undefined ? { ...turn, gist } : turn }) }
       logsRead.set(en.name, { size: en.size, mtimeMs: en.mtimeMs, summary })
     }
     if (summary !== undefined) sessions.push(summary)
@@ -835,6 +842,156 @@ async function registerOne($: EngineInterface, name: string, register: () => Pro
     const reason = reasonOf(err)
     await update($, setupAtom, (was) => `${was ?? 'gemflow：没有注册上'} ${name}（${reason}）`)
   }
+}
+
+// ---- the host's transcripts into the record, once (transcript.ts) --------------------------
+
+interface InitState { state: 'running' | 'done'; done: number; total: number; failed: number }
+/** Between files: how often a turn under way is looked at, how long at most one file waits for it, and the breath between two files. */
+const BUSY_POLL_MS = 500
+const BUSY_WAIT_MAX_MS = 5 * 60_000
+const FILE_GAP_MS = 300
+
+/**
+ * The first start after the plugin is installed: every transcript of this
+ * project's checkouts, this session's too, goes into the shared session record
+ * and the work items' artifacts, one at a time in the background, the band
+ * counting along; the store remembers it was done. Nothing here holds anything
+ * up: a transcript that cannot be read is counted and passed over.
+ */
+async function initBackfill($: EngineInterface): Promise<void> {
+  const dir = await read($, sessionsDirAtom)
+  if (dir === null || (await readShell($))?.status == null) return
+  const key = `init:${dir}`
+  try { if ((await $.store.get(key)) === true) return } catch { return }
+  const listed = await bridge($, { op: 'backfill-list' }, SLOW_TIMEOUT_MS).catch(() => undefined)
+  if (listed === undefined || !listed.ok || listed.backfill === undefined || !('sessions' in listed.backfill)) return
+  const sessions = listed.backfill.sessions
+  const done = async () => { try { await $.store.set(key, true) } catch { /* done again at the next start */ } }
+  // No transcript: nothing to say, nothing to do again.
+  if (sessions.length === 0) { await done(); return }
+  let own = ''
+  try { own = await $.session.id() } catch { /* headless */ }
+  const state: InitState = { state: 'running', done: 0, total: sessions.length, failed: 0 }
+  await update($, initAtom, () => ({ ...state }) as unknown as GemflowJson)
+  $.ui.invalidate('ui.render')
+  for (const s of sessions) {
+    // Between the person's turns only, and a breath between files: the reading never competes with a turn under way.
+    for (let waited = 0; turnBusy && waited < BUSY_WAIT_MAX_MS; waited += BUSY_POLL_MS) await $.clock.sleep(BUSY_POLL_MS)
+    await $.clock.sleep(FILE_GAP_MS)
+    const mine = s.id === own
+    const res = await bridge($, { op: 'backfill-one', file: s.file, ...(mine ? { own: true } : {}) }, SLOW_TIMEOUT_MS).catch(() => undefined)
+    if (res === undefined || !res.ok) state.failed += 1
+    else if (mine && res.backfill !== undefined && 'transcript' in res.backfill && res.backfill.transcript !== undefined) {
+      try { await mergeOwnBackfill($, res.backfill.transcript) } catch { state.failed += 1 }
+    }
+    state.done += 1
+    await update($, initAtom, () => ({ ...state }) as unknown as GemflowJson)
+    $.ui.invalidate('ui.render')
+  }
+  await done()
+  await update($, initAtom, () => ({ ...state, state: 'done' }) as unknown as GemflowJson)
+  try { await loadProjectSessions($) } catch { /* read at the next prompt */ }
+  await reloadBoardLater($)
+  $.ui.invalidate('ui.render')
+}
+
+/** How recent a prompt must be to be left alone by a reconciliation: the host may not have written its row yet. */
+const RECENT_MS = 2 * 60_000
+/** How long the reconciliation waits before reading the transcript a second time: two reads that agree are a fact, a file that changed between them is not. */
+const RECHECK_MS = 1_000
+
+/**
+ * The sessions tab and this session's log against the host's transcript on
+ * disk: a prompt whose row the transcript no longer holds was removed or split
+ * away (the split-session skill rewrites the file), so its line leaves the tab
+ * and its turn's events leave the log — into the new session's log when the
+ * turns were split there (`moveTo`). A prompt from the last two minutes, or
+ * one without a row id, is left alone; without a transcript nothing changes.
+ */
+async function reconcileTurns($: EngineInterface, moveTo?: string): Promise<void> {
+  let session: string
+  try { session = await $.session.id() } catch { return }
+  const was = await readPrompts($)
+  const now = Date.parse(await nowIso($))
+  const settled = was.filter((p) => p.uuid !== undefined && now - Date.parse(p.at) >= RECENT_MS)
+  if (settled.length === 0) return
+  const res = await bridge($, { op: 'turn-ids', session }, SLOW_TIMEOUT_MS).catch(() => undefined)
+  if (res === undefined || !res.ok || res.backfill === undefined || !('uuids' in res.backfill)) return
+  // Read again a second later: a transcript being rewritten changes between the reads, and a changing file is no fact.
+  await $.clock.sleep(RECHECK_MS)
+  const again = await bridge($, { op: 'turn-ids', session }, SLOW_TIMEOUT_MS).catch(() => undefined)
+  if (again === undefined || !again.ok || again.backfill === undefined || !('uuids' in again.backfill)) return
+  if (JSON.stringify(again.backfill.uuids) !== JSON.stringify(res.backfill.uuids)) return
+  const held = new Set(res.backfill.uuids)
+  const gone = settled.filter((p) => !held.has(p.uuid as string))
+  if (gone.length === 0) return
+  const goneIds = new Set(gone.map((p) => p.id))
+  await update($, promptsAtom, (w) => (((w as unknown) as PromptRecord[] | null) ?? []).filter((p) => !goneIds.has(p.id)) as unknown as GemflowJson)
+  $.clock.after(0, () => { void storePrompts($) })
+  // The log: the gone prompts' turns (the same words within half a minute), whole, out; into the new session's log when they were split there.
+  const dir = await read($, sessionsDirAtom)
+  if (dir !== null) {
+    try {
+      const events = parseLog(await ownLogText($, dir, session))
+      const turns = new Set<number>()
+      for (const e of events) if (e.t === 'prompt' && gone.some((p) => p.text === e.text && Math.abs(Date.parse(p.at) - Date.parse(e.at)) < SAME_PROMPT_MS)) turns.add(e.turn)
+      if (turns.size > 0) {
+        const kept = events.filter((e) => !('turn' in e) || !turns.has(e.turn))
+        const moved = events.filter((e) => 'turn' in e && turns.has(e.turn))
+        await $.fs.write(`${dir}/${logName(OWN_HOST, session)}`, formatLog(kept))
+        if (moveTo !== undefined && moveTo !== '') {
+          const head = events.find((e): e is Extract<SessionEvent, { t: 'session' }> => e.t === 'session')
+          const path = `${dir}/${logName(OWN_HOST, moveTo)}`
+          let there: SessionEvent[] = []
+          try { there = parseLog(String(await $.fs.read(path))) } catch { there = [] }
+          const from = nextTurn(there)
+          const numbers = new Map([...turns].sort((a, b) => a - b).map((n, i) => [n, from + i]))
+          const first = moved.find((e) => e.t === 'prompt')?.at ?? await nowIso($)
+          const opening: SessionEvent[] = there.some((e) => e.t === 'session') ? [] : [{ t: 'session', id: moveTo, host: OWN_HOST, at: first, ...(head?.branch !== undefined ? { branch: head.branch } : {}), ...(head?.checkout !== undefined ? { checkout: head.checkout } : {}) }]
+          await $.fs.write(path, formatLog([...there, ...opening, ...moved.map((e): SessionEvent => ('turn' in e ? { ...e, turn: numbers.get(e.turn) as number } : e))]))
+        }
+      }
+    } catch { /* the record stays as it was */ }
+  }
+  try { await loadProjectSessions($) } catch { /* read at the next prompt */ }
+  await reloadBoardLater($)
+}
+
+/** What the split-session script printed last, when a command ran it: whether turns were removed, and the session they were split into. */
+function splitSummary(done: unknown): { removed?: boolean; created?: { cliId: string } } | undefined {
+  const d = done as { result?: unknown; text?: unknown } | undefined
+  const r = d?.result as { stdout?: unknown } | undefined
+  const out = typeof r?.stdout === 'string' ? r.stdout : typeof d?.text === 'string' ? d.text : ''
+  const at = out.lastIndexOf('\n{')
+  const text = at >= 0 ? out.slice(at + 1) : out.trimStart().startsWith('{') ? out : ''
+  if (text === '') return undefined
+  try {
+    const v = JSON.parse(text) as { removed?: unknown; created?: { cliId?: unknown } }
+    const created = typeof v.created?.cliId === 'string' ? v.created.cliId : undefined
+    if (v.removed !== true && created === undefined) return undefined
+    return { ...(v.removed === true ? { removed: true } : {}), ...(created !== undefined ? { created: { cliId: created } } : {}) }
+  } catch { return undefined }
+}
+
+/** This session's turns before gemflow loaded: into its log before the ones recorded live, and onto the sessions tab, marked. */
+async function mergeOwnBackfill($: EngineInterface, tr: Transcript): Promise<void> {
+  if (tr.turns.length === 0) return
+  const dir = await read($, sessionsDirAtom)
+  if (dir === null) return
+  const earlier = transcriptEvents(tr, OWN_HOST, { head: false })
+  // The log, with its session line (appendOwn writes one when there is none), then the earlier turns put before its own.
+  const events = await appendOwn($, () => [])
+  if (events.length > 0) await $.fs.write(`${dir}/${logName(OWN_HOST, await $.session.id())}`, formatLog(withEarlierTurns(events, earlier)))
+  const was = await readPrompts($)
+  const there = (t: Transcript['turns'][number]): boolean => was.some((p) => p.text === t.text && Math.abs(Date.parse(p.at) - Date.parse(t.at)) < SAME_PROMPT_MS)
+  const records: PromptRecord[] = tr.turns.filter((t) => !there(t)).map((t) => {
+    const did = t.answer !== undefined ? answerGist(t.answer) : undefined
+    return { id: `b-${t.uuid}`, at: t.at, text: t.text, uuid: t.uuid, ...(did !== undefined ? { did } : {}), tools: 0, refusals: 0, entered: [], signals: [], backfilled: true }
+  })
+  if (records.length === 0) return
+  await update($, promptsAtom, (w) => [...records, ...(((w as unknown) as PromptRecord[] | null) ?? [])].slice(-PROMPTS_KEPT) as unknown as GemflowJson)
+  $.clock.after(0, () => { void storePrompts($) })
 }
 
 // ---- how often each tool ran ------------------------------------------------------------
@@ -1186,6 +1343,7 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
     case 'flow-state': await update($, flowStateAtom, () => action.id); return
     case 'turn-menu': await update($, turnMenuAtom, () => action.id); return
     case 'session-open': await update($, openSessionAtom, () => action.id); return
+    case 'sessions-more': await update($, sessionsAllAtom, () => action.all); return
     case 'session-flow': await update($, sessionFlowAtom, () => action.flow); return
     case 'session-run': await update($, sessionRunsAtom, (was) => {
       const list = new Set((((was as unknown) as string[] | null) ?? []))
@@ -1410,7 +1568,7 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       await update($, turnMenuAtom, () => null)
       const p = (await readPrompts($)).find((x) => x.id === action.id)
       if (p === undefined) return
-      const question = action.op === 'split' ? t('把这一轮及之后的轮次拆到新会话？最后一轮留下，原会话先备份。') : t('删除这一轮？原会话先备份，可以恢复。')
+      const question = action.op === 'split' ? t('把这一轮及之后的轮次拆到新会话？最后一轮留下，会先备份；重启应用后生效。') : t('删除这一轮？会先备份，可恢复；重启应用后才看不到。')
       const yes = action.op === 'split' ? t('拆分') : t('删除')
       let answer: string
       try { answer = await $.ui.ask(question, [yes, t('取消')]) } catch { return }
@@ -1975,8 +2133,8 @@ async function tabRows($: EngineInterface, e: { surface: string; props: { bodyCo
     read($, filterAtom), read($, expandedAtom), read($, evidenceAtom),
     shows(tab === 'sessions' || tab === 'journal')(() => readPrompts($), [] as PromptRecord[]),
     shows(tab === 'sessions')(async () => {
-      const [sessions, own, open] = await Promise.all([read($, projectSessionsAtom), $.session.id().catch(() => ''), read($, openSessionAtom)])
-      return { sessions: (sessions as unknown as SessionSummary[] | null) ?? [], own, open }
+      const [sessions, own, open, all] = await Promise.all([read($, projectSessionsAtom), $.session.id().catch(() => ''), read($, openSessionAtom), read($, sessionsAllAtom)])
+      return { sessions: (sessions as unknown as SessionSummary[] | null) ?? [], own, open, all: all === true }
     }, null),
     shows(tab === 'sessions')(() => read($, expandedTurnAtom), null as GemflowJson),
     read($, turnMenuAtom), read($, doneOpenAtom), read($, sessionFlowAtom), read($, sessionRunsAtom),
@@ -2073,6 +2231,7 @@ export const register: Register = (on) => {
     $.clock.after(0, () => { void probeCompose($) })
     await adoptPanes($)
     await startBridge($)
+    $.clock.after(0, () => { void initBackfill($).then(() => reconcileTurns($)).catch(() => undefined) })
     // A load is a reload: nothing is due. The repository's facts now and every two minutes; the band every minute, so a
     // person away from the keyboard comes back to the steps still waiting on them without having to type first.
     await update($, reloadAtom, () => false)
@@ -2225,6 +2384,7 @@ export const register: Register = (on) => {
   on('turn.complete', async ($, e, next) => {
     const done = await next(e)
     if (e.agentId === undefined) {
+      turnBusy = false
       try { await setQueued($, (q) => q.filter((x) => !x.entered)) } catch { /* shown till the next */ }
       $.clock.after(0, () => { void storePrompts($) })
       if (!e.isAborted) { const answer = e.answer; $.clock.after(0, () => { void sessionsOnAnswer($, answer) }) }
@@ -2254,6 +2414,8 @@ export const register: Register = (on) => {
   on('prompt.submit', async ($, e, next) => {
     // Where it came from: this machine's prompt box, or Remote Control (a plugin's own prompt keeps the last).
     const person = fromPerson(e.origin as { kind: string; asUser?: boolean })
+    turnBusy = true
+    try { if (((await read($, initAtom)) as unknown as InitState | null)?.state === 'done') await update($, initAtom, () => null) } catch { /* stays */ }
     if (person && e.origin.kind !== 'plugin') { try { await update($, originAtom, () => e.origin.kind) } catch { /* unknown */ } }
     // The first prompt of a conversation carries the standing instructions, where the system prompt did not.
     const news = [...(await prefaceFor($)), ...(person ? [...(await attentionOnPrompt($, e.text)), ...(await sessionsOnPrompt($, e.text).catch(() => [] as string[]))] : [])]
@@ -2308,6 +2470,11 @@ export const register: Register = (on) => {
       const root = $.plugin.root.replace(/\\/g, '/')
       if (command.includes(root) || /local-marketplaces/.test(command)) await update($, reloadAtom, () => true)
       if (/\bgit\b[^\n|;&]*\bcommit\b/.test(command) && !(await read($, committedAtom))) await update($, committedAtom, () => true)
+      // The split-session skill rewrote the transcript (turns removed, or split into a new session): the tab and the record follow.
+      if (/split-session\.mjs\b[^\n|;&]*\b(remove|split)\b/.test(command) && !/--dry-run/.test(command)) {
+        const said = splitSummary(done)
+        if (said !== undefined) { const to = said.created?.cliId; $.clock.after(0, () => { void reconcileTurns($, to).catch(() => undefined) }) }
+      }
     } catch { /* nothing due */ }
     return done
   }).catch(($, e, next) => next(e))
@@ -2340,6 +2507,7 @@ export const register: Register = (on) => {
     // The board is a press away whenever there is a workflow, not only when something waits in it.
     let workflow = false
     let waitingOnPerson = 0
+    let notice: { text: string; tone: 'dim' | 'normal' } | null = null
     try {
       const shell = await readShell($)
       const board = await readBoard($)
@@ -2348,8 +2516,13 @@ export const register: Register = (on) => {
       const inbox = pendingList(await inboxOf($, t), [...othersWaiting(board, item?.kind === 'item' ? item.id : undefined, t), ...(board !== null ? [...toolSuggestions(board, await usageDrawn($), await dismissedOf($), t), ...ciSuggestions(board, shell?.units ?? [], await dismissedOf($), t)] : [])])
       workflow = shell?.status != null
       waitingOnPerson = inbox.length
+      // The initialization's count while it runs; its outcome, once, until the next prompt.
+      const init = (await read($, initAtom)) as unknown as InitState | null
+      notice = init === null ? null : init.state === 'running'
+        ? { text: t('初始化任务整理中…（{0}/{1}）', init.done, init.total), tone: 'dim' as const }
+        : { text: `${t('初始化完毕。欢迎使用。')}${init.failed > 0 ? t('（{0} 个会话读不了）', init.failed) : ''}`, tone: 'normal' as const }
       view = bandView({
-        shell, problem: await read($, problemAtom), setup: await read($, setupAtom), todo: (await read($, todoAtom)) as unknown as TodoCount | null,
+        shell, problem: await read($, problemAtom), setup: await read($, setupAtom), notice, todo: (await read($, todoAtom)) as unknown as TodoCount | null,
         inbox, timeline: board?.timeline ?? [], now: await nowIso($), t,
       })
     } catch (err) {
@@ -2380,6 +2553,8 @@ export const register: Register = (on) => {
         }
       } catch { /* the workflow's line stands */ }
     }
+    // Something else leads: the initialization's count stays as the dim words after it.
+    if (notice !== null && attentionPresses !== null && view.note === '') view = { ...view, note: notice.text }
     const options: Pressable[] = attentionPresses ?? view.actions
     const tail: Pressable[] = [
       ...(view.more.count > 0 ? [{ key: 'more', label: t('还有 {0} 件', view.more.count), action: { op: 'open-board', tab: 'items' } as BoardAction }] : []),

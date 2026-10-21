@@ -42,8 +42,10 @@ import { outgoing, sourceLabel, varsBySource } from "./core/statechart.js";
 import { waitsOnPerson } from "./core/turn.js";
 import { readContextDoc } from "./core/stagehand.js";
 import { exists, readText, withLock, writeAtomic } from "./host-fs.js";
-import { branchesAhead, commitsOf, ghOncePerBranch, journalBaseOf, openPullRequests, pullRequestsByBranch, repoFacts, type GhFacts } from "./host-git.js";
-import { SESSIONS_DIR } from "./core/session-log.js";
+import { branchesAhead, commitsOf, ghOncePerBranch, journalBaseOf, openPullRequests, pullRequestsByBranch, repoFacts, unkeptOf, worktreesOf, type GhFacts } from "./host-git.js";
+import { formatLog, logName, nextTurn, parseLog, SESSIONS_DIR, SESSIONS_GITIGNORE, withEarlierTurns } from "./core/session-log.js";
+import { newTurns, readTranscript, slugOf, transcriptEvents, type Transcript } from "./core/transcript.js";
+import { statSync } from "node:fs";
 import type { HostInfo } from "./hosts/claude-code/env.js";
 import { mediaTodoCount } from "./media-todo.js";
 import { addWorkflow, bundledWorkflows, importWorkflow, projectWorkflows, suggestWorkflow, useWorkflow } from "./project.js";
@@ -51,7 +53,7 @@ import { timelineOf } from "./timeline.js";
 import { flowPicture } from "./core/picture.js";
 import { runVerb } from "./verbs.js";
 import { dependsOf, fileUnitOf, itemProgress, loadWorkspace, openWorkspace, resolveWorkflow, sideFlows, workflowNameOf, type FlowCache, type Opened, type ShellView, type Workspace } from "./workspace.js";
-import type { BoardData, BoardItem, BridgeRequest, BridgeResponse, Made, MadeEntry, Artifacts, ShellStatus, TimelineEntry, TodoCount } from "./hosts/claude-code/protocol.js";
+import type { Backfill, BoardData, BoardItem, BridgeRequest, BridgeResponse, Made, MadeEntry, Artifacts, ShellStatus, TimelineEntry, TodoCount } from "./hosts/claude-code/protocol.js";
 
 type Answered = Extract<BridgeResponse, { ok: true }>;
 
@@ -501,6 +503,107 @@ function recordArtifact(ws: Workspace, root: string, req: Extract<BridgeRequest,
     : { ok: true, text: "Nothing new to record: no file there, or this version is recorded already." };
 }
 
+// ---- the host's transcripts into the shared session record (transcript.ts) ----------------
+
+/** The folder the host keeps transcripts under, one subfolder per project directory (slugOf). */
+const transcriptsRoot = (req: { transcripts?: string }): string => req.transcripts ?? join(homedir(), ".claude", "projects");
+
+/** The host's name for the log of a session read from its transcript. */
+const TRANSCRIPT_HOST = "claude-code";
+
+/** How recently a log must have been written for its session to count as still writing it. */
+const LIVE_LOG_MS = 10 * 60_000;
+
+/** The transcripts of every checkout of this project — the root, the main working tree, each worktree — newest first. */
+function transcriptFiles(root: string, under: string): { file: string; id: string; size: number; mtimeMs: number }[] {
+  const dirs = new Set([root, journalBaseOf(root), ...worktreesOf(root)].map((d) => slugOf(resolve(d))));
+  const out: { file: string; id: string; size: number; mtimeMs: number }[] = [];
+  for (const slug of dirs) {
+    const dir = join(under, slug);
+    let names: string[];
+    try { names = readdirSync(dir); } catch { continue; }
+    for (const name of names) {
+      if (!name.endsWith(".jsonl")) continue;
+      try {
+        const st = statSync(join(dir, name));
+        if (st.isFile()) out.push({ file: join(dir, name), id: name.slice(0, -".jsonl".length), size: st.size, mtimeMs: st.mtimeMs });
+      } catch { /* gone */ }
+    }
+  }
+  return out.sort((a, b) => b.mtimeMs - a.mtimeMs);
+}
+
+/** A backfilled turn as the hooks module gets it: no upload bytes (recorded here already). */
+function ownTranscript(tr: Transcript): Transcript {
+  return { ...tr, turns: tr.turns.map(({ uploads: _u, ...t }) => ({ ...t, uploads: [] })) };
+}
+
+/**
+ * One transcript: the pages it published, the files it wrote that git does
+ * not keep and what the person gave with a prompt go under the work item of
+ * each turn's branch (a branch-unit workflow; nothing otherwise); its turns go
+ * into the session's log — written here for another session, handed back for
+ * the session asking (`own`), which writes its own log. A session whose log
+ * was written minutes ago is writing it still: left alone.
+ */
+function backfillOne(ws: Workspace, root: string, req: Extract<BridgeRequest, { op: "backfill-one" }>): { ok: true; backfill: Extract<Backfill, { id: string }> } | { ok: false; reason: string } {
+  let tr: Transcript | undefined;
+  try { tr = readTranscript(readText(req.file)); } catch (e) { return { ok: false, reason: `cannot read ${basename(req.file)}: ${(e as Error).message}` }; }
+  if (tr === undefined) return { ok: false, reason: `${basename(req.file)} holds no session` };
+  if (tr.id === "") tr = { ...tr, id: basename(req.file, ".jsonl") };
+  const home = ws.journalBase;
+  const dir = join(home, GEML_DIR, SESSIONS_DIR);
+  mkdirSync(dir, { recursive: true });
+  if (!exists(join(dir, ".gitignore"))) writeAtomic(join(dir, ".gitignore"), SESSIONS_GITIGNORE);
+  const path = join(dir, logName(TRANSCRIPT_HOST, tr.id));
+  const was = exists(path) ? parseLog(readText(path)) : [];
+  const head = was.find((e): e is Extract<typeof e, { t: "session" }> => e.t === "session");
+  if (req.own !== true && head !== undefined && head.backfilled !== true) {
+    let mtimeMs = 0;
+    try { mtimeMs = statSync(path).mtimeMs; } catch { /* just read */ }
+    if (Date.now() - mtimeMs < LIVE_LOG_MS) return { ok: true, backfill: { id: tr.id, turns: 0, files: 0, links: 0, skipped: true } };
+  }
+  const fresh = newTurns(tr, was);
+  // The artifacts: by each turn's branch, where the workflow's unit is the branch.
+  let files = 0;
+  let links = 0;
+  if (ws.sc.unit.kind === "branch") {
+    for (const turn of fresh.turns) {
+      const item = turn.branch;
+      if (item === undefined || item === "") continue;
+      for (const l of turn.links) {
+        try { recordLink(home, item, { ...(l.title !== undefined ? { name: l.title } : {}), url: l.url, ...(l.version !== undefined ? { version: l.version } : {}), at: turn.answerAt ?? turn.at }); links += 1; } catch { /* the next */ }
+      }
+      const checkout = turn.cwd !== undefined && exists(turn.cwd) ? turn.cwd : root;
+      const made = turn.files.filter((p) => isMadeForPeople(p) && exists(p));
+      const unkept = made.length > 0 ? unkeptOf(checkout, made.map((p) => relative(checkout, p).replace(/\\/g, "/"))) : undefined;
+      for (const p of made) {
+        if (unkept === undefined || !unkept.has(relative(checkout, p).replace(/\\/g, "/"))) continue;
+        try { if (recordFile(checkout, home, item, p, isImagePath(p) ? "image" : "file") !== undefined) files += 1; } catch { /* the next */ }
+      }
+      for (const u of turn.uploads) {
+        try {
+          const bytes = Buffer.from(u.data, "base64");
+          if (bytes.length === 0) continue;
+          const kind = u.mediaType?.startsWith("image/") === true ? "image" : "file";
+          const name = `${UPLOAD_PREFIX}upload-${createHash("sha256").update(bytes).digest("hex").slice(0, 8)}${EXT_OF[u.mediaType ?? ""] ?? ""}`;
+          if (recordBytes(home, item, { name, bytes, kind, at: turn.at }) !== undefined) files += 1;
+        } catch { /* the next */ }
+      }
+    }
+  }
+  if (req.own === true) return { ok: true, backfill: { id: tr.id, turns: fresh.turns.length, files, links, transcript: ownTranscript(fresh) } };
+  if (fresh.turns.length > 0) {
+    const events = head === undefined
+      ? [...was, ...transcriptEvents(fresh, TRANSCRIPT_HOST, { head: true })]
+      : head.backfilled === true
+        ? [...was, ...transcriptEvents(fresh, TRANSCRIPT_HOST, { head: false, from: nextTurn(was) })]
+        : withEarlierTurns(was, transcriptEvents(fresh, TRANSCRIPT_HOST, { head: false }));
+    writeAtomic(path, formatLog(events));
+  }
+  return { ok: true, backfill: { id: tr.id, turns: fresh.turns.length, files, links } };
+}
+
 function boardOf(ws: Workspace, root: string, view: ShellView): BoardData {
   const sc = ws.sc;
   const tree = ws.contentTree();
@@ -714,6 +817,22 @@ function answer(req: BridgeRequest): BridgeResponse {
     case "artifact": {
       const r = recordArtifact(ws, root, req);
       return r.ok ? ok(ws.view(), { text: r.text }) : failed(r.reason);
+    }
+    case "backfill-list":
+      return ok(ws.view(), { backfill: { sessions: transcriptFiles(root, transcriptsRoot(req)).map(({ file, id, size }) => ({ file, id, size })) } });
+    case "backfill-one": {
+      const r = backfillOne(ws, root, req);
+      return r.ok ? ok(ws.view(), { backfill: r.backfill }) : failed(r.reason);
+    }
+    case "turn-ids": {
+      const file = transcriptFiles(root, transcriptsRoot(req)).find((f) => f.id === req.session);
+      if (file === undefined) return failed(`no transcript of session ${req.session}`);
+      let text: string;
+      try { text = readText(file.file); } catch (e) { return failed(`cannot read ${basename(file.file)}: ${(e as Error).message}`); }
+      // A file whose last record is cut short is being written (by the host, or by the split-session script rewriting it): no fact yet.
+      const last = text.split(/\r?\n/).reverse().find((l) => l.trim() !== "") ?? "";
+      try { JSON.parse(last); } catch { return failed(`the transcript of session ${req.session} is being written`); }
+      return ok(ws.view(), { backfill: { uuids: (readTranscript(text)?.turns ?? []).map((t) => t.uuid) } });
     }
     case "board": {
       // The workspace opened for this request: git's facts it read are this moment's.
