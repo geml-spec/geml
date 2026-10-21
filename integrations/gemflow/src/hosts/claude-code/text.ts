@@ -232,7 +232,6 @@ export const WORDS: Readonly<Record<string, Entry>> = {
   "渲染": { en: "render", ja: "レンダリング" },
   "查待办": { en: "check the to-dos", ja: "未処理を確認" },
   "查过期片段": { en: "check stale clips", ja: "古いクリップを確認" },
-  "退款": { en: "refund", ja: "返金" },
   "产物": { en: "Artifacts", ja: "成果物" },
   "凭据": { en: "Evidence", ja: "根拠" },
   "阶段变更": { en: "Stage changes", ja: "段階の変更" },

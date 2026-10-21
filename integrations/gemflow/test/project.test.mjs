@@ -13,7 +13,7 @@ const tmp = () => mkdtempSync(join(tmpdir(), "gemflow-project-"));
 
 test("bundled workflows are the directories under workflows/, sorted", () => {
   const names = bundledWorkflows();
-  for (const n of ["coding", "refund"]) assert.ok(names.includes(n), n);
+  assert.deepEqual(names, ["coding", "dev", "matter", "video"]);
   assert.deepEqual(names, [...names].sort());
 });
 
@@ -39,9 +39,9 @@ test("addWorkflow writes the workflow as one file and its rows into the project'
   assert.ok(existsSync(join(root, ".geml", "tools.geml")), "the dictionary's rows come with the workflow");
   assert.equal(readFileSync(join(root, ".geml", ".gitignore"), "utf8"), GITIGNORE);
   assert.equal(readFileSync(join(root, ".geml", "project.geml"), "utf8"), configText("coding"));
-  assert.equal(addWorkflow(root, "refund", { activate: false }).activated, false);
+  assert.equal(addWorkflow(root, "dev", { activate: false }).activated, false);
   assert.equal(readFileSync(join(root, ".geml", "project.geml"), "utf8"), configText("coding"));
-  assert.deepEqual(projectWorkflows(root), ["coding", "refund"]);
+  assert.deepEqual(projectWorkflows(root), ["coding", "dev"]);
   const again = addWorkflow(root, "coding", { activate: true });
   assert.deepEqual([again.ok, again.code, again.reason], [false, 1, ".geml/workflows/coding.geml already exists; not overwriting"]);
   const unknown = addWorkflow(root, "nope", { activate: true });
@@ -51,10 +51,10 @@ test("addWorkflow writes the workflow as one file and its rows into the project'
 
 test("useWorkflow names an installed workflow and refuses any other", () => {
   const root = tmp();
-  addWorkflow(root, "refund", { activate: false });
-  assert.deepEqual(useWorkflow(root, "refund"), { ok: true });
-  assert.match(readFileSync(join(root, ".geml", "project.geml"), "utf8"), /flow-workflow = "refund"/);
-  assert.deepEqual(useWorkflow(root, "coding"), { ok: false, reason: 'no workflow "coding" in .geml/workflows (have: refund)' });
+  addWorkflow(root, "dev", { activate: false });
+  assert.deepEqual(useWorkflow(root, "dev"), { ok: true });
+  assert.match(readFileSync(join(root, ".geml", "project.geml"), "utf8"), /flow-workflow = "dev"/);
+  assert.deepEqual(useWorkflow(root, "coding"), { ok: false, reason: 'no workflow "coding" in .geml/workflows (have: dev)' });
   assert.equal(useWorkflow(root, "../x").ok, false);
 });
 

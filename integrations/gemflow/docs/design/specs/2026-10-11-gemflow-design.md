@@ -35,7 +35,7 @@ effortless 的成功模式是：装上就自动工作，眼前天天有一个证
 |---|---|---|---|
 | ① | 核心引擎：改名、变量的来源、按工作项的 journal、Stagehand、backlog | — | §4–§6 |
 | ② | 开发流程 + Claude Code 外壳（状态带、看板、命令、MCP 工具） | ① | §7.1、§8 |
-| ③ | 流程市场：目录、预览、安装、+ 菜单 | ① | §10 占位 |
+| ③ | 流程市场：目录、预览、安装、+ 菜单 | ① | §10 占位，搁置 |
 | ④ | 视频流程（基于 geml-media），检验格式的通用性 | ① | §7.2 |
 | ⑤ | 按块读改写 + 节省计数、改动影响面、Obsidian 投影 | ① | §10 占位 |
 
@@ -425,7 +425,7 @@ Stagehand 分两层：核心只写文件，宿主负责把文件交给模型。
 4. `src/hosts/dsh/`、`src/hosts/pi/`：接工具词典的判定；按 CLI 的方式找流程（`GEMFLOW_STATECHART`，否则 `.geml/gemflow.geml` 的 `default`，否则唯一的 `.geml/workflows/<name>/flow.geml`）；把调用的输入交给第 3 道门（用途封路与只许人做的命令）。它们仍按会话记 journal，不求值信号、不写 `.geml/context.geml`（§10）。
 5. 新增 `src/hosts/claude-code/`（§8）与插件清单。
 6. `spec/profiles/geml-flow/` 按 §4 改写（英文与中文两份），建立在新的 `spec/profiles/geml-statechart/` 之上；静态检查的用例进各自的 `checks.json`，解析器层的规则进各自的 `conformance.json`。
-7. 内置流程随包发布在 `workflows/` 下，一个流程一个目录，各自带 `flow.geml` 和自己的上下文文档；`gemflow init --template <name>` 整目录复制到项目的 `.geml/workflows/<name>/` 并设为当前流程。现有 `coding`（编码会话的五个阶段）与 `refund`（审批示例）；开发流程 `workflows/dev/`（§4.1）与视频流程 `workflows/video/`（§7.2）随 ② ④ 加入。
+7. 内置流程随包发布在 `workflows/` 下，一个流程一个目录，各自带 `flow.geml` 和自己的上下文文档；`gemflow init --template <name>` 整目录复制到项目的 `.geml/workflows/<name>/` 并设为当前流程。现有 `coding`（编码会话的五个阶段）；开发流程 `workflows/dev/`（§4.1）与视频流程 `workflows/video/`（§7.2）随 ② ④ 加入。
 8. `geml-parser`：`geml media todo` 加 `--check`，有待办时以非零退出（与 `geml check` 一致），供视频流程的 `tool` 证据使用；CHANGELOG 同一提交记一条。
 9. 转换与流程图的实现：计划 `docs/design/plans/2026-10-12-gemflow-d-transition-table.md`（§4 改写前的形状；改写按第 12 条另写计划）。
 10. 工作项的边界（§5.7）：计划 `docs/design/plans/2026-10-12-gemflow-e-side-quests.md`。
@@ -638,7 +638,7 @@ bundle 的行名必须是路径（`./dist/hosts/dsh/plugin.js`，dsh-app-boot �
 
 | 子项目 | 期 | 要点 |
 |---|---|---|
-| ③ 流程市场 | 第 2 期 | git 仓库作目录，索引为 GEML 文档；`gemflow catalog add owner/repo`；安装前预览（阶段、每个阶段的指令、封路点）+ 静态检查；装进 `.geml/workflows/`，用户目录留缓存；+ 菜单：从市场安装（默认）/ 对话生成 / 复制修改 |
+| ③ 流程市场 | 搁置（2026-10-22）：一个流程该怎么执行还没理清（待讨论），理清之前不设计市场 | git 仓库作目录，索引为 GEML 文档；`gemflow catalog add owner/repo`；安装前预览（阶段、每个阶段的指令、封路点）+ 静态检查；装进 `.geml/workflows/`，用户目录留缓存；+ 菜单：从市场安装（默认）/ 对话生成 / 复制修改 |
 | ⑤ 按块读 + 影响面 + 投影 | 与 ③ 并行 | 大 Markdown 读取改为按块读并计节省；codemap 增量更新与调用者查询（状态带一段、看板一栏）；journal 与代码地图投影到 Obsidian，Logseq 其后 |
 | DeepSeek Harness 界面 | 看板已落地（§8.10，2026-10-13）；状态带待定 | 状态带需其 0.2.1 alpha 的 mods 桥；工作项 journal 到达 DeepSeek Harness 与 pi agent 之前，这两个宿主仍按会话记 journal（`flow-item = "session:<id>"`），不求值信号、不写 `.geml/context.geml` |
 | 工具偏好的个人层 | 待定 | 用户目录下一份工具词典，项目的覆盖它：个人习惯的工具与参数跨项目复用 |

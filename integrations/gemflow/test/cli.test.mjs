@@ -174,23 +174,23 @@ test("init is coding by default, activates the workflow it writes, and leaves an
   assert.ok(existsSync(join(d, ".geml", "workflows", "coding.geml")));
   assert.equal(readFileSync(join(d, ".geml", ".gitignore"), "utf8"), "mine\n");
   // A second workflow becomes the active one unless --no-activate says otherwise.
-  assert.equal(run(["init", "--template", "refund"], d).code, 0);
-  assert.match(readFileSync(join(d, ".geml", "project.geml"), "utf8"), /flow-workflow = "refund"/);
+  assert.equal(run(["init", "--template", "dev"], d).code, 0);
+  assert.match(readFileSync(join(d, ".geml", "project.geml"), "utf8"), /flow-workflow = "dev"/);
   rmSync(d, { recursive: true, force: true });
 });
 
 test("init --no-activate writes the workflow and no config; init [dir] and an unknown template", () => {
   const d = ws();
-  const r = run(["init", "sub", "--template", "refund", "--no-activate"], d);
+  const r = run(["init", "sub", "--template", "coding", "--no-activate"], d);
   assert.equal(r.code, 0, r.err);
-  assert.equal(r.out.trim(), "wrote sub/.geml/workflows/refund.geml");
-  assert.equal(lf(readFileSync(join(d, "sub", ".geml", "workflows", "refund.geml"), "utf8")), lf(readFileSync(shipped("refund"), "utf8")));
+  assert.equal(r.out.trim(), "wrote sub/.geml/workflows/coding.geml");
+  assert.equal(lf(readFileSync(join(d, "sub", ".geml", "workflows", "coding.geml"), "utf8")), lf(readFileSync(shipped("coding"), "utf8")));
   assert.equal(existsSync(join(d, "sub", ".geml", "project.geml")), false);
   assert.equal(readFileSync(join(d, "sub", ".geml", ".gitignore"), "utf8"), GITIGNORE);
 
   const bad = run(["init", "--template", "nonsense"], ws());
   assert.equal(bad.code, 2);
-  assert.match(bad.err, /unknown template "nonsense"; expected coding or dev or matter or refund or video/);
+  assert.match(bad.err, /unknown template "nonsense"; expected coding or dev or matter or video/);
   rmSync(d, { recursive: true, force: true });
 });
 
@@ -254,7 +254,7 @@ test("a journal that fails verification is one clean line and exit 1, not a stac
 
 test("advance moves the workflow as a person; mark takes only a variable whose source is a person", () => {
   const d = repo();
-  run(["init", "--template", "refund"], d);
+  installWorkflow(d, "refund", readFileSync(FIX, "utf8"));
   const a = run(["advance", "nowhere"], d);
   assert.equal(a.code, 1);
   assert.match(a.err, /no transition intake→nowhere/);
@@ -302,19 +302,19 @@ test("advance, mark and rollback report the states they entered, and the journal
 test("use switches the active workflow", () => {
   const d = repo();
   run(["init", "--template", "coding"], d);
-  run(["init", "--template", "refund", "--no-activate"], d);
+  run(["init", "--template", "dev", "--no-activate"], d);
   assert.match(readFileSync(join(d, ".geml", "project.geml"), "utf8"), /flow-workflow = "coding"/);
-  const u = run(["use", "refund"], d);
+  const u = run(["use", "dev"], d);
   assert.equal(u.code, 0, u.err);
-  assert.match(readFileSync(join(d, ".geml", "project.geml"), "utf8"), /flow-workflow = "refund"/);
-  assert.match(run(["status"], d).out, /feat\/x · #intake/);
+  assert.match(readFileSync(join(d, ".geml", "project.geml"), "utf8"), /flow-workflow = "dev"/);
+  assert.match(run(["status"], d).out, /feat\/x · #build/);
   const nope = run(["use", "nope"], d);
   assert.equal(nope.code, 1);
-  assert.match(nope.err, /^gemflow: no workflow "nope" in \.geml\/workflows \(have: coding, refund\)$/m);
+  assert.match(nope.err, /^gemflow: no workflow "nope" in \.geml\/workflows \(have: coding, dev\)$/m);
   // A name is a workflow in .geml/workflows, not a path out of it.
   assert.equal(run(["use", "../workflows/coding"], d).code, 1);
   assert.equal(run(["use"], d).code, 2);
-  assert.match(readFileSync(join(d, ".geml", "project.geml"), "utf8"), /flow-workflow = "refund"/);
+  assert.match(readFileSync(join(d, ".geml", "project.geml"), "utf8"), /flow-workflow = "dev"/);
   rmSync(d, { recursive: true, force: true });
 });
 
@@ -322,16 +322,16 @@ test("use changes the default only: a work item with a journal goes on under its
   const d = repo();
   run(["init", "--template", "coding"], d);
   assert.equal(run(["status"], d).code, 0, "the journal of feat/x is started under coding");
-  run(["init", "--template", "refund", "--no-activate"], d);
-  const u = run(["use", "refund"], d);
+  run(["init", "--template", "dev", "--no-activate"], d);
+  const u = run(["use", "dev"], d);
   assert.equal(u.code, 0, u.err);
-  assert.equal(u.out.trim(), "default workflow: refund (a work item with a journal keeps its own)");
+  assert.equal(u.out.trim(), "default workflow: dev (a work item with a journal keeps its own)");
   assert.equal(u.err, "", "nothing to warn about");
   const s = run(["status"], d);
   assert.equal(s.code, 0, s.err);
-  assert.match(s.out, /^feat\/x · #explore · workflow coding \(default refund\)$/m);
+  assert.match(s.out, /^feat\/x · #explore · workflow coding \(default dev\)$/m);
   spawnSync("git", ["-C", d, "checkout", "-qb", "feat/y"]);
-  assert.match(run(["status"], d).out, /^feat\/y · #intake$/m, "a new work item starts under the default");
+  assert.match(run(["status"], d).out, /^feat\/y · #build$/m, "a new work item starts under the default");
   rmSync(d, { recursive: true, force: true });
 });
 

@@ -80,7 +80,7 @@ dictionary denies in this state; every other tool runs as usual.
 
 | | |
 |---|---|
-| Shipping now | The workflow format, on `geml-statechart/v1` (no vocabulary of its own); the core library (workflow loading and static checks, the tool dictionary, evidence by source, hash-chained revisions, journal render/read/verify, the supervisor, Stagehand, work items, the backlog table); the workspace, which runs one locked operation at a time against a project; the `gemflow` CLI; five bundled workflows (`coding`, `dev`, `matter`, `refund`, `video`), each with its dictionary; a Claude Code plugin (the band above the prompt, the board, `/gemflow`, the three tools `status`, `move`, `set`); `gemflow mcp` for hosts that speak only MCP; and both host adapters — a Cordis plugin for DeepSeek Harness `0.1.5-rc.1` with the board as a tab in its web GUI, and an extension for pi agent `0.85.x`. |
+| Shipping now | The workflow format, on `geml-statechart/v1` (no vocabulary of its own); the core library (workflow loading and static checks, the tool dictionary, evidence by source, hash-chained revisions, journal render/read/verify, the supervisor, Stagehand, work items, the backlog table); the workspace, which runs one locked operation at a time against a project; the `gemflow` CLI; four bundled workflows (`coding`, `dev`, `matter`, `video`), each with its dictionary; a Claude Code plugin (the band above the prompt, the board, `/gemflow`, the three tools `status`, `move`, `set`); `gemflow mcp` for hosts that speak only MCP; and both host adapters — a Cordis plugin for DeepSeek Harness `0.1.5-rc.1` with the board as a tab in its web GUI, and an extension for pi agent `0.85.x`. |
 | Tested without a model | Every gate, on both adapter hosts: the DSH adapter against a real agent from `dsh-agent-loop-testkit`, the pi agent adapter against a double that runs its own pipeline order and its own argument validator. The Claude Code plugin: its hooks module under `claude plugin test`, in real event order, with a scripted bridge; the bridge through the bundled CLI in throwaway git repositories, with a stand-in for `gh`; the fast path held to what the workspace would refuse, record and ask about. A run against a live model is a manual step, below. |
 | Not on every host yet | Evidence from files, git and a person, and the stage's context document (`.geml/context.geml`), run through the workspace. The Claude Code plugin hands it every tool call, and so do Codex's hooks once trusted, so all four sources are read there. On MCP-only hosts (`gemflow mcp`: Gemini CLI, Grok, Codex with its hooks untrusted, …) no tool call is seen: `tool` evidence is never written, nothing is refused, and `status` reads git and the file variables afresh when the model calls it. The two host adapters keep one journal per session and write `tool` evidence only; a transition marked `approval` has no one to take it there yet. |
 | Not yet measured | What re-registering `move` and `set` per state costs DeepSeek Harness's prompt cache. |
@@ -184,10 +184,9 @@ GitHub renders, and the HTML renderer and the viewer draw it; `.gemlhistory`
 versions it.
 
 `gemflow init` writes the full version into `.geml/workflows/coding.geml` and makes
-it the active workflow; `--template refund` writes an approval workflow,
-`--template dev` the branch-to-production workflow of
-[The dev workflow](#the-dev-workflow), `--template video` the episode workflow
-of [The video workflow](#the-video-workflow).
+it the active workflow; `--template dev` writes the branch-to-production
+workflow of [The dev workflow](#the-dev-workflow), `--template video` the
+episode workflow of [The video workflow](#the-video-workflow).
 
 ## What it does not do
 
@@ -296,7 +295,7 @@ usage: gemflow <check|snapshot|verify|export|init|use|migrate|status|mark|unmark
   snapshot <journal.geml> [--json]        the last revision
   verify <journal.geml> [--workflow f]    hash chain and consistency
   export <journal.geml> --to md           revision table with per-step diffs
-  init [dir] [--template coding|dev|matter|refund|video] [--no-activate]  write a bundled workflow into .geml/workflows/
+  init [dir] [--template coding|dev|matter|video] [--no-activate]  write a bundled workflow into .geml/workflows/
   use <workflow>                          make a workflow the default for new work items
   migrate                                 move the earlier layout (a workflow directory in the checkout) into the project's home
   status [--json]                         the work item, the stage, its variables and next steps
@@ -327,7 +326,7 @@ usage: gemflow <check|snapshot|verify|export|init|use|migrate|status|mark|unmark
   blocks is the one edit the chain cannot detect.
 - `init` writes a bundled workflow as one file,
   `<dir>/.geml/workflows/<template>.geml` (`coding` unless `--template` says
-  `dev`, `matter`, `refund` or `video`), adds its rows to `.geml/tools.geml`,
+  `dev`, `matter` or `video`), adds its rows to `.geml/tools.geml`,
   makes it the default unless `--no-activate`, and writes `.geml/.gitignore`
   when there is none. A workflow the project has is never overwritten.
 - `use` names another workflow of `.geml/workflows/` in `.geml/project.geml`
@@ -422,10 +421,10 @@ started under, so `use` warns about nothing, and the band, the board and
 `gemflow status` name an item's workflow when it is not the default:
 
 ```
-$ gemflow use refund
-default workflow: refund (a work item with a journal keeps its own)
+$ gemflow use dev
+default workflow: dev (a work item with a journal keeps its own)
 $ gemflow status
-feat/rate-limit · #explore · workflow coding (default refund)
+feat/rate-limit · #explore · workflow coding (default dev)
 ```
 
 A journal whose workflow file is gone does not open, and says so: restore the

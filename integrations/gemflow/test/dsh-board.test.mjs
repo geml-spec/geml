@@ -22,7 +22,7 @@ import { world } from "./helpers/harness.mjs";
 
 const FIX = fileURLToPath(new URL("./fixtures/refund.geml", import.meta.url));
 const FLOW = readFileSync(FIX, "utf8");
-const TOOLS = readFileSync(new URL("../workflows/refund/tools.geml", import.meta.url), "utf8");
+const TOOLS = readFileSync(new URL("./fixtures/refund-tools.geml", import.meta.url), "utf8");
 const DEV = { flow: readFileSync(new URL("./fixtures/ws-dev/flow.geml", import.meta.url), "utf8"), tools: readFileSync(new URL("./fixtures/ws-dev/tools.geml", import.meta.url), "utf8"), name: "dev" };
 const NOW = "2026-10-13T10:00:00.000Z";
 delete process.env.GEMFLOW_STATECHART;

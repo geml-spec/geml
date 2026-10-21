@@ -72,7 +72,7 @@ flowchart TB
 
 | | |
 |---|---|
-| 现在可用 | 流程格式，建在 `geml-statechart/v1` 上（没有自己的词汇表）；核心库（流程载入与静态检查、工具词典、按来源分的证据、哈希链修订、journal 渲染/读取/校验、监督器、Stagehand、工作项、backlog 表）；workspace——对一个项目一次只做一个加锁的操作；`gemflow` CLI；五份内置流程（`coding`、`dev`、`matter`、`refund`、`video`），各带自己的词典；Claude Code 插件（输入框上方的状态带、看板、`/gemflow`、`status`、`move`、`set` 三个工具）；给只接 MCP 的宿主用的 `gemflow mcp`；两个宿主适配器——DeepSeek Harness `0.1.5-rc.1` 的 Cordis 插件（看板是其 web GUI 右侧栏的一个标签页）与 pi agent `0.85.x` 的扩展。 |
+| 现在可用 | 流程格式，建在 `geml-statechart/v1` 上（没有自己的词汇表）；核心库（流程载入与静态检查、工具词典、按来源分的证据、哈希链修订、journal 渲染/读取/校验、监督器、Stagehand、工作项、backlog 表）；workspace——对一个项目一次只做一个加锁的操作；`gemflow` CLI；四份内置流程（`coding`、`dev`、`matter`、`video`），各带自己的词典；Claude Code 插件（输入框上方的状态带、看板、`/gemflow`、`status`、`move`、`set` 三个工具）；给只接 MCP 的宿主用的 `gemflow mcp`；两个宿主适配器——DeepSeek Harness `0.1.5-rc.1` 的 Cordis 插件（看板是其 web GUI 右侧栏的一个标签页）与 pi agent `0.85.x` 的扩展。 |
 | 不接模型也测过 | 每一道闸在两个适配器宿主上各测一遍：DSH 侧用 `dsh-agent-loop-testkit` 起真 agent，pi agent 侧用一个按它自己的管线顺序、并且用它自己的参数校验器跑的替身。Claude Code 插件：hooks 模块在 `claude plugin test` 下按真实事件顺序跑，桥接由脚本应答；桥接本身经打包后的 CLI 在临时 git 仓库里测，`gh` 用替身；快路径被钉在 workspace 会拒绝、会记录、会询问的范围上。接真模型跑一遍是手工步骤，见下。 |
 | 还不是每个宿主都有 | 来自文件、git 与人的证据，以及当前阶段的上下文文档（`.geml/context.geml`），都经由 workspace 运行。Claude Code 插件把每一次工具调用都交给它，Codex 的 hooks 信任之后也一样，所以四种来源在那里都读得到。只接 MCP 的宿主（`gemflow mcp`：Gemini CLI、Grok、没信任 hooks 的 Codex……）上看不到任何工具调用：`tool` 证据永远写不了，什么都不拒，模型调用 `status` 时它才重新读一遍 git 和文件变量。两个宿主适配器仍是每个会话一本 journal，只写 `tool` 证据；标了 `approval` 的转换在那里还没人能走。 |
 | 还没实测 | 在 DeepSeek Harness 上按状态重注册 `move` 与 `set` 对提示词缓存的代价。 |
@@ -165,9 +165,8 @@ workflow is in #explore`）；`#verify` 声明了 `test`，所以 `npm test` 只
 viewer 直接画它；`.gemlhistory` 给它记版本。
 
 `gemflow init` 把完整的那份写进 `.geml/workflows/coding.geml` 并设为当前流程；
-`--template refund` 写一份审批流程，`--template dev` 写[开发流程](#开发流程)那份从
-分支到 production 的流程，`--template video` 写[视频流程](#视频流程)那份一集一集的
-流程。
+`--template dev` 写[开发流程](#开发流程)那份从分支到 production 的流程，
+`--template video` 写[视频流程](#视频流程)那份一集一集的流程。
 
 ## 它不做什么
 
@@ -255,7 +254,7 @@ usage: gemflow <check|snapshot|verify|export|init|use|migrate|status|mark|unmark
   snapshot <journal.geml> [--json]        the last revision
   verify <journal.geml> [--workflow f]    hash chain and consistency
   export <journal.geml> --to md           revision table with per-step diffs
-  init [dir] [--template coding|dev|matter|refund|video] [--no-activate]  write a bundled workflow into .geml/workflows/
+  init [dir] [--template coding|dev|matter|video] [--no-activate]  write a bundled workflow into .geml/workflows/
   use <workflow>                          make a workflow the default for new work items
   migrate                                 move the earlier layout (a workflow directory in the checkout) into the project's home
   status [--json]                         the work item, the stage, its variables and next steps
@@ -279,7 +278,7 @@ usage: gemflow <check|snapshot|verify|export|init|use|migrate|status|mark|unmark
   `parent` 等于前一块的哈希、每个哈希按内容重算、并且——给了流程时——每次记录的转换
   都对应一条声明过的边。删掉**末尾**一段块是这条链唯一检测不出的改动。
 - `init` 把一份内置流程写成一个文件 `<dir>/.geml/workflows/<template>.geml`（默认
-  `coding`，`--template dev`、`matter`、`refund` 或 `video` 则是那一份），把它的词典行
+  `coding`，`--template dev`、`matter` 或 `video` 则是那一份），把它的词典行
   并进 `.geml/tools.geml`，除非给了 `--no-activate` 就设为默认流程，并在没有
   `.geml/.gitignore` 时写一份。项目已有的流程绝不覆盖。
 - `use` 在 `.geml/project.geml` 里改指 `.geml/workflows/` 下的另一个流程（见
@@ -358,10 +357,10 @@ CLI 每个工作项一本 journal。coding 流程（`flow-unit = "branch"`，默
 和 `gemflow status` 在工作项的流程不是默认流程时会点名：
 
 ```
-$ gemflow use refund
-default workflow: refund (a work item with a journal keeps its own)
+$ gemflow use dev
+default workflow: dev (a work item with a journal keeps its own)
 $ gemflow status
-feat/rate-limit · #explore · workflow coding (default refund)
+feat/rate-limit · #explore · workflow coding (default dev)
 ```
 
 流程文件没了的 journal 打不开，并且会说明：把文件找回来，或者把 journal 挪开——改名，

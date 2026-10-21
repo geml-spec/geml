@@ -29,7 +29,7 @@ const USAGE = [
   "  snapshot <journal.geml> [--json]        the last revision",
   "  verify <journal.geml> [--workflow f]    hash chain and consistency",
   "  export <journal.geml> --to md           revision table with per-step diffs",
-  "  init [dir] [--template coding|dev|matter|refund|video] [--no-activate]  write a bundled workflow into .geml/workflows/",
+  "  init [dir] [--template coding|dev|matter|video] [--no-activate]  write a bundled workflow into .geml/workflows/",
   "  use <workflow>                          make a workflow the default for new work items",
   "  migrate                                 move the earlier layout (a workflow directory in the checkout) into the project's home",
   "  status [--json]                         the work item, the stage, its variables and next steps",

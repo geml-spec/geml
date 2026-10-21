@@ -173,20 +173,20 @@ test("bind: a to-do joins the current work item, one cell rewritten under the ba
 test("add lists the bundled workflows and copies one; use switches", () => {
   const root = gitRepo("main");
   const list = hook(root, { op: "add" });
-  assert.ok(list.workflows.includes("coding") && list.workflows.includes("refund"));
+  assert.ok(list.workflows.includes("coding") && list.workflows.includes("dev"));
   assert.deepEqual(list.installed, []);
   assert.equal(list.shell.problem.quiet, true);
   const added = hook(root, { op: "add", workflow: "coding" });
   assert.deepEqual(added.added, { name: "coding", activated: true });
   assert.deepEqual(added.shell.status.item, { kind: "inactive", reason: "main · not tracked (work items are branches)" });
-  assert.deepEqual(hook(root, { op: "add", workflow: "refund" }).added, { name: "refund", activated: false });
-  assert.equal(hook(root, { op: "use", workflow: "refund" }).ok, true);
-  assert.match(readFileSync(join(root, ".geml", "project.geml"), "utf8"), /flow-workflow = "refund"/);
+  assert.deepEqual(hook(root, { op: "add", workflow: "dev" }).added, { name: "dev", activated: false });
+  assert.equal(hook(root, { op: "use", workflow: "dev" }).ok, true);
+  assert.match(readFileSync(join(root, ".geml", "project.geml"), "utf8"), /flow-workflow = "dev"/);
   const nope = hook(root, { op: "use", workflow: "nope" });
   assert.equal(nope.ok, false);
-  assert.match(nope.shell.status.workflow.name, /^refund$/, "a refused use answers with the shell as it stands");
+  assert.match(nope.shell.status.workflow.name, /^dev$/, "a refused use answers with the shell as it stands");
   const twice = hook(root, { op: "add", workflow: "nope" });
-  assert.deepEqual([twice.ok, twice.shell.status.workflow.name], [false, "refund"]);
+  assert.deepEqual([twice.ok, twice.shell.status.workflow.name], [false, "dev"]);
 });
 
 test("use changes only the default: the current work item keeps the workflow its journal names, and the shell and the board say which is the default", () => {

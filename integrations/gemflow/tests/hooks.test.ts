@@ -199,7 +199,7 @@ function world(on: On) {
     if (req.op === 'learn') { w.lessons.push(req.lessons); return { v: 1, ok: true, shell: shell() } }
     if (req.op === 'export') return { v: 1, ok: true, shell: shell(), exported: { path: `.geml/exports/${String(req.name ?? 'x')}.${String(req.format)}`, text: String(req.text ?? 'journal text') } }
     if (req.op === 'import') return { v: 1, ok: true, shell: shell(), workflows: ['coding', 'dev'], installed: ['dev', 'mine'], added: { name: 'mine', activated: false } }
-    if (req.op === 'add' && req.workflow === undefined) return { v: 1, ok: true, shell: shell(), workflows: ['coding', 'dev', 'refund'], installed: ['dev'] }
+    if (req.op === 'add' && req.workflow === undefined) return { v: 1, ok: true, shell: shell(), workflows: ['coding', 'dev', 'matter'], installed: ['dev'] }
     if (req.op === 'advance') {
       w.state = String(req.to)
       w.rev += 1

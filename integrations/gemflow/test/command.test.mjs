@@ -62,9 +62,9 @@ test("/gemflow prints where the work stands: the stage with its uses, each varia
 });
 
 test("the + menu lists, then copies; use names the active workflow", () => {
-  assert.equal(addText({ v: 1, ok: true, shell, workflows: ["coding", "dev", "refund"], installed: ["dev"] }), "内置流程：coding、dev（已在本项目）、refund\n用 /gemflow add <流程> 把一个写入 .geml/workflows/。");
+  assert.equal(addText({ v: 1, ok: true, shell, workflows: ["coding", "dev", "matter"], installed: ["dev"] }), "内置流程：coding、dev（已在本项目）、matter\n用 /gemflow add <流程> 把一个写入 .geml/workflows/。");
   assert.equal(addText({ v: 1, ok: true, shell, added: { name: "dev", activated: true } }), "已把内置流程 dev 写入 .geml/workflows/dev.geml，并设为当前流程。");
-  assert.equal(addText({ v: 1, ok: true, shell, added: { name: "refund", activated: false } }), "已把内置流程 refund 写入 .geml/workflows/refund.geml。用 /gemflow use refund 让它成为当前流程。");
+  assert.equal(addText({ v: 1, ok: true, shell, added: { name: "matter", activated: false } }), "已把内置流程 matter 写入 .geml/workflows/matter.geml。用 /gemflow use matter 让它成为当前流程。");
   assert.match(commandText({ kind: "use", workflow: "dev" }, { v: 1, ok: true, shell }, null), /^默认流程：dev\n流程 dev/);
 });
 
@@ -77,9 +77,9 @@ test("pause and resume answer with the stage after them", () => {
 });
 
 test("use names the new default; a work item on another workflow than the default names both", () => {
-  assert.equal(commandText({ kind: "use", workflow: "refund" }, { v: 1, ok: true, shell }, null), `默认流程：refund\n${statusText(shell)}`);
-  const kept = { ...shell, status: { ...status, workflow: { ...status.workflow, default: "refund" } } };
-  assert.match(statusText(kept), /^流程 dev（开发流程）· 默认流程 refund\n工作项 feat\/x/);
+  assert.equal(commandText({ kind: "use", workflow: "matter" }, { v: 1, ok: true, shell }, null), `默认流程：matter\n${statusText(shell)}`);
+  const kept = { ...shell, status: { ...status, workflow: { ...status.workflow, default: "matter" } } };
+  assert.match(statusText(kept), /^流程 dev（开发流程）· 默认流程 matter\n工作项 feat\/x/);
 });
 
 test("help, a bridge that did not answer, an error answer, the board", () => {

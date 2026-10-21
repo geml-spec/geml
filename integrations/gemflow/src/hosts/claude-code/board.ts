@@ -298,7 +298,7 @@ interface ExportsOf { button: (session: string) => Pressable; under: (session: s
 /** Common uses in words; a use the table does not know goes by its own name. */
 const USE_WORDS: Readonly<Record<string, string>> = {
   edit: "改文件", test: "跑测试", pr: "开 PR", check: "检查", note: "写事项", "deploy-staging": "部署到 staging", "deploy-prod": "部署到 production",
-  image: "出图", video: "出视频", voice: "配音", render: "渲染", "todo-check": "查待办", "stale-check": "查过期片段", refund: "退款",
+  image: "出图", video: "出视频", voice: "配音", render: "渲染", "todo-check": "查待办", "stale-check": "查过期片段",
 };
 export const useWords = (use: string, t: T = ZH): string => (USE_WORDS[use] !== undefined ? t(USE_WORDS[use] as string) : use);
 

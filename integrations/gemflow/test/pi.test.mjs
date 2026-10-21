@@ -16,7 +16,7 @@ import { dictDoc, flowDoc } from "./helpers/flow.mjs";
 import { learnInFile } from "../dist/dictionary-io.js";
 
 const FIX = fileURLToPath(new URL("./fixtures/refund.geml", import.meta.url));
-const REFUND_TOOLS = readFileSync(new URL("../workflows/refund/tools.geml", import.meta.url), "utf8");
+const REFUND_TOOLS = readFileSync(new URL("./fixtures/refund-tools.geml", import.meta.url), "utf8");
 const sc = loadStatechart(readFileSync(FIX, "utf8"), "flow.geml").statechart;
 
 const dirs = [];

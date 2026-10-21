@@ -12,7 +12,7 @@ import { loadStatechart } from "../dist/core/statechart.js";
 import { dictDoc, flowDoc } from "./helpers/flow.mjs";
 
 const FIX = fileURLToPath(new URL("./fixtures/refund.geml", import.meta.url));
-const REFUND_TOOLS = readFileSync(new URL("../workflows/refund/tools.geml", import.meta.url), "utf8");
+const REFUND_TOOLS = readFileSync(new URL("./fixtures/refund-tools.geml", import.meta.url), "utf8");
 const sc = loadStatechart(readFileSync(FIX, "utf8"), "flow.geml").statechart;
 
 // A GEMFLOW_STATECHART in the developer's shell would pick the workflow for every test here.

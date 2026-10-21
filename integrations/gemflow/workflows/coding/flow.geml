@@ -3,7 +3,7 @@ title   = "Coding workflow"
 profile = "geml-statechart/v1"
 ===
 
-%% A workflow for writing code, not for approving refunds. Read it as four
+%% A workflow for writing code. Read it as four
 %% claims about what an agent may do while it works on your repository:
 %%
 %%   1. it cannot edit a file before it has written down a plan;
