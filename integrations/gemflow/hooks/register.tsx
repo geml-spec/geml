@@ -421,9 +421,12 @@ const readAttention = async ($: EngineInterface): Promise<Attention | null> => (
 
 /** The repository's facts for the band, with the reload a command made due. */
 async function factsNow($: EngineInterface): Promise<AttentionFacts> {
-  const [kept, reload] = await Promise.all([read($, factsAtom), read($, reloadAtom)])
+  const [kept, reload, shell, running] = await Promise.all([read($, factsAtom), read($, reloadAtom), readShell($), read($, versionAtom)])
   const f = (kept as unknown as AttentionFacts | null) ?? NO_FACTS
-  return reload ? { ...f, reload: true } : f
+  // The version this module was loaded as, and the one the folder holds now (the CLI reads it on every request).
+  const synced = shell?.versions?.gemflow
+  const differ = typeof running === 'string' && running !== '' && synced !== undefined && synced !== '' && synced !== running
+  return reload || differ ? { ...f, reload: true, ...(differ ? { versions: { running, synced } } : {}) } : f
 }
 
 /** What the band and the board's 此刻 show now: the lead, the standing steps, the memory, the line. Reads only. */
@@ -1763,6 +1766,8 @@ function drawFlow($: EngineInterface, els: Els, row: Extract<BoardRow, { kind: '
 /** The board's header: the mark, the name, the version and a newer one when told; the dialogs; the work item, its stage and flow, and its hold. */
 interface Header {
   version: string;
+  /** The version the plugin's folder holds, when it is not the one running: loaded at the next reload. */
+  synced?: string;
   newer?: string;
   dialogs: Pressable[];
   name?: string;
@@ -1775,11 +1780,13 @@ interface Header {
 async function headerRows($: EngineInterface, t: T): Promise<Header> {
   const [shell, stored, known, settings] = await Promise.all([readShell($), read($, versionAtom), read($, latestAtom), readSettings($)])
   const s = shell?.status ?? null
-  const version = shell?.versions?.gemflow ?? stored ?? ''
+  // The version this module was loaded as; the folder's, from the CLI, only when it was not read.
+  const version = stored ?? shell?.versions?.gemflow ?? ''
+  const synced = shell?.versions?.gemflow
   const latest = known as unknown as { version?: string } | null
   const newer = settings.notify.update && latest?.version !== undefined && version !== '' && isNewer(latest.version, version) ? latest.version : undefined
   const dialogs: Pressable[] = (['share', 'settings', 'upgrade', 'about'] as const).map((d) => ({ key: `dialog-${d}`, label: d === 'share' ? t('分享') : d === 'settings' ? t('设置') : d === 'upgrade' ? t('升级') : t('关于'), action: { op: 'dialog', dialog: d } }))
-  const head: Header = { version, dialogs, ...(newer !== undefined ? { newer } : {}) }
+  const head: Header = { version, dialogs, ...(newer !== undefined ? { newer } : {}), ...(synced !== undefined && synced !== '' && version !== '' && synced !== version ? { synced } : {}) }
   if (s !== null && s.item.kind === 'item') {
     return { ...head, name: s.title ?? s.item.id, ...(s.state !== undefined ? { stage: s.paused ? `${s.state.title} · ${t('已暂停')}` : s.state.title } : {}), flow: s.workflow.title }
   }
@@ -1799,7 +1806,7 @@ async function dialogRows($: EngineInterface, t: T, dialog: Dialog, columns: num
     readShell($), read($, versionAtom), readSettings($), read($, localeAtom), read($, latestAtom), read($, shareAtom), read($, sharedTextAtom),
     dialog === 'share' ? shareStatus($, t) : Promise.resolve(''),
   ])
-  const version = shell?.versions?.gemflow ?? stored ?? '?'
+  const version = stored ?? shell?.versions?.gemflow ?? '?'
   if (dialog === 'settings') {
     if (terminal) rows.push(section('notify', t('桌面提醒')),
       { kind: 'buttons', items: [toggle(t('有事项需要决定或验收时'), 'notify.inbox', s.notify.inbox)] },
@@ -1965,6 +1972,7 @@ function drawHeader($: EngineInterface, els: Els, head: Header | undefined, envL
           {head.version !== '' && (els.Svg !== undefined
             ? <Box key="version" borderStyle="round" borderColor={RULE} paddingX={1}><Text dimColor>{head.version}</Text></Box>
             : <Text dimColor>{head.version}</Text>)}
+          {head.synced !== undefined && <Text key="synced" color="warning">{t('已同步 {0}', head.synced)}</Text>}
           {head.newer !== undefined && <Button key="newer" plain label={t('● 可更新 {0}', head.newer)} onPress={press($, { op: 'dialog', dialog: 'upgrade' })} />}
           <Box flexGrow={1} />
           <Box key="dialogs" gap={els.Svg !== undefined ? 2 : 1} alignItems="center">

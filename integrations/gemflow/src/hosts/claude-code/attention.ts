@@ -29,6 +29,8 @@ export interface AttentionFacts {
   prs: { number: number; branch: string; green: boolean; failing: string[] }[];
   /** Something changed that takes a reload to see (the plugin's own folder, while it is being developed). */
   reload?: boolean;
+  /** The version the session runs and the one its folder holds, when they differ: what the reload brings. */
+  versions?: { running: string; synced: string };
 }
 export const NO_FACTS: AttentionFacts = { ahead: [], prs: [] };
 
@@ -171,9 +173,11 @@ export function standingOf(reply: string, facts: AttentionFacts, now: number, t:
     }
   }
   if (facts.reload === true) {
+    // Which version a reload brings, and which runs now, where both are known.
+    const v = facts.versions;
     out.push(o.reloadHere === false
-      ? { key: "reload", kind: "you", short: t("本机重载插件"), text: t("插件已更新，需在本机重载"), options: [] }
-      : { key: "reload", kind: "you", short: t("重载插件"), text: t("插件已更新，重载后生效"), options: [t("重载插件")] });
+      ? { key: "reload", kind: "you", short: t("本机重载插件"), text: v !== undefined ? t("待重载：{0}（运行 {1}）· 需在本机", v.synced, v.running) : t("插件已更新，需在本机重载"), options: [] }
+      : { key: "reload", kind: "you", short: t("重载插件"), text: v !== undefined ? t("待重载：{0}（运行 {1}）", v.synced, v.running) : t("插件已更新，重载后生效"), options: [t("重载插件")] });
   }
   for (const p of facts.prs) {
     if (p.green) out.push({ key: `green:${p.number}`, kind: "you", short: t("合并 #{0}", p.number), text: t("可合并：#{0}（检查全部通过）", p.number), options: [t("合并")] });
@@ -284,10 +288,11 @@ export function bandLine(o: {
     owed.length === 0 ? "" : named ? t("待处理：{0}", owed.join("、")) : t("待处理 {0} 项", owed.length),
     waiting > 0 ? t("待决定 {0} 项", waiting) : "",
   ];
-  // Nothing leads and nothing else is named: the line says what its buttons are.
+  // Nothing leads and nothing else is named: one step says itself (what a reload brings, how many commits a push
+  // sends); several, what their buttons are.
   const build = (named: boolean, l: string): string => {
     const parts = [l, ...tail(named)].filter((x) => x !== "");
-    return parts.length === 0 && steps.length > 0 ? t("待处理") : parts.join(" · ");
+    return parts.length === 0 && steps.length > 0 ? (steps.length === 1 ? (steps[0] as Standing).text : t("待处理")) : parts.join(" · ");
   };
   const room = width - cells([...options, ...steps.map((x) => x.short)].map((x) => `[${x}]`).join(" ")) - 1;
   const kind = lead?.kind ?? null;

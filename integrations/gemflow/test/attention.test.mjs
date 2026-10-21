@@ -108,7 +108,13 @@ test("the line: lead, steps still owed, asks still waiting, in one row; how long
   // A commit just made: its push is a button at once, though it does not lead.
   const fresh = standingOf("", { ahead: [{ branch: "feat/x", ahead: 1, newestAt: new Date(NOW - 60_000).toISOString() }], prs: [] }, NOW);
   assert.equal(leadOf({ reply: "", standing: fresh, memory: NO_MEMORY }), null, "young: it does not lead");
-  assert.deepEqual(bandLine({ lead: null, standing: fresh, memory: NO_MEMORY, reply: "", awayMs: 0 }), { text: "待处理", options: [], lead: null, steps: fresh });
+  assert.deepEqual(bandLine({ lead: null, standing: fresh, memory: NO_MEMORY, reply: "", awayMs: 0 }), { text: "待推送：feat/x · 1 个提交", options: [], lead: null, steps: fresh }, "one step: the line says it");
+  // A reload says which version it brings and which runs now.
+  const due = standingOf("", { ahead: [], prs: [], reload: true, versions: { running: "0.2.32", synced: "0.2.35" } }, NOW);
+  assert.deepEqual([due[0].text, due[0].options], ["待重载：0.2.35（运行 0.2.32）", ["重载插件"]]);
+  assert.equal(bandLine({ lead: null, standing: due, memory: NO_MEMORY, reply: "", awayMs: 0 }).text, "待重载：0.2.35（运行 0.2.32）");
+  assert.equal(standingOf("", { ahead: [], prs: [], reload: true, versions: { running: "0.2.32", synced: "0.2.35" } }, NOW, undefined, { reloadHere: false })[0].text, "待重载：0.2.35（运行 0.2.32）· 需在本机");
+  assert.equal(bandLine({ lead: null, standing: [...due, ...fresh], memory: NO_MEMORY, reply: "", awayMs: 0 }).text, "待处理", "several steps: what their buttons are");
   // Over a remote connection a reload is named, with no button that cannot work.
   const remote = standingOf("", { ahead: [], prs: [], reload: true }, NOW, undefined, { reloadHere: false });
   assert.deepEqual([remote[0].short, remote[0].options], ["本机重载插件", []]);
@@ -126,7 +132,7 @@ test("the line fades: a condition rides along for its first turns, then only the
   assert.equal(bandLine({ lead: null, standing, memory: aged, reply: "", awayMs: 5 * 3_600_000 }), null, "a green pull request left for days stays faded, back or not");
   const unpushed = standingOf("", { ahead: [{ branch: "main", ahead: 1, newestAt: "2026-10-18T01:00:00Z" }], prs: [] }, NOW);
   const back = bandLine({ lead: null, standing: unpushed, memory: { ...NO_MEMORY, shown: ["unpushed:main"], age: { "unpushed:main": 9 } }, reply: "", awayMs: 5 * 3_600_000 });
-  assert.deepEqual([back.text, back.steps.map((x) => x.short)], ["待处理", ["推送 main"]], "work not pushed comes back once on return, a button");
+  assert.deepEqual([back.text, back.steps.map((x) => x.short)], ["待推送：main · 1 个提交", ["推送 main"]], "work not pushed comes back once on return, a button");
 });
 
 test("presses: an answer or a step goes as the person's own words, whole; 看看 opens the board; a reload is copied", () => {

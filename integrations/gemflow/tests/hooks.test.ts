@@ -82,6 +82,9 @@ function world(on: On) {
     hold: null as Promise<void> | null,
     /** A board op held until it resolves; `boardless`: the board op answers with no board. */
     holdBoard: null as Promise<void> | null,
+    /** The version the plugin's folder holds, as the CLI reports it; `manifest`, the one the module reads at its start. */
+    synced: null as string | null,
+    manifest: null as string | null,
     boardless: false,
     /** The work items that have a journal: a handoff to one of them is a return, to any other a new item. */
     journals: new Set(['feat/x']),
@@ -115,6 +118,7 @@ function world(on: On) {
       relevant: w.state === 'build' ? ['tests-pass', 'pr-open'] : [], evidence: ['test'],
     },
     contextKey: `${w.item}@${w.rev}`,
+    ...(w.synced !== null ? { versions: { gemflow: w.synced, parser: '1.12.5' } } : {}),
   })
   /** What the CLI hands over when an after or verb answer is on another work item than the one the main loop last read. */
   const handoff = (req: Req) => {
@@ -226,7 +230,7 @@ function world(on: On) {
     const dir = posix(e.path ?? '').replace(/\/$/, '')
     return { value: [...w.files.entries()].filter(([p]) => p.startsWith(`${dir}/`) && !p.slice(dir.length + 1).includes('/')).map(([p, text]) => ({ name: p.slice(dir.length + 1), kind: 'file' as const, size: text.length, mtimeMs: 0, isLink: false })) }
   })
-  on('fs.read', ($, e) => (w.files.has(posix(e.path)) ? { value: w.files.get(posix(e.path)) as string } : posix(e.path) === `${ROOT}/.geml/context.geml`
+  on('fs.read', ($, e) => (posix(e.path).endsWith('/.claude-plugin/plugin.json') && w.manifest !== null ? { value: JSON.stringify({ version: w.manifest }) } : w.files.has(posix(e.path)) ? { value: w.files.get(posix(e.path)) as string } : posix(e.path) === `${ROOT}/.geml/context.geml`
     ? { value: `=== meta\nprofile = "geml-statechart/v1"\n===\n\n=== data {#stage format=json}\n${JSON.stringify({ item: w.item, state: w.state, rev: w.rev })}\n===\n\n=== text {#current}\n${stage()}\n===\n` }
     : { deny: 'ENOENT' }))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
@@ -828,6 +832,21 @@ test('a tab whose rows cannot be drawn says why in its place; the tab bar still 
     expect(await words(), `${surface}: and back`).toMatch(/gemflow：工作项画不出来（/)
     await pane.unmount()
   }
+})
+
+test('the version that runs is the one the board says; one synced and not loaded is a reload due, with both versions', async ($, on) => {
+  const w = world(on)
+  w.manifest = '0.2.32'
+  w.synced = '0.2.35'
+  await start($, on)
+  expect(await bandText($)).toMatch(/待重载：0\.2\.35（运行 0\.2\.32）/)
+  const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  const words = shown((await pane.drawn()) as unknown as Drawn).join(' ')
+  expect(words, 'the header: the version running, then the one synced').toMatch(/0\.2\.32 已同步 0\.2\.35/)
+  await pane.unmount()
+  w.synced = '0.2.32'
+  await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+  expect(await bandText($), 'the same version: nothing to reload').not.toMatch(/待重载/)
 })
 
 test('a reload with the board still up opens it again, so this module draws it and its presses work; a dialog left up is closed', async ($, on) => {
