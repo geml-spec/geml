@@ -1094,12 +1094,12 @@ test('a reply that ends asking: the band puts the question first with its answer
   expect(said.at(-1), 'the press said it as the person').toBe('推')
   // Answered: the question no longer leads.
   expect(await bandText($)).not.toMatch(/推吗/)
-  await $.turn.complete({ answer: '还要你定两件事：\n1. 新分支要不要开 PR\n2. #32 关不关', durationMs: 5, isAborted: false, turnId: 't2', reason: 'answer' })
+  await $.turn.complete({ answer: '还要你定两件事：\n1. 新分支要不要开 PR？\n2. #32 关不关？', durationMs: 5, isAborted: false, turnId: 't2', reason: 'answer' })
   await $.command.run({ command: 'gemflow', args: 'board', origin: COMPOSER, presentation: PRESENTATION })
   const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
   expect(await pane.find({ type: 'Text', text: '此刻' })).toBeDefined()
-  expect(await pane.find({ type: 'Text', text: '新分支要不要开 PR' })).toBeDefined()
-  expect(await pane.find({ type: 'Text', text: '#32 关不关' })).toBeDefined()
+  expect(await pane.find({ type: 'Text', text: '新分支要不要开 PR？' })).toBeDefined()
+  expect(await pane.find({ type: 'Text', text: '#32 关不关？' })).toBeDefined()
   await pane.unmount()
   // Two to settle: the band asks the first with its own answers, then the second; the last answer says both.
   const two = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
@@ -1109,7 +1109,26 @@ test('a reply that ends asking: the band puts the question first with its answer
   expect(shown((await two.drawn()) as unknown as Drawn).join(' ')).toMatch(/定 2\/2：#32 关不关/)
   await two.press({ key: 'attention-1-0-关' })
   await two.unmount()
-  expect(said.at(-1), 'the last answer says them all').toBe('新分支要不要开 PR：要\n#32 关不关：关')
+  expect(said.at(-1), 'the last answer says them all').toBe('新分支要不要开 PR？：要\n#32 关不关？：关')
+})
+
+test('a question too long for one row is drawn whole over up to three rows, its answers on a row of their own; the mark still opens the board', async ($, on) => {
+  const w = world(on)
+  on('prompt.submit', ($, e) => ({ text: e.text }))
+  on('turn.complete', ($, e) => ({ text: e.answer }))
+  await start($, on)
+  const question = '要不要把状态带的问题识别改成只认问句，陈述句不再挂成待决定，也不会出现同意和暂不两个按钮，看板上的此刻卡片同样只列问句？'
+  await $.turn.complete({ answer: `改好了。\n\n${question}`, durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' })
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const band = await $.ui.mount({ plugin: 'gemflow', surface, component: 'AbovePrompt', props: { ...BAND, bodyColumns: 60 } })
+    const drawn = shown((await band.drawn()) as unknown as Drawn).join('')
+    expect(drawn.replace(/\s/g, ''), surface).toContain(`待决定：${question}`.replace(/\s/g, ''))
+    expect(await band.find({ type: 'Button', key: 'attention-0-要' }), surface).toBeDefined()
+    const opened = w.opened
+    await band.press({ key: 'band-mark-open' })
+    expect(w.opened, surface).toBe(opened + 1)
+    await band.unmount()
+  }
 })
 
 test('where the session runs: the board says the machine, the checkout and the branch; with Remote Control in play it says so, and the band names the machine', async ($, on) => {

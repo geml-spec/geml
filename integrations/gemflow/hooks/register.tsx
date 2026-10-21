@@ -1560,7 +1560,7 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
         <Box gap={1}>
           {drawIcon(els, row.icon)}
           {row.verb !== '' && <Text dimColor>{row.verb}</Text>}
-          <Text bold wrap="truncate-end">{row.title}</Text>
+          <Box flexShrink={1} minWidth={0}><Text bold wrap="wrap">{row.title}</Text></Box>
           {row.tag !== undefined && row.tag !== '' && <Text dimColor>{row.tag}</Text>}
         </Box>
         {row.detail.map((d, n) => <Text key={`d${n}`} dimColor wrap="truncate-end">{d}</Text>)}
@@ -1855,6 +1855,25 @@ async function shareStatus($: EngineInterface, t: T): Promise<string> {
   const item = shell?.status?.item
   const pending = pendingList(inbox, [...othersWaiting(board, item?.kind === 'item' ? item.id : undefined, t), ...(board !== null ? toolSuggestions(board, usage, dismissed, t) : [])])
   return statusShareText(shell, pending, board?.artifacts, t)
+}
+
+/** The most rows a question takes on the band; past them it ends in "…" and its card on the board holds it whole. */
+const QUESTION_ROWS = 3
+
+/** `text` broken into rows of at most `width` cells, at most `rows` of them, the last ending in "…" when some is left over. */
+function wrapCells(text: string, width: number, rows: number): string[] {
+  const out: string[] = []
+  let line = ''
+  for (const c of text) {
+    if (cellWidth(line + c) > width) { out.push(line); line = '' }
+    line += c
+  }
+  if (line !== '') out.push(line)
+  if (out.length <= rows) return out
+  const kept = out.slice(0, rows)
+  const last = kept[rows - 1] as string
+  kept[rows - 1] = `${[...last].slice(0, Math.max(0, [...last].length - 1)).join('')}…`
+  return kept
 }
 
 /** How long a part of the board may take to read before it says so: a read that never answers costs a part, never the pane. */
@@ -2265,6 +2284,7 @@ export const register: Register = (on) => {
     // bridge and a fresh judgement; the workflow's own waiting items and a pause come next; a line of steps still owed
     // stands in for "我在做" only when nothing else does.
     let attentionPresses: Pressable[] | null = null
+    let question: string | undefined
     const judgedFresh = judged !== null && Date.parse(await nowIso($)) - Date.parse(judged.at) < JUDGEMENT_MS
     if (view.tone !== 'error' && !judgedFresh) {
       try {
@@ -2273,6 +2293,7 @@ export const register: Register = (on) => {
         if (at.line !== null && (at.line.lead !== null || !workflowWaits)) {
           view = { verb: '', title: at.line.text, tone: at.line.lead === 'broken' ? 'error' : 'normal', note: '', detail: at.line.text, actions: [], more: { count: 0, detail: '' } }
           attentionPresses = [...pressablesFor(at.lead, at.line.options, t), ...stepPressables(at.line.steps, t)]
+          question = at.line.full
           const pressed = pressedOf(attentionPresses, await readQueued($))
           if (pressed !== undefined) { view = { ...view, note: pendingNote(pressed, t) }; attentionPresses = [] }
         }
@@ -2307,6 +2328,36 @@ export const register: Register = (on) => {
         : <Button key={b.key} label={b.label} {...(b.primary ? { variant: 'primary' } : {})} onPress={press($, b.action)} />)
       : <Button key={b.key} plain hotkey={String(i + 1)} label={b.label} {...(b.primary ? { variant: 'primary' } : {})} onPress={press($, b.action)} />
     const board = tail.find((b) => b.key === 'board')
+    if (question !== undefined && cellWidth(question) > room) {
+      const lines = wrapCells(question, Math.max(20, columns - lead - 1), QUESTION_ROWS)
+      return (
+        <Box flexDirection="column" flexGrow={1}>
+          {lines.map((l, n) => (
+            <Box key={`band-q-${n}`} gap={1}>
+              {n === 0
+                ? (Svg !== undefined
+                  ? (
+                    <Box key="band-mark" flexShrink={0} alignItems="center" paddingX={1}>
+                      <Svg source={MARK_SVG} alt="Gemflow" width={13} height={13} />
+                      <Box position="absolute" top={0} left={0} right={0} bottom={0} justifyContent="center" alignItems="center">
+                        <Button key="band-mark-open" plain label={HIT} onPress={press($, { op: 'open-board' })} />
+                      </Box>
+                    </Box>
+                  )
+                  : <Button key="band-mark-open" plain label={t('看板')} onPress={press($, { op: 'open-board' })}><Text {...toneProps(MARK.tone)}>{MARK.text}</Text></Button>)
+                : <Text>{' '.repeat(lead - 1)}</Text>}
+              <Text {...(Svg !== undefined ? { color: 'suggestion' } : {})} wrap="truncate-end">{l}</Text>
+            </Box>
+          ))}
+          <Box key="band-q-actions" gap={1} alignItems="center">
+            <Box flexGrow={1} />
+            {options.map(pressable)}
+            {at !== '' && <Text dimColor>{at}</Text>}
+            {board !== undefined && pressable(board, options.length + tail.indexOf(board))}
+          </Box>
+        </Box>
+      )
+    }
     return (
       <Box gap={1} alignItems="center" flexGrow={1}>
         {/* The mark opens the board: a blank button laid over the picture (a Button holds only words), the mark itself as the button on the terminal. */}

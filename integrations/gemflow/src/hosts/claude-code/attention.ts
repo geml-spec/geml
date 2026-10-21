@@ -46,10 +46,11 @@ export const NO_MEMORY: AttentionMemory = { shown: [], age: {}, lastLead: "", ba
 
 export type LeadKind = "ask" | "broken" | "you";
 /** `step`: one of several asks in one reply, settled one by one — which, of how many. */
-export interface Lead { key: string; kind: LeadKind; text: string; options: string[]; step?: { index: number; of: number } }
+/** `full`: an ask's line with the whole question, where `text` may be cut to fit. */
+export interface Lead { key: string; kind: LeadKind; text: string; options: string[]; step?: { index: number; of: number }; full?: string }
 export interface Standing { key: string; kind: "broken" | "you"; short: string; text: string; options: string[]; quiet?: boolean }
-/** `steps`: the other steps only the person can take now, each a button of its own beside the lead's options. */
-export interface BandLine { text: string; options: string[]; lead: LeadKind | null; steps: Standing[] }
+/** `steps`: the other steps only the person can take now, each a button of its own beside the lead's options. `full`: a question led, whole, for a band that wraps it. */
+export interface BandLine { text: string; options: string[]; lead: LeadKind | null; steps: Standing[]; full?: string }
 
 /** A standing condition rides at the end of the line for this many turns, then only the board shows it. */
 export const FADE = 3;
@@ -57,6 +58,8 @@ export const FADE = 3;
 export const WIDTH = 90;
 /** Away this long, the band says what became of the last request. */
 export const AWAY_MS = 15 * 60_000;
+/** The most of a question kept whole: past it, the band's three rows end in "…" and the card holds this much. */
+const WHOLE = 400;
 /** Commits younger than this do not lead: they are about to be pushed. */
 const YOUNG_MS = 10 * 60_000;
 
@@ -69,13 +72,19 @@ export const clip = (s: string, n: number): string => {
 };
 /** Lines first (a list item is its own sentence), then sentence ends within each. */
 export const sentences = (text: string): string[] =>
-  text.split(/\n+/).flatMap((line) => line.replace(/\s+/g, " ").split(/(?<=[。？?！!])\s*/)).map((s) => s.trim()).filter((s) => s !== "");
+  text.split(/\n+/).flatMap((line) => line.replace(/\s+/g, " ").split(/(?<=[。？?！!؟﹖‽⁇⁈⁉፧\u037E])\s*/)).map((s) => s.trim()).filter((s) => s !== "");
 /** A sentence fit to show: no table rows or code. */
 const prose = (s: string): boolean => !/\||```|^\s*[-*]\s*$/.test(s);
 /** Only a list marker comes off — "- ", "* ", "1. ", "2、", "3) " — not a number a sentence starts with ("25 个码…"). */
 const bare = (s: string): string => s.replace(/^\s*(?:[-*]\s+|\d+[.、)]\s*)/, "").replace(/\*\*/g, "").trim();
 const isItem = (s: string): boolean => /^\s*(?:[-*]|\d+[.、)])\s*/.test(s);
-const ASKING = /[？?]|要不要|你定|你选|批了我|可以的话/;
+/** A question: a sentence that ends asking, closing marks aside. A statement that mentions a choice ("只看你选中了哪个") is none. */
+const isQuestion = (s: string): boolean => {
+  const end = s.replace(/[)）」』"'”’*`\s]+$/, "");
+  // A question mark in any script — fullwidth, small, Arabic, Greek (U+037E), Ethiopic, the interrobangs — or, in
+  // Japanese, a sentence ending in the particle か with or without its full stop ("よろしいですか。").
+  return /[？?﹖؟\u037E‽⁇⁈⁉፧]$/.test(end) || /か[。．.]?$/.test(end);
+};
 const HEADS_ASKS = /(要|等)你(定|决定|回复|点头)[^。]*[：:]$/;
 const REMINDER = /(还|仍|都)(在)?等你|还没定|上一条里|上一个问题/;
 
@@ -92,15 +101,18 @@ export function asksOf(reply: string): string[] {
   const taken = new Set<number>(); // items a head already stands for
   ss.forEach((s, i) => {
     if (taken.has(i)) return;
-    if (!ASKING.test(s) && !HEADS_ASKS.test(s)) return;
+    const head = HEADS_ASKS.test(s);
+    if (!isQuestion(s) && !head) return;
     if (REMINDER.test(s) || !prose(s) || s === "") return;
     if (/[：:]$/.test(s)) {
+      // A line that heads a list stands for the list's questions, and only for those.
       const items: string[] = [];
       for (let j = i + 1; j < raw.length && isItem(raw[j] as string); j++) {
         taken.add(j);
-        if (prose(ss[j] as string)) items.push(ss[j] as string);
+        if (prose(ss[j] as string) && isQuestion(ss[j] as string)) items.push(ss[j] as string);
       }
       if (items.length > 0) { out.push(...items); return; }
+      if (!isQuestion(s)) return;
     }
     out.push(s.length < 8 && i > 0 ? `${clip(ss[i - 1] as string, 40)} ${s}` : s);
   });
@@ -190,15 +202,15 @@ export function leadOf(o: { reply: string; standing: readonly Standing[]; memory
     // A reply that asks nothing new but re-asks an older question asks it this turn.
     const line = sentences(o.reply.slice(-300)).map(bare).filter((s) => REMINDER.test(s) && prose(s)).at(-1);
     const again = line === undefined ? undefined : withItems(o.reply, (x) => x === line) ?? line;
-    if (again !== undefined) ask = [again.replace(/^(上一个问题|上一条里的事)?(还|仍|都)?(在)?等你(定|批)?[：:，,]?/, "")];
+    if (again !== undefined && isQuestion(again)) ask = [again.replace(/^(上一个问题|上一条里的事)?(还|仍|都)?(在)?等你(定|批)?[：:，,]?/, "")];
   }
   let lead: Lead | null = null;
   // Several things to settle are settled one by one: the first not answered yet, with its own answers; then the next.
   if (ask.length >= 2) {
     const i = ask.findIndex((_, n) => (o.picks?.[n] ?? null) === null);
-    if (i >= 0) lead = { key: `ask:${ask.join("|")}#${i}`, kind: "ask", text: t("决定 {0}/{1}：{2}", i + 1, ask.length, clip(ask[i] as string, 50)), options: optionsFor(ask[i] as string, t), step: { index: i, of: ask.length } };
+    if (i >= 0) lead = { key: `ask:${ask.join("|")}#${i}`, kind: "ask", text: t("决定 {0}/{1}：{2}", i + 1, ask.length, clip(ask[i] as string, 50)), full: t("决定 {0}/{1}：{2}", i + 1, ask.length, clip(ask[i] as string, WHOLE)), options: optionsFor(ask[i] as string, t), step: { index: i, of: ask.length } };
   }
-  else if (ask.length === 1) lead = { key: `ask:${ask[0]}`, kind: "ask", text: t("待决定：{0}", clip(ask[0] as string, 60)), options: optionsFor(ask[0] as string, t) };
+  else if (ask.length === 1) lead = { key: `ask:${ask[0]}`, kind: "ask", text: t("待决定：{0}", clip(ask[0] as string, 60)), full: t("待决定：{0}", clip(ask[0] as string, WHOLE)), options: optionsFor(ask[0] as string, t) };
   if (lead === null) {
     const fresh = o.standing.filter((s) => !o.memory.shown.includes(s.key) && s.quiet !== true);
     const s = fresh.find((x) => x.kind === "broken") ?? fresh.find((x) => x.kind === "you");
@@ -272,11 +284,11 @@ export function bandLine(o: {
   const kind = lead?.kind ?? null;
   for (const named of [true, false]) {
     const line = build(named, lead?.text ?? "");
-    if (cells(line) <= room) return line === "" && steps.length === 0 ? null : { text: line, options, lead: kind, steps };
+    if (cells(line) <= room) return line === "" && steps.length === 0 ? null : { text: line, options, lead: kind, steps, ...(lead?.full !== undefined ? { full: lead.full } : {}) };
   }
   const leadRoom = Math.max(12, room - cells(build(false, "")) - 3);
   const line = build(false, cut(lead?.text ?? "", leadRoom));
-  return line === "" && steps.length === 0 ? null : { text: cells(line) <= room ? line : cut(line, room), options, lead: kind, steps };
+  return line === "" && steps.length === 0 ? null : { text: cells(line) <= room ? line : cut(line, room), options, lead: kind, steps, ...(lead?.full !== undefined ? { full: lead.full } : {}) };
 }
 
 /** What happened since the last reply that the model should hear of, so the person need not say it. */
@@ -396,7 +408,7 @@ export function nowRows(o: { reply: string; standing: readonly Standing[]; memor
     const step = asks.length >= 2 ? { index: i, of: asks.length } : undefined;
     const lead: Lead = { key: `ask:${a}`, kind: "ask", text: a, options: optionsFor(a, t), ...(step !== undefined ? { step } : {}) };
     const picked = step !== undefined ? o.picks?.[i] ?? null : null;
-    rows.push({ kind: "card", key: `now-ask-${i}`, icon: "ask", verb: t("决定"), title: clip(a, 80), ...(picked !== null ? { actions: [], detail: [t("已选：{0}", picked)] } : settle(pressablesFor(lead, lead.options, t))) });
+    rows.push({ kind: "card", key: `now-ask-${i}`, icon: "ask", verb: t("决定"), title: clip(a, WHOLE), ...(picked !== null ? { actions: [], detail: [t("已选：{0}", picked)] } : settle(pressablesFor(lead, lead.options, t))) });
   });
   for (const s of o.standing) {
     const lead: Lead = { key: s.key, kind: s.kind, text: s.text, options: s.options };
