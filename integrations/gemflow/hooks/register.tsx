@@ -1480,7 +1480,17 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       const other = which === 'own' ? undefined : await otherSessionText($, which)
       const s = which === 'own' ? await sessionText($, 'geml') : other
       if (s === undefined) return
-      const places: readonly (readonly [string, string | undefined])[] = [[t('下载 ~/Downloads'), '~/Downloads'], [t('桌面 ~/Desktop'), '~/Desktop'], [t('本项目 .geml/exports/'), undefined]]
+      // The places offered: the home's Downloads and desktop where it has them, the project's exports, else the home itself.
+      const home = (await $.env.get('HOME').catch(() => undefined)) ?? (await $.env.get('USERPROFILE').catch(() => undefined))
+      const has = async (dir: string): Promise<boolean> => home !== undefined && (await $.fs.exists(`${home}/${dir}`).catch(() => false))
+      const [downloads, desktop] = await Promise.all([has('Downloads'), has('Desktop')])
+      const places: (readonly [string, string | undefined])[] = [
+        ...(downloads ? [[t('下载 ~/Downloads'), '~/Downloads'] as const] : []),
+        ...(desktop ? [[t('桌面 ~/Desktop'), '~/Desktop'] as const] : []),
+        [t('本项目 .geml/exports/'), undefined],
+      ]
+      // The dialog takes two options at least.
+      if (places.length < 2) places.push([t('主目录 ~'), '~'])
       const question = other !== undefined ? t('把会话「{0}」导出到哪？', other.label) : t('把本会话导出到哪？')
       let answer: string
       try { answer = (await $.ui.ask(question, { options: places.map(([label]) => label), header: t('导出') })).trim() } catch { return }

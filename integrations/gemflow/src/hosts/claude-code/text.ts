@@ -298,6 +298,7 @@ export const WORDS: Readonly<Record<string, Entry>> = {
   "下载 ~/Downloads": { en: "Downloads ~/Downloads", ja: "ダウンロード ~/Downloads" },
   "桌面 ~/Desktop": { en: "Desktop ~/Desktop", ja: "デスクトップ ~/Desktop" },
   "本项目 .geml/exports/": { en: "This project .geml/exports/", ja: "このプロジェクト .geml/exports/" },
+  "主目录 ~": { en: "Home folder ~", ja: "ホームフォルダ ~" },
   "没有可导出的内容": { en: "nothing to export", ja: "書き出す内容がありません" },
   "删除": { en: "Delete", ja: "削除" },
   "拆分": { en: "Split", ja: "分割" },

@@ -5,6 +5,8 @@ import { expect, mock, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 
 const ROOT = '/work/app'
+/** The home directory the test's environment names. */
+const HOME = '/home/me'
 const BAND = { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns: 120, scroll: { offset: 0, bodyRows: 4 }, view: {} }
 const PANE = { title: 'Gemflow', isFocused: true, bodyColumns: 80, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 30 }, view: {} }
 
@@ -276,7 +278,7 @@ function world(on: On) {
   on('ui.copy', ($, e) => { w.copied.push(e.text); return { value: { isCopied: true } } })
   on('store.get', ($, e) => ({ value: w.store.get(e.key) }))
   on('store.set', ($, e) => { w.store.set(e.key, e.value); return { value: undefined } })
-  on('env.get', () => ({ value: 'zh_CN.UTF-8' }))
+  on('env.get', ($, e) => ({ value: e.name === 'LANG' ? 'zh_CN.UTF-8' : e.name === 'HOME' ? HOME : undefined }))
   on('session.id', () => ({ value: 'sess-1234567890' }))
   on('http.fetch', () => ({ deny: 'offline' }))
   return w
@@ -1058,7 +1060,14 @@ test('the session tab lists each prompt by day, newest first, with what its turn
   expect(await pane.find({ type: 'Text', text: /2 次工具调用 · tests-pass ✓ · 进 #review/ }), 'what the first turn did').toBeDefined()
   expect(await pane.find({ type: 'Text', text: /进行中…/ }), 'the last is still going').toBeDefined()
   // The export sits on this session's heading: a press asks where to, and the record goes there as GEML; no format to pick.
+  // The places offered are the folders there are: Downloads and the desktop where the home has them, else the home itself.
   expect((await pane.findAll({ type: 'Button' })).filter((b) => /^export-own-/.test(String(b.key))), 'no format buttons').toEqual([])
+  await pane.press({ key: 'export-own' })
+  expect(asked.at(-1)?.options, 'a home with neither folder').toEqual(['本项目 .geml/exports/', '主目录 ~'])
+  w.files.set(`${HOME}/Downloads`, '')
+  await pane.press({ key: 'export-own' })
+  expect(asked.at(-1)?.options).toEqual(['下载 ~/Downloads', '本项目 .geml/exports/'])
+  w.files.set(`${HOME}/Desktop`, '')
   await pane.press({ key: 'export-own' })
   expect(asked.at(-1)).toEqual({ question: '把本会话导出到哪？', header: '导出', options: ['下载 ~/Downloads', '桌面 ~/Desktop', '本项目 .geml/exports/'] })
   const exported = w.sent.filter((r) => r.op === 'export').at(-1) as Req
