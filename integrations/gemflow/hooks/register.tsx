@@ -152,7 +152,7 @@ const sessionsDirAtom = atom({ plugin: 'gemflow', key: 'sessionsDir' } as const,
 const projectSessionsAtom = atom({ plugin: 'gemflow', key: 'projectSessions' } as const, [] as GemflowJson)
 const openSessionAtom = atom({ plugin: 'gemflow', key: 'openSession' } as const, null as string | null)
 /** The initialization (the host's transcripts read into the record, once): its count while it runs, its outcome until the next prompt. */
-const initAtom = atom({ plugin: 'gemflow', key: 'init' } as const, null as GemflowJson)
+const initAtom = atom({ plugin: 'gemflow', key: 'init' } as const, null as InitState | null)
 /** Whether the sessions tab lists every other session. */
 const sessionsAllAtom = atom({ plugin: 'gemflow', key: 'sessionsAll' } as const, false as boolean)
 const decisionsSeenAtom = atom({ plugin: 'gemflow', key: 'decisionsSeen' } as const, null as string | null)
@@ -656,7 +656,7 @@ async function registerAsk($: EngineInterface, event: unknown): Promise<ToolCall
   if ((event as { agentId?: string }).agentId !== undefined) return { result: 'Not registered: only the main conversation asks the person.' }
   const asked = askedOf(toolArgs(event as Record<string, unknown>))
   if ('error' in asked) return { result: `Not registered: ${asked.error}.` }
-  await update($, askedAtom, (was) => [...((((was as unknown) as Asked[] | null) ?? []).filter((q) => q.question !== asked.question)), asked] as unknown as GemflowJson)
+  await update($, askedAtom, (was) => [...(was ?? []).filter((q) => q.question !== asked.question), asked])
   return { result: 'Registered: the status band asks it with these answers once this turn ends.' }
 }
 
@@ -875,7 +875,7 @@ async function initBackfill($: EngineInterface): Promise<void> {
   let own = ''
   try { own = await $.session.id() } catch { /* headless */ }
   const state: InitState = { state: 'running', done: 0, total: sessions.length, failed: 0 }
-  await update($, initAtom, () => ({ ...state }) as unknown as GemflowJson)
+  await update($, initAtom, () => ({ ...state }))
   $.ui.invalidate('ui.render')
   for (const s of sessions) {
     // Between the person's turns only, and a breath between files: the reading never competes with a turn under way.
@@ -888,11 +888,11 @@ async function initBackfill($: EngineInterface): Promise<void> {
       try { await mergeOwnBackfill($, res.backfill.transcript) } catch { state.failed += 1 }
     }
     state.done += 1
-    await update($, initAtom, () => ({ ...state }) as unknown as GemflowJson)
+    await update($, initAtom, () => ({ ...state }))
     $.ui.invalidate('ui.render')
   }
   await done()
-  await update($, initAtom, () => ({ ...state, state: 'done' }) as unknown as GemflowJson)
+  await update($, initAtom, () => ({ ...state, state: 'done' }))
   try { await loadProjectSessions($) } catch { /* read at the next prompt */ }
   await reloadBoardLater($)
   $.ui.invalidate('ui.render')
