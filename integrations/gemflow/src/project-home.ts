@@ -29,15 +29,22 @@ function inside(dir: string, path: string): boolean {
 export const homeOf = (root: string): string => journalBaseOf(root);
 
 /** What git is told to leave alone in a `.geml/` directory: gemflow's own files, local and never committed, this list among them. */
-export const GITIGNORE = ["# gemflow's own files: local, never committed", ".gitignore", "context.geml", "exports/", "journals/", "project.geml", "sessions/", "tools.geml", "workflows/", "*.lock", ""].join("\n");
-/** The list gemflow wrote before: replaced where it is as it was written and git does not track it. */
-const OLD_GITIGNORE = "journals/\ncontext.geml\n*.lock\n";
+export const GITIGNORE = ["# gemflow's own files: local, never committed", ".gitignore", "artifacts.geml", "artifacts/", "context.geml", "exports/", "journals/", "project.geml", "sessions/", "tools.geml", "workflows/", "*.lock", ""].join("\n");
+/** The lists gemflow wrote before: replaced where one is as it was written and git does not track it. */
+const EARLIER_GITIGNORES = [
+  "journals/\ncontext.geml\n*.lock\n",
+  ["# gemflow's own files: local, never committed", ".gitignore", "context.geml", "exports/", "journals/", "project.geml", "sessions/", "tools.geml", "workflows/", "*.lock", ""].join("\n"),
+];
 
-/** Give a `.geml/` directory its .gitignore when it has none. */
+/** Give a `.geml/` directory its .gitignore when it has none, and the current list where it has one gemflow wrote before. */
 export function ensureGitignore(gemlDir: string): void {
   const path = join(gemlDir, ".gitignore");
-  if (exists(path)) return;
-  mkdirSync(gemlDir, { recursive: true });
+  if (exists(path)) {
+    if (!EARLIER_GITIGNORES.includes(lf(readText(path)))) return;
+    // A list git tracks is the person's to change, and so is one where git cannot say.
+    const tracked = trackedUnder(gemlDir);
+    if (tracked === undefined || tracked.has(resolve(path))) return;
+  } else mkdirSync(gemlDir, { recursive: true });
   writeAtomic(path, GITIGNORE);
 }
 
@@ -281,8 +288,7 @@ export function migrateLayout(root: string, trash: string, home = homeOf(root)):
       const keep = kept(config);
       out.push({ from: config, to, kept: keep, ...(keep ? {} : { trashed: toTrash(config, trash, label(config)) }) });
     }
-    const ignore = join(geml, ".gitignore");
-    if (exists(ignore) && lf(readText(ignore)) === OLD_GITIGNORE && !kept(ignore)) writeAtomic(ignore, GITIGNORE);
+    if (exists(join(geml, ".gitignore"))) ensureGitignore(geml);
   }
   // The dictionaries the person taught last come first: where two say otherwise (which tool a use prefers), theirs stands.
   for (const d of dictionaries.sort((a, b) => b.at - a.at)) mergeTools(home, d.text);

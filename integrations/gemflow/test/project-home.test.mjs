@@ -141,6 +141,22 @@ test("migrateLayout: each workflow directory becomes one file in the home, its d
   assert.deepEqual(migrateLayout(root, trash, root), []);
 });
 
+test("git sees none of gemflow's own files in the home, the artifacts table and its copies among them; a list gemflow wrote before becomes the current one, a person's own list stays", () => {
+  const root = realPath(gitRepo("feat/x"));
+  addWorkflow(root, "dev", { activate: true });
+  mkdirSync(join(root, ".geml", "artifacts"), { recursive: true });
+  writeFileSync(join(root, ".geml", "artifacts.geml"), "=== meta\ntitle = \"Gemflow artifacts\"\n===\n");
+  writeFileSync(join(root, ".geml", "artifacts", "ab.md"), "a copy");
+  assert.equal(git(root, "status", "--porcelain", "--untracked-files=all").stdout, "");
+  const before = ["# gemflow's own files: local, never committed", ".gitignore", "context.geml", "exports/", "journals/", "project.geml", "sessions/", "tools.geml", "workflows/", "*.lock", ""].join("\n");
+  writeFileSync(join(root, ".geml", ".gitignore"), before);
+  migrateLayout(root, tmp(), root);
+  assert.equal(read(join(root, ".geml", ".gitignore")), GITIGNORE, "the list gemflow wrote before is replaced");
+  writeFileSync(join(root, ".geml", ".gitignore"), `${before}notes/\n`);
+  migrateLayout(root, tmp(), root);
+  assert.equal(read(join(root, ".geml", ".gitignore")), `${before}notes/\n`, "a list the person changed stays theirs");
+});
+
 test("migrateLayout merges the dictionary the person taught last first: where two disagree on a use's preferred tool, theirs stands", () => {
   const root = tmp();
   withWorkflow(root, DEV, "coding");

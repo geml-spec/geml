@@ -128,15 +128,18 @@ export function syncDocs(home: string, item: string, docs: readonly GitDoc[]): A
 }
 
 /**
- * A link the work item published or shared: a new row when it is not the
- * table's last version of that link. Without a name it keeps the one it had,
- * else goes by `fallback` (its published file's name), else its address.
+ * A link the work item published or shared: a new row when the table has no
+ * row of that version under that name — a resumed or forked session's
+ * transcript holds the publishes before it again. Without a name it keeps the
+ * one it had, else goes by `fallback` (its published file's name), else its
+ * address.
  */
 export function recordLink(home: string, item: string, link: { name?: string; fallback?: string; url: string; version?: string; at: string }): ArtifactRow[] {
   return changeRows(home, (rows) => {
-    const prev = rows.filter((r) => r.item === item && r.kind === "link" && r.where === link.url).at(-1);
+    const versions = rows.filter((r) => r.item === item && r.kind === "link" && r.where === link.url);
+    const prev = versions.at(-1);
     const name = link.name !== undefined && link.name !== "" ? link.name : prev?.name ?? (link.fallback !== undefined && link.fallback !== "" ? link.fallback : link.url);
-    if (prev !== undefined && prev.version === (link.version ?? "") && prev.name === name) return rows;
+    if (versions.some((r) => r.version === (link.version ?? "") && r.name === name)) return rows;
     rows.push({ item, kind: "link", name, where: link.url, version: link.version ?? "", size: null, at: link.at, sha256: "" });
     return rows;
   });

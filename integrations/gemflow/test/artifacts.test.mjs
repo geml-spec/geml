@@ -144,6 +144,15 @@ test("links: a new row for a new version; the same one again is not; without a n
   assert.equal(readArtifactRows(home).filter((r) => r.kind === "link").length, 2);
 });
 
+test("a link's versions read again — a resumed or forked session's transcript holds the publishes before it — add no row", () => {
+  const home = repo();
+  const at = "2026-10-20T01:00:00.000Z";
+  for (const version of ["1", "2", "3"]) recordLink(home, "feat/x", { name: "画布", url: "https://claude.ai/artifact/A", version, at });
+  for (const version of ["1", "2", "3"]) recordLink(home, "feat/x", { name: "画布", url: "https://claude.ai/artifact/A", version, at });
+  for (const version of ["1", "2"]) recordLink(home, "feat/x", { url: "https://claude.ai/artifact/A", version, at });
+  assert.deepEqual(readArtifactRows(home).map((r) => r.version), ["1", "2", "3"]);
+});
+
 test("board: what the work item made, under what waits on the person — links, documents in git, files with copies, its code in one line", () => {
   const NOW = "2026-10-20T12:00:00+08:00";
   const t = wordsFor("zh");
