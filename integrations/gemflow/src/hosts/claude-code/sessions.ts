@@ -85,9 +85,8 @@ export function promptTail(p: PromptRecord, t: T): string {
   return parts.join(" · ");
 }
 
-/** The session's prompts as a document: GEML (a `data {#session}` index, then one text block per prompt), Markdown, or JSON. */
-export function sessionExport(prompts: readonly PromptRecord[], format: "geml" | "md" | "json", session: string, t: T): string {
-  if (format === "json") return JSON.stringify({ session, prompts }, null, 2);
+/** The session's prompts as a document: GEML (a `data {#session}` index, then one text block per prompt), or Markdown for the share dialog's copy. */
+export function sessionExport(prompts: readonly PromptRecord[], format: "geml" | "md", session: string, t: T): string {
   if (format === "md") {
     const lines = [`# ${t("会话 {0}", session)}`, ""];
     for (const g of promptGroups(prompts)) {
@@ -119,26 +118,14 @@ function fenceFor(text: string): string {
 }
 
 /**
- * A session's record (session-log.ts) as a document: every turn's prompt and
- * answer and the decisions it recorded, oldest first. GEML: a `data {#session}`
- * index, then a text block for each prompt and each answer; Markdown: a
- * heading per turn; JSON: the record whole. For this session and for another's alike.
+ * A session's record (session-log.ts) as a GEML document: every turn's prompt
+ * and answer and the decisions it recorded, oldest first — a `data {#session}`
+ * index, then a text block for each prompt and each answer. For this session
+ * and for another's alike.
  */
-export function logExport(s: SessionSummary, format: "geml" | "md" | "json", t: T): string {
+export function logExport(s: SessionSummary, t: T): string {
   const title = t("会话 {0}", s.id);
-  const who = [s.host, s.branch].filter((x): x is string => x !== undefined).join(" · ");
-  if (format === "json") return JSON.stringify(s, null, 2);
   const turns = [...s.turns].sort((a, b) => a.turn - b.turn);
-  if (format === "md") {
-    const lines = [`# ${title}`, "", ...(who !== "" ? [who, ""] : [])];
-    for (const turn of turns) {
-      lines.push(`## ${hhmm(turn.at)}`, "", `**${t("提示词")}**`, "", turn.prompt.replace(/\r\n?/g, "\n"), "");
-      if (turn.answer !== undefined) lines.push(`**${t("回答")}**`, "", turn.answer.replace(/\r\n?/g, "\n"), "");
-      for (const d of turn.decisions) lines.push(`- ${t("决定")}：${d}`);
-      if (turn.decisions.length > 0) lines.push("");
-    }
-    return lines.join("\n");
-  }
   const index = { session: s.id, host: s.host, ...(s.branch !== undefined ? { branch: s.branch } : {}), started: s.started, last: s.last, turns: turns.map((turn) => ({ turn: turn.turn, at: turn.at, decisions: turn.decisions })) };
   const blocks = turns.flatMap((turn) => {
     const prompt = turn.prompt.replace(/\r\n?/g, "\n");

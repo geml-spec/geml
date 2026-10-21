@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { hostname } from "node:os";
+import { hostname, tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { readContextDoc } from "../dist/core/stagehand.js";
 import { fakeGh, gitRepo, hook, hookProcess, withWorkflow } from "./helpers/repo.mjs";
@@ -259,6 +259,27 @@ test("export: the journal as GEML, Markdown or JSON, the workflow directory copi
   assert.match(readFileSync(join(root, wf.exported.path, "flow.geml"), "utf8"), /geml-statechart/);
   assert.equal(wf.exported.text, readFileSync(join(root, ".geml", "workflows", "dev", "flow.geml"), "utf8"));
   assert.deepEqual(hook(root, { op: "export", kind: "text", format: "md" }), { v: 1, ok: false, error: "op export: missing or mistyped fields" }, "a text export needs its text");
+});
+
+test("export where the person said: into a folder, made when missing, or as a file ending in the format's extension; ~ is the home, a relative path the project's; outside the project the path is absolute", () => {
+  const root = project();
+  hook(root, { op: "status" });
+  const away = mkdtempSync(join(tmpdir(), "gemflow-out-"));
+  const slashed = (p) => p.split("\\").join("/");
+  const folder = hook(root, { op: "export", kind: "text", format: "geml", name: "session-abc", text: "x", to: join(away, "new", "dir") });
+  assert.equal(folder.exported.path, slashed(join(away, "new", "dir", "session-abc.geml")));
+  assert.equal(readFileSync(join(away, "new", "dir", "session-abc.geml"), "utf8"), "x");
+  hook(root, { op: "export", kind: "text", format: "geml", name: "session-abc", text: "y", to: join(away, "mine.geml") });
+  assert.equal(readFileSync(join(away, "mine.geml"), "utf8"), "y", "a file path is the file");
+  const home = hook(root, { op: "export", kind: "text", format: "geml", name: "session-abc", text: "z", to: "~/Downloads" }, { HOME: away, USERPROFILE: away });
+  assert.equal(home.exported.path, slashed(join(away, "Downloads", "session-abc.geml")));
+  assert.equal(hook(root, { op: "export", kind: "text", format: "geml", name: "s", text: "w", to: "notes" }).exported.path, "notes/s.geml", "inside the project: by its project path");
+  assert.equal(hook(root, { op: "export", kind: "text", format: "geml", name: "s", text: "u", to: "notes" }).exported.path, "notes/s-2.geml", "a file there already stays: the new one is numbered, as a download is");
+  assert.equal(hook(root, { op: "export", kind: "text", format: "geml", name: "s", text: "t", to: "notes/s.geml" }).exported.path, "notes/s-3.geml");
+  assert.equal(hook(root, { op: "export", kind: "text", format: "geml", name: "s", text: "r", to: join(away, "x.md") }).exported.path, slashed(join(away, "x.geml")), "another extension becomes the format's");
+  mkdirSync(join(away, "v1.2"));
+  assert.equal(hook(root, { op: "export", kind: "text", format: "geml", name: "s", text: "q", to: join(away, "v1.2") }).exported.path, slashed(join(away, "v1.2", "s.geml")), "a folder there is a folder, whatever its name");
+  assert.equal(hook(root, { op: "export", kind: "text", format: "geml", text: "v", to: 3 }).ok, false, "a place is a path");
 });
 
 test("attention: the real bridge answers the repository's facts and the machine the session runs on", () => {

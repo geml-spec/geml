@@ -45,7 +45,7 @@ import type { Asked } from '../dist/core/ask-tool.js'
 import type { AttachedClient, HostInfo } from '../dist/hosts/claude-code/env.js'
 import { bandView, BRAND_RED, cellWidth, MARK, MARK_SVG, SEP, toneProps, truncate, wrapCells } from '../dist/hosts/claude-code/band.js'
 import type { BandView, Segment, Tone } from '../dist/hosts/claude-code/band.js'
-import { BOARD_ID, ciSuggestions, DIALOG_ID, glyphSvg, HOME_TAB, hostName, ICON_CHAR, ICON_SVG, ICON_TONE, inputAction, paneRows, TAB_IDS, tabs, toolSuggestions } from '../dist/hosts/claude-code/board.js'
+import { BOARD_ID, ciSuggestions, DIALOG_ID, glyphSvg, HOME_TAB, hostName, ICON_CHAR, ICON_SVG, ICON_TONE, inputAction, paneRows, sessionLabel, TAB_IDS, tabs, toolSuggestions } from '../dist/hosts/claude-code/board.js'
 import type { BoardRow, FlowEdgeRow, Glyph, Icon } from '../dist/hosts/claude-code/board.js'
 import { boardFailure, boardText, COMMAND_HINT, commandText, parseCommand } from '../dist/hosts/claude-code/command.js'
 import { afterNeeded, beforeDecision, checkoutProbe, isOwnTool, matchesUnit, paramsToFill } from '../dist/hosts/claude-code/fastpath.js'
@@ -161,9 +161,8 @@ const committedAtom = atom({ plugin: 'gemflow', key: 'committed' } as const, fal
 const expandedTurnAtom = atom({ plugin: 'gemflow', key: 'expandedTurn' } as const, null as GemflowJson)
 /** The file the last export wrote: the board links to it. */
 const exportedAtom = atom({ plugin: 'gemflow', key: 'exported' } as const, null as string | null)
-/** The session the last export on the sessions tab was of (`own` or its id), where its file is linked; the session whose formats are open. */
+/** The session the last export on the sessions tab was of (`own` or its id), where its file is linked. */
 const exportedForAtom = atom({ plugin: 'gemflow', key: 'exportedFor' } as const, null as string | null)
-const exportMenuAtom = atom({ plugin: 'gemflow', key: 'exportMenu' } as const, null as string | null)
 /** The share dialog's text, shown to select where nothing can be copied (the desktop has no clipboard for a plugin). */
 const sharedTextAtom = atom({ plugin: 'gemflow', key: 'sharedText' } as const, null as string | null)
 const readQueued = async ($: EngineInterface): Promise<Queued[]> => ((await read($, queuedAtom)) as unknown as Queued[] | null) ?? []
@@ -1263,20 +1262,20 @@ async function openDialog($: EngineInterface, dialog: Dialog | null): Promise<vo
 }
 
 /** An export: through the bridge, which writes under .geml/exports/; the path is toasted, the text comes back. */
-async function exportText($: EngineInterface, kind: 'journal' | 'workflow' | 'text', format: 'geml' | 'md' | 'json', extra: { name?: string; text?: string; strip?: boolean } = {}): Promise<string | undefined> {
+async function exportText($: EngineInterface, kind: 'journal' | 'workflow' | 'text', format: 'geml' | 'md' | 'json', extra: { name?: string; text?: string; strip?: boolean; to?: string } = {}): Promise<string | undefined> {
   const t = await words($)
   const res = await bridge($, { op: 'export', kind, format, ...extra }, SLOW_TIMEOUT_MS)
   if (res === undefined) return undefined
-  if (!res.ok) { $.ui.toast(`gemflow：${res.error.replace(/^gemflow: /, '')}`); return undefined }
+  if (!res.ok) { $.ui.toast(t('导出失败：{0}', res.error.replace(/^gemflow: /, ''))); return undefined }
   if (res.exported !== undefined) {
     const path = res.exported.path
-    $.ui.toast(t('已写入 {0}', path))
+    $.ui.toast(t('已导出 {0}', path))
     await update($, exportedAtom, () => path)
   }
   return res.exported?.text
 }
 
-async function sessionText($: EngineInterface, format: 'geml' | 'md' | 'json'): Promise<{ text: string; name: string } | undefined> {
+async function sessionText($: EngineInterface, format: 'geml' | 'md'): Promise<{ text: string; name: string } | undefined> {
   const t = await words($)
   const prompts = await readPrompts($)
   if (prompts.length === 0) { $.ui.toast(t('没有可导出的内容')); return undefined }
@@ -1285,8 +1284,8 @@ async function sessionText($: EngineInterface, format: 'geml' | 'md' | 'json'): 
   return { text: sessionExport(prompts, format, session, t), name: `session-${session.slice(0, 8)}` }
 }
 
-/** Another session's record, from its log in the project's record, as a document: nothing when the record has no such session. */
-async function otherSessionText($: EngineInterface, id: string, format: 'geml' | 'md' | 'json'): Promise<{ text: string; name: string } | undefined> {
+/** Another session's record, from its log in the project's record, as a GEML document, and the session's name on the tab: nothing when the record has no such session. */
+async function otherSessionText($: EngineInterface, id: string): Promise<{ text: string; name: string; label: string } | undefined> {
   const t = await words($)
   const dir = await read($, sessionsDirAtom)
   const known = (((await read($, projectSessionsAtom)) as unknown) as SessionSummary[] | null)?.find((s) => s.id === id)
@@ -1296,7 +1295,7 @@ async function otherSessionText($: EngineInterface, id: string, format: 'geml' |
     try { summary = summarize(parseLog(String(await $.fs.read(`${dir}/${name}`)))); break } catch { /* the next */ }
   }
   if (summary === undefined || summary.turns.length === 0) { $.ui.toast(t('没有可导出的内容')); return undefined }
-  return { text: logExport(summary, format, t), name: `session-${id.slice(0, 8)}` }
+  return { text: logExport(summary, t), name: `session-${id.slice(0, 8)}`, label: sessionLabel(known, '', t) }
 }
 
 async function share($: EngineInterface, what: ShareWhat, how: ShareHow, strip: boolean, surface?: string): Promise<void> {
@@ -1357,7 +1356,6 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       return [...list] as unknown as GemflowJson
     }); return
     case 'flow-state': await update($, flowStateAtom, () => action.id); return
-    case 'export-menu': await update($, exportMenuAtom, () => action.session); return
     case 'session-open': await update($, openSessionAtom, () => action.id); return
     case 'sessions-more': await update($, sessionsAllAtom, () => action.all); return
     case 'session-flow': await update($, sessionFlowAtom, () => action.flow); return
@@ -1474,17 +1472,25 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       if (action.open && (await read($, workflowsAtom)) === null) await loadWorkflows($)
       return
     }
-    case 'export':
-      if (action.kind === 'session') {
-        // The formats close as one is chosen; the file written is linked under the session it was of.
-        await update($, exportMenuAtom, () => null)
-        const which = action.session ?? 'own'
-        const s = which === 'own' ? await sessionText($, action.format) : await otherSessionText($, which, action.format)
-        if (s === undefined) return
-        await update($, exportedForAtom, () => which)
-        await exportText($, 'text', action.format, { name: s.name, text: s.text })
-      } else await exportText($, action.kind, action.format)
+    case 'export': {
+      // A session's record as GEML, where the person says: asked in the engine's own dialog, a folder or a file typed under
+      // Other. Nothing to export says so before asking; a dismissed dialog does nothing. The file is linked under the session.
+      const t = await words($)
+      const which = action.session
+      const other = which === 'own' ? undefined : await otherSessionText($, which)
+      const s = which === 'own' ? await sessionText($, 'geml') : other
+      if (s === undefined) return
+      const places: readonly (readonly [string, string | undefined])[] = [[t('下载 ~/Downloads'), '~/Downloads'], [t('桌面 ~/Desktop'), '~/Desktop'], [t('本项目 .geml/exports/'), undefined]]
+      const question = other !== undefined ? t('把会话「{0}」导出到哪？', other.label) : t('把本会话导出到哪？')
+      let answer: string
+      try { answer = (await $.ui.ask(question, { options: places.map(([label]) => label), header: t('导出') })).trim() } catch { return }
+      const place = places.find(([label]) => label === answer)
+      if (place === undefined && answer === '') return
+      const to = place !== undefined ? place[1] : answer
+      await update($, exportedForAtom, () => which)
+      await exportText($, 'text', 'geml', { name: s.name, text: s.text, ...(to !== undefined ? { to } : {}) })
       return
+    }
     case 'dialog': await openDialog($, action.dialog); return
     case 'open-board': {
       const opened = await openBoard($, action.tab)
@@ -1683,18 +1689,22 @@ function drawGlyph(els: Els, g: Glyph, tone: Tone | 'active' = 'dim', size = 15)
  * An icon that is a press by itself (the dialogs): a Button holds only words, so a blank one is laid over the icon,
  * named by the label; the label shows under the pointer. Where the surface draws no pictures, the label as a button.
  */
-function iconButton($: EngineInterface, els: Els, b: Pressable, g: Glyph, o: { tone?: Tone | 'active'; from?: 'left' | 'right'; size?: number } = {}): unknown {
+function iconButton($: EngineInterface, els: Els, b: Pressable, g: Glyph, o: { tone?: Tone | 'active'; from?: 'left' | 'right'; size?: number; lines?: number } = {}): unknown {
   const { Box, Button, Text, Svg } = els
   if (Svg === undefined) return <Button key={b.key} plain dimColor label={b.label} onPress={press($, b.action)} />
   const edge = o.from === 'left' ? { left: 0 } : { right: 0 }
+  // The rows the icon stands in (a row of two lines stretches it): each takes the press.
+  const lines = Math.max(1, o.lines ?? 1)
   return (
     <Box key={`${b.key}-icon`} flexShrink={0} alignItems="center" paddingX={1}>
       {drawGlyph(els, g, o.tone ?? 'dim', o.size ?? 18)}
-      <Box position="absolute" top={0} left={0} right={0} bottom={0} justifyContent="center" alignItems="center">
-        <Button key={b.key} plain label={HIT} onPress={press($, b.action)} />
-      </Box>
-      <Box position="absolute" top={1} {...edge} width={cellWidth(b.label) + 2} paddingX={1} display="none" hover={{ display: 'flex' }} backgroundColor="inverseText">
+      {/* Its name under the pointer, below the box, so it never lies over the press. */}
+      <Box position="absolute" top={lines} {...edge} width={cellWidth(b.label) + 2} paddingX={1} display="none" hover={{ display: 'flex' }} backgroundColor="inverseText">
         <Text wrap="truncate-end">{b.label}</Text>
+      </Box>
+      {/* The press over the whole box, a blank button on every line of it (a button is one line high), painted last. */}
+      <Box position="absolute" top={0} left={0} right={0} bottom={0} flexDirection="column" alignItems="center" overflow="hidden">
+        {Array.from({ length: lines }, (_, n) => <Button key={n === 0 ? b.key : `${b.key}-${n + 1}`} plain label={HIT} onPress={press($, b.action)} />)}
       </Box>
     </Box>
   )
@@ -1909,32 +1919,35 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
       </Box>
     )
     // A prompt in one line: its time, its first line, what its turn did; at its right its icons (each named under the
-    // pointer) and, where it folds, a triangle saying whether it is unfolded. The press on the rest of the row unfolds it.
+    // pointer) and, where it folds, a triangle saying whether it is unfolded. The press on the time, the text or the
+    // triangle unfolds it. The row's own box holds nothing laid over others: each press lies in the box it is for.
     case 'turn': {
       const icons = row.icons ?? []
-      // The cells the icons and the triangle take at the right end, which the row's own press leaves to them.
-      const reserve = icons.length * 3 + (row.fold === true ? 3 : 0)
+      const lines = row.did !== '' ? 2 : 1
       return els.Svg !== undefined ? (
         <Box key={row.key} gap={2} paddingX={1} {...(row.open ? { backgroundColor: SELECTED } : { hover: { backgroundColor: SHADE } })}>
-          <Box width={Math.max(5, cellWidth(row.at))} flexShrink={0}><Text dimColor>{row.at}</Text></Box>
-          <Box flexDirection="column" flexGrow={1} minWidth={0}>
-            <Text wrap="truncate-end">{row.text}</Text>
-            {row.did !== '' && <Text dimColor wrap="truncate-end">{row.did}</Text>}
+          <Box flexGrow={1} minWidth={0} gap={2}>
+            <Box width={Math.max(5, cellWidth(row.at))} flexShrink={0}><Text dimColor>{row.at}</Text></Box>
+            <Box flexDirection="column" flexGrow={1} minWidth={0}>
+              <Text wrap="truncate-end">{row.text}</Text>
+              {row.did !== '' && <Text dimColor wrap="truncate-end">{row.did}</Text>}
+            </Box>
+            {/* The time and the text take the press, each of their lines: a blank button laid over every line (a button is one
+                line high). It spans this box alone, which the icons are not in, so it is never painted over them. */}
+            <Box position="absolute" top={0} left={0} right={0} bottom={0} flexDirection="column" overflow="hidden">
+              <Button key={`open-${row.key}`} plain label={blankOf(Math.max(cellWidth(row.text), cellWidth(row.did)) + 12)} onPress={press($, row.action)} />
+              {row.did !== '' && <Button key={`open-2-${row.key}`} plain label={blankOf(Math.max(cellWidth(row.text), cellWidth(row.did)) + 12)} onPress={press($, row.action)} />}
+            </Box>
           </Box>
-          {icons.map((ic) => iconButton($, els, ic.button, ic.glyph, { size: 15 }))}
-          {row.fold === true && <Box flexShrink={0} alignItems="center" paddingX={1}>{drawGlyph(els, row.open ? 'unfold' : 'fold', 'dim', 15)}</Box>}
-          {/* The whole row takes the press, each of its lines: a blank button laid over every line (a button is one line high), short of the icons. */}
-          <Box position="absolute" top={0} left={0} right={reserve} bottom={0} flexDirection="column" overflow="hidden">
-            <Button key={`open-${row.key}`} plain label={blankOf(Math.max(cellWidth(row.text), cellWidth(row.did)) + 12)} onPress={press($, row.action)} />
-            {row.did !== '' && <Button key={`open-2-${row.key}`} plain label={blankOf(Math.max(cellWidth(row.text), cellWidth(row.did)) + 12)} onPress={press($, row.action)} />}
-          </Box>
+          {icons.map((ic) => iconButton($, els, ic.button, ic.glyph, { size: 15, lines }))}
+          {row.fold !== undefined && iconButton($, els, row.fold, row.open ? 'unfold' : 'fold', { size: 15, lines })}
         </Box>
       ) : (
         <Box key={row.key} flexDirection="column">
           <Box gap={1}>
             <Text dimColor>{row.at}</Text>
             <Button key={`open-${row.key}`} plain label={row.text} onPress={press($, row.action)} />
-            {row.fold === true && <Text dimColor>{row.open ? '▾' : '▸'}</Text>}
+            {row.fold !== undefined && <Text dimColor>{row.open ? '▾' : '▸'}</Text>}
             {icons.length > 0 && <Box flexGrow={1} />}
             {icons.map((ic) => iconButton($, els, ic.button, ic.glyph))}
           </Box>
@@ -2168,7 +2181,7 @@ async function tabRows($: EngineInterface, e: { surface: string; props: { bodyCo
   // Each read is a trip to the host: the ones a tab needs, at once; the ones written on every tool call only where the tab shows them.
   const shows = (visible: boolean) => <V,>(get: () => Promise<V>, otherwise: V): Promise<V> => (visible ? get() : Promise.resolve(otherwise))
   const attention = shows(tab === 'items')(() => Promise.all([attentionNow($, t), readQueued($)]).catch(() => null), null)
-  const [inbox, board, problem, shell, now, root, filter, expanded, evidence, prompts, project, unfolded, doneOpen, sessionFlow, sessionRuns, flowState, switching, workflows, usage, dismissed, toolQuery, toolMenu, toolNaming, toolsOpen, exported, [exportedFor, exportMenu], droppedOpen, artifactMenu, docsOpen] = await Promise.all([
+  const [inbox, board, problem, shell, now, root, filter, expanded, evidence, prompts, project, unfolded, doneOpen, sessionFlow, sessionRuns, flowState, switching, workflows, usage, dismissed, toolQuery, toolMenu, toolNaming, toolsOpen, exported, exportedFor, droppedOpen, artifactMenu, docsOpen] = await Promise.all([
     inboxOf($, t), readBoard($), read($, boardProblemAtom), readShell($), nowIso($), read($, rootAtom),
     read($, filterAtom), read($, expandedAtom), read($, evidenceAtom),
     shows(tab === 'sessions' || tab === 'journal')(() => readPrompts($), [] as PromptRecord[]),
@@ -2181,7 +2194,7 @@ async function tabRows($: EngineInterface, e: { surface: string; props: { bodyCo
     read($, flowStateAtom), read($, flowSwitchAtom), read($, workflowsAtom),
     usageDrawn($), dismissedOf($), read($, toolQueryAtom), read($, toolMenuAtom), read($, toolNamingAtom), read($, toolsOpenAtom),
     shows(tab === 'sessions' || tab === 'journal')(() => read($, exportedAtom), null),
-    shows(tab === 'sessions')(() => Promise.all([read($, exportedForAtom), read($, exportMenuAtom)]), [null, null] as [string | null, string | null]),
+    shows(tab === 'sessions')(() => read($, exportedForAtom), null),
     shows(tab === 'items')(() => read($, droppedOpenAtom), false),
     shows(tab === 'items')(() => read($, artifactMenuAtom), null),
     shows(tab === 'items')(() => read($, docsOpenAtom), false),
@@ -2190,7 +2203,7 @@ async function tabRows($: EngineInterface, e: { surface: string; props: { bodyCo
     board, problem, shell, tab, columns, maxRows: Math.max(4, e.props.scroll.bodyRows - 4), t, now, root: root ?? '', inbox,
     filter: filter as JournalFilter, expanded, evidence, prompts,
     ...(project !== null ? { project, scrolls: e.surface === 'terminal', unfolded: unfolded as unknown as { id: string; answer: string | null } | null } : {}),
-    exportedFor, exportMenu, doneOpen, droppedOpen, sessionFlow, sessionRuns: (sessionRuns as unknown as string[] | null) ?? [],
+    exportedFor, doneOpen, droppedOpen, sessionFlow, sessionRuns: (sessionRuns as unknown as string[] | null) ?? [],
     flowState, switching, workflows: workflows as unknown as { bundled: string[]; installed: string[] } | null,
     usage, dismissed, toolQuery, toolMenu, toolNaming, toolsOpen: (toolsOpen as unknown as string[] | null) ?? [],
     exported, artifactMenu, docsOpen,

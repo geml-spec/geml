@@ -122,7 +122,7 @@ test("a press: a hold and its release, a tick a person may not make, a transitio
     assert.equal(readDictionaryFile(workflowFile, sc).rows.find((r) => r.tool === "Bash(make)").for, "refund", "a typed line is a lesson");
     assert.equal(actOnSession(s, { op: "input", field: "add-tool", value: "   " }, NOW).ok, false, "an empty line adds nothing");
     assert.deepEqual(actOnSession(s, { op: "input", field: "import-workflow", value: "/x" }, NOW), { ok: false, error: "import-workflow is not on this host" });
-    assert.deepEqual(actOnSession(s, { op: "export", kind: "journal", format: "geml" }, NOW), { ok: false, error: "export is not on this host" });
+    assert.deepEqual(actOnSession(s, { op: "export", session: "own" }, NOW), { ok: false, error: "export is not on this host" });
   } finally {
     rmSync(workflowDir, { recursive: true, force: true });
   }

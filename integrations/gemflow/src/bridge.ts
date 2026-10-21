@@ -16,7 +16,7 @@
 import { createHash } from "node:crypto";
 import { cpSync, mkdirSync, readdirSync } from "node:fs";
 import { homedir, hostname, userInfo } from "node:os";
-import { basename, dirname, join, relative, resolve } from "node:path";
+import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { globToRegExp } from "./core/unit.js";
 import { Attribution } from "./attribution.js";
 import { bindInDocument, readBacklog } from "./core/backlog.js";
@@ -173,27 +173,47 @@ export function stripPaths(text: string, root: string): string {
 type ExportReq = Extract<BridgeRequest, { op: "export" }>;
 
 /**
- * The board's export (spec §8.2): a file under `.geml/exports/`. A journal as
- * it is, as a Markdown table or as JSON; the workflow, as a directory another
- * project imports (its file as `flow.geml`, the documents it keeps, the rows
- * of the dictionary it uses as `tools.geml`); or text the shell built. Answers the project-relative path and the text.
+ * The board's export (spec §8.2): a file under `.geml/exports/`, or where
+ * the person said (`to`: a folder, made when missing, or a file, another
+ * extension becoming the format's; `~` the home, a relative path the
+ * project's). A file there already stays: the new one is numbered `-2`,
+ * `-3`…, as a download is. A journal
+ * as it is, as a Markdown table or as JSON; the workflow, as a directory
+ * another project imports (its file as `flow.geml`, the documents it keeps,
+ * the rows of the dictionary it uses as `tools.geml`); or text the shell
+ * built. Answers the path (the project's inside it, else absolute) and the text.
  */
 function exportOf(ws: Workspace, root: string, req: ExportReq, now: string): { ok: true; path: string; text: string } | { ok: false; reason: string } {
-  const dir = join(root, EXPORTS_DIR);
   const stamp = now.replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
   const item = ws.item.kind === "item" ? fileSafe(ws.item.id) : "no-item";
   const given = req.name !== undefined ? fileSafe(basename(req.name.split("\\").join("/"))) : undefined;
   const ext = `.${req.format}`;
+  const to = req.to === undefined ? undefined : resolve(root, req.to.replace(/^~(?=$|[\\/])/, homedir()));
+  // A place is the folder the file goes in when it is one or names no extension; else the file itself, in the format's extension.
+  const folder = to === undefined || req.kind === "workflow" || extname(to) === "" || (exists(to) && statSync(to).isDirectory());
+  const file = folder ? undefined : `${to.slice(0, to.length - extname(to).length)}${ext}`;
+  const dir = file !== undefined ? dirname(file) : to ?? join(root, EXPORTS_DIR);
+  /** A name nothing has yet: the path itself, else `-2`, `-3`… before its extension. */
+  const free = (path: string): string => {
+    const stem = path.slice(0, path.length - extname(path).length);
+    let out = path;
+    for (let n = 2; exists(out); n++) out = `${stem}-${n}${extname(path)}`;
+    return out;
+  };
   const named = (fallback: string): string => {
     const name = given ?? fallback;
     return name.endsWith(ext) ? name : `${name}${ext}`;
   };
-  const shown = (path: string): string => relative(root, path).split("\\").join("/");
+  const shown = (path: string): string => {
+    const rel = relative(root, path);
+    return (rel === "" || rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel) ? path : rel).split("\\").join("/");
+  };
   const write = (name: string, text: string): { ok: true; path: string; text: string } => {
     const out = req.strip === true ? stripPaths(text, root) : text;
-    mkdirSync(dir, { recursive: true });
-    writeAtomic(join(dir, name), out);
-    return { ok: true, path: shown(join(dir, name)), text: out };
+    const target = free(file ?? join(dir, name));
+    mkdirSync(dirname(target), { recursive: true });
+    writeAtomic(target, out);
+    return { ok: true, path: shown(target), text: out };
   };
   if (req.kind === "text") return write(named(`share-${item}-${stamp}`), req.text ?? "");
   if (req.kind === "journal") {

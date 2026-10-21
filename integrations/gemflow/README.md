@@ -599,8 +599,10 @@ What you get:
   what each turn did; a selected prompt can be scrolled to in the
   conversation, or handed to the model with the bundled `split-session`
   skill, which moves it and the turns after it — or it alone — into a
-  session of its own, the record backed up first; export as GEML, Markdown
-  or JSON). The header carries
+  session of its own, the record backed up first; each session's heading
+  exports its record as GEML, asking where to put it: Downloads, the
+  desktop, the project's `.geml/exports/`, or a folder or file typed in).
+  The header carries
   share (where it stands, the journal, the session or the workflow — as text,
   a file under `.geml/exports/` or a PR comment), settings (desktop
   notifications, what the band shows, the default workflow, adding a bundled

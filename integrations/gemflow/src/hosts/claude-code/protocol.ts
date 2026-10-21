@@ -70,13 +70,15 @@ export type BridgeOp =
    */
   | { op: "artifact"; kind: "link" | "image" | "file"; where: string; name?: string; version?: string; page?: string; data?: string; mediaType?: string }
   /**
-   * Write a file under `.geml/exports/` and answer its path and text: the work
+   * Write a file under `.geml/exports/`, or `to` where the person said (a
+   * folder, or a file ending in the format's extension; `~` the home, a
+   * relative path the project's), and answer its path and text: the work
    * item's journal (as GEML, a Markdown revision table, or JSON), a copy of the
    * work item's workflow directory, or `text` the shell built (the share
    * dialog, a session export). `strip` takes the project's and the home
    * directory's absolute paths out of the text first.
    */
-  | { op: "export"; kind: "journal" | "workflow" | "text"; format: "geml" | "md" | "json"; name?: string; text?: string; strip?: boolean }
+  | { op: "export"; kind: "journal" | "workflow" | "text"; format: "geml" | "md" | "json"; name?: string; text?: string; strip?: boolean; to?: string }
   /** The host's transcripts of this project's checkouts (transcript.ts), newest first; `transcripts` is the folder they are under (a test's), else ~/.claude/projects. */
   | { op: "backfill-list"; transcripts?: string }
   /**
@@ -269,7 +271,7 @@ export type BridgeResponse =
       /** refresh and board: the work item's to-do count, or null when its file is no geml-media entry; every other answer leaves it out. */
       todo?: TodoCount | null;
       workflows?: string[]; installed?: string[]; added?: { name: string; activated: boolean };
-      /** export: where the file went (project-relative, `/`-separated) and what it holds. */
+      /** export: where the file went (project-relative inside the project, else absolute; `/`-separated) and what it holds. */
       exported?: { path: string; text: string };
       /** attention: the repository's facts for the band. */
       attention?: AttentionFacts;
@@ -363,7 +365,7 @@ export function decodeRequest(text: string): BridgeRequest | { error: string } {
     import: () => str("path") && v["path"] !== "",
     export: () => EXPORT_KINDS.has(v["kind"] as string) && EXPORT_FORMATS.has(v["format"] as string)
       && (v["name"] === undefined || str("name")) && (v["text"] === undefined || str("text")) && (v["strip"] === undefined || typeof v["strip"] === "boolean")
-      && (v["kind"] !== "text" || str("text")),
+      && (v["to"] === undefined || (str("to") && v["to"] !== "")) && (v["kind"] !== "text" || str("text")),
     artifact: () => (v["kind"] === "link" || v["kind"] === "image" || v["kind"] === "file") && str("where")
       && (v["name"] === undefined || str("name")) && (v["version"] === undefined || str("version")) && (v["page"] === undefined || str("page"))
       && (v["data"] === undefined || str("data")) && (v["mediaType"] === undefined || str("mediaType")),

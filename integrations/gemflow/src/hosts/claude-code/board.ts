@@ -3,7 +3,7 @@
 // surface's elements and runs a button's action.
 import { bindingOf, type DictRow } from "../../core/dictionary.js";
 import type { Status } from "../../workspace.js";
-import type { BoardAction, BoardTab, ExportFormat, JournalFilter, Pressable } from "./actions.js";
+import type { BoardAction, BoardTab, JournalFilter, Pressable } from "./actions.js";
 import { howText, truncate, varSegment, wrapCells, type Tone } from "./band.js";
 import { othersWaiting, pendingList, shortReason, type InboxItem } from "./inbox.js";
 import type { BoardData, BoardItem, MadeEntry, Artifacts, ShellStatus, TimelineEntry } from "./protocol.js";
@@ -83,8 +83,8 @@ export type BoardRow =
   /** A work item's way through its flow: each state in order, passed or not, the current one marked. */
   | { kind: "steps"; key: string; steps: { title: string; passed: boolean; current: boolean }[] }
   /** A prompt of the session (the sessions tab): its time, its first line, what its turn did, and the press that opens or closes its menu. */
-  /** `open`: unfolded under it; `fold`: it folds and unfolds on the press, which the row says with a triangle; `icons`: the presses at its right end, each a glyph. */
-  | { kind: "turn"; key: string; at: string; text: string; did: string; open: boolean; action: BoardAction; fold?: boolean; icons?: { glyph: Glyph; button: Pressable }[] }
+  /** `open`: unfolded under it; `fold`: it folds and unfolds, the press on the triangle that says which (the row's own press, named 展开 or 收起); `icons`: the presses at its right end, each a glyph. */
+  | { kind: "turn"; key: string; at: string; text: string; did: string; open: boolean; action: BoardAction; fold?: Pressable; icons?: { glyph: Glyph; button: Pressable }[] }
   /** A row's menu, opened by a press on it: a short column of entries under it. */
   | { kind: "menu"; key: string; items: Pressable[] }
   /** Running text shown whole: a turn's prompt, its answer (Markdown, where the surface draws it). */
@@ -229,8 +229,6 @@ export interface PaneInput {
   /** The file the last export wrote: a link to it under the export buttons; on the sessions tab, under the session it was of (`exportedFor`: `own` or its id). */
   exported?: string | null;
   exportedFor?: string | null;
-  /** The session whose export formats are open on the sessions tab (`own` or its id), or null. */
-  exportMenu?: string | null;
   /** The flow the sessions tab shows (its title), or null for all; the runs of another flow's turns unfolded (their first prompt's id). */
   sessionFlow: string | null;
   sessionRuns: readonly string[];
@@ -268,13 +266,10 @@ export function paneRows(o: PaneInput): BoardRow[] {
   const wait = o.board === null && head.length === 0 ? [text(t("正在读取看板…"), columns, "dim")] : [];
   if (o.tab === "sessions") {
     const own = sessionRows(o.prompts, o.board?.artifacts?.commits ?? [], t, columns, o.now, { flow: o.sessionFlow, runs: o.sessionRuns, current: status?.workflow.title, ...(o.scrolls !== undefined ? { scrolls: o.scrolls } : {}), ...(o.unfolded !== undefined ? { expanded: o.unfolded } : {}) });
-    // Every session's heading carries its export: the formats open under it, and the file written shows there.
+    // Every session's heading carries its export, which asks where to; the file written shows under it.
     const exports: ExportsOf = {
-      button: (s) => ({ key: `export-${s}`, label: o.exportMenu === s ? t("收起") : t("导出"), action: { op: "export-menu", session: o.exportMenu === s ? null : s } }),
-      under: (s) => [
-        ...(o.exportMenu === s ? [exportMenu(s)] : []),
-        ...((o.exportedFor ?? "own") === s ? exportedRows(o.exported, o.root, t) : []),
-      ],
+      button: (s) => ({ key: `export-${s}`, label: t("导出"), action: { op: "export", session: s } }),
+      under: (s) => ((o.exportedFor ?? "own") === s ? exportedRows(o.exported, o.root, t) : []),
     };
     return [
       ...head, ...decisionRows(o.project, t, columns, o.now),
@@ -295,14 +290,8 @@ function exportedRows(path: string | null | undefined, root: string, t: T): Boar
   return path === null || path === undefined || path === "" ? [] : [{ kind: "link", key: "exported", href: fileHref(root, path), label: t("已导出 {0}", path) }];
 }
 
-/** A session's export on the sessions tab: the button on its heading, and what stands under the heading (the formats when open, the file written). */
+/** A session's export on the sessions tab: the button on its heading, and what stands under the heading (the file written). */
 interface ExportsOf { button: (session: string) => Pressable; under: (session: string) => BoardRow[] }
-
-/** The formats a session exports in, a row of buttons under its heading; the heading's button closes it again. */
-function exportMenu(session: string): BoardRow {
-  const format = (f: ExportFormat, label: string): Pressable => ({ key: `export-${session}-${f}`, label, action: { op: "export", kind: "session", format: f, session } });
-  return buttons([format("geml", "GEML"), format("md", "Markdown"), format("json", "JSON")]);
-}
 
 // ---- flow -----------------------------------------------------------------------
 
@@ -456,10 +445,10 @@ function flowRow(board: BoardData, current: string | undefined, acting: boolean,
   return { kind: "flow", key: "flow-picture", ranks, edges, svg: board.picture.svg };
 }
 
-/** A `file:` URL for a project-relative path. */
+/** A `file:` URL for a project-relative path, or for an absolute one as it is (an export outside the project). */
 export function fileHref(root: string, rel: string): string {
-  const base = root.split("\\").join("/").replace(/\/+$/, "");
-  const path = `${base}/${rel.split("\\").join("/")}`;
+  const slashed = rel.split("\\").join("/");
+  const path = /^(\/|[A-Za-z]:\/)/.test(slashed) ? slashed : `${root.split("\\").join("/").replace(/\/+$/, "")}/${slashed}`;
   return `file://${path.startsWith("/") ? "" : "/"}${path.split("/").map((seg) => encodeURIComponent(seg)).join("/")}`;
 }
 
@@ -1074,10 +1063,11 @@ export function sessionRows(prompts: readonly PromptRecord[], commits: readonly 
       if (run.length >= RUN_FOLDS) {
         const open = by.runs.includes(key);
         const first = run[0] as PromptRecord;
+        const action: BoardAction = { op: "session-run", id: key, open: !open };
         rows.push({
           kind: "turn", key: `run-${key}`, at: `${hhmm(first.at)}–${hhmm(p.at)}`,
-          text: t("{0} · {1} · {2} 条提示词", p.flow, p.itemTitle ?? p.item ?? "", run.length), did: "", open, fold: true,
-          action: { op: "session-run", id: key, open: !open },
+          text: t("{0} · {1} · {2} 条提示词", p.flow, p.itemTitle ?? p.item ?? "", run.length), did: "", open,
+          fold: foldOf(`run-${key}`, open, action, t), action,
         });
         if (open) for (let k = run.length - 1; k >= 0; k--) rows.push(...turnRows(run[k] as PromptRecord, shown[j + k + 1]?.at, commits, t, columns, unfold));
         i = j;
@@ -1088,6 +1078,9 @@ export function sessionRows(prompts: readonly PromptRecord[], commits: readonly 
   }
   return rows;
 }
+
+/** A row's triangle as a press of its own: the row's press, named for what it does now. */
+const foldOf = (key: string, open: boolean, action: BoardAction, t: T): Pressable => ({ key: `fold-${key}`, label: open ? t("收起") : t("展开"), action });
 
 /**
  * One prompt's line: what its turn did (the commits made while it ran, its
@@ -1106,7 +1099,8 @@ function turnRows(p: PromptRecord, until: string | undefined, commits: readonly 
     { glyph: "split", button: { key: `split-${p.id}`, label: t("拆分"), action: { op: "split", id: p.id } } },
     { glyph: "delete", button: { key: `remove-${p.id}`, label: t("删除"), action: { op: "remove", id: p.id } } },
   ];
-  const rows: BoardRow[] = [{ kind: "turn", key: `prompt-${p.id}`, at: hhmm(p.at), text: promptLine(p.text, Math.max(12, columns - 8)), did, open, fold: true, icons, action: { op: "expand-turn", id: open ? null : p.id } }];
+  const action: BoardAction = { op: "expand-turn", id: open ? null : p.id };
+  const rows: BoardRow[] = [{ kind: "turn", key: `prompt-${p.id}`, at: hhmm(p.at), text: promptLine(p.text, Math.max(12, columns - 8)), did, open, fold: foldOf(`prompt-${p.id}`, open, action, t), icons, action }];
   // Unfolded: the whole prompt, then the whole answer — read from the record once the press lands.
   if (open) rows.push({ kind: "prose", key: `full-${p.id}`, text: p.text }, { kind: "prose", key: `answer-${p.id}`, text: unfold.expanded?.answer === null ? t("正在读取…") : unfold.expanded?.answer === "" ? t("没有记下回答") : unfold.expanded?.answer ?? "", markdown: true });
   return rows;

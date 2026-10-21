@@ -289,7 +289,21 @@ async function start($: Engine, on: On): Promise<ReturnType<typeof mock.clock>> 
   return clock
 }
 
-type Drawn = { type: string; props?: Record<string, unknown>; children?: (Drawn | string)[] }
+type Drawn = { type: string; key?: string; props?: Record<string, unknown>; children?: (Drawn | string)[] }
+
+const keyOf = (el: Drawn): unknown => el.key ?? el.props?.key
+/** Whether a drawing holds the Button keyed `key`. */
+const holds = (el: Drawn | string, key: string): boolean => typeof el !== 'string' && ((el.type === 'Button' && keyOf(el) === key) || (el.children ?? []).some((c) => holds(c, key)))
+/** The Box a press laid over others spans: the parent of the nearest absolutely placed Box above the Button keyed `key`. */
+const spanOf = (el: Drawn | string, key: string, path: Drawn[] = []): Drawn | undefined => {
+  if (typeof el === 'string') return undefined
+  if (el.type === 'Button' && keyOf(el) === key) {
+    const i = path.map((p) => p.props?.position).lastIndexOf('absolute')
+    return i > 0 ? path[i - 1] : undefined
+  }
+  for (const c of el.children ?? []) { const found = spanOf(c, key, [...path, el]); if (found !== undefined) return found }
+  return undefined
+}
 
 /** The words a drawing shows, in order: what a Box drawn hidden holds (a card the pointer reveals) left out. */
 const shown = (el: Drawn | string, out: string[] = []): string[] => {
@@ -1020,9 +1034,16 @@ test('the settings dialog: a toggle is kept in the store and read back at the ne
   await flows.unmount()
 })
 
-test('the session tab lists each prompt by day, newest first, with what its turn did, and exports them through the bridge', async ($, on) => {
+test('the session tab lists each prompt by day, newest first, with what its turn did, and exports them through the bridge where the person says', async ($, on) => {
   const w = world(on)
   on('tool.call', { tool: 'Bash' }, () => ({ result: { stdout: 'ok', stderr: '', interrupted: false }, text: 'ok' }))
+  const asked: { question: string; header?: string; options: string[] }[] = []
+  let answer = '~/notes'
+  on('tool.call', { tool: 'AskUserQuestion' }, ($, e) => {
+    const q = (e.questions as { question: string; header?: string; options: { label: string }[] }[])[0]!
+    asked.push({ question: q.question, header: q.header, options: q.options.map((o) => o.label) })
+    return { result: { questions: e.questions, answers: { [q.question]: answer } }, text: answer }
+  })
   on('prompt.submit', ($, e) => ({ text: e.text }))
   await start($, on)
   await $.prompt.submit({ text: '把测试补上，然后开 PR。', wait: false, origin: COMPOSER })
@@ -1036,14 +1057,21 @@ test('the session tab lists each prompt by day, newest first, with what its turn
   expect(turns, 'newest first').toEqual(['顺手部署一下。', '把测试补上，然后开 PR。'])
   expect(await pane.find({ type: 'Text', text: /2 次工具调用 · tests-pass ✓ · 进 #review/ }), 'what the first turn did').toBeDefined()
   expect(await pane.find({ type: 'Text', text: /进行中…/ }), 'the last is still going').toBeDefined()
-  // The export sits on this session's heading: its formats open on a press, one of them writes.
-  expect(await pane.find({ type: 'Button', key: 'export-own-md' }), 'the formats wait behind the button').toBeUndefined()
+  // The export sits on this session's heading: a press asks where to, and the record goes there as GEML; no format to pick.
+  expect((await pane.findAll({ type: 'Button' })).filter((b) => /^export-own-/.test(String(b.key))), 'no format buttons').toEqual([])
   await pane.press({ key: 'export-own' })
-  await pane.press({ key: 'export-own-md' })
+  expect(asked.at(-1)).toEqual({ question: '把本会话导出到哪？', header: '导出', options: ['下载 ~/Downloads', '桌面 ~/Desktop', '本项目 .geml/exports/'] })
   const exported = w.sent.filter((r) => r.op === 'export').at(-1) as Req
-  expect(exported).toMatchObject({ kind: 'text', format: 'md', name: 'session-sess-123' })
-  expect(String(exported['text'])).toMatch(/^# 会话 sess-1234567890\n/)
+  expect(exported, 'a place typed under Other').toMatchObject({ kind: 'text', format: 'geml', name: 'session-sess-123', to: '~/notes' })
+  expect(String(exported['text'])).toMatch(/^=== meta\n/)
   expect(String(exported['text'])).toContain('把测试补上，然后开 PR。')
+  expect(w.toasts.at(-1)).toBe('已导出 .geml/exports/session-sess-123.geml')
+  answer = '下载 ~/Downloads'
+  await pane.press({ key: 'export-own' })
+  expect(w.sent.filter((r) => r.op === 'export').at(-1), 'an option is its folder').toMatchObject({ to: '~/Downloads' })
+  answer = '本项目 .geml/exports/'
+  await pane.press({ key: 'export-own' })
+  expect((w.sent.filter((r) => r.op === 'export').at(-1) as Req)['to'], "the project's exports: no place sent").toBeUndefined()
   await pane.unmount()
 })
 
@@ -1088,9 +1116,10 @@ test('the session tab: a prompt learns its row once the host stored it, a press 
   expect(prompted[1]).toContain('用 remove 只删掉这一轮（不建新会话）')
   expect(w.toasts.filter((x) => x === '已交给模型，结果看对话')).toHaveLength(2)
   await pane.press({ key: 'export-own' })
-  await pane.press({ key: 'export-own-json' })
+  expect(asked.at(-1), 'the export asks where to').toBe('把本会话导出到哪？')
   const exported = w.sent.filter((r) => r.op === 'export').at(-1) as Req
-  expect((JSON.parse(String(exported['text'])) as { prompts: { uuid?: string }[] }).prompts.map((p) => p.uuid), 'the export carries the rows\' ids').toEqual(stored)
+  const index = /^=== data \{#session format=json\}\n([\s\S]*?)\n===$/m.exec(String(exported['text']))
+  expect((JSON.parse(index![1]!) as { prompts: { uuid?: string }[] }).prompts.map((p) => p.uuid), 'the export carries the rows\' ids').toEqual(stored)
   await pane.unmount()
 })
 
@@ -1379,7 +1408,17 @@ test('a session resumed after the app restarted shows the prompts the store kept
   expect(await pane.find({ type: 'Button', key: 'split-p1-a' }), 'split, at the row').toBeDefined()
   expect(await pane.find({ type: 'Button', key: 'remove-p1-a' }), 'delete, at the row').toBeDefined()
   expect(await pane.find({ type: 'Button', key: 'locate-p1-a' })).toBeUndefined()
-  await pane.press({ key: 'open-prompt-p1-a' })
+  // The row's press is a blank laid over it, painted over what it spans: the icons stand outside that box, or a click on one unfolds the row.
+  const drawn = (await pane.drawn()) as unknown as Drawn
+  const span = spanOf(drawn, 'open-prompt-p1-a')
+  expect(span, 'the row takes the press').toBeDefined()
+  expect([holds(span!, 'split-p1-a'), holds(span!, 'remove-p1-a'), holds(span!, 'fold-prompt-p1-a')], 'the box the press spans holds no icon').toEqual([false, false, false])
+  // Each icon takes the press on both of the row's lines, its name shown below the row, never over the press.
+  expect(await pane.find({ type: 'Button', key: 'split-p1-a-2' }), "the icon's second line").toBeDefined()
+  const name = spanOf(drawn, 'split-p1-a')?.children?.find((c): c is Drawn => typeof c !== 'string' && c.props?.display === 'none')
+  expect(name?.props?.top).toBe(2)
+  // The triangle is a press of its own, the row's: it unfolds the turn.
+  await pane.press({ key: 'fold-prompt-p1-a' })
   await pane.unmount()
   const again = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
   expect(JSON.stringify(await again.drawn()), 'the press unfolds the turn: its answer, which no record holds here').toContain('没有记下回答')

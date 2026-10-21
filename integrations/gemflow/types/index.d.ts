@@ -118,9 +118,8 @@ declare module 'claude-code' {
       expandedTurn: GemflowJson
       /** The file the last export wrote. */
       exported: string | null
-      /** On the sessions tab: the session the last export was of (`own` or its id), where its file is linked; the session whose export formats are open. */
+      /** On the sessions tab: the session the last export was of (`own` or its id), where its file is linked. */
       exportedFor: string | null
-      exportMenu: string | null
       /** The share dialog's text, shown where it cannot be copied (the desktop). */
       sharedText: string | null
     }

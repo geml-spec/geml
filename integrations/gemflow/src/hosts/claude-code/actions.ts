@@ -6,8 +6,6 @@ import type { Lesson } from "../../core/dictionary.js";
 export type BoardTab = "sessions" | "flow" | "items" | "journal" | "tools";
 export type JournalFilter = "all" | "artifacts" | "evidence" | "moves" | "refusals" | "depends";
 export type Dialog = "settings" | "upgrade" | "about" | "share";
-export type ExportKind = "journal" | "workflow" | "session";
-export type ExportFormat = "geml" | "md" | "json";
 /** What the share dialog shares, and how. */
 export type ShareWhat = "status" | "journal" | "session" | "workflow";
 export type ShareHow = "copy" | "file" | "pr";
@@ -73,10 +71,8 @@ export type BoardAction =
   | { op: "artifact-menu"; key: string | null }
   /** Close a merged work item: its worktree and its local branch removed, by the model, once the person said yes. */
   | { op: "close-item"; id: string; worktree?: string }
-  /** `session`: on the sessions tab, which session's record to write — `own`, or another session's id. */
-  | { op: "export"; kind: ExportKind; format: ExportFormat; session?: string }
-  /** Open the row of formats under a session's export button (`own`, or another session's id), or close it. */
-  | { op: "export-menu"; session: string | null }
+  /** On the sessions tab: a session's record written as GEML where the press asks — `own`, or another session's id. */
+  | { op: "export"; session: string }
   | { op: "dialog"; dialog: Dialog | null }
   | { op: "open-board"; tab?: BoardTab }
   | { op: "use"; workflow: string }
