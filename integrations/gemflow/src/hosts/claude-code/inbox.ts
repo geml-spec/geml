@@ -63,7 +63,7 @@ export function inboxItems(o: InboxInput): InboxItem[] {
   const { t } = o;
   const items: InboxItem[] = [];
   if (o.problem !== null) {
-    items.push({ kind: "broken", key: "broken", verb: "", title: o.problem, detail: [t("调用照常执行，什么都不记")], actions: [{ key: "retry", label: t("重试"), primary: true, action: { op: "retry" } }] });
+    items.push({ kind: "broken", key: "broken", verb: "", title: o.problem, detail: [t("调用照常执行，不做记录")], actions: [{ key: "retry", label: t("重试"), primary: true, action: { op: "retry" } }] });
   }
   const s = o.shell?.status ?? null;
   const policy = o.shell?.policy ?? null;
@@ -83,7 +83,7 @@ export function inboxItems(o: InboxInput): InboxItem[] {
       const closes = waiting.some((edge) => edge.toFinal);
       const notes = waiting.filter((edge) => edge.note !== "").map((edge) => noteOf(edge.label, edge.note, t));
       items.push({
-        kind: "approve", key: `approve-${state}`, verb: closes ? t("验收") : t("定"), ...(closes ? { closes: true as const } : {}),
+        kind: "approve", key: `approve-${state}`, verb: closes ? t("验收") : t("决定"), ...(closes ? { closes: true as const } : {}),
         title,
         detail: [s.state.title, ...notes],
         ...(lastAt !== undefined ? { since: lastAt } : {}), actions,
@@ -97,7 +97,7 @@ export function inboxItems(o: InboxInput): InboxItem[] {
         kind: "tick", key: `tick-${name}`, verb: t("勾"), title,
         detail: [t("勾上 {0}，才走「{1}」", name, ways.join("」「"))],
         ...(s.state.since !== undefined ? { since: s.state.since } : {}),
-        actions: [{ key: `mark-${name}`, label: t("勾上"), primary: true, action: { op: "mark", variable: name, checked: true } }],
+        actions: [{ key: `mark-${name}`, label: t("勾选"), primary: true, action: { op: "mark", variable: name, checked: true } }],
       });
     }
     const since = stageEntryOf(o.timeline);
@@ -129,7 +129,7 @@ export function inboxItems(o: InboxInput): InboxItem[] {
       items.push({
         kind: "stuck", key: `stuck-${what}`, verb: t("被拦"), title: what,
         // Within a minute there is no span worth naming: they came one after another.
-        detail: [g.reason, Number.isFinite(span) && span < 60_000 ? t("刚才连着 {0} 次", recent.length) : t("{0}内 {1} 次", Number.isFinite(span) ? waitedText(first, o.now, t).replace(/^.*?(\d)/, "$1") : "", recent.length)],
+        detail: [g.reason, Number.isFinite(span) && span < 60_000 ? t("连续 {0} 次", recent.length) : t("{0}内 {1} 次", Number.isFinite(span) ? waitedText(first, o.now, t).replace(/^.*?(\d)/, "$1") : "", recent.length)],
         since: first, actions,
       });
     }
@@ -151,7 +151,7 @@ export function othersWaiting(board: BoardData | null, current: string | undefin
     const title = i.title ?? i.id;
     const closes = asks.some((a) => a.final);
     return {
-      kind: "approve", key: `asks-${i.id}`, verb: closes ? t("验收") : t("定"), ...(closes ? { closes: true as const } : {}), title,
+      kind: "approve", key: `asks-${i.id}`, verb: closes ? t("验收") : t("决定"), ...(closes ? { closes: true as const } : {}), title,
       // Its stage in its own flow's words: the board's states are the current flow's, and a matter beside a branch is in another.
       tag: i.about !== undefined ? t("建议 · {0}", aboutWords(i.about, t)) : i.flow !== undefined && i.workflow !== undefined ? `${i.flow} · ${i.stateTitle ?? states.get(i.state) ?? i.state}` : i.stateTitle ?? states.get(i.state) ?? i.state,
       // What the work item says of itself; without it, what its options mean.
@@ -177,7 +177,7 @@ function comebacks(board: BoardData, current: string | undefined, t: T): InboxIt
     const title = i.title ?? i.id;
     return [{
       kind: "resume", key: `resume-${i.id}`, verb: t("回到"), title, ...(i.flow !== undefined ? { tag: i.flow } : {}),
-      detail: [t("「{0}」完成了", deps.map((d) => d.title ?? d.id).join("」「"))],
+      detail: [t("「{0}」已完成", deps.map((d) => d.title ?? d.id).join("」「"))],
       actions: [{ key: `resume-${i.id}`, label: t("继续"), primary: true, action: { op: "switch-file", file: i.file, say: t("继续：{0}", title) } }],
     }];
   });

@@ -23,7 +23,7 @@ export function usageText(t: T = ZH): string {
   return [
     `/gemflow                 ${t("当前工作项、阶段、变量与下一步")}`,
     `/gemflow board [标签]    ${t("打开流程看板（sessions | flow | items | journal | tools）")}`,
-    `/gemflow pause           ${t("暂停当前工作项：证据照记，什么都不推进")}`,
+    `/gemflow pause           ${t("暂停当前工作项：照常记录，不推进阶段")}`,
     `/gemflow resume          ${t("继续")}`,
     `/gemflow use <流程>      ${t("设定新工作项的默认流程（已开始的工作项沿用自己的）")}`,
     `/gemflow add [流程]      ${t("列出内置流程；带名字时写入 .geml/workflows/")}`,

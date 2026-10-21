@@ -6,16 +6,16 @@ import { wordsFor } from "../dist/hosts/claude-code/text.js";
 const t = wordsFor("zh");
 const advance = (to, label, file) => ({ key: `asks-${to}`, label, action: { op: "advance", to, ...(file ? { file } : {}), say: `${label}：x` } });
 const PENDING = [
-  { kind: "approve", key: "a", verb: "定", title: "pi 和 DSH 也记下写过的文件吗", detail: [], actions: [advance("doing", "按方案做", "m/pi.geml"), advance("parked", "先放着", "m/pi.geml")] },
+  { kind: "approve", key: "a", verb: "决定", title: "pi 和 DSH 也记下写过的文件吗", detail: [], actions: [advance("doing", "按方案做", "m/pi.geml"), advance("parked", "先放着", "m/pi.geml")] },
   { kind: "resume", key: "r", verb: "回到", title: "样式：画布换上新标志", detail: [], actions: [{ key: "resume", label: "继续", action: { op: "switch-file", file: "m/styles.geml", say: "继续：样式" } }] },
-  { kind: "suggest", key: "s", verb: "定", title: "node --test 算作跑测试", detail: [], actions: [{ key: "count", label: "算", action: { op: "learn", lessons: [] } }] },
+  { kind: "suggest", key: "s", verb: "决定", title: "node --test 算作跑测试", detail: [], actions: [{ key: "count", label: "算", action: { op: "learn", lessons: [] } }] },
   { kind: "stuck", key: "k", verb: "被拦", title: "Bash(x)", detail: [], actions: [{ key: "pass", label: "放行一次", action: { op: "pass-once", keys: ["x"] } }] },
 ];
 
 test("the options a judgement may pick: the ways out of a work item and a work item to come back to; a suggestion or a block is the person's to press", () => {
   assert.deepEqual(judgeOptions(PENDING).map((o) => [o.verb, o.title, o.label, o.action.op]), [
-    ["定", "pi 和 DSH 也记下写过的文件吗", "按方案做", "advance"],
-    ["定", "pi 和 DSH 也记下写过的文件吗", "先放着", "advance"],
+    ["决定", "pi 和 DSH 也记下写过的文件吗", "按方案做", "advance"],
+    ["决定", "pi 和 DSH 也记下写过的文件吗", "先放着", "advance"],
     ["回到", "样式：画布换上新标志", "继续", "switch-file"],
   ]);
 });
@@ -27,8 +27,8 @@ test("the request: the last answer, the options numbered, the prompt; the reply 
   assert.equal(ask.prompt.split("\n").slice(0, 5).join("\n"), [
     'The assistant\'s last reply began: "方案写进事项了：两种做法，推荐 A。"',
     "Waiting on the person:",
-    '1. 定 "pi 和 DSH 也记下写过的文件吗" — option: "按方案做"',
-    '2. 定 "pi 和 DSH 也记下写过的文件吗" — option: "先放着"',
+    '1. 决定 "pi 和 DSH 也记下写过的文件吗" — option: "按方案做"',
+    '2. 决定 "pi 和 DSH 也记下写过的文件吗" — option: "先放着"',
     '3. 回到 "样式：画布换上新标志" — option: "继续"',
   ].join("\n"));
   assert.match(ask.prompt, /The person now wrote: "好，按方案做吧"/);
@@ -43,7 +43,7 @@ test("the request: the last answer, the options numbered, the prompt; the reply 
 
 test("the band's line: a judgement taken says what was chosen, with an undo when it has one; an unsure one asks, 对 or 不是", () => {
   const [option] = judgeOptions(PENDING);
-  const taken = judgementLine({ at: "2026-10-15T11:04:00Z", said: "好", option, sure: true, why: "按方案做", taken: true, undo: { file: "m/pi.geml", rev: 3 } }, t);
+  const taken = judgementLine({ at: "2026-10-15T11:04:00Z", said: "同意", option, sure: true, why: "按方案做", taken: true, undo: { file: "m/pi.geml", rev: 3 } }, t);
   assert.deepEqual([taken.title, taken.note, taken.actions.map((a) => [a.label, a.action.op])], ["你选了 按方案做：pi 和 DSH 也记下写过的文件吗", "按方案做", [["撤销", "judge-undo"]]]);
   const noUndo = judgementLine({ at: "", said: "", option, sure: true, why: "", taken: true }, t);
   assert.deepEqual(noUndo.actions.map((a) => a.label), ["知道了"]);

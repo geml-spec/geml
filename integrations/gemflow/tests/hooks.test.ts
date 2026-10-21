@@ -459,7 +459,7 @@ test('the board draws its header and its five tabs on every surface, opening on 
     expect(await pane.find({ type: 'Text', text: 'Gemflow' })).toBeDefined()
     // Under it: the work item, its stage, its flow.
     for (const said of ['feat/x', 'build', '开发流程']) expect(await pane.find({ type: 'Text', text: said }), await texts()).toBeDefined()
-    expect(await pane.find({ type: 'Text', text: '没有要你做的事' }), `the work items first, nothing waiting: ${await texts()}`).toBeDefined()
+    expect(await pane.find({ type: 'Text', text: '暂无' }), `the work items first, nothing waiting: ${await texts()}`).toBeDefined()
     expect(await pane.find({ type: 'Text', text: '当前 · build' }), await texts()).toBeDefined()
     await pane.press({ key: 'tab-flow' })
     // #build's transition waits on its guard: drawn, not offered, since a person's advance would be refused.
@@ -473,7 +473,7 @@ test('the board draws its header and its five tabs on every surface, opening on 
     expect(await pane.find({ type: 'Text', text: 'npm test' }) ?? await pane.find({ type: 'Button', text: 'npm test' }), 'the name, as words where pictures are drawn').toBeDefined()
     expect(await pane.find({ type: 'Text', text: '跑测试（首选）' }), await texts()).toBeDefined()
     await pane.press({ key: 'tab-journal' })
-    expect(await pane.find({ type: 'Text', text: /还没有记录/ })).toBeDefined()
+    expect(await pane.find({ type: 'Text', text: '暂无' }), 'the journal says it has nothing, in a word').toBeDefined()
     await pane.press({ key: 'tab-sessions' })
     expect(await pane.find({ type: 'Text', text: /还没有 prompt/ })).toBeDefined()
     await pane.press({ key: 'tab-items' })
@@ -731,7 +731,7 @@ test('an approval edge that holds: the band offers the approval, the inbox lists
   await $.tool.call({ tool: 'Bash', tool_use_id: 'b1', command: 'npm test' })
   await clock.settle()
   expect(w.state).toBe('review')
-  expect(w.notified).toEqual(['等你验收：feat/x\nreview'])
+  expect(w.notified).toEqual(['需验收：feat/x\nreview'])
   const band = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
   expect(await band.find({ type: 'Svg' })).toBeDefined()
   expect(await bandText($, 'desktop')).toBe('[　　] 验收 feat/x [　　　] [通过] [　　]')
@@ -741,7 +741,7 @@ test('an approval edge that holds: the band offers the approval, the inbox lists
   expect(w.state).toBe('done')
   await band.unmount()
   const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
-  expect(await pane.find({ type: 'Text', text: '没有要你做的事' }), 'approved: nothing waits').toBeDefined()
+  expect(await pane.find({ type: 'Text', text: '暂无' }), 'approved: nothing waits').toBeDefined()
   await pane.unmount()
 })
 
@@ -855,7 +855,7 @@ test('pause and resume: no button on the board header; /gemflow pause holds it, 
   expect(w.sent.filter((r) => r.op === 'pause')).toHaveLength(1)
   expect(await pane.find({ type: 'Text', text: 'build · 已暂停' })).toBeDefined()
   expect(await pane.find({ type: 'Button', key: 'resume' }), 'no resume on the header either: the band has it').toBeUndefined()
-  expect(await bandText($)).toBe('» 已暂停 feat/x · 模型推不动，证据照记 [继续] [看板]')
+  expect(await bandText($)).toBe('» 已暂停 feat/x · 阶段不变，照常记录 [继续] [看板]')
   const band = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'AbovePrompt', props: BAND })
   expect((await band.findAll({ type: 'Button' })).map((b) => b.key)).toEqual(['band-mark-open', 'title', 'resume', 'board'])
   await band.press({ key: 'resume' })
@@ -1052,7 +1052,7 @@ test('a reply that ends asking: the band puts the question first with its answer
   await $.turn.complete({ answer: '改好了，提交在本地。\n\n要强推覆盖 origin 上的 feat/x。推吗？', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' })
   for (const surface of ['terminal', 'desktop'] as const) {
     const band = await $.ui.mount({ plugin: 'gemflow', surface, component: 'AbovePrompt', props: BAND })
-    expect(shown((await band.drawn()) as unknown as Drawn).join(' '), surface).toMatch(/定 要强推覆盖 origin 上的 feat\/x。 推吗？/)
+    expect(shown((await band.drawn()) as unknown as Drawn).join(' '), surface).toMatch(/待决定：要强推覆盖 origin 上的 feat\/x。 推吗？/)
     expect(await band.find({ type: 'Button', key: 'attention-0-推' }), surface).toBeDefined()
     await band.unmount()
   }
@@ -1103,7 +1103,7 @@ test('where the session runs: the board says the machine, the checkout and the b
   expect(await head(), 'the phone left').toBe('运行于 build-box · app · feat/x')
   await $.prompt.submit({ text: '推', wait: false, origin: { kind: 'bridge' } })
   expect(await head(), 'a prompt over Remote Control').toBe('运行于 build-box · app · feat/x · 远程控制')
-  await $.prompt.submit({ text: '好', wait: false, origin: COMPOSER })
+  await $.prompt.submit({ text: '同意', wait: false, origin: COMPOSER })
   expect(await head(), 'the next one typed at the machine').toBe('运行于 build-box · app · feat/x')
 })
 
@@ -1132,7 +1132,7 @@ test('a step pressed on the board says what became of it: being done once it goe
   expect(await pane.find({ type: 'Button', key: 'attention-0-合并' })).toBeDefined()
   // A merge cannot be taken back: the press asks first, and 取消 says nothing.
   await pane.press({ key: 'attention-0-合并' })
-  expect(asked.at(-1)).toBe('合并 #32？合进去就撤不回。')
+  expect(asked.at(-1)).toBe('合并 #32？此操作不可撤销。')
   expect(said.includes('合并 #32'), 'cancelled: nothing said').toBe(false)
   reply = '合并'
   await pane.press({ key: 'attention-0-合并' })
@@ -1168,7 +1168,7 @@ test('a reload the engine cannot run here (a remote connection) is not offered a
   expect(w.toasts.at(-1)).toBe('要在本机重载插件')
   b = await band()
   expect(await b.find({ type: 'Button', key: 'attention-0-重载插件' }), 'no button that cannot work').toBeUndefined()
-  expect(shown((await b.drawn()) as unknown as Drawn).join(' ')).toMatch(/要在本机重载/)
+  expect(shown((await b.drawn()) as unknown as Drawn).join(' ')).toMatch(/需在本机重载/)
   await b.unmount()
 })
 

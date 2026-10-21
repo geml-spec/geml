@@ -7,13 +7,13 @@
 // sessions.
 //
 // In order, the first that holds:
-//   定       what this reply asks — several asks as one set, one ask with its likely answers; a reply that asks
+//   待决定   what this reply asks — several asks as one set, one ask with its likely answers; a reply that asks
 //            nothing new but re-asks an older question asks it this turn
-//   坏了     a failing check on an open pull request, new to the person
-//   只差你   a step only they can take, new to them: a pull request all green, commits not pushed, a step the reply
+//   出错     a failing check on an open pull request, new to the person
+//   待处理   a step only they can take, new to them: a pull request all green, commits not pushed, a step the reply
 //            leaves to them, work the reply says is not committed
 //   (silent) otherwise
-// Coming back after fifteen minutes, what became of the last thing they asked for leads, unless this turn asks.
+// Coming back after a while says nothing of the time away: only the steps about the work itself come back.
 // A standing condition leads once; after that it is a step still owed at the end of the line, for a few turns, and
 // then only on the board. A line never leads twice running. The whole fits one row.
 import type { Pressable } from "./actions.js";
@@ -112,7 +112,7 @@ export function optionsFor(ask: string, t: T = ZH): string[] {
   if (/要不要/.test(ask)) return [t("要"), t("不要")];
   const either2 = /(\p{Script=Han})不\1/u.exec(ask);
   if (either2 && either2[1] !== "批") return [either2[1] as string, `不${either2[1]}`];
-  if (/批不批|批吗|批了我/.test(ask)) return [t("批"), t("先不")];
+  if (/批不批|批吗|批了我/.test(ask)) return [t("批"), t("暂不")];
   // "A 还是 B？", the A half ending where 还是 starts or at a comma before it ("先做这个，还是先做第三步？").
   const either = /([^，,：:。？?]{1,16})[，,]?\s*还是\s*([^？?，,。]{1,16})[？?]/.exec(ask);
   if (either) return [clip((either[1] as string).trim().replace(/^(是|要|你|往后的改动|提交到)/, ""), 12), clip((either[2] as string).trim(), 12)];
@@ -120,9 +120,9 @@ export function optionsFor(ask: string, t: T = ZH): string[] {
   const clause = ask.split(/[，,。；;：:]/).filter((c) => /[吗么][？?]/.test(c)).at(-1) ?? "";
   const verbs = [...clause.matchAll(/推送|推|合并|提交|清掉|删掉|删|发布|发|打开|开|改|修|做|同步|重写/g)];
   const verb = verbs.at(-1)?.[0];
-  if (verb !== undefined) return [verb, t("先不")];
-  if (/可以吗|行吗|对吗|好吗|这样吗/.test(ask)) return [t("可以"), t("先不")];
-  return [t("好"), t("先不")];
+  if (verb !== undefined) return [verb, t("暂不")];
+  if (/可以吗|行吗|对吗|好吗|这样吗/.test(ask)) return [t("可以"), t("暂不")];
+  return [t("同意"), t("暂不")];
 }
 
 /** A sentence the pick finds, or — when it heads a list — that list's first two items. */
@@ -153,29 +153,29 @@ export function standingOf(reply: string, facts: AttentionFacts, now: number, t:
   for (const p of facts.prs) {
     if (p.failing.length > 0) {
       const checks = p.failing.join("、");
-      out.push({ key: `fail:${p.number}:${p.failing.join(",")}`, kind: "broken", short: t("#{0} {1}失败", p.number, checks), text: t("✗ #{0} 的 {1} 失败", p.number, checks), options: [t("看日志"), t("修")] });
+      out.push({ key: `fail:${p.number}:${p.failing.join(",")}`, kind: "broken", short: t("#{0} {1}失败", p.number, checks), text: t("✗ #{0} 的 {1} 失败", p.number, checks), options: [t("查看日志"), t("修复")] });
     }
   }
   if (facts.reload === true) {
     out.push(o.reloadHere === false
-      ? { key: "reload", kind: "you", short: t("本机重载插件"), text: t("只差你 插件改过了，要在本机重载"), options: [] }
-      : { key: "reload", kind: "you", short: t("重载插件"), text: t("只差你 插件改过了，重载才看得到"), options: [t("重载插件")] });
+      ? { key: "reload", kind: "you", short: t("本机重载插件"), text: t("插件已更新，需在本机重载"), options: [] }
+      : { key: "reload", kind: "you", short: t("重载插件"), text: t("插件已更新，重载后生效"), options: [t("重载插件")] });
   }
   for (const p of facts.prs) {
-    if (p.green) out.push({ key: `green:${p.number}`, kind: "you", short: t("合并 #{0}", p.number), text: t("只差你 #{0} 全绿，可以合并", p.number), options: [t("合并")] });
+    if (p.green) out.push({ key: `green:${p.number}`, kind: "you", short: t("合并 #{0}", p.number), text: t("可合并：#{0}（检查全部通过）", p.number), options: [t("合并")] });
   }
   for (const a of facts.ahead) {
     if (a.ahead <= 0) continue;
     const young = a.newestAt !== undefined && now - Date.parse(a.newestAt) < YOUNG_MS;
-    out.push({ key: `unpushed:${a.branch}`, kind: "you", ...(young ? { quiet: true } : {}), short: t("推送 {0}", a.branch), text: t("只差你 {0} 有 {1} 个提交没推送", a.branch, a.ahead), options: [t("推送"), t("先不")] });
+    out.push({ key: `unpushed:${a.branch}`, kind: "you", ...(young ? { quiet: true } : {}), short: t("推送 {0}", a.branch), text: t("待推送：{0} · {1} 个提交", a.branch, a.ahead), options: [t("推送"), t("暂不")] });
   }
   const step = withItems(reply, (s) => prose(s) && /你(手动|自己)(做|点|发|触发|去)|要你(在|去|点|手动)|还剩你|留给你(来)?做|你在 Actions/.test(s));
   if (step !== undefined) {
     const what = step.replace(/^(还剩|还有)?你手动做的几件[：:]?/, "");
-    out.push({ key: `step:${clip(step, 30)}`, kind: "you", short: clip(what, 16), text: t("只差你 {0}", clip(what, 56)), options: [t("知道了")] });
+    out.push({ key: `step:${clip(step, 30)}`, kind: "you", short: clip(what, 16), text: t("待处理：{0}", clip(what, 56)), options: [t("知道了")] });
   }
   const uncommitted = sentences(reply.slice(-800)).map(bare).find((s) => prose(s) && /(还没|没有|尚未|未)提交|等你(看过|确认|点头)(后|再)?(再)?提交/.test(s));
-  if (uncommitted !== undefined) out.push({ key: `uncommitted:${clip(uncommitted, 30)}`, kind: "you", short: t("提交改动"), text: t("只差你 改动还没提交"), options: [t("提交"), t("先不")] });
+  if (uncommitted !== undefined) out.push({ key: `uncommitted:${clip(uncommitted, 30)}`, kind: "you", short: t("提交改动"), text: t("待提交：改动"), options: [t("提交"), t("暂不")] });
   return out;
 }
 
@@ -196,9 +196,9 @@ export function leadOf(o: { reply: string; standing: readonly Standing[]; memory
   // Several things to settle are settled one by one: the first not answered yet, with its own answers; then the next.
   if (ask.length >= 2) {
     const i = ask.findIndex((_, n) => (o.picks?.[n] ?? null) === null);
-    if (i >= 0) lead = { key: `ask:${ask.join("|")}#${i}`, kind: "ask", text: t("定 {0}/{1}：{2}", i + 1, ask.length, clip(ask[i] as string, 50)), options: optionsFor(ask[i] as string, t), step: { index: i, of: ask.length } };
+    if (i >= 0) lead = { key: `ask:${ask.join("|")}#${i}`, kind: "ask", text: t("决定 {0}/{1}：{2}", i + 1, ask.length, clip(ask[i] as string, 50)), options: optionsFor(ask[i] as string, t), step: { index: i, of: ask.length } };
   }
-  else if (ask.length === 1) lead = { key: `ask:${ask[0]}`, kind: "ask", text: t("定 {0}", clip(ask[0] as string, 60)), options: optionsFor(ask[0] as string, t) };
+  else if (ask.length === 1) lead = { key: `ask:${ask[0]}`, kind: "ask", text: t("待决定：{0}", clip(ask[0] as string, 60)), options: optionsFor(ask[0] as string, t) };
   if (lead === null) {
     const fresh = o.standing.filter((s) => !o.memory.shown.includes(s.key) && s.quiet !== true);
     const s = fresh.find((x) => x.kind === "broken") ?? fresh.find((x) => x.kind === "you");
@@ -258,15 +258,15 @@ export function bandLine(o: {
   const steps = riding.filter(isStepButton).slice(0, 3);
   const owed = riding.filter((s) => !steps.includes(s)).map((s) => s.short);
   const waiting = o.memory.backlog.length;
-  const options = lead !== null && lead.options.length > 0 ? lead.options : steps.length === 0 && owed.length + waiting > 0 ? [t("看看")] : [];
+  const options = lead !== null && lead.options.length > 0 ? lead.options : steps.length === 0 && owed.length + waiting > 0 ? [t("详情")] : [];
   const tail = (named: boolean): string[] => [
-    owed.length === 0 ? "" : named ? t("还差你：{0}", owed.join("、")) : t("还差你 {0} 步", owed.length),
-    waiting > 0 ? t("还有 {0} 件待定", waiting) : "",
+    owed.length === 0 ? "" : named ? t("待处理：{0}", owed.join("、")) : t("待处理 {0} 项", owed.length),
+    waiting > 0 ? t("待决定 {0} 项", waiting) : "",
   ];
   // Nothing leads and nothing else is named: the line says what its buttons are.
   const build = (named: boolean, l: string): string => {
     const parts = [l, ...tail(named)].filter((x) => x !== "");
-    return parts.length === 0 && steps.length > 0 ? t("只差你这几步") : parts.join(" · ");
+    return parts.length === 0 && steps.length > 0 ? t("待处理") : parts.join(" · ");
   };
   const room = width - cells([...options, ...steps.map((x) => x.short)].map((x) => `[${x}]`).join(" ")) - 1;
   const kind = lead?.kind ?? null;
@@ -296,7 +296,7 @@ export function newsOf(before: AttentionFacts | null, now: AttentionFacts, t: T 
 
 /**
  * What a band button does: an answer or a step is sent as the person's own
- * words — whole, so "合并" on a green pull request says which one; "看看" opens
+ * words — whole, so "合并" on a green pull request says which one; "详情" opens
  * the board; a reload is copied, since only the person can run it.
  */
 export function pressablesFor(lead: Lead | null, options: readonly string[], t: T = ZH): Pressable[] {
@@ -306,8 +306,8 @@ export function pressablesFor(lead: Lead | null, options: readonly string[], t: 
     if ((m = /^green:(\d+)$/.exec(key)) && label === t("合并")) return t("合并 #{0}", m[1] as string);
     if ((m = /^unpushed:(.+)$/.exec(key)) && label === t("推送")) return t("推送 {0}", m[1] as string);
     if ((m = /^fail:(\d+):(.*)$/.exec(key))) {
-      if (label === t("看日志")) return t("看下 #{0} 失败的 {1} 日志", m[1] as string, (m[2] as string).split(",").join("、"));
-      if (label === t("修")) return t("修 #{0} 失败的 {1}", m[1] as string, (m[2] as string).split(",").join("、"));
+      if (label === t("查看日志")) return t("看下 #{0} 失败的 {1} 日志", m[1] as string, (m[2] as string).split(",").join("、"));
+      if (label === t("修复")) return t("修 #{0} 失败的 {1}", m[1] as string, (m[2] as string).split(",").join("、"));
     }
     if (key.startsWith("uncommitted:") && label === t("提交")) return t("提交改动");
     return label;
@@ -315,8 +315,8 @@ export function pressablesFor(lead: Lead | null, options: readonly string[], t: 
   // Merging and pushing cannot be taken back: the press asks first.
   const confirmOf = (text: string): { question: string; yes: string } | undefined => {
     let m: RegExpExecArray | null;
-    if ((m = /^合并 #(\d+)$/.exec(text)) || (m = /^Merge #(\d+)$/.exec(text))) return { question: t("合并 #{0}？合进去就撤不回。", m[1] as string), yes: t("合并") };
-    if ((m = /^推送 (.+)$/.exec(text)) || (m = /^Push (.+)$/.exec(text))) return { question: t("推送 {0}？推上去的提交别人就看得到。", m[1] as string), yes: t("推送") };
+    if ((m = /^合并 #(\d+)$/.exec(text)) || (m = /^Merge #(\d+)$/.exec(text))) return { question: t("合并 #{0}？此操作不可撤销。", m[1] as string), yes: t("合并") };
+    if ((m = /^推送 (.+)$/.exec(text)) || (m = /^Push (.+)$/.exec(text))) return { question: t("推送 {0}？提交将对仓库的其他人可见。", m[1] as string), yes: t("推送") };
     return undefined;
   };
   // One of several asks: the answer is kept, not said yet.
@@ -325,10 +325,10 @@ export function pressablesFor(lead: Lead | null, options: readonly string[], t: 
   return options.map((label, i): Pressable => {
     const text = said(label);
     const confirm = confirmOf(text);
-    const action = label === t("看看") ? { op: "open-board" as const, tab: "items" as const }
+    const action = label === t("详情") ? { op: "open-board" as const, tab: "items" as const }
       : label === t("重载插件") ? { op: "command" as const, command: "reload-plugins" }
       : { op: "say" as const, text, ...(confirm !== undefined ? { confirm } : {}) };
-    return { key: `attention-${i}-${label}`, label, ...(i === 0 && label !== t("先不") && label !== t("看看") ? { primary: true } : {}), action };
+    return { key: `attention-${i}-${label}`, label, ...(i === 0 && label !== t("暂不") && label !== t("详情") ? { primary: true } : {}), action };
   });
 }
 
@@ -342,8 +342,8 @@ export function stepPressables(steps: readonly Standing[], t: T = ZH): Pressable
   return steps.map((s): Pressable => {
     if (s.key === "reload") return { key: "step-reload", label: s.short, action: { op: "command", command: "reload-plugins" } };
     const m = /^green:(\d+)$/.exec(s.key);
-    const confirm = m !== null ? { question: t("合并 #{0}？合进去就撤不回。", m[1] as string), yes: t("合并") }
-      : s.key.startsWith("unpushed:") ? { question: t("推送 {0}？推上去的提交别人就看得到。", s.key.slice("unpushed:".length)), yes: t("推送") }
+    const confirm = m !== null ? { question: t("合并 #{0}？此操作不可撤销。", m[1] as string), yes: t("合并") }
+      : s.key.startsWith("unpushed:") ? { question: t("推送 {0}？提交将对仓库的其他人可见。", s.key.slice("unpushed:".length)), yes: t("推送") }
       : undefined;
     return { key: `step-${s.key}`, label: s.short, action: { op: "say", text: s.short, ...(confirm !== undefined ? { confirm } : {}) } };
   });
@@ -396,12 +396,12 @@ export function nowRows(o: { reply: string; standing: readonly Standing[]; memor
     const step = asks.length >= 2 ? { index: i, of: asks.length } : undefined;
     const lead: Lead = { key: `ask:${a}`, kind: "ask", text: a, options: optionsFor(a, t), ...(step !== undefined ? { step } : {}) };
     const picked = step !== undefined ? o.picks?.[i] ?? null : null;
-    rows.push({ kind: "card", key: `now-ask-${i}`, icon: "ask", verb: t("定"), title: clip(a, 80), ...(picked !== null ? { actions: [], detail: [t("已选：{0}", picked)] } : settle(pressablesFor(lead, lead.options, t))) });
+    rows.push({ kind: "card", key: `now-ask-${i}`, icon: "ask", verb: t("决定"), title: clip(a, 80), ...(picked !== null ? { actions: [], detail: [t("已选：{0}", picked)] } : settle(pressablesFor(lead, lead.options, t))) });
   });
   for (const s of o.standing) {
     const lead: Lead = { key: s.key, kind: s.kind, text: s.text, options: s.options };
-    rows.push({ kind: "card", key: `now-${s.key}`, icon: s.kind === "broken" ? "warn" : s.key.startsWith("green:") ? "done" : "ask", verb: s.kind === "broken" ? t("坏了") : t("只差你"), title: s.text.replace(/^(只差你|✗)\s*/, ""), ...settle(pressablesFor(lead, s.options, t)) });
+    rows.push({ kind: "card", key: `now-${s.key}`, icon: s.kind === "broken" ? "warn" : s.key.startsWith("green:") ? "done" : "ask", verb: s.kind === "broken" ? t("出错") : "", title: s.text.replace(/^✗\s*/, ""), ...settle(pressablesFor(lead, s.options, t)) });
   }
-  o.memory.backlog.forEach((b, i) => rows.push({ kind: "card", key: `now-backlog-${i}`, icon: "ask", verb: t("还等你"), title: clip(b.replace(/^(上一个问题|上一条里的事)?(还|仍|都)?(在)?等你(定|批)?[：:，,]?/, ""), 80), detail: [], actions: [] }));
+  o.memory.backlog.forEach((b, i) => rows.push({ kind: "card", key: `now-backlog-${i}`, icon: "ask", verb: t("待决定"), title: clip(b.replace(/^(上一个问题|上一条里的事)?(还|仍|都)?(在)?等你(定|批)?[：:，,]?/, ""), 80), detail: [], actions: [] }));
   return rows.length === 0 ? [] : [{ kind: "section", key: "now", text: t("此刻") }, ...rows];
 }

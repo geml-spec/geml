@@ -90,7 +90,7 @@ test("the band's one thing: the first item waiting on the person, with its verb,
   assert.deepEqual([held.verb, held.actions.map((a) => a.label), held.more.count], ["已暂停", ["继续"], 2], "a held item offers only 继续, and the rest still count");
   const done = bandView(input({ shell: shell(status({ state: { id: "done", title: "完成", rev: 9, uses: [], final: true } })) }));
   assert.deepEqual([done.verb, done.note], ["", "✓ 完成"]);
-  const broken = bandView(input({ inbox: [{ kind: "broken", key: "broken", verb: "", title: "gemflow：桥接没有应答", detail: ["调用照常执行，什么都不记"], actions: [{ key: "retry", label: "重试", primary: true, action: { op: "retry" } }] }, ...inbox] }));
+  const broken = bandView(input({ inbox: [{ kind: "broken", key: "broken", verb: "", title: "gemflow：桥接没有应答", detail: ["调用照常执行，不做记录"], actions: [{ key: "retry", label: "重试", primary: true, action: { op: "retry" } }] }, ...inbox] }));
   assert.deepEqual([broken.title, broken.tone, broken.actions.map((a) => a.label), broken.more.count], ["gemflow：桥接没有应答", "error", ["重试"], 3], "a broken bridge comes first");
 });
 

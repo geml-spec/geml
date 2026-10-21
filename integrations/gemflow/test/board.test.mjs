@@ -149,7 +149,7 @@ test("流程: switching — the installed workflows to use, the bundled ones to 
   assert.deepEqual(look(flow({ switching: true })).slice(1, 3), ["正在读取…", "[导入：流程文件或目录的路径]"], "the workflows not read yet");
   const board = { ...BOARD, items: [...BOARD.items, { id: ".geml/matters/mock", state: "deciding", rev: 2, at: NOW, paused: false, file: ".geml/matters/mock.geml", title: "开发流程在构建前加一格「样稿」", about: "flow", gist: "先给你看样子，点头再实现。", asks: [{ to: "doing", label: "按方案做", note: "", final: false }] }] };
   const card = flow({ board }).find((r) => r.kind === "card");
-  assert.deepEqual([card.verb, card.title, card.tag, card.detail, card.actions.map((a) => a.label)], ["定", "开发流程在构建前加一格「样稿」", "建议 · 流程", ["先给你看样子，点头再实现。"], ["按方案做"]]);
+  assert.deepEqual([card.verb, card.title, card.tag, card.detail, card.actions.map((a) => a.label)], ["决定", "开发流程在构建前加一格「样稿」", "建议 · 流程", ["先给你看样子，点头再实现。"], ["按方案做"]]);
   const gate = status(undefined, { next: [next({ name: "review→done", to: "done", reads: ["review-done"], missing: ["review-done"], holds: false })] });
   const ticks = flow({ status: gate });
   const at = ticks.findIndex((r) => r.key === "ticks");
@@ -173,7 +173,7 @@ test("the flow picture: held, or no item, nothing is pressable; the words follow
 });
 
 test("工作项: what waits on the person on top, one card each with its options; then the work items by where they ended up — being worked on, merged, closed and dropped counted and listed on a press; then the backlog", () => {
-  const approve = { kind: "approve", key: "approve-review", verb: "定", title: "feat/x", detail: ["review · pr-merged ✓"], since: "2026-10-12T08:58:00Z", actions: [{ key: "approve-deploy", label: "部署", primary: true, action: { op: "advance", to: "deploy", say: "部署：feat/x" } }] };
+  const approve = { kind: "approve", key: "approve-review", verb: "决定", title: "feat/x", detail: ["review · pr-merged ✓"], since: "2026-10-12T08:58:00Z", actions: [{ key: "approve-deploy", label: "部署", primary: true, action: { op: "advance", to: "deploy", say: "部署：feat/x" } }] };
   const stuck = { kind: "stuck", key: "stuck-wrangler", verb: "被拦", title: "Bash(wrangler deploy)", detail: ["x"], actions: [] };
   const board = { ...BOARD, items: [
     { id: "feat/x", state: "review", rev: 3, at: "2026-10-12T09:04:00Z", paused: false },
@@ -187,19 +187,19 @@ test("工作项: what waits on the person on top, one card each with its options
   const rows = items({ board, inbox: [approve, stuck] });
   assert.deepEqual(look(rows), [
     "§ 待处理",
-    "ask 定 feat/x | review · pr-merged ✓ | 部署",
-    "ask 定 pi 和 DSH 也记下写过的文件吗 (构建) | 直接做：小事 | 直接做 先放着",
+    "ask 决定 feat/x | review · pr-merged ✓ | 部署",
+    "ask 决定 pi 和 DSH 也记下写过的文件吗 (构建) | 直接做：小事 | 直接做 先放着",
     "done 验收 feat/other (deploy) | 通过：人验收通过。 | ",
     "warn 被拦 Bash(wrangler deploy) | x | ",
     "§ 在做 2",
     "feat/rate-limit (review)",
-    "→ .geml/matters/old (我的 · 构建 · 已暂停)",
+    "→ .geml/matters/old (模型提出 · 构建 · 已暂停)",
     "§ 已合并 0",
     "§ 已收尾 1 [展开]",
     "§ 放下 0",
     "§ 待办与进行中",
     "  rate-limit  登录接口加限流 → feat/rate-limit · #review",
-    "backlog 还没绑到工作项的 1 项",
+    "backlog 中 1 项未关联工作项",
     "[绑定 dark-mode（设置页支持深色模式和高对比度主题）到 feat/x]",
   ], "the current work item waits on the person, so it is a card and not in the queue; a work item with no file is shown without options");
   const pi = rows.find((r) => r.key === "asks-.geml/matters/pi");
@@ -215,9 +215,9 @@ test("工作项: what waits on the person on top, one card each with its options
   const working = look(items({ board, inbox: [stuck] }));
   assert.deepEqual(working.slice(4, 6), ["§ 在做 3", "feat/x (当前 · review)"], "nothing of the current work item waits on the person: it heads the queue, being worked on");
   const made = { ...board, artifacts: { item: "feat/x", written: [], commits: [{ sha: "053f317c9d0e1f2a", at: NOW, subject: "feat: band", files: [], ours: true }] } };
-  assert.equal(look(items({ board: made, inbox: [approve] }))[1], "ask 定 feat/x (053f317c) | review · pr-merged ✓ | 部署", "the work the current item made, as the tag of its card");
+  assert.equal(look(items({ board: made, inbox: [approve] }))[1], "ask 决定 feat/x (053f317c) | review · pr-merged ✓ | 部署", "the work the current item made, as the tag of its card");
   assert.equal(look(items({ board: made, inbox: [] })).find((x) => x.startsWith("feat/x")), "feat/x (当前 · review · 053f317c)");
-  assert.deepEqual(look(items({ board: { ...board, items: [], backlog: null }, status: null })), ["§ 待处理", "没有要你做的事", "§ 在做 0", "  没有", "§ 已合并 0", "§ 已收尾 0", "§ 放下 0"]);
+  assert.deepEqual(look(items({ board: { ...board, items: [], backlog: null }, status: null })), ["§ 待处理", "暂无", "§ 在做 0", "  没有", "§ 已合并 0", "§ 已收尾 0", "§ 放下 0"]);
   assert.deepEqual(look(items({ board: null, inbox: [stuck] })), ["§ 待处理", "warn 被拦 Bash(wrangler deploy) | x | "], "before the board is read, what waits on the person still shows");
   const accept = { ...approve, verb: "验收", closes: true };
   assert.equal(items({ board, inbox: [accept] })[1].icon, "done", "accepting the work has its own icon");
@@ -294,11 +294,11 @@ test("工具: a command that ran with no row to take it, looking like the flow's
   const usage = { "Bash(node --test)": 46, "Bash(npx vitest)": 2, "Bash(git commit)": 18, "Bash(npm test)": 7 };
   const [s, ...rest] = toolSuggestions(BOARD, usage, [], wordsFor("zh"));
   assert.deepEqual(rest, [], "two runs are not enough; a command with a row, or that looks like nothing, is no suggestion");
-  assert.deepEqual([s.kind, s.verb, s.title, s.tag, s.detail], ["suggest", "定", "node --test 算作跑测试", "建议 · 工具", ["这两天跑了 46 次，一次都没记成跑测试。"]]);
+  assert.deepEqual([s.kind, s.verb, s.title, s.tag, s.detail], ["suggest", "决定", "node --test 算作跑测试", "建议 · 工具", ["这两天跑了 46 次，一次都没记成跑测试。"]]);
   assert.deepEqual(s.actions.map((a) => [a.label, a.action]), [["算", { op: "learn", lessons: [{ kind: "use", key: "Bash(node --test)", use: "test" }] }], ["不算", { op: "dismiss", key: "Bash(node --test)" }]]);
   assert.deepEqual(toolSuggestions(BOARD, usage, ["Bash(node --test)"], wordsFor("zh")), []);
   assert.equal(toolRows({ board: BOARD, columns: 100, t: wordsFor("zh"), usage, suggestions: [s], query: "", menu: null, naming: null, open: [] })[1].kind, "card", "the tools tab shows its own suggestions under the search");
-  assert.deepEqual(look2(items({ suggestions: [s] })), "定 node --test 算作跑测试", "the work items tab's pending group too");
+  assert.deepEqual(look2(items({ suggestions: [s] })), "决定 node --test 算作跑测试", "the work items tab's pending group too");
   assert.equal(rowFor("Bash(wrangler deploy --env staging)", [{ tool: "Bash(wrangler deploy*--env staging)", allow: [], deny: [], default: false, row: 1 }, { tool: "Bash(wrangler deploy*)", allow: [], deny: [], default: false, row: 2 }]).row, 1, "the longest literal pattern takes it");
   assert.equal(rowFor("Bash(npm test)", BOARD.tools).tool, "Bash(npm test)");
   assert.equal(rowFor("Bash(npm run build)", BOARD.tools), undefined);
@@ -315,7 +315,7 @@ test("工作项 by the outline: each with where it is and what it has; a merged 
   const rows = items({ board, dismissed: [] });
   assert.deepEqual(look(rows), [
     "§ 待处理",
-    "done  feat/runtime 已合并 | PR #32 合进了 main。 / 收尾就删掉 worktree geml-agent-runtime 和这条本地分支；提交都在 main 里才删。 | 收尾 先留着",
+    "done  feat/runtime 已合并 | 已合入 main（PR #32） / 收尾将删除 worktree geml-agent-runtime 及本地分支（仅当提交已全部合入 main）。 | 收尾 保留",
     "§ 在做 1",
     "feat/x (当前 · review)",
     "§ 已合并 1",
@@ -329,9 +329,9 @@ test("工作项 by the outline: each with where it is and what it has; a merged 
     ["feat/x", "geml-gemflow · 36 个提交 · 6 分钟前", true],
     ["feat/runtime", "geml-agent-runtime · 13 个提交 · PR #32 已合并 · 3 天前", false],
   ]);
-  assert.equal(look(items({ board, dismissed: ["close-feat/runtime"] }))[1], "没有要你做的事", "left as it is: not asked again");
+  assert.equal(look(items({ board, dismissed: ["close-feat/runtime"] }))[1], "暂无", "left as it is: not asked again");
   const open = items({ board, droppedOpen: true, dismissed: [] });
-  assert.deepEqual(open.filter((r) => r.kind === "entry").at(-1), { kind: "entry", key: "item-claude/try", title: "claude/try", tag: "构建", tone: "dim", detail: "分支删了 · 一个提交都没有 · 7 小时前" });
+  assert.deepEqual(open.filter((r) => r.kind === "entry").at(-1), { kind: "entry", key: "item-claude/try", title: "claude/try", tag: "构建", tone: "dim", detail: "分支已删除 · 无提交 · 7 小时前" });
   assert.deepEqual(open.find((r) => r.key === "dropped").fold.action, { op: "fold", what: "dropped", open: false });
 });
 
@@ -348,21 +348,21 @@ test("记录: the filters, the work item and its flow, then what happened newest
     "全部* 产物 被拦",
     "feat/x · 开发流程",
     "§ 今天",
-    "被拦 | Bash | `gemflow mark reviewed` is for a person | 那一轮 HH:MM「把测试补上」",
+    "被拦 | Bash | `gemflow mark reviewed` is for a person | 提示词 HH:MM「把测试补上」",
   ], "the stage's own revisions (evidence, stage changes, the start) are the journal file's, not the tab's");
   const menu = journal({ menu: "refused-1" });
   const at = menu.findIndex((r) => r.key === "refused-1");
   assert.deepEqual(menu[at + 1].items.map((b) => [b.label, b.action]), [
-    ["看是哪一轮", { op: "locate", id: "p1" }], ["看详情", { op: "evidence", entry: "refused-1" }], ["取消", { op: "expand", entry: null }],
+    ["跳到对话", { op: "locate", id: "p1" }], ["详情", { op: "evidence", entry: "refused-1" }], ["取消", { op: "expand", entry: null }],
   ], "a press opens the entry's menu under it; nothing to go back to");
   assert.deepEqual(menu[at].action, { op: "expand", entry: null });
   const shown = journal({ menu: "refused-1", evidence: "refused-1" });
   const row = shown.find((r) => r.key === "refused-1");
   assert.deepEqual([row.open, row.detail], [true, ["`gemflow mark reviewed` is for a person", "哪次调用：c8"]]);
-  assert.equal(shown[shown.indexOf(row) + 1].items[1].label, "收起详情");
+  assert.equal(shown[shown.indexOf(row) + 1].items[1].label, "收起");
   assert.deepEqual(look(journal({ filter: "moves" })).slice(0, 1), ["全部* 产物 被拦"], "a filter the tab no longer has shows everything");
-  assert.equal(look(journal({ filter: "artifacts" })).at(-1), "没有这一类的记录");
-  assert.deepEqual(journalRows({ board: { ...BOARD, timeline: [] }, status: st, filter: "all", menu: null, evidence: null, prompts: [], columns: 80, maxRows: 10, t: wordsFor("zh") }).at(-1), { kind: "text", text: "这个工作项还没有记录", tone: "dim" });
+  assert.equal(look(journal({ filter: "artifacts" })).at(-1), "暂无");
+  assert.deepEqual(journalRows({ board: { ...BOARD, timeline: [] }, status: st, filter: "all", menu: null, evidence: null, prompts: [], columns: 80, maxRows: 10, t: wordsFor("zh") }).at(-1), { kind: "text", text: "暂无", tone: "dim" });
   assert.ok(journal({ maxRows: 4 }).length <= 4, "the entries fit the rows");
   assert.ok(!journal().some((r) => r.kind === "buttons" && r.items.some((b) => b.action.op === "export")), "no export here");
 });
@@ -379,7 +379,7 @@ test("记录: what the work made — a turn's commits are one artifact, with how
   const prompts = [{ id: "p1", at: "2026-10-12T09:00:30Z", text: "看产物按 A+C+B", tools: 3, refusals: 0, entered: [], signals: [] }, { id: "p2", at: "2026-10-12T09:03:00Z", text: "下一件", tools: 0, refusals: 0, entered: [], signals: [] }];
   const rows = journalRows({ board: { ...BOARD, artifacts }, status: status(), filter: "artifacts", menu: null, evidence: "artifact-7a38c1fd0000", prompts, columns: 100, maxRows: 40, t: wordsFor("zh"), now: NOW });
   const artifact = rows.find((r) => r.kind === "event");
-  assert.deepEqual([artifact.label, artifact.text, artifact.why, artifact.turn.replace(/\d\d:\d\d/, "HH:MM"), artifact.open, artifact.detail], ["产物", "053f317c 7a38c1fd artifacts on the board", "2 个文件", "那一轮 HH:MM「看产物按 A+C+B」", true, ["src/band.ts", "src/board.ts"]]);
+  assert.deepEqual([artifact.label, artifact.text, artifact.why, artifact.turn.replace(/\d\d:\d\d/, "HH:MM"), artifact.open, artifact.detail], ["产物", "053f317c 7a38c1fd artifacts on the board", "2 个文件", "提示词 HH:MM「看产物按 A+C+B」", true, ["src/band.ts", "src/board.ts"]]);
   assert.deepEqual(rows.at(-1), { kind: "text", text: "同期另有 1 个提交没碰这些文件", tone: "dim" });
   const apart = journalRows({ board: { ...BOARD, artifacts }, status: status(), filter: "artifacts", menu: null, evidence: null, prompts: [], columns: 100, maxRows: 40, t: wordsFor("zh"), now: NOW });
   assert.equal(apart.filter((r) => r.kind === "event").length, 2, "without the session's prompts, each commit is an artifact");
@@ -387,14 +387,14 @@ test("记录: what the work made — a turn's commits are one artifact, with how
 
 test("记录: where a value came from, and what an entry says, in the flow's words", () => {
   const t = wordsFor("zh");
-  assert.deepEqual(["tool:test", "git:pr-open", "git:committed", "file:out/*.mp4", "human", "elapsed:PT2H", undefined].map((s) => sourceWords(s, t)), ["跑 test 得来", "gh 查到的", "git 查到的", "文件 out/*.mp4 有了", "你勾的", "时间到了", "模型写的"]);
+  assert.deepEqual(["tool:test", "git:pr-open", "git:committed", "file:out/*.mp4", "human", "elapsed:PT2H", undefined].map((s) => sourceWords(s, t)), ["跑 test 得来", "gh 查到的", "git 查到的", "文件 out/*.mp4 已生成", "你勾的", "已到期", "模型写的"]);
   const words = (e, sources = { "review-ready": "human" }) => entryWords({ kind: "snapshot", rev: 5, at: NOW, ...e }, BOARD, sources, t);
   assert.deepEqual(words({ state: "review", cause: "transition", by: "signal", signal: "review-ready", from: "build", changed: { "review-ready": true } }), { label: "阶段变更", text: "构建 → review · 自动", why: "凭：review-ready 被勾上", tone: "normal" });
   assert.equal(words({ state: "build", cause: "transition", by: "model", from: "review" }).text, "review → 构建 · 模型判「review 要求改动」");
   assert.equal(words({ state: "deploy", cause: "transition", by: "human", from: "review" }).text, "review → deploy · 你");
   assert.deepEqual(words({ state: "build", cause: "rollback", by: "human", restores: 2 }), { label: "阶段变更", text: "回到构建 · 你", why: "恢复第 2 条修订", tone: "normal" });
   assert.deepEqual(words({ state: "review", cause: "patch", by: "human", changed: { "review-ready": false } }), { label: "凭据", text: "review-ready 被取消", why: "你勾的", tone: "normal" });
-  assert.deepEqual(words({ state: "review", cause: "expire", changed: { "tests-pass": false } }), { label: "凭据", text: "tests-pass 过期了", why: "内容变了", tone: "dim" });
+  assert.deepEqual(words({ state: "review", cause: "expire", changed: { "tests-pass": false } }), { label: "凭据", text: "tests-pass 已失效", why: "内容已变更", tone: "dim" });
   assert.deepEqual(entryWords({ kind: "refused", n: 2, rev: 5, at: NOW, tool: "Bash", key: "Bash(git push*)", reason: "push is release, used only in #release; switching the work item is always allowed: x" }, BOARD, {}, t), { label: "被拦", text: "Bash(git push*)", why: "push is release, used only in #release", tone: "error" });
   assert.deepEqual(entryDetail({ kind: "refused", n: 2, rev: 5, at: NOW, tool: "Bash", reason: "r", call: "c9" }, BOARD, t), ["r", "哪次调用：c9"]);
 });
@@ -448,8 +448,8 @@ test("the pane: rows for the tab, a problem above them, and the reason when ther
   const wait = { kind: "text", text: "正在读取看板…", tone: "dim" };
   assert.deepEqual(pane({ board: null }), [wait]);
   assert.deepEqual(pane({ board: null, problem: "这个项目还没有流程。用 /gemflow add 选一个内置流程。" }), [{ kind: "text", text: "这个项目还没有流程。用 /gemflow add 选一个内置流程。", tone: "error" }]);
-  assert.deepEqual(pane({ board: null, tab: "items" }), [{ kind: "section", key: "waiting", text: "待处理" }, { kind: "text", text: "没有要你做的事", tone: "dim" }, wait]);
-  assert.deepEqual(pane({ board: null, tab: "items", problem: "x" }).at(-1), { kind: "text", text: "没有要你做的事", tone: "dim" }, "under a problem, no wait line");
+  assert.deepEqual(pane({ board: null, tab: "items" }), [{ kind: "section", key: "waiting", text: "待处理" }, { kind: "text", text: "暂无", tone: "dim" }, wait]);
+  assert.deepEqual(pane({ board: null, tab: "items", problem: "x" }).at(-1), { kind: "text", text: "暂无", tone: "dim" }, "under a problem, no wait line");
   assert.deepEqual(pane({ board: null, tab: "sessions" }), [{ kind: "text", text: "还没有 prompt", tone: "dim" }]);
   assert.deepEqual(pane(), flow());
   assert.deepEqual(pane({ tab: "tools" }), toolRows({ board: BOARD, columns: 100, t: wordsFor("zh"), usage: {}, suggestions: [], query: "", menu: null, naming: null, open: [] }));
@@ -481,10 +481,10 @@ test("two flows in play: the jumped-into work item's steps and where it came fro
     "§ 已收尾",
     "§ 放下",
   ]);
-  assert.match(rows[4].text, /^\d\d:\d\d 从开发流程「样式：画布换上新标志」跳进来，做完回去。$/);
+  assert.match(rows[4].text, /^\d\d:\d\d 由开发流程「样式：画布换上新标志」转入，完成后返回。$/);
   assert.deepEqual(stepsOf(BOARD, "review").map((s) => [s.title, s.passed, s.current]), [["构建", true, false], ["review", false, true], ["deploy", false, false], ["done", false, false]], "a state the journal entered is passed, the current one marked");
   const f = flow({ board, status: st }).filter((r) => r.kind === "text").map((r) => r.text);
-  assert.deepEqual(f.slice(0, 2), ["开发流程 · 记下 · 等「gemflow 标志」", "从「样式：画布换上新标志」跳进来，完成后回到「样式：画布换上新标志」。"]);
+  assert.deepEqual(f.slice(0, 2), ["开发流程 · 记下 · 等「gemflow 标志」", "由「样式：画布换上新标志」转入，完成后返回「样式：画布换上新标志」。"]);
 });
 
 test("记录: what the current work item waits for — put aside, the other done with what it brought back, taken up again — under its own filter", () => {
@@ -493,9 +493,9 @@ test("记录: what the current work item waits for — put aside, the other done
   const rows = journalRows({ board: BOARD, status: st, filter: "depends", menu: null, evidence: null, prompts, columns: 100, maxRows: 40, t: wordsFor("zh"), now: NOW });
   assert.deepEqual(rows[0].items.map((b) => b.label), ["全部", "产物", "被拦", "依赖"], "the filter shows once there is a dependency");
   assert.deepEqual(rows.filter((r) => r.kind === "event").map((r) => [r.label, r.text, r.why, r.turn.replace(/\d\d:\d\d/, "HH:MM")]), [
-    ["恢复", "样式：画布换上新标志", "", "那一轮 HH:MM「这个 logo 可…」"],
-    ["依赖完成", "标志设计「gemflow 标志」完成", "带回来：gemflow_mark.svg · banner.png", ""],
-    ["挂起", "样式：画布换上新标志，等「gemflow 标志」", "另开标志设计，工作项 gemflow 标志", "那一轮 HH:MM「这个 logo 可…」"],
+    ["恢复", "样式：画布换上新标志", "", "提示词 HH:MM「这个 logo 可…」"],
+    ["依赖完成", "标志设计「gemflow 标志」完成", "产物：gemflow_mark.svg · banner.png", ""],
+    ["挂起", "样式：画布换上新标志，等「gemflow 标志」", "另开标志设计，工作项 gemflow 标志", "提示词 HH:MM「这个 logo 可…」"],
   ]);
   assert.ok(!journalRows({ board: BOARD, status: status(), filter: "all", menu: null, evidence: null, prompts: [], columns: 100, maxRows: 40, t: wordsFor("zh"), now: NOW })[0].items.some((b) => b.label === "依赖"), "no dependency, no such filter");
 });

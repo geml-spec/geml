@@ -14,7 +14,7 @@ const status = {
 const shell = { status, policy: { relevant: ["ci-pass", "pr-merged"] }, contextKey: "feat/rate-limit@7" };
 
 test("where it stands, for a message or a PR comment: the work item, its flow and stage; what waits to be decided and accepted; its latest artifacts", () => {
-  const decide = (title) => ({ kind: "approve", key: `a-${title}`, verb: "定", title, detail: [], actions: [] });
+  const decide = (title) => ({ kind: "approve", key: `a-${title}`, verb: "决定", title, detail: [], actions: [] });
   const accept = (title) => ({ kind: "approve", key: `c-${title}`, verb: "验收", closes: true, title, detail: [], actions: [] });
   const artifacts = { item: "feat/rate-limit", written: [], commits: [
     { sha: "e18b116d00000000", at: "2026-10-12T14:00:00Z", subject: "a", files: [], ours: true },
@@ -26,8 +26,8 @@ test("where it stands, for a message or a PR comment: the work item, its flow an
   const pending = [decide("今天的样稿：状态带和各页签"), decide("pi 也记写入吗"), accept("看板显示每件事做出来的东西"), { kind: "stuck", key: "s", verb: "被拦", title: "Bash(wrangler deploy)", detail: [], actions: [] }];
   assert.equal(statusShareText(shell, pending, artifacts, t), [
     "feat/rate-limit · 开发流程 · 评审",
-    "等你定：今天的样稿：状态带和各页签（还有 2 件）",
-    "等你验收：看板显示每件事做出来的东西",
+    "需决定：今天的样稿：状态带和各页签（还有 2 件）",
+    "需验收：看板显示每件事做出来的东西",
     "最近产物：e18b116d · 02c959fc · e1f56bcd",
   ].join("\n"));
   assert.equal(statusShareText({ ...shell, status: { ...status, title: "状态带入口", paused: true } }, [], undefined, t), "状态带入口 · 开发流程 · 评审 · 已暂停");

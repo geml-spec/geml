@@ -35,7 +35,7 @@ const items = (over = {}) => inboxItems({ shell: shell(), timeline: TIMELINE, pr
 
 test("a work item whose way out waits on a person is one item: 定 or 验收, its name, and every way out they may take as an option", () => {
   const [approve] = items().filter((i) => i.kind === "approve");
-  assert.deepEqual([approve.verb, approve.title, approve.detail, approve.since], ["定", "feat/rate-limit", ["评审"], "2026-10-12T09:00:00Z"]);
+  assert.deepEqual([approve.verb, approve.title, approve.detail, approve.since], ["决定", "feat/rate-limit", ["评审"], "2026-10-12T09:00:00Z"]);
   assert.deepEqual(approve.actions.map((a) => [a.key, a.label, a.primary ?? false, a.action]), [
     ["approve-deploy", "部署", true, { op: "advance", to: "deploy", say: "部署：feat/rate-limit" }],
     ["approve-build", "构建", false, { op: "advance", to: "build", say: "构建：feat/rate-limit" }],
@@ -72,7 +72,7 @@ test("a variable a person ticks, read by a guard of this state's edges, is asked
   assert.deepEqual([tick.verb, tick.title, tick.detail, tick.since], ["勾", "feat/rate-limit", ["勾上 review-ready，才走「跳过」"], "2026-10-12T09:00:00Z"]);
   const evidence = status({ next: [next({ name: "doing→checking", to: "checking", reads: ["check-pass", "review-ready"], holds: false })], sources: { "check-pass": "tool:check", "review-ready": "human" } });
   assert.deepEqual(items({ shell: shell(evidence) }).filter((i) => i.kind === "tick" || i.kind === "approve"), [], "the check can move it: ticking is a shortcut, not something waiting");
-  assert.deepEqual(tick.actions.map((a) => [a.label, a.action]), [["勾上", { op: "mark", variable: "review-ready", checked: true }]]);
+  assert.deepEqual(tick.actions.map((a) => [a.label, a.action]), [["勾选", { op: "mark", variable: "review-ready", checked: true }]]);
   assert.deepEqual(items({ shell: shell(status({ vars: { "pr-merged": true, "ci-pass": true, "review-ready": true } })) }).filter((i) => i.kind === "tick"), [], "ticked already");
 });
 
@@ -99,7 +99,7 @@ test("a broken bridge comes first, with retry", () => {
   const all = items({ problem: "gemflow：桥接没有应答（timed out after 15000 ms）" });
   assert.deepEqual(all.map((i) => i.kind), ["broken", "approve", "tick", "stuck"]);
   const broken = all[0];
-  assert.deepEqual([broken.title, broken.detail, broken.actions.map((a) => a.action)], ["gemflow：桥接没有应答（timed out after 15000 ms）", ["调用照常执行，什么都不记"], [{ op: "retry" }]]);
+  assert.deepEqual([broken.title, broken.detail, broken.actions.map((a) => a.action)], ["gemflow：桥接没有应答（timed out after 15000 ms）", ["调用照常执行，不做记录"], [{ op: "retry" }]]);
 });
 
 test("a paused item, no item, or no shell asks for nothing but the bridge", () => {
@@ -120,7 +120,7 @@ test("the other work items waiting on the person: 定 or 验收, the stage as a 
   };
   const others = othersWaiting(board, "m/cur", t);
   assert.deepEqual(others.map((i) => [i.key, i.verb, i.title, i.tag, i.detail, i.closes ?? false, i.actions.map((a) => [a.label, a.primary ?? false, a.action])]), [
-    ["asks-m/pi", "定", "pi 也记写入吗", "待你定", ["按方案做：人选定了方案。"], false, [
+    ["asks-m/pi", "决定", "pi 也记写入吗", "待你定", ["按方案做：人选定了方案。"], false, [
       ["按方案做", true, { op: "advance", to: "doing", file: "m/pi.geml", say: "按方案做：pi 也记写入吗" }],
       ["先放着", false, { op: "advance", to: "parked", file: "m/pi.geml", say: "先放着：pi 也记写入吗" }],
     ]],
@@ -146,7 +146,7 @@ test("a work item whose dependencies are all done since it last moved is to come
   };
   const [back, ...rest] = othersWaiting(board, "m/logo", t);
   assert.deepEqual(rest, [], "one that moved since, and one still waiting, are not offered back");
-  assert.deepEqual([back.kind, back.verb, back.title, back.tag, back.detail], ["resume", "回到", "样式：画布换上新标志", "开发流程", ["「gemflow 标志」完成了"]]);
+  assert.deepEqual([back.kind, back.verb, back.title, back.tag, back.detail], ["resume", "回到", "样式：画布换上新标志", "开发流程", ["「gemflow 标志」已完成"]]);
   assert.deepEqual(back.actions.map((a) => [a.label, a.action]), [["继续", { op: "switch-file", file: "m/styles.geml", say: "继续：样式：画布换上新标志" }]]);
   assert.deepEqual(othersWaiting(board, "m/styles", t), [], "the current one is not offered back to itself");
 });

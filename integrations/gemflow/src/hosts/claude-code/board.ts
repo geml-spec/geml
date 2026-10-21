@@ -330,7 +330,7 @@ export function flowRows(o: FlowInput): BoardRow[] {
   const me = status?.item.kind === "item" ? status.item.id : undefined;
   for (const w of board.items.filter((i) => (i.depends ?? []).some((d) => d.id === me && !d.done))) {
     rows.push(text(`${w.flow ?? ""} · ${w.stateTitle ?? w.state} · ${t("等「{0}」", status?.title ?? me ?? "")}`, columns, "dim"));
-    rows.push(text(t("从「{0}」跳进来，完成后回到「{0}」。", w.title ?? w.id), columns, "dim"));
+    rows.push(text(t("由「{0}」转入，完成后返回「{0}」。", w.title ?? w.id), columns, "dim"));
   }
   // The suggestions about the workflow, waiting on the person: the same cards as the work items tab's.
   for (const i of othersWaiting(board, status?.item.kind === "item" ? status.item.id : undefined, t).filter((x) => board.items.find((b) => `asks-${b.id}` === x.key)?.about === "flow")) {
@@ -503,16 +503,16 @@ export function itemRows(o: ItemsInput): BoardRow[] {
     rows.push({
       kind: "card", key: `close-${i.id}`, icon: "done", verb: "", title: t("{0} 已合并", nameOf(i)),
       detail: [
-        i.pr?.state === "merged" ? t("PR #{0} 合进了 main。", i.pr.number) : t("提交都进了 main。"),
-        i.worktree !== undefined ? t("收尾就删掉 worktree {0} 和这条本地分支；提交都在 main 里才删。", lastSegment(i.worktree)) : t("收尾就删掉这条本地分支；提交都在 main 里才删。"),
+        i.pr?.state === "merged" ? t("已合入 main（PR #{0}）", i.pr.number) : t("已合入 main"),
+        i.worktree !== undefined ? t("收尾将删除 worktree {0} 及本地分支（仅当提交已全部合入 main）。", lastSegment(i.worktree)) : t("收尾将删除本地分支（仅当提交已全部合入 main）。"),
       ],
       actions: [
         { key: `close-go-${i.id}`, label: t("收尾"), primary: true, action: { op: "close-item", id: i.id, ...(i.worktree !== undefined ? { worktree: i.worktree } : {}) } },
-        { key: `close-keep-${i.id}`, label: t("先留着"), action: { op: "dismiss", key: `close-${i.id}` } },
+        { key: `close-keep-${i.id}`, label: t("保留"), action: { op: "dismiss", key: `close-${i.id}` } },
       ],
     });
   }
-  if (rows.length === 1) rows.push(text(t("没有要你做的事"), columns, "dim"));
+  if (rows.length === 1) rows.push(text(t("暂无"), columns, "dim"));
   if (board === null) return rows;
   rows.push(...artifactRows(board.artifacts, current, { t, columns, ...(o.now !== undefined ? { now: o.now } : {}), menu: o.artifactMenu ?? null, docsOpen: o.docsOpen === true }));
   const waiting = new Set([...items.filter((i) => i.id !== current && (i.asks?.length ?? 0) > 0).map((i) => i.id), ...(current !== undefined && o.inbox.some((i) => i.kind === "approve") ? [current] : [])]);
@@ -528,9 +528,9 @@ export function itemRows(o: ItemsInput): BoardRow[] {
   /** The line under a work item: where its branch is checked out, its commits, its pull request, when it last moved. */
   const detailOf = (i: BoardItem): string => {
     const end = endOf(i);
-    const commits = i.commits === undefined ? "" : i.commits === 0 ? (end === "dropped" ? t("一个提交都没有") : t("还没有提交")) : t("{0} 个提交", i.commits);
+    const commits = i.commits === undefined ? "" : i.commits === 0 ? (end === "dropped" ? t("无提交") : t("暂无提交")) : t("{0} 个提交", i.commits);
     const pr = i.pr === undefined ? "" : i.pr.state === "open" ? t("PR #{0} 开着", i.pr.number) : i.pr.state === "merged" ? t("PR #{0} 已合并", i.pr.number) : t("PR #{0} 已关闭", i.pr.number);
-    const where = end === "dropped" && i.file === undefined ? t("分支删了") : i.worktree !== undefined ? lastSegment(i.worktree) : "";
+    const where = end === "dropped" && i.file === undefined ? t("分支已删除") : i.worktree !== undefined ? lastSegment(i.worktree) : "";
     return [where, commits, pr, o.now !== undefined ? agoText(i.at, o.now, t) : ""].filter((x) => x !== "").join(" · ");
   };
   // The current work item another waits for: where it came from, and its steps so far.
@@ -539,7 +539,7 @@ export function itemRows(o: ItemsInput): BoardRow[] {
   if (me !== undefined && waitingOnMe.length > 0) {
     rows.push({ kind: "section", key: "jumped", text: `${me.flow ?? ""} · ${nameOf(me)}` });
     rows.push({ kind: "steps", key: "steps", steps: stepsOf(board, me.state) });
-    for (const w of waitingOnMe) rows.push(text(t("{0} 从{1}「{2}」跳进来，做完回去。", me.since !== undefined ? hhmm(me.since) : "", w.flow ?? "", nameOf(w)).trim(), columns, "dim"));
+    for (const w of waitingOnMe) rows.push(text(t("{0} 由{1}「{2}」转入，完成后返回。", me.since !== undefined ? hhmm(me.since) : "", w.flow ?? "", nameOf(w)).trim(), columns, "dim"));
   }
   // The queue, by flow when more than one is in play: the current work item's flow first.
   const flowsInPlay = [...new Set(queued.map((i) => i.flow ?? ""))];
@@ -553,7 +553,7 @@ export function itemRows(o: ItemsInput): BoardRow[] {
     for (const i of group) {
       const here = i.id === current;
       const waits = (i.depends ?? []).filter((d) => !d.done).map((d) => d.title ?? d.id);
-      const tag = [i.by === "model" ? t("我的") : i.by === "gemflow" ? t("gemflow 记的") : "", here ? t("当前") : "", stageOf(i), i.paused ? t("已暂停") : "", waits.length > 0 ? t("⏳ 等「{0}」完成", waits.join("」「")) : "", here ? made ?? "" : ""].filter((x) => x !== "").join(" · ");
+      const tag = [i.by === "model" ? t("模型提出") : i.by === "gemflow" ? t("gemflow 记的") : "", here ? t("当前") : "", stageOf(i), i.paused ? t("已暂停") : "", waits.length > 0 ? t("⏳ 等「{0}」完成", waits.join("」「")) : "", here ? made ?? "" : ""].filter((x) => x !== "").join(" · ");
       const detail = detailOf(i);
       rows.push({ kind: "entry", key: `item-${i.id}`, title: nameOf(i), tag, tone: i.paused ? "warning" : "normal", ...(detail !== "" ? { detail } : {}), ...(here ? { current: true } : {}), ...(!here && i.file !== undefined ? { action: { op: "switch-file", file: i.file } } : {}) });
     }
@@ -583,7 +583,7 @@ export function itemRows(o: ItemsInput): BoardRow[] {
       }
     }
     if (loose.length > 0) {
-      rows.push(text(t("backlog 还没绑到工作项的 {0} 项", loose.length), columns, "dim"));
+      rows.push(text(t("backlog 中 {0} 项未关联工作项", loose.length), columns, "dim"));
       for (const i of loose) {
         rows.push(current !== undefined && !boundHere
           ? button(`bind-${i.id}`, t("绑定 {0}（{1}）到 {2}", i.id, i.title, current), columns, { op: "bind", id: i.id })
@@ -642,7 +642,7 @@ export function artifactRows(p: Artifacts | undefined, current: string | undefin
     for (const d of o.docsOpen ? m.docs : m.docs.slice(0, DOCS_SHOWN)) {
       const key = `doc:${d.path}`;
       rows.push({ kind: "entry", key: `artifact-${key}`, title: d.path, tag: "", tone: "normal", detail: line(t("{0} 次提交", d.commits), when(d.at)), action: { op: "artifact-menu", key: o.menu === key ? null : key } });
-      if (o.menu === key) rows.push({ kind: "links", key: `menu-${key}`, items: [{ key: `open-${key}`, label: t("打开"), href: fileUrl(d.open) }, { key: `commits-${key}`, label: t("看改它的提交"), action: { op: "tab", tab: "journal", filter: "artifacts" } }] });
+      if (o.menu === key) rows.push({ kind: "links", key: `menu-${key}`, items: [{ key: `open-${key}`, label: t("打开"), href: fileUrl(d.open) }, { key: `commits-${key}`, label: t("查看提交"), action: { op: "tab", tab: "journal", filter: "artifacts" } }] });
     }
     if (m.docs.length > DOCS_SHOWN) rows.push(button("fold-docs", o.docsOpen ? t("收起") : t("其余 {0} 份", m.docs.length - DOCS_SHOWN), columns, { op: "fold", what: "docs", open: !o.docsOpen }));
   }
@@ -652,13 +652,13 @@ export function artifactRows(p: Artifacts | undefined, current: string | undefin
     for (const f of list) {
       const key = `${kind}:${f.name}`;
       const v = f.versions[0];
-      rows.push({ kind: "entry", key: `artifact-${key}`, title: f.name, tag: "", tone: "normal", detail: line(f.given === true ? t("你给的") : "", sizeText(v?.size ?? null), t("{0} 版", f.versions.length), v !== undefined ? when(v.at) : ""), action: { op: "artifact-menu", key: o.menu === key ? null : key } });
+      rows.push({ kind: "entry", key: `artifact-${key}`, title: f.name, tag: "", tone: "normal", detail: line(f.given === true ? t("用户提供") : "", sizeText(v?.size ?? null), t("{0} 版", f.versions.length), v !== undefined ? when(v.at) : ""), action: { op: "artifact-menu", key: o.menu === key ? null : key } });
       if (o.menu !== key) continue;
       const copies = f.versions.filter((x) => x.copy !== undefined).slice(0, COPIES_SHOWN);
       rows.push({ kind: "links", key: `menu-${key}`, items: [
         { key: `open-${key}`, label: t("打开"), href: fileUrl(f.open) },
         ...copies.map((c) => ({ key: `copy-${key}-${c.version}`, label: t("打开第 {0} 版副本", c.version), href: fileUrl(c.copy as string) })),
-        ...(f.history !== undefined ? [{ key: `history-${key}`, label: t("看它的历史"), href: fileUrl(f.history) }] : []),
+        ...(f.history !== undefined ? [{ key: `history-${key}`, label: t("查看历史"), href: fileUrl(f.history) }] : []),
         { key: `folder-${key}`, label: t("在文件夹里显示"), href: fileUrl(m.folder) },
       ] });
     }
@@ -699,7 +699,7 @@ export function ciSuggestions(board: BoardData, units: readonly string[], dismis
   if (dismissed.includes(key) || board.items.some((i) => i.file === path)) return [];
   const title = t("CI 挂了：{0}", ci.failed.join("、"));
   return [{
-    kind: "suggest", key: `suggest-${key}`, verb: t("定"), title, tag: t("建议 · {0}", t("事项")),
+    kind: "suggest", key: `suggest-${key}`, verb: t("决定"), title, tag: t("建议 · {0}", t("事项")),
     detail: [t("在 {0} 上；记成一件事项，修好再验收。", short)],
     actions: [
       { key: `note-${key}`, label: t("记成事项"), primary: true, action: { op: "new-item", path, title, text: `# 现象 {#symptom}\n\n${ci.failed.join("、")} ${t("在 {0} 上失败。", short)}`, dismiss: key } },
@@ -725,7 +725,7 @@ export function toolSuggestions(board: BoardData, usage: Readonly<Record<string,
     if (use === undefined) return [];
     const name = keyWords(key);
     return [{
-      kind: "suggest", key: `suggest-${key}`, verb: t("定"), title: t("{0} 算作{1}", name, useWords(use, t)), tag: t("建议 · {0}", t("工具")),
+      kind: "suggest", key: `suggest-${key}`, verb: t("决定"), title: t("{0} 算作{1}", name, useWords(use, t)), tag: t("建议 · {0}", t("工具")),
       detail: [t("这两天跑了 {0} 次，一次都没记成{1}。", n, useWords(use, t))],
       actions: [
         { key: `count-${key}`, label: t("算"), primary: true, action: { op: "learn", lessons: [{ kind: "use", key, use }] } },
@@ -844,8 +844,8 @@ export function sourceWords(source: string | undefined, t: T = ZH): string {
   switch (kind) {
     case "tool": return t("跑 {0} 得来", what);
     case "git": return what === "committed" || what === "pushed" ? t("git 查到的") : t("gh 查到的");
-    case "file": return t("文件 {0} 有了", what);
-    case "elapsed": return t("时间到了");
+    case "file": return t("文件 {0} 已生成", what);
+    case "elapsed": return t("已到期");
     default: return source;
   }
 }
@@ -872,14 +872,14 @@ export function entryWords(e: TimelineEntry, board: BoardData, sources: Readonly
       return { label: t("阶段变更"), text: `${title(e.from)} → ${title(e.state)} · ${who}`, why, tone: "normal" };
     }
     case "rollback": return { label: t("阶段变更"), text: `${t("回到{0}", title(e.state))} · ${t("你")}`, why: e.restores !== undefined ? t("恢复第 {0} 条修订", e.restores) : "", tone: "normal" };
-    case "pause": return { label: t("阶段变更"), text: t("你暂停了"), why: "", tone: "warning" };
-    case "resume": return { label: t("阶段变更"), text: t("你继续了"), why: "", tone: "normal" };
+    case "pause": return { label: t("阶段变更"), text: t("已暂停"), why: "", tone: "warning" };
+    case "resume": return { label: t("阶段变更"), text: t("已继续"), why: "", tone: "normal" };
     case "patch": {
       const what = names.map((n) => valueWords(n, changed[n], sources, t)).join("、");
       if (e.by === "signal" && e.signal !== undefined) return { label: t("凭据"), text: valueWords(e.signal, changed[e.signal], sources, t), why: sourceWords(sources[e.signal], t), tone: "normal" };
       return { label: t("凭据"), text: what, why: e.by === "human" ? t("你勾的") : t("模型写的"), tone: "normal" };
     }
-    case "expire": return { label: t("凭据"), text: t("{0} 过期了", names.join("、")), why: t("内容变了"), tone: "dim" };
+    case "expire": return { label: t("凭据"), text: t("{0} 已失效", names.join("、")), why: t("内容已变更"), tone: "dim" };
     default: return { label: e.cause, text: title(e.state), why: "", tone: "normal" };
   }
 }
@@ -922,7 +922,7 @@ export function journalRows(o: JournalInput): BoardRow[] {
   if (s !== null && s.item.kind === "item") rows.push(text(`${s.title ?? s.item.id} · ${s.workflow.title}`, columns, "dim"));
   // The turn something happened in: the last prompt sent before it.
   const turnOf = (at: string): PromptRecord | undefined => [...o.prompts].reverse().find((p) => Date.parse(p.at) <= Date.parse(at));
-  const turnWords = (p: PromptRecord | undefined): string => (p === undefined ? "" : t("那一轮 {0}「{1}」", hhmm(p.at), promptLine(p.text, 14)));
+  const turnWords = (p: PromptRecord | undefined): string => (p === undefined ? "" : t("提示词 {0}「{1}」", hhmm(p.at), promptLine(p.text, 14)));
   type Line = { at: string; row: Omit<Extract<BoardRow, { kind: "event" }>, "at" | "open" | "action" | "detail">; detail: string[]; turn?: PromptRecord };
   const lines: Line[] = [];
   const wanted = (kind: JournalFilter): boolean => filter === "all" || filter === kind;
@@ -957,7 +957,7 @@ export function journalRows(o: JournalInput): BoardRow[] {
       }
       if (d.done && d.at !== undefined) {
         const names = d.wrote.slice(0, 6).map((p) => p.replace(/^.*\//, ""));
-        lines.push({ at: d.at, row: { kind: "event", key: `done-${d.id}`, glyph: "done", label: t("依赖完成"), text: `${d.flow !== undefined ? `${d.flow}` : ""}「${other}」${t("完成")}`, why: names.length > 0 ? t("带回来：{0}", names.join(" · ")) : "", turn: "", tone: "success" }, detail: d.wrote });
+        lines.push({ at: d.at, row: { kind: "event", key: `done-${d.id}`, glyph: "done", label: t("依赖完成"), text: `${d.flow !== undefined ? `${d.flow}` : ""}「${other}」${t("完成")}`, why: names.length > 0 ? t("产物：{0}", names.join(" · ")) : "", turn: "", tone: "success" }, detail: d.wrote });
         const back = board.timeline.find((e) => e.kind === "snapshot" && Date.parse(e.at) > Date.parse(d.at as string));
         if (back !== undefined) {
           const turn = turnOf(back.at);
@@ -975,7 +975,7 @@ export function journalRows(o: JournalInput): BoardRow[] {
       row: { kind: "event", key: rowKey(e), glyph: entryGlyph(e), ...words, turn: turnWords(turn) }, detail: entryDetail(e, board, t),
     });
   }
-  if (lines.length === 0) return [...rows, text(filter === "all" ? t("这个工作项还没有记录") : t("没有这一类的记录"), columns, "dim")];
+  if (lines.length === 0) return [...rows, text(filter === "all" ? t("暂无") : t("暂无"), columns, "dim")];
   lines.sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
   let day = "";
   let room = Math.max(1, o.maxRows - rows.length);
@@ -990,8 +990,8 @@ export function journalRows(o: JournalInput): BoardRow[] {
     room--;
     if (open) {
       const menu: Pressable[] = [];
-      if (l.turn !== undefined) menu.push({ key: `turn-${l.row.key}`, label: t("看是哪一轮"), action: { op: "locate", id: l.turn.id, ...(l.turn.uuid !== undefined ? { uuid: l.turn.uuid } : {}) } });
-      if (l.detail.length > 0) menu.push({ key: `evidence-${l.row.key}`, label: shown ? t("收起详情") : t("看详情"), action: { op: "evidence", entry: shown ? null : l.row.key } });
+      if (l.turn !== undefined) menu.push({ key: `turn-${l.row.key}`, label: t("跳到对话"), action: { op: "locate", id: l.turn.id, ...(l.turn.uuid !== undefined ? { uuid: l.turn.uuid } : {}) } });
+      if (l.detail.length > 0) menu.push({ key: `evidence-${l.row.key}`, label: shown ? t("收起") : t("详情"), action: { op: "evidence", entry: shown ? null : l.row.key } });
       menu.push({ key: `close-${l.row.key}`, label: t("取消"), action: { op: "expand", entry: null } });
       rows.push(buttons(menu));
       room--;

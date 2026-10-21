@@ -939,7 +939,7 @@ async function notifyInbox($: EngineInterface): Promise<void> {
   const fresh = items.filter((i) => !seen.includes(i.key))
   if (fresh.length === 0 || !(await readSettings($)).notify.inbox) return
   const first = fresh[0] as InboxItem
-  const head = first.kind === 'approve' ? (first.closes === true ? t('等你验收：{0}', first.title) : t('等你定：{0}', first.title)) : `${first.verb} ${first.title}`.trim()
+  const head = first.kind === 'approve' ? (first.closes === true ? t('需验收：{0}', first.title) : t('需决定：{0}', first.title)) : `${first.verb} ${first.title}`.trim()
   const text = [head, ...first.detail.slice(0, 1)].join('\n')
   try { await $.ui.notify(text, { title: 'Gemflow' }) } catch { /* no channel */ }
 }
@@ -1076,7 +1076,7 @@ async function share($: EngineInterface, what: ShareWhat, how: ShareHow, strip: 
   else if (how === 'pr') {
     const root = await read($, rootAtom)
     let answer: string
-    try { answer = await $.ui.ask(t('发到当前分支的 PR 评论？发出去别人就看得到。'), [t('发出去'), t('取消')]) } catch { return }
+    try { answer = await $.ui.ask(t('发到当前分支的 PR 评论？评论将对仓库的其他人可见。'), [t('发出去'), t('取消')]) } catch { return }
     if (answer !== t('发出去')) return
     try {
       const r = await $.process.run(['gh', 'pr', 'comment', '--body', text], { cwd: root ?? undefined, timeoutMs: SLOW_TIMEOUT_MS })
@@ -1765,10 +1765,10 @@ async function dialogRows($: EngineInterface, t: T, dialog: Dialog, columns: num
   const version = shell?.versions?.gemflow ?? stored ?? '?'
   if (dialog === 'settings') {
     if (terminal) rows.push(section('notify', t('桌面提醒')),
-      { kind: 'buttons', items: [toggle(t('有事等你定或验收时'), 'notify.inbox', s.notify.inbox)] },
+      { kind: 'buttons', items: [toggle(t('有事项需要决定或验收时'), 'notify.inbox', s.notify.inbox)] },
       { kind: 'buttons', items: [toggle(t('模型被拦时'), 'notify.refusal', s.notify.refusal)] }, text(`    ${t('同一原因 3 分钟内只提一次')}`, 'dim'),
       { kind: 'buttons', items: [toggle(t('阶段变更时'), 'notify.stage', s.notify.stage)] })
-    rows.push(section('judge', t('判定')), { kind: 'buttons', items: [toggle(t('每一轮判定：打字就是按按钮'), 'judge.enabled', s.judge.enabled)] }, text(t('你发的话像是在选待处理里的某一项时，替你按下（有把握）或先问一句（没把握）；用一个小模型判断。'), 'dim'))
+    rows.push(section('judge', t('判定')), { kind: 'buttons', items: [toggle(t('每一轮判定：打字就是按按钮'), 'judge.enabled', s.judge.enabled)] }, text(t('用小模型把输入匹配到待处理事项：把握大则直接选中，否则先确认。'), 'dim'))
     const system = langOf('system', shell?.locale ?? locale ?? undefined)
     const names: Record<string, string> = { zh: '中文', en: 'English', ja: '日本語' }
     rows.push(section('language', t('语言')), { kind: 'buttons', items: ([['system', t('跟随系统（{0}）', names[system] ?? system)], ['zh', '中文'], ['en', 'English'], ['ja', '日本語']] as const).map(([v, label]): Pressable => ({ key: `lang-${v}`, label, ...(s.language === v ? { primary: true } : {}), action: { op: 'setting', key: 'language', value: v } })) })
@@ -1797,7 +1797,7 @@ async function dialogRows($: EngineInterface, t: T, dialog: Dialog, columns: num
     rows.push({ kind: 'buttons', items: [toggle(t('有新版本时在看板上提示'), 'notify.update', s.notify.update)] })
   } else if (dialog === 'about') {
     rows.push({ kind: 'image', key: 'lockup', svg: LOCKUP_SVG, alt: 'Gemflow', width: 180 })
-    rows.push(text(t('写下一条提示词之前，要看的都在一处：在做什么、等你定什么、做出了什么。流程用 GEML 写，可以换、可以调，也可以导入自己的。')))
+    rows.push(text(t('把写下一条提示词前要看的信息放在一处：工作进度、待决定事项、产物。流程用 GEML 编写，可替换、调整、导入。')))
     rows.push(text(t('插件 @geml/gemflow {0}', version), 'dim'), text(t('解析器 @geml/geml {0}', shell?.versions?.parser ?? '?'), 'dim'))
     rows.push(text(t('流程格式 geml-statechart/v1'), 'dim'), text(t('许可 MIT'), 'dim'))
     rows.push({ kind: 'link', key: 'link-spec', href: LINKS.spec, label: t('规范与文档') }, { kind: 'link', key: 'link-repo', href: LINKS.repo, label: t('仓库') }, { kind: 'link', key: 'link-feedback', href: LINKS.feedback, label: t('反馈') })
@@ -1806,7 +1806,7 @@ async function dialogRows($: EngineInterface, t: T, dialog: Dialog, columns: num
     const here = shell?.status
     if (here?.item.kind === 'item') rows.push({ kind: 'heading', key: 'share-title', text: t('分享 {0}', here.title ?? here.item.id), sub: '' })
     const whats: [ShareWhat, string, string][] = [
-      ['status', t('现在在哪'), t('工作项走到哪、等你定和验收的事、最近的产物')],
+      ['status', t('现在在哪'), t('进度、待办、最近产物')],
       ['journal', t('这个工作项的记录'), t('每次阶段变更、凭据、产物、被拦，带哈希链，对方能校验')],
       ['session', t('本会话'), t('提示词和那一轮做了什么；工具调用的输出不带')],
       ['workflow', t('流程与工具词典'), t('流程文件和它用的工具，给别的项目用')],

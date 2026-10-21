@@ -141,7 +141,7 @@ function stageSegments(shell: ShellStatus | null, todo: TodoCount | null, t: T, 
   if (s.workflow.default !== undefined) out.push({ text: t("流程 {0}", s.workflow.name), tone: "dim" });
   out.push({ text: s.state?.id ?? "?", tone: "normal" });
   if (s.paused) {
-    out.push({ text: `${t("⏸ 已暂停")}${SEP}${t("模型推不动，证据照记")}`, tone: "warning" });
+    out.push({ text: `${t("⏸ 已暂停")}${SEP}${t("阶段不变，照常记录")}`, tone: "warning" });
     return out;
   }
   if (todo !== null && todo.item === s.item.id && todo.state === s.state?.id) out.push(todoSegment(todo.count, t));
@@ -214,7 +214,7 @@ export function bandView(o: BandInput): BandView {
   }
   if (s.item.kind === "inactive") return { ...none, title: s.item.reason, tone: "dim" };
   const name = s.title ?? s.item.id;
-  if (s.paused) return { ...none, verb: t("已暂停"), title: name, tone: "warning", note: t("模型推不动，证据照记"), actions: [{ key: "resume", label: t("继续"), primary: true, action: { op: "resume" } }], more };
+  if (s.paused) return { ...none, verb: t("已暂停"), title: name, tone: "warning", note: t("阶段不变，照常记录"), actions: [{ key: "resume", label: t("继续"), primary: true, action: { op: "resume" } }], more };
   if (first !== undefined) {
     return { verb: first.verb, title: first.title, tone: "normal", note: "", detail: first.detail.join(SEP), actions: first.actions.slice(0, BAND_OPTIONS), more };
   }

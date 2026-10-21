@@ -167,7 +167,7 @@ test("board: what the work item made, under what waits on the person — links, 
   ]);
   const open = artifactRows(artifacts, "feat/x", { t, columns: 80, now: NOW, menu: "file:.geml/exports/s.geml", docsOpen: true });
   assert.deepEqual(open.find((r) => r.kind === "links").items.map((x) => [x.label, x.href]), [
-    ["打开", fileUrl("/r/.geml/exports/s.geml")], ["打开第 2 版副本", fileUrl("/h/.geml/artifacts/aa.geml")], ["看它的历史", fileUrl("/h/.geml/artifacts/aa.gemlhistory")], ["在文件夹里显示", fileUrl("/h/.geml/artifacts")],
+    ["打开", fileUrl("/r/.geml/exports/s.geml")], ["打开第 2 版副本", fileUrl("/h/.geml/artifacts/aa.geml")], ["查看历史", fileUrl("/h/.geml/artifacts/aa.gemlhistory")], ["在文件夹里显示", fileUrl("/h/.geml/artifacts")],
   ], "a GEML document's older versions are in its history, not in copies");
   assert.ok(open.some((r) => r.kind === "entry" && r.title === "x.md"), "listed whole on a press");
   assert.equal(open.find((r) => r.kind === "button").label, "收起");
@@ -226,5 +226,5 @@ test("what the person gave and what was made for them outside the project: an up
   const logo = made.images.find((i) => i.name === "logo.png");
   assert.ok(logo.open.split("\\").join("/").includes("/.geml/artifacts/"), "an upload opens as its copy: there is no file of its own");
   assert.deepEqual(artifactRows({ item: "feat/x", written: [], commits: [], made: { ...made, docs: [], code: { commits: 0, files: 0 } } }, "feat/x", { t: wordsFor("zh"), columns: 80, menu: null, docsOpen: false })
-    .filter((r) => r.kind === "entry" && r.title === "logo.png").map((r) => r.detail.split(" · ")[0]), ["你给的"]);
+    .filter((r) => r.kind === "entry" && r.title === "logo.png").map((r) => r.detail.split(" · ")[0]), ["用户提供"]);
 });
