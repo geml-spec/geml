@@ -32,7 +32,7 @@ import { CLAUDE_CODE_TOOLS } from '../dist/core/host-tools.js'
 import { FLOW_TOOLS } from '../dist/core/verb-specs.js'
 import type { VerbName } from '../dist/core/verb-specs.js'
 import type { BoardAction, BoardTab, Dialog, JournalFilter, Pressable, ShareHow, ShareWhat } from '../dist/hosts/claude-code/actions.js'
-import { answered, asksOf, bandLine, heldBranches, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, pendingNote, picksText, pressablesFor, pressedOf, remember, standingOf, stepPressables } from '../dist/hosts/claude-code/attention.js'
+import { answered, asksOf, bandLine, heldSteps, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, pendingNote, picksText, pressablesFor, pressedOf, remember, standingOf, stepPressables } from '../dist/hosts/claude-code/attention.js'
 import type { Queued } from '../dist/hosts/claude-code/attention.js'
 import type { AttentionFacts, AttentionMemory } from '../dist/hosts/claude-code/attention.js'
 import { envParts, remoteInPlay } from '../dist/hosts/claude-code/env.js'
@@ -87,7 +87,7 @@ const tabAtom = atom({ plugin: 'gemflow', key: 'tab' } as const, HOME_TAB as Gem
 const doneOpenAtom = atom({ plugin: 'gemflow', key: 'doneOpen' } as const, false)
 /** Whether the work items tab lists the dropped work items, or only counts them. */
 const droppedOpenAtom = atom({ plugin: 'gemflow', key: 'droppedOpen' } as const, false)
-/** Whether 此刻 lists the branches held back (已暂缓), or only counts them. */
+/** Whether 此刻 lists the branches and pull requests held back (已暂缓), or only counts them. */
 const heldOpenAtom = atom({ plugin: 'gemflow', key: 'heldOpen' } as const, false)
 const artifactMenuAtom = atom({ plugin: 'gemflow', key: 'artifactMenu' } as const, null as string | null)
 const docsOpenAtom = atom({ plugin: 'gemflow', key: 'docsOpen' } as const, false)
@@ -488,9 +488,10 @@ async function attentionNow($: EngineInterface, t: T) {
   const memory = a?.memory ?? NO_MEMORY
   // A reload is the machine's: over a remote connection, or once the engine said it cannot run here, it is named with no button.
   const remote = remoteInPlay({ clients: (clients as unknown as AttachedClient[] | null) ?? [], ...(origin !== null ? { origin } : {}) })
-  // A branch the person holds back raises no card: it waits under 已暂缓.
+  // A branch or a pull request the person holds back raises no card: it waits under 已暂缓.
   const standing = standingOf(reply, facts, now, t, { reloadHere: !remote && !unavailable }).filter((s) => !dismissed.includes(s.key))
-  const held = heldBranches(dismissed, facts).held
+  const { branches, prs } = heldSteps(dismissed, facts)
+  const held = { branches, prs }
   const lead = a === null || a.consumed ? null : leadOf({ reply, standing, memory, picks: a.picks ?? [], ...(a.asks !== undefined ? { asked: a.asks } : {}), t })
   const line = bandLine({ lead, standing, memory, reply, awayMs: a === null ? null : now - a.replyAt, t })
   return { attention: a, reply, standing, memory, lead, line, held }
@@ -748,9 +749,9 @@ async function loadFacts($: EngineInterface): Promise<void> {
     $.ui.invalidate('ui.render')
   }
   const facts = res.attention
-  // A branch no longer ahead (pushed, or gone) lets its hold go: the next time it is ahead, it is asked about again.
+  // A branch no longer ahead (pushed, or gone), or a pull request no longer open, lets its hold go: the next time it comes up, it is asked about again.
   const dismissed = await dismissedOf($)
-  const kept = heldBranches(dismissed, facts).dismissed
+  const kept = heldSteps(dismissed, facts).dismissed
   if (kept.length !== dismissed.length) {
     await update($, dismissedAtom, () => kept as unknown as GemflowJson)
     try { await $.store.set(`dismissed:${(await read($, rootAtom)) ?? ''}`, kept as unknown as GemflowJson) } catch { /* the session keeps its own */ }

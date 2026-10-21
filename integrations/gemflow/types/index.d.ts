@@ -30,7 +30,7 @@ declare module 'claude-code' {
       doneOpen: boolean
       /** Whether the work items tab lists the dropped work items, or only counts them. */
       droppedOpen: boolean
-      /** Whether 此刻 lists the branches held back (已暂缓), or only counts them. */
+      /** Whether 此刻 lists the branches and pull requests held back (已暂缓), or only counts them. */
       heldOpen: boolean
       /** The artifact whose menu is open on the work items tab (`<kind>:<name>`). */
       artifactMenu: string | null

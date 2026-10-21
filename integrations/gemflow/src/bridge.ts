@@ -828,7 +828,11 @@ function answer(req: BridgeRequest): BridgeResponse {
       const prs = pullRequestsByBranch(root);
       if (prs.size > 0) listItems(ws, root, view.status.workflow.path, prs);
       // The shared session logs: the main working tree's .geml/sessions/, whichever worktree this checkout is.
-      return ok(view, { attention: { ahead: branchesAhead(root), prs: openPullRequests(root) }, host: hostOf(root), sessions: join(journalBaseOf(root), GEML_DIR, SESSIONS_DIR) });
+      // A list git or gh could not give is named: the band shows none of it, and no hold on it is let go.
+      const ahead = branchesAhead(root);
+      const open = openPullRequests(root);
+      const unread = [...(ahead === undefined ? ["ahead" as const] : []), ...(open === undefined ? ["prs" as const] : [])];
+      return ok(view, { attention: { ahead: ahead ?? [], prs: open ?? [], ...(unread.length > 0 ? { unread } : {}) }, host: hostOf(root), sessions: join(journalBaseOf(root), GEML_DIR, SESSIONS_DIR) });
     }
     case "artifacts": {
       syncArtifacts(ws, root, req.elsewhere);

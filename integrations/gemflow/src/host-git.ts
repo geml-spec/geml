@@ -412,11 +412,12 @@ export function ghFacts(root: string, branch: string, o: { gh?: string } = {}): 
  * Local branches with commits their upstream does not have, across the
  * repository — a worktree's branch too, since worktrees share it. `newestAt`
  * is the branch tip's commit time. A branch with no upstream is not listed: it
- * was never pushed, so nothing is "not pushed yet" about it.
+ * was never pushed, so nothing is "not pushed yet" about it. Undefined when
+ * git cannot say.
  */
-export function branchesAhead(root: string): { branch: string; ahead: number; newestAt?: string }[] {
+export function branchesAhead(root: string): { branch: string; ahead: number; newestAt?: string }[] | undefined {
   const r = run("git", ["for-each-ref", "refs/heads", "--format=%(refname:short)%09%(upstream:track)%09%(committerdate:iso-strict)"], root);
-  if (!r.ok) return [];
+  if (!r.ok) return undefined;
   const out: { branch: string; ahead: number; newestAt?: string }[] = [];
   for (const line of r.out.split(/\r?\n/)) {
     const [branch, track, at] = line.split("\t");
@@ -433,17 +434,18 @@ const ROLLUP_PASSED = new Set(["SUCCESS", "NEUTRAL", "SKIPPED"]);
 /**
  * The open pull requests the person opened, with their checks: `green` when
  * every check finished and passed, `failing` the checks that finished and
- * failed. None when gh cannot be asked — the band then just says nothing of
- * pull requests. The binary is chosen as ghFacts chooses it.
+ * failed. Undefined when gh cannot be asked — the band then says nothing of
+ * pull requests, and a hold on one is not let go. The binary is chosen as
+ * ghFacts chooses it.
  */
-export function openPullRequests(root: string, o: { gh?: string } = {}): { number: number; branch: string; green: boolean; failing: string[] }[] {
+export function openPullRequests(root: string, o: { gh?: string } = {}): { number: number; branch: string; green: boolean; failing: string[] }[] | undefined {
   const bin = o.gh || process.env["GEMFLOW_GH"] || "gh";
   const script = /\.[cm]?js$/i.test(bin);
   const args = ["pr", "list", "--state", "open", "--author", "@me", "--limit", "30", "--json", "number,headRefName,statusCheckRollup"];
   const r = script ? run(process.execPath, [bin, ...args], root) : run(bin, args, root);
-  if (!r.ok) return [];
+  if (!r.ok) return undefined;
   const list = parseJson(r.out);
-  if (!Array.isArray(list)) return [];
+  if (!Array.isArray(list)) return undefined;
   const out: { number: number; branch: string; green: boolean; failing: string[] }[] = [];
   for (const pr of list as { number?: unknown; headRefName?: unknown; statusCheckRollup?: unknown }[]) {
     if (pr === null || typeof pr !== "object" || typeof pr.number !== "number" || typeof pr.headRefName !== "string") continue;

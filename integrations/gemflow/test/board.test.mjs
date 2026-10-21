@@ -558,15 +558,19 @@ test("会话 where the conversation cannot be scrolled: no 跳转 among the icon
   assert.equal(none.filter((r) => r.kind === "prose").at(-1).text, "没有记下回答");
 });
 
-test("已暂缓: the branches held back, counted and folded; unfolded, each with its commits and age and a press that brings its card back", () => {
+test("已暂缓: the pull requests and branches held back, counted together and folded; unfolded, pull requests first, each with where it stands and a press that brings its card back", () => {
   const t = wordsFor("zh");
-  const held = [{ branch: "feat/geml-agent-runtime", ahead: 96, newestAt: "2026-10-09T08:00:00Z" }, { branch: "feat/typst-pdf", ahead: 1 }];
-  assert.deepEqual(heldRows([], false, t, NOW), [], "nothing held, nothing shown");
-  assert.deepEqual(heldRows(held, false, t, NOW), [{ kind: "section", key: "held", text: "已暂缓", count: 2, fold: { key: "fold-held", label: "展开", action: { op: "fold", what: "held", open: true } } }]);
-  const open = heldRows(held, true, t, NOW);
+  const branches = [{ branch: "feat/geml-agent-runtime", ahead: 96, newestAt: "2026-10-09T08:00:00Z" }, { branch: "feat/typst-pdf", ahead: 1 }];
+  const prs = [{ number: 32, branch: "feat/a", green: false, failing: ["scan", "CI"] }, { number: 41, branch: "feat/c", green: true, failing: [] }, { number: 50, branch: "feat/d", green: false, failing: [] }];
+  assert.deepEqual(heldRows({ branches: [], prs: [] }, false, t, NOW), [], "nothing held, nothing shown");
+  assert.deepEqual(heldRows({ branches, prs }, false, t, NOW), [{ kind: "section", key: "held", text: "已暂缓", count: 5, fold: { key: "fold-held", label: "展开", action: { op: "fold", what: "held", open: true } } }]);
+  const open = heldRows({ branches, prs }, true, t, NOW);
   assert.deepEqual(open[0].fold.label, "收起");
-  assert.deepEqual(open.slice(1).map((r) => [r.kind, r.title, r.tag, r.extra.label, r.extra.action]), [
-    ["entry", "feat/geml-agent-runtime", "96 个提交 · 3 天前", "取消暂缓", { op: "undismiss", key: "unpushed:feat/geml-agent-runtime" }],
-    ["entry", "feat/typst-pdf", "1 个提交", "取消暂缓", { op: "undismiss", key: "unpushed:feat/typst-pdf" }],
+  assert.deepEqual(open.slice(1).map((r) => [r.kind, r.title, r.tag, r.extra.key, r.extra.label, r.extra.action]), [
+    ["entry", "#32", "feat/a · scan、CI 失败", "restore-pr-32", "取消暂缓", { op: "undismiss", key: "green:32" }],
+    ["entry", "#41", "feat/c · 检查全部通过", "restore-pr-41", "取消暂缓", { op: "undismiss", key: "green:41" }],
+    ["entry", "#50", "feat/d · 检查中", "restore-pr-50", "取消暂缓", { op: "undismiss", key: "green:50" }],
+    ["entry", "feat/geml-agent-runtime", "96 个提交 · 3 天前", "restore-feat/geml-agent-runtime", "取消暂缓", { op: "undismiss", key: "unpushed:feat/geml-agent-runtime" }],
+    ["entry", "feat/typst-pdf", "1 个提交", "restore-feat/typst-pdf", "取消暂缓", { op: "undismiss", key: "unpushed:feat/typst-pdf" }],
   ]);
 });

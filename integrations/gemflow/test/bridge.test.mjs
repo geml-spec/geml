@@ -287,6 +287,7 @@ test("attention: the real bridge answers the repository's facts and the machine 
   const r = hook(root, { op: "attention" }, NO_GH);
   assert.equal(r.ok, true, r.error);
   assert.ok(Array.isArray(r.attention.ahead) && Array.isArray(r.attention.prs));
+  assert.deepEqual(r.attention.unread, ["prs"], "gh could not be asked: its list is named, so no hold on a pull request is let go for it");
   assert.equal(r.host.name, hostname());
   assert.equal(r.host.platform, process.platform);
   assert.equal(typeof r.host.branch, "string");

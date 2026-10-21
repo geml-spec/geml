@@ -87,6 +87,8 @@ function world(on: On) {
     prs: [] as { number: number; branch: string; green: boolean; failing: string[] }[],
     /** The local branches ahead of their upstream the attention answer carries. */
     ahead: [] as { branch: string; ahead: number; newestAt?: string }[],
+    /** The lists the attention answer says the repository could not be asked for (git or gh failed). */
+    unread: [] as ('ahead' | 'prs')[],
     /** The other work items the board lists, beside the current one. */
     items: [] as Record<string, unknown>[],
     /** While set, an `after` request is held until it settles: a bridge slow to answer. */
@@ -226,7 +228,7 @@ function world(on: On) {
     }
     if (req.op === 'refresh') return { v: 1, ok: true, shell: shell(), todo: w.todo }
     if (req.op === 'status' && w.sessionsDir !== null) return { v: 1, ok: true, shell: shell(), sessions: w.sessionsDir }
-    if (req.op === 'attention') return { v: 1, ok: true, shell: shell(), attention: { ahead: w.ahead, prs: w.prs }, ...(w.sessionsDir !== null ? { sessions: w.sessionsDir } : {}), host: { name: 'build-box', platform: 'linux', user: 'dev', branch: 'feat/x' } }
+    if (req.op === 'attention') return { v: 1, ok: true, shell: shell(), attention: { ahead: w.ahead, prs: w.prs, ...(w.unread.length > 0 ? { unread: w.unread } : {}) }, ...(w.sessionsDir !== null ? { sessions: w.sessionsDir } : {}), host: { name: 'build-box', platform: 'linux', user: 'dev', branch: 'feat/x' } }
     return { v: 1, ok: true, shell: shell(), ...(req.op === 'before' ? { recorded: false } : {}), ...(req.op === 'after' ? handoff(req) : {}) }
   }
   const ran = (stdout: string, exitCode = 0) => ({ exitCode, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false })
@@ -1337,6 +1339,42 @@ test('暂不 on a branch\'s 待推送 card holds it: said once, gone from the bo
   await $.turn.complete({ answer: '好。', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' })
   await clock.advance(1)
   expect(w.store.get(`dismissed:${ROOT}`), 'asked again the next time it is ahead').toEqual([])
+})
+
+test('暂不 on a green pull request holds it: said once, gone from the board, its failing check still shown, listed under 已暂缓; let go once it is no longer open, never while gh cannot be asked', async ($, on) => {
+  const w = world(on)
+  const said: string[] = []
+  on('prompt.submit', ($, e) => { said.push(e.text); return { text: e.text } })
+  const clock = await start($, on)
+  w.prs = [{ number: 32, branch: 'feat/y', green: true, failing: [] }]
+  await clock.advance(120_000)
+  await $.command.run({ command: 'gemflow', args: 'board', origin: COMPOSER, presentation: PRESENTATION })
+  const board = () => $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  let pane = await board()
+  expect(await pane.find({ type: 'Text', text: /可合并：#32/ })).toBeDefined()
+  await pane.press({ key: 'attention-1-暂不' })
+  await pane.unmount()
+  expect(said).toEqual(['先不合并 #32，等我说再合。'])
+  expect(w.toasts.at(-1)).toBe('已暂缓 #32，可在看板「已暂缓」里恢复')
+  pane = await board()
+  expect(await pane.find({ type: 'Text', text: /可合并：#32/ }), 'the merge card is gone').toBeUndefined()
+  await pane.unmount()
+  // Gone red: the failing check is still news; the hold stays, and it does not come back once green again.
+  w.prs = [{ number: 32, branch: 'feat/y', green: false, failing: ['scan'] }]
+  await clock.advance(120_000)
+  pane = await board()
+  expect(await pane.find({ type: 'Text', text: /#32 的 scan 失败/ })).toBeDefined()
+  await pane.unmount()
+  expect(w.store.get(`dismissed:${ROOT}`)).toEqual(['green:32'])
+  // gh cannot be asked: no pull request is listed, and none is let go for it.
+  w.prs = []
+  w.unread = ['prs']
+  await clock.advance(120_000)
+  expect(w.store.get(`dismissed:${ROOT}`), 'not let go on a list that was not read').toEqual(['green:32'])
+  // Merged: no longer open, so the hold goes.
+  w.unread = []
+  await clock.advance(120_000)
+  expect(w.store.get(`dismissed:${ROOT}`)).toEqual([])
 })
 
 test('a step pressed on the board says what became of it: being done once it goes in, not offered again until that turn ends; 重载插件 runs the command itself', async ($, on) => {

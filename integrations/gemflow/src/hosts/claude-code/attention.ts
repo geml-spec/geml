@@ -27,6 +27,8 @@ export interface AttentionFacts {
   ahead: { branch: string; ahead: number; newestAt?: string }[];
   /** Open pull requests: `green` when every check passed, `failing` the checks that failed. */
   prs: { number: number; branch: string; green: boolean; failing: string[] }[];
+  /** The lists the repository could not be asked for (git or gh failed): empty above, and no hold on them is let go. */
+  unread?: ("ahead" | "prs")[];
   /** Something changed that takes a reload to see (the plugin's own folder, while it is being developed). */
   reload?: boolean;
   /** The version the session runs and the one its folder holds, when they differ: what the reload brings. */
@@ -163,20 +165,31 @@ export function outcomeOf(reply: string, cutFromFront = false): string | undefin
 
 // ---- the standing conditions
 
-/** A local branch ahead of its upstream, as the repository facts carry it. */
+/** A local branch ahead of its upstream, and an open pull request, as the repository facts carry them. */
 export type AheadFact = AttentionFacts["ahead"][number];
+export type PrFact = AttentionFacts["prs"][number];
 
 /**
- * The branches the person holds back — a 暂不 on their 待推送 card put
- * `unpushed:<branch>` in the project's dismissed list — that are still ahead;
- * and that list without the holds of branches no longer ahead (pushed, or
- * gone), so the next time one is ahead it is asked about again.
+ * What the person holds back — a 暂不 on a 待推送 card put
+ * `unpushed:<branch>` in the project's dismissed list, one on a 可合并 card
+ * `green:<number>` — and is still there: the branches still ahead, the pull
+ * requests still open, red or green (by number); and that list without the
+ * holds whose branch is no longer ahead (pushed, or gone) or whose pull
+ * request is no longer open (merged, or closed), so the next time it comes up
+ * it is asked about again. A list the repository could not be asked for lets
+ * nothing go.
  */
-export function heldBranches(dismissed: readonly string[], facts: AttentionFacts): { held: AheadFact[]; dismissed: string[] } {
+export function heldSteps(dismissed: readonly string[], facts: AttentionFacts): { branches: AheadFact[]; prs: PrFact[]; dismissed: string[] } {
   const ahead = facts.ahead.filter((a) => a.ahead > 0);
+  const unread = facts.unread ?? [];
+  const stays = (k: string): boolean =>
+    k.startsWith("unpushed:") ? unread.includes("ahead") || ahead.some((a) => `unpushed:${a.branch}` === k)
+      : k.startsWith("green:") ? unread.includes("prs") || facts.prs.some((p) => `green:${p.number}` === k)
+        : true;
   return {
-    held: ahead.filter((a) => dismissed.includes(`unpushed:${a.branch}`)),
-    dismissed: dismissed.filter((k) => !k.startsWith("unpushed:") || ahead.some((a) => `unpushed:${a.branch}` === k)),
+    branches: ahead.filter((a) => dismissed.includes(`unpushed:${a.branch}`)),
+    prs: facts.prs.filter((p) => dismissed.includes(`green:${p.number}`)).sort((a, b) => a.number - b.number),
+    dismissed: dismissed.filter(stays),
   };
 }
 
@@ -197,7 +210,7 @@ export function standingOf(reply: string, facts: AttentionFacts, now: number, t:
       : { key: "reload", kind: "you", short: t("重载插件"), text: v !== undefined ? t("待重载：{0}（运行 {1}）", v.synced, v.running) : t("插件已更新，重载后生效"), options: [t("重载插件")] });
   }
   for (const p of facts.prs) {
-    if (p.green) out.push({ key: `green:${p.number}`, kind: "you", short: t("合并 #{0}", p.number), text: t("可合并：#{0}（检查全部通过）", p.number), options: [t("合并")] });
+    if (p.green) out.push({ key: `green:${p.number}`, kind: "you", short: t("合并 #{0}", p.number), text: t("可合并：#{0}（检查全部通过）", p.number), options: [t("合并"), t("暂不")] });
   }
   for (const a of facts.ahead) {
     if (a.ahead <= 0) continue;
@@ -351,6 +364,7 @@ export function pressablesFor(lead: Lead | null, options: readonly string[], t: 
     if ((m = /^unpushed:(.+)$/.exec(key)) && label === t("推送")) return t("推送 {0}", m[1] as string);
     // Two steps' 暂不 must say two things: a press is known by what it says. A branch's is a hold until the person says.
     if ((m = /^unpushed:(.+)$/.exec(key)) && label === t("暂不")) return t("先不推送 {0}，等我说再推。", m[1] as string);
+    if ((m = /^green:(\d+)$/.exec(key)) && label === t("暂不")) return t("先不合并 #{0}，等我说再合。", m[1] as string);
     if (key.startsWith("uncommitted:") && label === t("暂不")) return t("先不提交，改动先留着。");
     if ((m = /^fail:(\d+):(.*)$/.exec(key))) {
       if (label === t("查看日志")) return t("看下 #{0} 失败的 {1} 日志", m[1] as string, (m[2] as string).split(",").join("、"));
@@ -373,8 +387,9 @@ export function pressablesFor(lead: Lead | null, options: readonly string[], t: 
   return options.map((label, i): Pressable => {
     const text = said(label);
     const confirm = confirmOf(text);
-    // 暂不 on a branch puts its card away until the branch is no longer ahead (heldBranches), and says where it went.
-    const held = label === t("暂不") ? /^unpushed:(.+)$/.exec(key)?.[1] : undefined;
+    // 暂不 on a branch or a green pull request puts its card away until it is gone (heldSteps), and says where it went.
+    const pr = /^green:(\d+)$/.exec(key)?.[1];
+    const held = label !== t("暂不") ? undefined : pr !== undefined ? `#${pr}` : /^unpushed:(.+)$/.exec(key)?.[1];
     const action = label === t("详情") ? { op: "open-board" as const, tab: "items" as const }
       : label === t("重载插件") ? { op: "command" as const, command: "reload-plugins" }
       : { op: "say" as const, text, ...(confirm !== undefined ? { confirm } : {}), ...(held !== undefined ? { dismiss: key, toast: t("已暂缓 {0}，可在看板「已暂缓」里恢复", held) } : {}) };

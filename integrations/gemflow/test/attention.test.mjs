@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { answered, asksOf, bandLine, heldBranches, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, optionsFor, outcomeOf, picksText, pressablesFor, remember, spokenOf, standingOf, stepPressables, WIDTH } from "../dist/hosts/claude-code/attention.js";
+import { answered, asksOf, bandLine, heldSteps, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, optionsFor, outcomeOf, picksText, pressablesFor, remember, spokenOf, standingOf, stepPressables, WIDTH } from "../dist/hosts/claude-code/attention.js";
 
 const NOW = Date.parse("2026-10-18T10:00:00Z");
 const cells = (s) => [...s].reduce((w, c) => w + (/[ᄀ-￿]/.test(c) ? 2 : 1), 0);
@@ -190,11 +190,23 @@ test("暂不 on a step names the step: pressing it on one card settles that card
   assert.deepEqual(cards([{ text: "先不提交，改动先留着。", entered: true }]).map((r) => [r.actions.length, r.detail]), [[2, []], [0, ["进行中 先不提交，改动先留着。"]]]);
 });
 
-test("a branch held back stays held while it is ahead; once it is not (pushed, or gone) its hold is let go", () => {
-  const facts = { ahead: [{ branch: "feat/held", ahead: 96, newestAt: "2026-10-18T01:00:00Z" }, { branch: "feat/other", ahead: 2 }], prs: [] };
-  const { held, dismissed } = heldBranches(["unpushed:feat/held", "unpushed:feat/pushed", "tools:web_fetch"], facts);
-  assert.deepEqual(held, [{ branch: "feat/held", ahead: 96, newestAt: "2026-10-18T01:00:00Z" }]);
-  assert.deepEqual(dismissed, ["unpushed:feat/held", "tools:web_fetch"], "the pushed branch's hold is gone; what is not a hold stays");
+test("a branch held back stays held while it is ahead, a pull request while it is open, red or green; a hold is let go once its thing is gone, and never on a list the repository could not be asked for", () => {
+  const facts = {
+    ahead: [{ branch: "feat/held", ahead: 96, newestAt: "2026-10-18T01:00:00Z" }, { branch: "feat/other", ahead: 2 }],
+    prs: [{ number: 41, branch: "feat/c", green: true, failing: [] }, { number: 32, branch: "feat/a", green: false, failing: ["scan"] }],
+  };
+  const list = ["unpushed:feat/held", "unpushed:feat/pushed", "green:41", "green:32", "green:7", "tools:web_fetch"];
+  const { branches, prs, dismissed } = heldSteps(list, facts);
+  assert.deepEqual(branches, [{ branch: "feat/held", ahead: 96, newestAt: "2026-10-18T01:00:00Z" }]);
+  assert.deepEqual(prs.map((p) => p.number), [32, 41], "by number");
+  assert.deepEqual(dismissed, ["unpushed:feat/held", "green:41", "green:32", "tools:web_fetch"], "the pushed branch and the closed pull request let go; a red one stays held; what is not a hold stays");
+  assert.deepEqual(heldSteps(list, { ...facts, ahead: [], prs: [], unread: ["ahead", "prs"] }).dismissed, list, "git and gh could not be asked: nothing is let go");
   const standing = standingOf("", facts, NOW);
-  assert.deepEqual(standing.filter((s) => !dismissed.includes(s.key)).map((s) => s.key), ["unpushed:feat/other"], "a held branch raises no card");
+  assert.deepEqual(standing.filter((s) => !dismissed.includes(s.key)).map((s) => s.key), ["fail:32:scan", "unpushed:feat/other"], "a held branch or pull request raises no card; a held one's failing check still does");
+});
+
+test("暂不 on a green pull request holds it until the person says", () => {
+  const card = standingOf("", { ahead: [], prs: [{ number: 43, branch: "feat/c", green: true, failing: [] }] }, NOW)[0];
+  assert.deepEqual(card.options, ["合并", "暂不"]);
+  assert.deepEqual(pressablesFor({ key: card.key, kind: card.kind, text: card.text, options: card.options }, card.options)[1].action, { op: "say", text: "先不合并 #43，等我说再合。", dismiss: "green:43", toast: "已暂缓 #43，可在看板「已暂缓」里恢复" });
 });
