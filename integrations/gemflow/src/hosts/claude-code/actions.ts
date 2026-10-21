@@ -73,7 +73,10 @@ export type BoardAction =
   | { op: "artifact-menu"; key: string | null }
   /** Close a merged work item: its worktree and its local branch removed, by the model, once the person said yes. */
   | { op: "close-item"; id: string; worktree?: string }
-  | { op: "export"; kind: ExportKind; format: ExportFormat }
+  /** `session`: on the sessions tab, which session's record to write — `own`, or another session's id. */
+  | { op: "export"; kind: ExportKind; format: ExportFormat; session?: string }
+  /** Open the row of formats under a session's export button (`own`, or another session's id), or close it. */
+  | { op: "export-menu"; session: string | null }
   | { op: "dialog"; dialog: Dialog | null }
   | { op: "open-board"; tab?: BoardTab }
   | { op: "use"; workflow: string }
@@ -100,8 +103,6 @@ export type BoardAction =
   | { op: "session-flow"; flow: string | null }
   /** Unfold a run of turns in another flow (its first prompt's id), or fold it. */
   | { op: "session-run"; id: string; open: boolean }
-  /** Open a prompt row's menu (its id), or close it. */
-  | { op: "turn-menu"; id: string | null }
   /** Scroll the conversation to this prompt's row. */
   | { op: "locate"; id: string; uuid?: string }
   /** Ask the model to move this prompt's turn and every turn after it (the last one stays) into a new session, with the split-session skill; a person says yes first. */

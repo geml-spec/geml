@@ -64,8 +64,6 @@ declare module 'claude-code' {
       passes: GemflowJson
       /** The prompts the person sent this session (PromptRecord[]). */
       prompts: GemflowJson
-      /** The prompt whose menu is open on the sessions tab (its id). */
-      turnMenu: string | null
       /** The flow the sessions tab shows (its title), and the runs of another flow's turns unfolded (string[]). */
       sessionFlow: string | null
       sessionRuns: GemflowJson
@@ -116,10 +114,13 @@ declare module 'claude-code' {
       decisionsSeen: string | null
       /** A command in this turn made a commit: the turn's end records the commits. */
       committed: boolean
-      /** The turn unfolded on the session tab where the conversation cannot be scrolled: { id, answer }. */
+      /** The turn unfolded on the session tab: { id, answer } — answer null while the record is read, "" when it holds none. */
       expandedTurn: GemflowJson
       /** The file the last export wrote. */
       exported: string | null
+      /** On the sessions tab: the session the last export was of (`own` or its id), where its file is linked; the session whose export formats are open. */
+      exportedFor: string | null
+      exportMenu: string | null
       /** The share dialog's text, shown where it cannot be copied (the desktop). */
       sharedText: string | null
     }

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parse } from "@geml/geml";
-import { answerGist, promptGroups, promptLine, promptTail, sessionExport } from "../dist/hosts/claude-code/sessions.js";
+import { answerGist, logExport, promptGroups, promptLine, promptTail, sessionExport } from "../dist/hosts/claude-code/sessions.js";
 import { wordsFor } from "../dist/hosts/claude-code/text.js";
 
 const t = wordsFor("zh");
@@ -48,4 +48,22 @@ test("the export: GEML with one text block per prompt (fenced wider than its con
   assert.match(md, /^## 没有阶段 · \d\d:\d\d$/m);
   assert.match(md, /_4 次工具调用 · tests-pass ✓ · 进 #review_/);
   assert.deepEqual(JSON.parse(sessionExport(P, "json", "s-1", t)), { session: "s-1", prompts: P });
+});
+
+test("a session's record as a document: GEML with a prompt and an answer block per turn, Markdown a heading per turn with its decisions, JSON whole", () => {
+  const s = {
+    id: "s-2", host: "codex", branch: "feat/y", started: "2026-10-12T08:00:00Z", last: "2026-10-12T08:40:00Z",
+    turns: [{ turn: 1, at: "2026-10-12T08:00:00Z", prompt: "runtime 的 PR 能合吗\n===\n第二行", answer: "能，先跑 CI。", decisions: ["合并前先跑三平台 CI"] }, { turn: 2, at: "2026-10-12T08:30:00Z", prompt: "好", decisions: [] }],
+    decisions: [{ turn: 1, at: "2026-10-12T08:10:00Z", text: "合并前先跑三平台 CI" }], files: [], commits: [],
+  };
+  const geml = logExport(s, "geml", t);
+  const doc = parse(geml);
+  assert.deepEqual(doc.diagnostics, []);
+  assert.deepEqual(doc.ids, ["session", "prompt-1", "answer-1", "prompt-2"]);
+  assert.match(geml, /^==== text \{#prompt-1\}\nruntime 的 PR 能合吗\n===\n第二行\n====$/m);
+  const md = logExport(s, "md", t);
+  assert.match(md, /^# 会话 s-2\n\ncodex · feat\/y\n/);
+  assert.match(md, /^## \d\d:\d\d\n\n\*\*提示词\*\*\n\nruntime 的 PR 能合吗/m);
+  assert.match(md, /\*\*回答\*\*\n\n能，先跑 CI。\n\n- 决定：合并前先跑三平台 CI/);
+  assert.deepEqual(JSON.parse(logExport(s, "json", t)), s);
 });

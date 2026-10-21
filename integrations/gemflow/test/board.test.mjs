@@ -90,10 +90,10 @@ const items = (over = {}) => itemRows({ board: BOARD, status: status(), inbox: [
 test("the board's id, the dialog's, and its five tabs in order, opening on the work items (spec §8.2)", () => {
   assert.equal(BOARD_ID, "gemflow-board");
   assert.equal(DIALOG_ID, "gemflow-dialog");
-  assert.deepEqual(TAB_IDS, ["sessions", "flow", "items", "journal", "tools"]);
+  assert.deepEqual(TAB_IDS, ["sessions", "items", "journal", "flow", "tools"]);
   assert.equal(HOME_TAB, "items");
-  assert.deepEqual(tabs().map((x) => [x.id, x.label]), [["sessions", "会话"], ["flow", "流程"], ["items", "工作项"], ["journal", "记录"], ["tools", "工具"]]);
-  assert.deepEqual(tabs(wordsFor("en")).map((x) => x.label), ["Session", "Flow", "Items", "Journal", "Tools"]);
+  assert.deepEqual(tabs().map((x) => [x.id, x.label]), [["sessions", "会话"], ["items", "工作项"], ["journal", "记录"], ["flow", "流程"], ["tools", "工具"]]);
+  assert.deepEqual(tabs(wordsFor("en")).map((x) => x.label), ["Session", "Items", "Journal", "Flow", "Tools"]);
 });
 
 test("流程: the flow by its title, the picture, a row of its states, and the one picked — its uses and their tools, what it may not use, what runs everywhere", () => {
@@ -399,7 +399,7 @@ test("记录: where a value came from, and what an entry says, in the flow's wor
   assert.deepEqual(entryDetail({ kind: "refused", n: 2, rev: 5, at: NOW, tool: "Bash", reason: "r", call: "c9" }, BOARD, t), ["r", "哪次调用：c9"]);
 });
 
-test("会话: every prompt newest first under its day, with what its turn did; a press opens its menu under it; then the export", () => {
+test("会话: every prompt newest first under its day, with what its turn did and its icons; a press unfolds it, the one unfolded before folds", () => {
   const prompts = [
     { id: "p0", at: "2026-10-11T03:10:00Z", text: "昨天的事", tools: 2, refusals: 0, entered: [], signals: [], did: "改好了。" },
     { id: "p1", at: "2026-10-12T09:00:10Z", text: "把限流中间件的测试补上，然后开 PR。\n第二行", state: "build", tools: 7, refusals: 0, entered: [], signals: [], did: "测试补上了，PR 已开。" },
@@ -407,33 +407,29 @@ test("会话: every prompt newest first under its day, with what its turn did; a
     { id: "p3", at: "2026-10-12T09:05:00Z", text: "顺手部署一下。", state: "review", tools: 0, refusals: 0, entered: [], signals: [] },
   ];
   const commits = [{ sha: "e18b116d00000000", at: "2026-10-12T09:04:00Z" }, { sha: "7a38c1fd00000000", at: "2026-10-12T09:02:00Z" }, { sha: "053f317c9d0e1f2a", at: "2026-10-12T09:01:00Z" }];
-  const rows = sessionRows(prompts, "p2", commits, wordsFor("zh"), 100, NOW);
-  const look = rows.map((r) => r.kind === "section" ? `§ ${r.text}` : r.kind === "turn" ? `${r.text} | ${r.did}${r.open ? " ▾" : ""}` : r.kind === "buttons" || r.kind === "menu" ? r.items.map((b) => b.label).join(" ") : r.kind);
+  const rows = sessionRows(prompts, commits, wordsFor("zh"), 100, NOW, { flow: null, runs: [], expanded: { id: "p2", answer: "用了 fake timer。" } });
+  const look = rows.map((r) => r.kind === "section" ? `§ ${r.text}` : r.kind === "turn" ? `${r.text} | ${r.did}${r.open ? " ▾" : ""}` : r.kind === "prose" ? `> ${r.text}` : r.kind);
   assert.deepEqual(look, [
     "§ 今天",
     "顺手部署一下。 | 进行中…",
     "并发那个用例用 fake timer。 | e18b116d 4 次工具调用 · tests-pass ✓ · 进 #review ▾",
-    "跳转 拆成新会话 删除本轮会话 取消",
+    "> 并发那个用例用 fake timer。",
+    "> 用了 fake timer。",
     "把限流中间件的测试补上，然后开 PR。 | 053f317c 7a38c1fd 测试补上了，PR 已开。",
     "§ 昨天",
     "昨天的事 | 改好了。",
-    "§ 导出本会话",
-    "GEML（带 journal） Markdown JSON",
-  ], "the commits made while a turn ran, then the first sentence of its answer; the turn still running says so");
+  ], "the commits made while a turn ran, then the first sentence of its answer; the turn still running says so; the unfolded one shows its prompt and answer whole");
   const turns = rows.filter((r) => r.kind === "turn");
-  assert.deepEqual(turns.map((r) => r.action), [{ op: "turn-menu", id: "p3" }, { op: "turn-menu", id: null }, { op: "turn-menu", id: "p1" }, { op: "turn-menu", id: "p0" }], "a press opens a row's menu, or closes the open one");
+  assert.deepEqual(turns.map((r) => r.action), [{ op: "expand-turn", id: "p3" }, { op: "expand-turn", id: null }, { op: "expand-turn", id: "p1" }, { op: "expand-turn", id: "p0" }], "a press unfolds a turn, or folds the unfolded one");
   assert.match(turns[0].at, /^\d\d:\d\d$/);
-  assert.equal(rows[3].kind, "menu", "the open row's menu: a card under it");
-  assert.deepEqual(rows[3].items.map((b) => [b.key, b.action, b.tone]), [
-    ["locate-p2", { op: "locate", id: "p2" }, undefined], ["split-p2", { op: "split", id: "p2" }, undefined], ["remove-p2", { op: "remove", id: "p2" }, "danger"], ["close-p2", { op: "turn-menu", id: null }, "quiet"],
-  ]);
-  const located = sessionRows(prompts.map((p) => ({ ...p, uuid: `row-${p.id}` })), "p2", commits, wordsFor("zh"), 100, NOW).find((r) => r.kind === "menu");
-  assert.deepEqual(located.items[0].action, { op: "locate", id: "p2", uuid: "row-p2" }, "跳转 carries the row, so the press scrolls before it awaits anything");
-  assert.deepEqual(rows.at(-1).items.map((b) => b.action), [
-    { op: "export", kind: "session", format: "geml" }, { op: "export", kind: "session", format: "md" }, { op: "export", kind: "session", format: "json" },
-  ], "the whole session, no picking");
-  assert.ok(sessionRows(prompts, null, [], wordsFor("zh"), 100, NOW).every((r) => r.kind !== "buttons" || r.items[0].key === "export-session-geml"), "no menu open, no menu");
-  assert.deepEqual(sessionRows([], null, [], wordsFor("zh"), 100), [{ kind: "text", text: "还没有 prompt", tone: "dim" }]);
+  assert.ok(turns.every((r) => r.fold === true), "every turn says whether it is unfolded");
+  assert.deepEqual(turns[1].icons.map((i) => [i.glyph, i.button.key, i.button.label, i.button.action]), [
+    ["locate", "locate-p2", "跳转", { op: "locate", id: "p2" }], ["split", "split-p2", "拆分", { op: "split", id: "p2" }], ["delete", "remove-p2", "删除", { op: "remove", id: "p2" }],
+  ], "the icons at the row's right: where the conversation scrolls, the scroll first");
+  const located = sessionRows(prompts.map((p) => ({ ...p, uuid: `row-${p.id}` })), commits, wordsFor("zh"), 100, NOW).filter((r) => r.kind === "turn")[1];
+  assert.deepEqual(located.icons[0].button.action, { op: "locate", id: "p2", uuid: "row-p2" }, "跳转 carries the row, so the press scrolls before it awaits anything");
+  assert.ok(rows.every((r) => r.kind !== "buttons" && r.kind !== "menu"), "no menu under a turn, no export among the turns");
+  assert.deepEqual(sessionRows([], [], wordsFor("zh"), 100), [{ kind: "text", text: "还没有 prompt", tone: "dim" }]);
 });
 
 test("流程: the ways out a person may take are numbered in the picture's order, one number each; a condition that holds is offered", () => {
@@ -450,7 +446,7 @@ test("the pane: rows for the tab, a problem above them, and the reason when ther
   assert.deepEqual(pane({ board: null, problem: "这个项目还没有流程。用 /gemflow add 选一个内置流程。" }), [{ kind: "text", text: "这个项目还没有流程。用 /gemflow add 选一个内置流程。", tone: "error" }]);
   assert.deepEqual(pane({ board: null, tab: "items" }), [{ kind: "section", key: "waiting", text: "待处理" }, { kind: "text", text: "暂无", tone: "dim" }, wait]);
   assert.deepEqual(pane({ board: null, tab: "items", problem: "x" }).at(-1), { kind: "text", text: "暂无", tone: "dim" }, "under a problem, no wait line");
-  assert.deepEqual(pane({ board: null, tab: "sessions" }), [{ kind: "text", text: "还没有 prompt", tone: "dim" }]);
+  assert.deepEqual(pane({ board: null, tab: "sessions" }), [{ kind: "section", key: "own", text: "本会话", fold: { key: "export-own", label: "导出", action: { op: "export-menu", session: "own" } } }, { kind: "text", text: "还没有 prompt", tone: "dim" }], "this session's heading carries its export even with nothing under it");
   assert.deepEqual(pane(), flow());
   assert.deepEqual(pane({ tab: "tools" }), toolRows({ board: BOARD, columns: 100, t: wordsFor("zh"), usage: {}, suggestions: [], query: "", menu: null, naming: null, open: [] }));
   const stale = pane({ problem: "gemflow：桥接没有应答（timed out）", tab: "items", doneOpen: true });
@@ -504,53 +500,58 @@ test("会话: with turns in more than one flow, a filter by flow; a run of three
   const p = (id, at, flow, itemTitle) => ({ id, at, text: `${id} 的提示词`, flow, itemTitle, tools: 1, refusals: 0, entered: [], signals: [], did: `${id} 做了` });
   const prompts = [p("a", "2026-10-12T08:00:00Z", "开发流程", "样式"), p("b", "2026-10-12T08:10:00Z", "标志设计", "gemflow 标志"), p("c", "2026-10-12T08:20:00Z", "标志设计", "gemflow 标志"), p("d", "2026-10-12T08:30:00Z", "标志设计", "gemflow 标志"), p("e", "2026-10-12T09:00:00Z", "开发流程", "样式")];
   const look = (rows) => rows.map((r) => r.kind === "turn" ? `${r.text}${r.did ? ` | ${r.did}` : ""}` : r.kind === "buttons" ? r.items.map((b) => `${b.label}${b.primary ? "*" : ""}`).join(" ") : r.kind === "section" ? `§ ${r.text}` : r.kind);
-  const folded = sessionRows(prompts, null, [], wordsFor("zh"), 100, NOW, { flow: null, runs: [], current: "开发流程" });
-  assert.deepEqual(look(folded), ["全部* 开发流程 标志设计", "§ 今天", "e 的提示词 | e 做了", "标志设计 · gemflow 标志 · 3 条提示词", "a 的提示词 | a 做了", "§ 导出本会话", "GEML（带 journal） Markdown JSON"]);
+  const folded = sessionRows(prompts, [], wordsFor("zh"), 100, NOW, { flow: null, runs: [], current: "开发流程" });
+  assert.deepEqual(look(folded), ["全部* 开发流程 标志设计", "§ 今天", "e 的提示词 | e 做了", "标志设计 · gemflow 标志 · 3 条提示词", "a 的提示词 | a 做了"]);
   assert.deepEqual(folded[3].action, { op: "session-run", id: "b", open: true });
-  const open = sessionRows(prompts, null, [], wordsFor("zh"), 100, NOW, { flow: null, runs: ["b"], current: "开发流程" });
+  assert.equal(folded[3].fold, true, "a run folds and unfolds: it says which");
+  const open = sessionRows(prompts, [], wordsFor("zh"), 100, NOW, { flow: null, runs: ["b"], current: "开发流程" });
   assert.deepEqual(look(open).slice(3, 7), ["标志设计 · gemflow 标志 · 3 条提示词", "d 的提示词 | d 做了", "c 的提示词 | c 做了", "b 的提示词 | b 做了"]);
-  const only = sessionRows(prompts, null, [], wordsFor("zh"), 100, NOW, { flow: "标志设计", runs: [], current: "开发流程" });
+  const only = sessionRows(prompts, [], wordsFor("zh"), 100, NOW, { flow: "标志设计", runs: [], current: "开发流程" });
   assert.deepEqual(look(only).slice(0, 5), ["全部 开发流程 标志设计*", "§ 今天", "d 的提示词 | d 做了", "c 的提示词 | c 做了", "b 的提示词 | b 做了"]);
-  const stale = sessionRows(prompts, null, [], wordsFor("zh"), 100, NOW, { flow: "早就改名的流程", runs: [], current: "开发流程" });
+  const stale = sessionRows(prompts, [], wordsFor("zh"), 100, NOW, { flow: "早就改名的流程", runs: [], current: "开发流程" });
   assert.deepEqual(look(stale).slice(0, 3), ["全部* 开发流程 标志设计", "§ 今天", "e 的提示词 | e 做了"], "a filter by a flow no prompt carries shows them all, never only the export");
-  const one = sessionRows(prompts.filter((x) => x.flow === "开发流程"), null, [], wordsFor("zh"), 100, NOW, { flow: "标志设计", runs: [], current: "开发流程" });
+  const one = sessionRows(prompts.filter((x) => x.flow === "开发流程"), [], wordsFor("zh"), 100, NOW, { flow: "标志设计", runs: [], current: "开发流程" });
   assert.deepEqual(look(one).slice(0, 2), ["§ 今天", "e 的提示词 | e 做了"], "with one flow left there is no filter to clear: every prompt shows");
 });
 
-test("会话 across the project: the decisions, the files before merging (one two sessions changed in the error colour), the other sessions, then this one", async () => {
-  const { projectRows, sessionLabel } = await import("../dist/hosts/claude-code/board.js");
+test("会话 across the project: the decisions shown whole, newest first; the other sessions after this one's turns, each with its export and a triangle saying whether it is unfolded", async () => {
+  const { decisionRows, othersRows, sessionLabel } = await import("../dist/hosts/claude-code/board.js");
+  const t = wordsFor("zh");
   const s = (id, host, branch, decisions, files, last) => ({ id, host, branch, started: "2026-10-12T07:00:00Z", last, turns: [{ turn: 1, at: "2026-10-12T08:00:00Z", prompt: `${id} 问的`, decisions: decisions.map(([, text]) => text) }], decisions: decisions.map(([at, text]) => ({ turn: 1, at, text })), files: files.map((path) => ({ path, at: "2026-10-12T08:30:00Z" })), commits: [] });
   const sessions = [
     s("me", "claude-code", "feat/x", [["2026-10-12T08:05:00Z", "每会话一个文件"]], ["hooks/register.tsx", "src/board.ts"], "2026-10-12T09:00:00Z"),
     s("cx", "codex", "feat/y", [["2026-10-12T08:10:00Z", "合并前先跑三平台 CI"]], ["hooks/register.tsx"], "2026-10-12T08:40:00Z"),
   ];
-  const look = (rows) => rows.map((r) => r.kind === "section" ? `§ ${r.text}` : r.kind === "entry" ? `${r.title} | ${r.tag}${r.tone === "error" ? " !" : ""}` : r.kind === "turn" ? `> ${r.text} | ${r.did}` : r.kind);
-  const rows = projectRows({ sessions, own: "me", open: null }, wordsFor("zh"), 100, NOW);
-  assert.deepEqual(look(rows).map((x) => x.replace(/\d\d:\d\d/, "hh:mm")), [
-    "§ 决定", "合并前先跑三平台 CI | Codex · feat/y hh:mm", "每会话一个文件 | 本会话 hh:mm",
-    "§ 合并前", "hooks/register.tsx | 本会话 · Codex · feat/y !", "src/board.ts | 本会话",
-    "§ 其他会话", "Codex · feat/y | hh:mm",
-    "§ 本会话",
-  ]);
-  assert.deepEqual(rows[1].action, { op: "use-decision", text: "合并前先跑三平台 CI", from: "Codex · feat/y" }, "a press puts the decision in the prompt box");
-  assert.deepEqual(rows.find((r) => r.key === "session-cx").action, { op: "session-open", id: "cx" });
-  const open = projectRows({ sessions, own: "me", open: "cx" }, wordsFor("zh"), 100, NOW);
-  assert.deepEqual(look(open).slice(7, 9).map((x) => x.replace(/\d\d:\d\d/, "hh:mm")), ["Codex · feat/y | hh:mm", "> cx 问的 | 合并前先跑三平台 CI"], "unfolded: its turns, each with what it decided");
-  assert.deepEqual(projectRows({ sessions: [sessions[0]].map((x) => ({ ...x, decisions: [] })), own: "me", open: null }, wordsFor("zh"), 100, NOW), [], "alone and nothing decided: the tab is this session's");
+  const hhmm = (x) => x.replace(/\d\d:\d\d/, "hh:mm");
+  const look = (rows) => rows.map((r) => r.kind === "section" ? `§ ${r.text}` : r.kind === "note" ? `${r.lines.join("⏎")} | ${r.tag}` : r.kind === "entry" ? `${r.title} | ${r.tag} ${r.open ? "▾" : "▸"}${r.extra !== undefined ? ` [${r.extra.label}]` : ""}` : r.kind === "turn" ? `> ${r.text} | ${r.did}` : r.kind);
+  const exports = { button: (id) => ({ key: `export-${id}`, label: "导出", action: { op: "export-menu", session: id } }), under: () => [] };
+  const head = decisionRows({ sessions, own: "me", open: null }, t, 100, NOW);
+  assert.deepEqual(look(head).map(hhmm), ["§ 决定", "合并前先跑三平台 CI | Codex · feat/y hh:mm", "每会话一个文件 | 本会话 hh:mm"]);
+  assert.deepEqual(head[1].action, { op: "use-decision", text: "合并前先跑三平台 CI", from: "Codex · feat/y" }, "a press puts the decision in the prompt box");
+  const tail = othersRows({ sessions, own: "me", open: null }, t, 100, NOW, exports);
+  assert.deepEqual(look(tail).map(hhmm), ["§ 其他会话", "Codex · feat/y | hh:mm ▸ [导出]"]);
+  assert.deepEqual(tail[1].action, { op: "session-open", id: "cx" });
+  const open = othersRows({ sessions, own: "me", open: "cx" }, t, 100, NOW, exports);
+  assert.deepEqual(look(open).slice(1, 3).map(hhmm), ["Codex · feat/y | hh:mm ▾ [导出]", "> cx 问的 | 合并前先跑三平台 CI"], "unfolded: its turns, each with what it decided");
+  const long = decisionRows({ sessions: [{ ...sessions[0], decisions: [{ turn: 1, at: "2026-10-12T08:05:00Z", text: "一".repeat(60) }] }], own: "me", open: null }, t, 40, NOW);
+  assert.deepEqual(long[1].lines.map((l) => l.length), [18, 18, 18, 6], "a long decision wraps to the width, none of it cut");
+  assert.deepEqual(decisionRows({ sessions: sessions.map((x) => ({ ...x, decisions: [] })), own: "me", open: null }, t, 100, NOW), [], "nothing decided: no heading");
+  assert.deepEqual(othersRows({ sessions: [sessions[0]], own: "me", open: null }, t, 100, NOW, exports), [], "alone: no other sessions");
   assert.equal(sessionLabel({ ...sessions[1], branch: undefined, checkout: ["C:", "w", "geml-agent-runtime"].join(String.fromCharCode(92)) }, "me"), "Codex · geml-agent-runtime", "a Windows checkout: its folder");
   assert.equal(sessionLabel({ ...sessions[1], branch: undefined, checkout: "/home/g/geml-agent-runtime" }, "me"), "Codex · geml-agent-runtime", "a POSIX one too");
 });
 
-test("会话 where the conversation cannot be scrolled: the menu offers 展开, and the unfolded turn shows its whole prompt and answer", () => {
+test("会话 where the conversation cannot be scrolled: no 跳转 among the icons; the unfolded turn shows its whole prompt, then its answer — 正在读取… until the record answers, 没有记下回答 when it holds none", () => {
   const p = { id: "p1", at: "2026-10-12T08:00:00Z", text: "把会话页改成整行可点\n第二行", tools: 1, refusals: 0, entered: [], signals: [], did: "改好了" };
-  const menuOf = (rows) => rows.find((r) => r.kind === "menu");
-  const desk = sessionRows([p], "p1", [], wordsFor("zh"), 100, NOW, { flow: null, runs: [], scrolls: false });
-  assert.deepEqual([menuOf(desk).items[0].label, menuOf(desk).items[0].action], ["展开", { op: "locate", id: "p1" }]);
-  const term = sessionRows([p], "p1", [], wordsFor("zh"), 100, NOW, { flow: null, runs: [] });
-  assert.equal(menuOf(term).items[0].label, "跳转", "the terminal scrolls");
-  const open = sessionRows([p], "p1", [], wordsFor("zh"), 100, NOW, { flow: null, runs: [], scrolls: false, expanded: { id: "p1", answer: "**改好了**，整行都能点。" } });
-  assert.deepEqual([menuOf(open).items[0].label, menuOf(open).items[0].action], ["收起", { op: "expand-turn", id: null }]);
+  const turnOf = (rows) => rows.find((r) => r.kind === "turn");
+  const desk = sessionRows([p], [], wordsFor("zh"), 100, NOW, { flow: null, runs: [], scrolls: false });
+  assert.deepEqual(turnOf(desk).icons.map((i) => i.glyph), ["split", "delete"]);
+  assert.deepEqual(turnOf(sessionRows([p], [], wordsFor("zh"), 100, NOW, { flow: null, runs: [] })).icons.map((i) => i.glyph), ["locate", "split", "delete"], "the terminal scrolls");
+  const open = sessionRows([p], [], wordsFor("zh"), 100, NOW, { flow: null, runs: [], scrolls: false, expanded: { id: "p1", answer: "**改好了**，整行都能点。" } });
+  assert.deepEqual([turnOf(open).open, turnOf(open).action], [true, { op: "expand-turn", id: null }]);
   assert.deepEqual(open.filter((r) => r.kind === "prose").map((r) => [r.text, r.markdown === true]), [["把会话页改成整行可点\n第二行", false], ["**改好了**，整行都能点。", true]]);
-  const none = sessionRows([p], null, [], wordsFor("zh"), 100, NOW, { flow: null, runs: [], scrolls: false, expanded: { id: "p1", answer: null } });
+  const reading = sessionRows([p], [], wordsFor("zh"), 100, NOW, { flow: null, runs: [], scrolls: false, expanded: { id: "p1", answer: null } });
+  assert.equal(reading.filter((r) => r.kind === "prose").at(-1).text, "正在读取…");
+  const none = sessionRows([p], [], wordsFor("zh"), 100, NOW, { flow: null, runs: [], scrolls: false, expanded: { id: "p1", answer: "" } });
   assert.equal(none.filter((r) => r.kind === "prose").at(-1).text, "没有记下回答");
 });

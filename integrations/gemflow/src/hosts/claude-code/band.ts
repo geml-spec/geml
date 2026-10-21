@@ -56,6 +56,22 @@ export function truncate(text: string, max: number): string {
   return `${out}…`;
 }
 
+/** `text` broken into rows of at most `width` cells, at most `rows` of them, the last ending in "…" when some is left over. */
+export function wrapCells(text: string, width: number, rows: number): string[] {
+  const out: string[] = [];
+  let line = "";
+  for (const c of text) {
+    if (cellWidth(line + c) > width) { out.push(line); line = ""; }
+    line += c;
+  }
+  if (line !== "") out.push(line);
+  if (out.length <= rows) return out;
+  const kept = out.slice(0, rows);
+  const last = kept[rows - 1] as string;
+  kept[rows - 1] = `${[...last].slice(0, Math.max(0, [...last].length - 1)).join("")}…`;
+  return kept;
+}
+
 /** Whole segments while they fit in `columns`, separators counted; the first that does not is cut, the rest dropped. */
 export function fitSegments(segments: readonly Segment[], columns: number): Segment[] {
   const out: Segment[] = [];

@@ -1036,7 +1036,10 @@ test('the session tab lists each prompt by day, newest first, with what its turn
   expect(turns, 'newest first').toEqual(['顺手部署一下。', '把测试补上，然后开 PR。'])
   expect(await pane.find({ type: 'Text', text: /2 次工具调用 · tests-pass ✓ · 进 #review/ }), 'what the first turn did').toBeDefined()
   expect(await pane.find({ type: 'Text', text: /进行中…/ }), 'the last is still going').toBeDefined()
-  await pane.press({ key: 'export-session-md' })
+  // The export sits on this session's heading: its formats open on a press, one of them writes.
+  expect(await pane.find({ type: 'Button', key: 'export-own-md' }), 'the formats wait behind the button').toBeUndefined()
+  await pane.press({ key: 'export-own' })
+  await pane.press({ key: 'export-own-md' })
   const exported = w.sent.filter((r) => r.op === 'export').at(-1) as Req
   expect(exported).toMatchObject({ kind: 'text', format: 'md', name: 'session-sess-123' })
   expect(String(exported['text'])).toMatch(/^# 会话 sess-1234567890\n/)
@@ -1068,26 +1071,24 @@ test('the session tab: a prompt learns its row once the host stored it, a press 
   const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
   const picks = (await pane.findAll({ type: 'Button' })).filter((b) => String(b.key).startsWith('open-prompt-'))
   expect(picks).toHaveLength(2)
-  // The oldest turn, drawn last: its menu opens on a press.
+  // The oldest turn, drawn last: its icons stand at its right, named.
   const id = String(picks[1]!.key).slice('open-prompt-'.length)
-  expect(await pane.find({ type: 'Button', key: `locate-${id}` }), 'no actions until the turn is pressed').toBeUndefined()
-  await pane.press({ key: `open-prompt-${id}` })
+  expect((await pane.find({ type: 'Button', key: `locate-${id}` }))?.text, 'the icons stand on the row').toBe('跳转')
   await pane.press({ key: `locate-${id}` })
   // A transcript row is the surface's to move: the test host has none, so the module reports why nothing moved.
   expect(w.toasts.at(-1)).toBe('对话没有滚到那一处：no implementation for ui.scroll')
-  await pane.press({ key: `open-prompt-${id}` })
   await pane.press({ key: `split-${id}` })
   expect(asked.at(-1)).toBe('把这一轮及之后的轮次拆到新会话？最后一轮留下，会先备份；重启应用后生效。')
   expect(prompted).toHaveLength(1)
   expect(prompted[0]).toContain('/skills/split-session/split-session.mjs')
   expect(prompted[0]).toContain('「把测试补上，然后开 PR。」')
   expect(prompted[0]).toContain('最后一轮除外')
-  await pane.press({ key: `open-prompt-${id}` })
   await pane.press({ key: `remove-${id}` })
   expect(asked.at(-1), '删除 deletes: it says so').toBe('删除这一轮？会先备份，可恢复；重启应用后才看不到。')
   expect(prompted[1]).toContain('用 remove 只删掉这一轮（不建新会话）')
   expect(w.toasts.filter((x) => x === '已交给模型，结果看对话')).toHaveLength(2)
-  await pane.press({ key: 'export-session-json' })
+  await pane.press({ key: 'export-own' })
+  await pane.press({ key: 'export-own-json' })
   const exported = w.sent.filter((r) => r.op === 'export').at(-1) as Req
   expect((JSON.parse(String(exported['text'])) as { prompts: { uuid?: string }[] }).prompts.map((p) => p.uuid), 'the export carries the rows\' ids').toEqual(stored)
   await pane.unmount()
@@ -1374,10 +1375,15 @@ test('a session resumed after the app restarted shows the prompts the store kept
   const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
   expect(await pane.find({ type: 'Button', key: 'open-prompt-p1-a' }), 'the older prompt is back').toBeDefined()
   expect(await pane.find({ type: 'Button', key: 'open-prompt-p2-b' })).toBeDefined()
+  // The icons stand at each row's right; on the desktop, which cannot scroll the conversation, there is no 跳转.
+  expect(await pane.find({ type: 'Button', key: 'split-p1-a' }), 'split, at the row').toBeDefined()
+  expect(await pane.find({ type: 'Button', key: 'remove-p1-a' }), 'delete, at the row').toBeDefined()
+  expect(await pane.find({ type: 'Button', key: 'locate-p1-a' })).toBeUndefined()
   await pane.press({ key: 'open-prompt-p1-a' })
-  expect(await pane.find({ type: 'Text', text: '删除本轮会话' }), 'the menu: a card of entries').toBeDefined()
-  expect(await pane.find({ type: 'Button', key: 'locate-p1-a' })).toBeDefined()
   await pane.unmount()
+  const again = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  expect(JSON.stringify(await again.drawn()), 'the press unfolds the turn: its answer, which no record holds here').toContain('没有记下回答')
+  await again.unmount()
 })
 
 const LOGS = `${ROOT}/.geml/sessions`
@@ -1580,9 +1586,8 @@ test('the session tab across the project: the decisions, a file two sessions cha
   await $.command.run({ command: 'gemflow', args: 'board sessions', origin: COMPOSER, presentation: PRESENTATION })
   await clock.advance(60_000)
   const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
-  for (const heading of ['决定', '合并前', '其他会话', '本会话']) expect(await pane.find({ type: 'Text', text: heading }), heading).toBeDefined()
-  const clash = await pane.find({ type: 'Text', text: 'hooks/register.tsx' })
-  expect(clash?.props.color, 'changed by two sessions: settle before merging').toBe('error')
+  for (const heading of ['决定', '本会话', '其他会话']) expect(await pane.find({ type: 'Text', text: heading }), heading).toBeDefined()
+  expect(await pane.find({ type: 'Button', key: 'export-cx1' }), 'the other session exports from its heading').toBeDefined()
   await pane.press({ key: 'go-session-cx1' })
   await pane.unmount()
   const again = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
@@ -1594,7 +1599,7 @@ test('the session tab across the project: the decisions, a file two sessions cha
   expect(filled.at(-1)).toBe('参照 Codex · feat/y：合并前先跑三平台 CI\n')
 })
 
-test('on the desktop, where the conversation cannot be scrolled, 展开 shows the turn\'s whole prompt and the answer its log holds; the whole row takes the press', async ($, on) => {
+test('on the desktop, where the conversation cannot be scrolled, a press on the row unfolds the turn: its whole prompt and the answer its log holds', async ($, on) => {
   const w = world(on)
   w.sessionsDir = LOGS
   on('prompt.submit', ($, e) => ({ text: e.text }))
@@ -1610,15 +1615,16 @@ test('on the desktop, where the conversation cannot be scrolled, 展开 shows th
   const pick = (await pane.findAll({ type: 'Button' })).find((b) => String(b.key).startsWith('open-prompt-'))
   expect(pick).toBeDefined()
   const id = String(pick!.key).slice('open-prompt-'.length)
+  expect(await pane.find({ type: 'Button', key: `locate-${id}` }), 'no 跳转 where nothing scrolls').toBeUndefined()
   await pane.press({ key: `open-2-prompt-${id}` }).catch(async () => pane.press({ key: `open-prompt-${id}` }))
   await pane.unmount()
   pane = await board()
-  const locate = await pane.find({ type: 'Button', key: `locate-${id}` })
-  expect(locate?.props.label, 'the desktop unfolds the turn instead of scrolling').toBe('展开')
-  await pane.press({ key: `locate-${id}` })
+  expect(JSON.stringify(await pane.drawn()), 'the answer, from the log').toContain('**改好了**，整行都能点。')
+  // The same press folds it again.
+  await pane.press({ key: `open-prompt-${id}` })
   await pane.unmount()
   pane = await board()
-  expect(JSON.stringify(await pane.drawn()), 'the answer, from the log').toContain('**改好了**，整行都能点。')
+  expect(JSON.stringify(await pane.drawn()), 'folded').not.toContain('**改好了**，整行都能点。')
   await pane.unmount()
 })
 

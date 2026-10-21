@@ -170,7 +170,7 @@ export function boardReply(s: Supervision, q: BoardQuery, now: string, locale?: 
   const inbox = inboxItems({ shell, timeline: board.timeline, problem: null, now, t });
   const rows = paneRows({
     board, problem: null, shell, tab: q.tab, columns: 160, maxRows: 400, t, now, root: s.root, inbox,
-    filter: q.filter, expanded: q.expanded, prompts: [], menu: null, sessionFlow: null, sessionRuns: [], evidence: q.expanded, doneOpen: true, flowState: null, switching: false, workflows: null,
+    filter: q.filter, expanded: q.expanded, prompts: [], sessionFlow: null, sessionRuns: [], evidence: q.expanded, doneOpen: true, flowState: null, switching: false, workflows: null,
     usage: {}, dismissed: [], toolQuery: "", toolMenu: null, toolNaming: null, toolsOpen: ["cli", "file", "mcp", "skill", "web", "model", "other"],
   });
   return {

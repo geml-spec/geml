@@ -2,6 +2,7 @@
 // the stage it was sent in, with what followed it; and their export. Pure and
 // Node-free: the hooks module records a prompt at `prompt.submit` and counts
 // what each turn did.
+import type { SessionSummary } from "../../core/session-log.js";
 import type { T } from "./text.js";
 import { cellWidth, truncate } from "./band.js";
 import { hhmm } from "./time.js";
@@ -108,6 +109,47 @@ export function sessionExport(prompts: readonly PromptRecord[], format: "geml" |
     return `${f} text {#prompt-${i + 1}}\n${body}\n${f}\n`;
   });
   return [`=== meta\ntitle = ${JSON.stringify(t("会话 {0}", session))}\n===\n`, `=== data {#session format=json}\n${JSON.stringify({ session, prompts: index }, null, 2)}\n===\n`, ...blocks].join("\n");
+}
+
+/** The fence that holds `text`: wider than any run of `=` the text begins a line with. */
+function fenceFor(text: string): string {
+  let run = 3;
+  for (const m of text.matchAll(/^(=+)/gm)) run = Math.max(run, m[1]!.length + 1);
+  return "=".repeat(run);
+}
+
+/**
+ * A session's record (session-log.ts) as a document: every turn's prompt and
+ * answer and the decisions it recorded, oldest first. GEML: a `data {#session}`
+ * index, then a text block for each prompt and each answer; Markdown: a
+ * heading per turn; JSON: the record whole. For this session and for another's alike.
+ */
+export function logExport(s: SessionSummary, format: "geml" | "md" | "json", t: T): string {
+  const title = t("会话 {0}", s.id);
+  const who = [s.host, s.branch].filter((x): x is string => x !== undefined).join(" · ");
+  if (format === "json") return JSON.stringify(s, null, 2);
+  const turns = [...s.turns].sort((a, b) => a.turn - b.turn);
+  if (format === "md") {
+    const lines = [`# ${title}`, "", ...(who !== "" ? [who, ""] : [])];
+    for (const turn of turns) {
+      lines.push(`## ${hhmm(turn.at)}`, "", `**${t("提示词")}**`, "", turn.prompt.replace(/\r\n?/g, "\n"), "");
+      if (turn.answer !== undefined) lines.push(`**${t("回答")}**`, "", turn.answer.replace(/\r\n?/g, "\n"), "");
+      for (const d of turn.decisions) lines.push(`- ${t("决定")}：${d}`);
+      if (turn.decisions.length > 0) lines.push("");
+    }
+    return lines.join("\n");
+  }
+  const index = { session: s.id, host: s.host, ...(s.branch !== undefined ? { branch: s.branch } : {}), started: s.started, last: s.last, turns: turns.map((turn) => ({ turn: turn.turn, at: turn.at, decisions: turn.decisions })) };
+  const blocks = turns.flatMap((turn) => {
+    const prompt = turn.prompt.replace(/\r\n?/g, "\n");
+    const out = [`${fenceFor(prompt)} text {#prompt-${turn.turn}}\n${prompt}\n${fenceFor(prompt)}\n`];
+    if (turn.answer !== undefined) {
+      const answer = turn.answer.replace(/\r\n?/g, "\n");
+      out.push(`${fenceFor(answer)} text {#answer-${turn.turn}}\n${answer}\n${fenceFor(answer)}\n`);
+    }
+    return out;
+  });
+  return [`=== meta\ntitle = ${JSON.stringify(title)}\n===\n`, `=== data {#session format=json}\n${JSON.stringify(index, null, 2)}\n===\n`, ...blocks].join("\n");
 }
 
 /** Whether a line fits the pane: a guard for the tests, so the export's width rules live here. */

@@ -43,7 +43,7 @@ function supervision(item = "session:s1", w = { flow: FLOW, tools: TOOLS, name: 
 test("the query: a tab and a filter the board knows, else their defaults; an empty expanded is none; the sessions tab is not on this host", () => {
   assert.deepEqual(readQuery(new URLSearchParams("session=s1&tab=flow&filter=refusals&expanded=rev-2&lang=en")), { session: "s1", tab: "flow", filter: "refusals", expanded: "rev-2", lang: "en" });
   assert.deepEqual(readQuery(new URLSearchParams("tab=nope&filter=x&expanded=")), { session: "", tab: "items", filter: "all", expanded: null });
-  assert.deepEqual(DSH_TABS, ["flow", "items", "journal", "tools"]);
+  assert.deepEqual(DSH_TABS, ["items", "journal", "flow", "tools"]);
   assert.equal(readQuery(new URLSearchParams("tab=sessions")).tab, "items");
 });
 
@@ -70,8 +70,8 @@ test("a session's status, shell and board come from the same functions as a work
 test("the reply: five tabs in the browser's language, the header, one tab's rows, and only the presses this host runs", () => {
   const { s } = supervision();
   const zh = boardReply(s, readQuery(new URLSearchParams("session=s1&tab=flow&lang=zh")), NOW, "zh-CN", { gemflow: "0.1.0", parser: "1.12.5" });
-  assert.deepEqual(zh.tabs.map((x) => x.id), ["flow", "items", "journal", "tools"]);
-  assert.equal(zh.tabs[1].label, "工作项");
+  assert.deepEqual(zh.tabs.map((x) => x.id), ["items", "journal", "flow", "tools"]);
+  assert.equal(zh.tabs[0].label, "工作项");
   assert.equal(zh.header.item, "session:s1");
   assert.equal(zh.header.workflow, "refund");
   assert.equal(zh.header.state.id, s.sc.initial);
@@ -81,7 +81,7 @@ test("the reply: five tabs in the browser's language, the header, one tab's rows
   assert.equal(picture.ranks.flat().find((x) => x.current)?.id, s.sc.initial, "the current state marked");
   assert.ok(picture.svg.includes(`class="node initial cur" data-state="${s.sc.initial}"`), "drawn with the session's state laid over it");
   const en = boardReply(s, readQuery(new URLSearchParams("session=s1&tab=items&lang=en")), NOW);
-  assert.equal(en.tabs[1].label, "Items");
+  assert.equal(en.tabs[0].label, "Items");
   assert.ok(en.rows.some((r) => r.kind === "text" && r.text.includes("session:s1")), "the items tab lists the session");
   assert.deepEqual(en.rows.filter((r) => r.kind === "text" && r.tone === "dim" && /^(Pending|In progress|Merged|Closed|Dropped)/.test(r.text)).map((r) => r.text), ["Pending", "In progress · 1", "Merged · 0", "Closed · 0", "Dropped · 0"], "the work items tab's headings, as lines the browser half draws: the session is its one work item, being worked on");
   assert.ok(en.rows.every((r) => ["text", "button", "buttons", "link", "input", "flow"].includes(r.kind)), "no row of a kind the browser half has no drawing of");

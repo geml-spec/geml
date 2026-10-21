@@ -290,8 +290,8 @@ export const WORDS: Readonly<Record<string, Entry>> = {
   "{0} 次工具调用": { en: "{0} tool calls", ja: "ツール呼び出し {0} 回" },
   "进 #{0}": { en: "entered #{0}", ja: "#{0} に入った" },
   "会话 {0}": { en: "session {0}", ja: "セッション {0}" },
-  "导出本会话": { en: "Export this session", ja: "このセッションを書き出す" },
-  "GEML（带 journal）": { en: "GEML (with the journal)", ja: "GEML（journal 付き）" },
+  "提示词": { en: "Prompt", ja: "プロンプト" },
+  "回答": { en: "Answer", ja: "回答" },
   "复制": { en: "Copy", ja: "コピー" },
   "已复制": { en: "copied", ja: "コピーしました" },
   "已写入 {0}": { en: "written to {0}", ja: "{0} に書き込みました" },
@@ -406,7 +406,6 @@ export const WORDS: Readonly<Record<string, Entry>> = {
   // --- where the session runs (env.ts) ---
   "远程控制": { en: "Remote Control", ja: "リモートコントロール" },
   "决定": { en: "Decisions", ja: "決定" },
-  "合并前": { en: "Before merging", ja: "マージ前" },
   "其他会话": { en: "Other sessions", ja: "他のセッション" },
   "本机重载插件": { en: "Reload the plugin on the machine", ja: "マシンでプラグインを再読み込み" },
   "产物 · {0}": { en: "Artifacts · {0}", ja: "成果物 · {0}" },
