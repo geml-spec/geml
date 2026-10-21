@@ -7,6 +7,13 @@ import type { Engine } from 'claude-code/testing'
 const ROOT = '/work/app'
 const BAND = { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns: 120, scroll: { offset: 0, bodyRows: 4 }, view: {} }
 const PANE = { title: 'Gemflow', isFocused: true, bodyColumns: 80, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 30 }, view: {} }
+
+/** A prompt's context without the standing instructions a conversation's first prompt carries (tested on their own): undefined when nothing else is there. */
+const sans = (ctx: readonly string[] | undefined): readonly string[] | undefined => {
+  if (ctx === undefined) return undefined
+  const rest = ctx.filter((s) => !s.startsWith('Gemflow: '))
+  return rest.length === 0 ? undefined : rest
+}
 const COMPOSER = { kind: 'composer' as const }
 const PRESENTATION = { isFullscreen: true, columns: 160 }
 
@@ -317,7 +324,7 @@ test('real event order: session start, a test run moves the stage, the board mov
   expect(tests.context).toEqual(['[gemflow] stage #review · rev 3'])
 
   await $.prompt.submit({ text: 'go on', wait: false, origin: COMPOSER })
-  expect(seen).toBeUndefined()
+  expect(sans(seen)).toBeUndefined()
 
   const opened = await $.command.run({ command: 'gemflow', args: 'board', origin: COMPOSER, presentation: PRESENTATION })
   expect(opened.text).toBe('已打开 Gemflow 看板。')
@@ -327,7 +334,7 @@ test('real event order: session start, a test run moves the stage, the board mov
   expect(w.sent.filter((r) => r.op === 'advance').at(-1)).toMatchObject({ to: 'done' })
 
   await $.prompt.submit({ text: 'and now?', wait: false, origin: COMPOSER })
-  expect(seen).toEqual(['[gemflow] stage #done · rev 4'])
+  expect(sans(seen)).toEqual(['[gemflow] stage #done · rev 4'])
 })
 
 test('the session moved to another checkout: the next prompt reads the workflow there; a directory in no checkout, or deeper in the same one, keeps the root', async ($, on) => {
@@ -499,9 +506,9 @@ test("a subagent's tool call that moves the stage: the subagent reads it, and th
   const sub = await $.tool.call({ tool: 'Bash', tool_use_id: 'b1', command: 'npm test', agentId: 'agent-7' })
   expect(sub.context).toEqual(['[gemflow] stage #review · rev 3'])
   await $.prompt.submit({ text: 'go on', wait: false, origin: COMPOSER })
-  expect(seen).toEqual(['[gemflow] stage #review · rev 3'])
+  expect(sans(seen)).toEqual(['[gemflow] stage #review · rev 3'])
   await $.prompt.submit({ text: 'and?', wait: false, origin: COMPOSER })
-  expect(seen).toBeUndefined()
+  expect(sans(seen)).toBeUndefined()
 })
 
 test("a subagent's move: the result carries the stage, and the main thread's next prompt still does", async ($, on) => {
@@ -515,7 +522,7 @@ test("a subagent's move: the result carries the stage, and the main thread's nex
   const sub = await $.tool.call({ tool: 'mcp__gemflow__move', tool_use_id: 'v1', to: 'review', agentId: 'agent-2' })
   expect(sub.context).toEqual(['[gemflow] stage #review · rev 5'])
   await $.prompt.submit({ text: 'go on', wait: false, origin: COMPOSER })
-  expect(seen).toEqual(['[gemflow] stage #review · rev 5'])
+  expect(sans(seen)).toEqual(['[gemflow] stage #review · rev 5'])
 })
 
 test('a registration the engine refuses: the start goes on, and the band says which', async ($, on) => {
@@ -695,7 +702,7 @@ test("another work item's stage text reaches the subagent working there, never t
   const main = await $.tool.call({ tool: 'Bash', tool_use_id: 'b2', command: 'cd .claude/worktrees/agent-1 && npm test' })
   expect(main.context).toBeUndefined()
   await $.prompt.submit({ text: 'go on', wait: false, origin: COMPOSER })
-  expect(seen, 'the next prompt carries the session\'s own stage: nothing marked the other item\'s as delivered').toEqual(['[gemflow] stage #build · rev 0'])
+  expect(sans(seen), 'the next prompt carries the session\'s own stage: nothing marked the other item\'s as delivered').toEqual(['[gemflow] stage #build · rev 0'])
 })
 
 test('a branch switch hands the new work item over in the result; switching back says where the old one stood; a subagent asks for no handoff', async ($, on) => {
@@ -708,13 +715,13 @@ test('a branch switch hands the new work item over in the result; switching back
   })
   await start($, on)
   await $.prompt.submit({ text: 'go', wait: false, origin: COMPOSER })
-  expect(seen).toEqual(['[gemflow] stage #build · rev 0'])
+  expect(sans(seen)).toEqual(['[gemflow] stage #build · rev 0'])
   w.item = 'feat/y'
   const there = await $.tool.call({ tool: 'Bash', tool_use_id: 'b1', command: 'git switch -c feat/y' })
   expect(w.sent.at(-1)).toMatchObject({ op: 'after', delivered: 'feat/x@0' })
   expect(there.context).toEqual(['[gemflow] now on feat/y · #build (new work item)\n[gemflow] stage #build · rev 0'])
   await $.prompt.submit({ text: 'and?', wait: false, origin: COMPOSER })
-  expect(seen, 'handed over with the result: the next prompt does not repeat it').toBeUndefined()
+  expect(sans(seen), 'handed over with the result: the next prompt does not repeat it').toBeUndefined()
   w.item = 'feat/x'
   const back = await $.tool.call({ tool: 'Bash', tool_use_id: 'b2', command: 'git switch feat/x' })
   expect(w.sent.at(-1)).toMatchObject({ op: 'after', delivered: 'feat/y@0' })
@@ -832,6 +839,33 @@ test('a tab whose rows cannot be drawn says why in its place; the tab bar still 
     expect(await words(), `${surface}: and back`).toMatch(/gemflow：工作项画不出来（/)
     await pane.unmount()
   }
+})
+
+test("a conversation's first prompt carries the standing instructions (the other sessions, the ask tool), once; again after a /clear and after a compaction; never once the system prompt carried them", async ($, on) => {
+  world(on)
+  const contexts: (readonly string[] | undefined)[] = []
+  on('prompt.submit', ($, e) => { contexts.push(e.context); return { text: e.text } })
+  // The engine's own ends, compactions and compositions, beneath the plugin.
+  on('session.end', ($, e) => ({ sessionId: e.sessionId }))
+  on('session.compact', ($, e) => ({ messages: e.messages }))
+  on('prompt.compose', () => ({ sections: [] }))
+  await start($, on)
+  const standing = (): string[] => (contexts.at(-1) ?? []).filter((s) => s.startsWith('Gemflow: ')).map((s) => s.slice(0, 32))
+  await $.prompt.submit({ text: '开始', wait: false, origin: COMPOSER })
+  expect(standing()).toEqual(['Gemflow: this project is worked ', 'Gemflow: when a turn ends asking'])
+  await $.prompt.submit({ text: '继续', wait: false, origin: COMPOSER })
+  expect(standing(), 'told once').toEqual([])
+  await $.session.end({ reason: 'clear', sessionId: 's1', resume: { id: 's1' } })
+  await $.prompt.submit({ text: '重新开始', wait: false, origin: COMPOSER })
+  expect(standing().length, 'after a /clear: again').toBe(2)
+  await $.session.compact({ trigger: 'auto', messages: [{ role: 'user', text: '开始', toolUses: [] }] })
+  await $.prompt.submit({ text: '压缩后', wait: false, origin: COMPOSER })
+  expect(standing().length, 'after a compaction: again').toBe(2)
+  const composed = await $.prompt.compose({ model: 'claude', promptModel: 'claude', surfaces: ['terminal'], tools: [], outputStyle: null, traits: [] })
+  expect(composed.sections.map((x) => x.id).filter((id) => id.startsWith('gemflow:'))).toEqual(['gemflow:sessions', 'gemflow:ask'])
+  await $.session.end({ reason: 'clear', sessionId: 's1', resume: { id: 's1' } })
+  await $.prompt.submit({ text: '再来', wait: false, origin: COMPOSER })
+  expect(standing(), 'the system prompt carries them: the prompt does not').toEqual([])
 })
 
 test('the version that runs is the one the board says; one synced and not loaded is a reload due, with both versions', async ($, on) => {

@@ -74,6 +74,10 @@ const problemAtom = atom({ plugin: 'gemflow', key: 'problem' } as const, null as
 const nodeAtom = atom({ plugin: 'gemflow', key: 'node' } as const, null as string | null)
 const rootAtom = atom({ plugin: 'gemflow', key: 'root' } as const, null as string | null)
 const deliveredAtom = atom({ plugin: 'gemflow', key: 'delivered' } as const, null as string | null)
+/** Whether this conversation was told about the other sessions and the ask tool through a prompt's context: once, then again after a /clear or a compaction. */
+const toldAtom = atom({ plugin: 'gemflow', key: 'told' } as const, false as boolean)
+/** Whether prompt.compose ran this session: then the system prompt carries those instructions itself, every turn, and no prompt need. */
+const composedAtom = atom({ plugin: 'gemflow', key: 'composed' } as const, false as boolean)
 const lastFileAtom = atom({ plugin: 'gemflow', key: 'lastFile' } as const, null as string | null)
 const boardAtom = atom({ plugin: 'gemflow', key: 'board' } as const, null as GemflowJson)
 const tabAtom = atom({ plugin: 'gemflow', key: 'tab' } as const, HOME_TAB as GemflowTab)
@@ -363,6 +367,25 @@ async function actsElsewhere($: EngineInterface, call: CallFacts, cwd: string, r
 /** What the main loop last read, `<item>@<rev>`, for a call of the main loop; null for a subagent's, which no handoff is for. */
 async function deliveredFor($: EngineInterface, agentId: unknown): Promise<string | null> {
   return agentId === undefined ? read($, deliveredAtom) : null
+}
+
+/**
+ * The standing instructions (the other sessions, the ask tool) for a prompt's
+ * context, the first time this conversation gets them. The system prompt is
+ * where they belong, but under a Team or Enterprise organization a built-in
+ * plugin runs before gemflow on prompt.compose and keeps the event, so its
+ * sections never reach the model; where compose did run, the prompt carries
+ * nothing. A failure tells nothing: the turn goes on.
+ */
+async function prefaceFor($: EngineInterface): Promise<string[]> {
+  try {
+    const [told, composed] = await Promise.all([read($, toldAtom), read($, composedAtom)])
+    if (told === true || composed === true) return []
+    await update($, toldAtom, () => true)
+    return [SESSIONS_PROMPT, ASK_PROMPT]
+  } catch {
+    return []
+  }
 }
 
 /**
@@ -2059,11 +2082,20 @@ export const register: Register = (on) => {
     return done
   }).catch(($, e, next) => next(e))
 
-  // A /clear ends the conversation the model read the stage in: the next prompt delivers it again. What ran is stored.
+  // A /clear ends the conversation the model read the stage and the standing instructions in: the next prompt delivers them again. What ran is stored.
   on('session.end', async ($, e, next) => {
     await update($, deliveredAtom, () => null)
+    try { await update($, toldAtom, () => false) } catch { /* said again at the next */ }
     try { await storeUsage($) } catch { /* kept for the session */ }
     return next(e)
+  }).catch(($, e, next) => next(e))
+
+  // A compaction may fold the first prompt's standing instructions away: the main loop's next prompt carries them again, where the system prompt
+  // does not. A summary computed ahead of time (`precompute`) replaces nothing yet.
+  on('session.compact', async ($, e, next) => {
+    const done = await next(e)
+    if (e.agentId === undefined && e.trigger !== 'precompute' && !('skip' in done)) { try { await update($, toldAtom, () => false) } catch { /* said again after the next /clear */ } }
+    return done
   }).catch(($, e, next) => next(e))
 
   // Every tool call. A broken gemflow never blocks one: where next already ran, next(e) replays its result.
@@ -2163,9 +2195,10 @@ export const register: Register = (on) => {
   on('tool.call', { tool: 'mcp__gemflow__artifact' }, ($, e) => recordArtifact($, e)).catch(() => ({ result: 'gemflow could not record that' }))
   on('tool.call', { tool: 'mcp__gemflow__ask' }, ($, e) => registerAsk($, e)).catch(() => ({ result: 'gemflow could not register that' }))
 
-  // The model is told once about the project's other sessions and the note tool.
+  // The model is told about the project's other sessions and the ask tool in the system prompt, where this event reaches gemflow (see prefaceFor).
   on('prompt.compose', async ($, e, next) => {
     const done = await next(e)
+    try { await update($, composedAtom, () => true) } catch { /* the next prompt may say it once more */ }
     return { ...done, sections: [...done.sections, { id: 'gemflow:sessions', text: SESSIONS_PROMPT, scope: 'session' as const }, { id: 'gemflow:ask', text: ASK_PROMPT, scope: 'session' as const }] }
   }).catch(($, e, next) => next(e))
 
@@ -2203,7 +2236,8 @@ export const register: Register = (on) => {
     // Where it came from: this machine's prompt box, or Remote Control (a plugin's own prompt keeps the last).
     const person = fromPerson(e.origin as { kind: string; asUser?: boolean })
     if (person && e.origin.kind !== 'plugin') { try { await update($, originAtom, () => e.origin.kind) } catch { /* unknown */ } }
-    const news = person ? [...(await attentionOnPrompt($, e.text)), ...(await sessionsOnPrompt($, e.text).catch(() => [] as string[]))] : []
+    // The first prompt of a conversation carries the standing instructions, where the system prompt did not.
+    const news = [...(await prefaceFor($)), ...(person ? [...(await attentionOnPrompt($, e.text)), ...(await sessionsOnPrompt($, e.text).catch(() => [] as string[]))] : [])]
     // What the person gave with it (images, documents) is one of the work item's artifacts: copied once the prompt entered, behind it.
     const given = person ? e.attachments ?? [] : []
     const go = (ev: typeof e) => next(news.length > 0 ? { ...ev, context: [...(ev.context ?? []), ...news] } : ev).then((done) => {

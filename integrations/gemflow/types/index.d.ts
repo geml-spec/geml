@@ -14,6 +14,10 @@ declare module 'claude-code' {
       node: string | null
       root: string | null
       delivered: string | null
+      /** Whether this conversation was told about the other sessions and the ask tool through a prompt's context (again after a /clear or a compaction). */
+      told: boolean
+      /** Whether prompt.compose ran this session: the system prompt carries those instructions itself. */
+      composed: boolean
       lastFile: string | null
       tab: GemflowTab
       /** Whether the work items tab lists the finished work items. */
