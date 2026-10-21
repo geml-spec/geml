@@ -1473,8 +1473,17 @@ function hairline(els: Els, key: string, columns: number): unknown {
  * The rows in the prototype's grouping: a run of work items sits in one rounded box, a rule between them; any other
  * row as it is. Only where the surface draws pictures; the terminal's rows stand alone.
  */
+/** One row as drawRow draws it; a row that cannot be drawn says so in its place. */
+function safeRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknown {
+  try {
+    return drawRow($, els, row, i)
+  } catch (err) {
+    return <els.Text key={`row-failed-${i}-${'key' in row ? String(row.key) : row.kind}`} color="error">{`gemflow：${reasonOf(err)}`}</els.Text>
+  }
+}
+
 function drawRows($: EngineInterface, els: Els, rows: BoardRow[], columns: number): unknown[] {
-  if (els.Svg === undefined) return rows.map((r, i) => drawRow($, els, r, i))
+  if (els.Svg === undefined) return rows.map((r, i) => safeRow($, els, r, i))
   const { Box, Text } = els
   const out: unknown[] = []
   for (let i = 0; i < rows.length; i++) {
@@ -1493,18 +1502,18 @@ function drawRows($: EngineInterface, els: Els, rows: BoardRow[], columns: numbe
       i--
       out.push(
         <Box key={`turns-${r.key}`} flexDirection="column">
-          {run.flatMap((x, n) => n === 0 || x.kind !== 'turn' ? [drawRow($, els, x, n)] : [<Text key={`sep-${x.key}`} color={RULE} wrap="truncate">{'─'.repeat(Math.max(1, columns - 2))}</Text>, drawRow($, els, x, n)])}
+          {run.flatMap((x, n) => n === 0 || x.kind !== 'turn' ? [safeRow($, els, x, n)] : [<Text key={`sep-${x.key}`} color={RULE} wrap="truncate">{'─'.repeat(Math.max(1, columns - 2))}</Text>, safeRow($, els, x, n)])}
         </Box>,
       )
       continue
     }
-    if (r.kind !== 'entry') { out.push(drawRow($, els, r, i)); continue }
+    if (r.kind !== 'entry') { out.push(safeRow($, els, r, i)); continue }
     const run: Extract<BoardRow, { kind: 'entry' }>[] = []
     while (i < rows.length && (rows[i] as BoardRow).kind === 'entry') run.push(rows[i++] as Extract<BoardRow, { kind: 'entry' }>)
     i--
     out.push(
       <Box key={`list-${r.key}`} flexDirection="column" borderStyle="round" borderColor={RULE} paddingX={1}>
-        {run.flatMap((x, n) => n === 0 ? [drawRow($, els, x, n)] : [<Text key={`sep-${x.key}`} color={RULE} wrap="truncate">{'─'.repeat(Math.max(1, columns - 6))}</Text>, drawRow($, els, x, n)])}
+        {run.flatMap((x, n) => n === 0 ? [safeRow($, els, x, n)] : [<Text key={`sep-${x.key}`} color={RULE} wrap="truncate">{'─'.repeat(Math.max(1, columns - 6))}</Text>, safeRow($, els, x, n)])}
       </Box>,
     )
   }
@@ -1846,6 +1855,110 @@ async function shareStatus($: EngineInterface, t: T): Promise<string> {
   const item = shell?.status?.item
   const pending = pendingList(inbox, [...othersWaiting(board, item?.kind === 'item' ? item.id : undefined, t), ...(board !== null ? toolSuggestions(board, usage, dismissed, t) : [])])
   return statusShareText(shell, pending, board?.artifacts, t)
+}
+
+/** How long a part of the board may take to read before it says so: a read that never answers costs a part, never the pane. */
+const BOARD_READ_MS = 4_000
+
+/**
+ * `work`, or undefined once `ms` passed. The wait is cancelled when the work
+ * answers first; where the engine gives no timer here, the work alone.
+ */
+async function within<V>($: EngineInterface, ms: number, work: Promise<V>): Promise<V | undefined> {
+  const Ctl = (globalThis as { AbortController?: typeof AbortController }).AbortController
+  if (Ctl === undefined) return work
+  const ctl = new Ctl()
+  let timer: Promise<typeof LATE>
+  try {
+    timer = $.clock.sleep(ms, { signal: ctl.signal }).then(() => LATE, () => new Promise<typeof LATE>(() => undefined))
+  } catch {
+    return work
+  }
+  try {
+    const r = await Promise.race([work, timer])
+    return r === LATE ? undefined : (r as V)
+  } finally {
+    ctl.abort()
+  }
+}
+
+/** The rows of one tab of the board, read for that tab alone; the work items open on 此刻. */
+async function tabRows($: EngineInterface, e: { surface: string; props: { bodyColumns: number; scroll: { bodyRows: number } } }, t: T, tab: BoardTab): Promise<BoardRow[]> {
+  const columns = e.props.bodyColumns
+  // Each read is a trip to the host: the ones a tab needs, at once; the ones written on every tool call only where the tab shows them.
+  const shows = (visible: boolean) => <V,>(get: () => Promise<V>, otherwise: V): Promise<V> => (visible ? get() : Promise.resolve(otherwise))
+  const attention = shows(tab === 'items')(() => Promise.all([attentionNow($, t), readQueued($)]).catch(() => null), null)
+  const [inbox, board, problem, shell, now, root, filter, expanded, evidence, prompts, project, unfolded, menu, doneOpen, sessionFlow, sessionRuns, flowState, switching, workflows, usage, dismissed, toolQuery, toolMenu, toolNaming, toolsOpen, exported, droppedOpen, artifactMenu, docsOpen] = await Promise.all([
+    inboxOf($, t), readBoard($), read($, boardProblemAtom), readShell($), nowIso($), read($, rootAtom),
+    read($, filterAtom), read($, expandedAtom), read($, evidenceAtom),
+    shows(tab === 'sessions' || tab === 'journal')(() => readPrompts($), [] as PromptRecord[]),
+    shows(tab === 'sessions')(async () => {
+      const [sessions, own, open] = await Promise.all([read($, projectSessionsAtom), $.session.id().catch(() => ''), read($, openSessionAtom)])
+      return { sessions: (sessions as unknown as SessionSummary[] | null) ?? [], own, open }
+    }, null),
+    shows(tab === 'sessions')(() => read($, expandedTurnAtom), null as GemflowJson),
+    read($, turnMenuAtom), read($, doneOpenAtom), read($, sessionFlowAtom), read($, sessionRunsAtom),
+    read($, flowStateAtom), read($, flowSwitchAtom), read($, workflowsAtom),
+    usageDrawn($), dismissedOf($), read($, toolQueryAtom), read($, toolMenuAtom), read($, toolNamingAtom), read($, toolsOpenAtom),
+    shows(tab === 'sessions' || tab === 'journal')(() => read($, exportedAtom), null),
+    shows(tab === 'items')(() => read($, droppedOpenAtom), false),
+    shows(tab === 'items')(() => read($, artifactMenuAtom), null),
+    shows(tab === 'items')(() => read($, docsOpenAtom), false),
+  ])
+  const rows = paneRows({
+    board, problem, shell, tab, columns, maxRows: Math.max(4, e.props.scroll.bodyRows - 4), t, now, root: root ?? '', inbox,
+    filter: filter as JournalFilter, expanded, evidence, prompts,
+    ...(project !== null ? { project, scrolls: e.surface === 'terminal', unfolded: unfolded as unknown as { id: string; answer: string | null } | null } : {}),
+    menu, doneOpen, droppedOpen, sessionFlow, sessionRuns: (sessionRuns as unknown as string[] | null) ?? [],
+    flowState, switching, workflows: workflows as unknown as { bundled: string[]; installed: string[] } | null,
+    usage, dismissed, toolQuery, toolMenu, toolNaming, toolsOpen: (toolsOpen as unknown as string[] | null) ?? [],
+    exported, artifactMenu, docsOpen,
+  })
+  const here = await attention
+  return here === null ? rows : [...nowRows({ reply: here[0].reply, standing: here[0].standing, memory: here[0].memory, queued: here[1], picks: here[0].attention?.picks ?? [], t }), ...rows]
+}
+
+/** The board's header: the mark, the version, the dialogs; the work item, its stage and flow; where the session runs. */
+function drawHeader($: EngineInterface, els: Els, head: Header | undefined, envLine: readonly string[], t: T, columns: number): unknown {
+  const { Box, Text, Button } = els
+  return (
+    <Box key="header" flexDirection="column">
+      {head !== undefined && (
+        <Box gap={1} alignItems="center">
+          {els.Svg !== undefined ? <els.Svg source={MARK_SVG} alt="Gemflow" width={16} height={16} /> : <Text {...toneProps(MARK.tone)}>{MARK.text}</Text>}
+          <Text bold>Gemflow</Text>
+          {head.version !== '' && (els.Svg !== undefined
+            ? <Box key="version" borderStyle="round" borderColor={RULE} paddingX={1}><Text dimColor>{head.version}</Text></Box>
+            : <Text dimColor>{head.version}</Text>)}
+          {head.newer !== undefined && <Button key="newer" plain label={t('● 可更新 {0}', head.newer)} onPress={press($, { op: 'dialog', dialog: 'upgrade' })} />}
+          <Box flexGrow={1} />
+          <Box key="dialogs" gap={els.Svg !== undefined ? 2 : 1} alignItems="center">
+            {head.dialogs.map((d) => iconButton($, els, d, d.key.replace(/^dialog-/, '') as Glyph))}
+          </Box>
+        </Box>
+      )}
+      {head !== undefined && hairline(els, 'rule-top', columns)}
+      {head?.name !== undefined && (els.Svg !== undefined
+        ? (
+          <Box key="item-row" gap={1} alignItems="center" backgroundColor={SHADE} paddingX={1}>
+            <Text bold>{head.name}</Text>
+            {head.stage !== undefined && <Text bold color="inverseText" backgroundColor="text">{` ${head.stage} `}</Text>}
+            {head.flow !== undefined && <Text dimColor>{head.flow}</Text>}
+            <Box flexGrow={1} />
+          </Box>
+        )
+        : (
+          <Box gap={1}>
+            <Text bold>{head.name}</Text>
+            {head.stage !== undefined && <Text {...toneProps('brand')} bold>{head.stage}</Text>}
+            {head.flow !== undefined && <Text dimColor>{head.flow}</Text>}
+            <Box flexGrow={1} />
+          </Box>
+        ))}
+      {head?.reason !== undefined && <Text dimColor>{head.reason}</Text>}
+      {envLine.length > 0 && <Text key="env" dimColor wrap="truncate-end">{envLine.join(SEP)}</Text>}
+    </Box>
+  )
 }
 
 export const register: Register = (on) => {
@@ -2251,88 +2364,37 @@ export const register: Register = (on) => {
   on('ui.render', { component: 'Pane', requestId: 'gemflow-board' }, async ($, e) => {
     const els = elementsOf($, e)
     const { Box, Text, Button } = els
-    const [t, kept] = await Promise.all([words($), read($, tabAtom)])
-    // A tab this version no longer has (one kept from before an update) opens the work items.
-    const tab: BoardTab = (TAB_IDS as readonly string[]).includes(kept) ? kept : HOME_TAB
     const columns = e.props.bodyColumns
-    let rows: BoardRow[]
-    let head: Awaited<ReturnType<typeof headerRows>> | undefined
-    // Every value the board draws from, read at once: each read is a trip to the host, and forty of them in a row
-    // made a press feel slow. The ones written on every tool call are read only where the tab shows them.
-    const shows = (visible: boolean) => <V,>(get: () => Promise<V>, otherwise: V): Promise<V> => (visible ? get() : Promise.resolve(otherwise))
-    const env = envNow($, t, e.surface).catch(() => ({ parts: [] as string[] }))
-    const attention = shows(tab === 'items')(() => Promise.all([attentionNow($, t), readQueued($)]).catch(() => null), null)
+    // The tab bar needs the chosen tab and the words alone: it is drawn whatever else fails, so a press always switches.
+    const [t, kept] = await Promise.all([words($).catch(() => wordsFor('zh')), read($, tabAtom).catch(() => null)])
+    // A tab this version no longer has (one kept from before an update) opens the work items.
+    const tab: BoardTab = (TAB_IDS as readonly string[]).includes(kept as string) ? kept as BoardTab : HOME_TAB
+    const label = tabs(t).find((x) => x.id === tab)?.label ?? tab
+    const failed = (part: string, why: string): BoardRow => ({ kind: 'text', text: truncate(t('gemflow：{0}画不出来（{1}）', part, why), columns), tone: 'error' })
+    // The header, where the session runs, and the tab's rows: each on its own, read at once, each within BOARD_READ_MS.
+    const [head, envLine, rows] = await Promise.all([
+      within($, BOARD_READ_MS, headerRows($, t)).catch(() => undefined),
+      within($, BOARD_READ_MS, envNow($, t, e.surface)).then((x) => x?.parts ?? [], () => [] as string[]),
+      within($, BOARD_READ_MS, tabRows($, e, t, tab)).then(
+        (r) => r ?? [failed(label, t('读取超时'))],
+        (err: unknown) => [failed(label, reasonOf(err))],
+      ),
+    ])
+    let header: unknown
     try {
-      const [inbox, header, board, problem, shell, now, root, filter, expanded, evidence, prompts, project, unfolded, menu, doneOpen, sessionFlow, sessionRuns, flowState, switching, workflows, usage, dismissed, toolQuery, toolMenu, toolNaming, toolsOpen, exported, droppedOpen, artifactMenu, docsOpen] = await Promise.all([
-        inboxOf($, t), headerRows($, t), readBoard($), read($, boardProblemAtom), readShell($), nowIso($), read($, rootAtom),
-        read($, filterAtom), read($, expandedAtom), read($, evidenceAtom),
-        shows(tab === 'sessions' || tab === 'journal')(() => readPrompts($), [] as PromptRecord[]),
-        shows(tab === 'sessions')(async () => {
-          const [sessions, own, open] = await Promise.all([read($, projectSessionsAtom), $.session.id().catch(() => ''), read($, openSessionAtom)])
-          return { sessions: (sessions as unknown as SessionSummary[] | null) ?? [], own, open }
-        }, null),
-        shows(tab === 'sessions')(() => read($, expandedTurnAtom), null as GemflowJson),
-        read($, turnMenuAtom), read($, doneOpenAtom), read($, sessionFlowAtom), read($, sessionRunsAtom),
-        read($, flowStateAtom), read($, flowSwitchAtom), read($, workflowsAtom),
-        usageDrawn($), dismissedOf($), read($, toolQueryAtom), read($, toolMenuAtom), read($, toolNamingAtom), read($, toolsOpenAtom),
-        shows(tab === 'sessions' || tab === 'journal')(() => read($, exportedAtom), null),
-        shows(tab === 'items')(() => read($, droppedOpenAtom), false),
-        shows(tab === 'items')(() => read($, artifactMenuAtom), null),
-        shows(tab === 'items')(() => read($, docsOpenAtom), false),
-      ])
-      head = header
-      rows = paneRows({
-        board, problem, shell, tab, columns, maxRows: Math.max(4, e.props.scroll.bodyRows - 4), t, now, root: root ?? '', inbox,
-        filter: filter as JournalFilter, expanded, evidence, prompts,
-        ...(project !== null ? { project, scrolls: e.surface === 'terminal', unfolded: unfolded as unknown as { id: string; answer: string | null } | null } : {}),
-        menu, doneOpen, droppedOpen, sessionFlow, sessionRuns: (sessionRuns as unknown as string[] | null) ?? [],
-        flowState, switching, workflows: workflows as unknown as { bundled: string[]; installed: string[] } | null,
-        usage, dismissed, toolQuery, toolMenu, toolNaming, toolsOpen: (toolsOpen as unknown as string[] | null) ?? [],
-        exported, artifactMenu, docsOpen,
-      })
+      header = drawHeader($, els, head, envLine, t, columns)
     } catch (err) {
-      rows = [{ kind: 'text', text: truncate(`gemflow：看板画不出来（${reasonOf(err)}）`, columns), tone: 'error' }]
+      header = <Text key="header-failed" color="error">{t('gemflow：{0}画不出来（{1}）', t('页头'), reasonOf(err))}</Text>
     }
-    const envLine = (await env).parts
-    // The work items open on 此刻: everything the band has room for one of.
-    const now = await attention
-    if (now !== null) rows = [...nowRows({ reply: now[0].reply, standing: now[0].standing, memory: now[0].memory, queued: now[1], picks: now[0].attention?.picks ?? [], t }), ...rows]
+    let body: unknown[]
+    try {
+      body = drawRows($, els, rows, columns)
+    } catch (err) {
+      body = [<Text key="rows-failed" color="error">{t('gemflow：{0}画不出来（{1}）', label, reasonOf(err))}</Text>]
+    }
     return (
       <Box flexDirection="column">
-        {head !== undefined && (
-          <Box gap={1} alignItems="center">
-            {els.Svg !== undefined ? <els.Svg source={MARK_SVG} alt="Gemflow" width={16} height={16} /> : <Text {...toneProps(MARK.tone)}>{MARK.text}</Text>}
-            <Text bold>Gemflow</Text>
-            {head.version !== '' && (els.Svg !== undefined
-              ? <Box key="version" borderStyle="round" borderColor={RULE} paddingX={1}><Text dimColor>{head.version}</Text></Box>
-              : <Text dimColor>{head.version}</Text>)}
-            {head.newer !== undefined && <Button key="newer" plain label={t('● 可更新 {0}', head.newer)} onPress={press($, { op: 'dialog', dialog: 'upgrade' })} />}
-            <Box flexGrow={1} />
-            <Box key="dialogs" gap={els.Svg !== undefined ? 2 : 1} alignItems="center">
-              {head.dialogs.map((d) => iconButton($, els, d, d.key.replace(/^dialog-/, '') as Glyph))}
-            </Box>
-          </Box>
-        )}
-        {head !== undefined && hairline(els, 'rule-top', columns)}
-        {head?.name !== undefined && (els.Svg !== undefined
-          ? (
-            <Box key="item-row" gap={1} alignItems="center" backgroundColor={SHADE} paddingX={1}>
-              <Text bold>{head.name}</Text>
-              {head.stage !== undefined && <Text bold color="inverseText" backgroundColor="text">{` ${head.stage} `}</Text>}
-              {head.flow !== undefined && <Text dimColor>{head.flow}</Text>}
-              <Box flexGrow={1} />
-            </Box>
-          )
-          : (
-            <Box gap={1}>
-              <Text bold>{head.name}</Text>
-              {head.stage !== undefined && <Text {...toneProps('brand')} bold>{head.stage}</Text>}
-              {head.flow !== undefined && <Text dimColor>{head.flow}</Text>}
-              <Box flexGrow={1} />
-            </Box>
-          ))}
-        {head?.reason !== undefined && <Text dimColor>{head.reason}</Text>}
-        {envLine.length > 0 && <Text key="env" dimColor wrap="truncate-end">{envLine.join(SEP)}</Text>}
+        {header}
         {hairline(els, 'rule-head', columns)}
         <Box gap={els.Svg !== undefined ? 3 : 2} flexWrap="wrap" alignItems="center">
           {tabs(t).map((x) => els.Svg !== undefined
@@ -2342,7 +2404,7 @@ export const register: Register = (on) => {
               : <Button key={`tab-${x.id}`} plain dimColor label={x.label} onPress={press($, { op: 'tab', tab: x.id })} />)}
         </Box>
         {hairline(els, 'rule-tabs', columns)}
-        {drawRows($, els, rows, columns)}
+        {body}
       </Box>
     )
   })

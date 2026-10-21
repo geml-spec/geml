@@ -588,7 +588,7 @@ test('a shell the band or the board cannot draw: one line says so', async ($, on
   await $.command.run({ command: 'gemflow', args: 'board', origin: COMPOSER, presentation: PRESENTATION })
   const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
   await pane.press({ key: 'tab-flow' })
-  expect(await pane.find({ type: 'Text', text: /^gemflow：看板画不出来（/ })).toBeDefined()
+  expect(await pane.find({ type: 'Text', text: /^gemflow：流程画不出来（/ }), 'the tab says it cannot be drawn, by its name').toBeDefined()
 })
 
 test('the board is read again after an answer that moved the stage, and after /gemflow use', async ($, on) => {
@@ -810,6 +810,23 @@ test('the band offers the board whenever there is a workflow, nothing waiting or
     await again.press({ key: 'band-mark-open' })
     expect(w.opened, surface).toBe(before + 1)
     await again.unmount()
+  }
+})
+
+test('a tab whose rows cannot be drawn says why in its place; the tab bar still switches, to the other tabs and back', async ($, on) => {
+  const w = world(on)
+  w.items = [{ id: 'feat/broken', state: 'build', rev: 1, at: '2026-10-12T08:00:00Z', paused: false, depends: 'not a list' as never }]
+  await start($, on)
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const pane = await $.ui.mount({ plugin: 'gemflow', surface, component: 'Pane', requestId: 'gemflow-board', props: PANE })
+    const words = async (): Promise<string> => shown((await pane.drawn()) as unknown as Drawn).join(' ')
+    expect(await words(), surface).toMatch(/gemflow：工作项画不出来（/)
+    await pane.press({ key: 'tab-tools' })
+    expect(await words(), `${surface}: the other tabs draw`).toMatch(/跑测试/)
+    expect(await words()).not.toMatch(/画不出来/)
+    await pane.press({ key: 'tab-items' })
+    expect(await words(), `${surface}: and back`).toMatch(/gemflow：工作项画不出来（/)
+    await pane.unmount()
   }
 })
 
