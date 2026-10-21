@@ -163,6 +163,23 @@ export function outcomeOf(reply: string, cutFromFront = false): string | undefin
 
 // ---- the standing conditions
 
+/** A local branch ahead of its upstream, as the repository facts carry it. */
+export type AheadFact = AttentionFacts["ahead"][number];
+
+/**
+ * The branches the person holds back — a 暂不 on their 待推送 card put
+ * `unpushed:<branch>` in the project's dismissed list — that are still ahead;
+ * and that list without the holds of branches no longer ahead (pushed, or
+ * gone), so the next time one is ahead it is asked about again.
+ */
+export function heldBranches(dismissed: readonly string[], facts: AttentionFacts): { held: AheadFact[]; dismissed: string[] } {
+  const ahead = facts.ahead.filter((a) => a.ahead > 0);
+  return {
+    held: ahead.filter((a) => dismissed.includes(`unpushed:${a.branch}`)),
+    dismissed: dismissed.filter((k) => !k.startsWith("unpushed:") || ahead.some((a) => `unpushed:${a.branch}` === k)),
+  };
+}
+
 /** The steps only the person can take now: from the repository, and from what the reply leaves to them. */
 export function standingOf(reply: string, facts: AttentionFacts, now: number, t: T = ZH, o: { reloadHere?: boolean } = {}): Standing[] {
   const out: Standing[] = [];
@@ -332,9 +349,9 @@ export function pressablesFor(lead: Lead | null, options: readonly string[], t: 
     let m: RegExpExecArray | null;
     if ((m = /^green:(\d+)$/.exec(key)) && label === t("合并")) return t("合并 #{0}", m[1] as string);
     if ((m = /^unpushed:(.+)$/.exec(key)) && label === t("推送")) return t("推送 {0}", m[1] as string);
-    // Two steps' 暂不 must say two things: a press is known by what it says.
-    if ((m = /^unpushed:(.+)$/.exec(key)) && label === t("暂不")) return t("暂不推送 {0}", m[1] as string);
-    if (key.startsWith("uncommitted:") && label === t("暂不")) return t("暂不提交改动");
+    // Two steps' 暂不 must say two things: a press is known by what it says. A branch's is a hold until the person says.
+    if ((m = /^unpushed:(.+)$/.exec(key)) && label === t("暂不")) return t("先不推送 {0}，等我说再推。", m[1] as string);
+    if (key.startsWith("uncommitted:") && label === t("暂不")) return t("先不提交，改动先留着。");
     if ((m = /^fail:(\d+):(.*)$/.exec(key))) {
       if (label === t("查看日志")) return t("看下 #{0} 失败的 {1} 日志", m[1] as string, (m[2] as string).split(",").join("、"));
       if (label === t("修复")) return t("修 #{0} 失败的 {1}", m[1] as string, (m[2] as string).split(",").join("、"));
@@ -356,9 +373,11 @@ export function pressablesFor(lead: Lead | null, options: readonly string[], t: 
   return options.map((label, i): Pressable => {
     const text = said(label);
     const confirm = confirmOf(text);
+    // 暂不 on a branch puts its card away until the branch is no longer ahead (heldBranches), and says where it went.
+    const held = label === t("暂不") ? /^unpushed:(.+)$/.exec(key)?.[1] : undefined;
     const action = label === t("详情") ? { op: "open-board" as const, tab: "items" as const }
       : label === t("重载插件") ? { op: "command" as const, command: "reload-plugins" }
-      : { op: "say" as const, text, ...(confirm !== undefined ? { confirm } : {}) };
+      : { op: "say" as const, text, ...(confirm !== undefined ? { confirm } : {}), ...(held !== undefined ? { dismiss: key, toast: t("已暂缓 {0}，可在看板「已暂缓」里恢复", held) } : {}) };
     return { key: `attention-${i}-${label}`, label, ...(i === 0 && label !== t("暂不") && label !== t("详情") ? { primary: true } : {}), action };
   });
 }

@@ -65,8 +65,10 @@ export type BoardAction =
   | { op: "judge-undo" }
   /** Put a suggestion away: it is not asked again. */
   | { op: "dismiss"; key: string }
+  /** Bring a card put away back (a branch held back, from 已暂缓): nothing is said. */
+  | { op: "undismiss"; key: string }
   /** List the closed (or the dropped) work items, or only count them; list every document the work item changed, or the newest two. */
-  | { op: "fold"; what: "done" | "dropped" | "docs"; open: boolean }
+  | { op: "fold"; what: "done" | "dropped" | "docs" | "held"; open: boolean }
   /** Open the menu under an artifact (`<kind>:<name>`), or close it. */
   | { op: "artifact-menu"; key: string | null }
   /** Close a merged work item: its worktree and its local branch removed, by the model, once the person said yes. */
@@ -81,8 +83,8 @@ export type BoardAction =
   | { op: "import"; path: string }
   | { op: "setting"; key: string; value: string | boolean }
   | { op: "copy"; text: string }
-  /** Words sent into the conversation as the person's own, as if typed: an answer on the band, a step it offers. */
-  | { op: "say"; text: string; confirm?: Confirm }
+  /** Words sent into the conversation as the person's own, as if typed: an answer on the band, a step it offers; `dismiss` puts its card away first (a branch held back), `toast` says where it went. */
+  | { op: "say"; text: string; confirm?: Confirm; dismiss?: string; toast?: string }
   /** One answer of several asked in one reply, the `index`-th: kept until every one is answered, then all said in one prompt. */
   | { op: "pick"; index: number; answer: string }
   /** A slash command run as if the person typed it (`/reload-plugins`), once the session is idle. */

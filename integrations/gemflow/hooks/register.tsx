@@ -32,7 +32,7 @@ import { CLAUDE_CODE_TOOLS } from '../dist/core/host-tools.js'
 import { FLOW_TOOLS } from '../dist/core/verb-specs.js'
 import type { VerbName } from '../dist/core/verb-specs.js'
 import type { BoardAction, BoardTab, Dialog, JournalFilter, Pressable, ShareHow, ShareWhat } from '../dist/hosts/claude-code/actions.js'
-import { answered, asksOf, bandLine, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, pendingNote, picksText, pressablesFor, pressedOf, remember, standingOf, stepPressables } from '../dist/hosts/claude-code/attention.js'
+import { answered, asksOf, bandLine, heldBranches, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, pendingNote, picksText, pressablesFor, pressedOf, remember, standingOf, stepPressables } from '../dist/hosts/claude-code/attention.js'
 import type { Queued } from '../dist/hosts/claude-code/attention.js'
 import type { AttentionFacts, AttentionMemory } from '../dist/hosts/claude-code/attention.js'
 import { envParts, remoteInPlay } from '../dist/hosts/claude-code/env.js'
@@ -45,7 +45,7 @@ import type { Asked } from '../dist/core/ask-tool.js'
 import type { AttachedClient, HostInfo } from '../dist/hosts/claude-code/env.js'
 import { bandView, BRAND_RED, cellWidth, MARK, MARK_SVG, SEP, toneProps, truncate, wrapCells } from '../dist/hosts/claude-code/band.js'
 import type { BandView, Segment, Tone } from '../dist/hosts/claude-code/band.js'
-import { BOARD_ID, ciSuggestions, DIALOG_ID, glyphSvg, HOME_TAB, hostName, ICON_CHAR, ICON_SVG, ICON_TONE, inputAction, paneRows, sessionLabel, TAB_IDS, tabs, toolSuggestions } from '../dist/hosts/claude-code/board.js'
+import { BOARD_ID, ciSuggestions, DIALOG_ID, glyphSvg, heldRows, HOME_TAB, hostName, ICON_CHAR, ICON_SVG, ICON_TONE, inputAction, paneRows, sessionLabel, TAB_IDS, tabs, toolSuggestions } from '../dist/hosts/claude-code/board.js'
 import type { BoardRow, FlowEdgeRow, Glyph, Icon } from '../dist/hosts/claude-code/board.js'
 import { boardFailure, boardText, COMMAND_HINT, commandText, parseCommand } from '../dist/hosts/claude-code/command.js'
 import { afterNeeded, beforeDecision, checkoutProbe, isOwnTool, matchesUnit, paramsToFill } from '../dist/hosts/claude-code/fastpath.js'
@@ -87,6 +87,8 @@ const tabAtom = atom({ plugin: 'gemflow', key: 'tab' } as const, HOME_TAB as Gem
 const doneOpenAtom = atom({ plugin: 'gemflow', key: 'doneOpen' } as const, false)
 /** Whether the work items tab lists the dropped work items, or only counts them. */
 const droppedOpenAtom = atom({ plugin: 'gemflow', key: 'droppedOpen' } as const, false)
+/** Whether 此刻 lists the branches held back (已暂缓), or only counts them. */
+const heldOpenAtom = atom({ plugin: 'gemflow', key: 'heldOpen' } as const, false)
 const artifactMenuAtom = atom({ plugin: 'gemflow', key: 'artifactMenu' } as const, null as string | null)
 const docsOpenAtom = atom({ plugin: 'gemflow', key: 'docsOpen' } as const, false)
 const madeElsewhereAtom = atom({ plugin: 'gemflow', key: 'madeElsewhere' } as const, [] as string[])
@@ -481,15 +483,17 @@ async function factsNow($: EngineInterface): Promise<AttentionFacts> {
 /** What the band and the board's 此刻 show now: the lead, the standing steps, the memory, the line. Reads only. */
 async function attentionNow($: EngineInterface, t: T) {
   // Everything at once: the band and the board's 此刻 wait on the slowest read, not on the sum of them.
-  const [a, facts, now, clients, origin, unavailable] = await Promise.all([readAttention($), factsNow($), $.clock.now(), read($, clientsAtom), read($, originAtom), read($, reloadUnavailableAtom)])
+  const [a, facts, now, clients, origin, unavailable, dismissed] = await Promise.all([readAttention($), factsNow($), $.clock.now(), read($, clientsAtom), read($, originAtom), read($, reloadUnavailableAtom), dismissedOf($)])
   const reply = a !== null && !a.consumed ? a.reply : ''
   const memory = a?.memory ?? NO_MEMORY
   // A reload is the machine's: over a remote connection, or once the engine said it cannot run here, it is named with no button.
   const remote = remoteInPlay({ clients: (clients as unknown as AttachedClient[] | null) ?? [], ...(origin !== null ? { origin } : {}) })
-  const standing = standingOf(reply, facts, now, t, { reloadHere: !remote && !unavailable })
+  // A branch the person holds back raises no card: it waits under 已暂缓.
+  const standing = standingOf(reply, facts, now, t, { reloadHere: !remote && !unavailable }).filter((s) => !dismissed.includes(s.key))
+  const held = heldBranches(dismissed, facts).held
   const lead = a === null || a.consumed ? null : leadOf({ reply, standing, memory, picks: a.picks ?? [], ...(a.asks !== undefined ? { asked: a.asks } : {}), t })
   const line = bandLine({ lead, standing, memory, reply, awayMs: a === null ? null : now - a.replyAt, t })
-  return { attention: a, reply, standing, memory, lead, line }
+  return { attention: a, reply, standing, memory, lead, line, held }
 }
 
 /**
@@ -744,6 +748,13 @@ async function loadFacts($: EngineInterface): Promise<void> {
     $.ui.invalidate('ui.render')
   }
   const facts = res.attention
+  // A branch no longer ahead (pushed, or gone) lets its hold go: the next time it is ahead, it is asked about again.
+  const dismissed = await dismissedOf($)
+  const kept = heldBranches(dismissed, facts).dismissed
+  if (kept.length !== dismissed.length) {
+    await update($, dismissedAtom, () => kept as unknown as GemflowJson)
+    try { await $.store.set(`dismissed:${(await read($, rootAtom)) ?? ''}`, kept as unknown as GemflowJson) } catch { /* the session keeps its own */ }
+  }
   if (JSON.stringify(facts) === JSON.stringify(await read($, factsAtom))) return
   await update($, factsAtom, () => facts as unknown as GemflowJson)
   $.ui.invalidate('ui.render')
@@ -1344,6 +1355,7 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
     case 'evidence': await update($, evidenceAtom, () => action.entry); return
     case 'fold':
       if (action.what === 'dropped') await update($, droppedOpenAtom, () => action.open)
+      else if (action.what === 'held') await update($, heldOpenAtom, () => action.open)
       else if (action.what === 'docs') await update($, docsOpenAtom, () => action.open)
       else await update($, doneOpenAtom, () => action.open)
       return
@@ -1461,8 +1473,10 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       $.ui.toast(res?.ok === true ? t('已撤销') : `gemflow：${res !== undefined && !res.ok ? res.error.replace(/^gemflow: /, '') : t('撤销')}`)
       return
     }
-    case 'dismiss': {
-      const next = [...new Set([...(await dismissedOf($)), action.key])]
+    case 'dismiss':
+    case 'undismiss': {
+      const was = await dismissedOf($)
+      const next = action.op === 'dismiss' ? [...new Set([...was, action.key])] : was.filter((k) => k !== action.key)
       await update($, dismissedAtom, () => next as unknown as GemflowJson)
       try { await $.store.set(`dismissed:${root ?? ''}`, next as unknown as GemflowJson) } catch { /* the session keeps its own */ }
       return
@@ -1528,6 +1542,9 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
     }
     // The plugin's own prompt does not pass its own prompt.submit hook: the band's moment ends here.
     case 'say': {
+      // A card put away goes first, so it leaves at once rather than showing the press under way.
+      if (action.dismiss !== undefined) await act($, { op: 'dismiss', key: action.dismiss }, surface)
+      if (action.toast !== undefined) $.ui.toast(action.toast)
       await setQueued($, (q) => [...q.filter((x) => x.text !== action.text), { text: action.text, entered: false }])
       await attentionOnPrompt($, action.text)
       try {
@@ -1536,7 +1553,8 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
         await setQueued($, (q) => q.filter((x) => x.text !== action.text))
         throw err
       }
-      await setQueued($, (q) => q.map((x) => (x.text === action.text ? { ...x, entered: true } : x)))
+      // A press whose card was put away leaves nothing to show under way: brought back, the card offers its buttons again.
+      await setQueued($, (q) => (action.dismiss !== undefined ? q.filter((x) => x.text !== action.text) : q.map((x) => (x.text === action.text ? { ...x, entered: true } : x))))
       return
     }
     // One of several asks answered: kept, the band moves to the next; the last answer says them all as the person's prompt.
@@ -2190,7 +2208,7 @@ async function tabRows($: EngineInterface, e: { surface: string; props: { bodyCo
   const columns = e.props.bodyColumns
   // Each read is a trip to the host: the ones a tab needs, at once; the ones written on every tool call only where the tab shows them.
   const shows = (visible: boolean) => <V,>(get: () => Promise<V>, otherwise: V): Promise<V> => (visible ? get() : Promise.resolve(otherwise))
-  const attention = shows(tab === 'items')(() => Promise.all([attentionNow($, t), readQueued($)]).catch(() => null), null)
+  const attention = shows(tab === 'items')(() => Promise.all([attentionNow($, t), readQueued($), read($, heldOpenAtom)]).catch(() => null), null)
   const [inbox, board, problem, shell, now, root, filter, expanded, evidence, prompts, project, unfolded, doneOpen, sessionFlow, sessionRuns, flowState, switching, workflows, usage, dismissed, toolQuery, toolMenu, toolNaming, toolsOpen, exported, exportedFor, droppedOpen, artifactMenu, docsOpen] = await Promise.all([
     inboxOf($, t), readBoard($), read($, boardProblemAtom), readShell($), nowIso($), read($, rootAtom),
     read($, filterAtom), read($, expandedAtom), read($, evidenceAtom),
@@ -2220,7 +2238,7 @@ async function tabRows($: EngineInterface, e: { surface: string; props: { bodyCo
   })
   const here = await attention
   const asked = here !== null && here[0].attention !== null && !here[0].attention.consumed ? here[0].attention.asks : undefined
-  return here === null ? rows : [...nowRows({ reply: here[0].reply, standing: here[0].standing, memory: here[0].memory, queued: here[1], picks: here[0].attention?.picks ?? [], ...(asked !== undefined ? { asked } : {}), t }), ...rows]
+  return here === null ? rows : [...nowRows({ reply: here[0].reply, standing: here[0].standing, memory: here[0].memory, queued: here[1], picks: here[0].attention?.picks ?? [], ...(asked !== undefined ? { asked } : {}), t }), ...heldRows(here[0].held, here[2], t, now), ...rows]
 }
 
 /** The board's header: the mark, the version, the dialogs; the work item, its stage and flow; where the session runs. */

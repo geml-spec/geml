@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { cellWidth } from "../dist/hosts/claude-code/band.js";
-import { stepsOf, BOARD_ID, DIALOG_ID, HOME_TAB, ICON_CHAR, ICON_SVG, TAB_IDS, entryDetail, entryWords, fileHref, flowRows, inputAction, itemRows, journalRows, paneRows, artifactsTag, rowFor, sessionRows, sourceWords, tabs, toolRows, toolSuggestions } from "../dist/hosts/claude-code/board.js";
+import { stepsOf, BOARD_ID, DIALOG_ID, HOME_TAB, ICON_CHAR, ICON_SVG, TAB_IDS, entryDetail, entryWords, fileHref, flowRows, heldRows, inputAction, itemRows, journalRows, paneRows, artifactsTag, rowFor, sessionRows, sourceWords, tabs, toolRows, toolSuggestions } from "../dist/hosts/claude-code/board.js";
 import { wordsFor } from "../dist/hosts/claude-code/text.js";
 
 const row = (tool, over = {}) => ({ tool, allow: [], deny: [], default: false, row: 0, ...over });
@@ -556,4 +556,17 @@ test("会话 where the conversation cannot be scrolled: no 跳转 among the icon
   assert.equal(reading.filter((r) => r.kind === "prose").at(-1).text, "正在读取…");
   const none = sessionRows([p], [], wordsFor("zh"), 100, NOW, { flow: null, runs: [], scrolls: false, expanded: { id: "p1", answer: "" } });
   assert.equal(none.filter((r) => r.kind === "prose").at(-1).text, "没有记下回答");
+});
+
+test("已暂缓: the branches held back, counted and folded; unfolded, each with its commits and age and a press that brings its card back", () => {
+  const t = wordsFor("zh");
+  const held = [{ branch: "feat/geml-agent-runtime", ahead: 96, newestAt: "2026-10-09T08:00:00Z" }, { branch: "feat/typst-pdf", ahead: 1 }];
+  assert.deepEqual(heldRows([], false, t, NOW), [], "nothing held, nothing shown");
+  assert.deepEqual(heldRows(held, false, t, NOW), [{ kind: "section", key: "held", text: "已暂缓", count: 2, fold: { key: "fold-held", label: "展开", action: { op: "fold", what: "held", open: true } } }]);
+  const open = heldRows(held, true, t, NOW);
+  assert.deepEqual(open[0].fold.label, "收起");
+  assert.deepEqual(open.slice(1).map((r) => [r.kind, r.title, r.tag, r.extra.label, r.extra.action]), [
+    ["entry", "feat/geml-agent-runtime", "96 个提交 · 3 天前", "取消暂缓", { op: "undismiss", key: "unpushed:feat/geml-agent-runtime" }],
+    ["entry", "feat/typst-pdf", "1 个提交", "取消暂缓", { op: "undismiss", key: "unpushed:feat/typst-pdf" }],
+  ]);
 });

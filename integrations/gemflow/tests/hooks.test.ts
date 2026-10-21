@@ -85,6 +85,8 @@ function world(on: On) {
     files: new Map<string, string>(),
     /** The open pull requests the attention answer carries. */
     prs: [] as { number: number; branch: string; green: boolean; failing: string[] }[],
+    /** The local branches ahead of their upstream the attention answer carries. */
+    ahead: [] as { branch: string; ahead: number; newestAt?: string }[],
     /** The other work items the board lists, beside the current one. */
     items: [] as Record<string, unknown>[],
     /** While set, an `after` request is held until it settles: a bridge slow to answer. */
@@ -224,7 +226,7 @@ function world(on: On) {
     }
     if (req.op === 'refresh') return { v: 1, ok: true, shell: shell(), todo: w.todo }
     if (req.op === 'status' && w.sessionsDir !== null) return { v: 1, ok: true, shell: shell(), sessions: w.sessionsDir }
-    if (req.op === 'attention') return { v: 1, ok: true, shell: shell(), attention: { ahead: [], prs: w.prs }, ...(w.sessionsDir !== null ? { sessions: w.sessionsDir } : {}), host: { name: 'build-box', platform: 'linux', user: 'dev', branch: 'feat/x' } }
+    if (req.op === 'attention') return { v: 1, ok: true, shell: shell(), attention: { ahead: w.ahead, prs: w.prs }, ...(w.sessionsDir !== null ? { sessions: w.sessionsDir } : {}), host: { name: 'build-box', platform: 'linux', user: 'dev', branch: 'feat/x' } }
     return { v: 1, ok: true, shell: shell(), ...(req.op === 'before' ? { recorded: false } : {}), ...(req.op === 'after' ? handoff(req) : {}) }
   }
   const ran = (stdout: string, exitCode = 0) => ({ exitCode, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false })
@@ -1295,6 +1297,46 @@ test('where the session runs: the board says the machine, the checkout and the b
   expect(await head(), 'a prompt over Remote Control').toBe('运行于 build-box · app · feat/x · 远程控制')
   await $.prompt.submit({ text: '同意', wait: false, origin: COMPOSER })
   expect(await head(), 'the next one typed at the machine').toBe('运行于 build-box · app · feat/x')
+})
+
+test('暂不 on a branch\'s 待推送 card holds it: said once, gone from the board and the band, listed under 已暂缓 until brought back, which says nothing; a branch no longer ahead lets its hold go', async ($, on) => {
+  const w = world(on)
+  const said: string[] = []
+  on('prompt.submit', ($, e) => { said.push(e.text); return { text: e.text } })
+  on('turn.complete', ($, e) => ({ text: e.answer }))
+  const clock = await start($, on)
+  // Ahead by 96, its newest commit four days old; the repository is looked at again every two minutes.
+  w.ahead = [{ branch: 'feat/held', ahead: 96, newestAt: new Date(clock.now() - 4 * 86_400_000).toISOString() }]
+  await clock.advance(120_000)
+  await $.command.run({ command: 'gemflow', args: 'board', origin: COMPOSER, presentation: PRESENTATION })
+  const board = () => $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  let pane = await board()
+  expect(await pane.find({ type: 'Text', text: /待推送：feat\/held · 96 个提交/ })).toBeDefined()
+  await pane.press({ key: 'attention-1-暂不' })
+  await pane.unmount()
+  expect(said, 'the hold is said once, as the person').toEqual(['先不推送 feat/held，等我说再推。'])
+  expect(w.toasts.at(-1)).toBe('已暂缓 feat/held，可在看板「已暂缓」里恢复')
+  pane = await board()
+  expect(await pane.find({ type: 'Text', text: /feat\/held/ }), 'the card is gone at once, no 进行中 line').toBeUndefined()
+  expect(await pane.find({ type: 'Button', key: 'attention-1-暂不' })).toBeUndefined()
+  await pane.press({ key: 'fold-held' })
+  await pane.unmount()
+  expect(await bandText($, 'desktop'), 'nor does the band name it').not.toMatch(/feat\/held/)
+  pane = await board()
+  expect(await pane.find({ type: 'Text', text: '96 个提交 · 4 天前' }), 'unfolded: its commits and age').toBeDefined()
+  await pane.press({ key: 'restore-feat/held' })
+  await pane.unmount()
+  expect(said, 'bringing it back says nothing').toHaveLength(1)
+  pane = await board()
+  expect(await pane.find({ type: 'Text', text: /待推送：feat\/held · 96 个提交/ }), 'the card is back').toBeDefined()
+  await pane.press({ key: 'attention-1-暂不' })
+  await pane.unmount()
+  expect(w.store.get(`dismissed:${ROOT}`)).toEqual(['unpushed:feat/held'])
+  // Pushed elsewhere: the branch is no longer ahead, and the next look at the repository lets its hold go.
+  w.ahead = []
+  await $.turn.complete({ answer: '好。', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' })
+  await clock.advance(1)
+  expect(w.store.get(`dismissed:${ROOT}`), 'asked again the next time it is ahead').toEqual([])
 })
 
 test('a step pressed on the board says what became of it: being done once it goes in, not offered again until that turn ends; 重载插件 runs the command itself', async ($, on) => {

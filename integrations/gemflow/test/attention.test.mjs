@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { answered, asksOf, bandLine, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, optionsFor, outcomeOf, picksText, pressablesFor, remember, spokenOf, standingOf, stepPressables, WIDTH } from "../dist/hosts/claude-code/attention.js";
+import { answered, asksOf, bandLine, heldBranches, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, optionsFor, outcomeOf, picksText, pressablesFor, remember, spokenOf, standingOf, stepPressables, WIDTH } from "../dist/hosts/claude-code/attention.js";
 
 const NOW = Date.parse("2026-10-18T10:00:00Z");
 const cells = (s) => [...s].reduce((w, c) => w + (/[ᄀ-￿]/.test(c) ? 2 : 1), 0);
@@ -138,7 +138,7 @@ test("the line fades: a condition rides along for its first turns, then only the
 test("presses: an answer or a step goes as the person's own words, whole; 看看 opens the board; a reload is copied", () => {
   const p = (lead, options) => pressablesFor(lead, options).map((x) => [x.label, x.action, x.primary === true]);
   assert.deepEqual(p({ key: "green:43", kind: "you", text: "", options: ["合并"] }, ["合并"]), [["合并", { op: "say", text: "合并 #43", confirm: { question: "合并 #43？此操作不可撤销。", yes: "合并" } }, true]], "a merge cannot be taken back: asked first");
-  assert.deepEqual(p({ key: "unpushed:feat/x", kind: "you", text: "", options: [] }, ["推送", "暂不"]), [["推送", { op: "say", text: "推送 feat/x", confirm: { question: "推送 feat/x？提交将对仓库的其他人可见。", yes: "推送" } }, true], ["暂不", { op: "say", text: "暂不推送 feat/x" }, false]]);
+  assert.deepEqual(p({ key: "unpushed:feat/x", kind: "you", text: "", options: [] }, ["推送", "暂不"]), [["推送", { op: "say", text: "推送 feat/x", confirm: { question: "推送 feat/x？提交将对仓库的其他人可见。", yes: "推送" } }, true], ["暂不", { op: "say", text: "先不推送 feat/x，等我说再推。", dismiss: "unpushed:feat/x", toast: "已暂缓 feat/x，可在看板「已暂缓」里恢复" }, false]]);
   assert.deepEqual(p({ key: "fail:32:scan,CI", kind: "broken", text: "", options: [] }, ["查看日志"])[0][1], { op: "say", text: "看下 #32 失败的 scan、CI 日志" });
   assert.deepEqual(p(null, ["详情"])[0][1], { op: "open-board", tab: "items" });
   assert.deepEqual(p({ key: "reload", kind: "you", text: "", options: [] }, ["重载插件"])[0][1], { op: "command", command: "reload-plugins" });
@@ -183,6 +183,18 @@ test("暂不 on a step names the step: pressing it on one card settles that card
   const reply = "这些改动还没提交，等你看过再说。";
   const standing = standingOf(reply, { ahead: [{ branch: "feat/x", ahead: 2, newestAt: "2026-10-18T01:00:00Z" }], prs: [] }, NOW);
   const cards = (queued) => nowRows({ reply, standing, memory: NO_MEMORY, queued }).filter((r) => r.kind === "card");
-  assert.deepEqual(cards([]).map((r) => r.actions.find((a) => a.label === "暂不").action), [{ op: "say", text: "暂不推送 feat/x" }, { op: "say", text: "暂不提交改动" }]);
-  assert.deepEqual(cards([{ text: "暂不推送 feat/x", entered: true }]).map((r) => [r.actions.length, r.detail]), [[0, ["进行中 暂不推送 feat/x"]], [2, []]]);
+  assert.deepEqual(cards([]).map((r) => r.actions.find((a) => a.label === "暂不").action), [
+    { op: "say", text: "先不推送 feat/x，等我说再推。", dismiss: "unpushed:feat/x", toast: "已暂缓 feat/x，可在看板「已暂缓」里恢复" },
+    { op: "say", text: "先不提交，改动先留着。" },
+  ], "a branch is held until the person says; the changes, for this reply");
+  assert.deepEqual(cards([{ text: "先不提交，改动先留着。", entered: true }]).map((r) => [r.actions.length, r.detail]), [[2, []], [0, ["进行中 先不提交，改动先留着。"]]]);
+});
+
+test("a branch held back stays held while it is ahead; once it is not (pushed, or gone) its hold is let go", () => {
+  const facts = { ahead: [{ branch: "feat/held", ahead: 96, newestAt: "2026-10-18T01:00:00Z" }, { branch: "feat/other", ahead: 2 }], prs: [] };
+  const { held, dismissed } = heldBranches(["unpushed:feat/held", "unpushed:feat/pushed", "tools:web_fetch"], facts);
+  assert.deepEqual(held, [{ branch: "feat/held", ahead: 96, newestAt: "2026-10-18T01:00:00Z" }]);
+  assert.deepEqual(dismissed, ["unpushed:feat/held", "tools:web_fetch"], "the pushed branch's hold is gone; what is not a hold stays");
+  const standing = standingOf("", facts, NOW);
+  assert.deepEqual(standing.filter((s) => !dismissed.includes(s.key)).map((s) => s.key), ["unpushed:feat/other"], "a held branch raises no card");
 });

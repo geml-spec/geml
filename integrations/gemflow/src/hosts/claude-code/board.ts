@@ -9,6 +9,7 @@ import { othersWaiting, pendingList, shortReason, type InboxItem } from "./inbox
 import type { BoardData, BoardItem, MadeEntry, Artifacts, ShellStatus, TimelineEntry } from "./protocol.js";
 import { promptLine, promptTail, type PromptRecord } from "./sessions.js";
 import type { SessionSummary } from "../../core/session-log.js";
+import type { AheadFact } from "./attention.js";
 import { ZH, type T } from "./text.js";
 import { agoText, between, dayText, durationText, hhmm, waitedText } from "./time.js";
 import { groupOf, guessUse, keyWords, type ToolGroup } from "./usage.js";
@@ -488,6 +489,21 @@ export interface ItemsInput {
   /** The artifact whose menu is open (`<kind>:<name>`), or null; whether every document the work item changed is listed. */
   artifactMenu?: string | null;
   docsOpen?: boolean;
+}
+
+/**
+ * 已暂缓, under 此刻: the branches the person holds back (heldBranches),
+ * counted and folded like 放下; unfolded, each with its commits and age and a
+ * press that brings its 待推送 card back. Nothing when none is held.
+ */
+export function heldRows(held: readonly AheadFact[], open: boolean, t: T = ZH, now?: string): BoardRow[] {
+  if (held.length === 0) return [];
+  const rows: BoardRow[] = [{ kind: "section", key: "held", text: t("已暂缓"), count: held.length, fold: { key: "fold-held", label: open ? t("收起") : t("展开"), action: { op: "fold", what: "held", open: !open } } }];
+  if (open) for (const h of held) {
+    const ago = h.newestAt !== undefined && now !== undefined ? agoText(h.newestAt, now, t) : "";
+    rows.push({ kind: "entry", key: `held-${h.branch}`, title: h.branch, tag: [t("{0} 个提交", h.ahead), ago].filter((x) => x !== "").join(" · "), tone: "normal", extra: { key: `restore-${h.branch}`, label: t("取消暂缓"), action: { op: "undismiss", key: `unpushed:${h.branch}` } } });
+  }
+  return rows;
 }
 
 /**
