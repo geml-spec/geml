@@ -63,7 +63,7 @@ The body is a JSON object. At the top level:
 
 Any other top-level key is an attribute of the statechart as a whole.
 
-**State object**: `title` is the display name, defaulting to the id; `description` is a paragraph of explanation; `final: true` marks a final state — one the chart ends in, which has no transition out — and a chart may have several; every other key is an attribute. A state id is a GEML NAME (Unicode letters, digits, `_`, `-`). v1 has no hierarchy and no parallelism: `states`, `regions` and `initial` inside a state object are errors (§5).
+**State object**: `title` is the display name, defaulting to the id; `description` is a paragraph of explanation; `final: true` marks a final state — one the chart ends in, which has no transition out — and a chart may have several; every other key is an attribute. A state id is a GEML NAME (Unicode letters, combining marks, digits, `_`, `-`). v1 has no hierarchy and no parallelism: `states`, `regions` and `initial` inside a state object are errors (§5).
 
 **Transition object**: `from` and `to` are required, both ids in `states`, and may be the same (a self-loop); `guard` is the transition's guard (§2.3); `actions` are the actions (§2.4); `event` is reserved for v2 (§5); every other key is an attribute. The same pair of states may have several transitions. A diagnostic writes a transition as `from→to`, with an index when the pair has several: `unpaid→cancelled[2]`.
 

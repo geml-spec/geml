@@ -205,4 +205,11 @@ test("flowOf：没有像素的拓扑——状态按层、每条边的种类、�
   assert.deepEqual(g.edges.map((e) => [e.name, e.kind, e.label]), [["a→b", "forward", ""], ["a→c", "lane", ""], ["b→c", "forward", ""], ["b→b", "self", "again"]], "an edge over a rank is a lane; one to its own state a self");
 });
 
+test("§4: a state id written in NFD is a NAME (profile §4 reads GEML §4), so the model keeps it as written and nothing is reported", () => {
+  const src = "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"Cafe\u0301\", \"states\": { \"Cafe\u0301\": {}, \"done\": { \"final\": true } }, \"transitions\": [ { \"from\": \"Cafe\u0301\", \"to\": \"done\" } ] }\n===\n";
+  const [{ result }] = statechartsOf(parse(src), "m.geml", () => null);
+  assert.deepEqual(result.diagnostics, [], result.diagnostics.map((d) => d.message).join("\n"));
+  assert.deepEqual(result.model.states.map((s) => s.id), ["Cafe\u0301", "done"]);
+});
+
 console.log(`\n${passed} passed`);

@@ -161,8 +161,9 @@ function fenceFor(contentLf: string): string {
 // key only arises for OUT-OF-SPEC documents that repeat an id — without it the
 // key is ambiguous, reverse-patch ops hit the wrong occurrence, and save()'s
 // round-trip gate (correctly) aborts. Well-formed documents never emit it.
-const KEY = String.raw`(#[\p{L}\p{N}_-]+(?:~\d+)?|@[0-9a-f]+(?:~\d+)?)`;
-// Profile §4: an id is a NAME (GEML §4) — any Unicode letter or number, `-`, `_`.
+const KEY = String.raw`(#[\p{L}\p{M}\p{N}_-]+(?:~\d+)?|@[0-9a-f]+(?:~\d+)?)`;
+// Profile §4: an id is a NAME (GEML §4) — any Unicode letter, combining mark or
+// number, `-`, `_`.
 // A unit's id is the one its attribute object declares, read as GEML §4 reads
 // it — not the first `#name` in the text, which in `{src=#foo}` is a reference.
 const LABELED_CLOSE = /^={3,}[ \t]*#(\S+)[ \t]*$/u;

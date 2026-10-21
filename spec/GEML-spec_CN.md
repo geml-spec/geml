@@ -346,7 +346,10 @@ DIGITS         = DIGIT , { DIGIT } ;
                  (* leading zeros are allowed: `007` is 7 *)
 
 NAME           = NAME-CHAR , { NAME-CHAR } ;
-NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER：任意 Unicode 字母 *)
+NAME-CHAR      = LETTER | MARK | DIGIT | "-" | "_" ;
+                 (* LETTER：任意 Unicode 字母（General Category L）；MARK：任意组合
+                    字符（General Category M），于是以 NFD 写下的名字——变音符号各自
+                    成为一个组合字符——也是 NAME *)
 
 TYPE-NAME      = ASCII-LETTER , { ASCII-LETTER | DIGIT | "-" | "_" } ;
                  (* 块类型是文档唯一"选定"而非"派生"的名字：它作为类型注册表的键，
@@ -469,9 +472,10 @@ NAME 不限于 ASCII，也不要求以字母开头：标题按自身文本派生
   照常派生；什么也派生不出的标题（见下）没有 id：没有自己的地址，不给旁边的散文当锚点
   （见下文规则 1），也谈不上和谁冲突。
 - **两个 NAME 在 Unicode NFD 归一化后相等，即为同一个名字。** NAME 可以包含任意
-  Unicode 字母，而带变音符号的字母有不止一种编码：用 U+00E9 写的 `Café` 与写成
-  `e` + U+0301 的 `Café` 看起来完全相同，作者把标题写成一种形式、把引用写成另一种
-  形式时，意思是**一个**名字而不是两个。因此处理器必须在 NFD 下比较 NAME——id、类名
+  Unicode 字母和任意组合字符，而带变音符号的字母有不止一种编码：用 U+00E9 写的
+  `Café` 与写成 `e` + U+0301 的 `Café` 看起来完全相同，两种写法都是 NAME；作者把
+  标题写成一种形式、把引用写成另一种形式时，意思是**一个**名字而不是两个。因此处理器
+  必须在 NFD 下比较 NAME——id、类名
   与属性键一律如此——这同时约束 id 唯一性（`duplicate-id`）与引用解析（`[[#id]]`、
   `other.geml#id`、URL 片段）。选 NFD 而非 NFC 仅因分解是更便宜的操作；这个选择不可
   观察，因为处理器**不得**为此改写文档自身的字节，且**必须**按文档写下的形式上报 id。

@@ -16,10 +16,13 @@ export interface Attrs {
   dup?: string[];
 }
 
-// §4: NAME = NAME-CHAR+, NAME-CHAR = LETTER | DIGIT | "-" | "_", LETTER being
-// any Unicode letter. Ids, classes and attribute keys are all NAMEs; only
-// VALUES may hold anything else.
-const NAME = /^[\p{L}\p{N}_-]+$/u;
+// §4: NAME = NAME-CHAR+, NAME-CHAR = LETTER | MARK | DIGIT | "-" | "_", LETTER
+// being any Unicode letter and MARK any combining mark (General Category M):
+// a name written in NFD carries its diacritics as marks, and §4 makes that
+// spelling the same name as the precomposed one, so it has to be a NAME too.
+// Ids, classes and attribute keys are all NAMEs; only VALUES may hold anything
+// else.
+const NAME = /^[\p{L}\p{M}\p{N}_-]+$/u;
 
 // Why this is worth a diagnostic: the attribute object is whitespace-separated,
 // so `{#Trade-offs & Laws}` parses as the id `Trade-offs` plus two boolean flags

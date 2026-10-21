@@ -133,5 +133,26 @@
     "geml": "## Title {#sec}",
     "want": "h2(\"Title\")",
     "ids": ["sec"]
+  },
+  {
+    "name": "an id written in NFD is a NAME: a combining mark is a NAME character (§4), so nothing is odd about it",
+    "geml": "## t {#Cafe\u0301}",
+    "want": "h2(\"t\")",
+    "ids": ["Cafe\u0301"],
+    "diagnostics": []
+  },
+  {
+    "name": "two explicit ids that differ only in normalization form are one id: the second collides, and neither is odd",
+    "geml": "## a {#Caf\u00e9}\n\n## b {#Cafe\u0301}",
+    "want": "h2(\"a\") h2(\"b\")",
+    "ids": ["Caf\u00e9"],
+    "diagnostics": ["duplicate-id:error"]
+  },
+  {
+    "name": "a reference written in the other normalization form resolves, and is reported as written",
+    "geml": "# t {#Caf\u00e9}\n\nsee [[#Cafe\u0301]]",
+    "want": "h1(\"t\") \"see \" ref(\"#Cafe\u0301\")",
+    "ids": ["Caf\u00e9"],
+    "diagnostics": []
   }
 ]

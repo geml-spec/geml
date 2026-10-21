@@ -28,6 +28,16 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **§4: a NAME admits combining marks (General Category M)** — so an id, class
+  or attribute key written in NFD (`Cafe` + U+0301) is a NAME, as §4's
+  NFD-insensitive sameness already presumed; the grammar now lists MARK beside
+  LETTER. The reference parser warned `name-not-a-name` on such a spelling
+  while the Rust implementation admitted it: the attribute, history-key and
+  statechart NAME patterns now follow the grammar, and the conformance suite
+  pins the rule — an NFD-spelled id is clean, explicit ids that differ only in
+  normalization form collide as `duplicate-id`, a reference in the other form
+  resolves, and a listing names the id once, as first written.
+
 - **The VS Code extension offers GEML's MCP server to chat.** It contributes an
   `mcpServerDefinitionProviders` provider, so Copilot Chat and anything else
   reading the editor's server list is offered two servers that differ only in

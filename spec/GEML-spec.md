@@ -413,7 +413,10 @@ DIGITS         = DIGIT , { DIGIT } ;
                  (* leading zeros are allowed: `007` is 7 *)
 
 NAME           = NAME-CHAR , { NAME-CHAR } ;
-NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
+NAME-CHAR      = LETTER | MARK | DIGIT | "-" | "_" ;
+                 (* LETTER: any Unicode letter (General Category L); MARK: any
+                    combining mark (General Category M), so that a name written
+                    in NFD, its diacritics as marks of their own, is a NAME *)
 
 TYPE-NAME      = ASCII-LETTER , { ASCII-LETTER | DIGIT | "-" | "_" } ;
                  (* the block type is the ONE name a document does not derive
@@ -605,10 +608,11 @@ exactly when the slice is itself a value.
   (below) has none: no address of its own, no anchor for the prose beside it
   (rule 1 below), and nothing to collide with.
 - **Two NAMEs are the same name when they are equal after Unicode NFD
-  normalization.** A NAME may contain any Unicode letter, and a letter carrying a
-  diacritic has more than one encoding: `Café` written with U+00E9 and `Café`
-  written as `e` + U+0301 look identical, and an author who writes the heading in
-  one form and the reference in the other means one name, not two. So a processor
+  normalization.** A NAME may contain any Unicode letter and any combining
+  mark, and a letter carrying a diacritic has more than one encoding: `Café`
+  written with U+00E9 and `Café` written as `e` + U+0301 look identical, both
+  are NAMEs, and an author who writes the heading in one form and the reference
+  in the other means one name, not two. So a processor
   MUST compare NAMEs — ids, classes and attribute keys alike — under NFD, which
   governs id uniqueness (`duplicate-id`) and reference resolution (`[[#id]]`,
   `other.geml#id`, a URL fragment) together. NFD rather than NFC only because

@@ -223,5 +223,17 @@
     "geml": "Just a note.\n\nNo headings here.\n",
     "want": "\"Just a note.\" \"No headings here.\"",
     "addresses": []
+  },
+  {
+    "name": "two ids that differ only in normalization form are one address: listed once, as first written; the prose beside the second is addressed by the id as that heading wrote it",
+    "geml": "# A {#Caf\u00e9}\n\nnfc\n\n# B {#Cafe\u0301}\n\nnfd\n\n=== note {#x}\n===\n\ntail\n",
+    "want": "h1(\"A\") \"nfc\" h1(\"B\") \"nfd\" block:note \"tail\"",
+    "addresses": [
+      "#Caf\u00e9",
+      "#Cafe\u0301-before-x",
+      "#x",
+      "#Cafe\u0301-after-x"
+    ],
+    "diagnostics": ["duplicate-id:error"]
   }
 ]

@@ -536,7 +536,7 @@ function reportOddNames(a: Attrs, line: number, diags: Diagnostic[]): void {
     diags.push({
       severity: "warning",
       code: "name-not-a-name",
-      message: `${kind} \`${name}\` is not a NAME (§4: letters, digits, \`-\`, \`_\`)`
+      message: `${kind} \`${name}\` is not a NAME (§4: letters, combining marks, digits, \`-\`, \`_\`)`
         + (kind === "flag" ? " — an attribute object is whitespace-separated, so a space in an id or class splits it into flags like this one" : ""),
       line,
     });

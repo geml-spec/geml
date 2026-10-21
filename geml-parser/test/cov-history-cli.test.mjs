@@ -49,6 +49,22 @@ test("save/restore round-trip: leading blanks, multi-line flow, attr-less fence,
   rmSync(d, { recursive: true, force: true });
 });
 
+test("§4: an id written in NFD is a NAME, so a reverse op that names it parses and applies", () => {
+  const d = mkdtempSync(join(tmpdir(), "geml-cov-nfd-"));
+  const g = join(d, "d.geml"), hh = join(d, "d.gemlhistory");
+  const V1 = "=== note {#n}\none\n===\n";
+  const V2 = V1 + "\n=== note {#Cafe\u0301}\nnfd id\n===\n";
+  writeFileSync(g, V1);
+  const r1 = save({ gemlPath: g, historyPath: hh, summary: "first", author: "t", at: at("2026-01-01T00:00:00Z") });
+  writeFileSync(g, V2);
+  save({ gemlPath: g, historyPath: hh, summary: "second", author: "t", at: at("2026-01-02T00:00:00Z") });
+  assert.match(readFileSync(hh, "utf8"), /^delete #Cafe\u0301$/mu, "the reverse op names the id as the document wrote it");
+  const v = verify(hh, g);
+  assert.equal(v.ok, true, v.errors.join("; "));
+  assert.equal(restore({ historyPath: hh, gemlPath: g, revision: r1.id }), V1, "restore across a reverse delete of an NFD-spelled id");
+  rmSync(d, { recursive: true, force: true });
+});
+
 test("resolveContent selectors: `0` is the tip, `-N` goes back; removed aliases and unknowns throw", () => {
   const d = mkdtempSync(join(tmpdir(), "geml-cov-sel-"));
   const g = join(d, "d.geml"), hh = join(d, "d.gemlhistory");

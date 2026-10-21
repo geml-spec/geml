@@ -98,7 +98,7 @@ export interface StatechartInput {
 }
 export interface StatechartResult { model: StatechartModel | null; diagnostics: StatechartDiagnostic[] }
 
-const NAME = /^[\p{L}\p{N}_-]+$/u;
+const NAME = /^[\p{L}\p{M}\p{N}_-]+$/u;
 const isObject = (v: unknown): v is JsonObject => typeof v === "object" && v !== null && !Array.isArray(v);
 const str = (v: Value | undefined): string | undefined => (v === undefined ? undefined : typeof v === "string" ? v : String(v));
 /** Profile §2.5: a `#id`, or `doc.geml#id`. */
@@ -129,7 +129,7 @@ export function buildStatechart(input: StatechartInput): StatechartResult {
     report("statechart-state", "`states` is missing or is not an object");
   } else {
     for (const [id, s] of Object.entries(rawStates)) {
-      if (!NAME.test(id)) { report("statechart-state", `state id ${JSON.stringify(id)} is not a NAME (letters, digits, \`_\`, \`-\`)`); continue; }
+      if (!NAME.test(id)) { report("statechart-state", `state id ${JSON.stringify(id)} is not a NAME (letters, combining marks, digits, \`_\`, \`-\`)`); continue; }
       if (!isObject(s)) { report("statechart-state", `state \`${id}\` is not an object`); continue; }
       for (const k of ["states", "regions", "initial"]) {
         if (k in s) report("statechart-state", `state \`${id}\` carries \`${k}\`, which v1 reserves for v2 (hierarchy and parallel regions)`);

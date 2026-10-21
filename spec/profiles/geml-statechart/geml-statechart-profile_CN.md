@@ -63,7 +63,7 @@ profile = "geml-statechart/v1"
 
 其余顶层键是整台状态机的属性。
 
-**状态对象**：`title` 是显示名，缺省用 id；`description` 是一段说明；`final: true` 标终态——这张图走到此为止的状态，没有出边——一张图可以有几个；其余键是属性。状态 id 是 GEML 的 NAME（Unicode 字母、数字、`_`、`-`）。v1 没有层级与并行：状态对象里的 `states`、`regions`、`initial` 是错误（§5）。
+**状态对象**：`title` 是显示名，缺省用 id；`description` 是一段说明；`final: true` 标终态——这张图走到此为止的状态，没有出边——一张图可以有几个；其余键是属性。状态 id 是 GEML 的 NAME（Unicode 字母、组合字符、数字、`_`、`-`）。v1 没有层级与并行：状态对象里的 `states`、`regions`、`initial` 是错误（§5）。
 
 **转换对象**：`from`、`to` 必需，都是 `states` 里的 id，可以相同（自环）；`guard` 是通行要求（§2.3）；`actions` 是动作（§2.4）；`event` 保留给 v2（§5）；其余键是属性。同一对状态之间可以有多条转换。诊断里一条转换写作 `from→to`，同一对之间有多条时加序号：`unpaid→cancelled[2]`。
 
