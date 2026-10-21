@@ -322,8 +322,9 @@ export function newsOf(before: AttentionFacts | null, now: AttentionFacts, t: T 
 
 /**
  * What a band button does: an answer or a step is sent as the person's own
- * words — whole, so "合并" on a green pull request says which one; "详情" opens
- * the board; a reload is copied, since only the person can run it.
+ * words — whole, so "合并" on a green pull request says which one and "暂不"
+ * which step it puts off; "详情" opens the board; a reload is copied, since
+ * only the person can run it.
  */
 export function pressablesFor(lead: Lead | null, options: readonly string[], t: T = ZH): Pressable[] {
   const key = lead?.key ?? "";
@@ -331,6 +332,9 @@ export function pressablesFor(lead: Lead | null, options: readonly string[], t: 
     let m: RegExpExecArray | null;
     if ((m = /^green:(\d+)$/.exec(key)) && label === t("合并")) return t("合并 #{0}", m[1] as string);
     if ((m = /^unpushed:(.+)$/.exec(key)) && label === t("推送")) return t("推送 {0}", m[1] as string);
+    // Two steps' 暂不 must say two things: a press is known by what it says.
+    if ((m = /^unpushed:(.+)$/.exec(key)) && label === t("暂不")) return t("暂不推送 {0}", m[1] as string);
+    if (key.startsWith("uncommitted:") && label === t("暂不")) return t("暂不提交改动");
     if ((m = /^fail:(\d+):(.*)$/.exec(key))) {
       if (label === t("查看日志")) return t("看下 #{0} 失败的 {1} 日志", m[1] as string, (m[2] as string).split(",").join("、"));
       if (label === t("修复")) return t("修 #{0} 失败的 {1}", m[1] as string, (m[2] as string).split(",").join("、"));
