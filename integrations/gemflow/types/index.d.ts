@@ -26,6 +26,8 @@ declare module 'claude-code' {
       docsOpen: boolean
       /** Files made for a person written outside the project this turn (absolute paths): artifacts at the turn's end. */
       madeElsewhere: string[]
+      /** The questions the model registered with the ask tool this turn: the band's at the turn's end. */
+      asked: { question: string; options: string[]; recommended?: string }[]
       /** The state the flow tab shows below its picture (its id). */
       flowState: string | null
       /** Whether the flow tab lists the workflows to switch to. */

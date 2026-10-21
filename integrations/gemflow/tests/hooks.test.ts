@@ -306,7 +306,7 @@ test('real event order: session start, a test run moves the stage, the board mov
   await start($, on)
   expect(w.sent.map((r) => r.op), 'the board the inbox is built from is read at the start').toEqual(['status', 'refresh', 'board', 'attention'])
   expect(w.sent[0]).toMatchObject({ v: 1, root: ROOT })
-  expect(w.registered).toEqual(['status', 'move', 'set', 'note', 'artifact'])
+  expect(w.registered).toEqual(['status', 'move', 'set', 'note', 'artifact', 'ask'])
 
   const tests = await $.tool.call({ tool: 'Bash', tool_use_id: 'b1', command: 'npm test' })
   expect(w.sent.at(-1)).toMatchObject({ op: 'after', tool: 'Bash', callId: 'b1', exitCode: 0, isError: false, gitOperation: false, input: { command: 'npm test' } })
@@ -519,7 +519,7 @@ test('a registration the engine refuses: the start goes on, and the band says wh
   w.refuse = { set: 'a tool named set is already registered' }
   await start($, on)
   expect(w.sent.map((r) => r.op)).toEqual(['status', 'refresh', 'board', 'attention'])
-  expect(w.registered).toEqual(['status', 'move', 'note', 'artifact'])
+  expect(w.registered).toEqual(['status', 'move', 'note', 'artifact', 'ask'])
   expect(await bandText($, 'terminal', 400)).toMatch(/^» gemflow：没有注册上 set（[^（]*already registered[^）]*） \[看板\]$/)
 })
 
@@ -1081,19 +1081,23 @@ test('a reply that ends asking: the band puts the question first with its answer
   on('turn.complete', ($, e) => ({ text: e.answer }))
   await start($, on)
   await $.prompt.submit({ text: '把版本改成 1.2.3', wait: false, origin: COMPOSER })
+  const registered = await $.tool.call({ tool: 'mcp__gemflow__ask', tool_use_id: 'q1', question: '要强推覆盖 origin 上的 feat/x。推吗？', options: ['暂不', '推'], recommended: '推' })
+  expect(String(registered.text ?? registered.result)).toMatch(/^Registered/)
   await $.turn.complete({ answer: '改好了，提交在本地。\n\n要强推覆盖 origin 上的 feat/x。推吗？', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' })
   for (const surface of ['terminal', 'desktop'] as const) {
     const band = await $.ui.mount({ plugin: 'gemflow', surface, component: 'AbovePrompt', props: BAND })
-    expect(shown((await band.drawn()) as unknown as Drawn).join(' '), surface).toMatch(/待决定：要强推覆盖 origin 上的 feat\/x。 推吗？/)
+    expect(shown((await band.drawn()) as unknown as Drawn).join(' '), surface).toMatch(/待决定：要强推覆盖 origin 上的 feat\/x。推吗？/)
     expect(await band.find({ type: 'Button', key: 'attention-0-推' }), surface).toBeDefined()
     await band.unmount()
   }
   const band = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
   await band.press({ key: 'attention-0-推' })
   await band.unmount()
-  expect(said.at(-1), 'the press said it as the person').toBe('推')
+  expect(said.at(-1), 'the press said it as the person, with what it answers').toBe('要强推覆盖 origin 上的 feat/x。推吗？：推')
   // Answered: the question no longer leads.
   expect(await bandText($)).not.toMatch(/推吗/)
+  await $.tool.call({ tool: 'mcp__gemflow__ask', tool_use_id: 'q2', question: '新分支要不要开 PR？', options: ['要', '不要'] })
+  await $.tool.call({ tool: 'mcp__gemflow__ask', tool_use_id: 'q3', question: '#32 关不关？', options: ['关', '不关'] })
   await $.turn.complete({ answer: '还要你定两件事：\n1. 新分支要不要开 PR？\n2. #32 关不关？', durationMs: 5, isAborted: false, turnId: 't2', reason: 'answer' })
   await $.command.run({ command: 'gemflow', args: 'board', origin: COMPOSER, presentation: PRESENTATION })
   const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
@@ -1105,19 +1109,26 @@ test('a reply that ends asking: the band puts the question first with its answer
   const two = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
   expect(shown((await two.drawn()) as unknown as Drawn).join(' ')).toMatch(/定 1\/2：新分支要不要开 PR/)
   await two.press({ key: 'attention-0-0-要' })
-  expect(said.at(-1), 'one answer of two: kept, not said yet').toBe('推')
+  expect(said.at(-1), 'one answer of two: kept, not said yet').toBe('要强推覆盖 origin 上的 feat/x。推吗？：推')
   expect(shown((await two.drawn()) as unknown as Drawn).join(' ')).toMatch(/定 2\/2：#32 关不关/)
   await two.press({ key: 'attention-1-0-关' })
   await two.unmount()
   expect(said.at(-1), 'the last answer says them all').toBe('新分支要不要开 PR？：要\n#32 关不关？：关')
+  // A question the model did not register: a grey hint, nothing to press.
+  await $.turn.complete({ answer: '做完了。\n\n要不要顺手把文档也改了？', durationMs: 5, isAborted: false, turnId: 't3', reason: 'answer' })
+  const hint = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+  expect(shown((await hint.drawn()) as unknown as Drawn).join(' ')).toMatch(/可能待决定：要不要顺手把文档也改了？/)
+  expect((await hint.findAll({ type: 'Button' })).map((b) => b.key).filter((k) => k.startsWith('attention-')), 'no answers to press').toEqual([])
+  await hint.unmount()
 })
 
-test('a question too long for one row is drawn whole over up to three rows, its answers on a row of their own; the mark still opens the board', async ($, on) => {
+test('a question too long for one row is drawn whole, however many rows it takes, its answers on a row of their own; the mark still opens the board', async ($, on) => {
   const w = world(on)
   on('prompt.submit', ($, e) => ({ text: e.text }))
   on('turn.complete', ($, e) => ({ text: e.answer }))
   await start($, on)
   const question = '要不要把状态带的问题识别改成只认问句，陈述句不再挂成待决定，也不会出现同意和暂不两个按钮，看板上的此刻卡片同样只列问句？'
+  await $.tool.call({ tool: 'mcp__gemflow__ask', tool_use_id: 'q1', question, options: ['要', '不要'] })
   await $.turn.complete({ answer: `改好了。\n\n${question}`, durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' })
   for (const surface of ['terminal', 'desktop'] as const) {
     const band = await $.ui.mount({ plugin: 'gemflow', surface, component: 'AbovePrompt', props: { ...BAND, bodyColumns: 60 } })

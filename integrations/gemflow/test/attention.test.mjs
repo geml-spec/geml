@@ -29,14 +29,18 @@ test("answers: the ones an ask leans to, the action nearest its question mark", 
   assert.deepEqual(optionsFor("先做这个，还是先做第三步「产物」？"), ["先做这个", "先做第三步「产物」"], "A, 还是 B: the two choices, never yes or no");
   // Several things to settle: asked one by one, each with its own answers; the answers kept, then said together.
   const reply = "做完了。\n还有两处要你定：\n- 副标题要不要改？\n- 图标换不换？";
-  const first = leadOf({ reply, standing: [], memory: NO_MEMORY });
+  const asked = [{ question: "副标题要不要改？", options: ["要", "不要"] }, { question: "图标换不换？", options: ["换", "不换"] }];
+  const guess = leadOf({ reply, standing: [], memory: NO_MEMORY });
+  assert.deepEqual([guess.kind, guess.text, guess.options], ["maybe", "可能待决定：副标题要不要改？", []], "not registered: a grey hint, nothing to press");
+  const first = leadOf({ reply, standing: [], memory: NO_MEMORY, asked });
   assert.deepEqual([first.text, first.options, first.step], ["决定 1/2：副标题要不要改？", ["要", "不要"], { index: 0, of: 2 }]);
   assert.deepEqual(pressablesFor(first, first.options).map((p) => [p.label, p.action, p.primary ?? false]), [["要", { op: "pick", index: 0, answer: "要" }, true], ["不要", { op: "pick", index: 0, answer: "不要" }, false]]);
-  const second = leadOf({ reply, standing: [], memory: NO_MEMORY, picks: ["要", null] });
+  const second = leadOf({ reply, standing: [], memory: NO_MEMORY, picks: ["要", null], asked });
   assert.deepEqual([second.text, second.options], ["决定 2/2：图标换不换？", ["换", "不换"]]);
-  assert.equal(leadOf({ reply, standing: [], memory: NO_MEMORY, picks: ["要", "不换"] }), null, "all answered: nothing leads");
+  assert.equal(leadOf({ reply, standing: [], memory: NO_MEMORY, picks: ["要", "不换"], asked }), null, "all answered: nothing leads");
   assert.equal(picksText(["副标题要不要改？", "图标换不换？"], ["要", "不换"]), "副标题要不要改？：要\n图标换不换？：不换");
-  const cards = nowRows({ reply, standing: [], memory: NO_MEMORY, picks: ["要", null] }).filter((r) => r.kind === "card");
+  const cards = nowRows({ reply, standing: [], memory: NO_MEMORY, picks: ["要", null], asked }).filter((r) => r.kind === "card");
+  assert.deepEqual(nowRows({ reply, standing: [], memory: NO_MEMORY }), [], "a guessed question is no card");
   assert.deepEqual(cards.map((c) => [c.title, c.detail, c.actions.map((a) => a.action)]), [
     ["副标题要不要改？", ["已选：要"], []],
     ["图标换不换？", [], [{ op: "pick", index: 1, answer: "换" }, { op: "pick", index: 1, answer: "不换" }]],
@@ -60,14 +64,15 @@ test("standing: a failing check, a green pull request, commits not pushed (quiet
 test("lead: this reply's asks first; then a failure new to the person, then a new step; never the same line twice running", () => {
   const facts = { ahead: [], prs: [{ number: 32, branch: "feat/a", green: false, failing: ["scan"] }] };
   const standing = standingOf("要推吗？", facts, NOW);
-  assert.equal(leadOf({ reply: "要推吗？", standing, memory: NO_MEMORY }).kind, "ask");
+  assert.equal(leadOf({ reply: "要推吗？", standing, memory: NO_MEMORY, asked: [{ question: "要推吗？", options: ["推", "暂不"] }] }).kind, "ask");
+  assert.equal(leadOf({ reply: "要推吗？", standing, memory: NO_MEMORY }).kind, "maybe", "the same question, not registered: a hint");
   const broken = leadOf({ reply: "做完了。", standing: standingOf("做完了。", facts, NOW), memory: NO_MEMORY });
   assert.equal(broken.kind, "broken");
   assert.equal(leadOf({ reply: "做完了。", standing: standingOf("做完了。", facts, NOW), memory: { ...NO_MEMORY, shown: ["fail:32:scan"] } }), null, "it led once already");
   assert.equal(leadOf({ reply: "做完了。", standing: standingOf("做完了。", facts, NOW), memory: { ...NO_MEMORY, lastLead: broken.text } }), null);
   const again = leadOf({ reply: "做完了。\n\n上一个问题还在等你：要不要重写历史去掉 e44c70ba？", standing: [], memory: NO_MEMORY });
-  assert.equal(again.kind, "ask", "a reply re-asking an older question asks it this turn");
-  assert.match(again.text, /要不要重写历史去掉 e44c70ba/);
+  assert.equal(again.kind, "maybe", "a reply re-asking an older question, not registered: a hint of it");
+  assert.match(again.text, /^可能待决定：要不要重写历史去掉 e44c70ba/);
 });
 
 test("memory: what led is shown, each condition ages, reminders wait; a short answer ends the oldest", () => {
@@ -86,7 +91,7 @@ test("the line: lead, steps still owed, asks still waiting, in one row; how long
   const facts = { ahead: [{ branch: "feat/gemflow", ahead: 2, newestAt: "2026-10-18T08:00:00Z" }], prs: [{ number: 32, branch: "x", green: true, failing: [] }] };
   const reply = "定了，图标那批已提交 2f501ff5，还没推送。\n\n要推到 origin 吗？";
   const standing = standingOf(reply, facts, NOW);
-  const lead = leadOf({ reply, standing, memory: NO_MEMORY });
+  const lead = leadOf({ reply, standing, memory: NO_MEMORY, asked: [{ question: "要推到 origin 吗？", options: ["推", "暂不"] }] });
   const roomy = bandLine({ lead, standing: [], memory: NO_MEMORY, reply, awayMs: 3 * 3_600_000 });
   assert.match(roomy.text, /^待决定：.*要推到 origin 吗/, "back after hours: the question, nothing about the time away");
   const line = bandLine({ lead, standing, memory: { ...NO_MEMORY, backlog: ["a"] }, reply, awayMs: 3 * 3_600_000 });
@@ -131,12 +136,14 @@ test("presses: an answer or a step goes as the person's own words, whole; 看看
   assert.deepEqual(p({ key: "fail:32:scan,CI", kind: "broken", text: "", options: [] }, ["查看日志"])[0][1], { op: "say", text: "看下 #32 失败的 scan、CI 日志" });
   assert.deepEqual(p(null, ["详情"])[0][1], { op: "open-board", tab: "items" });
   assert.deepEqual(p({ key: "reload", kind: "you", text: "", options: [] }, ["重载插件"])[0][1], { op: "command", command: "reload-plugins" });
+  assert.deepEqual(p({ key: "ask:q", kind: "ask", text: "", options: [], question: "用 A 方案还是 B 方案？" }, ["A 方案", "B 方案"])[1][1], { op: "say", text: "用 A 方案还是 B 方案？：B 方案" }, "the answer says what it answers");
 });
 
 test("此刻 on the board: every ask with its answers, every step, every older ask", () => {
   const facts = { ahead: [{ branch: "main", ahead: 1, newestAt: "2026-10-18T08:00:00Z" }], prs: [] };
   const reply = "还要你定两件事：\n1. 新分支要不要开 PR？\n2. #32 关不关？";
-  const rows = nowRows({ reply, standing: standingOf(reply, facts, NOW), memory: { ...NO_MEMORY, backlog: ["上一条里的事还等你定：文档稿批不批"] } });
+  const asked = [{ question: "新分支要不要开 PR？", options: ["要", "不要"] }, { question: "#32 关不关？", options: ["关", "不关"] }];
+  const rows = nowRows({ reply, standing: standingOf(reply, facts, NOW), memory: { ...NO_MEMORY, backlog: ["上一条里的事还等你定：文档稿批不批"] }, asked });
   assert.deepEqual(rows.map((r) => r.kind === "section" ? `§${r.text}` : `${r.verb} ${r.title}`), ["§此刻", "决定 新分支要不要开 PR？", "决定 #32 关不关？", " 待推送：main · 1 个提交", "待决定 文档稿批不批"]);
   assert.deepEqual(nowRows({ reply: "", standing: [], memory: NO_MEMORY }), []);
 });

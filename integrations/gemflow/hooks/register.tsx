@@ -39,6 +39,8 @@ import { envParts, remoteInPlay } from '../dist/hosts/claude-code/env.js'
 import { appendEvents, currentTurn, decisionsContext, decisionsSince, isLogName, legacyLogName, logName, nextTurn, NOTE_TOOL, parseLog, SESSIONS_GITIGNORE, SESSIONS_PROMPT, summarize } from '../dist/core/session-log.js'
 import type { SessionEvent, SessionSummary } from '../dist/core/session-log.js'
 import { ARTIFACT_TOOL, isMadeForPeople, publishedLink } from '../dist/core/artifact-tool.js'
+import { ASK_PROMPT, ASK_TOOL, askedOf } from '../dist/core/ask-tool.js'
+import type { Asked } from '../dist/core/ask-tool.js'
 import type { AttachedClient, HostInfo } from '../dist/hosts/claude-code/env.js'
 import { bandView, BRAND_RED, cellWidth, MARK, MARK_SVG, SEP, toneProps, truncate } from '../dist/hosts/claude-code/band.js'
 import type { BandView, Segment, Tone } from '../dist/hosts/claude-code/band.js'
@@ -81,6 +83,8 @@ const droppedOpenAtom = atom({ plugin: 'gemflow', key: 'droppedOpen' } as const,
 const artifactMenuAtom = atom({ plugin: 'gemflow', key: 'artifactMenu' } as const, null as string | null)
 const docsOpenAtom = atom({ plugin: 'gemflow', key: 'docsOpen' } as const, false)
 const madeElsewhereAtom = atom({ plugin: 'gemflow', key: 'madeElsewhere' } as const, [] as string[])
+/** The questions the model registered this turn (the ask tool): the band's once the turn ends. */
+const askedAtom = atom({ plugin: 'gemflow', key: 'asked' } as const, [] as Asked[])
 const flowStateAtom = atom({ plugin: 'gemflow', key: 'flowState' } as const, null as string | null)
 const flowSwitchAtom = atom({ plugin: 'gemflow', key: 'flowSwitch' } as const, false)
 const toolQueryAtom = atom({ plugin: 'gemflow', key: 'toolQuery' } as const, '')
@@ -411,7 +415,8 @@ async function loadBoard($: EngineInterface): Promise<string | null> {
 
 /** The last reply as the band keeps it. `consumed`: the person has answered it; its asks no longer lead. */
 /** `picks`: the answers given so far to the reply's several asks, by their place; said together once all are given. */
-interface Attention { reply: string; replyAt: number; memory: AttentionMemory; consumed: boolean; picks?: (string | null)[] }
+/** `asks`: the questions the model registered in the turn the reply ends (the ask tool); none, and a question in the reply is only a hint. */
+interface Attention { reply: string; replyAt: number; memory: AttentionMemory; consumed: boolean; picks?: (string | null)[]; asks?: Asked[] }
 const readAttention = async ($: EngineInterface): Promise<Attention | null> => (await read($, attentionAtom)) as unknown as Attention | null
 
 /** The repository's facts for the band, with the reload a command made due. */
@@ -430,7 +435,7 @@ async function attentionNow($: EngineInterface, t: T) {
   // A reload is the machine's: over a remote connection, or once the engine said it cannot run here, it is named with no button.
   const remote = remoteInPlay({ clients: (clients as unknown as AttachedClient[] | null) ?? [], ...(origin !== null ? { origin } : {}) })
   const standing = standingOf(reply, facts, now, t, { reloadHere: !remote && !unavailable })
-  const lead = a === null || a.consumed ? null : leadOf({ reply, standing, memory, picks: a.picks ?? [], t })
+  const lead = a === null || a.consumed ? null : leadOf({ reply, standing, memory, picks: a.picks ?? [], ...(a.asks !== undefined ? { asked: a.asks } : {}), t })
   const line = bandLine({ lead, standing, memory, reply, awayMs: a === null ? null : now - a.replyAt, t })
   return { attention: a, reply, standing, memory, lead, line }
 }
@@ -591,6 +596,15 @@ async function uploadsOnPrompt($: EngineInterface, named: readonly { type: strin
     await bridge($, { op: 'artifact', kind: b.type === 'image' ? 'image' : 'file', where: 'upload', data: source.data, ...(name !== undefined ? { name } : {}), ...(mediaType !== undefined ? { mediaType } : {}) }, SLOW_TIMEOUT_MS)
   }
   await reloadBoardLater($)
+}
+
+/** A question the model registered (the ask tool): kept for the band, which asks it once the turn ends. A subagent's goes nowhere. */
+async function registerAsk($: EngineInterface, event: unknown): Promise<ToolCallResult> {
+  if ((event as { agentId?: string }).agentId !== undefined) return { result: 'Not registered: only the main conversation asks the person.' }
+  const asked = askedOf(toolArgs(event as Record<string, unknown>))
+  if ('error' in asked) return { result: `Not registered: ${asked.error}.` }
+  await update($, askedAtom, (was) => [...((((was as unknown) as Asked[] | null) ?? []).filter((q) => q.question !== asked.question)), asked] as unknown as GemflowJson)
+  return { result: 'Registered: the status band asks it with these answers once this turn ends.' }
 }
 
 /** What the model says the work item made that gemflow did not see: a link, a picture, a file — under the current work item's artifacts. */
@@ -1284,7 +1298,8 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
     case 'pick': {
       const a = await readAttention($)
       if (a === null || a.consumed) return
-      const asks = asksOf(a.reply)
+      const asks = (a.asks ?? []).map((q) => q.question)
+      if (asks.length === 0) return
       const picks = asks.map((_, i) => (i === action.index ? action.answer : a.picks?.[i] ?? null))
       if (picks.some((p) => p === null)) { await update($, attentionAtom, () => ({ ...a, picks }) as unknown as GemflowJson); return }
       await update($, attentionAtom, () => ({ ...a, picks }) as unknown as GemflowJson)
@@ -1857,8 +1872,8 @@ async function shareStatus($: EngineInterface, t: T): Promise<string> {
   return statusShareText(shell, pending, board?.artifacts, t)
 }
 
-/** The most rows a question takes on the band; past them it ends in "…" and its card on the board holds it whole. */
-const QUESTION_ROWS = 3
+/** A question takes the rows it needs on the band: shown whole (past the engine's rows, the band scrolls). */
+const QUESTION_ROWS = Number.POSITIVE_INFINITY
 
 /** `text` broken into rows of at most `width` cells, at most `rows` of them, the last ending in "…" when some is left over. */
 function wrapCells(text: string, width: number, rows: number): string[] {
@@ -1934,7 +1949,8 @@ async function tabRows($: EngineInterface, e: { surface: string; props: { bodyCo
     exported, artifactMenu, docsOpen,
   })
   const here = await attention
-  return here === null ? rows : [...nowRows({ reply: here[0].reply, standing: here[0].standing, memory: here[0].memory, queued: here[1], picks: here[0].attention?.picks ?? [], t }), ...rows]
+  const asked = here !== null && here[0].attention !== null && !here[0].attention.consumed ? here[0].attention.asks : undefined
+  return here === null ? rows : [...nowRows({ reply: here[0].reply, standing: here[0].standing, memory: here[0].memory, queued: here[1], picks: here[0].attention?.picks ?? [], ...(asked !== undefined ? { asked } : {}), t }), ...rows]
 }
 
 /** The board's header: the mark, the version, the dialogs; the work item, its stage and flow; where the session runs. */
@@ -1993,6 +2009,7 @@ export const register: Register = (on) => {
     }
     await registerOne($, NOTE_TOOL.name, () => $.tool.register({ name: NOTE_TOOL.name, description: NOTE_TOOL.description, inputSchema: NOTE_TOOL.inputSchema as unknown as Record<string, unknown>, isDeferred: false }))
     await registerOne($, ARTIFACT_TOOL.name, () => $.tool.register({ name: ARTIFACT_TOOL.name, description: ARTIFACT_TOOL.description, inputSchema: ARTIFACT_TOOL.inputSchema as unknown as Record<string, unknown>, isDeferred: false }))
+    await registerOne($, ASK_TOOL.name, () => $.tool.register({ name: ASK_TOOL.name, description: ASK_TOOL.description, inputSchema: ASK_TOOL.inputSchema as unknown as Record<string, unknown>, isDeferred: false }))
     await registerOne($, '/gemflow', () => $.command.register({ name: 'gemflow', description: 'Gemflow：当前阶段、看板、暂停与继续、切换或添加流程', argumentHint: COMMAND_HINT }))
     // The settings, from the store; the host's language; the plugin's version.
     try {
@@ -2046,7 +2063,7 @@ export const register: Register = (on) => {
     const tool = String(e.tool)
     // How often each tool is used: every call is noted under its day as it starts, by the key the dictionary would give it, gemflow's own too.
     await noteUsage($, tool, toolArgs(e as unknown as Record<string, unknown>))
-    if (isOwnTool(tool) || tool === `mcp__gemflow__${NOTE_TOOL.name}` || tool === `mcp__gemflow__${ARTIFACT_TOOL.name}`) return next(e)
+    if (isOwnTool(tool) || tool === `mcp__gemflow__${NOTE_TOOL.name}` || tool === `mcp__gemflow__${ARTIFACT_TOOL.name}` || tool === `mcp__gemflow__${ASK_TOOL.name}`) return next(e)
     await retryStart($)
     if (e.agentId === undefined) await notePrompt($, (p) => ({ ...p, tools: p.tools + 1 }))
     const input = toolArgs(e as unknown as Record<string, unknown>)
@@ -2136,11 +2153,12 @@ export const register: Register = (on) => {
   on('tool.call', { tool: 'mcp__gemflow__set' }, ($, e) => serveVerb($, 'set', e)).catch(() => VERB_FAILED)
   on('tool.call', { tool: 'mcp__gemflow__note' }, ($, e) => noteDecisions($, e)).catch(() => ({ result: 'gemflow could not record that' }))
   on('tool.call', { tool: 'mcp__gemflow__artifact' }, ($, e) => recordArtifact($, e)).catch(() => ({ result: 'gemflow could not record that' }))
+  on('tool.call', { tool: 'mcp__gemflow__ask' }, ($, e) => registerAsk($, e)).catch(() => ({ result: 'gemflow could not register that' }))
 
   // The model is told once about the project's other sessions and the note tool.
   on('prompt.compose', async ($, e, next) => {
     const done = await next(e)
-    return { ...done, sections: [...done.sections, { id: 'gemflow:sessions', text: SESSIONS_PROMPT, scope: 'session' as const }] }
+    return { ...done, sections: [...done.sections, { id: 'gemflow:sessions', text: SESSIONS_PROMPT, scope: 'session' as const }, { id: 'gemflow:ask', text: ASK_PROMPT, scope: 'session' as const }] }
   }).catch(($, e, next) => next(e))
 
   // A main-loop turn's end: the first sentence of its answer goes on its prompt's row, as what the turn did.
@@ -2158,8 +2176,10 @@ export const register: Register = (on) => {
       } catch { /* the row stays without it */ }
       if (!e.isAborted) {
         try {
-          const [was, at] = await Promise.all([readAttention($), $.clock.now()])
-          const kept: Attention = { reply: e.answer, replyAt: at, memory: was?.memory ?? NO_MEMORY, consumed: false }
+          const [was, at, registered] = await Promise.all([readAttention($), $.clock.now(), read($, askedAtom)])
+          const asks = ((registered as unknown) as Asked[] | null) ?? []
+          await update($, askedAtom, () => [] as unknown as GemflowJson)
+          const kept: Attention = { reply: e.answer, replyAt: at, memory: was?.memory ?? NO_MEMORY, consumed: false, ...(asks.length > 0 ? { asks } : {}) }
           await update($, attentionAtom, () => kept as unknown as GemflowJson)
           const facts = await read($, factsAtom)
           await update($, factsAtReplyAtom, () => facts)
@@ -2291,7 +2311,7 @@ export const register: Register = (on) => {
         const at = await attentionNow($, t)
         const workflowWaits = waitingOnPerson > 0 || view.verb === t('已暂停')
         if (at.line !== null && (at.line.lead !== null || !workflowWaits)) {
-          view = { verb: '', title: at.line.text, tone: at.line.lead === 'broken' ? 'error' : 'normal', note: '', detail: at.line.text, actions: [], more: { count: 0, detail: '' } }
+          view = { verb: '', title: at.line.text, tone: at.line.lead === 'broken' ? 'error' : at.line.lead === 'maybe' ? 'dim' : 'normal', note: '', detail: at.line.text, actions: [], more: { count: 0, detail: '' } }
           attentionPresses = [...pressablesFor(at.lead, at.line.options, t), ...stepPressables(at.line.steps, t)]
           question = at.line.full
           const pressed = pressedOf(attentionPresses, await readQueued($))

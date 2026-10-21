@@ -425,6 +425,7 @@ export const WORDS: Readonly<Record<string, Entry>> = {
   "在文件夹里显示": { en: "Show in folder", ja: "フォルダで表示" },
   "图片 · {0}": { en: "Images · {0}", ja: "画像 · {0}" },
   "代码": { en: "Code", ja: "コード" },
+  "可能待决定：{0}": { en: "Maybe to decide: {0}", ja: "決定待ちかもしれない：{0}" },
   "gemflow：{0}画不出来（{1}）": { en: "gemflow: {0} could not be drawn ({1})", ja: "gemflow：{0}を描けませんでした（{1}）" },
   "读取超时": { en: "reading timed out", ja: "読み込みがタイムアウト" },
   "页头": { en: "the header", ja: "ヘッダー" },

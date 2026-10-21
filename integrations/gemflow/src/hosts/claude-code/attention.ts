@@ -17,6 +17,7 @@
 // A standing condition leads once; after that it is a step still owed at the end of the line, for a few turns, and
 // then only on the board. A line never leads twice running. The whole fits one row.
 import type { Pressable } from "./actions.js";
+import type { Asked } from "../../core/ask-tool.js";
 import type { BoardRow } from "./board.js";
 import { ZH, type T } from "./text.js";
 
@@ -44,10 +45,11 @@ export interface AttentionMemory {
 }
 export const NO_MEMORY: AttentionMemory = { shown: [], age: {}, lastLead: "", backlog: [] };
 
-export type LeadKind = "ask" | "broken" | "you";
+/** `maybe`: a question guessed from the reply, not registered — a grey hint with no answers. */
+export type LeadKind = "ask" | "broken" | "you" | "maybe";
 /** `step`: one of several asks in one reply, settled one by one — which, of how many. */
-/** `full`: an ask's line with the whole question, where `text` may be cut to fit. */
-export interface Lead { key: string; kind: LeadKind; text: string; options: string[]; step?: { index: number; of: number }; full?: string }
+/** `full`: an ask's line with the whole question, where `text` may be cut to fit; `question`: a registered question, which its answers are said with. */
+export interface Lead { key: string; kind: LeadKind; text: string; options: string[]; step?: { index: number; of: number }; full?: string; question?: string }
 export interface Standing { key: string; kind: "broken" | "you"; short: string; text: string; options: string[]; quiet?: boolean }
 /** `steps`: the other steps only the person can take now, each a button of its own beside the lead's options. `full`: a question led, whole, for a band that wraps it. */
 export interface BandLine { text: string; options: string[]; lead: LeadKind | null; steps: Standing[]; full?: string }
@@ -59,7 +61,7 @@ export const WIDTH = 90;
 /** Away this long, the band says what became of the last request. */
 export const AWAY_MS = 15 * 60_000;
 /** The most of a question kept whole: past it, the band's three rows end in "…" and the card holds this much. */
-const WHOLE = 400;
+const WHOLE = 4000;
 /** Commits younger than this do not lead: they are about to be pushed. */
 const YOUNG_MS = 10 * 60_000;
 
@@ -194,8 +196,19 @@ export function standingOf(reply: string, facts: AttentionFacts, now: number, t:
 // ---- what leads
 
 /** This turn's lead: the reply's asks, then a failure new to the person, then a new step only they can take. */
-export function leadOf(o: { reply: string; standing: readonly Standing[]; memory: AttentionMemory; picks?: readonly (string | null)[]; t?: T }): Lead | null {
+export function leadOf(o: { reply: string; standing: readonly Standing[]; memory: AttentionMemory; picks?: readonly (string | null)[]; asked?: readonly Asked[]; t?: T }): Lead | null {
   const t = o.t ?? ZH;
+  // The questions the model registered lead, with the answers it gave, shown whole.
+  if (o.asked !== undefined && o.asked.length > 0) {
+    const asked = o.asked;
+    const i = asked.length >= 2 ? asked.findIndex((_, n) => (o.picks?.[n] ?? null) === null) : 0;
+    if (i >= 0) {
+      const q = asked[i] as Asked;
+      const step = asked.length >= 2 ? { index: i, of: asked.length } : undefined;
+      const label = (cutTo: number): string => (step !== undefined ? t("决定 {0}/{1}：{2}", i + 1, asked.length, clip(q.question, cutTo)) : t("待决定：{0}", clip(q.question, cutTo)));
+      return { key: `ask:${asked.map((x) => x.question).join("|")}#${i}`, kind: "ask", text: label(60), full: label(WHOLE), options: [...q.options], question: q.question, ...(step !== undefined ? { step } : {}) };
+    }
+  }
   const asks = asksOf(o.reply);
   let ask = asks;
   if (ask.length === 0) {
@@ -205,12 +218,8 @@ export function leadOf(o: { reply: string; standing: readonly Standing[]; memory
     if (again !== undefined && isQuestion(again)) ask = [again.replace(/^(上一个问题|上一条里的事)?(还|仍|都)?(在)?等你(定|批)?[：:，,]?/, "")];
   }
   let lead: Lead | null = null;
-  // Several things to settle are settled one by one: the first not answered yet, with its own answers; then the next.
-  if (ask.length >= 2) {
-    const i = ask.findIndex((_, n) => (o.picks?.[n] ?? null) === null);
-    if (i >= 0) lead = { key: `ask:${ask.join("|")}#${i}`, kind: "ask", text: t("决定 {0}/{1}：{2}", i + 1, ask.length, clip(ask[i] as string, 50)), full: t("决定 {0}/{1}：{2}", i + 1, ask.length, clip(ask[i] as string, WHOLE)), options: optionsFor(ask[i] as string, t), step: { index: i, of: ask.length } };
-  }
-  else if (ask.length === 1) lead = { key: `ask:${ask[0]}`, kind: "ask", text: t("待决定：{0}", clip(ask[0] as string, 60)), full: t("待决定：{0}", clip(ask[0] as string, WHOLE)), options: optionsFor(ask[0] as string, t) };
+  // A question the model did not register: a grey hint, one row, with no answers to press.
+  if (ask.length > 0 && (o.asked === undefined || o.asked.length === 0)) lead = { key: `maybe:${ask[0]}`, kind: "maybe", text: t("可能待决定：{0}", clip(ask[0] as string, 120)), options: [] };
   if (lead === null) {
     const fresh = o.standing.filter((s) => !o.memory.shown.includes(s.key) && s.quiet !== true);
     const s = fresh.find((x) => x.kind === "broken") ?? fresh.find((x) => x.kind === "you");
@@ -224,7 +233,7 @@ export function leadOf(o: { reply: string; standing: readonly Standing[]; memory
 export function remember(memory: AttentionMemory, o: { reply: string; standing: readonly Standing[]; lead: Lead | null }): AttentionMemory {
   const keys = new Set(o.standing.map((s) => s.key));
   const shown = memory.shown.filter((k) => keys.has(k));
-  if (o.lead !== null && o.lead.kind !== "ask" && !shown.includes(o.lead.key)) shown.push(o.lead.key);
+  if (o.lead !== null && o.lead.kind !== "ask" && o.lead.kind !== "maybe" && !shown.includes(o.lead.key)) shown.push(o.lead.key);
   const age: Record<string, number> = {};
   for (const k of keys) age[k] = (memory.age[k] ?? 0) + 1;
   const backlog = [...memory.backlog];
@@ -322,6 +331,7 @@ export function pressablesFor(lead: Lead | null, options: readonly string[], t: 
       if (label === t("修复")) return t("修 #{0} 失败的 {1}", m[1] as string, (m[2] as string).split(",").join("、"));
     }
     if (key.startsWith("uncommitted:") && label === t("提交")) return t("提交改动");
+    if (lead?.question !== undefined) return `${lead.question}：${label}`;
     return label;
   };
   // Merging and pushing cannot be taken back: the press asks first.
@@ -394,7 +404,7 @@ export function pendingNote(q: Queued, t: T = ZH): string {
  * room for one of — the reply's asks with their answers, every step only the
  * person can take, the older asks still waiting.
  */
-export function nowRows(o: { reply: string; standing: readonly Standing[]; memory: AttentionMemory; queued?: readonly Queued[]; picks?: readonly (string | null)[]; t?: T }): BoardRow[] {
+export function nowRows(o: { reply: string; standing: readonly Standing[]; memory: AttentionMemory; queued?: readonly Queued[]; picks?: readonly (string | null)[]; asked?: readonly Asked[]; t?: T }): BoardRow[] {
   const t = o.t ?? ZH;
   const rows: BoardRow[] = [];
   // A step already pressed says what became of it instead of offering its buttons again.
@@ -402,13 +412,13 @@ export function nowRows(o: { reply: string; standing: readonly Standing[]; memor
     const q = pressedOf(actions, o.queued ?? []);
     return q === undefined ? { actions, detail: [] } : { actions: [], detail: [pendingNote(q, t)] };
   };
-  const asks = asksOf(o.reply);
-  asks.forEach((a, i) => {
+  const asked = o.asked ?? [];
+  asked.forEach((a, i) => {
     // Of several, each is answered on its own card and kept; the last answer says them all.
-    const step = asks.length >= 2 ? { index: i, of: asks.length } : undefined;
-    const lead: Lead = { key: `ask:${a}`, kind: "ask", text: a, options: optionsFor(a, t), ...(step !== undefined ? { step } : {}) };
+    const step = asked.length >= 2 ? { index: i, of: asked.length } : undefined;
+    const lead: Lead = { key: `ask:${a.question}`, kind: "ask", text: a.question, options: [...a.options], question: a.question, ...(step !== undefined ? { step } : {}) };
     const picked = step !== undefined ? o.picks?.[i] ?? null : null;
-    rows.push({ kind: "card", key: `now-ask-${i}`, icon: "ask", verb: t("决定"), title: clip(a, WHOLE), ...(picked !== null ? { actions: [], detail: [t("已选：{0}", picked)] } : settle(pressablesFor(lead, lead.options, t))) });
+    rows.push({ kind: "card", key: `now-ask-${i}`, icon: "ask", verb: t("决定"), title: clip(a.question, WHOLE), ...(picked !== null ? { actions: [], detail: [t("已选：{0}", picked)] } : settle(pressablesFor(lead, lead.options, t))) });
   });
   for (const s of o.standing) {
     const lead: Lead = { key: s.key, kind: s.kind, text: s.text, options: s.options };
