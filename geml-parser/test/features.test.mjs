@@ -85,10 +85,16 @@ test("an escaped backtick opens no code span, so interpolation still applies (§
   assert.equal(d.children[1].text, "\\`1.2\\`");
 });
 
-test("an invalid key shape `{{9x}}` is literal text and no error (§4)", () => {
+test("a key is a NAME and needs no leading letter: `{{9x}}` is a reference, unknown here (§4)", () => {
   const d = parse("x {{9x}} y");
-  assert.equal(errors(d).length, 0);
+  assert.deepEqual(errors(d).map((e) => e.code), ["unknown-metadata-reference"]);
   assert.equal(d.children[0].text, "x {{9x}} y");
+});
+
+test("a shape that is no NAME is literal text and no error: `{{a b}}` (§4)", () => {
+  const d = parse("x {{a b}} y");
+  assert.equal(errors(d).length, 0);
+  assert.equal(d.children[0].text, "x {{a b}} y");
 });
 
 test("a self-referential meta value does not re-interpolate (§4)", () => {

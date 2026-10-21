@@ -151,7 +151,9 @@ function parseSimple(src: string): SimpleSelector | { error: string } {
   while (i < src.length) {
     const ch = src[i];
     if (ch === "." || ch === "#") {
-      const m = /^[^.#[\]]+/.exec(src.slice(i + 1));
+      // An id or class is a NAME (GEML §4); any other character ends the word
+      // and is reported below as unexpected.
+      const m = /^[\p{L}\p{M}\p{N}_-]+/u.exec(src.slice(i + 1));
       if (!m) return { error: `empty ${ch === "." ? "class" : "id"} in \`${src}\`` };
       if (ch === ".") sel.classes.push(m[0]);
       else {

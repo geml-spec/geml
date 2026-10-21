@@ -101,7 +101,7 @@ function autolinks(s: string): string {
 // exist in the generated `=== meta` block substitutes silently. Escape it to
 // `\{{name}}`, skipping the spans GEML interpolation itself leaves verbatim
 // (inline code, inline math) and already-escaped characters.
-const META_REF_Y = new RegExp(META_REF_SRC, "y");
+const META_REF_Y = new RegExp(META_REF_SRC, "yu");
 function escMetaRefs(s: string): string {
   if (!s.includes("{{")) return s;
   let out = "";

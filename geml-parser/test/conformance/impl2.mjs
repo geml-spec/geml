@@ -487,7 +487,7 @@ function interp(s, meta) {
       out += c; i++; continue;
     }
     if (c === "{" && s[i + 1] === "{") {
-      const m = /^\{\{\s*([A-Za-z_][A-Za-z0-9_-]*)\s*\}\}/.exec(s.slice(i));
+      const m = /^\{\{\s*([\p{L}\p{M}\p{N}_-]+)\s*\}\}/u.exec(s.slice(i)); // the key is a NAME (§4)
       if (m && meta.has(m[1])) { out += meta.get(m[1]); i += m[0].length; continue; }
     }
     out += c; i++;

@@ -2143,6 +2143,115 @@
       "diagnostics": [
         "style-frame-too-deep:error"
       ]
+    },
+    {
+      "name": "a selector step's #id is a NAME (GEML §4): one written in NFD is read whole and binds the block that wrote its id the same way",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#r match=\"#Café\" color=red}\n===\n",
+        "d.geml": "=== table {#Café format=csv}\na\n1\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#Café",
+          "rules": [
+            "#r"
+          ],
+          "params": {},
+          "box": {
+            "color": "red"
+          },
+          "variants": []
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "name": "a selector step's #id and .class are NAMEs: a character outside NAME makes the step no simple selector",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#r match=\"#a!b\" color=red}\n===\n",
+        "d.geml": "=== table {#t format=csv}\na\n1\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [],
+      "diagnostics": [
+        "style-selector-unsupported:error"
+      ]
+    },
+    {
+      "name": "a selector step's type is a TYPE-NAME (GEML §3.1, ASCII): a non-ASCII type makes the step no simple selector",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-rule {#r match=\"注\" color=red}\n===\n",
+        "d.geml": "=== table {#t format=csv}\na\n1\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [],
+      "screens": [],
+      "frames": [],
+      "bindings": [],
+      "diagnostics": [
+        "style-selector-unsupported:error"
+      ]
+    },
+    {
+      "name": "a state's name is its block id, a NAME (GEML §4): a non-Latin state is declared, named in when=, and read back",
+      "files": {
+        "site.style.geml": "=== meta\nprofile = \"geml-style/v1\"\n===\n\n=== style-state {#开 match=heading on=toggle init-value=true type=flag}\n===\n\n=== style-rule {#c match=\"table\" when=\"$开=1\" color=red}\n===\n",
+        "d.geml": "# H\n\n=== table {#t format=csv}\na\n1\n===\n"
+      },
+      "sheet": "site.style.geml",
+      "corpus": [
+        "d.geml"
+      ],
+      "states": [
+        {
+          "id": "开",
+          "type": "flag",
+          "on": "toggle",
+          "initValue": "true"
+        }
+      ],
+      "screens": [],
+      "frames": [],
+      "bindings": [
+        {
+          "doc": "d.geml",
+          "block": "#t",
+          "rules": [
+            "#c"
+          ],
+          "params": {},
+          "box": {},
+          "variants": [
+            {
+              "when": {
+                "开": "1"
+              },
+              "box": {
+                "color": "red"
+              },
+              "params": {}
+            }
+          ]
+        }
+      ],
+      "diagnostics": []
     }
   ]
 }

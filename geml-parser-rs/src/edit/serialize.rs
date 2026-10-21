@@ -108,7 +108,7 @@ fn esc_meta_ref(s: &str) -> String {
                 j += 1;
             }
             let name_start = j;
-            while j < chars.len() && (chars[j].is_alphanumeric() || chars[j] == '_' || chars[j] == '-') {
+            while j < chars.len() && crate::uni::is_name_char(chars[j]) {
                 j += 1;
             }
             let mut k = j;

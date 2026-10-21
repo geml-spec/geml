@@ -111,7 +111,9 @@ export function findCodeSpanClose(s: string, i: number, n: number): number {
 // (geml.ts), the serializer escapes it on emit (serialize.ts), and the md
 // converter escapes it on conversion (from-md.ts). Build flagged variants with
 // `new RegExp(META_REF_SRC, flags)`.
-export const META_REF_SRC = "\\{\\{\\s*([A-Za-z_][A-Za-z0-9_-]*)\\s*\\}\\}";
+// The key is a NAME (§4): any Unicode letter, combining mark or number, `-`,
+// `_`, with no leading-letter rule — so every variant needs the `u` flag.
+export const META_REF_SRC = "\\{\\{\\s*([\\p{L}\\p{M}\\p{N}_-]+)\\s*\\}\\}";
 
 // §5: URL schemes that may be emitted as an href/src. A destination that names
 // any other scheme (javascript:, vbscript:, data:text/html, file:, …) is a

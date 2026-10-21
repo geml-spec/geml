@@ -38,6 +38,25 @@ and is released under `viewer-v*` tags.
   normalization form collide as `duplicate-id`, a reference in the other form
   resolves, and a listing names the id once, as first written.
 
+- **§3.1 defines its terminals, and a NAME takes any Unicode number** —
+  `LETTER`, `MARK`, `NUMBER` (General Category L, M, N), `DIGIT` and
+  `ASCII-LETTER` are written out, so `NAME-CHAR` says NUMBER where both
+  implementations and §4's derived ids already took General Category N, and
+  `DIGIT` is ASCII, as the `number` and `TYPE-NAME` rules meant. Three scans that
+  had their own idea of a NAME follow the grammar. A `{{key}}` interpolation key
+  is a NAME: the reference parser's reader, serializer and Markdown importer
+  took ASCII only, the Rust importer too, and the Rust serializer missed marks.
+  A style selector's `#id`, `.class` and `$state` are NAMEs and its type a
+  TYPE-NAME: the reference parser took any character in an id or class and
+  ASCII only in a state; Rust took a non-ASCII type and stopped an id at a mark.
+  The conformance suite pins each: a non-Latin, digit-leading or NFD-spelled
+  key interpolates (so `{{9x}}` names a key, and with none defined is
+  `unknown-metadata-reference` where the reference parser left it as text), a
+  literal `{{key}}` of any NAME is escaped on import and on
+  serialization, an NFD id in a selector binds, a non-Latin state is declared
+  and named in `when=`, and a junk id or a non-ASCII type is
+  `style-selector-unsupported`.
+
 - **The VS Code extension offers GEML's MCP server to chat.** It contributes an
   `mcpServerDefinitionProviders` provider, so Copilot Chat and anything else
   reading the editor's server list is offered two servers that differ only in

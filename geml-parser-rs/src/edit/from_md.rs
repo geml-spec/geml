@@ -203,12 +203,12 @@ fn meta_ref_at(s: &[char], i: usize) -> bool {
     while k < s.len() && ws(s[k]) {
         k += 1;
     }
-    if !s.get(k).is_some_and(|c| c.is_ascii_alphabetic() || *c == '_') {
-        return false;
-    }
-    k += 1;
-    while k < s.len() && (s[k].is_ascii_alphanumeric() || s[k] == '_' || s[k] == '-') {
+    let ks = k;
+    while k < s.len() && crate::uni::is_name_char(s[k]) {
         k += 1;
+    }
+    if k == ks {
+        return false;
     }
     while k < s.len() && ws(s[k]) {
         k += 1;

@@ -225,7 +225,8 @@ const INTERACTIONS = new Set(["select", "toggle"]);
 
 export interface WhenCond { state: string; value: string }
 
-const WHEN_TERM = /^\$([A-Za-z0-9_-]+)=([^=!<>|&]+)$/;
+// A state is a `style-state`'s id, a NAME (GEML §4).
+const WHEN_TERM = /^\$([\p{L}\p{M}\p{N}_-]+)=([^=!<>|&]+)$/u;
 
 /**
  * `when=` 里的内建伪状态（设计 2026-09-10 §4e）：值由指针给、不由 style-state 声明。`@` 前缀保证
@@ -1306,7 +1307,7 @@ export function resolveStyle(sheet: Stylesheet, corpus: CorpusDoc[], opts: Resol
   const declared = new Set(sheet.states.map((s) => s.id));
   const refs = (v: Value | undefined): string[] => {
     if (typeof v !== "string") return [];
-    return [...v.matchAll(/\$([A-Za-z0-9_-]+)/g)].map((m) => m[1]!);
+    return [...v.matchAll(/\$([\p{L}\p{M}\p{N}_-]+)/gu)].map((m) => m[1]!);
   };
   const checkRefs = (v: Value | undefined, whereId: string): void => {
     for (const name of refs(v)) {

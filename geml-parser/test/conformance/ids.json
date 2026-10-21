@@ -154,5 +154,12 @@
     "want": "h1(\"t\") \"see \" ref(\"#Cafe\u0301\")",
     "ids": ["Caf\u00e9"],
     "diagnostics": []
+  },
+  {
+    "name": "a NAME takes any Unicode number (General Category N), the characters a derived id keeps: a superscript and a Roman numeral",
+    "geml": "## t {#x\u00b2-\u2163}",
+    "want": "h2(\"t\")",
+    "ids": ["x\u00b2-\u2163"],
+    "diagnostics": []
   }
 ]

@@ -66,5 +66,11 @@
     "want": {
       "output": "| a |\n| --- |\n| 1 |\n\n| a |\n| --- |\n"
     }
+  },
+  {
+    "name": "geml to geml keeps a literal {{key}} escaped for any NAME the key may be, so it is not re-read as a reference",
+    "geml": "see \\{{第2版}} and \\{{Cafe\u0301}} here\n",
+    "op": {"verb": "to", "to": "geml"},
+    "want": {"output": "see \\{{第2版}} and \\{{Cafe\u0301}} here\n"}
   }
 ]

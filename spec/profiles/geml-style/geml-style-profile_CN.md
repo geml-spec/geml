@@ -360,6 +360,10 @@ table.kpi, table.summary                             逗号＝分支（等价于
 text#nav link                                        行内部件：只能是最后一步，前面要有块步
 ```
 
+`#id` 与 `.class` 取一个 NAME（GEML §4）——任意 Unicode 字母、数字或组合字符、`-`、`_`——
+`$state` 也是，它是 `style-state` 的 id；`type` 是 TYPE-NAME（GEML §3.1）：ASCII 字母、数字、
+`-`、`_`，以字母开头。一步里出现其他字符就不是简单选择器（`style-selector-unsupported`）。
+
 选择器可以以**行内部件**收尾——`link`、`image`、`code-span`、`strong`、`emphasis`——指选中块
 里面的某一类行内（`text#nav link` 是 `#nav` 里的每个链接，嵌套列表里的也算）。名字取 §5.1
 自己的叫法：`code` 已经是块类型，所以代码段叫 `code-span`。部件步必须是最后一步、前面要有块步、

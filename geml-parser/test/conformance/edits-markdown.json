@@ -795,5 +795,12 @@
     "want": {
       "output": "# not a heading\n\n- not a list\n\n1. not a list either\n\n> not a quote\n\nA line with \\* stars \\* and \\_under\\_ and \\<tag>.\n"
     }
+  },
+  {
+    "name": "to: md to geml escapes a literal {{key}} for any NAME the key may be, not only an ASCII one",
+    "geml": "see {{第2版}} and {{Cafe\u0301}} here\n",
+    "file": "doc.md",
+    "op": {"verb": "to", "to": "geml"},
+    "want": {"output": "see \\{{第2版}} and \\{{Cafe\u0301}} here\n"}
   }
 ]

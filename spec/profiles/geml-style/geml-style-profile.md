@@ -429,6 +429,11 @@ table.kpi, table.summary                             comma = branches (sugar for
 text#nav link                                        inline part: last step only, after a block step
 ```
 
+`#id` and `.class` take a NAME (GEML §4) — any Unicode letter, number or combining
+mark, `-`, `_` — and so does a `$state`, which is a `style-state`'s id; `type` is a
+TYPE-NAME (GEML §3.1): ASCII letters, digits, `-`, `_`, starting with a letter. A step
+holding any other character is not a simple selector (`style-selector-unsupported`).
+
 A selector may end in an **inline part** — `link`, `image`, `code-span`, `strong`,
 `emphasis` — naming one kind of inline inside the matched blocks (`text#nav link` is
 every link in `#nav`, nested lists included). The names are §5.1's own: `code` is a

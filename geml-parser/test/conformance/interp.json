@@ -103,5 +103,20 @@
     "name": "a meta block inside a FLOW body is a nested block, and does define metadata",
     "geml": "==== note\n=== meta\nv = \"nested\"\n===\n====\n\n{{v}}",
     "want": "block:note \"nested\""
+  },
+  {
+    "name": "an interpolation key is a NAME (§4): a non-Latin key with a digit inside",
+    "geml": "=== meta\n第2版 = \"x\"\n===\n\nsee {{第2版}} here",
+    "want": "\"see x here\""
+  },
+  {
+    "name": "an interpolation key needs no leading letter, as no NAME does",
+    "geml": "=== meta\n2nd = \"x\"\n===\n\n{{2nd}}",
+    "want": "\"x\""
+  },
+  {
+    "name": "an interpolation key written in NFD is read whole: its combining mark is a NAME character",
+    "geml": "=== meta\nCafe\u0301 = \"x\"\n===\n\n{{Cafe\u0301}}",
+    "want": "\"x\""
   }
 ]

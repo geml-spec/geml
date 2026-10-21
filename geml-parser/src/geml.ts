@@ -938,7 +938,7 @@ export function nameKey(name: string): string {
 // or inline math is left untouched (so GEML prose can document this very
 // syntax), and a backslash-escaped character can neither open a span nor a
 // `{{…}}` reference — `\{{key}}` renders as the literal text `{{key}}`.
-const META_REF = new RegExp(META_REF_SRC, "y");
+const META_REF = new RegExp(META_REF_SRC, "yu");
 function interpolate(text: string, line: number, ctx: Ctx): string {
   if (!text.includes("{{")) return text;
   // Markdown has no metadata interpolation: in a `.md`, `{{title}}` is a template

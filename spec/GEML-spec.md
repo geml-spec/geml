@@ -413,10 +413,17 @@ DIGITS         = DIGIT , { DIGIT } ;
                  (* leading zeros are allowed: `007` is 7 *)
 
 NAME           = NAME-CHAR , { NAME-CHAR } ;
-NAME-CHAR      = LETTER | MARK | DIGIT | "-" | "_" ;
-                 (* LETTER: any Unicode letter (General Category L); MARK: any
-                    combining mark (General Category M), so that a name written
-                    in NFD, its diacritics as marks of their own, is a NAME *)
+NAME-CHAR      = LETTER | MARK | NUMBER | "-" | "_" ;
+LETTER         = ? any Unicode letter, General Category L ? ;
+MARK           = ? any Unicode combining mark, General Category M ? ;
+                 (* a name written in NFD carries its diacritics as marks of
+                    their own, and §4 makes that spelling the same name as the
+                    precomposed one, so it is a NAME *)
+NUMBER         = ? any Unicode number, General Category N ? ;
+                 (* what a derived id keeps (§4, step 4): `²`, `Ⅳ`, a digit of
+                    any script *)
+DIGIT          = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+ASCII-LETTER   = ? "A" to "Z", "a" to "z" ? ;
 
 TYPE-NAME      = ASCII-LETTER , { ASCII-LETTER | DIGIT | "-" | "_" } ;
                  (* the block type is the ONE name a document does not derive
@@ -608,7 +615,7 @@ exactly when the slice is itself a value.
   (below) has none: no address of its own, no anchor for the prose beside it
   (rule 1 below), and nothing to collide with.
 - **Two NAMEs are the same name when they are equal after Unicode NFD
-  normalization.** A NAME may contain any Unicode letter and any combining
+  normalization.** A NAME may contain any Unicode letter, number or combining
   mark, and a letter carrying a diacritic has more than one encoding: `Café`
   written with U+00E9 and `Café` written as `e` + U+0301 look identical, both
   are NAMEs, and an author who writes the heading in one form and the reference
@@ -787,8 +794,9 @@ exactly when the slice is itself a value.
   `profile` is a **reserved** meta key: it declares the application-layer
   vocabularies this document uses (§8.6), and a processor MUST NOT read it as
   anything else.
-  In flow text, `{{key}}` is replaced with the matching
-  `meta` value; an unknown key is a build **error**. Interpolation reads the
+  In flow text, `{{key}}` — `key` a NAME (§3.1) naming a `meta` key, whitespace
+  allowed inside the braces — is replaced with the matching `meta` value; an
+  unknown key is a build **error**. Interpolation reads the
   flow source text and honors the verbatim atoms of §5.3 phase 1(1): a
   `{{key}}` inside a code span or inline math is left untouched (so a GEML
   document can quote this very syntax), raw block bodies are never

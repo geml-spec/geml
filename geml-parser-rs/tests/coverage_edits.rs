@@ -240,7 +240,7 @@ fn markdown_import_inline_escapes() {
     );
     edit(
         r#"{"name":"meta-like text","geml":"{{ title }} `{{x}}` ``a ` {{y}}`` $a {{y}} b$ \\{{z}} {{ 9bad }} {{a b}} {{name} {{_ok-1 }}\n","file":"doc.md","op":{"verb":"to","to":"geml"}}"#,
-        r#"{"output":"\\{{ title }} `{{x}}` ``a ` {{y}}`` $a {{y}} b$ \\{{z}} {{ 9bad }} {{a b}} {{name} \\{{_ok-1 }}\n"}"#,
+        r#"{"output":"\\{{ title }} `{{x}}` ``a ` {{y}}`` $a {{y}} b$ \\{{z}} \\{{ 9bad }} {{a b}} {{name} \\{{_ok-1 }}\n"}"#,
     );
     edit(
         r#"{"name":"dollars","geml":"$ {{w}} and $$ {{v}} and lone $\n","file":"doc.md","op":{"verb":"to","to":"geml"}}"#,

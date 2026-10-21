@@ -213,8 +213,14 @@ fn unsupported(s: &str) -> Option<String> {
     None
 }
 
+/// An id, class or `$state` name is a NAME (GEML §4).
 fn is_word(c: char) -> bool {
-    c.is_alphanumeric() || c == '-' || c == '_'
+    crate::uni::is_name_char(c)
+}
+
+/// A type step is a TYPE-NAME (GEML §3.1): ASCII letters, digits, `-`, `_`.
+fn is_type_char(c: char) -> bool {
+    c.is_ascii_alphanumeric() || c == '-' || c == '_'
 }
 
 fn parse_simple(step: &str) -> Result<Simple, String> {
@@ -265,8 +271,11 @@ fn parse_simple(step: &str) -> Result<Simple, String> {
                 }
                 i = close + 1;
             }
-            c if is_word(c) && i == 0 => {
-                let j = word(i);
+            c if c.is_ascii_alphabetic() && i == 0 => {
+                let mut j = i;
+                while j < chars.len() && is_type_char(chars[j]) {
+                    j += 1;
+                }
                 s.ty = Some(chars[i..j].iter().collect());
                 i = j;
             }

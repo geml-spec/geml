@@ -346,10 +346,15 @@ DIGITS         = DIGIT , { DIGIT } ;
                  (* leading zeros are allowed: `007` is 7 *)
 
 NAME           = NAME-CHAR , { NAME-CHAR } ;
-NAME-CHAR      = LETTER | MARK | DIGIT | "-" | "_" ;
-                 (* LETTER：任意 Unicode 字母（General Category L）；MARK：任意组合
-                    字符（General Category M），于是以 NFD 写下的名字——变音符号各自
-                    成为一个组合字符——也是 NAME *)
+NAME-CHAR      = LETTER | MARK | NUMBER | "-" | "_" ;
+LETTER         = ? 任意 Unicode 字母，General Category L ? ;
+MARK           = ? 任意 Unicode 组合字符，General Category M ? ;
+                 (* 以 NFD 写下的名字，变音符号各自成为一个组合字符，而 §4 把这种
+                    写法与预组合写法视为同一个名字，所以它也是 NAME *)
+NUMBER         = ? 任意 Unicode 数字，General Category N ? ;
+                 (* 派生 id 保留的字符（§4 第 4 步）：`²`、`Ⅳ`、任何文字的数字 *)
+DIGIT          = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+ASCII-LETTER   = ? "A" 到 "Z"，"a" 到 "z" ? ;
 
 TYPE-NAME      = ASCII-LETTER , { ASCII-LETTER | DIGIT | "-" | "_" } ;
                  (* 块类型是文档唯一"选定"而非"派生"的名字：它作为类型注册表的键，
@@ -472,7 +477,7 @@ NAME 不限于 ASCII，也不要求以字母开头：标题按自身文本派生
   照常派生；什么也派生不出的标题（见下）没有 id：没有自己的地址，不给旁边的散文当锚点
   （见下文规则 1），也谈不上和谁冲突。
 - **两个 NAME 在 Unicode NFD 归一化后相等，即为同一个名字。** NAME 可以包含任意
-  Unicode 字母和任意组合字符，而带变音符号的字母有不止一种编码：用 U+00E9 写的
+  Unicode 字母、数字和组合字符，而带变音符号的字母有不止一种编码：用 U+00E9 写的
   `Café` 与写成 `e` + U+0301 的 `Café` 看起来完全相同，两种写法都是 NAME；作者把
   标题写成一种形式、把引用写成另一种形式时，意思是**一个**名字而不是两个。因此处理器
   必须在 NFD 下比较 NAME——id、类名
@@ -585,7 +590,8 @@ NAME 不限于 ASCII，也不要求以字母开头：标题按自身文本派生
 - `=== meta` 块以每行一个 `key=val` 承载文档元数据：键是第一个 `=` 之前的文字，值是其后的全部文字，各自去掉首尾空白，值按上述属性值类型规则定型。既不带引号、也不是布尔或数字的值，无论怎么写都是字符串——`title = hello world` 就是字符串 `hello world`，不必加引号，因为 `meta` 的一行不是属性对象，其中没有什么在空白处终止。若文档中存在多个 `=== meta` 块，它们的键将被合并；**先定义的键优先**——后来定义相同键时，触发 `duplicate-meta-key` **告警**，后定义被忽略。哪些块算在内，按 §3 通常的嵌套规则：处在顶层或某个 `flow` 正文里的 `=== meta` 是一个块，它的键属于本文档；而出现在 `raw` 或 `data` 正文里的那个，是该正文的内容，什么也不定义——所以文档可以在更长围栏的 `code` 块里把 `=== meta` 当例子展示，那些键不会变成真的。
   `profile` 是**保留**的 meta 键：它声明本文档使用的应用层词汇表（§8.6），处理器
   必须不（MUST NOT）把它读作别的东西。
-  正文中的 `{{key}}` 会被替换为对应的 meta 值；遇到未知键是构建 **error**。插值读取
+  正文中的 `{{key}}`（`key` 是一个 NAME（§3.1），指一个 meta 键，大括号内可留空白）
+  会被替换为对应的 meta 值；遇到未知键是构建 **error**。插值读取
   流式正文的源文本，并遵循 §5.3 阶段一(1)的原样 atom：代码片段或行内公式里的
   `{{key}}` 原样保留（因此 GEML 文档可以引用这一语法本身），原样（raw）块体从不
   插值，反斜杠转义的 `\{{key}}` 渲染为字面文本 `{{key}}`。

@@ -91,7 +91,7 @@ function escText(s: string): string {
 // run of backslashes, a single inserted `\` would itself be consumed as that
 // run's escapee, re-exposing `{{` — so double it (`\\{`), which pairs as
 // escaped-backslash + escaped-brace and parses back to the same model text.
-const META_REF_G = new RegExp(META_REF_SRC, "g");
+const META_REF_G = new RegExp(META_REF_SRC, "gu");
 function escMetaRef(s: string): string {
   return s.replace(META_REF_G, (m, _key, offset: number) => {
     let bs = 0;
