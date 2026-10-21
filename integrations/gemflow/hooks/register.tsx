@@ -998,6 +998,19 @@ async function openBoard($: EngineInterface, tab?: BoardTab): Promise<{ isPlaced
   return opened
 }
 
+/**
+ * A reload: a pane the module before this one left up still answers to that
+ * module, so its presses do nothing. The board is opened again, which draws it
+ * anew from this module; a dialog is closed.
+ */
+async function adoptPanes($: EngineInterface): Promise<void> {
+  try {
+    const up = await $.ui.panes()
+    if (up.some((p) => p.id === BOARD_ID)) await $.ui.open({ id: BOARD_ID, title: PANE_TITLE })
+    if (up.some((p) => p.id === DIALOG_ID)) { await update($, dialogAtom, () => null); await $.ui.close({ id: DIALOG_ID }) }
+  } catch { /* no pane to adopt */ }
+}
+
 /** The newest published version, asked once per session. */
 async function checkLatest($: EngineInterface): Promise<void> {
   if ((await read($, latestAtom)) !== null) return
@@ -1859,6 +1872,7 @@ export const register: Register = (on) => {
       const manifest = JSON.parse(String(await $.fs.read(`${$.plugin.root}/.claude-plugin/plugin.json`))) as { version?: unknown }
       if (typeof manifest.version === 'string') { const v = manifest.version; await update($, versionAtom, () => v) }
     } catch { /* no manifest */ }
+    await adoptPanes($)
     await startBridge($)
     // A load is a reload: nothing is due. The repository's facts now and every two minutes; the band every minute, so a
     // person away from the keyboard comes back to the steps still waiting on them without having to type first.

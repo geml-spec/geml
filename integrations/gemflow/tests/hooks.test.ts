@@ -56,6 +56,8 @@ function world(on: On) {
     refuse: {} as Record<string, string>,
     /** How many times the board pane was opened. */
     opened: 0,
+    /** The panes closed, by id. */
+    closed: [] as string[],
     /** When set, the bridge answers every request as the CLI answers one that threw: an error with no shell. */
     error: null as string | null,
     /** The to-do count refresh and board answers carry; null when the work item is no media entry. */
@@ -241,7 +243,7 @@ function world(on: On) {
     w.opened += 1
     return { value: { isPlaced: true } }
   })
-  on('ui.close', () => ({ value: undefined }))
+  on('ui.close', ($, e) => { w.closed.push(e.id); return { value: undefined } })
   on('ui.toast', ($, e) => { w.toasts.push(e.text); return { value: undefined } })
   on('ui.notify', ($, e) => { w.notified.push(e.text); return { value: { isSent: true, channel: 'test' } } })
   on('ui.copy', ($, e) => { w.copied.push(e.text); return { value: { isCopied: true } } })
@@ -809,6 +811,19 @@ test('the band offers the board whenever there is a workflow, nothing waiting or
     expect(w.opened, surface).toBe(before + 1)
     await again.unmount()
   }
+})
+
+test('a reload with the board still up opens it again, so this module draws it and its presses work; a dialog left up is closed', async ($, on) => {
+  const w = world(on)
+  const pane = (id: string) => ({ id, title: id, isShown: true, isFocused: false, isPlaced: true })
+  let up = [pane('gemflow-board'), pane('gemflow-dialog')]
+  on('ui.panes', () => ({ value: up }))
+  await start($, on)
+  expect(w.opened, 'the board, opened anew').toBe(1)
+  expect(w.closed).toEqual(['gemflow-dialog'])
+  up = []
+  await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+  expect(w.opened, 'nothing up: nothing opened').toBe(1)
 })
 
 test('a session started (or reloaded) in a subdirectory of the checkout works from the checkout\'s top', async ($, on) => {
