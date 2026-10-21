@@ -18,6 +18,8 @@ declare module 'claude-code' {
       told: boolean
       /** Whether prompt.compose ran this session: the system prompt carries those instructions itself. */
       composed: boolean
+      /** Whether a plugin above gemflow keeps prompt.compose from it (probed once a session; null until known). */
+      composeCut: boolean | null
       lastFile: string | null
       tab: GemflowTab
       /** Whether the work items tab lists the finished work items. */

@@ -78,6 +78,8 @@ const deliveredAtom = atom({ plugin: 'gemflow', key: 'delivered' } as const, nul
 const toldAtom = atom({ plugin: 'gemflow', key: 'told' } as const, false as boolean)
 /** Whether prompt.compose ran this session: then the system prompt carries those instructions itself, every turn, and no prompt need. */
 const composedAtom = atom({ plugin: 'gemflow', key: 'composed' } as const, false as boolean)
+/** Whether a plugin above gemflow keeps prompt.compose (probed once a session: true cut, false reaching, null not known). */
+const composeCutAtom = atom({ plugin: 'gemflow', key: 'composeCut' } as const, null as boolean | null)
 const lastFileAtom = atom({ plugin: 'gemflow', key: 'lastFile' } as const, null as string | null)
 const boardAtom = atom({ plugin: 'gemflow', key: 'board' } as const, null as GemflowJson)
 const tabAtom = atom({ plugin: 'gemflow', key: 'tab' } as const, HOME_TAB as GemflowTab)
@@ -379,13 +381,29 @@ async function deliveredFor($: EngineInterface, agentId: unknown): Promise<strin
  */
 async function prefaceFor($: EngineInterface): Promise<string[]> {
   try {
-    const [told, composed] = await Promise.all([read($, toldAtom), read($, composedAtom)])
-    if (told === true || composed === true) return []
+    const [told, composed, cut] = await Promise.all([read($, toldAtom), read($, composedAtom), read($, composeCutAtom)])
+    // Told already; or compose ran, so the system prompt carries them; or the probe saw the event reach the engine.
+    if (told === true || composed === true || cut === false) return []
     await update($, toldAtom, () => true)
     return [SESSIONS_PROMPT, ASK_PROMPT]
   } catch {
     return []
   }
+}
+
+/**
+ * Whether prompt.compose reaches gemflow: composed once through the other
+ * plugins' hooks, the table holds the engine's own sections (bare ids, `intro`,
+ * `system`, `lean_body`…) unless a plugin above kept the event. Not known
+ * when the call fails: the first prompt then carries the instructions unless
+ * compose is seen running.
+ */
+async function probeCompose($: EngineInterface): Promise<void> {
+  try {
+    const { sections } = await $.prompt.compose()
+    const cut = !sections.some((x) => !x.id.includes(':'))
+    await update($, composeCutAtom, () => cut)
+  } catch { /* not known */ }
 }
 
 /**
@@ -2052,6 +2070,7 @@ export const register: Register = (on) => {
       const manifest = JSON.parse(String(await $.fs.read(`${$.plugin.root}/.claude-plugin/plugin.json`))) as { version?: unknown }
       if (typeof manifest.version === 'string') { const v = manifest.version; await update($, versionAtom, () => v) }
     } catch { /* no manifest */ }
+    $.clock.after(0, () => { void probeCompose($) })
     await adoptPanes($)
     await startBridge($)
     // A load is a reload: nothing is due. The repository's facts now and every two minutes; the band every minute, so a

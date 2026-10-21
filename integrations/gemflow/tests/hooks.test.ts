@@ -841,6 +841,26 @@ test('a tab whose rows cannot be drawn says why in its place; the tab bar still 
   }
 })
 
+test('the probe: where prompt.compose reaches the engine (its bare-named sections are there), the first prompt carries no standing instructions', async ($, on) => {
+  world(on)
+  const contexts: (readonly string[] | undefined)[] = []
+  on('prompt.submit', ($, e) => { contexts.push(e.context); return { text: e.text } })
+  on('prompt.compose', () => ({ sections: [{ id: 'intro', text: 'You are Claude.', scope: 'session' as const }, { id: 'acme:policy', text: '…', scope: 'session' as const }] }))
+  await start($, on)
+  await $.prompt.submit({ text: '开始', wait: false, origin: COMPOSER })
+  expect((contexts.at(-1) ?? []).filter((x) => x.startsWith('Gemflow: '))).toEqual([])
+})
+
+test('the probe: a plugin above keeps prompt.compose (only its own sections come back), so the first prompt carries the standing instructions', async ($, on) => {
+  world(on)
+  const contexts: (readonly string[] | undefined)[] = []
+  on('prompt.submit', ($, e) => { contexts.push(e.context); return { text: e.text } })
+  on('prompt.compose', () => ({ sections: [{ id: 'cc-plugin-sec-default:policy', text: '…', scope: 'session' as const }] }))
+  await start($, on)
+  await $.prompt.submit({ text: '开始', wait: false, origin: COMPOSER })
+  expect((contexts.at(-1) ?? []).filter((x) => x.startsWith('Gemflow: ')).length).toBe(2)
+})
+
 test("a conversation's first prompt carries the standing instructions (the other sessions, the ask tool), once; again after a /clear and after a compaction; never once the system prompt carried them", async ($, on) => {
   world(on)
   const contexts: (readonly string[] | undefined)[] = []
