@@ -82,7 +82,8 @@ test("the plugin's Codex files: the manifest keeps the package's version and poi
   assert.deepEqual(Object.keys(hooks), ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "Stop"]);
   for (const [event, groups] of Object.entries(hooks)) for (const g of groups) for (const h of g.hooks) assert.equal(h.command, 'node "${PLUGIN_ROOT}/dist/gemflow.mjs" codex', event);
   const mcp = JSON.parse(readFileSync(new URL("../codex/mcp.json", here), "utf8"));
-  assert.deepEqual(mcp.mcpServers.gemflow.args, ["${PLUGIN_ROOT}/dist/gemflow.mjs", "mcp", "--host", "codex", "--root", "."]);
+  // A hook's command has ${PLUGIN_ROOT} filled in; a server's arguments do not (0.149.0), so the server starts in the plugin's directory and each call names the project.
+  assert.deepEqual(mcp.mcpServers.gemflow, { command: "node", args: ["./dist/gemflow.mjs", "mcp", "--host", "codex"], cwd: "." });
   for (const f of [".codex-plugin/plugin.json", "codex", ".codexignore"]) assert.ok(pkg.files.includes(f), `${f} ships`);
   assert.doesNotMatch(readFileSync(new URL("../.codexignore", here), "utf8"), /^dist\/?$/m, "the bundle is what the install runs");
   const market = JSON.parse(readFileSync(new URL("../../../.agents/plugins/marketplace.json", here), "utf8"));

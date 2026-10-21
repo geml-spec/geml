@@ -596,7 +596,6 @@ skill `skills/gemflow-mcp/SKILL.md` 要求只接 MCP 的宿主每轮先读 `.gem
 | 升级对话框里的"更新"按钮直接升级 | 插件拿不到自己的 marketplace 名（只能从路径猜），先给命令和复制按钮 | §8.2 |
 | Codex 上问人 | hooks 答不了问题（`permissionDecision: "ask"` 不支持，`PermissionRequest` 是宿主自己的审批流）；词典没有决定的调用放行，模型收到一句说明，人在 tools.geml 里加一行 | §8.9 |
 | Codex 上 Windows 的退出码 | 包命令的壳是 POSIX shell；Windows 上不包，`tool` 证据写不了 | §8.9 |
-| Codex 的 `exec_command` | 只有 `Bash` 按命令分键；`exec_command` 的输入形状未查明，按工具名判 | §8.9 |
 | DeepSeek Harness 的状态带 | dsh 0.1.5 的 web GUI 没有输入框上方的插槽；等其 0.2.1 alpha 的 mods 桥 | §8.10 |
 | DeepSeek Harness 的会话页 | 会话页是人的 prompt 列表与 Claude Code 记录文件上的三个动作（定位 / 拆分 / 删除）；dsh 的会话是它自己的，适配器没有 prompt 记录 | §8.10 |
 | DeepSeek Harness 上看板问人 | 闸里的 `ask` 走 dsh 的审批服务，看板没有待答的问题；词典的决定在工具页写 | §8.10 |
@@ -604,7 +603,7 @@ skill `skills/gemflow-mcp/SKILL.md` 要求只接 MCP 的宿主每轮先读 `.gem
 
 ### 8.9 Codex 适配器
 
-Codex 的插件能带 hooks，每个 hook 要人先在 `/hooks` 里信任（装上不等于信任；未信任的静默跳过），信任之后 Gemflow 在 Codex 上看得到工具调用。随包的 Codex 清单是 `.codex-plugin/plugin.json`：skills 同一份；`codex/mcp.json` 起 `gemflow mcp --host codex`（status / move / set 三个工具）；`codex/hooks.json` 把 SessionStart、UserPromptSubmit、PreToolUse、PostToolUse 都交给同一条命令 `node "${PLUGIN_ROOT}/dist/gemflow.mjs" codex`。仓库的 `.agents/plugins/marketplace.json` 以本地路径列出它（要先 `npm run build`）；`.codexignore` 把 src、测试、node_modules 留在包外，dist 必须在。
+Codex 的插件能带 hooks，每个 hook 要人先在 `/hooks` 里信任（装上不等于信任；未信任的静默跳过），信任之后 Gemflow 在 Codex 上看得到工具调用。随包的 Codex 清单是 `.codex-plugin/plugin.json`：skills 同一份；`codex/mcp.json` 在插件目录里起 `gemflow mcp --host codex`（status / move / set / note 四个工具；`cwd` 为 `.`、命令是 `node ./dist/gemflow.mjs`——Codex 不替换服务器参数里的 `${PLUGIN_ROOT}`，§12），每次调用的项目是调用的 `_meta["x-codex-turn-metadata"].workspaces` 里的工作区（几个时取有 `.geml/` 的那个），note 记进这次调用所属会话（`session_id`）的记录；`codex/hooks.json` 把 SessionStart、UserPromptSubmit、PreToolUse、PostToolUse 都交给同一条命令 `node "${PLUGIN_ROOT}/dist/gemflow.mjs" codex`。仓库的 `.agents/plugins/marketplace.json` 以本地路径列出它（要先 `npm run build`）；`.codexignore` 把 src、测试、node_modules 留在包外，dist 必须在。
 
 每个事件是一个新进程：`src/codex.ts` 在进程内调桥接的 `handleRequest`，用和 Claude Code 模块一样的函数判断（`fastpath.ts` 的 `beforeDecision`、`afterNeeded`、`paramsToFill`）；`src/hosts/codex/hook.ts` 读事件、拼应答，纯函数。模型上次读到的 `item@rev` 记在 `PLUGIN_DATA`（没有就临时目录）下按会话一个文件。
 
@@ -695,12 +694,13 @@ bundle 的行名必须是路径（`./dist/hosts/dsh/plugin.js`，dsh-app-boot �
 | prompt 历史（2026-10-13，读 2.1.295 的声明） | `$.session.messages()` 给最近 4096 条 user/assistant 消息（`role`、`text`、`toolUses`），没有时间戳与 id，所以会话页的列表由 hooks 模块在 `prompt.submit` 时自己记。对话行有 id：`session.append` 事件每存一行带 `uuid`（声明说与记录文件里的、之后每次读到的一致），`door: "prompt"` 是人的 prompt 那一行；`$.ui.scroll({ to: { requestId: <uuid> } })` 能滚到对话里那一行，只在插件回应人自己的输入时（按键算），否则 `{ deny: "not person-initiated" }`。没有删除或拆分会话记录的接口：记录文件在 `<config>/projects/<项目>/<会话>.jsonl`，桌面端的会话列表另在 `claude-code-sessions/<账号>/<组织>/local_*.json`、只在启动时读。拆分由插件随附的 split-session skill 在模型手里做：按活动链分轮，压缩钉住的轮不动，先备份再改写，克隆桌面端条目；自动模式的分类器把插件代码里改写会话记录文件的编辑判为 Session Transcript Tampering，看板因此不自己改文件 | §8.2 会话页 |
 | DeepSeek Harness 的浏览器半边与网关（2026-10-13，dsh 0.1.5-rc.2 的 web profile 实测） | 包的 `dsh.client`（`platform: "web"`、`inject`）加 `exports["./client"]` 声明浏览器 bundle；dsh-client-modules 只为裸包名或路径命名的 loader 行找 manifest（`exactPackageSpecifier`），子路径行（`@geml/gemflow/dsh`）得不到包、不进 `window.__DSH_BOOT__`；dsh-app-boot 把 patch 里 `./` 开头的行名锚在 patch 文件旁改成 `file:` URL（`anchorInsertedPluginNames`）。右侧栏按会话：`sidebarRightTabs.register({ id, kind, title, guide })` 注册类型，引导页列出它，`slots.inject("sidebar.right.pane.tab")` 给正文（props 带 `sessionId`、`useTabInfo`）。宿主路由：`ctx.inject(["webServer"], …)` 之后 `webServer.register({ kind: "prefix", path, handler })`。网关协议：`POST /api/<ns>/<method>`，body `{ type: "client-request", rpcId, method: "<ns>/<method>", payload: { args: { request } } }`，答 `{ result: { ok, value | error } }`；`workspace/create { path }`、`session/create { workspaceId }`、`session/openWorkspacePath { path, action?: "reveal" }` 都这样调（web GUI 的「添加工作区」开的是原生目录对话框）。http 页面里的 `file:` 链接浏览器不开 | §8.10 |
 | 面板画矢量图（2026-10-14，读 2.1.295 的声明） | `Svg` 元素：`source`（整份 `<svg>…</svg>`，至多 131072 字符）、`alt`（必填）、`width` / `height` 可选、`isInteractive`（放进无脚本的沙箱帧，hover、CSS 动画、`<title>` 提示才生效；不设则按图片画）；桌面、编辑器、手机有，终端没有。它是叶子：点击只能挂在外面的 `Button` 上，而 `Button` 只收文字子元素；`Client` 区域收得到指针坐标，但它的元素表里没有 `Svg`。所以图上某条边要能按，只能用面板自己的元素从模型画（§8.2） | §8.2 |
+| Codex 插件的 MCP 服务器与 hooks 的实际输入（2026-10-21，Codex CLI 0.149.0，`codex exec` 接本地的假 Responses 服务，`CODEX_HOME` 放在临时目录，PATH 前置一个记参数的 `node` 垫片） | 服务器参数里的 `${PLUGIN_ROOT}` 原样传给进程，环境里也没有 `PLUGIN_ROOT`；`cwd: "."`（或 `${PLUGIN_ROOT}`）解析到插件目录，命令里 `./` 开头的路径没有 `cwd` 时按会话目录解析；服务器的环境只剩 HOME、PATH、PWD、SHELL、USER、LOGNAME、TMPDIR 等几项；`initialize` 不带 `roots`；`tools/call` 的 `_meta["x-codex-turn-metadata"]` 带 `session_id`、`turn_id` 与 `workspaces`（以会话的工作区路径为键）。模型的 `exec_command` 到 hooks 是 `tool_name: "Bash"`、`tool_input: { command }`；PostToolUse 里 Bash 的 `tool_response` 是输出的一个字符串，没有退出码，`tool_input` 是 PreToolUse 改写后的。包命令端到端成立：`npm test` 被包上，输出末尾带 `[gemflow exit 0]`，`tests-pass` 记为真。插件 MCP 工具在 `codex exec` 里要 `--dangerously-bypass-approvals-and-sandbox` 或别的批准设置，否则答 "requires approval" | §8.9 |
 | 出处 | `plugin-authoring` skill（用 Skill 工具载入）：它的 `types/claude-code.d.ts` 是本构建的全部插件 API（约两万行），grep `AbovePrompt: {`、`Pane: {`、`export type ButtonProps`、`export type Elements`、`^      ui: {` 直达声明；`examples/` 里有 band.tsx、pane.tsx、tool-call.ts；`reference.md` 是长篇。插件被引擎加载过之后，同一份声明也落在插件目录的 `.claude-plugin/types/` | — |
 
 待确认：
 
 1. 桌面 app 分屏时，面板是否与状态带一样只在左栏出现。
-2. Codex 适配器的三件事要在真会话里看：模型看到输出末尾的 `[gemflow exit N]` 会不会被干扰；`codex/mcp.json` 的 `args` 里 `${PLUGIN_ROOT}` 是否替换（文档只写了 hooks 命令里替换；不替换就要改成 `npx -y @geml/gemflow mcp --host codex --root .`，等发布到 npm）；0.149.0 的 PostToolUse 给 Bash 的 `tool_response` 是什么形状（适配器在任何字符串里找标记，所以形状只影响效率）。
+2. Codex 上真模型看到输出末尾的 `[gemflow exit N]` 会不会被干扰：要一个真模型的会话才看得到（假服务只证明了标记的往返）。
 
 ## 13. 已拍板（2026-10-11）
 

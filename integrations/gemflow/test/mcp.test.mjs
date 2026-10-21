@@ -176,6 +176,29 @@ test("--root names the project, wherever the server is started", () => {
   assert.match(out.get(1).result.content[0].text, /work item feat\/x · state build/);
 });
 
+test("Codex starts the server in the plugin's directory: each call's project is the workspace its turn metadata names, its note goes to that session", async () => {
+  const { logName, parseLog } = await import("../dist/core/session-log.js");
+  const { sessionsDirOf } = await import("../dist/session-store.js");
+  const root = gitRepo();
+  withWorkflow(root, WS_DEV, "dev");
+  const plugin = mkdtempSync(join(tmpdir(), "gemflow-mcp-plugin-"));
+  const other = mkdtempSync(join(tmpdir(), "gemflow-mcp-other-"));
+  // As Codex 0.149.0 sends it: `_meta["x-codex-turn-metadata"]`, the session and the workspaces keyed by path.
+  const turn = (workspaces) => ({ "x-codex-turn-metadata": { session_id: "cx-7", thread_id: "cx-7", workspaces }, plugin_id: "gemflow@geml" });
+  const out = mcp(root, [
+    { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "status", arguments: {}, _meta: turn({ [root]: { has_changes: false } }) } },
+    { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "status", arguments: {}, _meta: turn({ [other]: {}, [root]: {} }) } },
+    { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "note", arguments: { decisions: ["每会话一个文件"] }, _meta: turn({ [root]: {} }) } },
+    call(4, "status"),
+  ], ["--host", "codex"], { cwd: plugin });
+  assert.match(out.get(1).result.content[0].text, /work item feat\/x · state build/);
+  assert.match(out.get(2).result.content[0].text, /work item feat\/x · state build/, "of several, the one with a Gemflow project");
+  assert.match(out.get(3).result.content[0].text, /^Recorded 1 decision/);
+  const e = parseLog(readFileSync(join(sessionsDirOf(root), logName("codex", "cx-7")), "utf8"));
+  assert.deepEqual(e.filter((x) => x.t === "decision").map((x) => x.text), ["每会话一个文件"], "in the log of the session that called");
+  assert.match(out.get(4).result.content[0].text, /no workflow here/, "a call naming no workspace is the server's own directory's");
+});
+
 test("a misspelt option or a stray argument is a usage error, not a server", () => {
   for (const [args, said] of [[["--hots", "codex"], /^gemflow mcp: unknown option --hots/], [["extra"], /^usage: gemflow /], [["--host"], /^--host needs a value/]]) {
     const r = spawnSync(process.execPath, [BUNDLE, "mcp", ...args], { input: "", encoding: "utf8", timeout: 20_000 });

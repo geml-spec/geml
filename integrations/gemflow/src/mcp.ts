@@ -8,7 +8,8 @@
 // file variables afresh before it answers; `tool` evidence is never observed
 // here, the dictionary never asked, and no call refused: every stage text this
 // server returns ends with a line saying so.
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { isAbsolute, join } from "node:path";
 import { createInterface } from "node:readline";
 import { HOST_TOOLS, NO_TOOLS } from "./core/host-tools.js";
 import { FLOW_TOOLS } from "./core/verb-specs.js";
@@ -40,6 +41,24 @@ const text = (id: unknown, body: string, isError: boolean): Reply => result(id, 
 const NO_ENFORCEMENT_NOTE = "(this host shows Gemflow no tool calls: nothing is refused here, and a variable whose source is a tool is never written — tell the person what you ran, so they can tick a variable the guard accepts)";
 const withNote = (stage: string): string => `${stage}\n\n${NO_ENFORCEMENT_NOTE}`;
 
+/**
+ * What Codex says of a call in `_meta["x-codex-turn-metadata"]`: its session,
+ * and its project — the one workspace it names, of several the first holding
+ * a `.geml/`, else the first. Codex starts a plugin's server in the plugin's
+ * directory and fills in no `${PLUGIN_ROOT}` in its arguments, so the call is
+ * the only place that names the project.
+ */
+function codexTurnOf(params: Record<string, unknown> | undefined): { root?: string; session?: string } {
+  const meta = params?.["_meta"] as Record<string, unknown> | undefined;
+  const turn = meta?.["x-codex-turn-metadata"];
+  if (turn === null || typeof turn !== "object" || Array.isArray(turn)) return {};
+  const t = turn as Record<string, unknown>;
+  const spaces = t["workspaces"] !== null && typeof t["workspaces"] === "object" && !Array.isArray(t["workspaces"]) ? Object.keys(t["workspaces"] as object).filter(isAbsolute) : [];
+  const root = spaces.find((p) => existsSync(join(p, ".geml"))) ?? spaces[0];
+  const session = typeof t["session_id"] === "string" && t["session_id"] !== "" ? t["session_id"] : undefined;
+  return { ...(root !== undefined ? { root } : {}), ...(session !== undefined ? { session } : {}) };
+}
+
 /** One parsed message in; the reply, or undefined for a notification. */
 export async function answer(msg: unknown, o: McpOptions): Promise<Reply | undefined> {
   const m = msg as { id?: unknown; method?: unknown; params?: Record<string, unknown> } | null;
@@ -56,15 +75,16 @@ export async function answer(msg: unknown, o: McpOptions): Promise<Reply | undef
   if (method === "tools/list") return result(id, { tools: [...FLOW_TOOLS.map(({ name, description, inputSchema }) => ({ name, description, inputSchema })), { name: NOTE_TOOL.name, description: NOTE_TOOL.description, inputSchema: NOTE_TOOL.inputSchema }] });
   if (method !== "tools/call") return failure(id, -32601, `method not found: ${method}`);
   const name = m?.params?.["name"];
-  // The note: this host's session that asked last (an MCP server is told no session; a host with hooks names it in the record), else one of the server's own.
-  // Antigravity starts the server outside the project: the project and the conversation are the ones its hooks last saw.
+  // The note: the session the call names (Codex), else this host's session that asked last (a host with hooks names it in the record), else one of the server's own.
+  // Antigravity and Codex start the server outside the project: Antigravity's is the one its hooks last saw, Codex's the one the call names.
   const active = o.host === ANTIGRAVITY_HOST ? activeOf() : undefined;
-  const root = active?.root ?? o.root;
+  const codex = codexTurnOf(m?.params);
+  const root = active?.root ?? codex.root ?? o.root;
   if (name === NOTE_TOOL.name) {
     const given = (m?.params?.["arguments"] as { decisions?: unknown } | undefined)?.decisions;
     const decisions = Array.isArray(given) ? given.filter((d): d is string => typeof d === "string") : [];
     try {
-      const session = active?.conversationId ?? latestSessionOf(root, o.host) ?? `mcp-${process.pid}`;
+      const session = active?.conversationId ?? codex.session ?? latestSessionOf(root, o.host) ?? `mcp-${process.pid}`;
       const n = recordDecisions(root, o.host, session, decisions);
       return text(id, n === 0 ? "Nothing recorded: decisions is a list of short sentences." : `Recorded ${n} decision${n === 1 ? "" : "s"}; the project's other sessions will see ${n === 1 ? "it" : "them"}.`, n === 0);
     } catch (e) {
