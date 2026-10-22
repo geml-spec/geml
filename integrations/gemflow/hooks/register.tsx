@@ -36,7 +36,7 @@ import { answered, asksOf, bandLine, heldSteps, leadOf, newsOf, NO_FACTS, NO_MEM
 import type { Queued } from '../dist/hosts/claude-code/attention.js'
 import type { AttentionFacts, AttentionMemory } from '../dist/hosts/claude-code/attention.js'
 import { envParts, remoteInPlay } from '../dist/hosts/claude-code/env.js'
-import { appendEvents, currentTurn, decisionsContext, decisionsSince, formatLog, isLogName, legacyLogName, logName, nextTurn, NOTE_TOOL, parseLog, SAME_PROMPT_MS, SESSIONS_GITIGNORE, SESSIONS_PROMPT, summarize, withEarlierTurns } from '../dist/core/session-log.js'
+import { appendEvents, currentTurn, decisionsContext, decisionsSince, formatLog, isDeferral, isLogName, isStatusLine, legacyLogName, logName, nextTurn, NOTE_TOOL, parseLog, SAME_PROMPT_MS, SESSIONS_GITIGNORE, SESSIONS_PROMPT, summarize, withEarlierTurns } from '../dist/core/session-log.js'
 import type { SessionEvent, SessionSummary } from '../dist/core/session-log.js'
 import { ARTIFACT_TOOL, isMadeForPeople, publishedLink } from '../dist/core/artifact-tool.js'
 import { ASK_PROMPT, ASK_TOOL, askedOf } from '../dist/core/ask-tool.js'
@@ -621,14 +621,19 @@ async function sessionsOnPrompt($: EngineInterface, text: string): Promise<strin
 /** The model's note: the decisions into this session's log, under the turn under way. */
 async function noteDecisions($: EngineInterface, event: unknown): Promise<ToolCallResult> {
   const args = toolArgs(event as Record<string, unknown>)
-  const given = Array.isArray(args['decisions']) ? (args['decisions'] as unknown[]).filter((x): x is string => typeof x === 'string' && x.trim() !== '').map((x) => x.trim()) : []
-  if (given.length === 0) return { result: 'Nothing recorded: decisions is a list of short sentences.' }
+  const offered = Array.isArray(args['decisions']) ? (args['decisions'] as unknown[]).filter((x): x is string => typeof x === 'string' && x.trim() !== '').map((x) => x.trim()) : []
+  if (offered.length === 0) return { result: 'Nothing recorded: decisions is a list of short sentences.' }
+  // Status is no decision: git, the board and the journal hold what was pushed, synced, committed, or what a version does.
+  const status = offered.filter(isStatusLine)
+  const given = offered.filter((x) => !isStatusLine(x))
+  const leftOut = status.length === 0 ? '' : ` ${status.length} left out as status, which git, the board and the journal hold: ${status.map((x) => `"${x.slice(0, 60)}"`).join(', ')}.`
+  if (given.length === 0) return { result: `Nothing recorded:${leftOut} A decision is a choice the person made or a finding other sessions would rediscover.` }
   if ((await read($, sessionsDirAtom)) === null) return { result: 'Nothing recorded: this project has no shared session record yet (gemflow has not read the repository).' }
   const at = await nowIso($)
   const events = await appendOwn($, (so) => given.map((text): SessionEvent => ({ t: 'decision', turn: currentTurn(so), at, text })))
   if (events.length === 0) return { result: 'Nothing recorded: the session record could not be written.' }
   await loadProjectSessions($)
-  return { result: `Recorded ${given.length} decision${given.length === 1 ? '' : 's'}; the project's other sessions will see ${given.length === 1 ? 'it' : 'them'}.` }
+  return { result: `Recorded ${given.length} decision${given.length === 1 ? '' : 's'}; the project's other sessions will see ${given.length === 1 ? 'it' : 'them'}.${leftOut}` }
 }
 
 /** A turn's end, on a work item: the files it wrote that git does not keep get a version where their content changed. */
@@ -1588,6 +1593,13 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       }
       // A press whose card was put away leaves nothing to show under way: brought back, the card offers its buttons again.
       await setQueued($, (q) => (action.dismiss !== undefined ? q.filter((x) => x.text !== action.text) : q.map((x) => (x.text === action.text ? { ...x, entered: true } : x))))
+      // What the press decided goes into the record as the person's own, under the turn its prompt opened.
+      if (action.decisions !== undefined && action.decisions.length > 0) {
+        const decided = action.decisions
+        const at = await nowIso($)
+        const events = await appendOwn($, (so) => decided.map((text): SessionEvent => ({ t: 'decision', turn: currentTurn(so), at, text })))
+        if (events.length > 0) await loadProjectSessions($)
+      }
       return
     }
     // One of several asks answered: kept, the band moves to the next; the last answer says them all as the person's prompt.
@@ -1599,7 +1611,8 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       const picks = asks.map((_, i) => (i === action.index ? action.answer : a.picks?.[i] ?? null))
       if (picks.some((p) => p === null)) { await update($, attentionAtom, () => ({ ...a, picks }) as unknown as GemflowJson); return }
       await update($, attentionAtom, () => ({ ...a, picks }) as unknown as GemflowJson)
-      await act($, { op: 'say', text: picksText(asks, picks) }, surface)
+      const decided = asks.flatMap((q, i) => { const p = picks[i]; return p !== null && !isDeferral(p) ? [`${q}：${p}`] : [] })
+      await act($, { op: 'say', text: picksText(asks, picks), ...(decided.length > 0 ? { decisions: decided } : {}) }, surface)
       return
     }
     // A slash command, run as typed once the session is idle; where the engine will not run it, it waits in the prompt box for Enter.

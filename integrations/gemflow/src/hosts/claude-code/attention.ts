@@ -20,6 +20,7 @@ import type { Pressable } from "./actions.js";
 import type { Asked } from "../../core/ask-tool.js";
 import type { BoardRow } from "./board.js";
 import { ZH, type T } from "./text.js";
+import { isDeferral } from "../../core/session-log.js";
 
 /** What the repository says, for the steps only the person can take. */
 export interface AttentionFacts {
@@ -397,7 +398,9 @@ export function pressablesFor(lead: Lead | null, options: readonly string[], t: 
     const held = label !== t("暂不") ? undefined : pr !== undefined ? `#${pr}` : /^unpushed:(.+)$/.exec(key)?.[1];
     const action = label === t("详情") ? { op: "open-board" as const, tab: "items" as const }
       : label === t("重载插件") ? { op: "command" as const, command: "reload-plugins" }
-      : { op: "say" as const, text, ...(confirm !== undefined ? { confirm } : {}), ...(held !== undefined ? { dismiss: key, toast: t("已暂缓 {0}，可在看板「已暂缓」里恢复", held) } : {}) };
+      : { op: "say" as const, text, ...(confirm !== undefined ? { confirm } : {}), ...(held !== undefined ? { dismiss: key, toast: t("已暂缓 {0}，可在看板「已暂缓」里恢复", held) } : {}),
+          // An answer to a registered question is a decision the person made: recorded as such when pressed (a deferral is none).
+          ...(lead?.question !== undefined && !isDeferral(label) ? { decisions: [text] } : {}) };
     return { key: `attention-${i}-${label}`, label, ...(i === 0 && label !== t("暂不") && label !== t("详情") ? { primary: true } : {}), action };
   });
 }

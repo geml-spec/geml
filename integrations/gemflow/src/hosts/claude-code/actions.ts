@@ -84,7 +84,8 @@ export type BoardAction =
   | { op: "setting"; key: string; value: string | boolean }
   | { op: "copy"; text: string }
   /** Words sent into the conversation as the person's own, as if typed: an answer on the band, a step it offers; `dismiss` puts its card away first (a branch held back), `toast` says where it went. */
-  | { op: "say"; text: string; confirm?: Confirm; dismiss?: string; toast?: string }
+  /** `decisions`: what the press decides, recorded in the session record as the person's own (an answer to a registered question). */
+  | { op: "say"; text: string; confirm?: Confirm; dismiss?: string; toast?: string; decisions?: string[] }
   /** One answer of several asked in one reply, the `index`-th: kept until every one is answered, then all said in one prompt. */
   | { op: "pick"; index: number; answer: string }
   /** A slash command run as if the person typed it (`/reload-plugins`), once the session is idle. */

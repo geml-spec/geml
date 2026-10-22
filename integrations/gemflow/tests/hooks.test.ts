@@ -1700,6 +1700,36 @@ test('the diagnosis trace is off unless its setting is on: no .geml/trace.log an
   expect(log).toContain('press tab items')
 })
 
+test("an answer pressed on the band for a registered question is recorded as the person's decision; a note of status is left out and the model told", async ($, on) => {
+  const w = world(on)
+  w.sessionsDir = LOGS
+  w.store.set(`init:${LOGS}`, true)
+  const said: string[] = []
+  on('prompt.submit', ($, e) => { said.push(e.text); return { text: e.text } })
+  on('turn.complete', ($, e) => ({ text: e.answer }))
+  const clock = await start($, on)
+  await $.prompt.submit({ text: '改好了吗', wait: false, origin: COMPOSER })
+  await $.tool.call({ tool: 'mcp__gemflow__ask', tool_use_id: 'q1', question: '要推到 origin 吗？', options: ['暂不', '推'], recommended: '推' })
+  await $.turn.complete({ answer: '改好了。\n\n要推到 origin 吗？', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' })
+  await clock.advance(1)
+  const band = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+  const push = (await band.findAll({ type: 'Button' })).map((b) => String(b.key)).find((k) => k.startsWith('attention-') && k.endsWith('推'))
+  expect(push, 'the answer is a button').toBeDefined()
+  await band.press({ key: String(push) })
+  await band.unmount()
+  await clock.settle()
+  expect(said.at(-1)).toBe('要推到 origin 吗？：推')
+  const log = w.files.get(OWN_LOG) ?? ''
+  expect(log, 'the pressed answer is in the record as a decision').toContain('"t":"decision"')
+  expect(log).toContain('"text":"要推到 origin 吗？：推"')
+  // The note tool: a status line is left out, the choice kept.
+  const noted = await $.tool.call({ tool: 'mcp__gemflow__note', tool_use_id: 'n1', decisions: ['feat/gemflow is pushed to origin at 2784db74.', '看板按钮总是打开工作项：用户定的'] })
+  const text = String(noted.text ?? noted.result)
+  expect(text).toMatch(/^Recorded 1 decision/)
+  expect(text).toMatch(/1 left out as status/)
+  expect(w.files.get(OWN_LOG) ?? '').not.toContain('pushed to origin at 2784db74')
+})
+
 test("turns removed or split away with the split-session skill leave the sessions tab and this session's log; split ones go into the new session's log; a prompt from the last two minutes stays", async ($, on) => {
   const w = world(on)
   w.sessionsDir = LOGS

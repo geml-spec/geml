@@ -142,7 +142,7 @@ test("presses: an answer or a step goes as the person's own words, whole; 看看
   assert.deepEqual(p({ key: "fail:32:scan,CI", kind: "broken", text: "", options: [] }, ["查看日志"])[0][1], { op: "say", text: "看下 #32 失败的 scan、CI 日志" });
   assert.deepEqual(p(null, ["详情"])[0][1], { op: "open-board", tab: "items" });
   assert.deepEqual(p({ key: "reload", kind: "you", text: "", options: [] }, ["重载插件"])[0][1], { op: "command", command: "reload-plugins" });
-  assert.deepEqual(p({ key: "ask:q", kind: "ask", text: "", options: [], question: "用 A 方案还是 B 方案？" }, ["A 方案", "B 方案"])[1][1], { op: "say", text: "用 A 方案还是 B 方案？：B 方案" }, "the answer says what it answers");
+  assert.deepEqual(p({ key: "ask:q", kind: "ask", text: "", options: [], question: "用 A 方案还是 B 方案？" }, ["A 方案", "B 方案"])[1][1], { op: "say", text: "用 A 方案还是 B 方案？：B 方案", decisions: ["用 A 方案还是 B 方案？：B 方案"] }, "the answer says what it answers, and is the decision it records");
 });
 
 test("此刻 on the board: every ask with its answers, every step, every older ask", () => {
@@ -220,4 +220,12 @@ test("a version bumped and not committed is a step from the fact: it rides along
   const line = bandLine({ lead: null, standing, memory: aged, reply: "", awayMs: 0 });
   assert.deepEqual([line.text, line.steps.map((x) => x.short)], ["待提交：0.2.46", ["提交改动"]], "turns later it is still there");
   assert.deepEqual(stepPressables(standing).map((p) => [p.label, p.action]), [["提交改动", { op: "say", text: "提交改动" }]]);
+});
+
+test("an answer to a registered question carries the decision it makes; a deferral carries none; a step's press carries none", () => {
+  const lead = { key: "ask:q", kind: "ask", text: "", options: ["推", "暂不"], question: "要推到 origin 吗？" };
+  const ps = pressablesFor(lead, ["推", "暂不"]);
+  assert.deepEqual(ps[0].action, { op: "say", text: "要推到 origin 吗？：推", decisions: ["要推到 origin 吗？：推"] });
+  assert.equal(ps[1].action.decisions, undefined, "暂不 decides nothing");
+  assert.equal(stepPressables(standingOf("", { ahead: [{ branch: "feat/x", ahead: 1 }], prs: [] }, NOW))[0].action.decisions, undefined);
 });

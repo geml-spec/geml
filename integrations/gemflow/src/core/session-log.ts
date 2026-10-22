@@ -211,7 +211,7 @@ export function filesBySession(sessions: readonly SessionSummary[]): { path: str
 /** The tool every host lists for the model to record a turn's conclusions and decisions in its session's log. */
 export const NOTE_TOOL = {
   name: "note",
-  description: "Record this turn's conclusions and decisions in the project's shared session record, so the project's other sessions (on other branches, worktrees and tools) know them. Call it once before the turn ends when the turn reached any: each a short sentence that stands on its own. Not for progress notes or plans.",
+  description: "Record this turn's decisions in the project's shared session record, so the project's other sessions (on other branches, worktrees and tools) know them. A decision is a choice the person made, or you made for them, that changes what comes next; or a finding the other sessions would otherwise discover again. Never status (what was pushed, synced, committed, merged, built, or what a version does), progress or plans: git, the board and the journal hold those. Call it once before the turn ends, each decision a short sentence that stands on its own.",
   inputSchema: {
     type: "object",
     properties: { decisions: { type: "array", items: { type: "string" }, description: "The conclusions and decisions, one short sentence each." } },
@@ -221,7 +221,30 @@ export const NOTE_TOOL = {
 } as const;
 
 /** What the model is told once, in the system prompt, about the project's other sessions. */
-export const SESSIONS_PROMPT = "Gemflow: this project is worked on in several sessions at once, on other branches, worktrees and tools. When a turn reaches conclusions or decisions the other sessions should know, record them with the gemflow `note` tool before the turn ends, one short sentence each. Decisions the other sessions recorded arrive beside the person's prompts, marked [gemflow].";
+export const SESSIONS_PROMPT = "Gemflow: this project is worked on in several sessions at once, on other branches, worktrees and tools. When a turn reaches a decision the other sessions should know — a choice the person made that changes what comes next, or a finding they would otherwise discover again — record it with the gemflow `note` tool before the turn ends, one short sentence each; never status (pushed, synced, committed, what a version does) or plans. Decisions the other sessions recorded arrive beside the person's prompts, marked [gemflow].";
+
+/**
+ * Whether a line records status rather than a decision: a version and what
+ * it does, something pushed, synced, committed, merged, released or built, a
+ * test count. Git, the board and the journal hold those; the record does not.
+ */
+export function isStatusLine(text: string): boolean {
+  const s = text.trim();
+  return /^(gemflow\s+)?v?\d+\.\d+\.\d+\b/i.test(s)
+    || /^(pushed|synced|committed|merged|released|deployed|rebuilt|fast-forwarded|reinstalled)\b/i.test(s)
+    || /\b(is|are|was|were|been|now)\s+(pushed|synced|committed|merged|released|deployed|rebuilt|on origin|verified running)\b/i.test(s)
+    || /已(推送|同步|提交|合并|发布|部署)(到|至|了|，|。|；|$)/.test(s)
+    || /\b\d+\s*(tests?|pass(ed)?)\b.*\b(pass(ed)?|fail(ed)?)\b|\b(suite|tests?)\b[^.]*\b\d+\s*pass\b/i.test(s)
+    // A version named with what it does, draws, loads or runs: what a version is, not what was decided.
+    || /\b(from|since|with)\s+(gemflow\s+)?v?\d+\.\d+\.\d+\b|\bv?\d+\.\d+\.\d+'s\b|\b(has run|have run|loads?|runs?|ran)\s+(gemflow\s+)?v?\d+\.\d+\.\d+\b/i.test(s)
+    // A plan is not a decision either.
+    || /^(plan\b|计划[:：])/i.test(s);
+}
+
+/** Whether an answer puts a question off rather than answering it (暂不, later): no decision to record. */
+export function isDeferral(label: string): boolean {
+  return /^(暂不|先不|稍后|以后|回头|不急|改天|later|not now|skip|defer)/i.test(label.trim());
+}
 
 /** The other sessions' decisions as the line beside a prompt says them. */
 export function decisionsContext(decisions: readonly SharedDecision[], label: (d: SharedDecision) => string): string {
