@@ -222,7 +222,7 @@ export interface PaneInput {
   evidence: string | null;
   prompts: readonly PromptRecord[];
   /** The project's sessions as their shared logs hold them (session-log.ts), this one's id, and the other one unfolded (its id). */
-  project?: { sessions: readonly SessionSummary[]; own: string; open: string | null; all?: boolean };
+  project?: { sessions: readonly SessionSummary[]; own: string; open: string | null; all?: boolean; decisionsAll?: boolean };
   /** Whether the surface can scroll the conversation to a prompt (the terminal); elsewhere a turn unfolds in place. */
   scrolls?: boolean;
   /** The turn unfolded on the session tab: its prompt's id and its answer as the log holds it. */
@@ -288,9 +288,9 @@ export function paneRows(o: PaneInput): BoardRow[] {
   return [...head, ...journalRows({ board: o.board, status, filter: o.filter, menu: o.expanded, evidence: o.evidence, prompts: o.prompts, columns, maxRows: Math.max(1, o.maxRows - head.length), t, now: o.now })];
 }
 
-/** Where the last export wrote its file, a link that opens it. */
+/** Where the last export wrote its file, a press that opens it. */
 function exportedRows(path: string | null | undefined, root: string, t: T): BoardRow[] {
-  return path === null || path === undefined || path === "" ? [] : [{ kind: "link", key: "exported", href: fileHref(root, path), label: t("已导出 {0}", path) }];
+  return path === null || path === undefined || path === "" ? [] : [buttons([{ key: "exported", label: t("已导出 {0}", path), action: { op: "open-file", path: projectPath(root, path) } }])];
 }
 
 /** A session's export on the sessions tab: the button on its heading, and what stands under the heading (the file written). */
@@ -448,11 +448,10 @@ function flowRow(board: BoardData, current: string | undefined, acting: boolean,
   return { kind: "flow", key: "flow-picture", ranks, edges, svg: board.picture.svg };
 }
 
-/** A `file:` URL for a project-relative path, or for an absolute one as it is (an export outside the project). */
-export function fileHref(root: string, rel: string): string {
+/** A project-relative path made absolute against `root`, or an absolute one as it is (an export outside the project), in forward slashes. */
+export function projectPath(root: string, rel: string): string {
   const slashed = rel.split("\\").join("/");
-  const path = /^(\/|[A-Za-z]:\/)/.test(slashed) ? slashed : `${root.split("\\").join("/").replace(/\/+$/, "")}/${slashed}`;
-  return `file://${path.startsWith("/") ? "" : "/"}${path.split("/").map((seg) => encodeURIComponent(seg)).join("/")}`;
+  return /^(\/|[A-Za-z]:\/)/.test(slashed) ? slashed : `${root.split("\\").join("/").replace(/\/+$/, "")}/${slashed}`;
 }
 
 // ---- items ----------------------------------------------------------------------
@@ -649,13 +648,6 @@ export function sizeText(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-/** An absolute path as a link that opens it. */
-export function fileUrl(abs: string): string {
-  const p = abs.split("\\").join("/");
-  const cut = p.lastIndexOf("/");
-  return cut <= 0 ? fileHref("", p) : fileHref(p.slice(0, cut), p.slice(cut + 1));
-}
-
 /** The documents the artifacts section lists before a press lists the rest. */
 const DOCS_SHOWN = 2;
 /** The copies a file's menu offers, newest first. */
@@ -689,7 +681,7 @@ export function artifactRows(p: Artifacts | undefined, current: string | undefin
     for (const d of o.docsOpen ? m.docs : m.docs.slice(0, DOCS_SHOWN)) {
       const key = `doc:${d.path}`;
       rows.push({ kind: "entry", key: `artifact-${key}`, title: d.path, tag: "", tone: "normal", detail: line(t("{0} 次提交", d.commits), when(d.at)), action: { op: "artifact-menu", key: o.menu === key ? null : key } });
-      if (o.menu === key) rows.push({ kind: "links", key: `menu-${key}`, items: [{ key: `open-${key}`, label: t("打开"), href: fileUrl(d.open) }, { key: `commits-${key}`, label: t("查看提交"), action: { op: "tab", tab: "journal", filter: "artifacts" } }] });
+      if (o.menu === key) rows.push({ kind: "links", key: `menu-${key}`, items: [{ key: `open-${key}`, label: t("打开"), action: { op: "open-file", path: d.open } }, { key: `commits-${key}`, label: t("查看提交"), action: { op: "tab", tab: "journal", filter: "artifacts" } }] });
     }
     if (m.docs.length > DOCS_SHOWN) rows.push(button("fold-docs", o.docsOpen ? t("收起") : t("其余 {0} 份", m.docs.length - DOCS_SHOWN), columns, { op: "fold", what: "docs", open: !o.docsOpen }));
   }
@@ -703,10 +695,10 @@ export function artifactRows(p: Artifacts | undefined, current: string | undefin
       if (o.menu !== key) continue;
       const copies = f.versions.filter((x) => x.copy !== undefined).slice(0, COPIES_SHOWN);
       rows.push({ kind: "links", key: `menu-${key}`, items: [
-        { key: `open-${key}`, label: t("打开"), href: fileUrl(f.open) },
-        ...copies.map((c) => ({ key: `copy-${key}-${c.version}`, label: t("打开第 {0} 版副本", c.version), href: fileUrl(c.copy as string) })),
-        ...(f.history !== undefined ? [{ key: `history-${key}`, label: t("查看历史"), href: fileUrl(f.history) }] : []),
-        { key: `folder-${key}`, label: t("在文件夹里显示"), href: fileUrl(m.folder) },
+        { key: `open-${key}`, label: t("打开"), action: { op: "open-file", path: f.open } },
+        ...copies.map((c) => ({ key: `copy-${key}-${c.version}`, label: t("打开第 {0} 版副本", c.version), action: { op: "open-file", path: c.copy as string } as BoardAction })),
+        ...(f.history !== undefined ? [{ key: `history-${key}`, label: t("查看历史"), action: { op: "open-file", path: f.history } as BoardAction }] : []),
+        { key: `folder-${key}`, label: t("在文件夹里显示"), action: { op: "open-file", path: f.open, reveal: true } },
       ] });
     }
   };
@@ -1165,14 +1157,15 @@ function whenTag(at: string, now: string | undefined, t: T): string {
   return day === t("今天") ? hhmm(at) : day;
 }
 
-const DECISIONS_SHOWN = 8;
+/** How many decisions the section lists before the rest fold; the person reads them whole to judge which are worth keeping. */
+const DECISIONS_SHOWN = 20;
 /** The most rows a decision wraps into on the sessions tab. */
-const DECISION_ROWS = 6;
+const DECISION_ROWS = 12;
 /** How many of the other sessions the tab lists before the rest fold. */
 const SESSIONS_SHOWN = 8;
 
 /** What the sessions tab shows across the project: every session's record (session-log.ts), this one's id, the other one unfolded (its id), and whether every other session is listed. */
-export interface ProjectSessions { sessions: readonly SessionSummary[]; own: string; open: string | null; all?: boolean }
+export interface ProjectSessions { sessions: readonly SessionSummary[]; own: string; open: string | null; all?: boolean; decisionsAll?: boolean }
 
 /** A session's name on the tab, by its id. */
 function labelIn(p: ProjectSessions, t: T): (id: string) => string {
@@ -1184,17 +1177,25 @@ function labelIn(p: ProjectSessions, t: T): (id: string) => string {
 
 /**
  * The sessions tab's head (sample C): every session's decisions, newest
- * first, each shown whole, a press putting one in the prompt box. Nothing
- * when nothing was decided.
+ * first, the newest twenty shown whole (the person reads them whole to judge
+ * which are worth keeping), the rest behind a count; a press puts one in the
+ * prompt box. Nothing when nothing was decided.
  */
 export function decisionRows(p: ProjectSessions | undefined, t: T = ZH, columns: number, now?: string): BoardRow[] {
   if (p === undefined) return [];
   const label = labelIn(p, t);
   const decisions = p.sessions.flatMap((s) => s.decisions.map((d) => ({ ...d, session: s.id }))).sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0));
   if (decisions.length === 0) return [];
-  const rows: BoardRow[] = [{ kind: "section", key: "decisions", text: t("决定") }];
-  for (const d of decisions.slice(0, DECISIONS_SHOWN)) {
+  // The newest twenty, each whole; beyond them the rest fold behind a count.
+  const folded = p.decisionsAll !== true && decisions.length > DECISIONS_SHOWN;
+  const rows: BoardRow[] = [{ kind: "section", key: "decisions", text: t("决定"), ...(decisions.length > DECISIONS_SHOWN ? { count: decisions.length } : {}) }];
+  for (const d of folded ? decisions.slice(0, DECISIONS_SHOWN) : decisions) {
     rows.push({ kind: "note", key: `decision-${d.session}-${d.at}`, lines: wrapCells(d.text, Math.max(12, columns - 4), DECISION_ROWS), tag: `${label(d.session)} ${whenTag(d.at, now, t)}`, action: { op: "use-decision", text: d.text, from: label(d.session) } });
+  }
+  if (decisions.length > DECISIONS_SHOWN) {
+    rows.push(buttons([folded
+      ? { key: "decisions-more", label: t("还有 {0} 条决定", decisions.length - DECISIONS_SHOWN), action: { op: "decisions-more", all: true } }
+      : { key: "decisions-more", label: t("收起"), action: { op: "decisions-more", all: false } }]));
   }
   return rows;
 }

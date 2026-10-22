@@ -11,7 +11,7 @@ import { copyName, COPY_LIMIT, isMadeForPeople, pageTitle, artifactsOfItem, read
 import { publishedLink } from "../dist/core/artifact-tool.js";
 import { readArtifactRows, recordFile, recordLink, syncDocs, syncWritten } from "../dist/artifacts-store.js";
 import { listRevisions } from "@geml/geml/dist/history.js";
-import { fileUrl, artifactRows, sizeText } from "../dist/hosts/claude-code/board.js";
+import { artifactRows, sizeText } from "../dist/hosts/claude-code/board.js";
 import { wordsFor } from "../dist/hosts/claude-code/text.js";
 import { gitRepo, hook, withWorkflow } from "./helpers/repo.mjs";
 import { fileURLToPath } from "node:url";
@@ -175,14 +175,17 @@ test("board: what the work item made, under what waits on the person — links, 
     "代码|39 个提交 · 改了 313 个文件|",
   ]);
   const open = artifactRows(artifacts, "feat/x", { t, columns: 80, now: NOW, menu: "file:.geml/exports/s.geml", docsOpen: true });
-  assert.deepEqual(open.find((r) => r.kind === "links").items.map((x) => [x.label, x.href]), [
-    ["打开", fileUrl("/r/.geml/exports/s.geml")], ["打开第 2 版副本", fileUrl("/h/.geml/artifacts/aa.geml")], ["查看历史", fileUrl("/h/.geml/artifacts/aa.gemlhistory")], ["在文件夹里显示", fileUrl("/h/.geml/artifacts")],
+  // Each a press that opens it on the machine: a file: link is drawn as plain text on a remote surface and opens nothing.
+  const opens = (path) => ({ op: "open-file", path });
+  assert.deepEqual(open.find((r) => r.kind === "links").items.map((x) => [x.label, x.href, x.action]), [
+    ["打开", undefined, opens("/r/.geml/exports/s.geml")], ["打开第 2 版副本", undefined, opens("/h/.geml/artifacts/aa.geml")], ["查看历史", undefined, opens("/h/.geml/artifacts/aa.gemlhistory")], ["在文件夹里显示", undefined, { ...opens("/r/.geml/exports/s.geml"), reveal: true }],
   ], "a GEML document's older versions are in its history, not in copies");
+  const doc = artifactRows(artifacts, "feat/x", { t, columns: 80, now: NOW, menu: "doc:README.md", docsOpen: false });
+  assert.deepEqual(doc.find((r) => r.kind === "links").items.map((x) => [x.label, x.href, x.action]), [["打开", undefined, opens("/r/README.md")], ["查看提交", undefined, { op: "tab", tab: "journal", filter: "artifacts" }]], "a document in git opens the same way");
   assert.ok(open.some((r) => r.kind === "entry" && r.title === "x.md"), "listed whole on a press");
   assert.equal(open.find((r) => r.kind === "button").label, "收起");
   assert.deepEqual(artifactRows(artifacts, "other", { t, columns: 80, now: NOW, menu: null, docsOpen: false }), [], "another work item's artifacts are not the current one's");
   assert.deepEqual([sizeText(512), sizeText(20480), sizeText(3 * 1024 * 1024)], ["512 B", "20 KB", "3.0 MB"]);
-  assert.equal(fileUrl("C:\\a b\\c.txt"), "file:///C%3A/a%20b/c.txt");
 });
 
 test("bridge: the board's artifacts — a file the work wrote that git ignores is copied, its documents and code counted; a link is recorded under the work item", () => {

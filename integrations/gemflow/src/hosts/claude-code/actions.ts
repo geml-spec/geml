@@ -96,6 +96,10 @@ export type BoardAction =
   | { op: "session-open"; id: string | null }
   /** The sessions tab: list every other session, or fold the rest after the first few. */
   | { op: "sessions-more"; all: boolean }
+  /** Open a local file or folder with the machine's own app (a `file:` link opens nothing on a remote surface); with `reveal`, show it selected in its folder. */
+  | { op: "open-file"; path: string; reveal?: boolean }
+  /** The sessions tab: list every decision, or fold the rest after the first twenty. */
+  | { op: "decisions-more"; all: boolean }
   /** The sessions tab: draw thirty more of this session's turns. */
   | { op: "turns-more" }
   /** Show a turn's whole prompt and answer on the session tab (its prompt's id), or fold it. */

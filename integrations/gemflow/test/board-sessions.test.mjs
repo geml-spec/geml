@@ -1,7 +1,7 @@
 // The sessions tab after the initialization: sessions and turns read back from transcripts, marked; the rest folded.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { othersRows, sessionRows } from "../dist/hosts/claude-code/board.js";
+import { decisionRows, othersRows, sessionRows } from "../dist/hosts/claude-code/board.js";
 import { wordsFor } from "../dist/hosts/claude-code/text.js";
 
 const NOW = "2026-10-21T10:00:00Z";
@@ -49,4 +49,18 @@ test("the sessions tab draws the newest thirty turns and the rest behind a count
   assert.deepEqual([more.items[0].label, more.items[0].action], ["还有 10 轮", { op: "turns-more" }]);
   assert.equal(sessionRows(prompts, [], t, 100, NOW, { flow: null, runs: [], limit: 60 }).filter((r) => r.kind === "turn").length, 40, "within the limit: all, no button");
   assert.ok(!sessionRows(prompts, [], t, 100, NOW, { flow: null, runs: [], limit: 60 }).some((r) => r.kind === "buttons" && r.items[0].key === "turns-more"));
+});
+
+test("the decisions section lists the newest twenty, each whole; beyond them the rest fold behind a count and unfold on a press", () => {
+  const s = session("other", { branch: "feat/y", decisions: Array.from({ length: 25 }, (_, i) => ({ turn: i + 1, at: `2026-10-${String(1 + Math.floor(i / 10)).padStart(2, "0")}T${String(i % 10).padStart(2, "0")}:00:00Z`, text: `第 ${i} 条决定，这一条写得够长，足够折成两行来看看整句是不是都在：${"字".repeat(60)}` })) });
+  const folded = decisionRows({ sessions: [s, session("own")], own: "own", open: null }, t, 80, NOW);
+  const notes = folded.filter((r) => r.kind === "note");
+  assert.equal(notes.length, 20);
+  assert.equal(notes[0].lines.join(""), s.decisions[24].text, "the newest first, shown whole");
+  assert.equal(folded.find((r) => r.kind === "section" && r.key === "decisions").count, 25);
+  const more = folded.find((r) => r.kind === "buttons" && r.items[0].key === "decisions-more");
+  assert.deepEqual([more.items[0].label, more.items[0].action], ["还有 5 条决定", { op: "decisions-more", all: true }]);
+  const all = decisionRows({ sessions: [s, session("own")], own: "own", open: null, decisionsAll: true }, t, 80, NOW);
+  assert.equal(all.filter((r) => r.kind === "note").length, 25);
+  assert.deepEqual(all.find((r) => r.kind === "buttons" && r.items[0].key === "decisions-more").items[0].action, { op: "decisions-more", all: false });
 });

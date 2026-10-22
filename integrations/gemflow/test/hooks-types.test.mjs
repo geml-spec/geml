@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 // plugin API, with hooks/tsconfig.json. No package ships them: Claude Code
 // writes them itself, into .claude-plugin/types/ when it loads the plugin from
 // a folder it writes in, and into its temp folder's
-// claude-<user>/bundled-skills/<build>/<hash>/plugin-authoring/types/claude-code.d.ts
+// claude-<user> (or plain claude on Windows)/bundled-skills/<build>/<hash>/plugin-authoring/types/claude-code.d.ts
 // each time the plugin-authoring skill loads. The newest of those is checked
 // against (a laid folder stays as old as the last load from this checkout);
 // CLAUDE_CODE_TYPES names a claude-code.d.ts that wins over both. A machine
@@ -27,7 +27,8 @@ function skillCopies() {
   const list = (dir) => { try { return readdirSync(dir); } catch { return []; } };
   const found = [];
   for (const base of new Set(["/tmp", tmpdir()])) {
-    for (const own of list(base).filter((n) => n.startsWith("claude-"))) {
+    // claude-<user> on Linux and macOS; plain claude where the temp folder is the user's own (Windows).
+    for (const own of list(base).filter((n) => n === "claude" || n.startsWith("claude-"))) {
       const skills = join(base, own, "bundled-skills");
       for (const build of list(skills)) for (const hash of list(join(skills, build))) {
         const file = join(skills, build, hash, "plugin-authoring", "types", "claude-code.d.ts");

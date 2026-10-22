@@ -24,6 +24,8 @@ declare module 'claude-code' {
       init: { state: "running" | "done"; done: number; total: number; failed: number } | null
       /** Whether the sessions tab lists every other session, or folds the rest after the first few. */
       sessionsAll: boolean
+      /** Whether the sessions tab lists every decision, or folds the rest after the first twenty. */
+      decisionsAll: boolean
       /** How many of this session's turns the sessions tab draws, the newest first; a press adds thirty more. */
       turnsShown: number
       lastFile: string | null

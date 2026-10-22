@@ -43,6 +43,7 @@ import { ASK_PROMPT, ASK_TOOL, askedOf } from '../dist/core/ask-tool.js'
 import { transcriptEvents, type Transcript } from '../dist/core/transcript.js'
 import type { Asked } from '../dist/core/ask-tool.js'
 import type { AttachedClient, HostInfo } from '../dist/hosts/claude-code/env.js'
+import { baseName, openersFor } from '../dist/hosts/claude-code/open-file.js'
 import { bandView, BRAND_RED, cellWidth, MARK, MARK_SVG, SEP, toneProps, truncate, wrapCells } from '../dist/hosts/claude-code/band.js'
 import type { BandView, Segment, Tone } from '../dist/hosts/claude-code/band.js'
 import { BOARD_ID, ciSuggestions, DIALOG_ID, glyphSvg, heldRows, HOME_TAB, hostName, ICON_CHAR, ICON_SVG, ICON_TONE, inputAction, paneRows, sessionLabel, TAB_IDS, tabs, toolSuggestions } from '../dist/hosts/claude-code/board.js'
@@ -157,6 +158,8 @@ const openSessionAtom = atom({ plugin: 'gemflow', key: 'openSession' } as const,
 const initAtom = atom({ plugin: 'gemflow', key: 'init' } as const, null as InitState | null)
 /** Whether the sessions tab lists every other session. */
 const sessionsAllAtom = atom({ plugin: 'gemflow', key: 'sessionsAll' } as const, false as boolean)
+/** Whether the sessions tab lists every decision. */
+const decisionsAllAtom = atom({ plugin: 'gemflow', key: 'decisionsAll' } as const, false as boolean)
 /** How many of this session's turns the sessions tab draws, the newest; a press adds as many again. */
 const TURNS_SHOWN = 30
 const turnsShownAtom = atom({ plugin: 'gemflow', key: 'turnsShown' } as const, TURNS_SHOWN as number)
@@ -1387,6 +1390,7 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       return
     }
     case 'artifact-menu': await update($, artifactMenuAtom, () => action.key); return
+    case 'open-file': await openFile($, action.path, action.reveal === true, surface); return
     case 'filter': await update($, filterAtom, () => action.filter); return
     case 'expand': await update($, expandedAtom, () => action.entry); return
     case 'evidence': await update($, evidenceAtom, () => action.entry); return
@@ -1407,6 +1411,7 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
     case 'flow-state': await update($, flowStateAtom, () => action.id); return
     case 'session-open': await update($, openSessionAtom, () => action.id); return
     case 'sessions-more': await update($, sessionsAllAtom, () => action.all); return
+    case 'decisions-more': await update($, decisionsAllAtom, () => action.all); return
     case 'turns-more': await update($, turnsShownAtom, (n) => (typeof n === 'number' ? n : TURNS_SHOWN) + TURNS_SHOWN); return
     case 'session-flow': await update($, sessionFlowAtom, () => action.flow); return
     case 'session-run': await update($, sessionRunsAtom, (was) => {
@@ -1611,7 +1616,7 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       const picks = asks.map((_, i) => (i === action.index ? action.answer : a.picks?.[i] ?? null))
       if (picks.some((p) => p === null)) { await update($, attentionAtom, () => ({ ...a, picks }) as unknown as GemflowJson); return }
       await update($, attentionAtom, () => ({ ...a, picks }) as unknown as GemflowJson)
-      const decided = asks.flatMap((q, i) => { const p = picks[i]; return p !== null && !isDeferral(p) ? [`${q}：${p}`] : [] })
+      const decided = asks.flatMap((q, i) => { const p = picks[i]; return typeof p === 'string' && !isDeferral(p) ? [`${q}：${p}`] : [] })
       await act($, { op: 'say', text: picksText(asks, picks), ...(decided.length > 0 ? { decisions: decided } : {}) }, surface)
       return
     }
@@ -1723,6 +1728,38 @@ function trace($: EngineInterface, text: string): void {
 }
 
 /** A press runs its action; a failure is one toast, never a crash of the drawing. */
+/** How long an opener may take to hand the file to its app. */
+const OPEN_MS = 10_000
+
+/**
+ * Opens a local file or folder with the machine's own app, a press on the
+ * artifacts' menu or the export (a `file:` link opens nothing on a remote
+ * surface); with `reveal`, shows it selected in its folder. A missing path
+ * says so and runs nothing; an opener that is not on the machine gives way to
+ * the next; one still running at the timeout started. Pressed from the phone,
+ * or with the last prompt over Remote Control, the toast says it opened on the
+ * machine, where the person may not be.
+ */
+async function openFile($: EngineInterface, path: string, reveal: boolean, surface?: string): Promise<void> {
+  const t = await words($)
+  const name = baseName(path)
+  if (!(await $.fs.exists(path).catch(() => false))) { $.ui.toast(t('找不到：{0}', name)); return }
+  const [h, o] = await Promise.all([read($, hostAtom), read($, originAtom)])
+  const platform = (h as unknown as HostInfo | null)?.platform
+  const away = remoteInPlay({ ...(surface !== undefined ? { surface } : {}), clients: [], ...(o !== null ? { origin: o } : {}) })
+  const done = reveal ? (away ? '已在本机的文件夹里显示：{0}' : '已在文件夹里显示：{0}') : (away ? '已在本机打开：{0}' : '已打开：{0}')
+  for (const opener of openersFor(platform, path, reveal)) {
+    try {
+      const r = await $.process.run(opener.argv, { timeoutMs: OPEN_MS, ...(opener.env !== undefined ? { env: opener.env } : {}) })
+      $.ui.toast(r.exitCode === 0 ? t(done, name) : t('打不开：{0}', name))
+      return
+    } catch (err) {
+      if (/timed out|still running/i.test(reasonOf(err))) { $.ui.toast(t(done, name)); return }
+    }
+  }
+  $.ui.toast(t('打不开：{0}', name))
+}
+
 function press($: EngineInterface, action: BoardAction): (e: { surface: string }) => void {
   return (e) => {
     trace($, `press ${action.op}${'tab' in action ? ` ${String((action as { tab?: unknown }).tab)}` : ''}${'dialog' in action ? ` ${String((action as { dialog?: unknown }).dialog)}` : ''} on ${e.surface}`)
@@ -2282,8 +2319,8 @@ async function tabRows($: EngineInterface, e: { surface: string; props: { bodyCo
     read($, filterAtom), read($, expandedAtom), read($, evidenceAtom),
     shows(tab === 'sessions' || tab === 'journal')(() => readPrompts($), [] as PromptRecord[]),
     shows(tab === 'sessions')(async () => {
-      const [sessions, own, open, all] = await Promise.all([read($, projectSessionsAtom), $.session.id().catch(() => ''), read($, openSessionAtom), read($, sessionsAllAtom)])
-      return { sessions: (sessions as unknown as SessionSummary[] | null) ?? [], own, open, all: all === true }
+      const [sessions, own, open, all, decisionsAll] = await Promise.all([read($, projectSessionsAtom), $.session.id().catch(() => ''), read($, openSessionAtom), read($, sessionsAllAtom), read($, decisionsAllAtom)])
+      return { sessions: (sessions as unknown as SessionSummary[] | null) ?? [], own, open, all: all === true, decisionsAll: decisionsAll === true }
     }, null),
     shows(tab === 'sessions')(() => read($, expandedTurnAtom), null as GemflowJson),
     read($, doneOpenAtom), read($, sessionFlowAtom), read($, sessionRunsAtom),

@@ -122,6 +122,10 @@ function world(on: On) {
     notified: [] as string[],
     copied: [] as string[],
     toasts: [] as string[],
+    /** The work item's artifacts the board answer carries; null carries none. */
+    artifacts: null as unknown,
+    /** The opener commands run, by argument vector. */
+    launched: [] as string[][],
   }
   const stage = () => `[gemflow] stage #${w.state} · rev ${w.rev}`
   const shell = () => ({
@@ -163,6 +167,7 @@ function world(on: On) {
       { name: 'review→done', from: 'review', to: 'done', judge: 'model', approval: false, note: '' },
     ],
     fences: [{ use: 'edit', states: ['build'] }, { use: 'test', states: ['build'] }],
+    ...(w.artifacts !== null ? { artifacts: w.artifacts } : {}),
     tools: ROWS, backlog: null, items: [{ id: 'feat/x', state: w.state, rev: w.rev, at: '2026-10-12T09:00:00Z', paused: w.paused }, ...w.items], timeline: w.timeline, clocks: [], tree: 'tree:1',
     // The flow picture as the CLI sends it: the parser's topology, the overlay, and the SVG a web surface inlines.
     picture: {
@@ -252,6 +257,7 @@ function world(on: On) {
       if (w.error !== null) return { value: ran(`${JSON.stringify({ v: 1, ok: false, error: `gemflow: ${w.error}` })}\n`) }
       return { value: ran(`${JSON.stringify(answer(JSON.parse(e.init?.stdin ?? '{}') as Req))}\n`) }
     }
+    if (['explorer.exe', 'open', 'xdg-open'].includes(e.argv[0] ?? '')) { w.launched.push([...e.argv]); return { value: ran('') } }
     return { deny: `unexpected ${e.argv.join(' ')}` }
   })
   // .geml/context.geml as the CLI writes it: the stage's text in `text {#current}`, the item, state and rev in `data {#stage}`.
@@ -1923,4 +1929,34 @@ test('the sessions tab stays within the desktop\'s press budget: twelve folded t
   expect(nodesOf(tree), 'the tab').toBeLessThanOrEqual(12 * 12 + 120)
   expect(buttonsOf(tree), 'its buttons').toBeLessThanOrEqual(12 * 2 + 16)
   await pane.unmount()
+})
+
+test('an artifact\'s menu opens the file on the machine: a press runs its opener (a file: link opens nothing on a remote surface); a copy that is gone says so and runs nothing; 在文件夹里显示 shows the file in its own folder; from the phone the toast says it opened on the machine', async ($, on) => {
+  const w = world(on)
+  const at = '2026-10-12T09:00:00Z'
+  w.artifacts = { item: 'feat/x', written: [], commits: [], made: { links: [], files: [{ kind: 'file', name: '.geml/exports/s.geml', open: '/r/.geml/exports/s.geml', versions: [{ version: '2', at, size: 20480, copy: '/h/.geml/artifacts/aa.geml' }, { version: '1', at, size: 20000 }] }], images: [], docs: [], code: { commits: 0, files: 0 }, folder: '/h/.geml/artifacts' } }
+  w.files.set('/r/.geml/exports/s.geml', 'x')
+  const clock = await start($, on)
+  await $.command.run({ command: 'gemflow', args: 'board items', origin: COMPOSER, presentation: PRESENTATION })
+  const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: { ...PANE, bodyColumns: 120 } })
+  await pane.press({ key: 'go-artifact-file:.geml/exports/s.geml' })
+  expect(await pane.find({ type: 'Button', key: 'open-file:.geml/exports/s.geml' }), 'the menu offers a press, not a file: link').toBeDefined()
+  await pane.press({ key: 'open-file:.geml/exports/s.geml' })
+  await clock.settle()
+  expect(w.launched, 'the machine opens it (the bridge reported linux)').toEqual([['xdg-open', '/r/.geml/exports/s.geml']])
+  expect(w.toasts.at(-1)).toBe('已打开：s.geml')
+  await pane.press({ key: 'copy-file:.geml/exports/s.geml-2' })
+  await clock.settle()
+  expect(w.launched, 'nothing run for a copy that is gone').toHaveLength(1)
+  expect(w.toasts.at(-1)).toBe('找不到：aa.geml')
+  await pane.press({ key: 'folder-file:.geml/exports/s.geml' })
+  await clock.settle()
+  expect(w.launched.at(-1), 'its own folder, not the copies').toEqual(['xdg-open', '/r/.geml/exports'])
+  expect(w.toasts.at(-1)).toBe('已在文件夹里显示：s.geml')
+  await pane.unmount()
+  const phone = await $.ui.mount({ plugin: 'gemflow', surface: 'mobile', component: 'Pane', requestId: 'gemflow-board', props: { ...PANE, bodyColumns: 60 } })
+  await phone.press({ key: 'open-file:.geml/exports/s.geml' })
+  await clock.settle()
+  expect(w.toasts.at(-1), 'pressed on the phone: it opened on the machine').toBe('已在本机打开：s.geml')
+  await phone.unmount()
 })

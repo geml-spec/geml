@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { cellWidth } from "../dist/hosts/claude-code/band.js";
-import { stepsOf, BOARD_ID, DIALOG_ID, HOME_TAB, ICON_CHAR, ICON_SVG, TAB_IDS, entryDetail, entryWords, fileHref, flowRows, heldRows, inputAction, itemRows, journalRows, paneRows, artifactsTag, rowFor, sessionRows, sourceWords, tabs, toolRows, toolSuggestions } from "../dist/hosts/claude-code/board.js";
+import { stepsOf, BOARD_ID, DIALOG_ID, HOME_TAB, ICON_CHAR, ICON_SVG, TAB_IDS, entryDetail, entryWords, flowRows, heldRows, inputAction, itemRows, journalRows, paneRows, projectPath, artifactsTag, rowFor, sessionRows, sourceWords, tabs, toolRows, toolSuggestions } from "../dist/hosts/claude-code/board.js";
 import { wordsFor } from "../dist/hosts/claude-code/text.js";
 
 const row = (tool, over = {}) => ({ tool, allow: [], deny: [], default: false, row: 0, ...over });
@@ -156,9 +156,9 @@ test("流程: switching — the installed workflows to use, the bundled ones to 
   assert.deepEqual([ticks[at].text, ticks[at + 1].items.map((b) => [b.label, b.action])], ["你来勾", [["[ ] review-done", { op: "mark", variable: "review-done", checked: true }]]]);
   assert.ok(!flow({ status: { ...gate, paused: true } }).some((r) => r.key === "ticks"), "a held work item takes no tick");
   assert.ok(flow({ status: gate, selected: "build" }).every((r) => r.key !== "ticks"), "ticks belong to the current state");
-  assert.equal(fileHref("C:\\w\\app", ".geml/workflows/dev/flow.geml"), "file:///C%3A/w/app/.geml/workflows/dev/flow.geml");
-  assert.equal(fileHref("/w/app", "/Users/me/Downloads/session-abc.geml"), "file:///Users/me/Downloads/session-abc.geml", "a path outside the project is its own");
-  assert.equal(fileHref("C:\\w\\app", "D:/out/s.geml"), "file:///D%3A/out/s.geml");
+  assert.equal(projectPath("C:\\w\\app", ".geml/workflows/dev/flow.geml"), "C:/w/app/.geml/workflows/dev/flow.geml");
+  assert.equal(projectPath("/w/app", "/Users/me/Downloads/session-abc.geml"), "/Users/me/Downloads/session-abc.geml", "a path outside the project is its own");
+  assert.equal(projectPath("C:\\w\\app", "D:/out/s.geml"), "D:/out/s.geml");
 });
 
 test("the flow picture: held, or no item, nothing is pressable; the words follow the language; a state the board does not know is left out", () => {
