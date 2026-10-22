@@ -313,6 +313,7 @@ export const WORDS: Readonly<Record<string, Entry>> = {
   "添加 {0}": { en: "add {0}", ja: "{0} を追加" },
   "选流程": { en: "pick a workflow", ja: "ワークフローを選ぶ" },
   "启动中…": { en: "starting…", ja: "起動中…" },
+  "桥接未应答，重试中": { en: "bridge silent, retrying", ja: "ブリッジ無応答、再試行中" },
   "这个项目还没有流程。建议 {0}（{1}）：/gemflow add {0}；/gemflow add 列出全部。": { en: "This project has no workflow yet. Suggested: {0} ({1}): /gemflow add {0}; /gemflow add lists them all.", ja: "このプロジェクトにはまだワークフローがありません。提案: {0}（{1}）: /gemflow add {0}。/gemflow add で一覧。" },
   "已导入 {0}": { en: "imported {0}", ja: "{0} を取り込みました" },
   "已添加 {0}": { en: "added {0}", ja: "{0} を追加しました" },

@@ -761,7 +761,30 @@ async function loadFacts($: EngineInterface): Promise<void> {
   $.ui.invalidate('ui.render')
 }
 
-/** Node, then the first status; the time is kept so a start that got no answer is tried again, at most once a minute. */
+/** The waits between a start that got no answer and the next try by itself: soon, then slower, then every minute. */
+const START_BACKOFF_MS = [5_000, 15_000, 30_000, 60_000]
+let startTries = 0
+/** Whether a start is waiting to try again: the band says so while the stage is not there. */
+let startRetrying = false
+
+/**
+ * A start that got no shell (no Node, no answer in time — the machine busy
+ * while the session restarts) tries again by itself, in 5 s, then 15 s, 30 s,
+ * then every minute, until a shell comes; the band says 桥接未应答，重试中
+ * meanwhile instead of 启动中… for good. A prompt or a tool call in between
+ * tries at once (retryStart).
+ */
+function scheduleStartRetry($: EngineInterface): void {
+  const wait = START_BACKOFF_MS[Math.min(startTries, START_BACKOFF_MS.length - 1)] as number
+  startTries += 1
+  startRetrying = true
+  $.ui.invalidate('ui.render')
+  $.clock.after(wait, () => {
+    void (async () => { if ((await read($, rootAtom)) !== null && (await read($, shellAtom)) === null) await startBridge($) })().catch(() => undefined)
+  })
+}
+
+/** Node, then the first status; a start that got no answer tries again by itself (scheduleStartRetry). */
 async function startBridge($: EngineInterface): Promise<void> {
   const now = await $.clock.now()
   await update($, startedAtAtom, () => now)
@@ -775,7 +798,9 @@ async function startBridge($: EngineInterface): Promise<void> {
   }
   // The first status of a session also moves the earlier layout (a workflow directory in the checkout) into the project's home.
   const res = await bridge($, { op: 'status', migrate: true })
-  if (res === undefined) return
+  if (res === undefined) { scheduleStartRetry($); return }
+  startTries = 0
+  startRetrying = false
   const dir = res.ok ? res.sessions : undefined
   if (dir !== undefined && dir !== (await read($, sessionsDirAtom))) await update($, sessionsDirAtom, () => dir)
   // git and gh can take seconds: catch up outside the start the first prompt waits on, and read the board the inbox is built from.
@@ -2608,6 +2633,8 @@ export const register: Register = (on) => {
         shell, problem: await read($, problemAtom), setup: await read($, setupAtom), notice, todo: (await read($, todoAtom)) as unknown as TodoCount | null,
         inbox, timeline: board?.timeline ?? [], now: await nowIso($), t,
       })
+      // No shell yet and a start that got no answer: the band says it is trying again, not 启动中… for good.
+      if (shell === null && startRetrying && view.tone !== 'error') view = { ...view, note: t('桥接未应答，重试中') }
     } catch (err) {
       view = { verb: '', title: `gemflow：状态带画不出来（${reasonOf(err)}）`, tone: 'error', note: '', detail: '', actions: [], more: { count: 0, detail: '' } }
     }

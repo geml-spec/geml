@@ -1605,6 +1605,22 @@ test("the first start with a shared record reads the host's transcripts into it,
   expect(w.sent.filter((r) => r.op === 'backfill-list').length).toBe(before)
 })
 
+test('a start the bridge did not answer tries again by itself: the band says so meanwhile, and the stage appears once the bridge answers', async ($, on) => {
+  const w = world(on)
+  w.bridge = false
+  const clock = await start($, on)
+  const silent = await bandText($)
+  expect(silent).toMatch(/启动中…/)
+  expect(silent).toMatch(/桥接未应答，重试中/)
+  const asked = w.sent.filter((r) => r.op === 'status').length
+  w.bridge = true
+  await clock.advance(5_000)
+  expect(w.sent.filter((r) => r.op === 'status').length, 'tried again by itself').toBeGreaterThan(asked)
+  const up = await bandText($)
+  expect(up).not.toMatch(/启动中/)
+  expect(up).not.toMatch(/桥接未应答/)
+})
+
 test("turns removed or split away with the split-session skill leave the sessions tab and this session's log; split ones go into the new session's log; a prompt from the last two minutes stays", async ($, on) => {
   const w = world(on)
   w.sessionsDir = LOGS
