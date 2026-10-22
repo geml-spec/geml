@@ -232,6 +232,8 @@ export interface PaneInput {
   exportedFor?: string | null;
   /** The flow the sessions tab shows (its title), or null for all; the runs of another flow's turns unfolded (their first prompt's id). */
   sessionFlow: string | null;
+  /** How many of this session's turns the sessions tab draws, the newest; the rest behind a count. */
+  sessionLimit?: number;
   sessionRuns: readonly string[];
   /** Whether the work items tab lists the closed work items, or only counts them; the same for the dropped ones. */
   doneOpen: boolean;
@@ -266,7 +268,7 @@ export function paneRows(o: PaneInput): BoardRow[] {
   const status = o.shell?.status ?? null;
   const wait = o.board === null && head.length === 0 ? [text(t("正在读取看板…"), columns, "dim")] : [];
   if (o.tab === "sessions") {
-    const own = sessionRows(o.prompts, o.board?.artifacts?.commits ?? [], t, columns, o.now, { flow: o.sessionFlow, runs: o.sessionRuns, current: status?.workflow.title, ...(o.scrolls !== undefined ? { scrolls: o.scrolls } : {}), ...(o.unfolded !== undefined ? { expanded: o.unfolded } : {}) });
+    const own = sessionRows(o.prompts, o.board?.artifacts?.commits ?? [], t, columns, o.now, { flow: o.sessionFlow, runs: o.sessionRuns, current: status?.workflow.title, ...(o.scrolls !== undefined ? { scrolls: o.scrolls } : {}), ...(o.unfolded !== undefined ? { expanded: o.unfolded } : {}), ...(o.sessionLimit !== undefined ? { limit: o.sessionLimit } : {}) });
     // Every session's heading carries its export, which asks where to; the file written shows under it.
     const exports: ExportsOf = {
       button: (s) => ({ key: `export-${s}`, label: t("导出"), action: { op: "export", session: s } }),
@@ -1060,7 +1062,7 @@ export function journalRows(o: JournalInput): BoardRow[] {
 /** How many turns in a row in another flow fold into one line. */
 const RUN_FOLDS = 3;
 
-export function sessionRows(prompts: readonly PromptRecord[], commits: readonly { sha: string; at: string }[], t: T = ZH, columns: number, now?: string, by: { flow: string | null; runs: readonly string[]; current?: string; scrolls?: boolean; expanded?: { id: string; answer: string | null } | null } = { flow: null, runs: [] }): BoardRow[] {
+export function sessionRows(prompts: readonly PromptRecord[], commits: readonly { sha: string; at: string }[], t: T = ZH, columns: number, now?: string, by: { flow: string | null; runs: readonly string[]; current?: string; scrolls?: boolean; expanded?: { id: string; answer: string | null } | null; limit?: number } = { flow: null, runs: [] }): BoardRow[] {
   const unfold = { scrolls: by.scrolls !== false, expanded: by.expanded ?? null };
   if (prompts.length === 0) return [text(t("还没有 prompt"), columns, "dim")];
   const rows: BoardRow[] = [];
@@ -1074,16 +1076,18 @@ export function sessionRows(prompts: readonly PromptRecord[], commits: readonly 
   }
   const flow = by.flow !== null && flows.length > 1 && flows.includes(by.flow) ? by.flow : null;
   const shown = flow === null ? prompts : prompts.filter((p) => p.flow === flow);
+  // The newest turns alone are drawn (a tab of hundreds is a tree the desktop cannot take: 6,000 nodes); the rest wait behind a count.
+  const listed = by.limit !== undefined && shown.length > by.limit ? shown.slice(-by.limit) : shown;
   let day = "";
-  for (let i = shown.length - 1; i >= 0; i--) {
-    const p = shown[i] as PromptRecord;
+  for (let i = listed.length - 1; i >= 0; i--) {
+    const p = listed[i] as PromptRecord;
     const heading = now !== undefined ? dayText(p.at, now, t) : "";
     if (heading !== day) { rows.push({ kind: "section", key: `day-${p.id}`, text: heading }); day = heading; }
     // A run of turns in a flow other than the current one folds into one line, unfolded on a press.
     if (flow === null && by.current !== undefined && p.flow !== undefined && p.flow !== by.current) {
       let j = i;
-      while (j > 0 && (shown[j - 1] as PromptRecord).flow === p.flow) j--;
-      const run = shown.slice(j, i + 1);
+      while (j > 0 && (listed[j - 1] as PromptRecord).flow === p.flow) j--;
+      const run = listed.slice(j, i + 1);
       const key = (run[0] as PromptRecord).id;
       if (run.length >= RUN_FOLDS) {
         const open = by.runs.includes(key);
@@ -1094,13 +1098,14 @@ export function sessionRows(prompts: readonly PromptRecord[], commits: readonly 
           text: t("{0} · {1} · {2} 条提示词", p.flow, p.itemTitle ?? p.item ?? "", run.length), did: "", open,
           fold: foldOf(`run-${key}`, open, action, t), action,
         });
-        if (open) for (let k = run.length - 1; k >= 0; k--) rows.push(...turnRows(run[k] as PromptRecord, shown[j + k + 1]?.at, commits, t, columns, unfold));
+        if (open) for (let k = run.length - 1; k >= 0; k--) rows.push(...turnRows(run[k] as PromptRecord, listed[j + k + 1]?.at, commits, t, columns, unfold));
         i = j;
         continue;
       }
     }
-    rows.push(...turnRows(p, shown[i + 1]?.at ?? prompts[prompts.indexOf(p) + 1]?.at, commits, t, columns, unfold));
+    rows.push(...turnRows(p, listed[i + 1]?.at ?? prompts[prompts.indexOf(p) + 1]?.at, commits, t, columns, unfold));
   }
+  if (listed.length < shown.length) rows.push(buttons([{ key: "turns-more", label: t("还有 {0} 轮", shown.length - listed.length), action: { op: "turns-more" } }]));
   return rows;
 }
 

@@ -157,6 +157,9 @@ const openSessionAtom = atom({ plugin: 'gemflow', key: 'openSession' } as const,
 const initAtom = atom({ plugin: 'gemflow', key: 'init' } as const, null as InitState | null)
 /** Whether the sessions tab lists every other session. */
 const sessionsAllAtom = atom({ plugin: 'gemflow', key: 'sessionsAll' } as const, false as boolean)
+/** How many of this session's turns the sessions tab draws, the newest; a press adds as many again. */
+const TURNS_SHOWN = 30
+const turnsShownAtom = atom({ plugin: 'gemflow', key: 'turnsShown' } as const, TURNS_SHOWN as number)
 const decisionsSeenAtom = atom({ plugin: 'gemflow', key: 'decisionsSeen' } as const, null as string | null)
 const committedAtom = atom({ plugin: 'gemflow', key: 'committed' } as const, false)
 /** The turn unfolded on the session tab (where the conversation cannot be scrolled): its prompt's id and its answer. */
@@ -1260,7 +1263,8 @@ async function openBoard($: EngineInterface, tab?: BoardTab): Promise<{ isPlaced
 async function adoptPanes($: EngineInterface): Promise<void> {
   try {
     const up = await $.ui.panes()
-    if (up.some((p) => p.id === BOARD_ID)) { await $.ui.close({ id: BOARD_ID }); await $.ui.open({ id: BOARD_ID, title: PANE_TITLE }) }
+    trace($, `adopt: panes up ${JSON.stringify(up.map((p) => `${p.id}${p.isShown ? '*' : ''}`))}`)
+    if (up.some((p) => p.id === BOARD_ID)) { await $.ui.close({ id: BOARD_ID }); const o = await $.ui.open({ id: BOARD_ID, title: PANE_TITLE }); trace($, `adopt: board closed and opened, placed ${String(o.isPlaced)}`) }
     if (up.some((p) => p.id === DIALOG_ID)) { await update($, dialogAtom, () => null); await $.ui.close({ id: DIALOG_ID }) }
   } catch { /* no pane to adopt */ }
 }
@@ -1372,6 +1376,7 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
   switch (action.op) {
     case 'tab': {
       await update($, tabAtom, () => action.tab)
+      trace($, `tab is now ${action.tab}`)
       const filter = action.filter
       if (filter !== undefined) await update($, filterAtom, () => filter)
       return
@@ -1397,6 +1402,7 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
     case 'flow-state': await update($, flowStateAtom, () => action.id); return
     case 'session-open': await update($, openSessionAtom, () => action.id); return
     case 'sessions-more': await update($, sessionsAllAtom, () => action.all); return
+    case 'turns-more': await update($, turnsShownAtom, (n) => (typeof n === 'number' ? n : TURNS_SHOWN) + TURNS_SHOWN); return
     case 'session-flow': await update($, sessionFlowAtom, () => action.flow); return
     case 'session-run': await update($, sessionRunsAtom, (was) => {
       const list = new Set((((was as unknown) as string[] | null) ?? []))
@@ -1685,9 +1691,24 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
   }
 }
 
+/** The diagnosis lines of this module, the newest kept: written to the project's .geml/trace.log, where a reader outside the session finds them. */
+const traceLines: string[] = []
+/** A line for a diagnosis (what a press and a drawing did, on which surface): into the transcript and .geml/trace.log; never a failure of what it notes. */
+function trace($: EngineInterface, text: string): void {
+  const line = `${new Date().toISOString()} ${text}`
+  traceLines.push(line)
+  if (traceLines.length > 300) traceLines.splice(0, traceLines.length - 300)
+  try { $.ui.log(`gemflow: ${text}`) } catch { /* no log */ }
+  void (async () => {
+    const root = await read($, rootAtom)
+    if (root !== null) await $.fs.write(`${root}/.geml/trace.log`, `${traceLines.join('\n')}\n`)
+  })().catch(() => undefined)
+}
+
 /** A press runs its action; a failure is one toast, never a crash of the drawing. */
 function press($: EngineInterface, action: BoardAction): (e: { surface: string }) => void {
   return (e) => {
+    trace($, `press ${action.op}${'tab' in action ? ` ${String((action as { tab?: unknown }).tab)}` : ''}${'dialog' in action ? ` ${String((action as { dialog?: unknown }).dialog)}` : ''} on ${e.surface}`)
     // A transcript row moves only while the plugin answers the person's own input: 跳转 asks for the scroll first,
     // before anything is awaited, the prompt's row at the top of the window.
     if (action.op === 'locate' && action.uuid !== undefined && e.surface === 'terminal') {
@@ -1757,9 +1778,10 @@ function iconButton($: EngineInterface, els: Els, b: Pressable, g: Glyph, o: { t
       <Box position="absolute" top={lines} {...edge} width={cellWidth(b.label) + 2} paddingX={1} display="none" hover={{ display: 'flex' }} backgroundColor="inverseText">
         <Text wrap="truncate-end">{b.label}</Text>
       </Box>
-      {/* The press over the whole box, a blank button on every line of it (a button is one line high), painted last. */}
-      <Box position="absolute" top={0} left={0} right={0} bottom={0} flexDirection="column" alignItems="center" overflow="hidden">
-        {Array.from({ length: lines }, (_, n) => <Button key={n === 0 ? b.key : `${b.key}-${n + 1}`} plain label={HIT} onPress={press($, b.action)} />)}
+      {/* The press over the box: one blank button centred in it, painted last — the one layout the desktop takes a press
+          through (a column of buttons under overflow hidden took none: every icon of the board went dead, 0.2.43–0.2.47). */}
+      <Box position="absolute" top={0} left={0} right={0} bottom={0} justifyContent="center" alignItems="center">
+        <Button key={b.key} plain label={HIT} onPress={press($, b.action)} />
       </Box>
     </Box>
   )
@@ -2258,7 +2280,7 @@ async function tabRows($: EngineInterface, e: { surface: string; props: { bodyCo
     board, problem, shell, tab, columns, maxRows: Math.max(4, e.props.scroll.bodyRows - 4), t, now, root: root ?? '', inbox,
     filter: filter as JournalFilter, expanded, evidence, prompts,
     ...(project !== null ? { project, scrolls: e.surface === 'terminal', unfolded: unfolded as unknown as { id: string; answer: string | null } | null } : {}),
-    exportedFor, doneOpen, droppedOpen, sessionFlow, sessionRuns: (sessionRuns as unknown as string[] | null) ?? [],
+    exportedFor, doneOpen, droppedOpen, sessionFlow, sessionLimit: await read($, turnsShownAtom), sessionRuns: (sessionRuns as unknown as string[] | null) ?? [],
     flowState, switching, workflows: workflows as unknown as { bundled: string[]; installed: string[] } | null,
     usage, dismissed, toolQuery, toolMenu, toolNaming, toolsOpen: (toolsOpen as unknown as string[] | null) ?? [],
     exported, artifactMenu, docsOpen,
@@ -2335,7 +2357,7 @@ export const register: Register = (on) => {
     try { const lang = await $.env.get('LANG'); if (lang !== undefined) await update($, localeAtom, () => lang) } catch { /* no env */ }
     try {
       const manifest = JSON.parse(String(await $.fs.read(`${$.plugin.root}/.claude-plugin/plugin.json`))) as { version?: unknown }
-      if (typeof manifest.version === 'string') { const v = manifest.version; await update($, versionAtom, () => v) }
+      if (typeof manifest.version === 'string') { const v = manifest.version; await update($, versionAtom, () => v); trace($, `loaded ${v} in ${e.cwd}`) }
     } catch { /* no manifest */ }
     $.clock.after(0, () => { void probeCompose($) })
     await adoptPanes($)
@@ -2669,7 +2691,7 @@ export const register: Register = (on) => {
     const options: Pressable[] = attentionPresses ?? view.actions
     const tail: Pressable[] = [
       ...(view.more.count > 0 ? [{ key: 'more', label: t('还有 {0} 件', view.more.count), action: { op: 'open-board', tab: 'items' } as BoardAction }] : []),
-      ...(workflow ? [{ key: 'board', label: t('看板'), action: { op: 'open-board' } as BoardAction }] : []),
+      ...(workflow ? [{ key: 'board', label: t('看板'), action: { op: 'open-board', tab: 'items' } as BoardAction }] : []),
     ]
     if (view.title === '' && options.length === 0 && tail.length === 0) return next(e)
     const columns: number = e.props.bodyColumns
@@ -2707,11 +2729,11 @@ export const register: Register = (on) => {
                     <Box key="band-mark" flexShrink={0} alignItems="center" paddingX={1}>
                       <Svg source={MARK_SVG} alt="Gemflow" width={13} height={13} />
                       <Box position="absolute" top={0} left={0} right={0} bottom={0} justifyContent="center" alignItems="center">
-                        <Button key="band-mark-open" plain label={HIT} onPress={press($, { op: 'open-board' })} />
+                        <Button key="band-mark-open" plain label={HIT} onPress={press($, { op: 'open-board', tab: 'items' })} />
                       </Box>
                     </Box>
                   )
-                  : <Button key="band-mark-open" plain label={t('看板')} onPress={press($, { op: 'open-board' })}><Text {...toneProps(MARK.tone)}>{MARK.text}</Text></Button>)
+                  : <Button key="band-mark-open" plain label={t('看板')} onPress={press($, { op: 'open-board', tab: 'items' })}><Text {...toneProps(MARK.tone)}>{MARK.text}</Text></Button>)
                 : <Text>{' '.repeat(lead - 1)}</Text>}
               <Text {...(Svg !== undefined ? { color: 'suggestion' } : {})} wrap="truncate-end">{l}</Text>
             </Box>
@@ -2733,11 +2755,11 @@ export const register: Register = (on) => {
             <Box key="band-mark" flexShrink={0} alignItems="center" paddingX={1}>
               <Svg source={MARK_SVG} alt="Gemflow" width={13} height={13} />
               <Box position="absolute" top={0} left={0} right={0} bottom={0} justifyContent="center" alignItems="center">
-                <Button key="band-mark-open" plain label={HIT} onPress={press($, { op: 'open-board' })} />
+                <Button key="band-mark-open" plain label={HIT} onPress={press($, { op: 'open-board', tab: 'items' })} />
               </Box>
             </Box>
           )
-          : <Button key="band-mark-open" plain label={t('看板')} onPress={press($, { op: 'open-board' })}><Text {...toneProps(MARK.tone)}>{MARK.text}</Text></Button>}
+          : <Button key="band-mark-open" plain label={t('看板')} onPress={press($, { op: 'open-board', tab: 'items' })}><Text {...toneProps(MARK.tone)}>{MARK.text}</Text></Button>}
         {view.verb !== '' && <Text dimColor>{view.verb}</Text>}
         {Svg !== undefined
           ? (
@@ -2780,6 +2802,7 @@ export const register: Register = (on) => {
   // The board (spec §8.2): the header, five tabs as a row of buttons over the tab atom, and rows from board.ts.
   // The matcher spells BOARD_ID's value: the engine reads matchers statically (an imported constant shows as requestId=?).
   on('ui.render', { component: 'Pane', requestId: 'gemflow-board' }, async ($, e) => {
+    trace($, `draw board on ${e.surface}, tab ${String(await read($, tabAtom))}`)
     const els = elementsOf($, e)
     const { Box, Text, Button } = els
     const columns = e.props.bodyColumns
@@ -2810,6 +2833,7 @@ export const register: Register = (on) => {
     } catch (err) {
       body = [<Text key="rows-failed" color="error">{t('gemflow：{0}画不出来（{1}）', label, reasonOf(err))}</Text>]
     }
+    trace($, `drew board on ${e.surface}: tab ${tab}, ${rows.length} rows`)
     return (
       <Box flexDirection="column">
         {header}

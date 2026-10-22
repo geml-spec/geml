@@ -95,6 +95,8 @@ export type BoardAction =
   | { op: "session-open"; id: string | null }
   /** The sessions tab: list every other session, or fold the rest after the first few. */
   | { op: "sessions-more"; all: boolean }
+  /** The sessions tab: draw thirty more of this session's turns. */
+  | { op: "turns-more" }
   /** Show a turn's whole prompt and answer on the session tab (its prompt's id), or fold it. */
   | { op: "expand-turn"; id: string | null }
   /** Show the session's prompts of one flow (its title), or all. */

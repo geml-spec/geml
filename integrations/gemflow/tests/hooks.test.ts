@@ -1505,7 +1505,8 @@ test('a session resumed after the app restarted shows the prompts the store kept
   expect(span, 'the row takes the press').toBeDefined()
   expect([holds(span!, 'split-p1-a'), holds(span!, 'remove-p1-a'), holds(span!, 'fold-prompt-p1-a')], 'the box the press spans holds no icon').toEqual([false, false, false])
   // Each icon takes the press on both of the row's lines, its name shown below the row, never over the press.
-  expect(await pane.find({ type: 'Button', key: 'split-p1-a-2' }), "the icon's second line").toBeDefined()
+  expect(await pane.find({ type: 'Button', key: 'split-p1-a' }), 'the icon takes its press through one centred button').toBeDefined()
+  expect(await pane.find({ type: 'Button', key: 'split-p1-a-2' }), 'no second-line button: the desktop took no press through a column of them').toBeUndefined()
   const name = spanOf(drawn, 'split-p1-a')?.children?.find((c): c is Drawn => typeof c !== 'string' && c.props?.display === 'none')
   expect(name?.props?.top).toBe(2)
   // The triangle is a press of its own, the row's: it unfolds the turn.
@@ -1641,6 +1642,23 @@ test('a version bumped and not committed keeps a step on the band, whose press s
   w.bump = null
   await clock.advance(130_000)
   expect(await bandText($)).not.toMatch(/待提交/)
+})
+
+test('the sessions tab with two hundred turns draws the newest thirty: a tree the desktop can take; 还有 N 轮 draws more, and the other tabs still press', async ($, on) => {
+  const w = world(on)
+  w.store.set('prompts:sess-1234567890', Array.from({ length: 200 }, (_, i) => ({ id: `p${i}`, at: new Date(Date.UTC(2026, 9, 1 + Math.floor(i / 24), i % 24)).toISOString(), text: `第 ${i} 句，这一句的内容足够长，像真实的提示词一样长长长长长长长长长长长长长长长长长长长长`, did: `做了第 ${i} 件事`, tools: 1, refusals: 0, entered: [], signals: [] })))
+  await start($, on)
+  await $.command.run({ command: 'gemflow', args: 'board sessions', origin: COMPOSER, presentation: PRESENTATION })
+  const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: { ...PANE, bodyColumns: 120 } })
+  const count = (el: Drawn | string): number => (typeof el === 'string' ? 1 : 1 + (el.children ?? []).reduce((n, c) => n + count(c), 0))
+  const nodes = count((await pane.drawn()) as unknown as Drawn)
+  expect(nodes, 'thirty turns, not two hundred').toBeLessThan(1_800)
+  expect((await pane.find({ type: 'Button', key: 'turns-more' })), 'the rest behind a count').toBeDefined()
+  await pane.press({ key: 'turns-more' })
+  expect(count((await pane.drawn()) as unknown as Drawn), 'thirty more').toBeGreaterThan(nodes)
+  await pane.press({ key: 'tab-items' })
+  expect(shown((await pane.drawn()) as unknown as Drawn).join(' '), 'the items tab after the sessions tab').toContain('当前')
+  await pane.unmount()
 })
 
 test("turns removed or split away with the split-session skill leave the sessions tab and this session's log; split ones go into the new session's log; a prompt from the last two minutes stays", async ($, on) => {
@@ -1805,5 +1823,17 @@ test('a session\'s first prompt is in its log though the slower facts have not c
   await $.command.run({ command: 'gemflow', args: 'board sessions', origin: COMPOSER, presentation: PRESENTATION })
   const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
   expect(JSON.stringify(await pane.drawn()), 'the session tab lists no notification').not.toContain('task-notification')
+  await pane.unmount()
+})
+
+test("the band's 看板 opens the board on the work items tab whichever tab it was left on (the user's 10-15 decision)", async ($, on) => {
+  world(on)
+  await start($, on)
+  await $.command.run({ command: 'gemflow', args: 'board sessions', origin: COMPOSER, presentation: PRESENTATION })
+  const band = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+  await band.press({ key: 'board' })
+  await band.unmount()
+  const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  expect(shown((await pane.drawn()) as unknown as Drawn).join(' '), 'the work items, not the sessions tab').toContain('当前')
   await pane.unmount()
 })

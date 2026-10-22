@@ -447,6 +447,7 @@ export const WORDS: Readonly<Record<string, Entry>> = {
   "补录": { en: "backfilled", ja: "補記" },
   "定时任务 {0}": { en: "scheduled task {0}", ja: "定期タスク {0}" },
   "还有 {0} 个会话": { en: "{0} more sessions", ja: "ほか {0} 件" },
+  "还有 {0} 轮": { en: "{0} more turns", ja: "ほか {0} ターン" },
   "可能待决定：{0}": { en: "Maybe to decide: {0}", ja: "決定待ちかもしれない：{0}" },
   "gemflow：{0}画不出来（{1}）": { en: "gemflow: {0} could not be drawn ({1})", ja: "gemflow：{0}を描けませんでした（{1}）" },
   "读取超时": { en: "reading timed out", ja: "読み込みがタイムアウト" },

@@ -39,3 +39,14 @@ test("this session's own turns read back from the transcript are marked 补录 o
   const turns = rows.filter((r) => r.kind === "turn");
   assert.deepEqual(turns.map((r) => [r.text, r.did]), [["提交改动", "进行中…"], ["好", "补录"], ["产物不是产品，叫artifacts", "补录 · 改好了：products 改名 artifacts。"]]);
 });
+
+test("the sessions tab draws the newest thirty turns and the rest behind a count; a press draws thirty more", () => {
+  const prompts = Array.from({ length: 40 }, (_, i) => ({ id: `p${i}`, at: `2026-10-21T0${Math.floor(i / 10)}:${String(i % 10).padStart(2, "0")}:00Z`, text: `第 ${i} 句`, tools: 0, refusals: 0, entered: [], signals: [] }));
+  const paged = sessionRows(prompts, [], t, 100, NOW, { flow: null, runs: [], limit: 30 });
+  assert.equal(paged.filter((r) => r.kind === "turn").length, 30);
+  assert.equal(paged.filter((r) => r.kind === "turn")[0].text, "第 39 句", "the newest first");
+  const more = paged.find((r) => r.kind === "buttons" && r.items[0].key === "turns-more");
+  assert.deepEqual([more.items[0].label, more.items[0].action], ["还有 10 轮", { op: "turns-more" }]);
+  assert.equal(sessionRows(prompts, [], t, 100, NOW, { flow: null, runs: [], limit: 60 }).filter((r) => r.kind === "turn").length, 40, "within the limit: all, no button");
+  assert.ok(!sessionRows(prompts, [], t, 100, NOW, { flow: null, runs: [], limit: 60 }).some((r) => r.kind === "buttons" && r.items[0].key === "turns-more"));
+});

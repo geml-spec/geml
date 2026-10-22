@@ -24,6 +24,8 @@ declare module 'claude-code' {
       init: { state: "running" | "done"; done: number; total: number; failed: number } | null
       /** Whether the sessions tab lists every other session, or folds the rest after the first few. */
       sessionsAll: boolean
+      /** How many of this session's turns the sessions tab draws, the newest first; a press adds thirty more. */
+      turnsShown: number
       lastFile: string | null
       tab: GemflowTab
       /** Whether the work items tab lists the finished work items. */
