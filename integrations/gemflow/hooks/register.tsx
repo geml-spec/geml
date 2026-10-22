@@ -1253,13 +1253,14 @@ async function openBoard($: EngineInterface, tab?: BoardTab): Promise<{ isPlaced
 
 /**
  * A reload: a pane the module before this one left up still answers to that
- * module, so its presses do nothing. The board is opened again, which draws it
- * anew from this module; a dialog is closed.
+ * module, so its presses do nothing — and opening an id that is open only
+ * retitles it. The board is closed and opened again, which draws it anew from
+ * this module (its tab is kept in the state); a dialog is closed.
  */
 async function adoptPanes($: EngineInterface): Promise<void> {
   try {
     const up = await $.ui.panes()
-    if (up.some((p) => p.id === BOARD_ID)) await $.ui.open({ id: BOARD_ID, title: PANE_TITLE })
+    if (up.some((p) => p.id === BOARD_ID)) { await $.ui.close({ id: BOARD_ID }); await $.ui.open({ id: BOARD_ID, title: PANE_TITLE }) }
     if (up.some((p) => p.id === DIALOG_ID)) { await update($, dialogAtom, () => null); await $.ui.close({ id: DIALOG_ID }) }
   } catch { /* no pane to adopt */ }
 }

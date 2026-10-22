@@ -948,7 +948,7 @@ test('a reload with the board still up opens it again, so this module draws it a
   on('ui.panes', () => ({ value: up }))
   await start($, on)
   expect(w.opened, 'the board, opened anew').toBe(1)
-  expect(w.closed).toEqual(['gemflow-dialog'])
+  expect(w.closed, 'the board closed first (an open id only retitles), the dialog closed').toEqual(['gemflow-board', 'gemflow-dialog'])
   up = []
   await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
   expect(w.opened, 'nothing up: nothing opened').toBe(1)
