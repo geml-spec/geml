@@ -42,7 +42,7 @@ import { outgoing, sourceLabel, varsBySource } from "./core/statechart.js";
 import { waitsOnPerson } from "./core/turn.js";
 import { readContextDoc } from "./core/stagehand.js";
 import { exists, readText, withLock, writeAtomic } from "./host-fs.js";
-import { branchesAhead, commitsOf, ghOncePerBranch, journalBaseOf, openPullRequests, pullRequestsByBranch, repoFacts, unkeptOf, worktreesOf, type GhFacts } from "./host-git.js";
+import { branchesAhead, commitsOf, ghOncePerBranch, journalBaseOf, openPullRequests, pullRequestsByBranch, repoFacts, uncommittedBump, unkeptOf, worktreesOf, type GhFacts } from "./host-git.js";
 import { formatLog, logName, nextTurn, parseLog, SESSIONS_DIR, SESSIONS_GITIGNORE, withEarlierTurns } from "./core/session-log.js";
 import { newTurns, readTranscript, slugOf, transcriptEvents, type Transcript } from "./core/transcript.js";
 import { statSync } from "node:fs";
@@ -832,7 +832,9 @@ function answer(req: BridgeRequest): BridgeResponse {
       const ahead = branchesAhead(root);
       const open = openPullRequests(root);
       const unread = [...(ahead === undefined ? ["ahead" as const] : []), ...(open === undefined ? ["prs" as const] : [])];
-      return ok(view, { attention: { ahead: ahead ?? [], prs: open ?? [], ...(unread.length > 0 ? { unread } : {}) }, host: hostOf(root), sessions: join(journalBaseOf(root), GEML_DIR, SESSIONS_DIR) });
+      // A version bumped in the checkout and not committed: the band keeps a step for it.
+      const bump = uncommittedBump(root);
+      return ok(view, { attention: { ahead: ahead ?? [], prs: open ?? [], ...(unread.length > 0 ? { unread } : {}), ...(bump !== undefined ? { bump: { version: bump.version, path: bump.path } } : {}) }, host: hostOf(root), sessions: join(journalBaseOf(root), GEML_DIR, SESSIONS_DIR) });
     }
     case "artifacts": {
       syncArtifacts(ws, root, req.elsewhere);

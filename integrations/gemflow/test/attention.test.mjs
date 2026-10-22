@@ -210,3 +210,14 @@ test("暂不 on a green pull request holds it until the person says", () => {
   assert.deepEqual(card.options, ["合并", "暂不"]);
   assert.deepEqual(pressablesFor({ key: card.key, kind: card.kind, text: card.text, options: card.options }, card.options)[1].action, { op: "say", text: "先不合并 #43，等我说再合。", dismiss: "green:43", toast: "已暂缓 #43，可在看板「已暂缓」里恢复" });
 });
+
+test("a version bumped and not committed is a step from the fact: it rides along, never leads, does not fade, and its press says 提交改动", () => {
+  const facts = { ahead: [], prs: [], bump: { version: "0.2.46", path: "integrations/gemflow/.claude-plugin/plugin.json" } };
+  const standing = standingOf("改好了，还没提交。", facts, NOW);
+  assert.deepEqual(standing.map((s) => [s.key, s.text, s.options, s.quiet ?? false]), [["uncommitted:v:0.2.46", "待提交：0.2.46", ["提交", "暂不"], true]], "the fact stands in for the reply's words");
+  assert.equal(leadOf({ reply: "改好了，还没提交。", standing, memory: NO_MEMORY }), null, "it never leads");
+  const aged = { ...NO_MEMORY, age: { "uncommitted:v:0.2.46": 9 } };
+  const line = bandLine({ lead: null, standing, memory: aged, reply: "", awayMs: 0 });
+  assert.deepEqual([line.text, line.steps.map((x) => x.short)], ["待提交：0.2.46", ["提交改动"]], "turns later it is still there");
+  assert.deepEqual(stepPressables(standing).map((p) => [p.label, p.action]), [["提交改动", { op: "say", text: "提交改动" }]]);
+});

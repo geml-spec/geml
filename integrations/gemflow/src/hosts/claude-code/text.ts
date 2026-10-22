@@ -403,6 +403,7 @@ export const WORDS: Readonly<Record<string, Entry>> = {
   "提交改动": { en: "commit the changes", ja: "変更をコミット" },
   "先不提交，改动先留着。": { en: "Don't commit yet; leave the changes as they are.", ja: "まだコミットしないで。変更はそのままに。" },
   "待提交：改动": { en: "To commit: changes", ja: "未コミット：変更" },
+  "待提交：{0}": { en: "To commit: {0}", ja: "未コミット：{0}" },
   "提交": { en: "Commit", ja: "コミット" },
   "待决定：{0}": { en: "To decide: {0}", ja: "決定待ち：{0}" },
   "详情": { en: "Details", ja: "詳細" },

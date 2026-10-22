@@ -427,6 +427,49 @@ export function branchesAhead(root: string): { branch: string; ahead: number; ne
   return out;
 }
 
+/** The `version` a package.json or plugin.json names; undefined when it is not JSON or has none. */
+function versionIn(text: string): string | undefined {
+  try {
+    const v = (JSON.parse(text) as { version?: unknown }).version;
+    return typeof v === "string" && v !== "" ? v : undefined;
+  } catch { return undefined; }
+}
+
+/** Whether version `a` is above `b`, number by number (1.2.10 above 1.2.9). */
+function above(a: string, b: string): boolean {
+  const na = a.split(".").map((x) => Number.parseInt(x, 10));
+  const nb = b.split(".").map((x) => Number.parseInt(x, 10));
+  for (let i = 0; i < Math.max(na.length, nb.length); i++) {
+    const x = na[i] ?? 0;
+    const y = nb[i] ?? 0;
+    if (x !== y) return x > y;
+  }
+  return false;
+}
+
+/**
+ * A version bump not yet committed: among the checkout's uncommitted changes,
+ * the first package.json or plugin.json whose `version` is above the one
+ * HEAD holds — a release-like change waiting for its commit. Undefined when
+ * there is none, or git cannot say.
+ */
+export function uncommittedBump(root: string): { path: string; version: string; was: string } | undefined {
+  const r = run("git", ["-c", "core.quotePath=false", "status", "--porcelain", "--untracked-files=no"], root, false);
+  if (!r.ok) return undefined;
+  for (const line of r.out.split(/\r?\n/)) {
+    if (line.length < 4) continue;
+    const named = line.slice(3);
+    const path = named.includes(" -> ") ? named.slice(named.lastIndexOf(" -> ") + 4) : named;
+    if (!/(^|\/)(package\.json|plugin\.json)$/.test(path)) continue;
+    let now: string | undefined;
+    try { now = versionIn(readFileSync(join(root, path), "utf8")); } catch { continue; }
+    const h = run("git", ["show", `HEAD:${path}`], root, false);
+    const was = h.ok ? versionIn(h.out) : undefined;
+    if (now !== undefined && was !== undefined && above(now, was)) return { path, version: now, was };
+  }
+  return undefined;
+}
+
 /** The conclusions of a check that finished and failed, as gh's statusCheckRollup spells them (a check run's, or a status's state). */
 const ROLLUP_FAILED = new Set(["FAILURE", "TIMED_OUT", "CANCELLED", "ACTION_REQUIRED", "STARTUP_FAILURE", "ERROR"]);
 const ROLLUP_PASSED = new Set(["SUCCESS", "NEUTRAL", "SKIPPED"]);

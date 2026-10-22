@@ -104,6 +104,8 @@ function world(on: On) {
     turnIds: null as string[] | null,
     /** Answers for the next turn-ids calls, one each, before `turnIds` stands in: a transcript that changes between two reads. */
     turnIdsQueue: [] as (string[] | null)[],
+    /** A version bumped in the checkout and not committed, as attention reports it. */
+    bump: null as { version: string; path: string } | null,
     backfills: new Map<string, Record<string, unknown> | string>(),
     boardless: false,
     /** The work items that have a journal: a handoff to one of them is a return, to any other a new item. */
@@ -228,7 +230,7 @@ function world(on: On) {
     }
     if (req.op === 'refresh') return { v: 1, ok: true, shell: shell(), todo: w.todo }
     if (req.op === 'status' && w.sessionsDir !== null) return { v: 1, ok: true, shell: shell(), sessions: w.sessionsDir }
-    if (req.op === 'attention') return { v: 1, ok: true, shell: shell(), attention: { ahead: w.ahead, prs: w.prs, ...(w.unread.length > 0 ? { unread: w.unread } : {}) }, ...(w.sessionsDir !== null ? { sessions: w.sessionsDir } : {}), host: { name: 'build-box', platform: 'linux', user: 'dev', branch: 'feat/x' } }
+    if (req.op === 'attention') return { v: 1, ok: true, shell: shell(), attention: { ahead: w.ahead, prs: w.prs, ...(w.unread.length > 0 ? { unread: w.unread } : {}), ...(w.bump !== null ? { bump: w.bump } : {}) }, ...(w.sessionsDir !== null ? { sessions: w.sessionsDir } : {}), host: { name: 'build-box', platform: 'linux', user: 'dev', branch: 'feat/x' } }
     return { v: 1, ok: true, shell: shell(), ...(req.op === 'before' ? { recorded: false } : {}), ...(req.op === 'after' ? handoff(req) : {}) }
   }
   const ran = (stdout: string, exitCode = 0) => ({ exitCode, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false })
@@ -1619,6 +1621,26 @@ test('a start the bridge did not answer tries again by itself: the band says so 
   const up = await bandText($)
   expect(up).not.toMatch(/启动中/)
   expect(up).not.toMatch(/桥接未应答/)
+})
+
+test('a version bumped and not committed keeps a step on the band, whose press says 提交改动; the step goes once the commit is made', async ($, on) => {
+  const w = world(on)
+  w.bump = { version: '0.2.46', path: 'integrations/gemflow/.claude-plugin/plugin.json' }
+  const said: string[] = []
+  on('prompt.submit', ($, e) => { said.push(e.text); return { text: e.text } })
+  const clock = await start($, on)
+  expect(await bandText($)).toMatch(/待提交：0\.2\.46/)
+  const band = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+  const commit = (await band.findAll({ type: 'Button' })).map((b) => String(b.key)).find((k) => k.startsWith('step-'))
+  expect(commit, 'the step is a button').toBeDefined()
+  await band.press({ key: String(commit) })
+  await band.unmount()
+  await clock.settle()
+  expect(said.at(-1)).toBe('提交改动')
+  // Committed: attention no longer reports the bump, and the step goes.
+  w.bump = null
+  await clock.advance(130_000)
+  expect(await bandText($)).not.toMatch(/待提交/)
 })
 
 test("turns removed or split away with the split-session skill leave the sessions tab and this session's log; split ones go into the new session's log; a prompt from the last two minutes stays", async ($, on) => {

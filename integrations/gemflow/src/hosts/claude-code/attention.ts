@@ -33,6 +33,8 @@ export interface AttentionFacts {
   reload?: boolean;
   /** The version the session runs and the one its folder holds, when they differ: what the reload brings. */
   versions?: { running: string; synced: string };
+  /** A version bumped in the checkout (a package.json or plugin.json) and not committed: the band keeps a step for it until it is. */
+  bump?: { version: string; path: string };
 }
 export const NO_FACTS: AttentionFacts = { ahead: [], prs: [] };
 
@@ -222,7 +224,9 @@ export function standingOf(reply: string, facts: AttentionFacts, now: number, t:
     const what = step.replace(/^(还剩|还有)?你手动做的几件[：:]?/, "");
     out.push({ key: `step:${clip(step, 30)}`, kind: "you", short: clip(what, 16), text: t("待处理：{0}", clip(what, 56)), options: [t("知道了")] });
   }
-  const uncommitted = sentences(reply.slice(-800)).map(bare).find((s) => prose(s) && /(还没|没有|尚未|未)提交|等你(看过|确认|点头)(后|再)?(再)?提交/.test(s));
+  // A version bumped and not committed: the fact, over the reply's words; a step that rides along (never leads) until the commit.
+  if (facts.bump !== undefined) out.push({ key: `uncommitted:v:${facts.bump.version}`, kind: "you", quiet: true, short: t("提交改动"), text: t("待提交：{0}", facts.bump.version), options: [t("提交"), t("暂不")] });
+  const uncommitted = facts.bump !== undefined ? undefined : sentences(reply.slice(-800)).map(bare).find((s) => prose(s) && /(还没|没有|尚未|未)提交|等你(看过|确认|点头)(后|再)?(再)?提交/.test(s));
   if (uncommitted !== undefined) out.push({ key: `uncommitted:${clip(uncommitted, 30)}`, kind: "you", short: t("提交改动"), text: t("待提交：改动"), options: [t("提交"), t("暂不")] });
   return out;
 }
@@ -309,7 +313,8 @@ export function bandLine(o: {
   // A standing condition rides along for its first turns; back after a while, the ones about the work itself come
   // back once (a pull request left green for days stays faded: it was seen, and left on purpose).
   const workItself = (s: Standing): boolean => s.kind === "broken" || /^(unpushed|uncommitted):/.test(s.key);
-  const riding = o.standing.filter((s) => s.key !== lead?.key && ((o.memory.age[s.key] ?? 0) <= FADE || (back && workItself(s))));
+  // A version bump not committed stays on the band until it is: the fact does not fade.
+  const riding = o.standing.filter((s) => s.key !== lead?.key && ((o.memory.age[s.key] ?? 0) <= FADE || /^uncommitted:v:/.test(s.key) || (back && workItself(s))));
   const steps = riding.filter(isStepButton).slice(0, 3);
   const owed = riding.filter((s) => !steps.includes(s)).map((s) => s.short);
   const waiting = o.memory.backlog.length;
