@@ -415,22 +415,26 @@ test("会话: every prompt newest first under its day, with what its turn did an
     "§ 今天",
     "顺手部署一下。 | 进行中…",
     "并发那个用例用 fake timer。 | e18b116d 4 次工具调用 · tests-pass ✓ · 进 #review ▾",
+    "menu",
     "> 并发那个用例用 fake timer。",
     "> 用了 fake timer。",
     "把限流中间件的测试补上，然后开 PR。 | 053f317c 7a38c1fd 测试补上了，PR 已开。",
     "§ 昨天",
     "昨天的事 | 改好了。",
-  ], "the commits made while a turn ran, then the first sentence of its answer; the turn still running says so; the unfolded one shows its prompt and answer whole");
+  ], "the commits made while a turn ran, then the first sentence of its answer; the turn still running says so; the unfolded one shows its card, its prompt and its answer whole");
   const turns = rows.filter((r) => r.kind === "turn");
   assert.deepEqual(turns.map((r) => r.action), [{ op: "expand-turn", id: "p3" }, { op: "expand-turn", id: null }, { op: "expand-turn", id: "p1" }, { op: "expand-turn", id: "p0" }], "a press unfolds a turn, or folds the unfolded one");
   assert.match(turns[0].at, /^\d\d:\d\d$/);
-  assert.deepEqual(turns.map((r) => [r.fold?.label, r.fold?.action === r.action]), [["展开", true], ["收起", true], ["展开", true], ["展开", true]], "every turn says whether it is unfolded, its triangle a press of the row's own");
-  assert.deepEqual(turns[1].icons.map((i) => [i.glyph, i.button.key, i.button.label, i.button.action]), [
-    ["locate", "locate-p2", "跳转", { op: "locate", id: "p2" }], ["split", "split-p2", "拆分", { op: "split", id: "p2" }], ["delete", "remove-p2", "删除", { op: "remove", id: "p2" }],
-  ], "the icons at the row's right: where the conversation scrolls, the scroll first");
+  assert.ok(turns.every((r) => r.fold === true), "every turn folds: a triangle says whether it is unfolded, the row's press turns it");
+  assert.deepEqual(turns[1].icons.map((i) => [i.glyph, i.button.key, i.button.label, i.button.action]), [["locate", "locate-p2", "跳转", { op: "locate", id: "p2" }]], "the one icon at a row's right: the scroll to it, where the conversation scrolls");
+  assert.deepEqual(rows.find((r) => r.kind === "menu").items.map((b) => [b.key, b.label, b.tone, b.action]), [
+    ["split-p2", "拆成新会话", undefined, { op: "split", id: "p2" }], ["remove-p2", "删除这一轮", "danger", { op: "remove", id: "p2" }],
+  ], "what can be done to a turn is a card under the unfolded one, not icons on every row");
+  assert.ok(sessionRows(prompts, commits, wordsFor("zh"), 100, NOW, { flow: null, runs: [], scrolls: false, expanded: null }).filter((r) => r.kind === "turn").every((r) => r.icons.length === 0), "where nothing scrolls, a folded row carries no press but its own");
   const located = sessionRows(prompts.map((p) => ({ ...p, uuid: `row-${p.id}` })), commits, wordsFor("zh"), 100, NOW).filter((r) => r.kind === "turn")[1];
   assert.deepEqual(located.icons[0].button.action, { op: "locate", id: "p2", uuid: "row-p2" }, "跳转 carries the row, so the press scrolls before it awaits anything");
-  assert.ok(rows.every((r) => r.kind !== "buttons" && r.kind !== "menu"), "no menu under a turn, no export among the turns");
+  assert.deepEqual(rows.map((r, i) => (r.kind === "menu" ? rows[i - 1].key : null)).filter((k) => k !== null), ["prompt-p2"], "one card, under the unfolded turn alone");
+  assert.ok(rows.every((r) => r.kind !== "buttons"), "no export among the turns");
   assert.deepEqual(sessionRows([], [], wordsFor("zh"), 100), [{ kind: "text", text: "还没有 prompt", tone: "dim" }]);
 });
 
@@ -505,7 +509,7 @@ test("会话: with turns in more than one flow, a filter by flow; a run of three
   const folded = sessionRows(prompts, [], wordsFor("zh"), 100, NOW, { flow: null, runs: [], current: "开发流程" });
   assert.deepEqual(look(folded), ["全部* 开发流程 标志设计", "§ 今天", "e 的提示词 | e 做了", "标志设计 · gemflow 标志 · 3 条提示词", "a 的提示词 | a 做了"]);
   assert.deepEqual(folded[3].action, { op: "session-run", id: "b", open: true });
-  assert.equal(folded[3].fold?.label, "展开", "a run folds and unfolds: it says which");
+  assert.equal(folded[3].fold, true, "a run folds and unfolds: it says which");
   const open = sessionRows(prompts, [], wordsFor("zh"), 100, NOW, { flow: null, runs: ["b"], current: "开发流程" });
   assert.deepEqual(look(open).slice(3, 7), ["标志设计 · gemflow 标志 · 3 条提示词", "d 的提示词 | d 做了", "c 的提示词 | c 做了", "b 的提示词 | b 做了"]);
   const only = sessionRows(prompts, [], wordsFor("zh"), 100, NOW, { flow: "标志设计", runs: [], current: "开发流程" });
@@ -543,12 +547,12 @@ test("会话 across the project: the decisions shown whole, newest first; the ot
   assert.equal(sessionLabel({ ...sessions[1], branch: undefined, checkout: "/home/g/geml-agent-runtime" }, "me"), "Codex · geml-agent-runtime", "a POSIX one too");
 });
 
-test("会话 where the conversation cannot be scrolled: no 跳转 among the icons; the unfolded turn shows its whole prompt, then its answer — 正在读取… until the record answers, 没有记下回答 when it holds none", () => {
+test("会话 where the conversation cannot be scrolled: no 跳转 at the row; the unfolded turn shows its whole prompt, then its answer — 正在读取… until the record answers, 没有记下回答 when it holds none", () => {
   const p = { id: "p1", at: "2026-10-12T08:00:00Z", text: "把会话页改成整行可点\n第二行", tools: 1, refusals: 0, entered: [], signals: [], did: "改好了" };
   const turnOf = (rows) => rows.find((r) => r.kind === "turn");
   const desk = sessionRows([p], [], wordsFor("zh"), 100, NOW, { flow: null, runs: [], scrolls: false });
-  assert.deepEqual(turnOf(desk).icons.map((i) => i.glyph), ["split", "delete"]);
-  assert.deepEqual(turnOf(sessionRows([p], [], wordsFor("zh"), 100, NOW, { flow: null, runs: [] })).icons.map((i) => i.glyph), ["locate", "split", "delete"], "the terminal scrolls");
+  assert.deepEqual(turnOf(desk).icons.map((i) => i.glyph), [], "a folded row carries no press but its own");
+  assert.deepEqual(turnOf(sessionRows([p], [], wordsFor("zh"), 100, NOW, { flow: null, runs: [] })).icons.map((i) => i.glyph), ["locate"], "the terminal scrolls");
   const open = sessionRows([p], [], wordsFor("zh"), 100, NOW, { flow: null, runs: [], scrolls: false, expanded: { id: "p1", answer: "**改好了**，整行都能点。" } });
   assert.deepEqual([turnOf(open).open, turnOf(open).action], [true, { op: "expand-turn", id: null }]);
   assert.deepEqual(open.filter((r) => r.kind === "prose").map((r) => [r.text, r.markdown === true]), [["把会话页改成整行可点\n第二行", false], ["**改好了**，整行都能点。", true]]);

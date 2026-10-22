@@ -265,6 +265,7 @@ export const WORDS: Readonly<Record<string, Entry>> = {
   "{0} 月 {1} 日": { en: "{0}/{1}", ja: "{0}月{1}日" },
   "跳转": { en: "Go to", ja: "移動" },
   "拆成新会话": { en: "Split into a new session", ja: "新しいセッションに分ける" },
+  "删除这一轮": { en: "Delete this turn", ja: "このターンを削除" },
   "删除本轮会话": { en: "Take this turn out", ja: "このターンを外す" },
   "进行中…": { en: "running…", ja: "進行中…" },
   "下一步「{0}」": { en: "next: “{0}”", ja: "次は「{0}」" },

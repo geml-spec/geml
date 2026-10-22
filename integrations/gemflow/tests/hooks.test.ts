@@ -302,6 +302,18 @@ type Drawn = { type: string; key?: string; props?: Record<string, unknown>; chil
 const keyOf = (el: Drawn): unknown => el.key ?? el.props?.key
 /** Whether a drawing holds the Button keyed `key`. */
 const holds = (el: Drawn | string, key: string): boolean => typeof el !== 'string' && ((el.type === 'Button' && keyOf(el) === key) || (el.children ?? []).some((c) => holds(c, key)))
+/** The nodes a drawing has, and the Buttons among them. */
+const nodesOf = (el: Drawn | string): number => typeof el === 'string' ? 0 : 1 + (el.children ?? []).reduce((n, c) => n + nodesOf(c), 0)
+const buttonsOf = (el: Drawn | string): number => typeof el === 'string' ? 0 : (el.type === 'Button' ? 1 : 0) + (el.children ?? []).reduce((n, c) => n + buttonsOf(c), 0)
+/** The element keyed `key` in a drawing. */
+const findKey = (el: Drawn | string, key: string): Drawn | undefined => {
+  if (typeof el === 'string') return undefined
+  if (keyOf(el) === key) return el
+  for (const c of el.children ?? []) { const f = findKey(c, key); if (f !== undefined) return f }
+  return undefined
+}
+/** Whether a drawing holds an Svg whose alt is `alt`. */
+const hasSvg = (el: Drawn | string, alt: string): boolean => typeof el !== 'string' && ((el.type === 'Svg' && el.props?.alt === alt) || (el.children ?? []).some((c) => hasSvg(c, alt)))
 /** The Box a press laid over others spans: the parent of the nearest absolutely placed Box above the Button keyed `key`. */
 const spanOf = (el: Drawn | string, key: string, path: Drawn[] = []): Drawn | undefined => {
   if (typeof el === 'string') return undefined
@@ -1114,28 +1126,33 @@ test('the session tab: a prompt learns its row once the host stored it, a press 
   const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
   const picks = (await pane.findAll({ type: 'Button' })).filter((b) => String(b.key).startsWith('open-prompt-'))
   expect(picks).toHaveLength(2)
-  // The oldest turn, drawn last: its icons stand at its right, named.
+  // The oldest turn, drawn last: the scroll to it stands at its right, named; what can be done to it waits under it, unfolded.
   const id = String(picks[1]!.key).slice('open-prompt-'.length)
-  expect((await pane.find({ type: 'Button', key: `locate-${id}` }))?.text, 'the icons stand on the row').toBe('跳转')
+  expect((await pane.find({ type: 'Button', key: `locate-${id}` }))?.text, 'the scroll stands on the row').toBe('跳转')
+  expect(await pane.find({ type: 'Button', key: `split-${id}` }), 'no split or delete on a folded row').toBeUndefined()
   await pane.press({ key: `locate-${id}` })
   // A transcript row is the surface's to move: the test host has none, so the module reports why nothing moved.
   expect(w.toasts.at(-1)).toBe('对话没有滚到那一处：no implementation for ui.scroll')
-  await pane.press({ key: `split-${id}` })
+  await pane.press({ key: `open-prompt-${id}` })
+  await pane.unmount()
+  const opened = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  expect((await opened.findAll({ type: 'Button' })).filter((b) => [`split-${id}`, `remove-${id}`].includes(String(b.key))).map((b) => b.text), 'the card under the unfolded turn').toEqual(['拆成新会话', '删除这一轮'])
+  await opened.press({ key: `split-${id}` })
   expect(asked.at(-1)).toBe('把这一轮及之后的轮次拆到新会话？最后一轮留下，会先备份；重启应用后生效。')
   expect(prompted).toHaveLength(1)
   expect(prompted[0]).toContain('/skills/split-session/split-session.mjs')
   expect(prompted[0]).toContain('「把测试补上，然后开 PR。」')
   expect(prompted[0]).toContain('最后一轮除外')
-  await pane.press({ key: `remove-${id}` })
+  await opened.press({ key: `remove-${id}` })
   expect(asked.at(-1), '删除 deletes: it says so').toBe('删除这一轮？会先备份，可恢复；重启应用后才看不到。')
   expect(prompted[1]).toContain('用 remove 只删掉这一轮（不建新会话）')
   expect(w.toasts.filter((x) => x === '已交给模型，结果看对话')).toHaveLength(2)
-  await pane.press({ key: 'export-own' })
+  await opened.press({ key: 'export-own' })
   expect(asked.at(-1), 'the export asks where to').toBe('把本会话导出到哪？')
   const exported = w.sent.filter((r) => r.op === 'export').at(-1) as Req
   const index = /^=== data \{#session format=json\}\n([\s\S]*?)\n===$/m.exec(String(exported['text']))
   expect((JSON.parse(index![1]!) as { prompts: { uuid?: string }[] }).prompts.map((p) => p.uuid), 'the export carries the rows\' ids').toEqual(stored)
-  await pane.unmount()
+  await opened.unmount()
 })
 
 test('a finished call does not wait on a slow bridge: its result goes on after two seconds, and the evidence is still recorded', async ($, on) => {
@@ -1495,23 +1512,25 @@ test('a session resumed after the app restarted shows the prompts the store kept
   const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
   expect(await pane.find({ type: 'Button', key: 'open-prompt-p1-a' }), 'the older prompt is back').toBeDefined()
   expect(await pane.find({ type: 'Button', key: 'open-prompt-p2-b' })).toBeDefined()
-  // The icons stand at each row's right; on the desktop, which cannot scroll the conversation, there is no 跳转.
-  expect(await pane.find({ type: 'Button', key: 'split-p1-a' }), 'split, at the row').toBeDefined()
-  expect(await pane.find({ type: 'Button', key: 'remove-p1-a' }), 'delete, at the row').toBeDefined()
-  expect(await pane.find({ type: 'Button', key: 'locate-p1-a' })).toBeUndefined()
-  // The row's press is a blank laid over it, painted over what it spans: the icons stand outside that box, or a click on one unfolds the row.
+  // A folded row on the desktop carries no press but its own: no split, delete or 跳转; twelve nodes and two buttons at most,
+  // since the desktop goes blank and takes no press once a tab draws thousands.
+  for (const key of ['split-p1-a', 'remove-p1-a', 'locate-p1-a', 'fold-prompt-p1-a']) expect(await pane.find({ type: 'Button', key }), key).toBeUndefined()
   const drawn = (await pane.drawn()) as unknown as Drawn
+  const row = findKey(drawn, 'prompt-p1-a')
+  expect(row).toBeDefined()
+  expect([nodesOf(row!), buttonsOf(row!)], 'a folded row: nodes, buttons').toEqual([12, 2])
+  // The triangle before the time is inside the box the row's press spans, so a press on it unfolds the row too.
   const span = spanOf(drawn, 'open-prompt-p1-a')
   expect(span, 'the row takes the press').toBeDefined()
-  expect([holds(span!, 'split-p1-a'), holds(span!, 'remove-p1-a'), holds(span!, 'fold-prompt-p1-a')], 'the box the press spans holds no icon').toEqual([false, false, false])
-  // Each icon takes the press on both of the row's lines, its name shown below the row, never over the press.
-  expect(await pane.find({ type: 'Button', key: 'split-p1-a' }), 'the icon takes its press through one centred button').toBeDefined()
-  expect(await pane.find({ type: 'Button', key: 'split-p1-a-2' }), 'no second-line button: the desktop took no press through a column of them').toBeUndefined()
-  const name = spanOf(drawn, 'split-p1-a')?.children?.find((c): c is Drawn => typeof c !== 'string' && c.props?.display === 'none')
-  expect(name?.props?.top).toBe(2)
-  // The triangle is a press of its own, the row's: it unfolds the turn.
-  await pane.press({ key: 'fold-prompt-p1-a' })
+  expect(hasSvg(span!, 'fold'), 'the triangle inside the press area').toBe(true)
+  expect(findKey(drawn, 'sep-prompt-p1-a'), 'no rule between rows').toBeUndefined()
+  // Unfolded: the card of what can be done to the turn comes under it, then the prompt and the answer.
+  await pane.press({ key: 'open-prompt-p1-a' })
   await pane.unmount()
+  const unfolded = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  expect((await unfolded.findAll({ type: 'Button' })).filter((b) => ['split-p1-a', 'remove-p1-a'].includes(String(b.key))).map((b) => b.key), 'the card').toEqual(['split-p1-a', 'remove-p1-a'])
+  expect(hasSvg(findKey((await unfolded.drawn()) as unknown as Drawn, 'prompt-p1-a')!, 'unfold'), 'the triangle turns').toBe(true)
+  await unfolded.unmount()
   const again = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
   expect(JSON.stringify(await again.drawn()), 'the press unfolds the turn: its answer, which no record holds here').toContain('没有记下回答')
   await again.unmount()
@@ -1855,5 +1874,23 @@ test("the band's 看板 opens the board on the work items tab whichever tab it w
   await band.unmount()
   const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
   expect(shown((await pane.drawn()) as unknown as Drawn).join(' '), 'the work items, not the sessions tab').toContain('当前')
+  await pane.unmount()
+})
+
+test('the sessions tab stays within the desktop\'s press budget: twelve folded turns cost twelve nodes and two buttons each, nothing more between them', async ($, on) => {
+  const w = world(on)
+  const prompts = Array.from({ length: 12 }, (_, i) => ({ id: `p${i}`, at: new Date(Date.UTC(2026, 9, 20, 9, i)).toISOString(), text: `第 ${i} 句提示词，长度适中，用来量一行的节点数。`, uuid: `row-${i}`, tools: 2, refusals: 0, entered: [], signals: [], did: '做完了一半。' }))
+  w.store.set('prompts:sess-1234567890', prompts)
+  on('prompt.submit', ($, e) => ({ text: e.text }))
+  await start($, on)
+  await $.command.run({ command: 'gemflow', args: 'board sessions', origin: COMPOSER, presentation: PRESENTATION })
+  const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  const tree = (await pane.drawn()) as unknown as Drawn
+  const rows = prompts.map((p) => findKey(tree, `prompt-${p.id}`)!)
+  expect(rows.every((r) => r !== undefined)).toBe(true)
+  expect(rows.map((r) => [nodesOf(r), buttonsOf(r)]).every(([n, b]) => n <= 12 && b <= 2), 'each folded row within twelve nodes and two buttons').toBe(true)
+  // The rows and the day heading, and nothing drawn between the rows: the whole tab stays a few hundred nodes.
+  expect(nodesOf(tree), 'the tab').toBeLessThanOrEqual(12 * 12 + 120)
+  expect(buttonsOf(tree), 'its buttons').toBeLessThanOrEqual(12 * 2 + 16)
   await pane.unmount()
 })

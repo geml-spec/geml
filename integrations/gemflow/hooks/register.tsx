@@ -1834,7 +1834,7 @@ function drawRows($: EngineInterface, els: Els, rows: BoardRow[], columns: numbe
       i--
       out.push(
         <Box key={`turns-${r.key}`} flexDirection="column">
-          {run.flatMap((x, n) => n === 0 || x.kind !== 'turn' ? [safeRow($, els, x, n)] : [<Text key={`sep-${x.key}`} color={RULE} wrap="truncate">{'─'.repeat(Math.max(1, columns - 2))}</Text>, safeRow($, els, x, n)])}
+          {run.map((x, n) => safeRow($, els, x, n))}
         </Box>,
       )
       continue
@@ -1999,36 +1999,37 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
         {row.open && row.detail.map((d, n) => <Text key={`d${n}`} dimColor wrap="truncate-end">{`      ${d}`}</Text>)}
       </Box>
     )
-    // A prompt in one line: its time, its first line, what its turn did; at its right its icons (each named under the
-    // pointer) and, where it folds, a triangle saying whether it is unfolded. The press on the time, the text or the
-    // triangle unfolds it. The row's own box holds nothing laid over others: each press lies in the box it is for.
+    // A prompt in one line: a triangle saying whether it is unfolded, its time, its first line, what its turn did; at its
+    // right the scroll to it, where the conversation scrolls. The press on any of the first four unfolds it (the card of
+    // what can be done to the turn, then the whole prompt and answer, come as rows under it). A folded row is twelve
+    // nodes and two buttons: the desktop goes blank and takes no press once a tab draws thousands, so nothing else —
+    // no per-row icons, no hover labels, no rule between rows — rides on it.
     case 'turn': {
       const icons = row.icons ?? []
-      const lines = row.did !== '' ? 2 : 1
       return els.Svg !== undefined ? (
         <Box key={row.key} gap={2} paddingX={1} {...(row.open ? { backgroundColor: SELECTED } : { hover: { backgroundColor: SHADE } })}>
           <Box flexGrow={1} minWidth={0} gap={2}>
+            {row.fold === true && <Box flexShrink={0} alignItems="center">{drawGlyph(els, row.open ? 'unfold' : 'fold', 'dim', 15)}</Box>}
             <Box width={Math.max(5, cellWidth(row.at))} flexShrink={0}><Text dimColor>{row.at}</Text></Box>
             <Box flexDirection="column" flexGrow={1} minWidth={0}>
               <Text wrap="truncate-end">{row.text}</Text>
               {row.did !== '' && <Text dimColor wrap="truncate-end">{row.did}</Text>}
             </Box>
-            {/* The time and the text take the press, each of their lines: a blank button laid over every line (a button is one
-                line high). It spans this box alone, which the icons are not in, so it is never painted over them. */}
+            {/* The triangle, the time and the text take the press, each of their lines: a blank button laid over every line
+                (a button is one line high). It spans this box alone, which the scroll icon is not in, so it is never painted over it. */}
             <Box position="absolute" top={0} left={0} right={0} bottom={0} flexDirection="column" overflow="hidden">
               <Button key={`open-${row.key}`} plain label={blankOf(Math.max(cellWidth(row.text), cellWidth(row.did)) + 12)} onPress={press($, row.action)} />
               {row.did !== '' && <Button key={`open-2-${row.key}`} plain label={blankOf(Math.max(cellWidth(row.text), cellWidth(row.did)) + 12)} onPress={press($, row.action)} />}
             </Box>
           </Box>
-          {icons.map((ic) => iconButton($, els, ic.button, ic.glyph, { size: 15, lines }))}
-          {row.fold !== undefined && iconButton($, els, row.fold, row.open ? 'unfold' : 'fold', { size: 15, lines })}
+          {icons.map((ic) => iconButton($, els, ic.button, ic.glyph, { size: 15 }))}
         </Box>
       ) : (
         <Box key={row.key} flexDirection="column">
           <Box gap={1}>
             <Text dimColor>{row.at}</Text>
             <Button key={`open-${row.key}`} plain label={row.text} onPress={press($, row.action)} />
-            {row.fold !== undefined && <Text dimColor>{row.open ? '▾' : '▸'}</Text>}
+            {row.fold === true && <Text dimColor>{row.open ? '▾' : '▸'}</Text>}
             {icons.length > 0 && <Box flexGrow={1} />}
             {icons.map((ic) => iconButton($, els, ic.button, ic.glyph))}
           </Box>

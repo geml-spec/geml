@@ -84,8 +84,8 @@ export type BoardRow =
   /** A work item's way through its flow: each state in order, passed or not, the current one marked. */
   | { kind: "steps"; key: string; steps: { title: string; passed: boolean; current: boolean }[] }
   /** A prompt of the session (the sessions tab): its time, its first line, what its turn did, and the press that opens or closes its menu. */
-  /** `open`: unfolded under it; `fold`: it folds and unfolds, the press on the triangle that says which (the row's own press, named 展开 or 收起); `icons`: the presses at its right end, each a glyph. */
-  | { kind: "turn"; key: string; at: string; text: string; did: string; open: boolean; action: BoardAction; fold?: Pressable; icons?: { glyph: Glyph; button: Pressable }[] }
+  /** `open`: unfolded under it; `fold`: it folds and unfolds on its press, which a triangle before the time says; `icons`: the presses at its right end, each a glyph (the scroll to it, where the conversation scrolls). */
+  | { kind: "turn"; key: string; at: string; text: string; did: string; open: boolean; action: BoardAction; fold?: true; icons?: { glyph: Glyph; button: Pressable }[] }
   /** A row's menu, opened by a press on it: a short column of entries under it. */
   | { kind: "menu"; key: string; items: Pressable[] }
   /** Running text shown whole: a turn's prompt, its answer (Markdown, where the surface draws it). */
@@ -1096,7 +1096,7 @@ export function sessionRows(prompts: readonly PromptRecord[], commits: readonly 
         rows.push({
           kind: "turn", key: `run-${key}`, at: `${hhmm(first.at)}–${hhmm(p.at)}`,
           text: t("{0} · {1} · {2} 条提示词", p.flow, p.itemTitle ?? p.item ?? "", run.length), did: "", open,
-          fold: foldOf(`run-${key}`, open, action, t), action,
+          fold: true, action,
         });
         if (open) for (let k = run.length - 1; k >= 0; k--) rows.push(...turnRows(run[k] as PromptRecord, listed[j + k + 1]?.at, commits, t, columns, unfold));
         i = j;
@@ -1109,14 +1109,13 @@ export function sessionRows(prompts: readonly PromptRecord[], commits: readonly 
   return rows;
 }
 
-/** A row's triangle as a press of its own: the row's press, named for what it does now. */
-const foldOf = (key: string, open: boolean, action: BoardAction, t: T): Pressable => ({ key: `fold-${key}`, label: open ? t("收起") : t("展开"), action });
-
 /**
- * One prompt's line: what its turn did (the commits made while it ran, its
- * answer's first sentence), the presses at its right (split, delete; on a
- * surface that scrolls, the scroll to it) and a triangle saying whether it is
- * unfolded. A press unfolds it: the whole prompt, then the whole answer.
+ * One prompt's line: a triangle saying whether it is unfolded, what its turn
+ * did (the commits made while it ran, its answer's first sentence) and, where
+ * the conversation scrolls, the scroll to it at its right. A press unfolds it:
+ * a card with what can be done to the turn (split from here, delete), then
+ * the whole prompt, then the whole answer. A folded row carries no other
+ * press: the desktop takes no press at all once the tab draws too many nodes.
  */
 function turnRows(p: PromptRecord, until: string | undefined, commits: readonly { sha: string; at: string }[], t: T, columns: number, unfold: { scrolls: boolean; expanded: { id: string; answer: string | null } | null } = { scrolls: true, expanded: null }): BoardRow[] {
   const open = unfold.expanded?.id === p.id;
@@ -1124,15 +1123,19 @@ function turnRows(p: PromptRecord, until: string | undefined, commits: readonly 
   const words = [...made, p.did ?? (promptTail(p, t) || (until === undefined && p.backfilled !== true ? t("进行中…") : ""))].filter((x) => x !== "").join(" ");
   // A turn read back from the transcript (one before gemflow loaded) is marked so.
   const did = p.backfilled === true ? [t("补录"), words].filter((x) => x !== "").join(" · ") : words;
-  const icons: { glyph: Glyph; button: Pressable }[] = [
-    ...(unfold.scrolls ? [{ glyph: "locate" as const, button: { key: `locate-${p.id}`, label: t("跳转"), action: { op: "locate" as const, id: p.id, ...(p.uuid !== undefined ? { uuid: p.uuid } : {}) } } }] : []),
-    { glyph: "split", button: { key: `split-${p.id}`, label: t("拆分"), action: { op: "split", id: p.id } } },
-    { glyph: "delete", button: { key: `remove-${p.id}`, label: t("删除"), action: { op: "remove", id: p.id } } },
-  ];
+  const icons: { glyph: Glyph; button: Pressable }[] = unfold.scrolls
+    ? [{ glyph: "locate", button: { key: `locate-${p.id}`, label: t("跳转"), action: { op: "locate", id: p.id, ...(p.uuid !== undefined ? { uuid: p.uuid } : {}) } } }]
+    : [];
   const action: BoardAction = { op: "expand-turn", id: open ? null : p.id };
-  const rows: BoardRow[] = [{ kind: "turn", key: `prompt-${p.id}`, at: hhmm(p.at), text: promptLine(p.text, Math.max(12, columns - 8)), did, open, fold: foldOf(`prompt-${p.id}`, open, action, t), icons, action }];
-  // Unfolded: the whole prompt, then the whole answer — read from the record once the press lands.
-  if (open) rows.push({ kind: "prose", key: `full-${p.id}`, text: p.text }, { kind: "prose", key: `answer-${p.id}`, text: unfold.expanded?.answer === null ? t("正在读取…") : unfold.expanded?.answer === "" ? t("没有记下回答") : unfold.expanded?.answer ?? "", markdown: true });
+  const rows: BoardRow[] = [{ kind: "turn", key: `prompt-${p.id}`, at: hhmm(p.at), text: promptLine(p.text, Math.max(12, columns - 8)), did, open, fold: true, icons, action }];
+  if (open) {
+    // Unfolded: the card of what can be done to the turn, the whole prompt, then the whole answer — read from the record once the press lands.
+    rows.push({ kind: "menu", key: `turn-menu-${p.id}`, items: [
+      { key: `split-${p.id}`, label: t("拆成新会话"), action: { op: "split", id: p.id } },
+      { key: `remove-${p.id}`, label: t("删除这一轮"), action: { op: "remove", id: p.id }, tone: "danger" },
+    ] });
+    rows.push({ kind: "prose", key: `full-${p.id}`, text: p.text }, { kind: "prose", key: `answer-${p.id}`, text: unfold.expanded?.answer === null ? t("正在读取…") : unfold.expanded?.answer === "" ? t("没有记下回答") : unfold.expanded?.answer ?? "", markdown: true });
+  }
   return rows;
 }
 
