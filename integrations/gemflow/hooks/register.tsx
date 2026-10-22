@@ -1693,13 +1693,17 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
 
 /** The diagnosis lines of this module, the newest kept: written to the project's .geml/trace.log, where a reader outside the session finds them. */
 const traceLines: string[] = []
-/** A line for a diagnosis (what a press and a drawing did, on which surface): into the transcript and .geml/trace.log; never a failure of what it notes. */
+/**
+ * A line for a diagnosis (what a press and a drawing did, on which surface):
+ * into the transcript and .geml/trace.log, only while the trace setting is
+ * on — it floods the conversation; never a failure of what it notes.
+ */
 function trace($: EngineInterface, text: string): void {
-  const line = `${new Date().toISOString()} ${text}`
-  traceLines.push(line)
-  if (traceLines.length > 300) traceLines.splice(0, traceLines.length - 300)
-  try { $.ui.log(`gemflow: ${text}`) } catch { /* no log */ }
   void (async () => {
+    if (!(await readSettings($)).trace.enabled) return
+    traceLines.push(`${new Date().toISOString()} ${text}`)
+    if (traceLines.length > 300) traceLines.splice(0, traceLines.length - 300)
+    try { $.ui.log(`gemflow: ${text}`) } catch { /* no log */ }
     const root = await read($, rootAtom)
     if (root !== null) await $.fs.write(`${root}/.geml/trace.log`, `${traceLines.join('\n')}\n`)
   })().catch(() => undefined)
@@ -2158,6 +2162,7 @@ async function dialogRows($: EngineInterface, t: T, dialog: Dialog, columns: num
       { kind: 'buttons', items: [toggle(t('模型被拦时'), 'notify.refusal', s.notify.refusal)] }, text(`    ${t('同一原因 3 分钟内只提一次')}`, 'dim'),
       { kind: 'buttons', items: [toggle(t('阶段变更时'), 'notify.stage', s.notify.stage)] })
     rows.push(section('judge', t('判定')), { kind: 'buttons', items: [toggle(t('每一轮判定：打字就是按按钮'), 'judge.enabled', s.judge.enabled)] }, text(t('用小模型把输入匹配到待处理事项：把握大则直接选中，否则先确认。'), 'dim'))
+    rows.push(section('trace', t('诊断')), { kind: 'buttons', items: [toggle(t('把点击和画面记到 .geml/trace.log'), 'trace.enabled', s.trace.enabled)] }, text(t('排查看板问题时打开；开着会在对话里刷诊断行。'), 'dim'))
     const system = langOf('system', shell?.locale ?? locale ?? undefined)
     const names: Record<string, string> = { zh: '中文', en: 'English', ja: '日本語' }
     rows.push(section('language', t('语言')), { kind: 'buttons', items: ([['system', t('跟随系统（{0}）', names[system] ?? system)], ['zh', '中文'], ['en', 'English'], ['ja', '日本語']] as const).map(([v, label]): Pressable => ({ key: `lang-${v}`, label, ...(s.language === v ? { primary: true } : {}), action: { op: 'setting', key: 'language', value: v } })) })

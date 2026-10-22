@@ -1,6 +1,6 @@
 {
   "name": "@geml/gemflow",
-  "version": "0.2.52",
+  "version": "0.2.53",
   "description": "Gemflow: GEML workflows for coding agents — stages, signals and a journal per work item. A Claude Code plugin (a band above the prompt, a board), DeepSeek Harness and Pi adapters, an MCP server for other hosts, and a CLI.",
   "license": "MIT",
   "type": "module",

@@ -408,7 +408,7 @@ tarball，它会照单收下、写进 `settings.json`，然后此后每次启动
 cd integrations/gemflow && npm install && npm run pack:local
 
 # 2. 装：两个安装器要的东西不一样，pack:local 跑完会把两个路径都打出来
-npm install -g ./geml-gemflow-0.2.52.tgz   # CLI：要 tarball
+npm install -g ./geml-gemflow-0.2.53.tgz   # CLI：要 tarball
 pi install /绝对路径/gemflow-pkg          # pi agent：要一个目录
 
 # 3. 到你要干活的仓库里，开一个自己的分支

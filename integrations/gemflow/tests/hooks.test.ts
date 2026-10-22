@@ -1661,6 +1661,26 @@ test('the sessions tab with two hundred turns draws the newest thirty: a tree th
   await pane.unmount()
 })
 
+test('the diagnosis trace is off unless its setting is on: no .geml/trace.log and no transcript line by default; on, loads and presses are written', async ($, on) => {
+  const w = world(on)
+  on('ui.log', () => ({ value: undefined }))
+  await start($, on)
+  await $.command.run({ command: 'gemflow', args: 'board', origin: COMPOSER, presentation: PRESENTATION })
+  const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  await pane.press({ key: 'tab-flow' })
+  await pane.unmount()
+  expect(w.files.has(`${ROOT}/.geml/trace.log`), 'off by default: nothing written').toBe(false)
+  w.store.set('settings', { trace: { enabled: true } })
+  w.manifest = '0.2.53'
+  await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+  const pane2 = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  await pane2.press({ key: 'tab-items' })
+  await pane2.unmount()
+  const log = w.files.get(`${ROOT}/.geml/trace.log`) ?? ''
+  expect(log).toContain('loaded ')
+  expect(log).toContain('press tab items')
+})
+
 test("turns removed or split away with the split-session skill leave the sessions tab and this session's log; split ones go into the new session's log; a prompt from the last two minutes stays", async ($, on) => {
   const w = world(on)
   w.sessionsDir = LOGS
