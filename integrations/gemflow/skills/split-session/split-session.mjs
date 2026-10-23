@@ -6,6 +6,8 @@
 //
 //   node split-session.mjs list  [--session <id>]
 //   node split-session.mjs split --turns 3-5 --title "标题" [--session <id>] [--dry-run]
+//   node split-session.mjs split --turns 2,5-6 --title "标题"     (turns apart: one new session)
+//   node split-session.mjs split --uuids <uuid,...> --title "标题" (turns by their prompt's record id)
 //
 // <id> is a CLI session uuid, a desktop id (local_…), or a path to a .jsonl.
 // Without --session it acts on the session it is running in.
@@ -39,6 +41,8 @@ if (!cmd || args.help) {
   node split-session.mjs list  [--session <id>]
   node split-session.mjs split --turns <N|N-M|N,M,...> --title <标题> [--session <id>] [--dry-run]
   node split-session.mjs remove --turns <N|N-M|N,M,...> [--session <id>] [--dry-run]
+  --uuids <uuid,...> 代替 --turns：按每轮第一条记录（用户那条消息）的 uuid 选轮。
+  选的轮不必连着：新会话里按原来的先后接起来，原会话里每个空档各自接回前一轮。
 
 <id>：CLI 会话 uuid、桌面端 id（local_…）或 .jsonl 路径；省略时取当前会话。
 测试用：--projects-dir / --desktop-dir / --backup-dir 覆盖默认位置。`);
@@ -235,11 +239,18 @@ function parseTurns(spec, max) {
     if (a < 1 || b < a || b > max) die(`轮次 ${part} 超出范围（1–${max}）。`);
     for (let n = a; n <= b; n++) set.add(n);
   }
-  const list = [...set].sort((x, y) => x - y);
-  for (let k = 1; k < list.length; k++) {
-    if (list[k] !== list[k - 1] + 1) die('一次只拆一段连续的轮次；不连续的请分几次拆。');
+  return [...set].sort((x, y) => x - y);
+}
+
+/** The turns asked for, in their order: by --uuids (each turn's prompt record) or by --turns (their numbers). */
+function pickTurns(turns) {
+  if (args.uuids) {
+    const want = String(args.uuids).split(',').map((u) => u.trim()).filter(Boolean);
+    if (!want.length) die('--uuids 是空的。');
+    const found = want.map((u) => turns.find((t) => t.prompt.uuid === u) || die(`找不到这一轮：${u.slice(0, 8)}。先 list 看看，它可能已经拆走或删掉了。`));
+    return [...new Set(found)].sort((a, b) => a.n - b.n);
   }
-  return list;
+  return parseTurns(args.turns, turns.length).map((n) => turns[n - 1]);
 }
 
 const short = (s, n = 60) => {
@@ -264,7 +275,7 @@ function cmdList() {
     console.log(JSON.stringify({
       session: s.cliId, desktopId: s.desktop?.sessionId || null, title, live: s.live,
       turns: turns.map((t, i) => ({
-        n: t.n, time: t.prompt.timestamp, prompt: promptText(t.prompt), records: t.lines.length,
+        n: t.n, uuid: t.prompt.uuid, time: t.prompt.timestamp, prompt: promptText(t.prompt), records: t.lines.length,
         blocked: t.blocked, current: s.live && i === turns.length - 1,
       })),
     }, null, 2));
@@ -320,7 +331,7 @@ function cmdSplit(removing = false) {
   const { recs } = first;
   const { byId, onChain, turns } = analyze(recs);
   if (!turns.length) die('这个会话里没有可拆的轮次。');
-  const picked = parseTurns(args.turns, turns.length).map((n) => turns[n - 1]);
+  const picked = pickTurns(turns);
   if (s.live && picked.includes(turns[turns.length - 1])) die(removing ? '最后一轮是正在进行的这一轮，不能删。' : '最后一轮是正在进行的这一轮，不能拆。');
   const blocked = picked.filter((t) => t.blocked);
   if (blocked.length) die(removing ? `第 ${blocked.map((t) => t.n).join('、')} 轮跨着上下文压缩的边界，删了会话就续不上，不能删。` : `第 ${blocked.map((t) => t.n).join('、')} 轮跨着上下文压缩的边界，拆了会话就续不上，不能拆。`);
@@ -344,8 +355,25 @@ function cmdSplit(removing = false) {
   };
   for (const o of recs) if (o.uuid && !o.isSidechain && !S.has(o.uuid) && hangsOffS(o)) S.add(o.uuid);
 
+  // Runs: the picked turns next to each other. In the original each run's gap closes onto what came before that run;
+  // in the new session each run after the first hangs off the end of the run before it.
+  const runs = [];
+  for (const t of picked) { const last = runs.at(-1); if (last && last.at(-1).n === t.n - 1) last.push(t); else runs.push([t]); }
+  const runOf = new Map();
+  runs.forEach((run, r) => { for (const t of run) for (const o of t.lines) runOf.set(o.uuid, r); });
+  const runFor = (uuid) => {
+    for (let cur = uuid; cur;) {
+      if (runOf.has(cur)) return runOf.get(cur);
+      const o = byId.get(cur)?.o;
+      cur = o ? parentOf(o) : null;
+    }
+    return 0;
+  };
+  const before = runs.map((run) => run[0].prompt.parentUuid || run[0].prompt.logicalParentUuid || null);
+  const joins = new Map(runs.slice(1).map((run, r) => [run[0].prompt.uuid, runs[r].at(-1).lines.at(-1).uuid]));
+  const windows = runs.map((run) => [Date.parse(run[0].prompt.timestamp), Math.max(...run.flatMap((t) => t.lines).map((o) => Date.parse(o.timestamp) || 0))]);
+
   const firstPrompt = picked[0].prompt;
-  const predecessor = firstPrompt.parentUuid || firstPrompt.logicalParentUuid || null;
   const movedChain = recs.filter((o) => o.uuid && S.has(o.uuid));
   const t0 = Date.parse(firstPrompt.timestamp);
   const t1 = Math.max(...movedChain.map((o) => Date.parse(o.timestamp) || 0));
@@ -357,7 +385,7 @@ function cmdSplit(removing = false) {
     if (o.type === 'last-prompt' && S.has(o.leafUuid)) return true;
     if (o.type === 'queue-operation') {
       const ts = Date.parse(o.timestamp);
-      return ts >= t0 - 5000 && ts <= t1;
+      return windows.some(([from, to]) => ts >= from - 5000 && ts <= to);
     }
     return false;
   };
@@ -372,6 +400,7 @@ function cmdSplit(removing = false) {
     const c = structuredClone(o);
     if (c.sessionId === s.cliId) c.sessionId = newCli;
     if (c.uuid === firstPrompt.uuid) { c.parentUuid = null; delete c.logicalParentUuid; }
+    else if (joins.has(c.uuid)) { c.parentUuid = joins.get(c.uuid); delete c.logicalParentUuid; }
     moved.push(c);
   }
   const lastChain = moved.filter((o) => o.uuid).at(-1);
@@ -480,8 +509,8 @@ function cmdSplit(removing = false) {
     const kept = [];
     for (const o of all) {
       if (movesWith(o)) continue;
-      if (o.parentUuid && S.has(o.parentUuid)) o.parentUuid = predecessor;
-      if (o.logicalParentUuid && S.has(o.logicalParentUuid)) o.logicalParentUuid = predecessor;
+      if (o.parentUuid && S.has(o.parentUuid)) o.parentUuid = before[runFor(o.parentUuid)];
+      if (o.logicalParentUuid && S.has(o.logicalParentUuid)) o.logicalParentUuid = before[runFor(o.logicalParentUuid)];
       kept.push(o);
     }
     return toJsonl(kept);

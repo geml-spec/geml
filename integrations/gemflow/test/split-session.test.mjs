@@ -11,15 +11,15 @@ import { fileURLToPath } from "node:url";
 const SCRIPT = fileURLToPath(new URL("../skills/split-session/split-session.mjs", import.meta.url));
 const ID = "0f6a2c1e-3b7d-4e55-9a10-6c2d8e4f1b23";
 
-/** A Claude home with one session of three turns, each a prompt and its answer. */
-function home() {
+/** A Claude home with one session of a few turns (three by default), each a prompt and its answer. */
+function home(texts = ["把测试补上", "顺手部署一下", "界面呢？"]) {
   const dir = mkdtempSync(join(tmpdir(), "gf-split-"));
   const project = join(dir, "projects", "C--work-app");
   mkdirSync(project, { recursive: true });
   mkdirSync(join(dir, "desktop"));
   const recs = [];
   let parent = null;
-  ["把测试补上", "顺手部署一下", "界面呢？"].forEach((text, n) => {
+  texts.forEach((text, n) => {
     const at = `2026-10-16T0${n + 1}:00:00.000Z`;
     const ask = { type: "user", uuid: `u${n}`, parentUuid: parent, sessionId: ID, timestamp: at, message: { role: "user", content: text } };
     const answer = { type: "assistant", uuid: `a${n}`, parentUuid: ask.uuid, sessionId: ID, timestamp: at, message: { role: "assistant", content: [{ type: "text", text: `好：${text}` }] } };
@@ -82,4 +82,39 @@ test("split-session remove: the turn is gone from the session, the next one join
   assert.deepEqual([manifest.removed, manifest.files.newJsonl, manifest.files.newDir], [true, null, null]);
   assert.ok(readFileSync(join(h.dir, "session-split-backups", backups[0], `${ID}.jsonl`), "utf8").includes("顺手部署一下"), "the backup keeps the turn");
   assert.equal(run(h, ["remove", "--turns", "2", "--session", ID, "--dry-run"]).status, 0, "a dry run writes nothing");
+});
+
+const records = async (file) => (await import("node:fs")).readFileSync(file, "utf8").trim().split("\n").map((l) => JSON.parse(l));
+
+test("split-session splits turns apart into one new session: in their order there, each run hanging off the one before; each gap in the original closed onto what came before it", async () => {
+  const h = home(["甲一", "乙", "甲二", "甲三", "丙"]);
+  const r = run(h, ["split", "--turns", "1,3-4", "--title", "甲", "--session", ID]);
+  assert.equal(r.status, 0, r.stderr);
+  const out = JSON.parse(r.stdout);
+  assert.deepEqual(out.turns.map((t) => t.n), [1, 3, 4]);
+  const moved = (await records(join(h.project, `${out.created.cliId}.jsonl`))).filter((x) => x.uuid);
+  assert.deepEqual(moved.map((x) => [x.uuid, x.parentUuid]), [["u0", null], ["a0", "u0"], ["u2", "a0"], ["a2", "u2"], ["u3", "a2"], ["a3", "u3"]], "one conversation: the second run follows the first");
+  const kept = (await records(join(h.project, `${ID}.jsonl`))).filter((x) => x.uuid);
+  assert.deepEqual(kept.map((x) => [x.uuid, x.parentUuid]), [["u1", null], ["a1", "u1"], ["u4", "a1"], ["a4", "u4"]], "each gap closed onto the turn before its run");
+});
+
+test("split-session picks turns by their prompt's record id, in their order whatever the order given; an id it cannot find says so and writes nothing", () => {
+  const h = home(["甲一", "乙", "甲二", "甲三", "丙"]);
+  const listed = JSON.parse(run(h, ["list", "--json", "--session", ID]).stdout);
+  assert.deepEqual(listed.turns.map((t) => t.uuid), ["u0", "u1", "u2", "u3", "u4"], "list says each turn's id");
+  const dry = run(h, ["split", "--uuids", "u3,u0,u2", "--title", "甲", "--session", ID, "--dry-run"]);
+  assert.equal(dry.status, 0, dry.stderr);
+  assert.deepEqual(JSON.parse(dry.stdout).turns.map((t) => t.n), [1, 3, 4]);
+  const missing = run(h, ["split", "--uuids", "zzzzzzzz-gone", "--title", "甲", "--session", ID]);
+  assert.equal(missing.status, 1);
+  assert.equal(missing.stderr.trim(), "错误：找不到这一轮：zzzzzzzz。先 list 看看，它可能已经拆走或删掉了。");
+  assert.ok(!existsSync(join(h.dir, "session-split-backups")), "nothing written, not even a backup");
+});
+
+test("split-session remove takes turns apart in one go, each gap closed", async () => {
+  const h = home();
+  const r = run(h, ["remove", "--turns", "1,3", "--session", ID]);
+  assert.equal(r.status, 0, r.stderr);
+  const kept = (await records(join(h.project, `${ID}.jsonl`))).filter((x) => x.uuid);
+  assert.deepEqual(kept.map((x) => [x.uuid, x.parentUuid]), [["u1", null], ["a1", "u1"]]);
 });
