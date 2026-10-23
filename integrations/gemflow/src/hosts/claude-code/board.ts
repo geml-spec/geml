@@ -86,7 +86,7 @@ export type BoardRow =
   | { kind: "steps"; key: string; steps: { title: string; passed: boolean; current: boolean }[] }
   /** A prompt of the session (the sessions tab): its time, its first line, what its turn did, and the press that opens or closes its menu. */
   /** `open`: unfolded under it; `fold`: it folds and unfolds on its press, which a triangle before the time says; `icons`: the presses at its right end, each a glyph (the scroll to it, where the conversation scrolls). */
-  | { kind: "turn"; key: string; at: string; text: string; did: string; open: boolean; action: BoardAction; fold?: true; icons?: { glyph: Glyph; button: Pressable }[]; check?: boolean | null }
+  | { kind: "turn"; key: string; at: string; text: string; did: string; open: boolean; action: BoardAction; fold?: true; icons?: { glyph: Glyph; button: Pressable }[]; check?: boolean | null; checkLabel?: string }
   /** A row's menu, opened by a press on it: a short column of entries under it. */
   | { kind: "menu"; key: string; items: Pressable[] }
   /** Running text shown whole: a turn's prompt, its answer (Markdown, where the surface draws it). */
@@ -226,7 +226,7 @@ export interface PaneInput {
   evidence: string | null;
   prompts: readonly PromptRecord[];
   /** The project's sessions as their shared logs hold them (session-log.ts), this one's id, and the other one unfolded (its id). */
-  project?: { sessions: readonly SessionSummary[]; own: string; open: string | null; all?: boolean; decisionsAll?: boolean };
+  project?: { sessions: readonly SessionSummary[]; own: string; open: string | null; all?: boolean; decisionsShown?: number };
   /** Whether the surface can scroll the conversation to a prompt (the terminal); elsewhere a turn unfolds in place. */
   scrolls?: boolean;
   /** The turn unfolded on the session tab: its prompt's id and its answer as the log holds it. */
@@ -243,7 +243,7 @@ export interface PaneInput {
   /** The sessions tab: whether turns are being picked to split or delete (整理). */
   tidying?: boolean;
   /** The sessions tab: the project's Claude Code memory, the group unfolded, the memory whose card is open, the one whose hook is being edited, and whether the group lists all. */
-  memory?: { list: MemoryList | null; group: string | null; menu: string | null; edit: string | null; all: boolean };
+  memory?: { list: MemoryList | null; group: string | null; menu: string | null; edit: string | null; shown: number };
   sessionRuns: readonly string[];
   /** Whether the work items tab lists the closed work items, or only counts them; the same for the dropped ones. */
   doneOpen: boolean;
@@ -301,8 +301,6 @@ export function paneRows(o: PaneInput): BoardRow[] {
       ...head,
       heading, ...exports.under("own"), ...own,
       ...othersRows(o.project, t, columns, o.now, exports),
-      ...memoryRows(o.memory, t, columns, o.now),
-      ...decisionRows(o.project, t, columns, o.now),
     ];
   }
   const suggestions = o.board !== null ? [...toolSuggestions(o.board, o.usage, o.dismissed, t), ...ciSuggestions(o.board, o.shell?.units ?? [], o.dismissed, t)] : [];
@@ -310,7 +308,9 @@ export function paneRows(o: PaneInput): BoardRow[] {
   if (o.board === null) return head.length > 0 ? head : wait;
   if (o.tab === "flow") return [...head, ...flowRows({ board: o.board, status, columns, t, ...(o.now !== undefined ? { now: o.now } : {}), selected: o.flowState, switching: o.switching, workflows: o.workflows })];
   if (o.tab === "tools") return [...head, ...toolRows({ board: o.board, columns, t, usage: o.usage, suggestions, query: o.toolQuery, menu: o.toolMenu, naming: o.toolNaming, open: o.toolsOpen })];
-  return [...head, ...journalRows({ board: o.board, status, filter: o.filter, menu: o.expanded, evidence: o.evidence, prompts: o.prompts, columns, maxRows: Math.max(1, o.maxRows - head.length), t, now: o.now })];
+  // The journal: the work item's events, then the project's memory, then what every session decided, each its own section.
+  return [...head, ...journalRows({ board: o.board, status, filter: o.filter, menu: o.expanded, evidence: o.evidence, prompts: o.prompts, columns, maxRows: Math.max(1, o.maxRows - head.length), t, now: o.now }),
+    ...memoryRows(o.memory, t, columns, o.now), ...decisionRows(o.project, t, columns, o.now)];
 }
 
 /** Where the last export wrote its file, a press that opens it. */
@@ -983,13 +983,13 @@ export function journalRows(o: JournalInput): BoardRow[] {
   const { board, t, columns } = o;
   const rows: BoardRow[] = [];
   const filters: { id: JournalFilter; label: string }[] = [
-    { id: "all", label: t("全部") }, { id: "refusals", label: t("被拦") },
+    { id: "all", label: t("全部") },
     // Dependencies appear once the work item has any.
     ...((o.status?.depends ?? []).length > 0 ? [{ id: "depends" as const, label: t("依赖") }] : []),
   ];
   // A filter the tab no longer has (one kept from before) shows everything.
   const filter: JournalFilter = filters.some((f) => f.id === o.filter) ? o.filter : "all";
-  rows.push(buttons(filters.map((f): Pressable => ({ key: `filter-${f.id}`, label: f.label, ...(f.id === filter ? { primary: true } : {}), action: { op: "filter", filter: f.id } }))));
+  if (filters.length > 1) rows.push(buttons(filters.map((f): Pressable => ({ key: `filter-${f.id}`, label: f.label, ...(f.id === filter ? { primary: true } : {}), action: { op: "filter", filter: f.id } }))));
   const s = o.status;
   if (s !== null && s.item.kind === "item") rows.push(text(`${s.title ?? s.item.id} · ${s.workflow.title}`, columns, "dim"));
   // The turn something happened in: the last prompt sent before it.
@@ -1017,15 +1017,6 @@ export function journalRows(o: JournalInput): BoardRow[] {
         }
       }
     }
-  }
-  for (const e of board.timeline) {
-    if (e.kind !== "refused" || !wanted("refusals")) continue;
-    const words = entryWords(e, board, s?.sources ?? {}, t);
-    const turn = turnOf(e.at);
-    lines.push({
-      at: e.at, ...(turn !== undefined ? { turn } : {}),
-      row: { kind: "event", key: rowKey(e), glyph: entryGlyph(e), ...words, turn: turnWords(turn) }, detail: entryDetail(e, board, t),
-    });
   }
   if (lines.length === 0) return [...rows, text(filter === "all" ? t("暂无") : t("暂无"), columns, "dim")];
   lines.sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
@@ -1134,7 +1125,7 @@ function turnRows(p: PromptRecord, until: string | undefined, commits: readonly 
   const live = until === undefined && p.did === undefined && p.backfilled !== true;
   const on = (unfold.picked ?? []).includes(p.id);
   const action: BoardAction = tidying ? { op: "pick-turn", id: p.id, on: live ? false : !on } : { op: "expand-turn", id: open ? null : p.id };
-  const rows: BoardRow[] = [{ kind: "turn", key: `prompt-${p.id}`, at: hhmm(p.at), text: promptLine(p.text, Math.max(12, columns - 8)), did: tidying && live ? t("进行中，不能选") : did, open, fold: true, icons, action, ...(tidying ? { check: live ? null : on } : {}) }];
+  const rows: BoardRow[] = [{ kind: "turn", key: `prompt-${p.id}`, at: hhmm(p.at), text: promptLine(p.text, Math.max(12, columns - 8)), did: tidying && live ? t("进行中，不能选") : truncate(did, Math.max(12, columns - 14)), open, fold: true, icons, action, ...(tidying ? { check: live ? null : on, checkLabel: on ? t("取消选择") : t("选择") } : {}) }];
   if (open) {
     // Unfolded: the card of what can be done to the turn, the whole prompt, then the whole answer — read from the record once the press lands.
     rows.push({ kind: "menu", key: `turn-menu-${p.id}`, items: [
@@ -1180,7 +1171,7 @@ const DECISION_ROWS = 12;
 const SESSIONS_SHOWN = 8;
 
 /** What the sessions tab shows across the project: every session's record (session-log.ts), this one's id, the other one unfolded (its id), and whether every other session is listed. */
-export interface ProjectSessions { sessions: readonly SessionSummary[]; own: string; open: string | null; all?: boolean; decisionsAll?: boolean }
+export interface ProjectSessions { sessions: readonly SessionSummary[]; own: string; open: string | null; all?: boolean; decisionsShown?: number }
 
 /** A session's name on the tab, by its id. */
 function labelIn(p: ProjectSessions, t: T): (id: string) => string {
@@ -1201,17 +1192,19 @@ export function decisionRows(p: ProjectSessions | undefined, t: T = ZH, columns:
   const label = labelIn(p, t);
   const decisions = p.sessions.flatMap((s) => s.decisions.map((d) => ({ ...d, session: s.id }))).sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0));
   if (decisions.length === 0) return [];
-  // The newest twenty, each whole; beyond them the rest fold behind a count.
-  const folded = p.decisionsAll !== true && decisions.length > DECISIONS_SHOWN;
+  // The newest twenty, each whole; a press shows twenty more. Never all at once: a decision is a button per line it wraps
+  // to, and 94 unfolded drew some four hundred, after which the desktop took no press on the tab.
+  const shown = Math.max(DECISIONS_SHOWN, p.decisionsShown ?? DECISIONS_SHOWN);
   const rows: BoardRow[] = [{ kind: "section", key: "decisions", text: t("决定"), ...(decisions.length > DECISIONS_SHOWN ? { count: decisions.length } : {}) }];
-  for (const d of folded ? decisions.slice(0, DECISIONS_SHOWN) : decisions) {
+  for (const d of decisions.slice(0, shown)) {
     rows.push({ kind: "note", key: `decision-${d.session}-${d.at}`, lines: wrapCells(d.text, Math.max(12, columns - 4), DECISION_ROWS), tag: `${label(d.session)} ${whenTag(d.at, now, t)}`, action: { op: "use-decision", text: d.text, from: label(d.session) } });
   }
-  if (decisions.length > DECISIONS_SHOWN) {
-    rows.push(buttons([folded
-      ? { key: "decisions-more", label: t("还有 {0} 条决定", decisions.length - DECISIONS_SHOWN), action: { op: "decisions-more", all: true } }
-      : { key: "decisions-more", label: t("收起"), action: { op: "decisions-more", all: false } }]));
-  }
+  const rest = decisions.length - Math.min(shown, decisions.length);
+  const pages: Pressable[] = [
+    ...(rest > 0 ? [{ key: "decisions-more", label: t("还有 {0} 条决定", rest), action: { op: "decisions-more", shown: shown + DECISIONS_SHOWN } } as Pressable] : []),
+    ...(shown > DECISIONS_SHOWN ? [{ key: "decisions-fold", label: t("收起"), action: { op: "decisions-more", shown: DECISIONS_SHOWN } } as Pressable] : []),
+  ];
+  if (pages.length > 0) rows.push(buttons(pages));
   return rows;
 }
 
@@ -1221,35 +1214,43 @@ const MEMORY_SHOWN = 10;
 const MEMORY_GROUPS: readonly (readonly [string, string])[] = [["feedback", "反馈"], ["project", "项目"], ["reference", "参考"], ["user", "用户"], ["", "其他"]];
 
 /**
- * The project's Claude Code memory, after the other sessions: its count, then
- * one line per type, folded to its count; a group unfolds to its memories, the
- * newest first, each unfolding to open its file, edit its hook, or delete it.
- * Nothing when there is none.
+ * The project's Claude Code memory, on the journal tab after the work item's
+ * events: its count, a filter row (全部 and each type there is), then the
+ * newest ten of what it picks, each unfolding to open its file, edit its hook,
+ * or delete it. Nothing when there is none.
  */
 export function memoryRows(m: PaneInput["memory"], t: T = ZH, columns: number, now?: string): BoardRow[] {
   const list = m?.list;
   if (m === undefined || list === null || list === undefined || list.entries.length === 0) return [];
   const known = new Set(MEMORY_GROUPS.map(([type]) => type));
   const rows: BoardRow[] = [{ kind: "section", key: "memory", text: t("记忆"), count: list.entries.length, note: t("这个项目的 Claude Code 每个会话开头都会读") }];
-  for (const [type, name] of MEMORY_GROUPS) {
-    const items = list.entries.filter((e) => (known.has(e.type) ? e.type : "") === type);
-    if (items.length === 0) continue;
-    const open = m.group === type;
-    rows.push({ kind: "entry", key: `memory-group-${type || "other"}`, title: `${t(name)} ${items.length}`, tag: "", tone: "normal", open, action: { op: "memory-group", group: open ? null : type } });
-    if (!open) continue;
-    for (const e of m.all ? items : items.slice(0, MEMORY_SHOWN)) {
-      const on = m.menu === e.file;
-      rows.push({ kind: "entry", key: `memory-${e.file}`, title: e.title, tag: e.at !== "" ? whenTag(e.at, now, t) : "", tone: "normal", detail: e.hook, open: on, action: { op: "memory-menu", file: on ? null : e.file } });
-      if (!on) continue;
-      if (m.edit === e.file) rows.push({ kind: "input", key: `memory-edit-${e.file}`, field: "memory-hook", placeholder: t("摘要"), value: e.hook, target: e.file });
-      rows.push({ kind: "menu", key: `memory-card-${e.file}`, items: [
-        { key: `memory-open-${e.file}`, label: t("打开"), action: { op: "open-file", path: `${list.dir}/${e.file}` } },
-        { key: `memory-hook-${e.file}`, label: t("改摘要"), action: { op: "memory-edit", file: m.edit === e.file ? null : e.file } },
-        { key: `memory-delete-${e.file}`, label: t("删除"), action: { op: "memory-delete", file: e.file }, tone: "danger" },
-      ] });
-    }
-    if (items.length > MEMORY_SHOWN) rows.push(buttons([{ key: "memory-more", label: m.all ? t("收起") : t("还有 {0} 条", items.length - MEMORY_SHOWN), action: { op: "memory-more", all: !m.all } }]));
+  const typeOf = (e: MemoryList["entries"][number]): string => (known.has(e.type) ? e.type : "");
+  const present = MEMORY_GROUPS.filter(([type]) => list.entries.some((e) => typeOf(e) === type));
+  const picked = m.group !== null && present.some(([type]) => type === m.group) ? m.group : null;
+  rows.push(buttons([
+    { key: "memory-filter-all", label: `${t("全部")} ${list.entries.length}`, ...(picked === null ? { primary: true } : {}), action: { op: "memory-group", group: null } },
+    ...present.map(([type, name]): Pressable => ({ key: `memory-filter-${type || "other"}`, label: `${t(name)} ${list.entries.filter((e) => typeOf(e) === type).length}`, ...(picked === type ? { primary: true } : {}), action: { op: "memory-group", group: type } })),
+  ]));
+  const items = picked === null ? list.entries : list.entries.filter((e) => typeOf(e) === picked);
+  const shown = Math.max(MEMORY_SHOWN, m.shown);
+  for (const e of items.slice(0, shown)) {
+    const on = m.menu === e.file;
+    rows.push({ kind: "entry", key: `memory-${e.file}`, title: e.title, tag: e.at !== "" ? whenTag(e.at, now, t) : "", tone: "normal", detail: e.hook, open: on, action: { op: "memory-menu", file: on ? null : e.file } });
+    if (!on) continue;
+    if (m.edit === e.file) rows.push({ kind: "input", key: `memory-edit-${e.file}`, field: "memory-hook", placeholder: t("摘要"), value: e.hook, target: e.file });
+    rows.push({ kind: "menu", key: `memory-card-${e.file}`, items: [
+      { key: `memory-open-${e.file}`, label: t("打开"), action: { op: "open-file", path: `${list.dir}/${e.file}` } },
+      { key: `memory-hook-${e.file}`, label: t("改摘要"), action: { op: "memory-edit", file: m.edit === e.file ? null : e.file } },
+      { key: `memory-delete-${e.file}`, label: t("删除"), action: { op: "memory-delete", file: e.file }, tone: "danger" },
+    ] });
   }
+  // Ten more a press, never all at once (each memory is a press of its own).
+  const rest = items.length - Math.min(shown, items.length);
+  const pages: Pressable[] = [
+    ...(rest > 0 ? [{ key: "memory-more", label: t("还有 {0} 条", rest), action: { op: "memory-more", shown: shown + MEMORY_SHOWN } } as Pressable] : []),
+    ...(shown > MEMORY_SHOWN ? [{ key: "memory-fold", label: t("收起"), action: { op: "memory-more", shown: MEMORY_SHOWN } } as Pressable] : []),
+  ];
+  if (pages.length > 0) rows.push(buttons(pages));
   return rows;
 }
 

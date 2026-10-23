@@ -60,6 +60,7 @@ import { bashExitCode, bridgeInput, contextOf, hasGitOperation, nodeMajor, toolA
 import { answerGist, logExport, promptLine, sessionExport } from '../dist/hosts/claude-code/sessions.js'
 import type { PromptRecord } from '../dist/hosts/claude-code/sessions.js'
 import type { MemoryList } from '../dist/memory-store.js'
+import { fitToBudget } from '../dist/hosts/claude-code/budget.js'
 import { hhmm } from '../dist/hosts/claude-code/time.js'
 import { dayKey, mergeBooks, noteUse, pruneBook, usageKeys, usesSince } from '../dist/hosts/claude-code/usage.js'
 import type { UsageBook } from '../dist/hosts/claude-code/usage.js'
@@ -167,7 +168,7 @@ const initAtom = atom({ plugin: 'gemflow', key: 'init' } as const, null as InitS
 /** Whether the sessions tab lists every other session. */
 const sessionsAllAtom = atom({ plugin: 'gemflow', key: 'sessionsAll' } as const, false as boolean)
 /** Whether the sessions tab lists every decision. */
-const decisionsAllAtom = atom({ plugin: 'gemflow', key: 'decisionsAll' } as const, false as boolean)
+const decisionsShownAtom = atom({ plugin: 'gemflow', key: 'decisionsShown' } as const, 20 as number)
 /** How many of this session's turns the sessions tab draws, the newest; a press adds as many again. */
 const TURNS_SHOWN = 30
 const turnsShownAtom = atom({ plugin: 'gemflow', key: 'turnsShown' } as const, TURNS_SHOWN as number)
@@ -181,7 +182,7 @@ const memoryAtom = atom({ plugin: 'gemflow', key: 'memory' } as const, null as M
 const memoryGroupAtom = atom({ plugin: 'gemflow', key: 'memoryGroup' } as const, null as string | null)
 const memoryMenuAtom = atom({ plugin: 'gemflow', key: 'memoryMenu' } as const, null as string | null)
 const memoryEditAtom = atom({ plugin: 'gemflow', key: 'memoryEdit' } as const, null as string | null)
-const memoryAllAtom = atom({ plugin: 'gemflow', key: 'memoryAll' } as const, false as boolean)
+const memoryShownAtom = atom({ plugin: 'gemflow', key: 'memoryShown' } as const, 10 as number)
 const decisionsSeenAtom = atom({ plugin: 'gemflow', key: 'decisionsSeen' } as const, null as string | null)
 const committedAtom = atom({ plugin: 'gemflow', key: 'committed' } as const, false)
 /** The turn unfolded on the session tab (where the conversation cannot be scrolled): its prompt's id and its answer. */
@@ -1414,19 +1415,24 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       trace($, `tab is now ${action.tab}`)
       const filter = action.filter
       if (filter !== undefined) await update($, filterAtom, () => filter)
-      if (action.tab === 'sessions') $.clock.after(0, () => { void loadMemory($) })
+      if (action.tab === 'journal') {
+        // Chosen anew, the journal starts on its first page: a page kept from before is a tree the desktop may not take.
+        await update($, decisionsShownAtom, () => 20)
+        await update($, memoryShownAtom, () => 10)
+        $.clock.after(0, () => { void loadMemory($) })
+      }
       return
     }
     case 'memory-group': {
       await update($, memoryGroupAtom, () => action.group)
       await update($, memoryMenuAtom, () => null)
       await update($, memoryEditAtom, () => null)
-      await update($, memoryAllAtom, () => false)
+      await update($, memoryShownAtom, () => 10)
       return
     }
     case 'memory-menu': await update($, memoryMenuAtom, () => action.file); await update($, memoryEditAtom, () => null); return
     case 'memory-edit': await update($, memoryEditAtom, () => action.file); return
-    case 'memory-more': await update($, memoryAllAtom, () => action.all); return
+    case 'memory-more': await update($, memoryShownAtom, () => action.shown); return
     case 'artifact-menu': await update($, artifactMenuAtom, () => action.key); return
     case 'open-file': await openFile($, action.path, action.reveal === true, surface); return
     case 'filter': await update($, filterAtom, () => action.filter); return
@@ -1471,7 +1477,7 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       await update($, pickedAtom, () => [...checked, ...after.filter((id) => !checked.includes(id))])
       return
     }
-    case 'decisions-more': await update($, decisionsAllAtom, () => action.all); return
+    case 'decisions-more': await update($, decisionsShownAtom, () => action.shown); return
     case 'turns-more': await update($, turnsShownAtom, (n) => (typeof n === 'number' ? n : TURNS_SHOWN) + TURNS_SHOWN); return
     case 'session-flow': await update($, sessionFlowAtom, () => action.flow); return
     case 'session-run': await update($, sessionRunsAtom, (was) => {
@@ -1591,7 +1597,7 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
     }
     case 'export': {
       // A session's record as GEML, where the person says: asked in the engine's own dialog, a folder or a file typed under
-      // Other. Nothing to export says so before asking; a dismissed dialog does nothing. The file is linked under the session.
+      // Other as a path. Nothing to export says so before asking; a dismissed dialog does nothing. The file is linked under the session.
       const t = await words($)
       const which = action.session
       const other = which === 'own' ? undefined : await otherSessionText($, which)
@@ -1612,7 +1618,10 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       let answer: string
       try { answer = (await $.ui.ask(question, { options: places.map(([label]) => label), header: t('导出') })).trim() } catch { return }
       const place = places.find(([label]) => label === answer)
-      if (place === undefined && answer === '') return
+      // The desktop dialog answers a skip, a dismissal or a message sent instead with sentences of its own ("[No preference]"),
+      // not a rejection. So typed text is a place only when shaped like a path — absolute, from the home, or from here —
+      // never by matching those sentences, which belong to the host and to whatever language and version it is.
+      if (place === undefined && !/^(?:~(?:$|[\\/])|\.{1,2}[\\/]|[\\/]|[A-Za-z]:[\\/])/.test(answer)) return
       const to = place !== undefined ? place[1] : answer
       await update($, exportedForAtom, () => which)
       await exportText($, 'text', 'geml', { name: s.name, text: s.text, ...(to !== undefined ? { to } : {}) })
@@ -1953,7 +1962,7 @@ function drawGlyph(els: Els, g: Glyph, tone: Tone | 'active' = 'dim', size = 15)
  * An icon that is a press by itself (the dialogs): a Button holds only words, so a blank one is laid over the icon,
  * named by the label; the label shows under the pointer. Where the surface draws no pictures, the label as a button.
  */
-function iconButton($: EngineInterface, els: Els, b: Pressable, g: Glyph, o: { tone?: Tone | 'active'; from?: 'left' | 'right'; size?: number; lines?: number } = {}): unknown {
+function iconButton($: EngineInterface, els: Els, b: Pressable, g: Glyph, o: { tone?: Tone | 'active'; from?: 'left' | 'right'; size?: number; lines?: number; tip?: false } = {}): unknown {
   const { Box, Button, Text, Svg } = els
   if (Svg === undefined) return <Button key={b.key} plain dimColor label={b.label} onPress={press($, b.action)} />
   const edge = o.from === 'left' ? { left: 0 } : { right: 0 }
@@ -1962,10 +1971,12 @@ function iconButton($: EngineInterface, els: Els, b: Pressable, g: Glyph, o: { t
   return (
     <Box key={`${b.key}-icon`} flexShrink={0} alignItems="center" paddingX={1}>
       {drawGlyph(els, g, o.tone ?? 'dim', o.size ?? 18)}
-      {/* Its name under the pointer, below the box, so it never lies over the press. */}
-      <Box position="absolute" top={lines} {...edge} width={cellWidth(b.label) + 2} paddingX={1} display="none" hover={{ display: 'flex' }} backgroundColor="inverseText">
-        <Text wrap="truncate-end">{b.label}</Text>
-      </Box>
+      {/* Its name under the pointer, below the box, so it never lies over the press; `tip: false` shows none (the 整理 box). */}
+      {o.tip !== false && (
+        <Box position="absolute" top={lines} {...edge} width={cellWidth(b.label) + 2} paddingX={1} display="none" hover={{ display: 'flex' }} backgroundColor="inverseText">
+          <Text wrap="truncate-end">{b.label}</Text>
+        </Box>
+      )}
       {/* The press over the box: one blank button centred in it, painted last — the one layout the desktop takes a press
           through (a column of buttons under overflow hidden took none: every icon of the board went dead, 0.2.43–0.2.47). */}
       <Box position="absolute" top={0} left={0} right={0} bottom={0} justifyContent="center" alignItems="center">
@@ -2045,12 +2056,9 @@ function drawTool($: EngineInterface, els: Els, row: Extract<BoardRow, { kind: '
   return (
     <Box key={row.key} gap={2} paddingX={1} hover={{ backgroundColor: SHADE }}>
       <Box width={width} flexShrink={0} overflow="hidden">
-        <Text {...toneProps(row.tone)} wrap="truncate-end">{row.name}</Text>
-        {row.action !== undefined && (
-          <Box position="absolute" top={0} left={0} right={0} bottom={0}>
-            <Button key={`open-${row.key}`} plain label={blankOf(cellWidth(row.name))} onPress={press($, row.action)} />
-          </Box>
-        )}
+        {row.action !== undefined
+          ? <Button key={`open-${row.key}`} plain onPress={press($, row.action)}><Text {...toneProps(row.tone)}>{row.name}</Text></Button>
+          : <Text {...toneProps(row.tone)} wrap="truncate-end">{row.name}</Text>}
       </Box>
       <Text dimColor wrap="truncate-end">{row.use}</Text>
       {row.guess !== '' && <Text {...toneProps('warning')}>{row.guess}</Text>}
@@ -2104,18 +2112,16 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
       // Two lines: the name and its tags, then where it is and what it has; the whole row takes the press.
       <Box key={row.key} flexDirection="column" paddingX={1} {...(row.current === true && els.Svg !== undefined ? { backgroundColor: SELECTED } : row.action !== undefined ? { hover: { backgroundColor: SHADE } } : {})}>
         <Box gap={2}>
-          <Text {...toneProps(row.tone)} {...(row.current === true ? { bold: true } : {})} wrap="truncate-end">{row.title}</Text>
+          {row.action !== undefined
+            ? <Button key={`go-${row.key}`} plain onPress={press($, row.action)}><Text {...toneProps(row.tone)} {...(row.current === true ? { bold: true } : {})}>{row.title}</Text></Button>
+            : <Text {...toneProps(row.tone)} {...(row.current === true ? { bold: true } : {})} wrap="truncate-end">{row.title}</Text>}
           <Box flexGrow={1} />
           {row.tag !== '' && <Text dimColor>{row.tag}</Text>}
           {row.link !== undefined && drawLink(els, `open-${row.key}`, row.link.href, row.link.label)}
         </Box>
-        <Text dimColor wrap="truncate-end">{row.detail}</Text>
-        {row.action !== undefined && (
-          <Box position="absolute" top={0} left={0} right={0} bottom={0} flexDirection="column" overflow="hidden">
-            <Button key={`go-${row.key}`} plain label={blankOf(Math.max(cellWidth(row.title), cellWidth(row.detail)) + 12)} onPress={press($, row.action)} />
-            <Button key={`go-2-${row.key}`} plain label={blankOf(Math.max(cellWidth(row.title), cellWidth(row.detail)) + 12)} onPress={press($, row.action)} />
-          </Box>
-        )}
+        {row.action !== undefined
+          ? <Button key={`go-2-${row.key}`} plain dimColor label={row.detail} onPress={press($, row.action)} />
+          : <Text dimColor wrap="truncate-end">{row.detail}</Text>}
       </Box>
     )
     case 'text': return <Text key={`r${i}`} {...toneProps(row.tone)}>{row.text}</Text>
@@ -2196,18 +2202,17 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
         <Box key={row.key} gap={2} paddingX={1} {...(row.open || row.check === true ? { backgroundColor: SELECTED } : { hover: { backgroundColor: SHADE } })}>
           <Box flexGrow={1} minWidth={0} gap={2}>
             {row.check !== undefined
-              ? <Box flexShrink={0} alignItems="center" width={2}>{row.check !== null ? drawGlyph(els, row.check ? 'boxon' : 'box', row.check ? 'active' : 'dim', 15) : <Text> </Text>}</Box>
+              ? (row.check !== null
+                // The box takes the press itself: the row's words are its buttons, and a drawn box beside them would take none.
+                ? iconButton($, els, { key: `pick-${row.key}`, label: row.checkLabel ?? '', action: row.action }, row.check ? 'boxon' : 'box', { tone: row.check ? 'active' : 'dim', from: 'left', size: 15, tip: false })
+                : <Box flexShrink={0} alignItems="center" width={2}><Text> </Text></Box>)
               : row.fold === true && <Box flexShrink={0} alignItems="center">{drawGlyph(els, row.open ? 'unfold' : 'fold', 'dim', 15)}</Box>}
-            <Box width={Math.max(5, cellWidth(row.at))} flexShrink={0}><Text dimColor>{row.at}</Text></Box>
+            <Box width={Math.max(5, cellWidth(row.at))} flexShrink={0}><Button key={`at-${row.key}`} plain dimColor label={row.at} onPress={press($, row.action)} /></Box>
+            {/* Its time, its words and what it did take the press, each a button labelled with them: no box laid over the row, which
+                costs the desktop elements it counts against its limit. */}
             <Box flexDirection="column" flexGrow={1} minWidth={0}>
-              <Text wrap="truncate-end">{row.text}</Text>
-              {row.did !== '' && <Text dimColor wrap="truncate-end">{row.did}</Text>}
-            </Box>
-            {/* The triangle, the time and the text take the press, each of their lines: a blank button laid over every line
-                (a button is one line high). It spans this box alone, which the scroll icon is not in, so it is never painted over it. */}
-            <Box position="absolute" top={0} left={0} right={0} bottom={0} flexDirection="column" overflow="hidden">
-              <Button key={`open-${row.key}`} plain label={blankOf(Math.max(cellWidth(row.text), cellWidth(row.did)) + 12)} onPress={press($, row.action)} />
-              {row.did !== '' && <Button key={`open-2-${row.key}`} plain label={blankOf(Math.max(cellWidth(row.text), cellWidth(row.did)) + 12)} onPress={press($, row.action)} />}
+              <Button key={`open-${row.key}`} plain label={row.text} onPress={press($, row.action)} />
+              {row.did !== '' && <Button key={`open-2-${row.key}`} plain dimColor label={row.did} onPress={press($, row.action)} />}
             </Box>
           </Box>
           {icons.map((ic) => iconButton($, els, ic.button, ic.glyph, { size: 15 }))}
@@ -2215,7 +2220,9 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
       ) : (
         <Box key={row.key} flexDirection="column">
           <Box gap={1}>
-            {row.check !== undefined && <Text {...(row.check === true ? {} : { dimColor: true })}>{row.check === true ? '[x]' : row.check === false ? '[ ]' : '   '}</Text>}
+            {row.check !== undefined && (row.check !== null
+              ? <Button key={`pick-${row.key}`} plain {...(row.check ? {} : { dimColor: true })} label={row.check ? '[x]' : '[ ]'} onPress={press($, row.action)} />
+              : <Text>{'   '}</Text>)}
             <Text dimColor>{row.at}</Text>
             <Button key={`open-${row.key}`} plain label={row.text} onPress={press($, row.action)} />
             {row.fold === true && row.check === undefined && <Text dimColor>{row.open ? '▾' : '▸'}</Text>}
@@ -2228,16 +2235,15 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
     }
     // A sentence shown whole, its tag under it at the right; the whole of it takes the press.
     case 'note': {
-      const width = Math.max(...row.lines.map(cellWidth), cellWidth(row.tag)) + 12
-      return els.Svg !== undefined ? (
+      // Each line and the tag a button labelled with its words: no blank Button laid over them in a box, which costs the desktop
+      // elements it counts against its limit (budget.ts).
+      if (els.Svg !== undefined) return (
         <Box key={row.key} flexDirection="column" paddingX={1} hover={{ backgroundColor: SHADE }}>
-          {row.lines.map((l, n) => <Text key={`l${n}`} wrap="truncate-end">{l}</Text>)}
-          <Box><Box flexGrow={1} /><Text dimColor>{row.tag}</Text></Box>
-          <Box position="absolute" top={0} left={0} right={0} bottom={0} flexDirection="column" overflow="hidden">
-            {[...row.lines, row.tag].map((_, n) => <Button key={`go-${row.key}-${n}`} plain label={blankOf(width)} onPress={press($, row.action)} />)}
-          </Box>
+          {row.lines.map((l, n) => <Button key={`go-${row.key}-${n}`} plain label={l} onPress={press($, row.action)} />)}
+          <Box><Box flexGrow={1} /><Button key={`go-${row.key}-${row.lines.length}`} plain dimColor label={row.tag} onPress={press($, row.action)} /></Box>
         </Box>
-      ) : (
+      )
+      return (
         <Box key={row.key} flexDirection="column" paddingX={1}>
           <Button key={`go-${row.key}`} plain label={row.lines[0] ?? ''} onPress={press($, row.action)} />
           {row.lines.slice(1).map((l, n) => <Text key={`l${n}`}>{l}</Text>)}
@@ -2352,7 +2358,8 @@ async function dialogRows($: EngineInterface, t: T, dialog: Dialog, columns: num
       { kind: 'buttons', items: [toggle(t('模型被拦时'), 'notify.refusal', s.notify.refusal)] }, text(`    ${t('同一原因 3 分钟内只提一次')}`, 'dim'),
       { kind: 'buttons', items: [toggle(t('阶段变更时'), 'notify.stage', s.notify.stage)] })
     rows.push(section('judge', t('判定')), { kind: 'buttons', items: [toggle(t('每一轮判定：打字就是按按钮'), 'judge.enabled', s.judge.enabled)] }, text(t('用小模型把输入匹配到待处理事项：把握大则直接选中，否则先确认。'), 'dim'))
-    rows.push(section('trace', t('诊断')), { kind: 'buttons', items: [toggle(t('把点击和画面记到 .geml/trace.log'), 'trace.enabled', s.trace.enabled)] }, text(t('排查看板问题时打开；开着会在对话里刷诊断行。'), 'dim'))
+    rows.push(section('trace', t('诊断')), { kind: 'buttons', items: [toggle(t('把点击和画面记到 .geml/trace.log'), 'trace.enabled', s.trace.enabled)] },
+text(t('排查看板问题时打开；开着会在对话里刷诊断行。'), 'dim'))
     const system = langOf('system', shell?.locale ?? locale ?? undefined)
     const names: Record<string, string> = { zh: '中文', en: 'English', ja: '日本語' }
     rows.push(section('language', t('语言')), { kind: 'buttons', items: ([['system', t('跟随系统（{0}）', names[system] ?? system)], ['zh', '中文'], ['en', 'English'], ['ja', '日本語']] as const).map(([v, label]): Pressable => ({ key: `lang-${v}`, label, ...(s.language === v ? { primary: true } : {}), action: { op: 'setting', key: 'language', value: v } })) })
@@ -2457,9 +2464,9 @@ async function tabRows($: EngineInterface, e: { surface: string; props: { bodyCo
     inboxOf($, t), readBoard($), read($, boardProblemAtom), readShell($), nowIso($), read($, rootAtom),
     read($, filterAtom), read($, expandedAtom), read($, evidenceAtom),
     shows(tab === 'sessions' || tab === 'journal')(() => readPrompts($), [] as PromptRecord[]),
-    shows(tab === 'sessions')(async () => {
-      const [sessions, own, open, all, decisionsAll] = await Promise.all([read($, projectSessionsAtom), $.session.id().catch(() => ''), read($, openSessionAtom), read($, sessionsAllAtom), read($, decisionsAllAtom)])
-      return { sessions: (sessions as unknown as SessionSummary[] | null) ?? [], own, open, all: all === true, decisionsAll: decisionsAll === true }
+    shows(tab === 'sessions' || tab === 'journal')(async () => {
+      const [sessions, own, open, all, decisionsShown] = await Promise.all([read($, projectSessionsAtom), $.session.id().catch(() => ''), read($, openSessionAtom), read($, sessionsAllAtom), read($, decisionsShownAtom)])
+      return { sessions: (sessions as unknown as SessionSummary[] | null) ?? [], own, open, all: all === true, decisionsShown: typeof decisionsShown === 'number' ? decisionsShown : 20 }
     }, null),
     shows(tab === 'sessions')(() => read($, expandedTurnAtom), null as GemflowJson),
     read($, doneOpenAtom), read($, sessionFlowAtom), read($, sessionRunsAtom),
@@ -2471,8 +2478,8 @@ async function tabRows($: EngineInterface, e: { surface: string; props: { bodyCo
     shows(tab === 'items')(() => read($, artifactMenuAtom), null),
     shows(tab === 'items')(() => read($, docsOpenAtom), false),
   ])
-  const memory = tab === 'sessions'
-    ? { list: (await read($, memoryAtom)) as MemoryList | null, group: await read($, memoryGroupAtom), menu: await read($, memoryMenuAtom), edit: await read($, memoryEditAtom), all: (await read($, memoryAllAtom)) === true }
+  const memory = tab === 'journal'
+    ? { list: (await read($, memoryAtom)) as MemoryList | null, group: await read($, memoryGroupAtom), menu: await read($, memoryMenuAtom), edit: await read($, memoryEditAtom), shown: ((await read($, memoryShownAtom)) as number | null) ?? 10 }
     : undefined
   const rows = paneRows({
     board, problem, shell, tab, columns, maxRows: Math.max(4, e.props.scroll.bodyRows - 4), t, now, root: root ?? '', inbox,
@@ -3053,7 +3060,15 @@ export const register: Register = (on) => {
     } catch (err) {
       body = [<Text key="rows-failed" color="error">{t('gemflow：{0}画不出来（{1}）', label, reasonOf(err))}</Text>]
     }
-    trace($, `drew board on ${e.surface}: tab ${tab}, ${rows.length} rows`)
+    // The desktop draws and presses a pane of some 1,500 elements and none past it (诊断's test pages: 1,476 fine, 1,676 not):
+    // the body stops at BODY_NODES, and says what it left out, whatever a tab or an unfolded list would draw.
+    let drawn = 0
+    if (els.Svg !== undefined) {
+      const fit = fitToBudget(body)
+      drawn = fit.drawn
+      if (fit.left > 0) body = [...fit.kept, <Text key="rows-cut" dimColor>{t('内容太多，后面 {0} 项没画出来：收起一些，或换个页签。', fit.left)}</Text>]
+    }
+    trace($, `drew board on ${e.surface}: tab ${tab}, ${rows.length} rows, ${drawn} elements`)
     return (
       <Box flexDirection="column">
         {header}

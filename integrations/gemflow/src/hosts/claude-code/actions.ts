@@ -99,7 +99,7 @@ export type BoardAction =
   /** Open a local file or folder with the machine's own app (a `file:` link opens nothing on a remote surface); with `reveal`, show it selected in its folder. */
   | { op: "open-file"; path: string; reveal?: boolean }
   /** The sessions tab: list every decision, or fold the rest after the first twenty. */
-  | { op: "decisions-more"; all: boolean }
+  | { op: "decisions-more"; shown: number }
   /** The sessions tab: draw thirty more of this session's turns. */
   | { op: "turns-more" }
   /** Show a turn's whole prompt and answer on the session tab (its prompt's id), or fold it. */
@@ -122,14 +122,14 @@ export type BoardAction =
   | { op: "tidy"; on: boolean }
   /** Ask the model to move the checked turns into one new session, or with `remove` out of the session, with the split-session skill naming them by their record ids; a person says yes first. */
   | { op: "split-picked"; remove: boolean }
-  /** The sessions tab's memory: unfold one group of it (by type), or fold it. */
+  /** The journal's memory: show one type of it, or every type (null). */
   | { op: "memory-group"; group: string | null }
   /** Unfold one memory to what can be done to it, or fold it. */
   | { op: "memory-menu"; file: string | null }
   /** Show the field that rewrites one memory's hook, or hide it. */
   | { op: "memory-edit"; file: string | null }
   /** List every memory of the group unfolded, or the newest ten. */
-  | { op: "memory-more"; all: boolean }
+  | { op: "memory-more"; shown: number }
   /** Give one memory's index line a new hook. */
   | { op: "memory-set"; file: string; hook: string }
   /** Move one memory into gemflow's trash, its index line dropped; a person says yes first. */

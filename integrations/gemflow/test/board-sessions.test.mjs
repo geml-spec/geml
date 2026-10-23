@@ -59,10 +59,14 @@ test("the decisions section lists the newest twenty, each whole; beyond them the
   assert.equal(notes[0].lines.join(""), s.decisions[24].text, "the newest first, shown whole");
   assert.equal(folded.find((r) => r.kind === "section" && r.key === "decisions").count, 25);
   const more = folded.find((r) => r.kind === "buttons" && r.items[0].key === "decisions-more");
-  assert.deepEqual([more.items[0].label, more.items[0].action], ["还有 5 条决定", { op: "decisions-more", all: true }]);
-  const all = decisionRows({ sessions: [s, session("own")], own: "own", open: null, decisionsAll: true }, t, 80, NOW);
-  assert.equal(all.filter((r) => r.kind === "note").length, 25);
-  assert.deepEqual(all.find((r) => r.kind === "buttons" && r.items[0].key === "decisions-more").items[0].action, { op: "decisions-more", all: false });
+  assert.deepEqual(more.items.map((b) => [b.label, b.action]), [["还有 5 条决定", { op: "decisions-more", shown: 40 }]], "a press shows twenty more");
+  const next = decisionRows({ sessions: [s, session("own")], own: "own", open: null, decisionsShown: 40 }, t, 80, NOW);
+  assert.equal(next.filter((r) => r.kind === "note").length, 25);
+  assert.deepEqual(next.find((r) => r.kind === "buttons").items.map((b) => [b.key, b.action]), [["decisions-fold", { op: "decisions-more", shown: 20 }]], "all shown: only 收起");
+  const many = session("many", { decisions: Array.from({ length: 200 }, (_, i) => ({ turn: i + 1, at: new Date(Date.UTC(2026, 9, 1) + i * 60_000).toISOString(), text: `决定 ${i}` })) });
+  const page = decisionRows({ sessions: [many, session("own")], own: "own", open: null, decisionsShown: 60 }, t, 80, NOW);
+  assert.equal(page.filter((r) => r.kind === "note").length, 60, "two hundred decisions: never more than the pages pressed");
+  assert.deepEqual(page.find((r) => r.kind === "buttons").items.map((b) => b.label), ["还有 140 条决定", "收起"]);
 });
 
 test("整理: no box until it is pressed; then every turn but the running one has one, a press on the row toggles it; the heading says how many and offers what can be done to them, and 完成", async () => {
@@ -88,17 +92,24 @@ test("整理: no box until it is pressed; then every turn but the running one ha
   assert.deepEqual(on.actions.map((b) => [b.label, b.action]), [["拆成新会话", { op: "split-picked", remove: false }], ["删除", { op: "split-picked", remove: true }], ["连同之后的", { op: "pick-after" }], ["完成", { op: "tidy", on: false }]]);
 });
 
-test("the project's memory: one line per type folded to its count; a group unfolds to its newest ten, each to open, edit the summary, or delete", async () => {
+test("the project's memory: a filter row of 全部 and each type there is, with counts; the newest ten of what it picks, each opening to open, edit the summary, or delete", async () => {
   const { memoryRows } = await import("../dist/hosts/claude-code/board.js");
   const entry = (i, type) => ({ file: `m${i}.md`, title: `第 ${i} 条`, hook: `摘要 ${i}`, type, at: `2026-10-${String(20 - Math.floor(i / 10)).padStart(2, "0")}T0${i % 10}:00:00Z` });
   const list = { dir: "/h/memory", entries: [...Array.from({ length: 12 }, (_, i) => entry(i, "feedback")), entry(20, "project"), entry(21, "odd")] };
-  const m = (over = {}) => ({ list, group: null, menu: null, edit: null, all: false, ...over });
-  const folded = memoryRows(m(), t, 100, NOW);
-  assert.deepEqual(folded.map((r) => r.kind === "section" ? `§${r.text} ${r.count}` : r.title), ["§记忆 14", "反馈 12", "项目 1", "其他 1"]);
+  const m = (over = {}) => ({ list, group: null, menu: null, edit: null, shown: 10, ...over });
+  const all = memoryRows(m(), t, 100, NOW);
+  assert.deepEqual([all[0].text, all[0].count], ["记忆", 14]);
+  assert.deepEqual(all[1].items.map((b) => [b.label, b.primary === true, b.action]), [["全部 14", true, { op: "memory-group", group: null }], ["反馈 12", false, { op: "memory-group", group: "feedback" }], ["项目 1", false, { op: "memory-group", group: "project" }], ["其他 1", false, { op: "memory-group", group: "" }]], "only the types there are");
+  assert.equal(all.filter((r) => r.kind === "entry").length, 10, "全部: the newest ten");
+  assert.deepEqual(all.find((r) => r.kind === "buttons" && r.items[0].key === "memory-more").items[0].action, { op: "memory-more", shown: 20 }, "ten more a press");
+  assert.equal(all.find((r) => r.kind === "buttons" && r.items[0].key === "memory-more").items[0].label, "还有 4 条");
+  const paged = memoryRows(m({ shown: 20 }), t, 100, NOW);
+  assert.equal(paged.filter((r) => r.kind === "entry").length, 14);
+  assert.deepEqual(paged.at(-1).items.map((b) => [b.key, b.action]), [["memory-fold", { op: "memory-more", shown: 10 }]]);
+  const feedback = memoryRows(m({ group: "feedback" }), t, 100, NOW);
+  assert.ok(feedback[1].items.find((b) => b.key === "memory-filter-feedback").primary);
+  assert.equal(feedback.find((r) => r.kind === "buttons" && r.items[0].key === "memory-more").items[0].label, "还有 2 条");
   assert.deepEqual(memoryRows(m({ list: { dir: "/h/memory", entries: [] } }), t, 100, NOW), [], "none: nothing");
-  const open = memoryRows(m({ group: "feedback" }), t, 100, NOW);
-  assert.equal(open.filter((r) => r.kind === "entry" && r.key.startsWith("memory-m")).length, 10, "the newest ten");
-  assert.deepEqual(open.find((r) => r.kind === "buttons").items[0].label, "还有 2 条");
   const card = memoryRows(m({ group: "feedback", menu: "m3.md", edit: "m3.md" }), t, 100, NOW);
   const input = card.find((r) => r.kind === "input");
   assert.deepEqual([input.field, input.value, input.target], ["memory-hook", "摘要 3", "m3.md"], "the summary as it is, to edit");

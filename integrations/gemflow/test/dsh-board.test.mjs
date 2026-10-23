@@ -90,7 +90,7 @@ test("the reply: five tabs in the browser's language, the header, one tab's rows
   const ops = (rows) => rows.flatMap((r) => r.kind === "button" ? [r.action.op] : r.kind === "buttons" ? r.items.map((b) => b.action.op) : []);
   const journal = boardReply(s, readQuery(new URLSearchParams("session=s1&tab=journal")), NOW);
   assert.ok(!ops(journal.rows).includes("export"), "an export is not on this host, so its button is not drawn");
-  assert.ok(ops(journal.rows).includes("filter"), "the filters stay");
+  assert.ok(!ops(journal.rows).includes("filter"), "no filter row with 全部 the only filter (no dependency here)");
   const tools = boardReply(s, readQuery(new URLSearchParams("session=s1&tab=tools")), NOW);
   assert.ok(tools.rows.some((r) => r.kind === "input" && r.field === "add-tool"), "the add-tool field is on this host");
   // A tool's menu is Claude Code's: here the rows are lines, and a lesson is the add-tool field's.

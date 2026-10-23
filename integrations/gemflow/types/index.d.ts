@@ -25,7 +25,7 @@ declare module 'claude-code' {
       /** Whether the sessions tab lists every other session, or folds the rest after the first few. */
       sessionsAll: boolean
       /** Whether the sessions tab lists every decision, or folds the rest after the first twenty. */
-      decisionsAll: boolean
+      decisionsShown: number
       /** This session's turns checked on the sessions tab, by prompt id. */
       picked: string[]
       /** Whether the sessions tab is picking turns to split or delete (整理). */
@@ -39,7 +39,7 @@ declare module 'claude-code' {
       /** The memory whose hook is being edited, by its file. */
       memoryEdit: string | null
       /** Whether the unfolded group lists every memory, or the newest ten. */
-      memoryAll: boolean
+      memoryShown: number
       /** How many of this session's turns the sessions tab draws, the newest first; a press adds thirty more. */
       turnsShown: number
       lastFile: string | null

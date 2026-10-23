@@ -43,7 +43,7 @@ import { outgoing, sourceLabel, varsBySource } from "./core/statechart.js";
 import { waitsOnPerson } from "./core/turn.js";
 import { readContextDoc } from "./core/stagehand.js";
 import { exists, readText, withLock, writeAtomic } from "./host-fs.js";
-import { branchesAhead, commitsOf, ghOncePerBranch, journalBaseOf, openPullRequests, pullRequestsByBranch, repoFacts, uncommittedBump, unkeptOf, worktreesOf, type GhFacts } from "./host-git.js";
+import { beginGitRequest, endGitRequest, branchesAhead, commitsOf, ghOncePerBranch, journalBaseOf, openPullRequests, pullRequestsByBranch, repoFacts, uncommittedBump, unkeptOf, worktreesOf, type GhFacts } from "./host-git.js";
 import { formatLog, logName, nextTurn, parseLog, SESSIONS_DIR, SESSIONS_GITIGNORE, withEarlierTurns } from "./core/session-log.js";
 import { newTurns, queuedMessages, readTranscript, slugOf, transcriptEvents, type Transcript } from "./core/transcript.js";
 import { statSync } from "node:fs";
@@ -64,7 +64,9 @@ type Answered = Extract<BridgeResponse, { ok: true }>;
  * other request reuses the availability the last answer reported.
  */
 function ghFor(req: BridgeRequest): (root: string, branch: string) => GhFacts {
-  if (req.op === "refresh" || req.op === "board" || (req.op === "after" && req.gitOperation)) return ghOncePerBranch();
+  // After a git operation gh is asked anew: a push or a merge may have just changed the pull request.
+  if (req.op === "after" && req.gitOperation) return ghOncePerBranch({ fresh: true });
+  if (req.op === "refresh" || req.op === "board") return ghOncePerBranch();
   const seen = req.gh ?? { available: true as const };
   return () => (seen.available ? { available: true } : { available: false, reason: seen.reason });
 }
@@ -720,11 +722,15 @@ export async function handleRequest(req: BridgeRequest): Promise<BridgeResponse>
 
 /** handleRequest, answered at once: every op is answered without waiting on anything but the files and git. */
 export function answerRequest(req: BridgeRequest): BridgeResponse {
+  // A new request: what git says is asked anew, and once.
+  beginGitRequest();
   try {
     return answer(req);
   } catch (e) {
     const message = (e instanceof Error ? e.message : String(e)).replace(/^gemflow: /, "");
     return { v: 1, ok: false, error: `gemflow: ${message}` };
+  } finally {
+    endGitRequest();
   }
 }
 

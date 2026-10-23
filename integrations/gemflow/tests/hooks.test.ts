@@ -1114,6 +1114,19 @@ test('the session tab lists each prompt by day, newest first, with what its turn
   answer = '本项目 .geml/exports/'
   await pane.press({ key: 'export-own' })
   expect((w.sent.filter((r) => r.op === 'export').at(-1) as Req)['to'], "the project's exports: no place sent").toBeUndefined()
+  // Typed text is a place only when it is a path. The desktop answers a skip, a dismissal and a message sent instead with
+  // sentences of its own; neither they nor a bare word export anything.
+  const before = w.sent.filter((r) => r.op === 'export').length
+  for (const a of ['[No preference]', '[User dismissed — do not proceed, wait for next instruction]', '[User did not answer this question — they sent a message instead. Treat that message as their response; do not re-ask.]', '无偏好', 'notes']) {
+    answer = a
+    await pane.press({ key: 'export-own' })
+  }
+  expect(w.sent.filter((r) => r.op === 'export').length, 'nothing exported').toBe(before)
+  for (const a of ['~', './out', '../out', '/tmp/out', 'D:\\out']) {
+    answer = a
+    await pane.press({ key: 'export-own' })
+    expect(w.sent.filter((r) => r.op === 'export').at(-1), `${a}: a path`).toMatchObject({ to: a })
+  }
   await pane.unmount()
 })
 
@@ -1533,11 +1546,11 @@ test('a session resumed after the app restarted shows the prompts the store kept
   const drawn = (await pane.drawn()) as unknown as Drawn
   const row = findKey(drawn, 'prompt-p1-a')
   expect(row).toBeDefined()
-  expect([nodesOf(row!), buttonsOf(row!)], 'a folded row: nodes, buttons').toEqual([12, 2])
-  // The triangle before the time is inside the box the row's press spans, so a press on it unfolds the row too.
-  const span = spanOf(drawn, 'open-prompt-p1-a')
-  expect(span, 'the row takes the press').toBeDefined()
-  expect(hasSvg(span!, 'fold'), 'the triangle inside the press area').toBe(true)
+  expect([nodesOf(row!), buttonsOf(row!)], 'a folded row: nodes, buttons (its time, words and what it did the buttons, no box laid over them)').toEqual([9, 3])
+  // The row's time, words and what it did each press it; the triangle is drawn beside them.
+  expect(spanOf(drawn, 'open-prompt-p1-a'), 'no box laid over the row').toBeUndefined()
+  expect(['at-prompt-p1-a', 'open-prompt-p1-a', 'open-2-prompt-p1-a'].every((k) => findKey(row!, k) !== undefined), 'its time, its words and what it did are buttons').toBe(true)
+  expect(hasSvg(row!, 'fold'), 'the triangle drawn in the row').toBe(true)
   expect(findKey(drawn, 'sep-prompt-p1-a'), 'no rule between rows').toBeUndefined()
   // Unfolded: the card of what can be done to the turn comes under it, then the prompt and the answer.
   await pane.press({ key: 'open-prompt-p1-a' })
@@ -1854,16 +1867,21 @@ test('the session tab across the project: the decisions, a file two sessions cha
   await $.command.run({ command: 'gemflow', args: 'board sessions', origin: COMPOSER, presentation: PRESENTATION })
   await clock.advance(60_000)
   const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
-  for (const heading of ['决定', '本会话', '其他会话']) expect(await pane.find({ type: 'Text', text: heading }), heading).toBeDefined()
+  for (const heading of ['本会话', '其他会话']) expect(await pane.find({ type: 'Text', text: heading }), heading).toBeDefined()
   expect(await pane.find({ type: 'Button', key: 'export-cx1' }), 'the other session exports from its heading').toBeDefined()
   await pane.press({ key: 'go-session-cx1' })
   await pane.unmount()
   const again = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
   expect(await again.find({ type: 'Button', key: 'open-other-cx1-1' }), 'the other session unfolds to its turns').toBeDefined()
-  const decision = (await again.findAll({ type: 'Button' })).find((b) => String(b.key).startsWith('go-decision-cx1-'))
-  expect(decision).toBeDefined()
-  await again.press({ key: String(decision!.key) })
+  // The decisions are the journal tab's.
+  await again.press({ key: 'tab-journal' })
   await again.unmount()
+  const journal = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  expect(await journal.find({ type: 'Text', text: '决定' }), 'the decisions on the journal tab').toBeDefined()
+  const decision = (await journal.findAll({ type: 'Button' })).find((b) => String(b.key).startsWith('go-decision-cx1-'))
+  expect(decision).toBeDefined()
+  await journal.press({ key: String(decision!.key) })
+  await journal.unmount()
   expect(filled.at(-1)).toBe('参照 Codex · feat/y：合并前先跑三平台 CI\n')
 })
 
@@ -1922,7 +1940,7 @@ test("the band's 看板 opens the board on the work items tab whichever tab it w
   await pane.unmount()
 })
 
-test('the sessions tab stays within the desktop\'s press budget: twelve folded turns cost twelve nodes and two buttons each, nothing more between them', async ($, on) => {
+test('the sessions tab stays within the desktop\'s press budget: twelve folded turns cost ten nodes and three buttons each, nothing more between them', async ($, on) => {
   const w = world(on)
   const prompts = Array.from({ length: 12 }, (_, i) => ({ id: `p${i}`, at: new Date(Date.UTC(2026, 9, 20, 9, i)).toISOString(), text: `第 ${i} 句提示词，长度适中，用来量一行的节点数。`, uuid: `row-${i}`, tools: 2, refusals: 0, entered: [], signals: [], did: '做完了一半。' }))
   w.store.set('prompts:sess-1234567890', prompts)
@@ -1933,10 +1951,10 @@ test('the sessions tab stays within the desktop\'s press budget: twelve folded t
   const tree = (await pane.drawn()) as unknown as Drawn
   const rows = prompts.map((p) => findKey(tree, `prompt-${p.id}`)!)
   expect(rows.every((r) => r !== undefined)).toBe(true)
-  expect(rows.map((r) => [nodesOf(r), buttonsOf(r)]).every(([n, b]) => n <= 12 && b <= 2), 'each folded row within twelve nodes and two buttons').toBe(true)
+  expect(rows.map((r) => [nodesOf(r), buttonsOf(r)]).every(([n, b]) => n <= 10 && b <= 3), 'each folded row within ten nodes and three buttons').toBe(true)
   // The rows and the day heading, and nothing drawn between the rows: the whole tab stays a few hundred nodes.
-  expect(nodesOf(tree), 'the tab').toBeLessThanOrEqual(12 * 12 + 120)
-  expect(buttonsOf(tree), 'its buttons').toBeLessThanOrEqual(12 * 2 + 16)
+  expect(nodesOf(tree), 'the tab').toBeLessThanOrEqual(12 * 10 + 120)
+  expect(buttonsOf(tree), 'its buttons').toBeLessThanOrEqual(12 * 3 + 16)
   await pane.unmount()
 })
 
@@ -1999,6 +2017,16 @@ test('整理 on the sessions tab: a press on a row picks it, 连同之后的 pic
   await pane.unmount()
   pane = await mount()
   expect(await pane.find({ type: 'Text', text: '已选 1 轮' }), 'a press on the row picked it').toBeDefined()
+  // The box takes the press too: off, then on again.
+  const box = `pick-${oldest.slice('open-'.length)}`
+  await pane.press({ key: box })
+  await pane.unmount()
+  pane = await mount()
+  expect(await pane.find({ type: 'Text', text: '选要整理的轮次' }), 'a press on the box unpicked it').toBeDefined()
+  await pane.press({ key: box })
+  await pane.unmount()
+  pane = await mount()
+  expect(await pane.find({ type: 'Text', text: '已选 1 轮' }), 'and picked it again').toBeDefined()
   await pane.press({ key: 'pick-after' })
   await pane.unmount()
   pane = await mount()
@@ -2047,7 +2075,7 @@ test('questions stay on the band until answered: a typed prompt answers the one 
   expect(await bandSays(), 'the pasted lines answered theirs: one left').toMatch(/待决定：加不加？/)
 })
 
-test('the sessions tab shows the project\'s memory between the other sessions and the decisions: a group unfolds, a memory opens to its card; its summary is edited in place and it is deleted after a yes', async ($, on) => {
+test('the journal tab shows the project\'s memory after its events: a filter picks a type, a memory opens to its card; its summary is edited in place and it is deleted after a yes', async ($, on) => {
   const w = world(on)
   const asked: string[] = []
   on('prompt.submit', ($, e) => ({ text: e.text }))
@@ -2060,12 +2088,12 @@ test('the sessions tab shows the project\'s memory between the other sessions an
   await $.command.run({ command: 'gemflow', args: 'board', origin: COMPOSER, presentation: PRESENTATION })
   const mount = () => $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: { ...PANE, bodyColumns: 120 } })
   let pane = await mount()
-  await pane.press({ key: 'tab-sessions' })
+  await pane.press({ key: 'tab-journal' })
   await clock.settle()
   await pane.unmount()
   pane = await mount()
   expect(await pane.find({ type: 'Text', text: '记忆' }), 'the heading').toBeDefined()
-  await pane.press({ key: 'go-memory-group-feedback' })
+  await pane.press({ key: 'memory-filter-feedback' })
   await pane.unmount()
   pane = await mount()
   await pane.press({ key: 'go-memory-a.md' })
@@ -2187,3 +2215,4 @@ test('整理: a message typed mid-turn is picked on its own; its row id is learn
   expect(prompted.length, 'nothing handed over').toBe(before)
   expect(w.toasts.at(-1)).toBe('有 1 条在对话记录里找不到，没有交给模型')
 })
+

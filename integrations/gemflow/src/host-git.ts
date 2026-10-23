@@ -5,7 +5,7 @@
 // "not established", never as false.
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { realPath } from "./host-fs.js";
@@ -73,6 +73,78 @@ const memo = new Map<string, { at: number; value: unknown }>();
 /** Forget what was remembered: the next question goes to git (a test that answers several requests in one process, as several processes would). */
 export function forgetGitFacts(): void {
   memo.clear();
+  asked.clear();
+}
+
+/**
+ * What git said during the request being answered, said once: one request
+ * opens the session's workspace and the one a tool call is attributed to, and
+ * each read the branch and how far it is ahead. Only inside a request the
+ * bridge opened (beginGitRequest, then endGitRequest): outside one — a test, the
+ * MCP server — every question goes to git, as it always did.
+ */
+let inRequest = false;
+const asked = new Map<string, unknown>();
+export function beginGitRequest(): void {
+  asked.clear();
+  inRequest = true;
+}
+export function endGitRequest(): void {
+  asked.clear();
+  inRequest = false;
+}
+function once<T>(key: string, read: () => T): T {
+  if (!inRequest) return read();
+  if (asked.has(key)) return asked.get(key) as T;
+  const value = read();
+  asked.set(key, value);
+  return value;
+}
+
+/**
+ * The checkout's git directory and the repository's common one (a worktree's
+ * .git is a file naming its own directory, whose commondir names the shared
+ * one); undefined when root holds no .git, or one this does not read.
+ */
+function gitDirsOf(root: string): { git: string; common: string } | undefined {
+  const dot = join(root, ".git");
+  try {
+    if (statSync(dot).isDirectory()) return { git: dot, common: dot };
+    const named = /^gitdir:\s*(.+?)\s*$/m.exec(readFileSync(dot, "utf8"));
+    if (named === null) return undefined;
+    const git = resolve(root, named[1] as string);
+    let common = git;
+    try { common = resolve(git, readFileSync(join(git, "commondir"), "utf8").trim()); } catch { /* a directory of its own */ }
+    return { git, common };
+  } catch {
+    return undefined;
+  }
+}
+
+/** Whether a ref is in the repository's common directory, loose or packed. */
+function refInFiles(common: string, ref: string): boolean {
+  if (existsSync(join(common, ...ref.split("/")))) return true;
+  try {
+    return readFileSync(join(common, "packed-refs"), "utf8").split(/\r?\n/).some((l) => l.endsWith(` ${ref}`));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The branch HEAD names, read from .git's files: `{ branch }` on a branch
+ * that has commits, `"detached"` on a commit; undefined where the files do not
+ * say it plainly (an unborn branch, no .git at root, an odd HEAD), and git is
+ * asked as before.
+ */
+function headFromFiles(root: string): { branch: string } | "detached" | undefined {
+  const dirs = gitDirsOf(root);
+  if (dirs === undefined) return undefined;
+  let head: string;
+  try { head = readFileSync(join(dirs.git, "HEAD"), "utf8").trim(); } catch { return undefined; }
+  const named = /^ref:\s*refs\/heads\/(.+)$/.exec(head);
+  if (named !== null) return refInFiles(dirs.common, `refs/heads/${named[1] as string}`) ? { branch: named[1] as string } : undefined;
+  return /^[0-9a-f]{40,64}$/.test(head) ? "detached" : undefined;
 }
 function remembered<T>(key: string, read: () => T): T {
   const now = Date.now();
@@ -88,7 +160,7 @@ function baseRefOf(root: string): string | undefined {
   return remembered(`base\0${root}`, () => {
     const name = defaultBranchOf(root);
     return name === undefined ? undefined
-      : [`refs/heads/${name}`, `refs/remotes/origin/${name}`].find((ref) => run("git", ["rev-parse", "--verify", "--quiet", ref], root).ok);
+      : [`refs/heads/${name}`, `refs/remotes/origin/${name}`].find((ref) => refExists(root, ref));
   });
 }
 
@@ -98,12 +170,27 @@ function defaultBranchOf(root: string): string | undefined {
 }
 
 function readDefaultBranch(root: string): string | undefined {
+  // origin/HEAD read from its file where it is one (git writes it so); else git is asked.
+  const dirs = gitDirsOf(root);
+  if (dirs !== undefined) {
+    try {
+      const named = /^ref:\s*refs\/remotes\/origin\/(.+)$/.exec(readFileSync(join(dirs.common, "refs", "remotes", "origin", "HEAD"), "utf8").trim());
+      if (named !== null) return named[1] as string;
+    } catch { /* not a file: asked below */ }
+  }
   const origin = run("git", ["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], root);
   if (origin.ok && origin.out !== "") return origin.out.replace(/^origin\//, "");
   for (const name of ["main", "master"]) {
-    if (run("git", ["rev-parse", "--verify", "--quiet", `refs/heads/${name}`], root).ok) return name;
+    if (refExists(root, `refs/heads/${name}`)) return name;
   }
   return undefined;
+}
+
+/** Whether a ref exists: from .git's files where they say so, else git's rev-parse --verify. */
+function refExists(root: string, ref: string): boolean {
+  const dirs = gitDirsOf(root);
+  if (dirs !== undefined && refInFiles(dirs.common, ref)) return true;
+  return run("git", ["rev-parse", "--verify", "--quiet", ref], root).ok;
 }
 
 /** How many commits HEAD has that the default branch has not: its local branch, or failing that the remote's. */
@@ -116,7 +203,13 @@ function commitsAhead(root: string, defaultBranch: string): number | undefined {
 }
 
 export function repoFacts(root: string): RepoFacts {
-  let head = run("git", ["rev-parse", "--abbrev-ref", "HEAD"], root);
+  return once(`repo\0${root}`, () => readRepoFacts(root));
+}
+
+function readRepoFacts(root: string): RepoFacts {
+  // The branch from .git's files (no git started: each costs 150–400 ms here); git where they do not say it plainly.
+  const fromFiles = headFromFiles(root);
+  let head: Ran = fromFiles === undefined ? run("git", ["rev-parse", "--abbrev-ref", "HEAD"], root) : { ok: true, out: fromFiles === "detached" ? "HEAD" : fromFiles.branch, err: "", missing: false };
   // A git that did not answer (a busy machine) is asked once more, given longer; still silent, it says nothing of the branch —
   // never that the branch has no commits, which would take the work item away and refuse what is done on it.
   if (!head.ok && head.error === "ETIMEDOUT") head = run("git", ["rev-parse", "--abbrev-ref", "HEAD"], root, true, 3 * TIMEOUT_MS);
@@ -375,10 +468,8 @@ const FAILING = new Set(["failure", "cancelled", "timed_out", "action_required",
  * `.js`, `.mjs` or `.cjs` is a stand-in run by this Node, which Windows needs:
  * it starts no script from its shebang.
  */
-export function ghFacts(root: string, branch: string, o: { gh?: string } = {}): GhFacts {
-  const bin = o.gh || process.env["GEMFLOW_GH"] || "gh";
-  const script = /\.[cm]?js$/i.test(bin);
-  const gh = (args: string[]): Ran => (script ? run(process.execPath, [bin, ...args], root) : run(bin, args, root));
+export function ghFacts(root: string, branch: string, o: { gh?: string; fresh?: boolean } = {}): GhFacts {
+  const gh = (args: string[]): Ran => ghRun(root, args, o);
   const pr = gh(["pr", "list", "--head", branch, "--state", "all", "--json", "state,number"]);
   const failed = notRun(pr);
   if (failed) return unavailable(failed);
@@ -482,10 +573,7 @@ const ROLLUP_PASSED = new Set(["SUCCESS", "NEUTRAL", "SKIPPED"]);
  * ghFacts chooses it.
  */
 export function openPullRequests(root: string, o: { gh?: string } = {}): { number: number; branch: string; green: boolean; failing: string[] }[] | undefined {
-  const bin = o.gh || process.env["GEMFLOW_GH"] || "gh";
-  const script = /\.[cm]?js$/i.test(bin);
-  const args = ["pr", "list", "--state", "open", "--author", "@me", "--limit", "30", "--json", "number,headRefName,statusCheckRollup"];
-  const r = script ? run(process.execPath, [bin, ...args], root) : run(bin, args, root);
+  const r = ghRun(root, ["pr", "list", "--state", "open", "--author", "@me", "--limit", "30", "--json", "number,headRefName,statusCheckRollup"], o);
   if (!r.ok) return undefined;
   const list = parseJson(r.out);
   if (!Array.isArray(list)) return undefined;
@@ -559,9 +647,7 @@ export function holdsCommit(root: string, base: string, sha: string): boolean | 
 
 /** The project's pull requests by the branch each was opened from, the newest of a branch's; none when gh cannot be asked. */
 export function pullRequestsByBranch(root: string, o: { gh?: string } = {}): Map<string, { number: number; state: "open" | "merged" | "closed" }> {
-  const bin = o.gh || process.env["GEMFLOW_GH"] || "gh";
-  const args = ["pr", "list", "--state", "all", "--limit", "100", "--json", "number,state,headRefName"];
-  const r = /\.[cm]?js$/i.test(bin) ? run(process.execPath, [bin, ...args], root) : run(bin, args, root);
+  const r = ghRun(root, ["pr", "list", "--state", "all", "--limit", "100", "--json", "number,state,headRefName"], o);
   const out = new Map<string, { number: number; state: "open" | "merged" | "closed" }>();
   const list = r.ok ? parseJson(r.out) : undefined;
   if (!Array.isArray(list)) return out;
@@ -575,13 +661,43 @@ export function pullRequestsByBranch(root: string, o: { gh?: string } = {}): Map
   return out;
 }
 
-/** ghFacts, asked at most once per branch by the function this returns: one request or tool call may read gh's facts twice (a refresh, then the status). */
-export function ghOncePerBranch(): (root: string, branch: string) => GhFacts {
+/**
+ * One gh question. The binary is `o.gh`, else `GEMFLOW_GH`, else `gh`; one
+ * ending in .js, .mjs or .cjs is a stand-in this Node runs. gh's own answers are
+ * kept GH_KEEP_MS on disk (gh goes over the network: two of them are half the
+ * board's time), each by the checkout and the question; a failure is not kept,
+ * so gh answers again as soon as it can; `fresh` asks anew (after a git
+ * operation, a pull request may have just changed); a stand-in is never kept.
+ */
+const GH_KEEP_MS = 60_000;
+function ghRun(root: string, args: string[], o: { gh?: string; fresh?: boolean } = {}): Ran {
+  const named = o.gh || process.env["GEMFLOW_GH"];
+  const bin = named || "gh";
+  const ask = (): Ran => (/\.[cm]?js$/i.test(bin) ? run(process.execPath, [bin, ...args], root) : run(bin, args, root));
+  if (named) return ask();
+  const key = `${root}\0${args.join("\0")}`;
+  const path = join(tmpdir(), "gemflow", "gh-answers.json");
+  let kept: Record<string, { at: number; out: string }> = {};
+  try { kept = JSON.parse(readFileSync(path, "utf8")) as typeof kept; } catch { kept = {}; }
+  const now = Date.now();
+  const hit = kept[key];
+  if (o.fresh !== true && hit !== undefined && now - hit.at < GH_KEEP_MS && typeof hit.out === "string") return { ok: true, out: hit.out, err: "", missing: false, status: 0 };
+  const r = ask();
+  if (r.ok) {
+    for (const [k, v] of Object.entries(kept)) if (now - v.at >= GH_KEEP_MS) delete kept[k];
+    kept[key] = { at: now, out: r.out };
+    try { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, JSON.stringify(kept)); } catch { /* kept next time */ }
+  }
+  return r;
+}
+
+/** ghFacts, asked at most once per branch by the function this returns: one request or tool call may read gh's facts twice (a refresh, then the status). `fresh`: past what gh said in the last minute. */
+export function ghOncePerBranch(o: { fresh?: boolean } = {}): (root: string, branch: string) => GhFacts {
   const asked = new Map<string, GhFacts>();
   return (root, branch) => {
     const hit = asked.get(branch);
     if (hit) return hit;
-    const facts = ghFacts(root, branch);
+    const facts = ghFacts(root, branch, o.fresh === true ? { fresh: true } : {});
     asked.set(branch, facts);
     return facts;
   };
