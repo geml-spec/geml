@@ -55,7 +55,7 @@ export type BoardRow =
    */
   | { kind: "flow"; key: string; ranks: FlowStateRow[][]; edges: FlowEdgeRow[]; svg: string }
   /** A group's heading: its words, how many it holds when that is worth saying, and a press that lists or folds it. */
-  | { kind: "section"; key: string; text: string; count?: number; fold?: Pressable }
+  | { kind: "section"; key: string; text: string; count?: number; fold?: Pressable; note?: string; actions?: Pressable[] }
   /**
    * One thing waiting on the person (the work items tab's top group): the icon
    * for what it asks, its verb and name, a tag (what the work made, or the
@@ -85,7 +85,7 @@ export type BoardRow =
   | { kind: "steps"; key: string; steps: { title: string; passed: boolean; current: boolean }[] }
   /** A prompt of the session (the sessions tab): its time, its first line, what its turn did, and the press that opens or closes its menu. */
   /** `open`: unfolded under it; `fold`: it folds and unfolds on its press, which a triangle before the time says; `icons`: the presses at its right end, each a glyph (the scroll to it, where the conversation scrolls). */
-  | { kind: "turn"; key: string; at: string; text: string; did: string; open: boolean; action: BoardAction; fold?: true; icons?: { glyph: Glyph; button: Pressable }[] }
+  | { kind: "turn"; key: string; at: string; text: string; did: string; open: boolean; action: BoardAction; fold?: true; icons?: { glyph: Glyph; button: Pressable }[]; check?: Pressable | null }
   /** A row's menu, opened by a press on it: a short column of entries under it. */
   | { kind: "menu"; key: string; items: Pressable[] }
   /** Running text shown whole: a turn's prompt, its answer (Markdown, where the surface draws it). */
@@ -234,6 +234,8 @@ export interface PaneInput {
   sessionFlow: string | null;
   /** How many of this session's turns the sessions tab draws, the newest; the rest behind a count. */
   sessionLimit?: number;
+  /** The sessions tab: this session's turns checked, by prompt id. */
+  picked?: readonly string[];
   sessionRuns: readonly string[];
   /** Whether the work items tab lists the closed work items, or only counts them; the same for the dropped ones. */
   doneOpen: boolean;
@@ -268,16 +270,26 @@ export function paneRows(o: PaneInput): BoardRow[] {
   const status = o.shell?.status ?? null;
   const wait = o.board === null && head.length === 0 ? [text(t("正在读取看板…"), columns, "dim")] : [];
   if (o.tab === "sessions") {
-    const own = sessionRows(o.prompts, o.board?.artifacts?.commits ?? [], t, columns, o.now, { flow: o.sessionFlow, runs: o.sessionRuns, current: status?.workflow.title, ...(o.scrolls !== undefined ? { scrolls: o.scrolls } : {}), ...(o.unfolded !== undefined ? { expanded: o.unfolded } : {}), ...(o.sessionLimit !== undefined ? { limit: o.sessionLimit } : {}) });
+    const own = sessionRows(o.prompts, o.board?.artifacts?.commits ?? [], t, columns, o.now, { flow: o.sessionFlow, runs: o.sessionRuns, current: status?.workflow.title, ...(o.scrolls !== undefined ? { scrolls: o.scrolls } : {}), ...(o.unfolded !== undefined ? { expanded: o.unfolded } : {}), ...(o.sessionLimit !== undefined ? { limit: o.sessionLimit } : {}), ...(o.picked !== undefined ? { picked: o.picked } : {}) });
     // Every session's heading carries its export, which asks where to; the file written shows under it.
     const exports: ExportsOf = {
       button: (s) => ({ key: `export-${s}`, label: t("导出"), action: { op: "export", session: s } }),
       under: (s) => ((o.exportedFor ?? "own") === s ? exportedRows(o.exported, o.root, t) : []),
     };
     // This session first, then the others, then what every session decided.
+    // Turns checked: the heading says how many and offers what can be done to them; nothing checked, this session's export.
+    const picked = (o.picked ?? []).filter((id) => o.prompts.some((p) => p.id === id && p.uuid !== undefined));
+    const heading: BoardRow = picked.length > 0
+      ? { kind: "section", key: "own", text: t("本会话"), note: t("已选 {0} 轮", picked.length), actions: [
+        { key: "split-picked", label: t("拆成新会话"), action: { op: "split-picked", remove: false } },
+        { key: "remove-picked", label: t("删除"), action: { op: "split-picked", remove: true } },
+        { key: "pick-after", label: t("连同之后的"), action: { op: "pick-after" } },
+        { key: "pick-clear", label: t("清空"), action: { op: "pick-clear" } },
+      ] }
+      : { kind: "section", key: "own", text: t("本会话"), fold: exports.button("own") };
     return [
       ...head,
-      { kind: "section", key: "own", text: t("本会话"), fold: exports.button("own") }, ...exports.under("own"), ...own,
+      heading, ...exports.under("own"), ...own,
       ...othersRows(o.project, t, columns, o.now, exports),
       ...decisionRows(o.project, t, columns, o.now),
     ];
@@ -1056,8 +1068,8 @@ export function journalRows(o: JournalInput): BoardRow[] {
 /** How many turns in a row in another flow fold into one line. */
 const RUN_FOLDS = 3;
 
-export function sessionRows(prompts: readonly PromptRecord[], commits: readonly { sha: string; at: string }[], t: T = ZH, columns: number, now?: string, by: { flow: string | null; runs: readonly string[]; current?: string; scrolls?: boolean; expanded?: { id: string; answer: string | null } | null; limit?: number } = { flow: null, runs: [] }): BoardRow[] {
-  const unfold = { scrolls: by.scrolls !== false, expanded: by.expanded ?? null };
+export function sessionRows(prompts: readonly PromptRecord[], commits: readonly { sha: string; at: string }[], t: T = ZH, columns: number, now?: string, by: { flow: string | null; runs: readonly string[]; current?: string; scrolls?: boolean; expanded?: { id: string; answer: string | null } | null; limit?: number; picked?: readonly string[] } = { flow: null, runs: [] }): BoardRow[] {
+  const unfold = { scrolls: by.scrolls !== false, expanded: by.expanded ?? null, picked: by.picked ?? [] };
   if (prompts.length === 0) return [text(t("还没有 prompt"), columns, "dim")];
   const rows: BoardRow[] = [];
   // With turns in more than one flow: a filter by flow.
@@ -1111,7 +1123,7 @@ export function sessionRows(prompts: readonly PromptRecord[], commits: readonly 
  * the whole prompt, then the whole answer. A folded row carries no other
  * press: the desktop takes no press at all once the tab draws too many nodes.
  */
-function turnRows(p: PromptRecord, until: string | undefined, commits: readonly { sha: string; at: string }[], t: T, columns: number, unfold: { scrolls: boolean; expanded: { id: string; answer: string | null } | null } = { scrolls: true, expanded: null }): BoardRow[] {
+function turnRows(p: PromptRecord, until: string | undefined, commits: readonly { sha: string; at: string }[], t: T, columns: number, unfold: { scrolls: boolean; expanded: { id: string; answer: string | null } | null; picked?: readonly string[] } = { scrolls: true, expanded: null }): BoardRow[] {
   const open = unfold.expanded?.id === p.id;
   const made = commits.filter((c) => Date.parse(c.at) >= Date.parse(p.at) && (until === undefined || Date.parse(c.at) < Date.parse(until))).map((c) => c.sha.slice(0, 8)).reverse();
   const words = [...made, p.did ?? (promptTail(p, t) || (until === undefined && p.backfilled !== true ? t("进行中…") : ""))].filter((x) => x !== "").join(" ");
@@ -1121,7 +1133,11 @@ function turnRows(p: PromptRecord, until: string | undefined, commits: readonly 
     ? [{ glyph: "locate", button: { key: `locate-${p.id}`, label: t("跳转"), action: { op: "locate", id: p.id, ...(p.uuid !== undefined ? { uuid: p.uuid } : {}) } } }]
     : [];
   const action: BoardAction = { op: "expand-turn", id: open ? null : p.id };
-  const rows: BoardRow[] = [{ kind: "turn", key: `prompt-${p.id}`, at: hhmm(p.at), text: promptLine(p.text, Math.max(12, columns - 8)), did, open, fold: true, icons, action }];
+  // Its checkbox: none on the turn still running, nor on one whose row in the transcript is not known yet (a split names turns by it); the space kept.
+  const live = until === undefined && p.did === undefined && p.backfilled !== true;
+  const on = (unfold.picked ?? []).includes(p.id);
+  const check: Pressable | null = p.uuid !== undefined && !live ? { key: `pick-${p.id}`, label: on ? "☑" : "☐", action: { op: "pick-turn", id: p.id, on: !on } } : null;
+  const rows: BoardRow[] = [{ kind: "turn", key: `prompt-${p.id}`, at: hhmm(p.at), text: promptLine(p.text, Math.max(12, columns - 8)), did, open, fold: true, icons, action, check }];
   if (open) {
     // Unfolded: the card of what can be done to the turn, the whole prompt, then the whole answer — read from the record once the press lands.
     rows.push({ kind: "menu", key: `turn-menu-${p.id}`, items: [

@@ -112,6 +112,14 @@ export type BoardAction =
   | { op: "locate"; id: string; uuid?: string }
   /** Ask the model to move this prompt's turn and every turn after it (the last one stays) into a new session, with the split-session skill; a person says yes first. */
   | { op: "split"; id: string }
+  /** The sessions tab: check or uncheck one of this session's turns. */
+  | { op: "pick-turn"; id: string; on: boolean }
+  /** The sessions tab: check every turn after the newest one checked. */
+  | { op: "pick-after" }
+  /** The sessions tab: uncheck every turn. */
+  | { op: "pick-clear" }
+  /** Ask the model to move the checked turns into one new session, or with `remove` out of the session, with the split-session skill naming them by their record ids; a person says yes first. */
+  | { op: "split-picked"; remove: boolean }
   /** Ask the model to move this prompt's one turn into a session of its own, with the split-session skill; a person says yes first. */
   | { op: "remove"; id: string }
   /** Under a `file:` unit, make this file the current work item (the shell's last written file). */

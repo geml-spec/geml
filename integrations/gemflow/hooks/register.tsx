@@ -163,6 +163,8 @@ const decisionsAllAtom = atom({ plugin: 'gemflow', key: 'decisionsAll' } as cons
 /** How many of this session's turns the sessions tab draws, the newest; a press adds as many again. */
 const TURNS_SHOWN = 30
 const turnsShownAtom = atom({ plugin: 'gemflow', key: 'turnsShown' } as const, TURNS_SHOWN as number)
+/** This session's turns checked on the sessions tab, by prompt id. */
+const pickedAtom = atom({ plugin: 'gemflow', key: 'picked' } as const, [] as string[])
 const decisionsSeenAtom = atom({ plugin: 'gemflow', key: 'decisionsSeen' } as const, null as string | null)
 const committedAtom = atom({ plugin: 'gemflow', key: 'committed' } as const, false)
 /** The turn unfolded on the session tab (where the conversation cannot be scrolled): its prompt's id and its answer. */
@@ -1411,6 +1413,23 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
     case 'flow-state': await update($, flowStateAtom, () => action.id); return
     case 'session-open': await update($, openSessionAtom, () => action.id); return
     case 'sessions-more': await update($, sessionsAllAtom, () => action.all); return
+    case 'pick-turn': {
+      const was = ((await read($, pickedAtom)) as string[] | null) ?? []
+      await update($, pickedAtom, () => (action.on ? (was.includes(action.id) ? was : [...was, action.id]) : was.filter((x) => x !== action.id)))
+      return
+    }
+    case 'pick-clear': await update($, pickedAtom, () => [] as string[]); return
+    case 'pick-after': {
+      // Every turn after the newest one checked, but the one still running and those not yet known in the transcript.
+      const [prompts, was] = await Promise.all([readPrompts($), read($, pickedAtom)])
+      const checked = (was as string[] | null) ?? []
+      const from = Math.max(...prompts.map((p, i) => (checked.includes(p.id) ? i : -1)))
+      if (from < 0) return
+      const live = (p: PromptRecord, i: number): boolean => i === prompts.length - 1 && p.did === undefined && p.backfilled !== true
+      const after = prompts.filter((p, i) => i > from && p.uuid !== undefined && !live(p, i)).map((p) => p.id)
+      await update($, pickedAtom, () => [...checked, ...after.filter((id) => !checked.includes(id))])
+      return
+    }
     case 'decisions-more': await update($, decisionsAllAtom, () => action.all); return
     case 'turns-more': await update($, turnsShownAtom, (n) => (typeof n === 'number' ? n : TURNS_SHOWN) + TURNS_SHOWN); return
     case 'session-flow': await update($, sessionFlowAtom, () => action.flow); return
@@ -1673,6 +1692,29 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       if (deny !== undefined) $.ui.toast(t('对话没有滚到那一处：{0}', deny))
       return
     }
+    // The checked turns, named to the script by their record ids so the model matches nothing by hand: one new session, or gone.
+    case 'split-picked': {
+      const [prompts, was] = await Promise.all([readPrompts($), read($, pickedAtom)])
+      const checked = (was as string[] | null) ?? []
+      const picked = prompts.filter((p) => checked.includes(p.id) && p.uuid !== undefined)
+      if (picked.length === 0) return
+      const n = picked.length
+      const question = action.remove ? t('删除选中的 {0} 轮？会先备份，可恢复；重启应用后才看不到。', n) : t('把选中的 {0} 轮拆到一个新会话？会先备份；重启应用后生效。', n)
+      const yes = action.remove ? t('删除') : t('拆分')
+      let answer: string
+      try { answer = await $.ui.ask(question, [yes, t('取消')]) } catch { return }
+      if (answer !== yes) return
+      const script = `${$.plugin.root}/skills/split-session/split-session.mjs`
+      const uuids = picked.map((p) => p.uuid as string).join(',')
+      const lines = picked.map((p) => `${hhmm(p.at)}「${promptLine(p.text, 40)}」`).join('、')
+      const text = action.remove
+        ? t('用 gemflow:split-session skill（脚本 {0}）：用 remove --uuids {1} 删掉这 {2} 轮：{3}（不建新会话）。先加 --dry-run 核对是这几轮，再删；删完再 list 核对，然后汇报。', script, uuids, n, lines)
+        : t('用 gemflow:split-session skill（脚本 {0}）：用 split --uuids {1} 把这 {2} 轮拆到一个新会话：{3}。标题概括这些轮的内容。先加 --dry-run 核对是这几轮，再拆；拆完再 list 核对，然后汇报。', script, uuids, n, lines)
+      await update($, pickedAtom, () => [] as string[])
+      await $.prompt.submit({ text })
+      $.ui.toast(t('已交给模型，结果看对话'))
+      return
+    }
     // Moving turns out of the session is the split-session skill's work, done by the model in a turn of its own: the person says yes here, the prompt names the turn by its time and first line and the skill's script by its path.
     case 'split':
     case 'remove': {
@@ -1930,11 +1972,13 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
   const { Box, Text, Button, Link, Input } = els
   switch (row.kind) {
     case 'section': return (
-      <Box key={row.key} gap={1} marginTop={i > 0 ? 1 : 0}>
+      <Box key={row.key} gap={1} marginTop={i > 0 ? 1 : 0} {...(row.actions !== undefined ? { flexWrap: 'wrap' as const } : {})}>
         {els.Svg !== undefined ? <Text color={HEADING} bold>{row.text}</Text> : <Text dimColor bold>{row.text}</Text>}
         {row.count !== undefined && <Text dimColor>{String(row.count)}</Text>}
-        {row.fold !== undefined && <Box flexGrow={1} />}
+        {row.note !== undefined && <Text dimColor>{row.note}</Text>}
+        {(row.fold !== undefined || row.actions !== undefined) && <Box flexGrow={1} />}
         {row.fold !== undefined && <Button key={row.fold.key} plain label={row.fold.label} onPress={press($, row.fold.action)} />}
+        {(row.actions ?? []).map((b) => <Button key={b.key} plain label={b.label} onPress={press($, b.action)} />)}
       </Box>
     )
     case 'card': return (
@@ -2058,6 +2102,7 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
       const icons = row.icons ?? []
       return els.Svg !== undefined ? (
         <Box key={row.key} gap={2} paddingX={1} {...(row.open ? { backgroundColor: SELECTED } : { hover: { backgroundColor: SHADE } })}>
+          {row.check !== undefined && <Box flexShrink={0} width={2}>{row.check !== null ? <Button key={row.check.key} plain label={row.check.label} onPress={press($, row.check.action)} /> : <Text> </Text>}</Box>}
           <Box flexGrow={1} minWidth={0} gap={2}>
             {row.fold === true && <Box flexShrink={0} alignItems="center">{drawGlyph(els, row.open ? 'unfold' : 'fold', 'dim', 15)}</Box>}
             <Box width={Math.max(5, cellWidth(row.at))} flexShrink={0}><Text dimColor>{row.at}</Text></Box>
@@ -2077,6 +2122,7 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
       ) : (
         <Box key={row.key} flexDirection="column">
           <Box gap={1}>
+            {row.check !== undefined && (row.check !== null ? <Button key={row.check.key} plain label={row.check.label} onPress={press($, row.check.action)} /> : <Text>  </Text>)}
             <Text dimColor>{row.at}</Text>
             <Button key={`open-${row.key}`} plain label={row.text} onPress={press($, row.action)} />
             {row.fold === true && <Text dimColor>{row.open ? '▾' : '▸'}</Text>}
@@ -2336,7 +2382,7 @@ async function tabRows($: EngineInterface, e: { surface: string; props: { bodyCo
     board, problem, shell, tab, columns, maxRows: Math.max(4, e.props.scroll.bodyRows - 4), t, now, root: root ?? '', inbox,
     filter: filter as JournalFilter, expanded, evidence, prompts,
     ...(project !== null ? { project, scrolls: e.surface === 'terminal', unfolded: unfolded as unknown as { id: string; answer: string | null } | null } : {}),
-    exportedFor, doneOpen, droppedOpen, sessionFlow, sessionLimit: await read($, turnsShownAtom), sessionRuns: (sessionRuns as unknown as string[] | null) ?? [],
+    exportedFor, doneOpen, droppedOpen, sessionFlow, sessionLimit: await read($, turnsShownAtom), picked: ((await read($, pickedAtom)) as string[] | null) ?? [], sessionRuns: (sessionRuns as unknown as string[] | null) ?? [],
     flowState, switching, workflows: workflows as unknown as { bundled: string[]; installed: string[] } | null,
     usage, dismissed, toolQuery, toolMenu, toolNaming, toolsOpen: (toolsOpen as unknown as string[] | null) ?? [],
     exported, artifactMenu, docsOpen,

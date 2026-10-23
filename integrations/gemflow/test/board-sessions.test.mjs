@@ -64,3 +64,21 @@ test("the decisions section lists the newest twenty, each whole; beyond them the
   assert.equal(all.filter((r) => r.kind === "note").length, 25);
   assert.deepEqual(all.find((r) => r.kind === "buttons" && r.items[0].key === "decisions-more").items[0].action, { op: "decisions-more", all: false });
 });
+
+test("this session's turns carry a checkbox, none on the turn still running or one whose row is not known; checked, the heading says how many and offers what can be done to them", async () => {
+  const { paneRows } = await import("../dist/hosts/claude-code/board.js");
+  const turn = (id, over = {}) => ({ id, at: "2026-10-21T09:00:00Z", text: `第 ${id} 轮`, tools: 0, refusals: 0, entered: [], signals: [], ...over });
+  const prompts = [turn("p1", { uuid: "u1", did: "改了" }), turn("p2", { did: "还没记下位置" }), turn("p3", { uuid: "u3", did: "又改了" }), turn("p4", { uuid: "u4" })];
+  const rows = sessionRows(prompts, [], t, 100, NOW, { flow: null, runs: [], picked: ["p1"] });
+  const checks = Object.fromEntries(rows.filter((r) => r.kind === "turn").map((r) => [r.key, r.check]));
+  assert.deepEqual(checks["prompt-p1"], { key: "pick-p1", label: "☑", action: { op: "pick-turn", id: "p1", on: false } });
+  assert.deepEqual(checks["prompt-p3"], { key: "pick-p3", label: "☐", action: { op: "pick-turn", id: "p3", on: true } });
+  assert.equal(checks["prompt-p2"], null, "its row in the transcript not known yet: no box, its space kept");
+  assert.equal(checks["prompt-p4"], null, "the turn still running: no box");
+  const pane = (picked) => paneRows({ board: null, problem: null, shell: null, tab: "sessions", columns: 100, maxRows: 40, t, now: NOW, root: "/r", inbox: [], filter: "all", expanded: null, evidence: null, prompts, exportedFor: null, doneOpen: false, droppedOpen: false, sessionFlow: null, sessionRuns: [], flowState: null, switching: false, workflows: null, usage: {}, dismissed: [], toolQuery: "", toolMenu: null, toolNaming: null, toolsOpen: [], exported: null, picked });
+  const heading = (rows) => rows.find((r) => r.kind === "section" && r.key === "own");
+  assert.deepEqual(heading(pane([])).fold?.key, "export-own", "nothing checked: the heading carries the export");
+  const on = heading(pane(["p1", "p3", "gone"]));
+  assert.equal(on.note, "已选 2 轮", "a checked turn no longer listed is not counted");
+  assert.deepEqual(on.actions.map((b) => [b.label, b.action]), [["拆成新会话", { op: "split-picked", remove: false }], ["删除", { op: "split-picked", remove: true }], ["连同之后的", { op: "pick-after" }], ["清空", { op: "pick-clear" }]]);
+});

@@ -26,6 +26,8 @@ declare module 'claude-code' {
       sessionsAll: boolean
       /** Whether the sessions tab lists every decision, or folds the rest after the first twenty. */
       decisionsAll: boolean
+      /** This session's turns checked on the sessions tab, by prompt id. */
+      picked: string[]
       /** How many of this session's turns the sessions tab draws, the newest first; a press adds thirty more. */
       turnsShown: number
       lastFile: string | null
