@@ -906,6 +906,24 @@ test('a tab whose rows cannot be drawn says why in its place; the tab bar still 
   }
 })
 
+test('the tools tab: every tool name, in every group, sits in one column of one width, so the uses line up across 命令行, 文件 and the rest', async ($, on) => {
+  world(on)
+  await start($, on)
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const pane = await $.ui.mount({ plugin: 'gemflow', surface, component: 'Pane', requestId: 'gemflow-board', props: PANE })
+    await pane.press({ key: 'tab-tools' })
+    const rows: Drawn[] = []
+    const walk = (el: Drawn | string): void => { if (typeof el === 'string') return; if (el.type === 'Box' && /^tool-(?!search$)/.test(String(keyOf(el)))) rows.push(el); (el.children ?? []).forEach(walk) }
+    walk((await pane.drawn()) as unknown as Drawn)
+    const widths = rows.map((r) => (r.children?.find((c): c is Drawn => typeof c !== 'string' && c.type === 'Box'))?.props?.width)
+    const keys = rows.map((r) => String(keyOf(r)))
+    expect(['tool-Bash(npm test)', 'tool-Read'].every((k) => keys.includes(k)), `${surface}: tools of both groups in ${keys.join(', ')}`).toBe(true)
+    expect(new Set(widths).size, `${surface}: one width ${JSON.stringify(widths)}`).toBe(1)
+    expect(Number(widths[0]), surface).toBeGreaterThan(0)
+    await pane.unmount()
+  }
+})
+
 test('the probe: where prompt.compose reaches the engine (its bare-named sections are there), the first prompt carries no standing instructions', async ($, on) => {
   world(on)
   const contexts: (readonly string[] | undefined)[] = []
@@ -1086,7 +1104,8 @@ test('the session tab lists each prompt by day, newest first, with what its turn
   await $.tool.call({ tool: 'Bash', tool_use_id: 'b2', command: 'npm test' })
   await $.prompt.submit({ text: '顺手部署一下。', wait: false, origin: COMPOSER })
   await $.command.run({ command: 'gemflow', args: 'board sessions', origin: COMPOSER, presentation: PRESENTATION })
-  const pane = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  const mount = () => $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  let pane = await mount()
   expect(await pane.find({ type: 'Text', text: '今天' })).toBeDefined()
   const turns = (await pane.findAll({ type: 'Button' })).filter((b) => String(b.key).startsWith('open-prompt-')).map((b) => b.text)
   expect(turns, 'newest first').toEqual(['顺手部署一下。', '把测试补上，然后开 PR。'])
@@ -1114,6 +1133,23 @@ test('the session tab lists each prompt by day, newest first, with what its turn
   answer = '本项目 .geml/exports/'
   await pane.press({ key: 'export-own' })
   expect((w.sent.filter((r) => r.op === 'export').at(-1) as Req)['to'], "the project's exports: no place sent").toBeUndefined()
+  // Under the session, a link to the file the last export wrote, while that file is there.
+  const file = `${ROOT}/.geml/exports/session-sess-123.geml`
+  w.files.set(file, '')
+  await pane.press({ key: 'export-own' })
+  expect((await pane.find({ type: 'Button', key: 'exported' }))?.text, 'the file written').toBe('已导出 .geml/exports/session-sess-123.geml')
+  // The next press takes it away, whatever that press then does: a skip leaves no line behind.
+  answer = '[No preference]'
+  await pane.press({ key: 'export-own' })
+  expect(await pane.find({ type: 'Button', key: 'exported' }), 'a skip after an export').toBeUndefined()
+  // A file moved or deleted since draws no line.
+  answer = '本项目 .geml/exports/'
+  await pane.press({ key: 'export-own' })
+  expect(await pane.find({ type: 'Button', key: 'exported' }), 'exported again').toBeDefined()
+  w.files.delete(file)
+  await pane.unmount()
+  pane = await mount()
+  expect(await pane.find({ type: 'Button', key: 'exported' }), 'its file gone').toBeUndefined()
   // Typed text is a place only when it is a path. The desktop answers a skip, a dismissal and a message sent instead with
   // sentences of its own; neither they nor a bare word export anything.
   const before = w.sent.filter((r) => r.op === 'export').length

@@ -47,7 +47,7 @@ import type { AttachedClient, HostInfo } from '../dist/hosts/claude-code/env.js'
 import { baseName, openersFor } from '../dist/hosts/claude-code/open-file.js'
 import { bandView, BRAND_RED, cellWidth, MARK, MARK_SVG, SEP, toneProps, truncate, wrapCells } from '../dist/hosts/claude-code/band.js'
 import type { BandView, Segment, Tone } from '../dist/hosts/claude-code/band.js'
-import { BOARD_ID, ciSuggestions, DIALOG_ID, glyphSvg, heldRows, HOME_TAB, hostName, ICON_CHAR, ICON_SVG, ICON_TONE, inputAction, paneRows, sessionLabel, TAB_IDS, tabs, toolSuggestions } from '../dist/hosts/claude-code/board.js'
+import { BOARD_ID, ciSuggestions, DIALOG_ID, glyphSvg, heldRows, HOME_TAB, hostName, ICON_CHAR, ICON_SVG, ICON_TONE, inputAction, paneRows, projectPath, sessionLabel, TAB_IDS, tabs, toolSuggestions } from '../dist/hosts/claude-code/board.js'
 import type { BoardRow, FlowEdgeRow, Glyph, Icon } from '../dist/hosts/claude-code/board.js'
 import { boardFailure, boardText, COMMAND_HINT, commandText, parseCommand } from '../dist/hosts/claude-code/command.js'
 import { afterNeeded, beforeDecision, checkoutProbe, isOwnTool, matchesUnit, paramsToFill } from '../dist/hosts/claude-code/fastpath.js'
@@ -1600,6 +1600,8 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       // Other as a path. Nothing to export says so before asking; a dismissed dialog does nothing. The file is linked under the session.
       const t = await words($)
       const which = action.session
+      // A press takes the last export's line away: what stands under a session after it is what this press wrote, if anything.
+      await update($, exportedAtom, () => null)
       const other = which === 'own' ? undefined : await otherSessionText($, which)
       const s = which === 'own' ? await sessionText($, 'geml') : other
       if (s === undefined) return
@@ -2001,16 +2003,19 @@ function hairline(els: Els, key: string, columns: number): unknown {
  * row as it is. Only where the surface draws pictures; the terminal's rows stand alone.
  */
 /** One row as drawRow draws it; a row that cannot be drawn says so in its place. */
-function safeRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknown {
+function safeRow($: EngineInterface, els: Els, row: BoardRow, i: number, toolWidth?: number): unknown {
   try {
-    return drawRow($, els, row, i)
+    return drawRow($, els, row, i, toolWidth)
   } catch (err) {
     return <els.Text key={`row-failed-${i}-${'key' in row ? String(row.key) : row.kind}`} color="error">{`gemflow：${reasonOf(err)}`}</els.Text>
   }
 }
 
 function drawRows($: EngineInterface, els: Els, rows: BoardRow[], columns: number): unknown[] {
-  if (els.Svg === undefined) return rows.map((r, i) => safeRow($, els, r, i))
+  // One name column for every tool on the tab: the uses line up across the groups, and across a menu opened between rows.
+  const tools = rows.filter((r): r is Extract<BoardRow, { kind: 'tool' }> => r.kind === 'tool')
+  const toolWidth = tools.length === 0 ? 0 : Math.min(Math.max(...tools.map((x) => cellWidth(x.name))) + 2, Math.floor(columns * 0.45))
+  if (els.Svg === undefined) return rows.map((r, i) => safeRow($, els, r, i, toolWidth))
   const { Box, Text } = els
   const out: unknown[] = []
   for (let i = 0; i < rows.length; i++) {
@@ -2019,8 +2024,7 @@ function drawRows($: EngineInterface, els: Els, rows: BoardRow[], columns: numbe
       const run: Extract<BoardRow, { kind: 'tool' }>[] = []
       while (i < rows.length && (rows[i] as BoardRow).kind === 'tool') run.push(rows[i++] as Extract<BoardRow, { kind: 'tool' }>)
       i--
-      const width = Math.min(Math.max(...run.map((x) => cellWidth(x.name))) + 2, Math.floor(columns * 0.45))
-      out.push(<Box key={`tools-${r.key}`} flexDirection="column">{run.map((x) => drawTool($, els, x, width))}</Box>)
+      out.push(<Box key={`tools-${r.key}`} flexDirection="column">{run.map((x) => drawTool($, els, x, toolWidth))}</Box>)
       continue
     }
     if (r.kind === 'turn' || r.kind === 'menu') {
@@ -2068,7 +2072,7 @@ function drawTool($: EngineInterface, els: Els, row: Extract<BoardRow, { kind: '
   )
 }
 
-function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknown {
+function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number, toolWidth?: number): unknown {
   const { Box, Text, Button, Link, Input } = els
   switch (row.kind) {
     case 'section': return (
@@ -2149,9 +2153,12 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
         : <Input key={row.key} placeholder={row.placeholder} {...(row.value !== undefined ? { value: row.value } : {})} onSubmit={run} />
     }
     // A tool in one line: its name as the press that opens its menu, its use, what it looks like, how often it ran.
+    // The name in the tab's one name column (drawRows measures it), so the uses start at the same edge in every group.
     case 'tool': return (
       <Box key={row.key} gap={2} paddingX={1}>
-        {row.action !== undefined ? <Button key={`open-${row.key}`} plain label={row.name} onPress={press($, row.action)} /> : <Text {...toneProps(row.tone)}>{row.name}</Text>}
+        <Box {...(toolWidth !== undefined && toolWidth > 0 ? { width: toolWidth } : {})} flexShrink={0} overflow="hidden">
+          {row.action !== undefined ? <Button key={`open-${row.key}`} plain label={row.name} onPress={press($, row.action)} /> : <Text {...toneProps(row.tone)} wrap="truncate-end">{row.name}</Text>}
+        </Box>
         <Text dimColor>{row.use}</Text>
         {row.guess !== '' && <Text {...toneProps('warning')}>{row.guess}</Text>}
         <Box flexGrow={1} />
@@ -2472,7 +2479,12 @@ async function tabRows($: EngineInterface, e: { surface: string; props: { bodyCo
     read($, doneOpenAtom), read($, sessionFlowAtom), read($, sessionRunsAtom),
     read($, flowStateAtom), read($, flowSwitchAtom), read($, workflowsAtom),
     usageDrawn($), dismissedOf($), read($, toolQueryAtom), read($, toolMenuAtom), read($, toolNamingAtom), read($, toolsOpenAtom),
-    shows(tab === 'sessions' || tab === 'journal')(() => read($, exportedAtom), null),
+    // The last export's line, while its file is there: one moved or deleted since draws none. A look that fails keeps it.
+    shows(tab === 'sessions' || tab === 'journal')(async () => {
+      const [path, at] = await Promise.all([read($, exportedAtom), read($, rootAtom)])
+      if (path === null || path === '' || at === null) return path
+      return (await $.fs.exists(projectPath(at, path)).catch(() => true)) ? path : null
+    }, null),
     shows(tab === 'sessions')(() => read($, exportedForAtom), null),
     shows(tab === 'items')(() => read($, droppedOpenAtom), false),
     shows(tab === 'items')(() => read($, artifactMenuAtom), null),
