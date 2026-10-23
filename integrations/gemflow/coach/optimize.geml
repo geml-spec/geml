@@ -1,0 +1,24 @@
+=== meta
+title   = "优化"
+profile = "geml-statechart/v1"
+===
+
+=== diagram {#flow format=geml-statechart caption="优化"}
+{
+  "initial": "baseline",
+  "states": {
+    "baseline": { "title": "测基线", "description": "记下现在的数字" },
+    "change":   { "title": "改", "description": "一次改一处" },
+    "measure":  { "title": "复测", "description": "数字比基线好" },
+    "confirm":  { "title": "你确认", "description": "你认可这个数字" },
+    "done":     { "title": "完成", "final": true }
+  },
+  "transitions": [
+    { "from": "baseline", "to": "change" },
+    { "from": "change",   "to": "measure" },
+    { "from": "measure",  "to": "confirm" },
+    { "from": "confirm",  "to": "done", "approval": true },
+    { "from": "measure",  "to": "change", "guard": "没变好" }
+  ]
+}
+===

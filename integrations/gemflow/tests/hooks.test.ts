@@ -382,7 +382,7 @@ test('real event order: session start, a test run moves the stage, the board mov
   await start($, on)
   expect(w.sent.map((r) => r.op), 'the board the inbox is built from is read at the start').toEqual(['status', 'refresh', 'board', 'attention'])
   expect(w.sent[0]).toMatchObject({ v: 1, root: ROOT })
-  expect(w.registered).toEqual(['status', 'move', 'set', 'note', 'artifact', 'ask'])
+  expect(w.registered).toEqual(['status', 'move', 'set', 'note', 'artifact', 'ask', 'work'])
 
   const tests = await $.tool.call({ tool: 'Bash', tool_use_id: 'b1', command: 'npm test' })
   expect(w.sent.at(-1)).toMatchObject({ op: 'after', tool: 'Bash', callId: 'b1', exitCode: 0, isError: false, gitOperation: false, input: { command: 'npm test' } })
@@ -595,7 +595,7 @@ test('a registration the engine refuses: the start goes on, and the band says wh
   w.refuse = { set: 'a tool named set is already registered' }
   await start($, on)
   expect(w.sent.map((r) => r.op)).toEqual(['status', 'refresh', 'board', 'attention'])
-  expect(w.registered).toEqual(['status', 'move', 'note', 'artifact', 'ask'])
+  expect(w.registered).toEqual(['status', 'move', 'note', 'artifact', 'ask', 'work'])
   expect(await bandText($, 'terminal', 400)).toMatch(/^» gemflow：没有注册上 set（[^（]*already registered[^）]*） \[看板\]$/)
 })
 
@@ -1622,6 +1622,57 @@ test('the project record: a prompt opens a turn in this session\'s log, the mode
   ])
 })
 
+const BUGFIX = '=== meta\ntitle = "bugfix"\nprofile = "geml-statechart/v1"\n===\n\n=== diagram {#flow format=geml-statechart caption="bugfix"}\n{"initial":"reproduce","states":{"reproduce":{"title":"复现","description":"版本已确认"},"fix":{"title":"修","description":"一个猜测一版"},"confirm":{"title":"你确认","description":"你按过说对"},"done":{"title":"完成","final":true}},"transitions":[{"from":"reproduce","to":"fix"},{"from":"fix","to":"confirm"},{"from":"confirm","to":"done"},{"from":"confirm","to":"reproduce","guard":"你说没好"}]}\n===\n'
+
+test('the coach: the model reports the turn\'s work items with the work tool; the work items tab lists each with the arrow to its flow, the flow tab draws its flow with the item on it, and the band names it', async ($, on) => {
+  const w = world(on)
+  w.sessionsDir = LOGS
+  // The project's own bugfix flow, beside its sessions, before the one the plugin ships.
+  w.files.set(`${ROOT}/.geml/coach/bugfix.geml`, BUGFIX)
+  const contexts: (readonly string[] | undefined)[] = []
+  on('prompt.submit', ($, e) => { contexts.push(e.context); return { text: e.text } })
+  on('turn.complete', ($, e) => ({ text: e.answer }))
+  const clock = await start($, on)
+  await clock.advance(1)
+  await $.prompt.submit({ text: '导出跳过还是存了', wait: false, origin: COMPOSER })
+  expect((contexts.at(-1) ?? []).some((x) => x.includes('`work` tool') && x.includes('bugfix bugfix: reproduce 复现 → fix 修 → confirm 你确认 → done 完成')), 'told once, with the flows').toBe(true)
+  const bad = await $.tool.call({ tool: 'mcp__gemflow__work', tool_use_id: 'w0', items: [{ title: 'x', flow: 'bugfix', state: 'nowhere' }] })
+  expect(String(bad.text ?? bad.result)).toMatch(/^Nothing recorded: item 1: bugfix has no state "nowhere"/)
+  const said = await $.tool.call({ tool: 'mcp__gemflow__work', tool_use_id: 'w1', items: [{ title: '导出跳过不留', flow: 'bugfix', state: '你确认', needs: '你按一次跳过', goal: '跳过不留文件' }] })
+  expect(String(said.text ?? said.result), 'a state named by its title').toMatch(/^Recorded #\w+ «导出跳过不留» \(bugfix: confirm\)\./)
+  await $.turn.complete({ answer: '改好了。', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' })
+  await clock.advance(1)
+  const item = events(w.files.get(OWN_LOG)).find((x) => x.t === 'item')
+  expect(item).toMatchObject({ turn: 1, flow: 'bugfix', title: '导出跳过不留', state: 'confirm', needs: '你按一次跳过', goal: '跳过不留文件', status: 'open' })
+  const id = String(item!['id'])
+  // The next prompt carries it by its id, so the report updates it.
+  await $.prompt.submit({ text: '再看下', wait: false, origin: COMPOSER })
+  expect((contexts.at(-1) ?? []).find((x) => x.startsWith('[gemflow] work items on the way'))).toBe(`[gemflow] work items on the way: #${id} «导出跳过不留» (bugfix: confirm 你确认, needs 你按一次跳过)`)
+  // Nothing waits on the person: the band names it in place of the workflow's stage.
+  const band = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+  const line = shown((await band.drawn()) as unknown as Drawn).join(' ')
+  await band.unmount()
+  expect(line).toMatch(/bugfix 导出跳过不留 · 还差：你按一次跳过/)
+  expect(line).not.toMatch(/我在做/)
+  await $.command.run({ command: 'gemflow', args: 'board items', origin: COMPOSER, presentation: PRESENTATION })
+  const mount = () => $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: { ...PANE, bodyColumns: 120 } })
+  let pane = await mount()
+  const words = async (): Promise<string> => shown((await pane.drawn()) as unknown as Drawn).join(' ')
+  expect(await words(), 'its row: flow, name, state').toMatch(/bugfix 导出跳过不留 你确认/)
+  expect(await words(), 'what it needs and ends as').toMatch(/还差：你按一次跳过 · 最后：跳过不留文件/)
+  await pane.press({ key: `work-go-${id}` })
+  await pane.unmount()
+  pane = await mount()
+  expect(hasSvg((await pane.drawn()) as unknown as Drawn, '复现 → 修 → [你确认 ·1] → 完成'), 'the arrow: its flow, the item on its state').toBe(true)
+  expect(await words()).toMatch(/bugfix 1 件在走/)
+  expect(await words(), 'the state it stands in: the item, what it needs, what the state needs to be left').toMatch(/导出跳过不留 你确认 还差：你按一次跳过 离开要求：你按过说对/)
+  await pane.unmount()
+  // Where the surface draws no pictures, the flow is one line.
+  const term = await $.ui.mount({ plugin: 'gemflow', surface: 'terminal', component: 'Pane', requestId: 'gemflow-board', props: PANE })
+  expect(shown((await term.drawn()) as unknown as Drawn).join(' ')).toMatch(/复现 → 修 → \[你确认 ·1\] → 完成/)
+  await term.unmount()
+})
+
 test('a page the Artifact tool published is an artifact of the work item, named by its title; the model records a link of its own with the artifact tool', async ($, on) => {
   const w = world(on)
   const said = 'Published C:/s/page.html at https://claude.ai/artifact/AbC123 (Version 2, version id 1792086025-315b) Icon: "layout".'
@@ -2233,6 +2284,22 @@ test('a draft handed to git commit as its message is no artifact: not recorded a
   await clock.advance(1)
   const sent = w.sent.filter((r) => r.op === 'artifacts')
   expect(sent.map((r) => [r.elsewhere ?? null, r.notMade ?? null])).toEqual([[['/tmp/scratch/page.html'], ['/tmp/scratch/msg.txt']]])
+})
+
+test('a visual drawn inline has no file or link of its own: it is kept as a page in the project\'s .geml/visuals/, named by its title, among the turn\'s artifacts', async ($, on) => {
+  const w = world(on)
+  w.sessionsDir = `${ROOT}/.geml/sessions`
+  on('tool.call', { tool: 'mcp__visualize__show_widget' }, () => ({ result: 'Content rendered and shown to the user.', text: 'Content rendered and shown to the user.' }))
+  on('turn.complete', ($, e) => ({ text: e.answer }))
+  const clock = await start($, on)
+  await clock.advance(1)
+  await $.tool.call({ tool: 'mcp__visualize__show_widget', tool_use_id: 'v1', title: 'coach_flow_v3', loading_messages: ['画'], widget_code: '<div class="pane">流程页</div>' })
+  await clock.advance(1)
+  await $.turn.complete({ answer: '样稿在这。', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' })
+  await clock.advance(1)
+  const page = `${ROOT}/.geml/visuals/coach_flow_v3.html`
+  expect(w.files.get(page) ?? '', 'the page: the widget whole').toContain('<div class="pane">流程页</div>')
+  expect(w.sent.filter((r) => r.op === 'artifacts').flatMap((r) => (r.elsewhere as string[] | undefined) ?? []), 'an artifact of the turn').toEqual([page])
 })
 
 test('a commit draft named the Git Bash way on Windows (/c/Users/…) is the file the write tool named C:\\Users\\…: no artifact either', async ($, on) => {

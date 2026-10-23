@@ -1,0 +1,24 @@
+=== meta
+title   = "bugfix"
+profile = "geml-statechart/v1"
+===
+
+=== diagram {#flow format=geml-statechart caption="bugfix"}
+{
+  "initial": "reproduce",
+  "states": {
+    "reproduce": { "title": "复现", "description": "版本已确认" },
+    "fix":       { "title": "修", "description": "一个猜测一版" },
+    "verify":    { "title": "验证", "description": "测试通过" },
+    "confirm":   { "title": "你确认", "description": "你按过说对" },
+    "done":      { "title": "完成", "final": true }
+  },
+  "transitions": [
+    { "from": "reproduce", "to": "fix" },
+    { "from": "fix",       "to": "verify" },
+    { "from": "verify",    "to": "confirm" },
+    { "from": "confirm",   "to": "done", "approval": true },
+    { "from": "confirm",   "to": "reproduce", "guard": "你说没好" }
+  ]
+}
+===

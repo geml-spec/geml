@@ -41,6 +41,9 @@ import { appendEvents, currentTurn, decisionsContext, decisionsSince, formatLog,
 import type { SessionEvent, SessionSummary } from '../dist/core/session-log.js'
 import { ARTIFACT_TOOL, isMadeForPeople, publishedLink } from '../dist/core/artifact-tool.js'
 import { ASK_PROMPT, ASK_TOOL, askedOf } from '../dist/core/ask-tool.js'
+import { COACH_FLOWS, coachBand, readCoachFlow, WORK_TOOL, workContext, workEvents, workItemsOf, workPrompt } from '../dist/hosts/claude-code/coach.js'
+import type { CoachFlow, CoachFocus, WorkItem } from '../dist/hosts/claude-code/coach.js'
+import { isVisualTool, visualFileName, visualPage } from '../dist/hosts/claude-code/visual.js'
 import { transcriptEvents, type Transcript } from '../dist/core/transcript.js'
 import type { Asked } from '../dist/core/ask-tool.js'
 import type { AttachedClient, HostInfo } from '../dist/hosts/claude-code/env.js'
@@ -191,6 +194,9 @@ const expandedTurnAtom = atom({ plugin: 'gemflow', key: 'expandedTurn' } as cons
 const exportedAtom = atom({ plugin: 'gemflow', key: 'exported' } as const, null as string | null)
 /** The session the last export on the sessions tab was of (`own` or its id), where its file is linked. */
 const exportedForAtom = atom({ plugin: 'gemflow', key: 'exportedFor' } as const, null as string | null)
+/** The coach's light flows, read once (coachFlows); the work item whose arrow was pressed. */
+const coachFlowsAtom = atom({ plugin: 'gemflow', key: 'coachFlows' } as const, null as GemflowJson)
+const coachFocusAtom = atom({ plugin: 'gemflow', key: 'coachFocus' } as const, null as GemflowJson)
 /** The share dialog's text, shown to select where nothing can be copied (the desktop has no clipboard for a plugin). */
 const sharedTextAtom = atom({ plugin: 'gemflow', key: 'sharedText' } as const, null as string | null)
 const readQueued = async ($: EngineInterface): Promise<Queued[]> => ((await read($, queuedAtom)) as unknown as Queued[] | null) ?? []
@@ -421,7 +427,8 @@ async function prefaceFor($: EngineInterface): Promise<string[]> {
     // Told already; or compose ran, so the system prompt carries them; or the probe saw the event reach the engine.
     if (told === true || composed === true || cut === false) return []
     await update($, toldAtom, () => true)
-    return [SESSIONS_PROMPT, ASK_PROMPT]
+    const flows = await coachFlows($).catch(() => [] as CoachFlow[])
+    return [SESSIONS_PROMPT, ASK_PROMPT, ...(flows.length > 0 ? [workPrompt(flows)] : [])]
   } catch {
     return []
   }
@@ -691,6 +698,74 @@ async function noteDecisions($: EngineInterface, event: unknown): Promise<ToolCa
   return { result: `Recorded ${given.length} decision${given.length === 1 ? '' : 's'}; the project's other sessions will see ${given.length === 1 ? 'it' : 'them'}.${leftOut}` }
 }
 
+/**
+ * The coach's light flows: the project's own (`.geml/coach/<name>.geml` beside its sessions), else the ones the plugin
+ * ships; read once a session. A flow neither has, or one that does not read, is left out.
+ */
+async function coachFlows($: EngineInterface): Promise<CoachFlow[]> {
+  const kept = (await read($, coachFlowsAtom)) as unknown as CoachFlow[] | null
+  if (kept !== null && kept.length > 0) return kept
+  const dir = await read($, sessionsDirAtom)
+  const own = dir !== null ? dir.replace(/[\\/]sessions[\\/]?$/, '/coach') : undefined
+  const flows: CoachFlow[] = []
+  for (const name of COACH_FLOWS) {
+    for (const path of [...(own !== undefined ? [`${own}/${name}.geml`] : []), `${$.plugin.root}/coach/${name}.geml`]) {
+      const text = await $.fs.read(path).then(String, () => undefined)
+      const flow = text !== undefined ? readCoachFlow(name, text) : undefined
+      if (flow !== undefined) { flows.push(flow); break }
+    }
+  }
+  if (flows.length > 0) await update($, coachFlowsAtom, () => flows as unknown as GemflowJson)
+  return flows
+}
+
+/** The flows as read so far: what a drawing uses, since a drawing writes nothing (coachFlows reads them). */
+async function coachFlowsKept($: EngineInterface): Promise<CoachFlow[]> {
+  return ((await read($, coachFlowsAtom)) as unknown as CoachFlow[] | null) ?? []
+}
+
+/** The work items the project's sessions reported, as they stand now. */
+async function workItems($: EngineInterface): Promise<WorkItem[]> {
+  return workItemsOf(((await read($, projectSessionsAtom)) as unknown as SessionSummary[] | null) ?? [])
+}
+
+/** The work tool: the turn's work items, checked against the flows, into this session's log; the board shows them. */
+async function recordWork($: EngineInterface, event: unknown): Promise<ToolCallResult> {
+  if ((event as { agentId?: string }).agentId !== undefined) return { result: 'Not recorded: only the main conversation reports work items.' }
+  if ((await read($, sessionsDirAtom)) === null) return { result: 'Nothing recorded: this project has no shared session record yet (gemflow has not read the repository).' }
+  const flows = await coachFlows($)
+  const items = await workItems($)
+  const at = await nowIso($)
+  const stamp = Date.parse(at).toString(36).slice(-6)
+  let errors: string[] = []
+  let made: SessionEvent[] = []
+  await appendOwn($, (so) => {
+    const r = workEvents(toolArgs(event as Record<string, unknown>), flows, items, at, currentTurn(so), (n) => `${stamp}${n}`)
+    errors = r.errors
+    made = r.events
+    return r.events
+  })
+  if (made.length === 0) return { result: `Nothing recorded: ${errors.join('; ') || 'items is a list of work items'}.` }
+  // The board reads the sessions it was drawn from: their new record draws it again.
+  await loadProjectSessions($)
+  const said = made.map((e) => (e.t === 'item' ? `#${e.id} «${e.title}» (${e.flow}: ${e.state}${e.status !== 'open' ? `, ${e.status}` : ''})` : '')).join('; ')
+  return { result: `Recorded ${said}.${errors.length > 0 ? ` Left out: ${errors.join('; ')}.` : ''}` }
+}
+
+/**
+ * A visual drawn inline (the visualize tool) has no file or link of its own: a page of it in the project's `.geml/visuals/`,
+ * named by its title (the same title, a new version), among the turn's artifacts at its end.
+ */
+async function keepVisual($: EngineInterface, input: Record<string, unknown>): Promise<void> {
+  const code = typeof input['widget_code'] === 'string' ? input['widget_code'] : ''
+  const dir = await read($, sessionsDirAtom)
+  if (code.trim() === '' || dir === null) return
+  const title = typeof input['title'] === 'string' ? input['title'] : ''
+  const path = `${dir.replace(/[\\/]sessions[\\/]?$/, '')}/visuals/${visualFileName(title)}`
+  await $.fs.write(path, visualPage(title, code))
+  await update($, madeElsewhereAtom, (was) => [...new Set([...(was ?? []), path])])
+}
+
 /** A turn's end, on a work item: the files it wrote that git does not keep get a version where their content changed. */
 async function artifactsOnTurn($: EngineInterface): Promise<void> {
   const [shell, made, drafts] = await Promise.all([readShell($), read($, madeElsewhereAtom), read($, notMadeAtom)])
@@ -870,6 +945,8 @@ async function startBridge($: EngineInterface): Promise<void> {
   startRetrying = false
   const dir = res.ok ? res.sessions : undefined
   if (dir !== undefined && dir !== (await read($, sessionsDirAtom))) await update($, sessionsDirAtom, () => dir)
+  // The coach's flows, read once the project's home is known (its own flows sit beside its sessions).
+  $.clock.after(0, () => { void coachFlows($).catch(() => undefined) })
   // git and gh can take seconds: catch up outside the start the first prompt waits on, and read the board the inbox is built from.
   $.clock.after(0, () => {
     void bridge($, { op: 'refresh' }, SLOW_TIMEOUT_MS).then(() => loadBoard($))
@@ -1437,6 +1514,11 @@ async function share($: EngineInterface, what: ShareWhat, how: ShareHow, strip: 
 async function act($: EngineInterface, action: BoardAction, surface?: string): Promise<void> {
   // A view change first, before anything is read: a tab, a filter, a fold or a menu shows at once.
   switch (action.op) {
+    case 'coach-go': {
+      await update($, coachFocusAtom, () => ({ flow: action.flow, id: action.id }))
+      await update($, tabAtom, () => 'flow')
+      return
+    }
     case 'tab': {
       await update($, tabAtom, () => action.tab)
       trace($, `tab is now ${action.tab}`)
@@ -2181,6 +2263,19 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number, toolWid
     }
     // A tool in one line: its name as the press that opens its menu, its use, what it looks like, how often it ran.
     // The name in the tab's one name column (drawRows measures it), so the uses start at the same edge in every group.
+    // A work item on the way: its flow's word, its name, the state it stands in, and the arrow to its flow; under it what it needs and ends as.
+    case 'work': return (
+      <Box key={row.key} flexDirection="column" paddingX={1}>
+        <Box gap={1}>
+          <Text {...toneProps(row.flow === 'bugfix' ? 'error' : row.flow === 'design' ? 'warning' : 'success')}>{els.Svg !== undefined ? row.tag : `[${row.tag}]`}</Text>
+          <Box flexShrink={1} minWidth={0}><Text wrap="truncate-end">{row.title}</Text></Box>
+          <Box flexGrow={1} />
+          <Text dimColor>{row.state}</Text>
+          {els.Svg !== undefined ? iconButton($, els, row.go, 'go', { from: 'right', size: 15 }) : <Button key={row.go.key} plain label="›" onPress={press($, row.go.action)} />}
+        </Box>
+        {row.detail !== '' && <Text dimColor wrap="truncate-end">{row.detail}</Text>}
+      </Box>
+    )
     case 'tool': return (
       <Box key={row.key} gap={2} paddingX={1}>
         <Box {...(toolWidth !== undefined && toolWidth > 0 ? { width: toolWidth } : {})} flexShrink={0} overflow="hidden">
@@ -2524,6 +2619,7 @@ async function tabRows($: EngineInterface, e: { surface: string; props: { bodyCo
     board, problem, shell, tab, columns, maxRows: Math.max(4, e.props.scroll.bodyRows - 4), t, now, root: root ?? '', inbox,
     filter: filter as JournalFilter, expanded, evidence, prompts,
     ...(project !== null ? { project, scrolls: e.surface === 'terminal', unfolded: unfolded as unknown as { id: string; answer: string | null } | null } : {}),
+    ...(tab === 'items' || tab === 'flow' ? { coach: { items: await workItems($), flows: await coachFlowsKept($), focus: (await read($, coachFocusAtom)) as unknown as CoachFocus | null } } : {}),
     exportedFor, doneOpen, droppedOpen, sessionFlow, sessionLimit: await read($, turnsShownAtom), picked: ((await read($, pickedAtom)) as string[] | null) ?? [], tidying: (await read($, tidyingAtom)) === true, sessionRuns: (sessionRuns as unknown as string[] | null) ?? [],
     flowState, switching, workflows: workflows as unknown as { bundled: string[]; installed: string[] } | null,
     usage, dismissed, toolQuery, toolMenu, toolNaming, toolsOpen: (toolsOpen as unknown as string[] | null) ?? [],
@@ -2592,6 +2688,7 @@ export const register: Register = (on) => {
     await registerOne($, NOTE_TOOL.name, () => $.tool.register({ name: NOTE_TOOL.name, description: NOTE_TOOL.description, inputSchema: NOTE_TOOL.inputSchema as unknown as Record<string, unknown>, isDeferred: false }))
     await registerOne($, ARTIFACT_TOOL.name, () => $.tool.register({ name: ARTIFACT_TOOL.name, description: ARTIFACT_TOOL.description, inputSchema: ARTIFACT_TOOL.inputSchema as unknown as Record<string, unknown>, isDeferred: false }))
     await registerOne($, ASK_TOOL.name, () => $.tool.register({ name: ASK_TOOL.name, description: ASK_TOOL.description, inputSchema: ASK_TOOL.inputSchema as unknown as Record<string, unknown>, isDeferred: false }))
+    await registerOne($, WORK_TOOL.name, () => $.tool.register({ name: WORK_TOOL.name, description: WORK_TOOL.description, inputSchema: WORK_TOOL.inputSchema as unknown as Record<string, unknown>, isDeferred: false }))
     await registerOne($, '/gemflow', () => $.command.register({ name: 'gemflow', description: 'Gemflow：当前阶段、看板、暂停与继续、切换或添加流程', argumentHint: COMMAND_HINT }))
     // The settings, from the store; the host's language; the plugin's version.
     try {
@@ -2656,7 +2753,7 @@ export const register: Register = (on) => {
     const tool = String(e.tool)
     // How often each tool is used: every call is noted under its day as it starts, by the key the dictionary would give it, gemflow's own too.
     await noteUsage($, tool, toolArgs(e as unknown as Record<string, unknown>))
-    if (isOwnTool(tool) || tool === `mcp__gemflow__${NOTE_TOOL.name}` || tool === `mcp__gemflow__${ARTIFACT_TOOL.name}` || tool === `mcp__gemflow__${ASK_TOOL.name}`) return next(e)
+    if (isOwnTool(tool) || tool === `mcp__gemflow__${NOTE_TOOL.name}` || tool === `mcp__gemflow__${ARTIFACT_TOOL.name}` || tool === `mcp__gemflow__${ASK_TOOL.name}` || tool === `mcp__gemflow__${WORK_TOOL.name}`) return next(e)
     await retryStart($)
     if (e.agentId === undefined) await notePrompt($, (p) => ({ ...p, tools: p.tools + 1 }))
     const input = toolArgs(e as unknown as Record<string, unknown>)
@@ -2702,6 +2799,8 @@ export const register: Register = (on) => {
     const ran = await next(fill === undefined ? e : { ...e, ...fill })
     if (ran.deny !== undefined) return ran
     // A page the Artifact tool published is one of the work item's artifacts: recorded once the call is answered.
+    // A visual drawn inline is kept as a page: it has no file or link of its own.
+    if (isVisualTool(tool) && ran.isError !== true) $.clock.after(0, () => { void keepVisual($, input).catch(() => undefined) })
     if (tool === 'Artifact' && ran.isError !== true) { const said = ran.text ?? (typeof ran.result === 'string' ? ran.result : undefined); $.clock.after(0, () => { void publishedArtifact($, said, input).catch(() => undefined) }) }
     const wrotePath = touchedPath(tool, input, root ?? '')
     // A file written in another checkout is that checkout's work item, never the session's current one.
@@ -2764,12 +2863,14 @@ export const register: Register = (on) => {
   on('tool.call', { tool: 'mcp__gemflow__note' }, ($, e) => noteDecisions($, e)).catch(() => ({ result: 'gemflow could not record that' }))
   on('tool.call', { tool: 'mcp__gemflow__artifact' }, ($, e) => recordArtifact($, e)).catch(() => ({ result: 'gemflow could not record that' }))
   on('tool.call', { tool: 'mcp__gemflow__ask' }, ($, e) => registerAsk($, e)).catch(() => ({ result: 'gemflow could not register that' }))
+  on('tool.call', { tool: 'mcp__gemflow__work' }, ($, e) => recordWork($, e)).catch(() => ({ result: 'gemflow could not record that' }))
 
   // The model is told about the project's other sessions and the ask tool in the system prompt, where this event reaches gemflow (see prefaceFor).
   on('prompt.compose', async ($, e, next) => {
     const done = await next(e)
     try { await update($, composedAtom, () => true) } catch { /* the next prompt may say it once more */ }
-    return { ...done, sections: [...done.sections, { id: 'gemflow:sessions', text: SESSIONS_PROMPT, scope: 'session' as const }, { id: 'gemflow:ask', text: ASK_PROMPT, scope: 'session' as const }] }
+    const flows = await coachFlows($).catch(() => [] as CoachFlow[])
+    return { ...done, sections: [...done.sections, { id: 'gemflow:sessions', text: SESSIONS_PROMPT, scope: 'session' as const }, { id: 'gemflow:ask', text: ASK_PROMPT, scope: 'session' as const }, ...(flows.length > 0 ? [{ id: 'gemflow:work', text: workPrompt(flows), scope: 'session' as const }] : [])] }
   }).catch(($, e, next) => next(e))
 
   // A main-loop turn's end: the first sentence of its answer goes on its prompt's row, as what the turn did.
@@ -2819,6 +2920,8 @@ export const register: Register = (on) => {
     if (person && e.origin.kind !== 'plugin') { try { await update($, originAtom, () => e.origin.kind) } catch { /* unknown */ } }
     // The first prompt of a conversation carries the standing instructions, where the system prompt did not.
     const news = [...(await prefaceFor($)), ...(person ? [...(await attentionOnPrompt($, e.text)), ...(await sessionsOnPrompt($, e.text).catch(() => [] as string[]))] : [])]
+    // The work items on the way, by id, so the turn's report updates them rather than reporting them anew.
+    try { news.push(...workContext(await workItems($), await coachFlows($))) } catch { /* the model reports them anew */ }
     // What the person gave with it (images, documents) is one of the work item's artifacts: copied once the prompt entered, behind it.
     const given = person ? e.attachments ?? [] : []
     const go = (ev: typeof e) => next(news.length > 0 ? { ...ev, context: [...(ev.context ?? []), ...news] } : ev).then((done) => {
@@ -2925,6 +3028,11 @@ export const register: Register = (on) => {
         shell, problem: await read($, problemAtom), setup: await read($, setupAtom), notice, todo: (await read($, todoAtom)) as unknown as TodoCount | null,
         inbox, timeline: board?.timeline ?? [], now: await nowIso($), t,
       })
+      // Nothing waits on the person: the band names the work item this session was on last (coach.ts), not the stage the workflow holds.
+      if (view.verb === t('我在做')) {
+        const line = coachBand(await workItems($), await coachFlowsKept($), await $.session.id().catch(() => ''), t)
+        if (line !== undefined) view = { ...view, verb: line.verb, title: line.title, note: line.note, detail: [line.verb, line.title, line.note].join(SEP) }
+      }
       // No shell yet and a start that got no answer: the band says it is trying again, not 启动中… for good.
       if (shell === null && startRetrying && view.tone !== 'error') view = { ...view, note: t('桥接未应答，重试中') }
     } catch (err) {

@@ -1,0 +1,24 @@
+=== meta
+title   = "新功能"
+profile = "geml-statechart/v1"
+===
+
+=== diagram {#flow format=geml-statechart caption="新功能"}
+{
+  "initial": "mockup",
+  "states": {
+    "mockup":  { "title": "样稿", "description": "你看过说行" },
+    "build":   { "title": "实现", "description": "一个模块一版" },
+    "verify":  { "title": "验证", "description": "测试通过" },
+    "confirm": { "title": "你确认", "description": "你按过说对" },
+    "done":    { "title": "完成", "final": true }
+  },
+  "transitions": [
+    { "from": "mockup",  "to": "build" },
+    { "from": "build",   "to": "verify" },
+    { "from": "verify",  "to": "confirm" },
+    { "from": "confirm", "to": "done", "approval": true },
+    { "from": "confirm", "to": "build", "guard": "你说不对" }
+  ]
+}
+===

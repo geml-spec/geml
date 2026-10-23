@@ -34,6 +34,8 @@ export type BoardAction =
   | { op: "retry" }
   /** Show a tab; the journal's with `filter`. */
   | { op: "tab"; tab: BoardTab; filter?: JournalFilter }
+  /** A work item's arrow (coach.ts): the flow tab, its flow first and the item marked. */
+  | { op: "coach-go"; flow: string; id: string }
   | { op: "filter"; filter: JournalFilter }
   /** Open one journal entry's menu (its key), or close it. */
   | { op: "expand"; entry: string | null }

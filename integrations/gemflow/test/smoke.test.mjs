@@ -14,7 +14,7 @@ test("package identity: the renamed bundle", () => {
   assert.deepEqual([lock.version, lock.packages[""].version, claude.version, codex.version], Array(4).fill(pkg.version), "every manifest names the package's version: the board shows the plugin's, so a bump that missed one would say the wrong version");
   assert.equal(pkg.bin["gemflow"], "dist/cli.js");
   assert.equal(pkg.dsh.bundle.patch, "./cordis.patch.yml");
-  assert.deepEqual([...pkg.files].sort(), [".claude-plugin/plugin.json", ".codex-plugin/plugin.json", ".codexignore", "LICENSE", "client.js", "codex", "cordis.patch.yml", "dist", "examples", "hooks", "skills", "spec", "types", "workflows"]);
+  assert.deepEqual([...pkg.files].sort(), [".claude-plugin/plugin.json", ".codex-plugin/plugin.json", ".codexignore", "LICENSE", "client.js", "coach", "codex", "cordis.patch.yml", "dist", "examples", "hooks", "skills", "spec", "types", "workflows"]);
   assert.equal(pkg.scripts.postinstall, undefined, "no lifecycle scripts: installing must never need allowBuilds");
 });
 

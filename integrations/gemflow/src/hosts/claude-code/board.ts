@@ -10,6 +10,7 @@ import { othersWaiting, pendingList, shortReason, type InboxItem } from "./inbox
 import type { BoardData, BoardItem, MadeEntry, Artifacts, ShellStatus, TimelineEntry } from "./protocol.js";
 import { promptLine, promptTail, type PromptRecord } from "./sessions.js";
 import type { SessionSummary } from "../../core/session-log.js";
+import { coachFlowRows, workRows, type CoachFlow, type CoachFocus, type WorkItem } from "./coach.js";
 import type { AheadFact, PrFact } from "./attention.js";
 import { ZH, type T } from "./text.js";
 import { agoText, between, dayText, durationText, hhmm, waitedText } from "./time.js";
@@ -90,7 +91,9 @@ export type BoardRow =
   /** A row's menu, opened by a press on it: a short column of entries under it. */
   | { kind: "menu"; key: string; items: Pressable[] }
   /** Running text shown whole: a turn's prompt, its answer (Markdown, where the surface draws it). */
-  | { kind: "prose"; key: string; text: string; markdown?: boolean };
+  | { kind: "prose"; key: string; text: string; markdown?: boolean }
+  /** A work item on the way (coach.ts): its flow (`flow` the file name, `tag` its words), its name, the state it stands in, what it needs and ends as, and the arrow to its flow. */
+  | { kind: "work"; key: string; flow: string; tag: string; title: string; state: string; detail: string; go: Pressable };
 
 /** What a card asks of the person: to decide, to accept the work, or to see why something is blocked. */
 export type Icon = "ask" | "done" | "warn";
@@ -108,7 +111,7 @@ export const ICON_SVG: Readonly<Record<Icon, string>> = { ask: iconSvg("ask"), d
  * The pane's line icons, drawn as the design draws them (docs/design/ui/2026-10-13-gemflow-ui): a tab's, a dialog's,
  * and each kind of journal entry's. Only where the surface draws pictures; elsewhere the words stand alone.
  */
-export type Glyph = BoardTab | "share" | "settings" | "upgrade" | "about" | "artifact" | "evidence" | "move" | "refused" | "start" | "waits" | "done" | "board" | "split" | "delete" | "locate" | "unfold" | "fold" | "box" | "boxon";
+export type Glyph = BoardTab | "share" | "settings" | "upgrade" | "about" | "artifact" | "evidence" | "move" | "refused" | "start" | "waits" | "done" | "board" | "split" | "delete" | "locate" | "unfold" | "fold" | "box" | "boxon" | "go";
 const GLYPH_PATH: Readonly<Record<Glyph, string>> = {
   sessions: '<path d="M4 5h16v11H9l-5 4z"/>',
   flow: '<rect x="3" y="3" width="7" height="5" rx="1"/><rect x="14" y="16" width="7" height="5" rx="1"/><path d="M6.5 8v5h11v3"/>',
@@ -130,6 +133,7 @@ const GLYPH_PATH: Readonly<Record<Glyph, string>> = {
   split: '<path d="M13 5h7v14h-7"/><path d="M3 12h10M10 9l3 3-3 3"/>',
   box: '<rect x="4" y="4" width="16" height="16" rx="4"/>',
   boxon: '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 12.2l2.4 2.4 4.6-5"/>',
+  go: '<path d="M9.5 6l6 6-6 6"/>',
   delete: '<path d="M5 7h14M9.5 7V4.5h5V7M7.5 7l.8 13h7.4l.8-13"/>',
   locate: '<circle cx="12" cy="12" r="3.5"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/>',
   unfold: '<path d="M7 10l5 5 5-5"/>',
@@ -253,6 +257,8 @@ export interface PaneInput {
   docsOpen?: boolean;
   /** The state the flow tab shows below its picture, or null for the current one. */
   flowState: string | null;
+  /** The coach (coach.ts): the work items the sessions reported, the light flows, and the item whose arrow was pressed. */
+  coach?: { items: readonly WorkItem[]; flows: readonly CoachFlow[]; focus: CoachFocus | null };
   /** Whether the flow tab lists the workflows to switch to; and those workflows, once read. */
   switching: boolean;
   workflows: { bundled: string[]; installed: string[] } | null;
@@ -304,9 +310,12 @@ export function paneRows(o: PaneInput): BoardRow[] {
     ];
   }
   const suggestions = o.board !== null ? [...toolSuggestions(o.board, o.usage, o.dismissed, t), ...ciSuggestions(o.board, o.shell?.units ?? [], o.dismissed, t)] : [];
-  if (o.tab === "items") return [...head, ...itemRows({ board: o.board, status, inbox: o.inbox, columns, t, now: o.now, doneOpen: o.doneOpen, droppedOpen: o.droppedOpen === true, dismissed: o.dismissed, suggestions, artifactMenu: o.artifactMenu ?? null, docsOpen: o.docsOpen === true }), ...wait];
-  if (o.board === null) return head.length > 0 ? head : wait;
-  if (o.tab === "flow") return [...head, ...flowRows({ board: o.board, status, columns, t, ...(o.now !== undefined ? { now: o.now } : {}), selected: o.flowState, switching: o.switching, workflows: o.workflows })];
+  // The work items on the way lead the work items tab; their flows, the flow tab (neither needs the board).
+  const work = o.coach !== undefined && o.tab === "items" ? workRows(o.coach.items, o.coach.flows, t) : [];
+  const coached = o.coach !== undefined && o.tab === "flow" ? coachFlowRows(o.coach.items, o.coach.flows, t, o.coach.focus) : [];
+  if (o.tab === "items") return [...head, ...work, ...itemRows({ board: o.board, status, inbox: o.inbox, columns, t, now: o.now, doneOpen: o.doneOpen, droppedOpen: o.droppedOpen === true, dismissed: o.dismissed, suggestions, artifactMenu: o.artifactMenu ?? null, docsOpen: o.docsOpen === true }), ...wait];
+  if (o.board === null) return head.length > 0 ? [...head, ...coached] : [...coached, ...wait];
+  if (o.tab === "flow") return [...head, ...coached, ...flowRows({ board: o.board, status, columns, t, ...(o.now !== undefined ? { now: o.now } : {}), selected: o.flowState, switching: o.switching, workflows: o.workflows })];
   if (o.tab === "tools") return [...head, ...toolRows({ board: o.board, columns, t, usage: o.usage, suggestions, query: o.toolQuery, menu: o.toolMenu, naming: o.toolNaming, open: o.toolsOpen })];
   // The journal: the work item's events, then the project's memory, then what every session decided, each its own section.
   return [...head, ...journalRows({ board: o.board, status, filter: o.filter, menu: o.expanded, evidence: o.evidence, prompts: o.prompts, columns, maxRows: Math.max(1, o.maxRows - head.length), t, now: o.now }),

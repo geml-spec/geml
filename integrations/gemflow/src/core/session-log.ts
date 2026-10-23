@@ -20,7 +20,15 @@ export type SessionEvent =
   | { t: "answer"; turn: number; at: string; text: string }
   | { t: "decision"; turn: number; at: string; text: string }
   | { t: "file"; turn: number; at: string; path: string; branch?: string }
-  | { t: "commit"; turn: number; at: string; sha: string; subject: string; branch?: string };
+  | { t: "commit"; turn: number; at: string; sha: string; subject: string; branch?: string }
+  /**
+   * A work item the turn was about, as the model reported it (the work tool): which flow, the state it stands in, what it
+   * still needs and what it should be at the end. The newest event of an id, in any session, is the item as it stands.
+   */
+  | { t: "item"; turn: number; at: string; id: string; flow: string; title: string; state: string; needs: string; goal: string; status: ItemStatus };
+
+/** Where a work item stands: on its way, finished, or given up. */
+export type ItemStatus = "open" | "done" | "dropped";
 
 const safe = (s: string) => s.replace(/[^A-Za-z0-9._-]+/g, "-");
 
@@ -52,6 +60,7 @@ function isEvent(v: unknown): v is SessionEvent {
     case "prompt": case "answer": case "decision": return typeof e["turn"] === "number" && typeof e["text"] === "string";
     case "file": return typeof e["turn"] === "number" && typeof e["path"] === "string";
     case "commit": return typeof e["turn"] === "number" && typeof e["sha"] === "string" && typeof e["subject"] === "string";
+    case "item": return typeof e["turn"] === "number" && ["id", "flow", "title", "state", "needs", "goal"].every((k) => typeof e[k] === "string") && (e["status"] === "open" || e["status"] === "done" || e["status"] === "dropped");
     default: return false;
   }
 }
@@ -117,6 +126,8 @@ export interface SessionSummary {
   decisions: { turn: number; at: string; text: string }[];
   files: { path: string; at: string; branch?: string }[];
   commits: { sha: string; subject: string; at: string; branch?: string }[];
+  /** The work items it reported, the newest event of each. */
+  items?: Extract<SessionEvent, { t: "item" }>[];
 }
 
 /** A log read as one session; undefined for a log with no session line. */
@@ -149,6 +160,7 @@ export function summarize(events: readonly SessionEvent[]): SessionSummary | und
       case "decision": turn(e.turn, e.at).decisions.push(e.text); s.decisions.push({ turn: e.turn, at: e.at, text: e.text }); break;
       case "file": if (!s.files.some((f) => f.path === e.path)) s.files.push({ path: e.path, at: e.at, ...(e.branch !== undefined ? { branch: e.branch } : {}) }); break;
       case "commit": if (!s.commits.some((c) => c.sha === e.sha)) s.commits.push({ sha: e.sha, subject: e.subject, at: e.at, ...(e.branch !== undefined ? { branch: e.branch } : {}) }); break;
+      case "item": s.items = [...(s.items ?? []).filter((x) => x.id !== e.id), e]; break;
     }
   }
   s.turns.sort((a, b) => a.turn - b.turn);

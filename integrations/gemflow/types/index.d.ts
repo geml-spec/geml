@@ -148,6 +148,10 @@ declare module 'claude-code' {
       exportedFor: string | null
       /** The share dialog's text, shown where it cannot be copied (the desktop). */
       sharedText: string | null
+      /** The coach's light flows (coach.ts CoachFlow[]), read once: the project's own, else the bundled ones. */
+      coachFlows: GemflowJson
+      /** The work item whose arrow was pressed: { flow, id }, its flow first on the flow tab. */
+      coachFocus: GemflowJson
     }
   }
 }

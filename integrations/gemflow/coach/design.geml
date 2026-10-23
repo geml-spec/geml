@@ -1,0 +1,22 @@
+=== meta
+title   = "新设计"
+profile = "geml-statechart/v1"
+===
+
+=== diagram {#flow format=geml-statechart caption="新设计"}
+{
+  "initial": "discuss",
+  "states": {
+    "discuss": { "title": "讨论", "description": "方向你认可" },
+    "mockup":  { "title": "出样稿", "description": "用真实内容" },
+    "approve": { "title": "你点头", "description": "你说行" },
+    "done":    { "title": "完成", "final": true }
+  },
+  "transitions": [
+    { "from": "discuss", "to": "mockup" },
+    { "from": "mockup",  "to": "approve" },
+    { "from": "approve", "to": "done", "approval": true },
+    { "from": "approve", "to": "mockup", "guard": "你要改" }
+  ]
+}
+===
