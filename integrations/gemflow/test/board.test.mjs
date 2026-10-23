@@ -453,6 +453,10 @@ test("the pane: rows for the tab, a problem above them, and the reason when ther
   assert.deepEqual(pane({ board: null, tab: "items" }), [{ kind: "section", key: "waiting", text: "待处理" }, { kind: "text", text: "暂无", tone: "dim" }, wait]);
   assert.deepEqual(pane({ board: null, tab: "items", problem: "x" }).at(-1), { kind: "text", text: "暂无", tone: "dim" }, "under a problem, no wait line");
   assert.deepEqual(pane({ board: null, tab: "sessions" }), [{ kind: "section", key: "own", text: "本会话", fold: { key: "export-own", label: "导出", action: { op: "export", session: "own" } } }, { kind: "text", text: "还没有 prompt", tone: "dim" }], "this session's heading carries its export even with nothing under it");
+  const at = "2026-10-20T08:00:00Z";
+  const one = (id, over = {}) => ({ id, host: "claude-code", started: at, last: at, turns: [], decisions: [], files: [], commits: [], ...over });
+  const project = { sessions: [one("me"), one("other", { branch: "feat/y", decisions: [{ turn: 1, at, text: "先跑 CI" }] })], own: "me", open: null };
+  assert.deepEqual(pane({ board: null, tab: "sessions", project }).filter((r) => r.kind === "section").map((r) => r.key), ["own", "others", "decisions"], "what was decided comes last, after the other sessions");
   assert.deepEqual(pane(), flow());
   assert.deepEqual(pane({ tab: "tools" }), toolRows({ board: BOARD, columns: 100, t: wordsFor("zh"), usage: {}, suggestions: [], query: "", menu: null, naming: null, open: [] }));
   const stale = pane({ problem: "gemflow：桥接没有应答（timed out）", tab: "items", doneOpen: true });

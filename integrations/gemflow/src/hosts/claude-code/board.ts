@@ -274,10 +274,12 @@ export function paneRows(o: PaneInput): BoardRow[] {
       button: (s) => ({ key: `export-${s}`, label: t("导出"), action: { op: "export", session: s } }),
       under: (s) => ((o.exportedFor ?? "own") === s ? exportedRows(o.exported, o.root, t) : []),
     };
+    // This session first, then the others, then what every session decided.
     return [
-      ...head, ...decisionRows(o.project, t, columns, o.now),
+      ...head,
       { kind: "section", key: "own", text: t("本会话"), fold: exports.button("own") }, ...exports.under("own"), ...own,
       ...othersRows(o.project, t, columns, o.now, exports),
+      ...decisionRows(o.project, t, columns, o.now),
     ];
   }
   const suggestions = o.board !== null ? [...toolSuggestions(o.board, o.usage, o.dismissed, t), ...ciSuggestions(o.board, o.shell?.units ?? [], o.dismissed, t)] : [];
@@ -1176,7 +1178,7 @@ function labelIn(p: ProjectSessions, t: T): (id: string) => string {
 }
 
 /**
- * The sessions tab's head (sample C): every session's decisions, newest
+ * The sessions tab's last section, after the other sessions: every session's decisions, newest
  * first, the newest twenty shown whole (the person reads them whole to judge
  * which are worth keeping), the rest behind a count; a press puts one in the
  * prompt box. Nothing when nothing was decided.
