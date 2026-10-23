@@ -29,10 +29,11 @@ import type { GemflowJson, GemflowTab } from '../types'
 import { preferAnswer, preferQuestion } from '../dist/core/asking.js'
 import type { Answered } from '../dist/core/asking.js'
 import { CLAUDE_CODE_TOOLS } from '../dist/core/host-tools.js'
+import { commitMessageFiles } from '../dist/core/commit-message.js'
 import { FLOW_TOOLS } from '../dist/core/verb-specs.js'
 import type { VerbName } from '../dist/core/verb-specs.js'
 import type { BoardAction, BoardTab, Dialog, JournalFilter, Pressable, ShareHow, ShareWhat } from '../dist/hosts/claude-code/actions.js'
-import { answered, asksOf, bandLine, heldSteps, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, pendingNote, picksText, pressablesFor, pressedOf, remember, standingOf, stepPressables } from '../dist/hosts/claude-code/attention.js'
+import { answered, asksOf, bandLine, heldSteps, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, openAfter, pendingNote, picksText, pressablesFor, pressedOf, remember, standingOf, stepPressables } from '../dist/hosts/claude-code/attention.js'
 import type { Queued } from '../dist/hosts/claude-code/attention.js'
 import type { AttentionFacts, AttentionMemory } from '../dist/hosts/claude-code/attention.js'
 import { envParts, remoteInPlay } from '../dist/hosts/claude-code/env.js'
@@ -58,6 +59,7 @@ import type { BoardData, BridgeOp, BridgeRequest, BridgeResponse, ShellStatus, T
 import { bashExitCode, bridgeInput, contextOf, hasGitOperation, nodeMajor, toolArgs, touchedPath, writtenPath } from '../dist/hosts/claude-code/readers.js'
 import { answerGist, logExport, promptLine, sessionExport } from '../dist/hosts/claude-code/sessions.js'
 import type { PromptRecord } from '../dist/hosts/claude-code/sessions.js'
+import type { MemoryList } from '../dist/memory-store.js'
 import { hhmm } from '../dist/hosts/claude-code/time.js'
 import { dayKey, mergeBooks, noteUse, pruneBook, usageKeys, usesSince } from '../dist/hosts/claude-code/usage.js'
 import type { UsageBook } from '../dist/hosts/claude-code/usage.js'
@@ -93,8 +95,14 @@ const heldOpenAtom = atom({ plugin: 'gemflow', key: 'heldOpen' } as const, false
 const artifactMenuAtom = atom({ plugin: 'gemflow', key: 'artifactMenu' } as const, null as string | null)
 const docsOpenAtom = atom({ plugin: 'gemflow', key: 'docsOpen' } as const, false)
 const madeElsewhereAtom = atom({ plugin: 'gemflow', key: 'madeElsewhere' } as const, [] as string[])
+/** Files handed to git commit as its message this turn: not artifacts, taken out again at the turn's end. */
+const notMadeAtom = atom({ plugin: 'gemflow', key: 'notMade' } as const, [] as string[])
 /** The questions the model registered this turn (the ask tool): the band's once the turn ends. */
 const askedAtom = atom({ plugin: 'gemflow', key: 'asked' } as const, [] as Asked[])
+/** The questions the person's last prompt left open: the next reply's band asks them again, before its own. */
+const leftAsksAtom = atom({ plugin: 'gemflow', key: 'leftAsks' } as const, [] as Asked[])
+/** The questions answered since the last reply: a reply that registers one again, not having seen the answer (it waited in the queue), does not ask it again. */
+const answeredAtom = atom({ plugin: 'gemflow', key: 'answered' } as const, [] as string[])
 const flowStateAtom = atom({ plugin: 'gemflow', key: 'flowState' } as const, null as string | null)
 const flowSwitchAtom = atom({ plugin: 'gemflow', key: 'flowSwitch' } as const, false)
 const toolQueryAtom = atom({ plugin: 'gemflow', key: 'toolQuery' } as const, '')
@@ -165,6 +173,13 @@ const TURNS_SHOWN = 30
 const turnsShownAtom = atom({ plugin: 'gemflow', key: 'turnsShown' } as const, TURNS_SHOWN as number)
 /** This session's turns checked on the sessions tab, by prompt id. */
 const pickedAtom = atom({ plugin: 'gemflow', key: 'picked' } as const, [] as string[])
+/** The project's Claude Code memory, as the bridge last read it. */
+const memoryAtom = atom({ plugin: 'gemflow', key: 'memory' } as const, null as MemoryList | null)
+/** The memory group unfolded, the memory whose card is open, the one being edited, and whether the group lists all. */
+const memoryGroupAtom = atom({ plugin: 'gemflow', key: 'memoryGroup' } as const, null as string | null)
+const memoryMenuAtom = atom({ plugin: 'gemflow', key: 'memoryMenu' } as const, null as string | null)
+const memoryEditAtom = atom({ plugin: 'gemflow', key: 'memoryEdit' } as const, null as string | null)
+const memoryAllAtom = atom({ plugin: 'gemflow', key: 'memoryAll' } as const, false as boolean)
 const decisionsSeenAtom = atom({ plugin: 'gemflow', key: 'decisionsSeen' } as const, null as string | null)
 const committedAtom = atom({ plugin: 'gemflow', key: 'committed' } as const, false)
 /** The turn unfolded on the session tab (where the conversation cannot be scrolled): its prompt's id and its answer. */
@@ -510,7 +525,7 @@ async function attentionNow($: EngineInterface, t: T) {
  * the prompt answers), and what changed in the repository since the reply is news for the model, so the person need
  * not say it. Answers the context lines to add.
  */
-async function attentionOnPrompt($: EngineInterface, said: string): Promise<string[]> {
+async function attentionOnPrompt($: EngineInterface, said: string, typed = true): Promise<string[]> {
   try {
     const t = await words($)
     const now = await attentionNow($, t)
@@ -519,6 +534,12 @@ async function attentionOnPrompt($: EngineInterface, said: string): Promise<stri
     if (!a.consumed) {
       const memory = answered(remember(a.memory, { reply: a.reply, standing: now.standing, lead: now.lead }), said)
       await update($, attentionAtom, () => ({ ...a, memory, consumed: true }) as unknown as GemflowJson)
+      // What it did not answer stays for the next reply's band: the one shown, when the person typed and named none, is answered.
+      const open = openAfter(a.asks ?? [], a.picks ?? [], said, typed)
+      await update($, leftAsksAtom, () => open)
+      const settled = (a.asks ?? []).filter((q) => !open.some((x) => x.question === q.question)).map((q) => q.question)
+      const before = ((await read($, answeredAtom)) as string[] | null) ?? []
+      await update($, answeredAtom, () => [...new Set([...before, ...settled])])
     }
     const news = newsOf((await read($, factsAtReplyAtom)) as unknown as AttentionFacts | null, await factsNow($), t)
     return news.length > 0 ? [`[gemflow] since your last reply: ${news.join('; ')}`] : []
@@ -643,11 +664,13 @@ async function noteDecisions($: EngineInterface, event: unknown): Promise<ToolCa
 
 /** A turn's end, on a work item: the files it wrote that git does not keep get a version where their content changed. */
 async function artifactsOnTurn($: EngineInterface): Promise<void> {
-  const [shell, made] = await Promise.all([readShell($), read($, madeElsewhereAtom)])
+  const [shell, made, drafts] = await Promise.all([readShell($), read($, madeElsewhereAtom), read($, notMadeAtom)])
   if (shell?.status?.item.kind !== 'item') return
   const elsewhere = ((made as unknown) as string[] | null) ?? []
+  const notMade = ((drafts as unknown) as string[] | null) ?? []
   if (elsewhere.length > 0) await update($, madeElsewhereAtom, () => [] as unknown as GemflowJson)
-  await bridge($, { op: 'artifacts', ...(elsewhere.length > 0 ? { elsewhere } : {}) }, SLOW_TIMEOUT_MS).catch(() => undefined)
+  if (notMade.length > 0) await update($, notMadeAtom, () => [] as string[])
+  await bridge($, { op: 'artifacts', ...(elsewhere.length > 0 ? { elsewhere } : {}), ...(notMade.length > 0 ? { notMade } : {}) }, SLOW_TIMEOUT_MS).catch(() => undefined)
 }
 
 /** What the person gave with a prompt (images, documents): their bytes, as the conversation holds them, among the work item's artifacts. */
@@ -1389,8 +1412,19 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       trace($, `tab is now ${action.tab}`)
       const filter = action.filter
       if (filter !== undefined) await update($, filterAtom, () => filter)
+      if (action.tab === 'sessions') $.clock.after(0, () => { void loadMemory($) })
       return
     }
+    case 'memory-group': {
+      await update($, memoryGroupAtom, () => action.group)
+      await update($, memoryMenuAtom, () => null)
+      await update($, memoryEditAtom, () => null)
+      await update($, memoryAllAtom, () => false)
+      return
+    }
+    case 'memory-menu': await update($, memoryMenuAtom, () => action.file); await update($, memoryEditAtom, () => null); return
+    case 'memory-edit': await update($, memoryEditAtom, () => action.file); return
+    case 'memory-more': await update($, memoryAllAtom, () => action.all); return
     case 'artifact-menu': await update($, artifactMenuAtom, () => action.key); return
     case 'open-file': await openFile($, action.path, action.reveal === true, surface); return
     case 'filter': await update($, filterAtom, () => action.filter); return
@@ -1579,6 +1613,7 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
     }
     case 'dialog': await openDialog($, action.dialog); return
     case 'open-board': {
+      $.clock.after(0, () => { void loadMemory($) })
       const opened = await openBoard($, action.tab)
       if (!opened.isPlaced) $.ui.toast(boardText(opened.reason))
       return
@@ -1608,7 +1643,7 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       if (action.dismiss !== undefined) await act($, { op: 'dismiss', key: action.dismiss }, surface)
       if (action.toast !== undefined) $.ui.toast(action.toast)
       await setQueued($, (q) => [...q.filter((x) => x.text !== action.text), { text: action.text, entered: false }])
-      await attentionOnPrompt($, action.text)
+      await attentionOnPrompt($, action.text, false)
       try {
         await $.prompt.submit({ text: action.text, asUser: true })
       } catch (err) {
@@ -1692,6 +1727,25 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       if (deny !== undefined) $.ui.toast(t('对话没有滚到那一处：{0}', deny))
       return
     }
+    // One memory's hook rewritten, or the memory taken out after a yes: the bridge answers the memory as it now stands.
+    case 'memory-set':
+    case 'memory-delete': {
+      const list = (await read($, memoryAtom)) as MemoryList | null
+      const title = list?.entries.find((x) => x.file === action.file)?.title ?? action.file
+      if (action.op === 'memory-delete') {
+        let answer: string
+        try { answer = await $.ui.ask(t('删除「{0}」？会先放进回收站；下一个会话起不再读它。', title), [t('删除'), t('取消')]) } catch { return }
+        if (answer !== t('删除')) return
+      }
+      const res = await bridge($, action.op === 'memory-set' ? { op: 'memory-set', file: action.file, hook: action.hook } : { op: 'memory-delete', file: action.file }, SLOW_TIMEOUT_MS)
+      if (res === undefined || !res.ok || res.memory === undefined) { $.ui.toast(t('没改成：{0}', res !== undefined && !res.ok ? res.error : title)); return }
+      const memory = res.memory
+      await update($, memoryAtom, () => memory)
+      await update($, memoryEditAtom, () => null)
+      if (action.op === 'memory-delete') await update($, memoryMenuAtom, () => null)
+      $.ui.toast(action.op === 'memory-set' ? t('已改：{0}。下一个会话起生效', title) : t('已删除：{0}。下一个会话起生效', title))
+      return
+    }
     // The checked turns, named to the script by their record ids so the model matches nothing by hand: one new session, or gone.
     case 'split-picked': {
       const [prompts, was] = await Promise.all([readPrompts($), read($, pickedAtom)])
@@ -1770,6 +1824,14 @@ function trace($: EngineInterface, text: string): void {
 }
 
 /** A press runs its action; a failure is one toast, never a crash of the drawing. */
+/** The project's Claude Code memory, read through the bridge for the sessions tab; what was read stays when the bridge does not answer. */
+async function loadMemory($: EngineInterface): Promise<void> {
+  const res = await bridge($, { op: 'memory' }).catch(() => undefined)
+  if (res === undefined || !res.ok || res.memory === undefined) return
+  const memory = res.memory
+  if (JSON.stringify(memory) !== JSON.stringify(await read($, memoryAtom))) await update($, memoryAtom, () => memory)
+}
+
 /** How long an opener may take to hand the file to its app. */
 const OPEN_MS = 10_000
 
@@ -2048,7 +2110,7 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
       if (Input === undefined) return <Text key={row.key} dimColor>{row.placeholder}</Text>
       return row.field === 'tool-search'
         ? <Input key={row.key} placeholder={row.placeholder} {...(row.value !== undefined ? { value: row.value } : {})} onInput={(value: string) => run(value)} onSubmit={run} />
-        : <Input key={row.key} placeholder={row.placeholder} onSubmit={run} />
+        : <Input key={row.key} placeholder={row.placeholder} {...(row.value !== undefined ? { value: row.value } : {})} onSubmit={run} />
     }
     // A tool in one line: its name as the press that opens its menu, its use, what it looks like, how often it ran.
     case 'tool': return (
@@ -2378,6 +2440,9 @@ async function tabRows($: EngineInterface, e: { surface: string; props: { bodyCo
     shows(tab === 'items')(() => read($, artifactMenuAtom), null),
     shows(tab === 'items')(() => read($, docsOpenAtom), false),
   ])
+  const memory = tab === 'sessions'
+    ? { list: (await read($, memoryAtom)) as MemoryList | null, group: await read($, memoryGroupAtom), menu: await read($, memoryMenuAtom), edit: await read($, memoryEditAtom), all: (await read($, memoryAllAtom)) === true }
+    : undefined
   const rows = paneRows({
     board, problem, shell, tab, columns, maxRows: Math.max(4, e.props.scroll.bodyRows - 4), t, now, root: root ?? '', inbox,
     filter: filter as JournalFilter, expanded, evidence, prompts,
@@ -2385,7 +2450,7 @@ async function tabRows($: EngineInterface, e: { surface: string; props: { bodyCo
     exportedFor, doneOpen, droppedOpen, sessionFlow, sessionLimit: await read($, turnsShownAtom), picked: ((await read($, pickedAtom)) as string[] | null) ?? [], sessionRuns: (sessionRuns as unknown as string[] | null) ?? [],
     flowState, switching, workflows: workflows as unknown as { bundled: string[]; installed: string[] } | null,
     usage, dismissed, toolQuery, toolMenu, toolNaming, toolsOpen: (toolsOpen as unknown as string[] | null) ?? [],
-    exported, artifactMenu, docsOpen,
+    exported, artifactMenu, docsOpen, ...(memory !== undefined ? { memory } : {}),
   })
   const here = await attention
   const asked = here !== null && here[0].attention !== null && !here[0].attention.consumed ? here[0].attention.asks : undefined
@@ -2568,6 +2633,20 @@ export const register: Register = (on) => {
     // A page, a picture, a draft made for the person outside the project (a scratchpad): one of the work item's artifacts at the turn's end.
     const outside = wrotePath === undefined && ran.isError !== true && CLAUDE_CODE_TOOLS.write.includes(tool) ? writtenPath(tool, input) : undefined
     if (outside !== undefined && isMadeForPeople(outside)) $.clock.after(0, () => { void update($, madeElsewhereAtom, (was) => [...new Set([...(was ?? []), outside])]).catch(() => undefined) })
+    // A file handed to git commit as its message was a draft for the commit, not for the person: no artifact, and out again if recorded before.
+    const command = CLAUDE_CODE_TOOLS.run.includes(tool) && typeof input['command'] === 'string' ? input['command'] as string : undefined
+    const drafts = command !== undefined && /\bcommit\b/.test(command) ? commitMessageFiles(command) : []
+    if (drafts.length > 0) {
+      const cwd = await $.session.cwd().catch(() => root ?? '')
+      const named = drafts.map((f) => (/^(\/|[A-Za-z]:[\\/])/.test(f) ? f : `${cwd}/${f}`))
+      const same = (a: string, b: string): boolean => a.split('\\').join('/').toLowerCase() === b.split('\\').join('/').toLowerCase()
+      $.clock.after(0, () => {
+        void (async () => {
+          await update($, madeElsewhereAtom, (was) => (was ?? []).filter((p) => !named.some((n) => same(n, p))))
+          await update($, notMadeAtom, (was) => [...new Set([...(was ?? []), ...named])])
+        })().catch(() => undefined)
+      })
+    }
     const exitCode = CLAUDE_CODE_TOOLS.run.includes(tool) ? bashExitCode(ran) : undefined
     const outcome = {
       isError: ran.isError === true,
@@ -2622,6 +2701,7 @@ export const register: Register = (on) => {
       $.clock.after(0, () => { void storePrompts($) })
       if (!e.isAborted) { const answer = e.answer; $.clock.after(0, () => { void sessionsOnAnswer($, answer) }) }
       $.clock.after(0, () => { void artifactsOnTurn($) })
+      $.clock.after(0, () => { void loadMemory($) })
       try { await storeUsage($) } catch { /* kept for the next turn */ }
       try {
         const did = answerGist(e.answer)
@@ -2629,9 +2709,16 @@ export const register: Register = (on) => {
       } catch { /* the row stays without it */ }
       if (!e.isAborted) {
         try {
-          const [was, at, registered] = await Promise.all([readAttention($), $.clock.now(), read($, askedAtom)])
-          const asks = ((registered as unknown) as Asked[] | null) ?? []
+          const [was, at, registered, left] = await Promise.all([readAttention($), $.clock.now(), read($, askedAtom), read($, leftAsksAtom)])
+          // The questions still open from before come first, then this reply's own; one asked again is asked once, as now worded.
+          // A question the person answered while this turn ran is not asked again: the answer waits in the queue, unseen by it.
+          const done = ((await read($, answeredAtom)) as string[] | null) ?? []
+          const fresh = (((registered as unknown) as Asked[] | null) ?? []).filter((q) => !done.includes(q.question))
+          const carried = (((left as unknown) as Asked[] | null) ?? []).filter((q) => !fresh.some((x) => x.question === q.question) && !done.includes(q.question))
+          const asks = [...carried, ...fresh]
           await update($, askedAtom, () => [] as unknown as GemflowJson)
+          await update($, leftAsksAtom, () => [] as Asked[])
+          await update($, answeredAtom, () => [] as string[])
           const kept: Attention = { reply: e.answer, replyAt: at, memory: was?.memory ?? NO_MEMORY, consumed: false, ...(asks.length > 0 ? { asks } : {}) }
           await update($, attentionAtom, () => kept as unknown as GemflowJson)
           const facts = await read($, factsAtom)

@@ -82,3 +82,20 @@ test("this session's turns carry a checkbox, none on the turn still running or o
   assert.equal(on.note, "已选 2 轮", "a checked turn no longer listed is not counted");
   assert.deepEqual(on.actions.map((b) => [b.label, b.action]), [["拆成新会话", { op: "split-picked", remove: false }], ["删除", { op: "split-picked", remove: true }], ["连同之后的", { op: "pick-after" }], ["清空", { op: "pick-clear" }]]);
 });
+
+test("the project's memory: one line per type folded to its count; a group unfolds to its newest ten, each to open, edit the summary, or delete", async () => {
+  const { memoryRows } = await import("../dist/hosts/claude-code/board.js");
+  const entry = (i, type) => ({ file: `m${i}.md`, title: `第 ${i} 条`, hook: `摘要 ${i}`, type, at: `2026-10-${String(20 - Math.floor(i / 10)).padStart(2, "0")}T0${i % 10}:00:00Z` });
+  const list = { dir: "/h/memory", entries: [...Array.from({ length: 12 }, (_, i) => entry(i, "feedback")), entry(20, "project"), entry(21, "odd")] };
+  const m = (over = {}) => ({ list, group: null, menu: null, edit: null, all: false, ...over });
+  const folded = memoryRows(m(), t, 100, NOW);
+  assert.deepEqual(folded.map((r) => r.kind === "section" ? `§${r.text} ${r.count}` : r.title), ["§记忆 14", "反馈 12", "项目 1", "其他 1"]);
+  assert.deepEqual(memoryRows(m({ list: { dir: "/h/memory", entries: [] } }), t, 100, NOW), [], "none: nothing");
+  const open = memoryRows(m({ group: "feedback" }), t, 100, NOW);
+  assert.equal(open.filter((r) => r.kind === "entry" && r.key.startsWith("memory-m")).length, 10, "the newest ten");
+  assert.deepEqual(open.find((r) => r.kind === "buttons").items[0].label, "还有 2 条");
+  const card = memoryRows(m({ group: "feedback", menu: "m3.md", edit: "m3.md" }), t, 100, NOW);
+  const input = card.find((r) => r.kind === "input");
+  assert.deepEqual([input.field, input.value, input.target], ["memory-hook", "摘要 3", "m3.md"], "the summary as it is, to edit");
+  assert.deepEqual(card.find((r) => r.kind === "menu").items.map((b) => [b.label, b.action]), [["打开", { op: "open-file", path: "/h/memory/m3.md" }], ["改摘要", { op: "memory-edit", file: null }], ["删除", { op: "memory-delete", file: "m3.md" }]]);
+});

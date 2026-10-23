@@ -4,6 +4,7 @@
 import { bindingOf, type DictRow } from "../../core/dictionary.js";
 import type { Status } from "../../workspace.js";
 import type { BoardAction, BoardTab, JournalFilter, Pressable } from "./actions.js";
+import type { MemoryList } from "../../memory-store.js";
 import { howText, truncate, varSegment, wrapCells, type Tone } from "./band.js";
 import { othersWaiting, pendingList, shortReason, type InboxItem } from "./inbox.js";
 import type { BoardData, BoardItem, MadeEntry, Artifacts, ShellStatus, TimelineEntry } from "./protocol.js";
@@ -37,7 +38,7 @@ export function tabs(t: T = ZH): { id: BoardTab; label: string }[] {
 }
 
 /** What a field's text means when submitted. */
-export type InputField = "add-tool" | "import-workflow" | "tool-search" | "new-use";
+export type InputField = "add-tool" | "import-workflow" | "tool-search" | "new-use" | "memory-hook";
 
 export type BoardRow =
   | { kind: "text"; text: string; tone: Tone }
@@ -197,6 +198,7 @@ export function inputAction(field: InputField, typed: string, target?: string): 
   if (s === "") return undefined;
   if (field === "import-workflow") return { op: "import", path: s };
   if (field === "new-use") return target === undefined ? undefined : { op: "learn", lessons: [{ kind: "use", key: target, use: s }] };
+  if (field === "memory-hook") return target === undefined ? undefined : { op: "memory-set", file: target, hook: s };
   const [tool, use] = s.split("|").map((x) => x.trim());
   if (tool === undefined || tool === "") return undefined;
   return { op: "learn", lessons: use !== undefined && use !== "" ? [{ kind: "use", key: tool, use }] : [{ kind: "allow", key: tool, where: "*" }] };
@@ -236,6 +238,8 @@ export interface PaneInput {
   sessionLimit?: number;
   /** The sessions tab: this session's turns checked, by prompt id. */
   picked?: readonly string[];
+  /** The sessions tab: the project's Claude Code memory, the group unfolded, the memory whose card is open, the one whose hook is being edited, and whether the group lists all. */
+  memory?: { list: MemoryList | null; group: string | null; menu: string | null; edit: string | null; all: boolean };
   sessionRuns: readonly string[];
   /** Whether the work items tab lists the closed work items, or only counts them; the same for the dropped ones. */
   doneOpen: boolean;
@@ -291,6 +295,7 @@ export function paneRows(o: PaneInput): BoardRow[] {
       ...head,
       heading, ...exports.under("own"), ...own,
       ...othersRows(o.project, t, columns, o.now, exports),
+      ...memoryRows(o.memory, t, columns, o.now),
       ...decisionRows(o.project, t, columns, o.now),
     ];
   }
@@ -662,6 +667,13 @@ export function sizeText(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/** Where a file sits, in short: its folder in the project, or an outside one's own folder name after an ellipsis; nothing at the top. */
+export function folderLabel(name: string): string {
+  const parts = name.split("/").filter((x) => x !== "");
+  if (parts.length <= 1) return "";
+  return /^(\/|[A-Za-z]:\/)/.test(name) ? `…/${parts.at(-2) as string}` : parts.slice(0, -1).join("/");
+}
+
 /** The documents the artifacts section lists before a press lists the rest. */
 const DOCS_SHOWN = 2;
 /** The copies a file's menu offers, newest first. */
@@ -705,7 +717,8 @@ export function artifactRows(p: Artifacts | undefined, current: string | undefin
     for (const f of list) {
       const key = `${kind}:${f.name}`;
       const v = f.versions[0];
-      rows.push({ kind: "entry", key: `artifact-${key}`, title: f.name, tag: "", tone: "normal", detail: line(f.given === true ? t("用户提供") : "", sizeText(v?.size ?? null), t("{0} 版", f.versions.length), v !== undefined ? when(v.at) : ""), action: { op: "artifact-menu", key: o.menu === key ? null : key } });
+      // Its name as the title, so the file shows whatever the width; its folder leads the line under it.
+      rows.push({ kind: "entry", key: `artifact-${key}`, title: lastSegment(f.name), tag: "", tone: "normal", detail: line(folderLabel(f.name), f.given === true ? t("用户提供") : "", sizeText(v?.size ?? null), t("{0} 版", f.versions.length), v !== undefined ? when(v.at) : ""), action: { op: "artifact-menu", key: o.menu === key ? null : key } });
       if (o.menu !== key) continue;
       const copies = f.versions.filter((x) => x.copy !== undefined).slice(0, COPIES_SHOWN);
       rows.push({ kind: "links", key: `menu-${key}`, items: [
@@ -1214,6 +1227,44 @@ export function decisionRows(p: ProjectSessions | undefined, t: T = ZH, columns:
     rows.push(buttons([folded
       ? { key: "decisions-more", label: t("还有 {0} 条决定", decisions.length - DECISIONS_SHOWN), action: { op: "decisions-more", all: true } }
       : { key: "decisions-more", label: t("收起"), action: { op: "decisions-more", all: false } }]));
+  }
+  return rows;
+}
+
+/** How many memories an unfolded group lists before the rest wait behind a count. */
+const MEMORY_SHOWN = 10;
+/** The memory's groups, by the type its files give, in the order shown; any other type is 其他. */
+const MEMORY_GROUPS: readonly (readonly [string, string])[] = [["feedback", "反馈"], ["project", "项目"], ["reference", "参考"], ["user", "用户"], ["", "其他"]];
+
+/**
+ * The project's Claude Code memory, after the other sessions: its count, then
+ * one line per type, folded to its count; a group unfolds to its memories, the
+ * newest first, each unfolding to open its file, edit its hook, or delete it.
+ * Nothing when there is none.
+ */
+export function memoryRows(m: PaneInput["memory"], t: T = ZH, columns: number, now?: string): BoardRow[] {
+  const list = m?.list;
+  if (m === undefined || list === null || list === undefined || list.entries.length === 0) return [];
+  const known = new Set(MEMORY_GROUPS.map(([type]) => type));
+  const rows: BoardRow[] = [{ kind: "section", key: "memory", text: t("记忆"), count: list.entries.length, note: t("这个项目的 Claude Code 每个会话开头都会读") }];
+  for (const [type, name] of MEMORY_GROUPS) {
+    const items = list.entries.filter((e) => (known.has(e.type) ? e.type : "") === type);
+    if (items.length === 0) continue;
+    const open = m.group === type;
+    rows.push({ kind: "entry", key: `memory-group-${type || "other"}`, title: `${t(name)} ${items.length}`, tag: "", tone: "normal", open, action: { op: "memory-group", group: open ? null : type } });
+    if (!open) continue;
+    for (const e of m.all ? items : items.slice(0, MEMORY_SHOWN)) {
+      const on = m.menu === e.file;
+      rows.push({ kind: "entry", key: `memory-${e.file}`, title: e.title, tag: e.at !== "" ? whenTag(e.at, now, t) : "", tone: "normal", detail: e.hook, open: on, action: { op: "memory-menu", file: on ? null : e.file } });
+      if (!on) continue;
+      if (m.edit === e.file) rows.push({ kind: "input", key: `memory-edit-${e.file}`, field: "memory-hook", placeholder: t("摘要"), value: e.hook, target: e.file });
+      rows.push({ kind: "menu", key: `memory-card-${e.file}`, items: [
+        { key: `memory-open-${e.file}`, label: t("打开"), action: { op: "open-file", path: `${list.dir}/${e.file}` } },
+        { key: `memory-hook-${e.file}`, label: t("改摘要"), action: { op: "memory-edit", file: m.edit === e.file ? null : e.file } },
+        { key: `memory-delete-${e.file}`, label: t("删除"), action: { op: "memory-delete", file: e.file }, tone: "danger" },
+      ] });
+    }
+    if (items.length > MEMORY_SHOWN) rows.push(buttons([{ key: "memory-more", label: m.all ? t("收起") : t("还有 {0} 条", items.length - MEMORY_SHOWN), action: { op: "memory-more", all: !m.all } }]));
   }
   return rows;
 }

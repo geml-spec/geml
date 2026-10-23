@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { answered, asksOf, bandLine, heldSteps, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, optionsFor, outcomeOf, picksText, pressablesFor, remember, spokenOf, standingOf, stepPressables, WIDTH } from "../dist/hosts/claude-code/attention.js";
+import { answered, asksOf, bandLine, heldSteps, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, openAfter, optionsFor, outcomeOf, picksText, pressablesFor, remember, spokenOf, standingOf, stepPressables, WIDTH } from "../dist/hosts/claude-code/attention.js";
 
 const NOW = Date.parse("2026-10-18T10:00:00Z");
 const cells = (s) => [...s].reduce((w, c) => w + (/[ᄀ-￿]/.test(c) ? 2 : 1), 0);
@@ -228,4 +228,17 @@ test("an answer to a registered question carries the decision it makes; a deferr
   assert.deepEqual(ps[0].action, { op: "say", text: "要推到 origin 吗？：推", decisions: ["要推到 origin 吗？：推"] });
   assert.equal(ps[1].action.decisions, undefined, "暂不 decides nothing");
   assert.equal(stepPressables(standingOf("", { ahead: [{ branch: "feat/x", ahead: 1 }], prs: [] }, NOW))[0].action.decisions, undefined);
+});
+
+test("the questions a prompt leaves open: a typed prompt answers the one shown, or the ones its lines name; a pressed step answers only what it names", () => {
+  const q = (question) => ({ question, options: ["好", "不好"] });
+  const asks = [q("放在哪？"), q("怎么改？"), q("复制吗？")];
+  const left = (picks, said, typed) => openAfter(asks, picks, said, typed).map((x) => x.question);
+  assert.deepEqual(left([], "会话页 决定 前面", true), ["怎么改？", "复制吗？"], "typed, naming none: the one shown is answered");
+  assert.deepEqual(left(["好", null, null], "放在后面吧", true), ["复制吗？"], "the one shown is the first not picked");
+  assert.deepEqual(left([], "放在哪？：前面\n复制吗？：不复制", true), ["怎么改？"], "lines pasted back answer the questions they name");
+  assert.deepEqual(left([], "提交改动", false), ["放在哪？", "怎么改？", "复制吗？"], "a step pressed answers none");
+  assert.deepEqual(left([], "放在哪？：前面", false), ["怎么改？", "复制吗？"], "an answer pressed answers its question");
+  assert.deepEqual(left(["好", "不好", "好"], "放在哪？：好\n怎么改？：不好\n复制吗？：好", false), [], "all picked: none left");
+  assert.deepEqual(openAfter([q("推吗？")], [], "推吗？：推", false), [], "one question, its answer pressed");
 });

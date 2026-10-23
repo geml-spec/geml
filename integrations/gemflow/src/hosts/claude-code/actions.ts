@@ -120,6 +120,18 @@ export type BoardAction =
   | { op: "pick-clear" }
   /** Ask the model to move the checked turns into one new session, or with `remove` out of the session, with the split-session skill naming them by their record ids; a person says yes first. */
   | { op: "split-picked"; remove: boolean }
+  /** The sessions tab's memory: unfold one group of it (by type), or fold it. */
+  | { op: "memory-group"; group: string | null }
+  /** Unfold one memory to what can be done to it, or fold it. */
+  | { op: "memory-menu"; file: string | null }
+  /** Show the field that rewrites one memory's hook, or hide it. */
+  | { op: "memory-edit"; file: string | null }
+  /** List every memory of the group unfolded, or the newest ten. */
+  | { op: "memory-more"; all: boolean }
+  /** Give one memory's index line a new hook. */
+  | { op: "memory-set"; file: string; hook: string }
+  /** Move one memory into gemflow's trash, its index line dropped; a person says yes first. */
+  | { op: "memory-delete"; file: string }
   /** Ask the model to move this prompt's one turn into a session of its own, with the split-session skill; a person says yes first. */
   | { op: "remove"; id: string }
   /** Under a `file:` unit, make this file the current work item (the shell's last written file). */

@@ -28,6 +28,16 @@ declare module 'claude-code' {
       decisionsAll: boolean
       /** This session's turns checked on the sessions tab, by prompt id. */
       picked: string[]
+      /** The project's Claude Code memory, as the bridge last read it; null until read. */
+      memory: { dir: string; entries: { file: string; title: string; hook: string; type: string; at: string }[] } | null
+      /** The memory group unfolded on the sessions tab, by type ('' is 其他). */
+      memoryGroup: string | null
+      /** The memory whose card is open, by its file. */
+      memoryMenu: string | null
+      /** The memory whose hook is being edited, by its file. */
+      memoryEdit: string | null
+      /** Whether the unfolded group lists every memory, or the newest ten. */
+      memoryAll: boolean
       /** How many of this session's turns the sessions tab draws, the newest first; a press adds thirty more. */
       turnsShown: number
       lastFile: string | null
@@ -46,6 +56,12 @@ declare module 'claude-code' {
       madeElsewhere: string[]
       /** The questions the model registered with the ask tool this turn: the band's at the turn's end. */
       asked: { question: string; options: string[]; recommended?: string }[]
+      /** The questions the person's last prompt left open: the next reply's band asks them again, before its own. */
+      leftAsks: { question: string; options: string[]; recommended?: string }[]
+      /** The questions answered since the last reply: a reply that registers one again, not having seen the answer, does not ask it again. */
+      answered: string[]
+      /** Files handed to git commit as its message this turn: not artifacts, taken out again at the turn's end. */
+      notMade: string[]
       /** The state the flow tab shows below its picture (its id). */
       flowState: string | null
       /** Whether the flow tab lists the workflows to switch to. */

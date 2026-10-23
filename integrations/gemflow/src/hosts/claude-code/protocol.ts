@@ -11,6 +11,7 @@ import type { Status } from "../../workspace.js";
 import type { Suggestion } from "../../project.js";
 import type { AttentionFacts } from "./attention.js";
 import type { HostInfo } from "./env.js";
+import type { MemoryList } from "../../memory-store.js";
 import type { Transcript } from "../../core/transcript.js";
 
 export type { VerbName } from "../../core/verb-specs.js";
@@ -62,7 +63,7 @@ export type BridgeOp =
   /** What the repository says for the band (attention.ts): branches ahead of their upstream, open pull requests and their checks. */
   | { op: "attention" }
   /** A turn's end: a version of each file the current work item wrote that git does not keep, when its content changed (artifacts-store.ts). */
-  | { op: "artifacts"; elsewhere?: string[] }
+  | { op: "artifacts"; elsewhere?: string[]; notMade?: string[] }
   /**
    * An artifact of the current work item gemflow did not see made: a link (a
    * publish tool's result; `page` the published file, whose title names it)
@@ -88,7 +89,13 @@ export type BridgeOp =
    */
   | { op: "backfill-one"; file: string; own?: boolean; transcripts?: string }
   /** The prompt rows the host's transcript of `session` still holds, by uuid: what the sessions tab and the record keep after turns were removed or split away. */
-  | { op: "turn-ids"; session: string; transcripts?: string };
+  | { op: "turn-ids"; session: string; transcripts?: string }
+  /** The project's Claude Code memory (memory-store.ts), as the sessions tab shows it. */
+  | { op: "memory"; transcripts?: string }
+  /** One memory's index line given a new hook. */
+  | { op: "memory-set"; file: string; hook: string; transcripts?: string }
+  /** One memory moved into gemflow's trash, its index line dropped. */
+  | { op: "memory-delete"; file: string; transcripts?: string };
 
 /** A transcript the host keeps: its file, the session's id (the file's name), its size. */
 export interface TranscriptFile { file: string; id: string; size: number }
@@ -281,6 +288,8 @@ export type BridgeResponse =
       sessions?: string;
       /** backfill-list and backfill-one: the transcripts, or what one added. */
       backfill?: Backfill;
+      /** memory, memory-set and memory-delete: the project's memory as it now stands. */
+      memory?: MemoryList;
     }
   /** No shell only when the request itself failed — it threw, or did not decode: the hooks module keeps the last shell and shows the error. */
   | { v: 1; ok: false; error: string; shell?: ShellStatus };
@@ -316,7 +325,7 @@ export function unreadableText(exitCode: number, stderr: string, pluginRoot: str
   return `gemflow：桥接的应答无法解析（退出码 ${exitCode}${said ? `：${said}` : ""}）`;
 }
 
-const OPS = new Set(["status", "refresh", "before", "after", "verb", "learn", "mark", "advance", "pause", "resume", "rollback", "new-item", "bind", "use", "add", "import", "board", "attention", "export", "artifacts", "artifact", "backfill-list", "backfill-one", "turn-ids"]);
+const OPS = new Set(["status", "refresh", "before", "after", "verb", "learn", "mark", "advance", "pause", "resume", "rollback", "new-item", "bind", "use", "add", "import", "board", "attention", "export", "artifacts", "artifact", "backfill-list", "backfill-one", "turn-ids", "memory", "memory-set", "memory-delete"]);
 const EXPORT_KINDS = new Set(["journal", "workflow", "text"]);
 const EXPORT_FORMATS = new Set(["geml", "md", "json"]);
 const VERBS = new Set(["status", "move", "set"]);
@@ -369,10 +378,14 @@ export function decodeRequest(text: string): BridgeRequest | { error: string } {
     artifact: () => (v["kind"] === "link" || v["kind"] === "image" || v["kind"] === "file") && str("where")
       && (v["name"] === undefined || str("name")) && (v["version"] === undefined || str("version")) && (v["page"] === undefined || str("page"))
       && (v["data"] === undefined || str("data")) && (v["mediaType"] === undefined || str("mediaType")),
-    artifacts: () => v["elsewhere"] === undefined || (Array.isArray(v["elsewhere"]) && (v["elsewhere"] as unknown[]).every((p) => typeof p === "string")),
+    artifacts: () => (v["elsewhere"] === undefined || (Array.isArray(v["elsewhere"]) && (v["elsewhere"] as unknown[]).every((p) => typeof p === "string")))
+      && (v["notMade"] === undefined || (Array.isArray(v["notMade"]) && (v["notMade"] as unknown[]).every((p) => typeof p === "string"))),
     "backfill-list": () => v["transcripts"] === undefined || str("transcripts"),
     "backfill-one": () => str("file") && v["file"] !== "" && (v["own"] === undefined || typeof v["own"] === "boolean") && (v["transcripts"] === undefined || str("transcripts")),
     "turn-ids": () => str("session") && v["session"] !== "" && (v["transcripts"] === undefined || str("transcripts")),
+    memory: () => v["transcripts"] === undefined || str("transcripts"),
+    "memory-set": () => str("file") && v["file"] !== "" && str("hook") && (v["transcripts"] === undefined || str("transcripts")),
+    "memory-delete": () => str("file") && v["file"] !== "" && (v["transcripts"] === undefined || str("transcripts")),
   };
   const check = fields[op];
   if (check !== undefined && !check()) return { error: `op ${op}: missing or mistyped fields` };

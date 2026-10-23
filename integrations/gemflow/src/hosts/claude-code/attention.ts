@@ -405,6 +405,19 @@ export function pressablesFor(lead: Lead | null, options: readonly string[], t: 
   });
 }
 
+/**
+ * The registered questions a prompt leaves open, for the next reply's band. A line that starts with a question and
+ * its colon answers it: a press on the band says that, and the person may paste it back. A question picked on the band
+ * is answered. A prompt the person typed that names none answers the one the band was showing, the first open one;
+ * the plugin's own prompt (a step pressed) answers only what it names.
+ */
+export function openAfter(asks: readonly Asked[], picks: readonly (string | null)[], said: string, typed: boolean): Asked[] {
+  const lines = said.split(/\r?\n/).map((l) => l.trim());
+  const unpicked = asks.filter((_, i) => (picks[i] ?? null) === null);
+  const open = unpicked.filter((q) => !lines.some((l) => l.startsWith(`${q.question}：`) || l.startsWith(`${q.question}:`)));
+  return typed && open.length === unpicked.length ? open.slice(1) : open;
+}
+
 /** A step that is a button beside the lead: one the person takes in a press — merge, push, commit, reload. */
 function isStepButton(s: Standing): boolean {
   return s.options.length > 0 && /^(green|unpushed|uncommitted):|^reload$/.test(s.key);

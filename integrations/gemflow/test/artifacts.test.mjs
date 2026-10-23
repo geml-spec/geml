@@ -171,7 +171,7 @@ test("board: what the work item made, under what waits on the person — links, 
     "产物 · feat/x",
     "链接 · 1", "Gemflow 界面示意||第 55 版 · 今天|打开 ↗",
     "文档 · 3 · 在 git 里", "README.md||12 次提交 · 今天", "spec/workflow.md||3 次提交 · 今天", "[其余 1 份]",
-    "文件 · 1 · 不在 git 里，存了副本", ".geml/exports/s.geml||20 KB · 2 版 · 今天",
+    "文件 · 1 · 不在 git 里，存了副本", "s.geml||.geml/exports · 20 KB · 2 版 · 今天",
     "代码|39 个提交 · 改了 313 个文件|",
   ]);
   const open = artifactRows(artifacts, "feat/x", { t, columns: 80, now: NOW, menu: "file:.geml/exports/s.geml", docsOpen: true });

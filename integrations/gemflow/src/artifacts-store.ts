@@ -5,8 +5,8 @@
 // .gemlhistory. The table is rewritten under its lock, read again there, so
 // sessions syncing at once each add their own rows.
 import { createHash } from "node:crypto";
-import { closeSync, copyFileSync, mkdirSync, openSync, readSync, statSync, writeFileSync } from "node:fs";
-import { dirname, isAbsolute, join, relative, sep } from "node:path";
+import { closeSync, copyFileSync, mkdirSync, openSync, readSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { basename, dirname, isAbsolute, join, relative, sep } from "node:path";
 import { historyPathFor } from "@geml/geml";
 import { save as saveHistory } from "@geml/geml/dist/history.js";
 import { exists, readText, withLock, writeAtomic } from "./host-fs.js";
@@ -187,3 +187,45 @@ export function recordBytes(home: string, item: string, given: { name: string; b
 
 /** The directory the copies are in. */
 export const artifactsDir = (home: string): string => dirname(join(home, GEML_DIR, "artifacts", "x"));
+
+/** Two paths the same, separators aside; letter case aside where the file system ignores it. */
+function samePath(a: string, b: string): boolean {
+  const norm = (p: string): string => { const s = p.split("\\").join("/").replace(/\/+$/, ""); return process.platform === "win32" ? s.toLowerCase() : s; };
+  return norm(a) === norm(b);
+}
+
+/** Whether `path` is `dir` or inside it, separators aside; letter case aside where the file system ignores it. */
+export function isUnder(path: string, dir: string): boolean {
+  const norm = (p: string): string => { const s = p.split("\\").join("/").replace(/\/+$/, ""); return process.platform === "win32" ? s.toLowerCase() : s; };
+  const d = norm(dir);
+  const p = norm(path);
+  return p === d || p.startsWith(`${d}/`);
+}
+
+/**
+ * The files named taken out of the table, every version of them under any
+ * work item: what turned out not to be for the person (a draft handed to git
+ * commit as its message). The copies no row keeps any more move into `trash`,
+ * a GEML copy's history with it. Answers how many rows went.
+ */
+export function forgetFiles(root: string, home: string, paths: readonly string[], trash: string): number {
+  const names = paths.flatMap((p) => {
+    const abs = isAbsolute(p) ? p : join(root, p);
+    const rel = slashed(relative(root, abs));
+    return [slashed(abs), ...(rel !== "" && !rel.startsWith("../") && !isAbsolute(rel) ? [rel] : [])];
+  });
+  let gone: ArtifactRow[] = [];
+  const kept = changeRows(home, (rows) => {
+    gone = rows.filter((r) => r.kind !== "link" && names.some((n) => samePath(n, r.name)));
+    return rows.filter((r) => !gone.includes(r));
+  });
+  for (const r of gone) {
+    if (!r.where.startsWith("artifacts/") || kept.some((k) => k.where === r.where)) continue;
+    for (const copy of [copyPath(home, r.where), historyPathFor(copyPath(home, r.where))]) {
+      if (!exists(copy)) continue;
+      mkdirSync(trash, { recursive: true });
+      try { renameSync(copy, join(trash, basename(copy))); } catch { copyFileSync(copy, join(trash, basename(copy))); unlinkSync(copy); }
+    }
+  }
+  return gone.length;
+}

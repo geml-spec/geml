@@ -126,6 +126,8 @@ function world(on: On) {
     artifacts: null as unknown,
     /** The opener commands run, by argument vector. */
     launched: [] as string[][],
+    /** The project's memory the bridge answers. */
+    memory: { dir: '/h/memory', entries: [{ file: 'a.md', title: '甲', hook: '第一条', type: 'feedback', at: '2026-10-22T08:00:00Z' }, { file: 'b.md', title: '乙', hook: '第二条', type: 'project', at: '2026-10-21T08:00:00Z' }] },
   }
   const stage = () => `[gemflow] stage #${w.state} · rev ${w.rev}`
   const shell = () => ({
@@ -224,6 +226,11 @@ function world(on: On) {
     if (req.op === 'verb') return { v: 1, ok: true, shell: shell(), text: `[gemflow] work item feat/x · state #${w.state}` }
     if (req.op === 'board') return w.boardless ? { v: 1, ok: true, shell: shell() } : { v: 1, ok: true, shell: shell(), board: board(), todo: w.todo }
     if (req.op === 'artifact') return { v: 1, ok: true, shell: shell(), text: `Recorded the link under feat/x's artifacts.` }
+    if (req.op === 'memory' || req.op === 'memory-set' || req.op === 'memory-delete') {
+      if (req.op === 'memory-set') w.memory = { ...w.memory, entries: w.memory.entries.map((e) => (e.file === req.file ? { ...e, hook: req.hook } : e)) }
+      if (req.op === 'memory-delete') w.memory = { ...w.memory, entries: w.memory.entries.filter((e) => e.file !== req.file) }
+      return { v: 1, ok: true, shell: shell(), memory: w.memory }
+    }
     if (req.op === 'backfill-list') return { v: 1, ok: true, shell: shell(), backfill: { sessions: w.transcripts } }
     if (req.op === 'turn-ids') {
       const ids = w.turnIdsQueue.length > 0 ? (w.turnIdsQueue.shift() as string[] | null) : w.turnIds
@@ -2008,4 +2015,124 @@ test('checked turns on the sessions tab split into one new session by their reco
   expect(await pane.find({ type: 'Button', key: 'export-own' }), '清空: the export is back on the heading').toBeDefined()
   await pane.unmount()
   expect(w.toasts.at(-1)).toBe('已交给模型，结果看对话')
+})
+
+test('questions stay on the band until answered: a typed prompt answers the one shown, the rest come back with the next reply; one asked again is asked once; lines pasted back answer what they name', async ($, on) => {
+  world(on)
+  on('prompt.submit', ($, e) => ({ text: e.text }))
+  on('turn.complete', ($, e) => ({ text: e.answer }))
+  await start($, on)
+  const ask = (id: string, question: string) => $.tool.call({ tool: 'mcp__gemflow__ask', tool_use_id: id, question, options: ['好', '不好'] })
+  const bandSays = async (): Promise<string> => {
+    const band = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+    const text = shown((await band.drawn()) as unknown as Drawn).join(' ')
+    await band.unmount()
+    return text
+  }
+  await $.prompt.submit({ text: '出方案', wait: false, origin: COMPOSER })
+  await ask('q1', '放在哪？')
+  await ask('q2', '怎么改？')
+  await ask('q3', '复制吗？')
+  await $.turn.complete({ answer: '三件事要你定。', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' })
+  expect(await bandSays()).toMatch(/定 1\/3：放在哪？/)
+  await $.prompt.submit({ text: '会话页 决定 前面', wait: false, origin: COMPOSER })
+  await ask('q3b', '复制吗？')
+  await ask('q4', '加不加？')
+  await $.turn.complete({ answer: '记下了。', durationMs: 5, isAborted: false, turnId: 't2', reason: 'answer' })
+  const after = await bandSays()
+  expect(after, 'the one shown was answered; the two left come first, the one asked again once').toMatch(/定 1\/3：怎么改？/)
+  await $.prompt.submit({ text: '怎么改？：好\n复制吗？：不好', wait: false, origin: COMPOSER })
+  await $.turn.complete({ answer: '好。', durationMs: 5, isAborted: false, turnId: 't3', reason: 'answer' })
+  expect(await bandSays(), 'the pasted lines answered theirs: one left').toMatch(/待决定：加不加？/)
+})
+
+test('the sessions tab shows the project\'s memory between the other sessions and the decisions: a group unfolds, a memory opens to its card; its summary is edited in place and it is deleted after a yes', async ($, on) => {
+  const w = world(on)
+  const asked: string[] = []
+  on('prompt.submit', ($, e) => ({ text: e.text }))
+  on('tool.call', { tool: 'AskUserQuestion' }, ($, e) => {
+    const q = (e.questions as { question: string; options: { label: string }[] }[])[0]!
+    asked.push(q.question)
+    return { result: { questions: e.questions, answers: { [q.question]: q.options[0]!.label } }, text: q.options[0]!.label }
+  })
+  const clock = await start($, on)
+  await $.command.run({ command: 'gemflow', args: 'board', origin: COMPOSER, presentation: PRESENTATION })
+  const mount = () => $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: { ...PANE, bodyColumns: 120 } })
+  let pane = await mount()
+  await pane.press({ key: 'tab-sessions' })
+  await clock.settle()
+  await pane.unmount()
+  pane = await mount()
+  expect(await pane.find({ type: 'Text', text: '记忆' }), 'the heading').toBeDefined()
+  await pane.press({ key: 'go-memory-group-feedback' })
+  await pane.unmount()
+  pane = await mount()
+  await pane.press({ key: 'go-memory-a.md' })
+  await pane.unmount()
+  pane = await mount()
+  await pane.press({ key: 'memory-hook-a.md' })
+  await pane.unmount()
+  pane = await mount()
+  await pane.input({ key: 'memory-edit-a.md', text: '改过的第一条' })
+  await clock.settle()
+  expect(w.sent.filter((r) => r.op === 'memory-set').map((r) => [r.file, r.hook])).toEqual([['a.md', '改过的第一条']])
+  expect(w.toasts.at(-1)).toBe('已改：甲。下一个会话起生效')
+  await pane.unmount()
+  pane = await mount()
+  await pane.press({ key: 'memory-delete-a.md' })
+  await clock.settle()
+  expect(asked.at(-1)).toBe('删除「甲」？会先放进回收站；下一个会话起不再读它。')
+  expect(w.sent.filter((r) => r.op === 'memory-delete').map((r) => r.file)).toEqual(['a.md'])
+  expect(w.toasts.at(-1)).toBe('已删除：甲。下一个会话起生效')
+  await pane.unmount()
+})
+
+test('a question answered while a turn runs is not asked again when that turn, which has not seen the answer, registers it once more', async ($, on) => {
+  world(on)
+  const said: string[] = []
+  on('prompt.submit', ($, e) => { said.push(e.text); return { text: e.text } })
+  on('turn.complete', ($, e) => ({ text: e.answer }))
+  await start($, on)
+  const bandSays = async (): Promise<string> => {
+    const band = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+    const text = shown((await band.drawn()) as unknown as Drawn).join(' ')
+    await band.unmount()
+    return text
+  }
+  await $.prompt.submit({ text: '出方案', wait: false, origin: COMPOSER })
+  await $.tool.call({ tool: 'mcp__gemflow__ask', tool_use_id: 'q1', question: '记忆区按这版做吗？', options: ['按这版做', '还要改'] })
+  await $.turn.complete({ answer: '样稿在这。', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' })
+  // The person answers on the band; the turn running meanwhile, not having seen it, registers the same question again.
+  const band = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+  await band.press({ key: 'attention-0-按这版做' })
+  await band.unmount()
+  expect(said.at(-1)).toBe('记忆区按这版做吗？：按这版做')
+  await $.tool.call({ tool: 'mcp__gemflow__ask', tool_use_id: 'q2', question: '记忆区按这版做吗？', options: ['按这版做', '还要改'] })
+  await $.tool.call({ tool: 'mcp__gemflow__ask', tool_use_id: 'q3', question: '标题改成文件名吗？', options: ['改', '不改'] })
+  await $.turn.complete({ answer: '已提交。', durationMs: 5, isAborted: false, turnId: 't2', reason: 'answer' })
+  const after = await bandSays()
+  expect(after, 'the answered one is not asked again').not.toMatch(/记忆区按这版做吗/)
+  expect(after, 'the new one is').toMatch(/待决定：标题改成文件名吗？/)
+  // Once a reply has come, a question asked again is asked again.
+  await $.prompt.submit({ text: '改', wait: false, origin: COMPOSER })
+  await $.tool.call({ tool: 'mcp__gemflow__ask', tool_use_id: 'q4', question: '记忆区按这版做吗？', options: ['按这版做', '还要改'] })
+  await $.turn.complete({ answer: '再确认一次。', durationMs: 5, isAborted: false, turnId: 't3', reason: 'answer' })
+  expect(await bandSays()).toMatch(/待决定：记忆区按这版做吗？/)
+})
+
+test('a draft handed to git commit as its message is no artifact: not recorded at the turn\'s end, and taken out again where an earlier turn recorded it', async ($, on) => {
+  const w = world(on)
+  on('tool.call', { tool: 'Write' }, () => ({ result: { type: 'create' }, text: 'written' }))
+  on('tool.call', { tool: 'Bash' }, () => ({ result: { stdout: 'ok', stderr: '', interrupted: false }, text: 'ok' }))
+  on('turn.complete', ($, e) => ({ text: e.answer }))
+  const clock = await start($, on)
+  await clock.advance(1)
+  await $.tool.call({ tool: 'Write', tool_use_id: 'w1', file_path: '/tmp/scratch/msg.txt', content: 'gemflow 0.2.64: x' })
+  await $.tool.call({ tool: 'Write', tool_use_id: 'w2', file_path: '/tmp/scratch/page.html', content: '<title>样稿</title>' })
+  await $.tool.call({ tool: 'Bash', tool_use_id: 'b1', command: 'S=/tmp/scratch && rtk git commit -F $S/msg.txt 2>&1 | tail -1' })
+  await clock.advance(1)
+  await $.turn.complete({ answer: '已提交。', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' })
+  await clock.advance(1)
+  const sent = w.sent.filter((r) => r.op === 'artifacts')
+  expect(sent.map((r) => [r.elsewhere ?? null, r.notMade ?? null])).toEqual([[['/tmp/scratch/page.html'], ['/tmp/scratch/msg.txt']]])
 })

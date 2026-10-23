@@ -31,7 +31,8 @@ import { TOOLS_FILE } from "./core/dictionary.js";
 import { renderDictionary } from "./core/dictionary-file.js";
 import { migrateLayout, projectDocOf, recordedPath, workflowAt } from "./project-home.js";
 import { updateOutline, type OutlineEntry } from "./outline-store.js";
-import { copyPath, artifactsDir, recordBytes, recordFile, recordLink, syncDocs, syncWritten } from "./artifacts-store.js";
+import { copyPath, artifactsDir, forgetFiles, isUnder, recordBytes, recordFile, recordLink, syncDocs, syncWritten } from "./artifacts-store.js";
+import { deleteMemory, memoryDir, readMemory, setMemoryHook } from "./memory-store.js";
 import { isDocPath, isGemlPath, isImagePath, isMadeForPeople, pageTitle, artifactsOfItem, UPLOAD_PREFIX, type Artifact } from "./core/artifacts.js";
 import { historyPathFor } from "@geml/geml";
 import { prOf, type PrFact } from "./core/outline.js";
@@ -468,14 +469,20 @@ function artifactsOf(ws: Workspace, root: string, journal: Journal): Artifacts |
  * does not keep, when its content changed; and of each made for a person it
  * wrote outside the project (`elsewhere`, absolute paths).
  */
-function syncArtifacts(ws: Workspace, root: string, elsewhere: readonly string[] = []): void {
+function syncArtifacts(ws: Workspace, root: string, elsewhere: readonly string[] = [], notMade: readonly string[] = []): void {
   if (ws.item.kind !== "item") return;
   const item = ws.item.id;
   const file = ws.itemFile;
   if (ws.journalPath !== undefined && exists(ws.journalPath)) {
     try { syncWritten(root, ws.journalBase, item, writtenOf(readJournal(readText(ws.journalPath))).map((w) => w.path).filter((p) => p !== file)); } catch { /* the next look copies it */ }
   }
-  for (const path of elsewhere.filter(isMadeForPeople)) {
+  // A draft handed to git commit as its message was for the commit: taken out again where an earlier turn recorded it.
+  if (notMade.length > 0) {
+    try { forgetFiles(root, ws.journalBase, notMade, join(homedir(), ".gemflow", "trash", `${new Date().toISOString().replace(/[:.]/g, "-")}-artifacts`)); } catch { /* the next turn's look takes it out */ }
+  }
+  // Claude's own files (its memory, its settings, its plans) are not the work item's artifacts.
+  const claudeHome = process.env["CLAUDE_CONFIG_DIR"] ?? join(homedir(), ".claude");
+  for (const path of elsewhere.filter(isMadeForPeople).filter((p) => !isUnder(p, claudeHome) && !notMade.some((n) => isUnder(p, n)))) {
     try { recordFile(root, ws.journalBase, item, path, isImagePath(path) ? "image" : "file"); } catch { /* not there any more */ }
   }
 }
@@ -837,7 +844,7 @@ function answer(req: BridgeRequest): BridgeResponse {
       return ok(view, { attention: { ahead: ahead ?? [], prs: open ?? [], ...(unread.length > 0 ? { unread } : {}), ...(bump !== undefined ? { bump: { version: bump.version, path: bump.path } } : {}) }, host: hostOf(root), sessions: join(journalBaseOf(root), GEML_DIR, SESSIONS_DIR) });
     }
     case "artifacts": {
-      syncArtifacts(ws, root, req.elsewhere);
+      syncArtifacts(ws, root, req.elsewhere, req.notMade);
       return ok(ws.view());
     }
     case "artifact": {
@@ -849,6 +856,16 @@ function answer(req: BridgeRequest): BridgeResponse {
     case "backfill-one": {
       const r = backfillOne(ws, root, req);
       return r.ok ? ok(ws.view(), { backfill: r.backfill }) : failed(r.reason);
+    }
+    // The project's Claude Code memory: read, one hook rewritten, one taken out; each answers the memory as it now stands.
+    case "memory":
+    case "memory-set":
+    case "memory-delete": {
+      const dir = memoryDir(transcriptsRoot(req), ws.journalBase);
+      const trash = join(homedir(), ".gemflow", "trash", `${new Date().toISOString().replace(/[:.]/g, "-")}-memory`);
+      if (req.op === "memory-set" && !setMemoryHook(dir, req.file, req.hook, trash)) return failed(`no memory ${req.file} to change`);
+      if (req.op === "memory-delete" && !deleteMemory(dir, req.file, trash)) return failed(`no memory ${req.file} to delete`);
+      return ok(ws.view(), { memory: readMemory(dir) });
     }
     case "turn-ids": {
       const file = transcriptFiles(root, transcriptsRoot(req)).find((f) => f.id === req.session);
