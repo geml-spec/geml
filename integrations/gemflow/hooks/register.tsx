@@ -33,7 +33,7 @@ import { commitMessageFiles } from '../dist/core/commit-message.js'
 import { FLOW_TOOLS } from '../dist/core/verb-specs.js'
 import type { VerbName } from '../dist/core/verb-specs.js'
 import type { BoardAction, BoardTab, Dialog, JournalFilter, Pressable, ShareHow, ShareWhat } from '../dist/hosts/claude-code/actions.js'
-import { answered, asksOf, bandLine, heldSteps, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, openAfter, pendingNote, picksText, pressablesFor, pressedOf, remember, standingOf, stepPressables } from '../dist/hosts/claude-code/attention.js'
+import { answered, asksOf, bandLine, heldSteps, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, openAfter, pendingNote, picksText, pressablesFor, pressedOf, remember, shownWhenTyped, standingOf, stepPressables } from '../dist/hosts/claude-code/attention.js'
 import type { Queued } from '../dist/hosts/claude-code/attention.js'
 import type { AttentionFacts, AttentionMemory } from '../dist/hosts/claude-code/attention.js'
 import { envParts, remoteInPlay } from '../dist/hosts/claude-code/env.js'
@@ -69,7 +69,7 @@ import type { Settings } from '../dist/hosts/claude-code/settings.js'
 import { statusShareText } from '../dist/hosts/claude-code/share.js'
 import { LOCKUP_SVG } from '../dist/hosts/claude-code/brand.js'
 import { RELEASE_NOTES, isNewer } from '../dist/hosts/claude-code/release-notes.js'
-import { judgementLine, judgeOptions, judgeRequest, JUDGEMENT_MS, readJudgement } from '../dist/hosts/claude-code/judge.js'
+import { askJudgeRequest, judgementLine, judgeOptions, judgeRequest, JUDGEMENT_MS, readAskJudgement, readJudgement } from '../dist/hosts/claude-code/judge.js'
 import type { Judgement, JudgeOption } from '../dist/hosts/claude-code/judge.js'
 import { langOf, wordsFor } from '../dist/hosts/claude-code/text.js'
 import type { T } from '../dist/hosts/claude-code/text.js'
@@ -537,18 +537,44 @@ async function attentionOnPrompt($: EngineInterface, said: string, typed = true)
     if (!a.consumed) {
       const memory = answered(remember(a.memory, { reply: a.reply, standing: now.standing, lead: now.lead }), said)
       await update($, attentionAtom, () => ({ ...a, memory, consumed: true }) as unknown as GemflowJson)
-      // What it did not answer stays for the next reply's band: the one shown, when the person typed and named none, is answered.
+      // What it did not answer stays for the next reply's band. The one shown, when the person typed and named none, stays
+      // too until a small model reads whether the prompt answers it (judgeShownAsk): a message about something else does not.
       const open = openAfter(a.asks ?? [], a.picks ?? [], said, typed)
-      await update($, leftAsksAtom, () => open)
-      const settled = (a.asks ?? []).filter((q) => !open.some((x) => x.question === q.question)).map((q) => q.question)
+      const shown = shownWhenTyped(a.asks ?? [], a.picks ?? [], said, typed)
+      await update($, leftAsksAtom, () => (shown !== undefined ? [shown, ...open] : open))
+      const settled = (a.asks ?? []).filter((q) => q.question !== shown?.question && !open.some((x) => x.question === q.question)).map((q) => q.question)
       const before = ((await read($, answeredAtom)) as string[] | null) ?? []
       await update($, answeredAtom, () => [...new Set([...before, ...settled])])
+      if (shown !== undefined) $.clock.after(0, () => { void judgeShownAsk($, shown, said).catch(() => undefined) })
     }
     const news = newsOf((await read($, factsAtReplyAtom)) as unknown as AttentionFacts | null, await factsNow($), t)
     return news.length > 0 ? [`[gemflow] since your last reply: ${news.join('; ')}`] : []
   } catch {
     return []
   }
+}
+
+/**
+ * Whether a typed prompt answers the question the band showed: a small model reads both after the prompt is on its way.
+ * It does, or the model gave no answer (as typing always settled it), and the question is settled; it does not, and it
+ * stays for the next reply's band.
+ */
+async function judgeShownAsk($: EngineInterface, q: Asked, said: string): Promise<void> {
+  const ask = askJudgeRequest(q.question, q.options, said)
+  const r = await $.model.complete({ model: 'haiku', system: ask.system, prompt: ask.prompt, maxTokens: 60, effort: 'low', timeoutMs: 20_000 }).catch(() => undefined)
+  if (r !== undefined && r.isAnswered && readAskJudgement(r.text) === false) return
+  await update($, leftAsksAtom, (left) => ((left as Asked[] | null) ?? []).filter((x) => x.question !== q.question))
+  // While the turn runs, it is answered for the turn's end (which reads this); after, a later turn may ask it afresh.
+  if (turnBusy) await update($, answeredAtom, (done) => [...new Set([...(((done as string[] | null) ?? [])), q.question])])
+  // The turn may have ended first and put it back on the band: take it off there, with its place among the picks.
+  const a = await readAttention($)
+  const at = a?.asks?.findIndex((x) => x.question === q.question) ?? -1
+  if (a === null || a.consumed || a.asks === undefined || at < 0) return
+  const { asks: _asks, picks: _picks, ...rest } = a
+  const asks = a.asks.filter((_, i) => i !== at)
+  const picks = (a.picks ?? []).filter((_, i) => i !== at)
+  const kept: Attention = { ...rest, ...(asks.length > 0 ? { asks } : {}), ...(a.picks !== undefined && asks.length > 0 ? { picks } : {}) }
+  await update($, attentionAtom, () => kept as unknown as GemflowJson)
 }
 
 /** Where the session runs and who drives it (env.ts): the parts of one line, and whether a person may be away from the machine. */
@@ -674,6 +700,8 @@ async function artifactsOnTurn($: EngineInterface): Promise<void> {
   if (elsewhere.length > 0) await update($, madeElsewhereAtom, () => [] as unknown as GemflowJson)
   if (notMade.length > 0) await update($, notMadeAtom, () => [] as string[])
   await bridge($, { op: 'artifacts', ...(elsewhere.length > 0 ? { elsewhere } : {}), ...(notMade.length > 0 ? { notMade } : {}) }, SLOW_TIMEOUT_MS).catch(() => undefined)
+  // What the turn recorded shows on an open board now: nothing else reads the board again while the stage stays put.
+  try { if ((await $.ui.panes()).some((p) => p.id === BOARD_ID)) await reloadBoardLater($) } catch { /* read when next opened */ }
 }
 
 /** What the person gave with a prompt (images, documents): their bytes, as the conversation holds them, among the work item's artifacts. */
@@ -1279,14 +1307,13 @@ function marketplaceOf(root: string): string | undefined {
   return root.split('\\').join('/').match(/\/plugins\/(?:cache|marketplaces)\/([^/]+)\//)?.[1]
 }
 
-async function openBoard($: EngineInterface, tab?: BoardTab): Promise<{ isPlaced: boolean; reason?: string }> {
+async function openBoard($: EngineInterface, tab?: BoardTab, readNow = true): Promise<{ isPlaced: boolean; reason?: string }> {
   if (tab !== undefined) await update($, tabAtom, () => tab)
   const opened = await $.ui.open({ id: BOARD_ID, title: PANE_TITLE })
-  // Open first: a board not read yet is read behind it, the pane saying 正在读取看板… meanwhile (a read that fails says why again).
-  if ((await readBoard($)) === null) {
-    await update($, boardProblemAtom, () => null)
-    $.clock.after(0, () => { void loadBoard($) })
-  }
+  // Open first, then read it behind: a board not read yet says 正在读取看板… meanwhile (a read that fails says why again);
+  // one read before shows what it had until the new read lands, so nothing recorded since is missing for long.
+  if ((await readBoard($)) === null) await update($, boardProblemAtom, () => null)
+  if (readNow) $.clock.after(0, () => { void loadBoard($) })
   return opened
 }
 
@@ -2688,7 +2715,10 @@ export const register: Register = (on) => {
     const drafts = command !== undefined && /\bcommit\b/.test(command) ? commitMessageFiles(command) : []
     if (drafts.length > 0) {
       const cwd = await $.session.cwd().catch(() => root ?? '')
-      const named = drafts.map((f) => (/^(\/|[A-Za-z]:[\\/])/.test(f) ? f : `${cwd}/${f}`))
+      // On Windows a Git Bash path names its drive as a folder (/c/Users/…): the file the write tools named C:\Users\….
+      const windows = /^[A-Za-z]:[\\/]/.test(cwd)
+      const drive = (f: string): string => (windows ? f.replace(/^\/([A-Za-z])(?=\/)/, (_, d: string) => `${d.toUpperCase()}:`) : f)
+      const named = drafts.map(drive).map((f) => (/^(\/|[A-Za-z]:[\\/])/.test(f) ? f : `${cwd}/${f}`))
       const same = (a: string, b: string): boolean => a.split('\\').join('/').toLowerCase() === b.split('\\').join('/').toLowerCase()
       $.clock.after(0, () => {
         void (async () => {
@@ -3139,7 +3169,7 @@ export const register: Register = (on) => {
     if (intent.kind === 'board') {
       const failure = await loadBoard($)
       if (failure !== null) return { text: boardText(undefined, failure, t) }
-      const opened = await openBoard($, intent.tab)
+      const opened = await openBoard($, intent.tab, false)
       return { text: boardText(opened.isPlaced ? undefined : opened.reason, undefined, t) }
     }
     const op: BridgeOp | undefined = intent.kind === 'status' ? { op: 'status' }

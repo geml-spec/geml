@@ -418,6 +418,18 @@ export function openAfter(asks: readonly Asked[], picks: readonly (string | null
   return typed && open.length === unpicked.length ? open.slice(1) : open;
 }
 
+/**
+ * The one openAfter counts as answered by a typed prompt that names none: the
+ * one shown, the first not picked. Whether the prompt does answer it is a
+ * judgement (judge.ts); undefined when the prompt was pressed or names one.
+ */
+export function shownWhenTyped(asks: readonly Asked[], picks: readonly (string | null)[], said: string, typed: boolean): Asked | undefined {
+  if (!typed) return undefined;
+  const unpicked = asks.filter((_, i) => (picks[i] ?? null) === null);
+  const open = openAfter(asks, picks, said, false);
+  return open.length === unpicked.length ? open[0] : undefined;
+}
+
 /** A step that is a button beside the lead: one the person takes in a press — merge, push, commit, reload. */
 function isStepButton(s: Standing): boolean {
   return s.options.length > 0 && /^(green|unpushed|uncommitted):|^reload$/.test(s.key);

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { judgementLine, judgeOptions, judgeRequest, readJudgement } from "../dist/hosts/claude-code/judge.js";
+import { askJudgeRequest, judgementLine, judgeOptions, judgeRequest, readAskJudgement, readJudgement } from "../dist/hosts/claude-code/judge.js";
 import { wordsFor } from "../dist/hosts/claude-code/text.js";
 
 const t = wordsFor("zh");
@@ -60,4 +60,16 @@ test("unsure, the judgement offers up to four picks, the likeliest first, then n
   assert.deepEqual([line.title, line.actions.map((a) => [a.label, a.action])], ["是哪一个？", [
     ["按方案做", { op: "judge-yes" }], ["先放着", { op: "judge-pick", n: 1 }], ["继续：样式：画布换上新标志", { op: "judge-pick", n: 2 }], ["都不是", { op: "judge-no" }],
   ]], "an option of the same work item goes by its button's words, another's by both");
+});
+
+test("a question on the band: the request names the question, its answers and the message; the reply is read as yes, no, or no answer", () => {
+  const r = askJudgeRequest("轻流程能跳步吗？", ["能", "不能"], "？你不会断句么？");
+  assert.match(r.system, /answers a question/);
+  assert.match(r.prompt, /"轻流程能跳步吗？"/);
+  assert.match(r.prompt, /"能", "不能"/);
+  assert.match(r.prompt, /"？你不会断句么？"/);
+  assert.equal(readAskJudgement('{"answers": true}'), true);
+  assert.equal(readAskJudgement('它答了：{"answers": false}'), false, "the object found in the reply");
+  assert.equal(readAskJudgement("yes"), undefined, "no object");
+  assert.equal(readAskJudgement('{"answers": "yes"}'), undefined, "not a boolean");
 });

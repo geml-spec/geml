@@ -2086,7 +2086,9 @@ test('questions stay on the band until answered: a typed prompt answers the one 
   world(on)
   on('prompt.submit', ($, e) => ({ text: e.text }))
   on('turn.complete', ($, e) => ({ text: e.answer }))
-  await start($, on)
+  // The small model reads the typed prompt as an answer to the one shown.
+  on('model.complete', () => ({ value: { isAnswered: true as const, text: '{"answers": true}', usage: { input_tokens: 1, output_tokens: 1, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } } }))
+  const clock = await start($, on)
   const ask = (id: string, question: string) => $.tool.call({ tool: 'mcp__gemflow__ask', tool_use_id: id, question, options: ['好', '不好'] })
   const bandSays = async (): Promise<string> => {
     const band = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
@@ -2101,6 +2103,7 @@ test('questions stay on the band until answered: a typed prompt answers the one 
   await $.turn.complete({ answer: '三件事要你定。', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' })
   expect(await bandSays()).toMatch(/定 1\/3：放在哪？/)
   await $.prompt.submit({ text: '会话页 决定 前面', wait: false, origin: COMPOSER })
+  await clock.settle()
   await ask('q3b', '复制吗？')
   await ask('q4', '加不加？')
   await $.turn.complete({ answer: '记下了。', durationMs: 5, isAborted: false, turnId: 't2', reason: 'answer' })
@@ -2152,12 +2155,41 @@ test('the journal tab shows the project\'s memory after its events: a filter pic
   await pane.unmount()
 })
 
+test('a typed prompt about something else leaves the question shown on the band; one that answers it in its own words settles it', async ($, on) => {
+  world(on)
+  let verdict = '{"answers": false}'
+  on('model.complete', () => ({ value: { isAnswered: true as const, text: verdict, usage: { input_tokens: 1, output_tokens: 1, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } } }))
+  on('prompt.submit', ($, e) => ({ text: e.text }))
+  on('turn.complete', ($, e) => ({ text: e.answer }))
+  const clock = await start($, on)
+  const bandSays = async (): Promise<string> => {
+    const band = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+    const text = shown((await band.drawn()) as unknown as Drawn).join(' ')
+    await band.unmount()
+    return text
+  }
+  await $.prompt.submit({ text: '出方案', wait: false, origin: COMPOSER })
+  await $.tool.call({ tool: 'mcp__gemflow__ask', tool_use_id: 'q1', question: '轻流程能跳步吗？', options: ['能', '不能'] })
+  await $.turn.complete({ answer: '要你定。', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' })
+  expect(await bandSays()).toMatch(/待决定：轻流程能跳步吗？/)
+  await $.prompt.submit({ text: '？你不会断句么？', wait: false, origin: COMPOSER })
+  await clock.settle()
+  await $.turn.complete({ answer: '下次分行写。', durationMs: 5, isAborted: false, turnId: 't2', reason: 'answer' })
+  expect(await bandSays(), 'a message about something else: still asked').toMatch(/待决定：轻流程能跳步吗？/)
+  verdict = '{"answers": true}'
+  await $.prompt.submit({ text: '轻的可以，严格的别跳', wait: false, origin: COMPOSER })
+  await clock.settle()
+  await $.turn.complete({ answer: '记下了。', durationMs: 5, isAborted: false, turnId: 't3', reason: 'answer' })
+  expect(await bandSays(), 'answered in its own words: settled').not.toMatch(/轻流程能跳步吗/)
+})
+
 test('a question answered while a turn runs is not asked again when that turn, which has not seen the answer, registers it once more', async ($, on) => {
   world(on)
   const said: string[] = []
   on('prompt.submit', ($, e) => { said.push(e.text); return { text: e.text } })
   on('turn.complete', ($, e) => ({ text: e.answer }))
-  await start($, on)
+  on('model.complete', () => ({ value: { isAnswered: true as const, text: '{"answers": true}', usage: { input_tokens: 1, output_tokens: 1, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } } }))
+  const clock = await start($, on)
   const bandSays = async (): Promise<string> => {
     const band = await $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'AbovePrompt', props: BAND })
     const text = shown((await band.drawn()) as unknown as Drawn).join(' ')
@@ -2180,6 +2212,7 @@ test('a question answered while a turn runs is not asked again when that turn, w
   expect(after, 'the new one is').toMatch(/待决定：标题改成文件名吗？/)
   // Once a reply has come, a question asked again is asked again.
   await $.prompt.submit({ text: '改', wait: false, origin: COMPOSER })
+  await clock.settle()
   await $.tool.call({ tool: 'mcp__gemflow__ask', tool_use_id: 'q4', question: '记忆区按这版做吗？', options: ['按这版做', '还要改'] })
   await $.turn.complete({ answer: '再确认一次。', durationMs: 5, isAborted: false, turnId: 't3', reason: 'answer' })
   expect(await bandSays()).toMatch(/待决定：记忆区按这版做吗？/)
@@ -2200,6 +2233,24 @@ test('a draft handed to git commit as its message is no artifact: not recorded a
   await clock.advance(1)
   const sent = w.sent.filter((r) => r.op === 'artifacts')
   expect(sent.map((r) => [r.elsewhere ?? null, r.notMade ?? null])).toEqual([[['/tmp/scratch/page.html'], ['/tmp/scratch/msg.txt']]])
+})
+
+test('a commit draft named the Git Bash way on Windows (/c/Users/…) is the file the write tool named C:\\Users\\…: no artifact either', async ($, on) => {
+  const w = world(on)
+  on('tool.call', { tool: 'Write' }, () => ({ result: { type: 'create' }, text: 'written' }))
+  on('tool.call', { tool: 'Bash' }, () => ({ result: { stdout: 'ok', stderr: '', interrupted: false }, text: 'ok' }))
+  on('turn.complete', ($, e) => ({ text: e.answer }))
+  const clock = await start($, on)
+  w.cwd = 'C:/work/app'
+  await clock.advance(1)
+  await $.tool.call({ tool: 'Write', tool_use_id: 'w1', file_path: 'C:\\Users\\me\\scratch\\msg.txt', content: 'gemflow 0.2.80: x' })
+  await $.tool.call({ tool: 'Bash', tool_use_id: 'b1', command: 'git -c user.name=me commit -q -F /c/Users/me/scratch/msg.txt' })
+  await clock.advance(1)
+  await $.turn.complete({ answer: '已提交。', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' })
+  await clock.advance(1)
+  const sent = w.sent.filter((r) => r.op === 'artifacts')
+  expect(sent.map((r) => r.notMade ?? null), 'the draft, by its drive').toEqual([['C:/Users/me/scratch/msg.txt']])
+  expect(sent.flatMap((r) => (r.elsewhere as string[] | undefined) ?? []).filter((p) => /msg\.txt$/.test(p)), 'not recorded').toEqual([])
 })
 
 test('整理: a message typed mid-turn is picked on its own; its row id is learned from the transcript before the split is handed over, and one the transcript does not hold stops it', async ($, on) => {

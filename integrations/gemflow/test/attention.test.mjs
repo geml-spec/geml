@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { answered, asksOf, bandLine, heldSteps, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, openAfter, optionsFor, outcomeOf, picksText, pressablesFor, remember, spokenOf, standingOf, stepPressables, WIDTH } from "../dist/hosts/claude-code/attention.js";
+import { answered, asksOf, bandLine, heldSteps, leadOf, newsOf, NO_FACTS, NO_MEMORY, nowRows, openAfter, optionsFor, outcomeOf, picksText, pressablesFor, remember, shownWhenTyped, spokenOf, standingOf, stepPressables, WIDTH } from "../dist/hosts/claude-code/attention.js";
 
 const NOW = Date.parse("2026-10-18T10:00:00Z");
 const cells = (s) => [...s].reduce((w, c) => w + (/[ᄀ-￿]/.test(c) ? 2 : 1), 0);
@@ -241,4 +241,14 @@ test("the questions a prompt leaves open: a typed prompt answers the one shown, 
   assert.deepEqual(left([], "放在哪？：前面", false), ["怎么改？", "复制吗？"], "an answer pressed answers its question");
   assert.deepEqual(left(["好", "不好", "好"], "放在哪？：好\n怎么改？：不好\n复制吗？：好", false), [], "all picked: none left");
   assert.deepEqual(openAfter([q("推吗？")], [], "推吗？：推", false), [], "one question, its answer pressed");
+});
+
+test("the question a typed prompt naming none would answer: the one shown, left for a judgement; none when the prompt was pressed or names one", () => {
+  const q = (question) => ({ question, options: ["好", "不好"] });
+  const asks = [q("放在哪？"), q("怎么改？")];
+  assert.equal(shownWhenTyped(asks, [], "？你不会断句么？", true)?.question, "放在哪？", "typed, naming none: the one shown");
+  assert.equal(shownWhenTyped(asks, ["好", null], "随便", true)?.question, "怎么改？", "the first not picked");
+  assert.equal(shownWhenTyped(asks, [], "怎么改？：好", true), undefined, "naming one: no judgement needed");
+  assert.equal(shownWhenTyped(asks, [], "提交改动", false), undefined, "a pressed step answers none");
+  assert.equal(shownWhenTyped(asks, ["好", "好"], "完了", true), undefined, "all picked");
 });
