@@ -105,7 +105,7 @@ test("the session asking gets its turns back and its log is not written by the b
 test("turn-ids: the prompt rows a session's transcript still holds; a session with no transcript is an error", () => {
   const { root, transcripts, slug } = project();
   writeFileSync(join(slug, "s-9.jsonl"), [user(root, "u1", "2026-10-21T05:00:00Z", "a", { sessionId: "s-9" }), user(root, "u2", "2026-10-21T05:01:00Z", "b", { sessionId: "s-9" })].join("\n"));
-  assert.deepEqual(hook(root, { op: "turn-ids", session: "s-9", transcripts }).backfill, { uuids: ["u1", "u2"] });
+  assert.deepEqual(hook(root, { op: "turn-ids", session: "s-9", transcripts }).backfill, { uuids: ["u1", "u2"], messages: [] }, "the prompt rows, and the messages typed mid-turn (none here)");
   assert.equal(hook(root, { op: "turn-ids", session: "s-0", transcripts }).ok, false);
   // A transcript whose last record is cut short is being written: no answer yet.
   writeFileSync(join(slug, "s-8.jsonl"), user(root, "u1", "2026-10-21T05:00:00Z", "a", { sessionId: "s-8" }) + "\n" + '{"type":"user","uuid":"u2","timesta');

@@ -12,6 +12,7 @@ import type { Suggestion } from "../../project.js";
 import type { AttentionFacts } from "./attention.js";
 import type { HostInfo } from "./env.js";
 import type { MemoryList } from "../../memory-store.js";
+import type { QueuedMessage } from "../../core/transcript.js";
 import type { Transcript } from "../../core/transcript.js";
 
 export type { VerbName } from "../../core/verb-specs.js";
@@ -103,7 +104,7 @@ export interface TranscriptFile { file: string; id: string; size: number }
 /** backfill-list: the transcripts; backfill-one: what one added (`skipped`: a session still writing its own log); turn-ids: the prompt rows a transcript holds. */
 export type Backfill =
   | { sessions: TranscriptFile[] }
-  | { uuids: string[] }
+  | { uuids: string[]; messages?: QueuedMessage[] }
   | { id: string; turns: number; files: number; links: number; skipped?: boolean; transcript?: Transcript };
 
 export type BridgeRequest = { v: 1; root: string; lastFile?: string; gh?: GhSeen } & BridgeOp;

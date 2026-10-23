@@ -226,7 +226,7 @@ function analyze(recs) {
     t.subagents = lines.filter((o) => o.type === 'assistant' && Array.isArray(o.message?.content)
       && o.message.content.some((b) => b.type === 'tool_use' && (b.name === 'Agent' || b.name === 'Task'))).length;
   }
-  return { byId, chain, onChain, turns };
+  return { byId, chain, onChain, turns, pinned };
 }
 
 function parseTurns(spec, max) {
@@ -242,15 +242,31 @@ function parseTurns(spec, max) {
   return [...set].sort((x, y) => x - y);
 }
 
-/** The turns asked for, in their order: by --uuids (each turn's prompt record) or by --turns (their numbers). */
-function pickTurns(turns) {
+/** A message the person typed while a turn ran: an attachment record of type queued_command inside that turn. */
+const isQueued = (o) => o.type === 'attachment' && o.attachment && o.attachment.type === 'queued_command' && !o.isSidechain;
+/** A segment's first record's words: a prompt's, or a queued message's. */
+const headText = (o) => (isQueued(o) ? String(o.attachment.prompt ?? '') : promptText(o));
+
+/**
+ * The turns and the loose messages asked for: by --uuids (a turn's prompt record, or a message typed mid-turn, its
+ * queued_command attachment) or by --turns (their numbers). Turns in their order; messages in the transcript's.
+ */
+function pickTurns(turns, recs, onChain) {
   if (args.uuids) {
     const want = String(args.uuids).split(',').map((u) => u.trim()).filter(Boolean);
     if (!want.length) die('--uuids 是空的。');
-    const found = want.map((u) => turns.find((t) => t.prompt.uuid === u) || die(`找不到这一轮：${u.slice(0, 8)}。先 list 看看，它可能已经拆走或删掉了。`));
-    return [...new Set(found)].sort((a, b) => a.n - b.n);
+    const found = [];
+    const loose = [];
+    for (const u of want) {
+      const t = turns.find((x) => x.prompt.uuid === u);
+      if (t) { found.push(t); continue; }
+      const a = recs.find((o) => o.uuid === u && isQueued(o) && onChain.has(o.uuid));
+      if (a) { loose.push(a); continue; }
+      die(`找不到这一轮：${u.slice(0, 8)}。先 list 看看，它可能已经拆走或删掉了。`);
+    }
+    return { picked: [...new Set(found)].sort((a, b) => a.n - b.n), loose: [...new Set(loose)] };
   }
-  return parseTurns(args.turns, turns.length).map((n) => turns[n - 1]);
+  return { picked: parseTurns(args.turns, turns.length).map((n) => turns[n - 1]), loose: [] };
 }
 
 const short = (s, n = 60) => {
@@ -269,15 +285,18 @@ const localTime = (ts) => {
 function cmdList() {
   const s = resolveSession(args.session);
   const { recs } = readLines(s.jsonl);
-  const { turns } = analyze(recs);
+  const { turns, onChain } = analyze(recs);
   const title = s.desktop?.title || recs.findLast?.((o) => o.type === 'custom-title')?.customTitle || '';
   if (args.json) {
+    const turnOf = (u) => turns.find((t) => t.lines.some((o) => o.uuid === u))?.n ?? null;
+    const messages = recs.filter((o) => isQueued(o) && onChain.has(o.uuid)).map((o) => ({ uuid: o.uuid, time: o.attachment.timestamp || o.timestamp, prompt: String(o.attachment.prompt ?? ''), turn: turnOf(o.uuid) }));
     console.log(JSON.stringify({
       session: s.cliId, desktopId: s.desktop?.sessionId || null, title, live: s.live,
       turns: turns.map((t, i) => ({
         n: t.n, uuid: t.prompt.uuid, time: t.prompt.timestamp, prompt: promptText(t.prompt), records: t.lines.length,
         blocked: t.blocked, current: s.live && i === turns.length - 1,
       })),
+      messages,
     }, null, 2));
     return;
   }
@@ -329,15 +348,21 @@ function cmdSplit(removing = false) {
 
   const first = readLines(s.jsonl);
   const { recs } = first;
-  const { byId, onChain, turns } = analyze(recs);
+  const { byId, onChain, turns, pinned } = analyze(recs);
   if (!turns.length) die('这个会话里没有可拆的轮次。');
-  const picked = pickTurns(turns);
+  const { picked, loose: asked } = pickTurns(turns, recs, onChain);
+  const turnOfLine = new Map();
+  for (const t of turns) for (const o of t.lines) turnOfLine.set(o.uuid, t);
+  // A message typed mid-turn inside a picked turn goes with that turn; one picked without its turn moves alone.
+  const loose = asked.filter((a) => !picked.includes(turnOfLine.get(a.uuid)));
   if (s.live && picked.includes(turns[turns.length - 1])) die(removing ? '最后一轮是正在进行的这一轮，不能删。' : '最后一轮是正在进行的这一轮，不能拆。');
+  if (s.live && loose.some((a) => turnOfLine.get(a.uuid) === turns[turns.length - 1])) die(removing ? '这条插话在正在进行的这一轮里，不能删。' : '这条插话在正在进行的这一轮里，不能拆。');
+  if (loose.some((a) => pinned.has(a.uuid))) die(removing ? '这条插话跨着上下文压缩的边界，删了会话就续不上，不能删。' : '这条插话跨着上下文压缩的边界，拆了会话就续不上，不能拆。');
   const blocked = picked.filter((t) => t.blocked);
   if (blocked.length) die(removing ? `第 ${blocked.map((t) => t.n).join('、')} 轮跨着上下文压缩的边界，删了会话就续不上，不能删。` : `第 ${blocked.map((t) => t.n).join('、')} 轮跨着上下文压缩的边界，拆了会话就续不上，不能拆。`);
 
   // S: the picked turns, plus side branches hanging off them (abandoned retries).
-  const S = new Set(picked.flatMap((t) => t.lines.map((o) => o.uuid)));
+  const S = new Set([...picked.flatMap((t) => t.lines.map((o) => o.uuid)), ...loose.map((a) => a.uuid)]);
   const memo = new Map();
   const hangsOffS = (o) => {
     const seen = [];
@@ -355,25 +380,37 @@ function cmdSplit(removing = false) {
   };
   for (const o of recs) if (o.uuid && !o.isSidechain && !S.has(o.uuid) && hangsOffS(o)) S.add(o.uuid);
 
-  // Runs: the picked turns next to each other. In the original each run's gap closes onto what came before that run;
-  // in the new session each run after the first hangs off the end of the run before it.
+  // Segments: the picked turns next to each other (a run), and each loose message on its own, in the transcript's order.
+  // In the original each segment's gap closes onto what came before it; in the new session each segment after the
+  // first hangs off the end of the one before it.
   const runs = [];
   for (const t of picked) { const last = runs.at(-1); if (last && last.at(-1).n === t.n - 1) last.push(t); else runs.push([t]); }
-  const runOf = new Map();
-  runs.forEach((run, r) => { for (const t of run) for (const o of t.lines) runOf.set(o.uuid, r); });
+  const indexOf = new Map(recs.map((o, i) => [o.uuid, i]));
+  const segments = [
+    ...runs.map((run) => ({ lines: run.flatMap((t) => t.lines), head: run[0].prompt, turn: true })),
+    ...loose.map((a) => ({ lines: [a], head: a, turn: false })),
+  ].sort((x, y) => indexOf.get(x.head.uuid) - indexOf.get(y.head.uuid));
+  if (!segments.length) die('没有选中可拆的轮次。');
+  const segOf = new Map();
+  segments.forEach((g, i) => { for (const o of g.lines) segOf.set(o.uuid, i); });
   const runFor = (uuid) => {
     for (let cur = uuid; cur;) {
-      if (runOf.has(cur)) return runOf.get(cur);
+      if (segOf.has(cur)) return segOf.get(cur);
       const o = byId.get(cur)?.o;
       cur = o ? parentOf(o) : null;
     }
     return 0;
   };
-  const before = runs.map((run) => run[0].prompt.parentUuid || run[0].prompt.logicalParentUuid || null);
-  const joins = new Map(runs.slice(1).map((run, r) => [run[0].prompt.uuid, runs[r].at(-1).lines.at(-1).uuid]));
-  const windows = runs.map((run) => [Date.parse(run[0].prompt.timestamp), Math.max(...run.flatMap((t) => t.lines).map((o) => Date.parse(o.timestamp) || 0))]);
+  // What a segment's gap closes onto: the record before its head, past any segment that comes right before it.
+  const before = segments.map((g) => {
+    let p = parentOf(g.head);
+    for (let guard = 0; p && S.has(p) && guard < segments.length; guard++) p = parentOf(segments[runFor(p)].head);
+    return p && !S.has(p) ? p : null;
+  });
+  const joins = new Map(segments.slice(1).map((g, i) => [g.head.uuid, segments[i].lines.at(-1).uuid]));
+  const windows = segments.filter((g) => g.turn).map((g) => [Date.parse(g.head.timestamp), Math.max(...g.lines.map((o) => Date.parse(o.timestamp) || 0))]);
 
-  const firstPrompt = picked[0].prompt;
+  const firstPrompt = segments[0].head;
   const movedChain = recs.filter((o) => o.uuid && S.has(o.uuid));
   const t0 = Date.parse(firstPrompt.timestamp);
   const t1 = Math.max(...movedChain.map((o) => Date.parse(o.timestamp) || 0));
@@ -399,15 +436,23 @@ function cmdSplit(removing = false) {
     if (!movesWith(o) || o.type === 'last-prompt') continue; // a fresh one is appended below
     const c = structuredClone(o);
     if (c.sessionId === s.cliId) c.sessionId = newCli;
+    // A loose message becomes the person's own message in the new session, the turn's answer left where it was.
+    if (isQueued(c) && loose.some((a) => a.uuid === c.uuid)) {
+      const said = String(c.attachment.prompt ?? '');
+      const at = c.attachment.timestamp || c.timestamp;
+      const origin = c.attachment.origin;
+      delete c.attachment;
+      Object.assign(c, { type: 'user', message: { role: 'user', content: said }, timestamp: at, ...(origin ? { origin } : {}) });
+    }
     if (c.uuid === firstPrompt.uuid) { c.parentUuid = null; delete c.logicalParentUuid; }
     else if (joins.has(c.uuid)) { c.parentUuid = joins.get(c.uuid); delete c.logicalParentUuid; }
     moved.push(c);
   }
   const lastChain = moved.filter((o) => o.uuid).at(-1);
-  const lastPrompt = picked.at(-1).prompt;
+  const lastPrompt = segments.at(-1).head;
   moved.push({ type: 'custom-title', customTitle: title, sessionId: newCli });
   moved.push({ type: 'agent-name', agentName: title, sessionId: newCli });
-  moved.push({ type: 'last-prompt', lastPrompt: short(promptText(lastPrompt), 200), leafUuid: lastChain.uuid, sessionId: newCli });
+  moved.push({ type: 'last-prompt', lastPrompt: short(headText(lastPrompt), 200), leafUuid: lastChain.uuid, sessionId: newCli });
 
   // Subagent transcripts started from the moved turns (and their own children).
   const srcAux = path.join(path.dirname(s.jsonl), s.cliId, 'subagents');
@@ -449,7 +494,7 @@ function cmdSplit(removing = false) {
       createdAt: t0 || Date.now(),
       lastActivityAt: t1 || Date.now(),
       lastFocusedAt: Date.now(),
-      completedTurns: picked.length,
+      completedTurns: picked.length + loose.length,
       lastAssistantUuid: moved.filter((o) => o.type === 'assistant').at(-1)?.uuid,
       latestUserFrameAt: Date.parse(lastPrompt.timestamp) || undefined,
       bridgeSessionIds: [],
@@ -463,6 +508,7 @@ function cmdSplit(removing = false) {
   const summary = {
     source: { cliId: s.cliId, desktopId: s.desktop?.sessionId || null, title: s.desktop?.title || null },
     turns: picked.map((t) => ({ n: t.n, prompt: short(promptText(t.prompt), 80) })),
+    ...(loose.length ? { messages: loose.map((a) => ({ turn: turnOfLine.get(a.uuid)?.n ?? null, prompt: short(headText(a), 80) })) } : {}),
     records: moved.length,
     subagents: subagents.length,
     ...(removing ? { removed: true } : { created: { cliId: newCli, desktopId: newMeta ? newDesktopId : null, title } }),

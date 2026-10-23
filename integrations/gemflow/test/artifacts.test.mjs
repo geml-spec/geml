@@ -181,7 +181,8 @@ test("board: what the work item made, under what waits on the person — links, 
     ["打开", undefined, opens("/r/.geml/exports/s.geml")], ["打开第 2 版副本", undefined, opens("/h/.geml/artifacts/aa.geml")], ["查看历史", undefined, opens("/h/.geml/artifacts/aa.gemlhistory")], ["在文件夹里显示", undefined, { ...opens("/r/.geml/exports/s.geml"), reveal: true }],
   ], "a GEML document's older versions are in its history, not in copies");
   const doc = artifactRows(artifacts, "feat/x", { t, columns: 80, now: NOW, menu: "doc:README.md", docsOpen: false });
-  assert.deepEqual(doc.find((r) => r.kind === "links").items.map((x) => [x.label, x.href, x.action]), [["打开", undefined, opens("/r/README.md")], ["查看提交", undefined, { op: "tab", tab: "journal", filter: "artifacts" }]], "a document in git opens the same way");
+  assert.deepEqual(doc.find((r) => r.kind === "links").items.map((x) => [x.label, x.href, x.action]), [["打开", undefined, opens("/r/README.md")]], "a document in git opens the same way; its commits are git's to show");
+  assert.equal(artifactRows(artifacts, "feat/x", { t, columns: 80, now: NOW, menu: null, docsOpen: false }).find((r) => r.key === "artifact-code").action, undefined, "the code line jumps nowhere");
   assert.ok(open.some((r) => r.kind === "entry" && r.title === "x.md"), "listed whole on a press");
   assert.equal(open.find((r) => r.kind === "button").label, "收起");
   assert.deepEqual(artifactRows(artifacts, "other", { t, columns: 80, now: NOW, menu: null, docsOpen: false }), [], "another work item's artifacts are not the current one's");

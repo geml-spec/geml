@@ -28,6 +28,8 @@ declare module 'claude-code' {
       decisionsAll: boolean
       /** This session's turns checked on the sessions tab, by prompt id. */
       picked: string[]
+      /** Whether the sessions tab is picking turns to split or delete (整理). */
+      tidying: boolean
       /** The project's Claude Code memory, as the bridge last read it; null until read. */
       memory: { dir: string; entries: { file: string; title: string; hook: string; type: string; at: string }[] } | null
       /** The memory group unfolded on the sessions tab, by type ('' is 其他). */

@@ -173,6 +173,8 @@ const TURNS_SHOWN = 30
 const turnsShownAtom = atom({ plugin: 'gemflow', key: 'turnsShown' } as const, TURNS_SHOWN as number)
 /** This session's turns checked on the sessions tab, by prompt id. */
 const pickedAtom = atom({ plugin: 'gemflow', key: 'picked' } as const, [] as string[])
+/** Whether the sessions tab is picking turns to split or delete (整理). */
+const tidyingAtom = atom({ plugin: 'gemflow', key: 'tidying' } as const, false as boolean)
 /** The project's Claude Code memory, as the bridge last read it. */
 const memoryAtom = atom({ plugin: 'gemflow', key: 'memory' } as const, null as MemoryList | null)
 /** The memory group unfolded, the memory whose card is open, the one being edited, and whether the group lists all. */
@@ -996,8 +998,8 @@ async function reconcileTurns($: EngineInterface, moveTo?: string): Promise<void
   await $.clock.sleep(RECHECK_MS)
   const again = await bridge($, { op: 'turn-ids', session }, SLOW_TIMEOUT_MS).catch(() => undefined)
   if (again === undefined || !again.ok || again.backfill === undefined || !('uuids' in again.backfill)) return
-  if (JSON.stringify(again.backfill.uuids) !== JSON.stringify(res.backfill.uuids)) return
-  const held = new Set(res.backfill.uuids)
+  if (JSON.stringify(again.backfill.uuids) !== JSON.stringify(res.backfill.uuids) || JSON.stringify(again.backfill.messages ?? []) !== JSON.stringify(res.backfill.messages ?? [])) return
+  const held = new Set([...res.backfill.uuids, ...(res.backfill.messages ?? []).map((m) => m.uuid)])
   const gone = settled.filter((p) => !held.has(p.uuid as string))
   if (gone.length === 0) return
   const goneIds = new Set(gone.map((p) => p.id))
@@ -1453,6 +1455,11 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       return
     }
     case 'pick-clear': await update($, pickedAtom, () => [] as string[]); return
+    case 'tidy': {
+      await update($, tidyingAtom, () => action.on)
+      if (!action.on) await update($, pickedAtom, () => [] as string[])
+      return
+    }
     case 'pick-after': {
       // Every turn after the newest one checked, but the one still running and those not yet known in the transcript.
       const [prompts, was] = await Promise.all([readPrompts($), read($, pickedAtom)])
@@ -1460,7 +1467,7 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
       const from = Math.max(...prompts.map((p, i) => (checked.includes(p.id) ? i : -1)))
       if (from < 0) return
       const live = (p: PromptRecord, i: number): boolean => i === prompts.length - 1 && p.did === undefined && p.backfilled !== true
-      const after = prompts.filter((p, i) => i > from && p.uuid !== undefined && !live(p, i)).map((p) => p.id)
+      const after = prompts.filter((p, i) => i > from && !live(p, i)).map((p) => p.id)
       await update($, pickedAtom, () => [...checked, ...after.filter((id) => !checked.includes(id))])
       return
     }
@@ -1748,8 +1755,28 @@ async function act($: EngineInterface, action: BoardAction, surface?: string): P
     }
     // The checked turns, named to the script by their record ids so the model matches nothing by hand: one new session, or gone.
     case 'split-picked': {
-      const [prompts, was] = await Promise.all([readPrompts($), read($, pickedAtom)])
+      const [known, was] = await Promise.all([readPrompts($), read($, pickedAtom)])
       const checked = (was as string[] | null) ?? []
+      // A message typed mid-turn has no row id of its own until the transcript is read: learned from its queued record (same words, near in time).
+      let prompts = known
+      const unknown = known.filter((p) => checked.includes(p.id) && p.uuid === undefined)
+      if (unknown.length > 0) {
+        const session = await $.session.id().catch(() => '')
+        const res = session !== '' ? await bridge($, { op: 'turn-ids', session }, SLOW_TIMEOUT_MS).catch(() => undefined) : undefined
+        const messages = res !== undefined && res.ok && res.backfill !== undefined && 'uuids' in res.backfill ? res.backfill.messages ?? [] : []
+        const used = new Set(known.flatMap((p) => (p.uuid !== undefined ? [p.uuid] : [])))
+        const learned = new Map<string, string>()
+        for (const p of unknown) {
+          const near = messages.filter((m) => !used.has(m.uuid) && m.text.trim() === p.text.trim() && Math.abs(Date.parse(m.at) - Date.parse(p.at)) < QUEUED_MATCH_MS)
+            .sort((a, b) => Math.abs(Date.parse(a.at) - Date.parse(p.at)) - Math.abs(Date.parse(b.at) - Date.parse(p.at)))[0]
+          if (near !== undefined) { learned.set(p.id, near.uuid); used.add(near.uuid) }
+        }
+        if (learned.size < unknown.length) { $.ui.toast(t('有 {0} 条在对话记录里找不到，没有交给模型', unknown.length - learned.size)); return }
+        const withIds = (list: PromptRecord[]): PromptRecord[] => list.map((p) => (learned.has(p.id) ? { ...p, uuid: learned.get(p.id) as string } : p))
+        await update($, promptsAtom, (w) => withIds(((w as unknown) as PromptRecord[] | null) ?? []) as unknown as GemflowJson)
+        $.clock.after(0, () => { void storePrompts($) })
+        prompts = withIds(known)
+      }
       const picked = prompts.filter((p) => checked.includes(p.id) && p.uuid !== undefined)
       if (picked.length === 0) return
       const n = picked.length
@@ -1831,6 +1858,9 @@ async function loadMemory($: EngineInterface): Promise<void> {
   const memory = res.memory
   if (JSON.stringify(memory) !== JSON.stringify(await read($, memoryAtom))) await update($, memoryAtom, () => memory)
 }
+
+/** How far apart a message typed mid-turn and its queued record in the transcript may be, to be the same message. */
+const QUEUED_MATCH_MS = 10 * 60_000
 
 /** How long an opener may take to hand the file to its app. */
 const OPEN_MS = 10_000
@@ -2039,8 +2069,8 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
         {row.count !== undefined && <Text dimColor>{String(row.count)}</Text>}
         {row.note !== undefined && <Text dimColor>{row.note}</Text>}
         {(row.fold !== undefined || row.actions !== undefined) && <Box flexGrow={1} />}
-        {row.fold !== undefined && <Button key={row.fold.key} plain label={row.fold.label} onPress={press($, row.fold.action)} />}
         {(row.actions ?? []).map((b) => <Button key={b.key} plain label={b.label} onPress={press($, b.action)} />)}
+        {row.fold !== undefined && <Button key={row.fold.key} plain label={row.fold.label} onPress={press($, row.fold.action)} />}
       </Box>
     )
     case 'card': return (
@@ -2163,10 +2193,11 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
     case 'turn': {
       const icons = row.icons ?? []
       return els.Svg !== undefined ? (
-        <Box key={row.key} gap={2} paddingX={1} {...(row.open ? { backgroundColor: SELECTED } : { hover: { backgroundColor: SHADE } })}>
-          {row.check !== undefined && <Box flexShrink={0} width={2}>{row.check !== null ? <Button key={row.check.key} plain label={row.check.label} onPress={press($, row.check.action)} /> : <Text> </Text>}</Box>}
+        <Box key={row.key} gap={2} paddingX={1} {...(row.open || row.check === true ? { backgroundColor: SELECTED } : { hover: { backgroundColor: SHADE } })}>
           <Box flexGrow={1} minWidth={0} gap={2}>
-            {row.fold === true && <Box flexShrink={0} alignItems="center">{drawGlyph(els, row.open ? 'unfold' : 'fold', 'dim', 15)}</Box>}
+            {row.check !== undefined
+              ? <Box flexShrink={0} alignItems="center" width={2}>{row.check !== null ? drawGlyph(els, row.check ? 'boxon' : 'box', row.check ? 'active' : 'dim', 15) : <Text> </Text>}</Box>
+              : row.fold === true && <Box flexShrink={0} alignItems="center">{drawGlyph(els, row.open ? 'unfold' : 'fold', 'dim', 15)}</Box>}
             <Box width={Math.max(5, cellWidth(row.at))} flexShrink={0}><Text dimColor>{row.at}</Text></Box>
             <Box flexDirection="column" flexGrow={1} minWidth={0}>
               <Text wrap="truncate-end">{row.text}</Text>
@@ -2184,10 +2215,10 @@ function drawRow($: EngineInterface, els: Els, row: BoardRow, i: number): unknow
       ) : (
         <Box key={row.key} flexDirection="column">
           <Box gap={1}>
-            {row.check !== undefined && (row.check !== null ? <Button key={row.check.key} plain label={row.check.label} onPress={press($, row.check.action)} /> : <Text>  </Text>)}
+            {row.check !== undefined && <Text {...(row.check === true ? {} : { dimColor: true })}>{row.check === true ? '[x]' : row.check === false ? '[ ]' : '   '}</Text>}
             <Text dimColor>{row.at}</Text>
             <Button key={`open-${row.key}`} plain label={row.text} onPress={press($, row.action)} />
-            {row.fold === true && <Text dimColor>{row.open ? '▾' : '▸'}</Text>}
+            {row.fold === true && row.check === undefined && <Text dimColor>{row.open ? '▾' : '▸'}</Text>}
             {icons.length > 0 && <Box flexGrow={1} />}
             {icons.map((ic) => iconButton($, els, ic.button, ic.glyph))}
           </Box>
@@ -2447,7 +2478,7 @@ async function tabRows($: EngineInterface, e: { surface: string; props: { bodyCo
     board, problem, shell, tab, columns, maxRows: Math.max(4, e.props.scroll.bodyRows - 4), t, now, root: root ?? '', inbox,
     filter: filter as JournalFilter, expanded, evidence, prompts,
     ...(project !== null ? { project, scrolls: e.surface === 'terminal', unfolded: unfolded as unknown as { id: string; answer: string | null } | null } : {}),
-    exportedFor, doneOpen, droppedOpen, sessionFlow, sessionLimit: await read($, turnsShownAtom), picked: ((await read($, pickedAtom)) as string[] | null) ?? [], sessionRuns: (sessionRuns as unknown as string[] | null) ?? [],
+    exportedFor, doneOpen, droppedOpen, sessionFlow, sessionLimit: await read($, turnsShownAtom), picked: ((await read($, pickedAtom)) as string[] | null) ?? [], tidying: (await read($, tidyingAtom)) === true, sessionRuns: (sessionRuns as unknown as string[] | null) ?? [],
     flowState, switching, workflows: workflows as unknown as { bundled: string[]; installed: string[] } | null,
     usage, dismissed, toolQuery, toolMenu, toolNaming, toolsOpen: (toolsOpen as unknown as string[] | null) ?? [],
     exported, artifactMenu, docsOpen, ...(memory !== undefined ? { memory } : {}),

@@ -45,7 +45,7 @@ import { readContextDoc } from "./core/stagehand.js";
 import { exists, readText, withLock, writeAtomic } from "./host-fs.js";
 import { branchesAhead, commitsOf, ghOncePerBranch, journalBaseOf, openPullRequests, pullRequestsByBranch, repoFacts, uncommittedBump, unkeptOf, worktreesOf, type GhFacts } from "./host-git.js";
 import { formatLog, logName, nextTurn, parseLog, SESSIONS_DIR, SESSIONS_GITIGNORE, withEarlierTurns } from "./core/session-log.js";
-import { newTurns, readTranscript, slugOf, transcriptEvents, type Transcript } from "./core/transcript.js";
+import { newTurns, queuedMessages, readTranscript, slugOf, transcriptEvents, type Transcript } from "./core/transcript.js";
 import { statSync } from "node:fs";
 import type { HostInfo } from "./hosts/claude-code/env.js";
 import { mediaTodoCount } from "./media-todo.js";
@@ -875,7 +875,7 @@ function answer(req: BridgeRequest): BridgeResponse {
       // A file whose last record is cut short is being written (by the host, or by the split-session script rewriting it): no fact yet.
       const last = text.split(/\r?\n/).reverse().find((l) => l.trim() !== "") ?? "";
       try { JSON.parse(last); } catch { return failed(`the transcript of session ${req.session} is being written`); }
-      return ok(ws.view(), { backfill: { uuids: (readTranscript(text)?.turns ?? []).map((t) => t.uuid) } });
+      return ok(ws.view(), { backfill: { uuids: (readTranscript(text)?.turns ?? []).map((t) => t.uuid), messages: queuedMessages(text) } });
     }
     case "board": {
       // The workspace opened for this request: git's facts it read are this moment's.

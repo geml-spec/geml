@@ -118,3 +118,54 @@ test("split-session remove takes turns apart in one go, each gap closed", async 
   const kept = (await records(join(h.project, `${ID}.jsonl`))).filter((x) => x.uuid);
   assert.deepEqual(kept.map((x) => [x.uuid, x.parentUuid]), [["u1", null], ["a1", "u1"]]);
 });
+
+/** A session whose first turn has a message typed while it ran: u0 a0 q0 a0b, then u1 a1. */
+function withQueued() {
+  const dir = mkdtempSync(join(tmpdir(), "gf-split-q-"));
+  const project = join(dir, "projects", "C--work-app");
+  mkdirSync(project, { recursive: true });
+  mkdirSync(join(dir, "desktop"));
+  const at = (m) => `2026-10-16T01:${String(m).padStart(2, "0")}:00.000Z`;
+  const recs = [
+    { type: "user", uuid: "u0", parentUuid: null, sessionId: ID, timestamp: at(0), message: { role: "user", content: "改看板" } },
+    { type: "assistant", uuid: "a0", parentUuid: "u0", sessionId: ID, timestamp: at(1), message: { role: "assistant", content: [{ type: "text", text: "在改" }] } },
+    { type: "attachment", uuid: "q0", parentUuid: "a0", sessionId: ID, timestamp: at(2), attachment: { type: "queued_command", prompt: "顺便看下记忆", timestamp: at(2), origin: { kind: "human" } } },
+    { type: "assistant", uuid: "a0b", parentUuid: "q0", sessionId: ID, timestamp: at(3), message: { role: "assistant", content: [{ type: "text", text: "改好了" }] } },
+    { type: "user", uuid: "u1", parentUuid: "a0b", sessionId: ID, timestamp: at(4), message: { role: "user", content: "提交" } },
+    { type: "assistant", uuid: "a1", parentUuid: "u1", sessionId: ID, timestamp: at(5), message: { role: "assistant", content: [{ type: "text", text: "已提交" }] } },
+  ];
+  writeFileSync(join(project, `${ID}.jsonl`), recs.map((r) => JSON.stringify(r)).join("\n") + "\n");
+  return { dir, project };
+}
+
+test("a message typed mid-turn, picked without its turn, moves alone: the new session's own message; the turn's answer stays, its gap closed", async () => {
+  const h = withQueued();
+  const listed = JSON.parse(run(h, ["list", "--json", "--session", ID]).stdout);
+  assert.deepEqual(listed.messages.map((m) => [m.uuid, m.prompt, m.turn]), [["q0", "顺便看下记忆", 1]], "list names the message and its turn");
+  const r = run(h, ["split", "--uuids", "q0", "--title", "记忆", "--session", ID]);
+  assert.equal(r.status, 0, r.stderr);
+  const out = JSON.parse(r.stdout);
+  assert.deepEqual([out.turns, out.messages], [[], [{ turn: 1, prompt: "顺便看下记忆" }]]);
+  const moved = (await records(join(h.project, `${out.created.cliId}.jsonl`))).filter((x) => x.uuid);
+  assert.deepEqual(moved.map((x) => [x.uuid, x.type, x.parentUuid, x.message?.content]), [["q0", "user", null, "顺便看下记忆"]], "only the message, now the person's own");
+  assert.equal(moved[0].attachment, undefined);
+  const kept = (await records(join(h.project, `${ID}.jsonl`))).filter((x) => x.uuid);
+  assert.deepEqual(kept.map((x) => [x.uuid, x.parentUuid]), [["u0", null], ["a0", "u0"], ["a0b", "a0"], ["u1", "a0b"], ["a1", "u1"]], "the answer after it stays, hung on what came before the message");
+});
+
+test("a mid-turn message with a later turn goes into one session in order; inside a picked turn it goes with the turn; remove takes the message alone", async () => {
+  const h = withQueued();
+  const both = JSON.parse(run(h, ["split", "--uuids", "u1,q0", "--title", "x", "--session", ID]).stdout);
+  const moved = (await records(join(h.project, `${both.created.cliId}.jsonl`))).filter((x) => x.uuid);
+  assert.deepEqual(moved.map((x) => [x.uuid, x.parentUuid]), [["q0", null], ["u1", "q0"], ["a1", "u1"]]);
+  const kept = (await records(join(h.project, `${ID}.jsonl`))).filter((x) => x.uuid);
+  assert.deepEqual(kept.map((x) => [x.uuid, x.parentUuid]), [["u0", null], ["a0", "u0"], ["a0b", "a0"]]);
+  const g = withQueued();
+  const withTurn = JSON.parse(run(g, ["split", "--uuids", "u0,q0", "--title", "x", "--session", ID, "--dry-run"]).stdout);
+  assert.deepEqual([withTurn.turns.map((t) => t.n), withTurn.messages], [[1], undefined], "inside its picked turn: no loose message");
+  const k = withQueued();
+  assert.equal(run(k, ["remove", "--uuids", "q0", "--session", ID]).status, 0);
+  const left = (await records(join(k.project, `${ID}.jsonl`))).filter((x) => x.uuid);
+  assert.deepEqual(left.map((x) => x.uuid), ["u0", "a0", "a0b", "u1", "a1"]);
+  assert.equal(left.find((x) => x.uuid === "a0b").parentUuid, "a0");
+});

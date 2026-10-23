@@ -118,6 +118,8 @@ export type BoardAction =
   | { op: "pick-after" }
   /** The sessions tab: uncheck every turn. */
   | { op: "pick-clear" }
+  /** The sessions tab: start picking turns to split or delete (整理), or stop, which unchecks them. */
+  | { op: "tidy"; on: boolean }
   /** Ask the model to move the checked turns into one new session, or with `remove` out of the session, with the split-session skill naming them by their record ids; a person says yes first. */
   | { op: "split-picked"; remove: boolean }
   /** The sessions tab's memory: unfold one group of it (by type), or fold it. */

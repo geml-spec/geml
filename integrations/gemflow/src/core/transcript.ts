@@ -71,6 +71,25 @@ function promptKind(o: Rec, words: string): TranscriptTurn["kind"] | undefined {
   return "person";
 }
 
+/** A message the person typed while a turn ran: its record's uuid, its words, when it was sent. */
+export interface QueuedMessage { uuid: string; text: string; at: string }
+
+/** The messages the person typed while a turn ran: attachment records of type queued_command, in order. */
+export function queuedMessages(text: string): QueuedMessage[] {
+  const out: QueuedMessage[] = [];
+  for (const line of text.split(/\r?\n/)) {
+    if (!line.includes("queued_command")) continue;
+    let o: { type?: unknown; uuid?: unknown; timestamp?: unknown; isSidechain?: unknown; attachment?: { type?: unknown; prompt?: unknown; timestamp?: unknown } };
+    try { o = JSON.parse(line) as typeof o; } catch { continue; }
+    if (o.type !== "attachment" || o.isSidechain === true || o.attachment?.type !== "queued_command") continue;
+    const uuid = str(o.uuid);
+    const words = str(o.attachment.prompt);
+    const at = str(o.attachment.timestamp) ?? str(o.timestamp);
+    if (uuid !== undefined && words !== undefined && at !== undefined) out.push({ uuid, text: words, at });
+  }
+  return out;
+}
+
 /** The transcript's turns; undefined when the text holds no session. */
 export function readTranscript(text: string): Transcript | undefined {
   let id: string | undefined;

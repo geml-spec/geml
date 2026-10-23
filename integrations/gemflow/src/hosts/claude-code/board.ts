@@ -86,7 +86,7 @@ export type BoardRow =
   | { kind: "steps"; key: string; steps: { title: string; passed: boolean; current: boolean }[] }
   /** A prompt of the session (the sessions tab): its time, its first line, what its turn did, and the press that opens or closes its menu. */
   /** `open`: unfolded under it; `fold`: it folds and unfolds on its press, which a triangle before the time says; `icons`: the presses at its right end, each a glyph (the scroll to it, where the conversation scrolls). */
-  | { kind: "turn"; key: string; at: string; text: string; did: string; open: boolean; action: BoardAction; fold?: true; icons?: { glyph: Glyph; button: Pressable }[]; check?: Pressable | null }
+  | { kind: "turn"; key: string; at: string; text: string; did: string; open: boolean; action: BoardAction; fold?: true; icons?: { glyph: Glyph; button: Pressable }[]; check?: boolean | null }
   /** A row's menu, opened by a press on it: a short column of entries under it. */
   | { kind: "menu"; key: string; items: Pressable[] }
   /** Running text shown whole: a turn's prompt, its answer (Markdown, where the surface draws it). */
@@ -108,7 +108,7 @@ export const ICON_SVG: Readonly<Record<Icon, string>> = { ask: iconSvg("ask"), d
  * The pane's line icons, drawn as the design draws them (docs/design/ui/2026-10-13-gemflow-ui): a tab's, a dialog's,
  * and each kind of journal entry's. Only where the surface draws pictures; elsewhere the words stand alone.
  */
-export type Glyph = BoardTab | "share" | "settings" | "upgrade" | "about" | "artifact" | "evidence" | "move" | "refused" | "start" | "waits" | "done" | "board" | "split" | "delete" | "locate" | "unfold" | "fold";
+export type Glyph = BoardTab | "share" | "settings" | "upgrade" | "about" | "artifact" | "evidence" | "move" | "refused" | "start" | "waits" | "done" | "board" | "split" | "delete" | "locate" | "unfold" | "fold" | "box" | "boxon";
 const GLYPH_PATH: Readonly<Record<Glyph, string>> = {
   sessions: '<path d="M4 5h16v11H9l-5 4z"/>',
   flow: '<rect x="3" y="3" width="7" height="5" rx="1"/><rect x="14" y="16" width="7" height="5" rx="1"/><path d="M6.5 8v5h11v3"/>',
@@ -128,6 +128,8 @@ const GLYPH_PATH: Readonly<Record<Glyph, string>> = {
   done: '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.2l2.4 2.4 4.6-5"/>',
   board: '<rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="11" rx="1"/><rect x="17" y="4" width="4" height="7" rx="1"/>',
   split: '<path d="M13 5h7v14h-7"/><path d="M3 12h10M10 9l3 3-3 3"/>',
+  box: '<rect x="4" y="4" width="16" height="16" rx="4"/>',
+  boxon: '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 12.2l2.4 2.4 4.6-5"/>',
   delete: '<path d="M5 7h14M9.5 7V4.5h5V7M7.5 7l.8 13h7.4l.8-13"/>',
   locate: '<circle cx="12" cy="12" r="3.5"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/>',
   unfold: '<path d="M7 10l5 5 5-5"/>',
@@ -238,6 +240,8 @@ export interface PaneInput {
   sessionLimit?: number;
   /** The sessions tab: this session's turns checked, by prompt id. */
   picked?: readonly string[];
+  /** The sessions tab: whether turns are being picked to split or delete (整理). */
+  tidying?: boolean;
   /** The sessions tab: the project's Claude Code memory, the group unfolded, the memory whose card is open, the one whose hook is being edited, and whether the group lists all. */
   memory?: { list: MemoryList | null; group: string | null; menu: string | null; edit: string | null; all: boolean };
   sessionRuns: readonly string[];
@@ -274,23 +278,25 @@ export function paneRows(o: PaneInput): BoardRow[] {
   const status = o.shell?.status ?? null;
   const wait = o.board === null && head.length === 0 ? [text(t("正在读取看板…"), columns, "dim")] : [];
   if (o.tab === "sessions") {
-    const own = sessionRows(o.prompts, o.board?.artifacts?.commits ?? [], t, columns, o.now, { flow: o.sessionFlow, runs: o.sessionRuns, current: status?.workflow.title, ...(o.scrolls !== undefined ? { scrolls: o.scrolls } : {}), ...(o.unfolded !== undefined ? { expanded: o.unfolded } : {}), ...(o.sessionLimit !== undefined ? { limit: o.sessionLimit } : {}), ...(o.picked !== undefined ? { picked: o.picked } : {}) });
+    const own = sessionRows(o.prompts, o.board?.artifacts?.commits ?? [], t, columns, o.now, { flow: o.sessionFlow, runs: o.sessionRuns, current: status?.workflow.title, ...(o.scrolls !== undefined ? { scrolls: o.scrolls } : {}), ...(o.unfolded !== undefined ? { expanded: o.unfolded } : {}), ...(o.sessionLimit !== undefined ? { limit: o.sessionLimit } : {}), ...(o.picked !== undefined ? { picked: o.picked } : {}), tidying: o.tidying === true });
     // Every session's heading carries its export, which asks where to; the file written shows under it.
     const exports: ExportsOf = {
       button: (s) => ({ key: `export-${s}`, label: t("导出"), action: { op: "export", session: s } }),
       under: (s) => ((o.exportedFor ?? "own") === s ? exportedRows(o.exported, o.root, t) : []),
     };
     // This session first, then the others, then what every session decided.
-    // Turns checked: the heading says how many and offers what can be done to them; nothing checked, this session's export.
-    const picked = (o.picked ?? []).filter((id) => o.prompts.some((p) => p.id === id && p.uuid !== undefined));
-    const heading: BoardRow = picked.length > 0
-      ? { kind: "section", key: "own", text: t("本会话"), note: t("已选 {0} 轮", picked.length), actions: [
-        { key: "split-picked", label: t("拆成新会话"), action: { op: "split-picked", remove: false } },
-        { key: "remove-picked", label: t("删除"), action: { op: "split-picked", remove: true } },
-        { key: "pick-after", label: t("连同之后的"), action: { op: "pick-after" } },
-        { key: "pick-clear", label: t("清空"), action: { op: "pick-clear" } },
+    // 整理: the heading says how many are picked and offers what can be done to them, and 完成; otherwise 整理 and the export.
+    const picked = (o.picked ?? []).filter((id) => o.prompts.some((p) => p.id === id));
+    const heading: BoardRow = o.tidying === true
+      ? { kind: "section", key: "own", text: t("本会话"), note: picked.length > 0 ? t("已选 {0} 轮", picked.length) : t("选要整理的轮次"), actions: [
+        ...(picked.length > 0 ? [
+          { key: "split-picked", label: t("拆成新会话"), action: { op: "split-picked", remove: false } },
+          { key: "remove-picked", label: t("删除"), action: { op: "split-picked", remove: true } },
+          { key: "pick-after", label: t("连同之后的"), action: { op: "pick-after" } },
+        ] as Pressable[] : []),
+        { key: "tidy-off", label: t("完成").trim(), action: { op: "tidy", on: false } },
       ] }
-      : { kind: "section", key: "own", text: t("本会话"), fold: exports.button("own") };
+      : { kind: "section", key: "own", text: t("本会话"), ...(o.prompts.length > 0 ? { actions: [{ key: "tidy-on", label: t("整理"), action: { op: "tidy", on: true } }] } : {}), fold: exports.button("own") };
     return [
       ...head,
       heading, ...exports.under("own"), ...own,
@@ -707,7 +713,7 @@ export function artifactRows(p: Artifacts | undefined, current: string | undefin
     for (const d of o.docsOpen ? m.docs : m.docs.slice(0, DOCS_SHOWN)) {
       const key = `doc:${d.path}`;
       rows.push({ kind: "entry", key: `artifact-${key}`, title: d.path, tag: "", tone: "normal", detail: line(t("{0} 次提交", d.commits), when(d.at)), action: { op: "artifact-menu", key: o.menu === key ? null : key } });
-      if (o.menu === key) rows.push({ kind: "links", key: `menu-${key}`, items: [{ key: `open-${key}`, label: t("打开"), action: { op: "open-file", path: d.open } }, { key: `commits-${key}`, label: t("查看提交"), action: { op: "tab", tab: "journal", filter: "artifacts" } }] });
+      if (o.menu === key) rows.push({ kind: "links", key: `menu-${key}`, items: [{ key: `open-${key}`, label: t("打开"), action: { op: "open-file", path: d.open } }] });
     }
     if (m.docs.length > DOCS_SHOWN) rows.push(button("fold-docs", o.docsOpen ? t("收起") : t("其余 {0} 份", m.docs.length - DOCS_SHOWN), columns, { op: "fold", what: "docs", open: !o.docsOpen }));
   }
@@ -731,7 +737,7 @@ export function artifactRows(p: Artifacts | undefined, current: string | undefin
   };
   kept(m.files, "file", t("文件 · {0} · 不在 git 里，存了副本", m.files.length));
   kept(m.images, "image", t("图片 · {0}", m.images.length));
-  if (m.code.commits > 0) rows.push({ kind: "entry", key: "artifact-code", title: t("代码"), tag: t("{0} 个提交 · 改了 {1} 个文件", m.code.commits, m.code.files), tone: "normal", action: { op: "tab", tab: "journal", filter: "artifacts" } });
+  if (m.code.commits > 0) rows.push({ kind: "entry", key: "artifact-code", title: t("代码"), tag: t("{0} 个提交 · 改了 {1} 个文件", m.code.commits, m.code.files), tone: "normal" });
   return rows;
 }
 
@@ -977,7 +983,7 @@ export function journalRows(o: JournalInput): BoardRow[] {
   const { board, t, columns } = o;
   const rows: BoardRow[] = [];
   const filters: { id: JournalFilter; label: string }[] = [
-    { id: "all", label: t("全部") }, { id: "artifacts", label: t("产物") }, { id: "refusals", label: t("被拦") },
+    { id: "all", label: t("全部") }, { id: "refusals", label: t("被拦") },
     // Dependencies appear once the work item has any.
     ...((o.status?.depends ?? []).length > 0 ? [{ id: "depends" as const, label: t("依赖") }] : []),
   ];
@@ -992,26 +998,6 @@ export function journalRows(o: JournalInput): BoardRow[] {
   type Line = { at: string; row: Omit<Extract<BoardRow, { kind: "event" }>, "at" | "open" | "action" | "detail">; detail: string[]; turn?: PromptRecord };
   const lines: Line[] = [];
   const wanted = (kind: JournalFilter): boolean => filter === "all" || filter === kind;
-  if (wanted("artifacts") && board.artifacts !== undefined) {
-    // A turn's commits are one artifact; without the session's prompts, each commit is.
-    const groups = new Map<string, { turn?: PromptRecord; commits: Artifacts["commits"] }>();
-    for (const c of [...board.artifacts.commits].filter((c) => c.ours).reverse()) {
-      const turn = turnOf(c.at);
-      const id = turn?.id ?? c.sha;
-      const g = groups.get(id) ?? { ...(turn !== undefined ? { turn } : {}), commits: [] };
-      g.commits.push(c);
-      groups.set(id, g);
-    }
-    for (const g of groups.values()) {
-      const last = g.commits[g.commits.length - 1] as Artifacts["commits"][number];
-      const files = [...new Set(g.commits.flatMap((c) => c.files))];
-      lines.push({
-        at: last.at, ...(g.turn !== undefined ? { turn: g.turn } : {}),
-        row: { kind: "event", key: `artifact-${last.sha.slice(0, 12)}`, glyph: "artifact", label: t("产物"), text: `${g.commits.map((c) => c.sha.slice(0, 8)).join(" ")} ${last.subject.replace(/^[a-z]+(\([^)]*\))?!?:\s*/, "")}`, why: files.length > 0 ? t("{0} 个文件", files.length) : "", turn: turnWords(g.turn), tone: "normal" },
-        detail: files.slice(0, 12),
-      });
-    }
-  }
   // What it waits for: put aside when the other began, the other done (and what it brought back), taken up again after.
   if (wanted("depends") && s !== null && s.item.kind === "item") {
     const name = s.title ?? s.item.id;
@@ -1063,8 +1049,6 @@ export function journalRows(o: JournalInput): BoardRow[] {
       room--;
     }
   }
-  const others = board.artifacts !== undefined && wanted("artifacts") ? board.artifacts.commits.filter((c) => !c.ours).length : 0;
-  if (others > 0) rows.push(text(t("同期另有 {0} 个提交没碰这些文件", others), columns, "dim"));
   return rows;
 }
 
@@ -1081,8 +1065,8 @@ export function journalRows(o: JournalInput): BoardRow[] {
 /** How many turns in a row in another flow fold into one line. */
 const RUN_FOLDS = 3;
 
-export function sessionRows(prompts: readonly PromptRecord[], commits: readonly { sha: string; at: string }[], t: T = ZH, columns: number, now?: string, by: { flow: string | null; runs: readonly string[]; current?: string; scrolls?: boolean; expanded?: { id: string; answer: string | null } | null; limit?: number; picked?: readonly string[] } = { flow: null, runs: [] }): BoardRow[] {
-  const unfold = { scrolls: by.scrolls !== false, expanded: by.expanded ?? null, picked: by.picked ?? [] };
+export function sessionRows(prompts: readonly PromptRecord[], commits: readonly { sha: string; at: string }[], t: T = ZH, columns: number, now?: string, by: { flow: string | null; runs: readonly string[]; current?: string; scrolls?: boolean; expanded?: { id: string; answer: string | null } | null; limit?: number; picked?: readonly string[]; tidying?: boolean } = { flow: null, runs: [] }): BoardRow[] {
+  const unfold = { scrolls: by.scrolls !== false, expanded: by.expanded ?? null, picked: by.picked ?? [], tidying: by.tidying === true };
   if (prompts.length === 0) return [text(t("还没有 prompt"), columns, "dim")];
   const rows: BoardRow[] = [];
   // With turns in more than one flow: a filter by flow.
@@ -1136,21 +1120,21 @@ export function sessionRows(prompts: readonly PromptRecord[], commits: readonly 
  * the whole prompt, then the whole answer. A folded row carries no other
  * press: the desktop takes no press at all once the tab draws too many nodes.
  */
-function turnRows(p: PromptRecord, until: string | undefined, commits: readonly { sha: string; at: string }[], t: T, columns: number, unfold: { scrolls: boolean; expanded: { id: string; answer: string | null } | null; picked?: readonly string[] } = { scrolls: true, expanded: null }): BoardRow[] {
-  const open = unfold.expanded?.id === p.id;
+function turnRows(p: PromptRecord, until: string | undefined, commits: readonly { sha: string; at: string }[], t: T, columns: number, unfold: { scrolls: boolean; expanded: { id: string; answer: string | null } | null; picked?: readonly string[]; tidying?: boolean } = { scrolls: true, expanded: null }): BoardRow[] {
+  const tidying = unfold.tidying === true;
+  const open = !tidying && unfold.expanded?.id === p.id;
   const made = commits.filter((c) => Date.parse(c.at) >= Date.parse(p.at) && (until === undefined || Date.parse(c.at) < Date.parse(until))).map((c) => c.sha.slice(0, 8)).reverse();
   const words = [...made, p.did ?? (promptTail(p, t) || (until === undefined && p.backfilled !== true ? t("进行中…") : ""))].filter((x) => x !== "").join(" ");
   // A turn read back from the transcript (one before gemflow loaded) is marked so.
   const did = p.backfilled === true ? [t("补录"), words].filter((x) => x !== "").join(" · ") : words;
-  const icons: { glyph: Glyph; button: Pressable }[] = unfold.scrolls
+  const icons: { glyph: Glyph; button: Pressable }[] = unfold.scrolls && !tidying
     ? [{ glyph: "locate", button: { key: `locate-${p.id}`, label: t("跳转"), action: { op: "locate", id: p.id, ...(p.uuid !== undefined ? { uuid: p.uuid } : {}) } } }]
     : [];
-  const action: BoardAction = { op: "expand-turn", id: open ? null : p.id };
-  // Its checkbox: none on the turn still running, nor on one whose row in the transcript is not known yet (a split names turns by it); the space kept.
+  // 整理: a box on every row, a press on the row toggling it; the turn still running has none and cannot be picked.
   const live = until === undefined && p.did === undefined && p.backfilled !== true;
   const on = (unfold.picked ?? []).includes(p.id);
-  const check: Pressable | null = p.uuid !== undefined && !live ? { key: `pick-${p.id}`, label: on ? "☑" : "☐", action: { op: "pick-turn", id: p.id, on: !on } } : null;
-  const rows: BoardRow[] = [{ kind: "turn", key: `prompt-${p.id}`, at: hhmm(p.at), text: promptLine(p.text, Math.max(12, columns - 8)), did, open, fold: true, icons, action, check }];
+  const action: BoardAction = tidying ? { op: "pick-turn", id: p.id, on: live ? false : !on } : { op: "expand-turn", id: open ? null : p.id };
+  const rows: BoardRow[] = [{ kind: "turn", key: `prompt-${p.id}`, at: hhmm(p.at), text: promptLine(p.text, Math.max(12, columns - 8)), did: tidying && live ? t("进行中，不能选") : did, open, fold: true, icons, action, ...(tidying ? { check: live ? null : on } : {}) }];
   if (open) {
     // Unfolded: the card of what can be done to the turn, the whole prompt, then the whole answer — read from the record once the press lands.
     rows.push({ kind: "menu", key: `turn-menu-${p.id}`, items: [

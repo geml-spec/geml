@@ -126,6 +126,8 @@ function world(on: On) {
     artifacts: null as unknown,
     /** The opener commands run, by argument vector. */
     launched: [] as string[][],
+    /** The messages typed mid-turn the transcript holds, as turn-ids answers them. */
+    queued: [] as { uuid: string; text: string; at: string }[],
     /** The project's memory the bridge answers. */
     memory: { dir: '/h/memory', entries: [{ file: 'a.md', title: '甲', hook: '第一条', type: 'feedback', at: '2026-10-22T08:00:00Z' }, { file: 'b.md', title: '乙', hook: '第二条', type: 'project', at: '2026-10-21T08:00:00Z' }] },
   }
@@ -234,7 +236,7 @@ function world(on: On) {
     if (req.op === 'backfill-list') return { v: 1, ok: true, shell: shell(), backfill: { sessions: w.transcripts } }
     if (req.op === 'turn-ids') {
       const ids = w.turnIdsQueue.length > 0 ? (w.turnIdsQueue.shift() as string[] | null) : w.turnIds
-      return ids === null ? { v: 1, ok: false, error: 'gemflow: no transcript', shell: shell() } : { v: 1, ok: true, shell: shell(), backfill: { uuids: ids } }
+      return ids === null ? { v: 1, ok: false, error: 'gemflow: no transcript', shell: shell() } : { v: 1, ok: true, shell: shell(), backfill: { uuids: ids, messages: w.queued } }
     }
     if (req.op === 'backfill-one') {
       const b = w.backfills.get(String(req.file))
@@ -1531,7 +1533,7 @@ test('a session resumed after the app restarted shows the prompts the store kept
   const drawn = (await pane.drawn()) as unknown as Drawn
   const row = findKey(drawn, 'prompt-p1-a')
   expect(row).toBeDefined()
-  expect([nodesOf(row!), buttonsOf(row!)], 'a folded row: nodes, buttons (its checkbox among them)').toEqual([14, 3])
+  expect([nodesOf(row!), buttonsOf(row!)], 'a folded row: nodes, buttons').toEqual([12, 2])
   // The triangle before the time is inside the box the row's press spans, so a press on it unfolds the row too.
   const span = spanOf(drawn, 'open-prompt-p1-a')
   expect(span, 'the row takes the press').toBeDefined()
@@ -1920,7 +1922,7 @@ test("the band's 看板 opens the board on the work items tab whichever tab it w
   await pane.unmount()
 })
 
-test('the sessions tab stays within the desktop\'s press budget: twelve folded turns cost fourteen nodes and three buttons each (the checkbox the third), nothing more between them', async ($, on) => {
+test('the sessions tab stays within the desktop\'s press budget: twelve folded turns cost twelve nodes and two buttons each, nothing more between them', async ($, on) => {
   const w = world(on)
   const prompts = Array.from({ length: 12 }, (_, i) => ({ id: `p${i}`, at: new Date(Date.UTC(2026, 9, 20, 9, i)).toISOString(), text: `第 ${i} 句提示词，长度适中，用来量一行的节点数。`, uuid: `row-${i}`, tools: 2, refusals: 0, entered: [], signals: [], did: '做完了一半。' }))
   w.store.set('prompts:sess-1234567890', prompts)
@@ -1931,10 +1933,10 @@ test('the sessions tab stays within the desktop\'s press budget: twelve folded t
   const tree = (await pane.drawn()) as unknown as Drawn
   const rows = prompts.map((p) => findKey(tree, `prompt-${p.id}`)!)
   expect(rows.every((r) => r !== undefined)).toBe(true)
-  expect(rows.map((r) => [nodesOf(r), buttonsOf(r)]).every(([n, b]) => n <= 14 && b <= 3), 'each folded row within fourteen nodes and three buttons').toBe(true)
+  expect(rows.map((r) => [nodesOf(r), buttonsOf(r)]).every(([n, b]) => n <= 12 && b <= 2), 'each folded row within twelve nodes and two buttons').toBe(true)
   // The rows and the day heading, and nothing drawn between the rows: the whole tab stays a few hundred nodes.
-  expect(nodesOf(tree), 'the tab').toBeLessThanOrEqual(12 * 14 + 120)
-  expect(buttonsOf(tree), 'its buttons').toBeLessThanOrEqual(12 * 3 + 16)
+  expect(nodesOf(tree), 'the tab').toBeLessThanOrEqual(12 * 12 + 120)
+  expect(buttonsOf(tree), 'its buttons').toBeLessThanOrEqual(12 * 2 + 16)
   await pane.unmount()
 })
 
@@ -1968,7 +1970,7 @@ test('an artifact\'s menu opens the file on the machine: a press runs its opener
   await phone.unmount()
 })
 
-test('checked turns on the sessions tab split into one new session by their record ids after a yes; 连同之后的 checks the later ones; 清空 unchecks', async ($, on) => {
+test('整理 on the sessions tab: a press on a row picks it, 连同之后的 picks the later ones, the picked turns split into one new session by their record ids after a yes; 完成 leaves and unpicks', async ($, on) => {
   const w = world(on)
   const prompted: string[] = []
   const asked: string[] = []
@@ -1987,32 +1989,31 @@ test('checked turns on the sessions tab split into one new session by their reco
   await $.command.run({ command: 'gemflow', args: 'board sessions', origin: COMPOSER, presentation: PRESENTATION })
   const mount = () => $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: { ...PANE, bodyColumns: 120 } })
   let pane = await mount()
-  const boxes = (await pane.findAll({ type: 'Button' })).filter((b) => String(b.key).startsWith('pick-') && !['pick-after', 'pick-clear'].includes(String(b.key)))
-  expect(boxes.map((b) => b.text), 'the two turns that ended carry a box; the one still running none').toEqual(['☐', '☐'])
-  const oldest = String(boxes.at(-1)!.key)
+  const rows = (await pane.findAll({ type: 'Button' })).filter((b) => String(b.key).startsWith('open-prompt-'))
+  const oldest = String(rows.at(-1)!.key)
+  await pane.press({ key: 'tidy-on' })
+  await pane.unmount()
+  pane = await mount()
+  expect(await pane.find({ type: 'Text', text: '选要整理的轮次' })).toBeDefined()
   await pane.press({ key: oldest })
   await pane.unmount()
   pane = await mount()
-  expect(await pane.find({ type: 'Text', text: '已选 1 轮' }), 'the heading counts it').toBeDefined()
+  expect(await pane.find({ type: 'Text', text: '已选 1 轮' }), 'a press on the row picked it').toBeDefined()
   await pane.press({ key: 'pick-after' })
   await pane.unmount()
   pane = await mount()
-  expect(await pane.find({ type: 'Text', text: '已选 2 轮' }), 'the later turn that ended is checked too, not the one running').toBeDefined()
+  expect(await pane.find({ type: 'Text', text: '已选 2 轮' }), 'the later turn that ended is picked too, not the one running').toBeDefined()
   await pane.press({ key: 'split-picked' })
   expect(asked.at(-1)).toBe('把选中的 2 轮拆到一个新会话？会先备份；重启应用后生效。')
   expect(prompted).toHaveLength(1)
   expect(prompted[0]).toContain('split --uuids row-aaaa,row-bbbb')
-  expect(prompted[0]).toContain('「把测试补上。」')
   await pane.unmount()
   pane = await mount()
-  expect(await pane.find({ type: 'Button', key: 'split-picked' }), 'handed over: nothing checked any more').toBeUndefined()
-  await pane.press({ key: oldest })
+  expect(await pane.find({ type: 'Button', key: 'split-picked' }), 'handed over: nothing picked any more').toBeUndefined()
+  await pane.press({ key: 'tidy-off' })
   await pane.unmount()
   pane = await mount()
-  await pane.press({ key: 'pick-clear' })
-  await pane.unmount()
-  pane = await mount()
-  expect(await pane.find({ type: 'Button', key: 'export-own' }), '清空: the export is back on the heading').toBeDefined()
+  expect(await pane.find({ type: 'Button', key: 'tidy-on' }), '完成: 整理 is back on the heading').toBeDefined()
   await pane.unmount()
   expect(w.toasts.at(-1)).toBe('已交给模型，结果看对话')
 })
@@ -2135,4 +2136,54 @@ test('a draft handed to git commit as its message is no artifact: not recorded a
   await clock.advance(1)
   const sent = w.sent.filter((r) => r.op === 'artifacts')
   expect(sent.map((r) => [r.elsewhere ?? null, r.notMade ?? null])).toEqual([[['/tmp/scratch/page.html'], ['/tmp/scratch/msg.txt']]])
+})
+
+test('整理: a message typed mid-turn is picked on its own; its row id is learned from the transcript before the split is handed over, and one the transcript does not hold stops it', async ($, on) => {
+  const w = world(on)
+  const prompted: string[] = []
+  on('prompt.submit', ($, e) => { if (e.origin.kind === 'plugin') prompted.push(e.text); return { text: e.text } })
+  on('tool.call', { tool: 'AskUserQuestion' }, ($, e) => {
+    const q = (e.questions as { question: string; options: { label: string }[] }[])[0]!
+    return { result: { questions: e.questions, answers: { [q.question]: q.options[0]!.label } }, text: q.options[0]!.label }
+  })
+  mock.session(on)
+  const clock = await start($, on)
+  await $.prompt.submit({ text: '改看板。', wait: false, origin: COMPOSER })
+  await $.session.append({ message: { type: 'user', role: 'user', content: [{ type: 'text', text: '改看板。' }] }, door: 'prompt', origin: COMPOSER, uuid: 'row-aaaa' })
+  // Typed while the turn ran: the host stores no prompt row for it.
+  await $.prompt.submit({ text: '顺便看下记忆', wait: false, origin: COMPOSER })
+  await $.prompt.submit({ text: '提交。', wait: false, origin: COMPOSER })
+  await $.session.append({ message: { type: 'user', role: 'user', content: [{ type: 'text', text: '提交。' }] }, door: 'prompt', origin: COMPOSER, uuid: 'row-cccc' })
+  const at = new Date(clock.now()).toISOString()
+  w.turnIds = ['row-aaaa', 'row-cccc']
+  w.queued = [{ uuid: 'att-1', text: '顺便看下记忆', at }]
+  await $.command.run({ command: 'gemflow', args: 'board sessions', origin: COMPOSER, presentation: PRESENTATION })
+  const mount = () => $.ui.mount({ plugin: 'gemflow', surface: 'desktop', component: 'Pane', requestId: 'gemflow-board', props: { ...PANE, bodyColumns: 120 } })
+  let pane = await mount()
+  const rows = (await pane.findAll({ type: 'Button' })).filter((b) => String(b.key).startsWith('open-prompt-'))
+  const middle = String(rows[1]!.key)
+  await pane.press({ key: 'tidy-on' })
+  await pane.unmount()
+  pane = await mount()
+  await pane.press({ key: middle })
+  await pane.unmount()
+  pane = await mount()
+  await pane.press({ key: 'split-picked' })
+  expect(prompted.at(-1), 'its queued record named').toContain('split --uuids att-1')
+  await pane.unmount()
+  // One the transcript does not hold: nothing handed over, and said why.
+  w.queued = []
+  await $.prompt.submit({ text: '再插一句', wait: false, origin: COMPOSER })
+  await $.prompt.submit({ text: '收尾。', wait: false, origin: COMPOSER })
+  await $.session.append({ message: { type: 'user', role: 'user', content: [{ type: 'text', text: '收尾。' }] }, door: 'prompt', origin: COMPOSER, uuid: 'row-eeee' })
+  pane = await mount()
+  const again = (await pane.findAll({ type: 'Button' })).filter((b) => String(b.key).startsWith('open-prompt-'))
+  await pane.press({ key: String(again[1]!.key) })
+  await pane.unmount()
+  pane = await mount()
+  const before = prompted.length
+  await pane.press({ key: 'split-picked' })
+  await pane.unmount()
+  expect(prompted.length, 'nothing handed over').toBe(before)
+  expect(w.toasts.at(-1)).toBe('有 1 条在对话记录里找不到，没有交给模型')
 })
