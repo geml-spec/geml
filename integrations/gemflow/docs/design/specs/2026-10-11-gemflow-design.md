@@ -603,7 +603,7 @@ skill `skills/gemflow-mcp/SKILL.md` 要求只接 MCP 的宿主每轮先读 `.gem
 
 ### 8.9 Codex 适配器
 
-Codex 的插件能带 hooks，每个 hook 要人先在 `/hooks` 里信任（装上不等于信任；未信任的静默跳过），信任之后 Gemflow 在 Codex 上看得到工具调用。随包的 Codex 清单是 `.codex-plugin/plugin.json`：skills 同一份；`codex/mcp.json` 在插件目录里起 `gemflow mcp --host codex`（status / move / set / note 四个工具；`cwd` 为 `.`、命令是 `node ./dist/gemflow.mjs`——Codex 不替换服务器参数里的 `${PLUGIN_ROOT}`，§12），每次调用的项目是调用的 `_meta["x-codex-turn-metadata"].workspaces` 里的工作区（几个时取有 `.geml/` 的那个），note 记进这次调用所属会话（`session_id`）的记录；`codex/hooks.json` 把 SessionStart、UserPromptSubmit、PreToolUse、PostToolUse 都交给同一条命令 `node "${PLUGIN_ROOT}/dist/gemflow.mjs" codex`。仓库的 `.agents/plugins/marketplace.json` 以本地路径列出它（要先 `npm run build`）；`.codexignore` 把 src、测试、node_modules 留在包外，dist 必须在。
+Codex 的插件能带 hooks，每个 hook 要人先在 `/hooks` 里信任（装上不等于信任；未信任的静默跳过），信任之后 Gemflow 在 Codex 上看得到工具调用。随包的 Codex 清单是 `.codex-plugin/plugin.json`：skills 同一份；`codex/mcp.json` 在插件目录里起 `gemflow mcp --host codex`（status / move / set / note 四个工具；`cwd` 为 `.`、命令是 `node ./dist/gemflow.mjs`——Codex 不替换服务器参数里的 `${PLUGIN_ROOT}`，§12），每次调用的项目是调用的 `_meta["x-codex-turn-metadata"].workspaces` 里的工作区（几个时取有 `.geml/` 的那个），note 记进这次调用所属会话（`session_id`）的记录；`codex/hooks.json` 把 SessionStart、UserPromptSubmit、PreToolUse、PostToolUse、Stop 都交给同一条命令 `node "${PLUGIN_ROOT}/dist/gemflow.mjs" codex`。仓库的 `.agents/plugins/marketplace.json` 以本地路径列出它（要先 `npm run build`）；`.codexignore` 把 src、测试、node_modules 留在包外，dist 必须在。
 
 每个事件是一个新进程：`src/codex.ts` 在进程内调桥接的 `handleRequest`，用和 Claude Code 模块一样的函数判断（`fastpath.ts` 的 `beforeDecision`、`afterNeeded`、`paramsToFill`）；`src/hosts/codex/hook.ts` 读事件、拼应答，纯函数。模型上次读到的 `item@rev` 记在 `PLUGIN_DATA`（没有就临时目录）下按会话一个文件。
 
@@ -612,7 +612,8 @@ Codex 的插件能带 hooks，每个 hook 要人先在 `/hooks` 里信任（装�
 | `SessionStart` | `status`，再 `refresh` 补齐 git 信号；把 `.geml/context.geml` 的 `#current` 作为 `additionalContext` 交给模型，记为已交 |
 | `UserPromptSubmit` | `item@rev` 与已交的不同、且 item 是当前工作项时再交一次 |
 | `PreToolUse` | gemflow 自己的工具放过。`beforeDecision` 说要请 CLI 就发 `before`：拒绝即 `permissionDecision: "deny"` 带原因（CLI 记一条 `refused`）。词典没有决定的键，或用的不是用途的首选：hooks 问不了人，调用放行，`additionalContext` 告诉模型词典没有决定、人可以在 tools.geml 里加一行；两个宿主的写文件工具之间不算首选之争（词典的默认编辑器是 Claude Code 的名字，Codex 的是 `apply_patch`）。结构化输入的工具有默认参数就用 `updatedInput` 补齐。`Bash` 命令的退出码是证据时（某个键绑着 `tool` 变量读的用途），`updatedInput` 把命令包成 `( 命令 ); __gemflow_status=$?; printf '\n[gemflow exit %s]\n' "$__gemflow_status"; exit $__gemflow_status`：子 shell 里跑，宿主看到的退出状态不变，输出末尾多一行标记；Windows 不包 |
-| `PostToolUse` | 包过的命令先还原，按原样判断与记录；退出码取 `tool_response` 里任何字符串的最后一个 `[gemflow exit N]`，没有就是不知道（不写 `tool` 证据）；`apply_patch` 的补丁只取 `*** Add/Update/Delete File:` 的路径，不当命令行扫；`afterNeeded` 成立才发 `after`，阶段变了把交接行与新 `#current` 作为 `additionalContext` 交给模型，记为已交 |
+| `PostToolUse` | 包过的命令先还原，按原样判断与记录；退出码取 `tool_response` 里任何字符串的最后一个 `[gemflow exit N]`，没有就是不知道（不写 `tool` 证据）；`apply_patch` 的补丁只取 `*** Add/Update/Delete File:` 的路径，不当命令行扫；补丁写的项目内文件记进会话记录，命令里有提交时记下这一轮提交过；`afterNeeded` 成立才发 `after`，阶段变了把交接行与新 `#current` 作为 `additionalContext` 交给模型，记为已交 |
+| `Stop` | 回合结束：最后的回答（`last_assistant_message`）记进会话记录，这一轮提交过时连同它的提交；什么都不交给模型 |
 
 什么都不说、退出码 0：项目没有流程、事件读不懂、出错（原因到 stderr）。宿主工具表 `codex`：`Bash` 运行命令，`apply_patch` 写文件；内置词典给 `apply_patch` 绑了 `edit`（视频流程里所有阶段放行）。Codex 上没有状态带与看板，人在终端里用 `gemflow` 推进、勾变量。
 

@@ -720,11 +720,11 @@ has no channel that delivers it. What such a host does not get:
 Codex gets the three tools over MCP as above, and — once its hooks are
 trusted — the gate: the plugin's `.codex-plugin/plugin.json` points at the
 same `skills/`, at `codex/mcp.json` (`gemflow mcp --host codex`) and at
-`codex/hooks.json`, where SessionStart, UserPromptSubmit, PreToolUse and
-PostToolUse all run `node "${PLUGIN_ROOT}/dist/gemflow.mjs" codex`. Installed
-from this repository's Codex marketplace (`.agents/plugins/marketplace.json`,
+`codex/hooks.json`, where SessionStart, UserPromptSubmit, PreToolUse,
+PostToolUse and Stop all run `node "${PLUGIN_ROOT}/dist/gemflow.mjs" codex`.
+Installed from this repository's Codex marketplace (`.agents/plugins/marketplace.json`,
 a local source: run `npm run build` in `integrations/gemflow` first), then
-`/plugins` in Codex to install and `/hooks` to review and trust the four
+`/plugins` in Codex to install and `/hooks` to review and trust the five
 hooks — installing a plugin trusts none of them, and an untrusted hook is
 skipped without a word.
 
@@ -733,8 +733,10 @@ above the prompt and the board: the stage text reaches the model at the
 start of the session, at the next prompt after it changed, and in the result
 of the call that changed it; a command a fenced use or a person owns is
 refused with the reason; a tool the dictionary has no row for runs as usual;
-a tool's default parameters are filled in; and a
-shell command whose exit status is evidence is wrapped to print it last
+a tool's default parameters are filled in; the files a patch writes, and at
+the turn's end its answer and the commits it made, go into the project's
+session record; and a shell command whose exit status is evidence is
+wrapped to print it last
 (`[gemflow exit N]`, read back after the call, since Codex's result carries
 no status; the command's own status still reaches Codex; not on Windows).
 `apply_patch` is the editor here: the bundled dictionaries bind it to `edit`,

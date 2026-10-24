@@ -584,14 +584,14 @@ skill `skills/gemflow-mcp/SKILL.md` 要求模型每轮先读阶段（`status`，
 Codex 照上面拿到三个 MCP 工具，hooks 信任之后还拿到闸：插件的
 `.codex-plugin/plugin.json` 指向同一份 `skills/`、`codex/mcp.json`
 （`gemflow mcp --host codex`）和 `codex/hooks.json`——SessionStart、UserPromptSubmit、
-PreToolUse、PostToolUse 都跑 `node "${PLUGIN_ROOT}/dist/gemflow.mjs" codex`。从本仓库的
+PreToolUse、PostToolUse、Stop 都跑 `node "${PLUGIN_ROOT}/dist/gemflow.mjs" codex`。从本仓库的
 Codex marketplace（`.agents/plugins/marketplace.json`，本地来源，先在
 `integrations/gemflow` 里 `npm run build`）装：Codex 里 `/plugins` 安装，再 `/hooks`
-逐条审阅、信任这四个 hook——装插件不等于信任，没信任的 hook 一声不响地跳过。
+逐条审阅、信任这五个 hook——装插件不等于信任，没信任的 hook 一声不响地跳过。
 
 hooks 信任之后，Codex 上有的就是 Claude Code 上的减去状态带和看板：阶段文字在会话开始、
 变化之后的下一条 prompt、以及改变了它的那次调用的结果里交给模型；封路用途或只许人做的命令
-被拒并说明原因；词典里没有行的工具照常放行；工具的默认参数补齐；退出码是证据的 shell 命令被包一层、把退出码打印在输出末尾
+被拒并说明原因；词典里没有行的工具照常放行；工具的默认参数补齐；补丁写的文件，以及回合结束时的回答和这一轮的提交，记进项目的会话记录；退出码是证据的 shell 命令被包一层、把退出码打印在输出末尾
 （`[gemflow exit N]`，调用后读回来——Codex 的结果不带退出码；命令自己的退出状态照样到
 Codex；Windows 上不包）。这里的编辑器是 `apply_patch`：内置词典把它绑到 `edit`，补丁
 只按路径判断，不扫它的文本。
