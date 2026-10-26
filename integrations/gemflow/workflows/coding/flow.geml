@@ -33,13 +33,13 @@ profile = "geml-statechart/v1"
       "title": "Implement",
       "description": "Make the change. Editing is possible here and nowhere else; to run the command, move to verify.",
       "prompt": "#implement",
-      "tools": ["edit"]
+      "rules": ["edit"]
     },
     "verify": {
       "title": "Verify",
       "description": "Run the command; its exit status is the evidence. If it failed, go back and fix it.",
       "prompt": "#verify",
-      "tools": ["test"]
+      "rules": ["test"]
     },
     "review": {
       "title": "Review",

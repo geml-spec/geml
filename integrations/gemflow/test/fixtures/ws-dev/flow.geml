@@ -18,25 +18,25 @@ profile = "geml-statechart/v1"
       "title": "构建",
       "description": "写代码和测试，直到测试通过、PR 开出来。",
       "prompt": "./guide.geml#build",
-      "tools": ["edit", "test", "pr"]
+      "rules": ["edit", "test", "pr"]
     },
     "review": {
       "title": "评审",
       "description": "处理 review 意见，等 CI 绿、PR 合并。",
       "prompt": "./guide.geml#review",
-      "tools": ["edit", "test"]
+      "rules": ["edit", "test"]
     },
     "deploy": {
       "title": "部署",
       "description": "部署到 staging 并验证。",
       "prompt": "./guide.geml#deploy",
-      "tools": ["deploy-staging"]
+      "rules": ["deploy-staging"]
     },
     "release": {
       "title": "上线",
       "description": "部署到 production。",
       "prompt": "./guide.geml#release",
-      "tools": ["deploy-prod"]
+      "rules": ["deploy-prod"]
     },
     "done": { "title": "完成", "final": true }
   },

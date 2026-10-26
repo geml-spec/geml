@@ -56,7 +56,7 @@ const isRun = (call: CallFacts): boolean => CLAUDE_CODE_TOOLS.run.includes(call.
 
 /** The policy's rows as the dictionary's decisions read them. */
 const dictOf = (p: FlowPolicy): Dictionary => ({ rows: p.rows, diagnostics: [] });
-const scopeOf = (p: FlowPolicy): Scope => ({ state: p.state, uses: p.uses, declaring: (use) => p.fences[use] ?? [] });
+const scopeOf = (p: FlowPolicy): Scope => ({ state: p.state, uses: p.uses, declaring: (use) => p.fences[use] ?? [], fenced: (use) => (p.rules ?? []).includes(use) });
 
 /** Whether a written path is a work item of a `file:` unit. */
 export function matchesUnit(p: FlowPolicy | null, path: string | undefined, units: readonly string[] = []): boolean {

@@ -521,6 +521,80 @@ export function personOnlyReason(verb: string): string {
   return `\`gemflow ${verb}\` is for a person, not the model: manual signals and a person's transitions are never taken by the agent`;
 }
 
+/** Commands that run what a here-document feeds them, besides the shells and launchers: interpreters, and ssh (the far end's shell). */
+const STDIN_RUNNERS: ReadonlySet<string> = new Set(["python", "python3", "py", "perl", "ruby", "php", "lua", "osascript", "rscript", "tclsh", "ssh", "docker", "podman", "kubectl"]);
+
+/**
+ * The line without the bodies of the here-documents it writes as text: a body
+ * fed to a command that runs no code from it (`cat <<EOF > notes.md`, `tee`)
+ * is data. One fed to a shell, a launcher, an interpreter or ssh, or whose
+ * command pipes on (`cat <<EOF | bash`), runs, and stays. Quotes and
+ * backslashes as the other scanners read them. Null when the line cannot be
+ * read this way — a quote that does not close, `<<` after an arithmetic
+ * context, a word that hides its command — and the caller reads it whole.
+ */
+export function withoutDataHereDocs(line: string, depth = 0): string | null {
+  if (depth > MAX_NESTING) return null;
+  // What comes out in place of a stretch of the line: nothing for a body that is data, a substitution's own reading.
+  const cuts: [number, number, string][] = [];
+  const docs: { doc: HereDoc; runs: boolean }[] = [];
+  let quote: string | null = null;
+  let start = 0; // where the current command began: after the last separator outside quotes
+  for (let i = 0; i < line.length; i++) {
+    const c = line.charAt(i);
+    // An arithmetic expansion, where `<<` is a shift: the line is read whole.
+    if ((quote === null || quote === '"') && c === "$" && line.charAt(i + 1) === "(" && line.charAt(i + 2) === "(") return null;
+    // A command substitution, in double quotes or none: its commands read the same way.
+    if ((quote === null || quote === '"') && c === "$" && line.charAt(i + 1) === "(") {
+      const end = substitutionEnd(line, i + 2, depth);
+      if (end < 0) return null;
+      const inner = withoutDataHereDocs(line.slice(i + 2, end), depth + 1);
+      if (inner === null) return null;
+      cuts.push([i + 2, end, inner]);
+      i = end;
+      continue;
+    }
+    if (quote !== null) {
+      if (c === "\\" && quote !== "'") i++;
+      else if (c === quote.slice(-1)) quote = null;
+      continue;
+    }
+    if (c === "'" || c === '"') { quote = c; continue; }
+    if (c === "$" && line.charAt(i + 1) === "'") { quote = "$'"; i++; continue; }
+    if (c === "\\") { i++; continue; }
+    const doc = c === "<" ? hereDocAt(line, i) : undefined;
+    if (doc !== undefined) {
+      if (ARITHMETIC.test(shellTextBefore(line, 0, i, cuts.map(([a, b]) => [a, b] as const)))) return null;
+      const ws = words(line.slice(start, i));
+      const at = commandWordIndex(ws, COMMAND_INTRODUCERS);
+      const head = at < 0 ? undefined : ws[at];
+      if (head?.expands === true) return null;
+      const name = head === undefined ? "" : programName(head.text).toLowerCase();
+      const eol = line.indexOf("\n", doc.end);
+      const pipes = /(^|[^|])\|(?!\|)/.test(line.slice(doc.end, eol < 0 ? line.length : eol));
+      docs.push({ doc, runs: head === undefined || SHELL_RUNNERS.has(name) || LAUNCHERS.has(name) || STDIN_RUNNERS.has(name) || pipes });
+      i = doc.end - 1;
+      continue;
+    }
+    if (c === "\n" && docs.length > 0) {
+      for (const { doc: d, runs } of docs.splice(0)) {
+        const { end } = hereDocBody(line, i, d);
+        // An unquoted body still runs the substitutions it expands: it is no plain text either.
+        if (!runs && d.literal) cuts.push([i + 1, end, ""]);
+        i = end;
+      }
+      start = i + 1;
+      continue;
+    }
+    if (c === ";" || c === "&" || c === "|" || c === "\n" || c === "(" || c === ")" || c === "`") start = i + 1;
+  }
+  if (quote !== null) return null;
+  let out = "";
+  let at = 0;
+  for (const [a, b, text] of cuts) { out += line.slice(at, a) + text; at = b; }
+  return out + line.slice(at);
+}
+
 /** A program name at the end of a path (either separator), without a Windows `.exe`. */
 function programName(word: string): string {
   return word.slice(Math.max(word.lastIndexOf("/"), word.lastIndexOf("\\")) + 1).replace(/\.exe$/i, "");

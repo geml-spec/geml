@@ -22,6 +22,8 @@ export interface FlowPolicy {
   uses: string[];
   /** Every use some state declares, with those states. */
   fences: Record<string, string[]>;
+  /** The uses some state declares as a rule: only these are refused outside their states. */
+  rules: string[];
   /** The dictionary's rows, as read. */
   rows: DictRow[];
   /** The globs of the `file` variables. */
@@ -47,7 +49,7 @@ export function policyOf(sc: Statechart, dict: Dictionary, run: Run | undefined)
   const fences: Record<string, string[]> = {};
   for (const use of declaredUses(sc)) fences[use] = statesDeclaring(sc, use);
   const base = {
-    unit: sc.unit, fences, rows: dict.rows, files: varsBySource(sc, "file").map((v) => v.source.glob), git: varsBySource(sc, "git").length > 0,
+    unit: sc.unit, fences, rules: [...sc.rules], rows: dict.rows, files: varsBySource(sc, "file").map((v) => v.source.glob), git: varsBySource(sc, "git").length > 0,
     evidence: [...new Set(varsBySource(sc, "tool").map((v) => v.source.use))],
   };
   if (!run) return { ...base, active: false, state: "", uses: [], relevant: [], written: [] };
@@ -59,10 +61,10 @@ export function policyOf(sc: Statechart, dict: Dictionary, run: Run | undefined)
 
 /** The policy as the dictionary's decisions read it. */
 export function scopeOf(p: FlowPolicy): Scope {
-  return { state: p.state, uses: p.uses, declaring: (use) => p.fences[use] ?? [] };
+  return { state: p.state, uses: p.uses, declaring: (use) => p.fences[use] ?? [], fenced: (use) => (p.rules ?? []).includes(use) };
 }
 
 /** The statechart as the dictionary's decisions read it, in `stateId`. */
 export function scopeIn(sc: Statechart, stateId: string): Scope {
-  return { state: stateId, uses: sc.states.get(stateId)?.uses ?? [], declaring: (use) => statesDeclaring(sc, use) };
+  return { state: stateId, uses: sc.states.get(stateId)?.uses ?? [], declaring: (use) => statesDeclaring(sc, use), fenced: (use) => sc.rules.has(use) };
 }

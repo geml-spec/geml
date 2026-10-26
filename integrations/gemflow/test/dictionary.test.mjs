@@ -23,7 +23,7 @@ const DICT = dict([
   { tool: "mcp__img__*", for: "image", params: { ratio: "9:16" } },
 ]);
 const FENCES = { edit: ["build"], test: ["build"], "deploy-prod": ["release"], "deploy-staging": ["deploy"], image: ["assets"] };
-const scope = (state, uses) => ({ state, uses, declaring: (use) => FENCES[use] ?? [] });
+const scope = (state, uses) => ({ state, uses, declaring: (use) => FENCES[use] ?? [], fenced: (use) => FENCES[use] !== undefined });
 const BUILD = scope("build", ["edit", "test"]);
 const LOCK = scope("lock", []);
 const DEPLOY = scope("deploy", ["deploy-staging"]);
@@ -66,7 +66,7 @@ test("keyMatches: a tool's name takes it with any path; a path pattern takes the
 
 test("judgeKey: a path row splits one tool between two uses — writing a matter is note, writing anything else is edit", () => {
   const d = dict([{ tool: "Edit", for: "edit", default: true }, { tool: "Edit(.geml/matters/*)", for: "note", default: true }]);
-  const deciding = { state: "deciding", uses: ["note"], declaring: (u) => (u === "edit" ? ["doing"] : ["noted", "deciding", "doing"]) };
+  const deciding = { state: "deciding", uses: ["note"], declaring: (u) => (u === "edit" ? ["doing"] : ["noted", "deciding", "doing"]), fenced: () => true };
   assert.deepEqual(judgeKey(d, deciding, "Edit(/w/app/.geml/matters/a.geml)"), { key: "Edit(/w/app/.geml/matters/a.geml)", kind: "allow", use: "note" });
   assert.deepEqual(judgeKey(d, deciding, "Edit(/w/app/src/a.ts)"), { key: "Edit(/w/app/src/a.ts)", kind: "refuse", reason: "Edit is edit, which is used only in #doing; the workflow is in #deciding" }, "the reason names the row that judged a path");
 });
@@ -245,4 +245,22 @@ test("a forget lesson takes the row of exactly that key out, and numbers the res
   const out = learn(dict, { kind: "forget", key: "Bash(npm test)" });
   assert.deepEqual(out.rows.map((r) => [r.tool, r.row]), [["Read", 1], ["Edit", 2]]);
   assert.equal(learn(dict, { kind: "forget", key: "Bash(nothing)" }).rows.length, 3, "a key with no row: nothing changes");
+});
+
+test("rules: only a use a state declares as a rule is kept to the states that declare it; a use declared only in `tools` runs anywhere, with no use named outside its states", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { scopeIn } = await import("../dist/core/policy.js");
+  const flow = (name) => loadStatechart(readFileSync(new URL(`../workflows/${name}/flow.geml`, import.meta.url), "utf8"), `${name}.geml`).statechart;
+  const dev = flow("dev");
+  assert.deepEqual([...dev.rules].sort(), ["deploy-prod", "deploy-staging"], "发布: the two deploys are rules");
+  assert.deepEqual(judgeKey(DICT, scopeIn(dev, "deploy"), "Edit"), { key: "Edit", kind: "allow" }, "edit is no rule: it runs in #deploy, no use named");
+  assert.deepEqual(judgeKey(DICT, scopeIn(dev, "build"), "Edit"), { key: "Edit", kind: "allow", use: "edit" }, "in a state declaring it, the use is named (its evidence counts)");
+  const prod = ["Bash(wrangler", "deploy)"].join(" ");
+  assert.match(judgeKey(DICT, scopeIn(dev, "build"), prod).reason, /is deploy-prod, which is used only in #release; the workflow is in #build/);
+  assert.match(fencedRefusal(DICT, scopeIn(dev, "deploy"), ["npx wrangler", "deploy"].join(" ")), /is deploy-prod, which is used only in #release/);
+  const coding = flow("coding");
+  assert.deepEqual([...coding.rules].sort(), ["edit", "test"], "coding: the strict flow");
+  assert.match(judgeKey(DICT, scopeIn(coding, "plan"), "Edit").reason, /is edit, which is used only in #implement; the workflow is in #plan/);
+  const bad = loadStatechart(flowDoc({ initial: "a", states: { a: { rules: ["no good"] }, done: { final: true } }, transitions: [{ from: "a", to: "done" }] }), "bad.geml");
+  assert.ok(bad.diagnostics.some((d) => d.code === "flow-attr" && /`rules` is not an array of use names/.test(d.message)));
 });

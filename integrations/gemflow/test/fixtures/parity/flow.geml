@@ -10,9 +10,9 @@ profile = "geml-statechart/v1"
 {
   "initial": "build",
   "states": {
-    "build":   { "description": "Edit and test.", "tools": ["edit", "test", "image"] },
+    "build":   { "description": "Edit and test.", "rules": ["edit", "test", "image"] },
     "lock":    { "description": "Nothing declared: every tool is the dictionary's to decide." },
-    "release": { "description": "Deploy to production.", "tools": ["deploy-prod"] },
+    "release": { "description": "Deploy to production.", "rules": ["deploy-prod"] },
     "done":    { "description": "Finished.", "final": true }
   },
   "vars": {

@@ -28,19 +28,19 @@ flow-unit = "file:episodes/*.geml"
       "title": "素材",
       "description": "按待办清单生成素材、配音，每一次生成都登记进生成日志。待办检查的结果是证据，不需要你报告。",
       "prompt": "./guide.geml#assets",
-      "tools": ["image", "video", "voice", "import", "log", "todo-check"]
+      "rules": ["image", "video", "voice", "import", "log", "todo-check"]
     },
     "cut": {
       "title": "剪辑",
       "description": "把素材排上时间线，对齐配音与字幕。过期检查的结果是证据。",
       "prompt": "./guide.geml#cut",
-      "tools": ["lay", "stale-check"]
+      "rules": ["lay", "stale-check"]
     },
     "render": {
       "title": "出片",
       "description": "出片。这一阶段只运行出片命令，不改剧本和剪辑。",
       "prompt": "./guide.geml#render",
-      "tools": ["render"]
+      "rules": ["render"]
     },
     "review": {
       "title": "审片",

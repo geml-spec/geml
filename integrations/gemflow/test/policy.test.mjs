@@ -26,7 +26,7 @@ test("policyOf: the unit, the state and its uses, every use's states, the rows, 
   const p = policyOf(sc, D, run);
   assert.deepEqual(p, {
     active: true, unit: { kind: "file", glob: "episodes/*.geml" }, state: "build", uses: ["edit", "test"],
-    fences: { edit: ["build"], test: ["build", "release"], deploy: ["release"] },
+    fences: { edit: ["build"], test: ["build", "release"], deploy: ["release"] }, rules: [],
     rows: D.rows, files: ["out/*.mp4"], git: true, relevant: ["h", "t"], evidence: ["test", "deploy"], written: [],
   });
   const inactive = policyOf(sc, D, undefined);

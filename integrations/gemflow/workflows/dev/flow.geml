@@ -1,15 +1,15 @@
 === meta
-title   = "开发流程"
+title   = "发布流程"
 profile = "geml-statechart/v1"
 ===
 
 %% 一个分支是一个工作项：build → review → deploy → release → done。状态只写用途
 %% （edit、test、pr、deploy-staging、deploy-prod）；同目录的 tools.geml 把用途绑到
-%% 本项目的命令，在使用中由你的选择长出来。两处封路：staging 部署只在 #deploy 能
-%% 跑（进入 #deploy 要求已合并且 CI 通过），production 部署只在 #release 能跑
-%% （进入 #release 要一个人批准）。测试证据随工作内容过期：测完又改了代码就要重跑。
+%% 本项目的命令，在使用中由你的选择长出来。写代码、测试、开 PR 在哪个阶段都能做；
+%% 两条规定（rules）封路：staging 部署只在 #deploy 能跑（进入 #deploy 要求已合并且
+%% CI 通过），production 部署只在 #release 能跑（进入 #release 要一个人批准）。测试证据随工作内容过期：测完又改了代码就要重跑。
 
-=== diagram {#flow format=geml-statechart caption="开发流程"}
+=== diagram {#flow format=geml-statechart caption="发布流程"}
 {
   "initial": "build",
 
@@ -30,13 +30,13 @@ profile = "geml-statechart/v1"
       "title": "部署",
       "description": "部署到 staging 并验证。",
       "prompt": "./guide.geml#deploy",
-      "tools": ["deploy-staging"]
+      "rules": ["deploy-staging"]
     },
     "release": {
       "title": "上线",
       "description": "部署到 production。",
       "prompt": "./guide.geml#release",
-      "tools": ["deploy-prod"]
+      "rules": ["deploy-prod"]
     },
     "done": { "title": "完成", "final": true }
   },

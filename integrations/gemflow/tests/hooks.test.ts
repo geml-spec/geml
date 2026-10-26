@@ -144,7 +144,7 @@ function world(on: On) {
     },
     policy: {
       active: true, unit: { kind: 'branch' }, state: w.state, uses: USES[w.state] ?? [],
-      fences: { edit: ['build'], test: ['build'], deploy: ['release'] }, rows: ROWS, files: [], git: true,
+      fences: { edit: ['build'], test: ['build'], deploy: ['release'] }, rules: ['edit', 'test', 'deploy'], rows: ROWS, files: [], git: true,
       relevant: w.state === 'build' ? ['tests-pass', 'pr-open'] : [], evidence: ['test'],
     },
     contextKey: `${w.item}@${w.rev}`,

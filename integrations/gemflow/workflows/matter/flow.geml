@@ -20,31 +20,31 @@ flow-state-key = "state"
       "title": "记下",
       "description": "把现象和证据写进事项；查明原因后写出方案，交给人定。",
       "prompt": "./guide.geml#noted",
-      "tools": ["note"]
+      "rules": ["note"]
     },
     "deciding": {
       "title": "待你定",
       "description": "方案在事项里，等人选。这时只回答问题、补事项，不改别的文件。",
       "prompt": "./guide.geml#deciding",
-      "tools": ["note"]
+      "rules": ["note"]
     },
     "doing": {
       "title": "实施",
       "description": "按人选的方案改，改完跑一次检查。",
       "prompt": "./guide.geml#doing",
-      "tools": ["note", "edit", "check"]
+      "rules": ["note", "edit", "check"]
     },
     "checking": {
       "title": "待验收",
       "description": "结果在事项的 #result 一节，等人验收；不再改别的文件。",
       "prompt": "./guide.geml#checking",
-      "tools": ["note"]
+      "rules": ["note"]
     },
     "parked": {
       "title": "搁置",
       "description": "先放着；人随时可以重新打开。",
       "prompt": "./guide.geml#parked",
-      "tools": ["note"]
+      "rules": ["note"]
     },
     "done": { "title": "完成", "final": true }
   },

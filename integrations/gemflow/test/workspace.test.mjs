@@ -250,7 +250,7 @@ test("after: a refusal with no call id excuses nothing", () => {
   assert.equal(ws.status().vars["tests-pass"], true);
 });
 
-test("after: evidence belongs to the state that declares the use — a test run in a state without `test` writes nothing", () => {
+test("after: evidence belongs to the state that declares the use — a test run in a state without `test` runs (no rule fences it) and writes nothing", () => {
   const p = project({ pr: true });
   const ws = p.open().ws;
   ws.after(NPM_TEST);
@@ -258,7 +258,7 @@ test("after: evidence belongs to the state that declares the use — a test run 
   ws.mark("review-ready", true);
   const deploy = project({ flow: twoStates({ a: { tools: ["edit"] }, b: { tools: ["test"] }, vars: { t: { default: false, source: { tool: "test" } } } }) });
   const w = deploy.open().ws;
-  assert.match(w.before("Bash", "c0", { command: "npm test" }), /"npm test" is test, which is used only in #b; the workflow is in #a/);
+  assert.equal(w.before("Bash", "c0", { command: "npm test" }), undefined, "test is no rule: it runs in #a too");
   w.after({ tool: "Bash", callId: "c1", isError: false, input: { command: "npm test" }, exitCode: 0 });
   assert.equal(w.status().vars.t, false, "#a declares no test");
   assert.equal(w.advance("b").ok, true);

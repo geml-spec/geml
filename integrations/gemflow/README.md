@@ -483,7 +483,7 @@ cd integrations/gemflow && npm install && npm run pack:local
 
 # 2. install it — the two installers take different things, and pack:local
 #    prints both paths when it finishes
-npm install -g ./geml-gemflow-0.2.83.tgz     # the CLI: a tarball
+npm install -g ./geml-gemflow-0.2.85.tgz     # the CLI: a tarball
 pi install /absolute/path/to/gemflow-pkg    # pi agent: a DIRECTORY
 
 # 3. in the repository you want to work on, on a branch of its own

@@ -311,7 +311,7 @@ test("onMissing fail: an unresolved workflow fails the session's startup with th
 // -- the gate reads the command of a run tool's call, and its exit status is evidence ----
 
 const SHELLS = flowDoc({
-  initial: "work", states: { work: { description: "Work." }, ship: { description: "Ship.", tools: ["deploy"] }, done: { description: "Done." } },
+  initial: "work", states: { work: { description: "Work." }, ship: { description: "Ship.", rules: ["deploy"] }, done: { description: "Done." } },
   vars: { d: { default: false, source: { tool: "deploy" } } },
   transitions: [{ from: "work", to: "ship", note: "x" }, { from: "ship", to: "done", guard: { properties: { d: { const: true } } }, note: "Deployed." }],
 });

@@ -5,7 +5,7 @@
 // uses; the dictionary binds them to this project's tools, and grows as the
 // person answers. Pure: text in, rows and decisions out; the workspace reads
 // and writes the file.
-import { signalHeads, simpleCommands, withoutQuoting } from "./command-line.js";
+import { signalHeads, simpleCommands, withoutDataHereDocs, withoutQuoting } from "./command-line.js";
 import { globToRegExp } from "./unit.js";
 import type { JsonValue } from "./schema.js";
 import type { FlowDiagnostic } from "./statechart.js";
@@ -152,8 +152,8 @@ export type Decision =
   /** `keys`: the keys refused, one reason each. */
   | { kind: "refuse"; reasons: string[]; keys: string[] };
 
-/** Where a decision is made: the current state, the uses it declares, and which states declare any use (a use is fenced to them). */
-export interface Scope { state: string; uses: readonly string[]; declaring: (use: string) => readonly string[] }
+/** Where a decision is made: the current state, the uses it declares, which states declare any use, and whether a use is a rule (fenced to them). */
+export interface Scope { state: string; uses: readonly string[]; declaring: (use: string) => readonly string[]; fenced: (use: string) => boolean }
 
 /**
  * One key against the dictionary in state S: bound to a use S declares →
@@ -169,6 +169,8 @@ export function judgeKey(dict: Dictionary, scope: Scope, key: string): KeyVerdic
   const named = row !== undefined && PATH_KEY.test(key) && !RUN_KEY.test(key) ? row.tool : key;
   if (row?.for !== undefined) {
     if (scope.uses.includes(row.for)) return { key, kind: "allow", use: row.for };
+    // Only a rule keeps a use to the states that declare it; any other use runs here too (its evidence counts only there).
+    if (!scope.fenced(row.for)) return { key, kind: "allow" };
     const where = scope.declaring(row.for);
     return { key, kind: "refuse", reason: `${named} is ${row.for}, which is used only in ${where.length ? where.map((s) => `#${s}`).join(", ") : "no state"}; the workflow is in #${stateId}` };
   }
@@ -206,7 +208,9 @@ export function fencedRefusal(dict: Dictionary, scope: Scope, command: string): 
 }
 
 /** The dictionary row that fences a command line in this state (fencedRefusal's reading), or undefined: its `tool` is the key a person waives. */
-export function fencedRow(dict: Dictionary, scope: Scope, command: string): DictRow | undefined {
+export function fencedRow(dict: Dictionary, scope: Scope, whole: string): DictRow | undefined {
+  // The line's code: a here-document it writes as text (a test that mentions a deploy) runs nothing.
+  const command = withoutDataHereDocs(whole) ?? whole;
   const plain = normalizedCommand(command);
   let best: DictRow | undefined;
   for (const r of dict.rows) {
@@ -215,7 +219,7 @@ export function fencedRow(dict: Dictionary, scope: Scope, command: string): Dict
     if (!re.test(command) && !re.test(plain)) continue;
     if (best === undefined || literalLength(r.tool) > literalLength(best.tool)) best = r;
   }
-  return best?.for === undefined || scope.uses.includes(best.for) ? undefined : best;
+  return best?.for === undefined || scope.uses.includes(best.for) || !scope.fenced(best.for) ? undefined : best;
 }
 
 const EXCERPT = 200;

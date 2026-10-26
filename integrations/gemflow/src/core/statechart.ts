@@ -29,6 +29,8 @@ export interface State {
   skills: string[];
   /** The uses this state declares: `edit`, `test`, `deploy-prod`… The dictionary binds them to tools. */
   uses: string[];
+  /** The uses this state declares as rules (`rules`): each is fenced to the states that declare it; the rest run anywhere. */
+  rules: string[];
   /** No outgoing transition. */
   final: boolean;
 }
@@ -93,6 +95,8 @@ export interface Statechart {
   varsSchema: Schema;
   /** The variables with a `source`: evidence the model cannot write. */
   signalVars: Set<string>;
+  /** The uses some state declares as a rule: only these are refused outside the states that declare them. */
+  rules: Set<string>;
   unit: Unit;
   contextBudget: number;
   /** The parser's model, for the renderer and the board. */
@@ -212,7 +216,7 @@ export function loadStatechart(source: string, file: string, opts: LoadOptions =
   const states = new Map<string, State>();
   const declaredUses = new Set<string>();
   for (const s of m.states) {
-    const st: State = { id: s.id, title: s.title, description: s.description ?? "", line: blockLine, skills: [], uses: [], final: s.final };
+    const st: State = { id: s.id, title: s.title, description: s.description ?? "", line: blockLine, skills: [], uses: [], rules: [], final: s.final };
     const a = s.attrs;
     if (a["prompt"] !== undefined) {
       if (typeof a["prompt"] !== "string" || a["prompt"].trim() === "") err("flow-attr", `state ${s.id}: \`prompt\` is not a reference`, blockLine);
@@ -232,6 +236,11 @@ export function loadStatechart(source: string, file: string, opts: LoadOptions =
     if (a["tools"] !== undefined) {
       if (!isStringList(a["tools"]) || a["tools"].some((u) => !NAME.test(u))) err("flow-attr", `state ${s.id}: \`tools\` is not an array of use names`, blockLine);
       else { st.uses = [...new Set(a["tools"])]; for (const u of st.uses) declaredUses.add(u); }
+    }
+    // A rule is a use too: declared here, and fenced to the states that declare it.
+    if (a["rules"] !== undefined) {
+      if (!isStringList(a["rules"]) || a["rules"].some((u) => !NAME.test(u))) err("flow-attr", `state ${s.id}: \`rules\` is not an array of use names`, blockLine);
+      else { st.rules = [...new Set(a["rules"])]; st.uses = [...new Set([...st.uses, ...st.rules])]; for (const u of st.rules) declaredUses.add(u); }
     }
     states.set(s.id, st);
   }
@@ -319,6 +328,7 @@ export function loadStatechart(source: string, file: string, opts: LoadOptions =
     file, hash: hashText(src), initial: m.initial, states, transitions, vars,
     varsSchema: { type: "object", properties, additionalProperties: false },
     signalVars: new Set([...vars.values()].filter((v) => v.source !== undefined).map((v) => v.name)),
+    rules: new Set([...states.values()].flatMap((st) => st.rules)),
     unit, contextBudget: DEFAULT_CONTEXT_BUDGET, model: m,
   };
   return { statechart: sc, diagnostics };

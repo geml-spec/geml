@@ -9,7 +9,7 @@ profile = "geml-statechart/v1"
   "states": {
     "intake": { "title": "Intake", "description": "Collect the order id and the refund amount from the user. Do not judge yet." },
     "review": { "title": "Review", "description": "Check the order against the refund policy; set approved, then move on.", "prompt": "#policy" },
-    "pay": { "title": "Pay", "description": "Execute the refund exactly once.", "tools": ["refund"] },
+    "pay": { "title": "Pay", "description": "Execute the refund exactly once.", "rules": ["refund"] },
     "wait-human": { "title": "Wait for a person", "description": "Amounts above the threshold need a human. Nothing to do until they answer." },
     "done": { "title": "Done", "description": "Summarize what happened and stop.", "final": true }
   },

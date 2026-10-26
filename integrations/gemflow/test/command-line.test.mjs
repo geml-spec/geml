@@ -1,6 +1,34 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { changesDirectory, commandDirs, isDirectoryChange, isSearchOnlyCommand, pathWords, switchesWorkItemOnly } from "../dist/core/command-line.js";
+import { changesDirectory, commandDirs, isDirectoryChange, isSearchOnlyCommand, pathWords, switchesWorkItemOnly, withoutDataHereDocs } from "../dist/core/command-line.js";
+import { fencedRefusal } from "../dist/core/dictionary.js";
+import { dict } from "./helpers/flow.mjs";
+
+const DEPLOY = ["wrangler", "deploy"].join(" ");
+
+test("a here-document written as text is no code: fed to cat or tee its body goes; fed to a shell, an interpreter, ssh or a pipe it stays", () => {
+  const data = `cat >> t.test.mjs <<'EOF'\nassert.match(x, /npx ${DEPLOY}/)\nEOF\nnpm run build && node --test t.test.mjs`;
+  const out = withoutDataHereDocs(data);
+  assert.ok(!out.includes(DEPLOY) && out.includes("npm run build && node --test t.test.mjs"), out);
+  assert.ok(!withoutDataHereDocs(`tee notes.md <<'EOF' >/dev/null\n${DEPLOY}\nEOF`).includes(DEPLOY), "tee");
+  assert.ok(!withoutDataHereDocs(`git commit -q -m "$(cat <<'EOF'\nfix: ${DEPLOY} docs\nEOF\n)"`).includes(DEPLOY), "a commit message in $(…)");
+  for (const runs of [
+    `bash <<'EOF'\n${DEPLOY}\nEOF`, `sh -s <<'EOF'\n${DEPLOY}\nEOF`, `cat <<'EOF' | sh\n${DEPLOY}\nEOF`, `ssh prod <<'EOF'\n${DEPLOY}\nEOF`,
+    `python3 <<'EOF'\nimport os; os.system("${DEPLOY}")\nEOF`, `npx -y tsx <<'EOF'\n${DEPLOY}\nEOF`,
+  ]) assert.ok(withoutDataHereDocs(runs).includes(DEPLOY), runs);
+  assert.ok(withoutDataHereDocs(`cat > notes.md <<EOF\n$(${DEPLOY})\nEOF`).includes(DEPLOY), "an unquoted body expands its substitutions: it stays");
+  assert.equal(withoutDataHereDocs(`echo "unclosed`), null, "a quote that does not close: read whole");
+  assert.equal(withoutDataHereDocs(`echo $((1 << 2))\n${DEPLOY}`), null, "<< after arithmetic is a shift: read whole");
+  assert.equal(withoutDataHereDocs("npm test"), "npm test", "no here-document: the line as it is");
+});
+
+test("a fenced use is not refused for a deploy the line only writes as text; one it runs is", () => {
+  const d = dict([{ tool: `Bash(${DEPLOY})`, for: "deploy-prod", default: true }]);
+  const scope = { state: "build", uses: [], declaring: () => ["release"], fenced: () => true };
+  assert.equal(fencedRefusal(d, scope, `cat >> t.test.mjs <<'EOF'\nnpx ${DEPLOY}\nEOF`), undefined);
+  assert.match(fencedRefusal(d, scope, `bash <<'EOF'\nnpx ${DEPLOY}\nEOF`), /is deploy-prod, which is used only in #release/);
+  assert.match(fencedRefusal(d, scope, `bash -c "npx ${DEPLOY}"`), /is deploy-prod/, "a shell string is still searched");
+});
 
 test("search only: read-only search commands, alone, in a plain && chain, or piped into one another", () => {
   for (const line of [

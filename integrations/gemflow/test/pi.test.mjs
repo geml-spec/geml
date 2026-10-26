@@ -297,7 +297,7 @@ test("GEMFLOW_STATECHART beats the project layout, and a missing file supervises
 // -- the gate reads the command of a run tool's call, and its result is evidence ------
 
 const SHELLS = flowDoc({
-  initial: "work", states: { work: { description: "Work." }, ship: { description: "Ship.", tools: ["deploy"] }, done: { description: "Done." } },
+  initial: "work", states: { work: { description: "Work." }, ship: { description: "Ship.", rules: ["deploy"] }, done: { description: "Done." } },
   vars: { d: { default: false, source: { tool: "deploy" } } },
   transitions: [{ from: "work", to: "ship", note: "x" }, { from: "ship", to: "done", guard: { properties: { d: { const: true } } }, note: "Deployed." }],
 });

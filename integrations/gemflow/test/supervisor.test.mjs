@@ -95,7 +95,7 @@ test("the gate (spec §5.3): own tools pass; a person-only command is refused; s
 
 test("the gate reads any tool whose input has a command string; a fenced command pattern is found anywhere in the line", () => {
   const rows = [...REFUND_ROWS, { tool: "Bash(wrangler deploy)", for: "deploy", default: true }];
-  const chart = loadStatechart(twoStates({ a: { tools: ["edit"] }, b: { tools: ["deploy"] } }), "d.geml").statechart;
+  const chart = loadStatechart(twoStates({ a: { tools: ["edit"] }, b: { rules: ["deploy"] } }), "d.geml").statechart;
   const { sup, h } = open({ chart, rows, tools: CLAUDE_CODE_TOOLS });
   assert.match(sup.gate("Monitor", "m1", { command: "gemflow mark ok" }).reason, /for a person/);
   assert.match(sup.gate("Monitor", "m2", { command: "npx wrangler deploy" }).reason, /is deploy, which is used only in #b/);
@@ -314,7 +314,7 @@ test("usesOfCall and fencedRefusal, for hosts that read a command themselves; VE
   const { sup } = open({ chart: EVIDENCE, rows: ROWS, tools: CLAUDE_CODE_TOOLS });
   assert.deepEqual(sup.usesOfCall("Bash", { command: "cd x && npm test" }), ["test"]);
   assert.deepEqual(sup.usesOfCall("Read", { file_path: "x" }), []);
-  const d = open({ chart: loadStatechart(twoStates({ b: { tools: ["deploy"] } }), "d").statechart, rows: [{ tool: "Bash(wrangler deploy)", for: "deploy" }] });
+  const d = open({ chart: loadStatechart(twoStates({ b: { rules: ["deploy"] } }), "d").statechart, rows: [{ tool: "Bash(wrangler deploy)", for: "deploy" }] });
   assert.match(d.sup.fencedRefusal("pwsh -c 'wrangler deploy'"), /is deploy, which is used only in #b/);
   assert.equal(d.sup.fencedRefusal("ls"), undefined);
   assert.deepEqual([...VERBS], ["move", "set"]);

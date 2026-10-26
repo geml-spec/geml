@@ -8,6 +8,7 @@ const policy = (over = {}) => ({
   active: true, unit: { kind: "branch" }, state: "build",
   uses: ["edit", "test", "pr"],
   fences: { edit: ["build", "review"], test: ["build", "review"], pr: ["build"], "deploy-prod": ["release"], image: ["build"] },
+  rules: ["edit", "test", "pr", "deploy-prod", "image"],
   rows: [
     row("Read", { allow: ["*"] }), row("Grep", { allow: ["*"] }),
     row("Edit", { for: "edit", default: true }), row("Write", { for: "edit" }),
@@ -193,7 +194,7 @@ test("a call that may act in another checkout is the bridge's, before and after,
 test("under a file unit a command's evidence is asked after with a current work item or none: the file its command names takes it", () => {
   const film = policy({
     active: false, unit: { kind: "file", glob: "episodes/*.geml" }, files: [], uses: [],
-    fences: { "todo-check": ["assets"] }, rows: [row("Bash(geml media todo*--check)", { for: "todo-check", default: true })], evidence: ["todo-check"],
+    fences: { "todo-check": ["assets"] }, rules: ["todo-check"], rows: [row("Bash(geml media todo*--check)", { for: "todo-check", default: true })], evidence: ["todo-check"],
   });
   assert.equal(afterNeeded(film, bash("geml media todo episodes/ep02.geml --check"), outcome({ exitCode: 0 })), true);
   assert.equal(afterNeeded(film, bash("geml media todo episodes/ep02.geml --check"), outcome({ exitCode: null })), false, "backgrounded: no exit status yet");
