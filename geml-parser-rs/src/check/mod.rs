@@ -6,6 +6,7 @@ pub mod codemap;
 pub mod form;
 pub mod history;
 pub mod media;
+pub mod statechart;
 pub mod style;
 pub mod timeline;
 
@@ -42,6 +43,7 @@ pub fn run(doc: &Document, host: Option<&dyn Host>) -> Vec<ProfileDiagnostic> {
             "geml-form/v1" => form::check(&doc.name, &doc.children, &mut out),
             "geml-media/v1" => media::check(doc, host, &mut out),
             "geml-style/v1" => style::check_sheet_alone(doc, &mut out),
+            "geml-statechart/v1" => statechart::check(doc, host, &mut out),
             _ => {}
         }
     }

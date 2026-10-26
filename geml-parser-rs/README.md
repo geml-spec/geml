@@ -186,6 +186,7 @@ and info:
 | `geml-history/v1` | `check::history` reads a sidecar, verifies every revision on the parent chain against its recorded hash in one walk, reconstructs any revision, and warns when the live file differs from the current one |
 | `geml-codemap/v1` | `check::codemap::verify` resolves every cell of the edge tables and every `entry`, across documents through the host, and reports what dangles |
 | `geml-translator/v1` | its attribute and `meta` keys; the profile defines no checks |
+| `geml-statechart/v1` | `check::statechart` reads the definition — the body, or the `data` block `data=` names, in this document or in another through the host — and reports every code of the profile's §3: the definition's keys, each guard against §4's JSON Schema subset and the variables it reads, `reset` names, `current=`, a final state with a way out, and, on a chart with no error, the states nothing reaches and the dead ends; `tests/statechart.rs` replays the profile's `checks.json` |
 
 The repository's own data agrees: the specification's history sidecar verifies
 every revision it holds (`tests/history.rs`), and the site's style demo solves to the

@@ -277,8 +277,8 @@ pub const PROFILES: &[Profile] = &[
     // spec/profiles/geml-statechart/geml-statechart-profile.md — a statechart in
     // one `diagram` block: the vocabulary admits the format name and `current=`
     // on that block, nothing else. The body stays raw to the core either way
-    // (§8.6.1); the renderer, the `statechart-*` checks and the Markdown
-    // projection are the format's own and are not registered here yet.
+    // (§8.6.1); its `statechart-*` checks are check/statechart.rs, and the
+    // renderer and the Markdown projection are not registered here yet.
     Profile {
         name: "geml-statechart/v1",
         state: State::Draft,
@@ -295,7 +295,9 @@ pub const PROFILES: &[Profile] = &[
             ("statechart-actions", E),
             ("statechart-vars", E),
             ("statechart-current", E),
+            ("statechart-final", E),
             ("statechart-unreachable", W),
+            ("statechart-dead-end", W),
         ],
         formats: &["geml-statechart"],
     },

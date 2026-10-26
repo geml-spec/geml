@@ -325,7 +325,9 @@ export const PROFILES: Record<string, ProfileDef> = {
       "statechart-actions": "error",
       "statechart-vars": "error",
       "statechart-current": "error",
+      "statechart-final": "error",
       "statechart-unreachable": "warning",
+      "statechart-dead-end": "warning",
     },
   },
 };

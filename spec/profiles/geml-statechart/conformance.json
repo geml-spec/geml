@@ -10,7 +10,9 @@
     "statechart-actions": "error",
     "statechart-vars": "error",
     "statechart-current": "error",
-    "statechart-unreachable": "warning"
+    "statechart-final": "error",
+    "statechart-unreachable": "warning",
+    "statechart-dead-end": "warning"
   },
   "cases": [
     {
@@ -32,7 +34,10 @@
           "unknown-attribute:warning",
           "unknown-diagram-format:warning"
         ]
-      }
+      },
+      "checks": [
+        "statechart-dead-end:warning"
+      ]
     },
     {
       "name": "the definition in a data block the diagram names with `data=`: the data block is addressable in both readings, the empty-bodied diagram admitted only in one",
@@ -54,7 +59,37 @@
         "undeclared": [
           "unknown-diagram-format:warning"
         ]
-      }
+      },
+      "checks": [
+        "statechart-dead-end:warning"
+      ]
+    },
+    {
+      "name": "the checks run on the declared reading: a final state with a way out is an error, and a guard in another document is read through the host",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {}, \"b\": { \"final\": true } }, \"vars\": { \"ok\": { \"default\": false } }, \"transitions\": [ { \"from\": \"a\", \"to\": \"b\", \"guard\": \"guards.geml#ready\" }, { \"from\": \"b\", \"to\": \"a\" } ] }\n===\n",
+      "files": {
+        "guards.geml": "=== data {#ready format=json}\n{ \"properties\": { \"missing\": { \"const\": true } } }\n===\n"
+      },
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#m"
+        ],
+        "undeclared": [
+          "#meta",
+          "#m"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-diagram-format:warning"
+        ]
+      },
+      "checks": [
+        "statechart-final:error",
+        "statechart-guard:error"
+      ]
     }
   ]
 }

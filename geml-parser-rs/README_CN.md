@@ -14,7 +14,7 @@ GEML 1.0 的第二个独立实现，用 Rust 编写，编译为 WebAssembly。�
 - WebAssembly 方式，用测试集自带的 `_runner.mjs` 和 `_project.mjs`。这样读取 wasm
   模块输出的是测试集自己的投影，而不是本 crate 的代码（`wasm/conformance.mjs`）。
 
-[`spec/profiles/`](../spec/profiles/) 下的六个词汇表全部认识，各自的检查也都实现了，
+[`spec/profiles/`](../spec/profiles/) 下的七个词汇表全部认识，各自的检查也都实现了，
 见下文“词汇表”一节。每个词汇表的一致性文件在两种读法下都通过，即声明了词汇表和没有声明两种，
 原生方式（`tests/profiles.rs`）和 WebAssembly 方式（`wasm/profiles.mjs`）都跑。
 
@@ -151,6 +151,7 @@ error、warning、info。
 | `geml-history/v1` | `check::history` 读取 sidecar，沿 parent 链一次走完，把每个版本和记录的哈希核对，可以重建任意版本；工作文件和当前版本不一致时给出警告 |
 | `geml-codemap/v1` | `check::codemap::verify` 经 host 跨文档解析边表的每个单元格和每个 `entry`，报告悬空的引用 |
 | `geml-translator/v1` | 它的属性键和 `meta` 键；这个词汇表没有定义检查 |
+| `geml-statechart/v1` | `check::statechart` 读取定义（块体，或 `data=` 指向的 `data` 块，可经 host 读另一份文档），报告该 profile §3 的全部诊断码：定义里的各个键、按 §4 的 JSON Schema 子集检查每个守卫及它读取的变量、`reset` 的变量名、`current=`、有出路的终态，以及在没有错误的图上报告到不了的状态和死路；`tests/statechart.rs` 逐例重放该 profile 的 `checks.json` |
 
 本仓库自己的数据都能对上：规范的 history sidecar 里的每个版本都校验通过（`tests/history.rs`），
 网站上的 style 示例解出的视图模型和参考解析器的一样。

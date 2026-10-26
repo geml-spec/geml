@@ -28,6 +28,24 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **geml-statechart/v1: `statechart-final` and `statechart-dead-end` are
+  registered.** The profile's §3 lists both and the reference checker reported
+  both, but the registry the conformance file pins held nine codes; the
+  reference parser, the Rust crate and `conformance.json` now list all eleven.
+  `checks.json` gains fourteen cases that pin what §3 left to reading: a guard
+  reads the variables its top level and its `anyOf` / `oneOf` branches name,
+  not the keys under a variable; a variable whose name is not a NAME is not in
+  `vars`; a broken `vars` is reported once, not again by every guard and reset
+  that names a variable; an error anywhere in a chart holds back its warnings,
+  while a final state with a way out is reported beside other errors; a
+  self-loop is a way out; and a string with a space, or naming a document that
+  is not `.geml`, is a sentence guard. The profile's conformance cases now
+  carry their `checks`.
+
+- **Rust: the geml-statechart/v1 checks.** `geml-parser-rs` reports every
+  `statechart-*` code (`check::statechart`), written from the profile and its
+  case files; `tests/statechart.rs` replays `checks.json`.
+
 - **§4: a NAME admits combining marks (General Category M)** — so an id, class
   or attribute key written in NFD (`Cafe` + U+0301) is a NAME, as §4's
   NFD-insensitive sameness already presumed; the grammar now lists MARK beside

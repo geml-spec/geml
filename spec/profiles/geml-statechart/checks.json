@@ -212,6 +212,112 @@
       "codes": [
         "error:statechart-state"
       ]
+    },
+    {
+      "name": "a guard reads the variables its top level and its anyOf / oneOf branches name; properties under a variable describe that variable's value, not more variables",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {}, \"b\": { \"final\": true } }, \"vars\": { \"cfg\": { \"default\": {} } }, \"transitions\": [ { \"from\": \"a\", \"to\": \"b\", \"guard\": { \"properties\": { \"cfg\": { \"properties\": { \"inner\": { \"const\": 1 } }, \"required\": [\"deep\"] } } } } ] }\n===\n",
+      "codes": []
+    },
+    {
+      "name": "a variable whose name is not a NAME is not in vars, so a guard reading it is reported as well",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {}, \"b\": { \"final\": true } }, \"vars\": { \"a b\": { \"default\": 1 } }, \"transitions\": [ { \"from\": \"a\", \"to\": \"b\", \"guard\": { \"required\": [\"a b\"] } } ] }\n===\n",
+      "codes": [
+        "error:statechart-guard",
+        "error:statechart-vars"
+      ]
+    },
+    {
+      "name": "with vars not an object, a guard or a reset naming a variable is not reported again",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {}, \"b\": { \"final\": true } }, \"vars\": [], \"transitions\": [ { \"from\": \"a\", \"to\": \"b\", \"guard\": { \"required\": [\"v\"] }, \"actions\": [ { \"reset\": [\"v\"] } ] } ] }\n===\n",
+      "codes": [
+        "error:statechart-vars"
+      ]
+    },
+    {
+      "name": "a self-loop is a way out: a state whose only transition returns to it is no dead end",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {} }, \"transitions\": [ { \"from\": \"a\", \"to\": \"a\" } ] }\n===\n",
+      "codes": []
+    },
+    {
+      "name": "an error anywhere in the chart holds back its warnings: an unreachable dead end beside a variable without default",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {}, \"b\": {}, \"c\": { \"final\": true } }, \"vars\": { \"v\": {} }, \"transitions\": [ { \"from\": \"a\", \"to\": \"c\" } ] }\n===\n",
+      "codes": [
+        "error:statechart-vars"
+      ]
+    },
+    {
+      "name": "a final state with a way out is reported beside other errors",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {}, \"b\": { \"final\": true }, \"c\": 3 }, \"transitions\": [ { \"from\": \"a\", \"to\": \"b\" }, { \"from\": \"b\", \"to\": \"a\" } ] }\n===\n",
+      "codes": [
+        "error:statechart-final",
+        "error:statechart-state"
+      ]
+    },
+    {
+      "name": "a reference guard to a block that is not a data block",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {}, \"b\": { \"final\": true } }, \"transitions\": [ { \"from\": \"a\", \"to\": \"b\", \"guard\": \"#t\" } ] }\n===\n\n## T {#t}\n",
+      "codes": [
+        "error:statechart-guard"
+      ]
+    },
+    {
+      "name": "a string with a space, or naming a document that is not .geml, is a sentence guard, not a reference",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {}, \"b\": { \"final\": true } }, \"transitions\": [ { \"from\": \"a\", \"to\": \"b\", \"guard\": \"x.md#y\" }, { \"from\": \"a\", \"to\": \"b\", \"guard\": \"see doc.geml#z now\" } ] }\n===\n",
+      "codes": []
+    },
+    {
+      "name": "every problem of one transition is its own error",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {}, \"b\": { \"final\": true } }, \"transitions\": [ { \"to\": \"zz\", \"event\": \"e\" } ] }\n===\n",
+      "codes": [
+        "error:statechart-transition",
+        "error:statechart-transition",
+        "error:statechart-transition"
+      ]
+    },
+    {
+      "name": "every name a reset gets wrong is its own error, and a reset that is not an array of names is one",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {}, \"b\": { \"final\": true } }, \"vars\": { \"v\": { \"default\": 1 } }, \"transitions\": [ { \"from\": \"a\", \"to\": \"b\", \"actions\": [ { \"reset\": [\"p\", \"q\"] }, { \"reset\": \"v\" }, { \"reset\": [1] } ] } ] }\n===\n",
+      "codes": [
+        "error:statechart-actions",
+        "error:statechart-actions",
+        "error:statechart-actions",
+        "error:statechart-actions"
+      ]
+    },
+    {
+      "name": "the subset's own shapes: oneOf with one branch, a const that does not fit type, an empty enum, a type that is not one name",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": {}, \"b\": { \"final\": true } }, \"vars\": { \"v\": { \"default\": 1 } }, \"transitions\": [ { \"from\": \"a\", \"to\": \"b\", \"guard\": { \"oneOf\": [ { \"required\": [\"v\"] } ] } }, { \"from\": \"a\", \"to\": \"b\", \"guard\": { \"properties\": { \"v\": { \"type\": \"string\", \"const\": 1 } } } }, { \"from\": \"a\", \"to\": \"b\", \"guard\": { \"properties\": { \"v\": { \"enum\": [] } } } }, { \"from\": \"a\", \"to\": \"b\", \"guard\": { \"type\": [\"string\", \"null\"] } } ] }\n===\n",
+      "codes": [
+        "error:statechart-guard",
+        "error:statechart-guard",
+        "error:statechart-guard",
+        "error:statechart-guard"
+      ]
+    },
+    {
+      "name": "reserved and mistyped keys of a state, and a guard that is null; a statechart's own top-level key and an action the format does not know are fine",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n{ \"initial\": \"a\", \"states\": { \"a\": { \"regions\": [] }, \"b\": { \"final\": true, \"initial\": \"x\", \"description\": 4 } }, \"transitions\": [ { \"from\": \"a\", \"to\": \"b\", \"guard\": null, \"actions\": [3, null, { \"x\": 1 }] } ], \"title\": 5 }\n===\n",
+      "codes": [
+        "error:statechart-guard",
+        "error:statechart-state",
+        "error:statechart-state",
+        "error:statechart-state"
+      ]
+    },
+    {
+      "name": "data= names a data block in another document",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart data=other.geml#d}\n===\n",
+      "codes": [],
+      "files": {
+        "other.geml": "=== data {#d format=json}\n{ \"initial\": \"a\", \"states\": { \"a\": { \"final\": true } }, \"transitions\": [] }\n===\n"
+      }
+    },
+    {
+      "name": "an empty body and no data= is not a definition",
+      "geml": "=== meta\nprofile = \"geml-statechart/v1\"\n===\n\n=== diagram {#m format=geml-statechart}\n===\n",
+      "codes": [
+        "error:statechart-body"
+      ]
     }
   ]
 }
