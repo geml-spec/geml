@@ -973,7 +973,7 @@ parse to every input.
    parsed further. A code span opens at a run of *n* backticks and closes at
    the next run of **exactly** *n* backticks — CommonMark's rule: a run of any
    other length inside it is content, which is how a span carries a backtick
-   (`` ``a`b`` `` is one span, and `` `a``b` `` is one span, not two), and an
+   (``` ``a`b`` ``` is one span, and ``` `a``b` ``` is one span, not two), and an
    opening run with no such closer is literal text, after which scanning
    resumes. The content between the runs is verbatim; no space is trimmed.
    Inline math opens at a `$` and closes at the next `$`, its content verbatim.

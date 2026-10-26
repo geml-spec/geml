@@ -4,12 +4,12 @@
 profile           = "geml-history/v1"
 history-of        = "GEML-spec.geml"
 geml-version      = "1.0"
-current           = "20261021T232422Z-42f0c389"
+current           = "20261026T031123Z-6fe91b16"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== history-keyframe {id="20261021T232422Z-42f0c389" hash="sha256:42f0c3891a7b206894e62b9c03f426c7b7c619b3975e121f367f4d52b5700bf1"}
+===== history-keyframe {id="20261026T031123Z-6fe91b16" hash="sha256:6fe91b16b5d5e07a0c37b7c9613b1e0f3488f284af7e9b6766dd537492fc70f5"}
 # GEML — General Expressive Markup Language
 
 *English | [中文](../GEML-spec_CN.md)*
@@ -985,7 +985,7 @@ parse to every input.
    parsed further. A code span opens at a run of *n* backticks and closes at
    the next run of **exactly** *n* backticks — CommonMark's rule: a run of any
    other length inside it is content, which is how a span carries a backtick
-   (`` ``a`b`` `` is one span, and `` `a``b` `` is one span, not two), and an
+   (``` ``a`b`` ``` is one span, and ``` `a``b` ``` is one span, not two), and an
    opening run with no such closer is literal text, after which scanning
    resumes. The content between the runs is verbatim; no space is trimmed.
    Inline math opens at a `$` and closes at the next `$`, its content verbatim.
@@ -2095,6 +2095,40 @@ for a block or a section, the three granularities are a scalar, a phrase, and
 a block.
 
 =====
+
+=== history-revision {id="20261026T031123Z-6fe91b16" parent="20261021T232422Z-42f0c389" summary="auto: edit" hash="sha256:6fe91b16b5d5e07a0c37b7c9613b1e0f3488f284af7e9b6766dd537492fc70f5" newline="crlf"}
+delete @d3f7571c
+insert <- blob:b229 after @055fd030
+===
+
+=== history-blob {#b229 lang=geml}
+1. Backslash escapes (`\` + ASCII punctuation → that literal character; `\` at
+   line end → hard break), code spans, and inline math; their contents are not
+   parsed further. A code span opens at a run of *n* backticks and closes at
+   the next run of **exactly** *n* backticks — CommonMark's rule: a run of any
+   other length inside it is content, which is how a span carries a backtick
+   (`` ``a`b`` `` is one span, and `` `a``b` `` is one span, not two), and an
+   opening run with no such closer is literal text, after which scanning
+   resumes. The content between the runs is verbatim; no space is trimmed.
+   Inline math opens at a `$` and closes at the next `$`, its content verbatim.
+   A `$` directly followed by another `$`, or with no `$` after it, opens
+   nothing and is literal, and scanning resumes after it: `$$` is two dollar
+   signs, and `$$x$` is a dollar sign before the math `x`.
+2. Metadata interpolations (`{{key}}`); replaced with the scalar value.
+3. Images (`![alt](src)`), links, auto-refs (`[[#id]]`), inline projections (`![[#id]]`), and footnote refs (`[^id]`); a link or
+   ref MUST NOT nest inside another link or ref. A link's text and an image's
+   alt run from the `[` to the `]` that balances it, counting only the brackets
+   item 1 leaves outside a code span, inline math and a backslash escape —
+   CommonMark's rule, those atoms binding tighter than link text: ``[a`]`b](x)``
+   is a link whose text holds the code span `` `]` ``, and `[a\]b](x)` one whose
+   text is `a]b`. The destination follows that `]` directly and runs from the
+   `(` to the `)` that balances it on the same line, a `\` and the character
+   after it never counting; it is kept as written, whitespace at either end
+   aside, since a coordinate in it reads its own escapes (§5.2). Where there is
+   no such `]`, or no such destination after it, the opening `[` or `!` is text
+   and scanning resumes after it.
+
+===
 
 === history-revision {id="20261021T232422Z-42f0c389" parent="20261021T230512Z-9a6f858d" summary="§3.1: the grammar defines LETTER, MARK, NUMBER, DIGIT, ASCII-LETTER; {{key}} is a NAME" hash="sha256:42f0c3891a7b206894e62b9c03f426c7b7c619b3975e121f367f4d52b5700bf1" newline="lf"}
 delete @b145af35
