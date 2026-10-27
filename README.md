@@ -573,7 +573,7 @@ Every profile this project publishes: [`spec/profiles/`](spec/profiles/README.md
 - **A reference implementation of the parser.** **1,700+** unit tests today, plus the conformance corpus, round-trip serialization and end-to-end CLI runs, with coverage CI-gated at ≥**95%** lines / statements / functions / branches.
 - **Forward compatibility is in the grammar.** A processor must degrade gracefully on constructs it does not recognize (spec §8.2), which is why adding a block type or a diagram format is **not** a breaking change. The type registry is open: an unregistered type name should contain a hyphen (`acme-invoice`), leaving hyphen-free names to future versions of the spec (§8.5).
 - **Claiming conformance.** An implementation may call itself *conformant to GEML 1.0* once it reproduces the conformance suite case for case (§8.5). No permission needed, and no sign-off from this repo.
-- **On the wire.** Extension `.geml` (version sidecar `.gemlhistory`), media type `text/vnd.geml` — a vendor-tree name; the standards-tree `text/geml` can be applied for if the spec is ever published through the IETF.
+- **On the wire.** Extension `.geml` (version sidecar `.gemlhistory`), media type [`text/vnd.geml`](https://www.iana.org/assignments/media-types/text/vnd.geml) — registered with IANA (2026-10-26) in the vendor tree; the standards-tree `text/geml` can be applied for if the spec is ever published through the IETF.
 - A fragment identifier on a `.geml` URL names the block bearing that id (§0.6) — which is not what `#tag` means on an HTML page.
 
 <a id="challenge"></a>
@@ -612,6 +612,7 @@ Every profile this project publishes: [`spec/profiles/`](spec/profiles/README.md
 ## Roadmap
 
 - [x] The GEML `1.0` specification, in English and Chinese, with a conformance suite — plus the `geml-history/v1` profile that defines the `.gemlhistory` sidecar
+- [x] The media type `text/vnd.geml` [registered with IANA](https://www.iana.org/assignments/media-types/text/vnd.geml) (2026-10-26), with the spec as its published specification and the project as change controller
 - [x] Reference implementation `@geml/geml`: parser, CLI, block-level `.gemlhistory` tracking
 - [x] Official MCP server (`geml mcp`) for Claude Code, Cursor, Codex and other MCP hosts
 - [x] codemap — a whole codebase's call graph, written as GEML

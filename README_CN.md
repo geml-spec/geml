@@ -546,7 +546,7 @@ GEML 是一份小而年轻的规范，但已经**稳定**：已发布 **`1.0`**�
 - **解析器的参考实现。** 当前单元测试 **1,700+** 项，一致性语料、往返序列化，以及端到端 CLI 运行，覆盖率由 CI 卡在行/语句/函数/分支均 ≥**95%**。
 - **前向兼容写在语法里。** 处理器遇到不认识的构造必须优雅降级（规范 §8.2），所以新增一种块类型或图格式**不算**破坏性变更。类型注册表是开放的：未注册的类型名建议包含连字符（如 `acme-invoice`），把不含连字符的名字留给规范的未来版本（§8.5）。
 - **如何声明合规。** 一个实现逐用例复刻出一致性测试集的结果后，即可声明自己「符合 GEML 1.0」（§8.5）。不需要许可，也不需要本仓库背书。
-- **对外标识。** 扩展名 `.geml`（版本伴生文件 `.gemlhistory`），媒体类型 `text/vnd.geml`——厂商树名称；标准树的 `text/geml` 要等规范经 IETF 发布后才可申请。
+- **对外标识。** 扩展名 `.geml`（版本伴生文件 `.gemlhistory`），媒体类型 [`text/vnd.geml`](https://www.iana.org/assignments/media-types/text/vnd.geml)——已于 2026-10-26 在 IANA 注册，属厂商树；标准树的 `text/geml` 要等规范经 IETF 发布后才可申请。
 - `.geml` URL 上的片段标识符指向携带该 id 的那一块（§0.6）——这与 HTML 页面的 #tag 含义不同。
 
 <a id="challenge"></a>
@@ -585,6 +585,7 @@ GEML 是一份小而年轻的规范，但已经**稳定**：已发布 **`1.0`**�
 ## 路线图
 
 - [x] GEML `1.0` 规范，中英双语，配一致性测试集——外加定义 `.gemlhistory` 的 `geml-history/v1` profile
+- [x] 媒体类型 `text/vnd.geml` [已在 IANA 注册](https://www.iana.org/assignments/media-types/text/vnd.geml)（2026-10-26），以规范为已发布规范文件、以本项目为变更控制方
 - [x] 参考实现 `@geml/geml`：解析器、CLI、块级 `.gemlhistory` 追踪
 - [x] 官方 MCP server（`geml mcp`），接入 Claude Code / Cursor / Codex 等支持 MCP 的环境
 - [x] codemap：把整个代码库的调用图写成 GEML
