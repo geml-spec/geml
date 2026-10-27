@@ -87,6 +87,11 @@ transmitted anywhere. Details: [PRIVACY.md](PRIVACY.md).
 - **Remote forced downloads**: if a server sends `.geml` with
   `Content-Disposition: attachment`, the browser downloads it and no content
   script runs. Most raw text URLs are fine.
+- **Content type**: over `http(s)` the viewer activates when the response is
+  `text/plain` (what raw hosts send) or `text/vnd.geml` (the registered type,
+  which a server with an up-to-date MIME table sends); Chrome shows both as
+  plain text. A `text/html` page — GitHub's blob view of a `.geml` — is never
+  touched.
 - **Mermaid + strict page CSP**: on pages with a very strict CSP, Mermaid may be
   blocked; the diagram then falls back to its visible source text.
 - **`graphviz` / `d2` / `plantuml`**: shown as source (rendering them would mean

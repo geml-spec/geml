@@ -184,10 +184,10 @@ function makeResp(text, url, { ok = true, ct = "text/csv" } = {}) {
 // file:// documents; every URL it is asked for lands in `asked`.
 function install({ href, pathname, protocol, hash, docRaw, bodyHtml, routes = {}, files = {}, contentType = "text/plain" }) {
   const { document } = parseHTML(`<!doctype html><html><head></head><body>${bodyHtml || ""}</body></html>`);
-  // content.js's activation guard requires contentType === "text/plain" (or a
-  // file:// doc); linkedom doesn't set one, so pin it here. Raw .geml hosts and
-  // file:// serve text/plain — the default — while a text/html blob page must
-  // be refused (see the activation test below).
+  // content.js's activation guard requires contentType to be text/plain or
+  // text/vnd.geml (or a file:// doc); linkedom doesn't set one, so pin it here.
+  // Raw .geml hosts and file:// serve text/plain — the default — while a
+  // text/html blob page must be refused (see the activation tests below).
   try { Object.defineProperty(document, "contentType", { value: contentType, configurable: true }); } catch { /* already fixed value */ }
   globalThis.document = document;
   globalThis.location = { href, pathname, protocol, hash };
@@ -314,6 +314,24 @@ await test("L3: only paths ending in .geml/.gemlhistory render; a text/plain URL
     if (!shouldRender) {
       assert.equal(fetchedDoc, false, `${pathname}: main() returned before reading/rendering (no doc fetch)`);
     }
+  }
+});
+
+await test("activation: text/vnd.geml (the IANA-registered type) renders like text/plain; another text/* type does not", async () => {
+  // A server whose MIME table knows the registration sends .geml as
+  // text/vnd.geml, which Chrome shows as plain text exactly like text/plain —
+  // the guard must take both. It is a whitelist, not a text/* prefix: a
+  // text/markdown response at a .geml path is some other document.
+  for (const [contentType, shouldRender] of [
+    ["text/plain", true],
+    ["text/vnd.geml", true],
+    ["text/markdown", false],
+  ]) {
+    const href = "https://site.test/report.geml";
+    const ctx = await runMain({ href, pathname: "/report.geml", protocol: "https:", contentType, docRaw: "# Title\n\ntext\n", expectRender: shouldRender });
+    const rendered = ctx.document.body.className === "geml-body";
+    assert.equal(rendered, shouldRender, `${contentType}: rendered=${rendered}, expected ${shouldRender}`);
+    if (!shouldRender) assert.equal(ctx.calls.length, 0, `${contentType}: the guard returns before readSource — nothing fetched`);
   }
 });
 

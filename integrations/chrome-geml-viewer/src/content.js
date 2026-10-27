@@ -13,6 +13,14 @@ import css from "./geml.css";
 import katex from "katex";
 import katexCss from "katex/dist/katex.css";
 
+// Content types under which an http(s) response IS the raw .geml document.
+// Raw hosts (raw.githubusercontent.com) and most static servers send
+// text/plain; a server whose MIME table carries the IANA-registered type
+// (text/vnd.geml, 2026-10-26) sends that, and Chrome shows both as plain text.
+// A set, not a text/* prefix: text/html is a page about a .geml, never the
+// document (see the guard in main).
+const RAW_TYPES = new Set(["text/plain", "text/vnd.geml"]);
+
 main();
 
 async function main() {
@@ -27,11 +35,12 @@ async function main() {
   // The document must BE the raw .geml text — not an HTML page that merely has
   // .geml in its URL. GitHub's github.com/.../blob/....geml file *viewer* is a
   // full HTML document; without this guard readSource() would fetch that page's
-  // HTML and parse GitHub's markup as GEML (garbage diagnostics). Raw hosts
-  // (raw.githubusercontent.com) and file:// serve .geml as text/plain; a blob
-  // page is text/html — skip it. file:// is always allowed (Chrome may label a
-  // local .geml however it likes, and there readSource reads the <pre>).
-  if (location.protocol !== "file:" && document.contentType !== "text/plain") return;
+  // HTML and parse GitHub's markup as GEML (garbage diagnostics). Over http(s)
+  // the raw document arrives as one of RAW_TYPES (document.contentType carries
+  // no parameters, so a `; charset=utf-8` never matters); a blob page is
+  // text/html — skip it. file:// is always allowed (Chrome may label a local
+  // .geml however it likes, and there readSource reads the <pre>).
+  if (location.protocol !== "file:" && !RAW_TYPES.has(document.contentType)) return;
 
   let raw = await readSource();
   if (raw == null || raw.trim() === "") return;

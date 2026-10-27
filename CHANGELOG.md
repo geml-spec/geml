@@ -75,6 +75,17 @@ and is released under `viewer-v*` tags.
   landed.
   *(VS Code extension, on its own track.)*
 
+- **The viewer renders a `.geml` served as `text/vnd.geml`.** IANA registered
+  the type on 2026-10-26, so a server whose MIME table follows the registry
+  (`mime-db`, and through it `express.static` and `serve`) will start sending
+  `.geml` as `text/vnd.geml` instead of `text/plain`. Chrome shows both as
+  plain text, but the content script took only `text/plain` as the raw
+  document and left such a page unrendered. The guard now takes either, as a
+  whitelist, so a `text/html` blob page is still refused. `codemap serve`
+  keeps sending `text/plain` until the fixed viewer is in the store, since the
+  one in the store renders nothing else.
+  *(Chrome viewer, on its own track.)*
+
 ## [1.12.6] — 2026-10-16
 
 - **New profile `geml-statechart/v1`**: a state machine in one core `diagram`
