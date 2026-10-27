@@ -117,13 +117,14 @@ U+0000 必须（MUST）替换为 U+FFFD。
 | | |
 |---|---|
 | 文件后缀 | `.geml`（版本边车：`.gemlhistory`） |
-| 媒体类型 | `text/vnd.geml` |
+| 媒体类型 | `text/vnd.geml`——[已在 IANA 注册](https://www.iana.org/assignments/media-types/text/vnd.geml)，2026-10-26 |
 | `charset` 参数 | 唯一允许的取值为 `UTF-8`，且因与 §0.1 重复而应（SHOULD）省略 |
 | 片段标识符 | 块 `id`，或由两个块 id 派生出的散文段地址（§4） |
 
-`text/vnd.geml` 是厂商树（vendor tree，RFC 6838 §3.2）名称，这是对标准组织之外发布的
-规范开放的那棵树。标准树名称 `text/geml` 要等本规范经 IETF 发布后才可申请；在此之前，
-`text/vnd.geml` 是 GEML 唯一的媒体类型。`.geml` 资源上的片段标识符指代携带该 `id` 的块，
+`text/vnd.geml` 已在 IANA 的厂商树（vendor tree，RFC 6838 §3.2）注册，这是对标准组织之外
+发布的规范开放的那棵树；[注册记录](https://www.iana.org/assignments/media-types/text/vnd.geml)
+以本文档为已发布规范、以 GEML 项目为变更控制方。标准树名称 `text/geml` 要等本规范经 IETF
+发布后才可申请；在此之前，`text/vnd.geml` 是 GEML 唯一的媒体类型。`.geml` 资源上的片段标识符指代携带该 `id` 的块，
 与 §5.2 的引用语法
 一致——`other.geml#budget` 无论写成 GEML 引用还是 URL，指的都是同一个块。它也可以指代一段
 **散文段**——两个块之间那段自身不带 `id` 的文字——用 §4 为它派生的地址。处理器必须（MUST）

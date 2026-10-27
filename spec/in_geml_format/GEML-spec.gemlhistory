@@ -4,12 +4,12 @@
 profile           = "geml-history/v1"
 history-of        = "GEML-spec.geml"
 geml-version      = "1.0"
-current           = "20261026T031123Z-6fe91b16"
+current           = "20261027T005520Z-f4159b4a"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== history-keyframe {id="20261026T031123Z-6fe91b16" hash="sha256:6fe91b16b5d5e07a0c37b7c9613b1e0f3488f284af7e9b6766dd537492fc70f5"}
+===== history-keyframe {id="20261027T005520Z-f4159b4a" hash="sha256:f4159b4aeec2b50e1f9fa439c23af9d1cca92ce3ae83446ab0082215b484fb51"}
 # GEML — General Expressive Markup Language
 
 *English | [中文](../GEML-spec_CN.md)*
@@ -147,15 +147,18 @@ editing (`geml get`/`set`) byte-faithful for the untouched part of a file.
 | | |
 |---|---|
 | File extension | `.geml` (version sidecar: `.gemlhistory`) |
-| Media type | `text/vnd.geml` |
+| Media type | `text/vnd.geml` — [registered with IANA](https://www.iana.org/assignments/media-types/text/vnd.geml) on 2026-10-26 |
 | `charset` parameter | `UTF-8` is the only permitted value, and SHOULD be omitted as redundant with §0.1 |
 | Fragment identifier | a block `id`, or a prose address derived from two block ids (§4) |
 ===
 
-`text/vnd.geml` is a vendor-tree name (RFC 6838 §3.2), the tree open to a
-specification published outside a standards body. The standards-tree name
-`text/geml` can be applied for only if this specification is published through
-the IETF; until then `text/vnd.geml` is the only media type for GEML. A fragment
+`text/vnd.geml` is registered with IANA in the vendor tree (RFC 6838 §3.2), the
+tree open to a specification published outside a standards body; the
+[registration](https://www.iana.org/assignments/media-types/text/vnd.geml) names
+this document as the published specification and the GEML project as change
+controller. The standards-tree name `text/geml` can be applied for only if this
+specification is published through the IETF; until then `text/vnd.geml` is the
+only media type for GEML. A fragment
 identifier on a `.geml` resource denotes the block bearing that `id`, matching
 the reference syntax of §5.2 — `other.geml#budget` names the same block whether
 it is written as a GEML reference or as a URL. It may also denote **prose** — the text between two blocks, which bears no `id`
@@ -2095,6 +2098,38 @@ for a block or a section, the three granularities are a scalar, a phrase, and
 a block.
 
 =====
+
+=== history-revision {id="20261027T005520Z-f4159b4a" parent="20261026T031123Z-6fe91b16" summary="spec §0.6: text/vnd.geml registered with IANA" hash="sha256:f4159b4aeec2b50e1f9fa439c23af9d1cca92ce3ae83446ab0082215b484fb51" newline="lf"}
+delete @99472949
+replace #table-2 <- blob:b230
+insert <- blob:b231 after #table-2
+===
+
+==== history-blob {#b230 lang=geml}
+=== table {#table-2}
+| | |
+|---|---|
+| File extension | `.geml` (version sidecar: `.gemlhistory`) |
+| Media type | `text/vnd.geml` |
+| `charset` parameter | `UTF-8` is the only permitted value, and SHOULD be omitted as redundant with §0.1 |
+| Fragment identifier | a block `id`, or a prose address derived from two block ids (§4) |
+===
+
+====
+
+=== history-blob {#b231 lang=geml}
+`text/vnd.geml` is a vendor-tree name (RFC 6838 §3.2), the tree open to a
+specification published outside a standards body. The standards-tree name
+`text/geml` can be applied for only if this specification is published through
+the IETF; until then `text/vnd.geml` is the only media type for GEML. A fragment
+identifier on a `.geml` resource denotes the block bearing that `id`, matching
+the reference syntax of §5.2 — `other.geml#budget` names the same block whether
+it is written as a GEML reference or as a URL. It may also denote **prose** — the text between two blocks, which bears no `id`
+of its own — by the address §4 derives for it. A processor MUST resolve both, and the reason is §8.2(5): an
+unresolved reference is an error, so a fragment one processor understands and
+another does not is the same document building in one and failing in the other.
+
+===
 
 === history-revision {id="20261026T031123Z-6fe91b16" parent="20261021T232422Z-42f0c389" summary="auto: edit" hash="sha256:6fe91b16b5d5e07a0c37b7c9613b1e0f3488f284af7e9b6766dd537492fc70f5" newline="crlf"}
 delete @d3f7571c

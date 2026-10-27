@@ -45,6 +45,32 @@ and is released under `viewer-v*` tags.
 - **Rust: the geml-statechart/v1 checks.** `geml-parser-rs` reports every
   `statechart-*` code (`check::statechart`), written from the profile and its
   case files; `tests/statechart.rs` replays `checks.json`.
+- **The VS Code extension offers GEML's MCP server to chat.** It contributes an
+  `mcpServerDefinitionProviders` provider, so Copilot Chat and anything else
+  reading the editor's server list is offered two servers that differ only in
+  where the document is: **GEML (hosted)**, the Cloudflare Worker, with nothing
+  to install and nothing kept; and **GEML (local)**, `geml mcp --root .` on the
+  CLI the extension already runs, one per workspace folder, which is the only
+  one of the two that serves block history and the code graph. Neither starts
+  until the editor asks. `geml.mcp.servers` picks which are offered and
+  `geml.mcp.url` points the hosted one at another deployment; both are
+  machine-scoped, so an opened folder cannot decide where its documents go. The
+  local server is off in Restricted Mode, like every other CLI feature, and its
+  folder reaches the process as `cwd` rather than argv — `--root .` resolves
+  against it — which is what keeps a checkout at `C:\work\a&b` away from
+  cmd.exe. It starts with the PATH every other CLI run gets, stripped of its
+  relative entries. The extension's floor rises to VS Code 1.101, where that API
+  landed.
+  *(VS Code extension, on its own track.)*
+
+## [1.13.0] — 2026-10-27
+
+- **`text/vnd.geml` is registered with IANA.** The text tree carries it since
+  2026-10-26, with `spec/GEML-spec.md` as the published specification and the
+  project as change controller. Spec §0.6 and both READMEs record the
+  registration; nothing in the parser moves for it — `codemap serve` keeps
+  sending `.geml` as `text/plain` until the store carries a viewer that renders
+  the registered type (`viewer-v1.4.0`, below).
 
 - **§4: a NAME admits combining marks (General Category M)** — so an id, class
   or attribute key written in NFD (`Cafe` + U+0301) is a NAME, as §4's
@@ -75,23 +101,16 @@ and is released under `viewer-v*` tags.
   and named in `when=`, and a junk id or a non-ASCII type is
   `style-selector-unsupported`.
 
-- **The VS Code extension offers GEML's MCP server to chat.** It contributes an
-  `mcpServerDefinitionProviders` provider, so Copilot Chat and anything else
-  reading the editor's server list is offered two servers that differ only in
-  where the document is: **GEML (hosted)**, the Cloudflare Worker, with nothing
-  to install and nothing kept; and **GEML (local)**, `geml mcp --root .` on the
-  CLI the extension already runs, one per workspace folder, which is the only
-  one of the two that serves block history and the code graph. Neither starts
-  until the editor asks. `geml.mcp.servers` picks which are offered and
-  `geml.mcp.url` points the hosted one at another deployment; both are
-  machine-scoped, so an opened folder cannot decide where its documents go. The
-  local server is off in Restricted Mode, like every other CLI feature, and its
-  folder reaches the process as `cwd` rather than argv — `--root .` resolves
-  against it — which is what keeps a checkout at `C:\work\a&b` away from
-  cmd.exe. It starts with the PATH every other CLI run gets, stripped of its
-  relative entries. The extension's floor rises to VS Code 1.101, where that API
-  landed.
-  *(VS Code extension, on its own track.)*
+- **The viewer renders a `.geml` served as `text/vnd.geml`.** IANA registered
+  the type on 2026-10-26, so a server whose MIME table follows the registry
+  (`mime-db`, and through it `express.static` and `serve`) will start sending
+  `.geml` as `text/vnd.geml` instead of `text/plain`. Chrome shows both as
+  plain text, but the content script took only `text/plain` as the raw
+  document and left such a page unrendered. The guard now takes either, as a
+  whitelist, so a `text/html` blob page is still refused. `codemap serve`
+  keeps sending `text/plain` until the fixed viewer is in the store, since the
+  one in the store renders nothing else.
+  *(`viewer-v1.4.0`, on its own track.)*
 
 ## [1.12.6] — 2026-10-16
 
