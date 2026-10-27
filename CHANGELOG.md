@@ -28,41 +28,6 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
-- **geml-statechart/v1: `statechart-final` and `statechart-dead-end` are
-  registered.** The profile's §3 lists both and the reference checker reported
-  both, but the registry the conformance file pins held nine codes; the
-  reference parser, the Rust crate and `conformance.json` now list all eleven.
-  `checks.json` gains fourteen cases that pin what §3 left to reading: a guard
-  reads the variables its top level and its `anyOf` / `oneOf` branches name,
-  not the keys under a variable; a variable whose name is not a NAME is not in
-  `vars`; a broken `vars` is reported once, not again by every guard and reset
-  that names a variable; an error anywhere in a chart holds back its warnings,
-  while a final state with a way out is reported beside other errors; a
-  self-loop is a way out; and a string with a space, or naming a document that
-  is not `.geml`, is a sentence guard. The profile's conformance cases now
-  carry their `checks`.
-
-- **Rust: the geml-statechart/v1 checks.** `geml-parser-rs` reports every
-  `statechart-*` code (`check::statechart`), written from the profile and its
-  case files; `tests/statechart.rs` replays `checks.json`.
-- **The VS Code extension offers GEML's MCP server to chat.** It contributes an
-  `mcpServerDefinitionProviders` provider, so Copilot Chat and anything else
-  reading the editor's server list is offered two servers that differ only in
-  where the document is: **GEML (hosted)**, the Cloudflare Worker, with nothing
-  to install and nothing kept; and **GEML (local)**, `geml mcp --root .` on the
-  CLI the extension already runs, one per workspace folder, which is the only
-  one of the two that serves block history and the code graph. Neither starts
-  until the editor asks. `geml.mcp.servers` picks which are offered and
-  `geml.mcp.url` points the hosted one at another deployment; both are
-  machine-scoped, so an opened folder cannot decide where its documents go. The
-  local server is off in Restricted Mode, like every other CLI feature, and its
-  folder reaches the process as `cwd` rather than argv — `--root .` resolves
-  against it — which is what keeps a checkout at `C:\work\a&b` away from
-  cmd.exe. It starts with the PATH every other CLI run gets, stripped of its
-  relative entries. The extension's floor rises to VS Code 1.101, where that API
-  landed.
-  *(VS Code extension, on its own track.)*
-
 ## [1.13.0] — 2026-10-27
 
 - **`text/vnd.geml` is registered with IANA.** The text tree carries it since
@@ -101,6 +66,24 @@ and is released under `viewer-v*` tags.
   and named in `when=`, and a junk id or a non-ASCII type is
   `style-selector-unsupported`.
 
+- **geml-statechart/v1: `statechart-final` and `statechart-dead-end` are
+  registered.** The profile's §3 lists both and the reference checker reported
+  both, but the registry the conformance file pins held nine codes; the
+  reference parser, the Rust crate and `conformance.json` now list all eleven.
+  `checks.json` gains fourteen cases that pin what §3 left to reading: a guard
+  reads the variables its top level and its `anyOf` / `oneOf` branches name,
+  not the keys under a variable; a variable whose name is not a NAME is not in
+  `vars`; a broken `vars` is reported once, not again by every guard and reset
+  that names a variable; an error anywhere in a chart holds back its warnings,
+  while a final state with a way out is reported beside other errors; a
+  self-loop is a way out; and a string with a space, or naming a document that
+  is not `.geml`, is a sentence guard. The profile's conformance cases now
+  carry their `checks`.
+
+- **Rust: the geml-statechart/v1 checks.** `geml-parser-rs` reports every
+  `statechart-*` code (`check::statechart`), written from the profile and its
+  case files; `tests/statechart.rs` replays `checks.json`.
+
 - **The viewer renders a `.geml` served as `text/vnd.geml`.** IANA registered
   the type on 2026-10-26, so a server whose MIME table follows the registry
   (`mime-db`, and through it `express.static` and `serve`) will start sending
@@ -111,6 +94,24 @@ and is released under `viewer-v*` tags.
   keeps sending `text/plain` until the fixed viewer is in the store, since the
   one in the store renders nothing else.
   *(`viewer-v1.4.0`, on its own track.)*
+
+- **The VS Code extension offers GEML's MCP server to chat.** It contributes an
+  `mcpServerDefinitionProviders` provider, so Copilot Chat and anything else
+  reading the editor's server list is offered two servers that differ only in
+  where the document is: **GEML (hosted)**, the Cloudflare Worker, with nothing
+  to install and nothing kept; and **GEML (local)**, `geml mcp --root .` on the
+  CLI the extension already runs, one per workspace folder, which is the only
+  one of the two that serves block history and the code graph. Neither starts
+  until the editor asks. `geml.mcp.servers` picks which are offered and
+  `geml.mcp.url` points the hosted one at another deployment; both are
+  machine-scoped, so an opened folder cannot decide where its documents go. The
+  local server is off in Restricted Mode, like every other CLI feature, and its
+  folder reaches the process as `cwd` rather than argv — `--root .` resolves
+  against it — which is what keeps a checkout at `C:\work\a&b` away from
+  cmd.exe. It starts with the PATH every other CLI run gets, stripped of its
+  relative entries. The extension's floor rises to VS Code 1.101, where that API
+  landed.
+  *(VS Code 1.2.0, on its own track.)*
 
 ## [1.12.6] — 2026-10-16
 
