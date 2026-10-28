@@ -185,7 +185,9 @@ test("用例的 checks：词汇表自己的检查对单份文档报出的，就�
         writeFileSync(join(dir, path), text);
       }
       const r = spawnSync(process.execPath, [CLI, "check", "case.geml", "--json"], { cwd: dir, encoding: "utf8" });
-      const got = JSON.parse(r.stdout).profile.map((d) => `${d.code}:${d.severity}`).sort();
+      // 没有 profile 诊断时 `--json` 只打核心那一组（一个数组），没有 `profile` 键。
+      const out = JSON.parse(r.stdout);
+      const got = (Array.isArray(out) ? [] : out.profile).map((d) => `${d.code}:${d.severity}`).sort();
       assert.deepEqual(got, [...c.checks].sort(), `${name} / ${c.name}`);
       n++;
     }

@@ -24,6 +24,9 @@ wasm = ["dep:wasm-bindgen"]
 unicode-normalization = "0.1.25"
 unicode-general-category = "1.1.0"
 wasm-bindgen = { version = "0.2", optional = true }
+# ECMAScript regular expressions (geml-form's `pattern=`). Pinned: 0.10.4 and
+# later are edition 2024, past this crate's rust-version.
+regress = "=0.10.3"
 
 [profile.release]
 opt-level = "s"

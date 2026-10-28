@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { checkForm } from "./form-check.js";
 import { checkMedia } from "./media-check.js";
 import { checkStatechart } from "./statechart-check.js";
 import { PROFILES, declaredVocabularies, type ProfileCheck, type ProfileDiagnostic, type ProfileIO } from "./profiles.js";
@@ -12,6 +13,7 @@ import { PROFILES, declaredVocabularies, type ProfileCheck, type ProfileDiagnost
  * 语料），输入不是「这份文档」，所以它该留作独立动词。
  */
 const PROFILE_CHECKS: Record<string, ProfileCheck> = {
+  "geml-form/v1": checkForm,
   "geml-media/v1": checkMedia,
   "geml-statechart/v1": checkStatechart,
 };

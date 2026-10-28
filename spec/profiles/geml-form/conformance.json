@@ -4,7 +4,13 @@
   "codes": {
     "form-child-outside-form": "error",
     "form-field-missing-name": "error",
-    "form-duplicate-name": "error"
+    "form-duplicate-name": "error",
+    "form-field-has-body": "warning",
+    "form-unknown-field-type": "warning",
+    "form-options-not-form-options": "error",
+    "form-note-not-form-note": "error",
+    "form-unused-block": "warning",
+    "form-constraint-unreadable": "warning"
   },
   "cases": [
     {
@@ -121,6 +127,94 @@
           "unresolved-reference:error"
         ]
       }
+    },
+    {
+      "name": "a field's type= is one of seven values and its body is empty; an unknown type and a non-empty body are GEP-0008's warnings",
+      "geml": "=== meta\nprofile = \"geml-form/v1\"\n===\n\n==== form {#signup}\n=== form-field {name=age label=\"Age\" type=bogus}\n===\n=== form-field {name=bio label=\"About you\" type=textarea}\nTell us about yourself.\n===\n=== form-field {name=email label=\"Email\" type=text}\n===\n====\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#signup"
+        ],
+        "undeclared": [
+          "#meta",
+          "#signup"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning"
+        ]
+      },
+      "checks": [
+        "form-unknown-field-type:warning",
+        "form-field-has-body:warning"
+      ]
+    },
+    {
+      "name": "options= names a form-options, and a # in label=, description= or placeholder= a form-note, of the enclosing form; anything else is an error, a group's text is never a reference, and a list or note no field names is unused",
+      "geml": "=== meta\nprofile = \"geml-form/v1\"\n===\n\n===== form {#signup}\n=== form-options {#plans format=csv delim=;}\nvalue ; label\nbasic ; Basic\n===\n=== form-note {#plan-help}\nPrices are [listed here](https://example.invalid/prices).\n===\n=== form-note {#spare}\nNever shown.\n===\n=== table {#tiers}\n| tier |\n|------|\n| one  |\n===\n=== form-field {name=plan label=\"Plan\" type=select options=#plans description=#plan-help}\n===\n==== form-group {#contacts label=\"Contacts\" description=#spare}\n=== form-field {name=role label=\"Role\" type=select options=#plans}\n===\n====\n=== form-field {name=tier label=\"Tier\" type=select options=#tiers}\n===\n=== form-field {name=size label=\"Size\" type=select options=#nowhere}\n===\n=== form-field {name=seats label=#plans type=number}\n===\n=== form-field {name=promo label=\"Promo code\" type=text placeholder=#nowhere}\n===\n=== form-field {name=ticket label=\"Ticket a#1, or b#2\" type=text}\n===\n=====\n\n==== form {#vendor}\n=== form-field {name=plan label=\"Plan\" type=select options=#plans}\n===\n====\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#signup",
+          "#plans",
+          "#plan-help",
+          "#spare",
+          "#tiers",
+          "#contacts",
+          "#vendor"
+        ],
+        "undeclared": [
+          "#meta",
+          "#signup",
+          "#vendor"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning",
+          "unknown-block-type:warning"
+        ]
+      },
+      "checks": [
+        "form-options-not-form-options:error",
+        "form-options-not-form-options:error",
+        "form-options-not-form-options:error",
+        "form-note-not-form-note:error",
+        "form-note-not-form-note:error",
+        "form-unused-block:warning"
+      ]
+    },
+    {
+      "name": "a constraint value unreadable in its key's own terms is a warning, never an error, and is never evaluated against a value",
+      "geml": "=== meta\nprofile = \"geml-form/v1\"\n===\n\n==== form {#vendor}\n=== form-field {name=revenue label=\"Revenue\" type=number min=0 max=99999 step=1 value=-5}\n===\n=== form-field {name=age label=\"Age\" type=number min=abc max=[1] step=0}\n===\n=== form-field {name=start label=\"Start\" type=date min=2024-01-31 max=2024-02-30}\n===\n=== form-field {name=phone label=\"Phone\" type=text maxlength=-1 pattern=\"^(?<cc>\\+\\d+) (?=\\d)\"}\n===\n=== form-field {name=code label=\"Code\" type=text maxlength=11 pattern=\"([a-z]\"}\n===\n=== form-field {name=remark label=\"Remark\" type=text min=abc}\n===\n====\n",
+      "addresses": {
+        "declared": [
+          "#meta",
+          "#vendor"
+        ],
+        "undeclared": [
+          "#meta",
+          "#vendor"
+        ]
+      },
+      "diagnostics": {
+        "declared": [],
+        "undeclared": [
+          "unknown-block-type:warning"
+        ]
+      },
+      "checks": [
+        "form-constraint-unreadable:warning",
+        "form-constraint-unreadable:warning",
+        "form-constraint-unreadable:warning",
+        "form-constraint-unreadable:warning",
+        "form-constraint-unreadable:warning",
+        "form-constraint-unreadable:warning"
+      ]
     }
   ]
 }

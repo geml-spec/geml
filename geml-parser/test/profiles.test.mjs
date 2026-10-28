@@ -6,6 +6,7 @@
 import { vocabularyFor, unrecognizedVocabularies, PROFILES } from "../dist/profiles.js";
 import { parse, renderHtml } from "../dist/geml.js";
 import { gemlToMd } from "../dist/to-md.js";
+import { checkForm } from "../dist/form-check.js";
 import { strict as assert } from "node:assert";
 import { readFileSync, existsSync } from "node:fs";
 
@@ -792,5 +793,43 @@ test("geml-statechart/v1：放行一个 diagram 格式和它上面的 current �
 
 test("一个程序自己的 meta 键在只声明 geml-statechart/v1 的文档里不报：没有词汇表认领它，它是作者的", () => {
   assert.deepEqual(parse('=== meta\nprofile = "geml-statechart/v1"\norder-unit = "file:orders/*.geml"\n===\n').diagnostics, []);
+});
+
+// geml-form 的检查器：一致性文件钉住了每个码，这里钉的是读法的边界 —— 两个实现最容易
+// 在这些地方分叉（闰年、旗标属性、写成字符串的数）。
+const formChecks = (fields) => {
+  const src = '=== meta\nprofile = "geml-form/v1"\n===\n\n==== form {#f}\n' + fields.map((a) => `=== form-field {${a}}\n===\n`).join("") + "====\n";
+  return checkForm("d.geml", { readDoc: (rel) => (rel === "d.geml" ? src : null), hashFile: () => null, hashText: () => "" }).map((d) => d.code);
+};
+
+test("geml-form 检查：读不到文档就什么都不报", () => {
+  assert.deepEqual(checkForm("missing.geml", { readDoc: () => null, hashFile: () => null, hashText: () => "" }), []);
+});
+
+test("geml-form 检查：读得懂的约束不报 —— 写成字符串的数、闰日、0 长度、带 u 的正则", () => {
+  assert.deepEqual(formChecks([
+    'name=a type=number min="5" max=1e3 step="+.5" maxlength="-0" value=-5',
+    "name=b type=date min=2024-02-29 max=2000-02-29",
+    'name=c type=text maxlength=0 pattern="^\\p{L}+$"',
+    'name=d type=text pattern="(?<=a)(b)(?=c)\\1"',
+    "name=e type=boolean min=abc max=[1]",
+  ]), []);
+});
+
+test("geml-form 检查：读不懂的约束各报一条 —— 非闰年的 2 月 29、13 月、负步长、小数长度、旗标、溢出", () => {
+  const got = formChecks([
+    "name=a type=date min=2023-02-29 max=1900-02-29",
+    "name=b type=date min=2024-13-01 max=20240101",
+    "name=c type=number min max=1e999 step=-1 maxlength=1.5",
+    "name=d type=text pattern",
+    'name=e type=text pattern="\\p{Nope}"',
+    "name=f type=date min=2024-1-001 max=x024-01-01",
+    'name=g type=number min="1." max=".5e"',
+  ]);
+  assert.deepEqual(got, Array(14).fill("form-constraint-unreadable"));
+});
+
+test("geml-form 检查：type 是旗标也是未知类型；options 是旗标也不是一个 form-options", () => {
+  assert.deepEqual(formChecks(["name=a type", "name=b options"]).sort(), ["form-options-not-form-options", "form-unknown-field-type"]);
 });
 console.log(`\n${passed} passed`);

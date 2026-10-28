@@ -203,7 +203,15 @@ export const PROFILES: Record<string, ProfileDef> = {
     // `form-*` block is meaningful only inside a `form` (geml.ts checkFormChild),
     // and a field carries a `name=` no other field of its form carries
     // (checkFieldName) — the key a handler receives and a coordinate addresses.
-    diagnostics: { "form-child-outside-form": "error", "form-field-missing-name": "error", "form-duplicate-name": "error" },
+    // The next five are GEP-0008's family diagnostics and the last the profile's
+    // §5 value warning; all six need a field's values or its whole form, so they
+    // run after the parse, in form-check.ts.
+    diagnostics: {
+      "form-child-outside-form": "error", "form-field-missing-name": "error", "form-duplicate-name": "error",
+      "form-field-has-body": "warning", "form-unknown-field-type": "warning",
+      "form-options-not-form-options": "error", "form-note-not-form-note": "error",
+      "form-unused-block": "warning", "form-constraint-unreadable": "warning",
+    },
     // 类型进来了：在 GEP-0008 落到 §3 的核心注册表之前，声明了这个 profile 的文档就能用
     // form-* 家族 —— 和 geml-style 用同一条路。不声明的文档照旧 unknown-block-type。
     types: ["form", "form-field", "form-group", "form-options", "form-note"],

@@ -67,10 +67,10 @@ does not know. With `minlength=5` on `#email` it prints:
 warning: unknown attribute `minlength` for block type `form-field` (line 6)
 ```
 
-It does not look at values: `type=email` (not one of the seven types GEP-0008
-defines) and `min=abc` both pass; the `unknown-field-type` warning the GEP
-describes is not implemented. The six constraint keys and how to read them are
-in reference §2.
+It reads values too, and never judges an input by them: `type=email` (not one
+of the seven types GEP-0008 defines) is a `form-unknown-field-type` warning,
+and `min=abc` on a `number` field is a `form-constraint-unreadable` warning.
+The six constraint keys and how to read them are in reference §2.
 
 **Edit one field, or let an agent do it.** Reading a field goes by its
 coordinate and needs no id. Replacing one with `geml set` does need an id:

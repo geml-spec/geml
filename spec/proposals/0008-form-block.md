@@ -179,7 +179,7 @@ and re-measurable, and a third written against a deliberately complex form
 | `label=` | attribute: plain text, or `#id` of a `form-note` | measured: **9/9** fields in the next.js form have a label and every one is a single short line, so plain text is the common case. Absent, a renderer shows the field id. A label that wants a link points at a `form-note` (§ *Prose, headings and form-note*) |
 | `description=` | attribute: plain text, or `#id` of a `form-note` | the help text shown with the control. Plain for one line; a `form-note` for links, bold or several paragraphs |
 | `placeholder=` | attribute: plain text, or `#id` of a `form-note` | the grey text an empty control shows. It vanishes on input, where `description` stays. Same rule as the other two for uniformity; a renderer flattens a `form-note` here to plain text, since a placeholder cannot carry markup |
-| `type=` | attribute, one of **seven** values | `text` `textarea` `number` `date` `boolean` `select` `file`. Chosen by the shape of the **value**, not of the control: `url`, `email`, `tel` and `path` are all strings and fold into `text`, with `pattern=` where the format matters. Measured across the three forms: text 11, textarea 7, select 4, number 1, date 1, boolean 1, file 0. `file` stays because its value is unlike any other; `time` and `datetime` wait for an instance. Any other value is `unknown-field-type`, a **warning**, and the field renders as `text` |
+| `type=` | attribute, one of **seven** values | `text` `textarea` `number` `date` `boolean` `select` `file`. Chosen by the shape of the **value**, not of the control: `url`, `email`, `tel` and `path` are all strings and fold into `text`, with `pattern=` where the format matters. Measured across the three forms: text 11, textarea 7, select 4, number 1, date 1, boolean 1, file 0. `file` stays because its value is unlike any other; `time` and `datetime` wait for an instance. Any other value is `form-unknown-field-type`, a **warning**, and the field renders as `text` |
 | `required` | flag | |
 | `multiple` | flag | on a `form-field`: one field, several values. Not an attribute of `form-group`, which repeats by definition (§ *Groups*) |
 | `value=` | attribute | a prefilled value — genuinely *the value*, unlike `style-state`'s `value-from=` which says where a value is TAKEN from. On a `multiple` field it names the **single** preselected option: §4 has no arrays, so a document cannot preselect two, and does not try to |
@@ -207,7 +207,7 @@ contract: the **first column** is the value submitted; a column headed
 `label` is the text shown, and because cells parse inline it may carry a link
 or bold — what GitHub's `checkboxes` options support and a plain string list
 cannot; further columns pass through to the handler unread. A `form-options`
-no field points at is a warning (`unused-form-block`). Two forms wanting the
+no field points at is a warning (`form-unused-block`). Two forms wanting the
 same list point their `src=` at the same file; a form does not reach into
 another.
 
@@ -322,7 +322,7 @@ accepts its **anti-bribery** and **data protection** clauses.
 
 A `form-note` is a passive resource, like a `form-options`: it has no
 attribute of its own pointing back, several fields may name the same one, and
-one no field names is a warning (`unused-form-block`). `label=`,
+one no field names is a warning (`form-unused-block`). `label=`,
 `description=` and `placeholder=` may each name one; a renderer shows the text
 in that role and links it to the control (`aria-describedby`), flattening it
 to plain text only where the role cannot carry markup (a placeholder). The
@@ -427,7 +427,7 @@ a document-wide name for it.
 A `form-field`'s `#` attributes — `options=`, `label=`, `description=`,
 `placeholder=` — are ordinary absolute references. What is checked is the
 **target's place**: it MUST be a `form-*` block of the enclosing form
-(`options-not-form-options`, `note-not-form-note`), so a form stays
+(`form-options-not-form-options`, `form-note-not-form-note`), so a form stays
 self-contained without a second address grammar. A nested id scope was
 weighed and is recorded under *Alternatives considered*.
 
@@ -475,12 +475,12 @@ application layer's act.
   anywhere but directly in one — the usual cause is a `form` fence one `=`
   too short), `form-field-missing-name` (**error**; a field without `name=`),
   `form-duplicate-name` (**error**; two fields of one form sharing a name,
-  reported on the later), `form-field-has-body` (warning), `unknown-field-type` (warning; the
-  field renders as `text`), `options-not-form-options` (**error**; `options=`
+  reported on the later), `form-field-has-body` (warning), `form-unknown-field-type` (warning; the
+  field renders as `text`), `form-options-not-form-options` (**error**; `options=`
   names something other than a `form-options` in this form),
-  `note-not-form-note` (**error**; a `#` in `label=`, `description=` or
+  `form-note-not-form-note` (**error**; a `#` in `label=`, `description=` or
   `placeholder=` names something other than a `form-note` in this form),
-  `unused-form-block` (warning; a `form-options` or `form-note` no field
+  `form-unused-block` (warning; a `form-options` or `form-note` no field
   points at); `duplicate-id` applies as §4 defines it.
 - **§8.5** gains the converse sentence: an extension type name SHOULD NOT
   begin with a registered type name followed by `-`.

@@ -28,6 +28,24 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **geml-form/v1: GEP-0008's family diagnostics are checked, and an
+  unreadable constraint value is a warning.** `geml check` on a document
+  declaring the profile reports `form-field-has-body`,
+  `form-unknown-field-type` and `form-unused-block` (warnings) and
+  `form-options-not-form-options` and `form-note-not-form-note` (errors). The
+  GEP spelled four of them without the `form-` prefix every code in a
+  profile's conformance file carries; GEP-0008 and the profile now use these
+  names. The profile's §5 warning gets its code, `form-constraint-unreadable`:
+  a `min=`/`max=` the field's `type=` cannot read (a number on `number`, an
+  existing `YYYY-MM-DD` day on `date`), a `step=` that is not a positive
+  number, a `maxlength=` that is not a non-negative integer, a `pattern=` that
+  is not an ECMAScript regular expression valid with the `u` flag. Values are
+  read, never evaluated against an input. A group's `label=` and
+  `description=` are plain text, as GEP-0008 says; the Rust crate no longer
+  reads a `#` there as a reference. Three conformance cases hold both
+  implementations to all six codes; `geml-parser-rs` takes `regress` for the
+  ECMAScript regular expressions.
+
 ## [1.13.0] — 2026-10-27
 
 - **`text/vnd.geml` is registered with IANA.** The text tree carries it since

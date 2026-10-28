@@ -1,5 +1,6 @@
-//! `geml-form/v1`: GEP-0008's family diagnostics — the structural one as a
-//! diagnostic of the parse, the rest reported by address.
+//! `geml-form/v1`: GEP-0008's family diagnostics — the structural ones as
+//! diagnostics of the parse, the rest reported by address — and the profile's
+//! §5 value warning.
 
 fn found(src: &str) -> Vec<String> {
     let d = geml::parse(&format!("=== meta\nprofile = \"geml-form/v1\"\n===\n\n{src}"));
@@ -8,7 +9,7 @@ fn found(src: &str) -> Vec<String> {
 
 #[test]
 fn a_well_formed_form_reports_nothing() {
-    let src = "===== form {#contact handler=send}\n=== form-field {#email type=text label=#email-label required name=email}\n===\n\n==== form-group {#who label=Who description=#who-note}\n=== form-field {#role type=select options=#roles name=role}\n===\n====\n\n=== form-options {#roles format=csv}\nvalue, label\na, A\n===\n\n=== form-note {#email-label}\nYour **email**\n===\n\n=== form-note {#who-note}\nAbout you\n===\n=====\n";
+    let src = "===== form {#contact handler=send}\n=== form-field {#email type=text label=#email-label required name=email}\n===\n\n==== form-group {#who label=Who description=\"About you\"}\n=== form-field {#role type=select options=#roles name=role}\n===\n====\n\n=== form-options {#roles format=csv}\nvalue, label\na, A\n===\n\n=== form-note {#email-label}\nYour **email**\n===\n=====\n";
     assert_eq!(found(src), Vec::<String>::new());
     // Undeclared, the same text runs no form checks.
     assert!(geml::parse(src).profile_diagnostics.is_empty());
@@ -31,17 +32,18 @@ fn a_field_that_points_at_the_wrong_block() {
         found(src),
         vec![
             // The form's own cross-checks, then each of its blocks.
-            "options-not-form-options:error document.geml#a",
-            "note-not-form-note:error document.geml#a",
-            "note-not-form-note:error document.geml#a",
-            "options-not-form-options:error document.geml#b",
-            "note-not-form-note:error document.geml#g",
-            "unused-form-block:warning document.geml#roles",
-            "unused-form-block:warning document.geml#n",
-            "unused-form-block:warning document.geml#spare",
-            "unused-form-block:warning document.geml (line 31)",
+            // A group's text is text, never a reference: `#g`'s description
+            // names nothing, and `#roles` stays unused.
+            "form-options-not-form-options:error document.geml#a",
+            "form-note-not-form-note:error document.geml#a",
+            "form-note-not-form-note:error document.geml#a",
+            "form-options-not-form-options:error document.geml#b",
+            "form-unused-block:warning document.geml#roles",
+            "form-unused-block:warning document.geml#n",
+            "form-unused-block:warning document.geml#spare",
+            "form-unused-block:warning document.geml (line 31)",
             "form-field-has-body:warning document.geml (line 6)",
-            "unknown-field-type:warning document.geml (line 6)",
+            "form-unknown-field-type:warning document.geml (line 6)",
         ]
     );
 }
@@ -106,4 +108,53 @@ fn a_field_is_addressed_by_its_name() {
     let d = geml::parse(&format!("{form}[[#signup[\"email\"]]]\n"));
     assert!(geml::diagnostic_codes(&d).contains(&"unresolved-reference:error".to_string()));
     assert!(d.diagnostics.iter().any(|x| x.message.contains("is `geml-form/v1` declared?")));
+}
+
+#[test]
+fn a_constraint_value_is_read_never_evaluated() {
+    let form = |fields: &[&str]| {
+        let body: String = fields.iter().map(|a| format!("=== form-field {{{a}}}\n===\n")).collect();
+        found(&format!("==== form {{#f}}\n{body}====\n"))
+    };
+    // Readable: a number written as a string, a leap day, a zero length, a
+    // pattern only the `u` flag reads, lookaround and a backreference; `min=`
+    // on a type it does not fit is not judged, and a value below `min=` is the
+    // handler's business.
+    assert_eq!(
+        form(&[
+            "name=a type=number min=\"5\" max=1e3 step=\"+.5\" maxlength=\"-0\" value=-5",
+            "name=b type=date min=2024-02-29 max=2000-02-29",
+            "name=c type=text maxlength=0 pattern=\"^\\p{L}+$\"",
+            "name=d type=text pattern=\"(?<=a)(b)(?=c)\\1\"",
+            "name=e type=boolean min=abc max=[1]",
+        ]),
+        Vec::<String>::new()
+    );
+    // Unreadable, one warning each: a 29 February of a common year, a
+    // thirteenth month, a date without its dashes, a flag, an overflow, a
+    // negative step, a fractional length, a flag pattern, an unknown property,
+    // a misplaced dash, a non-digit year, and two half-written numbers.
+    let got = form(&[
+        "name=a type=date min=2023-02-29 max=1900-02-29",
+        "name=b type=date min=2024-13-01 max=20240101",
+        "name=c type=number min max=1e999 step=-1 maxlength=1.5",
+        "name=d type=text pattern",
+        "name=e type=text pattern=\"\\p{Nope}\"",
+        "name=f type=date min=2024-1-001 max=x024-01-01",
+        "name=g type=number min=\"1.\" max=\".5e\"",
+    ]);
+    assert_eq!(got.len(), 14, "{got:#?}");
+    assert!(got.iter().all(|x| x.starts_with("form-constraint-unreadable:warning")));
+}
+
+#[test]
+fn a_flag_is_neither_a_type_nor_a_list() {
+    assert_eq!(
+        found("==== form {#f}\n=== form-field {name=a type}\n===\n=== form-field {name=b options}\n===\n=== form-field {name=c options=5}\n===\n====\n"),
+        vec![
+            "form-options-not-form-options:error document.geml (line 8)",
+            "form-options-not-form-options:error document.geml (line 10)",
+            "form-unknown-field-type:warning document.geml (line 6)",
+        ]
+    );
 }

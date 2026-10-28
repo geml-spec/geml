@@ -128,11 +128,23 @@ pub const PROFILES: &[Profile] = &[
         ],
         open_attrs: &[],
         meta_keys: Some(&[]),
-        // GEP-0008's structural rules, carried by the profile until the GEP
-        // lands in the core (its §1.1): a `form-*` block is meaningful only
-        // inside a `form`, and a field carries a `name=` no other field of its
-        // form carries.
-        codes: &[("form-child-outside-form", E), ("form-field-missing-name", E), ("form-duplicate-name", E)],
+        // GEP-0008's diagnostics, carried by the profile until the GEP lands in
+        // the core (its §1.1). The first three are its structural rules: a
+        // `form-*` block is meaningful only inside a `form`, and a field
+        // carries a `name=` no other field of its form carries. The next five
+        // are its family diagnostics, and the last is the profile's own §5
+        // value warning (check/form.rs).
+        codes: &[
+            ("form-child-outside-form", E),
+            ("form-field-missing-name", E),
+            ("form-duplicate-name", E),
+            ("form-field-has-body", W),
+            ("form-unknown-field-type", W),
+            ("form-options-not-form-options", E),
+            ("form-note-not-form-note", E),
+            ("form-unused-block", W),
+            ("form-constraint-unreadable", W),
+        ],
         formats: &[],
     },
     Profile {

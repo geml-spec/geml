@@ -53,7 +53,8 @@ GEP 的结构规则也这样随行，对声明了这份 profile 的文档生效�
 直接在 form 或 group 里、group 套 group、选项表或说明不直接在 form 里——是
 `form-child-outside-form`（**error**）；`form-field` 没有 `name=` 是 `form-field-missing-name`
 （**error**）；同一张表单里两个字段同名是 `form-duplicate-name`（**error**）。name 是 handler
-收到的键，也是坐标寻址字段用的那一步——`#vendor["phone"]`——所以字段不需要 id。
+收到的键，也是坐标寻址字段用的那一步——`#vendor["phone"]`——所以字段不需要 id。GEP 的
+家族诊断也一同随行（§5）。
 
 ## 2. 六个键
 
@@ -95,7 +96,7 @@ GEP 的结构规则也这样随行，对声明了这份 profile 的文档生效�
   `form-note` 是规范的（GEP-0008）：body 模式和 id 作用域由 §3 的注册表给。过渡期里，
   参考实现的注册表经由这份 profile 暂放行这五个 `form-*` 类型及其 body 模式（`form` 与
   `form-group` 是 `flow`）（§1.1；GEML §8.6.1），好让今天声明了它的文档能校验干净。
-- **不放行 `type=` 取值。** 七种值形状在 GEP 里是封闭的；未知值是 `unknown-field-type`
+- **不放行 `type=` 取值。** 七种值形状在 GEP 里是封闭的；未知值是 `form-unknown-field-type`
   warning，按 `text` 渲染。
 - **不放行条件或跨字段键**——`requiredIf`、`showIf`、`excludes`。见 §2 和 GEP-0008
   *Deliberately not defined*。
@@ -107,20 +108,29 @@ GEP 的结构规则也这样随行，对声明了这份 profile 的文档生效�
 一致性文件列出了声明本 profile 的文档会经由它遇到的码：
 
 - `form-child-outside-form`、`form-field-missing-name`、`form-duplicate-name`——
-  **error**；GEP-0008 的结构规则，过渡期由 profile 随行（§1.1）；
+  **error**；GEP-0008 的结构规则，过渡期由 profile 随行（§1.1），由解析报出；
+- `form-options-not-form-options`、`form-note-not-form-note`——**error**；GEP-0008
+  针对字段 `#` 属性的家族诊断：`options=` 指向的不是字段所在 form 的 `form-options`，或
+  `label=`、`description=`、`placeholder=` 里的 `#` 指向的不是该 form 的 `form-note`。
+  group 的 `label=` 和 `description=` 是纯文本；
+- `form-field-has-body`、`form-unknown-field-type`、`form-unused-block`——**warning**；
+  GEP-0008 的家族诊断：字段有体、`type=` 不在七种之内、`form-options` 或 `form-note` 没有
+  本 form 的任何字段指向它；
+- `form-constraint-unreadable`——**warning**；本 profile 自己的，见下文；
 - `unrecognized-vocabulary`——**warning**；处理器不认识这个名字时核心报出的那条
   （§8.6.2 规则 3）。
 
-其余都是核心和 GEP-0008 的：
+家族诊断和约束警告要看字段的值或整张 form，所以 `geml check` 由词汇表自己的检查按地址报出。
+其余都是核心的：
 
 - `unknown-attribute`——未声明 profile 时的约束键；
-- `unknown-field-type`、`form-field-has-body`、`options-not-form-options`、
-  `note-not-form-note`、`unused-form-block`——GEP-0008 的家族诊断，由 GEP 定义，参考
-  检查器尚未实现（它不看 `type=` 的取值）；
 - `duplicate-id`——核心的。
 
-检查器可以（MAY）在值按键自身的规则读不通时额外 warning——`number` 上的 `min=abc`、不是合法
-正则的 `pattern=`——但不得（MUST NOT）当作 error：文档仍是数据。
+约束值按键自身的规则读不通时报 `form-constraint-unreadable`，是 warning，绝不是 error：
+文档仍是数据。`min=` 和 `max=` 按字段的 `type=` 读——`number` 上读数，`date` 上读
+ISO-8601 日历日期（`YYYY-MM-DD`，且这一天存在），别的类型上不读。`step=` 是正数，
+`maxlength=` 是非负整数，`pattern=` 是带 `u` 标志时合法的 ECMAScript 正则。数可以裸写也可以
+加引号（`min="5"`）。检查器对它们只读不判：`min=0` 旁边的 `value=-5` 不报（§3）。
 
 ## 6. 完整示例
 

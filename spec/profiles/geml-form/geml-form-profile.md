@@ -71,7 +71,7 @@ options list or a note anywhere but directly in a form — is
 `form-field-missing-name` (**error**); two fields of one form sharing a name are
 `form-duplicate-name` (**error**). The name is the key the handler receives and
 the step a coordinate addresses the field by — `#vendor["phone"]` — so a field
-needs no id.
+needs no id. The GEP's family diagnostics ride with them (§5).
 
 ## 2. The six keys
 
@@ -122,7 +122,7 @@ to one attribute at a time. A processor that evaluated `pattern` against a
   body modes (`form` and `form-group` are `flow`) through this profile (§1.1;
   GEML §8.6.1), so that a document declaring it checks clean today.
 - **No `type=` values.** The seven value shapes are closed in the GEP; an
-  unknown one is `unknown-field-type`, a warning, and renders as `text`.
+  unknown one is `form-unknown-field-type`, a warning, and renders as `text`.
 - **No conditional or cross-field keys** — `requiredIf`, `showIf`, `excludes`.
   See §2, and GEP-0008 *Deliberately not defined*.
 - **No presentation keys** beyond what the GEP defines (`placeholder=` is the
@@ -136,22 +136,36 @@ through it:
 
 - `form-child-outside-form`, `form-field-missing-name`, `form-duplicate-name` —
   **error**; GEP-0008's structural rules, carried by the profile for the
-  transition (§1.1);
+  transition (§1.1) and reported by the parse;
+- `form-options-not-form-options`, `form-note-not-form-note` — **error**;
+  GEP-0008's family diagnostics for a field's `#` attributes: `options=` names
+  something other than a `form-options` of the field's own form, or a `#` in
+  `label=`, `description=` or `placeholder=` something other than a
+  `form-note` of it. A group's `label=` and `description=` are plain text;
+- `form-field-has-body`, `form-unknown-field-type`, `form-unused-block` —
+  **warning**; GEP-0008's family diagnostics for a field with a body, a
+  `type=` outside the seven, and a `form-options` or `form-note` no field of
+  its form points at;
+- `form-constraint-unreadable` — **warning**; this profile's own, below;
 - `unrecognized-vocabulary` — **warning**; the core's report from a processor
   that does not recognize the name (§8.6.2 rule 3).
 
-The rest are the core's and GEP-0008's:
+The family diagnostics and the constraint warning need a field's values or its
+whole form, so `geml check` reports them from the vocabulary's own checks, by
+address. The rest are the core's:
 
 - `unknown-attribute` — a constraint key without the profile declared;
-- `unknown-field-type`, `form-field-has-body`, `options-not-form-options`,
-  `note-not-form-note`, `unused-form-block` — GEP-0008's family diagnostics,
-  defined by the GEP and not implemented by the reference checker, which does
-  not look at `type=` values;
 - `duplicate-id` — the core's.
 
-A checker MAY additionally warn when a value is unreadable in the key's own
-terms — `min=abc` on a `number`, `pattern=` that is not a valid regular
-expression — but MUST NOT treat that as an error: the document is still data.
+A constraint value unreadable in its key's own terms is
+`form-constraint-unreadable`, a warning and never an error: the document is
+still data. `min=` and `max=` are read by the field's `type=` — a number on a
+`number`, an ISO-8601 calendar date (`YYYY-MM-DD`, a day that exists) on a
+`date`, and not read on any other type. `step=` is a positive number,
+`maxlength=` a non-negative integer, and `pattern=` an ECMAScript regular
+expression valid with the `u` flag. A number may be written bare or quoted
+(`min="5"`). Reading is all a checker does with them: `value=-5` beside
+`min=0` is not reported (§3).
 
 ## 6. Worked example
 

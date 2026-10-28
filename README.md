@@ -90,7 +90,7 @@ Reading together means readability cannot be traded away; and when models settle
 
 A text format built for people and models working together should change what reading and writing feel like for the machine:
 
-- **Fine-grained**: address by block, and by coordinate inside it — no more scanning the whole file;
+- **Fine-grained**: address precisely by block, and by coordinate inside it — no more scanning the whole file;
 - **Structured**: better organized, more flexible in what it holds;
 - **Consistent**: one standard read/write interface, with other modalities extending it naturally;
 - **Zero barrier**: minimal mental load, and a smooth, near-zero-cost migration.
