@@ -348,24 +348,25 @@ profile = "geml-style/v1 geml-form/v1"
 ### 扩展而不割裂
 
 • 🧩 **像搭乐高一样按需混搭 (Mix & Match)**
-核心语法极简收敛，而领域能力无限扩展。代码图谱、样式系统、表单约束、版本回退……一行 `profile = "..."` 即可组合多个专业领域的表达能力。
+核心语法保持精简、冻结，领域能力在它旁边扩展。代码图谱、样式系统、表单约束、版本回退……一行 `profile = "..."` 即可组合多个专业领域的表达能力。
 
-• ⚡ **无需编写插件，一秒接入全套工具链**
-定义新的领域块**不需要开发解析器或写插件**。扩展块从诞生的第一秒起，天然具备全套基础设施支持：稳定的 `#id` 寻址、`geml get/set` 局部读写、CLI 动词、MCP 协议以及 AI Agent 的精准操控。
+• ⚡ **无需编写插件，直接用上整套工具链**
+定义新的领域块**不需要开发解析器或写插件**。扩展块和其他块一样，天然具备整套基础设施支持：稳定的 `#id` 寻址、`geml get/set` 局部读写、CLI 动词、MCP 协议以及 AI Agent 的精准操控。
 
 • 🛡️ **天然可移植，永不锁死 (Never Fractured)**
-扩展了能力，却绝不破坏文档通用性。在任何未知或第三方工具中，文档依然保持 100% 结构完整与块级寻址能力，彻底告别 Markdown 换个平台就乱码崩溃的方言困境。
+扩展了能力，却不破坏文档的通用性。不认识某个 profile 的处理器照样能读出每一个块、按 `#id` 寻址，文档换个工具也保持原有结构。
 
 ### 官方已落地的 Profile 矩阵
 
-| Profile（使用指南） | 状态 | 用来做什么 | 赋予文档的专属能力 | 专属 CLI | 在线演示 / 示例 |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| [`geml-codemap/v1`](spec/profiles/geml-codemap/geml-codemap-guide_CN.md) | stable | 把代码库的调用图生成为一组 GEML 文档：每个方法一个块，能查谁调用它、它又调用了谁；前后端合成同一张图 | `code` 块上的 `anchor`、`name`、`entry-via` | `geml codemap build\|verify\|serve` | [可交互的调用图](https://geml-spec.github.io/playground/) · [`sample.geml`](https://geml-spec.github.io/playground/#ch=visual) |
-| [`geml-media/v1`](spec/profiles/geml-media/geml-media-guide_CN.md) | draft | 用一份文档描述一条视频时间轴：素材、片段、字幕和配音轨道；可导出成网页播放，或用 ffmpeg 出成片 | `media`、`media-asset`、`media-clip`、`media-text` | `geml media build\|export\|lay\|todo` | [文档出视频（经 ffmpeg 出 MP4）](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/examples/geml-media-demo/README.md) |
-| [`geml-style/v1`](spec/profiles/geml-style/geml-style-guide_CN.md) | draft | 颜色、间距、布局写在单独的样式文档里，按规则作用到内容文档上，内容文档本身不用改 | `style-rule`、`style-state`、`style-screen`、`style-frame` | `geml style check` | [GitHub blob 页 1:1 复刻](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/examples/style-demo/) |
-| [`geml-history/v1`](spec/profiles/geml-history/geml-history-guide_CN.md) | stable | 在文档旁边的 `.gemlhistory` 里保存历史版本：能查看任意旧版、只退回某一个块，或整份回滚 | `history-revision`、`history-keyframe`、`history-blob` | `geml history save\|get\|restore` | [单块回退的常用操作](spec/profiles/geml-history/geml-history-guide_CN.md#常用) |
-| [`geml-form/v1`](spec/profiles/geml-form/geml-form-guide_CN.md) | draft | 在文档里描述表单：有哪些字段、什么类型、是否必填、取值范围；浏览器扩展和 playground 会画出表单预览 | `form`、`form-field`、`form-group`、`form-options`、`form-note`，以及 `form-field` 上的 `pattern`、`min`、`max` 等约束属性 | — | [可交互的复杂表单示例](spec/proposals/0008-form-block-example/) |
-| [`geml-translator/v1`](spec/profiles/geml-translator/geml-translator-guide_CN.md) | draft | 译文文档里不放译文，只引用原文并写明目标语言，打开时由浏览器扩展现场机翻；原文改了，译文跟着变 | `embed` 与 `meta` 上的 `translate-to` 属性 | — | — |
+| Profile（使用指南） | 状态 | 用来做什么 | 专属 CLI | 在线演示 / 示例 |
+| :--- | :--- | :--- | :--- | :--- |
+| [`geml-codemap/v1`](spec/profiles/geml-codemap/geml-codemap-guide_CN.md) | stable | 把代码库的调用图生成为一组 GEML 文档：每个方法一个块，能查谁调用它、它又调用了谁；前后端合成同一张图 | `geml codemap build\|verify\|serve` | [可交互的调用图](https://geml-spec.github.io/demos/codemap) |
+| [`geml-media/v1`](spec/profiles/geml-media/geml-media-guide_CN.md) | draft | 用一份文档描述一条视频时间轴：素材、片段、字幕和配音轨道；可导出成网页播放，或用 ffmpeg 出成片 | `geml media build\|export\|lay\|todo` | [文档出视频（经 ffmpeg 出 MP4）](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/examples/geml-media-demo/README.md) |
+| [`geml-style/v1`](spec/profiles/geml-style/geml-style-guide_CN.md) | draft | 颜色、间距、布局写在单独的样式文档里，按规则作用到内容文档上，内容文档本身不用改 | `geml style check` | [GitHub blob 页 1:1 复刻](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/examples/style-demo/) |
+| [`geml-history/v1`](spec/profiles/geml-history/geml-history-guide_CN.md) | stable | 在文档旁边的 `.gemlhistory` 里保存历史版本：能查看任意旧版、只退回某一个块，或整份回滚 | `geml history save\|get\|restore` | [单块回退的常用操作](spec/profiles/geml-history/geml-history-guide_CN.md#常用) |
+| [`geml-form/v1`](spec/profiles/geml-form/geml-form-guide_CN.md) | draft | 在文档里描述表单：有哪些字段、什么类型、是否必填、取值范围；浏览器扩展和 playground 会画出表单预览 | — | [可交互的复杂表单示例](spec/proposals/0008-form-block-example/) |
+| [`geml-translator/v1`](spec/profiles/geml-translator/geml-translator-guide_CN.md) | draft | 译文文档里不放译文，只引用原文并写明目标语言，打开时由浏览器扩展现场机翻；原文改了，译文跟着变 | — | [打开即译](https://geml-spec.github.io/demos/translate) |
+| [`geml-statechart/v1`](spec/profiles/geml-statechart/geml-statechart-guide_CN.md) | draft | 用一个 `diagram` 块写状态机：状态、带守卫和动作的转移、守卫读的变量；`geml check` 找出到不了的状态和死路，`--to html` 画出来，`--to md` 转成 Mermaid | — | — |
 
 > 💡 **想看 Profile 实际跑起来？**
 > • **`geml-media` 在线演示**：一份剪辑文档加一条命令（`geml media build ep01-cut.geml --out ep01.mp4 --burn-subs`），由 ffmpeg 对齐音视频、混音、烧录字幕，直接出成片（[去看](https://geml-spec.github.io/demos/media-cut)）。
@@ -390,43 +391,17 @@ profile = "geml-style/v1 geml-form/v1"
 ## 配合大模型与 agent 使用 GEML
 
 目标只有一个：让你的模型**一次只改一个块，改完就校验**——而不是为改一段话重读、重发
-整篇文档。做到它只需一步，看你用什么。
+整篇文档。做到它只需一步：
 
-### 用 Claude Code、Gemini 或 Qwen——第一次跑这条
+| 你用的是 | 运行 |
+| :--- | :--- |
+| **Claude Code、Gemini、Qwen** | `npx -y @geml/geml skill install`——写作技能、CLI、MCP server 一次装到用户全局；不改 `settings.json`，不装 hook *（偏好插件：`claude plugin marketplace add geml-spec/geml`，再 `/plugin install geml@geml`）* |
+| **Codex** | 在本仓库的检出目录里启动，插件就在 `/plugins` 里；不克隆的装法见 [integrations/codex-plugin/](integrations/codex-plugin/) |
+| **DeepSeek Harness** | `dsh plugin --profile web add @geml/dsh-plugin`（[源码](integrations/dsh-plugin/)） |
+| **任何 MCP 客户端** | `npx -y @geml/geml mcp --root .`，或什么都不装，直接用 `https://geml-mcp.supermarket.workers.dev/mcp`——Cursor、VS Code、Claude Desktop 的配置见 [docs/mcp-guide_CN.md](docs/mcp-guide_CN.md) |
 
-```sh
-npx -y @geml/geml skill install
-```
-
-它把写作技能、`geml` CLI、MCP server 一次装到用户全局，所有项目通用。不改 `settings.json`，不装 hook；升级后重跑一次 `geml skill install` 即可。*（如偏好插件：`claude plugin
-marketplace add geml-spec/geml`，再 `/plugin install geml@geml`，同一份技能、MCP
-server 随包带上。）*
-
-### 用 DeepSeek Harness——装这个 bundle
-
-同一套东西打包成了 dsh bundle——geml MCP server 加写作、代码图谱两个技能：
-
-```sh
-dsh plugin --profile web add @geml/dsh-plugin   # web 是 dsh 默认启动的 profile；用别的 profile 就换成它的名字
-```
-
-已收录于 [dshmarket](https://dshmarket.com/p/geml-spec/geml--integrations-dsh-plugin/) 与 [awesome-dsh-plugin](https://awesome-dsh-plugin.com/p/geml-spec/geml--integrations-dsh-plugin/)，源码在 [integrations/dsh-plugin/](integrations/dsh-plugin/)。
-
-### 用 Codex——装这个插件
-
-同一套载荷再打一次包，这次是给 Codex 的：两个技能、MCP server，加一个 `SessionStart`
-hook。在本仓库的检出目录里启动 Codex，它就出现在 `/plugins` 里（市场清单已提交在
-`.agents/plugins/marketplace.json`）；不克隆也想装的话，`git-subdir` 配置在
-[integrations/codex-plugin/](integrations/codex-plugin/)。
-
-装好之后，在会话里说一句，这个项目就把 GEML 用作基础文档格式了：
-
-> 项目用 geml 作为基础文档格式，其他格式按需用 geml 生成。
-
-### 用别的大模型——把这段贴给它
-
-读不到技能的模型，需要你把规则给它一次。把下面这段贴过去，并让 `geml check` 守住它
-写回来的东西——CLI 装法是 `npm i -g @geml/geml`（需 Node 22+）。
+**用别的大模型**——读不到技能的模型，需要你把规则给它一次。把下面这段贴过去，并让
+`geml check` 守住它写回来的东西（CLI 装法是 `npm i -g @geml/geml`，需 Node 22+）：
 
 > 把文档写成 GEML：每个块都是 `=== type [属性]` … `===`（类型见
 > [1分钟学会](#one-minute)）。模型最容易写错的是这四条：闭合围栏必须是与开围栏
@@ -448,86 +423,16 @@ geml revert doc.geml '#plan' --rev -1                    # 把单个块回退一
 geml check  doc.geml                                     # 只校验：诊断 + 退出码
 ```
 
-任何一节都可以从三个粒度切取，`get` 和 `set` 都认：`--head` 是标题行，`--intro` 是它在第一个子标题之前说的话，`--body` 是它底下的全部——所以 `--body` 总是包含 `--intro`，没有子标题时两者相等。改一节的开头，不必把它的子节一起拉进上下文。
-
-每个变更写前都会重新解析，若会破坏文档就拒写——这正是 agent 能无人值守编辑的原因。
-其余动词（`delete`、`rename`、`history`、`--to md|html|geml` 转换、按类型或内容哈希
-定位块）见 [parser README](geml-parser/README.md)。
-
-### MCP 服务器
-
-包里自带一个标准的 Model Context Protocol 服务器，让你的 agent**一次只改一个块**，而不是
-重写整个文件——对 Markdown 与 GEML 同样生效。本地运行，支持 Windows、macOS、Linux；
-`--root` 是服务器被限定的根目录（用 `.` 或 `${workspaceFolder}` 自动绑定当前工作区）。
-
-**无需安装** —— 同一套工具也运行在 Cloudflare 上：
-`https://geml-mcp.supermarket.workers.dev/mcp`。在那里文档随每次调用传入，写入的结果以
-文本返回；详见 [Worker 的 README](integrations/geml-mcp-worker/README.md)。
-
-**Claude Code** —— 一键安装（自动配置 skill、全局 CLI 与 MCP 注册）：
-
-```sh
-npx -y @geml/geml skill install
-```
-
-*（或通过 CLI 手动添加：`claude mcp add --scope user geml -- npx -y @geml/geml mcp --root .`）*
-
-**Cursor** —— 在项目根目录添加 `.cursor/mcp.json`：
-
-```json
-{
-  "mcpServers": {
-    "geml": {
-      "command": "npx",
-      "args": ["-y", "@geml/geml", "mcp", "--root", "${workspaceFolder}"]
-    }
-  }
-}
-```
-
-*（或在 Cursor Settings → Features → MCP 中添加：名称 `geml`，命令 `npx -y @geml/geml mcp --root .`）*
-
-**VS Code** —— 无需配置：[GEML 扩展](integrations/vscode/)
-会把两个服务器都交给 chat —— 托管的那个，以及对每个工作区文件夹的
-`geml mcp --root .`。编辑器询问时选你要的那个即可。
-
-**Claude Desktop** —— 加到 `claude_desktop_config.json`：
-
-```json
-{
-  "mcpServers": {
-    "geml": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@geml/geml",
-        "mcp",
-        "--root",
-        "/absolute/path/to/your/docs"
-      ]
-    }
-  }
-}
-```
-
-然后你照常提需求就行，比如「把 FY26 表里 Q3 那行改掉」，agent 会精确定位到那一个块。**你不用
-记任何工具名**：每个都镜像一个 CLI 动词（`geml set` → `geml_set`），终端和 agent 共用同一套
-词汇。
-
-比「让模型直接重写文件」强的地方有两条保证：写入**落盘之前**先解析，若会破坏文档就带着
-诊断被拒；而且每次写入**先记一条 `.gemlhistory` 修订**，所以一次坏编辑既*拦得住*、又
-*撤得回*（`geml_revert` 只还原那一个块，文件其余部分逐字节不变）。所有路径都被限制在
-`--root` 内，客户端无法放宽。
-
-把 `--root` 指向一个建过代码图（`geml codemap build`）的仓库，同一个服务器还能回答「谁调
-用了这个」：四个只读的 `geml_codemap_*` 工具，一个客户端入口而不是两个。全部工具与参数见
-[docs/mcp-guide_CN.md](docs/mcp-guide_CN.md)。
+经 MCP 时，这些动词就是工具（`geml set` → `geml_set`）。比让模型直接重写文件多两重保证：
+写入**落盘前**先解析，会弄坏文档就拒写；每次写入前先记一版 `.gemlhistory`，所以 `geml_revert`
+能撤回单个块。路径限定在 `--root` 内；根目录里有代码图时，还能回答「谁调用了它」。
+全部动词见 [parser README](geml-parser/README.md)，全部工具见 [docs/mcp-guide_CN.md](docs/mcp-guide_CN.md)。
 
 <a id="maturity"></a>
 ## 生态成熟度
 
 - **规范 `1.0` 已稳定**，有[中文](spec/GEML-spec_CN.md)和[英文](spec/GEML-spec.md)版，本身也
-  [用 GEML 写成](spec/in_geml_format/GEML-spec.geml)。媒体类型
+  [用 GEML 写成](spec/in_geml_format/GEML-spec.geml)。[MIME媒体类型](https://www.iana.org/assignments/media-types/media-types.xhtml)
   [`text/vnd.geml`](https://www.iana.org/assignments/media-types/text/vnd.geml) 已在 IANA 注册。
 - **两个实现**通过同一套 800+ 条用例的[一致性测试集](geml-parser/test/conformance/)：参考实现
   [`geml-parser/`](geml-parser/)（TypeScript，2,300+ 项单元测试，覆盖率卡在 95%）和
@@ -571,7 +476,7 @@ npx -y @geml/geml skill install
 ## 路线图
 
 - [x] GEML `1.0` 规范，中英双语，配一致性测试集——外加定义 `.gemlhistory` 的 `geml-history/v1` profile
-- [x] 媒体类型 `text/vnd.geml` [已在 IANA 注册](https://www.iana.org/assignments/media-types/text/vnd.geml)（2026-10-26），以规范为已发布规范文件、以本项目为变更控制方
+- [x] [MIME媒体类型](https://www.iana.org/assignments/media-types/media-types.xhtml) `text/vnd.geml` [已在 IANA 注册](https://www.iana.org/assignments/media-types/text/vnd.geml)（2026-10-26），以规范为已发布规范文件、以本项目为变更控制方
 - [x] 参考实现 `@geml/geml`：解析器、CLI、块级 `.gemlhistory` 追踪
 - [x] 官方 MCP server（`geml mcp`），接入 Claude Code / Cursor / Codex 等支持 MCP 的环境
 - [x] codemap：把整个代码库的调用图写成 GEML

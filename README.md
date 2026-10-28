@@ -353,24 +353,25 @@ profile = "geml-style/v1 geml-form/v1"
 ### Extension without fragmentation
 
 • 🧩 **Mix & match like Lego bricks**
-The core syntax stays minimal and frozen, while domain capabilities expand infinitely. Call graphs, design tokens, form validation, version history... compose multiple domain vocabularies with one `profile = "..."` line.
+The core syntax stays minimal and frozen, while domain vocabularies grow beside it. Call graphs, design tokens, form validation, version history... compose several of them with one `profile = "..."` line.
 
-• ⚡ **Zero-plugin overhead with instant tooling support**
-Adding a new domain block **requires zero parser forks or custom plugins**. Custom blocks instantly inherit the entire infrastructure: deterministic `#id` addressing, `geml get/set` blockwise mutation, CLI verbs, MCP protocol, and autonomous AI Agent control.
+• ⚡ **No plugin to write, the tooling already there**
+Adding a new domain block **requires no parser fork and no custom plugin**. A custom block gets the same infrastructure as every other block: deterministic `#id` addressing, `geml get/set` blockwise mutation, CLI verbs, MCP protocol, and autonomous AI Agent control.
 
 • 🛡️ **Naturally portable, never locked in**
-Extend capabilities without breaking interoperability. In any third-party or unfamiliar processor, documents maintain 100% structural integrity and block-level addressability, ending the nightmare of broken formatting when switching tools.
+Extend capabilities without breaking interoperability. A processor that doesn't know a profile still reads every block and addresses it by its `#id`, so a document keeps its structure when it moves to another tool.
 
 ### Standard Published Profiles
 
-| Profile (guide) | Status | What it's for | Superpowers Admitted | CLI | Live Demo / Example |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| [`geml-codemap/v1`](spec/profiles/geml-codemap/geml-codemap-guide.md) | stable | Generates your codebase's call graph as GEML documents: one block per method, so you can see who calls it and what it calls; front-end and back-end merge into one graph | `code` blocks: `anchor`, `name`, `entry-via` | `geml codemap build\|verify\|serve` | [Interactive Call Graph](https://geml-spec.github.io/playground/) · [`sample.geml`](https://geml-spec.github.io/playground/#ch=visual) |
-| [`geml-media/v1`](spec/profiles/geml-media/geml-media-guide.md) | draft | Describes a video timeline in one document: assets, clips, subtitle and voice tracks; export it as a web player, or render an MP4 with ffmpeg | `media`, `media-asset`, `media-clip`, `media-text` | `geml media build\|export\|lay\|todo` | [Doc-to-Video (Doc to MP4 via ffmpeg)](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/examples/geml-media-demo/README.md) |
-| [`geml-style/v1`](spec/profiles/geml-style/geml-style-guide.md) | draft | Colours, spacing and layout live in a separate stylesheet document whose rules apply to your content; the content document itself stays unchanged | `style-rule`, `style-state`, `style-screen`, `style-frame` | `geml style check` | [GitHub Blob Page 1:1 Replica](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/examples/style-demo/) |
-| [`geml-history/v1`](spec/profiles/geml-history/geml-history-guide.md) | stable | Keeps past versions in a `.gemlhistory` file beside the document: read any old version, put back a single block, or roll back the whole file | `history-revision`, `history-keyframe`, `history-blob` | `geml history save\|get\|restore` | [Atomic Block Rollback Workflow](spec/profiles/geml-history/geml-history-guide.md#everyday-use) |
-| [`geml-form/v1`](spec/profiles/geml-form/geml-form-guide.md) | draft | Describes a form in a document: its fields, their types, which are required, allowed ranges; the browser extension and the playground draw a preview | `form`, `form-field`, `form-group`, `form-options`, `form-note`; constraint attributes `pattern`, `min`, `max`… on `form-field` | — | [Interactive Complex Form Example](spec/proposals/0008-form-block-example/) |
-| [`geml-translator/v1`](spec/profiles/geml-translator/geml-translator-guide.md) | draft | A translation document holds no translated text: it embeds the source and names the target language, and the browser extension machine-translates it on open, so it follows every change to the source | `embed` and `meta` attribute `translate-to` | — | — |
+| Profile (guide) | Status | What it's for | CLI | Live Demo / Example |
+| :--- | :--- | :--- | :--- | :--- |
+| [`geml-codemap/v1`](spec/profiles/geml-codemap/geml-codemap-guide.md) | stable | Generates your codebase's call graph as GEML documents: one block per method, so you can see who calls it and what it calls; front-end and back-end merge into one graph | `geml codemap build\|verify\|serve` | [Interactive Call Graph](https://geml-spec.github.io/demos/codemap) |
+| [`geml-media/v1`](spec/profiles/geml-media/geml-media-guide.md) | draft | Describes a video timeline in one document: assets, clips, subtitle and voice tracks; export it as a web player, or render an MP4 with ffmpeg | `geml media build\|export\|lay\|todo` | [Doc-to-Video (Doc to MP4 via ffmpeg)](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/examples/geml-media-demo/README.md) |
+| [`geml-style/v1`](spec/profiles/geml-style/geml-style-guide.md) | draft | Colours, spacing and layout live in a separate stylesheet document whose rules apply to your content; the content document itself stays unchanged | `geml style check` | [GitHub Blob Page 1:1 Replica](https://github.com/geml-spec/geml-spec.github.io/blob/main/public/examples/style-demo/) |
+| [`geml-history/v1`](spec/profiles/geml-history/geml-history-guide.md) | stable | Keeps past versions in a `.gemlhistory` file beside the document: read any old version, put back a single block, or roll back the whole file | `geml history save\|get\|restore` | [Atomic Block Rollback Workflow](spec/profiles/geml-history/geml-history-guide.md#everyday-use) |
+| [`geml-form/v1`](spec/profiles/geml-form/geml-form-guide.md) | draft | Describes a form in a document: its fields, their types, which are required, allowed ranges; the browser extension and the playground draw a preview | — | [Interactive Complex Form Example](spec/proposals/0008-form-block-example/) |
+| [`geml-translator/v1`](spec/profiles/geml-translator/geml-translator-guide.md) | draft | A translation document holds no translated text: it embeds the source and names the target language, and the browser extension machine-translates it on open, so it follows every change to the source | — | [Translated on Open](https://geml-spec.github.io/demos/translate) |
+| [`geml-statechart/v1`](spec/profiles/geml-statechart/geml-statechart-guide.md) | draft | Writes a state machine as one `diagram` block: states, transitions with their guards and actions, and the variables the guards read; `geml check` finds states nothing reaches and dead ends, `--to html` draws it, `--to md` turns it into Mermaid | — | — |
 
 > 💡 **Want to see Profiles in action?**
 > • **`geml-media` live demo**: One cut document and one command (`geml media build ep01-cut.geml --out ep01.mp4 --burn-subs`) orchestrates ffmpeg to align audio/video, mix tracks, and burn subtitles into a finished video ([see it](https://geml-spec.github.io/demos/media-cut)).
@@ -395,48 +396,19 @@ Then, in the order that suits you:
 ## Using GEML with an LLM
 
 The goal is one thing: your model **edits a block at a time, and verifies** —
-never re-reads and re-emits a whole file to change one paragraph. Getting there
-takes one step, and which step depends on what you use.
+never re-reads and re-emits a whole file to change one paragraph. One step gets
+you there:
 
-### Using Claude Code, Gemini or Qwen — run this
+| You use | Run |
+| :--- | :--- |
+| **Claude Code, Gemini, Qwen** | `npx -y @geml/geml skill install` — the authoring skill, the CLI and the MCP server, user-global; no `settings.json` edits, no hooks *(or `claude plugin marketplace add geml-spec/geml`, then `/plugin install geml@geml`)* |
+| **Codex** | start it in a checkout of this repo and the plugin is in `/plugins`; without cloning, see [integrations/codex-plugin/](integrations/codex-plugin/) |
+| **DeepSeek Harness** | `dsh plugin --profile web add @geml/dsh-plugin` ([source](integrations/dsh-plugin/)) |
+| **Any MCP client** | `npx -y @geml/geml mcp --root .`, or nothing to install at `https://geml-mcp.supermarket.workers.dev/mcp` — Cursor, VS Code and Claude Desktop setup in [docs/mcp-guide.md](docs/mcp-guide.md) |
 
-```sh
-npx -y @geml/geml skill install
-```
-
-It installs the authoring skill, the `geml` CLI and the MCP server, user-global,
-for every project. No `settings.json` edits, no hooks; re-run after an upgrade.
-*(Prefer plugins? `claude plugin marketplace add geml-spec/geml`, then
-`/plugin install geml@geml` — same skill, MCP server bundled.)*
-
-### Using DeepSeek Harness — add this bundle
-
-The same setup, packaged as a dsh bundle — the geml MCP server plus the authoring and code-graph skills:
-
-```sh
-dsh plugin --profile web add @geml/dsh-plugin   # web = the profile dsh boots by default; use your own profile name if you run another
-```
-
-Listed on [dshmarket](https://dshmarket.com/p/geml-spec/geml--integrations-dsh-plugin/) and [awesome-dsh-plugin](https://awesome-dsh-plugin.com/p/geml-spec/geml--integrations-dsh-plugin/); source in [integrations/dsh-plugin/](integrations/dsh-plugin/).
-
-### Using Codex — install the plugin
-
-The same payload once more, packaged for Codex: both skills, the MCP server, and
-a `SessionStart` hook. Start Codex in a checkout of this repo and it shows up in
-`/plugins` (the marketplace source is committed at
-`.agents/plugins/marketplace.json`); to add it without cloning, the `git-subdir`
-entry is in [integrations/codex-plugin/](integrations/codex-plugin/).
-
-Then say it once in a session, and the project has switched:
-
-> This project uses GEML as its base document format; generate other formats
-> from it as needed.
-
-### Using anything else — paste this, then check the output
-
-A model with no skill to read needs the rules once. Paste the prompt below, and
-keep `geml check` as the gate on whatever it writes back — the CLI is
-`npm i -g @geml/geml` (Node 22+).
+**Anything else** — a model with no skill to read needs the rules once. Paste the
+prompt below, and keep `geml check` as the gate on whatever it writes back (the
+CLI is `npm i -g @geml/geml`, Node 22+):
 
 > Write the document as GEML: every block is `=== type [attributes]` … `===`
 > ([the format in 1 minute](#one-minute) lists the types). Four rules are the
@@ -460,100 +432,19 @@ geml revert doc.geml '#plan' --rev -1                    # roll ONE block back
 geml check  doc.geml                                     # validate only: diagnostics + exit code
 ```
 
-Any section cuts three ways, on `get` and `set` alike: `--head` is the heading
-line, `--intro` what it says before its first subheading, `--body` everything
-under it — so `--body` always contains `--intro`, and equals it when there is no
-subheading. A section's opening can be edited without pulling its subsections
-into context.
-
-Every mutation is re-parsed before it writes and refused if it would break the
-document — which is what makes editing unattended safe. The rest of the verbs
-(`delete`, `rename`, `history`, `--to md|html|geml` conversion, addressing a
-block by type or content hash) are in the
-[parser README](geml-parser/README.md).
-
-### MCP Server
-
-A standard Model Context Protocol server ships with the package, so your agent
-edits **one block at a time** instead of rewriting whole files — on Markdown and
-GEML alike. It runs locally on Windows, macOS, and Linux; `--root` is the
-directory the server is confined to (use `.` or `${workspaceFolder}` to bind to
-the active project).
-
-**Nothing to install** — the same tools run on Cloudflare at
-`https://geml-mcp.supermarket.workers.dev/mcp`. There the document travels in
-each call and a write comes back as text; see
-[the Worker's README](integrations/geml-mcp-worker/README.md).
-
-**Claude Code** — one-command setup (installs skill, CLI, and MCP server):
-
-```sh
-npx -y @geml/geml skill install
-```
-
-*(Or register manually via CLI: `claude mcp add --scope user geml -- npx -y @geml/geml mcp --root .`)*
-
-**Cursor** — add `.cursor/mcp.json` to your project:
-
-```json
-{
-  "mcpServers": {
-    "geml": {
-      "command": "npx",
-      "args": ["-y", "@geml/geml", "mcp", "--root", "${workspaceFolder}"]
-    }
-  }
-}
-```
-
-*(Or in Cursor Settings → Features → MCP: name `geml`, command `npx -y @geml/geml mcp --root .`)*
-
-**VS Code** — nothing to configure: the
-[GEML extension](integrations/vscode/) offers both servers to chat, the hosted
-one and `geml mcp --root .` for each workspace folder. Accept whichever you want
-when the editor asks.
-
-**Claude Desktop** — add to `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "geml": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@geml/geml",
-        "mcp",
-        "--root",
-        "/absolute/path/to/your/docs"
-      ]
-    }
-  }
-}
-```
-
-Then just ask for the change you want — "fix the Q3 row in the FY26 table" — and
-the agent addresses that one block. You never learn a tool name: each mirrors a
-CLI verb (`geml set` → `geml_set`), so one vocabulary covers the terminal and the
-agent.
-
-Two guarantees make this better than letting a model rewrite the file: a write is
-parsed **before** it reaches disk and refused with its diagnostics if it would
-break the document, and every write first records a `.gemlhistory` revision — so a
-bad edit is both *prevented* and *undoable* (`geml_revert` restores one block, the
-rest of the file byte-identical). Paths stay confined to `--root`, which a client
-cannot widen.
-
-Point `--root` at a repository that has a code graph (`geml codemap build`) and the
-same server also answers "who calls this" — four read-only `geml_codemap_*` tools,
-one client entry instead of two. Every tool and option:
-[docs/mcp-guide.md](docs/mcp-guide.md).
+Over MCP the same verbs are tools (`geml set` → `geml_set`), and two guarantees
+make it better than letting a model rewrite the file: a write is parsed
+**before** it reaches disk and refused if it would break the document, and every
+write first records a `.gemlhistory` revision, so `geml_revert` can undo one
+block. Paths stay confined to `--root`; a root that holds a code graph also
+answers "who calls this". Every verb: the [parser README](geml-parser/README.md);
+every tool: [docs/mcp-guide.md](docs/mcp-guide.md).
 
 <a id="maturity"></a>
 ## Ecosystem and maturity
 
 - **Spec `1.0` is stable**, in [English](spec/GEML-spec.md) and [中文](spec/GEML-spec_CN.md),
-  and is itself [written in GEML](spec/in_geml_format/GEML-spec.geml). Media type
+  and is itself [written in GEML](spec/in_geml_format/GEML-spec.geml). [MIME media type](https://www.iana.org/assignments/media-types/media-types.xhtml)
   [`text/vnd.geml`](https://www.iana.org/assignments/media-types/text/vnd.geml), registered with IANA.
 - **Two implementations** pass the same [conformance suite](geml-parser/test/conformance/)
   of 800+ cases: the reference parser [`geml-parser/`](geml-parser/) (TypeScript, 2,300+
@@ -598,7 +489,7 @@ one client entry instead of two. Every tool and option:
 ## Roadmap
 
 - [x] The GEML `1.0` specification, in English and Chinese, with a conformance suite — plus the `geml-history/v1` profile that defines the `.gemlhistory` sidecar
-- [x] The media type `text/vnd.geml` [registered with IANA](https://www.iana.org/assignments/media-types/text/vnd.geml) (2026-10-26), with the spec as its published specification and the project as change controller
+- [x] The [MIME media type](https://www.iana.org/assignments/media-types/media-types.xhtml) `text/vnd.geml` [registered with IANA](https://www.iana.org/assignments/media-types/text/vnd.geml) (2026-10-26), with the spec as its published specification and the project as change controller
 - [x] Reference implementation `@geml/geml`: parser, CLI, block-level `.gemlhistory` tracking
 - [x] Official MCP server (`geml mcp`) for Claude Code, Cursor, Codex and other MCP hosts
 - [x] codemap — a whole codebase's call graph, written as GEML
