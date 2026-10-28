@@ -17,6 +17,11 @@ GEML 是一种**轻量级标记语言：块的形式统一、可寻址，配一�
 **人读着轻松，agent 改着安全。**
 在 agent 驱动的软件开发与知识协作中，纯文本与 Markdown 缺乏确定性的区块边界：程序与模型交互时往往整篇读进来、整篇写回去，稍微好点的就定位靠行窗口反复试探，改写要把原文逐字复述一遍，Token 消耗随文档长度线性膨胀，操作变得臃肿。多轮改写之后，其他摘抄它的副本也开始失真。
 
+**目录：**[它解决什么](#problems) · [需要什么样的格式](#why-now) · [GEML有何不同](#whats-different) ·
+[1分钟学会](#one-minute) · [Profile扩展体系](#profiles) ·
+[即刻上手试试](#hands-on) · [搭配大模型使用](#with-an-llm) ·
+[生态成熟度](#maturity) · [设计思路](#challenge) · [路线图](#roadmap) · [参与我们](#contributing) · [许可](#license)
+
 **你不需要改动任何东西就能开始。** `geml list`、`geml find`、`geml get` 直接对你现有的 Markdown 寻址——不做任何转换、不产生新文件，你的 `.md` 还是 `.md`：
 
 ```sh
@@ -31,7 +36,7 @@ geml history save README_CN.md -m '收紧开头'            # 存一个版本到
 
 ▶ **[到 Playground 试一下](https://geml-spec.github.io/playground/)**——无需安装，也不用先读任何东西。
 
-要比“一节”更细——单个块、单张图、单张表——就让 `.geml` 站在中间层：在那个粒度上编辑，你`--to md` 交付出来的永远不会与它漂移。
+要比“一节”更细——单个块、单张图、单张表——就让 `.geml` 站在中间层：在那个粒度上编辑，你 `--to md` 交付出来的永远不会与它漂移。
 
 **块有自己的名字，块里的东西有自己的坐标。** 表里的一个单元格、`data` 块里的一个叶子、
 `meta` 里的一个键——每一个的坐标都由结构本身给出，`get` 和 `set` 精确落在那个值上。
@@ -41,7 +46,7 @@ geml get doc.geml '#fy[2]["Q1"]'                     # 一个单元格
 geml set doc.geml '#intake["fields"][1]["name"]'     # JSON 里的一个叶子
 ```
 
-对人，它是清晰可读的纯文本；对 agent，它是可寻址、可校验、可溯源、可回退的**[“Doc-as-a-Base（文档即真相之源）”](https://geml-spec.github.io/manifesto-cn)**。
+对人，它是清晰可读的纯文本；对 agent，它是可寻址、可校验、可溯源、可回退的**[“Doc-as-a-Base（文档即库）”](https://geml-spec.github.io/manifesto-cn)**。
 
 ---
 
@@ -52,86 +57,40 @@ geml set doc.geml '#intake["fields"][1]["name"]'     # JSON 里的一个叶子
 
 它不为每种内容单独设一套迷你语法，而是把所有类型内容都以一个类型块容器承载。代码是块，表格、图形、公式、提示框、乃至元数据，都是块；一段散文也可以成块（`=== text`），只要你想按 id 指到它。未来要扩展也简单至极。形态都一样，所以这门语言好学到很难写错。
 
-```
-=== code {#hello lang=python}
-print("hi")
-===
-```
-
-```sh
-geml get doc.geml '#hello'   # 按名字，只取这一块
-```
-
 块有名字，动词才有落点。完整语法见[1分钟学会](#one-minute)。
-
-**目录：**[它解决什么](#problems) · [为什么需要新格式](#why-now) · [GEML有何不同](#whats-different) ·
-[1分钟学会](#one-minute) · [Profile扩展体系](#profiles) ·
-[即刻上手试试](#hands-on) · [搭配大模型使用](#with-an-llm) ·
-[生态成熟度](#maturity) · [设计思路](#challenge) · [路线图](#roadmap) · [参与我们](#contributing) · [许可](#license)
 
 <a id="problems"></a>
 ## 它解决什么
 
 ### 背景与解决的问题 (Problems Solved)
 
-1. **上下文负载与 Token 膨胀**
-   * **现状**：JSON/XML 等数据格式包含大量冗余标签与语法符号，Markdown 缺乏严格的结构化元数据与引用机制。
-   * **方案**：优化标记密度与语法开销，只读写目标块，上下文占用不再随文档长度膨胀，实现 **AI Agent 轻负担读写**。
-
-2. **AST 操作精度与解析确定性**
-   * **现状**：非结构化文本在经过多轮 LLM 读写后容易出现格式破坏、语义偏移与解析幻觉。
-   * **方案**：提供确定性的语法定义，支持直接映射为抽象语法树（AST），便于程序和 LLM 执行原子级（块）的增删改查。
-
-3. **文档副本碎片化**
-   * **现状**：多 Agent 协作或多流程共享内容时，依赖复制粘贴导致内容存在多个脱节的副本。
-   * **方案**：基于 **单一数据源（Single Source of Truth）** 设计，通过标准化模块引用与数据绑定，消除冗余副本与版本分歧。
+1. **上下文负载与 Token 膨胀**：JSON/XML 包裹标签冗余，Markdown 缺乏结构化元数据与引用机制；GEML 只读写目标块，上下文占用不再随文档长度膨胀。
+2. **AST 操作精度与解析确定性**：非结构化文本经多轮 LLM 读写后容易格式破坏、语义偏移；GEML 语法确定、直接映射为 AST，程序和 LLM 按块原子增删改查。
+3. **文档副本碎片化**：多 Agent 协作、多流程共享靠复制粘贴，副本各自脱节；GEML 以**单一数据源**设计，用标准引用与数据绑定替代副本。
 
 ### 核心特性 (Key Features)
 
-#### 1. AST 级精准结构化操作
-* 统一的节点定义，支持将文档内容直接解析为类型化文档树（AST）。
-* 允许 Agent 精确定位目标段落、属性或组件，支持局部 Patch 与幂等更新，避免全文重写。写入以字节切片落地并整篇重校验——树用于读取与校验，未触及的字节保证零改动。
-
-#### 2. 低 Token 读写设计
-* 省下的不是标记字符，而是没读的那部分：按 #id 命中语义完整的一块，其余内容根本不进上下文。
-* 相同语义表达下显著降低 Prompt Token 开销，提升模型吞吐效率并降低推理成本。
-
-#### 3. 单一数据源与模块化引用
-* 原生支持跨文档、跨片段的组件化引用机制。
-* 数据变动仅需更新源节点，引用端自动同步，防止文档版本失真。
-
-#### 4. 双向读写鲁棒性
-* 全语言只有一种块形态，生成侧易学难错，适配主流 LLM 的生成分布。
-* 解析器具备严格的验证机制，提供明确的语法错误定位与修复反馈。
-
-#### 5. 基于 Profile 的无感领域扩展
-* 终结方言割裂：通过 `=== meta` 中的 `profile` 声明扩展特定领域词汇（如设计样式、交互表单、代码图谱、音视频轨），不发明新语法，也不破坏解析器。
-* 静态类型与约束检查；在不认识该词汇表的环境中安全降级为标准块。
-
-### 特性对比 (Comparison)
-
-| 维度 | Markdown | JSON / YAML | GEML |
-| :--- | :--- | :--- | :--- |
-| **上下文开销（按块读写）** | 高（整篇进出） | 高（整篇 + 语法噪声） | **极低（只取目标块）** |
-| **AST 精准操作** | 弱（缺乏严格语义节点） | 强 | **强（专为 Agent 读写优化）** |
-| **人类可读性** | 高 | 中 | **高** |
-| **单一数据源引用** | 不支持 | 需扩展协议 | **原生支持（模块化嵌入）** |
-| **领域扩展机制** | 严重割裂（各家私造方言/语法补丁） | 依赖 Schema | **原生 Profile（零新语法 + 静态强校验）** |
-| **写入安全** | 弱 | 中 | **强（坏写入落盘前被拒 + 单块回退）** |
+- **AST 级精准结构化操作**：文档直接解析为类型化文档树，Agent 精确定位后局部更新、幂等更新；写入以字节切片落地并整篇重校验，未触及的字节零改动。
+- **低 Token 读写**：省下的不是标记字符，而是没读的那部分——按 `#id` 命中语义完整的一块，其余内容根本不进上下文。
+- **单一数据源与模块化引用**：原生的跨文档、跨片段引用，源节点一改，引用端自动同步。
+- **双向读写鲁棒性**：全语言只有一种块形态，生成侧易学难错；解析器给出明确的错误定位与修复反馈。
+- **基于 Profile 的领域扩展**：在 `=== meta` 里声明 `profile` 扩展领域词汇（设计样式、交互表单、代码图谱、音视频轨），不发明新语法；声明了的词汇由各自的检查器校验，不认识的环境安全降级为标准块。
 
 ---
 
 <a id="why-now"></a>
-## 为什么大模型时代需要一种全新的文本格式？
+## 大模型需要什么样的文本格式？
 
-因为**文档的生产者和消费者变了**。
+AI 时代的文本，是“模型生产，人机共读”。
 
-在传统软件工程中，文档要么是人类阅读的静态说明，要么是程序序列化的数据文件。
+共读决定了可读性不可妥协；但大模型选择 Markdown，仅仅是旧时代没有更好选择时的妥协，而非终极答案。
 
-今天，人类与 AI Agent 已经开始在同一份文档上高频协作，当 AI Agent 成为文档的“第二个读者与协作者”时，这一平衡被彻底打破：
-1. **上下文即稀缺算力**：Agent 的每一次整篇读写，都在消耗有限的注意力窗口与推理预算；
-2. **人机协作需要同构载体**：人类需要直接看懂，Agent 需要精确按块读写；
-3. **知识必须拥有单一真相源**：散落的 Prompt 与复制粘贴的 Markdown，注定会随着迭代而逐步腐化。
+一种真正面向人机协作的新一代文本格式，应当让机器的读写体验脱胎换骨：
+
+- **微粒度**：精准定位到块，告别全文扫描；
+- **强结构**：组织更有序，内容更灵活；
+- **一致性**：读写接口规范，多模态天然扩展；
+- **零门槛**：极低的心智负担，几乎零成本平滑迁移。
 
 然而，我们现有的文本基础设施均非为此场景设计：
 
@@ -141,9 +100,9 @@ geml get doc.geml '#hello'   # 按名字，只取这一块
 
 这三条的病根，恰恰是三者各自的优点：Markdown 的"永不报错、怎么写都行"成全了人的书写自由，也注定了机器无法信任它读到的结构；JSON/XML 的严格 schema 成全了机器的确定性，也注定了没人愿意在里面写散文。优点即病根，所以补丁修不动——给 Markdown 加上"坏引用必须报错"是对它契约的违背，给 JSON 剥掉包裹语法是对它本性的否定。当人与 agent 开始在同一份文本上高频协作，需要的不是两极之间的折中，而是把"人可读"与"机可操作"从第一天就写进同一条设计约束。
 
-### 核心解法：**[“Doc-as-a-Base（文档即真相之源）”](https://geml-spec.github.io/manifesto-cn)**
+### 核心解法：**[“Doc-as-a-Base（文档即库）”](https://geml-spec.github.io/manifesto-cn)**
 
-GEML 不发明新的重型运行时，而是借鉴Roy Fielding博士提出的**[REST]( https://www.ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm )** 架构风格，为纯文本文档引入一组标准操作语义：
+GEML 是一种新格式，但新瓶装的是旧酒：增强和统一Markdown式的表达，剥离HTML式复杂排版语法、围栏块思想来自 Markdown，`#id`和内嵌来自 XML 与 AsciiDoc，行内投影借鉴Obsidian，读写动词借鉴 Roy Fielding 博士提出的 **[REST](https://www.ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm)** 架构风格；新的只是把它们收进同一个块容器。有点像 TypeScript 之于 JavaScript：语法上做不到兼容，但 `list`、`get`、`set`、`add`、`delete` 这些操作已经能直接用在你现有的 Markdown 上。这个块容器为纯文本文档提供一组标准操作语义：
 
 | 传统痛点 | GEML 对应能力 (四大定律) | 给开发者与 Agent 带来的实际价值 |
 | :--- | :--- | :--- |
@@ -152,19 +111,14 @@ GEML 不发明新的重型运行时，而是借鉴Roy Fielding博士提出的**[
 | **坏格式/断引用污染下游** | **校验律 (Validation)** | 构建期自动核验引用与语法，**坏写入挡在落盘之前**，不等人工 review 介入拦截。 |
 | **误改后只能全文件回滚** | **回退律 (Rollback)** | 伴生 `.gemlhistory` 支持**单块原子回退**，不推倒整篇，为 Agent 提供轻量级版本安全网。 |
 
-> **文档需要的不再只是一个格式，而是一组动词。** GEML 让文档既保留纯文本的可读性，又具备确定性的块级操作能力。
-
-> 💡 **深潜阅读：**
-> 如果你对大模型时代工程文档面临的困境、以及我们为什么要重新设计一种纯文本格式感兴趣，请阅读我们博客上的完整文章：[**《为什么大模型时代需要一种全新的文本格式？》**](https://geml-spec.github.io/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms_cn)。
+> **文档需要的不再只是一个格式，而是一组动词。** GEML 让文档既保留纯文本的可读性，又具备确定性的块级操作能力。大模型时代工程文档的困境、为什么要把这些旧做法收进一个新的块容器，完整论证见博客文章[**《为什么大模型时代需要一种全新的文本格式？》**](https://geml-spec.github.io/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms_cn)。
 
 ---
 
 <a id="whats-different"></a>
 ## GEML 有何不同？
 
-GEML 是刻意做小的——设计怎么想的、拒绝了什么、哪些还没定，都在[设计思路](#challenge)。
-
-四样能力上一章已经立好：寻址、投射、校验、回退。这一章直接看各家格式在这四条上落在哪、GEML 划了哪些边界。
+上一章的四样能力——寻址、投射、校验、回退——各家格式分别落在哪，见下表；GEML 刻意做小，拒绝了什么见[设计思路](#challenge)。
 
 ### 与其它格式的比较
 
@@ -249,7 +203,6 @@ Services,  3,  4,  4,  5
 
 `compute` 对各列逐行做 `+ - * / ( )` 运算；`summary` 用聚合 `sum / avg / min / max / count`（并可对聚合结果再做算术，如加权比率）生成表尾一行；列名后的 `[printf]` 控制数字显示。上面的 `n` 就是数行数的写法 —— `count` 数的是某一列的非空单元格，所以对一个常量列求和才是数行。
 
-
 表格还支持用 `src="regions.csv"` 引入外部 CSV。
 
 ### 公式
@@ -305,7 +258,6 @@ xychart-beta
 {"ts":"09:00","p95":41}
 {"ts":"09:10","p95":58}
 ===
-
 ```
 
 `jsonl` 正文一行一条记录，程序可以在文件尾盲追加。记录也可以留在自己的文件里：`src=ops/latency.jsonl#L900-999` 指明文件，并可选地指明一段行窗口——日志照旧被追加、`tail -f`，而文档是它**受校验、可寻址、可作图的那个视图**。
@@ -347,14 +299,9 @@ profile = "geml-style/v1 geml-form/v1"
 
 ### 扩展而不割裂
 
-• 🧩 **像搭乐高一样按需混搭 (Mix & Match)**
-核心语法保持精简、冻结，领域能力在它旁边扩展。代码图谱、样式系统、表单约束、版本回退……一行 `profile = "..."` 即可组合多个专业领域的表达能力。
-
-• ⚡ **无需编写插件，直接用上整套工具链**
-定义新的领域块**不需要开发解析器或写插件**。扩展块和其他块一样，天然具备整套基础设施支持：稳定的 `#id` 寻址、`geml get/set` 局部读写、CLI 动词、MCP 协议以及 AI Agent 的精准操控。
-
-• 🛡️ **天然可移植，永不锁死 (Never Fractured)**
-扩展了能力，却不破坏文档的通用性。不认识某个 profile 的处理器照样能读出每一个块、按 `#id` 寻址，文档换个工具也保持原有结构。
+- 🧩 **像搭乐高一样按需混搭 (Mix & Match)**：核心语法保持精简、冻结，领域能力在它旁边扩展；代码图谱、样式系统、表单约束、版本回退……一行 `profile = "..."` 即可组合多个专业领域的表达能力。
+- ⚡ **无需编写插件，直接用上整套工具链**：定义新的领域块**不需要开发解析器或写插件**，扩展块和其他块一样，天然具备稳定的 `#id` 寻址、`geml get/set` 局部读写、CLI 动词、MCP 协议以及 AI Agent 的精准操控。
+- 🛡️ **天然可移植，永不锁死 (Never Fractured)**：扩展了能力，却不破坏文档的通用性；不认识某个 profile 的处理器照样能读出每一个块、按 `#id` 寻址，文档换个工具也保持原有结构。
 
 ### 官方已落地的 Profile 矩阵
 
@@ -376,16 +323,14 @@ profile = "geml-style/v1 geml-form/v1"
 <a id="hands-on"></a>
 ## 下一步——即刻上手试试
 
-▶ **[到 Playground 试写 GEML](https://geml-spec.github.io/playground/)**——左边编辑、右边实时渲染，引用一断，构建判定当场翻红。无需安装，也不用先读任何东西。
+▶ **[到 Playground 试写 GEML](https://geml-spec.github.io/playground/)**——左边编辑、右边实时渲染；七个章节从类型块、`#id` 讲到坐标、数据、图表与投影，写坏了当场报错。无需安装，也不用先读任何东西。
 
 然后按你顺手的次序：
 
 1. **在浏览器里看它渲染。** 装上**[浏览器扩展](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)**，打开任一 raw `.geml` 链接*（要 raw 文件本身，不是 GitHub 的 blob 页面，那个是 HTML）*：**[GEML 规范本身](https://raw.githubusercontent.com/geml-spec/geml/main/spec/in_geml_format/GEML-spec.geml)**（dogfood，规范本身就是一份 GEML，规模化渲染）、**[showcase](https://raw.githubusercontent.com/geml-spec/geml-spec.github.io/main/public/examples/showcase.geml)**（计算表、四张图、一条 Mermaid 流程、公式），或 **[playground/sample.geml](https://raw.githubusercontent.com/geml-spec/geml-spec.github.io/main/public/playground/sample.geml)** 看交互式代码图。
 2. **看一份文档怎么排成一整页。** [样式演示](https://geml-spec.github.io/demos/style) 是 GitHub blob 页的 1:1 复刻——顶栏、文件树、面包屑、Preview/Code/Blame、下拉菜单——每一个字在 `page.geml`，每一个颜色和尺寸在 `github.style.geml`，而 viewer 两边都不认识。任何浏览器点开就能看——页面由 viewer 自己的代码画出来——生成它的 GEML 就在下面。
-3. **在本地跑起来。** `npm i -g @geml/geml`（Node 22+），然后 `geml check` 一份文档，或对着你自己的仓库跑 `geml codemap build`。
-4. **配好 Claude Code——一条命令。** `npx -y @geml/geml skill install` 把写作技能、CLI、MCP server 一次装到用户全局，所有项目通用；不改任何设置、不装 hook。[详情](#with-an-llm)。
-5. **读语法。** **[完整规范](spec/GEML-spec_CN.md)**（中 / [English](spec/GEML-spec.md)）是规范性文本，短到可以一口气读完。
-6. **或者看逐条图解。** **[GEML 图解](https://geml-spec.github.io/demos#illustrated-syntax)**（中英两版）——11 页自包含页面，每个块类型、每个 profile、以及 CLI 各一页：左边是 GEML，右边是处理器**实际**做了什么（`geml check` 诊断、`geml list` 地址、`--to html` 标记），每条规则都标了出处与状态。
+3. **在本地跑起来。** `npm i -g @geml/geml`（Node 22+），然后 `geml check` 一份文档，或对着你自己的仓库跑 `geml codemap build`；用 Claude Code 的话，`npx -y @geml/geml skill install` 一条命令把写作技能、CLI、MCP server 装到用户全局，不改任何设置、不装 hook（[详情](#with-an-llm)）。
+4. **读语法，或看逐条图解。** **[完整规范](spec/GEML-spec_CN.md)**（中 / [English](spec/GEML-spec.md)）是规范性文本，短到可以一口气读完；**[GEML 图解](https://geml-spec.github.io/demos#illustrated-syntax)**（中英两版）是 11 页自包含页面，每个块类型、每个 profile、以及 CLI 各一页：左边是 GEML，右边是处理器**实际**做了什么（`geml check` 诊断、`geml list` 地址、`--to html` 标记），每条规则都标了出处与状态。
 
 <a id="with-an-llm"></a>
 ## 配合大模型与 agent 使用 GEML
@@ -445,23 +390,12 @@ geml check  doc.geml                                     # 只校验：诊断 + 
 
 ### 设计遵循什么
 
-1. **人机同构，而非两极折中 (Human-Agent Isomorphism)**
-   不是在“人类易读的 Markdown”与“机器可读的 JSON”之间和稀泥，而是把“人可无障碍直读”与“机器可确定性操作”作为同一条不可妥协的设计硬约束。人类看到的是清爽排版，Agent 与程序拿到的是强类型 AST 节点，彻底终结两套信息媒介的转换损耗。
-
-2. **文档即数据库，而非字符流 (Doc-as-a-Base)**
-   传统文档是一串扁平脆弱的字符流，修改一处往往需要整篇重写；GEML 把文档视为由结构化记录与稳定主键（`#id`）构成的微型数据库。每个区块拥有独立的生命周期、坐标系统与原子级 CRUD 操作接口，天然契合 Agent 的 O(1) 级精准读写。
-
-3. **单一语法原语，词汇无界外延 (One Primitive, Infinite Vocabularies)**
-   拒绝为每种内容发明专有语法补丁。全语言仅凭唯一的**类型块（Typed Block）原语**承载代码、数据、图表、计算与排版；通过 **Profile 机制**开放无限的领域词汇扩展，语法 100% 收敛冻结，词汇 100% 自由扩展，从根源上消灭方言割裂。
-
-4. **消除复制动机，而非仅修补死链 (Transclusion over Duplication)**
-   传统超链接是“路标”，诱导人们反复 copy-paste 导致分布式副本迅速漂移；GEML 的引用是“动态视窗”（`=== embed`）。一处定义，处处实时投影，从源头消灭冗余副本，捍卫唯一的“真相源（Single Source of Truth）”。
-
-5. **像对待代码一样对待文档 (Compiler-Grade Integrity)**
-   Markdown 的信条是“永不报错，凑合渲染”，这是 Agent 幻觉失控与知识腐化的温床；GEML 奉行严格的构建期静态强检。断掉的 `#id`、非法属性、隐式循环在构建期直接拦截（Non-zero exit），宁可构建报错，绝不把坏数据留给下游。
-
-6. **以伴生历史捍卫 Local-First，而非云端锁定 (Local-First History over Cloud Lock-in)**
-   数据的归宿在本地，版本的粒度在区块。GEML 拒绝将历史追溯绑架在中心化云端服务（如 Notion / Google Docs），也不强依赖笨重的全库 Git 提交。通过紧邻文档的伴生 `.gemlhistory`，让纯文本天然具备**本地优先（Local-First）的块级原子快照与秒级回退能力**（`geml revert doc.geml '#id'`），把数据主权与版本安全网牢牢留在本地。
+1. **人机同构，而非两极折中 (Human-Agent Isomorphism)**：不在「人读的 Markdown」和「机器读的 JSON」之间折中，而把「人可直读」与「机器可确定性操作」当作同一条硬约束——人看到清爽的排版，Agent 拿到强类型的 AST。
+2. **文档即库，而非字符流 (Doc-as-a-Base)**：文档是由结构化记录与稳定主键（`#id`）构成的库，每个区块有独立的生命周期、坐标与原子级 CRUD 接口，Agent 按块精准读写，不再改一处就整篇重写。
+3. **单一语法原语，词汇开放扩展 (One Primitive, Open Vocabularies)**：只用一种**类型块（Typed Block）原语**承载代码、数据、图表、计算与排版；领域词汇通过 **Profile 机制**扩展，语法保持冻结、词汇保持开放，从根源上避免各自发明方言造成割裂。
+4. **消除复制动机，而非仅修补死链 (Transclusion over Duplication)**：超链接只是路标，诱人复制粘贴、副本漂移；GEML 的引用是动态视窗（`=== embed`），一处定义，处处实时投影。
+5. **像对待代码一样对待文档 (Compiler-Grade Integrity)**：Markdown 永不报错、凑合渲染；GEML 在构建期严格校验，断掉的 `#id`、成环的引用直接以非零退出码拦下，坏数据不留给下游。
+6. **以伴生历史捍卫 Local-First，而非云端锁定 (Local-First History over Cloud Lock-in)**：版本的粒度在区块，历史放在文档旁的 `.gemlhistory` 里，不依赖云端服务，也不为微小改动走整库 Git 提交；`geml revert doc.geml '#id'` 单块回退。
 
 ### 于是拒绝了这些
 
@@ -475,33 +409,19 @@ geml check  doc.geml                                     # 只校验：诊断 + 
 <a id="roadmap"></a>
 ## 路线图
 
-- [x] GEML `1.0` 规范，中英双语，配一致性测试集——外加定义 `.gemlhistory` 的 `geml-history/v1` profile
+- [x] 规范与实现：GEML `1.0` 规范（中英双语，配一致性测试集与定义 `.gemlhistory` 的 `geml-history/v1` profile）；参考实现 `@geml/geml`（解析器、CLI、块级 `.gemlhistory` 追踪）；第二个实现 [`geml-parser-rs/`](geml-parser-rs/)——Rust 编写、编译为 WebAssembly，只依据规范与一致性测试集写成，没有读过参考解析器的代码
 - [x] [MIME媒体类型](https://www.iana.org/assignments/media-types/media-types.xhtml) `text/vnd.geml` [已在 IANA 注册](https://www.iana.org/assignments/media-types/text/vnd.geml)（2026-10-26），以规范为已发布规范文件、以本项目为变更控制方
-- [x] 参考实现 `@geml/geml`：解析器、CLI、块级 `.gemlhistory` 追踪
-- [x] 官方 MCP server（`geml mcp`），接入 Claude Code / Cursor / Codex 等支持 MCP 的环境
-- [x] codemap：把整个代码库的调用图写成 GEML
-- [x] VS Code 插件已上架 Visual Studio Marketplace（publisher `geml`）
+- [x] 工具：官方 MCP server（`geml mcp`，接入 Claude Code / Cursor / Codex 等支持 MCP 的环境）；codemap，把整个代码库的调用图写成 GEML；VS Code 插件已上架 Visual Studio Marketplace（publisher `geml`）
 - [x] 生态集成：VS Code 语法高亮与引用检查、tree-sitter、Obsidian、Logseq（对活的 DB graph 双向同步）、浏览器 viewer、GitHub Action、LangChain / LlamaIndex，以及 agent 宿主插件——Claude Code、Codex、Grok、DeepSeek Harness，外加 Gemini CLI 与 Kimi Code 两份根清单
 - [ ] Logseq 插件上架 Logseq 市场（[PR #893](https://github.com/logseq/marketplace/pull/893)）、Grok 插件上架 `xai-org/plugin-marketplace`
-- [x] 第二个实现 [`geml-parser-rs/`](geml-parser-rs/)——Rust 编写、编译为 WebAssembly，只依据规范与一致性测试集写成，没有读过参考解析器的代码
-- [ ] 他人写的实现——Python，或任何你顺手的语言；规范与一致性测试集都是公开的，我们乐意帮着对齐
+- [ ] 他人写的实现——任何你顺手的语言；规范与一致性测试集都是公开的，我们乐意帮着对齐
 
 ---
 
 <a id="integrations"></a>
 ## 在哪能用
 
-| | 在哪 | 状态 |
-| :--- | :--- | :--- |
-| **命令行**——校验、转换、按块编辑、历史、codemap | [`@geml/geml`](https://www.npmjs.com/package/@geml/geml) · [源码](geml-parser/) | 可用 |
-| **浏览器**——打开任意 raw `.geml` 链接就地渲染 | [Chrome 应用商店](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie) · [源码](integrations/chrome-geml-viewer/) | 可用 |
-| **VS Code**——高亮、引用校验、给聊天用的 MCP | [Marketplace](https://marketplace.visualstudio.com/items?itemName=geml.geml) · [源码](integrations/vscode/) | 可用 |
-| **IntelliJ / Android Studio** | [`integrations/intellij+androidstudio-plugin/`](integrations/intellij+androidstudio-plugin/) | 需自行构建 |
-| **Logseq**——DB 图谱同步成 GEML 文件 | [`@geml/logseq-sync`](https://www.npmjs.com/package/@geml/logseq-sync) · [源码](integrations/logseq/) | watcher 已上 npm；插件市场 [PR #893](https://github.com/logseq/marketplace/pull/893) 待合并 |
-| **Obsidian** | [`integrations/obsidian/`](integrations/obsidian/) | 已构建，未上架 |
-| **GitHub Action**——在 CI 里跑 `geml check` | [`integrations/geml-check-action/`](integrations/geml-check-action/) | 可用 |
-| **LangChain / LlamaIndex**——一块一个 chunk | [`integrations/langchain+llamaindex/`](integrations/langchain+llamaindex/) | 参考实现 |
-| **免安装** | [Playground](https://geml-spec.github.io/playground/) | 可用 |
+命令行 [`@geml/geml`](https://www.npmjs.com/package/@geml/geml) · 浏览器 [Chrome 扩展](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie) · [VS Code](https://marketplace.visualstudio.com/items?itemName=geml.geml) · [IntelliJ / Android Studio](integrations/intellij+androidstudio-plugin/)（需自行构建）· [GitHub Action](integrations/geml-check-action/) · [LangChain / LlamaIndex](integrations/langchain+llamaindex/)（参考实现）· 免安装的 [Playground](https://geml-spec.github.io/playground/)。
 
 <a id="contributing"></a>
 ## 参与我们
