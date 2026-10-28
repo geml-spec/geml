@@ -76,12 +76,55 @@ no DCO: a `Signed-off-by` line is welcome but not required.
 ## Tooling & integrations
 
 All welcome, and among the best first contributions. Several already exist —
-a browser viewer, a VS Code extension, an Obsidian plugin, a CI action — so
-check what is open before you start: the README's
-**[claim a piece](README.md#integrations)** table is the one list of the gaps
-that are open right now, with what each one takes, and the table under it lists
-every shipped integration with its current state. Open an issue to claim one so
-we can link it.
+the README's [where it runs](README.md#integrations) table lists every shipped
+integration with its current state. These are the gaps open right now, with what
+each one takes; open an issue to claim one so we can link it.
+
+| Gap | Where it stands | What it takes |
+|---|---|---|
+| **Skill installation for more agent tools** | Gemini CLI, Qwen Code and AGENTS.md are installed by detection already; the MCP server works with any client | Add the rest the same way: **Cursor**, **GitHub Copilot**, **Cline** — their rule-file conventions move fast, so check the current docs before writing one in |
+| **How well the primer holds on other models** | Only exercised on Claude | Have GPT / Gemini / a local model each write a batch of GEML from the primer, count how many pass `geml check` first time, and report the rules they keep getting wrong — those are the ones the primer should name |
+| **Deeper Obsidian integration** | Renders, but not in the community store yet | Editing at the CodeMirror layer and seamless two-way rendering, plus the store submission itself. Wants someone who knows the Obsidian API. |
+| **The viewer on other browsers** | Chrome works | Firefox / Safari ports. |
+| **Packaging the RAG integrations** | LangChain / LlamaIndex are reference implementations | Publishing to PyPI; and wiring up other frameworks (Haystack, DSPy, …). |
+
+## Repository layout
+
+```
+spec/                  The specification as .md (EN / 中文) and the CC-BY spec
+                       license, with profiles/ (application layers — geml-history,
+                       geml-codemap, geml-style, geml-form, geml-media,
+                       geml-translator, geml-statechart — each a reference beside
+                       a one-page usage guide) and proposals/ (GEPs), both MIT
+spec/in_geml_format/   The dogfood: the specification written in GEML, with its
+                       .gemlhistory sidecar
+geml-parser/           Reference parser, renderer, CLI + codemap toolkit (TypeScript, Node 22)
+geml-parser-rs/        The second implementation: the same spec in Rust, compiled to
+                       WebAssembly, written from the spec and the conformance suite alone
+integrations/          Everywhere GEML plugs in: chrome-geml-viewer (browser extension),
+                       geml-check-action (CI), vscode, intellij+androidstudio-plugin,
+                       obsidian, logseq (two-way vault sync + the watcher), tree-sitter (brief),
+                       langchain+llamaindex (RAG loaders), windows-icon
+                       (Explorer file icons), geml-mcp-worker (the hosted MCP
+                       server, a Cloudflare Worker), the agent-harness plugins —
+                       claude-plugin, codex-plugin, grok-plugin, dsh-plugin — and
+                       website (what this repository pushes to the site)
+.agents/, .claude-plugin/   Plugin marketplace manifests, so the plugins show up
+                       from a checkout (Codex `/plugins`, Claude Code `/plugin`)
+docs/                  Guides (MCP, writing a parser), design records, the release
+                       runbook, assets (logos)
+.claude/skills/        Claude skills: GEML authoring, and the code graph
+.github/               CI, security-scan, release and site workflows (npm, MCP
+                       registry, VS Code, viewer, website), issue templates (bug,
+                       GEP, new implementation) and the PR template
+(website)              The homepage, playground, demos, blog, comparisons,
+                       benchmarks, manifesto and illustrated pages live in their
+                       own repository, geml-spec/geml-spec.github.io, which links
+                       here for the spec and guides; the website workflow pushes it
+                       the playground bundle, code graph and logos. What
+                       this repository publishes at geml-spec.github.io/geml/ is
+                       site/ — a forward to the same path on the new site.
+```
 
 ## Reporting bugs
 

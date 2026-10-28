@@ -552,29 +552,15 @@ one client entry instead of two. Every tool and option:
 <a id="maturity"></a>
 ## Ecosystem and maturity
 
-GEML is a small, young spec — but a **stable** one: **`1.0`** is released and usable for real documents (this repo's own spec is one), with a strict conformance suite, a reference implementation that passes it **(versioned independently of the spec)**, and an open proposal process.
-
-There is **one** specification, and it is bilingual. The `.gemlhistory` sidecar
-is defined by the `geml-history/v1` **profile** — an application layer on top of
-the spec rather than part of it, which is also why it is MIT and the spec is
-CC-BY ([`LICENSE-spec.md`](spec/LICENSE-spec.md) says why):
-
-| Document | English | 中文 |
-|----------|---------|------|
-| The specification | [`GEML-spec.md`](spec/GEML-spec.md) | [`GEML-spec_CN.md`](spec/GEML-spec_CN.md) |
-| `geml-history/v1` profile | [`geml-history-profile.md`](spec/profiles/geml-history/geml-history-profile.md) | [`geml-history-profile_CN.md`](spec/profiles/geml-history/geml-history-profile_CN.md) |
-
-Every profile this project publishes: [`spec/profiles/`](spec/profiles/README.md).
-
-### Versions and compatibility
-
-- **Self-hosting** — [`GEML-spec.geml`](spec/in_geml_format/GEML-spec.geml) is the specification written in GEML, required to parse clean on every test run.
-- **A [conformance suite](geml-parser/test/conformance/)** is what holds separate implementations compatible.
-- **A reference implementation of the parser.** **1,700+** unit tests today, plus the conformance corpus, round-trip serialization and end-to-end CLI runs, with coverage CI-gated at ≥**95%** lines / statements / functions / branches.
-- **Forward compatibility is in the grammar.** A processor must degrade gracefully on constructs it does not recognize (spec §8.2), which is why adding a block type or a diagram format is **not** a breaking change. The type registry is open: an unregistered type name should contain a hyphen (`acme-invoice`), leaving hyphen-free names to future versions of the spec (§8.5).
-- **Claiming conformance.** An implementation may call itself *conformant to GEML 1.0* once it reproduces the conformance suite case for case (§8.5). No permission needed, and no sign-off from this repo.
-- **On the wire.** Extension `.geml` (version sidecar `.gemlhistory`), media type [`text/vnd.geml`](https://www.iana.org/assignments/media-types/text/vnd.geml) — registered with IANA (2026-10-26) in the vendor tree; the standards-tree `text/geml` can be applied for if the spec is ever published through the IETF.
-- A fragment identifier on a `.geml` URL names the block bearing that id (§0.6) — which is not what `#tag` means on an HTML page.
+- **Spec `1.0` is stable**, in [English](spec/GEML-spec.md) and [中文](spec/GEML-spec_CN.md),
+  and is itself [written in GEML](spec/in_geml_format/GEML-spec.geml). Media type
+  [`text/vnd.geml`](https://www.iana.org/assignments/media-types/text/vnd.geml), registered with IANA.
+- **Two implementations** pass the same [conformance suite](geml-parser/test/conformance/)
+  of 800+ cases: the reference parser [`geml-parser/`](geml-parser/) (TypeScript, 2,300+
+  unit tests, coverage gated at 95%) and [`geml-parser-rs/`](geml-parser-rs/) (Rust and
+  WebAssembly, written from the spec and the suite alone).
+- **Forward compatible by grammar**: a processor degrades gracefully on what it doesn't
+  know (§8.2), so a new block type is not a breaking change. Releases: [`CHANGELOG.md`](CHANGELOG.md).
 
 <a id="challenge"></a>
 ## How we thought about the design
@@ -624,117 +610,39 @@ Every profile this project publishes: [`spec/profiles/`](spec/profiles/README.md
 
 ---
 
+<a id="integrations"></a>
+## Where it runs
+
+| | Where | State |
+| :--- | :--- | :--- |
+| **CLI** — check, convert, edit by block, history, codemap | [`@geml/geml`](https://www.npmjs.com/package/@geml/geml) · [source](geml-parser/) | available |
+| **Browser** — any raw `.geml` link renders in place | [Chrome Web Store](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie) · [source](integrations/chrome-geml-viewer/) | available |
+| **VS Code** — highlighting, reference checking, MCP for chat | [Marketplace](https://marketplace.visualstudio.com/items?itemName=geml.geml) · [source](integrations/vscode/) | available |
+| **IntelliJ / Android Studio** | [`integrations/intellij+androidstudio-plugin/`](integrations/intellij+androidstudio-plugin/) | build from source |
+| **Logseq** — a DB graph synced as GEML files | [`@geml/logseq-sync`](https://www.npmjs.com/package/@geml/logseq-sync) · [source](integrations/logseq/) | watcher on npm; marketplace [PR #893](https://github.com/logseq/marketplace/pull/893) open |
+| **Obsidian** | [`integrations/obsidian/`](integrations/obsidian/) | built, not in the store |
+| **GitHub Action** — `geml check` in CI | [`integrations/geml-check-action/`](integrations/geml-check-action/) | available |
+| **LangChain / LlamaIndex** — one chunk per block | [`integrations/langchain+llamaindex/`](integrations/langchain+llamaindex/) | reference implementation |
+| **No install** | [Playground](https://geml-spec.github.io/playground/) | available |
+
 <a id="contributing"></a>
 ## Take part
 
-GEML is `1.0`, but "stable" means **the rules already there won't shift under you**,
-not that the design is settled. There are two implementations so far, but **one author**
-behind both — so there is still **one set of opinions** behind the spec. Your thinking can still change the spec itself.
-If you want a hand in it:
+`1.0` means the rules already there won't shift under you — not that the design is
+settled, and there is one author behind both implementations so far.
 
-**Come argue about these**, the proposals still in draft:
-
-- [GEP-0008 · A `form` typed block — addressable fields, an inert destination](spec/proposals/0008-form-block.md)
-- [GEP-0010 · Projections along the language axis — a translated document is a view, not a copy](spec/proposals/0010-language-projections.md)
-
-Something else on your mind? [Start a discussion](https://github.com/geml-spec/geml/discussions/new/choose).
-
-<a id="integrations"></a>
-Or **claim a piece**:
-
-| Gap | Where it stands | What it takes |
-|---|---|---|
-| **Skill installation for more agent tools** | Gemini CLI, Qwen Code and AGENTS.md are installed by detection already; the MCP server works with any client | Add the rest the same way: **Cursor**, **GitHub Copilot**, **Cline** — their rule-file conventions move fast, so check the current docs before writing one in |
-| **How well the primer holds on other models** | Only exercised on Claude | Have GPT / Gemini / a local model each write a batch of GEML from the primer, count how many pass `geml check` first time, and report the rules they keep getting wrong — those are the ones the primer should name |
-| **Deeper Obsidian integration** | Renders, but not in the community store yet | Editing at the CodeMirror layer and seamless two-way rendering, plus the store submission itself. Wants someone who knows the Obsidian API. |
-| **The viewer on other browsers** | Chrome works | Firefox / Safari ports. |
-| **Packaging the RAG integrations** | LangChain / LlamaIndex are reference implementations | Publishing to PyPI; and wiring up other frameworks (Haystack, DSPy, …). |
-
-- **Write an implementation of the spec in your language** — a new GEML parser, from the spec alone ([how to write a parser](docs/WRITING-A-PARSER.md)); [`geml-parser-rs/`](geml-parser-rs/) was written that way and is the worked example to compare against
-- **Finding the places where the spec is ambiguous is itself the contribution**, whether or not that parser ever ships.
-
-Or **propose something new**:
-
-- A GEP: the proposal, the spec edit and the conformance cases land together ([process](spec/proposals/README.md))
-
-Or **put it to use**:
-
-| Scenario | Where | State |
-|---|---|---|
-| **From the command line** — validate, convert, edit by block, version history, all in one command | [`@geml/geml`](https://www.npmjs.com/package/@geml/geml) (source [`geml-parser/`](geml-parser/)) | Available |
-| **Read it in the browser** — open any raw `.geml` link and it renders in place: computed tables, charts, Mermaid, math, with diagnostics as a banner | [Chrome Web Store](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie) · [source](integrations/chrome-geml-viewer/) | Available |
-| **Let an agent edit by block** — an MCP server; the agent changes one block instead of rewriting the file, and every write is validated before it reaches disk | [`docs/mcp-guide.md`](docs/mcp-guide.md) | Available |
-| **Use it from DeepSeek Harness** — the geml MCP server plus the authoring and code-graph skills, one installable bundle | [`@geml/dsh-plugin`](https://www.npmjs.com/package/@geml/dsh-plugin) · [dshmarket](https://dshmarket.com/p/geml-spec/geml--integrations-dsh-plugin/) · [source](integrations/dsh-plugin/) | Available |
-| **Use it from Codex** — the same payload again: both skills, the MCP server, and a `SessionStart` hook, installable from `/plugins` | [`integrations/codex-plugin/`](integrations/codex-plugin/) | Available from this repo; not in the public plugin directory yet |
-| **Use it from Grok** — the same payload once more: both skills and the MCP server | [`integrations/grok-plugin/`](integrations/grok-plugin/) | Available from this repo; the `xai-org/plugin-marketplace` PR is not opened yet |
-| **Sync a Logseq graph to plain text** — a Logseq 2.0 DB graph as continuously synced GEML files, addressable and git-friendly, with `restore` as the way back | [`@geml/logseq-sync`](https://www.npmjs.com/package/@geml/logseq-sync) · [source](integrations/logseq/) | Watcher on npm; the plugin installs from a release zip — the marketplace listing ([PR #893](https://github.com/logseq/marketplace/pull/893)) is not merged yet |
-| **Turn a codebase into a document** — the whole call graph as a tree of GEML documents, browsable | `geml codemap build` ([guide](spec/profiles/geml-codemap/geml-codemap-guide.md) · [design](docs/design/specs/geml-codemap/DESIGN-geml-code-graph.md)) | Available |
-| **Write it in your editor** — syntax highlighting + build-time reference checking | [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=geml.geml) · [source](integrations/vscode/) | Available |
-| **Write it in Android Studio / IntelliJ** — highlighting, diagnostics as you type, preview, structure view, block revert from `.gemlhistory` | [`integrations/intellij+androidstudio-plugin/`](integrations/intellij+androidstudio-plugin/) | Built; installs from a zip you build (Install Plugin from Disk), not on the JetBrains Marketplace |
-| **Render it in Obsidian** — the reference parser + the viewer's renderer, the same code path as the web | [`integrations/obsidian/`](integrations/obsidian/) | Built, not in the community store |
-| **Feed a RAG / agent framework** — block-level loaders (one chunk per block, carrying `block_id`) + agent editing tools | [`integrations/langchain+llamaindex/`](integrations/langchain+llamaindex/) | Reference implementation |
-| **Try it without installing anything** — edit on the left, live render on the right | [Playground](https://geml-spec.github.io/playground/) | Available |
-
-Three files to read first: [`GOVERNANCE.md`](GOVERNANCE.md) for how decisions get
-made, [`CONTRIBUTING.md`](CONTRIBUTING.md) for how to send work, and
-[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) for the one rule about people —
-disagree with the design as sharply as you like, not with the person.
-
-## Repository layout
-
-```
-spec/                  The specification as .md (EN / 中文) and the CC-BY spec
-                       license, with profiles/ (application layers — geml-history,
-                       geml-codemap, geml-style, geml-form, geml-media,
-                       geml-translator — each a reference beside a one-page usage
-                       guide) and proposals/ (GEPs), both MIT
-spec/in_geml_format/   The dogfood: the specification written in GEML, with its
-                       .gemlhistory sidecar
-geml-parser/           Reference parser, renderer, CLI + codemap toolkit (TypeScript, Node 22)
-geml-parser-rs/        The second implementation: the same spec in Rust, compiled to
-                       WebAssembly, written from the spec and the conformance suite alone
-integrations/          Everywhere GEML plugs in: chrome-geml-viewer (browser extension),
-                       geml-check-action (CI), vscode, intellij+androidstudio-plugin,
-                       obsidian, logseq (two-way vault sync + the watcher), tree-sitter (brief),
-                       langchain+llamaindex (RAG loaders), windows-icon
-                       (Explorer file icons), the agent-harness plugins —
-                       claude-plugin, codex-plugin, grok-plugin, dsh-plugin — and
-                       website (what this repository pushes to the site)
-.agents/, .claude-plugin/   Plugin marketplace manifests, so the plugins show up
-                       from a checkout (Codex `/plugins`, Claude Code `/plugin`)
-docs/                  Guides (MCP, writing a parser), design records, the release
-                       runbook, assets (logos)
-.claude/skills/        Claude skills: GEML authoring, and the code graph
-.github/               CI, security-scan, release and site workflows (npm, MCP
-                       registry, VS Code, viewer, website), issue templates (bug,
-                       GEP, new implementation) and the PR template
-(website)              The homepage, playground, demos, blog, comparisons,
-                       benchmarks, manifesto and illustrated pages live in their
-                       own repository, geml-spec/geml-spec.github.io, which links
-                       here for the spec and guides; the website workflow pushes it
-                       the playground bundle, code graph and logos. What
-                       this repository publishes at geml-spec.github.io/geml/ is
-                       site/ — a forward to the same path on the new site.
-```
+- **Write a parser in your language** — [how](docs/WRITING-A-PARSER.md); finding where
+  the spec is ambiguous is itself the contribution.
+- **Argue with the drafts** — [GEP-0008](spec/proposals/0008-form-block.md) and
+  [GEP-0010](spec/proposals/0010-language-projections.md), or
+  [start a discussion](https://github.com/geml-spec/geml/discussions/new/choose).
+- **Claim a piece** — the open gaps, and the repository layout, are in
+  [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 <a id="license"></a>
 ## License & governance
 
-**Code is MIT** ([`LICENSE`](LICENSE)): everything in this repository —
-`geml-parser/`, `geml-parser-rs/`, all of `integrations/`, `.claude/skills/`, `docs/`,
-the profiles in `spec/profiles/`, the GEPs in `spec/proposals/` — except the specification documents.
-
-**The specification documents are CC-BY-4.0** ([`LICENSE-spec.md`](spec/LICENSE-spec.md),
-which lists them exactly): `spec/GEML-spec*` and `spec/in_geml_format/*`. There is one
-specification; the profiles under `spec/profiles/` are application layers and are MIT.
-A spec is not software, so anyone may build a conformant
-implementation without permission — and call it *conformant to GEML 1.0* once it
-passes the [conformance suite](geml-parser/test/conformance/).
-
-**Using the name.** You need no permission to implement GEML, to name an
-implementation after the format (`geml-rs`, `pygeml`, a `geml` package on your
-language's registry), or to state that your tool reads and writes GEML. Two
-requests, neither of them a legal restriction: call an implementation *conformant to
-GEML 1.0* only once it passes the conformance suite, and don't imply that this
-project wrote, endorses, or maintains it. Attribution for the specification text
-itself is what CC-BY-4.0 already asks for.
+Code is MIT ([`LICENSE`](LICENSE)); the specification documents are CC-BY-4.0
+([`spec/LICENSE-spec.md`](spec/LICENSE-spec.md) lists them). Anyone may build a
+conformant implementation without permission; how decisions are made and how to use
+the name: [`GOVERNANCE.md`](GOVERNANCE.md).

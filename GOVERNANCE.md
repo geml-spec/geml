@@ -55,3 +55,13 @@ One change has so far landed under 1.0 without a version bump:
 block-target `src=` off `table` onto the new `view` block. Its
 *Compatibility & migration* section records the break and the migration
 surface, and [`CHANGELOG.md`](CHANGELOG.md) records it under `1.10.0`.
+
+## Using the name
+
+You need no permission to implement GEML, to name an
+implementation after the format (`geml-rs`, `pygeml`, a `geml` package on your
+language's registry), or to state that your tool reads and writes GEML. Two
+requests, neither of them a legal restriction: call an implementation *conformant to
+GEML 1.0* only once it passes the conformance suite, and don't imply that this
+project wrote, endorses, or maintains it. Attribution for the specification text
+itself is what CC-BY-4.0 already asks for.

@@ -526,28 +526,14 @@ npx -y @geml/geml skill install
 <a id="maturity"></a>
 ## 生态成熟度
 
-GEML 是一份小而年轻的规范，但已经**稳定**：已发布 **`1.0`**，可用来写真实文档（本仓库的规范本身就是一例）；有一套严格的一致性测试集、一个解析器的参考实现**（独立于规范的版本）**，以及一个开放的提案流程。
-
-规范**只有一份**（§0–§9，另有附录 A/B），中英双语。`.gemlhistory` 伴生文件由
-`geml-history/v1` **profile** 定义——它是规范之上的应用层，不属于规范本身，这也是
-它为 MIT 而规范为 CC-BY 的原因（理由见 [`LICENSE-spec.md`](spec/LICENSE-spec.md)）：
-
-| 文档 | English | 中文 |
-|------|---------|------|
-| 规范 | [`GEML-spec.md`](spec/GEML-spec.md) | [`GEML-spec_CN.md`](spec/GEML-spec_CN.md) |
-| `geml-history/v1` profile | [`geml-history-profile.md`](spec/profiles/geml-history/geml-history-profile.md) | [`geml-history-profile_CN.md`](spec/profiles/geml-history/geml-history-profile_CN.md) |
-
-本项目发布的全部 profile：[`spec/profiles/`](spec/profiles/README.md)。
-
-### 版本与兼容性
-
-- **自举**——[`GEML-spec.geml`](spec/in_geml_format/GEML-spec.geml) 是用 GEML 写成的规范本身，每次测试都要求被干净解析。
-- **[一致性测试集](geml-parser/test/conformance/)** 支持不同实现的兼容性。
-- **解析器的参考实现。** 当前单元测试 **1,700+** 项，一致性语料、往返序列化，以及端到端 CLI 运行，覆盖率由 CI 卡在行/语句/函数/分支均 ≥**95%**。
-- **前向兼容写在语法里。** 处理器遇到不认识的构造必须优雅降级（规范 §8.2），所以新增一种块类型或图格式**不算**破坏性变更。类型注册表是开放的：未注册的类型名建议包含连字符（如 `acme-invoice`），把不含连字符的名字留给规范的未来版本（§8.5）。
-- **如何声明合规。** 一个实现逐用例复刻出一致性测试集的结果后，即可声明自己「符合 GEML 1.0」（§8.5）。不需要许可，也不需要本仓库背书。
-- **对外标识。** 扩展名 `.geml`（版本伴生文件 `.gemlhistory`），媒体类型 [`text/vnd.geml`](https://www.iana.org/assignments/media-types/text/vnd.geml)——已于 2026-10-26 在 IANA 注册，属厂商树；标准树的 `text/geml` 要等规范经 IETF 发布后才可申请。
-- `.geml` URL 上的片段标识符指向携带该 id 的那一块（§0.6）——这与 HTML 页面的 #tag 含义不同。
+- **规范 `1.0` 已稳定**，有[中文](spec/GEML-spec_CN.md)和[英文](spec/GEML-spec.md)版，本身也
+  [用 GEML 写成](spec/in_geml_format/GEML-spec.geml)。媒体类型
+  [`text/vnd.geml`](https://www.iana.org/assignments/media-types/text/vnd.geml) 已在 IANA 注册。
+- **两个实现**通过同一套 800+ 条用例的[一致性测试集](geml-parser/test/conformance/)：参考实现
+  [`geml-parser/`](geml-parser/)（TypeScript，2,300+ 项单元测试，覆盖率卡在 95%）和
+  [`geml-parser-rs/`](geml-parser-rs/)（Rust 与 WebAssembly，只依据规范与测试集写成）。
+- **前向兼容写在语法里**：处理器遇到不认识的构造必须优雅降级（§8.2），所以新增块类型不算破坏性
+  变更。各版本见 [`CHANGELOG.md`](CHANGELOG.md)。
 
 <a id="challenge"></a>
 ## 设计时我们怎么想的
@@ -597,104 +583,34 @@ GEML 是一份小而年轻的规范，但已经**稳定**：已发布 **`1.0`**�
 
 ---
 
+<a id="integrations"></a>
+## 在哪能用
+
+| | 在哪 | 状态 |
+| :--- | :--- | :--- |
+| **命令行**——校验、转换、按块编辑、历史、codemap | [`@geml/geml`](https://www.npmjs.com/package/@geml/geml) · [源码](geml-parser/) | 可用 |
+| **浏览器**——打开任意 raw `.geml` 链接就地渲染 | [Chrome 应用商店](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie) · [源码](integrations/chrome-geml-viewer/) | 可用 |
+| **VS Code**——高亮、引用校验、给聊天用的 MCP | [Marketplace](https://marketplace.visualstudio.com/items?itemName=geml.geml) · [源码](integrations/vscode/) | 可用 |
+| **IntelliJ / Android Studio** | [`integrations/intellij+androidstudio-plugin/`](integrations/intellij+androidstudio-plugin/) | 需自行构建 |
+| **Logseq**——DB 图谱同步成 GEML 文件 | [`@geml/logseq-sync`](https://www.npmjs.com/package/@geml/logseq-sync) · [源码](integrations/logseq/) | watcher 已上 npm；插件市场 [PR #893](https://github.com/logseq/marketplace/pull/893) 待合并 |
+| **Obsidian** | [`integrations/obsidian/`](integrations/obsidian/) | 已构建，未上架 |
+| **GitHub Action**——在 CI 里跑 `geml check` | [`integrations/geml-check-action/`](integrations/geml-check-action/) | 可用 |
+| **LangChain / LlamaIndex**——一块一个 chunk | [`integrations/langchain+llamaindex/`](integrations/langchain+llamaindex/) | 参考实现 |
+| **免安装** | [Playground](https://geml-spec.github.io/playground/) | 可用 |
+
 <a id="contributing"></a>
 ## 参与我们
 
-GEML 已是 `1.0`，但「稳定」是指**已有规则不会在你脚下变动**，不是设计已经定死。
-目前有两个实现，但出自**同一位作者**，所以规范背后仍然只有**一套意见**。你的想法可以改动规范本身。
-如果有兴趣参与，可以：
+`1.0` 是指已有规则不会在你脚下变动，不是设计已经定死；目前两个实现出自同一位作者。
 
-**一起来讨论**这几份还在草案阶段的提案：
-
-- [GEP-0008 · `form` 块——可寻址的字段，惰性的提交目标](spec/proposals/0008-form-block.md)
-- [GEP-0010 · 沿语言轴的投影——译文是视图，不是副本](spec/proposals/0010-language-projections.md)
-
-还有别的想法？[发起一个讨论](https://github.com/geml-spec/geml/discussions/new/choose)。
-
-<a id="integrations"></a>
-或者**认领一件事**：
-
-| 缺口 | 现状 | 要做的事 |
-|---|---|---|
-| **把技能装进更多 agent 工具** | 已按目录检测自动装 Gemini CLI、Qwen Code、AGENTS.md；MCP server 任何客户端都能接 | 照同一套加别家：**Trae**、**通义灵码**——各自的规则文件约定变得快，动手前先查官方文档，别照抄记忆 |
-| **国产模型上的 primer 通过率** | 只在 Claude 上验过 | 拿 primer 让 DeepSeek / Qwen / Kimi 各写若干篇 GEML，用 `geml check` 统计一次过的比例，把总写错的规则报回来——primer 就该点名那几条 |
-| **Obsidian 深度集成** | 能渲染，但尚未上架社区商店 | CodeMirror 层面的编辑与无缝双向渲染，以及上架本身。需要熟悉 Obsidian API 的人。 |
-| **viewer 的其它浏览器** | Chrome 可用 | Firefox / Safari 移植。 |
-| **RAG 集成打包** | LangChain / LlamaIndex 是参考实现 | 发到 PyPI；以及接其它框架（Haystack、DSPy…）。 |
-
-- **用你的语言写一个规范的实现**——只照规范写一个新的 GEML 解析器（[怎么写一个解析器](docs/WRITING-A-PARSER_CN.md)）；[`geml-parser-rs/`](geml-parser-rs/) 就是这么写出来的，可以拿来对照
-- **找出规范里有歧义的地方，这件事本身就是贡献**，不管那个解析器最后有没有发布。
-
-或者**提个新建议**：
-
-- 走 GEP：提案 + 规范改动 + 一致性用例，三件套一起落地（[流程](spec/proposals/README.md)）
-
-或者**在这些场景用起来**：
-
-| 场景 | 在哪 | 状态 |
-|---|---|---|
-| **不装任何东西先试** —— 左边编辑、右边实时渲染 | [Playground](https://geml-spec.github.io/playground/) | 可用 |
-| **在浏览器里读** —— 打开任一 raw `.geml` 链接就地渲染：计算表格、图表、Mermaid、公式，诊断以横幅呈现 | [Chrome 应用商店](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie) · [源码](integrations/chrome-geml-viewer/) | 可用 |
-| **命令行** —— 文档的整个生命周期都可以用 geml 命令操作 | [`@geml/geml`](https://www.npmjs.com/package/@geml/geml)（源码 [`geml-parser/`](geml-parser/)） | 可用 |
-| **用 codemap 帮你理解项目** —— 整个调用图写成 GEML 文档树，可交互浏览 | `geml codemap build`（[使用指南](spec/profiles/geml-codemap/geml-codemap-guide_CN.md) · [设计](docs/design/specs/geml-codemap/DESIGN-geml-code-graph.md)） | 可用 |
-| **让 agent 按块改文档** —— 自带 MCP 服务器，agent 走的是和你一样的动词：读一块、改一块、校验、回退 | [`docs/mcp-guide_CN.md`](docs/mcp-guide_CN.md) | 可用 |
-| **在 DeepSeek Harness 里用** —— geml MCP server + 写作、代码图谱两个技能，一个 bundle 装齐 | [`@geml/dsh-plugin`](https://www.npmjs.com/package/@geml/dsh-plugin) · [dshmarket](https://dshmarket.com/p/geml-spec/geml--integrations-dsh-plugin/) · [源码](integrations/dsh-plugin/) | 可用 |
-| **在 Codex 里用** —— 同一套载荷再打一次包：两个技能、MCP server，加一个 `SessionStart` hook，从 `/plugins` 安装 | [`integrations/codex-plugin/`](integrations/codex-plugin/) | 本仓库内可用；尚未上公共插件目录 |
-| **在 Grok 里用** —— 同一套载荷再来一次：两个技能加 MCP server | [`integrations/grok-plugin/`](integrations/grok-plugin/) | 本仓库内可用；`xai-org/plugin-marketplace` 的 PR 尚未提交 |
-| **把 Logseq graph 同步成纯文本** —— Logseq 2.0 的 DB graph 持续同步成 GEML 文件，可寻址、对 git 友好，`restore` 是回去的路 | [`@geml/logseq-sync`](https://www.npmjs.com/package/@geml/logseq-sync) · [源码](integrations/logseq/) | watcher 已在 npm；插件目前装 release zip —— 市场上架（[PR #893](https://github.com/logseq/marketplace/pull/893)）尚未合并 |
-| **喂给 RAG / agent 框架** —— 按块切分的加载器（每块一个 chunk，带 `block_id`）+ agent 编辑工具 | [`integrations/langchain+llamaindex/`](integrations/langchain+llamaindex/) | 参考实现 |
-| **在编辑器里写 GEML** —— 语法高亮 + 构建期引用校验 | [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=geml.geml) · [源码](integrations/vscode/) | 可用 |
-| **在 Android Studio / IntelliJ 里写 GEML** —— 高亮、边写边报诊断、预览、结构视图、从 `.gemlhistory` 退回一个块 | [`integrations/intellij+androidstudio-plugin/`](integrations/intellij+androidstudio-plugin/) | 已构建；装自己打出来的 zip（Install Plugin from Disk），未上 JetBrains Marketplace |
-| **在 Obsidian 里用上 GEML** —— 用参考解析器 + viewer 的渲染器，与网页同一条代码路径 | [`integrations/obsidian/`](integrations/obsidian/) | 已构建，未上架社区商店 |
-
-上手前的三份文件：决策方式见 [`GOVERNANCE.md`](GOVERNANCE.md)，参与方式见 [`CONTRIBUTING.md`](CONTRIBUTING.md)，
-文明吵架准则 [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)——核心只有一条规矩：对设计的反对可以多锋利都行，对人不行。
-
-## 仓库结构
-
-```
-spec/                  规范的 .md 版（英 / 中）与 CC-BY 规范许可证，另有
-                       profiles/（应用层——geml-history、geml-codemap、
-                       geml-style、geml-form、geml-media、geml-translator，
-                       每个都是参考文档加一页使用指南）与 proposals/（GEP），
-                       两者均为 MIT
-spec/in_geml_format/   dogfood：用 GEML 写成的规范本身，连带 .gemlhistory 伴生文件
-geml-parser/           参考实现、渲染器、CLI + codemap 工具集（TypeScript, Node 22）
-geml-parser-rs/        第二个实现：同一份规范的 Rust 实现，编译为 WebAssembly，
-                       只依据规范与一致性测试集写成
-integrations/          GEML 接入的所有地方：chrome-geml-viewer（浏览器扩展）、
-                       geml-check-action（CI）、vscode、intellij+androidstudio-plugin、
-                       obsidian、logseq（双向 vault 同步 + watcher）、tree-sitter（简报）、
-                       langchain+llamaindex（RAG 加载器）、
-                       windows-icon（资源管理器文件图标），以及四个 agent
-                       宿主插件——claude-plugin、codex-plugin、grok-plugin、
-                       dsh-plugin，以及 website（本仓库推给主页的东西）
-.agents/、.claude-plugin/   插件市场清单，让插件从仓库检出即可出现
-                       （Codex 的 /plugins、Claude Code 的 /plugin）
-docs/                  指南（MCP、写一个解析器）、设计记录、发版手册、
-                       图片资产（logo）
-.claude/skills/        Claude 技能：GEML 写作，以及代码图
-.github/               CI、安全扫描、发布与站点工作流（npm、MCP 注册表、VS Code、
-                       viewer、网站），issue 模板（bug、GEP、新实现）与 PR 模板
-（网站）               主页、playground、演示、博客、格式对比、基准测试、
-                       宣言和图解页在它们自己的仓库 geml-spec/geml-spec.github.io
-                       里；规范和各篇指南链接回本仓库，playground 的 bundle、代码图
-                       和 logo 由 website 工作流推过去。本仓库在 geml-spec.github.io/geml/ 发布的只剩
-                       site/——把旧路径转到新站的同一路径。
-```
+- **用你的语言写一个解析器**——[怎么写](docs/WRITING-A-PARSER_CN.md)；找出规范里含糊的地方，本身就是贡献。
+- **来争论草案**——[GEP-0008](spec/proposals/0008-form-block.md) 和
+  [GEP-0010](spec/proposals/0010-language-projections.md)，或者
+  [发起一个讨论](https://github.com/geml-spec/geml/discussions/new/choose)。
+- **认领一块**——还空着的事和仓库结构都在 [`CONTRIBUTING.md`](CONTRIBUTING.md)。
 
 <a id="license"></a>
 ## 许可与治理
 
-**代码为 MIT**（[`LICENSE`](LICENSE)）：本仓库除规范文档之外的一切，包括 `geml-parser/`、`geml-parser-rs/`、
-`integrations/` 全部、`.claude/skills/`、`docs/`、`spec/profiles/` 下的 profile，以及 `spec/proposals/` 里的 GEP。
-
-**规范文档为 CC-BY-4.0**（[`LICENSE-spec.md`](spec/LICENSE-spec.md) 里逐份列明）：
-`spec/GEML-spec*` 与 `spec/in_geml_format/*`。主规范只有一份；`spec/profiles/` 下的 profile 属于应用层，为 MIT。规范不是软件，所以任何人
-都可以不经许可构建一个兼容实现，并在通过[一致性测试集](geml-parser/test/conformance/)后声明
-它「符合 GEML 1.0」。
-
-**关于名字的使用。** 实现 GEML、用格式名给你的实现命名（`geml-rs`、`pygeml`、你所在语言包
-管理器里的 `geml` 包），或声明「本工具可读写 GEML」，都不需要任何许可。只有两个请求，都不是
-法律限制：一个实现通过一致性测试集之后再自称「符合 GEML 1.0」；以及不要让人误以为这个项目
-写了它、为它背书或在维护它。规范正文本身的署名要求，CC-BY-4.0 已经写明。
+代码为 MIT（[`LICENSE`](LICENSE)）；规范文档为 CC-BY-4.0（[`spec/LICENSE-spec.md`](spec/LICENSE-spec.md)
+逐份列明）。任何人都可以不经许可构建兼容实现；决策方式和名字的使用见 [`GOVERNANCE.md`](GOVERNANCE.md)。
