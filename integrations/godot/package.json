@@ -1,0 +1,20 @@
+{
+  "name": "@geml/reader-godot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A GEML format reader for Godot's text files: a data block's src= can name a .tscn, .tres, project.godot or .import file, and geml reads it as a value tree, checks its references and writes one value back.",
+  "type": "module",
+  "exports": "./src/reader.mjs",
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node test/reader.test.mjs"
+  },
+  "license": "MIT"
+}

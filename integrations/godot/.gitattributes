@@ -1,0 +1,4 @@
+# The fixtures are Godot's own files, byte for byte: the reader's extents are
+# offsets into them, and a Windows checkout turning LF into CRLF would move
+# every offset and put a carriage return inside a multi-line string.
+test/fixtures/** -text

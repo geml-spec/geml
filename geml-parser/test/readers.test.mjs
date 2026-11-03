@@ -105,6 +105,15 @@ test("a reader handed to the run reads a src= file; coordinates into it resolve 
   assert.ok(errs(typo).some((d) => d.code === "unresolved-reference" && /sped/.test(d.message)), "a coordinate the file does not hold is still an error");
 });
 
+test("a reader is handed the file's real path, not the document-relative route", () => {
+  const seen = [];
+  const spy = { format: "spy", extensions: [".spy"], read: (_t, ctx) => { seen.push(ctx.path); return { value: {}, extents: [] }; } };
+  parse("=== data {#s src=sub/x.spy}\n===\n", { resolveDoc: () => "", sourcePath: (p) => `/abs/root/${p}`, readers: [spy] });
+  assert.deepEqual(seen, ["/abs/root/sub/x.spy"]);
+  parse("=== data {#s src=sub/x.spy}\n===\n", { resolveDoc: () => "", readers: [spy] });
+  assert.deepEqual(seen, ["/abs/root/sub/x.spy", "sub/x.spy"], "without sourcePath, the route as written");
+});
+
 test("without the reader the block has no value tree, and what addresses it defers", () => {
   const resolveDoc = () => { throw new Error("must not be opened"); };
   const doc = parse('=== data {#g src=game.kv}\n===\n\nEvery [[#g["anything"]]] seconds.\n', { resolveDoc });

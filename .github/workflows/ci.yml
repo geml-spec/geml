@@ -212,6 +212,24 @@ jobs:
         working-directory: integrations/logseq
         run: npm ci && npm test
 
+  godot:
+    name: godot integration — reader tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+      # The suite reads a scene through geml itself, so the parser is built first.
+      # The reader has no dependencies of its own: nothing to install.
+      - name: Build reference parser
+        working-directory: geml-parser
+        run: npm ci && npm run build
+      - name: Godot reader tests
+        working-directory: integrations/godot
+        run: npm test
+
   obsidian:
     name: obsidian integration — geml-vault skill tests
     runs-on: ubuntu-latest
