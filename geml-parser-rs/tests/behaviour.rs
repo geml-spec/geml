@@ -146,7 +146,8 @@ fn embeds() {
 #[test]
 fn data_blocks() {
     assert_eq!(codes("=== data {src=a.json}\n{}\n==="), vec!["data-src-and-body:error"]);
-    assert_eq!(codes("=== data {src=a.txt}\n==="), vec!["bad-data-source:error"]);
+    // §3.2: an extension nothing claims is never opened; the block defers.
+    assert_eq!(codes("=== data {src=a.txt}\n==="), vec!["data-format-no-engine:warning"]);
     assert_eq!(codes("=== data {src=\"ftp://x/a.json\"}\n==="), vec!["unresolvable-data-source:error"]);
     clean("=== data {src=\"https://x/a.json\"}\n===\n\n=== data {src=log.jsonl#L2-9}\n===");
     // `edn` has the reference implementation's reading (crate::edn); `toml` none.

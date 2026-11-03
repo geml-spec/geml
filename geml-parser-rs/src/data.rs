@@ -182,8 +182,16 @@ fn read_source(src: &str, written: Option<&str>, line: usize, diags: &mut Diags,
     if remote {
         return None;
     }
+    // §3.2: a file whose extension no format claims is never opened, whatever
+    // `format=` says. This processor takes no readers from its invoker, so only
+    // the built-in extensions are claimed; the block has no value tree, and what
+    // addresses it defers.
     let Some(by_ext) = route::data_format(&route.path) else {
-        diags.push("bad-data-source", line, format!("`src={src}` does not name a .json, .jsonl, .yaml or .yml file"));
+        diags.push(
+            "data-format-no-engine",
+            line,
+            format!("`src={src}`: no engine in this run claims its extension, so the block has no value tree; coordinates into it defer"),
+        );
         return None;
     };
     let (host, from) = host?;

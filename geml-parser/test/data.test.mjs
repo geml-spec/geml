@@ -288,8 +288,16 @@ test("src= discipline: XOR with body, extension gate, unresolvable, bad scheme, 
   assert.ok(errs(both).some((d) => d.code === "data-src-and-body"));
   assert.deepEqual(both.children[0].value, { inline: true }, "the body wins");
 
-  const ext = parse('=== data {#x src=secrets.env}\n===\n', { resolveDoc: () => "" });
-  assert.ok(errs(ext).some((d) => d.code === "bad-data-source"), "the loader cannot be pointed at a non-data file");
+  // §3.2: an extension nothing claims is never opened — whatever format= says —
+  // and the block has no value tree in this run: a warning, not an error.
+  const opened = [];
+  for (const src of ["secrets.env", "secrets.env format=json", "noext"]) {
+    const ext = parse(`=== data {#x src=${src}}\n===\n\nIt reads [[#x["k"]]].\n`, { resolveDoc: (p) => { opened.push(p); return '{"k": 1}'; } });
+    assert.equal(errs(ext).length, 0, `${src}: no error, and the coordinate into it defers`);
+    assert.ok(warns(ext).some((d) => d.code === "data-format-no-engine"), `${src}: says why it has no value tree`);
+    assert.equal(ext.children[0].value, undefined, src);
+  }
+  assert.deepEqual(opened, [], "the loader cannot be pointed at a non-data file");
 
   const missing = parse('=== data {#x src=gone.json}\n===\n', { resolveDoc: () => null });
   assert.ok(errs(missing).some((d) => d.code === "unresolvable-data-source"));

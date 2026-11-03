@@ -70,6 +70,9 @@ const suites = [
   // the `data` block (GEP-0005): format engines, schema= shape, chart binding
   // over record arrays, canonical serialization, previews, blind append
   "data",
+  // format readers the invoker hands a run (§3.2): reading a src= file no
+  // built-in format reads, deferring without one, and writing back (§8.2(10))
+  "readers",
   // the yaml engine for `data` bodies: the subset it reads, and the refusals
   "yaml",
   // `geml mcp` — the document-CRUD MCP server (nine tools, confined root)

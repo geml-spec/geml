@@ -504,9 +504,11 @@ parses it into the block's **value**, and a body the engine rejects is a build
   engine cannot read.
 - `src=` names the block's content externally, under the same one-source
   discipline tables have (§6): exactly one of `src=` and an inline body —
-  both is an **error**. The file MUST look like data (`.json`/`.jsonl`/`.yaml`/`.yml`,
-  the extension naming the format; an explicit `format=` still wins over
-  it). An `http(s)` source is
+  both is an **error**. The file's extension names its format —
+  `.json`/`.jsonl`/`.yaml`/`.yml`, or an extension an engine supplied for
+  the run claims (below); an explicit `format=` still wins over it. An
+  extension nothing claims leaves the block without a value tree, as a format
+  without an engine does. An `http(s)` source is
   fetched by the RENDERER, never the parser (§9.4) — the block, and any
   chart over it, defers; any other URL scheme is refused. This is the log
   arrangement: the records stay a plain `.jsonl` file every existing tool
@@ -516,7 +518,11 @@ parses it into the block's **value**, and a body the engine rejects is a build
   of those syntaxes). A processor without an engine for them MUST keep the body
   raw and emit a **warning**, and MUST NOT guess — the same degradation as an
   unknown `diagram` format (§7). An unknown `format=` value degrades
-  identically.
+  identically. A block left without a value tree this way is no error in the
+  document that addresses it: a coordinate into it (§5.2) defers as one into a
+  remote source does — neither resolved nor checked, and no error — because
+  whether the tree exists depends on the processor reading the document, not
+  on the document.
 - A processor MAY ship an engine for a reserved name. Because full YAML is a
   far larger language than this value domain, a `yaml` engine MUST read at
   least the following subset, and MUST read it this way — so that a body
@@ -538,12 +544,27 @@ parses it into the block's **value**, and a body the engine rejects is a build
     document that relies on more than the subset is NOT portable, and a
     processor that does not read it MUST report a parse **error** rather than
     guess at a value.
+- **Engines supplied for a run.** Beyond the formats it ships, a processor
+  MAY be handed further engines by whoever invokes it — on its command line,
+  through its API, or in a host's configuration — each naming its format and
+  the file extensions it claims. A document never names, locates or loads one
+  (§9.1). Such an engine MUST yield, for a file it reads, the value tree
+  together with the extent of every value's text in that file, and MUST read
+  the whole file or reject it: a file it rejects is a `data-parse` error, and
+  an engine that skips what it cannot read is defective. It MAY report
+  diagnostics of its own; each code begins with its format name and a `/`
+  (`godot-scene/connection-node-missing`), so none can be mistaken for a code
+  Appendix A assigns. Its format name MUST NOT be one this registry defines,
+  and two engines in one run MUST NOT claim the same name or extension.
 - **Portability.** `json` and `jsonl` read the same in every conforming
   processor, and the `yaml` subset in every processor that has a `yaml` engine.
   `toml` and `edn` have no reading this specification defines: a processor
   that ships an engine for one reads it its own way, and another processor
   finds a raw body and a warning, or a different value. A document whose value
-  must read the same in every processor keeps it in `json` or `jsonl`.
+  must read the same in every processor keeps it in `json` or `jsonl`. A
+  format an engine supplied for the run reads is read only where that engine
+  is supplied: elsewhere the block has no value tree, `data-format-no-engine`
+  says why, and what addresses it defers.
 - `schema=` is RESERVED: it names a block (`#id`) or a GEML document
   (`doc.geml`, optionally `doc.geml#id`) holding a schema, and is
   reference-checked like any other reference (§5); any other shape is an
@@ -600,8 +621,9 @@ route names the whole file. A range MUST NOT be empty or start before line 1.
   (`code-src-and-body` error, Appendix A).
 - **No extension gate.** Code is written in any language, so a route to code is
   not restricted by suffix; the safety boundary is confinement (§9.4) alone. A
-  `data` route keeps its `.json`/`.jsonl`/`.yaml`/`.yml` gate (§3.2), whose purpose is to name
-  a *format*, not to bound the filesystem.
+  `data` route's extension still names a *format* (§3.2) — a built-in one, or
+  one an engine supplied for the run claims — and a file nothing claims is never
+  opened: the extension names a format, it does not bound the filesystem.
 
 For `data`, a range narrows the file to lines and the format then reads them as
 usual: a window of a `jsonl` log is the obvious use, and a `json` slice is valid
@@ -1429,7 +1451,14 @@ A conforming parser MUST:
     result would carry an **error** — writes nothing and refuses with a code
     from Appendix A.6. An edit through a coordinate (GEP 0011) changes only the
     text of the value it names, or puts a new one beside its neighbours,
-    separated as they are. `delete` is the one exception on both counts: it is
+    separated as they are. When that value lives in the file a `data` block's
+    `src=` names (§3.2), the edit rewrites that file, not the document, and
+    only replaces a value already there: the new text takes the old value's
+    extent, the file is read again by the engine that read it, and the
+    coordinate MUST read back as exactly the text written. A file that no
+    longer reads, or a value that reads back as more or less than was written,
+    writes nothing and is `broken-result`; inserting or removing a value in
+    such a file is `bad-address`. `delete` is the one exception on both counts: it is
     idempotent — an address that names nothing is reported, not refused — and
     it may leave a reference dangling, reporting each one, since that
     reference is the next thing to edit.
@@ -1625,6 +1654,10 @@ A processor MUST NOT execute or evaluate any part of a document:
 - a `code` block's body is stored text; it MUST NOT be run (§3);
 - a `diagram` body MUST be passed verbatim to the external renderer selected by
   `format` and MUST NOT be interpreted by the processor (§7);
+- an engine for a `data` format (§3.2) is code, so it comes from whoever
+  invokes the processor: a document MUST NOT be able to name, locate or load
+  one, and a host that takes engines from a project's own files SHOULD have the
+  user's consent before it runs them, and again whenever those files change;
 - there is no raw-HTML escape hatch (§1(5)) and no expression language beyond the
   closed arithmetic of §6 — which has no conditionals, no lookups, no
   cross-table references, and no embedded program by construction.
@@ -1937,13 +1970,13 @@ holds facts and derives nothing.
 === table
 | Code | Severity | Condition |
 |------|----------|-----------|
-| `data-parse` | error | The body does not parse under the declared `format=` — not one JSON value (`json`), or a non-blank line that is not one JSON value (`jsonl`) — or what it parses to breaks the value tree's limits (§3.2): a key twice in one map, a lone surrogate, a number past binary64's range, a sequence or map inside `data-depth` others (§9.2). The diagnostic names the offending line. |
+| `data-parse` | error | The body does not parse under the declared `format=` — not one JSON value (`json`), a non-blank line that is not one JSON value (`jsonl`), or a file an engine supplied for the run rejects — or what it parses to breaks the value tree's limits (§3.2): a key twice in one map, a lone surrogate, a number past binary64's range, a sequence or map inside `data-depth` others (§9.2). The diagnostic names the offending line. |
 | `inexact-number` | warning | A number in a `data` body or a `meta` value does not read back as written: its nearest binary64 value, written the shortest way, is another number — an integer past 2^53, more significant digits than binary64 holds, a magnitude below its smallest (§3.2). The value is that binary64; one that must keep every digit belongs in a string. |
 | `unknown-data-format` | warning | The `format=` value is not in the data format registry. The body is kept raw and not verified. |
-| `data-format-no-engine` | warning | The `format=` names a RESERVED format (`yaml`, `toml`, `edn`) this processor ships no engine for. The body is kept raw and not verified — never guessed at. |
+| `data-format-no-engine` | warning | The block's format has no engine in this run: `format=` names a RESERVED format (`yaml`, `toml`, `edn`) the processor ships no engine for, or `src=` names a file whose extension no engine claims (§3.2). The body or file is kept raw and not verified — never guessed at — and a coordinate into the block defers rather than resolving. |
 | `bad-data-schema` | error | `schema=` is not a block reference (`#id`) or a GEML document reference (`doc.geml[#id]`). |
 | `data-src-and-body` | error | A `data` block carries both `src=` and an inline body; exactly one is permitted (§3.2). The body wins. |
-| `bad-data-source` | error | A data source does not name a data file its target admits (a `data` block's `src=`: `.json`/`.jsonl`/`.yaml`/`.yml`) — or a remote json/jsonl chart source was named without a `data` block to defer on. |
+| `bad-data-source` | error | A remote json/jsonl chart source was named without a `data` block to defer on (§7.1). |
 | `unresolvable-data-source` | error | A data source could not be resolved, or names a disallowed URL scheme. |
 | `unresolvable-code-source` | warning | A `code` block route could not be resolved, so it was not checked. A warning, not an error: the block still names a region of code, so a graph read away from its sources stays valid (§3.3). |
 | `bad-code-source` | error | A `code` block route names a disallowed URL scheme (§3.3). |
@@ -2040,7 +2073,7 @@ Eight attribute keys carry references; all of them are validated (Appendix A):
 | `src=` | `view` | the relation it derives from, in three forms: a data file (`csv`/`tsv`), `#id` naming a `table` or `view` in this document, or `doc.geml#id` naming one in another. | §6.1 |
 | `data=` | `diagram` (`geml-chart`) | where the data comes from, in the same three forms a table's `src=` takes: a data file (`csv`/`tsv` standing for the anonymous table it describes; a local `.json`/`.jsonl` for the anonymous record source), `#id` in this document, or `doc.geml#id` in another — naming a `table`, or a record-array `data` block (§3.2). | §6, §7.1 |
 | `schema=` | `data` | a block (`#id`) or a GEML document (`doc.geml[#id]`) holding a schema; reference-checked only | §3.2 |
-| `src=` | `data` | the block's external content: a `.json`/`.jsonl`/`.yaml`/`.yml` file, taking the same route syntax as a code source (a line range MAY narrow it, which is how a window of a jsonl log is addressed); document-relative or `http(s)` (render-time) | §3.2 |
+| `src=` | `data` | the block's external content: a file whose extension names its format — `.json`/`.jsonl`/`.yaml`/`.yml`, or one an engine supplied for the run claims — taking the same route syntax as a code source (a line range MAY narrow it, which is how a window of a jsonl log is addressed); document-relative or `http(s)` (render-time) | §3.2 |
 | `src=` | `code` | the code the block shows: a source file, optionally narrowed to a line range — `<path>[#L<start>[-<end>]]`, 1-based and inclusive. Document-relative, or relative to the resolution root (`--root`); an `http(s)` route is fetched at render time. A range the file no longer has is an error. | §3.3 |
 | `src=` | `embed` | the content the block stands for: a document, optionally with a fragment | §3 |
 | `src=` | `diagram` (`geml-code-graph`) | a GEML document | §7 |

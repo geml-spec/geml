@@ -84,11 +84,104 @@ export type BodyMode = "raw" | "flow" | "data" | "prose";
 // default format (the model's own serialization).
 export type DataValue = null | boolean | number | string | DataValue[] | { [key: string]: DataValue };
 
+// §3.2 "Engines supplied for a run": a format engine handed to the parser by
+// whoever invokes it — the CLI's `--reader`, an API caller, an MCP server's own
+// configuration — and never by the document (§9.1). It only READS: a coordinate
+// edit into a file it read is the processor's own splice at the value's extent,
+// read again through this same reader (§8.2(10)).
+export type ReaderStep = string | number;
+export interface ReaderResult {
+  /** The whole file as a value tree, inside the value domain's limits (§3.2). */
+  value: unknown;
+  /** Where each value's text lies in the file, as string offsets [start, end). */
+  extents: { at: ReaderStep[]; start: number; end: number }[];
+  /** The format's own checks; each code is reported as `<format>/<code>`. */
+  diagnostics?: { code: string; at: ReaderStep[]; message: string; severity?: "error" | "warning" }[];
+}
+export interface FormatReader {
+  /** The format's name — never one the registry defines (REGISTRY_FORMATS). */
+  format: string;
+  /** The extensions it claims, with the dot: `.tscn`. */
+  extensions: string[];
+  /** Read the WHOLE text, or throw: skipping what it cannot read is a defect. */
+  read(text: string, ctx: { path: string }): ReaderResult;
+}
+
+/** The format names §3.2's registry defines; no reader may take one. */
+export const REGISTRY_FORMATS: readonly string[] = ["json", "jsonl", "yaml", "toml", "edn"];
+const BUILTIN_DATA_EXT = /\.(json|jsonl|yaml|yml)$/i;
+
+/** Why a set of readers cannot be used together, or nothing when it can. */
+export function readerProblems(readers: readonly FormatReader[]): string[] {
+  const out: string[] = [];
+  const names = new Map<string, number>();
+  const exts = new Map<string, string>();
+  for (const r of readers) {
+    if (typeof r?.format !== "string" || r.format === "" || !Array.isArray(r.extensions) || typeof r.read !== "function") {
+      out.push("a reader needs a `format` name, an `extensions` list and a `read` function");
+      continue;
+    }
+    if (REGISTRY_FORMATS.includes(r.format)) out.push(`reader \`${r.format}\` takes a name the data format registry defines`);
+    if (names.has(r.format)) out.push(`two readers claim the format \`${r.format}\``);
+    names.set(r.format, 1);
+    for (const raw of r.extensions) {
+      const e = String(raw).toLowerCase();
+      if (!/^\.[^./\\]+$/.test(e)) { out.push(`reader \`${r.format}\` claims \`${raw}\`, which is not an extension like \`.tscn\``); continue; }
+      if (BUILTIN_DATA_EXT.test(`x${e}`)) out.push(`reader \`${r.format}\` claims \`${e}\`, which a built-in format reads`);
+      const prev = exts.get(e);
+      if (prev !== undefined) out.push(`readers \`${prev}\` and \`${r.format}\` both claim \`${e}\``);
+      exts.set(e, r.format);
+    }
+  }
+  return out;
+}
+
+/** The reader that claims a path's extension, if this run has one. */
+export function readerForPath(readers: readonly FormatReader[] | undefined, path: string): FormatReader | undefined {
+  const ext = /\.[^./\\]+$/.exec(path)?.[0]?.toLowerCase();
+  return ext === undefined ? undefined : readers?.find((r) => r.extensions.some((e) => e.toLowerCase() === ext));
+}
+
+/**
+ * The format a `data` block's `src=` file is read under in this run: an
+ * explicit `format=`, else the format its extension names — a built-in one or
+ * one a reader claims. Null when nothing claims the extension (§3.2): such a
+ * file is never opened, whatever `format=` says.
+ */
+export function sourceFormat(path: string, formatAttr: unknown, readers: readonly FormatReader[] | undefined): { fmt: string; reader?: FormatReader } | null {
+  const builtin = BUILTIN_DATA_EXT.test(path);
+  const claimed = builtin ? undefined : readerForPath(readers, path);
+  if (!builtin && claimed === undefined) return null;
+  const fmt = typeof formatAttr === "string" ? formatAttr
+    : claimed !== undefined ? claimed.format
+    : /\.jsonl$/i.test(path) ? "jsonl" : /\.(yaml|yml)$/i.test(path) ? "yaml" : "json";
+  const reader = readers?.find((r) => r.format === fmt);
+  return reader === undefined ? { fmt } : { fmt, reader };
+}
+
+/** A data file's text read under `fmt` — the same engines a `src=` parse runs. */
+export function readDataSource(fmt: string, text: string, readers?: readonly FormatReader[], path = ""): { value?: DataValue; diags: Diagnostic[] } {
+  return parseDataBody(fmt, normalizeSource(text).split("\n"), 0, readers, path);
+}
+
+/** A coordinate written as text, the way a diagnostic names one: `["nodes"][0]`. */
+export function stepsText(at: readonly ReaderStep[]): string {
+  return at.map((s) => (typeof s === "number" ? `[${s}]` : `[${JSON.stringify(s)}]`)).join("");
+}
+
+// A `data` block left with no value tree because no engine reads its format in
+// this run (§3.2). A coordinate into one defers, as one into a remote source
+// does: whether the tree exists depends on the processor, not the document.
+// Held beside the model rather than in it, so the model a conformance case
+// compares is the same whichever engines a run was handed.
+const NO_ENGINE = new WeakSet<object>();
+
 // The `data` block's format engines (GEP-0005), shared by the inline-body
 // path and the `src=` pass: parse `body` under `fmt`, returning the value
 // and/or diagnostics. `openLineNo` anchors line numbers — the open fence for
-// an inline body, the block's own line for external content.
-function parseDataBody(fmt: string, body: string[], openLineNo: number): { value?: DataValue; diags: Diagnostic[] } {
+// an inline body, the block's own line for external content. `noEngine` says
+// the body was kept raw because nothing in this run reads its format.
+function parseDataBody(fmt: string, body: string[], openLineNo: number, readers?: readonly FormatReader[], path = ""): { value?: DataValue; diags: Diagnostic[]; noEngine?: true } {
   const diags: Diagnostic[] = [];
   // §3.2: valid JSON is not yet a value of the domain — see ijson.ts.
   const outside = (why: string, line: number): void => {
@@ -171,10 +264,27 @@ function parseDataBody(fmt: string, body: string[], openLineNo: number): { value
       }
       outside(fault, openLineNo);
     } else diags.push({ severity: "error", code: "data-parse", message: `data: body is not EDN this processor reads (${r.error})`, line: openLineNo + 1 + r.line });
+  } else if (readers?.some((r) => r.format === fmt)) {
+    // §3.2: an engine supplied for the run reads the whole text or rejects it.
+    const reader = readers.find((r) => r.format === fmt)!;
+    let r: ReaderResult;
+    try { r = reader.read(body.join("\n"), { path }); }
+    catch (e) {
+      diags.push({ severity: "error", code: "data-parse", message: `data: not \`${fmt}\` its reader reads (${e instanceof Error ? e.message : String(e)})`, line: openLineNo });
+      return { diags };
+    }
+    const fault = valueFault(r?.value);
+    if (fault) { outside(fault, openLineNo); return { diags }; }
+    for (const d of r.diagnostics ?? []) {
+      diags.push({ severity: d.severity === "warning" ? "warning" : "error", code: `${fmt}/${d.code}`, message: `${fmt}: ${stepsText(d.at ?? [])}: ${d.message}`, line: openLineNo });
+    }
+    return { value: r.value as DataValue, diags };
   } else if (fmt === "toml") {
     diags.push({ severity: "warning", code: "data-format-no-engine", message: `data: no \`${fmt}\` engine in this processor; body kept raw, not verified`, line: openLineNo });
+    return { diags, noEngine: true };
   } else {
     diags.push({ severity: "warning", code: "unknown-data-format", message: `unknown data format \`${fmt}\`; body kept raw`, line: openLineNo });
+    return { diags, noEngine: true };
   }
   return { diags };
 }
@@ -364,6 +474,10 @@ export interface ParseOptions {
   // a wikilink to another note is not checked at all — there is nothing to ask.
   findNote?: (name: string) => boolean;
   resolveDoc?: (doc: string) => string | null;
+  // The format readers this run was handed (§3.2) — by the invoker, never by
+  // the document. A `data` file whose extension none of them, and no built-in
+  // format, claims has no value tree here, and what addresses it defers.
+  readers?: readonly FormatReader[];
   // Does this target exist at all, even though `resolveDoc` could read no text
   // from it? Only link checking asks — a link to a directory is ordinary and
   // must not be reported as broken, while `src=`/`data=`/`embed` still need
@@ -433,6 +547,7 @@ interface Ctx extends RefSink {
   // paragraph text can then name the close that actually ended the block.
   bareClosed?: Map<string, number>;
   resolveDoc?: (doc: string) => string | null; // threaded from ParseOptions
+  readers?: readonly FormatReader[]; // threaded from ParseOptions
   // Under ParseOptions.markdown (RefSink.markdown), the walk-scoped state
   // GitHub's `-N` rule needs: every heading id taken so far, and the next
   // suffix per base.
@@ -1320,9 +1435,15 @@ function readDataBody(
   if (srcAttr !== undefined && srcAttr !== "" && !hasBody) {
     (ctx.dataSources ??= []).push({ block, line: openLineNo, target: srcAttr });
   } else {
-    const parsed = parseDataBody(fmt, body, openLineNo);
+    const parsed = parseDataBody(fmt, body, openLineNo, ctx.readers);
     for (const d of parsed.diags) diags.push(d);
     if (parsed.value !== undefined) block.value = parsed.value;
+    // §3.2: no engine in this run leaves no value tree, and what addresses
+    // the block — a coordinate, a chart — defers rather than failing.
+    if (parsed.noEngine) {
+      NO_ENGINE.add(block);
+      if (block.id !== undefined) (ctx.dataSrcPending ??= new Set()).add(block.id);
+    }
   }
   // `schema=` is reference-checked ONLY (GEP-0005): it must name a
   // block or a GEML document; validating the value against it is a
@@ -2583,11 +2704,12 @@ function deferBlock(block: Extract<Block, { kind: "block" }>, ctx: Ctx): void {
 
 // Whether a block defers (§3.3). A table and a view always carry a model from the
 // scan, so one with none is one deferBlock emptied; a `data` block defers when
-// its `src=` is remote.
+// its `src=` is remote, or when no engine in this run reads its format (§3.2).
 function defers(block: Block): boolean {
   if (block.kind !== "block") return false;
   if (block.type === "table" || block.type === "view") return block.table === undefined;
   if (block.type !== "data") return false;
+  if (NO_ENGINE.has(block)) return true;
   const src = block.attrs["src"];
   const scheme = typeof src === "string" ? schemeOf(src.trim()) : null;
   return scheme === "http" || scheme === "https";
@@ -3319,8 +3441,10 @@ function resolveCodeSources(ctx: Ctx, opts: ParseOptions): void {
 // GEP-0005: `src=` on a `data` block names external content — the same
 // external-source discipline tables have (§6, §9.4): an http(s) source is
 // fetched by the RENDERER, never the parser (the block defers, and so does a
-// chart over it); any other scheme is refused; the file must look like data
-// (`.json`/`.jsonl`/`.yaml`); a missing resolver leaves it unchecked with a warning.
+// chart over it); any other scheme is refused; the file's extension names its
+// format — a built-in one, or one a reader handed to this run claims (§3.2) —
+// and an extension nothing claims leaves the block without a value tree; a
+// missing resolver leaves it unchecked with a warning.
 function resolveDataSources(ctx: Ctx, opts: ParseOptions): void {
   for (const { block, line, target } of ctx.dataSources ?? []) {
     const defer = (): void => { if (block.id !== undefined) (ctx.dataSrcPending ??= new Set()).add(block.id); };
@@ -3334,21 +3458,25 @@ function resolveDataSources(ctx: Ctx, opts: ParseOptions): void {
     const route = parseSourceRoute(target, "data", line, ctx);
     if (route === null) continue;
     const { path } = route;
-    // A data source is data — the same shape rule table sources enforce, so
-    // the loader cannot be pointed at a `.env` or a private key.
-    if (!/\.(json|jsonl|yaml|yml)$/i.test(path)) {
-      ctx.diags.push({ severity: "error", code: "bad-data-source", message: `data source \`${path}\` is not a \`.json\`/\`.jsonl\`/\`.yaml\` data file`, line });
-      continue;
-    }
+    // A file is read only when its extension is one a format claims: a built-in
+    // one, or one a reader handed to this run claims. Anything else is never
+    // opened — so the loader cannot be pointed at a `.env` or a private key,
+    // whatever `format=` says — and the block has no value tree in this run:
+    // a warning, and what addresses it defers (§3.2).
     // Explicit format= wins; otherwise the (already-gated) extension names it.
     // `.yaml`/`.yml` is admitted because a config file on disk is the shape
     // most yaml has, and `src=` exists precisely so the file stays the source
     // of truth. A processor with no yaml engine reaches the same
     // `data-format-no-engine` warning it would for an inline body.
-    const fmtAttr = block.attrs["format"];
-    const fmt = typeof fmtAttr === "string"
-      ? fmtAttr
-      : /\.jsonl$/i.test(path) ? "jsonl" : /\.(yaml|yml)$/i.test(path) ? "yaml" : "json";
+    const format = sourceFormat(path, block.attrs["format"], opts.readers);
+    if (format === null) {
+      const ext = /\.[^./\\]+$/.exec(path)?.[0];
+      ctx.diags.push({ severity: "warning", code: "data-format-no-engine", message: `data source \`${path}\`: no reader in this run claims ${ext === undefined ? "a file with no extension" : `\`${ext}\``}, so the block has no value tree; coordinates into it defer`, line });
+      NO_ENGINE.add(block);
+      defer();
+      continue;
+    }
+    const { fmt } = format;
     // A range narrows the file to lines; what those lines mean is then the
     // format's business, unchanged. Slicing a `jsonl` log is the obvious use;
     // slicing a `json` file works whenever the slice is itself a value, and
@@ -3369,7 +3497,7 @@ function resolveDataSources(ctx: Ctx, opts: ParseOptions): void {
     // What the FILE fails on is reported on the block that names it: a line
     // number counted from the block would point into this document at
     // whatever follows it.
-    const parsed = parseDataBody(fmt, lines, line);
+    const parsed = parseDataBody(fmt, lines, line, opts.readers, path);
     for (const d of parsed.diags) ctx.diags.push({ ...d, line });
     if (parsed.value !== undefined) {
       block.value = parsed.value;
@@ -3377,6 +3505,7 @@ function resolveDataSources(ctx: Ctx, opts: ParseOptions): void {
         (ctx.dataValues ??= new Map()).set(nameKey(block.id), parsed.value);
       }
     }
+    if (parsed.noEngine) { NO_ENGINE.add(block); defer(); }
   }
 }
 
@@ -3557,7 +3686,7 @@ export function parse(source: string, opts: ParseOptions = {}): Document {
       });
     }
   }
-  const ctx: Ctx = { diags, ids: new Map(), refs: [], meta, vocab: opts.vocab ?? vocabularyFor(meta), resolveDoc: opts.resolveDoc, markdown: opts.markdown === true };
+  const ctx: Ctx = { diags, ids: new Map(), refs: [], meta, vocab: opts.vocab ?? vocabularyFor(meta), resolveDoc: opts.resolveDoc, readers: opts.readers, markdown: opts.markdown === true };
   // §4 never checked a `=== meta` key, so a typo in one was silent — and with
   // GEP-0013 a vocabulary's keys became part of what it owns. The check is
   // OPT-IN per document, exactly as the attribute check is opt-in per type: it

@@ -29,12 +29,13 @@ import {
   parse, blockSpans, sliceUnit, addressedUnits, relJoinPath, relDirPath,
   closeFenceLine, findBlockSite, isCloseFence, narrowToHead, newlineOf,
   labeledClose, narrowToIntro, reLit, sectionEndIndex, splitLines, stripEol, toLf, toNewline, trimSpaceTabEnd,
-  nameKey, resolveTarget, selectEmbed, vocabularyOf, isMarkdownPath, type WalkOptions } from "./geml.js";
+  nameKey, resolveTarget, selectEmbed, vocabularyOf, isMarkdownPath, type WalkOptions,
+  type FormatReader, readDataSource, sourceFormat, stepsText } from "./geml.js";
 import { type Unit, type Addressed, type Selector } from "./selector.js";
 import { schemeOf, backtickRun, findCodeSpanClose } from "./inline.js";
 import { parseAttrs } from "./attrs.js";
 import { addressUnits, discoveryHint, matchAttr, matchContent, matchLine, matchType, parseSelector, shortestAddress } from "./selector.js";
-import { type MetaView, type TreeEdit, type WritePlan, metaText, metaView, planCoordEdit, planCoordWrite, planMetaRemove, planMetaWrite, projectCoord } from "./coord.js";
+import { type MetaView, type TreeEdit, type WritePlan, metaText, metaView, planCoordEdit, planCoordWrite, planMetaRemove, planMetaWrite, projectCoord, readContent } from "./coord.js";
 import { mdToGeml } from "./from-md.js";
 import { serialize } from "./serialize.js";
 import { gemlToMd, type EmbedHost } from "./to-md.js";
@@ -87,6 +88,25 @@ export interface DocOpts {
   markdown?: boolean;
   /** Markdown reading: Obsidian's note lookup for a wikilink (ParseOptions.findNote). */
   findNote?: (name: string) => boolean;
+  /**
+   * Where a source `d` lives, behind the gates `resolveDoc` reads through: a
+   * coordinate edit into a `data` block's `src=` file writes back to it
+   * (§8.2(10)). A host that cannot write files leaves it out, and such an edit
+   * is refused.
+   */
+  sourcePath?: (d: string) => string | null;
+  /** The format readers this run was handed (ParseOptions.readers, §3.2). */
+  readers?: readonly FormatReader[];
+}
+
+/**
+ * What `set` produces: the document's new text — or, for a coordinate edit
+ * into a `data` block's `src=` file, that FILE's new text and where it lives,
+ * the document itself unchanged (§8.2(10)).
+ */
+export interface SetResult {
+  text: string;
+  external?: { path: string; before: string; text: string };
 }
 
 /**
@@ -1381,7 +1401,7 @@ function reportNewAddress(updated: string, target: SetTarget, file: string, ctx:
  * Every splice is guarded — re-parsed and refused if it broke the document.
  * Returns the updated text; the host decides where it lands.
  */
-export function set(source: string, file: string, rawSel: string, o: SetOptions, ctx: VerbContext): { text: string } {
+export function set(source: string, file: string, rawSel: string, o: SetOptions, ctx: VerbContext): SetResult {
   const headOnly = o.part === "head";
   const { named, content } = o;
   const rawChannel = content.kind === "raw";
@@ -1626,7 +1646,7 @@ function setCoord(
   content: Content,
   named: string[],
   ctx: VerbContext,
-): { text: string } {
+): SetResult {
   if (named.length > 0) {
     fail(`${named.join(" and ")} names part of a BLOCK, and a coordinate already names a unit inside one`, 2, "bad-address");
   }
@@ -1637,7 +1657,80 @@ function setCoord(
 
   const value = contentText(content).replace(/\r?\n$/, "");
   if (value === "") fail(NO_CONTENT, 1, "bad-content");
+  if (sourceOf(node) !== undefined) return setCoordSource(source, file, rawSel, sel, node as DataBlock, unit, value, ctx);
   return { text: rewriteBody(source, file, unit, rawSel, (body) => planCoordWrite(node, sel.path, value, body), ctx) };
+}
+
+type DataBlock = Extract<Block, { kind: "block" }>;
+
+// The `src=` a `data` block reads its value from, when it has one.
+function sourceOf(node: Block): string | undefined {
+  if (node.kind !== "block" || node.type !== "data") return undefined;
+  const src = node.attrs["src"];
+  return typeof src === "string" && src.trim() !== "" ? src.trim() : undefined;
+}
+
+// §8.2(10): a coordinate edit into a value a `data` block's `src=` file holds
+// rewrites THAT file, never the document, and only replaces a value already
+// there. The new text takes the old value's extent; the file is read again by
+// the engine that read it; and the coordinate must read back as exactly what
+// was written — otherwise nothing is written.
+function setCoordSource(source: string, file: string, rawSel: string, sel: Extract<Selector, { form: "coord" }>, node: DataBlock, unit: Unit, value: string, ctx: VerbContext): SetResult {
+  const at = rawSel.trim();
+  const src = sourceOf(node)!;
+  const line = unit.span.start + 1;
+  const scheme = schemeOf(src);
+  if (scheme !== null) fail(`\`${at}\`: its value lives in \`${src}\`, which is read at render time and never written`, 1, "bad-address");
+  if (src.includes("#")) fail(`\`${at}\`: \`${src}\` names part of its file; a coordinate edit rewrites a whole source file, so it cannot write through a range`, 1, "bad-address");
+  const opts = ctx.docOpts(file);
+  const format = sourceFormat(src, node.attrs["format"], opts.readers);
+  if (format === null) fail(`\`${at}\`: no reader in this run claims \`${src}\` — pass one with --reader`, 1, "bad-address");
+  if (node.value === undefined) fail(`\`${at}\`: \`${src}\` has no value tree in this run, so there is no value to replace`, 1, "bad-address");
+  const path = opts.sourcePath?.(src) ?? null;
+  const before = path === null ? null : opts.resolveDoc(src);
+  if (path === null || before === null) fail(`\`${at}\`: cannot write data source \`${src}\` from here`, 1, "bad-address");
+  // Only a value already there is replaced: a key the map lacks, or an index
+  // one past a sequence, would be an insertion, which a source file refuses.
+  const hit = projectCoord(node, sel.path);
+  if (!hit.ok) fail(`\`${at}\`: ${hit.why} — and a \`src=\` file only takes a replacement for a value already there`, 1, "bad-address");
+  const steps = sel.path.map((s) => (s.kind === "key" ? s.name : s.kind === "index" ? s.n : null));
+  if (steps.includes(null)) fail(`\`${at}\`: a value tree has no reserved names`, 1, "bad-address");
+  const broken = (why: string): never =>
+    refuseBroken(`replacement would break \`${src}\`: ${why}; not written`, [{ severity: "error", code: "data-parse", message: why, line }]);
+
+  let after: string;
+  if (format.reader !== undefined) {
+    const reader = format.reader;
+    const want = stepsText(steps as (string | number)[]);
+    const read = (text: string) => {
+      try { return reader.read(text, { path }); }
+      catch (e) { return broken(`it no longer reads as \`${reader.format}\` (${e instanceof Error ? e.message : String(e)})`); }
+    };
+    const was = read(before).extents.find((x) => stepsText(x.at) === want);
+    if (was === undefined) fail(`\`${at}\`: the \`${reader.format}\` reader locates no text for this value, so there is nothing to replace`, 1, "bad-address");
+    after = before.slice(0, was.start) + value + before.slice(was.end);
+    const back = read(after).extents.find((x) => stepsText(x.at) === want);
+    if (back === undefined || back.start !== was.start || back.end !== was.start + value.length) {
+      broken(`\`${value}\` does not read back as one value at \`${want}\``);
+    }
+  } else {
+    // A built-in format: the same splice an inline body takes, over the file's
+    // lines, in the file's own line endings.
+    if (format.fmt !== "json" && format.fmt !== "jsonl") fail(`\`${at}\`: this processor reads \`${format.fmt}\` but does not write it — edit \`${src}\` itself`, 1, "bad-address");
+    const crlf = before.includes("\r\n");
+    const planned = planCoordWrite({ ...node, attrs: { ...node.attrs, format: format.fmt } }, sel.path, value, before.replace(/\r\n/g, "\n").split("\n"));
+    if (!planned.ok && planned.broken) broken(planned.why);
+    if (!planned.ok) fail(`\`${at}\`: ${planned.why}`, 1, planned.missing ? "no-such-unit" : "bad-address");
+    after = planned.body.join("\n");
+    if (crlf) after = after.replace(/\n/g, "\r\n");
+    const reread = readDataSource(format.fmt, after);
+    const err = reread.diags.find((d) => d.severity === "error");
+    if (err !== undefined || reread.value === undefined) broken(err?.message ?? `it no longer reads as \`${format.fmt}\``);
+    const now = projectCoord({ ...node, value: reread.value }, sel.path);
+    const meant = readContent(value);
+    if (!now.ok || !meant.ok || JSON.stringify(now.json) !== JSON.stringify(meant.value)) broken(`\`${value}\` does not read back as the value written at \`${at}\``);
+  }
+  return { text: source, external: { path, before, text: after } };
 }
 
 // A coordinate edit changes a block's BODY: the planner gets the body lines the
@@ -1696,6 +1789,12 @@ function editCoord(source: string, file: string, rawSel: string, edit: TreeEdit,
   const { units, all } = selectUnits(source, file, rawSel, where, ctx, true);
   const unit = units[0]!;
   const node = unitNode(source, file, unit, all, ctx) as Block;
+  // §8.2(10): a `src=` file takes a replacement for a value already there, and
+  // nothing else — inserting or removing one would move bytes a coordinate
+  // edit has no business moving.
+  if (sourceOf(node) !== undefined) {
+    fail(`\`${rawSel.trim()}\`: its value lives in \`${sourceOf(node)}\`, and a \`src=\` file only takes a replacement for a value already there — \`set\` it, or edit the file`, 1, "bad-address");
+  }
   return rewriteBody(source, file, unit, rawSel, (body) => planCoordEdit(node, sel.path, edit, body), ctx);
 }
 

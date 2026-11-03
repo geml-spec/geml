@@ -20,6 +20,14 @@
     "want": "block:data"
   },
   {
+    "name": "data: a coordinate into a block no engine reads defers — no error (§3.2)",
+    "geml": "=== data {#t format=toml}\na = 1\n===\n\nSee [[#t[\"a\"]]].\n",
+    "want": "block:data \"See \" ref(\"#t[\\\"a\\\"]\") \".\"",
+    "diagnostics": [
+      "data-format-no-engine:warning"
+    ]
+  },
+  {
     "name": "data: a body the json engine rejects carries no value (the diagnostic is not projected; its absence is)",
     "geml": "=== data {#bad}\n{\"a\": 1,,}\n===\n",
     "want": "block:data"

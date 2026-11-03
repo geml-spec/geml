@@ -28,6 +28,30 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+## [1.13.1] — 2026-11-03
+
+- **`data` blocks read formats the invoker hands a run, and a coordinate
+  edit rewrites a `src=` file (spec §3.2, §8.2(10), §9.1).** `--reader
+  <module>` on every command that reads documents — and on `geml mcp` —
+  hands the parser a format reader: a module whose default export lists
+  `readers`, each naming its `format`, the `extensions` it claims and a
+  `read(text, { path })` returning the value tree with every value's extent;
+  `ParseOptions.readers` is the same thing for an API caller. A document never
+  names one. A `data` block's `src=` file whose extension no built-in format
+  and no reader claims is never opened: it is a `data-format-no-engine`
+  warning (formerly the `bad-data-source` error), and a coordinate into it —
+  or into any block no engine reads, an inline `format=toml` included —
+  defers instead of failing, as the Rust implementation already did. A
+  reader's own diagnostics are reported as `<format>/<code>`. `geml set`
+  through a coordinate into a `src=` block now writes that file (it used to
+  crash): only a value already there, the file read again by the same reader,
+  and refused (`broken-result`) unless the coordinate reads back as exactly
+  the text written; `-o` steers the file's new text, and inserting or
+  removing through such a coordinate is `bad-address`. Over MCP the write
+  lands only in a file a reader the server was started with claims — never a
+  built-in json or yaml file, which could as well be a `package.json`. The
+  Rust crate defers the same way and refuses a coordinate edit into a `src=`
+  file, since its hosts only read.
 - **geml-form/v1: GEP-0008's family diagnostics are checked, and an
   unreadable constraint value is a warning.** `geml check` on a document
   declaring the profile reports `form-field-has-body`,

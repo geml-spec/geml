@@ -134,9 +134,14 @@ export type DiagnosticCode =
  */
 export const CATALOGUE_EXEMPT: readonly string[] = ["markdown-", "form-"];
 
+// A format reader's own diagnostic (§3.2): its code begins with the reader's
+// format name and a `/` (`godot-scene/connection-node-missing`), so it can never
+// be read as one of the codes above. Its severity is the reader's to say.
+export type ReaderCode = `${string}/${string}`;
+
 export interface Diagnostic {
   severity: "error" | "warning";
-  code: DiagnosticCode;
+  code: DiagnosticCode | ReaderCode;
   message: string;
   line: number; // 1-based
   /**
