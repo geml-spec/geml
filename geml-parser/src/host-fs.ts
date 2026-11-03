@@ -35,6 +35,19 @@ import { isMarkdownPath } from "./geml.js";
 // widened base, so escapes past the root are refused exactly as above. The
 // viewer/web surfaces never pass a root — their boundary is unchanged.
 export function resolverFor(file: string, root?: string): (d: string) => string | null {
+  const target = targetFor(file, root);
+  return (d) => {
+    const t = target(d);
+    if (t === null) return null;
+    try { return readFileSync(t, "utf8"); }
+    catch { return null; }
+  };
+}
+
+// The real path `d` names from `file`, behind every gate resolverFor reads
+// through — or null. A coordinate edit into a `data` block's `src=` file
+// (§8.2(10)) writes back to exactly the file the parse read, and to no other.
+export function targetFor(file: string, root?: string): (d: string) => string | null {
   const dirAbs = resolvePath(file === "-" ? "." : dirname(file));
   const baseAbs = root === undefined ? dirAbs : resolvePath(root);
   // Canonicalise the base once. If the base itself cannot be realpath'd, no
@@ -70,8 +83,7 @@ export function resolverFor(file: string, root?: string): (d: string) => string 
     try { realTarget = realpathSync(targetAbs); }
     catch { return null; }
     if (outside(realBase, realTarget)) return null;
-    try { return readFileSync(realTarget, "utf8"); }
-    catch { return null; }
+    return realTarget;
   };
 }
 
@@ -112,7 +124,7 @@ export function existsFor(file: string, root?: string): (d: string) => boolean {
 export function docOptsFor(file: string, root?: string): DocOpts {
   const markdown = isMarkdownPath(file);
   return {
-    resolveDoc: resolverFor(file, root), docExists: existsFor(file, root), markdown,
+    resolveDoc: resolverFor(file, root), docExists: existsFor(file, root), sourcePath: targetFor(file, root), markdown,
     ...(markdown ? { findNote: noteFinderFor(file, root) } : {}),
   };
 }

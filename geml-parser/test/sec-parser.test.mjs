@@ -1578,18 +1578,20 @@ test("content routes still refuse a directory — they need bytes", () => {
   const root = mkdtempSync(join(tmpdir(), "geml-dirsrc-"));
   try {
     mkdirSync(join(root, "realdir"), { recursive: true });
+    // A data source no format claims is never opened (§3.2): the directory is
+    // not read, and the block is left without a value tree — a warning.
     const cases = [
-      ["embed", "=== embed {#e src=realdir/}\n===\n", /not a GEML document/],
-      ["table", "=== table {#tb src=realdir/}\n===\n", /cannot resolve table source/],
-      ["data", "=== data {#d format=json src=realdir/}\n===\n", /not a `\.json`\/`\.jsonl`/],
+      ["embed", "=== embed {#e src=realdir/}\n===\n", /not a GEML document/, 1],
+      ["table", "=== table {#tb src=realdir/}\n===\n", /cannot resolve table source/, 1],
+      ["data", "=== data {#d format=json src=realdir/}\n===\n", /no reader in this run claims a file with no extension/, 0],
     ];
-    for (const [name, block, expected] of cases) {
+    for (const [name, block, expected, status] of cases) {
       const f = join(root, `${name}.geml`);
       writeFileSync(f, "# Main {#top}\n\n" + block);
       const r = spawnSync(process.execPath, ["dist/geml.js", "check", f], { encoding: "utf8", timeout: 60000 });
       const out = (r.stdout || "") + (r.stderr || "");
       assert.match(out, expected, `${name} src= must not accept a directory`);
-      assert.equal(r.status, 1, `${name} src= directory should fail`);
+      assert.equal(r.status, status, `${name} src= directory: exit ${status}`);
     }
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

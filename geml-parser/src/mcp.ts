@@ -44,7 +44,8 @@ import { createInterface } from "node:readline";
 import { save, listRevisions, isCurrent, resolveContent, firstChangedContent } from "./history.js";
 import { type VerbContext, type FindHit, findInSource } from "./verbs.js";
 import { docOptsFor, fsFiles, gemlFilesUnder, historyError, isDocumentPath } from "./host-fs.js";
-import { isMarkdownPath, type ParseOptions } from "./geml.js";
+import { isMarkdownPath, readerForPath, type FormatReader, type ParseOptions } from "./geml.js";
+import { loadReaders } from "./readers-node.js";
 import {
   type McpHost, type OpenedDoc, type Tool, type WriteResult,
   createHandler, reads, toolsFor, withinArg,
@@ -56,6 +57,8 @@ export interface McpOptions {
   root: string;       // absolute, canonicalized; every `file` lives under it
   history: boolean;   // save a revision before each write (default true)
   graph?: string;     // absolute, canonicalized code-graph dir INSIDE root; unset = no graph tools
+  readerPaths?: string[];             // `--reader` modules, as given
+  readers?: readonly FormatReader[];  // what they export, loaded before the first frame
 }
 
 let OPTS: McpOptions = { root: process.cwd(), history: true };
@@ -184,13 +187,19 @@ const UNCHANGED = "The write was refused; the file on disk is unchanged.";
 // nothing — on CI, never on Windows.
 function ctxFor(root: string, notes: string[]): VerbContext {
   return {
-    docOpts: (file, r) => docOptsFor(file, r ?? root),
+    docOpts: (file, r) => ({ ...docOptsFor(file, r ?? root), ...readerOpts() }),
     // A verb's side remarks (`dropped #x`, `#old is now #new`) are what the CLI
     // prints on stderr. Across an MCP call they ride in the write result as
     // `notes`, or a model that shortened a section never learns what went.
     note: (msg) => { notes.push(msg); },
     files: fsFiles,
   };
+}
+
+// The format readers this server was started with (§3.2) — its own `--reader`
+// arguments, never a client's, never a document's.
+function readerOpts(): { readers?: readonly FormatReader[] } {
+  return OPTS.readers === undefined ? {} : { readers: OPTS.readers };
 }
 
 // A `.md` is read as Markdown here exactly as the CLI reads it — the document
@@ -216,7 +225,7 @@ const fsHost: McpHost = {
       label: real,
       ctx: ctxFor(root, notes),
       notes,
-      validate: { ...markdownOpts(real, root), resolveDoc: docResolver(root, real) },
+      validate: { ...markdownOpts(real, root), resolveDoc: docResolver(root, real), ...readerOpts() },
       root,
     };
   },
@@ -262,8 +271,13 @@ const fsHost: McpHost = {
   },
   checkOpts(doc, root) {
     const r = resolveRoot(root === undefined ? undefined : String(root));
-    return { ...markdownOpts(doc.label, r), resolveDoc: docResolver(r, doc.label) };
+    return { ...markdownOpts(doc.label, r), resolveDoc: docResolver(r, doc.label), ...readerOpts() };
   },
+  // §8.2(10): the path is the one the parse read, through targetFor's gates.
+  writeSource(path, text) {
+    writeFileSync(path, text, "utf8");
+  },
+  readerClaims: (path) => readerForPath(OPTS.readers, path) !== undefined,
   history(doc) {
     const historyPath = doc.label.replace(/\.geml$/, "") + ".gemlhistory";
     return {
@@ -374,7 +388,7 @@ export function handleLine(line: string, write: (s: string) => void = (s) => pro
 // Entry
 // ---------------------------------------------------------------------------
 
-export const MCP_USAGE = `usage: geml mcp --root <dir> [--graph <dir>] [--no-history]
+export const MCP_USAGE = `usage: geml mcp --root <dir> [--graph <dir>] [--no-history] [--reader <module>]…
 
   Serve GEML document CRUD over the MCP stdio transport (JSON-RPC 2.0), plus the
   read-only code-graph tools when the root holds a code graph.
@@ -391,6 +405,11 @@ export const MCP_USAGE = `usage: geml mcp --root <dir> [--graph <dir>] [--no-his
   --no-history        Do not save a .gemlhistory revision before each
                       write. Default is to save one, so geml_revert always
                       has a revision to undo to.
+  --reader <module>   A format reader for \`data\` blocks whose \`src=\` file
+                      no built-in format reads (spec §3.2); repeatable. It is
+                      code, so only this server's own arguments name one. A
+                      geml_set into such a file writes the file — and only
+                      a file a reader given here claims.
 
   Register with a client:
     claude mcp add geml -- geml mcp --root /abs/path/to/repo`;
@@ -399,9 +418,15 @@ export function parseArgs(args: string[]): McpOptions {
   let root: string | undefined;
   let graph: string | undefined;
   let history = true;
+  const readerPaths: string[] = [];
   for (let i = 0; i < args.length; i++) {
     const a = args[i]!;
-    if (a === "--root" || a === "-r") root = args[++i];
+    if (a === "--reader") {
+      const p = args[++i];
+      if (p === undefined || p.startsWith("-")) throw new Error("--reader needs a module path");
+      readerPaths.push(p);
+    }
+    else if (a === "--root" || a === "-r") root = args[++i];
     else if (a.startsWith("--root=")) root = a.slice("--root=".length);
     else if (a === "--graph") graph = args[++i];
     else if (a.startsWith("--graph=")) graph = a.slice("--graph=".length);
@@ -421,7 +446,7 @@ export function parseArgs(args: string[]): McpOptions {
   const abs = resolve(root);
   if (!existsSync(abs) || !statSync(abs).isDirectory()) throw new Error(`--root is not a directory: ${root}`);
   const realRoot = realpathSync(abs);
-  return { root: realRoot, history, graph: resolveGraphOpt(realRoot, graph) };
+  return { root: realRoot, history, graph: resolveGraphOpt(realRoot, graph), ...(readerPaths.length > 0 ? { readerPaths } : {}) };
 }
 
 // An EXPLICIT --graph is trusted to be a graph (the operator said so) and only
@@ -450,7 +475,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     process.exit(0);
   }
   try {
-    configure(parseArgs(args));
+    const o = configure(parseArgs(args));
+    if (o.readerPaths !== undefined) configure({ readers: await loadReaders(o.readerPaths) });
   } catch (e) {
     console.error(`geml mcp: ${(e as Error).message}\n\n${MCP_USAGE}`);
     process.exit(2);

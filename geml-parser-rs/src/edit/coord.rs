@@ -234,6 +234,18 @@ fn no_value_tree(block: &Block) -> String {
     }
 }
 
+/// §8.2(10): a value a `data` block reads through `src=` lives in that file,
+/// and an edit through a coordinate rewrites the file, not the document. This
+/// processor's hosts only read, so it writes no `src=` file — the edit is
+/// refused, never applied to the block's empty body.
+fn src_not_written(block: &Block) -> Option<NotPlanned> {
+    if block.type_name != "data" {
+        return None;
+    }
+    let src = attr_str(block, "src")?;
+    Some(format!("this value lives in `{src}`, and this processor does not write a `src=` file — edit the file itself").into())
+}
+
 fn no_units(block: &Block, path: &[CoordStep]) -> String {
     let why = format!(
         "`{}` carries no addressable units inside it — a coordinate needs a table, a `data` block, `meta` (GEP 0011), or a `form` (GEP 0008)",
@@ -883,6 +895,9 @@ pub fn plan_coord_edit(block: &Block, path: &[CoordStep], edit: &TreeEdit, body:
     } else {
         "a member or an element is removed from a `data` block's value tree, or a key from a `meta` block"
     };
+    if let Some(refused) = src_not_written(block) {
+        return Err(refused);
+    }
     if block.type_name == "data" {
         return match &block.value {
             Some(v) => edit_value(block, path, edit, v, body),
@@ -924,6 +939,9 @@ pub fn plan_coord_write(block: &Block, path: &[CoordStep], value: &str, body: &[
     }
     if let Some(t) = &block.table {
         return Ok(write_table(block, t, path, value, body)?);
+    }
+    if let Some(refused) = src_not_written(block) {
+        return Err(refused);
     }
     if let Some(v) = &block.value {
         return edit_value(block, path, &TreeEdit::Put(value.to_string()), v, body);

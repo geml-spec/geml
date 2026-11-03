@@ -173,6 +173,18 @@
     ]
   },
   {
+    "name": "a data route whose extension no format claims is never opened, and what addresses it defers (§3.2)",
+    "files": {
+      "a.geml": "=== data {#d src=notes.env}\n===\n\nSee [[#d[\"k\"]]].\n",
+      "notes.env": "{\"k\": 1}\n"
+    },
+    "main": "a.geml",
+    "want": "block:data \"See \" ref(\"#d[\\\"k\\\"]\") \".\"",
+    "diagnostics": [
+      "data-format-no-engine:warning"
+    ]
+  },
+  {
     "name": "a data route is read into the block's value",
     "files": {
       "a.geml": "=== data {#d src=vals.json}\n===\n",

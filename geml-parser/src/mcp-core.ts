@@ -19,7 +19,7 @@
 // call.
 import { type Diagnostic, type ParseOptions, type UnitPart, parse, PARSER_VERSION } from "./geml.js";
 import {
-  type Content, type DocOpts, type FindHit, type HistoryReader, type InFmt, type OutFmt, type VerbContext,
+  type Content, type DocOpts, type FindHit, type HistoryReader, type InFmt, type OutFmt, type SetResult, type VerbContext,
   VerbError, add, del, findInSource, formatFindRows, get, list, rename, revert, set, transform,
 } from "./verbs.js";
 import { BARE_LINE } from "./selector.js";
@@ -79,6 +79,14 @@ export interface McpHost {
   checkOpts(doc: OpenedDoc, root: unknown): ParseOptions;
   /** Present when the host keeps `.gemlhistory` sidecars — enables `geml_history` and `geml_revert`. */
   history?(doc: OpenedDoc): HistoryAccess;
+  /**
+   * Present when the host can land a coordinate edit in a `data` block's `src=`
+   * file (§8.2(10)). `path` is the one the parse read, behind its confinement;
+   * the host writes it only when a reader it was started with claims it.
+   */
+  writeSource?(path: string, text: string): void;
+  /** Whether a reader this host was started with claims `path` (§3.2). */
+  readerClaims?(path: string): boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -505,11 +513,26 @@ export function toolsFor(host: McpHost): Tool[] {
         const doc = host.open(args);
         const part = partArg(args.part);
         const flag = partFlagOf(part);
-        return applyWrite(host, {
+        let external: SetResult["external"];
+        const result = applyWrite(host, {
           doc,
-          produce: () => set(doc.text, doc.label, selectorArg(args.id), { part, named: flag ? [flag] : [], content: raw(args.body) }, doc.ctx).text,
+          produce: () => {
+            const r = set(doc.text, doc.label, selectorArg(args.id), { part, named: flag ? [flag] : [], content: raw(args.body) }, doc.ctx);
+            external = r.external;
+            return r.text;
+          },
           summary: `mcp: before write to ${selectorArg(args.id)}`,
         });
+        if (external === undefined || !result.ok) return result;
+        // §8.2(10): the edit landed in the block's `src=` file, not the document.
+        // A model's arguments can be steered by a page it read, so only a file a
+        // reader this server was STARTED with claims is written — never a built-in
+        // json/yaml file, which could as well be a package.json.
+        if (host.writeSource === undefined || host.readerClaims?.(external.path) !== true) {
+          return refuse(doc.file, [], `this value lives in the block's \`src=\` file, and this server writes such a file only through a reader it was started with (--reader). ${host.unchangedHint}`, "bad-address");
+        }
+        host.writeSource(external.path, external.text);
+        return { ok: true, file: doc.file, diagnostics: result.diagnostics, notes: [...(result.notes ?? []), `wrote the block's \`src=\` file; the document itself is unchanged`] };
       },
     },
     {

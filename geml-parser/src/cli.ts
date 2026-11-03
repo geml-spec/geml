@@ -73,6 +73,8 @@ import {
   revert, selectUnits, set, transform, unitNode,
 } from "./verbs.js";
 import { docOptsFor, fsFiles, gemlFilesUnder, historyError, obsidianVaultAbove, resolverFor } from "./host-fs.js";
+import { liftReaderFlags, loadReaders } from "./readers-node.js";
+import type { FormatReader } from "./geml.js";
 
 const USAGE = `geml — GEML reference CLI
 
@@ -118,7 +120,7 @@ Usage:
   geml rename <file.geml|-> #old #new [-o f]   rename an id and every reference to it (id-boundary safe)
   geml revert <file.geml> #id [--rev <sel>] [--head]   undo one block to a past revision (splice / resurrect / remove)
                                              (sel: 0 | -N | id-prefix | changed; default -1)
-  geml check  <file.geml|-> [--root d] [--json] [--severity c=lvl]… [--only pat]   validate only: diagnostics + exit code
+  geml check  <file.geml|-> [--root d] [--reader m]… [--json] [--severity c=lvl]… [--only pat]   validate only: diagnostics + exit code
                                              (--root widens cross-doc refs to dir d, e.g. the repo root;
                                               every read and write verb takes it. A write is REFUSED when
                                               the result would not parse, so a document whose ../x.md
@@ -167,14 +169,14 @@ Exit codes:
 // shown on misuse and the `<cmd> --help` text.
 const SUBHELP = {
   get: "usage: geml get <file.geml|-> [<selector>] [--within <selector>] [--head|--intro|--body] [--view [--root <dir>]] [--json]  (selector = a filter over blocks: #id | '## Heading' (its whole section) | '=== type' (every block of that type — N matches print N contents, count on stderr) | '=== type@<hex>[~n]' or '@<hex>[~n]' (content address, for blocks with no #id) | L<n> or L<n>-<m> (position — the smallest block that fully contains those lines, so the `L27-58` the listing prints pastes straight back, and a line number from an editor, a linter or a diff hunk becomes a block) | <block>[2][\"name\"] (a unit INSIDE a block, GEP 0011: a table's rows, cells and columns, a `data` block's value tree, and `meta`'s keys as `#meta[\"title\"]` — answered from the model, so it names no span and `--head`/`--body` do not apply); `#id` and `@<hex>` are the short spellings of the brace keys `{#id}` and `{@<hex>}`, which are equally legal with or without a `=== type` in front — the type is then a check, and a wrong one is refused; any OTHER keys in braces filter by attributes — '=== code {lang=py}', '{.warn}', '{#id .warn}': a block or heading matches when its attribute object carries every key given with the same value, 0..N matches, and a `@<hex>` beside other keys is one more condition, so '=== note@<hex> {#id}' names #id only while its content is unchanged; --within <selector> = keep only the matches inside the blocks that selector names (a heading names its whole section); a section cuts three ways — --head = the heading line, --intro = its opening region: everything under it up to its FIRST SUBHEADING (empty when one follows immediately, the whole body when none does; a block has no intro and is refused), --body = everything under it; --view = read THROUGH an `embed` to the entity block it stands for, following a chain to its end (the identity on any other block, and on a section selector — it never splices two documents' bytes together); provenance goes to stderr as `view: <sel> -> <doc>[#<id>]`; read-only, `set` refuses it; chain reads are confined to --root (default: the document's own directory) and never fetched over the network; without a selector: list every addressable block with its shortest unique address, --json = array; a read ends with `read <n> of <file size> (<pct>)` on stderr, in UTF-8 bytes — not for the listing, --json or --view)",
-  set: "usage: geml set <file.geml|-> <selector> [--head|--intro|--body] [--in F | --in F#src | --in -] [-o out.geml] [--root d]  (selector as in `get`, but it must match exactly ONE block — '=== type' matching several is refused; content: --in F takes F's block #id, --in F#src takes #src, else stdin raw; default = whole block, --head = head line — both normalize the id when the target has one — --body = body, --intro = a heading's opening region up to its first subheading (an empty region INSERTS there); guarded splice, refused if it breaks the doc — but a replacement that REMOVES blocks is carried out and reported on stderr, named ones and unnamed alike, with `geml revert` as the way back (the same stance `delete` takes; the ordinary read-edit-write cycle removes nothing, since `get` handed those blocks over); writing through an @<hex> address prints the new address on stderr; the `wrote` line says how many bytes changed and how many of the file's were left untouched, and stands alone on stderr when the document goes to stdout)",
+  set: "usage: geml set <file.geml|-> <selector> [--head|--intro|--body] [--in F | --in F#src | --in -] [-o out.geml] [--root d]  (selector as in `get`, but it must match exactly ONE block — '=== type' matching several is refused; content: --in F takes F's block #id, --in F#src takes #src, else stdin raw; default = whole block, --head = head line — both normalize the id when the target has one — --body = body, --intro = a heading's opening region up to its first subheading (an empty region INSERTS there); guarded splice, refused if it breaks the doc — but a replacement that REMOVES blocks is carried out and reported on stderr, named ones and unnamed alike, with `geml revert` as the way back (the same stance `delete` takes; the ordinary read-edit-write cycle removes nothing, since `get` handed those blocks over); writing through an @<hex> address prints the new address on stderr; the `wrote` line says how many bytes changed and how many of the file's were left untouched, and stands alone on stderr when the document goes to stdout; a coordinate into a `data` block with `src=` rewrites THAT file instead — only a value already there, read back through the same reader (--reader) and refused unless it reads back as exactly the text written — and -o then steers the file's new text)",
   add: "usage: geml add <file.geml|-> (--append | --before <sel> | --after <sel>) [--in F | --in F#src | --in -] [-o out.geml] [--root d]  (insert a GEML fragment — 1+ blocks and/or prose — at a position; --in F takes all of F, --in F#src takes #src, else stdin raw; content keeps its own ids, a collision is refused)",
   delete: "usage: geml delete <file.geml|-> <sel> [<sel2> …] [-o out.geml] [--root d]  (remove every block the selectors name, each with the blank line that separated it, so a delete undoes an add byte for byte; a selector naming nothing is skipped with a note, not an error; a filter removes every block it matches; a reference left dangling is a warning, not a refusal — delete never fails on a live reference)",
   rename: "usage: geml rename <file.geml|-> #old #new [-o out.geml] [--root d]  (rewrite an id's declaration AND every reference — [[#id]], [text](#id), chart data=#id, footnote [^id] — id-boundary safe, skipping raw block bodies; #new must be free; refused if it breaks the doc)",
   list: "usage: geml list <file.geml|-> [--within <selector>] [--json]  (list every addressable block with its shortest unique address, its kind and its line range; --within lists only what is inside the blocks that selector names — the same listing `geml get <file>` prints with no selector, under the name the MCP surface already uses. Call it FIRST: the addresses it prints are what get/set/add/delete/rename/revert all take)",
   find: "usage: geml find <pattern> [<file|dir> …] [--within <selector>] [--json] [--case] [--head]  (search block CONTENT; --within searches only the lines inside the blocks that selector names, and skips a file where it names none and print `<file>TAB<address>` per hit — an address, never a line number, so a hit is `geml get <file> '<address>'` with no editing. The address is the INNERMOST block holding the match, never its enclosing section, and a block is reported once however many lines in it matched. Substring, case-insensitive unless --case; a file you NAME is searched whatever its extension, including Markdown, while a directory is walked for the two formats the parser reads from a path, *.geml and *.md (a `.gemlhistory` sidecar is neither, and stays out); no path = the current directory; --head adds the matching line as a third column; a pattern or path that starts with `-` goes after `--` (`geml find -- '- list item' notes.md`), and everything after `--` is taken as text, flags included. Exit 1 when nothing matched, so `if geml find …` works in a script)",
   replace: "usage: geml replace <file.geml|-> <old> <new> [--within <selector>] [-o out.geml] [--root d]  (EXPERIMENTAL — this verb MAY BE WITHDRAWN in a later release; it is here to find out whether an addressed, checked replacement earns its place beside `sed`, and if it does not, it goes. Build nothing on it you cannot change, and say so in a discussion if it is doing real work for you. Swaps a LITERAL string — never a pattern, that is what `sed` is for and where the footguns are. Without --within the whole document; with it, only inside the blocks that selector matches, and unlike `set` it may match several: `--within '=== table'` means every table. What this buys over `sed -i`, at the same cost of two short strings and nothing read: the result is re-parsed and refused if it would break the document, the blocks it touched are NAMED on stderr, and the write lands in .gemlhistory where `revert` can undo it. An id is not text — a replacement that would rename one is refused and points at `geml rename`, which fixes every reference too. Exit 1 when nothing matched, so `if geml replace …` works in a script)",
-  check: "usage: geml check <file.geml|-> [--root <dir>] [--json] [--severity <code>=<level>]… [--only <pattern>]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory. A document whose `=== meta` declares a vocabulary this processor recognizes also gets that vocabulary's own checks, reported by ADDRESS rather than by line — they are cross-document, so there is no one line to name. --severity re-levels ONE such code: error | warning | info, and info is the floor, because a level that silences is what --only is for. It takes profile codes only; the core catalogue's severities are fixed by Appendix A and a processor that moved one would not conform. --only keeps just the profile codes matching a `*` pattern, as in --only 'media-stale-*')",
+  check: "usage: geml check <file.geml|-> [--root <dir>] [--reader <module>]… [--json] [--severity <code>=<level>]… [--only <pattern>]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory. --reader: a format reader module for a `data` block's `src=` file whose extension no built-in format claims (spec §3.2) — every command that reads documents takes it, `set` included; a document never names one. A document whose `=== meta` declares a vocabulary this processor recognizes also gets that vocabulary's own checks, reported by ADDRESS rather than by line — they are cross-document, so there is no one line to name. --severity re-levels ONE such code: error | warning | info, and info is the floor, because a level that silences is what --only is for. It takes profile codes only; the core catalogue's severities are fixed by Appendix A and a processor that moved one would not conform. --only keeps just the profile codes matching a `*` pattern, as in --only 'media-stale-*')",
   revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--append|--before <sel>|--after <sel>] [--head] [--dry-run] [-o out] [--root d]  (reconcile #id to a revision: splice / resurrect / remove; sel: 0 | -N | id-prefix | changed; default -1)",
   history: `usage: geml history save    <file.geml> [-m <msg>]      append the working file as a new revision (identical to the tip = no-op)
        geml history get     <file.geml> [<rev>] [--json]   NO <rev>: every revision, newest first, first column = the selector; WITH <rev>: that revision's full text
@@ -211,6 +213,9 @@ const SUBHELP = {
   --no-history        Skip the .gemlhistory revision saved before each write
                       (default: save one, so geml_revert always has a revision
                       to undo to).
+  --reader <module>   A format reader for \`data\` blocks whose \`src=\` file no
+                      built-in format reads (spec §3.2); repeatable. The
+                      server's own argument — a document never names one.
 
   Register with a client:
     claude mcp add geml -- geml mcp --root /abs/path/to/repo`,
@@ -278,7 +283,7 @@ const VERB_FLAGS: Record<string, FlagTable> = {
     bool: ["--json", "--head", "--body", "--intro", "--force"],
     valued: ["-m", "--message", "--at", "--author", "--history"],
   },
-  mcp: { bool: ["--no-history"], valued: ["--root", "--graph"] },
+  mcp: { bool: ["--no-history"], valued: ["--root", "--graph", "--reader"] },
   skill: {
     bool: ["--no-global", "--no-mcp", "--dry-run", "--no-audit", "--no-fund", "-y", "-g"],
     valued: ["--dest", "--version", "--scope", "--root"],
@@ -387,8 +392,13 @@ function useRoot(args: string[]): string | undefined {
   return r;
 }
 
+// The format readers `--reader` handed this run (§3.2), loaded once before any
+// verb runs. A document never names one: they come from the command line only.
+let CLI_READERS: readonly FormatReader[] | undefined;
+
 function docOpts(file: string, root = CLI_ROOT): DocOpts {
-  return docOptsFor(file, root);
+  const o = docOptsFor(file, root);
+  return CLI_READERS === undefined ? o : { ...o, readers: CLI_READERS };
 }
 
 // The verbs' view of this process: cross-document resolution under CLI_ROOT
@@ -1466,6 +1476,12 @@ function runSet(args: string[]): void {
   const source = readInput(file);
   const part = headOnly ? "head" : bodyOnly ? "body" : introOnly ? "intro" : "whole";
   const r = verb(() => set(source, file, rawSel, { part, named, content: contentFrom(from) }, ctxFor()));
+  // A coordinate edit into a `data` block's `src=` file rewrites that FILE
+  // (§8.2(10)); the document is unchanged, so `-o` steers the file's new text.
+  if (r.external !== undefined) {
+    resolveOutTarget(r.external.path, out).write(r.external.text, writeNote(r.external.before, r.external.text));
+    return;
+  }
   resolveOutTarget(file, out).write(r.text, writeNote(source, r.text));
 }
 
@@ -1935,7 +1951,19 @@ const entry = (() => {
 // `entry` is still computed above, because a couple of messages report it.
 {
   void entry;
-  const argv = process.argv.slice(2);
+  // `--reader <module>` (§3.2) belongs to the run, not to a verb: lifted out and
+  // loaded before any verb reads its own arguments, so a module path is never
+  // taken for a file. `mcp` is a process of its own and loads its own.
+  let argv = process.argv.slice(2);
+  if (argv[0] !== "mcp") {
+    const lifted = liftReaderFlags(argv);
+    if ("error" in lifted) fail(lifted.error, 2);
+    argv = lifted.args;
+    if (lifted.paths.length > 0) {
+      try { CLI_READERS = await loadReaders(lifted.paths); }
+      catch (e) { fail(e instanceof Error ? e.message : String(e), 2); }
+    }
+  }
   // The on-disk artifact is `.geml/codemap/`, so people reconstruct the
   // command from the directory name — accept those spellings as `codemap`.
   const cmd = argv[0] === "codegraph" || argv[0] === "code-graph" ? "codemap" : argv[0];
