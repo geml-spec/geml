@@ -306,7 +306,9 @@ export function parseGodot(text, kind) {
 // Godot's own reference rules, reported as the reader's diagnostics.
 // ---------------------------------------------------------------------------
 
-const RESOURCE_REF = /(Ext|Sub)Resource\(\s*"?([^")\s]+)"?\s*\)/g;
+// An id never holds a `(`: leaving it out keeps a run of unclosed
+// `ExtResource(` from rescanning the rest of the string at every one.
+const RESOURCE_REF = /(Ext|Sub)Resource\(\s*"?([^"()\s]+)"?\s*\)/g;
 
 // Whether `path` may name a node this file does not declare: one inside an
 // instanced scene (editable children, or a connection reaching into it), or

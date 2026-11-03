@@ -11,7 +11,7 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import reader, { GodotReadError, parseGodot } from "../src/reader.mjs";
+import reader, { GodotReadError, diagnose, parseGodot } from "../src/reader.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fixtures = join(here, "fixtures", "dodge_the_creeps");
@@ -172,6 +172,14 @@ test("the four checks: ext and sub ids, connection ends, parents, res:// paths",
     assert.deepEqual(inherited.diagnostics, [], "an inherited scene's base declares the rest");
     assert.deepEqual(scene.read(text, {}).diagnostics.filter((d) => d.code === "res-path-missing"), [], "no project around the file, no res:// check");
   } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("a string of unclosed ExtResource( takes linear time to check", () => {
+  const junk = "ExtResource(!".repeat(50_000) + 'ExtResource("9")';
+  const started = performance.now();
+  const found = diagnose({ ext: {}, nodes: { ".": { note: junk } } }, new Set(), undefined);
+  assert.ok(performance.now() - started < 2000, "quadratic backtracking would take minutes");
+  assert.deepEqual(found.map((d) => d.code), ["unknown-ext-resource"]);
 });
 
 // Through geml itself: the reader handed to a run, a document addressing the
