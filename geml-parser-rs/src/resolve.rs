@@ -424,6 +424,36 @@ pub fn is_geml_doc(doc: &str) -> bool {
     doc.to_ascii_lowercase().ends_with(".geml")
 }
 
+/// The host a borrowed document is parsed through: its own data and table
+/// files are leaves, read as its own check reads them, while another document
+/// reads as absent, so nothing it names leads any further (§9.3).
+struct Leaves<'a>(&'a dyn Host);
+
+impl Leaves<'_> {
+    fn document(path: &str) -> bool {
+        let path = path.split('#').next().unwrap_or(path);
+        is_geml_doc(path) || crate::is_markdown_path(path)
+    }
+}
+
+impl Host for Leaves<'_> {
+    fn read(&self, from: &str, path: &str) -> Option<String> {
+        if Self::document(path) {
+            None
+        } else {
+            self.0.read(from, path)
+        }
+    }
+
+    fn file(&self, from: &str, path: &str) -> Option<crate::host::FileState> {
+        if Self::document(path) {
+            None
+        } else {
+            self.0.file(from, path)
+        }
+    }
+}
+
 /// What resolving one reference found.
 pub enum Target {
     /// Another document, and no host to read it with.
@@ -479,8 +509,10 @@ impl<'a> Resolver<'a> {
         }
     }
 
-    /// The index of another document, parsed in its own right and without a
-    /// host, so its own references are not followed (§9.3).
+    /// The index of another document, parsed in its own right. It reads its own
+    /// data and table files — a coordinate into one answers from it, as it
+    /// renders — but no further document, so its own references are not
+    /// followed (§9.3).
     pub fn document(&self, doc: &str) -> Result<Rc<Index>, Target> {
         let Some(host) = self.host else { return Err(Target::NoHost) };
         // §3.3: against this document's directory, then against the root.
@@ -491,7 +523,8 @@ impl<'a> Resolver<'a> {
             return hit.clone().ok_or(Target::Reported);
         }
         let parsed = crate::host::read_from(host, &self.name, doc).map(|text| {
-            let d = crate::parse_with(&text, &crate::Options { name: key.clone(), recognize: true, host: None, checks: false, markdown: false });
+            let leaves = Leaves(host);
+            let d = crate::parse_with(&text, &crate::Options { name: key.clone(), recognize: true, host: Some(&leaves), checks: false, markdown: false });
             Rc::new(Index::of(&d))
         });
         self.cache.borrow_mut().insert(key, parsed.clone());
@@ -523,7 +556,10 @@ impl<'a> Resolver<'a> {
             Some(f) if steps.is_empty() => Target::Hit { index, found: f, coord: None, cross },
             Some(f) => match index.coord(f, &steps) {
                 Ok(c) => Target::Hit { index, found: f, coord: Some(c), cross },
-                Err(m) => Target::Unresolved { message: format!("`#{anchor}` does not resolve: {m}"), cross },
+                // The other document declares the id; what it does not carry is
+                // the cell or key, and that is `unresolved-reference` wherever
+                // the block lives (§5.2).
+                Err(m) => Target::Unresolved { message: format!("`#{anchor}` does not resolve: {m}"), cross: false },
             },
         }
     }

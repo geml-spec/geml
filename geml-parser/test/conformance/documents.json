@@ -97,6 +97,37 @@
     "diagnostics": []
   },
   {
+    "name": "a coordinate into another document reads that document's src= data and table files, from its directory (§3.3, §5.2)",
+    "files": {
+      "a.geml": "See [[sub/b.geml#j[\"a\"]]] and [[sub/b.geml#t[1][\"v\"]]].\n",
+      "sub/b.geml": "=== data {#j src=x.json}\n===\n\n=== table {#t src=t.csv format=csv}\n===\n",
+      "sub/x.json": "{\"a\": 1}\n",
+      "sub/t.csv": "k, v\na, 42\n",
+      "x.json": "{\"b\": 2}\n",
+      "t.csv": "k, w\na, 7\n"
+    },
+    "main": "a.geml",
+    "want": "\"See \" ref(\"sub/b.geml#j[\\\"a\\\"]\" -> \"1\") \" and \" ref(\"sub/b.geml#t[1][\\\"v\\\"]\" -> \"42\") \".\"",
+    "diagnostics": []
+  },
+  {
+    "name": "a key or a column another document's src= files do not carry is an unresolved reference (§5.2)",
+    "files": {
+      "a.geml": "See [[sub/b.geml#j[\"b\"]]] and [[sub/b.geml#t[1][\"w\"]]].\n",
+      "sub/b.geml": "=== data {#j src=x.json}\n===\n\n=== table {#t src=t.csv format=csv}\n===\n",
+      "sub/x.json": "{\"a\": 1}\n",
+      "sub/t.csv": "k, v\na, 42\n",
+      "x.json": "{\"b\": 2}\n",
+      "t.csv": "k, w\na, 7\n"
+    },
+    "main": "a.geml",
+    "want": "\"See \" ref(\"sub/b.geml#j[\\\"b\\\"]\") \" and \" ref(\"sub/b.geml#t[1][\\\"w\\\"]\") \".\"",
+    "diagnostics": [
+      "unresolved-reference:error",
+      "unresolved-reference:error"
+    ]
+  },
+  {
     "name": "a relative path resolves against the naming document's directory first",
     "files": {
       "sub/e.geml": "=== table {#t src=rows.csv format=csv}\n===\n",
