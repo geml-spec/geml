@@ -222,3 +222,20 @@ fn every_chain_ends() {
     let h = host(&refs);
     assert!(cycles(&h, "top.geml", "=== embed {src=d0.geml}\n===\n\n=== embed {src=m0.geml}\n===\n").is_empty());
 }
+
+#[test]
+fn a_borrowed_document_reads_its_own_files_and_no_further_document() {
+    // A coordinate into another document answers from that document's `src=`
+    // file, read from its directory; what that document names in turn is not
+    // followed, so two documents that name each other still finish (§9.3).
+    let a = "See [[sub/b.geml#j[\"a\"]]].\n\n=== data {#k}\n{\"z\": 1}\n===\n";
+    let h = host(&[
+        ("a.geml", a),
+        ("sub/b.geml", "Back to [[../a.geml#k[\"z\"]]], [the rest](c.geml) and ![a picture](p.png).\n\n=== data {#j src=x.json}\n===\n"),
+        ("sub/x.json", "{\"a\": 1}"),
+        ("x.json", "{\"b\": 2}"),
+    ]);
+    let d = read(&h, "a.geml", a);
+    assert_eq!(codes(&d), Vec::<String>::new(), "{:?}", messages(&d));
+    assert!(geml::project(&d).starts_with(r#""See " ref("sub/b.geml#j[\"a\"]" -> "1")"#), "{}", geml::project(&d));
+}

@@ -45,7 +45,11 @@ and is released under `viewer-v*` tags.
   document's directory, with the run's readers, each reader handed the file's
   real path; a view there is still not followed into further documents
   (§9.3). A view over another document now hands that document's readers
-  their files' real paths as well.
+  their files' real paths as well. The Rust implementation had the same gap —
+  a coordinate into another document's `src=` data or table passed unchecked,
+  right or wrong — and reported a cross-document coordinate whose cell or key
+  is missing as `unresolved-cross-document-reference`; it is
+  `unresolved-reference` (§5.2) in both now, and two conformance cases pin it.
 
 ## [1.13.1] — 2026-11-03
 
