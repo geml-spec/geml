@@ -43,7 +43,7 @@ import { pathToFileURL } from "node:url";
 import { createInterface } from "node:readline";
 import { save, listRevisions, isCurrent, resolveContent, firstChangedContent } from "./history.js";
 import { type VerbContext, type FindHit, findInSource } from "./verbs.js";
-import { docOptsFor, fsFiles, gemlFilesUnder, historyError, isDocumentPath } from "./host-fs.js";
+import { docOptsFor, fsFiles, gemlFilesUnder, historyError, isDocumentPath, targetFor } from "./host-fs.js";
 import { isMarkdownPath, readerForPath, type FormatReader, type ParseOptions } from "./geml.js";
 import { loadReaders } from "./readers-node.js";
 import {
@@ -225,7 +225,7 @@ const fsHost: McpHost = {
       label: real,
       ctx: ctxFor(root, notes),
       notes,
-      validate: { ...markdownOpts(real, root), resolveDoc: docResolver(root, real), ...readerOpts() },
+      validate: { ...markdownOpts(real, root), resolveDoc: docResolver(root, real), sourcePath: targetFor(real, root), ...readerOpts() },
       root,
     };
   },
@@ -271,7 +271,7 @@ const fsHost: McpHost = {
   },
   checkOpts(doc, root) {
     const r = resolveRoot(root === undefined ? undefined : String(root));
-    return { ...markdownOpts(doc.label, r), resolveDoc: docResolver(r, doc.label), ...readerOpts() };
+    return { ...markdownOpts(doc.label, r), resolveDoc: docResolver(r, doc.label), sourcePath: targetFor(doc.label, r), ...readerOpts() };
   },
   // §8.2(10): the path is the one the parse read, through targetFor's gates.
   writeSource(path, text) {

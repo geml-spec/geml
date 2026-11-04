@@ -28,6 +28,13 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+- **A format reader is handed the `src=` file's real path.**
+  `ParseOptions.sourcePath` — what the CLI and `geml mcp` already resolve a
+  source through — now reaches a reader's `read(text, { path })` too, so a
+  check of its own (Godot's `res://` paths, resolved against the project
+  around the file) sees the file where it is rather than the route as the
+  document wrote it.
+
 ## [1.13.1] — 2026-11-03
 
 - **`data` blocks read formats the invoker hands a run, and a coordinate

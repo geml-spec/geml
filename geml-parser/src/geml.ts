@@ -478,6 +478,11 @@ export interface ParseOptions {
   // the document. A `data` file whose extension none of them, and no built-in
   // format, claims has no value tree here, and what addresses it defers.
   readers?: readonly FormatReader[];
+  // Where a source `d` lives on disk, behind the same gates `resolveDoc` reads
+  // through. A reader is handed this as its `path`, so a check of its own —
+  // Godot's `res://` paths, resolved against the project around the file — sees
+  // the file where it is, not a path relative to the document that named it.
+  sourcePath?: (doc: string) => string | null;
   // Does this target exist at all, even though `resolveDoc` could read no text
   // from it? Only link checking asks — a link to a directory is ordinary and
   // must not be reported as broken, while `src=`/`data=`/`embed` still need
@@ -3497,7 +3502,7 @@ function resolveDataSources(ctx: Ctx, opts: ParseOptions): void {
     // What the FILE fails on is reported on the block that names it: a line
     // number counted from the block would point into this document at
     // whatever follows it.
-    const parsed = parseDataBody(fmt, lines, line, opts.readers, path);
+    const parsed = parseDataBody(fmt, lines, line, opts.readers, opts.sourcePath?.(path) ?? path);
     for (const d of parsed.diags) ctx.diags.push({ ...d, line });
     if (parsed.value !== undefined) {
       block.value = parsed.value;
