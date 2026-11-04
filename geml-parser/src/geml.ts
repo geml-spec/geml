@@ -2757,6 +2757,7 @@ function remoteRelation(source: string, id: string, opts: ParseOptions, path: st
       _docCache: cache,
     };
     if (opts.docExists) nested.docExists = (d) => opts.docExists!(rebase(d));
+    if (opts.sourcePath) nested.sourcePath = (d) => opts.sourcePath!(rebase(d));
     document = parse(source, nested);
     cache.set(canonical, document);
   }
@@ -3024,13 +3025,16 @@ function collectMeta(lines: string[], diags?: Ctx["diags"], definedAt?: Map<stri
 // scan already builds the table models and value trees a coordinate projects
 // against, and a fresh context with no `resolveDoc` is what keeps two documents
 // that reference each other from resolving in circles (§9.3).
-function blockFromDocument(source: string, id: string, scanned?: Map<string, { blocks: Block[]; ctx: Ctx }>): Block | null {
+function blockFromDocument(doc: string, source: string, id: string, opts: ParseOptions,
+                           scanned?: Map<string, { blocks: Block[]; ctx: Ctx }>): Block | null {
   // One scan per document per check: a coordinate per line into a large target,
   // or a document naming itself, rescanned the whole target for every reference.
-  let hit = scanned?.get(source);
+  // Keyed by the document, not its text: two files that read alike still name
+  // their `src=` files from different directories.
+  let hit = scanned?.get(doc);
   if (hit === undefined) {
-    hit = scanForCoordinates(source);
-    scanned?.set(source, hit);
+    hit = scanForCoordinates(source, borrowedFiles(doc, opts));
+    scanned?.set(doc, hit);
   }
   const { blocks, ctx } = hit;
   // `#meta` is the reserved id for the merged namespace (§4), not a block that
@@ -3057,19 +3061,36 @@ function blockFromDocument(source: string, id: string, scanned?: Map<string, { b
 // empty: the rows and value trees a coordinate projects against are filled by the
 // resolve passes, not by the scanner. Without them a `view` in the borrowed
 // document carries zero columns and every coordinate on it fails — the SAME
-// document that checks clean when it is parsed on its own. These run with no
-// `resolveDoc` on purpose: a same-document `src=#id` is what a coordinate needs,
-// and refusing to descend again is what keeps two documents that reference each
-// other from resolving in circles (§9.3). Their diagnostics die with this
-// throwaway context — the borrowed document reports its own when it is checked.
-function scanForCoordinates(source: string): { blocks: Block[]; ctx: Ctx } {
-  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map(), vocab: vocabularyOf(source) };
+// document that checks clean when it is parsed on its own. A table's or a data
+// block's `src=` names a file, a leaf, so those passes read through `files`: the
+// run's resolver and readers, rebased onto the borrowed document. Without them a
+// key that is there was refused as a body that did not parse, and a reader's
+// format was never checked at all — while rendering printed the value. Views
+// still resolve with no `resolveDoc`, on purpose: a same-document `src=#id` is
+// what a coordinate needs, and refusing to descend into another document again is
+// what keeps two documents that reference each other from resolving in circles
+// (§9.3). Their diagnostics die with this throwaway context — the borrowed
+// document reports its own when it is checked.
+function scanForCoordinates(source: string, files: ParseOptions = {}): { blocks: Block[]; ctx: Ctx } {
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map(), vocab: vocabularyOf(source), readers: files.readers };
   const blocks = scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
-  const inner: ParseOptions = {};
-  resolveTableSources(ctx, inner);
-  resolveViewSources(ctx, inner);
-  resolveDataSources(ctx, inner);
+  resolveTableSources(ctx, files);
+  resolveViewSources(ctx, {});
+  resolveDataSources(ctx, files);
   return { blocks, ctx };
+}
+
+// What a borrowed document's own `src=` files are read through. Its paths mean
+// ITS directory, so each is rebased onto it before the run's resolver sees it —
+// which still applies its own confinement to what comes out — and a reader is
+// handed that file's real path, as it would be in the document's own check.
+function borrowedFiles(doc: string, opts: ParseOptions): ParseOptions {
+  const dir = relDirPath(doc);
+  const rebase = (d: string): string => relJoinPath(dir, d);
+  const files: ParseOptions = { readers: opts.readers };
+  if (opts.resolveDoc) files.resolveDoc = (d) => opts.resolveDoc!(rebase(d));
+  if (opts.sourcePath) files.sourcePath = (d) => opts.sourcePath!(rebase(d));
+  return files;
 }
 
 // GEP 0011: a reference may carry a coordinate — `[[#fy[2]["Q1"]]]`, or the
@@ -3101,7 +3122,7 @@ function validateCoordRef(ref: Ctx["refs"][number], children: Block[], ctx: Ctx,
     }
     const text = docs.text(ref.doc);
     if (text === null) return err("unresolvable-document", `cannot resolve document \`${ref.doc}\``);
-    block = blockFromDocument(text, base, docs.scanned);
+    block = blockFromDocument(ref.doc, text, base, opts, docs.scanned);
     if (!block) return err("unresolved-cross-document-reference", `unresolved reference \`${ref.doc}#${base}\``);
   } else if (nameKey(base) === nameKey("meta") && !ctx.ids.has(nameKey("meta"))) {
     // The reserved id (§4): the merged view, not a block.

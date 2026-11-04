@@ -252,4 +252,39 @@ test("the MCP server writes a src= file only through a reader it was started wit
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+// A spy that reads `kv` and records the path it was handed.
+function pathSpy(seen) {
+  const kv = kvReader();
+  return { ...kv, read(text, ctx) { seen.push(ctx?.path); return kv.read(text); } };
+}
+
+test("a coordinate into ANOTHER document's reader-backed `src=` is checked with the run's readers", () => {
+  // The check scanned the borrowed document with no readers and no resolver, so
+  // a coordinate into it was never checked: a key that is not there passed,
+  // while rendering the same projection printed the value. Its `src=` means its
+  // own directory, so the decoy beside this document must not answer.
+  const seen = [];
+  const files = { "sub/b.geml": "=== data {#g src=game.kv}\n===\n", "sub/game.kv": "speed = 0.5\n", "game.kv": "jump = 1\n" };
+  const opts = { resolveDoc: (p) => files[p] ?? null, sourcePath: (p) => `/abs/root/${p}`, readers: [pathSpy(seen)] };
+  assert.deepEqual(parse('see [[sub/b.geml#g["speed"]]]\n', opts).diagnostics, []);
+  assert.deepEqual(seen, ["/abs/root/sub/game.kv"], "the reader is handed the borrowed document's file");
+  assert.deepEqual(errs(parse('see [[sub/b.geml#g["jump"]]]\n', opts)).map((d) => d.code), ["unresolved-reference"]);
+  // With no reader, the block has no value tree in this run and the coordinate
+  // defers (§3.2), as it does inside its own document.
+  assert.deepEqual(errs(parse('see [[sub/b.geml#g["jump"]]]\n', { resolveDoc: opts.resolveDoc })), []);
+});
+
+test("a view over another document hands that document's readers its own files", () => {
+  // The borrowed document is parsed with its `src=` rebased onto its directory;
+  // the path a reader is handed has to be rebased the same way.
+  const seen = [];
+  const files = {
+    "sub/b.geml": "=== data {#g src=game.kv}\n===\n\n=== table {#t}\n| A |\n|---|\n| 1 |\n===\n",
+    "sub/game.kv": "speed = 0.5\n",
+  };
+  const opts = { resolveDoc: (p) => files[p] ?? null, sourcePath: (p) => `/abs/root/${p}`, readers: [pathSpy(seen)] };
+  assert.deepEqual(errs(parse("=== view {#v src=sub/b.geml#t}\n===\n", opts)), []);
+  assert.deepEqual(seen, ["/abs/root/sub/game.kv"]);
+});
+
 console.log(`readers: ${passed} passed`);

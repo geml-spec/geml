@@ -34,6 +34,18 @@ and is released under `viewer-v*` tags.
   check of its own (Godot's `res://` paths, resolved against the project
   around the file) sees the file where it is rather than the route as the
   document wrote it.
+- **A coordinate into another document's `src=` content is checked against
+  that content (spec §5.2).** Checking `other.geml#id[…]` scanned the other
+  document without reading its `src=` files, so `geml check` disagreed with
+  rendering: a coordinate into a `data` block filled from a `.json` file failed
+  as a body that "did not parse" even when the key was there, one into a table
+  filled from a `.csv` file failed as "0 body rows", and one into a format a
+  reader reads (§3.2) was not checked at all. The other document's table and
+  data files are now read before its coordinates resolve — from that
+  document's directory, with the run's readers, each reader handed the file's
+  real path; a view there is still not followed into further documents
+  (§9.3). A view over another document now hands that document's readers
+  their files' real paths as well.
 
 ## [1.13.1] — 2026-11-03
 
