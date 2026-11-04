@@ -2,7 +2,7 @@
 // a run"): a `data` block whose `src=` names a `.tscn`, `.tres`, `project.godot`
 // or `.import` file is read through these, handed to geml by whoever runs it —
 //
-//   geml check design.geml --reader integrations/godot/src/reader.mjs
+//   geml check design.geml --reader integrations/geml-gamemaker/engines/godot/reader.mjs
 //
 // — never by the document. A reader only READS: it returns the file as a value
 // tree plus the extent of every value's text, and a coordinate edit is geml's

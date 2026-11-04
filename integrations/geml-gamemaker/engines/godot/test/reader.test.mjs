@@ -11,7 +11,7 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import reader, { GodotReadError, diagnose, parseGodot } from "../src/reader.mjs";
+import reader, { GodotReadError, diagnose, parseGodot } from "../reader.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fixtures = join(here, "fixtures", "dodge_the_creeps");
@@ -184,7 +184,7 @@ test("a string of unclosed ExtResource( takes linear time to check", () => {
 
 // Through geml itself: the reader handed to a run, a document addressing the
 // scene, and a coordinate edit landing in the scene file.
-const geml = resolve(here, "..", "..", "..", "geml-parser", "dist");
+const geml = resolve(here, "..", "..", "..", "..", "..", "geml-parser", "dist");
 const { parse } = await import(pathToFileURL(join(geml, "geml.js")).href);
 const { set } = await import(pathToFileURL(join(geml, "verbs.js")).href);
 

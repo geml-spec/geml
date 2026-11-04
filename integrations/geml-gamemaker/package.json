@@ -1,0 +1,20 @@
+{
+  "name": "geml-gamemaker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Makes a game from GEML documents: format readers that let a data block's src= address an engine's own files, and a build script that takes a game from its design documents to a release, as its game.config.geml describes. Godot is the first engine.",
+  "type": "module",
+  "files": [
+    "src",
+    "engines",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node engines/godot/test/reader.test.mjs && node test/build.test.mjs"
+  },
+  "license": "MIT"
+}

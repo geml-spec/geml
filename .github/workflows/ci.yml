@@ -212,8 +212,8 @@ jobs:
         working-directory: integrations/logseq
         run: npm ci && npm test
 
-  godot:
-    name: godot integration — reader tests
+  gamemaker:
+    name: gamemaker integration — engine readers + build script tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -221,13 +221,14 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "22"
-      # The suite reads a scene through geml itself, so the parser is built first.
-      # The reader has no dependencies of its own: nothing to install.
+      # Both suites go through geml itself, so the parser is built first. CI has
+      # no game engine: the build script's tests cover what runs without one.
+      # Nothing of the integration's own to install.
       - name: Build reference parser
         working-directory: geml-parser
         run: npm ci && npm run build
-      - name: Godot reader tests
-        working-directory: integrations/godot
+      - name: Gamemaker tests
+        working-directory: integrations/geml-gamemaker
         run: npm test
 
   obsidian:

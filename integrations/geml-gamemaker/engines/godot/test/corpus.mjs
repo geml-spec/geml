@@ -1,6 +1,6 @@
 // The reader against a real body of Godot projects — the acceptance run.
 //
-//   node test/corpus.mjs <dir>
+//   node engines/godot/test/corpus.mjs <dir>
 //
 // Every `.tscn`, `.tres`, `project.godot`, `.import` and `.cfg` under <dir> is
 // read; each must read whole. Then every number in every file is rewritten
@@ -18,7 +18,7 @@
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, extname, basename } from "node:path";
-import reader from "../src/reader.mjs";
+import reader from "../reader.mjs";
 
 const dir = process.argv[2];
 if (!dir) { console.error("usage: node test/corpus.mjs <dir>"); process.exit(2); }
