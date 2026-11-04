@@ -1046,6 +1046,36 @@ test("a cross-document coordinate reaches a block NESTED in the other document",
   assert.deepEqual(ds.map((d) => d.code), [], JSON.stringify(ds));
 });
 
+// The other document's `src=` paths mean ITS directory, so each case keeps a
+// decoy of the same name beside this one, holding what the wrong file would say.
+test("a cross-document coordinate reads the other document's `src=` data, from its directory", () => {
+  // The check scanned the borrowed document without reading its sources: a key
+  // that is there was refused as a body that "did not parse", while rendering
+  // the same projection printed the value.
+  const files = {
+    "sub/b.geml": "=== data {#j src=x.json}\n===\n",
+    "sub/x.json": '{"a": 1}',
+    "x.json": '{"zz": 2}',
+  };
+  const opts = { resolveDoc: (p) => files[p] ?? null };
+  assert.deepEqual(diagsOf(refDoc('sub/b.geml#j["a"]'), opts).map((d) => d.code), []);
+  const wrong = diagsOf(refDoc('sub/b.geml#j["zz"]'), opts).filter((d) => d.severity === "error");
+  assert.deepEqual(wrong.map((d) => d.code), ["unresolved-reference"], JSON.stringify(wrong));
+  assert.match(wrong[0].message, /no key `zz`/);
+});
+
+test("a cross-document coordinate reads a table's `src=` file there too", () => {
+  const files = {
+    "sub/b.geml": "=== table {#t src=t.csv format=csv header=1}\n===\n",
+    "sub/t.csv": "Segment, Q1\nCloud, 8\n",
+    "t.csv": "Segment, Q9\nCloud, 8\n",
+  };
+  const opts = { resolveDoc: (p) => files[p] ?? null };
+  assert.deepEqual(diagsOf(refDoc('sub/b.geml#t[1]["Q1"]'), opts).map((d) => d.code), []);
+  const wrong = diagsOf(refDoc('sub/b.geml#t[1]["Q9"]'), opts).filter((d) => d.severity === "error");
+  assert.deepEqual(wrong.map((d) => d.code), ["unresolved-reference"], JSON.stringify(wrong));
+});
+
 test("`#meta[...]` in a document that has no meta block says exactly that", () => {
   const ds = diagsOf(refDoc('#meta["title"]'));
   const hit = ds.find((d) => d.code === "unresolved-reference");
