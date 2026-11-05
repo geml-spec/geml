@@ -4,15 +4,15 @@
 profile           = "geml-history/v1"
 history-of        = "GEML-spec.geml"
 geml-version      = "1.0"
-current           = "20261103T105001Z-a295c0d4"
+current           = "20261105T073713Z-d7f5e7a8"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== history-keyframe {id="20261103T105001Z-a295c0d4" hash="sha256:a295c0d487dbc5aa58740939cbca0ec8b9762e936b1dc0002530c88a67985834"}
+===== history-keyframe {id="20261105T073713Z-d7f5e7a8" hash="sha256:d7f5e7a8f94bab6fbe9366f2f901fad648fc2439e53aeded64bdb7a5bb9c07df"}
 # GEML — General Expressive Markup Language
 
-*English | [中文](../GEML-spec_CN.md)*
+*English | [中文](GEML-spec_CN.geml)*
 
 ## Specification (Stable)
 
@@ -2131,6 +2131,16 @@ for a block or a section, the three granularities are a scalar, a phrase, and
 a block.
 
 =====
+
+=== history-revision {id="20261105T073713Z-d7f5e7a8" parent="20261103T105001Z-a295c0d4" summary="auto: Edit" hash="sha256:d7f5e7a8f94bab6fbe9366f2f901fad648fc2439e53aeded64bdb7a5bb9c07df" newline="crlf"}
+delete @2f0f7f7f
+insert <- blob:b238 after @65caf158
+===
+
+=== history-blob {#b238 lang=geml}
+*English | [中文](../GEML-spec_CN.md)*
+
+===
 
 === history-revision {id="20261103T105001Z-a295c0d4" parent="20261103T092229Z-8b049c3e" summary="data: a data route's extension names a format a built-in or a supplied engine claims" hash="sha256:a295c0d487dbc5aa58740939cbca0ec8b9762e936b1dc0002530c88a67985834" newline="crlf"}
 delete @2529fd6d
