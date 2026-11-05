@@ -23,7 +23,7 @@
     "mermaid": "^12.2.0"
   },
   "overrides": {
-    "dompurify": "^3.4.12",
+    "dompurify": "^3.4.17",
     "mermaid": {
       "katex": "$katex"
     }
