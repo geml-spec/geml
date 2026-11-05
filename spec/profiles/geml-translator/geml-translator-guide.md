@@ -39,7 +39,7 @@ translate-to = "zh-cn"
 
 `geml check hello_CN.geml` prints `ok: no diagnostics`.
 
-To see it translated, install the [GEML Viewer](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie) in desktop Chrome, turn on **Allow access to file URLs** in its details, and open `hello_CN.geml`. The English shows first and turns into Chinese when Chrome's built-in translator answers; the 原文 button on the heading shows the source again. If Chrome does not have the language model yet, the page offers a button to download it.
+To see it translated, install the [GEML Viewer](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie) in desktop Chrome, turn on **Allow access to file URLs** in its details, and open `hello_CN.geml`. The English shows first and turns into Chinese when Chrome's built-in translator answers; the 原文 button on the heading shows the source again. If Chrome does not have the language model yet, the page offers a button to download it. If a section reads **Not translated to zh-cn: could not start …** instead, Chrome's own translation service refused. Open `chrome://on-device-translation-internals` to see which language packs Chrome has and install a missing one; updating or restarting Chrome is the other thing to try.
 
 ## Everyday use
 

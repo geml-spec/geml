@@ -39,7 +39,7 @@ translate-to = "zh-cn"
 
 `geml check hello_CN.geml` 输出 `ok: no diagnostics`。
 
-想看翻译效果：在桌面版 Chrome 里装上 [GEML Viewer 浏览器扩展](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)，在扩展详情里打开**允许访问文件网址**，再打开 `hello_CN.geml`。页面先显示英文，等 Chrome 内置的翻译器返回结果后换成中文；标题旁的「原文」按钮可以切回源文。Chrome 里还没有这对语言的模型时，页面会给出一个下载按钮。
+想看翻译效果：在桌面版 Chrome 里装上 [GEML Viewer 浏览器扩展](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)，在扩展详情里打开**允许访问文件网址**，再打开 `hello_CN.geml`。页面先显示英文，等 Chrome 内置的翻译器返回结果后换成中文；标题旁的「原文」按钮可以切回源文。Chrome 里还没有这对语言的模型时，页面会给出一个下载按钮。如果某一节显示的是 **Not translated to zh-cn: could not start …**，那是 Chrome 自己的翻译服务没起来。打开 `chrome://on-device-translation-internals` 能看到 Chrome 装了哪些语言包，缺的可以在那里装；另一个办法是更新或重启 Chrome。
 
 ## 常用
 
