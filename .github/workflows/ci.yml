@@ -155,10 +155,12 @@ jobs:
   # ---- the site ------------------------------------------------------------
   # The website moved to geml-spec/geml-spec.github.io; website.yml pushes the
   # files it serves that are made from here. What this repository
-  # still publishes at geml-spec.github.io/geml/ is site/, a redirect: index.html for
-  # the old root, and a 404.html whose script strips the /geml prefix and
-  # forwards every old path — the playground, the blog posts, privacy, terms —
-  # to the same path on the new site.
+  # still publishes at geml-spec.github.io/geml/ is site/, a redirect. Every page
+  # the old site had — the root, the playground, the blog and its posts, privacy,
+  # terms — is a page of its own there, an instant refresh to its canonical
+  # address on the new site: a search engine reads that as a permanent move,
+  # where a 404 reads as gone. Any other old path falls to 404.html, whose
+  # script strips the /geml prefix and forwards to the same path on the new site.
   pages:
     name: pages — the redirect
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
