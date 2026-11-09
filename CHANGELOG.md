@@ -50,6 +50,19 @@ and is released under `viewer-v*` tags.
   right or wrong — and reported a cross-document coordinate whose cell or key
   is missing as `unresolved-cross-document-reference`; it is
   `unresolved-reference` (§5.2) in both now, and two conformance cases pin it.
+- **A form block in the browser viewer reads as a form (geml-form/v1,
+  GEP-0008).** Its fields were transparent controls with faint borders. A
+  `form` is now a card: bold labels with a star on a required field,
+  full-width bordered controls with a focus ring, the checkbox before its
+  label (clicking the label ticks it), and a footer saying the page is a
+  preview, naming the `handler=` and saying nothing is sent. Each label
+  points at its control, and a field's description is its control's
+  `aria-describedby`. The form is `novalidate`: Enter in a lone text field
+  submitted it implicitly, and Chrome then checked `required` itself —
+  validating for the handler, which the profile leaves to the handler (§3).
+  The controls stay editable rather than the disabled preview GEP-0008
+  describes; nothing is submitted either way.
+  *(`viewer-v1.4.1`, on its own track.)*
 
 ## [1.13.1] — 2026-11-03
 

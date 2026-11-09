@@ -337,16 +337,28 @@ function inferKind(src) {
 const FIELD_TYPES = new Set(["text", "textarea", "number", "date", "boolean", "select", "file"]);
 const CONSTRAINTS = ["pattern", "min", "max", "step", "maxlength", "accept"];
 
+// 标签要点得中控件（勾选框点字就勾），说明要读得到 —— 都靠 id。字段不必有 `#id`（name 才是它的键，
+// 两张表单可以同名），所以控件的 id 由这里发：每个 document 一个计数，同一页里不重，测试里可复现。
+const fieldSeq = new WeakMap();
+function nextFieldId(dom) {
+  const n = (fieldSeq.get(dom) ?? 0) + 1;
+  fieldSeq.set(dom, n);
+  return `geml-field-${n}`;
+}
+
 function formField(b, dom, byId) {
   const a = b.attrs || {};
   const type = FIELD_TYPES.has(String(a.type)) ? String(a.type) : "text";
+  const cid = nextFieldId(dom);
   const row = el(dom, "div", { class: "geml-form-field", id: b.id, "data-type": type });
   if (a.label !== undefined) {
-    const lab = el(dom, "label", { class: "geml-form-label" }, [dom.createTextNode(String(a.label))]);
-    if (a.required !== undefined) lab.appendChild(el(dom, "span", { class: "geml-form-required", text: "*" }));
+    const lab = el(dom, "label", { class: "geml-form-label", for: cid }, [dom.createTextNode(String(a.label))]);
+    // 星号只是给眼睛看的；控件上的 required 才是读屏器念的那个。
+    if (a.required !== undefined) lab.appendChild(el(dom, "span", { class: "geml-form-required", "aria-hidden": "true", text: "*" }));
     row.appendChild(lab);
   }
-  const common = {};
+  const common = { id: cid };
+  if (a.description !== undefined) common["aria-describedby"] = `${cid}-desc`;
   // name= is the key the handler receives (GEP-0008); the control carries it as HTML does.
   if (a.name !== undefined) common.name = String(a.name);
   if (a.placeholder !== undefined) common.placeholder = String(a.placeholder);
@@ -379,7 +391,7 @@ function formField(b, dom, byId) {
   }
   control.className = "geml-form-control";
   row.appendChild(control);
-  if (a.description !== undefined) row.appendChild(el(dom, "p", { class: "geml-form-desc", text: String(a.description) }));
+  if (a.description !== undefined) row.appendChild(el(dom, "p", { class: "geml-form-desc", id: `${cid}-desc`, text: String(a.description) }));
   return row;
 }
 
@@ -626,8 +638,11 @@ function renderTyped(b, dom, labels, byId) {
     return wrap;
   }
   if (type === "form") {
-    const f = el(dom, "form", { class: "geml-form", id: b.id });
-    // handler= 是声明给处理器看的，浏览器里不提交任何东西。
+    // handler= 是宿主注册的名字，浏览器里不提交任何东西、也不解释这个名字（§8.3(5)）：它只原样挂在
+    // data-handler 上，让样式表在卡片底下写明「这是预览，由谁处理」。novalidate：约束是声明（profile §3），
+    // 而在输入框里回车会触发隐式提交，浏览器就拿 required 去拦人、弹气泡 —— 那是在替 handler 判。
+    const handler = b.attrs?.handler !== undefined ? String(b.attrs.handler) : undefined;
+    const f = el(dom, "form", { class: "geml-form", id: b.id, novalidate: "", "data-handler": handler });
     f.addEventListener?.("submit", (e) => e.preventDefault());
     for (const c of b.children ?? []) { const k = renderBlock(c, dom, labels, byId); if (k) f.appendChild(k); }
     return f;

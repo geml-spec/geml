@@ -648,6 +648,68 @@ test("geml-form/v1 的控件：七种 type 各画成什么，options=#id 从哪�
   assert.match(root.querySelector(".geml-form-note").textContent, /never share/);
 });
 
+test("geml-form/v1 在文档里：标签点得中控件、说明挂在控件上；表单不替 handler 校验，也不提交", () => {
+  const doc = parse('=== meta\nprofile = "geml-form/v1"\n===\n'
+    + '==== form {#f1 handler=gemworks.feedback}\n'
+    + '=== form-field {name=title label="标题" type=text required maxlength=120 description="一句话。"}\n===\n'
+    + '=== form-field {name=env label="附带版本" type=boolean value=true}\n===\n'
+    + '====\n'
+    + '==== form {#f2}\n'
+    + '=== form-field {name=title label="Title" type=text}\n===\n'
+    + '====\n');
+  const { document, Event } = dom();
+  const root = renderDocument(doc, document);
+  const [f1, f2] = root.querySelectorAll("form.geml-form");
+
+  // 约束是声明（profile §3）：novalidate 让回车触发的隐式提交不拿 required 去拦人
+  assert.ok(f1.hasAttribute("novalidate") && f2.hasAttribute("novalidate"));
+  // handler 只原样挂出来给样式表写那行「预览」，没写就不挂
+  assert.equal(f1.getAttribute("data-handler"), "gemworks.feedback");
+  assert.equal(f2.hasAttribute("data-handler"), false);
+  const ev = new Event("submit", { cancelable: true });
+  f1.dispatchEvent(ev);
+  assert.equal(ev.defaultPrevented, true, "浏览器里什么都发不出去（§8.3(5)）");
+
+  // 每个标签的 for 指向本字段的控件；两张表单同名字段的 id 也不撞
+  const labels = [...root.querySelectorAll("label.geml-form-label")];
+  assert.equal(labels.length, 3);
+  for (const lab of labels) {
+    const control = lab.parentElement.querySelector(".geml-form-control");
+    assert.ok(lab.getAttribute("for"), "标签有 for");
+    assert.equal(lab.getAttribute("for"), control.getAttribute("id"), `「${lab.textContent}」点得中自己的控件`);
+  }
+  const ids = [...root.querySelectorAll(".geml-form-control")].map((c) => c.getAttribute("id"));
+  assert.equal(new Set(ids).size, ids.length, "控件 id 在一页里不重");
+
+  // 星号只给眼睛看，必填由控件上的 required 说
+  const star = f1.querySelector(".geml-form-required");
+  assert.equal(star.getAttribute("aria-hidden"), "true");
+  assert.ok(f1.querySelector('input[name="title"]').hasAttribute("required"));
+
+  // 说明用 aria-describedby 挂到控件上；没有说明的字段不挂
+  const title = f1.querySelector('input[name="title"]');
+  const desc = root.querySelector("#" + title.getAttribute("aria-describedby"));
+  assert.equal(desc.className, "geml-form-desc");
+  assert.equal(desc.textContent, "一句话。");
+  assert.equal(f1.querySelector('input[name="env"]').hasAttribute("aria-describedby"), false);
+  assert.equal(f1.querySelector('input[name="env"]').hasAttribute("checked"), true, "value=true 预勾上");
+});
+
+test("geml.css：表单卡片只在 .geml-doc 里，整页布局的表单照旧归样式表；预览那行字读的是 data-handler", () => {
+  const css = readFileSync(new URL("../src/geml.css", import.meta.url), "utf8").replace(/\r\n/g, "\n");
+  const rule = (sel) => {
+    const at = css.indexOf("\n" + sel + " {");
+    assert.ok(at >= 0, `有 ${sel} 这条规则`);
+    return css.slice(at, css.indexOf("}", at));
+  };
+  // 通用的那条两种模式都吃：卡片的边框、阴影、内边距不能写在这里
+  assert.doesNotMatch(rule(".geml-form"), /border|box-shadow|padding/);
+  assert.match(rule(".geml-doc .geml-form"), /border-radius/);
+  // 整页布局把控件的框去掉的那条还在
+  assert.match(rule(".geml-page .geml-form-control"), /border: 0/);
+  assert.match(rule(".geml-doc .geml-form[data-handler]::after"), /attr\(data-handler\)/);
+});
+
 // ---------------------------------------------------------------- 第二个页面用例（设计 2026-09-10）
 
 test("cssForPage：部件绑定接标签；@hover 接 :hover；块上的 axis 生成 .geml-items 的 flex；gap 跟着 axis 走", () => {
