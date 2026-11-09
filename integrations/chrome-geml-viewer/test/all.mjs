@@ -16,7 +16,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 // shipped content path; d2 + graphviz cover the PARKED sandbox engines (still
 // built and tested, not shipped).
 const suites = ["render", "transclude", "inline-src", "chart",
-  "statechart", "upgrade", "security", "d2", "graphviz", "translate-browser", "translate-map", "snapshot", "layout", "media-player", "media-playlist"];
+  "statechart", "upgrade", "security", "d2", "graphviz", "translate-browser", "translate-map", "snapshot", "layout", "media-player", "media-playlist", "file-access"];
 
 for (const s of suites) {
   const r = spawnSync(process.execPath, [join(here, `${s}.test.mjs`)], { stdio: "inherit" });

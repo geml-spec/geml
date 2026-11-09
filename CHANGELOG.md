@@ -63,6 +63,16 @@ and is released under `viewer-v*` tags.
   The controls stay editable rather than the disabled preview GEP-0008
   describes; nothing is submitted either way.
   *(`viewer-v1.4.1`, on its own track.)*
+- **The browser viewer asks for file access when it lacks it.** Without
+  **Allow access to file URLs** a `.geml` opened from disk showed as plain
+  text, with nothing on the page to say why — and the switch belongs to one
+  install, so a fresh install, or a store copy beside an unpacked one, starts
+  with it off. When the extension is installed or updated with the switch off,
+  it now opens a page that says so, opens the extension's details page where
+  the switch is, and shows whether it is on (in Chinese for a Chinese browser,
+  with Edge's name for the switch in Edge). With the switch on, or on a browser
+  update, nothing opens.
+  *(`viewer-v1.4.1`, on its own track.)*
 
 ## [1.13.1] — 2026-11-03
 

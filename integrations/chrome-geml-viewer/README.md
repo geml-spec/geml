@@ -41,7 +41,10 @@ Chrome Web Store.
 **[GEML Viewer on the Chrome Web Store](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)** — one click, and it auto-updates.
 
 To read local files, open the extension's **Details** and turn on **Allow access
-to file URLs**.
+to file URLs**. The extension cannot turn it on itself: when it is installed or
+updated with the switch off, it opens a page that leads to it and shows when it
+is on. The switch belongs to one install — a store copy and an unpacked copy each
+have their own.
 
 ### Load unpacked (development)
 

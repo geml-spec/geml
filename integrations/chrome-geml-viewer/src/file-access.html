@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GEML Viewer</title>
+<style>
+  :root { color-scheme: light dark; --accent: #1f6feb; --ok: #1a7f37; }
+  body { margin: 0; padding: 2.5rem 1.5rem; font: 15px/1.6 system-ui, sans-serif; }
+  main { max-width: 34rem; margin: 0 auto; }
+  h1 { font-size: 1.25rem; margin: 0 0 .75rem; }
+  p { margin: 0 0 1rem; }
+  .muted { opacity: .7; font-size: .9em; }
+  button { font: inherit; padding: .5rem 1rem; border-radius: 6px; border: 0; cursor: pointer;
+           background: var(--accent); color: #fff; }
+  .state { display: flex; align-items: center; gap: .5rem; margin: 1.25rem 0;
+           padding: .6rem .8rem; border-radius: 6px; border: 1px solid rgba(128,128,128,.35); }
+  .dot { width: .6rem; height: .6rem; border-radius: 50%; background: #d29922; flex: none; }
+  .state[data-on="true"] { border-color: var(--ok); }
+  .state[data-on="true"] .dot { background: var(--ok); }
+  code { font-size: .9em; }
+</style>
+<main>
+  <h1 id="title">Let GEML Viewer open .geml files on this computer</h1>
+  <p id="why">The browser keeps extensions away from files on your disk until you allow it. To read a <code>.geml</code> you open from disk (<code>file:///…</code>), turn on <b id="toggle">Allow access to file URLs</b> on the extension's details page.</p>
+  <button id="open">Open the details page</button>
+  <div class="state" id="state" data-on="false"><span class="dot"></span><span id="said">Now: off</span></div>
+  <p class="muted" id="web">.geml files on the web (<code>https://</code>) render without this.</p>
+</main>
+<script src="file-access.js"></script>

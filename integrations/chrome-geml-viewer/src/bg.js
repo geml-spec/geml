@@ -24,6 +24,21 @@ function fileReadAllowed(target, tabUrl) {
   return u.href.startsWith(base.href.slice(0, base.href.lastIndexOf("/") + 1));
 }
 
+// Reading a .geml from disk needs "Allow access to file URLs", which no
+// extension can turn on for itself and every install starts with off — a new
+// install, and a store copy beside an unpacked one, each have their own switch.
+// Without it the content script never runs on a file:// page and the document
+// shows as plain text, with nothing on the page to say why. So when the
+// extension is installed or updated and the switch is off, it opens a page that
+// says so and leads to the switch (src/file-access.html). A browser update or a
+// switch already on opens nothing.
+chrome.runtime.onInstalled.addListener(({ reason }) => {
+  if (reason !== "install" && reason !== "update") return;
+  chrome.extension.isAllowedFileSchemeAccess().then((allowed) => {
+    if (!allowed) chrome.tabs.create({ url: chrome.runtime.getURL("src/file-access.html") });
+  }, () => {});
+});
+
 // A snapshot on its way to a tab that can actually save it.
 //
 // The pages this extension renders are served with `Content-Security-Policy:
