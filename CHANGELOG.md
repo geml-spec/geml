@@ -28,28 +28,6 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
-- **A format reader is handed the `src=` file's real path.**
-  `ParseOptions.sourcePath` — what the CLI and `geml mcp` already resolve a
-  source through — now reaches a reader's `read(text, { path })` too, so a
-  check of its own (Godot's `res://` paths, resolved against the project
-  around the file) sees the file where it is rather than the route as the
-  document wrote it.
-- **A coordinate into another document's `src=` content is checked against
-  that content (spec §5.2).** Checking `other.geml#id[…]` scanned the other
-  document without reading its `src=` files, so `geml check` disagreed with
-  rendering: a coordinate into a `data` block filled from a `.json` file failed
-  as a body that "did not parse" even when the key was there, one into a table
-  filled from a `.csv` file failed as "0 body rows", and one into a format a
-  reader reads (§3.2) was not checked at all. The other document's table and
-  data files are now read before its coordinates resolve — from that
-  document's directory, with the run's readers, each reader handed the file's
-  real path; a view there is still not followed into further documents
-  (§9.3). A view over another document now hands that document's readers
-  their files' real paths as well. The Rust implementation had the same gap —
-  a coordinate into another document's `src=` data or table passed unchecked,
-  right or wrong — and reported a cross-document coordinate whose cell or key
-  is missing as `unresolved-cross-document-reference`; it is
-  `unresolved-reference` (§5.2) in both now, and two conformance cases pin it.
 - **A form block in the browser viewer reads as a form (geml-form/v1,
   GEP-0008).** Its fields were transparent controls with faint borders. A
   `form` is now a card: bold labels with a star on a required field,
@@ -74,7 +52,7 @@ and is released under `viewer-v*` tags.
   update, nothing opens.
   *(`viewer-v1.4.1`, on its own track.)*
 
-## [1.13.1] — 2026-11-03
+## [1.13.1] — 2026-11-10
 
 - **`data` blocks read formats the invoker hands a run, and a coordinate
   edit rewrites a `src=` file (spec §3.2, §8.2(10), §9.1).** `--reader
@@ -115,6 +93,28 @@ and is released under `viewer-v*` tags.
   reads a `#` there as a reference. Three conformance cases hold both
   implementations to all six codes; `geml-parser-rs` takes `regress` for the
   ECMAScript regular expressions.
+- **A format reader is handed the `src=` file's real path.**
+  `ParseOptions.sourcePath` — what the CLI and `geml mcp` already resolve a
+  source through — now reaches a reader's `read(text, { path })` too, so a
+  check of its own (Godot's `res://` paths, resolved against the project
+  around the file) sees the file where it is rather than the route as the
+  document wrote it.
+- **A coordinate into another document's `src=` content is checked against
+  that content (spec §5.2).** Checking `other.geml#id[…]` scanned the other
+  document without reading its `src=` files, so `geml check` disagreed with
+  rendering: a coordinate into a `data` block filled from a `.json` file failed
+  as a body that "did not parse" even when the key was there, one into a table
+  filled from a `.csv` file failed as "0 body rows", and one into a format a
+  reader reads (§3.2) was not checked at all. The other document's table and
+  data files are now read before its coordinates resolve — from that
+  document's directory, with the run's readers, each reader handed the file's
+  real path; a view there is still not followed into further documents
+  (§9.3). A view over another document now hands that document's readers
+  their files' real paths as well. The Rust implementation had the same gap —
+  a coordinate into another document's `src=` data or table passed unchecked,
+  right or wrong — and reported a cross-document coordinate whose cell or key
+  is missing as `unresolved-cross-document-reference`; it is
+  `unresolved-reference` (§5.2) in both now, and two conformance cases pin it.
 
 ## [1.13.0] — 2026-10-27
 
