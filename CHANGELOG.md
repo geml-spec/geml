@@ -40,7 +40,7 @@ and is released under `viewer-v*` tags.
   validating for the handler, which the profile leaves to the handler (§3).
   The controls stay editable rather than the disabled preview GEP-0008
   describes; nothing is submitted either way.
-  *(`viewer-v1.4.1`, on its own track.)*
+  *(`viewer-v1.4.1` and VS Code 1.2.1, on their own tracks.)*
 - **The browser viewer asks for file access when it lacks it.** Without
   **Allow access to file URLs** a `.geml` opened from disk showed as plain
   text, with nothing on the page to say why — and the switch belongs to one
