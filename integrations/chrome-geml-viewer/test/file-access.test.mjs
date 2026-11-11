@@ -1,6 +1,6 @@
 // "Allow access to file URLs" — the switch no extension can turn on for itself.
 // The background worker opens src/file-access.html when the extension is
-// installed or updated with the switch off; the page says why, leads to the
+// installed with the switch off; the page says why, leads to the
 // switch, and shows whether it is on now. Both run here against stubs of the
 // chrome.* calls they make, nothing more.
 import { parseHTML } from "linkedom";
@@ -34,16 +34,16 @@ function worker(allowed) {
   return { opened, fire: async (reason) => { onInstalled({ reason }); await settle(); } };
 }
 
-test("bg: an install or an update with file access off opens the file-access page", async () => {
-  for (const reason of ["install", "update"]) {
-    const w = worker(false);
-    await w.fire(reason);
-    assert.deepEqual(w.opened, ["chrome-extension://abc/src/file-access.html"], reason);
-  }
+test("bg: an install with file access off opens the file-access page", async () => {
+  const w = worker(false);
+  await w.fire("install");
+  assert.deepEqual(w.opened, ["chrome-extension://abc/src/file-access.html"]);
 });
 
-test("bg: with file access on, or on a browser update, nothing opens", async () => {
-  for (const [allowed, reason] of [[true, "install"], [true, "update"], [false, "chrome_update"], [false, "shared_module_update"]]) {
+test("bg: with file access on, or on any update, nothing opens", async () => {
+  // An update with the switch off opens nothing: whoever keeps it off on purpose
+  // would otherwise see the page after every update.
+  for (const [allowed, reason] of [[true, "install"], [true, "update"], [false, "update"], [false, "chrome_update"], [false, "shared_module_update"]]) {
     const w = worker(allowed);
     await w.fire(reason);
     assert.deepEqual(w.opened, [], `${reason}, allowed=${allowed}`);

@@ -51,6 +51,11 @@ and is released under `viewer-v*` tags.
   with Edge's name for the switch in Edge). With the switch on, or on a browser
   update, nothing opens.
   *(`viewer-v1.4.1`, on its own track.)*
+- **The browser viewer's file-access page opens on install only.** In 1.4.1 it
+  also opened after every update while **Allow access to file URLs** was off,
+  so anyone who reads `.geml` only on the web, and keeps the switch off, saw it
+  again with each release. An update now opens nothing.
+  *(`viewer-v1.4.2`, on its own track.)*
 
 ## [1.13.1] — 2026-11-10
 
